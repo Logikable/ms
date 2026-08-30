@@ -144,6 +144,15 @@ int HyperStatLevel(const HyperStatPreset& preset, HyperStatField field) {
   return it->second;
 }
 
+void SetHyperStatLevel(HyperStatPreset& preset, HyperStatField field,
+                       int level) {
+  if (level <= 0) {
+    preset.mutable_levels()->erase(field);
+    return;
+  }
+  (*preset.mutable_levels())[field] = level;
+}
+
 int HyperStatPointsSpent(const HyperStatPreset& preset) {
   int spent = 0;
   for (const std::pair<const int, int>& entry : preset.levels()) {

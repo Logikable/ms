@@ -81,6 +81,11 @@ int HyperStatLevel(const HyperStatPreset& preset, HyperStatField field);
 // What every stat in `preset` has cost altogether.
 int HyperStatPointsSpent(const HyperStatPreset& preset);
 
+// Raises or lowers `field` to `level` in `preset`. A stat set back to zero is
+// dropped, so an allocation carries only what it has spent on.
+void SetHyperStatLevel(HyperStatPreset& preset, HyperStatField field,
+                       int level);
+
 }  // namespace ms
 
 #endif  // MS_SRC_CHARACTER_HYPER_STATS_H_

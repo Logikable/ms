@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "src/character/character.h"
+#include "src/character/hyper_stats.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -173,6 +174,48 @@ TEST_F(SaveTest, WritesAndReadsBackASwitchedOnToggle) {
   std::unique_ptr<GameState> loaded = MakeState(skills);
   ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
   EXPECT_TRUE(loaded->character.SkillToggledOn("Righteously Indignant"));
+}
+
+TEST_F(SaveTest, WritesAndReadsBackBothHyperStatPresets) {
+  std::unique_ptr<GameState> saved = MakeState();
+  Character grown;
+  grown.set_level(160);
+  saved->character.RestoreFrom(grown, saved->equips, saved->items);
+  ASSERT_TRUE(saved->character.AllocateHyperStat(HYPER_STAT_FIELD_EXP,
+                                                 HyperPreset::kFarming, 4));
+  ASSERT_TRUE(saved->character.AllocateHyperStat(HYPER_STAT_FIELD_BOSS_DAMAGE,
+                                                 HyperPreset::kBossing, 5));
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->character.hyper_stat_level(HYPER_STAT_FIELD_EXP,
+                                               HyperPreset::kFarming),
+            4);
+  EXPECT_EQ(loaded->character.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE,
+                                               HyperPreset::kBossing),
+            5);
+  EXPECT_EQ(loaded->character.hyper_stat_points_left(HyperPreset::kFarming),
+            75 - 15);
+}
+
+// A save whose allocation outspends the points the level pays -- an older set
+// of rules, or a hand-edited file. Loading trims it rather than letting the
+// character keep what they never earned.
+TEST_F(SaveTest, ASaveWithOverspentHyperStatsIsTrimmed) {
+  std::unique_ptr<GameState> saved = MakeState();
+  Character grown;
+  grown.set_level(145);
+  (*grown.mutable_hyper_stats()
+        ->mutable_farming()
+        ->mutable_levels())[HYPER_STAT_FIELD_DAMAGE] = 10;
+  saved->character.RestoreFrom(grown, saved->equips, saved->items);
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_LE(loaded->character.hyper_stat_level(HYPER_STAT_FIELD_DAMAGE), 5);
+  EXPECT_GE(loaded->character.hyper_stat_points_left(), 0);
 }
 
 TEST_F(SaveTest, WritesAndReadsBackTheUsername) {

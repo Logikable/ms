@@ -13,6 +13,7 @@
 #include "absl/types/span.h"
 #include "src/character/arcane_force.h"
 #include "src/character/exp_table.h"
+#include "src/character/hyper_stats.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
 #include "src/item/inventory.h"
@@ -1200,6 +1201,113 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
   }
   character_.set_ap(character_.ap() - amount);
   return true;
+}
+
+int CharacterInstance::hyper_stat_points() const {
+  return TotalHyperStatPoints(character_.level());
+}
+
+int CharacterInstance::hyper_stat_points_left(HyperPreset preset) const {
+  return hyper_stat_points() -
+         HyperStatPointsSpent(PresetOf(character_.hyper_stats(), preset));
+}
+
+int CharacterInstance::hyper_stat_level(HyperStatField field,
+                                        HyperPreset preset) const {
+  return HyperStatLevel(PresetOf(character_.hyper_stats(), preset), field);
+}
+
+double CharacterInstance::hyper_stat_bonus(HyperStatField field,
+                                           HyperPreset preset) const {
+  return HyperStatBonus(field, hyper_stat_level(field, preset));
+}
+
+int CharacterInstance::max_hyper_stat_level() const {
+  return MaxHyperStatLevel(character_.job_stage());
+}
+
+bool CharacterInstance::AllocateHyperStat(HyperStatField field,
+                                          HyperPreset preset, int amount) {
+  if (amount <= 0 || !HyperStatUnlocked(field, character_.level())) {
+    return false;
+  }
+  int level = hyper_stat_level(field, preset);
+  if (level + amount > max_hyper_stat_level()) {
+    return false;
+  }
+  // Every level of the run is priced, since each one costs more than the last.
+  int price = HyperStatTotalCost(level + amount) - HyperStatTotalCost(level);
+  if (price > hyper_stat_points_left(preset)) {
+    return false;
+  }
+  SetHyperStatLevel(PresetOf(*character_.mutable_hyper_stats(), preset), field,
+                    level + amount);
+  return true;
+}
+
+void CharacterInstance::ResetHyperStats(HyperPreset preset) {
+  PresetOf(*character_.mutable_hyper_stats(), preset).clear_levels();
+}
+
+int CharacterInstance::ReconcileHyperPreset(HyperPreset preset) {
+  HyperStatPreset& allocation =
+      PresetOf(*character_.mutable_hyper_stats(), preset);
+  int moved = 0;
+  // The stats to walk, in enum order, so two saves in the same state are
+  // corrected the same way.
+  std::vector<int> fields;
+  for (const std::pair<const int, int>& entry : allocation.levels()) {
+    fields.push_back(entry.first);
+  }
+  std::sort(fields.begin(), fields.end());
+  for (int key : fields) {
+    HyperStatField field = static_cast<HyperStatField>(key);
+    int level = allocation.levels().at(key);
+    int allowed = std::min(std::max(0, level), max_hyper_stat_level());
+    // A stat the data no longer names, or one this character's level has
+    // closed, keeps nothing.
+    if (!HyperStatField_IsValid(key) ||
+        !HyperStatUnlocked(field, character_.level())) {
+      allowed = 0;
+    }
+    if (allowed == level) {
+      continue;
+    }
+    moved += HyperStatTotalCost(level) - HyperStatTotalCost(allowed);
+    SetHyperStatLevel(allocation, field, allowed);
+  }
+  // What is left may still outspend the pool -- a save from a level cap that
+  // has since come down. The highest level goes first: it is the dearest one,
+  // so the fewest of them are taken.
+  while (HyperStatPointsSpent(allocation) > hyper_stat_points()) {
+    int dearest = 0;
+    int at = 0;
+    for (const std::pair<const int, int>& entry : allocation.levels()) {
+      if (entry.second > at) {
+        dearest = entry.first;
+        at = entry.second;
+      }
+    }
+    if (at <= 0) {
+      break;
+    }
+    moved += HyperStatLevelCost(at);
+    SetHyperStatLevel(allocation, static_cast<HyperStatField>(dearest), at - 1);
+  }
+  return moved;
+}
+
+int CharacterInstance::ReconcileHyperStats() {
+  int moved = 0;
+  const HyperPreset presets[] = {HyperPreset::kFarming, HyperPreset::kBossing};
+  for (HyperPreset preset : presets) {
+    moved += ReconcileHyperPreset(preset);
+  }
+  if (moved > 0) {
+    LOG(WARNING) << "Character Hyper Stats were over by " << moved
+                 << " points at level " << character_.level() << "; correcting";
+  }
+  return moved;
 }
 
 bool CharacterInstance::HasAdvancement(JobAdvancement advancement) const {

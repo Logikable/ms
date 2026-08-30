@@ -10,6 +10,7 @@
 
 #include "src/character/arcane_force.h"
 #include "src/character/exp_table.h"
+#include "src/character/hyper_stats.h"
 #include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
@@ -90,6 +91,96 @@ Skill MakeSkill(const std::string& name, JobAdvancement advancement,
 // Fixture for AllocateStat tests. Each test needs a different ap value, so
 // c_ is created locally per test using rng_.
 class AllocateStatTest : public CharacterTest {};
+
+// Fixture for the Hyper Stat tests: a character at whatever level the test
+// wants, since the level is what pays the points.
+class HyperStatTest : public CharacterTest {};
+
+TEST_F(HyperStatTest, PointsArriveWithTheLevel) {
+  CharacterInstance below = MakeCharacter(rng_, /*level=*/139);
+  EXPECT_EQ(below.hyper_stat_points(), 0);
+  EXPECT_FALSE(
+      below.AllocateHyperStat(HYPER_STAT_FIELD_STR, HyperPreset::kFarming));
+
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/140);
+  EXPECT_EQ(c.hyper_stat_points(), 3);
+  EXPECT_EQ(c.hyper_stat_points_left(HyperPreset::kFarming), 3);
+  EXPECT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_STR, HyperPreset::kFarming));
+  EXPECT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_STR, HyperPreset::kFarming));
+  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_STR), 2);
+  EXPECT_EQ(c.hyper_stat_points_left(), 0) << "level 2 costs the other two";
+  EXPECT_DOUBLE_EQ(c.hyper_stat_bonus(HYPER_STAT_FIELD_STR), 60.0);
+  EXPECT_FALSE(
+      c.AllocateHyperStat(HYPER_STAT_FIELD_DEX, HyperPreset::kFarming));
+}
+
+TEST_F(HyperStatTest, RaisingSeveralLevelsIsAllOrNothing) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/150);
+  EXPECT_EQ(c.hyper_stat_points(), 34);
+  EXPECT_FALSE(
+      c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, HyperPreset::kFarming, 6))
+      << "level 6 costs 40 altogether";
+  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_DAMAGE), 0);
+  EXPECT_TRUE(
+      c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, HyperPreset::kFarming, 5));
+  EXPECT_EQ(c.hyper_stat_points_left(), 9);
+}
+
+TEST_F(HyperStatTest, StatsStopAtTheCapAndArcaneForceAtLevel200) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/199);
+  EXPECT_EQ(c.max_hyper_stat_level(), 10) << "no character takes a 5th job";
+  EXPECT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_CRIT_RATE,
+                                  HyperPreset::kBossing, 10));
+  EXPECT_FALSE(
+      c.AllocateHyperStat(HYPER_STAT_FIELD_CRIT_RATE, HyperPreset::kBossing));
+  EXPECT_DOUBLE_EQ(
+      c.hyper_stat_bonus(HYPER_STAT_FIELD_CRIT_RATE, HyperPreset::kBossing),
+      15.0);
+  EXPECT_FALSE(c.AllocateHyperStat(HYPER_STAT_FIELD_ARCANE_FORCE,
+                                   HyperPreset::kBossing));
+  c.LevelUp();
+  EXPECT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_ARCANE_FORCE,
+                                  HyperPreset::kBossing));
+}
+
+// Each preset spends the same pool on its own, and a reset gives it all back.
+TEST_F(HyperStatTest, PresetsSpendApartAndResetFree) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
+  ASSERT_TRUE(
+      c.AllocateHyperStat(HYPER_STAT_FIELD_EXP, HyperPreset::kFarming, 5));
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_BOSS_DAMAGE,
+                                  HyperPreset::kBossing, 5));
+  EXPECT_EQ(c.hyper_stat_points_left(HyperPreset::kFarming),
+            c.hyper_stat_points_left(HyperPreset::kBossing));
+  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_EXP, HyperPreset::kBossing), 0);
+
+  c.ResetHyperStats(HyperPreset::kFarming);
+  EXPECT_EQ(c.hyper_stat_points_left(HyperPreset::kFarming),
+            c.hyper_stat_points());
+  EXPECT_EQ(
+      c.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE, HyperPreset::kBossing),
+      5)
+      << "the other allocation is untouched";
+}
+
+// A save from older rules: a stat past the cap, one the level has closed, and
+// an allocation that outspends the pool.
+TEST_F(HyperStatTest, ReconcileTrimsAnAllocationBackToThePool) {
+  Character proto;
+  proto.set_level(150);
+  HyperStatPreset& farming = *proto.mutable_hyper_stats()->mutable_farming();
+  (*farming.mutable_levels())[HYPER_STAT_FIELD_STR] = 14;
+  (*farming.mutable_levels())[HYPER_STAT_FIELD_ARCANE_FORCE] = 3;
+  (*farming.mutable_levels())[HYPER_STAT_FIELD_DAMAGE] = 8;
+  CharacterInstance c(rng_, std::move(proto));
+
+  EXPECT_GT(c.ReconcileHyperStats(), 0);
+  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_ARCANE_FORCE), 0)
+      << "level 150 has not opened it";
+  EXPECT_LE(c.hyper_stat_level(HYPER_STAT_FIELD_STR), 10);
+  EXPECT_GE(c.hyper_stat_points_left(), 0);
+  EXPECT_EQ(c.ReconcileHyperStats(), 0) << "a balanced book stays put";
+}
 
 // Shared fixture for tests that operate on a character with a sword prototype.
 // Provides c_ (fresh level-1 character) and sword_ (named "Sword", primary

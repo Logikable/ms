@@ -9,6 +9,7 @@ cc_library(
     deps = [
         ":arcane_force",
         ":exp_table",
+        ":hyper_stats",
         "//src/item",
         "//src/item:equip_instance",
         "//src/item:equip_stats",

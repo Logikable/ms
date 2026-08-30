@@ -147,6 +147,7 @@ cc_test(
         ":game_state",
         ":save",
         "//src/character",
+        "//src/character:hyper_stats",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

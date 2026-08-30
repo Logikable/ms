@@ -15,6 +15,7 @@
 #include <random>
 #include <vector>
 
+#include "src/character/hyper_stats.h"
 #include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
@@ -174,6 +175,14 @@ class CharacterInstance {
   // the character is below skill.required_level(), or it would raise the level
   // past skill.max_level().
   bool LearnSkill(const Skill& skill, int amount = 1);
+  // Raises `field` by `amount` levels in `preset`, spending the points every
+  // one of them costs. All or nothing: returns false and spends nothing when
+  // the stat is locked, the levels would pass the cap, or the pool is short.
+  bool AllocateHyperStat(HyperStatField field, HyperPreset preset,
+                         int amount = 1);
+  // Puts every point in `preset` back in the pool. Free, and the only way out
+  // of an allocation.
+  void ResetHyperStats(HyperPreset preset);
   // Returns true if the character meets the level and job requirements to
   // equip the item described by `proto`. Asked of the catalog as much as of
   // the bag, so it says nothing about whether a slot is free for it -- that
@@ -362,6 +371,20 @@ class CharacterInstance {
   int hyper_sp() const {
     return character_.hyper_sp();
   }
+  // Every Hyper Stat point the character's level has ever paid out.
+  int hyper_stat_points() const;
+  // What is left of them once `preset` is paid for.
+  int hyper_stat_points_left(HyperPreset preset = HyperPreset::kFarming) const;
+  // The level `field` is raised to in `preset`.
+  int hyper_stat_level(HyperStatField field,
+                       HyperPreset preset = HyperPreset::kFarming) const;
+  // What `field` is worth to this character right now, in the units the stat
+  // is stated in. Zero for one they have not raised.
+  double hyper_stat_bonus(HyperStatField field,
+                          HyperPreset preset = HyperPreset::kFarming) const;
+  // The highest level any of their stats may reach.
+  int max_hyper_stat_level() const;
+
   // The points `skill` is bought with: the Hyper pool for a Hyper Skill, and
   // its job stage's for every other. Asked here so the panel offering the
   // skill, the screen counting out the points and LearnSkill itself cannot
@@ -435,6 +458,13 @@ class CharacterInstance {
   // SP its levels pay always has somewhere to put them, so the pool is only
   // the last resort. Called on loading a save, beside ReconcileAp.
   int ReconcileSkills(const std::map<std::string, Skill>& skills);
+
+  // Puts both Hyper Stat allocations back inside what the character's level
+  // has paid for, and returns how many points had to move. A stat past the
+  // level cap is cut to it, a locked one is emptied, and an allocation that
+  // outspends the pool gives up its highest levels first -- they are the
+  // expensive ones. Called on loading a save, beside ReconcileAp.
+  int ReconcileHyperStats();
 
   // Sum of stats from all currently equipped items. Updated automatically by
   // Equip, Unequip, and ScrollEquipped.
@@ -524,6 +554,9 @@ class CharacterInstance {
   bool BuyBackStack(int index, const BuyBackEntry& entry, int count,
                     const std::map<std::string, ItemPrototype>& items);
 
+  // One allocation's half of ReconcileHyperStats, returning the points it had
+  // to take back.
+  int ReconcileHyperPreset(HyperPreset preset);
   // Recomputes equip_stats_, arcane_force_ and set_bonuses_ from the current
   // equipped map.
   void RecomputeEquipStats();
