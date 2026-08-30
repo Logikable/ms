@@ -91,6 +91,9 @@ std::vector<StatLine> CombatStatLines(
     if (with_advanced) {
       lines.push_back(
           {"Boss Damage", Percent(e.boss_damage() / 100.0 + derived.boss_pct)});
+      // Its mirror, and only a Hyper Stat grants it. Beside boss damage
+      // because the pair says which half of the game a build is aimed at.
+      lines.push_back({"Normal Damage", Percent(derived.normal_pct)});
       // What gear and skills come to between them, which is not their sum.
       // Shortened to seat the 16-column label: "Ignore Enemy Defense" is 20.
       lines.push_back(

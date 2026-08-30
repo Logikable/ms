@@ -104,13 +104,13 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
   // the All Stats screen pairs it two to a row. Both depend on this order.
   // The empty label is the rule between the combat stats and the three that
   // are not about a fight.
-  EXPECT_EQ(labels,
-            (std::vector<std::string>{
-                "Attack", "Magic Attack", "Damage", "Final Damage",
-                "Boss Damage", "Ignore DEF", "Critical Rate", "Critical Damage",
-                "Buff Duration", "Attack Speed", "", "Meso Drop Rate",
-                "Item Drop Rate", "Additional EXP", "Arcane Force"}));
-  EXPECT_TRUE(lines[10].rule) << "the empty row is the rule, not a blank stat";
+  EXPECT_EQ(labels, (std::vector<std::string>{
+                        "Attack", "Magic Attack", "Damage", "Final Damage",
+                        "Boss Damage", "Normal Damage", "Ignore DEF",
+                        "Critical Rate", "Critical Damage", "Buff Duration",
+                        "Attack Speed", "", "Meso Drop Rate", "Item Drop Rate",
+                        "Additional EXP", "Arcane Force"}));
+  EXPECT_TRUE(lines[11].rule) << "the empty row is the rule, not a blank stat";
 }
 
 // The panel's list is the same one, opened up by the advancements. The All
@@ -121,7 +121,7 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   proto.set_job(JOB_BEGINNER);
   CharacterInstance beginner(rng_, std::move(proto));
   EXPECT_TRUE(PanelExtraStatLines(beginner, account_, {}).empty());
-  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 15u);
+  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 16u);
 
   CharacterInstance first = MakeWarrior();
   std::vector<std::string> labels;
@@ -145,7 +145,7 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   third_proto.set_job(JOB_BERSERKER);
   third_proto.set_job_stage(3);
   CharacterInstance third(rng_, std::move(third_proto));
-  EXPECT_EQ(PanelExtraStatLines(third, account_, {}).size(), 15u);
+  EXPECT_EQ(PanelExtraStatLines(third, account_, {}).size(), 16u);
 }
 
 TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {

@@ -74,11 +74,11 @@ TEST_F(AllStatsPanelTest, PairsTheStatsTwoToARow) {
             std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Damage").find("Final Damage"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Critical Rate").find("Critical Damage"),
+  EXPECT_NE(RowWith(panel.Render(), "Boss Damage").find("Normal Damage"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Boss Damage").find("Ignore DEF"),
+  EXPECT_NE(RowWith(panel.Render(), "Ignore DEF").find("Critical Rate"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Buff Duration").find("Attack Speed"),
+  EXPECT_NE(RowWith(panel.Render(), "Critical Damage").find("Buff Duration"),
             std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Meso Drop Rate").find("Item Drop Rate"),
             std::string::npos);

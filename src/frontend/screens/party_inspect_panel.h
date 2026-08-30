@@ -35,9 +35,9 @@ class PartyInspectPanel {
   static constexpr int kListRows = 8;
   // The rows everything but the item list takes: both windows' borders, the
   // three heading rows, the two rules between the stat blocks, the three
-  // rows of main stats, the eight of extras, and the Equipped column header
+  // rows of main stats, the nine of extras, and the Equipped column header
   // with its rule.
-  static constexpr int kFixedRows = 22;
+  static constexpr int kFixedRows = 23;
   // The shortest the item list is ever squeezed to. Past this the screen is
   // clipped instead: a list of one row says less than the terminal is small.
   static constexpr int kLeastListRows = 3;
