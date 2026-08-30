@@ -461,15 +461,14 @@ TEST_F(ScrollPanelTest, TheConfirmWindowWillNotAnswerYesUnpaid) {
                    SCROLL_TARGET_WEAPON);
   OpenConfirmThroughTheMenu(&panel_);
   ASSERT_TRUE(panel_.IsConfirming());
-  panel_.OnEvent(ftxui::Event::Return);  // answer yes with nothing to pay with
-  EXPECT_FALSE(panel_.TakeConfirmed());
+  // Answer yes with nothing to pay with. The window stays up rather than
+  // vanishing as though something happened.
+  EXPECT_EQ(panel_.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
+  EXPECT_TRUE(panel_.IsConfirming());
 
-  // The refused answer closed the window, so paying for it means walking the
-  // menu again.
+  // And the same key answers the moment the traces are there.
   GiveTraces(kAaaCost);
-  OpenConfirmThroughTheMenu(&panel_);
-  panel_.OnEvent(ftxui::Event::Return);
-  EXPECT_TRUE(panel_.TakeConfirmed());
+  EXPECT_EQ(panel_.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
 
 TEST_F(ScrollPanelTest, TheConfirmWindowShowsTheCost) {

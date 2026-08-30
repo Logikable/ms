@@ -5,8 +5,9 @@
  * foot opens an "Are you sure?" dialog over the list.
  *
  * The panel marks and totals; it never sells. Reset() opens it on the row the
- * player chose Multi-Sell on, with that row already marked, TakeConfirmed()
- * reports the answer once, and the caller hands basket() to SellBasket().
+ * player chose Multi-Sell on, with that row already marked, OnEvent answers
+ * with the ConfirmChoice every dialog in the game answers with, and the caller
+ * hands basket() to SellBasket().
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_MULTI_SELL_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_MULTI_SELL_PANEL_H_
@@ -65,7 +66,7 @@ class MultiSellPanel {
   ftxui::Element Render();
   // The "Are you sure?" dialog, drawn by the caller over the list.
   ftxui::Element RenderConfirm() const;
-  bool OnEvent(ftxui::Event event);
+  ConfirmChoice OnEvent(ftxui::Event event);
 
   const SaleBasket& basket() const {
     return basket_;
@@ -76,8 +77,6 @@ class MultiSellPanel {
   }
   // Each returns true once: the player went through with the sale, or left
   // without one.
-  bool TakeConfirmed();
-  bool TakeCancelled();
 
  private:
   // The vertical focus zones, as one ring: the tab bar on top, the rows below
@@ -113,8 +112,6 @@ class MultiSellPanel {
   int active_tab_ = kEquipTab;
   int selected_ = 0;
   bool cancel_focused_ = false;
-  bool confirmed_ = false;
-  bool cancelled_ = false;
   ConfirmPrompt confirm_;
   // When the selection last moved, for sliding a long name under its column.
   SelectionClock name_clock_;

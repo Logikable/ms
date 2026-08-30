@@ -5,7 +5,8 @@
  * each is not a thing to ask of anybody.
  *
  * The panel owns no game state: Reset() seeds it, quantity() reports the
- * choice, and TakeConfirmed() / TakeCancelled() each return true once.
+ * choice, and OnEvent answers with the ConfirmChoice every dialog answers
+ * with.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_SYMBOL_COMBINE_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SYMBOL_COMBINE_PANEL_H_
@@ -25,12 +26,10 @@ class SymbolCombinePanel {
   void Reset(const std::string& symbol_name, int level, int exp, int needed,
              int spares);
   ftxui::Element Render() const;
-  bool OnEvent(ftxui::Event event);
+  ConfirmChoice OnEvent(ftxui::Event event);
   int quantity() const {
     return selector_.value();
   }
-  bool TakeConfirmed();
-  bool TakeCancelled();
 
  private:
   std::string symbol_name_;

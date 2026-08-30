@@ -87,10 +87,13 @@ class MultiSellTest : public PanelTest {
     return -1;
   }
 
-  void Press(MultiSellPanel& panel, ftxui::Event event, int times = 1) {
+  ConfirmChoice Press(MultiSellPanel& panel, ftxui::Event event,
+                      int times = 1) {
+    ConfirmChoice choice = ConfirmChoice::kPending;
     for (int i = 0; i < times; ++i) {
-      panel.OnEvent(event);
+      choice = panel.OnEvent(event);
     }
+    return choice;
   }
 };
 
@@ -200,9 +203,8 @@ TEST_F(MultiSellTest, ConfirmDoesNothingWithAnEmptyBasket) {
   panel.Reset(kEquipTab, 0);
   Press(panel, ftxui::Event::Return);  // unmark the only row
   Press(panel, ftxui::Event::ArrowDown);
-  Press(panel, ftxui::Event::Return);
+  EXPECT_EQ(Press(panel, ftxui::Event::Return), ConfirmChoice::kPending);
   EXPECT_FALSE(panel.confirming());
-  EXPECT_FALSE(panel.TakeConfirmed());
 }
 
 TEST_F(MultiSellTest, TheDialogOpensOnConfirm) {
@@ -212,23 +214,19 @@ TEST_F(MultiSellTest, TheDialogOpensOnConfirm) {
   Press(panel, ftxui::Event::ArrowDown);
   Press(panel, ftxui::Event::Return);
   // Escape backs out of the dialog without selling, and leaves the screen up.
-  Press(panel, ftxui::Event::Escape);
+  EXPECT_EQ(Press(panel, ftxui::Event::Escape), ConfirmChoice::kPending);
   EXPECT_FALSE(panel.confirming());
-  EXPECT_FALSE(panel.TakeConfirmed());
-  EXPECT_FALSE(panel.TakeCancelled());
   // Enter on the button row opens it again, and Enter answers it: the cursor
   // is already on Confirm.
   Press(panel, ftxui::Event::Return);
-  Press(panel, ftxui::Event::Return);
-  EXPECT_TRUE(panel.TakeConfirmed());
+  EXPECT_EQ(Press(panel, ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
 
 TEST_F(MultiSellTest, EscapeLeavesTheScreen) {
   GiveEquip("Sword", 1000);
   MultiSellPanel panel(c_);
   panel.Reset(kEquipTab, 0);
-  Press(panel, ftxui::Event::Escape);
-  EXPECT_TRUE(panel.TakeCancelled());
+  EXPECT_EQ(Press(panel, ftxui::Event::Escape), ConfirmChoice::kCancelled);
 }
 
 TEST_F(MultiSellTest, TheHeaderCarriesTheMesoAndTheRunningTotal) {

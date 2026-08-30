@@ -594,7 +594,7 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     screen_ = kItemMenu;
     return true;
   }
-  scroll_panel_.OnEvent(event);
+  ConfirmChoice choice = scroll_panel_.OnEvent(event);
   if (scroll_panel_.TakePinToggled()) {
     // The panel reads the pin but never writes it: the record is the
     // character's and rides the save.
@@ -623,7 +623,7 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     }
     scroll_panel_.OpenConfirm();
   }
-  if (scroll_panel_.TakeConfirmed()) {
+  if (choice == ConfirmChoice::kConfirmed) {
     const EquipInstance* item = scroll_ref_.GetInstance(state_.character);
     std::string equip_name = item->prototype().name();
     const Scroll& scroll = scroll_panel_.selected_scroll();
@@ -652,22 +652,22 @@ bool TuiController::OnScrollResultEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnApAllocEvent(ftxui::Event event) {
-  ap_selector_.OnEvent(event);
-  if (ap_selector_.TakeConfirmed()) {
+  ConfirmChoice choice = ap_selector_.OnEvent(event);
+  if (choice == ConfirmChoice::kConfirmed) {
     state_.character.AllocateStat(ap_field_, ap_selector_.value());
     screen_ = kMain;
-  } else if (ap_selector_.TakeCancelled()) {
+  } else if (choice == ConfirmChoice::kCancelled) {
     screen_ = kMain;
   }
   return true;
 }
 
 bool TuiController::OnSkillLearnEvent(ftxui::Event event) {
-  sp_selector_.OnEvent(event);
-  if (sp_selector_.TakeConfirmed()) {
+  ConfirmChoice choice = sp_selector_.OnEvent(event);
+  if (choice == ConfirmChoice::kConfirmed) {
     state_.character.LearnSkill(skill_learn_, sp_selector_.value());
     screen_ = kMain;
-  } else if (sp_selector_.TakeCancelled()) {
+  } else if (choice == ConfirmChoice::kCancelled) {
     screen_ = kMain;
   }
   return true;
@@ -815,12 +815,12 @@ bool TuiController::OnStarForceEvent(ftxui::Event event) {
   if (item->stars() >= item->max_stars()) {
     return true;
   }
-  star_force_panel_.OnEvent(event);
-  if (star_force_panel_.TakeCancelled()) {
+  ConfirmChoice choice = star_force_panel_.OnEvent(event);
+  if (choice == ConfirmChoice::kCancelled) {
     screen_ = kMain;
     return true;
   }
-  if (star_force_panel_.TakeConfirmed()) {
+  if (choice == ConfirmChoice::kConfirmed) {
     std::string equip_name = item->prototype().name();
     int stars_before = item->stars();
     StarForceOutcome outcome = StarForceItem(state_.character, star_force_ref_);
@@ -890,8 +890,7 @@ bool TuiController::OnTraceRecoverEvent(ftxui::Event event) {
     screen_ = kItemMenu;
     return true;
   }
-  trace_recover_panel_.OnEvent(event);
-  if (trace_recover_panel_.TakeConfirmed()) {
+  if (trace_recover_panel_.OnEvent(event) == ConfirmChoice::kConfirmed) {
     int base_index = trace_recover_panel_.selected_index();
     std::string equip_name =
         state_.character.inventory()[trace_index_].prototype().name();
@@ -1802,27 +1801,27 @@ void TuiController::BuyWhatTheDialogAgreedTo() {
 }
 
 bool TuiController::OnShopBuyEvent(ftxui::Event event) {
-  buy_panel_.OnEvent(event);
+  ConfirmChoice buy_choice = buy_panel_.OnEvent(event);
   // Taken once: both of these answer true only on the frame the player
   // pressed, and asking twice throws the answer away.
-  if (buy_panel_.TakeConfirmed()) {
+  if (buy_choice == ConfirmChoice::kConfirmed) {
     BuyWhatTheDialogAgreedTo();
     // Back to the shop rather than the bag: a player buying one thing is
     // usually buying two.
     screen_ = kShop;
-  } else if (buy_panel_.TakeCancelled()) {
+  } else if (buy_choice == ConfirmChoice::kCancelled) {
     screen_ = kShop;
   }
   return true;
 }
 
 bool TuiController::OnSellEvent(ftxui::Event event) {
-  sell_panel_.OnEvent(event);
-  if (sell_panel_.TakeConfirmed()) {
+  ConfirmChoice sell_choice = sell_panel_.OnEvent(event);
+  if (sell_choice == ConfirmChoice::kConfirmed) {
     state_.character.SellStackable(sell_category_, sell_index_,
                                    sell_panel_.quantity());
     screen_ = kMain;
-  } else if (sell_panel_.TakeCancelled()) {
+  } else if (sell_choice == ConfirmChoice::kCancelled) {
     screen_ = kMain;
   }
   return true;
@@ -1877,23 +1876,23 @@ bool TuiController::OnHyperResetEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnSymbolCombineEvent(ftxui::Event event) {
-  symbol_combine_panel_.OnEvent(event);
-  if (symbol_combine_panel_.TakeConfirmed()) {
+  ConfirmChoice choice = symbol_combine_panel_.OnEvent(event);
+  if (choice == ConfirmChoice::kConfirmed) {
     state_.character.CombineSymbols(symbol_slot_,
                                     symbol_combine_panel_.quantity());
     screen_ = kMain;
-  } else if (symbol_combine_panel_.TakeCancelled()) {
+  } else if (choice == ConfirmChoice::kCancelled) {
     screen_ = kMain;
   }
   return true;
 }
 
 bool TuiController::OnMultiSellEvent(ftxui::Event event) {
-  multi_sell_panel_.OnEvent(event);
-  if (multi_sell_panel_.TakeConfirmed()) {
+  ConfirmChoice choice = multi_sell_panel_.OnEvent(event);
+  if (choice == ConfirmChoice::kConfirmed) {
     SellBasket(state_.character, multi_sell_panel_.basket());
     screen_ = kMain;
-  } else if (multi_sell_panel_.TakeCancelled()) {
+  } else if (choice == ConfirmChoice::kCancelled) {
     screen_ = kMain;
   }
   return true;

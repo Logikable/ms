@@ -72,8 +72,6 @@ void AmountSelector::Reset(int max, int initial) {
   max_ = max;
   value_ = std::clamp(initial, 0, max);
   focus_ = kQty;  // Start in the textbox.
-  confirmed_ = false;
-  cancelled_ = false;
   confirm_enabled_ = true;
 }
 
@@ -107,7 +105,7 @@ ftxui::Element AmountSelector::Render() const {
   });
 }
 
-void AmountSelector::Activate() {
+ConfirmChoice AmountSelector::Activate() {
   if (focus_ == kOne) {
     value_ = 1;
   } else if (focus_ == kMax) {
@@ -115,17 +113,18 @@ void AmountSelector::Activate() {
   } else if (focus_ == kConfirm) {
     // A dimmed Confirm is inert rather than merely unhelpful: the caller has
     // said it cannot honour this amount, so pressing it must not report one.
-    confirmed_ = confirm_enabled_;
+    return confirm_enabled_ ? ConfirmChoice::kConfirmed
+                            : ConfirmChoice::kPending;
   } else if (focus_ == kCancel) {
-    cancelled_ = true;
+    return ConfirmChoice::kCancelled;
   }
   // Enter on the textbox does nothing.
+  return ConfirmChoice::kPending;
 }
 
-bool AmountSelector::OnEvent(ftxui::Event event) {
+ConfirmChoice AmountSelector::OnEvent(ftxui::Event event) {
   if (event == ftxui::Event::Escape) {
-    cancelled_ = true;
-    return true;
+    return ConfirmChoice::kCancelled;
   }
   if (event == ftxui::Event::ArrowLeft) {
     if (focus_ == kMax) {
@@ -135,7 +134,7 @@ bool AmountSelector::OnEvent(ftxui::Event event) {
     } else if (focus_ == kCancel) {
       focus_ = kConfirm;
     }
-    return true;
+    return ConfirmChoice::kPending;
   }
   if (event == ftxui::Event::ArrowRight) {
     if (focus_ == kOne) {
@@ -145,13 +144,13 @@ bool AmountSelector::OnEvent(ftxui::Event event) {
     } else if (focus_ == kConfirm) {
       focus_ = kCancel;
     }
-    return true;
+    return ConfirmChoice::kPending;
   }
   if (event == ftxui::Event::ArrowUp) {
     if (focus_ == kConfirm || focus_ == kCancel) {
       focus_ = kQty;
     }
-    return true;
+    return ConfirmChoice::kPending;
   }
   if (event == ftxui::Event::ArrowDown) {
     if (focus_ == kQty || focus_ == kOne) {
@@ -159,11 +158,10 @@ bool AmountSelector::OnEvent(ftxui::Event event) {
     } else if (focus_ == kMax) {
       focus_ = kCancel;
     }
-    return true;
+    return ConfirmChoice::kPending;
   }
   if (IsForward(event)) {
-    Activate();
-    return true;
+    return Activate();
   }
   // The value is editable only while the textbox is selected.
   if (focus_ == kQty) {
@@ -171,30 +169,18 @@ bool AmountSelector::OnEvent(ftxui::Event event) {
     // player binds it to Cancel, which is why Delete does the job too.
     if (event == ftxui::Event::Delete || event == ftxui::Event::Backspace) {
       value_ /= 10;
-      return true;
+      return ConfirmChoice::kPending;
     }
     if (event.is_character() && event.character().size() == 1) {
       char c = event.character()[0];
       if (c >= '0' && c <= '9') {
         int64_t next = static_cast<int64_t>(value_) * 10 + (c - '0');
         value_ = static_cast<int>(std::min<int64_t>(next, max_));
-        return true;
+        return ConfirmChoice::kPending;
       }
     }
   }
-  return false;
-}
-
-bool AmountSelector::TakeConfirmed() {
-  bool v = confirmed_;
-  confirmed_ = false;
-  return v;
-}
-
-bool AmountSelector::TakeCancelled() {
-  bool v = cancelled_;
-  cancelled_ = false;
-  return v;
+  return ConfirmChoice::kPending;
 }
 
 }  // namespace ms

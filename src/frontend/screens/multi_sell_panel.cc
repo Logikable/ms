@@ -126,8 +126,6 @@ void MultiSellPanel::Reset(int tab, int row) {
   selected_ = std::max(0, row);
   zone_ = kZoneList;
   cancel_focused_ = false;
-  confirmed_ = false;
-  cancelled_ = false;
   confirm_.Close();
   if (Markable(selected_)) {
     basket_.For(active_tab_).insert(selected_);
@@ -207,59 +205,43 @@ int64_t MultiSellPanel::Total() const {
   return BasketTotal(character_, basket_);
 }
 
-bool MultiSellPanel::TakeConfirmed() {
-  bool taken = confirmed_;
-  confirmed_ = false;
-  return taken;
-}
-
-bool MultiSellPanel::TakeCancelled() {
-  bool taken = cancelled_;
-  cancelled_ = false;
-  return taken;
-}
-
-bool MultiSellPanel::OnEvent(ftxui::Event event) {
+ConfirmChoice MultiSellPanel::OnEvent(ftxui::Event event) {
+  // The prompt's own Cancel closes the prompt and no more: the player is
+  // backing out of the question, not out of the screen.
   if (confirm_.open()) {
-    ConfirmChoice choice = confirm_.OnEvent(event);
-    if (choice == ConfirmChoice::kConfirmed) {
-      confirmed_ = true;
-    }
-    return true;
+    ConfirmChoice choice = confirm_.OnEvent(std::move(event));
+    return choice == ConfirmChoice::kConfirmed ? choice
+                                               : ConfirmChoice::kPending;
   }
   if (IsBack(event)) {
-    cancelled_ = true;
-    return true;
+    return ConfirmChoice::kCancelled;
   }
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
-    return true;
-  }
-  if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
+  } else if (event == ftxui::Event::ArrowLeft ||
+             event == ftxui::Event::ArrowRight) {
     int direction = event == ftxui::Event::ArrowLeft ? -1 : 1;
     if (zone_ == kZoneTabs) {
       StepTab(direction);
     } else if (zone_ == kZoneButtons) {
       cancel_focused_ = direction > 0;
     }
-    return true;
-  }
-  if (IsForward(event)) {
+  } else if (IsForward(event)) {
     if (zone_ == kZoneList) {
       ToggleMark();
     } else if (zone_ == kZoneButtons) {
       if (cancel_focused_) {
-        cancelled_ = true;
-      } else if (!basket_.empty()) {
+        return ConfirmChoice::kCancelled;
+      }
+      if (!basket_.empty()) {
         // Confirm is where the cursor lands. The player marked every row in
         // the basket themselves, so the dialog is a last look rather than a
         // question they have not already answered.
         confirm_.Open();
       }
     }
-    return true;
   }
-  return false;
+  return ConfirmChoice::kPending;
 }
 
 ftxui::Element MultiSellPanel::MarkCell(int row) const {

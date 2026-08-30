@@ -4,8 +4,8 @@
  * [Confirm]/[Cancel]). The quantity opens at the whole stack.
  *
  * The panel owns no game state: Reset() seeds it with the item's price and
- * stack size, quantity() reports the chosen amount, and TakeConfirmed() /
- * TakeCancelled() each return true once when the player confirms or cancels.
+ * stack size, quantity() reports the chosen amount, and OnEvent answers with
+ * the ConfirmChoice every dialog in the game answers with.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_SELL_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SELL_PANEL_H_
@@ -24,12 +24,10 @@ class SellPanel {
   // meso each. Quantity defaults to the whole stack.
   void Reset(const std::string& item_name, int unit_price, int max);
   ftxui::Element Render() const;
-  bool OnEvent(ftxui::Event event);
+  ConfirmChoice OnEvent(ftxui::Event event);
   int quantity() const {
     return selector_.value();
   }
-  bool TakeConfirmed();
-  bool TakeCancelled();
 
  private:
   std::string item_name_;

@@ -29,16 +29,8 @@ ftxui::Element SellPanel::Render() const {
   return ThemedWindow(" Sell ", std::move(content));
 }
 
-bool SellPanel::OnEvent(ftxui::Event event) {
-  return selector_.OnEvent(event);
-}
-
-bool SellPanel::TakeConfirmed() {
-  return selector_.TakeConfirmed();
-}
-
-bool SellPanel::TakeCancelled() {
-  return selector_.TakeCancelled();
+ConfirmChoice SellPanel::OnEvent(ftxui::Event event) {
+  return selector_.OnEvent(std::move(event));
 }
 
 }  // namespace ms

@@ -179,52 +179,31 @@ ftxui::Element StarForcePanel::Render() const {
   return ftxui::vbox({std::move(main), std::move(below)});
 }
 
-bool StarForcePanel::OnEvent(ftxui::Event event) {
+ConfirmChoice StarForcePanel::OnEvent(ftxui::Event event) {
+  // The prompt's own Cancel closes the prompt and no more: the player is
+  // backing out of the question, not out of the screen.
   if (confirm_.open()) {
-    // The prompt's own Cancel closes the prompt and no more: the player is
-    // backing out of the question, not out of the screen.
-    if (confirm_.OnEvent(event) == ConfirmChoice::kConfirmed) {
-      confirmed_ = true;
-    }
-    return true;
+    ConfirmChoice choice = confirm_.OnEvent(std::move(event));
+    return choice == ConfirmChoice::kConfirmed ? choice
+                                               : ConfirmChoice::kPending;
   }
   if (event == ftxui::Event::ArrowLeft) {
     // Recorded whether or not it lands: OnCancel holds the cursor on [Cancel]
     // while the price is out of reach, and lets it go the moment it is not.
     cancel_selected_ = false;
-    return true;
-  }
-  if (event == ftxui::Event::ArrowRight) {
+  } else if (event == ftxui::Event::ArrowRight) {
     cancel_selected_ = true;
-    return true;
-  }
-  if (IsForward(event)) {
+  } else if (IsForward(event)) {
     if (OnCancel()) {
-      cancelled_ = true;
-    } else {
-      confirm_.Open();
+      return ConfirmChoice::kCancelled;
     }
-    return true;
+    confirm_.Open();
   }
-  return false;  // Esc and other events pass through to caller
-}
-
-bool StarForcePanel::TakeConfirmed() {
-  bool v = confirmed_;
-  confirmed_ = false;
-  return v;
-}
-
-bool StarForcePanel::TakeCancelled() {
-  bool v = cancelled_;
-  cancelled_ = false;
-  return v;
+  return ConfirmChoice::kPending;
 }
 
 void StarForcePanel::ResetConfirm() {
   confirm_.Close();
-  confirmed_ = false;
-  cancelled_ = false;
   cancel_selected_ = false;
 }
 

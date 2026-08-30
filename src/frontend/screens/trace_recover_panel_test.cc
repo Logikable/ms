@@ -85,9 +85,9 @@ TEST_F(TraceRecoverPanelTest, ArrowsMoveBetweenCandidates) {
   TraceRecoverPanel panel(c_);
   panel.SetTrace(trace);
   EXPECT_EQ(panel.selected_index(), first);
-  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
+  panel.OnEvent(ftxui::Event::ArrowRight);
   EXPECT_EQ(panel.selected_index(), second);
-  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowLeft));
+  panel.OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_EQ(panel.selected_index(), first);
 }
 
@@ -97,8 +97,8 @@ TEST_F(TraceRecoverPanelTest, ArrowsStopAtTheEnds) {
 
   TraceRecoverPanel panel(c_);
   panel.SetTrace(trace);
-  EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowLeft));
-  EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
+  panel.OnEvent(ftxui::Event::ArrowLeft);
+  panel.OnEvent(ftxui::Event::ArrowRight);
   EXPECT_EQ(panel.selected_index(), only);
 }
 
@@ -118,7 +118,7 @@ TEST_F(TraceRecoverPanelTest, EnterDoesNothingWithNoCandidates) {
 
   TraceRecoverPanel panel(c_);
   panel.SetTrace(trace);
-  EXPECT_FALSE(panel.OnEvent(ftxui::Event::Return));
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
   EXPECT_FALSE(panel.IsConfirming());
 }
 
@@ -128,15 +128,11 @@ TEST_F(TraceRecoverPanelTest, EnterOpensTheConfirmAndASecondTakesIt) {
 
   TraceRecoverPanel panel(c_);
   panel.SetTrace(trace);
-  EXPECT_TRUE(panel.OnEvent(ftxui::Event::Return));
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
   EXPECT_TRUE(panel.IsConfirming());
-  EXPECT_FALSE(panel.TakeConfirmed());
 
-  EXPECT_TRUE(panel.OnEvent(ftxui::Event::Return));
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
   EXPECT_FALSE(panel.IsConfirming());
-  EXPECT_TRUE(panel.TakeConfirmed());
-  // Taking it clears it, so the caller cannot recover twice off one confirm.
-  EXPECT_FALSE(panel.TakeConfirmed());
 }
 
 TEST_F(TraceRecoverPanelTest, CancellingLeavesNothingConfirmed) {
@@ -147,9 +143,8 @@ TEST_F(TraceRecoverPanelTest, CancellingLeavesNothingConfirmed) {
   panel.SetTrace(trace);
   panel.OnEvent(ftxui::Event::Return);
   panel.OnEvent(ftxui::Event::ArrowRight);  // Confirm -> Cancel
-  panel.OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
   EXPECT_FALSE(panel.IsConfirming());
-  EXPECT_FALSE(panel.TakeConfirmed());
 }
 
 // The arrows belong to the prompt while it is up, so they must not walk the

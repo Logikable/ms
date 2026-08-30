@@ -1,8 +1,8 @@
 /* TraceRecoverPanel manages selection and confirmation for trace recovery.
  * RenderTabs() renders a row of star-count chips (one per matching item) with
  * a separator below. RenderBelow() renders the confirm bar or a 3-row spacer.
- * Left/Right navigate chips; Enter opens confirm; a second Enter confirms.
- * TakeConfirmed() returns true once when confirmed.
+ * Left/Right navigate chips; Enter opens confirm; a second Enter confirms,
+ * which is the kConfirmed OnEvent answers with.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_TRACE_RECOVER_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_TRACE_RECOVER_PANEL_H_
@@ -37,9 +37,8 @@ class TraceRecoverPanel {
   EquipInstance PreviewResult() const;
   // Handles Left/Right navigation and confirm-bar interaction. Esc when not
   // confirming is not consumed (caller handles screen transition).
-  bool OnEvent(ftxui::Event event);
+  ConfirmChoice OnEvent(ftxui::Event event);
   // Returns true once when the player confirms recovery, then resets the flag.
-  bool TakeConfirmed();
   bool IsConfirming() const {
     return confirm_.open();
   }
@@ -54,7 +53,6 @@ class TraceRecoverPanel {
   std::vector<int> matching_indices_;
   int selected_ = 0;
   ConfirmPrompt confirm_;
-  bool confirmed_ = false;
 };
 
 }  // namespace ms

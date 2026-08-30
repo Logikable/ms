@@ -79,36 +79,23 @@ ftxui::Element TraceRecoverPanel::RenderBelow() const {
          ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, ConfirmPrompt::kWindowHeight);
 }
 
-bool TraceRecoverPanel::OnEvent(ftxui::Event event) {
+ConfirmChoice TraceRecoverPanel::OnEvent(ftxui::Event event) {
+  // The prompt swallows every event while it is up.
   if (confirm_.open()) {
-    if (confirm_.OnEvent(event) == ConfirmChoice::kConfirmed) {
-      confirmed_ = true;
-    }
-    return true;  // Swallow all other events while confirming.
+    return confirm_.OnEvent(std::move(event));
   }
   if (matching_indices_.empty()) {
-    return false;
+    return ConfirmChoice::kPending;
   }
   if (event == ftxui::Event::ArrowLeft && selected_ > 0) {
     --selected_;
-    return true;
-  }
-  if (event == ftxui::Event::ArrowRight &&
-      selected_ < static_cast<int>(matching_indices_.size()) - 1) {
+  } else if (event == ftxui::Event::ArrowRight &&
+             selected_ < static_cast<int>(matching_indices_.size()) - 1) {
     ++selected_;
-    return true;
-  }
-  if (IsForward(event)) {
+  } else if (IsForward(event)) {
     confirm_.Open();
-    return true;
   }
-  return false;
-}
-
-bool TraceRecoverPanel::TakeConfirmed() {
-  bool v = confirmed_;
-  confirmed_ = false;
-  return v;
+  return ConfirmChoice::kPending;
 }
 
 int TraceRecoverPanel::selected_index() const {

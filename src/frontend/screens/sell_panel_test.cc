@@ -52,12 +52,10 @@ TEST_F(SellPanelTest, ConfirmAndCancelPassThrough) {
   SellPanel panel;
   panel.Reset("Shell", 7, 10);
   panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
-  panel.OnEvent(ftxui::Event::Return);
-  EXPECT_TRUE(panel.TakeConfirmed());
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 
   panel.Reset("Shell", 7, 10);
-  panel.OnEvent(ftxui::Event::Escape);
-  EXPECT_TRUE(panel.TakeCancelled());
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Escape), ConfirmChoice::kCancelled);
 }
 
 }  // namespace

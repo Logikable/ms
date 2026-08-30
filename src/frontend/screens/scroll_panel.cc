@@ -278,24 +278,20 @@ ftxui::Element ScrollPanel::Render(bool focused) {
   return component_->Render();
 }
 
-bool ScrollPanel::OnEvent(ftxui::Event event) {
+ConfirmChoice ScrollPanel::OnEvent(ftxui::Event event) {
   if (confirm_.open()) {
     // Answered yes only counts when the player can pay: the window greys
     // Confirm out, and this is what makes the key agree with the picture.
-    if (confirm_.OnEvent(event) == ConfirmChoice::kConfirmed &&
-        CanAffordSelected()) {
-      confirmed_ = true;
-    }
-    return true;
+    return confirm_.OnEvent(std::move(event), CanAffordSelected());
   }
   if (menu_open_) {
-    return OnMenuEvent(event);
-  }
-  if (IsForward(event) && !ordered_.empty()) {
+    OnMenuEvent(event);
+  } else if (IsForward(event) && !ordered_.empty()) {
     OpenMenu();
-    return true;
+  } else {
+    component_->OnEvent(event);
   }
-  return component_->OnEvent(event);
+  return ConfirmChoice::kPending;
 }
 
 bool ScrollPanel::OnMenuEvent(ftxui::Event event) {
@@ -345,12 +341,6 @@ bool ScrollPanel::TakeScrollChosen() {
 bool ScrollPanel::TakePinToggled() {
   bool v = pin_toggled_;
   pin_toggled_ = false;
-  return v;
-}
-
-bool ScrollPanel::TakeConfirmed() {
-  bool v = confirmed_;
-  confirmed_ = false;
   return v;
 }
 

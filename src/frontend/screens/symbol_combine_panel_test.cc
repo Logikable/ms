@@ -48,12 +48,14 @@ TEST_F(SymbolCombinePanelTest, TheExpRowStopsAtTheRung) {
       << Render(over);
 }
 
-TEST_F(SymbolCombinePanelTest, ReportsTheAnswerOnce) {
+TEST_F(SymbolCombinePanelTest, PassesTheAnswerThrough) {
   SymbolCombinePanel panel;
   panel.Reset("Arcane Symbol: Morass", 2, 0, 15, 4);
-  panel.OnEvent(ftxui::Event::Escape);
-  EXPECT_TRUE(panel.TakeCancelled());
-  EXPECT_FALSE(panel.TakeCancelled());
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Escape), ConfirmChoice::kCancelled);
+
+  panel.Reset("Arcane Symbol: Morass", 2, 0, 15, 4);
+  panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
 
 }  // namespace

@@ -18,7 +18,7 @@ void ConfirmPrompt::Close() {
   cancel_selected_ = false;
 }
 
-ConfirmChoice ConfirmPrompt::OnEvent(ftxui::Event event) {
+ConfirmChoice ConfirmPrompt::OnEvent(ftxui::Event event, bool confirm_enabled) {
   if (!open_) {
     return ConfirmChoice::kPending;
   }
@@ -35,9 +35,15 @@ ConfirmChoice ConfirmPrompt::OnEvent(ftxui::Event event) {
     return ConfirmChoice::kPending;
   }
   if (IsForward(event)) {
-    bool cancelled = cancel_selected_;
+    if (cancel_selected_) {
+      Close();
+      return ConfirmChoice::kCancelled;
+    }
+    if (!confirm_enabled) {
+      return ConfirmChoice::kPending;
+    }
     Close();
-    return cancelled ? ConfirmChoice::kCancelled : ConfirmChoice::kConfirmed;
+    return ConfirmChoice::kConfirmed;
   }
   return ConfirmChoice::kPending;
 }

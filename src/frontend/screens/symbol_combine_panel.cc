@@ -36,16 +36,8 @@ ftxui::Element SymbolCombinePanel::Render() const {
   return ThemedWindow(" Combine ", std::move(content));
 }
 
-bool SymbolCombinePanel::OnEvent(ftxui::Event event) {
+ConfirmChoice SymbolCombinePanel::OnEvent(ftxui::Event event) {
   return selector_.OnEvent(std::move(event));
-}
-
-bool SymbolCombinePanel::TakeConfirmed() {
-  return selector_.TakeConfirmed();
-}
-
-bool SymbolCombinePanel::TakeCancelled() {
-  return selector_.TakeCancelled();
 }
 
 }  // namespace ms

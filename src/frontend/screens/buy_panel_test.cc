@@ -141,24 +141,21 @@ TEST(BuyPanelTest, AnUnaffordableItemOpensAtZero) {
   EXPECT_TRUE(RowIsColored(panel, "Total", kRed))
       << "the zero total should not read as a live purchase";
   panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
-  panel.OnEvent(ftxui::Event::Return);
-  EXPECT_FALSE(panel.TakeConfirmed());
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
 }
 
 TEST(BuyPanelTest, ConfirmWorksOnAnAffordableAmount) {
   BuyPanel panel;
   panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
   panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
-  panel.OnEvent(ftxui::Event::Return);
-  EXPECT_TRUE(panel.TakeConfirmed());
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
   EXPECT_EQ(panel.quantity(), 1);
 }
 
 TEST(BuyPanelTest, EscapeCancels) {
   BuyPanel panel;
   panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
-  panel.OnEvent(ftxui::Event::Escape);
-  EXPECT_TRUE(panel.TakeCancelled());
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Escape), ConfirmChoice::kCancelled);
 }
 
 // Backspacing to nothing is the one way to reach zero with meso in hand, and
@@ -169,8 +166,7 @@ TEST(BuyPanelTest, ZeroIsNotSomethingToConfirm) {
   panel.OnEvent(ftxui::Event::Backspace);
   ASSERT_EQ(panel.quantity(), 0);
   panel.OnEvent(ftxui::Event::ArrowDown);
-  panel.OnEvent(ftxui::Event::Return);
-  EXPECT_FALSE(panel.TakeConfirmed());
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
 }
 
 // --- the three caps ---
@@ -191,8 +187,7 @@ TEST(BuyPanelTest, AFullBagOpensAtZeroAndCannotConfirm) {
   panel.Reset("Machete", 10, /*meso=*/1000000, /*room=*/0, /*owned=*/0);
   EXPECT_EQ(panel.quantity(), 0);
   panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
-  panel.OnEvent(ftxui::Event::Return);
-  EXPECT_FALSE(panel.TakeConfirmed());
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
 }
 
 // Neither the balance nor the bag is the only ceiling: the field itself stops,
@@ -253,8 +248,7 @@ TEST(BuyPanelTest, AFreeItemCanBeTakenWithNoMeso) {
               /*owned=*/0);
   EXPECT_EQ(panel.quantity(), 1);
   panel.OnEvent(ftxui::Event::ArrowDown);  // the field -> [Confirm]
-  panel.OnEvent(ftxui::Event::Return);
-  EXPECT_TRUE(panel.TakeConfirmed());
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
 
 // --- priced in a token ---

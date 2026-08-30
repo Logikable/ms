@@ -261,18 +261,15 @@ TEST_F(StarForcePanelTest, TheCursorMovesBetweenTheTwoButtons) {
   EXPECT_TRUE(PixelOf(panel, "[Enhance]").inverted);
 }
 
-// Reported the way a confirmed attempt is: the panel says it happened, once,
+// Reported the way a confirmed attempt is: the panel says which way it went
 // and the caller is the one that closes the screen.
-TEST_F(StarForcePanelTest, CancelIsReportedOnceAndOpensNoPrompt) {
+TEST_F(StarForcePanelTest, CancelIsReportedAndOpensNoPrompt) {
   EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
   StarForcePanel panel;
   panel.SetItem(&item, kDeepPurse);
   panel.OnEvent(ftxui::Event::ArrowRight);
-  panel.OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
   EXPECT_FALSE(panel.IsConfirming());
-  EXPECT_FALSE(panel.TakeConfirmed());
-  EXPECT_TRUE(panel.TakeCancelled());
-  EXPECT_FALSE(panel.TakeCancelled()) << "reported twice";
 }
 
 // A player who cannot pay is told so where the price is, and left standing on
@@ -291,9 +288,8 @@ TEST_F(StarForcePanelTest, APurseTooThinGreysEnhanceAndParksOnCancel) {
   // Left cannot reach the greyed button, and Enter leaves rather than asking.
   panel.OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_TRUE(PixelOf(panel, "[Cancel]").inverted);
-  panel.OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
   EXPECT_FALSE(panel.IsConfirming());
-  EXPECT_TRUE(panel.TakeCancelled());
 
   // One more meso and the screen is the ordinary one again.
   panel.SetItem(&item, 136000);

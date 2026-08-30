@@ -7,14 +7,15 @@
  * and Escape cancels.
  *
  * A value of zero is allowed -- Backspace the textbox empty. The selector owns
- * no game state: Reset(max) seeds it, value() reports the choice, and
- * TakeConfirmed()/TakeCancelled() each return true once.
+ * no game state: Reset(max) seeds it, value() reports the choice, and OnEvent
+ * answers with the ConfirmChoice every dialog in the game answers with.
  */
 #ifndef MS_SRC_FRONTEND_WIDGETS_AMOUNT_SELECTOR_H_
 #define MS_SRC_FRONTEND_WIDGETS_AMOUNT_SELECTOR_H_
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/confirm_prompt.h"
 
 namespace ms {
 
@@ -33,26 +34,22 @@ class AmountSelector {
   void set_confirm_enabled(bool enabled);
   // The [1] . textbox . [Max] row over a [Confirm] [Cancel] row, separated.
   ftxui::Element Render() const;
-  // Handles arrow navigation, Enter/Space activation, digit entry and Backspace
-  // on the textbox, and Escape (cancel). Returns true if the event was
-  // consumed.
-  bool OnEvent(ftxui::Event event);
+  // Handles arrow navigation, Enter/Space activation, digit entry and
+  // Backspace on the textbox, and Escape (cancel). Returns which way the
+  // answer went, kPending while the player is still choosing.
+  ConfirmChoice OnEvent(ftxui::Event event);
   int value() const {
     return value_;
   }
-  // Each returns true exactly once, after Confirm / Cancel (or Escape), then
-  // resets.
-  bool TakeConfirmed();
-  bool TakeCancelled();
 
  private:
-  void Activate();
+  // What Enter on the focused control answered. The [1] and [Max] buttons set
+  // the value and answer kPending: they are still the player choosing.
+  ConfirmChoice Activate();
 
   int max_ = 0;
   int value_ = 0;
   int focus_ = 0;  // an internal Focus value (see amount_selector.cc)
-  bool confirmed_ = false;
-  bool cancelled_ = false;
   bool confirm_enabled_ = true;
 };
 

@@ -42,15 +42,7 @@ ftxui::Element SymbolLevelPanel::Render() const {
 }
 
 ConfirmChoice SymbolLevelPanel::OnEvent(ftxui::Event event) {
-  ConfirmChoice choice = confirm_.OnEvent(std::move(event));
-  // A confirm the purse cannot pay for is not an answer. Held open rather than
-  // closed, so the player sees the red row again instead of the dialog
-  // vanishing as though something happened.
-  if (choice == ConfirmChoice::kConfirmed && !affordable()) {
-    confirm_.Open(/*cancel_selected=*/false);
-    return ConfirmChoice::kPending;
-  }
-  return choice;
+  return confirm_.OnEvent(std::move(event), affordable());
 }
 
 }  // namespace ms

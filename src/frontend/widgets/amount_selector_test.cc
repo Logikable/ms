@@ -94,9 +94,7 @@ TEST(AmountSelectorTest, DownFromTextboxActivatesConfirm) {
   AmountSelector sel;
   sel.Reset(10);
   sel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
-  sel.OnEvent(ftxui::Event::Return);
-  EXPECT_TRUE(sel.TakeConfirmed());
-  EXPECT_FALSE(sel.TakeConfirmed());  // resets after read
+  EXPECT_EQ(sel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
 
 TEST(AmountSelectorTest, RightFromConfirmActivatesCancel) {
@@ -104,9 +102,7 @@ TEST(AmountSelectorTest, RightFromConfirmActivatesCancel) {
   sel.Reset(10);
   sel.OnEvent(ftxui::Event::ArrowDown);   // textbox -> [Confirm]
   sel.OnEvent(ftxui::Event::ArrowRight);  // [Confirm] -> [Cancel]
-  sel.OnEvent(ftxui::Event::Return);
-  EXPECT_TRUE(sel.TakeCancelled());
-  EXPECT_FALSE(sel.TakeConfirmed());
+  EXPECT_EQ(sel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
 }
 
 // The confirm row is one Up from the textbox, so a player who went down to it
@@ -123,8 +119,7 @@ TEST(AmountSelectorTest, UpFromTheConfirmRowReturnsToTheTextbox) {
 TEST(AmountSelectorTest, EscapeCancels) {
   AmountSelector sel;
   sel.Reset(10);
-  sel.OnEvent(ftxui::Event::Escape);
-  EXPECT_TRUE(sel.TakeCancelled());
+  EXPECT_EQ(sel.OnEvent(ftxui::Event::Escape), ConfirmChoice::kCancelled);
 }
 
 // --- the opening amount ---
@@ -181,12 +176,10 @@ TEST(AmountSelectorTest, ADisabledConfirmDoesNotConfirm) {
   sel.Reset(9, /*initial=*/1);
   sel.set_confirm_enabled(false);
   sel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
-  sel.OnEvent(ftxui::Event::Return);
-  EXPECT_FALSE(sel.TakeConfirmed());
+  EXPECT_EQ(sel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
   // Leaving is still available.
   sel.OnEvent(ftxui::Event::ArrowRight);  // [Confirm] -> [Cancel]
-  sel.OnEvent(ftxui::Event::Return);
-  EXPECT_TRUE(sel.TakeCancelled());
+  EXPECT_EQ(sel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
 }
 
 TEST(AmountSelectorTest, ResetClearsTheDisabledConfirm) {
@@ -195,8 +188,7 @@ TEST(AmountSelectorTest, ResetClearsTheDisabledConfirm) {
   sel.set_confirm_enabled(false);
   sel.Reset(9, /*initial=*/1);
   sel.OnEvent(ftxui::Event::ArrowDown);
-  sel.OnEvent(ftxui::Event::Return);
-  EXPECT_TRUE(sel.TakeConfirmed());
+  EXPECT_EQ(sel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
 
 }  // namespace

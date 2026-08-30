@@ -89,20 +89,12 @@ ftxui::Element BuyPanel::Render() const {
   return ThemedWindow(" Buy ", std::move(content));
 }
 
-bool BuyPanel::OnEvent(ftxui::Event event) {
-  bool handled = selector_.OnEvent(event);
+ConfirmChoice BuyPanel::OnEvent(ftxui::Event event) {
+  ConfirmChoice choice = selector_.OnEvent(std::move(event));
   // Re-asked after every keystroke rather than at render time, so Confirm is
   // already inert by the time the player can press it -- Render only draws.
   selector_.set_confirm_enabled(Affordable());
-  return handled;
-}
-
-bool BuyPanel::TakeConfirmed() {
-  return selector_.TakeConfirmed();
-}
-
-bool BuyPanel::TakeCancelled() {
-  return selector_.TakeCancelled();
+  return choice;
 }
 
 }  // namespace ms

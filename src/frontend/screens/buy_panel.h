@@ -10,7 +10,7 @@
  *
  * The panel owns no game state: Reset() seeds it with the item's price and the
  * balance it is counted against, quantity() reports the chosen amount, and
- * TakeConfirmed() / TakeCancelled() each return true once.
+ * OnEvent answers with the ConfirmChoice every dialog answers with.
  *
  * A price is not always meso. An item off the shop's token shelf is priced in
  * the token it names, and the dialog then counts in that instead -- the same
@@ -47,12 +47,10 @@ class BuyPanel {
   void Reset(const std::string& item_name, int unit_price, int64_t balance,
              int room, int owned, const ItemPrototype* token = nullptr);
   ftxui::Element Render() const;
-  bool OnEvent(ftxui::Event event);
+  ConfirmChoice OnEvent(ftxui::Event event);
   int quantity() const {
     return selector_.value();
   }
-  bool TakeConfirmed();
-  bool TakeCancelled();
 
  private:
   // What the current quantity would cost, in whichever currency it is priced.

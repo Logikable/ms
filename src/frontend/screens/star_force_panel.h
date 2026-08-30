@@ -2,8 +2,8 @@
  * Shows the item name, current star count, stat gains, probabilities and what
  * the attempt costs. Its foot is an [Enhance] / [Cancel] row: Enter on Enhance
  * opens the inline confirm bar, a second Enter confirms, and Enter on Cancel
- * leaves. TakeConfirmed() and TakeCancelled() each return true once, then
- * reset.
+ * leaves. OnEvent answers with the ConfirmChoice every dialog in the game
+ * answers with.
  *
  * A player who cannot afford the attempt is not stopped at the confirm bar:
  * the price is red, [Enhance] is greyed and cannot be reached, and the cursor
@@ -31,13 +31,13 @@ class StarForcePanel {
   ftxui::Element Render() const;
   ftxui::Element RenderResult(const StarForceResult& r) const;
   // Handles Enter (press the button under the cursor, or advance the confirm
-  // bar), Esc (cancel confirm), Left/Right (switch buttons). Esc when not
-  // confirming is not consumed (caller handles).
-  bool OnEvent(ftxui::Event event);
-  bool TakeConfirmed();
-  // Whether the player pressed [Cancel]. The caller closes the screen; the
-  // panel only reports it, the same way it reports a confirmed attempt.
-  bool TakeCancelled();
+  // bar), Esc (cancel confirm), Left/Right (switch buttons).
+  //
+  // kCancelled is [Cancel], which the caller closes the screen on; the
+  // prompt's own Cancel backs out of the question and answers kPending. Esc
+  // outside the prompt is the caller's, so it is checked before this is
+  // called.
+  ConfirmChoice OnEvent(ftxui::Event event);
   void ResetConfirm();
   bool IsConfirming() const {
     return confirm_.open();
@@ -57,8 +57,6 @@ class StarForcePanel {
   const EquipInstance* item_ = nullptr;
   int64_t meso_ = 0;
   ConfirmPrompt confirm_;
-  bool confirmed_ = false;
-  bool cancelled_ = false;
   bool cancel_selected_ = false;
 };
 

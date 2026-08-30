@@ -1,8 +1,8 @@
 /* ScrollPanel lists available scrolls when the player selects "Scroll" from
  * an item's context menu. It overlays the main layout while kScrollSelect is
- * active. TuiController forwards all events here; OnEvent returns false only
- * for navigation so Tui can update scroll position. TakeConfirmed() returns
- * true once when the player confirms the selection.
+ * active. TuiController forwards all events here, and OnEvent answers with
+ * the ConfirmChoice every dialog in the game answers with -- kConfirmed once
+ * the player has agreed to a scroll they can pay for.
  *
  * Every scroll costs spell traces, so the list carries a Cost column and the
  * title carries how many the player owns -- the two numbers the choice is
@@ -61,10 +61,9 @@ class ScrollPanel {
   ftxui::Element RenderResult(const ScrollResult& r) const;
   // Handles navigation (Up/Down) and confirm-bar interaction. Returns false
   // only for navigation events so the caller can update the scroll position.
-  bool OnEvent(ftxui::Event event);
+  ConfirmChoice OnEvent(ftxui::Event event);
   // Returns true once when the player has confirmed a scroll selection, then
   // resets the flag.
-  bool TakeConfirmed();
   bool IsConfirming() const {
     return confirm_.open();
   }
@@ -141,7 +140,6 @@ class ScrollPanel {
   std::vector<std::string> entries_;
   ftxui::Component component_;
   ConfirmPrompt confirm_;
-  bool confirmed_ = false;
   // The menu Enter opens on a row. Rebuilt each time, because the middle entry
   // reads Pin or Unpin depending on the row it was opened on.
   ItemMenu menu_{{"Scroll", "Pin", "Close"}};
