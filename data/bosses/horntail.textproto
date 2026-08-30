@@ -36,9 +36,9 @@ difficulties {
     spawns { mob: "horntail_head_a" spots { x: 2 y: 0 } }
     spawns { mob: "horntail_head_b" spots { x: 4 y: 0 } }
     spawns { mob: "horntail_head_c" spots { x: 6 y: 0 } }
-    spawns { mob: "horntail_left_hand" spots { x: 1 y: 2 } }
+    spawns { mob: "horntail_left_hand" spots { x: 2 y: 2 } }
     spawns { mob: "horntail_wings" spots { x: 4 y: 2 } }
-    spawns { mob: "horntail_right_hand" spots { x: 7 y: 2 } }
+    spawns { mob: "horntail_right_hand" spots { x: 6 y: 2 } }
     spawns { mob: "horntail_legs" spots { x: 4 y: 4 } }
     spawns { mob: "horntail_tails" spots { x: 6 y: 4 } }
     # Down both edges of the arena, level with the heads, the hands and the
@@ -114,9 +114,9 @@ difficulties {
     spawns { mob: "chaos_horntail_head_a" spots { x: 2 y: 0 } }
     spawns { mob: "chaos_horntail_head_b" spots { x: 4 y: 0 } }
     spawns { mob: "chaos_horntail_head_c" spots { x: 6 y: 0 } }
-    spawns { mob: "chaos_horntail_left_hand" spots { x: 1 y: 2 } }
+    spawns { mob: "chaos_horntail_left_hand" spots { x: 2 y: 2 } }
     spawns { mob: "chaos_horntail_wings" spots { x: 4 y: 2 } }
-    spawns { mob: "chaos_horntail_right_hand" spots { x: 7 y: 2 } }
+    spawns { mob: "chaos_horntail_right_hand" spots { x: 6 y: 2 } }
     spawns { mob: "chaos_horntail_legs" spots { x: 4 y: 4 } }
     spawns { mob: "chaos_horntail_tails" spots { x: 6 y: 4 } }
     # Down both edges of the arena, level with the heads, the hands and the
