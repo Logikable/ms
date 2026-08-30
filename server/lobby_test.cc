@@ -38,8 +38,8 @@ StartFight Fight(const std::string& boss_key, int difficulty_index = 0) {
 }
 
 // Two fights to try the rules against: Zakum, whose second difficulty is
-// written down but not built, and Hilla, who is gated on level and on a daily
-// reset.
+// written down but not built, and Hilla, whose two are both built and both
+// gated on level and on a daily reset.
 std::map<std::string, Boss> Bosses() {
   std::map<std::string, Boss> bosses;
   Boss& zakum = bosses["zakum"];
@@ -54,6 +54,10 @@ std::map<std::string, Boss> Bosses() {
   normal->set_name("Normal");
   normal->set_unlock_level(120);
   normal->set_reset(RESET_PERIOD_DAILY);
+  BossDifficulty* hard = hilla.add_difficulties();
+  hard->set_name("Hard");
+  hard->set_unlock_level(120);
+  hard->set_reset(RESET_PERIOD_DAILY);
   return bosses;
 }
 
@@ -310,7 +314,11 @@ TEST_F(LobbyTest, NobodyMayTakeAFightTwiceInAReset) {
   LobbyResult refused = Start("one", Fight("hilla"));
   EXPECT_FALSE(refused.ok);
   EXPECT_EQ(refused.reason, Refused::REASON_ALREADY_CLEARED);
-  EXPECT_EQ(refused.message, "Someone has already cleared today.");
+  EXPECT_EQ(refused.message, "Someone has already cleared this boss today.");
+
+  // Nor at the difficulty beside it: what the reset gates is the boss.
+  EXPECT_EQ(Start("one", Fight("hilla", 1)).reason,
+            Refused::REASON_ALREADY_CLEARED);
 
   // A clear of another fight, and one from before the reset, hold nobody back.
   lobby_.UpdatePlayer(

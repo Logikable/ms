@@ -91,7 +91,10 @@ cc_library(
     name = "boss_reset",
     srcs = ["boss_reset.cc"],
     hdrs = ["boss_reset.h"],
-    deps = ["//src/protos:boss_proto_cc"],
+    deps = [
+        "//src/protos:boss_proto_cc",
+        "//src/protos:character_proto_cc",
+    ],
 )
 
 cc_test(

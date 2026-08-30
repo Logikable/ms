@@ -15,8 +15,11 @@
 #define MS_SRC_CHARACTER_BOSS_RESET_H_
 
 #include <cstdint>
+#include <string>
 
+#include "google/protobuf/repeated_ptr_field.h"
 #include "src/protos/boss.pb.h"
+#include "src/protos/character.pb.h"
 
 namespace ms {
 
@@ -36,6 +39,15 @@ int64_t NextBossReset(ResetPeriod period, int64_t now);
 // Never cleared (0) is always available, and so is a period the data does not
 // state -- a boss with no reset is one there is nothing to hold back.
 bool BossAvailable(int64_t cleared, ResetPeriod period, int64_t now);
+
+// Whether `boss` -- the fight named `key` in the catalog -- may be entered at
+// all at `now`, given everything `clears` holds. A clear of one difficulty
+// holds every other one back: what the reset gates is the boss, not the rung
+// the player chose to take him at. Each clear is measured against the reset
+// period of the difficulty it was taken at, since that is the clock that ran.
+bool BossAvailable(const std::string& key, const Boss& boss,
+                   const google::protobuf::RepeatedPtrField<BossClear>& clears,
+                   int64_t now);
 
 }  // namespace ms
 

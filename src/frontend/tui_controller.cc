@@ -1336,8 +1336,11 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
           boss_select_panel_.selected_reset() == RESET_PERIOD_WEEKLY
               ? "this week"
               : "today";
+      // Named without the difficulty: a clear of any rung closes them all, so
+      // the rung on the cursor may not be the one that was taken.
       OpenNotice(kBossNotice,
-                 {boss_prompt_title_, "has already been killed " + when + "."},
+                 {state_.bosses.at(boss_select_panel_.selected_boss()).name(),
+                  "has already been killed " + when + "."},
                  /*refusal=*/false);
     } else {
       boss_prompt_.Open();

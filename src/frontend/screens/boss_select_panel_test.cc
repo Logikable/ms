@@ -360,6 +360,27 @@ TEST(BossSelectPanelTest, AClearedFightSaysSoAndIsNotAvailable) {
   EXPECT_NE(Render(panel).find("Cleared"), std::string::npos);
 }
 
+// Beating a boss at any difficulty is beating the boss: the rung beside the
+// one that was taken reads Cleared too, and waits for the same reset.
+TEST(BossSelectPanelTest, AClearOfOneDifficultyClosesTheOthers) {
+  std::unique_ptr<GameState> owner = WithBosses(true);
+  GameState& state = *owner;
+  BossSelectPanel panel(state);
+  ASSERT_EQ(panel.selected_boss(), "balrog") << "the smaller fight sorts first";
+  state.character.RecordBossClear("balrog", "Normal",
+                                  static_cast<int64_t>(std::time(nullptr)));
+
+  // The cursor is still on Easy, which nobody has taken.
+  EXPECT_EQ(panel.selected()->name(), "Easy");
+  EXPECT_FALSE(panel.selected_available());
+  EXPECT_NE(Render(panel).find("Cleared"), std::string::npos);
+
+  // The other fight on the list is untouched.
+  panel.MoveCursor(1);
+  EXPECT_EQ(panel.selected_boss(), "zakum");
+  EXPECT_TRUE(panel.selected_available());
+}
+
 TEST(BossSelectPanelTest, AnEmptyCatalogDrawsWithoutAFight) {
   GameState state(
       std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},

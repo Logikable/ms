@@ -198,13 +198,14 @@ std::string BossSelectPanel::selected_title() const {
 }
 
 bool BossSelectPanel::selected_available() const {
-  const BossDifficulty* difficulty = selected();
-  if (difficulty == nullptr) {
+  if (selected() == nullptr) {
     return false;
   }
-  int64_t cleared =
-      state_.character.BossClearedAt(bosses_[selected_], difficulty->name());
-  return BossAvailable(cleared, difficulty->reset(),
+  // Asked of the boss rather than of the rung: beating him at any difficulty
+  // is beating him, and the whole ladder waits for the reset.
+  const std::string& key = bosses_[selected_];
+  return BossAvailable(key, state_.bosses.at(key),
+                       state_.character.proto().boss_clears(),
                        static_cast<int64_t>(std::time(nullptr)));
 }
 

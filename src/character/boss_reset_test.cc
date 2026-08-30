@@ -100,5 +100,45 @@ TEST(BossResetTest, TheCharacterRemembersOneClearPerDifficulty) {
   EXPECT_EQ(character.proto().boss_clears_size(), 2);
 }
 
+// Two difficulties of one boss, both daily, so a clear of either can be asked
+// about the other.
+Boss TwoRungBoss() {
+  Boss boss;
+  boss.set_name("Hilla");
+  BossDifficulty* normal = boss.add_difficulties();
+  normal->set_name("Normal");
+  normal->set_reset(RESET_PERIOD_DAILY);
+  BossDifficulty* hard = boss.add_difficulties();
+  hard->set_name("Hard");
+  hard->set_reset(RESET_PERIOD_DAILY);
+  return boss;
+}
+
+// Beating a boss at any difficulty is beating the boss: the whole ladder waits
+// for the reset, and a clear of one rung is what closes the others.
+TEST(BossResetTest, AClearOfOneDifficultyHoldsThemAll) {
+  Boss hilla = TwoRungBoss();
+  int64_t cleared = LocalTime(2026, 8, kThursday, 12);
+  int64_t before = LocalTime(2026, 8, kThursday + 1, 3, 59);
+  int64_t after = LocalTime(2026, 8, kThursday + 1, 4, 1);
+  std::mt19937 rng(1);
+  CharacterInstance character(rng, Character());
+  EXPECT_TRUE(
+      BossAvailable("hilla", hilla, character.proto().boss_clears(), cleared));
+
+  character.RecordBossClear("hilla", "Hard", cleared);
+  EXPECT_FALSE(
+      BossAvailable("hilla", hilla, character.proto().boss_clears(), before));
+  EXPECT_TRUE(
+      BossAvailable("hilla", hilla, character.proto().boss_clears(), after));
+
+  // Another boss's clear, and a difficulty this boss does not have, are both
+  // somebody else's business.
+  character.RecordBossClear("zakum", "Normal", cleared);
+  character.RecordBossClear("hilla", "Chaos", cleared);
+  EXPECT_TRUE(
+      BossAvailable("hilla", hilla, character.proto().boss_clears(), after));
+}
+
 }  // namespace
 }  // namespace ms

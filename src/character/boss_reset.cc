@@ -2,8 +2,11 @@
 
 #include <cstdint>
 #include <ctime>
+#include <string>
 
+#include "google/protobuf/repeated_ptr_field.h"
 #include "src/protos/boss.pb.h"
+#include "src/protos/character.pb.h"
 
 namespace ms {
 namespace {
@@ -62,6 +65,24 @@ bool BossAvailable(int64_t cleared, ResetPeriod period, int64_t now) {
     return true;
   }
   return cleared < LastBossReset(period, now);
+}
+
+bool BossAvailable(const std::string& key, const Boss& boss,
+                   const google::protobuf::RepeatedPtrField<BossClear>& clears,
+                   int64_t now) {
+  for (const BossClear& clear : clears) {
+    if (clear.boss() != key) {
+      continue;
+    }
+    for (const BossDifficulty& difficulty : boss.difficulties()) {
+      if (difficulty.name() == clear.difficulty() &&
+          !BossAvailable(clear.cleared_unix_seconds(), difficulty.reset(),
+                         now)) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 }  // namespace ms

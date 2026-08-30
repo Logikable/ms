@@ -43,18 +43,6 @@ const BossDifficulty* FindDifficulty(const std::map<std::string, Boss>& bosses,
   return &boss->second.difficulties(index);
 }
 
-// Whether `player` is holding a clear of this fight that has not expired by
-// `now`. A boss with no reset period is one there is nothing to hold back.
-bool ClearedAt(const PlayerInfo& player, const std::string& boss_key,
-               const std::string& difficulty, ResetPeriod reset, int64_t now) {
-  for (const BossClear& clear : player.boss_clears()) {
-    if (clear.boss() == boss_key && clear.difficulty() == difficulty) {
-      return !BossAvailable(clear.cleared_unix_seconds(), reset, now);
-    }
-  }
-  return false;
-}
-
 // The member playing under `account_id`, or null.
 PartyMember* FindMember(Party& party, const std::string& account_id) {
   for (PartyMember& member : *party.mutable_members()) {
@@ -351,15 +339,19 @@ LobbyResult Lobby::CheckFight(const Party& party, const StartFight& request,
                      "Someone doesn't meet the level requirement.");
     }
   }
+  const Boss& boss = bosses_.at(request.boss_key());
   for (const PartyMember& member : party.members()) {
-    if (!ClearedAt(member.player(), request.boss_key(), difficulty->name(),
-                   difficulty->reset(), now)) {
+    // Asked of the boss rather than of the rung: a clear of any difficulty
+    // holds the whole ladder back.
+    if (BossAvailable(request.boss_key(), boss, member.player().boss_clears(),
+                      now)) {
       continue;
     }
     std::string when =
         difficulty->reset() == RESET_PERIOD_WEEKLY ? "this week" : "today";
-    return Refusal(Refused::REASON_ALREADY_CLEARED,
-                   absl::StrCat("Someone has already cleared ", when, "."));
+    return Refusal(
+        Refused::REASON_ALREADY_CLEARED,
+        absl::StrCat("Someone has already cleared this boss ", when, "."));
   }
   for (const PartyMember& member : party.members()) {
     // The leader is ready by leading, and nothing is stored for them.

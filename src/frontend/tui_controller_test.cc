@@ -3118,8 +3118,9 @@ TEST_F(TuiControllerTest, EnterOnAFightAsksBeforeTakingIt) {
   EXPECT_EQ(controller_->screen(), kBossSelect);
 }
 
-// A fight already cleared this reset says when it comes back rather than
-// asking a question whose answer is no.
+// A boss already cleared this reset says when he comes back rather than asking
+// a question whose answer is no. Named without a difficulty, since a clear of
+// any of them closes the rest.
 TEST_F(TuiControllerTest, AClearedFightSaysWhenItComesBack) {
   HoldASword();
   state_->character.RecordBossClear("zakum", "Normal",
@@ -3128,7 +3129,7 @@ TEST_F(TuiControllerTest, AClearedFightSaysWhenItComesBack) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossNotice);
   EXPECT_FALSE(controller_->notice_is_refusal()) << "the reset, not the player";
-  EXPECT_EQ(controller_->notice_lines()[0], "Normal Zakum");
+  EXPECT_EQ(controller_->notice_lines()[0], "Zakum");
   EXPECT_EQ(controller_->notice_lines()[1], "has already been killed today.");
   EXPECT_TRUE(controller_->notice_prompt().open());
 
@@ -3138,6 +3139,26 @@ TEST_F(TuiControllerTest, AClearedFightSaysWhenItComesBack) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossSelect);
   EXPECT_FALSE(controller_->notice_prompt().open());
+}
+
+// The rung beside the one that was taken is closed too, and says so under the
+// boss's own name rather than the difficulty the cursor happens to be on.
+TEST_F(TuiControllerTest, AClearOfOneDifficultyClosesTheOthers) {
+  HoldASword();
+  BossDifficulty* chaos = state_->bosses["zakum"].add_difficulties();
+  chaos->set_name("Chaos");
+  chaos->set_reset(RESET_PERIOD_DAILY);
+  chaos->set_time_limit_seconds(300);
+  *chaos->mutable_phases() = state_->bosses["zakum"].difficulties(0).phases();
+  state_->character.RecordBossClear("zakum", "Normal",
+                                    static_cast<int64_t>(std::time(nullptr)));
+  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossNotice);
+  EXPECT_EQ(controller_->notice_lines()[0], "Zakum");
+  EXPECT_EQ(controller_->notice_lines()[1], "has already been killed today.");
+  EXPECT_EQ(controller_->boss_run(), nullptr) << "nothing was started";
 }
 
 // A fight the character has not levelled up to says the level it wants. The
