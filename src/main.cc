@@ -45,10 +45,18 @@ ABSL_FLAG(int32_t, level, 0,
           "Workbench only (--mode=test): the level to arrive at, instead of "
           "the top of the job's own band. Never below the level the job is "
           "taken at, and never above the highest level the game has.");
-ABSL_FLAG(std::string, equips, "clean",
-          "Workbench only (--mode=test): what state the character's gear "
-          "arrives in. 'clean' as it drops, 'scroll' fully hammered with "
-          "every upgrade slot passed, or 'sf' with that and every star.");
+ABSL_FLAG(bool, hammered, false,
+          "Workbench only (--mode=test): drive both Golden Hammers into every "
+          "piece of the character's gear, widening its upgrade shelf by two.");
+ABSL_FLAG(bool, scrolled, false,
+          "Workbench only (--mode=test): pass every upgrade slot of the "
+          "character's gear, with the best trace it takes. Combines with "
+          "--hammered, which is what decides how many slots there are.");
+ABSL_FLAG(int32_t, sf, 0,
+          "Workbench only (--mode=test): stars on every piece of the "
+          "character's gear, held to each item's own cap for its level. Stars "
+          "need nothing left to scroll, so pass --scrolled with this to reach "
+          "an item that has upgrade slots.");
 ABSL_FLAG(std::string, server, ms::DefaultServerAddress(),
           "Where the multiplayer server is, as host:port. Empty plays alone, "
           "which is what a build made without multiplayer does whatever this "
@@ -105,19 +113,19 @@ void RefuseOutsideTheWorkbench(const char* flag, ms::GameMode mode) {
   }
 }
 
-ms::TestEquips ParseEquips(const std::string& equips, ms::GameMode mode) {
-  if (equips == "clean") {
-    return ms::TestEquips::kClean;
+ms::TestEquips ParseEquips(ms::GameMode mode) {
+  ms::TestEquips equips;
+  equips.hammered = absl::GetFlag(FLAGS_hammered);
+  equips.scrolled = absl::GetFlag(FLAGS_scrolled);
+  equips.stars = absl::GetFlag(FLAGS_sf);
+  if (equips.hammered || equips.scrolled || equips.stars != 0) {
+    RefuseOutsideTheWorkbench("--hammered/--scrolled/--sf", mode);
   }
-  RefuseOutsideTheWorkbench("--equips", mode);
-  if (equips == "scroll") {
-    return ms::TestEquips::kScrolled;
+  if (equips.stars < 0) {
+    LOG(FATAL) << "--sf is a number of stars; " << equips.stars
+               << " is not one";
   }
-  if (equips == "sf") {
-    return ms::TestEquips::kStarForced;
-  }
-  LOG(FATAL) << "Unknown --equips '" << equips
-             << "'; expected clean, scroll or sf";
+  return equips;
 }
 
 ms::TestSkills ParseSkills(const std::string& skills, ms::GameMode mode) {
@@ -177,7 +185,7 @@ int main(int argc, char** argv) {
   ms::TestOptions test;
   test.job = ParseJob(absl::GetFlag(FLAGS_job), mode);
   test.level = ParseLevel(absl::GetFlag(FLAGS_level), test.job, mode);
-  test.equips = ParseEquips(absl::GetFlag(FLAGS_equips), mode);
+  test.equips = ParseEquips(mode);
   test.skills = ParseSkills(absl::GetFlag(FLAGS_skills), mode);
 
   // The data is compiled in, so there is nothing to find on disk and nothing

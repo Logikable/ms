@@ -45,17 +45,20 @@ enum class GameMode {
   kTest,
 };
 
-// What state the workbench's gear arrives in, as --equips names it. Every
-// piece is treated the same: the tester is asking what a character at this
-// point of the ladder hits for, not what one lucky item does.
-enum class TestEquips {
-  // As it drops, slots unspent.
-  kClean,
-  // Both hammers driven in and every upgrade slot passed, with the trace that
-  // raises what the job fights with.
-  kScrolled,
-  // That, and starred to the item's cap.
-  kStarForced,
+// What state the workbench's gear arrives in, as --hammered, --scrolled and
+// --sf name it. Every piece is treated the same: the tester is asking what a
+// character at this point of the ladder hits for, not what one lucky item
+// does. All three unset is gear as it drops, slots unspent.
+struct TestEquips {
+  // Both Golden Hammers driven in, which widens the upgrade shelf by two.
+  bool hammered = false;
+  // Every upgrade slot passed, with the trace that raises what the job fights
+  // with. The shelf `hammered` widened is the shelf that gets scrolled.
+  bool scrolled = false;
+  // Stars, held to the item's own cap for its level. Zero leaves it unstarred.
+  // Stars go on an item with nothing left to scroll -- the rule the upgrade
+  // screen keeps -- so an item with slots needs `scrolled` behind this.
+  int stars = 0;
 };
 
 // What the workbench does with the book its job is standing in, as --skills
@@ -85,7 +88,7 @@ inline constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_HERO;
 struct TestOptions {
   JobAdvancement job = JOB_ADVANCEMENT_UNSPECIFIED;
   int level = 0;
-  TestEquips equips = TestEquips::kClean;
+  TestEquips equips;
   TestSkills skills = TestSkills::kZero;
 };
 

@@ -223,36 +223,37 @@ const Scroll* BestScrollFor(const GameState& state,
   return BestScrollOfType(state, proto, target, attack);
 }
 
-// The state a piece of the workbench's gear arrives in: as it drops, with
-// every hammer driven in and every upgrade slot passed, or that and starred
-// to the item's own cap.
+// The state a piece of the workbench's gear arrives in, one flag at a time:
+// hammers driven in, upgrade slots passed, stars set. Each is asked for on its
+// own, so a tester can name the exact configuration they want.
 //
 // Written straight into the state rather than rolled through Scroll() and
 // StarForce(): the tester asked for the finished item, not for the odds.
 Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
-                    TestEquips equips) {
+                    const TestEquips& equips) {
   Equip built;
   built.set_equip_name(proto.name());
   built.set_remaining_upgrade_slots(proto.upgrade_slots());
-  if (equips == TestEquips::kClean) {
-    return built;
+  // Hammers first, so the wider shelf is the one the scrolls then fill.
+  if (equips.hammered && TakesUpgradeSlots(proto)) {
+    built.set_hammers(kMaxHammers);
+    built.set_remaining_upgrade_slots(TotalUpgradeSlots(proto, built));
   }
   const Scroll* scroll = BestScrollFor(state, proto);
-  if (scroll != nullptr && TakesUpgradeSlots(proto)) {
-    // Hammers first: the wider shelf is what gets scrolled.
-    built.set_hammers(kMaxHammers);
-    int slots = TotalUpgradeSlots(proto, built);
+  if (equips.scrolled && scroll != nullptr && TakesUpgradeSlots(proto)) {
+    int slots = built.remaining_upgrade_slots();
     std::vector<EquipStats> passes(slots, scroll->stats());
     *built.mutable_scroll_stats() = SumEquipStats(passes);
     built.set_scroll_successes(slots);
     built.set_remaining_upgrade_slots(0);
   }
   // Stars go on an item with nothing left to scroll, which is the rule the
-  // upgrade screen holds to as well.
-  if (equips == TestEquips::kStarForced &&
-      built.remaining_upgrade_slots() == 0 &&
+  // upgrade screen holds to as well -- so --sf without --scrolled leaves an
+  // item that has slots unstarred.
+  if (equips.stars > 0 && built.remaining_upgrade_slots() == 0 &&
       Supports(proto, UPGRADE_STAR_FORCE)) {
-    built.set_stars(EquipTabItem::MaxStarsForLevel(proto.required_level()));
+    built.set_stars(std::min(
+        equips.stars, EquipTabItem::MaxStarsForLevel(proto.required_level())));
   }
   return built;
 }
@@ -261,7 +262,7 @@ Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
 // has no such entry. Lets a GameState be built for a test without the game's
 // data files behind it.
 void GiveEquip(GameState& state, const std::string& name,
-               TestEquips equips = TestEquips::kClean) {
+               const TestEquips& equips = TestEquips()) {
   std::map<std::string, EquipPrototype>::const_iterator it =
       state.equips.find(name);
   if (it == state.equips.end()) {
@@ -276,7 +277,7 @@ void GiveEquip(GameState& state, const std::string& name,
 // the tester to swap in. A piece the character is too low to wear is handed
 // over anyway, and stays in the bag until they are.
 void WearAll(GameState& state, const std::vector<std::string>& names,
-             TestEquips equips) {
+             const TestEquips& equips) {
   for (const std::string& name : names) {
     std::map<std::string, EquipPrototype>::const_iterator it =
         state.equips.find(name);
@@ -391,7 +392,7 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
 // advancement on the way to it. `level` is where the climb stops, or 0 for the
 // last level before the next advancement would be offered.
 void GrowToJob(GameState& state, JobAdvancement advancement, int level,
-               int unspent_stage, TestEquips equips) {
+               int unspent_stage, const TestEquips& equips) {
   Job job = JobForAdvancement(advancement);
   int stage = StageForAdvancement(advancement);
   std::vector<Job> path;

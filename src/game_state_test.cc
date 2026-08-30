@@ -220,7 +220,7 @@ TEST(GameStateTest, SkillsMaxBuysEveryBookOutright) {
   }
 }
 
-// --- --equips ---
+// --- --hammered, --scrolled and --sf ---
 
 // The workbench's own level 30 warrior weapon, with slots to scroll and stars
 // to add. Keyed the way WorkbenchGearFor names it, or nothing is worn at all.
@@ -266,44 +266,85 @@ const Equip& WornWeapon(const GameState& state) {
   return state.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).equip_state();
 }
 
-// The default: gear arrives as it drops, with its slots to spend and no stars.
-TEST(GameStateTest, EquipsCleanLeavesTheGearAsItDrops) {
-  GameState state = MakeEquipsState(TestEquips::kClean);
+// No flag at all: gear arrives as it drops, slots to spend and no stars.
+TEST(GameStateTest, NoUpgradeFlagLeavesTheGearAsItDrops) {
+  GameState state = MakeEquipsState(TestEquips());
   EXPECT_EQ(WornWeapon(state).remaining_upgrade_slots(), 7);
+  EXPECT_EQ(WornWeapon(state).hammers(), 0);
   EXPECT_EQ(WornWeapon(state).scroll_successes(), 0);
   EXPECT_EQ(WornWeapon(state).stars(), 0);
 }
 
-// Both hammers in and every slot passed, with the trace that pays the most --
-// and no stars, which are the other flag's business.
-TEST(GameStateTest, EquipsScrollHammersThenPassesEverySlot) {
-  GameState state = MakeEquipsState(TestEquips::kScrolled);
-  const Equip& worn = WornWeapon(state);
+// Each flag does its own job and nothing else: the hammers widen the shelf,
+// leaving every slot on it unspent.
+TEST(GameStateTest, HammeredWidensTheShelfWithoutFillingIt) {
+  TestEquips equips;
+  equips.hammered = true;
+  const Equip& worn = WornWeapon(MakeEquipsState(equips));
+  EXPECT_EQ(worn.hammers(), kMaxHammers);
+  EXPECT_EQ(worn.remaining_upgrade_slots(), 9);
+  EXPECT_EQ(worn.scroll_successes(), 0);
+}
+
+// And scrolling alone passes the shelf the item shipped with, with the trace
+// that pays the most.
+TEST(GameStateTest, ScrolledPassesTheSlotsTheItemHas) {
+  TestEquips equips;
+  equips.scrolled = true;
+  const Equip& worn = WornWeapon(MakeEquipsState(equips));
+  EXPECT_EQ(worn.hammers(), 0);
+  EXPECT_EQ(worn.remaining_upgrade_slots(), 0);
+  EXPECT_EQ(worn.scroll_successes(), 7);
+  EXPECT_EQ(worn.scroll_stats().attack(), 35);
+  EXPECT_EQ(worn.scroll_stats().str(), 21);
+  EXPECT_EQ(worn.stars(), 0);
+}
+
+// Together the wider shelf is the one that gets filled.
+TEST(GameStateTest, HammeredAndScrolledFillTheWiderShelf) {
+  TestEquips equips;
+  equips.hammered = true;
+  equips.scrolled = true;
+  const Equip& worn = WornWeapon(MakeEquipsState(equips));
   EXPECT_EQ(worn.hammers(), kMaxHammers);
   EXPECT_EQ(worn.remaining_upgrade_slots(), 0);
   EXPECT_EQ(worn.scroll_successes(), 9);
   EXPECT_EQ(worn.scroll_stats().attack(), 45);
   EXPECT_EQ(worn.scroll_stats().str(), 27);
-  EXPECT_EQ(worn.stars(), 0);
 }
 
-// The stars on top of the scrolling, up to what the item's own level allows.
-TEST(GameStateTest, EquipsSfStarsTheGearToItsCap) {
-  GameState state = MakeEquipsState(TestEquips::kStarForced);
-  const Equip& worn = WornWeapon(state);
-  EXPECT_EQ(worn.hammers(), kMaxHammers);
-  EXPECT_EQ(worn.scroll_successes(), 9);
-  EXPECT_EQ(worn.stars(), EquipTabItem::MaxStarsForLevel(30));
+// --sf sets exactly the stars it names, and the item's own cap is the ceiling
+// -- a level 30 weapon takes five of them however many are asked for.
+TEST(GameStateTest, SfSetsTheStarsItNamesUpToTheItemsCap) {
+  TestEquips equips;
+  equips.scrolled = true;
+  equips.stars = 3;
+  EXPECT_EQ(WornWeapon(MakeEquipsState(equips)).stars(), 3);
+
+  equips.stars = 22;
+  EXPECT_EQ(WornWeapon(MakeEquipsState(equips)).stars(),
+            EquipTabItem::MaxStarsForLevel(30));
 }
 
-// An item that refuses an upgrade path is left alone on it, however the flag
-// is set: the workbench does not get to overrule the data.
-TEST(GameStateTest, EquipsLeaveAnItemThatRefusesThePathAlone) {
+// Stars need nothing left to scroll, which is the upgrade screen's own rule --
+// so --sf on an item with slots unspent leaves it unstarred.
+TEST(GameStateTest, SfWaitsForAShelfWithNothingLeftOnIt) {
+  TestEquips equips;
+  equips.stars = 3;
+  EXPECT_EQ(WornWeapon(MakeEquipsState(equips)).stars(), 0);
+
+  equips.hammered = true;
+  EXPECT_EQ(WornWeapon(MakeEquipsState(equips)).stars(), 0);
+}
+
+// An item that refuses an upgrade path is left alone on it, however the flags
+// are set: the workbench does not get to overrule the data.
+TEST(GameStateTest, TheFlagsLeaveAnItemThatRefusesThePathAlone) {
   std::map<std::string, EquipPrototype> catalog = GladiusCatalog();
   catalog["gladius"].add_unsupported_upgrades(UPGRADE_STAR_FORCE);
   TestOptions test;
   test.job = JOB_ADVANCEMENT_SWORDMAN;
-  test.equips = TestEquips::kStarForced;
+  test.equips = {/*hammered=*/true, /*scrolled=*/true, /*stars=*/30};
   GameState state(catalog, WarriorWeaponTraces(), {}, {}, {}, {},
                   GameMode::kTest, test);
   EXPECT_EQ(WornWeapon(state).scroll_successes(), 9);
@@ -312,7 +353,7 @@ TEST(GameStateTest, EquipsLeaveAnItemThatRefusesThePathAlone) {
 
 // Gloves take no stat trace at all, so the workbench falls back to the attack
 // one -- and a scrolled shelf is what lets the stars go on.
-TEST(GameStateTest, EquipsScrollGlovesWithTheAttackTrace) {
+TEST(GameStateTest, TheFlagsScrollGlovesWithTheAttackTrace) {
   // Hung on the key WorkbenchGearFor names, which is what decides what a
   // swordman is handed -- the prototype behind it is the catalog's to choose.
   EquipPrototype gloves;
@@ -334,7 +375,7 @@ TEST(GameStateTest, EquipsScrollGlovesWithTheAttackTrace) {
   scrolls["gloves_att_30"] = att;
   TestOptions test;
   test.job = JOB_ADVANCEMENT_SWORDMAN;
-  test.equips = TestEquips::kStarForced;
+  test.equips = {/*hammered=*/true, /*scrolled=*/true, /*stars=*/30};
   GameState state(catalog, scrolls, {}, {}, {}, {}, GameMode::kTest, test);
   const Equip& worn =
       state.character.equipped().at(EQUIP_SLOT_GLOVES).equip_state();
@@ -346,7 +387,7 @@ TEST(GameStateTest, EquipsScrollGlovesWithTheAttackTrace) {
 
 // The stat trace wins where both are written: a weapon takes STR, not the ATT
 // the fallback would reach for.
-TEST(GameStateTest, EquipsPreferTheStatTraceOverTheAttackOne) {
+TEST(GameStateTest, TheFlagsPreferTheStatTraceOverTheAttackOne) {
   std::map<std::string, Scroll> scrolls = WarriorWeaponTraces();
   Scroll att;
   att.set_name("30% ATT");
@@ -359,7 +400,7 @@ TEST(GameStateTest, EquipsPreferTheStatTraceOverTheAttackOne) {
   scrolls["weapon_att_30"] = att;
   TestOptions test;
   test.job = JOB_ADVANCEMENT_SWORDMAN;
-  test.equips = TestEquips::kScrolled;
+  test.equips = {/*hammered=*/true, /*scrolled=*/true, /*stars=*/0};
   GameState state(GladiusCatalog(), scrolls, {}, {}, {}, {}, GameMode::kTest,
                   test);
   EXPECT_EQ(WornWeapon(state).scroll_stats().str(), 27);
@@ -367,12 +408,12 @@ TEST(GameStateTest, EquipsPreferTheStatTraceOverTheAttackOne) {
 
 // A piece with no scroll shelf takes no hammer either: the hammer widens a
 // shelf, and there is none to widen.
-TEST(GameStateTest, EquipsLeaveAPieceWithNoShelfUnhammered) {
+TEST(GameStateTest, TheFlagsLeaveAPieceWithNoShelfUnhammered) {
   std::map<std::string, EquipPrototype> catalog = GladiusCatalog();
   catalog["gladius"].set_upgrade_slots(0);
   TestOptions test;
   test.job = JOB_ADVANCEMENT_SWORDMAN;
-  test.equips = TestEquips::kStarForced;
+  test.equips = {/*hammered=*/true, /*scrolled=*/true, /*stars=*/30};
   GameState state(catalog, WarriorWeaponTraces(), {}, {}, {}, {},
                   GameMode::kTest, test);
   EXPECT_EQ(WornWeapon(state).hammers(), 0);
