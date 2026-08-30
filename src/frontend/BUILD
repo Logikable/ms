@@ -295,6 +295,7 @@ cc_library(
         "//src/frontend/screens:boss_select_panel",
         "//src/frontend/screens:buy_panel",
         "//src/frontend/screens:hammer_panel",
+        "//src/frontend/screens:hyper_stat_inspect_panel",
         "//src/frontend/screens:hyper_stat_level_panel",
         "//src/frontend/screens:inspect_panel",
         "//src/frontend/screens:job_inspect_panel",

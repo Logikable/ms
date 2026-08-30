@@ -169,7 +169,10 @@ void Tui::BuildComponents() {
       [this](HyperStatField field) {
         controller_.OpenHyperAllocate(field, char_panel_.hyper_preset());
       },
-      [this]() { controller_.OpenHyperReset(char_panel_.hyper_preset()); });
+      [this]() { controller_.OpenHyperReset(char_panel_.hyper_preset()); },
+      [this](HyperStatField field) {
+        controller_.OpenHyperStatInspect(field, char_panel_.hyper_preset());
+      });
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
   menu_component_ = menu_panel_.MakeComponent(
@@ -715,6 +718,11 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(controller_.hyper_stat_level_panel().Render());
     case kHyperReset:
       return OverMain(HyperResetDialog());
+    case kHyperStatInspect:
+      hyper_stat_inspect_panel_.SetStat(controller_.hyper_inspect_field(),
+                                        controller_.hyper_inspect_level(),
+                                        controller_.hyper_inspect_max_level());
+      return Standalone(hyper_stat_inspect_panel_.Render());
     case kJobInspect:
       return RenderJobInspect();
     case kSkillInspect:

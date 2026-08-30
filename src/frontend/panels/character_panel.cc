@@ -66,13 +66,15 @@ constexpr char kBossTabLabel[] = "Boss";
 // " 1699 Points ".
 constexpr int kHyperPointsCol = 13;
 
-// The Hyper tab's columns: the stat's name, what it is worth at its level,
-// and the level itself. Fixed widths, so the [+] on every row lines up and a
-// long name cannot widen the panel.
-constexpr int kHyperNameWidth = 15;
-constexpr int kHyperWorthWidth = 6;
+// The Hyper tab's columns. The level and the [+] are fixed and the name takes
+// what is left, which is what puts exactly one column between the level and
+// the [+] on every row -- the shape the skill rows have.
 constexpr int kHyperLevelWidth = 2;
 constexpr int kHyperPlusWidth = 3;
+
+// What the row spends on everything but the name: the leading gutter, the
+// level, the gap after it, the [+] and the trailing gutter.
+constexpr int kHyperFixedWidth = 1 + kHyperLevelWidth + 1 + kHyperPlusWidth + 1;
 
 // Roman numerals for the job-advancement tabs, indexed by stage (1..6).
 const char* kStageNumerals[] = {"", "I", "II", "III", "IV", "V", "VI"};
@@ -800,25 +802,39 @@ ftxui::Element CharacterPanel::RenderHyperRow(HyperStatField field, int index,
   bool locked = !HyperStatUnlocked(field, character_.proto().level());
   int level = character_.hyper_stat_level(field, hyper_preset_);
 
-  ftxui::Element text =
-      ftxui::text(" " + PadRight(HyperStatName(field), kHyperNameWidth) + " " +
-                  PadLeft(HyperStatBonusText(field, level), kHyperWorthWidth) +
-                  " " + PadLeft(std::to_string(level), kHyperLevelWidth));
+  // Only the name inverts, as on a skill row: Enter opens the stat, so the
+  // highlight covers the stat and stops. The padding rides outside it, which
+  // is what keeps the bar off the empty column after a short name.
+  std::string text = HyperStatName(field);
+  int name_width = std::max(1, row_width - kHyperFixedWidth);
+  int lit = std::min(static_cast<int>(text.size()), name_width);
+  ftxui::Element name = ftxui::text(text.substr(0, lit));
+  if (selected && hyper_col_ == kColName) {
+    name = std::move(name) | ftxui::inverted;
+  } else if (locked) {
+    name = std::move(name) | ftxui::dim;
+  }
+  // Right-aligned with a single gutter after it, so the [+] on every row sits
+  // one column off the level however wide the panel came out.
+  ftxui::Element level_text =
+      ftxui::text(PadLeft(std::to_string(level), kHyperLevelWidth) + " ");
   if (locked) {
-    text = std::move(text) | ftxui::dim;
+    level_text = std::move(level_text) | ftxui::dim;
   }
   // The cursor outranks the unavailable cue, as on the skill rows: a selected
   // [+] inverts even with nothing to spend, so the cursor stays visible while
   // the player reads down the list.
   ftxui::Element plus = ftxui::text("[+]");
-  if (selected) {
+  if (selected && hyper_col_ == kColPlus) {
     plus = std::move(plus) | ftxui::inverted;
   } else if (!CanRaiseHyperStat(field)) {
     plus = std::move(plus) | ftxui::dim;
   }
   return ftxui::hbox({
-             std::move(text),
-             ftxui::filler(),
+             ftxui::text(" "),
+             std::move(name),
+             ftxui::text(std::string(name_width - lit, ' ')),
+             std::move(level_text),
              std::move(plus),
              ftxui::text(" "),
          }) |
@@ -1069,14 +1085,23 @@ bool CharacterPanel::ShowsCombatStats() const {
 bool CharacterPanel::OnHyperTabEvent(
     const ftxui::Event& event,
     const std::function<void(HyperStatField)>& on_hyper_allocate,
-    const std::function<void()>& on_hyper_reset) {
+    const std::function<void()>& on_hyper_reset,
+    const std::function<void(HyperStatField)>& on_hyper_inspect) {
   if (zone_ == kZonePresets) {
     return OnPresetBarEvent(event);
   }
-  // The [+] is the only thing to stand on, so Left and Right have nothing to
-  // move between and do nothing at all.
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  // Left/Right pick the column, as they do on a skill row. The [Reset] button
+  // is one button wide, so it hears neither.
+  if (event == ftxui::Event::ArrowLeft && zone_ == kZoneHyperRows) {
+    hyper_col_ = kColName;
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight && zone_ == kZoneHyperRows) {
+    hyper_col_ = kColPlus;
     return true;
   }
   if (!IsForward(event)) {
@@ -1089,6 +1114,14 @@ bool CharacterPanel::OnHyperTabEvent(
     return true;
   }
   HyperStatField field = kHyperStatOrder[hyper_sel_];
+  if (hyper_col_ == kColName) {
+    // Never gated: a stat the character's level holds shut is a stat they
+    // most want to read about.
+    if (on_hyper_inspect) {
+      on_hyper_inspect(field);
+    }
+    return true;
+  }
   if (on_hyper_allocate && CanRaiseHyperStat(field)) {
     on_hyper_allocate(field);
   }
@@ -1170,14 +1203,16 @@ ftxui::Component CharacterPanel::MakeComponent(
     std::function<void(const Skill&)> on_menu,
     std::function<void()> on_all_stats,
     std::function<void(HyperStatField)> on_hyper_allocate,
-    std::function<void()> on_hyper_reset) {
+    std::function<void()> on_hyper_reset,
+    std::function<void(HyperStatField)> on_hyper_inspect) {
   // Renderer(bool) overload is Focusable(), unlike Renderer() -- required so
   // Container::Tab's Focused() check passes when panel_focus_ == kCharPanel.
   ftxui::Component renderer =
       ftxui::Renderer([this](bool /*focused*/) { return Render(); });
   return ftxui::CatchEvent(
       renderer, [this, on_allocate, on_learn, on_advance, on_menu, on_all_stats,
-                 on_hyper_allocate, on_hyper_reset](ftxui::Event event) {
+                 on_hyper_allocate, on_hyper_reset,
+                 on_hyper_inspect](ftxui::Event event) {
         if (panel_focus_ != kCharPanel) {
           return false;
         }
@@ -1200,7 +1235,8 @@ ftxui::Component CharacterPanel::MakeComponent(
           return OnStatsTabEvent(event, on_allocate, on_all_stats);
         }
         if (ActiveTab() == kTabHyper) {
-          return OnHyperTabEvent(event, on_hyper_allocate, on_hyper_reset);
+          return OnHyperTabEvent(event, on_hyper_allocate, on_hyper_reset,
+                                 on_hyper_inspect);
         }
         if (ActiveTab() == kTabAdvance) {
           return OnAdvanceTabEvent(event, on_advance);

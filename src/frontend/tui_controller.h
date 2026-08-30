@@ -111,6 +111,16 @@ class TuiController {
   // Farm/Boss row is on, since the panel is what knows that.
   void OpenHyperAllocate(HyperStatField field, HyperPreset preset);
   void OpenHyperReset(HyperPreset preset);
+  // The card Enter on a stat's name opens. Never gated: a stat the character
+  // is too low for is the one they most want to read about.
+  void OpenHyperStatInspect(HyperStatField field, HyperPreset preset);
+  HyperStatField hyper_inspect_field() const {
+    return hyper_field_;
+  }
+  // Read live rather than captured, for the reason skill_inspect_level() is:
+  // a point spent and the stat inspected again shows the level it is at.
+  int hyper_inspect_level() const;
+  int hyper_inspect_max_level() const;
   const HyperStatLevelPanel& hyper_stat_level_panel() const {
     return hyper_stat_level_panel_;
   }

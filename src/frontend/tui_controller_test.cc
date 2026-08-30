@@ -3393,6 +3393,31 @@ TEST_F(TuiControllerTest, TheResetEmptiesTheAllocationItNamed) {
             1);
 }
 
+// The card reads the allocation it was opened on, and the level live off the
+// character -- a point spent and the stat opened again says the new one.
+TEST_F(TuiControllerTest, TheHyperStatCardReadsTheAllocationItWasOpenedOn) {
+  LevelTo(kHyperStatUnlockLevel);
+  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, HyperPreset::kBossing);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  controller_->OpenHyperStatInspect(HYPER_STAT_FIELD_STR,
+                                    HyperPreset::kBossing);
+  EXPECT_EQ(controller_->screen(), kHyperStatInspect);
+  EXPECT_EQ(controller_->hyper_inspect_field(), HYPER_STAT_FIELD_STR);
+  EXPECT_EQ(controller_->hyper_inspect_level(), 1);
+  EXPECT_EQ(controller_->hyper_inspect_max_level(),
+            state_->character.max_hyper_stat_level());
+
+  // The other allocation has had nothing spent on it.
+  controller_->OpenHyperStatInspect(HYPER_STAT_FIELD_STR,
+                                    HyperPreset::kFarming);
+  EXPECT_EQ(controller_->hyper_inspect_level(), 0);
+
+  // Nothing to do but read it, so either key leaves.
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
 // Enter alone on the reset dialog walks away rather than emptying it.
 TEST_F(TuiControllerTest, TheResetOpensOnCancel) {
   LevelTo(kHyperStatUnlockLevel);

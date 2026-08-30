@@ -32,6 +32,7 @@
 #include "src/frontend/screens/analysis_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
+#include "src/frontend/screens/hyper_stat_inspect_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
@@ -189,6 +190,7 @@ class Tui {
   KeybindsPanel keybinds_panel_;
   // Every stat on one screen, reached from the Character panel's last row.
   AllStatsPanel all_stats_panel_;
+  HyperStatInspectPanel hyper_stat_inspect_panel_;
   ShopPanel shop_panel_;
   BuyPanel buy_panel_;
 

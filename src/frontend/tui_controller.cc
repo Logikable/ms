@@ -169,6 +169,21 @@ void TuiController::OpenHyperAllocate(HyperStatField field,
   screen_ = kHyperAlloc;
 }
 
+void TuiController::OpenHyperStatInspect(HyperStatField field,
+                                         HyperPreset preset) {
+  hyper_field_ = field;
+  hyper_preset_ = preset;
+  screen_ = kHyperStatInspect;
+}
+
+int TuiController::hyper_inspect_level() const {
+  return state_.character.hyper_stat_level(hyper_field_, hyper_preset_);
+}
+
+int TuiController::hyper_inspect_max_level() const {
+  return state_.character.max_hyper_stat_level();
+}
+
 void TuiController::OpenHyperReset(HyperPreset preset) {
   hyper_preset_ = preset;
   // Opens on Cancel: the points come back, but the allocation they were spent
@@ -342,6 +357,7 @@ bool TuiController::OnEvent(ftxui::Event event) {
     // same way.
     case kSkillInspect:
     case kAllStats:
+    case kHyperStatInspect:
       return OnSkillInspectEvent(event);
     case kJobMenu:
       return OnJobMenuEvent(event);

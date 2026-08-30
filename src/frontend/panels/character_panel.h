@@ -80,7 +80,8 @@ class CharacterPanel {
       std::function<void(const Skill&)> on_menu = {},
       std::function<void()> on_all_stats = {},
       std::function<void(HyperStatField)> on_hyper_allocate = {},
-      std::function<void()> on_hyper_reset = {});
+      std::function<void()> on_hyper_reset = {},
+      std::function<void(HyperStatField)> on_hyper_inspect = {});
 
   // Which of the character's two Hyper Stat allocations the panel is reading,
   // which the Farm/Boss row picks. The All Stats screen opens on it too, so
@@ -199,7 +200,8 @@ class CharacterPanel {
   };
 
   // The two things a skill row offers, left to right. Left/Right move between
-  // them; each answers a different Enter.
+  // them; each answers a different Enter. A Hyper Stat row is the same pair:
+  // the stat to read about, and the point to spend on it.
   enum SkillCol { kColName, kColPlus };
 
   // Per-focus-area event handlers, dispatched from MakeComponent by zone. Each
@@ -229,7 +231,8 @@ class CharacterPanel {
   bool OnHyperTabEvent(
       const ftxui::Event& event,
       const std::function<void(HyperStatField)>& on_hyper_allocate,
-      const std::function<void()>& on_hyper_reset);
+      const std::function<void()>& on_hyper_reset,
+      const std::function<void(HyperStatField)>& on_hyper_inspect);
 
   // The tabs on offer, in bar order. The Advance tab is only among them while
   // an advancement is pending, so the count is not a constant.
@@ -288,7 +291,9 @@ class CharacterPanel {
   // always draw -- the rows are what a short terminal takes from.
   ftxui::Element RenderHyperTab(bool bar_focused, bool rows_focused,
                                 bool reset_focused) const;
-  // One Hyper Stat row: its name, what it is worth now, its level, and a [+].
+  // One Hyper Stat row: its name, its level, and a [+]. Whichever column the
+  // cursor is on inverts, as on a skill row. What the stat is worth is on the
+  // card Enter opens rather than in a column of its own.
   ftxui::Element RenderHyperRow(HyperStatField field, int index,
                                 bool rows_focused, int row_width) const;
   // Whether a point can go into `field` at all: not maxed, not held shut by
@@ -384,8 +389,9 @@ class CharacterPanel {
   // How long the cursor has sat on the selected skill row, for the name
   // scroll. Mutable because the render is what notices the row moved.
   mutable SelectionClock name_clock_;
-  int job_sel_ = 0;    // selected Advance-tab job row
-  int hyper_sel_ = 0;  // selected Hyper-tab stat row
+  int job_sel_ = 0;                // selected Advance-tab job row
+  int hyper_sel_ = 0;              // selected Hyper-tab stat row
+  SkillCol hyper_col_ = kColName;  // selected column of that row
   // Which allocation the Farm/Boss row is on -- see hyper_preset().
   HyperPreset hyper_preset_ = HyperPreset::kFarming;
   TextField username_field_{kMaxUsernameLength};

@@ -2370,7 +2370,7 @@ TEST_F(CharacterPanelTest, TheHyperTabArrivesWithTheStatsAndIsGoldUntilRead) {
   EXPECT_TRUE(account_.Seen(kHyperTabKey));
 }
 
-// Every stat, what it is worth at the level it is on, and the points left.
+// Every stat, its level and the points left -- and nothing else.
 TEST_F(CharacterPanelTest, TheHyperTabListsTheStatsAndTheSparePoints) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -2383,28 +2383,32 @@ TEST_F(CharacterPanelTest, TheHyperTabListsTheStatsAndTheSparePoints) {
   }
   // Level 140 pays three points, and this character has spent one on STR.
   EXPECT_NE(rendered.find("2 Points"), std::string::npos);
-  EXPECT_NE(rendered.find("+30"), std::string::npos) << "STR at level 1";
   EXPECT_NE(rendered.find("[Reset]"), std::string::npos);
+  // What a stat is worth is on the card Enter opens, not in a column here.
+  EXPECT_EQ(rendered.find("+30"), std::string::npos);
 }
 
-// The [+] is the door, and it closes on a stat the level holds shut.
+// The [+] is the door, and it closes on a stat the level holds shut. The row
+// itself dims with it, as a locked skill's does.
 TEST_F(CharacterPanelTest, ArcaneForceIsHeldShutUntilItsOwnLevel) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
   panel_focus_ = kCharPanel;
   ftxui::Component comp = OnHyperRows(panel);
+  EXPECT_TRUE(IsDim(comp, "Arcane Force", /*rows=*/32));
+
   HyperStatField raised = HYPER_STAT_FIELD_UNSPECIFIED;
   ftxui::Component with_callback =
       panel.MakeComponent([](StatField) {}, {}, {}, {}, {},
                           [&](HyperStatField field) { raised = field; });
-  // Down to the last row, which is Arcane Force.
+  // Down to the last row, which is Arcane Force, and over to its [+].
   for (int i = 1; i < kNumHyperStats; ++i) {
     with_callback->OnEvent(ftxui::Event::ArrowDown);
   }
+  with_callback->OnEvent(ftxui::Event::ArrowRight);
   with_callback->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(raised, HYPER_STAT_FIELD_UNSPECIFIED)
       << "Arcane Force below level 200 has no [+] to press";
-  EXPECT_TRUE(IsDim(comp, "Arcane Force", /*rows=*/32));
 }
 
 // A stat the points do reach asks the question rather than spending straight
@@ -2421,11 +2425,64 @@ TEST_F(CharacterPanelTest, TheHyperPlusAsksAboutTheStatUnderIt) {
   comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::ArrowDown);
   comp->OnEvent(ftxui::Event::ArrowDown);
-  comp->OnEvent(ftxui::Event::ArrowDown);  // STR -> DEX
+  comp->OnEvent(ftxui::Event::ArrowDown);   // STR -> DEX
+  comp->OnEvent(ftxui::Event::ArrowRight);  // the name -> the [+]
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(raised, HYPER_STAT_FIELD_DEX);
   EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_DEX), 0)
       << "the panel asks; the controller spends";
+}
+
+// Enter on the name opens the card, as it does on a skill's name -- and it is
+// never gated: a stat the level holds shut is the one worth reading about.
+TEST_F(CharacterPanelTest, EnterOnAHyperStatNameOpensIt) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  HyperStatField opened = HYPER_STAT_FIELD_UNSPECIFIED;
+  HyperStatField raised = HYPER_STAT_FIELD_UNSPECIFIED;
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp =
+      panel.MakeComponent([](StatField) {}, {}, {}, {}, {},
+                          [&](HyperStatField field) { raised = field; }, {},
+                          [&](HyperStatField field) { opened = field; });
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // the first stat row, on its name
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(opened, HYPER_STAT_FIELD_STR);
+  EXPECT_EQ(raised, HYPER_STAT_FIELD_UNSPECIFIED) << "the name spends nothing";
+
+  // Right moves onto the [+], and Left back to the name.
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(raised, HYPER_STAT_FIELD_STR);
+  opened = HYPER_STAT_FIELD_UNSPECIFIED;
+  comp->OnEvent(ftxui::Event::ArrowLeft);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(opened, HYPER_STAT_FIELD_STR);
+
+  // And the last row, which the character's level holds shut, opens too.
+  for (int i = 1; i < kNumHyperStats; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+  }
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(opened, HYPER_STAT_FIELD_ARCANE_FORCE);
+}
+
+// One column between the level and the [+], the same gap the skill rows have.
+TEST_F(CharacterPanelTest, TheHyperRowsPutOneColumnBeforeThePlus) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  ftxui::Screen screen = RenderToScreen(OnHyperRows(panel), 32);
+  std::pair<int, int> str = FindCell(screen, "STR");
+  ASSERT_GE(str.second, 0);
+  // "  1 [+]": the digit, one blank, then the button.
+  int plus = RowEnd(screen, str.second) - 2;
+  EXPECT_EQ(screen.PixelAt(plus, str.second).character, "[");
+  EXPECT_EQ(screen.PixelAt(plus - 1, str.second).character, " ");
+  EXPECT_EQ(screen.PixelAt(plus - 2, str.second).character, "1");
 }
 
 // The last stop in the ring, under a rule of its own.
