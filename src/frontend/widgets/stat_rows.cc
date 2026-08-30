@@ -180,7 +180,7 @@ int CharacterCombatPower(const CharacterInstance& character,
       TotalEquipStats(character, derived), character.weapon_type(),
       /*attack_skill=*/nullptr,
       /*attack_level=*/0, PassiveOffenseFor(derived));
-  return CombatPower(offense);
+  return CombatPower(offense, preset == HyperPreset::kBossing);
 }
 
 std::string CombatPowerText(int power) {

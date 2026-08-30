@@ -187,11 +187,12 @@ Result Fight(const Catalogs& catalogs, int level, Job branch,
   }
   const Character& proto = state.character.proto();
   DerivedStats derived = DerivedStatsFor(state.character, state.skills);
-  result.combat_power = CombatPower(OffenseStatsFor(
-      proto.job(), proto.level(), proto.allocated_stats(),
-      TotalEquipStats(state.character, derived), state.character.weapon_type(),
-      /*attack_skill=*/nullptr, /*attack_level=*/0,
-      PassiveOffenseFor(derived)));
+  result.combat_power = CombatPower(
+      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                      TotalEquipStats(state.character, derived),
+                      state.character.weapon_type(), /*attack_skill=*/nullptr,
+                      /*attack_level=*/0, PassiveOffenseFor(derived)),
+      /*vs_boss=*/true);
   result.swing = MainSwing(state, boss_key, *difficulty);
 
   result.kill_seconds =

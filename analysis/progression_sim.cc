@@ -931,11 +931,12 @@ constexpr double kRetryPowerGain = 1.05;
 int PowerNow(const GameState& state) {
   const Character& proto = state.character.proto();
   DerivedStats derived = DerivedStatsFor(state.character, state.skills);
-  return CombatPower(OffenseStatsFor(
-      proto.job(), proto.level(), proto.allocated_stats(),
-      TotalEquipStats(state.character, derived), state.character.weapon_type(),
-      /*attack_skill=*/nullptr, /*attack_level=*/0,
-      PassiveOffenseFor(derived)));
+  return CombatPower(
+      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                      TotalEquipStats(state.character, derived),
+                      state.character.weapon_type(), /*attack_skill=*/nullptr,
+                      /*attack_level=*/0, PassiveOffenseFor(derived)),
+      /*vs_boss=*/true);
 }
 
 // Whether this fight is worth walking up to now. It is on the day it opens,

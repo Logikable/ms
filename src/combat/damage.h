@@ -292,7 +292,11 @@ double DefenseShare(const Mob& mob, double ied);
 //
 // Unlike GMS, crit is weighted by its rate: a flat `1.35 + crit damage` would
 // price critical damage the same whether it lands every swing or never.
-int CombatPower(const OffenseStats& offense);
+//
+// `vs_boss` says which monster the number stands for, and decides which of
+// boss %dmg and normal %dmg counts -- never both, since no swing ever meets
+// both. There is no target here, so the caller names one.
+int CombatPower(const OffenseStats& offense, bool vs_boss);
 
 // What a character brings to being hit. The defensive mirror of OffenseStats:
 // DerivedStatsFor produces both fields, and the character's own level decides

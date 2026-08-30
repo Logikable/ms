@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/hyper_stats.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -284,6 +285,48 @@ TEST_F(StatRowsTest, TheRowsReadThePresetTheyAreGiven) {
   EXPECT_EQ(
       ValueOf(ExtraStatLines(c, {}, HyperPreset::kBossing), "Critical Damage"),
       "44.00%");
+}
+
+// Boss damage is worth nothing while farming and normal damage nothing while
+// bossing, so each raises its own mode's combat power and neither raises the
+// other's. Level 200 with a weapon, so there is a number to move at all.
+TEST_F(StatRowsTest, CombatPowerCountsTheModesMonsterOnly) {
+  Character bare;
+  bare.set_level(200);
+  bare.set_job(JOB_SWORDMAN);
+  bare.set_job_stage(1);
+  bare.mutable_allocated_stats()->set_str(400);
+
+  Character spent = bare;
+  (*PresetOf(*spent.mutable_hyper_stats(), HyperPreset::kFarming)
+        .mutable_levels())[HYPER_STAT_FIELD_NORMAL_DAMAGE] = 10;
+  (*PresetOf(*spent.mutable_hyper_stats(), HyperPreset::kBossing)
+        .mutable_levels())[HYPER_STAT_FIELD_BOSS_DAMAGE] = 10;
+
+  CharacterInstance nothing(rng_, std::move(bare));
+  EquipBow(nothing);
+  CharacterInstance c(rng_, std::move(spent));
+  EquipBow(c);
+
+  int baseline = CharacterCombatPower(nothing, {});
+  // The same ladder either side, so the two modes come out equal -- and both
+  // above a character who has spent nothing.
+  EXPECT_GT(CharacterCombatPower(c, {}, HyperPreset::kFarming), baseline);
+  EXPECT_EQ(CharacterCombatPower(c, {}, HyperPreset::kFarming),
+            CharacterCombatPower(c, {}, HyperPreset::kBossing));
+
+  // And the boss ladder buys nothing at all under the farming allocation.
+  Character misplaced;
+  misplaced.set_level(200);
+  misplaced.set_job(JOB_SWORDMAN);
+  misplaced.set_job_stage(1);
+  misplaced.mutable_allocated_stats()->set_str(400);
+  (*PresetOf(*misplaced.mutable_hyper_stats(), HyperPreset::kFarming)
+        .mutable_levels())[HYPER_STAT_FIELD_BOSS_DAMAGE] = 10;
+  CharacterInstance boss_only(rng_, std::move(misplaced));
+  EquipBow(boss_only);
+  EXPECT_EQ(CharacterCombatPower(boss_only, {}, HyperPreset::kFarming),
+            baseline);
 }
 
 TEST(CombatPowerTextTest, SpellsItOutUntilSevenFigures) {

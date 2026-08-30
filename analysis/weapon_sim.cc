@@ -375,7 +375,9 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
       proto.job(), proto.level(), proto.allocated_stats(),
       TotalEquipStats(state.character, derived), state.character.weapon_type(),
       /*attack_skill=*/nullptr, /*attack_level=*/0, PassiveOffenseFor(derived));
-  result.combat_power = CombatPower(bare);
+  // Bosses are what the ladder is built against, here and in every other
+  // sim: normal %dmg buys nothing a player of this game is short of.
+  result.combat_power = CombatPower(bare, /*vs_boss=*/true);
 
   CombatParams params = ComputeCombatParams(state);
   // Long enough that a four-second cooldown lands hundreds of times, so the

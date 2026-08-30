@@ -580,13 +580,17 @@ double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob) {
   return std::max(kMinimumDamage, damage) * (1.0 - defense.dodge_chance);
 }
 
-int CombatPower(const OffenseStats& offense) {
+int CombatPower(const OffenseStats& offense, bool vs_boss) {
   // The same opening as ExpectedAttackDamage: the /100 here is GMS's leading
   // 0.01, which turns out to be the very same constant.
   double stat_value = 4.0 * offense.primary + offense.secondary;
   double power = stat_value * offense.attack / 100.0 * offense.weapon_constant;
   power *= (1.0 + offense.mastery) / 2.0;
-  power *= 1.0 + offense.damage_pct + offense.boss_pct + offense.normal_pct;
+  // Only one of the two, the way ExpectedAttackDamage picks between them: a
+  // number counting both would say a character hits harder than any swing of
+  // theirs ever does.
+  power *= 1.0 + offense.damage_pct +
+           (vs_boss ? offense.boss_pct : offense.normal_pct);
   // Lines are stripped out of this number, so the shadow's share of one has to
   // be put back by hand -- it is a fact about the character, not the swing.
   power *= 1.0 + offense.mirror_pct;

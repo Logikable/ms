@@ -188,16 +188,19 @@ TEST_F(OffenseTest, FortyLevelsUnderFloorsToOneDamage) {
 TEST_F(OffenseTest, CombatPowerIsTheDamageChainWithoutATarget) {
   // The same 27 the baseline swing produces, with the base crit pair and
   // floored -- no mob, so no level multiplier and no defense.
-  EXPECT_EQ(CombatPower(Baseline()), 27);
+  EXPECT_EQ(CombatPower(Baseline(), /*vs_boss=*/false), 27);
 }
 
-TEST_F(OffenseTest, CombatPowerAlwaysCountsBossDamage) {
+TEST_F(OffenseTest, CombatPowerCountsOneOfBossAndNormalDamage) {
   OffenseStats s = Baseline();
   s.boss_pct = 0.6;
-  // A swing at an ordinary mob ignores this entirely; combat power does not.
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
+  s.normal_pct = 0.3;
+  // Whichever monster the caller named, never the sum: no swing meets both.
+  EXPECT_EQ(CombatPower(s, /*vs_boss=*/true), 43);   // kBaseline * 1.6
+  EXPECT_EQ(CombatPower(s, /*vs_boss=*/false), 35);  // kBaseline * 1.3
+  // A swing at an ordinary mob ignores boss damage entirely, as it always has.
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob()),
                    kBaseline * kEqualLevel * kBaseCrit);
-  EXPECT_EQ(CombatPower(s), 43);  // kBaseline * 1.6 * kBaseCrit
 }
 
 TEST_F(OffenseTest, CombatPowerWeightsCritDamageByItsRate) {
@@ -207,13 +210,13 @@ TEST_F(OffenseTest, CombatPowerWeightsCritDamageByItsRate) {
   // kBaseline * (1 + 0.55 * (0.25 + 0.35)) = 35.91 -- the rate carrying the
   // base 5% with it. GMS's flat 1.35 + 0.25 would read 43 here, pricing the
   // crit damage as though every swing crit.
-  EXPECT_EQ(CombatPower(s), 35);
+  EXPECT_EQ(CombatPower(s, /*vs_boss=*/false), 35);
 }
 
 TEST_F(OffenseTest, CombatPowerRisesWithMastery) {
   OffenseStats s = Baseline();
   s.mastery = 1.0;  // no min-damage floor at all
-  EXPECT_EQ(CombatPower(s), 45);
+  EXPECT_EQ(CombatPower(s, /*vs_boss=*/false), 45);
 }
 
 // Unlike GMS, which leaves the weapon constant out of the figure it shows.
@@ -222,7 +225,8 @@ TEST_F(OffenseTest, CombatPowerRisesWithMastery) {
 TEST_F(OffenseTest, CombatPowerCountsTheWeaponConstant) {
   OffenseStats s = Baseline();
   s.weapon_constant = 1.49;
-  EXPECT_EQ(CombatPower(s), 40);  // kBaseline * 1.49 * kBaseCrit
+  EXPECT_EQ(CombatPower(s, /*vs_boss=*/false),
+            40);  // kBaseline * 1.49 * kBaseCrit
 }
 
 TEST_F(OffenseTest, CombatPowerIgnoresTheSwingAndTheTarget) {
@@ -233,7 +237,8 @@ TEST_F(OffenseTest, CombatPowerIgnoresTheSwingAndTheTarget) {
   s.ied = 0.8;
   s.ier = 0.5;
   s.level = 60;
-  EXPECT_EQ(CombatPower(s), CombatPower(Baseline()));
+  EXPECT_EQ(CombatPower(s, /*vs_boss=*/false),
+            CombatPower(Baseline(), /*vs_boss=*/false));
 }
 
 // The published table is by 4th job, so ours is by weapon with the line that

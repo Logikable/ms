@@ -56,10 +56,14 @@ EquipStats WornAndGranted(const GameState& state, DerivedStats& derived) {
 int PowerWith(const GameState& state, const DerivedStats& derived,
               const EquipStats& stats) {
   const Character& proto = state.character.proto();
-  return CombatPower(OffenseStatsFor(
-      proto.job(), proto.level(), proto.allocated_stats(), stats,
-      state.character.weapon_type(), /*attack_skill=*/nullptr,
-      /*attack_level=*/0, PassiveOffenseFor(derived)));
+  // Ranked against bosses, which is what the gear is bought for -- see
+  // weapon_sim for the reason every sim asks the same way.
+  return CombatPower(
+      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                      stats, state.character.weapon_type(),
+                      /*attack_skill=*/nullptr, /*attack_level=*/0,
+                      PassiveOffenseFor(derived)),
+      /*vs_boss=*/true);
 }
 
 EquipStats Plus(const EquipStats& a, const EquipStats& b) {
