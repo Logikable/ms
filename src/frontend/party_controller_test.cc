@@ -92,13 +92,16 @@ struct Client {
     keys = std::make_unique<KeyMap>(state->account.mutable_keybinds());
     keybinds_panel = std::make_unique<KeybindsPanel>(*keys);
     controller = std::make_unique<TuiController>(
-        *state, *char_panel, *equip_panel, *inventory_panel, *scroll_panel,
-        inspect_panel, trace_inspect_panel, star_force_panel,
-        *trace_recover_panel, sell_panel, sell_equip_panel, *multi_sell_panel,
-        *map_select_panel, *mob_inspect_panel, *boss_select_panel, party_panel,
-        *party_inspect_panel, *shop_panel, buy_panel, *job_inspect_panel,
-        skill_inspect_panel, *menu_panel, *keybinds_panel, analysis, *keys,
-        focus, &session);
+        *state,
+        Screens{*char_panel,          *equip_panel,         *inventory_panel,
+                *scroll_panel,        inspect_panel,        trace_inspect_panel,
+                star_force_panel,     *trace_recover_panel, sell_panel,
+                sell_equip_panel,     *multi_sell_panel,    *map_select_panel,
+                *mob_inspect_panel,   *boss_select_panel,   party_panel,
+                *party_inspect_panel, *shop_panel,          buy_panel,
+                *job_inspect_panel,   skill_inspect_panel,  *menu_panel,
+                *keybinds_panel},
+        analysis, *keys, focus, &session);
   }
 
   // One turn of the game's loop: the connection, then the screen, then

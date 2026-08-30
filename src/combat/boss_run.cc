@@ -20,19 +20,6 @@
 namespace ms {
 namespace {
 
-// What a drop is called, for the card that names what the fight paid. Empty
-// for a drop neither catalog knows, which is a drop nothing was granted for.
-std::string DropName(const GameState& state, const MobDrop& drop) {
-  if (drop.has_equip()) {
-    std::map<std::string, EquipPrototype>::const_iterator it =
-        state.equips.find(drop.equip());
-    return it == state.equips.end() ? "" : it->second.name();
-  }
-  std::map<std::string, ItemPrototype>::const_iterator it =
-      state.items.find(drop.item());
-  return it == state.items.end() ? "" : it->second.name();
-}
-
 // How far out anyone stands on each axis, counted in cells: the size an arena
 // that names none is measured to.
 ArenaSpot ArenaExtent(const BossPhase& phase) {

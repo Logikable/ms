@@ -26,20 +26,6 @@ namespace {
 // bag counts one addition in an int, so a big yield goes in in pieces.
 constexpr int64_t kStackChunk = 1000000;
 
-// The name the player knows a drop by, or empty for one neither catalog has
-// heard of. The drop names a catalog key; what is shown is the prototype's own
-// name.
-std::string DropName(const GameState& state, const MobDrop& drop) {
-  if (drop.has_equip()) {
-    std::map<std::string, EquipPrototype>::const_iterator it =
-        state.equips.find(drop.equip());
-    return it == state.equips.end() ? "" : it->second.name();
-  }
-  std::map<std::string, ItemPrototype>::const_iterator it =
-      state.items.find(drop.item());
-  return it == state.items.end() ? "" : it->second.name();
-}
-
 // Adds `count` of `name` to the tally, of which `discarded` were thrown away.
 // One line per item however many mob types dropped it.
 void TallyItem(RewardTally& tally, const std::string& name, int64_t count,
@@ -55,6 +41,17 @@ void TallyItem(RewardTally& tally, const std::string& name, int64_t count,
 }
 
 }  // namespace
+
+std::string DropName(const GameState& state, const MobDrop& drop) {
+  if (drop.has_equip()) {
+    std::map<std::string, EquipPrototype>::const_iterator it =
+        state.equips.find(drop.equip());
+    return it == state.equips.end() ? "" : it->second.name();
+  }
+  std::map<std::string, ItemPrototype>::const_iterator it =
+      state.items.find(drop.item());
+  return it == state.items.end() ? "" : it->second.name();
+}
 
 int64_t GrantDrop(GameState& state, const MobDrop& drop, int64_t count) {
   if (drop.has_equip()) {

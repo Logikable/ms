@@ -208,13 +208,17 @@ class TuiControllerTest : public testing::Test {
     keys_ = std::make_unique<KeyMap>(state_->account.mutable_keybinds());
     keybinds_panel_ = std::make_unique<KeybindsPanel>(*keys_);
     controller_ = std::make_unique<TuiController>(
-        *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
-        inspect_panel_, trace_inspect_panel_, *star_force_panel_,
-        *trace_recover_panel_, *sell_panel_, *sell_equip_panel_,
-        *multi_sell_panel_, *map_select_panel_, *mob_inspect_panel_,
-        *boss_select_panel_, party_select_panel_, *party_inspect_panel_,
-        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
-        *menu_panel_, *keybinds_panel_, analysis_, *keys_, panel_focus_);
+        *state_,
+        Screens{
+            *char_panel_,          *equip_panel_,         *inventory_panel_,
+            *scroll_panel_,        inspect_panel_,        trace_inspect_panel_,
+            *star_force_panel_,    *trace_recover_panel_, *sell_panel_,
+            *sell_equip_panel_,    *multi_sell_panel_,    *map_select_panel_,
+            *mob_inspect_panel_,   *boss_select_panel_,   party_select_panel_,
+            *party_inspect_panel_, *shop_panel_,          *buy_panel_,
+            *job_inspect_panel_,   skill_inspect_panel_,  *menu_panel_,
+            *keybinds_panel_},
+        analysis_, *keys_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
@@ -342,13 +346,17 @@ class TuiControllerTest : public testing::Test {
     boss_select_panel_ = std::make_unique<BossSelectPanel>(*state_);
     party_inspect_panel_ = std::make_unique<PartyInspectPanel>(*state_);
     controller_ = std::make_unique<TuiController>(
-        *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
-        inspect_panel_, trace_inspect_panel_, *star_force_panel_,
-        *trace_recover_panel_, *sell_panel_, *sell_equip_panel_,
-        *multi_sell_panel_, *map_select_panel_, *mob_inspect_panel_,
-        *boss_select_panel_, party_select_panel_, *party_inspect_panel_,
-        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
-        *menu_panel_, *keybinds_panel_, analysis_, *keys_, panel_focus_);
+        *state_,
+        Screens{
+            *char_panel_,          *equip_panel_,         *inventory_panel_,
+            *scroll_panel_,        inspect_panel_,        trace_inspect_panel_,
+            *star_force_panel_,    *trace_recover_panel_, *sell_panel_,
+            *sell_equip_panel_,    *multi_sell_panel_,    *map_select_panel_,
+            *mob_inspect_panel_,   *boss_select_panel_,   party_select_panel_,
+            *party_inspect_panel_, *shop_panel_,          *buy_panel_,
+            *job_inspect_panel_,   skill_inspect_panel_,  *menu_panel_,
+            *keybinds_panel_},
+        analysis_, *keys_, panel_focus_);
   }
 
   // Adds a map on the second level band, so paging has somewhere to go. The
@@ -456,13 +464,17 @@ class TuiControllerTest : public testing::Test {
     scroll_panel_ =
         std::make_unique<ScrollPanel>(state_->character, state_->scrolls);
     controller_ = std::make_unique<TuiController>(
-        *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
-        inspect_panel_, trace_inspect_panel_, *star_force_panel_,
-        *trace_recover_panel_, *sell_panel_, *sell_equip_panel_,
-        *multi_sell_panel_, *map_select_panel_, *mob_inspect_panel_,
-        *boss_select_panel_, party_select_panel_, *party_inspect_panel_,
-        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
-        *menu_panel_, *keybinds_panel_, analysis_, *keys_, panel_focus_);
+        *state_,
+        Screens{
+            *char_panel_,          *equip_panel_,         *inventory_panel_,
+            *scroll_panel_,        inspect_panel_,        trace_inspect_panel_,
+            *star_force_panel_,    *trace_recover_panel_, *sell_panel_,
+            *sell_equip_panel_,    *multi_sell_panel_,    *map_select_panel_,
+            *mob_inspect_panel_,   *boss_select_panel_,   party_select_panel_,
+            *party_inspect_panel_, *shop_panel_,          *buy_panel_,
+            *job_inspect_panel_,   skill_inspect_panel_,  *menu_panel_,
+            *keybinds_panel_},
+        analysis_, *keys_, panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -2614,9 +2626,12 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   TuiController controller(
-      fresh, chars, equip, bag, scroll, item_card, trace_card, star, trace,
-      sell, sell_equip, multi_sell, maps, mobs, bosses, party, party_inspect,
-      shop, buy, jobs, skill_card, menu, keybinds, analysis, keys, focus);
+      fresh,
+      Screens{chars, equip,      bag,   scroll,        item_card,  trace_card,
+              star,  trace,      sell,  sell_equip,    multi_sell, maps,
+              mobs,  bosses,     party, party_inspect, shop,       buy,
+              jobs,  skill_card, menu,  keybinds},
+      analysis, keys, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
   EXPECT_TRUE(controller.PanelVisible(kCombatPanel));
@@ -2673,9 +2688,12 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   TuiController controller(
-      fresh, chars, equip, bag, scroll, item_card, trace_card, star, trace,
-      sell, sell_equip, multi_sell, maps, mobs, bosses, party, party_inspect,
-      shop, buy, jobs, skill_card, menu, keybinds, analysis, keys, focus);
+      fresh,
+      Screens{chars, equip,      bag,   scroll,        item_card,  trace_card,
+              star,  trace,      sell,  sell_equip,    multi_sell, maps,
+              mobs,  bosses,     party, party_inspect, shop,       buy,
+              jobs,  skill_card, menu,  keybinds},
+      analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(focus, kCombatPanel) << "past both locked panels";
@@ -2715,9 +2733,12 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   TuiController controller(
-      fresh, chars, equip, bag, scroll, item_card, trace_card, star, trace,
-      sell, sell_equip, multi_sell, maps, mobs, bosses, party, party_inspect,
-      shop, buy, jobs, skill_card, menu, keybinds, analysis, keys, focus);
+      fresh,
+      Screens{chars, equip,      bag,   scroll,        item_card,  trace_card,
+              star,  trace,      sell,  sell_equip,    multi_sell, maps,
+              mobs,  bosses,     party, party_inspect, shop,       buy,
+              jobs,  skill_card, menu,  keybinds},
+      analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(focus, kCombatPanel) << "back past both locked panels";
@@ -2757,9 +2778,12 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   TuiController controller(
-      fresh, chars, equip, bag, scroll, item_card, trace_card, star, trace,
-      sell, sell_equip, multi_sell, maps, mobs, bosses, party, party_inspect,
-      shop, buy, jobs, skill_card, menu, keybinds, analysis, keys, focus);
+      fresh,
+      Screens{chars, equip,      bag,   scroll,        item_card,  trace_card,
+              star,  trace,      sell,  sell_equip,    multi_sell, maps,
+              mobs,  bosses,     party, party_inspect, shop,       buy,
+              jobs,  skill_card, menu,  keybinds},
+      analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all
   EXPECT_TRUE(controller.PanelVisible(focus));

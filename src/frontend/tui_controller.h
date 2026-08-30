@@ -67,24 +67,45 @@ enum class PartyAsk { kNone, kKick, kPromote, kLeave };
 // a minute after closing it does not need to be told what that minute paid.
 inline constexpr double kOfflineNoticeSeconds = 60.0;
 
+// Every panel the controller drives, handed over in one piece.
+//
+// A struct of references rather than 25 constructor parameters: the list used
+// to be written out three times -- here, in the definition, and at the call
+// site -- and adding a screen meant editing all three in the same order.
+// `Tui` owns the panels; this only points at them, so it must not outlive it.
+struct Screens {
+  CharacterPanel& char_panel;
+  EquippedPanel& equip_panel;
+  InventoryPanel& inventory_panel;
+  ScrollPanel& scroll_panel;
+  // The item card, and the recovered-item card beside it on kTraceRecover.
+  InspectPanel& inspect_panel;
+  InspectPanel& trace_inspect_panel;
+  StarForcePanel& star_force_panel;
+  TraceRecoverPanel& trace_recover_panel;
+  SellPanel& sell_panel;
+  SellEquipPanel& sell_equip_panel;
+  MultiSellPanel& multi_sell_panel;
+  MapSelectPanel& map_select_panel;
+  MobInspectPanel& mob_inspect_panel;
+  BossSelectPanel& boss_select_panel;
+  PartySelectPanel& party_select_panel;
+  PartyInspectPanel& party_inspect_panel;
+  ShopPanel& shop_panel;
+  BuyPanel& buy_panel;
+  JobInspectPanel& job_inspect_panel;
+  SkillInspectPanel& skill_inspect_panel;
+  MenuPanel& menu_panel;
+  KeybindsPanel& keybinds_panel;
+};
+
 class TuiController {
  public:
   // panel_focus is a reference shared with panel components and
   // Container::Tab; the controller mutates it as focus changes.
-  TuiController(
-      GameState& state, CharacterPanel& char_panel, EquippedPanel& equip_panel,
-      InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
-      InspectPanel& inspect_panel, InspectPanel& trace_inspect_panel,
-      StarForcePanel& star_force_panel, TraceRecoverPanel& trace_recover_panel,
-      SellPanel& sell_panel, SellEquipPanel& sell_equip_panel,
-      MultiSellPanel& multi_sell_panel, MapSelectPanel& map_select_panel,
-      MobInspectPanel& mob_inspect_panel, BossSelectPanel& boss_select_panel,
-      PartySelectPanel& party_select_panel,
-      PartyInspectPanel& party_inspect_panel, ShopPanel& shop_panel,
-      BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
-      SkillInspectPanel& skill_inspect_panel, MenuPanel& menu_panel,
-      KeybindsPanel& keybinds_panel, BattleAnalysis& analysis, KeyMap& keys,
-      int& panel_focus, MultiplayerSession* multiplayer = nullptr);
+  TuiController(GameState& state, Screens screens, BattleAnalysis& analysis,
+                KeyMap& keys, int& panel_focus,
+                MultiplayerSession* multiplayer = nullptr);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
