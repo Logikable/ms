@@ -66,8 +66,9 @@ std::string TotalWithBreakdown(int base, int bonus) {
 std::vector<StatLine> CombatStatLines(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills, bool with_percents,
-    bool with_advanced) {
-  DerivedStats derived = DerivedStatsFor(character, skills);
+    bool with_advanced, HyperPreset preset) {
+  DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
+                                         /*allies=*/{}, preset);
   const EquipStats e = TotalEquipStats(character, derived);
   // What the character wears and was granted, then whatever a percentage added
   // on top. Read off the unscaled sum rather than held as a stat, because the
@@ -133,28 +134,29 @@ std::vector<StatLine> CombatStatLines(
 
 }  // namespace
 
-std::vector<StatLine> ExtraStatLines(
-    const CharacterInstance& character,
-    const std::map<std::string, Skill>& skills) {
+std::vector<StatLine> ExtraStatLines(const CharacterInstance& character,
+                                     const std::map<std::string, Skill>& skills,
+                                     HyperPreset preset) {
   return CombatStatLines(character, skills, /*with_percents=*/true,
-                         /*with_advanced=*/true);
+                         /*with_advanced=*/true, preset);
 }
 
 std::vector<StatLine> PanelExtraStatLines(
     const CharacterInstance& character, const AccountInstance& account,
-    const std::map<std::string, Skill>& skills) {
+    const std::map<std::string, Skill>& skills, HyperPreset preset) {
   if (!Unlocked(Feature::kCombatStats, character, account)) {
     return {};
   }
-  return CombatStatLines(character, skills,
-                         Unlocked(Feature::kDamageStats, character, account),
-                         Unlocked(Feature::kAdvancedStats, character, account));
+  return CombatStatLines(
+      character, skills, Unlocked(Feature::kDamageStats, character, account),
+      Unlocked(Feature::kAdvancedStats, character, account), preset);
 }
 
-std::vector<StatLine> MainStatLines(
-    const CharacterInstance& character,
-    const std::map<std::string, Skill>& skills) {
-  DerivedStats derived = DerivedStatsFor(character, skills);
+std::vector<StatLine> MainStatLines(const CharacterInstance& character,
+                                    const std::map<std::string, Skill>& skills,
+                                    HyperPreset preset) {
+  DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
+                                         /*allies=*/{}, preset);
   const EquipStats e = TotalEquipStats(character, derived);
   const AllocatedStats& a = character.proto().allocated_stats();
   return {
@@ -168,9 +170,11 @@ std::vector<StatLine> MainStatLines(
 }
 
 int CharacterCombatPower(const CharacterInstance& character,
-                         const std::map<std::string, Skill>& skills) {
+                         const std::map<std::string, Skill>& skills,
+                         HyperPreset preset) {
   const Character& p = character.proto();
-  DerivedStats derived = DerivedStatsFor(character, skills);
+  DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
+                                         /*allies=*/{}, preset);
   OffenseStats offense = OffenseStatsFor(
       p.job(), p.level(), p.allocated_stats(),
       TotalEquipStats(character, derived), character.weapon_type(),

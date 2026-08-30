@@ -265,6 +265,27 @@ TEST_F(StatRowsTest, AttackShowsWhatAPercentageDidToIt) {
   EXPECT_EQ(ValueOf(ExtraStatLines(bare, {}), "Attack"), "80");
 }
 
+// The two allocations are two sets of numbers, and every row here reads
+// whichever one it is handed -- which is what the Farm/Boss tabs switch.
+TEST_F(StatRowsTest, TheRowsReadThePresetTheyAreGiven) {
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  (*proto.mutable_hyper_stats()
+        ->mutable_farming()
+        ->mutable_levels())[HYPER_STAT_FIELD_CRIT_DAMAGE] = 5;
+  (*proto.mutable_hyper_stats()
+        ->mutable_bossing()
+        ->mutable_levels())[HYPER_STAT_FIELD_CRIT_DAMAGE] = 9;
+  CharacterInstance c(rng_, std::move(proto));
+
+  EXPECT_EQ(ValueOf(ExtraStatLines(c, {}), "Critical Damage"), "40.00%");
+  EXPECT_EQ(
+      ValueOf(ExtraStatLines(c, {}, HyperPreset::kBossing), "Critical Damage"),
+      "44.00%");
+}
+
 TEST(CombatPowerTextTest, SpellsItOutUntilSevenFigures) {
   EXPECT_EQ(CombatPowerText(0), "Combat Power 0");
   EXPECT_EQ(CombatPowerText(999999), "Combat Power 999,999");

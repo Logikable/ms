@@ -13,6 +13,7 @@
 
 #include "src/account.h"
 #include "src/character/character.h"
+#include "src/character/hyper_stats.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -37,12 +38,17 @@ inline StatLine StatRule() {
   return line;
 }
 
+// Every one of these reads the character through one of their two Hyper Stat
+// allocations, which is what the Farm/Boss tabs pick between. Farming is what
+// a caller with no tab of its own wants.
+
 // The combat stats, **most important first**. Every one the character has, so
 // this is the All Stats screen's list. A new stat goes where it belongs in
 // that order rather than on the end -- both callers drop the tail.
 std::vector<StatLine> ExtraStatLines(
     const CharacterInstance& character,
-    const std::map<std::string, Skill>& skills);
+    const std::map<std::string, Skill>& skills,
+    HyperPreset preset = HyperPreset::kFarming);
 
 // The same list as the Character panel shows it, which is less of it early on:
 // empty until a first job advancement, and without the four percent rows until
@@ -53,18 +59,21 @@ std::vector<StatLine> ExtraStatLines(
 // rows for a second character from level 1.
 std::vector<StatLine> PanelExtraStatLines(
     const CharacterInstance& character, const AccountInstance& account,
-    const std::map<std::string, Skill>& skills);
+    const std::map<std::string, Skill>& skills,
+    HyperPreset preset = HyperPreset::kFarming);
 
 // The pools and the four AP stats: HP, MP, STR, INT, DEX, LUK. That order
 // pairs them the way the All Stats screen reads them, two to a row. An AP stat
 // gear or a skill has added to reads "(base+bonus) total".
 std::vector<StatLine> MainStatLines(const CharacterInstance& character,
-                                    const std::map<std::string, Skill>& skills);
+                                    const std::map<std::string, Skill>& skills,
+                                    HyperPreset preset = HyperPreset::kFarming);
 
 // What the character's whole stat line comes to, with no attack skill and no
 // target -- combat power stands for the character rather than for a swing.
 int CharacterCombatPower(const CharacterInstance& character,
-                         const std::map<std::string, Skill>& skills);
+                         const std::map<std::string, Skill>& skills,
+                         HyperPreset preset = HyperPreset::kFarming);
 
 // Combat power spelled out, until it outgrows the row it sits in. Past six
 // figures the label shortens to "CP" rather than the number being cut.

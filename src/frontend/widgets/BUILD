@@ -153,6 +153,7 @@ cc_library(
         "//src:account",
         "//src/character",
         "//src/character:character_stats",
+        "//src/character:hyper_stats",
         "//src/character:progression",
         "//src/combat:constants",
         "//src/combat:damage",
