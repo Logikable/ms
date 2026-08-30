@@ -224,5 +224,14 @@ TEST_F(AllStatsPanelTest, SomebodyElsesSheetHasNoFarmBossRow) {
   EXPECT_EQ(RowWith(panel.Render(), "Farm"), "");
 }
 
+// A card that measures its own width has to ask for its right margin.
+TEST_F(AllStatsPanelTest, EveryRowKeepsAColumnClearOfTheRightBorder) {
+  CharacterInstance c = MakeWarrior();
+  AllStatsPanel panel(c, /*account=*/nullptr, {});
+  std::vector<std::string> touching =
+      RowsTouchingTheRightBorder(panel.Render());
+  EXPECT_TRUE(touching.empty()) << (touching.empty() ? "" : touching[0]);
+}
+
 }  // namespace
 }  // namespace ms

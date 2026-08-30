@@ -9,6 +9,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/widgets/panel_test_base.h"
 #include "src/game_state.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
@@ -258,6 +259,16 @@ TEST(MobInspectPanelTest, NoArcaneRowsOutsideArcaneRiver) {
   MobInspectPanel panel(state);
   panel.SetMap("green_field");
   EXPECT_EQ(Render(panel).find("Arcane Force"), std::string::npos);
+}
+
+// A card that measures its own width has to ask for its right margin.
+TEST(MobInspectPanelTest, EveryRowKeepsAColumnClearOfTheRightBorder) {
+  GameState state = OneMap();
+  MobInspectPanel panel(state);
+  panel.SetMap("green_field");
+  std::vector<std::string> touching =
+      RowsTouchingTheRightBorder(panel.Render());
+  EXPECT_TRUE(touching.empty()) << (touching.empty() ? "" : touching[0]);
 }
 
 }  // namespace

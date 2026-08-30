@@ -24,6 +24,47 @@ namespace ms {
 // ever sees.
 constexpr int kTestScreenWidth = 100;
 
+// The rows of `element` that put text hard against its RIGHT border with no
+// column of clearance, drawn at the width the element asks for rather than at
+// the test screen's. Empty is the passing answer.
+//
+// The mistake this catches is a card that measures its own width from its
+// widest row and then forgets to ask for a margin, so the value comes out
+// welded to the border. The LEFT is not asked about: the column inside the
+// left border belongs to the cursor, and every list in the game draws its
+// caret there.
+//
+// Rules are skipped -- a rule is drawn border to border on purpose -- and so
+// is a card whose right column is a scroll bar, where the bar is the margin.
+inline std::vector<std::string> RowsTouchingTheRightBorder(
+    ftxui::Element element) {
+  element->ComputeRequirement();
+  int width = element->requirement().min_x;
+  int height = element->requirement().min_y;
+  if (width < 4) {
+    return {};
+  }
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
+                                               ftxui::Dimension::Fixed(height));
+  ftxui::Render(screen, element);
+  std::vector<std::string> touching;
+  for (int y = 1; y + 1 < height; ++y) {
+    std::string row;
+    std::string margin;
+    for (int x = 0; x < width; ++x) {
+      const std::string& cell = screen.PixelAt(x, y).character;
+      row += cell.empty() ? " " : cell;
+      if (x == width - 2) {
+        margin = cell.empty() ? " " : cell;
+      }
+    }
+    if (margin != " " && margin != "─" && margin != "┃" && margin != "│") {
+      touching.push_back(row);
+    }
+  }
+  return touching;
+}
+
 // Shared fixture for panel tests. Provides c_ (level-1 Beginner character)
 // and sword_ (primary weapon slot, required level 10, Warrior only).
 class PanelTest : public testing::Test {
@@ -41,41 +82,6 @@ class PanelTest : public testing::Test {
         ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, element);
     return screen.ToString();
-  }
-
-  // The rows of `element` that put text hard against a border with no column
-  // of clearance, drawn at the width the element asks for rather than at the
-  // test screen's. Empty is the passing answer.
-  //
-  // The mistake this catches is a card that measures its own width from its
-  // widest row and then forgets to ask for a margin: the value ends up welded
-  // to the border on one side while the indent leaves a gutter on the other.
-  // Rules are skipped -- a rule is drawn border to border on purpose. So is
-  // a card whose right column is a scroll bar: there the bar is the margin.
-  static std::vector<std::string> RowsTouchingABorder(ftxui::Element element) {
-    element->ComputeRequirement();
-    int width = element->requirement().min_x;
-    int height = element->requirement().min_y;
-    ftxui::Screen screen = ftxui::Screen::Create(
-        ftxui::Dimension::Fixed(width), ftxui::Dimension::Fixed(height));
-    ftxui::Render(screen, element);
-    std::vector<std::string> touching;
-    for (int y = 1; y + 1 < height; ++y) {
-      std::vector<std::string> cells;
-      std::string row;
-      for (int x = 0; x < width; ++x) {
-        const std::string& cell = screen.PixelAt(x, y).character;
-        cells.push_back(cell.empty() ? " " : cell);
-        row += cells.back();
-      }
-      if (width < 4 || cells[1] == "─" || cells[width - 2] == "─") {
-        continue;
-      }
-      if (cells[1] != " " || cells[width - 2] != " ") {
-        touching.push_back(row);
-      }
-    }
-    return touching;
   }
 
   // The color of a panel's top-left border cell. Read off the pixel because

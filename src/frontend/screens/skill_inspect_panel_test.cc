@@ -1962,5 +1962,17 @@ TEST_F(SkillInspectPanelTest, ResetScrollReturnsToTheHeadOfTheCard) {
   EXPECT_EQ(RowText(Lines(RenderElement(panel.Render()))[1]), RowText(full[1]));
 }
 
+// A card that measures its own width has to ask for its right margin. On
+// this one the bar's column is that margin, which is why the chrome is three
+// columns rather than two.
+TEST_F(SkillInspectPanelTest, EveryRowKeepsAColumnClearOfTheRightBorder) {
+  Skill skill = MakeIronBody();
+  SkillInspectPanel panel;
+  panel.SetSkill(&skill, 20, 0);
+  std::vector<std::string> touching =
+      RowsTouchingTheRightBorder(panel.Render());
+  EXPECT_TRUE(touching.empty()) << (touching.empty() ? "" : touching[0]);
+}
+
 }  // namespace
 }  // namespace ms

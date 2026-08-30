@@ -220,5 +220,12 @@ TEST_F(JobInspectPanelTest, ABookTallerThanEveryCardIsNotClipped) {
   EXPECT_EQ(Rows(JobInspectScreen(Block(30), Block(6), 20)), 30);
 }
 
+// A card that measures its own width has to ask for its right margin.
+TEST_F(JobInspectPanelTest, EveryRowKeepsAColumnClearOfTheRightBorder) {
+  std::vector<std::string> touching =
+      RowsTouchingTheRightBorder(PanelOn(JOB_FIGHTER).Render());
+  EXPECT_TRUE(touching.empty()) << (touching.empty() ? "" : touching[0]);
+}
+
 }  // namespace
 }  // namespace ms
