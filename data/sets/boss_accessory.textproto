@@ -29,6 +29,7 @@ members {
   slot: EQUIP_SLOT_PENDANT
   items {
     name: "Horntail Necklace"
+    name: "Chaos Horntail Necklace"
     name: "Dominator Pendant"
   }
 }

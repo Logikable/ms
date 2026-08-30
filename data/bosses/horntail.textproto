@@ -81,8 +81,8 @@ difficulties {
     per_kill: 1.0
   }
 }
-# Written down, not built: the same three phases at the numbers GMS gives
-# Chaos. Only the HP is stated, because nothing else is decided.
+# The same three phases at the numbers GMS gives Chaos: 26.6B across the
+# fight, the most HP in the game, and every part behind 50% PDR.
 difficulties {
   name: "Chaos"
   phases {
@@ -130,5 +130,34 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  coming_soon: true
+  reset: RESET_PERIOD_DAILY
+  # What every fight past the level-160 gate allows.
+  time_limit_seconds: 600
+  unlock_level: 190
+  # Five Intense Power Crystals at what GMS prices Chaos Horntail's, as every
+  # boss's meso is. Well under Arkarium's and Hard Hilla's for far more HP:
+  # GMS's own number, kept.
+  meso: 6760000
+  # Paid for the clear, flat and untouched by any EXP bonus, as the other
+  # seven are. GMS pays the hardest fight in the game the least of the late
+  # bosses; the clear is for the necklace and the shard.
+  exp: 8473319
+  # What Normal drops, with the Chaos necklace in the plain one's place. The
+  # shard is the same: a soul belongs to the boss, not to the rung.
+  drops {
+    item: "horntails_soul_shard"
+    per_kill: 1.0
+  }
+  drops {
+    equip: "silver_blossom_ring"
+    per_kill: 1.0
+  }
+  drops {
+    equip: "chaos_horntail_necklace"
+    per_kill: 1.0
+  }
+  drops {
+    equip: "dea_sidus_earring"
+    per_kill: 1.0
+  }
 }

@@ -143,8 +143,7 @@ TEST(BossDataTest, AComingSoonDifficultyStatesOnlyItsPhases) {
       EXPECT_EQ(difficulty.drops_size(), 0) << where;
     }
   }
-  EXPECT_EQ(coming_soon, 4)
-      << "Chaos Zakum, Chaos Horntail, Chaos Pink Bean and Hard Magnus";
+  EXPECT_EQ(coming_soon, 3) << "Chaos Zakum, Chaos Pink Bean and Hard Magnus";
 }
 
 // The fights the screen advertises but cannot yet run, at the HP GMS gives
@@ -160,7 +159,6 @@ TEST(BossDataTest, TheUnbuiltFightsCarryTheirGmsHp) {
   };
   const std::vector<Expectation> kExpected = {
       {"zakum", "Chaos", {84000000000LL, 84000000000LL}},
-      {"horntail", "Chaos", {3300000000LL, 3300000000LL, 20000000000LL}},
       {"magnus", "Hard", {120000000000LL}},
       {"pink_bean", "Chaos", {130200000000LL, 69300000000LL}},
   };
@@ -243,8 +241,8 @@ TEST(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).category(), ITEM_CATEGORY_ETC) << where;
     }
   }
-  EXPECT_EQ(fights, 7) << "Zakum, Horntail, Magnus, Pink Bean, Arkarium and "
-                          "both difficulties of Hilla";
+  EXPECT_EQ(fights, 8) << "Zakum, Magnus, Pink Bean, Arkarium and both "
+                          "difficulties of Hilla and of Horntail";
 }
 
 // Zakum is the first boss and the one the screen was built against, so his
@@ -374,8 +372,8 @@ TEST(BossDataTest, NormalArkariumIsOneBodyBehindNinetyPdr) {
   EXPECT_EQ(normal.drops(1).item(), "arkariums_soul_shard");
 }
 
-// The only fight in the game with a second difficulty built, and the only body
-// behind 100% PDR. Pinned for the reason Zakum's numbers are.
+// The first fight with a second difficulty built, and the only body behind
+// 100% PDR. Pinned for the reason Zakum's numbers are.
 TEST(BossDataTest, HardHillaIsTheSameFightBehindALaterGate) {
   std::map<std::string, Boss> bosses = LoadBosses();
   std::map<std::string, Mob> mobs = LoadMobs();
@@ -397,6 +395,51 @@ TEST(BossDataTest, HardHillaIsTheSameFightBehindALaterGate) {
   EXPECT_EQ(hard.drops(0).equip(), "will_o_the_wisps");
   // The same shard Normal drops: a soul belongs to the boss, not the rung.
   EXPECT_EQ(hard.drops(1).item(), "hillas_soul_shard");
+}
+
+// The biggest fight in the game: eleven parts over three phases adding to
+// 26.6B, and the one second difficulty that changes what a phase fights
+// rather than only how hard it hits.
+TEST(BossDataTest, ChaosHorntailIsTheSameShapeAtChaosNumbers) {
+  std::map<std::string, Boss> bosses = LoadBosses();
+  std::map<std::string, Mob> mobs = LoadMobs();
+  ASSERT_GT(bosses.count("horntail"), 0u);
+  ASSERT_EQ(bosses.at("horntail").difficulties_size(), 2);
+  const BossDifficulty& normal = bosses.at("horntail").difficulties(0);
+  const BossDifficulty& chaos = bosses.at("horntail").difficulties(1);
+  EXPECT_EQ(chaos.name(), "Chaos");
+  EXPECT_FALSE(chaos.coming_soon());
+  EXPECT_EQ(chaos.reset(), RESET_PERIOD_DAILY);
+  EXPECT_EQ(chaos.time_limit_seconds(), 600);
+  EXPECT_EQ(chaos.unlock_level(), 190);
+  EXPECT_EQ(chaos.meso(), 6760000);
+  EXPECT_EQ(chaos.exp(), 8473319);
+  // Phase for phase and cell for cell, the fight Normal is: only the mobs
+  // differ, and each is the Chaos part of the one it replaces.
+  ASSERT_EQ(chaos.phases_size(), normal.phases_size());
+  int64_t total = 0;
+  for (int i = 0; i < chaos.phases_size(); ++i) {
+    const BossPhase& want = normal.phases(i);
+    const BossPhase& phase = chaos.phases(i);
+    ASSERT_EQ(phase.spawns_size(), want.spawns_size()) << "phase " << i + 1;
+    for (int j = 0; j < phase.spawns_size(); ++j) {
+      EXPECT_EQ(phase.spawns(j).mob(), "chaos_" + want.spawns(j).mob());
+      EXPECT_EQ(phase.spawns(j).spots(0).x(), want.spawns(j).spots(0).x());
+      EXPECT_EQ(phase.spawns(j).spots(0).y(), want.spawns(j).spots(0).y());
+      const Mob& part = mobs.at(phase.spawns(j).mob());
+      EXPECT_EQ(part.level(), 160) << phase.spawns(j).mob();
+      EXPECT_EQ(part.pdr(), 50) << phase.spawns(j).mob();
+      total += part.max_hp();
+    }
+  }
+  EXPECT_EQ(total, 26600000000LL);
+  // Normal's rewards with the Chaos necklace in the plain one's place, and
+  // the same shard: a soul belongs to the boss, not the rung.
+  ASSERT_EQ(chaos.drops_size(), 4);
+  EXPECT_EQ(chaos.drops(0).item(), "horntails_soul_shard");
+  EXPECT_EQ(chaos.drops(1).equip(), "silver_blossom_ring");
+  EXPECT_EQ(chaos.drops(2).equip(), "chaos_horntail_necklace");
+  EXPECT_EQ(chaos.drops(3).equip(), "dea_sidus_earring");
 }
 
 // Where the parts stand is data, and two of them in one cell is a bar drawn on

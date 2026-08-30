@@ -1,0 +1,17 @@
+name: "Chaos Horntail Necklace"
+required_level: 120
+base_stats {
+  str: 10
+  dex: 10
+  int: 10
+  luk: 10
+  attack: 2
+  magic_attack: 2
+  def: 140
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_PENDANT
+upgrade_slots: 1
+# Dropped by Chaos Horntail, never stocked, level with Hard Hilla's on the
+# ladder a boss accessory sits on: the two share the latest gate in the game.
+sell_price: 3000000
