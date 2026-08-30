@@ -37,8 +37,22 @@ TEST_F(HyperStatInspectPanelTest, ShowsThisLevelAndTheNext) {
   EXPECT_NE(rendered.find("Max Level: 10"), std::string::npos);
   EXPECT_NE(rendered.find("Level 4"), std::string::npos);
   EXPECT_NE(rendered.find("+4%"), std::string::npos);
-  EXPECT_NE(rendered.find("Level 5"), std::string::npos);
   EXPECT_NE(rendered.find("+5%"), std::string::npos);
+  // Only the level still to be bought wears its price.
+  EXPECT_NE(rendered.find("Level 5 - 10 points"), std::string::npos);
+  EXPECT_EQ(rendered.find("Level 4 -"), std::string::npos);
+}
+
+// The first point costs exactly one, and says so in the singular.
+TEST_F(HyperStatInspectPanelTest, TheFirstLevelIsPricedInOnePoint) {
+  EXPECT_NE(RenderAt(HYPER_STAT_FIELD_STR, 0).find("Level 1 - 1 point"),
+            std::string::npos);
+}
+
+// At the ceiling there is no price on the card at all.
+TEST_F(HyperStatInspectPanelTest, AMaxedStatIsPricedNowhere) {
+  EXPECT_EQ(RenderAt(HYPER_STAT_FIELD_STR, 10).find("points"),
+            std::string::npos);
 }
 
 // Nothing spent on it yet: there is no level to state, only the one the first

@@ -1,7 +1,7 @@
 /* HyperStatInspectPanel is the Hyper tab's counterpart to SkillInspectPanel:
  * one stat's name and ceiling, then what it is worth at the level it is at and
- * what the next level would buy. A stat with nothing spent on it has only the
- * second block, and one at its ceiling only the first.
+ * what the next level would buy, priced in points. A stat with nothing spent
+ * on it has only the second block, and one at its ceiling only the first.
  *
  * Every card is the same width, measured from the widest name and value in the
  * roster, so walking the list does not resize the window under the cursor. It

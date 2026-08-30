@@ -44,6 +44,27 @@ int ValueWidth() {
   return widest;
 }
 
+// The heading a level block carries. The level the player has already paid
+// for is stated bare; the next one wears its price.
+std::string LevelHeading(int level, bool priced) {
+  std::string heading = " Level " + std::to_string(level);
+  if (!priced) {
+    return heading;
+  }
+  int cost = HyperStatLevelCost(level);
+  return heading + " - " + std::to_string(cost) +
+         (cost == 1 ? " point" : " points");
+}
+
+// The widest a priced heading reaches, which the deepest level sets.
+int HeadingWidth() {
+  int widest = 0;
+  for (int level = 1; level <= kMaxHyperStatLevel; ++level) {
+    widest = std::max(widest, TextColumns(LevelHeading(level, true)));
+  }
+  return widest;
+}
+
 // The name over the ceiling, centred, which is the skill card's heading block.
 std::vector<ftxui::Element> Heading(HyperStatField field, int max_level,
                                     int content) {
@@ -57,11 +78,10 @@ std::vector<ftxui::Element> Heading(HyperStatField field, int max_level,
 
 // One block onto the card: a rule, the level it is headed with, and the single
 // line the stat is worth there.
-void AppendLevelBlock(HyperStatField field, int level, int content,
+void AppendLevelBlock(HyperStatField field, int level, bool priced, int content,
                       std::vector<ftxui::Element>& rows) {
   rows.push_back(ThemedSeparator());
-  rows.push_back(
-      ftxui::text(PadRight(" Level " + std::to_string(level), content)));
+  rows.push_back(ftxui::text(PadRight(LevelHeading(level, priced), content)));
   std::string line = std::string(kEffectIndent, ' ') +
                      PadRight(HyperStatName(field), LabelWidth() + kLabelGap) +
                      HyperStatBonusText(field, level);
@@ -71,8 +91,8 @@ void AppendLevelBlock(HyperStatField field, int level, int content,
 }  // namespace
 
 int HyperStatInspectPanel::Columns() {
-  return kCardChrome + kEffectIndent + LabelWidth() + kLabelGap + ValueWidth() +
-         kRightGutter;
+  int effect = kEffectIndent + LabelWidth() + kLabelGap + ValueWidth();
+  return kCardChrome + std::max(effect, HeadingWidth()) + kRightGutter;
 }
 
 void HyperStatInspectPanel::SetStat(HyperStatField field, int level,
@@ -91,10 +111,10 @@ ftxui::Element HyperStatInspectPanel::Render() const {
   // A stat with nothing spent on it has no block of its own, and one at its
   // ceiling has no next one -- the same rule the skill card follows.
   if (level_ > 0) {
-    AppendLevelBlock(field_, level_, content, rows);
+    AppendLevelBlock(field_, level_, /*priced=*/false, content, rows);
   }
   if (level_ < max_level_) {
-    AppendLevelBlock(field_, level_ + 1, content, rows);
+    AppendLevelBlock(field_, level_ + 1, /*priced=*/true, content, rows);
   }
   return ThemedWindow(" Hyper Stat ", ftxui::vbox(std::move(rows)));
 }
