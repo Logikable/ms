@@ -168,6 +168,31 @@ cc_test(
 )
 
 cc_library(
+    name = "hyper_stat_inspect_panel",
+    srcs = ["hyper_stat_inspect_panel.cc"],
+    hdrs = ["hyper_stat_inspect_panel.h"],
+    deps = [
+        "//src/character:hyper_stats",
+        "//src/frontend/widgets:panel_util",
+        "//src/frontend/widgets:text_columns",
+        "//src/protos:character_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "hyper_stat_inspect_panel_test",
+    srcs = ["hyper_stat_inspect_panel_test.cc"],
+    deps = [
+        ":hyper_stat_inspect_panel",
+        "//src/frontend/widgets:panel_test_base",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "skill_inspect_panel",
     srcs = ["skill_inspect_panel.cc"],
     hdrs = ["skill_inspect_panel.h"],
