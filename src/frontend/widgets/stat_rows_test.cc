@@ -14,6 +14,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/testing/prototypes.h"
 
 namespace ms {
 namespace {
@@ -62,21 +63,6 @@ class StatRowsTest : public testing::Test {
     bow.mutable_base_stats()->set_attack(80);
     c.PickUp(std::make_unique<EquipInstance>(bow));
     c.Equip(0);
-  }
-
-  // A passive granting one of every lever the extra stats report.
-  Skill Levers() {
-    Skill skill;
-    skill.set_name("Levers");
-    skill.set_kind(SKILL_KIND_PASSIVE);
-    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
-    skill.set_max_level(1);
-    skill.mutable_base()->set_damage_pct(0.075);
-    skill.mutable_base()->set_final_dmg_pct(0.05);
-    skill.mutable_base()->set_crit_rate(0.2);
-    skill.mutable_base()->set_crit_dmg(0.025);
-    skill.mutable_base()->set_attack_speed(2);
-    return skill;
   }
 
   // The value beside `label`, or "" when the list has no such row.
@@ -150,7 +136,7 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
 }
 
 TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {
-  Skill levers = Levers();
+  Skill levers = LeverPassive();
   std::map<std::string, Skill> skills = {{"levers", levers}};
   CharacterInstance c = MakeWarrior();
   ASSERT_TRUE(c.LearnSkill(levers, 1));
@@ -173,7 +159,7 @@ TEST_F(StatRowsTest, CritReadsItsBaseWithNothingBehindIt) {
 }
 
 TEST_F(StatRowsTest, AttackSpeedNamesTheStageOrDashesWithNoWeapon) {
-  Skill levers = Levers();  // +2 stages
+  Skill levers = LeverPassive();  // +2 stages
   std::map<std::string, Skill> skills = {{"levers", levers}};
   CharacterInstance c = MakeWarrior();
   ASSERT_TRUE(c.LearnSkill(levers, 1));
@@ -209,7 +195,7 @@ TEST_F(StatRowsTest, AMagiciansAttackSpeedIgnoresTheStaff) {
 }
 
 TEST_F(StatRowsTest, AttackSpeedStopsAtTheFastestStage) {
-  Skill levers = Levers();
+  Skill levers = LeverPassive();
   std::map<std::string, Skill> skills = {{"levers", levers}};
   CharacterInstance c = MakeWarrior();
   ASSERT_TRUE(c.LearnSkill(levers, 1));

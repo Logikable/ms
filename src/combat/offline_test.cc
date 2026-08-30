@@ -12,6 +12,7 @@
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/testing/prototypes.h"
 
 namespace ms {
 namespace {
@@ -73,13 +74,7 @@ MapData HomeMap() {
 }
 
 void EquipSword(GameState& state) {
-  EquipPrototype sword;
-  sword.set_name("Sword");
-  sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
-  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  sword.set_attack_speed(ATTACK_SPEED_AVERAGE);
-  sword.mutable_base_stats()->set_attack(100);
-  sword.mutable_base_stats()->set_magic_attack(100);
+  EquipPrototype sword = PlainSword();
   state.character.PickUp(std::make_unique<EquipInstance>(sword));
   state.character.Equip(0);
 }

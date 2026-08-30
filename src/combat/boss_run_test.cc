@@ -14,6 +14,7 @@
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/testing/prototypes.h"
 
 namespace ms {
 namespace {
@@ -93,13 +94,7 @@ std::unique_ptr<GameState> MakeState(int arm_hp = 1, int body_hp = 1) {
       std::map<std::string, Mob>{{"arm", MakeMob("Zakum's Arm", arm_hp, 0)},
                                  {"body", MakeMob("Zakum", body_hp, 4750740)}},
       std::map<std::string, MapData>{});
-  EquipPrototype sword;
-  sword.set_name("Sword");
-  sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
-  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  sword.set_attack_speed(ATTACK_SPEED_AVERAGE);
-  sword.mutable_base_stats()->set_attack(100);
-  sword.mutable_base_stats()->set_magic_attack(100);
+  EquipPrototype sword = PlainSword();
   state->character.PickUp(std::make_unique<EquipInstance>(sword));
   state->character.Equip(0);
   return state;

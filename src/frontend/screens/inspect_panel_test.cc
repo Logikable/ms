@@ -18,6 +18,7 @@
 #include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/testing/prototypes.h"
 
 namespace ms {
 namespace {
@@ -814,18 +815,6 @@ TEST_F(InspectPanelTest, NoTabWithoutASetCard) {
 
 // --- Arcane Symbols ---
 
-EquipPrototype SymbolProto() {
-  EquipPrototype proto;
-  proto.set_name("Arcane Symbol: Vanishing Journey");
-  proto.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
-  proto.set_required_level(200);
-  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
-  proto.add_unsupported_upgrades(UPGRADE_SCROLL);
-  proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
-  proto.mutable_arcane_symbol()->set_meso_cost_base(8);
-  return proto;
-}
-
 // A symbol grants nothing an equip's rows could show, so it gets a card of its
 // own: where its level stands, and what that level is worth.
 TEST_F(InspectPanelTest, ASymbolCardIsItsLevelExpStatAndForce) {
@@ -838,7 +827,7 @@ TEST_F(InspectPanelTest, ASymbolCardIsItsLevelExpStatAndForce) {
   Equip state;
   state.set_symbol_level(8);
   state.set_symbol_exp(12);
-  EquipInstance symbol(SymbolProto(), state);
+  EquipInstance symbol(VanishingJourneySymbol(), state);
 
   InspectPanel panel;
   panel.UseCharacter(hero);
@@ -862,7 +851,7 @@ TEST_F(InspectPanelTest, TheSymbolStatFollowsTheWearer) {
   proto.set_job_stage(4);
   CharacterInstance bishop(rng_, std::move(proto));
 
-  EquipInstance symbol(SymbolProto());
+  EquipInstance symbol(VanishingJourneySymbol());
   InspectPanel panel;
   panel.UseCharacter(bishop);
   panel.SetItem(&symbol);
@@ -876,7 +865,7 @@ TEST_F(InspectPanelTest, TheSymbolStatFollowsTheWearer) {
 TEST_F(InspectPanelTest, AMaxedSymbolReadsMax) {
   Equip state;
   state.set_symbol_level(kMaxSymbolLevel);
-  EquipInstance symbol(SymbolProto(), state);
+  EquipInstance symbol(VanishingJourneySymbol(), state);
   InspectPanel panel;
   panel.UseCharacter(c_);
   panel.SetItem(&symbol);

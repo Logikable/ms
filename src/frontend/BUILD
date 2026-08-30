@@ -130,6 +130,7 @@ cc_test(
         "//src/frontend/screens:party_select_panel",
         "//src/multiplayer:party_fight",
         "//src/multiplayer:session",
+        "//src/testing:prototypes",
         "@ftxui//:component",
         "@googletest//:gtest_main",
     ],

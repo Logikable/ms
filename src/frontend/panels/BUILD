@@ -38,6 +38,7 @@ cc_test(
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",
+        "//src/testing:prototypes",
         "@googletest//:gtest_main",
     ],
 )
@@ -116,6 +117,7 @@ cc_test(
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_test_base",
         "//src/frontend/widgets:panel_util",
+        "//src/testing:prototypes",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",

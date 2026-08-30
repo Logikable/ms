@@ -20,6 +20,7 @@
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
+#include "src/testing/prototypes.h"
 
 namespace ms {
 namespace {
@@ -1407,18 +1408,6 @@ TEST_F(InventoryPanelTest, AnOpenedShopTabStaysQuietForANewPanel) {
 
 class SpareSymbolTest : public InventoryPanelTest {
  protected:
-  EquipPrototype Symbol() {
-    EquipPrototype proto;
-    proto.set_name("Arcane Symbol: Vanishing Journey");
-    proto.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
-    proto.set_required_level(200);
-    proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
-    proto.add_unsupported_upgrades(UPGRADE_SCROLL);
-    proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
-    proto.mutable_arcane_symbol()->set_meso_cost_base(8);
-    return proto;
-  }
-
   CharacterInstance Traveller() {
     Character proto;
     proto.set_level(200);
@@ -1433,7 +1422,7 @@ class SpareSymbolTest : public InventoryPanelTest {
 // rather than both standing there.
 TEST_F(SpareSymbolTest, EquipAndCombineTradePlaces) {
   CharacterInstance c = Traveller();
-  c.PickUp(std::make_unique<EquipInstance>(Symbol()));
+  c.PickUp(std::make_unique<EquipInstance>(VanishingJourneySymbol()));
   InventoryPanel first(c, account_, panel_focus_);
   first.MakeComponent([]() {});
   first.OpenMenu();
@@ -1442,7 +1431,7 @@ TEST_F(SpareSymbolTest, EquipAndCombineTradePlaces) {
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuCombine), 0);
 
   ASSERT_TRUE(c.Equip(0));
-  c.PickUp(std::make_unique<EquipInstance>(Symbol()));
+  c.PickUp(std::make_unique<EquipInstance>(VanishingJourneySymbol()));
   InventoryPanel second(c, account_, panel_focus_);
   second.MakeComponent([]() {});
   second.OpenMenu();
@@ -1479,7 +1468,7 @@ TEST_F(InventoryPanelTest, ASecondCopyOfAWornRingCannotBeEquipped) {
 // Neither upgrade path touches a symbol, so neither is on its menu at all.
 TEST_F(SpareSymbolTest, ASpareOffersNoScrollOrStarForce) {
   CharacterInstance c = Traveller();
-  c.PickUp(std::make_unique<EquipInstance>(Symbol()));
+  c.PickUp(std::make_unique<EquipInstance>(VanishingJourneySymbol()));
   InventoryPanel panel(c, account_, panel_focus_);
   panel.MakeComponent([]() {});
   panel.OpenMenu();
@@ -1491,9 +1480,9 @@ TEST_F(SpareSymbolTest, ASpareOffersNoScrollOrStarForce) {
 // Combine leads to the dialog that asks how many to feed in.
 TEST_F(SpareSymbolTest, CombineOpensTheDialog) {
   CharacterInstance c = Traveller();
-  c.PickUp(std::make_unique<EquipInstance>(Symbol()));
+  c.PickUp(std::make_unique<EquipInstance>(VanishingJourneySymbol()));
   ASSERT_TRUE(c.Equip(0));
-  c.PickUp(std::make_unique<EquipInstance>(Symbol()));
+  c.PickUp(std::make_unique<EquipInstance>(VanishingJourneySymbol()));
   InventoryPanel panel(c, account_, panel_focus_);
   panel.MakeComponent([]() {});
   panel.OpenMenu();

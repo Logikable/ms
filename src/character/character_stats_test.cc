@@ -14,6 +14,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/testing/prototypes.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
 namespace ms {
@@ -85,22 +86,6 @@ void EquipStrRing(CharacterInstance& character, int str) {
   ring.mutable_base_stats()->set_str(str);
   character.PickUp(std::make_unique<EquipInstance>(ring));
   character.Equip(0);
-}
-
-// Iron Body as the wiki states it: DEF +10*L, Max HP +L%, damage taken -L/2%.
-Skill IronBody() {
-  Skill skill;
-  skill.set_name("Iron Body");
-  skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
-  skill.set_max_level(20);
-  skill.mutable_base()->set_def(10);
-  skill.mutable_base()->set_max_hp_pct(0.01);
-  skill.mutable_base()->set_damage_taken_pct(0.005);
-  skill.mutable_per_level()->set_def(10);
-  skill.mutable_per_level()->set_max_hp_pct(0.01);
-  skill.mutable_per_level()->set_damage_taken_pct(0.005);
-  return skill;
 }
 
 // Critical Shot: +2% crit rate a level.

@@ -27,29 +27,21 @@
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/multiplayer/session.h"
+#include "src/testing/prototypes.h"
 
 namespace ms {
 namespace {
 
 constexpr std::chrono::milliseconds kPatience(4000);
 
-// One weapon in the catalog, so a member has something to be seen wearing --
-// a sheet names its items and the reader resolves them against their own
-// catalogs, so both ends need it. Not keyed "sword": that is the one a new
-// character is seeded with, and these tests want a character carrying nothing.
-EquipPrototype Sword() {
-  EquipPrototype sword;
-  sword.set_name("Iron Sword");
-  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
-  sword.mutable_base_stats()->set_attack(30);
-  sword.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
-  return sword;
-}
-
 std::unique_ptr<GameState> MakeState() {
   std::unique_ptr<GameState> state = std::make_unique<GameState>(
-      std::map<std::string, EquipPrototype>{{"iron_sword", Sword()}},
+      // One weapon in the catalog, so a member has something to be seen
+      // wearing -- a sheet names its items and the reader resolves them
+      // against their own catalogs, so both ends need it. Not keyed "sword":
+      // that is the one a new character is seeded with, and these tests want a
+      // character carrying nothing.
+      std::map<std::string, EquipPrototype>{{"iron_sword", IronSword()}},
       std::map<std::string, Scroll>{}, std::map<std::string, ItemPrototype>{},
       TestMobs(), std::map<std::string, MapData>{});
   // The same fight the server holds, since both ends have to mean the same
@@ -379,7 +371,7 @@ TEST_F(PartyControllerTest, AMemberInspectsAnother) {
 
   // The leader picks up a weapon, which reaches the guest with the party
   // state rather than being asked for.
-  leader->state->character.PickUp(std::make_unique<EquipInstance>(Sword()));
+  leader->state->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
   leader->state->character.Equip(0);
   ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
     return guest->party_panel.in_party() && guest->session.Snapshot()
