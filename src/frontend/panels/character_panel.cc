@@ -57,6 +57,11 @@ ftxui::Element CenteredCell(const std::string& label,
 // The outer tab labels, indexed by CharacterPanel::Tab.
 const char* kTabLabels[] = {"Stats", "Skills", "Advance"};
 
+// The Farm/Boss row, which names the two Hyper Stat allocations wherever the
+// player meets them.
+constexpr char kFarmTabLabel[] = "Farm";
+constexpr char kBossTabLabel[] = "Boss";
+
 // Roman numerals for the job-advancement tabs, indexed by stage (1..6).
 const char* kStageNumerals[] = {"", "I", "II", "III", "IV", "V", "VI"};
 
@@ -208,6 +213,8 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
     case kZoneUsername:
     case kZoneTabs:
       return zone_;
+    case kZonePresets:
+      return ShowsPresetBar() ? zone_ : kZoneTabs;
     case kZoneStatRows:
       return ActiveTab() == kTabStats ? zone_ : kZoneTabs;
     case kZoneAdvTabs:
@@ -219,14 +226,22 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
   return kZoneTabs;
 }
 
+int CharacterPanel::FirstStatStop() const {
+  // The tab bar and the name are stops 0 and 1, and the Farm/Boss row takes
+  // the next one when it is there.
+  return ShowsPresetBar() ? 3 : 2;
+}
+
 int CharacterPanel::RingStops() const {
   // The username row is stop 0 of every tab, and the tab bar stop 1, which is
   // what puts the name one step up from the bar and one step down off the
   // bottom row -- neither is a rule of its own.
   if (ActiveTab() == kTabStats) {
-    // The two of them, the four AP stats, and the View All Stats row under
-    // them -- which is not there while there are no combat stats to lead to.
-    return 2 + kNumAllocStats + (ShowsCombatStats() ? 1 : 0);
+    // The two of them, the Farm/Boss row if it is there, the four AP stats,
+    // and the View All Stats row under them -- which is not there while there
+    // are no combat stats to lead to.
+    return 2 + (ShowsPresetBar() ? 1 : 0) + kNumAllocStats +
+           (ShowsCombatStats() ? 1 : 0);
   }
   if (ActiveTab() == kTabAdvance) {
     return 2 + static_cast<int>(
@@ -248,8 +263,10 @@ int CharacterPanel::CursorStop() const {
       return 0;
     case kZoneTabs:
       return 1;
+    case kZonePresets:
+      return 2;
     case kZoneStatRows:
-      return stat_sel_ + 2;
+      return stat_sel_ + FirstStatStop();
     case kZoneJobRows:
       return job_sel_ + 2;
     case kZoneAdvTabs:
@@ -270,8 +287,12 @@ void CharacterPanel::SetCursorStop(int stop) {
     return;
   }
   if (ActiveTab() == kTabStats) {
+    if (ShowsPresetBar() && stop == 2) {
+      zone_ = kZonePresets;
+      return;
+    }
     zone_ = kZoneStatRows;
-    stat_sel_ = stop - 2;
+    stat_sel_ = stop - FirstStatStop();
     return;
   }
   if (ActiveTab() == kTabAdvance) {
@@ -318,6 +339,33 @@ void CharacterPanel::MarkActiveTabSeen() {
   if (!key.empty()) {
     account_.MarkSeen(key);
   }
+}
+
+bool CharacterPanel::ShowsPresetBar() const {
+  // Only the tabs whose numbers come out of an allocation carry it. The
+  // Advance tab lists jobs, and the Skills tab has a bar of its own.
+  if (ActiveTab() != kTabStats) {
+    return false;
+  }
+  return Unlocked(Feature::kHyperStats, character_, account_);
+}
+
+bool CharacterPanel::ShowsSecondTabRow() const {
+  if (ActiveTab() == kTabSkills) {
+    return character_.proto().job_stage() > 0;
+  }
+  return ShowsPresetBar();
+}
+
+int CharacterPanel::StatsTabFixedRows() const {
+  return kStatsTabFixedRows + (ShowsPresetBar() ? 1 : 0);
+}
+
+ftxui::Element CharacterPanel::RenderPresetBar(bool bar_focused) const {
+  std::vector<TabSpec> specs = {{kFarmTabLabel}, {kBossTabLabel}};
+  int active = hyper_preset_ == HyperPreset::kBossing ? 1 : 0;
+  return ftxui::hbox(
+      {TabBar(specs, active, bar_focused, ContentWidth()), ftxui::filler()});
 }
 
 ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
@@ -383,27 +431,34 @@ int CharacterPanel::ExtraStatsShown(int total) const {
   // The View All Stats row is paid for first, because it is where the stats
   // that did not fit have gone. A budget too small even for that still shows
   // it and lets the panel be clipped: a panel with no way out of it is worse.
-  return std::max(0, std::min(total, max_rows_ - kStatsTabFixedRows - 1));
+  return std::max(0, std::min(total, max_rows_ - StatsTabFixedRows() - 1));
 }
 
 bool CharacterPanel::ShowsExtrasRule() const {
   // The rule is the first thing the extras block gives up. A budget with no
   // room for it is one row shorter than the panel's chrome, which is the row
   // the combat panel below needs on a 24-row terminal.
-  return max_rows_ <= 0 || max_rows_ >= kStatsTabFixedRows + 1;
+  return max_rows_ <= 0 || max_rows_ >= StatsTabFixedRows() + 1;
 }
 
-ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
+ftxui::Element CharacterPanel::RenderStatsTab(bool bar_focused,
+                                              bool rows_focused) const {
   const Character& p = character_.proto();
   const AllocatedStats& a = p.allocated_stats();
+  bool content_focused = rows_focused;
 
   // HP, MP and DEF carry passive-skill bonuses on top of the allocated and worn
   // values, so they come from the derived totals rather than a bare sum. The
   // stat rows do too: a skill's LUK belongs in the same column as a ring's.
-  DerivedStats derived = DerivedStatsFor(character_, skills_);
+  DerivedStats derived = DerivedStatsFor(character_, skills_, /*buffs_up=*/{},
+                                         /*allies=*/{}, hyper_preset_);
   const EquipStats e = TotalEquipStats(character_, derived);
 
   std::vector<ftxui::Element> rows;
+  if (ShowsPresetBar()) {
+    rows.push_back(RenderPresetBar(bar_focused));
+    rows.push_back(PanelSeparator(highlighted_));
+  }
   rows.push_back(StatsAligned(ftxui::text(
       PadRight(" HP: " + std::to_string(derived.max_hp), kStatsWidth))));
   rows.push_back(MpRow(derived.max_mp, p.ap()));
@@ -421,7 +476,7 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
     rows.push_back(PanelSeparator(highlighted_));
   }
   std::vector<StatLine> extras =
-      PanelExtraStatLines(character_, account_, skills_);
+      PanelExtraStatLines(character_, account_, skills_, hyper_preset_);
   int shown = ExtraStatsShown(static_cast<int>(extras.size()));
   // A rule with nothing under it reads as a row that failed to draw, so the
   // cut takes it too rather than leaving it on the end.
@@ -701,9 +756,9 @@ ftxui::Element CharacterPanel::Render() const {
   std::string title =
       Centered("Lv" + lvl + " " + ShortJobName(p.job()), ContentWidth());
 
-  std::string power =
-      Centered(CombatPowerText(CharacterCombatPower(character_, skills_)),
-               ContentWidth());
+  std::string power = Centered(
+      CombatPowerText(CharacterCombatPower(character_, skills_, hyper_preset_)),
+      ContentWidth());
 
   bool focused = panel_focus_ == kCharPanel;
   Zone zone = EffectiveZone();
@@ -716,19 +771,25 @@ ftxui::Element CharacterPanel::Render() const {
   } else if (ActiveTab() == kTabAdvance) {
     content = RenderAdvanceTab(focused && zone == kZoneJobRows);
   } else {
-    content = RenderStatsTab(focused && zone == kZoneStatRows);
+    content = RenderStatsTab(focused && zone == kZonePresets,
+                             focused && zone == kZoneStatRows);
   }
 
-  return AccentWindow(" Character ",
-                      ftxui::vbox({
-                          RenderUsername(name_row_selected),
-                          ftxui::text(title),
-                          ftxui::text(power),
-                          PanelSeparator(highlighted_),
-                          RenderTabBar(tab_row_selected),
-                          PanelSeparator(highlighted_),
-                          content,
-                      }),
+  std::vector<ftxui::Element> rows = {
+      RenderUsername(name_row_selected),
+      ftxui::text(title),
+      ftxui::text(power),
+      PanelSeparator(highlighted_),
+      RenderTabBar(tab_row_selected),
+  };
+  // A second row of tabs sits straight under the first, the way the shop
+  // stacks its two. The rule goes under the pair rather than between them,
+  // and the tab that draws the second row draws it.
+  if (!ShowsSecondTabRow()) {
+    rows.push_back(PanelSeparator(highlighted_));
+  }
+  rows.push_back(content);
+  return AccentWindow(" Character ", ftxui::vbox(std::move(rows)),
                       PanelAccent(highlighted_), focused);
 }
 
@@ -801,10 +862,29 @@ bool CharacterPanel::OnAdvanceTabEvent(
   return false;
 }
 
+bool CharacterPanel::OnPresetBarEvent(const ftxui::Event& event) {
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowLeft) {
+    hyper_preset_ = HyperPreset::kFarming;
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    hyper_preset_ = HyperPreset::kBossing;
+    return true;
+  }
+  return false;
+}
+
 bool CharacterPanel::OnStatsTabEvent(
     const ftxui::Event& event,
     const std::function<void(StatField)>& on_allocate,
     const std::function<void()>& on_all_stats) {
+  if (zone_ == kZonePresets) {
+    return OnPresetBarEvent(event);
+  }
   // Stat rows: Up/Down walk them, and off either end is the tab bar. Left/Right
   // do nothing here -- they belong to the tab bar.
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {

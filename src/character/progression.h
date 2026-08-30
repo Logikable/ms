@@ -49,6 +49,9 @@ enum class Feature {
   // retires, so the corner is never empty and never holds both.
   kMenu,
   kBoss,
+  // The Hyper tab of the Character panel, and the Farm/Boss rows that pick
+  // between the two allocations it fills in. Hyper Stats' own level.
+  kHyperStats,
   // The Symbols tab of the Equipped panel. Arcane River's own level: below it
   // there is no symbol to be had, and a tab that can only ever be empty is
   // worse than no tab.

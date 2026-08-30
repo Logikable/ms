@@ -1734,8 +1734,8 @@ TEST_F(CharacterPanelTest, TheSkillsTabFitsInsideItsRowBudget) {
   CharacterPanel panel(c, account_, panel_focus_, BookOf(11));
   ftxui::Component comp = OnSkillRows(panel);
   int natural = PanelHeight(panel.Render());
-  EXPECT_EQ(natural, 21) << "ten rows of chrome and eleven skills";
-  for (int budget = 11; budget <= natural + 2; ++budget) {
+  EXPECT_EQ(natural, 20) << "nine rows of chrome and eleven skills";
+  for (int budget = 10; budget <= natural + 2; ++budget) {
     panel.SetMaxRows(budget);
     EXPECT_EQ(PanelHeight(panel.Render()), std::min(budget, natural))
         << "at a budget of " << budget;
@@ -1747,7 +1747,7 @@ TEST_F(CharacterPanelTest, TheSkillsTabFitsInsideItsRowBudget) {
 TEST_F(CharacterPanelTest, TheSkillListScrollsToTheSelectedSkill) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, account_, panel_focus_, BookOf(11));
-  panel.SetMaxRows(14);  // room for four skills
+  panel.SetMaxRows(13);  // room for four skills
   ftxui::Component comp = OnSkillRows(panel);
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("Skill 01"), std::string::npos);
@@ -2201,6 +2201,102 @@ TEST_F(CharacterPanelTest, ASkillDemandingNothingIsNotDimmed) {
       panel.MakeComponent([](StatField) {}, [](const Skill&) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
   EXPECT_FALSE(IsDim(comp, "Slash Blast"));
+}
+
+// The rendered panel split into rows, for a test asking what follows what.
+std::vector<std::string> Rows(ftxui::Element element) {
+  ftxui::Screen screen = ftxui::Screen::Create(
+      ftxui::Dimension::Fixed(kLeftColumnMin), ftxui::Dimension::Fixed(24));
+  ftxui::Render(screen, element);
+  std::vector<std::string> rows;
+  for (int y = 0; y < screen.dimy(); ++y) {
+    std::string row;
+    for (int x = 0; x < screen.dimx(); ++x) {
+      const std::string& cell = screen.PixelAt(x, y).character;
+      row += cell.empty() ? " " : cell;
+    }
+    rows.push_back(row);
+  }
+  return rows;
+}
+
+// A 4th-job Hero at the level Hyper Stats open at, with a level in one stat
+// of each allocation so the two read differently.
+CharacterInstance MakeHyperHero(std::mt19937& rng, int ap = 0) {
+  Character proto;
+  proto.set_level(140);
+  proto.set_ap(ap);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  (*proto.mutable_hyper_stats()
+        ->mutable_farming()
+        ->mutable_levels())[HYPER_STAT_FIELD_STR] = 1;
+  (*proto.mutable_hyper_stats()
+        ->mutable_bossing()
+        ->mutable_levels())[HYPER_STAT_FIELD_STR] = 2;
+  return CharacterInstance(rng, std::move(proto));
+}
+
+// The row arrives with the Hyper Stats it picks between, and not before.
+TEST_F(CharacterPanelTest, TheStatsTabGetsAFarmBossRowAt140) {
+  CharacterInstance early = MakeWarrior(rng_, /*sp=*/0);
+  CharacterPanel before(early, account_, panel_focus_);
+  EXPECT_EQ(RenderElement(before.Render()).find("Farm"), std::string::npos);
+
+  CharacterInstance c = MakeHyperHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  std::string rendered = RenderElement(panel.Render());
+  EXPECT_NE(rendered.find("Farm"), std::string::npos);
+  EXPECT_NE(rendered.find("Boss"), std::string::npos);
+}
+
+// The two rows of tabs sit together, with the rule under the pair.
+TEST_F(CharacterPanelTest, NoRuleBetweenTheTwoRowsOfTabs) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  std::vector<std::string> rows = Rows(panel.Render());
+  size_t tabs = 0;
+  while (tabs < rows.size() && rows[tabs].find("Stats") == std::string::npos) {
+    ++tabs;
+  }
+  ASSERT_LT(tabs + 1, rows.size());
+  EXPECT_NE(rows[tabs + 1].find("Farm"), std::string::npos)
+      << "the Farm/Boss row should follow the tab bar directly";
+}
+
+// Which allocation the row is on is what the stats above and below it read.
+TEST_F(CharacterPanelTest, TheFarmBossRowPicksWhatTheStatsRead) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  EXPECT_NE(RenderComponentText(comp).find("STR: 30 (0+30)"),
+            std::string::npos);
+
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> the Farm/Boss row
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Boss
+  EXPECT_EQ(panel.hyper_preset(), HyperPreset::kBossing);
+  EXPECT_NE(RenderComponentText(comp).find("STR: 60 (0+60)"),
+            std::string::npos);
+
+  // The bars in this panel clamp rather than wrap, so the end is the end.
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(panel.hyper_preset(), HyperPreset::kBossing);
+  comp->OnEvent(ftxui::Event::ArrowLeft);
+  comp->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_EQ(panel.hyper_preset(), HyperPreset::kFarming);
+}
+
+// And it is a stop in the same ring: Down off it lands on the first stat.
+TEST_F(CharacterPanelTest, TheFarmBossRowIsAStopBetweenTheTabsAndTheStats) {
+  CharacterInstance c = MakeHyperHero(rng_, /*ap=*/1);
+  CharacterPanel panel(c, account_, panel_focus_);
+  StatField allocated = STAT_FIELD_UNSPECIFIED;
+  ftxui::Component comp =
+      panel.MakeComponent([&](StatField field) { allocated = field; });
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> the Farm/Boss row
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> STR
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(allocated, STAT_FIELD_STR);
 }
 
 }  // namespace

@@ -112,6 +112,7 @@ cc_library(
     deps = [
         ":character",
         ":exp_table",
+        ":hyper_stats",
         "//src:account",
         "//src/protos:character_proto_cc",
         "@abseil-cpp//absl/log",

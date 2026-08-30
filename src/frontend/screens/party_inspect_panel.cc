@@ -103,7 +103,8 @@ ftxui::Element PartyInspectPanel::Render() const {
   // The sheet is drawn by the screen the member reads their own stats on, so
   // the two cannot disagree about what a number is or what it is called --
   // window and all, at the width it keeps everywhere else.
-  AllStatsPanel stats(character_, state_.skills);
+  // No account: this is somebody else's sheet, so it carries no Farm/Boss row.
+  AllStatsPanel stats(character_, /*account=*/nullptr, state_.skills);
   ftxui::Element sheet =
       stats.Render() |
       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, AllStatsPanel::kTotalWidth);

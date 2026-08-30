@@ -129,7 +129,7 @@ Tui::Tui(GameState& state, std::string save_path, std::string server)
       party_select_panel_(),
       job_inspect_panel_(state.skills),
       keybinds_panel_(keys_),
-      all_stats_panel_(state.character, state.skills),
+      all_stats_panel_(state.character, &state.account, state.skills),
       party_inspect_panel_(state),
       multi_sell_panel_(state.character),
       shop_panel_(state.character, state.equips, state.items),
@@ -160,7 +160,12 @@ void Tui::BuildComponents() {
       [this](const Skill& skill) { controller_.OpenSkillLearn(skill); },
       [this](Job job) { controller_.OpenJobMenu(job); },
       [this](const Skill& skill) { controller_.OpenSkillMenu(skill); },
-      [this]() { controller_.OpenAllStats(); });
+      [this]() {
+        // The screen opens on whichever allocation the panel behind it is
+        // showing, so one Enter never changes the numbers.
+        all_stats_panel_.SetPreset(char_panel_.hyper_preset());
+        controller_.OpenAllStats();
+      });
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
   menu_component_ = menu_panel_.MakeComponent(
@@ -916,6 +921,12 @@ bool Tui::OnEvent(ftxui::Event event) {
   // the ticker's own redraw and is not somebody looking.
   if (celebration_.card_visible() && event != ftxui::Event::Custom) {
     celebration_.Dismiss();
+  }
+  // The All Stats screen's Farm/Boss row is the panel's own, and the panel
+  // lives here rather than on the controller. Everything it does not take --
+  // the keys that close the screen -- carries on as usual.
+  if (controller_.screen() == kAllStats && all_stats_panel_.OnEvent(event)) {
+    return true;
   }
   bool handled = controller_.OnEvent(event);
   // After the event rather than before it: the key that just landed may be the

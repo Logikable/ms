@@ -95,7 +95,10 @@ cc_library(
     srcs = ["all_stats_panel.cc"],
     hdrs = ["all_stats_panel.h"],
     deps = [
+        "//src:account",
         "//src/character",
+        "//src/character:hyper_stats",
+        "//src/character:progression",
         "//src/frontend/widgets:panel_util",
         "//src/frontend/widgets:stat_rows",
         "//src/protos:skill_proto_cc",
@@ -108,6 +111,7 @@ cc_test(
     srcs = ["all_stats_panel_test.cc"],
     deps = [
         ":all_stats_panel",
+        "//src/character:hyper_stats",
         "//src/frontend/widgets:panel_test_base",
         "@googletest//:gtest_main",
     ],

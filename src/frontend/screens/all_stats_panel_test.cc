@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "ftxui/component/event.hpp"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -60,7 +61,7 @@ class AllStatsPanelTest : public PanelTest {
 
 TEST_F(AllStatsPanelTest, PairsTheStatsTwoToARow) {
   CharacterInstance c = MakeWarrior();
-  AllStatsPanel panel(c, {});
+  AllStatsPanel panel(c, &account_, {});
   // The pairings the screen is laid out for. Reading the left label and
   // finding the right one on the same row is the whole assertion.
   //
@@ -99,7 +100,7 @@ TEST_F(AllStatsPanelTest, ShowsTheHeadingAndNothingSpendable) {
   proto.set_name("Frostbite");
   CharacterInstance c(rng_, std::move(proto));
 
-  AllStatsPanel panel(c, {});
+  AllStatsPanel panel(c, &account_, {});
   std::string rendered = RenderElement(panel.Render());
   EXPECT_NE(rendered.find("Frostbite"), std::string::npos);
   EXPECT_NE(rendered.find("Lv 60 I/L Wizard"), std::string::npos);
@@ -115,7 +116,7 @@ TEST_F(AllStatsPanelTest, AnAddedToStatCarriesItsBreakdown) {
   c.PickUp(std::make_unique<EquipInstance>(sword_));
   c.Equip(0);
 
-  AllStatsPanel panel(c, {});
+  AllStatsPanel panel(c, &account_, {});
   EXPECT_NE(RenderElement(panel.Render()).find("(40+5) 45"), std::string::npos);
 }
 
@@ -147,7 +148,7 @@ TEST_F(AllStatsPanelTest, ALongValueKeepsTheColumn) {
   c.PickUp(std::make_unique<EquipInstance>(wand));
   c.Equip(0);
 
-  AllStatsPanel panel(c, skills);
+  AllStatsPanel panel(c, &account_, skills);
   std::vector<std::string> rows = Rows(panel.Render());
   std::string magic;
   std::string other;
@@ -170,6 +171,57 @@ TEST_F(AllStatsPanelTest, ALongValueKeepsTheColumn) {
       << "[" << magic << "]";
   EXPECT_EQ(other.find_last_not_of(' '), 2 * AllStatsPanel::kColumnWidth - 2)
       << "[" << other << "]";
+}
+
+// A 4th job at the level Hyper Stats open at, with a different STR level in
+// each allocation.
+TEST_F(AllStatsPanelTest, TheFarmBossRowPicksWhoseNumbersTheseAre) {
+  Character proto;
+  proto.set_level(140);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  (*proto.mutable_hyper_stats()
+        ->mutable_farming()
+        ->mutable_levels())[HYPER_STAT_FIELD_STR] = 1;
+  (*proto.mutable_hyper_stats()
+        ->mutable_bossing()
+        ->mutable_levels())[HYPER_STAT_FIELD_STR] = 2;
+  CharacterInstance c(rng_, std::move(proto));
+  AllStatsPanel panel(c, &account_, {});
+
+  EXPECT_NE(RowWith(panel.Render(), "Farm").find("Boss"), std::string::npos);
+  EXPECT_NE(RowWith(panel.Render(), "STR").find("(0+30) 30"),
+            std::string::npos);
+
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_EQ(panel.preset(), HyperPreset::kBossing);
+  EXPECT_NE(RowWith(panel.Render(), "STR").find("(0+60) 60"),
+            std::string::npos);
+
+  // Clamped at both ends, like every tab bar in the game.
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_EQ(panel.preset(), HyperPreset::kBossing);
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowLeft));
+  EXPECT_EQ(panel.preset(), HyperPreset::kFarming);
+}
+
+// Below the level there is nothing to pick between, and no row.
+TEST_F(AllStatsPanelTest, NoFarmBossRowBeforeHyperStats) {
+  CharacterInstance c = MakeWarrior();
+  AllStatsPanel panel(c, &account_, {});
+  EXPECT_EQ(RowWith(panel.Render(), "Farm"), "");
+  EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
+}
+
+// A party member's sheet is not the player's, so it never carries the row.
+TEST_F(AllStatsPanelTest, SomebodyElsesSheetHasNoFarmBossRow) {
+  Character proto;
+  proto.set_level(140);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  CharacterInstance c(rng_, std::move(proto));
+  AllStatsPanel panel(c, /*account=*/nullptr, {});
+  EXPECT_EQ(RowWith(panel.Render(), "Farm"), "");
 }
 
 }  // namespace

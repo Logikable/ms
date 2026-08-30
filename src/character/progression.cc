@@ -9,6 +9,7 @@
 #include "src/account.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
+#include "src/character/hyper_stats.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {
@@ -49,6 +50,9 @@ constexpr Unlock kUnlocks[] = {
     // on the way there: a hammer is 10 million meso for one slot, which is
     // only worth paying on a piece they mean to keep.
     {Feature::kHammer, 150},
+    // Hyper Stats' own level, which is where the points start being paid --
+    // see kHyperStatUnlockLevel.
+    {Feature::kHyperStats, kHyperStatUnlockLevel},
     // Arcane River opens at 200, and it opens with a symbol handed over -- so
     // the tab arrives with something to put in it.
     {Feature::kSymbols, 200},
@@ -188,6 +192,8 @@ std::string FeatureName(Feature feature) {
       return "the Menu";
     case Feature::kBoss:
       return "Bosses";
+    case Feature::kHyperStats:
+      return "Hyper Stats";
     case Feature::kSymbols:
       return "Arcane Symbols";
     case Feature::kCombatStats:

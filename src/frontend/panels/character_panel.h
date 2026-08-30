@@ -24,6 +24,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/account.h"
 #include "src/character/character.h"
+#include "src/character/hyper_stats.h"
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/marquee.h"
@@ -79,6 +80,13 @@ class CharacterPanel {
       std::function<void(const Skill&)> on_menu = {},
       std::function<void()> on_all_stats = {});
 
+  // Which of the character's two Hyper Stat allocations the panel is reading,
+  // which the Farm/Boss row picks. The All Stats screen opens on it too, so
+  // the two never disagree about whose numbers are on screen.
+  HyperPreset hyper_preset() const {
+    return hyper_preset_;
+  }
+
   // Records the active tab as opened, which is what puts its gold out. Called
   // wherever the tab bar moves, and by the controller when focus arrives on
   // the panel -- a tab already open under the cursor has been seen just as
@@ -119,6 +127,7 @@ class CharacterPanel {
   // Fixed rows of the Stats tab: the window's two borders, the three heading
   // rows (name, level and job, combat power), the rule under them, the tab
   // bar, its rule, HP, MP, the four AP stats, and the rule above the extras.
+  // The Farm/Boss row is one more once it arrives -- StatsTabFixedRows.
   // Everything else on the tab is an extra stat or the View All Stats row.
   //
   // A heading row added without this counted a row too few overruns the budget
@@ -128,9 +137,13 @@ class CharacterPanel {
   static constexpr int kStatsTabFixedRows = 15;
 
   // The same for the Skills tab: the two borders, the three heading rows, the
-  // rule under them, the tab bar, its rule, the advancement bar and the rule
-  // under that. Everything else on the tab is a skill row.
-  static constexpr int kSkillsTabFixedRows = 10;
+  // rule under them, the tab bar, the advancement bar and the rule under that.
+  // Everything else on the tab is a skill row. No rule between the two tab
+  // rows -- see ShowsSecondTabRow.
+  static constexpr int kSkillsTabFixedRows = 9;
+
+  // The Stats tab's own count, which the Farm/Boss row adds to.
+  int StatsTabFixedRows() const;
 
   // Whether the border is currently lit gold. Not part of the panel's own
   // state machine -- it is set from outside and read by Render.
@@ -161,6 +174,8 @@ class CharacterPanel {
   enum Zone {
     kZoneUsername,
     kZoneTabs,
+    // The Farm/Boss row, shared by every tab that reads an allocation.
+    kZonePresets,
     kZoneStatRows,
     kZoneAdvTabs,
     kZoneSkillRows,
@@ -180,6 +195,9 @@ class CharacterPanel {
   bool OnStatsTabEvent(const ftxui::Event& event,
                        const std::function<void(StatField)>& on_allocate,
                        const std::function<void()>& on_all_stats);
+  // Left/Right on the Farm/Boss row. They clamp at the ends, as every tab bar
+  // in this panel does.
+  bool OnPresetBarEvent(const ftxui::Event& event);
   // Whether the cursor is on the View All Stats row rather than on a stat.
   // It is the one stop in the ring that spends nothing.
   bool OnViewAllStatsRow() const;
@@ -215,6 +233,9 @@ class CharacterPanel {
   // the four stat rows, the job rows, or the advancement bar and then the
   // skills of whichever stage it is on.
   int RingStops() const;
+  // The ring stop the first AP stat row takes, which the Farm/Boss row moves
+  // down by one when it is there.
+  int FirstStatStop() const;
   // Where the cursor stands in that ring.
   int CursorStop() const;
   // Puts the cursor on stop `stop`, setting the zone that stop belongs to.
@@ -229,7 +250,17 @@ class CharacterPanel {
   // cursor rests on it, or what is being typed while the field is open.
   ftxui::Element RenderUsername(bool row_selected) const;
   ftxui::Element RenderTabBar(bool row_selected) const;
-  ftxui::Element RenderStatsTab(bool content_focused) const;
+  // The Farm/Boss row: which allocation the tab under it is reading. It sits
+  // straight under the outer tab bar with no rule between them.
+  ftxui::Element RenderPresetBar(bool bar_focused) const;
+  // Whether the active tab carries a Farm/Boss row. Only from level 140, and
+  // only on a tab whose numbers come out of an allocation.
+  bool ShowsPresetBar() const;
+  // Whether the active tab has a second row of tabs at all -- the Farm/Boss
+  // row, or the Skills tab's advancement bar. The rule under the outer tab bar
+  // is dropped for one, since the second row does the same job of separating.
+  bool ShowsSecondTabRow() const;
+  ftxui::Element RenderStatsTab(bool bar_focused, bool rows_focused) const;
   // Renders the Skills tab: the page bar (I/II/... for unlocked stages, then H
   // for the Hyper Skills) with that page's SP right-aligned, then its skill
   // rows. bar_focused draws the active page white; rows_focused highlights the
@@ -316,6 +347,8 @@ class CharacterPanel {
   // scroll. Mutable because the render is what notices the row moved.
   mutable SelectionClock name_clock_;
   int job_sel_ = 0;  // selected Advance-tab job row
+  // Which allocation the Farm/Boss row is on -- see hyper_preset().
+  HyperPreset hyper_preset_ = HyperPreset::kFarming;
   TextField username_field_{kMaxUsernameLength};
   // Written by ftxui::reflect on the selected job row each render.
   mutable ftxui::Box job_cursor_box_;

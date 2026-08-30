@@ -4,7 +4,9 @@
 #include <utility>
 #include <vector>
 
+#include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/character/progression.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/frontend/widgets/stat_rows.h"
 
@@ -33,8 +35,30 @@ std::string ColumnText(const StatLine& line) {
 }  // namespace
 
 AllStatsPanel::AllStatsPanel(const CharacterInstance& character,
+                             const AccountInstance* account,
                              const std::map<std::string, Skill>& skills)
-    : character_(character), skills_(skills) {
+    : character_(character), account_(account), skills_(skills) {
+}
+
+bool AllStatsPanel::ShowsPresetBar() const {
+  return account_ != nullptr &&
+         Unlocked(Feature::kHyperStats, character_, *account_);
+}
+
+bool AllStatsPanel::OnEvent(const ftxui::Event& event) {
+  if (!ShowsPresetBar()) {
+    return false;
+  }
+  // Clamped at the ends, as every tab bar in the game is.
+  if (event == ftxui::Event::ArrowLeft) {
+    preset_ = HyperPreset::kFarming;
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    preset_ = HyperPreset::kBossing;
+    return true;
+  }
+  return false;
 }
 
 ftxui::Element AllStatsPanel::Pairs(const std::vector<StatLine>& lines) {
@@ -63,15 +87,29 @@ ftxui::Element AllStatsPanel::RenderBody() const {
   // screen behind it reads as the same character rather than as a table of
   // numbers.
   std::string lvl = PadLeft(std::to_string(p.level()), 3);
-  return ftxui::vbox({
+  std::vector<ftxui::Element> rows = {
       CenteredRow(character_.username()),
       CenteredRow("Lv" + lvl + " " + ShortJobName(p.job())),
-      CenteredRow(CombatPowerText(CharacterCombatPower(character_, skills_))),
+      CenteredRow(
+          CombatPowerText(CharacterCombatPower(character_, skills_, preset_))),
       ThemedSeparator(),
-      Pairs(MainStatLines(character_, skills_)),
-      ThemedSeparator(),
-      Pairs(ExtraStatLines(character_, skills_)),
-  });
+  };
+  // Between the heading and the stats, so it reads as a heading of its own:
+  // whose numbers these are. The row holds the screen's only cursor, so it is
+  // drawn focused.
+  if (ShowsPresetBar()) {
+    std::vector<TabSpec> specs = {{"Farm"}, {"Boss"}};
+    int active = preset_ == HyperPreset::kBossing ? 1 : 0;
+    rows.push_back(ftxui::hbox({
+        TabBar(specs, active, /*row_focused=*/true, kContentWidth),
+        ftxui::filler(),
+    }));
+    rows.push_back(ThemedSeparator());
+  }
+  rows.push_back(Pairs(MainStatLines(character_, skills_, preset_)));
+  rows.push_back(ThemedSeparator());
+  rows.push_back(Pairs(ExtraStatLines(character_, skills_, preset_)));
+  return ftxui::vbox(std::move(rows));
 }
 
 ftxui::Element AllStatsPanel::Render() const {
