@@ -1779,6 +1779,29 @@ TEST_F(CharacterPanelTest, TheSkillListScrollsToTheSelectedSkill) {
       << "the head of the book should have scrolled away";
 }
 
+// And it centres the cursor in that window, rather than dragging it along the
+// bottom edge -- the rule every scrolling list in the game follows.
+TEST_F(CharacterPanelTest, TheSkillWindowCentresTheCursor) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, account_, panel_focus_, BookOf(11));
+  panel.SetMaxRows(14);  // room for five skills
+  ftxui::Component comp = OnSkillRows(panel);
+  for (int i = 0; i < 5; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+  }
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("Skill 04"), std::string::npos) << "two above it";
+  EXPECT_EQ(rendered.find("Skill 03"), std::string::npos);
+  EXPECT_NE(rendered.find("Skill 08"), std::string::npos) << "two below it";
+
+  // And walking back up moves the window a row at a time rather than snapping
+  // it to the head of the book.
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("Skill 03"), std::string::npos);
+  EXPECT_EQ(rendered.find("Skill 08"), std::string::npos);
+}
+
 // And there is no bar over a book that fits, nor a column taken off the names
 // to hold one.
 TEST_F(CharacterPanelTest, NoScrollBarOverABookThatFits) {

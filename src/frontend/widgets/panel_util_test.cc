@@ -837,6 +837,32 @@ TEST(FloatingTest, GivesUpItsTopWhenItCannotFit) {
   EXPECT_EQ(ScreenCells(screen, 7, 0, 3), "BOT");
 }
 
+// --- ScrollWindowStart ---
+
+TEST(ScrollWindowStartTest, CentresTheSelectionInTheWindow) {
+  // Five on screen of twenty: the cursor sits with two rows above it.
+  EXPECT_EQ(ScrollWindowStart(20, 10, 5), 8);
+  EXPECT_EQ(ScrollWindowStart(20, 11, 5), 9) << "and moves a row at a time";
+  // An even window puts it a row above the middle, as yframe does.
+  EXPECT_EQ(ScrollWindowStart(20, 10, 6), 8);
+}
+
+// Both ends of the list are shown whole rather than half a window of blanks:
+// there is nothing above the first row to centre it against.
+TEST(ScrollWindowStartTest, ClampsAtBothEndsOfTheList) {
+  EXPECT_EQ(ScrollWindowStart(20, 0, 5), 0);
+  EXPECT_EQ(ScrollWindowStart(20, 1, 5), 0);
+  EXPECT_EQ(ScrollWindowStart(20, 19, 5), 15);
+  EXPECT_EQ(ScrollWindowStart(20, 18, 5), 15);
+}
+
+// A list that fits never scrolls, and neither does one with no window at all.
+TEST(ScrollWindowStartTest, AListThatFitsStartsAtItsHead) {
+  EXPECT_EQ(ScrollWindowStart(5, 4, 5), 0);
+  EXPECT_EQ(ScrollWindowStart(5, 4, 9), 0);
+  EXPECT_EQ(ScrollWindowStart(0, 0, 0), 0);
+}
+
 // --- StepCursor ---
 
 TEST(StepCursorTest, WalksTheRingOneStopAtATime) {

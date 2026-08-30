@@ -719,11 +719,7 @@ int CharacterPanel::SkillRowsShown(int total) const {
 }
 
 int CharacterPanel::FirstSkillRow(int total, int visible) const {
-  // Anchored on the selection rather than kept as an offset of its own: the
-  // window only moves when the cursor walks off it, so a book that fits sits
-  // still and one that does not follows the cursor down.
-  int first = std::max(0, skill_sel_ - visible + 1);
-  return std::min(first, std::max(0, total - visible));
+  return ScrollWindowStart(total, skill_sel_, visible);
 }
 
 ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
@@ -791,8 +787,7 @@ int CharacterPanel::HyperRowsShown() const {
 }
 
 int CharacterPanel::FirstHyperRow(int visible) const {
-  int first = std::max(0, hyper_sel_ - visible + 1);
-  return std::min(first, std::max(0, kNumHyperStats - visible));
+  return ScrollWindowStart(kNumHyperStats, hyper_sel_, visible);
 }
 
 ftxui::Element CharacterPanel::RenderHyperRow(HyperStatField field, int index,

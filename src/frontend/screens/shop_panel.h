@@ -142,9 +142,8 @@ class ShopPanel {
   // Rows in the open tab. The three shelves are stock_; the buy-back tab
   // reads the character's shelf directly, having no catalog keys of its own.
   int RowCount() const;
-  // Scrolls the window by as little as it takes to put the cursor back inside
-  // it. Does nothing while the cursor is already on screen, which is most
-  // moves.
+  // Puts the window where the cursor is -- ScrollWindowStart, which keeps the
+  // selection in the middle of it.
   void ScrollToCursor();
   // The tab chips with the counter in what they leave -- meso, or how many of
   // the open shelf's token the player holds.

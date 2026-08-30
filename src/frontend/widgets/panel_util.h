@@ -416,6 +416,16 @@ ftxui::Element ContinueButton(const std::string& label = "Continue");
 ftxui::Element ButtonRow(const std::string& go, const std::string& leave,
                          bool go_focused, bool leave_focused, bool go_enabled);
 
+// The first row on screen for a list of `total` rows showing `visible` of
+// them with `selected` under the cursor. The one scroll rule in the game: the
+// selection sits in the middle of the window, clamped at both ends, so the
+// head and the foot of a list are shown whole.
+//
+// This is the arithmetic ftxui's yframe does, written out for the lists that
+// keep their own offset. A list handing its scrolling to yframe already
+// follows it; anything else calls this rather than inventing a second rule.
+int ScrollWindowStart(int total, int selected, int visible);
+
 // A one-column scroll bar for a list showing `visible` of its `total` rows,
 // starting at row `first_visible`. Drawn with the same half-height glyphs as
 // ftxui's own vscroll_indicator, which the bag scrolls with, so the two bars

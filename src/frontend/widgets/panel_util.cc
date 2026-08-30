@@ -1007,6 +1007,16 @@ ftxui::Element ButtonRow(const std::string& go, const std::string& leave,
   });
 }
 
+int ScrollWindowStart(int total, int selected, int visible) {
+  if (visible <= 0 || total <= visible) {
+    return 0;
+  }
+  // (visible - 1) / 2 rather than visible / 2, which is what yframe uses: an
+  // even window puts the cursor a row above its middle either way.
+  int first = selected - (visible - 1) / 2;
+  return std::max(0, std::min(first, total - visible));
+}
+
 std::vector<ftxui::Element> ScrollBarCells(int total, int first_visible,
                                            int visible) {
   if (visible <= 0 || total <= visible) {

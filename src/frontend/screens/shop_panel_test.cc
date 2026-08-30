@@ -741,24 +741,20 @@ TEST_F(ShopPanelTest, ShowsOnlyAWindowOfALongList) {
   EXPECT_EQ(rendered.find("Item 15"), std::string::npos) << "the 16th";
 }
 
-// The window moves by as little as it takes, so walking down one row does not
-// throw the list about under the cursor.
-TEST_F(ShopPanelTest, ScrollsOneRowAtATimeOffTheBottom) {
+// The cursor sits in the middle of the window, so there is always a list
+// either side of it to read. ScrollWindowStart, which every list scrolls by.
+TEST_F(ShopPanelTest, KeepsTheCursorInTheMiddleOfTheWindow) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> many = ManyItems(30);
   ShopPanel panel(c, many, items_);
-  for (int i = 0; i < kVisibleRows - 1; ++i) {
+  for (int i = 0; i < 10; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
-  ASSERT_NE(Render(panel).find("> Item 14"), std::string::npos)
-      << "the last row of the window is reached without scrolling";
-  ASSERT_NE(Render(panel).find("Item 00"), std::string::npos);
-
-  panel.OnEvent(ftxui::Event::ArrowDown);
   std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("> Item 15"), std::string::npos);
-  EXPECT_EQ(rendered.find("Item 00"), std::string::npos) << "scrolled by one";
-  EXPECT_NE(rendered.find("Item 01"), std::string::npos);
+  EXPECT_NE(rendered.find("> Item 10"), std::string::npos);
+  EXPECT_NE(rendered.find("Item 03"), std::string::npos) << "seven above it";
+  EXPECT_EQ(rendered.find("Item 02"), std::string::npos);
+  EXPECT_NE(rendered.find("Item 17"), std::string::npos) << "seven below it";
 }
 
 TEST_F(ShopPanelTest, ScrollsBackUpOffTheTop) {

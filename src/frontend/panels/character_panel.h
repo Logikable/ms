@@ -296,7 +296,8 @@ class CharacterPanel {
   bool CanRaiseHyperStat(HyperStatField field) const;
   // How many Hyper Stat rows the row budget leaves room for, of the fourteen.
   int HyperRowsShown() const;
-  // The first row of the window, chosen so the selected one is in it.
+  // The first row of the window -- ScrollWindowStart, which keeps the
+  // selection in the middle of it.
   int FirstHyperRow(int visible) const;
   // Renders the Skills tab: the page bar (I/II/... for unlocked stages, then H
   // for the Hyper Skills) with that page's SP right-aligned, then its skill
@@ -351,7 +352,7 @@ class CharacterPanel {
   // How many skill rows the row budget leaves room for, of the `total` on the
   // page. All of them when no budget is set, and never fewer than one.
   int SkillRowsShown(int total) const;
-  // The first skill row of the window, chosen so the selected one is in it.
+  // The first skill row of the window -- ScrollWindowStart, as above.
   int FirstSkillRow(int total, int visible) const;
   // How many of the `total` extra stats the row budget leaves room for, once
   // the View All Stats row under them has been paid for. All of them when no

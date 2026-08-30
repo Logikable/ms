@@ -237,11 +237,7 @@ int ShopPanel::CursorStop() const {
 }
 
 void ShopPanel::ScrollToCursor() {
-  if (selected_ < first_visible_) {
-    first_visible_ = selected_;
-  } else if (selected_ >= first_visible_ + kVisibleRows) {
-    first_visible_ = selected_ - kVisibleRows + 1;
-  }
+  first_visible_ = ScrollWindowStart(RowCount(), selected_, kVisibleRows);
 }
 
 void ShopPanel::OpenMenu() {
