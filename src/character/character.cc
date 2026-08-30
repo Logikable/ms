@@ -14,6 +14,7 @@
 #include "src/character/arcane_force.h"
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
+#include "src/character/job_branch.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
 #include "src/item/inventory.h"
@@ -176,29 +177,10 @@ struct LevelUpGain {
 };
 
 LevelUpGain LevelUpGainFor(Job job) {
-  static_assert(Job_ARRAYSIZE == 36, "a new job needs its HP/MP gains here");
-  switch (job) {
-    case JOB_SWORDMAN:
-    case JOB_FIGHTER:
-    case JOB_PAGE:
-    case JOB_SPEARMAN:
-    case JOB_BERSERKER:
-    case JOB_CRUSADER:
-    case JOB_WHITE_KNIGHT:
-    case JOB_DARK_KNIGHT:
-    case JOB_PALADIN:
-    case JOB_HERO:
+  switch (BranchOf(job)) {
+    case JobBranch::kWarrior:
       return {48, 12};
-    case JOB_MAGICIAN:
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-    case JOB_ICE_LIGHTNING_MAGE:
-    case JOB_FIRE_POISON_MAGE:
-    case JOB_PRIEST:
-    case JOB_ICE_LIGHTNING_ARCH_MAGE:
-    case JOB_FIRE_POISON_ARCH_MAGE:
-    case JOB_BISHOP:
+    case JobBranch::kMagician:
       return {12, 48};
     default:
       return {36, 24};
@@ -206,51 +188,21 @@ LevelUpGain LevelUpGainFor(Job job) {
 }
 
 EquipJobCategory JobToCategory(Job job) {
-  static_assert(Job_ARRAYSIZE == 36, "a new job needs its equip category here");
-  switch (job) {
-    case JOB_BEGINNER:
+  switch (BranchOf(job)) {
+    case JobBranch::kBeginner:
       return EQUIP_JOB_CATEGORY_BEGINNER;
-    case JOB_SWORDMAN:
-    case JOB_FIGHTER:
-    case JOB_PAGE:
-    case JOB_SPEARMAN:
-    case JOB_BERSERKER:
-    case JOB_CRUSADER:
-    case JOB_WHITE_KNIGHT:
-    case JOB_DARK_KNIGHT:
-    case JOB_PALADIN:
-    case JOB_HERO:
+    case JobBranch::kWarrior:
       return EQUIP_JOB_CATEGORY_WARRIOR;
-    case JOB_ARCHER:
-    case JOB_HUNTER:
-    case JOB_CROSSBOWMAN:
-    case JOB_RANGER:
-    case JOB_SNIPER:
-    case JOB_BOW_MASTER:
-    case JOB_MARKSMAN:
+    case JobBranch::kArcher:
       return EQUIP_JOB_CATEGORY_BOWMAN;
-    case JOB_MAGICIAN:
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-    case JOB_ICE_LIGHTNING_MAGE:
-    case JOB_FIRE_POISON_MAGE:
-    case JOB_PRIEST:
-    case JOB_ICE_LIGHTNING_ARCH_MAGE:
-    case JOB_FIRE_POISON_ARCH_MAGE:
-    case JOB_BISHOP:
+    case JobBranch::kMagician:
       return EQUIP_JOB_CATEGORY_MAGICIAN;
-    case JOB_ROGUE:
-    case JOB_ASSASSIN:
-    case JOB_BANDIT:
-    case JOB_HERMIT:
-    case JOB_CHIEF_BANDIT:
-    case JOB_NIGHT_LORD:
-    case JOB_SHADOWER:
+    case JobBranch::kRogue:
       return EQUIP_JOB_CATEGORY_THIEF;
-    default:
+    case JobBranch::kNone:
       return EQUIP_JOB_CATEGORY_UNSPECIFIED;
   }
+  return EQUIP_JOB_CATEGORY_UNSPECIFIED;
 }
 
 // Appends `stacks` to the saved character under `category`. The tab an item
@@ -303,45 +255,14 @@ std::unique_ptr<EquipTabItem> RestoreEquipItem(
 // The four beginner books. Every job in a line answers to the one it grew
 // out of, however far along the line it is.
 JobAdvancement FirstAdvancement(Job job) {
-  static_assert(Job_ARRAYSIZE == 36, "a new job needs its beginner book here");
-  switch (job) {
-    case JOB_SWORDMAN:
-    case JOB_FIGHTER:
-    case JOB_PAGE:
-    case JOB_SPEARMAN:
-    case JOB_BERSERKER:
-    case JOB_CRUSADER:
-    case JOB_WHITE_KNIGHT:
-    case JOB_DARK_KNIGHT:
-    case JOB_PALADIN:
-    case JOB_HERO:
+  switch (BranchOf(job)) {
+    case JobBranch::kWarrior:
       return JOB_ADVANCEMENT_SWORDMAN;
-    case JOB_ARCHER:
-    case JOB_HUNTER:
-    case JOB_CROSSBOWMAN:
-    case JOB_RANGER:
-    case JOB_SNIPER:
-    case JOB_BOW_MASTER:
-    case JOB_MARKSMAN:
+    case JobBranch::kArcher:
       return JOB_ADVANCEMENT_ARCHER;
-    case JOB_MAGICIAN:
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-    case JOB_ICE_LIGHTNING_MAGE:
-    case JOB_FIRE_POISON_MAGE:
-    case JOB_PRIEST:
-    case JOB_ICE_LIGHTNING_ARCH_MAGE:
-    case JOB_FIRE_POISON_ARCH_MAGE:
-    case JOB_BISHOP:
+    case JobBranch::kMagician:
       return JOB_ADVANCEMENT_MAGICIAN;
-    case JOB_ROGUE:
-    case JOB_ASSASSIN:
-    case JOB_BANDIT:
-    case JOB_HERMIT:
-    case JOB_CHIEF_BANDIT:
-    case JOB_NIGHT_LORD:
-    case JOB_SHADOWER:
+    case JobBranch::kRogue:
       return JOB_ADVANCEMENT_ROGUE;
     default:
       return JOB_ADVANCEMENT_UNSPECIFIED;
@@ -725,50 +646,22 @@ JobAdvancement AdvancementForSecondary(EquipType type) {
 }
 
 StatField PrimaryStatField(Job job) {
-  static_assert(Job_ARRAYSIZE == 36, "a new job needs its primary stat here");
-  switch (job) {
-    case JOB_BEGINNER:
-    case JOB_SWORDMAN:
-    case JOB_FIGHTER:
-    case JOB_PAGE:
-    case JOB_SPEARMAN:
-    case JOB_BERSERKER:
-    case JOB_CRUSADER:
-    case JOB_WHITE_KNIGHT:
-    case JOB_DARK_KNIGHT:
-    case JOB_PALADIN:
-    case JOB_HERO:
+  switch (BranchOf(job)) {
+    // The beginner swings on STR, which is the warrior's stat and the one
+    // their starting gear carries.
+    case JobBranch::kBeginner:
+    case JobBranch::kWarrior:
       return STAT_FIELD_STR;
-    case JOB_ARCHER:
-    case JOB_HUNTER:
-    case JOB_CROSSBOWMAN:
-    case JOB_RANGER:
-    case JOB_SNIPER:
-    case JOB_BOW_MASTER:
-    case JOB_MARKSMAN:
+    case JobBranch::kArcher:
       return STAT_FIELD_DEX;
-    case JOB_MAGICIAN:
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-    case JOB_ICE_LIGHTNING_MAGE:
-    case JOB_FIRE_POISON_MAGE:
-    case JOB_PRIEST:
-    case JOB_ICE_LIGHTNING_ARCH_MAGE:
-    case JOB_FIRE_POISON_ARCH_MAGE:
-    case JOB_BISHOP:
+    case JobBranch::kMagician:
       return STAT_FIELD_INT;
-    case JOB_ROGUE:
-    case JOB_ASSASSIN:
-    case JOB_BANDIT:
-    case JOB_HERMIT:
-    case JOB_CHIEF_BANDIT:
-    case JOB_NIGHT_LORD:
-    case JOB_SHADOWER:
+    case JobBranch::kRogue:
       return STAT_FIELD_LUK;
-    default:
+    case JobBranch::kNone:
       return STAT_FIELD_UNSPECIFIED;
   }
+  return STAT_FIELD_UNSPECIFIED;
 }
 
 // One job leading to the next, for the two advancements that narrow rather

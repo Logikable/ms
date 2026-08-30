@@ -13,6 +13,7 @@ cc_library(
     hdrs = ["damage.h"],
     deps = [
         ":constants",
+        "//src/character:job_branch",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:mob_proto_cc",

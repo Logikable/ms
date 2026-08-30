@@ -10,6 +10,7 @@ cc_library(
         ":arcane_force",
         ":exp_table",
         ":hyper_stats",
+        ":job_branch",
         "//src/item",
         "//src/item:equip_instance",
         "//src/item:equip_stats",
@@ -68,6 +69,22 @@ cc_library(
     srcs = ["job_name.cc"],
     hdrs = ["job_name.h"],
     deps = ["//src/protos:character_proto_cc"],
+)
+
+cc_library(
+    name = "job_branch",
+    srcs = ["job_branch.cc"],
+    hdrs = ["job_branch.h"],
+    deps = ["//src/protos:character_proto_cc"],
+)
+
+cc_test(
+    name = "job_branch_test",
+    srcs = ["job_branch_test.cc"],
+    deps = [
+        ":job_branch",
+        "@googletest//:gtest_main",
+    ],
 )
 
 cc_library(

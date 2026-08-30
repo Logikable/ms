@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 
+#include "src/character/job_branch.h"
 #include "src/combat/constants.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -328,25 +329,10 @@ double WeaponConstant(Job job, EquipType weapon) {
 }
 
 double BaseMastery(Job job) {
-  switch (job) {
-    case JOB_ARCHER:
-    case JOB_HUNTER:
-    case JOB_CROSSBOWMAN:
-    case JOB_RANGER:
-    case JOB_SNIPER:
-    case JOB_BOW_MASTER:
-    case JOB_MARKSMAN:
+  switch (BranchOf(job)) {
+    case JobBranch::kArcher:
       return kRangedBaseMastery;
-    case JOB_MAGICIAN:
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-    case JOB_ICE_LIGHTNING_MAGE:
-    case JOB_FIRE_POISON_MAGE:
-    case JOB_PRIEST:
-    case JOB_ICE_LIGHTNING_ARCH_MAGE:
-    case JOB_FIRE_POISON_ARCH_MAGE:
-    case JOB_BISHOP:
+    case JobBranch::kMagician:
       return kMagicBaseMastery;
     default:
       // Warriors, thieves and the beginner all swing something GMS calls a
@@ -370,61 +356,30 @@ OffenseStats OffenseStatsFor(Job job, int level,
   offense.arcane_pct = passives.arcane_pct;
   // The line's own base, plus whatever the best mastery skill grants on top.
   offense.mastery = BaseMastery(job) + passives.mastery;
-  // Primary/secondary stat by job; unknown jobs fall through to 0, matching
-  // MainStatValue in equipped_panel.
-  switch (job) {
-    case JOB_SWORDMAN:
-    case JOB_FIGHTER:
-    case JOB_PAGE:
-    case JOB_SPEARMAN:
-    case JOB_BERSERKER:
-    case JOB_CRUSADER:
-    case JOB_WHITE_KNIGHT:
-    case JOB_DARK_KNIGHT:
-    case JOB_PALADIN:
-    case JOB_HERO:
-    case JOB_BEGINNER:
-      // STR primary, DEX secondary.
+  // Primary/secondary stat by branch; an unknown job falls through to 0,
+  // matching MainStatValue in equipped_panel.
+  switch (BranchOf(job)) {
+    // The beginner swings on STR, as the warriors they have not yet become do.
+    case JobBranch::kBeginner:
+    case JobBranch::kWarrior:
       offense.primary = allocated.str() + equipped.str();
       offense.secondary = allocated.dex() + equipped.dex();
       break;
-    case JOB_ARCHER:
-    case JOB_HUNTER:
-    case JOB_CROSSBOWMAN:
-    case JOB_RANGER:
-    case JOB_SNIPER:
-    case JOB_BOW_MASTER:
-    case JOB_MARKSMAN:
+    case JobBranch::kArcher:
       // The mirror image: DEX primary, STR secondary.
       offense.primary = allocated.dex() + equipped.dex();
       offense.secondary = allocated.str() + equipped.str();
       break;
-    case JOB_MAGICIAN:
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-    case JOB_ICE_LIGHTNING_MAGE:
-    case JOB_FIRE_POISON_MAGE:
-    case JOB_PRIEST:
-    case JOB_ICE_LIGHTNING_ARCH_MAGE:
-    case JOB_FIRE_POISON_ARCH_MAGE:
-    case JOB_BISHOP:
-      // INT primary, LUK secondary.
+    case JobBranch::kMagician:
       offense.primary = allocated.int_() + equipped.int_();
       offense.secondary = allocated.luk() + equipped.luk();
       break;
-    case JOB_ROGUE:
-    case JOB_ASSASSIN:
-    case JOB_BANDIT:
-    case JOB_HERMIT:
-    case JOB_CHIEF_BANDIT:
-    case JOB_NIGHT_LORD:
-    case JOB_SHADOWER:
-      // LUK primary, DEX secondary -- the magician's pair, swapped.
+    case JobBranch::kRogue:
+      // The magician's pair, swapped.
       offense.primary = allocated.luk() + equipped.luk();
       offense.secondary = allocated.dex() + equipped.dex();
       break;
-    default:
+    case JobBranch::kNone:
       break;
   }
   // Magicians swing on magic attack; the rest of the chain treats it exactly
@@ -600,21 +555,7 @@ int CombatPower(const OffenseStats& offense, bool vs_boss) {
 }
 
 bool SwingsOnMagic(Job job) {
-  switch (job) {
-    case JOB_MAGICIAN:
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-    case JOB_ICE_LIGHTNING_MAGE:
-    case JOB_FIRE_POISON_MAGE:
-    case JOB_PRIEST:
-    case JOB_ICE_LIGHTNING_ARCH_MAGE:
-    case JOB_FIRE_POISON_ARCH_MAGE:
-    case JOB_BISHOP:
-      return true;
-    default:
-      return false;
-  }
+  return BranchOf(job) == JobBranch::kMagician;
 }
 
 int BaseAttackSpeedStage(Job job, int weapon_stage) {
