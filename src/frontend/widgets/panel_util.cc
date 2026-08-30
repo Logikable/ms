@@ -718,6 +718,71 @@ std::string StatFieldName(StatField field) {
   }
 }
 
+const HyperStatField kHyperStatOrder[] = {
+    HYPER_STAT_FIELD_STR,           HYPER_STAT_FIELD_DEX,
+    HYPER_STAT_FIELD_INT,           HYPER_STAT_FIELD_LUK,
+    HYPER_STAT_FIELD_MAX_HP,        HYPER_STAT_FIELD_CRIT_RATE,
+    HYPER_STAT_FIELD_CRIT_DAMAGE,   HYPER_STAT_FIELD_IED,
+    HYPER_STAT_FIELD_DAMAGE,        HYPER_STAT_FIELD_BOSS_DAMAGE,
+    HYPER_STAT_FIELD_NORMAL_DAMAGE, HYPER_STAT_FIELD_ATTACK,
+    HYPER_STAT_FIELD_EXP,           HYPER_STAT_FIELD_ARCANE_FORCE,
+};
+const int kNumHyperStats = sizeof(kHyperStatOrder) / sizeof(kHyperStatOrder[0]);
+
+std::string HyperStatName(HyperStatField field) {
+  static_assert(HyperStatField_ARRAYSIZE == 16,
+                "a new Hyper Stat needs a name and a place in the order");
+  switch (field) {
+    case HYPER_STAT_FIELD_STR:
+      return "STR";
+    case HYPER_STAT_FIELD_DEX:
+      return "DEX";
+    case HYPER_STAT_FIELD_INT:
+      return "INT";
+    case HYPER_STAT_FIELD_LUK:
+      return "LUK";
+    case HYPER_STAT_FIELD_MAX_HP:
+      return "HP";
+    case HYPER_STAT_FIELD_CRIT_RATE:
+      return "Critical Rate";
+    case HYPER_STAT_FIELD_CRIT_DAMAGE:
+      return "Critical Damage";
+    case HYPER_STAT_FIELD_IED:
+      return "Ignore Defense";
+    case HYPER_STAT_FIELD_DAMAGE:
+      return "Damage";
+    case HYPER_STAT_FIELD_BOSS_DAMAGE:
+      return "Boss Damage";
+    case HYPER_STAT_FIELD_NORMAL_DAMAGE:
+      return "Normal Damage";
+    case HYPER_STAT_FIELD_ATTACK:
+      return "Attack & MATT";
+    case HYPER_STAT_FIELD_EXP:
+      return "Experience";
+    case HYPER_STAT_FIELD_ARCANE_FORCE:
+      return "Arcane Force";
+    default:
+      return "";
+  }
+}
+
+std::string HyperStatBonusText(HyperStatField field, int level) {
+  // Whole percents, except EXP's half-point steps, so the trailing zeros go.
+  bool percent =
+      field != HYPER_STAT_FIELD_STR && field != HYPER_STAT_FIELD_DEX &&
+      field != HYPER_STAT_FIELD_INT && field != HYPER_STAT_FIELD_LUK &&
+      field != HYPER_STAT_FIELD_ATTACK &&
+      field != HYPER_STAT_FIELD_ARCANE_FORCE;
+  double bonus = HyperStatBonus(field, level);
+  char buffer[32];
+  std::snprintf(buffer, sizeof(buffer), "%.1f", bonus);
+  std::string text(buffer);
+  if (text.size() > 2 && text.compare(text.size() - 2, 2, ".0") == 0) {
+    text.resize(text.size() - 2);
+  }
+  return "+" + text + (percent ? "%" : "");
+}
+
 int ItemNameWidthFor(int width) {
   return std::clamp(width - kItemListGutter - kItemListFixedWidth,
                     kItemNameWidth, kItemNameMax);

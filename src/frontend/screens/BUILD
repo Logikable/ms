@@ -118,6 +118,29 @@ cc_test(
 )
 
 cc_library(
+    name = "hyper_stat_level_panel",
+    srcs = ["hyper_stat_level_panel.cc"],
+    hdrs = ["hyper_stat_level_panel.h"],
+    deps = [
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "hyper_stat_level_panel_test",
+    srcs = ["hyper_stat_level_panel_test.cc"],
+    deps = [
+        ":hyper_stat_level_panel",
+        "//src/frontend/widgets:confirm_prompt",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "job_inspect_panel",
     srcs = ["job_inspect_panel.cc"],
     hdrs = ["job_inspect_panel.h"],

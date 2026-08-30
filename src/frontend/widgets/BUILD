@@ -51,6 +51,7 @@ cc_library(
         ":colors",
         ":marquee",
         ":text_columns",
+        "//src/character:hyper_stats",
         "//src/character:job_name",
         "//src/item",
         "//src/protos:character_proto_cc",

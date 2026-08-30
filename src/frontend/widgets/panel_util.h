@@ -12,6 +12,7 @@
 #include "ftxui/component/component_base.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/character/hyper_stats.h"
 #include "src/character/job_name.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/marquee.h"
@@ -213,6 +214,20 @@ std::string FormatJobCategories(const EquipPrototype& proto);
 // Returns the short display label for an AP stat field (e.g. "STR"), or "" for
 // STAT_FIELD_UNSPECIFIED.
 std::string StatFieldName(StatField field);
+
+// The Hyper Stats in the order the Hyper tab lists them, which is the order
+// GMS lists them in. One table so the tab and the dialog behind it cannot
+// disagree about what a stat is called or where it sits.
+extern const HyperStatField kHyperStatOrder[];
+extern const int kNumHyperStats;
+
+// What a Hyper Stat is called on screen, or "" for one with no name.
+std::string HyperStatName(HyperStatField field);
+
+// What `field` at `level` is worth, written the way a row shows it: "+30" for
+// a flat stat and "+3%" for a percentage, trailing zeros trimmed. Level 0
+// reads "+0", so an untouched row still says which kind of stat it is.
+std::string HyperStatBonusText(HyperStatField field, int level);
 
 // How much room an item name gets in a list on the narrowest panel that draws
 // one. Names run past it -- "Fafnir Mistilteinn Trace" does -- so a name is
