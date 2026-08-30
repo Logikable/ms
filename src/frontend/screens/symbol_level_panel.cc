@@ -6,7 +6,6 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/confirm_prompt.h"
 #include "src/frontend/widgets/panel_util.h"
 
@@ -26,10 +25,8 @@ void SymbolLevelPanel::Reset(const std::string& symbol_name, int level,
 ftxui::Element SymbolLevelPanel::Render() const {
   // Red on a price the purse cannot cover: the reason sits on the cell that
   // carries it, and the greyed button below is the door it closes.
-  ftxui::Element cost = ftxui::text("Cost " + FormatMeso(cost_));
-  if (!affordable()) {
-    cost = std::move(cost) | ftxui::color(kRed);
-  }
+  ftxui::Element cost =
+      RedUnless(ftxui::text("Cost " + FormatMeso(cost_)), affordable());
   return DialogWindow(" Level Up ",
                       {
                           CenteredRow(symbol_name_),

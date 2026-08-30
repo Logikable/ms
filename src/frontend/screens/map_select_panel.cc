@@ -97,12 +97,9 @@ ftxui::Element ArcaneCell(const GameState& state, const MapData& map) {
   if (map.arcane_force() == 0) {
     return ftxui::text(std::string(kArcaneWidth, ' '));
   }
-  ftxui::Element cell =
-      ftxui::text(PadRight(std::to_string(map.arcane_force()), kArcaneWidth));
-  if (state.character.arcane_force() < map.arcane_force()) {
-    cell = std::move(cell) | ftxui::color(kRed);
-  }
-  return cell;
+  return RedUnless(
+      ftxui::text(PadRight(std::to_string(map.arcane_force()), kArcaneWidth)),
+      state.character.arcane_force() >= map.arcane_force());
 }
 
 }  // namespace

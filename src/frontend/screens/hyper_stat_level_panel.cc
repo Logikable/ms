@@ -5,7 +5,6 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/confirm_prompt.h"
 #include "src/frontend/widgets/panel_util.h"
 
@@ -25,11 +24,8 @@ void HyperStatLevelPanel::Reset(const std::string& stat_name, int level,
 ftxui::Element HyperStatLevelPanel::Render() const {
   // Red on the count rather than on the price: what the player is short of is
   // points, and the greyed button below is the door that closes.
-  ftxui::Element current =
-      ftxui::text("Current Points: " + std::to_string(points_));
-  if (!affordable()) {
-    current = std::move(current) | ftxui::color(kRed);
-  }
+  ftxui::Element current = RedUnless(
+      ftxui::text("Current Points: " + std::to_string(points_)), affordable());
   return DialogWindow(
       " Hyper Stat Level Up ",
       {

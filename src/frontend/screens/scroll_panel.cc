@@ -370,13 +370,9 @@ ftxui::Element ScrollPanel::CostCellFor(int index) const {
     return ftxui::text(std::string(kCostWidth, ' '));
   }
   int cost = TraceCost(*ordered_[index], target_level_);
-  ftxui::Element cell = ftxui::text(CostCell(cost));
-  if (cost > TracesOwned()) {
-    // The same red the confirm window says it in, so the list answers "what
-    // can I afford" without opening every row to find out.
-    cell = std::move(cell) | ftxui::color(kRed);
-  }
-  return cell;
+  // The same red the confirm window says it in, so the list answers "what can
+  // I afford" without opening every row to find out.
+  return RedUnless(ftxui::text(CostCell(cost)), cost <= TracesOwned());
 }
 
 int ScrollPanel::CostOfSelected() const {
@@ -406,10 +402,8 @@ ftxui::Element ScrollPanel::RenderConfirm() const {
   // number they are deciding on. Red says they cannot pay it, and the greyed
   // Confirm below says the same -- neither needs the words for it.
   ftxui::Element money_row =
-      CenteredRow("Cost " + FormatWithCommas(cost) + " \U0001F4DC");
-  if (!affordable) {
-    money_row = std::move(money_row) | ftxui::color(kRed);
-  }
+      RedUnless(CenteredRow("Cost " + FormatWithCommas(cost) + " \U0001F4DC"),
+                affordable);
 
   // Three blocks with a rule between each: what is going on what, what it does
   // and what it costs, and the answer. The middle block is the only one the

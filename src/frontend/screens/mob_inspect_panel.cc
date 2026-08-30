@@ -127,10 +127,8 @@ void MobInspectPanel::RenderArcaneForce(
   }
   int required = it->second.arcane_force();
   int owned = state_.character.arcane_force();
-  ftxui::Element carried = ftxui::text(std::to_string(owned));
-  if (owned < required) {
-    carried = std::move(carried) | ftxui::color(kRed);
-  }
+  ftxui::Element carried =
+      RedUnless(ftxui::text(std::to_string(owned)), owned >= required);
   rows.push_back(ftxui::hbox({
       ftxui::text("  " + PadRight("Arcane Force", kMobNameWidth)),
       std::move(carried),

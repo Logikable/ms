@@ -305,13 +305,10 @@ ftxui::Element BossSelectPanel::RenderDetail() const {
   // is: what they are up against, and what it takes to stand there. Everything
   // below is the fight's own.
   if (difficulty->unlock_level() > 0) {
-    ftxui::Element row =
-        DetailRow("Unlock Level", std::to_string(difficulty->unlock_level()));
-    if (!Unlocked(*difficulty)) {
-      // Red is the reason: the one value the player falls short of.
-      row = std::move(row) | ftxui::color(kRed);
-    }
-    rows.push_back(std::move(row));
+    // Red is the reason: the one value the player falls short of.
+    rows.push_back(RedUnless(
+        DetailRow("Unlock Level", std::to_string(difficulty->unlock_level())),
+        Unlocked(*difficulty)));
   }
   RenderPhaseHp(rows, *difficulty);
   rows.push_back(

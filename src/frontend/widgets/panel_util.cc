@@ -1100,6 +1100,10 @@ ftxui::Element PanelSeparator(bool highlighted) {
   return AccentSeparator(PanelAccent(highlighted));
 }
 
+ftxui::Element RedUnless(ftxui::Element cell, bool ok) {
+  return ok ? cell : std::move(cell) | ftxui::color(kRed);
+}
+
 ftxui::Element ThemedSeparator() {
   return AccentSeparator(kTheme);
 }

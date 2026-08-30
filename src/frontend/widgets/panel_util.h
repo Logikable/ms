@@ -491,6 +491,14 @@ ftxui::Element AccentSeparator(ftxui::Color accent);
 // gold around the edge with steel-blue seams across the middle of it.
 ftxui::Element PanelSeparator(bool highlighted);
 
+// `cell` in red unless `ok`, for the one value the player falls short of: a
+// price out of reach, a level not met, an Arcane Force short of the map's.
+//
+// The rule the colour follows is in colors.h -- red is the REASON, and it goes
+// on the cell that carries it rather than on the row around it. This is how it
+// is written: `RedUnless(text(price), Affordable())`.
+ftxui::Element RedUnless(ftxui::Element cell, bool ok);
+
 // Returns a horizontal separator rule in the theme border color.
 ftxui::Element ThemedSeparator();
 

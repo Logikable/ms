@@ -26,10 +26,8 @@ bool HammerPanel::affordable() const {
 ftxui::Element HammerPanel::Render() const {
   // Red on a price the purse cannot cover: the reason sits on the cell that
   // carries it, and the greyed button below is the door it closes.
-  ftxui::Element price = ftxui::text(FormatMeso(kGoldenHammerCost));
-  if (!affordable()) {
-    price = std::move(price) | ftxui::color(kRed);
-  }
+  ftxui::Element price =
+      RedUnless(ftxui::text(FormatMeso(kGoldenHammerCost)), affordable());
   // Titleless: the question names the hammer, and a chip over it would ask
   // twice.
   return DialogWindow("",

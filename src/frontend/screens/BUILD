@@ -122,7 +122,6 @@ cc_library(
     srcs = ["hyper_stat_level_panel.cc"],
     hdrs = ["hyper_stat_level_panel.h"],
     deps = [
-        "//src/frontend/widgets:colors",
         "//src/frontend/widgets:confirm_prompt",
         "//src/frontend/widgets:panel_util",
         "@ftxui//:component",
@@ -430,7 +429,6 @@ cc_library(
     srcs = ["symbol_level_panel.cc"],
     hdrs = ["symbol_level_panel.h"],
     deps = [
-        "//src/frontend/widgets:colors",
         "//src/frontend/widgets:confirm_prompt",
         "//src/frontend/widgets:panel_util",
         "@ftxui//:component",

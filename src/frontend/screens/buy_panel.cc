@@ -52,13 +52,10 @@ bool BuyPanel::Affordable() const {
 // the player cannot pay, and a currency is not a reason (colors.h).
 ftxui::Element BuyPanel::Amount(int64_t value, bool red) const {
   if (token_ == nullptr) {
-    ftxui::Element meso = ftxui::text(FormatMeso(value));
-    return red ? std::move(meso) | ftxui::color(kRed) : meso;
+    return RedUnless(ftxui::text(FormatMeso(value)), !red);
   }
-  ftxui::Element number = ftxui::text(" " + FormatWithCommas(value));
-  if (red) {
-    number = std::move(number) | ftxui::color(kRed);
-  }
+  ftxui::Element number =
+      RedUnless(ftxui::text(" " + FormatWithCommas(value)), !red);
   return ftxui::hbox({ftxui::text(token_->currency_mark()) |
                           ftxui::color(MarkColor(token_->currency_color())),
                       std::move(number)});
@@ -66,10 +63,7 @@ ftxui::Element BuyPanel::Amount(int64_t value, bool red) const {
 
 ftxui::Element BuyPanel::Render() const {
   bool red = !Affordable();
-  ftxui::Element label = ftxui::text("Total: ");
-  if (red) {
-    label = std::move(label) | ftxui::color(kRed);
-  }
+  ftxui::Element label = RedUnless(ftxui::text("Total: "), !red);
   ftxui::Element total_row =
       ftxui::hbox({std::move(label), Amount(total(), red)});
   ftxui::Element content = ftxui::vbox({

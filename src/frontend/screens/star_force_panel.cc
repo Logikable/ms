@@ -153,10 +153,8 @@ ftxui::Element StarForcePanel::Render() const {
   // own section, between the odds and the button: it is the last thing the
   // player reads before pressing. Red when the purse will not cover it, which
   // is the reason the button below is greyed.
-  ftxui::Element price = CenteredRow(FormatMeso(Cost()));
-  if (!Affordable()) {
-    price = std::move(price) | ftxui::color(kRed);
-  }
+  ftxui::Element price =
+      RedUnless(CenteredRow(FormatMeso(Cost())), Affordable());
   rows.push_back(std::move(price));
   rows.push_back(ThemedSeparator());
   rows.push_back(CenteredRow(ButtonRow("Enhance", "Cancel",

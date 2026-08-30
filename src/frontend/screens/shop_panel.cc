@@ -63,13 +63,9 @@ std::string CoinCell(const std::string& text) {
 ftxui::Element CostCell(const ItemPrototype* token, const std::string& text,
                         bool affordable) {
   if (token == nullptr) {
-    ftxui::Element cell = ftxui::text(CoinCell(text));
-    return affordable ? cell : std::move(cell) | ftxui::color(kRed);
+    return RedUnless(ftxui::text(CoinCell(text)), affordable);
   }
-  ftxui::Element amount = ftxui::text(" " + text);
-  if (!affordable) {
-    amount = std::move(amount) | ftxui::color(kRed);
-  }
+  ftxui::Element amount = RedUnless(ftxui::text(" " + text), affordable);
   // Padded by hand rather than by MarkedCell: the mark is its own element so
   // it can keep its own colour.
   int columns = TextColumns(token->currency_mark() + " " + text);
@@ -416,10 +412,8 @@ ftxui::Element ShopPanel::RenderEtcRow(
     const ItemPrototype& item, const std::string& cursor,
     std::chrono::steady_clock::duration elapsed) const {
   ftxui::Element cost =
-      ftxui::text(CoinCell(FormatWithCommas(item.shop_price())));
-  if (item.shop_price() > character_.meso()) {
-    cost = std::move(cost) | ftxui::color(kRed);
-  }
+      RedUnless(ftxui::text(CoinCell(FormatWithCommas(item.shop_price()))),
+                item.shop_price() <= character_.meso());
   return ftxui::hbox({
       ftxui::text(cursor + ScrollingWindow(item.name(), kNameWidth, elapsed) +
                   "  " +
@@ -435,10 +429,8 @@ ftxui::Element ShopPanel::RenderEtcRow(
 ftxui::Element ShopPanel::RenderEquipRow(
     const EquipPrototype& proto, const std::string& cursor,
     std::chrono::steady_clock::duration elapsed) const {
-  ftxui::Element level = ftxui::text(LevelCell(proto));
-  if (!character_.MeetsLevel(proto)) {
-    level = std::move(level) | ftxui::color(kRed);
-  }
+  ftxui::Element level =
+      RedUnless(ftxui::text(LevelCell(proto)), character_.MeetsLevel(proto));
   // Each row asks in its own currency: the shelf it came off says which, and
   // the item says how many.
   const ItemPrototype* token = RowToken(proto);
@@ -477,10 +469,8 @@ ftxui::Element ShopPanel::RenderBuyBackRow(
     qty = FormatWithCommas(entry.stack().count());
   }
   ftxui::Element cost =
-      ftxui::text(CoinCell(FormatWithCommas(entry.unit_price())));
-  if (entry.unit_price() > character_.meso()) {
-    cost = std::move(cost) | ftxui::color(kRed);
-  }
+      RedUnless(ftxui::text(CoinCell(FormatWithCommas(entry.unit_price()))),
+                entry.unit_price() <= character_.meso());
   return ftxui::hbox({
       ftxui::text(cursor + ScrollingWindow(name, kNameWidth, elapsed) + "  " +
                   PadRight(qty, kTypeWidth + 2 + kLevelWidth)),
