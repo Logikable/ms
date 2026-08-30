@@ -44,7 +44,7 @@ ABSL_FLAG(std::string, job, "",
 ABSL_FLAG(int32_t, level, 0,
           "Workbench only (--mode=test): the level to arrive at, instead of "
           "the top of the job's own band. Never below the level the job is "
-          "taken at, and never above the trial's ceiling.");
+          "taken at, and never above the highest level the game has.");
 ABSL_FLAG(std::string, equips, "clean",
           "Workbench only (--mode=test): what state the character's gear "
           "arrives in. 'clean' as it drops, 'scroll' fully hammered with "
@@ -144,9 +144,12 @@ int ParseLevel(int level, ms::JobAdvancement job, ms::GameMode mode) {
       ms::StageForAdvancement(
           job == ms::JOB_ADVANCEMENT_UNSPECIFIED ? ms::kTestAdvancement : job) -
       1);
-  if (level < floor || level > ms::kTrialLevelCap) {
+  // Bounded by the highest level the game has, not by the trial's ceiling:
+  // the cap is what play pays EXP up to, and the workbench is where the
+  // levels above it are looked at.
+  if (level < floor || level > ms::kMaxLevel) {
     LOG(FATAL) << "--level " << level << " is outside " << floor << ".."
-               << ms::kTrialLevelCap << " for that job";
+               << ms::kMaxLevel << " for that job";
   }
   return level;
 }
