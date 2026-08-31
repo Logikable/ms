@@ -772,7 +772,7 @@ void NoteMilestones(const GameState& state, int level, double seconds,
 }
 
 // Fights one boss once and reports what it took off the clock. A run that
-// misses the limit pays nothing and still costs the whole of it.
+// misses pays nothing and still costs whatever the player sat through.
 double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
                  int level, Climb& climb, BossOutcome* result) {
   const BossDifficulty& difficulty =
@@ -787,7 +787,7 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
   BossOutcome outcome = FightBoss(state, fight.first, fight.second);
   *result = outcome;
   if (!outcome.won) {
-    return difficulty.time_limit_seconds();
+    return outcome.seconds;
   }
   ++log.clears;
   if (log.first_clear_level == 0) {
@@ -864,6 +864,9 @@ double NextLook(double now, int level, int* left, std::mt19937& rng) {
 struct FightState {
   bool attempted = false;
   bool cleared_today = false;
+  // Whether the last loss was close. Only a near miss is walked back into on
+  // the clock alone; see WorthATry.
+  bool near_miss = false;
   double retry_at = 0.0;
   int power_at_last_try = 0;
 };
@@ -970,8 +973,13 @@ bool WorthATry(const Session& run, const FightState& fight, bool levelled,
   if (!fight.attempted) {
     return true;
   }
-  return levelled || run.seconds >= fight.retry_at ||
-         power >= fight.power_at_last_try * kRetryPowerGain;
+  if (levelled || power >= fight.power_at_last_try * kRetryPowerGain) {
+    return true;
+  }
+  // The clock alone is a reason only after a near miss. A rout walked back
+  // into every half hour is a fight nobody plays and, since a loss costs the
+  // whole of the limit, most of what this sim used to spend its time on.
+  return fight.near_miss && run.seconds >= fight.retry_at;
 }
 
 // Takes on every fight that is open and worth a try, and puts what they
@@ -1009,9 +1017,10 @@ bool TakeOnBosses(Session& run, int level, bool levelled) {
       continue;
     }
     fight.retry_at = run.seconds + spent + kRetrySeconds;
+    fight.near_miss = outcome.left <= kNearMiss;
     // A near miss keeps them at the keyboard, so the next look comes forward
     // to meet it rather than waiting for the evening.
-    if (outcome.left <= kNearMiss) {
+    if (fight.near_miss) {
       run.next_look = std::min(run.next_look, fight.retry_at);
     }
   }

@@ -15,8 +15,6 @@
 namespace ms {
 namespace {
 
-// The step the fight is walked in: the frame the game draws at, so a swing
-// lands on the same tick it would land on in front of a player.
 // The step the fight is played at. Coarser than the sixty frames a second the
 // screen runs, because a sim takes a fight thousands of times: a swing's own
 // delay is most of a second, so twenty steps of it still lands every one where
@@ -37,6 +35,32 @@ int64_t PhaseHp(const std::map<std::string, Mob>& mobs,
   return hp;
 }
 
+// How long a loser stays. Nobody watches a boss they have taken three percent
+// off run its clock out, and a sim that sits through it spends most of its
+// time there: once what is left standing says the fight cannot be finished
+// inside the limit -- by kGiveUpFactor over it -- they walk out. Not asked
+// before kFirstLook, so an opening phase spent walking between spots is not
+// mistaken for a rout.
+constexpr double kGiveUpFactor = 1.5;
+constexpr double kFirstLook = 120.0;
+
+// What is still standing, over what the fight opened with. Phases the run
+// never reached count whole.
+double LeftStanding(const BossRun& run) {
+  int phases = std::max(1, run.phase_count());
+  return (phases - run.phase() + run.phase_hp_fraction()) / phases;
+}
+
+// Whether the fight is already lost: what has fallen in `elapsed` says the
+// rest cannot fall inside `clock`.
+bool WalkedOut(const BossRun& run, double elapsed, double clock) {
+  if (elapsed < kFirstLook) {
+    return false;
+  }
+  double done = 1.0 - LeftStanding(run);
+  return done <= 0.0 || elapsed / done > clock * kGiveUpFactor;
+}
+
 }  // namespace
 
 BossOutcome FightBoss(GameState& state, const std::string& boss_key,
@@ -53,18 +77,22 @@ BossOutcome FightBoss(GameState& state, const std::string& boss_key,
     difficulty->set_time_limit_seconds(static_cast<int>(limit_seconds));
     clock = limit_seconds;
   }
+  // A caller that raised the clock is measuring how long the fight takes, not
+  // whether a player would stay for it, so it is played out to the end.
+  bool may_walk_out = limit_seconds <= 0.0;
   BossRun run(boss_key, found->second, difficulty_index);
   while (!run.done()) {
     run.Advance(state, kStepSeconds);
+    if (may_walk_out && WalkedOut(run, clock - run.seconds_left(), clock)) {
+      break;
+    }
   }
   BossOutcome outcome;
   outcome.won = run.won();
-  if (outcome.won) {
-    outcome.seconds = clock - run.seconds_left();
-    return outcome;
+  outcome.seconds = clock - run.seconds_left();
+  if (!outcome.won) {
+    outcome.left = LeftStanding(run);
   }
-  int phases = std::max(1, run.phase_count());
-  outcome.left = (phases - run.phase() + run.phase_hp_fraction()) / phases;
   return outcome;
 }
 

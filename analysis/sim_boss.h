@@ -22,7 +22,8 @@ namespace ms {
 // What one run of a fight came to.
 struct BossOutcome {
   bool won = false;
-  // Seconds the clear took, 0 for a run that never finished.
+  // Seconds the attempt took, won or lost. A loss is not always the whole of
+  // the clock: a player walks out of a fight that is plainly going nowhere.
   double seconds = 0.0;
   // What was still standing when the clock ran out, over what the fight
   // opened with. 0 for a clear. Phases the run never reached count whole, so a

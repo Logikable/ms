@@ -108,8 +108,9 @@ double Rate(const GameState& state, const std::string& boss_key,
 struct Result {
   std::string weapon;
   int combat_power = 0;
-  std::string swing;  // what the fight chose to spend most of its time on
-  double kill_seconds = 0.0;  // 0 for a build that never finished
+  std::string swing;    // what the fight chose to spend most of its time on
+  bool killed = false;  // whether the build finished the fight at all
+  double kill_seconds = 0.0;  // what it took, finished or not
   std::vector<std::string> gear;
   std::vector<std::pair<std::string, int>> book;
 };
@@ -195,8 +196,10 @@ Result Fight(const Catalogs& catalogs, int level, Job branch,
       /*vs_boss=*/true);
   result.swing = MainSwing(state, boss_key, *difficulty);
 
-  result.kill_seconds =
-      FightBoss(state, boss_key, difficulty_index, kMeasureSeconds).seconds;
+  BossOutcome outcome =
+      FightBoss(state, boss_key, difficulty_index, kMeasureSeconds);
+  result.killed = outcome.won;
+  result.kill_seconds = outcome.seconds;
   return result;
 }
 
@@ -259,13 +262,11 @@ void Run() {
   std::printf("%s\n", std::string(104, '-').c_str());
   for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
     const Result& result = results[i];
-    std::string kill =
-        result.kill_seconds > 0.0 ? Clock(result.kill_seconds) : "never";
-    double rate =
-        result.kill_seconds > 0.0
-            ? BossTotalHp(catalogs.mobs, difficulty) / result.kill_seconds
-            : 0.0;
-    bool cleared = result.kill_seconds > 0.0 && result.kill_seconds <= limit;
+    std::string kill = result.killed ? Clock(result.kill_seconds) : "never";
+    double rate = result.killed ? BossTotalHp(catalogs.mobs, difficulty) /
+                                      result.kill_seconds
+                                : 0.0;
+    bool cleared = result.killed && result.kill_seconds <= limit;
     std::printf("%-15s  %-24s  %8d  %-20s  %8s  %9.0f  %s\n",
                 BranchName(branches[i]).c_str(), result.weapon.c_str(),
                 result.combat_power, result.swing.c_str(), kill.c_str(), rate,
