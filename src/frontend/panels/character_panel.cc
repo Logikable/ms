@@ -942,29 +942,36 @@ bool CharacterPanel::CanRerollAbility() const {
 ftxui::Element CharacterPanel::RenderAbilityRow(const AbilityLine& line,
                                                 int index,
                                                 bool rows_focused) const {
-  const RowColors colors = RarityColors(line.rank(), line.locked());
-  // The lock keeps its two columns on every row, so the values above and below
-  // one that has no lock still end in the same place.
-  const char* lock = "  ";
-  if (AbilityLineLockable(line)) {
-    lock = line.locked() ? kLockedGlyph : kUnlockedGlyph;
+  // Name and amount are one phrase, centred on the row: "All Stats +10" reads
+  // as the line the player has, where a name at one end and a number at the
+  // other reads as two columns of a table.
+  const std::string label =
+      AbilityLineName(line.type()) + " " + AbilityLineValueText(line);
+  const int pad =
+      std::max(0, (ContentWidth() - static_cast<int>(label.size())) / 2);
+
+  // The lock is the row's own colour whatever the rank, and dim where the
+  // rank is too low to hold a line at all.
+  const bool lockable = AbilityLineLockable(line);
+  ftxui::Element lock_cell =
+      ftxui::text(lockable && line.locked() ? kLockedGlyph : kUnlockedGlyph);
+  if (!lockable) {
+    lock_cell = std::move(lock_cell) | ftxui::dim;
   }
-  ftxui::Element lock_cell = ftxui::text(lock);
   if (rows_focused && ability_sel_ == index) {
     // The cursor inverts what Enter answers, as the [+] on a stat row does --
-    // the blank of an unlockable line included, which is still where the
+    // the dim lock of an unlockable line included, which is still where the
     // cursor is.
     lock_cell = std::move(lock_cell) | ftxui::inverted;
   }
   return ftxui::hbox({
-             ftxui::text(" " + AbilityLineName(line.type())),
+             ftxui::text(std::string(pad, ' ')),
+             ftxui::text(label) | ftxui::color(RarityColor(line.rank())),
              ftxui::filler(),
-             ftxui::text(AbilityLineValueText(line) + " "),
              std::move(lock_cell),
              ftxui::text(" "),
          }) |
-         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, ContentWidth()) |
-         ftxui::bgcolor(colors.background) | ftxui::color(colors.text);
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, ContentWidth());
 }
 
 ftxui::Element CharacterPanel::RenderAbilityTab(bool bar_focused,
@@ -985,18 +992,12 @@ ftxui::Element CharacterPanel::RenderAbilityTab(bool bar_focused,
   // above, not a total to read off.
   rows.push_back(PanelSeparator(highlighted_));
   const bool affordable = CanRerollAbility();
-  ftxui::Element cost = ftxui::text(
-      std::to_string(character_.ability_reset_cost(hyper_preset_)) + " ");
-  if (!affordable) {
-    // Red on the one value the player falls short of, so the greyed button
-    // below it does not have to be asked why.
-    cost = std::move(cost) | ftxui::color(kRed);
-  }
-  rows.push_back(ftxui::hbox({
-      ftxui::text(" Honor Cost"),
-      ftxui::filler(),
-      std::move(cost),
-  }));
+  // Red on the one value the player falls short of, so the greyed button below
+  // it does not have to be asked why.
+  rows.push_back(CenteredCell(
+      "Honor Cost " +
+          std::to_string(character_.ability_reset_cost(hyper_preset_)),
+      affordable ? ftxui::nothing : ftxui::color(kRed), ContentWidth()));
   ftxui::Element reroll = CenteredCell(
       "[Reroll]", reroll_focused ? ftxui::inverted : ftxui::nothing,
       ContentWidth());

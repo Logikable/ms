@@ -379,14 +379,9 @@ ftxui::Element Tui::AbilityRerollDialog() {
   std::vector<ftxui::Element> body = {CenteredRow("Reroll these lines?"),
                                       ftxui::separator()};
   for (const AbilityLine& line : controller_.ability_reroll_lines()) {
-    const RowColors colors = RarityColors(line.rank());
-    body.push_back(ftxui::hbox({
-                       ftxui::text(" " + AbilityLineName(line.type())),
-                       ftxui::filler(),
-                       ftxui::text(AbilityLineValueText(line) + " "),
-                   }) |
-                   ftxui::bgcolor(colors.background) |
-                   ftxui::color(colors.text));
+    body.push_back(CenteredRow(ftxui::text(AbilityLineName(line.type()) + " " +
+                                           AbilityLineValueText(line)) |
+                               ftxui::color(RarityColor(line.rank()))));
   }
   return DialogWindow("", std::move(body),
                       controller_.ability_reroll_prompt().Render());

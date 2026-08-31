@@ -167,27 +167,19 @@ ftxui::Color MarkColor(CurrencyColor color) {
   }
 }
 
-RowColors RarityColors(AbilityRank rank, bool faded) {
+ftxui::Color RarityColor(AbilityRank rank) {
   static_assert(AbilityRank_ARRAYSIZE == 5,
                 "a new Inner Ability rank needs a colour");
-  Rgb background = kRare;
   switch (rank) {
     case ABILITY_RANK_EPIC:
-      background = kEpic;
-      break;
+      return kEpic.ToColor();
     case ABILITY_RANK_UNIQUE:
-      background = kUnique;
-      break;
+      return kUnique.ToColor();
     case ABILITY_RANK_LEGENDARY:
-      background = kLegendary;
-      break;
+      return kLegendary.ToColor();
     default:
-      break;
+      return kRare.ToColor();
   }
-  if (faded) {
-    background = Faded(background);
-  }
-  return {background.ToColor(), TextOn(background)};
 }
 
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,

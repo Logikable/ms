@@ -21,15 +21,10 @@ namespace ms {
 // together without a legend.
 ftxui::Color MarkColor(CurrencyColor color);
 
-// The background an Inner Ability line of `rank` is painted, and the text
-// colour that reads against it. `faded` is a line out of play -- one held
-// through the reroll under the cursor -- and the pair is worked out from the
-// faded background, so the text turns over on its own where it has to.
-struct RowColors {
-  ftxui::Color background;
-  ftxui::Color text;
-};
-RowColors RarityColors(AbilityRank rank, bool faded = false);
+// The colour an Inner Ability line of `rank` is written in. The rank reaches
+// the text rather than a background, so a row is its rank's colour and the
+// lock beside it stays plain.
+ftxui::Color RarityColor(AbilityRank rank);
 
 // A one-row bar filled to frac (clamped to [0, 1]) in `fill`, `label` centred
 // over it dark-on-filled and light-on-empty. Pass "" for no label.

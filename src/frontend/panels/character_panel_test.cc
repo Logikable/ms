@@ -2587,30 +2587,34 @@ TEST_F(CharacterPanelTest, TheAbilityTabListsTheLinesTheHonorAndTheCost) {
   EXPECT_NE(rendered.find("[Reroll]"), std::string::npos);
 }
 
-// Every row is painted its own rank, and a held one is painted darker still.
-TEST_F(CharacterPanelTest, EachLineIsPaintedItsRank) {
+// Every row is written in its rank's colour, and the lock beside it is not.
+TEST_F(CharacterPanelTest, EachLineIsWrittenInItsRank) {
   CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);
   CharacterPanel panel(c, account_, panel_focus_);
   panel_focus_ = kCharPanel;
   ftxui::Component comp = OnAbilityRows(panel);
-  ftxui::Screen screen = RenderToScreen(comp);
-  const auto background = [&](const std::string& needle) {
-    std::pair<int, int> at = FindCell(screen, needle);
-    return screen.PixelAt(at.first, at.second).background_color;
-  };
-  EXPECT_EQ(background("Boss Damage"), kLegendary.ToColor());
-  EXPECT_EQ(background("STR"), kUnique.ToColor());
-  EXPECT_EQ(background("Attack"), kEpic.ToColor());
+  EXPECT_EQ(ColorOf(comp, "Boss Damage"), kLegendary.ToColor());
+  EXPECT_EQ(ColorOf(comp, "STR"), kUnique.ToColor());
+  EXPECT_EQ(ColorOf(comp, "Attack"), kEpic.ToColor());
 
+  // The lock at the end of a row is plain, and dim where the rank is too low
+  // to hold a line at all.
+  ftxui::Screen screen = RenderToScreen(comp);
+  const auto lock = [&](const std::string& needle) {
+    int y = FindCell(screen, needle).second;
+    return screen.PixelAt(RowEnd(screen, y), y);
+  };
+  EXPECT_NE(lock("Boss Damage").foreground_color, kLegendary.ToColor());
+  EXPECT_FALSE(lock("Boss Damage").dim);
+  EXPECT_TRUE(lock("Attack").dim) << "an Epic line cannot be held";
+
+  // Holding a line does not repaint it: the lock says that on its own.
   ASSERT_TRUE(c.LockAbilityLine(0, true));
-  ftxui::Screen held = RenderToScreen(comp);
-  std::pair<int, int> at = FindCell(held, "Boss Damage");
-  EXPECT_EQ(held.PixelAt(at.first, at.second).background_color,
-            Faded(kLegendary).ToColor());
+  EXPECT_EQ(ColorOf(comp, "Boss Damage"), kLegendary.ToColor());
 }
 
-// Only a line that can be held carries a lock, so a row with no symbol is the
-// refusal -- and Enter on it asks nothing.
+// Only a line that can be held answers Enter: on a rank too low, the dim lock
+// asks nothing.
 TEST_F(CharacterPanelTest, OnlyALineThatHoldsCarriesALock) {
   CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);
   CharacterPanel panel(c, account_, panel_focus_);
