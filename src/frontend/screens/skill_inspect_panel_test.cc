@@ -80,17 +80,12 @@ Skill MakeLuckySeven() {
   return skill;
 }
 
-TEST_F(SkillInspectPanelTest, ShowsTheNameAndMaxLevel) {
+TEST_F(SkillInspectPanelTest, ShowsTheNameMaxLevelAndDescription) {
   Skill skill = IronBody();
   std::string rendered = RenderAt(skill, 5);
   EXPECT_NE(rendered.find("Iron Body"), std::string::npos);
   EXPECT_NE(rendered.find("Max Level: 20"), std::string::npos);
-}
-
-TEST_F(SkillInspectPanelTest, ShowsTheDescription) {
-  Skill skill = IronBody();
-  EXPECT_NE(RenderAt(skill, 5).find("Boosts DEF and Max HP."),
-            std::string::npos);
+  EXPECT_NE(rendered.find("Boosts DEF and Max HP."), std::string::npos);
 }
 
 // The title is the one place the panel says which kind of skill this is.

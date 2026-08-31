@@ -21,6 +21,7 @@ std::string Render(const ContinuePrompt& prompt) {
 TEST(ContinuePromptTest, EitherKeyDismissesIt) {
   ContinuePrompt prompt;
   EXPECT_FALSE(prompt.open());
+  EXPECT_FALSE(prompt.OnEvent(ftxui::Event::Return)) << "closed, so no answer";
   prompt.Open();
   EXPECT_TRUE(prompt.open());
   EXPECT_FALSE(prompt.OnEvent(ftxui::Event::ArrowLeft));
@@ -31,11 +32,6 @@ TEST(ContinuePromptTest, EitherKeyDismissesIt) {
   prompt.Open();
   EXPECT_TRUE(prompt.OnEvent(ftxui::Event::Escape));
   EXPECT_FALSE(prompt.open());
-}
-
-TEST(ContinuePromptTest, AClosedPromptAnswersNothing) {
-  ContinuePrompt prompt;
-  EXPECT_FALSE(prompt.OnEvent(ftxui::Event::Return));
 }
 
 TEST(ContinuePromptTest, TheButtonIsTheOnlyThingToPress) {

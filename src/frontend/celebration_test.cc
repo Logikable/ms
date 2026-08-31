@@ -97,6 +97,9 @@ TEST_F(CelebrationTest, AnOrdinaryLevelUpLightsOnePanel) {
   EXPECT_FALSE(celebration_.Lights(kEquipPanel));
   EXPECT_FALSE(celebration_.Lights(kInventoryPanel));
   EXPECT_FALSE(celebration_.Lights(kCombatPanel));
+  // And a panel off either end of the range is asked about safely.
+  EXPECT_FALSE(celebration_.Lights(kNumPanels));
+  EXPECT_FALSE(celebration_.Lights(kNoPanel));
 }
 
 // The level that hands over the equipped panel points at it: a card in the
@@ -156,9 +159,13 @@ TEST_F(CelebrationTest, TheCardNamesAnUpgradeTheClimbOpened) {
             std::string::npos);
 }
 
-TEST_F(CelebrationTest, TheCardNamesNoUpgradeOnAnOrdinaryLevel) {
+// An ordinary level names no unlock, and no honor either: honor is paid from
+// the second level but goes unmentioned until Inner Ability is open.
+TEST_F(CelebrationTest, TheCardNamesNoUpgradeOrHonorOnAnOrdinaryLevel) {
   BeginAway(11, 12);
-  EXPECT_EQ(CardText(celebration_).find("Unlocked"), std::string::npos);
+  std::string card = CardText(celebration_);
+  EXPECT_EQ(card.find("Unlocked"), std::string::npos);
+  EXPECT_EQ(card.find("Honor"), std::string::npos);
 }
 
 // The card is rebuilt from the last climb, not accumulated: an unlock
@@ -170,17 +177,11 @@ TEST_F(CelebrationTest, TheNextLevelDropsTheAnnouncement) {
   EXPECT_EQ(CardText(celebration_).find("Unlocked"), std::string::npos);
 }
 
-// Honor is paid from the second level, but the card says nothing about it
-// until Inner Ability has been opened -- on this character or, for the one
-// after them, on the account.
+// Honor is named once Inner Ability has been opened -- on this character or,
+// for the one after them, on the account.
 TEST_F(CelebrationTest, TheCardNamesTheHonorOnceInnerAbilityIsOpen) {
   BeginAway(159, 160);
   EXPECT_NE(CardText(celebration_).find("+1,800 Honor"), std::string::npos);
-}
-
-TEST_F(CelebrationTest, TheCardHidesTheHonorBeforeThen) {
-  BeginAway(11, 12);
-  EXPECT_EQ(CardText(celebration_).find("Honor"), std::string::npos);
 }
 
 TEST_F(CelebrationTest, ASecondCharacterIsToldAboutTheirHonor) {
@@ -203,12 +204,6 @@ TEST_F(CelebrationTest, AnAdvancementInheritsNoLitPanels) {
   ASSERT_TRUE(celebration_.Lights(kInventoryPanel));
   celebration_.BeginAdvancement(JOB_BEGINNER, JOB_SWORDMAN, kCombatPanel);
   EXPECT_FALSE(celebration_.Lights(kInventoryPanel));
-}
-
-TEST_F(CelebrationTest, LightsIsSafeForAPanelOutsideTheRange) {
-  BeginAway(12, 13);
-  EXPECT_FALSE(celebration_.Lights(kNumPanels));
-  EXPECT_FALSE(celebration_.Lights(kNoPanel));
 }
 
 // --- how the gold goes out ---
@@ -243,18 +238,14 @@ TEST_F(CelebrationTest, LeavingAPanelDoesNotRearmItsGold) {
   EXPECT_FALSE(celebration_.Lights(kCharPanel));
 }
 
-TEST_F(CelebrationTest, VisitingAPanelPutsItsGoldOut) {
+// Visiting is a latch. Gold that came back every time the player tabbed away
+// would stop meaning "you have not seen this" and start meaning nothing.
+TEST_F(CelebrationTest, VisitingAPanelPutsItsGoldOutForGood) {
   BeginAway(12, 13);
   ASSERT_TRUE(celebration_.Lights(kCharPanel));
   celebration_.Visit(kCharPanel);
   EXPECT_FALSE(celebration_.Lights(kCharPanel));
-}
 
-// Visiting is a latch. Gold that came back every time the player tabbed away
-// would stop meaning "you have not seen this" and start meaning nothing.
-TEST_F(CelebrationTest, GoldDoesNotComeBackAfterTheVisit) {
-  BeginAway(12, 13);
-  celebration_.Visit(kCharPanel);
   celebration_.Visit(kCombatPanel);
   EXPECT_FALSE(celebration_.Lights(kCharPanel));
 }

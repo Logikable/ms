@@ -194,12 +194,7 @@ TEST(ResultWindowTest, RulesOffTheSubjectAndTheButton) {
   // made these the only dialogs whose button floated.
   EXPECT_NE(rows[4].find("─"), std::string::npos);
   EXPECT_NE(rows[5].find("[Continue]"), std::string::npos);
-}
-
-// The subject is centered by the helper, so no caller can forget to.
-TEST(ResultWindowTest, CentersTheSubject) {
-  std::vector<std::string> rows =
-      ResultRows({ftxui::text("body") | ftxui::hcenter});
+  // And the subject is centered by the helper, so no caller can forget to.
   EXPECT_EQ(rows[1].find("Sword"), rows[1].rfind("Sword"));
   EXPECT_GT(rows[1].find("Sword"), 1u);
 }

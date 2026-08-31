@@ -19,8 +19,10 @@ std::string Render(const ConfirmPrompt& prompt) {
   return screen.ToString();
 }
 
-TEST(ConfirmPromptTest, StartsClosed) {
+TEST(ConfirmPromptTest, StartsClosedAndAnswersNothingWhileItIs) {
   ConfirmPrompt prompt;
+  EXPECT_FALSE(prompt.open());
+  EXPECT_EQ(prompt.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
   EXPECT_FALSE(prompt.open());
 }
 
@@ -65,12 +67,6 @@ TEST(ConfirmPromptTest, SwallowsUnrelatedEventsWhileOpen) {
   EXPECT_EQ(prompt.OnEvent(ftxui::Event::Character('x')),
             ConfirmChoice::kPending);
   EXPECT_TRUE(prompt.open());
-}
-
-TEST(ConfirmPromptTest, IgnoresEventsWhileClosed) {
-  ConfirmPrompt prompt;
-  EXPECT_EQ(prompt.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
-  EXPECT_FALSE(prompt.open());
 }
 
 // A dialog whose cursor is elsewhere -- the amount selector's textbox -- draws

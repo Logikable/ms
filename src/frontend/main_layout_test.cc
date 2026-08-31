@@ -128,51 +128,36 @@ class MainLayoutTest : public testing::Test {
                                                 ftxui::Dimension::Fixed(1));
 };
 
-TEST_F(MainLayoutTest, TheExpBarIsTheLastRow) {
+// The bug that started this: the bag stopped partway down and the rest of its
+// width sat blank. A bag with more in it than fits runs to the exp bar on the
+// last row -- and gives way rather than running past it, which would push the
+// bar off the screen.
+TEST_F(MainLayoutTest, AFullBagRunsToTheExpBarAndNoPast) {
   Render(/*bag_rows=*/40);
   EXPECT_EQ(FirstRowWith("EXPBAR"), kScreenHeight - 1);
-}
-
-// The bug that started this: the bag stopped partway down and the rest of its
-// width sat blank. A bag with more in it than fits runs to the exp bar.
-TEST_F(MainLayoutTest, AFullBagReachesTheExpBar) {
-  Render(/*bag_rows=*/40);
   EXPECT_EQ(LowestPanelFoot(kLeftWidth), kScreenHeight - 2);
-}
-
-// ...and gives way rather than running past it, which would push the exp bar
-// off the screen.
-TEST_F(MainLayoutTest, AFullBagDoesNotPushPastTheExpBar) {
-  Render(/*bag_rows=*/40);
   EXPECT_EQ(LastRowWith("BAG"), kScreenHeight - 3);
 }
 
 // The other half of the ask: a tab with little in it is a few rows, not a
 // screen of blank held open down to the exp bar.
-TEST_F(MainLayoutTest, AnEmptyBagKeepsItsOwnHeight) {
-  Render(/*bag_rows=*/1);
-  // Equipped is three rows (0..2), so a one-row bag ends on row 5.
-  EXPECT_EQ(LowestPanelFoot(kLeftWidth), 5);
-}
-
 TEST_F(MainLayoutTest, AShortBagKeepsItsOwnHeight) {
+  // Equipped is three rows (0..2), so a one-row bag ends on row 5.
+  Render(/*bag_rows=*/1);
+  EXPECT_EQ(LowestPanelFoot(kLeftWidth), 5);
+
   Render(/*bag_rows=*/6);
   EXPECT_EQ(LowestPanelFoot(kLeftWidth), 10);
 }
 
 // Combat is pinned to the bottom-left corner, so its foot lands on the row
 // above the exp bar rather than following the character panel down from the
-// top of the column.
-TEST_F(MainLayoutTest, CombatSitsInTheBottomLeftCorner) {
+// top of the column -- pinned rather than stretched, so it keeps the height of
+// its own contents and the gap opens above it.
+TEST_F(MainLayoutTest, CombatSitsInTheBottomLeftCornerKeepingItsOwnHeight) {
   Render(/*bag_rows=*/40);
+  ASSERT_NE(FirstRowWith("COMBAT"), -1);
   EXPECT_EQ(LowestPanelFoot(0), kScreenHeight - 2);
-  EXPECT_NE(FirstRowWith("COMBAT"), -1);
-}
-
-// ...and it is pinned rather than stretched: the gap opens above it, and it
-// keeps the height of its own contents.
-TEST_F(MainLayoutTest, CombatKeepsItsOwnHeightAtTheBottom) {
-  Render(/*bag_rows=*/40);
   int combat_top = FirstRowWith("COMBAT") - 1;
   EXPECT_EQ(Cell(0, combat_top), "╭");
   EXPECT_EQ(LowestPanelFoot(0), combat_top + 4);
@@ -205,18 +190,15 @@ TEST_F(MainLayoutTest, TheBagRunsDownBesideTheCombatPanel) {
   EXPECT_NE(Row(combat_row).find("BAG"), std::string::npos);
 }
 
-// Equipped keeps its own height while it fits under the cap, however little
-// the bag beside it wants.
+// Equipped keeps its own height while it fits under the cap, however much or
+// little the bag beside it wants. What an overflowing bag cannot have is the
+// half of the column the cap holds for it, not a row off a panel that is
+// already well short of that.
 TEST_F(MainLayoutTest, TheEquippedPanelKeepsItsOwnHeight) {
   Render(/*bag_rows=*/1);
   EXPECT_EQ(FirstRowWith("EQUIP"), 1);
   EXPECT_EQ(Cell(kLeftWidth, 2), "╰");
-}
 
-// And keeps it when the bag is overflowing: what the bag cannot have is the
-// half of the column the cap holds for it, not a row off a panel that is
-// already well short of that.
-TEST_F(MainLayoutTest, AFullBagDoesNotSquashTheEquippedPanel) {
   Render(/*bag_rows=*/40);
   EXPECT_EQ(FirstRowWith("EQUIP"), 1);
   EXPECT_EQ(Cell(kLeftWidth, 2), "╰")
