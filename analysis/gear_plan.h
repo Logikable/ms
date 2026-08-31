@@ -20,9 +20,11 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
+#include "src/character/character_stats.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
@@ -82,6 +84,24 @@ class GearShopper {
     // comparison rather than a rule.
     int gain = 0;
   };
+
+  // What every offer is measured against: the character as they stand. Held
+  // together because working one out costs a rebuild, so it is done once per
+  // pass over the gear rather than once per piece.
+  struct Basis {
+    const ItemPrototype* trace = nullptr;
+    DerivedStats derived;
+    EquipStats worn;
+    int power = 0;
+  };
+
+  // The two things one worn piece could be sold next. Each returns nothing
+  // where the piece has nothing of that kind to offer.
+  std::optional<Candidate> ScrollOffer(GameState& state, const Basis& basis,
+                                       EquipSlot slot, int level,
+                                       int open_slots, bool can_hammer);
+  std::optional<Candidate> StarOffer(GameState& state, const Basis& basis,
+                                     EquipSlot slot, int level, int stars);
 
   // The scroll `slot`'s item wants, measured once per item and kept.
   const Scroll* ScrollFor(GameState& state, EquipSlot slot);

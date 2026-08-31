@@ -126,12 +126,87 @@ const Scroll* GearShopper::ScrollFor(GameState& state, EquipSlot slot) {
   return chosen_[name];
 }
 
+// The upgrade slot `slot`'s item could fill next, and the hammer that would
+// open one where none is left. Nothing where the item has neither, where the
+// character cannot buy a trace, or where no scroll suits the piece.
+//
+// The hammer is offered only where there is NO open slot already: it opens one
+// more of what the item still has, so it is the wrong thing to buy while the
+// last one is unspent. Priced with the scroll that fills it, since a hammer
+// alone lands nothing.
+std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
+    GameState& state, const Basis& basis, EquipSlot slot, int level,
+    int open_slots, bool can_hammer) {
+  if (basis.trace == nullptr || (open_slots <= 0 && !can_hammer)) {
+    return std::nullopt;
+  }
+  const Scroll* scroll = ScrollFor(state, slot);
+  if (scroll == nullptr) {
+    return std::nullopt;
+  }
+  Candidate offer;
+  offer.slot = slot;
+  offer.scroll = scroll;
+  offer.cost = static_cast<int64_t>(TraceCost(*scroll, level)) *
+               basis.trace->shop_price();
+  // What the slot is worth is what it lands times how often it lands: a scroll
+  // that fails has still spent the slot, and on a piece nothing sells that slot
+  // does not come back.
+  offer.gain =
+      (PowerWith(state, basis.derived, Plus(basis.worn, scroll->stats())) -
+       basis.power) *
+      plan_.scroll_rate / 100;
+  if (open_slots <= 0) {
+    offer.hammer = true;
+    offer.cost += kGoldenHammerCost;
+  }
+  return offer;
+}
+
+// The next star `slot`'s item could take. Nothing where it takes none, where
+// it has reached the plan's ceiling, where the next click could destroy it, or
+// where the item is not scrolled out -- GMS refuses a star while an upgrade
+// slot is still open.
+std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
+                                                             const Basis& basis,
+                                                             EquipSlot slot,
+                                                             int level,
+                                                             int stars) {
+  if (stars >= plan_.star_ceiling || CanDestroy(stars)) {
+    return std::nullopt;
+  }
+  StarForceRun run = StarForceRunTo(level, stars, stars + 1);
+  if (run.meso <= 0.0) {
+    return std::nullopt;
+  }
+  // Fetched here rather than passed in: ScrollOffer above measures, and
+  // measuring puts the character back together from a proto -- every
+  // EquipInstance in the map goes with it, this one included.
+  const EquipInstance* item = Worn(state, slot);
+  if (item == nullptr) {
+    return std::nullopt;
+  }
+  Candidate offer;
+  offer.slot = slot;
+  offer.star = true;
+  // The expected price of GETTING the star, not of one attempt at it: every
+  // click is paid for whether it lands or not, and that gap is most of what
+  // makes a late star the wrong thing to buy.
+  offer.cost = static_cast<int64_t>(run.meso);
+  // Against what is already worn, which already holds the stars the item has:
+  // only the gap between them is on offer.
+  EquipStats added = Minus(item->StarForceStatGains(stars + 1),
+                           item->StarForceStatGains(stars));
+  offer.gain =
+      PowerWith(state, basis.derived, Plus(basis.worn, added)) - basis.power;
+  return offer;
+}
+
 std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
-  std::vector<Candidate> offers;
-  const ItemPrototype* trace = TraceItem(state);
-  DerivedStats derived;
-  EquipStats worn = WornAndGranted(state, derived);
-  int power = PowerWith(state, derived, worn);
+  Basis basis;
+  basis.trace = TraceItem(state);
+  basis.worn = WornAndGranted(state, basis.derived);
+  basis.power = PowerWith(state, basis.derived, basis.worn);
   // The hammer's own gate. The shopper buys what a player at this level could,
   // so below it there is nothing to offer.
   bool hammers_open =
@@ -141,80 +216,31 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
        state.character.equipped()) {
     slots.push_back(entry.first);
   }
+  std::vector<Candidate> offers;
   for (EquipSlot slot : slots) {
     const EquipInstance* item = Worn(state, slot);
     if (item == nullptr) {
       continue;
     }
-    // Read out before ScrollFor, which measures: putting a scroll on to try it
-    // rebuilds the character, and every EquipInstance in the map goes with it.
+    // Read out before either offer, which measure: putting a scroll on to try
+    // it rebuilds the character, and every EquipInstance in the map goes too.
     int level = item->prototype().required_level();
     int stars = item->stars();
     int open_slots = item->equip_state().remaining_upgrade_slots();
     bool can_star = item->CanStarForce();
     bool can_hammer = item->CanHammer() && hammers_open;
-    if ((open_slots > 0 || can_hammer) && trace != nullptr) {
-      const Scroll* scroll = ScrollFor(state, slot);
-      if (scroll != nullptr) {
-        int64_t scroll_cost = static_cast<int64_t>(TraceCost(*scroll, level)) *
-                              trace->shop_price();
-        // What the slot is worth is what it lands times how often it lands: a
-        // scroll that fails has still spent the slot, and on a piece nothing
-        // sells that slot does not come back.
-        int scroll_gain =
-            (PowerWith(state, derived, Plus(worn, scroll->stats())) - power) *
-            plan_.scroll_rate / 100;
-        if (open_slots > 0) {
-          Candidate offer;
-          offer.slot = slot;
-          offer.scroll = scroll;
-          offer.cost = scroll_cost;
-          offer.gain = scroll_gain;
-          offers.push_back(offer);
-        } else if (can_hammer) {
-          // Only where there is no open slot already: a hammer opens one more
-          // of what the item still has, so it is the wrong thing to buy while
-          // the last one is unspent. Priced with the scroll that fills it,
-          // since a hammer alone lands nothing.
-          Candidate offer;
-          offer.slot = slot;
-          offer.hammer = true;
-          offer.scroll = scroll;
-          offer.cost = kGoldenHammerCost + scroll_cost;
-          offer.gain = scroll_gain;
-          offers.push_back(offer);
-        }
-      }
+    std::optional<Candidate> scroll =
+        ScrollOffer(state, basis, slot, level, open_slots, can_hammer);
+    if (scroll.has_value()) {
+      offers.push_back(*scroll);
     }
-    // A star waits for the slots: GMS refuses one while an upgrade slot is
-    // still open, so an unscrolled item has no star to offer.
-    if (!can_star || stars >= plan_.star_ceiling || CanDestroy(stars)) {
+    if (!can_star) {
       continue;
     }
-    StarForceRun run = StarForceRunTo(level, stars, stars + 1);
-    if (run.meso <= 0.0) {
-      continue;
+    std::optional<Candidate> star = StarOffer(state, basis, slot, level, stars);
+    if (star.has_value()) {
+      offers.push_back(*star);
     }
-    // Fetched again: ScrollFor above measures, and measuring puts the
-    // character back together from a proto -- every EquipInstance in the map
-    // goes with it, this one included.
-    item = Worn(state, slot);
-    if (item == nullptr) {
-      continue;
-    }
-    Candidate offer;
-    offer.slot = slot;
-    offer.star = true;
-    // The expected price of GETTING the star, not of one attempt at it: every
-    // click is paid for whether it lands or not, and that gap is most of what
-    // makes a late star the wrong thing to buy.
-    offer.cost = static_cast<int64_t>(run.meso);
-    // Against what is already worn, which already holds the stars the item has:
-    // only the gap between them is on offer.
-    EquipStats added = Minus(item->StarForceStatGains(stars + 1),
-                             item->StarForceStatGains(stars));
-    offer.gain = PowerWith(state, derived, Plus(worn, added)) - power;
-    offers.push_back(offer);
   }
   return offers;
 }

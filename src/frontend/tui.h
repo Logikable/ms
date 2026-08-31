@@ -22,6 +22,7 @@
 #include "src/combat/offline.h"
 #include "src/frontend/celebration.h"
 #include "src/frontend/keybinds.h"
+#include "src/frontend/main_layout.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/combat_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
@@ -82,6 +83,9 @@ class Tui {
   ftxui::Element RenderMultiSell();
   // Whichever screen the controller is showing, celebration aside.
   ftxui::Element RenderScreen();
+  // The menu the open screen floats over the main layout, or null when none
+  // is open. See the definition for where each is anchored.
+  ftxui::Element OpenMenu(const MainWidths& widths);
   ftxui::Element RenderMain();
   // Floats `dialog` centred over the main view.
   ftxui::Element OverMain(ftxui::Element dialog);

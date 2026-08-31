@@ -56,21 +56,19 @@ class EquipInstanceTest : public ::testing::Test {
   std::mt19937 rng_{0};
 };
 
-TEST_F(EquipInstanceTest, HundredPercentScrollSucceeds) {
+// The two ends of the one roll: the chance decides whether the stats land, and
+// the slot is spent either way.
+TEST_F(EquipInstanceTest, TheChanceDecidesTheStatsAndTheSlotGoesRegardless) {
   EquipPrototype proto = MakeEquip(1);
-  EquipInstance item(proto);
-  EXPECT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollSuccess);
-  EXPECT_EQ(item.stats().attack(), 2);
-  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 0);
-}
+  EquipInstance won(proto);
+  EXPECT_EQ(won.Scroll(MakeScroll(100, 2), rng_), kScrollSuccess);
+  EXPECT_EQ(won.stats().attack(), 2);
+  EXPECT_EQ(won.equip_state().remaining_upgrade_slots(), 0);
 
-TEST_F(EquipInstanceTest, ZeroPercentScrollFails) {
-  EquipPrototype proto = MakeEquip(1);
-  EquipInstance item(proto);
-  EXPECT_EQ(item.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
-  EXPECT_EQ(item.stats().attack(), 0);
-  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(),
-            0);  // slot still consumed
+  EquipInstance lost(proto);
+  EXPECT_EQ(lost.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
+  EXPECT_EQ(lost.stats().attack(), 0);
+  EXPECT_EQ(lost.equip_state().remaining_upgrade_slots(), 0);
 }
 
 TEST_F(EquipInstanceTest, NoSlotsReturnsNoSlots) {

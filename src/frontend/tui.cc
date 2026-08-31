@@ -784,6 +784,45 @@ ftxui::Element Tui::RenderScreen() {
   }
 }
 
+// The menu the open screen floats over the layout, or null when none is open.
+// Every one is anchored a row ABOVE the row its cursor stands on, so the entry
+// standing highlighted lands beside what it would act on rather than below it,
+// and clear of the names to its left: what the menu is about is the one thing
+// it must not cover.
+ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
+  if (controller_.screen() == kSkillMenu) {
+    // Past the widest a skill name is ever drawn, so what it covers is the
+    // level column -- exactly as the bag's menu covers an item's stats. Held
+    // inside the character panel, whose column narrows with the terminal: at
+    // the bare anchor a small terminal drew the menu out over the bag beside
+    // it. A narrow panel takes a name's tail instead.
+    constexpr int kSkillMenuCol = 38;
+    const ItemMenu& menu = controller_.skill_menu();
+    int col = std::max(0, std::min(kSkillMenuCol, widths.left - menu.Width()));
+    return Floating(
+        menu.Render(std::max(0, char_panel_.skill_cursor_row() - 1), col));
+  }
+  if (controller_.screen() == kJobMenu) {
+    constexpr int kJobMenuCol = 14;
+    return Floating(controller_.job_menu().Render(
+        std::max(0, char_panel_.job_cursor_row() - 1), kJobMenuCol));
+  }
+  if (controller_.screen() != kItemMenu) {
+    return nullptr;
+  }
+  // The row is asked of the panel rather than counted up from the header rows
+  // above it: the old arithmetic added a fixed offset to the selected index,
+  // which stops being the row on screen the moment the bag scrolls.
+  bool on_equip = panel_focus_ == kEquipPanel;
+  int cursor_row =
+      on_equip ? equip_panel_.cursor_row() : inventory_panel_.cursor_row();
+  ItemMenu& menu = on_equip ? equip_panel_.menu() : inventory_panel_.menu();
+  // Past the char panel border, menu cursor, name column, slot column and
+  // separators, so the menu covers stats rather than item names.
+  int col = widths.left + 1 + 2 + 18 + 2 + 10 + 2;
+  return Floating(menu.Render(std::max(0, cursor_row - 1), col));
+}
+
 ftxui::Element Tui::RenderMain() {
   // The character panel and the combat panel share the left column, and combat
   // is pinned to its foot. Without a budget the character panel takes the room
@@ -825,58 +864,13 @@ ftxui::Element Tui::RenderMain() {
       MainLayout(widths, char_panel_.Render(), combat_component_->Render(),
                  std::move(equipped), std::move(inventory), std::move(corner),
                  RenderExpBar());
-  if (controller_.screen() == kSkillMenu) {
-    // Anchored to the skill row the same way the job menu is anchored to a
-    // job, and past the widest a name is ever drawn -- which skill the menu is
-    // about is the one thing it must not cover. What it covers instead is the
-    // level column, exactly as the bag's menu covers an item's stats.
-    constexpr int kSkillMenuCol = 38;
-    // Held inside the character panel, whose column narrows with the terminal:
-    // at the anchor a small terminal drew the menu out past the panel and over
-    // the bag beside it. A narrow panel takes a name's tail instead.
-    const ItemMenu& menu = controller_.skill_menu();
-    int menu_col =
-        std::max(0, std::min(kSkillMenuCol, widths.left - menu.Width()));
-    return ftxui::dbox(
-        {layout,
-         Floating(menu.Render(std::max(0, char_panel_.skill_cursor_row() - 1),
-                              menu_col))});
-  }
-  if (controller_.screen() == kJobMenu) {
-    // Anchored to the job row the same way the bag's menu is anchored to an
-    // item, and one row above it so the highlighted entry lands beside the job
-    // rather than below it. Clear of the names to its left: which job the menu
-    // is about is the one thing it must not cover.
-    constexpr int kJobMenuCol = 14;
-    return ftxui::dbox(
-        {layout,
-         Floating(controller_.job_menu().Render(
-             std::max(0, char_panel_.job_cursor_row() - 1), kJobMenuCol))});
-  }
-  if (controller_.screen() != kItemMenu) {
+  // Floated so a menu opened near the foot of a panel hangs off it rather than
+  // being cut off at the edge of the terminal.
+  ftxui::Element menu = OpenMenu(widths);
+  if (menu == nullptr) {
     return layout;
   }
-  // Asked of the panel rather than counted up from the header rows above it.
-  // The old arithmetic added a fixed offset to the selected index, which stops
-  // being the row on screen the moment the bag is long enough to scroll -- and
-  // it had to be told the shape of both panels to do it.
-  int cursor_row = 0;
-  if (panel_focus_ == kEquipPanel) {
-    cursor_row = equip_panel_.cursor_row();
-  } else {
-    cursor_row = inventory_panel_.cursor_row();
-  }
-  // Opened a row above the item, so the entry standing highlighted lands
-  // beside the item it would act on rather than below it.
-  int menu_row = std::max(0, cursor_row - 1);
-  ItemMenu& menu = panel_focus_ == kEquipPanel ? equip_panel_.menu()
-                                               : inventory_panel_.menu();
-  // Offset past char panel border, menu cursor, name column, slot column, and
-  // separators so the menu covers stats rather than item names.
-  int menu_col = widths.left + 1 + 2 + 18 + 2 + 10 + 2;
-  // Floated so a menu opened near the foot of the bag hangs off the panel
-  // rather than being cut off at the edge of the terminal.
-  return ftxui::dbox({layout, Floating(menu.Render(menu_row, menu_col))});
+  return ftxui::dbox({layout, std::move(menu)});
 }
 
 ftxui::Element Tui::RenderExpBar() {
