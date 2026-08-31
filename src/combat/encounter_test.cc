@@ -2419,7 +2419,7 @@ TEST(ComputeCombatParamsTest, ABoostCanShortenTheWaitOfTheSkillItNames) {
 }
 
 // Creeping Toxin's shape: a summon that upgrades its own pulse rather than
-// another skill's swing, which is what an empty boosts_skill_name means.
+// another skill's swing, which is what a form naming no skill means.
 TEST(ComputeCombatParamsTest, ASummonCanUpgradeItsOwnPulse) {
   Skill toxin;
   toxin.set_name("Creeping Toxin");

@@ -607,11 +607,11 @@ TEST_F(SkillInspectPanelTest, APiercingSwingStatesItsGainBesideItsReach) {
 // stands in for, which no other row could tell the player.
 TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAnEmpoweredSwing) {
   Skill arrows = IronBody();
-  arrows.set_boosts_skill_name("Piercing Arrow");
   SkillBoost* boost = arrows.add_boost();
   boost->set_skill_name("Piercing Arrow");
   boost->mutable_effect()->set_skill_pct(1.02);
   EmpoweredForm* form = arrows.add_empowered_form();
+  form->set_skill_name("Piercing Arrow");
   form->set_casts_per_trigger(4);
   form->set_max_enemies(8);
   form->set_lines(6);
@@ -678,8 +678,8 @@ TEST_F(SkillInspectPanelTest, NamesEachOfTwoEmpoweredSwings) {
 // first and drops the second.
 TEST_F(SkillInspectPanelTest, StatesAFormThatMarksEachEnemy) {
   Skill judgment = IronBody();
-  judgment.set_boosts_skill_name("Blast");
   EmpoweredForm* form = judgment.add_empowered_form();
+  form->set_skill_name("Blast");
   form->set_casts_per_trigger(5);
   form->set_brands_each_enemy(true);
   form->set_max_enemies(8);
@@ -1186,7 +1186,6 @@ TEST_F(SkillInspectPanelTest, ReadsAFormOnEveryCastAsUnconditional) {
   skill.set_max_enemies(12);
   skill.set_lines(10);
   skill.mutable_base()->set_skill_pct(2.71);
-  skill.set_boosts_skill_name("Poison Mist");
   EmpoweredForm* form = skill.add_empowered_form();
   form->set_skill_name("Poison Mist");
   form->set_casts_per_trigger(1);

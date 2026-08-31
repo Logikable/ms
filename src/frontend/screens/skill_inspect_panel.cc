@@ -229,16 +229,11 @@ std::string Ordinal(int n) {
   return std::to_string(n) + suffix;
 }
 
-// One "  label      value" row of an effect block.
 // What an empowered form upgrades, as the page names it. A form carried by a
 // skill with no attack of its own and no skill named is a data error the
 // catalog test catches; here it reads as the skill's own attack.
-std::string EmpoweredTarget(const Skill& skill, const EmpoweredForm& form) {
-  if (!form.skill_name().empty()) {
-    return form.skill_name();
-  }
-  return skill.boosts_skill_name().empty() ? "attack"
-                                           : skill.boosts_skill_name();
+std::string EmpoweredTarget(const EmpoweredForm& form) {
+  return form.skill_name().empty() ? "attack" : form.skill_name();
 }
 
 // A row of the card before the card knows how wide it is. An effect row is
@@ -517,7 +512,7 @@ std::vector<Row> EmpoweredRows(const Skill& skill) {
     std::string how = form.casts_per_trigger() == 1
                           ? ""
                           : "Every " + Ordinal(form.casts_per_trigger()) + " ";
-    rows.push_back(EffectRow("Empowers", how + EmpoweredTarget(skill, form)));
+    rows.push_back(EffectRow("Empowers", how + EmpoweredTarget(form)));
     // A mark on each enemy is a different promise from a count on the swing --
     // five that one enemy took, rather than five swings -- and only a row of
     // its own says which of the two the number above is.
@@ -1152,7 +1147,7 @@ std::vector<Row> OwnClockRows(const Skill& skill, int level) {
     // One form is "Empowered Damage" and needs no more; several have to say
     // which swing each belongs to, so they take the upgraded skill's name.
     std::string label = skill.empowered_form_size() > 1
-                            ? EmpoweredTarget(skill, form)
+                            ? EmpoweredTarget(form)
                             : std::string("Empowered Damage");
     double per_hit =
         form.base().skill_pct() + form.per_level().skill_pct() * (level - 1);

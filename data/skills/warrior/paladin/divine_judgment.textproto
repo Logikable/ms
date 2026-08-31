@@ -25,8 +25,8 @@ required_skill {
   skill_name: "Blast"
   level: 5
 }
-boosts_skill_name: "Blast"
 empowered_form {
+  skill_name: "Blast"
   casts_per_trigger: 5
   brands_each_enemy: true
   lines: 10

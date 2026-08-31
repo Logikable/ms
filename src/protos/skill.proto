@@ -826,12 +826,9 @@ message SideStrike {
 // ordinary one. Empowered Arrows is the case it exists for: the Sniper's
 // Piercing Arrow is upgraded to an Empowered Piercing Arrow every fourth shot.
 //
-// Which attack it takes the place of is `skill_name` below, falling back on
-// Skill::boosts_skill_name -- the same field that names what the permanent half
-// of the bonus lands on, so one skill strengthening one other skill is one
-// relationship and not two. Leaving both EMPTY means the skill upgrades its own
-// attack instead, which is how the F/P Mage's Creeping Toxin detonates the pool
-// it is already spreading.
+// Which attack it takes the place of is `skill_name` below. Leaving it EMPTY
+// means the skill upgrades its own attack instead, which is how the F/P Mage's
+// Creeping Toxin detonates the pool it is already spreading.
 //
 // Either clock will carry it. A form on a swing is landed in place of a swing;
 // a form on a summon is landed in place of a pulse, and takes that pulse's
@@ -847,10 +844,11 @@ message SideStrike {
 message EmpoweredForm {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
-  // The attack this form takes the place of, by display name. Needed only by a
-  // skill carrying SEVERAL forms, which Greater Empowered Arrows is: it
-  // upgrades every fourth Piercing Arrow II and every fourth Snipe, one 20-level
-  // ladder pricing both. Empty falls back on the rule above.
+  // The attack this form takes the place of, by display name. Every form on a
+  // PASSIVE names one, since a passive has no attack of its own to upgrade;
+  // and a skill carrying several forms names one per form, which is what
+  // Greater Empowered Arrows does -- it upgrades every fourth Piercing Arrow II
+  // and every fourth Snipe, one 20-level ladder pricing both.
   string skill_name = 7;
   // Swings of the named skill one of these takes the place of: 4 means three
   // ordinary swings, then this. Nothing happens without it.
@@ -1231,17 +1229,6 @@ message Skill {
   // one skill alone carries. Repeated because Greater Vessel of Light
   // strengthens two of them and grants each a different thing. See SkillBoost.
   repeated SkillBoost boost = 34;
-  // The skill this one's empowered_form upgrades, by display name -- Speed
-  // Mirage empowers Wind Arrow. Only a form with no target of its own reads
-  // it; a lever aimed at a named skill is a SkillBoost instead.
-  //
-  // The name rather than a tag, because the grant is to one skill rather than
-  // to a family -- follows_skill_tag is the other shape, and the right one
-  // whenever more than one swing is meant.
-  //
-  // Empty on a skill carrying an empowered_form means that form upgrades this
-  // skill's own attack. See EmpoweredForm.
-  string boosts_skill_name = 35;
   // A skill this one takes the place of, by display name: once both are learned
   // the named skill grants nothing at all. GMS says "boosted to" rather than
   // "increased by" when it means this -- Advanced Combo's final damage per orb

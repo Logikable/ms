@@ -798,15 +798,11 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
                          const std::vector<CombatType>& types, SkillKind kind,
                          const std::map<std::string, SkillBoosts>& boosts,
                          std::vector<AttackOption>& into) {
-  // The form may name its own target, which is what a skill carrying two of
-  // them does. Failing that it takes the one skill this one strengthens, and
-  // failing that it upgrades its own attack -- Creeping Toxin detonating the
-  // pool it is already spreading.
-  std::string target = upgrade.skill_name();
-  if (target.empty()) {
-    target = skill.boosts_skill_name().empty() ? skill.name()
-                                               : skill.boosts_skill_name();
-  }
+  // A form names the attack it stands in for; naming none, it upgrades the
+  // attack its own skill already is -- Creeping Toxin detonating the pool it
+  // is already spreading.
+  const std::string& target =
+      upgrade.skill_name().empty() ? skill.name() : upgrade.skill_name();
   for (AttackOption& attack : into) {
     if (attack.name != target) {
       continue;

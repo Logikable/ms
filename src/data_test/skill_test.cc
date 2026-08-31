@@ -676,11 +676,10 @@ TEST(SkillDataTest, EveryEmpoweredFormSaysHowOftenAndForHowMuch) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
     for (const EmpoweredForm& form : skill.empowered_form()) {
-      // A form either names the skill it upgrades, or takes the one this skill
-      // strengthens, or upgrades the attack this skill already is -- and a
-      // passive has no attack of its own, so it must name one of the two.
+      // A form either names the skill it upgrades or upgrades the attack this
+      // skill already is -- and a passive has no attack of its own, so it must
+      // name one.
       EXPECT_TRUE(!form.skill_name().empty() ||
-                  !skill.boosts_skill_name().empty() ||
                   skill.kind() != SKILL_KIND_PASSIVE)
           << entry.first << "'s empowered form takes the place of nothing";
       EXPECT_GT(form.casts_per_trigger(), 0)
@@ -1317,20 +1316,20 @@ TEST(SkillDataTest, APassiveCarriesNoSwingsDamage) {
 }
 
 // The name an empowered form aims at has to be one the same character can
-// learn, and it may only be set where there is a form to aim: a name with
-// nothing behind it upgrades nothing.
+// learn: a form upgrading a skill its own holder can never hold upgrades
+// nothing.
 TEST(SkillDataTest, EveryEmpoweredTargetIsHoldable) {
   std::map<std::string, Skill> skills = LoadSkills();
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    if (skill.boosts_skill_name().empty()) {
-      continue;
+    for (const EmpoweredForm& form : skill.empowered_form()) {
+      if (form.skill_name().empty()) {
+        continue;
+      }
+      EXPECT_TRUE(SameCharacterCanHold(skills, skill, form.skill_name()))
+          << entry.first << " empowers \"" << form.skill_name()
+          << "\", which no character holding it can learn";
     }
-    EXPECT_GT(skill.empowered_form_size(), 0)
-        << entry.first << " names a skill it hands no empowered form";
-    EXPECT_TRUE(SameCharacterCanHold(skills, skill, skill.boosts_skill_name()))
-        << entry.first << " empowers \"" << skill.boosts_skill_name()
-        << "\", which no character holding it can learn";
   }
 }
 
@@ -1360,11 +1359,8 @@ bool HasEmpoweredForm(const std::map<std::string, Skill>& skills,
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     for (const EmpoweredForm& form : skill.empowered_form()) {
-      std::string target = form.skill_name();
-      if (target.empty()) {
-        target = skill.boosts_skill_name().empty() ? skill.name()
-                                                   : skill.boosts_skill_name();
-      }
+      const std::string& target =
+          form.skill_name().empty() ? skill.name() : form.skill_name();
       if (target == name) {
         return true;
       }
@@ -1384,11 +1380,8 @@ bool LandsASecondHit(const std::map<std::string, Skill>& skills,
       return true;
     }
     for (const EmpoweredForm& form : skill.empowered_form()) {
-      std::string target = form.skill_name();
-      if (target.empty()) {
-        target = skill.boosts_skill_name().empty() ? skill.name()
-                                                   : skill.boosts_skill_name();
-      }
+      const std::string& target =
+          form.skill_name().empty() ? skill.name() : form.skill_name();
       if (target == name &&
           (form.base().lead_pct() > 0.0 || form.extra_hit_size() > 0)) {
         return true;
