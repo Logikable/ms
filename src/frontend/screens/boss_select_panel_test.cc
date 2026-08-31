@@ -484,16 +484,8 @@ TEST(BossSelectPanelTest, AComingSoonFightShowsItsHpAndNothingElse) {
   EXPECT_EQ(out.find("Rewards"), std::string::npos);
   EXPECT_EQ(out.find("Available"), std::string::npos);
   EXPECT_EQ(out.find("PDR"), std::string::npos);
-}
-
-// Gold says the fight is on its way rather than refused, which is why it is
-// not the red a shortfall gets.
-TEST(BossSelectPanelTest, TheComingSoonLineIsGold) {
-  std::unique_ptr<GameState> owner = WithBosses();
-  GameState& state = *owner;
-  AddChaosZakum(state);
-  BossSelectPanel panel(state);
-  panel.ChangeDifficulty(1);
+  // Gold says the fight is on its way rather than refused, which is why it is
+  // not the red a shortfall gets.
   EXPECT_EQ(RowColor(panel, "Coming soon!"), kYellow);
 }
 

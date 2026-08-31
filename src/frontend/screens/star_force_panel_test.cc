@@ -88,7 +88,8 @@ TEST_F(StarForcePanelTest, DrawsButtonsInTheSharedStyle) {
   EXPECT_NE(rendered.find("[Cancel]"), std::string::npos);
 }
 
-TEST_F(StarForcePanelTest, RenderShowsNameAndUpgradeArrow) {
+// At 0★ the attempt cannot destroy, so there are two rates rather than three.
+TEST_F(StarForcePanelTest, RenderShowsTheItemAndItsTwoRates) {
   EquipInstance item = MakeItem(0, 0);
   StarForcePanel panel;
   panel.SetItem(&item, kDeepPurse);
@@ -96,33 +97,9 @@ TEST_F(StarForcePanelTest, RenderShowsNameAndUpgradeArrow) {
   EXPECT_NE(rendered.find("Sword"), std::string::npos);
   EXPECT_NE(rendered.find("0"), std::string::npos);
   EXPECT_NE(rendered.find("1"), std::string::npos);
-}
-
-TEST_F(StarForcePanelTest, RenderShowsSuccessAndFailRates) {
-  // At 0★: success=95%, fail=5%.
-  EquipInstance item = MakeItem(0, 0);
-  StarForcePanel panel;
-  panel.SetItem(&item, kDeepPurse);
-  std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("95%"), std::string::npos);
   EXPECT_NE(rendered.find("5%"), std::string::npos);
-}
-
-TEST_F(StarForcePanelTest, RenderHidesDestroyRowWhenZero) {
-  EquipInstance item = MakeItem(0, 0);
-  StarForcePanel panel;
-  panel.SetItem(&item, kDeepPurse);
-  EXPECT_EQ(Render(panel).find("Destroy"), std::string::npos);
-}
-
-TEST_F(StarForcePanelTest, RenderShowsDestroyRowWhenNonZero) {
-  // At 15★: destroy=2.1%.
-  EquipInstance item = MakeItem(/*required_level=*/138, /*stars=*/15);
-  StarForcePanel panel;
-  panel.SetItem(&item, kDeepPurse);
-  std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Destroy"), std::string::npos);
-  EXPECT_NE(rendered.find("2.1%"), std::string::npos);
+  EXPECT_EQ(rendered.find("Destroy"), std::string::npos);
 }
 
 TEST_F(StarForcePanelTest, RenderFormatsSubPercentRateCorrectly) {
@@ -133,8 +110,8 @@ TEST_F(StarForcePanelTest, RenderFormatsSubPercentRateCorrectly) {
   EXPECT_NE(Render(panel).find("12.75%"), std::string::npos);
 }
 
-// At 15★ the three rates are 30%, 67.9% and 2.1%: the names down the left of
-// their column, the numbers against the right of theirs.
+// At 15★ destroy is on, and the three rates are 30%, 67.9% and 2.1%: the names
+// down the left of their column, the numbers against the right of theirs.
 TEST_F(StarForcePanelTest, RateRowsAlignWhenMixedDecimals) {
   EquipInstance item = MakeItem(/*required_level=*/138, /*stars=*/15);
   StarForcePanel panel;
@@ -217,7 +194,7 @@ TEST_F(StarForcePanelTest, NoRuleThroughTheHeading) {
 
 // Leaving is a button rather than only a key, and the cursor starts on the
 // one the player came to press.
-TEST_F(StarForcePanelTest, TheFootIsEnhanceThenCancel) {
+TEST_F(StarForcePanelTest, TheFootIsEnhanceThenCancelAndTheCursorMoves) {
   EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
   StarForcePanel panel;
   panel.SetItem(&item, kDeepPurse);
@@ -225,12 +202,6 @@ TEST_F(StarForcePanelTest, TheFootIsEnhanceThenCancel) {
   EXPECT_LT(rendered.find("[Enhance]"), rendered.find("[Cancel]"));
   EXPECT_TRUE(PixelOf(panel, "[Enhance]").inverted);
   EXPECT_FALSE(PixelOf(panel, "[Cancel]").inverted);
-}
-
-TEST_F(StarForcePanelTest, TheCursorMovesBetweenTheTwoButtons) {
-  EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
-  StarForcePanel panel;
-  panel.SetItem(&item, kDeepPurse);
   panel.OnEvent(ftxui::Event::ArrowRight);
   EXPECT_TRUE(PixelOf(panel, "[Cancel]").inverted);
   EXPECT_FALSE(PixelOf(panel, "[Enhance]").inverted);

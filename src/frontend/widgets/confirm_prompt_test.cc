@@ -24,17 +24,15 @@ TEST(ConfirmPromptTest, StartsClosed) {
   EXPECT_FALSE(prompt.open());
 }
 
-TEST(ConfirmPromptTest, OpensOnConfirmByDefault) {
+// Confirm by default; an irreversible action opens on Cancel instead, so Enter
+// alone cannot fire it.
+TEST(ConfirmPromptTest, OpensOnTheButtonItWasAskedFor) {
   ConfirmPrompt prompt;
   prompt.Open();
   EXPECT_TRUE(prompt.open());
   EXPECT_EQ(prompt.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
   EXPECT_FALSE(prompt.open());
-}
 
-// An irreversible action opens on Cancel, so Enter alone cannot fire it.
-TEST(ConfirmPromptTest, OpensOnCancelWhenAsked) {
-  ConfirmPrompt prompt;
   prompt.Open(/*cancel_selected=*/true);
   EXPECT_EQ(prompt.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
 }

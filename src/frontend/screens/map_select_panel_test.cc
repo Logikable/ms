@@ -328,8 +328,9 @@ TEST(MapSelectPanelTest, ShowsWeightedLevelRoundedDown) {
 }
 
 // A town rather than a hunting ground. There is no mob to average, so the
-// level column has to say 0 rather than divide by nothing.
-TEST(MapSelectPanelTest, AMapWithNoMobsShowsLevelZero) {
+// level column says 0 rather than dividing by nothing -- which also puts the
+// town below every hunting ground, leaving the list running low to high.
+TEST(MapSelectPanelTest, AMapWithNoMobsShowsLevelZeroAndSortsFirst) {
   MapData green;
   green.set_name("Green Field");
   AddSpawn(&green, "snail", 4);
@@ -341,20 +342,6 @@ TEST(MapSelectPanelTest, AMapWithNoMobsShowsLevelZero) {
   std::string rendered = Render(panel);
   EXPECT_NE(MapRow(rendered, "Maple Island").find("Maple Island 0"),
             std::string::npos);
-}
-
-// Level 0 puts it below every hunting ground, so the list still runs low to
-// high with a town on it.
-TEST(MapSelectPanelTest, AMapWithNoMobsSortsFirst) {
-  MapData green;
-  green.set_name("Green Field");
-  AddSpawn(&green, "snail", 4);
-  MapData town;
-  town.set_name("Maple Island");
-  GameState state({}, {}, {}, {{"snail", SnailMob()}},
-                  {{"green_field", green}, {"maple_island", town}});
-  MapSelectPanel panel(state);
-  std::string rendered = Render(panel);
   EXPECT_LT(rendered.find("Maple Island"), rendered.find("Green Field"));
 }
 
@@ -473,24 +460,15 @@ TEST(MapSelectPanelTest, MobTableFollowsTheCursor) {
   GameState state = ThreeMaps();
   MapSelectPanel panel(state);
 
-  // Green Field, the first row, holds only snails.
+  // Green Field, the first row, holds four snails and nothing else.
   std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Snail"), std::string::npos);
+  EXPECT_NE(LineWith(rendered, "Snail").find("Snail 1 4"), std::string::npos);
   EXPECT_EQ(rendered.find("Horny Mushroom"), std::string::npos);
 
   panel.MoveCursor(1);  // Mixed Field, which holds both
   rendered = Render(panel);
   EXPECT_NE(rendered.find("Snail"), std::string::npos);
   EXPECT_NE(rendered.find("Horny Mushroom"), std::string::npos);
-}
-
-TEST(MapSelectPanelTest, MobTableShowsLevelAndCount) {
-  GameState state = ThreeMaps();
-  MapSelectPanel panel(state);
-  std::string rendered = Render(panel);
-
-  // Green Field, the first row, spawns four snails.
-  EXPECT_NE(LineWith(rendered, "Snail").find("Snail 1 4"), std::string::npos);
 }
 
 // PadRight truncates, so a name past the column loses its last letters rather
@@ -543,8 +521,9 @@ TEST(MapSelectPanelTest, TheCursorRingRunsThroughTheChipBar) {
   EXPECT_FALSE(BarHasTheCursor(panel));
 }
 
-// The bar carries one chip per band, and the one on show is the marked one.
-TEST(MapSelectPanelTest, TheBarShowsEveryBandAndMarksTheOneOnShow) {
+// The bar carries one chip per band, and the one on show is the marked one --
+// the lowest, which is where the panel opens.
+TEST(MapSelectPanelTest, TheBarShowsEveryBandAndOpensOnTheLowest) {
   GameState state = EveryBand();
   MapSelectPanel panel(state);
   panel.Reset();
@@ -555,6 +534,8 @@ TEST(MapSelectPanelTest, TheBarShowsEveryBandAndMarksTheOneOnShow) {
   EXPECT_NE(rendered.find("31-60"), std::string::npos);
   EXPECT_NE(rendered.find("61-100"), std::string::npos);
   EXPECT_EQ(ActiveBand(panel), "1-10");
+  EXPECT_NE(rendered.find("Green Field"), std::string::npos);
+  EXPECT_EQ(rendered.find("Temple"), std::string::npos);
 }
 
 // Left and Right belong to the bar. In the list they would change the list
@@ -586,17 +567,6 @@ TEST(MapSelectPanelTest, WrappingDoesNotCarryIntoTheNextBand) {
   panel.MoveCursor(-1);
   EXPECT_EQ(ActiveBand(panel), "1-10");
   EXPECT_EQ(panel.selected_map(), "horny_field") << "the last map of this band";
-}
-
-TEST(MapSelectPanelTest, OpensOnTheLowestBandByDefault) {
-  GameState state = EveryBand();
-  MapSelectPanel panel(state);
-  panel.Reset();
-  std::string rendered = Render(panel);
-
-  EXPECT_EQ(ActiveBand(panel), "1-10");
-  EXPECT_NE(rendered.find("Green Field"), std::string::npos);
-  EXPECT_EQ(rendered.find("Temple"), std::string::npos);
 }
 
 TEST(MapSelectPanelTest, ChangingPageShowsTheNextBandFromItsTop) {

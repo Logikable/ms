@@ -43,22 +43,17 @@ TEST_F(SellEquipPanelTest, WorthlessItemSellsForZero) {
 }
 
 // Enter on arrival sells. The shop keeps the sale on its buy-back shelf, so
-// the dialog is a confirmation and not a warning.
-TEST_F(SellEquipPanelTest, OpensOnConfirm) {
+// the dialog is a confirmation and not a warning. Reset reopens it, which is
+// how the cursor comes back to [Confirm] between the three answers.
+TEST_F(SellEquipPanelTest, EnterSellsAndSteppingOffOrEscapingDoesNot) {
   SellEquipPanel panel;
   panel.Reset("Hunter's Bow", 1000);
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
-}
 
-TEST_F(SellEquipPanelTest, CancelsAfterSteppingOntoIt) {
-  SellEquipPanel panel;
   panel.Reset("Hunter's Bow", 1000);
   EXPECT_EQ(panel.OnEvent(ftxui::Event::ArrowRight), ConfirmChoice::kPending);
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
-}
 
-TEST_F(SellEquipPanelTest, EscapeCancels) {
-  SellEquipPanel panel;
   panel.Reset("Hunter's Bow", 1000);
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Escape), ConfirmChoice::kCancelled);
 }

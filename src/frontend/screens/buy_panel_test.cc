@@ -93,11 +93,13 @@ ftxui::Color CellColor(const BuyPanel& panel, const std::string& row_needle,
 constexpr int kRoomy = 100000;
 
 // A shopper picks a number; the sell dialog's "all of it" default would be an
-// odd thing to open a purchase on.
-TEST(BuyPanelTest, OpensAtOne) {
+// odd thing to open a purchase on. Zero owned is an answer too -- a row that
+// appeared only sometimes would read as the dialog having glitched.
+TEST(BuyPanelTest, OpensAtOneAndSaysNoneAreOwned) {
   BuyPanel panel;
   panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
   EXPECT_EQ(panel.quantity(), 1);
+  EXPECT_NE(Render(panel).find("Owned: 0"), std::string::npos);
 }
 
 // Opening at one is not the same as offering only one: every other quantity
@@ -144,18 +146,15 @@ TEST(BuyPanelTest, AnUnaffordableItemOpensAtZero) {
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
 }
 
-TEST(BuyPanelTest, ConfirmWorksOnAnAffordableAmount) {
+TEST(BuyPanelTest, ConfirmBuysAnAffordableAmountAndEscapeDoesNot) {
   BuyPanel panel;
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Escape), ConfirmChoice::kCancelled);
+
   panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
   panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
   EXPECT_EQ(panel.quantity(), 1);
-}
-
-TEST(BuyPanelTest, EscapeCancels) {
-  BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
-  EXPECT_EQ(panel.OnEvent(ftxui::Event::Escape), ConfirmChoice::kCancelled);
 }
 
 // Backspacing to nothing is the one way to reach zero with meso in hand, and
@@ -229,14 +228,6 @@ TEST(BuyPanelTest, ShowsHowManyAreAlreadyOwned) {
   ASSERT_NE(owned, std::string::npos);
   ASSERT_NE(price, std::string::npos);
   EXPECT_LT(owned, price) << "above the price, which is the later question";
-}
-
-// Zero is an answer. A row that appeared only sometimes would be read as the
-// dialog having glitched rather than as "none yet".
-TEST(BuyPanelTest, SaysOwnedZeroRatherThanDroppingTheRow) {
-  BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
-  EXPECT_NE(Render(panel).find("Owned: 0"), std::string::npos);
 }
 
 // The shop never stocks a free item, but the buy-back shelf does -- a trace,

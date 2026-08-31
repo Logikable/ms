@@ -102,22 +102,15 @@ TEST_F(TraceRecoverPanelTest, ArrowsStopAtTheEnds) {
   EXPECT_EQ(panel.selected_index(), only);
 }
 
-TEST_F(TraceRecoverPanelTest, SaysSoWhenNothingCanBeRecoveredOnto) {
+// With no target there is nothing to confirm, so the panel says so and Enter
+// must not open the prompt -- confirming would recover onto index -1.
+TEST_F(TraceRecoverPanelTest, SaysSoAndDoesNothingWithNoCandidates) {
   const EquipTabItem* trace = AddTrace(17);
 
   TraceRecoverPanel panel(c_);
   panel.SetTrace(trace);
   EXPECT_NE(RenderElement(panel.RenderTabs()).find("(no matching items)"),
             std::string::npos);
-}
-
-// With no target there is nothing to confirm, so Enter must not open the
-// prompt -- confirming would recover onto index -1.
-TEST_F(TraceRecoverPanelTest, EnterDoesNothingWithNoCandidates) {
-  const EquipTabItem* trace = AddTrace(17);
-
-  TraceRecoverPanel panel(c_);
-  panel.SetTrace(trace);
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
   EXPECT_FALSE(panel.IsConfirming());
 }
