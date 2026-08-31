@@ -18,7 +18,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
-#include "src/frontend/widgets/panel_util.h"
+#include "src/frontend/widgets/item_row.h"
 #include "src/item/item.h"
 #include "src/protos/item.pb.h"
 

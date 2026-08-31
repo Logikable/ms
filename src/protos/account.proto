@@ -39,6 +39,6 @@ message Account {
 
   // Things the player has been shown once and need not be shown again: tabs
   // opened, gold trails walked. The keys are the frontend's -- see
-  // panel_util.h and progression.cc -- and this only keeps the record.
+  // chrome.h and progression.cc -- and this only keeps the record.
   repeated string seen_keys = 4;
 }

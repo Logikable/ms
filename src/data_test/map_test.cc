@@ -12,7 +12,6 @@
 
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/panel_util.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"

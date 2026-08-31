@@ -12,9 +12,9 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/box.hpp"
 #include "src/combat/boss_run.h"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/panel_util.h"
 #include "src/frontend/widgets/text_columns.h"
 #include "src/protos/boss.pb.h"
 

@@ -33,7 +33,7 @@
 #include "src/frontend/screens/skill_inspect_panel.h"
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
-#include "src/frontend/widgets/panel_util.h"
+#include "src/frontend/widgets/chrome.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/boss.pb.h"

@@ -1,8 +1,8 @@
 #include "src/frontend/panels/death_popup_panel.h"
 
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
-#include "src/frontend/widgets/panel_util.h"
 
 namespace ms {
 

@@ -29,6 +29,7 @@
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/inventory_list.h"
 #include "src/frontend/widgets/item_menu.h"
+#include "src/frontend/widgets/item_row.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"

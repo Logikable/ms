@@ -6,9 +6,9 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/panel_util.h"
 
 namespace ms {
 namespace {

@@ -22,8 +22,8 @@ cc_test(
     size = "small",
     srcs = ["text_columns_test.cc"],
     deps = [
+        ":format",
         ":text_columns",
-        "//src/frontend/widgets:format",
         "@googletest//:gtest_main",
     ],
 )
@@ -94,6 +94,31 @@ cc_test(
 )
 
 cc_library(
+    name = "item_row",
+    srcs = ["item_row.cc"],
+    hdrs = ["item_row.h"],
+    deps = [
+        ":format",
+        ":marquee",
+        "//src/item",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "item_row_test",
+    size = "small",
+    srcs = ["item_row_test.cc"],
+    deps = [
+        ":item_row",
+        ":marquee",
+        "//src/protos:equip_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "keys",
     srcs = ["keys.cc"],
     hdrs = ["keys.h"],
@@ -116,14 +141,14 @@ cc_test(
 )
 
 cc_library(
-    name = "panel_util",
-    srcs = ["panel_util.cc"],
-    hdrs = ["panel_util.h"],
+    name = "chrome",
+    srcs = ["chrome.cc"],
+    hdrs = ["chrome.h"],
     deps = [
         ":colors",
+        ":format",
+        ":game_names",
         ":marquee",
-        "//src/frontend/widgets:format",
-        "//src/frontend/widgets:game_names",
         "//src/item",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
@@ -138,7 +163,7 @@ cc_library(
     srcs = ["scroll_card.cc"],
     hdrs = ["scroll_card.h"],
     deps = [
-        ":panel_util",
+        ":chrome",
         "@ftxui//:dom",
     ],
 )
@@ -161,11 +186,11 @@ cc_library(
     hdrs = ["inventory_list.h"],
     deps = [
         ":colors",
+        ":format",
+        ":game_names",
+        ":item_row",
         ":marquee",
-        ":panel_util",
         "//src/character",
-        "//src/frontend/widgets:format",
-        "//src/frontend/widgets:game_names",
         "//src/item",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
@@ -181,6 +206,7 @@ cc_test(
     deps = [
         ":colors",
         ":inventory_list",
+        ":item_row",
         ":panel_test_base",
         "//src/frontend:panel_widths",
         "//src/item:equip_instance",
@@ -194,12 +220,12 @@ cc_library(
     srcs = ["equipped_list.cc"],
     hdrs = ["equipped_list.h"],
     deps = [
+        ":format",
+        ":game_names",
+        ":item_row",
         ":marquee",
-        ":panel_util",
         "//src/character",
         "//src/character:arcane_force",
-        "//src/frontend/widgets:format",
-        "//src/frontend/widgets:game_names",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
     ],
@@ -211,6 +237,7 @@ cc_test(
     srcs = ["equipped_list_test.cc"],
     deps = [
         ":equipped_list",
+        ":item_row",
         ":panel_test_base",
         ":text_columns",
         "//src/frontend:panel_widths",
@@ -225,7 +252,8 @@ cc_library(
     srcs = ["stat_rows.cc"],
     hdrs = ["stat_rows.h"],
     deps = [
-        ":panel_util",
+        ":format",
+        ":game_names",
         "//src:account",
         "//src/character",
         "//src/character:character_stats",
@@ -233,8 +261,6 @@ cc_library(
         "//src/character:progression",
         "//src/combat:constants",
         "//src/combat:damage",
-        "//src/frontend/widgets:format",
-        "//src/frontend/widgets:game_names",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",
@@ -253,15 +279,16 @@ cc_test(
 )
 
 cc_test(
-    name = "panel_util_test",
+    name = "chrome_test",
     size = "small",
-    srcs = ["panel_util_test.cc"],
+    srcs = ["chrome_test.cc"],
     deps = [
+        ":chrome",
         ":colors",
-        ":panel_util",
-        "//src/frontend/widgets:format",
-        "//src/frontend/widgets:game_names",
-        "//src/frontend/widgets:keys",
+        ":format",
+        ":game_names",
+        ":item_row",
+        ":keys",
         "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",
@@ -274,8 +301,8 @@ cc_library(
     srcs = ["confirm_prompt.cc"],
     hdrs = ["confirm_prompt.h"],
     deps = [
-        ":panel_util",
-        "//src/frontend/widgets:keys",
+        ":chrome",
+        ":keys",
         "@ftxui//:component",
         "@ftxui//:dom",
     ],
@@ -286,8 +313,7 @@ cc_library(
     srcs = ["text_field.cc"],
     hdrs = ["text_field.h"],
     deps = [
-        ":panel_util",
-        "//src/frontend/widgets:keys",
+        ":keys",
         "@ftxui//:component",
     ],
 )
@@ -321,8 +347,8 @@ cc_library(
     srcs = ["continue_prompt.cc"],
     hdrs = ["continue_prompt.h"],
     deps = [
-        ":panel_util",
-        "//src/frontend/widgets:keys",
+        ":chrome",
+        ":keys",
         "@ftxui//:component",
         "@ftxui//:dom",
     ],
@@ -346,9 +372,9 @@ cc_library(
     srcs = ["amount_selector.cc"],
     hdrs = ["amount_selector.h"],
     deps = [
+        ":chrome",
         ":confirm_prompt",
-        ":panel_util",
-        "//src/frontend/widgets:keys",
+        ":keys",
         "@ftxui//:component",
         "@ftxui//:dom",
     ],
@@ -372,8 +398,8 @@ cc_library(
     srcs = ["item_menu.cc"],
     hdrs = ["item_menu.h"],
     deps = [
-        ":panel_util",
-        "//src/frontend/widgets:keys",
+        ":chrome",
+        ":keys",
         "@ftxui//:dom",
     ],
 )

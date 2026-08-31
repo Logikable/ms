@@ -13,10 +13,10 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/combat/fight.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/marquee.h"
-#include "src/frontend/widgets/panel_util.h"
 #include "src/game_state.h"
 #include "src/protos/map.pb.h"
 

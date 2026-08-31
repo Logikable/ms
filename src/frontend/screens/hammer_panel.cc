@@ -5,10 +5,10 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/confirm_prompt.h"
 #include "src/frontend/widgets/format.h"
-#include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
 
 namespace ms {

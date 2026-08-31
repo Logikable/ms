@@ -9,12 +9,12 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/confirm_prompt.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/keys.h"
-#include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
 #include "src/item/star_force_cost.h"
 

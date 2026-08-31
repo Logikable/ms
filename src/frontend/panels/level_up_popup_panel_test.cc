@@ -8,8 +8,8 @@
 
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
-#include "src/frontend/widgets/panel_util.h"
 
 namespace ms {
 namespace {

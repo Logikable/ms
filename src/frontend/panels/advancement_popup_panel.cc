@@ -2,8 +2,8 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/job_name.h"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
-#include "src/frontend/widgets/panel_util.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {

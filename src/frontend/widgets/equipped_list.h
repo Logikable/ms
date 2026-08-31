@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "src/character/character.h"
-#include "src/frontend/widgets/panel_util.h"
+#include "src/frontend/widgets/item_row.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {

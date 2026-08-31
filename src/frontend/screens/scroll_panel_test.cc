@@ -10,6 +10,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"

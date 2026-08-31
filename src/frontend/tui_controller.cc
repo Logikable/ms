@@ -26,7 +26,6 @@
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/keys.h"
-#include "src/frontend/widgets/panel_util.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"

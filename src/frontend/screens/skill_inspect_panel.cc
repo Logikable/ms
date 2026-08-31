@@ -11,9 +11,9 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character_stats.h"
 #include "src/combat/damage.h"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
-#include "src/frontend/widgets/panel_util.h"
 #include "src/frontend/widgets/text_columns.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
@@ -1198,7 +1198,7 @@ std::vector<Row> ExtraAttackRows(const Skill& skill, int level) {
 }
 
 // A heading over one half of a skill that has two. Orange and green are the
-// skill list's own tags for active and passive (panel_util's TagFor), so the
+// skill list's own tags for active and passive (game_names' TagFor), so the
 // two halves are told apart here by the colours the player learned there.
 // Only the heading is coloured: a value that is always coloured says nothing.
 Row SectionRow(const std::string& label, ftxui::Color color) {

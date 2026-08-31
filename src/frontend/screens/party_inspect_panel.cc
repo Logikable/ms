@@ -8,9 +8,9 @@
 #include "ftxui/dom/elements.hpp"
 #include "google/protobuf/util/message_differencer.h"
 #include "src/frontend/screens/all_stats_panel.h"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/equipped_list.h"
 #include "src/frontend/widgets/keys.h"
-#include "src/frontend/widgets/panel_util.h"
 
 namespace ms {
 namespace {

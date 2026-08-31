@@ -9,10 +9,10 @@
 #include "src/character/character.h"
 #include "src/character/job_name.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/keys.h"
-#include "src/frontend/widgets/panel_util.h"
 #include "src/multiplayer/protocol.h"
 
 namespace ms {

@@ -4,7 +4,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/progression.h"
-#include "src/frontend/widgets/panel_util.h"
+#include "src/frontend/widgets/chrome.h"
 
 namespace ms {
 namespace {
