@@ -10,6 +10,7 @@ cc_library(
 
 cc_test(
     name = "frame_test",
+    size = "small",
     srcs = ["frame_test.cc"],
     deps = [
         ":frame",
@@ -30,6 +31,7 @@ cc_library(
 
 cc_test(
     name = "socket_test",
+    size = "small",
     srcs = ["socket_test.cc"],
     deps = [
         ":socket",

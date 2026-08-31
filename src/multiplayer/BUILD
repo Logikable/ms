@@ -13,6 +13,7 @@ cc_library(
 
 cc_test(
     name = "protocol_test",
+    size = "small",
     srcs = ["protocol_test.cc"],
     deps = [
         ":protocol",
@@ -38,6 +39,7 @@ cc_library(
 # server, and only because a test may.
 cc_test(
     name = "client_test",
+    size = "small",
     srcs = ["client_test.cc"],
     deps = [
         ":client",
@@ -59,6 +61,8 @@ cc_library(
     ],
 )
 
+# The one test left at the default size: fourteen Await calls, each patient
+# for four seconds, can outlast a small test's minute on a loaded machine.
 cc_test(
     name = "party_fight_test",
     srcs = ["party_fight_test.cc"],
@@ -87,6 +91,7 @@ cc_library(
 
 cc_test(
     name = "session_test",
+    size = "small",
     srcs = ["session_test.cc"],
     deps = [
         ":session",

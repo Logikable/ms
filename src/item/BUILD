@@ -44,6 +44,7 @@ cc_library(
 
 cc_test(
     name = "star_force_cost_test",
+    size = "small",
     srcs = ["star_force_cost_test.cc"],
     deps = [
         ":star_force_cost",
@@ -60,6 +61,7 @@ cc_library(
 
 cc_test(
     name = "projectile_test",
+    size = "small",
     srcs = ["projectile_test.cc"],
     deps = [
         ":projectile",
@@ -102,6 +104,7 @@ cc_library(
 
 cc_test(
     name = "item_test",
+    size = "small",
     srcs = ["item_test.cc"],
     deps = [
         ":item",
@@ -113,6 +116,7 @@ cc_test(
 
 cc_test(
     name = "equip_instance_test",
+    size = "small",
     srcs = ["equip_instance_test.cc"],
     deps = [
         ":equip_instance",
@@ -124,6 +128,7 @@ cc_test(
 
 cc_test(
     name = "spell_trace_cost_test",
+    size = "small",
     srcs = ["spell_trace_cost_test.cc"],
     deps = [
         ":spell_trace_cost",
@@ -134,6 +139,7 @@ cc_test(
 
 cc_test(
     name = "equip_stats_test",
+    size = "small",
     srcs = ["equip_stats_test.cc"],
     deps = [
         ":equip_stats",
@@ -144,6 +150,7 @@ cc_test(
 
 cc_test(
     name = "inventory_test",
+    size = "small",
     srcs = ["inventory_test.cc"],
     deps = [
         ":inventory",
@@ -154,6 +161,7 @@ cc_test(
 
 cc_test(
     name = "shop_test",
+    size = "small",
     srcs = ["shop_test.cc"],
     data = [
         "//data/equip:all",

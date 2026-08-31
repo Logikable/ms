@@ -41,6 +41,7 @@ cc_library(
 
 cc_test(
     name = "arcane_force_test",
+    size = "small",
     srcs = ["arcane_force_test.cc"],
     deps = [
         ":arcane_force",
@@ -57,6 +58,7 @@ cc_library(
 
 cc_test(
     name = "honor_test",
+    size = "small",
     srcs = ["honor_test.cc"],
     deps = [
         ":honor",
@@ -81,6 +83,7 @@ cc_library(
 
 cc_test(
     name = "inner_ability_test",
+    size = "small",
     srcs = ["inner_ability_test.cc"],
     deps = [
         ":inner_ability",
@@ -101,6 +104,7 @@ cc_library(
 
 cc_test(
     name = "hyper_stats_test",
+    size = "small",
     srcs = ["hyper_stats_test.cc"],
     deps = [
         ":hyper_stats",
@@ -125,6 +129,7 @@ cc_library(
 
 cc_test(
     name = "job_branch_test",
+    size = "small",
     srcs = ["job_branch_test.cc"],
     deps = [
         ":job_branch",
@@ -144,6 +149,7 @@ cc_library(
 
 cc_test(
     name = "boss_reset_test",
+    size = "small",
     srcs = ["boss_reset_test.cc"],
     deps = [
         ":boss_reset",
@@ -187,6 +193,7 @@ cc_library(
 
 cc_test(
     name = "progression_test",
+    size = "small",
     srcs = ["progression_test.cc"],
     deps = [
         ":character",
@@ -219,6 +226,7 @@ cc_library(
 
 cc_test(
     name = "character_test",
+    size = "small",
     srcs = ["character_test.cc"],
     deps = [
         ":character",
@@ -238,6 +246,7 @@ cc_test(
 
 cc_test(
     name = "character_stats_test",
+    size = "small",
     srcs = ["character_stats_test.cc"],
     data = [
         "//data/equip:all",
@@ -262,6 +271,7 @@ cc_test(
 
 cc_test(
     name = "exp_table_test",
+    size = "small",
     srcs = ["exp_table_test.cc"],
     deps = [
         ":exp_table",
@@ -271,6 +281,7 @@ cc_test(
 
 cc_test(
     name = "job_advancement_test",
+    size = "small",
     srcs = ["job_advancement_test.cc"],
     data = ["//data/equip:all"],
     deps = [

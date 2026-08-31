@@ -7,6 +7,7 @@ load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
     name = "embedded_test",
+    size = "small",
     srcs = ["embedded_test.cc"],
     deps = [
         "//src:embedded_data",
@@ -25,6 +26,7 @@ cc_test(
 
 cc_test(
     name = "boss_test",
+    size = "small",
     srcs = ["boss_test.cc"],
     data = [
         "//data/bosses:all",
@@ -47,6 +49,7 @@ cc_test(
 
 cc_test(
     name = "map_test",
+    size = "small",
     srcs = ["map_test.cc"],
     data = [
         "//data/equip:all",
@@ -70,6 +73,7 @@ cc_test(
 
 cc_test(
     name = "workbench_gear_test",
+    size = "small",
     srcs = ["workbench_gear_test.cc"],
     data = [
         "//data/equip:all",
@@ -100,6 +104,7 @@ cc_test(
 
 cc_test(
     name = "scroll_test",
+    size = "small",
     srcs = ["scroll_test.cc"],
     data = ["//data/scrolls:all"],
     deps = [
@@ -114,6 +119,7 @@ cc_test(
 
 cc_test(
     name = "skill_test",
+    size = "small",
     srcs = ["skill_test.cc"],
     data = ["//data/skills:all"],
     deps = [
@@ -137,6 +143,7 @@ cc_test(
 
 cc_test(
     name = "equip_test",
+    size = "small",
     srcs = ["equip_test.cc"],
     data = [
         "//data/equip:all",

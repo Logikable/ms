@@ -25,6 +25,7 @@ cc_library(
 
 cc_test(
     name = "item_ref_test",
+    size = "small",
     srcs = ["item_ref_test.cc"],
     deps = [
         ":item_ref",
@@ -45,6 +46,7 @@ cc_library(
 
 cc_test(
     name = "keybinds_test",
+    size = "small",
     srcs = ["keybinds_test.cc"],
     deps = [
         ":keybinds",
@@ -113,6 +115,7 @@ cc_library(
 
 cc_test(
     name = "party_controller_test",
+    size = "small",
     srcs = ["party_controller_test.cc"],
     deps = [
         ":keybinds",
@@ -138,6 +141,7 @@ cc_test(
 
 cc_test(
     name = "tui_controller_test",
+    size = "small",
     srcs = ["tui_controller_test.cc"],
     deps = [
         ":keybinds",
@@ -204,6 +208,7 @@ cc_library(
 
 cc_test(
     name = "main_layout_test",
+    size = "small",
     srcs = ["main_layout_test.cc"],
     deps = [
         ":main_layout",
@@ -232,6 +237,7 @@ cc_library(
 
 cc_test(
     name = "celebration_test",
+    size = "small",
     srcs = ["celebration_test.cc"],
     deps = [
         ":celebration",
@@ -257,6 +263,7 @@ cc_library(
 
 cc_test(
     name = "progress_watcher_test",
+    size = "small",
     srcs = ["progress_watcher_test.cc"],
     deps = [
         ":progress_watcher",

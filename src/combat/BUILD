@@ -23,6 +23,7 @@ cc_library(
 
 cc_test(
     name = "damage_test",
+    size = "small",
     srcs = ["damage_test.cc"],
     deps = [
         ":damage",
@@ -43,6 +44,7 @@ cc_library(
 
 cc_test(
     name = "battle_analysis_test",
+    size = "small",
     srcs = ["battle_analysis_test.cc"],
     deps = [
         ":battle_analysis",
@@ -59,6 +61,7 @@ cc_library(
 
 cc_test(
     name = "loot_test",
+    size = "small",
     srcs = ["loot_test.cc"],
     deps = [
         ":loot",
@@ -87,6 +90,7 @@ cc_library(
 
 cc_test(
     name = "combat_test",
+    size = "small",
     srcs = ["combat_test.cc"],
     deps = [
         ":combat",
@@ -152,6 +156,7 @@ cc_library(
 
 cc_test(
     name = "boss_run_test",
+    size = "small",
     srcs = ["boss_run_test.cc"],
     deps = [
         ":boss_run",
@@ -186,6 +191,7 @@ cc_library(
 
 cc_test(
     name = "offline_test",
+    size = "small",
     srcs = ["offline_test.cc"],
     deps = [
         ":combat",
@@ -229,6 +235,7 @@ cc_library(
 
 cc_test(
     name = "encounter_test",
+    size = "small",
     srcs = ["encounter_test.cc"],
     deps = [
         ":constants",
@@ -259,6 +266,7 @@ cc_library(
 
 cc_test(
     name = "fight_test",
+    size = "small",
     srcs = ["fight_test.cc"],
     deps = [
         ":encounter",

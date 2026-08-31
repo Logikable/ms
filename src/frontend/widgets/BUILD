@@ -19,6 +19,7 @@ cc_library(
 
 cc_test(
     name = "text_columns_test",
+    size = "small",
     srcs = ["text_columns_test.cc"],
     deps = [
         ":text_columns",
@@ -35,6 +36,7 @@ cc_library(
 
 cc_test(
     name = "marquee_test",
+    size = "small",
     srcs = ["marquee_test.cc"],
     deps = [
         ":marquee",
@@ -78,6 +80,7 @@ cc_library(
 
 cc_test(
     name = "scroll_card_test",
+    size = "small",
     srcs = ["scroll_card_test.cc"],
     deps = [
         ":scroll_card",
@@ -106,6 +109,7 @@ cc_library(
 
 cc_test(
     name = "inventory_list_test",
+    size = "small",
     srcs = ["inventory_list_test.cc"],
     deps = [
         ":colors",
@@ -134,6 +138,7 @@ cc_library(
 
 cc_test(
     name = "equipped_list_test",
+    size = "small",
     srcs = ["equipped_list_test.cc"],
     deps = [
         ":equipped_list",
@@ -167,6 +172,7 @@ cc_library(
 
 cc_test(
     name = "stat_rows_test",
+    size = "small",
     srcs = ["stat_rows_test.cc"],
     deps = [
         ":stat_rows",
@@ -177,6 +183,7 @@ cc_test(
 
 cc_test(
     name = "panel_util_test",
+    size = "small",
     srcs = ["panel_util_test.cc"],
     deps = [
         ":colors",
@@ -211,6 +218,7 @@ cc_library(
 
 cc_test(
     name = "text_field_test",
+    size = "small",
     srcs = ["text_field_test.cc"],
     deps = [
         ":text_field",
@@ -221,6 +229,7 @@ cc_test(
 
 cc_test(
     name = "confirm_prompt_test",
+    size = "small",
     srcs = ["confirm_prompt_test.cc"],
     deps = [
         ":confirm_prompt",
@@ -244,6 +253,7 @@ cc_library(
 
 cc_test(
     name = "continue_prompt_test",
+    size = "small",
     srcs = ["continue_prompt_test.cc"],
     deps = [
         ":continue_prompt",
@@ -268,6 +278,7 @@ cc_library(
 
 cc_test(
     name = "amount_selector_test",
+    size = "small",
     srcs = ["amount_selector_test.cc"],
     deps = [
         ":amount_selector",
@@ -290,6 +301,7 @@ cc_library(
 
 cc_test(
     name = "item_menu_test",
+    size = "small",
     srcs = ["item_menu_test.cc"],
     deps = [
         ":colors",

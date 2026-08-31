@@ -17,6 +17,7 @@ cc_library(
 
 cc_test(
     name = "analysis_panel_test",
+    size = "small",
     srcs = ["analysis_panel_test.cc"],
     deps = [
         ":analysis_panel",
@@ -43,6 +44,7 @@ cc_library(
 
 cc_test(
     name = "keybinds_panel_test",
+    size = "small",
     srcs = ["keybinds_panel_test.cc"],
     deps = [
         ":keybinds_panel",
@@ -75,6 +77,7 @@ cc_library(
 
 cc_test(
     name = "inspect_panel_test",
+    size = "small",
     srcs = ["inspect_panel_test.cc"],
     deps = [
         ":inspect_panel",
@@ -109,6 +112,7 @@ cc_library(
 
 cc_test(
     name = "all_stats_panel_test",
+    size = "small",
     srcs = ["all_stats_panel_test.cc"],
     deps = [
         ":all_stats_panel",
@@ -132,6 +136,7 @@ cc_library(
 
 cc_test(
     name = "hyper_stat_level_panel_test",
+    size = "small",
     srcs = ["hyper_stat_level_panel_test.cc"],
     deps = [
         ":hyper_stat_level_panel",
@@ -157,6 +162,7 @@ cc_library(
 
 cc_test(
     name = "job_inspect_panel_test",
+    size = "small",
     srcs = ["job_inspect_panel_test.cc"],
     deps = [
         ":job_inspect_panel",
@@ -182,6 +188,7 @@ cc_library(
 
 cc_test(
     name = "hyper_stat_inspect_panel_test",
+    size = "small",
     srcs = ["hyper_stat_inspect_panel_test.cc"],
     deps = [
         ":hyper_stat_inspect_panel",
@@ -209,6 +216,7 @@ cc_library(
 
 cc_test(
     name = "skill_inspect_panel_test",
+    size = "small",
     srcs = ["skill_inspect_panel_test.cc"],
     deps = [
         ":skill_inspect_panel",
@@ -244,6 +252,7 @@ cc_library(
 
 cc_test(
     name = "scroll_panel_test",
+    size = "small",
     srcs = ["scroll_panel_test.cc"],
     deps = [
         ":scroll_panel",
@@ -277,6 +286,7 @@ cc_library(
 
 cc_test(
     name = "star_force_panel_test",
+    size = "small",
     srcs = ["star_force_panel_test.cc"],
     deps = [
         ":star_force_panel",
@@ -309,6 +319,7 @@ cc_library(
 
 cc_test(
     name = "trace_recover_panel_test",
+    size = "small",
     srcs = ["trace_recover_panel_test.cc"],
     deps = [
         ":trace_recover_panel",
@@ -333,6 +344,7 @@ cc_library(
 
 cc_test(
     name = "sell_panel_test",
+    size = "small",
     srcs = ["sell_panel_test.cc"],
     deps = [
         ":sell_panel",
@@ -362,6 +374,7 @@ cc_library(
 
 cc_test(
     name = "multi_sell_panel_test",
+    size = "small",
     srcs = ["multi_sell_panel_test.cc"],
     deps = [
         ":multi_sell_panel",
@@ -388,6 +401,7 @@ cc_library(
 
 cc_test(
     name = "symbol_combine_panel_test",
+    size = "small",
     srcs = ["symbol_combine_panel_test.cc"],
     deps = [
         ":symbol_combine_panel",
@@ -414,6 +428,7 @@ cc_library(
 
 cc_test(
     name = "hammer_panel_test",
+    size = "small",
     srcs = ["hammer_panel_test.cc"],
     deps = [
         ":hammer_panel",
@@ -440,6 +455,7 @@ cc_library(
 
 cc_test(
     name = "symbol_level_panel_test",
+    size = "small",
     srcs = ["symbol_level_panel_test.cc"],
     deps = [
         ":symbol_level_panel",
@@ -466,6 +482,7 @@ cc_library(
 
 cc_test(
     name = "sell_equip_panel_test",
+    size = "small",
     srcs = ["sell_equip_panel_test.cc"],
     deps = [
         ":sell_equip_panel",
@@ -492,6 +509,7 @@ cc_library(
 
 cc_test(
     name = "buy_panel_test",
+    size = "small",
     srcs = ["buy_panel_test.cc"],
     deps = [
         ":buy_panel",
@@ -526,6 +544,7 @@ cc_library(
 
 cc_test(
     name = "shop_panel_test",
+    size = "small",
     srcs = ["shop_panel_test.cc"],
     deps = [
         ":shop_panel",
@@ -556,6 +575,7 @@ cc_library(
 
 cc_test(
     name = "boss_fight_panel_test",
+    size = "small",
     srcs = ["boss_fight_panel_test.cc"],
     deps = [
         ":boss_fight_panel",
@@ -592,6 +612,7 @@ cc_library(
 
 cc_test(
     name = "boss_clear_panel_test",
+    size = "small",
     srcs = ["boss_clear_panel_test.cc"],
     deps = [
         ":boss_clear_panel",
@@ -623,6 +644,7 @@ cc_library(
 
 cc_test(
     name = "boss_select_panel_test",
+    size = "small",
     srcs = ["boss_select_panel_test.cc"],
     deps = [
         ":boss_select_panel",
@@ -662,6 +684,7 @@ cc_library(
 
 cc_test(
     name = "mob_inspect_panel_test",
+    size = "small",
     srcs = ["mob_inspect_panel_test.cc"],
     deps = [
         ":mob_inspect_panel",
@@ -697,6 +720,7 @@ cc_library(
 
 cc_test(
     name = "party_inspect_panel_test",
+    size = "small",
     srcs = ["party_inspect_panel_test.cc"],
     deps = [
         ":all_stats_panel",
@@ -729,6 +753,7 @@ cc_library(
 
 cc_test(
     name = "party_select_panel_test",
+    size = "small",
     srcs = ["party_select_panel_test.cc"],
     deps = [
         ":party_select_panel",
@@ -762,6 +787,7 @@ cc_library(
 
 cc_test(
     name = "map_select_panel_test",
+    size = "small",
     srcs = ["map_select_panel_test.cc"],
     deps = [
         ":map_select_panel",

@@ -76,6 +76,7 @@ cc_library(
 
 cc_test(
     name = "spawn_test",
+    size = "small",
     srcs = ["spawn_test.cc"],
     deps = [
         ":spawn",
@@ -86,6 +87,7 @@ cc_test(
 
 cc_test(
     name = "map_level_test",
+    size = "small",
     srcs = ["map_level_test.cc"],
     deps = [
         ":map_level",
@@ -107,6 +109,7 @@ cc_library(
 
 cc_test(
     name = "account_test",
+    size = "small",
     srcs = ["account_test.cc"],
     deps = [
         ":account",
@@ -142,6 +145,7 @@ cc_library(
 
 cc_test(
     name = "save_test",
+    size = "small",
     srcs = ["save_test.cc"],
     deps = [
         ":game_state",
@@ -231,6 +235,7 @@ cc_binary(
 
 cc_test(
     name = "proto_loader_test",
+    size = "small",
     srcs = ["proto_loader_test.cc"],
     deps = [
         ":proto_loader",
@@ -244,6 +249,7 @@ cc_test(
 
 cc_test(
     name = "game_state_test",
+    size = "small",
     srcs = ["game_state_test.cc"],
     deps = [
         ":game_state",

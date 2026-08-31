@@ -24,6 +24,7 @@ cc_library(
 
 cc_test(
     name = "log_file_test",
+    size = "small",
     srcs = ["log_file_test.cc"],
     deps = [
         ":log_file",
@@ -63,6 +64,7 @@ cc_library(
 
 cc_test(
     name = "fight_test",
+    size = "small",
     srcs = ["fight_test.cc"],
     deps = [
         ":fight",
@@ -76,6 +78,7 @@ cc_test(
 
 cc_test(
     name = "lobby_test",
+    size = "small",
     srcs = ["lobby_test.cc"],
     deps = [
         ":lobby",
@@ -172,6 +175,7 @@ release_binary(
 
 cc_test(
     name = "server_test",
+    size = "small",
     srcs = ["server_test.cc"],
     deps = [
         ":server",

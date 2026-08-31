@@ -28,6 +28,7 @@ cc_library(
 
 cc_test(
     name = "character_panel_test",
+    size = "small",
     srcs = ["character_panel_test.cc"],
     deps = [
         ":character_panel",
@@ -67,6 +68,7 @@ cc_library(
 
 cc_test(
     name = "equipped_panel_test",
+    size = "small",
     srcs = ["equipped_panel_test.cc"],
     deps = [
         ":equipped_panel",
@@ -110,6 +112,7 @@ cc_library(
 
 cc_test(
     name = "inventory_panel_test",
+    size = "small",
     srcs = ["inventory_panel_test.cc"],
     deps = [
         ":inventory_panel",
@@ -143,6 +146,7 @@ cc_library(
 
 cc_test(
     name = "menu_panel_test",
+    size = "small",
     srcs = ["menu_panel_test.cc"],
     deps = [
         ":menu_panel",
@@ -175,6 +179,7 @@ cc_library(
 
 cc_test(
     name = "combat_panel_test",
+    size = "small",
     srcs = ["combat_panel_test.cc"],
     deps = [
         ":combat_panel",
@@ -216,6 +221,7 @@ cc_library(
 
 cc_test(
     name = "level_up_popup_panel_test",
+    size = "small",
     srcs = ["level_up_popup_panel_test.cc"],
     deps = [
         ":level_up_popup_panel",
@@ -241,6 +247,7 @@ cc_library(
 
 cc_test(
     name = "offline_popup_panel_test",
+    size = "small",
     srcs = ["offline_popup_panel_test.cc"],
     deps = [
         ":offline_popup_panel",
@@ -265,6 +272,7 @@ cc_library(
 
 cc_test(
     name = "advancement_popup_panel_test",
+    size = "small",
     srcs = ["advancement_popup_panel_test.cc"],
     deps = [
         ":advancement_popup_panel",
@@ -289,6 +297,7 @@ cc_library(
 
 cc_test(
     name = "death_popup_panel_test",
+    size = "small",
     srcs = ["death_popup_panel_test.cc"],
     deps = [
         ":death_popup_panel",
@@ -302,6 +311,7 @@ cc_test(
 
 cc_test(
     name = "hotkeys_panel_test",
+    size = "small",
     srcs = ["hotkeys_panel_test.cc"],
     deps = [
         ":hotkeys_panel",
