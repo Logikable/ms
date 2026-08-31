@@ -182,20 +182,20 @@ TEST_F(SaveTest, WritesAndReadsBackBothHyperStatPresets) {
   grown.set_level(160);
   saved->character.RestoreFrom(grown, saved->equips, saved->items);
   ASSERT_TRUE(saved->character.AllocateHyperStat(HYPER_STAT_FIELD_EXP,
-                                                 HyperPreset::kFarming, 4));
+                                                 StatPreset::kFarming, 4));
   ASSERT_TRUE(saved->character.AllocateHyperStat(HYPER_STAT_FIELD_BOSS_DAMAGE,
-                                                 HyperPreset::kBossing, 5));
+                                                 StatPreset::kBossing, 5));
   ASSERT_TRUE(SaveGameToFile(*saved, path_));
 
   std::unique_ptr<GameState> loaded = MakeState();
   ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
   EXPECT_EQ(loaded->character.hyper_stat_level(HYPER_STAT_FIELD_EXP,
-                                               HyperPreset::kFarming),
+                                               StatPreset::kFarming),
             4);
   EXPECT_EQ(loaded->character.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE,
-                                               HyperPreset::kBossing),
+                                               StatPreset::kBossing),
             5);
-  EXPECT_EQ(loaded->character.hyper_stat_points_left(HyperPreset::kFarming),
+  EXPECT_EQ(loaded->character.hyper_stat_points_left(StatPreset::kFarming),
             75 - 15);
 }
 

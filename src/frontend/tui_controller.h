@@ -130,11 +130,11 @@ class TuiController {
   void OpenAllStats();
   // The Hyper tab's two questions. `preset` is the allocation the panel's
   // Farm/Boss row is on, since the panel is what knows that.
-  void OpenHyperAllocate(HyperStatField field, HyperPreset preset);
-  void OpenHyperReset(HyperPreset preset);
+  void OpenHyperAllocate(HyperStatField field, StatPreset preset);
+  void OpenHyperReset(StatPreset preset);
   // The card Enter on a stat's name opens. Never gated: a stat the character
   // is too low for is the one they most want to read about.
-  void OpenHyperStatInspect(HyperStatField field, HyperPreset preset);
+  void OpenHyperStatInspect(HyperStatField field, StatPreset preset);
   HyperStatField hyper_inspect_field() const {
     return hyper_field_;
   }
@@ -581,7 +581,7 @@ class TuiController {
   // What the open Hyper Stat question is about. Held rather than read back off
   // the panel, so the answer lands on the stat the question named.
   HyperStatField hyper_field_ = HYPER_STAT_FIELD_UNSPECIFIED;
-  HyperPreset hyper_preset_ = HyperPreset::kFarming;
+  StatPreset hyper_preset_ = StatPreset::kFarming;
   SymbolCombinePanel symbol_combine_panel_;
   HammerPanel hammer_panel_;
   // The worn symbol the two symbol dialogs are asking about. Held so the

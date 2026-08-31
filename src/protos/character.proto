@@ -354,7 +354,7 @@ message Character {
 
   // The two Hyper Stat allocations, spent from a pool that opens at level 140.
   // Both are the player's to fill; which one is in play is decided by the
-  // activity -- see HyperPreset.
+  // activity -- see StatPreset.
   HyperStats hyper_stats = 20;
 
   // The two Inner Ability setups, which open at level 160. Both start on the

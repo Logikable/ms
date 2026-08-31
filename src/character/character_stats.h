@@ -418,7 +418,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills,
                              absl::Span<const Skill* const> buffs_up = {},
                              absl::Span<const CharacterInstance> allies = {},
-                             HyperPreset preset = HyperPreset::kFarming);
+                             StatPreset preset = StatPreset::kFarming);
 
 // The offensive half of the derived stats, in the shape combat/damage.h asks
 // for them. One place to keep in step with DerivedStats, rather than every

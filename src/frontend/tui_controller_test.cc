@@ -3401,7 +3401,7 @@ TEST_F(TuiControllerTest, LevellingFromTheItemMenuStillGrantsTheSymbol) {
 
 TEST_F(TuiControllerTest, ConfirmingTheHyperQuestionSpendsThePoint) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, HyperPreset::kFarming);
+  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
   ASSERT_EQ(controller_->screen(), kHyperAlloc);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
@@ -3410,7 +3410,7 @@ TEST_F(TuiControllerTest, ConfirmingTheHyperQuestionSpendsThePoint) {
 
 TEST_F(TuiControllerTest, WalkingAwayFromItSpendsNothing) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, HyperPreset::kFarming);
+  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR), 0);
@@ -3419,22 +3419,22 @@ TEST_F(TuiControllerTest, WalkingAwayFromItSpendsNothing) {
 // The question names the allocation, and the answer empties that one alone.
 TEST_F(TuiControllerTest, TheResetEmptiesTheAllocationItNamed) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, HyperPreset::kFarming);
+  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
   controller_->OnEvent(ftxui::Event::Return);
-  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_DEX, HyperPreset::kBossing);
+  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_DEX, StatPreset::kBossing);
   controller_->OnEvent(ftxui::Event::Return);
 
-  controller_->OpenHyperReset(HyperPreset::kBossing);
+  controller_->OpenHyperReset(StatPreset::kBossing);
   EXPECT_EQ(controller_->hyper_reset_question(), "Reset Boss Hyper Stats?");
   // It opens on Cancel, so getting to Confirm is a step of its own.
   controller_->OnEvent(ftxui::Event::ArrowLeft);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_DEX,
-                                               HyperPreset::kBossing),
+                                               StatPreset::kBossing),
             0);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR,
-                                               HyperPreset::kFarming),
+                                               StatPreset::kFarming),
             1);
 }
 
@@ -3442,11 +3442,10 @@ TEST_F(TuiControllerTest, TheResetEmptiesTheAllocationItNamed) {
 // character -- a point spent and the stat opened again says the new one.
 TEST_F(TuiControllerTest, TheHyperStatCardReadsTheAllocationItWasOpenedOn) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, HyperPreset::kBossing);
+  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, StatPreset::kBossing);
   controller_->OnEvent(ftxui::Event::Return);
 
-  controller_->OpenHyperStatInspect(HYPER_STAT_FIELD_STR,
-                                    HyperPreset::kBossing);
+  controller_->OpenHyperStatInspect(HYPER_STAT_FIELD_STR, StatPreset::kBossing);
   EXPECT_EQ(controller_->screen(), kHyperStatInspect);
   EXPECT_EQ(controller_->hyper_inspect_field(), HYPER_STAT_FIELD_STR);
   EXPECT_EQ(controller_->hyper_inspect_level(), 1);
@@ -3454,8 +3453,7 @@ TEST_F(TuiControllerTest, TheHyperStatCardReadsTheAllocationItWasOpenedOn) {
             state_->character.max_hyper_stat_level());
 
   // The other allocation has had nothing spent on it.
-  controller_->OpenHyperStatInspect(HYPER_STAT_FIELD_STR,
-                                    HyperPreset::kFarming);
+  controller_->OpenHyperStatInspect(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
   EXPECT_EQ(controller_->hyper_inspect_level(), 0);
 
   // Nothing to do but read it, so either key leaves.
@@ -3466,9 +3464,9 @@ TEST_F(TuiControllerTest, TheHyperStatCardReadsTheAllocationItWasOpenedOn) {
 // Enter alone on the reset dialog walks away rather than emptying it.
 TEST_F(TuiControllerTest, TheResetOpensOnCancel) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, HyperPreset::kFarming);
+  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
   controller_->OnEvent(ftxui::Event::Return);
-  controller_->OpenHyperReset(HyperPreset::kFarming);
+  controller_->OpenHyperReset(StatPreset::kFarming);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR), 1);
 }

@@ -114,18 +114,18 @@ TEST(HyperStatsTest, SpentPointsAreTheCostOfEveryLevel) {
 
 TEST(HyperStatsTest, PresetsAreToldApart) {
   HyperStats stats;
-  (*PresetOf(stats, HyperPreset::kFarming)
+  (*PresetOf(stats, StatPreset::kFarming)
         .mutable_levels())[HYPER_STAT_FIELD_EXP] = 3;
-  (*PresetOf(stats, HyperPreset::kBossing)
+  (*PresetOf(stats, StatPreset::kBossing)
         .mutable_levels())[HYPER_STAT_FIELD_BOSS_DAMAGE] = 4;
   const HyperStats& read = stats;
-  EXPECT_EQ(HyperStatLevel(PresetOf(read, HyperPreset::kFarming),
+  EXPECT_EQ(HyperStatLevel(PresetOf(read, StatPreset::kFarming),
                            HYPER_STAT_FIELD_EXP),
             3);
-  EXPECT_EQ(HyperStatLevel(PresetOf(read, HyperPreset::kFarming),
+  EXPECT_EQ(HyperStatLevel(PresetOf(read, StatPreset::kFarming),
                            HYPER_STAT_FIELD_BOSS_DAMAGE),
             0);
-  EXPECT_EQ(HyperStatLevel(PresetOf(read, HyperPreset::kBossing),
+  EXPECT_EQ(HyperStatLevel(PresetOf(read, StatPreset::kBossing),
                            HYPER_STAT_FIELD_BOSS_DAMAGE),
             4);
 }

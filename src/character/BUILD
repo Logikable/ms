@@ -49,11 +49,16 @@ cc_test(
 )
 
 cc_library(
+    name = "stat_preset",
+    hdrs = ["stat_preset.h"],
+)
+
+cc_library(
     name = "inner_ability",
     srcs = ["inner_ability.cc"],
     hdrs = ["inner_ability.h"],
     deps = [
-        ":hyper_stats",
+        ":stat_preset",
         "//src/protos:character_proto_cc",
     ],
 )
@@ -72,7 +77,10 @@ cc_library(
     name = "hyper_stats",
     srcs = ["hyper_stats.cc"],
     hdrs = ["hyper_stats.h"],
-    deps = ["//src/protos:character_proto_cc"],
+    deps = [
+        ":stat_preset",
+        "//src/protos:character_proto_cc",
+    ],
 )
 
 cc_test(

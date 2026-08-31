@@ -16,6 +16,7 @@
 #ifndef MS_SRC_CHARACTER_HYPER_STATS_H_
 #define MS_SRC_CHARACTER_HYPER_STATS_H_
 
+#include "src/character/stat_preset.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {
@@ -35,14 +36,9 @@ inline constexpr int kFifthJobStage = 5;
 // stat is worth nothing without one.
 inline constexpr int kArcaneForceHyperLevel = 200;
 
-// Which of a character's two allocations is in play. Farming is the one
-// everything reads unless it is told otherwise; a boss fight asks for the
-// other.
-enum class HyperPreset { kFarming, kBossing };
-
 // The allocation `preset` names.
-const HyperStatPreset& PresetOf(const HyperStats& stats, HyperPreset preset);
-HyperStatPreset& PresetOf(HyperStats& stats, HyperPreset preset);
+const HyperStatPreset& PresetOf(const HyperStats& stats, StatPreset preset);
+HyperStatPreset& PresetOf(HyperStats& stats, StatPreset preset);
 
 // Points reaching `level` pays out: floor(level / 10) - 11, so 3 a level at
 // 140, 4 at 150, and 19 at 300. Zero below the unlock level.

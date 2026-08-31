@@ -43,13 +43,15 @@ constexpr AbilityRow kRows[] = {
     {ABILITY_LINE_TYPE_ATTACK_SPEED, {0, 0, 0, 1}, {0, 0, 0, 5}},
 };
 
-// Honor a reset costs, by rank and then by lines held. Rare and Epic can hold
-// nothing, so their rows repeat: the price of a lock they cannot buy is the
-// price of the reset they can.
+// Honor a reset costs, by rank and then by lines held. A zero is a reset that
+// cannot be asked for: only a Unique or Legendary line holds, so a Rare or
+// Epic ability holds nothing, and a Unique one holds only its top line -- its
+// other two roll a rung below it and are never lockable. Two lines first
+// become holdable at Legendary.
 constexpr int64_t kResetCost[4][kMaxLockedAbilityLines + 1] = {
-    {100, 100, 100},
-    {200, 200, 200},
-    {1500, 3000, 5500},
+    {100, 0, 0},
+    {200, 0, 0},
+    {1500, 3000, 0},
     {8000, 11000, 16000},
 };
 
@@ -133,15 +135,15 @@ AbilityLine RollLine(AbilityRank rank, std::set<AbilityLineType>& taken,
 
 }  // namespace
 
-const AbilityPreset& PresetOf(const InnerAbility& ability, HyperPreset preset) {
-  if (preset == HyperPreset::kBossing) {
+const AbilityPreset& PresetOf(const InnerAbility& ability, StatPreset preset) {
+  if (preset == StatPreset::kBossing) {
     return ability.bossing();
   }
   return ability.farming();
 }
 
-AbilityPreset& PresetOf(InnerAbility& ability, HyperPreset preset) {
-  if (preset == HyperPreset::kBossing) {
+AbilityPreset& PresetOf(InnerAbility& ability, StatPreset preset) {
+  if (preset == StatPreset::kBossing) {
     return *ability.mutable_bossing();
   }
   return *ability.mutable_farming();

@@ -2292,7 +2292,7 @@ CharacterInstance HyperStatCharacter(std::mt19937& rng) {
 
 TEST_F(DerivedStatsTest, HyperStatsReachEveryLeverTheyName) {
   CharacterInstance c = HyperStatCharacter(rng_);
-  const HyperPreset farming = HyperPreset::kFarming;
+  const StatPreset farming = StatPreset::kFarming;
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_STR, farming, 10));
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_MAX_HP, farming, 5));
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_CRIT_RATE, farming, 5));
@@ -2311,7 +2311,7 @@ TEST_F(DerivedStatsTest, HyperStatsReachEveryLeverTheyName) {
 
 TEST_F(DerivedStatsTest, HyperDamageLeversSplitBossFromNormal) {
   CharacterInstance c = HyperStatCharacter(rng_);
-  const HyperPreset farming = HyperPreset::kFarming;
+  const StatPreset farming = StatPreset::kFarming;
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, farming, 5));
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_BOSS_DAMAGE, farming, 5));
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_NORMAL_DAMAGE, farming, 5));
@@ -2334,7 +2334,7 @@ TEST_F(DerivedStatsTest, MapleWarriorLeavesTheHyperStatAlone) {
   std::map<std::string, Skill> skills = {{"maple_warrior", mw}};
   ASSERT_TRUE(c.LearnSkill(mw, 30));
   ASSERT_TRUE(
-      c.AllocateHyperStat(HYPER_STAT_FIELD_STR, HyperPreset::kFarming, 10));
+      c.AllocateHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming, 10));
 
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_EQ(stats.skill_stats.str(), 150 + 300 + 30)
@@ -2346,7 +2346,7 @@ TEST_F(DerivedStatsTest, MapleWarriorLeavesTheHyperStatAlone) {
 // A character holding `lines` in the named preset, at a level that pays them.
 CharacterInstance AbilityCharacter(std::mt19937& rng, AbilityRank rank,
                                    const std::vector<AbilityLine>& lines,
-                                   HyperPreset preset = HyperPreset::kFarming,
+                                   StatPreset preset = StatPreset::kFarming,
                                    int level = 160) {
   Character proto;
   proto.set_level(level);
@@ -2374,7 +2374,7 @@ AbilityLine Line(AbilityLineType type, AbilityRank rank) {
 // below the unlock level pays at all.
 TEST_F(DerivedStatsTest, TheDefaultLinesPayFromLevel160) {
   CharacterInstance below = AbilityCharacter(
-      rng_, ABILITY_RANK_RARE, {}, HyperPreset::kFarming, /*level=*/159);
+      rng_, ABILITY_RANK_RARE, {}, StatPreset::kFarming, /*level=*/159);
   EXPECT_EQ(DerivedStatsFor(below, {}).skill_stats.str(), 0);
 
   CharacterInstance c = AbilityCharacter(rng_, ABILITY_RANK_RARE, {});
@@ -2477,22 +2477,22 @@ TEST_F(DerivedStatsTest, TheBossingAbilityIsReadOnlyWhenAskedFor) {
       {Line(ABILITY_LINE_TYPE_BOSS_DAMAGE, ABILITY_RANK_LEGENDARY),
        Line(ABILITY_LINE_TYPE_MESO, ABILITY_RANK_EPIC),
        Line(ABILITY_LINE_TYPE_ITEM_DROP, ABILITY_RANK_EPIC)},
-      HyperPreset::kBossing);
+      StatPreset::kBossing);
 
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).boss_pct, 0.0);
   EXPECT_DOUBLE_EQ(
-      DerivedStatsFor(c, {}, {}, {}, HyperPreset::kBossing).boss_pct, 0.20);
+      DerivedStatsFor(c, {}, {}, {}, StatPreset::kBossing).boss_pct, 0.20);
 }
 
 // The allocation read is the one the caller asks for.
 TEST_F(DerivedStatsTest, TheBossingAllocationIsReadOnlyWhenAskedFor) {
   CharacterInstance c = HyperStatCharacter(rng_);
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_BOSS_DAMAGE,
-                                  HyperPreset::kBossing, 10));
+                                  StatPreset::kBossing, 10));
 
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).boss_pct, 0.0);
   EXPECT_DOUBLE_EQ(
-      DerivedStatsFor(c, {}, {}, {}, HyperPreset::kBossing).boss_pct, 0.35);
+      DerivedStatsFor(c, {}, {}, {}, StatPreset::kBossing).boss_pct, 0.35);
 }
 
 // Arcane Force from the Hyper Stat meets what the symbols carry.
@@ -2500,9 +2500,9 @@ TEST_F(DerivedStatsTest, HyperArcaneForceAddsToTheSymbols) {
   CharacterInstance c = HyperStatCharacter(rng_);
   EXPECT_EQ(c.arcane_force(), 0);
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_ARCANE_FORCE,
-                                  HyperPreset::kFarming, 10));
+                                  StatPreset::kFarming, 10));
   EXPECT_EQ(c.arcane_force(), 50);
-  EXPECT_EQ(c.arcane_force(HyperPreset::kBossing), 0);
+  EXPECT_EQ(c.arcane_force(StatPreset::kBossing), 0);
 }
 
 // --- Final Pact ---

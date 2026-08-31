@@ -720,7 +720,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
 // Percentages arrive as whole percents and are divided here, the way a worn
 // item's are. Arcane Force is not among them -- it is not a stat the damage
 // chain reads, and CharacterInstance::arcane_force answers for it.
-void AddHyperStats(const CharacterInstance& character, HyperPreset preset,
+void AddHyperStats(const CharacterInstance& character, StatPreset preset,
                    PassiveTotals& totals) {
   static_assert(HyperStatField_ARRAYSIZE == 16,
                 "a new Hyper Stat needs somewhere to land");
@@ -775,7 +775,7 @@ void AddHyperStats(const CharacterInstance& character, HyperPreset preset,
 //
 // A line below the unlock level pays nothing, so the panel opening and the
 // stats arriving are one event.
-void AddInnerAbility(const CharacterInstance& character, HyperPreset preset,
+void AddInnerAbility(const CharacterInstance& character, StatPreset preset,
                      PassiveTotals& totals) {
   static_assert(AbilityLineType_ARRAYSIZE == 17,
                 "a new Inner Ability line needs somewhere to land");
@@ -1060,7 +1060,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills,
                              absl::Span<const Skill* const> buffs_up,
                              absl::Span<const CharacterInstance> allies,
-                             HyperPreset preset) {
+                             StatPreset preset) {
   const Character& proto = character.proto();
   const AllocatedStats& allocated = proto.allocated_stats();
   const EquipStats& equipped = character.equip_stats();

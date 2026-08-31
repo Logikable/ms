@@ -86,7 +86,7 @@ class CharacterPanel {
   // Which of the character's two Hyper Stat allocations the panel is reading,
   // which the Farm/Boss row picks. The All Stats screen opens on it too, so
   // the two never disagree about whose numbers are on screen.
-  HyperPreset hyper_preset() const {
+  StatPreset hyper_preset() const {
     return hyper_preset_;
   }
 
@@ -393,7 +393,7 @@ class CharacterPanel {
   int hyper_sel_ = 0;              // selected Hyper-tab stat row
   SkillCol hyper_col_ = kColName;  // selected column of that row
   // Which allocation the Farm/Boss row is on -- see hyper_preset().
-  HyperPreset hyper_preset_ = HyperPreset::kFarming;
+  StatPreset hyper_preset_ = StatPreset::kFarming;
   TextField username_field_{kMaxUsernameLength};
   // Written by ftxui::reflect on the selected job row each render.
   mutable ftxui::Box job_cursor_box_;

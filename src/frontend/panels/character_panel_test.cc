@@ -2297,16 +2297,16 @@ TEST_F(CharacterPanelTest, TheFarmBossRowPicksWhatTheStatsRead) {
 
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> the Farm/Boss row
   comp->OnEvent(ftxui::Event::ArrowRight);  // -> Boss
-  EXPECT_EQ(panel.hyper_preset(), HyperPreset::kBossing);
+  EXPECT_EQ(panel.hyper_preset(), StatPreset::kBossing);
   EXPECT_NE(RenderComponentText(comp).find("STR: 60 (0+60)"),
             std::string::npos);
 
   // The bars in this panel clamp rather than wrap, so the end is the end.
   comp->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_EQ(panel.hyper_preset(), HyperPreset::kBossing);
+  EXPECT_EQ(panel.hyper_preset(), StatPreset::kBossing);
   comp->OnEvent(ftxui::Event::ArrowLeft);
   comp->OnEvent(ftxui::Event::ArrowLeft);
-  EXPECT_EQ(panel.hyper_preset(), HyperPreset::kFarming);
+  EXPECT_EQ(panel.hyper_preset(), StatPreset::kFarming);
 }
 
 // And it is a stop in the same ring: Down off it lands on the first stat.

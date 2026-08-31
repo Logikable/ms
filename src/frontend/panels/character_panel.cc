@@ -412,7 +412,7 @@ int CharacterPanel::StatsTabFixedRows() const {
 ftxui::Element CharacterPanel::RenderPresetBar(bool bar_focused,
                                                bool with_points) const {
   std::vector<TabSpec> specs = {{kFarmTabLabel}, {kBossTabLabel}};
-  int active = hyper_preset_ == HyperPreset::kBossing ? 1 : 0;
+  int active = hyper_preset_ == StatPreset::kBossing ? 1 : 0;
   int width = with_points ? ContentWidth() - kHyperPointsCol : ContentWidth();
   std::vector<ftxui::Element> row = {TabBar(specs, active, bar_focused, width),
                                      ftxui::filler()};
@@ -1034,11 +1034,11 @@ bool CharacterPanel::OnPresetBarEvent(const ftxui::Event& event) {
     return true;
   }
   if (event == ftxui::Event::ArrowLeft) {
-    hyper_preset_ = HyperPreset::kFarming;
+    hyper_preset_ = StatPreset::kFarming;
     return true;
   }
   if (event == ftxui::Event::ArrowRight) {
-    hyper_preset_ = HyperPreset::kBossing;
+    hyper_preset_ = StatPreset::kBossing;
     return true;
   }
   return false;

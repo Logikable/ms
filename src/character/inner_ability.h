@@ -10,11 +10,11 @@
  * rank, the other two are rolled a rung or more below it, and a reset can
  * carry the whole ability up a rank but never down.
  *
- * A character keeps two setups, farming and bossing, chosen between the way
- * the Hyper Stat presets are -- and paid for out of one honor pool.
+ * A character keeps one setup per StatPreset, and both are paid for out of
+ * the one honor pool.
  *
  * Pure math over the protos, like hyper_stats.h. Spending the honor is
- * CharacterInstance::RerollAbility's business.
+ * CharacterInstance::ResetAbility's business.
  */
 #ifndef MS_SRC_CHARACTER_INNER_ABILITY_H_
 #define MS_SRC_CHARACTER_INNER_ABILITY_H_
@@ -22,7 +22,7 @@
 #include <cstdint>
 #include <random>
 
-#include "src/character/hyper_stats.h"
+#include "src/character/stat_preset.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {
@@ -43,8 +43,8 @@ inline constexpr AbilityLineType kDefaultAbilityLineType =
 inline constexpr AbilityRank kDefaultAbilityRank = ABILITY_RANK_RARE;
 
 // The setup `preset` names.
-const AbilityPreset& PresetOf(const InnerAbility& ability, HyperPreset preset);
-AbilityPreset& PresetOf(InnerAbility& ability, HyperPreset preset);
+const AbilityPreset& PresetOf(const InnerAbility& ability, StatPreset preset);
+AbilityPreset& PresetOf(InnerAbility& ability, StatPreset preset);
 
 // The three Rare All Stats lines a new character is handed.
 AbilityPreset DefaultAbilityPreset();

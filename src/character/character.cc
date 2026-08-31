@@ -822,7 +822,7 @@ void CharacterInstance::EnsureUsername() {
 
 void CharacterInstance::EnsureInnerAbility() {
   InnerAbility& ability = *character_.mutable_inner_ability();
-  for (HyperPreset preset : {HyperPreset::kFarming, HyperPreset::kBossing}) {
+  for (StatPreset preset : {StatPreset::kFarming, StatPreset::kBossing}) {
     if (PresetOf(ability, preset).lines_size() == 0) {
       PresetOf(ability, preset) = DefaultAbilityPreset();
     }
@@ -1106,7 +1106,7 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
   return true;
 }
 
-int CharacterInstance::arcane_force(HyperPreset preset) const {
+int CharacterInstance::arcane_force(StatPreset preset) const {
   return arcane_force_ + static_cast<int>(hyper_stat_bonus(
                              HYPER_STAT_FIELD_ARCANE_FORCE, preset));
 }
@@ -1115,18 +1115,18 @@ int CharacterInstance::hyper_stat_points() const {
   return TotalHyperStatPoints(character_.level());
 }
 
-int CharacterInstance::hyper_stat_points_left(HyperPreset preset) const {
+int CharacterInstance::hyper_stat_points_left(StatPreset preset) const {
   return hyper_stat_points() -
          HyperStatPointsSpent(PresetOf(character_.hyper_stats(), preset));
 }
 
 int CharacterInstance::hyper_stat_level(HyperStatField field,
-                                        HyperPreset preset) const {
+                                        StatPreset preset) const {
   return HyperStatLevel(PresetOf(character_.hyper_stats(), preset), field);
 }
 
 double CharacterInstance::hyper_stat_bonus(HyperStatField field,
-                                           HyperPreset preset) const {
+                                           StatPreset preset) const {
   return HyperStatBonus(field, hyper_stat_level(field, preset));
 }
 
@@ -1134,18 +1134,18 @@ int CharacterInstance::max_hyper_stat_level() const {
   return MaxHyperStatLevel(character_.job_stage());
 }
 
-int64_t CharacterInstance::ability_reset_cost(HyperPreset preset) const {
+int64_t CharacterInstance::ability_reset_cost(StatPreset preset) const {
   const AbilityPreset& lines = ability(preset);
   return AbilityResetCost(lines.rank(), LockedAbilityLines(lines));
 }
 
 bool CharacterInstance::LockAbilityLine(int index, bool locked,
-                                        HyperPreset preset) {
+                                        StatPreset preset) {
   return SetAbilityLineLocked(
       PresetOf(*character_.mutable_inner_ability(), preset), index, locked);
 }
 
-bool CharacterInstance::ResetAbility(HyperPreset preset) {
+bool CharacterInstance::ResetAbility(StatPreset preset) {
   const int64_t cost = ability_reset_cost(preset);
   if (!inner_ability_unlocked() || cost <= 0 || character_.honor() < cost) {
     return false;
@@ -1156,7 +1156,7 @@ bool CharacterInstance::ResetAbility(HyperPreset preset) {
 }
 
 bool CharacterInstance::AllocateHyperStat(HyperStatField field,
-                                          HyperPreset preset, int amount) {
+                                          StatPreset preset, int amount) {
   if (amount <= 0 || !HyperStatUnlocked(field, character_.level())) {
     return false;
   }
@@ -1174,11 +1174,11 @@ bool CharacterInstance::AllocateHyperStat(HyperStatField field,
   return true;
 }
 
-void CharacterInstance::ResetHyperStats(HyperPreset preset) {
+void CharacterInstance::ResetHyperStats(StatPreset preset) {
   PresetOf(*character_.mutable_hyper_stats(), preset).clear_levels();
 }
 
-int CharacterInstance::ReconcileHyperPreset(HyperPreset preset) {
+int CharacterInstance::ReconcileHyperPreset(StatPreset preset) {
   HyperStatPreset& allocation =
       PresetOf(*character_.mutable_hyper_stats(), preset);
   int moved = 0;
@@ -1228,8 +1228,8 @@ int CharacterInstance::ReconcileHyperPreset(HyperPreset preset) {
 
 int CharacterInstance::ReconcileHyperStats() {
   int moved = 0;
-  const HyperPreset presets[] = {HyperPreset::kFarming, HyperPreset::kBossing};
-  for (HyperPreset preset : presets) {
+  const StatPreset presets[] = {StatPreset::kFarming, StatPreset::kBossing};
+  for (StatPreset preset : presets) {
     moved += ReconcileHyperPreset(preset);
   }
   if (moved > 0) {

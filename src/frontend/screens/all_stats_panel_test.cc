@@ -194,15 +194,15 @@ TEST_F(AllStatsPanelTest, TheFarmBossRowPicksWhoseNumbersTheseAre) {
             std::string::npos);
 
   EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
-  EXPECT_EQ(panel.preset(), HyperPreset::kBossing);
+  EXPECT_EQ(panel.preset(), StatPreset::kBossing);
   EXPECT_NE(RowWith(panel.Render(), "STR").find("(0+60) 60"),
             std::string::npos);
 
   // Clamped at both ends, like every tab bar in the game.
   EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
-  EXPECT_EQ(panel.preset(), HyperPreset::kBossing);
+  EXPECT_EQ(panel.preset(), StatPreset::kBossing);
   EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowLeft));
-  EXPECT_EQ(panel.preset(), HyperPreset::kFarming);
+  EXPECT_EQ(panel.preset(), StatPreset::kFarming);
 }
 
 // Below the level there is nothing to pick between, and no row.

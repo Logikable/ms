@@ -114,6 +114,11 @@ TEST(InnerAbilityTest, ResetCostAndRankUpChance) {
   EXPECT_EQ(AbilityResetCost(ABILITY_RANK_UNIQUE, 1), 3000);
   EXPECT_EQ(AbilityResetCost(ABILITY_RANK_LEGENDARY, 2), 16000);
   EXPECT_EQ(AbilityResetCost(ABILITY_RANK_LEGENDARY, 3), 0);
+  // A hold no ability of that rank can take is priced at nothing: only its
+  // top line is ever Unique, and Rare and Epic lines never hold.
+  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_UNIQUE, 2), 0);
+  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_RARE, 1), 0);
+  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_EPIC, 1), 0);
 
   EXPECT_DOUBLE_EQ(AbilityRankUpChance(ABILITY_RANK_RARE), 0.05);
   EXPECT_DOUBLE_EQ(AbilityRankUpChance(ABILITY_RANK_EPIC), 0.02);
@@ -137,11 +142,11 @@ TEST(InnerAbilityTest, PresetOfPicksTheNamedSetup) {
   InnerAbility ability;
   ability.mutable_farming()->set_rank(ABILITY_RANK_EPIC);
   ability.mutable_bossing()->set_rank(ABILITY_RANK_LEGENDARY);
-  EXPECT_EQ(PresetOf(ability, HyperPreset::kFarming).rank(), ABILITY_RANK_EPIC);
-  EXPECT_EQ(PresetOf(ability, HyperPreset::kBossing).rank(),
+  EXPECT_EQ(PresetOf(ability, StatPreset::kFarming).rank(), ABILITY_RANK_EPIC);
+  EXPECT_EQ(PresetOf(ability, StatPreset::kBossing).rank(),
             ABILITY_RANK_LEGENDARY);
 
-  PresetOf(ability, HyperPreset::kFarming).set_rank(ABILITY_RANK_UNIQUE);
+  PresetOf(ability, StatPreset::kFarming).set_rank(ABILITY_RANK_UNIQUE);
   EXPECT_EQ(ability.farming().rank(), ABILITY_RANK_UNIQUE);
   EXPECT_EQ(ability.bossing().rank(), ABILITY_RANK_LEGENDARY);
 }

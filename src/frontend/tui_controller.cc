@@ -147,8 +147,7 @@ void TuiController::OpenAllStats() {
   screen_ = kAllStats;
 }
 
-void TuiController::OpenHyperAllocate(HyperStatField field,
-                                      HyperPreset preset) {
+void TuiController::OpenHyperAllocate(HyperStatField field, StatPreset preset) {
   hyper_field_ = field;
   hyper_preset_ = preset;
   int level = state_.character.hyper_stat_level(field, preset);
@@ -159,7 +158,7 @@ void TuiController::OpenHyperAllocate(HyperStatField field,
 }
 
 void TuiController::OpenHyperStatInspect(HyperStatField field,
-                                         HyperPreset preset) {
+                                         StatPreset preset) {
   hyper_field_ = field;
   hyper_preset_ = preset;
   screen_ = kHyperStatInspect;
@@ -173,7 +172,7 @@ int TuiController::hyper_inspect_max_level() const {
   return state_.character.max_hyper_stat_level();
 }
 
-void TuiController::OpenHyperReset(HyperPreset preset) {
+void TuiController::OpenHyperReset(StatPreset preset) {
   hyper_preset_ = preset;
   // Opens on Cancel: the points come back, but the allocation they were spent
   // on does not, and it is fourteen rows of work.
@@ -183,7 +182,7 @@ void TuiController::OpenHyperReset(HyperPreset preset) {
 
 std::string TuiController::hyper_reset_question() const {
   return std::string("Reset ") +
-         (hyper_preset_ == HyperPreset::kBossing ? "Boss" : "Farm") +
+         (hyper_preset_ == StatPreset::kBossing ? "Boss" : "Farm") +
          " Hyper Stats?";
 }
 

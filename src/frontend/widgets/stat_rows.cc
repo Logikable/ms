@@ -66,7 +66,7 @@ std::string TotalWithBreakdown(int base, int bonus) {
 std::vector<StatLine> CombatStatLines(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills, bool with_percents,
-    bool with_advanced, HyperPreset preset) {
+    bool with_advanced, StatPreset preset) {
   DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
                                          /*allies=*/{}, preset);
   const EquipStats e = TotalEquipStats(character, derived);
@@ -136,14 +136,14 @@ std::vector<StatLine> CombatStatLines(
 
 std::vector<StatLine> ExtraStatLines(const CharacterInstance& character,
                                      const std::map<std::string, Skill>& skills,
-                                     HyperPreset preset) {
+                                     StatPreset preset) {
   return CombatStatLines(character, skills, /*with_percents=*/true,
                          /*with_advanced=*/true, preset);
 }
 
 std::vector<StatLine> PanelExtraStatLines(
     const CharacterInstance& character, const AccountInstance& account,
-    const std::map<std::string, Skill>& skills, HyperPreset preset) {
+    const std::map<std::string, Skill>& skills, StatPreset preset) {
   if (!Unlocked(Feature::kCombatStats, character, account)) {
     return {};
   }
@@ -154,7 +154,7 @@ std::vector<StatLine> PanelExtraStatLines(
 
 std::vector<StatLine> MainStatLines(const CharacterInstance& character,
                                     const std::map<std::string, Skill>& skills,
-                                    HyperPreset preset) {
+                                    StatPreset preset) {
   DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
                                          /*allies=*/{}, preset);
   const EquipStats e = TotalEquipStats(character, derived);
@@ -171,7 +171,7 @@ std::vector<StatLine> MainStatLines(const CharacterInstance& character,
 
 int CharacterCombatPower(const CharacterInstance& character,
                          const std::map<std::string, Skill>& skills,
-                         HyperPreset preset) {
+                         StatPreset preset) {
   const Character& p = character.proto();
   DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
                                          /*allies=*/{}, preset);
@@ -180,7 +180,7 @@ int CharacterCombatPower(const CharacterInstance& character,
       TotalEquipStats(character, derived), character.weapon_type(),
       /*attack_skill=*/nullptr,
       /*attack_level=*/0, PassiveOffenseFor(derived));
-  return CombatPower(offense, preset == HyperPreset::kBossing);
+  return CombatPower(offense, preset == StatPreset::kBossing);
 }
 
 std::string CombatPowerText(int power) {

@@ -1188,7 +1188,7 @@ void TagBuffGatedPulses(const std::vector<const Skill*>& buff_skills,
 void AddBuffedSets(const GameState& state,
                    const std::vector<const Skill*>& buff_skills,
                    const EquipPrototype& weapon, double speed_factor,
-                   HyperPreset preset, CombatParams& params) {
+                   StatPreset preset, CombatParams& params) {
   int count = static_cast<int>(buff_skills.size());
   for (int mask = 1; mask < (1 << count); ++mask) {
     std::vector<const Skill*> up;
@@ -1289,7 +1289,7 @@ void AddPacing(const GameState& state, const DerivedStats& derived,
 // hit itself; see BuffOption.damage_taken_pct.
 void AddAttacks(const GameState& state, const DerivedStats& derived,
                 const EquipPrototype& weapon, double speed_factor,
-                HyperPreset preset, CombatParams& params) {
+                StatPreset preset, CombatParams& params) {
   AttackSet base =
       BuildAttackSet(state, derived, weapon, speed_factor, params.types);
   params.attacks = std::move(base.attacks);
@@ -1377,7 +1377,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   if (params.types.empty()) {
     return params;
   }
-  AddAttacks(state, derived, *weapon, speed_factor, HyperPreset::kFarming,
+  AddAttacks(state, derived, *weapon, speed_factor, StatPreset::kFarming,
              params);
   params.active = true;
   return params;
@@ -1398,7 +1398,7 @@ CombatParams ComputeBossParams(const GameState& state,
 
   // A boss fight is what the bossing allocation is for.
   DerivedStats derived = DerivedStatsFor(state.character, state.skills, {},
-                                         state.party, HyperPreset::kBossing);
+                                         state.party, StatPreset::kBossing);
   // A boss fight runs in real time whatever the character's level: the pacing
   // band stretches an idle map out so it can be left alone, and a fight the
   // player is sitting and watching wants neither the stretch nor a beat.
@@ -1409,7 +1409,7 @@ CombatParams ComputeBossParams(const GameState& state,
   if (params.types.empty()) {
     return params;
   }
-  AddAttacks(state, derived, *weapon, 1.0, HyperPreset::kBossing, params);
+  AddAttacks(state, derived, *weapon, 1.0, StatPreset::kBossing, params);
   HalveBossReach(params);
   // The boss screen draws every line as a number, which the map does not.
   params.record_damage_lines = true;
