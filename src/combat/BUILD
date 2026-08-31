@@ -8,6 +8,13 @@ cc_library(
 )
 
 cc_library(
+    name = "damage_ledger",
+    srcs = ["damage_ledger.cc"],
+    hdrs = ["damage_ledger.h"],
+    deps = [":damage"],
+)
+
+cc_library(
     name = "damage",
     srcs = ["damage.cc"],
     hdrs = ["damage.h"],
@@ -261,6 +268,7 @@ cc_library(
     srcs = ["fight.cc"],
     hdrs = ["fight.h"],
     deps = [
+        ":damage_ledger",
         ":encounter",
         "//src/protos:mob_proto_cc",
     ],

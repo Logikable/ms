@@ -397,7 +397,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   // Before anything lands, so every way this swing reaches one monster files
   // its lines under the one event -- the strike, the opening hit and whatever
   // follows them are one landing to the player watching.
-  OpenLandings(hit, source);
+  ledger_.OpenLandings(queue_.size(), hit, source);
   // A hold that was not timed by the swing clock decides here instead, which
   // is what an attack on a clock of its own would want.
   int held = attack.channel.pulses > 0
@@ -419,9 +419,9 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   for (int j : lead) {
     double freeze = StateBoost(attack, queue_[j]);
     double damage = attack.lead_damage[queue_[j].type] *
-                    RollFactor(attack.lead_rolls, rng_, LineSink());
-    RecordRolls(LandingAt(j, freeze),
-                attack.lead_damage[queue_[j].type] * freeze);
+                    RollFactor(attack.lead_rolls, rng_, ledger_.LineSink());
+    ledger_.RecordRolls(LandingAt(j, freeze),
+                        attack.lead_damage[queue_[j].type] * freeze);
     Hurt(queue_[j], damage * freeze);
   }
   // A Final Attack rolls separately against every enemy the swing reached, so
@@ -674,8 +674,9 @@ double CombatSim::ChannelDamage(const AttackOption& attack, int type,
   double total = 0.0;
   double pulse = PulseDamage(attack, type);
   for (int i = 0; i < pulses; ++i) {
-    total += pulse * RollFactor(attack.groups.front().rolls, rng_, LineSink());
-    RecordRolls(landing, pulse * landing.scale);
+    total += pulse *
+             RollFactor(attack.groups.front().rolls, rng_, ledger_.LineSink());
+    ledger_.RecordRolls(landing, pulse * landing.scale);
   }
   // Everything past the first group is the strike the hold ends on, landed
   // once however long the hold ran.
@@ -684,8 +685,9 @@ double CombatSim::ChannelDamage(const AttackOption& attack, int type,
     if (type >= static_cast<int>(group.damage.size())) {
       continue;
     }
-    total += group.damage[type] * RollFactor(group.rolls, rng_, LineSink());
-    RecordRolls(landing, group.damage[type] * landing.scale);
+    total +=
+        group.damage[type] * RollFactor(group.rolls, rng_, ledger_.LineSink());
+    ledger_.RecordRolls(landing, group.damage[type] * landing.scale);
   }
   return total;
 }
@@ -835,48 +837,6 @@ void CombatSim::CreditFreeze(const CombatParams& params,
   }
 }
 
-void CombatSim::OpenLandings(int hit, DamageSource source) {
-  if (!record_lines_) {
-    return;
-  }
-  landing_source_ = source;
-  landing_event_.assign(queue_.size(), 0);
-  for (int j = 0; j < hit && j < static_cast<int>(queue_.size()); ++j) {
-    landing_event_[j] = ++next_damage_event_;
-  }
-}
-
-Landing CombatSim::LandingAt(int index, double scale) const {
-  if (!record_lines_) {
-    return {0, 0, {}, scale};
-  }
-  int event = index < static_cast<int>(landing_event_.size())
-                  ? landing_event_[index]
-                  : 0;
-  return {queue_[index].id, event, landing_source_, scale};
-}
-
-void CombatSim::RecordLine(const Landing& landing, double damage, bool crit) {
-  if (!record_lines_) {
-    return;
-  }
-  damage_lines_this_step_.push_back(
-      {landing.mob_id, landing.event, landing.source, damage, crit});
-}
-
-void CombatSim::RecordRolls(const Landing& landing, double damage) {
-  if (!record_lines_) {
-    return;
-  }
-  for (const LineRoll& roll : line_rolls_) {
-    RecordLine(landing, damage * roll.share, roll.crit);
-  }
-}
-
-std::vector<LineRoll>* CombatSim::LineSink() {
-  return record_lines_ ? &line_rolls_ : nullptr;
-}
-
 void CombatSim::Hurt(QueuedMob& mob, double damage) {
   mob.hp -= damage;
   damage_this_step_ += damage;
@@ -1008,11 +968,12 @@ void CombatSim::RunDots(double dt) {
         dot.phase -= dot.interval_seconds;
         // Every helping ticks for the whole damage, and each rolls its own.
         for (int i = 0; i < dot.stacks; ++i) {
-          Hurt(mob, dot.damage * RollFactor(dot.rolls, rng_, LineSink()));
+          Hurt(mob,
+               dot.damage * RollFactor(dot.rolls, rng_, ledger_.LineSink()));
           // A tick is its own landing: it falls on its own clock, between the
           // swings rather than with one.
-          RecordRolls(
-              {mob.id, ++next_damage_event_, {DamageOrigin::kBurn, slot}, 1.0},
+          ledger_.RecordRolls(
+              {mob.id, ledger_.NextEvent(), {DamageOrigin::kBurn, slot}, 1.0},
               dot.damage);
         }
         burned = true;
@@ -1049,14 +1010,16 @@ void CombatSim::RunRegen(const CombatParams& params, double dt) {
 double CombatSim::RolledDamage(const AttackOption& attack, int type,
                                const Landing& landing) {
   if (attack.groups.empty()) {
-    RecordLine(landing, attack.damage_per_hit[type] * landing.scale, false);
+    ledger_.RecordLine(landing, attack.damage_per_hit[type] * landing.scale,
+                       false);
     return attack.damage_per_hit[type];
   }
   double total = 0.0;
   for (const HitGroup& group : attack.groups) {
     if (type < static_cast<int>(group.damage.size())) {
-      total += group.damage[type] * RollFactor(group.rolls, rng_, LineSink());
-      RecordRolls(landing, group.damage[type] * landing.scale);
+      total += group.damage[type] *
+               RollFactor(group.rolls, rng_, ledger_.LineSink());
+      ledger_.RecordRolls(landing, group.damage[type] * landing.scale);
     }
   }
   return total;
@@ -1066,7 +1029,7 @@ double CombatSim::RolledFinalAttack(const std::vector<FinalAttackRoll>& sources,
                                     const std::vector<double>& expected,
                                     int type, const Landing& landing) {
   if (sources.empty()) {
-    RecordLine(landing, expected[type] * landing.scale, false);
+    ledger_.RecordLine(landing, expected[type] * landing.scale, false);
     return expected[type];
   }
   double total = 0.0;
@@ -1083,9 +1046,9 @@ double CombatSim::RolledFinalAttack(const std::vector<FinalAttackRoll>& sources,
     for (int roll = 0; roll < source.count; ++roll) {
       int hits = certain + (lands(rng_) ? 1 : 0);
       for (int hit = 0; hit < hits; ++hit) {
-        total +=
-            source.damage[type] * RollFactor(source.rolls, rng_, LineSink());
-        RecordRolls(landing, source.damage[type] * landing.scale);
+        total += source.damage[type] *
+                 RollFactor(source.rolls, rng_, ledger_.LineSink());
+        ledger_.RecordRolls(landing, source.damage[type] * landing.scale);
       }
     }
   }
@@ -1747,8 +1710,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   damage_this_step_ = 0.0;
   respawned_this_step_ = false;
   died_this_step_ = false;
-  record_lines_ = params.record_damage_lines;
-  damage_lines_this_step_.clear();
+  ledger_.BeginStep(params.record_damage_lines);
   if (!CanFight(params)) {
     GoIdle();
     return;

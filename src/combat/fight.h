@@ -30,6 +30,7 @@
 #include <string>
 #include <vector>
 
+#include "src/combat/damage_ledger.h"
 #include "src/combat/encounter.h"
 
 namespace ms {
@@ -43,55 +44,6 @@ struct MobStatus {
   int type = 0;  // index into CombatParams::types
   std::string name;
   double hp_fraction = 0.0;
-};
-
-// What did the damage, for a caller drawing it. The character's own SWING is
-// one source however many skills they swing, so a new swing takes the place of
-// the last whatever it was. Everything else is a source apiece, held apart so
-// a summon's numbers never take the place of a burn's.
-enum class DamageOrigin {
-  kSwing,
-  kOwnClock,    // a summon, or a skill on a clock of its own
-  kSwingClock,  // a skill fired by swings landed rather than by seconds
-  kSideStrike,  // the strike a swing sets off beside itself
-  kBurn,
-};
-
-struct DamageSource {
-  DamageOrigin origin = DamageOrigin::kSwing;
-  // Which one, where the origin has more than one: which summon, which burn's
-  // slot. 0 for the swing, which is one source.
-  int index = 0;
-};
-
-// Two lines from the same source on the same monster belong to the same stack
-// of numbers.
-inline bool operator==(const DamageSource& a, const DamageSource& b) {
-  return a.origin == b.origin && a.index == b.index;
-}
-
-// One line of damage as it landed on one monster, for a caller drawing the
-// fight rather than only stepping it. `event` is shared by every line one
-// attack put on that monster, so an eight-line swing reads as one stack of
-// eight rather than eight stacks of one.
-struct DamageLine {
-  int mob_id = 0;
-  int event = 0;
-  DamageSource source;
-  double damage = 0.0;
-  bool crit = false;
-};
-
-// Where a landing is being filed and what scales it, for that record: the
-// monster it fell on, the event it belongs to, what did it, and whatever
-// multiplies it after the roll -- the Freeze Stacks the swing spent, what an
-// arrow gained as it travelled. Passed even by a fight that is not recording,
-// which files nothing whatever it is handed.
-struct Landing {
-  int mob_id = 0;
-  int event = 0;
-  DamageSource source;
-  double scale = 1.0;
 };
 
 // One HP bar for the combat panel: a mob type in the engaged window (the front
@@ -208,7 +160,7 @@ class CombatSim {
   // landed. Empty unless the params asked for the record -- see
   // CombatParams::record_damage_lines.
   const std::vector<DamageLine>& damage_lines_this_step() const {
-    return damage_lines_this_step_;
+    return ledger_.lines_this_step();
   }
 
  private:
@@ -261,22 +213,12 @@ class CombatSim {
     double scar_odds = 0.0;
   };
 
-  // Opens the landing about to happen: gives every one of the front `hit` mobs
-  // its own event, so the lines one attack puts on one monster group together
-  // however many ways the swing reaches it, and remembers what is doing the
-  // damage. Nothing for a fight that is not recording.
-  void OpenLandings(int hit, DamageSource source);
   // Where the landing on the mob at queue index `index` is filed, scaled by
-  // `scale`. The event is the one OpenLandings gave that mob.
-  Landing LandingAt(int index, double scale) const;
-  // Files one line of `damage`, already scaled, against `landing`.
-  void RecordLine(const Landing& landing, double damage, bool crit);
-  // Files what the last RollFactor put in `line_rolls_` as a landing of
-  // `damage`, each line taking its own share of it.
-  void RecordRolls(const Landing& landing, double damage);
-  // Where a roll should write its per-line shares: the scratch buffer, or
-  // nowhere at all when nobody is reading the record.
-  std::vector<LineRoll>* LineSink();
+  // `scale`. The one place the queue and the ledger meet: the ledger knows
+  // nothing about the roster, so the monster's id is read off it here.
+  Landing LandingAt(int index, double scale) const {
+    return ledger_.LandingAt(queue_[index].id, index, scale);
+  }
 
   // Brings out the dead: counts every mob the queue is holding at or below no
   // HP and drops it. Shared by the swing and the burn, since a burn kills the
@@ -701,20 +643,8 @@ class CombatSim {
   // whether there is a cycle to be into.
   double respawn_fraction_ = 0.0;
   bool respawns_ = false;
-  // Whether the lines are being recorded at all, from the params. Off for the
-  // sims, which step the fight millions of times and draw none of it.
-  bool record_lines_ = false;
-  // Stamped onto each landing and never reused within a step, which is as long
-  // as anything holds one.
-  int next_damage_event_ = 0;
-  // The event each queued mob's lines are filed under for the landing being
-  // worked out, parallel to the queue, and what is doing the damage.
-  std::vector<int> landing_event_;
-  DamageSource landing_source_;
-  std::vector<DamageLine> damage_lines_this_step_;
-  // Where RollFactor writes its per-line shares, reused every roll so a
-  // recording fight allocates once rather than once a line.
-  std::vector<LineRoll> line_rolls_;
+  // Where every line this fight lands is filed. See DamageLedger.
+  DamageLedger ledger_;
   bool died_this_step_ = false;
   std::vector<EngagedGroup> engaged_groups_;
   std::vector<MobStatus> roster_;
