@@ -48,6 +48,26 @@ cc_test(
 )
 
 cc_library(
+    name = "inner_ability",
+    srcs = ["inner_ability.cc"],
+    hdrs = ["inner_ability.h"],
+    deps = [
+        ":hyper_stats",
+        "//src/protos:character_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "inner_ability_test",
+    srcs = ["inner_ability_test.cc"],
+    deps = [
+        ":inner_ability",
+        "//src/protos:character_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "hyper_stats",
     srcs = ["hyper_stats.cc"],
     hdrs = ["hyper_stats.h"],

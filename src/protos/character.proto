@@ -178,6 +178,72 @@ message HyperStats {
   HyperStatPreset bossing = 2;
 }
 
+// How good one Inner Ability line is, and how good the ability as a whole is.
+// A line never outranks the ability holding it, and a reset can carry the
+// ability up a rank but never down.
+enum AbilityRank {
+  ABILITY_RANK_UNSPECIFIED = 0;
+  ABILITY_RANK_RARE = 1;
+  ABILITY_RANK_EPIC = 2;
+  ABILITY_RANK_UNIQUE = 3;
+  ABILITY_RANK_LEGENDARY = 4;
+}
+
+// What one Inner Ability line can grant. A cut of GMS's 45, keeping only what
+// a lever in this game reads: no MP, no DEF, no jump or speed, and none of
+// GMS's cross-stat conversions. The weights the survivors roll at keep their
+// relative sizes, so thinning the list only makes the wanted lines likelier.
+//
+// Attack and Magic Attack are two types rather than one, as GMS has them, so
+// every character carries one line in the pool that is dead to them. Hyper
+// Stats take the opposite bargain -- one Attack row pays both.
+enum AbilityLineType {
+  ABILITY_LINE_TYPE_UNSPECIFIED = 0;
+  ABILITY_LINE_TYPE_STR = 1;
+  ABILITY_LINE_TYPE_DEX = 2;
+  ABILITY_LINE_TYPE_INT = 3;
+  ABILITY_LINE_TYPE_LUK = 4;
+  ABILITY_LINE_TYPE_ALL_STATS = 5;
+  ABILITY_LINE_TYPE_MAX_HP = 6;
+  ABILITY_LINE_TYPE_MAX_HP_PCT = 7;
+  ABILITY_LINE_TYPE_ATTACK = 8;
+  ABILITY_LINE_TYPE_MAGIC_ATTACK = 9;
+  ABILITY_LINE_TYPE_CRIT_RATE = 10;
+  ABILITY_LINE_TYPE_BOSS_DAMAGE = 11;
+  ABILITY_LINE_TYPE_NORMAL_DAMAGE = 12;
+  ABILITY_LINE_TYPE_BUFF_DURATION = 13;
+  ABILITY_LINE_TYPE_ITEM_DROP = 14;
+  ABILITY_LINE_TYPE_MESO = 15;
+  ABILITY_LINE_TYPE_ATTACK_SPEED = 16;
+}
+
+// One line of a character's Inner Ability. What it is worth is not stored: a
+// reset always rolls the top of GMS's range, so the value is a function of the
+// type and the rank -- see AbilityLineValue.
+message AbilityLine {
+  AbilityLineType type = 1;
+  AbilityRank rank = 2;
+  // Whether a reset holds this line as it stands. Only a Unique or Legendary
+  // line may be locked, and never more than two at once.
+  bool locked = 3;
+}
+
+// One Inner Ability setup: three lines, and the rank of the whole. The first
+// line always carries that rank; the other two are rolled a rung or more
+// below it.
+message AbilityPreset {
+  AbilityRank rank = 1;
+  repeated AbilityLine lines = 2;
+}
+
+// The two setups a character keeps, chosen between the same way the Hyper
+// Stat presets are. Independent of each other, but a reset of either is paid
+// for out of the one honor pool.
+message InnerAbility {
+  AbilityPreset farming = 1;
+  AbilityPreset bossing = 2;
+}
+
 // A character's own stat amounts, before equipment or skills. STR/DEX/INT/LUK
 // come from AP alone; hp and mp also collect what each level-up grants for the
 // job held at the time. Equipment and skill bonuses are summed separately --
@@ -290,6 +356,15 @@ message Character {
   // Both are the player's to fill; which one is in play is decided by the
   // activity -- see HyperPreset.
   HyperStats hyper_stats = 20;
+
+  // The two Inner Ability setups, which open at level 160. Both start on the
+  // three Rare All Stats lines every character is handed.
+  InnerAbility inner_ability = 21;
+
+  // Honor, the currency an Inner Ability reset is paid for in. Its own pool,
+  // held per character the way AP and SP are, and shared by the two presets.
+  // Nothing pays into it yet.
+  int64 honor = 22;
 
   // Tabs opened and gold trails walked, which the account keeps as of format
   // version 2: what the player has been shown once is shown to all of their
