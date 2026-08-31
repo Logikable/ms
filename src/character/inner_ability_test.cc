@@ -108,17 +108,26 @@ TEST(InnerAbilityTest, WeightRatiosFollowGms) {
 }
 
 TEST(InnerAbilityTest, ResetCostAndRankUpChance) {
-  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_RARE, 0), 100);
-  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_EPIC, 0), 200);
-  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_UNIQUE, 0), 1500);
-  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_UNIQUE, 1), 3000);
-  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_LEGENDARY, 2), 16000);
+  // The whole table, by rank and then by lines held. Unique and Legendary are
+  // GMS's own, and what a lock adds doubles between them: +1500/+2500 becomes
+  // +3000/+5000. The two rows below halve that ladder twice, rounded to
+  // numbers a reader recognises.
+  const int64_t want[4][kMaxLockedAbilityLines + 1] = {
+      {100, 500, 1100},
+      {200, 1000, 2200},
+      {1500, 3000, 5500},
+      {8000, 11000, 16000},
+  };
+  for (int rank = ABILITY_RANK_RARE; rank <= ABILITY_RANK_LEGENDARY; ++rank) {
+    for (int locked = 0; locked <= kMaxLockedAbilityLines; ++locked) {
+      EXPECT_EQ(AbilityResetCost(static_cast<AbilityRank>(rank), locked),
+                want[rank - ABILITY_RANK_RARE][locked])
+          << "rank " << rank << " holding " << locked;
+    }
+  }
+  // A hold no reset can take is priced at nothing.
   EXPECT_EQ(AbilityResetCost(ABILITY_RANK_LEGENDARY, 3), 0);
-  // A hold no ability of that rank can take is priced at nothing: only its
-  // top line is ever Unique, and Rare and Epic lines never hold.
-  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_UNIQUE, 2), 0);
-  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_RARE, 1), 0);
-  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_EPIC, 1), 0);
+  EXPECT_EQ(AbilityResetCost(ABILITY_RANK_LEGENDARY, -1), 0);
 
   EXPECT_DOUBLE_EQ(AbilityRankUpChance(ABILITY_RANK_RARE), 0.05);
   EXPECT_DOUBLE_EQ(AbilityRankUpChance(ABILITY_RANK_EPIC), 0.02);
@@ -151,18 +160,8 @@ TEST(InnerAbilityTest, PresetOfPicksTheNamedSetup) {
   EXPECT_EQ(ability.bossing().rank(), ABILITY_RANK_LEGENDARY);
 }
 
-TEST(InnerAbilityTest, OnlyUniqueAndLegendaryLinesLock) {
-  EXPECT_FALSE(
-      AbilityLineLockable(MakeLine(ABILITY_LINE_TYPE_STR, ABILITY_RANK_RARE)));
-  EXPECT_FALSE(
-      AbilityLineLockable(MakeLine(ABILITY_LINE_TYPE_STR, ABILITY_RANK_EPIC)));
-  EXPECT_TRUE(AbilityLineLockable(
-      MakeLine(ABILITY_LINE_TYPE_STR, ABILITY_RANK_UNIQUE)));
-  EXPECT_TRUE(AbilityLineLockable(
-      MakeLine(ABILITY_LINE_TYPE_STR, ABILITY_RANK_LEGENDARY)));
-}
-
-TEST(InnerAbilityTest, LockingRefusesAThirdLineAndAnEpicOne) {
+// A line of any rank holds; the third is what a preset refuses.
+TEST(InnerAbilityTest, LockingRefusesOnlyAThirdLine) {
   AbilityPreset preset =
       MakePreset(ABILITY_RANK_LEGENDARY,
                  MakeLine(ABILITY_LINE_TYPE_STR, ABILITY_RANK_LEGENDARY),
@@ -172,14 +171,13 @@ TEST(InnerAbilityTest, LockingRefusesAThirdLineAndAnEpicOne) {
   EXPECT_TRUE(SetAbilityLineLocked(preset, 0, true));
   EXPECT_TRUE(SetAbilityLineLocked(preset, 1, true));
   EXPECT_EQ(LockedAbilityLines(preset), 2);
-  // The Epic line could not be held even if there were room for it.
-  EXPECT_FALSE(SetAbilityLineLocked(preset, 2, true));
-  EXPECT_FALSE(SetAbilityLineLocked(preset, 3, true));
+  EXPECT_FALSE(SetAbilityLineLocked(preset, 2, true)) << "two is the most";
+  EXPECT_FALSE(SetAbilityLineLocked(preset, 3, true)) << "no such line";
 
-  // Freeing one makes room, but not for the Epic line.
+  // Freeing one makes room for the Epic line under it.
   EXPECT_TRUE(SetAbilityLineLocked(preset, 1, false));
-  EXPECT_FALSE(SetAbilityLineLocked(preset, 2, true));
-  EXPECT_EQ(LockedAbilityLines(preset), 1);
+  EXPECT_TRUE(SetAbilityLineLocked(preset, 2, true));
+  EXPECT_EQ(LockedAbilityLines(preset), 2);
 }
 
 TEST(InnerAbilityTest, RerollKeepsThePresetWellFormed) {

@@ -43,15 +43,14 @@ constexpr AbilityRow kRows[] = {
     {ABILITY_LINE_TYPE_ATTACK_SPEED, {0, 0, 0, 1}, {0, 0, 0, 5}},
 };
 
-// Honor a reset costs, by rank and then by lines held. A zero is a reset that
-// cannot be asked for: only a Unique or Legendary line holds, so a Rare or
-// Epic ability holds nothing, and a Unique one holds only its top line -- its
-// other two roll a rung below it and are never lockable. Two lines first
-// become holdable at Legendary.
+// Honor a reset costs, by rank and then by lines held. The Unique and
+// Legendary rows are GMS's own, and what a lock adds doubles from one to the
+// next: +1500/+2500 becomes +3000/+5000. GMS prices no lock below Unique,
+// where it allows none; halving that ladder twice gives the two rows here.
 constexpr int64_t kResetCost[4][kMaxLockedAbilityLines + 1] = {
-    {100, 0, 0},
-    {200, 0, 0},
-    {1500, 3000, 0},
+    {100, 500, 1100},
+    {200, 1000, 2200},
+    {1500, 3000, 5500},
     {8000, 11000, 16000},
 };
 
@@ -190,10 +189,6 @@ double AbilityRankUpChance(AbilityRank rank) {
   return kRankUpChance[RankIndex(rank)];
 }
 
-bool AbilityLineLockable(const AbilityLine& line) {
-  return line.rank() >= ABILITY_RANK_UNIQUE;
-}
-
 int LockedAbilityLines(const AbilityPreset& preset) {
   int held = 0;
   for (const AbilityLine& line : preset.lines()) {
@@ -210,8 +205,7 @@ bool SetAbilityLineLocked(AbilityPreset& preset, int index, bool locked) {
   if (line.locked() == locked) {
     return false;
   }
-  if (locked && (!AbilityLineLockable(line) ||
-                 LockedAbilityLines(preset) >= kMaxLockedAbilityLines)) {
+  if (locked && LockedAbilityLines(preset) >= kMaxLockedAbilityLines) {
     return false;
   }
   line.set_locked(locked);

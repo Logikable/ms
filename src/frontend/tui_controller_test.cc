@@ -3367,32 +3367,12 @@ TEST_F(TuiControllerTest, TheResetOpensOnCancel) {
 
 // --- Inner Ability ---
 
-// Rerolls until the ability is good enough for a line to be held, paying for
-// every attempt. A Rare ability holds nothing at all, so a test about locking
-// has to climb first. The rank never falls, so this only ever goes up.
-void RaiseAbilityToUnique(CharacterInstance& character) {
-  for (int i = 0; i < 20000; ++i) {
-    if (character.ability().rank() >= ABILITY_RANK_UNIQUE) {
-      return;
-    }
-    character.AddHonor(character.ability_reset_cost());
-    ASSERT_TRUE(character.ResetAbility());
-  }
-  FAIL() << "the ability never reached a rank that holds";
-}
-
 // Enter toggles the lock and asks nothing -- there is no screen behind it.
 TEST_F(TuiControllerTest, LockingALineAsksNothing) {
   LevelTo(kInnerAbilityUnlockLevel);
-  // A fresh ability is three Rare lines, none of which may be held.
+  // A fresh ability is three Rare lines, and a Rare line holds like any other.
   controller_->ToggleAbilityLock(0, StatPreset::kFarming);
   EXPECT_EQ(controller_->screen(), kMain);
-  EXPECT_FALSE(state_->character.ability().lines(0).locked())
-      << "a Rare line never holds";
-
-  // The top line of a Unique ability does, and the toggle takes it both ways.
-  RaiseAbilityToUnique(state_->character);
-  controller_->ToggleAbilityLock(0, StatPreset::kFarming);
   EXPECT_TRUE(state_->character.ability().lines(0).locked());
   controller_->ToggleAbilityLock(0, StatPreset::kFarming);
   EXPECT_FALSE(state_->character.ability().lines(0).locked());
@@ -3405,17 +3385,15 @@ TEST_F(TuiControllerTest, LockingALineAsksNothing) {
 // The dialog lists what it would throw away, and nothing that is being held.
 TEST_F(TuiControllerTest, TheRerollDialogListsOnlyTheLinesItRerolls) {
   LevelTo(kInnerAbilityUnlockLevel);
-  RaiseAbilityToUnique(state_->character);
   ASSERT_TRUE(state_->character.LockAbilityLine(0, true));
-  const AbilityLineType held = state_->character.ability().lines(0).type();
 
   controller_->OpenAbilityReroll(StatPreset::kFarming);
   EXPECT_EQ(controller_->screen(), kAbilityReroll);
   std::vector<AbilityLine> listed = controller_->ability_reroll_lines();
   ASSERT_EQ(listed.size(), 2u);
   for (const AbilityLine& line : listed) {
-    EXPECT_NE(line.type(), held)
-        << "the held line is not what is being asked about";
+    EXPECT_FALSE(line.locked())
+        << "a held line is not what is being asked about";
   }
 }
 

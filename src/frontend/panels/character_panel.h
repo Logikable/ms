@@ -323,16 +323,12 @@ class CharacterPanel {
                                   bool reroll_focused) const;
   // One Inner Ability line: its name and what it grants as one centred phrase
   // in its rank's colour, and the lock that holds it through a reroll. The
-  // lock cell inverts under the cursor, since that is what Enter answers. A
-  // Rare or Epic line can never be held and draws no lock at all.
+  // lock cell inverts under the cursor, since that is what Enter answers.
   ftxui::Element RenderAbilityRow(const AbilityLine& line, int index,
                                   bool rows_focused) const;
-  // The lines the selected allocation is holding.
+  // The lines the selected allocation is holding, which is what the tab's
+  // cursor ring is measured in.
   int AbilityRows() const;
-  // The indices of the lines the cursor stops on, in order: only a line that
-  // can be held answers Enter, so the ring steps over the rest -- and over
-  // every row when none of them can.
-  std::vector<int> LockableAbilityRows() const;
   // Whether the honor pool covers a reroll of the selected allocation.
   bool CanRerollAbility() const;
 

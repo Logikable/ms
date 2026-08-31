@@ -184,8 +184,7 @@ TEST_F(InnerAbilityTest, PresetsAreSeparateAndTheHonorIsNot) {
   EXPECT_EQ(c.honor(), 800);
 }
 
-// Holding lines is priced per reset, and only a Unique or Legendary line can
-// be held at all.
+// Holding lines is priced per reset, whatever the ranks of the lines held.
 TEST_F(InnerAbilityTest, LockingRaisesTheResetPrice) {
   Character proto;
   proto.set_level(160);
@@ -208,7 +207,7 @@ TEST_F(InnerAbilityTest, LockingRaisesTheResetPrice) {
   EXPECT_EQ(c.ability_reset_cost(), 11000);
   EXPECT_TRUE(c.LockAbilityLine(1, true));
   EXPECT_EQ(c.ability_reset_cost(), 16000);
-  EXPECT_FALSE(c.LockAbilityLine(2, true)) << "an Epic line never holds";
+  EXPECT_FALSE(c.LockAbilityLine(2, true)) << "two lines are the most";
 
   c.AddHonor(16000);
   EXPECT_TRUE(c.ResetAbility());

@@ -62,23 +62,20 @@ int AbilityLineValue(AbilityLineType type, AbilityRank rank);
 // normalises over whatever types are still available.
 int AbilityTypeWeight(AbilityLineType type, AbilityRank rank);
 
-// Honor a reset costs for an ability at `rank` holding `locked` lines. GMS
-// prices the locks per reset, not once -- see AbilityResetCost's table.
+// Honor a reset costs for an ability at `rank` holding `locked` lines. The
+// price is the ABILITY's rank, whatever the ranks of the lines being held, and
+// GMS prices the locks per reset rather than once -- see the table.
 int64_t AbilityResetCost(AbilityRank rank, int locked);
 
 // Chance a reset at `rank` carries the ability to the rank above. Zero at
 // Legendary, which is the top.
 double AbilityRankUpChance(AbilityRank rank);
 
-// Whether `line` may be held through a reset. Rare and Epic lines never may,
-// so an ability below Unique can lock nothing at all.
-bool AbilityLineLockable(const AbilityLine& line);
-
 // Lines `preset` is currently holding.
 int LockedAbilityLines(const AbilityPreset& preset);
 
-// Locks or unlocks the line at `index`. Refuses a lock that would hold an
-// unlockable line or a third one; unlocking is always allowed. Returns
+// Locks or unlocks the line at `index`. Any line may be held whatever its
+// rank; a third lock is refused, and unlocking is always allowed. Returns
 // whether the preset changed.
 bool SetAbilityLineLocked(AbilityPreset& preset, int index, bool locked);
 
