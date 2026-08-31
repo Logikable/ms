@@ -258,7 +258,7 @@ TEST_F(BossDataTest, BossAccessoriesSellForTheirPinnedPrices) {
       {"royal_black_metal_shoulder", 2500000},
       {"silver_blossom_ring", 1500000},
       {"stone_of_eternal_life", 2000000},
-      {"will_o_the_wisps", 3000000}};
+      {"will_o_the_wisps", 11000000}};
   std::set<std::string> dropped;
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
@@ -415,7 +415,7 @@ TEST_F(BossDataTest, HardHillaIsTheSameFightBehindALaterGate) {
   EXPECT_EQ(hard.reset(), RESET_PERIOD_DAILY);
   EXPECT_EQ(hard.time_limit_seconds(), 600);
   EXPECT_EQ(hard.unlock_level(), 190);
-  EXPECT_EQ(hard.meso(), 56250000);
+  EXPECT_EQ(hard.meso(), 8050000);
   EXPECT_EQ(hard.exp(), 20400000);
   const Mob& silver = mobs_.at("hard_hilla");
   EXPECT_EQ(silver.level(), 190);

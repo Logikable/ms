@@ -52,8 +52,9 @@ difficulties {
   time_limit_seconds: 600
   unlock_level: 190
   # Five Intense Power Crystals at what her level fetches, as every boss's
-  # meso is.
-  meso: 56250000
+  # meso is -- divided by seven, because GMS prices hers as a week's clear and
+  # she is fought here once a day.
+  meso: 8050000
   # Paid for the clear, flat and untouched by any EXP bonus.
   exp: 20400000
   drops {
