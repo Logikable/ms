@@ -89,6 +89,11 @@ Skill MakeSkill(const std::string& name, JobAdvancement advancement,
   return skill;
 }
 
+// The skill the LearnSkill tests spend on.
+Skill SlashBlast(int max_level = 20) {
+  return MakeSkill("Slash Blast", JOB_ADVANCEMENT_SWORDMAN, max_level);
+}
+
 // Fixture for AllocateStat tests. Each test needs a different ap value, so
 // c_ is created locally per test using rng_.
 class AllocateStatTest : public CharacterTest {};
@@ -853,24 +858,20 @@ CharacterInstance MakeSpearman(std::mt19937& rng, int sp) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-TEST_F(CharacterTest, ASkillWaitingOnAnotherCannotBeLearned) {
+// The requirement holds the skill shut until it is met in full: not at all,
+// then part-way, then the level the gate asks for.
+TEST_F(CharacterTest, ASkillOpensOnlyOnceItsRequirementIsMet) {
   CharacterInstance c = MakeSpearman(rng_, 20);
   EXPECT_FALSE(c.MeetsSkillRequirement(MakeGatedSkill()));
   EXPECT_FALSE(c.LearnSkill(MakeGatedSkill()));
   EXPECT_EQ(c.skill_level(MakeGatedSkill()), 0);
   EXPECT_EQ(c.sp(2), 20);  // and the point is not taken either
-}
 
-TEST_F(CharacterTest, PartOfTheRequirementIsStillNotEnough) {
-  CharacterInstance c = MakeSpearman(rng_, 20);
   ASSERT_TRUE(c.LearnSkill(MakeGateSkill(), 2));
   EXPECT_FALSE(c.MeetsSkillRequirement(MakeGatedSkill()));
   EXPECT_FALSE(c.LearnSkill(MakeGatedSkill()));
-}
 
-TEST_F(CharacterTest, MeetingTheRequirementOpensTheSkill) {
-  CharacterInstance c = MakeSpearman(rng_, 20);
-  ASSERT_TRUE(c.LearnSkill(MakeGateSkill(), 3));
+  ASSERT_TRUE(c.LearnSkill(MakeGateSkill(), 1));
   EXPECT_TRUE(c.MeetsSkillRequirement(MakeGatedSkill()));
   EXPECT_TRUE(c.LearnSkill(MakeGatedSkill()));
   EXPECT_EQ(c.skill_level(MakeGatedSkill()), 1);
@@ -1107,22 +1108,17 @@ TEST_F(AllocateStatTest, AllFieldsWork) {
 
 // --- LearnSkill ---
 
-TEST_F(LearnSkillTest, SpendsSpAndRaisesLevel) {
+// One point a press, out of the stage's own purse. A skill nobody has bought
+// is level zero rather than absent.
+TEST_F(LearnSkillTest, SpendsOnePointAPressAndRaisesTheLevel) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
-  Skill skill =
-      MakeSkill("Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN,
-                /*max_level=*/20);
+  Skill skill = SlashBlast();
+  EXPECT_EQ(c.skill_level(skill), 0);
+
   EXPECT_TRUE(c.LearnSkill(skill));
   EXPECT_EQ(c.skill_level(skill), 1);
   EXPECT_EQ(c.sp(1), 4);
-}
 
-TEST_F(LearnSkillTest, DefaultAmountIsOne) {
-  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
-  Skill skill =
-      MakeSkill("Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN,
-                /*max_level=*/20);
-  c.LearnSkill(skill);
   c.LearnSkill(skill);
   EXPECT_EQ(c.skill_level(skill), 2);
   EXPECT_EQ(c.sp(1), 3);
@@ -1130,9 +1126,7 @@ TEST_F(LearnSkillTest, DefaultAmountIsOne) {
 
 TEST_F(LearnSkillTest, MultiPointSpendWorks) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/10);
-  Skill skill =
-      MakeSkill("Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN,
-                /*max_level=*/20);
+  Skill skill = SlashBlast();
   EXPECT_TRUE(c.LearnSkill(skill, 7));
   EXPECT_EQ(c.skill_level(skill), 7);
   EXPECT_EQ(c.sp(1), 3);
@@ -1140,9 +1134,7 @@ TEST_F(LearnSkillTest, MultiPointSpendWorks) {
 
 TEST_F(LearnSkillTest, RejectsWhenStageLacksSp) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/2);
-  Skill skill =
-      MakeSkill("Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN,
-                /*max_level=*/20);
+  Skill skill = SlashBlast();
   EXPECT_FALSE(c.LearnSkill(skill, 3));
   EXPECT_EQ(c.skill_level(skill), 0);
   EXPECT_EQ(c.sp(1), 2);
@@ -1150,8 +1142,7 @@ TEST_F(LearnSkillTest, RejectsWhenStageLacksSp) {
 
 TEST_F(LearnSkillTest, RejectsRaisingPastMaxLevel) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/10);
-  Skill skill = MakeSkill(
-      "Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN, /*max_level=*/3);
+  Skill skill = SlashBlast(/*max_level=*/3);
   EXPECT_TRUE(c.LearnSkill(skill, 3));   // to the cap
   EXPECT_FALSE(c.LearnSkill(skill, 1));  // one past
   EXPECT_EQ(c.skill_level(skill), 3);
@@ -1160,9 +1151,7 @@ TEST_F(LearnSkillTest, RejectsRaisingPastMaxLevel) {
 
 TEST_F(LearnSkillTest, RejectsNonPositiveAmount) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
-  Skill skill =
-      MakeSkill("Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN,
-                /*max_level=*/20);
+  Skill skill = SlashBlast();
   EXPECT_FALSE(c.LearnSkill(skill, 0));
   EXPECT_FALSE(c.LearnSkill(skill, -2));
   EXPECT_EQ(c.skill_level(skill), 0);
@@ -1272,14 +1261,6 @@ TEST(AdvancementMappingTest, FirstAdvancementsBuyFromStageOne) {
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_MAGICIAN), 1);
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_ROGUE), 1);
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_UNSPECIFIED), 0);
-}
-
-TEST_F(LearnSkillTest, UnlearnedSkillIsLevelZero) {
-  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
-  Skill skill =
-      MakeSkill("Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN,
-                /*max_level=*/20);
-  EXPECT_EQ(c.skill_level(skill), 0);
 }
 
 // --- CanEquip ---
@@ -1709,10 +1690,14 @@ TEST_F(SellStackableTest, ClampsCountToStackSize) {
   EXPECT_EQ(c_.meso(), 21);
 }
 
-TEST_F(SellStackableTest, NonPositiveCountIsNoOp) {
+// Neither a count that asks for nothing nor an index off the end of the tab
+// takes anything or pays anything.
+TEST_F(SellStackableTest, ANonPositiveCountOrAnIndexOffTheEndIsNoOp) {
   c_.AddStackable(shell_, 5);
   EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 0), 0);
   EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, -2), 0);
+  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 3, 1), 0);
+  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, -1, 1), 0);
   EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 5);
   EXPECT_EQ(c_.meso(), 0);
 }
@@ -1721,13 +1706,6 @@ TEST_F(SellStackableTest, UnsellableItemIsNoOp) {
   c_.AddStackable(junk_, 5);
   EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 3), 0);
   EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 5);
-  EXPECT_EQ(c_.meso(), 0);
-}
-
-TEST_F(SellStackableTest, OutOfRangeIndexIsNoOp) {
-  c_.AddStackable(shell_, 5);
-  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 3, 1), 0);
-  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, -1, 1), 0);
   EXPECT_EQ(c_.meso(), 0);
 }
 

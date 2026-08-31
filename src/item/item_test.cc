@@ -21,34 +21,22 @@ class EquipTraceTest : public ::testing::Test {
   }
 };
 
-TEST_F(EquipTraceTest, NameAppendsTraceSuffix) {
+// A trace carries the item it was made from: its name with the suffix, its
+// prototype, and the star cap that prototype's level buys.
+TEST_F(EquipTraceTest, CarriesTheItemItWasMadeFrom) {
   EquipTrace trace(MakeSword(), Equip());
   EXPECT_EQ(trace.name(), "Sword Trace");
-}
-
-TEST_F(EquipTraceTest, PrototypeMatchesInput) {
-  EquipTrace trace(MakeSword(), Equip());
   EXPECT_EQ(trace.prototype().name(), "Sword");
   EXPECT_EQ(trace.prototype().required_level(), 10);
+  EXPECT_EQ(trace.max_stars(), 5);
 }
 
-TEST_F(EquipTraceTest, EquipStateMatchesInput) {
+TEST_F(EquipTraceTest, CarriesTheStarsItWasMadeWith) {
   Equip state;
   state.set_stars(3);
   EquipTrace trace(MakeSword(), state);
   EXPECT_EQ(trace.equip_state().stars(), 3);
-}
-
-TEST_F(EquipTraceTest, StarsAccessorReflectsState) {
-  Equip state;
-  state.set_stars(4);
-  EquipTrace trace(MakeSword(), state);
-  EXPECT_EQ(trace.stars(), 4);
-}
-
-TEST_F(EquipTraceTest, MaxStarsMatchesRequiredLevel) {
-  EquipTrace trace(MakeSword(), Equip());
-  EXPECT_EQ(trace.max_stars(), 5);
+  EXPECT_EQ(trace.stars(), 3);
 }
 
 TEST_F(EquipTraceTest, StatsReflectsBaseAndScrollStats) {

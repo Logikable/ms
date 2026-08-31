@@ -1220,19 +1220,7 @@ TEST_F(DamageTakenTest, TheBarrierNeverMakesACharacterUntouchable) {
   EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)), 1.0);
 }
 
-TEST_F(DamageTakenTest, DodgingCutsPastTheOneDamageFloor) {
-  DefenseStats defense = Naked();
-  defense.level = 30;
-  defense.def = 200;
-  // The floor holds a hit at 1 point; dodging it half the time costs half a
-  // point on average. Reduction can never do this -- it lands before the
-  // floor, and the floor is what a hit that arrives always costs.
-  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(2, 1)), 1.0);
-  defense.dodge_chance = 0.5;
-  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(2, 1)), 0.5);
-}
-
-TEST_F(DamageTakenTest, EveryHitCostsAtLeastAPoint) {
+TEST_F(DamageTakenTest, EveryHitCostsAPointAndOnlyDodgingCutsPastIt) {
   DefenseStats defense = Naked();
   defense.level = 30;
   defense.def = 200;
@@ -1240,6 +1228,12 @@ TEST_F(DamageTakenTest, EveryHitCostsAtLeastAPoint) {
   // point, and it still costs one. Armour cancels an attack, it does not make
   // the character untouchable.
   EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(2, 1)), 1.0);
+
+  // Dodging it half the time costs half a point on average. Reduction can
+  // never do this -- it lands before the floor, and the floor is what a hit
+  // that arrives always costs.
+  defense.dodge_chance = 0.5;
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(2, 1)), 0.5);
 }
 
 TEST_F(DamageTakenTest, AHitWorthMoreThanAPointIsNotRaisedToOne) {

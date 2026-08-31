@@ -284,27 +284,20 @@ TEST(BossRunTest, NothingHappensUntilTheCountdownIsUp) {
   EXPECT_DOUBLE_EQ(run.countdown_left(), 0.0);
 }
 
-TEST(BossRunTest, EveryArmGetsItsOwnBar) {
+// Each arm gets a bar of its own, standing where its own spawn's spot says.
+// The arena is measured off the spots when the phase asks for no room of its
+// own.
+TEST(BossRunTest, EveryArmGetsItsOwnBarWhereItsPhasePutsIt) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = TwoPhaseBoss();
   BossRun run("zakum", boss, 0);
   run.Advance(*state, kBossCountdownSeconds);
+
   ASSERT_EQ(run.slots().size(), 2u);
   EXPECT_EQ(run.slots()[0].name, "Zakum's Arm");
   EXPECT_TRUE(run.slots()[0].alive);
   EXPECT_NE(run.slots()[0].id, run.slots()[1].id);
   EXPECT_NEAR(run.phase_hp_fraction(), 1.0, 0.001);
-}
-
-// Each bar stands where its own spawn's spot says, and the arena is measured
-// off the spots when the phase asks for no room of its own.
-TEST(BossRunTest, EveryBarStandsWhereItsPhasePutsIt) {
-  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
-  Boss boss = TwoPhaseBoss();
-  BossRun run("zakum", boss, 0);
-  run.Advance(*state, kBossCountdownSeconds);
-
-  ASSERT_EQ(run.slots().size(), 2u);
   EXPECT_EQ(run.slots()[0].x, 0);
   EXPECT_EQ(run.slots()[1].x, 4);
   EXPECT_EQ(run.player_spot().x(), 2);

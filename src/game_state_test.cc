@@ -608,50 +608,38 @@ TEST(GameStateTest, TestModeCarriesAFullStackOfSpellTraces) {
   EXPECT_EQ(traces->count(), traces->max_stack());
 }
 
-TEST(GameStateTest, PlayModeGetsNoTokens) {
+// Test mode's stocked bag is test mode's alone: play mode is handed neither
+// the tokens nor the level-up items.
+TEST(GameStateTest, PlayModeGetsNoTokensOrLevelUpItems) {
   GameState state = MakePlayModeStateWithItems();
   EXPECT_TRUE(state.character.stackables(ITEM_CATEGORY_ETC).empty());
-}
-
-TEST(GameStateTest, PlayModeGetsNoLevelUpItems) {
-  GameState state = MakePlayModeStateWithItems();
   EXPECT_TRUE(state.character.stackables(ITEM_CATEGORY_USE).empty());
 }
 
 // --- play mode ---
 
-TEST(GameStateTest, PlayModeStartsAtLevelOne) {
+// The whole of what a new character is handed: a level-1 Beginner on Maple
+// Island with the shipped stat spread, no meso, and armed but carrying nothing
+// -- the Sword is worn, so the bag really is empty.
+TEST(GameStateTest, PlayModeStartsANewCharacter) {
   GameState state = MakePlayModeState();
   EXPECT_EQ(state.character.proto().level(), 1);
   EXPECT_EQ(state.character.proto().job(), JOB_BEGINNER);
   EXPECT_FALSE(state.character.CanAdvanceJob());
-}
+  EXPECT_EQ(state.current_map, "maple_island");
+  EXPECT_EQ(state.character.meso(), 0);
 
-TEST(GameStateTest, PlayModeStartsWithTheBeginnerSpread) {
-  GameState state = MakePlayModeState();
   const AllocatedStats& s = state.character.proto().allocated_stats();
   EXPECT_EQ(s.str(), 13);
   EXPECT_EQ(s.dex(), 4);
   EXPECT_EQ(s.int_(), 4);
   EXPECT_EQ(s.luk(), 4);
   EXPECT_EQ(state.character.proto().ap(), 0);
-}
 
-TEST(GameStateTest, PlayModeStartsWithNoMeso) {
-  EXPECT_EQ(MakePlayModeState().character.meso(), 0);
-}
-
-// Armed but carrying nothing: the Sword is worn, so the bag really is empty.
-TEST(GameStateTest, PlayModeStartsWearingASword) {
-  GameState state = MakePlayModeState();
   EXPECT_TRUE(state.character.inventory().empty());
   ASSERT_TRUE(state.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
   EXPECT_EQ(state.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).name(),
             "Sword");
-}
-
-TEST(GameStateTest, PlayModeStartsOnMapleIsland) {
-  EXPECT_EQ(MakePlayModeState().current_map, "maple_island");
 }
 
 // --- test mode ---

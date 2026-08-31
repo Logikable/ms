@@ -11,25 +11,16 @@ namespace {
 
 // Nothing else asserts these: every other reader goes through a panel's
 // rendered text, where a missing name reads as a blank column rather than a
-// failure.
-TEST(JobNameTest, EveryJobHasAName) {
+// failure. The short name is the default everywhere a job is shown, so every
+// job has to answer that too -- and the ones that need no shortening answer
+// their own name.
+TEST(JobNameTest, EveryJobHasALongNameAndAShortOne) {
   for (int i = Job_MIN; i <= Job_MAX; ++i) {
     if (!Job_IsValid(i) || i == JOB_UNSPECIFIED) {
       continue;
     }
     Job job = static_cast<Job>(i);
     EXPECT_NE(JobName(job), "Unknown") << Job_Name(job) << " is not named";
-  }
-}
-
-// The short name is the default everywhere a job is shown, so every job has to
-// answer it -- and the ones that need no shortening answer their own name.
-TEST(JobNameTest, EveryJobHasAShortName) {
-  for (int i = Job_MIN; i <= Job_MAX; ++i) {
-    if (!Job_IsValid(i) || i == JOB_UNSPECIFIED) {
-      continue;
-    }
-    Job job = static_cast<Job>(i);
     EXPECT_NE(ShortJobName(job), "Unknown") << Job_Name(job) << " is not named";
     EXPECT_LE(static_cast<int>(ShortJobName(job).size()),
               static_cast<int>(JobName(job).size()))

@@ -191,19 +191,14 @@ std::map<std::string, Skill> LoadSkills() {
   return LoadTestData<Skill>("skills");
 }
 
-TEST(SkillDataTest, EverySkillBelongsToAnAdvancement) {
+// Two fields no skill can leave unset. The advancement is what puts it in a
+// tab and names the SP pool that buys it; the kind decides what it does in a
+// fight and what tag opens its row in the book.
+TEST(SkillDataTest, EverySkillNamesItsAdvancementAndItsKind) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     EXPECT_NE(entry.second.job_advancement(), JOB_ADVANCEMENT_UNSPECIFIED)
         << entry.first << " would be unreachable: no tab shows it and no SP "
         << "pool buys it";
-  }
-}
-
-// The kind decides what the skill does in a fight and what tag opens its row
-// in the book, so an unset one is a skill that neither fights nor says what it
-// is.
-TEST(SkillDataTest, EverySkillNamesItsKind) {
-  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     EXPECT_NE(entry.second.kind(), SKILL_KIND_UNSPECIFIED)
         << entry.first << " would list with no tag and do nothing";
   }

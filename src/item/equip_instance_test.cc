@@ -417,11 +417,12 @@ TEST_F(EquipInstanceTest, AStatTheItemDoesNotShowGainsNothing) {
 }
 
 TEST_F(EquipInstanceTest, StarForceStatGainsWeaponAtkFormula) {
-  // base_att=100: gain = floor(100/50)+1 = 3 at 1★.
+  // base_att=100: gain = floor(100/50)+1 = 3 at 1★, and stats() carries it.
   Equip state;
   state.set_stars(1);
   EquipInstance item(MakeWeapon(100), state);
   EXPECT_EQ(item.StarForceStatGains().attack(), 3);
+  EXPECT_EQ(item.stats().attack(), 103);
 }
 
 TEST_F(EquipInstanceTest, StarForceStatGainsWeaponAtkAccumulates) {
@@ -474,14 +475,6 @@ TEST_F(EquipInstanceTest, ArmourGainsStatAndAttackPastFifteen) {
   EXPECT_EQ(gains.attack(), 9) << "flat, and it shows none to begin with";
   EXPECT_EQ(gains.magic_attack(), 9);
   EXPECT_EQ(gains.def(), 119) << "defense stops climbing at 15★";
-}
-
-TEST_F(EquipInstanceTest, StatsIncludesStarForceGains) {
-  // stats() = base(100 ATK) + scroll(0) + star_force(3 ATK at 1★).
-  Equip state;
-  state.set_stars(1);
-  EquipInstance item(MakeWeapon(100), state);
-  EXPECT_EQ(item.stats().attack(), 103);
 }
 
 TEST_F(EquipInstanceTest, DestinyAxeFinalStats) {
