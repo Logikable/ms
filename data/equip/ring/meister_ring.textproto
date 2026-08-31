@@ -17,4 +17,3 @@ upgrade_slots: 1
 # Crafted in GMS, at a profession nothing here has. Sold instead, at the price
 # of the crafting: the dearest thing on the shelf by four times over.
 shop_price: 10000000
-sell_price: 1000000

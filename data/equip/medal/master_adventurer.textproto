@@ -18,4 +18,3 @@ shop_price: 0
 # either -- the refusal is the declaration rather than the slot count.
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
-sell_price: 0

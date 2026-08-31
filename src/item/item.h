@@ -43,6 +43,12 @@ bool TakesUpgradeSlots(const EquipPrototype& proto);
 // back, what a list writes after the slash.
 int TotalUpgradeSlots(const EquipPrototype& proto, const Equip& state);
 
+// What a shop pays for one of these, in meso. A stocked item sells for a
+// tenth of what it charges, which is GMS's own buy-back rate and so is worked
+// out rather than written down; an item no shop sells names its own price, and
+// one that names nothing is worth nothing and is simply thrown away.
+int SellPrice(const EquipPrototype& proto);
+
 // The slots an item of this family may be worn in, in the order they fill.
 // Pass any slot of the family: a ring answers with its four, a pendant with
 // its two, and everything else with the one slot it is.

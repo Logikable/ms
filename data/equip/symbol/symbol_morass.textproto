@@ -10,5 +10,4 @@ unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
 # Worth nothing at a shop. A spare is worth what it can be combined into, and
 # the only place that happens is the Symbols tab.
-sell_price: 0
 arcane_symbol { meso_cost_base: 16 area_level: 230 }

@@ -362,6 +362,13 @@ int TotalUpgradeSlots(const EquipPrototype& proto, const Equip& state) {
   return proto.upgrade_slots() + state.hammers();
 }
 
+int SellPrice(const EquipPrototype& proto) {
+  if (proto.has_sell_price()) {
+    return proto.sell_price();
+  }
+  return proto.shop_price() / 10;
+}
+
 void StackableItem::add_count(int delta) {
   count_ += delta;
 }

@@ -9,4 +9,3 @@ equip_slot: EQUIP_SLOT_PROJECTILE
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
 shop_price: 1250000
-sell_price: 125000

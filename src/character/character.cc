@@ -1704,7 +1704,7 @@ int64_t CharacterInstance::SellEquip(int index) {
   // worth what the record is worth. Selling one is how the player throws it
   // away once they have given up on recovering it.
   bool is_trace = inventory_.equip_instance(index) == nullptr;
-  int64_t earned = is_trace ? 0 : inventory_[index].prototype().sell_price();
+  int64_t earned = is_trace ? 0 : SellPrice(inventory_[index].prototype());
   // SavedState rather than equip_state: the shelf has to be able to tell a
   // trace from a live item when it hands the row back.
   BuyBackEntry entry;

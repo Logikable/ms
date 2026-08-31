@@ -537,7 +537,7 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
     // what the sale will really hand over rather than what the item cost.
     bool is_trace = state_.character.inventory().equip_instance(
                         sell_equip_index_) == nullptr;
-    int price = is_trace ? 0 : item.prototype().sell_price();
+    int price = is_trace ? 0 : SellPrice(item.prototype());
     sell_equip_panel_.Reset(item.name(), price);
   }
   if (next == kSymbolLevel) {

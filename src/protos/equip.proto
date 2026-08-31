@@ -246,13 +246,16 @@ message EquipPrototype {
   // Adventurer medal is handed out free to anyone who walks up to the counter,
   // and an item that says nothing at all is the one the shop does not stock.
   optional int32 shop_price = 10;
-  // What the shop pays for one of these, in meso. A tenth of shop_price
-  // throughout, which is the rate GMS itself buys equipment back at.
+  // What the shop pays for one of these, in meso, when that is not a tenth of
+  // shop_price -- the rate GMS itself buys equipment back at, and what a
+  // stocked item is worth without saying so. Set only on a piece no shop
+  // sells, which names its own price or goes unset and is worth nothing. Ask
+  // SellPrice in src/item/item.h rather than this field.
   //
   // Zero does NOT mean unsellable, as it does on a stackable: every item on
   // the equip tab can be sold, and one worth nothing is simply thrown away.
   // That is what clears a starter sword out of the bag.
-  int32 sell_price = 11;
+  optional int32 sell_price = 11;
   // The token this is bought with, by data file stem, and how many of it. Both
   // unset for an item the shop sells for meso, which is most of them. An item
   // joins the token shelf by naming a price here, the same way naming a

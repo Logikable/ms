@@ -420,9 +420,10 @@ TEST(EquipDataTest, ATierHasOnePrice) {
 }
 
 // GMS buys equipment back at a few percent of what it charges, rising with the
-// tier; a flat tenth sits inside that band the whole way. Pinned over the
-// catalog because the failure it guards against is an item that pays more than
-// it costs, which is not a mispriced item but a meso printer.
+// tier; a flat tenth sits inside that band the whole way. The failure this
+// guards against is an item that pays more than it costs, which is not a
+// mispriced item but a meso printer -- so a stocked item does not get to name
+// its own price at all, and SellPrice works the tenth out for it.
 TEST(EquipDataTest, StockedEquipsSellForATenthOfTheirPrice) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -436,7 +437,9 @@ TEST(EquipDataTest, StockedEquipsSellForATenthOfTheirPrice) {
       continue;
     }
     ++seen;
-    EXPECT_EQ(proto.sell_price(), proto.shop_price() / 10)
+    EXPECT_FALSE(proto.has_sell_price())
+        << entry.first << " pins a sell price the shelf already decides";
+    EXPECT_EQ(SellPrice(proto), proto.shop_price() / 10)
         << entry.first << " does not sell for a tenth of its price";
   }
   EXPECT_GT(seen, 0) << "no stocked equips in the catalog to check";
@@ -681,7 +684,7 @@ TEST(EquipDataTest, EverySymbolIsUniversalAndWearsItsOwnSlot) {
     EXPECT_EQ(proto.equip_job_categories_size(), 1) << entry.first;
     EXPECT_EQ(proto.equip_job_categories(0), EQUIP_JOB_CATEGORY_UNIVERSAL)
         << entry.first << " is not open to every job";
-    EXPECT_EQ(proto.sell_price(), 0) << entry.first << " sells for meso";
+    EXPECT_EQ(SellPrice(proto), 0) << entry.first << " sells for meso";
     EXPECT_EQ(proto.upgrade_slots(), 0) << entry.first;
     EXPECT_FALSE(Supports(proto, UPGRADE_SCROLL)) << entry.first;
     EXPECT_FALSE(Supports(proto, UPGRADE_STAR_FORCE)) << entry.first;
