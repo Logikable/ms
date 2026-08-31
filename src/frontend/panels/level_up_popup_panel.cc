@@ -1,5 +1,6 @@
 #include "src/frontend/panels/level_up_popup_panel.h"
 
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -20,24 +21,25 @@ constexpr int kBodyRows = 3;
 // One "+N LABEL" line, or nothing at all when the level paid none of it.
 // Returns nullptr for the caller to drop rather than an empty row, which would
 // leave a blank line where the reason for it is invisible.
-ftxui::Element GainRow(int amount, const std::string& label) {
+ftxui::Element GainRow(int64_t amount, const std::string& label) {
   if (amount <= 0) {
     return nullptr;
   }
-  return CenteredRow("+" + std::to_string(amount) + " " + label);
+  return CenteredRow("+" + FormatWithCommas(amount) + " " + label);
 }
 
 }  // namespace
 
 ftxui::Element LevelUpPopupPanel(int from_level, int to_level, int ap, int sp,
-                                 int hyper_sp,
+                                 int hyper_sp, int64_t honor,
                                  const std::vector<std::string>& unlocks) {
-  // AP above SP, in the order the character panel spends them, and the Hyper
-  // SP under the SP it is not a stage of.
+  // AP above SP, in the order the character panel spends them, the Hyper SP
+  // under the SP it is not a stage of, and the honor last: it is the one gain
+  // here that is not spent on this card's own screen.
   std::vector<ftxui::Element> body;
-  const std::pair<int, const char*> kGains[] = {
-      {ap, "AP"}, {sp, "SP"}, {hyper_sp, "Hyper SP"}};
-  for (const std::pair<int, const char*>& gain : kGains) {
+  const std::pair<int64_t, const char*> kGains[] = {
+      {ap, "AP"}, {sp, "SP"}, {hyper_sp, "Hyper SP"}, {honor, "Honor"}};
+  for (const std::pair<int64_t, const char*>& gain : kGains) {
     ftxui::Element row = GainRow(gain.first, gain.second);
     if (row != nullptr) {
       body.push_back(std::move(row));

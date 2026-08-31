@@ -17,6 +17,7 @@
 #ifndef MS_SRC_FRONTEND_CELEBRATION_H_
 #define MS_SRC_FRONTEND_CELEBRATION_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -43,7 +44,9 @@ class Celebration {
   //
   // `account_level` is the furthest any character on the account has reached.
   // A climb over ground it has covered still pays AP, but it opens nothing:
-  // those panels have been on screen since this character was made.
+  // those panels have been on screen since this character was made. It also
+  // decides whether the honor the climb paid is named at all -- see
+  // HonorVisible.
   void BeginLevelUp(int from_level, int to_level, int ap, int sp, int hyper_sp,
                     int account_level, Panel focused);
 
@@ -121,6 +124,9 @@ class Celebration {
   int ap_ = 0;
   int sp_ = 0;
   int hyper_sp_ = 0;
+  // What the climb paid, or 0 for a player who has yet to open Inner Ability:
+  // the card names what it can be read about.
+  int64_t honor_ = 0;
   // Worked out when the climb happens, for the same reason the glow is: the
   // character no longer knows which levels it came through.
   std::vector<std::string> unlocks_;

@@ -10,6 +10,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/arcane_force.h"
+#include "src/character/honor.h"
 #include "src/combat/loot.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_util.h"
@@ -54,7 +55,7 @@ static_assert(kStatColumnWidth + 1 + kDropColumnWidth == kFlavourWidth + 2);
 constexpr int kNameIndent = 2;
 
 // The rows the screen always takes. Tall enough for the mob carrying the most
-// drops -- four lines of blurb, a rule, and seven rows of drops inside a
+// drops -- four lines of blurb, a rule, and eight rows of drops inside a
 // border -- so walking the list never moves the top of the panel.
 constexpr int kScreenHeight = 16;
 
@@ -195,6 +196,9 @@ ftxui::Element MobInspectPanel::RenderStats(const Mob& mob) const {
   // describes the monster, not the player standing over it.
   rows.push_back(InfoRow("Meso", FormatWithCommas(static_cast<int64_t>(
                                      std::llround(MeanMesoPerDrop(mob))))));
+  // Honor is the same off every monster in the game, which is why it is not
+  // read off the proto: it is a rule, not a stat.
+  rows.push_back(InfoRow("Honor", FormatWithCommas(kMobHonorPerDrop)));
   return ftxui::vbox(std::move(rows));
 }
 
@@ -203,6 +207,7 @@ ftxui::Element MobInspectPanel::RenderDrops(const Mob& mob) const {
   // Meso leads: it is the one thing most kills pay, and everything under it
   // is a chance at a particular item.
   rows.push_back(DropRow("Meso", DropChance(MesoDropChance(0.0))));
+  rows.push_back(DropRow("Honor", DropChance(kMobHonorChance)));
   for (const MobDrop& drop : mob.drops()) {
     std::string name;
     if (drop.has_equip()) {

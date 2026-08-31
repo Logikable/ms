@@ -220,6 +220,7 @@ cc_library(
     hdrs = ["celebration.h"],
     deps = [
         ":types",
+        "//src/character:honor",
         "//src/character:progression",
         "//src/frontend/panels:advancement_popup_panel",
         "//src/frontend/panels:death_popup_panel",
@@ -235,6 +236,8 @@ cc_test(
     deps = [
         ":celebration",
         ":types",
+        "//src/character:honor",
+        "//src/character:inner_ability",
         "//src/character:progression",
         "@ftxui//:dom",
         "@ftxui//:screen",

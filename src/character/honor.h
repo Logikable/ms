@@ -18,6 +18,8 @@
 #include <cstdint>
 #include <random>
 
+#include "src/character/inner_ability.h"
+
 namespace ms {
 
 // What one level-up pays: 700 up to level 60, and 100 more for every band of
@@ -41,6 +43,13 @@ inline constexpr int64_t kMobHonorPerDrop = 10;
 // What a kill is worth on average, for a sim reading the rate rather than
 // rolling it.
 inline constexpr double kMobHonorPerKill = kMobHonorChance * kMobHonorPerDrop;
+
+// Whether honor should be shown to the player at all. It is earned from the
+// first level, and Inner Ability -- the only thing that spends it -- opens at
+// 160, so until then a number counting up explains nothing. Asked of the
+// account as well as the character: a player whose main has been there knows
+// what it is for, and their next character's honor is not a mystery to them.
+bool HonorVisible(int character_level, int account_level);
 
 // Honor `kills` actually paid. One roll over the batch, as the meso drop is:
 // which kills paid is not a question anything downstream asks.

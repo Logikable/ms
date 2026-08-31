@@ -12,6 +12,7 @@
 #ifndef MS_SRC_FRONTEND_PANELS_LEVEL_UP_POPUP_PANEL_H_
 #define MS_SRC_FRONTEND_PANELS_LEVEL_UP_POPUP_PANEL_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -23,13 +24,16 @@ namespace ms {
 // Always five rows inside the border, so it is one shape the player learns
 // rather than a box that grows with the news.
 //
-// `ap`, `sp` and `hyper_sp` are totals for the whole climb. A total of zero is
-// left off -- "+0 SP" on a card celebrating something reads as a slight.
+// `ap`, `sp`, `hyper_sp` and `honor` are totals for the whole climb. A total
+// of zero is left off -- "+0 SP" on a card celebrating something reads as a
+// slight. The honor is left off as well until Inner Ability has been opened,
+// on this character or another one: it is paid from level 2, and a currency
+// with nothing to spend it on is not news.
 //
 // `unlocks` names anything the climb opened, in gold, sharing the body with the
 // gains rather than added below them.
 ftxui::Element LevelUpPopupPanel(int from_level, int to_level, int ap, int sp,
-                                 int hyper_sp = 0,
+                                 int hyper_sp = 0, int64_t honor = 0,
                                  const std::vector<std::string>& unlocks = {});
 
 }  // namespace ms

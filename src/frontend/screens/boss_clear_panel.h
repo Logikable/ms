@@ -17,8 +17,12 @@ namespace ms {
 // The card for `title` paying `reward`, with `prompt` -- the [Continue] that
 // dismisses it -- inside the border rather than under the card, so the whole
 // of what the player is reading sits in one box.
+//
+// `show_honor` is HonorVisible: the clear pays honor either way, but a player
+// with nothing to spend it on is not told about a currency yet.
 ftxui::Element BossClearPanel(const std::string& title,
-                              const BossReward& reward, ftxui::Element prompt);
+                              const BossReward& reward, ftxui::Element prompt,
+                              bool show_honor);
 
 }  // namespace ms
 

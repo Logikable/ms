@@ -18,6 +18,7 @@
 #include "ftxui/screen/terminal.hpp"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
+#include "src/character/honor.h"
 #include "src/character/progression.h"
 #include "src/combat/combat.h"
 #include "src/frontend/keybinds.h"
@@ -463,7 +464,9 @@ ftxui::Element Tui::BossFightOverlay() {
     case kBossClear:
       return BossClearPanel(controller_.boss_clear_title(),
                             controller_.boss_clear_reward(),
-                            controller_.boss_clear_prompt().Render());
+                            controller_.boss_clear_prompt().Render(),
+                            HonorVisible(state_.character.proto().level(),
+                                         state_.account.max_level()));
     default:
       return nullptr;
   }

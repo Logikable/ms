@@ -24,7 +24,8 @@ std::string DropLine(const BossRewardItem& item) {
 }  // namespace
 
 ftxui::Element BossClearPanel(const std::string& title,
-                              const BossReward& reward, ftxui::Element prompt) {
+                              const BossReward& reward, ftxui::Element prompt,
+                              bool show_honor) {
   std::vector<ftxui::Element> rows;
   rows.push_back(CenteredRow(title));
   rows.push_back(AccentSeparator(kYellow));
@@ -35,6 +36,9 @@ ftxui::Element BossClearPanel(const std::string& title,
   }
   if (reward.exp > 0) {
     rows.push_back(CenteredRow(FormatWithCommas(reward.exp) + " EXP"));
+  }
+  if (reward.honor > 0 && show_honor) {
+    rows.push_back(CenteredRow(FormatWithCommas(reward.honor) + " Honor"));
   }
   for (const BossRewardItem& item : reward.items) {
     rows.push_back(CenteredRow(DropLine(item)));

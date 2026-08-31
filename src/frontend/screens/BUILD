@@ -648,6 +648,7 @@ cc_library(
         "//src:game_state",
         "//src:spawn",
         "//src/character:arcane_force",
+        "//src/character:honor",
         "//src/combat:loot",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_util",

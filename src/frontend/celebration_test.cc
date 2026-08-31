@@ -6,6 +6,8 @@
 
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/honor.h"
+#include "src/character/inner_ability.h"
 #include "src/character/progression.h"
 #include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
@@ -173,6 +175,26 @@ TEST_F(CelebrationTest, TheNextLevelDropsTheAnnouncement) {
   BeginAway(level - 1, level);
   BeginAway(level, level + 1);
   EXPECT_EQ(CardText(celebration_).find("Unlocked"), std::string::npos);
+}
+
+// Honor is paid from the second level, but the card says nothing about it
+// until Inner Ability has been opened -- on this character or, for the one
+// after them, on the account.
+TEST_F(CelebrationTest, TheCardNamesTheHonorOnceInnerAbilityIsOpen) {
+  BeginAway(159, 160);
+  EXPECT_NE(CardText(celebration_).find("+1,800 Honor"), std::string::npos);
+}
+
+TEST_F(CelebrationTest, TheCardHidesTheHonorBeforeThen) {
+  BeginAway(11, 12);
+  EXPECT_EQ(CardText(celebration_).find("Honor"), std::string::npos);
+}
+
+TEST_F(CelebrationTest, ASecondCharacterIsToldAboutTheirHonor) {
+  celebration_.BeginLevelUp(11, 12, /*ap=*/5, /*sp=*/3, /*hyper_sp=*/0,
+                            /*account_level=*/kInnerAbilityUnlockLevel,
+                            kCombatPanel);
+  EXPECT_NE(CardText(celebration_).find("+700 Honor"), std::string::npos);
 }
 
 TEST_F(CelebrationTest, AnAdvancementLightsTheCharacterPanelOnly) {

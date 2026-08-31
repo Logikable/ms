@@ -52,6 +52,7 @@ cc_library(
     name = "honor",
     srcs = ["honor.cc"],
     hdrs = ["honor.h"],
+    deps = [":inner_ability"],
 )
 
 cc_test(

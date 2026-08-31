@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <random>
 
+#include "src/character/inner_ability.h"
+
 namespace ms {
 namespace {
 
@@ -30,6 +32,10 @@ int64_t HonorForLevels(int from_level, int to_level) {
     total += HonorForLevelUp(level);
   }
   return total;
+}
+
+bool HonorVisible(int character_level, int account_level) {
+  return std::max(character_level, account_level) >= kInnerAbilityUnlockLevel;
 }
 
 int64_t RollMobHonor(int64_t kills, std::mt19937& rng) {

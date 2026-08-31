@@ -131,6 +131,9 @@ TEST(MobInspectPanelTest, ShowsTheStatsAndTheDropsWithTheirChances) {
   EXPECT_NE(out.find("41"), std::string::npos);   // Attack
   EXPECT_NE(out.find("120"), std::string::npos);  // meso: 6 * 10 * 2.0
   EXPECT_NE(out.find("60%"), std::string::npos);  // the meso's own chance
+  // Honor: the same off every monster, so it is a rule rather than a stat.
+  EXPECT_NE(out.find("Honor"), std::string::npos);
+  EXPECT_NE(out.find("5%"), std::string::npos);
   EXPECT_NE(out.find("Green Snail Shell"), std::string::npos);
   EXPECT_NE(out.find("40%"), std::string::npos);
   EXPECT_NE(out.find("0.025%"), std::string::npos);

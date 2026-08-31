@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/character/honor.h"
 #include "src/character/progression.h"
 #include "src/frontend/panels/advancement_popup_panel.h"
 #include "src/frontend/panels/death_popup_panel.h"
@@ -36,6 +37,9 @@ void Celebration::BeginLevelUp(int from_level, int to_level, int ap, int sp,
   ap_ = ap;
   sp_ = sp;
   hyper_sp_ = hyper_sp;
+  honor_ = HonorVisible(to_level, account_level)
+               ? HonorForLevels(from_level, to_level)
+               : 0;
   unlocks_.clear();
   for (Feature feature :
        UpgradesUnlockedBetween(from_level, to_level, account_level)) {
@@ -122,7 +126,7 @@ ftxui::Element Celebration::Render() const {
   if (kind_ == Kind::kAdvancement) {
     return AdvancementPopupPanel(from_job_, to_job_);
   }
-  return LevelUpPopupPanel(from_level_, to_level_, ap_, sp_, hyper_sp_,
+  return LevelUpPopupPanel(from_level_, to_level_, ap_, sp_, hyper_sp_, honor_,
                            unlocks_);
 }
 
