@@ -419,12 +419,6 @@ std::string CooldownText(const Skill& skill, int level) {
   return wait;
 }
 
-// The rows that hold at every level: what the skill asks for and how far a
-// swing reaches. A skill with none of them gets no block at all.
-//
-// No row here counts seconds. The pacing band stretches every duration in the
-// game alike, so a figure the player could hold a stopwatch to would not be
-// the one printed -- and none of them is a choice they make anyway.
 // Appends `from` to `into`. The row builders here all return vectors, and a
 // row is a move rather than a copy.
 void Append(std::vector<Row> from, std::vector<Row>& into) {
@@ -565,6 +559,12 @@ std::vector<Row> ElementRows(const Skill& skill) {
   return {};
 }
 
+// The rows that hold at every level: what the skill asks for and how far a
+// swing reaches. A skill with none of them gets no block at all.
+//
+// No row here counts seconds. The pacing band stretches every duration in the
+// game alike, so a figure the player could hold a stopwatch to would not be
+// the one printed -- and none of them is a choice they make anyway.
 std::vector<Row> InvariantRows(const Skill& skill) {
   std::vector<Row> rows = RequirementRows(skill);
   Append(ReplacesRows(skill), rows);
@@ -890,6 +890,52 @@ std::vector<Row> LeverRows(const SkillEffect& base, const SkillEffect& per,
   return rows;
 }
 
+// A fountain states both halves. Neither alone says what a point bought: the
+// pulse grows and the wait between pulses shortens together, so a page showing
+// only the pulse would understate every point after the first.
+std::vector<Row> RegenRows(const Skill& skill, int level) {
+  double regen = PercentAt(skill, &SkillEffect::regen_pct, level);
+  int regen_hp = FlatAt(skill, &SkillEffect::regen_hp, level);
+  double interval =
+      PercentAt(skill, &SkillEffect::regen_interval_seconds, level);
+  if ((regen <= 0.0 && regen_hp <= 0) || interval <= 0.0) {
+    return {};
+  }
+  // A fountain pouring both states both, the flat half first: it is the one
+  // the player can hold against their pool.
+  std::string poured;
+  if (regen_hp > 0) {
+    poured = std::to_string(regen_hp) + " HP";
+  }
+  if (regen > 0.0) {
+    poured += (poured.empty() ? "" : " and ") + FormatPercent(regen);
+  }
+  std::string text = poured + " every " + FormatNumber(interval) + "s";
+  // Holy Water pours one more helping per step of INT, which is most of what a
+  // Bishop's points buy. Stated with the pulse rather than as a row of its
+  // own: alone it would read as a share of the pool.
+  double step = PercentAt(skill, &SkillEffect::regen_int_step, level);
+  if (step > 0.0) {
+    text +=
+        ", +" + FormatPercent(regen) + " per " + FormatNumber(step) + " INT";
+  }
+  return {EffectRow("HP Recovered", text)};
+}
+
+// The strike a hold ends on, which reads exactly as any other second hit since
+// that is what it is -- one landed once however long the hold ran.
+std::vector<Row> ChannelFinishRows(const Skill& skill, int level) {
+  google::protobuf::RepeatedPtrField<SwingHit> finish;
+  *finish.Add() = skill.channel().finish();
+  std::vector<Row> rows = SwingHitRows(finish, level);
+  if (skill.channel().damage_taken_pct() > 0.0) {
+    rows.push_back(
+        EffectRow("Damage Taken",
+                  "-" + FormatPercent(skill.channel().damage_taken_pct())));
+  }
+  return rows;
+}
+
 // What the skill itself does when it goes off: its damage, its healing, and
 // the shapes a plain lever row cannot state.
 std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
@@ -909,34 +955,7 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
     rows.push_back(EffectRow(
         "Pulses", "Up to " + std::to_string(skill.channel().max_pulses())));
   }
-  // A fountain states both halves. Neither alone says what a point bought:
-  // the pulse grows and the wait between pulses shortens together, so a page
-  // showing only the pulse would understate every point after the first.
-  double regen = PercentAt(skill, &SkillEffect::regen_pct, level);
-  int regen_hp = FlatAt(skill, &SkillEffect::regen_hp, level);
-  double regen_interval =
-      PercentAt(skill, &SkillEffect::regen_interval_seconds, level);
-  if ((regen > 0.0 || regen_hp > 0) && regen_interval > 0.0) {
-    // A fountain pouring both states both, the flat half first: it is the one
-    // the player can hold against their pool.
-    std::string poured;
-    if (regen_hp > 0) {
-      poured = std::to_string(regen_hp) + " HP";
-    }
-    if (regen > 0.0) {
-      poured += (poured.empty() ? "" : " and ") + FormatPercent(regen);
-    }
-    std::string text = poured + " every " + FormatNumber(regen_interval) + "s";
-    // Holy Water pours one more helping per step of INT, which is most of
-    // what a Bishop's points buy. Stated with the pulse rather than as a row
-    // of its own: alone it would read as a share of the pool.
-    double step = PercentAt(skill, &SkillEffect::regen_int_step, level);
-    if (step > 0.0) {
-      text +=
-          ", +" + FormatPercent(regen) + " per " + FormatNumber(step) + " INT";
-    }
-    rows.push_back(EffectRow("HP Recovered", text));
-  }
+  Append(RegenRows(skill, level), rows);
   // What one meso is worth thrown back, read the way every other swing on this
   // page is read: per line, times the count. Meso Mastery's points land on a
   // line apiece, so the per-line figure is the one that has to be shown.
@@ -982,22 +1001,9 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   // The other hit the same swing lands, and its own reading against an
   // ordinary monster under it -- the pair reads exactly as the swing's own two
   // rows above, because that is what it is.
-  for (Row& row : SwingHitRows(skill.extra_hit(), level)) {
-    rows.push_back(std::move(row));
-  }
-  // The strike a hold ends on reads exactly as any other second hit, since
-  // that is what it is -- one landed once however long the hold ran.
+  Append(SwingHitRows(skill.extra_hit(), level), rows);
   if (held) {
-    google::protobuf::RepeatedPtrField<SwingHit> finish;
-    *finish.Add() = skill.channel().finish();
-    for (Row& row : SwingHitRows(finish, level)) {
-      rows.push_back(std::move(row));
-    }
-    if (skill.channel().damage_taken_pct() > 0.0) {
-      rows.push_back(
-          EffectRow("Damage Taken",
-                    "-" + FormatPercent(skill.channel().damage_taken_pct())));
-    }
+    Append(ChannelFinishRows(skill, level), rows);
   }
   // Under the swing's own damage, because it is the extra the swing opens with
   // rather than a second attack.
@@ -1219,6 +1225,70 @@ std::vector<Row> ShieldRows(const Shield& shield, int level) {
 // What a timed buff grants, headed by how long it stands. The wait for the
 // next one is the skill's own Cooldown row, above. No row here says "while
 // up" -- the heading says it once for all of them.
+// What the buff bleeds. A pulse borrowing the swing's reach says its damage and
+// its clock on one row -- the two are one fact, and the enemies are the ones
+// the swing above already states. One reaching enemies of its own says so where
+// every other own-clock half does, in an Attacks row, and keeps the damage row
+// for the damage.
+std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
+  if (pulse.cast_interval_seconds() <= 0.0) {
+    return {};
+  }
+  double per_hit =
+      pulse.base().skill_pct() + pulse.per_level().skill_pct() * (level - 1);
+  int lines = std::max(1, pulse.lines());
+  int strikes = std::max(1, pulse.casts());
+  std::string damage = SwingText(per_hit, pulse.lines());
+  if (strikes > 1) {
+    // Written in GMS's own order -- so much damage, so many times, so many
+    // strikes -- because the total alone hides which of the three moved.
+    damage = FormatPercent(per_hit) + " x" + std::to_string(lines) + " x" +
+             std::to_string(strikes) + " = " +
+             FormatPercent(per_hit * lines * strikes);
+  }
+  if (pulse.max_pulses() > 0) {
+    damage += ", " + std::to_string(pulse.max_pulses()) + " times";
+  }
+  if (pulse.max_enemies() == 0) {
+    return {EffectRow(pulse.label(),
+                      damage + " every " +
+                          FormatNumber(pulse.cast_interval_seconds(), 2) +
+                          "s")};
+  }
+  return {EffectRow(pulse.label(), damage),
+          EffectRow("Attacks", ReachText(pulse.max_enemies(),
+                                         pulse.cast_interval_seconds()))};
+}
+
+// What everybody else in the party gets while the buff stands, in the colour
+// the party screens are drawn in. Under the buff's own heading rather than at
+// the foot of the card, because these lapse with it. See Buff.ally_base.
+std::vector<Row> AllyBuffRows(const Buff& buff, int level) {
+  SkillEffect base = buff.ally_base();
+  SkillEffect per = buff.ally_per_level();
+  double heal = base.heal_pct() + per.heal_pct() * (level - 1);
+  base.clear_heal_pct();
+  per.clear_heal_pct();
+  std::vector<Row> levers = LeverRows(base, per, level, "");
+  // A party shell stands over everybody as one, so what it blocks is stated
+  // for them exactly as it is for the caster. One that is not says nothing
+  // here -- see Shield.party.
+  std::vector<Row> shield = buff.shield().party()
+                                ? ShieldRows(buff.shield(), level)
+                                : std::vector<Row>();
+  if (heal <= 0.0 && levers.empty() && shield.empty()) {
+    return {};
+  }
+  std::vector<Row> rows = {SectionRow("Your Party", kTheme)};
+  if (heal > 0.0) {
+    rows.push_back(
+        EffectRow("Heal on Cast", "+" + FormatPercent(heal) + " HP"));
+  }
+  Append(std::move(levers), rows);
+  Append(std::move(shield), rows);
+  return rows;
+}
+
 std::vector<Row> BuffRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   const Buff& buff = skill.buff();
@@ -1251,73 +1321,41 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   }
   base.clear_heal_pct();
   per.clear_heal_pct();
-  for (Row& row : LeverRows(base, per, level, "")) {
-    rows.push_back(std::move(row));
+  Append(LeverRows(base, per, level, ""), rows);
+  Append(ShieldRows(buff.shield(), level), rows);
+  Append(PulseRows(buff.pulse(), level), rows);
+  Append(AllyBuffRows(buff, level), rows);
+  return rows;
+}
+
+// What the skill simply keeps, however it chose to write it: an attack states
+// its own half apart from the levers riding its swing, and a passive states
+// everything here. What a chance pays lands here too -- nothing about it
+// lapses, and a passive that only ever fires sometimes is a passive still.
+std::vector<Row> PermanentRows(const Skill& skill, int level) {
+  std::vector<Row> rows;
+  if (skill.kind() == SKILL_KIND_ATTACK) {
+    rows = LeverRows(WithoutSwingLevers(skill.base()),
+                     WithoutSwingLevers(skill.per_level()), level, "");
+    Append(LeverRows(skill.passive(), skill.passive_per_level(), level, ""),
+           rows);
+  } else {
+    rows = LeverRows(skill.base(), skill.per_level(), level, "");
   }
-  for (Row& row : ShieldRows(buff.shield(), level)) {
-    rows.push_back(std::move(row));
-  }
-  // What the buff bleeds. A pulse borrowing the swing's reach says its damage
-  // and its clock on one row -- the two are one fact, and the enemies are the
-  // ones the swing above already states. One reaching enemies of its own says
-  // so where every other own-clock half does, in an Attacks row, and keeps the
-  // damage row for the damage.
-  const BuffPulse& pulse = buff.pulse();
-  if (pulse.cast_interval_seconds() > 0.0) {
-    double per_hit =
-        pulse.base().skill_pct() + pulse.per_level().skill_pct() * (level - 1);
-    int strikes = std::max(1, pulse.casts());
-    std::string damage = SwingText(per_hit, pulse.lines());
-    if (strikes > 1) {
-      // Written in GMS's own order -- so much damage, so many times, so many
-      // strikes -- because the total alone hides which of the three moved.
-      damage = FormatPercent(per_hit) + " x" +
-               std::to_string(std::max(1, pulse.lines())) + " x" +
-               std::to_string(strikes) + " = " +
-               FormatPercent(per_hit * std::max(1, pulse.lines()) * strikes);
-    }
-    if (pulse.max_pulses() > 0) {
-      damage += ", " + std::to_string(pulse.max_pulses()) + " times";
-    }
-    if (pulse.max_enemies() > 0) {
-      rows.push_back(EffectRow(pulse.label(), damage));
-      rows.push_back(EffectRow(
-          "Attacks",
-          ReachText(pulse.max_enemies(), pulse.cast_interval_seconds())));
-    } else {
-      rows.push_back(EffectRow(
-          pulse.label(), damage + " every " +
-                             FormatNumber(pulse.cast_interval_seconds(), 2) +
-                             "s"));
-    }
-  }
-  // What everybody else in the party gets while it stands, in the colour the
-  // party screens are drawn in. Under the buff's own heading rather than at
-  // the foot of the card, because these lapse with it. See Buff.ally_base.
-  SkillEffect ally_base = buff.ally_base();
-  SkillEffect ally_per = buff.ally_per_level();
-  double ally_heal = ally_base.heal_pct() + ally_per.heal_pct() * (level - 1);
-  ally_base.clear_heal_pct();
-  ally_per.clear_heal_pct();
-  std::vector<Row> ally = LeverRows(ally_base, ally_per, level, "");
-  // A party shell stands over everybody as one, so what it blocks is stated
-  // for them exactly as it is for the caster. One that is not says nothing
-  // here -- see Shield.party.
-  std::vector<Row> ally_shield = buff.shield().party()
-                                     ? ShieldRows(buff.shield(), level)
-                                     : std::vector<Row>();
-  if (ally_heal > 0.0 || !ally.empty() || !ally_shield.empty()) {
-    rows.push_back(SectionRow("Your Party", kTheme));
-    if (ally_heal > 0.0) {
-      rows.push_back(
-          EffectRow("Heal on Cast", "+" + FormatPercent(ally_heal) + " HP"));
-    }
-    for (Row& row : ally) {
-      rows.push_back(std::move(row));
-    }
-    for (Row& row : ally_shield) {
-      rows.push_back(std::move(row));
-    }
+  Append(ProcRows(skill, level), rows);
+  return rows;
+}
+
+// A weapon bonus reads as the lever it grants with the weapons it needs in
+// brackets: "Damage  +5% (Axe)". Flat, so it is read at level 1.
+std::vector<Row> WeaponBonusRows(const Skill& skill) {
+  std::vector<Row> rows;
+  for (const WeaponBonus& bonus : skill.weapon_bonus()) {
+    std::string suffix =
+        " (" + RequiredWeapons(bonus.required_equip_type()) + ")";
+    Append(
+        LeverRows(bonus.effect(), SkillEffect::default_instance(), 1, suffix),
+        rows);
   }
   return rows;
 }
@@ -1326,70 +1364,45 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
 // is something this game has no notion of.
 std::vector<Row> EffectRows(const Skill& skill, int level) {
   std::vector<Row> rows;
-  for (Row& row : OwnEffectRows(skill, level)) {
-    rows.push_back(std::move(row));
-  }
-  for (Row& row : ExtraAttackRows(skill, level)) {
-    rows.push_back(std::move(row));
-  }
+  Append(OwnEffectRows(skill, level), rows);
+  Append(ExtraAttackRows(skill, level), rows);
   // A skill can grant three different things, and only one of them is the
   // character's for good: what rides the swing it states them on, what stands
   // for as long as a buff is up, and what it simply keeps. Each is headed
   // where another is present, because "Ignore DEF" is otherwise the same row
   // meaning three things. A skill with one half alone needs no heading and
   // gets none.
-  bool swings = skill.kind() == SKILL_KIND_ATTACK;
-  std::vector<Row> swing;
-  std::vector<Row> permanent;
-  if (swings) {
-    swing = LeverRows(SwingLeversOf(skill.base()),
-                      SwingLeversOf(skill.per_level()), level, "");
-    permanent = LeverRows(WithoutSwingLevers(skill.base()),
-                          WithoutSwingLevers(skill.per_level()), level, "");
-    // The half the attack states apart, under the same heading: what it keeps
-    // is what it keeps, however the skill chose to write it.
-    for (Row& row :
-         LeverRows(skill.passive(), skill.passive_per_level(), level, "")) {
-      permanent.push_back(std::move(row));
-    }
-  } else {
-    permanent = LeverRows(skill.base(), skill.per_level(), level, "");
-  }
-  // What a chance pays lands with the permanent half: nothing about it lapses,
-  // and a passive that only ever fires sometimes is a passive still.
-  for (Row& row : ProcRows(skill, level)) {
-    permanent.push_back(std::move(row));
-  }
-  if (!swing.empty()) {
-    rows.push_back(SectionRow("This Attack Only", kGold));
-    for (Row& row : swing) {
-      rows.push_back(std::move(row));
-    }
-  }
+  std::vector<Row> swing =
+      skill.kind() == SKILL_KIND_ATTACK
+          ? LeverRows(SwingLeversOf(skill.base()),
+                      SwingLeversOf(skill.per_level()), level, "")
+          : std::vector<Row>();
+  std::vector<Row> permanent = PermanentRows(skill, level);
   std::vector<Row> buff = BuffRows(skill, level);
-  for (Row& row : buff) {
-    rows.push_back(std::move(row));
+  // Read before either is handed over, since Append takes its rows by value.
+  bool has_swing = !swing.empty();
+  bool has_buff = !buff.empty();
+  if (has_swing) {
+    rows.push_back(SectionRow("This Attack Only", kGold));
+    Append(std::move(swing), rows);
   }
+  Append(std::move(buff), rows);
   // A skill paid only for shielding somebody heads its own half whatever else
   // is on the page: a player maxing it alone and seeing nothing move has to
   // be able to read why here.
   std::vector<Row> ally =
       LeverRows(skill.ally_base(), skill.ally_per_level(), level, "");
-  if (!permanent.empty() && (!buff.empty() || !swing.empty() ||
-                             skill.requires_party() || !ally.empty())) {
+  if (!permanent.empty() &&
+      (has_buff || has_swing || skill.requires_party() || !ally.empty())) {
     rows.push_back(SectionRow(
         skill.requires_party() ? "Passive, in a Party" : "Passive", kGreen));
   }
-  for (Row& row : permanent) {
-    rows.push_back(std::move(row));
-  }
+  Append(std::move(permanent), rows);
   // What everybody else in the party gets, in the colour the party screens
   // are drawn in. Its own section: these are not the reader's numbers.
   if (!ally.empty()) {
     rows.push_back(SectionRow("Your Party", kTheme));
-    for (Row& row : ally) {
-      rows.push_back(std::move(row));
-    }
+    Append(std::move(ally), rows);
   }
   // A wait that shortens as the skill is taught is one of the things a point
   // buys, so it is read at the level like the rest. The waits that never move
@@ -1403,16 +1416,7 @@ std::vector<Row> EffectRows(const Skill& skill, int level) {
     rows.push_back(
         EffectRow("Combo Orbs", std::to_string(ComboOrbsAt(skill, level))));
   }
-  // A weapon bonus reads as the lever it grants with the weapons it needs in
-  // brackets: "Damage  +5% (Axe)". Flat, so it is read at level 1.
-  for (const WeaponBonus& bonus : skill.weapon_bonus()) {
-    std::string suffix =
-        " (" + RequiredWeapons(bonus.required_equip_type()) + ")";
-    for (Row& row : LeverRows(bonus.effect(), SkillEffect::default_instance(),
-                              1, suffix)) {
-      rows.push_back(std::move(row));
-    }
-  }
+  Append(WeaponBonusRows(skill), rows);
   return Speaking(std::move(rows));
 }
 
