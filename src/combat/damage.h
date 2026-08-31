@@ -137,6 +137,18 @@ double BaseMastery(Job job);
 // into the character's stats or do nothing we model.
 bool DealsDamage(SkillKind kind);
 
+// Every lever `base` and `per_level` grant together at `level`, folded over
+// the whole message at once: each field is base + per_level x (level - 1),
+// which is the ladder every SkillEffect pair in the book is read up.
+//
+// Ask this rather than spelling the fold out field by field. A caller that
+// names its own fields has to be edited again the next time a lever is added,
+// and the levers are added often; this one walks whatever the message holds.
+//
+// Bools have no ladder, so one set on either side stands.
+SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
+                     int level);
+
 // How many times one swing of `skill` strikes each enemy at `level`: its
 // `lines`, plus whole lines its `lines_per_level` has bought since level 1.
 // Never below 1, so an attack that says nothing still lands once.

@@ -112,11 +112,10 @@ DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
   // number it climbs to, and a burn that stacks 2.9999 times stacks twice.
   constexpr double kStackEpsilon = 1e-9;
   OffenseStats burn = offense;
-  burn.skill_pct = dot.base().skill_pct() +
-                   dot.per_level().skill_pct() * (level - 1) +
-                   (boost != nullptr ? boost->dot_skill_pct : 0.0);
-  burn.normal_skill_pct = dot.base().normal_skill_pct() +
-                          dot.per_level().normal_skill_pct() * (level - 1);
+  SkillEffect burns = EffectAt(dot.base(), dot.per_level(), level);
+  burn.skill_pct =
+      burns.skill_pct() + (boost != nullptr ? boost->dot_skill_pct : 0.0);
+  burn.normal_skill_pct = burns.normal_skill_pct();
   burn.lines = std::max(1, dot.lines());
   // A shadow copies the swing it was cast beside, not the mark that swing left
   // burning after it.
@@ -192,12 +191,10 @@ void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
 void AddSwingHit(const SwingHit& hit, const OffenseStats& offense, int level,
                  const std::vector<CombatType>& types, AttackOption& attack) {
   OffenseStats extra = offense;
-  extra.skill_pct =
-      hit.base().skill_pct() + hit.per_level().skill_pct() * (level - 1);
-  extra.normal_skill_pct = hit.base().normal_skill_pct() +
-                           hit.per_level().normal_skill_pct() * (level - 1);
-  extra.crit_rate +=
-      hit.base().crit_rate() + hit.per_level().crit_rate() * (level - 1);
+  SkillEffect lands = EffectAt(hit.base(), hit.per_level(), level);
+  extra.skill_pct = lands.skill_pct();
+  extra.normal_skill_pct = lands.normal_skill_pct();
+  extra.crit_rate += lands.crit_rate();
   extra.lines = std::max(1, hit.lines());
   // The shadow copies it as it copies the rest of the swing. Reset here
   // because the line count just changed under it.
@@ -297,14 +294,13 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
       attack.scar_chance = derived.scar.chance;
       attack.scar_seconds = derived.scar.seconds * speed_factor;
     }
-    attack.heal_fraction =
-        skill->base().heal_pct() + skill->per_level().heal_pct() * (level - 1);
+    SkillEffect granted = EffectAt(skill->base(), skill->per_level(), level);
+    attack.heal_fraction = granted.heal_pct();
     // An ATTACK's recovery is its own swing's, exactly as its ignored defence
     // is. Read here rather than off the character, who was handed everything
     // but this -- see WithoutSwingLevers.
     if (skill->kind() == SKILL_KIND_ATTACK) {
-      attack.hp_recover_pct = skill->base().hp_recover_pct() +
-                              skill->per_level().hp_recover_pct() * (level - 1);
+      attack.hp_recover_pct = granted.hp_recover_pct();
     }
   }
   OffenseStats offense = OffenseStatsFor(
@@ -489,10 +485,9 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     OffenseStats stats =
         OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
                         equipped, weapon, skill, level, unaimed);
-    stats.skill_pct =
-        side.base().skill_pct() + side.per_level().skill_pct() * (level - 1);
-    stats.normal_skill_pct = side.base().normal_skill_pct() +
-                             side.per_level().normal_skill_pct() * (level - 1);
+    SkillEffect thrown = EffectAt(side.base(), side.per_level(), level);
+    stats.skill_pct = thrown.skill_pct();
+    stats.normal_skill_pct = thrown.normal_skill_pct();
     stats.lines = std::max(1, side.lines());
     stats.mirror_lines = stats.lines;
     AttackOption strike;
@@ -1090,16 +1085,15 @@ void AddBuffs(const GameState& state,
     if (buff.party_shared()) {
       option.cooldown_seconds /= PartyHolders(character, party, *skill);
     }
-    option.damage_taken_pct = buff.base().damage_taken_pct() +
-                              buff.per_level().damage_taken_pct() * (level - 1);
+    SkillEffect held = EffectAt(buff.base(), buff.per_level(), level);
+    option.damage_taken_pct = held.damage_taken_pct();
     option.cooldown_reduction_seconds =
         buff.cooldown_reduction_seconds() * speed_factor;
     // Lines rather than seconds, so the pacing band leaves it alone: what it
     // measures is how fast the character lands hits, which is already
     // stretched.
     option.charge_lines = buff.charge_lines();
-    option.heal_fraction =
-        buff.base().heal_pct() + buff.per_level().heal_pct() * (level - 1);
+    option.heal_fraction = held.heal_pct();
     // What raising it costs. A buff a swing lays is paid for by that swing, so
     // it is charged nothing here -- see BuffOption::cast_seconds.
     option.cast_seconds = skill->base_delay_ms() / 1000.0 * speed_factor;
@@ -1143,11 +1137,10 @@ void AddAllyBuffs(const GameState& state, double speed_factor,
     if (!buff.shield().party()) {
       option.shield_hits = 0.0;
     }
-    option.damage_taken_pct =
-        buff.ally_base().damage_taken_pct() +
-        buff.ally_per_level().damage_taken_pct() * (grant.level - 1);
-    option.heal_fraction = buff.ally_base().heal_pct() +
-                           buff.ally_per_level().heal_pct() * (grant.level - 1);
+    SkillEffect shared =
+        EffectAt(buff.ally_base(), buff.ally_per_level(), grant.level);
+    option.damage_taken_pct = shared.damage_taken_pct();
+    option.heal_fraction = shared.heal_pct();
     params.ally_buffs.push_back(std::move(option));
   }
 }

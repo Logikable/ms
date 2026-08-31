@@ -150,103 +150,80 @@ struct PassiveTotals : DerivedStats {
   int def_per_combo_orb = 0;
 };
 
-// Folds one skill's levers in at `level`, on top of whatever is already there.
+// Folds one skill's levers in, on top of whatever is already there. Handed the
+// grant already read up to its level -- see EffectAt -- so a lever that meets
+// what is there is spelled once here and nowhere else.
+//
 // Split out from AddPassive because a weapon bonus is a second helping of the
 // same levers, gated on the weapon rather than on the skill.
-void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
-               PassiveTotals& totals) {
-  totals.hp_grant += base.max_hp() + per.max_hp() * (level - 1);
-  totals.mp_grant += base.max_mp() + per.max_mp() * (level - 1);
-  totals.hp_per_level +=
-      base.max_hp_per_level() + per.max_hp_per_level() * (level - 1);
-  totals.max_hp_pct += base.max_hp_pct() + per.max_hp_pct() * (level - 1);
-  totals.mp_per_level +=
-      base.max_mp_per_level() + per.max_mp_per_level() * (level - 1);
-  totals.max_mp_pct += base.max_mp_pct() + per.max_mp_pct() * (level - 1);
-  totals.def_grant += base.def() + per.def() * (level - 1);
-  totals.def_factor *= 1.0 + base.def_pct() + per.def_pct() * (level - 1);
-  totals.str += base.str() + per.str() * (level - 1);
-  totals.dex += base.dex() + per.dex() * (level - 1);
-  totals.int_ += base.int_() + per.int_() * (level - 1);
-  totals.luk += base.luk() + per.luk() * (level - 1);
-  totals.attack += base.attack() + per.attack() * (level - 1);
-  totals.attack_pct += base.attack_pct() + per.attack_pct() * (level - 1);
-  totals.magic_attack += base.magic_attack() + per.magic_attack() * (level - 1);
+void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
+  totals.hp_grant += granted.max_hp();
+  totals.mp_grant += granted.max_mp();
+  totals.hp_per_level += granted.max_hp_per_level();
+  totals.max_hp_pct += granted.max_hp_pct();
+  totals.mp_per_level += granted.max_mp_per_level();
+  totals.max_mp_pct += granted.max_mp_pct();
+  totals.def_grant += granted.def();
+  totals.def_factor *= 1.0 + granted.def_pct();
+  totals.str += granted.str();
+  totals.dex += granted.dex();
+  totals.int_ += granted.int_();
+  totals.luk += granted.luk();
+  totals.attack += granted.attack();
+  totals.attack_pct += granted.attack_pct();
+  totals.magic_attack += granted.magic_attack();
   // Damage sent to the MP pool is damage the HP pool never sees, and nothing
   // here tracks MP -- so Magic Guard reads as reduction, which is its whole
   // effect. Reduction multiplies rather than adds: two halves leave a quarter
   // of the hit, where summing them would leave none of it and then go on to
   // heal the character.
-  double taken = base.damage_taken_pct() + per.damage_taken_pct() * (level - 1);
-  double to_mp = base.damage_to_mp_pct() + per.damage_to_mp_pct() * (level - 1);
-  totals.damage_taken_pct =
-      1.0 - (1.0 - totals.damage_taken_pct) * (1.0 - taken) * (1.0 - to_mp);
+  totals.damage_taken_pct = 1.0 - (1.0 - totals.damage_taken_pct) *
+                                      (1.0 - granted.damage_taken_pct()) *
+                                      (1.0 - granted.damage_to_mp_pct());
   // Dodging combines the same way and for the same reason: what two sources
   // leave standing is the product of what each leaves standing.
-  double dodge = base.dodge_chance() + per.dodge_chance() * (level - 1);
-  totals.dodge_chance = 1.0 - (1.0 - totals.dodge_chance) * (1.0 - dodge);
+  totals.dodge_chance =
+      1.0 - (1.0 - totals.dodge_chance) * (1.0 - granted.dodge_chance());
   // The barrier sums rather than combining, unlike the two above: what it takes
   // off is the monster's own attack, and GMS states every source of it as
   // points on that one number.
-  totals.enemy_attack_pct +=
-      base.enemy_attack_pct() + per.enemy_attack_pct() * (level - 1);
-  totals.enemy_attack_reaches_boss |= base.enemy_attack_reaches_boss();
-  totals.damage_reflect_pct +=
-      base.damage_reflect_pct() + per.damage_reflect_pct() * (level - 1);
-  totals.crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
-  totals.crit_dmg += base.crit_dmg() + per.crit_dmg() * (level - 1);
-  totals.hp_recover_pct +=
-      base.hp_recover_pct() + per.hp_recover_pct() * (level - 1);
-  totals.exp_pct += base.exp_pct() + per.exp_pct() * (level - 1);
+  totals.enemy_attack_pct += granted.enemy_attack_pct();
+  totals.enemy_attack_reaches_boss |= granted.enemy_attack_reaches_boss();
+  totals.damage_reflect_pct += granted.damage_reflect_pct();
+  totals.crit_rate += granted.crit_rate();
+  totals.crit_dmg += granted.crit_dmg();
+  totals.hp_recover_pct += granted.hp_recover_pct();
+  totals.exp_pct += granted.exp_pct();
   // The pulse and its interval stay apart all the way to the fight, which
   // pours on the clock rather than smearing it over the seconds between.
-  double regen_interval = base.regen_interval_seconds() +
-                          per.regen_interval_seconds() * (level - 1);
-  double regen_pct = base.regen_pct() + per.regen_pct() * (level - 1);
-  int regen_hp = base.regen_hp() + per.regen_hp() * (level - 1);
-  if (regen_interval > 0.0 && (regen_pct > 0.0 || regen_hp > 0)) {
-    double step = base.regen_int_step() + per.regen_int_step() * (level - 1);
-    totals.regen.push_back(
-        RawRegen{{regen_pct, regen_hp, regen_interval}, step});
+  if (granted.regen_interval_seconds() > 0.0 &&
+      (granted.regen_pct() > 0.0 || granted.regen_hp() > 0)) {
+    totals.regen.push_back(RawRegen{{granted.regen_pct(), granted.regen_hp(),
+                                     granted.regen_interval_seconds()},
+                                    granted.regen_int_step()});
   }
-  totals.status_resistance +=
-      base.status_resistance() + per.status_resistance() * (level - 1);
-  totals.elemental_resistance +=
-      base.elemental_resistance() + per.elemental_resistance() * (level - 1);
-  totals.damage_pct += base.damage_pct() + per.damage_pct() * (level - 1);
-  totals.boss_pct += base.boss_pct() + per.boss_pct() * (level - 1);
-  totals.meso_pct += base.meso_pct() + per.meso_pct() * (level - 1);
-  totals.item_drop_pct +=
-      base.item_drop_pct() + per.item_drop_pct() * (level - 1);
-  totals.buff_duration_pct +=
-      base.buff_duration_pct() + per.buff_duration_pct() * (level - 1);
-  totals.meso_drop_chance +=
-      base.meso_drop_chance() + per.meso_drop_chance() * (level - 1);
-  totals.mirror_line_pct +=
-      base.mirror_line_pct() + per.mirror_line_pct() * (level - 1);
-  totals.bonus_attack_lines +=
-      base.bonus_attack_lines() + per.bonus_attack_lines() * (level - 1);
-  totals.attack_per_combo_orb +=
-      base.attack_per_combo_orb() + per.attack_per_combo_orb() * (level - 1);
-  totals.final_dmg_pct_per_combo_orb +=
-      base.final_dmg_pct_per_combo_orb() +
-      per.final_dmg_pct_per_combo_orb() * (level - 1);
-  totals.boss_pct_per_combo_orb += base.boss_pct_per_combo_orb() +
-                                   per.boss_pct_per_combo_orb() * (level - 1);
-  totals.def_per_combo_orb +=
-      base.def_per_combo_orb() + per.def_per_combo_orb() * (level - 1);
-  totals.ap_stat_pct += base.ap_stat_pct() + per.ap_stat_pct() * (level - 1);
+  totals.status_resistance += granted.status_resistance();
+  totals.elemental_resistance += granted.elemental_resistance();
+  totals.damage_pct += granted.damage_pct();
+  totals.boss_pct += granted.boss_pct();
+  totals.meso_pct += granted.meso_pct();
+  totals.item_drop_pct += granted.item_drop_pct();
+  totals.buff_duration_pct += granted.buff_duration_pct();
+  totals.meso_drop_chance += granted.meso_drop_chance();
+  totals.mirror_line_pct += granted.mirror_line_pct();
+  totals.bonus_attack_lines += granted.bonus_attack_lines();
+  totals.attack_per_combo_orb += granted.attack_per_combo_orb();
+  totals.final_dmg_pct_per_combo_orb += granted.final_dmg_pct_per_combo_orb();
+  totals.boss_pct_per_combo_orb += granted.boss_pct_per_combo_orb();
+  totals.def_per_combo_orb += granted.def_per_combo_orb();
+  totals.ap_stat_pct += granted.ap_stat_pct();
   // Read here rather than beside the cap itself, so that a BUFF granting
   // either lands them: a buff folds in through this door alone.
-  totals.freeze_cap_bonus += base.freeze_stack_cap_bonus() +
-                             per.freeze_stack_cap_bonus() * (level - 1);
-  totals.freeze.matt_per_stack +=
-      base.magic_attack_per_freeze_stack() +
-      per.magic_attack_per_freeze_stack() * (level - 1);
+  totals.freeze_cap_bonus += granted.freeze_stack_cap_bonus();
+  totals.freeze.matt_per_stack += granted.magic_attack_per_freeze_stack();
   // The shortest wait rather than the sum: two pacts are not one long one,
   // and what a character wants to know is how soon the next one comes.
-  double revive = base.revive_cooldown_seconds() +
-                  per.revive_cooldown_seconds() * (level - 1);
+  double revive = granted.revive_cooldown_seconds();
   if (revive > 0.0 && (totals.revive_cooldown_seconds <= 0.0 ||
                        revive < totals.revive_cooldown_seconds)) {
     totals.revive_cooldown_seconds = revive;
@@ -254,38 +231,31 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   // What comes OFF that wait sums, unlike the wait itself: it is a quantity of
   // seconds rather than a choice between clocks. Cashed in once every passive
   // is read -- see DerivedStatsFor.
-  totals.revive_cooldown_cut += base.revive_cooldown_cut_seconds() +
-                                per.revive_cooldown_cut_seconds() * (level - 1);
-  totals.attack_speed_bonus +=
-      base.attack_speed() + per.attack_speed() * (level - 1);
-  totals.ied = CombineIgnoredDefense(
-      totals.ied, base.ied_pct() + per.ied_pct() * (level - 1));
+  totals.revive_cooldown_cut += granted.revive_cooldown_cut_seconds();
+  totals.attack_speed_bonus += granted.attack_speed();
+  totals.ied = CombineIgnoredDefense(totals.ied, granted.ied_pct());
   // The one lever taken at its best rather than summed: two masteries are not
   // twice as steady a swing, they are the better of the two.
-  totals.mastery =
-      std::max(totals.mastery, base.mastery() + per.mastery() * (level - 1));
+  totals.mastery = std::max(totals.mastery, granted.mastery());
   // Final damage is the one that multiplies: two sources of 10% are worth 21%.
   // Kept as the combined fraction, since that is the single number the damage
   // chain applies.
-  double final_dmg = base.final_dmg_pct() + per.final_dmg_pct() * (level - 1);
-  totals.final_dmg_pct = (1.0 + totals.final_dmg_pct) * (1.0 + final_dmg) - 1.0;
+  totals.final_dmg_pct =
+      (1.0 + totals.final_dmg_pct) * (1.0 + granted.final_dmg_pct()) - 1.0;
 }
 
 // Folds one skill's Final Attack in. Split from AddEffect because what sets a
 // Final Attack off belongs to the SKILL, not to the level's levers -- and
 // AddEffect is handed levers with no skill behind them.
-void AddFinalAttack(const Skill& skill, const SkillEffect& base,
-                    const SkillEffect& per, int level, PassiveTotals& totals) {
+void AddFinalAttack(const Skill& skill, const SkillEffect& granted,
+                    PassiveTotals& totals) {
   FinalAttackSource source;
-  source.chance =
-      base.final_attack_chance() + per.final_attack_chance() * (level - 1);
-  source.damage_pct =
-      base.final_attack_pct() + per.final_attack_pct() * (level - 1);
+  source.chance = granted.final_attack_chance();
+  source.damage_pct = granted.final_attack_pct();
   if (source.chance <= 0.0 || source.damage_pct <= 0.0) {
     return;
   }
-  source.lines = std::max(
-      1, base.final_attack_lines() + per.final_attack_lines() * (level - 1));
+  source.lines = std::max(1, granted.final_attack_lines());
   source.required_tag = skill.follows_skill_tag();
   source.single_enemy = skill.final_attack_single_enemy();
   source.skill_name = skill.name();
@@ -303,10 +273,9 @@ void AddProc(const Skill& skill, int level, PassiveTotals& totals) {
   if (rolled.chance <= 0.0) {
     return;
   }
-  rolled.damage_pct =
-      proc.base().damage_pct() + proc.per_level().damage_pct() * (level - 1);
-  rolled.hp_recover_pct = proc.base().hp_recover_pct() +
-                          proc.per_level().hp_recover_pct() * (level - 1);
+  SkillEffect lands = EffectAt(proc.base(), proc.per_level(), level);
+  rolled.damage_pct = lands.damage_pct();
+  rolled.hp_recover_pct = lands.hp_recover_pct();
   totals.procs.push_back(rolled);
 }
 
@@ -314,57 +283,40 @@ void AddProc(const Skill& skill, int level, PassiveTotals& totals) {
 // and the better stack standing rather than summing two, which is what lets
 // Frost Clutch better a stack without naming a pile of its own. A character
 // holding no cap at all is emptied out again by FoldFreezeStacks.
-void AddFreezeStacks(const Skill& skill, int level, PassiveTotals& totals) {
-  const SkillEffect& base = skill.base();
-  const SkillEffect& per = skill.per_level();
+void AddFreezeStacks(const Skill& skill, const SkillEffect& granted,
+                     PassiveTotals& totals) {
   totals.freeze.cap = std::max(totals.freeze.cap, skill.freeze_stack_cap());
-  totals.freeze.crit_dmg_per_stack =
-      std::max(totals.freeze.crit_dmg_per_stack,
-               base.crit_dmg_per_freeze_stack() +
-                   per.crit_dmg_per_freeze_stack() * (level - 1));
+  totals.freeze.crit_dmg_per_stack = std::max(
+      totals.freeze.crit_dmg_per_stack, granted.crit_dmg_per_freeze_stack());
   totals.freeze.final_dmg_pct_per_stack =
       std::max(totals.freeze.final_dmg_pct_per_stack,
-               base.final_dmg_pct_per_freeze_stack() +
-                   per.final_dmg_pct_per_freeze_stack() * (level - 1));
-  totals.freeze.ied_pct_per_stack =
-      std::max(totals.freeze.ied_pct_per_stack,
-               base.ied_pct_per_freeze_stack() +
-                   per.ied_pct_per_freeze_stack() * (level - 1));
+               granted.final_dmg_pct_per_freeze_stack());
+  totals.freeze.ied_pct_per_stack = std::max(
+      totals.freeze.ied_pct_per_stack, granted.ied_pct_per_freeze_stack());
 }
 
 // Folds the scar in. Two sources would leave the better of each standing
 // rather than summing, exactly as the freeze does: a deeper scar is one scar,
 // and a second skill restating it says nothing new.
-void AddScar(const Skill& skill, int level, PassiveTotals& totals) {
-  const SkillEffect& base = skill.base();
-  const SkillEffect& per = skill.per_level();
-  auto best = [&](double b, double p) { return b + p * (level - 1); };
-  totals.scar.chance =
-      std::max(totals.scar.chance, best(base.scar_chance(), per.scar_chance()));
-  totals.scar.seconds = std::max(totals.scar.seconds,
-                                 best(base.scar_seconds(), per.scar_seconds()));
-  totals.scar.final_dmg_pct = std::max(totals.scar.final_dmg_pct,
-                                       best(base.final_dmg_pct_when_scarred(),
-                                            per.final_dmg_pct_when_scarred()));
+void AddScar(const SkillEffect& granted, PassiveTotals& totals) {
+  totals.scar.chance = std::max(totals.scar.chance, granted.scar_chance());
+  totals.scar.seconds = std::max(totals.scar.seconds, granted.scar_seconds());
+  totals.scar.final_dmg_pct =
+      std::max(totals.scar.final_dmg_pct, granted.final_dmg_pct_when_scarred());
   totals.scar.enemy_attack_pct = std::max(
-      totals.scar.enemy_attack_pct, best(base.enemy_attack_pct_when_scarred(),
-                                         per.enemy_attack_pct_when_scarred()));
+      totals.scar.enemy_attack_pct, granted.enemy_attack_pct_when_scarred());
 }
 
 // Folds in what the enemy's own condition is worth. The better of each stands
 // rather than the sum, as the scar and the freeze do: an afflicted monster is
 // afflicted, and Fervent Drain raising Elemental Drain's rate is one rate.
-void AddEnemyCondition(const Skill& skill, int level, PassiveTotals& totals) {
-  const SkillEffect& base = skill.base();
-  const SkillEffect& per = skill.per_level();
-  auto best = [&](double b, double p) { return b + p * (level - 1); };
+void AddEnemyCondition(const Skill& skill, const SkillEffect& granted,
+                       PassiveTotals& totals) {
   totals.condition.final_dmg_pct_when_afflicted =
       std::max(totals.condition.final_dmg_pct_when_afflicted,
-               best(base.final_dmg_pct_when_afflicted(),
-                    per.final_dmg_pct_when_afflicted()));
-  totals.condition.final_dmg_pct_per_dot =
-      std::max(totals.condition.final_dmg_pct_per_dot,
-               best(base.final_dmg_pct_per_dot(), per.final_dmg_pct_per_dot()));
+               granted.final_dmg_pct_when_afflicted());
+  totals.condition.final_dmg_pct_per_dot = std::max(
+      totals.condition.final_dmg_pct_per_dot, granted.final_dmg_pct_per_dot());
   totals.condition.dot_count_cap =
       std::max(totals.condition.dot_count_cap, skill.dot_count_cap());
 }
@@ -373,9 +325,9 @@ void AddEnemyCondition(const Skill& skill, int level, PassiveTotals& totals) {
 // points land on each of its lines, the two skills fold in catalog order, and
 // so the pair cannot be settled until every passive is in. See
 // FoldMesoExplosion.
-void AddMesoExplosion(const Skill& skill, int level, PassiveTotals& totals) {
-  double per_line = skill.base().meso_hit_pct() +
-                    skill.per_level().meso_hit_pct() * (level - 1);
+void AddMesoExplosion(const Skill& skill, const SkillEffect& granted, int level,
+                      PassiveTotals& totals) {
+  double per_line = granted.meso_hit_pct();
   if (per_line <= 0.0) {
     return;
   }
@@ -388,19 +340,16 @@ void AddMesoExplosion(const Skill& skill, int level, PassiveTotals& totals) {
 // them -- each meeting what is already there the way two sources of it always
 // meet.
 void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
-  const SkillEffect& base = boost.effect();
-  const SkillEffect& per = boost.effect_per_level();
-  into.skill_pct += base.skill_pct() + per.skill_pct() * (level - 1);
-  into.damage_pct += base.damage_pct() + per.damage_pct() * (level - 1);
-  into.boss_pct += base.boss_pct() + per.boss_pct() * (level - 1);
-  into.crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
+  SkillEffect aimed = EffectAt(boost.effect(), boost.effect_per_level(), level);
+  into.skill_pct += aimed.skill_pct();
+  into.damage_pct += aimed.damage_pct();
+  into.boss_pct += aimed.boss_pct();
+  into.crit_rate += aimed.crit_rate();
   // The two that do not sum, for the reason they never do.
-  into.ied = CombineIgnoredDefense(
-      into.ied, base.ied_pct() + per.ied_pct() * (level - 1));
-  double fd = base.final_dmg_pct() + per.final_dmg_pct() * (level - 1);
-  into.final_dmg_pct = (1.0 + into.final_dmg_pct) * (1.0 + fd) - 1.0;
-  into.final_attack_chance +=
-      base.final_attack_chance() + per.final_attack_chance() * (level - 1);
+  into.ied = CombineIgnoredDefense(into.ied, aimed.ied_pct());
+  into.final_dmg_pct =
+      (1.0 + into.final_dmg_pct) * (1.0 + aimed.final_dmg_pct()) - 1.0;
+  into.final_attack_chance += aimed.final_attack_chance();
   // Its own field rather than one of the seven, because it is aimed at the
   // mark the skill leaves rather than the swing -- see SkillBoost.
   into.dot_skill_pct +=
@@ -428,21 +377,22 @@ void AddSkillBonuses(const Skill& skill, int level, PassiveTotals& totals) {
 
 void AddPassive(const Skill& skill, int level, EquipType weapon,
                 PassiveTotals& totals) {
+  SkillEffect granted = EffectAt(skill.base(), skill.per_level(), level);
   if (skill.kind() == SKILL_KIND_ATTACK) {
-    AddEffect(WithoutSwingLevers(skill.base()),
-              WithoutSwingLevers(skill.per_level()), level, totals);
+    AddEffect(WithoutSwingLevers(granted), totals);
     // The half an attack states apart because it keeps it: no lever of this
     // one leaves with the swing. See Skill.passive.
-    AddEffect(skill.passive(), skill.passive_per_level(), level, totals);
+    AddEffect(EffectAt(skill.passive(), skill.passive_per_level(), level),
+              totals);
   } else {
-    AddEffect(skill.base(), skill.per_level(), level, totals);
+    AddEffect(granted, totals);
   }
   AddSkillBonuses(skill, level, totals);
-  AddFinalAttack(skill, skill.base(), skill.per_level(), level, totals);
+  AddFinalAttack(skill, granted, totals);
   AddProc(skill, level, totals);
-  AddFreezeStacks(skill, level, totals);
-  AddScar(skill, level, totals);
-  AddEnemyCondition(skill, level, totals);
+  AddFreezeStacks(skill, granted, totals);
+  AddScar(granted, totals);
+  AddEnemyCondition(skill, granted, totals);
   // A burn on a PASSIVE belongs to the character rather than to one swing: the
   // poison stays on the claw, so everything the claw hits takes it. One on an
   // attack is that swing's own, and one on a summon is its pulses' -- both are
@@ -451,16 +401,15 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
       skill.dot().interval_seconds() > 0.0) {
     totals.dots.push_back(CharacterDot{skill.dot(), level});
   }
-  AddMesoExplosion(skill, level, totals);
+  AddMesoExplosion(skill, granted, level, totals);
   totals.combo_orbs = std::max(totals.combo_orbs, ComboOrbsAt(skill, level));
   // A weapon bonus is a second helping of the same levers for a subset of the
   // weapons the skill accepts. Read at level 1: it is flat by construction.
   for (const WeaponBonus& bonus : skill.weapon_bonus()) {
     if (bonus.required_equip_type_size() > 0 &&
         ListAllowsWeapon(bonus.required_equip_type(), weapon)) {
-      AddEffect(bonus.effect(), SkillEffect::default_instance(), 1, totals);
-      AddFinalAttack(skill, bonus.effect(), SkillEffect::default_instance(), 1,
-                     totals);
+      AddEffect(bonus.effect(), totals);
+      AddFinalAttack(skill, bonus.effect(), totals);
     }
   }
 }
@@ -660,21 +609,23 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   // door. It carries no level and no per-level step: a tier is worth what it
   // says however far the character has come.
   for (const SkillEffect& bonus : character.set_bonuses()) {
-    AddEffect(bonus, SkillEffect::default_instance(), 1, totals);
+    AddEffect(bonus, totals);
   }
   // A buff standing right now grants what a passive grants for as long as it
   // is up, and folds in through the same door for the same reason -- as a
   // source of its own, so its ignored defence combines with the character's
   // rather than summing with it.
   for (const Skill* skill : buffs_up) {
-    AddEffect(skill->buff().base(), skill->buff().per_level(),
-              EffectiveSkillLevel(character, *skill, bonus), totals);
+    AddEffect(EffectAt(skill->buff().base(), skill->buff().per_level(),
+                       EffectiveSkillLevel(character, *skill, bonus)),
+              totals);
   }
   // What the party is holding over them, at the level its caster has it. The
   // same door again, and for the same reason.
   for (const AllyGrant& grant : PartyGrants(character, skills, allies)) {
-    AddEffect(grant.skill->ally_base(), grant.skill->ally_per_level(),
-              grant.level, totals);
+    AddEffect(EffectAt(grant.skill->ally_base(), grant.skill->ally_per_level(),
+                       grant.level),
+              totals);
   }
   FoldMesoExplosion(totals);
   FoldFinalAttackBoosts(totals);

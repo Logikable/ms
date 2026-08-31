@@ -4,6 +4,7 @@
 #include <cmath>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "src/character/job_branch.h"
 #include "src/combat/constants.h"
@@ -270,6 +271,41 @@ double CombineIgnoredDefense(double a, double b) {
 
 bool DealsDamage(SkillKind kind) {
   return kind == SKILL_KIND_ATTACK || kind == SKILL_KIND_AUTO_ATTACK;
+}
+
+SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
+                     int level) {
+  SkillEffect at = base;
+  if (level <= 1) {
+    return at;
+  }
+  // Only the fields per_level actually carries: most skills climb in one or
+  // two of the ninety, and the rest are already what `base` said.
+  std::vector<const google::protobuf::FieldDescriptor*> climbing;
+  const google::protobuf::Reflection* reflect = per_level.GetReflection();
+  reflect->ListFields(per_level, &climbing);
+  for (const google::protobuf::FieldDescriptor* field : climbing) {
+    switch (field->cpp_type()) {
+      case google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE:
+        reflect->SetDouble(
+            &at, field,
+            reflect->GetDouble(base, field) +
+                reflect->GetDouble(per_level, field) * (level - 1));
+        break;
+      case google::protobuf::FieldDescriptor::CPPTYPE_INT32:
+        reflect->SetInt32(
+            &at, field,
+            reflect->GetInt32(base, field) +
+                reflect->GetInt32(per_level, field) * (level - 1));
+        break;
+      case google::protobuf::FieldDescriptor::CPPTYPE_BOOL:
+        reflect->SetBool(&at, field, true);
+        break;
+      default:
+        break;
+    }
+  }
+  return at;
 }
 
 int SkillLinesAt(const Skill& skill, int level) {

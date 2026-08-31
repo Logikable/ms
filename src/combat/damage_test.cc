@@ -1247,5 +1247,42 @@ TEST_F(DamageTakenTest, AHitWorthMoreThanAPointIsNotRaisedToOne) {
   EXPECT_LT(landed, 2.0);
 }
 
+// EffectAt walks whatever the message holds rather than a list of levers a
+// caller wrote out, so what these check is the shape of the ladder: every kind
+// of field climbs, level 1 is base untouched, and a bool has no ladder to
+// climb.
+TEST(EffectAtTest, EveryKindOfLeverClimbsWithTheLevel) {
+  SkillEffect base;
+  base.set_attack(10);       // int32
+  base.set_crit_rate(0.05);  // double
+  base.set_boss_pct(0.10);   // a lever the ladder leaves alone
+  SkillEffect per_level;
+  per_level.set_attack(2);
+  per_level.set_crit_rate(0.01);
+
+  SkillEffect at_one = EffectAt(base, per_level, 1);
+  EXPECT_EQ(at_one.attack(), 10);
+  EXPECT_DOUBLE_EQ(at_one.crit_rate(), 0.05);
+
+  SkillEffect at_ten = EffectAt(base, per_level, 10);
+  EXPECT_EQ(at_ten.attack(), 28);
+  EXPECT_DOUBLE_EQ(at_ten.crit_rate(), 0.14);
+  // Untouched by per_level, so it stands at what base said however far the
+  // skill is taught.
+  EXPECT_DOUBLE_EQ(at_ten.boss_pct(), 0.10);
+}
+
+TEST(EffectAtTest, ABoolStandsWhereverItIsSet) {
+  SkillEffect base;
+  SkillEffect per_level;
+  per_level.set_enemy_attack_reaches_boss(true);
+  EXPECT_TRUE(EffectAt(base, per_level, 30).enemy_attack_reaches_boss());
+
+  base.set_enemy_attack_reaches_boss(true);
+  EXPECT_TRUE(EffectAt(base, SkillEffect(), 30).enemy_attack_reaches_boss());
+  // Level 1 is the base as it stands, bools included.
+  EXPECT_TRUE(EffectAt(base, SkillEffect(), 1).enemy_attack_reaches_boss());
+}
+
 }  // namespace
 }  // namespace ms
