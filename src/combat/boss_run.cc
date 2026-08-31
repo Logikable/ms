@@ -352,9 +352,18 @@ void BossRun::ComputePhaseHp(const CombatParams& params) {
   phase_hp_fraction_ = full > 0.0 ? std::clamp(left / full, 0.0, 1.0) : 0.0;
 }
 
+const CombatParams& BossRun::PhaseParams(const GameState& state) {
+  int level = state.character.proto().level();
+  if (params_phase_ != phase_ || params_level_ != level) {
+    params_ = ComputeBossParams(state, boss_key_, *difficulty(), phase_);
+    params_phase_ = phase_;
+    params_level_ = level;
+  }
+  return params_;
+}
+
 void BossRun::RunPhase(GameState& state, double dt) {
-  CombatParams params =
-      ComputeBossParams(state, boss_key_, *difficulty(), phase_);
+  const CombatParams& params = PhaseParams(state);
   if (!params.active) {
     // Nothing to fight: a phase naming mobs the catalog does not hold, or a
     // character who is not holding a weapon.
@@ -520,6 +529,9 @@ void BossRun::TakeShared(const SharedFight& shared) {
 
 void BossRun::RunSharedPhase(GameState& state, double dt,
                              const SharedFight& shared) {
+  // Built every step rather than held the way RunPhase holds it: a party's
+  // own membership is one of the things the table is built from, and it moves
+  // inside a phase.
   CombatParams params =
       ComputeBossParams(state, boss_key_, *difficulty(), phase_);
   if (!params.active) {

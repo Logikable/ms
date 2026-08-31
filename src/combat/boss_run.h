@@ -244,6 +244,9 @@ class BossRun {
 
  private:
   const BossDifficulty* difficulty() const;
+  // The damage table for the phase being fought, rebuilt only when something
+  // that feeds it has moved. See params_.
+  const CombatParams& PhaseParams(const GameState& state);
   // The phase being fought, or null once the run is over.
   const BossPhase* current_phase() const;
   // Ages the stacks of numbers by dt and drops the ones whose time is up.
@@ -315,6 +318,16 @@ class BossRun {
   // the pause at the end before the screen goes back.
   double hold_left_ = 0.0;
   double phase_hp_fraction_ = 0.0;
+  // The phase's damage table, and what it was built for. Nothing that goes
+  // into it -- the character, their book, the monsters of the phase -- moves
+  // inside a phase of a fight taken alone, and building it again every frame
+  // was almost the whole cost of a fight: it is 94% of what a sim playing the
+  // dailies out spends its time on, and sixty of them a second on the boss
+  // screen. The level is watched as well as the phase, since a clear pays EXP
+  // and the last phase is still being stepped when it lands.
+  CombatParams params_;
+  int params_phase_ = -1;
+  int params_level_ = 0;
   // Which of the phase's player spots they stand on. -1 for a phase that named
   // none, whose player stands at the origin and never moves.
   int player_at_ = -1;
