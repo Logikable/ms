@@ -159,28 +159,39 @@ void Tui::BuildComponents() {
       equip_panel_.MakeComponent([this]() { controller_.OpenEquipMenu(); });
   inventory_component_ = inventory_panel_.MakeComponent(
       [this]() { controller_.OpenInventoryMenu(); });
-  char_component_ = char_panel_.MakeComponent(
-      [this](StatField field) { controller_.OpenApAllocate(field); },
-      [this](const Skill& skill) { controller_.OpenSkillLearn(skill); },
-      [this](Job job) { controller_.OpenJobMenu(job); },
-      [this](const Skill& skill) { controller_.OpenSkillMenu(skill); },
-      [this]() {
-        // The screen opens on whichever allocation the panel behind it is
-        // showing, so one Enter never changes the numbers.
-        all_stats_panel_.SetPreset(char_panel_.hyper_preset());
-        controller_.OpenAllStats();
-      },
-      [this](HyperStatField field) {
-        controller_.OpenHyperAllocate(field, char_panel_.hyper_preset());
-      },
-      [this]() { controller_.OpenHyperReset(char_panel_.hyper_preset()); },
-      [this](HyperStatField field) {
-        controller_.OpenHyperStatInspect(field, char_panel_.hyper_preset());
-      },
-      [this](int index) {
-        controller_.ToggleAbilityLock(index, char_panel_.hyper_preset());
-      },
-      [this]() { controller_.OpenAbilityReroll(char_panel_.hyper_preset()); });
+  CharacterPanelActions char_actions;
+  char_actions.allocate = [this](StatField field) {
+    controller_.OpenApAllocate(field);
+  };
+  char_actions.all_stats = [this]() {
+    // The screen opens on whichever allocation the panel behind it is showing,
+    // so one Enter never changes the numbers.
+    all_stats_panel_.SetPreset(char_panel_.hyper_preset());
+    controller_.OpenAllStats();
+  };
+  char_actions.learn = [this](const Skill& skill) {
+    controller_.OpenSkillLearn(skill);
+  };
+  char_actions.menu = [this](const Skill& skill) {
+    controller_.OpenSkillMenu(skill);
+  };
+  char_actions.advance = [this](Job job) { controller_.OpenJobMenu(job); };
+  char_actions.hyper_allocate = [this](HyperStatField field) {
+    controller_.OpenHyperAllocate(field, char_panel_.hyper_preset());
+  };
+  char_actions.hyper_reset = [this]() {
+    controller_.OpenHyperReset(char_panel_.hyper_preset());
+  };
+  char_actions.hyper_inspect = [this](HyperStatField field) {
+    controller_.OpenHyperStatInspect(field, char_panel_.hyper_preset());
+  };
+  char_actions.ability_lock = [this](int index) {
+    controller_.ToggleAbilityLock(index, char_panel_.hyper_preset());
+  };
+  char_actions.ability_reroll = [this]() {
+    controller_.OpenAbilityReroll(char_panel_.hyper_preset());
+  };
+  char_component_ = char_panel_.MakeComponent(std::move(char_actions));
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
   menu_component_ = menu_panel_.MakeComponent(

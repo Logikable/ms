@@ -34,6 +34,35 @@
 
 namespace ms {
 
+// What Enter does on the Character panel, by where it lands: `allocate` on a
+// stat's [+] with AP to spend, `learn` on a skill's [+] with SP, `advance` on
+// a job (which should confirm first -- the panel advances nothing itself),
+// `menu` on a skill's name, and `all_stats` on the View All Stats row below
+// them. Only the last two are never gated: a maxed skill with no SP behind it
+// is still worth reading about, and so are the stats.
+//
+// One struct rather than ten arguments: the tabs are added to, and a caller
+// naming the one action it cares about should not have to count the empty
+// braces in front of it.
+struct CharacterPanelActions {
+  // The Stats tab.
+  std::function<void(StatField)> allocate;
+  std::function<void()> all_stats;
+  // The Skills tab.
+  std::function<void(const Skill&)> learn;
+  std::function<void(const Skill&)> menu;
+  // The Advance tab.
+  std::function<void(Job)> advance;
+  // The Hyper tab.
+  std::function<void(HyperStatField)> hyper_allocate;
+  std::function<void()> hyper_reset;
+  std::function<void(HyperStatField)> hyper_inspect;
+  // The Ability tab. `ability_lock` takes the index of the line the cursor is
+  // on, and holds or frees it -- the panel does not know which way that goes.
+  std::function<void(int)> ability_lock;
+  std::function<void()> ability_reroll;
+};
+
 class CharacterPanel {
  public:
   // The columns a skill row leaves its name, given the level column beside it
@@ -67,23 +96,10 @@ class CharacterPanel {
   void SetWidth(int width) {
     width_ = width;
   }
-  // What Enter does, by where it lands: on_allocate on a stat's [+] with AP to
-  // spend, on_learn on a skill's [+] with SP, on_advance on a job (which
-  // should confirm first -- the panel does not advance anything itself), and
-  // on_menu on a skill's name, and on_all_stats on the View All Stats row
-  // below them. Only the last two are never gated: a maxed skill with no SP
-  // behind it is still worth reading about, and so are the stats.
-  ftxui::Component MakeComponent(
-      std::function<void(StatField)> on_allocate,
-      std::function<void(const Skill&)> on_learn = {},
-      std::function<void(Job)> on_advance = {},
-      std::function<void(const Skill&)> on_menu = {},
-      std::function<void()> on_all_stats = {},
-      std::function<void(HyperStatField)> on_hyper_allocate = {},
-      std::function<void()> on_hyper_reset = {},
-      std::function<void(HyperStatField)> on_hyper_inspect = {},
-      std::function<void(int)> on_ability_lock = {},
-      std::function<void()> on_ability_reroll = {});
+  // The panel as a component, answering Enter with `actions`. Every action may
+  // be left unset, and an unset one is a key that does nothing -- so a caller
+  // that only means to look at the panel passes none of them.
+  ftxui::Component MakeComponent(CharacterPanelActions actions = {});
 
   // Which of the character's two Hyper Stat allocations the panel is reading,
   // which the Farm/Boss row picks. The All Stats screen opens on it too, so
@@ -220,8 +236,7 @@ class CharacterPanel {
   bool OnUsernameEvent(const ftxui::Event& event);
   bool OnTabsEvent(const ftxui::Event& event);
   bool OnStatsTabEvent(const ftxui::Event& event,
-                       const std::function<void(StatField)>& on_allocate,
-                       const std::function<void()>& on_all_stats);
+                       const CharacterPanelActions& actions);
   // Left/Right on the Farm/Boss row. They clamp at the ends, as every tab bar
   // in this panel does.
   bool OnPresetBarEvent(const ftxui::Event& event);
@@ -233,18 +248,13 @@ class CharacterPanel {
   // that leads to the rest of them, and that row's stop in the cursor ring.
   bool ShowsCombatStats() const;
   bool OnSkillsTabEvent(const ftxui::Event& event,
-                        const std::function<void(const Skill&)>& on_learn,
-                        const std::function<void(const Skill&)>& on_menu);
+                        const CharacterPanelActions& actions);
   bool OnAdvanceTabEvent(const ftxui::Event& event,
-                         const std::function<void(Job)>& on_advance);
-  bool OnHyperTabEvent(
-      const ftxui::Event& event,
-      const std::function<void(HyperStatField)>& on_hyper_allocate,
-      const std::function<void()>& on_hyper_reset,
-      const std::function<void(HyperStatField)>& on_hyper_inspect);
+                         const CharacterPanelActions& actions);
+  bool OnHyperTabEvent(const ftxui::Event& event,
+                       const CharacterPanelActions& actions);
   bool OnAbilityTabEvent(const ftxui::Event& event,
-                         const std::function<void(int)>& on_ability_lock,
-                         const std::function<void()>& on_ability_reroll);
+                         const CharacterPanelActions& actions);
 
   // The tabs on offer, in bar order. The Advance tab is only among them while
   // an advancement is pending, so the count is not a constant.

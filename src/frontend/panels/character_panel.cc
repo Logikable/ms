@@ -1142,8 +1142,8 @@ bool CharacterPanel::OnTabsEvent(const ftxui::Event& event) {
   return false;
 }
 
-bool CharacterPanel::OnAdvanceTabEvent(
-    const ftxui::Event& event, const std::function<void(Job)>& on_advance) {
+bool CharacterPanel::OnAdvanceTabEvent(const ftxui::Event& event,
+                                       const CharacterPanelActions& actions) {
   // Job rows: Up/Down walk them, and off either end is the tab bar.
   std::vector<Job> jobs = JobChoicesForStage(
       character_.proto().job(), character_.proto().job_stage() + 1);
@@ -1152,8 +1152,8 @@ bool CharacterPanel::OnAdvanceTabEvent(
     return true;
   }
   if (IsForward(event)) {
-    if (on_advance && job_sel_ < static_cast<int>(jobs.size())) {
-      on_advance(jobs[job_sel_]);
+    if (actions.advance && job_sel_ < static_cast<int>(jobs.size())) {
+      actions.advance(jobs[job_sel_]);
     }
     return true;
   }
@@ -1176,10 +1176,8 @@ bool CharacterPanel::OnPresetBarEvent(const ftxui::Event& event) {
   return false;
 }
 
-bool CharacterPanel::OnStatsTabEvent(
-    const ftxui::Event& event,
-    const std::function<void(StatField)>& on_allocate,
-    const std::function<void()>& on_all_stats) {
+bool CharacterPanel::OnStatsTabEvent(const ftxui::Event& event,
+                                     const CharacterPanelActions& actions) {
   if (zone_ == kZonePresets) {
     return OnPresetBarEvent(event);
   }
@@ -1193,13 +1191,15 @@ bool CharacterPanel::OnStatsTabEvent(
     return false;
   }
   if (OnViewAllStatsRow()) {
-    if (on_all_stats) {
-      on_all_stats();
+    if (actions.all_stats) {
+      actions.all_stats();
     }
     return true;
   }
   if (character_.proto().ap() > 0) {
-    on_allocate(kAllocStats[stat_sel_].field);
+    if (actions.allocate) {
+      actions.allocate(kAllocStats[stat_sel_].field);
+    }
     return true;
   }
   return false;
@@ -1214,11 +1214,8 @@ bool CharacterPanel::ShowsCombatStats() const {
   return Unlocked(Feature::kCombatStats, character_, account_);
 }
 
-bool CharacterPanel::OnHyperTabEvent(
-    const ftxui::Event& event,
-    const std::function<void(HyperStatField)>& on_hyper_allocate,
-    const std::function<void()>& on_hyper_reset,
-    const std::function<void(HyperStatField)>& on_hyper_inspect) {
+bool CharacterPanel::OnHyperTabEvent(const ftxui::Event& event,
+                                     const CharacterPanelActions& actions) {
   if (zone_ == kZonePresets) {
     return OnPresetBarEvent(event);
   }
@@ -1240,8 +1237,8 @@ bool CharacterPanel::OnHyperTabEvent(
     return false;
   }
   if (zone_ == kZoneHyperReset) {
-    if (on_hyper_reset) {
-      on_hyper_reset();
+    if (actions.hyper_reset) {
+      actions.hyper_reset();
     }
     return true;
   }
@@ -1249,20 +1246,19 @@ bool CharacterPanel::OnHyperTabEvent(
   if (hyper_col_ == kColName) {
     // Never gated: a stat the character's level holds shut is a stat they
     // most want to read about.
-    if (on_hyper_inspect) {
-      on_hyper_inspect(field);
+    if (actions.hyper_inspect) {
+      actions.hyper_inspect(field);
     }
     return true;
   }
-  if (on_hyper_allocate && CanRaiseHyperStat(field)) {
-    on_hyper_allocate(field);
+  if (actions.hyper_allocate && CanRaiseHyperStat(field)) {
+    actions.hyper_allocate(field);
   }
   return true;
 }
 
-bool CharacterPanel::OnAbilityTabEvent(
-    const ftxui::Event& event, const std::function<void(int)>& on_ability_lock,
-    const std::function<void()>& on_ability_reroll) {
+bool CharacterPanel::OnAbilityTabEvent(const ftxui::Event& event,
+                                       const CharacterPanelActions& actions) {
   if (zone_ == kZonePresets) {
     return OnPresetBarEvent(event);
   }
@@ -1277,25 +1273,23 @@ bool CharacterPanel::OnAbilityTabEvent(
     // A pool that cannot pay says so with the red cost and the greyed button.
     // Enter on it does nothing rather than raising a dialog to repeat what is
     // already on the screen.
-    if (on_ability_reroll && CanRerollAbility()) {
-      on_ability_reroll();
+    if (actions.ability_reroll && CanRerollAbility()) {
+      actions.ability_reroll();
     }
     return true;
   }
   // A line with no lock on the row has none to toggle, so Enter passes over
   // it. Whether a third lock is one too many is LockAbilityLine's to answer.
   const AbilityPreset& preset = character_.ability(hyper_preset_);
-  if (on_ability_lock && ability_sel_ < preset.lines_size() &&
+  if (actions.ability_lock && ability_sel_ < preset.lines_size() &&
       AbilityLineLockable(preset.lines(ability_sel_))) {
-    on_ability_lock(ability_sel_);
+    actions.ability_lock(ability_sel_);
   }
   return true;
 }
 
-bool CharacterPanel::OnSkillsTabEvent(
-    const ftxui::Event& event,
-    const std::function<void(const Skill&)>& on_learn,
-    const std::function<void(const Skill&)>& on_menu) {
+bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
+                                      const CharacterPanelActions& actions) {
   if (zone_ == kZoneAdvTabs) {
     // Advancement bar: Left/Right switch stages; Up returns to the outer tabs
     // and Down descends to the skills, or back to the outer tabs when this
@@ -1345,40 +1339,28 @@ bool CharacterPanel::OnSkillsTabEvent(
     if (skill_col_ == kColName) {
       // Never gated: a maxed skill with no SP behind it still has a
       // description and a level table worth reading.
-      if (on_menu) {
-        on_menu(skill);
+      if (actions.menu) {
+        actions.menu(skill);
       }
       return true;
     }
     bool maxed = character_.skill_level(skill) >= skill.max_level();
-    if (on_learn && !maxed && !SkillLocked(skill) &&
+    if (actions.learn && !maxed && !SkillLocked(skill) &&
         character_.SpFor(skill) > 0) {
-      on_learn(skill);
+      actions.learn(skill);
     }
     return true;
   }
   return false;
 }
 
-ftxui::Component CharacterPanel::MakeComponent(
-    std::function<void(StatField)> on_allocate,
-    std::function<void(const Skill&)> on_learn,
-    std::function<void(Job)> on_advance,
-    std::function<void(const Skill&)> on_menu,
-    std::function<void()> on_all_stats,
-    std::function<void(HyperStatField)> on_hyper_allocate,
-    std::function<void()> on_hyper_reset,
-    std::function<void(HyperStatField)> on_hyper_inspect,
-    std::function<void(int)> on_ability_lock,
-    std::function<void()> on_ability_reroll) {
+ftxui::Component CharacterPanel::MakeComponent(CharacterPanelActions actions) {
   // Renderer(bool) overload is Focusable(), unlike Renderer() -- required so
   // Container::Tab's Focused() check passes when panel_focus_ == kCharPanel.
   ftxui::Component renderer =
       ftxui::Renderer([this](bool /*focused*/) { return Render(); });
   return ftxui::CatchEvent(
-      renderer, [this, on_allocate, on_learn, on_advance, on_menu, on_all_stats,
-                 on_hyper_allocate, on_hyper_reset, on_hyper_inspect,
-                 on_ability_lock, on_ability_reroll](ftxui::Event event) {
+      renderer, [this, actions = std::move(actions)](ftxui::Event event) {
         if (panel_focus_ != kCharPanel) {
           return false;
         }
@@ -1398,19 +1380,18 @@ ftxui::Component CharacterPanel::MakeComponent(
           return OnTabsEvent(event);
         }
         if (ActiveTab() == kTabStats) {
-          return OnStatsTabEvent(event, on_allocate, on_all_stats);
+          return OnStatsTabEvent(event, actions);
         }
         if (ActiveTab() == kTabHyper) {
-          return OnHyperTabEvent(event, on_hyper_allocate, on_hyper_reset,
-                                 on_hyper_inspect);
+          return OnHyperTabEvent(event, actions);
         }
         if (ActiveTab() == kTabAbility) {
-          return OnAbilityTabEvent(event, on_ability_lock, on_ability_reroll);
+          return OnAbilityTabEvent(event, actions);
         }
         if (ActiveTab() == kTabAdvance) {
-          return OnAdvanceTabEvent(event, on_advance);
+          return OnAdvanceTabEvent(event, actions);
         }
-        return OnSkillsTabEvent(event, on_learn, on_menu);
+        return OnSkillsTabEvent(event, actions);
       });
 }
 

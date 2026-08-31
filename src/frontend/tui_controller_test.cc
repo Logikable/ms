@@ -2985,7 +2985,7 @@ TEST_F(TuiControllerTest, EnterOnASlotTakesTheNextKeyPressed) {
 // The name field takes letters, so while it is open a key has to arrive as
 // the player pressed it rather than as whatever action it is bound to.
 TEST_F(TuiControllerTest, AnOpenNameFieldWantsTheRawKeys) {
-  ftxui::Component chars = char_panel_->MakeComponent([](StatField) {});
+  ftxui::Component chars = char_panel_->MakeComponent();
   panel_focus_ = kCharPanel;
   EXPECT_FALSE(controller_->capturing_key());
   chars->OnEvent(ftxui::Event::ArrowUp);  // onto the username row
@@ -2998,7 +2998,7 @@ TEST_F(TuiControllerTest, AnOpenNameFieldWantsTheRawKeys) {
 // Escape on the main view asks whether to quit, so an open field has to keep
 // it: backing out of a field is not backing out of the game.
 TEST_F(TuiControllerTest, EscapeLeavesTheNameFieldRatherThanTheGame) {
-  ftxui::Component chars = char_panel_->MakeComponent([](StatField) {});
+  ftxui::Component chars = char_panel_->MakeComponent();
   panel_focus_ = kCharPanel;
   chars->OnEvent(ftxui::Event::ArrowUp);
   chars->OnEvent(ftxui::Event::Return);
@@ -3013,7 +3013,7 @@ TEST_F(TuiControllerTest, EscapeLeavesTheNameFieldRatherThanTheGame) {
 // Tab would carry focus off a panel mid-edit, leaving a field open that no
 // key can reach -- and every rebound key dead behind it.
 TEST_F(TuiControllerTest, TabDoesNotLeaveAnOpenNameFieldBehind) {
-  ftxui::Component chars = char_panel_->MakeComponent([](StatField) {});
+  ftxui::Component chars = char_panel_->MakeComponent();
   panel_focus_ = kCharPanel;
   chars->OnEvent(ftxui::Event::ArrowUp);
   chars->OnEvent(ftxui::Event::Return);
