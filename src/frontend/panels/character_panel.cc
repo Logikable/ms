@@ -55,16 +55,17 @@ ftxui::Element CenteredCell(const std::string& label,
 }
 
 // The outer tab labels, indexed by CharacterPanel::Tab.
-const char* kTabLabels[] = {"Stats", "Skills", "Hyper", "Advance"};
+const char* kTabLabels[] = {"Stats", "Skills", "Hyper", "Ability", "Advance"};
 
 // The Farm/Boss row, which names the two Hyper Stat allocations wherever the
 // player meets them.
 constexpr char kFarmTabLabel[] = "Farm";
 constexpr char kBossTabLabel[] = "Boss";
 
-// Columns the spare-points counter takes off the end of the preset row:
-// " 1699 Points ".
-constexpr int kHyperPointsCol = 13;
+// Whether an Inner Ability line is held through a reroll. Two columns wide
+// either way, so the lock column is the same column on every row.
+constexpr char kLockedGlyph[] = "\U0001F512";
+constexpr char kUnlockedGlyph[] = "\U0001F513";
 
 // The Hyper tab's columns. The level and the [+] are fixed and the name takes
 // what is left, which is what puts exactly one column between the level and
@@ -211,6 +212,13 @@ std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
   if (Unlocked(Feature::kHyperStats, character_, account_)) {
     tabs.push_back(kTabHyper);
   }
+  // Ability is the one tab gated on this character alone. The Feature table is
+  // account-wide by construction, and here that would be a lie: an ability
+  // below the unlock level grants nothing and cannot be rerolled, whoever else
+  // on the account has been there.
+  if (character_.inner_ability_unlocked()) {
+    tabs.push_back(kTabAbility);
+  }
   // The Advance tab exists only while there is an advancement to take, so it
   // arrives at level 10 and is gone the moment the player picks a job.
   if (character_.CanAdvanceJob()) {
@@ -239,6 +247,9 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
     case kZoneHyperRows:
     case kZoneHyperReset:
       return ActiveTab() == kTabHyper ? zone_ : kZoneTabs;
+    case kZoneAbilityRows:
+    case kZoneAbilityReroll:
+      return ActiveTab() == kTabAbility ? zone_ : kZoneTabs;
     case kZoneAdvTabs:
     case kZoneSkillRows:
       return ActiveTab() == kTabSkills ? zone_ : kZoneTabs;
@@ -268,6 +279,11 @@ int CharacterPanel::RingStops() const {
   if (ActiveTab() == kTabHyper) {
     // The two of them, the Farm/Boss row, a stop per stat, and [Reset].
     return 3 + kNumHyperStats + 1;
+  }
+  if (ActiveTab() == kTabAbility) {
+    // The same shape: the two of them, the Farm/Boss row, a stop per line, and
+    // [Reroll].
+    return 3 + AbilityRows() + 1;
   }
   if (ActiveTab() == kTabAdvance) {
     return 2 + static_cast<int>(
@@ -303,6 +319,10 @@ int CharacterPanel::CursorStop() const {
       return hyper_sel_ + 3;
     case kZoneHyperReset:
       return kNumHyperStats + 3;
+    case kZoneAbilityRows:
+      return ability_sel_ + 3;
+    case kZoneAbilityReroll:
+      return AbilityRows() + 3;
   }
   return 0;
 }
@@ -338,6 +358,19 @@ void CharacterPanel::SetCursorStop(int stop) {
     hyper_sel_ = stop - 3;
     return;
   }
+  if (ActiveTab() == kTabAbility) {
+    if (stop == 2) {
+      zone_ = kZonePresets;
+      return;
+    }
+    if (stop == AbilityRows() + 3) {
+      zone_ = kZoneAbilityReroll;
+      return;
+    }
+    zone_ = kZoneAbilityRows;
+    ability_sel_ = stop - 3;
+    return;
+  }
   if (ActiveTab() == kTabAdvance) {
     zone_ = kZoneJobRows;
     job_sel_ = stop - 2;
@@ -371,6 +404,12 @@ std::string CharacterPanel::TabKey(Tab tab) const {
     // tab, not one per level: it arrives once and stays.
     return kHyperTabKey;
   }
+  if (tab == kTabAbility) {
+    // Gold for the first character on the account to reach it, and quiet for
+    // every one after -- MarkSeen is account-wide, so a player is told about
+    // Inner Ability once.
+    return kAbilityTabKey;
+  }
   if (tab == kTabAdvance) {
     // The stage being advanced INTO, so the tab that comes back at level 30 is
     // news again rather than riding on the one taken at 10.
@@ -390,8 +429,13 @@ void CharacterPanel::MarkActiveTabSeen() {
 }
 
 bool CharacterPanel::ShowsPresetBar() const {
-  // Only the tabs whose numbers come out of an allocation carry it. The
-  // Advance tab lists jobs, and the Skills tab has a bar of its own.
+  // The Ability tab is never there below the level Hyper Stats open at, so its
+  // row is not gated on anything further.
+  if (ActiveTab() == kTabAbility) {
+    return true;
+  }
+  // Otherwise only the tabs whose numbers come out of an allocation carry it.
+  // The Advance tab lists jobs, and the Skills tab has a bar of its own.
   if (ActiveTab() != kTabStats && ActiveTab() != kTabHyper) {
     return false;
   }
@@ -409,19 +453,23 @@ int CharacterPanel::StatsTabFixedRows() const {
   return kStatsTabFixedRows + (ShowsPresetBar() ? 1 : 0);
 }
 
-ftxui::Element CharacterPanel::RenderPresetBar(bool bar_focused,
-                                               bool with_points) const {
+ftxui::Element CharacterPanel::RenderPresetBar(
+    bool bar_focused, const std::string& trailing) const {
   std::vector<TabSpec> specs = {{kFarmTabLabel}, {kBossTabLabel}};
   int active = hyper_preset_ == StatPreset::kBossing ? 1 : 0;
-  int width = with_points ? ContentWidth() - kHyperPointsCol : ContentWidth();
+  // The chips take what the trailing text and its gutter leave. Two four-letter
+  // labels never come near even the narrowest of that, so the bar does not
+  // scroll here whatever the number beside it grows to.
+  int width = ContentWidth();
+  if (!trailing.empty()) {
+    width -= static_cast<int>(ftxui::string_width(trailing)) + 1;
+  }
   std::vector<ftxui::Element> row = {TabBar(specs, active, bar_focused, width),
                                      ftxui::filler()};
-  if (with_points) {
+  if (!trailing.empty()) {
     // The counter reads like the AP and SP counters above it: what there is
     // left to spend, on the row the spending happens under.
-    row.push_back(ftxui::text(
-        std::to_string(character_.hyper_stat_points_left(hyper_preset_)) +
-        " Points "));
+    row.push_back(ftxui::text(trailing + " "));
   }
   return ftxui::hbox(std::move(row));
 }
@@ -514,7 +562,7 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool bar_focused,
 
   std::vector<ftxui::Element> rows;
   if (ShowsPresetBar()) {
-    rows.push_back(RenderPresetBar(bar_focused, /*with_points=*/false));
+    rows.push_back(RenderPresetBar(bar_focused, ""));
     rows.push_back(PanelSeparator(highlighted_));
   }
   rows.push_back(StatsAligned(ftxui::text(
@@ -845,7 +893,10 @@ ftxui::Element CharacterPanel::RenderHyperTab(bool bar_focused,
                                               bool rows_focused,
                                               bool reset_focused) const {
   std::vector<ftxui::Element> rows;
-  rows.push_back(RenderPresetBar(bar_focused, /*with_points=*/true));
+  rows.push_back(RenderPresetBar(
+      bar_focused,
+      std::to_string(character_.hyper_stat_points_left(hyper_preset_)) +
+          " Points"));
   rows.push_back(PanelSeparator(highlighted_));
 
   int visible = HyperRowsShown();
@@ -872,6 +923,83 @@ ftxui::Element CharacterPanel::RenderHyperTab(bool bar_focused,
   rows.push_back(CenteredCell("[Reset]",
                               reset_focused ? ftxui::inverted : ftxui::nothing,
                               ContentWidth()));
+  return ftxui::vbox(std::move(rows));
+}
+
+int CharacterPanel::AbilityRows() const {
+  return character_.ability(hyper_preset_).lines_size();
+}
+
+bool CharacterPanel::CanRerollAbility() const {
+  const int64_t cost = character_.ability_reset_cost(hyper_preset_);
+  return cost > 0 && character_.honor() >= cost;
+}
+
+ftxui::Element CharacterPanel::RenderAbilityRow(const AbilityLine& line,
+                                                int index,
+                                                bool rows_focused) const {
+  const RowColors colors = RarityColors(line.rank(), line.locked());
+  // The lock keeps its two columns on every row, so the values above and below
+  // one that has no lock still end in the same place.
+  const char* lock = "  ";
+  if (AbilityLineLockable(line)) {
+    lock = line.locked() ? kLockedGlyph : kUnlockedGlyph;
+  }
+  ftxui::Element lock_cell = ftxui::text(lock);
+  if (rows_focused && ability_sel_ == index) {
+    // The cursor inverts what Enter answers, as the [+] on a stat row does --
+    // the blank of an unlockable line included, which is still where the
+    // cursor is.
+    lock_cell = std::move(lock_cell) | ftxui::inverted;
+  }
+  return ftxui::hbox({
+             ftxui::text(" " + AbilityLineName(line.type())),
+             ftxui::filler(),
+             ftxui::text(AbilityLineValueText(line) + " "),
+             std::move(lock_cell),
+             ftxui::text(" "),
+         }) |
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, ContentWidth()) |
+         ftxui::bgcolor(colors.background) | ftxui::color(colors.text);
+}
+
+ftxui::Element CharacterPanel::RenderAbilityTab(bool bar_focused,
+                                                bool rows_focused,
+                                                bool reroll_focused) const {
+  std::vector<ftxui::Element> rows;
+  rows.push_back(RenderPresetBar(
+      bar_focused, FormatWithCommas(character_.honor()) + " Honor"));
+  rows.push_back(PanelSeparator(highlighted_));
+
+  const AbilityPreset& preset = character_.ability(hyper_preset_);
+  for (int i = 0; i < preset.lines_size(); ++i) {
+    rows.push_back(RenderAbilityRow(preset.lines(i), i, rows_focused));
+  }
+
+  // What the reroll below asks, under a rule of its own. Written plain rather
+  // than with commas: it is a price to weigh against the pool on the row
+  // above, not a total to read off.
+  rows.push_back(PanelSeparator(highlighted_));
+  const bool affordable = CanRerollAbility();
+  ftxui::Element cost = ftxui::text(
+      std::to_string(character_.ability_reset_cost(hyper_preset_)) + " ");
+  if (!affordable) {
+    // Red on the one value the player falls short of, so the greyed button
+    // below it does not have to be asked why.
+    cost = std::move(cost) | ftxui::color(kRed);
+  }
+  rows.push_back(ftxui::hbox({
+      ftxui::text(" Honor Cost"),
+      ftxui::filler(),
+      std::move(cost),
+  }));
+  ftxui::Element reroll = CenteredCell(
+      "[Reroll]", reroll_focused ? ftxui::inverted : ftxui::nothing,
+      ContentWidth());
+  if (!affordable) {
+    reroll = std::move(reroll) | ftxui::dim;
+  }
+  rows.push_back(std::move(reroll));
   return ftxui::vbox(std::move(rows));
 }
 
@@ -934,6 +1062,10 @@ ftxui::Element CharacterPanel::Render() const {
     content = RenderHyperTab(focused && zone == kZonePresets,
                              focused && zone == kZoneHyperRows,
                              focused && zone == kZoneHyperReset);
+  } else if (ActiveTab() == kTabAbility) {
+    content = RenderAbilityTab(focused && zone == kZonePresets,
+                               focused && zone == kZoneAbilityRows,
+                               focused && zone == kZoneAbilityReroll);
   } else if (ActiveTab() == kTabAdvance) {
     content = RenderAdvanceTab(focused && zone == kZoneJobRows);
   } else {
@@ -1128,6 +1260,38 @@ bool CharacterPanel::OnHyperTabEvent(
   return true;
 }
 
+bool CharacterPanel::OnAbilityTabEvent(
+    const ftxui::Event& event, const std::function<void(int)>& on_ability_lock,
+    const std::function<void()>& on_ability_reroll) {
+  if (zone_ == kZonePresets) {
+    return OnPresetBarEvent(event);
+  }
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (!IsForward(event)) {
+    return false;
+  }
+  if (zone_ == kZoneAbilityReroll) {
+    // A pool that cannot pay says so with the red cost and the greyed button.
+    // Enter on it does nothing rather than raising a dialog to repeat what is
+    // already on the screen.
+    if (on_ability_reroll && CanRerollAbility()) {
+      on_ability_reroll();
+    }
+    return true;
+  }
+  // A line with no lock on the row has none to toggle, so Enter passes over
+  // it. Whether a third lock is one too many is LockAbilityLine's to answer.
+  const AbilityPreset& preset = character_.ability(hyper_preset_);
+  if (on_ability_lock && ability_sel_ < preset.lines_size() &&
+      AbilityLineLockable(preset.lines(ability_sel_))) {
+    on_ability_lock(ability_sel_);
+  }
+  return true;
+}
+
 bool CharacterPanel::OnSkillsTabEvent(
     const ftxui::Event& event,
     const std::function<void(const Skill&)>& on_learn,
@@ -1204,15 +1368,17 @@ ftxui::Component CharacterPanel::MakeComponent(
     std::function<void()> on_all_stats,
     std::function<void(HyperStatField)> on_hyper_allocate,
     std::function<void()> on_hyper_reset,
-    std::function<void(HyperStatField)> on_hyper_inspect) {
+    std::function<void(HyperStatField)> on_hyper_inspect,
+    std::function<void(int)> on_ability_lock,
+    std::function<void()> on_ability_reroll) {
   // Renderer(bool) overload is Focusable(), unlike Renderer() -- required so
   // Container::Tab's Focused() check passes when panel_focus_ == kCharPanel.
   ftxui::Component renderer =
       ftxui::Renderer([this](bool /*focused*/) { return Render(); });
   return ftxui::CatchEvent(
       renderer, [this, on_allocate, on_learn, on_advance, on_menu, on_all_stats,
-                 on_hyper_allocate, on_hyper_reset,
-                 on_hyper_inspect](ftxui::Event event) {
+                 on_hyper_allocate, on_hyper_reset, on_hyper_inspect,
+                 on_ability_lock, on_ability_reroll](ftxui::Event event) {
         if (panel_focus_ != kCharPanel) {
           return false;
         }
@@ -1237,6 +1403,9 @@ ftxui::Component CharacterPanel::MakeComponent(
         if (ActiveTab() == kTabHyper) {
           return OnHyperTabEvent(event, on_hyper_allocate, on_hyper_reset,
                                  on_hyper_inspect);
+        }
+        if (ActiveTab() == kTabAbility) {
+          return OnAbilityTabEvent(event, on_ability_lock, on_ability_reroll);
         }
         if (ActiveTab() == kTabAdvance) {
           return OnAdvanceTabEvent(event, on_advance);

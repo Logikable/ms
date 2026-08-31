@@ -222,6 +222,20 @@ std::pair<int, int> FindCell(const ftxui::Screen& screen,
   return {-1, -1};
 }
 
+// Whether any cell of `screen` is exactly `glyph`. FindCell walks a needle a
+// byte a cell, so it can only look for ASCII; this is for the one-cell
+// multibyte marks -- the arrow a tab bar puts where it runs off its edge.
+bool HasCell(const ftxui::Screen& screen, const std::string& glyph) {
+  for (int y = 0; y < screen.dimy(); ++y) {
+    for (int x = 0; x < screen.dimx(); ++x) {
+      if (screen.PixelAt(x, y).character == glyph) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 // Where `needle` starts on row `y`, or -1. FindCell answers for the whole
 // screen and so only ever finds the topmost row; a claim about two rows
 // lining up has to ask each of them separately.
@@ -2504,6 +2518,234 @@ TEST_F(CharacterPanelTest, TheHyperTabKeepsItsResetAtEveryBudget) {
               std::string::npos)
         << "at a budget of " << budget;
   }
+}
+
+// --- the Ability tab ---
+
+// A 4th-job Hero at the level Inner Ability opens at, carrying `honor` and a
+// line of each of the three ranks that read differently: a Legendary one that
+// holds, a Unique one that holds, and an Epic one that never can.
+CharacterInstance MakeAbilityHero(std::mt19937& rng, int64_t honor) {
+  Character proto;
+  proto.set_level(kInnerAbilityUnlockLevel);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  proto.set_honor(honor);
+  for (AbilityPreset* preset :
+       {proto.mutable_inner_ability()->mutable_farming(),
+        proto.mutable_inner_ability()->mutable_bossing()}) {
+    preset->set_rank(ABILITY_RANK_LEGENDARY);
+    AbilityLine* top = preset->add_lines();
+    top->set_type(ABILITY_LINE_TYPE_BOSS_DAMAGE);
+    top->set_rank(ABILITY_RANK_LEGENDARY);
+    AbilityLine* middle = preset->add_lines();
+    middle->set_type(ABILITY_LINE_TYPE_STR);
+    middle->set_rank(ABILITY_RANK_UNIQUE);
+    AbilityLine* bottom = preset->add_lines();
+    bottom->set_type(ABILITY_LINE_TYPE_ATTACK);
+    bottom->set_rank(ABILITY_RANK_EPIC);
+  }
+  return CharacterInstance(rng, std::move(proto));
+}
+
+// Walks the cursor onto the Ability tab and down into its line rows. Stats ->
+// Skills -> Hyper -> Ability is three steps right.
+ftxui::Component OnAbilityRows(CharacterPanel& panel) {
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the Farm/Boss row
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the first line
+  return comp;
+}
+
+// The tab is gated on this character's own level, and the gold on it is the
+// account's: the first one there is told, and the next one is not.
+TEST_F(CharacterPanelTest, TheAbilityTabArrivesAt160AndIsGoldOnceAnAccount) {
+  CharacterInstance early = MakeHyperHero(rng_);
+  CharacterPanel before(early, account_, panel_focus_);
+  EXPECT_EQ(RenderElement(before.Render()).find("Ability"), std::string::npos);
+
+  CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(LabelColor(panel.Render(), "Ability"), kYellow);
+
+  panel_focus_ = kCharPanel;
+  OnAbilityRows(panel);
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(LabelColor(panel.Render(), "Ability"), kTheme);
+  EXPECT_TRUE(account_.Seen(kAbilityTabKey));
+
+  // A second character on the same account arrives to a quiet tab.
+  CharacterInstance next = MakeAbilityHero(rng_, /*honor=*/0);
+  CharacterPanel second(next, account_, panel_focus_);
+  EXPECT_EQ(LabelColor(second.Render(), "Ability"), kTheme);
+}
+
+// The three lines, the pool over them and the price under them.
+TEST_F(CharacterPanelTest, TheAbilityTabListsTheLinesTheHonorAndTheCost) {
+  CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/12345);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  std::string rendered = TextOf(RenderToScreen(OnAbilityRows(panel)));
+  EXPECT_NE(rendered.find("Boss Damage"), std::string::npos);
+  EXPECT_NE(rendered.find("+20%"), std::string::npos);
+  EXPECT_NE(rendered.find("STR"), std::string::npos);
+  EXPECT_NE(rendered.find("+30"), std::string::npos);
+  // The pool reads with commas and the price without: one is a total to read
+  // off, the other a number to weigh against it.
+  EXPECT_NE(rendered.find("12,345 Honor"), std::string::npos);
+  EXPECT_NE(rendered.find("Honor Cost"), std::string::npos);
+  EXPECT_NE(rendered.find("8000"), std::string::npos);
+  EXPECT_NE(rendered.find("[Reroll]"), std::string::npos);
+}
+
+// Every row is painted its own rank, and a held one is painted darker still.
+TEST_F(CharacterPanelTest, EachLineIsPaintedItsRank) {
+  CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp = OnAbilityRows(panel);
+  ftxui::Screen screen = RenderToScreen(comp);
+  const auto background = [&](const std::string& needle) {
+    std::pair<int, int> at = FindCell(screen, needle);
+    return screen.PixelAt(at.first, at.second).background_color;
+  };
+  EXPECT_EQ(background("Boss Damage"), kLegendary.ToColor());
+  EXPECT_EQ(background("STR"), kUnique.ToColor());
+  EXPECT_EQ(background("Attack"), kEpic.ToColor());
+
+  ASSERT_TRUE(c.LockAbilityLine(0, true));
+  ftxui::Screen held = RenderToScreen(comp);
+  std::pair<int, int> at = FindCell(held, "Boss Damage");
+  EXPECT_EQ(held.PixelAt(at.first, at.second).background_color,
+            Faded(kLegendary).ToColor());
+}
+
+// Only a line that can be held carries a lock, so a row with no symbol is the
+// refusal -- and Enter on it asks nothing.
+TEST_F(CharacterPanelTest, OnlyALineThatHoldsCarriesALock) {
+  CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  int locked = -1;
+  ftxui::Component comp =
+      panel.MakeComponent([](StatField) {}, {}, {}, {}, {}, {}, {}, {},
+                          [&](int index) { locked = index; });
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the Farm/Boss row
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the Legendary line
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(locked, 0);
+
+  locked = -1;
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the Unique line
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(locked, 1);
+
+  locked = -1;
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the Epic line, which cannot
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(locked, -1) << "an Epic line has no lock to toggle";
+}
+
+// The price reddens and the button greys when the pool is short, and Enter on
+// it does nothing -- there is nothing a dialog could add to what is on screen.
+TEST_F(CharacterPanelTest, AShortPoolRedensTheCostAndShutsTheButton) {
+  CharacterInstance poor = MakeAbilityHero(rng_, /*honor=*/10);
+  CharacterPanel panel(poor, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  int rerolls = 0;
+  ftxui::Component comp = panel.MakeComponent(
+      [](StatField) {}, {}, {}, {}, {}, {}, {}, {}, {}, [&] { ++rerolls; });
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  for (int i = 0; i < 5; ++i) {
+    comp->OnEvent(
+        ftxui::Event::ArrowDown);  // bar -> preset -> 3 lines -> button
+  }
+  EXPECT_EQ(ColorOf(comp, "8000"), kRed);
+  EXPECT_TRUE(IsDim(comp, "[Reroll]"));
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(rerolls, 0);
+
+  CharacterInstance rich = MakeAbilityHero(rng_, /*honor=*/8000);
+  CharacterPanel afford(rich, account_, panel_focus_);
+  ftxui::Component paid = afford.MakeComponent(
+      [](StatField) {}, {}, {}, {}, {}, {}, {}, {}, {}, [&] { ++rerolls; });
+  for (int i = 0; i < 3; ++i) {
+    paid->OnEvent(ftxui::Event::ArrowRight);
+  }
+  for (int i = 0; i < 5; ++i) {
+    paid->OnEvent(ftxui::Event::ArrowDown);
+  }
+  EXPECT_NE(ColorOf(paid, "8000"), kRed);
+  EXPECT_FALSE(IsDim(paid, "[Reroll]"));
+  paid->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(rerolls, 1);
+}
+
+// The button is the last stop in the ring, and the ring wraps to the name row
+// the way every other tab's does.
+TEST_F(CharacterPanelTest, TheAbilityRingEndsOnTheRerollButton) {
+  CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/8000);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  int rerolls = 0;
+  ftxui::Component comp = panel.MakeComponent(
+      [](StatField) {}, {}, {}, {}, {}, {}, {}, {}, {}, [&] { ++rerolls; });
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  // Down past the Farm/Boss row and the three lines lands on the button, and
+  // one more wraps back round to the name at the top.
+  for (int i = 0; i < 5; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+  }
+  EXPECT_TRUE(IsInverted(comp, "[Reroll]"));
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_FALSE(IsInverted(comp, "[Reroll]"));
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_TRUE(IsInverted(comp, "[Reroll]"));
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(rerolls, 1);
+}
+
+// Five chips do not fit the narrowest panel, so the bar scrolls under them --
+// and whichever tab the cursor is on is one of the chips still drawn.
+TEST_F(CharacterPanelTest, FiveTabsScrollOnTheNarrowestPanel) {
+  // A Crusader who never took their 4th job: five tabs at once, which is the
+  // most the bar is ever asked to hold.
+  Character proto;
+  proto.set_level(kInnerAbilityUnlockLevel);
+  proto.set_job(JOB_CRUSADER);
+  proto.set_job_stage(3);
+  CharacterInstance c(rng_, std::move(proto));
+  ASSERT_TRUE(c.CanAdvanceJob());
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetWidth(kLeftColumnMin);
+  panel_focus_ = kCharPanel;
+  EXPECT_TRUE(HasCell(PanelScreen(panel, kLeftColumnMin), "\u203a"))
+      << "a bar that overruns says so on the edge it runs off";
+
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  for (int i = 0; i < 4; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  ftxui::Screen at_end = PanelScreen(panel, kLeftColumnMin);
+  EXPECT_GE(FindCell(at_end, "Advance").first, 0)
+      << "the tab the cursor is on is always drawn";
+
+  // And the whole bar fits at the widest, marks and all left off.
+  panel.SetWidth(kLeftColumnMax);
+  ftxui::Screen wide = PanelScreen(panel, kLeftColumnMax);
+  EXPECT_GE(FindCell(wide, "Stats").first, 0);
+  EXPECT_GE(FindCell(wide, "Advance").first, 0);
 }
 
 }  // namespace

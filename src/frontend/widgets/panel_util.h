@@ -375,6 +375,11 @@ inline constexpr char kShopTabKey[] = "shop";
 // way until the player opens it.
 inline constexpr char kHyperTabKey[] = "hyper";
 
+// And the Ability tab's. One key for the account, not one per character: a
+// player is told what Inner Ability is the first time one of theirs reaches
+// it.
+inline constexpr char kAbilityTabKey[] = "ability";
+
 // The advancement tab's key for `stage` (1 = 1st job). One key per stage
 // rather than one for the tab: the tab arrives again at every advancement
 // threshold, and having seen the first is not having seen the second.

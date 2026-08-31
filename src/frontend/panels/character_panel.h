@@ -81,7 +81,9 @@ class CharacterPanel {
       std::function<void()> on_all_stats = {},
       std::function<void(HyperStatField)> on_hyper_allocate = {},
       std::function<void()> on_hyper_reset = {},
-      std::function<void(HyperStatField)> on_hyper_inspect = {});
+      std::function<void(HyperStatField)> on_hyper_inspect = {},
+      std::function<void(int)> on_ability_lock = {},
+      std::function<void()> on_ability_reroll = {});
 
   // Which of the character's two Hyper Stat allocations the panel is reading,
   // which the Farm/Boss row picks. The All Stats screen opens on it too, so
@@ -153,6 +155,9 @@ class CharacterPanel {
   // [Reset] button at the foot, which are never given up.
   static constexpr int kHyperTabFixedRows = 11;
 
+  // The Ability tab has no count of its own: it is these same rows plus a
+  // fixed three lines and the cost row, and none of them is ever dropped.
+
   // Whether the border is currently lit gold. Not part of the panel's own
   // state machine -- it is set from outside and read by Render.
   bool highlighted_ = false;
@@ -179,7 +184,8 @@ class CharacterPanel {
     kTabStats = 0,
     kTabSkills = 1,
     kTabHyper = 2,
-    kTabAdvance = 3
+    kTabAbility = 3,
+    kTabAdvance = 4
   };
 
   // Vertical focus zones, top to bottom. From the shared outer tab bar, Down
@@ -196,7 +202,10 @@ class CharacterPanel {
     kZoneJobRows,
     // The Hyper tab's fourteen stat rows, and the [Reset] button under them.
     kZoneHyperRows,
-    kZoneHyperReset
+    kZoneHyperReset,
+    // The Ability tab's three line rows, and the [Reroll] button under them.
+    kZoneAbilityRows,
+    kZoneAbilityReroll
   };
 
   // The two things a skill row offers, left to right. Left/Right move between
@@ -233,6 +242,9 @@ class CharacterPanel {
       const std::function<void(HyperStatField)>& on_hyper_allocate,
       const std::function<void()>& on_hyper_reset,
       const std::function<void(HyperStatField)>& on_hyper_inspect);
+  bool OnAbilityTabEvent(const ftxui::Event& event,
+                         const std::function<void(int)>& on_ability_lock,
+                         const std::function<void()>& on_ability_reroll);
 
   // The tabs on offer, in bar order. The Advance tab is only among them while
   // an advancement is pending, so the count is not a constant.
@@ -275,9 +287,11 @@ class CharacterPanel {
   ftxui::Element RenderTabBar(bool row_selected) const;
   // The Farm/Boss row: which allocation the tab under it is reading. It sits
   // straight under the outer tab bar with no rule between them.
-  // `with_points` right-aligns what the allocation has left to spend, which
-  // the Hyper tab needs and the Stats tab has no [+] for.
-  ftxui::Element RenderPresetBar(bool bar_focused, bool with_points) const;
+  // `trailing` is right-aligned at the end of the row: the points the
+  // allocation has left on the Hyper tab, the honor pool on Ability. Empty on
+  // Stats, which has no [+] of its own to spend either on.
+  ftxui::Element RenderPresetBar(bool bar_focused,
+                                 const std::string& trailing) const;
   // Whether the active tab carries a Farm/Boss row. Only from level 140, and
   // only on a tab whose numbers come out of an allocation.
   bool ShowsPresetBar() const;
@@ -291,6 +305,24 @@ class CharacterPanel {
   // always draw -- the rows are what a short terminal takes from.
   ftxui::Element RenderHyperTab(bool bar_focused, bool rows_focused,
                                 bool reset_focused) const;
+  // Renders the Ability tab: the Farm/Boss row with the honor pool on it, the
+  // three Inner Ability lines, then a rule, what a reroll costs and the
+  // [Reroll] button. Nothing here scrolls -- the tab is the same fifteen rows
+  // whatever the terminal.
+  ftxui::Element RenderAbilityTab(bool bar_focused, bool rows_focused,
+                                  bool reroll_focused) const;
+  // One Inner Ability line: its name, what it grants, and the lock that holds
+  // it through a reroll, on a background of its rank's colour. The lock cell
+  // inverts under the cursor, since that is what Enter answers -- blank and
+  // all on a Rare or Epic line, which can never be held.
+  ftxui::Element RenderAbilityRow(const AbilityLine& line, int index,
+                                  bool rows_focused) const;
+  // The lines the selected allocation is holding, which is what the tab's
+  // cursor ring is measured in.
+  int AbilityRows() const;
+  // Whether the honor pool covers a reroll of the selected allocation.
+  bool CanRerollAbility() const;
+
   // One Hyper Stat row: its name, its level, and a [+]. Whichever column the
   // cursor is on inverts, as on a skill row. What the stat is worth is on the
   // card Enter opens rather than in a column of its own.
@@ -392,6 +424,7 @@ class CharacterPanel {
   int job_sel_ = 0;                // selected Advance-tab job row
   int hyper_sel_ = 0;              // selected Hyper-tab stat row
   SkillCol hyper_col_ = kColName;  // selected column of that row
+  int ability_sel_ = 0;            // selected Ability-tab line row
   // Which allocation the Farm/Boss row is on -- see hyper_preset().
   StatPreset hyper_preset_ = StatPreset::kFarming;
   TextField username_field_{kMaxUsernameLength};
