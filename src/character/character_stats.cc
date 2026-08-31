@@ -10,6 +10,7 @@
 
 #include "absl/types/span.h"
 #include "src/character/hyper_stats.h"
+#include "src/character/inner_ability.h"
 #include "src/combat/damage.h"
 #include "src/item/equip_stats.h"
 #include "src/protos/character.pb.h"
@@ -766,6 +767,82 @@ void AddHyperStats(const CharacterInstance& character, HyperPreset preset,
                     kPercentToFraction;
 }
 
+// What the character's Inner Ability adds, line by line. The stats land here
+// for the same reason a Hyper Stat's do -- GMS calls them final stat, and the
+// %stat Maple Warrior grants has already taken its share of the allocation.
+// The two attacks do not: GMS scales them the way it scales any other source,
+// which is what %ATT over the summed total already does.
+//
+// A line below the unlock level pays nothing, so the panel opening and the
+// stats arriving are one event.
+void AddInnerAbility(const CharacterInstance& character, HyperPreset preset,
+                     PassiveTotals& totals) {
+  static_assert(AbilityLineType_ARRAYSIZE == 17,
+                "a new Inner Ability line needs somewhere to land");
+  if (!character.inner_ability_unlocked()) {
+    return;
+  }
+  for (const AbilityLine& line : character.ability(preset).lines()) {
+    const int value = AbilityLineValue(line.type(), line.rank());
+    const double share = value / kPercentToFraction;
+    switch (line.type()) {
+      case ABILITY_LINE_TYPE_STR:
+        totals.str += value;
+        break;
+      case ABILITY_LINE_TYPE_DEX:
+        totals.dex += value;
+        break;
+      case ABILITY_LINE_TYPE_INT:
+        totals.int_ += value;
+        break;
+      case ABILITY_LINE_TYPE_LUK:
+        totals.luk += value;
+        break;
+      case ABILITY_LINE_TYPE_ALL_STATS:
+        totals.str += value;
+        totals.dex += value;
+        totals.int_ += value;
+        totals.luk += value;
+        break;
+      case ABILITY_LINE_TYPE_MAX_HP:
+        totals.max_hp += value;
+        break;
+      case ABILITY_LINE_TYPE_MAX_HP_PCT:
+        totals.max_hp_pct += share;
+        break;
+      case ABILITY_LINE_TYPE_ATTACK:
+        totals.attack += value;
+        break;
+      case ABILITY_LINE_TYPE_MAGIC_ATTACK:
+        totals.magic_attack += value;
+        break;
+      case ABILITY_LINE_TYPE_CRIT_RATE:
+        totals.crit_rate += share;
+        break;
+      case ABILITY_LINE_TYPE_BOSS_DAMAGE:
+        totals.boss_pct += share;
+        break;
+      case ABILITY_LINE_TYPE_NORMAL_DAMAGE:
+        totals.normal_pct += share;
+        break;
+      case ABILITY_LINE_TYPE_BUFF_DURATION:
+        totals.buff_duration_pct += share;
+        break;
+      case ABILITY_LINE_TYPE_ITEM_DROP:
+        totals.item_drop_pct += share;
+        break;
+      case ABILITY_LINE_TYPE_MESO:
+        totals.meso_pct += share;
+        break;
+      case ABILITY_LINE_TYPE_ATTACK_SPEED:
+        totals.attack_speed += value;
+        break;
+      case ABILITY_LINE_TYPE_UNSPECIFIED:
+        break;
+    }
+  }
+}
+
 // Cashes Maple Warrior in against the AP the character has spent. It grants
 // what a ring grants, so it lands in the same pile the passives' flat stats
 // do -- and it is read here rather than in AddEffect because a skill's levers
@@ -992,6 +1069,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   // After the fold, never before it: a Hyper Stat is final stat, and Maple
   // Warrior takes its share of the allocation alone.
   AddHyperStats(character, preset, passives);
+  AddInnerAbility(character, preset, passives);
 
   DerivedStats stats;
   stats.max_hp =

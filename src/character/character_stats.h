@@ -411,7 +411,8 @@ std::vector<AllyGrant> AllyBuffsFor(const CharacterInstance& character,
 // Empty is a character playing alone, which is every character outside a
 // party fight.
 //
-// `preset` is the Hyper Stat allocation to read. Farming unless the caller is
+// `preset` picks which of the character's two setups to read -- their Hyper
+// Stat allocation and their Inner Ability alike. Farming unless the caller is
 // a boss fight or a screen showing the other one.
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills,

@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/inner_ability.h"
 #include "src/item/equip_instance.h"
 #include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
@@ -2298,7 +2299,9 @@ TEST_F(DerivedStatsTest, HyperStatsReachEveryLeverTheyName) {
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_ATTACK, farming, 3));
 
   DerivedStats stats = DerivedStatsFor(c, {});
-  EXPECT_EQ(stats.skill_stats.str(), 300);
+  // 300 from the Hyper Stat and 30 from the Inner Ability lines every
+  // character past 160 is holding.
+  EXPECT_EQ(stats.skill_stats.str(), 330);
   EXPECT_EQ(stats.skill_stats.attack(), 9);
   EXPECT_EQ(stats.skill_stats.magic_attack(), 9)
       << "one stat pays both attacks";
@@ -2334,7 +2337,151 @@ TEST_F(DerivedStatsTest, MapleWarriorLeavesTheHyperStatAlone) {
       c.AllocateHyperStat(HYPER_STAT_FIELD_STR, HyperPreset::kFarming, 10));
 
   DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_EQ(stats.skill_stats.str(), 150 + 300);
+  EXPECT_EQ(stats.skill_stats.str(), 150 + 300 + 30)
+      << "the default Inner Ability lines are final stat too";
+}
+
+// --- Inner Ability ---
+
+// A character holding `lines` in the named preset, at a level that pays them.
+CharacterInstance AbilityCharacter(std::mt19937& rng, AbilityRank rank,
+                                   const std::vector<AbilityLine>& lines,
+                                   HyperPreset preset = HyperPreset::kFarming,
+                                   int level = 160) {
+  Character proto;
+  proto.set_level(level);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  proto.mutable_allocated_stats()->set_str(1000);
+  proto.mutable_allocated_stats()->set_hp(10000);
+  (*proto.mutable_sp_by_stage())[1] = 100;
+  AbilityPreset& held = PresetOf(*proto.mutable_inner_ability(), preset);
+  held.set_rank(rank);
+  for (const AbilityLine& line : lines) {
+    *held.add_lines() = line;
+  }
+  return CharacterInstance(rng, std::move(proto));
+}
+
+AbilityLine Line(AbilityLineType type, AbilityRank rank) {
+  AbilityLine line;
+  line.set_type(type);
+  line.set_rank(rank);
+  return line;
+}
+
+// The lines every character is handed pay +10 all stat apiece, and nothing
+// below the unlock level pays at all.
+TEST_F(DerivedStatsTest, TheDefaultLinesPayFromLevel160) {
+  CharacterInstance below = AbilityCharacter(
+      rng_, ABILITY_RANK_RARE, {}, HyperPreset::kFarming, /*level=*/159);
+  EXPECT_EQ(DerivedStatsFor(below, {}).skill_stats.str(), 0);
+
+  CharacterInstance c = AbilityCharacter(rng_, ABILITY_RANK_RARE, {});
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_EQ(stats.skill_stats.str(), 30) << "three Rare All Stats lines";
+  EXPECT_EQ(stats.skill_stats.dex(), 30);
+  EXPECT_EQ(stats.skill_stats.int_(), 30);
+  EXPECT_EQ(stats.skill_stats.luk(), 30);
+}
+
+TEST_F(DerivedStatsTest, AbilityLinesReachEveryLeverTheyName) {
+  CharacterInstance c = AbilityCharacter(
+      rng_, ABILITY_RANK_LEGENDARY,
+      {Line(ABILITY_LINE_TYPE_STR, ABILITY_RANK_LEGENDARY),
+       Line(ABILITY_LINE_TYPE_ATTACK, ABILITY_RANK_LEGENDARY),
+       Line(ABILITY_LINE_TYPE_CRIT_RATE, ABILITY_RANK_UNIQUE)});
+
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_EQ(stats.skill_stats.str(), 40);
+  EXPECT_EQ(stats.skill_stats.attack(), 30);
+  EXPECT_EQ(stats.skill_stats.magic_attack(), 0)
+      << "the two attacks are separate lines here";
+  EXPECT_DOUBLE_EQ(stats.crit_rate, 0.20);
+}
+
+TEST_F(DerivedStatsTest, AbilityPercentLinesLandWhereTheyBelong) {
+  CharacterInstance c = AbilityCharacter(
+      rng_, ABILITY_RANK_LEGENDARY,
+      {Line(ABILITY_LINE_TYPE_BOSS_DAMAGE, ABILITY_RANK_LEGENDARY),
+       Line(ABILITY_LINE_TYPE_MESO, ABILITY_RANK_LEGENDARY),
+       Line(ABILITY_LINE_TYPE_ITEM_DROP, ABILITY_RANK_UNIQUE)});
+
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_DOUBLE_EQ(stats.boss_pct, 0.20);
+  EXPECT_DOUBLE_EQ(stats.meso_pct, 0.20);
+  EXPECT_DOUBLE_EQ(stats.item_drop_pct, 0.15);
+}
+
+TEST_F(DerivedStatsTest, AbilityHpAndSpeedLinesLandWhereTheyBelong) {
+  CharacterInstance c = AbilityCharacter(
+      rng_, ABILITY_RANK_LEGENDARY,
+      {Line(ABILITY_LINE_TYPE_MAX_HP, ABILITY_RANK_LEGENDARY),
+       Line(ABILITY_LINE_TYPE_MAX_HP_PCT, ABILITY_RANK_LEGENDARY),
+       Line(ABILITY_LINE_TYPE_ATTACK_SPEED, ABILITY_RANK_LEGENDARY)});
+
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_EQ(stats.max_hp, static_cast<int>((10000 + 600) * 1.20));
+  EXPECT_EQ(stats.attack_speed_bonus, 1);
+}
+
+TEST_F(DerivedStatsTest, AbilityBuffDurationAndNormalDamageLand) {
+  CharacterInstance c = AbilityCharacter(
+      rng_, ABILITY_RANK_LEGENDARY,
+      {Line(ABILITY_LINE_TYPE_BUFF_DURATION, ABILITY_RANK_LEGENDARY),
+       Line(ABILITY_LINE_TYPE_NORMAL_DAMAGE, ABILITY_RANK_LEGENDARY),
+       Line(ABILITY_LINE_TYPE_MAGIC_ATTACK, ABILITY_RANK_UNIQUE)});
+
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_DOUBLE_EQ(stats.buff_duration_pct, 0.50);
+  EXPECT_DOUBLE_EQ(stats.normal_pct, 0.10);
+  EXPECT_EQ(stats.skill_stats.magic_attack(), 21);
+  EXPECT_EQ(stats.skill_stats.attack(), 0);
+}
+
+// All Stats pays every one of the four, which is what makes one line of it
+// worth four of a single stat's.
+TEST_F(DerivedStatsTest, AllStatsPaysAllFour) {
+  CharacterInstance c = AbilityCharacter(
+      rng_, ABILITY_RANK_LEGENDARY,
+      {Line(ABILITY_LINE_TYPE_ALL_STATS, ABILITY_RANK_LEGENDARY),
+       Line(ABILITY_LINE_TYPE_STR, ABILITY_RANK_UNIQUE),
+       Line(ABILITY_LINE_TYPE_MESO, ABILITY_RANK_EPIC)});
+
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_EQ(stats.skill_stats.str(), 70);
+  EXPECT_EQ(stats.skill_stats.luk(), 40);
+}
+
+// The stats an ability grants are final stat, exactly as a Hyper Stat's are:
+// Maple Warrior's share is charged against the allocation alone.
+TEST_F(DerivedStatsTest, MapleWarriorLeavesTheAbilityAlone) {
+  CharacterInstance c =
+      AbilityCharacter(rng_, ABILITY_RANK_LEGENDARY,
+                       {Line(ABILITY_LINE_TYPE_STR, ABILITY_RANK_LEGENDARY),
+                        Line(ABILITY_LINE_TYPE_MESO, ABILITY_RANK_EPIC),
+                        Line(ABILITY_LINE_TYPE_ITEM_DROP, ABILITY_RANK_EPIC)});
+  Skill mw = MapleWarrior();
+  std::map<std::string, Skill> skills = {{"maple_warrior", mw}};
+  ASSERT_TRUE(c.LearnSkill(mw, 30));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_EQ(stats.skill_stats.str(), 150 + 40);
+}
+
+// The preset read is the one the caller asks for, the same as the Hyper Stat
+// allocation beside it.
+TEST_F(DerivedStatsTest, TheBossingAbilityIsReadOnlyWhenAskedFor) {
+  CharacterInstance c = AbilityCharacter(
+      rng_, ABILITY_RANK_LEGENDARY,
+      {Line(ABILITY_LINE_TYPE_BOSS_DAMAGE, ABILITY_RANK_LEGENDARY),
+       Line(ABILITY_LINE_TYPE_MESO, ABILITY_RANK_EPIC),
+       Line(ABILITY_LINE_TYPE_ITEM_DROP, ABILITY_RANK_EPIC)},
+      HyperPreset::kBossing);
+
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).boss_pct, 0.0);
+  EXPECT_DOUBLE_EQ(
+      DerivedStatsFor(c, {}, {}, {}, HyperPreset::kBossing).boss_pct, 0.20);
 }
 
 // The allocation read is the one the caller asks for.

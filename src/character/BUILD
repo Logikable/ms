@@ -137,6 +137,7 @@ cc_library(
     deps = [
         ":character",
         ":hyper_stats",
+        ":inner_ability",
         "//src/combat:damage",
         "//src/item:equip_stats",
         "//src/protos:character_proto_cc",
@@ -222,6 +223,7 @@ cc_test(
         ":character",
         ":character_stats",
         ":hyper_stats",
+        ":inner_ability",
         "//src:proto_loader",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
