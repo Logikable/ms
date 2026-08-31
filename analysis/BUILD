@@ -189,6 +189,7 @@ sim_binary(
         "//src:proto_loader",
         "//src/character",
         "//src/character:exp_table",
+        "//src/character:honor",
         "//src/character:job_advancement",
         "//src/character:progression",
         "//src/combat",

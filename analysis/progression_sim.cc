@@ -79,6 +79,7 @@
 #include "analysis/skill_plan.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
+#include "src/character/honor.h"
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
 #include "src/combat/combat.h"
@@ -574,6 +575,12 @@ struct Climb {
   int milestone_slots[kNumMilestones] = {0};
   int milestone_frozen[kNumMilestones] = {0};
   int milestone_boss_set[kNumMilestones] = {0};
+  // The honor the pool held at each milestone, and the two parts of it that
+  // can be named: what the levels paid and what the daily clears paid.
+  // Whatever is left over is what the monsters dropped.
+  int64_t milestone_honor[kNumMilestones] = {0};
+  int64_t milestone_level_honor[kNumMilestones] = {0};
+  int64_t milestone_boss_honor[kNumMilestones] = {0};
   // The level the weapon first held ten stars at, and the level the Frozen Set
   // was first complete at. 0 for a climb that reached the cap without it.
   int ten_star_level = 0;
@@ -724,6 +731,15 @@ void NoteFrozenDrops(const GameState& state, int level, Climb& climb) {
   }
 }
 
+// Every daily clear the climb has taken so far, over every boss.
+int64_t ClearsSoFar(const Climb& climb) {
+  int64_t clears = 0;
+  for (const std::pair<const std::string, BossLog>& entry : climb.bosses) {
+    clears += entry.second.clears;
+  }
+  return clears;
+}
+
 // Writes down the playtime, the purse and what the character is wearing, at
 // every milestone this level has just reached. Read after the level's
 // shopping, so a milestone says what they walked away from it in rather than
@@ -749,6 +765,9 @@ void NoteMilestones(const GameState& state, int level, double seconds,
     climb.milestone_slots[i] = weapon.second;
     climb.milestone_frozen[i] = frozen;
     climb.milestone_boss_set[i] = PiecesWorn(state, "boss_accessory");
+    climb.milestone_honor[i] = state.character.honor();
+    climb.milestone_level_honor[i] = HonorForLevels(1, level);
+    climb.milestone_boss_honor[i] = kBossClearHonor * ClearsSoFar(climb);
   }
 }
 
@@ -1290,6 +1309,66 @@ void PrintMeso(const std::vector<Job>& branches,
   }
 }
 
+// The pool at each milestone, and where it came from at the two levels the
+// question is asked at: 160, where Inner Ability opens, and the cap.
+void PrintHonor(const std::vector<Job>& branches,
+                const std::vector<Climb>& climbs) {
+  std::printf(
+      "\nHonor held at each level. Nothing spends it before 160, so this is "
+      "the whole of what a\nreroll has to be paid out of.\n\n");
+  std::printf("%-13s", "branch");
+  for (int level : kMilestones) {
+    std::printf("  %8s", ("Lv" + std::to_string(level)).c_str());
+  }
+  std::printf("\n%s\n", std::string(13 + 10 * kNumMilestones, '-').c_str());
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    std::printf("%-13s", BranchName(branches[i]).c_str());
+    for (int m = 0; m < kNumMilestones; ++m) {
+      char honor[16];
+      FormatShort(static_cast<double>(climbs[i].milestone_honor[m]), honor,
+                  sizeof(honor));
+      std::printf("  %8s", climbs[i].milestone_seconds[m] < 0.0 ? "-" : honor);
+    }
+    std::printf("\n");
+  }
+
+  std::printf(
+      "\nWhere it came from. The levels pay the same to everybody, so the "
+      "spread is the dailies a\nclimb was strong enough to take and the kills "
+      "it took to get there.\n\n");
+  std::printf("%-13s", "branch");
+  for (int m = 0; m < kNumMilestones; ++m) {
+    if (kMilestones[m] != 160 && kMilestones[m] != 200) {
+      continue;
+    }
+    std::printf("  %9s %9s %9s %9s",
+                ("at Lv" + std::to_string(kMilestones[m])).c_str(), "levels",
+                "bosses", "mobs");
+  }
+  std::printf("\n%s\n", std::string(13 + 2 * 4 * 10, '-').c_str());
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    std::printf("%-13s", BranchName(branches[i]).c_str());
+    for (int m = 0; m < kNumMilestones; ++m) {
+      if (kMilestones[m] != 160 && kMilestones[m] != 200) {
+        continue;
+      }
+      const Climb& climb = climbs[i];
+      if (climb.milestone_seconds[m] < 0.0) {
+        std::printf("  %9s %9s %9s %9s", "-", "-", "-", "-");
+        continue;
+      }
+      int64_t mobs = climb.milestone_honor[m] - climb.milestone_level_honor[m] -
+                     climb.milestone_boss_honor[m];
+      std::printf("  %9lld %9lld %9lld %9lld",
+                  static_cast<long long>(climb.milestone_honor[m]),
+                  static_cast<long long>(climb.milestone_level_honor[m]),
+                  static_cast<long long>(climb.milestone_boss_honor[m]),
+                  static_cast<long long>(mobs));
+    }
+    std::printf("\n");
+  }
+}
+
 // Where the Frozen Set came from, for the branches that climb far enough to
 // see it.
 void PrintFrozenDrops(const std::vector<Job>& branches,
@@ -1521,6 +1600,7 @@ void Run() {
   if (absl::GetFlag(FLAGS_playtime)) {
     PrintPlaytime(catalogs, branches, typical);
     PrintMeso(branches, typical);
+    PrintHonor(branches, typical);
   }
   if (absl::GetFlag(FLAGS_ledger)) {
     PrintLedger(branches, typical);
