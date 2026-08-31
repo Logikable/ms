@@ -10,6 +10,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/combat/battle_analysis.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/game_state.h"
 
 namespace ms {
@@ -79,12 +80,8 @@ TEST(MenuPanelTest, TheEntriesSitTwoColumnsApart) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
                                                ftxui::Dimension::Fixed(3));
   ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
-  std::string row;
-  for (int x = 0; x < screen.dimx(); ++x) {
-    const std::string& cell = screen.PixelAt(x, 1).character;
-    row += cell.empty() ? " " : cell;
-  }
-  EXPECT_NE(row.find("│ Boss  Party  Analysis  Settings │"), std::string::npos);
+  EXPECT_NE(ScreenRow(screen, 1).find("│ Boss  Party  Analysis  Settings │"),
+            std::string::npos);
 }
 
 TEST(MenuPanelTest, TheCursorWrapsAndPicksAnEntry) {
@@ -226,28 +223,12 @@ TEST(MenuPanelTest, TheAnalysisBoxWalksBothOfItsRows) {
 }
 
 // The column `text` first appears in, drawn flush right the way the corner
-// lays the menu and its box out, or -1. Columns rather than bytes: the borders
-// around the menu are multi-byte, so an offset into a rendered row is not a
-// column.
+// lays the menu and its box out, or -1.
 int ColumnOf(ftxui::Element element, const std::string& text) {
-  constexpr int kWidth = 60;
-  constexpr int kHeight = 6;
-  ftxui::Screen screen = ftxui::Screen::Create(
-      ftxui::Dimension::Fixed(kWidth), ftxui::Dimension::Fixed(kHeight));
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
+                                               ftxui::Dimension::Fixed(6));
   ftxui::Render(screen, ftxui::hbox({ftxui::filler(), std::move(element)}));
-  for (int y = 0; y < kHeight; ++y) {
-    for (int x = 0; x < kWidth; ++x) {
-      std::string got;
-      for (int i = x; i < kWidth && got.size() < text.size(); ++i) {
-        const std::string& cell = screen.PixelAt(i, y).character;
-        got += cell.empty() ? " " : cell;
-      }
-      if (got == text) {
-        return x;
-      }
-    }
-  }
-  return -1;
+  return FindOnScreen(screen, text).x;
 }
 
 // The columns the open box's two top corners stand in.

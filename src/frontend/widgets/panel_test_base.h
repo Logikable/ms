@@ -14,6 +14,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/account.h"
 #include "src/character/character.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 
@@ -49,15 +50,8 @@ inline std::vector<std::string> RowsTouchingTheRightBorder(
   ftxui::Render(screen, element);
   std::vector<std::string> touching;
   for (int y = 1; y + 1 < height; ++y) {
-    std::string row;
-    std::string margin;
-    for (int x = 0; x < width; ++x) {
-      const std::string& cell = screen.PixelAt(x, y).character;
-      row += cell.empty() ? " " : cell;
-      if (x == width - 2) {
-        margin = cell.empty() ? " " : cell;
-      }
-    }
+    std::string row = ScreenRow(screen, y);
+    std::string margin = ScreenRow(screen, y, width - 2, width - 1);
     if (margin != " " && margin != "─" && margin != "┃" && margin != "│") {
       touching.push_back(row);
     }
@@ -131,42 +125,17 @@ class PanelTest : public testing::Test {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                  ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, element);
-    for (int y = 0; y < screen.dimy(); ++y) {
-      std::string row;
-      for (int x = 0; x < screen.dimx(); ++x) {
-        const std::string& cell = screen.PixelAt(x, y).character;
-        // One cell per character here, so the index into `row` is the column.
-        row += cell.empty() ? " " : cell;
-      }
-      size_t at = row.find(label);
-      if (at != std::string::npos) {
-        return screen.PixelAt(static_cast<int>(at), y).foreground_color;
-      }
-    }
-    return ftxui::Color::Default;
+    return ColorOf(screen, label);
   }
 
-  // The rendered component as plain characters, one per column, with a
-  // newline between rows.
-  //
-  // Screen::ToString KEEPS the colour and dim escapes, so a styled cell puts
-  // bytes between two things that look adjacent on screen -- which is what
-  // breaks a search for "> Name" the moment the name is dimmed. Use this to
-  // ask what the screen says; use RenderComponent only when the styling is
-  // what is being asserted.
+  // The rendered component as plain characters. Use this to ask what the
+  // screen says; use RenderComponent only when the styling is what is being
+  // asserted. See screen_text.h for why ToString will not do.
   static std::string RenderComponentText(ftxui::Component component) {
     ftxui::Screen screen = ftxui::Screen::Create(
         ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, component->Render());
-    std::string out;
-    for (int y = 0; y < screen.dimy(); ++y) {
-      for (int x = 0; x < screen.dimx(); ++x) {
-        const std::string& cell = screen.PixelAt(x, y).character;
-        out += cell.empty() ? " " : cell;
-      }
-      out += '\n';
-    }
-    return out;
+    return ScreenText(screen);
   }
 
   static std::string RenderComponent(ftxui::Component component) {

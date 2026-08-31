@@ -11,20 +11,10 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/widgets/screen_text.h"
 
 namespace ms {
 namespace {
-
-// The `count` cells of row `y` from `x`, with the ones no element painted read
-// as spaces.
-std::string ScreenCells(const ftxui::Screen& screen, int y, int x, int count) {
-  std::string cells;
-  for (int i = x; i < x + count; ++i) {
-    const std::string& cell = screen.PixelAt(i, y).character;
-    cells += cell.empty() ? " " : cell;
-  }
-  return cells;
-}
 
 ftxui::Screen RenderSized(ftxui::Element element, int width, int height) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
@@ -203,8 +193,7 @@ TEST(AlwaysFocusableTest, ReportsFocusableWhereTheChildDoesNot) {
 
 TEST(AlwaysFocusableTest, DrawsWhatTheChildDraws) {
   ftxui::Component wrapped = AlwaysFocusable(UnfocusableComponent());
-  EXPECT_EQ(ScreenCells(RenderSized(wrapped->Render(), 10, 1), 0, 0, 5),
-            "PANEL");
+  EXPECT_EQ(ScreenRow(RenderSized(wrapped->Render(), 10, 1), 0, 0, 5), "PANEL");
 }
 
 TEST(AlwaysFocusableTest, PassesEventsToTheChild) {

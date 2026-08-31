@@ -133,6 +133,7 @@ cc_test(
     srcs = ["keys_test.cc"],
     deps = [
         ":keys",
+        ":screen_text",
         "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",
@@ -411,6 +412,27 @@ cc_test(
     deps = [
         ":colors",
         ":item_menu",
+        ":screen_text",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "screen_text",
+    testonly = True,
+    srcs = ["screen_text.cc"],
+    hdrs = ["screen_text.h"],
+    deps = ["@ftxui//:screen"],
+)
+
+cc_test(
+    name = "screen_text_test",
+    size = "small",
+    srcs = ["screen_text_test.cc"],
+    deps = [
+        ":screen_text",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",
@@ -422,6 +444,7 @@ cc_library(
     testonly = True,
     hdrs = ["panel_test_base.h"],
     deps = [
+        ":screen_text",
         "//src:account",
         "//src/character",
         "//src/protos:character_proto_cc",

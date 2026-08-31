@@ -8,6 +8,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/panels/level_up_popup_panel.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/screen_text.h"
 
 namespace ms {
 namespace {
@@ -17,23 +18,6 @@ ftxui::Screen RenderCard() {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
   ftxui::Render(screen, card);
   return screen;
-}
-
-// The index of the first row holding `needle`, or -1 if none does. Read cell
-// by cell rather than from Screen::ToString, which threads colour escapes
-// through the rows.
-int RowIndexOf(const ftxui::Screen& screen, const std::string& needle) {
-  for (int y = 0; y < screen.dimy(); ++y) {
-    std::string row;
-    for (int x = 0; x < screen.dimx(); ++x) {
-      const std::string& cell = screen.PixelAt(x, y).character;
-      row += cell.empty() ? " " : cell;
-    }
-    if (row.find(needle) != std::string::npos) {
-      return y;
-    }
-  }
-  return -1;
 }
 
 TEST(DeathPopupPanelTest, SaysWhatHappened) {

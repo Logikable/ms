@@ -7,6 +7,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/screen_text.h"
 
 namespace ms {
 namespace {
@@ -20,18 +21,7 @@ class ItemMenuTest : public testing::Test {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
                                                  ftxui::Dimension::Fixed(10));
     ftxui::Render(screen, menu.Render(0, 0));
-    for (int y = 0; y < screen.dimy(); ++y) {
-      std::string row;
-      for (int x = 0; x < screen.dimx(); ++x) {
-        const std::string& cell = screen.PixelAt(x, y).character;
-        row += cell.empty() ? " " : cell;
-      }
-      size_t at = row.find(label);
-      if (at != std::string::npos) {
-        return screen.PixelAt(static_cast<int>(at), y).foreground_color;
-      }
-    }
-    return ftxui::Color::Default;
+    return ColorOf(screen, label);
   }
 
   // The columns the menu's box actually covers when drawn at the origin,

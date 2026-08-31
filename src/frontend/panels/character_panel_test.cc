@@ -20,6 +20,7 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -150,12 +151,7 @@ std::vector<std::string> PanelRows(ftxui::Element element) {
   ftxui::Render(screen, element);
   std::vector<std::string> rows;
   for (int y = 0; y < screen.dimy(); ++y) {
-    std::string row;
-    for (int x = 1; x < kLeftColumnMin - 1; ++x) {
-      const std::string& cell = screen.PixelAt(x, y).character;
-      row += cell.empty() ? " " : cell;
-    }
-    rows.push_back(row);
+    rows.push_back(ScreenRow(screen, y, 1, kLeftColumnMin - 1));
   }
   return rows;
 }
@@ -187,19 +183,6 @@ ftxui::Screen RenderToScreen(ftxui::Component comp, int rows = 20) {
                                                ftxui::Dimension::Fixed(rows));
   ftxui::Render(screen, comp->Render());
   return screen;
-}
-
-// A rendered screen as plain characters, one per column, a newline a row.
-std::string TextOf(const ftxui::Screen& screen) {
-  std::string out;
-  for (int y = 0; y < screen.dimy(); ++y) {
-    for (int x = 0; x < screen.dimx(); ++x) {
-      const std::string& cell = screen.PixelAt(x, y).character;
-      out += cell.empty() ? " " : cell;
-    }
-    out += '\n';
-  }
-  return out;
 }
 
 // Where `needle` starts on `screen`, or {-1, -1} if it is not there. Walks
@@ -2269,16 +2252,7 @@ std::vector<std::string> Rows(ftxui::Element element) {
   ftxui::Screen screen = ftxui::Screen::Create(
       ftxui::Dimension::Fixed(kLeftColumnMin), ftxui::Dimension::Fixed(24));
   ftxui::Render(screen, element);
-  std::vector<std::string> rows;
-  for (int y = 0; y < screen.dimy(); ++y) {
-    std::string row;
-    for (int x = 0; x < screen.dimx(); ++x) {
-      const std::string& cell = screen.PixelAt(x, y).character;
-      row += cell.empty() ? " " : cell;
-    }
-    rows.push_back(row);
-  }
-  return rows;
+  return ScreenRows(screen);
 }
 
 // A 4th-job Hero at the level Hyper Stats open at, with a level in one stat
@@ -2399,7 +2373,7 @@ TEST_F(CharacterPanelTest, TheHyperTabListsTheStatsAndTheSparePoints) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
   panel_focus_ = kCharPanel;
-  std::string rendered = TextOf(RenderToScreen(OnHyperRows(panel), 32));
+  std::string rendered = ScreenText(RenderToScreen(OnHyperRows(panel), 32));
   for (int i = 0; i < kNumHyperStats; ++i) {
     EXPECT_NE(rendered.find(HyperStatName(kHyperStatOrder[i])),
               std::string::npos)
@@ -2540,7 +2514,7 @@ TEST_F(CharacterPanelTest, TheHyperTabKeepsItsResetAtEveryBudget) {
     panel.SetMaxRows(budget);
     EXPECT_EQ(PanelHeight(panel.Render()), std::min(budget, natural))
         << "at a budget of " << budget;
-    EXPECT_NE(TextOf(RenderToScreen(comp, 32)).find("[Reset]"),
+    EXPECT_NE(ScreenText(RenderToScreen(comp, 32)).find("[Reset]"),
               std::string::npos)
         << "at a budget of " << budget;
   }
@@ -2615,7 +2589,7 @@ TEST_F(CharacterPanelTest, TheAbilityTabListsTheLinesTheHonorAndTheCost) {
   CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/12345);
   CharacterPanel panel(c, account_, panel_focus_);
   panel_focus_ = kCharPanel;
-  std::string rendered = TextOf(RenderToScreen(OnAbilityRows(panel)));
+  std::string rendered = ScreenText(RenderToScreen(OnAbilityRows(panel)));
   EXPECT_NE(rendered.find("Boss Damage"), std::string::npos);
   EXPECT_NE(rendered.find("+20%"), std::string::npos);
   EXPECT_NE(rendered.find("STR"), std::string::npos);

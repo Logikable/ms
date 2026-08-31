@@ -10,6 +10,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -38,12 +39,7 @@ class AllStatsPanelTest : public PanelTest {
     ftxui::Render(screen, element);
     std::vector<std::string> rows;
     for (int y = 0; y < screen.dimy(); ++y) {
-      std::string row;
-      for (int x = 1; x < AllStatsPanel::kTotalWidth - 1; ++x) {
-        const std::string& cell = screen.PixelAt(x, y).character;
-        row += cell.empty() ? " " : cell;
-      }
-      rows.push_back(row);
+      rows.push_back(ScreenRow(screen, y, 1, AllStatsPanel::kTotalWidth - 1));
     }
     return rows;
   }

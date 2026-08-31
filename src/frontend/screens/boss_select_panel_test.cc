@@ -11,6 +11,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
@@ -114,29 +115,7 @@ ftxui::Color RowColor(const BossSelectPanel& panel, const std::string& needle) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
                                                ftxui::Dimension::Fixed(24));
   ftxui::Render(screen, element);
-  for (int y = 0; y < screen.dimy(); ++y) {
-    std::string row;
-    for (int x = 0; x < screen.dimx(); ++x) {
-      const std::string& cell = screen.PixelAt(x, y).character;
-      row += cell.empty() ? " " : cell;
-    }
-    size_t at = row.find(needle);
-    if (at != std::string::npos) {
-      return screen.PixelAt(static_cast<int>(at), y).foreground_color;
-    }
-  }
-  return ftxui::Color::Default;
-}
-
-// One row of the last render as plain text, since ToString() threads escape
-// codes between the cells and a padding column cannot be seen through them.
-std::string Row(const ftxui::Screen& screen, int y) {
-  std::string row;
-  for (int x = 0; x < screen.dimx(); ++x) {
-    const std::string& cell = screen.PixelAt(x, y).character;
-    row += cell.empty() ? " " : cell;
-  }
-  return row;
+  return ColorOf(screen, needle);
 }
 
 TEST(BossSelectPanelTest, TheDetailPanelDescribesTheFight) {
@@ -323,7 +302,7 @@ TEST(BossSelectPanelTest, TheGridShowsEveryDifficultyAndLightsTheChosenOne) {
   ftxui::Render(screen, panel.Render());
   std::string out = screen.ToString();
   EXPECT_EQ(out.find(">"), std::string::npos) << "no caret";
-  std::string balrog = Row(screen, 3);
+  std::string balrog = ScreenRow(screen, 3);
   EXPECT_NE(balrog.find("Easy"), std::string::npos);
   EXPECT_NE(balrog.find("Normal"), std::string::npos)
       << "both columns stand there, whichever is chosen";
@@ -337,11 +316,11 @@ TEST(BossSelectPanelTest, TheGridShowsEveryDifficultyAndLightsTheChosenOne) {
   EXPECT_EQ(out.find("\033[7mEasy"), std::string::npos);
   EXPECT_NE(out.find("\033[7mNormal"), std::string::npos)
       << "Right lights the next column instead of replacing the name";
-  std::string header = Row(screen, 1);
+  std::string header = ScreenRow(screen, 1);
   EXPECT_NE(header.find("│ Name"), std::string::npos)
       << "a column of clearance";
   EXPECT_NE(header.find(" │"), std::string::npos) << "on both sides";
-  EXPECT_NE(Row(screen, 3).find(" │"), std::string::npos)
+  EXPECT_NE(ScreenRow(screen, 3).find(" │"), std::string::npos)
       << "the detail panel too";
 }
 
@@ -531,14 +510,14 @@ TEST(BossSelectPanelTest, ABlankRowSeparatesThePromiseFromTheHp) {
   ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
   int at = -1;
   for (int y = 0; y < screen.dimy(); ++y) {
-    if (Row(screen, y).find("Coming soon!") != std::string::npos) {
+    if (ScreenRow(screen, y).find("Coming soon!") != std::string::npos) {
       at = y;
     }
   }
   ASSERT_GE(at, 0);
-  EXPECT_EQ(Row(screen, at + 1).find("HP"), std::string::npos)
+  EXPECT_EQ(ScreenRow(screen, at + 1).find("HP"), std::string::npos)
       << "a blank row comes between";
-  EXPECT_NE(Row(screen, at + 2).find("HP"), std::string::npos);
+  EXPECT_NE(ScreenRow(screen, at + 2).find("HP"), std::string::npos);
 }
 
 // Dim is the door, and this one does not open at any level.

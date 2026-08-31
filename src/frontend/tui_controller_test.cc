@@ -34,6 +34,7 @@
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/widgets/chrome.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/boss.pb.h"
@@ -327,15 +328,7 @@ class TuiControllerTest : public testing::Test {
     ftxui::Element dialog = buy_panel_->Render();
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(dialog));
     ftxui::Render(screen, dialog);
-    std::string text;
-    for (int y = 0; y < screen.dimy(); ++y) {
-      for (int x = 0; x < screen.dimx(); ++x) {
-        const std::string& cell = screen.PixelAt(x, y).character;
-        text += cell.empty() ? " " : cell;
-      }
-      text += "\n";
-    }
-    return text;
+    return ScreenText(screen);
   }
 
   // MapSelectPanel fixes its display order at construction, so the maps must

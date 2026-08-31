@@ -11,6 +11,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/multiplayer/client.h"
 #include "src/protos/multiplayer.pb.h"
 
@@ -62,15 +63,7 @@ std::string Render(const PartySelectPanel& panel) {
   // holds it to its content.
   ftxui::Element element = ftxui::center(panel.Render());
   ftxui::Render(screen, element);
-  std::string out;
-  for (int y = 0; y < screen.dimy(); ++y) {
-    for (int x = 0; x < screen.dimx(); ++x) {
-      const std::string& cell = screen.PixelAt(x, y).character;
-      out += cell.empty() ? " " : cell;
-    }
-    out += '\n';
-  }
-  return out;
+  return ScreenText(screen);
 }
 
 // The box of everything the panel drew, as width by height.

@@ -10,6 +10,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/screen_text.h"
 
 namespace ms {
 namespace {
@@ -27,22 +28,9 @@ ftxui::Screen RenderCard(int from, int to, int ap, int sp, int hyper_sp = 0,
   return screen;
 }
 
-std::vector<std::string> Rows(const ftxui::Screen& screen) {
-  std::vector<std::string> rows;
-  for (int y = 0; y < screen.dimy(); ++y) {
-    std::string row;
-    for (int x = 0; x < screen.dimx(); ++x) {
-      const std::string& cell = screen.PixelAt(x, y).character;
-      row += cell.empty() ? " " : cell;
-    }
-    rows.push_back(row);
-  }
-  return rows;
-}
-
 // The index of the first row holding `needle`, or -1 if none does.
 int RowIndexOf(const ftxui::Screen& screen, const std::string& needle) {
-  std::vector<std::string> rows = Rows(screen);
+  std::vector<std::string> rows = ScreenRows(screen);
   for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
     if (rows[i].find(needle) != std::string::npos) {
       return i;
@@ -58,7 +46,7 @@ bool AnyRowHas(const ftxui::Screen& screen, const std::string& needle) {
 // The colour of the first cell of `needle`, for asking whether a line came out
 // gold. Color::Default when it is not on the card, which no colour equals.
 ftxui::Color ColorOf(const ftxui::Screen& screen, const std::string& needle) {
-  std::vector<std::string> rows = Rows(screen);
+  std::vector<std::string> rows = ScreenRows(screen);
   for (int y = 0; y < static_cast<int>(rows.size()); ++y) {
     size_t at = rows[y].find(needle);
     if (at != std::string::npos) {

@@ -16,6 +16,7 @@
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
@@ -116,22 +117,10 @@ class InventoryPanelTest : public PanelTest {
   }
 
   // The pixel the first cell of `needle` lands on, so a test can ask both what
-  // colour it came out and whether it was dimmed. Reads the grid rather than
-  // ToString, which keeps the escapes.
-  ftxui::Pixel PixelOf(ftxui::Component component, const std::string& needle) {
-    ftxui::Screen screen = RenderToScreen(std::move(component));
-    for (int y = 0; y < screen.dimy(); ++y) {
-      std::string row;
-      for (int x = 0; x < screen.dimx(); ++x) {
-        const std::string& cell = screen.PixelAt(x, y).character;
-        row += cell.empty() ? " " : cell;
-      }
-      size_t at = row.find(needle);
-      if (at != std::string::npos) {
-        return screen.PixelAt(static_cast<int>(at), y);
-      }
-    }
-    return ftxui::Pixel();
+  // colour it came out and whether it was dimmed.
+  ftxui::Pixel PixelOfRendered(ftxui::Component component,
+                               const std::string& needle) {
+    return ms::PixelOf(RenderToScreen(std::move(component)), needle);
   }
 
   // The panel wired the way the main screen wires it: as one tab of a
@@ -341,13 +330,13 @@ TEST_F(InventoryPanelTest, AnUnwearableRowDimsAndItsReasonStaysRed) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
 
-  EXPECT_TRUE(PixelOf(comp, "Sword").dim) << "the name";
+  EXPECT_TRUE(PixelOfRendered(comp, "Sword").dim) << "the name";
 
-  ftxui::Pixel level = PixelOf(comp, "Lv10");
+  ftxui::Pixel level = PixelOfRendered(comp, "Lv10");
   EXPECT_EQ(level.foreground_color, kRed);
   EXPECT_FALSE(level.dim) << "the reason must not be muted";
 
-  ftxui::Pixel job = PixelOf(comp, "Warrior");
+  ftxui::Pixel job = PixelOfRendered(comp, "Warrior");
   EXPECT_EQ(job.foreground_color, kRed);
   EXPECT_FALSE(job.dim);
 }
@@ -364,7 +353,7 @@ TEST_F(InventoryPanelTest, AWearableRowIsNotDimmed) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
 
-  ftxui::Pixel name = PixelOf(comp, "Plain Cape");
+  ftxui::Pixel name = PixelOfRendered(comp, "Plain Cape");
   EXPECT_FALSE(name.dim);
   EXPECT_NE(name.foreground_color, kRed);
 }

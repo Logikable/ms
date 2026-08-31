@@ -10,6 +10,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
 
@@ -50,39 +51,15 @@ class StarForcePanelTest : public PanelTest {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
                                                  ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, panel.Render());
-    for (int y = 0; y < screen.dimy(); ++y) {
-      std::string row;
-      for (int x = 0; x < screen.dimx(); ++x) {
-        const std::string& cell = screen.PixelAt(x, y).character;
-        row += cell.empty() ? " " : cell;
-      }
-      size_t at = row.find(label);
-      if (at != std::string::npos) {
-        return screen.PixelAt(static_cast<int>(at), y);
-      }
-    }
-    return ftxui::Pixel();
+    return ms::PixelOf(screen, label);
   }
 
-  // The column `needle` starts in, or -1 if nothing holds it. Read off the
-  // cells rather than the rendered string, which threads escape codes between
-  // them and cannot be counted through.
+  // The column `needle` starts in, or -1 if nothing holds it.
   static int ColumnOf(StarForcePanel& panel, const std::string& needle) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
                                                  ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, panel.Render());
-    for (int y = 0; y < screen.dimy(); ++y) {
-      std::string row;
-      for (int x = 0; x < screen.dimx(); ++x) {
-        const std::string& cell = screen.PixelAt(x, y).character;
-        row += cell.empty() ? " " : cell;
-      }
-      std::size_t at = row.find(needle);
-      if (at != std::string::npos) {
-        return static_cast<int>(at);
-      }
-    }
-    return -1;
+    return FindOnScreen(screen, needle).x;
   }
 
   static std::string Render(StarForcePanel& panel) {

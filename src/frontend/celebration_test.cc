@@ -10,6 +10,7 @@
 #include "src/character/inner_ability.h"
 #include "src/character/progression.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {
@@ -21,15 +22,7 @@ std::string CardText(const Celebration& celebration) {
   ftxui::Element card = celebration.Render();
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
   ftxui::Render(screen, card);
-  std::string text;
-  for (int y = 0; y < screen.dimy(); ++y) {
-    for (int x = 0; x < screen.dimx(); ++x) {
-      const std::string& cell = screen.PixelAt(x, y).character;
-      text += cell.empty() ? " " : cell;
-    }
-    text += "\n";
-  }
-  return text;
+  return ScreenText(screen);
 }
 
 class CelebrationTest : public testing::Test {

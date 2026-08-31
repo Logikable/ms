@@ -8,6 +8,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/progression.h"
+#include "src/frontend/widgets/screen_text.h"
 
 namespace ms {
 namespace {
@@ -22,16 +23,7 @@ std::vector<std::string> RenderRows() {
   ftxui::Element tip = HotkeysPanel();
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(tip));
   ftxui::Render(screen, tip);
-  std::vector<std::string> rows;
-  for (int y = 0; y < screen.dimy(); ++y) {
-    std::string row;
-    for (int x = 0; x < screen.dimx(); ++x) {
-      const std::string& cell = screen.PixelAt(x, y).character;
-      row += cell.empty() ? " " : cell;
-    }
-    rows.push_back(row);
-  }
-  return rows;
+  return ScreenRows(screen);
 }
 
 // The row holding `needle`, or "" if no row does.

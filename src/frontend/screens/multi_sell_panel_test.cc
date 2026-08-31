@@ -10,6 +10,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/item/equip_instance.h"
 
 namespace ms {
@@ -44,16 +45,7 @@ class MultiSellTest : public PanelTest {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(110),
                                                  ftxui::Dimension::Fixed(40));
     ftxui::Render(screen, ftxui::center(panel.Render()));
-    std::vector<std::string> rows;
-    for (int y = 0; y < screen.dimy(); ++y) {
-      std::string row;
-      for (int x = 0; x < screen.dimx(); ++x) {
-        const std::string& cell = screen.PixelAt(x, y).character;
-        row += cell.empty() ? " " : cell;
-      }
-      rows.push_back(std::move(row));
-    }
-    return rows;
+    return ms::ScreenRows(screen);
   }
 
   bool ScreenHas(MultiSellPanel& panel, const std::string& needle) {

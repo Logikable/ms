@@ -9,6 +9,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/combat/boss_run.h"
+#include "src/frontend/widgets/screen_text.h"
 
 namespace ms {
 namespace {
@@ -21,21 +22,8 @@ ftxui::Screen RenderCard(const BossReward& reward, bool show_honor = true) {
   return screen;
 }
 
-std::vector<std::string> Rows(const ftxui::Screen& screen) {
-  std::vector<std::string> rows;
-  for (int y = 0; y < screen.dimy(); ++y) {
-    std::string row;
-    for (int x = 0; x < screen.dimx(); ++x) {
-      const std::string& cell = screen.PixelAt(x, y).character;
-      row += cell.empty() ? " " : cell;
-    }
-    rows.push_back(row);
-  }
-  return rows;
-}
-
 bool AnyRowHas(const ftxui::Screen& screen, const std::string& needle) {
-  for (const std::string& row : Rows(screen)) {
+  for (const std::string& row : ScreenRows(screen)) {
     if (row.find(needle) != std::string::npos) {
       return true;
     }
