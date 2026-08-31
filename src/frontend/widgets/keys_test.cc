@@ -79,6 +79,33 @@ TEST(StepCursorTest, TakesMoreThanOneStopAtATime) {
   EXPECT_EQ(StepCursor(0, -5, 4), 3);
 }
 
+// --- StepTab ---
+
+// Unlike the cursor's ring, the ends of a tab bar are walls: a step off either
+// one leaves the tab where it was.
+TEST(StepTabTest, WalksTheBarAndStopsAtBothEnds) {
+  std::vector<int> tabs = {0, 1, 2};
+  EXPECT_EQ(StepTab(tabs, 0, 1), 1);
+  EXPECT_EQ(StepTab(tabs, 2, -1), 1);
+  EXPECT_EQ(StepTab(tabs, 0, -1), 0) << "the first tab is a wall";
+  EXPECT_EQ(StepTab(tabs, 2, 1), 2) << "and so is the last";
+}
+
+// The bar holds only the tabs the character has reached, so its entries need
+// not run 0, 1, 2 -- a step is one place along the bar, not one on the tab.
+TEST(StepTabTest, StepsAlongTheBarRatherThanTheTabNumbers) {
+  std::vector<int> tabs = {0, 3};
+  EXPECT_EQ(StepTab(tabs, 0, 1), 3);
+  EXPECT_EQ(StepTab(tabs, 3, -1), 0);
+}
+
+// A tab that is not on the bar at all: nothing locks one away today, but
+// landing on the first beats landing on a tab the player cannot see.
+TEST(StepTabTest, ATabOffTheBarLandsOnTheFirst) {
+  EXPECT_EQ(StepTab({1, 2}, 7, 1), 1);
+  EXPECT_EQ(StepTab({}, 7, 1), 7) << "with no bar there is nothing to land on";
+}
+
 // --- WrappingList ---
 
 namespace {

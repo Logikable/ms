@@ -8,6 +8,7 @@
 #define MS_SRC_FRONTEND_WIDGETS_KEYS_H_
 
 #include <functional>
+#include <vector>
 
 #include "ftxui/component/component_base.hpp"
 #include "ftxui/component/event.hpp"
@@ -59,6 +60,14 @@ ftxui::Component WrappingList(ftxui::Component list, int& selected,
 // row goes to the bar" and "Up off the bar goes to the last row" one rule. No
 // stops answers 0; a `current` outside the ring is folded back into it.
 int StepCursor(int current, int delta, int stops);
+
+// The tab `active` becomes after stepping `delta` along a bar showing exactly
+// `tabs`, in that order. Unlike the cursor's ring the ends of a bar are walls,
+// so a step off either one leaves the tab where it was. A tab that is not on
+// the bar at all answers the first one: nothing locks a tab away today --
+// levels only go up -- but landing on the first beats landing on a tab the
+// player cannot see.
+int StepTab(const std::vector<int>& tabs, int active, int delta);
 
 }  // namespace ms
 

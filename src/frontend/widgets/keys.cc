@@ -1,7 +1,9 @@
 #include "src/frontend/widgets/keys.h"
 
+#include <algorithm>
 #include <functional>
 #include <utility>
+#include <vector>
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/component_base.hpp"
@@ -34,6 +36,22 @@ int StepCursor(int current, int delta, int stops) {
   // back into the ring. Written for any delta rather than just the one step
   // every caller passes, so a caller that ever wants two is not a special case.
   return ((current + delta) % stops + stops) % stops;
+}
+
+int StepTab(const std::vector<int>& tabs, int active, int delta) {
+  if (tabs.empty()) {
+    return active;
+  }
+  std::vector<int>::const_iterator at =
+      std::find(tabs.begin(), tabs.end(), active);
+  if (at == tabs.end()) {
+    return tabs.front();
+  }
+  int next = static_cast<int>(at - tabs.begin()) + delta;
+  if (next < 0 || next >= static_cast<int>(tabs.size())) {
+    return active;
+  }
+  return tabs[next];
 }
 
 ftxui::Component AlwaysFocusable(ftxui::Component child) {

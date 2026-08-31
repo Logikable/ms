@@ -52,18 +52,11 @@ std::vector<int> EquippedPanel::VisibleTabs() const {
 }
 
 void EquippedPanel::StepTab(int direction) {
-  std::vector<int> tabs = VisibleTabs();
-  std::vector<int>::iterator at =
-      std::find(tabs.begin(), tabs.end(), active_tab_);
-  if (at == tabs.end()) {
-    active_tab_ = kGearTab;
-    return;
-  }
-  int next = static_cast<int>(at - tabs.begin()) + direction;
-  if (next < 0 || next >= static_cast<int>(tabs.size())) {
+  int next = ms::StepTab(VisibleTabs(), active_tab_, direction);
+  if (next == active_tab_) {
     return;  // the ends of the bar are walls, not wrapping points
   }
-  active_tab_ = tabs[next];
+  active_tab_ = next;
   selected_ = 0;
 }
 
