@@ -99,6 +99,7 @@ cc_library(
         "//src/frontend/widgets:amount_selector",
         "//src/frontend/widgets:confirm_prompt",
         "//src/frontend/widgets:continue_prompt",
+        "//src/frontend/widgets:keys",
         "//src/frontend/widgets:panel_util",
         "//src/item",
         "//src/item:equip_instance",

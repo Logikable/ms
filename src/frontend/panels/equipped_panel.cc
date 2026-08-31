@@ -12,6 +12,7 @@
 #include "src/character/progression.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/widgets/equipped_list.h"
+#include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"

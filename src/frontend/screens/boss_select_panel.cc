@@ -12,6 +12,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/boss_reset.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"

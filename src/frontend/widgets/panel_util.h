@@ -3,14 +3,11 @@
 
 #include <chrono>
 #include <cstdint>
-#include <functional>
 #include <map>
 #include <set>
 #include <string>
 #include <vector>
 
-#include "ftxui/component/component_base.hpp"
-#include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/character/hyper_stats.h"
 #include "src/frontend/widgets/colors.h"
@@ -22,43 +19,6 @@
 #include "src/protos/skill.pb.h"
 
 namespace ms {
-
-// True for the "go back" key. Every key the player has bound to Cancel
-// arrives here as Escape.
-inline bool IsBack(const ftxui::Event& e) {
-  return e == ftxui::Event::Escape;
-}
-
-// True for the "confirm / advance" key, reached the same way.
-inline bool IsForward(const ftxui::Event& e) {
-  return e == ftxui::Event::Return;
-}
-
-// True for either half of the "switch panel" key. It moves the arrows between
-// the panels of the main view, and between the two halves of a screen that
-// puts an inspect card beside something else.
-inline bool IsSwitchPanel(const ftxui::Event& e) {
-  return e == ftxui::Event::Tab || e == ftxui::Event::TabReverse;
-}
-
-// Wraps `child` so it always reports itself focusable, forwarding rendering
-// and events untouched.
-//
-// Container::Tab drops every key when its active child says it is not
-// focusable, and an ftxui::Menu says that whenever its list is empty -- taking
-// the tab bar above the list deaf with it.
-ftxui::Component AlwaysFocusable(ftxui::Component child);
-
-// Wraps a list so its cursor comes out the other end: Up on the first row
-// lands on the last, and back. Only the two edges are taken -- the steps
-// between them are the one thing ftxui::Menu gets right. `selected` must
-// outlive the component, and `count` is asked per keypress because these lists
-// gain and lose rows under the cursor.
-//
-// Wrong tool for a list under a tab bar: there the bar is a stop in the same
-// ring, so those panels count it as stop 0 and call StepCursor.
-ftxui::Component WrappingList(ftxui::Component list, int& selected,
-                              std::function<int()> count);
 
 // A single displayable stat: its label and how to read it from an EquipStats.
 struct DisplayStat {
@@ -475,15 +435,6 @@ ftxui::Element ScrollBar(int total, int first_visible, int visible);
 // bar's column. Empty when the whole list fits, exactly as ScrollBar is.
 std::vector<ftxui::Element> ScrollBarCells(int total, int first_visible,
                                            int visible);
-
-// Where a cursor lands after stepping `delta` places in a ring of `stops`,
-// coming out the other end rather than stopping. Every list walks with this --
-// if you are writing `std::max(0, sel - 1)`, write this instead.
-//
-// A list under a tab bar counts the bar as stop 0, which makes "Up off the top
-// row goes to the bar" and "Up off the bar goes to the last row" one rule. No
-// stops answers 0; a `current` outside the ring is folded back into it.
-int StepCursor(int current, int delta, int stops);
 
 // The border colour of a main-screen panel: gold while it is lit to be
 // noticed, theme blue every other moment.

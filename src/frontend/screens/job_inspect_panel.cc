@@ -11,6 +11,7 @@
 #include "src/character/character.h"
 #include "src/character/job_name.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"

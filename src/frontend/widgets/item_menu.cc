@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/panel_util.h"
 
 namespace ms {

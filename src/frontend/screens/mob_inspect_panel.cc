@@ -13,6 +13,7 @@
 #include "src/character/honor.h"
 #include "src/combat/loot.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"

@@ -3,6 +3,7 @@
 #include <string>
 
 #include "ftxui/component/event.hpp"
+#include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/panel_util.h"
 
 namespace ms {

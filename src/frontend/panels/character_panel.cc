@@ -18,6 +18,7 @@
 #include "src/combat/damage.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/frontend/widgets/stat_rows.h"

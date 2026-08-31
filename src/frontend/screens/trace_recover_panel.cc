@@ -8,6 +8,7 @@
 #include "src/character/character.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/confirm_prompt.h"
+#include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"

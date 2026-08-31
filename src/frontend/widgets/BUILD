@@ -46,6 +46,28 @@ cc_test(
 )
 
 cc_library(
+    name = "keys",
+    srcs = ["keys.cc"],
+    hdrs = ["keys.h"],
+    deps = [
+        "@ftxui//:component",
+    ],
+)
+
+cc_test(
+    name = "keys_test",
+    size = "small",
+    srcs = ["keys_test.cc"],
+    deps = [
+        ":keys",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "panel_util",
     srcs = ["panel_util.cc"],
     hdrs = ["panel_util.h"],
@@ -61,7 +83,6 @@ cc_library(
         "//src/protos:equip_set_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:skill_proto_cc",
-        "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",
     ],
@@ -187,6 +208,7 @@ cc_test(
     deps = [
         ":colors",
         ":panel_util",
+        "//src/frontend/widgets:keys",
         "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",
@@ -200,6 +222,7 @@ cc_library(
     hdrs = ["confirm_prompt.h"],
     deps = [
         ":panel_util",
+        "//src/frontend/widgets:keys",
         "@ftxui//:component",
         "@ftxui//:dom",
     ],
@@ -211,6 +234,7 @@ cc_library(
     hdrs = ["text_field.h"],
     deps = [
         ":panel_util",
+        "//src/frontend/widgets:keys",
         "@ftxui//:component",
     ],
 )
@@ -245,6 +269,7 @@ cc_library(
     hdrs = ["continue_prompt.h"],
     deps = [
         ":panel_util",
+        "//src/frontend/widgets:keys",
         "@ftxui//:component",
         "@ftxui//:dom",
     ],
@@ -270,6 +295,7 @@ cc_library(
     deps = [
         ":confirm_prompt",
         ":panel_util",
+        "//src/frontend/widgets:keys",
         "@ftxui//:component",
         "@ftxui//:dom",
     ],
@@ -294,6 +320,7 @@ cc_library(
     hdrs = ["item_menu.h"],
     deps = [
         ":panel_util",
+        "//src/frontend/widgets:keys",
         "@ftxui//:dom",
     ],
 )

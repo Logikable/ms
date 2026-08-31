@@ -12,6 +12,7 @@
 #include "src/character/progression.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/panel_util.h"
 
 namespace ms {
