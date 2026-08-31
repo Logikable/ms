@@ -10,7 +10,7 @@ base_stats {
 }
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_BADGE
-# A trophy takes neither path in GMS. See the emblem beside it.
+# A trophy takes neither path in GMS. See master_adventurer, the medal.
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
 # Dropped by Magnus, never stocked. Half again what Horntail's pieces fetch:
