@@ -331,6 +331,7 @@ cc_library(
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:confirm_prompt",
         "//src/frontend/widgets:continue_prompt",
+        "//src/frontend/widgets:format",
         "//src/frontend/widgets:item_menu",
         "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",

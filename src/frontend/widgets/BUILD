@@ -23,6 +23,7 @@ cc_test(
     srcs = ["text_columns_test.cc"],
     deps = [
         ":text_columns",
+        "//src/frontend/widgets:format",
         "@googletest//:gtest_main",
     ],
 )
@@ -41,6 +42,23 @@ cc_test(
     deps = [
         ":marquee",
         "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "format",
+    srcs = ["format.cc"],
+    hdrs = ["format.h"],
+    deps = [":text_columns"],
+)
+
+cc_test(
+    name = "format_test",
+    size = "small",
+    srcs = ["format_test.cc"],
+    deps = [
+        ":format",
         "@googletest//:gtest_main",
     ],
 )
@@ -74,9 +92,9 @@ cc_library(
     deps = [
         ":colors",
         ":marquee",
-        ":text_columns",
         "//src/character:hyper_stats",
         "//src/character:inner_ability",
+        "//src/frontend/widgets:format",
         "//src/item",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
@@ -119,6 +137,7 @@ cc_library(
         ":marquee",
         ":panel_util",
         "//src/character",
+        "//src/frontend/widgets:format",
         "//src/item",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
@@ -151,6 +170,7 @@ cc_library(
         ":panel_util",
         "//src/character",
         "//src/character:arcane_force",
+        "//src/frontend/widgets:format",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
     ],
@@ -184,6 +204,7 @@ cc_library(
         "//src/character:progression",
         "//src/combat:constants",
         "//src/combat:damage",
+        "//src/frontend/widgets:format",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",
@@ -208,6 +229,7 @@ cc_test(
     deps = [
         ":colors",
         ":panel_util",
+        "//src/frontend/widgets:format",
         "//src/frontend/widgets:keys",
         "@ftxui//:component",
         "@ftxui//:dom",

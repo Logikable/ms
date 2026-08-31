@@ -6,6 +6,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"

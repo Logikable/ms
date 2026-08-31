@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "src/character/arcane_force.h"
+#include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"

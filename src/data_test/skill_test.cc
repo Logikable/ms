@@ -22,6 +22,7 @@
 #include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/skill_inspect_panel.h"
+#include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/frontend/widgets/text_columns.h"
 #include "src/proto_loader.h"

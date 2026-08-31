@@ -11,6 +11,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/item_menu.h"
 #include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/panel_util.h"

@@ -7,7 +7,7 @@
  * nothing a terminal can render.
  *
  * Everything in the game that lines a row up into columns goes through here:
- * PadRight and PadLeft in panel_util, and the sliding name in marquee.
+ * PadRight and PadLeft in format, and the sliding name in marquee.
  */
 #ifndef MS_SRC_FRONTEND_WIDGETS_TEXT_COLUMNS_H_
 #define MS_SRC_FRONTEND_WIDGETS_TEXT_COLUMNS_H_

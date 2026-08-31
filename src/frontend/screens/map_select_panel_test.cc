@@ -11,6 +11,7 @@
 #include "ftxui/screen/color.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/format.h"
 #include "src/game_state.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"

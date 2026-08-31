@@ -7,6 +7,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/hyper_stats.h"
+#include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/frontend/widgets/text_columns.h"
 #include "src/protos/character.pb.h"

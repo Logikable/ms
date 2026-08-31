@@ -15,6 +15,7 @@
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/inventory_list.h"
 #include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/panel_util.h"
