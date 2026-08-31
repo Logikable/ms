@@ -34,7 +34,7 @@ int64_t HonorForLevels(int from_level, int to_level);
 // What clearing a boss pays, whatever the boss and whichever difficulty was
 // taken: the prize is for the day's clear, and the lockout holds every
 // difficulty back together.
-inline constexpr int64_t kBossClearHonor = 150;
+inline constexpr int64_t kBossClearHonor = 1500;
 
 // The share of kills that pay honor at all, and what one payment is worth.
 inline constexpr double kMobHonorChance = 0.05;
