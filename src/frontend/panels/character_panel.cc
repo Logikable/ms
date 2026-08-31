@@ -252,6 +252,12 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
     case kZoneHyperReset:
       return ActiveTab() == kTabHyper ? zone_ : kZoneTabs;
     case kZoneAbilityRows:
+      if (ActiveTab() != kTabAbility) {
+        return kZoneTabs;
+      }
+      // An allocation with nothing holdable in it has no row to stand on, so
+      // the cursor keeps to the button below them.
+      return LockableAbilityRows().empty() ? kZoneAbilityReroll : zone_;
     case kZoneAbilityReroll:
       return ActiveTab() == kTabAbility ? zone_ : kZoneTabs;
     case kZoneAdvTabs:
@@ -285,9 +291,9 @@ int CharacterPanel::RingStops() const {
     return 3 + kNumHyperStats + 1;
   }
   if (ActiveTab() == kTabAbility) {
-    // The same shape: the two of them, the Farm/Boss row, a stop per line, and
-    // [Reroll].
-    return 3 + AbilityRows() + 1;
+    // The same shape: the two of them, the Farm/Boss row, a stop per line the
+    // cursor can do anything with, and [Reroll].
+    return 3 + static_cast<int>(LockableAbilityRows().size()) + 1;
   }
   if (ActiveTab() == kTabAdvance) {
     return 2 + static_cast<int>(
@@ -323,10 +329,17 @@ int CharacterPanel::CursorStop() const {
       return hyper_sel_ + 3;
     case kZoneHyperReset:
       return kNumHyperStats + 3;
-    case kZoneAbilityRows:
-      return ability_sel_ + 3;
+    case kZoneAbilityRows: {
+      const std::vector<int> rows = LockableAbilityRows();
+      for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+        if (rows[i] >= ability_sel_) {
+          return i + 3;
+        }
+      }
+      return static_cast<int>(rows.size()) + 3;
+    }
     case kZoneAbilityReroll:
-      return AbilityRows() + 3;
+      return static_cast<int>(LockableAbilityRows().size()) + 3;
   }
   return 0;
 }
@@ -367,12 +380,13 @@ void CharacterPanel::SetCursorStop(int stop) {
       zone_ = kZonePresets;
       return;
     }
-    if (stop == AbilityRows() + 3) {
+    const std::vector<int> rows = LockableAbilityRows();
+    if (stop - 3 >= static_cast<int>(rows.size())) {
       zone_ = kZoneAbilityReroll;
       return;
     }
     zone_ = kZoneAbilityRows;
-    ability_sel_ = stop - 3;
+    ability_sel_ = rows[stop - 3];
     return;
   }
   if (ActiveTab() == kTabAdvance) {
@@ -934,6 +948,17 @@ int CharacterPanel::AbilityRows() const {
   return character_.ability(hyper_preset_).lines_size();
 }
 
+std::vector<int> CharacterPanel::LockableAbilityRows() const {
+  const AbilityPreset& preset = character_.ability(hyper_preset_);
+  std::vector<int> rows;
+  for (int i = 0; i < preset.lines_size(); ++i) {
+    if (AbilityLineLockable(preset.lines(i))) {
+      rows.push_back(i);
+    }
+  }
+  return rows;
+}
+
 bool CharacterPanel::CanRerollAbility() const {
   const int64_t cost = character_.ability_reset_cost(hyper_preset_);
   return cost > 0 && character_.honor() >= cost;
@@ -950,18 +975,14 @@ ftxui::Element CharacterPanel::RenderAbilityRow(const AbilityLine& line,
   const int pad =
       std::max(0, (ContentWidth() - static_cast<int>(label.size())) / 2);
 
-  // The lock is the row's own colour whatever the rank, and dim where the
-  // rank is too low to hold a line at all.
+  // The lock keeps its two columns on every row, so the phrases above and
+  // below one that has none still sit where they did. It is never the rank's
+  // colour: the row's own is the line, not what holds it.
   const bool lockable = AbilityLineLockable(line);
-  ftxui::Element lock_cell =
-      ftxui::text(lockable && line.locked() ? kLockedGlyph : kUnlockedGlyph);
-  if (!lockable) {
-    lock_cell = std::move(lock_cell) | ftxui::dim;
-  }
-  if (rows_focused && ability_sel_ == index) {
-    // The cursor inverts what Enter answers, as the [+] on a stat row does --
-    // the dim lock of an unlockable line included, which is still where the
-    // cursor is.
+  ftxui::Element lock_cell = ftxui::text(
+      !lockable ? "  " : (line.locked() ? kLockedGlyph : kUnlockedGlyph));
+  if (lockable && rows_focused && ability_sel_ == index) {
+    // The cursor inverts what Enter answers, as the [+] on a stat row does.
     lock_cell = std::move(lock_cell) | ftxui::inverted;
   }
   return ftxui::hbox({

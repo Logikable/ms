@@ -198,9 +198,9 @@ void TuiController::ToggleAbilityLock(int index, StatPreset preset) {
 
 void TuiController::OpenAbilityReroll(StatPreset preset) {
   ability_preset_ = preset;
-  // Opens on Cancel: the honor is spent whatever comes back, and what comes
-  // back can be worse than what went in.
-  ability_reroll_prompt_.Open(/*cancel_selected=*/true);
+  // Opens on Confirm: a player rerolling is rerolling repeatedly, and every
+  // one of them costs the same honor whatever comes back.
+  ability_reroll_prompt_.Open();
   screen_ = kAbilityReroll;
 }
 

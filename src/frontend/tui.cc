@@ -376,8 +376,11 @@ ftxui::Element Tui::HyperResetDialog() {
 }
 
 ftxui::Element Tui::AbilityRerollDialog() {
+  // AccentSeparator, not ftxui::separator: a dialog's content is drawn white,
+  // so a plain rule inside the body comes out white against the theme-blue one
+  // DialogWindow draws over the buttons.
   std::vector<ftxui::Element> body = {CenteredRow("Reroll these lines?"),
-                                      ftxui::separator()};
+                                      AccentSeparator(kTheme)};
   for (const AbilityLine& line : controller_.ability_reroll_lines()) {
     body.push_back(CenteredRow(ftxui::text(AbilityLineName(line.type()) + " " +
                                            AbilityLineValueText(line)) |

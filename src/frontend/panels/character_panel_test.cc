@@ -2597,25 +2597,25 @@ TEST_F(CharacterPanelTest, EachLineIsWrittenInItsRank) {
   EXPECT_EQ(ColorOf(comp, "STR"), kUnique.ToColor());
   EXPECT_EQ(ColorOf(comp, "Attack"), kEpic.ToColor());
 
-  // The lock at the end of a row is plain, and dim where the rank is too low
-  // to hold a line at all.
+  // The lock at the end of a row is never the rank's colour, and a rank too
+  // low to hold a line draws no lock at all.
   ftxui::Screen screen = RenderToScreen(comp);
-  const auto lock = [&](const std::string& needle) {
-    int y = FindCell(screen, needle).second;
-    return screen.PixelAt(RowEnd(screen, y), y);
-  };
-  EXPECT_NE(lock("Boss Damage").foreground_color, kLegendary.ToColor());
-  EXPECT_FALSE(lock("Boss Damage").dim);
-  EXPECT_TRUE(lock("Attack").dim) << "an Epic line cannot be held";
+  const int lock_x = RowEnd(screen, FindCell(screen, "Boss Damage").second);
+  EXPECT_NE(screen.PixelAt(lock_x, FindCell(screen, "Boss Damage").second)
+                .foreground_color,
+            kLegendary.ToColor());
+  const std::string epic_lock =
+      screen.PixelAt(lock_x, FindCell(screen, "Attack").second).character;
+  EXPECT_TRUE(epic_lock.empty() || epic_lock == " ")
+      << "an Epic line cannot be held, so it carries no lock";
 
   // Holding a line does not repaint it: the lock says that on its own.
   ASSERT_TRUE(c.LockAbilityLine(0, true));
   EXPECT_EQ(ColorOf(comp, "Boss Damage"), kLegendary.ToColor());
 }
 
-// Only a line that can be held answers Enter: on a rank too low, the dim lock
-// asks nothing.
-TEST_F(CharacterPanelTest, OnlyALineThatHoldsCarriesALock) {
+// The ring stops on the lines that can be held and steps over the rest.
+TEST_F(CharacterPanelTest, OnlyALineThatHoldsIsAStopOnTheRing) {
   CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);
   CharacterPanel panel(c, account_, panel_focus_);
   panel_focus_ = kCharPanel;
@@ -2636,10 +2636,42 @@ TEST_F(CharacterPanelTest, OnlyALineThatHoldsCarriesALock) {
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(locked, 1);
 
+  // The Epic line under it is not a stop: the next Down is the button, and Up
+  // off it comes back to the held line rather than into the Epic row.
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_TRUE(IsInverted(comp, "[Reroll]"));
   locked = -1;
-  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the Epic line, which cannot
+  comp->OnEvent(ftxui::Event::ArrowUp);
   comp->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(locked, -1) << "an Epic line has no lock to toggle";
+  EXPECT_EQ(locked, 1);
+}
+
+// An allocation with nothing holdable in it has no row to stand on at all.
+TEST_F(CharacterPanelTest, NothingHoldableLeavesOnlyTheButton) {
+  CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/8000);
+  Character proto = c.proto();
+  for (AbilityPreset* preset :
+       {proto.mutable_inner_ability()->mutable_farming(),
+        proto.mutable_inner_ability()->mutable_bossing()}) {
+    for (AbilityLine& line : *preset->mutable_lines()) {
+      line.set_rank(ABILITY_RANK_RARE);
+    }
+  }
+  CharacterInstance rare(rng_, std::move(proto));
+  CharacterPanel panel(rare, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  int rerolls = 0;
+  CharacterPanelActions actions;
+  actions.ability_reroll = [&] { ++rerolls; };
+  ftxui::Component comp = panel.MakeComponent(actions);
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the Farm/Boss row
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> straight to the button
+  EXPECT_TRUE(IsInverted(comp, "[Reroll]"));
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(rerolls, 1);
 }
 
 // The price reddens and the button greys when the pool is short, and Enter on
@@ -2655,9 +2687,9 @@ TEST_F(CharacterPanelTest, AShortPoolRedensTheCostAndShutsTheButton) {
   for (int i = 0; i < 3; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);
   }
-  for (int i = 0; i < 5; ++i) {
+  for (int i = 0; i < 4; ++i) {
     comp->OnEvent(
-        ftxui::Event::ArrowDown);  // bar -> preset -> 3 lines -> button
+        ftxui::Event::ArrowDown);  // bar -> preset -> 2 held lines -> button
   }
   EXPECT_EQ(ColorOf(comp, "8000"), kRed);
   EXPECT_TRUE(IsDim(comp, "[Reroll]"));
@@ -2670,7 +2702,7 @@ TEST_F(CharacterPanelTest, AShortPoolRedensTheCostAndShutsTheButton) {
   for (int i = 0; i < 3; ++i) {
     paid->OnEvent(ftxui::Event::ArrowRight);
   }
-  for (int i = 0; i < 5; ++i) {
+  for (int i = 0; i < 4; ++i) {
     paid->OnEvent(ftxui::Event::ArrowDown);
   }
   EXPECT_NE(ColorOf(paid, "8000"), kRed);
@@ -2692,9 +2724,9 @@ TEST_F(CharacterPanelTest, TheAbilityRingEndsOnTheRerollButton) {
   for (int i = 0; i < 3; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);
   }
-  // Down past the Farm/Boss row and the three lines lands on the button, and
-  // one more wraps back round to the name at the top.
-  for (int i = 0; i < 5; ++i) {
+  // Down past the Farm/Boss row and the two held lines lands on the button,
+  // and one more wraps back round to the name at the top.
+  for (int i = 0; i < 4; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
   }
   EXPECT_TRUE(IsInverted(comp, "[Reroll]"));

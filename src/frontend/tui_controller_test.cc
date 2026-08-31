@@ -3419,23 +3419,23 @@ TEST_F(TuiControllerTest, TheRerollDialogListsOnlyTheLinesItRerolls) {
   }
 }
 
-// It opens on Cancel, and the honor only moves on a Confirm.
-TEST_F(TuiControllerTest, TheRerollOpensOnCancelAndIsPaidOnce) {
+// It opens on Confirm, so a reroll is Enter-Enter, and Cancel spends nothing.
+TEST_F(TuiControllerTest, TheRerollOpensOnConfirmAndIsPaidOnce) {
   LevelTo(kInnerAbilityUnlockLevel);
   const int64_t cost = state_->character.ability_reset_cost();
-  state_->character.AddHonor(cost);
+  state_->character.AddHonor(2 * cost);
   const int64_t pool = state_->character.honor();
 
   controller_->OpenAbilityReroll(StatPreset::kFarming);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
-  EXPECT_EQ(state_->character.honor(), pool) << "Cancel spends nothing";
+  EXPECT_EQ(state_->character.honor(), pool - cost);
 
   controller_->OpenAbilityReroll(StatPreset::kFarming);
-  controller_->OnEvent(ftxui::Event::ArrowLeft);  // -> Confirm
+  controller_->OnEvent(ftxui::Event::ArrowRight);  // -> Cancel
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
-  EXPECT_EQ(state_->character.honor(), pool - cost);
+  EXPECT_EQ(state_->character.honor(), pool - cost) << "Cancel spends nothing";
 }
 
 // The two allocations are rerolled apart: the question names one of them.
@@ -3446,7 +3446,6 @@ TEST_F(TuiControllerTest, TheRerollLandsOnTheAllocationItNamed) {
       state_->character.ability(StatPreset::kFarming).DebugString();
 
   controller_->OpenAbilityReroll(StatPreset::kBossing);
-  controller_->OnEvent(ftxui::Event::ArrowLeft);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(state_->character.ability(StatPreset::kFarming).DebugString(),
             before)
