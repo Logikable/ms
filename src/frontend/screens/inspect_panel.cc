@@ -464,6 +464,17 @@ std::vector<CardRow> InspectPanel::StatRows() const {
     rows.push_back(TextRow(std::move(row)));
     any_stat = true;
   }
+  // Under the flat stats, since a share of a pool is read against the pile the
+  // rows above build. Nothing but the prototype grants one.
+  for (const DisplayStat& stat : kDisplayPercentStats) {
+    int value = stat.GetFrom(base);
+    if (value == 0) {
+      continue;
+    }
+    rows.push_back(TextRow(ftxui::text(" " + std::string(stat.label) + "  +" +
+                                       std::to_string(value) + "% ")));
+    any_stat = true;
+  }
   if (!any_stat) {
     rows.push_back(TextRow(EmptyState("no stats")));
   }

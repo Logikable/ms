@@ -201,6 +201,12 @@ message EquipStats {
   // summing -- see DerivedStats::item_drop_pct. No equip in the game grants
   // it yet, so the field is live but nothing sets it.
   int32 item_drop_rate = 12;
+  // Percentage added to the HP and MP pools (e.g. 10 = a tenth more). Lands
+  // over the whole pile the same way a passive's does, and sums with what the
+  // character's skills grant -- see DerivedStatsFor. The Dominator Pendant is
+  // the one piece that carries them.
+  int32 max_hp_pct = 13;
+  int32 max_mp_pct = 14;
 }
 
 // What an Arcane Symbol needs beyond an ordinary equip. Only the six symbols

@@ -202,6 +202,20 @@ TEST_F(InspectPanelTest, ShowsScrollInfo) {
   EXPECT_NE(Render(panel).find("4 Left, 3 Restores"), std::string::npos);
 }
 
+TEST_F(InspectPanelTest, ShowsPercentageStatsUnderTheFlatOnes) {
+  sword_.mutable_base_stats()->set_attack(7);
+  sword_.mutable_base_stats()->set_max_hp_pct(10);
+  sword_.mutable_base_stats()->set_boss_damage(30);
+  EquipInstance item(sword_);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Max HP  +10%"), std::string::npos);
+  EXPECT_NE(rendered.find("Boss Damage  +30%"), std::string::npos);
+  EXPECT_LT(rendered.find("+7 "), rendered.find("Max HP  +10%"));
+  EXPECT_EQ(rendered.find("Max MP"), std::string::npos);
+}
+
 TEST_F(InspectPanelTest, ZeroStatRowNotShown) {
   EquipInstance item(sword_);
   InspectPanel panel;

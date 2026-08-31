@@ -409,6 +409,42 @@ TEST_F(DerivedStatsTest, MpSkillsLeaveHpAlone) {
   EXPECT_EQ(DerivedStatsFor(c, skills).max_hp, 100);
 }
 
+TEST_F(DerivedStatsTest, AWornPercentageLiftsBothPools) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  EquipPrototype pendant;
+  pendant.set_name("Dominator Pendant");
+  pendant.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  pendant.mutable_base_stats()->set_max_hp(200);
+  pendant.mutable_base_stats()->set_max_mp(100);
+  pendant.mutable_base_stats()->set_max_hp_pct(10);
+  pendant.mutable_base_stats()->set_max_mp_pct(10);
+  c.PickUp(std::make_unique<EquipInstance>(pendant));
+  c.Equip(0);
+
+  std::map<std::string, Skill> skills;
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  // Over the flat HP the pendant also grants, not just the pool underneath it.
+  EXPECT_EQ(stats.max_hp, 330);
+  EXPECT_EQ(stats.max_mp, 110);
+}
+
+// Both shares land on the one pile rather than compounding: 20% over 100 is
+// 120, not 121.
+TEST_F(DerivedStatsTest, AWornPercentageSumsWithAPassivesRatherThanStacking) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill iron_body = IronBody();
+  std::map<std::string, Skill> skills = {{"iron_body", iron_body}};
+  ASSERT_TRUE(c.LearnSkill(iron_body, 10));
+  EquipPrototype pendant;
+  pendant.set_name("Dominator Pendant");
+  pendant.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  pendant.mutable_base_stats()->set_max_hp_pct(10);
+  c.PickUp(std::make_unique<EquipInstance>(pendant));
+  c.Equip(0);
+
+  EXPECT_EQ(DerivedStatsFor(c, skills).max_hp, 120);
+}
+
 TEST_F(DerivedStatsTest, UnlearnedPassivesContributeNothing) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   std::map<std::string, Skill> skills = {{"iron_body", IronBody()}};

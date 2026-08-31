@@ -80,6 +80,17 @@ inline const DisplayStat kDisplayStats[] = {
     {"DEF", &EquipStats::def},
 };
 
+// The percentage stats an equip can carry, in display order. Held apart from
+// kDisplayStats because a scroll and a star never grant one: these read off
+// the prototype alone, and a row for one carries a % rather than a breakdown.
+inline const DisplayStat kDisplayPercentStats[] = {
+    {"Max HP", &EquipStats::max_hp_pct},
+    {"Max MP", &EquipStats::max_mp_pct},
+    {"Boss Damage", &EquipStats::boss_damage},
+    {"Ignore DEF", &EquipStats::ignore_enemy_defense},
+    {"Item Drop Rate", &EquipStats::item_drop_rate},
+};
+
 // The kDisplayStats entry a StatField names, or nullptr for a field with no
 // equip stat behind it. Lets a caller that knows a stat by its proto field --
 // a job's primary stat, say -- read it off an EquipStats without writing its

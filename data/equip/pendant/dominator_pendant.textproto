@@ -1,7 +1,5 @@
 name: "Dominator Pendant"
 required_level: 140
-# GMS gives it MaxHP and MaxMP +10% on top of this. There is no percentage
-# field on an equip, so the flat half of it is what a player gets.
 base_stats {
   str: 20
   dex: 20
@@ -10,6 +8,10 @@ base_stats {
   attack: 3
   magic_attack: 3
   def: 100
+  # GMS's own +10% to each pool. Sums with what a passive grants rather than
+  # compounding with it -- see EquipStats.max_hp_pct.
+  max_hp_pct: 10
+  max_mp_pct: 10
 }
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_PENDANT

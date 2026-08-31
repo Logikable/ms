@@ -1072,14 +1072,17 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   AddInnerAbility(character, preset, passives);
 
   DerivedStats stats;
+  // A worn percentage sums with what the skills grant rather than compounding
+  // with it, the same deal item_drop_rate takes: both are shares of the one
+  // pile, and the pendant is not worth more for being worn beside Hyper Body.
   stats.max_hp =
       FoldPercent(allocated.hp() + equipped.max_hp() + passives.max_hp +
                       passives.hp_per_level * proto.level(),
-                  passives.max_hp_pct);
+                  passives.max_hp_pct + equipped.max_hp_pct() / 100.0);
   stats.max_mp =
       FoldPercent(allocated.mp() + equipped.max_mp() + passives.max_mp +
                       passives.mp_per_level * proto.level(),
-                  passives.max_mp_pct);
+                  passives.max_mp_pct + equipped.max_mp_pct() / 100.0);
   stats.skill_stats.set_def(passives.def);
   stats.skill_stats.set_str(passives.str);
   stats.skill_stats.set_dex(passives.dex);
