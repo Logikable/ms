@@ -20,6 +20,18 @@ cc_library(
 )
 
 cc_library(
+    name = "ability_plan",
+    srcs = ["ability_plan.cc"],
+    hdrs = ["ability_plan.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character",
+        "//src/character:inner_ability",
+        "//src/protos:character_proto_cc",
+    ],
+)
+
+cc_library(
     name = "gear_plan",
     srcs = ["gear_plan.cc"],
     hdrs = ["gear_plan.h"],
@@ -176,6 +188,7 @@ sim_binary(
     name = "progression_sim",
     srcs = ["progression_sim.cc"],
     deps = [
+        ":ability_plan",
         ":gear_plan",
         ":parallel",
         ":sim_boss",
@@ -190,6 +203,7 @@ sim_binary(
         "//src/character",
         "//src/character:exp_table",
         "//src/character:honor",
+        "//src/character:inner_ability",
         "//src/character:job_advancement",
         "//src/character:progression",
         "//src/combat",

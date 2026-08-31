@@ -15,6 +15,8 @@
  *
  *   - every AP on the job's primary stat, and every SP into whichever
  *     skill measures best on the map they are farming;
+ *   - the honor the pool has collected spent on rerolling both Inner Ability
+ *     setups, once the character is high enough to hold one;
  *   - the whole Etc tab sold at each level;
  *   - the best weapon they can hold and pay for, bought the level it comes
  *     within reach, with the type of it measured rather than assumed;
@@ -47,6 +49,10 @@
  * their 2nd or 3rd job and were never built to reach the cap; --all_branches
  * still climbs them, and --branch takes any one of them on its own.
  *
+ * One branch takes about fifteen seconds, and the whole sweep about the same
+ * again -- it climbs a branch a core. Anything far past that is a bug to
+ * chase rather than a wait to sit through.
+ *
  *   bazelisk run //analysis:progression_sim
  *   bazelisk run //analysis:progression_sim -- --detail
  *   bazelisk run //analysis:progression_sim -- --branch=DARK_KNIGHT
@@ -69,6 +75,7 @@
 #include "absl/flags/parse.h"
 #include "absl/log/log.h"
 #include "absl/strings/ascii.h"
+#include "analysis/ability_plan.h"
 #include "analysis/gear_plan.h"
 #include "analysis/parallel.h"
 #include "analysis/sim_boss.h"
@@ -80,6 +87,7 @@
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/character/honor.h"
+#include "src/character/inner_ability.h"
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
 #include "src/combat/combat.h"
@@ -151,6 +159,11 @@ ABSL_FLAG(double, attention, 1.0,
 ABSL_FLAG(int, runs, 1,
           "Climbs per branch, each on its own seed. Drops are rolled, so one "
           "climb says almost nothing about whether a set completes.");
+ABSL_FLAG(std::string, ability_rank, "unique",
+          "The Inner Ability rank a character rolls up to before they hold "
+          "any line through a reset. A lock buys nothing while what they are "
+          "short of is a rank, and the ladder to Legendary costs more honor "
+          "than a climb to the cap is paid.");
 ABSL_FLAG(std::string, branch, "",
           "One branch to climb, as its Job enum name without the JOB_ prefix "
           "(DARK_KNIGHT). Empty climbs them all, which waits on the slowest "
@@ -167,6 +180,18 @@ namespace {
 constexpr int kMilestones[] = {10,  20,  30,  40,  50,  60,  70,  80, 90,
                                100, 110, 120, 130, 140, 160, 180, 200};
 constexpr int kNumMilestones = sizeof(kMilestones) / sizeof(kMilestones[0]);
+
+// The rank a character rolls the ability up to before holding anything.
+AbilityRank AbilityRankWanted() {
+  const std::string& named = absl::GetFlag(FLAGS_ability_rank);
+  AbilityRank rank = ABILITY_RANK_UNSPECIFIED;
+  if (!AbilityRank_Parse("ABILITY_RANK_" + absl::AsciiStrToUpper(named),
+                         &rank) ||
+      rank == ABILITY_RANK_UNSPECIFIED) {
+    LOG(FATAL) << "Unknown --ability_rank '" << named << "'";
+  }
+  return rank;
+}
 
 // Spends everything the last level handed over.
 void SpendPoints(CharacterInstance& character) {
@@ -575,12 +600,22 @@ struct Climb {
   int milestone_slots[kNumMilestones] = {0};
   int milestone_frozen[kNumMilestones] = {0};
   int milestone_boss_set[kNumMilestones] = {0};
-  // The honor the pool held at each milestone, and the two parts of it that
-  // can be named: what the levels paid and what the daily clears paid.
-  // Whatever is left over is what the monsters dropped.
+  // The honor the pool had been PAID by each milestone -- what it is holding
+  // plus whatever has been rerolled away -- and the two parts of it that can
+  // be named: what the levels paid and what the daily clears paid. Whatever is
+  // left over is what the monsters dropped.
   int64_t milestone_honor[kNumMilestones] = {0};
   int64_t milestone_level_honor[kNumMilestones] = {0};
   int64_t milestone_boss_honor[kNumMilestones] = {0};
+  // What the Inner Ability came to: the honor spent rerolling it, and the
+  // lines each preset was holding when the run ended.
+  int64_t ability_honor_spent = 0;
+  AbilityPreset ability_farming;
+  AbilityPreset ability_bossing;
+  // What each preset rated the line types at, which is what the holding above
+  // was decided on.
+  AbilityWorth farming_worth;
+  AbilityWorth bossing_worth;
   // The level the weapon first held ten stars at, and the level the Frozen Set
   // was first complete at. 0 for a climb that reached the cap without it.
   int ten_star_level = 0;
@@ -765,7 +800,10 @@ void NoteMilestones(const GameState& state, int level, double seconds,
     climb.milestone_slots[i] = weapon.second;
     climb.milestone_frozen[i] = frozen;
     climb.milestone_boss_set[i] = PiecesWorn(state, "boss_accessory");
-    climb.milestone_honor[i] = state.character.honor();
+    // Paid, not held: the pool has one sink and this is the only thing that
+    // spends it, so what went out of it is known exactly.
+    climb.milestone_honor[i] =
+        state.character.honor() + climb.ability_honor_spent;
     climb.milestone_level_honor[i] = HonorForLevels(1, level);
     climb.milestone_boss_honor[i] = kBossClearHonor * ClearsSoFar(climb);
   }
@@ -895,6 +933,11 @@ struct Session {
   std::mt19937 rng;
   // Where each fight stands with them, by boss key.
   std::map<std::string, FightState> fights;
+  // What a line of each type and rank is worth to them, measured the first
+  // time they stand where the Ability opens.
+  AbilityWorth farming_worth;
+  AbilityWorth bossing_worth;
+  bool ability_measured = false;
 };
 
 // What the upgradeable half of what is worn came to: how many pieces take an
@@ -933,6 +976,29 @@ GearReached ReachedOnGear(const GameState& state) {
 // Runs the dailies if one is due, and puts what they dropped on. Returns
 // whether anything happened, since the fight parameters have to be rebuilt
 // when it did.
+// The honor the pool has collected, spent on rerolling both Inner Ability
+// setups. Nothing happens before level 160, where the panel opens.
+//
+// What a line is worth is measured once, the first time the character stands
+// there: it is the ORDER of the types that the holding reads, and a branch's
+// order does not move under it over the forty levels it has left.
+void SpendHonor(Session& run) {
+  if (!run.state.character.inner_ability_unlocked()) {
+    return;
+  }
+  if (!run.ability_measured) {
+    run.farming_worth =
+        MeasureAbilityWorth(run.state, StatPreset::kFarming, CrowdRate);
+    run.bossing_worth =
+        MeasureAbilityWorth(run.state, StatPreset::kBossing, BossRate);
+    run.ability_measured = true;
+    run.climb.farming_worth = run.farming_worth;
+    run.climb.bossing_worth = run.bossing_worth;
+  }
+  run.climb.ability_honor_spent += SpendHonorOnAbility(
+      run.state, AbilityRankWanted(), run.farming_worth, run.bossing_worth);
+}
+
 // What a fight leaves behind: the drops worn, and the purse spent on them.
 void AfterFighting(Session& run) {
   WearBestFromBag(run.state.character);
@@ -1038,6 +1104,7 @@ void ClimbToCap(Session& run) {
   double give_up = absl::GetFlag(FLAGS_give_up_hours) * 3600.0;
   Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
          run.purse, run.shopper, run.scout);
+  SpendHonor(run);
   run.next_look = NextLook(run.seconds, run.state.character.proto().level(),
                            &run.looks_left, run.rng);
 
@@ -1087,6 +1154,7 @@ void ClimbToCap(Session& run) {
       }
       Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
              run.purse, run.shopper, run.scout);
+      SpendHonor(run);
       looked = true;
     }
     if (levelled) {
@@ -1159,6 +1227,7 @@ void FarmAtCap(Session& run) {
       Outfit(run.state, /*budget=*/true);
       run.shopper.Spend(run.state);
       run.purse.Note(run.state.character);
+      SpendHonor(run);
       PickMoneyMap(run.state, run.maps, run.beats, run.step);
       run.climb.money_map = run.state.current_map;
       fought = true;
@@ -1207,6 +1276,8 @@ Climb Play(const Catalogs& catalogs, Job branch,
       state.character.proto().level() >= kTrialLevelCap) {
     FarmAtCap(run);
   }
+  climb.ability_farming = state.character.ability(StatPreset::kFarming);
+  climb.ability_bossing = state.character.ability(StatPreset::kBossing);
   return climb;
 }
 
@@ -1323,8 +1394,9 @@ void PrintMeso(const std::vector<Job>& branches,
 void PrintHonor(const std::vector<Job>& branches,
                 const std::vector<Climb>& climbs) {
   std::printf(
-      "\nHonor held at each level. Nothing spends it before 160, so this is "
-      "the whole of what a\nreroll has to be paid out of.\n\n");
+      "\nHonor paid by each level, whether or not it is still in the pool. "
+      "Nothing earns it faster\nand nothing but a reset spends it, so this is "
+      "the whole of what the Ability is bought with.\n\n");
   std::printf("%-13s", "branch");
   for (int level : kMilestones) {
     std::printf("  %8s", ("Lv" + std::to_string(level)).c_str());
@@ -1375,6 +1447,81 @@ void PrintHonor(const std::vector<Job>& branches,
                   static_cast<long long>(mobs));
     }
     std::printf("\n");
+  }
+}
+
+// How a line reads on a table: what it is, its rank as an initial, and what it
+// pays -- flat for the stats and the attacks, whole percents for the rest.
+std::string AbilityLineText(const AbilityLine& line) {
+  std::string type =
+      absl::AsciiStrToLower(AbilityLineType_Name(line.type())
+                                .substr(std::strlen("ABILITY_LINE_TYPE_")));
+  char text[64];
+  std::snprintf(text, sizeof(text), "%s(%c) %d", type.c_str(),
+                AbilityRank_Name(line.rank())[std::strlen("ABILITY_RANK_")],
+                AbilityLineValue(line.type(), line.rank()));
+  return text;
+}
+
+// The line types this preset rated highest, best first. Read at Unique, where
+// every type but Attack Speed rolls, so the order is one list rather than four.
+std::vector<std::string> RatedTypes(const AbilityWorth& worth, int most) {
+  std::vector<std::pair<double, std::string>> ranked;
+  for (int t = ABILITY_LINE_TYPE_STR; t < AbilityLineType_ARRAYSIZE; ++t) {
+    double rate = worth.rate[t][ABILITY_RANK_UNIQUE];
+    if (rate <= 0.0) {
+      continue;
+    }
+    ranked.push_back(
+        {-rate, absl::AsciiStrToLower(
+                    AbilityLineType_Name(static_cast<AbilityLineType>(t))
+                        .substr(std::strlen("ABILITY_LINE_TYPE_")))});
+  }
+  std::sort(ranked.begin(), ranked.end());
+  std::vector<std::string> names;
+  for (int i = 0; i < static_cast<int>(ranked.size()) && i < most; ++i) {
+    names.push_back(ranked[i].second);
+  }
+  return names;
+}
+
+// One preset: the rank the ability climbed to and the lines it ended up
+// holding, over what it was aiming at.
+void PrintAbilityRow(const char* label, const AbilityPreset& preset,
+                     const AbilityWorth& worth) {
+  std::string rank = absl::AsciiStrToLower(
+      AbilityRank_Name(preset.rank()).substr(std::strlen("ABILITY_RANK_")));
+  std::printf("  %-9s %-10s", label, rank.c_str());
+  for (const AbilityLine& line : preset.lines()) {
+    std::printf("  %-22s", AbilityLineText(line).c_str());
+  }
+  std::printf("\n  %-9s %-10s", "", "rated");
+  for (const std::string& name : RatedTypes(worth, 3)) {
+    std::printf("  %-22s", name.c_str());
+  }
+  std::printf("\n");
+}
+
+// What the honor was spent on. The pool pays for nothing else, so this is the
+// whole of what a climb has to show for every level, boss and monster that
+// ever paid it.
+void PrintAbility(const std::vector<Job>& branches,
+                  const std::vector<Climb>& climbs) {
+  std::printf(
+      "\nThe Inner Ability each climb rolled itself into. What a line is "
+      "worth is measured on the\ncharacter who rolls for it -- the crowd for "
+      "farming, the fight for bossing -- and the pool is\nspent holding the "
+      "best two of them once the ability has climbed to %s.\n",
+      absl::GetFlag(FLAGS_ability_rank).c_str());
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    const Climb& climb = climbs[i];
+    char honor[16];
+    FormatShort(static_cast<double>(climb.ability_honor_spent), honor,
+                sizeof(honor));
+    std::printf("\n%s, %s honor spent\n", BranchName(branches[i]).c_str(),
+                honor);
+    PrintAbilityRow("farming", climb.ability_farming, climb.farming_worth);
+    PrintAbilityRow("bossing", climb.ability_bossing, climb.bossing_worth);
   }
 }
 
@@ -1610,6 +1757,7 @@ void Run() {
     PrintPlaytime(catalogs, branches, typical);
     PrintMeso(branches, typical);
     PrintHonor(branches, typical);
+    PrintAbility(branches, typical);
   }
   if (absl::GetFlag(FLAGS_ledger)) {
     PrintLedger(branches, typical);
