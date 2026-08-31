@@ -120,6 +120,13 @@ class InventoryPanel {
   // What OpenMenu opens, by tab.
   void OpenStackMenu();
   void OpenEquipMenu();
+  // OpenEquipMenu's three passes, in the order it makes them. What the player
+  // has not reached is hidden before what the item refuses, because the first
+  // is what they cannot do to anything and the second is about this item; the
+  // gold lands last, on the entries as they finally stand.
+  void HideLockedFeatures();
+  void HideRefusedUpgrades(const EquipInstance& equip);
+  void HighlightUnusedUpgrades();
   // The Equip tab's menu on a spare Arcane Symbol, which offers a different
   // set from every other item.
   void OpenSymbolMenu(const EquipInstance& symbol);

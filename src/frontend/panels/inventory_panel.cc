@@ -280,11 +280,7 @@ void InventoryPanel::OpenSymbolMenu(const EquipInstance& symbol) {
 }
 
 // The Equip tab's menu, for the item or trace the cursor is on.
-void InventoryPanel::OpenEquipMenu() {
-  menu_.Reset();
-  // What the player has not reached yet is not drawn at all. This comes first:
-  // what is hidden here is what they cannot do to any item, and what is
-  // disabled below is what this item cannot do.
+void InventoryPanel::HideLockedFeatures() {
   if (!Unlocked(Feature::kScrolling, character_, account_)) {
     menu_.Hide(kMenuScroll);
   }
@@ -306,9 +302,52 @@ void InventoryPanel::OpenEquipMenu() {
     menu_.Hide(kMenuSell);
     menu_.Hide(kMenuMultiSell);
   }
-  // An upgrade the item refuses outright is not drawn either. What it refuses
-  // is the prototype's answer, so armour and weapons carry the same entries
-  // however far along a particular drop is.
+}
+
+// What the item refuses is the prototype's answer, so armour and weapons carry
+// the same entries however far along a particular drop is.
+void InventoryPanel::HideRefusedUpgrades(const EquipInstance& equip) {
+  // Nowhere to go is as good a reason to grey Equip as a level too low: a
+  // fifth ring has four slots to choose from, but not if one of them is
+  // already wearing this same ring.
+  if (!character_.CanEquip(equip.prototype()) ||
+      character_.SlotToFill(equip.prototype()) == EQUIP_SLOT_UNSPECIFIED) {
+    menu_.Disable(kMenuAction);
+  }
+  if (!Supports(equip.prototype(), UPGRADE_SCROLL)) {
+    menu_.Hide(kMenuScroll);
+  }
+  // A hammer widens a shelf; it cannot build one. On a piece with no slots to
+  // begin with there is nothing for it to do, so it is not on the menu.
+  if (!TakesUpgradeSlots(equip.prototype())) {
+    menu_.Hide(kMenuHammer);
+  }
+  if (!Supports(equip.prototype(), UPGRADE_STAR_FORCE)) {
+    menu_.Hide(kMenuStarForce);
+  } else if (!equip.CanStarForce()) {
+    // Greyed, not gone: stars come after the slots are spent, and a row that
+    // stands there dim is how the player learns the order.
+    menu_.Disable(kMenuStarForce);
+  }
+}
+
+// Gold on an upgrade the player has been handed but never used, which is where
+// the trail from the level-up card ends.
+void InventoryPanel::HighlightUnusedUpgrades() {
+  if (LeadToAction(Feature::kScrolling, character_, account_)) {
+    menu_.Highlight(kMenuScroll);
+  }
+  if (LeadToAction(Feature::kHammer, character_, account_)) {
+    menu_.Highlight(kMenuHammer);
+  }
+  if (LeadToAction(Feature::kStarForce, character_, account_)) {
+    menu_.Highlight(kMenuStarForce);
+  }
+}
+
+void InventoryPanel::OpenEquipMenu() {
+  menu_.Reset();
+  HideLockedFeatures();
   const EquipInstance* eq = character_.inventory().equip_instance(selected_);
   if (eq == nullptr) {
     // Traces can only be inspected or recovered.
@@ -325,40 +364,8 @@ void InventoryPanel::OpenEquipMenu() {
     return;
   }
   menu_.Hide(kMenuCombine);
-  // Nowhere to go is as good a reason to grey Equip as a level too low: a
-  // fifth ring has four slots to choose from, but not if one of them is
-  // already wearing this same ring.
-  if (!character_.CanEquip(eq->prototype()) ||
-      character_.SlotToFill(eq->prototype()) == EQUIP_SLOT_UNSPECIFIED) {
-    menu_.Disable(kMenuAction);
-  }
-  if (!Supports(eq->prototype(), UPGRADE_SCROLL)) {
-    menu_.Hide(kMenuScroll);
-  }
-  // A hammer widens a shelf; it cannot build one. On a piece with no slots to
-  // begin with there is nothing for it to do, so it is not on the menu.
-  if (!TakesUpgradeSlots(eq->prototype())) {
-    menu_.Hide(kMenuHammer);
-  }
-  if (!Supports(eq->prototype(), UPGRADE_STAR_FORCE)) {
-    menu_.Hide(kMenuStarForce);
-  } else if (!eq->CanStarForce()) {
-    // Greyed, not gone: stars come after the slots are spent, and a row that
-    // stands there dim is how the player learns the order.
-    menu_.Disable(kMenuStarForce);
-  }
-  // Gold on an upgrade the player has been handed but never used, which is
-  // where the trail from the level-up card ends. Last, so it lands on the
-  // entries as they finally stand.
-  if (LeadToAction(Feature::kScrolling, character_, account_)) {
-    menu_.Highlight(kMenuScroll);
-  }
-  if (LeadToAction(Feature::kHammer, character_, account_)) {
-    menu_.Highlight(kMenuHammer);
-  }
-  if (LeadToAction(Feature::kStarForce, character_, account_)) {
-    menu_.Highlight(kMenuStarForce);
-  }
+  HideRefusedUpgrades(*eq);
+  HighlightUnusedUpgrades();
 }
 
 void InventoryPanel::OpenMenu() {
