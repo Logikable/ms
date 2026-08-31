@@ -3471,5 +3471,93 @@ TEST_F(TuiControllerTest, TheResetOpensOnCancel) {
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR), 1);
 }
 
+// --- Inner Ability ---
+
+// Rerolls until the ability is good enough for a line to be held, paying for
+// every attempt. A Rare ability holds nothing at all, so a test about locking
+// has to climb first. The rank never falls, so this only ever goes up.
+void RaiseAbilityToUnique(CharacterInstance& character) {
+  for (int i = 0; i < 20000; ++i) {
+    if (character.ability().rank() >= ABILITY_RANK_UNIQUE) {
+      return;
+    }
+    character.AddHonor(character.ability_reset_cost());
+    ASSERT_TRUE(character.ResetAbility());
+  }
+  FAIL() << "the ability never reached a rank that holds";
+}
+
+// Enter toggles the lock and asks nothing -- there is no screen behind it.
+TEST_F(TuiControllerTest, LockingALineAsksNothing) {
+  LevelTo(kInnerAbilityUnlockLevel);
+  // A fresh ability is three Rare lines, none of which may be held.
+  controller_->ToggleAbilityLock(0, StatPreset::kFarming);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_FALSE(state_->character.ability().lines(0).locked())
+      << "a Rare line never holds";
+
+  // The top line of a Unique ability does, and the toggle takes it both ways.
+  RaiseAbilityToUnique(state_->character);
+  controller_->ToggleAbilityLock(0, StatPreset::kFarming);
+  EXPECT_TRUE(state_->character.ability().lines(0).locked());
+  controller_->ToggleAbilityLock(0, StatPreset::kFarming);
+  EXPECT_FALSE(state_->character.ability().lines(0).locked());
+
+  // An index off the end of the ability is not an ability to change.
+  controller_->ToggleAbilityLock(9, StatPreset::kFarming);
+  EXPECT_EQ(state_->character.ability().lines_size(), kAbilityLines);
+}
+
+// The dialog lists what it would throw away, and nothing that is being held.
+TEST_F(TuiControllerTest, TheRerollDialogListsOnlyTheLinesItRerolls) {
+  LevelTo(kInnerAbilityUnlockLevel);
+  RaiseAbilityToUnique(state_->character);
+  ASSERT_TRUE(state_->character.LockAbilityLine(0, true));
+  const AbilityLineType held = state_->character.ability().lines(0).type();
+
+  controller_->OpenAbilityReroll(StatPreset::kFarming);
+  EXPECT_EQ(controller_->screen(), kAbilityReroll);
+  std::vector<AbilityLine> listed = controller_->ability_reroll_lines();
+  ASSERT_EQ(listed.size(), 2u);
+  for (const AbilityLine& line : listed) {
+    EXPECT_NE(line.type(), held)
+        << "the held line is not what is being asked about";
+  }
+}
+
+// It opens on Cancel, and the honor only moves on a Confirm.
+TEST_F(TuiControllerTest, TheRerollOpensOnCancelAndIsPaidOnce) {
+  LevelTo(kInnerAbilityUnlockLevel);
+  const int64_t cost = state_->character.ability_reset_cost();
+  state_->character.AddHonor(cost);
+  const int64_t pool = state_->character.honor();
+
+  controller_->OpenAbilityReroll(StatPreset::kFarming);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.honor(), pool) << "Cancel spends nothing";
+
+  controller_->OpenAbilityReroll(StatPreset::kFarming);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);  // -> Confirm
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.honor(), pool - cost);
+}
+
+// The two allocations are rerolled apart: the question names one of them.
+TEST_F(TuiControllerTest, TheRerollLandsOnTheAllocationItNamed) {
+  LevelTo(kInnerAbilityUnlockLevel);
+  state_->character.AddHonor(100000);
+  const std::string before =
+      state_->character.ability(StatPreset::kFarming).DebugString();
+
+  controller_->OpenAbilityReroll(StatPreset::kBossing);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(state_->character.ability(StatPreset::kFarming).DebugString(),
+            before)
+      << "the farming ability was not the one asked about";
+}
+
 }  // namespace
 }  // namespace ms

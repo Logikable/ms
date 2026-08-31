@@ -92,6 +92,10 @@ class Tui {
   ftxui::Element QuitDialog();
   // "Reset Farm Hyper Stats?" -- the free way back to nothing spent.
   ftxui::Element HyperResetDialog();
+  // The reroll question, over the lines it would throw away -- each painted
+  // its rank, the way the tab behind it draws them. The lines being held are
+  // not listed: they are not what is being asked about.
+  ftxui::Element AbilityRerollDialog();
   // The box a menu entry raised, standing on the corner menu it opened from.
   ftxui::Element RenderMenuBox();
   // The party screen, with its member menu or its question over it.

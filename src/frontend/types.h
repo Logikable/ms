@@ -31,6 +31,9 @@ enum Screen : int {
   // Enter on a Hyper Stat's name: what it is worth now and what the next
   // level would buy. Nothing to do but read it, as the skill card is.
   kHyperStatInspect,
+  // [Reroll] on the Ability tab: the question, over the lines it would throw
+  // away. Locking a line asks nothing and has no screen of its own.
+  kAbilityReroll,
   // Enter on a job in the Character panel's Advance tab: read it, take it, or
   // walk away. The screen it leads to reads the job's book without taking it.
   kJobMenu,

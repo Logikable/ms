@@ -186,6 +186,34 @@ std::string TuiController::hyper_reset_question() const {
          " Hyper Stats?";
 }
 
+void TuiController::ToggleAbilityLock(int index, StatPreset preset) {
+  const AbilityPreset& ability = state_.character.ability(preset);
+  if (index < 0 || index >= ability.lines_size()) {
+    return;
+  }
+  state_.character.LockAbilityLine(index, !ability.lines(index).locked(),
+                                   preset);
+}
+
+void TuiController::OpenAbilityReroll(StatPreset preset) {
+  ability_preset_ = preset;
+  // Opens on Cancel: the honor is spent whatever comes back, and what comes
+  // back can be worse than what went in.
+  ability_reroll_prompt_.Open(/*cancel_selected=*/true);
+  screen_ = kAbilityReroll;
+}
+
+std::vector<AbilityLine> TuiController::ability_reroll_lines() const {
+  std::vector<AbilityLine> lines;
+  for (const AbilityLine& line :
+       state_.character.ability(ability_preset_).lines()) {
+    if (!line.locked()) {
+      lines.push_back(line);
+    }
+  }
+  return lines;
+}
+
 void TuiController::OpenJobMenu(Job job) {
   job_advance_ = job;
   job_menu_.Reset();
@@ -375,6 +403,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnHyperAllocateEvent(event);
     case kHyperReset:
       return OnHyperResetEvent(event);
+    case kAbilityReroll:
+      return OnAbilityRerollEvent(event);
     case kSymbolCombine:
       return OnSymbolCombineEvent(event);
     case kMultiSell:
@@ -1872,6 +1902,18 @@ bool TuiController::OnHyperResetEvent(ftxui::Event event) {
   }
   if (choice == ConfirmChoice::kConfirmed) {
     state_.character.ResetHyperStats(hyper_preset_);
+  }
+  screen_ = kMain;
+  return true;
+}
+
+bool TuiController::OnAbilityRerollEvent(ftxui::Event event) {
+  ConfirmChoice choice = ability_reroll_prompt_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    state_.character.ResetAbility(ability_preset_);
   }
   screen_ = kMain;
   return true;

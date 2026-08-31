@@ -132,6 +132,13 @@ class TuiController {
   // Farm/Boss row is on, since the panel is what knows that.
   void OpenHyperAllocate(HyperStatField field, StatPreset preset);
   void OpenHyperReset(StatPreset preset);
+
+  // Holds or frees the Inner Ability line at `index` of `preset`, whichever it
+  // is not now. No screen: the row's own lock says what happened.
+  void ToggleAbilityLock(int index, StatPreset preset);
+  // Asks before rerolling `preset`, which is where the honor is spent.
+  void OpenAbilityReroll(StatPreset preset);
+
   // The card Enter on a stat's name opens. Never gated: a stat the character
   // is too low for is the one they most want to read about.
   void OpenHyperStatInspect(HyperStatField field, StatPreset preset);
@@ -150,6 +157,14 @@ class TuiController {
   }
   // What the reset dialog asks, which names the allocation being emptied.
   std::string hyper_reset_question() const;
+
+  const ConfirmPrompt& ability_reroll_prompt() const {
+    return ability_reroll_prompt_;
+  }
+  // The lines the open question would throw away: everything the allocation is
+  // not holding. What the player is being asked about, and the only lines the
+  // dialog lists.
+  std::vector<AbilityLine> ability_reroll_lines() const;
   // Float the job's context menu over the main view: read the job, take it, or
   // walk away. Enter in the Advance tab lands here rather than on the
   // confirmation -- what a job is should be readable before it is chosen.
@@ -421,6 +436,7 @@ class TuiController {
   bool OnSymbolLevelEvent(ftxui::Event event);
   bool OnHyperAllocateEvent(ftxui::Event event);
   bool OnHyperResetEvent(ftxui::Event event);
+  bool OnAbilityRerollEvent(ftxui::Event event);
   bool OnSymbolCombineEvent(ftxui::Event event);
   bool OnMultiSellEvent(ftxui::Event event);
   bool OnMapSelectEvent(ftxui::Event event);
@@ -582,6 +598,10 @@ class TuiController {
   // the panel, so the answer lands on the stat the question named.
   HyperStatField hyper_field_ = HYPER_STAT_FIELD_UNSPECIFIED;
   StatPreset hyper_preset_ = StatPreset::kFarming;
+  ConfirmPrompt ability_reroll_prompt_;
+  // And which allocation the open Inner Ability question is about, kept apart
+  // from the Hyper one above so neither answer can land on the other's.
+  StatPreset ability_preset_ = StatPreset::kFarming;
   SymbolCombinePanel symbol_combine_panel_;
   HammerPanel hammer_panel_;
   // The worn symbol the two symbol dialogs are asking about. Held so the

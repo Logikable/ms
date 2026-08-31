@@ -176,7 +176,11 @@ void Tui::BuildComponents() {
       [this]() { controller_.OpenHyperReset(char_panel_.hyper_preset()); },
       [this](HyperStatField field) {
         controller_.OpenHyperStatInspect(field, char_panel_.hyper_preset());
-      });
+      },
+      [this](int index) {
+        controller_.ToggleAbilityLock(index, char_panel_.hyper_preset());
+      },
+      [this]() { controller_.OpenAbilityReroll(char_panel_.hyper_preset()); });
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
   menu_component_ = menu_panel_.MakeComponent(
@@ -355,6 +359,23 @@ ftxui::Element Tui::HyperResetDialog() {
   // Titleless, like the quit dialog: the question is the whole dialog.
   return DialogWindow("", {CenteredRow(controller_.hyper_reset_question())},
                       controller_.hyper_reset_prompt().Render());
+}
+
+ftxui::Element Tui::AbilityRerollDialog() {
+  std::vector<ftxui::Element> body = {CenteredRow("Reroll these lines?"),
+                                      ftxui::separator()};
+  for (const AbilityLine& line : controller_.ability_reroll_lines()) {
+    const RowColors colors = RarityColors(line.rank());
+    body.push_back(ftxui::hbox({
+                       ftxui::text(" " + AbilityLineName(line.type())),
+                       ftxui::filler(),
+                       ftxui::text(AbilityLineValueText(line) + " "),
+                   }) |
+                   ftxui::bgcolor(colors.background) |
+                   ftxui::color(colors.text));
+  }
+  return DialogWindow("", std::move(body),
+                      controller_.ability_reroll_prompt().Render());
 }
 
 ftxui::Element Tui::QuitDialog() {
@@ -724,6 +745,8 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(controller_.hyper_stat_level_panel().Render());
     case kHyperReset:
       return OverMain(HyperResetDialog());
+    case kAbilityReroll:
+      return OverMain(AbilityRerollDialog());
     case kHyperStatInspect:
       hyper_stat_inspect_panel_.SetStat(controller_.hyper_inspect_field(),
                                         controller_.hyper_inspect_level(),
