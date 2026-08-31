@@ -1,8 +1,8 @@
 """A sim is always built optimized.
 
 A tuning tool is run to be read, and at the default -O0 that means waiting: the
-whole level_sim sweep takes 99 seconds unoptimized and 6 optimized, and
-boss_sim 23 against 1. Rather than ask everyone to remember a flag, each sim
+whole progression_sim sweep takes minutes unoptimized and 26 seconds
+optimized. Rather than ask everyone to remember a flag, each sim
 carries the setting itself -- the transition below builds the binary and
 everything under it at -c opt whatever the command line said, leaving the
 game's own tests on the default.

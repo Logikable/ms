@@ -562,6 +562,11 @@ struct BossLog {
   // one.
   int first_attempt_level = 0;
   int first_clear_level = 0;  // 0 for a boss never beaten
+  // The quickest clear: which difficulty it was, what it took, and what the
+  // character was hitting for at the time. Zero for a boss never beaten.
+  int best_difficulty = 0;
+  double best_seconds = 0.0;
+  int best_power = 0;
 };
 
 // One level of one branch's climb, for --detail.
@@ -812,7 +817,7 @@ void NoteMilestones(const GameState& state, int level, double seconds,
 // Fights one boss once and reports what it took off the clock. A run that
 // misses pays nothing and still costs whatever the player sat through.
 double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
-                 int level, Climb& climb, BossOutcome* result) {
+                 int level, int power, Climb& climb, BossOutcome* result) {
   const BossDifficulty& difficulty =
       state.bosses[fight.first].difficulties(fight.second);
   BossLog& log = climb.bosses[fight.first];
@@ -830,6 +835,11 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
   ++log.clears;
   if (log.first_clear_level == 0) {
     log.first_clear_level = level;
+  }
+  if (log.best_seconds == 0.0 || outcome.seconds < log.best_seconds) {
+    log.best_difficulty = fight.second;
+    log.best_seconds = outcome.seconds;
+    log.best_power = power;
   }
   return outcome.seconds;
 }
@@ -1077,7 +1087,7 @@ bool TakeOnBosses(Session& run, int level, bool levelled) {
     fight.attempted = true;
     fight.power_at_last_try = power;
     BossOutcome outcome;
-    spent += FightOnce(run.state, open, level, run.climb, &outcome);
+    spent += FightOnce(run.state, open, level, power, run.climb, &outcome);
     if (outcome.won) {
       fight.cleared_today = true;
       continue;
@@ -1295,6 +1305,15 @@ std::string Clock(double seconds) {
     std::snprintf(text, sizeof(text), "%dd%02dh", minutes / (24 * 60),
                   (minutes / 60) % 24);
   }
+  return text;
+}
+
+// A fight's own length, which is minutes and seconds rather than the hours a
+// playtime is read in.
+std::string FightClock(double seconds) {
+  int whole = static_cast<int>(seconds + 0.5);
+  char text[32];
+  std::snprintf(text, sizeof(text), "%d:%02d", whole / 60, whole % 60);
   return text;
 }
 
@@ -1612,6 +1631,54 @@ void PrintLedger(const std::vector<Job>& branches,
   }
 }
 
+// One boss's row: what the quickest clear took, against what the fight allows.
+void PrintReadinessRow(const Catalogs& catalogs, const BossLog& log,
+                       const std::string& key) {
+  std::map<std::string, Boss>::const_iterator boss = catalogs.bosses.find(key);
+  if (boss == catalogs.bosses.end()) {
+    return;
+  }
+  const BossDifficulty& difficulty =
+      boss->second.difficulties(log.best_difficulty);
+  int clock = difficulty.time_limit_seconds();
+  char rate[16];
+  FormatShort(BossTotalHp(catalogs.mobs, difficulty) / log.best_seconds, rate,
+              sizeof(rate));
+  std::printf("  %-18s %8s %9s %7.0f%% %10s %9d\n",
+              (difficulty.name() + " " + boss->second.name()).c_str(),
+              FightClock(log.best_seconds).c_str(), FightClock(clock).c_str(),
+              100.0 * log.best_seconds / clock, rate, log.best_power);
+}
+
+// How much of each fight's clock the branch needed once it could take it at
+// all. A boss is beaten inside its limit or not beaten, so the margin is the
+// reading -- a clear at nine tenths of the clock is a fight the next patch
+// takes away.
+//
+// Read off the climb rather than off a character built for the question: what
+// walks up to a boss here has the AP, the book and the gear a player actually
+// had when the fight opened.
+void PrintBossReadiness(const Catalogs& catalogs,
+                        const std::vector<Job>& branches,
+                        const std::vector<Climb>& climbs) {
+  std::printf(
+      "\nWhat the quickest clear of each fight took, against the clock it "
+      "allows. A boss never beaten\nis left out; the table above says which "
+      "those were.\n");
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    std::printf("\n%s\n", BranchName(branches[i]).c_str());
+    std::printf("  %-18s %8s %9s %8s %10s %9s\n", "fight", "best", "clock",
+                "of it", "HP/s", "CP");
+    std::printf("  %s\n", std::string(67, '-').c_str());
+    for (const std::pair<const std::string, BossLog>& entry :
+         climbs[i].bosses) {
+      if (entry.second.best_seconds > 0.0) {
+        PrintReadinessRow(catalogs, entry.second, entry.first);
+      }
+    }
+  }
+}
+
 // The branches to climb: the ones that take a 4th advancement, or under
 // --all_branches every branch from the 2nd job up, or the one --branch names.
 // A 1st job is left out even then -- climbing to 140 without ever advancing
@@ -1772,6 +1839,7 @@ void Run() {
   PrintFrozenDrops(branches, typical);
   PrintTokenOdds(branches.data(), typical, count);
   PrintTargets(branches, runs);
+  PrintBossReadiness(catalogs, branches, typical);
 }
 
 }  // namespace

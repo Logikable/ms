@@ -64,26 +64,18 @@ bool WalkedOut(const BossRun& run, double elapsed, double clock) {
 }  // namespace
 
 BossOutcome FightBoss(GameState& state, const std::string& boss_key,
-                      int difficulty_index, double limit_seconds) {
+                      int difficulty_index) {
   std::map<std::string, Boss>::iterator found = state.bosses.find(boss_key);
   if (found == state.bosses.end() ||
       difficulty_index >= found->second.difficulties_size()) {
     return BossOutcome();
   }
-  BossDifficulty* difficulty =
-      found->second.mutable_difficulties(difficulty_index);
-  double clock = difficulty->time_limit_seconds();
-  if (limit_seconds > 0.0) {
-    difficulty->set_time_limit_seconds(static_cast<int>(limit_seconds));
-    clock = limit_seconds;
-  }
-  // A caller that raised the clock is measuring how long the fight takes, not
-  // whether a player would stay for it, so it is played out to the end.
-  bool may_walk_out = limit_seconds <= 0.0;
+  double clock =
+      found->second.difficulties(difficulty_index).time_limit_seconds();
   BossRun run(boss_key, found->second, difficulty_index);
   while (!run.done()) {
     run.Advance(state, kStepSeconds);
-    if (may_walk_out && WalkedOut(run, clock - run.seconds_left(), clock)) {
+    if (WalkedOut(run, clock - run.seconds_left(), clock)) {
       break;
     }
   }

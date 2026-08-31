@@ -33,17 +33,14 @@ struct BossOutcome {
   double left = 0.0;
 };
 
-// Fights `difficulty_index` of `boss_key` to the end and reports it, paying
-// the character whatever the clear was worth. The same BossRun the screen
-// steps, at the same sixty frames a second.
-//
-// `limit_seconds` stands in for the fight's own clock, so a build that misses
-// it still says by how much rather than only that it did. 0 keeps the clock
-// the data gives it, which is the fight as a player meets it.
+// Fights `difficulty_index` of `boss_key` and reports it, paying the character
+// whatever the clear was worth. The same BossRun the screen steps, on the
+// fight's own clock -- and left, like a player leaves it, once the fight is
+// plainly lost.
 //
 // Reads the boss out of `state`, so the caller must have filled state.bosses.
 BossOutcome FightBoss(GameState& state, const std::string& boss_key,
-                      int difficulty_index, double limit_seconds = 0.0);
+                      int difficulty_index);
 
 // Everything `difficulty` is holding, over all its phases.
 int64_t BossTotalHp(const std::map<std::string, Mob>& mobs,

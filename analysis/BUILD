@@ -91,38 +91,6 @@ sim_binary(
 )
 
 sim_binary(
-    name = "boss_sim",
-    srcs = ["boss_sim.cc"],
-    deps = [
-        ":parallel",
-        ":sim_boss",
-        ":sim_gear",
-        ":sim_jobs",
-        ":sim_world",
-        ":skill_plan",
-        "//src:embedded_data",
-        "//src:game_state",
-        "//src:proto_loader",
-        "//src:spawn",
-        "//src/character",
-        "//src/character:character_stats",
-        "//src/combat:encounter",
-        "//src/protos:boss_proto_cc",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:item_proto_cc",
-        "//src/protos:map_proto_cc",
-        "//src/protos:mob_proto_cc",
-        "//src/protos:scroll_proto_cc",
-        "//src/protos:skill_proto_cc",
-        "@abseil-cpp//absl/flags:flag",
-        "@abseil-cpp//absl/flags:parse",
-        "@abseil-cpp//absl/log",
-        "@abseil-cpp//absl/strings",
-    ],
-)
-
-sim_binary(
     name = "weapon_sim",
     srcs = ["weapon_sim.cc"],
     deps = [
