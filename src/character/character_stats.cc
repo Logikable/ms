@@ -77,54 +77,43 @@ struct RawRegen {
   double int_step = 0.0;
 };
 
-// What one learned passive is worth at `level`, in the shape they are summed
-// in. Every lever is base + per_level * (L - 1).
-struct PassiveTotals {
-  int max_hp = 0;
-  int max_mp = 0;
+// What the learned passives come to, as they are summed. Every lever is
+// base + per_level * (L - 1).
+//
+// It IS a DerivedStats, and the fields it shares with one are the same field:
+// the fold at the end of DerivedStatsFor keeps only what it has to transform,
+// and everything else arrives already in place. What is added here is the
+// pre-fold working: the flat grants that meet the allocation and the worn
+// stats before they are a total, and the counts that are worth nothing until
+// every passive has been read.
+//
+// The five inherited fields the fold writes from scratch -- max_hp, max_mp,
+// def, base_def and regen_pulses -- stay at nothing while the passives are
+// read. What a passive grants toward each is the *_grant or regen field here.
+struct PassiveTotals : DerivedStats {
+  // The flat HP, MP and DEF the passives grant, held apart from the totals
+  // above them because each has an allocation and a worn share still to meet.
+  int hp_grant = 0;
+  int mp_grant = 0;
+  int def_grant = 0;
   int hp_per_level = 0;
   double max_hp_pct = 0.0;
   int mp_per_level = 0;
   double max_mp_pct = 0.0;
-  int def = 0;
   // Held as the factor the DEF pile is multiplied by rather than as a sum of
   // percentages, because two sources multiply: Phoenix's +30% and Reckless
   // Hunt's -25% leave 97.5% of the armour, not 105% of it.
   double def_factor = 1.0;
+  // The stats the passives grant, which become skill_stats once they are read.
   int str = 0;
   int dex = 0;
   int int_ = 0;
   int luk = 0;
   int attack = 0;
-  double attack_pct = 0.0;
   int magic_attack = 0;
-  double damage_taken_pct = 0.0;
-  double dodge_chance = 0.0;
-  // The barrier, and whether it stands against a boss too.
-  double enemy_attack_pct = 0.0;
-  bool enemy_attack_reaches_boss = false;
-  double damage_reflect_pct = 0.0;
-  double crit_rate = 0.0;
-  double crit_dmg = 0.0;
-  double mastery = 0.0;
-  double hp_recover_pct = 0.0;
-  double exp_pct = 0.0;
-  // One entry per skill granting a fountain, in catalog order.
+  // One entry per skill granting a fountain, in catalog order. Becomes
+  // regen_pulses once the character's total INT is known.
   std::vector<RawRegen> regen;
-  double status_resistance = 0.0;
-  double elemental_resistance = 0.0;
-  // One per skill granting one, in catalog order. Two that follow the same
-  // swings stay apart: they are independent rolls.
-  std::vector<FinalAttackSource> final_attacks;
-  // The burns a passive leaves on every swing, likewise.
-  std::vector<CharacterDot> dots;
-  // The chances a passive gives every swing to land harder on one enemy.
-  std::vector<SwingProc> procs;
-  // What a Freeze Stack is worth, and how many the character holds.
-  FreezeStacks freeze;
-  // What their swings scar, and what a scar is worth.
-  Scar scar;
-  EnemyCondition condition;
   // Stacks a buff adds to that cap while it stands. Held apart until
   // FoldFreezeStacks, which only deepens a pile the character already has.
   int freeze_cap_bonus = 0;
@@ -142,30 +131,13 @@ struct PassiveTotals {
   double meso_damage_pct = 0.0;
   double meso_ied = 0.0;
   std::string meso_skill;
-  double meso_pct = 0.0;
-  double item_drop_pct = 0.0;
-  double buff_duration_pct = 0.0;
-  // The shortest wait between revivals any passive grants, and 0 for the
-  // characters no passive revives. What the book takes off it is summed apart
-  // and subtracted once the shortest is known.
-  double revive_cooldown_seconds = 0.0;
+  // What the book takes off the shortest revival wait. Summed apart and
+  // subtracted once that shortest is known.
   double revive_cooldown_cut = 0.0;
   // Share of what AP bought that comes back as flat stat. Summed, and cashed
   // in against the allocation once every passive is read -- see
   // DerivedStatsFor.
   double ap_stat_pct = 0.0;
-  // What the book hands one named skill apiece. Summed per name, so two
-  // passives strengthening the same swing both count.
-  std::map<std::string, SkillBonus> skill_bonus;
-  double damage_pct = 0.0;
-  double boss_pct = 0.0;
-  // Only Hyper Stats grant this one, so no skill lever feeds it.
-  double normal_pct = 0.0;
-  double mirror_line_pct = 0.0;
-  int bonus_attack_lines = 0;
-  double final_dmg_pct = 0.0;
-  double ied = 0.0;
-  int attack_speed = 0;
   // Combo Orbs, and the bargains priced per orb. The count is the best any
   // learned passive grants rather than the sum -- a character carries one ring
   // of orbs however many skills describe it -- and the bargains are folded
@@ -183,15 +155,15 @@ struct PassiveTotals {
 // same levers, gated on the weapon rather than on the skill.
 void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
                PassiveTotals& totals) {
-  totals.max_hp += base.max_hp() + per.max_hp() * (level - 1);
-  totals.max_mp += base.max_mp() + per.max_mp() * (level - 1);
+  totals.hp_grant += base.max_hp() + per.max_hp() * (level - 1);
+  totals.mp_grant += base.max_mp() + per.max_mp() * (level - 1);
   totals.hp_per_level +=
       base.max_hp_per_level() + per.max_hp_per_level() * (level - 1);
   totals.max_hp_pct += base.max_hp_pct() + per.max_hp_pct() * (level - 1);
   totals.mp_per_level +=
       base.max_mp_per_level() + per.max_mp_per_level() * (level - 1);
   totals.max_mp_pct += base.max_mp_pct() + per.max_mp_pct() * (level - 1);
-  totals.def += base.def() + per.def() * (level - 1);
+  totals.def_grant += base.def() + per.def() * (level - 1);
   totals.def_factor *= 1.0 + base.def_pct() + per.def_pct() * (level - 1);
   totals.str += base.str() + per.str() * (level - 1);
   totals.dex += base.dex() + per.dex() * (level - 1);
@@ -284,7 +256,8 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   // is read -- see DerivedStatsFor.
   totals.revive_cooldown_cut += base.revive_cooldown_cut_seconds() +
                                 per.revive_cooldown_cut_seconds() * (level - 1);
-  totals.attack_speed += base.attack_speed() + per.attack_speed() * (level - 1);
+  totals.attack_speed_bonus +=
+      base.attack_speed() + per.attack_speed() * (level - 1);
   totals.ied = CombineIgnoredDefense(
       totals.ied, base.ied_pct() + per.ied_pct() * (level - 1));
   // The one lever taken at its best rather than summed: two masteries are not
@@ -568,7 +541,7 @@ void FoldFreezeStacks(PassiveTotals& totals) {
 void FoldComboOrbs(PassiveTotals& totals) {
   totals.attack += totals.attack_per_combo_orb * totals.combo_orbs;
   totals.boss_pct += totals.boss_pct_per_combo_orb * totals.combo_orbs;
-  totals.def += totals.def_per_combo_orb * totals.combo_orbs;
+  totals.def_grant += totals.def_per_combo_orb * totals.combo_orbs;
   double orbs = totals.final_dmg_pct_per_combo_orb * totals.combo_orbs;
   totals.final_dmg_pct = (1.0 + totals.final_dmg_pct) * (1.0 + orbs) - 1.0;
 }
@@ -805,7 +778,7 @@ void AddInnerAbility(const CharacterInstance& character, StatPreset preset,
         totals.luk += value;
         break;
       case ABILITY_LINE_TYPE_MAX_HP:
-        totals.max_hp += value;
+        totals.hp_grant += value;
         break;
       case ABILITY_LINE_TYPE_MAX_HP_PCT:
         totals.max_hp_pct += share;
@@ -835,7 +808,7 @@ void AddInnerAbility(const CharacterInstance& character, StatPreset preset,
         totals.meso_pct += share;
         break;
       case ABILITY_LINE_TYPE_ATTACK_SPEED:
-        totals.attack_speed += value;
+        totals.attack_speed_bonus += value;
         break;
       case ABILITY_LINE_TYPE_UNSPECIFIED:
         break;
@@ -1071,19 +1044,21 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   AddHyperStats(character, preset, passives);
   AddInnerAbility(character, preset, passives);
 
-  DerivedStats stats;
+  // Sliced off the totals: every lever the two share is already in place, and
+  // what is left below is only what the fold has to change.
+  DerivedStats stats = passives;
   // A worn percentage sums with what the skills grant rather than compounding
   // with it, the same deal item_drop_rate takes: both are shares of the one
   // pile, and the pendant is not worth more for being worn beside Hyper Body.
   stats.max_hp =
-      FoldPercent(allocated.hp() + equipped.max_hp() + passives.max_hp +
+      FoldPercent(allocated.hp() + equipped.max_hp() + passives.hp_grant +
                       passives.hp_per_level * proto.level(),
                   passives.max_hp_pct + equipped.max_hp_pct() / 100.0);
   stats.max_mp =
-      FoldPercent(allocated.mp() + equipped.max_mp() + passives.max_mp +
+      FoldPercent(allocated.mp() + equipped.max_mp() + passives.mp_grant +
                       passives.mp_per_level * proto.level(),
                   passives.max_mp_pct + equipped.max_mp_pct() / 100.0);
-  stats.skill_stats.set_def(passives.def);
+  stats.skill_stats.set_def(passives.def_grant);
   stats.skill_stats.set_str(passives.str);
   stats.skill_stats.set_dex(passives.dex);
   stats.skill_stats.set_int_(passives.int_);
@@ -1103,26 +1078,17 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   // It can also be a loss -- Reckless Hunt buys attack by giving DEF up -- and
   // a character deep enough in the red ends with less DEF than their stats
   // alone bought them.
-  stats.def = FoldPercent(stats.base_def + equipped.def() + passives.def,
+  stats.def = FoldPercent(stats.base_def + equipped.def() + passives.def_grant,
                           passives.def_factor - 1.0);
-  stats.damage_taken_pct = passives.damage_taken_pct;
-  stats.dodge_chance = passives.dodge_chance;
   // Floored at nothing rather than clamped to a share: a monster stripped of
   // the whole of its attack still lands the 1 damage GMS insists on.
-  stats.enemy_attack_pct = std::min(1.0, passives.enemy_attack_pct);
-  stats.enemy_attack_reaches_boss = passives.enemy_attack_reaches_boss;
-  stats.damage_reflect_pct = passives.damage_reflect_pct;
-  stats.crit_rate = passives.crit_rate;
-  stats.crit_dmg = passives.crit_dmg;
-  stats.hp_recover_pct = passives.hp_recover_pct;
+  stats.enemy_attack_pct = std::min(1.0, stats.enemy_attack_pct);
   // A pact that came back at once would read as no pact at all -- 0 is what
   // says a character is never revived -- so the cut stops a second short.
-  stats.revive_cooldown_seconds =
-      passives.revive_cooldown_seconds > 0.0
-          ? std::max(1.0, passives.revive_cooldown_seconds -
-                              passives.revive_cooldown_cut)
-          : 0.0;
-  stats.exp_pct = passives.exp_pct;
+  if (stats.revive_cooldown_seconds > 0.0) {
+    stats.revive_cooldown_seconds = std::max(
+        1.0, stats.revive_cooldown_seconds - passives.revive_cooldown_cut);
+  }
   // A fountain pours one more helping per whole step of INT, so Holy Water
   // puts back twice its stated share at 2500 and three times it at 5000. The
   // helping grows; the clock does not. Charged against the character's WHOLE
@@ -1138,28 +1104,9 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
     }
     stats.regen_pulses.push_back(pulse);
   }
-  stats.status_resistance = passives.status_resistance;
-  stats.elemental_resistance = passives.elemental_resistance;
-  stats.damage_pct = passives.damage_pct;
-  stats.boss_pct = passives.boss_pct;
-  stats.normal_pct = passives.normal_pct;
-  stats.meso_pct = passives.meso_pct;
   // The worn share is whole percents and the granted share a fraction. They
   // meet by summing, the way boss damage does in OffenseStatsFor.
-  stats.item_drop_pct =
-      passives.item_drop_pct + equipped.item_drop_rate() / 100.0;
-  stats.buff_duration_pct = passives.buff_duration_pct;
-  stats.mirror_line_pct = passives.mirror_line_pct;
-  stats.bonus_attack_lines = passives.bonus_attack_lines;
-  stats.final_dmg_pct = passives.final_dmg_pct;
-  stats.ied = passives.ied;
-  stats.mastery = passives.mastery;
-  stats.final_attacks = passives.final_attacks;
-  stats.dots = passives.dots;
-  stats.procs = passives.procs;
-  stats.freeze = passives.freeze;
-  stats.scar = passives.scar;
-  stats.condition = passives.condition;
+  stats.item_drop_pct += equipped.item_drop_rate() / 100.0;
   // Pick Pocket and Meso Explosion, worth nothing apart: a meso falls out of
   // an enemy and is thrown straight back at them. It rides the swing exactly
   // as a Final Attack does, except that the roll is per line -- so it is one
@@ -1174,9 +1121,6 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
     meso.per_line = true;
     stats.final_attacks.push_back(meso);
   }
-  stats.attack_speed_bonus = passives.attack_speed;
-  stats.attack_pct = passives.attack_pct;
-  stats.skill_bonus = passives.skill_bonus;
   return stats;
 }
 
