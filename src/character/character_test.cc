@@ -11,6 +11,7 @@
 #include "src/character/arcane_force.h"
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
+#include "src/character/inner_ability.h"
 #include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
@@ -124,6 +125,102 @@ TEST_F(HyperStatTest, RaisingSeveralLevelsIsAllOrNothing) {
   EXPECT_TRUE(
       c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, HyperPreset::kFarming, 5));
   EXPECT_EQ(c.hyper_stat_points_left(), 9);
+}
+
+// Fixture for the Inner Ability tests, whose character needs a level and a
+// purse of honor.
+class InnerAbilityTest : public CharacterTest {};
+
+TEST_F(InnerAbilityTest, BothPresetsStartOnTheDefaultLines) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
+  for (HyperPreset preset : {HyperPreset::kFarming, HyperPreset::kBossing}) {
+    const AbilityPreset& lines = c.ability(preset);
+    EXPECT_EQ(lines.rank(), ABILITY_RANK_RARE);
+    ASSERT_EQ(lines.lines_size(), kAbilityLines);
+    for (const AbilityLine& line : lines.lines()) {
+      EXPECT_EQ(line.type(), ABILITY_LINE_TYPE_ALL_STATS);
+    }
+  }
+  EXPECT_EQ(c.honor(), 0);
+  EXPECT_EQ(c.ability_reset_cost(), 100);
+}
+
+TEST_F(InnerAbilityTest, ResetNeedsTheLevelAndTheHonor) {
+  CharacterInstance below = MakeCharacter(rng_, /*level=*/159);
+  below.AddHonor(1000);
+  EXPECT_FALSE(below.inner_ability_unlocked());
+  EXPECT_FALSE(below.ResetAbility());
+  EXPECT_EQ(below.honor(), 1000);
+
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
+  EXPECT_TRUE(c.inner_ability_unlocked());
+  EXPECT_FALSE(c.ResetAbility()) << "an empty purse buys nothing";
+  c.AddHonor(250);
+  const int64_t cost = c.ability_reset_cost();
+  EXPECT_TRUE(c.ResetAbility());
+  EXPECT_EQ(c.honor(), 250 - cost);
+  // Whatever the rank climbed to, resets stop the moment the purse cannot
+  // cover the next one.
+  while (c.honor() >= c.ability_reset_cost()) {
+    EXPECT_TRUE(c.ResetAbility());
+  }
+  EXPECT_FALSE(c.ResetAbility());
+}
+
+// The two presets are rolled apart but paid for out of the one pool.
+TEST_F(InnerAbilityTest, PresetsAreSeparateAndTheHonorIsNot) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
+  c.AddHonor(1000);
+  EXPECT_TRUE(c.ResetAbility(HyperPreset::kBossing));
+  EXPECT_EQ(c.honor(), 900);
+  EXPECT_EQ(c.ability(HyperPreset::kFarming).lines(0).type(),
+            ABILITY_LINE_TYPE_ALL_STATS)
+      << "rolling one preset leaves the other alone";
+  EXPECT_TRUE(c.ResetAbility(HyperPreset::kFarming));
+  EXPECT_EQ(c.honor(), 800);
+}
+
+// Holding lines is priced per reset, and only a Unique or Legendary line can
+// be held at all.
+TEST_F(InnerAbilityTest, LockingRaisesTheResetPrice) {
+  Character proto;
+  proto.set_level(160);
+  AbilityPreset& lines = *proto.mutable_inner_ability()->mutable_farming();
+  lines.set_rank(ABILITY_RANK_LEGENDARY);
+  for (AbilityLineType type :
+       {ABILITY_LINE_TYPE_BOSS_DAMAGE, ABILITY_LINE_TYPE_ATTACK,
+        ABILITY_LINE_TYPE_MESO}) {
+    AbilityLine& line = *lines.add_lines();
+    line.set_type(type);
+    line.set_rank(type == ABILITY_LINE_TYPE_BOSS_DAMAGE
+                      ? ABILITY_RANK_LEGENDARY
+                      : (type == ABILITY_LINE_TYPE_ATTACK ? ABILITY_RANK_UNIQUE
+                                                          : ABILITY_RANK_EPIC));
+  }
+  CharacterInstance c(rng_, std::move(proto));
+
+  EXPECT_EQ(c.ability_reset_cost(), 8000);
+  EXPECT_TRUE(c.LockAbilityLine(0, true));
+  EXPECT_EQ(c.ability_reset_cost(), 11000);
+  EXPECT_TRUE(c.LockAbilityLine(1, true));
+  EXPECT_EQ(c.ability_reset_cost(), 16000);
+  EXPECT_FALSE(c.LockAbilityLine(2, true)) << "an Epic line never holds";
+
+  c.AddHonor(16000);
+  EXPECT_TRUE(c.ResetAbility());
+  EXPECT_EQ(c.honor(), 0);
+  EXPECT_EQ(c.ability().lines(0).type(), ABILITY_LINE_TYPE_BOSS_DAMAGE);
+  EXPECT_EQ(c.ability().lines(1).type(), ABILITY_LINE_TYPE_ATTACK);
+}
+
+// A save written before Inner Ability existed comes back holding the lines
+// every character is handed.
+TEST_F(InnerAbilityTest, AnOldSaveIsSeededOnLoad) {
+  Character proto;
+  proto.set_level(200);
+  CharacterInstance c(rng_, std::move(proto));
+  EXPECT_EQ(c.ability().lines_size(), kAbilityLines);
+  EXPECT_EQ(c.ability(HyperPreset::kBossing).lines_size(), kAbilityLines);
 }
 
 TEST_F(HyperStatTest, StatsStopAtTheCapAndArcaneForceAtLevel200) {

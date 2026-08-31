@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "src/character/hyper_stats.h"
+#include "src/character/inner_ability.h"
 #include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
@@ -231,6 +232,9 @@ class CharacterInstance {
                         int count);
   // Adds `amount` meso to the character's balance. No-op if amount <= 0.
   void AddMeso(int64_t amount);
+  // Adds `amount` honor, the pool an Inner Ability reset is paid out of. No-op
+  // if amount <= 0. Nothing in the game calls this yet.
+  void AddHonor(int64_t amount);
   // Sells up to `count` copies from the `index`-th stack in `category`,
   // crediting count * sell_price meso and removing the sold copies; erases the
   // stack entirely once it empties. No-op returning 0 if the index is out of
@@ -385,6 +389,31 @@ class CharacterInstance {
   // The highest level any of their stats may reach.
   int max_hyper_stat_level() const;
 
+  // Honor left to spend on an Inner Ability reset.
+  int64_t honor() const {
+    return character_.honor();
+  }
+  // Whether the character is high enough for their Inner Ability to pay --
+  // and, since the two go together, for the panel to open at all.
+  bool inner_ability_unlocked() const {
+    return character_.level() >= kInnerAbilityUnlockLevel;
+  }
+  // The three lines `preset` is holding, and the rank of the whole.
+  const AbilityPreset& ability(
+      HyperPreset preset = HyperPreset::kFarming) const {
+    return PresetOf(character_.inner_ability(), preset);
+  }
+  // What one reset of `preset` would cost at the lines it is holding now.
+  int64_t ability_reset_cost(HyperPreset preset = HyperPreset::kFarming) const;
+  // Holds or frees the line at `index`, by the rules SetAbilityLineLocked
+  // states. Returns whether anything changed.
+  bool LockAbilityLine(int index, bool locked,
+                       HyperPreset preset = HyperPreset::kFarming);
+  // Pays the reset out of the honor pool and rerolls `preset`. All or nothing:
+  // takes no honor and rolls nothing if the pool is short or the panel is not
+  // open to this character yet.
+  bool ResetAbility(HyperPreset preset = HyperPreset::kFarming);
+
   // The points `skill` is bought with: the Hyper pool for a Hyper Skill, and
   // its job stage's for every other. Asked here so the panel offering the
   // skill, the screen counting out the points and LearnSkill itself cannot
@@ -538,6 +567,10 @@ class CharacterInstance {
   // Gives a nameless character kDefaultUsername. Both doors a Character comes
   // in through call it, which is what makes username() never empty.
   void EnsureUsername();
+  // Seeds both Inner Ability presets with the three lines every character is
+  // handed. Runs at construction, so a save written before Inner Ability
+  // existed comes back holding them.
+  void EnsureInnerAbility();
   // Spends one star force attempt's price, or returns false and spends
   // nothing. Both StarForce entry points call it before they roll.
   bool PayForStarForce(const EquipInstance& item);

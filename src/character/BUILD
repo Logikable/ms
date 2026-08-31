@@ -10,6 +10,7 @@ cc_library(
         ":arcane_force",
         ":exp_table",
         ":hyper_stats",
+        ":inner_ability",
         ":job_branch",
         "//src/item",
         "//src/item:equip_instance",
@@ -197,6 +198,7 @@ cc_test(
     deps = [
         ":character",
         ":exp_table",
+        ":inner_ability",
         "//src/item",
         "//src/item:equip_instance",
         "//src/item:star_force_cost",

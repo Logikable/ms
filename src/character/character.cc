@@ -811,11 +811,21 @@ LevelGains GainsForLevels(int from_level, int to_level) {
 CharacterInstance::CharacterInstance(std::mt19937& rng, Character character)
     : rng_(rng), character_(std::move(character)) {
   EnsureUsername();
+  EnsureInnerAbility();
 }
 
 void CharacterInstance::EnsureUsername() {
   if (character_.name().empty()) {
     character_.set_name(kDefaultUsername);
+  }
+}
+
+void CharacterInstance::EnsureInnerAbility() {
+  InnerAbility& ability = *character_.mutable_inner_ability();
+  for (HyperPreset preset : {HyperPreset::kFarming, HyperPreset::kBossing}) {
+    if (PresetOf(ability, preset).lines_size() == 0) {
+      PresetOf(ability, preset) = DefaultAbilityPreset();
+    }
   }
 }
 
@@ -1122,6 +1132,27 @@ double CharacterInstance::hyper_stat_bonus(HyperStatField field,
 
 int CharacterInstance::max_hyper_stat_level() const {
   return MaxHyperStatLevel(character_.job_stage());
+}
+
+int64_t CharacterInstance::ability_reset_cost(HyperPreset preset) const {
+  const AbilityPreset& lines = ability(preset);
+  return AbilityResetCost(lines.rank(), LockedAbilityLines(lines));
+}
+
+bool CharacterInstance::LockAbilityLine(int index, bool locked,
+                                        HyperPreset preset) {
+  return SetAbilityLineLocked(
+      PresetOf(*character_.mutable_inner_ability(), preset), index, locked);
+}
+
+bool CharacterInstance::ResetAbility(HyperPreset preset) {
+  const int64_t cost = ability_reset_cost(preset);
+  if (!inner_ability_unlocked() || cost <= 0 || character_.honor() < cost) {
+    return false;
+  }
+  character_.set_honor(character_.honor() - cost);
+  RerollAbility(PresetOf(*character_.mutable_inner_ability(), preset), rng_);
+  return true;
 }
 
 bool CharacterInstance::AllocateHyperStat(HyperStatField field,
@@ -1629,6 +1660,13 @@ void CharacterInstance::AddMeso(int64_t amount) {
     return;
   }
   character_.set_meso(character_.meso() + amount);
+}
+
+void CharacterInstance::AddHonor(int64_t amount) {
+  if (amount <= 0) {
+    return;
+  }
+  character_.set_honor(character_.honor() + amount);
 }
 
 int64_t CharacterInstance::SellStackable(ItemCategory category, int index,
