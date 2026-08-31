@@ -49,6 +49,21 @@ cc_test(
 )
 
 cc_library(
+    name = "honor",
+    srcs = ["honor.cc"],
+    hdrs = ["honor.h"],
+)
+
+cc_test(
+    name = "honor_test",
+    srcs = ["honor_test.cc"],
+    deps = [
+        ":honor",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "stat_preset",
     hdrs = ["stat_preset.h"],
 )
