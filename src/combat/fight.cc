@@ -289,8 +289,7 @@ int CombatSim::BestAttack(const CombatParams& params) const {
     }
     // Still recharging, so it is not among the swings on offer this time --
     // which is the whole point of a cooldown on something this good.
-    if (i < static_cast<int>(cooldown_left_.size()) &&
-        cooldown_left_[i] > 0.0) {
+    if (Recharging(i)) {
       continue;
     }
     // Per second, not per swing: a skill that hits half again as hard but takes
@@ -311,6 +310,14 @@ int CombatSim::BestAttack(const CombatParams& params) const {
   return best;
 }
 
+// Whether the attack at `index` is still winding back up. Guarded on size
+// because the clocks are grown to fit the params, and a swing asked about
+// before the first Advance has none yet.
+bool CombatSim::Recharging(int index) const {
+  return index < static_cast<int>(attack_clocks_.size()) &&
+         attack_clocks_[index].cooldown_left > 0.0;
+}
+
 int CombatSim::HealToCast(const CombatParams& params) const {
   // Only mid-fight. With the map cleared the beat hands HP back for free, so
   // spending a swing on it would buy nothing.
@@ -326,8 +333,7 @@ int CombatSim::HealToCast(const CombatParams& params) const {
     if (attack.heal_fraction <= 0.0 || attack.swing_seconds <= 0.0) {
       continue;
     }
-    if (i < static_cast<int>(cooldown_left_.size()) &&
-        cooldown_left_[i] > 0.0) {
+    if (Recharging(i)) {
       continue;
     }
     return i;
@@ -360,13 +366,10 @@ void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
   // Unlike an auto-cast's clock, this runs on an empty map too: a player
   // waiting out a respawn really does have their cooldown back when the mobs
   // land, where a summon with nothing to hit has simply not fired.
-  cooldown_left_.resize(Attacks(params).size(), 0.0);
-  for (double& left : cooldown_left_) {
-    left = std::max(0.0, left - dt);
-  }
-  side_cooldown_left_.resize(Attacks(params).size(), 0.0);
-  for (double& left : side_cooldown_left_) {
-    left = std::max(0.0, left - dt);
+  attack_clocks_.resize(Attacks(params).size());
+  for (AttackClock& clock : attack_clocks_) {
+    clock.cooldown_left = std::max(0.0, clock.cooldown_left - dt);
+    clock.side_cooldown_left = std::max(0.0, clock.side_cooldown_left - dt);
   }
 }
 
@@ -1110,22 +1113,20 @@ double CombatSim::DamageToMob(const AttackOption& attack, int index,
   return ordinary + RolledDamage(*attack.empowered, type, landing);
 }
 
-const AttackOption& CombatSim::FormToLand(std::vector<int>& counts, int size,
-                                          int index,
+const AttackOption& CombatSim::FormToLand(int& count,
                                           const AttackOption& attack) {
-  counts.resize(size, 0);
   // A form that marks enemies never stands in for the swing: the swing lands
   // as itself, and DamageToBranded decides mob by mob what goes off on top.
   if (attack.empowered == nullptr || attack.empowered_every <= 0 ||
-      attack.brands_enemies || index < 0) {
+      attack.brands_enemies) {
     return attack;
   }
   // Counted before the test, so a period of four is three ordinary landings
   // and then this one -- not this one first and three after.
-  if (++counts[index] < attack.empowered_every) {
+  if (++count < attack.empowered_every) {
     return attack;
   }
-  counts[index] = 0;
+  count = 0;
   return *attack.empowered;
 }
 
@@ -1150,12 +1151,9 @@ void CombatSim::GoIdle() {
   hit_phase_ = 0.0;
   respawn_fraction_ = 0.0;
   respawns_ = false;
-  auto_phase_.clear();
-  auto_pulses_.clear();
-  auto_empowered_count_.clear();
-  empowered_count_.clear();
+  auto_clocks_.clear();
+  attack_clocks_.clear();
   regen_phase_.clear();
-  cooldown_left_.clear();
   aimed_ = -1;
 }
 
@@ -1171,11 +1169,8 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   attack_phase_ = 0.0;
   hit_phase_ = 0.0;
   next_mob_id_ = 0;
-  auto_phase_.assign(params.auto_attacks.size(), 0.0);
-  auto_pulses_.assign(params.auto_attacks.size(), 0);
-  auto_empowered_count_.assign(params.auto_attacks.size(), 0);
-  empowered_count_.assign(params.attacks.size(), 0);
-  cooldown_left_.assign(params.attacks.size(), 0.0);
+  auto_clocks_.assign(params.auto_attacks.size(), AutoClock());
+  attack_clocks_.assign(params.attacks.size(), AttackClock());
   // The buff and fountain clocks are deliberately left alone: they belong to
   // the character rather than to the map, and walking somewhere else neither
   // takes a buff away nor hands back a pulse early.
@@ -1231,17 +1226,17 @@ double CombatSim::BuffDamageTakenFactor(const CombatParams& params) const {
   for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
     if ((buff_mask_ & (1 << i)) != 0) {
       factor *= 1.0 - params.buffs[i].damage_taken_pct;
-      if (boss && buff_blocks_left_[i] > 0) {
+      if (boss && buffs_[i].blocks_left > 0) {
         factor *= 1.0 - params.buffs[i].boss_damage_taken_pct;
       }
     }
   }
   // A party's buff is one more reduction and multiplies like the rest: a
   // Shadower's smokescreen over a Shadower's own is not twice the shelter.
-  for (int i = 0; i < static_cast<int>(ally_buff_left_.size()); ++i) {
-    if (ally_buff_left_[i] > 0.0) {
+  for (int i = 0; i < static_cast<int>(ally_buffs_.size()); ++i) {
+    if (ally_buffs_[i].left > 0.0) {
       factor *= 1.0 - params.ally_buffs[i].damage_taken_pct;
-      if (boss && ally_buff_blocks_left_[i] > 0) {
+      if (boss && ally_buffs_[i].blocks_left > 0) {
         factor *= 1.0 - params.ally_buffs[i].boss_damage_taken_pct;
       }
     }
@@ -1267,21 +1262,21 @@ bool CombatSim::BlockHit(const CombatParams& params) {
     return false;
   }
   for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
-    if ((buff_mask_ & (1 << i)) == 0 || buff_blocks_left_[i] <= 0) {
+    if ((buff_mask_ & (1 << i)) == 0 || buffs_[i].blocks_left <= 0) {
       continue;
     }
-    if (--buff_blocks_left_[i] == 0) {
-      buff_left_[i] = 0.0;  // spent: the shell falls, clock or no clock
+    if (--buffs_[i].blocks_left == 0) {
+      buffs_[i].left = 0.0;  // spent: the shell falls, clock or no clock
       buff_mask_ &= ~(1 << i);
     }
     return true;
   }
-  for (int i = 0; i < static_cast<int>(ally_buff_left_.size()); ++i) {
-    if (ally_buff_left_[i] <= 0.0 || ally_buff_blocks_left_[i] <= 0) {
+  for (int i = 0; i < static_cast<int>(ally_buffs_.size()); ++i) {
+    if (ally_buffs_[i].left <= 0.0 || ally_buffs_[i].blocks_left <= 0) {
       continue;
     }
-    if (--ally_buff_blocks_left_[i] == 0) {
-      ally_buff_left_[i] = 0.0;
+    if (--ally_buffs_[i].blocks_left == 0) {
+      ally_buffs_[i].left = 0.0;
     }
     return true;
   }
@@ -1392,22 +1387,20 @@ bool CombatSim::ShieldWanted(const CombatParams& params,
 
 void CombatSim::RunBuffs(const CombatParams& params, double dt) {
   int count = static_cast<int>(params.buffs.size());
-  buff_left_.resize(count, 0.0);
-  buff_cooldown_left_.resize(count, 0.0);
-  buff_blocks_left_.resize(count, 0);
-  // Seeded with each buff's full count rather than with nothing, or one
+  // Seeded with each buff's full charge rather than with nothing, or one
   // charged by hits would go up before a single hit had landed.
-  if (static_cast<int>(buff_charge_left_.size()) != count) {
-    buff_charge_left_.resize(count);
+  if (static_cast<int>(buffs_.size()) != count) {
+    buffs_.resize(count);
     for (int i = 0; i < count; ++i) {
-      buff_charge_left_[i] = params.buffs[i].charge_lines;
+      buffs_[i].charge_left = params.buffs[i].charge_lines;
     }
   }
   buff_mask_ = 0;
   for (int i = 0; i < count; ++i) {
     const BuffOption& buff = params.buffs[i];
-    buff_left_[i] = std::max(0.0, buff_left_[i] - dt);
-    buff_cooldown_left_[i] = std::max(0.0, buff_cooldown_left_[i] - dt);
+    BuffClock& clock = buffs_[i];
+    clock.left = std::max(0.0, clock.left - dt);
+    clock.cooldown_left = std::max(0.0, clock.cooldown_left - dt);
     // Put up the moment it comes round, and only with something to fight: one
     // spent on an empty map is one the player does not have when the mobs
     // land. Nothing is recast while it is still standing -- a player timing
@@ -1416,15 +1409,15 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     // A buff its own swing lays is not raised here at all: it waits for that
     // swing to land. See LayBuffs.
     // What it is waiting on: a wait in seconds, or a count of landed hits.
-    bool ready = buff.charge_lines > 0 ? buff_charge_left_[i] <= 0.0
-                                       : buff_cooldown_left_[i] <= 0.0;
-    if (buff.laid_by_attack < 0 && buff_left_[i] <= 0.0 && ready &&
+    bool ready = buff.charge_lines > 0 ? clock.charge_left <= 0.0
+                                       : clock.cooldown_left <= 0.0;
+    if (buff.laid_by_attack < 0 && clock.left <= 0.0 && ready &&
         !queue_.empty() && buff.duration_seconds > 0.0 &&
         ShieldWanted(params, buff)) {
-      buff_left_[i] = buff.duration_seconds;
-      buff_cooldown_left_[i] = buff.cooldown_seconds;
-      buff_charge_left_[i] = buff.charge_lines;
-      buff_blocks_left_[i] = buff.shield_hits;
+      clock.left = buff.duration_seconds;
+      clock.cooldown_left = buff.cooldown_seconds;
+      clock.charge_left = buff.charge_lines;
+      clock.blocks_left = buff.shield_hits;
       // Raising it costs the character its animation, taken off the swing they
       // were charging: a buff is cast instead of attacking, not alongside it.
       attack_phase_ -= buff.cast_seconds;
@@ -1432,7 +1425,7 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
           std::min(static_cast<double>(params.max_player_hp),
                    player_hp_ + buff.heal_fraction * params.max_player_hp);
     }
-    if (buff_left_[i] > 0.0) {
+    if (clock.left > 0.0) {
       buff_mask_ |= 1 << i;
     }
   }
@@ -1440,24 +1433,21 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
 
 void CombatSim::RunAllyBuffs(const CombatParams& params, double dt) {
   int count = static_cast<int>(params.ally_buffs.size());
-  ally_buff_left_.resize(count, 0.0);
-  ally_buff_cooldown_left_.resize(count, 0.0);
-  ally_buff_blocks_left_.resize(count, 0);
+  ally_buffs_.resize(count);
   for (int i = 0; i < count; ++i) {
     const BuffOption& buff = params.ally_buffs[i];
-    ally_buff_left_[i] = std::max(0.0, ally_buff_left_[i] - dt);
-    ally_buff_cooldown_left_[i] =
-        std::max(0.0, ally_buff_cooldown_left_[i] - dt);
+    BuffClock& clock = ally_buffs_[i];
+    clock.left = std::max(0.0, clock.left - dt);
+    clock.cooldown_left = std::max(0.0, clock.cooldown_left - dt);
     // The same rule the character's own buffs go up under: the moment it comes
     // round, and only with something to fight. What the ally is doing between
     // casts is not modelled -- they are in the same fight, so they raise it
     // when it is worth raising.
-    if (ally_buff_left_[i] <= 0.0 && ally_buff_cooldown_left_[i] <= 0.0 &&
-        !queue_.empty() && buff.duration_seconds > 0.0 &&
-        ShieldWanted(params, buff)) {
-      ally_buff_left_[i] = buff.duration_seconds;
-      ally_buff_cooldown_left_[i] = buff.cooldown_seconds;
-      ally_buff_blocks_left_[i] = buff.shield_hits;
+    if (clock.left <= 0.0 && clock.cooldown_left <= 0.0 && !queue_.empty() &&
+        buff.duration_seconds > 0.0 && ShieldWanted(params, buff)) {
+      clock.left = buff.duration_seconds;
+      clock.cooldown_left = buff.cooldown_seconds;
+      clock.blocks_left = buff.shield_hits;
       // An ally's cast reaches this character too: what it puts back is a
       // share of THEIR pool, the caster's own being no business of this fight.
       player_hp_ =
@@ -1468,15 +1458,15 @@ void CombatSim::RunAllyBuffs(const CombatParams& params, double dt) {
 }
 
 void CombatSim::LayBuffs(const CombatParams& params, int swung) {
-  for (int i = 0; i < static_cast<int>(buff_left_.size()); ++i) {
+  for (int i = 0; i < static_cast<int>(buffs_.size()); ++i) {
     const BuffOption& buff = params.buffs[i];
     if (buff.laid_by_attack != swung) {
       continue;
     }
     // Refreshed rather than stacked, and its wait started from the swing that
     // laid it: what a second puncture leaves is one wound, not two.
-    buff_left_[i] = buff.duration_seconds;
-    buff_cooldown_left_[i] = buff.cooldown_seconds;
+    buffs_[i].left = buff.duration_seconds;
+    buffs_[i].cooldown_left = buff.cooldown_seconds;
   }
 }
 
@@ -1499,13 +1489,13 @@ int CombatSim::BuffToLay(const CombatParams& params) const {
     if (buff.laid_by_attack < 0 || buff.duration_seconds <= 0.0) {
       continue;
     }
-    if (i < static_cast<int>(buff_left_.size()) && buff_left_[i] > 0.0) {
+    if (i < static_cast<int>(buffs_.size()) && buffs_[i].left > 0.0) {
       continue;  // still standing, so there is nothing to go and do
     }
     // The swing itself may be recharging, in which case there is no laying it
     // this time and the fight swings for damage instead.
-    if (buff.laid_by_attack < static_cast<int>(cooldown_left_.size()) &&
-        cooldown_left_[buff.laid_by_attack] > 0.0) {
+    if (buff.laid_by_attack < static_cast<int>(attack_clocks_.size()) &&
+        attack_clocks_[buff.laid_by_attack].cooldown_left > 0.0) {
       continue;
     }
     return buff.laid_by_attack;
@@ -1515,18 +1505,19 @@ int CombatSim::BuffToLay(const CombatParams& params) const {
 
 void CombatSim::CreditBuffs(const CombatParams& params, double weight,
                             int lines) {
-  for (int i = 0; i < static_cast<int>(buff_cooldown_left_.size()); ++i) {
+  for (int i = 0; i < static_cast<int>(buffs_.size()); ++i) {
+    BuffClock& clock = buffs_[i];
     // A buff counting hits is charged by what the swing landed, and only while
     // it is down: GMS stops counting for as long as the window stands, so what
     // its uptime is worth is bounded however fast the character fires.
     if (params.buffs[i].charge_lines > 0) {
-      if (buff_left_[i] <= 0.0) {
-        buff_charge_left_[i] = std::max(0.0, buff_charge_left_[i] - lines);
+      if (clock.left <= 0.0) {
+        clock.charge_left = std::max(0.0, clock.charge_left - lines);
       }
       continue;
     }
-    buff_cooldown_left_[i] =
-        std::max(0.0, buff_cooldown_left_[i] -
+    clock.cooldown_left =
+        std::max(0.0, clock.cooldown_left -
                           params.buffs[i].cooldown_reduction_seconds * weight);
   }
 }
@@ -1535,10 +1526,10 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
   // Their clocks run only while there is something to hit: a summon has
   // nothing to do on an empty map, and waiting there earns it no free cast.
   const std::vector<AttackOption>& casts = AutoAttacks(params);
-  auto_phase_.resize(casts.size(), 0.0);
-  auto_pulses_.resize(casts.size(), 0);
+  auto_clocks_.resize(casts.size());
   for (int i = 0; i < static_cast<int>(casts.size()); ++i) {
     const AttackOption& cast = casts[i];
+    AutoClock& clock = auto_clocks_[i];
     if (queue_.empty() || cast.interval_seconds <= 0.0) {
       continue;
     }
@@ -1547,22 +1538,21 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
     // instant the wound lands and then again a moment later. What it has
     // already spent of the window goes back with it: the count is per raising.
     if (cast.needs_buff >= 0 && (buff_mask_ & (1 << cast.needs_buff)) == 0) {
-      auto_pulses_[i] = 0;
+      clock.pulses = 0;
       continue;
     }
     // One that has spent its window falls silent for the rest of it, phase and
     // all -- lengthening the buff behind it buys nothing.
-    if (cast.max_pulses > 0 && auto_pulses_[i] >= cast.max_pulses) {
+    if (cast.max_pulses > 0 && clock.pulses >= cast.max_pulses) {
       continue;
     }
-    auto_phase_[i] += dt;
+    clock.phase += dt;
     // As in RunSwing and RunDots: a step wider than the interval owes every
     // cast it covered.
-    while (auto_phase_[i] >= cast.interval_seconds) {
-      auto_phase_[i] -= cast.interval_seconds;
-      ++auto_pulses_[i];
-      const AttackOption& landed = FormToLand(
-          auto_empowered_count_, static_cast<int>(casts.size()), i, cast);
+    while (clock.phase >= cast.interval_seconds) {
+      clock.phase -= cast.interval_seconds;
+      ++clock.pulses;
+      const AttackOption& landed = FormToLand(clock.empowered_count, cast);
       // Every strike of the tick lands in full: three sword strikes 60ms apart
       // are one moment here, and each is its own attack on its own enemies.
       for (int strike = 0; strike < cast.strikes_per_pulse; ++strike) {
@@ -1571,7 +1561,7 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
       // A summon leaves the ice it makes: Elquines freezes what it touches. It
       // never spends the pile -- ClearSwingRiders sees to that.
       CreditFreeze(params, landed);
-      if (cast.max_pulses > 0 && auto_pulses_[i] >= cast.max_pulses) {
+      if (cast.max_pulses > 0 && clock.pulses >= cast.max_pulses) {
         break;
       }
     }
@@ -1661,8 +1651,7 @@ void CombatSim::LandSwing(const CombatParams& params,
                  player_hp_ + attack.heal_fraction * params.max_player_hp);
   } else {
     const AttackOption& landed =
-        FormToLand(empowered_count_, static_cast<int>(Attacks(params).size()),
-                   swung, attack);
+        FormToLand(attack_clocks_[swung].empowered_count, attack);
     double proc_recovered =
         Strike(landed, {DamageOrigin::kSwing, 0}, held_pulses_);
     CreditFreeze(params, landed);
@@ -1670,9 +1659,10 @@ void CombatSim::LandSwing(const CombatParams& params,
     // run out. Read off the aimed attack rather than off what landed: the
     // strike belongs to the skill, not to the form standing in for it this
     // time. It goes out after the swing, so it lands on what the swing left.
-    if (attack.side != nullptr && side_cooldown_left_[swung] <= 0.0) {
+    if (attack.side != nullptr &&
+        attack_clocks_[swung].side_cooldown_left <= 0.0) {
       Strike(*attack.side, {DamageOrigin::kSideStrike, swung});
-      side_cooldown_left_[swung] = attack.side->cooldown_seconds;
+      attack_clocks_[swung].side_cooldown_left = attack.side->cooldown_seconds;
     }
     // Recovery rides the hit, so a cast does not earn it and neither does a
     // swing at nothing. What landed pays it rather than what was aimed, and
@@ -1692,7 +1682,7 @@ void CombatSim::LandSwing(const CombatParams& params,
     LayBuffs(params, swung);
   }
   if (attack.cooldown_seconds > 0.0) {
-    cooldown_left_[swung] = attack.cooldown_seconds;
+    attack_clocks_[swung].cooldown_left = attack.cooldown_seconds;
   }
   aimed_ = -1;  // the swing landed, so the next one is chosen afresh
   AimSwing(params);

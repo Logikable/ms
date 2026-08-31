@@ -2309,6 +2309,30 @@ TEST(CombatSimTest, WalkingToAnotherMapForgetsTheEmpoweredCount) {
       << "the fourth swing here lands the empowered form";
 }
 
+// And the same for the wait on the strike a swing sets off. It used to be the
+// one clock BeginMapIfChanged did not reset, so a Night Lord walking away kept
+// Showdown's wait while the shuriken's own went back to nothing.
+TEST(CombatSimTest, WalkingToAnotherMapForgetsTheSideStrikesWait) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams field = MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 1)});
+  AttackOption strike;
+  strike.max_enemies = 1;
+  strike.damage_per_hit.assign(1, 1000.0);
+  strike.cooldown_seconds = 100.0;
+  field.attacks[0].side = std::make_shared<const AttackOption>(strike);
+
+  CombatSim sim;
+  sim.Advance(field, 1.0);  // the strike goes out and starts its long wait
+
+  CombatParams forest = field;
+  forest.encounter = "forest";
+  sim.Advance(forest, 1.0);
+  // A fresh map is a fresh wait, so the strike goes out again at once. Keeping
+  // the wait would leave the mob untouched: the swing itself deals nothing.
+  double taken = (1.0 - sim.target_hp_fraction()) * 1000000.0;
+  EXPECT_NEAR(taken, 1000.0, 1e-6);
+}
+
 // The two clocks count apart. A swing landing its empowered form must not
 // bring the summon's round forward, or the Sniper's Piercing Arrow would set
 // off a pool it has nothing to do with.

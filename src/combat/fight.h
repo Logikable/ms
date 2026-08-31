@@ -448,13 +448,12 @@ class CombatSim {
   // opening hit and Final Attack included. An attack with an empowered form is
   // averaged over the run of swings that form takes its place in.
   double SwingDamage(const AttackOption& attack) const;
-  // What `attack` really lands this time: its empowered form when the count in
-  // `counts` has come round, and itself otherwise. Advancing that count is the
-  // point of the call, so it is made once per landed attack and nowhere else.
-  // Serves both clocks -- the character's swings and a summon's pulses -- with
-  // a counter apiece.
-  const AttackOption& FormToLand(std::vector<int>& counts, int size, int index,
-                                 const AttackOption& attack);
+  // What `attack` really lands this time: its empowered form when `count` has
+  // come round, and itself otherwise. Advancing that count is the point of the
+  // call, so it is made once per landed attack and nowhere else. Serves both
+  // clocks -- the character's swings and a summon's pulses -- with a counter
+  // apiece.
+  const AttackOption& FormToLand(int& count, const AttackOption& attack);
   // What `attack` lands on the queued mob at `index`: its ordinary damage
   // rolled, and its empowered form on top when that mob's mark has come round.
   // Only that form is the mark's business -- everything else is answered
@@ -474,6 +473,8 @@ class CombatSim {
   double RolledFinalAttack(const std::vector<FinalAttackRoll>& sources,
                            const std::vector<double>& expected, int type,
                            const Landing& landing);
+  // Whether the attack at `index` is still winding back up.
+  bool Recharging(int index) const;
   // Index into params.attacks of the healing cast to spend this swing on, or
   // -1 for none: the player is not low enough, has nothing to fight, or holds
   // no such skill. A cleared map heals on the beat for free, so a cast there
@@ -597,40 +598,46 @@ class CombatSim {
   double respawn_phase_ = 0.0;    // seconds into the current respawn cycle
   double player_hp_ = 0.0;        // remaining player HP, topped up on a beat
   double hit_phase_ = 0.0;        // seconds into the engaged mob's next hit
-  // Seconds each buff has left standing, and seconds until each can be put up
-  // again -- both parallel to params.buffs. They keep running across a change
-  // of map, unlike the fight's own clocks: a buff belongs to the character
-  // rather than to the mobs in front of them.
-  std::vector<double> buff_left_;
-  std::vector<double> buff_cooldown_left_;
-  // Lines still to land before each buff charged by hits goes up, parallel to
-  // the pair above. Held at its full count for every buff on a clock, which
-  // never reads it.
-  std::vector<double> buff_charge_left_;
-  // Hits each shell still has in it, parallel to the pair above. Set when the
-  // buff goes up and spent a hit at a time; a shell emptied falls at once,
-  // whatever is left of its clock. 0 for every buff that is not a shell.
-  std::vector<int> buff_blocks_left_;
+  // One buff's clocks, one entry per buff in params.buffs. They keep running
+  // across a change of map, unlike the fight's own: a buff belongs to the
+  // character rather than to the mobs in front of them.
+  struct BuffClock {
+    double left = 0.0;           // seconds it still stands
+    double cooldown_left = 0.0;  // seconds until it can go up again
+    // Lines still to land before a buff charged by hits goes up. Held at its
+    // full count for every buff on a clock, which never reads it.
+    double charge_left = 0.0;
+    // Hits the shell still has in it. Set when the buff goes up and spent a
+    // hit at a time; a shell emptied falls at once, whatever is left of its
+    // clock. 0 for every buff that is not a shell.
+    int blocks_left = 0;
+  };
+  std::vector<BuffClock> buffs_;
   // Which buffs are standing, as the bitmask CombatParams indexes its damage
   // tables by. Worked out once a step, at the top.
   int buff_mask_ = 0;
-  // The same pair again for the party's buffs, parallel to
-  // params.ally_buffs. No mask beside them: a party buff has no damage table,
-  // so what is standing is read straight off the seconds left.
-  std::vector<double> ally_buff_left_;
-  std::vector<double> ally_buff_cooldown_left_;
-  std::vector<int> ally_buff_blocks_left_;
+  // The same again for the party's buffs, parallel to params.ally_buffs. No
+  // mask beside them: a party buff has no damage table, so what is standing is
+  // read straight off the seconds left.
+  std::vector<BuffClock> ally_buffs_;
   // Seconds left before a passive will revive the player again. Counts down
   // wherever the character is, since what it measures is the pact rather than
   // the fight, and stays at 0 for everyone who holds no such skill.
   double revive_left_ = 0.0;
-  // Seconds into each auto-attack's next cast, parallel to
-  // params.auto_attacks. Runs only while there is something to hit.
-  std::vector<double> auto_phase_;
-  // Ticks each has already spent of what one raising of its gating buff is
-  // worth, parallel to the same list. Zeroed while that buff is down, so the
-  // count is per window; untouched for a clock with no cap.
-  std::vector<int> auto_pulses_;
+  // Where one skill on its own clock stands, one entry per cast in
+  // params.auto_attacks.
+  struct AutoClock {
+    // Seconds into its next cast. Runs only while there is something to hit.
+    double phase = 0.0;
+    // Ticks it has already spent of what one raising of its gating buff is
+    // worth. Zeroed while that buff is down, so the count is per window;
+    // untouched for a clock with no cap.
+    int pulses = 0;
+    // Pulses since its last empowered one. The F/P Mage's Creeping Toxin is
+    // the one that has any.
+    int empowered_count = 0;
+  };
+  std::vector<AutoClock> auto_clocks_;
   // Seconds into each fountain's next pulse, parallel to params.regen_pulses.
   // Starts at 0, so the first pulse falls one interval in rather than free on
   // the step the fight opened.
@@ -639,22 +646,21 @@ class CombatSim {
   // params.triggered_attacks. Fractional, since a swing can be worth less than
   // a whole one.
   std::vector<double> trigger_count_;
-  // Swings landed with each attack since its last empowered one, parallel to
-  // params.attacks. Stays at 0 for every attack that has no empowered form,
-  // which is all of them but the Sniper's Piercing Arrow.
-  std::vector<int> empowered_count_;
-  // The same count on the other clock, parallel to params.auto_attacks: pulses
-  // a summon has fired since its last empowered one. The F/P Mage's Creeping
-  // Toxin is the one that has any.
-  std::vector<int> auto_empowered_count_;
-  // Seconds each swing has left before it can be chosen again, parallel to
-  // params.attacks. 0 for a swing that is ready, which is all of them for a
-  // character holding no cooldown skill.
-  std::vector<double> cooldown_left_;
-  // The same for the strike a swing sets off beside itself, parallel to the
-  // same list. Held apart because the swing is still there while its strike is
-  // waiting -- a Night Lord keeps throwing Showdown between shurikens.
-  std::vector<double> side_cooldown_left_;
+  // Where one swing stands, one entry per attack in params.attacks.
+  struct AttackClock {
+    // Seconds before it can be chosen again. 0 for a swing that is ready,
+    // which is all of them for a character holding no cooldown skill.
+    double cooldown_left = 0.0;
+    // The same for the strike the swing sets off beside itself. Held apart
+    // because the swing is still there while its strike is waiting -- a Night
+    // Lord keeps throwing Showdown between shurikens.
+    double side_cooldown_left = 0.0;
+    // Swings landed since its last empowered one. Stays at 0 for every attack
+    // that has no empowered form, which is all of them but the Sniper's
+    // Piercing Arrow.
+    int empowered_count = 0;
+  };
+  std::vector<AttackClock> attack_clocks_;
 
   // Freeze Stacks the character is holding. Belongs to them rather than to the
   // map, like the buff clocks and unlike the queue, so it survives walking
