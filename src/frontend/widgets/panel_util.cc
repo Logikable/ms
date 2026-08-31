@@ -16,6 +16,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "ftxui/screen/string.hpp"
+#include "src/character/inner_ability.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/text_columns.h"
 #include "src/item/item.h"
@@ -728,6 +729,83 @@ const HyperStatField kHyperStatOrder[] = {
     HYPER_STAT_FIELD_EXP,           HYPER_STAT_FIELD_ARCANE_FORCE,
 };
 const int kNumHyperStats = sizeof(kHyperStatOrder) / sizeof(kHyperStatOrder[0]);
+
+RowColors RarityColors(AbilityRank rank, bool faded) {
+  static_assert(AbilityRank_ARRAYSIZE == 5,
+                "a new Inner Ability rank needs a colour");
+  Rgb background = kRare;
+  switch (rank) {
+    case ABILITY_RANK_EPIC:
+      background = kEpic;
+      break;
+    case ABILITY_RANK_UNIQUE:
+      background = kUnique;
+      break;
+    case ABILITY_RANK_LEGENDARY:
+      background = kLegendary;
+      break;
+    default:
+      break;
+  }
+  if (faded) {
+    background = Faded(background);
+  }
+  return {background.ToColor(), TextOn(background)};
+}
+
+std::string AbilityLineName(AbilityLineType type) {
+  static_assert(AbilityLineType_ARRAYSIZE == 17,
+                "a new Inner Ability line needs a name");
+  switch (type) {
+    case ABILITY_LINE_TYPE_STR:
+      return "STR";
+    case ABILITY_LINE_TYPE_DEX:
+      return "DEX";
+    case ABILITY_LINE_TYPE_INT:
+      return "INT";
+    case ABILITY_LINE_TYPE_LUK:
+      return "LUK";
+    case ABILITY_LINE_TYPE_ALL_STATS:
+      return "All Stats";
+    case ABILITY_LINE_TYPE_MAX_HP:
+    case ABILITY_LINE_TYPE_MAX_HP_PCT:
+      return "Max HP";
+    case ABILITY_LINE_TYPE_ATTACK:
+      return "Attack";
+    case ABILITY_LINE_TYPE_MAGIC_ATTACK:
+      return "Magic Attack";
+    case ABILITY_LINE_TYPE_CRIT_RATE:
+      return "Critical Rate";
+    case ABILITY_LINE_TYPE_BOSS_DAMAGE:
+      return "Boss Damage";
+    case ABILITY_LINE_TYPE_NORMAL_DAMAGE:
+      return "Normal Damage";
+    case ABILITY_LINE_TYPE_BUFF_DURATION:
+      return "Buff Duration";
+    case ABILITY_LINE_TYPE_ITEM_DROP:
+      return "Item Drop Rate";
+    case ABILITY_LINE_TYPE_MESO:
+      return "Meso Drop Rate";
+    case ABILITY_LINE_TYPE_ATTACK_SPEED:
+      return "Attack Speed";
+    default:
+      return "";
+  }
+}
+
+std::string AbilityLineValueText(const AbilityLine& line) {
+  // The types stated in whole percents. Everything else is flat, Attack
+  // Speed's one swing stage included.
+  const bool percent = line.type() == ABILITY_LINE_TYPE_MAX_HP_PCT ||
+                       line.type() == ABILITY_LINE_TYPE_CRIT_RATE ||
+                       line.type() == ABILITY_LINE_TYPE_BOSS_DAMAGE ||
+                       line.type() == ABILITY_LINE_TYPE_NORMAL_DAMAGE ||
+                       line.type() == ABILITY_LINE_TYPE_BUFF_DURATION ||
+                       line.type() == ABILITY_LINE_TYPE_ITEM_DROP ||
+                       line.type() == ABILITY_LINE_TYPE_MESO;
+  const int value = AbilityLineValue(line.type(), line.rank());
+  return "+" + std::to_string(value) + (percent ? "%" : "");
+}
 
 std::string HyperStatName(HyperStatField field) {
   static_assert(HyperStatField_ARRAYSIZE == 16,

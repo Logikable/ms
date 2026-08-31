@@ -1,6 +1,9 @@
 #ifndef MS_SRC_FRONTEND_WIDGETS_COLORS_H_
 #define MS_SRC_FRONTEND_WIDGETS_COLORS_H_
 
+#include <algorithm>
+#include <cmath>
+
 #include "ftxui/dom/elements.hpp"
 
 namespace ms {
@@ -62,8 +65,66 @@ inline const ftxui::Color kRed = ftxui::Color::RGB(185, 70, 70);
 inline const ftxui::Color kFaintTheme = ftxui::Color::RGB(55, 80, 110);
 inline const ftxui::Color kFaintOrange = ftxui::Color::RGB(125, 75, 35);
 
+/* Rarity, and the two colours a rarity-painted row needs.
+ *
+ * A colour a row computes from is held as components rather than as an
+ * ftxui::Color, which does not give its own back. An Inner Ability line is
+ * drawn on its rank's colour and takes whichever text reads against it, and a
+ * line out of play fades -- so both colours fall out of the rank and the
+ * fading, and neither is written down per rank. See RarityColors.
+ */
+struct Rgb {
+  int r = 0;
+  int g = 0;
+  int b = 0;
+
+  ftxui::Color ToColor() const {
+    return ftxui::Color::RGB(r, g, b);
+  }
+};
+
+// The four ranks GMS paints an Inner Ability line in: blue, purple, yellow,
+// green. The exact values are not published anywhere; these are what the
+// community renders them at.
+inline constexpr Rgb kRare = {0x66, 0xFF, 0xFF};
+inline constexpr Rgb kEpic = {0x99, 0x33, 0xFF};
+inline constexpr Rgb kUnique = {0xFF, 0xCC, 0x00};
+inline constexpr Rgb kLegendary = {0x77, 0xEE, 0x00};
+
+// The game's ground tone: the dark blue behind a bar's unfilled remainder,
+// and what a faded colour is drawn toward.
+inline constexpr Rgb kGround = {20, 35, 55};
+
 // Unfilled remainder of any progress bar (EXP, attack charge, mob HP).
-inline const ftxui::Color kBarEmpty = ftxui::Color::RGB(20, 35, 55);
+inline const ftxui::Color kBarEmpty = kGround.ToColor();
+
+// `color` drawn `toward` of the way to the ground, for something out of play.
+// Not ftxui::dim, which reaches the foreground alone and would leave a
+// background at full strength.
+inline Rgb Faded(Rgb color, double toward = 0.6) {
+  const double keep = 1.0 - std::clamp(toward, 0.0, 1.0);
+  const auto blend = [&](int c, int ground) {
+    return static_cast<int>(std::lround(keep * c + (1.0 - keep) * ground));
+  };
+  return {blend(color.r, kGround.r), blend(color.g, kGround.g),
+          blend(color.b, kGround.b)};
+}
+
+// Black or white, whichever reads against `background`. Decided by relative
+// luminance, so a colour that fades past the middle turns its text over
+// without anybody naming the rank it belongs to.
+inline ftxui::Color TextOn(Rgb background) {
+  // sRGB relative luminance, and the point either side of which the better
+  // contrast changes hands.
+  const auto linear = [](int c) {
+    const double v = c / 255.0;
+    return v <= 0.04045 ? v / 12.92 : std::pow((v + 0.055) / 1.055, 2.4);
+  };
+  const double luminance = 0.2126 * linear(background.r) +
+                           0.7152 * linear(background.g) +
+                           0.0722 * linear(background.b);
+  return luminance < 0.179 ? ftxui::Color::White : ftxui::Color::Black;
+}
 
 }  // namespace ms
 

@@ -163,6 +163,25 @@ std::string FormatEquipSet(EquipSetName set);
 // together without a legend.
 ftxui::Color MarkColor(CurrencyColor color);
 
+// The background an Inner Ability line of `rank` is painted, and the text
+// colour that reads against it. `faded` is a line out of play -- one held
+// through the reroll under the cursor -- and the pair is worked out from the
+// faded background, so the text turns over on its own where it has to.
+struct RowColors {
+  ftxui::Color background;
+  ftxui::Color text;
+};
+RowColors RarityColors(AbilityRank rank, bool faded = false);
+
+// The name an Inner Ability line is listed under (e.g. "Boss Damage"). The
+// two Max HP lines share one: the value beside it says which, since only the
+// percent one carries a %.
+std::string AbilityLineName(AbilityLineType type);
+
+// What `line` is worth, as the player reads it: "+40", "+20%", and "+1" for
+// the single swing stage Attack Speed grants.
+std::string AbilityLineValueText(const AbilityLine& line);
+
 // The tag a skill row opens with: what the player does with the skill, said
 // once at the front of the row instead of being worked out from the name.
 // Four columns wide whichever tag it is, so every name after it starts at the

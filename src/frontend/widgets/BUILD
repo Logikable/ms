@@ -52,6 +52,7 @@ cc_library(
         ":marquee",
         ":text_columns",
         "//src/character:hyper_stats",
+        "//src/character:inner_ability",
         "//src/character:job_name",
         "//src/item",
         "//src/protos:character_proto_cc",

@@ -1290,6 +1290,66 @@ TEST(FormatEquipSetTest, NamesEverySet) {
   EXPECT_EQ(FormatEquipSet(EQUIP_SET_NAME_UNSPECIFIED), "");
 }
 
+// --- Rarity colours ---
+
+// Every rank is painted its own colour, and each picks the text that reads
+// against it. Epic is the one dark enough for white.
+TEST(RarityColorsTest, PaintsEachRankAndPicksItsText) {
+  EXPECT_EQ(RarityColors(ABILITY_RANK_RARE).background, kRare.ToColor());
+  EXPECT_EQ(RarityColors(ABILITY_RANK_RARE).text, ftxui::Color::Black);
+  EXPECT_EQ(RarityColors(ABILITY_RANK_EPIC).background, kEpic.ToColor());
+  EXPECT_EQ(RarityColors(ABILITY_RANK_EPIC).text, ftxui::Color::White);
+  EXPECT_EQ(RarityColors(ABILITY_RANK_UNIQUE).background, kUnique.ToColor());
+  EXPECT_EQ(RarityColors(ABILITY_RANK_UNIQUE).text, ftxui::Color::Black);
+  EXPECT_EQ(RarityColors(ABILITY_RANK_LEGENDARY).background,
+            kLegendary.ToColor());
+  EXPECT_EQ(RarityColors(ABILITY_RANK_LEGENDARY).text, ftxui::Color::Black);
+}
+
+// A faded row is a different colour, not a dimmed one -- and it is dark
+// enough that the three ranks that took black text turn it over.
+TEST(RarityColorsTest, FadingDarkensTheRowAndTurnsTheTextOver) {
+  for (AbilityRank rank : {ABILITY_RANK_RARE, ABILITY_RANK_EPIC,
+                           ABILITY_RANK_UNIQUE, ABILITY_RANK_LEGENDARY}) {
+    RowColors plain = RarityColors(rank);
+    RowColors faded = RarityColors(rank, /*faded=*/true);
+    EXPECT_NE(faded.background, plain.background);
+    EXPECT_EQ(faded.text, ftxui::Color::White);
+  }
+}
+
+// The two ends of Faded, so the blend cannot quietly invert.
+TEST(FadedTest, RunsFromTheColourToTheGround) {
+  EXPECT_EQ(Faded(kUnique, 0.0).ToColor(), kUnique.ToColor());
+  EXPECT_EQ(Faded(kUnique, 1.0).ToColor(), kGround.ToColor());
+}
+
+// --- Inner Ability lines ---
+
+// Flat for a flat line, a percent sign for a percentage, and the two Max HP
+// lines told apart by the value rather than by the name.
+TEST(AbilityLineTextTest, NamesAndValuesEveryKindOfLine) {
+  AbilityLine line;
+  line.set_type(ABILITY_LINE_TYPE_BOSS_DAMAGE);
+  line.set_rank(ABILITY_RANK_LEGENDARY);
+  EXPECT_EQ(AbilityLineName(line.type()), "Boss Damage");
+  EXPECT_EQ(AbilityLineValueText(line), "+20%");
+
+  line.set_type(ABILITY_LINE_TYPE_MAX_HP);
+  EXPECT_EQ(AbilityLineName(line.type()), "Max HP");
+  EXPECT_EQ(AbilityLineValueText(line), "+600");
+
+  line.set_type(ABILITY_LINE_TYPE_MAX_HP_PCT);
+  EXPECT_EQ(AbilityLineName(line.type()), "Max HP");
+  EXPECT_EQ(AbilityLineValueText(line), "+20%");
+
+  line.set_type(ABILITY_LINE_TYPE_ATTACK_SPEED);
+  EXPECT_EQ(AbilityLineName(line.type()), "Attack Speed");
+  EXPECT_EQ(AbilityLineValueText(line), "+1");
+
+  EXPECT_EQ(AbilityLineName(ABILITY_LINE_TYPE_UNSPECIFIED), "");
+}
+
 // --- DialogWindow ---
 
 // The point of the helper: whatever the body is, a rule stands between it and
