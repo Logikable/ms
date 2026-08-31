@@ -16,6 +16,7 @@
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/message.h"
 #include "src/character/character.h"
+#include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/frontend/widgets/text_columns.h"
 #include "src/item/item.h"

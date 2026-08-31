@@ -1,0 +1,265 @@
+#include "src/frontend/widgets/game_names.h"
+
+#include <gtest/gtest.h>
+
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
+#include "src/frontend/widgets/colors.h"
+#include "src/protos/skill.pb.h"
+
+namespace ms {
+namespace {
+
+// --- DisplayStatFor ---
+
+TEST(DisplayStatForTest, FindsTheEntryTheFieldNames) {
+  EquipStats stats;
+  stats.set_luk(7);
+  const DisplayStat* stat = DisplayStatFor(STAT_FIELD_LUK);
+  ASSERT_NE(stat, nullptr);
+  EXPECT_STREQ(stat->label, "LUK");
+  EXPECT_EQ(stat->GetFrom(stats), 7);
+}
+
+// HP is spelled max_hp on EquipStats; the join is by label, so it still lands.
+TEST(DisplayStatForTest, FindsAFieldWithARenamedAccessor) {
+  EquipStats stats;
+  stats.set_max_hp(150);
+  const DisplayStat* stat = DisplayStatFor(STAT_FIELD_HP);
+  ASSERT_NE(stat, nullptr);
+  EXPECT_EQ(stat->GetFrom(stats), 150);
+}
+
+TEST(DisplayStatForTest, UnspecifiedFieldHasNoEntry) {
+  EXPECT_EQ(DisplayStatFor(STAT_FIELD_UNSPECIFIED), nullptr);
+}
+
+// --- FormatWeaponList ---
+
+TEST(FormatWeaponListTest, NamesOneWeaponAndJoinsSeveral) {
+  EXPECT_EQ(FormatWeaponList({}), "");
+  EXPECT_EQ(FormatWeaponList({EQUIP_TYPE_DAGGER}), "Dagger");
+  EXPECT_EQ(FormatWeaponList({EQUIP_TYPE_DAGGER, EQUIP_TYPE_CLAW}),
+            "Dagger / Claw");
+}
+
+// Both hands of one weapon is how the data says "any sword".
+TEST(FormatWeaponListTest, AWholePairCollapsesToItsBareName) {
+  EXPECT_EQ(FormatWeaponList(
+                {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD,
+                 EQUIP_TYPE_ONE_HANDED_AXE, EQUIP_TYPE_TWO_HANDED_AXE}),
+            "Sword / Axe");
+  // The collapsed name lands where the first half was listed, not at the end.
+  EXPECT_EQ(FormatWeaponList({EQUIP_TYPE_ONE_HANDED_BLUNT, EQUIP_TYPE_SPEAR,
+                              EQUIP_TYPE_TWO_HANDED_BLUNT}),
+            "Blunt / Spear");
+}
+
+TEST(FormatWeaponListTest, HalfAPairStaysTheWeaponItNames) {
+  EXPECT_EQ(FormatWeaponList({EQUIP_TYPE_TWO_HANDED_SWORD}),
+            "Two-Handed Sword");
+}
+
+// --- TagFor ---
+
+TEST(TagForTest, EveryKindGetsAFourColumnTag) {
+  Skill skill;
+  skill.set_kind(SKILL_KIND_ATTACK);
+  EXPECT_EQ(std::string(TagFor(skill).text), "A:  ");
+  skill.set_kind(SKILL_KIND_ACTIVE);
+  EXPECT_EQ(std::string(TagFor(skill).text), "A:  ");
+  skill.set_kind(SKILL_KIND_AUTO_ATTACK);
+  EXPECT_EQ(std::string(TagFor(skill).text), "AA: ");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  EXPECT_EQ(std::string(TagFor(skill).text), "P:  ");
+  // A kind-less skill gets the blanks rather than a tag that would be wrong.
+  skill.set_kind(SKILL_KIND_UNSPECIFIED);
+  EXPECT_EQ(std::string(TagFor(skill).text), "    ");
+}
+
+// --- FormatJobCategories ---
+
+TEST(FormatJobCategoriesTest, NamesThemOrSaysAll) {
+  EquipPrototype proto;
+  EXPECT_EQ(FormatJobCategories(proto), "All");
+  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  EXPECT_EQ(FormatJobCategories(proto), "All");
+
+  proto.clear_equip_job_categories();
+  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  EXPECT_EQ(FormatJobCategories(proto), "Warrior");
+  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_THIEF);
+  EXPECT_EQ(FormatJobCategories(proto), "Warrior/Thief");
+}
+
+TEST(AttackSpeedNameTest, EveryStageHasAName) {
+  for (int stage = ATTACK_SPEED_SLOWER; stage <= ATTACK_SPEED_FASTEST_3;
+       ++stage) {
+    EXPECT_FALSE(AttackSpeedName(static_cast<AttackSpeed>(stage)).empty())
+        << "stage " << stage;
+  }
+  EXPECT_EQ(AttackSpeedName(ATTACK_SPEED_FAST_2), "Fast 2");
+  EXPECT_EQ(AttackSpeedName(ATTACK_SPEED_UNSPECIFIED), "");
+}
+
+TEST(StatFieldNameTest, NamesTheFourAllocatableStats) {
+  EXPECT_EQ(StatFieldName(STAT_FIELD_STR), "STR");
+  EXPECT_EQ(StatFieldName(STAT_FIELD_DEX), "DEX");
+  EXPECT_EQ(StatFieldName(STAT_FIELD_INT), "INT");
+  EXPECT_EQ(StatFieldName(STAT_FIELD_LUK), "LUK");
+  EXPECT_EQ(StatFieldName(STAT_FIELD_UNSPECIFIED), "");
+}
+
+// A skill kind added without a look at this reads as a passive, which is what
+// happened to the first auto-attack: it inspected as " Passive " and showed no
+// effects at any level.
+TEST(IsActiveTest, EverythingButAPassiveIsActive) {
+  Skill skill;
+  skill.set_kind(SKILL_KIND_ATTACK);
+  EXPECT_TRUE(IsActive(skill));
+  skill.set_kind(SKILL_KIND_ACTIVE);
+  EXPECT_TRUE(IsActive(skill));
+  skill.set_kind(SKILL_KIND_AUTO_ATTACK);
+  EXPECT_TRUE(IsActive(skill));
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  EXPECT_FALSE(IsActive(skill));
+}
+
+// One key per stage: the tab arrives again at every advancement, and having
+// seen the first is not having seen the second.
+
+TEST(FormatSlotTest, NamesEverySlot) {
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_PRIMARY_WEAPON), "Weapon");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_PROJECTILE), "Projectile");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_SECONDARY), "Secondary");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_HAT), "Hat");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_TOP), "Top");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_BOTTOM), "Bottom");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_CAPE), "Cape");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_FACE_ACCESSORY), "Face");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_EYE_ACCESSORY), "Eye");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_RING), "Ring");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_PENDANT), "Pendant");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_BELT), "Belt");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_SHOULDER), "Shoulder");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_POCKET), "Pocket");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_EARRINGS), "Earrings");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_GLOVES), "Gloves");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_SHOES), "Shoes");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_BADGE), "Badge");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_EMBLEM), "Emblem");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_MEDAL), "Medal");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_HEART), "Heart");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_UNSPECIFIED), "");
+  // A ring is a ring in all four of its slots: this is what an item is, not
+  // where it is worn.
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_RING_4), "Ring");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_PENDANT_2), "Pendant");
+}
+
+// A slot added without a name here shows the player a blank column, which is
+// how the last one nearly shipped.
+TEST(FormatSlotTest, NoSlotIsLeftUnnamedOrTooWide) {
+  for (int i = 1; i <= EquipSlot_MAX; ++i) {
+    if (!EquipSlot_IsValid(i)) {
+      continue;
+    }
+    EquipSlot slot = static_cast<EquipSlot>(i);
+    EXPECT_FALSE(FormatSlot(slot).empty()) << EquipSlot_Name(slot);
+    EXPECT_LE(FormatWornSlot(slot).size(), 10u) << EquipSlot_Name(slot);
+  }
+}
+
+// A worn row says which of a family's slots it is, and leaves every slot with
+// only one alone -- a character wears one hat, and "Hat 1" says nothing.
+TEST(FormatWornSlotTest, NumbersOnlyTheSlotsWithSiblings) {
+  EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_RING), "Ring 1");
+  EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_RING_4), "Ring 4");
+  EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_PENDANT), "Pendant 1");
+  EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_PENDANT_2), "Pendant 2");
+  EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_HAT), "Hat");
+  EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_UNSPECIFIED), "");
+  // The longest of them still fits the column the row gives a slot.
+  EXPECT_LE(FormatWornSlot(EQUIP_SLOT_PENDANT_2).size(), 10u);
+}
+
+// The whole point of balancing: a name that has to break should break near the
+// middle rather than leaving one word alone on the second line.
+// --- SkillsForAdvancement ---
+
+Skill PageSkill(const std::string& name, int order) {
+  Skill skill;
+  skill.set_name(name);
+  skill.set_job_advancement(JOB_ADVANCEMENT_CLERIC);
+  skill.set_max_level(10);
+  skill.set_skill_order(order);
+  return skill;
+}
+
+std::vector<std::string> NamesOf(const std::vector<const Skill*>& page) {
+  std::vector<std::string> names;
+  for (const Skill* skill : page) {
+    names.push_back(skill->name());
+  }
+  return names;
+}
+
+// A Vengeance form takes the row of the skill it replaces -- the same place in
+// the book -- and only while its switch is on. Off, it is not on the page at
+// all.
+TEST(SkillsForAdvancementTest, TheSwitchDecidesWhichFormIsListed) {
+  Skill form = PageSkill("Angelic Wrath", 2);
+  form.set_replaces_skill_name("Heal");
+  form.set_toggle_skill_name("Righteously Indignant");
+  std::map<std::string, Skill> catalog = {
+      {"bless", PageSkill("Bless", 1)},
+      {"heal", PageSkill("Heal", 2)},
+      {"holy_arrow", PageSkill("Holy Arrow", 3)},
+      {"angelic_wrath", form}};
+
+  EXPECT_EQ(NamesOf(SkillsForAdvancement(catalog, JOB_ADVANCEMENT_CLERIC)),
+            (std::vector<std::string>{"Bless", "Heal", "Holy Arrow"}));
+  EXPECT_EQ(
+      NamesOf(SkillsForAdvancement(catalog, JOB_ADVANCEMENT_CLERIC,
+                                   /*hyper=*/false, {"Righteously Indignant"})),
+      (std::vector<std::string>{"Bless", "Angelic Wrath", "Holy Arrow"}));
+}
+
+TEST(FormatEquipSetTest, NamesEverySet) {
+  EXPECT_EQ(FormatEquipSet(EQUIP_SET_NAME_FROZEN), "Frozen Set");
+  EXPECT_EQ(FormatEquipSet(EQUIP_SET_NAME_BOSS_ACCESSORY),
+            "Boss Accessory Set");
+  EXPECT_EQ(FormatEquipSet(EQUIP_SET_NAME_UNSPECIFIED), "");
+}
+
+// --- Inner Ability lines ---
+
+// Flat for a flat line, a percent sign for a percentage, and the two Max HP
+// lines told apart by the value rather than by the name.
+TEST(AbilityLineTextTest, NamesAndValuesEveryKindOfLine) {
+  AbilityLine line;
+  line.set_type(ABILITY_LINE_TYPE_BOSS_DAMAGE);
+  line.set_rank(ABILITY_RANK_LEGENDARY);
+  EXPECT_EQ(AbilityLineName(line.type()), "Boss Damage");
+  EXPECT_EQ(AbilityLineValueText(line), "+20%");
+
+  line.set_type(ABILITY_LINE_TYPE_MAX_HP);
+  EXPECT_EQ(AbilityLineName(line.type()), "Max HP");
+  EXPECT_EQ(AbilityLineValueText(line), "+600");
+
+  line.set_type(ABILITY_LINE_TYPE_MAX_HP_PCT);
+  EXPECT_EQ(AbilityLineName(line.type()), "Max HP");
+  EXPECT_EQ(AbilityLineValueText(line), "+20%");
+
+  line.set_type(ABILITY_LINE_TYPE_ATTACK_SPEED);
+  EXPECT_EQ(AbilityLineName(line.type()), "Attack Speed");
+  EXPECT_EQ(AbilityLineValueText(line), "+1");
+
+  EXPECT_EQ(AbilityLineName(ABILITY_LINE_TYPE_UNSPECIFIED), "");
+}
+
+}  // namespace
+}  // namespace ms

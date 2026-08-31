@@ -17,6 +17,7 @@
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"

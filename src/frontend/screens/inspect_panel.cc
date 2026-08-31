@@ -11,6 +11,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/arcane_force.h"
 #include "src/frontend/widgets/format.h"
+#include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/frontend/widgets/scroll_card.h"
 #include "src/item/item.h"

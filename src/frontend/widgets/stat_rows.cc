@@ -13,6 +13,7 @@
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/format.h"
+#include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"

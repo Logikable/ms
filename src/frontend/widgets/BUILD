@@ -64,6 +64,36 @@ cc_test(
 )
 
 cc_library(
+    name = "game_names",
+    srcs = ["game_names.cc"],
+    hdrs = ["game_names.h"],
+    deps = [
+        ":colors",
+        ":format",
+        "//src/character:hyper_stats",
+        "//src/character:inner_ability",
+        "//src/item",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:equip_set_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@ftxui//:screen",
+    ],
+)
+
+cc_test(
+    name = "game_names_test",
+    size = "small",
+    srcs = ["game_names_test.cc"],
+    deps = [
+        ":colors",
+        ":game_names",
+        "//src/protos:skill_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "keys",
     srcs = ["keys.cc"],
     hdrs = ["keys.h"],
@@ -92,15 +122,12 @@ cc_library(
     deps = [
         ":colors",
         ":marquee",
-        "//src/character:hyper_stats",
-        "//src/character:inner_ability",
         "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
         "//src/item",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
-        "//src/protos:equip_set_proto_cc",
         "//src/protos:item_proto_cc",
-        "//src/protos:skill_proto_cc",
         "@ftxui//:dom",
         "@ftxui//:screen",
     ],
@@ -138,6 +165,7 @@ cc_library(
         ":panel_util",
         "//src/character",
         "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
         "//src/item",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
@@ -171,6 +199,7 @@ cc_library(
         "//src/character",
         "//src/character:arcane_force",
         "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
     ],
@@ -205,6 +234,7 @@ cc_library(
         "//src/combat:constants",
         "//src/combat:damage",
         "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",
@@ -230,6 +260,7 @@ cc_test(
         ":colors",
         ":panel_util",
         "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
         "//src/frontend/widgets:keys",
         "@ftxui//:component",
         "@ftxui//:dom",

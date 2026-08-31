@@ -134,6 +134,7 @@ cc_test(
         "//src/frontend/screens:job_inspect_panel",
         "//src/frontend/screens:skill_inspect_panel",
         "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
         "//src/frontend/widgets:panel_util",
         "//src/frontend/widgets:text_columns",
         "//src/protos:equip_proto_cc",
@@ -155,6 +156,7 @@ cc_test(
     deps = [
         "//src:proto_loader",
         "//src/character",
+        "//src/frontend/widgets:game_names",
         "//src/frontend/widgets:panel_util",
         "//src/frontend/widgets:text_columns",
         "//src/item",

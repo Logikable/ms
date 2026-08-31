@@ -12,6 +12,7 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/confirm_prompt.h"
 #include "src/frontend/widgets/format.h"
+#include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
