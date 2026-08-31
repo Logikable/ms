@@ -1,0 +1,11 @@
+# A currency rather than litter: it sells for nothing, and the shop asks for it
+# by the mark below instead of by meso. The triangle says which stage of the
+# game it belongs to and the colour which piece it buys, so one glyph reads on
+# both axes.
+name: "Cygnus Shoulder Token"
+category: ITEM_CATEGORY_ETC
+description:
+  "A feather from the Empress's own wing. The shop trades one for any "
+  "Cygnus shoulder."
+currency_mark: "▲"
+currency_color: CURRENCY_COLOR_PURPLE

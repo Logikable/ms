@@ -37,9 +37,10 @@ inline const ftxui::Color kTheme = ftxui::Color::RGB(100, 150, 200);
 inline const ftxui::Color kYellow = ftxui::Color::RGB(255, 210, 50);
 inline const ftxui::Color kGray = ftxui::Color::RGB(100, 100, 100);
 
-// Stat source breakdown in the inspect panel, and a skill list's auto-attack
-// tag. Far enough from the gold beside it that the two tags cannot be read as
-// shades of each other.
+// Stat source breakdown in the inspect panel, a skill list's auto-attack tag,
+// and the mark a shoulder's price is asked in. Far enough from the gold beside
+// it that the two tags cannot be read as shades of each other, and cool where
+// the other two marks are warm and blue.
 inline const ftxui::Color kPurple = ftxui::Color::RGB(173, 163, 255);
 // A skill list's attack tag, and the Star Force share of a stat.
 inline const ftxui::Color kGold = ftxui::Color::RGB(255, 198, 50);

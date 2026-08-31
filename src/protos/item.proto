@@ -26,6 +26,7 @@ enum CurrencyColor {
   CURRENCY_COLOR_UNSPECIFIED = 0;
   CURRENCY_COLOR_THEME = 1;
   CURRENCY_COLOR_ORANGE = 2;
+  CURRENCY_COLOR_PURPLE = 3;
 }
 
 // Static definition of a stackable item type. Loaded from data/items textprotos

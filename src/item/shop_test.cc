@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <set>
@@ -194,7 +195,8 @@ TEST(ShopTest, TheTokenShelvesHoldWhatATokenBuys) {
   std::vector<std::string> weapons = ShopWeaponStock(equips, kPaidInTokens);
   std::vector<std::string> worn = ShopEquipStock(equips, kPaidInTokens);
   EXPECT_EQ(weapons.size(), 10u) << "one Frozen weapon per type";
-  EXPECT_EQ(worn.size(), 10u) << "one Frozen off-hand per branch";
+  EXPECT_EQ(worn.size(), 14u)
+      << "one Frozen off-hand per branch, and one Cygnus shoulder per branch";
   for (const std::vector<std::string>& shelf : {weapons, worn}) {
     for (const std::string& key : shelf) {
       const EquipPrototype& proto = equips.at(key);
@@ -209,16 +211,33 @@ TEST(ShopTest, TheTokenShelvesHoldWhatATokenBuys) {
   }
 }
 
-// The tokens buy the tier above everything the shop sells, so the two shelves
-// never offer the same level twice.
-TEST(ShopTest, TheTokenTierIsAboveEveryMesoTier) {
+// A token buys the tier above everything meso reaches for the same slot, so
+// the two shelves never offer one slot twice and a token is never the lesser
+// buy. Asked per slot rather than over the whole shop: the meso shelf sells a
+// level 140 ring beside off-hands that stop at 100.
+TEST(ShopTest, ATokenTierIsAboveEveryMesoTierOfItsSlot) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
-  for (const std::string& key : ShopWeaponStock(equips, kPaidInTokens)) {
-    EXPECT_EQ(equips.at(key).required_level(), 120) << key;
+  std::map<EquipSlot, int> highest;
+  for (const std::vector<std::string>& shelf :
+       {ShopWeaponStock(equips, kPaidInMeso),
+        ShopEquipStock(equips, kPaidInMeso)}) {
+    for (const std::string& key : shelf) {
+      const EquipPrototype& proto = equips.at(key);
+      highest[proto.equip_slot()] =
+          std::max(highest[proto.equip_slot()], proto.required_level());
+    }
   }
-  for (const std::string& key : ShopEquipStock(equips, kPaidInTokens)) {
-    EXPECT_EQ(equips.at(key).required_level(), 120) << key;
+  int checked = 0;
+  for (const std::vector<std::string>& shelf :
+       {ShopWeaponStock(equips, kPaidInTokens),
+        ShopEquipStock(equips, kPaidInTokens)}) {
+    for (const std::string& key : shelf) {
+      ++checked;
+      const EquipPrototype& proto = equips.at(key);
+      EXPECT_GT(proto.required_level(), highest[proto.equip_slot()]) << key;
+    }
   }
+  EXPECT_GT(checked, 0) << "nothing is bought with a token";
 }
 
 ItemPrototype MakeStackable(const std::string& name, ItemCategory category,

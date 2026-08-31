@@ -397,6 +397,37 @@ TEST(EquipDataTest, EveryTokenPriceNamesATokenThatExists) {
   EXPECT_GT(seen, 0) << "nothing in the catalog is bought with a token";
 }
 
+// The token shelf's second stage. Cygnus drops one token and four shoulders
+// answer to it, one per branch that plays the game -- a branch left out is one
+// whose clear buys nothing, and a second shoulder for a branch is a choice
+// between two identical pieces.
+TEST(EquipDataTest, EveryBranchHasACygnusShoulder) {
+  std::map<EquipJobCategory, std::string> shoulder;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.equip_slot() != EQUIP_SLOT_SHOULDER || proto.token_price() <= 0) {
+      continue;
+    }
+    ASSERT_EQ(proto.equip_job_categories_size(), 1)
+        << entry.first << " is a shoulder for more than one branch";
+    EquipJobCategory branch = proto.equip_job_categories(0);
+    EXPECT_TRUE(shoulder.emplace(branch, entry.first).second)
+        << entry.first << " and " << shoulder[branch]
+        << " are both the shoulder for " << EquipJobCategory_Name(branch);
+    EXPECT_EQ(proto.required_level(), 140) << entry.first;
+    EXPECT_EQ(proto.token_item(), "cygnus_shoulder_token") << entry.first;
+  }
+  const std::vector<EquipJobCategory> kBranches = {
+      EQUIP_JOB_CATEGORY_WARRIOR, EQUIP_JOB_CATEGORY_MAGICIAN,
+      EQUIP_JOB_CATEGORY_BOWMAN, EQUIP_JOB_CATEGORY_THIEF};
+  for (EquipJobCategory branch : kBranches) {
+    EXPECT_EQ(shoulder.count(branch), 1u)
+        << EquipJobCategory_Name(branch) << " has no Cygnus shoulder";
+  }
+  EXPECT_EQ(shoulder.size(), kBranches.size());
+}
+
 // One tier, one price. Every weapon a level opens costs the same, so the choice
 // between branches is never a choice of what the player can afford -- and a
 // mistyped price cannot hide among items nobody compares it with.
@@ -626,9 +657,10 @@ TEST(EquipDataTest, EverySetTierLeverHasARowOnTheInspectScreen) {
 
 // The accessories are boss rewards, and a boss is fought by everybody. One
 // written for a branch would be a piece of the set that a whole class can
-// never wear, and the set has no second route to that slot. The shoulderpad
-// counts here too: GMS scrolls it with the armour, but it drops from a boss
-// and belongs to the same set.
+// never wear. The shoulderpad counts here too: GMS scrolls it with the armour,
+// but it comes off a boss and belongs to the same set. The Cygnus shoulders
+// are the one exception, and they are one apiece rather than a gap: the shelf
+// they sit on is checked branch by branch above.
 TEST(EquipDataTest, AccessoriesAreUniversalAndUpgradeable) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -641,8 +673,10 @@ TEST(EquipDataTest, AccessoriesAreUniversalAndUpgradeable) {
     }
     ++seen;
     ASSERT_EQ(proto.equip_job_categories_size(), 1) << entry.first;
-    EXPECT_EQ(proto.equip_job_categories(0), EQUIP_JOB_CATEGORY_UNIVERSAL)
-        << entry.first << " is not worn by every job";
+    if (proto.token_price() <= 0) {
+      EXPECT_EQ(proto.equip_job_categories(0), EQUIP_JOB_CATEGORY_UNIVERSAL)
+          << entry.first << " is not worn by every job";
+    }
     EXPECT_GT(proto.upgrade_slots(), 0) << entry.first << " has no slots";
     EXPECT_TRUE(Supports(proto, UPGRADE_SCROLL)) << entry.first;
     EXPECT_TRUE(Supports(proto, UPGRADE_STAR_FORCE)) << entry.first;

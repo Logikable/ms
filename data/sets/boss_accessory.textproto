@@ -42,7 +42,13 @@ members {
 }
 members {
   slot: EQUIP_SLOT_SHOULDER
-  items { name: "Royal Black Metal Shoulder" }
+  items {
+    name: "Royal Black Metal Shoulder"
+    name: "Lionheart Battle Shoulder"
+    name: "Dragon Tail Mage Shoulder"
+    name: "Falcon Wing Sentinel Shoulder"
+    name: "Raven Horn Chaser Shoulder"
+  }
 }
 members {
   slot: EQUIP_SLOT_BELT

@@ -203,9 +203,9 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
   EXPECT_EQ(third.character.equipped().count(EQUIP_SLOT_FACE_ACCESSORY), 0u);
 
   // At the cap it wears all nine slots the Boss Accessory Set spans, and where
-  // a later boss drops an alternate for a slot an earlier one filled, the
-  // later piece is the one worn. The second pendant slot takes the one the
-  // first does not.
+  // a later piece is an alternate for a slot an earlier one filled, the later
+  // one is worn. The second pendant slot takes the one the first does not, and
+  // the shoulder is the one of the four Cygnus sells that names this branch.
   GameState fourth = Workbench(JOB_ADVANCEMENT_DARK_KNIGHT);
   const std::map<EquipSlot, EquipInstance>& worn = fourth.character.equipped();
   const std::map<EquipSlot, std::string> kExpected = {
@@ -216,7 +216,7 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
       {EQUIP_SLOT_PENDANT, "Chaos Horntail Necklace"},
       {EQUIP_SLOT_PENDANT_2, "Dominator Pendant"},
       {EQUIP_SLOT_EARRINGS, "Will o' the Wisps"},
-      {EQUIP_SLOT_SHOULDER, "Royal Black Metal Shoulder"},
+      {EQUIP_SLOT_SHOULDER, "Lionheart Battle Shoulder"},
       {EQUIP_SLOT_BELT, "Golden Clover Belt"},
       {EQUIP_SLOT_BADGE, "Crystal Ventus Badge"}};
   for (const std::pair<const EquipSlot, std::string>& want : kExpected) {

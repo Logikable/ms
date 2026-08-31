@@ -157,11 +157,15 @@ class FloatingNode : public ftxui::Node {
 }  // namespace
 
 ftxui::Color MarkColor(CurrencyColor color) {
+  static_assert(CurrencyColor_ARRAYSIZE == 4,
+                "a new currency colour needs a colour to draw its mark in");
   switch (color) {
     case CURRENCY_COLOR_THEME:
       return kTheme;
     case CURRENCY_COLOR_ORANGE:
       return kOrange;
+    case CURRENCY_COLOR_PURPLE:
+      return kPurple;
     default:
       return kTheme;
   }

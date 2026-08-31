@@ -1,0 +1,20 @@
+name: "Dragon Tail Mage Shoulder"
+required_level: 140
+base_stats {
+  str: 11
+  dex: 11
+  int: 11
+  luk: 11
+  attack: 7
+  magic_attack: 7
+  def: 100
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_SHOULDER
+upgrade_slots: 1
+token_item: "cygnus_shoulder_token"
+token_price: 1
+# Bought with the token Cygnus drops, never with meso, so no shop price sets
+# this. Cygnus drops one token a day and four shoulders answer to it, one per
+# branch: the piece is chosen at the shelf rather than by what fell.
+sell_price: 15000000

@@ -132,8 +132,9 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
     case JOB_SNIPER:
       return {"dark_neschere", "true_shot", "titanium_arrow_for_crossbow"};
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
-    case JOB_FIRE_POISON_ARCH_MAGE:
       return {"frozen_staff", "frozen_metallic_book"};
+    case JOB_FIRE_POISON_ARCH_MAGE:
+      return {"frozen_staff", "frozen_rusty_book"};
     case JOB_BISHOP:
       return {"frozen_staff", "frozen_white_gold_book"};
     case JOB_NIGHT_LORD:
@@ -275,8 +276,10 @@ void GiveEquip(GameState& state, const std::string& name,
 
 // Puts each of `names` on, from the row it lands on, so a Rogue's three reach
 // three slots -- and whatever a later one displaces goes back to the bag for
-// the tester to swap in. A piece the character is too low to wear is handed
-// over anyway, and stays in the bag until they are.
+// the tester to swap in. A piece the character is too low to wear, or whose
+// branch is not theirs, is handed over anyway and stays in the bag: the four
+// Cygnus shoulders are one slot fought over by four branches, and Equip itself
+// asks neither question.
 void WearAll(GameState& state, const std::vector<std::string>& names,
              const TestEquips& equips) {
   for (const std::string& name : names) {
@@ -288,7 +291,8 @@ void WearAll(GameState& state, const std::vector<std::string>& names,
     int row = static_cast<int>(state.character.inventory().size());
     GiveEquip(state, name, equips);
     if (static_cast<int>(state.character.inventory().size()) > row &&
-        state.character.MeetsLevel(it->second)) {
+        state.character.MeetsLevel(it->second) &&
+        state.character.MeetsJob(it->second)) {
       state.character.Equip(row);
     }
   }
@@ -330,9 +334,19 @@ std::vector<std::string> BossAccessories() {
 // rather than bought, like everything else here: the workbench is a character
 // who already went shopping. The Meister Ring asks for 140, which a 3rd job
 // carries rather than wears.
+//
+// The four Cygnus shoulders come last, after the boss drop they supersede:
+// each names one branch, so whichever the workbench is wears one of them and
+// carries the other three.
 std::vector<std::string> ShopAccessories() {
-  return {"lightning_god_ring", "meister_ring", "gold_maple_leaf_emblem",
-          "master_adventurer"};
+  return {"lightning_god_ring",
+          "meister_ring",
+          "gold_maple_leaf_emblem",
+          "master_adventurer",
+          "lionheart_battle_shoulder",
+          "dragon_tail_mage_shoulder",
+          "falcon_wing_sentinel_shoulder",
+          "raven_horn_chaser_shoulder"};
 }
 
 // Passed as `unspent_stage` to spend every point the climb earns.
