@@ -66,6 +66,19 @@ cc_library(
 )
 
 sim_binary(
+    name = "ability_sim",
+    srcs = ["ability_sim.cc"],
+    deps = [
+        "//src/character:inner_ability",
+        "//src/protos:character_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
+    ],
+)
+
+sim_binary(
     name = "boss_sim",
     srcs = ["boss_sim.cc"],
     deps = [
