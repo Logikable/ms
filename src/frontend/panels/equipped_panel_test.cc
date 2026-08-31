@@ -140,12 +140,13 @@ TEST_F(EquippedPanelTest, ShowsEmptyWhenNothingEquipped) {
             std::string::npos);
 }
 
-TEST_F(EquippedPanelTest, ShowsEquippedItemName) {
+TEST_F(EquippedPanelTest, ShowsTheEquippedItemAndTheSlotItIsIn) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   EquippedPanel panel(c_, account_, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Sword"),
-            std::string::npos);
+  std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
+  EXPECT_NE(rendered.find("Sword"), std::string::npos);
+  EXPECT_NE(rendered.find("Weapon"), std::string::npos);
 }
 
 // A staff carries weapon and magic attack both; which one the row shows is the
@@ -346,14 +347,6 @@ TEST_F(EquippedPanelTest, ShowsColumnHeader) {
   EXPECT_NE(rendered.find("Equip Slot"), std::string::npos);
   EXPECT_NE(rendered.find("Scroll"), std::string::npos);
   EXPECT_NE(rendered.find("Star Force"), std::string::npos);
-}
-
-TEST_F(EquippedPanelTest, ShowsEquipSlotName) {
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.Equip(0);
-  EquippedPanel panel(c_, account_, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Weapon"),
-            std::string::npos);
 }
 
 TEST_F(EquippedPanelTest, SelectedSlotReturnsEquippedSlot) {

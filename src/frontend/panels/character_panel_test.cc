@@ -1401,26 +1401,16 @@ TEST_F(CharacterPanelTest, TheHighlightFollowsTheSelectedColumn) {
   EXPECT_TRUE(IsInverted(comp, "Slash Blast"));
   EXPECT_FALSE(IsInverted(comp, "[+]"));
 
-  comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
-  EXPECT_FALSE(IsInverted(comp, "Slash Blast"));
-  EXPECT_TRUE(IsInverted(comp, "[+]"));
-}
-
-// Enter on the name opens the skill, so the highlight stops at the skill. The
-// level beside it is a fact about the row, not a second thing to press.
-TEST_F(CharacterPanelTest, TheHighlightStopsAtTheEndOfTheName) {
-  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
-  ftxui::Component comp = panel.MakeComponent();
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
-  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
-  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar -> skill rows
-
-  // Eleven for the name, then the padding holding the column open and the
+  // Enter on the name opens the skill, so the highlight stops at the end of
+  // it: eleven for the name, then the padding holding the column open and the
   // level beyond it -- neither of which Enter reaches.
   EXPECT_EQ(InversionMask(comp, "Slash Blast           0"),
             "11111111111"
             "000000000000");
+
+  comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
+  EXPECT_FALSE(IsInverted(comp, "Slash Blast"));
+  EXPECT_TRUE(IsInverted(comp, "[+]"));
 }
 
 // A maxed skill with no SP behind it dims its [+], but the name is still a
@@ -1819,20 +1809,15 @@ TEST_F(CharacterPanelTest, NoScrollBarOverABookThatFits) {
 
 // --- The username row ---
 
-TEST_F(CharacterPanelTest, TheNameRowStartsOnTheInvitation) {
+TEST_F(CharacterPanelTest, TheNameRowIsAnInvitationUntilUpReachesIt) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
   CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent();
   EXPECT_TRUE(OnScreen(comp, kDefaultUsername));
   EXPECT_TRUE(IsDim(comp, kDefaultUsername))
       << "dim while it is an invitation rather than a name";
-}
-
-TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheName) {
-  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
-  CharacterPanel panel(c, account_, panel_focus_);
-  ftxui::Component comp = panel.MakeComponent();
   EXPECT_FALSE(IsInverted(comp, kDefaultUsername));
+
   comp->OnEvent(ftxui::Event::ArrowUp);
   EXPECT_TRUE(IsInverted(comp, kDefaultUsername));
 }

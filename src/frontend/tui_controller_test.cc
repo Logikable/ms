@@ -147,6 +147,20 @@ class TuiControllerTest : public testing::Test {
     state_->character.Equip(state_->character.inventory().size() - 1);
   }
 
+  // A sword on the character and the equip panel drawn over it, which is what
+  // fills the panel's row list. The starting point for every test that opens
+  // the equip menu.
+  void WearASwordAndDraw() {
+    HoldASword();
+    RenderEquipPanel();
+  }
+
+  // A sword in the bag instead, with the cursor on the panel holding it.
+  void BagASword() {
+    state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+    panel_focus_ = kInventoryPanel;
+  }
+
   // Runs the fight in progress until it is over, however it ends. The run
   // outlives the fight -- it is held behind whatever panel ended it -- so this
   // waits on the screen rather than on in_boss_fight().
@@ -950,22 +964,8 @@ TEST_F(TuiControllerTest, ArrowDownInItemMenuAdvancesMenuSelection) {
   EXPECT_EQ(equip_panel_->menu().selected(), 1);
 }
 
-TEST_F(TuiControllerTest, InspectActionGoesToInspect) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
-
-  controller_->OpenEquipMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
-  controller_->OnEvent(ftxui::Event::Return);
-
-  EXPECT_EQ(controller_->screen(), kInspect);
-}
-
 TEST_F(TuiControllerTest, EscapeInInspectGoesToMain) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
@@ -978,9 +978,7 @@ TEST_F(TuiControllerTest, EscapeInInspectGoesToMain) {
 // The arrows read the card rather than closing it. Only Confirm and Cancel
 // leave, which is what the screen has always promised.
 TEST_F(TuiControllerTest, ArrowsInInspectScrollRatherThanLeave) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
@@ -995,9 +993,7 @@ TEST_F(TuiControllerTest, ArrowsInInspectScrollRatherThanLeave) {
 // A screen opens with the left half holding the arrows, whatever the last one
 // was left reading.
 TEST_F(TuiControllerTest, AnInspectScreenOpensOnItsLeftHalf) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1020,9 +1016,7 @@ TEST_F(TuiControllerTest, AnInspectScreenOpensOnItsLeftHalf) {
 // The scroll list keeps the arrows until Tab hands them over, and hands them
 // back the same way.
 TEST_F(TuiControllerTest, TabOnTheScrollScreenMovesToTheCard) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1048,9 +1042,7 @@ TEST_F(TuiControllerTest, TabOnTheScrollScreenMovesToTheCard) {
 // A card with room to spare is still a stop, and Shift+Tab walks the same
 // ring of two the other way.
 TEST_F(TuiControllerTest, ShiftTabOnTheScrollScreenCyclesThroughACardThatFits) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1069,39 +1061,24 @@ TEST_F(TuiControllerTest, ShiftTabOnTheScrollScreenCyclesThroughACardThatFits) {
 
 // --- Unequip ---
 
-TEST_F(TuiControllerTest, ReturnActionUnequipsFromEquipPanel) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+// Both panels used to shove focus at the other one when their own list ran
+// out, because an empty list left the panel unable to receive a key. Neither
+// does now, and the player keeps the cursor they were holding.
+TEST_F(TuiControllerTest, ReturnActionUnequipsAndKeepsFocus) {
+  WearASwordAndDraw();
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_TRUE(state_->character.equipped().empty());
   EXPECT_EQ(controller_->screen(), kMain);
-}
-
-// Both panels used to shove focus at the other one when their own list ran
-// out, because an empty list left the panel unable to receive a key. Neither
-// does now, and the player keeps the cursor they were holding.
-TEST_F(TuiControllerTest, UnequippingTheLastItemKeepsFocus) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
-
-  controller_->OpenEquipMenu();
-  controller_->OnEvent(ftxui::Event::Return);
-
-  ASSERT_TRUE(state_->character.equipped().empty());
   EXPECT_EQ(panel_focus_, kEquipPanel);
 }
 
 // --- Scroll via equip panel ---
 
 TEST_F(TuiControllerTest, ScrollFromTheEquipPanelOpensSelect) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1113,9 +1090,7 @@ TEST_F(TuiControllerTest, ScrollFromTheEquipPanelOpensSelect) {
 }
 
 TEST_F(TuiControllerTest, EscapeInScrollSelectGoesToItemMenu) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -1127,9 +1102,7 @@ TEST_F(TuiControllerTest, EscapeInScrollSelectGoesToItemMenu) {
 }
 
 TEST_F(TuiControllerTest, ScrollSelectAppliesAndShowsTheResult) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1150,9 +1123,7 @@ TEST_F(TuiControllerTest, ScrollSelectAppliesAndShowsTheResult) {
 }
 
 TEST_F(TuiControllerTest, ScrollResultStoresOutcome) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1170,9 +1141,7 @@ TEST_F(TuiControllerTest, ScrollResultStoresOutcome) {
 
 TEST_F(TuiControllerTest, NoSlotsShowsTheNoSlotsOutcome) {
   sword_.set_upgrade_slots(0);
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1189,9 +1158,7 @@ TEST_F(TuiControllerTest, NoSlotsShowsTheNoSlotsOutcome) {
 TEST_F(TuiControllerTest, StarForceOpensOnceTheSlotsAreSpent) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   sword_.set_upgrade_slots(1);
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   // Open menu while item still has 1 slot — Star Force should be disabled.
@@ -1215,9 +1182,7 @@ TEST_F(TuiControllerTest, StarForceOpensOnceTheSlotsAreSpent) {
 }
 
 TEST_F(TuiControllerTest, EnterOnAResultReturnsToSelect) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1233,9 +1198,7 @@ TEST_F(TuiControllerTest, EnterOnAResultReturnsToSelect) {
 }
 
 TEST_F(TuiControllerTest, EscapeInScrollResultGoesToScrollSelect) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1251,9 +1214,7 @@ TEST_F(TuiControllerTest, EscapeInScrollResultGoesToScrollSelect) {
 }
 
 TEST_F(TuiControllerTest, ASuccessSpendsAnUpgradeSlot) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1274,9 +1235,7 @@ TEST_F(TuiControllerTest, ASuccessSpendsAnUpgradeSlot) {
 TEST_F(TuiControllerTest, ScrollingSpendsItsTraces) {
   LevelTo(60);
   sword_.set_required_level(60);
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1297,9 +1256,7 @@ TEST_F(TuiControllerTest, ScrollingSpendsItsTraces) {
 // Pin is the second entry of the row's menu, and the pin it sets belongs to
 // the character rather than the screen -- so it is still there next time.
 TEST_F(TuiControllerTest, PinningFromTheMenuMarksTheCharacter) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -1323,9 +1280,7 @@ TEST_F(TuiControllerTest, PinningFromTheMenuMarksTheCharacter) {
 
 // Close is the way out of the menu that changes nothing.
 TEST_F(TuiControllerTest, CloseLeavesTheMenuWithoutScrolling) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1349,9 +1304,7 @@ TEST_F(TuiControllerTest, CloseLeavesTheMenuWithoutScrolling) {
 // Escape closes the menu rather than the screen behind it. Without this the
 // one key would back out of both at once.
 TEST_F(TuiControllerTest, EscapeClosesTheRowMenuAndStaysOnTheList) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -1371,9 +1324,7 @@ TEST_F(TuiControllerTest, EscapeClosesTheRowMenuAndStaysOnTheList) {
 
 TEST_F(TuiControllerTest, AFailedScrollStillCosts) {
   UseFailScroll();
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1394,9 +1345,7 @@ TEST_F(TuiControllerTest, AFailedScrollStillCosts) {
 TEST_F(TuiControllerTest, ScrollingWithoutTheTracesIsRefused) {
   LevelTo(60);
   sword_.set_required_level(60);
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(4);  // one short of the 5 a level 60 weapon costs at 100%
 
   controller_->OpenEquipMenu();
@@ -1419,9 +1368,7 @@ TEST_F(TuiControllerTest, ScrollingWithoutTheTracesIsRefused) {
 
 TEST_F(TuiControllerTest, FailedScrollStoresFailOutcome) {
   UseFailScroll();
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
   GiveTraces(100);
 
   controller_->OpenEquipMenu();
@@ -1438,8 +1385,7 @@ TEST_F(TuiControllerTest, FailedScrollStoresFailOutcome) {
 // --- Scroll via bag panel ---
 
 TEST_F(TuiControllerTest, BagScrollGoesToScrollSelect) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
 
   controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
@@ -1450,8 +1396,7 @@ TEST_F(TuiControllerTest, BagScrollGoesToScrollSelect) {
 }
 
 TEST_F(TuiControllerTest, BagScrollEscapeReturnsToTheMenu) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
 
   controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -1463,8 +1408,7 @@ TEST_F(TuiControllerTest, BagScrollEscapeReturnsToTheMenu) {
 }
 
 TEST_F(TuiControllerTest, BagScrollAppliesScrollToInventory) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
   GiveTraces(100);
 
   controller_->OpenInventoryMenu();
@@ -1482,8 +1426,7 @@ TEST_F(TuiControllerTest, BagScrollAppliesScrollToInventory) {
 }
 
 TEST_F(TuiControllerTest, BagScrollResultStoresOutcome) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
   GiveTraces(100);
 
   controller_->OpenInventoryMenu();
@@ -1501,8 +1444,7 @@ TEST_F(TuiControllerTest, BagScrollResultStoresOutcome) {
 
 TEST_F(TuiControllerTest, BagScrollWithNoSlotsShowsThatOutcome) {
   sword_.set_upgrade_slots(0);
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
 
   controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
@@ -1522,9 +1464,7 @@ TEST_F(TuiControllerTest, BagScrollWithNoSlotsShowsThatOutcome) {
 TEST_F(TuiControllerTest, HammerBuysASlotOffTheEquipMenu) {
   LevelTo(UnlockLevel(Feature::kHammer));
   state_->character.AddMeso(kGoldenHammerCost);
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
@@ -1547,9 +1487,7 @@ TEST_F(TuiControllerTest, HammerBuysASlotOffTheEquipMenu) {
 // dialog holds rather than closing as though something happened.
 TEST_F(TuiControllerTest, AnUnaffordableHammerChangesNothing) {
   LevelTo(UnlockLevel(Feature::kHammer));
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -1602,8 +1540,7 @@ TEST_F(TuiControllerTest, AFullyHammeredItemSaysSo) {
 TEST_F(TuiControllerTest, HammerBuysASlotOffTheBagMenu) {
   LevelTo(UnlockLevel(Feature::kHammer));
   state_->character.AddMeso(kGoldenHammerCost);
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
 
   controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
@@ -1779,52 +1716,36 @@ TEST_F(TuiControllerTest, NoInspectItemWhenNotInspecting) {
   EXPECT_EQ(controller_->inspect_item(), nullptr);
 }
 
-TEST_F(TuiControllerTest, BagInspectGoesToInspect) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+// The accessors resolve whichever half the player opened the modal from. The
+// controller settles that when the item is picked, so these cover both halves
+// of that decision reaching the right item back.
+TEST_F(TuiControllerTest, EquipInspectGoesToInspectOnTheWornItem) {
+  WearASwordAndDraw();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kInspect);
+  ASSERT_NE(controller_->inspect_item(), nullptr);
+  EXPECT_EQ(controller_->inspect_item(),
+            &state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
+}
+
+TEST_F(TuiControllerTest, BagInspectGoesToInspectOnTheBagItem) {
+  BagASword();
 
   controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_EQ(controller_->screen(), kInspect);
-  EXPECT_NE(controller_->inspect_item(), nullptr);
-}
-
-// The accessors resolve whichever half the player opened the modal from. The
-// controller settles that when the item is picked, so these cover both halves
-// of that decision reaching the right item back.
-
-TEST_F(TuiControllerTest, EquipInspectResolvesTheWornItem) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
-
-  controller_->OpenEquipMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
-  controller_->OnEvent(ftxui::Event::Return);
-
-  ASSERT_NE(controller_->inspect_item(), nullptr);
-  EXPECT_EQ(controller_->inspect_item(),
-            &state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
-}
-
-TEST_F(TuiControllerTest, BagInspectResolvesTheBagItem) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
-
-  controller_->OpenInventoryMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
-  controller_->OnEvent(ftxui::Event::Return);
-
   ASSERT_NE(controller_->inspect_item(), nullptr);
   EXPECT_EQ(controller_->inspect_item(), &state_->character.inventory()[0]);
 }
 
 TEST_F(TuiControllerTest, EquipScrollResolvesTheWornItem) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -1839,9 +1760,7 @@ TEST_F(TuiControllerTest, EquipScrollResolvesTheWornItem) {
 // is about -- the old code re-read panel_focus_ every time and would have
 // followed it.
 TEST_F(TuiControllerTest, MovingFocusDoesNotRepointAnOpenModal) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.Equip(0);
-  RenderEquipPanel();
+  WearASwordAndDraw();
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
@@ -1879,8 +1798,7 @@ TEST_F(TuiControllerTest, RecoveringATraceEndsOnAResultThatCloses) {
   destroyed.set_scroll_successes(2);
   destroyed.mutable_scroll_stats()->set_attack(5);
   state_->character.PickUp(std::make_unique<EquipTrace>(sword_, destroyed));
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
 
   // A trace offers Inspect and Recover and nothing else, so the entry is
   // walked to rather than counted to.
@@ -1910,8 +1828,7 @@ TEST_F(TuiControllerTest, TabOnTheRecoverScreenMovesBetweenTheCards) {
   destroyed.set_equip_name(sword_.name());
   destroyed.set_scroll_successes(2);
   state_->character.PickUp(std::make_unique<EquipTrace>(sword_, destroyed));
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
 
   controller_->OpenInventoryMenu();
   for (int i = 0; i < 8 && inventory_panel_->menu().selected() != kMenuRecover;
@@ -1930,8 +1847,7 @@ TEST_F(TuiControllerTest, TabOnTheRecoverScreenMovesBetweenTheCards) {
 }
 
 TEST_F(TuiControllerTest, BagSellOpensTheSellDialog) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
 
   controller_->OpenInventoryMenu();
   StepToSell(*controller_);
@@ -1944,8 +1860,7 @@ TEST_F(TuiControllerTest, BagSellOpensTheSellDialog) {
 // shop's shelf being what a mis-sale is undone by.
 TEST_F(TuiControllerTest, BagSellCanBeSteppedAwayFrom) {
   sword_.set_sell_price(900);
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
 
   controller_->OpenInventoryMenu();
   StepToSell(*controller_);
@@ -1960,8 +1875,7 @@ TEST_F(TuiControllerTest, BagSellCanBeSteppedAwayFrom) {
 
 TEST_F(TuiControllerTest, BagSellConfirmedTakesTheItemAndPays) {
   sword_.set_sell_price(900);
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
 
   controller_->OpenInventoryMenu();
   StepToSell(*controller_);
@@ -1975,8 +1889,7 @@ TEST_F(TuiControllerTest, BagSellConfirmedTakesTheItemAndPays) {
 
 TEST_F(TuiControllerTest, BagSellEscapeKeepsTheItem) {
   sword_.set_sell_price(900);
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
 
   controller_->OpenInventoryMenu();
   StepToSell(*controller_);
@@ -2056,8 +1969,7 @@ TEST_F(TuiControllerTest, MultiSellOpensOnTheRowItWasCalledFrom) {
 TEST_F(TuiControllerTest, MultiSellConfirmedSellsEverythingMarked) {
   sword_.set_sell_price(900);
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
   RenderInventoryPanel();
 
   controller_->OpenInventoryMenu();
@@ -2077,8 +1989,7 @@ TEST_F(TuiControllerTest, MultiSellConfirmedSellsEverythingMarked) {
 
 TEST_F(TuiControllerTest, MultiSellEscapeKeepsEverything) {
   sword_.set_sell_price(900);
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+  BagASword();
 
   controller_->OpenInventoryMenu();
   StepToMultiSell(*controller_);
@@ -2423,25 +2334,15 @@ TEST_F(TuiControllerTest, InspectingAShelfRowShowsTheItemThatLeft) {
 
 // --- Equip via bag panel ---
 
-TEST_F(TuiControllerTest, ReturnActionEquipsFromInventoryPanel) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
+TEST_F(TuiControllerTest, ReturnActionEquipsAndLeavesFocusWhereItWas) {
+  BagASword();
 
   controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_FALSE(state_->character.equipped().empty());
+  EXPECT_TRUE(state_->character.inventory().empty());
   EXPECT_EQ(controller_->screen(), kMain);
-}
-
-TEST_F(TuiControllerTest, EquippingTheLastItemLeavesFocusWhereItWas) {
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kInventoryPanel;
-
-  controller_->OpenInventoryMenu();
-  controller_->OnEvent(ftxui::Event::Return);
-
-  ASSERT_TRUE(state_->character.inventory().empty());
   EXPECT_EQ(panel_focus_, kInventoryPanel);
 }
 

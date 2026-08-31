@@ -130,18 +130,12 @@ TEST(WrappingListTest, LeavesTheStepsThroughTheMiddleToTheMenu) {
   EXPECT_EQ(selected, 0);
 }
 
-TEST(WrappingListTest, UpOffTheFirstRowLandsOnTheLast) {
+TEST(WrappingListTest, EitherEndRollsRoundToTheOther) {
   std::vector<std::string> entries = {"a", "b", "c"};
   int selected = 0;
   ftxui::Component list = WrappedMenu(entries, selected);
   EXPECT_TRUE(list->OnEvent(ftxui::Event::ArrowUp));
   EXPECT_EQ(selected, 2);
-}
-
-TEST(WrappingListTest, DownOffTheLastRowLandsOnTheFirst) {
-  std::vector<std::string> entries = {"a", "b", "c"};
-  int selected = 2;
-  ftxui::Component list = WrappedMenu(entries, selected);
   EXPECT_TRUE(list->OnEvent(ftxui::Event::ArrowDown));
   EXPECT_EQ(selected, 0);
 }

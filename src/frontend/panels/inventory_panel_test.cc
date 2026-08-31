@@ -886,21 +886,16 @@ TEST_F(InventoryPanelTest, EtcTabShowsOnlyEtcStacks) {
   EXPECT_EQ(rendered.find("Red Potion"), std::string::npos);
 }
 
-TEST_F(InventoryPanelTest, EmptyUseTabShowsPlaceholder) {
-  InventoryPanel panel(c_, account_, panel_focus_);
-  ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
-  EXPECT_NE(RenderComponent(comp).find("(empty)"), std::string::npos);
-}
-
 // The Equip tab has never drawn its column names over an empty bag, and the
 // stack tabs now match it: names label rows, so with no rows there is nothing
-// for them to label.
-TEST_F(InventoryPanelTest, EmptyUseTabShowsNoColumnHeader) {
+// for them to label -- only the placeholder.
+TEST_F(InventoryPanelTest, EmptyUseTabShowsAPlaceholderAndNoColumnHeader) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
-  EXPECT_EQ(RenderComponent(comp).find("Quantity"), std::string::npos);
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("(empty)"), std::string::npos);
+  EXPECT_EQ(rendered.find("Quantity"), std::string::npos);
 }
 
 TEST_F(InventoryPanelTest, EmptyEtcTabShowsNoColumnHeader) {

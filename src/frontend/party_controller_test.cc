@@ -206,6 +206,36 @@ class PartyControllerTest : public ::testing::Test {
     }));
   }
 
+  // A party of two, armed and ready, with the leader standing on the boss
+  // list. The three fight tests below all start here.
+  void ReadyParty(Client& leader, Client& guest) {
+    leader.Arm();
+    guest.Arm();
+    MakeParty(leader, guest);
+    guest.session.client().SetReady(true);
+    ASSERT_TRUE(WaitFor({&leader, &guest}, [&]() {
+      const Party& party = leader.session.Snapshot().party;
+      return party.members_size() == 2 && party.members(1).ready();
+    }));
+  }
+
+  // The leader takes them in, and both land in the arena.
+  void EnterTheFight(Client& leader, Client& guest) {
+    leader.controller->OnEvent(ftxui::Event::Escape);
+    leader.controller->OpenMenuEntry(MenuEntry::kBoss);
+    leader.controller->OnEvent(ftxui::Event::Return);
+    ASSERT_EQ(leader.controller->screen(), kBossConfirm);
+    leader.controller->OnEvent(ftxui::Event::Return);
+    // Both ends: the fight opens each screen off its own message.
+    ASSERT_TRUE(WaitFor(
+        {&leader, &guest},
+        [&]() {
+          return leader.controller->screen() == kBossFight &&
+                 guest.controller->screen() == kBossFight;
+        },
+        0.02));
+  }
+
   TestServer server_;
 };
 
@@ -466,29 +496,10 @@ TEST_F(PartyControllerTest, AMemberCannotTakeAFightOfTheirOwn) {
 TEST_F(PartyControllerTest, TheLeaderTakesThePartyIntoAFight) {
   std::unique_ptr<Client> leader = Connect("Dagger");
   std::unique_ptr<Client> guest = Connect("Wand");
-  leader->Arm();
-  guest->Arm();
-  MakeParty(*leader, *guest);
-  guest->session.client().SetReady(true);
-  ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
-    const Party& party = leader->session.Snapshot().party;
-    return party.members_size() == 2 && party.members(1).ready();
-  }));
-
-  leader->controller->OnEvent(ftxui::Event::Escape);
-  leader->controller->OpenMenuEntry(MenuEntry::kBoss);
-  leader->controller->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(leader->controller->screen(), kBossConfirm);
-  leader->controller->OnEvent(ftxui::Event::Return);
+  ReadyParty(*leader, *guest);
 
   // Both of them, wherever they were: the guest never left the party screen.
-  ASSERT_TRUE(WaitFor(
-      {leader.get(), guest.get()},
-      [&]() {
-        return leader->controller->screen() == kBossFight &&
-               guest->controller->screen() == kBossFight;
-      },
-      0.02));
+  EnterTheFight(*leader, *guest);
   ASSERT_NE(guest->controller->boss_run(), nullptr);
   const std::vector<FightMember>& members =
       guest->controller->boss_run()->members();
@@ -522,30 +533,12 @@ TEST_F(PartyControllerTest, TheLeaderTakesThePartyIntoAFight) {
 TEST_F(PartyControllerTest, ThePartyIsSeatedForTheFightAndNoLonger) {
   std::unique_ptr<Client> leader = Connect("Dagger");
   std::unique_ptr<Client> guest = Connect("Wand");
-  leader->Arm();
-  guest->Arm();
-  MakeParty(*leader, *guest);
-  guest->session.client().SetReady(true);
-  ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
-    const Party& party = leader->session.Snapshot().party;
-    return party.members_size() == 2 && party.members(1).ready();
-  }));
+  ReadyParty(*leader, *guest);
   // Standing in a party is not being in a fight, and buys nothing yet.
   EXPECT_TRUE(guest->state->party.empty());
 
-  leader->controller->OnEvent(ftxui::Event::Escape);
-  leader->controller->OpenMenuEntry(MenuEntry::kBoss);
-  leader->controller->OnEvent(ftxui::Event::Return);
-  leader->controller->OnEvent(ftxui::Event::Return);
-  // Both ends: the fight opens each screen off its own message, and each one
-  // seats its party as it does.
-  ASSERT_TRUE(WaitFor(
-      {leader.get(), guest.get()},
-      [&]() {
-        return guest->controller->screen() == kBossFight &&
-               leader->controller->screen() == kBossFight;
-      },
-      0.02));
+  // Each screen seats its party as the fight opens it.
+  EnterTheFight(*leader, *guest);
 
   // Everybody but themselves, rebuilt from the sheets they sent.
   ASSERT_EQ(guest->state->party.size(), 1u);
@@ -566,25 +559,8 @@ TEST_F(PartyControllerTest, ThePartyIsSeatedForTheFightAndNoLonger) {
 TEST_F(PartyControllerTest, OneWalkingOutLeavesTheFightToTheOther) {
   std::unique_ptr<Client> leader = Connect("Dagger");
   std::unique_ptr<Client> guest = Connect("Wand");
-  leader->Arm();
-  guest->Arm();
-  MakeParty(*leader, *guest);
-  guest->session.client().SetReady(true);
-  ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
-    const Party& party = leader->session.Snapshot().party;
-    return party.members_size() == 2 && party.members(1).ready();
-  }));
-  leader->controller->OnEvent(ftxui::Event::Escape);
-  leader->controller->OpenMenuEntry(MenuEntry::kBoss);
-  leader->controller->OnEvent(ftxui::Event::Return);
-  leader->controller->OnEvent(ftxui::Event::Return);
-  ASSERT_TRUE(WaitFor(
-      {leader.get(), guest.get()},
-      [&]() {
-        return guest->controller->screen() == kBossFight &&
-               leader->controller->screen() == kBossFight;
-      },
-      0.02));
+  ReadyParty(*leader, *guest);
+  EnterTheFight(*leader, *guest);
 
   // Escape raises the question, and the prompt opens on Cancel.
   guest->controller->OnEvent(ftxui::Event::Escape);
