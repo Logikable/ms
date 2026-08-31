@@ -10,21 +10,15 @@
 #include <vector>
 
 #include "src/game_state.h"
-#include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
-#include "tools/cpp/runfiles/runfiles.h"
+#include "src/testing/data_files.h"
 
 namespace ms {
 namespace {
 
-using bazel::tools::cpp::runfiles::Runfiles;
-
 std::map<std::string, EquipPrototype> LoadEquips() {
-  std::string err;
-  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
-  EXPECT_NE(runfiles, nullptr) << err;
-  return LoadTextProtoDir<EquipPrototype>(runfiles->Rlocation("ms/data/equip"));
+  return LoadTestData<EquipPrototype>("equip");
 }
 
 // A state holding the real equip catalog, so the starting gear is the gear the

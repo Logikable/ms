@@ -13,6 +13,9 @@
 #define MS_SRC_TESTING_PROTOTYPES_H_
 
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
+#include "src/protos/map.pb.h"
+#include "src/protos/mob.pb.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -34,6 +37,25 @@ Skill IronBody();
 // A passive granting one level's worth of every damage lever the stats tab
 // reports, plus two stages of attack speed.
 Skill LeverPassive();
+
+// A weak mob: one PlainSword hit kills it, worth 3 EXP, always drops a shell.
+Mob SnailMob();
+
+// The snail's drop, as the item catalog holds it.
+ItemPrototype GreenSnailShell();
+
+// A field of snails with plenty of spawn slots.
+MapData SnailMap();
+
+// A mob no starting character can kill or survive: far too much HP to chew
+// through, and an attack far past what their bare DEF can cancel.
+Mob OgreMob();
+
+// A field holding one of them.
+MapData OgreMap();
+
+// Town: somewhere to be sent back to, with nothing on it to fight.
+MapData HomeMap();
 
 }  // namespace ms
 

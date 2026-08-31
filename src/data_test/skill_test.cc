@@ -25,16 +25,13 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/text_columns.h"
-#include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
-#include "tools/cpp/runfiles/runfiles.h"
+#include "src/testing/data_files.h"
 
 namespace ms {
 namespace {
-
-using bazel::tools::cpp::runfiles::Runfiles;
 
 // What a job stage's levels pay out, indexed by stage, with the advancement
 // itself granting nothing. Levels 11-30 feed stage 1, 31-60 feed stage 2 and
@@ -191,10 +188,7 @@ bool RaisesOnlyABuff(const Skill& skill) {
 }
 
 std::map<std::string, Skill> LoadSkills() {
-  std::string err;
-  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
-  EXPECT_NE(runfiles, nullptr) << err;
-  return LoadTextProtoDir<Skill>(runfiles->Rlocation("ms/data/skills"));
+  return LoadTestData<Skill>("skills");
 }
 
 TEST(SkillDataTest, EverySkillBelongsToAnAdvancement) {

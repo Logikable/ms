@@ -12,42 +12,30 @@
 #include <vector>
 
 #include "src/frontend/screens/boss_fight_panel.h"
-#include "src/proto_loader.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/spawn.h"
-#include "tools/cpp/runfiles/runfiles.h"
+#include "src/testing/data_files.h"
 
 namespace ms {
 namespace {
 
-using bazel::tools::cpp::runfiles::Runfiles;
-
-std::unique_ptr<Runfiles> TestRunfiles() {
-  std::string err;
-  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
-  EXPECT_NE(runfiles, nullptr) << err;
-  return runfiles;
-}
-
 std::map<std::string, Boss> LoadBosses() {
-  return LoadTextProtoDir<Boss>(TestRunfiles()->Rlocation("ms/data/bosses"));
+  return LoadTestData<Boss>("bosses");
 }
 
 std::map<std::string, Mob> LoadMobs() {
-  return LoadTextProtoDir<Mob>(TestRunfiles()->Rlocation("ms/data/mobs"));
+  return LoadTestData<Mob>("mobs");
 }
 
 std::map<std::string, ItemPrototype> LoadItems() {
-  return LoadTextProtoDir<ItemPrototype>(
-      TestRunfiles()->Rlocation("ms/data/items"));
+  return LoadTestData<ItemPrototype>("items");
 }
 
 std::map<std::string, EquipPrototype> LoadEquips() {
-  return LoadTextProtoDir<EquipPrototype>(
-      TestRunfiles()->Rlocation("ms/data/equip"));
+  return LoadTestData<EquipPrototype>("equip");
 }
 
 TEST(BossDataTest, EveryPhaseSpawnsAKnownMob) {

@@ -11,23 +11,17 @@
 #include <utility>
 
 #include "src/item/spell_trace_cost.h"
-#include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
-#include "tools/cpp/runfiles/runfiles.h"
+#include "src/testing/data_files.h"
 
 namespace ms {
 namespace {
 
-using bazel::tools::cpp::runfiles::Runfiles;
-
 class ScrollDataTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    std::string err;
-    std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
-    ASSERT_NE(runfiles, nullptr) << err;
-    scrolls_ = LoadTextProtoDir<Scroll>(runfiles->Rlocation("ms/data/scrolls"));
+    scrolls_ = LoadTestData<Scroll>("scrolls");
     ASSERT_FALSE(scrolls_.empty());
   }
 

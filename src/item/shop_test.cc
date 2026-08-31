@@ -10,21 +10,15 @@
 #include <vector>
 
 #include "src/character/exp_table.h"
-#include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
-#include "tools/cpp/runfiles/runfiles.h"
+#include "src/testing/data_files.h"
 
 namespace ms {
 namespace {
 
-using bazel::tools::cpp::runfiles::Runfiles;
-
 std::map<std::string, EquipPrototype> LoadEquips() {
-  std::string err;
-  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
-  EXPECT_NE(runfiles, nullptr) << err;
-  return LoadTextProtoDir<EquipPrototype>(runfiles->Rlocation("ms/data/equip"));
+  return LoadTestData<EquipPrototype>("equip");
 }
 
 EquipPrototype MakeItem(const std::string& name, int level, int price) {
@@ -257,11 +251,8 @@ TEST(ShopEtcStockTest, CheapestFirstThenByName) {
 // The shipped catalog, so the trace reaching the shelf is asserted where a
 // missing shop_price would actually show up.
 TEST(ShopEtcStockTest, TheSpellTraceIsStocked) {
-  std::string err;
-  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
-  ASSERT_NE(runfiles, nullptr) << err;
   std::map<std::string, ItemPrototype> items =
-      LoadTextProtoDir<ItemPrototype>(runfiles->Rlocation("ms/data/items"));
+      LoadTestData<ItemPrototype>("items");
   std::vector<std::string> stock = ShopEtcStock(items);
   ASSERT_EQ(stock.size(), 1u) << "the Etc shelf holds more than the trace now";
   EXPECT_EQ(stock[0], "spell_trace");

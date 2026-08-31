@@ -169,10 +169,10 @@ cc_test(
     ],
     deps = [
         ":shop",
-        "//src:proto_loader",
         "//src/character:exp_table",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
+        "//src/testing:data_files",
         "@bazel_tools//tools/cpp/runfiles",
         "@googletest//:gtest_main",
     ],

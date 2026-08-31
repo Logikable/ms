@@ -106,6 +106,7 @@ cc_test(
         "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
+        "//src/testing:prototypes",
         "@googletest//:gtest_main",
     ],
 )

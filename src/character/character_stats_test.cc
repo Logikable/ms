@@ -11,17 +11,14 @@
 
 #include "src/character/inner_ability.h"
 #include "src/item/equip_instance.h"
-#include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/testing/data_files.h"
 #include "src/testing/prototypes.h"
-#include "tools/cpp/runfiles/runfiles.h"
 
 namespace ms {
 namespace {
-
-using bazel::tools::cpp::runfiles::Runfiles;
 
 // A level-`level` character with `hp` AP-allocated HP and enough 1st-job SP to
 // max anything the tests learn.
@@ -2181,13 +2178,9 @@ TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheWeaponItNames) {
 // The synthetic case below pins the rule; this pins that the rule reaches the
 // one skill written against it, through the real data on both sides.
 TEST_F(DerivedStatsTest, ABanditsShieldMasteryWaitsForTheScabbard) {
-  std::string err;
-  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
-  ASSERT_NE(runfiles, nullptr) << err;
-  std::map<std::string, Skill> skills =
-      LoadTextProtoDir<Skill>(runfiles->Rlocation("ms/data/skills"));
+  std::map<std::string, Skill> skills = LoadTestData<Skill>("skills");
   std::map<std::string, EquipPrototype> equips =
-      LoadTextProtoDir<EquipPrototype>(runfiles->Rlocation("ms/data/equip"));
+      LoadTestData<EquipPrototype>("equip");
   const Skill& mastery = skills.at("bandit_shield_mastery");
 
   Character proto;

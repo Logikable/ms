@@ -18,75 +18,17 @@
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/testing/prototypes.h"
 
 namespace ms {
 namespace {
 
-// A weak mob: one sword hit kills it, worth 3 EXP, always drops a shell.
-Mob SnailMob() {
-  Mob mob;
-  mob.set_name("Snail");
-  mob.set_level(1);
-  mob.set_max_hp(10);
-  mob.set_exp(3);
-  MobDrop* drop = mob.add_drops();
-  drop->set_item("green_snail_shell");
-  drop->set_per_kill(1.0);
-  return mob;
-}
-
-// The snail's drop item, as loaded into GameState.items.
-ItemPrototype GreenSnailShell() {
-  ItemPrototype item;
-  item.set_name("Green Snail Shell");
-  item.set_category(ITEM_CATEGORY_ETC);
-  return item;
-}
-
-// A map of just snails with plenty of spawn slots.
-MapData OneSnailMap() {
-  MapData map;
-  map.set_name("Snail Field");
-  Spawn* snail = map.add_spawns();
-  snail->set_mob("snail");
-  snail->set_count(6);
-  return map;
-}
-
-// The same snail, swinging hard enough to be felt through a starting
+// The shipped snail, swinging hard enough to be felt through a starting
 // character's DEF -- so a run that survives it survived something.
 Mob BitingSnailMob() {
   Mob mob = SnailMob();
   mob.set_attack(20);
   return mob;
-}
-
-// A mob no starting character can kill or survive: far too much HP to chew
-// through, and an attack far past what their bare DEF can cancel.
-Mob OgreMob() {
-  Mob mob;
-  mob.set_name("Ogre");
-  mob.set_level(1);
-  mob.set_max_hp(1000000);
-  mob.set_attack(200);
-  mob.set_exp(3);
-  return mob;
-}
-
-MapData OgreMap() {
-  MapData map;
-  map.set_name("Ogre Field");
-  Spawn* ogre = map.add_spawns();
-  ogre->set_mob("ogre");
-  ogre->set_count(1);
-  return map;
-}
-
-// Town: somewhere to be sent back to, with nothing on it to fight.
-MapData HomeMap() {
-  MapData map;
-  map.set_name("Maple Island");
-  return map;
 }
 
 // Equips a one-handed sword (100 weapon and magic attack) on the character.
@@ -131,7 +73,7 @@ void Farm(GameState& state, double seconds) {
 // hours of them. The tally is what a caller shows the player.
 TEST(AwardCombatRewardsTest, PaysABatchOfKillsAndTalliesThem) {
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
+                  {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   state.current_map = "field";
   EquipSword(state);
   CombatParams params = ComputeCombatParams(state);
@@ -155,7 +97,7 @@ TEST(AwardCombatRewardsTest, KillsPayHonorIntoTheTallyAndThePool) {
   Mob mob = SnailMob();
   mob.set_exp(0);
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", mob}}, {{"field", OneSnailMap()}});
+                  {{"snail", mob}}, {{"field", SnailMap()}});
   state.current_map = "field";
   EquipSword(state);
   CombatParams params = ComputeCombatParams(state);
@@ -174,7 +116,7 @@ TEST(AwardCombatRewardsTest, ABossBodyPaysNoExpMesoOrHonor) {
   Mob boss = SnailMob();
   boss.set_boss(true);
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", boss}}, {{"field", OneSnailMap()}});
+                  {{"snail", boss}}, {{"field", SnailMap()}});
   state.current_map = "field";
   EquipSword(state);
   CombatParams params = ComputeCombatParams(state);
@@ -194,7 +136,7 @@ TEST(AwardCombatRewardsTest, ABossBodyPaysNoExpMesoOrHonor) {
 // A full bag throws the rest away, and the tally says how many.
 TEST(AwardCombatRewardsTest, WhatTheBagCannotHoldIsCountedAsDiscarded) {
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
+                  {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   state.current_map = "field";
   EquipSword(state);
   CombatParams params = ComputeCombatParams(state);
@@ -212,7 +154,7 @@ TEST(AwardCombatRewardsTest, WhatTheBagCannotHoldIsCountedAsDiscarded) {
 TEST(AwardCombatRewardsTest, OneLinePerItemAcrossMobTypes) {
   Mob slime = SnailMob();
   slime.set_name("Slime");
-  MapData map = OneSnailMap();
+  MapData map = SnailMap();
   Spawn* second = map.add_spawns();
   second->set_mob("slime");
   second->set_count(6);
@@ -231,8 +173,7 @@ TEST(AwardCombatRewardsTest, OneLinePerItemAcrossMobTypes) {
 }
 
 TEST(AdvanceCombatTest, GrantsExpWhileFarming) {
-  GameState state({}, {}, {}, {{"snail", SnailMob()}},
-                  {{"field", OneSnailMap()}});
+  GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   state.current_map = "field";
   EquipSword(state);
 
@@ -242,7 +183,7 @@ TEST(AdvanceCombatTest, GrantsExpWhileFarming) {
 
 TEST(AdvanceCombatTest, AccruesDropsWhileFarming) {
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
+                  {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   state.current_map = "field";
   EquipSword(state);
 
@@ -267,8 +208,8 @@ TEST(AdvanceCombatTest, DropsEquipmentIntoTheEquipTab) {
   top.set_upgrade_slots(7);
 
   GameState state({{"frozen_top", top}}, {}, {}, {{"snail", mob}},
-                  {{"field", OneSnailMap()}}, {}, GameMode::kPlay,
-                  TestOptions{}, /*seed=*/5);
+                  {{"field", SnailMap()}}, {}, GameMode::kPlay, TestOptions{},
+                  /*seed=*/5);
   state.current_map = "field";
   EquipSword(state);
 
@@ -304,8 +245,8 @@ TEST(AdvanceCombatTest, AFullEquipTabLosesTheDrop) {
   top.set_equip_slot(EQUIP_SLOT_TOP);
 
   GameState state({{"frozen_top", top}}, {}, {}, {{"snail", mob}},
-                  {{"field", OneSnailMap()}}, {}, GameMode::kPlay,
-                  TestOptions{}, /*seed=*/5);
+                  {{"field", SnailMap()}}, {}, GameMode::kPlay, TestOptions{},
+                  /*seed=*/5);
   state.current_map = "field";
   EquipSword(state);
   while (state.character.RoomFor(top) > 0) {
@@ -325,7 +266,7 @@ TEST(AdvanceCombatTest, AnUnknownEquipDropsNothing) {
   drop->set_equip("no_such_item");
   drop->set_per_kill(1.0);
 
-  GameState state({}, {}, {}, {{"snail", mob}}, {{"field", OneSnailMap()}});
+  GameState state({}, {}, {}, {{"snail", mob}}, {{"field", SnailMap()}});
   state.current_map = "field";
   EquipSword(state);
 
@@ -334,8 +275,7 @@ TEST(AdvanceCombatTest, AnUnknownEquipDropsNothing) {
 }
 
 TEST(AdvanceCombatTest, AccruesMesoWhileFarming) {
-  GameState state({}, {}, {}, {{"snail", SnailMob()}},
-                  {{"field", OneSnailMap()}});
+  GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   state.current_map = "field";
   EquipSword(state);
 
@@ -346,8 +286,7 @@ TEST(AdvanceCombatTest, AccruesMesoWhileFarming) {
 // The trial's ceiling seen from the fight: no amount of farming carries a
 // character past it. The multiplier is only here to get there quickly.
 TEST(AdvanceCombatTest, FarmingStopsAtTheLevelCap) {
-  GameState state({}, {}, {}, {{"snail", SnailMob()}},
-                  {{"field", OneSnailMap()}});
+  GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   state.current_map = "field";
   // Big enough that one level at the top of the table falls inside the farm
   // below: the last one costs 571M, and a snail pays what a snail pays.
@@ -364,8 +303,7 @@ TEST(AdvanceCombatTest, FarmingStopsAtTheLevelCap) {
 }
 
 TEST(AdvanceCombatTest, SkipsFarmingWithoutWeapon) {
-  GameState state({}, {}, {}, {{"snail", SnailMob()}},
-                  {{"field", OneSnailMap()}});
+  GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   state.current_map = "field";
 
   int start_level = state.character.proto().level();
@@ -375,8 +313,7 @@ TEST(AdvanceCombatTest, SkipsFarmingWithoutWeapon) {
 }
 
 TEST(AdvanceCombatTest, NoOpWithoutCurrentMap) {
-  GameState state({}, {}, {}, {{"snail", SnailMob()}},
-                  {{"field", OneSnailMap()}});
+  GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   EquipSword(state);  // current_map left empty
 
   int start_level = state.character.proto().level();
@@ -404,7 +341,7 @@ int64_t EtcHeld(const GameState& state) {
 
 int64_t KillsFarmedAt(int level, double seconds) {
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
+                  {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   state.current_map = "field";
   LevelTo(state, level);
   EquipSword(state);
@@ -419,7 +356,7 @@ double MesoPerKillAt(int level) {
   Mob mob = SnailMob();
   mob.set_level(20);
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", mob}}, {{"field", OneSnailMap()}}, {},
+                  {{"snail", mob}}, {{"field", SnailMap()}}, {},
                   GameMode::kPlay, TestOptions{}, /*seed=*/3);
   state.current_map = "field";
   LevelTo(state, level);
@@ -465,7 +402,7 @@ TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
   // One seed across both runs: the purse is rolled, so two streams disagree on
   // it however little the bonus touches them.
   GameState plain({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}}, {},
+                  {{"snail", SnailMob()}}, {{"field", SnailMap()}}, {},
                   GameMode::kPlay, TestOptions{}, /*seed=*/9);
   plain.current_map = "field";
   LevelTo(plain, kTrialLevelCap - 1);
@@ -473,7 +410,7 @@ TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
   Farm(plain, 600.0);
 
   GameState boosted({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                    {{"snail", SnailMob()}}, {{"field", OneSnailMap()}}, {},
+                    {{"snail", SnailMob()}}, {{"field", SnailMap()}}, {},
                     GameMode::kPlay, TestOptions{}, /*seed=*/9);
   boosted.current_map = "field";
   LevelTo(boosted, kTrialLevelCap - 1);
@@ -504,7 +441,7 @@ TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
 
   // One seed across both runs, as above.
   GameState plain({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}},
+                  {{"snail", SnailMob()}}, {{"field", SnailMap()}},
                   {{"holy_symbol", symbol}}, GameMode::kPlay, TestOptions{},
                   /*seed=*/9);
   plain.current_map = "field";
@@ -514,7 +451,7 @@ TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
   Farm(plain, 600.0);
 
   GameState blessed({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                    {{"snail", SnailMob()}}, {{"field", OneSnailMap()}},
+                    {{"snail", SnailMob()}}, {{"field", SnailMap()}},
                     {{"holy_symbol", symbol}}, GameMode::kPlay, TestOptions{},
                     /*seed=*/9);
   blessed.current_map = "field";
@@ -550,7 +487,7 @@ TEST(AdvanceCombatTest, MesoMasteryPaysMesoAndNothingElse) {
   for (int pass = 0; pass < 2; ++pass) {
     // Both passes roll from the same stream: the drops are rolled now, so a
     // purse twice the size has to come from the bonus rather than from luck.
-    GameState state({}, {}, {}, {{"snail", mob}}, {{"field", OneSnailMap()}},
+    GameState state({}, {}, {}, {{"snail", mob}}, {{"field", SnailMap()}},
                     {{"meso_mastery", mastery}}, GameMode::kPlay, TestOptions{},
                     /*seed=*/7);
     state.current_map = "field";
@@ -598,7 +535,7 @@ TEST(AdvanceCombatTest, DyingCostsNothingButTheTrip) {
   GameState state(
       {}, {}, {{"green_snail_shell", GreenSnailShell()}},
       {{"snail", SnailMob()}, {"ogre", OgreMob()}},
-      {{"safe", OneSnailMap()}, {"field", OgreMap()}, {kHomeMap, HomeMap()}});
+      {{"safe", SnailMap()}, {"field", OgreMap()}, {kHomeMap, HomeMap()}});
   state.current_map = "safe";
   EquipSword(state);
   Farm(state, 600.0);
@@ -619,7 +556,7 @@ TEST(AdvanceCombatTest, SurvivableMapsDoNotSendThePlayerHome) {
   // this is the whole no-regeneration design standing up over time.
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", BitingSnailMob()}},
-                  {{"field", OneSnailMap()}, {kHomeMap, HomeMap()}});
+                  {{"field", SnailMap()}, {kHomeMap, HomeMap()}});
   state.current_map = "field";
   EquipSword(state);
 
@@ -642,7 +579,7 @@ TEST(AdvanceCombatTest, DropRatePaysMoreItemsAndMoreMeso) {
   std::map<std::string, ItemPrototype> items = {
       {"green_snail_shell", GreenSnailShell()}};
   std::map<std::string, Mob> mobs = {{"snail", snail}};
-  std::map<std::string, MapData> maps = {{"field", OneSnailMap()}};
+  std::map<std::string, MapData> maps = {{"field", SnailMap()}};
 
   GameState plain({}, {}, items, mobs, maps, {}, GameMode::kPlay, TestOptions{},
                   /*seed=*/17);

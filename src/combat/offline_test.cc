@@ -17,62 +17,6 @@
 namespace ms {
 namespace {
 
-// A weak mob: one sword hit kills it, worth 3 EXP, always drops a shell.
-Mob SnailMob() {
-  Mob mob;
-  mob.set_name("Snail");
-  mob.set_level(1);
-  mob.set_max_hp(10);
-  mob.set_exp(3);
-  MobDrop* drop = mob.add_drops();
-  drop->set_item("green_snail_shell");
-  drop->set_per_kill(1.0);
-  return mob;
-}
-
-ItemPrototype GreenSnailShell() {
-  ItemPrototype item;
-  item.set_name("Green Snail Shell");
-  item.set_category(ITEM_CATEGORY_ETC);
-  return item;
-}
-
-MapData SnailMap() {
-  MapData map;
-  map.set_name("Snail Field");
-  Spawn* snail = map.add_spawns();
-  snail->set_mob("snail");
-  snail->set_count(6);
-  return map;
-}
-
-// A mob no starting character can survive: far past what their bare DEF can
-// cancel, and too much HP to chew through before it lands enough hits.
-Mob OgreMob() {
-  Mob mob;
-  mob.set_name("Ogre");
-  mob.set_level(1);
-  mob.set_max_hp(1000000);
-  mob.set_attack(200);
-  mob.set_exp(3);
-  return mob;
-}
-
-MapData OgreMap() {
-  MapData map;
-  map.set_name("Ogre Field");
-  Spawn* ogre = map.add_spawns();
-  ogre->set_mob("ogre");
-  ogre->set_count(1);
-  return map;
-}
-
-MapData HomeMap() {
-  MapData map;
-  map.set_name("Maple Island");
-  return map;
-}
-
 void EquipSword(GameState& state) {
   EquipPrototype sword = PlainSword();
   state.character.PickUp(std::make_unique<EquipInstance>(sword));

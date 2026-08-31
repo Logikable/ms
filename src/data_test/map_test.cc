@@ -12,41 +12,29 @@
 
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/widgets/format.h"
-#include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
-#include "tools/cpp/runfiles/runfiles.h"
+#include "src/testing/data_files.h"
 
 namespace ms {
 namespace {
 
-using bazel::tools::cpp::runfiles::Runfiles;
-
-std::unique_ptr<Runfiles> TestRunfiles() {
-  std::string err;
-  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
-  EXPECT_NE(runfiles, nullptr) << err;
-  return runfiles;
-}
-
 std::map<std::string, Mob> LoadMobs() {
-  return LoadTextProtoDir<Mob>(TestRunfiles()->Rlocation("ms/data/mobs"));
+  return LoadTestData<Mob>("mobs");
 }
 
 std::map<std::string, MapData> LoadMaps() {
-  return LoadTextProtoDir<MapData>(TestRunfiles()->Rlocation("ms/data/maps"));
+  return LoadTestData<MapData>("maps");
 }
 
 std::map<std::string, ItemPrototype> LoadItems() {
-  return LoadTextProtoDir<ItemPrototype>(
-      TestRunfiles()->Rlocation("ms/data/items"));
+  return LoadTestData<ItemPrototype>("items");
 }
 
 std::map<std::string, EquipPrototype> LoadEquips() {
-  return LoadTextProtoDir<EquipPrototype>(
-      TestRunfiles()->Rlocation("ms/data/equip"));
+  return LoadTestData<EquipPrototype>("equip");
 }
 
 // A spawn naming no mob file is dropped by the loader, so the map quietly

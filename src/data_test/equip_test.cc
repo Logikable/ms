@@ -21,31 +21,22 @@
 #include "src/frontend/widgets/text_columns.h"
 #include "src/item/item.h"
 #include "src/item/projectile.h"
-#include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/skill.pb.h"
-#include "tools/cpp/runfiles/runfiles.h"
+#include "src/testing/data_files.h"
 
 namespace ms {
 namespace {
 
-using bazel::tools::cpp::runfiles::Runfiles;
-
 std::map<std::string, EquipPrototype> LoadEquips() {
-  std::string err;
-  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
-  EXPECT_NE(runfiles, nullptr) << err;
-  return LoadTextProtoDir<EquipPrototype>(runfiles->Rlocation("ms/data/equip"));
+  return LoadTestData<EquipPrototype>("equip");
 }
 
 std::map<std::string, ItemPrototype> LoadItems() {
-  std::string err;
-  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
-  EXPECT_NE(runfiles, nullptr) << err;
-  return LoadTextProtoDir<ItemPrototype>(runfiles->Rlocation("ms/data/items"));
+  return LoadTestData<ItemPrototype>("items");
 }
 
 // A projectile is ammunition, not a weapon a player invests in. Asserted over
@@ -452,10 +443,7 @@ TEST(EquipDataTest, StockedEquipsSellForATenthOfTheirPrice) {
 }
 
 std::map<std::string, EquipSet> LoadSets() {
-  std::string err;
-  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
-  EXPECT_NE(runfiles, nullptr) << err;
-  return LoadTextProtoDir<EquipSet>(runfiles->Rlocation("ms/data/sets"));
+  return LoadTestData<EquipSet>("sets");
 }
 
 // A set names its pieces by display name, and a name that matches nothing is a
