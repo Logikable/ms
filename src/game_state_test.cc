@@ -776,6 +776,16 @@ TEST(GrantLevelRewardsTest, NoSecondCopyForClimbingPastItAgain) {
   EXPECT_EQ(state.character.inventory().size(), 0);
 }
 
+// Honor is paid for every level in the span, long before there is anything to
+// spend it on: Inner Ability opens at 160 onto a pool the climb has filled.
+TEST(GrantLevelRewardsTest, EveryLevelInTheSpanPaysHonor) {
+  GameState state(SymbolCatalog(), {}, {}, {}, {});
+  GrantLevelRewards(state, 58, 61);
+  EXPECT_EQ(state.character.honor(), 700 + 800 + 800);
+  GrantLevelRewards(state, 61, 61);
+  EXPECT_EQ(state.character.honor(), 700 + 800 + 800);
+}
+
 TEST(GrantLevelRewardsTest, NothingBelowTwoHundred) {
   GameState state(SymbolCatalog(), {}, {}, {}, {});
   GrantLevelRewards(state, 1, 199);

@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "src/character/honor.h"
 #include "src/combat/test_authority.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -77,6 +78,7 @@ std::map<std::string, EquipPrototype> DropEquips() {
 Boss RewardingBoss(double mark_chance = 0.5) {
   Boss boss = TwoPhaseBoss();
   BossDifficulty* normal = boss.mutable_difficulties(0);
+  normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_meso(3062500);
   normal->set_exp(4611597);
   MobDrop* mark = normal->add_drops();
@@ -406,6 +408,11 @@ TEST(BossRunTest, AClearPaysTheMesoAndTheCertainDrop) {
   EXPECT_EQ(state->character.proto().meso(), 3062500);
   EXPECT_EQ(run.reward().meso, 3062500);
   EXPECT_EQ(run.reward().exp, 4611597);
+  EXPECT_EQ(run.reward().honor, kBossClearHonor);
+  // The prize, on top of what the levels the fight's EXP paid for are worth.
+  EXPECT_EQ(
+      state->character.honor(),
+      kBossClearHonor + HonorForLevels(1, state->character.proto().level()));
   ASSERT_EQ(run.reward().items.size(), 1u);
   EXPECT_EQ(run.reward().items[0].name, "Zakum's Soul Shard");
   EXPECT_EQ(run.reward().items[0].count, 1);
@@ -425,6 +432,21 @@ TEST(BossRunTest, TheRewardIsPaidOnlyOnce) {
   EXPECT_EQ(state->character.proto().meso(), 3062500);
   EXPECT_EQ(run.reward().items.size(), 2u);
   EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 1);
+}
+
+// The honor is the day's prize, so a fight the calendar does not hold back
+// pays none of it however often it is cleared.
+TEST(BossRunTest, AFightWithNoLockoutPaysNoHonor) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = RewardingBoss(/*mark_chance=*/0.0);
+  boss.mutable_difficulties(0)->clear_reset();
+  boss.mutable_difficulties(0)->clear_exp();  // so no level pays honor either
+  BossRun run("zakum", boss, 0);
+  RunToEnd(run, *state);
+
+  ASSERT_TRUE(run.won());
+  EXPECT_EQ(run.reward().honor, 0);
+  EXPECT_EQ(state->character.honor(), 0);
 }
 
 TEST(BossRunTest, AFightThatRanOutOfTimePaysNothing) {
@@ -718,9 +740,10 @@ TEST(BossRunTest, ASharedClearPaysEachOfThemAShare) {
   run.Advance(*state, 0.1);
   ASSERT_TRUE(run.won());
   EXPECT_EQ(run.share_count(), 2);
-  // Half the purse, and the whole of the EXP.
+  // Half the purse, and the whole of the EXP and the honor.
   EXPECT_EQ(run.reward().meso, boss.difficulties(0).meso() / 2);
   EXPECT_EQ(run.reward().exp, boss.difficulties(0).exp());
+  EXPECT_EQ(run.reward().honor, kBossClearHonor);
   // The drops are the authority's to deal. It dealt none, so none were paid,
   // certain though the table says the shard is.
   EXPECT_TRUE(run.reward().items.empty());

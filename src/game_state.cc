@@ -14,6 +14,7 @@
 #include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
+#include "src/character/honor.h"
 #include "src/character/job_name.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
@@ -589,6 +590,10 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
 }
 
 void GrantLevelRewards(GameState& state, int from_level, int to_level) {
+  // Paid for every level in the span, whether or not the character can spend
+  // it yet: Inner Ability opens at 160 onto a pool the climb has been filling
+  // all along.
+  state.character.AddHonor(HonorForLevels(from_level, to_level));
   if (from_level >= kArcaneRiverLevel || to_level < kArcaneRiverLevel) {
     return;
   }

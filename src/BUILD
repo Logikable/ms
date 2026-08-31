@@ -168,6 +168,7 @@ cc_library(
         "//src/character",
         "//src/character:arcane_force",
         "//src/character:exp_table",
+        "//src/character:honor",
         "//src/character:job_name",
         "//src/item",
         "//src/item:equip_instance",

@@ -85,6 +85,9 @@ struct BossRewardItem {
 struct BossReward {
   int64_t meso = 0;
   int64_t exp = 0;
+  // Paid only by a fight the calendar holds back. One a player can walk into
+  // as often as they like is not a daily prize.
+  int64_t honor = 0;
   std::vector<BossRewardItem> items;
 };
 

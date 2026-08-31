@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "src/character/exp_table.h"
+#include "src/character/honor.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/combat/loot.h"
@@ -148,10 +149,28 @@ TEST(AwardCombatRewardsTest, PaysABatchOfKillsAndTalliesThem) {
   EXPECT_EQ(tally.items[0].discarded, 0);
 }
 
+// A kill's honor is its own: no bonus lifts it, and nothing but the kills is
+// counted here -- the mob is worth no EXP, so no level pays honor over it.
+TEST(AwardCombatRewardsTest, KillsPayHonorIntoTheTallyAndThePool) {
+  Mob mob = SnailMob();
+  mob.set_exp(0);
+  GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", mob}}, {{"field", OneSnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+  CombatParams params = ComputeCombatParams(state);
+
+  RewardTally tally = AwardCombatRewards(state, params, {10000});
+
+  EXPECT_NEAR(tally.honor, 10000 * kMobHonorPerKill, 800);
+  EXPECT_EQ(tally.honor % kMobHonorPerDrop, 0);
+  EXPECT_EQ(state.character.honor(), tally.honor);
+}
+
 // A boss is paid for out of its fight's own table, so the body itself is
-// worth neither EXP nor meso however much its mob proto still carries. Its
-// drops are its own and still fall.
-TEST(AwardCombatRewardsTest, ABossBodyPaysNoExpOrMeso) {
+// worth neither EXP, meso nor honor however much its mob proto still carries.
+// Its drops are its own and still fall.
+TEST(AwardCombatRewardsTest, ABossBodyPaysNoExpMesoOrHonor) {
   Mob boss = SnailMob();
   boss.set_boss(true);
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
@@ -166,6 +185,8 @@ TEST(AwardCombatRewardsTest, ABossBodyPaysNoExpOrMeso) {
   EXPECT_EQ(state.character.proto().exp(), 0);
   EXPECT_EQ(tally.meso, 0);
   EXPECT_EQ(state.character.meso(), 0);
+  EXPECT_EQ(tally.honor, 0);
+  EXPECT_EQ(state.character.honor(), 0);
   ASSERT_EQ(tally.items.size(), 1u);
   EXPECT_EQ(tally.items[0].count, 1000);
 }

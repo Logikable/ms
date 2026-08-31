@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "src/character/character.h"
+#include "src/character/honor.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/combat/loot.h"
@@ -113,6 +114,13 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
       if (meso > 0) {
         character.AddMeso(meso);
         tally.meso += meso;
+      }
+      // Honor is the monster's own and nothing multiplies it -- neither the
+      // meso bonus, which buys nothing here, nor drop rate.
+      int64_t honor = RollMobHonor(kills[i], state.rng);
+      if (honor > 0) {
+        character.AddHonor(honor);
+        tally.honor += honor;
       }
     }
     for (const MobDrop& drop : mob.drops()) {

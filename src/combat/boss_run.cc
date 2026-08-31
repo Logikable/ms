@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/honor.h"
 #include "src/combat/combat.h"
 #include "src/combat/encounter.h"
 #include "src/combat/loot.h"
@@ -408,6 +409,13 @@ void BossRun::PayReward(GameState& state,
   reward_.meso = static_cast<int64_t>(chosen->meso() * share);
   if (reward_.meso > 0) {
     state.character.AddMeso(reward_.meso);
+  }
+  // The honor, like the EXP, is not divided: what a party splits is the
+  // purse, and everyone who beat the boss beat him. Held to the fights the
+  // reset gates, so a boss with no lockout cannot be run for it all day.
+  if (chosen->reset() != RESET_PERIOD_UNSPECIFIED) {
+    reward_.honor = kBossClearHonor;
+    state.character.AddHonor(reward_.honor);
   }
   reward_.exp = chosen->exp();
   if (reward_.exp > 0) {

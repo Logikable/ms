@@ -186,10 +186,14 @@ struct GameState {
   std::vector<CharacterInstance> party;
 };
 
-// Hands over whatever climbing from `from_level` to `to_level` grants out of
-// the catalogs. Reaching 200 is handed a Vanishing Journey Arcane Symbol,
-// which is the only one so far and the whole reason this exists: the character
-// cannot give themselves an item they have never heard of.
+// Hands over whatever climbing from `from_level` to `to_level` grants: the
+// honor every level pays, and whatever the catalogs owe. Reaching 200 is
+// handed a Vanishing Journey Arcane Symbol, which is the reason this takes the
+// whole state -- the character cannot give themselves an item they have never
+// heard of.
+//
+// Every site that can gain a level calls this, which is what keeps the honor
+// on the level rather than on the fight that happened to pay for it.
 //
 // A span rather than a level, because one idle stretch can carry a character
 // past several -- the same shape UpgradesUnlockedBetween has, and for the same
