@@ -19,6 +19,7 @@
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/character/honor.h"
+#include "src/character/job_name.h"
 #include "src/character/progression.h"
 #include "src/combat/combat.h"
 #include "src/frontend/keybinds.h"

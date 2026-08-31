@@ -55,7 +55,6 @@ cc_library(
         ":text_columns",
         "//src/character:hyper_stats",
         "//src/character:inner_ability",
-        "//src/character:job_name",
         "//src/item",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

@@ -13,7 +13,6 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/character/hyper_stats.h"
-#include "src/character/job_name.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/protos/character.pb.h"

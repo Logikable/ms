@@ -102,6 +102,7 @@ cc_library(
         "//src:account",
         "//src/character",
         "//src/character:hyper_stats",
+        "//src/character:job_name",
         "//src/character:progression",
         "//src/frontend/widgets:panel_util",
         "//src/frontend/widgets:stat_rows",
@@ -151,6 +152,7 @@ cc_library(
     hdrs = ["job_inspect_panel.h"],
     deps = [
         "//src/character",
+        "//src/character:job_name",
         "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",
         "//src/protos:character_proto_cc",
@@ -741,6 +743,7 @@ cc_library(
     hdrs = ["party_select_panel.h"],
     deps = [
         "//src/character",
+        "//src/character:job_name",
         "//src/frontend:types",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:item_menu",

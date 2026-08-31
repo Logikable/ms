@@ -7,6 +7,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
+#include "src/character/job_name.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_util.h"

@@ -120,6 +120,17 @@ cc_library(
     deps = ["//src/protos:character_proto_cc"],
 )
 
+cc_test(
+    name = "job_name_test",
+    size = "small",
+    srcs = ["job_name_test.cc"],
+    deps = [
+        ":job_name",
+        "//src/protos:character_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "job_branch",
     srcs = ["job_branch.cc"],

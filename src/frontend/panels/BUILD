@@ -9,6 +9,7 @@ cc_library(
     deps = [
         "//src/character",
         "//src/character:character_stats",
+        "//src/character:job_name",
         "//src/character:progression",
         "//src/combat:damage",
         "//src/frontend:panel_widths",
@@ -264,6 +265,7 @@ cc_library(
     srcs = ["advancement_popup_panel.cc"],
     hdrs = ["advancement_popup_panel.h"],
     deps = [
+        "//src/character:job_name",
         "//src/frontend/widgets:panel_util",
         "//src/protos:character_proto_cc",
         "@ftxui//:dom",

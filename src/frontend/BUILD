@@ -288,6 +288,7 @@ cc_library(
         "//src/character",
         "//src/character:exp_table",
         "//src/character:job_advancement",
+        "//src/character:job_name",
         "//src/character:progression",
         "//src/combat",
         "//src/combat:fight",
