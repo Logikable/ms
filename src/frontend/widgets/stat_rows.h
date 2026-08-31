@@ -38,13 +38,13 @@ inline StatLine StatRule() {
   return line;
 }
 
-// Every one of these reads the character through one of their two Hyper Stat
-// allocations, which is what the Farm/Boss tabs pick between. Farming is what
-// a caller with no tab of its own wants.
-
 // The combat stats, **most important first**. Every one the character has, so
 // this is the All Stats screen's list. A new stat goes where it belongs in
 // that order rather than on the end -- both callers drop the tail.
+//
+// `preset` picks which of the character's two Hyper Stat allocations is read,
+// which is what the Farm/Boss tabs choose between. Every list below takes it,
+// and farming is what a caller with no tab of its own wants.
 std::vector<StatLine> ExtraStatLines(const CharacterInstance& character,
                                      const std::map<std::string, Skill>& skills,
                                      StatPreset preset = StatPreset::kFarming);

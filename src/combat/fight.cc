@@ -556,22 +556,8 @@ double CombatSim::ScarBoost(const AttackOption& attack,
   return 1.0 + attack.scar_fd * share;
 }
 
-// What the state the enemies are already in multiplies this swing by. Two
-// readings, and they answer different questions: whether THIS monster is
-// afflicted, and how many burns stand on the WHOLE group.
-//
-// The count is the group's because that is what GMS means by "within a certain
-// range" -- eight monsters carrying one burn each are eight, and one boss
-// carrying four is four. So it is worth its cap on a map and only what the
-// rotation keeps alight on a boss, which is where GMS means it to be read.
-//
-// No credit goes with either. A swing that lights a burn already earns the
-// burn, and the drains ride the F/P's DoT swings, which the chooser was
-// picking anyway -- unlike the freeze, which nothing but the ice would ever
-// have bought. See FrozenCredit.
-// Burns standing across the whole group, which is what the drains count: a
-// monster carrying two of them is two, and eight carrying one apiece are
-// eight.
+// Burns standing across the whole group: a monster carrying two of them is
+// two, and eight carrying one apiece are eight.
 int CombatSim::BurnsAlight() const {
   int alight = 0;
   for (const QueuedMob& mob : queue_) {
@@ -584,6 +570,18 @@ int CombatSim::BurnsAlight() const {
   return alight;
 }
 
+// What the state the enemies are already in multiplies this swing by. The two
+// readings answer different questions: whether THIS monster is afflicted, and
+// how many burns stand on the WHOLE group.
+//
+// The count is the group's because that is what GMS means by "within a certain
+// range", so a drain is worth its cap on a map and only what the rotation
+// keeps alight on a boss.
+//
+// No credit goes with either: a swing that lights a burn already earns the
+// burn, and the drains ride the F/P's DoT swings the chooser was picking
+// anyway -- unlike the freeze, which nothing but the ice would have bought.
+// See FrozenCredit.
 double CombatSim::ConditionBoostFor(const AttackOption& attack, bool afflicted,
                                     int alight) const {
   double gate = afflicted ? 1.0 + attack.fd_when_afflicted : 1.0;

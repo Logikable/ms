@@ -100,15 +100,15 @@ constexpr AllocStat kAllocStats[] = {
 };
 constexpr int kNumAllocStats = sizeof(kAllocStats) / sizeof(kAllocStats[0]);
 
-// The extra stats read as a label column and a number column hard against the
+// One of the extra stats: a label column and a number column hard against the
 // right edge, one gutter shy of the border. The main stats above them keep
 // their own "LABEL: value" shape, since their [+] and their AP counter already
 // own that edge.
-
+//
 // The value's RIGHT edge is fixed and the gap before it gives way. Padding the
-// label to a fixed width instead leaves a long value nothing to take from, and
-// Defense -- the one stat written "(base+bonus) total" -- then runs a column
-// past every other value in the panel.
+// label instead leaves a long value nothing to take from, and Defense -- the
+// one stat written "(base+bonus) total" -- then runs a column past every other
+// value in the panel.
 ftxui::Element StatRow(const std::string& label, const std::string& value) {
   int gap = kStatsWidth - 2 - static_cast<int>(value.size());
   return ftxui::text(" " + PadRight(label, std::max(0, gap)) + value + " ");
