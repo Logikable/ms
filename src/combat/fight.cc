@@ -1152,6 +1152,8 @@ void CombatSim::GoIdle() {
   respawns_ = false;
   auto_phase_.clear();
   auto_pulses_.clear();
+  auto_empowered_count_.clear();
+  empowered_count_.clear();
   regen_phase_.clear();
   cooldown_left_.clear();
   aimed_ = -1;
@@ -1172,6 +1174,7 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   auto_phase_.assign(params.auto_attacks.size(), 0.0);
   auto_pulses_.assign(params.auto_attacks.size(), 0);
   auto_empowered_count_.assign(params.auto_attacks.size(), 0);
+  empowered_count_.assign(params.attacks.size(), 0);
   cooldown_left_.assign(params.attacks.size(), 0.0);
   // The buff and fountain clocks are deliberately left alone: they belong to
   // the character rather than to the map, and walking somewhere else neither

@@ -2285,6 +2285,30 @@ TEST(CombatSimTest, LandsAnEmpoweredPulseOnceEveryNth) {
       << "and the count starts again from the fifth";
 }
 
+// Walking somewhere else is starting again: another map's attacks were another
+// map's indices, so the count toward the bigger form starts from nothing.
+TEST(CombatSimTest, WalkingToAnotherMapForgetsTheEmpoweredCount) {
+  Mob snail = MakeMob("Snail", 20);
+  CombatSim sim;
+  CombatParams field = MakeParams(1.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  SetEmpoweredForm(field.attacks[0], /*every=*/4, /*damage=*/10.0);
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(field, 1.0);
+  }
+
+  CombatParams forest = field;
+  forest.encounter = "forest";
+  // The swing that would have been the fourth is the first here, so it is an
+  // ordinary one. Carrying the count over would take half the mob's HP.
+  sim.Advance(forest, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(forest, 1.0);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.35, 1e-9)
+      << "the fourth swing here lands the empowered form";
+}
+
 // The two clocks count apart. A swing landing its empowered form must not
 // bring the summon's round forward, or the Sniper's Piercing Arrow would set
 // off a pool it has nothing to do with.

@@ -31,7 +31,6 @@ class TestAuthority : public FightAuthority {
     reported_phase_ = report.phase;
     reported_spot_ = report.spot;
     reported_attack_ = report.attack_name;
-    reported_fraction_ = report.attack_fraction;
     reported_drop_pct_ = report.item_drop_pct;
     for (const SharedLine& line : report.lines) {
       reported_.push_back(line);
@@ -62,7 +61,6 @@ class TestAuthority : public FightAuthority {
   int reported_phase_ = -1;
   int reported_spot_ = -1;
   std::string reported_attack_;
-  double reported_fraction_ = 0.0;
   double reported_drop_pct_ = 0.0;
   std::vector<SharedLine> reported_;
 
