@@ -1,0 +1,38 @@
+name: "Cygnus"
+difficulties {
+  name: "Normal"
+  # One body alone in her arena, as Hilla, Magnus and Arkarium are: nothing
+  # else to kill, and the whole floor to walk while killing it.
+  phases {
+    spawns { mob: "cygnus" spots { x: 4 y: 4 } }
+    # The floor under the boss, walked end to end.
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  # What every fight past the level-160 gate allows.
+  time_limit_seconds: 600
+  # The last gate in the game, and the only one at the level cap.
+  unlock_level: 200
+  # Five Intense Power Crystals at what GMS prices hers, divided by seven:
+  # GMS clears her once a week and this game once a day.
+  meso: 10300000
+  # Paid for the clear, flat and untouched by any EXP bonus, as the others are.
+  exp: 204000000
+  # The token buys whichever of the four shoulders the branch can wear. A
+  # shoulder that names a branch cannot be dropped: four would fall for one
+  # slot and three of them would be litter.
+  drops {
+    item: "cygnus_shoulder_token"
+    per_kill: 1.0
+  }
+  drops {
+    item: "cygnuss_soul_shard"
+    per_kill: 1.0
+  }
+}

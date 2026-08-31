@@ -1,0 +1,7 @@
+name: "Cygnus"
+level: 190
+attack: 30400
+max_hp: 63000000000
+exp: 0
+pdr: 100
+boss: true

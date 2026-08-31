@@ -234,8 +234,8 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).category(), ITEM_CATEGORY_ETC) << where;
     }
   }
-  EXPECT_EQ(fights, 8) << "Zakum, Magnus, Pink Bean, Arkarium and both "
-                          "difficulties of Hilla and of Horntail";
+  EXPECT_EQ(fights, 9) << "Zakum, Magnus, Pink Bean, Arkarium, Cygnus and "
+                          "both difficulties of Hilla and of Horntail";
 }
 
 // What a boss's accessory sells for is a judgement about the piece, not about
@@ -470,6 +470,33 @@ TEST_F(BossDataTest, ChaosHorntailIsTheSameShapeAtChaosNumbers) {
   EXPECT_EQ(chaos.drops(3).equip(), "dea_sidus_earring");
 }
 
+// The last fight the game opens and the biggest body in it: 63B behind 100%
+// PDR, standing where Hilla and Arkarium stand. She pays no equip at all --
+// the token she drops is what buys one -- so she is also the only fight whose
+// whole reward is a stackable. Pinned for the reason Zakum's numbers are.
+TEST_F(BossDataTest, NormalCygnusIsOneBodyBehindTheLastGate) {
+  ASSERT_GT(bosses_.count("cygnus"), 0u);
+  ASSERT_EQ(bosses_.at("cygnus").difficulties_size(), 1);
+  const BossDifficulty& normal = bosses_.at("cygnus").difficulties(0);
+  EXPECT_EQ(normal.name(), "Normal");
+  EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
+  EXPECT_EQ(normal.time_limit_seconds(), 600);
+  EXPECT_EQ(normal.unlock_level(), 200);
+  EXPECT_EQ(normal.meso(), 10300000);
+  EXPECT_EQ(normal.exp(), 204000000);
+  ASSERT_EQ(normal.phases_size(), 1);
+  ASSERT_EQ(normal.phases(0).spawns_size(), 1);
+  EXPECT_EQ(SpawnCount(normal.phases(0).spawns(0)), 1);
+  const Mob& cygnus = mobs_.at("cygnus");
+  EXPECT_EQ(cygnus.level(), 190);
+  EXPECT_EQ(cygnus.max_hp(), 63000000000LL);
+  EXPECT_EQ(cygnus.attack(), 30400);
+  EXPECT_EQ(cygnus.pdr(), 100);
+  ASSERT_EQ(normal.drops_size(), 2);
+  EXPECT_EQ(normal.drops(0).item(), "cygnus_shoulder_token");
+  EXPECT_EQ(normal.drops(1).item(), "cygnuss_soul_shard");
+}
+
 // Where the parts stand is data, and two of them in one cell is a bar drawn on
 // top of another one.
 TEST_F(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
@@ -536,8 +563,9 @@ TEST_F(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
 // three always has somewhere left to walk.
 TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   std::map<std::string, std::vector<int>> expected = {
-      {"zakum", {7, 5}}, {"hilla", {5}},        {"horntail", {6, 6, 6}},
-      {"magnus", {5}},   {"pink_bean", {5, 5}}, {"arkarium", {5}}};
+      {"zakum", {7, 5}},    {"hilla", {5}},    {"horntail", {6, 6, 6}},
+      {"magnus", {5}},      {"arkarium", {5}}, {"cygnus", {5}},
+      {"pink_bean", {5, 5}}};
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses_.count(want.first), 0u) << want.first;
     for (const BossDifficulty& difficulty :
