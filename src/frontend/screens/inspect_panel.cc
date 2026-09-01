@@ -354,6 +354,55 @@ const EquipSet* InspectPanel::SetOfItem() const {
   return nullptr;
 }
 
+// One row of a set's piece list: what fills the slot, and whether it is on.
+struct SetFill {
+  std::string text;
+  bool worn;
+};
+
+std::vector<CardRow> InspectPanel::MemberRows(
+    const EquipSetMember& member) const {
+  // A family slot names what fills it once something does, and asks for one
+  // while it is empty -- a weapon belongs to a class, so the set cannot name
+  // it outright.
+  std::vector<SetFill> fills;
+  if (member.has_family()) {
+    std::string on = character_->WornOfFamily(member.family());
+    fills.push_back(
+        {on.empty() ? "Choose 1 " + member.family() : on, !on.empty()});
+  } else {
+    for (const std::string& name : member.items().name()) {
+      fills.push_back({name, character_->IsWearing(name)});
+    }
+  }
+  bool filled = false;
+  for (const SetFill& fill : fills) {
+    filled = filled || fill.worn;
+  }
+
+  // A slot filled by any of several alternates lists them all, the later ones
+  // hanging under the slot they share as a tier's later lines do.
+  std::vector<CardRow> rows;
+  std::string slot = FormatSlot(member.slot());
+  for (const SetFill& fill : fills) {
+    ftxui::Element label = ftxui::text(" " + PadRight(slot, kSetSlotWidth));
+    ftxui::Element name = ftxui::text(fill.text);
+    // Dimmed unless it is on the character right now -- the same question the
+    // tiers below are asking, one piece at a time. The slot is asking a
+    // narrower one: whether it is filled at all. So it stays lit whichever
+    // alternate fills it, and however many of them do.
+    if (!filled) {
+      label = label | ftxui::dim;
+    }
+    if (!fill.worn) {
+      name = name | ftxui::dim;
+    }
+    rows.push_back(TextRow(ftxui::hbox({std::move(label), std::move(name)})));
+    slot.clear();
+  }
+  return rows;
+}
+
 CardRows InspectPanel::SetRows(const EquipSet& set) const {
   int worn = character_->PiecesWornOf(set);
   // The set's name and what it is made of are held at the head: the tiers
@@ -364,30 +413,7 @@ CardRows InspectPanel::SetRows(const EquipSet& set) const {
   rows.push_back(TextRow(CenteredRow(FormatEquipSet(set.name()))));
   rows.push_back(RuleRow(ThemedSeparator()));
   for (const EquipSetMember& member : set.members()) {
-    std::string on = character_->WornOfMember(member);
-    // A family slot names what fills it once something does, and asks for one
-    // while it is empty -- a weapon belongs to a class, so the set cannot name
-    // it outright.
-    std::vector<std::string> fills;
-    if (member.has_family()) {
-      fills.push_back(on.empty() ? "Choose 1 " + member.family() : on);
-    } else {
-      fills.assign(member.items().name().begin(), member.items().name().end());
-    }
-    // A slot filled by any of several alternates lists them all, the later
-    // ones hanging under the slot they share as a tier's later lines do.
-    std::string slot = FormatSlot(member.slot());
-    for (const std::string& fill : fills) {
-      ftxui::Element row =
-          ftxui::text(" " + PadRight(slot, kSetSlotWidth) + fill);
-      // Dimmed unless it is on the character right now -- the same question
-      // the tiers below are asking, one piece at a time.
-      if (fill != on) {
-        row = row | ftxui::dim;
-      }
-      rows.push_back(TextRow(std::move(row)));
-      slot.clear();
-    }
+    Append(rows, MemberRows(member));
   }
   rows.push_back(RuleRow(ThemedSeparator()));
   for (const EquipSetTier& tier : set.tiers()) {

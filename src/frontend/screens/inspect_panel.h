@@ -103,6 +103,10 @@ class InspectPanel {
   // The card beside the item: what the set is made of, and what each tier
   // pays. Tiers the worn pieces do not reach are dimmed.
   CardRows SetRows(const EquipSet& set) const;
+  // One member's rows: the slot, named once, and every piece that fills it.
+  // Each piece is lit on its own, so a slot holding two of its alternates
+  // shows both as worn.
+  std::vector<CardRow> MemberRows(const EquipSetMember& member) const;
 
   // `count` job categories from `from`, as one row: dimmed for the ones this
   // item is not for, and every one of them listed either way.

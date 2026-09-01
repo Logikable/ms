@@ -598,6 +598,41 @@ TEST_F(InspectPanelTest, DimsThePiecesNotBeingWorn) {
   EXPECT_TRUE(DimAt(panel, "Cape       Frozen Cape"));
 }
 
+// A slot is filled by whichever of its alternates is on, not only by the first
+// one written -- and a slot family wide enough to hold two of them lights both.
+TEST_F(InspectPanelTest, EveryWornAlternateOfASlotIsLit) {
+  EquipSet set;
+  set.set_name(EQUIP_SET_NAME_BOSS_ACCESSORY);
+  EquipSetMember* member = set.add_members();
+  member->set_slot(EQUIP_SLOT_RING);
+  for (const char* name : {"Ring A", "Ring B", "Ring C"}) {
+    member->mutable_items()->add_name(name);
+  }
+  // Inspected from another slot of the same set, so the ring names appear on
+  // the set card and nowhere else.
+  set.add_members()->set_slot(EQUIP_SLOT_BELT);
+  set.mutable_members(1)->mutable_items()->add_name("Belt");
+  c_.UseEquipSets({{"rings", set}});
+  EquipInstance belt(FrozenPiece("Belt", EQUIP_SLOT_BELT));
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&belt);
+  EXPECT_TRUE(DimAt(panel, "Ring       Ring A"));
+  EXPECT_TRUE(DimAt(panel, "Ring B"));
+
+  // The second alternate fills the slot, so the slot reads as filled even
+  // though the piece above it is not the one that filled it.
+  Wear(c_, "Ring B", EQUIP_SLOT_RING);
+  EXPECT_FALSE(DimAt(panel, "Ring       Ring A"));
+  EXPECT_TRUE(DimAt(panel, "Ring A"));
+  EXPECT_FALSE(DimAt(panel, "Ring B"));
+
+  // A second ring goes on a ring slot of its own, and lights on its own.
+  Wear(c_, "Ring C", EQUIP_SLOT_RING);
+  EXPECT_FALSE(DimAt(panel, "Ring C"));
+  EXPECT_TRUE(DimAt(panel, "Ring A"));
+}
+
 // A family slot asks for a piece until one is worn, and then names the one
 // that answered. Which is also the moment the tiers past four become reachable.
 TEST_F(InspectPanelTest, AWornFamilyPieceNamesItselfInItsSlot) {
@@ -861,7 +896,6 @@ TEST_F(InspectPanelTest, AMaxedSymbolReadsMax) {
   EXPECT_EQ(Count(rendered, "◆"), kMaxSymbolLevel) << rendered;
   EXPECT_EQ(Count(rendered, "◇"), 0) << rendered;
 }
-
 
 }  // namespace
 }  // namespace ms
