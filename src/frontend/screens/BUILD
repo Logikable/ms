@@ -216,6 +216,34 @@ cc_test(
 )
 
 cc_library(
+    name = "pot_info_panel",
+    srcs = ["pot_info_panel.cc"],
+    hdrs = ["pot_info_panel.h"],
+    deps = [
+        "//src/character:consumables",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:text_columns",
+        "//src/protos:character_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "pot_info_panel_test",
+    size = "small",
+    srcs = ["pot_info_panel_test.cc"],
+    deps = [
+        ":pot_info_panel",
+        "//src/character:consumables",
+        "//src/frontend/widgets:panel_test_base",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "skill_inspect_panel",
     srcs = ["skill_inspect_panel.cc"],
     hdrs = ["skill_inspect_panel.h"],
