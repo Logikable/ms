@@ -1026,11 +1026,17 @@ Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll, int star_cap,
   return state;
 }
 
-// Wears a fresh `proto` carrying `made`, in place of whatever the slot holds.
-// The displaced copy stays in the bag, which is where a try-on goes.
-bool WearMade(CharacterInstance& character, const EquipPrototype& proto,
-              const Equip& made) {
-  character.Unequip(proto.equip_slot());
+// Wears a fresh `proto` carrying `made` in `slot`, in place of whatever that
+// slot holds. The displaced copy stays in the bag, which is where a try-on
+// goes.
+//
+// `slot` is where the item is WORN, which for a family is not the slot its
+// prototype names: every ring's prototype says EQUIP_SLOT_RING, and stripping
+// that one to try on the ring worn in RING_3 takes off the wrong ring and
+// leaves the copy refused for a duplicate of one still on.
+bool WearMade(CharacterInstance& character, EquipSlot slot,
+              const EquipPrototype& proto, const Equip& made) {
+  character.Unequip(slot);
   if (!character.PickUp(std::make_unique<EquipInstance>(proto, made))) {
     return false;
   }
@@ -1070,7 +1076,7 @@ const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot,
   const Scroll* best = nullptr;
   double best_rate = -1.0;
   for (const Scroll* candidate : candidates) {
-    if (!WearMade(state.character, proto,
+    if (!WearMade(state.character, slot, proto,
                   AtCeiling(proto, candidate, kMaxStarForce,
                             HammersAt(state.character.proto().level())))) {
       continue;
