@@ -1517,6 +1517,13 @@ bool CharacterInstance::PickUp(std::unique_ptr<EquipTabItem> item) {
   return true;
 }
 
+void CharacterInstance::ClearEquipInventory() {
+  // Backwards, so removing one does not slide the ones still to go.
+  for (int i = inventory_.size() - 1; i >= 0; --i) {
+    inventory_.remove_equip(i);
+  }
+}
+
 int CharacterInstance::RoomFor(const EquipPrototype& proto) const {
   // Nothing about the item matters: every copy takes one slot, whatever it is.
   (void)proto;

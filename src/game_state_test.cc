@@ -23,17 +23,13 @@
 namespace ms {
 namespace {
 
-// A catalog holding the equip both modes hand out, plus one more that only
-// the workbench asks for -- so the seeding has something to find, and test
-// mode has something left in the bag once it is wearing the first.
+// A catalog holding the equip both modes hand out, so the seeding has
+// something to find.
 std::map<std::string, EquipPrototype> SwordCatalog() {
   EquipPrototype sword;
   sword.set_name("Sword");
   sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  EquipPrototype long_sword;
-  long_sword.set_name("Long Sword");
-  long_sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  return {{"sword", sword}, {"long_sword", long_sword}};
+  return {{"sword", sword}};
 }
 
 GameState MakeTestModeState() {
@@ -556,17 +552,6 @@ TEST(GameStateTest, ChosenJobWearsTheWeaponItsLevelTopsOutAt) {
             "Asianic Bow");
 }
 
-// The warrior ladder the default workbench carries is the default job's, so a
-// chosen job is spared it.
-TEST(GameStateTest, ChosenJobIsNotHandedTheDefaultJobsLadder) {
-  GameState state = MakeChosenJobState(JOB_ADVANCEMENT_HUNTER);
-  for (int i = 0; i < static_cast<int>(state.character.inventory().size());
-       ++i) {
-    EXPECT_NE(state.character.inventory().equip_instance(i)->prototype().name(),
-              "Long Sword");
-  }
-}
-
 // Levels past the workbench's starting sixty, spent on demand. LevelUp is not
 // bounded by the trial cap, so this is also where more AP and SP come from
 // once the seeding has spent what the climb to sixty earned.
@@ -644,10 +629,33 @@ TEST(GameStateTest, PlayModeStartsANewCharacter) {
 
 // --- test mode ---
 
-TEST(GameStateTest, TestModeStartsWithMesoAndAFullBag) {
+// Meso to shop with, and an empty equip tab: the workbench wears what it is
+// given, so a tester opens the bag on what they put there rather than on the
+// seeding's leftovers. The spare symbols are the one thing carried, and this
+// catalog has none.
+TEST(GameStateTest, TestModeStartsWithMesoAndAnEmptyBag) {
   GameState state = MakeTestModeState();
   EXPECT_EQ(state.character.meso(), 100000000000);
-  EXPECT_FALSE(state.character.inventory().empty());
+  EXPECT_TRUE(state.character.inventory().empty());
+}
+
+// The sweep is what makes that true of a job whose gear does not all fit: a
+// Rogue is handed a dagger and a claw for one slot, and the one the other
+// displaces would otherwise sit in the bag.
+TEST(GameStateTest, TheWorkbenchCarriesNothingItCouldNotWear) {
+  std::map<std::string, EquipPrototype> equips;
+  for (const char* key : {"reef_claw", "steel_guards"}) {
+    EquipPrototype weapon;
+    weapon.set_name(key);
+    weapon.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    equips[key] = weapon;
+  }
+  TestOptions test;
+  test.job = JOB_ADVANCEMENT_ROGUE;
+  GameState state(equips, {}, {}, {}, {}, {}, GameMode::kTest, test);
+
+  EXPECT_EQ(state.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON), 1u);
+  EXPECT_TRUE(state.character.inventory().empty());
 }
 
 // Both modes start wearing a weapon. A level 1 character has no equipped
@@ -780,9 +788,10 @@ TEST(GrantLevelRewardsTest, NothingBelowTwoHundred) {
   EXPECT_EQ(state.character.inventory().size(), 0);
 }
 
-// The workbench puts the symbol on rather than carrying it: a symbol in the
+// The workbench puts a symbol on rather than only carrying it: a symbol in the
 // bag is worth no Arcane Force, and the cap is where the maps start asking.
-TEST(GameStateTest, TheWorkbenchAtTheCapWearsItsSymbol) {
+// The spares behind it are what the Symbols tab levels the worn one with.
+TEST(GameStateTest, TheWorkbenchAtTheCapWearsItsSymbolAndCarriesSpares) {
   std::map<std::string, EquipPrototype> equips = BowCatalog();
   for (const std::pair<const std::string, EquipPrototype>& entry :
        SymbolCatalog()) {
@@ -797,9 +806,13 @@ TEST(GameStateTest, TheWorkbenchAtTheCapWearsItsSymbol) {
   EXPECT_EQ(
       state.character.equipped().count(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY),
       1u);
-  for (int i = 0; i < state.character.inventory().size(); ++i) {
-    EXPECT_FALSE(IsArcaneSymbol(state.character.inventory()[i].prototype()))
-        << "row " << i << " is still carrying a symbol";
+  // Twelve duplicates carry a fresh symbol to level 2, so fifteen is one move
+  // on the Symbols tab and change.
+  const InventoryInstance& bag = state.character.inventory();
+  ASSERT_EQ(bag.size(), 15);
+  for (int i = 0; i < bag.size(); ++i) {
+    EXPECT_TRUE(IsArcaneSymbol(bag[i].prototype()))
+        << "row " << i << " is not a symbol";
   }
 }
 

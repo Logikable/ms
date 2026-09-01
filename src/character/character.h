@@ -198,6 +198,10 @@ class CharacterInstance {
   // or EquipTrace); the caller is responsible for constructing the item.
   // Returns false and drops the item on the floor when the equip tab is full.
   bool PickUp(std::unique_ptr<EquipTabItem> item);
+  // Throws away everything on the equip tab, worn gear untouched. The
+  // workbench's, so a tester opens a bag holding only what they put there --
+  // nothing in the game empties one.
+  void ClearEquipInventory();
   // Adds `count` of the item described by `proto` to the Use/Etc stacks. Tops
   // up existing stacks of the same item first, then opens new stacks for any
   // overflow, each capped at the item's max_stack(). No-op if count <= 0.

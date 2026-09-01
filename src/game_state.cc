@@ -463,33 +463,6 @@ constexpr int kTestTokens = 20;
 // time, which is a long walk to reach the scroll screen.
 constexpr int kTestSpellTraces = 30000;
 
-// The awkward items, for the upgrade screens: a fully scrolled weapon at high
-// star force, a trace to recover, and the base item recovering it consumes.
-void GiveUpgradeItems(GameState& state) {
-  std::map<std::string, EquipPrototype>::const_iterator fafnir =
-      state.equips.find("fafnir_mistilteinn");
-  if (fafnir == state.equips.end()) {
-    return;
-  }
-  Equip scrolled;
-  scrolled.set_equip_name("Fafnir Mistilteinn");
-  scrolled.set_remaining_upgrade_slots(0);
-  scrolled.set_scroll_successes(8);
-  scrolled.set_stars(20);
-  scrolled.mutable_scroll_stats()->set_attack(40);
-  scrolled.mutable_scroll_stats()->set_str(16);
-  state.character.PickUp(
-      std::make_unique<EquipInstance>(fafnir->second, scrolled));
-
-  // The same at 22 stars but destroyed: the source trace for recovery.
-  Equip trace = scrolled;
-  trace.set_stars(22);
-  state.character.PickUp(std::make_unique<EquipTrace>(fafnir->second, trace));
-
-  // Fresh Fafnir -- the base item that recovering the trace consumes.
-  state.character.PickUp(std::make_unique<EquipInstance>(fafnir->second));
-}
-
 // `advancement`'s job name as a username: letters, digits and spaces only, so
 // "I/L Arch Mage" arrives as "IL Arch Mage".
 std::string UsernameFor(JobAdvancement advancement) {
@@ -500,6 +473,18 @@ std::string UsernameFor(JobAdvancement advancement) {
     }
   }
   return name.substr(0, kMaxUsernameLength);
+}
+
+// Spare Vanishing Journey symbols the workbench carries. A symbol levels by
+// absorbing duplicates and its first level asks for 12, so this is one level
+// up on the Symbols tab and change -- enough to watch the ladder move without
+// farming Vanishing Journey for it.
+constexpr int kTestSymbols = 15;
+
+void GiveSymbols(GameState& state) {
+  for (int i = 0; i < kTestSymbols; ++i) {
+    GiveEquip(state, kStarterSymbol);
+  }
 }
 
 // The workbench. Everything here exists to reach a screen without playing up
@@ -539,19 +524,14 @@ void SeedTest(GameState& state, const TestOptions& test) {
 
   bool chose_job = test.job != JOB_ADVANCEMENT_UNSPECIFIED;
   if (!chose_job) {
-    // The rungs below the default job's weapon, to swap between on the equip
-    // screens. A job named by --job brings only its own. The first is worn
-    // straight away: it is what the character holds until the climb below
+    // Worn straight away: it is what the character holds until the climb below
     // hands them their job's weapon, and a catalog without that weapon -- a
     // test's, say -- leaves them holding this rather than nothing.
     GiveEquip(state, "sword");
     if (!state.character.inventory().empty()) {
       state.character.Equip(0);
     }
-    GiveEquip(state, "long_sword");
-    GiveEquip(state, "machete");
   }
-  GiveUpgradeItems(state);
   // Only the book the job is standing in answers to --skills. The ones behind
   // it are bought either way: they are not what the tester picked the job for,
   // and leaving them unbought would put two allocation screens between them
@@ -564,6 +544,14 @@ void SeedTest(GameState& state, const TestOptions& test) {
             test.skills == TestSkills::kZero ? StageForAdvancement(advancement)
                                              : kSpendEveryStage,
             test.equips);
+
+  // Everything above dresses the character; nothing is meant to be carried.
+  // What the climb leaves in the bag is the leftovers -- gear a level gate
+  // says is carried not worn, the branches' shoulders the workbench is not,
+  // the weapon a later one displaced -- and a tester opening the Equip tab
+  // should see what they put there, not that.
+  state.character.ClearEquipInventory();
+  GiveSymbols(state);
 
   // The weakest hunting ground there is; the tester picks anywhere else from
   // the map select.
