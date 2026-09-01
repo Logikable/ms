@@ -476,6 +476,27 @@ TEST(EquipDataTest, StockedEquipsSellForATenthOfTheirPrice) {
   EXPECT_GT(seen, 0) << "no stocked equips in the catalog to check";
 }
 
+// A token is earned, not bought, and the piece it trades for is the whole of
+// what earning it was for. Pricing either would let a player cash the token
+// out for meso instead, which is the one thing the shelf must not offer.
+TEST(EquipDataTest, TokenGearAndItsTokensSellForNothing) {
+  std::map<std::string, ItemPrototype> items = LoadItems();
+  int seen = 0;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.token_item().empty()) {
+      continue;
+    }
+    ++seen;
+    EXPECT_EQ(SellPrice(proto), 0) << entry.first << " sells for meso";
+    ASSERT_GT(items.count(proto.token_item()), 0u) << proto.token_item();
+    EXPECT_EQ(items.at(proto.token_item()).sell_price(), 0)
+        << proto.token_item() << " sells for meso";
+  }
+  EXPECT_GT(seen, 0) << "no token-traded gear in the catalog to check";
+}
+
 std::map<std::string, EquipSet> LoadSets() {
   return LoadTestData<EquipSet>("sets");
 }

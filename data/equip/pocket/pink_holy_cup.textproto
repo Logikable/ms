@@ -17,4 +17,4 @@ equip_slot: EQUIP_SLOT_POCKET
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
 # Dropped by Pink Bean, never stocked, at the price his other two fetch.
-sell_price: 2500000
+sell_price: 0

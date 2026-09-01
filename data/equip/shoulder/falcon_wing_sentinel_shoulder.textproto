@@ -17,4 +17,4 @@ token_price: 1
 # Bought with the token Cygnus drops, never with meso, so no shop price sets
 # this. Cygnus drops one token a day and four shoulders answer to it, one per
 # branch: the piece is chosen at the shelf rather than by what fell.
-sell_price: 15000000
+sell_price: 0

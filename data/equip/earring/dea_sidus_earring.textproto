@@ -12,4 +12,4 @@ base_stats {
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_EARRINGS
 upgrade_slots: 6
-sell_price: 1500000
+sell_price: 0

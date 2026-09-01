@@ -14,4 +14,4 @@ equip_slot: EQUIP_SLOT_EYE_ACCESSORY
 upgrade_slots: 5
 # Dropped by Pink Bean, never stocked, at the top of the ladder his accessories
 # sit on: Zakum 500k, Hilla 750k, Horntail 1M, Magnus 1.5M.
-sell_price: 2500000
+sell_price: 0

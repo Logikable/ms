@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "src/frontend/screens/boss_fight_panel.h"
+#include "src/item/item.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -238,50 +239,34 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
                           "both difficulties of Hilla and of Horntail";
 }
 
-// What a boss's accessory sells for is a judgement about the piece, not about
-// the gate it drops behind: the Horntail Necklace goes for a fifth of the ring
-// beside it, and Arkarium's pendant for four times the earring at its own gate.
-// So the prices are pinned one by one here, and every dropped piece has to
-// appear -- a new boss's drop cannot ship unpriced.
-TEST_F(BossDataTest, BossAccessoriesSellForTheirPinnedPrices) {
-  const std::map<std::string, int64_t> kPrice = {
-      {"aquatic_letter_eye_accessory", 500000},
-      {"black_bean_mark", 2500000},
-      {"chaos_horntail_necklace", 10000000},
-      {"condensed_power_crystal", 500000},
-      {"crystal_ventus_badge", 2500000},
-      {"dea_sidus_earring", 1500000},
-      {"dominator_pendant", 10000000},
-      {"golden_clover_belt", 2500000},
-      {"horntail_necklace", 500000},
-      {"pink_holy_cup", 2500000},
-      {"royal_black_metal_shoulder", 2500000},
-      {"silver_blossom_ring", 1500000},
-      {"stone_of_eternal_life", 2000000},
-      {"will_o_the_wisps", 11000000}};
-  std::set<std::string> dropped;
+// A boss pays in meso and in gear, and the gear is the reward: selling it back
+// would make every clear a second purse and let a player skip the fight the
+// piece is for. So nothing a boss drops is worth anything at the counter --
+// equips and shards alike -- and a new boss's drop cannot ship priced.
+TEST_F(BossDataTest, NothingABossDropsIsWorthMeso) {
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  std::map<std::string, ItemPrototype> items = LoadItems();
+  int seen = 0;
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       if (difficulty.coming_soon()) {
         continue;
       }
       for (const MobDrop& drop : difficulty.drops()) {
+        ++seen;
         if (drop.has_equip()) {
-          dropped.insert(drop.equip());
+          ASSERT_GT(equips.count(drop.equip()), 0u) << drop.equip();
+          EXPECT_EQ(SellPrice(equips.at(drop.equip())), 0)
+              << drop.equip() << ", off " << entry.first << ", sells for meso";
+          continue;
         }
+        ASSERT_GT(items.count(drop.item()), 0u) << drop.item();
+        EXPECT_EQ(items.at(drop.item()).sell_price(), 0)
+            << drop.item() << ", off " << entry.first << ", sells for meso";
       }
     }
   }
-  std::map<std::string, EquipPrototype> equips = LoadEquips();
-  for (const std::string& equip : dropped) {
-    ASSERT_GT(kPrice.count(equip), 0u) << equip << " drops unpriced";
-    EXPECT_EQ(equips.at(equip).sell_price(), kPrice.at(equip))
-        << equip << " sells off its pinned price";
-  }
-  for (const std::pair<const std::string, int64_t>& priced : kPrice) {
-    EXPECT_GT(dropped.count(priced.first), 0u)
-        << priced.first << " is priced here but no boss drops it";
-  }
+  EXPECT_GT(seen, 0) << "no boss drops in the catalog to check";
 }
 
 // Zakum is the first boss and the one the screen was built against, so his

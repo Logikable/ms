@@ -14,4 +14,4 @@ equip_slot: EQUIP_SLOT_EYE_ACCESSORY
 upgrade_slots: 3
 # Dropped by Zakum, never stocked, so no shop price sets this. Twice what a
 # piece of Frozen armour pays: it takes a boss to spare one.
-sell_price: 500000
+sell_price: 0

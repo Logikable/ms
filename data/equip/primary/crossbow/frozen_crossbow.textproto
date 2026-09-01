@@ -14,4 +14,4 @@ token_price: 1
 # Bought with a token, never with meso, so no shop price sets this. A spare
 # sells for what the boss accessories of its own level band do, which is what
 # the Lv120 end of the shop curve would have charged.
-sell_price: 1000000
+sell_price: 0

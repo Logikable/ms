@@ -41,11 +41,12 @@ TEST(EmbeddedDataTest, ItemsParse) {
   EXPECT_TRUE(items.count("wooden_board") > 0);
 }
 
-// Spell traces are bought, never sold. They are the currency scrolling is paid
-// in, so a sell price on them would be a way to turn the game's largest meso
-// sink back into meso. Pinned here because the rule is enforced by a line the
-// data file does not have, and nothing else would notice it appearing.
-TEST(EmbeddedDataTest, SpellTracesCannotBeSold) {
+// Spell traces are bought, never sold for anything. They are the currency
+// scrolling is paid in, so a sell price on them would be a way to turn the
+// game's largest meso sink back into meso. Pinned here because the rule is
+// enforced by a line the data file does not have, and nothing else would
+// notice it appearing.
+TEST(EmbeddedDataTest, SpellTracesAreWorthNothingAtTheCounter) {
   std::map<std::string, ItemPrototype> items =
       LoadTextProtoMap<ItemPrototype>(EmbeddedItems());
   ASSERT_TRUE(items.count("spell_trace") > 0);

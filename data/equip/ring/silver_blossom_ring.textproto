@@ -13,4 +13,4 @@ equip_slot: EQUIP_SLOT_RING
 upgrade_slots: 2
 # Dropped by Horntail, never stocked, so no shop price sets this. Twice what
 # Zakum's accessories fetch: it takes the longer fight to spare one.
-sell_price: 1500000
+sell_price: 0
