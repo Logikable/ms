@@ -18,7 +18,8 @@ import "src/protos/character.proto";
 
 // Where one fight stands with the player.
 message CheckpointFight {
-  string boss = 1;
+  // Boss and difficulty together; see FightKey.
+  string fight = 1;
   bool attempted = 2;
   bool cleared_today = 3;
   bool near_miss = 4;
@@ -26,16 +27,20 @@ message CheckpointFight {
   int32 power_at_last_try = 6;
 }
 
-// What one boss's dailies have come to.
+// What one fight -- one boss at one difficulty -- has come to.
 message CheckpointBossLog {
-  string boss = 1;
-  string name = 2;
+  // The key the log holds it under, boss and difficulty together.
+  string fight = 1;
+  string label = 2;
+  string boss = 11;
+  int32 difficulty = 8;
   int32 unlock_level = 3;
   int32 attempts = 4;
   int32 clears = 5;
   int32 first_attempt_level = 6;
   int32 first_clear_level = 7;
-  int32 best_difficulty = 8;
+  double first_clear_seconds = 12;
+  double best_done = 13;
   double best_seconds = 9;
   int32 best_power = 10;
 }

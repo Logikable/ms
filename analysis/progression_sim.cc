@@ -34,13 +34,20 @@
  * farms the whole time either way. `--attention=0` puts the player at every
  * level instead, which is the floor this sim used to report.
  *
- * Two sections, each on its own flag.
+ * Three sections, each on its own flag.
  *
  *   --playtime  how long each branch takes to each level, and what it earned
  *               on the way. The climb alone.
  *   --ledger    what the purse went on and what the character has to show for
  *               it: the weapon's slots and stars, and how much of each set is
  *               on their back.
+ *   --boss_report
+ *               where each fight falls across the branches: the level of the
+ *               first clear, the clock at it, and how far the branches that
+ *               never won it got. Read it with --total_days, which gives every
+ *               branch one budget for the climb and the days after it --
+ *               otherwise a fight nobody can beat is only a fight the run
+ *               stopped short of.
  *
  * Not a test. Tests pin behaviour that must not change; this prints numbers to
  * look at while deciding what the behaviour should be.
@@ -65,6 +72,7 @@
  *   bazelisk run //analysis:progression_sim -- --checkpoint_at=160
  *   bazelisk run //analysis:progression_sim -- --branch=DARK_KNIGHT
  *   bazelisk run //analysis:progression_sim -- --all_branches
+ *   bazelisk run //analysis:progression_sim -- --total_days=30 --runs=3
  */
 #include <algorithm>
 #include <cmath>
@@ -72,6 +80,7 @@
 #include <cstdio>
 #include <cstring>
 #include <functional>
+#include <limits>
 #include <map>
 #include <memory>
 #include <random>
@@ -159,6 +168,14 @@ ABSL_FLAG(bool, endgame, true,
           "farmed and the dailies run, with the purse still spending.");
 ABSL_FLAG(double, endgame_days, 7.0,
           "Days played at the cap for the endgame section.");
+ABSL_FLAG(double, total_days, 0.0,
+          "Stop every branch this many days after it started -- the climb and "
+          "the days after the cap are one budget. 0 leaves --give_up_hours "
+          "and --endgame_days to say where each half stops on its own.");
+ABSL_FLAG(bool, boss_report, true,
+          "Print where each fight falls across the branches: the level of the "
+          "first clear, the clock at it, and how far the branches that never "
+          "won it got.");
 ABSL_FLAG(bool, dailies, true,
           "Run each unlocked boss once a day, on the climb and after it. A "
           "run that misses the limit pays nothing and still costs the whole "
@@ -570,9 +587,13 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   PickMap(state, maps, beats, step);
 }
 
-// What one boss's dailies came to over a run.
+// What one fight -- one boss at one difficulty -- came to over a run. Kept
+// apart by difficulty because Hard Hilla is not Hilla: they open sixty levels
+// apart and a branch can be years off one while farming the other.
 struct BossLog {
-  std::string name;
+  std::string label;  // "Normal Zakum", the way a player names the fight
+  std::string boss;   // the catalog key, for reading the fight back out
+  int difficulty = 0;
   int unlock_level = 0;
   int attempts = 0;
   int clears = 0;
@@ -580,13 +601,23 @@ struct BossLog {
   // reset comes round once a day, and a climb can pass several levels inside
   // one.
   int first_attempt_level = 0;
-  int first_clear_level = 0;  // 0 for a boss never beaten
-  // The quickest clear: which difficulty it was, what it took, and what the
-  // character was hitting for at the time. Zero for a boss never beaten.
-  int best_difficulty = 0;
+  int first_clear_level = 0;          // 0 for a fight never won
+  double first_clear_seconds = -1.0;  // the playtime that clear landed at
+  // The most of the fight any attempt took down, 1.0 once it is won. Phases
+  // never reached count whole, so a rout reads low rather than reading the
+  // fraction of the one phase it could see.
+  double best_done = 0.0;
+  // The quickest clear: what it took, and what the character was hitting for
+  // at the time. Zero for a fight never won.
   double best_seconds = 0.0;
   int best_power = 0;
 };
+
+// How one fight is named among the rest: the boss and which of its
+// difficulties, since the log holds a row for each.
+std::string FightKey(const std::string& boss, int difficulty) {
+  return absl::StrCat(boss, "/", difficulty);
+}
 
 // Where a climb is written down and read back, worked out once for the sweep.
 struct Checkpointing {
@@ -843,27 +874,31 @@ void NoteMilestones(const GameState& state, int level, double seconds,
 // Fights one boss once and reports what it took off the clock. A run that
 // misses pays nothing and still costs whatever the player sat through.
 double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
-                 int level, int power, Climb& climb, BossOutcome* result) {
-  const BossDifficulty& difficulty =
-      state.bosses[fight.first].difficulties(fight.second);
-  BossLog& log = climb.bosses[fight.first];
+                 int level, int power, double now, Climb& climb,
+                 BossOutcome* result) {
+  const Boss& boss = state.bosses[fight.first];
+  const BossDifficulty& difficulty = boss.difficulties(fight.second);
+  BossLog& log = climb.bosses[FightKey(fight.first, fight.second)];
   if (log.attempts == 0) {
-    log.name = state.bosses[fight.first].name();
+    log.label = absl::StrCat(difficulty.name(), " ", boss.name());
+    log.boss = fight.first;
+    log.difficulty = fight.second;
     log.unlock_level = difficulty.unlock_level();
     log.first_attempt_level = level;
   }
   ++log.attempts;
   BossOutcome outcome = FightBoss(state, fight.first, fight.second);
   *result = outcome;
+  log.best_done = std::max(log.best_done, 1.0 - outcome.left);
   if (!outcome.won) {
     return outcome.seconds;
   }
   ++log.clears;
   if (log.first_clear_level == 0) {
     log.first_clear_level = level;
+    log.first_clear_seconds = now + outcome.seconds;
   }
   if (log.best_seconds == 0.0 || outcome.seconds < log.best_seconds) {
-    log.best_difficulty = fight.second;
     log.best_seconds = outcome.seconds;
     log.best_power = power;
   }
@@ -1100,6 +1135,39 @@ bool WorthATry(const Session& run, const FightState& fight, bool levelled,
   return fight.near_miss && run.seconds >= fight.retry_at;
 }
 
+// Every fight open at this level, gathered under its boss and hardest first.
+// The bosses come in the order they first opened, which is the order a player
+// met them.
+std::vector<std::pair<std::string, std::vector<int>>> OpenLadders(
+    const GameState& state, int level) {
+  std::vector<std::pair<std::string, std::vector<int>>> ladders;
+  std::map<std::string, int> where;
+  for (const std::pair<std::string, int>& open : UnlockedBosses(state, level)) {
+    std::map<std::string, int>::iterator seen = where.find(open.first);
+    if (seen == where.end()) {
+      where[open.first] = static_cast<int>(ladders.size());
+      ladders.push_back({open.first, {open.second}});
+      continue;
+    }
+    ladders[seen->second].second.push_back(open.second);
+  }
+  // UnlockedBosses hands them over easiest first, and the ladder is walked
+  // the other way.
+  for (std::pair<std::string, std::vector<int>>& ladder : ladders) {
+    std::reverse(ladder.second.begin(), ladder.second.end());
+  }
+  return ladders;
+}
+
+// A clear closes the boss for the day at every difficulty, not just the one
+// that won it: the lockout is on the boss.
+void CloseForToday(Session& run,
+                   const std::pair<std::string, std::vector<int>>& boss) {
+  for (int index : boss.second) {
+    run.fights[FightKey(boss.first, index)].cleared_today = true;
+  }
+}
+
 // Takes on every fight that is open and worth a try, and puts what they
 // dropped on. Returns whether any of them was fought.
 //
@@ -1120,26 +1188,32 @@ bool TakeOnBosses(Session& run, int level, bool levelled) {
   }
   int power = PowerNow(run.state);
   double spent = 0.0;
-  for (const std::pair<std::string, int>& open :
-       UnlockedBosses(run.state, level)) {
-    FightState& fight = run.fights[open.first];
-    if (!WorthATry(run, fight, levelled, power)) {
-      continue;
-    }
-    fight.attempted = true;
-    fight.power_at_last_try = power;
-    BossOutcome outcome;
-    spent += FightOnce(run.state, open, level, power, run.climb, &outcome);
-    if (outcome.won) {
-      fight.cleared_today = true;
-      continue;
-    }
-    fight.retry_at = run.seconds + spent + kRetrySeconds;
-    fight.near_miss = outcome.left <= kNearMiss;
-    // A near miss keeps them at the keyboard, so the next look comes forward
-    // to meet it rather than waiting for the evening.
-    if (fight.near_miss) {
-      run.next_look = std::min(run.next_look, fight.retry_at);
+  for (const std::pair<std::string, std::vector<int>>& boss :
+       OpenLadders(run.state, level)) {
+    // Hardest first, and down a rung whenever that one is beyond them: the
+    // clear pays what the difficulty is worth, and it closes the boss for the
+    // day whichever rung won it.
+    for (int index : boss.second) {
+      FightState& fight = run.fights[FightKey(boss.first, index)];
+      if (!WorthATry(run, fight, levelled, power)) {
+        continue;
+      }
+      fight.attempted = true;
+      fight.power_at_last_try = power;
+      BossOutcome outcome;
+      spent += FightOnce(run.state, {boss.first, index}, level, power,
+                         run.seconds + spent, run.climb, &outcome);
+      if (outcome.won) {
+        CloseForToday(run, boss);
+        break;
+      }
+      fight.retry_at = run.seconds + spent + kRetrySeconds;
+      fight.near_miss = outcome.left <= kNearMiss;
+      // A near miss keeps them at the keyboard, so the next look comes forward
+      // to meet it rather than waiting for the evening.
+      if (fight.near_miss) {
+        run.next_look = std::min(run.next_look, fight.retry_at);
+      }
     }
   }
   if (spent <= 0.0) {
@@ -1189,14 +1263,17 @@ void LoadWorth(const CheckpointWorth& from, AbilityWorth* worth) {
 void SaveBossLogs(const Climb& climb, CheckpointClimb* to) {
   for (const std::pair<const std::string, BossLog>& entry : climb.bosses) {
     CheckpointBossLog* log = to->add_bosses();
-    log->set_boss(entry.first);
-    log->set_name(entry.second.name);
+    log->set_fight(entry.first);
+    log->set_label(entry.second.label);
+    log->set_boss(entry.second.boss);
+    log->set_difficulty(entry.second.difficulty);
     log->set_unlock_level(entry.second.unlock_level);
     log->set_attempts(entry.second.attempts);
     log->set_clears(entry.second.clears);
     log->set_first_attempt_level(entry.second.first_attempt_level);
     log->set_first_clear_level(entry.second.first_clear_level);
-    log->set_best_difficulty(entry.second.best_difficulty);
+    log->set_first_clear_seconds(entry.second.first_clear_seconds);
+    log->set_best_done(entry.second.best_done);
     log->set_best_seconds(entry.second.best_seconds);
     log->set_best_power(entry.second.best_power);
   }
@@ -1204,14 +1281,17 @@ void SaveBossLogs(const Climb& climb, CheckpointClimb* to) {
 
 void LoadBossLogs(const CheckpointClimb& from, Climb* climb) {
   for (const CheckpointBossLog& saved : from.bosses()) {
-    BossLog& log = climb->bosses[saved.boss()];
-    log.name = saved.name();
+    BossLog& log = climb->bosses[saved.fight()];
+    log.label = saved.label();
+    log.boss = saved.boss();
+    log.difficulty = saved.difficulty();
     log.unlock_level = saved.unlock_level();
     log.attempts = saved.attempts();
     log.clears = saved.clears();
     log.first_attempt_level = saved.first_attempt_level();
     log.first_clear_level = saved.first_clear_level();
-    log.best_difficulty = saved.best_difficulty();
+    log.first_clear_seconds = saved.first_clear_seconds();
+    log.best_done = saved.best_done();
     log.best_seconds = saved.best_seconds();
     log.best_power = saved.best_power();
   }
@@ -1329,7 +1409,7 @@ SimCheckpoint SaveRun(const Session& run, const ClimbCursor& cursor) {
   saved.set_looks_left(run.looks_left);
   for (const std::pair<const std::string, FightState>& entry : run.fights) {
     CheckpointFight* fight = saved.add_fights();
-    fight->set_boss(entry.first);
+    fight->set_fight(entry.first);
     fight->set_attempted(entry.second.attempted);
     fight->set_cleared_today(entry.second.cleared_today);
     fight->set_near_miss(entry.second.near_miss);
@@ -1363,7 +1443,7 @@ void LoadRun(const SimCheckpoint& saved, Session& run, ClimbCursor* cursor) {
   run.next_look = saved.next_look();
   run.looks_left = saved.looks_left();
   for (const CheckpointFight& saved_fight : saved.fights()) {
-    FightState& fight = run.fights[saved_fight.boss()];
+    FightState& fight = run.fights[saved_fight.fight()];
     fight.attempted = saved_fight.attempted();
     fight.cleared_today = saved_fight.cleared_today();
     fight.near_miss = saved_fight.near_miss();
@@ -1405,10 +1485,20 @@ bool ResumeClimb(Session& run, ClimbCursor* cursor) {
   return true;
 }
 
+// When the climb gives up, whether or not it has reached the cap. Under
+// --total_days the whole run has one budget and the climb may spend all of it.
+double GiveUpAt() {
+  double total = absl::GetFlag(FLAGS_total_days);
+  if (total > 0.0) {
+    return total * kDaySeconds;
+  }
+  return absl::GetFlag(FLAGS_give_up_hours) * 3600.0;
+}
+
 // Plays the character forward to the level cap, or until the give-up clock
 // runs out.
 void ClimbToCap(Session& run) {
-  double give_up = absl::GetFlag(FLAGS_give_up_hours) * 3600.0;
+  double give_up = GiveUpAt();
   ClimbCursor cursor;
   if (!ResumeClimb(run, &cursor)) {
     Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
@@ -1497,7 +1587,10 @@ void ClimbToCap(Session& run) {
 // spending on whatever it can now afford.
 void FarmAtCap(Session& run) {
   double began = run.seconds;
-  double horizon = began + absl::GetFlag(FLAGS_endgame_days) * kDaySeconds;
+  double total = absl::GetFlag(FLAGS_total_days);
+  double horizon =
+      total > 0.0 ? total * kDaySeconds
+                  : began + absl::GetFlag(FLAGS_endgame_days) * kDaySeconds;
   int level = run.state.character.proto().level();
   int64_t earned_at_cap = run.purse.earned;
   int64_t spent_at_cap = run.purse.spent;
@@ -1568,11 +1661,11 @@ void FarmAtCap(Session& run) {
 std::string ClimbSettings() {
   return absl::StrCat(
       absl::GetFlag(FLAGS_step), ";", absl::GetFlag(FLAGS_probe_beats), ";",
-      absl::GetFlag(FLAGS_give_up_hours), ";",
-      absl::GetFlag(FLAGS_star_ceiling), ";", absl::GetFlag(FLAGS_scroll_rate),
-      ";", absl::GetFlag(FLAGS_dailies), ";", absl::GetFlag(FLAGS_attention),
-      ";", absl::GetFlag(FLAGS_ability_rank), ";",
-      absl::GetFlag(FLAGS_checkpoint_at));
+      absl::GetFlag(FLAGS_give_up_hours), ";", absl::GetFlag(FLAGS_total_days),
+      ";", absl::GetFlag(FLAGS_star_ceiling), ";",
+      absl::GetFlag(FLAGS_scroll_rate), ";", absl::GetFlag(FLAGS_dailies), ";",
+      absl::GetFlag(FLAGS_attention), ";", absl::GetFlag(FLAGS_ability_rank),
+      ";", absl::GetFlag(FLAGS_checkpoint_at));
 }
 
 // What one climb's file is called: the branch, the seed and the settings --
@@ -1961,21 +2054,29 @@ void PrintLedger(const std::vector<Job>& branches,
   }
 }
 
+// The fight a log is of, read back out of the catalog, or null if the catalog
+// no longer holds it.
+const BossDifficulty* FightIn(const Catalogs& catalogs, const BossLog& log) {
+  std::map<std::string, Boss>::const_iterator boss =
+      catalogs.bosses.find(log.boss);
+  if (boss == catalogs.bosses.end() ||
+      log.difficulty >= boss->second.difficulties_size()) {
+    return nullptr;
+  }
+  return &boss->second.difficulties(log.difficulty);
+}
+
 // One boss's row: what the quickest clear took, against what the fight allows.
-void PrintReadinessRow(const Catalogs& catalogs, const BossLog& log,
-                       const std::string& key) {
-  std::map<std::string, Boss>::const_iterator boss = catalogs.bosses.find(key);
-  if (boss == catalogs.bosses.end()) {
+void PrintReadinessRow(const Catalogs& catalogs, const BossLog& log) {
+  const BossDifficulty* difficulty = FightIn(catalogs, log);
+  if (difficulty == nullptr) {
     return;
   }
-  const BossDifficulty& difficulty =
-      boss->second.difficulties(log.best_difficulty);
-  int clock = difficulty.time_limit_seconds();
+  int clock = difficulty->time_limit_seconds();
   char rate[16];
-  FormatShort(BossTotalHp(catalogs.mobs, difficulty) / log.best_seconds, rate,
+  FormatShort(BossTotalHp(catalogs.mobs, *difficulty) / log.best_seconds, rate,
               sizeof(rate));
-  std::printf("  %-18s %8s %9s %7.0f%% %10s %9d\n",
-              (difficulty.name() + " " + boss->second.name()).c_str(),
+  std::printf("  %-18s %8s %9s %7.0f%% %10s %9d\n", log.label.c_str(),
               FightClock(log.best_seconds).c_str(), FightClock(clock).c_str(),
               100.0 * log.best_seconds / clock, rate, log.best_power);
 }
@@ -2003,9 +2104,181 @@ void PrintBossReadiness(const Catalogs& catalogs,
     for (const std::pair<const std::string, BossLog>& entry :
          climbs[i].bosses) {
       if (entry.second.best_seconds > 0.0) {
-        PrintReadinessRow(catalogs, entry.second, entry.first);
+        PrintReadinessRow(catalogs, entry.second);
       }
     }
+  }
+}
+
+// Every fight the game will actually let a player walk into, in the order
+// they open. Read off the catalog rather than off the climbs so a fight
+// nobody in the sweep ever reached still gets a row.
+struct FightRow {
+  std::string key;
+  std::string label;
+  int unlock_level = 0;
+  const BossDifficulty* difficulty = nullptr;
+};
+
+std::vector<FightRow> LiveFights(const Catalogs& catalogs) {
+  std::vector<FightRow> fights;
+  for (const std::pair<const std::string, Boss>& entry : catalogs.bosses) {
+    for (int i = 0; i < entry.second.difficulties_size(); ++i) {
+      const BossDifficulty& difficulty = entry.second.difficulties(i);
+      if (difficulty.coming_soon()) {
+        continue;
+      }
+      fights.push_back(
+          {FightKey(entry.first, i),
+           absl::StrCat(difficulty.name(), " ", entry.second.name()),
+           difficulty.unlock_level(), &difficulty});
+    }
+  }
+  std::sort(fights.begin(), fights.end(),
+            [](const FightRow& a, const FightRow& b) {
+              return a.unlock_level != b.unlock_level
+                         ? a.unlock_level < b.unlock_level
+                         : a.label < b.label;
+            });
+  return fights;
+}
+
+// The last level a climb was seen at, which for a run that ran out of month
+// is where it stopped rather than the cap.
+int LevelReached(const Climb& climb) {
+  return climb.stints.empty() ? 1 : climb.stints.back().level;
+}
+
+// Where one branch stands with one fight at the end of its run.
+struct FightStanding {
+  int level = 0;            // the level of the first clear, 0 for never won
+  double seconds = -1.0;    // the playtime that clear landed at
+  double after_cap = -1.0;  // how much of that came after the cap
+  double best_done = 0.0;   // the most of the fight any attempt took down
+  int attempts = 0;
+  int reached = 0;  // the level the branch itself got to
+};
+
+FightStanding StandingOn(const Climb& climb, const std::string& key) {
+  FightStanding standing;
+  standing.reached = LevelReached(climb);
+  std::map<std::string, BossLog>::const_iterator log = climb.bosses.find(key);
+  if (log == climb.bosses.end()) {
+    return standing;
+  }
+  standing.attempts = log->second.attempts;
+  standing.best_done = log->second.best_done;
+  standing.level = log->second.first_clear_level;
+  standing.seconds = log->second.first_clear_seconds;
+  double cap = climb.milestone_seconds[kNumMilestones - 1];
+  if (standing.level > 0 && cap >= 0.0 && standing.seconds > cap) {
+    standing.after_cap = standing.seconds - cap;
+  }
+  return standing;
+}
+
+// The level `pct` of the branches had the fight beaten by, nearest-rank: the
+// half mark of ten branches is the fifth of them. A branch that never won it
+// sorts past every one that did, so 80% reads "never" once three in ten could
+// not do it -- which is the reading, not a gap in the table.
+std::string LevelAtPercentile(std::vector<int> levels, double pct) {
+  for (int& level : levels) {
+    level = level == 0 ? std::numeric_limits<int>::max() : level;
+  }
+  std::sort(levels.begin(), levels.end());
+  int index = static_cast<int>(std::ceil(pct * levels.size())) - 1;
+  index = std::min(std::max(index, 0), static_cast<int>(levels.size()) - 1);
+  return levels[index] == std::numeric_limits<int>::max()
+             ? "never"
+             : absl::StrCat("Lv", levels[index]);
+}
+
+// The headline: what level each fight falls at, over the branches.
+void PrintTimelineSummary(const std::vector<FightRow>& fights,
+                          const std::vector<Job>& branches,
+                          const std::vector<Climb>& climbs) {
+  std::printf("  %-17s %6s %9s %8s %8s %8s %8s\n", "fight", "opens", "cleared",
+              "min", "50%", "80%", "max");
+  std::printf("  %s\n", std::string(70, '-').c_str());
+  for (const FightRow& fight : fights) {
+    std::vector<int> levels;
+    int cleared = 0;
+    for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+      FightStanding standing = StandingOn(climbs[i], fight.key);
+      levels.push_back(standing.level);
+      cleared += standing.level > 0 ? 1 : 0;
+    }
+    std::printf("  %-17s %6s %5d/%-3d %8s %8s %8s %8s\n", fight.label.c_str(),
+                absl::StrCat("Lv", fight.unlock_level).c_str(), cleared,
+                static_cast<int>(branches.size()),
+                LevelAtPercentile(levels, 0.0).c_str(),
+                LevelAtPercentile(levels, 0.5).c_str(),
+                LevelAtPercentile(levels, 0.8).c_str(),
+                LevelAtPercentile(levels, 1.0).c_str());
+  }
+}
+
+// One fight, branch by branch, quickest to it first. The two clocks are the
+// reading once a fight opens at the cap and every level column says Lv200.
+void PrintFightDetail(const Catalogs& catalogs, const FightRow& fight,
+                      const std::vector<Job>& branches,
+                      const std::vector<Climb>& climbs) {
+  char hp[16];
+  FormatShort(BossTotalHp(catalogs.mobs, *fight.difficulty), hp, sizeof(hp));
+  std::printf("\n%s -- opens Lv%d, %s HP, %s clock\n", fight.label.c_str(),
+              fight.unlock_level, hp,
+              FightClock(fight.difficulty->time_limit_seconds()).c_str());
+  std::printf("  %-15s %11s %13s %11s %10s %6s\n", "branch", "first clear",
+              "total played", "after cap", "most down", "tries");
+
+  std::vector<std::pair<double, int>> order;
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    FightStanding standing = StandingOn(climbs[i], fight.key);
+    order.push_back({standing.level > 0
+                         ? standing.seconds
+                         : std::numeric_limits<double>::infinity(),
+                     i});
+  }
+  std::sort(order.begin(), order.end());
+
+  for (const std::pair<double, int>& row : order) {
+    FightStanding standing = StandingOn(climbs[row.second], fight.key);
+    std::string when = "never";
+    if (standing.level > 0) {
+      when = absl::StrCat("Lv", standing.level);
+    } else if (standing.attempts == 0) {
+      // Never opened for them: they stopped short of the level it wants.
+      when = absl::StrCat("<Lv", fight.unlock_level);
+    }
+    char done[16];
+    std::snprintf(done, sizeof(done), "%.0f%%", 100.0 * standing.best_done);
+    std::printf("  %-15s %11s %13s %11s %10s %6d\n",
+                BranchName(branches[row.second]).c_str(), when.c_str(),
+                Clock(standing.level > 0 ? standing.seconds : -1.0).c_str(),
+                Clock(standing.after_cap).c_str(),
+                standing.attempts == 0 ? "-" : done, standing.attempts);
+  }
+}
+
+// When each fight falls in a character's life, across the branches: the level
+// the first clear came at, and -- for the fights that only open at the cap,
+// where every level column would read Lv200 -- the clock instead.
+//
+// The whole point of a run under --total_days: a fight nobody beats inside
+// the month is not a fight that is merely late, and how much of it they could
+// take down says whether it is a tuning matter or a wall.
+void PrintBossTimeline(const Catalogs& catalogs,
+                       const std::vector<Job>& branches,
+                       const std::vector<Climb>& climbs) {
+  std::printf(
+      "\nWhere each fight falls, over the typical run of every branch. A "
+      "branch that never won it\ncounts as worse than every branch that did, "
+      "so a percentile reads \"never\" once that many\nof them could not do "
+      "it.\n\n");
+  std::vector<FightRow> fights = LiveFights(catalogs);
+  PrintTimelineSummary(fights, branches, climbs);
+  for (const FightRow& fight : fights) {
+    PrintFightDetail(catalogs, fight, branches, climbs);
   }
 }
 
@@ -2034,7 +2307,10 @@ std::vector<Job> BranchesToClimb() {
 int TypicalRun(const std::vector<Climb>& runs) {
   std::vector<std::pair<double, int>> by_time;
   for (int i = 0; i < static_cast<int>(runs.size()); ++i) {
-    by_time.push_back({runs[i].milestone_seconds[kNumMilestones - 1], i});
+    double capped = runs[i].milestone_seconds[kNumMilestones - 1];
+    // Never reached is the far end of the sort, not the near one.
+    by_time.push_back(
+        {capped < 0.0 ? std::numeric_limits<double>::infinity() : capped, i});
   }
   std::sort(by_time.begin(), by_time.end());
   return by_time[by_time.size() / 2].second;
@@ -2078,27 +2354,6 @@ void PrintTargets(const std::vector<Job>& branches,
                   " of " + std::to_string(typical.frozen_set_size)
             : "Lv" + std::to_string(typical.frozen_set_level));
 
-    // A boss beaten on the day it opened is the question; one beaten later is
-    // a player who came back, which every branch manages eventually.
-    for (const std::pair<const std::string, BossLog>& entry : typical.bosses) {
-      int beaten = 0;
-      for (const Climb& climb : all) {
-        std::map<std::string, BossLog>::const_iterator log =
-            climb.bosses.find(entry.first);
-        beaten += log != climb.bosses.end() && log->second.clears > 0 ? 1 : 0;
-      }
-      std::string when =
-          entry.second.first_clear_level == 0
-              ? "never, " + std::to_string(entry.second.attempts) + " tries"
-              : "Lv" + std::to_string(entry.second.first_clear_level) + ", " +
-                    std::to_string(entry.second.clears) + " of " +
-                    std::to_string(entry.second.attempts);
-      PrintTarget(entry.second.name + " (opens Lv" +
-                      std::to_string(entry.second.unlock_level) +
-                      ", first try Lv" +
-                      std::to_string(entry.second.first_attempt_level) + ")",
-                  beaten, total, when);
-    }
     if (typical.endgame_seconds > 0.0) {
       char earned[16];
       FormatShort(static_cast<double>(typical.endgame_earned), earned,
@@ -2188,6 +2443,9 @@ void Run() {
   PrintFrozenDrops(branches, typical);
   PrintTokenOdds(branches.data(), typical, count);
   PrintTargets(branches, runs);
+  if (absl::GetFlag(FLAGS_boss_report)) {
+    PrintBossTimeline(catalogs, branches, typical);
+  }
   PrintBossReadiness(catalogs, branches, typical);
 }
 
