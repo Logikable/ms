@@ -97,6 +97,95 @@ bool CanDestroy(int stars) {
   return EquipInstance::RateAt(stars).destroy > 0;
 }
 
+// Whether any attempt this piece will ever take can destroy it. A level whose
+// star ceiling sits at or below the first destroying star makes the piece safe
+// however far it is taken -- and a spare of it worth nothing but the sale.
+bool CanEverDestroy(const EquipPrototype& proto) {
+  if (!Supports(proto, UPGRADE_STAR_FORCE)) {
+    return false;
+  }
+  int ceiling = EquipTabItem::MaxStarsForLevel(proto.required_level());
+  for (int star = 0; star < ceiling; ++star) {
+    if (CanDestroy(star)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// What one more copy of `proto` costs. The shop's price where it stocks the
+// piece; otherwise the sale a kept spare forgoes, which is what holding one
+// against a boom actually costs.
+int64_t SpareCost(const EquipPrototype& proto) {
+  return proto.shop_price() > 0 ? proto.shop_price() : SellPrice(proto);
+}
+
+// Copies of `name` sitting in the bag. Traces are not copies: a trace is what
+// a boom leaves behind, not what puts the piece back.
+int SparesInBag(const CharacterInstance& character, const std::string& name) {
+  int spares = 0;
+  const InventoryInstance& bag = character.inventory();
+  for (int i = 0; i < bag.size(); ++i) {
+    const EquipInstance* item = bag.equip_instance(i);
+    if (item != nullptr && item->prototype().name() == name) {
+      ++spares;
+    }
+  }
+  return spares;
+}
+
+// Whether a boom on this piece could be put right. The shop stocking it is
+// cover enough -- a copy is one purchase away -- and otherwise it takes a
+// spare already in the bag.
+bool CanCoverBoom(const CharacterInstance& character,
+                  const EquipPrototype& proto) {
+  return proto.shop_price() > 0 || SparesInBag(character, proto.name()) > 0;
+}
+
+// How many spares of a piece are worth keeping: the booms expected on the
+// longest star run the purse could pay for as it stands.
+//
+// Income decides it, not a constant. A piece that drops faster than the meso
+// to boom it with is a piece to sell, and the same piece is worth hoarding
+// once the purse can afford the run that destroys it. One is the floor while
+// it can boom at all, since the shopper will not walk into a destroying
+// attempt with nothing to put back.
+int SparesWorthKeeping(const GameState& state, const EquipPrototype& proto,
+                       int stars) {
+  if (!CanEverDestroy(proto) || proto.shop_price() > 0) {
+    return 0;  // safe however far it goes, or a copy is a purchase away
+  }
+  int level = proto.required_level();
+  // A run only gets dearer the further it goes, so the furthest one the purse
+  // covers is bisected for rather than walked to -- the walk is a linear
+  // system a star, and this runs at every look.
+  int lo = stars;
+  int hi = EquipTabItem::MaxStarsForLevel(level);
+  double booms = 0.0;
+  while (lo < hi) {
+    int mid = lo + (hi - lo + 1) / 2;
+    StarForceRun run = StarForceRunTo(level, stars, mid);
+    if (run.meso > static_cast<double>(state.character.meso())) {
+      hi = mid - 1;
+      continue;
+    }
+    booms = run.booms;
+    lo = mid;
+  }
+  return std::max(1, static_cast<int>(std::ceil(booms)));
+}
+
+// The stars on the worn copy of `name`, or -1 where none is worn.
+int WornStars(const CharacterInstance& character, const std::string& name) {
+  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+       character.equipped()) {
+    if (entry.second.prototype().name() == name) {
+      return entry.second.stars();
+    }
+  }
+  return -1;
+}
+
 }  // namespace
 
 const Scroll* GearShopper::ScrollFor(GameState& state, EquipSlot slot) {
@@ -172,7 +261,7 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
                                                              EquipSlot slot,
                                                              int level,
                                                              int stars) {
-  if (stars >= plan_.star_ceiling || CanDestroy(stars)) {
+  if (stars >= plan_.star_ceiling) {
     return std::nullopt;
   }
   StarForceRun run = StarForceRunTo(level, stars, stars + 1);
@@ -186,13 +275,22 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   if (item == nullptr) {
     return std::nullopt;
   }
+  // A destroying attempt is only walked into with something to put back. The
+  // trace a boom leaves needs a spare body, and where the shop stocks none and
+  // the bag holds none, the piece is simply gone -- which is not a price, it
+  // is a loss the sim cannot undo.
+  if (run.booms > 0.0 && !CanCoverBoom(state.character, item->prototype())) {
+    return std::nullopt;
+  }
   Candidate offer;
   offer.slot = slot;
   offer.star = true;
   // The expected price of GETTING the star, not of one attempt at it: every
   // click is paid for whether it lands or not, and that gap is most of what
-  // makes a late star the wrong thing to buy.
-  offer.cost = static_cast<int64_t>(run.meso);
+  // makes a late star the wrong thing to buy. Past fifteen the copies the run
+  // eats are the larger half of it.
+  offer.cost =
+      static_cast<int64_t>(run.meso + run.booms * SpareCost(item->prototype()));
   // Against what is already worn, which already holds the stars the item has:
   // only the gap between them is on offer.
   EquipStats added = Minus(item->StarForceStatGains(stars + 1),
@@ -294,9 +392,21 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
   EquipSlot slot = best->slot;
   const EquipInstance* item = Worn(state, slot);
   int before = item == nullptr ? 0 : item->stars();
+  // Copied out: a boom takes the EquipInstance with it, and the recovery needs
+  // to know what was lost.
+  EquipPrototype proto = item == nullptr ? EquipPrototype() : item->prototype();
   while (true) {
     item = Worn(state, slot);
-    if (item == nullptr || item->stars() > before) {
+    if (item == nullptr) {
+      // The last attempt destroyed it. Trace plus spare body makes the piece
+      // again, several stars down and with its scrolls intact, and the run
+      // carries on from there -- which is the loop the price above solved.
+      if (!RecoverBoom(state, slot, proto, spend)) {
+        break;
+      }
+      continue;
+    }
+    if (item->stars() > before) {
       break;
     }
     int64_t attempt =
@@ -316,8 +426,75 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
   return true;
 }
 
+bool GearShopper::RecoverBoom(GameState& state, EquipSlot slot,
+                              const EquipPrototype& proto, GearSpend& spend) {
+  int trace_index = -1;
+  int spare_index = -1;
+  const InventoryInstance& bag = state.character.inventory();
+  for (int i = 0; i < bag.size() && (trace_index < 0 || spare_index < 0); ++i) {
+    if (bag[i].prototype().name() != proto.name()) {
+      continue;
+    }
+    // A trace answers null to equip_instance, which is how the two are told
+    // apart: one is what was lost, the other is what puts it back.
+    if (bag.equip_instance(i) == nullptr) {
+      trace_index = trace_index < 0 ? i : trace_index;
+    } else {
+      spare_index = spare_index < 0 ? i : spare_index;
+    }
+  }
+  if (trace_index < 0) {
+    return false;
+  }
+  if (spare_index < 0) {
+    if (proto.shop_price() <= 0 || !state.character.Buy(proto, 1)) {
+      return false;
+    }
+    spend.meso += proto.shop_price();
+    spare_index = state.character.inventory().size() - 1;
+  }
+  state.character.RecoverTrace(trace_index, spare_index);
+  ++spend.booms;
+  ++booms_;
+  // RecoverTrace appends the piece it made, which is what goes back on.
+  return state.character.Equip(state.character.inventory().size() - 1);
+}
+
+void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
+  // Worked out per piece rather than per copy: what a spare is worth depends
+  // on the piece and the purse, not on how many of it the bag happens to hold.
+  std::map<std::string, int> allowance;
+  int i = 0;
+  while (i < state.character.inventory().size()) {
+    const EquipInstance* item = state.character.inventory().equip_instance(i);
+    if (item == nullptr) {
+      ++i;  // a trace, which is the other half of a recovery
+      continue;
+    }
+    const EquipPrototype& proto = item->prototype();
+    std::map<std::string, int>::iterator kept = allowance.find(proto.name());
+    if (kept == allowance.end()) {
+      int worn = WornStars(state.character, proto.name());
+      // A piece not worn keeps one copy -- it is gear, not a spare. A piece
+      // worn keeps as many as a boom could use.
+      kept =
+          allowance
+              .insert({proto.name(),
+                       worn < 0 ? 1 : SparesWorthKeeping(state, proto, worn)})
+              .first;
+    }
+    if (state.character.MeetsJob(proto) && kept->second > 0) {
+      --kept->second;
+      ++i;
+      continue;
+    }
+    spend.sold += state.character.SellEquip(i);
+  }
+}
+
 GearSpend GearShopper::Spend(GameState& state) {
   GearSpend spend;
+  SellSpares(state, spend);
   while (BuyBest(state, spend)) {
   }
   return spend;

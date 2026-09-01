@@ -701,6 +701,9 @@ struct Climb {
   int endgame_scrolled = 0;
   int endgame_stars_worn = 0;
   int endgame_hammers = 0;
+  // Pieces the shopper destroyed and put back over the whole climb, which is
+  // the reading on whether the stars past fifteen were worth walking into.
+  int booms = 0;
   std::string money_map;
   // The level each Frozen piece first dropped at, or 0 for one that never
   // did. The rates are set so that all four arrive before the level cap --
@@ -1651,6 +1654,7 @@ void FarmAtCap(Session& run) {
   run.climb.endgame_scrolled = reached.scrolled;
   run.climb.endgame_stars_worn = reached.stars;
   run.climb.endgame_hammers = reached.hammers;
+  run.climb.booms = run.shopper.booms();
 }
 
 // Everything the flags say about how a character climbs. A checkpoint written
@@ -2369,14 +2373,14 @@ void PrintTargets(const std::vector<Job>& branches,
                   sizeof(spent));
       std::printf(
           "  %-46s %-12s %d of %d pieces scrolled out, %.1f* mean, %d "
-          "hammers\n",
+          "hammers, %d booms\n",
           "  spent on gear", spent, typical.endgame_scrolled,
           typical.endgame_pieces,
           typical.endgame_pieces == 0
               ? 0.0
               : static_cast<double>(typical.endgame_stars_worn) /
                     typical.endgame_pieces,
-          typical.endgame_hammers);
+          typical.endgame_hammers, typical.booms);
       std::printf("  %-46s %s\n", "  farmed", typical.money_map.c_str());
     }
   }

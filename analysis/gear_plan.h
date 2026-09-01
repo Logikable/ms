@@ -51,6 +51,10 @@ struct GearSpend {
   int slots_filled = 0;
   int stars_gained = 0;
   int hammers_driven = 0;
+  // Pieces destroyed and put back, and what the bag was cleared of to pay for
+  // the room and the meso.
+  int booms = 0;
+  int64_t sold = 0;
 };
 
 // Spends a purse on gear, remembering which scroll each item wants: the
@@ -63,8 +67,16 @@ class GearShopper {
 
   // Spends what the purse can spare on what the character is wearing, buying
   // the best value on offer over and over until nothing left is affordable or
-  // worth having.
+  // worth having. Clears the bag of what it is holding for nothing first: the
+  // sale is income like any other, and the room is what keeps the next drop
+  // from falling on a full bag.
   GearSpend Spend(GameState& state);
+
+  // Pieces destroyed and recovered over this shopper's life, which is the
+  // reading on whether going past fifteen stars was worth walking into.
+  int booms() const {
+    return booms_;
+  }
 
  private:
   // One thing the purse could buy next.
@@ -112,8 +124,17 @@ class GearShopper {
   // Buys the affordable candidate with the most combat power per meso, and
   // says whether it bought anything.
   bool BuyBest(GameState& state, GearSpend& spend);
+  // Sells the copies the bag is holding for nothing: a piece the character
+  // cannot wear at all, and spares past what a boom could ever use.
+  void SellSpares(GameState& state, GearSpend& spend);
+  // Puts a destroyed piece back on, out of the trace the boom left and a spare
+  // body. False where nothing can cover it, which ends the run.
+  bool RecoverBoom(GameState& state, EquipSlot slot,
+                   const EquipPrototype& proto, GearSpend& spend);
 
   GearPlan plan_;
+  int booms_ = 0;
+
   // By the prototype's name, since that is what an item and its replacement
   // disagree on. A slot whose item takes no scroll maps to null.
   std::map<std::string, const Scroll*> chosen_;
