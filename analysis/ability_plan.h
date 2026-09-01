@@ -60,12 +60,15 @@ struct AbilityWorth {
 AbilityWorth MeasureAbilityWorth(GameState& state, StatPreset preset,
                                  const AbilityRate& rate);
 
-// Rerolls both presets until each has settled or the pool cannot pay for
-// another, chasing the best line `climb_to` can produce for each. Returns the
-// honor it spent, which is nothing at all before level 160.
+// Rerolls `preset` until it settles or the pool cannot pay for another,
+// chasing the best line `climb_to` can produce for it. Returns the honor it
+// spent, which is nothing at all before level 160.
+//
+// One preset, not both: the pool is shared, and a character who splits it
+// between the two finishes neither. Which one is worth finishing is the
+// caller's to say.
 int64_t SpendHonorOnAbility(GameState& state, AbilityRank climb_to,
-                            const AbilityWorth& farming,
-                            const AbilityWorth& bossing);
+                            StatPreset preset, const AbilityWorth& worth);
 
 }  // namespace ms
 

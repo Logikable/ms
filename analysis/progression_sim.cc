@@ -1143,8 +1143,12 @@ void SpendHyperPoints(Session& run) {
   SpendHyperStats(run.state, StatPreset::kBossing, run.hyper_bossing);
 }
 
-// The honor the pool has collected, spent on rerolling both Inner Ability
-// setups. Nothing happens before level 160, where the panel opens.
+// The honor the pool has collected, spent on the BOSSING Inner Ability alone.
+//
+// One preset, because one pool: a character this early cannot finish both, and
+// the fights are what the climb is short of. The farming table is measured
+// anyway -- it is one more pass, and it is what says whether that is still the
+// right call.
 void SpendHonor(Session& run) {
   if (!run.state.character.inner_ability_unlocked()) {
     return;
@@ -1166,7 +1170,7 @@ void SpendHonor(Session& run) {
     run.climb.bossing_worth = run.bossing_worth;
   }
   run.climb.ability_honor_spent += SpendHonorOnAbility(
-      run.state, AbilityRankWanted(), run.farming_worth, run.bossing_worth);
+      run.state, AbilityRankWanted(), StatPreset::kBossing, run.bossing_worth);
 }
 
 // What a fight leaves behind: the drops worn, and the purse spent on them.

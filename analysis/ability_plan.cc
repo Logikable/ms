@@ -145,29 +145,15 @@ AbilityWorth MeasureAbilityWorth(GameState& state, StatPreset preset,
 }
 
 int64_t SpendHonorOnAbility(GameState& state, AbilityRank climb_to,
-                            const AbilityWorth& farming,
-                            const AbilityWorth& bossing) {
-  const std::pair<StatPreset, const AbilityWorth*> setups[] = {
-      {StatPreset::kFarming, &farming}, {StatPreset::kBossing, &bossing}};
+                            StatPreset preset, const AbilityWorth& worth) {
   int64_t spent = 0;
-  // Alternated rather than taken one preset at a time, so a pool that runs out
-  // leaves the character with two half-rolled setups rather than one finished
-  // one and the lines they started with.
-  for (bool rolled = true; rolled;) {
-    rolled = false;
-    for (const std::pair<StatPreset, const AbilityWorth*>& setup : setups) {
-      if (Settled(state.character.ability(setup.first), climb_to,
-                  *setup.second)) {
-        continue;  // nothing left to roll for; the honor goes to the other one
-      }
-      HoldForChase(state.character, setup.first, climb_to, *setup.second);
-      const int64_t cost = state.character.ability_reset_cost(setup.first);
-      if (!state.character.ResetAbility(setup.first)) {
-        continue;  // the pool is short, or the panel is not open to them yet
-      }
-      spent += cost;
-      rolled = true;
+  while (!Settled(state.character.ability(preset), climb_to, worth)) {
+    HoldForChase(state.character, preset, climb_to, worth);
+    const int64_t cost = state.character.ability_reset_cost(preset);
+    if (!state.character.ResetAbility(preset)) {
+      return spent;  // the pool is short, or the panel is not open to them yet
     }
+    spent += cost;
   }
   return spent;
 }
