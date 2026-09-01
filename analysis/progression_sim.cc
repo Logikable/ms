@@ -55,8 +55,8 @@
  * look at while deciding what the behaviour should be.
  *
  * The sweep climbs the branches that take a 4th advancement. The rest stop at
- * their 2nd or 3rd job and were never built to reach the cap; --all_branches
- * still climbs them, and --branch takes any one of them on its own.
+ * their 2nd or 3rd job and were never built to reach the cap -- --branch takes
+ * any one of them when the question is about one.
  *
  * One branch takes about fifteen seconds, and the whole sweep about twenty-six
  * -- it climbs a branch a core. Anything far past that is a bug to chase
@@ -73,7 +73,6 @@
  *   bazelisk run //analysis:progression_sim -- --detail
  *   bazelisk run //analysis:progression_sim -- --checkpoint_at=160
  *   bazelisk run //analysis:progression_sim -- --branch=DARK_KNIGHT
- *   bazelisk run //analysis:progression_sim -- --all_branches
  *   bazelisk run //analysis:progression_sim -- --total_days=30 --runs=3
  */
 #include <algorithm>
@@ -152,11 +151,6 @@ ABSL_FLAG(bool, detail, false,
 // time and hide a real change under the noise. Move it to see how much of a
 // number is the seed and how much is the game.
 ABSL_FLAG(int, seed, 20260813, "The random stream every climb draws from.");
-ABSL_FLAG(bool, all_branches, false,
-          "Climb the branches that stop at their 2nd or 3rd job as well. They "
-          "were never meant to reach the cap -- the advancement is there at "
-          "60 and at 100 -- so what they measure past that is a build nobody "
-          "plays, and they are the slowest rows in the sweep by far.");
 ABSL_FLAG(bool, playtime, true, "Print how long the climb takes.");
 ABSL_FLAG(std::string, pots, "auto",
           "What the player does about the potions: auto (on when they pay, "
@@ -211,9 +205,10 @@ ABSL_FLAG(std::string, ability_rank, "legendary",
           "than a climb to the cap is paid.");
 ABSL_FLAG(std::string, branch, "",
           "One branch to climb, as its Job enum name without the JOB_ prefix "
-          "(DARK_KNIGHT). Empty climbs them all, which waits on the slowest "
-          "of them however many cores are free -- so name one when one is the "
-          "question.");
+          "(DARK_KNIGHT). Any branch at all, including the ones that stop at "
+          "their 2nd or 3rd job and the sweep leaves out. Empty climbs the "
+          "sweep, which waits on the slowest of them however many cores are "
+          "free -- so name one when one is the question.");
 
 namespace ms {
 namespace {
@@ -2718,19 +2713,17 @@ void PrintCharacterSheet(const Catalogs& catalogs, Job branch,
   PrintBag(state);
 }
 
-// The branches to climb: the ones that take a 4th advancement, or under
-// --all_branches every branch from the 2nd job up, or the one --branch names.
-// A 1st job is left out even then -- climbing to 140 without ever advancing
-// takes forty simulated days and answers nothing.
+// The branches to climb: the ones that take a 4th advancement, or the one
+// --branch names. A branch that stops earlier was never built to reach the
+// cap, so what it measures past its own advancement is a build nobody plays.
 std::vector<Job> BranchesToClimb() {
   const std::string& name = absl::GetFlag(FLAGS_branch);
   if (!name.empty()) {
     return {ParseBranch(name)};
   }
-  int deepest = absl::GetFlag(FLAGS_all_branches) ? 2 : 4;
   std::vector<Job> wanted;
   for (Job branch : EveryBranch()) {
-    if (StageOf(branch) >= deepest) {
+    if (StageOf(branch) >= 4) {
       wanted.push_back(branch);
     }
   }
