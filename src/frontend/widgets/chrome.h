@@ -126,9 +126,13 @@ struct TabSpec {
 };
 
 // A whole tab bar, cut to `width` columns. Chips past the edge are held back
-// behind a mark -- kTabMore -- shown only while there is something that way,
-// though its column is reserved either way so the chips do not shuffle as it
-// comes and goes. The window follows `active`, which is therefore always drawn.
+// behind a mark, shown only while there is something that way. The window
+// follows `active`, which is therefore always drawn.
+//
+// The right mark keeps a column of its own, reserved either way so the chips
+// do not shuffle as it comes and goes; the left one stands in the leading
+// chip's own pad, so a bar that scrolls begins in the same column as one that
+// fits and two bars stacked in a panel line up.
 //
 // Prefer this to building a row of TabChips: a bar wide enough to overflow is
 // a bar that would otherwise widen the window around it, and which bar that
