@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "src/character/consumables.h"
 #include "src/combat/combat.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
@@ -125,6 +126,11 @@ OfflineReport ApplyOfflineProgress(GameState& state, double seconds) {
     report.kills += killed;
   }
   report.rewards = AwardCombatRewards(state, params, kills);
+  // The potion drank through the absence exactly as it drinks through a
+  // watched evening: the character was farming the whole of report.seconds,
+  // which stops early only where they fell.
+  report.rewards.consumable_cost = state.character.ChargeConsumable(
+      CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION, report.seconds);
   report.end_level = state.character.proto().level();
   if (report.died) {
     // The same price the live fight charges: the trip home and nothing else.

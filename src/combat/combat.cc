@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "src/character/character.h"
+#include "src/character/consumables.h"
 #include "src/character/honor.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
@@ -161,6 +162,13 @@ RewardTally AdvanceCombat(GameState& state, CombatSim& sim,
                           const CombatParams& params, double elapsed_seconds) {
   sim.Advance(params, elapsed_seconds);
   RewardTally tally = AwardCombatRewards(state, params, sim.kills_this_step());
+  // Charged for the seconds farmed, and for those alone: a player standing in
+  // town or watching a boss is not drinking it. Taken after the kills are
+  // paid, so a second's farming can cover a second's drink.
+  if (params.active) {
+    tally.consumable_cost = state.character.ChargeConsumable(
+        CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION, elapsed_seconds);
+  }
   if (sim.died_this_step()) {
     // Dying costs the trip home and nothing else -- no EXP, no meso. The
     // kills already banked above stand: they happened. Moving the map is all

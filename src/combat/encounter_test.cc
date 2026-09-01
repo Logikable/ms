@@ -6,6 +6,7 @@
 #include <string>
 
 #include "src/character/character_stats.h"
+#include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
 #include "src/combat/constants.h"
@@ -3482,6 +3483,38 @@ TEST(ComputeBossParamsTest, TheFightPicksTheAllocationForTheActivity) {
   EXPECT_GT(boss.attacks.front().damage_per_hit[0],
             mapped.attacks.front().damage_per_hit[0])
       << "30 attack the farming allocation never bought";
+}
+
+// The Extreme Green Potion is worth a stage in a boss fight and nothing on a
+// map -- and the stage it is worth passes the cap the map holds them to.
+TEST(ComputeBossParamsTest, TheGreenPotionPassesTheSpeedCapInAFightAlone) {
+  GameState state({}, {}, {},
+                  {{"arm", MakeMob("Zakum's Arm", 700000)},
+                   {"body", MakeMob("Zakum", 7000000)},
+                   {"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}});
+  state.current_map = "field";
+  Character grown = state.character.ToProto();
+  grown.set_level(200);
+  state.character.RestoreFrom(grown, state.equips, state.items);
+  // Already sitting on the cap, which is where the potion is worth anything.
+  EquipSwordAt(state, ATTACK_SPEED_FASTEST_3);
+
+  BossDifficulty normal = NormalTwoPhase();
+  double capped = ComputeBossParams(state, "zakum", normal, 0)
+                      .attacks.front()
+                      .swing_seconds;
+  double mapped = ComputeCombatParams(state).attacks.front().swing_seconds;
+
+  ASSERT_TRUE(
+      state.character.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
+  EXPECT_LT(ComputeBossParams(state, "zakum", normal, 0)
+                .attacks.front()
+                .swing_seconds,
+            capped);
+  EXPECT_DOUBLE_EQ(ComputeCombatParams(state).attacks.front().swing_seconds,
+                   mapped)
+      << "the map is not a boss fight";
 }
 
 // A boss stands its parts a room apart, so a swing reaches half as many of

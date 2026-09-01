@@ -11,6 +11,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/consumables.h"
 #include "src/character/progression.h"
 #include "src/combat/boss_run.h"
 #include "src/combat/offline.h"
@@ -3111,6 +3112,32 @@ TEST_F(TuiControllerTest, EscapeLeavesTheBossScreen) {
   EXPECT_EQ(controller_->screen(), kBossSelect);
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// The Extreme Green Potion is drunk on the way in, whatever the fight does
+// next. Charged once per entry rather than per phase or per clear.
+TEST_F(TuiControllerTest, TheGreenPotionIsChargedOnTheWayIntoAFight) {
+  LevelTo(190);
+  state_->character.AddMeso(3'000'000);
+  ASSERT_TRUE(
+      state_->character.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
+
+  EnterFight();
+  ASSERT_EQ(controller_->screen(), kBossFight);
+  EXPECT_EQ(state_->character.meso(), 2'000'000);
+
+  // Switched off, and the next fight is free.
+  ASSERT_FALSE(
+      state_->character.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
+  controller_->OnEvent(ftxui::Event::Escape);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);  // onto Confirm
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->AdvanceBossRun(0.0);
+  ASSERT_EQ(controller_->screen(), kBossSelect);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBossFight);
+  EXPECT_EQ(state_->character.meso(), 2'000'000);
 }
 
 TEST_F(TuiControllerTest, ConfirmingEntersTheFight) {

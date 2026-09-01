@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 
+#include "src/character/consumables.h"
 #include "src/character/exp_table.h"
 #include "src/character/honor.h"
 #include "src/combat/encounter.h"
@@ -114,6 +115,57 @@ TEST(AwardCombatRewardsTest, TheMesoMultiplierLandsOnTheSummedShare) {
   ASSERT_GT(meso[0], 0);
   EXPECT_EQ(meso[1], static_cast<int64_t>(meso[0] * 1.20));
   EXPECT_EQ(meso[2], static_cast<int64_t>(meso[0] * 1.44));
+}
+
+// The Wealth Acquisition Potion is charged by the second of farming, and what
+// it pays back is a share past the cap under a multiplier.
+TEST(AdvanceCombatTest, TheWealthPotionDrinksBySecondAndPaysAMultiple) {
+  Mob mob = SnailMob();
+  mob.set_level(kConsumableUnlockLevel);
+  int64_t earned[2] = {0, 0};
+  int64_t drunk[2] = {0, 0};
+  for (int pass = 0; pass < 2; ++pass) {
+    GameState state({}, {}, {}, {{"snail", mob}}, {{"field", SnailMap()}}, {},
+                    GameMode::kPlay, TestOptions{}, /*seed=*/7);
+    state.current_map = "field";
+    LevelTo(state, kConsumableUnlockLevel);
+    EquipSword(state);
+    state.character.AddMeso(1'000'000);
+    if (pass == 1) {
+      ASSERT_TRUE(state.character.ToggleConsumable(
+          CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
+    }
+    CombatSim sim;
+    for (int second = 0; second < 100; ++second) {
+      RewardTally tally = AdvanceCombat(state, sim, 1.0);
+      earned[pass] += tally.meso;
+      drunk[pass] += tally.consumable_cost;
+    }
+  }
+
+  // A hundred seconds at a thousand each, and the pot switched off drank
+  // nothing at all.
+  EXPECT_EQ(drunk[0], 0);
+  EXPECT_EQ(drunk[1], 100'000);
+  // More than the 1.44x the share and the multiplier come to on their own:
+  // the drop rate rides with them, and a meso drop has to happen before it
+  // can be multiplied.
+  ASSERT_GT(earned[0], 0);
+  EXPECT_GT(earned[1], static_cast<int64_t>(earned[0] * 1.44));
+}
+
+// A character standing in town is not drinking it: the drain rides the same
+// call the fight does, and that call does nothing without a map.
+TEST(AdvanceCombatTest, TheWealthPotionDrinksNothingOffAMap) {
+  GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", SnailMap()}});
+  LevelTo(state, kConsumableUnlockLevel);
+  EquipSword(state);
+  state.character.AddMeso(1'000'000);
+  ASSERT_TRUE(state.character.ToggleConsumable(
+      CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
+
+  Farm(state, 100.0);  // no current map
+  EXPECT_EQ(state.character.meso(), 1'000'000);
 }
 
 // A kill's honor is its own: no bonus lifts it, and nothing but the kills is

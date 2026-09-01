@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/consumables.h"
 #include "src/character/inner_ability.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -2711,6 +2712,32 @@ TEST_F(DerivedStatsTest, MesoCapsWhatIsWornAndThenTheWholeSum) {
   DerivedStats piled = DerivedStatsFor(c, skills);
   piled.meso_pct = 10.0;
   EXPECT_NEAR(MesoBonus(piled), kMesoHardCap, 1e-9);
+}
+
+// The Wealth Acquisition Potion is three levers at once, and the share it adds
+// sits past the equipment cap rather than under it.
+TEST_F(DerivedStatsTest, TheWealthPotionAddsAShareADropRateAndAMultiplier) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeCharacter(rng, kConsumableUnlockLevel, 0);
+  EquipPrototype coin;
+  coin.set_name("Coin Charm");
+  coin.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  coin.mutable_base_stats()->set_meso_rate(100);
+  c.PickUp(std::make_unique<EquipInstance>(coin));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
+
+  DerivedStats before = DerivedStatsFor(c, {});
+  EXPECT_NEAR(MesoBonus(before), 1.00, 1e-9);
+  EXPECT_NEAR(before.meso_final_mult, 1.0, 1e-9);
+  EXPECT_NEAR(before.item_drop_pct, 0.0, 1e-9);
+
+  ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
+  DerivedStats after = DerivedStatsFor(c, {});
+  // Past the cap, not under it: a character already sitting on +100% from
+  // gear earns 2.2 x 1.2 == 2.64 times what a bare one does.
+  EXPECT_NEAR(MesoBonus(after), 1.20, 1e-9);
+  EXPECT_NEAR(after.meso_final_mult, 1.20, 1e-9);
+  EXPECT_NEAR(after.item_drop_pct, 0.20, 1e-9);
 }
 
 // --- the party ---

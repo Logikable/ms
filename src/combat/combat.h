@@ -38,6 +38,11 @@ struct RewardTally {
   int64_t meso = 0;
   int64_t honor = 0;
   std::vector<RewardItem> items;  // in the order the drop tables list them
+  // What the potions took back out of the purse over the same stretch. The one
+  // number here that is a cost rather than a payment, and it is here because
+  // it is charged by the second of farming -- so the only caller who can say
+  // how much of it there was is the one stepping the fight.
+  int64_t consumable_cost = 0;
 };
 
 // Advances `sim` by elapsed_seconds on `state`'s current map and grants the

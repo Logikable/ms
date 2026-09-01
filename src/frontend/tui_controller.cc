@@ -13,6 +13,7 @@
 #include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
+#include "src/character/consumables.h"
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
 #include "src/combat/encounter.h"
@@ -1100,6 +1101,7 @@ void TuiController::OpenPartyFight(const MultiplayerSnapshot& lobby) {
   // Before the run: it works the character's damage out once, and the party
   // is part of what the character is worth for as long as the fight lasts.
   SeatParty(lobby);
+  ChargeBossEntry();
   boss_run_ = std::make_unique<BossRun>(boss_run_key_, it->second, index,
                                         party_fight_.get());
   // Whatever they were doing, they are in a fight now.
@@ -1413,10 +1415,18 @@ bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
     screen_ = kBossSelect;
     return true;
   }
+  ChargeBossEntry();
   boss_run_ = std::make_unique<BossRun>(
       boss_run_key_, it->second, boss_select_panel_.selected_difficulty());
   screen_ = kBossFight;
   return true;
+}
+
+void TuiController::ChargeBossEntry() {
+  // Charged on the way in, whether or not the fight is won: the potion is
+  // drunk before the doors open. A party charges every member who has it on,
+  // each on their own client and out of their own purse.
+  state_.character.ChargeConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION, 1);
 }
 
 bool TuiController::OnBossNoticeEvent(ftxui::Event event) {

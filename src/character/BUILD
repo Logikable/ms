@@ -200,6 +200,7 @@ cc_library(
     hdrs = ["character_stats.h"],
     deps = [
         ":character",
+        ":consumables",
         ":hyper_stats",
         ":inner_ability",
         "//src/combat:damage",
@@ -290,6 +291,7 @@ cc_test(
     deps = [
         ":character",
         ":character_stats",
+        ":consumables",
         ":hyper_stats",
         ":inner_ability",
         "//src/item:equip_instance",

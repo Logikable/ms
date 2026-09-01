@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "src/character/consumables.h"
 #include "src/combat/encounter.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -114,6 +115,24 @@ TEST(OfflineTest, NoTimeAwayPaysNothing) {
 
 // A map that kills the character stops the absence there: they are paid for
 // what they farmed before falling and are home when they come back.
+// The potion drinks through an absence exactly as it drinks through an
+// evening watched: the character was farming the whole time either way.
+TEST(OfflineTest, TheWealthPotionDrinksThroughAnAbsence) {
+  std::unique_ptr<GameState> state = SnailFarmer();
+  while (state->character.proto().level() < kConsumableUnlockLevel) {
+    state->character.LevelUp();
+  }
+  state->character.AddMeso(10'000'000);
+  ASSERT_TRUE(state->character.ToggleConsumable(
+      CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
+
+  OfflineReport report = ApplyOfflineProgress(*state, 3600.0);
+
+  ASSERT_TRUE(report.farmed);
+  EXPECT_EQ(report.rewards.consumable_cost,
+            static_cast<int64_t>(report.seconds * 1'000));
+}
+
 TEST(OfflineTest, DyingCutsTheAbsenceShortAndSendsThePlayerHome) {
   GameState state(std::map<std::string, EquipPrototype>{},
                   std::map<std::string, Scroll>{},

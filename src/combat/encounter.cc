@@ -12,6 +12,7 @@
 #include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
+#include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
 #include "src/combat/constants.h"
@@ -1390,6 +1391,14 @@ CombatParams ComputeBossParams(const GameState& state,
   // A boss fight is what the bossing allocation is for.
   DerivedStats derived = DerivedStatsFor(state.character, state.skills, {},
                                          state.party, StatPreset::kBossing);
+  // The Extreme Green Potion, which is worth stages here and nowhere else --
+  // and stages that pass the soft cap, which nothing else in the game does.
+  // Written onto derived for the reason the arcane factors are: the character
+  // alone cannot say it, because it depends on what they walked into.
+  if (state.character.ConsumableInEffect(
+          CONSUMABLE_TYPE_EXTREME_GREEN_POTION)) {
+    derived.uncapped_attack_speed_bonus += kGreenPotionAttackSpeed;
+  }
   // A boss fight runs in real time whatever the character's level: the pacing
   // band stretches an idle map out so it can be left alone, and a fight the
   // player is sitting and watching wants neither the stretch nor a beat.

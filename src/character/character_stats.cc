@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "absl/types/span.h"
+#include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/combat/damage.h"
@@ -1061,6 +1062,14 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   // Meso does not: what is worn is capped on its own, so it is kept apart
   // until MesoBonus puts the two together.
   stats.equip_meso_pct += equipped.meso_rate() / 100.0;
+  // The Wealth Acquisition Potion, worth three things at once: a share past
+  // the equipment cap, the same share of drop rate, and a multiplier over the
+  // purse the two of them fill.
+  if (character.ConsumableInEffect(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION)) {
+    stats.meso_pct += kWealthPotionMesoPct;
+    stats.item_drop_pct += kWealthPotionDropPct;
+    stats.meso_final_mult *= kWealthPotionMesoMult;
+  }
   // Pick Pocket and Meso Explosion, worth nothing apart: a meso falls out of
   // an enemy and is thrown straight back at them. It rides the swing exactly
   // as a Final Attack does, except that the roll is per line -- so it is one

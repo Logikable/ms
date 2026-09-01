@@ -339,6 +339,9 @@ class TuiController {
   // beat is up. Does nothing without a fight, and nothing while the leave
   // prompt is up -- the clock must not run out while the player is deciding.
   void AdvanceBossRun(double elapsed_seconds);
+  // Takes what walking into a fight costs in potions. Called by both doors
+  // into a boss run -- the solo one and the party's.
+  void ChargeBossEntry();
   // True while a fight owns the screen, which is when the map should not be
   // farmed: the player is somewhere else.
   bool in_boss_fight() const {
