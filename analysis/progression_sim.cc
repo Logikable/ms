@@ -1715,6 +1715,10 @@ void FarmAtCap(Session& run) {
     bool fought = TakeOnBosses(run, level, /*levelled=*/false);
     if (run.seconds >= next_retool) {
       next_retool += kDaySeconds / 24.0;
+      // The Etc tab first, as the climb's own retool does. It holds 128 stacks
+      // and twenty days of drops fill it, and a full one refuses the spell
+      // traces every scroll is bought with.
+      SellDrops(run.state.character);
       WearBestFromBag(run.state.character);
       Outfit(run.state, /*budget=*/true);
       run.shopper.Spend(run.state);

@@ -121,9 +121,12 @@ class GearShopper {
   // valued. Affordability is left to the caller: what the purse cannot cover
   // today it may cover next level, and the list says what is on offer.
   std::vector<Candidate> Offers(GameState& state);
-  // Buys the affordable candidate with the most combat power per meso, and
-  // says whether it bought anything.
+  // Buys the affordable candidate with the most combat power per meso, trying
+  // the next one down wherever the bag or the purse refuses, and says whether
+  // it bought anything.
   bool BuyBest(GameState& state, GearSpend& spend);
+  // Pays for one offer and puts it on. False for one that was refused.
+  bool BuyOffer(GameState& state, const Candidate& candidate, GearSpend& spend);
   // Sells the copies the bag is holding for nothing: a piece the character
   // cannot wear at all, and spares past what a boom could ever use.
   void SellSpares(GameState& state, GearSpend& spend);

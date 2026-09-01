@@ -344,22 +344,35 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
 }
 
 bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
-  const Candidate* best = nullptr;
   std::vector<Candidate> offers = Offers(state);
+  // Cross-multiplied rather than divided, so two candidates a rounding apart
+  // are still ordered by what they are worth.
+  std::sort(offers.begin(), offers.end(),
+            [](const Candidate& a, const Candidate& b) {
+              return static_cast<int64_t>(a.gain) * b.cost >
+                     static_cast<int64_t>(b.gain) * a.cost;
+            });
+  // Down the list wherever one is refused. A bag that cannot take the traces
+  // for one piece is no reason to stop buying for every other piece -- and
+  // stopping is what this did, so a full Etc tab quietly ended the shopping
+  // for the rest of the run.
   for (const Candidate& offer : offers) {
     if (offer.gain <= 0 || offer.cost <= 0 ||
         offer.cost > state.character.meso()) {
       continue;
     }
-    // Cross-multiplied rather than divided, so two candidates a rounding apart
-    // are still ordered by what they are worth.
-    if (best == nullptr || offer.gain * best->cost > best->gain * offer.cost) {
-      best = &offer;
+    if (BuyOffer(state, offer, spend)) {
+      return true;
     }
   }
-  if (best == nullptr) {
-    return false;
-  }
+  return false;
+}
+
+// Pays for one offer and puts it on. False for one the bag or the purse
+// refused, which is the caller's cue to try the next.
+bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
+                           GearSpend& spend) {
+  const Candidate* best = &candidate;
   if (best->hammer) {
     EquipSlot slot = best->slot;
     if (!state.character.HammerEquipped(slot)) {
