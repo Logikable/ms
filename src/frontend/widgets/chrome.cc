@@ -243,14 +243,9 @@ std::string EquipGiftTabKey(int stage) {
   return "equip_gift:" + std::to_string(stage);
 }
 
-namespace {
-
-// One chip, with its leading pad optional: a chip the left scroll mark stands
-// beside gives that column up to the mark.
-ftxui::Element Chip(const std::string& label, bool active, bool row_focused,
-                    bool unseen, bool left_pad) {
-  ftxui::Element chip =
-      ftxui::text(std::string(left_pad ? " " : "") + label + " ");
+ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
+                       bool unseen) {
+  ftxui::Element chip = ftxui::text(" " + label + " ");
   if (active && row_focused) {
     return chip | ftxui::color(ftxui::Color::Black) |
            ftxui::bgcolor(ftxui::Color::White);
@@ -262,19 +257,12 @@ ftxui::Element Chip(const std::string& label, bool active, bool row_focused,
   return chip;
 }
 
-}  // namespace
-
-ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
-                       bool unseen) {
-  return Chip(label, active, row_focused, unseen, /*left_pad=*/true);
-}
-
-// The mark standing where a bar runs off its edge. The left one is drawn in
-// the leading chip's own pad, so a bar that scrolls starts its labels in the
-// column a bar that fits starts them in -- two bars stacked in a panel line up
-// whether or not either overflows. The right one takes a column of its own,
+// The mark standing where a bar runs off its edge. The right one's column is
 // reserved whether or not there is a mark to put there, so the chips hold
-// still as the bar scrolls under them.
+// still as the bar scrolls under them. The left one's is taken only once
+// there is something off that edge: a bar showing its first chip starts where
+// a bar that fits starts, which is what lets two bars stacked in a panel line
+// up.
 namespace {
 
 constexpr char kMoreLeft[] = "‹";   // a single left angle
@@ -318,8 +306,8 @@ ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
     whole += ChipWidth(tab);
   }
   // A bar that fits is drawn as it always was, marks and all left off. Their
-  // two columns would otherwise indent every bar in the game for the sake of
-  // the one that scrolls.
+  // columns would otherwise indent every bar in the game for the sake of the
+  // one that scrolls.
   bool scrolls = width > 0 && whole > width;
 
   int first = 0;
@@ -327,6 +315,13 @@ ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
   if (scrolls) {
     int budget = width - kMoreWidth;  // the right mark's own column
     first = FirstVisible(tabs, std::clamp(active, 0, last), budget);
+    if (first > 0) {
+      // Something off the left edge, so that mark costs a column too. Asked
+      // in this order because the answer decides the question: a bar still
+      // showing its first chip is not paying for a mark it does not draw.
+      budget -= kMoreWidth;
+      first = FirstVisible(tabs, std::clamp(active, 0, last), budget);
+    }
     int used = 0;
     for (last = first; last < end; ++last) {
       used += ChipWidth(tabs[last]);
@@ -340,15 +335,13 @@ ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
     last = std::max(last, first);
   }
 
-  bool more_left = scrolls && first > 0;
   std::vector<ftxui::Element> chips;
-  if (more_left) {
+  if (scrolls && first > 0) {
     chips.push_back(MoreMark(kMoreLeft, true));
   }
   for (int i = first; i <= last; ++i) {
-    chips.push_back(Chip(tabs[i].label, i == active, row_focused,
-                         tabs[i].unseen,
-                         /*left_pad=*/!(more_left && i == first)));
+    chips.push_back(
+        TabChip(tabs[i].label, i == active, row_focused, tabs[i].unseen));
   }
   if (scrolls) {
     chips.push_back(MoreMark(kMoreRight, last < end - 1));

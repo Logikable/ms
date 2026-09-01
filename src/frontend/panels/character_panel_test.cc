@@ -2765,9 +2765,9 @@ TEST_F(CharacterPanelTest, ThePotsTabListsOnlyThePotsTheLevelHasOpened) {
   std::string rendered = ScreenText(RenderToScreen(OnPotRows(first)));
   EXPECT_NE(rendered.find("Wealth Acquisition"), std::string::npos);
   EXPECT_EQ(rendered.find("Extreme Green"), std::string::npos);
-  // Unbought and unswitched: rented, and off.
-  EXPECT_NE(rendered.find("Rent"), std::string::npos);
-  EXPECT_NE(rendered.find("[ ]"), std::string::npos);
+  // Unbought and unswitched: the rent tag, and no mark.
+  EXPECT_NE(rendered.find("R:"), std::string::npos);
+  EXPECT_EQ(rendered.find("\u2713"), std::string::npos);
 
   CharacterInstance late = MakePotHero(rng_, 190);
   CharacterPanel second(late, account_, panel_focus_);
@@ -2776,48 +2776,55 @@ TEST_F(CharacterPanelTest, ThePotsTabListsOnlyThePotsTheLevelHasOpened) {
             std::string::npos);
 }
 
-// The row is two columns: Enter on the switch throws it, Enter on the name
-// raises the menu, and neither answers for the other.
-TEST_F(CharacterPanelTest, TheSwitchTogglesAndTheNameOpensTheMenu) {
+// One stop on the row, and Enter on it raises the menu wherever the cursor
+// sits: there is no second column to answer for.
+TEST_F(CharacterPanelTest, EnterOnAPotRowOpensItsMenu) {
   CharacterInstance c = MakePotHero(rng_, kConsumableUnlockLevel);
   CharacterPanel panel(c, account_, panel_focus_);
   panel.SetWidth(kLeftColumnMax);
   panel_focus_ = kCharPanel;
-  std::vector<ConsumableType> toggled;
   std::vector<ConsumableType> opened;
   CharacterPanelActions actions;
-  actions.pot_toggle = [&](ConsumableType type) {
-    toggled.push_back(type);
-    c.ToggleConsumable(type);
-  };
   actions.pot_menu = [&](ConsumableType type) { opened.push_back(type); };
   ftxui::Component comp = OnPotRows(panel, actions);
 
-  // The cursor lands on the name, which is the leftmost column.
+  comp->OnEvent(ftxui::Event::ArrowRight);  // nothing to move to
   comp->OnEvent(ftxui::Event::Return);
-  EXPECT_TRUE(toggled.empty());
   ASSERT_EQ(opened.size(), 1u);
   EXPECT_EQ(opened[0], CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
-
-  comp->OnEvent(ftxui::Event::ArrowRight);
-  comp->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(toggled.size(), 1u);
-  EXPECT_EQ(toggled[0], CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
-  EXPECT_EQ(opened.size(), 1u);
-  EXPECT_NE(ScreenText(RenderToScreen(comp)).find("[X]"), std::string::npos);
 }
 
-// Bought outright, the row says Owned where it said Rent -- nothing is
-// charged for it again.
-TEST_F(CharacterPanelTest, AnOwnedPotSaysSoWhereTheRentWas) {
+// A pot that is switched on is the lit row with the mark on the end; one that
+// is off carries neither.
+TEST_F(CharacterPanelTest, ASwitchedOnPotIsMarkedAndLit) {
+  // Both pots, so the cursor can sit on the first and leave the second to be
+  // read without the highlight on it.
+  CharacterInstance c = MakePotHero(rng_, 190);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetWidth(kLeftColumnMax);
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp = OnPotRows(panel);
+  EXPECT_TRUE(IsDim(comp, "Extreme"));
+
+  c.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION);
+  EXPECT_FALSE(IsDim(comp, "Extreme"));
+  // The mark is one cell of three bytes, which is FindCell's blind spot.
+  ftxui::Screen screen = RenderToScreen(comp);
+  EXPECT_TRUE(HasCell(screen, "\u2713"));
+  EXPECT_EQ(PixelOf(screen, "\u2713").foreground_color, kGreen);
+}
+
+// Bought outright, the row is tagged O: in place of the rent's R: -- nothing
+// is charged for it again.
+TEST_F(CharacterPanelTest, AnOwnedPotIsTaggedInsteadOfPriced) {
   CharacterInstance c = MakePotHero(rng_, kConsumableUnlockLevel);
   ASSERT_TRUE(c.BuyConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
   CharacterPanel panel(c, account_, panel_focus_);
   panel.SetWidth(kLeftColumnMax);
   panel_focus_ = kCharPanel;
-  std::string rendered = ScreenText(RenderToScreen(OnPotRows(panel)));
-  EXPECT_NE(rendered.find("Owned"), std::string::npos);
-  EXPECT_EQ(rendered.find("Rent"), std::string::npos);
+  ftxui::Component comp = OnPotRows(panel);
+  EXPECT_EQ(ColorOf(comp, "O:"), kGreen);
+  EXPECT_EQ(ScreenText(RenderToScreen(comp)).find("R:"), std::string::npos);
 }
 
 // Five chips do not fit the narrowest panel, so the bar scrolls under them --

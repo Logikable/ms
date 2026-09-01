@@ -354,15 +354,15 @@ TEST(TabBarTest, ABarThatOverflowsHoldsTheRestBehindAMark) {
 
 // Left mark at the start, right mark at the end, each shown only while there
 // is something that way. The right one still holds its column when absent, so
-// the chips do not shuffle as the bar scrolls under them; the left one stands
-// in the leading chip's pad, so the bar begins in the same column either way.
+// the chips do not shuffle as the bar scrolls under them; the left one is not
+// there at all until the bar has scrolled off its first chip.
 TEST(TabBarTest, EachMarkShowsOnlyWhileThereIsMoreThatWay) {
   EXPECT_EQ(RenderTabBar(kFour, 0, kTight).substr(0, 1), " ");
-  EXPECT_EQ(RenderTabBar(kFour, 3, kTight), "‹two  six  ten");
+  EXPECT_EQ(RenderTabBar(kFour, 3, kTight), "‹ two  six  ten");
 }
 
-// A bar that scrolls puts its first label where a bar that fits puts it, so
-// two bars stacked in one panel line up.
+// A bar showing its first chip puts that label where a bar that fits puts it,
+// so two bars stacked in one panel line up.
 TEST(TabBarTest, AScrolledBarStartsInTheSameColumnAsOneThatFits) {
   EXPECT_EQ(RenderTabBar(kFour, 0, kFits).find("one"),
             RenderTabBar(kFour, 0, kTight).find("one"));
@@ -391,7 +391,7 @@ TEST(TabBarTest, SteppingBackReturnsTheWindowToWhereItWas) {
 // A width too small for even one chip draws the chip the player is on anyway.
 // A bar showing nothing says less than one that overflows.
 TEST(TabBarTest, TooNarrowForAnyChipStillDrawsTheActiveOne) {
-  EXPECT_EQ(RenderTabBar(kFour, 2, /*width=*/3), "‹six ›");
+  EXPECT_EQ(RenderTabBar(kFour, 2, /*width=*/3), "‹ six ›");
 }
 
 TEST(TabBarTest, AnUnseenTabIsStillGoldThroughTheBar) {

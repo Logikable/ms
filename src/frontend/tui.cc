@@ -195,9 +195,6 @@ void Tui::BuildComponents() {
   char_actions.ability_reroll = [this]() {
     controller_.OpenAbilityReroll(char_panel_.hyper_preset());
   };
-  char_actions.pot_toggle = [this](ConsumableType type) {
-    controller_.ToggleConsumable(type);
-  };
   char_actions.pot_menu = [this](ConsumableType type) {
     controller_.OpenPotMenu(type);
   };

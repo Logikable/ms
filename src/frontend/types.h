@@ -202,9 +202,11 @@ enum JobMenuItem : int {
 // under Inspect for the reason Advance does: it is the entry that spends, and
 // it is not where the cursor lands. It dims once the pot is owned.
 enum PotMenuItem : int {
-  kPotMenuInspect = 0,
-  kPotMenuBuyPerm = 1,
-  kPotMenuClose = 2,
+  // The switch, whose label is the state it would leave the pot in.
+  kPotMenuToggle = 0,
+  kPotMenuInspect = 1,
+  kPotMenuBuyPerm = 2,
+  kPotMenuClose = 3,
 };
 // Entries of the Use/Etc stackable context menu.
 enum StackMenuItem : int {

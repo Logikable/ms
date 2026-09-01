@@ -83,19 +83,21 @@ constexpr int kHyperPlusWidth = 3;
 // level, the gap after it, the [+] and the trailing gutter.
 constexpr int kHyperFixedWidth = 1 + kHyperLevelWidth + 1 + kHyperPlusWidth + 1;
 
-// The Pots tab's columns. "Owned" is the widest word the middle one takes,
-// and the switch is a bracketed button like every other in the panel.
-constexpr int kPotStateWidth = 5;
-constexpr int kPotSwitchWidth = 3;
+// The tag a pot row opens with, in the shape the skill rows use: what the pot
+// costs this character from here, said at the front of the row rather than in
+// a column of its own. Green for a fact that is settled, the way the passive
+// tag is; the coin's own yellow for a price still being charged.
+constexpr char kPotOwnedTag[] = "O: ";
+constexpr char kPotRentTag[] = "R: ";
+constexpr int kPotTagWidth = 3;
+
+// And the mark at the other end of the row, for a pot that is switched on.
+// The row it sits on is the lit one; a pot that is off dims instead.
+constexpr char kPotOnGlyph[] = "✓";
 
 // What a pot row spends on everything but the name: the leading gutter, the
-// two columns above, a gap before each, and the trailing gutter.
-constexpr int kPotFixedWidth = 1 + 1 + kPotStateWidth + 1 + kPotSwitchWidth + 1;
-
-// Whether a pot is switched on, in the same bracketed shape as the [+] beside
-// a stat. Three columns either way, so the column does not move under a row.
-constexpr char kPotOnGlyph[] = "[X]";
-constexpr char kPotOffGlyph[] = "[ ]";
+// tag, a gap before the mark, the mark, and the trailing gutter.
+constexpr int kPotFixedWidth = 1 + kPotTagWidth + 1 + 1 + 1;
 
 // Roman numerals for the job-advancement tabs, indexed by stage (1..6).
 const char* kStageNumerals[] = {"", "I", "II", "III", "IV", "V", "VI"};
@@ -407,11 +409,6 @@ void CharacterPanel::SetCursorStop(int stop) {
     return;
   }
   if (ActiveTab() == kTabPots) {
-    if (zone_ != kZonePotRows) {
-      // Arriving from outside the rows lands on the name, as it does on the
-      // skill rows: the leftmost column, the way the eye reads the row.
-      pot_col_ = kColName;
-    }
     zone_ = kZonePotRows;
     pot_sel_ = stop - 2;
     return;
@@ -1063,6 +1060,16 @@ ftxui::Element CharacterPanel::RenderPotRow(const ConsumableInfo& info,
                                             bool rows_focused) const {
   const bool selected = rows_focused && pot_sel_ == index;
   const bool owned = character_.ConsumableOwned(info.type);
+  // A pot that is off is not costing anything and not doing anything, so the
+  // whole row dims -- the same thing dim says of a skill this character has
+  // not got yet.
+  const bool on = character_.ConsumableActive(info.type);
+
+  ftxui::Element tag = ftxui::text(owned ? kPotOwnedTag : kPotRentTag) |
+                       ftxui::color(owned ? kGreen : kYellow);
+  if (!on) {
+    tag = std::move(tag) | ftxui::dim;
+  }
 
   // A name too long for the column slides under it while the row is selected,
   // the way a skill name does, and the padding rides outside the cursor so the
@@ -1075,27 +1082,22 @@ ftxui::Element CharacterPanel::RenderPotRow(const ConsumableInfo& info,
   const int lit =
       std::min(static_cast<int>(TextColumns(info.name)), name_width);
   ftxui::Element name = ftxui::text(ColumnWindow(window, 0, lit));
-  if (selected && pot_col_ == kColName) {
+  if (selected) {
     name = std::move(name) | ftxui::inverted;
+  } else if (!on) {
+    name = std::move(name) | ftxui::dim;
   }
 
-  // What the pot costs this character from here: nothing at all once it is
-  // bought, and its price every proc until then.
-  ftxui::Element state =
-      ftxui::text(PadLeft(owned ? "Owned" : "Rent", kPotStateWidth + 1));
-  ftxui::Element toggle = ftxui::text(
-      character_.ConsumableActive(info.type) ? kPotOnGlyph : kPotOffGlyph);
-  if (selected && pot_col_ == kColPlus) {
-    toggle = std::move(toggle) | ftxui::inverted;
-  }
+  ftxui::Element mark =
+      ftxui::text(on ? kPotOnGlyph : " ") | ftxui::color(kGreen);
 
   ftxui::Element row = ftxui::hbox({
       ftxui::text(" "),
+      std::move(tag),
       std::move(name),
       ftxui::text(ColumnWindow(window, lit, name_width - lit)),
-      std::move(state),
       ftxui::text(" "),
-      std::move(toggle),
+      std::move(mark),
       ftxui::text(" "),
   });
   if (selected) {
@@ -1406,14 +1408,6 @@ bool CharacterPanel::OnPotsTabEvent(const ftxui::Event& event,
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
-  if (event == ftxui::Event::ArrowLeft) {
-    pot_col_ = kColName;
-    return true;
-  }
-  if (event == ftxui::Event::ArrowRight) {
-    pot_col_ = kColPlus;
-    return true;
-  }
   if (!IsForward(event)) {
     return false;
   }
@@ -1421,17 +1415,11 @@ bool CharacterPanel::OnPotsTabEvent(const ftxui::Event& event,
   if (pot_sel_ >= static_cast<int>(pots.size())) {
     return true;
   }
-  const ConsumableType type = pots[pot_sel_]->type;
-  // The switch takes effect the moment it is pressed -- there is nothing to
-  // confirm and nothing to spend. The name opens the menu instead.
-  if (pot_col_ == kColPlus) {
-    if (actions.pot_toggle) {
-      actions.pot_toggle(type);
-    }
-    return true;
-  }
+  // Everything a pot offers is on the menu, switching it on included: a row
+  // this wide has no room for a second stop, and nothing here is pressed
+  // often enough to want one.
   if (actions.pot_menu) {
-    actions.pot_menu(type);
+    actions.pot_menu(pots[pot_sel_]->type);
   }
   return true;
 }

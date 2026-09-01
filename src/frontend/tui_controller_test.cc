@@ -338,6 +338,14 @@ class TuiControllerTest : public testing::Test {
     controller_->OnEvent(ftxui::Event::Return);      // -> kShopBuy
   }
 
+  // The pot menu's entries, read the same way.
+  std::string RenderPotMenu() {
+    ftxui::Element menu = controller_->pot_menu().Render(0, 0);
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(menu));
+    ftxui::Render(screen, menu);
+    return ScreenText(screen);
+  }
+
   // The buy dialog's text, read off the screen cell by cell rather than from
   // Screen::ToString, which threads colour escapes through the rows.
   std::string RenderBuyDialog() {
@@ -793,15 +801,20 @@ TEST_F(TuiControllerTest, EnterAlsoLeavesTheSkillInspectScreen) {
 
 // --- the Pots tab's menu, card and question ---
 
-// Switching a pot on takes effect where it is pressed: no screen, no question,
-// and nothing spent until it procs.
-TEST_F(TuiControllerTest, TogglingAPotAsksNothing) {
+// The switch is the menu's first entry, named for the state it would leave
+// the pot in, and pressing it asks nothing: nothing is spent until it procs.
+TEST_F(TuiControllerTest, TheFirstEntryThrowsTheSwitchAndSaysWhichWay) {
   LevelTo(kConsumableUnlockLevel);
-  controller_->ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  controller_->OpenPotMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  EXPECT_NE(RenderPotMenu().find("Enable"), std::string::npos);
+  controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_TRUE(state_->character.ConsumableActive(
       CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
-  controller_->ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+
+  controller_->OpenPotMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  EXPECT_NE(RenderPotMenu().find("Disable"), std::string::npos);
+  controller_->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(state_->character.ConsumableActive(
       CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
 }
@@ -811,6 +824,7 @@ TEST_F(TuiControllerTest, ThePotMenuOpensOnInspectAndReadsTheCard) {
   controller_->OpenPotMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
   EXPECT_EQ(controller_->screen(), kPotMenu);
   EXPECT_EQ(controller_->pot_type(), CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Enable -> Inspect
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kPotInfo);
   // Read-only, and Back returns to the menu it was opened from.
@@ -820,10 +834,11 @@ TEST_F(TuiControllerTest, ThePotMenuOpensOnInspectAndReadsTheCard) {
   EXPECT_EQ(controller_->screen(), kPotMenu);
 }
 
-TEST_F(TuiControllerTest, TheSecondEntryBuysThePotOutright) {
+TEST_F(TuiControllerTest, BuyPermBuysThePotOutright) {
   LevelTo(kConsumableUnlockLevel);
   state_->character.AddMeso(200'000'000);
   controller_->OpenPotMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Enable -> Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect -> Buy Perm
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kPotBuy);
@@ -863,15 +878,16 @@ TEST_F(TuiControllerTest, AnOwnedPotHasNothingLeftToBuy) {
   ASSERT_TRUE(state_->character.BuyConsumable(
       CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
   controller_->OpenPotMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
-  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect -> Close
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Enable -> Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect -> Close, stepping
+  controller_->OnEvent(ftxui::Event::Return);     // over the greyed Buy Perm
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
 TEST_F(TuiControllerTest, CloseAndEscapeBothLeaveThePotMenu) {
   LevelTo(kConsumableUnlockLevel);
   controller_->OpenPotMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
-  controller_->OnEvent(ftxui::Event::ArrowUp);  // Inspect -> Close, wrapping
+  controller_->OnEvent(ftxui::Event::ArrowUp);  // Enable -> Close, wrapping
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
 

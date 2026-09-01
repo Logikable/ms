@@ -224,6 +224,11 @@ void TuiController::ToggleConsumable(ConsumableType type) {
 void TuiController::OpenPotMenu(ConsumableType type) {
   pot_type_ = type;
   pot_menu_.Reset();
+  // The switch reads as what pressing it does, so the entry is named for the
+  // state it would leave the pot in rather than for the state it is in.
+  pot_menu_.SetLabel(kPotMenuToggle, state_.character.ConsumableActive(type)
+                                         ? "Disable"
+                                         : "Enable");
   // A pot already bought has nothing left to buy. The entry stays on the menu
   // greyed rather than gone: its absence would be the surprise.
   if (state_.character.ConsumableOwned(type)) {
@@ -826,6 +831,12 @@ bool TuiController::OnPotMenuEvent(ftxui::Event event) {
     return true;  // The menu is modal: nothing behind it hears a key.
   }
   switch (pot_menu_.selected()) {
+    case kPotMenuToggle:
+      // Nothing to confirm and nothing to spend, so the switch takes effect on
+      // the keypress and the menu closes behind it.
+      ToggleConsumable(pot_type_);
+      screen_ = kMain;
+      break;
     case kPotMenuInspect:
       pot_info_panel_.SetPot(pot_type_,
                              state_.character.ConsumableOwned(pot_type_));

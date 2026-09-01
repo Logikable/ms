@@ -632,7 +632,7 @@ class TuiController {
   // The pot the menu, the card and the question are all about. Held so the
   // answer lands on the pot the question named, whatever the cursor did.
   ConsumableType pot_type_ = CONSUMABLE_TYPE_UNSPECIFIED;
-  ItemMenu pot_menu_{{"Inspect", "Buy Perm", "Close"}};
+  ItemMenu pot_menu_{{"Disable", "Inspect", "Buy Perm", "Close"}};
   ConfirmPrompt pot_buy_prompt_;
   SymbolLevelPanel symbol_level_panel_;
   HyperStatLevelPanel hyper_stat_level_panel_;

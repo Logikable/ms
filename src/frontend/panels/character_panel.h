@@ -62,9 +62,8 @@ struct CharacterPanelActions {
   // on, and holds or frees it -- the panel does not know which way that goes.
   std::function<void(int)> ability_lock;
   std::function<void()> ability_reroll;
-  // The Pots tab. `pot_toggle` switches a pot on or off -- the panel does not
-  // know which way that goes -- and `pot_menu` is Enter on its name.
-  std::function<void(ConsumableType)> pot_toggle;
+  // The Pots tab. Enter on a row raises the pot's menu, which is where every
+  // one of its actions lives -- switching it on included.
   std::function<void(ConsumableType)> pot_menu;
 };
 
@@ -235,9 +234,8 @@ class CharacterPanel {
     // The Ability tab's three line rows, and the [Reroll] button under them.
     kZoneAbilityRows,
     kZoneAbilityReroll,
-    // The Pots tab's rows. Each is two columns wide -- the name and the switch
-    // beside it -- so this zone reads pot_col_ the way the skill rows read
-    // skill_col_.
+    // The Pots tab's rows. One stop each: everything a pot offers is on the
+    // menu Enter raises.
     kZonePotRows
   };
 
@@ -349,12 +347,12 @@ class CharacterPanel {
   // cursor ring is measured in.
   int AbilityRows() const;
 
-  // Renders the Pots tab: one row per pot this character has reached, the
-  // name on the left and the switch on the right. Nothing scrolls -- there
-  // are two pots in the game and the tab is never taller than they are.
+  // Renders the Pots tab: one row per pot this character has reached. Nothing
+  // scrolls -- there are two pots in the game and the tab is never taller
+  // than they are.
   ftxui::Element RenderPotsTab(bool rows_focused) const;
-  // One pot row: its name, whether it is rented or owned, and the switch that
-  // turns it on. Whichever column the cursor is on inverts.
+  // One pot row: the tag saying whether it is rented or owned, its name, and
+  // the mark at the end that says it is switched on. A pot that is off dims.
   ftxui::Element RenderPotRow(const ConsumableInfo& info, int index,
                               bool rows_focused) const;
   // The pots this character has reached, in the order they open. A pot below
@@ -467,7 +465,6 @@ class CharacterPanel {
   SkillCol hyper_col_ = kColName;  // selected column of that row
   int ability_sel_ = 0;            // selected Ability-tab line row
   int pot_sel_ = 0;                // selected Pots-tab row
-  SkillCol pot_col_ = kColName;    // selected column of that row
   // How long the cursor has sat on the selected pot, for the name scroll. Its
   // own clock rather than the skill rows': the two tabs share row numbers, and
   // one clock would carry a slide from one to the other.
