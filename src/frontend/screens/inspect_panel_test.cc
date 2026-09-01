@@ -784,6 +784,16 @@ TEST_F(InspectPanelTest, NoTabWithoutASetCard) {
 
 // --- Arcane Symbols ---
 
+// How many times `glyph` appears, for counting the pips of a growth bar.
+int Count(const std::string& rendered, const std::string& glyph) {
+  int found = 0;
+  for (size_t at = rendered.find(glyph); at != std::string::npos;
+       at = rendered.find(glyph, at + glyph.size())) {
+    ++found;
+  }
+  return found;
+}
+
 // A symbol grants nothing an equip's rows could show, so it gets a card of its
 // own: where its level stands, and what that level is worth.
 TEST_F(InspectPanelTest, ASymbolCardIsItsLevelExpStatAndForce) {
@@ -802,13 +812,20 @@ TEST_F(InspectPanelTest, ASymbolCardIsItsLevelExpStatAndForce) {
   panel.UseCharacter(hero);
   panel.SetItem(&symbol);
   std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Level   8"), std::string::npos) << rendered;
-  EXPECT_NE(rendered.find("EXP     12 / 75"), std::string::npos) << rendered;
-  EXPECT_NE(rendered.find("STR     +1000"), std::string::npos) << rendered;
-  EXPECT_NE(rendered.find("AF      +100"), std::string::npos) << rendered;
-  // None of the equip card's rows: a symbol takes no scrolls and no stars.
+  EXPECT_NE(rendered.find("Growth Level  8"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("EXP  12 / 75"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("STR  +1000"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Arcane Force  +100"), std::string::npos) << rendered;
+  // The head an equip carries, since a symbol has the same two facts to state.
+  EXPECT_NE(rendered.find("Req Lev: 200"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Warrior"), std::string::npos) << rendered;
+  // A symbol takes no scrolls and no star force, so neither row appears.
   EXPECT_EQ(rendered.find("Successful Scroll"), std::string::npos);
   EXPECT_EQ(rendered.find("★"), std::string::npos);
+  EXPECT_EQ(rendered.find("☆"), std::string::npos);
+  // In their place, a pip a level, filled to where the symbol stands.
+  EXPECT_EQ(Count(rendered, "◆"), 8) << rendered;
+  EXPECT_EQ(Count(rendered, "◇"), kMaxSymbolLevel - 8) << rendered;
 }
 
 // The stat a symbol grants is the wearer's own, so a magician reads INT off
@@ -825,8 +842,8 @@ TEST_F(InspectPanelTest, TheSymbolStatFollowsTheWearer) {
   panel.UseCharacter(bishop);
   panel.SetItem(&symbol);
   std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("INT     +300"), std::string::npos) << rendered;
-  EXPECT_NE(rendered.find("AF      +30"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("INT  +300"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Arcane Force  +30"), std::string::npos) << rendered;
 }
 
 // A maxed symbol has no next level to be along, so the row says so rather than
@@ -839,9 +856,12 @@ TEST_F(InspectPanelTest, AMaxedSymbolReadsMax) {
   panel.UseCharacter(c_);
   panel.SetItem(&symbol);
   std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("EXP     MAX"), std::string::npos) << rendered;
-  EXPECT_NE(rendered.find("AF      +220"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("EXP  MAX"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Arcane Force  +220"), std::string::npos) << rendered;
+  EXPECT_EQ(Count(rendered, "◆"), kMaxSymbolLevel) << rendered;
+  EXPECT_EQ(Count(rendered, "◇"), 0) << rendered;
 }
+
 
 }  // namespace
 }  // namespace ms

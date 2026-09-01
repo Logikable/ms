@@ -1,5 +1,6 @@
 #include "src/frontend/screens/inspect_panel.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <map>
@@ -60,13 +61,10 @@ const JobCategoryEntry kJobCategories[] = {
 constexpr int kJobCategoryCount =
     static_cast<int>(sizeof(kJobCategories) / sizeof(kJobCategories[0]));
 
-// A symbol card's label column. Wide enough for "Level", which is the longest
-// of the four, with a space after it.
-constexpr int kSymbolLabelWidth = 8;
-
-// One label-and-value row of a symbol's card, both columns left-aligned.
+// One row of a symbol's card, for the two figures that are not a stat. Spaced
+// as the stat rows under them, so the whole block reads as one column.
 ftxui::Element SymbolRow(const std::string& label, const std::string& value) {
-  return ftxui::text(" " + PadRight(label, kSymbolLabelWidth) + value + " ");
+  return ftxui::text(" " + label + "  " + value + " ");
 }
 
 void Append(std::vector<CardRow>& rows, const std::vector<CardRow>& more) {
@@ -272,36 +270,49 @@ ftxui::Element InspectPanel::RenderItemOnly(bool focused) const {
 }
 
 CardRows InspectPanel::SymbolRows() const {
-  const Equip& state = item_->equip_state();
-  int level = SymbolLevel(state);
+  int level = SymbolLevel(item_->equip_state());
+  std::vector<CardRow> head = HeadRows();
+  std::vector<CardRow> stats = SymbolStatRows(level);
+  std::vector<CardRow> jobs =
+      JobRows(std::max(NaturalWidth(head), NaturalWidth(stats)));
+
+  CardRows rows;
+  // The growth bar takes the star bar's place, and the name, the level it asks
+  // for and the jobs it is for are the same head an equip carries. Nothing
+  // here scrolls: a symbol has four rows to say and a terminal always has room
+  // for four.
+  rows.head = {TextRow(CenteredRow(SymbolBar(level)))};
+  Append(rows.head, head);
+  Append(rows.head, jobs);
+  rows.head.push_back(RuleRow(ThemedSeparator()));
+  rows.body = std::move(stats);
+  return rows;
+}
+
+// Where the symbol stands and what that is worth, in the equip card's own stat
+// spacing. The stat it grants is the wearer's own, so a card with nobody
+// behind it shows the force alone rather than guessing at a job.
+std::vector<CardRow> InspectPanel::SymbolStatRows(int level) const {
   int needed = SymbolExpToNextLevel(level);
-  CardRows card;
-  card.head = {
-      TextRow(CenteredRow(item_->name())),
-      RuleRow(ThemedSeparator()),
-  };
   std::vector<CardRow> rows = {
-      TextRow(SymbolRow("Level", std::to_string(level))),
-      TextRow(SymbolRow("EXP", needed == 0
-                                   ? "MAX"
-                                   : std::to_string(state.symbol_exp()) +
-                                         " / " + std::to_string(needed))),
+      TextRow(SymbolRow("Growth Level", std::to_string(level))),
+      TextRow(SymbolRow(
+          "EXP", needed == 0
+                     ? "MAX"
+                     : std::to_string(item_->equip_state().symbol_exp()) +
+                           " / " + std::to_string(needed))),
   };
-  // The stat a symbol grants is the wearer's own, so a card with nobody behind
-  // it shows the force alone rather than guessing at a job.
   if (character_ != nullptr) {
     StatField primary = PrimaryStatField(character_->proto().job());
     const DisplayStat* stat = DisplayStatFor(primary);
     if (stat != nullptr) {
-      rows.push_back(TextRow(
-          SymbolRow(stat->label, "+" + std::to_string(stat->GetFrom(
-                                           SymbolStatsFor(primary, level))))));
+      rows.push_back(TextRow(StatLine(
+          stat->label, stat->GetFrom(SymbolStatsFor(primary, level)), 0)));
     }
   }
   rows.push_back(
-      TextRow(SymbolRow("AF", "+" + std::to_string(SymbolArcaneForce(level)))));
-  card.body = std::move(rows);
-  return card;
+      TextRow(StatLine("Arcane Force", SymbolArcaneForce(level), 0)));
+  return rows;
 }
 
 ftxui::Element InspectPanel::Render() const {
@@ -578,6 +589,22 @@ ftxui::Element InspectPanel::StarBar(int stars, int from, int count) {
     bool filled = i < stars;
     parts.push_back(ftxui::text(filled ? "★" : "☆") |
                     ftxui::color(filled ? kFilled : kEmpty));
+  }
+  return ftxui::hbox(std::move(parts));
+}
+
+// The growth track a symbol has in place of stars: one pip a level, grouped in
+// fives like the star bar. Purple rather than gold, since a symbol takes no
+// star force and the two bars must not be read for one another.
+ftxui::Element InspectPanel::SymbolBar(int level) {
+  std::vector<ftxui::Element> parts;
+  for (int i = 0; i < kMaxSymbolLevel; ++i) {
+    if (i > 0 && i % 5 == 0) {
+      parts.push_back(ftxui::text(" "));
+    }
+    bool filled = i < level;
+    parts.push_back(ftxui::text(filled ? "◆" : "◇") |
+                    ftxui::color(filled ? kPurple : kGray));
   }
   return ftxui::hbox(std::move(parts));
 }

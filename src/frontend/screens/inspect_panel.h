@@ -85,6 +85,8 @@ class InspectPanel {
   // symbol grants comes from its level and the wearer's job, so none of the
   // rows an equip carries has anything to say about it.
   CardRows SymbolRows() const;
+  // The symbol's four figures: where it stands, and what that level pays.
+  std::vector<CardRow> SymbolStatRows(int level) const;
   // The equip body in parts, head to foot. The rows an item cannot fold are
   // built first and measured; the two that can -- the star bar and the job
   // categories -- are then folded onto two lines each if leaving them on one
@@ -115,6 +117,9 @@ class InspectPanel {
   // `count` stars from `from`, in groups of 5: filled (★) up to `stars`, empty
   // (☆) after it. Filled stars are gold; empty stars are dark gray.
   static ftxui::Element StarBar(int stars, int from, int count);
+  // A symbol's twenty levels, in groups of 5: filled (◆) up to `level`, empty
+  // (◇) after it. Filled pips are periwinkle; empty ones are dark gray.
+  static ftxui::Element SymbolBar(int level);
 
   const EquipTabItem* item_ = nullptr;
   const ItemPrototype* stackable_ = nullptr;
