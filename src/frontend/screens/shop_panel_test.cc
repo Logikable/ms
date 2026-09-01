@@ -66,11 +66,12 @@ EquipPrototype MakeUnpricedItem(const std::string& name, int level,
   return e;
 }
 
-ItemPrototype MakeToken(const std::string& name, CurrencyColor color) {
+ItemPrototype MakeToken(const std::string& name, CurrencyColor color,
+                        const std::string& mark = "●") {
   ItemPrototype p;
   p.set_name(name);
   p.set_category(ITEM_CATEGORY_ETC);
-  p.set_currency_mark("●");
+  p.set_currency_mark(mark);
   p.set_currency_color(color);
   return p;
 }
@@ -330,6 +331,12 @@ class ShopPanelTest : public testing::Test {
        MakeTokenItem("Frozen Medal", 120, "secondary_token", /*count=*/1,
                      EQUIP_JOB_CATEGORY_WARRIOR, EQUIP_TYPE_MEDALLION,
                      EQUIP_SLOT_SECONDARY)},
+      // A second currency on the same shelf: the Equips shelf is paid for in
+      // one token for the off-hands and another for the shoulders.
+      {"frozen_shoulder",
+       MakeTokenItem("Frozen Shoulder", 140, "shoulder_token", /*count=*/2,
+                     EQUIP_JOB_CATEGORY_WARRIOR, EQUIP_TYPE_UNSPECIFIED,
+                     EQUIP_SLOT_SHOULDER)},
   };
 
   std::map<std::string, ItemPrototype> items_{
@@ -338,6 +345,8 @@ class ShopPanelTest : public testing::Test {
       {"shell", MakeStackable("Snail Shell", 0, 200)},
       {"weapon_token", MakeToken("Weapon Token", CURRENCY_COLOR_THEME)},
       {"secondary_token", MakeToken("Secondary Token", CURRENCY_COLOR_ORANGE)},
+      {"shoulder_token",
+       MakeToken("Shoulder Token", CURRENCY_COLOR_THEME, "▲")},
   };
 
   // The shopper most tests send in: a purse deep enough that the price is
@@ -1057,6 +1066,33 @@ TEST_F(ShopPanelTest, TheCounterCountsWhatTheShelfIsPaidIn) {
   OpenTokenShelf(panel, kShopWeaponTab);
   EXPECT_EQ(Render(panel).find("34,567"), std::string::npos);
   EXPECT_GE(IndexWith(ScreenRows(panel), "● 3"), 0);
+}
+
+// The Equips shelf is paid for in two tokens, and the bar shows both: a
+// balance it leaves out is one the player cannot shop against.
+TEST_F(ShopPanelTest, TheCounterShowsEveryCurrencyTheShelfTakes) {
+  CharacterInstance c = MakeCharacter(100000, 140, JOB_FIGHTER, /*stage=*/2);
+  c.AddStackable(items_.at("secondary_token"), 3);
+  c.AddStackable(items_.at("shoulder_token"), 7);
+  ShopPanel panel(c, equips_, items_);
+  OpenTokenShelf(panel, kShopEquipsTab);
+
+  std::vector<std::string> rows = ScreenRows(panel);
+  int bar = IndexWith(rows, "● 3");
+  EXPECT_GE(bar, 0);
+  EXPECT_EQ(IndexWith(rows, "▲ 7"), bar) << "both counters on the tab bar";
+  // One shelf, two currencies, so the header names neither -- each row says
+  // what it is asked in.
+  EXPECT_EQ(Render(panel).find("● Cost"), std::string::npos);
+  EXPECT_NE(Render(panel).find("Cost"), std::string::npos);
+}
+
+// A shelf that deals in one token still marks its Cost column with it.
+TEST_F(ShopPanelTest, AShelfOfOneCurrencyMarksItsCostColumn) {
+  CharacterInstance c = MakeCharacter(100000, 140, JOB_FIGHTER, /*stage=*/2);
+  ShopPanel panel(c, equips_, items_);
+  OpenTokenShelf(panel, kShopWeaponTab);
+  EXPECT_NE(Render(panel).find("● Cost"), std::string::npos);
 }
 
 // The Cost column is right-aligned in screen columns, so the header, a meso

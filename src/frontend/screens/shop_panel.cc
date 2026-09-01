@@ -81,11 +81,17 @@ ftxui::Element CostCell(const ItemPrototype* token, const std::string& text,
   });
 }
 
-// Two leading spaces match the "  " / "> " cursor on the rows below.
-ftxui::Element ColumnHeader(const ItemPrototype* token) {
-  std::string cost = token == nullptr
-                         ? CoinCell("Cost")
-                         : MarkedCell(token->currency_mark(), "Cost");
+// Two leading spaces match the "  " / "> " cursor on the rows below. The cost
+// column carries the mark of the currency it is asked in, and none at all
+// where the shelf deals in two: every row carries its own, and the header
+// cannot say both.
+ftxui::Element ColumnHeader(const std::vector<const ItemPrototype*>& tokens) {
+  std::string cost = CoinCell("Cost");
+  if (tokens.size() == 1) {
+    cost = MarkedCell(tokens.front()->currency_mark(), "Cost");
+  } else if (!tokens.empty()) {
+    cost = PadLeft("Cost", kCostWidth);
+  }
   return ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
                      PadRight("Type", kTypeWidth) + "  " +
                      PadRight("Level", kLevelWidth) + cost);
@@ -351,9 +357,10 @@ bool ShopPanel::OnEvent(ftxui::Event event) {
   return false;
 }
 
-const ItemPrototype* ShopPanel::TabToken() const {
+std::vector<const ItemPrototype*> ShopPanel::TabTokens() const {
+  std::vector<const ItemPrototype*> tokens;
   if (!HasPayRow() || pay_ != kShopTokenTab) {
-    return nullptr;
+    return tokens;
   }
   // The unfiltered shelf, so the tab still knows what it deals in while the
   // class filter has left the player nothing to look at.
@@ -363,11 +370,15 @@ const ItemPrototype* ShopPanel::TabToken() const {
   for (const std::string& key : shelf) {
     std::map<std::string, ItemPrototype>::const_iterator it =
         items_.find(equips_.at(key).token_item());
-    if (it != items_.end()) {
-      return &it->second;
+    if (it == items_.end()) {
+      continue;
+    }
+    const ItemPrototype* token = &it->second;
+    if (std::find(tokens.begin(), tokens.end(), token) == tokens.end()) {
+      tokens.push_back(token);
     }
   }
-  return nullptr;
+  return tokens;
 }
 
 ftxui::Element ShopPanel::RenderTabBar() const {
@@ -382,17 +393,29 @@ ftxui::Element ShopPanel::RenderTabBar() const {
   // The counter sits in what the chips leave rather than over the whole row: a
   // third chip took the bar out to where a centred counter was drawn on top of
   // it, and a fourth would reach further still.
-  const ItemPrototype* token = TabToken();
-  ftxui::Element counter =
-      token == nullptr
-          ? ftxui::text(FormatMeso(character_.meso())) | ftxui::color(kTheme)
-          : ftxui::hbox({
-                ftxui::text(token->currency_mark()) |
-                    ftxui::color(MarkColor(token->currency_color())),
-                ftxui::text(
-                    " " + FormatWithCommas(character_.CountStackable(*token))) |
-                    ftxui::color(kTheme),
-            });
+  //
+  // Every currency the shelf deals in stands there, not just the first: the
+  // Equips shelf is paid for in two, and a balance the bar does not show is
+  // one the player has no way to shop against.
+  std::vector<const ItemPrototype*> tokens = TabTokens();
+  ftxui::Element counter;
+  if (tokens.empty()) {
+    counter = ftxui::text(FormatMeso(character_.meso())) | ftxui::color(kTheme);
+  } else {
+    std::vector<ftxui::Element> counts;
+    for (const ItemPrototype* token : tokens) {
+      if (!counts.empty()) {
+        counts.push_back(ftxui::text("  "));
+      }
+      counts.push_back(ftxui::text(token->currency_mark()) |
+                       ftxui::color(MarkColor(token->currency_color())));
+      counts.push_back(
+          ftxui::text(" " +
+                      FormatWithCommas(character_.CountStackable(*token))) |
+          ftxui::color(kTheme));
+    }
+    counter = ftxui::hbox(std::move(counts));
+  }
   chips.push_back(ftxui::filler());
   chips.push_back(std::move(counter));
   chips.push_back(ftxui::filler());
@@ -532,7 +555,7 @@ ftxui::Element ShopPanel::Render() const {
   } else if (tab_ == kShopEtcTab) {
     rows.push_back(EtcColumnHeader());
   } else {
-    rows.push_back(ColumnHeader(TabToken()));
+    rows.push_back(ColumnHeader(TabTokens()));
   }
   rows.push_back(ThemedSeparator());
   rows.push_back(RenderStock());

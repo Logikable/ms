@@ -146,18 +146,18 @@ class ShopPanel {
   // selection in the middle of it.
   void ScrollToCursor();
   // The tab chips with the counter in what they leave -- meso, or how many of
-  // the open shelf's token the player holds.
+  // each of the open shelf's tokens the player holds.
   ftxui::Element RenderTabBar() const;
   // The second row: Meso and Token, or a blank row under a tab that has
   // neither. Blank rather than absent so the window is one height.
   ftxui::Element RenderPayBar() const;
   // The token one row is bought with, or nullptr for a row priced in meso.
   const ItemPrototype* RowToken(const EquipPrototype& proto) const;
-  // What the open shelf is paid in, or nullptr for meso. Read off the shelf
-  // itself rather than from the slot, so a later tier that splits its tokens
-  // differently needs no change here. Answers even while the class filter has
-  // left the visible list empty.
-  const ItemPrototype* TabToken() const;
+  // Every currency the open shelf is paid in, in shelf order, or empty for a
+  // shelf paid in meso. Read off the shelf itself rather than from the slot,
+  // so a later tier that splits its tokens differently needs no change here.
+  // Answers even while the class filter has left the visible list empty.
+  std::vector<const ItemPrototype*> TabTokens() const;
   // One stock row. `cursor` is the two-column gutter the cursor draws in, and
   // `elapsed` how long this row has been selected -- zero for one that is not,
   // which is what shows every other name from its head.
