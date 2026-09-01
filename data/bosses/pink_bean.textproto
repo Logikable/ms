@@ -32,13 +32,14 @@ difficulties {
   }
   reset: RESET_PERIOD_DAILY
   # What Horntail and Magnus allow. The statues are 73% of the fight and the
-  # gate is ten levels over them, so the clock is on the room rather than on
-  # the bean.
+  # gate is level with them, so the clock is on the room rather than on the
+  # bean.
   time_limit_seconds: 600
-  # The first gate that opens before the fight is comfortable: at 170 the
-  # Shadower misses the clock, and the Paladin and the Bow Master make it with
-  # seconds to spare. Ten levels later all ten branches clear inside 7:20.
-  unlock_level: 170
+  # Traded with Magnus (2026-08-31). Only three of the five statues are ever
+  # reached, so the bar here is under what Magnus asks in one body, and the
+  # branches were reading it that way: six of ten cleared this before him
+  # while it sat ten levels higher.
+  unlock_level: 160
   # Five Intense Power Crystals at what his level fetches, as every boss's
   # meso is.
   meso: 7022500

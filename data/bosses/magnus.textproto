@@ -15,10 +15,14 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # What Horntail allows. He is twice the body, but the gate is thirty levels
+  # What Horntail allows. He is twice the body, but the gate is forty levels
   # over him and every branch clears him inside half of it.
   time_limit_seconds: 600
-  unlock_level: 160
+  # Traded with Pink Bean (2026-08-31). Six billion in ONE body is the whole
+  # of it -- a fight of many parts has half of them left standing when the
+  # objective falls -- so he outplayed his old 160 gate: six of ten branches
+  # were clearing Pink Bean, ten levels above him, first.
+  unlock_level: 170
   # Five Intense Power Crystals at what his level fetches, as Zakum's, Hilla's
   # and Horntail's meso is.
   meso: 12960000

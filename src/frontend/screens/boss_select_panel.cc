@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <ctime>
+#include <limits>
 #include <map>
 #include <string>
 #include <tuple>
@@ -126,21 +127,27 @@ int BossPdr(const GameState& state, const BossDifficulty& difficulty) {
 }  // namespace
 
 BossSelectPanel::BossSelectPanel(const GameState& state) : state_(state) {
-  // How much there is to kill, on the easiest difficulty -- the one the cursor
-  // starts on and the one a player meets the fight through. HP rather than a
-  // level or a gate, because it is the one measure every fight states,
-  // including the ones that are not built yet and so state nothing else.
-  std::vector<std::tuple<int64_t, std::string, std::string>> sorted;
+  // The level the fight opens at, on the easiest difficulty -- the one the
+  // cursor starts on and the one a player meets the fight through. The gate is
+  // what says where a fight sits in a character's life; HP only stands in for
+  // it, and stands in badly where one body holds what another spreads over six
+  // parts. A fight with no gate stated is not built yet and sorts last, on the
+  // HP that is the only thing it does state.
+  std::vector<std::tuple<int, int64_t, std::string, std::string>> sorted;
   for (const std::pair<const std::string, Boss>& entry : state_.bosses) {
     int64_t hp = 0;
+    int unlock = std::numeric_limits<int>::max();
     if (entry.second.difficulties_size() > 0) {
       hp = BossHp(state_, entry.second.difficulties(0));
+      int gate = entry.second.difficulties(0).unlock_level();
+      unlock = gate > 0 ? gate : unlock;
     }
-    sorted.push_back({hp, entry.second.name(), entry.first});
+    sorted.push_back({unlock, hp, entry.second.name(), entry.first});
   }
   std::sort(sorted.begin(), sorted.end());
-  for (const std::tuple<int64_t, std::string, std::string>& entry : sorted) {
-    bosses_.push_back(std::get<2>(entry));
+  for (const std::tuple<int, int64_t, std::string, std::string>& entry :
+       sorted) {
+    bosses_.push_back(std::get<3>(entry));
   }
 }
 

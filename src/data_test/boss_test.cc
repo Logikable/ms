@@ -312,8 +312,10 @@ TEST_F(BossDataTest, NormalZakumIsEightArmsThenTheBody) {
   EXPECT_EQ(normal.drops(2).per_kill(), 1.0);
 }
 
-// The last boss the game opens, and the first whose gate is thirty levels
-// above the body behind it: he is fought at 160 and is level 130. Pinned for
+// One body holding six billion, and the gate forty levels above it: he is
+// fought at 170 and is level 130. Half the parts of a fight are still standing
+// when its objective falls, so one body asks for all of what it holds -- which
+// is why he opens after the bigger Pink Bean rather than before it. Pinned for
 // the reason Zakum's numbers are -- the shape of a fight is a design decision.
 TEST_F(BossDataTest, NormalMagnusIsOneBodyBehindALateGate) {
   ASSERT_GT(bosses_.count("magnus"), 0u);
@@ -321,7 +323,7 @@ TEST_F(BossDataTest, NormalMagnusIsOneBodyBehindALateGate) {
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
   EXPECT_EQ(normal.time_limit_seconds(), 600);
-  EXPECT_EQ(normal.unlock_level(), 160);
+  EXPECT_EQ(normal.unlock_level(), 170);
   EXPECT_EQ(normal.meso(), 12960000);
   EXPECT_EQ(normal.exp(), 5300000);
   ASSERT_EQ(normal.phases_size(), 1);
@@ -341,15 +343,17 @@ TEST_F(BossDataTest, NormalMagnusIsOneBodyBehindALateGate) {
 }
 
 // The biggest fight in the game and the only one whose first phase is most of
-// it: the five statues are 5.55B of the 7.65B. Pinned for the reason Zakum's
-// and Magnus's numbers are -- the shape of a fight is a design decision.
+// it: the five statues are 5.55B of the 7.65B. Only three of the five are ever
+// reached, which is what puts it a gate BELOW Magnus's one body. Pinned for
+// the reason Zakum's and Magnus's numbers are -- the shape of a fight is a
+// design decision.
 TEST_F(BossDataTest, NormalPinkBeanIsFiveStatuesThenTheBean) {
   ASSERT_GT(bosses_.count("pink_bean"), 0u);
   const BossDifficulty& normal = bosses_.at("pink_bean").difficulties(0);
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
   EXPECT_EQ(normal.time_limit_seconds(), 600);
-  EXPECT_EQ(normal.unlock_level(), 170);
+  EXPECT_EQ(normal.unlock_level(), 160);
   EXPECT_EQ(normal.meso(), 7022500);
   // The statues' 3,300,000 and the bean's 6,290,000, paid as one flat number.
   EXPECT_EQ(normal.exp(), 9590000);
