@@ -40,7 +40,9 @@
  *               on the way. The climb alone.
  *   --ledger    what the purse went on and what the character has to show for
  *               it: the weapon's slots and stars, and how much of each set is
- *               on their back.
+ *               on their back. The potions are two columns of it -- what they
+ *               drank and what a permanent unlock cost; --pots reads the
+ *               counterfactual, off, rent or buy.
  *   --boss_report
  *               where each fight falls across the branches: the level of the
  *               first clear, the clock at it, and how far the branches that
@@ -95,11 +97,13 @@
 #include "absl/log/log.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/str_cat.h"
+#include "absl/types/span.h"
 #include "analysis/ability_plan.h"
 #include "analysis/checkpoint.h"
 #include "analysis/gear_plan.h"
 #include "analysis/hyper_plan.h"
 #include "analysis/parallel.h"
+#include "analysis/pot_plan.h"
 #include "analysis/sim_boss.h"
 #include "analysis/sim_format.h"
 #include "analysis/sim_gear.h"
@@ -154,6 +158,10 @@ ABSL_FLAG(bool, all_branches, false,
           "60 and at 100 -- so what they measure past that is a build nobody "
           "plays, and they are the slowest rows in the sweep by far.");
 ABSL_FLAG(bool, playtime, true, "Print how long the climb takes.");
+ABSL_FLAG(std::string, pots, "auto",
+          "What the player does about the potions: auto (on when they pay, "
+          "bought when the horizon says they pay twice over), off, rent or "
+          "buy.");
 ABSL_FLAG(bool, ledger, true,
           "Print what the climb spent and what it is wearing at the cap.");
 ABSL_FLAG(int, star_ceiling, ms::kMaxStarForce,
@@ -409,6 +417,7 @@ struct Ledger {
   int64_t boss_clears = 0;
   int64_t gear_bought = 0;  // the shop's own shelves: weapon, off-hand, equips
   GearSpend gear;           // scrolls, stars, hammers, replacements
+  PotSpend pots;            // drunk by the second and by the fight, and bought
 
   int64_t named_income() const {
     return etc_sales + gear.sold + boss_clears;
@@ -961,6 +970,9 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
     log.first_attempt_level = level;
   }
   ++log.attempts;
+  // Drunk on the way in, and counted before the purse is read for the clear
+  // -- what a fight pays is not what a fight cost.
+  EnterFightWithPots(state, &climb.ledger.pots);
   int64_t before_fight = state.character.meso();
   BossOutcome outcome = FightBoss(state, fight.first, fight.second);
   climb.ledger.boss_clears +=
@@ -1071,9 +1083,12 @@ struct Session {
   Climb& climb;
   double step = 0.5;
   int beats = 4;
-  // Playtime so far, and when the next reset falls due.
+  // Playtime so far, when the next reset falls due, and when the run ends.
+  // The horizon is what a permanent purchase is weighed against, so it is
+  // rewritten when the endgame section takes over the clock.
   double seconds = 0.0;
   double next_daily = kDaySeconds;
+  double horizon = 0.0;
   // When the player next opens the game, and how many looks the evening still
   // owes. Seeded off the run so two climbs of a branch differ.
   double next_look = 0.0;
@@ -1101,6 +1116,50 @@ struct Session {
   unsigned int seed = 0;
   bool saved = false;
 };
+
+// The flag's word for what the player does about the potions.
+PotMode PotModeFromFlag() {
+  std::string mode = absl::GetFlag(FLAGS_pots);
+  if (mode == "off") {
+    return PotMode::kOff;
+  }
+  if (mode == "rent") {
+    return PotMode::kRent;
+  }
+  if (mode == "buy") {
+    return PotMode::kBuy;
+  }
+  if (mode != "auto") {
+    LOG(FATAL) << "--pots must be auto, off, rent or buy";
+  }
+  return PotMode::kAuto;
+}
+
+// What the player knows about the pots as they stand: how much run is left,
+// and how often they have been walking into a fight.
+PotPolicy PotPolicyFor(const Session& run) {
+  PotPolicy policy;
+  policy.mode = PotModeFromFlag();
+  policy.seconds_left = std::max(0.0, run.horizon - run.seconds);
+  if (run.seconds > 0.0) {
+    policy.boss_entries_per_second =
+        run.climb.ledger.pots.entries / run.seconds;
+  }
+  return policy;
+}
+
+// Takes the pot decisions on the encounter the character is standing in. The
+// rates come off the yield already measured for the stretch ahead, so this
+// costs no fight of its own.
+void PlanPotsFor(Session& run, const CombatParams& params, const Yield& yield) {
+  std::vector<const Mob*> mobs;
+  mobs.reserve(params.types.size());
+  for (const CombatType& type : params.types) {
+    mobs.push_back(type.mob);
+  }
+  PlanPots(run.state, PotPolicyFor(run), absl::MakeConstSpan(mobs),
+           absl::MakeConstSpan(yield.kills_per_second), &run.climb.ledger.pots);
+}
 
 // Where the climb has got to inside a level: what the loop below keeps that is
 // in neither the Session nor the Climb. Held together so a checkpoint can
@@ -1629,6 +1688,7 @@ double GiveUpAt() {
 // runs out.
 void ClimbToCap(Session& run) {
   double give_up = GiveUpAt();
+  run.horizon = give_up;
   ClimbCursor cursor;
   if (!ResumeClimb(run, &cursor)) {
     Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
@@ -1669,6 +1729,9 @@ void ClimbToCap(Session& run) {
     std::vector<int64_t> kills = KillsOver(yield, horizon, &cursor.carry);
     AwardCombatRewards(run.state, params, kills);
     NoteTokenChances(params, kills, run.climb);
+    // The stretch is jumped rather than ticked, so the potion is charged for
+    // it here -- AdvanceCombat, which does it in the game, never runs.
+    DrinkPots(run.state, horizon, &run.climb.ledger.pots);
     run.purse.Note(run.state.character);
     run.seconds += horizon;
 
@@ -1681,6 +1744,11 @@ void ClimbToCap(Session& run) {
         run.next_look =
             NextLook(run.seconds, reached, &run.looks_left, run.rng);
       }
+      // Ahead of the gear: a pot that pays its price back in a day multiplies
+      // every meso the rest of the run earns, and a star bought first is a
+      // star bought with the slower purse.
+      PlanPotsFor(run, params, yield);
+      run.purse.Note(run.state.character);
       Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
              run.purse, run.shopper, run.scout, run.climb.ledger);
       SpendHyperPoints(run);
@@ -1723,6 +1791,9 @@ void FarmAtCap(Session& run) {
   double horizon =
       total > 0.0 ? total * kDaySeconds
                   : began + absl::GetFlag(FLAGS_endgame_days) * kDaySeconds;
+  // The endgame's own end, which is the run's: the climb was weighing a
+  // permanent purchase against a give-up clock nobody reaches.
+  run.horizon = horizon;
   int level = run.state.character.proto().level();
   int64_t earned_at_cap = run.purse.earned;
   int64_t spent_at_cap = run.purse.spent;
@@ -1752,6 +1823,7 @@ void FarmAtCap(Session& run) {
     jump = std::max(jump, run.step);
     std::vector<int64_t> kills = KillsOver(yield, jump, &carry);
     AwardCombatRewards(run.state, params, kills);
+    DrinkPots(run.state, jump, &run.climb.ledger.pots);
     run.purse.Note(run.state.character);
     run.seconds += jump;
     bool fought = TakeOnBosses(run, level, /*levelled=*/false);
@@ -1762,6 +1834,9 @@ void FarmAtCap(Session& run) {
       // traces every scroll is bought with.
       run.climb.ledger.etc_sales += SellDrops(run.state.character);
       WearBestFromBag(run.state.character);
+      // Before the shelf, for the reason the climb takes it before Retool.
+      PlanPotsFor(run, params, yield);
+      run.purse.Note(run.state.character);
       int64_t before_shelf = run.state.character.meso();
       Outfit(run.state, /*budget=*/true);
       run.climb.ledger.gear_bought +=
@@ -2441,8 +2516,9 @@ void PrintMesoLedger(const std::vector<Job>& branches,
       "\nWhere the meso came from and where it went, over the whole run. Mobs "
       "is the remainder --\neverything the purse was paid that no named "
       "source claims.\n\n");
-  const char* kHeads[] = {"mobs",    "Etc sold", "gear sold", "bosses", "shelf",
-                          "scrolls", "stars",    "hammers",   "copies"};
+  const char* kHeads[] = {"mobs",   "Etc sold", "gear sold", "bosses",
+                          "shelf",  "scrolls",  "stars",     "hammers",
+                          "copies", "pots",     "pots own"};
   std::printf("%-13s", "branch");
   for (const char* head : kHeads) {
     std::printf(" %9s", head);
@@ -2459,7 +2535,9 @@ void PrintMesoLedger(const std::vector<Job>& branches,
                       ledger.gear.scrolls,
                       ledger.gear.stars,
                       ledger.gear.hammers,
-                      ledger.gear.replacements};
+                      ledger.gear.replacements,
+                      ledger.pots.drained,
+                      ledger.pots.bought};
     std::printf("%-13s", BranchName(branches[i]).c_str());
     for (int64_t value : rows) {
       char text[16];

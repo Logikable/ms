@@ -68,6 +68,25 @@ cc_library(
 )
 
 cc_library(
+    name = "pot_plan",
+    srcs = ["pot_plan.cc"],
+    hdrs = ["pot_plan.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character",
+        "//src/character:character_stats",
+        "//src/character:consumables",
+        "//src/combat:damage",
+        "//src/combat:encounter",
+        "//src/combat:loot",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@abseil-cpp//absl/types:span",
+    ],
+)
+
+cc_library(
     name = "gear_plan",
     srcs = ["gear_plan.cc"],
     hdrs = ["gear_plan.h"],
@@ -197,6 +216,7 @@ sim_binary(
         ":gear_plan",
         ":hyper_plan",
         ":parallel",
+        ":pot_plan",
         ":sim_boss",
         ":sim_checkpoint_proto_cc",
         ":sim_format",
