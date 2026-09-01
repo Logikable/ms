@@ -479,18 +479,20 @@ std::pair<int, int> WeaponUpgrades(const GameState& state) {
           it->second.equip_state().remaining_upgrade_slots()};
 }
 
-// Sells the Etc tab, skipping what will not sell. A token is the one Etc item
-// worth keeping: it sells for nothing and buys the Frozen tier.
+// Sells the Etc tab, keeping what the counter pays nothing for. Everything can
+// be sold now, so the skip has to be asked for: a token buys the Frozen tier
+// and a soul shard is a trophy, and neither is worth turning into no meso.
 int64_t SellDrops(CharacterInstance& character) {
   int64_t earned = 0;
   int i = 0;
   while (i < static_cast<int>(character.stackables(ITEM_CATEGORY_ETC).size())) {
-    int count = character.stackables(ITEM_CATEGORY_ETC)[i].count();
-    int64_t paid = character.SellStackable(ITEM_CATEGORY_ETC, i, count);
-    if (paid <= 0) {
-      ++i;  // a token sells for nothing; it is kept and spent on the shelf
+    const StackableItem& stack = character.stackables(ITEM_CATEGORY_ETC)[i];
+    int count = stack.count();
+    if (stack.prototype().sell_price() <= 0) {
+      ++i;
+      continue;
     }
-    earned += paid;
+    earned += character.SellStackable(ITEM_CATEGORY_ETC, i, count);
   }
   return earned;
 }

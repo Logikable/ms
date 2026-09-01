@@ -91,10 +91,10 @@ class MultiSellPanel {
   void MoveCursor(int delta);
   // Steps one tab along the bar. The ends are walls, as in the bag.
   void StepTab(int direction);
-  // Marks or unmarks the row under the cursor. A row the shop will not pay
-  // for and will not take -- a currency stack -- cannot be marked.
+  // Marks or unmarks the row under the cursor.
   void ToggleMark();
-  // Whether `row` on the active tab can go in the basket at all.
+  // Whether `row` is a row at all. Everything the bag holds can be sold, so
+  // nothing else stands between a row and the basket.
   bool Markable(int row) const;
 
   // The tab bar, with the player's meso and the running total beside it.

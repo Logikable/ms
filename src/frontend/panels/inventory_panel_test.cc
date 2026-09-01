@@ -528,13 +528,13 @@ TEST_F(InventoryPanelTest, MultiSellSitsUnderSellOnBothMenus) {
   panel.OpenMenu();
   std::vector<int> after = ReachableMenuEntries(panel.menu());
   EXPECT_NE(std::count(after.begin(), after.end(), kStackMultiSell), 0);
-  // The stack's Sell is disabled for a worthless item, and Multi-Sell is not:
-  // the screen it opens is where the player picks the rows themselves.
+  // Both stand on a worthless item: a stack worth nothing is still a stack the
+  // player wants out of the bag.
   c_.AddStackable(MakeStackable("Junk", ITEM_CATEGORY_ETC, 0), 5);
   comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
   panel.OpenMenu();
   after = ReachableMenuEntries(panel.menu());
-  EXPECT_EQ(std::count(after.begin(), after.end(), kStackSell), 0);
+  EXPECT_NE(std::count(after.begin(), after.end(), kStackSell), 0);
   EXPECT_NE(std::count(after.begin(), after.end(), kStackMultiSell), 0);
 }
 
@@ -1069,7 +1069,9 @@ TEST_F(InventoryPanelTest, StackMenuCloseReturnsMain) {
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kMain);
 }
 
-TEST_F(InventoryPanelTest, UnsellableStackDisablesSellOption) {
+// A stack worth nothing is still offered for sale: selling is the only way
+// anything leaves the bag, so a row that refused it could never be discarded.
+TEST_F(InventoryPanelTest, AWorthlessStackIsStillOfferedForSale) {
   c_.AddStackable(MakeStackable("Junk", ITEM_CATEGORY_ETC, 0), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -1077,11 +1079,7 @@ TEST_F(InventoryPanelTest, UnsellableStackDisablesSellOption) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // -> Etc
   panel.OpenMenu();
   std::vector<int> reachable = ReachableMenuEntries(panel.menu());
-  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kStackSell), 0);
-  // Disabled rather than hidden: an item with no sale value is a fact about
-  // the item, and the row saying so is the answer to "can I sell this?".
-  EXPECT_NE(RenderElement(panel.menu().Render(0, 0)).find("Sell"),
-            std::string::npos);
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kStackSell), 0);
 }
 
 // The test screen is 20 rows, so a bag of 40 cannot fit and the list has to

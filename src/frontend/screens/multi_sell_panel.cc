@@ -142,17 +142,10 @@ int MultiSellPanel::ListCount() const {
       character_.stackables(TabCategory(active_tab_)).size());
 }
 
+// Every row goes, whatever it is worth: a trace, a spent token and a stack of
+// soul shards all pay nothing, and marking them is how they leave the bag.
 bool MultiSellPanel::Markable(int row) const {
-  if (row < 0 || row >= ListCount()) {
-    return false;
-  }
-  if (active_tab_ == kEquipTab) {
-    return true;  // a trace goes too, and pays nothing
-  }
-  // A stack the shop will not pay for is one it will not take either: spell
-  // traces, boss soul shards and the Frozen tokens are currency, and selling
-  // a currency is not a thing the counter does.
-  return RowSellValue(character_, active_tab_, row) > 0;
+  return row >= 0 && row < ListCount();
 }
 
 void MultiSellPanel::ToggleMark() {
@@ -252,10 +245,6 @@ ftxui::Element MultiSellPanel::MarkCell(int row) const {
 }
 
 ftxui::Element MultiSellPanel::PriceCell(int row) const {
-  if (!Markable(row)) {
-    // A row the counter will not take says so where its price would be.
-    return TailCell("-") | ftxui::dim;
-  }
   int64_t value = RowSellValue(character_, active_tab_, row);
   bool marked = basket_.For(active_tab_).count(row) > 0;
   ftxui::Element cell = TailCell(FormatWithCommas(value));

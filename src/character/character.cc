@@ -1754,8 +1754,8 @@ int64_t CharacterInstance::SellStackable(ItemCategory category, int index,
   StackableItem& stack = stacks[index];
   count = std::clamp(count, 0, stack.count());
   int price = stack.prototype().sell_price();
-  if (count <= 0 || price <= 0) {
-    return 0;  // Nothing to sell, or the item cannot be sold.
+  if (count <= 0) {
+    return 0;
   }
   int64_t earned = static_cast<int64_t>(count) * price;
   BuyBackEntry entry;

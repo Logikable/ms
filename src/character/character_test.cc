@@ -1652,7 +1652,7 @@ TEST_F(BuyStackableTest, BuysNothingWhenTheBagCannotHoldItAll) {
 
 // --- SellStackable ---
 
-// Fixture providing a sellable Etc item (7 meso each) and an unsellable one.
+// Fixture providing an Etc item worth 7 meso each and one worth nothing.
 class SellStackableTest : public CharacterTest {
  protected:
   void SetUp() override {
@@ -1660,7 +1660,7 @@ class SellStackableTest : public CharacterTest {
     shell_.set_category(ITEM_CATEGORY_ETC);
     shell_.set_sell_price(7);
     junk_.set_name("Worthless Junk");
-    junk_.set_category(ITEM_CATEGORY_ETC);  // sell_price 0: unsellable
+    junk_.set_category(ITEM_CATEGORY_ETC);  // sell_price 0
   }
   CharacterInstance c_ = MakeCharacter(rng_);
   ItemPrototype shell_;
@@ -1701,10 +1701,14 @@ TEST_F(SellStackableTest, ANonPositiveCountOrAnIndexOffTheEndIsNoOp) {
   EXPECT_EQ(c_.meso(), 0);
 }
 
-TEST_F(SellStackableTest, UnsellableItemIsNoOp) {
+// Zero is a price, not a refusal: the copies go and pay nothing, which is how
+// a stack of currency is thrown away.
+TEST_F(SellStackableTest, AWorthlessItemStillSells) {
   c_.AddStackable(junk_, 5);
   EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 3), 0);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 5);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 2);
+  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 2), 0);
+  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
   EXPECT_EQ(c_.meso(), 0);
 }
 

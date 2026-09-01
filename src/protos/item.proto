@@ -37,7 +37,10 @@ message ItemPrototype {
   // Maximum per-slot stack. 0 means the category default (see MaxStack):
   // Use = 9999, Etc = 200.
   int32 max_stack = 3;
-  // Meso received when sold to a shop. 0 = unsellable.
+  // Meso received when sold to a shop. Zero is a price, not a refusal: every
+  // item can be sold, and one worth nothing is simply thrown away. That is
+  // what clears spent currency -- traces, soul shards, tokens -- out of the
+  // bag.
   int32 sell_price = 4;
   // What the item is, in a sentence, for the inspect screen. A stack has no
   // stats to show, so this is the whole of what inspecting one tells you.

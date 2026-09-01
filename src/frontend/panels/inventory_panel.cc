@@ -247,11 +247,6 @@ void InventoryPanel::OpenStackMenu() {
   if (proto.effect() == ITEM_EFFECT_UNSPECIFIED) {
     sell_menu_.Disable(kStackUse);
   }
-  // Multi-Sell stands whatever this row is worth: it leads to a screen where
-  // the player picks the rows themselves.
-  if (proto.sell_price() <= 0) {
-    sell_menu_.Disable(kStackSell);
-  }
 }
 
 // What the Equip tab's menu offers on a spare Arcane Symbol. Neither upgrade

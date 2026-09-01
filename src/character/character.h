@@ -266,8 +266,9 @@ class CharacterInstance {
   // Sells up to `count` copies from the `index`-th stack in `category`,
   // crediting count * sell_price meso and removing the sold copies; erases the
   // stack entirely once it empties. No-op returning 0 if the index is out of
-  // range, count <= 0, or the item is unsellable (sell_price 0). Returns the
-  // meso earned.
+  // range or count <= 0. Returns the meso earned, which is 0 for an item worth
+  // nothing -- that is a sale, not a refusal, and it is how a stack of
+  // currency is thrown away.
   int64_t SellStackable(ItemCategory category, int index, int count);
   // The shop's buy-back shelf, newest sale first. Reading it is the panel's
   // business; BuyBack is the only thing that takes one off.
@@ -290,9 +291,9 @@ class CharacterInstance {
   // and removing it from the bag. Returns the meso earned, or 0 if the index
   // is out of range.
   //
-  // Zero is not a refusal here, unlike on a stackable: an item worth nothing
-  // still goes. What the copy carries is worth nothing either -- scrolls and
-  // stars pay out at the base item's price, and a trace pays out at none.
+  // Zero is not a refusal: an item worth nothing still goes. What the copy
+  // carries is worth nothing either -- scrolls and stars pay out at the base
+  // item's price, and a trace pays out at none.
   int64_t SellEquip(int index);
   // Uses one copy from the `index`-th stack in `category`: applies the item's
   // effect and consumes it, erasing the stack once it empties. Returns false

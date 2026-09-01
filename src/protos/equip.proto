@@ -257,9 +257,9 @@ message EquipPrototype {
   // sells, which names its own price or goes unset and is worth nothing. Ask
   // SellPrice in src/item/item.h rather than this field.
   //
-  // Zero does NOT mean unsellable, as it does on a stackable: every item on
-  // the equip tab can be sold, and one worth nothing is simply thrown away.
-  // That is what clears a starter sword out of the bag.
+  // Zero is a price rather than a refusal, here as on a stackable: every item
+  // can be sold, and one worth nothing is simply thrown away. That is what
+  // clears a starter sword out of the bag.
   optional int32 sell_price = 11;
   // The token this is bought with, by data file stem, and how many of it. Both
   // unset for an item the shop sells for meso, which is most of them. An item

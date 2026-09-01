@@ -147,14 +147,14 @@ TEST_F(MultiSellTest, TheWindowStandsAtTheSameHeightOnEveryTab) {
   EXPECT_EQ(TopRow(panel), top);
 }
 
-TEST_F(MultiSellTest, ACurrencyStackCannotBeMarked) {
+// A currency stack is worth nothing and goes anyway: marking it is how the
+// player empties the tab.
+TEST_F(MultiSellTest, ACurrencyStackIsMarkableAndPaysNothing) {
   GiveStack("Spell Trace", ITEM_CATEGORY_ETC, 0, 60);
   MultiSellPanel panel(c_);
   panel.Reset(kEtcTab, 0);
-  EXPECT_TRUE(panel.basket().empty());
-  Press(panel, ftxui::Event::Return);
-  EXPECT_TRUE(panel.basket().empty());
-  EXPECT_TRUE(ScreenHas(panel, "Spell Trace"));
+  EXPECT_EQ(panel.basket().etc, std::set<int>({0}));
+  EXPECT_EQ(panel.Total(), 0);
 }
 
 TEST_F(MultiSellTest, ATraceIsMarkableAndPaysNothing) {
@@ -237,8 +237,9 @@ TEST_F(MultiSellTest, EveryRowShowsWhatItWouldPay) {
   panel.Reset(kUseTab, 0);
   // The whole stack, on the row it belongs to.
   EXPECT_NE(RowFor(panel, "Red Potion").find("200"), std::string::npos);
+  // A row worth nothing says 0 rather than nothing at all.
   panel.Reset(kEtcTab, 0);
-  EXPECT_NE(RowFor(panel, "Spell Trace").find("-"), std::string::npos);
+  EXPECT_NE(RowFor(panel, "Spell Trace").find("0"), std::string::npos);
 }
 
 TEST_F(MultiSellTest, SellingPaysTheTotalAndEmptiesTheRows) {
