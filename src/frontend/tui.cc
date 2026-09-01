@@ -17,6 +17,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/terminal.hpp"
 #include "src/character/character.h"
+#include "src/character/consumables.h"
 #include "src/character/exp_table.h"
 #include "src/character/honor.h"
 #include "src/character/job_name.h"
@@ -146,8 +147,8 @@ Tui::Tui(GameState& state, std::string save_path, std::string server)
               sell_equip_panel_,    multi_sell_panel_,    map_select_panel_,
               mob_inspect_panel_,   boss_select_panel_,   party_select_panel_,
               party_inspect_panel_, shop_panel_,          buy_panel_,
-              job_inspect_panel_,   skill_inspect_panel_, menu_panel_,
-              keybinds_panel_},
+              job_inspect_panel_,   skill_inspect_panel_, pot_info_panel_,
+              menu_panel_,          keybinds_panel_},
           analysis_, keys_, panel_focus_, multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
@@ -193,6 +194,12 @@ void Tui::BuildComponents() {
   };
   char_actions.ability_reroll = [this]() {
     controller_.OpenAbilityReroll(char_panel_.hyper_preset());
+  };
+  char_actions.pot_toggle = [this](ConsumableType type) {
+    controller_.ToggleConsumable(type);
+  };
+  char_actions.pot_menu = [this](ConsumableType type) {
+    controller_.OpenPotMenu(type);
   };
   char_component_ = char_panel_.MakeComponent(std::move(char_actions));
   combat_component_ =
@@ -388,6 +395,23 @@ ftxui::Element Tui::AbilityRerollDialog() {
   }
   return DialogWindow("", std::move(body),
                       controller_.ability_reroll_prompt().Render());
+}
+
+ftxui::Element Tui::PotBuyDialog() {
+  const ConsumableInfo* info = ConsumableInfoFor(controller_.pot_type());
+  const bool affordable = controller_.pot_buy_affordable();
+  // Three short rows rather than one long one: the pot's name is what the
+  // player is deciding about, and the price is what they are weighing.
+  return DialogWindow(
+      "",
+      {
+          CenteredRow(info == nullptr ? "" : "Buy " + std::string(info->name)),
+          CenteredRow("permanently for"),
+          CenteredRow(
+              RedUnless(ftxui::text(FormatMeso(controller_.pot_buy_price())),
+                        affordable)),
+      },
+      ConfirmButtons(controller_.pot_buy_prompt().focus(), affordable));
 }
 
 ftxui::Element Tui::QuitDialog() {
@@ -759,6 +783,10 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(HyperResetDialog());
     case kAbilityReroll:
       return OverMain(AbilityRerollDialog());
+    case kPotBuy:
+      return OverMain(PotBuyDialog());
+    case kPotInfo:
+      return Standalone(pot_info_panel_.Render());
     case kHyperStatInspect:
       hyper_stat_inspect_panel_.SetStat(controller_.hyper_inspect_field(),
                                         controller_.hyper_inspect_level(),
@@ -806,6 +834,17 @@ ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
     constexpr int kJobMenuCol = 14;
     return Floating(controller_.job_menu().Render(
         std::max(0, char_panel_.job_cursor_row() - 1), kJobMenuCol));
+  }
+  if (controller_.screen() == kPotMenu) {
+    // Past the widest a pot name is drawn, so the menu covers the two columns
+    // after it rather than the name the entry is about. Held inside the
+    // character panel, whose column narrows with the terminal: a narrow panel
+    // takes a name's tail instead, as the skill menu does.
+    constexpr int kPotMenuCol = 26;
+    const ItemMenu& menu = controller_.pot_menu();
+    int col = std::max(0, std::min(kPotMenuCol, widths.left - menu.Width()));
+    return Floating(
+        menu.Render(std::max(0, char_panel_.pot_cursor_row() - 1), col));
   }
   if (controller_.screen() != kItemMenu) {
     return nullptr;

@@ -9,6 +9,7 @@ cc_library(
     deps = [
         "//src/character",
         "//src/character:character_stats",
+        "//src/character:consumables",
         "//src/character:job_name",
         "//src/character:progression",
         "//src/combat:damage",
@@ -21,6 +22,7 @@ cc_library(
         "//src/frontend/widgets:keys",
         "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:stat_rows",
+        "//src/frontend/widgets:text_columns",
         "//src/frontend/widgets:text_field",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
@@ -36,6 +38,7 @@ cc_test(
     srcs = ["character_panel_test.cc"],
     deps = [
         ":character_panel",
+        "//src/character:consumables",
         "//src/frontend:panel_widths",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",

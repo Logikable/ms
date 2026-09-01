@@ -59,6 +59,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       party_inspect_panel_(screens.party_inspect_panel),
       job_inspect_panel_(screens.job_inspect_panel),
       skill_inspect_panel_(screens.skill_inspect_panel),
+      pot_info_panel_(screens.pot_info_panel),
       menu_panel_(screens.menu_panel),
       keybinds_panel_(screens.keybinds_panel),
       analysis_(analysis),
@@ -214,6 +215,38 @@ std::vector<AbilityLine> TuiController::ability_reroll_lines() const {
     }
   }
   return lines;
+}
+
+void TuiController::ToggleConsumable(ConsumableType type) {
+  state_.character.ToggleConsumable(type);
+}
+
+void TuiController::OpenPotMenu(ConsumableType type) {
+  pot_type_ = type;
+  pot_menu_.Reset();
+  // A pot already bought has nothing left to buy. The entry stays on the menu
+  // greyed rather than gone: its absence would be the surprise.
+  if (state_.character.ConsumableOwned(type)) {
+    pot_menu_.Disable(kPotMenuBuyPerm);
+  }
+  screen_ = kPotMenu;
+}
+
+void TuiController::OpenPotBuy(ConsumableType type) {
+  pot_type_ = type;
+  // Opens on Cancel: it is the largest single spend in the game, and Enter
+  // alone must not be able to make it.
+  pot_buy_prompt_.Open(/*cancel_selected=*/true);
+  screen_ = kPotBuy;
+}
+
+int64_t TuiController::pot_buy_price() const {
+  const ConsumableInfo* info = ConsumableInfoFor(pot_type_);
+  return info == nullptr ? 0 : info->permanent_price;
+}
+
+bool TuiController::pot_buy_affordable() const {
+  return state_.character.proto().meso() >= pot_buy_price();
 }
 
 void TuiController::OpenJobMenu(Job job) {
@@ -379,6 +412,12 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSkillInspectEvent(event);
     case kJobMenu:
       return OnJobMenuEvent(event);
+    case kPotMenu:
+      return OnPotMenuEvent(event);
+    case kPotInfo:
+      return OnPotInfoEvent(event);
+    case kPotBuy:
+      return OnPotBuyEvent(event);
     case kJobInspect:
       return OnJobInspectEvent(event);
     case kJobAdvance:
@@ -767,6 +806,60 @@ bool TuiController::OnQuitEvent(ftxui::Event event) {
   } else if (choice == ConfirmChoice::kCancelled) {
     screen_ = kMain;
   }
+  return true;
+}
+
+bool TuiController::OnPotMenuEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    pot_menu_.Up();
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    pot_menu_.Down();
+    return true;
+  }
+  if (IsBack(event)) {
+    screen_ = kMain;
+    return true;
+  }
+  if (!IsForward(event)) {
+    return true;  // The menu is modal: nothing behind it hears a key.
+  }
+  switch (pot_menu_.selected()) {
+    case kPotMenuInspect:
+      pot_info_panel_.SetPot(pot_type_,
+                             state_.character.ConsumableOwned(pot_type_));
+      screen_ = kPotInfo;
+      break;
+    case kPotMenuBuyPerm:
+      OpenPotBuy(pot_type_);
+      break;
+    default:
+      screen_ = kMain;
+      break;
+  }
+  return true;
+}
+
+// Nothing to point at, only text to read, and the card is short enough that
+// nothing scrolls. Back returns to the menu it was opened from, as the job
+// card does: the decision is one keypress away there.
+bool TuiController::OnPotInfoEvent(ftxui::Event event) {
+  if (IsBack(event)) {
+    screen_ = kPotMenu;
+  }
+  return true;
+}
+
+bool TuiController::OnPotBuyEvent(ftxui::Event event) {
+  ConfirmChoice choice = pot_buy_prompt_.OnEvent(event, pot_buy_affordable());
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    state_.character.BuyConsumable(pot_type_);
+  }
+  screen_ = kMain;
   return true;
 }
 

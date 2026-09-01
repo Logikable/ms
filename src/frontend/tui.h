@@ -42,6 +42,7 @@
 #include "src/frontend/screens/multi_sell_panel.h"
 #include "src/frontend/screens/party_inspect_panel.h"
 #include "src/frontend/screens/party_select_panel.h"
+#include "src/frontend/screens/pot_info_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
@@ -100,6 +101,10 @@ class Tui {
   // its rank, the way the tab behind it draws them. The lines being held are
   // not listed: they are not what is being asked about.
   ftxui::Element AbilityRerollDialog();
+  // The question buying a pot outright asks. The price reddens and [Confirm]
+  // greys when the purse cannot cover it -- the player still gets to read what
+  // it would have cost.
+  ftxui::Element PotBuyDialog();
   // The box a menu entry raised, standing on the corner menu it opened from.
   ftxui::Element RenderMenuBox();
   // The party screen, with its member menu or its question over it.
@@ -199,6 +204,8 @@ class Tui {
   // Every stat on one screen, reached from the Character panel's last row.
   AllStatsPanel all_stats_panel_;
   HyperStatInspectPanel hyper_stat_inspect_panel_;
+  // One pot's effects and its two prices, reached from the Pots tab's menu.
+  PotInfoPanel pot_info_panel_;
   ShopPanel shop_panel_;
   BuyPanel buy_panel_;
 

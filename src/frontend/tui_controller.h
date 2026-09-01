@@ -35,6 +35,7 @@
 #include "src/frontend/screens/multi_sell_panel.h"
 #include "src/frontend/screens/party_inspect_panel.h"
 #include "src/frontend/screens/party_select_panel.h"
+#include "src/frontend/screens/pot_info_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
@@ -95,6 +96,7 @@ struct Screens {
   BuyPanel& buy_panel;
   JobInspectPanel& job_inspect_panel;
   SkillInspectPanel& skill_inspect_panel;
+  PotInfoPanel& pot_info_panel;
   MenuPanel& menu_panel;
   KeybindsPanel& keybinds_panel;
 };
@@ -138,6 +140,35 @@ class TuiController {
   void ToggleAbilityLock(int index, StatPreset preset);
   // Asks before rerolling `preset`, which is where the honor is spent.
   void OpenAbilityReroll(StatPreset preset);
+
+  // Switches `type` on if it is off and off if it is on. No screen and no
+  // question: the row's own switch says what happened, and nothing is spent
+  // until the pot procs.
+  void ToggleConsumable(ConsumableType type);
+  // Float the pot's context menu over the main view: read it, buy it outright,
+  // or walk away.
+  void OpenPotMenu(ConsumableType type);
+  // Ask before buying `type` outright. Opens on Cancel: it is the largest
+  // single spend in the game. A purse that cannot cover it still opens the
+  // question -- with the price in red and [Confirm] greyed -- rather than
+  // refusing at the menu, which would leave the player guessing at the price.
+  void OpenPotBuy(ConsumableType type);
+  // The pot every one of the three is about.
+  ConsumableType pot_type() const {
+    return pot_type_;
+  }
+  // The pot menu, for the overlay Tui floats beside the pot's row.
+  const ItemMenu& pot_menu() const {
+    return pot_menu_;
+  }
+  const ConfirmPrompt& pot_buy_prompt() const {
+    return pot_buy_prompt_;
+  }
+  // Whether the purse covers what the open question asks. The dialog greys
+  // [Confirm] with it, and the buy is held to the same check.
+  bool pot_buy_affordable() const;
+  // What the permanent price is, for the dialog to state.
+  int64_t pot_buy_price() const;
 
   // The card Enter on a stat's name opens. Never gated: a stat the character
   // is too low for is the one they most want to read about.
@@ -425,6 +456,9 @@ class TuiController {
   bool OnSkillMenuEvent(ftxui::Event event);
   bool OnSkillInspectEvent(ftxui::Event event);
   bool OnJobMenuEvent(ftxui::Event event);
+  bool OnPotMenuEvent(ftxui::Event event);
+  bool OnPotInfoEvent(ftxui::Event event);
+  bool OnPotBuyEvent(ftxui::Event event);
   bool OnJobInspectEvent(ftxui::Event event);
   bool OnJobAdvanceEvent(ftxui::Event event);
   bool OnQuitEvent(ftxui::Event event);
@@ -550,6 +584,7 @@ class TuiController {
   std::string party_inspect_account_;
   JobInspectPanel& job_inspect_panel_;
   SkillInspectPanel& skill_inspect_panel_;
+  PotInfoPanel& pot_info_panel_;
   MenuPanel& menu_panel_;
   KeybindsPanel& keybinds_panel_;
   // The measurement the Analysis entry starts and stops. Owned by the session,
@@ -594,6 +629,11 @@ class TuiController {
   ItemMenu skill_menu_{{"Inspect", "Activate", "Close"}};
   Job job_advance_ = JOB_UNSPECIFIED;
   ItemMenu job_menu_{{"Inspect", "Advance", "Close"}};
+  // The pot the menu, the card and the question are all about. Held so the
+  // answer lands on the pot the question named, whatever the cursor did.
+  ConsumableType pot_type_ = CONSUMABLE_TYPE_UNSPECIFIED;
+  ItemMenu pot_menu_{{"Inspect", "Buy Perm", "Close"}};
+  ConfirmPrompt pot_buy_prompt_;
   SymbolLevelPanel symbol_level_panel_;
   HyperStatLevelPanel hyper_stat_level_panel_;
   ConfirmPrompt hyper_reset_prompt_;

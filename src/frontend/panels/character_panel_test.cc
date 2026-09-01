@@ -8,12 +8,14 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/dom/requirement.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/consumables.h"
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/chrome.h"
@@ -2703,6 +2705,119 @@ TEST_F(CharacterPanelTest, TheAbilityRingEndsOnTheRerollButton) {
   EXPECT_TRUE(IsInverted(comp, "[Reroll]"));
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(rerolls, 1);
+}
+
+// --- the Pots tab ---
+
+// A 4th-job Hero at `level`, which is what decides how many pots are listed.
+CharacterInstance MakePotHero(std::mt19937& rng, int level) {
+  Character proto;
+  proto.set_level(level);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  proto.set_meso(500'000'000);
+  return CharacterInstance(rng, std::move(proto));
+}
+
+// Walks the cursor onto the Pots tab and down onto its first row. Stats ->
+// Skills -> Hyper -> Ability -> Pots is four steps right, and there is no
+// Farm/Boss row in between.
+ftxui::Component OnPotRows(CharacterPanel& panel,
+                           CharacterPanelActions actions = {}) {
+  ftxui::Component comp = panel.MakeComponent(std::move(actions));
+  for (int i = 0; i < 4; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  return comp;
+}
+
+// Gated on this character's own level, and gold once for the account -- the
+// same deal the Ability tab gets, and for the same reason.
+TEST_F(CharacterPanelTest, ThePotsTabArrivesAt170AndIsGoldOnceAnAccount) {
+  CharacterInstance early = MakePotHero(rng_, kConsumableUnlockLevel - 1);
+  CharacterPanel before(early, account_, panel_focus_);
+  before.SetWidth(kLeftColumnMax);
+  EXPECT_EQ(RenderElement(before.Render()).find("Pots"), std::string::npos);
+
+  // Wide enough for the whole bar: at the narrowest it scrolls, and a chip
+  // held back behind the mark has no colour to read.
+  CharacterInstance c = MakePotHero(rng_, kConsumableUnlockLevel);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetWidth(kLeftColumnMax);
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(LabelColor(panel.Render(), "Pots"), kYellow);
+
+  panel_focus_ = kCharPanel;
+  OnPotRows(panel);
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(LabelColor(panel.Render(), "Pots"), kTheme);
+  EXPECT_TRUE(account_.Seen(kPotsTabKey));
+}
+
+// A pot below its own level is not listed at all: it cannot be switched on or
+// bought, and a greyed row would only advertise it.
+TEST_F(CharacterPanelTest, ThePotsTabListsOnlyThePotsTheLevelHasOpened) {
+  CharacterInstance early = MakePotHero(rng_, kConsumableUnlockLevel);
+  CharacterPanel first(early, account_, panel_focus_);
+  first.SetWidth(kLeftColumnMax);
+  panel_focus_ = kCharPanel;
+  std::string rendered = ScreenText(RenderToScreen(OnPotRows(first)));
+  EXPECT_NE(rendered.find("Wealth Acquisition"), std::string::npos);
+  EXPECT_EQ(rendered.find("Extreme Green"), std::string::npos);
+  // Unbought and unswitched: rented, and off.
+  EXPECT_NE(rendered.find("Rent"), std::string::npos);
+  EXPECT_NE(rendered.find("[ ]"), std::string::npos);
+
+  CharacterInstance late = MakePotHero(rng_, 190);
+  CharacterPanel second(late, account_, panel_focus_);
+  second.SetWidth(kLeftColumnMax);
+  EXPECT_NE(ScreenText(RenderToScreen(OnPotRows(second))).find("Extreme Green"),
+            std::string::npos);
+}
+
+// The row is two columns: Enter on the switch throws it, Enter on the name
+// raises the menu, and neither answers for the other.
+TEST_F(CharacterPanelTest, TheSwitchTogglesAndTheNameOpensTheMenu) {
+  CharacterInstance c = MakePotHero(rng_, kConsumableUnlockLevel);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetWidth(kLeftColumnMax);
+  panel_focus_ = kCharPanel;
+  std::vector<ConsumableType> toggled;
+  std::vector<ConsumableType> opened;
+  CharacterPanelActions actions;
+  actions.pot_toggle = [&](ConsumableType type) {
+    toggled.push_back(type);
+    c.ToggleConsumable(type);
+  };
+  actions.pot_menu = [&](ConsumableType type) { opened.push_back(type); };
+  ftxui::Component comp = OnPotRows(panel, actions);
+
+  // The cursor lands on the name, which is the leftmost column.
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(toggled.empty());
+  ASSERT_EQ(opened.size(), 1u);
+  EXPECT_EQ(opened[0], CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(toggled.size(), 1u);
+  EXPECT_EQ(toggled[0], CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  EXPECT_EQ(opened.size(), 1u);
+  EXPECT_NE(ScreenText(RenderToScreen(comp)).find("[X]"), std::string::npos);
+}
+
+// Bought outright, the row says Owned where it said Rent -- nothing is
+// charged for it again.
+TEST_F(CharacterPanelTest, AnOwnedPotSaysSoWhereTheRentWas) {
+  CharacterInstance c = MakePotHero(rng_, kConsumableUnlockLevel);
+  ASSERT_TRUE(c.BuyConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetWidth(kLeftColumnMax);
+  panel_focus_ = kCharPanel;
+  std::string rendered = ScreenText(RenderToScreen(OnPotRows(panel)));
+  EXPECT_NE(rendered.find("Owned"), std::string::npos);
+  EXPECT_EQ(rendered.find("Rent"), std::string::npos);
 }
 
 // Five chips do not fit the narrowest panel, so the bar scrolls under them --

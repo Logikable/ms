@@ -24,6 +24,7 @@
 #include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/stat_rows.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
@@ -59,7 +60,8 @@ ftxui::Element CenteredCell(const std::string& label,
 }
 
 // The outer tab labels, indexed by CharacterPanel::Tab.
-const char* kTabLabels[] = {"Stats", "Skills", "Hyper", "Ability", "Advance"};
+const char* kTabLabels[] = {"Stats",   "Skills", "Hyper",
+                            "Ability", "Pots",   "Advance"};
 
 // The Farm/Boss row, which names the two Hyper Stat allocations wherever the
 // player meets them.
@@ -80,6 +82,20 @@ constexpr int kHyperPlusWidth = 3;
 // What the row spends on everything but the name: the leading gutter, the
 // level, the gap after it, the [+] and the trailing gutter.
 constexpr int kHyperFixedWidth = 1 + kHyperLevelWidth + 1 + kHyperPlusWidth + 1;
+
+// The Pots tab's columns. "Owned" is the widest word the middle one takes,
+// and the switch is a bracketed button like every other in the panel.
+constexpr int kPotStateWidth = 5;
+constexpr int kPotSwitchWidth = 3;
+
+// What a pot row spends on everything but the name: the leading gutter, the
+// two columns above, a gap before each, and the trailing gutter.
+constexpr int kPotFixedWidth = 1 + 1 + kPotStateWidth + 1 + kPotSwitchWidth + 1;
+
+// Whether a pot is switched on, in the same bracketed shape as the [+] beside
+// a stat. Three columns either way, so the column does not move under a row.
+constexpr char kPotOnGlyph[] = "[X]";
+constexpr char kPotOffGlyph[] = "[ ]";
 
 // Roman numerals for the job-advancement tabs, indexed by stage (1..6).
 const char* kStageNumerals[] = {"", "I", "II", "III", "IV", "V", "VI"};
@@ -223,6 +239,12 @@ std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
   if (character_.inner_ability_unlocked()) {
     tabs.push_back(kTabAbility);
   }
+  // Pots is gated on this character too, and for the same reason: a pot below
+  // its own level refuses to be switched on and refuses to be bought, whoever
+  // else on the account has been there.
+  if (character_.consumables_unlocked()) {
+    tabs.push_back(kTabPots);
+  }
   // The Advance tab exists only while there is an advancement to take, so it
   // arrives at level 10 and is gone the moment the player picks a job.
   if (character_.CanAdvanceJob()) {
@@ -254,6 +276,8 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
     case kZoneAbilityRows:
     case kZoneAbilityReroll:
       return ActiveTab() == kTabAbility ? zone_ : kZoneTabs;
+    case kZonePotRows:
+      return ActiveTab() == kTabPots ? zone_ : kZoneTabs;
     case kZoneAdvTabs:
     case kZoneSkillRows:
       return ActiveTab() == kTabSkills ? zone_ : kZoneTabs;
@@ -288,6 +312,11 @@ int CharacterPanel::RingStops() const {
     // The same shape: the two of them, the Farm/Boss row, a stop per line, and
     // [Reroll].
     return 3 + AbilityRows() + 1;
+  }
+  if (ActiveTab() == kTabPots) {
+    // The name, the tab bar, and a stop per pot. No Farm/Boss row: a pot is
+    // the character's, not an allocation's.
+    return 2 + static_cast<int>(PotsShown().size());
   }
   if (ActiveTab() == kTabAdvance) {
     return 2 + static_cast<int>(
@@ -327,6 +356,8 @@ int CharacterPanel::CursorStop() const {
       return ability_sel_ + 3;
     case kZoneAbilityReroll:
       return AbilityRows() + 3;
+    case kZonePotRows:
+      return pot_sel_ + 2;
   }
   return 0;
 }
@@ -375,6 +406,16 @@ void CharacterPanel::SetCursorStop(int stop) {
     ability_sel_ = stop - 3;
     return;
   }
+  if (ActiveTab() == kTabPots) {
+    if (zone_ != kZonePotRows) {
+      // Arriving from outside the rows lands on the name, as it does on the
+      // skill rows: the leftmost column, the way the eye reads the row.
+      pot_col_ = kColName;
+    }
+    zone_ = kZonePotRows;
+    pot_sel_ = stop - 2;
+    return;
+  }
   if (ActiveTab() == kTabAdvance) {
     zone_ = kZoneJobRows;
     job_sel_ = stop - 2;
@@ -413,6 +454,11 @@ std::string CharacterPanel::TabKey(Tab tab) const {
     // every one after -- MarkSeen is account-wide, so a player is told about
     // Inner Ability once.
     return kAbilityTabKey;
+  }
+  if (tab == kTabPots) {
+    // The same deal as Ability: one key for the account, since what a pot is
+    // is news once.
+    return kPotsTabKey;
   }
   if (tab == kTabAdvance) {
     // The stage being advanced INTO, so the tab that comes back at level 30 is
@@ -1002,6 +1048,73 @@ ftxui::Element CharacterPanel::RenderAbilityTab(bool bar_focused,
   return ftxui::vbox(std::move(rows));
 }
 
+std::vector<const ConsumableInfo*> CharacterPanel::PotsShown() const {
+  std::vector<const ConsumableInfo*> pots;
+  for (const ConsumableInfo& info : AllConsumables()) {
+    if (character_.proto().level() >= info.unlock_level) {
+      pots.push_back(&info);
+    }
+  }
+  return pots;
+}
+
+ftxui::Element CharacterPanel::RenderPotRow(const ConsumableInfo& info,
+                                            int index,
+                                            bool rows_focused) const {
+  const bool selected = rows_focused && pot_sel_ == index;
+  const bool owned = character_.ConsumableOwned(info.type);
+
+  // A name too long for the column slides under it while the row is selected,
+  // the way a skill name does, and the padding rides outside the cursor so the
+  // highlight covers the name and stops.
+  const int name_width = ContentWidth() - kPotFixedWidth;
+  const std::string window =
+      ScrollingWindow(info.name, name_width,
+                      selected ? pot_clock_.Elapsed()
+                               : std::chrono::steady_clock::duration::zero());
+  const int lit =
+      std::min(static_cast<int>(TextColumns(info.name)), name_width);
+  ftxui::Element name = ftxui::text(ColumnWindow(window, 0, lit));
+  if (selected && pot_col_ == kColName) {
+    name = std::move(name) | ftxui::inverted;
+  }
+
+  // What the pot costs this character from here: nothing at all once it is
+  // bought, and its price every proc until then.
+  ftxui::Element state =
+      ftxui::text(PadLeft(owned ? "Owned" : "Rent", kPotStateWidth + 1));
+  ftxui::Element toggle = ftxui::text(
+      character_.ConsumableActive(info.type) ? kPotOnGlyph : kPotOffGlyph);
+  if (selected && pot_col_ == kColPlus) {
+    toggle = std::move(toggle) | ftxui::inverted;
+  }
+
+  ftxui::Element row = ftxui::hbox({
+      ftxui::text(" "),
+      std::move(name),
+      ftxui::text(ColumnWindow(window, lit, name_width - lit)),
+      std::move(state),
+      ftxui::text(" "),
+      std::move(toggle),
+      ftxui::text(" "),
+  });
+  if (selected) {
+    row = std::move(row) | ftxui::reflect(pot_cursor_box_);
+  }
+  return std::move(row) |
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, ContentWidth());
+}
+
+ftxui::Element CharacterPanel::RenderPotsTab(bool rows_focused) const {
+  std::vector<const ConsumableInfo*> pots = PotsShown();
+  pot_clock_.Follow(pot_sel_, rows_focused);
+  std::vector<ftxui::Element> rows;
+  for (int i = 0; i < static_cast<int>(pots.size()); ++i) {
+    rows.push_back(RenderPotRow(*pots[i], i, rows_focused));
+  }
+  return ftxui::vbox(std::move(rows));
+}
+
 ftxui::Element CharacterPanel::RenderAdvanceTab(bool content_focused) const {
   std::vector<Job> jobs = JobChoicesForStage(
       character_.proto().job(), character_.proto().job_stage() + 1);
@@ -1065,6 +1178,8 @@ ftxui::Element CharacterPanel::Render() const {
     content = RenderAbilityTab(focused && zone == kZonePresets,
                                focused && zone == kZoneAbilityRows,
                                focused && zone == kZoneAbilityReroll);
+  } else if (ActiveTab() == kTabPots) {
+    content = RenderPotsTab(focused && zone == kZonePotRows);
   } else if (ActiveTab() == kTabAdvance) {
     content = RenderAdvanceTab(focused && zone == kZoneJobRows);
   } else {
@@ -1285,6 +1400,42 @@ bool CharacterPanel::OnAbilityTabEvent(const ftxui::Event& event,
   return true;
 }
 
+bool CharacterPanel::OnPotsTabEvent(const ftxui::Event& event,
+                                    const CharacterPanelActions& actions) {
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowLeft) {
+    pot_col_ = kColName;
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    pot_col_ = kColPlus;
+    return true;
+  }
+  if (!IsForward(event)) {
+    return false;
+  }
+  std::vector<const ConsumableInfo*> pots = PotsShown();
+  if (pot_sel_ >= static_cast<int>(pots.size())) {
+    return true;
+  }
+  const ConsumableType type = pots[pot_sel_]->type;
+  // The switch takes effect the moment it is pressed -- there is nothing to
+  // confirm and nothing to spend. The name opens the menu instead.
+  if (pot_col_ == kColPlus) {
+    if (actions.pot_toggle) {
+      actions.pot_toggle(type);
+    }
+    return true;
+  }
+  if (actions.pot_menu) {
+    actions.pot_menu(type);
+  }
+  return true;
+}
+
 bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
                                       const CharacterPanelActions& actions) {
   if (zone_ == kZoneAdvTabs) {
@@ -1384,6 +1535,9 @@ ftxui::Component CharacterPanel::MakeComponent(CharacterPanelActions actions) {
         }
         if (ActiveTab() == kTabAbility) {
           return OnAbilityTabEvent(event, actions);
+        }
+        if (ActiveTab() == kTabPots) {
+          return OnPotsTabEvent(event, actions);
         }
         if (ActiveTab() == kTabAdvance) {
           return OnAdvanceTabEvent(event, actions);

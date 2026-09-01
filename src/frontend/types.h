@@ -34,6 +34,12 @@ enum Screen : int {
   // [Reroll] on the Ability tab: the question, over the lines it would throw
   // away. Locking a line asks nothing and has no screen of its own.
   kAbilityReroll,
+  // Enter on a pot's name in the Character panel's Pots tab: read it, buy it
+  // outright, or walk away. The switch beside the name asks nothing -- it
+  // takes effect where it is pressed.
+  kPotMenu,
+  kPotInfo,
+  kPotBuy,
   // Enter on a job in the Character panel's Advance tab: read it, take it, or
   // walk away. The screen it leads to reads the job's book without taking it.
   kJobMenu,
@@ -191,6 +197,14 @@ enum JobMenuItem : int {
   kJobMenuInspect = 0,
   kJobMenuAdvance = 1,
   kJobMenuClose = 2,
+};
+// Entries of the pot context menu, on Enter in the Pots tab. Buy Perm sits
+// under Inspect for the reason Advance does: it is the entry that spends, and
+// it is not where the cursor lands. It dims once the pot is owned.
+enum PotMenuItem : int {
+  kPotMenuInspect = 0,
+  kPotMenuBuyPerm = 1,
+  kPotMenuClose = 2,
 };
 // Entries of the Use/Etc stackable context menu.
 enum StackMenuItem : int {

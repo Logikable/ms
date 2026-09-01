@@ -95,6 +95,10 @@ inline constexpr char kHyperTabKey[] = "hyper";
 // it.
 inline constexpr char kAbilityTabKey[] = "ability";
 
+// And the Pots tab's, for the same reason and on the same terms: what a pot
+// is arrives once, and the account is told about it once.
+inline constexpr char kPotsTabKey[] = "pots";
+
 // The advancement tab's key for `stage` (1 = 1st job). One key per stage
 // rather than one for the tab: the tab arrives again at every advancement
 // threshold, and having seen the first is not having seen the second.
