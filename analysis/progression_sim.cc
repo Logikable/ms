@@ -98,6 +98,7 @@
 #include "analysis/ability_plan.h"
 #include "analysis/checkpoint.h"
 #include "analysis/gear_plan.h"
+#include "analysis/hyper_plan.h"
 #include "analysis/parallel.h"
 #include "analysis/sim_boss.h"
 #include "analysis/sim_format.h"
@@ -1032,6 +1033,12 @@ struct Session {
   // time they stand where the Ability opens.
   AbilityWorth farming_worth;
   AbilityWorth bossing_worth;
+  // The Hyper Stat pool's own table, one per preset -- the two are allocated
+  // apart, since what a crowd pays for is not what a boss does.
+  HyperWorth hyper_farming;
+  HyperWorth hyper_bossing;
+  bool hyper_measured = false;
+  int hyper_power = 0;
   bool ability_measured = false;
   // The CombatPower the worth table was measured on, so it can be taken again
   // once the character it described has been outgrown.
@@ -1108,6 +1115,33 @@ int PowerNow(const GameState& state) {
 // character who spends the last of the honor is not what it was worth to the
 // one who spent the first.
 constexpr double kRemeasureGrowth = 1.5;
+
+// The Hyper Stat points the levels have paid out, spent on both presets.
+// Nothing happens before level 140, where the pool opens.
+//
+// Both, unlike the Ability below: the points are paid per level and cost
+// nothing to move, so there is no pool to split and no reason the farming
+// allocation should wait on the bossing one.
+void SpendHyperPoints(Session& run) {
+  if (run.state.character.proto().level() < kHyperStatUnlockLevel) {
+    return;
+  }
+  int power = PowerNow(run.state);
+  if (!run.hyper_measured || power >= run.hyper_power * kRemeasureGrowth) {
+    run.hyper_farming = MeasureHyperWorth(
+        run.state, StatPreset::kFarming,
+        [](GameState& state) { return CrowdRateOver(state, kBookSeconds); });
+    run.hyper_bossing = MeasureHyperWorth(
+        run.state, StatPreset::kBossing,
+        [](GameState& state) { return BossRateOver(state, kBookSeconds); });
+    run.hyper_measured = true;
+    run.hyper_power = power;
+  }
+  // Redone every look rather than only on a fresh table: the pool grows a
+  // level at a time, and a new point can be worth moving an old one.
+  SpendHyperStats(run.state, StatPreset::kFarming, run.hyper_farming);
+  SpendHyperStats(run.state, StatPreset::kBossing, run.hyper_bossing);
+}
 
 // The honor the pool has collected, spent on rerolling both Inner Ability
 // setups. Nothing happens before level 160, where the panel opens.
@@ -1543,6 +1577,7 @@ void ClimbToCap(Session& run) {
   if (!ResumeClimb(run, &cursor)) {
     Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
            run.purse, run.shopper, run.scout);
+    SpendHyperPoints(run);
     SpendHonor(run);
     run.next_look = NextLook(run.seconds, run.state.character.proto().level(),
                              &run.looks_left, run.rng);
@@ -1592,6 +1627,7 @@ void ClimbToCap(Session& run) {
       }
       Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
              run.purse, run.shopper, run.scout);
+      SpendHyperPoints(run);
       SpendHonor(run);
       looked = true;
     }
@@ -1669,6 +1705,7 @@ void FarmAtCap(Session& run) {
       Outfit(run.state, /*budget=*/true);
       run.shopper.Spend(run.state);
       run.purse.Note(run.state.character);
+      SpendHyperPoints(run);
       SpendHonor(run);
       PickMoneyMap(run.state, run.maps, run.beats, run.step);
       run.climb.money_map = run.state.current_map;

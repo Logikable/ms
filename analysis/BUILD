@@ -56,6 +56,18 @@ cc_library(
 )
 
 cc_library(
+    name = "hyper_plan",
+    srcs = ["hyper_plan.cc"],
+    hdrs = ["hyper_plan.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character",
+        "//src/character:hyper_stats",
+        "//src/protos:character_proto_cc",
+    ],
+)
+
+cc_library(
     name = "gear_plan",
     srcs = ["gear_plan.cc"],
     hdrs = ["gear_plan.h"],
@@ -183,6 +195,7 @@ sim_binary(
         ":ability_plan",
         ":checkpoint",
         ":gear_plan",
+        ":hyper_plan",
         ":parallel",
         ":sim_boss",
         ":sim_checkpoint_proto_cc",
