@@ -633,6 +633,36 @@ TEST_F(InspectPanelTest, EveryWornAlternateOfASlotIsLit) {
   EXPECT_TRUE(DimAt(panel, "Ring A"));
 }
 
+// A slot can name pieces outright and accept a family beside them: the Boss
+// Accessory shoulder is one Magnus drop or any of the four Cygnus shoulders.
+TEST_F(InspectPanelTest, ASlotNamesItsOwnPiecesAndItsFamily) {
+  EquipSet set;
+  set.set_name(EQUIP_SET_NAME_BOSS_ACCESSORY);
+  EquipSetMember* member = set.add_members();
+  member->set_slot(EQUIP_SLOT_SHOULDER);
+  member->mutable_items()->add_name("Plain Shoulder");
+  member->set_family("Cygnus Shoulder");
+  c_.UseEquipSets({{"boss", set}});
+
+  EquipInstance shoulder(FrozenPiece("Plain Shoulder", EQUIP_SLOT_SHOULDER));
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&shoulder);
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Shoulder   Plain Shoulder"), std::string::npos);
+  EXPECT_NE(rendered.find("Choose 1 Cygnus Shoulder"), std::string::npos);
+  EXPECT_TRUE(DimAt(panel, "Shoulder   Plain Shoulder"));
+
+  // The family answers, and the slot is filled -- once, however it was.
+  WearFamilyPiece(c_, "Lionheart Battle Shoulder", EQUIP_SLOT_SHOULDER,
+                  "Cygnus Shoulder");
+  rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Lionheart Battle Shoulder"), std::string::npos);
+  EXPECT_EQ(rendered.find("Choose 1"), std::string::npos);
+  EXPECT_FALSE(DimAt(panel, "Shoulder   Plain Shoulder"));
+  EXPECT_EQ(c_.PiecesWornOf(set), 1);
+}
+
 // A family slot asks for a piece until one is worn, and then names the one
 // that answered. Which is also the moment the tiers past four become reachable.
 TEST_F(InspectPanelTest, AWornFamilyPieceNamesItselfInItsSlot) {

@@ -593,8 +593,9 @@ class CharacterInstance {
   // slot that no single item can fill -- a weapon belongs to one class -- names
   // a family instead, and this is what answers it.
   std::string WornOfFamily(const std::string& family) const;
-  // The piece of this member that is on, or "" for none. A slot naming
-  // several alternates is filled by any one of them, and only ever by one.
+  // The piece of this member that is on, or "" for none. A slot naming several
+  // alternates is filled by any one of them, and counts once however many of
+  // them are on.
   std::string WornOfMember(const EquipSetMember& member) const;
   // How many pieces of `set` are worn right now. What every tier is measured
   // against, and what the inspect screen greys its unearned tiers by.

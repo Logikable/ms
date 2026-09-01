@@ -32,18 +32,17 @@ message EquipSetItems {
   repeated string name = 1;
 }
 
-// One slot of a set and what fills it.
+// One slot of a set and what fills it: the pieces written by name, the family
+// any piece of which fills it, or both. A slot takes both where some of what
+// fills it is one item and the rest is one-per-class: the Boss Accessory
+// shoulder is a Magnus drop or any of the four Cygnus shoulders.
 message EquipSetMember {
   EquipSlot slot = 1;
   reserved 2;  // the single `string name` the items below grew out of
-  oneof fills {
-    EquipSetItems items = 4;
-    // What fills the slot when no written item does: a set's weapon belongs to
-    // one class, so there is one per class rather than one item. The inspect
-    // screen reads it as "Choose 1 <family>", and counts toward nothing until
-    // the items are written.
-    string family = 3;
-  }
+  EquipSetItems items = 4;
+  // A class's own version of one piece, which a set cannot name outright. The
+  // inspect screen reads it as "Choose 1 <family>" until one is worn.
+  optional string family = 3;
 }
 
 // A family of equipment that pays for being worn together. Loaded from

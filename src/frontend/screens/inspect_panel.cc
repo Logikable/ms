@@ -362,18 +362,18 @@ struct SetFill {
 
 std::vector<CardRow> InspectPanel::MemberRows(
     const EquipSetMember& member) const {
-  // A family slot names what fills it once something does, and asks for one
-  // while it is empty -- a weapon belongs to a class, so the set cannot name
-  // it outright.
   std::vector<SetFill> fills;
+  for (const std::string& name : member.items().name()) {
+    fills.push_back({name, character_->IsWearing(name)});
+  }
+  // A family names what fills it once something does, and asks for one while
+  // it is empty -- a weapon belongs to a class, so the set cannot name it
+  // outright. It hangs under whatever the slot names by hand, since the
+  // written pieces are the ones a player can go and look up.
   if (member.has_family()) {
     std::string on = character_->WornOfFamily(member.family());
     fills.push_back(
         {on.empty() ? "Choose 1 " + member.family() : on, !on.empty()});
-  } else {
-    for (const std::string& name : member.items().name()) {
-      fills.push_back({name, character_->IsWearing(name)});
-    }
   }
   bool filled = false;
   for (const SetFill& fill : fills) {

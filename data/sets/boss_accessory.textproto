@@ -42,13 +42,11 @@ members {
 }
 members {
   slot: EQUIP_SLOT_SHOULDER
-  items {
-    name: "Royal Black Metal Shoulder"
-    name: "Lionheart Battle Shoulder"
-    name: "Dragon Tail Mage Shoulder"
-    name: "Falcon Wing Sentinel Shoulder"
-    name: "Raven Horn Chaser Shoulder"
-  }
+  items { name: "Royal Black Metal Shoulder" }
+  # The four Cygnus shoulders are one piece with a version per branch, so the
+  # slot asks for one of them rather than listing four a player can only ever
+  # wear one of.
+  family: "Cygnus Shoulder"
 }
 members {
   slot: EQUIP_SLOT_BELT

@@ -516,11 +516,23 @@ TEST(EquipDataTest, EverySetMemberIsAnItemThatExists) {
           << entry.first << " has a member in an unnamed slot";
       EXPECT_TRUE(slots.insert(member.slot()).second)
           << entry.first << " fills " << FormatSlot(member.slot()) << " twice";
-      // Items or a family of them, never both and never neither: the inspect
-      // screen prints one column from whichever it is, and a member that is
-      // both would count a family toward the tiers.
-      EXPECT_NE(member.items().name().empty(), member.family().empty())
-          << entry.first << " has a member that is not items or one family";
+      // Named pieces, a family of them, or both -- but never neither, which
+      // is a slot nothing can ever fill.
+      EXPECT_FALSE(member.items().name().empty() && member.family().empty())
+          << entry.first << " has a member naming no piece at all";
+      if (member.has_family()) {
+        ++checked;
+        bool found = false;
+        for (const std::pair<const std::string, EquipPrototype>& equip :
+             equips) {
+          if (equip.second.set_family() == member.family()) {
+            found = true;
+            break;
+          }
+        }
+        EXPECT_TRUE(found) << entry.first << " asks for \"" << member.family()
+                           << "\", which no equip file belongs to";
+      }
       for (const std::string& fills : member.items().name()) {
         ++checked;
         bool found = false;
