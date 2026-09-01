@@ -447,6 +447,25 @@ TEST(BaseAttackSpeedStageTest, EveryOtherJobStartsAtItsWeapon) {
             ATTACK_SPEED_SLOWER);
 }
 
+TEST(AttackSpeedStageTest, OrdinarySourcesStopAtTheSoftCap) {
+  EXPECT_EQ(AttackSpeedStage(ATTACK_SPEED_FAST_1, 2, 0), ATTACK_SPEED_FASTER);
+  // The weapon alone is held to it, not only what is added to the weapon.
+  EXPECT_EQ(AttackSpeedStage(ATTACK_SPEED_FASTEST_3, 0, 0),
+            kAttackSpeedSoftCap);
+  EXPECT_EQ(AttackSpeedStage(ATTACK_SPEED_FASTER, 3, 0), kAttackSpeedSoftCap);
+}
+
+TEST(AttackSpeedStageTest, WhatMayPassTheCapAddsOnTopOfIt) {
+  EXPECT_EQ(AttackSpeedStage(ATTACK_SPEED_FASTER, 3, 1),
+            ATTACK_SPEED_FASTEST_2);
+  // Worth a stage to a character sitting on the cap, and worth one to a
+  // character under it just the same.
+  EXPECT_EQ(AttackSpeedStage(ATTACK_SPEED_FAST_1, 0, 1), ATTACK_SPEED_FAST_2);
+  // The fastest stage the formula models is the end of it.
+  EXPECT_EQ(AttackSpeedStage(ATTACK_SPEED_FASTEST_3, 2, 5),
+            ATTACK_SPEED_FASTEST_3);
+}
+
 TEST(LevelMultiplierTest, EqualLevelGivesTenPercentBonus) {
   EXPECT_DOUBLE_EQ(LevelMultiplier(10, 10), 1.1);
 }

@@ -91,6 +91,31 @@ TEST(AwardCombatRewardsTest, PaysABatchOfKillsAndTalliesThem) {
   EXPECT_EQ(tally.items[0].discarded, 0);
 }
 
+// The two shares meet the purse in order: everything additive is summed and
+// the multiplier lands on the total. A 20% share under a 1.2x is 1.44x.
+TEST(AwardCombatRewardsTest, TheMesoMultiplierLandsOnTheSummedShare) {
+  int64_t meso[3] = {0, 0, 0};
+  for (int pass = 0; pass < 3; ++pass) {
+    GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                    {{"field", SnailMap()}}, {}, GameMode::kPlay, TestOptions{},
+                    /*seed=*/7);
+    state.current_map = "field";
+    EquipSword(state);
+    CombatParams params = ComputeCombatParams(state);
+    if (pass > 0) {
+      params.meso_pct = 0.20;
+    }
+    if (pass > 1) {
+      params.meso_final_mult = 1.2;
+    }
+    meso[pass] = AwardCombatRewards(state, params, {10000}).meso;
+  }
+
+  ASSERT_GT(meso[0], 0);
+  EXPECT_EQ(meso[1], static_cast<int64_t>(meso[0] * 1.20));
+  EXPECT_EQ(meso[2], static_cast<int64_t>(meso[0] * 1.44));
+}
+
 // A kill's honor is its own: no bonus lifts it, and nothing but the kills is
 // counted here -- the mob is worth no EXP, so no level pays honor over it.
 TEST(AwardCombatRewardsTest, KillsPayHonorIntoTheTallyAndThePool) {

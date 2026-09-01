@@ -602,6 +602,11 @@ int BaseAttackSpeedStage(Job job, int weapon_stage) {
   return SwingsOnMagic(job) ? kUnscaledAttackSpeedStage : weapon_stage;
 }
 
+int AttackSpeedStage(int base, int bonus, int uncapped) {
+  int stage = std::min(kAttackSpeedSoftCap, base + bonus);
+  return std::min(static_cast<int>(ATTACK_SPEED_FASTEST_3), stage + uncapped);
+}
+
 double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage) {
   double raw_ms = base_delay_ms * (kSpeedBase - attack_speed_stage) /
                   static_cast<double>(kSpeedDivisor);

@@ -21,6 +21,7 @@ EquipStats SumEquipStats(absl::Span<const EquipStats> sources) {
     result.set_ignore_enemy_defense(result.ignore_enemy_defense() +
                                     s.ignore_enemy_defense());
     result.set_item_drop_rate(result.item_drop_rate() + s.item_drop_rate());
+    result.set_meso_rate(result.meso_rate() + s.meso_rate());
     result.set_max_hp_pct(result.max_hp_pct() + s.max_hp_pct());
     result.set_max_mp_pct(result.max_mp_pct() + s.max_mp_pct());
   }

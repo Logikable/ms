@@ -402,9 +402,12 @@ struct CombatParams {
   // by AwardCombatRewards rather than by the fight -- Holy Symbol is the one
   // skill whose payment is not made in the fight it was cast in.
   double exp_pct = 0.0;
-  // Share added to the meso every kill yields, from the character's passives.
-  // 0 for everyone but a Chief Bandit.
+  // Share added to the meso every kill yields: everything the character wears
+  // and everything they are granted, already capped -- see MesoBonus.
   double meso_pct = 0.0;
+  // What multiplies that meso afterwards. 1 for everyone holding no potion,
+  // and nothing caps it.
+  double meso_final_mult = 1.0;
   // Share added to how often a kill drops anything, from what the character
   // wears and what their passives grant. Read by AwardCombatRewards, like
   // exp_pct above: it raises the chance of a drop rather than the size of one.

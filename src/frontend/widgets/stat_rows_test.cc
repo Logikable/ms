@@ -194,7 +194,7 @@ TEST_F(StatRowsTest, AMagiciansAttackSpeedIgnoresTheStaff) {
   EXPECT_EQ(ValueOf(ExtraStatLines(warrior, {}), "Attack Speed"), "Slow 1");
 }
 
-TEST_F(StatRowsTest, AttackSpeedStopsAtTheFastestStage) {
+TEST_F(StatRowsTest, AttackSpeedStopsAtTheSoftCap) {
   Skill levers = LeverPassive();
   std::map<std::string, Skill> skills = {{"levers", levers}};
   CharacterInstance c = MakeWarrior();
@@ -205,7 +205,7 @@ TEST_F(StatRowsTest, AttackSpeedStopsAtTheFastestStage) {
   sword.set_attack_speed(ATTACK_SPEED_FASTEST_3);
   c.PickUp(std::make_unique<EquipInstance>(sword));
   c.Equip(0);
-  EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Attack Speed"), "Fastest 3");
+  EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Attack Speed"), "Fastest 1");
 }
 
 TEST_F(StatRowsTest, TheMainStatsPairUpForTheTwoColumnScreen) {

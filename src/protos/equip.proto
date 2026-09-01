@@ -207,6 +207,11 @@ message EquipStats {
   // the one piece that carries them.
   int32 max_hp_pct = 13;
   int32 max_mp_pct = 14;
+  // Percentage added to the meso a kill drops (e.g. 20 = a fifth more). The
+  // one worn share with a cap of its own: however much of it a character puts
+  // on, equipment is worth at most kEquipMesoSoftCap -- see MesoBonus. No
+  // equip in the game grants it yet; potentials are where it will come from.
+  int32 meso_rate = 15;
 }
 
 // What an Arcane Symbol needs beyond an ordinary equip. Only the six symbols

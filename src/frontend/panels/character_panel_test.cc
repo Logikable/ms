@@ -2026,7 +2026,7 @@ TEST_F(CharacterPanelTest, AttackSpeedNamesTheStageTheWeaponIsSwungAt) {
   EXPECT_EQ(StatValue(panel.Render(), "Attack Speed"), "Fast 2");
 }
 
-TEST_F(CharacterPanelTest, AttackSpeedStopsAtTheFastestStage) {
+TEST_F(CharacterPanelTest, AttackSpeedStopsAtTheSoftCap) {
   sword_.set_attack_speed(ATTACK_SPEED_FASTEST_3);
   Skill levers = LeverPassive();  // +2 stages, with nowhere to go
   std::map<std::string, Skill> catalog;
@@ -2037,7 +2037,7 @@ TEST_F(CharacterPanelTest, AttackSpeedStopsAtTheFastestStage) {
   c.Equip(0);
 
   CharacterPanel panel(c, account_, panel_focus_, catalog);
-  EXPECT_EQ(StatValue(panel.Render(), "Attack Speed"), "Fastest 3");
+  EXPECT_EQ(StatValue(panel.Render(), "Attack Speed"), "Fastest 1");
 }
 
 TEST_F(CharacterPanelTest, StressTestStatRowWidth) {

@@ -1058,6 +1058,9 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   // The worn share is whole percents and the granted share a fraction. They
   // meet by summing, the way boss damage does in OffenseStatsFor.
   stats.item_drop_pct += equipped.item_drop_rate() / 100.0;
+  // Meso does not: what is worn is capped on its own, so it is kept apart
+  // until MesoBonus puts the two together.
+  stats.equip_meso_pct += equipped.meso_rate() / 100.0;
   // Pick Pocket and Meso Explosion, worth nothing apart: a meso falls out of
   // an enemy and is thrown straight back at them. It rides the swing exactly
   // as a Final Attack does, except that the roll is per line -- so it is one
@@ -1073,6 +1076,11 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
     stats.final_attacks.push_back(meso);
   }
   return stats;
+}
+
+double MesoBonus(const DerivedStats& derived) {
+  double worn = std::min(derived.equip_meso_pct, kEquipMesoSoftCap);
+  return std::min(worn + derived.meso_pct, kMesoHardCap);
 }
 
 PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {

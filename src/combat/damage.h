@@ -363,6 +363,17 @@ double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage);
 // this means "no scaling at all".
 inline constexpr int kUnscaledAttackSpeedStage = 4;
 
+// The fastest stage an ordinary character reaches, however much their weapon,
+// their book and their Inner Ability come to. A soft cap: a source that says
+// it may pass one adds on top of it -- see AttackSpeedStage.
+inline constexpr int kAttackSpeedSoftCap = ATTACK_SPEED_FASTEST_1;
+
+// `base` and `bonus` held to the soft cap, then `uncapped` on top, held to the
+// fastest stage the formula models. The two bonuses stay apart because only
+// the second may pass the cap, which is what makes it worth a stage to a
+// character already sitting on 8.
+int AttackSpeedStage(int base, int bonus, int uncapped);
+
 // True when the job attacks with magic attack rather than weapon attack. The
 // damage chain treats the two alike; what differs is which field it reads,
 // and what the weapon has to say about how fast it swings.

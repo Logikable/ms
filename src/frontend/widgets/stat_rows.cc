@@ -28,10 +28,13 @@ std::string Percent(double fraction) {
 }
 
 // The stage the character swings at: the stage their job starts from plus
-// whatever the passives add, capped at the fastest tier the game models. A
+// whatever the passives add, held to the soft cap the fight holds them to. A
 // dash where there is no swing to name -- nothing in hand, or a weapon that
 // names no stage. A magician reads Average whatever staff they hold, which is
 // the row saying what BaseAttackSpeedStage does.
+//
+// What passes the cap is never shown here: only a boss fight grants it, and
+// this row is the character standing on a map.
 std::string AttackSpeedText(Job job,
                             const std::map<EquipSlot, EquipInstance>& equipped,
                             int bonus) {
@@ -41,9 +44,9 @@ std::string AttackSpeedText(Job job,
       it->second.prototype().attack_speed() == ATTACK_SPEED_UNSPECIFIED) {
     return "-";
   }
-  int stage = std::min(
-      static_cast<int>(ATTACK_SPEED_FASTEST_3),
-      BaseAttackSpeedStage(job, it->second.prototype().attack_speed()) + bonus);
+  int stage = AttackSpeedStage(
+      BaseAttackSpeedStage(job, it->second.prototype().attack_speed()), bonus,
+      /*uncapped=*/0);
   return AttackSpeedName(static_cast<AttackSpeed>(stage));
 }
 
@@ -125,7 +128,12 @@ std::vector<StatLine> CombatStatLines(
   // sit together.
   if (with_advanced) {
     lines.push_back(StatRule());
-    lines.push_back({"Meso Drop Rate", Percent(derived.meso_pct)});
+    // What a kill actually pays over what it would pay bare, so a potion that
+    // multiplies the purse reads on the same row as a passive that adds to it:
+    // a 20% share under a 1.2x multiplier is the 44% the player earns.
+    lines.push_back(
+        {"Meso Drop Rate",
+         Percent((1.0 + MesoBonus(derived)) * derived.meso_final_mult - 1.0)});
     lines.push_back({"Item Drop Rate", Percent(derived.item_drop_pct)});
     lines.push_back({"Additional EXP", Percent(derived.exp_pct)});
     lines.push_back({"Arcane Force", std::to_string(character.arcane_force())});

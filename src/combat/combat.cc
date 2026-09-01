@@ -110,7 +110,7 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
       // here.
       int64_t meso = static_cast<int64_t>(
           RollMeso(mob, kills[i], params.item_drop_pct, state.rng) *
-          (1.0 + params.meso_pct));
+          (1.0 + params.meso_pct) * params.meso_final_mult);
       if (meso > 0) {
         character.AddMeso(meso);
         tally.meso += meso;

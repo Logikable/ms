@@ -215,9 +215,16 @@ struct DerivedStats {
   // Strikes added to every multi-line swing. 0 for a character with no Bolt
   // Surplus, which is every character but a Marksman.
   int bonus_attack_lines = 0;
-  // Share added to the meso a kill yields (0.20 == +20%). Summed across the
-  // passives granting it.
+  // Share added to the meso a kill yields (0.20 == +20%), from everything but
+  // equipment: the passives, the Hyper Stats, the Inner Ability, a potion.
   double meso_pct = 0.0;
+  // The same from what is worn, held apart because it alone has a soft cap.
+  // Read the pair through MesoBonus rather than either half -- the cap is the
+  // whole reason there are two.
+  double equip_meso_pct = 0.0;
+  // What multiplies the meso a kill yields once every share above is summed.
+  // Nothing caps it, and only a consumable moves it off 1.
+  double meso_final_mult = 1.0;
   // Share added to how often a kill drops anything (0.20 == a fifth more
   // often), meso included. What the passives grant plus what is worn, and read
   // outside a fight like exp_pct -- see AwardCombatRewards.
@@ -261,6 +268,10 @@ struct DerivedStats {
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;
+  // Stages that may pass the soft cap, which nothing the character carries
+  // grants: DerivedStatsFor leaves this at 0 and the caller writes it, the way
+  // arcane_damage_factor below is filled in. See AttackSpeedStage.
+  int uncapped_attack_speed_bonus = 0;
   // What the book hands one named skill apiece, keyed by that skill's display
   // name. Kept as a map rather than folded into the character's own levers
   // because what it lifts is one swing rather than all of them -- see
@@ -284,6 +295,17 @@ struct DerivedStats {
   // damage chain. Its DEF is only the passives' share, unlike `def` above.
   EquipStats skill_stats;
 };
+
+// The most %meso worn equipment is worth, however many pieces of it grant
+// some, and the ceiling over every additive source together. Nothing passes
+// the second; a skill, a Hyper Stat or a potion passes the first.
+inline constexpr double kEquipMesoSoftCap = 1.00;
+inline constexpr double kMesoHardCap = 3.00;
+
+// What the character's %meso comes to: the worn share held to its soft cap,
+// plus everything else, the sum held to the hard cap. What multiplies on top
+// of it is meso_final_mult, which neither cap touches.
+double MesoBonus(const DerivedStats& derived);
 
 // Whether the weapon in hand is one `skill` will work with. True for a skill
 // that names no weapon type, which is most of them.

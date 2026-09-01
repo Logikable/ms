@@ -939,14 +939,15 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
 }
 
 // The stage the character's swings are paced at: what they start at for their
-// job and weapon, plus whatever their passives add, up to the fastest tier we
-// model. Asked per attack set, since a buff can be one of the things adding.
+// job and weapon, plus whatever their passives add, held to the soft cap --
+// and then whatever is allowed past it. Asked per attack set, since a buff can
+// be one of the things adding.
 int AttackSpeedStageFor(const GameState& state, const EquipPrototype& weapon,
                         const DerivedStats& derived) {
-  return std::min(static_cast<int>(ATTACK_SPEED_FASTEST_3),
-                  BaseAttackSpeedStage(state.character.proto().job(),
-                                       weapon.attack_speed()) +
-                      derived.attack_speed_bonus);
+  return AttackSpeedStage(BaseAttackSpeedStage(state.character.proto().job(),
+                                               weapon.attack_speed()),
+                          derived.attack_speed_bonus,
+                          derived.uncapped_attack_speed_bonus);
 }
 
 // Everything the character can attack with, at one particular set of stats --
@@ -1257,7 +1258,8 @@ void AddPacing(const GameState& state, const DerivedStats& derived,
   params.damage_reflect_pct = derived.damage_reflect_pct;
   params.hp_recover_pct = derived.hp_recover_pct;
   params.exp_pct = derived.exp_pct;
-  params.meso_pct = derived.meso_pct;
+  params.meso_pct = MesoBonus(derived);
+  params.meso_final_mult = derived.meso_final_mult;
   params.item_drop_pct = derived.item_drop_pct;
   // The band stretches the interval between pulses, the way it stretches every
   // other clock in the fight. The helping each one pours is untouched.

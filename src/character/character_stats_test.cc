@@ -2678,6 +2678,41 @@ TEST_F(DerivedStatsTest, DropRateSumsWornAndGranted) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).item_drop_pct, 0.30, 1e-9);
 }
 
+// Meso arrives in the same two currencies, but the worn half is capped on its
+// own and the granted half is not.
+TEST_F(DerivedStatsTest, MesoCapsWhatIsWornAndThenTheWholeSum) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeCharacter(rng, 10, 0);
+  EXPECT_NEAR(MesoBonus(DerivedStatsFor(c, {})), 0.0, 1e-9);
+
+  EquipPrototype coin;
+  coin.set_name("Coin Charm");
+  coin.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  coin.mutable_base_stats()->set_meso_rate(150);
+  c.PickUp(std::make_unique<EquipInstance>(coin));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
+  DerivedStats worn = DerivedStatsFor(c, {});
+  EXPECT_NEAR(worn.equip_meso_pct, 1.50, 1e-9);
+  EXPECT_NEAR(MesoBonus(worn), kEquipMesoSoftCap, 1e-9);
+
+  // A skill's share is past the worn cap, not under it.
+  Skill greed;
+  greed.set_name("Greed");
+  greed.set_kind(SKILL_KIND_PASSIVE);
+  greed.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  greed.set_max_level(10);
+  greed.mutable_base()->set_meso_pct(0.05);
+  greed.mutable_per_level()->set_meso_pct(0.05);
+  std::map<std::string, Skill> skills = {{"greed", greed}};
+  ASSERT_TRUE(c.LearnSkill(greed, 10));
+  EXPECT_NEAR(MesoBonus(DerivedStatsFor(c, skills)), 1.50, 1e-9);
+
+  // And the hard cap holds whatever the two come to.
+  DerivedStats piled = DerivedStatsFor(c, skills);
+  piled.meso_pct = 10.0;
+  EXPECT_NEAR(MesoBonus(piled), kMesoHardCap, 1e-9);
+}
+
 // --- the party ---
 
 // Bless's shape: what the caster keeps and what they hold over the party are
