@@ -112,6 +112,8 @@ message SimCheckpoint {
   int32 looks_left = 16;
   repeated CheckpointFight fights = 17;
   bool ability_measured = 18;
+  // The CombatPower the worth table was taken on; see kRemeasureGrowth.
+  int32 ability_power = 25;
   // Both random streams, as their own libraries write them: the world's, which
   // rolls every drop, and the run's, which decides when the player looks.
   string world_rng = 19;

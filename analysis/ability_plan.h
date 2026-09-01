@@ -11,13 +11,20 @@
  * keep, and it lets the two presets want different things -- which is what
  * having two of them is for.
  *
- * WHICH lines to hold through a reset is a strategy. A lock buys nothing while
- * what the character is short of is a RANK: rolling with nothing held is the
- * cheapest way up the ladder, and the ladder is where the lines worth holding
- * live at all. So the plan is two-phase -- hold nothing until the ability
- * reaches the rank being climbed to, then hold the two worth the most and roll
- * the third. Rank never falls and a held line is never rerolled, so from there
- * the ability only ratchets up.
+ * WHICH lines to hold through a reset is a strategy, and it is shaped by one
+ * rule of the roll: only the TOP line ever carries the ability's own rank.
+ * Lines two and three roll a rank below it, so a preset holds exactly one
+ * line worth having and two fillers, and the whole question is which line
+ * ends up on top.
+ *
+ * So the plan is a chase in three phases. Hold nothing while the rank is
+ * still being climbed -- a lock buys nothing when what the character is short
+ * of is a rank, and it makes every roll of the ladder dearer. Hold nothing
+ * after that either, while the best line the rank can produce is not yet on
+ * top: a held top line is never rerolled, so holding the wrong one there
+ * strands the chase for good. Once it lands, hold it and the best filler, and
+ * roll the third until nothing on the sheet is dead weight -- then stop, and
+ * let the other preset have the pool.
  */
 #ifndef MS_ANALYSIS_ABILITY_PLAN_H_
 #define MS_ANALYSIS_ABILITY_PLAN_H_
@@ -53,9 +60,9 @@ struct AbilityWorth {
 AbilityWorth MeasureAbilityWorth(GameState& state, StatPreset preset,
                                  const AbilityRate& rate);
 
-// Rerolls both presets until the pool cannot pay for another, holding the
-// lines each is worth the most for once that preset has reached `climb_to`.
-// Returns the honor it spent, which is nothing at all before level 160.
+// Rerolls both presets until each has settled or the pool cannot pay for
+// another, chasing the best line `climb_to` can produce for each. Returns the
+// honor it spent, which is nothing at all before level 160.
 int64_t SpendHonorOnAbility(GameState& state, AbilityRank climb_to,
                             const AbilityWorth& farming,
                             const AbilityWorth& bossing);

@@ -195,7 +195,7 @@ ABSL_FLAG(int, checkpoint_at, 0,
           "binary that wrote it and thrown away by any other, so a checkpoint "
           "cannot outlive the change it was cut through -- which also means "
           "the first run after a build climbs the whole way.");
-ABSL_FLAG(std::string, ability_rank, "unique",
+ABSL_FLAG(std::string, ability_rank, "legendary",
           "The Inner Ability rank a character rolls up to before they hold "
           "any line through a reset. A lock buys nothing while what they are "
           "short of is a rank, and the ladder to Legendary costs more honor "
@@ -278,10 +278,23 @@ std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
   return fights;
 }
 
+// How long to play a character out for, given what is asked. A window shorter
+// than a buff's own cycle cannot see the buff go up or come down: everything
+// that is standing stays standing, and a lever that lengthens a buff reads
+// EXACTLY nothing. So a question about that lever buys itself a window wide
+// enough to hold the slowest cycle on the character twice over.
+double WindowFor(const CombatParams& params, double seconds) {
+  double cycle = 0.0;
+  for (const BuffOption& buff : params.buffs) {
+    cycle = std::max(cycle, buff.cooldown_seconds);
+  }
+  return std::max(seconds, 2.0 * cycle);
+}
+
 // What the character takes off the map they are standing on, a second: their
 // swings against the crowd it holds, plus anything of theirs on a clock of its
 // own.
-double CrowdRate(GameState& state) {
+double CrowdRateOver(GameState& state, double seconds) {
   CombatParams params = ComputeCombatParams(state);
   if (!params.active || params.types.empty()) {
     return 0.0;
@@ -291,9 +304,13 @@ double CrowdRate(GameState& state) {
     enemies += type.simultaneous;
   }
   enemies = std::max(1, enemies);
-  Sequence played = PlaySwings(params, kBookSeconds, enemies);
+  Sequence played = PlaySwings(params, WindowFor(params, seconds), enemies);
   double rate = played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
   return rate + OffClockRate(params, played, 1.0, enemies);
+}
+
+double CrowdRate(GameState& state) {
+  return CrowdRateOver(state, kBookSeconds);
 }
 
 // The fight the book is aimed at: the stiffest one open to them, or the next
@@ -325,7 +342,7 @@ bool BookTarget(const GameState& state, std::pair<std::string, int>* fight) {
 // What the character takes off that fight a second. One enemy standing behind
 // its own defence, which is a different question from the crowd above: the
 // swing that clears twelve is rarely the one that kills the one that matters.
-double BossRate(GameState& state) {
+double BossRateOver(GameState& state, double seconds) {
   std::pair<std::string, int> fight;
   if (!BookTarget(state, &fight)) {
     return 0.0;
@@ -338,9 +355,13 @@ double BossRate(GameState& state) {
   if (!params.active) {
     return 0.0;
   }
-  Sequence played = PlaySwings(params, kBookSeconds);
+  Sequence played = PlaySwings(params, WindowFor(params, seconds));
   double rate = played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
   return rate + OffClockRate(params, played, 1.0);
+}
+
+double BossRate(GameState& state) {
+  return BossRateOver(state, kBookSeconds);
 }
 
 // The book ranked on both at once, weighted alike. A climb clears crowds and a
@@ -1012,6 +1033,9 @@ struct Session {
   AbilityWorth farming_worth;
   AbilityWorth bossing_worth;
   bool ability_measured = false;
+  // The CombatPower the worth table was measured on, so it can be taken again
+  // once the character it described has been outgrown.
+  int ability_power = 0;
   // Where this climb is written down, and what it is called there.
   const Checkpointing* saves = nullptr;
   std::string key;
@@ -1066,22 +1090,44 @@ GearReached ReachedOnGear(const GameState& state) {
 // Runs the dailies if one is due, and puts what they dropped on. Returns
 // whether anything happened, since the fight parameters have to be rebuilt
 // when it did.
+// What the character is hitting a boss for as they stand.
+int PowerNow(const GameState& state) {
+  const Character& proto = state.character.proto();
+  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+  return CombatPower(
+      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                      TotalEquipStats(state.character, derived),
+                      state.character.weapon_type(), /*attack_skill=*/nullptr,
+                      /*attack_level=*/0, PassiveOffenseFor(derived)),
+      /*vs_boss=*/true);
+}
+
+// How much stronger the character has to have got before the worth table is
+// taken again. The order of the types moves with the kit: the Ability opens at
+// 160 holding five of the twelve hyper points, and what a line is worth to the
+// character who spends the last of the honor is not what it was worth to the
+// one who spent the first.
+constexpr double kRemeasureGrowth = 1.5;
+
 // The honor the pool has collected, spent on rerolling both Inner Ability
 // setups. Nothing happens before level 160, where the panel opens.
-//
-// What a line is worth is measured once, the first time the character stands
-// there: it is the ORDER of the types that the holding reads, and a branch's
-// order does not move under it over the forty levels it has left.
 void SpendHonor(Session& run) {
   if (!run.state.character.inner_ability_unlocked()) {
     return;
   }
-  if (!run.ability_measured) {
-    run.farming_worth =
-        MeasureAbilityWorth(run.state, StatPreset::kFarming, CrowdRate);
-    run.bossing_worth =
-        MeasureAbilityWorth(run.state, StatPreset::kBossing, BossRate);
+  int power = PowerNow(run.state);
+  if (!run.ability_measured || power >= run.ability_power * kRemeasureGrowth) {
+    // Over a buff cycle rather than the ten seconds the book is ranked on:
+    // Buff Duration is one of the lines being priced, and it is invisible to
+    // any window a buff does not lapse inside. See WindowFor.
+    run.farming_worth = MeasureAbilityWorth(
+        run.state, StatPreset::kFarming,
+        [](GameState& state) { return CrowdRateOver(state, kBookSeconds); });
+    run.bossing_worth = MeasureAbilityWorth(
+        run.state, StatPreset::kBossing,
+        [](GameState& state) { return BossRateOver(state, kBookSeconds); });
     run.ability_measured = true;
+    run.ability_power = power;
     run.climb.farming_worth = run.farming_worth;
     run.climb.bossing_worth = run.bossing_worth;
   }
@@ -1105,17 +1151,6 @@ constexpr double kNearMiss = 0.25;
 // have got for a loss to be worth revisiting without one.
 constexpr double kRetrySeconds = 30.0 * 60.0;
 constexpr double kRetryPowerGain = 1.05;
-
-int PowerNow(const GameState& state) {
-  const Character& proto = state.character.proto();
-  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
-  return CombatPower(
-      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                      TotalEquipStats(state.character, derived),
-                      state.character.weapon_type(), /*attack_skill=*/nullptr,
-                      /*attack_level=*/0, PassiveOffenseFor(derived)),
-      /*vs_boss=*/true);
-}
 
 // Whether this fight is worth walking up to now. It is on the day it opens,
 // and after that only once the loss has something new behind it: a level, a
@@ -1420,6 +1455,7 @@ SimCheckpoint SaveRun(const Session& run, const ClimbCursor& cursor) {
     fight->set_power_at_last_try(entry.second.power_at_last_try);
   }
   saved.set_ability_measured(run.ability_measured);
+  saved.set_ability_power(run.ability_power);
   saved.set_world_rng(SaveRng(run.state.rng));
   saved.set_run_rng(SaveRng(run.rng));
   SaveClimb(run.climb, saved.mutable_climb());
@@ -1454,6 +1490,7 @@ void LoadRun(const SimCheckpoint& saved, Session& run, ClimbCursor* cursor) {
     fight.power_at_last_try = saved_fight.power_at_last_try();
   }
   run.ability_measured = saved.ability_measured();
+  run.ability_power = saved.ability_power();
   LoadRng(saved.world_rng(), &run.state.rng);
   LoadRng(saved.run_rng(), &run.rng);
   LoadClimb(saved.climb(), &run.climb);
@@ -1911,10 +1948,11 @@ std::string AbilityLineText(const AbilityLine& line) {
 
 // The line types this preset rated highest, best first. Read at Unique, where
 // every type but Attack Speed rolls, so the order is one list rather than four.
-std::vector<std::string> RatedTypes(const AbilityWorth& worth, int most) {
+std::vector<std::string> RatedTypes(const AbilityWorth& worth, AbilityRank rank,
+                                    int most) {
   std::vector<std::pair<double, std::string>> ranked;
   for (int t = ABILITY_LINE_TYPE_STR; t < AbilityLineType_ARRAYSIZE; ++t) {
-    double rate = worth.rate[t][ABILITY_RANK_UNIQUE];
+    double rate = worth.rate[t][rank];
     if (rate <= 0.0) {
       continue;
     }
@@ -1942,7 +1980,9 @@ void PrintAbilityRow(const char* label, const AbilityPreset& preset,
     std::printf("  %-22s", AbilityLineText(line).c_str());
   }
   std::printf("\n  %-9s %-10s", "", "rated");
-  for (const std::string& name : RatedTypes(worth, 3)) {
+  // At the preset's own rank, which is the only rank its top line can be --
+  // and the rank where Attack Speed exists at all.
+  for (const std::string& name : RatedTypes(worth, preset.rank(), 3)) {
     std::printf("  %-22s", name.c_str());
   }
   std::printf("\n");
@@ -1956,8 +1996,9 @@ void PrintAbility(const std::vector<Job>& branches,
   std::printf(
       "\nThe Inner Ability each climb rolled itself into. What a line is "
       "worth is measured on the\ncharacter who rolls for it -- the crowd for "
-      "farming, the fight for bossing -- and the pool is\nspent holding the "
-      "best two of them once the ability has climbed to %s.\n",
+      "farming, the fight for bossing, taken again\nwhenever they outgrow "
+      "it -- and the pool is spent chasing the one line %s can\nput in the "
+      "top slot, the only slot that ever carries the ability's rank.\n",
       absl::GetFlag(FLAGS_ability_rank).c_str());
   for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
     const Climb& climb = climbs[i];

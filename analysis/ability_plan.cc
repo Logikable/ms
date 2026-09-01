@@ -14,6 +14,31 @@
 namespace ms {
 namespace {
 
+// The one line the chase is for: the type worth the most at `rank`.
+//
+// Only the top slot ever carries the ability's own rank -- lines two and three
+// roll a rank below it -- so this is the single best line the preset will ever
+// hold, and everything else on the sheet is filler.
+AbilityLineType BestTypeAt(const AbilityWorth& worth, AbilityRank rank) {
+  AbilityLineType best = ABILITY_LINE_TYPE_UNSPECIFIED;
+  double most = 0.0;
+  for (int type = 1; type < AbilityLineType_ARRAYSIZE; ++type) {
+    double value = worth.rate[type][rank];
+    if (value > most) {
+      most = value;
+      best = static_cast<AbilityLineType>(type);
+    }
+  }
+  return best;
+}
+
+// Whether the top line is the one being chased, at the rank that makes it
+// worth chasing.
+bool GoalLanded(const AbilityPreset& preset, const AbilityWorth& worth) {
+  return preset.lines_size() > 0 && preset.lines(0).rank() == preset.rank() &&
+         preset.lines(0).type() == BestTypeAt(worth, preset.rank());
+}
+
 // The slots worth holding through a reset, best first. A line worth nothing is
 // never held: that slot is better spent rolling for one that is.
 std::vector<int> BestSlots(const AbilityPreset& preset,
@@ -34,19 +59,50 @@ std::vector<int> BestSlots(const AbilityPreset& preset,
   return slots;
 }
 
-// Holds what this preset is worth the most for -- or nothing at all while it
-// is still climbing, since a lock buys nothing when what the character is
-// short of is a rank. Frees every line first: a third lock is refused, so a
-// swap made the other way round would keep the line it meant to drop.
-void HoldBestLines(CharacterInstance& character, StatPreset preset,
-                   AbilityRank climb_to, const AbilityWorth& worth) {
+// Whether this preset is done being rolled: the rank is climbed, the line it
+// was chasing is on top, and nothing under it is dead weight.
+//
+// The last clause is what stops a finished preset being rolled to pieces. Two
+// lines can be held and three are rolled, so one is always live -- and a pool
+// spent to the last honor leaves whatever that final roll gave. A sheet with
+// no dead line on it is where a player stops and puts the honor into the other
+// preset.
+bool Settled(const AbilityPreset& preset, AbilityRank climb_to,
+             const AbilityWorth& worth) {
+  if (preset.rank() < climb_to || !GoalLanded(preset, worth)) {
+    return false;
+  }
+  for (int i = 1; i < preset.lines_size(); ++i) {
+    if (worth.Of(preset.lines(i)) <= 0.0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// What to hold through the next reset. Frees every line first: a third lock is
+// refused, so a swap made the other way round would keep the line it meant to
+// drop.
+//
+// Nothing at all while the rank is still being climbed -- a lock buys nothing
+// when what the character is short of is a rank, and it makes every roll of
+// the ladder dearer. Nothing after that either, while the line being chased is
+// not yet on top: a held top line is never rerolled, so holding the wrong one
+// there strands the chase for good, and holding the fillers under it only
+// raises the price of the roll that matters. Once it lands, it is held and the
+// best filler with it.
+void HoldForChase(CharacterInstance& character, StatPreset preset,
+                  AbilityRank climb_to, const AbilityWorth& worth) {
   const AbilityPreset lines = character.ability(preset);
   for (int i = 0; i < lines.lines_size(); ++i) {
     character.LockAbilityLine(i, false, preset);
   }
-  if (lines.rank() < climb_to) {
+  if (lines.rank() < climb_to || !GoalLanded(lines, worth)) {
     return;
   }
+  // The goal is on top and safe there -- a held top line already at the
+  // ability's rank is never rerolled. Hold the best filler with it and let the
+  // last slot keep rolling.
   for (int slot : BestSlots(lines, worth)) {
     character.LockAbilityLine(slot, true, preset);
   }
@@ -100,7 +156,11 @@ int64_t SpendHonorOnAbility(GameState& state, AbilityRank climb_to,
   for (bool rolled = true; rolled;) {
     rolled = false;
     for (const std::pair<StatPreset, const AbilityWorth*>& setup : setups) {
-      HoldBestLines(state.character, setup.first, climb_to, *setup.second);
+      if (Settled(state.character.ability(setup.first), climb_to,
+                  *setup.second)) {
+        continue;  // nothing left to roll for; the honor goes to the other one
+      }
+      HoldForChase(state.character, setup.first, climb_to, *setup.second);
       const int64_t cost = state.character.ability_reset_cost(setup.first);
       if (!state.character.ResetAbility(setup.first)) {
         continue;  // the pool is short, or the panel is not open to them yet
