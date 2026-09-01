@@ -45,9 +45,13 @@ struct GearPlan {
   int scroll_rate = 100;
 };
 
-// What one pass of spending came to.
+// What one pass of spending came to, meso split by what it went on -- "the
+// shop took 4B" says nothing a tuning pass can act on.
 struct GearSpend {
-  int64_t meso = 0;
+  int64_t scrolls = 0;       // spell traces, at the shop's price for them
+  int64_t stars = 0;         // every attempt, the failures included
+  int64_t hammers = 0;       // golden hammers, for the slots they open
+  int64_t replacements = 0;  // copies bought to put a destroyed piece back
   int slots_filled = 0;
   int stars_gained = 0;
   int hammers_driven = 0;
@@ -55,6 +59,22 @@ struct GearSpend {
   // the room and the meso.
   int booms = 0;
   int64_t sold = 0;
+
+  int64_t meso() const {
+    return scrolls + stars + hammers + replacements;
+  }
+
+  void Add(const GearSpend& other) {
+    scrolls += other.scrolls;
+    stars += other.stars;
+    hammers += other.hammers;
+    replacements += other.replacements;
+    slots_filled += other.slots_filled;
+    stars_gained += other.stars_gained;
+    hammers_driven += other.hammers_driven;
+    booms += other.booms;
+    sold += other.sold;
+  }
 };
 
 // Spends a purse on gear, remembering which scroll each item wants: the
@@ -72,10 +92,10 @@ class GearShopper {
   // from falling on a full bag.
   GearSpend Spend(GameState& state);
 
-  // Pieces destroyed and recovered over this shopper's life, which is the
-  // reading on whether going past fifteen stars was worth walking into.
-  int booms() const {
-    return booms_;
+  // Everything this shopper has bought over its life, which is where the
+  // purse's outgoings are read off.
+  const GearSpend& life() const {
+    return life_;
   }
 
  private:
@@ -136,7 +156,7 @@ class GearShopper {
                    const EquipPrototype& proto, GearSpend& spend);
 
   GearPlan plan_;
-  int booms_ = 0;
+  GearSpend life_;
 
   // By the prototype's name, since that is what an item and its replacement
   // disagree on. A slot whose item takes no scroll maps to null.

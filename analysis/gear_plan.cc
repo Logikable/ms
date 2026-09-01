@@ -378,7 +378,7 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
     if (!state.character.HammerEquipped(slot)) {
       return false;  // the purse or the item refused it
     }
-    spend.meso += kGoldenHammerCost;
+    spend.hammers += kGoldenHammerCost;
     ++spend.hammers_driven;
     return true;
   }
@@ -395,7 +395,7 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
       return false;  // the bag refused them, which is not the purse's fault
     }
     state.character.ScrollEquipped(best->slot, *best->scroll);
-    spend.meso += static_cast<int64_t>(traces) * trace->shop_price();
+    spend.scrolls += static_cast<int64_t>(traces) * trace->shop_price();
     ++spend.slots_filled;
     return true;
   }
@@ -430,7 +430,7 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
     if (state.character.StarForceEquipped(slot) == kStarForceNoMeso) {
       break;
     }
-    spend.meso += attempt;
+    spend.stars += attempt;
   }
   item = Worn(state, slot);
   if (item != nullptr && item->stars() > before) {
@@ -463,12 +463,11 @@ bool GearShopper::RecoverBoom(GameState& state, EquipSlot slot,
     if (proto.shop_price() <= 0 || !state.character.Buy(proto, 1)) {
       return false;
     }
-    spend.meso += proto.shop_price();
+    spend.replacements += proto.shop_price();
     spare_index = state.character.inventory().size() - 1;
   }
   state.character.RecoverTrace(trace_index, spare_index);
   ++spend.booms;
-  ++booms_;
   // RecoverTrace appends the piece it made, which is what goes back on.
   return state.character.Equip(state.character.inventory().size() - 1);
 }
@@ -510,6 +509,7 @@ GearSpend GearShopper::Spend(GameState& state) {
   SellSpares(state, spend);
   while (BuyBest(state, spend)) {
   }
+  life_.Add(spend);
   return spend;
 }
 

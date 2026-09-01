@@ -397,6 +397,24 @@ double BookRate(GameState& state) {
   return std::sqrt(crowd * boss);
 }
 
+// Where a run's meso came from and where it went. The purse below says how
+// much moved; this says what moved it, which is the only version of the
+// question a tuning pass can act on.
+//
+// Everything combat pays that no named source claims is a mob's drop, so the
+// rows always add up to the purse even when a source is added and nobody
+// writes a line here for it.
+struct Ledger {
+  int64_t etc_sales = 0;
+  int64_t boss_clears = 0;
+  int64_t gear_bought = 0;  // the shop's own shelves: weapon, off-hand, equips
+  GearSpend gear;           // scrolls, stars, hammers, replacements
+
+  int64_t named_income() const {
+    return etc_sales + gear.sold + boss_clears;
+  }
+};
+
 // Follows the purse and adds up each direction on its own. The balance is no
 // answer by itself -- a climb that has just bought a weapon looks poor -- so
 // the tables report everything the character was ever paid and everything the
@@ -454,14 +472,18 @@ std::pair<int, int> WeaponUpgrades(const GameState& state) {
 
 // Sells the Etc tab, skipping what will not sell. A token is the one Etc item
 // worth keeping: it sells for nothing and buys the Frozen tier.
-void SellDrops(CharacterInstance& character) {
+int64_t SellDrops(CharacterInstance& character) {
+  int64_t earned = 0;
   int i = 0;
   while (i < static_cast<int>(character.stackables(ITEM_CATEGORY_ETC).size())) {
     int count = character.stackables(ITEM_CATEGORY_ETC)[i].count();
-    if (character.SellStackable(ITEM_CATEGORY_ETC, i, count) <= 0) {
+    int64_t paid = character.SellStackable(ITEM_CATEGORY_ETC, i, count);
+    if (paid <= 0) {
       ++i;  // a token sells for nothing; it is kept and spent on the shelf
     }
+    earned += paid;
   }
+  return earned;
 }
 
 // What a map came to over the probe.
@@ -579,7 +601,8 @@ constexpr int kScoutEveryLevels = 5;
 
 void Retool(GameState& state, const std::vector<Job>& path, int* taken,
             const std::vector<std::string>& maps, int beats, double step,
-            Purse& purse, GearShopper& shopper, WeaponScout& scout) {
+            Purse& purse, GearShopper& shopper, WeaponScout& scout,
+            Ledger& ledger) {
   if (state.character.CanAdvanceJob() &&
       *taken < static_cast<int>(path.size())) {
     Job job = path[(*taken)++];
@@ -594,7 +617,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
     }
   }
   SpendPoints(state.character);
-  SellDrops(state.character);
+  ledger.etc_sales += SellDrops(state.character);
   purse.Note(state.character);
   // What fell goes on before what is bought, so the weapon measurement is
   // taken with the rest of the outfit already in place.
@@ -605,7 +628,13 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
     scout.settled = SettledWeaponType(state, /*budget=*/true);
     scout.settled_at = level;
   }
+  // Around the shelf rather than inside it: Outfit buys the weapon, the
+  // off-hand and whatever equipment the shop stocks, and the ledger wants the
+  // three together under what the shop was paid.
+  int64_t before_shelf = state.character.meso();
   Outfit(state, /*budget=*/true, scout.settled);
+  ledger.gear_bought +=
+      std::max<int64_t>(0, before_shelf - state.character.meso());
   // The book after the weapon, since a point is worth what the thing in their
   // hands can swing -- and the weapon is settled on what the branch is for,
   // which is the only thing that keeps the two from talking each other into a
@@ -736,6 +765,16 @@ struct Climb {
   // Pieces the shopper destroyed and put back over the whole climb, which is
   // the reading on whether the stars past fifteen were worth walking into.
   int booms = 0;
+  // What the purse was paid over the whole run, and what it was holding at the
+  // end of it -- the two ends of the ledger below.
+  int64_t endgame_earned_total = 0;
+  int64_t meso_held = 0;
+  // Where the meso came from and where it went. End-of-run, like the endgame
+  // rows above, so no checkpoint carries it.
+  Ledger ledger;
+  // The character the run left behind, for the sheet the weakest branch gets
+  // printed as.
+  Character final_character;
   std::string money_map;
   // The level each Frozen piece first dropped at, or 0 for one that never
   // did. The rates are set so that all four arrive before the level cap --
@@ -922,7 +961,10 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
     log.first_attempt_level = level;
   }
   ++log.attempts;
+  int64_t before_fight = state.character.meso();
   BossOutcome outcome = FightBoss(state, fight.first, fight.second);
+  climb.ledger.boss_clears +=
+      std::max<int64_t>(0, state.character.meso() - before_fight);
   *result = outcome;
   log.best_done = std::max(log.best_done, 1.0 - outcome.left);
   if (!outcome.won) {
@@ -1590,7 +1632,7 @@ void ClimbToCap(Session& run) {
   ClimbCursor cursor;
   if (!ResumeClimb(run, &cursor)) {
     Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
-           run.purse, run.shopper, run.scout);
+           run.purse, run.shopper, run.scout, run.climb.ledger);
     SpendHyperPoints(run);
     SpendHonor(run);
     run.next_look = NextLook(run.seconds, run.state.character.proto().level(),
@@ -1640,7 +1682,7 @@ void ClimbToCap(Session& run) {
             NextLook(run.seconds, reached, &run.looks_left, run.rng);
       }
       Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
-             run.purse, run.shopper, run.scout);
+             run.purse, run.shopper, run.scout, run.climb.ledger);
       SpendHyperPoints(run);
       SpendHonor(run);
       looked = true;
@@ -1718,9 +1760,12 @@ void FarmAtCap(Session& run) {
       // The Etc tab first, as the climb's own retool does. It holds 128 stacks
       // and twenty days of drops fill it, and a full one refuses the spell
       // traces every scroll is bought with.
-      SellDrops(run.state.character);
+      run.climb.ledger.etc_sales += SellDrops(run.state.character);
       WearBestFromBag(run.state.character);
+      int64_t before_shelf = run.state.character.meso();
       Outfit(run.state, /*budget=*/true);
+      run.climb.ledger.gear_bought +=
+          std::max<int64_t>(0, before_shelf - run.state.character.meso());
       run.shopper.Spend(run.state);
       run.purse.Note(run.state.character);
       SpendHyperPoints(run);
@@ -1746,7 +1791,8 @@ void FarmAtCap(Session& run) {
   run.climb.endgame_scrolled = reached.scrolled;
   run.climb.endgame_stars_worn = reached.stars;
   run.climb.endgame_hammers = reached.hammers;
-  run.climb.booms = run.shopper.booms();
+  run.climb.booms = run.shopper.life().booms;
+  run.climb.ledger.gear = run.shopper.life();
 }
 
 // Everything the flags say about how a character climbs. A checkpoint written
@@ -1807,6 +1853,11 @@ Climb Play(const Catalogs& catalogs, Job branch,
   }
   climb.ability_farming = state.character.ability(StatPreset::kFarming);
   climb.ability_bossing = state.character.ability(StatPreset::kBossing);
+  // ToProto, not proto(): the live containers hold the gear, and the backing
+  // message they came out of has none of it. See MeasureAbilityWorth.
+  climb.final_character = state.character.ToProto();
+  climb.endgame_earned_total = run.purse.earned;
+  climb.meso_held = state.character.meso();
   return climb;
 }
 
@@ -2382,6 +2433,211 @@ void PrintBossTimeline(const Catalogs& catalogs,
   }
 }
 
+// Where every branch's meso came from and where it went. Mob drops are what is
+// left over: everything combat paid that no named source claims.
+void PrintMesoLedger(const std::vector<Job>& branches,
+                     const std::vector<Climb>& climbs) {
+  std::printf(
+      "\nWhere the meso came from and where it went, over the whole run. Mobs "
+      "is the remainder --\neverything the purse was paid that no named "
+      "source claims.\n\n");
+  const char* kHeads[] = {"mobs",    "Etc sold", "gear sold", "bosses", "shelf",
+                          "scrolls", "stars",    "hammers",   "copies"};
+  std::printf("%-13s", "branch");
+  for (const char* head : kHeads) {
+    std::printf(" %9s", head);
+  }
+  std::printf(" %9s\n", "held");
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    const Ledger& ledger = climbs[i].ledger;
+    int64_t earned = climbs[i].endgame_earned_total;
+    int64_t rows[] = {earned - ledger.named_income(),
+                      ledger.etc_sales,
+                      ledger.gear.sold,
+                      ledger.boss_clears,
+                      ledger.gear_bought,
+                      ledger.gear.scrolls,
+                      ledger.gear.stars,
+                      ledger.gear.hammers,
+                      ledger.gear.replacements};
+    std::printf("%-13s", BranchName(branches[i]).c_str());
+    for (int64_t value : rows) {
+      char text[16];
+      FormatShort(static_cast<double>(value), text, sizeof(text));
+      std::printf(" %9s", text);
+    }
+    char held[16];
+    FormatShort(static_cast<double>(climbs[i].meso_held), held, sizeof(held));
+    std::printf(" %9s\n", held);
+  }
+}
+
+// The branch that got least of the way through the boss roster: over every
+// fight the game opens, the share of it they never took down, summed. A fight
+// they never reached at all counts whole, which is what makes this a measure
+// of how much of the game is shut to them rather than of how close one fight
+// came.
+int WeakestBranch(const Catalogs& catalogs, const std::vector<Climb>& climbs) {
+  std::vector<FightRow> fights = LiveFights(catalogs);
+  int weakest = 0;
+  double most_left = -1.0;
+  for (int i = 0; i < static_cast<int>(climbs.size()); ++i) {
+    double left = 0.0;
+    for (const FightRow& fight : fights) {
+      left += 1.0 - StandingOn(climbs[i], fight.key).best_done;
+    }
+    if (left > most_left) {
+      most_left = left;
+      weakest = i;
+    }
+  }
+  return weakest;
+}
+
+// Every skill the character has a level in, the hypers marked, in the order
+// the book lists them.
+void PrintBook(const GameState& state) {
+  // Off the character's own map rather than off the catalog. A skill is keyed
+  // there by NAME, and ten jobs each have an Epic Adventure -- walking the
+  // catalog lists one of them per job and calls them all learned.
+  std::vector<std::pair<int, std::string>> learned;
+  for (const std::pair<const std::string, int32_t>& held :
+       state.character.proto().skill_levels()) {
+    if (held.second <= 0) {
+      continue;
+    }
+    int order = 0;
+    bool hyper = false;
+    for (const std::pair<const std::string, Skill>& entry : state.skills) {
+      if (entry.second.name() == held.first) {
+        order = entry.second.skill_order();
+        hyper = entry.second.hyper();
+        break;
+      }
+    }
+    learned.push_back(
+        {order, absl::StrCat(held.first, " ", held.second, hyper ? "H" : "")});
+  }
+  std::sort(learned.begin(), learned.end());
+  std::printf("\n  Book (%d skills, %d hyper SP unspent)\n",
+              static_cast<int>(learned.size()), state.character.hyper_sp());
+  for (int i = 0; i < static_cast<int>(learned.size()); ++i) {
+    std::printf("%s%-28s", i % 3 == 0 ? "    " : "", learned[i].second.c_str());
+    if (i % 3 == 2) {
+      std::printf("\n");
+    }
+  }
+  if (learned.size() % 3 != 0) {
+    std::printf("\n");
+  }
+}
+
+// What the bag is holding. The equip tab by piece, the Etc tab by stack --
+// both of them are capacities the shopper can run into, so the counts matter
+// as much as the contents.
+void PrintBag(const GameState& state) {
+  std::map<std::string, int> equips;
+  const InventoryInstance& bag = state.character.inventory();
+  for (int i = 0; i < bag.size(); ++i) {
+    equips[bag.equip_instance(i) == nullptr
+               ? absl::StrCat(bag[i].prototype().name(), " (trace)")
+               : bag[i].prototype().name()]++;
+  }
+  std::printf("\n  Equip tab (%d of %d slots)\n", bag.size(), kTabCapacity);
+  for (const std::pair<const std::string, int>& entry : equips) {
+    std::printf("    %-40s x%d\n", entry.first.c_str(), entry.second);
+  }
+  const std::vector<StackableItem>& etc =
+      state.character.stackables(ITEM_CATEGORY_ETC);
+  std::printf("  Etc tab (%d of %d stacks)\n", static_cast<int>(etc.size()),
+              kTabCapacity);
+  for (const StackableItem& stack : etc) {
+    std::printf("    %-40s x%d\n", stack.prototype().name().c_str(),
+                stack.count());
+  }
+}
+
+// One equipped piece, as a player reads it off the panel: what it is, the
+// slots it has spent, its stars and any hammers driven into it.
+void PrintWornRow(const EquipInstance& item) {
+  const EquipPrototype& proto = item.prototype();
+  int slots = proto.upgrade_slots() + item.equip_state().hammers();
+  char stars[16];
+  std::snprintf(stars, sizeof(stars), "%d*", item.stars());
+  char scrolled[16];
+  std::snprintf(scrolled, sizeof(scrolled), "%d/%d",
+                slots - item.equip_state().remaining_upgrade_slots(), slots);
+  std::printf("    %-30s Lv%-4d %-8s %-6s %s\n", proto.name().c_str(),
+              proto.required_level(), scrolled, stars,
+              item.equip_state().hammers() > 0 ? "hammered" : "");
+}
+
+// A Hyper Stat allocation, the stats that have anything on them.
+void PrintHyperRow(const char* label, const HyperStatPreset& preset) {
+  std::printf("    %-9s", label);
+  int spent = 0;
+  for (const std::pair<const int, int32_t>& entry : preset.levels()) {
+    if (entry.second <= 0) {
+      continue;
+    }
+    HyperStatField field = static_cast<HyperStatField>(entry.first);
+    std::printf("  %s %d",
+                absl::AsciiStrToLower(HyperStatField_Name(field).substr(
+                                          std::strlen("HYPER_STAT_FIELD_")))
+                    .c_str(),
+                entry.second);
+    spent += HyperStatTotalCost(entry.second);
+  }
+  std::printf("   (%d points)\n", spent);
+}
+
+// The whole character, printed for reading rather than for a table: what a
+// player would see across the panels if they opened every one of them.
+void PrintCharacterSheet(const Catalogs& catalogs, Job branch,
+                         const Climb& climb) {
+  GameState state = NewState(catalogs, 1);
+  state.bosses = catalogs.bosses;
+  state.character.RestoreFrom(climb.final_character, state.equips, state.items);
+  const Character& proto = state.character.proto();
+  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+
+  std::printf(
+      "\nThe weakest branch's character, as the run left them -- most of a "
+      "boss roster still\nstanding is usually one thing gone wrong rather "
+      "than ten, and this is where to look.\n\n");
+  char held[16];
+  FormatShort(static_cast<double>(state.character.meso()), held, sizeof(held));
+  std::printf("%s, Lv%d, %s played, %s meso held, %d CombatPower\n",
+              BranchName(branch).c_str(), proto.level(),
+              Clock(climb.milestone_seconds[kNumMilestones - 1]).c_str(), held,
+              PowerNow(state));
+  std::printf(
+      "  HP %d   MP %d   crit %.0f%% at %.0f%%   boss %.0f%%   IED %.0f%%   "
+      "damage %.0f%%\n",
+      derived.max_hp, derived.max_mp, 100.0 * derived.crit_rate,
+      100.0 * derived.crit_dmg, 100.0 * derived.boss_pct, 100.0 * derived.ied,
+      100.0 * derived.damage_pct);
+
+  std::printf("\n  Worn\n");
+  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+       state.character.equipped()) {
+    PrintWornRow(entry.second);
+  }
+
+  std::printf("\n  Hyper Stats (%d points paid, by preset)\n",
+              state.character.hyper_stat_points());
+  PrintHyperRow("farming", PresetOf(proto.hyper_stats(), StatPreset::kFarming));
+  PrintHyperRow("bossing", PresetOf(proto.hyper_stats(), StatPreset::kBossing));
+
+  std::printf("\n  Inner Ability (%s honor held)\n",
+              std::to_string(state.character.honor()).c_str());
+  PrintAbilityRow("farming", climb.ability_farming, climb.farming_worth);
+  PrintAbilityRow("bossing", climb.ability_bossing, climb.bossing_worth);
+
+  PrintBook(state);
+  PrintBag(state);
+}
+
 // The branches to climb: the ones that take a 4th advancement, or under
 // --all_branches every branch from the 2nd job up, or the one --branch names.
 // A 1st job is left out even then -- climbing to 140 without ever advancing
@@ -2545,6 +2801,9 @@ void Run() {
   PrintTargets(branches, runs);
   if (absl::GetFlag(FLAGS_boss_report)) {
     PrintBossTimeline(catalogs, branches, typical);
+    PrintMesoLedger(branches, typical);
+    int weakest = WeakestBranch(catalogs, typical);
+    PrintCharacterSheet(catalogs, branches[weakest], typical[weakest]);
   }
   PrintBossReadiness(catalogs, branches, typical);
 }
