@@ -3,10 +3,9 @@
  * for -- the rent charged every time it procs, and what buying it outright
  * costs.
  *
- * Every card is the same width and the same height, measured from the widest
- * and longest pot in the table, so walking the tab does not resize the window
- * under the cursor. A pot with fewer effects than the longest pads with blank
- * rows rather than shrinking.
+ * Every card is the same width, measured from the widest line of the widest
+ * pot in the table, so walking the tab does not resize the window under the
+ * cursor. Its height is its own: a pot with fewer effects is a shorter card.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_POT_INFO_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_POT_INFO_PANEL_H_

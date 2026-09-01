@@ -19,12 +19,11 @@ namespace {
 constexpr int kCardChrome = 4;
 
 // What an owned pot's price row says in place of the price. It keeps the row
-// rather than dropping it: the card is the same height for every pot, and a
-// player who bought one is owed the news.
+// rather than dropping it: a player who bought one is owed the news.
 constexpr char kOwnedText[] = "Unlocked permanently";
 
 // Every row of `info` that has to fit inside the border, for the measuring
-// below. The name is one of them: it is centred, not wrapped.
+// below.
 std::vector<std::string> CardLines(const ConsumableInfo& info) {
   std::vector<std::string> lines = {info.name};
   for (const char* effect : info.effects) {
@@ -33,20 +32,6 @@ std::vector<std::string> CardLines(const ConsumableInfo& info) {
   lines.push_back(ConsumableRentText(info.type));
   lines.push_back(ConsumablePermanentText(info.type));
   return lines;
-}
-
-// The most effect rows any pot carries, which is the height every card keeps.
-int MaxEffectRows() {
-  int most = 0;
-  for (const ConsumableInfo& info : AllConsumables()) {
-    most = std::max(most, static_cast<int>(info.effects.size()));
-  }
-  return most;
-}
-
-// A row of the card's body: one gutter, the text, and whatever is left.
-ftxui::Element BodyRow(const std::string& text, int content) {
-  return ftxui::text(PadRight(" " + text, content));
 }
 
 }  // namespace
@@ -89,31 +74,25 @@ ftxui::Element PotInfoPanel::Render() const {
     return ThemedWindow(" Pot Info ", EmptyState("no pot"));
   }
   const int content = Columns() - 2;
-  std::vector<ftxui::Element> rows = {
-      CenteredRow(info->name) |
-          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, content),
-      ThemedSeparator(),
+  // Every row is centred on the card's one width, which the widest line of the
+  // widest pot sets.
+  auto row = [content](const std::string& text) {
+    return CenteredRow(text) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, content);
   };
+  std::vector<ftxui::Element> rows = {row(info->name), ThemedSeparator()};
   for (const char* effect : info->effects) {
-    rows.push_back(BodyRow(effect, content));
-  }
-  // Blank rows up to the tallest pot's list, so the card does not change
-  // height as the cursor walks the tab.
-  for (int i = static_cast<int>(info->effects.size()); i < MaxEffectRows();
-       ++i) {
-    rows.push_back(ftxui::text(std::string(content, ' ')));
+    rows.push_back(row(effect));
   }
   rows.push_back(ThemedSeparator());
   // A bought pot is never charged again, so its rent is a fact about the pot
   // rather than a price this player pays: it dims, and the row under it says
   // so outright.
-  ftxui::Element rent = BodyRow(ConsumableRentText(type_), content);
+  ftxui::Element rent = row(ConsumableRentText(type_));
   if (owned_) {
     rent = std::move(rent) | ftxui::dim;
   }
   rows.push_back(std::move(rent));
-  rows.push_back(
-      BodyRow(owned_ ? kOwnedText : ConsumablePermanentText(type_), content));
+  rows.push_back(row(owned_ ? kOwnedText : ConsumablePermanentText(type_)));
   return ThemedWindow(" Pot Info ", ftxui::vbox(std::move(rows)));
 }
 

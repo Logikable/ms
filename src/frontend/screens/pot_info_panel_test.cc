@@ -56,17 +56,18 @@ TEST_F(PotInfoPanelTest, AnOwnedPotHasNothingLeftToBuy) {
   EXPECT_EQ(rendered.find("to unlock permanently"), std::string::npos);
 }
 
-// Every card is the same shape, whatever the pot and whoever owns it.
-TEST_F(PotInfoPanelTest, EveryCardIsTheSameSize) {
-  ftxui::Requirement first = SizeOf(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+// Every card is the same width, whoever owns the pot, and no taller than the
+// pot needs: the two borders, the name and its rule, the second rule and the
+// two price rows, and one row for each effect.
+TEST_F(PotInfoPanelTest, EveryCardIsOneWidthAndAsTallAsItsPot) {
   for (const ConsumableInfo& info : AllConsumables()) {
     for (bool owned : {false, true}) {
-      ftxui::Requirement other = SizeOf(info.type, owned);
-      EXPECT_EQ(other.min_x, first.min_x) << info.name;
-      EXPECT_EQ(other.min_y, first.min_y) << info.name;
+      ftxui::Requirement card = SizeOf(info.type, owned);
+      EXPECT_EQ(card.min_x, PotInfoPanel::Columns()) << info.name;
+      EXPECT_EQ(card.min_y, 7 + static_cast<int>(info.effects.size()))
+          << info.name;
     }
   }
-  EXPECT_EQ(first.min_x, PotInfoPanel::Columns());
 }
 
 TEST_F(PotInfoPanelTest, AnUnknownPotRendersAPlaceholder) {
