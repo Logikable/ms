@@ -160,6 +160,14 @@ TEST_F(ItemMenuTest, ResetClearsTheHighlight) {
   EXPECT_NE(LabelColor(menu_, "Two"), kYellow);
 }
 
+// An entry whose name is the state it would leave the item in: renamed in
+// place, and the box grows to hold it.
+TEST_F(ItemMenuTest, SetLabelRenamesAnEntryAndWidensTheBox) {
+  menu_.SetLabel(0, "Disable");
+  EXPECT_NE(LabelColor(menu_, "Disable"), ftxui::Color::Default);
+  EXPECT_EQ(menu_.Width(), DrawnWidth(menu_));
+}
+
 // What an anchor holding the menu inside a panel measures against, so it has
 // to be the box that is drawn -- and a hidden entry is not one it makes room
 // for.

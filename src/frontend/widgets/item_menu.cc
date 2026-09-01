@@ -96,6 +96,10 @@ void ItemMenu::Highlight(int index) {
   highlighted_[index] = true;
 }
 
+void ItemMenu::SetLabel(int index, std::string label) {
+  options_[index] = std::move(label);
+}
+
 void ItemMenu::Disable(int index) {
   disabled_[index] = true;
   // Advance past newly-disabled entry; caller must leave at least one enabled.

@@ -51,6 +51,13 @@ class ItemMenu {
   // the far end of the trail that starts on the level-up card -- see
   // progression.h.
   void Highlight(int index);
+  // Renames the entry at `index`. Must be called after Reset(), and before
+  // Width() -- the new label is one the box has to be wide enough for.
+  //
+  // For an action whose name is the state it would leave the item in, where
+  // two entries would only ever offer one of themselves: a pot's Enable and
+  // Disable are the same door.
+  void SetLabel(int index, std::string label);
   // The columns the rendered box takes, borders included. What a caller
   // anchoring the menu needs to keep it inside the panel it belongs to. Read
   // after Hide(): a hidden entry is not one the box has to be wide enough for.
