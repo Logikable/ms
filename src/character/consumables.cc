@@ -11,11 +11,28 @@ namespace {
 // Extreme Green Potion's 250m against 1m a fight is the other end of the
 // deal: bosses are locked to the day, so buying it outright is a decision a
 // player takes with a long climb still ahead of them.
+
+// The last line of each is where the pot pays out, which is the fact a player
+// weighing the rent needs before the numbers above it.
+constexpr const char* kWealthEffects[] = {
+    "+20% Meso Obtained",
+    "+20% Item Drop Rate",
+    "1.2x Meso Multiplier",
+    "Farming only",
+};
+constexpr const char* kGreenEffects[] = {
+    "+1 Attack Speed",
+    "May exceed the attack speed cap",
+    "Boss fights only",
+};
+
 constexpr ConsumableInfo kConsumables[] = {
     {CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION, "Wealth Acquisition Potion",
-     kConsumableUnlockLevel, 1'000, /*per_second=*/true, 100'000'000},
+     kConsumableUnlockLevel, 1'000, /*per_second=*/true, 100'000'000,
+     absl::MakeConstSpan(kWealthEffects)},
     {CONSUMABLE_TYPE_EXTREME_GREEN_POTION, "Extreme Green Potion", 190,
-     1'000'000, /*per_second=*/false, 250'000'000},
+     1'000'000, /*per_second=*/false, 250'000'000,
+     absl::MakeConstSpan(kGreenEffects)},
 };
 
 }  // namespace

@@ -41,6 +41,10 @@ struct ConsumableInfo {
   // What buying it outright costs, after which the price above is never
   // charged again.
   int64_t permanent_price;
+  // What the pot is worth, one line each, as the Pot Info card lists them.
+  // Written here rather than derived from the constants below: the card states
+  // what the player gets, which is not always one lever.
+  absl::Span<const char* const> effects;
 };
 
 // Every pot in the game, in the order they open.

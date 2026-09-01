@@ -241,6 +241,11 @@ class CharacterInstance {
    * both what it does and what it costs. See //src/character/consumables.h.
    */
 
+  // Whether the character is high enough for the first pot to be had, and so
+  // for the Pots tab to open at all.
+  bool consumables_unlocked() const {
+    return character_.level() >= kConsumableUnlockLevel;
+  }
   // Whether the character bought `type` outright, so nothing is ever charged
   // for it again.
   bool ConsumableOwned(ConsumableType type) const;
