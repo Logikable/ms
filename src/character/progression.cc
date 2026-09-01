@@ -8,6 +8,7 @@
 #include "absl/log/log.h"
 #include "src/account.h"
 #include "src/character/character.h"
+#include "src/character/consumables.h"
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
 #include "src/protos/character.pb.h"
@@ -53,6 +54,10 @@ constexpr Unlock kUnlocks[] = {
     // Hyper Stats' own level, which is where the points start being paid --
     // see kHyperStatUnlockLevel.
     {Feature::kHyperStats, kHyperStatUnlockLevel},
+    // The Wealth Acquisition Potion's own level -- see
+    // kConsumableUnlockLevel. The second pot waits until 190 and is not
+    // listed at all before then.
+    {Feature::kConsumables, kConsumableUnlockLevel},
     // Arcane River opens at 200, and it opens with a symbol handed over -- so
     // the tab arrives with something to put in it.
     {Feature::kSymbols, 200},
@@ -194,6 +199,8 @@ std::string FeatureName(Feature feature) {
       return "Bosses";
     case Feature::kHyperStats:
       return "Hyper Stats";
+    case Feature::kConsumables:
+      return "Pots";
     case Feature::kSymbols:
       return "Arcane Symbols";
     case Feature::kCombatStats:

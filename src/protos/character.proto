@@ -178,6 +178,26 @@ message HyperStats {
   HyperStatPreset bossing = 2;
 }
 
+// A consumable the player keeps up: a potion bought by the second or by the
+// fight, or bought once and held for good. Numbered in the order they unlock.
+enum ConsumableType {
+  CONSUMABLE_TYPE_UNSPECIFIED = 0;
+  CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION = 1;
+  CONSUMABLE_TYPE_EXTREME_GREEN_POTION = 2;
+}
+
+// What the character has switched on and what they no longer pay for. Two
+// lists rather than one entry apiece: a pot is owned or rented and on or off,
+// and the pair is what says which -- an owned pot switched off costs nothing
+// and does nothing.
+message Consumables {
+  // Bought outright. The recurring price is never charged for one of these.
+  repeated ConsumableType owned = 1;
+  // Switched on. One absent here is off, so a character who has met neither
+  // pot carries two empty lists.
+  repeated ConsumableType active = 2;
+}
+
 // How good one Inner Ability line is, and how good the ability as a whole is.
 // A line never outranks the ability holding it, and a reset can carry the
 // ability up a rank but never down.
@@ -365,6 +385,10 @@ message Character {
   // held per character the way AP and SP are, and shared by the two presets.
   // Nothing pays into it yet.
   int64 honor = 22;
+
+  // The potions, which open at level 170. Per character because meso is: a
+  // permanent unlock is bought out of one character's purse.
+  Consumables consumables = 23;
 
   // Tabs opened and gold trails walked, which the account keeps as of format
   // version 2: what the player has been shown once is shown to all of their

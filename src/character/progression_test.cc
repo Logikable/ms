@@ -76,9 +76,9 @@ TEST_F(ProgressionTest, TheStatBlockReportsTheAdvancementLevel) {
 // moving a gate does not need this test touched.
 TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
   const Feature kLevelGated[] = {
-      Feature::kEquipped, Feature::kBag,       Feature::kUnequip,
-      Feature::kShop,     Feature::kScrolling, Feature::kStarForce,
-      Feature::kHammer,
+      Feature::kEquipped, Feature::kBag,         Feature::kUnequip,
+      Feature::kShop,     Feature::kScrolling,   Feature::kStarForce,
+      Feature::kHammer,   Feature::kConsumables,
   };
   for (Feature feature : kLevelGated) {
     int level = UnlockLevel(feature);

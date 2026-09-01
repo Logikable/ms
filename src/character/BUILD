@@ -8,6 +8,7 @@ cc_library(
     hdrs = ["character.h"],
     deps = [
         ":arcane_force",
+        ":consumables",
         ":exp_table",
         ":hyper_stats",
         ":inner_ability",
@@ -26,6 +27,28 @@ cc_library(
         "//src/protos:skill_proto_cc",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "consumables",
+    srcs = ["consumables.cc"],
+    hdrs = ["consumables.h"],
+    deps = [
+        "//src/protos:character_proto_cc",
+        "@abseil-cpp//absl/types:span",
+    ],
+)
+
+cc_test(
+    name = "consumables_test",
+    size = "small",
+    srcs = ["consumables_test.cc"],
+    deps = [
+        ":character",
+        ":consumables",
+        "//src/protos:character_proto_cc",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -194,6 +217,7 @@ cc_library(
     hdrs = ["progression.h"],
     deps = [
         ":character",
+        ":consumables",
         ":exp_table",
         ":hyper_stats",
         "//src:account",

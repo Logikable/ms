@@ -52,6 +52,9 @@ enum class Feature {
   // The Hyper tab of the Character panel, and the Farm/Boss rows that pick
   // between the two allocations it fills in. Hyper Stats' own level.
   kHyperStats,
+  // The Pots tab of the Character panel. The level the first potion opens at:
+  // a tab holding one row the player cannot buy is worse than no tab.
+  kConsumables,
   // The Symbols tab of the Equipped panel. Arcane River's own level: below it
   // there is no symbol to be had, and a tab that can only ever be empty is
   // worse than no tab.

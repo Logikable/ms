@@ -15,6 +15,7 @@
 #include <random>
 #include <vector>
 
+#include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/item/equip_instance.h"
@@ -235,6 +236,33 @@ class CharacterInstance {
   // Adds `amount` honor, the pool an Inner Ability reset is paid out of. No-op
   // if amount <= 0. Nothing in the game calls this yet.
   void AddHonor(int64_t amount);
+
+  /* The potions. A pot is owned or rented, and on or off; the pair decides
+   * both what it does and what it costs. See //src/character/consumables.h.
+   */
+
+  // Whether the character bought `type` outright, so nothing is ever charged
+  // for it again.
+  bool ConsumableOwned(ConsumableType type) const;
+  // Whether the player has it switched on. Says nothing about their level: an
+  // owned pot stays switched on through a character who cannot yet use it.
+  bool ConsumableActive(ConsumableType type) const;
+  // Whether it is actually doing anything -- switched on, and at the level it
+  // opens at. Everything reading a pot's effect asks this rather than the two
+  // above.
+  bool ConsumableInEffect(ConsumableType type) const;
+  // Switches it on if it is off and off if it is on, and says which it now
+  // is. Refuses a pot this character's level has not opened, leaving it off.
+  bool ToggleConsumable(ConsumableType type);
+  // Buys `type` outright at its permanent price. All or nothing: takes no
+  // meso and buys nothing when the purse is short, when it is already owned,
+  // or when the level has not opened it.
+  bool BuyConsumable(ConsumableType type);
+  // Charges `procs` procs of `type` -- seconds of farming for one pot, boss
+  // entries for the other -- and returns the meso actually taken. A purse that
+  // cannot cover it pays what it has and stops at 0; the pot works either way.
+  // Nothing at all for a pot that is owned, off, or not yet open.
+  int64_t ChargeConsumable(ConsumableType type, double procs);
   // Sells up to `count` copies from the `index`-th stack in `category`,
   // crediting count * sell_price meso and removing the sold copies; erases the
   // stack entirely once it empties. No-op returning 0 if the index is out of
@@ -607,6 +635,11 @@ class CharacterInstance {
   std::vector<StackableItem> etc_items_;
   EquipStats equip_stats_;
   int arcane_force_ = 0;
+  // Meso the pots have run up and not yet been charged for, always under 1.
+  // The live tick charges three times a second, so without this a potion at
+  // 1,000 a second would quietly cost 999. Not saved: it is worth less than
+  // the smallest coin.
+  double consumable_debt_ = 0.0;
   std::map<std::string, EquipSet> equip_sets_;
   std::vector<SkillEffect> set_bonuses_;
 };

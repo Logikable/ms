@@ -1,6 +1,7 @@
 #include "src/character/character.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <map>
 #include <memory>
@@ -12,6 +13,7 @@
 #include "absl/log/log.h"
 #include "absl/types/span.h"
 #include "src/character/arcane_force.h"
+#include "src/character/consumables.h"
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/job_branch.h"
@@ -1660,6 +1662,80 @@ void CharacterInstance::AddMeso(int64_t amount) {
     return;
   }
   character_.set_meso(character_.meso() + amount);
+}
+
+namespace {
+
+// Whether `list` names `type`, and where. -1 for one it does not hold.
+int IndexOfConsumable(const google::protobuf::RepeatedField<int>& list,
+                      ConsumableType type) {
+  for (int i = 0; i < list.size(); ++i) {
+    if (list.Get(i) == type) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+}  // namespace
+
+bool CharacterInstance::ConsumableOwned(ConsumableType type) const {
+  return IndexOfConsumable(character_.consumables().owned(), type) >= 0;
+}
+
+bool CharacterInstance::ConsumableActive(ConsumableType type) const {
+  return IndexOfConsumable(character_.consumables().active(), type) >= 0;
+}
+
+bool CharacterInstance::ConsumableInEffect(ConsumableType type) const {
+  const ConsumableInfo* info = ConsumableInfoFor(type);
+  return info != nullptr && character_.level() >= info->unlock_level &&
+         ConsumableActive(type);
+}
+
+bool CharacterInstance::ToggleConsumable(ConsumableType type) {
+  const ConsumableInfo* info = ConsumableInfoFor(type);
+  if (info == nullptr || character_.level() < info->unlock_level) {
+    return false;
+  }
+  google::protobuf::RepeatedField<int>& active =
+      *character_.mutable_consumables()->mutable_active();
+  int at = IndexOfConsumable(active, type);
+  if (at >= 0) {
+    active.erase(active.begin() + at);
+    return false;
+  }
+  active.Add(type);
+  return true;
+}
+
+bool CharacterInstance::BuyConsumable(ConsumableType type) {
+  const ConsumableInfo* info = ConsumableInfoFor(type);
+  if (info == nullptr || character_.level() < info->unlock_level ||
+      ConsumableOwned(type) || character_.meso() < info->permanent_price) {
+    return false;
+  }
+  character_.set_meso(character_.meso() - info->permanent_price);
+  character_.mutable_consumables()->add_owned(type);
+  return true;
+}
+
+int64_t CharacterInstance::ChargeConsumable(ConsumableType type, double procs) {
+  const ConsumableInfo* info = ConsumableInfoFor(type);
+  if (info == nullptr || procs <= 0.0 || ConsumableOwned(type) ||
+      !ConsumableInEffect(type)) {
+    return 0;
+  }
+  consumable_debt_ += info->price * procs;
+  // Nudged before the floor: three ticks of a thousand a second come to
+  // 999.999... in binary, and a debt a hair under a whole meso is a whole one.
+  constexpr double kMesoEpsilon = 1e-6;
+  int64_t owed =
+      static_cast<int64_t>(std::floor(consumable_debt_ + kMesoEpsilon));
+  consumable_debt_ -= owed;
+  int64_t taken = std::min(owed, character_.meso());
+  character_.set_meso(character_.meso() - taken);
+  return taken;
 }
 
 void CharacterInstance::AddHonor(int64_t amount) {
