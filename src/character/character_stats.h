@@ -268,9 +268,9 @@ struct DerivedStats {
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;
-  // Stages that may pass the soft cap, which nothing the character carries
-  // grants: DerivedStatsFor leaves this at 0 and the caller writes it, the way
-  // arcane_damage_factor below is filled in. See AttackSpeedStage.
+  // Stages that may pass the soft cap, which only the Extreme Green Potion
+  // grants -- and only under the bossing preset, which is the fight it works
+  // in. See AttackSpeedStage.
   int uncapped_attack_speed_bonus = 0;
   // What the book hands one named skill apiece, keyed by that skill's display
   // name. Kept as a map rather than folded into the character's own levers

@@ -233,7 +233,6 @@ cc_library(
         "//src/character",
         "//src/character:arcane_force",
         "//src/character:character_stats",
-        "//src/character:consumables",
         "//src/character:hyper_stats",
         "//src/character:progression",
         "//src/item:equip_instance",

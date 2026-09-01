@@ -1064,11 +1064,19 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.equip_meso_pct += equipped.meso_rate() / 100.0;
   // The Wealth Acquisition Potion, worth three things at once: a share past
   // the equipment cap, the same share of drop rate, and a multiplier over the
-  // purse the two of them fill.
-  if (character.ConsumableInEffect(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION)) {
+  // purse the two of them fill. Farming only -- a boss pays none of it.
+  if (preset == StatPreset::kFarming &&
+      character.ConsumableInEffect(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION)) {
     stats.meso_pct += kWealthPotionMesoPct;
     stats.item_drop_pct += kWealthPotionDropPct;
     stats.meso_final_mult *= kWealthPotionMesoMult;
+  }
+  // The Extreme Green Potion, the other half of that deal: stages in a boss
+  // fight and nowhere else, and stages that pass the soft cap, which nothing
+  // else in the game grants.
+  if (preset == StatPreset::kBossing &&
+      character.ConsumableInEffect(CONSUMABLE_TYPE_EXTREME_GREEN_POTION)) {
+    stats.uncapped_attack_speed_bonus += kGreenPotionAttackSpeed;
   }
   // Pick Pocket and Meso Explosion, worth nothing apart: a meso falls out of
   // an enemy and is thrown straight back at them. It rides the swing exactly

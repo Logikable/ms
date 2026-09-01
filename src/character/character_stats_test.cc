@@ -2738,6 +2738,26 @@ TEST_F(DerivedStatsTest, TheWealthPotionAddsAShareADropRateAndAMultiplier) {
   EXPECT_NEAR(MesoBonus(after), 1.20, 1e-9);
   EXPECT_NEAR(after.meso_final_mult, 1.20, 1e-9);
   EXPECT_NEAR(after.item_drop_pct, 0.20, 1e-9);
+
+  // A boss fight pays none of it: the pot is farming's, and the bossing
+  // preset is what a fight -- and the Boss stats tab -- reads.
+  DerivedStats bossing = DerivedStatsFor(c, {}, {}, {}, StatPreset::kBossing);
+  EXPECT_NEAR(MesoBonus(bossing), 1.00, 1e-9);
+  EXPECT_NEAR(bossing.meso_final_mult, 1.0, 1e-9);
+  EXPECT_NEAR(bossing.item_drop_pct, 0.0, 1e-9);
+}
+
+// The Extreme Green Potion is the mirror of it: a stage in a boss fight, and
+// nothing at all on a map.
+TEST_F(DerivedStatsTest, TheGreenPotionIsAStageInABossFightAlone) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeCharacter(rng, 190, 0);
+  ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
+
+  EXPECT_EQ(DerivedStatsFor(c, {}).uncapped_attack_speed_bonus, 0);
+  EXPECT_EQ(DerivedStatsFor(c, {}, {}, {}, StatPreset::kBossing)
+                .uncapped_attack_speed_bonus,
+            kGreenPotionAttackSpeed);
 }
 
 // --- the party ---

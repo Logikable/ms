@@ -28,16 +28,14 @@ std::string Percent(double fraction) {
 }
 
 // The stage the character swings at: the stage their job starts from plus
-// whatever the passives add, held to the soft cap the fight holds them to. A
-// dash where there is no swing to name -- nothing in hand, or a weapon that
-// names no stage. A magician reads Average whatever staff they hold, which is
-// the row saying what BaseAttackSpeedStage does.
-//
-// What passes the cap is never shown here: only a boss fight grants it, and
-// this row is the character standing on a map.
+// whatever the passives add, held to the soft cap, and then whatever is
+// allowed past it -- the Boss tab reads a potion's stage there. A dash where
+// there is no swing to name -- nothing in hand, or a weapon that names no
+// stage. A magician reads Average whatever staff they hold, which is the row
+// saying what BaseAttackSpeedStage does.
 std::string AttackSpeedText(Job job,
                             const std::map<EquipSlot, EquipInstance>& equipped,
-                            int bonus) {
+                            int bonus, int uncapped) {
   std::map<EquipSlot, EquipInstance>::const_iterator it =
       equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
   if (it == equipped.end() ||
@@ -46,7 +44,7 @@ std::string AttackSpeedText(Job job,
   }
   int stage = AttackSpeedStage(
       BaseAttackSpeedStage(job, it->second.prototype().attack_speed()), bonus,
-      /*uncapped=*/0);
+      uncapped);
   return AttackSpeedName(static_cast<AttackSpeed>(stage));
 }
 
@@ -120,7 +118,8 @@ std::vector<StatLine> CombatStatLines(
   lines.push_back(
       {"Attack Speed",
        AttackSpeedText(character.proto().job(), character.equipped(),
-                       derived.attack_speed_bonus)});
+                       derived.attack_speed_bonus,
+                       derived.uncapped_attack_speed_bonus)});
   // Under a rule, because none of these is about the swing: the first three
   // buy the purse and the climb, and the last is the toll Arcane River takes
   // for letting a character hurt what lives there. Meso Drop Rate is the size

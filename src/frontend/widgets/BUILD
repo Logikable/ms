@@ -274,6 +274,7 @@ cc_test(
     srcs = ["stat_rows_test.cc"],
     deps = [
         ":stat_rows",
+        "//src/character:consumables",
         "//src/testing:prototypes",
         "@googletest//:gtest_main",
     ],

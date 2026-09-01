@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -206,6 +207,33 @@ TEST_F(StatRowsTest, AttackSpeedStopsAtTheSoftCap) {
   c.PickUp(std::make_unique<EquipInstance>(sword));
   c.Equip(0);
   EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Attack Speed"), "Fastest 1");
+}
+
+// The two pots pull in opposite directions, and each tab shows only its own.
+TEST_F(StatRowsTest, EachPotShowsOnTheTabItPaysOn) {
+  Character proto;
+  proto.set_level(190);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  CharacterInstance c(rng_, std::move(proto));
+  EquipPrototype sword;
+  sword.set_name("Sword");
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.set_attack_speed(ATTACK_SPEED_FASTER);
+  c.PickUp(std::make_unique<EquipInstance>(sword));
+  ASSERT_TRUE(c.Equip(0));
+  ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
+  ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
+
+  std::vector<StatLine> farm = ExtraStatLines(c, {}, StatPreset::kFarming);
+  EXPECT_EQ(ValueOf(farm, "Meso Drop Rate"), "44.00%");
+  EXPECT_EQ(ValueOf(farm, "Item Drop Rate"), "20.00%");
+  EXPECT_EQ(ValueOf(farm, "Attack Speed"), "Faster");
+
+  std::vector<StatLine> boss = ExtraStatLines(c, {}, StatPreset::kBossing);
+  EXPECT_EQ(ValueOf(boss, "Meso Drop Rate"), "0.00%");
+  EXPECT_EQ(ValueOf(boss, "Item Drop Rate"), "0.00%");
+  EXPECT_EQ(ValueOf(boss, "Attack Speed"), "Fastest 1");
 }
 
 TEST_F(StatRowsTest, TheMainStatsPairUpForTheTwoColumnScreen) {
