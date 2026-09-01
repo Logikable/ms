@@ -282,12 +282,22 @@ std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
 // How long to play a character out for, given what is asked. A window shorter
 // than a buff's own cycle cannot see the buff go up or come down: everything
 // that is standing stays standing, and a lever that lengthens a buff reads
-// EXACTLY nothing. So a question about that lever buys itself a window wide
-// enough to hold the slowest cycle on the character twice over.
-double WindowFor(const CombatParams& params, double seconds) {
+// EXACTLY nothing. So a question about a buff buys itself a window wide enough
+// to hold the slowest cycle twice over.
+//
+// Off the character's BOOK, not off the buffs they have learned. The book does
+// not move while a decision is being taken and the learned list does, so a
+// window off the latter would measure the character before a buff skill and
+// the character after it over two different horizons -- and SpendBook's whole
+// job is comparing exactly those two.
+double WindowFor(const GameState& state, double seconds) {
   double cycle = 0.0;
-  for (const BuffOption& buff : params.buffs) {
-    cycle = std::max(cycle, buff.cooldown_seconds);
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    const Skill& skill = entry.second;
+    if (skill.has_buff() &&
+        state.character.HasAdvancement(skill.job_advancement())) {
+      cycle = std::max(cycle, skill.cooldown_seconds());
+    }
   }
   return std::max(seconds, 2.0 * cycle);
 }
@@ -305,7 +315,7 @@ double CrowdRateOver(GameState& state, double seconds) {
     enemies += type.simultaneous;
   }
   enemies = std::max(1, enemies);
-  Sequence played = PlaySwings(params, WindowFor(params, seconds), enemies);
+  Sequence played = PlaySwings(params, WindowFor(state, seconds), enemies);
   double rate = played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
   return rate + OffClockRate(params, played, 1.0, enemies);
 }
@@ -356,7 +366,7 @@ double BossRateOver(GameState& state, double seconds) {
   if (!params.active) {
     return 0.0;
   }
-  Sequence played = PlaySwings(params, WindowFor(params, seconds));
+  Sequence played = PlaySwings(params, WindowFor(state, seconds));
   double rate = played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
   return rate + OffClockRate(params, played, 1.0);
 }
