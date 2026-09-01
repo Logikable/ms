@@ -49,12 +49,20 @@
  * their 2nd or 3rd job and were never built to reach the cap; --all_branches
  * still climbs them, and --branch takes any one of them on its own.
  *
- * One branch takes about fifteen seconds, and the whole sweep about the same
- * again -- it climbs a branch a core. Anything far past that is a bug to
- * chase rather than a wait to sit through.
+ * One branch takes about fifteen seconds, and the whole sweep about twenty-six
+ * -- it climbs a branch a core. Anything far past that is a bug to chase
+ * rather than a wait to sit through.
+ *
+ * --checkpoint_at writes each climb down at a level and starts the next run
+ * there, which is worth having while a change past that level is being tuned:
+ * a resumed run is identical to one that climbed the whole way, down to the
+ * last rolled drop. A file is stamped with the binary that wrote it and named
+ * for the flags that shaped the climb, so it can outlive neither a rebuild nor
+ * a setting.
  *
  *   bazelisk run //analysis:progression_sim
  *   bazelisk run //analysis:progression_sim -- --detail
+ *   bazelisk run //analysis:progression_sim -- --checkpoint_at=160
  *   bazelisk run //analysis:progression_sim -- --branch=DARK_KNIGHT
  *   bazelisk run //analysis:progression_sim -- --all_branches
  */
@@ -63,10 +71,12 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <functional>
 #include <map>
 #include <memory>
 #include <random>
 #include <set>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -75,7 +85,9 @@
 #include "absl/flags/parse.h"
 #include "absl/log/log.h"
 #include "absl/strings/ascii.h"
+#include "absl/strings/str_cat.h"
 #include "analysis/ability_plan.h"
+#include "analysis/checkpoint.h"
 #include "analysis/gear_plan.h"
 #include "analysis/parallel.h"
 #include "analysis/sim_boss.h"
@@ -159,6 +171,13 @@ ABSL_FLAG(double, attention, 1.0,
 ABSL_FLAG(int, runs, 1,
           "Climbs per branch, each on its own seed. Drops are rolled, so one "
           "climb says almost nothing about whether a set completes.");
+ABSL_FLAG(int, checkpoint_at, 0,
+          "Write each branch's climb down the moment it reaches this level, "
+          "and start the next run there instead of climbing to it again. 0 "
+          "climbs the whole ladder every time. A file is stamped with the "
+          "binary that wrote it and thrown away by any other, so a checkpoint "
+          "cannot outlive the change it was cut through -- which also means "
+          "the first run after a build climbs the whole way.");
 ABSL_FLAG(std::string, ability_rank, "unique",
           "The Inner Ability rank a character rolls up to before they hold "
           "any line through a reset. A lock buys nothing while what they are "
@@ -569,6 +588,13 @@ struct BossLog {
   int best_power = 0;
 };
 
+// Where a climb is written down and read back, worked out once for the sweep.
+struct Checkpointing {
+  std::string dir;  // empty for a run that keeps none
+  std::string stamp;
+  int level = 0;  // the level one is taken at, 0 for off
+};
+
 // One level of one branch's climb, for --detail.
 struct Stint {
   int level = 0;
@@ -948,6 +974,22 @@ struct Session {
   AbilityWorth farming_worth;
   AbilityWorth bossing_worth;
   bool ability_measured = false;
+  // Where this climb is written down, and what it is called there.
+  const Checkpointing* saves = nullptr;
+  std::string key;
+  unsigned int seed = 0;
+  bool saved = false;
+};
+
+// Where the climb has got to inside a level: what the loop below keeps that is
+// in neither the Session nor the Climb. Held together so a checkpoint can
+// write it down and a resumed run pick it up mid-stride.
+struct ClimbCursor {
+  int level = 0;
+  double level_began = 0.0;
+  Stint stint;
+  // Fractions of a kill carried over from the last jump.
+  std::vector<double> carry;
 };
 
 // What the upgradeable half of what is worn came to: how many pieces take an
@@ -1108,23 +1150,279 @@ bool TakeOnBosses(Session& run, int level, bool levelled) {
   return true;
 }
 
+// Writing a climb down and picking it up again. Every one of these walks a
+// struct field for field, so a row added above without a line here is a row a
+// resumed run comes back without.
+template <typename Field, typename T>
+void SaveArray(const T* from, int count, Field* to) {
+  for (int i = 0; i < count; ++i) {
+    to->Add(from[i]);
+  }
+}
+
+template <typename Field, typename T>
+void LoadArray(const Field& from, int count, T* to) {
+  for (int i = 0; i < count && i < from.size(); ++i) {
+    to[i] = from.Get(i);
+  }
+}
+
+void SaveWorth(const AbilityWorth& worth, CheckpointWorth* to) {
+  for (int type = 0; type < AbilityLineType_ARRAYSIZE; ++type) {
+    for (int rank = 0; rank < AbilityRank_ARRAYSIZE; ++rank) {
+      to->add_rate(worth.rate[type][rank]);
+    }
+  }
+}
+
+void LoadWorth(const CheckpointWorth& from, AbilityWorth* worth) {
+  int i = 0;
+  for (int type = 0; type < AbilityLineType_ARRAYSIZE; ++type) {
+    for (int rank = 0; rank < AbilityRank_ARRAYSIZE; ++rank, ++i) {
+      if (i < from.rate_size()) {
+        worth->rate[type][rank] = from.rate(i);
+      }
+    }
+  }
+}
+
+void SaveBossLogs(const Climb& climb, CheckpointClimb* to) {
+  for (const std::pair<const std::string, BossLog>& entry : climb.bosses) {
+    CheckpointBossLog* log = to->add_bosses();
+    log->set_boss(entry.first);
+    log->set_name(entry.second.name);
+    log->set_unlock_level(entry.second.unlock_level);
+    log->set_attempts(entry.second.attempts);
+    log->set_clears(entry.second.clears);
+    log->set_first_attempt_level(entry.second.first_attempt_level);
+    log->set_first_clear_level(entry.second.first_clear_level);
+    log->set_best_difficulty(entry.second.best_difficulty);
+    log->set_best_seconds(entry.second.best_seconds);
+    log->set_best_power(entry.second.best_power);
+  }
+}
+
+void LoadBossLogs(const CheckpointClimb& from, Climb* climb) {
+  for (const CheckpointBossLog& saved : from.bosses()) {
+    BossLog& log = climb->bosses[saved.boss()];
+    log.name = saved.name();
+    log.unlock_level = saved.unlock_level();
+    log.attempts = saved.attempts();
+    log.clears = saved.clears();
+    log.first_attempt_level = saved.first_attempt_level();
+    log.first_clear_level = saved.first_clear_level();
+    log.best_difficulty = saved.best_difficulty();
+    log.best_seconds = saved.best_seconds();
+    log.best_power = saved.best_power();
+  }
+}
+
+void SaveStint(const Stint& stint, CheckpointStint* to) {
+  to->set_level(stint.level);
+  to->set_seconds(stint.seconds);
+  to->set_map(stint.map);
+  to->set_weapon(stint.weapon);
+}
+
+Stint LoadStint(const CheckpointStint& from) {
+  return {from.level(), from.seconds(), from.map(), from.weapon()};
+}
+
+void SaveClimb(const Climb& climb, CheckpointClimb* to) {
+  SaveArray(climb.milestone_seconds, kNumMilestones,
+            to->mutable_milestone_seconds());
+  SaveArray(climb.milestone_meso, kNumMilestones, to->mutable_milestone_meso());
+  SaveArray(climb.milestone_spent, kNumMilestones,
+            to->mutable_milestone_spent());
+  SaveArray(climb.milestone_stars, kNumMilestones,
+            to->mutable_milestone_stars());
+  SaveArray(climb.milestone_slots, kNumMilestones,
+            to->mutable_milestone_slots());
+  SaveArray(climb.milestone_frozen, kNumMilestones,
+            to->mutable_milestone_frozen());
+  SaveArray(climb.milestone_boss_set, kNumMilestones,
+            to->mutable_milestone_boss_set());
+  SaveArray(climb.milestone_honor, kNumMilestones,
+            to->mutable_milestone_honor());
+  SaveArray(climb.milestone_level_honor, kNumMilestones,
+            to->mutable_milestone_level_honor());
+  SaveArray(climb.milestone_boss_honor, kNumMilestones,
+            to->mutable_milestone_boss_honor());
+  to->set_ability_honor_spent(climb.ability_honor_spent);
+  *to->mutable_ability_farming() = climb.ability_farming;
+  *to->mutable_ability_bossing() = climb.ability_bossing;
+  SaveWorth(climb.farming_worth, to->mutable_farming_worth());
+  SaveWorth(climb.bossing_worth, to->mutable_bossing_worth());
+  to->set_ten_star_level(climb.ten_star_level);
+  to->set_frozen_set_level(climb.frozen_set_level);
+  SaveBossLogs(climb, to);
+  SaveArray(climb.frozen_level, kNumFrozenPieces, to->mutable_frozen_level());
+  SaveArray(climb.token_level, kNumFrozenTokens, to->mutable_token_level());
+  SaveArray(climb.token_kills, kNumFrozenTokens, to->mutable_token_kills());
+  SaveArray(climb.token_log_miss, kNumFrozenTokens,
+            to->mutable_token_log_miss());
+  for (const Stint& stint : climb.stints) {
+    SaveStint(stint, to->add_stints());
+  }
+}
+
+void LoadClimb(const CheckpointClimb& from, Climb* climb) {
+  LoadArray(from.milestone_seconds(), kNumMilestones, climb->milestone_seconds);
+  LoadArray(from.milestone_meso(), kNumMilestones, climb->milestone_meso);
+  LoadArray(from.milestone_spent(), kNumMilestones, climb->milestone_spent);
+  LoadArray(from.milestone_stars(), kNumMilestones, climb->milestone_stars);
+  LoadArray(from.milestone_slots(), kNumMilestones, climb->milestone_slots);
+  LoadArray(from.milestone_frozen(), kNumMilestones, climb->milestone_frozen);
+  LoadArray(from.milestone_boss_set(), kNumMilestones,
+            climb->milestone_boss_set);
+  LoadArray(from.milestone_honor(), kNumMilestones, climb->milestone_honor);
+  LoadArray(from.milestone_level_honor(), kNumMilestones,
+            climb->milestone_level_honor);
+  LoadArray(from.milestone_boss_honor(), kNumMilestones,
+            climb->milestone_boss_honor);
+  climb->ability_honor_spent = from.ability_honor_spent();
+  climb->ability_farming = from.ability_farming();
+  climb->ability_bossing = from.ability_bossing();
+  LoadWorth(from.farming_worth(), &climb->farming_worth);
+  LoadWorth(from.bossing_worth(), &climb->bossing_worth);
+  climb->ten_star_level = from.ten_star_level();
+  climb->frozen_set_level = from.frozen_set_level();
+  LoadBossLogs(from, climb);
+  LoadArray(from.frozen_level(), kNumFrozenPieces, climb->frozen_level);
+  LoadArray(from.token_level(), kNumFrozenTokens, climb->token_level);
+  LoadArray(from.token_kills(), kNumFrozenTokens, climb->token_kills);
+  LoadArray(from.token_log_miss(), kNumFrozenTokens, climb->token_log_miss);
+  for (const CheckpointStint& stint : from.stints()) {
+    climb->stints.push_back(LoadStint(stint));
+  }
+}
+
+// The two random streams, written the way their own library writes them.
+std::string SaveRng(const std::mt19937& rng) {
+  std::ostringstream text;
+  text << rng;
+  return text.str();
+}
+
+void LoadRng(const std::string& saved, std::mt19937* rng) {
+  std::istringstream text(saved);
+  text >> *rng;
+}
+
+SimCheckpoint SaveRun(const Session& run, const ClimbCursor& cursor) {
+  SimCheckpoint saved;
+  saved.set_stamp(run.saves->stamp);
+  saved.set_branch(run.key);
+  saved.set_seed(run.seed);
+  saved.set_level(cursor.level);
+  *saved.mutable_character() = run.state.character.ToProto();
+  saved.set_current_map(run.state.current_map);
+  saved.set_taken(run.taken);
+  saved.set_earned(run.purse.earned);
+  saved.set_spent(run.purse.spent);
+  saved.set_held(run.purse.held);
+  saved.set_scout_weapon(run.scout.settled);
+  saved.set_scout_level(run.scout.settled_at);
+  saved.set_seconds(run.seconds);
+  saved.set_next_daily(run.next_daily);
+  saved.set_next_look(run.next_look);
+  saved.set_looks_left(run.looks_left);
+  for (const std::pair<const std::string, FightState>& entry : run.fights) {
+    CheckpointFight* fight = saved.add_fights();
+    fight->set_boss(entry.first);
+    fight->set_attempted(entry.second.attempted);
+    fight->set_cleared_today(entry.second.cleared_today);
+    fight->set_near_miss(entry.second.near_miss);
+    fight->set_retry_at(entry.second.retry_at);
+    fight->set_power_at_last_try(entry.second.power_at_last_try);
+  }
+  saved.set_ability_measured(run.ability_measured);
+  saved.set_world_rng(SaveRng(run.state.rng));
+  saved.set_run_rng(SaveRng(run.rng));
+  SaveClimb(run.climb, saved.mutable_climb());
+  saved.set_level_began(cursor.level_began);
+  SaveStint(cursor.stint, saved.mutable_stint());
+  for (double carried : cursor.carry) {
+    saved.add_carry(carried);
+  }
+  return saved;
+}
+
+void LoadRun(const SimCheckpoint& saved, Session& run, ClimbCursor* cursor) {
+  run.state.character.RestoreFrom(saved.character(), run.state.equips,
+                                  run.state.items);
+  run.state.current_map = saved.current_map();
+  run.taken = saved.taken();
+  run.purse.earned = saved.earned();
+  run.purse.spent = saved.spent();
+  run.purse.held = saved.held();
+  run.scout.settled = static_cast<EquipType>(saved.scout_weapon());
+  run.scout.settled_at = saved.scout_level();
+  run.seconds = saved.seconds();
+  run.next_daily = saved.next_daily();
+  run.next_look = saved.next_look();
+  run.looks_left = saved.looks_left();
+  for (const CheckpointFight& saved_fight : saved.fights()) {
+    FightState& fight = run.fights[saved_fight.boss()];
+    fight.attempted = saved_fight.attempted();
+    fight.cleared_today = saved_fight.cleared_today();
+    fight.near_miss = saved_fight.near_miss();
+    fight.retry_at = saved_fight.retry_at();
+    fight.power_at_last_try = saved_fight.power_at_last_try();
+  }
+  run.ability_measured = saved.ability_measured();
+  LoadRng(saved.world_rng(), &run.state.rng);
+  LoadRng(saved.run_rng(), &run.rng);
+  LoadClimb(saved.climb(), &run.climb);
+  run.farming_worth = run.climb.farming_worth;
+  run.bossing_worth = run.climb.bossing_worth;
+  cursor->level = saved.level();
+  cursor->level_began = saved.level_began();
+  cursor->stint = LoadStint(saved.stint());
+  cursor->carry.assign(saved.carry().begin(), saved.carry().end());
+}
+
+// Writes the climb down the first time it stands at the checkpoint level.
+void NoteCheckpoint(Session& run, const ClimbCursor& cursor) {
+  if (run.saved || run.saves == nullptr || run.saves->level <= 0 ||
+      cursor.level < run.saves->level) {
+    return;
+  }
+  run.saved = true;
+  WriteCheckpoint(run.saves->dir, run.key, SaveRun(run, cursor));
+}
+
+// Picks a written-down climb up, if this build wrote one for this branch and
+// seed. A run that resumes has nothing left to write.
+bool ResumeClimb(Session& run, ClimbCursor* cursor) {
+  SimCheckpoint saved;
+  if (run.saves == nullptr || run.saves->level <= 0 ||
+      !ReadCheckpoint(run.saves->dir, run.key, run.saves->stamp, &saved)) {
+    return false;
+  }
+  LoadRun(saved, run, cursor);
+  run.saved = true;
+  return true;
+}
+
 // Plays the character forward to the level cap, or until the give-up clock
 // runs out.
 void ClimbToCap(Session& run) {
   double give_up = absl::GetFlag(FLAGS_give_up_hours) * 3600.0;
-  Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
-         run.purse, run.shopper, run.scout);
-  SpendHonor(run);
-  run.next_look = NextLook(run.seconds, run.state.character.proto().level(),
-                           &run.looks_left, run.rng);
-
-  int level = run.state.character.proto().level();
-  double level_began = 0.0;
-  Stint stint = {level, 0.0, run.state.current_map,
-                 HeldWeaponName(run.state.character)};
+  ClimbCursor cursor;
+  if (!ResumeClimb(run, &cursor)) {
+    Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
+           run.purse, run.shopper, run.scout);
+    SpendHonor(run);
+    run.next_look = NextLook(run.seconds, run.state.character.proto().level(),
+                             &run.looks_left, run.rng);
+    cursor.level = run.state.character.proto().level();
+    cursor.stint = {cursor.level, 0.0, run.state.current_map,
+                    HeldWeaponName(run.state.character)};
+  }
   CombatParams params = ComputeCombatParams(run.state);
-  std::vector<double> carry;
-  while (level < kTrialLevelCap && run.seconds < give_up) {
+  while (cursor.level < kTrialLevelCap && run.seconds < give_up) {
+    NoteCheckpoint(run, cursor);
     Yield yield = MeasureYield(run.state, params, run.beats, run.step);
     if (yield.died || yield.exp_per_second <= 0.0) {
       // Nowhere they can stand, or nothing to be earned standing there. Ask
@@ -1143,18 +1441,18 @@ void ClimbToCap(Session& run) {
     // or the moment the player next opens it. Nothing else moves in between.
     const Character& proto = run.state.character.proto();
     double to_level =
-        (ExpToNextLevel(level) - proto.exp()) / yield.exp_per_second;
+        (ExpToNextLevel(cursor.level) - proto.exp()) / yield.exp_per_second;
     double horizon = std::min(std::max(to_level, run.step),
                               std::max(run.next_look - run.seconds, run.step));
     horizon = std::min(horizon, give_up - run.seconds);
-    std::vector<int64_t> kills = KillsOver(yield, horizon, &carry);
+    std::vector<int64_t> kills = KillsOver(yield, horizon, &cursor.carry);
     AwardCombatRewards(run.state, params, kills);
     NoteTokenChances(params, kills, run.climb);
     run.purse.Note(run.state.character);
     run.seconds += horizon;
 
     int reached = run.state.character.proto().level();
-    bool levelled = reached != level;
+    bool levelled = reached != cursor.level;
     bool watching = absl::GetFlag(FLAGS_attention) <= 0.0;
     bool looked = false;
     if (watching ? levelled : run.seconds >= run.next_look) {
@@ -1168,14 +1466,15 @@ void ClimbToCap(Session& run) {
       looked = true;
     }
     if (levelled) {
-      stint.seconds = run.seconds - level_began;
-      run.climb.stints.push_back(stint);
-      level_began = run.seconds;
-      level = reached;
-      NoteFrozenDrops(run.state, level, run.climb);
-      NoteMilestones(run.state, level, run.seconds, run.purse, run.climb);
-      stint = {level, 0.0, run.state.current_map,
-               HeldWeaponName(run.state.character)};
+      cursor.stint.seconds = run.seconds - cursor.level_began;
+      run.climb.stints.push_back(cursor.stint);
+      cursor.level_began = run.seconds;
+      cursor.level = reached;
+      NoteFrozenDrops(run.state, cursor.level, run.climb);
+      NoteMilestones(run.state, cursor.level, run.seconds, run.purse,
+                     run.climb);
+      cursor.stint = {cursor.level, 0.0, run.state.current_map,
+                      HeldWeaponName(run.state.character)};
       // The character got stronger whether or not anybody was watching, and
       // the fight is built off what they are.
       looked = true;
@@ -1187,8 +1486,8 @@ void ClimbToCap(Session& run) {
     }
     if (looked) {
       params = ComputeCombatParams(run.state);
-      stint.map = run.state.current_map;
-      stint.weapon = HeldWeaponName(run.state.character);
+      cursor.stint.map = run.state.current_map;
+      cursor.stint.weapon = HeldWeaponName(run.state.character);
     }
   }
 }
@@ -1261,8 +1560,36 @@ void FarmAtCap(Session& run) {
   run.climb.endgame_hammers = reached.hammers;
 }
 
+// Everything the flags say about how a character climbs. A checkpoint written
+// under one of these answers nothing about another, so it goes in the file's
+// name -- two settings then keep two files rather than one quietly standing in
+// for the other. What only shapes the printing, or only what happens after the
+// cap, is left out.
+std::string ClimbSettings() {
+  return absl::StrCat(
+      absl::GetFlag(FLAGS_step), ";", absl::GetFlag(FLAGS_probe_beats), ";",
+      absl::GetFlag(FLAGS_give_up_hours), ";",
+      absl::GetFlag(FLAGS_star_ceiling), ";", absl::GetFlag(FLAGS_scroll_rate),
+      ";", absl::GetFlag(FLAGS_dailies), ";", absl::GetFlag(FLAGS_attention),
+      ";", absl::GetFlag(FLAGS_ability_rank), ";",
+      absl::GetFlag(FLAGS_checkpoint_at));
+}
+
+// What one climb's file is called: the branch, the seed and the settings --
+// which between them are everything that makes two climbs differ.
+std::string ClimbKey(Job branch, unsigned int seed) {
+  char settled[24];
+  std::snprintf(settled, sizeof(settled), "%08x",
+                static_cast<unsigned int>(
+                    std::hash<std::string>()(ClimbSettings()) & 0xffffffffu));
+  return absl::StrCat(
+      absl::AsciiStrToLower(Job_Name(branch).substr(std::strlen("JOB_"))), "_",
+      seed, "_", settled);
+}
+
 Climb Play(const Catalogs& catalogs, Job branch,
-           const std::vector<std::string>& maps, unsigned int seed) {
+           const std::vector<std::string>& maps, unsigned int seed,
+           const Checkpointing& saves) {
   GameState state = NewState(catalogs, seed);
   // A plain field rather than something the constructor takes, so a sim that
   // fights one has to say so. This one runs the dailies.
@@ -1281,6 +1608,9 @@ Climb Play(const Catalogs& catalogs, Job branch,
   run.step = absl::GetFlag(FLAGS_step);
   run.beats = absl::GetFlag(FLAGS_probe_beats);
   run.rng.seed(seed);
+  run.saves = &saves;
+  run.key = ClimbKey(branch, seed);
+  run.seed = seed;
   ClimbToCap(run);
   if (absl::GetFlag(FLAGS_endgame) &&
       state.character.proto().level() >= kTrialLevelCap) {
@@ -1797,6 +2127,24 @@ void PrintTargets(const std::vector<Job>& branches,
   }
 }
 
+// Where this sweep's climbs are written down. Worked out once, because
+// preparing the directory throws away another build's and two threads racing
+// to do that is two threads throwing away each other's.
+Checkpointing PrepareCheckpoints() {
+  Checkpointing saves;
+  saves.level = absl::GetFlag(FLAGS_checkpoint_at);
+  if (saves.level <= 0) {
+    return saves;
+  }
+  saves.stamp = CheckpointStamp();
+  saves.dir = PrepareCheckpointDir("progression_sim", saves.stamp);
+  if (saves.dir.empty()) {
+    LOG(WARNING) << "no checkpoint directory; climbing the whole way";
+    saves.level = 0;
+  }
+  return saves;
+}
+
 void Run() {
   Catalogs catalogs = LoadCatalogs();
   std::vector<std::string> maps = HuntingGrounds(catalogs);
@@ -1807,12 +2155,13 @@ void Run() {
   // are printed afterwards, in the table's own order rather than the order the
   // threads happened to finish.
   int count = static_cast<int>(branches.size());
+  Checkpointing saves = PrepareCheckpoints();
   std::vector<std::vector<Climb>> runs(count, std::vector<Climb>(per_branch));
   ParallelFor(count * per_branch, [&](int i) {
     unsigned int seed =
         static_cast<unsigned int>(absl::GetFlag(FLAGS_seed)) + i / count;
     runs[i % count][i / count] =
-        Play(catalogs, branches[i % count], maps, seed);
+        Play(catalogs, branches[i % count], maps, seed, saves);
   });
 
   std::vector<Climb> typical;

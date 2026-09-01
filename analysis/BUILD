@@ -1,4 +1,6 @@
+load("@protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
 load(":sim.bzl", "sim_binary")
 
 # Sims, not tests. Tests pin behaviour that must not change; each of these
@@ -14,6 +16,28 @@ cc_library(
         "//src/character",
         "//src/protos:character_proto_cc",
         "//src/protos:skill_proto_cc",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
+    ],
+)
+
+proto_library(
+    name = "sim_checkpoint_proto",
+    srcs = ["sim_checkpoint.proto"],
+    deps = ["//src/protos:character_proto"],
+)
+
+cc_proto_library(
+    name = "sim_checkpoint_proto_cc",
+    deps = [":sim_checkpoint_proto"],
+)
+
+cc_library(
+    name = "checkpoint",
+    srcs = ["checkpoint.cc"],
+    hdrs = ["checkpoint.h"],
+    deps = [
+        ":sim_checkpoint_proto_cc",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/strings",
     ],
@@ -157,9 +181,11 @@ sim_binary(
     srcs = ["progression_sim.cc"],
     deps = [
         ":ability_plan",
+        ":checkpoint",
         ":gear_plan",
         ":parallel",
         ":sim_boss",
+        ":sim_checkpoint_proto_cc",
         ":sim_format",
         ":sim_gear",
         ":sim_jobs",

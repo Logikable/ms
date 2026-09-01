@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package ms;
+
+import "src/protos/character.proto";
+
+// A climb, frozen partway up, so a run asking about the levels above it need
+// not play the levels below it again.
+//
+// Not a save file and never loaded by the game: it holds a sim's own bookwork
+// -- where the player is in their day, what each fight has cost them so far,
+// every milestone the tables have already collected -- beside the character
+// itself. A checkpoint written by a different build is refused rather than
+// resumed; see CheckpointStamp.
+//
+// It lives in //analysis because a tuning tool's own file has no business in
+// the game's protos.
+
+// Where one fight stands with the player.
+message CheckpointFight {
+  string boss = 1;
+  bool attempted = 2;
+  bool cleared_today = 3;
+  bool near_miss = 4;
+  double retry_at = 5;
+  int32 power_at_last_try = 6;
+}
+
+// What one boss's dailies have come to.
+message CheckpointBossLog {
+  string boss = 1;
+  string name = 2;
+  int32 unlock_level = 3;
+  int32 attempts = 4;
+  int32 clears = 5;
+  int32 first_attempt_level = 6;
+  int32 first_clear_level = 7;
+  int32 best_difficulty = 8;
+  double best_seconds = 9;
+  int32 best_power = 10;
+}
+
+// One level of the climb, for --detail.
+message CheckpointStint {
+  int32 level = 1;
+  double seconds = 2;
+  string map = 3;
+  string weapon = 4;
+}
+
+// What a line of each type and rank measured, flattened by type and then rank
+// the way AbilityWorth holds it.
+message CheckpointWorth {
+  repeated double rate = 1 [packed = true];
+}
+
+// Everything the tables have collected so far. Parallel to Climb, field for
+// field: a row added there is a row missing here.
+message CheckpointClimb {
+  repeated double milestone_seconds = 1 [packed = true];
+  repeated int64 milestone_meso = 2 [packed = true];
+  repeated int64 milestone_spent = 3 [packed = true];
+  repeated int32 milestone_stars = 4 [packed = true];
+  repeated int32 milestone_slots = 5 [packed = true];
+  repeated int32 milestone_frozen = 6 [packed = true];
+  repeated int32 milestone_boss_set = 7 [packed = true];
+  repeated int64 milestone_honor = 8 [packed = true];
+  repeated int64 milestone_level_honor = 9 [packed = true];
+  repeated int64 milestone_boss_honor = 10 [packed = true];
+  int64 ability_honor_spent = 11;
+  AbilityPreset ability_farming = 12;
+  AbilityPreset ability_bossing = 13;
+  CheckpointWorth farming_worth = 14;
+  CheckpointWorth bossing_worth = 15;
+  int32 ten_star_level = 16;
+  int32 frozen_set_level = 17;
+  repeated CheckpointBossLog bosses = 18;
+  repeated int32 frozen_level = 19 [packed = true];
+  repeated int32 token_level = 20 [packed = true];
+  repeated int64 token_kills = 21 [packed = true];
+  repeated double token_log_miss = 22 [packed = true];
+  repeated CheckpointStint stints = 23;
+}
+
+// A climb held at the level the checkpoint was taken at.
+message SimCheckpoint {
+  // What built it. A file whose stamp is not the running binary's is refused.
+  string stamp = 1;
+  // Which climb this is, so one file is never read for another.
+  string branch = 2;
+  uint32 seed = 3;
+  int32 level = 4;
+
+  Character character = 5;
+  string current_map = 6;
+  // How many of the branch's advancements have been taken.
+  int32 taken = 7;
+  int64 earned = 8;
+  int64 spent = 9;
+  int64 held = 10;
+  // The weapon type the scout settled on, and the level it was asked at.
+  int32 scout_weapon = 11;
+  int32 scout_level = 12;
+  double seconds = 13;
+  double next_daily = 14;
+  double next_look = 15;
+  int32 looks_left = 16;
+  repeated CheckpointFight fights = 17;
+  bool ability_measured = 18;
+  // Both random streams, as their own libraries write them: the world's, which
+  // rolls every drop, and the run's, which decides when the player looks.
+  string world_rng = 19;
+  string run_rng = 20;
+
+  CheckpointClimb climb = 21;
+
+  // Where the climb had got to inside the level it was taken at, so a resumed
+  // run picks up mid-stride rather than at a level boundary it was never on.
+  double level_began = 22;
+  CheckpointStint stint = 23;
+  repeated double carry = 24 [packed = true];
+}
