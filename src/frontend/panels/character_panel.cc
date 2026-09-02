@@ -73,6 +73,9 @@ constexpr char kBossTabLabel[] = "Boss";
 constexpr char kLockedGlyph[] = "\U0001F512";
 constexpr char kUnlockedGlyph[] = "\U0001F513";
 
+// The banner the preset's own rank is written on, above the lines it deals.
+constexpr char kAbilityBannerGlyph[] = "\u2691";
+
 // The Hyper tab's columns. The level and the [+] are fixed and the name takes
 // what is left, which is what puts exactly one column between the level and
 // the [+] on every row -- the shape the skill rows have.
@@ -1020,6 +1023,18 @@ ftxui::Element CharacterPanel::RenderAbilityTab(bool bar_focused,
   rows.push_back(PanelSeparator(highlighted_));
 
   const AbilityPreset& preset = character_.ability(hyper_preset_);
+  // The preset's own rank, banner and all, left-aligned over the lines: what
+  // the three below can roll up to, said once instead of read off them.
+  const std::string rank = AbilityRankName(preset.rank());
+  if (!rank.empty()) {
+    rows.push_back(ftxui::hbox({
+                       ftxui::text(std::string(" ") + kAbilityBannerGlyph +
+                                   "  " + rank + " Ability"),
+                       ftxui::filler(),
+                   }) |
+                   ftxui::color(RarityColor(preset.rank())) |
+                   ftxui::size(ftxui::WIDTH, ftxui::EQUAL, ContentWidth()));
+  }
   for (int i = 0; i < preset.lines_size(); ++i) {
     rows.push_back(RenderAbilityRow(preset.lines(i), i, rows_focused));
   }

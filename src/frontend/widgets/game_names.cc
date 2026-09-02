@@ -490,6 +490,22 @@ std::string AbilityLineValueText(const AbilityLine& line) {
   return "+" + std::to_string(value) + (percent ? "%" : "");
 }
 
+std::string AbilityRankName(AbilityRank rank) {
+  static_assert(AbilityRank_ARRAYSIZE == 5, "a new ability rank needs a name");
+  switch (rank) {
+    case ABILITY_RANK_RARE:
+      return "Rare";
+    case ABILITY_RANK_EPIC:
+      return "Epic";
+    case ABILITY_RANK_UNIQUE:
+      return "Unique";
+    case ABILITY_RANK_LEGENDARY:
+      return "Legendary";
+    default:
+      return "";
+  }
+}
+
 std::string PotentialRankName(PotentialRank rank) {
   static_assert(PotentialRank_ARRAYSIZE == 5,
                 "a new potential rank needs a name");

@@ -90,6 +90,10 @@ std::string AbilityLineName(AbilityLineType type);
 // the single swing stage Attack Speed grants.
 std::string AbilityLineValueText(const AbilityLine& line);
 
+// The rank an Inner Ability reads as: "Rare" through "Legendary", and "" for
+// a preset carrying none.
+std::string AbilityRankName(AbilityRank rank);
+
 // The rank a potential reads as: "Rare" through "Legendary", and "" for an
 // item carrying none.
 std::string PotentialRankName(PotentialRank rank);

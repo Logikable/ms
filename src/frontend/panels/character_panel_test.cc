@@ -2589,6 +2589,19 @@ TEST_F(CharacterPanelTest, TheAbilityTabListsTheLinesTheHonorAndTheCost) {
   EXPECT_NE(rendered.find("[Reroll]"), std::string::npos);
 }
 
+// The preset's own rank stands on a banner over the lines, in its colour.
+TEST_F(CharacterPanelTest, TheAbilityTabBannersItsRank) {
+  CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp = OnAbilityRows(panel);
+  std::string rendered = ScreenText(RenderToScreen(comp));
+  EXPECT_NE(rendered.find("Legendary Ability"), std::string::npos);
+  EXPECT_EQ(ColorOf(comp, "Legendary Ability"), kLegendary.ToColor());
+  // Above the first line, not among them.
+  EXPECT_LT(rendered.find("Legendary Ability"), rendered.find("Boss Damage"));
+}
+
 // Every row is written in its rank's colour, and the lock beside it is not.
 TEST_F(CharacterPanelTest, EachLineIsWrittenInItsRank) {
   CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);

@@ -564,7 +564,7 @@ std::vector<CardRow> InspectPanel::PotentialRows() const {
   const int level = item_->prototype().required_level();
   for (const PotentialLine& line : potential.lines()) {
     rows.push_back(TextRow(ftxui::hbox({
-        ftxui::text(" ●") | ftxui::color(RarityColor(line.rank())),
+        ftxui::text(" ◼") | ftxui::color(RarityColor(line.rank())),
         ftxui::text("  " + PotentialLineName(line.type()) + "  " +
                     PotentialLineValueText(line, level) + " "),
     })));
