@@ -273,7 +273,10 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   }
   attack.swing_seconds = SwingIntervalSeconds(delay_ms, stage) * speed_factor;
   if (skill != nullptr) {
-    attack.cooldown_seconds = CooldownAt(*skill, level) * speed_factor;
+    attack.cooldown_seconds =
+        ReducedCooldown(CooldownAt(*skill, level),
+                        derived.cooldown_reduction_seconds) *
+        speed_factor;
     // Game-scaled like every other duration: the pacing band stretches the ice
     // exactly as far as it stretches the summon clock relaying it, so what a
     // freeze covers is the same span of the fight it covers in GMS.
@@ -1066,7 +1069,8 @@ BuffOption BuffClockFor(const Buff& buff, int level, const SkillBoosts& boost,
 // The levers are not here: those are folded into the tables below.
 void AddBuffs(const GameState& state,
               const std::vector<const Skill*>& buff_skills, double speed_factor,
-              double buff_duration_pct, CombatParams& params) {
+              const DerivedStats& derived, CombatParams& params) {
+  const double buff_duration_pct = derived.buff_duration_pct;
   const CharacterInstance& character = state.character;
   const std::map<std::string, Skill>& skills = state.skills;
   absl::Span<const CharacterInstance> party = absl::MakeConstSpan(state.party);
@@ -1079,7 +1083,10 @@ void AddBuffs(const GameState& state,
     BuffOption option = BuffClockFor(buff, level, boosts[skill->name()],
                                      buff_duration_pct, speed_factor);
     option.name = skill->name();
-    option.cooldown_seconds = CooldownAt(*skill, level) * speed_factor;
+    option.cooldown_seconds =
+        ReducedCooldown(CooldownAt(*skill, level),
+                        derived.cooldown_reduction_seconds) *
+        speed_factor;
     // A party takes turns raising a shared buff, so it comes round on this
     // character as often as the party between them can cast it. Their own wait
     // is untouched: what shortens is the gap they spend without it.
@@ -1292,7 +1299,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   if (static_cast<int>(buff_skills.size()) > kMaxBuffWindows) {
     buff_skills.resize(kMaxBuffWindows);
   }
-  AddBuffs(state, buff_skills, speed_factor, derived.buff_duration_pct, params);
+  AddBuffs(state, buff_skills, speed_factor, derived, params);
   AddAllyBuffs(state, speed_factor, params);
   AddBuffedSets(state, buff_skills, weapon, speed_factor, preset, params);
   TagBuffGatedPulses(buff_skills, params);

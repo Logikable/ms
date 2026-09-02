@@ -98,6 +98,40 @@ std::vector<PotentialLineType> PotentialPool(PotentialGroup group,
 Potential RollPotential(CubeType cube, PotentialGroup group, PotentialRank rank,
                         std::mt19937& rng);
 
+// What the potentials on everything worn come to. The flat lines arrive in
+// the shape of a worn item, since that is how they behave; every percentage
+// is a fraction, as DerivedStats states them, so the fold that reads this has
+// nothing to convert.
+struct PotentialTotals {
+  EquipStats flat;
+  // The stat shares. What they multiply is not settled here -- see
+  // AddPotentials in character_stats.cc, which is the one place that knows
+  // which stats a potential is allowed to scale.
+  double str_pct = 0.0;
+  double dex_pct = 0.0;
+  double int_pct = 0.0;
+  double luk_pct = 0.0;
+  double max_hp_pct = 0.0;
+  // Attack and magic attack are apart, as GMS has them: a weapon's %ATT line
+  // is worth nothing to a magician.
+  double attack_pct = 0.0;
+  double magic_attack_pct = 0.0;
+  double damage_pct = 0.0;
+  double boss_pct = 0.0;
+  // Combined in reverse across the lines granting it, the way two sources of
+  // ignored defence always meet.
+  double ied = 0.0;
+  double crit_dmg = 0.0;
+  double meso_pct = 0.0;
+  double item_drop_pct = 0.0;
+  // Seconds off every skill's wait. Summed: a hat can carry both lines.
+  double cooldown_seconds = 0.0;
+};
+
+// Adds what `potential` grants on an item of `item_level` to `totals`.
+void AddPotential(const Potential& potential, int item_level,
+                  PotentialTotals& totals);
+
 // One use of `cube` on an item holding `current`. An item with no potential
 // is handed a Rare one, whatever the cube -- there is no rank roll on the
 // first use. Otherwise the potential rolls for its rank up and every line is

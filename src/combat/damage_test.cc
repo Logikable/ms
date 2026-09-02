@@ -631,6 +631,24 @@ TEST(ShieldHitsAtTest, AShellThickensAsTheSkillIsTaught) {
   EXPECT_EQ(ShieldHitsAt(Shield(), 20), 0);
 }
 
+// GMS's own rule for the seconds a hat's potential takes off a wait, which is
+// not a plain subtraction anywhere but in the middle of the range.
+TEST(ReducedCooldownTest, AShortWaitGivesUpAShareAndALongOneTheSeconds) {
+  // Under five seconds, nothing is taken at all.
+  EXPECT_DOUBLE_EQ(ReducedCooldown(4.0, 2.0), 4.0);
+  // Five to ten: a twentieth of what is left per second offered, and never
+  // under five seconds.
+  EXPECT_DOUBLE_EQ(ReducedCooldown(10.0, 1.0), 9.5);
+  EXPECT_DOUBLE_EQ(ReducedCooldown(10.0, 2.0), 9.0);
+  // Past ten, the seconds come off whole...
+  EXPECT_DOUBLE_EQ(ReducedCooldown(30.0, 2.0), 28.0);
+  EXPECT_DOUBLE_EQ(ReducedCooldown(12.0, 2.0), 10.0);
+  // ...until the wait would fall under ten, where half of the rest carries.
+  EXPECT_DOUBLE_EQ(ReducedCooldown(11.0, 2.0), 9.5);
+  // Nothing offered changes nothing.
+  EXPECT_DOUBLE_EQ(ReducedCooldown(30.0, 0.0), 30.0);
+}
+
 // Heaven's Hammer comes back sooner the further it is taught: 29 seconds down
 // to 15 over its thirty levels, which is GMS's 30 - floor(L/2) walked as a
 // line. The step is negative and the pair never falls below nothing.

@@ -171,7 +171,9 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   totals.int_ += granted.int_();
   totals.luk += granted.luk();
   totals.attack += granted.attack();
+  // One lever on a skill pays both attacks; only a potential tells them apart.
   totals.attack_pct += granted.attack_pct();
+  totals.magic_attack_pct += granted.attack_pct();
   totals.magic_attack += granted.magic_attack();
   // Damage sent to the MP pool is damage the HP pool never sees, and nothing
   // here tracks MP -- so Magic Guard reads as reduction, which is its whole
@@ -768,6 +770,56 @@ void AddInnerAbility(const CharacterInstance& character, StatPreset preset,
   }
 }
 
+// What the potentials on the character's gear add. Everything but the stats
+// lands where its lever already is; the stats are the whole reason this runs
+// before FoldApStats.
+//
+// A potential's %stat multiplies the AP pool, what is worn, what the book
+// grants flat, and the potential's own flat lines -- everything but the three
+// final-stat sources, which is what taking the symbols back off is for. It is
+// deliberately not Maple Warrior's deal: that one reads the AP pool alone.
+// Two %stat sources sum rather than compound, so both are worked out against
+// the same untouched base and added.
+void AddPotentials(const CharacterInstance& character, PassiveTotals& totals) {
+  const PotentialTotals& potential = character.potential_totals();
+  const AllocatedStats& allocated = character.proto().allocated_stats();
+  const EquipStats& worn = character.equip_stats();
+  const EquipStats& symbols = character.symbol_stats();
+  const EquipStats& flat = potential.flat;
+
+  const int base[4] = {
+      allocated.str() + worn.str() - symbols.str() + totals.str + flat.str(),
+      allocated.dex() + worn.dex() - symbols.dex() + totals.dex + flat.dex(),
+      allocated.int_() + worn.int_() - symbols.int_() + totals.int_ +
+          flat.int_(),
+      allocated.luk() + worn.luk() - symbols.luk() + totals.luk + flat.luk(),
+  };
+  const double share[4] = {potential.str_pct, potential.dex_pct,
+                           potential.int_pct, potential.luk_pct};
+  int granted[4];
+  for (int i = 0; i < 4; ++i) {
+    granted[i] =
+        static_cast<int>(std::floor(base[i] * share[i] + kPercentEpsilon));
+  }
+  totals.str += flat.str() + granted[0];
+  totals.dex += flat.dex() + granted[1];
+  totals.int_ += flat.int_() + granted[2];
+  totals.luk += flat.luk() + granted[3];
+  totals.hp_grant += flat.max_hp();
+
+  totals.max_hp_pct += potential.max_hp_pct;
+  totals.attack_pct += potential.attack_pct;
+  totals.magic_attack_pct += potential.magic_attack_pct;
+  totals.damage_pct += potential.damage_pct;
+  totals.boss_pct += potential.boss_pct;
+  totals.ied = CombineIgnoredDefense(totals.ied, potential.ied);
+  totals.crit_dmg += potential.crit_dmg;
+  // Worn, so it takes the cap the worn share takes.
+  totals.equip_meso_pct += potential.meso_pct;
+  totals.item_drop_pct += potential.item_drop_pct;
+  totals.cooldown_reduction_seconds += potential.cooldown_seconds;
+}
+
 // Cashes Maple Warrior in against the AP the character has spent. It grants
 // what a ring grants, so it lands in the same pile the passives' flat stats
 // do -- and it is read here rather than in AddEffect because a skill's levers
@@ -990,6 +1042,10 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   const AllocatedStats& allocated = proto.allocated_stats();
   const EquipStats& equipped = character.equip_stats();
   PassiveTotals passives = LearnedPassives(character, skills, buffs_up, allies);
+  // Before the fold: a potential's %stat and Maple Warrior's both read a base
+  // the other has not touched, and the two shares are added rather than
+  // compounded.
+  AddPotentials(character, passives);
   FoldApStats(allocated, passives);
   // After the fold, never before it: a Hyper Stat is final stat, and Maple
   // Warrior takes its share of the allocation alone.
@@ -1126,7 +1182,8 @@ EquipStats TotalEquipStats(const CharacterInstance& character,
   // grant. Both attack fields take it: a magician swings on magic attack, and
   // a percentage of what you swing on means the same thing either way.
   total.set_attack(FoldPercent(total.attack(), derived.attack_pct));
-  total.set_magic_attack(FoldPercent(total.magic_attack(), derived.attack_pct));
+  total.set_magic_attack(
+      FoldPercent(total.magic_attack(), derived.magic_attack_pct));
   return total;
 }
 

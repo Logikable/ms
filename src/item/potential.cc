@@ -376,6 +376,99 @@ Potential RollPotential(CubeType cube, PotentialGroup group, PotentialRank rank,
   return potential;
 }
 
+void AddPotential(const Potential& potential, int item_level,
+                  PotentialTotals& totals) {
+  static_assert(PotentialLineType_ARRAYSIZE == 28,
+                "a new potential line needs somewhere to land");
+  for (const PotentialLine& line : potential.lines()) {
+    const int value = PotentialLineValue(line.type(), line.rank(), item_level);
+    if (value == 0) {
+      continue;
+    }
+    const double share = value / 100.0;
+    EquipStats& flat = totals.flat;
+    switch (line.type()) {
+      case POTENTIAL_LINE_TYPE_STR:
+        flat.set_str(flat.str() + value);
+        break;
+      case POTENTIAL_LINE_TYPE_DEX:
+        flat.set_dex(flat.dex() + value);
+        break;
+      case POTENTIAL_LINE_TYPE_INT:
+        flat.set_int_(flat.int_() + value);
+        break;
+      case POTENTIAL_LINE_TYPE_LUK:
+        flat.set_luk(flat.luk() + value);
+        break;
+      case POTENTIAL_LINE_TYPE_ALL_STATS:
+        flat.set_str(flat.str() + value);
+        flat.set_dex(flat.dex() + value);
+        flat.set_int_(flat.int_() + value);
+        flat.set_luk(flat.luk() + value);
+        break;
+      case POTENTIAL_LINE_TYPE_MAX_HP:
+        flat.set_max_hp(flat.max_hp() + value);
+        break;
+      case POTENTIAL_LINE_TYPE_STR_PCT:
+        totals.str_pct += share;
+        break;
+      case POTENTIAL_LINE_TYPE_DEX_PCT:
+        totals.dex_pct += share;
+        break;
+      case POTENTIAL_LINE_TYPE_INT_PCT:
+        totals.int_pct += share;
+        break;
+      case POTENTIAL_LINE_TYPE_LUK_PCT:
+        totals.luk_pct += share;
+        break;
+      case POTENTIAL_LINE_TYPE_ALL_STATS_PCT:
+        totals.str_pct += share;
+        totals.dex_pct += share;
+        totals.int_pct += share;
+        totals.luk_pct += share;
+        break;
+      case POTENTIAL_LINE_TYPE_MAX_HP_PCT:
+        totals.max_hp_pct += share;
+        break;
+      case POTENTIAL_LINE_TYPE_ATTACK_PCT:
+        totals.attack_pct += share;
+        break;
+      case POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT:
+        totals.magic_attack_pct += share;
+        break;
+      case POTENTIAL_LINE_TYPE_DAMAGE_PCT:
+        totals.damage_pct += share;
+        break;
+      case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15:
+      case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30:
+      case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35:
+      case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40:
+        totals.ied = 1.0 - (1.0 - totals.ied) * (1.0 - share);
+        break;
+      case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30:
+      case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35:
+      case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40:
+        totals.boss_pct += share;
+        break;
+      case POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT:
+        totals.crit_dmg += share;
+        break;
+      case POTENTIAL_LINE_TYPE_MESO_RATE:
+        totals.meso_pct += share;
+        break;
+      case POTENTIAL_LINE_TYPE_ITEM_DROP_RATE:
+        totals.item_drop_pct += share;
+        break;
+      case POTENTIAL_LINE_TYPE_COOLDOWN_1:
+      case POTENTIAL_LINE_TYPE_COOLDOWN_2:
+        totals.cooldown_seconds += value;
+        break;
+      default:
+        break;
+    }
+  }
+}
+
 Potential CubePotential(const Potential& current, CubeType cube,
                         PotentialGroup group, std::mt19937& rng) {
   // The first cube into an item always hands over a Rare potential. GMS sells

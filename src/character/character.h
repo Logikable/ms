@@ -21,6 +21,7 @@
 #include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
+#include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
@@ -543,6 +544,17 @@ class CharacterInstance {
   const EquipStats& equip_stats() const {
     return equip_stats_;
   }
+  // The share of that total the worn Arcane Symbols paid. Held apart because
+  // a symbol grants final stat: no %stat may multiply it, so the fold that
+  // applies one takes this back off first. See [[final-stats]].
+  const EquipStats& symbol_stats() const {
+    return symbol_stats_;
+  }
+  // What the potentials on everything worn come to. Rebuilt with the equip
+  // stats, off the same pass over the worn map.
+  const PotentialTotals& potential_totals() const {
+    return potential_totals_;
+  }
   // Spare copies of the Arcane Symbol for `slot` sitting in the equip bag.
   // Traces do not count, as they never do -- see CountOwned.
   int SpareSymbols(EquipSlot slot) const;
@@ -651,6 +663,8 @@ class CharacterInstance {
   std::vector<StackableItem> use_items_;
   std::vector<StackableItem> etc_items_;
   EquipStats equip_stats_;
+  EquipStats symbol_stats_;
+  PotentialTotals potential_totals_;
   int arcane_force_ = 0;
   // Meso the pots have run up and not yet been charged for, always under 1.
   // The live tick charges three times a second, so without this a potion at

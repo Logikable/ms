@@ -1422,8 +1422,12 @@ void CharacterInstance::RecomputeEquipStats() {
   // equipment becomes stats, so that the damage chain, combat power and the
   // stat panel cannot come to different conclusions about the same stars.
   std::vector<EquipStats> list;
+  std::vector<EquipStats> symbols;
   arcane_force_ = 0;
+  potential_totals_ = PotentialTotals();
   for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
+    AddPotential(kv.second.potential(), kv.second.prototype().required_level(),
+                 potential_totals_);
     // A symbol's stats are not on its prototype: what it grants is its level
     // in the wearer's own primary stat, so it is worked out here rather than
     // read. Its Arcane Force is totalled in the same pass, since both come
@@ -1431,7 +1435,10 @@ void CharacterInstance::RecomputeEquipStats() {
     if (IsArcaneSymbol(kv.second.prototype())) {
       int level = SymbolLevel(kv.second.equip_state());
       arcane_force_ += SymbolArcaneForce(level);
-      list.push_back(SymbolStatsFor(PrimaryStatField(character_.job()), level));
+      EquipStats granted =
+          SymbolStatsFor(PrimaryStatField(character_.job()), level);
+      symbols.push_back(granted);
+      list.push_back(std::move(granted));
       continue;
     }
     EquipStats stats = kv.second.stats();
@@ -1441,6 +1448,7 @@ void CharacterInstance::RecomputeEquipStats() {
     list.push_back(std::move(stats));
   }
   equip_stats_ = SumEquipStats(absl::MakeSpan(list));
+  symbol_stats_ = SumEquipStats(absl::MakeSpan(symbols));
 }
 
 int CharacterInstance::SpareSymbols(EquipSlot slot) const {

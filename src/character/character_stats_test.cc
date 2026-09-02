@@ -3117,5 +3117,142 @@ TEST_F(DerivedStatsTest, AnAllysCombatOrdersRaisesTheSkillsItReaches) {
   EXPECT_EQ(BonusSkillLevels(other, skills, party), 1);
 }
 
+// --- potential ---
+
+// Equips a ring carrying `lines`, all at `rank`, on an item of `item_level`.
+void EquipPotentialRing(CharacterInstance& character, int item_level,
+                        PotentialRank rank,
+                        const std::vector<PotentialLineType>& lines) {
+  EquipPrototype ring;
+  ring.set_name("Potted Ring");
+  // A slot of its own, so a test can wear a plain stat item beside it.
+  ring.set_equip_slot(EQUIP_SLOT_HAT);
+  ring.set_required_level(item_level);
+  Equip state;
+  Potential* potential = state.mutable_main_potential();
+  potential->set_rank(rank);
+  for (PotentialLineType type : lines) {
+    PotentialLine* line = potential->add_lines();
+    line->set_type(type);
+    line->set_rank(rank);
+  }
+  character.PickUp(std::make_unique<EquipInstance>(ring, state));
+  character.Equip(character.inventory().size() - 1);
+}
+
+TEST(PotentialStatsTest, FlatLinesLandLikeAWornStat) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeStatCharacter(rng, 100, 0, 0, 0);
+  EquipPotentialRing(c, 100, POTENTIAL_RANK_RARE,
+                     {POTENTIAL_LINE_TYPE_STR, POTENTIAL_LINE_TYPE_ALL_STATS});
+  DerivedStats stats = DerivedStatsFor(c, {});
+  // +12 STR from the STR line and +5 from All Stats, on a level 100 item.
+  EXPECT_EQ(stats.skill_stats.str(), 17);
+  EXPECT_EQ(stats.skill_stats.dex(), 5);
+}
+
+// GMS's rule, and deliberately not Maple Warrior's: a potential's %stat reads
+// the AP pool and everything worn, its own flat lines included.
+TEST(PotentialStatsTest, PercentStatReadsTheApPoolAndTheGear) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeStatCharacter(rng, 1000, 0, 0, 0);
+  EquipStrRing(c, 100);
+  EquipPotentialRing(c, 100, POTENTIAL_RANK_LEGENDARY,
+                     {POTENTIAL_LINE_TYPE_STR_PCT});
+  DerivedStats stats = DerivedStatsFor(c, {});
+  // 12% of 1000 AP plus the ring's 100.
+  EXPECT_EQ(stats.skill_stats.str(), 132);
+}
+
+// The rule [[final-stats]] rests on: a symbol's stat is final, so a %stat
+// line may not multiply it, even though it is worn like anything else.
+TEST(PotentialStatsTest, PercentStatSkipsWhatASymbolGrants) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeStatCharacter(rng, 1000, 0, 0, 0);
+  EquipPrototype symbol;
+  symbol.set_name("Symbol");
+  symbol.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  symbol.mutable_arcane_symbol()->set_area_level(200);
+  c.PickUp(std::make_unique<EquipInstance>(symbol));
+  c.Equip(c.inventory().size() - 1);
+  ASSERT_GT(c.symbol_stats().str(), 0);
+  EquipPotentialRing(c, 100, POTENTIAL_RANK_LEGENDARY,
+                     {POTENTIAL_LINE_TYPE_STR_PCT});
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_EQ(stats.skill_stats.str(), 120);
+}
+
+TEST(PotentialStatsTest, AllStatsPercentPaysEveryStat) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeStatCharacter(rng, 1000, 1000, 1000, 1000);
+  EquipPotentialRing(c, 100, POTENTIAL_RANK_LEGENDARY,
+                     {POTENTIAL_LINE_TYPE_ALL_STATS_PCT});
+  DerivedStats stats = DerivedStatsFor(c, {});
+  // All Stats % pays a rank down: 9% at Legendary on a level 100 item.
+  EXPECT_EQ(stats.skill_stats.str(), 90);
+  EXPECT_EQ(stats.skill_stats.dex(), 90);
+  EXPECT_EQ(stats.skill_stats.int_(), 90);
+  EXPECT_EQ(stats.skill_stats.luk(), 90);
+}
+
+// The two attacks are apart, which they are nowhere else: a %ATT line on a
+// staff is worth nothing, and a skill granting attack_pct still pays both.
+TEST(PotentialStatsTest, AttackAndMagicAttackPercentAreSeparate) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeStatCharacter(rng, 0, 0, 0, 0);
+  EquipPotentialRing(c, 100, POTENTIAL_RANK_LEGENDARY,
+                     {POTENTIAL_LINE_TYPE_ATTACK_PCT});
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_DOUBLE_EQ(stats.attack_pct, 0.12);
+  EXPECT_DOUBLE_EQ(stats.magic_attack_pct, 0.0);
+}
+
+TEST(PotentialStatsTest, TheDamageLeversLandWhereTheirOwnSourcesDo) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeStatCharacter(rng, 0, 0, 0, 0);
+  EquipPotentialRing(
+      c, 150, POTENTIAL_RANK_LEGENDARY,
+      {POTENTIAL_LINE_TYPE_DAMAGE_PCT, POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40,
+       POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT});
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_DOUBLE_EQ(stats.damage_pct, 0.12);
+  EXPECT_DOUBLE_EQ(stats.boss_pct, 0.40);
+  EXPECT_DOUBLE_EQ(stats.crit_dmg, 0.08);
+}
+
+// Two ignored-defence lines meet in reverse, the way every pair of them does:
+// 35% and 40% leave 39% of the defence standing, not 25%.
+TEST(PotentialStatsTest, TwoIgnoredDefenceLinesMeetInReverse) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeStatCharacter(rng, 0, 0, 0, 0);
+  EquipPotentialRing(c, 150, POTENTIAL_RANK_LEGENDARY,
+                     {POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35,
+                      POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40});
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_NEAR(stats.ied, 1.0 - 0.65 * 0.60, 1e-9);
+}
+
+TEST(PotentialStatsTest, MesoTakesTheWornCapAndDropDoesNot) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeStatCharacter(rng, 0, 0, 0, 0);
+  EquipPotentialRing(
+      c, 150, POTENTIAL_RANK_LEGENDARY,
+      {POTENTIAL_LINE_TYPE_MESO_RATE, POTENTIAL_LINE_TYPE_ITEM_DROP_RATE});
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_DOUBLE_EQ(stats.equip_meso_pct, 0.20);
+  EXPECT_DOUBLE_EQ(stats.meso_pct, 0.0);
+  EXPECT_DOUBLE_EQ(stats.item_drop_pct, 0.20);
+}
+
+TEST(PotentialStatsTest, ACooldownLineReachesTheCharacter) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeStatCharacter(rng, 0, 0, 0, 0);
+  EquipPotentialRing(
+      c, 150, POTENTIAL_RANK_LEGENDARY,
+      {POTENTIAL_LINE_TYPE_COOLDOWN_1, POTENTIAL_LINE_TYPE_COOLDOWN_2});
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_DOUBLE_EQ(stats.cooldown_reduction_seconds, 3.0);
+}
+
 }  // namespace
 }  // namespace ms

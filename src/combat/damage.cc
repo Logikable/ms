@@ -345,6 +345,27 @@ double CooldownAt(const Skill& skill, int level) {
   return std::max(0.0, wait);
 }
 
+double ReducedCooldown(double wait, double reduction_seconds) {
+  constexpr double kUntouchedBelow = 5.0;
+  constexpr double kHalvedBelow = 10.0;
+  // What one second offered takes off a short wait instead: a twentieth of
+  // what is left, so -2 seconds is a tenth.
+  constexpr double kSharePerSecond = 0.05;
+  if (wait < kUntouchedBelow || reduction_seconds <= 0.0) {
+    return wait;
+  }
+  if (wait <= kHalvedBelow) {
+    return std::max(kUntouchedBelow,
+                    wait * (1.0 - kSharePerSecond * reduction_seconds));
+  }
+  const double left = wait - reduction_seconds;
+  if (left >= kHalvedBelow) {
+    return left;
+  }
+  // Only half of what would have carried the wait under ten seconds does.
+  return kHalvedBelow - (kHalvedBelow - left) / 2.0;
+}
+
 int ShieldHitsAt(const Shield& shield, int level) {
   double hits = shield.hits() + shield.hits_per_level() * (level - 1);
   return static_cast<int>(std::max(0.0, std::floor(hits)));

@@ -281,7 +281,16 @@ struct DerivedStats {
   // Applied where the totals are summed rather than folded into skill_stats,
   // because what it scales includes the weapon in their hand -- see
   // TotalEquipStats.
+  //
+  // Two fields rather than one because a potential grants the two apart, as
+  // GMS does -- a %ATT line on a staff is worth nothing. A skill granting
+  // attack_pct writes both, which is what it has always meant.
   double attack_pct = 0.0;
+  double magic_attack_pct = 0.0;
+  // Seconds off every skill's cooldown, from the two lines a hat can carry.
+  // What is left of a wait once they are paid is ReducedCooldown's business,
+  // since a short wait gives up a share rather than the seconds.
+  double cooldown_reduction_seconds = 0.0;
   // What the map's Arcane Force requirement leaves of the character's damage,
   // and what it does to the monster's. Not derived from the character at all
   // -- DerivedStatsFor leaves both at the identity, and ComputeCombatParams

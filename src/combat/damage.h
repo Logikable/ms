@@ -180,6 +180,13 @@ int ComboOrbsAt(const Skill& skill, int level);
 // and a wait that shortens as the skill is taught has to shorten in both.
 double CooldownAt(const Skill& skill, int level);
 
+// What is left of a `wait` once the seconds a potential takes off it are
+// paid. GMS's own rule, which is not a plain subtraction: a wait under 5
+// seconds gives up nothing, one of 5 to 10 gives up 5% of itself per second
+// offered rather than the second, and the part of a longer wait that would
+// fall under 10 seconds is halved on the way down.
+double ReducedCooldown(double wait, double reduction_seconds);
+
 // Hits `shield` cancels at `level`: its `hits` plus what `hits_per_level` has
 // bought since level 1, floored. 0 for a buff that is not a shell.
 //
