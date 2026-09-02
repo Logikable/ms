@@ -1,6 +1,6 @@
 # A part of a fight that is not built yet: the boss screen reads its HP and
 # nothing else. See data/bosses.
-name: "Chaos Horntail's Left Hand"
+name: "Horntail's Left Hand"
 level: 160
 attack: 10600
 max_hp: 2300000000

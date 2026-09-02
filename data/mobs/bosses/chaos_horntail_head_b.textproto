@@ -1,6 +1,6 @@
 # A part of a fight that is not built yet: the boss screen reads its HP and
 # nothing else. See data/bosses.
-name: "Chaos Horntail's Head B"
+name: "Horntail's Head B"
 level: 160
 attack: 24500
 max_hp: 3900000000
