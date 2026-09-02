@@ -78,6 +78,15 @@ PotentialLineType AttackShareFor(StatField primary) {
                                    : POTENTIAL_LINE_TYPE_ATTACK_PCT;
 }
 
+// The other one, which pays this character nothing: a warrior's weapon rolls
+// M.ATT as readily as ATT. Here so a weaponry slot carries two lines worth
+// having and one dead one -- //analysis:cube_sim prices two useful lines on a
+// weapon at 15 cubes and three at 70, and nobody buys the third.
+PotentialLineType DeadShareFor(StatField primary) {
+  return primary == STAT_FIELD_INT ? POTENTIAL_LINE_TYPE_ATTACK_PCT
+                                   : POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT;
+}
+
 void AddLine(Potential& potential, PotentialLineType type, PotentialRank rank) {
   PotentialLine& line = *potential.add_lines();
   line.set_type(type);
@@ -183,18 +192,20 @@ Potential MaxPotentialFor(EquipSlot slot, const MaxGear& gear,
   // one line no amount of %ATT replaces -- defense ignored on the weapon,
   // boss damage on the secondary -- and both are Unique-rank lines, which is
   // what puts the weaponry slots a rank above the rest of the outfit.
+  //
+  // Two lines worth having and one dead one, and the third stays dead: a
+  // weapon holding three useful lines is a chase four times as long as one
+  // holding two, and nobody finishes it.
   if (weaponry) {
-    const PotentialLineType attack = AttackShareFor(primary);
     if (slot == EQUIP_SLOT_PRIMARY_WEAPON) {
       AddLine(potential, POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30, rank);
     } else if (slot == EQUIP_SLOT_SECONDARY) {
       AddLine(potential, POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30, rank);
     } else {
-      AddLine(potential, attack, rank);
+      AddLine(potential, AttackShareFor(primary), rank);
     }
-    while (potential.lines_size() < kPotentialLines) {
-      AddLine(potential, attack, PreviousPotentialRank(rank));
-    }
+    AddLine(potential, AttackShareFor(primary), PreviousPotentialRank(rank));
+    AddLine(potential, DeadShareFor(primary), PreviousPotentialRank(rank));
     return potential;
   }
   const PotentialLineType share = StatShareFor(primary);

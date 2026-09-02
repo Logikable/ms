@@ -75,24 +75,30 @@ TEST(MaxCharacterTest, ArmourCarriesThreeLinesOfThePrimaryStat) {
 }
 
 // The weapon and the secondary are what a bossing player really cubes for, so
-// each carries the line it is cubed for and two lots of the attack share. A
-// magician's reads M.ATT.
-TEST(MaxCharacterTest, WeaponryCarriesTheLineItIsCubedFor) {
+// each carries the line it is cubed for and one lot of the attack share. The
+// third is dead weight -- two useful lines is a chase a quarter as long as
+// three -- and on a magician's the dead one is the physical share.
+TEST(MaxCharacterTest, WeaponryCarriesTwoLinesWorthHaving) {
   const MaxGear gear = MaxGearForLevel(200);
   const Potential weapon =
       MaxPotentialFor(EQUIP_SLOT_PRIMARY_WEAPON, gear, STAT_FIELD_STR);
   EXPECT_EQ(weapon.rank(), POTENTIAL_RANK_UNIQUE);
   EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30);
-  EXPECT_EQ(LinesOf(weapon, POTENTIAL_LINE_TYPE_ATTACK_PCT), 2);
+  EXPECT_EQ(LinesOf(weapon, POTENTIAL_LINE_TYPE_ATTACK_PCT), 1);
+  EXPECT_EQ(LinesOf(weapon, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 1);
 
   const Potential secondary =
       MaxPotentialFor(EQUIP_SLOT_SECONDARY, gear, STAT_FIELD_INT);
   EXPECT_EQ(secondary.lines(0).type(), POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30);
-  EXPECT_EQ(LinesOf(secondary, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 2);
+  EXPECT_EQ(LinesOf(secondary, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 1);
+  EXPECT_EQ(LinesOf(secondary, POTENTIAL_LINE_TYPE_ATTACK_PCT), 1);
 
+  // The emblem has no line of its own to chase, so its prime is the attack
+  // share -- still two worth having and one dead.
   const Potential emblem =
       MaxPotentialFor(EQUIP_SLOT_EMBLEM, gear, STAT_FIELD_STR);
-  EXPECT_EQ(LinesOf(emblem, POTENTIAL_LINE_TYPE_ATTACK_PCT), kPotentialLines);
+  EXPECT_EQ(LinesOf(emblem, POTENTIAL_LINE_TYPE_ATTACK_PCT), 2);
+  EXPECT_EQ(LinesOf(emblem, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 1);
 }
 
 // A slot that takes no potential gets none, and neither does a level with no
