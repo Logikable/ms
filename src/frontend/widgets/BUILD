@@ -89,6 +89,7 @@ cc_test(
     deps = [
         ":colors",
         ":game_names",
+        ":text_columns",
         "//src/protos:skill_proto_cc",
         "@googletest//:gtest_main",
     ],

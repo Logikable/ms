@@ -594,6 +594,47 @@ std::string PotentialLineValueText(const PotentialLine& line, int item_level) {
   }
 }
 
+std::string PotentialLineShortName(PotentialLineType type) {
+  static_assert(PotentialLineType_ARRAYSIZE == 28,
+                "a new potential line needs a short name");
+  switch (type) {
+    case POTENTIAL_LINE_TYPE_ALL_STATS:
+    case POTENTIAL_LINE_TYPE_ALL_STATS_PCT:
+      return "All Stat";
+    case POTENTIAL_LINE_TYPE_MAX_HP:
+    case POTENTIAL_LINE_TYPE_MAX_HP_PCT:
+      return "HP";
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15:
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30:
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35:
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40:
+      return "IED";
+    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30:
+    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35:
+    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40:
+      return "Boss";
+    case POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT:
+      return "Crit DMG";
+    case POTENTIAL_LINE_TYPE_MESO_RATE:
+      return "Meso";
+    case POTENTIAL_LINE_TYPE_ITEM_DROP_RATE:
+      return "Drop";
+    case POTENTIAL_LINE_TYPE_COOLDOWN_1:
+    case POTENTIAL_LINE_TYPE_COOLDOWN_2:
+      return "CD";
+    // Everything left reads the same in a column as on a card: STR, ATT,
+    // Damage.
+    default:
+      return PotentialLineName(type);
+  }
+}
+
+std::string PotentialLineCell(const PotentialLine& line, int item_level) {
+  return PadRight(PotentialLineValueText(line, item_level) + " " +
+                      PotentialLineShortName(line.type()),
+                  kPotentialCellWidth);
+}
+
 std::string HyperStatName(HyperStatField field) {
   static_assert(HyperStatField_ARRAYSIZE == 16,
                 "a new Hyper Stat needs a name and a place in the order");

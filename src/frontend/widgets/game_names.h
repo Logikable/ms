@@ -106,6 +106,18 @@ std::string PotentialLineName(PotentialLineType type);
 // "+12", "+9%", and "-2s" for the seconds a cooldown line takes off.
 std::string PotentialLineValueText(const PotentialLine& line, int item_level);
 
+// The name a potential line goes by where there is only a column for it:
+// "Crit DMG", "IED", "CD". Longer than a list column can hold is what the
+// abbreviation is for -- a card with room for the whole name asks
+// PotentialLineName instead.
+std::string PotentialLineShortName(PotentialLineType type);
+
+// One line as a list cell reads it, value first: "+12% ATT", "-2s CD". Held
+// to kPotentialCellWidth columns, which the longest line the game rolls
+// fills exactly.
+std::string PotentialLineCell(const PotentialLine& line, int item_level);
+inline constexpr int kPotentialCellWidth = 13;
+
 // The tag a skill row opens with: what the player does with the skill, said
 // once at the front of the row instead of being worked out from the name.
 // Four columns wide whichever tag it is, so every name after it starts at the

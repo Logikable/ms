@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -287,6 +288,47 @@ TEST(PotentialLineTextTest, NamesAndValuesEveryKindOfLine) {
   EXPECT_EQ(PotentialLineValueText(line, 100), "+35%");
 
   EXPECT_EQ(PotentialLineName(POTENTIAL_LINE_TYPE_UNSPECIFIED), "");
+}
+
+// The column cell: value first, the name abbreviated, and every line held to
+// the one width so a list's columns line up under their header.
+TEST(PotentialLineTextTest, ShortensEveryNameThatOutgrowsAColumn) {
+  EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT),
+            "Crit DMG");
+  EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40),
+            "IED");
+  EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40), "Boss");
+  EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_MESO_RATE), "Meso");
+  EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_ITEM_DROP_RATE), "Drop");
+  EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_COOLDOWN_1), "CD");
+  EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_MAX_HP), "HP");
+  EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_ALL_STATS_PCT),
+            "All Stat");
+  // A name that already fits a column is left as the card says it.
+  EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_ATTACK_PCT), "ATT");
+  EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_DAMAGE_PCT), "Damage");
+}
+
+TEST(PotentialLineTextTest, CellIsValueThenNameAtOneWidth) {
+  PotentialLine line;
+  line.set_type(POTENTIAL_LINE_TYPE_ATTACK_PCT);
+  line.set_rank(POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(PotentialLineCell(line, 150), "+12% ATT     ");
+
+  line.set_type(POTENTIAL_LINE_TYPE_COOLDOWN_2);
+  EXPECT_EQ(PotentialLineCell(line, 150), "-2s CD       ");
+
+  // The longest line the game rolls fills the column exactly, and no line is
+  // cut to reach it: the cell holds its width because every line fits.
+  line.set_type(POTENTIAL_LINE_TYPE_ALL_STATS_PCT);
+  EXPECT_EQ(PotentialLineCell(line, 200), "+10% All Stat");
+  for (int type = 0; type < PotentialLineType_ARRAYSIZE; ++type) {
+    line.set_type(static_cast<PotentialLineType>(type));
+    EXPECT_EQ(TextColumns(PotentialLineCell(line, 200)), kPotentialCellWidth);
+    EXPECT_LE(TextColumns(PotentialLineValueText(line, 200) + " " +
+                          PotentialLineShortName(line.type())),
+              kPotentialCellWidth);
+  }
 }
 
 TEST(PotentialLineTextTest, NamesEveryRank) {
