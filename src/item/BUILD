@@ -20,8 +20,29 @@ cc_library(
     deps = [
         ":equip_stats",
         ":item",
+        ":potential",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
+    ],
+)
+
+cc_library(
+    name = "potential",
+    srcs = ["potential.cc"],
+    hdrs = ["potential.h"],
+    deps = [
+        "//src/protos:equip_proto_cc",
+        "@abseil-cpp//absl/log:check",
+    ],
+)
+
+cc_test(
+    name = "potential_test",
+    size = "small",
+    srcs = ["potential_test.cc"],
+    deps = [
+        ":potential",
+        "@googletest//:gtest_main",
     ],
 )
 

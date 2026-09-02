@@ -608,5 +608,50 @@ TEST_F(EquipInstanceTest, EverySlotNamesTheScrollsItTakes) {
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_MEDAL), SCROLL_TARGET_UNSPECIFIED);
 }
 
+TEST_F(EquipInstanceTest, TheFirstCubeGivesARarePotential) {
+  EquipInstance sword(MakeWeapon());
+  std::mt19937 rng(1);
+  EXPECT_EQ(sword.potential().rank(), POTENTIAL_RANK_UNSPECIFIED);
+  EXPECT_TRUE(sword.Cube(CubeType::kRed, rng));
+  EXPECT_EQ(sword.potential().rank(), POTENTIAL_RANK_RARE);
+  EXPECT_EQ(sword.potential().lines_size(), kPotentialLines);
+  // Every line came out of the weapon's own pool.
+  for (const PotentialLine& line : sword.potential().lines()) {
+    EXPECT_NE(line.type(), POTENTIAL_LINE_TYPE_STR);
+  }
+}
+
+TEST_F(EquipInstanceTest, CubingAgainNeverLosesRank) {
+  EquipInstance hat(MakeArmour(EQUIP_SLOT_HAT));
+  std::mt19937 rng(2);
+  PotentialRank held = POTENTIAL_RANK_UNSPECIFIED;
+  for (int i = 0; i < 200; ++i) {
+    ASSERT_TRUE(hat.Cube(CubeType::kRed, rng));
+    EXPECT_GE(hat.potential().rank(), held);
+    held = hat.potential().rank();
+  }
+  EXPECT_GT(held, POTENTIAL_RANK_RARE);
+}
+
+TEST_F(EquipInstanceTest, ASlotWithNoPotentialRefusesTheCube) {
+  EquipInstance medal(MakeArmour(EQUIP_SLOT_MEDAL));
+  std::mt19937 rng(3);
+  EXPECT_FALSE(medal.CanCube());
+  EXPECT_FALSE(medal.Cube(CubeType::kRed, rng));
+  EXPECT_EQ(medal.potential().rank(), POTENTIAL_RANK_UNSPECIFIED);
+}
+
+// A trace keeps what its item was carrying: it cannot be cubed again, being no
+// EquipInstance at all, but the lines are still there to read.
+TEST_F(EquipInstanceTest, ATraceKeepsThePotentialItDiedWith) {
+  EquipInstance cape(MakeArmour(EQUIP_SLOT_CAPE));
+  std::mt19937 rng(4);
+  ASSERT_TRUE(cape.Cube(CubeType::kRed, rng));
+  const EquipTrace trace(cape.prototype(), cape.SavedState());
+  EXPECT_EQ(trace.potential().rank(), cape.potential().rank());
+  EXPECT_EQ(trace.potential().lines(0).type(),
+            cape.potential().lines(0).type());
+}
+
 }  // namespace
 }  // namespace ms

@@ -7,6 +7,7 @@
 #include "src/account.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
+#include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {
@@ -78,7 +79,7 @@ TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
   const Feature kLevelGated[] = {
       Feature::kEquipped, Feature::kBag,         Feature::kUnequip,
       Feature::kShop,     Feature::kScrolling,   Feature::kStarForce,
-      Feature::kHammer,   Feature::kConsumables,
+      Feature::kHammer,   Feature::kConsumables, Feature::kPotential,
   };
   for (Feature feature : kLevelGated) {
     int level = UnlockLevel(feature);
@@ -93,6 +94,13 @@ TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
 TEST_F(ProgressionTest, ScrollingWaitsForTheEarlyGameToBeOver) {
   EXPECT_FALSE(Unlocked(Feature::kScrolling, MakeCharacter(39), account_));
   EXPECT_TRUE(Unlocked(Feature::kScrolling, MakeCharacter(40), account_));
+}
+
+// Cubing is the last thing a player does to a piece of gear, so it opens after
+// every other way of improving one.
+TEST_F(ProgressionTest, PotentialOpensAboveEveryOtherUpgrade) {
+  EXPECT_EQ(UnlockLevel(Feature::kPotential), kPotentialUnlockLevel);
+  EXPECT_GT(UnlockLevel(Feature::kPotential), UnlockLevel(Feature::kHammer));
 }
 
 // An upgrade written above the cap is one nobody but the workbench can press,

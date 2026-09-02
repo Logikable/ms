@@ -145,6 +145,12 @@ class EquipTabItem : public Item {
   // folded into equip_state(), because a trace's state is also what recovery
   // copies to build the live item that replaces it.
   Equip SavedState() const;
+  // The rolled lines this piece carries, empty until a cube goes into it. A
+  // trace keeps what its item held: the lines are still worth reading, even
+  // though nothing may reroll them again.
+  const Potential& potential() const {
+    return state_.main_potential();
+  }
   int stars() const {
     return state_.stars();
   }

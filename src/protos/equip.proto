@@ -156,6 +156,87 @@ enum EquipSlot {
   EQUIP_SLOT_HEART = 31;
 }
 
+// The rank of a potential, and of one line of it. Four rungs, the same four
+// Inner Ability climbs -- a separate enum because an item is not a character,
+// and the two ladders are free to move apart.
+enum PotentialRank {
+  POTENTIAL_RANK_UNSPECIFIED = 0;
+  POTENTIAL_RANK_RARE = 1;
+  POTENTIAL_RANK_EPIC = 2;
+  POTENTIAL_RANK_UNIQUE = 3;
+  POTENTIAL_RANK_LEGENDARY = 4;
+}
+
+// What one potential line can grant. A cut of GMS's list, keeping what a lever
+// in this game reads: no MP, no DEF, no on-hit statuses, no recovery, and none
+// of the Decent skills -- those arrive with 5th job instead.
+//
+// Where GMS states one effect at several fixed sizes, each size is its own
+// type here: a Legendary weapon can roll 35% ignored defence or 40%, and they
+// are two entries in one pool rather than one entry with two values. That
+// keeps what a line is worth a function of its type and its rank alone.
+enum PotentialLineType {
+  POTENTIAL_LINE_TYPE_UNSPECIFIED = 0;
+  // Flat stats. Rare alone, as in GMS -- Epic and up have dropped them, which
+  // is most of what makes a rank up worth paying for.
+  POTENTIAL_LINE_TYPE_STR = 1;
+  POTENTIAL_LINE_TYPE_DEX = 2;
+  POTENTIAL_LINE_TYPE_INT = 3;
+  POTENTIAL_LINE_TYPE_LUK = 4;
+  POTENTIAL_LINE_TYPE_ALL_STATS = 5;
+  POTENTIAL_LINE_TYPE_MAX_HP = 6;
+
+  POTENTIAL_LINE_TYPE_STR_PCT = 7;
+  POTENTIAL_LINE_TYPE_DEX_PCT = 8;
+  POTENTIAL_LINE_TYPE_INT_PCT = 9;
+  POTENTIAL_LINE_TYPE_LUK_PCT = 10;
+  // Worth a rank less than the single-stat lines above and rolled from Epic
+  // up, both of them GMS's own shape.
+  POTENTIAL_LINE_TYPE_ALL_STATS_PCT = 11;
+  POTENTIAL_LINE_TYPE_MAX_HP_PCT = 12;
+
+  // The weapon lines: a weapon, a secondary or an emblem, and nothing else.
+  POTENTIAL_LINE_TYPE_ATTACK_PCT = 13;
+  POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT = 14;
+  POTENTIAL_LINE_TYPE_DAMAGE_PCT = 15;
+  POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15 = 16;
+  POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30 = 17;
+  POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35 = 18;
+  POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40 = 19;
+  POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30 = 20;
+  POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35 = 21;
+  POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40 = 22;
+
+  // The lines one slot apiece rolls: gloves, then the accessories, then the
+  // hat.
+  POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT = 23;
+  POTENTIAL_LINE_TYPE_MESO_RATE = 24;
+  POTENTIAL_LINE_TYPE_ITEM_DROP_RATE = 25;
+  POTENTIAL_LINE_TYPE_COOLDOWN_1 = 26;
+  POTENTIAL_LINE_TYPE_COOLDOWN_2 = 27;
+}
+
+// One line of a potential. What it is worth is not stored: it is a function of
+// the type, the rank and the level of the item carrying it -- see
+// PotentialLineValue.
+message PotentialLine {
+  PotentialLineType type = 1;
+  // Either the potential's own rank or one rung below it. GMS calls the first
+  // a prime line; here the rank is all that is kept of that distinction.
+  PotentialRank rank = 2;
+}
+
+// The potential on one item: a rank, and the three lines under it. The first
+// line always carries the rank; the second and third are prime at long odds
+// and one rung below otherwise.
+//
+// An item with no potential leaves the whole message unset, which is every
+// item until the first cube goes into it.
+message Potential {
+  PotentialRank rank = 1;
+  repeated PotentialLine lines = 2;
+}
+
 // A way an item can be made stronger after it drops. Listed on a prototype
 // only to say the item refuses it.
 enum Upgrade {
@@ -300,4 +381,7 @@ message Equip {
   // the prototype's. Capped at kMaxHammers. The total the item holds is
   // TotalUpgradeSlots, not upgrade_slots -- see src/item/item.h.
   int32 hammers = 9;
+  // The rolled lines this piece carries, unset until the first cube goes in.
+  // Bonus potential, when it arrives, is a second field of the same type.
+  Potential main_potential = 10;
 }

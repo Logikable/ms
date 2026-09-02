@@ -12,6 +12,7 @@
 #include <random>
 
 #include "src/item/item.h"
+#include "src/item/potential.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -69,6 +70,19 @@ class EquipInstance : public EquipTabItem {
   // modify state on fail or destroy (caller removes the item on destroy).
   // Returns kStarForceFail if already at max_stars().
   StarForceOutcome StarForce(std::mt19937& rng);
+
+  // Rerolls this item's main potential, paying nothing -- the meso is the
+  // caller's to take, as it is for star force. The first cube into an item
+  // always hands over a Rare potential; every one after that rolls for a rank
+  // up first. Returns false, changing nothing, when the item takes no
+  // potential at all -- see CanCube.
+  bool Cube(CubeType cube, std::mt19937& rng);
+
+  // Whether a cube will go into this piece: it is worn somewhere potential
+  // reaches. A trace is never one of these -- it is not an EquipInstance.
+  bool CanCube() const {
+    return SlotTakesPotential(prototype_.equip_slot());
+  }
 
   // Drives a golden hammer in: one more upgrade slot, open and unspent.
   // Returns false, changing nothing, when the item cannot take another --

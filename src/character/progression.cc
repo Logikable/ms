@@ -11,6 +11,7 @@
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
+#include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {
@@ -51,6 +52,10 @@ constexpr Unlock kUnlocks[] = {
     // on the way there: a hammer is 10 million meso for one slot, which is
     // only worth paying on a piece they mean to keep.
     {Feature::kHammer, 150},
+    // Potential's own level -- see kPotentialUnlockLevel. Held well past the
+    // hammer: a cube is worth spending on gear a player is not going to
+    // replace, and there is nothing before Lv140 that qualifies.
+    {Feature::kPotential, kPotentialUnlockLevel},
     // Hyper Stats' own level, which is where the points start being paid --
     // see kHyperStatUnlockLevel.
     {Feature::kHyperStats, kHyperStatUnlockLevel},
@@ -189,6 +194,8 @@ std::string FeatureName(Feature feature) {
       return "Star Force";
     case Feature::kHammer:
       return "the Golden Hammer";
+    case Feature::kPotential:
+      return "Potential";
     case Feature::kSkills:
       return "Skills";
     case Feature::kShop:

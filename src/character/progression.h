@@ -39,6 +39,10 @@ enum class Feature {
   // upgrades and the highest gated: it is worth its price only on gear a
   // player means to keep.
   kHammer,
+  // Cubing, which rerolls an item's potential. Above the hammer and above
+  // every other upgrade: it is the last thing a player does to a piece of
+  // gear, and the one worth doing over and over.
+  kPotential,
   // Recovery is not here: it needs a trace, and a trace only exists after an
   // item exploded, which no level reaches on its own. The item is the gate.
   // Tabs. Skills is the one gate that is not level alone -- see Unlocked.
