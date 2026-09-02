@@ -3,10 +3,15 @@
  * stat bonuses, and remaining upgrade slots; a symbol shows its level, how far
  * along the next one it is, and the Arcane Force it grants.
  *
- * Focus moves top-to-bottom through two zones, the way the bag's does. The top
+ * Focus moves top-to-bottom through zones, the way the bag's does. The top
  * zone is the tab bar: there Left and Right switch tabs. Down descends into
  * the tab's list, and Up off the top row returns to the bar. Enter opens the
  * item context menu via the on_enter callback passed to MakeComponent().
+ *
+ * The [Expand] button at the right of the tab bar is the last zone rather than
+ * part of the bar, for the reason the bag's buttons are: Up from the bar
+ * reaches it in one key. It arrives with the bar itself -- before there is a
+ * second tab there is no bar to hang it in.
  *
  * Call MakeComponent() exactly once; the returned Component captures references
  * to internal state, so the panel object must outlive the Component.
@@ -41,7 +46,10 @@ class EquippedPanel {
 
   EquippedPanel(CharacterInstance& character, AccountInstance& account,
                 int& panel_focus);
-  ftxui::Component MakeComponent(std::function<void()> on_enter);
+  // `on_enter` is Enter on a row. `on_expand` is the tab bar's button, which
+  // opens the panel up to the whole screen and closes it again.
+  ftxui::Component MakeComponent(std::function<void()> on_enter,
+                                 std::function<void()> on_expand = nullptr);
   void OpenMenu();
   // Handles Up/Down/Escape/Return for the item context menu and executes the
   // selected action. Returns the next screen state.
@@ -84,10 +92,22 @@ class EquippedPanel {
     width_ = width;
   }
 
+  // Whether the panel is currently drawn over the whole screen. Set from the
+  // render, like SetHighlighted: the screen the player is on is the
+  // controller's to know, and the panel only needs it to label the button.
+  void SetExpanded(bool expanded) {
+    expanded_ = expanded;
+  }
+  // The column the item menu hangs at, measured from the panel's left border:
+  // past the cursor and the name and slot cells, so the menu covers an item's
+  // stats rather than its name.
+  int menu_column() const;
+
  private:
-  // Which focus zone holds the cursor. The bar is a stop in the same ring as
-  // the rows, so one pair of keys walks the whole panel.
-  enum Zone { kZoneTabs, kZoneList };
+  // Which focus zone holds the cursor. The bar and the button it carries are
+  // stops in the same ring as the rows, so one pair of keys walks the whole
+  // panel.
+  enum Zone { kZoneTabs, kZoneList, kZoneButtons };
 
   // One row of the list, with the cursor and a dim pass over anything worn
   // that is doing nothing. The ftxui::Menu's row transform.
@@ -96,7 +116,7 @@ class EquippedPanel {
   void RebuildRows();
   // The titled window around the tab bar and the list.
   ftxui::Element RenderContent(ftxui::Component menu);
-  ftxui::Element RenderTabBar(bool row_selected) const;
+  ftxui::Element RenderTabBar(bool row_selected, bool button_focused) const;
   // The tabs the character has reached. Symbols arrives with Arcane River.
   std::vector<int> VisibleTabs() const;
   // Moves `direction` tabs, stopping at the ends of the bar.
@@ -117,6 +137,8 @@ class EquippedPanel {
   // before there were tabs at all.
   bool HasTabBar() const;
   bool OnTabBarEvent(const ftxui::Event& event);
+  bool OnButtonEvent(const ftxui::Event& event,
+                     const std::function<void()>& on_expand);
   bool OnListEvent(const ftxui::Event& event,
                    const std::function<void()>& on_enter);
   // The header row over the active tab's columns.
@@ -137,6 +159,8 @@ class EquippedPanel {
   // When the selection last moved, for sliding a long name under its column.
   SelectionClock name_clock_;
   bool highlighted_ = false;
+  // See SetExpanded.
+  bool expanded_ = false;
   std::vector<std::string> entries_;
   // Parallel to entries_: the byte length of each row's name cell, so a row
   // can be drawn with its name coloured apart from the columns after it.

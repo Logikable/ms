@@ -109,13 +109,16 @@ class TuiController {
                 KeyMap& keys, int& panel_focus,
                 MultiplayerSession* multiplayer = nullptr);
 
-  // The bag's [Expand]/[Close] button. The expanded bag is the main view
-  // rather than a screen of its own, so the item menu and every dialog the bag
-  // raises float over it unchanged and Escape closes it the way it closes any
-  // other view.
-  void ToggleBagExpanded();
-  bool bag_expanded() const {
-    return bag_expanded_;
+  // The [Expand]/[Close] button on `panel`, which opens it up over the whole
+  // screen and closes it again. An expanded panel is the main view rather than
+  // a screen of its own, so the item menu and every dialog the panel raises
+  // float over it unchanged and Escape closes it the way it closes any other
+  // view. Pressing it on a panel already expanded closes it; on any other it
+  // moves the expansion there.
+  void ToggleExpanded(int panel);
+  // The panel opened up over the whole screen, or kNoPanel.
+  int expanded_panel() const {
+    return expanded_panel_;
   }
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
@@ -622,8 +625,8 @@ class TuiController {
   // See right_card_focused(). False on every screen that opens, so the arrows
   // start on the list or the card the player came in reading.
   bool right_card_focused_ = false;
-  // See bag_expanded().
-  bool bag_expanded_ = false;
+  // See expanded_panel().
+  int expanded_panel_ = kNoPanel;
   ItemCategory sell_category_ = ITEM_CATEGORY_UNSPECIFIED;
   int sell_index_ = 0;
   // The bag row the equip sale is open on. Bag-only, like recovery: an item

@@ -19,6 +19,7 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/keys.h"
 #include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -943,6 +944,56 @@ TEST_F(SymbolTabTest, TheTabArrivesWithArcaneRiver) {
   std::string rendered = RenderComponent(component);
   EXPECT_NE(rendered.find("Gear"), std::string::npos);
   EXPECT_NE(rendered.find("Symbols"), std::string::npos);
+}
+
+// The button hangs in the tab bar, so it arrives with the bar and not before:
+// there is nowhere to draw it until there is a second tab.
+TEST_F(SymbolTabTest, TheExpandButtonArrivesWithTheBar) {
+  EquippedPanel bare(c_, account_, panel_focus_);
+  EXPECT_EQ(RenderComponent(bare.MakeComponent([]() {})).find("[Expand]"),
+            std::string::npos);
+
+  CharacterInstance c = Traveller();
+  EquippedPanel panel(c, account_, panel_focus_);
+  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("[Expand]"),
+            std::string::npos);
+}
+
+TEST_F(SymbolTabTest, TheExpandButtonReadsCloseWhileExpanded) {
+  CharacterInstance c = Traveller();
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  panel.SetExpanded(true);
+  std::string rendered = RenderComponent(component);
+  EXPECT_NE(rendered.find("[Close]"), std::string::npos);
+  EXPECT_EQ(rendered.find("[Expand]"), std::string::npos);
+}
+
+// The button is the last stop of the ring, so Up off the bar reaches it
+// whichever tab is open, without walking the list.
+TEST_F(SymbolTabTest, UpFromTheBarLandsOnTheButton) {
+  CharacterInstance c = Traveller();
+  EquipPrototype sword;
+  sword.set_name("Sword");
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  c.PickUp(std::make_unique<EquipInstance>(sword));
+  ASSERT_TRUE(c.Equip(0));
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(c, account_, panel_focus_);
+  int expands = 0;
+  ftxui::Component component =
+      panel.MakeComponent([]() {}, [&expands]() { ++expands; });
+  RenderComponent(component);
+  component->OnEvent(ftxui::Event::ArrowUp);  // the list -> the bar
+  RenderComponent(component);
+  component->OnEvent(ftxui::Event::ArrowUp);  // the bar -> [Expand]
+  RenderComponent(component);
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                               ftxui::Dimension::Fixed(20));
+  ftxui::Render(screen, component->Render());
+  EXPECT_TRUE(PixelOf(screen, "[Expand]").inverted);
+  component->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(expands, 1);
 }
 
 // A worn symbol reads its level, how far along the next one it is, and what it

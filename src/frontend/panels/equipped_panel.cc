@@ -81,24 +81,43 @@ bool EquippedPanel::HasTabBar() const {
 }
 
 int EquippedPanel::CursorStop() const {
-  return zone_ == kZoneTabs ? 0 : selected_ + 1;
+  if (zone_ == kZoneTabs) {
+    return 0;
+  }
+  if (zone_ == kZoneButtons) {
+    return 1 + ListCount();
+  }
+  return selected_ + 1;
 }
 
 void EquippedPanel::MoveCursor(int delta) {
   int count = ListCount();
   if (!HasTabBar()) {
-    // No bar to step onto, so the list is a ring on its own.
+    // No bar to step onto, and so no button either: the list is a ring on its
+    // own, as it was before there were tabs at all.
     zone_ = kZoneList;
     selected_ = StepCursor(selected_, delta, count);
     return;
   }
-  int next = StepCursor(CursorStop(), delta, 1 + count);
+  // The button is the last stop, so Up off the bar lands on it. See the header.
+  int next = StepCursor(CursorStop(), delta, 2 + count);
   if (next == 0) {
     zone_ = kZoneTabs;
     return;
   }
+  if (next == 1 + count) {
+    zone_ = kZoneButtons;
+    return;
+  }
   zone_ = kZoneList;
   selected_ = next - 1;
+}
+
+int EquippedPanel::menu_column() const {
+  // The border, the cursor caret, the name cell and its separator, the slot
+  // cell and its separator.
+  constexpr int kSlotCell = 10;
+  return 1 + 2 + NameWidth() + 2 + kSlotCell + 2;
 }
 
 void EquippedPanel::OpenMenu() {
@@ -290,14 +309,16 @@ void EquippedPanel::RebuildRows() {
   }
   if (!entries_.empty()) {
     selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
-  } else if (HasTabBar()) {
-    // Nothing to stand on. The bar is the only stop left, and leaving the
-    // cursor in the list would make both arrow keys do nothing.
+  } else if (HasTabBar() && zone_ == kZoneList) {
+    // Nothing to stand on, so the cursor comes up to the bar rather than
+    // sitting on a row that is not drawn. Only from the list: the bar and its
+    // button are stops of their own and an empty list does not disturb them.
     zone_ = kZoneTabs;
   }
 }
 
-ftxui::Element EquippedPanel::RenderTabBar(bool row_selected) const {
+ftxui::Element EquippedPanel::RenderTabBar(bool row_selected,
+                                           bool button_focused) const {
   std::vector<TabSpec> specs;
   int active = 0;
   for (int tab : VisibleTabs()) {
@@ -306,8 +327,17 @@ ftxui::Element EquippedPanel::RenderTabBar(bool row_selected) const {
     }
     specs.push_back({kTabLabels[tab]});
   }
-  // No width limit: two chips fit several times over in a row this wide.
-  return TabBar(specs, active, row_selected, /*width=*/0);
+  // The button's label is the state pressing it would leave the panel in, as
+  // the bag's is.
+  ftxui::Element button =
+      ActionButton(expanded_ ? "Close" : "Expand", button_focused);
+  // Two layers over one row: the chips from the left, the button from the
+  // right. No width limit on the chips: two of them fit several times over in
+  // a row this wide.
+  return ftxui::dbox({
+      TabBar(specs, active, row_selected, /*width=*/0),
+      ftxui::hbox({ftxui::filler(), std::move(button), ftxui::text(" ")}),
+  });
 }
 
 ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
@@ -319,7 +349,8 @@ ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
   // The bar is drawn only once there is a second tab to reach: one chip over a
   // list says nothing the window title has not already said.
   if (HasTabBar()) {
-    rows.push_back(RenderTabBar(focused && zone_ == kZoneTabs));
+    rows.push_back(RenderTabBar(focused && zone_ == kZoneTabs,
+                                focused && zone_ == kZoneButtons));
     rows.push_back(PanelSeparator(highlighted_));
   }
   if (entries_.empty()) {
@@ -356,6 +387,20 @@ bool EquippedPanel::OnTabBarEvent(const ftxui::Event& event) {
   return true;
 }
 
+bool EquippedPanel::OnButtonEvent(const ftxui::Event& event,
+                                  const std::function<void()>& on_expand) {
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (IsForward(event) && on_expand != nullptr) {
+    on_expand();
+    return true;
+  }
+  // Swallowed like the bar's, or it leaks to the hidden Menu.
+  return true;
+}
+
 bool EquippedPanel::OnListEvent(const ftxui::Event& event,
                                 const std::function<void()>& on_enter) {
   // Take the two ends of the list and leave everything between them to the
@@ -377,7 +422,8 @@ bool EquippedPanel::OnListEvent(const ftxui::Event& event,
   return false;
 }
 
-ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
+ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter,
+                                              std::function<void()> on_expand) {
   ftxui::MenuOption opt;
   opt.on_enter = [on_enter]() { on_enter(); };
   // Also suppresses the default inversion, so the caret looks the same whether
@@ -392,12 +438,16 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
   // panel deaf the moment the player strips down.
   ftxui::Component renderer = AlwaysFocusable(ftxui::Renderer(
       menu, [this, menu]() -> ftxui::Element { return RenderContent(menu); }));
-  return ftxui::CatchEvent(renderer, [this, on_enter](ftxui::Event event) {
-    if (zone_ == kZoneTabs) {
-      return OnTabBarEvent(event);
-    }
-    return OnListEvent(event, on_enter);
-  });
+  return ftxui::CatchEvent(renderer,
+                           [this, on_enter, on_expand](ftxui::Event event) {
+                             if (zone_ == kZoneTabs) {
+                               return OnTabBarEvent(event);
+                             }
+                             if (zone_ == kZoneButtons) {
+                               return OnButtonEvent(event, on_expand);
+                             }
+                             return OnListEvent(event, on_enter);
+                           });
 }
 
 }  // namespace ms

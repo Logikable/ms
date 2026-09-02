@@ -159,11 +159,12 @@ Tui::Tui(GameState& state, std::string save_path, std::string server)
 }
 
 void Tui::BuildComponents() {
-  equip_component_ =
-      equip_panel_.MakeComponent([this]() { controller_.OpenEquipMenu(); });
+  equip_component_ = equip_panel_.MakeComponent(
+      [this]() { controller_.OpenEquipMenu(); },
+      [this]() { controller_.ToggleExpanded(kEquipPanel); });
   inventory_component_ = inventory_panel_.MakeComponent(
       [this]() { controller_.OpenInventoryMenu(); },
-      [this]() { controller_.ToggleBagExpanded(); });
+      [this]() { controller_.ToggleExpanded(kInventoryPanel); });
   CharacterPanelActions char_actions;
   char_actions.allocate = [this](StatField field) {
     controller_.OpenApAllocate(field);
@@ -297,7 +298,8 @@ ftxui::Element Tui::RenderFrame() {
   char_panel_.SetHighlighted(celebration_.Lights(kCharPanel));
   equip_panel_.SetHighlighted(celebration_.Lights(kEquipPanel));
   inventory_panel_.SetHighlighted(celebration_.Lights(kInventoryPanel));
-  inventory_panel_.SetExpanded(controller_.bag_expanded());
+  equip_panel_.SetExpanded(controller_.expanded_panel() == kEquipPanel);
+  inventory_panel_.SetExpanded(controller_.expanded_panel() == kInventoryPanel);
 
   ftxui::Element frame = RenderScreen();
   if (controller_.party_notice_prompt().open()) {
@@ -856,30 +858,44 @@ ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
       on_equip ? equip_panel_.cursor_row() : inventory_panel_.cursor_row();
   ItemMenu& menu = on_equip ? equip_panel_.menu() : inventory_panel_.menu();
   // Past the char panel border, menu cursor, name column, slot column and
-  // separators, so the menu covers stats rather than item names. The expanded
-  // bag hands out a wider name column than the fixed 18 allows for, and has no
-  // left column in front of it, so it is asked where its own columns end.
-  int col = controller_.bag_expanded() ? inventory_panel_.menu_column()
-                                       : widths.left + 1 + 2 + 18 + 2 + 10 + 2;
+  // separators, so the menu covers stats rather than item names. An expanded
+  // panel hands out a wider name column than the fixed 18 allows for, and has
+  // no left column in front of it, so it is asked where its own columns end.
+  int col;
+  if (controller_.expanded_panel() != kNoPanel) {
+    col =
+        on_equip ? equip_panel_.menu_column() : inventory_panel_.menu_column();
+  } else {
+    col = widths.left + 1 + 2 + 18 + 2 + 10 + 2;
+  }
   return Floating(menu.Render(std::max(0, cursor_row - 1), col));
 }
 
-// The bag opened up to the whole terminal. It stands in for the main view
+// A panel opened up to the whole terminal. It stands in for the main view
 // rather than being a screen of its own, so the item menu floats over it and
-// every dialog the bag raises keeps working untouched.
-ftxui::Element Tui::RenderExpandedBag() {
-  inventory_panel_.SetWidth(ftxui::Terminal::Size().dimx);
-  ftxui::Element bag = inventory_component_->Render();
+// every dialog the panel raises keeps working untouched.
+ftxui::Element Tui::RenderExpandedPanel() {
+  int columns = ftxui::Terminal::Size().dimx;
+  ftxui::Element body;
+  if (controller_.expanded_panel() == kEquipPanel) {
+    equip_panel_.SetWidth(columns);
+    body = equip_component_->Render();
+  } else {
+    inventory_panel_.SetWidth(columns);
+    body = inventory_component_->Render();
+  }
+  // No left column in front of it, so the menu hangs at the panel's own
+  // columns -- see OpenMenu.
   ftxui::Element menu = OpenMenu(MainWidths{/*left=*/0, /*right=*/0});
   if (menu == nullptr) {
-    return bag;
+    return body;
   }
-  return ftxui::dbox({std::move(bag), std::move(menu)});
+  return ftxui::dbox({std::move(body), std::move(menu)});
 }
 
 ftxui::Element Tui::RenderMain() {
-  if (controller_.bag_expanded()) {
-    return RenderExpandedBag();
+  if (controller_.expanded_panel() != kNoPanel) {
+    return RenderExpandedPanel();
   }
   // The character panel and the combat panel share the left column, and combat
   // is pinned to its foot. Without a budget the character panel takes the room

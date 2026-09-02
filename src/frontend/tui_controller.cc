@@ -86,8 +86,8 @@ void TuiController::OpenEquipMenu() {
   equip_panel_.OpenMenu();
 }
 
-void TuiController::ToggleBagExpanded() {
-  bag_expanded_ = !bag_expanded_;
+void TuiController::ToggleExpanded(int panel) {
+  expanded_panel_ = expanded_panel_ == panel ? kNoPanel : panel;
 }
 
 void TuiController::OpenInventoryMenu() {
@@ -356,10 +356,10 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
     return false;
   }
   if (IsBack(event)) {
-    if (bag_expanded_) {
-      // The bag fills the screen, so Escape closes it rather than the game --
-      // the same key [Close] is, one view at a time.
-      bag_expanded_ = false;
+    if (expanded_panel_ != kNoPanel) {
+      // An expanded panel fills the screen, so Escape closes it rather than
+      // the game -- the same key [Close] is, one view at a time.
+      expanded_panel_ = kNoPanel;
       return true;
     }
     // Opened on Cancel: leaving is not what an accidental Escape means, and a
@@ -371,7 +371,7 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
   if (!IsSwitchPanel(event)) {
     return false;
   }
-  if (bag_expanded_) {
+  if (expanded_panel_ != kNoPanel) {
     // Nothing to walk to: the other panels are not drawn.
     return true;
   }

@@ -89,6 +89,7 @@ cc_test(
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:keys",
         "//src/frontend/widgets:panel_test_base",
+        "//src/frontend/widgets:screen_text",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "@ftxui//:component",
