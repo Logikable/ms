@@ -171,16 +171,7 @@ void PrintCost(const std::string& name, const Cost& cost) {
               cost.median, cost.p90, cost.p99);
 }
 
-void Run() {
-  const int item_level = absl::GetFlag(FLAGS_item_level);
-  const int trials = absl::GetFlag(FLAGS_trials);
-  const int cap = absl::GetFlag(FLAGS_cap);
-  std::mt19937 rng(20260901);
-
-  std::printf("Red cubes on a level %d item, %d trials a goal.\n", item_level,
-              trials);
-  std::printf("Every run starts from an item with no potential at all.\n");
-
+void PrintRankLadder(int item_level, int trials, int cap, std::mt19937& rng) {
   const std::vector<Goal> ladder = {
       {"reach Epic", PotentialGroup::kArmor, ReachesRank(POTENTIAL_RANK_EPIC)},
       {"reach Unique", PotentialGroup::kArmor,
@@ -192,7 +183,9 @@ void Run() {
   for (const Goal& goal : ladder) {
     PrintCost(goal.name, Play(goal, item_level, trials, cap, rng));
   }
+}
 
+void PrintMainStat(int item_level, int trials, int cap, std::mt19937& rng) {
   const std::vector<Goal> stats = {
       {"21% main stat (armour)", PotentialGroup::kArmor, AtLeastMainStat(21)},
       {"24% main stat (armour)", PotentialGroup::kArmor, AtLeastMainStat(24)},
@@ -207,9 +200,11 @@ void Run() {
   for (const Goal& goal : stats) {
     PrintCost(goal.name, Play(goal, item_level, trials, cap, rng));
   }
+}
 
-  // The -3s hat wants both cooldown lines on one potential, which is why it
-  // is printed beside each line on its own.
+// The -3s hat wants both cooldown lines on one potential, which is why it is
+// printed beside each line on its own.
+void PrintSingleLines(int item_level, int trials, int cap, std::mt19937& rng) {
   const std::vector<Goal> singles = {
       {"8% critical damage (gloves)", PotentialGroup::kGloves,
        HoldsLines({POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT}, 1)},
@@ -225,7 +220,10 @@ void Run() {
   for (const Goal& goal : singles) {
     PrintCost(goal.name, Play(goal, item_level, trials, cap, rng));
   }
+}
 
+void PrintAccessoryLines(int item_level, int trials, int cap,
+                         std::mt19937& rng) {
   const Goal meso = {"20% meso", PotentialGroup::kAccessory,
                      HoldsLines({POTENTIAL_LINE_TYPE_MESO_RATE}, 1)};
   const Goal drop = {"20% item drop", PotentialGroup::kAccessory,
@@ -251,7 +249,9 @@ void Run() {
       "\n    %.0f cubes on average, against %.0f for the same lines"
       " doubled up on 5 pieces.\n",
       8 * meso_cost.mean, 2 * meso_cost.mean + 3 * both_cost.mean);
+}
 
+void PrintWeaponLines(int item_level, int trials, int cap, std::mt19937& rng) {
   const std::vector<Goal> weapon = {
       {"2 useful lines (%ATT, boss, IED), any rank", PotentialGroup::kWeaponry,
        HoldsLines(UsefulWeaponLines(), 2)},
@@ -266,6 +266,23 @@ void Run() {
   for (const Goal& goal : weapon) {
     PrintCost(goal.name, Play(goal, item_level, trials, cap, rng));
   }
+}
+
+void Run() {
+  const int item_level = absl::GetFlag(FLAGS_item_level);
+  const int trials = absl::GetFlag(FLAGS_trials);
+  const int cap = absl::GetFlag(FLAGS_cap);
+  std::mt19937 rng(20260901);
+
+  std::printf("Red cubes on a level %d item, %d trials a goal.\n", item_level,
+              trials);
+  std::printf("Every run starts from an item with no potential at all.\n");
+
+  PrintRankLadder(item_level, trials, cap, rng);
+  PrintMainStat(item_level, trials, cap, rng);
+  PrintSingleLines(item_level, trials, cap, rng);
+  PrintAccessoryLines(item_level, trials, cap, rng);
+  PrintWeaponLines(item_level, trials, cap, rng);
   std::printf("\n");
 }
 

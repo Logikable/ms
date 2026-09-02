@@ -1788,21 +1788,69 @@ double GiveUpAt() {
 
 // Plays the character forward to the level cap, or until the give-up clock
 // runs out.
+// What every look at the game does once the shopping is settled: buy the gear
+// the purse can now afford, then spend the points that were waiting.
+void Restock(Session& run) {
+  Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
+         run.purse, run.shopper, run.scout, run.climb.ledger);
+  SpendHyperPoints(run);
+  SpendHonor(run);
+}
+
+// The player opening the game. The potion plan and the shopper's income come
+// ahead of the gear: a pot that pays its price back in a day multiplies every
+// meso the rest of the run earns, and a star bought first is a star bought
+// with the slower purse.
+void TakeLook(Session& run, const CombatParams& params, const Yield& yield) {
+  PlanPotsFor(run, params, yield);
+  SetShopperIncome(run, params, yield);
+  run.purse.Note(run.state.character);
+  Restock(run);
+}
+
+// Picks the climb up where a checkpoint left it, or starts it from scratch.
+void BeginClimb(Session& run, ClimbCursor& cursor) {
+  if (ResumeClimb(run, &cursor)) {
+    return;
+  }
+  Restock(run);
+  run.next_look = NextLook(run.seconds, run.state.character.proto().level(),
+                           &run.looks_left, run.rng);
+  cursor.level = run.state.character.proto().level();
+  cursor.stint = {cursor.level, 0.0, run.state.current_map,
+                  HeldWeaponName(run.state.character)};
+}
+
+// Jumps the run forward by `horizon` and pays out what the stretch earned.
+void EarnOver(Session& run, const CombatParams& params, const Yield& yield,
+              double horizon, ClimbCursor& cursor) {
+  std::vector<int64_t> kills = KillsOver(yield, horizon, &cursor.carry);
+  AwardCombatRewards(run.state, params, kills);
+  NoteTokenChances(params, kills, run.climb);
+  // The stretch is jumped rather than ticked, so the potion is charged for it
+  // here -- AdvanceCombat, which does it in the game, never runs.
+  DrinkPots(run.state, horizon, &run.climb.ledger.pots);
+  run.purse.Note(run.state.character);
+  run.seconds += horizon;
+}
+
+// Closes the stint the level just ended and opens the next one.
+void NoteLevelReached(Session& run, ClimbCursor& cursor, int reached) {
+  cursor.stint.seconds = run.seconds - cursor.level_began;
+  run.climb.stints.push_back(cursor.stint);
+  cursor.level_began = run.seconds;
+  cursor.level = reached;
+  NoteFrozenDrops(run.state, cursor.level, run.climb);
+  NoteMilestones(run.state, cursor.level, run.seconds, run.purse, run.climb);
+  cursor.stint = {cursor.level, 0.0, run.state.current_map,
+                  HeldWeaponName(run.state.character)};
+}
+
 void ClimbToCap(Session& run) {
   double give_up = GiveUpAt();
   run.horizon = give_up;
   ClimbCursor cursor;
-  if (!ResumeClimb(run, &cursor)) {
-    Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
-           run.purse, run.shopper, run.scout, run.climb.ledger);
-    SpendHyperPoints(run);
-    SpendHonor(run);
-    run.next_look = NextLook(run.seconds, run.state.character.proto().level(),
-                             &run.looks_left, run.rng);
-    cursor.level = run.state.character.proto().level();
-    cursor.stint = {cursor.level, 0.0, run.state.current_map,
-                    HeldWeaponName(run.state.character)};
-  }
+  BeginClimb(run, cursor);
   CombatParams params = ComputeCombatParams(run.state);
   while (cursor.level < kTrialLevelCap && run.seconds < give_up) {
     NoteCheckpoint(run, cursor);
@@ -1828,14 +1876,7 @@ void ClimbToCap(Session& run) {
     double horizon = std::min(std::max(to_level, run.step),
                               std::max(run.next_look - run.seconds, run.step));
     horizon = std::min(horizon, give_up - run.seconds);
-    std::vector<int64_t> kills = KillsOver(yield, horizon, &cursor.carry);
-    AwardCombatRewards(run.state, params, kills);
-    NoteTokenChances(params, kills, run.climb);
-    // The stretch is jumped rather than ticked, so the potion is charged for
-    // it here -- AdvanceCombat, which does it in the game, never runs.
-    DrinkPots(run.state, horizon, &run.climb.ledger.pots);
-    run.purse.Note(run.state.character);
-    run.seconds += horizon;
+    EarnOver(run, params, yield, horizon, cursor);
 
     int reached = run.state.character.proto().level();
     bool levelled = reached != cursor.level;
@@ -1846,28 +1887,11 @@ void ClimbToCap(Session& run) {
         run.next_look =
             NextLook(run.seconds, reached, &run.looks_left, run.rng);
       }
-      // Ahead of the gear: a pot that pays its price back in a day multiplies
-      // every meso the rest of the run earns, and a star bought first is a
-      // star bought with the slower purse.
-      PlanPotsFor(run, params, yield);
-      SetShopperIncome(run, params, yield);
-      run.purse.Note(run.state.character);
-      Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
-             run.purse, run.shopper, run.scout, run.climb.ledger);
-      SpendHyperPoints(run);
-      SpendHonor(run);
+      TakeLook(run, params, yield);
       looked = true;
     }
     if (levelled) {
-      cursor.stint.seconds = run.seconds - cursor.level_began;
-      run.climb.stints.push_back(cursor.stint);
-      cursor.level_began = run.seconds;
-      cursor.level = reached;
-      NoteFrozenDrops(run.state, cursor.level, run.climb);
-      NoteMilestones(run.state, cursor.level, run.seconds, run.purse,
-                     run.climb);
-      cursor.stint = {cursor.level, 0.0, run.state.current_map,
-                      HeldWeaponName(run.state.character)};
+      NoteLevelReached(run, cursor, reached);
       // The character got stronger whether or not anybody was watching, and
       // the fight is built off what they are.
       looked = true;
@@ -1888,6 +1912,52 @@ void ClimbToCap(Session& run) {
 // Plays the days after the cap: the map that pays the most meso a second
 // rather than the most EXP, the dailies as they fall due, and the purse still
 // spending on whatever it can now afford.
+// The hourly look the endgame takes, in place of the climb's look on levelling
+// up. The Etc tab is cleared first, as the climb's own retool does it: the tab
+// holds 128 stacks and twenty days of drops fill it, and a full one refuses
+// the spell traces every scroll is bought with.
+void RestockAtCap(Session& run, const CombatParams& params,
+                  const Yield& yield) {
+  run.climb.ledger.etc_sales += SellDrops(run.state.character);
+  WearBestFromBag(run.state.character);
+  // Before the shelf, for the reason the climb takes it before Retool.
+  PlanPotsFor(run, params, yield);
+  SetShopperIncome(run, params, yield);
+  run.purse.Note(run.state.character);
+  int64_t before_shelf = run.state.character.meso();
+  Outfit(run.state, /*budget=*/true);
+  run.climb.ledger.gear_bought +=
+      std::max<int64_t>(0, before_shelf - run.state.character.meso());
+  run.shopper.Spend(run.state);
+  run.purse.Note(run.state.character);
+  SpendHyperPoints(run);
+  SpendHonor(run);
+  PickMoneyMap(run.state, run.maps, run.beats, run.step);
+  run.climb.money_map = run.state.current_map;
+}
+
+// What the endgame section reached, read off the character once its days are
+// played out.
+void NoteEndgame(Session& run, double began, int64_t earned_at_cap,
+                 int64_t spent_at_cap) {
+  std::pair<int, int> weapon = WeaponUpgrades(run.state);
+  run.climb.endgame_seconds = run.seconds - began;
+  run.climb.endgame_earned = run.purse.earned - earned_at_cap;
+  run.climb.endgame_spent = run.purse.spent - spent_at_cap;
+  run.climb.endgame_stars = weapon.first;
+  run.climb.endgame_frozen = PiecesWorn(run.state, "frozen");
+  run.climb.frozen_set_size = SetSize(run.state, "frozen");
+  run.climb.endgame_boss_set = PiecesWorn(run.state, "boss_accessory");
+  GearReached reached = ReachedOnGear(run.state);
+  run.climb.endgame_pieces = reached.pieces;
+  run.climb.endgame_scrolled = reached.scrolled;
+  run.climb.endgame_stars_worn = reached.stars;
+  run.climb.endgame_hammers = reached.hammers;
+  run.climb.potentials = PotentialsWorn(run.state);
+  run.climb.booms = run.shopper.life().booms;
+  run.climb.ledger.gear = run.shopper.life();
+}
+
 void FarmAtCap(Session& run) {
   double began = run.seconds;
   double total = absl::GetFlag(FLAGS_total_days);
@@ -1932,47 +2002,14 @@ void FarmAtCap(Session& run) {
     bool fought = TakeOnBosses(run, level, /*levelled=*/false);
     if (run.seconds >= next_retool) {
       next_retool += kDaySeconds / 24.0;
-      // The Etc tab first, as the climb's own retool does. It holds 128 stacks
-      // and twenty days of drops fill it, and a full one refuses the spell
-      // traces every scroll is bought with.
-      run.climb.ledger.etc_sales += SellDrops(run.state.character);
-      WearBestFromBag(run.state.character);
-      // Before the shelf, for the reason the climb takes it before Retool.
-      PlanPotsFor(run, params, yield);
-      SetShopperIncome(run, params, yield);
-      run.purse.Note(run.state.character);
-      int64_t before_shelf = run.state.character.meso();
-      Outfit(run.state, /*budget=*/true);
-      run.climb.ledger.gear_bought +=
-          std::max<int64_t>(0, before_shelf - run.state.character.meso());
-      run.shopper.Spend(run.state);
-      run.purse.Note(run.state.character);
-      SpendHyperPoints(run);
-      SpendHonor(run);
-      PickMoneyMap(run.state, run.maps, run.beats, run.step);
-      run.climb.money_map = run.state.current_map;
+      RestockAtCap(run, params, yield);
       fought = true;
     }
     if (fought) {
       params = ComputeCombatParams(run.state);
     }
   }
-  std::pair<int, int> weapon = WeaponUpgrades(run.state);
-  run.climb.endgame_seconds = run.seconds - began;
-  run.climb.endgame_earned = run.purse.earned - earned_at_cap;
-  run.climb.endgame_spent = run.purse.spent - spent_at_cap;
-  run.climb.endgame_stars = weapon.first;
-  run.climb.endgame_frozen = PiecesWorn(run.state, "frozen");
-  run.climb.frozen_set_size = SetSize(run.state, "frozen");
-  run.climb.endgame_boss_set = PiecesWorn(run.state, "boss_accessory");
-  GearReached reached = ReachedOnGear(run.state);
-  run.climb.endgame_pieces = reached.pieces;
-  run.climb.endgame_scrolled = reached.scrolled;
-  run.climb.endgame_stars_worn = reached.stars;
-  run.climb.endgame_hammers = reached.hammers;
-  run.climb.potentials = PotentialsWorn(run.state);
-  run.climb.booms = run.shopper.life().booms;
-  run.climb.ledger.gear = run.shopper.life();
+  NoteEndgame(run, began, earned_at_cap, spent_at_cap);
 }
 
 // Everything the flags say about how a character climbs. A checkpoint written
@@ -2822,14 +2859,20 @@ void PrintWornRow(const EquipInstance& item) {
               item.equip_state().hammers() > 0 ? "hammered" : "");
 }
 
-// A Hyper Stat allocation, the stats that have anything on them.
+// A Hyper Stat allocation, the stats that have anything on them. By field
+// number, since a proto map hands them over in whatever order it likes and two
+// runs of the sim are meant to diff.
 void PrintHyperRow(const char* label, const HyperStatPreset& preset) {
+  std::vector<std::pair<int, int32_t>> spread;
+  for (const std::pair<const int, int32_t>& entry : preset.levels()) {
+    if (entry.second > 0) {
+      spread.push_back(entry);
+    }
+  }
+  std::sort(spread.begin(), spread.end());
   std::printf("    %-9s", label);
   int spent = 0;
-  for (const std::pair<const int, int32_t>& entry : preset.levels()) {
-    if (entry.second <= 0) {
-      continue;
-    }
+  for (const std::pair<int, int32_t>& entry : spread) {
     HyperStatField field = static_cast<HyperStatField>(entry.first);
     std::printf("  %s %d",
                 absl::AsciiStrToLower(HyperStatField_Name(field).substr(
