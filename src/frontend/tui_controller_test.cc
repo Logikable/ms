@@ -157,10 +157,20 @@ class TuiControllerTest : public testing::Test {
     RenderEquipPanel();
   }
 
-  // A sword in the bag instead, with the cursor on the panel holding it.
+  // Puts the bag's cursor on the panel and down on its first row, which is
+  // where every test that opens an item menu means to be standing: focus
+  // arrives on the tab bar, where Enter opens the tab's own menu instead.
+  void DescendIntoBag() {
+    panel_focus_ = kInventoryPanel;
+    RenderInventoryPanel();  // the row has to exist before the cursor reaches
+                             // it
+    inventory_component_->OnEvent(ftxui::Event::ArrowDown);
+  }
+
+  // A sword in the bag instead, with the cursor down on its row.
   void BagASword() {
     state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-    panel_focus_ = kInventoryPanel;
+    DescendIntoBag();
   }
 
   // Runs the fight in progress until it is over, however it ends. The run
@@ -1791,7 +1801,7 @@ TEST_F(TuiControllerTest, EnterOnASuccessReturnsToStarForce) {
 TEST_F(TuiControllerTest, BagStarForceGoesToStarForce) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
-  panel_focus_ = kInventoryPanel;
+  DescendIntoBag();
 
   controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
@@ -1805,7 +1815,7 @@ TEST_F(TuiControllerTest, BagStarForceGoesToStarForce) {
 TEST_F(TuiControllerTest, BagStarForceAttemptGoesToStarForceResult) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
-  panel_focus_ = kInventoryPanel;
+  DescendIntoBag();
 
   controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -2015,7 +2025,7 @@ TEST_F(TuiControllerTest, BagSellEscapeKeepsTheItem) {
 TEST_F(TuiControllerTest, BagSellThrowsATraceAwayForNothing) {
   sword_.set_sell_price(900);
   state_->character.PickUp(std::make_unique<EquipTrace>(sword_, Equip()));
-  panel_focus_ = kInventoryPanel;
+  DescendIntoBag();
 
   controller_->OpenInventoryMenu();
   StepToSell(*controller_);

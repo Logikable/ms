@@ -45,14 +45,15 @@ std::string TabKey(int tab, const CharacterInstance& character) {
 }
 
 // Renders the left-aligned chip row in the shared tab style, with a centered
-// meso counter and the right-aligned `buttons` overlaid in the empty space,
+// meso counter and the right-aligned `expand` tab overlaid in the empty space,
 // over a separator. `tabs` is what the character has unlocked, so a locked tab
-// leaves no gap behind it.
+// leaves no gap behind it. `row_selected` is false while the cursor is out on
+// Expand, so only one chip anywhere is drawn white.
 ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
                             int64_t meso, bool row_selected,
                             const CharacterInstance& character,
                             const AccountInstance& account, bool highlighted,
-                            ftxui::Element buttons) {
+                            ftxui::Element expand, ftxui::Box& bar_box) {
   std::vector<TabSpec> specs;
   int active = 0;
   for (int tab : tabs) {
@@ -65,16 +66,20 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
         {kInventoryTabLabels[tab], !key.empty() && !account.Seen(key)});
   }
   // Three layers over one row: the chips from the left, the meso down the
-  // middle, the buttons from the right. The panel is 85 columns at its
-  // narrowest and the three together take under 40, so none of them reaches
-  // another.
-  ftxui::Element tab_row = ftxui::dbox({
-      // No width limit: the bag's four tabs are a fixed set, and every one of
-      // them fits several times over in a row 71 columns wide.
-      TabBar(specs, active, row_selected, /*width=*/0),
-      ftxui::text(FormatMeso(meso)) | ftxui::color(kTheme) | ftxui::hcenter,
-      ftxui::hbox({ftxui::filler(), std::move(buttons)}),
-  });
+  // middle, Expand from the right. The panel is 85 columns at its narrowest
+  // and the three together take under 40, so none of them reaches another.
+  //
+  // Reflected so a tab menu knows the row to open under.
+  ftxui::Element tab_row =
+      ftxui::dbox({
+          // No width limit: the bag's four tabs are a
+          // fixed set, and every one of them fits several
+          // times over in a row 71 columns wide.
+          TabBar(specs, active, row_selected, /*width=*/0),
+          ftxui::text(FormatMeso(meso)) | ftxui::color(kTheme) | ftxui::hcenter,
+          ftxui::hbox({ftxui::filler(), std::move(expand)}),
+      }) |
+      ftxui::reflect(bar_box);
   return ftxui::vbox({
       std::move(tab_row),
       PanelSeparator(highlighted),
@@ -134,7 +139,8 @@ InventoryPanel::InventoryPanel(CharacterInstance& character,
       panel_focus_(panel_focus),
       menu_({"Equip", "Inspect", "Combine", "Scroll", "Hammer", "Star Force",
              "Recover", "Sell", "Multi-Sell", "Close"}),
-      sell_menu_({"Inspect", "Use", "Sell", "Multi-Sell", "Close"}) {
+      sell_menu_({"Inspect", "Use", "Sell", "Multi-Sell", "Close"}),
+      tab_menu_({"Sort", "Close"}) {
 }
 
 ItemMenu& InventoryPanel::menu() {
@@ -156,9 +162,17 @@ std::vector<int> InventoryPanel::VisibleTabs() const {
 }
 
 void InventoryPanel::StepTab(int direction) {
+  if (on_expand_) {
+    // The far right of the bar: Left steps back onto the tab the list is
+    // still showing, and there is nothing further right to reach.
+    on_expand_ = direction > 0;
+    return;
+  }
   int next = ms::StepTab(VisibleTabs(), active_tab_, direction);
   if (next == active_tab_) {
-    return;  // the ends of the bar are walls, not wrapping points
+    // The left end is a wall; the right one opens onto Expand.
+    on_expand_ = direction > 0;
+    return;
   }
   active_tab_ = next;
   selected_stack_ = 0;
@@ -192,6 +206,9 @@ bool InventoryPanel::on_shop_tab() const {
 }
 
 bool InventoryPanel::ActiveTabEmpty() const {
+  if (on_expand_) {
+    return true;  // a door has nothing under it to walk down into
+  }
   if (active_tab_ == kEquipTab) {
     return character_.inventory().size() == 0;
   }
@@ -203,6 +220,9 @@ bool InventoryPanel::ActiveTabEmpty() const {
 }
 
 int InventoryPanel::ListCount() const {
+  if (on_expand_) {
+    return 0;
+  }
   if (active_tab_ == kEquipTab) {
     return character_.inventory().size();
   }
@@ -216,22 +236,13 @@ int InventoryPanel::CursorStop() const {
   if (zone_ == kZoneTabs) {
     return 0;
   }
-  if (zone_ == kZoneButtons) {
-    return 1 + ListCount();
-  }
   return (active_tab_ == kEquipTab ? selected_ : selected_stack_) + 1;
 }
 
 void InventoryPanel::MoveCursor(int delta) {
-  // The button row is the last stop, so Up off the bar lands on it -- which is
-  // the whole reason the buttons are not on the bar. See the header.
-  int next = StepCursor(CursorStop(), delta, 2 + ListCount());
+  int next = StepCursor(CursorStop(), delta, 1 + ListCount());
   if (next == 0) {
     zone_ = kZoneTabs;
-    return;
-  }
-  if (next == 1 + ListCount()) {
-    zone_ = kZoneButtons;
     return;
   }
   zone_ = kZoneList;
@@ -242,10 +253,6 @@ void InventoryPanel::MoveCursor(int delta) {
   }
 }
 
-bool InventoryPanel::CanSort() const {
-  return active_tab_ != kShopTab;
-}
-
 void InventoryPanel::SortActiveTab() {
   if (active_tab_ == kEquipTab) {
     character_.SortEquipTab();
@@ -254,17 +261,11 @@ void InventoryPanel::SortActiveTab() {
   }
 }
 
-ftxui::Element InventoryPanel::RenderButtons(bool focused) const {
-  ftxui::Element sort = ActionButton("Sort", focused && button_ == kBarSort);
-  if (!CanSort()) {
-    sort = std::move(sort) | ftxui::dim;
-  }
-  // The second button's label is the state it would leave the bag in, the way
-  // the pot switch reads.
-  ftxui::Element expand = ActionButton(expanded_ ? "Close" : "Expand",
-                                       focused && button_ == kBarExpand);
-  return ftxui::hbox(
-      {std::move(sort), ftxui::text(" "), std::move(expand), ftxui::text(" ")});
+ftxui::Element InventoryPanel::RenderExpandTab(bool row_selected) const {
+  // Its label is the state Enter would leave the bag in, the way the pot
+  // switch reads. Drawn as its own layer rather than as another chip of the
+  // bar, so it keeps the far right past the meso counter.
+  return TabChip(expanded_ ? "Close" : "Expand", on_expand_, row_selected);
 }
 
 // The Use/Etc {Sell, Close} menu, for whatever stack the cursor is on.
@@ -403,12 +404,37 @@ void InventoryPanel::OpenEquipMenu() {
   HighlightUnusedUpgrades();
 }
 
+void InventoryPanel::OpenTabMenu() {
+  tab_menu_.Reset();
+}
+
 void InventoryPanel::OpenMenu() {
   if (active_tab_ == kEquipTab) {
     OpenEquipMenu();
   } else {
     OpenStackMenu();
   }
+}
+
+Screen InventoryPanel::OnTabMenuEvent(ftxui::Event event) {
+  if (IsBack(event)) {
+    return kMain;
+  }
+  if (event == ftxui::Event::ArrowUp) {
+    tab_menu_.Up();
+    return kItemMenu;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    tab_menu_.Down();
+    return kItemMenu;
+  }
+  if (IsForward(event)) {
+    if (tab_menu_.selected() == kTabMenuSort) {
+      SortActiveTab();
+    }
+    return kMain;
+  }
+  return kItemMenu;
 }
 
 Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
@@ -534,7 +560,14 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
           (active_tab_ == kEquipTab ? selected_ : selected_stack_),
       focused && zone_ == kZoneList);
   ftxui::Element body;
-  if (active_tab_ == kShopTab) {
+  if (on_expand_) {
+    // A door rather than a page, so where the other tabs list what the player
+    // has, this one says how to go through it.
+    body = ftxui::vbox({CenteredRow(expanded_ ? "Hit Enter to close Inventory"
+                                              : "Hit Enter to fullscreen "
+                                                "Inventory"),
+                        ftxui::filler()});
+  } else if (active_tab_ == kShopTab) {
     // The shop is a screen of its own, so where the other tabs list what the
     // player has, this one says how to get there. Over a filler because the
     // window is taller than this one line and the line belongs at the top.
@@ -556,12 +589,12 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   }
   return AccentWindow(
       " Inventory ",
-      ftxui::vbox(
-          {RenderTabBar(VisibleTabs(), active_tab_, character_.meso(),
-                        focused && zone_ == kZoneTabs, character_, account_,
-                        highlighted_,
-                        RenderButtons(focused && zone_ == kZoneButtons)),
-           std::move(body) | ftxui::flex}),
+      ftxui::vbox({RenderTabBar(VisibleTabs(), active_tab_, character_.meso(),
+                                focused && zone_ == kZoneTabs && !on_expand_,
+                                character_, account_, highlighted_,
+                                RenderExpandTab(focused && zone_ == kZoneTabs),
+                                bar_box_),
+                   std::move(body) | ftxui::flex}),
       PanelAccent(highlighted_), focused);
 }
 
@@ -590,7 +623,8 @@ ftxui::Element InventoryPanel::RenderRow(const ftxui::EntryState& state) {
 }
 
 bool InventoryPanel::OnTabBarEvent(const ftxui::Event& event,
-                                   const std::function<void()>& on_enter) {
+                                   const std::function<void()>& on_enter,
+                                   const std::function<void()>& on_expand) {
   // Left/Right switch tabs; Up and Down step into the list, the bar being a
   // stop in the same ring as the rows. A tab with nothing under it is a ring
   // of one, so both keys leave the cursor where it is.
@@ -606,37 +640,20 @@ bool InventoryPanel::OnTabBarEvent(const ftxui::Event& event,
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
-  if (IsForward(event) && active_tab_ == kShopTab) {
-    // The one tab entered from the bar itself: there is no list below it to
-    // walk down into first.
-    on_enter();
+  if (IsForward(event)) {
+    // Expand and Shop are doors: Enter goes through rather than raising a menu
+    // to ask about a page there is no list under.
+    if (on_expand_) {
+      if (on_expand != nullptr) {
+        on_expand();
+      }
+    } else {
+      on_enter();
+    }
     return true;
   }
   // Swallow the rest, or it leaks to the hidden Equip menu and silently moves
   // its selection while the tab bar holds focus.
-  return true;
-}
-
-bool InventoryPanel::OnButtonEvent(const ftxui::Event& event,
-                                   const std::function<void()>& on_expand) {
-  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
-    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
-    return true;
-  }
-  if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
-    button_ = StepCursor(button_, event == ftxui::Event::ArrowLeft ? -1 : 1,
-                         kNumBarButtons);
-    return true;
-  }
-  if (IsForward(event) && button_ == kBarSort && CanSort()) {
-    SortActiveTab();
-    return true;
-  }
-  if (IsForward(event) && button_ == kBarExpand && on_expand != nullptr) {
-    on_expand();
-    return true;
-  }
-  // Swallowed like the tab bar's, or it leaks to the hidden Equip menu.
   return true;
 }
 
@@ -697,10 +714,7 @@ ftxui::Component InventoryPanel::MakeComponent(
   return ftxui::CatchEvent(renderer,
                            [this, on_enter, on_expand](ftxui::Event event) {
                              if (zone_ == kZoneTabs) {
-                               return OnTabBarEvent(event, on_enter);
-                             }
-                             if (zone_ == kZoneButtons) {
-                               return OnButtonEvent(event, on_expand);
+                               return OnTabBarEvent(event, on_enter, on_expand);
                              }
                              if (active_tab_ != kEquipTab) {
                                return OnStackListEvent(event, on_enter);

@@ -8,10 +8,10 @@
  * the tab's list, and Up off the top row returns to the bar. Enter opens the
  * item context menu via the on_enter callback passed to MakeComponent().
  *
- * The [Expand] button at the right of the tab bar is the last zone rather than
- * part of the bar, for the reason the bag's buttons are: Up from the bar
- * reaches it in one key. It arrives with the bar itself -- before there is a
- * second tab there is no bar to hang it in.
+ * The Expand tab holds the far right of the bar, past the others. It is a door
+ * rather than a page: standing on it draws one line saying so, and Enter opens
+ * the panel up to the whole screen. It arrives with the bar itself -- before
+ * there is a second tab there is no bar to hang it in.
  *
  * Call MakeComponent() exactly once; the returned Component captures references
  * to internal state, so the panel object must outlive the Component.
@@ -46,8 +46,8 @@ class EquippedPanel {
 
   EquippedPanel(CharacterInstance& character, AccountInstance& account,
                 int& panel_focus);
-  // `on_enter` is Enter on a row. `on_expand` is the tab bar's button, which
-  // opens the panel up to the whole screen and closes it again.
+  // `on_enter` is Enter on a row. `on_expand` is Enter on the Expand tab,
+  // which opens the panel up to the whole screen and closes it again.
   ftxui::Component MakeComponent(std::function<void()> on_enter,
                                  std::function<void()> on_expand = nullptr);
   void OpenMenu();
@@ -61,8 +61,10 @@ class EquippedPanel {
   int selected() const {
     return selected_;
   }
-  // Which tab is open. The controller asks so that Enter on a symbol reaches
-  // the symbol's screens rather than an equip's.
+  // Which of the content tabs is open. The controller asks so that Enter on a
+  // symbol reaches the symbol's screens rather than an equip's. Unchanged by
+  // stepping out onto Expand, which is where the cursor is rather than what
+  // the panel is listing.
   int active_tab() const {
     return active_tab_;
   }
@@ -104,10 +106,9 @@ class EquippedPanel {
   int menu_column() const;
 
  private:
-  // Which focus zone holds the cursor. The bar and the button it carries are
-  // stops in the same ring as the rows, so one pair of keys walks the whole
-  // panel.
-  enum Zone { kZoneTabs, kZoneList, kZoneButtons };
+  // Which focus zone holds the cursor. The bar is a stop in the same ring as
+  // the rows, so one pair of keys walks the whole panel.
+  enum Zone { kZoneTabs, kZoneList };
 
   // One row of the list, with the cursor and a dim pass over anything worn
   // that is doing nothing. The ftxui::Menu's row transform.
@@ -116,10 +117,13 @@ class EquippedPanel {
   void RebuildRows();
   // The titled window around the tab bar and the list.
   ftxui::Element RenderContent(ftxui::Component menu);
-  ftxui::Element RenderTabBar(bool row_selected, bool button_focused) const;
-  // The tabs the character has reached. Symbols arrives with Arcane River.
+  ftxui::Element RenderTabBar(bool row_selected) const;
+  // The content tabs the character has reached, left to right. Symbols
+  // arrives with Arcane River; Expand is not one of these, being a door
+  // rather than a page.
   std::vector<int> VisibleTabs() const;
-  // Moves `direction` tabs, stopping at the ends of the bar.
+  // Moves `direction` stops along the bar, Expand included. The left end is a
+  // wall; the right one opens onto Expand.
   void StepTab(int direction);
   // Moves the cursor `delta` stops through the ring the bar and the rows make.
   void MoveCursor(int delta);
@@ -136,8 +140,7 @@ class EquippedPanel {
   // second tab to reach. With one tab the list wraps on itself, as it did
   // before there were tabs at all.
   bool HasTabBar() const;
-  bool OnTabBarEvent(const ftxui::Event& event);
-  bool OnButtonEvent(const ftxui::Event& event,
+  bool OnTabBarEvent(const ftxui::Event& event,
                      const std::function<void()>& on_expand);
   bool OnListEvent(const ftxui::Event& event,
                    const std::function<void()>& on_enter);
@@ -154,6 +157,10 @@ class EquippedPanel {
   // See SetWidth.
   int width_ = kRightColumnMin;
   int active_tab_ = kGearTab;
+  // Whether the cursor stands out on the Expand tab. Kept apart from
+  // active_tab_ because the two are different facts: the list goes on showing
+  // the tab it was showing, and Left steps back onto it.
+  bool on_expand_ = false;
   Zone zone_ = kZoneList;
   int selected_ = 0;
   // When the selection last moved, for sliding a long name under its column.

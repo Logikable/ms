@@ -97,7 +97,12 @@ void TuiController::OpenInventoryMenu() {
     return;
   }
   screen_ = kItemMenu;
-  inventory_panel_.OpenMenu();
+  // Enter on a tab asks about the tab; Enter on a row asks about the item.
+  if (inventory_panel_.on_tab_bar()) {
+    inventory_panel_.OpenTabMenu();
+  } else {
+    inventory_panel_.OpenMenu();
+  }
 }
 
 void TuiController::OpenApAllocate(StatField field) {
@@ -551,6 +556,8 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   int level_before = state_.character.proto().level();
   if (panel_focus_ == kEquipPanel) {
     next = equip_panel_.OnMenuEvent(event, scroll_panel_);
+  } else if (inventory_panel_.on_tab_bar()) {
+    next = inventory_panel_.OnTabMenuEvent(event);
   } else {
     next = inventory_panel_.OnMenuEvent(event, scroll_panel_);
   }

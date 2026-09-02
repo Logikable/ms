@@ -856,17 +856,26 @@ ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
   bool on_equip = panel_focus_ == kEquipPanel;
   int cursor_row =
       on_equip ? equip_panel_.cursor_row() : inventory_panel_.cursor_row();
-  ItemMenu& menu = on_equip ? equip_panel_.menu() : inventory_panel_.menu();
+  ItemMenu& menu = on_equip                        ? equip_panel_.menu()
+                   : inventory_panel_.on_tab_bar() ? inventory_panel_.tab_menu()
+                                                   : inventory_panel_.menu();
   // Past the char panel border, menu cursor, name column, slot column and
   // separators, so the menu covers stats rather than item names. An expanded
   // panel hands out a wider name column than the fixed 18 allows for, and has
   // no left column in front of it, so it is asked where its own columns end.
+  // Nothing in front of an expanded panel, so the menu hangs at its own left
+  // border rather than past the character panel's column.
+  int left = controller_.expanded_panel() != kNoPanel ? 0 : widths.left;
   int col;
-  if (controller_.expanded_panel() != kNoPanel) {
+  if (!on_equip && inventory_panel_.on_tab_bar()) {
+    // A tab menu is about the whole tab rather than one row's stats, so it
+    // hangs under the bar at the panel's left, clear of nothing.
+    col = left + 3;
+  } else if (controller_.expanded_panel() != kNoPanel) {
     col =
         on_equip ? equip_panel_.menu_column() : inventory_panel_.menu_column();
   } else {
-    col = widths.left + 1 + 2 + 18 + 2 + 10 + 2;
+    col = left + 1 + 2 + 18 + 2 + 10 + 2;
   }
   return Floating(menu.Render(std::max(0, cursor_row - 1), col));
 }

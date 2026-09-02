@@ -52,9 +52,17 @@ std::vector<int> EquippedPanel::VisibleTabs() const {
 }
 
 void EquippedPanel::StepTab(int direction) {
+  if (on_expand_) {
+    // The far right of the bar: Left steps back onto the tab the list is
+    // still showing, and there is nothing further right to reach.
+    on_expand_ = direction > 0;
+    return;
+  }
   int next = ms::StepTab(VisibleTabs(), active_tab_, direction);
   if (next == active_tab_) {
-    return;  // the ends of the bar are walls, not wrapping points
+    // The left end is a wall; the right one opens onto Expand.
+    on_expand_ = direction > 0;
+    return;
   }
   active_tab_ = next;
   selected_ = 0;
@@ -62,6 +70,9 @@ void EquippedPanel::StepTab(int direction) {
 
 std::vector<EquippedRow> EquippedPanel::Rows(
     std::chrono::steady_clock::duration slide) const {
+  if (on_expand_) {
+    return {};  // a door has nothing under it to walk down into
+  }
   return active_tab_ == kSymbolTab
              ? SymbolRows(character_, selected_, slide)
              : EquippedRows(character_, selected_, slide, NameWidth());
@@ -81,32 +92,21 @@ bool EquippedPanel::HasTabBar() const {
 }
 
 int EquippedPanel::CursorStop() const {
-  if (zone_ == kZoneTabs) {
-    return 0;
-  }
-  if (zone_ == kZoneButtons) {
-    return 1 + ListCount();
-  }
-  return selected_ + 1;
+  return zone_ == kZoneTabs ? 0 : selected_ + 1;
 }
 
 void EquippedPanel::MoveCursor(int delta) {
   int count = ListCount();
   if (!HasTabBar()) {
-    // No bar to step onto, and so no button either: the list is a ring on its
-    // own, as it was before there were tabs at all.
+    // No bar to step onto: the list is a ring on its own, as it was before
+    // there were tabs at all.
     zone_ = kZoneList;
     selected_ = StepCursor(selected_, delta, count);
     return;
   }
-  // The button is the last stop, so Up off the bar lands on it. See the header.
-  int next = StepCursor(CursorStop(), delta, 2 + count);
+  int next = StepCursor(CursorStop(), delta, 1 + count);
   if (next == 0) {
     zone_ = kZoneTabs;
-    return;
-  }
-  if (next == 1 + count) {
-    zone_ = kZoneButtons;
     return;
   }
   zone_ = kZoneList;
@@ -311,14 +311,13 @@ void EquippedPanel::RebuildRows() {
     selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
   } else if (HasTabBar() && zone_ == kZoneList) {
     // Nothing to stand on, so the cursor comes up to the bar rather than
-    // sitting on a row that is not drawn. Only from the list: the bar and its
-    // button are stops of their own and an empty list does not disturb them.
+    // sitting on a row that is not drawn. Only from the list: the bar is a
+    // stop of its own and an empty list does not disturb it.
     zone_ = kZoneTabs;
   }
 }
 
-ftxui::Element EquippedPanel::RenderTabBar(bool row_selected,
-                                           bool button_focused) const {
+ftxui::Element EquippedPanel::RenderTabBar(bool row_selected) const {
   std::vector<TabSpec> specs;
   int active = 0;
   for (int tab : VisibleTabs()) {
@@ -327,16 +326,18 @@ ftxui::Element EquippedPanel::RenderTabBar(bool row_selected,
     }
     specs.push_back({kTabLabels[tab]});
   }
-  // The button's label is the state pressing it would leave the panel in, as
-  // the bag's is.
-  ftxui::Element button =
-      ActionButton(expanded_ ? "Close" : "Expand", button_focused);
-  // Two layers over one row: the chips from the left, the button from the
-  // right. No width limit on the chips: two of them fit several times over in
-  // a row this wide.
+  // Its label is the state Enter would leave the panel in, as the button's
+  // was. Drawn as its own layer rather than as another chip of the bar, so it
+  // keeps the far right however many tabs come and go to its left.
+  ftxui::Element expand =
+      TabChip(expanded_ ? "Close" : "Expand", on_expand_, row_selected);
+  // Two layers over one row: the chips from the left, Expand from the right.
+  // No width limit on the chips: two of them fit several times over in a row
+  // this wide. The bar is told it is unfocused while the cursor is out on
+  // Expand, so only one chip anywhere is drawn white.
   return ftxui::dbox({
-      TabBar(specs, active, row_selected, /*width=*/0),
-      ftxui::hbox({ftxui::filler(), std::move(button), ftxui::text(" ")}),
+      TabBar(specs, active, row_selected && !on_expand_, /*width=*/0),
+      ftxui::hbox({ftxui::filler(), std::move(expand)}),
   });
 }
 
@@ -349,9 +350,19 @@ ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
   // The bar is drawn only once there is a second tab to reach: one chip over a
   // list says nothing the window title has not already said.
   if (HasTabBar()) {
-    rows.push_back(RenderTabBar(focused && zone_ == kZoneTabs,
-                                focused && zone_ == kZoneButtons));
+    rows.push_back(RenderTabBar(focused && zone_ == kZoneTabs));
     rows.push_back(PanelSeparator(highlighted_));
+  }
+  if (on_expand_) {
+    // A door rather than a page, so where the other tabs list what is worn,
+    // this one says how to go through it. Over a filler because the window is
+    // taller than this one line and the line belongs at the top.
+    rows.push_back(CenteredRow(expanded_
+                                   ? "Hit Enter to close Equipment"
+                                   : "Hit Enter to fullscreen Equipment"));
+    rows.push_back(ftxui::filler());
+    return AccentWindow(" Equipped ", ftxui::vbox(std::move(rows)),
+                        PanelAccent(highlighted_), focused);
   }
   if (entries_.empty()) {
     rows.push_back(EmptyState("empty"));
@@ -369,7 +380,8 @@ ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
                       PanelAccent(highlighted_), focused);
 }
 
-bool EquippedPanel::OnTabBarEvent(const ftxui::Event& event) {
+bool EquippedPanel::OnTabBarEvent(const ftxui::Event& event,
+                                  const std::function<void()>& on_expand) {
   if (event == ftxui::Event::ArrowLeft) {
     StepTab(-1);
     return true;
@@ -382,22 +394,14 @@ bool EquippedPanel::OnTabBarEvent(const ftxui::Event& event) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
-  // Swallow the rest, or it leaks to the hidden Menu and silently moves its
-  // selection while the bar holds focus.
-  return true;
-}
-
-bool EquippedPanel::OnButtonEvent(const ftxui::Event& event,
-                                  const std::function<void()>& on_expand) {
-  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
-    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
-    return true;
-  }
-  if (IsForward(event) && on_expand != nullptr) {
+  // Enter acts only on Expand. Gear and Symbols are pages, and there is
+  // nothing to ask about a page but to walk down into it.
+  if (IsForward(event) && on_expand_ && on_expand != nullptr) {
     on_expand();
     return true;
   }
-  // Swallowed like the bar's, or it leaks to the hidden Menu.
+  // Swallow the rest, or it leaks to the hidden Menu and silently moves its
+  // selection while the bar holds focus.
   return true;
 }
 
@@ -441,10 +445,7 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter,
   return ftxui::CatchEvent(renderer,
                            [this, on_enter, on_expand](ftxui::Event event) {
                              if (zone_ == kZoneTabs) {
-                               return OnTabBarEvent(event);
-                             }
-                             if (zone_ == kZoneButtons) {
-                               return OnButtonEvent(event, on_expand);
+                               return OnTabBarEvent(event, on_expand);
                              }
                              return OnListEvent(event, on_enter);
                            });

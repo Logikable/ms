@@ -190,18 +190,14 @@ TEST_F(InventoryPanelTest, TheCursorLeavesAListThatEmptiedUnderIt) {
 
 // --- the tab bar and the list are one ring ---
 
-// The bar, the rows and the button row are one ring, in that order. Up off
-// the bar reaches the buttons, and the row after them is the last item.
-TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarWalksBackThroughTheButtons) {
+// The bar and the rows are one ring, so Up off the bar lands on the last row.
+TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastRow) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderComponent(comp);
-  comp->OnEvent(ftxui::Event::ArrowUp);
-  EXPECT_EQ(RenderComponentText(comp).find("> Sword"), std::string::npos)
-      << "the buttons hold the cursor, so no row is caretted";
   comp->OnEvent(ftxui::Event::ArrowUp);
   EXPECT_EQ(panel.selected(), 1) << "the second and last row";
 }
@@ -218,8 +214,7 @@ TEST_F(InventoryPanelTest, TheCaretShowsOnArrivalFromTheTabBar) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderComponent(comp);
 
-  comp->OnEvent(ftxui::Event::ArrowUp);  // the bar -> the buttons
-  comp->OnEvent(ftxui::Event::ArrowUp);  // the buttons -> the last row
+  comp->OnEvent(ftxui::Event::ArrowUp);  // the bar -> the last row
   ASSERT_EQ(panel.selected(), 24);
   EXPECT_NE(RenderComponentText(comp).find("> Item24"), std::string::npos)
       << "no caret after wrapping up onto the last row";
@@ -240,9 +235,7 @@ TEST_F(InventoryPanelTest, TheCaretShowsOnReturnToTheFirstRow) {
     RenderComponent(comp);
   }
   ASSERT_EQ(panel.selected(), 24);
-  comp->OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the buttons
-  RenderComponent(comp);
-  comp->OnEvent(ftxui::Event::ArrowDown);  // the buttons -> the bar
+  comp->OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the bar
   RenderComponent(comp);
   comp->OnEvent(ftxui::Event::ArrowDown);  // the bar -> the first row
 
@@ -259,11 +252,10 @@ TEST_F(InventoryPanelTest, DownFromTheLastItemReturnsToTheBar) {
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> the one item
   ASSERT_NE(RenderComponentText(comp).find("> Sword"), std::string::npos);
 
-  comp->OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the buttons
+  comp->OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the tab bar
   // The cursor is drawn only in the list zone, so its absence is where the
   // cursor went. Left still switching tabs is the other half of the answer.
   EXPECT_EQ(RenderComponentText(comp).find("> Sword"), std::string::npos);
-  comp->OnEvent(ftxui::Event::ArrowDown);  // the buttons -> the tab bar
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_TRUE(panel.on_stackable_tab());
 }
@@ -275,8 +267,7 @@ TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastStack) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
-  comp->OnEvent(ftxui::Event::ArrowUp);     // the bar -> the buttons
-  comp->OnEvent(ftxui::Event::ArrowUp);
+  comp->OnEvent(ftxui::Event::ArrowUp);     // the bar -> the last stack
   EXPECT_NE(RenderComponentText(comp).find("> Blue Potion"), std::string::npos);
 }
 
@@ -307,39 +298,75 @@ TEST_F(InventoryPanelTest, TheEmptyTabRingIsTheBarAndTheButtons) {
   EXPECT_TRUE(panel.on_stackable_tab());
 }
 
-// --- the bar's buttons ---
+// --- the Expand tab ---
 
-TEST_F(InventoryPanelTest, TheBarCarriesItsTwoButtons) {
-  InventoryPanel panel(c_, account_, panel_focus_);
-  std::string screen = RenderComponent(panel.MakeComponent([]() {}));
-  EXPECT_NE(screen.find("[Sort]"), std::string::npos);
-  EXPECT_NE(screen.find("[Expand]"), std::string::npos);
-}
-
-// The second button's label is the state pressing it would leave the bag in.
-TEST_F(InventoryPanelTest, TheExpandButtonReadsCloseWhileExpanded) {
+// Its label is the state Enter would leave the bag in, and it holds the far
+// right of the bar whether or not the shop has opened a fourth tab.
+TEST_F(InventoryPanelTest, TheExpandTabReadsTheStateItWouldLeave) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
+  EXPECT_NE(RenderComponent(comp).find("Expand"), std::string::npos);
   panel.SetExpanded(true);
   std::string screen = RenderComponent(comp);
-  EXPECT_NE(screen.find("[Close]"), std::string::npos);
-  EXPECT_EQ(screen.find("[Expand]"), std::string::npos);
+  EXPECT_NE(screen.find("Close"), std::string::npos);
+  EXPECT_EQ(screen.find("Expand"), std::string::npos);
 }
 
-TEST_F(InventoryPanelTest, EnterOnExpandCallsBack) {
+// A door rather than a page: standing on it says so where the other tabs list
+// what the player has, and Enter goes through rather than opening a menu.
+TEST_F(InventoryPanelTest, TheExpandTabSaysWhatEnterWouldDo) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  RenderComponent(comp);
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Etc -> Expand
+  std::string screen = RenderComponent(comp);
+  EXPECT_NE(screen.find("Hit Enter to fullscreen Inventory"),
+            std::string::npos);
+  EXPECT_EQ(screen.find("Sword"), std::string::npos)
+      << "the door stands in front of the list, as the Shop tab does";
+}
+
+TEST_F(InventoryPanelTest, EnterOnTheExpandTabCallsBack) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   int expands = 0;
   ftxui::Component comp =
       panel.MakeComponent([]() {}, [&expands]() { ++expands; });
-  comp->OnEvent(ftxui::Event::ArrowUp);     // the bar -> [Sort]
-  comp->OnEvent(ftxui::Event::ArrowRight);  // [Sort] -> [Expand]
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> ... -> Expand
+  }
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(expands, 1);
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // back onto the tab it was showing
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(expands, 1) << "Enter on a page raises a menu, not the fullscreen";
 }
 
-// The button acts on the tab the player is looking at, and reaching it does
-// not move them off that tab.
+// Left off Expand comes back to the tab the list was showing all along, and
+// Right on it has nowhere further to go.
+TEST_F(InventoryPanelTest, TheExpandTabIsTheEndOfTheBar) {
+  c_.AddStackable(MakeStackable("Ore", ITEM_CATEGORY_ETC), 1);
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Etc -> Expand
+  comp->OnEvent(ftxui::Event::ArrowRight);  // and no further
+  comp->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_EQ(panel.active_tab(), kEtcTab);
+  EXPECT_NE(RenderComponent(comp).find("Quantity"), std::string::npos)
+      << "the list is back";
+}
+
+// --- the tab menu ---
+
+// Sort acts on the tab the player is looking at, and opening the menu does
+// not move them off it.
 TEST_F(InventoryPanelTest, SortFilesTheEquipTab) {
   EquipPrototype wearable = sword_;
   wearable.set_name("Zzz Club");
@@ -354,8 +381,9 @@ TEST_F(InventoryPanelTest, SortFilesTheEquipTab) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   ASSERT_EQ(c_.inventory()[0].name(), "Aaa Gated Sword");
 
-  comp->OnEvent(ftxui::Event::ArrowUp);  // the bar -> [Sort]
-  comp->OnEvent(ftxui::Event::Return);
+  ScrollPanel sp(c_, {});
+  panel.OpenTabMenu();
+  panel.OnTabMenuEvent(ftxui::Event::Return);  // Sort, the first entry
   EXPECT_EQ(c_.inventory()[0].name(), "Zzz Club")
       << "what can be worn files above what cannot";
   EXPECT_EQ(panel.active_tab(), kEquipTab);
@@ -368,23 +396,27 @@ TEST_F(InventoryPanelTest, SortFilesAStackTab) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
-  comp->OnEvent(ftxui::Event::ArrowUp);     // the bar -> [Sort]
-  comp->OnEvent(ftxui::Event::Return);
+  panel.OpenTabMenu();
+  panel.OnTabMenuEvent(ftxui::Event::Return);
   EXPECT_EQ(c_.stackables(ITEM_CATEGORY_USE)[0].name(), "Aaa Potion")
       << "the larger stack files first";
 }
 
-// The shop is a door rather than a list, so there is nothing to put in order.
-TEST_F(InventoryPanelTest, SortDimsOnTheShopTab) {
+// The shop is a door rather than a list, so Enter goes through it instead of
+// raising a menu about a page there is nothing to sort.
+TEST_F(InventoryPanelTest, TheShopTabIsEnteredNotAskedAbout) {
   LevelTo(UnlockLevel(Feature::kShop));
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
-  ftxui::Component comp = panel.MakeComponent([]() {});
-  EXPECT_FALSE(PixelOfRendered(comp, "[Sort]").dim);
+  bool opened = false;
+  ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
   for (int i = 0; i < 3; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Shop
   }
-  EXPECT_TRUE(PixelOfRendered(comp, "[Sort]").dim);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(opened);
+  EXPECT_TRUE(panel.on_shop_tab())
+      << "the controller reads this to send Enter to the shop";
 }
 
 TEST_F(InventoryPanelTest, ShowsEmptyWhenBagIsEmpty) {
@@ -1066,13 +1098,17 @@ TEST_F(InventoryPanelTest, UseTabEnterOpensMenuOnNonEmptyStack) {
   EXPECT_TRUE(opened);
 }
 
-TEST_F(InventoryPanelTest, EmptyTabEnterDoesNotOpenMenu) {
+// Nothing to descend into, so the cursor stays on the bar -- where Enter asks
+// about the tab rather than about an item that is not there.
+TEST_F(InventoryPanelTest, EnterOnAnEmptyTabAsksAboutTheTab) {
   InventoryPanel panel(c_, account_, panel_focus_);
   bool opened = false;
   ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use (empty)
+  comp->OnEvent(ftxui::Event::ArrowDown);   // nowhere below to go
   comp->OnEvent(ftxui::Event::Return);
-  EXPECT_FALSE(opened);
+  EXPECT_TRUE(opened);
+  EXPECT_TRUE(panel.on_tab_bar());
 }
 
 // Inspect leads, because looking at a thing is what you do before deciding

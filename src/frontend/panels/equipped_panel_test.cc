@@ -946,32 +946,28 @@ TEST_F(SymbolTabTest, TheTabArrivesWithArcaneRiver) {
   EXPECT_NE(rendered.find("Symbols"), std::string::npos);
 }
 
-// The button hangs in the tab bar, so it arrives with the bar and not before:
-// there is nowhere to draw it until there is a second tab.
-TEST_F(SymbolTabTest, TheExpandButtonArrivesWithTheBar) {
+// Expand hangs in the tab bar, so it arrives with the bar and not before:
+// there is nowhere to draw it until there is a second tab. Its label is the
+// state Enter would leave the panel in.
+TEST_F(SymbolTabTest, TheExpandTabArrivesWithTheBar) {
   EquippedPanel bare(c_, account_, panel_focus_);
-  EXPECT_EQ(RenderComponent(bare.MakeComponent([]() {})).find("[Expand]"),
+  EXPECT_EQ(RenderComponent(bare.MakeComponent([]() {})).find("Expand"),
             std::string::npos);
 
-  CharacterInstance c = Traveller();
-  EquippedPanel panel(c, account_, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("[Expand]"),
-            std::string::npos);
-}
-
-TEST_F(SymbolTabTest, TheExpandButtonReadsCloseWhileExpanded) {
   CharacterInstance c = Traveller();
   EquippedPanel panel(c, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
+  EXPECT_NE(RenderComponent(component).find("Expand"), std::string::npos);
   panel.SetExpanded(true);
   std::string rendered = RenderComponent(component);
-  EXPECT_NE(rendered.find("[Close]"), std::string::npos);
-  EXPECT_EQ(rendered.find("[Expand]"), std::string::npos);
+  EXPECT_NE(rendered.find("Close"), std::string::npos);
+  EXPECT_EQ(rendered.find("Expand"), std::string::npos);
 }
 
-// The button is the last stop of the ring, so Up off the bar reaches it
-// whichever tab is open, without walking the list.
-TEST_F(SymbolTabTest, UpFromTheBarLandsOnTheButton) {
+// The far right of the bar, past the Symbols tab. A door rather than a page:
+// standing on it says so where the tabs list what is worn, and Enter goes
+// through.
+TEST_F(SymbolTabTest, TheExpandTabIsTheEndOfTheBar) {
   CharacterInstance c = Traveller();
   EquipPrototype sword;
   sword.set_name("Sword");
@@ -984,16 +980,20 @@ TEST_F(SymbolTabTest, UpFromTheBarLandsOnTheButton) {
   ftxui::Component component =
       panel.MakeComponent([]() {}, [&expands]() { ++expands; });
   RenderComponent(component);
-  component->OnEvent(ftxui::Event::ArrowUp);  // the list -> the bar
-  RenderComponent(component);
-  component->OnEvent(ftxui::Event::ArrowUp);  // the bar -> [Expand]
-  RenderComponent(component);
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
-                                               ftxui::Dimension::Fixed(20));
-  ftxui::Render(screen, component->Render());
-  EXPECT_TRUE(PixelOf(screen, "[Expand]").inverted);
+  component->OnEvent(ftxui::Event::ArrowUp);     // the list -> the bar
+  component->OnEvent(ftxui::Event::ArrowRight);  // Gear -> Symbols
+  component->OnEvent(ftxui::Event::ArrowRight);  // Symbols -> Expand
+  component->OnEvent(ftxui::Event::ArrowRight);  // and no further
+  std::string rendered = RenderComponent(component);
+  EXPECT_NE(rendered.find("Hit Enter to fullscreen Equipment"),
+            std::string::npos);
   component->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(expands, 1);
+
+  component->OnEvent(ftxui::Event::ArrowLeft);  // back onto Symbols
+  component->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(expands, 1) << "Enter on a page does nothing; it is not a door";
+  EXPECT_EQ(panel.active_tab(), EquippedPanel::kSymbolTab);
 }
 
 // A worn symbol reads its level, how far along the next one it is, and what it
