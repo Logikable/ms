@@ -21,6 +21,7 @@
 #ifndef MS_SRC_ITEM_POTENTIAL_H_
 #define MS_SRC_ITEM_POTENTIAL_H_
 
+#include <cstdint>
 #include <random>
 #include <vector>
 
@@ -31,6 +32,11 @@ namespace ms {
 // The level cubing opens at. Account-wide, like every other upgrade: a player
 // who has taken one character to it can cube on all of them.
 inline constexpr int kPotentialUnlockLevel = 180;
+
+// What one cube takes, whatever it rolls. Flat, as GMS prices it: a cube on a
+// level 200 weapon costs what a cube on a level 100 ring costs, so the piece
+// worth cubing is the piece whose lines are worth the most.
+inline constexpr int64_t kCubeCost = 12'000'000;
 
 // Lines every potential has. GMS reveals them one at a time and sells a stamp
 // for the third; here an item always has all three.

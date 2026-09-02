@@ -3244,6 +3244,29 @@ TEST(PotentialStatsTest, MesoTakesTheWornCapAndDropDoesNot) {
   EXPECT_DOUBLE_EQ(stats.item_drop_pct, 0.20);
 }
 
+// The pile a %stat line multiplies is read back out of the finished stats, so
+// a caller pricing a potential the character is not wearing gets the same
+// answer the fold would give -- and the worn one's own share is taken off
+// first, rather than being multiplied a second time.
+TEST(PotentialStatsTest, StatGrantPricesAPotentialTheCharacterIsNotWearing) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeStatCharacter(rng, 1000, 0, 0, 0);
+  EquipPotentialRing(c, 150, POTENTIAL_RANK_UNIQUE,
+                     {POTENTIAL_LINE_TYPE_STR_PCT});
+  DerivedStats stats = DerivedStatsFor(c, {});
+  // 9% of the 1000 AP, and nothing else is worn.
+  EXPECT_EQ(stats.potential_stats.str(), 90);
+  EXPECT_EQ(PotentialStatGrant(c, stats, c.potential_totals()).str(), 90);
+
+  // A Legendary line on the same item pays 12% of the same 1000, not of 1090.
+  PotentialTotals better;
+  better.str_pct = 0.12;
+  EXPECT_EQ(PotentialStatGrant(c, stats, better).str(), 120);
+
+  // Nothing at all takes the whole worn share back off.
+  EXPECT_EQ(PotentialStatGrant(c, stats, PotentialTotals()).str(), 0);
+}
+
 TEST(PotentialStatsTest, ACooldownLineReachesTheCharacter) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeStatCharacter(rng, 0, 0, 0, 0);

@@ -16,6 +16,7 @@
 #include "src/character/character.h"
 #include "src/character/hyper_stats.h"
 #include "src/combat/damage.h"
+#include "src/item/potential.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -303,6 +304,11 @@ struct DerivedStats {
   // equipment stats go. It is the only way a skill's primary stat reaches the
   // damage chain. Its DEF is only the passives' share, unlike `def` above.
   EquipStats skill_stats;
+  // The share of that the potentials paid, their %stat lines included. Held
+  // apart for the reason symbol_stats is: a caller pricing a potential the
+  // character is not wearing has to take the worn one back off first. See
+  // PotentialStatGrant.
+  EquipStats potential_stats;
 };
 
 // The most %meso worn equipment is worth, however many pieces of it grant
@@ -463,6 +469,18 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived);
 // which one it came from. `derived` is the result of DerivedStatsFor above.
 EquipStats TotalEquipStats(const CharacterInstance& character,
                            const DerivedStats& derived);
+
+// The flat stat `totals` would pay `character`, its %stat lines included --
+// the fold DerivedStatsFor applies, asked of a potential they are not wearing.
+// A %stat line takes a share of the whole stat pile, so only this file knows
+// what one is worth; pricing a cube before paying for it needs exactly that.
+//
+// `derived` is the character's own DerivedStatsFor result, which is where the
+// pile is read from. Pass their current totals and it answers
+// `derived.potential_stats`.
+EquipStats PotentialStatGrant(const CharacterInstance& character,
+                              const DerivedStats& derived,
+                              const PotentialTotals& totals);
 
 }  // namespace ms
 

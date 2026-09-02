@@ -780,19 +780,18 @@ void AddInnerAbility(const CharacterInstance& character, StatPreset preset,
 // deliberately not Maple Warrior's deal: that one reads the AP pool alone.
 // Two %stat sources sum rather than compound, so both are worked out against
 // the same untouched base and added.
-void AddPotentials(const CharacterInstance& character, PassiveTotals& totals) {
-  const PotentialTotals& potential = character.potential_totals();
-  const AllocatedStats& allocated = character.proto().allocated_stats();
-  const EquipStats& worn = character.equip_stats();
-  const EquipStats& symbols = character.symbol_stats();
+// The flat stat `potential` pays a character whose four stats stand at `pile`
+// before any of it: its own flat lines, plus the share its %stat lines take of
+// that pile once those lines are in it. Split out so the fold below and
+// PotentialStatGrant cannot drift apart.
+EquipStats PotentialFlatGrant(const int pile[4],
+                              const PotentialTotals& potential) {
   const EquipStats& flat = potential.flat;
-
   const int base[4] = {
-      allocated.str() + worn.str() - symbols.str() + totals.str + flat.str(),
-      allocated.dex() + worn.dex() - symbols.dex() + totals.dex + flat.dex(),
-      allocated.int_() + worn.int_() - symbols.int_() + totals.int_ +
-          flat.int_(),
-      allocated.luk() + worn.luk() - symbols.luk() + totals.luk + flat.luk(),
+      pile[0] + flat.str(),
+      pile[1] + flat.dex(),
+      pile[2] + flat.int_(),
+      pile[3] + flat.luk(),
   };
   const double share[4] = {potential.str_pct, potential.dex_pct,
                            potential.int_pct, potential.luk_pct};
@@ -801,11 +800,49 @@ void AddPotentials(const CharacterInstance& character, PassiveTotals& totals) {
     granted[i] =
         static_cast<int>(std::floor(base[i] * share[i] + kPercentEpsilon));
   }
-  totals.str += flat.str() + granted[0];
-  totals.dex += flat.dex() + granted[1];
-  totals.int_ += flat.int_() + granted[2];
-  totals.luk += flat.luk() + granted[3];
-  totals.hp_grant += flat.max_hp();
+  EquipStats paid;
+  paid.set_str(flat.str() + granted[0]);
+  paid.set_dex(flat.dex() + granted[1]);
+  paid.set_int_(flat.int_() + granted[2]);
+  paid.set_luk(flat.luk() + granted[3]);
+  paid.set_max_hp(flat.max_hp());
+  return paid;
+}
+
+// The character's stat pile as PotentialFlatGrant wants it: everything a
+// %stat line may multiply, with the potentials' own share taken back off.
+void StatPileFor(const CharacterInstance& character, const EquipStats& passives,
+                 const EquipStats& paid, int pile[4]) {
+  const AllocatedStats& allocated = character.proto().allocated_stats();
+  const EquipStats& worn = character.equip_stats();
+  const EquipStats& symbols = character.symbol_stats();
+  pile[0] = allocated.str() + worn.str() - symbols.str() + passives.str() -
+            paid.str();
+  pile[1] = allocated.dex() + worn.dex() - symbols.dex() + passives.dex() -
+            paid.dex();
+  pile[2] = allocated.int_() + worn.int_() - symbols.int_() + passives.int_() -
+            paid.int_();
+  pile[3] = allocated.luk() + worn.luk() - symbols.luk() + passives.luk() -
+            paid.luk();
+}
+
+void AddPotentials(const CharacterInstance& character, PassiveTotals& totals) {
+  const PotentialTotals& potential = character.potential_totals();
+  // Nothing has been paid yet, so the pile is the passives' own flat grant.
+  EquipStats passives;
+  passives.set_str(totals.str);
+  passives.set_dex(totals.dex);
+  passives.set_int_(totals.int_);
+  passives.set_luk(totals.luk);
+  int pile[4];
+  StatPileFor(character, passives, EquipStats(), pile);
+  const EquipStats paid = PotentialFlatGrant(pile, potential);
+  totals.potential_stats = paid;
+  totals.str += paid.str();
+  totals.dex += paid.dex();
+  totals.int_ += paid.int_();
+  totals.luk += paid.luk();
+  totals.hp_grant += paid.max_hp();
 
   totals.max_hp_pct += potential.max_hp_pct;
   totals.attack_pct += potential.attack_pct;
@@ -1171,6 +1208,14 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
   passives.skill_bonus = derived.skill_bonus;
   passives.arcane_pct = derived.arcane_damage_factor;
   return passives;
+}
+
+EquipStats PotentialStatGrant(const CharacterInstance& character,
+                              const DerivedStats& derived,
+                              const PotentialTotals& totals) {
+  int pile[4];
+  StatPileFor(character, derived.skill_stats, derived.potential_stats, pile);
+  return PotentialFlatGrant(pile, totals);
 }
 
 EquipStats TotalEquipStats(const CharacterInstance& character,
