@@ -411,60 +411,59 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
   return false;
 }
 
-// Pays for one offer and puts it on. False for one the bag or the purse
-// refused, which is the caller's cue to try the next.
-bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
-                           GearSpend& spend) {
-  const Candidate* best = &candidate;
-  if (best->cube) {
-    // Taken before the cube is bought: the comparison is against the character
-    // as they stand, and buying moves them.
-    CubeBasis basis = CubeBasisFor(state);
-    std::optional<Potential> rolled =
-        state.character.BuyCube(best->slot, CubeType::kRed);
-    if (!rolled.has_value()) {
-      return false;  // the purse or the piece refused it
-    }
-    spend.cubes += kCubeCost;
-    ++spend.cubes_bought;
-    // Keep-better, as the game offers it: a roll that does not beat what the
-    // item holds is declined, and the cube is spent either way.
-    if (WorthTaking(state, basis, best->slot, *rolled, income_)) {
-      state.character.TakePotential(best->slot, *rolled);
-      ++spend.cubes_kept;
-    }
-    return true;
+// Keep-better, as the game offers it: a roll that does not beat what the item
+// holds is declined, and the cube is spent either way.
+bool GearShopper::BuyCube(GameState& state, EquipSlot slot, GearSpend& spend) {
+  // Taken before the cube is bought: the comparison is against the character
+  // as they stand, and buying moves them.
+  CubeBasis basis = CubeBasisFor(state);
+  std::optional<Potential> rolled =
+      state.character.BuyCube(slot, CubeType::kRed);
+  if (!rolled.has_value()) {
+    return false;  // the purse or the piece refused it
   }
-  if (best->hammer) {
-    EquipSlot slot = best->slot;
-    if (!state.character.HammerEquipped(slot)) {
-      return false;  // the purse or the item refused it
-    }
-    spend.hammers += kGoldenHammerCost;
-    ++spend.hammers_driven;
-    return true;
+  spend.cubes += kCubeCost;
+  ++spend.cubes_bought;
+  if (WorthTaking(state, basis, slot, *rolled, income_)) {
+    state.character.TakePotential(slot, *rolled);
+    ++spend.cubes_kept;
   }
-  if (!best->star) {
-    const ItemPrototype* trace = TraceItem(state);
-    const EquipInstance* item = Worn(state, best->slot);
-    if (trace == nullptr || item == nullptr) {
-      return false;
-    }
-    int traces = TraceCost(*best->scroll, item->prototype().required_level());
-    if (!state.character.Buy(*trace, traces) ||
-        !state.character.ConsumeStackable(ITEM_CATEGORY_ETC, kSpellTraceName,
-                                          traces)) {
-      return false;  // the bag refused them, which is not the purse's fault
-    }
-    state.character.ScrollEquipped(best->slot, *best->scroll);
-    spend.scrolls += static_cast<int64_t>(traces) * trace->shop_price();
-    ++spend.slots_filled;
-    return true;
+  return true;
+}
+
+bool GearShopper::BuyHammer(GameState& state, EquipSlot slot,
+                            GearSpend& spend) {
+  if (!state.character.HammerEquipped(slot)) {
+    return false;  // the purse or the item refused it
   }
-  // Attempts until it lands or the purse runs dry. The price above was what
-  // the star is expected to take; this is what it actually took, and one run
-  // is not the average.
-  EquipSlot slot = best->slot;
+  spend.hammers += kGoldenHammerCost;
+  ++spend.hammers_driven;
+  return true;
+}
+
+bool GearShopper::BuyScroll(GameState& state, const Candidate& candidate,
+                            GearSpend& spend) {
+  const ItemPrototype* trace = TraceItem(state);
+  const EquipInstance* item = Worn(state, candidate.slot);
+  if (trace == nullptr || item == nullptr) {
+    return false;
+  }
+  int traces = TraceCost(*candidate.scroll, item->prototype().required_level());
+  if (!state.character.Buy(*trace, traces) ||
+      !state.character.ConsumeStackable(ITEM_CATEGORY_ETC, kSpellTraceName,
+                                        traces)) {
+    return false;  // the bag refused them, which is not the purse's fault
+  }
+  state.character.ScrollEquipped(candidate.slot, *candidate.scroll);
+  spend.scrolls += static_cast<int64_t>(traces) * trace->shop_price();
+  ++spend.slots_filled;
+  return true;
+}
+
+// Attempts until the star lands or the purse runs dry. The price the offer
+// carried was what the star is expected to take; this is what it actually
+// took, and one run is not the average.
+bool GearShopper::BuyStar(GameState& state, EquipSlot slot, GearSpend& spend) {
   const EquipInstance* item = Worn(state, slot);
   int before = item == nullptr ? 0 : item->stars();
   // Copied out: a boom takes the EquipInstance with it, and the recovery needs
@@ -499,6 +498,22 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
     ++spend.stars_gained;
   }
   return true;
+}
+
+// Pays for one offer and puts it on. False for one the bag or the purse
+// refused, which is the caller's cue to try the next.
+bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
+                           GearSpend& spend) {
+  if (candidate.cube) {
+    return BuyCube(state, candidate.slot, spend);
+  }
+  if (candidate.hammer) {
+    return BuyHammer(state, candidate.slot, spend);
+  }
+  if (!candidate.star) {
+    return BuyScroll(state, candidate, spend);
+  }
+  return BuyStar(state, candidate.slot, spend);
 }
 
 bool GearShopper::RecoverBoom(GameState& state, EquipSlot slot,

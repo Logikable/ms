@@ -177,6 +177,13 @@ class GearShopper {
   bool BuyBest(GameState& state, GearSpend& spend);
   // Pays for one offer and puts it on. False for one that was refused.
   bool BuyOffer(GameState& state, const Candidate& candidate, GearSpend& spend);
+  // The four purchases an offer can be, one apiece. False from any of them is
+  // a bag or a purse that refused, which is BuyBest's cue to try the next.
+  bool BuyCube(GameState& state, EquipSlot slot, GearSpend& spend);
+  bool BuyHammer(GameState& state, EquipSlot slot, GearSpend& spend);
+  bool BuyScroll(GameState& state, const Candidate& candidate,
+                 GearSpend& spend);
+  bool BuyStar(GameState& state, EquipSlot slot, GearSpend& spend);
   // Sells the copies the bag is holding for nothing: a piece the character
   // cannot wear at all, and spares past what a boom could ever use.
   void SellSpares(GameState& state, GearSpend& spend);

@@ -207,16 +207,9 @@ double MeasureRate(GameState& state) {
   return rate + OffClockRate(params, played, 1.0);
 }
 
-}  // namespace
-
-double CrowdDamage(const AttackOption& attack, int enemies, bool charge_burns) {
-  if (attack.damage_per_hit.empty()) {
-    return 0.0;
-  }
-  int hit = std::min(std::max(1, attack.max_enemies), std::max(1, enemies));
-  if (attack.scatter_hits > 0) {
-    hit = std::min(hit, attack.scatter_hits);
-  }
+// What one swing lands on the `hit` enemies it reached: the strike itself, the
+// opening hit, the Final Attacks that follow it and the chance rolled on top.
+double SpreadDamage(const AttackOption& attack, int hit) {
   double per = attack.damage_per_hit[0];
   // A swing that gains as it travels: the k'th enemy takes (1 + gain)^k, so
   // what the whole swing lands is the geometric sum rather than hit times one.
@@ -249,14 +242,19 @@ double CrowdDamage(const AttackOption& attack, int enemies, bool charge_burns) {
   for (const ProcRoll& proc : attack.procs) {
     damage += per * proc.chance * proc.damage_pct;
   }
-  // The burns this swing lights, charged at the rate they can actually
-  // sustain. Relighting one buys no more ticks, so what a swing is worth is
-  // the seconds before the same swing comes round again, capped by how long
-  // the burn would have lasted anyway. A swing on no cooldown is back as soon
-  // as it lands; one on a long wait keeps burning through it. One helping
-  // apiece, for the reason CombatSim::SwingDamage charges one.
+  return damage;
+}
+
+// The burns this swing lights, charged at the rate they can actually sustain.
+// Relighting one buys no more ticks, so what a swing is worth is the seconds
+// before the same swing comes round again, capped by how long the burn would
+// have lasted anyway. A swing on no cooldown is back as soon as it lands; one
+// on a long wait keeps burning through it. One helping apiece, for the reason
+// CombatSim::SwingDamage charges one.
+double BurnDamage(const AttackOption& attack, int hit) {
+  double damage = 0.0;
   for (const DotApplication& burn : attack.dots) {
-    if (!charge_burns || burn.interval_seconds <= 0.0 || burn.damage.empty()) {
+    if (burn.interval_seconds <= 0.0 || burn.damage.empty()) {
       continue;
     }
     // An attack on its own clock is paced by that clock and by nothing else:
@@ -267,6 +265,23 @@ double CrowdDamage(const AttackOption& attack, int enemies, bool charge_burns) {
     double burning = std::min(burn.duration_seconds, cadence);
     damage +=
         burn.damage[0] * hit * burning * burn.chance / burn.interval_seconds;
+  }
+  return damage;
+}
+
+}  // namespace
+
+double CrowdDamage(const AttackOption& attack, int enemies, bool charge_burns) {
+  if (attack.damage_per_hit.empty()) {
+    return 0.0;
+  }
+  int hit = std::min(std::max(1, attack.max_enemies), std::max(1, enemies));
+  if (attack.scatter_hits > 0) {
+    hit = std::min(hit, attack.scatter_hits);
+  }
+  double damage = SpreadDamage(attack, hit);
+  if (charge_burns) {
+    damage += BurnDamage(attack, hit);
   }
   if (attack.empowered != nullptr && attack.empowered_every > 0) {
     // A form that marks enemies rides on top of the strike that sets it off,
