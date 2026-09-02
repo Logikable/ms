@@ -3379,6 +3379,47 @@ TEST_F(CharacterTest, CubingWornGearRollsItsLinesAndMovesTheTotals) {
             0.0);
 }
 
+// The purchase, which is the mechanism above split in two: the cube is paid
+// for, the roll comes back, and nothing is on the item until it is taken.
+TEST_F(CharacterTest, BuyingACubeChargesForARollAndPutsNothingOn) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(
+      std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_PRIMARY_WEAPON)));
+  ASSERT_TRUE(c.Equip(0));
+  c.AddMeso(kCubeCost);
+
+  std::optional<Potential> rolled =
+      c.BuyCube(EQUIP_SLOT_PRIMARY_WEAPON, CubeType::kRed);
+  ASSERT_TRUE(rolled.has_value());
+  EXPECT_EQ(rolled->lines_size(), kPotentialLines);
+  EXPECT_EQ(c.meso(), 0);
+  EXPECT_EQ(c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).potential().lines_size(),
+            0)
+      << "declining a roll leaves the piece as it was";
+
+  ASSERT_TRUE(c.TakePotential(EQUIP_SLOT_PRIMARY_WEAPON, *rolled));
+  EXPECT_EQ(c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).potential().lines_size(),
+            kPotentialLines);
+}
+
+TEST_F(CharacterTest, BuyingACubeTakesNothingFromAPurseThatCannotCoverIt) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(
+      std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_PRIMARY_WEAPON)));
+  ASSERT_TRUE(c.Equip(0));
+  c.AddMeso(kCubeCost - 1);
+
+  EXPECT_FALSE(
+      c.BuyCube(EQUIP_SLOT_PRIMARY_WEAPON, CubeType::kRed).has_value());
+  EXPECT_EQ(c.meso(), kCubeCost - 1);
+  // And a piece that takes no potential at all is refused for free.
+  c.PickUp(std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_MEDAL)));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
+  c.AddMeso(kCubeCost);
+  EXPECT_FALSE(c.BuyCube(EQUIP_SLOT_MEDAL, CubeType::kRed).has_value());
+  EXPECT_EQ(c.meso(), kCubeCost * 2 - 1);
+}
+
 TEST_F(CharacterTest, CubingRefusesAnEmptySlotAndAPieceThatTakesNoPotential) {
   CharacterInstance c = MakeCharacter(rng_);
   EXPECT_FALSE(c.CubeWorn(EQUIP_SLOT_PRIMARY_WEAPON, CubeType::kRed));

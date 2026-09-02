@@ -78,6 +78,13 @@ class EquipInstance : public EquipTabItem {
   // potential at all -- see CanCube.
   bool Cube(CubeType cube, std::mt19937& rng);
 
+  // Puts `potential` on this piece, which is a player accepting a roll they
+  // were offered -- see CharacterInstance::BuyCube. Nothing is checked: the
+  // roll came off this item's own group in the first place.
+  void SetPotential(const Potential& potential) {
+    *state_.mutable_main_potential() = potential;
+  }
+
   // Whether a cube will go into this piece: it is worn somewhere potential
   // reaches. A trace is never one of these -- it is not an EquipInstance.
   bool CanCube() const {

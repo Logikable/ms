@@ -96,9 +96,11 @@
 #include "absl/log/log.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_join.h"
 #include "absl/types/span.h"
 #include "analysis/ability_plan.h"
 #include "analysis/checkpoint.h"
+#include "analysis/cube_plan.h"
 #include "analysis/gear_plan.h"
 #include "analysis/hyper_plan.h"
 #include "analysis/parallel.h"
@@ -162,6 +164,9 @@ ABSL_FLAG(int, star_ceiling, ms::kMaxStarForce,
           "A star the shopper will not go past whatever its arithmetic says. "
           "Here so one run can be pinned against another: the shopper decides "
           "where to stop by price, and stops well short of this.");
+ABSL_FLAG(bool, cubes, true,
+          "Whether the shopper cubes. Off is the counterfactual: the same "
+          "climb with every cube's meso left for the stars.");
 ABSL_FLAG(int, scroll_rate, 100,
           "Success rate of the scrolls bought, as a whole percent. A lower "
           "rate pays more per slot it lands and wastes the rest, which on a "
@@ -693,6 +698,17 @@ struct Checkpointing {
   int level = 0;  // the level one is taken at, 0 for off
 };
 
+// What one worn piece's potential came to, for the table at the end.
+struct PotentialRow {
+  std::string slot;
+  std::string item;
+  PotentialRank rank = POTENTIAL_RANK_UNSPECIFIED;
+  // The lines, already named and valued -- "12% ATT", "40% boss".
+  std::vector<std::string> lines;
+  // Whether the shopper was discounting this piece as one it might replace.
+  bool replaceable = false;
+};
+
 // One level of one branch's climb, for --detail.
 struct Stint {
   int level = 0;
@@ -778,6 +794,9 @@ struct Climb {
   // Where the meso came from and where it went. End-of-run, like the endgame
   // rows above, so no checkpoint carries it.
   Ledger ledger;
+  // What the run left on each cubed piece: one row per worn slot that takes a
+  // potential, already in reading order.
+  std::vector<PotentialRow> potentials;
   // The character the run left behind, for the sheet the weakest branch gets
   // printed as.
   Character final_character;
@@ -1158,6 +1177,39 @@ void PlanPotsFor(Session& run, const CombatParams& params, const Yield& yield) {
            absl::MakeConstSpan(yield.kills_per_second), &run.climb.ledger.pots);
 }
 
+// What the shopper needs to price a %meso or %drop potential line: those pay
+// a rate rather than damage, and only the encounter in front of the character
+// says what the rate is. The monsters are copied rather than pointed at --
+// the shopper keeps this between looks, and the fight it came from does not.
+void SetShopperIncome(Session& run, const CombatParams& params,
+                      const Yield& yield) {
+  std::vector<Mob> mobs;
+  std::vector<double> kills;
+  for (std::size_t i = 0; i < params.types.size(); ++i) {
+    if (params.types[i].mob == nullptr || params.types[i].mob->boss()) {
+      continue;  // a boss pays out of its own table, which no %meso reaches
+    }
+    mobs.push_back(*params.types[i].mob);
+    kills.push_back(
+        i < yield.kills_per_second.size() ? yield.kills_per_second[i] : 0.0);
+  }
+  double mult =
+      DerivedStatsFor(run.state.character, run.state.skills).meso_final_mult;
+  CubeIncome income;
+  income.seconds_left = std::max(0.0, run.horizon - run.seconds);
+  income.rate = [mobs, kills, mult](double meso_bonus, double drop_pct) {
+    std::vector<const Mob*> pointers;
+    pointers.reserve(mobs.size());
+    for (const Mob& mob : mobs) {
+      pointers.push_back(&mob);
+    }
+    return PotMesoPerSecond(absl::MakeConstSpan(pointers),
+                            absl::MakeConstSpan(kills), meso_bonus, mult,
+                            drop_pct);
+  };
+  run.shopper.SetIncome(income);
+}
+
 // Where the climb has got to inside a level: what the loop below keeps that is
 // in neither the Session nor the Climb. Held together so a checkpoint can
 // write it down and a resumed run pick it up mid-stride.
@@ -1179,6 +1231,43 @@ struct GearReached {
   int stars = 0;
   int hammers = 0;
 };
+
+// A line as the table reads it: "12% ATT", "40% boss". The enum's own name
+// with the prefix and the tail cut, since //analysis has no business pulling
+// the frontend's naming in to print eight rows.
+std::string WithoutPrefix(const std::string& name, const std::string& prefix) {
+  return name.rfind(prefix, 0) == 0 ? name.substr(prefix.size()) : name;
+}
+
+std::string LineText(const PotentialLine& line, int item_level) {
+  return absl::StrCat(PotentialLineValue(line.type(), line.rank(), item_level),
+                      " ",
+                      WithoutPrefix(PotentialLineType_Name(line.type()),
+                                    "POTENTIAL_LINE_TYPE_"));
+}
+
+// What every cubed piece the character is standing in came to.
+std::vector<PotentialRow> PotentialsWorn(const GameState& state) {
+  std::vector<PotentialRow> rows;
+  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+       state.character.equipped()) {
+    if (!entry.second.CanCube()) {
+      continue;
+    }
+    const EquipInstance& item = entry.second;
+    int level = item.prototype().required_level();
+    PotentialRow row;
+    row.slot = WithoutPrefix(EquipSlot_Name(entry.first), "EQUIP_SLOT_");
+    row.item = item.prototype().name();
+    row.rank = item.potential().rank();
+    row.replaceable = Replaceable(state, entry.first);
+    for (const PotentialLine& line : item.potential().lines()) {
+      row.lines.push_back(LineText(line, level));
+    }
+    rows.push_back(row);
+  }
+  return rows;
+}
 
 GearReached ReachedOnGear(const GameState& state) {
   GearReached reached;
@@ -1745,6 +1834,7 @@ void ClimbToCap(Session& run) {
       // every meso the rest of the run earns, and a star bought first is a
       // star bought with the slower purse.
       PlanPotsFor(run, params, yield);
+      SetShopperIncome(run, params, yield);
       run.purse.Note(run.state.character);
       Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
              run.purse, run.shopper, run.scout, run.climb.ledger);
@@ -1833,6 +1923,7 @@ void FarmAtCap(Session& run) {
       WearBestFromBag(run.state.character);
       // Before the shelf, for the reason the climb takes it before Retool.
       PlanPotsFor(run, params, yield);
+      SetShopperIncome(run, params, yield);
       run.purse.Note(run.state.character);
       int64_t before_shelf = run.state.character.meso();
       Outfit(run.state, /*budget=*/true);
@@ -1863,6 +1954,7 @@ void FarmAtCap(Session& run) {
   run.climb.endgame_scrolled = reached.scrolled;
   run.climb.endgame_stars_worn = reached.stars;
   run.climb.endgame_hammers = reached.hammers;
+  run.climb.potentials = PotentialsWorn(run.state);
   run.climb.booms = run.shopper.life().booms;
   run.climb.ledger.gear = run.shopper.life();
 }
@@ -1877,9 +1969,10 @@ std::string ClimbSettings() {
       absl::GetFlag(FLAGS_step), ";", absl::GetFlag(FLAGS_probe_beats), ";",
       absl::GetFlag(FLAGS_give_up_hours), ";", absl::GetFlag(FLAGS_total_days),
       ";", absl::GetFlag(FLAGS_star_ceiling), ";",
-      absl::GetFlag(FLAGS_scroll_rate), ";", absl::GetFlag(FLAGS_dailies), ";",
-      absl::GetFlag(FLAGS_attention), ";", absl::GetFlag(FLAGS_ability_rank),
-      ";", absl::GetFlag(FLAGS_checkpoint_at));
+      absl::GetFlag(FLAGS_scroll_rate), ";", absl::GetFlag(FLAGS_cubes), ";",
+      absl::GetFlag(FLAGS_dailies), ";", absl::GetFlag(FLAGS_attention), ";",
+      absl::GetFlag(FLAGS_ability_rank), ";",
+      absl::GetFlag(FLAGS_checkpoint_at));
 }
 
 // What one climb's file is called: the branch, the seed and the settings --
@@ -1908,6 +2001,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   GearPlan plan;
   plan.star_ceiling = absl::GetFlag(FLAGS_star_ceiling);
   plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
+  plan.cubes = absl::GetFlag(FLAGS_cubes);
 
   Session run = {
       state,         maps, PathTo(branch), 0, Purse(), GearShopper(plan),
@@ -2505,6 +2599,53 @@ void PrintBossTimeline(const Catalogs& catalogs,
   }
 }
 
+// What the cubing came to: what each branch paid, how much of it landed a
+// roll worth keeping, and -- for the branch printed in full -- the lines every
+// cubed piece ended up wearing.
+//
+// Bought against kept is the reading that matters. A cube is a chance rather
+// than a purchase, so the gap between them is the meso that bought nothing,
+// which is the trap a keep-better rule invites.
+void PrintCubing(const std::vector<Job>& branches,
+                 const std::vector<Climb>& climbs) {
+  std::printf(
+      "\nWhat the cubing came to. Kept is the rolls that beat what the piece "
+      "already held;\nthe rest is the price of the chance.\n\n");
+  std::printf("%-13s %9s %8s %8s %6s\n", "branch", "meso", "cubes", "kept",
+              "kept%");
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    const GearSpend& gear = climbs[i].ledger.gear;
+    char meso[16];
+    FormatShort(static_cast<double>(gear.cubes), meso, sizeof(meso));
+    std::printf("%-13s %9s %8d %8d %5.0f%%\n", BranchName(branches[i]).c_str(),
+                meso, gear.cubes_bought, gear.cubes_kept,
+                gear.cubes_bought == 0
+                    ? 0.0
+                    : 100.0 * gear.cubes_kept / gear.cubes_bought);
+  }
+  int weakest = 0;
+  for (int i = 1; i < static_cast<int>(climbs.size()); ++i) {
+    if (climbs[i].ledger.gear.cubes > climbs[weakest].ledger.gear.cubes) {
+      weakest = i;
+    }
+  }
+  if (climbs[weakest].potentials.empty()) {
+    return;
+  }
+  std::printf(
+      "\n%s's potentials, as the run left them. A piece marked "
+      "\"replaceable\" was\ndiscounted: the catalog still offers "
+      "something better for that slot.\n\n",
+      BranchName(branches[weakest]).c_str());
+  for (const PotentialRow& row : climbs[weakest].potentials) {
+    std::printf(
+        "  %-18s %-27s %-10s %-13s %s\n", row.slot.c_str(), row.item.c_str(),
+        WithoutPrefix(PotentialRank_Name(row.rank), "POTENTIAL_RANK_").c_str(),
+        row.replaceable ? "replaceable" : "",
+        absl::StrJoin(row.lines, ", ").c_str());
+  }
+}
+
 // Where every branch's meso came from and where it went. Mob drops are what is
 // left over: everything combat paid that no named source claims.
 void PrintMesoLedger(const std::vector<Job>& branches,
@@ -2513,9 +2654,9 @@ void PrintMesoLedger(const std::vector<Job>& branches,
       "\nWhere the meso came from and where it went, over the whole run. Mobs "
       "is the remainder --\neverything the purse was paid that no named "
       "source claims.\n\n");
-  const char* kHeads[] = {"mobs",   "Etc sold", "gear sold", "bosses",
-                          "shelf",  "scrolls",  "stars",     "hammers",
-                          "copies", "pots",     "pots own"};
+  const char* kHeads[] = {"mobs",  "Etc sold", "gear sold", "bosses",
+                          "shelf", "scrolls",  "stars",     "hammers",
+                          "cubes", "copies",   "pots",      "pots own"};
   std::printf("%-13s", "branch");
   for (const char* head : kHeads) {
     std::printf(" %9s", head);
@@ -2532,6 +2673,7 @@ void PrintMesoLedger(const std::vector<Job>& branches,
                       ledger.gear.scrolls,
                       ledger.gear.stars,
                       ledger.gear.hammers,
+                      ledger.gear.cubes,
                       ledger.gear.replacements,
                       ledger.pots.drained,
                       ledger.pots.bought};
@@ -2875,6 +3017,7 @@ void Run() {
   if (absl::GetFlag(FLAGS_boss_report)) {
     PrintBossTimeline(catalogs, branches, typical);
     PrintMesoLedger(branches, typical);
+    PrintCubing(branches, typical);
     int weakest = WeakestBranch(catalogs, typical);
     PrintCharacterSheet(catalogs, branches[weakest], typical[weakest]);
   }

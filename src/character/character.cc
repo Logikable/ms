@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <map>
 #include <memory>
+#include <optional>
 #include <random>
 #include <string>
 #include <utility>
@@ -1497,6 +1498,31 @@ bool CharacterInstance::CubeWorn(EquipSlot slot, CubeType cube) {
   if (it == equipped_.end() || !it->second.Cube(cube, rng_)) {
     return false;
   }
+  // The lines are worn stats, so the totals have just moved.
+  RecomputeEquipStats();
+  return true;
+}
+
+std::optional<Potential> CharacterInstance::BuyCube(EquipSlot slot,
+                                                    CubeType cube) {
+  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
+  if (it == equipped_.end() || !it->second.CanCube() ||
+      character_.meso() < kCubeCost) {
+    return std::nullopt;
+  }
+  character_.set_meso(character_.meso() - kCubeCost);
+  return CubePotential(it->second.equip_state().main_potential(), cube,
+                       PotentialGroupOf(it->second.prototype().equip_slot()),
+                       rng_);
+}
+
+bool CharacterInstance::TakePotential(EquipSlot slot,
+                                      const Potential& potential) {
+  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
+  if (it == equipped_.end()) {
+    return false;
+  }
+  it->second.SetPotential(potential);
   // The lines are worn stats, so the totals have just moved.
   RecomputeEquipStats();
   return true;

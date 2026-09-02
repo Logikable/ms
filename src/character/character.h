@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <random>
 #include <vector>
 
@@ -556,10 +557,20 @@ class CharacterInstance {
     return potential_totals_;
   }
   // One cube into the item worn in `slot`, which rerolls its lines and may
-  // carry it a rank up. Charging for it is the caller's, as it is for star
-  // force. False, changing nothing, when the slot is empty or the piece takes
-  // no potential at all.
+  // carry it a rank up. The mechanism, charging nothing: BuyCube below is the
+  // purchase. False, changing nothing, when the slot is empty or the piece
+  // takes no potential at all.
   bool CubeWorn(EquipSlot slot, CubeType cube);
+  // One cube into the item worn in `slot`, charged kCubeCost: rolls what the
+  // piece would become and hands it back WITHOUT putting it on. Taking the
+  // roll is TakePotential's business, since a player offered one worse than
+  // what they have keeps what they have -- the cube is spent either way.
+  // Empty, and nothing spent, for an empty slot, a piece that takes no
+  // potential, or a purse short of the price.
+  std::optional<Potential> BuyCube(EquipSlot slot, CubeType cube);
+  // Puts `potential` on the item worn in `slot`, which is a player accepting
+  // a roll. False, changing nothing, for an empty slot.
+  bool TakePotential(EquipSlot slot, const Potential& potential);
   // Spare copies of the Arcane Symbol for `slot` sitting in the equip bag.
   // Traces do not count, as they never do -- see CountOwned.
   int SpareSymbols(EquipSlot slot) const;

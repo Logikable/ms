@@ -21,9 +21,11 @@
 #include <cstdint>
 #include <map>
 #include <optional>
+#include <random>
 #include <string>
 #include <vector>
 
+#include "analysis/cube_plan.h"
 #include "src/character/character_stats.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -39,6 +41,9 @@ struct GearPlan {
   // price of a star already climbs faster than what it buys, and the shopper
   // walks away long before this bites.
   int star_ceiling = kMaxStarForce;
+  // Whether the shopper cubes at all. Off is the counterfactual: what the
+  // same climb comes to with every cube's meso left for the stars.
+  bool cubes = true;
   // The success rate of the scrolls bought, as a whole percent. A lower rate
   // pays more per slot it lands and wastes the rest, which on a drop-only
   // piece is a slot nothing gets back.
@@ -51,27 +56,36 @@ struct GearSpend {
   int64_t scrolls = 0;       // spell traces, at the shop's price for them
   int64_t stars = 0;         // every attempt, the failures included
   int64_t hammers = 0;       // golden hammers, for the slots they open
+  int64_t cubes = 0;         // every cube, whatever it rolled
   int64_t replacements = 0;  // copies bought to put a destroyed piece back
   int slots_filled = 0;
   int stars_gained = 0;
   int hammers_driven = 0;
+  // Cubes bought, and the ones whose roll the character kept. The two apart
+  // because a cube is a chance rather than a purchase: the gap is the meso
+  // that bought nothing, which is the trap a keep-better rule invites.
+  int cubes_bought = 0;
+  int cubes_kept = 0;
   // Pieces destroyed and put back, and what the bag was cleared of to pay for
   // the room and the meso.
   int booms = 0;
   int64_t sold = 0;
 
   int64_t meso() const {
-    return scrolls + stars + hammers + replacements;
+    return scrolls + stars + hammers + replacements + cubes;
   }
 
   void Add(const GearSpend& other) {
     scrolls += other.scrolls;
     stars += other.stars;
     hammers += other.hammers;
+    cubes += other.cubes;
     replacements += other.replacements;
     slots_filled += other.slots_filled;
     stars_gained += other.stars_gained;
     hammers_driven += other.hammers_driven;
+    cubes_bought += other.cubes_bought;
+    cubes_kept += other.cubes_kept;
     booms += other.booms;
     sold += other.sold;
   }
@@ -83,6 +97,14 @@ struct GearSpend {
 class GearShopper {
  public:
   explicit GearShopper(const GearPlan& plan) : plan_(plan) {
+  }
+
+  // What the run has left to earn and what it earns, which is the whole of
+  // what a %meso or %drop potential line is worth -- see CubeIncome. Set at
+  // each look, beside the pot decisions. A shopper never told stays blind to
+  // the income lines and prices a cube on combat power alone.
+  void SetIncome(const CubeIncome& income) {
+    income_ = income;
   }
 
   // Spends what the purse can spare on what the character is wearing, buying
@@ -108,6 +130,9 @@ class GearShopper {
     // and valued as one thing. On its own a hammer is worth nothing -- what
     // the purse is buying is the scroll it makes room for.
     bool hammer = false;
+    // A cube into the slot's potential, priced at kCubeCost and valued at what
+    // one reroll is expected to beat the item's own lines by.
+    bool cube = false;
     // The scroll an upgrade slot would be filled with; null for a star.
     const Scroll* scroll = nullptr;
     // Meso this is expected to take, the attempts that land nothing included.
@@ -134,6 +159,11 @@ class GearShopper {
                                        int open_slots, bool can_hammer);
   std::optional<Candidate> StarOffer(GameState& state, const Basis& basis,
                                      EquipSlot slot, int level, int stars);
+  // The cube offer for every slot that takes one, priced against `best`: what
+  // a meso buys in combat power on the rest of the shelf, which is the rate an
+  // income line has to be converted at to be ranked beside a damage one. A
+  // pass of its own for that reason.
+  std::vector<Candidate> CubeOffers(GameState& state, double best);
 
   // The scroll `slot`'s item wants, measured once per item and kept.
   const Scroll* ScrollFor(GameState& state, EquipSlot slot);
@@ -157,6 +187,11 @@ class GearShopper {
 
   GearPlan plan_;
   GearSpend life_;
+  CubeIncome income_;
+  // The draws the cube valuations come off. Its own stream rather than the
+  // character's, so measuring what a cube might roll never moves what the
+  // game rolls.
+  std::mt19937 rng_{20260901};
 
   // By the prototype's name, since that is what an item and its replacement
   // disagree on. A slot whose item takes no scroll maps to null.

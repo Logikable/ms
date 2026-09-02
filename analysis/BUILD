@@ -87,10 +87,28 @@ cc_library(
 )
 
 cc_library(
+    name = "cube_plan",
+    srcs = ["cube_plan.cc"],
+    hdrs = ["cube_plan.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character",
+        "//src/character:character_stats",
+        "//src/combat:damage",
+        "//src/item:equip_instance",
+        "//src/item:equip_stats",
+        "//src/item:potential",
+        "//src/protos:equip_proto_cc",
+        "@abseil-cpp//absl/types:span",
+    ],
+)
+
+cc_library(
     name = "gear_plan",
     srcs = ["gear_plan.cc"],
     hdrs = ["gear_plan.h"],
     deps = [
+        ":cube_plan",
         ":sim_gear",
         ":star_force_curve",
         "//src:game_state",
@@ -99,6 +117,7 @@ cc_library(
         "//src/combat:damage",
         "//src/item",
         "//src/item:equip_instance",
+        "//src/item:potential",
         "//src/item:spell_trace_cost",
         "//src/item:star_force_cost",
         "//src/protos:equip_proto_cc",
@@ -224,6 +243,7 @@ sim_binary(
     deps = [
         ":ability_plan",
         ":checkpoint",
+        ":cube_plan",
         ":gear_plan",
         ":hyper_plan",
         ":parallel",
