@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -467,6 +468,15 @@ void AddPotential(const Potential& potential, int item_level,
         break;
     }
   }
+}
+
+const Cube& CubeOf(CubeType type) {
+  for (const Cube& cube : kCubes) {
+    if (cube.type == type) {
+      return cube;
+    }
+  }
+  LOG(FATAL) << "Cube " << static_cast<int>(type) << " is not on the shelf";
 }
 
 Potential CubePotential(const Potential& current, CubeType cube,

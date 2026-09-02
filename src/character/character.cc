@@ -1508,6 +1508,29 @@ bool CharacterInstance::CubeWorn(EquipSlot slot, CubeType cube) {
   return true;
 }
 
+// Takes a cube's price, or leaves the purse alone and says no. Asked of the
+// item too: a cube that has nowhere to go is not charged for.
+bool CharacterInstance::PayForCube(const EquipInstance& item) {
+  if (!item.CanCube() || kCubeCost > character_.meso()) {
+    return false;
+  }
+  character_.set_meso(character_.meso() - kCubeCost);
+  return true;
+}
+
+bool CharacterInstance::CubeEquipped(EquipSlot slot, CubeType cube) {
+  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
+  if (it == equipped_.end() || !PayForCube(it->second)) {
+    return false;
+  }
+  return CubeWorn(slot, cube);
+}
+
+bool CharacterInstance::CubeInventory(int index, CubeType cube) {
+  EquipInstance* item = inventory_.equip_instance(index);
+  return item != nullptr && PayForCube(*item) && item->Cube(cube, rng_);
+}
+
 std::optional<Potential> CharacterInstance::BuyCube(EquipSlot slot,
                                                     CubeType cube) {
   std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);

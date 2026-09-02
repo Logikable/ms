@@ -62,4 +62,11 @@ bool HammerItem(CharacterInstance& character, ItemRef ref) {
   return character.HammerInventory(ref.index());
 }
 
+bool CubeItem(CharacterInstance& character, ItemRef ref, CubeType cube) {
+  if (ref.equipped()) {
+    return character.CubeEquipped(ref.slot(), cube);
+  }
+  return character.CubeInventory(ref.index(), cube);
+}
+
 }  // namespace ms

@@ -171,5 +171,40 @@ TEST_F(ItemRefTest, HammerItemResolvesEitherHalf) {
   EXPECT_EQ(warrior.inventory()[0].equip_state().hammers(), 1);
 }
 
+// Both halves once more, and the price with them: each cube costs the item it
+// was aimed at a potential and the purse kCubeCost.
+TEST_F(ItemRefTest, CubeItemResolvesEitherHalfAndCharges) {
+  CharacterInstance warrior = MakeWarrior();
+  warrior.AddMeso(2 * kCubeCost);
+  warrior.PickUp(std::make_unique<EquipInstance>(sword_));
+  warrior.Equip(0);
+  warrior.PickUp(std::make_unique<EquipInstance>(sword_));
+
+  EXPECT_TRUE(CubeItem(warrior, ItemRef::Equipped(EQUIP_SLOT_PRIMARY_WEAPON),
+                       CubeType::kRed));
+  EXPECT_EQ(warrior.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).potential().rank(),
+            POTENTIAL_RANK_RARE);
+  EXPECT_EQ(warrior.inventory()[0].potential().rank(),
+            POTENTIAL_RANK_UNSPECIFIED);
+
+  EXPECT_TRUE(CubeItem(warrior, ItemRef::InBag(0), CubeType::kRed));
+  EXPECT_EQ(warrior.inventory()[0].potential().rank(), POTENTIAL_RANK_RARE);
+  EXPECT_EQ(warrior.proto().meso(), 0);
+}
+
+// A purse short of the price buys nothing, on either half.
+TEST_F(ItemRefTest, CubeItemRefusesWhatThePurseCannotCover) {
+  CharacterInstance warrior = MakeWarrior();
+  warrior.AddMeso(kCubeCost - 1);
+  warrior.PickUp(std::make_unique<EquipInstance>(sword_));
+  warrior.Equip(0);
+
+  EXPECT_FALSE(CubeItem(warrior, ItemRef::Equipped(EQUIP_SLOT_PRIMARY_WEAPON),
+                        CubeType::kRed));
+  EXPECT_EQ(warrior.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).potential().rank(),
+            POTENTIAL_RANK_UNSPECIFIED);
+  EXPECT_EQ(warrior.proto().meso(), kCubeCost - 1);
+}
+
 }  // namespace
 }  // namespace ms

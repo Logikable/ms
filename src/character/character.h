@@ -577,6 +577,11 @@ class CharacterInstance {
   // Puts `potential` on the item worn in `slot`, which is a player accepting
   // a roll. False, changing nothing, for an empty slot.
   bool TakePotential(EquipSlot slot, const Potential& potential);
+  // One cube into a worn or a bagged item, charged its price and taken
+  // whatever it rolls: the pair the cubing screen presses. False, and nothing
+  // spent, when the item takes no potential or the purse is short.
+  bool CubeEquipped(EquipSlot slot, CubeType cube);
+  bool CubeInventory(int index, CubeType cube);
   // Spare copies of the Arcane Symbol for `slot` sitting in the equip bag.
   // Traces do not count, as they never do -- see CountOwned.
   int SpareSymbols(EquipSlot slot) const;
@@ -653,6 +658,7 @@ class CharacterInstance {
   // nothing. Both StarForce entry points call it before they roll.
   bool PayForStarForce(const EquipInstance& item);
   bool PayForHammer(const EquipInstance& item);
+  bool PayForCube(const EquipInstance& item);
   // Puts a sale on the buy-back shelf, newest first, and drops the oldest row
   // once the shelf is full.
   void RecordSale(BuyBackEntry entry);

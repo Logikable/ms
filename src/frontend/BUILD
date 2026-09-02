@@ -18,6 +18,7 @@ cc_library(
         "//src/character",
         "//src/item",
         "//src/item:equip_instance",
+        "//src/item:potential",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
     ],

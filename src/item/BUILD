@@ -32,6 +32,7 @@ cc_library(
     hdrs = ["potential.h"],
     deps = [
         "//src/protos:equip_proto_cc",
+        "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/log:check",
     ],
 )

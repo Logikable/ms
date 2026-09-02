@@ -239,5 +239,15 @@ TEST(CubePotentialTest, RankClimbsAtTheStatedOddsAndNeverFalls) {
   }
 }
 
+// The shelf: every cube on it answers to CubeOf, and the Red Cube is what the
+// screen charges kCubeCost for.
+TEST(CubeShelfTest, EveryCubeIsFoundByType) {
+  for (const Cube& cube : kCubes) {
+    EXPECT_EQ(CubeOf(cube.type).cost, cube.cost);
+  }
+  EXPECT_EQ(CubeOf(CubeType::kRed).cost, kCubeCost);
+  EXPECT_EQ(CubeOf(CubeType::kRed).track, PotentialTrack::kMain);
+}
+
 }  // namespace
 }  // namespace ms

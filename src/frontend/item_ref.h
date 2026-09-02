@@ -13,6 +13,7 @@
 #include "src/character/character.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
+#include "src/item/potential.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -62,6 +63,10 @@ StarForceOutcome StarForceItem(CharacterInstance& character, ItemRef ref);
 // Drives a golden hammer into the item `ref` names, and says whether one went
 // in. Same split again, for the same reason: a worn item's totals are rebuilt.
 bool HammerItem(CharacterInstance& character, ItemRef ref);
+
+// Charges for one `cube` and puts what it rolls on the item `ref` names. False,
+// and nothing spent, when the item takes no potential or the purse is short.
+bool CubeItem(CharacterInstance& character, ItemRef ref, CubeType cube);
 
 }  // namespace ms
 

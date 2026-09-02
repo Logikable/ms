@@ -69,6 +69,28 @@ enum class CubeType {
   kRed,
 };
 
+// Which of an item's two potentials a cube rerolls. Bonus potential is not
+// built -- see the note on Equip.main_potential -- so no cube names it yet.
+enum class PotentialTrack {
+  kMain,
+  kBonus,
+};
+
+// One cube on the shelf: what it rerolls and what it takes. The list the
+// cubing screen offers, in the order it offers them.
+struct Cube {
+  CubeType type;
+  PotentialTrack track;
+  int64_t cost;
+};
+
+inline constexpr Cube kCubes[] = {
+    {CubeType::kRed, PotentialTrack::kMain, kCubeCost},
+};
+
+// The shelf entry for `type`.
+const Cube& CubeOf(CubeType type);
+
 // The rank above `rank`, and the rank below. Both stop at the end they run
 // into: nothing climbs past Legendary, and a non-prime line on a Rare
 // potential is Rare, there being nothing under it.
