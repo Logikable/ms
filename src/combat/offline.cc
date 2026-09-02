@@ -139,11 +139,11 @@ Sample StepSample(const CombatParams& params, double seconds) {
        elapsed += kOfflineStepSeconds) {
     sim.Advance(params, kOfflineStepSeconds);
     for (std::size_t i = 0; i < sample.kills.size(); ++i) {
-      sample.kills[i] += sim.kills_this_step()[i];
+      sample.kills[i] += sim.view().kills_this_step[i];
     }
     sample.seconds = elapsed + kOfflineStepSeconds;
-    sample.pool.Add(sample.seconds, sim.player_hp_fraction());
-    if (sim.died_this_step()) {
+    sample.pool.Add(sample.seconds, sim.view().player_hp_fraction);
+    if (sim.view().died_this_step) {
       sample.died = true;
       return sample;
     }

@@ -74,7 +74,7 @@ int ExpPctDecimals(int level) {
 // Every kill the step recorded, whatever stood on the map.
 int64_t TotalKills(const CombatSim& sim) {
   int64_t total = 0;
-  for (int64_t kills : sim.kills_this_step()) {
+  for (int64_t kills : sim.view().kills_this_step) {
     total += kills;
   }
   return total;
@@ -1092,8 +1092,8 @@ void Tui::Tick() {
     RewardTally tally = AdvanceCombat(state_, combat_sim_, elapsed.count());
     AnalysisSample sample;
     sample.seconds = elapsed.count();
-    sample.respawned = combat_sim_.respawned_this_step();
-    sample.damage = combat_sim_.damage_this_step();
+    sample.respawned = combat_sim_.view().respawned_this_step;
+    sample.damage = combat_sim_.view().damage_this_step;
     sample.kills = TotalKills(combat_sim_);
     sample.meso = tally.meso;
     sample.exp = tally.exp;
@@ -1108,7 +1108,7 @@ void Tui::Tick() {
   // A level earned on the way down is still a level, and its gold is still
   // lit -- but what the player needs told is that they are no longer where
   // they thought they were.
-  if (combat_sim_.died_this_step()) {
+  if (combat_sim_.view().died_this_step) {
     celebration_.BeginDeath();
   }
 }

@@ -91,7 +91,7 @@ TEST(CombatSimTest, ARollingSwingKillsAtTheRateItsAverageWould) {
     CombatSim sim;
     for (int step = 0; step < 20000; ++step) {
       sim.Advance(params, 1.0);
-      kills[run] += sim.kills_this_step()[0];
+      kills[run] += sim.view().kills_this_step[0];
     }
   }
   ASSERT_GT(kills[0], 0.0);
@@ -116,7 +116,7 @@ TEST(CombatSimTest, ARollingSwingDoesNotLandTheSameTwice) {
   std::vector<double> left;
   for (int step = 0; step < 5; ++step) {
     sim.Advance(params, 1.0);
-    left.push_back(sim.target_hp_fraction());
+    left.push_back(sim.view().target_hp_fraction);
   }
   // Five swings, so four gaps -- at least one of them differs from the first.
   bool varied = false;
@@ -147,7 +147,7 @@ TEST(CombatSimTest, AFinalAttackRollsPerEnemyAndPaysItsAverage) {
     CombatSim sim;
     for (int step = 0; step < 20000; ++step) {
       sim.Advance(params, 1.0);
-      kills[run] += sim.kills_this_step()[0];
+      kills[run] += sim.view().kills_this_step[0];
     }
   }
   ASSERT_GT(kills[0], 0.0);
@@ -185,7 +185,7 @@ TEST(CombatSimTest, ABurnIsWeighedAtTheRateItCanBeRelit) {
   int64_t killed = 0;
   for (int step = 0; step < 30; ++step) {
     sim.Advance(params, 1.0);
-    killed += sim.kills_this_step()[0];
+    killed += sim.view().kills_this_step[0];
   }
   // The hard swing kills one a second; the smoulder would manage one every
   // five. Anything near the latter means the burn was priced at its whole life.
@@ -212,7 +212,7 @@ TEST(CombatSimTest, ABurnAlreadyStandingIsNotWorthRelighting) {
   for (int step = 0; step < 60; ++step) {
     sim.Advance(params, 0.5);
   }
-  double taken = (1.0 - sim.target_hp_fraction()) * 1000000.0;
+  double taken = (1.0 - sim.view().target_hp_fraction) * 1000000.0;
   // Thirty seconds of burning is 12000 whichever swing goes out, so anything
   // above it is the harder swing landing in between.
   EXPECT_GT(taken, 16000.0);
@@ -238,7 +238,7 @@ TEST(CombatSimTest, APileWithRoomIsStillWorthTopping) {
     for (int step = 0; step < 60; ++step) {
       sim.Advance(params, 0.5);
     }
-    taken[run] = (1.0 - sim.target_hp_fraction()) * 1000000.0;
+    taken[run] = (1.0 - sim.view().target_hp_fraction) * 1000000.0;
   }
   // Three helpings burn for three times as much as one, and the fight only
   // gets them by spending swings the single-helping run had no reason to.
@@ -256,14 +256,15 @@ TEST(CombatSimTest, ABurnAfflictsTheMonsterTheIceWouldHave) {
 
   CombatSim cold;
   cold.Advance(params, 1.0);
-  EXPECT_DOUBLE_EQ(cold.damage_this_step(), 100.0);  // nothing on it yet
+  EXPECT_DOUBLE_EQ(cold.view().damage_this_step, 100.0);  // nothing on it yet
 
   params.attacks[0].dots.push_back(MakeBurn(0.0, 1.0, 10.0));
   CombatSim lit;
   lit.Advance(params, 1.0);
-  EXPECT_DOUBLE_EQ(lit.damage_this_step(), 100.0);  // the swing that lights it
+  EXPECT_DOUBLE_EQ(lit.view().damage_this_step,
+                   100.0);  // the swing that lights it
   lit.Advance(params, 1.0);
-  EXPECT_DOUBLE_EQ(lit.damage_this_step(), 150.0);  // and every one after
+  EXPECT_DOUBLE_EQ(lit.view().damage_this_step, 150.0);  // and every one after
 }
 
 // Elemental Drain counts the burns standing on the GROUP, not the one being
@@ -279,15 +280,16 @@ TEST(CombatSimTest, TheDrainCountsEveryBurningMonsterUpToItsCap) {
   CombatSim uncounted;
   uncounted.Advance(params, 1.0);
   uncounted.Advance(params, 1.0);
-  EXPECT_DOUBLE_EQ(uncounted.damage_this_step(), 800.0) << "no cap, no count";
+  EXPECT_DOUBLE_EQ(uncounted.view().damage_this_step, 800.0)
+      << "no cap, no count";
 
   params.attacks[0].dot_count_cap = 3;
   CombatSim capped;
   capped.Advance(params, 1.0);
-  EXPECT_DOUBLE_EQ(capped.damage_this_step(), 800.0);  // lights them
+  EXPECT_DOUBLE_EQ(capped.view().damage_this_step, 800.0);  // lights them
   capped.Advance(params, 1.0);
   // Eight alight, three of them counted: 8 x 100 x 1.3.
-  EXPECT_DOUBLE_EQ(capped.damage_this_step(), 1040.0);
+  EXPECT_DOUBLE_EQ(capped.view().damage_this_step, 1040.0);
 }
 
 // A burn ticks on its own clock for as long as it was lit for, and then stops
@@ -304,12 +306,12 @@ TEST(CombatSimTest, ABurnTicksForItsDurationAndNoLonger) {
   for (int step = 0; step < 32; ++step) {
     sim.Advance(params, 0.5);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);
   // Six more seconds with the burn out and the next cast still to come.
   for (int step = 0; step < 8; ++step) {
     sim.Advance(params, 0.5);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9)
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9)
       << "the burn kept ticking past the seconds it was lit for";
 }
 
@@ -329,7 +331,7 @@ TEST(CombatSimTest, ABurnDoesNotStackWithItself) {
     for (int step = 0; step < 400; ++step) {
       sim.Advance(params, 0.1);
     }
-    left[run] = sim.target_hp_fraction();
+    left[run] = sim.view().target_hp_fraction;
   }
   // Forty seconds of burning either way, to within the one tick the earlier
   // first swing buys the faster run.
@@ -355,7 +357,7 @@ TEST(CombatSimTest, ASideStrikeGoesOutOnItsOwnWait) {
   }
   // Fifty seconds of one-second swings: ten strikes at a wait of five, and the
   // swing itself deals nothing.
-  double taken = (1.0 - sim.target_hp_fraction()) * 1000000.0;
+  double taken = (1.0 - sim.view().target_hp_fraction) * 1000000.0;
   EXPECT_NEAR(taken, 10.0 * 1000.0, 1000.0);
 }
 
@@ -375,7 +377,7 @@ TEST(CombatSimTest, APoisonPilesUpToItsLimit) {
     for (int step = 0; step < 200; ++step) {
       sim.Advance(params, 0.5);
     }
-    taken[run] = 1.0 - sim.target_hp_fraction();
+    taken[run] = 1.0 - sim.view().target_hp_fraction;
   }
   // A swing a second saturates the pile in three, so all but the first two
   // seconds of a hundred tick three times over.
@@ -401,7 +403,7 @@ TEST(CombatSimTest, APoisonIsRolledForPerEnemy) {
   // One tick per swing per enemy at certainty; half of them at half a chance.
   // Loose bounds: what is being caught is a roll that never fires or never
   // misses, not the shape of the distribution.
-  double burned = (1.0 - sim.target_hp_fraction()) * 1000000.0;
+  double burned = (1.0 - sim.view().target_hp_fraction) * 1000000.0;
   EXPECT_GT(burned, 100.0 * 200.0 * 0.3);
   EXPECT_LT(burned, 100.0 * 200.0 * 0.7);
 }
@@ -419,14 +421,14 @@ TEST(CombatSimTest, ABurnKeepsTheDamageItWasLitWith) {
   for (int step = 0; step < 23; ++step) {
     sim.Advance(params, 0.5);  // the cast at 10s, and one tick after it
   }
-  ASSERT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);
+  ASSERT_NEAR(sim.view().target_hp_fraction, 0.99, 1e-9);
   // Whatever the character is worth now, the four ticks still owed were
   // priced when the burn landed.
   params.attacks[0].dots[0].damage.assign(1, 1.0);
   for (int step = 0; step < 10; ++step) {
     sim.Advance(params, 0.5);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);
 }
 
 // Blizzard's passive falls on one enemy however many the swing reached, so
@@ -447,7 +449,7 @@ TEST(CombatSimTest, ASingleEnemyFinalAttackDoesNotScaleWithTheReach) {
       CombatSim sim;
       for (int step = 0; step < 5; ++step) {
         sim.Advance(params, 1.0);
-        killed[single][reach == 1 ? 0 : 1] += sim.kills_this_step()[0];
+        killed[single][reach == 1 ? 0 : 1] += sim.view().kills_this_step[0];
       }
     }
   }
@@ -475,9 +477,9 @@ TEST(CombatSimTest, APiercingSwingCompoundsAsItGoes) {
 
   CombatSim sim;
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.engaged_groups().size(), 6u);
+  ASSERT_EQ(sim.view().engaged_groups.size(), 6u);
   std::vector<double> lost;
-  for (const EngagedGroup& group : sim.engaged_groups()) {
+  for (const EngagedGroup& group : sim.view().engaged_groups) {
     lost.push_back((1.0 - group.hp_fraction) * 10000.0);
   }
   std::sort(lost.begin(), lost.end());
@@ -513,14 +515,14 @@ TEST(CombatSimTest, APiercingSwingIsChosenForWhatItsGainIsWorth) {
 
   CombatSim sim;
   sim.Advance(params, 0.1);
-  EXPECT_EQ(sim.attack_name(), "Piercing Arrow");
+  EXPECT_EQ(sim.view().attack_name, "Piercing Arrow");
 
   // Take the gain away and the flatter swing wins, which is what says the
   // pick above was made on the gain rather than on anything else.
   params.attacks[0].pierce_gain_pct = 0.0;
   CombatSim without;
   without.Advance(params, 0.1);
-  EXPECT_EQ(without.attack_name(), "Bolt Burst");
+  EXPECT_EQ(without.view().attack_name, "Bolt Burst");
 }
 
 // A boss's parts differ in HP and none of them respawns, so a swing too narrow
@@ -543,7 +545,7 @@ TEST(CombatSimTest, ABossSwingPicksTheHealthiestOfTheRoster) {
     params.focus_healthiest = focus;
     CombatSim sim;
     int taken = 0;
-    while (taken < 20 && (taken == 0 || !sim.roster().empty())) {
+    while (taken < 20 && (taken == 0 || !sim.view().roster.empty())) {
       sim.Advance(params, 1.0);
       ++taken;
     }
@@ -572,7 +574,7 @@ TEST(CombatSimTest, APiercingSwingDrawsTheOrderItTravelsIn) {
   std::vector<double> first;
   for (int swing = 0; swing < 20; ++swing) {
     sim.Advance(params, 1.0);
-    first.push_back(sim.engaged_groups()[0].hp_fraction);
+    first.push_back(sim.view().engaged_groups[0].hp_fraction);
   }
   // Twenty swings, so nineteen gaps: the mob at the front cannot have taken
   // the same share of the swing every time.
@@ -665,7 +667,7 @@ TEST(CombatSimTest, InactiveParamsLeaveSimIdle) {
   sim.Advance(CombatParams{}, 1.0);
   EXPECT_FALSE(sim.active());
   EXPECT_FALSE(sim.respawning());
-  EXPECT_TRUE(sim.target_name().empty());
+  EXPECT_TRUE(sim.view().target_name.empty());
 }
 
 TEST(CombatSimTest, ChargesAttackBarThenLandsAHit) {
@@ -675,13 +677,13 @@ TEST(CombatSimTest, ChargesAttackBarThenLandsAHit) {
 
   sim.Advance(params, 0.5);
   EXPECT_TRUE(sim.active());
-  EXPECT_EQ(sim.target_name(), "Snail");
-  EXPECT_NEAR(sim.attack_fraction(), 0.5, 1e-9);
-  EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 1.0);  // no hit landed yet
+  EXPECT_EQ(sim.view().target_name, "Snail");
+  EXPECT_NEAR(sim.view().attack_fraction, 0.5, 1e-9);
+  EXPECT_DOUBLE_EQ(sim.view().target_hp_fraction, 1.0);  // no hit landed yet
 
   sim.Advance(params, 0.5);  // swing completes -> one hit
-  EXPECT_NEAR(sim.attack_fraction(), 0.0, 1e-9);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.6, 1e-9);  // 10 - 4 = 6
+  EXPECT_NEAR(sim.view().attack_fraction, 0.0, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.6, 1e-9);  // 10 - 4 = 6
 }
 
 // A step wider than the swing lands every swing it covered, rather than one
@@ -701,12 +703,12 @@ TEST(CombatSimTest, AStepWiderThanTheSwingLandsEverySwingItCovers) {
   params.attacks.push_back(std::move(fast));
 
   sim.Advance(params, 0.15);  // one swing lands, 30ms carries
-  EXPECT_NEAR(sim.attack_fraction(), 0.25, 1e-9);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);
+  EXPECT_NEAR(sim.view().attack_fraction, 0.25, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.99, 1e-9);
 
   sim.Advance(params, 0.6);  // the 30ms plus 600ms is five more
-  EXPECT_NEAR(sim.attack_fraction(), 0.25, 1e-9);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.94, 1e-9);
+  EXPECT_NEAR(sim.view().attack_fraction, 0.25, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.94, 1e-9);
 }
 
 // Same rule for a skill on its own clock, which RunDots and RunRegen already
@@ -718,7 +720,7 @@ TEST(CombatSimTest, AStepWiderThanTheIntervalFiresEveryCastItCovers) {
   AddAutoAttack(params, /*interval=*/0.2, /*damage=*/10.0);
 
   sim.Advance(params, 1.0);  // five casts, not one
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);
 }
 
 TEST(CombatSimTest, KillingTheLastMobEntersRespawning) {
@@ -728,7 +730,7 @@ TEST(CombatSimTest, KillingTheLastMobEntersRespawning) {
 
   sim.Advance(params, 1.0);  // one-shot the only mob
   EXPECT_TRUE(sim.respawning());
-  EXPECT_TRUE(sim.target_name().empty());
+  EXPECT_TRUE(sim.view().target_name.empty());
 }
 
 TEST(CombatSimTest, ReportsTheTargetLevelOnlyWhileFighting) {
@@ -737,11 +739,11 @@ TEST(CombatSimTest, ReportsTheTargetLevelOnlyWhileFighting) {
   CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)});
 
   sim.Advance(params, 0.5);  // mid-swing, mob still up
-  EXPECT_EQ(sim.target_level(), 5);
+  EXPECT_EQ(sim.view().target_level, 5);
 
   sim.Advance(params, 0.5);  // swing lands, one-shots the only mob
   EXPECT_TRUE(sim.respawning());
-  EXPECT_EQ(sim.target_level(), 0);
+  EXPECT_EQ(sim.view().target_level, 0);
 }
 
 TEST(CombatSimTest, RecordsKillsForTheStepTheyHappen) {
@@ -750,14 +752,14 @@ TEST(CombatSimTest, RecordsKillsForTheStepTheyHappen) {
   CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 2)});
 
   sim.Advance(params, 0.5);  // still charging, no kill yet
-  ASSERT_EQ(sim.kills_this_step().size(), 1u);
-  EXPECT_EQ(sim.kills_this_step()[0], 0);
+  ASSERT_EQ(sim.view().kills_this_step.size(), 1u);
+  EXPECT_EQ(sim.view().kills_this_step[0], 0);
 
   sim.Advance(params, 0.5);  // swing completes -> one kill
-  EXPECT_EQ(sim.kills_this_step()[0], 1);
+  EXPECT_EQ(sim.view().kills_this_step[0], 1);
 
   sim.Advance(params, 0.5);  // still charging the next swing, no new kill
-  EXPECT_EQ(sim.kills_this_step()[0], 0);
+  EXPECT_EQ(sim.view().kills_this_step[0], 0);
 }
 
 TEST(CombatSimTest, AdvancesToTheNextMobAfterAKill) {
@@ -767,10 +769,10 @@ TEST(CombatSimTest, AdvancesToTheNextMobAfterAKill) {
 
   sim.Advance(params, 1.0);  // kill first of two
   EXPECT_FALSE(sim.respawning());
-  EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 1.0);  // next mob, full HP
+  EXPECT_DOUBLE_EQ(sim.view().target_hp_fraction, 1.0);  // next mob, full HP
 
   sim.Advance(params, 0.9);  // charging, no swing yet
-  EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 1.0);
+  EXPECT_DOUBLE_EQ(sim.view().target_hp_fraction, 1.0);
 
   sim.Advance(params, 1.0);  // kill the second -> queue empty
   EXPECT_TRUE(sim.respawning());
@@ -784,8 +786,9 @@ TEST(CombatSimTest, ASingleTargetSwingSparesTheSecond) {
   CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 2)});
 
   sim.Advance(params, 1.0);  // one-shot the front mob
-  EXPECT_EQ(sim.kills_this_step()[0], 1);
-  EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 1.0);  // the next is full, unhit
+  EXPECT_EQ(sim.view().kills_this_step[0], 1);
+  EXPECT_DOUBLE_EQ(sim.view().target_hp_fraction,
+                   1.0);  // the next is full, unhit
 }
 
 TEST(CombatSimTest, MultiTargetSwingHitsAndKillsSeveralAtOnce) {
@@ -796,8 +799,8 @@ TEST(CombatSimTest, MultiTargetSwingHitsAndKillsSeveralAtOnce) {
       MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 3)}, /*reach=*/3);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.kills_this_step()[0], 3);  // three kills on one swing
-  EXPECT_TRUE(sim.respawning());           // queue cleared
+  EXPECT_EQ(sim.view().kills_this_step[0], 3);  // three kills on one swing
+  EXPECT_TRUE(sim.respawning());                // queue cleared
 }
 
 TEST(CombatSimTest, MultiTargetReachIsCappedByRemainingMobs) {
@@ -808,7 +811,7 @@ TEST(CombatSimTest, MultiTargetReachIsCappedByRemainingMobs) {
       MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 2)}, /*reach=*/6);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.kills_this_step()[0], 2);
+  EXPECT_EQ(sim.view().kills_this_step[0], 2);
   EXPECT_TRUE(sim.respawning());
 }
 
@@ -821,11 +824,11 @@ TEST(CombatSimTest, MultiTargetDrainsTheWindowInParallel) {
       MakeParams(1.0, 100.0, {MakeType(&snail, 6.0, 2)}, /*reach=*/2);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.kills_this_step()[0], 0);           // both at 4 HP, alive
-  EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 0.4);  // 10 - 6
+  EXPECT_EQ(sim.view().kills_this_step[0], 0);           // both at 4 HP, alive
+  EXPECT_DOUBLE_EQ(sim.view().target_hp_fraction, 0.4);  // 10 - 6
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.kills_this_step()[0], 2);  // both die together
+  EXPECT_EQ(sim.view().kills_this_step[0], 2);  // both die together
   EXPECT_TRUE(sim.respawning());
 }
 
@@ -835,11 +838,11 @@ TEST(CombatSimTest, NamesNoSwingWhileRespawning) {
   CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)});
 
   sim.Advance(params, 0.5);  // mob up, a swing is coming
-  EXPECT_EQ(sim.attack_name(), "Attack");
+  EXPECT_EQ(sim.view().attack_name, "Attack");
 
   sim.Advance(params, 0.5);  // one-shots the only mob
   ASSERT_TRUE(sim.respawning());
-  EXPECT_TRUE(sim.attack_name().empty());
+  EXPECT_TRUE(sim.view().attack_name.empty());
 }
 
 TEST(CombatSimTest, PicksTheAttackThatLandsTheMostOnTheQueue) {
@@ -857,11 +860,11 @@ TEST(CombatSimTest, PicksTheAttackThatLandsTheMostOnTheQueue) {
   params.attacks.push_back(wide);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.attack_name(), "Sweep");
+  EXPECT_EQ(sim.view().attack_name, "Sweep");
   // All four took the 5, rather than one taking 12.
-  ASSERT_EQ(sim.engaged_groups().size(), 1u);
-  EXPECT_EQ(sim.engaged_groups()[0].count, 4);
-  EXPECT_NEAR(sim.engaged_groups()[0].hp_fraction, 0.95, 1e-9);
+  ASSERT_EQ(sim.view().engaged_groups.size(), 1u);
+  EXPECT_EQ(sim.view().engaged_groups[0].count, 4);
+  EXPECT_NEAR(sim.view().engaged_groups[0].hp_fraction, 0.95, 1e-9);
 }
 
 // A swing is worth what it lands per second, not per swing: a skill hitting
@@ -879,7 +882,7 @@ TEST(CombatSimTest, PrefersTheFasterSwingWhenItLandsMorePerSecond) {
   params.attacks.push_back(heavy);
 
   sim.Advance(params, 0.1);
-  EXPECT_EQ(sim.attack_name(), "Attack");
+  EXPECT_EQ(sim.view().attack_name, "Attack");
 }
 
 // And the same skill wins once its animation is quick enough to pay for
@@ -897,7 +900,7 @@ TEST(CombatSimTest, TheSlowerSwingWinsWhenItHitsHardEnough) {
   params.attacks.push_back(heavy);
 
   sim.Advance(params, 0.1);
-  EXPECT_EQ(sim.attack_name(), "Heavy");
+  EXPECT_EQ(sim.view().attack_name, "Heavy");
 }
 
 // Final Attack rides the swing, so it is part of what the swing is worth. It
@@ -921,7 +924,7 @@ TEST(CombatSimTest, TheChoiceCountsTheFinalAttackThatFollowsIt) {
   params.attacks.push_back(heavy);
 
   sim.Advance(params, 0.1);
-  EXPECT_EQ(sim.attack_name(), "Attack");
+  EXPECT_EQ(sim.view().attack_name, "Attack");
 }
 
 // A swing three times the poke would simply replace it, so what a cooldown is
@@ -937,7 +940,7 @@ TEST(CombatSimTest, ACooldownKeepsTheBestSwingOffTheMenu) {
     sim.Advance(params, 1.0);
   }
   // One burst and then two pokes: 50, not the 90 three bursts would be.
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);
 }
 
 TEST(CombatSimTest, ACooldownSwingComesBackWhenItRunsOut) {
@@ -952,7 +955,7 @@ TEST(CombatSimTest, ACooldownSwingComesBackWhenItRunsOut) {
   }
   // The cooldown started on the first swing, so three seconds later the fourth
   // is a burst again: 30 + 10 + 10 + 30.
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.92, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.92, 1e-9);
 }
 
 // Unlike a summon's clock, which earns no free cast on an empty map: a player
@@ -967,12 +970,12 @@ TEST(CombatSimTest, ACooldownRunsDownOnAnEmptyMap) {
   params.attacks.push_back(MakeBurst());
 
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.kills_this_step()[0], 1);  // the burst lands and kills
+  ASSERT_EQ(sim.view().kills_this_step[0], 1);  // the burst lands and kills
   sim.Advance(params, 1.0);
   sim.Advance(params, 1.0);
   ASSERT_TRUE(sim.respawning());  // three seconds with nothing to hit
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.kills_this_step()[0], 1)
+  EXPECT_EQ(sim.view().kills_this_step[0], 1)
       << "the respawned mob survived, so the burst was still recharging";
 }
 
@@ -997,15 +1000,16 @@ TEST(CombatSimTest, ASwingUnderwayIsNotDisplacedByABetterOne) {
   for (int i = 0; i < 4; ++i) {
     sim.Advance(params, 0.25);  // Ice, the harder of the two, lands first
   }
-  ASSERT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);
-  ASSERT_EQ(sim.attack_name(), "Bolt");
+  ASSERT_NEAR(sim.view().target_hp_fraction, 0.99, 1e-9);
+  ASSERT_EQ(sim.view().attack_name, "Bolt");
 
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 0.25);  // Ice is off cooldown half way through this
   }
-  EXPECT_EQ(sim.attack_name(), "Bolt") << "Ice took a swing already underway";
+  EXPECT_EQ(sim.view().attack_name, "Bolt")
+      << "Ice took a swing already underway";
   sim.Advance(params, 0.25);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.982, 1e-9);  // 10 and then 8
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.982, 1e-9);  // 10 and then 8
 }
 
 TEST(CombatSimTest, TwoRechargingSkillsTakeTurns) {
@@ -1017,7 +1021,7 @@ TEST(CombatSimTest, TwoRechargingSkillsTakeTurns) {
     sim.Advance(params, 1.0);
   }
   // Ice, Bolt, Ice, Bolt: 36, not the 40 four Ices would be.
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.964, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.964, 1e-9);
 }
 
 // The poke is the exception to the commitment: it is what the character is
@@ -1033,11 +1037,12 @@ TEST(CombatSimTest, TheFallbackPokeYieldsAsSoonAsTheSkillIsBack) {
   for (int i = 0; i < 4; ++i) {
     sim.Advance(params, 0.25);
   }
-  ASSERT_EQ(sim.attack_name(), "Attack") << "nothing else is up to swing";
+  ASSERT_EQ(sim.view().attack_name, "Attack") << "nothing else is up to swing";
   for (int i = 0; i < 4; ++i) {
     sim.Advance(params, 0.25);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.98, 1e-9);  // 10 twice, not 10 and 1
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.98,
+              1e-9);  // 10 twice, not 10 and 1
 }
 
 TEST(CombatSimTest, FallsBackToTheStrongSwingOnTheLastMob) {
@@ -1055,8 +1060,8 @@ TEST(CombatSimTest, FallsBackToTheStrongSwingOnTheLastMob) {
   params.attacks.push_back(wide);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.attack_name(), "Attack");
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.88, 1e-9);  // took the 12
+  EXPECT_EQ(sim.view().attack_name, "Attack");
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.88, 1e-9);  // took the 12
 }
 
 TEST(CombatSimTest, TheChoiceChangesAsTheQueueThins) {
@@ -1074,10 +1079,10 @@ TEST(CombatSimTest, TheChoiceChangesAsTheQueueThins) {
   params.attacks.push_back(wide);
 
   sim.Advance(params, 0.5);  // charging, two mobs up: the sweep wins
-  EXPECT_EQ(sim.attack_name(), "Sweep");
+  EXPECT_EQ(sim.view().attack_name, "Sweep");
 
   sim.Advance(params, 0.5);  // it lands and clears both
-  EXPECT_EQ(sim.kills_this_step()[0], 2);
+  EXPECT_EQ(sim.view().kills_this_step[0], 2);
   EXPECT_TRUE(sim.respawning());
 }
 
@@ -1090,11 +1095,11 @@ TEST(CombatSimTest, EngagedGroupsAverageASingleTypesWindow) {
       MakeParams(1.0, 100.0, {MakeType(&snail, 4.0, 5)}, /*reach=*/3);
 
   sim.Advance(params, 1.0);  // front three to 16/20 = 0.8
-  ASSERT_EQ(sim.engaged_groups().size(), 1u);
-  EXPECT_EQ(sim.engaged_groups()[0].name, "Snail");
-  EXPECT_EQ(sim.engaged_groups()[0].level, 3);
-  EXPECT_EQ(sim.engaged_groups()[0].count, 3);
-  EXPECT_NEAR(sim.engaged_groups()[0].hp_fraction, 0.8, 1e-9);
+  ASSERT_EQ(sim.view().engaged_groups.size(), 1u);
+  EXPECT_EQ(sim.view().engaged_groups[0].name, "Snail");
+  EXPECT_EQ(sim.view().engaged_groups[0].level, 3);
+  EXPECT_EQ(sim.view().engaged_groups[0].count, 3);
+  EXPECT_NEAR(sim.view().engaged_groups[0].hp_fraction, 0.8, 1e-9);
 }
 
 TEST(CombatSimTest, EngagedGroupsMergeTheWindowByType) {
@@ -1108,7 +1113,7 @@ TEST(CombatSimTest, EngagedGroupsMergeTheWindowByType) {
       /*reach=*/4);
 
   sim.Advance(params, 1.0);  // Snails -> 0.5, Slugs -> 0.8
-  const std::vector<EngagedGroup>& groups = sim.engaged_groups();
+  const std::vector<EngagedGroup>& groups = sim.view().engaged_groups;
   ASSERT_EQ(groups.size(), 2u);
   const EngagedGroup* snails = FindGroup(groups, "Snail");
   const EngagedGroup* slugs = FindGroup(groups, "Slug");
@@ -1134,7 +1139,7 @@ TEST(CombatSimTest, RefillsAtTheRespawnBeat) {
   EXPECT_TRUE(sim.respawning());
   sim.Advance(params, 1.0);  // respawn_phase = 5 -> refill, then one hit
   EXPECT_FALSE(sim.respawning());
-  EXPECT_NEAR(sim.target_hp_fraction(), 20.0 / 30.0, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 20.0 / 30.0, 1e-9);
 }
 
 TEST(CombatSimTest, ARespawnBeatAddsOnlyTheMissingMobs) {
@@ -1149,10 +1154,10 @@ TEST(CombatSimTest, ARespawnBeatAddsOnlyTheMissingMobs) {
 
   sim.Advance(params, 0.5);
   sim.Advance(params, 0.5);  // t=1: the swing lands, leaving the Slug alone
-  ASSERT_EQ(sim.engaged_groups().size(), 1u);
+  ASSERT_EQ(sim.view().engaged_groups.size(), 1u);
 
   sim.Advance(params, 0.5);  // t=1.5: the beat
-  const std::vector<EngagedGroup>& groups = sim.engaged_groups();
+  const std::vector<EngagedGroup>& groups = sim.view().engaged_groups;
   ASSERT_EQ(groups.size(), 2u);
   const EngagedGroup* snails = FindGroup(groups, "Snail");
   const EngagedGroup* slugs = FindGroup(groups, "Slug");
@@ -1175,7 +1180,7 @@ TEST(CombatSimTest, AMobSlowerThanTheBeatStillDies) {
   int64_t kills = 0;
   for (int i = 0; i < 10; ++i) {
     sim.Advance(params, 1.0);
-    kills += sim.kills_this_step()[0];
+    kills += sim.view().kills_this_step[0];
   }
   EXPECT_EQ(kills, 1);
 }
@@ -1191,13 +1196,13 @@ TEST(CombatSimTest, ABeatMidFightKeepsTheSwingCharging) {
   for (int i = 0; i < 5; ++i) {
     sim.Advance(params, 0.5);  // t=2.5: swing landed at 2, phase back to 0.5
   }
-  ASSERT_NEAR(sim.attack_fraction(), 0.25, 1e-9);
+  ASSERT_NEAR(sim.view().attack_fraction, 0.25, 1e-9);
 
   sim.Advance(params, 0.5);  // t=3: the beat, then another half second
   EXPECT_FALSE(sim.respawning());
   // 0.5s of charge survived the beat and 0.5s was added on top. A beat that
   // restarted the swing would read 0.25 here.
-  EXPECT_NEAR(sim.attack_fraction(), 0.5, 1e-9);
+  EXPECT_NEAR(sim.view().attack_fraction, 0.5, 1e-9);
 }
 
 TEST(CombatSimTest, ARespawnBeatAfterAClearStartsAFreshSwing) {
@@ -1217,8 +1222,8 @@ TEST(CombatSimTest, ARespawnBeatAfterAClearStartsAFreshSwing) {
   EXPECT_FALSE(sim.respawning());
   // Exactly the 0.75s since the beat. Carrying the overshoot would have put
   // the swing over the line and landed a hit already.
-  EXPECT_NEAR(sim.attack_fraction(), 0.75, 1e-9);
-  EXPECT_NEAR(sim.target_hp_fraction(), 1.0, 1e-9);
+  EXPECT_NEAR(sim.view().attack_fraction, 0.75, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9);
 }
 
 TEST(CombatSimTest, MovingToAnotherMapRestartsTheFightThere) {
@@ -1231,19 +1236,19 @@ TEST(CombatSimTest, MovingToAnotherMapRestartsTheFightThere) {
                                   /*reach=*/1, "other_field");
 
   sim.Advance(here, 1.0);  // engage the Snail: hp 20
-  EXPECT_EQ(sim.target_name(), "Snail");
-  EXPECT_NEAR(sim.target_hp_fraction(), 20.0 / 30.0, 1e-9);
+  EXPECT_EQ(sim.view().target_name, "Snail");
+  EXPECT_NEAR(sim.view().target_hp_fraction, 20.0 / 30.0, 1e-9);
 
   // The move re-engages from the new map: a fresh Slug, whose 30 HP takes this
   // step's hit rather than carrying the Snail's damage -- and the kill credited
   // to the new map's lone type, not a stale index from the old roster.
   sim.Advance(there, 1.0);
-  EXPECT_EQ(sim.target_name(), "Slug");
-  EXPECT_NEAR(sim.target_hp_fraction(), 20.0 / 30.0, 1e-9);
+  EXPECT_EQ(sim.view().target_name, "Slug");
+  EXPECT_NEAR(sim.view().target_hp_fraction, 20.0 / 30.0, 1e-9);
 
   sim.Advance(there, 1.0);
   sim.Advance(there, 1.0);  // hp 0 -> the Slug dies
-  EXPECT_EQ(sim.kills_this_step()[0], 1);
+  EXPECT_EQ(sim.view().kills_this_step[0], 1);
 }
 
 TEST(CombatSimTest, ShufflingTheRosterSpreadsKillsAcrossTypes) {
@@ -1260,8 +1265,8 @@ TEST(CombatSimTest, ShufflingTheRosterSpreadsKillsAcrossTypes) {
   int64_t blue_kills = 0;
   for (int step = 0; step < 200; ++step) {
     sim.Advance(params, 1.0);
-    snail_kills += sim.kills_this_step()[0];
-    blue_kills += sim.kills_this_step()[1];
+    snail_kills += sim.view().kills_this_step[0];
+    blue_kills += sim.view().kills_this_step[1];
   }
 
   EXPECT_GT(snail_kills, 0);
@@ -1273,7 +1278,7 @@ TEST(CombatSimTest, ClampsLargeGapsToOneSwing) {
   CombatSim sim;
   CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 4.0, 1)});
   sim.Advance(params, 1000.0);  // huge gap -> at most one swing of damage
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.96, 1e-9);  // 100 - 4 = 96
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.96, 1e-9);  // 100 - 4 = 96
 }
 
 // Gives `params` a player with a pool to lose, hit every `interval` seconds
@@ -1296,15 +1301,15 @@ TEST(CombatSimTest, TheEngagedMobHitsBackOnItsOwnClock) {
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
 
   sim.Advance(params, 0.5);  // mid-interval, nothing has landed
-  EXPECT_EQ(sim.player_hp(), 100);
-  EXPECT_DOUBLE_EQ(sim.player_hp_fraction(), 1.0);
+  EXPECT_EQ(sim.view().player_hp, 100);
+  EXPECT_DOUBLE_EQ(sim.view().player_hp_fraction, 1.0);
 
   sim.Advance(params, 0.5);  // the interval closes
-  EXPECT_EQ(sim.player_hp(), 90);
-  EXPECT_DOUBLE_EQ(sim.player_hp_fraction(), 0.9);
+  EXPECT_EQ(sim.view().player_hp, 90);
+  EXPECT_DOUBLE_EQ(sim.view().player_hp_fraction, 0.9);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 80);
+  EXPECT_EQ(sim.view().player_hp, 80);
 }
 
 // A frozen monster is stopped where it stands, so the beats that fall while
@@ -1319,20 +1324,20 @@ TEST(CombatSimTest, AFrozenMobLandsNoHit) {
   for (int i = 0; i < 50; ++i) {
     thawed.Advance(params, 0.1);
   }
-  EXPECT_LT(thawed.player_hp(), 1000);
+  EXPECT_LT(thawed.view().player_hp, 1000);
 
   params.attacks[0].freeze_seconds = 2.0;  // relaid by every swing
   CombatSim frozen;
   for (int i = 0; i < 50; ++i) {
     frozen.Advance(params, 0.1);
   }
-  EXPECT_EQ(frozen.player_hp(), 1000);
+  EXPECT_EQ(frozen.view().player_hp, 1000);
 
   params.attacks[0].freeze_seconds = 0.0;  // the ice runs out and is not relaid
   for (int i = 0; i < 40; ++i) {
     frozen.Advance(params, 0.1);
   }
-  EXPECT_LT(frozen.player_hp(), 1000);
+  EXPECT_LT(frozen.view().player_hp, 1000);
 }
 
 // Holy Fountain: healing on a clock of its own, costing no swing and asking
@@ -1351,9 +1356,9 @@ TEST(CombatSimTest, AFountainPoursOnItsOwnClock) {
   for (int i = 0; i < 4; ++i) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_EQ(sim.player_hp(), 60);
+  EXPECT_EQ(sim.view().player_hp, 60);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 70);
+  EXPECT_EQ(sim.view().player_hp, 70);
 }
 
 // The Evil Eye's aura, which pours a flat amount rather than a share of the
@@ -1366,7 +1371,7 @@ TEST(CombatSimTest, AFountainPoursItsFlatHalfToo) {
   params.regen_pulses = {{0.02, 24, 2.0}};  // 24 HP and 20 more every 2s
 
   sim.Advance(params, 2.0);
-  EXPECT_EQ(sim.player_hp(), 944);
+  EXPECT_EQ(sim.view().player_hp, 944);
 }
 
 // One step wider than the interval owes every pulse it covered, the way a burn
@@ -1379,9 +1384,9 @@ TEST(CombatSimTest, AFountainPoursEveryPulseAWideStepCovered) {
   params.regen_pulses = {{0.02, 0, 2.0}};  // 20 HP every 2s
 
   sim.Advance(params, 2.0);  // one hit, one pulse
-  EXPECT_EQ(sim.player_hp(), 920);
+  EXPECT_EQ(sim.view().player_hp, 920);
   sim.Advance(params, 6.0);  // one hit again, but three pulses
-  EXPECT_EQ(sim.player_hp(), 880);
+  EXPECT_EQ(sim.view().player_hp, 880);
 }
 
 // Two fountains on two clocks, which is what a Bishop carries. Neither waits
@@ -1396,13 +1401,13 @@ TEST(CombatSimTest, TwoFountainsPourOnSeparateClocks) {
   for (int i = 0; i < 2; ++i) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_EQ(sim.player_hp(), 820);  // the 2s one, alone
+  EXPECT_EQ(sim.view().player_hp, 820);  // the 2s one, alone
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 750);  // the 3s one, alone
+  EXPECT_EQ(sim.view().player_hp, 750);  // the 3s one, alone
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_EQ(sim.player_hp(), 520);  // both, on the same step
+  EXPECT_EQ(sim.view().player_hp, 520);  // both, on the same step
 }
 
 // It stops at the pool rather than running past it, the way every other heal
@@ -1415,7 +1420,7 @@ TEST(CombatSimTest, AFountainNeverFillsPastTheHpPool) {
   params.regen_pulses = {{0.50, 0, 1.0}};
 
   sim.Advance(params, 10.0);
-  EXPECT_EQ(sim.player_hp(), 100);
+  EXPECT_EQ(sim.view().player_hp, 100);
 }
 
 TEST(CombatSimTest, OnlyOneMobHitsBackHoweverManyAreOnTheMap) {
@@ -1427,7 +1432,7 @@ TEST(CombatSimTest, OnlyOneMobHitsBackHoweverManyAreOnTheMap) {
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 90);
+  EXPECT_EQ(sim.view().player_hp, 90);
 }
 
 TEST(CombatSimTest, DamageTakenFollowsTheMobInFront) {
@@ -1445,7 +1450,7 @@ TEST(CombatSimTest, DamageTakenFollowsTheMobInFront) {
   // shuffles the arrivals -- but the hit the player takes has to be that
   // one's, and not the other's.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), sim.target_name() == "Snail" ? 95 : 50);
+  EXPECT_EQ(sim.view().player_hp, sim.view().target_name == "Snail" ? 95 : 50);
 }
 
 // Spirit Blade: a share of every hit comes straight back out of whoever
@@ -1459,8 +1464,8 @@ TEST(CombatSimTest, ReflectionHurtsTheMobThatHits) {
 
   // The swing is 100 seconds off, so every point the snail loses is reflected.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 90);
-  EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 0.95);
+  EXPECT_EQ(sim.view().player_hp, 90);
+  EXPECT_DOUBLE_EQ(sim.view().target_hp_fraction, 0.95);
 }
 
 TEST(CombatSimTest, ReflectionCanFinishAMob) {
@@ -1473,7 +1478,7 @@ TEST(CombatSimTest, ReflectionCanFinishAMob) {
   // A kill is a kill however it happened: the reward layer pays for this one
   // exactly as it pays for a swing's.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.kills_this_step()[0], 1);
+  EXPECT_EQ(sim.view().kills_this_step[0], 1);
   EXPECT_TRUE(sim.respawning());
 }
 
@@ -1484,7 +1489,7 @@ TEST(CombatSimTest, NoReflectionWithoutTheSkill) {
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
 
   sim.Advance(params, 1.0);
-  EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 1.0);
+  EXPECT_DOUBLE_EQ(sim.view().target_hp_fraction, 1.0);
 }
 
 TEST(CombatSimTest, AnEmptyMapHasNothingToHitThePlayerWith) {
@@ -1495,12 +1500,12 @@ TEST(CombatSimTest, AnEmptyMapHasNothingToHitThePlayerWith) {
 
   sim.Advance(params, 1.0);  // the snail hits, then the swing clears the map
   ASSERT_TRUE(sim.respawning());
-  EXPECT_EQ(sim.player_hp(), 90);
+  EXPECT_EQ(sim.view().player_hp, 90);
 
   for (int i = 0; i < 5; ++i) {  // idling well past several intervals
     sim.Advance(params, 1.0);
   }
-  EXPECT_EQ(sim.player_hp(), 90);
+  EXPECT_EQ(sim.view().player_hp, 90);
 }
 
 TEST(CombatSimTest, ClearingTheMapHealsThePlayer) {
@@ -1512,13 +1517,13 @@ TEST(CombatSimTest, ClearingTheMapHealsThePlayer) {
   sim.Advance(params, 0.5);
   sim.Advance(params, 0.5);  // a hit lands, then the swing clears the map
   ASSERT_TRUE(sim.respawning());
-  ASSERT_EQ(sim.player_hp(), 90);
+  ASSERT_EQ(sim.view().player_hp, 90);
 
   for (int i = 0; i < 4; ++i) {  // idle until the beat at 3.0s refills the map
     sim.Advance(params, 0.5);
   }
   EXPECT_FALSE(sim.respawning());
-  EXPECT_EQ(sim.player_hp(), 100);
+  EXPECT_EQ(sim.view().player_hp, 100);
 }
 
 // A passive that heals on attack pays per landed swing, costing none of them,
@@ -1532,13 +1537,13 @@ TEST(CombatSimTest, RecoveryOnAttackRidesTheSwing) {
   params.hp_recover_pct = 0.05;
 
   sim.Advance(params, 1.0);  // one hit taken, one swing landed
-  EXPECT_EQ(sim.player_hp(), 85);
+  EXPECT_EQ(sim.view().player_hp, 85);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 70);
+  EXPECT_EQ(sim.view().player_hp, 70);
   for (int i = 0; i < 20; ++i) {  // swinging alone cannot overfill the pool
     sim.Advance(params, 1.0);
   }
-  EXPECT_LE(sim.player_hp(), 100);
+  EXPECT_LE(sim.view().player_hp, 100);
 }
 
 // A swing can heal on its own account, and what it heals lands on top of what
@@ -1552,9 +1557,9 @@ TEST(CombatSimTest, ASwingsOwnRecoveryPaysBesideTheCharacters) {
   params.attacks[0].hp_recover_pct = 0.05;
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 90);
+  EXPECT_EQ(sim.view().player_hp, 90);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 80);
+  EXPECT_EQ(sim.view().player_hp, 80);
 }
 
 // Nothing to hit is nothing to heal off. A cleared map already gives the pool
@@ -1569,11 +1574,11 @@ TEST(CombatSimTest, RecoveryOnAttackPaysNothingOnAnEmptyMap) {
   sim.Advance(params, 0.5);
   sim.Advance(params, 0.5);  // a hit lands, then the swing clears the map
   ASSERT_TRUE(sim.respawning());
-  int cleared = sim.player_hp();
+  int cleared = sim.view().player_hp;
   for (int i = 0; i < 6; ++i) {  // idling well short of the 1000s beat
     sim.Advance(params, 0.5);
   }
-  EXPECT_EQ(sim.player_hp(), cleared);
+  EXPECT_EQ(sim.view().player_hp, cleared);
 }
 
 TEST(CombatSimTest, TheHitClockWaitsOnAnEmptyMap) {
@@ -1584,18 +1589,18 @@ TEST(CombatSimTest, TheHitClockWaitsOnAnEmptyMap) {
 
   sim.Advance(params, 0.5);
   sim.Advance(params, 0.5);  // hit, then the map is cleared
-  ASSERT_EQ(sim.player_hp(), 90);
+  ASSERT_EQ(sim.view().player_hp, 90);
   for (int i = 0; i < 4; ++i) {  // two idle seconds, then the refill
     sim.Advance(params, 0.5);
   }
   ASSERT_FALSE(sim.respawning());
-  ASSERT_EQ(sim.player_hp(), 100);
+  ASSERT_EQ(sim.view().player_hp, 100);
 
   // Nine tenths of a second of fighting since the map refilled. Had the two
   // idle seconds counted toward the mob's clock, a hit would have landed by
   // now -- several, in fact.
   sim.Advance(params, 0.4);
-  EXPECT_EQ(sim.player_hp(), 100);
+  EXPECT_EQ(sim.view().player_hp, 100);
 }
 
 TEST(CombatSimTest, ARespawnBeatMidFightHealsASlice) {
@@ -1609,10 +1614,11 @@ TEST(CombatSimTest, ARespawnBeatMidFightHealsASlice) {
   params.beat_heal_fraction = 0.1;
 
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 70);
+  ASSERT_EQ(sim.view().player_hp, 70);
   sim.Advance(params, 1.0);  // the beat lands here, with both mobs still up
   ASSERT_FALSE(sim.respawning());
-  EXPECT_EQ(sim.player_hp(), 50);  // 70, +10 from the beat, -30 from the hit
+  EXPECT_EQ(sim.view().player_hp,
+            50);  // 70, +10 from the beat, -30 from the hit
 }
 
 TEST(CombatSimTest, ABeatCannotHealPastFull) {
@@ -1623,11 +1629,11 @@ TEST(CombatSimTest, ABeatCannotHealPastFull) {
   params.beat_heal_fraction = 0.1;
 
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 95);
+  ASSERT_EQ(sim.view().player_hp, 95);
   // The beat's tenth is more than the one hit took, and the surplus goes
   // nowhere: the player is left one hit down, not banking healing for later.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 95);
+  EXPECT_EQ(sim.view().player_hp, 95);
 }
 
 TEST(CombatSimTest, ChangingMapHealsThePlayer) {
@@ -1638,13 +1644,13 @@ TEST(CombatSimTest, ChangingMapHealsThePlayer) {
 
   sim.Advance(params, 1.0);
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 80);
+  ASSERT_EQ(sim.view().player_hp, 80);
 
   CombatParams elsewhere = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)},
                                       /*reach=*/1, /*map=*/"elsewhere");
   GivePlayerHp(elsewhere, 100, /*interval=*/1.0, /*damage=*/10.0);
   sim.Advance(elsewhere, 0.5);
-  EXPECT_EQ(sim.player_hp(), 100);
+  EXPECT_EQ(sim.view().player_hp, 100);
 }
 
 TEST(CombatSimTest, PlayerHpStopsAtZero) {
@@ -1654,11 +1660,11 @@ TEST(CombatSimTest, PlayerHpStopsAtZero) {
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/60.0);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 40);
+  EXPECT_EQ(sim.view().player_hp, 40);
 
   sim.Advance(params, 1.0);  // more than the 40 that is left
-  EXPECT_EQ(sim.player_hp(), 0);
-  EXPECT_DOUBLE_EQ(sim.player_hp_fraction(), 0.0);
+  EXPECT_EQ(sim.view().player_hp, 0);
+  EXPECT_DOUBLE_EQ(sim.view().player_hp_fraction, 0.0);
 }
 
 TEST(CombatSimTest, ASliverOfHpStillReadsAsOne) {
@@ -1668,7 +1674,7 @@ TEST(CombatSimTest, ASliverOfHpStillReadsAsOne) {
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/99.5);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 1);  // 0.5 left, which is not death
+  EXPECT_EQ(sim.view().player_hp, 1);  // 0.5 left, which is not death
 }
 
 TEST(CombatSimTest, LevellingUpFillsTheWiderPool) {
@@ -1679,15 +1685,15 @@ TEST(CombatSimTest, LevellingUpFillsTheWiderPool) {
   params.player_level = 30;
 
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 90);
+  ASSERT_EQ(sim.view().player_hp, 90);
 
   // The level lands and the pool grows. Left alone, the bar would read 90 of
   // 200 -- less than half full, having lost one hit.
   params.player_level = 31;
   params.max_player_hp = 200;
   sim.Advance(params, 0.5);
-  EXPECT_EQ(sim.player_hp(), 200);
-  EXPECT_EQ(sim.player_max_hp(), 200);
+  EXPECT_EQ(sim.view().player_hp, 200);
+  EXPECT_EQ(sim.view().player_max_hp, 200);
 }
 
 // A skill point into a passive that carries max HP widens the pool at the same
@@ -1701,12 +1707,12 @@ TEST(CombatSimTest, AWiderPoolAtTheSameLevelDoesNotHeal) {
   params.player_level = 30;
 
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 90);
+  ASSERT_EQ(sim.view().player_hp, 90);
 
   params.max_player_hp = 200;
   sim.Advance(params, 0.5);
-  EXPECT_EQ(sim.player_hp(), 90);
-  EXPECT_EQ(sim.player_max_hp(), 200);
+  EXPECT_EQ(sim.view().player_hp, 90);
+  EXPECT_EQ(sim.view().player_max_hp, 200);
 }
 
 // And a pool that shrank -- an unequipped hat -- takes the player down with
@@ -1721,11 +1727,11 @@ TEST(CombatSimTest, ANarrowerPoolTakesTheOverflowWithIt) {
   params.player_level = 30;
 
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 90);
+  ASSERT_EQ(sim.view().player_hp, 90);
 
   params.max_player_hp = 50;
   sim.Advance(params, 0.5);
-  EXPECT_EQ(sim.player_hp(), 50);
+  EXPECT_EQ(sim.view().player_hp, 50);
 }
 
 TEST(CombatSimTest, InactiveParamsShowNoPlayerHp) {
@@ -1734,11 +1740,11 @@ TEST(CombatSimTest, InactiveParamsShowNoPlayerHp) {
   CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 90);
+  ASSERT_EQ(sim.view().player_hp, 90);
 
   sim.Advance(CombatParams{}, 1.0);
-  EXPECT_EQ(sim.player_hp(), 0);
-  EXPECT_DOUBLE_EQ(sim.player_hp_fraction(), 0.0);
+  EXPECT_EQ(sim.view().player_hp, 0);
+  EXPECT_DOUBLE_EQ(sim.view().player_hp_fraction, 0.0);
 }
 
 // --- skills that fire on their own clock ---
@@ -1751,11 +1757,11 @@ TEST(CombatSimTest, AnAutoAttackFiresOnItsOwnClock) {
   AddAutoAttack(params, /*interval=*/2.0, /*damage=*/25.0);
 
   sim.Advance(params, 1.0);  // mid-interval
-  EXPECT_NEAR(sim.target_hp_fraction(), 1.0, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9);
   sim.Advance(params, 1.0);  // the interval closes
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.75, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.75, 1e-9);
   sim.Advance(params, 2.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.50, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.50, 1e-9);
 }
 
 TEST(CombatSimTest, AnAutoAttackKillsAreRewardedLikeAnySwing) {
@@ -1765,8 +1771,8 @@ TEST(CombatSimTest, AnAutoAttackKillsAreRewardedLikeAnySwing) {
   AddAutoAttack(params, /*interval=*/1.0, /*damage=*/50.0);
 
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.kills_this_step().size(), 1u);
-  EXPECT_EQ(sim.kills_this_step()[0], 1);
+  ASSERT_EQ(sim.view().kills_this_step.size(), 1u);
+  EXPECT_EQ(sim.view().kills_this_step[0], 1);
 }
 
 TEST(CombatSimTest, AnAutoAttackReachesWhatItsSkillSays) {
@@ -1776,7 +1782,7 @@ TEST(CombatSimTest, AnAutoAttackReachesWhatItsSkillSays) {
   AddAutoAttack(params, /*interval=*/1.0, /*damage=*/100.0, /*reach=*/3);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.kills_this_step()[0], 3);  // three of the five, not one
+  EXPECT_EQ(sim.view().kills_this_step[0], 3);  // three of the five, not one
 }
 
 TEST(CombatSimTest, ATriggeredAttackFiresOnTheFourthSwing) {
@@ -1788,18 +1794,18 @@ TEST(CombatSimTest, ATriggeredAttackFiresOnTheFourthSwing) {
 
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
-    EXPECT_NEAR(sim.target_hp_fraction(), 1.0, 1e-9) << "swing " << i + 1;
+    EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9) << "swing " << i + 1;
   }
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.90, 1e-9);
   // And again four swings later, not every swing from here on. Stepped one
   // swing at a time: a single long Advance is clamped to one of them.
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
-    EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9) << "swing " << i + 5;
+    EXPECT_NEAR(sim.view().target_hp_fraction, 0.90, 1e-9) << "swing " << i + 5;
   }
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.80, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.80, 1e-9);
 }
 
 // The whole reason the weight exists: a swing landing seven times as often is
@@ -1815,11 +1821,11 @@ TEST(CombatSimTest, ARapidSwingTakesSevenTimesAsManyToFireIt) {
   for (int i = 0; i < 27; ++i) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), 1.0, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9);
   // The 28th closes it. A seventh cannot be written exactly, so this is also
   // the assertion that the counter is nudged rather than compared bare.
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.90, 1e-9);
 }
 
 // The remainder carries rather than resetting, or a swing worth a fraction
@@ -1834,9 +1840,9 @@ TEST(CombatSimTest, TheSwingCountCarriesItsRemainder) {
   // Worth three where two are needed: it fires, and the spare one is still
   // there to be half of the next.
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.90, 1e-9);
   sim.Advance(params, 1.0);  // 1 carried + 3 = 4, so two more casts
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.70, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.70, 1e-9);
 }
 
 TEST(CombatSimTest, ATriggeredAttackReachesWhatItsSkillSays) {
@@ -1846,7 +1852,7 @@ TEST(CombatSimTest, ATriggeredAttackReachesWhatItsSkillSays) {
   AddTriggeredAttack(params, /*attacks=*/1, /*damage=*/100.0, /*reach=*/6);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.kills_this_step()[0], 6);
+  EXPECT_EQ(sim.view().kills_this_step[0], 6);
 }
 
 // A healing cast is not an attack, so it credits nothing -- a character
@@ -1869,12 +1875,12 @@ TEST(CombatSimTest, AHealingCastCreditsNothing) {
   for (int i = 0; i < 40; ++i) {
     sim.Advance(params, 1.0);
   }
-  ASSERT_LT(sim.player_hp_fraction(), 0.25);
-  double before = sim.target_hp_fraction();
+  ASSERT_LT(sim.view().player_hp_fraction, 0.25);
+  double before = sim.view().target_hp_fraction;
   for (int i = 0; i < 20; ++i) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), before, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, before, 1e-9);
 }
 
 // The swing is chosen after the casts land, so a skill that thins the map out
@@ -1887,7 +1893,7 @@ TEST(CombatSimTest, TheSwingIsPickedAfterTheCasts) {
 
   sim.Advance(params, 1.0);
   EXPECT_TRUE(sim.respawning());  // the cast emptied the map
-  EXPECT_TRUE(sim.attack_name().empty());
+  EXPECT_TRUE(sim.view().attack_name.empty());
 }
 
 TEST(CombatSimTest, AnAutoAttackClockWaitsWhileTheMapIsEmpty) {
@@ -1901,7 +1907,7 @@ TEST(CombatSimTest, AnAutoAttackClockWaitsWhileTheMapIsEmpty) {
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
   }
-  ASSERT_EQ(sim.kills_this_step()[0], 1);  // t=3: the cast lands
+  ASSERT_EQ(sim.view().kills_this_step[0], 1);  // t=3: the cast lands
   ASSERT_TRUE(sim.respawning());
 
   // t=4 is idle and buys the summon nothing. The beat at t=5 refills the map
@@ -1910,9 +1916,9 @@ TEST(CombatSimTest, AnAutoAttackClockWaitsWhileTheMapIsEmpty) {
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_EQ(sim.kills_this_step()[0], 0);  // t=6
+  EXPECT_EQ(sim.view().kills_this_step[0], 0);  // t=6
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.kills_this_step()[0], 1);  // t=7
+  EXPECT_EQ(sim.view().kills_this_step[0], 1);  // t=7
 }
 
 TEST(CombatSimTest, AnAutoAttackWithNoIntervalNeverFires) {
@@ -1922,7 +1928,7 @@ TEST(CombatSimTest, AnAutoAttackWithNoIntervalNeverFires) {
   AddAutoAttack(params, /*interval=*/0.0, /*damage=*/100.0);
 
   sim.Advance(params, 100.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 1.0, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9);
 }
 
 TEST(CombatSimTest, AnAutoAttackIsNeverChosenAsTheSwing) {
@@ -1935,7 +1941,7 @@ TEST(CombatSimTest, AnAutoAttackIsNeverChosenAsTheSwing) {
   AddAutoAttack(params, /*interval=*/1.0, /*damage=*/500.0);
 
   sim.Advance(params, 0.5);
-  EXPECT_EQ(sim.attack_name(), "Attack");
+  EXPECT_EQ(sim.view().attack_name, "Attack");
 }
 
 // --- Final Attack ---
@@ -1953,7 +1959,7 @@ TEST(CombatSimTest, FinalAttackAddsToTheSwing) {
 
   sim.Advance(params, 1.0);
   // 10 from the swing and 15 following it, on the one mob in front.
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.75, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.75, 1e-9);
 }
 
 // A Final Attack rolls separately against every enemy the swing reached, so a
@@ -1967,7 +1973,7 @@ TEST(CombatSimTest, FinalAttackFollowsTheSwingOntoEveryEnemy) {
 
   sim.Advance(params, 1.0);
   // All three took the swing's 10 and the 40 following it.
-  const std::vector<EngagedGroup>& groups = sim.engaged_groups();
+  const std::vector<EngagedGroup>& groups = sim.view().engaged_groups;
   ASSERT_EQ(groups.size(), 1u);
   EXPECT_EQ(groups[0].count, 3);
   EXPECT_NEAR(groups[0].hp_fraction, 0.5, 1e-9);
@@ -1983,7 +1989,7 @@ TEST(CombatSimTest, FinalAttackStopsWithTheSwing) {
   AddFinalAttack(params, /*damage=*/40.0);
 
   sim.Advance(params, 1.0);
-  const std::vector<EngagedGroup>& groups = sim.engaged_groups();
+  const std::vector<EngagedGroup>& groups = sim.view().engaged_groups;
   ASSERT_EQ(groups.size(), 1u);
   EXPECT_EQ(groups[0].count, 2);
   EXPECT_NEAR(groups[0].hp_fraction, 0.5, 1e-9);
@@ -1996,7 +2002,7 @@ TEST(CombatSimTest, FinalAttackCanBeWhatKillsTheFrontMob) {
   AddFinalAttack(params, /*damage=*/95.0);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.kills_this_step()[0], 1);
+  EXPECT_EQ(sim.view().kills_this_step[0], 1);
 }
 
 // A summon is not the character swinging, so nothing follows it.
@@ -2008,7 +2014,8 @@ TEST(CombatSimTest, ACastOnItsOwnClockSetsOffNoFinalAttack) {
   AddAutoAttack(params, /*interval=*/1.0, /*damage=*/10.0);
 
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9);  // the cast's 10, alone
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.90,
+              1e-9);  // the cast's 10, alone
 }
 
 TEST(CombatSimTest, NoFinalAttackLeavesTheSwingAsItIs) {
@@ -2017,7 +2024,7 @@ TEST(CombatSimTest, NoFinalAttackLeavesTheSwingAsItIs) {
   CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
 
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.90, 1e-9);
 }
 
 // Gives the swing an opening hit worth `damage` on one enemy.
@@ -2039,8 +2046,8 @@ TEST(CombatSimTest, TheOpeningHitPicksTheHealthiestMobItReached) {
   sim.Advance(params, 1.0);
   // All three took the spread's 10. Only the boar, on 1000 against the snails'
   // 100, also took the opening 100.
-  const EngagedGroup* snails = FindGroup(sim.engaged_groups(), "Snail");
-  const EngagedGroup* boars = FindGroup(sim.engaged_groups(), "Boar");
+  const EngagedGroup* snails = FindGroup(sim.view().engaged_groups, "Snail");
+  const EngagedGroup* boars = FindGroup(sim.view().engaged_groups, "Boar");
   ASSERT_NE(snails, nullptr);
   ASSERT_NE(boars, nullptr);
   EXPECT_NEAR(snails->hp_fraction, 0.90, 1e-9);
@@ -2065,9 +2072,9 @@ TEST(CombatSimTest, TheOpeningHitCanLandOnSeveralMobs) {
   sim.Advance(params, 1.0);
   // The ogre and the boar are the two healthiest, so the fragment finds them
   // and the snail takes the spread alone.
-  const EngagedGroup* snails = FindGroup(sim.engaged_groups(), "Snail");
-  const EngagedGroup* boars = FindGroup(sim.engaged_groups(), "Boar");
-  const EngagedGroup* ogres = FindGroup(sim.engaged_groups(), "Ogre");
+  const EngagedGroup* snails = FindGroup(sim.view().engaged_groups, "Snail");
+  const EngagedGroup* boars = FindGroup(sim.view().engaged_groups, "Boar");
+  const EngagedGroup* ogres = FindGroup(sim.view().engaged_groups, "Ogre");
   ASSERT_NE(snails, nullptr);
   ASSERT_NE(boars, nullptr);
   ASSERT_NE(ogres, nullptr);
@@ -2089,8 +2096,8 @@ TEST(CombatSimTest, TheOpeningHitCountsTowardChoosingTheSwing) {
   // The poke spreads for 5 where Plain lands 20, but its opening hit is worth
   // 50 on top -- 55 against 20, so it is what gets swung.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.attack_name(), "Attack");
-  EXPECT_NEAR(sim.target_hp_fraction(), 1.0 - 55.0 / 100000.0, 1e-9);
+  EXPECT_EQ(sim.view().attack_name, "Attack");
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 55.0 / 100000.0, 1e-9);
 }
 
 // Throws the swing as `hits` scattered strikes, a repeat keeping `kept` of one.
@@ -2115,9 +2122,9 @@ TEST(CombatSimTest, AScatteredSwingSpreadsBeforeItDoublesUp) {
   AddScatter(params, /*hits=*/5, /*kept=*/0.45);
 
   sim.Advance(params, 1.0);
-  const EngagedGroup* snails = FindGroup(sim.engaged_groups(), "Snail");
-  const EngagedGroup* boars = FindGroup(sim.engaged_groups(), "Boar");
-  const EngagedGroup* ogres = FindGroup(sim.engaged_groups(), "Ogre");
+  const EngagedGroup* snails = FindGroup(sim.view().engaged_groups, "Snail");
+  const EngagedGroup* boars = FindGroup(sim.view().engaged_groups, "Boar");
+  const EngagedGroup* ogres = FindGroup(sim.view().engaged_groups, "Ogre");
   ASSERT_NE(snails, nullptr);
   ASSERT_NE(boars, nullptr);
   ASSERT_NE(ogres, nullptr);
@@ -2143,8 +2150,8 @@ TEST(CombatSimTest, AScatteredSwingLandsEveryStrikeOnALoneEnemy) {
 
   // 10 + four repeats at 4.5 is 28, against Plain's 20.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.attack_name(), "Attack");
-  EXPECT_NEAR(sim.target_hp_fraction(), 1.0 - 28.0 / 100000.0, 1e-9);
+  EXPECT_EQ(sim.view().attack_name, "Attack");
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 28.0 / 100000.0, 1e-9);
 }
 
 // A swing reaching further than it has strikes to throw touches only as many
@@ -2160,7 +2167,7 @@ TEST(CombatSimTest, AScatteredSwingReachesNoFurtherThanItsStrikes) {
   sim.Advance(params, 1.0);
   // Two of the four snails took a strike apiece; the other two took nothing at
   // all, so the group has lost 20 of its 4000 rather than 40.
-  const EngagedGroup* snails = FindGroup(sim.engaged_groups(), "Snail");
+  const EngagedGroup* snails = FindGroup(sim.view().engaged_groups, "Snail");
   ASSERT_NE(snails, nullptr);
   EXPECT_NEAR(snails->hp_fraction, 1.0 - 20.0 / 4000.0, 1e-9);
 }
@@ -2193,15 +2200,15 @@ TEST(CombatSimTest, AHealingCastIsSpentOnlyOnceThePlayerIsLow) {
   for (int i = 0; i < 7; ++i) {
     sim.Advance(params, 1.0);
   }
-  ASSERT_EQ(sim.player_hp(), 30);
-  EXPECT_NEAR(sim.target_hp_fraction(), 1.0 - 70.0 / 100000.0, 1e-9);
-  EXPECT_EQ(sim.attack_name(), "Attack");
+  ASSERT_EQ(sim.view().player_hp, 30);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 70.0 / 100000.0, 1e-9);
+  EXPECT_EQ(sim.view().attack_name, "Attack");
 
   // The eighth hit takes them to 20, and that swing goes on the cast instead:
   // half the pool back, and the mob left on the seven hits it has taken.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 70);
-  EXPECT_NEAR(sim.target_hp_fraction(), 1.0 - 70.0 / 100000.0, 1e-9);
+  EXPECT_EQ(sim.view().player_hp, 70);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 70.0 / 100000.0, 1e-9);
 }
 
 // The cast replaces the NEXT swing, not the one already on its way: a skill
@@ -2225,19 +2232,19 @@ TEST(CombatSimTest, AHealingCastWaitsForTheSwingAlreadyWindingUp) {
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
   }
-  ASSERT_EQ(sim.player_hp(), 200);
-  EXPECT_EQ(sim.attack_name(), "Skill");
-  EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 1.0);
+  ASSERT_EQ(sim.view().player_hp, 200);
+  EXPECT_EQ(sim.view().attack_name, "Skill");
+  EXPECT_DOUBLE_EQ(sim.view().target_hp_fraction, 1.0);
 
   // The fourth second finishes it: the skill lands rather than being dropped,
   // and only then is the cast lined up.
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 1.0 - 10.0 / 100000.0, 1e-9);
-  EXPECT_EQ(sim.attack_name(), "Heal");
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 10.0 / 100000.0, 1e-9);
+  EXPECT_EQ(sim.view().attack_name, "Heal");
   // The cast reaches nobody, but the window it is charging in front of is
   // still the last swing's -- the mob bars must not collapse behind it.
-  ASSERT_EQ(sim.engaged_groups().size(), 1u);
-  EXPECT_EQ(sim.engaged_groups().front().count, 3);
+  ASSERT_EQ(sim.view().engaged_groups.size(), 1u);
+  EXPECT_EQ(sim.view().engaged_groups.front().count, 3);
 }
 
 // The pool is the ceiling: an overheal is wasted rather than banked.
@@ -2249,9 +2256,9 @@ TEST(CombatSimTest, AHealingCastStopsAtAFullPool) {
   AddHeal(params, /*fraction=*/5.0);
 
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 55);
+  ASSERT_EQ(sim.view().player_hp, 55);
   sim.Advance(params, 1.0);  // down to 10, then five pools' worth of healing
-  EXPECT_EQ(sim.player_hp(), 100);
+  EXPECT_EQ(sim.view().player_hp, 100);
 }
 
 // A cleared map hands HP back on the beat for free, so a swing spent healing
@@ -2269,8 +2276,8 @@ TEST(CombatSimTest, AHealingCastIsNotSpentOnAnEmptyMap) {
   // the swing is chosen.
   sim.Advance(params, 1.0);
   ASSERT_TRUE(sim.respawning());
-  EXPECT_EQ(sim.player_hp(), 20);
-  EXPECT_EQ(sim.attack_name(), "");
+  EXPECT_EQ(sim.view().player_hp, 20);
+  EXPECT_EQ(sim.view().attack_name, "");
 }
 
 // Empowered Arrows: the Sniper's Piercing Arrow is upgraded every fourth shot.
@@ -2284,12 +2291,12 @@ TEST(CombatSimTest, LandsAnEmpoweredSwingOnceEveryNth) {
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.85, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.85, 1e-9);
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.35, 1e-9)
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.35, 1e-9)
       << "the fourth swing lands the empowered form";
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.30, 1e-9)
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.30, 1e-9)
       << "and the count starts again from the fifth";
 }
 
@@ -2306,12 +2313,12 @@ TEST(CombatSimTest, LandsAnEmpoweredPulseOnceEveryNth) {
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.85, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.85, 1e-9);
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.45, 1e-9)
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.45, 1e-9)
       << "the fourth pulse detonates instead of ticking";
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.40, 1e-9)
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.40, 1e-9)
       << "and the count starts again from the fifth";
 }
 
@@ -2331,11 +2338,11 @@ TEST(CombatSimTest, WalkingToAnotherMapForgetsTheEmpoweredCount) {
   // The swing that would have been the fourth is the first here, so it is an
   // ordinary one. Carrying the count over would take half the mob's HP.
   sim.Advance(forest, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);
   for (int i = 0; i < 3; ++i) {
     sim.Advance(forest, 1.0);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.35, 1e-9)
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.35, 1e-9)
       << "the fourth swing here lands the empowered form";
 }
 
@@ -2359,7 +2366,7 @@ TEST(CombatSimTest, WalkingToAnotherMapForgetsTheSideStrikesWait) {
   sim.Advance(forest, 1.0);
   // A fresh map is a fresh wait, so the strike goes out again at once. Keeping
   // the wait would leave the mob untouched: the swing itself deals nothing.
-  double taken = (1.0 - sim.target_hp_fraction()) * 1000000.0;
+  double taken = (1.0 - sim.view().target_hp_fraction) * 1000000.0;
   EXPECT_NEAR(taken, 1000.0, 1e-6);
 }
 
@@ -2380,7 +2387,7 @@ TEST(CombatSimTest, EachClockCountsItsOwnEmpoweredRound) {
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.60, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.60, 1e-9);
 }
 
 // It takes the PLACE of the swing rather than riding on top of it: four swings
@@ -2395,7 +2402,7 @@ TEST(CombatSimTest, AnEmpoweredSwingReplacesTheOneItLandsFor) {
     sim.Advance(params, 1.0);
   }
   // 1 + 1 + 1 + 5 of 20. Adding instead of replacing would leave 0.45.
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.60, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.60, 1e-9);
 }
 
 // The empowered form carries its own reach, which is wider than the swing it
@@ -2408,9 +2415,9 @@ TEST(CombatSimTest, AnEmpoweredSwingBringsItsOwnReach) {
                    /*reach=*/3);
 
   sim.Advance(params, 1.0);  // ordinary: one mob, no kill
-  EXPECT_EQ(sim.kills_this_step()[0], 0);
+  EXPECT_EQ(sim.view().kills_this_step[0], 0);
   sim.Advance(params, 1.0);  // empowered: all three at once
-  EXPECT_EQ(sim.kills_this_step()[0], 3);
+  EXPECT_EQ(sim.view().kills_this_step[0], 3);
 }
 
 // Divine Judgment: Blast brands what it strikes, and the brand belongs to the
@@ -2426,14 +2433,15 @@ TEST(CombatSimTest, ABrandRidesTheEnemyRatherThanTheSwing) {
                    /*marks=*/true);
 
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.target_name(), "Tough") << "the soft one dies to one strike";
+  ASSERT_EQ(sim.view().target_name, "Tough")
+      << "the soft one dies to one strike";
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9)
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9)
       << "the newcomer's first strike is an ordinary one, not the swing's 2nd";
   sim.Advance(params, 1.0);
   // 19 - (1 + 6) of 20. Replacing the strike rather than riding it would leave
   // 13, and inheriting the swing's count would have gone off a swing sooner.
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.60, 1e-9)
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.60, 1e-9)
       << "the mark goes off on the second strike IT has taken, on top of it";
 }
 
@@ -2455,9 +2463,9 @@ TEST(CombatSimTest, AMarkGoesOffOnlyOnTheEnemyThatEarnedIt) {
   // arrived.
   sim.Advance(params, 1.0);
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.60, 1e-9)
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.60, 1e-9)
       << "12 of 20: one ordinary strike, then a second with the mark on top";
-  const EngagedGroup* group = FindGroup(sim.engaged_groups(), "Tough");
+  const EngagedGroup* group = FindGroup(sim.view().engaged_groups, "Tough");
   ASSERT_NE(group, nullptr);
   EXPECT_EQ(group->count, 2);
   EXPECT_NEAR(group->hp_fraction, 0.775, 1e-9)
@@ -2476,7 +2484,7 @@ TEST(CombatSimTest, WeighsAnEmpoweredSwingIntoTheChoice) {
 
   // 2 + (10 - 2) / 4 = 4 a swing, against the poke's 3.
   sim.Advance(params, 0.1);
-  EXPECT_EQ(sim.attack_name(), "Piercing Arrow");
+  EXPECT_EQ(sim.view().attack_name, "Piercing Arrow");
 }
 
 // Final Pact: a passive that catches the hit that would have emptied the
@@ -2490,17 +2498,17 @@ TEST(CombatSimTest, APactCatchesTheHitThatWouldHaveKilled) {
   params.revive_cooldown_seconds = 10.0;
 
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 40);
+  ASSERT_EQ(sim.view().player_hp, 40);
 
   sim.Advance(params, 1.0);
-  EXPECT_FALSE(sim.died_this_step());
-  EXPECT_EQ(sim.player_hp(), 100);
+  EXPECT_FALSE(sim.view().died_this_step);
+  EXPECT_EQ(sim.view().player_hp, 100);
 
   // The next one inside the wait is a real death.
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 40);
+  ASSERT_EQ(sim.view().player_hp, 40);
   sim.Advance(params, 1.0);
-  EXPECT_TRUE(sim.died_this_step());
+  EXPECT_TRUE(sim.view().died_this_step);
 }
 
 TEST(CombatSimTest, APactCatchesAgainOnceItsWaitIsOut) {
@@ -2512,13 +2520,13 @@ TEST(CombatSimTest, APactCatchesAgainOnceItsWaitIsOut) {
 
   sim.Advance(params, 1.0);
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 100);  // caught, and the wait starts
+  ASSERT_EQ(sim.view().player_hp, 100);  // caught, and the wait starts
 
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 40);
+  ASSERT_EQ(sim.view().player_hp, 40);
   sim.Advance(params, 1.0);  // two seconds on, so it catches this one too
-  EXPECT_FALSE(sim.died_this_step());
-  EXPECT_EQ(sim.player_hp(), 100);
+  EXPECT_FALSE(sim.view().died_this_step);
+  EXPECT_EQ(sim.view().player_hp, 100);
 }
 
 // Gives `params` a timed buff: while it is up, every swing hits `factor` times
@@ -2560,10 +2568,10 @@ TEST(CombatSimTest, RaisingABuffCostsTheSwingItsAnimation) {
   // A second of a one-second swing, less the six-tenths the cast took: the
   // swing the step would have landed is still four-tenths short.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.damage_this_step(), 0.0);
+  EXPECT_EQ(sim.view().damage_this_step, 0.0);
   // It carries, so the swing the cast held up lands on the step after.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.damage_this_step(), 10.0);
+  EXPECT_EQ(sim.view().damage_this_step, 10.0);
 }
 
 // Smokescreen's shape: a buff that costs the mob rather than paying the
@@ -2580,13 +2588,13 @@ TEST(CombatSimTest, ABuffCanSoftenTheHitsWhileItStands) {
   // The buff answers this hit with its heal rather than softening it: it goes
   // up after the blow has landed, which is the order the whole step runs in.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 90);
+  EXPECT_EQ(sim.view().player_hp, 90);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 85);
+  EXPECT_EQ(sim.view().player_hp, 85);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 80);
+  EXPECT_EQ(sim.view().player_hp, 80);
   sim.Advance(params, 1.0);  // lapsed, and the wait is still running
-  EXPECT_EQ(sim.player_hp(), 70);
+  EXPECT_EQ(sim.view().player_hp, 70);
 }
 
 // Smokescreen over a party: the Shadower's clock rather than the reader's,
@@ -2607,18 +2615,18 @@ TEST(CombatSimTest, APartysBuffSoftensTheHitsAndCostsNoSwing) {
   // Up after this step's blow has landed, as the character's own buffs are --
   // and the swing still lands, because nobody here cast anything.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 90);
-  EXPECT_EQ(sim.damage_this_step(), 1.0);
+  EXPECT_EQ(sim.view().player_hp, 90);
+  EXPECT_EQ(sim.view().damage_this_step, 1.0);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 85);
+  EXPECT_EQ(sim.view().player_hp, 85);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 80);
+  EXPECT_EQ(sim.view().player_hp, 80);
   sim.Advance(params, 1.0);  // lapsed, and the caster's wait still running
-  EXPECT_EQ(sim.player_hp(), 70);
+  EXPECT_EQ(sim.view().player_hp, 70);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 60);  // the wait closes, and it goes up again
+  EXPECT_EQ(sim.view().player_hp, 60);  // the wait closes, and it goes up again
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 55);
+  EXPECT_EQ(sim.view().player_hp, 55);
 }
 
 // Two shelters are not one shelter twice over: the party's and the
@@ -2638,9 +2646,9 @@ TEST(CombatSimTest, APartysBuffMultipliesWithTheCharactersOwn) {
   params.ally_buffs.push_back(std::move(ally));
 
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 80);  // both go up behind this blow
+  ASSERT_EQ(sim.view().player_hp, 80);  // both go up behind this blow
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 75);  // a quarter of the hit, not none of it
+  EXPECT_EQ(sim.view().player_hp, 75);  // a quarter of the hit, not none of it
 }
 
 // Holy Magic Shell's shape: a buff that cancels whole hits rather than taking
@@ -2673,16 +2681,18 @@ TEST(CombatSimTest, AShellBlocksWholeHitsUntilItsCountRunsOut) {
   GiveShield(params, /*hits=*/2, /*boss_soften=*/0.5);
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 60);  // full pool: nothing worth raising it for
+  EXPECT_EQ(sim.view().player_hp,
+            60);  // full pool: nothing worth raising it for
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 20);  // low enough, so it goes up behind the blow
+  EXPECT_EQ(sim.view().player_hp,
+            20);  // low enough, so it goes up behind the blow
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 20);
+  EXPECT_EQ(sim.view().player_hp, 20);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 20);  // the second block, and the shell falls
+  EXPECT_EQ(sim.view().player_hp, 20);  // the second block, and the shell falls
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 0);
-  EXPECT_TRUE(sim.died_this_step());
+  EXPECT_EQ(sim.view().player_hp, 0);
+  EXPECT_TRUE(sim.view().died_this_step);
 }
 
 // A boss's hit is the one a shell cannot swallow: it costs its share less and
@@ -2698,13 +2708,14 @@ TEST(CombatSimTest, AShellBluntsABossHitInsteadOfBlockingIt) {
   // Raised on the first step rather than held for a low pool: against a boss
   // one blow is the whole fight, so it goes up the moment it comes round.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 960);
+  EXPECT_EQ(sim.view().player_hp, 960);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 940);
+  EXPECT_EQ(sim.view().player_hp, 940);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 920);
+  EXPECT_EQ(sim.view().player_hp, 920);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 900);  // still blunting: no block was ever spent
+  EXPECT_EQ(sim.view().player_hp,
+            900);  // still blunting: no block was ever spent
 }
 
 // One shell over the whole party: an ally's cast heals this character and
@@ -2723,15 +2734,16 @@ TEST(CombatSimTest, APartysShellHealsAndBlocksForEverybodyUnderIt) {
   params.ally_buffs.push_back(std::move(ally));
 
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 60);
+  EXPECT_EQ(sim.view().player_hp, 60);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 70);  // the blow lands, then the heal answers it
+  EXPECT_EQ(sim.view().player_hp,
+            70);  // the blow lands, then the heal answers it
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 70);
+  EXPECT_EQ(sim.view().player_hp, 70);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 70);  // the second block, and the shell falls
+  EXPECT_EQ(sim.view().player_hp, 70);  // the second block, and the shell falls
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 30);
+  EXPECT_EQ(sim.view().player_hp, 30);
 }
 
 // Two shells are not one shell twice over: a hit spends a block off one of
@@ -2751,15 +2763,15 @@ TEST(CombatSimTest, OneHitSpendsOneBlockHoweverManyShellsStand) {
   params.ally_buffs.push_back(std::move(ally));
 
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 60);
+  ASSERT_EQ(sim.view().player_hp, 60);
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.player_hp(), 20);  // both go up behind this blow
+  ASSERT_EQ(sim.view().player_hp, 20);  // both go up behind this blow
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 20);  // the character's own block pays for it
+  EXPECT_EQ(sim.view().player_hp, 20);  // the character's own block pays for it
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 20);  // and the party's for the next
+  EXPECT_EQ(sim.view().player_hp, 20);  // and the party's for the next
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 0);
+  EXPECT_EQ(sim.view().player_hp, 0);
 }
 
 // Puncture's shape: a weaker swing that leaves a wound, and a harder one the
@@ -2800,19 +2812,19 @@ TEST(CombatSimTest, TheFightSpendsASwingToLayALapsedBuff) {
   // 5: Puncture, the weakest swing on offer, and landing bare -- the wound it
   // leaves is not up while it is being laid.
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.9995, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.9995, 1e-9);
   // 40 twice: the hardest swing, doubled by the wound now standing.
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.9955, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.9955, 1e-9);
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.9915, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.9915, 1e-9);
   // Three seconds up, so the wound has lapsed -- but the swing aimed while it
   // still stood is committed to and finishes, landing 20 rather than 40.
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.9895, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.9895, 1e-9);
   // Only then is it laid again, for another 5.
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.9890, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.9890, 1e-9);
 }
 
 // The wound itself: a pulse that waits for the buff its skill lays, so it
@@ -2831,10 +2843,10 @@ TEST(CombatSimTest, APulseGatedOnABuffWaitsForItToBeLaid) {
   // 5 for the swing that lays it and nothing from the pulse: no wound stood
   // when the step began.
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.9995, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.9995, 1e-9);
   // Now it ticks, beside the 20 the hardest swing lands.
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.9875, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.9875, 1e-9);
 }
 
 // Cry Valhalla's shape: a pulse that lands several strikes at once and runs
@@ -2856,12 +2868,12 @@ TEST(CombatSimTest, ACappedPulseFallsSilentBeforeTheBuffLapses) {
   for (int step = 0; step < 4; ++step) {
     sim.Advance(params, 1.0);
   }
-  ASSERT_NEAR(sim.target_hp_fraction(), 0.988, 1e-9);
+  ASSERT_NEAR(sim.view().target_hp_fraction, 0.988, 1e-9);
   // Four more seconds of a buff that is still up, and nothing more lands.
   for (int step = 0; step < 4; ++step) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.988, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.988, 1e-9);
 }
 
 // The count is per raising, not per fight: the next window is worth the whole
@@ -2883,11 +2895,11 @@ TEST(CombatSimTest, ACappedPulseIsWorthItsWholeCountAgainNextWindow) {
   for (int step = 0; step < 6; ++step) {
     sim.Advance(params, 1.0);
   }
-  ASSERT_NEAR(sim.target_hp_fraction(), 0.994, 1e-9);
+  ASSERT_NEAR(sim.view().target_hp_fraction, 0.994, 1e-9);
   for (int step = 0; step < 2; ++step) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.988, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.988, 1e-9);
 }
 
 // The other half of the rule: a wound still standing is left alone. Nothing
@@ -2902,7 +2914,7 @@ TEST(CombatSimTest, ABuffStillStandingIsNotLaidAgain) {
     sim.Advance(params, 1.0);
   }
   // 5 to lay it, then 40 five times over.
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.9795, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.9795, 1e-9);
 }
 
 // Dark Resonance's shape, and the one thing that makes a timed buff a
@@ -2916,12 +2928,12 @@ TEST(CombatSimTest, ABuffLandsHarderUntilItLapses) {
   GiveBuff(params, /*duration=*/2.0, /*cooldown=*/5.0, /*factor=*/2.0);
 
   sim.Advance(params, 1.0);  // up from the first step, so 20 rather than 10
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.98, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.98, 1e-9);
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.96, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.96, 1e-9);
   // Two seconds on it lapses, and the same swing is worth half of what it was.
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);
 }
 
 TEST(CombatSimTest, ABuffComesBackWhenItsWaitIsOut) {
@@ -2934,9 +2946,9 @@ TEST(CombatSimTest, ABuffComesBackWhenItsWaitIsOut) {
     sim.Advance(params, 1.0);
   }
   // 20, 20, then 10 three times: the buff is spent and the wait is not out.
-  ASSERT_NEAR(sim.target_hp_fraction(), 0.93, 1e-9);
+  ASSERT_NEAR(sim.view().target_hp_fraction, 0.93, 1e-9);
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.91, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.91, 1e-9);
 }
 
 // What the player buys by swinging fast, beyond the damage: the buff comes
@@ -2952,9 +2964,9 @@ TEST(CombatSimTest, AttackingShortensTheWaitForTheNextBuff) {
   for (int step = 0; step < 3; ++step) {
     sim.Advance(params, 1.0);
   }
-  ASSERT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);  // 20, 20, 10
+  ASSERT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);  // 20, 20, 10
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.93, 1e-9);  // up again already
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.93, 1e-9);  // up again already
 }
 
 TEST(CombatSimTest, ABuffHealsTheShareItPromisesWhenItGoesUp) {
@@ -2967,10 +2979,10 @@ TEST(CombatSimTest, ABuffHealsTheShareItPromisesWhenItGoesUp) {
 
   // The hit lands first, then the buff goes up and hands half the pool back.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 90);
+  EXPECT_EQ(sim.view().player_hp, 90);
   // And only when it goes up: the next hit is not healed.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 30);
+  EXPECT_EQ(sim.view().player_hp, 30);
 }
 
 // Mortal Blow's shape: a chance rolled once for the whole swing that lands a
@@ -2984,23 +2996,24 @@ TEST(CombatSimTest, AChanceCanLandOneEnemyHarderAndPayTheHitBack) {
   CombatSim plain;
   plain.Advance(params, 1.0);
   // Two enemies, ten apiece, averaged into the one bar the pair share.
-  ASSERT_EQ(plain.engaged_groups().size(), 1u);
-  ASSERT_NEAR(plain.engaged_groups()[0].hp_fraction, 0.99, 1e-9);
+  ASSERT_EQ(plain.view().engaged_groups.size(), 1u);
+  ASSERT_NEAR(plain.view().engaged_groups[0].hp_fraction, 0.99, 1e-9);
 
   params.attacks[0].procs.push_back(
       {/*chance=*/1.0, /*damage_pct=*/1.0, /*hp_recover_pct=*/0.25});
   CombatSim rolled;
   rolled.Advance(params, 1.0);
   // The front one takes its ten twice over; the one behind it takes ten still.
-  ASSERT_EQ(rolled.engaged_groups().size(), 1u);
-  EXPECT_NEAR(rolled.engaged_groups()[0].hp_fraction, 0.985, 1e-9);
-  EXPECT_EQ(rolled.player_hp(), 100);  // already full, so the quarter is capped
+  ASSERT_EQ(rolled.view().engaged_groups.size(), 1u);
+  EXPECT_NEAR(rolled.view().engaged_groups[0].hp_fraction, 0.985, 1e-9);
+  EXPECT_EQ(rolled.view().player_hp,
+            100);  // already full, so the quarter is capped
 
   GivePlayerHp(params, 100, /*interval=*/0.5, /*damage=*/50.0);
   CombatSim healed;
   healed.Advance(params, 1.0);
   // Fifty taken, then twenty-five put back by the swing that landed.
-  EXPECT_EQ(healed.player_hp(), 75);
+  EXPECT_EQ(healed.view().player_hp, 75);
 }
 
 // A buff bought with landed hits rather than with a wait: it goes up on the
@@ -3024,20 +3037,20 @@ TEST(CombatSimTest, ABuffCanWaitOnLandedHitsRatherThanOnAClock) {
   for (int step = 0; step < 3; ++step) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.97, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.97, 1e-9);
   // It stands now, and the next two swings land under it.
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.87, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.87, 1e-9);
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.77, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.77, 1e-9);
   // Those two landed while it stood, so neither counted toward the next one:
   // three more plain swings are owed before it comes back.
   for (int step = 0; step < 3; ++step) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.74, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.74, 1e-9);
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.64, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.64, 1e-9);
 }
 
 // Freezing Crush's shape: an ice swing leaves a stack per line AND four
@@ -3072,16 +3085,16 @@ TEST(CombatSimTest, TheIceSwingBuildsThePileTheLightningSwingSpends) {
   // Ice first: 10 of its own, plus the two stacks it leaves, which are worth
   // half of the lightning swing apiece.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.attack_name(), "Thunder Bolt");  // aimed next, pile full
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);
+  EXPECT_EQ(sim.view().attack_name, "Thunder Bolt");  // aimed next, pile full
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.99, 1e-9);
   // Lightning next, at 11 doubled by the two stacks it spends.
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.968, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.968, 1e-9);
   // And back, because the pile is empty again.
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.958, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.958, 1e-9);
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.936, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.936, 1e-9);
 }
 
 TEST(CombatSimTest, WithNoPileToBuildTheHarderSwingSimplyWins) {
@@ -3093,8 +3106,8 @@ TEST(CombatSimTest, WithNoPileToBuildTheHarderSwingSimplyWins) {
   for (int step = 0; step < 4; ++step) {
     sim.Advance(params, 1.0);
   }
-  EXPECT_EQ(sim.attack_name(), "Thunder Bolt");
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.956, 1e-9);  // 11 four times
+  EXPECT_EQ(sim.view().attack_name, "Thunder Bolt");
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.956, 1e-9);  // 11 four times
 }
 
 // The critical damage a held stack grants rides EVERY swing, ice and lightning
@@ -3109,13 +3122,17 @@ TEST(CombatSimTest, AHeldStackLiftsTheIceSwingItCameFrom) {
 
   CombatSim sim;
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);  // 10, nothing held yet
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.99,
+              1e-9);  // 10, nothing held yet
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.975, 1e-9);  // 10 x 1.5, two held
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.975,
+              1e-9);  // 10 x 1.5, two held
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.955, 1e-9);  // 10 x 2.0, four held
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.955,
+              1e-9);  // 10 x 2.0, four held
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.935, 1e-9);  // capped, so no more
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.935,
+              1e-9);  // capped, so no more
 }
 
 // Lightning Orb's shape: a swing that is held, pulsing at 10 damage every
@@ -3142,7 +3159,7 @@ double RunFor(CombatSim& sim, const CombatParams& params, double seconds) {
   double damage = 0.0;
   for (double step = 0.0; step + 1e-9 < seconds; step += 0.01) {
     sim.Advance(params, 0.01);
-    damage += sim.damage_this_step();
+    damage += sim.view().damage_this_step;
   }
   return damage;
 }
@@ -3156,7 +3173,7 @@ TEST(CombatSimTest, AHoldRunsToTheEndAgainstSomethingThatSurvivesIt) {
 
   CombatSim sim;
   EXPECT_DOUBLE_EQ(RunFor(sim, params, 1.95), 0.0);  // still being held
-  EXPECT_EQ(sim.attack_name(), "Lightning Orb");
+  EXPECT_EQ(sim.view().attack_name, "Lightning Orb");
   EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.1), 170.0);  // 12 x 10, then 50
 }
 
@@ -3170,7 +3187,7 @@ TEST(CombatSimTest, AHoldIsLetGoOnceMorePulsesWouldBuyNothing) {
   CombatSim sim;
   EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.95), 0.0);
   EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.02), 100.0);  // 5 x 10, then 50
-  EXPECT_TRUE(sim.roster().empty());
+  EXPECT_TRUE(sim.view().roster.empty());
 }
 
 // The hold is the shelter: what the player takes while the key is down is cut
@@ -3186,7 +3203,7 @@ TEST(CombatSimTest, AHoldShelttersThePlayerWhileItRuns) {
   CombatSim sim;
   // Three hits land inside the two-second hold, each halved.
   RunFor(sim, params, 1.6);
-  EXPECT_EQ(sim.player_hp(), 1000 - 150);
+  EXPECT_EQ(sim.view().player_hp, 1000 - 150);
 }
 
 // Glacial Fury's half of the pile: magic attack per held stack, and only an
@@ -3202,13 +3219,17 @@ TEST(CombatSimTest, GlacialFurysMagicAttackRidesTheIceSwingAlone) {
 
   CombatSim sim;
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);  // 10, nothing held yet
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.99,
+              1e-9);  // 10, nothing held yet
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.975, 1e-9);  // 10 x 1.5, two held
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.975,
+              1e-9);  // 10 x 1.5, two held
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.955, 1e-9);  // 10 x 2.0, four held
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.955,
+              1e-9);  // 10 x 2.0, four held
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.935, 1e-9);  // capped, so no more
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.935,
+              1e-9);  // capped, so no more
 }
 
 // Storm Magic's half: final damage while the pile stands, taken whole however
@@ -3223,19 +3244,23 @@ TEST(CombatSimTest, StormMagicStandsOnAnyStackHoweverDeep) {
 
   CombatSim sim;
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);  // 10, nothing held yet
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.99,
+              1e-9);  // 10, nothing held yet
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.975, 1e-9);  // 10 x 1.5, two held
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.975,
+              1e-9);  // 10 x 1.5, two held
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.96, 1e-9);  // the same half at four
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.96,
+              1e-9);  // the same half at four
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.945, 1e-9);  // and no more at the cap
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.945,
+              1e-9);  // and no more at the cap
 }
 
 // The share of one mob's HP left, by name -- the queue is shuffled as it fills,
 // so the roster's order says nothing about which monster is which.
 double LeftOn(const CombatSim& sim, const std::string& name) {
-  for (const MobStatus& mob : sim.roster()) {
+  for (const MobStatus& mob : sim.view().roster) {
     if (mob.name == name) {
       return mob.hp_fraction;
     }
@@ -3280,7 +3305,7 @@ TEST(CombatSimTest, AStackIsWorthNothingOnAMonsterNothingFroze) {
     sim.Advance(params, 1.0);
   }
   // Four swings of a flat 10, however deep the pile got.
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.96, 1e-9);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.96, 1e-9);
 }
 
 // The ice outlives the swing that laid it: everything the character swings
@@ -3299,13 +3324,16 @@ TEST(CombatSimTest, TheIceOutlastsTheSwingThatLaidIt) {
 
   CombatSim sim;
   sim.Advance(params, 1.0);
-  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 10.0);  // ice, on a thawed monster
+  EXPECT_DOUBLE_EQ(sim.view().damage_this_step,
+                   10.0);  // ice, on a thawed monster
   sim.Advance(params, 1.0);
-  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 20.0);  // the poke, on 1.5s of ice
+  EXPECT_DOUBLE_EQ(sim.view().damage_this_step,
+                   20.0);  // the poke, on 1.5s of ice
   sim.Advance(params, 1.0);
-  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 20.0);  // and on the last 0.5s
+  EXPECT_DOUBLE_EQ(sim.view().damage_this_step, 20.0);  // and on the last 0.5s
   sim.Advance(params, 1.0);
-  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 10.0);  // thawed, so a flat poke
+  EXPECT_DOUBLE_EQ(sim.view().damage_this_step,
+                   10.0);  // thawed, so a flat poke
 }
 
 // The pile is deeper while the buff raising it stands, and the fight reads the
@@ -3335,7 +3363,7 @@ TEST(CombatSimTest, NoRespawnSecondsMeansNothingComesBack) {
     sim.Advance(params, 1.0);
   }
   EXPECT_TRUE(sim.respawning());
-  EXPECT_TRUE(sim.roster().empty());
+  EXPECT_TRUE(sim.view().roster.empty());
 }
 
 // The roster is one entry per mob rather than the merged window, and each
@@ -3346,11 +3374,11 @@ TEST(CombatSimTest, TheRosterHoldsEveryMobAndKeepsItsIds) {
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&mob, 60.0, 3)});
   CombatSim sim;
   sim.Advance(params, 0.0);
-  ASSERT_EQ(sim.roster().size(), 3u);
-  EXPECT_EQ(sim.roster()[0].name, "Arm");
-  EXPECT_DOUBLE_EQ(sim.roster()[1].hp_fraction, 1.0);
+  ASSERT_EQ(sim.view().roster.size(), 3u);
+  EXPECT_EQ(sim.view().roster[0].name, "Arm");
+  EXPECT_DOUBLE_EQ(sim.view().roster[1].hp_fraction, 1.0);
   std::vector<int> ids;
-  for (const MobStatus& status : sim.roster()) {
+  for (const MobStatus& status : sim.view().roster) {
     ids.push_back(status.id);
   }
   EXPECT_EQ(std::set<int>(ids.begin(), ids.end()).size(), 3u);
@@ -3360,11 +3388,11 @@ TEST(CombatSimTest, TheRosterHoldsEveryMobAndKeepsItsIds) {
   for (int i = 0; i < 3; ++i) {
     sim.Advance(params, 1.0);
   }
-  ASSERT_EQ(sim.roster().size(), 2u);
-  EXPECT_EQ(sim.roster()[0].id, ids[1]);
-  EXPECT_EQ(sim.roster()[1].id, ids[2]);
-  EXPECT_LT(sim.roster()[0].hp_fraction, 1.0);
-  EXPECT_DOUBLE_EQ(sim.roster()[1].hp_fraction, 1.0);
+  ASSERT_EQ(sim.view().roster.size(), 2u);
+  EXPECT_EQ(sim.view().roster[0].id, ids[1]);
+  EXPECT_EQ(sim.view().roster[1].id, ids[2]);
+  EXPECT_LT(sim.view().roster[0].hp_fraction, 1.0);
+  EXPECT_DOUBLE_EQ(sim.view().roster[1].hp_fraction, 1.0);
 }
 
 // The encounter name is what the fight watches to know it is somewhere else,
@@ -3375,13 +3403,13 @@ TEST(CombatSimTest, ANewEncounterNameRefillsTheQueue) {
   CombatParams first = MakeParams(1.0, 0.0, {MakeType(&arm, 1000.0, 1)});
   CombatSim sim;
   sim.Advance(first, 1.0);
-  EXPECT_TRUE(sim.roster().empty());
+  EXPECT_TRUE(sim.view().roster.empty());
 
   CombatParams second =
       MakeParams(1.0, 0.0, {MakeType(&body, 10.0, 1)}, 1, "phase2");
   sim.Advance(second, 0.0);
-  ASSERT_EQ(sim.roster().size(), 1u);
-  EXPECT_EQ(sim.roster()[0].name, "Body");
+  ASSERT_EQ(sim.view().roster.size(), 1u);
+  EXPECT_EQ(sim.view().roster[0].name, "Body");
 }
 
 // The record is off unless it is asked for: the sims step the fight millions
@@ -3411,20 +3439,21 @@ TEST(CombatSimTest, ASwingIsRecordedLineByLine) {
 
   CombatSim sim;
   sim.Advance(params, 1.0);
-  double before = sim.target_hp_fraction();
+  double before = sim.view().target_hp_fraction;
   sim.Advance(params, 1.0);
 
   const std::vector<DamageLine>& lines = sim.damage_lines_this_step();
   ASSERT_EQ(lines.size(), 4u);
-  ASSERT_EQ(sim.roster().size(), 1u);
+  ASSERT_EQ(sim.view().roster.size(), 1u);
   double total = 0.0;
   for (const DamageLine& line : lines) {
-    EXPECT_EQ(line.mob_id, sim.roster()[0].id);
+    EXPECT_EQ(line.mob_id, sim.view().roster[0].id);
     EXPECT_EQ(line.event, lines[0].event);
     EXPECT_GT(line.damage, 0.0);
     total += line.damage;
   }
-  EXPECT_NEAR(total, (before - sim.target_hp_fraction()) * mob.max_hp(), 1e-6);
+  EXPECT_NEAR(total, (before - sim.view().target_hp_fraction) * mob.max_hp(),
+              1e-6);
 }
 
 // Two monsters, one swing: each keeps its own stack, so the numbers can be
@@ -3546,13 +3575,13 @@ TEST(CombatSimTest, DamageThisStepCountsOverkill) {
 
   CombatSim sim;
   sim.Advance(params, 1.0);
-  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 250.0);
-  EXPECT_EQ(sim.kills_this_step()[0], 1);
+  EXPECT_DOUBLE_EQ(sim.view().damage_this_step, 250.0);
+  EXPECT_EQ(sim.view().kills_this_step[0], 1);
 
   // A step that swings at nothing does no damage, and the count does not
   // carry over from the step that did.
   sim.Advance(params, 0.1);
-  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 0.0);
+  EXPECT_DOUBLE_EQ(sim.view().damage_this_step, 0.0);
 }
 
 // A burn ticking between swings is damage the character dealt.
@@ -3570,7 +3599,7 @@ TEST(CombatSimTest, DamageThisStepCountsBurnTicks) {
   CombatSim sim;
   sim.Advance(params, 1.0);  // the swing lights it
   sim.Advance(params, 0.6);  // two ticks, no swing
-  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 80.0);
+  EXPECT_DOUBLE_EQ(sim.view().damage_this_step, 80.0);
 }
 
 // The beat is flagged on the step it comes round, and on no other.
@@ -3580,13 +3609,13 @@ TEST(CombatSimTest, TheRespawnBeatIsFlaggedOnItsStep) {
 
   CombatSim sim;
   sim.Advance(params, 0.5);
-  EXPECT_FALSE(sim.respawned_this_step());
+  EXPECT_FALSE(sim.view().respawned_this_step);
   sim.Advance(params, 1.0);
-  EXPECT_FALSE(sim.respawned_this_step());
+  EXPECT_FALSE(sim.view().respawned_this_step);
   sim.Advance(params, 1.0);
-  EXPECT_TRUE(sim.respawned_this_step());
+  EXPECT_TRUE(sim.view().respawned_this_step);
   sim.Advance(params, 0.5);
-  EXPECT_FALSE(sim.respawned_this_step());
+  EXPECT_FALSE(sim.view().respawned_this_step);
 }
 
 }  // namespace

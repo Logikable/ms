@@ -42,9 +42,10 @@ int CombatPanel::Height() const {
     return rows + 1;
   }
   rows += 2;
-  rows +=
-      sim_.respawning() ? 1 : static_cast<int>(sim_.engaged_groups().size());
-  return rows + (sim_.respawns() ? 1 : 0);
+  rows += sim_.respawning()
+              ? 1
+              : static_cast<int>(sim_.view().engaged_groups.size());
+  return rows + (sim_.view().respawns ? 1 : 0);
 }
 
 ftxui::Element CombatPanel::Render() const {
@@ -78,17 +79,17 @@ ftxui::Element CombatPanel::Render() const {
   // mobs they are charging it at -- read down the panel and it is them, their
   // attack, then what is hitting back. Green so it cannot be mistaken for one
   // of the red mob bars beneath it.
-  std::string hp_label = "HP " + std::to_string(sim_.player_hp()) + " / " +
-                         std::to_string(sim_.player_max_hp());
+  std::string hp_label = "HP " + std::to_string(sim_.view().player_hp) + " / " +
+                         std::to_string(sim_.view().player_max_hp);
   // Charges over one swing; a full bar is the moment a hit lands. Labelled with
   // the attack being charged ("Attack" for the bare poke, else the skill).
   std::vector<ftxui::Element> rows = {
       header,
       ThemedSeparator(),
-      ProgressBar(static_cast<float>(sim_.player_hp_fraction()), kGreen,
+      ProgressBar(static_cast<float>(sim_.view().player_hp_fraction), kGreen,
                   hp_label, ftxui::Color::White),
-      ProgressBar(static_cast<float>(sim_.attack_fraction()), kTheme,
-                  sim_.attack_name(), ftxui::Color::White),
+      ProgressBar(static_cast<float>(sim_.view().attack_fraction), kTheme,
+                  sim_.view().attack_name, ftxui::Color::White),
   };
   if (sim_.respawning()) {
     rows.push_back(ftxui::text(" Respawning..."));
@@ -98,7 +99,7 @@ ftxui::Element CombatPanel::Render() const {
     // over a letter at a time as health drains. The level leads the name so
     // mixed-level maps read at a glance; a "xN" trails when several of the type
     // are in the window, their HP merged into this one bar's average.
-    for (const EngagedGroup& group : sim_.engaged_groups()) {
+    for (const EngagedGroup& group : sim_.view().engaged_groups) {
       std::string label =
           "Lv." + std::to_string(group.level) + " " + group.name;
       if (group.count > 1) {
@@ -111,8 +112,8 @@ ftxui::Element CombatPanel::Render() const {
   // The respawn beat closes the panel, under whatever it is about to refill.
   // Orange because the other three bars are already spoken for, and it is the
   // one clock here that belongs to the map rather than to a combatant.
-  if (sim_.respawns()) {
-    rows.push_back(ProgressBar(static_cast<float>(sim_.respawn_fraction()),
+  if (sim_.view().respawns) {
+    rows.push_back(ProgressBar(static_cast<float>(sim_.view().respawn_fraction),
                                kOrange, "Respawn", ftxui::Color::White));
   }
 

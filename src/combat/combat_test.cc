@@ -641,7 +641,7 @@ TEST(AdvanceCombatTest, SurvivableMapsDoNotSendThePlayerHome) {
   bool took_a_hit = false;
   for (double elapsed = 0.0; elapsed < 600.0; elapsed += 1.0) {
     AdvanceCombat(state, sim, 1.0);
-    took_a_hit = took_a_hit || sim.player_hp() < sim.player_max_hp();
+    took_a_hit = took_a_hit || sim.view().player_hp < sim.view().player_max_hp;
   }
   EXPECT_TRUE(took_a_hit) << "the mobs have to be hurting them at all";
   EXPECT_EQ(state.current_map, "field");

@@ -159,9 +159,9 @@ TEST(CombatPanelTest, ShowsThePlayersOwnHpAgainstTheirPool) {
   CombatSim sim;
   sim.Advance(ComputeCombatParams(state), 0.1);
 
-  ASSERT_GT(sim.player_max_hp(), 0);
-  std::string full = "HP " + std::to_string(sim.player_max_hp()) + " / " +
-                     std::to_string(sim.player_max_hp());
+  ASSERT_GT(sim.view().player_max_hp, 0);
+  std::string full = "HP " + std::to_string(sim.view().player_max_hp) + " / " +
+                     std::to_string(sim.view().player_max_hp);
   EXPECT_NE(RenderPanel(state, sim).find(full), std::string::npos);
 }
 
@@ -278,7 +278,7 @@ TEST(CombatPanelTest, ShowsTheRespawnBeatUnderTheMobs) {
 
   ASSERT_FALSE(sim.respawning());
   EXPECT_NE(RenderPanel(state, sim).find("Respawn"), std::string::npos);
-  EXPECT_NEAR(sim.respawn_fraction(), 0.25, 0.001);
+  EXPECT_NEAR(sim.view().respawn_fraction, 0.25, 0.001);
 }
 
 // A boss has no beat, so the panel has no bar for one.
@@ -304,7 +304,7 @@ TEST(CombatPanelTest, HidesTheRespawnBarWhenNothingRespawns) {
   CombatSim sim;
   sim.Advance(params, 0.1);
 
-  EXPECT_FALSE(sim.respawns());
+  EXPECT_FALSE(sim.view().respawns);
   EXPECT_EQ(RenderPanel(state, sim).find("Respawn"), std::string::npos);
 }
 
@@ -369,7 +369,7 @@ TEST(CombatPanelTest, HeightMatchesWhatItDraws) {
   CombatSim sim;
   CombatParams params = ComputeCombatParams(state);
   sim.Advance(params, 0.0);
-  ASSERT_EQ(sim.engaged_groups().size(), 2u);
+  ASSERT_EQ(sim.view().engaged_groups.size(), 2u);
   CombatPanel panel(state, sim, focus);
   EXPECT_EQ(panel.Height(), DrawnRows(state, sim));
 

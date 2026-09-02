@@ -545,12 +545,12 @@ Probe ProbeMap(GameState& state, const std::string& map, int beats,
   CombatSim sim;
   for (double elapsed = 0.0; elapsed < horizon; elapsed += step) {
     sim.Advance(params, step);
-    const std::vector<int64_t>& kills = sim.kills_this_step();
+    const std::vector<int64_t>& kills = sim.view().kills_this_step;
     for (int i = 0; i < static_cast<int>(params.types.size()); ++i) {
       exp += kills[i] * params.types[i].mob->exp();
       meso += kills[i] * MesoPerKill(state, *params.types[i].mob);
     }
-    if (sim.died_this_step()) {
+    if (sim.view().died_this_step) {
       probe.died = true;
       return probe;
     }
@@ -885,12 +885,12 @@ Yield MeasureYield(GameState& state, const CombatParams& params, int beats,
   CombatSim sim;
   for (double elapsed = 0.0; elapsed < horizon; elapsed += step) {
     sim.Advance(params, step);
-    const std::vector<int64_t>& kills = sim.kills_this_step();
+    const std::vector<int64_t>& kills = sim.view().kills_this_step;
     for (std::size_t i = 0; i < params.types.size(); ++i) {
       total[i] += kills[i];
       exp += kills[i] * params.types[i].mob->exp();
     }
-    if (sim.died_this_step()) {
+    if (sim.view().died_this_step) {
       yield.died = true;
       return yield;
     }

@@ -140,7 +140,8 @@ void BossRun::StandSelf() {
   }
   // Always the first of them, so a stack this player landed is the one with
   // owner 0.
-  members_[0] = {"", player_at_, sim_.attack_name(), sim_.attack_fraction()};
+  members_[0] = {"", player_at_, sim_.view().attack_name,
+                 sim_.view().attack_fraction};
 }
 
 const BossDifficulty* BossRun::difficulty() const {
@@ -303,7 +304,7 @@ void BossRun::FillSlots(const CombatParams& params) {
   }
   slot_of_mob_.clear();
   mob_of_slot_.assign(counted, 0);
-  for (const MobStatus& mob : sim_.roster()) {
+  for (const MobStatus& mob : sim_.view().roster) {
     const std::vector<ArenaSpot>& spots = params.types[mob.type].spots;
     int taken = placed[mob.type]++;
     ArenaSpot spot;
@@ -321,7 +322,7 @@ void BossRun::FillSlots(const CombatParams& params) {
 }
 
 void BossRun::SyncSlots(double dt) {
-  const std::vector<MobStatus>& roster = sim_.roster();
+  const std::vector<MobStatus>& roster = sim_.view().roster;
   for (BossSlot& slot : slots_) {
     std::vector<MobStatus>::const_iterator it =
         std::find_if(roster.begin(), roster.end(),
@@ -347,7 +348,7 @@ void BossRun::ComputePhaseHp(const CombatParams& params) {
     full += static_cast<double>(type.simultaneous) * type.mob->max_hp();
   }
   double left = 0.0;
-  for (const MobStatus& mob : sim_.roster()) {
+  for (const MobStatus& mob : sim_.view().roster) {
     left += mob.hp_fraction * params.types[mob.type].mob->max_hp();
   }
   phase_hp_fraction_ = full > 0.0 ? std::clamp(left / full, 0.0, 1.0) : 0.0;
@@ -380,7 +381,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
   }
   ComputePhaseHp(params);
   seconds_left_ = std::max(0.0, seconds_left_ - dt);
-  if (!sim_.roster().empty()) {
+  if (!sim_.view().roster.empty()) {
     if (seconds_left_ <= 0.0) {
       Finish(BossRunState::kTimedOut);
     }
@@ -549,8 +550,8 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
     FillSlots(params);
   }
   CollectDamageStacks();
-  authority_->Report({phase_, landed_, player_at_, sim_.attack_name(),
-                      sim_.attack_fraction(), item_drop_pct_});
+  authority_->Report({phase_, landed_, player_at_, sim_.view().attack_name,
+                      sim_.view().attack_fraction, item_drop_pct_});
   // The shared roster is what everybody is hitting, so it decides what is
   // left. This copy of it may run ahead of the party's, never behind.
   std::map<int, double> said;

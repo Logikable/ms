@@ -150,7 +150,7 @@ Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
       at_level = state.character.proto().level();
       params = ComputeCombatParams(state);
     }
-    for (int64_t killed : sim.kills_this_step()) {
+    for (int64_t killed : sim.view().kills_this_step) {
       outcome.kills += killed;
     }
     // The step the count came due on, which is as fine as this sim measures
@@ -160,12 +160,12 @@ Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
         outcome.kills >= target_kills) {
       outcome.kills_seconds = t + kStepSeconds;
     }
-    if (sim.died_this_step()) {
+    if (sim.view().died_this_step) {
       outcome.death_seconds = t;
       return outcome;
     }
-    if (sim.active() && sim.player_hp_fraction() < outcome.low_water) {
-      outcome.low_water = sim.player_hp_fraction();
+    if (sim.active() && sim.view().player_hp_fraction < outcome.low_water) {
+      outcome.low_water = sim.view().player_hp_fraction;
     }
   }
   return outcome;

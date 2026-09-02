@@ -243,10 +243,10 @@ class BossRun {
   int arena_height() const;
   // The swing being charged and how far along it is, for the player's bar.
   const std::string& attack_name() const {
-    return sim_.attack_name();
+    return sim_.view().attack_name;
   }
   double attack_fraction() const {
-    return sim_.attack_fraction();
+    return sim_.view().attack_fraction;
   }
 
  private:

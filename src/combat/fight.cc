@@ -850,7 +850,7 @@ void CombatSim::CreditFreeze(const CombatParams& params,
 
 void CombatSim::Hurt(QueuedMob& mob, double damage) {
   mob.hp -= damage;
-  damage_this_step_ += damage;
+  view_.damage_this_step += damage;
 }
 
 void CombatSim::ClampRoster(const CombatParams& params,
@@ -875,7 +875,7 @@ void CombatSim::Reap() {
   survivors.reserve(queue_.size());
   for (QueuedMob& mob : queue_) {
     if (mob.hp <= 0.0) {
-      ++kills_this_step_[mob.type];
+      ++view_.kills_this_step[mob.type];
     } else {
       survivors.push_back(std::move(mob));
     }
@@ -1102,27 +1102,14 @@ const AttackOption& CombatSim::FormToLand(int& count,
   return *attack.empowered;
 }
 
-int CombatSim::player_hp() const {
-  return static_cast<int>(std::ceil(player_hp_));
-}
-
 void CombatSim::GoIdle() {
+  view_.ClearPicture();
   initialized_ = false;
   respawning_ = false;
-  roster_.clear();
-  target_name_.clear();
-  target_level_ = 0;
-  target_hp_fraction_ = 0.0;
-  attack_fraction_ = 0.0;
-  attack_name_.clear();
   reach_ = 1;
   player_hp_ = 0.0;
-  player_hp_fraction_ = 0.0;
-  player_max_hp_ = 0;
   player_level_ = 0;
   hit_phase_ = 0.0;
-  respawn_fraction_ = 0.0;
-  respawns_ = false;
   auto_clocks_.clear();
   attack_clocks_.clear();
   regen_phase_.clear();
@@ -1164,7 +1151,7 @@ void CombatSim::RespawnBeat(const CombatParams& params, double dt) {
     return;
   }
   respawn_phase_ -= params.respawn_seconds;
-  respawned_this_step_ = true;
+  view_.respawned_this_step = true;
   bool was_idle = queue_.empty();
   TopUp(params);
   // Every beat hands back a slice of the pool, cleared map or not. It is the
@@ -1286,7 +1273,7 @@ void CombatSim::TakeMobHit(const CombatParams& params, double dt) {
                   type.damage_to_player_scarred * odds) *
                  BuffDamageTakenFactor(params);
   player_hp_ = std::max(0.0, player_hp_ - taken);
-  died_this_step_ = player_hp_ <= 0.0 && !Revive(params);
+  view_.died_this_step = player_hp_ <= 0.0 && !Revive(params);
   Reflect(params, taken);
 }
 
@@ -1312,7 +1299,7 @@ void CombatSim::Reflect(const CombatParams& params, double damage_taken) {
   if (front.hp > 0.0) {
     return;
   }
-  ++kills_this_step_[front.type];
+  ++view_.kills_this_step[front.type];
   queue_.erase(queue_.begin());
 }
 
@@ -1565,7 +1552,7 @@ const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
   int previous = aimed_;
   aimed_ = ChooseAttack(params);
   const AttackOption* attack = aimed_ >= 0 ? &Attacks(params)[aimed_] : nullptr;
-  attack_name_ = attack != nullptr ? attack->name : "";
+  view_.attack_name = attack != nullptr ? attack->name : "";
   if (attack != nullptr) {
     // How long to hold is settled once, when the swing is first aimed. A hold
     // already running is the player's key held down: the queue moving under it
@@ -1670,10 +1657,10 @@ void CombatSim::MergeEngagedWindow(const CombatParams& params) {
                       ? std::clamp(queue_[j].hp / mob.max_hp(), 0.0, 1.0)
                       : 0.0;
     std::vector<EngagedGroup>::iterator it = std::find_if(
-        engaged_groups_.begin(), engaged_groups_.end(),
+        view_.engaged_groups.begin(), view_.engaged_groups.end(),
         [&mob](const EngagedGroup& g) { return g.name == mob.name(); });
-    if (it == engaged_groups_.end()) {
-      engaged_groups_.push_back({mob.name(), mob.level(), 1, frac});
+    if (it == view_.engaged_groups.end()) {
+      view_.engaged_groups.push_back({mob.name(), mob.level(), 1, frac});
       continue;
     }
     it->hp_fraction = (it->hp_fraction * it->count + frac) / (it->count + 1);
@@ -1682,45 +1669,61 @@ void CombatSim::MergeEngagedWindow(const CombatParams& params) {
 }
 
 void CombatSim::PublishRoster(const CombatParams& params) {
-  roster_.clear();
+  view_.roster.clear();
   for (const QueuedMob& queued : queue_) {
     const Mob& mob = *params.types[queued.type].mob;
     double frac =
         mob.max_hp() > 0 ? std::clamp(queued.hp / mob.max_hp(), 0.0, 1.0) : 0.0;
-    roster_.push_back({queued.id, queued.type, mob.name(), frac});
+    view_.roster.push_back({queued.id, queued.type, mob.name(), frac});
   }
 }
 
+void CombatSim::PublishPlayer(const CombatParams& params) {
+  // Rounded up so a sliver of a pool still reads as 1 rather than as death.
+  view_.player_hp = static_cast<int>(std::ceil(player_hp_));
+  view_.player_max_hp = params.max_player_hp;
+  view_.player_hp_fraction =
+      params.max_player_hp > 0
+          ? std::clamp(player_hp_ / params.max_player_hp, 0.0, 1.0)
+          : 0.0;
+  view_.respawns = params.respawn_seconds > 0.0;
+  view_.respawn_fraction =
+      view_.respawns
+          ? std::clamp(respawn_phase_ / params.respawn_seconds, 0.0, 1.0)
+          : 0.0;
+}
+
 void CombatSim::PublishTarget(const CombatParams& params) {
-  engaged_groups_.clear();
+  view_.engaged_groups.clear();
   PublishRoster(params);
   respawning_ = queue_.empty();
   if (queue_.empty()) {
-    target_name_.clear();
-    target_level_ = 0;
-    target_hp_fraction_ = 0.0;
-    attack_fraction_ = 0.0;
+    view_.target_name.clear();
+    view_.target_level = 0;
+    view_.target_hp_fraction = 0.0;
+    view_.attack_fraction = 0.0;
     return;
   }
   const QueuedMob& front = queue_.front();
   const Mob& target = *params.types[front.type].mob;
-  target_name_ = target.name();
-  target_level_ = target.level();
-  target_hp_fraction_ = target.max_hp() > 0
-                            ? std::clamp(front.hp / target.max_hp(), 0.0, 1.0)
-                            : 0.0;
-  attack_fraction_ = swing_seconds_ > 0.0
-                         ? std::clamp(attack_phase_ / swing_seconds_, 0.0, 1.0)
-                         : 0.0;
+  view_.target_name = target.name();
+  view_.target_level = target.level();
+  view_.target_hp_fraction =
+      target.max_hp() > 0 ? std::clamp(front.hp / target.max_hp(), 0.0, 1.0)
+                          : 0.0;
+  view_.attack_fraction =
+      swing_seconds_ > 0.0
+          ? std::clamp(attack_phase_ / swing_seconds_, 0.0, 1.0)
+          : 0.0;
   MergeEngagedWindow(params);
 }
 
 void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   active_ = params.active;
-  kills_this_step_.assign(params.types.size(), 0);
-  damage_this_step_ = 0.0;
-  respawned_this_step_ = false;
-  died_this_step_ = false;
+  view_.kills_this_step.assign(params.types.size(), 0);
+  view_.damage_this_step = 0.0;
+  view_.respawned_this_step = false;
+  view_.died_this_step = false;
   ledger_.BeginStep(params.record_damage_lines);
   if (!CanFight(params)) {
     GoIdle();
@@ -1771,16 +1774,8 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   RunCooldowns(params, dt);
   RunSwing(params, dt);
 
-  player_max_hp_ = params.max_player_hp;
   player_level_ = params.player_level;
-  player_hp_fraction_ =
-      params.max_player_hp > 0
-          ? std::clamp(player_hp_ / params.max_player_hp, 0.0, 1.0)
-          : 0.0;
-  respawns_ = params.respawn_seconds > 0.0;
-  respawn_fraction_ =
-      respawns_ ? std::clamp(respawn_phase_ / params.respawn_seconds, 0.0, 1.0)
-                : 0.0;
+  PublishPlayer(params);
   PublishTarget(params);
 }
 

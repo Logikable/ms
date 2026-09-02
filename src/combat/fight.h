@@ -24,7 +24,6 @@
 #ifndef MS_SRC_COMBAT_FIGHT_H_
 #define MS_SRC_COMBAT_FIGHT_H_
 
-#include <cstdint>
 #include <map>
 #include <random>
 #include <string>
@@ -32,29 +31,9 @@
 
 #include "src/combat/damage_ledger.h"
 #include "src/combat/encounter.h"
+#include "src/combat/fight_view.h"
 
 namespace ms {
-
-// One mob still standing, for a caller that draws them one bar apiece rather
-// than merged -- the boss screen, which pins each of Zakum's arms to its own
-// panel. `id` is handed out when the mob arrives and never reused, so a slot
-// keeps the same monster while the ones beside it die.
-struct MobStatus {
-  int id = 0;
-  int type = 0;  // index into CombatParams::types
-  std::string name;
-  double hp_fraction = 0.0;
-};
-
-// One HP bar for the combat panel: a mob type in the engaged window (the front
-// mobs the next swing hits), with its members merged into an average HP
-// fraction and a count.
-struct EngagedGroup {
-  std::string name;
-  int level = 0;
-  int count = 0;
-  double hp_fraction = 0.0;
-};
 
 class CombatSim {
  public:
@@ -71,6 +50,12 @@ class CombatSim {
   void ClampRoster(const CombatParams& params,
                    const std::map<int, double>& hp_by_id);
 
+  // What the last Advance published: what that step did, and what the fight
+  // looks like now. Refreshed whole each step.
+  const FightView& view() const {
+    return view_;
+  }
+
   // True while a valid encounter is being fought.
   bool active() const {
     return active_;
@@ -79,82 +64,6 @@ class CombatSim {
   // respawn beat.
   bool respawning() const {
     return respawning_;
-  }
-  // The current target's name (empty while respawning or inactive).
-  const std::string& target_name() const {
-    return target_name_;
-  }
-  // The current target's level (0 while respawning or inactive).
-  int target_level() const {
-    return target_level_;
-  }
-  // The current target's remaining HP as a fraction in [0, 1].
-  double target_hp_fraction() const {
-    return target_hp_fraction_;
-  }
-  // Progress toward the next auto-attack as a fraction in [0, 1].
-  double attack_fraction() const {
-    return attack_fraction_;
-  }
-  // The name of the swing being charged (the attack skill's, or "Attack" for
-  // the bare poke). Empty while inactive or respawning -- with nothing up,
-  // there is no swing coming to name.
-  const std::string& attack_name() const {
-    return attack_name_;
-  }
-  // The player's remaining HP, rounded up so a sliver still reads as 1 rather
-  // than as death. 0 while inactive.
-  int player_hp() const;
-  // What that HP tops out at, carried through from the params so a caller
-  // drawing the pair need not resolve the character's stats again.
-  int player_max_hp() const {
-    return player_max_hp_;
-  }
-  // That HP as a fraction in [0, 1] of what the params say it tops out at.
-  double player_hp_fraction() const {
-    return player_hp_fraction_;
-  }
-  // True on the one step a hit took the player to 0. Reported rather than
-  // acted on, exactly as kills are: what dying costs is the reward layer's
-  // business, not the fight's.
-  bool died_this_step() const {
-    return died_this_step_;
-  }
-  // Kills recorded during the most recent Advance, indexed to match the
-  // params.types passed to that call.
-  const std::vector<int64_t>& kills_this_step() const {
-    return kills_this_step_;
-  }
-  // Damage the character dealt during the most recent Advance. Every point a
-  // line rolled counts, overkill included: this is what the player would have
-  // watched fly off the monsters, not what the monsters had left to give.
-  double damage_this_step() const {
-    return damage_this_step_;
-  }
-  // Progress toward the next respawn beat as a fraction in [0, 1]. Stays 0
-  // for an encounter that never respawns -- see respawns().
-  double respawn_fraction() const {
-    return respawn_fraction_;
-  }
-  // Whether the encounter has a respawn beat at all. A boss does not.
-  bool respawns() const {
-    return respawns_;
-  }
-  // True on the step a respawn beat came round, whether or not it had anything
-  // to put on the map. The one clock in the fight a watcher can align to.
-  bool respawned_this_step() const {
-    return respawned_this_step_;
-  }
-  // The engaged window as HP bars, one per distinct type the next swing will
-  // hit, in the order they appear in the queue. Empty while
-  // respawning/inactive.
-  const std::vector<EngagedGroup>& engaged_groups() const {
-    return engaged_groups_;
-  }
-  // Every mob still standing, in queue order -- the whole roster rather than
-  // the engaged window. Refreshed each Advance, like the window is.
-  const std::vector<MobStatus>& roster() const {
-    return roster_;
   }
   // Every line landed during the most recent Advance, in the order they
   // landed. Empty unless the params asked for the record -- see
@@ -527,6 +436,8 @@ class CombatSim {
   // Takes `damage` off `mob` and counts it toward the step's total. Every way
   // the character does damage goes through here.
   void Hurt(QueuedMob& mob, double damage);
+  // Refreshes the player's pool and the respawn clock for the panel to draw.
+  void PublishPlayer(const CombatParams& params);
   // Refreshes the target and the engaged window for the panel to draw.
   void PublishTarget(const CombatParams& params);
   void MergeEngagedWindow(const CombatParams& params);
@@ -618,19 +529,13 @@ class CombatSim {
   // plays out the same way every run -- which keeps tests reproducible.
   std::mt19937 rng_;
 
-  // Cached render values, refreshed each Advance so accessors need no params.
-  std::string target_name_;
-  int target_level_ = 0;
-  double target_hp_fraction_ = 0.0;
-  double attack_fraction_ = 0.0;
-  double player_hp_fraction_ = 0.0;
-  int player_max_hp_ = 0;
-  int player_level_ = 0;
-  std::string attack_name_;
-  // Reach of the attack the next swing will use -- also the width of the
-  // engaged window the UI draws.
+  // What the swing being charged is, refreshed each Advance. The panel reads
+  // its name and its progress off the view; these are the fight's own working
+  // copies, which the aim and the strike both need.
+  //
+  // Reach of that attack -- also the width of the engaged window the UI draws.
   int reach_ = 1;
-  // How long that attack's swing takes, for the charge bar to fill against.
+  // How long its swing takes, for the charge bar to fill against.
   double swing_seconds_ = 0.0;
   // Which attack the aimed swing is, so landing it can start that attack's
   // cooldown -- and, while it is charging, the swing that is committed to.
@@ -640,18 +545,13 @@ class CombatSim {
   // kept until it lands: the orb the player is already holding is not re-timed
   // under them as the queue moves. 0 whenever the aimed swing is not held.
   int held_pulses_ = 0;
-  std::vector<int64_t> kills_this_step_;
-  double damage_this_step_ = 0.0;
-  bool respawned_this_step_ = false;
-  // The respawn clock as the panel reads it: how far into the cycle, and
-  // whether there is a cycle to be into.
-  double respawn_fraction_ = 0.0;
-  bool respawns_ = false;
+  // The level the last step ran at, so the next one can catch a level-up --
+  // see Advance.
+  int player_level_ = 0;
   // Where every line this fight lands is filed. See DamageLedger.
   DamageLedger ledger_;
-  bool died_this_step_ = false;
-  std::vector<EngagedGroup> engaged_groups_;
-  std::vector<MobStatus> roster_;
+  // What the fight publishes for a reader. See FightView.
+  FightView view_;
 };
 
 }  // namespace ms
