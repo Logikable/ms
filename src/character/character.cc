@@ -8,10 +8,12 @@
 #include <optional>
 #include <random>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 #include "absl/log/log.h"
+#include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
 #include "src/character/arcane_force.h"
 #include "src/character/consumables.h"
@@ -155,6 +157,46 @@ int HyperSpForLevel(int level) {
     return 0;
   }
   return (level - kFirstHyperSpLevel) % kHyperSpLevelStep == 0 ? 1 : 0;
+}
+
+// What the levels up to `level` paid into `stage`'s book, and into the Hyper
+// pool. Both are the levels' alone -- an advancement hands over no SP -- so
+// each says what a character of that level must hold between their pool and
+// what they have spent out of it.
+int ExpectedSpForStage(int level, int stage) {
+  int total = 0;
+  for (int l = 1; l <= level; ++l) {
+    if (SpStageForLevel(l) == stage) {
+      total += SpForLevel(l);
+    }
+  }
+  return total;
+}
+
+int ExpectedHyperSp(int level) {
+  int total = 0;
+  for (int l = 1; l <= level; ++l) {
+    total += HyperSpForLevel(l);
+  }
+  return total;
+}
+
+// Brings one pool to what the levels say it should hold, and says how far it
+// moved. Short, and the difference is handed over. Over, and it comes off the
+// pool alone: which of a dozen one-point Hyper Skills to un-buy is not a
+// choice to make on the player's behalf, and ReconcileSkills has already cut
+// back anything the data no longer allows.
+int CorrectPool(std::string_view what, int delta, int* pool) {
+  if (delta == 0) {
+    return 0;
+  }
+  // Logged even though it is fixed, for the reason ReconcileAp logs: a pool
+  // that does not balance is either a save from older rules or a bug in the
+  // granting, and the second one is invisible if this quietly tidies up.
+  LOG(WARNING) << what << " is off by " << delta << "; correcting";
+  int was = *pool;
+  *pool = std::max(0, *pool + delta);
+  return *pool - was;
 }
 
 // SP granted for completing an advancement into `job`. Every book is built to
@@ -1057,6 +1099,47 @@ int CharacterInstance::ReconcileSkills(
       (*character_.mutable_skill_levels())[takers[pick(rng_)]->name()] += 1;
     }
   }
+  return moved;
+}
+
+int CharacterInstance::ReconcileSp(const std::map<std::string, Skill>& skills) {
+  // What the character has spent, per pool. Walked over the catalog rather
+  // than over the learned levels, because a display name repeats across
+  // branches and the book the character holds is what says which one they
+  // learned. A Vengeance form is skipped: its level lives on the skill it
+  // stands in for, which is counted on its own row.
+  std::map<int, int> spent;
+  int hyper_spent = 0;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (!skill.replaces_skill_name().empty() ||
+        !HasAdvancement(skill.job_advancement())) {
+      continue;
+    }
+    if (skill.hyper()) {
+      hyper_spent += skill_level(skill);
+    } else {
+      spent[StageForAdvancement(skill.job_advancement())] += skill_level(skill);
+    }
+  }
+  int level = character_.level();
+  int moved = 0;
+  // Only the stages a level-up can pay into. A book past the last of them --
+  // the 5th job's -- has no income to balance against, so there is nothing
+  // there to correct.
+  for (int stage = 1; stage <= SpStageForLevel(kLastSpLevel); ++stage) {
+    int pool = sp(stage);
+    int delta = ExpectedSpForStage(level, stage) - pool - spent[stage];
+    if (delta == 0) {
+      continue;
+    }
+    moved += CorrectPool(absl::StrCat("Stage ", stage, " SP"), delta, &pool);
+    (*character_.mutable_sp_by_stage())[stage] = pool;
+  }
+  int hyper = character_.hyper_sp();
+  int delta = ExpectedHyperSp(level) - hyper - hyper_spent;
+  moved += CorrectPool("Hyper SP", delta, &hyper);
+  character_.set_hyper_sp(hyper);
   return moved;
 }
 

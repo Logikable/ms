@@ -539,6 +539,19 @@ class CharacterInstance {
   // the last resort. Called on loading a save, beside ReconcileAp.
   int ReconcileSkills(const std::map<std::string, Skill>& skills);
 
+  // Puts every SP pool back on its books and returns how many points had to
+  // move. A pool short of what the levels have paid is handed the difference:
+  // that is what a character who was already past a rung when the ladder
+  // shipped is missing, and nothing else would ever grant it. A pool holding
+  // more gives it up, down to empty and no further -- learned skills are left
+  // alone, because ReconcileSkills has already cut back whatever the data no
+  // longer allows.
+  //
+  // Every stage's pool and the Hyper pool, all read off the level: an
+  // advancement hands over no SP. Called on loading a save, after
+  // ReconcileSkills -- which moves points between a book and its pool.
+  int ReconcileSp(const std::map<std::string, Skill>& skills);
+
   // Puts both Hyper Stat allocations back inside what the character's level
   // has paid for, and returns how many points had to move. A stat past the
   // level cap is cut to it, a locked one is emptied, and an allocation that

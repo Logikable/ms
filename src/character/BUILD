@@ -27,6 +27,7 @@ cc_library(
         "//src/protos:scroll_proto_cc",
         "//src/protos:skill_proto_cc",
         "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/types:span",
     ],
 )

@@ -113,12 +113,14 @@ void LoadCharacters(const SaveGame& save, GameState& state) {
   const CharacterSave& active = save.characters(slot);
   state.character.RestoreFrom(active.character(), state.equips, state.items);
   // A save written under older rules is the one thing that can arrive with its
-  // books unbalanced, so this is the door to check all three at: the AP
-  // against the levels that paid it, the skills against the maximums the data
-  // states now, and the Hyper Stats against the points the level pays.
+  // books unbalanced, so this is the door to check all four at: the AP and the
+  // SP against the levels that paid them, the skills against the maximums the
+  // data states now, and the Hyper Stats against the points the level pays.
+  // SP last -- ReconcileSkills moves points between a book and its pool.
   state.character.ReconcileAp();
   state.character.ReconcileSkills(state.skills);
   state.character.ReconcileHyperStats();
+  state.character.ReconcileSp(state.skills);
   state.current_map = active.current_map();
   state.playtime_seconds = static_cast<double>(active.playtime_seconds());
   // Left alone when the save has no creation time to give -- one written

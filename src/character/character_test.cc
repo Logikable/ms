@@ -3564,5 +3564,125 @@ TEST_F(ReconcileSkillsTest, ABookTheCharacterCannotHoldIsNotTouched) {
   EXPECT_EQ(c.skill_level(skills.at("Rage")), 15);
 }
 
+// --- ReconcileSp ---
+
+class ReconcileSpTest : public CharacterTest {};
+
+// The same audit ReconcileAp keeps: whatever the granting rules are, a
+// character grown under them balances at every step. If a level ever pays SP
+// on a rule ExpectedSpForStage does not know, it fails here rather than every
+// save quietly being "corrected" against a stale one.
+TEST_F(ReconcileSpTest, ACharacterTheGameGrewNeverNeedsCorrecting) {
+  const std::vector<Job> kPath = {JOB_SWORDMAN, JOB_FIGHTER, JOB_CRUSADER,
+                                  JOB_HERO};
+  CharacterInstance c = MakeFreshBeginner(rng_);
+  ASSERT_EQ(c.ReconcileSp({}), 0) << "at level 1";
+  size_t taken = 0;
+  for (int level = 2; level <= 200; ++level) {
+    c.LevelUp();
+    if (c.CanAdvanceJob() && taken < kPath.size()) {
+      c.AdvanceJob(kPath[taken]);
+      ++taken;
+    }
+    ASSERT_EQ(c.ReconcileSp({}), 0) << "at level " << level;
+  }
+}
+
+// The one that sent us looking: a character who was already past a rung when
+// the Hyper ladder shipped was never granted its point, and nothing else would
+// ever hand it over.
+TEST_F(ReconcileSpTest, AMissedHyperRungIsHandedOver) {
+  Character proto;
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  proto.set_level(150);
+  (*proto.mutable_sp_by_stage())[1] = 60;
+  (*proto.mutable_sp_by_stage())[2] = 90;
+  (*proto.mutable_sp_by_stage())[3] = 120;
+  (*proto.mutable_sp_by_stage())[4] = 200;
+  CharacterInstance c(rng_, std::move(proto));
+
+  // 140, 145 and 150 have each paid one.
+  EXPECT_EQ(c.ReconcileSp({}), 3);
+  EXPECT_EQ(c.proto().hyper_sp(), 3);
+  EXPECT_EQ(c.ReconcileSp({}), 0) << "correcting twice is a no-op";
+}
+
+// The whole ladder, and a book that has already spent it.
+TEST_F(ReconcileSpTest, LearnedHyperSkillsAreSpentPoints) {
+  std::map<std::string, Skill> skills;
+  std::map<std::string, int> learned;
+  for (int i = 0; i < 12; ++i) {
+    std::string name = "Hyper " + std::to_string(i);
+    skills[name] = MakeSkill(name, JOB_ADVANCEMENT_HERO, 1);
+    skills[name].set_hyper(true);
+    learned[name] = 1;
+  }
+  Character proto;
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  proto.set_level(195);
+  (*proto.mutable_sp_by_stage())[1] = 60;
+  (*proto.mutable_sp_by_stage())[2] = 90;
+  (*proto.mutable_sp_by_stage())[3] = 120;
+  (*proto.mutable_sp_by_stage())[4] = 200;
+  for (const std::pair<const std::string, int>& entry : learned) {
+    (*proto.mutable_skill_levels())[entry.first] = entry.second;
+  }
+  CharacterInstance c(rng_, std::move(proto));
+
+  EXPECT_EQ(c.ReconcileSp(skills), 0) << "twelve rungs, twelve skills";
+  EXPECT_EQ(c.proto().hyper_sp(), 0);
+}
+
+// A pool short by what its book already holds is not short at all.
+TEST_F(ReconcileSpTest, PointsAlreadySpentCountTowardTheBook) {
+  std::map<std::string, Skill> skills;
+  AddBook(skills, JOB_ADVANCEMENT_SWORDMAN, {{"Slash", 40}, {"Guard", 40}});
+  CharacterInstance c = MakeCharacterWithSkills(
+      rng_, JOB_SWORDMAN, 1, {{"Slash", 40}, {"Guard", 15}}, /*sp=*/5);
+
+  // Levels 11-30 pay 60, of which 55 are in the book and 5 in the pool.
+  EXPECT_EQ(c.ReconcileSp(skills), 0);
+  EXPECT_EQ(c.sp(1), 5);
+}
+
+// The same book, with nothing in the pool to make up the difference.
+TEST_F(ReconcileSpTest, AShortPoolIsHandedTheDifference) {
+  std::map<std::string, Skill> skills;
+  AddBook(skills, JOB_ADVANCEMENT_SWORDMAN, {{"Slash", 40}, {"Guard", 40}});
+  CharacterInstance c =
+      MakeCharacterWithSkills(rng_, JOB_SWORDMAN, 1, {{"Slash", 40}});
+
+  EXPECT_EQ(c.ReconcileSp(skills), 20);
+  EXPECT_EQ(c.sp(1), 20);
+}
+
+// Over is taken off the pool alone, and it stops at empty: a learned skill is
+// ReconcileSkills's to cut back, not this one's.
+TEST_F(ReconcileSpTest, TooMuchComesOffThePoolAndNoFurther) {
+  std::map<std::string, Skill> skills;
+  AddBook(skills, JOB_ADVANCEMENT_SWORDMAN, {{"Slash", 100}});
+  CharacterInstance c = MakeCharacterWithSkills(rng_, JOB_SWORDMAN, 1,
+                                                {{"Slash", 100}}, /*sp=*/10);
+
+  // 110 held against the 60 the levels paid, and only 10 to give back.
+  EXPECT_EQ(c.ReconcileSp(skills), -10);
+  EXPECT_EQ(c.sp(1), 0);
+  EXPECT_EQ(c.skill_level(skills.at("Slash")), 100);
+}
+
+// A book the character never took is nobody's spending, so it cannot make
+// their own pool look overspent.
+TEST_F(ReconcileSpTest, ABookTheCharacterCannotHoldIsNotSpending) {
+  std::map<std::string, Skill> skills;
+  AddBook(skills, JOB_ADVANCEMENT_MAGICIAN, {{"Magic Claw", 60}});
+  CharacterInstance c = MakeCharacterWithSkills(
+      rng_, JOB_SWORDMAN, 1, {{"Magic Claw", 60}}, /*sp=*/60);
+
+  EXPECT_EQ(c.ReconcileSp(skills), 0);
+  EXPECT_EQ(c.sp(1), 60);
+}
+
 }  // namespace
 }  // namespace ms
