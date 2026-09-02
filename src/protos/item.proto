@@ -29,6 +29,19 @@ enum CurrencyColor {
   CURRENCY_COLOR_PURPLE = 3;
 }
 
+// What a stackable is for, where nothing else about it says so. The bag's
+// Sort ranks a tab by this, and an ordinary drop names nothing and sorts last.
+enum ItemKind {
+  ITEM_KIND_UNSPECIFIED = 0;
+  // The currency scrolls are bought with.
+  ITEM_KIND_SPELL_TRACE = 1;
+  // A currency a shop takes as payment. Such an item also carries the mark
+  // the shop draws it by -- see currency_mark.
+  ITEM_KIND_TOKEN = 2;
+  // A boss's own drop, one per boss.
+  ITEM_KIND_SOUL_SHARD = 3;
+}
+
 // Static definition of a stackable item type. Loaded from data/items textprotos
 // at startup; shared read-only across all stacks of the same type.
 message ItemPrototype {
@@ -55,4 +68,6 @@ message ItemPrototype {
   // Empty for an ordinary item, which no price is ever asked in.
   string currency_mark = 8;
   CurrencyColor currency_color = 9;
+  // See ItemKind.
+  ItemKind kind = 10;
 }

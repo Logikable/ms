@@ -4,6 +4,7 @@
 # both axes.
 name: "Cygnus Shoulder Token"
 category: ITEM_CATEGORY_ETC
+kind: ITEM_KIND_TOKEN
 description:
   "A feather from the Empress's own wing. The shop trades one for any "
   "Cygnus shoulder."

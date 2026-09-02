@@ -17,6 +17,7 @@ cc_library(
         "//src/item:equip_instance",
         "//src/item:equip_stats",
         "//src/item:inventory",
+        "//src/item:inventory_sort",
         "//src/item:projectile",
         "//src/item:star_force_cost",
         "//src/protos:character_proto_cc",

@@ -1,5 +1,6 @@
 name: "Frozen Secondary Token"
 category: ITEM_CATEGORY_ETC
+kind: ITEM_KIND_TOKEN
 description:
   "A shard of everlasting ice, warm to hold. The shop trades one for any "
   "Frozen secondary."

@@ -1,5 +1,6 @@
 name: "Spell Trace"
 category: ITEM_CATEGORY_ETC
+kind: ITEM_KIND_SPELL_TRACE
 max_stack: 30000
 shop_price: 5000
 description:

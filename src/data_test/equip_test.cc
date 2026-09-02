@@ -391,6 +391,9 @@ TEST(EquipDataTest, EveryTokenPriceNamesATokenThatExists) {
     EXPECT_FALSE(it->second.currency_mark().empty())
         << proto.token_item() << " pays for " << entry.first
         << " without a mark to draw in the cost column";
+    EXPECT_EQ(it->second.kind(), ITEM_KIND_TOKEN)
+        << proto.token_item() << " pays for " << entry.first
+        << " without saying it is a token, so the bag files it as a drop";
     EXPECT_FALSE(proto.has_shop_price())
         << entry.first << " is on both shelves at once";
   }

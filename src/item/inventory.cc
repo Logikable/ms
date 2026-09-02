@@ -1,7 +1,10 @@
 #include "src/item/inventory.h"
 
+#include <functional>
 #include <memory>
 #include <vector>
+
+#include "src/item/inventory_sort.h"
 
 namespace ms {
 
@@ -65,6 +68,11 @@ std::unique_ptr<EquipTabItem> InventoryInstance::remove_equip(int index) {
 
 void InventoryInstance::set(int index, std::unique_ptr<EquipTabItem> item) {
   equip_items_[index] = std::move(item);
+}
+
+void InventoryInstance::Sort(
+    const std::function<bool(const EquipPrototype&)>& equippable) {
+  SortEquipItems(equip_items_, equippable);
 }
 
 }  // namespace ms

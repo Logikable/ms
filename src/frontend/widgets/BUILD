@@ -228,6 +228,7 @@ cc_library(
         "//src/character",
         "//src/character:arcane_force",
         "//src/item:equip_instance",
+        "//src/item:slot_order",
         "//src/protos:equip_proto_cc",
     ],
 )

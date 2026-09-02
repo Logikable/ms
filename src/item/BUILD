@@ -82,12 +82,49 @@ cc_library(
 )
 
 cc_library(
+    name = "slot_order",
+    srcs = ["slot_order.cc"],
+    hdrs = ["slot_order.h"],
+    deps = [
+        ":item",
+        "//src/protos:equip_proto_cc",
+    ],
+)
+
+cc_library(
+    name = "inventory_sort",
+    srcs = ["inventory_sort.cc"],
+    hdrs = ["inventory_sort.h"],
+    deps = [
+        ":item",
+        ":slot_order",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "inventory_sort_test",
+    size = "small",
+    srcs = ["inventory_sort_test.cc"],
+    deps = [
+        ":equip_instance",
+        ":inventory_sort",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "inventory",
     srcs = ["inventory.cc"],
     hdrs = ["inventory.h"],
     deps = [
         ":equip_instance",
+        ":inventory_sort",
         ":item",
+        "//src/protos:equip_proto_cc",
     ],
 )
 

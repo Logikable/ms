@@ -375,6 +375,12 @@ class CharacterInstance {
   // valid, compatible inventory slots. Returns the recovery star count.
   int RecoverTrace(int trace_index, int base_item_index);
 
+  // Files a bag tab into the order the Sort button puts it -- see
+  // inventory_sort.h. Every row moves, so nothing may hold a row index across
+  // one of these.
+  void SortEquipTab();
+  void SortStackTab(ItemCategory category);
+
   // The player's name for this character. Never empty: a character built or
   // loaded without one answers kDefaultUsername.
   const std::string& username() const {

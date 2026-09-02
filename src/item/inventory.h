@@ -6,11 +6,13 @@
 #ifndef MS_SRC_ITEM_INVENTORY_H_
 #define MS_SRC_ITEM_INVENTORY_H_
 
+#include <functional>
 #include <memory>
 #include <vector>
 
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 
@@ -47,6 +49,8 @@ class InventoryInstance {
   std::unique_ptr<EquipTabItem> remove_equip(int index);
   // Replaces the item at index. Index must be in range.
   void set(int index, std::unique_ptr<EquipTabItem> item);
+  // Files the tab into the bag's sort order -- see inventory_sort.h.
+  void Sort(const std::function<bool(const EquipPrototype&)>& equippable);
 
  private:
   std::vector<std::unique_ptr<EquipTabItem>> equip_items_;

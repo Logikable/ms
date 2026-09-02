@@ -20,6 +20,7 @@
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
 #include "src/item/inventory.h"
+#include "src/item/inventory_sort.h"
 #include "src/item/item.h"
 #include "src/item/projectile.h"
 #include "src/item/star_force_cost.h"
@@ -2139,6 +2140,15 @@ int CharacterInstance::RecoverTrace(int trace_index, int base_item_index) {
   inventory_.remove_equip(lo);
   inventory_.add(std::make_unique<EquipInstance>(proto, new_state));
   return recovery_stars;
+}
+
+void CharacterInstance::SortEquipTab() {
+  inventory_.Sort(
+      [this](const EquipPrototype& proto) { return CanEquip(proto); });
+}
+
+void CharacterInstance::SortStackTab(ItemCategory category) {
+  SortStacks(StacksFor(category));
 }
 
 bool CharacterInstance::CanEquip(const EquipPrototype& proto) const {

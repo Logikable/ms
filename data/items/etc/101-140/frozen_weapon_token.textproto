@@ -2,6 +2,7 @@
 # by the mark below instead of by meso.
 name: "Frozen Weapon Token"
 category: ITEM_CATEGORY_ETC
+kind: ITEM_KIND_TOKEN
 description:
   "A shard of everlasting ice, cold to hold. The shop trades one for any "
   "Frozen weapon."

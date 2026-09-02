@@ -233,6 +233,7 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
                 entry.second.name() + "'s Soul Shard")
           << where;
       EXPECT_EQ(items.at(shards[0]).category(), ITEM_CATEGORY_ETC) << where;
+      EXPECT_EQ(items.at(shards[0]).kind(), ITEM_KIND_SOUL_SHARD) << where;
     }
   }
   EXPECT_EQ(fights, 9) << "Zakum, Magnus, Pink Bean, Arkarium, Cygnus and "

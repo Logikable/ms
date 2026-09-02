@@ -303,6 +303,39 @@ class EquipTest : public CharacterEquipFixture {};
 class UnequipTest : public CharacterEquipFixture {};
 class ScrollEquippedTest : public CharacterEquipFixture {};
 class ScrollInventoryTest : public CharacterEquipFixture {};
+class SortTabTest : public CharacterEquipFixture {};
+
+// The equip sort's first key is the character's own answer, so a piece the
+// level has not opened files below one it has however good it is.
+TEST_F(SortTabTest, EquipTabPutsWhatCanBeWornOnTop) {
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  c_.AdvanceJob(JOB_BEGINNER);
+  EquipPrototype gated = sword_;
+  gated.set_name("Gated Sword");
+  gated.set_required_level(100);
+  Equip starred;
+  starred.set_stars(15);
+  ASSERT_TRUE(c_.PickUp(std::make_unique<EquipInstance>(gated, starred)));
+  ASSERT_TRUE(c_.PickUp(std::make_unique<EquipInstance>(sword_)));
+  c_.SortEquipTab();
+  EXPECT_EQ(c_.inventory()[0].name(), "Sword");
+  EXPECT_EQ(c_.inventory()[1].name(), "Gated Sword");
+}
+
+TEST_F(SortTabTest, StackTabFilesTracesFirstThenByCount) {
+  ItemPrototype trace;
+  trace.set_name("Spell Trace");
+  trace.set_category(ITEM_CATEGORY_ETC);
+  trace.set_kind(ITEM_KIND_SPELL_TRACE);
+  ItemPrototype horn;
+  horn.set_name("Broken Horn");
+  horn.set_category(ITEM_CATEGORY_ETC);
+  c_.AddStackable(horn, 50);
+  c_.AddStackable(trace, 3);
+  c_.SortStackTab(ITEM_CATEGORY_ETC);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].name(), "Spell Trace");
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[1].name(), "Broken Horn");
+}
 
 // --- LevelUp ---
 
