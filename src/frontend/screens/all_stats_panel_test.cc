@@ -215,15 +215,24 @@ TEST_F(AllStatsPanelTest, NoFarmBossRowBeforeHyperStats) {
   EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
 }
 
-// A party member's sheet is not the player's, so it never carries the row.
-TEST_F(AllStatsPanelTest, SomebodyElsesSheetHasNoFarmBossRow) {
+// Somebody else's sheet has no account behind it, so the level written on it
+// answers for the row.
+TEST_F(AllStatsPanelTest, SomebodyElsesSheetIsGatedOnItsOwnLevel) {
   Character proto;
   proto.set_level(140);
   proto.set_job(JOB_HERO);
   proto.set_job_stage(4);
-  CharacterInstance c(rng_, std::move(proto));
-  AllStatsPanel panel(c, /*account=*/nullptr, {});
-  EXPECT_EQ(RowWith(panel.Render(), "Farm"), "");
+  CharacterInstance them(rng_, proto);
+  AllStatsPanel panel(them, /*account=*/nullptr, {});
+  EXPECT_NE(RowWith(panel.Render(), "Farm").find("Boss"), std::string::npos);
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_EQ(panel.preset(), StatPreset::kBossing);
+
+  proto.set_level(139);
+  CharacterInstance younger(rng_, std::move(proto));
+  AllStatsPanel below(younger, /*account=*/nullptr, {});
+  EXPECT_EQ(RowWith(below.Render(), "Farm"), "");
+  EXPECT_FALSE(below.OnEvent(ftxui::Event::ArrowRight));
 }
 
 // A card that measures its own width has to ask for its right margin.

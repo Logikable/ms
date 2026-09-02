@@ -1502,6 +1502,11 @@ void TuiController::OpenPartyInspect(const std::string& account_id) {
 }
 
 bool TuiController::OnPartyInspectEvent(ftxui::Event event) {
+  // Left/Right belong to the member's Farm/Boss row, and only while they have
+  // one; the panel says so.
+  if (party_inspect_panel_.OnEvent(event)) {
+    return true;
+  }
   if (event == ftxui::Event::ArrowUp) {
     party_inspect_panel_.MoveCursor(-1);
     return true;

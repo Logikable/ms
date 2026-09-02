@@ -8,10 +8,12 @@
 #include <utility>
 #include <vector>
 
+#include "ftxui/component/event.hpp"
 #include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/frontend/widgets/stat_rows.h"
 #include "src/item/equip_instance.h"
+#include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/multiplayer.pb.h"
 
@@ -118,6 +120,28 @@ class PartyInspectPanelTest : public PanelTest {
     player.set_name(name);
     player.set_level(them.proto().level());
     *player.mutable_sheet() = them.ToProto();
+    return player;
+  }
+
+  // A member at the level Hyper Stats open at, with a different STR level in
+  // each of their two allocations.
+  PlayerInfo HyperMember(const std::string& name) {
+    Character proto;
+    proto.set_level(140);
+    proto.set_job(JOB_HERO);
+    proto.set_job_stage(4);
+    (*proto.mutable_hyper_stats()
+          ->mutable_farming()
+          ->mutable_levels())[HYPER_STAT_FIELD_STR] = 1;
+    (*proto.mutable_hyper_stats()
+          ->mutable_bossing()
+          ->mutable_levels())[HYPER_STAT_FIELD_STR] = 2;
+    PlayerInfo player;
+    player.set_account_id("them");
+    player.set_name(name);
+    player.set_level(proto.level());
+    proto.set_name(name);
+    *player.mutable_sheet() = std::move(proto);
     return player;
   }
 
@@ -274,12 +298,46 @@ TEST_F(PartyInspectPanelTest, TheItemListGivesWayToAShortTerminal) {
   panel.SetMaxRows(PartyInspectPanel::kFixedRows +
                    PartyInspectPanel::kLeastListRows);
   int squeezed = Height(panel);
+  EXPECT_LT(squeezed, roomy);
   EXPECT_LE(squeezed,
             PartyInspectPanel::kFixedRows + PartyInspectPanel::kLeastListRows);
 
   // Squeezed further, the screen is clipped rather than the list vanishing.
   panel.SetMaxRows(PartyInspectPanel::kFixedRows);
   EXPECT_EQ(Height(panel), squeezed);
+}
+
+// A member past level 140 carries the Farm/Boss row their own screen carries,
+// and Left/Right read between their two allocations.
+TEST_F(PartyInspectPanelTest, TheFarmBossRowReadsBothAllocations) {
+  PartyInspectPanel panel(state_);
+  panel.SetPlayer(HyperMember("Bree"));
+
+  EXPECT_NE(Screen(panel).find("Farm"), std::string::npos);
+  EXPECT_NE(Screen(panel).find("(0+30) 30"), std::string::npos);
+
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_NE(Screen(panel).find("(0+60) 60"), std::string::npos);
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowLeft));
+  EXPECT_NE(Screen(panel).find("(0+30) 30"), std::string::npos);
+
+  // Somebody else opened next is read from their farming allocation, not the
+  // tab the last member was left on.
+  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
+  PlayerInfo other = HyperMember("Cass");
+  other.set_account_id("other");
+  panel.SetPlayer(other);
+  EXPECT_NE(Screen(panel).find("(0+30) 30"), std::string::npos);
+}
+
+// A member below it has one allocation and no row, so the arrows are left to
+// the screen.
+TEST_F(PartyInspectPanelTest, NoFarmBossRowBeforeHyperStats) {
+  PartyInspectPanel panel(state_);
+  panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
+
+  EXPECT_EQ(Screen(panel).find("Farm"), std::string::npos);
+  EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
 }
 
 }  // namespace

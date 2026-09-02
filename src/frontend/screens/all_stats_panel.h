@@ -36,8 +36,8 @@ class AllStatsPanel {
   static constexpr int kTotalWidth = kContentWidth + 2;
 
   // `account` is the player's own, for the level gate on the Farm/Boss row.
-  // Null for a sheet that is not theirs -- a party member's, whose allocation
-  // is not ours to switch between.
+  // Null for a sheet that is not theirs -- a party member's, which is all
+  // there is of them, so the gate falls back to the level on the sheet.
   AllStatsPanel(const CharacterInstance& character,
                 const AccountInstance* account,
                 const std::map<std::string, Skill>& skills);
@@ -57,9 +57,12 @@ class AllStatsPanel {
   // screen to the caller.
   bool OnEvent(const ftxui::Event& event);
 
- private:
   // Whether the Farm/Boss row is drawn at all -- Hyper Stats' own level.
+  // Public because it is a row and a rule, which a screen sizing itself
+  // around this one has to count.
   bool ShowsPresetBar() const;
+
+ private:
   // The heading and the stat columns, with no window around them.
   ftxui::Element RenderBody() const;
   // `lines` laid out two to a row, in the order they arrive. An odd row's

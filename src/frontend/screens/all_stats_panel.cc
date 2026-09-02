@@ -43,8 +43,13 @@ AllStatsPanel::AllStatsPanel(const CharacterInstance& character,
 }
 
 bool AllStatsPanel::ShowsPresetBar() const {
-  return account_ != nullptr &&
-         Unlocked(Feature::kHyperStats, character_, *account_);
+  // The player's own screen asks the account, which knows about characters
+  // besides this one. A party member's sheet is the whole of what we have of
+  // them, so their own level answers for it.
+  if (account_ == nullptr) {
+    return character_.proto().level() >= kHyperStatUnlockLevel;
+  }
+  return Unlocked(Feature::kHyperStats, character_, *account_);
 }
 
 bool AllStatsPanel::OnEvent(const ftxui::Event& event) {

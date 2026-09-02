@@ -13,6 +13,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "server/test_server.h"
+#include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
 #include "src/combat/boss_run.h"
 #include "src/frontend/keybinds.h"
@@ -404,7 +405,11 @@ TEST_F(PartyControllerTest, AMemberInspectsAnother) {
   MakeParty(*leader, *guest);
 
   // The leader picks up a weapon, which reaches the guest with the party
-  // state rather than being asked for.
+  // state rather than being asked for. Levelled into Hyper Stats first, so
+  // the sheet carries the two allocations the screen reads between.
+  while (leader->state->character.proto().level() < kHyperStatUnlockLevel) {
+    leader->state->character.LevelUp();
+  }
   leader->state->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
   leader->state->character.Equip(0);
   ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
@@ -428,6 +433,14 @@ TEST_F(PartyControllerTest, AMemberInspectsAnother) {
   EXPECT_EQ(guest->party_inspect_panel->character().username(), "Dagger");
   EXPECT_EQ(guest->party_inspect_panel->character().proto().level(),
             leader->state->character.proto().level());
+
+  // Left/Right read between the member's two Hyper Stat allocations; the
+  // screen keeps every other key.
+  EXPECT_EQ(guest->party_inspect_panel->preset(), StatPreset::kFarming);
+  guest->controller->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(guest->party_inspect_panel->preset(), StatPreset::kBossing);
+  guest->controller->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_EQ(guest->party_inspect_panel->preset(), StatPreset::kFarming);
 
   // Enter on a worn item opens its card, off the panel's cursor rather than a
   // pointer held across a tick that may rebuild the member.

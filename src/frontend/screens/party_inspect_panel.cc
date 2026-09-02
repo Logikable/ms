@@ -8,7 +8,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "google/protobuf/util/message_differencer.h"
 #include "src/character/progression.h"
-#include "src/frontend/screens/all_stats_panel.h"
+#include "src/character/stat_preset.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/equipped_list.h"
 #include "src/frontend/widgets/keys.h"
@@ -22,7 +22,11 @@ constexpr char kCursorAway[] = "  ";
 }  // namespace
 
 PartyInspectPanel::PartyInspectPanel(GameState& state)
-    : state_(state), character_(state.rng, Character()) {
+    : state_(state),
+      character_(state.rng, Character()),
+      // No account: this is somebody else's sheet, so the Farm/Boss row is
+      // gated on the level written on it.
+      stats_(character_, /*account=*/nullptr, state.skills) {
 }
 
 void PartyInspectPanel::SetPlayer(const PlayerInfo& player) {
@@ -44,6 +48,7 @@ void PartyInspectPanel::SetPlayer(const PlayerInfo& player) {
 
 void PartyInspectPanel::Reset() {
   cursor_ = 0;
+  stats_.SetPreset(StatPreset::kFarming);
 }
 
 int PartyInspectPanel::ItemCount() const {
@@ -52,6 +57,10 @@ int PartyInspectPanel::ItemCount() const {
 
 void PartyInspectPanel::MoveCursor(int delta) {
   cursor_ = StepCursor(cursor_, delta, ItemCount());
+}
+
+bool PartyInspectPanel::OnEvent(const ftxui::Event& event) {
+  return stats_.OnEvent(event);
 }
 
 const EquipInstance* PartyInspectPanel::selected_item() const {
@@ -79,8 +88,12 @@ ItemColumns PartyInspectPanel::Columns() const {
   return FitItemColumns(kContentWidth, options);
 }
 
+int PartyInspectPanel::FixedRows() const {
+  return kFixedRows + (stats_.ShowsPresetBar() ? 2 : 0);
+}
+
 int PartyInspectPanel::VisibleRows(int items) const {
-  int room = max_rows_ > 0 ? max_rows_ - kFixedRows : kListRows;
+  int room = max_rows_ > 0 ? max_rows_ - FixedRows() : kListRows;
   return std::clamp(items, 1,
                     std::max(kLeastListRows, std::min(room, kListRows)));
 }
@@ -120,10 +133,8 @@ ftxui::Element PartyInspectPanel::Render() const {
   // The sheet is drawn by the screen the member reads their own stats on, so
   // the two cannot disagree about what a number is or what it is called --
   // window and all, at the width it keeps everywhere else.
-  // No account: this is somebody else's sheet, so it carries no Farm/Boss row.
-  AllStatsPanel stats(character_, /*account=*/nullptr, state_.skills);
   ftxui::Element sheet =
-      stats.Render() |
+      stats_.Render() |
       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, AllStatsPanel::kTotalWidth);
   ftxui::Element worn =
       RenderEquipped() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth);

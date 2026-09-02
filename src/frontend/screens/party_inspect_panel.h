@@ -6,6 +6,9 @@
  * places. The bottom is what they are wearing, with a cursor the player walks;
  * Enter on a row opens the item's card on a screen of its own.
  *
+ * A member with Hyper Stats carries the same Farm/Boss row their own screen
+ * does, and Left/Right read between their two allocations.
+ *
  * The panel rebuilds the member's character from their sheet against this
  * build's own catalogs -- a sheet names its items rather than describing them.
  * It is a view: the controller reads the cursor and decides what to open.
@@ -15,8 +18,10 @@
 
 #include <string>
 
+#include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
+#include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/game_state.h"
@@ -37,7 +42,8 @@ class PartyInspectPanel {
   // The rows everything but the item list takes: both windows' borders, the
   // three heading rows, the two rules between the stat blocks, the three
   // rows of main stats, the nine of extras, and the Equipped column header
-  // with its rule.
+  // with its rule. A member with Hyper Stats adds their Farm/Boss row and its
+  // rule on top -- see FixedRows.
   static constexpr int kFixedRows = 23;
   // The shortest the item list is ever squeezed to. Past this the screen is
   // clipped instead: a list of one row says less than the terminal is small.
@@ -57,6 +63,10 @@ class PartyInspectPanel {
   void Reset();
   // Moves the cursor `delta` items, coming out the other end.
   void MoveCursor(int delta);
+  // Left/Right on the member's Farm/Boss row, so their two Hyper Stat
+  // allocations can be read the way they read them themselves. Returns
+  // whether the event was taken; the caller keeps everything else.
+  bool OnEvent(const ftxui::Event& event);
   // The rows the screen may take. The item list gives way to what is left
   // after the two stat blocks, which are the point of the screen. Zero means
   // no limit.
@@ -71,6 +81,10 @@ class PartyInspectPanel {
   }
   // The item the cursor is on, or null with nothing worn.
   const EquipInstance* selected_item() const;
+  // Which of the member's two Hyper Stat allocations is being read.
+  StatPreset preset() const {
+    return stats_.preset();
+  }
 
  private:
   ftxui::Element RenderEquipped() const;
@@ -82,11 +96,18 @@ class PartyInspectPanel {
   int VisibleRows(int items) const;
   // How many items are worn, which is how many stops the cursor has.
   int ItemCount() const;
+  // kFixedRows, plus the Farm/Boss row and its rule when the member is high
+  // enough to have one.
+  int FixedRows() const;
 
   GameState& state_;
   // The member, rebuilt from their sheet. Held rather than rebuilt per frame:
   // a sheet arrives when something about them changes, not every tick.
   CharacterInstance character_;
+  // The member's sheet, drawn by the screen they read their own stats on.
+  // Held rather than built per frame so the Farm/Boss row it carries keeps
+  // the tab the reader put it on.
+  AllStatsPanel stats_;
   // The member as the lobby last described them, so a tick that changed
   // nothing does not rebuild them.
   PlayerInfo shown_;
