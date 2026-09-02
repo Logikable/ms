@@ -18,17 +18,31 @@
 namespace ms {
 namespace {
 
+// The opening of a sample, as a share of it, that is thrown away before the
+// pool is read at all. A character logs off full and slides into whatever band
+// the map holds them in, and a reading taken across that slide describes the
+// slide rather than the map -- so the first half of a sample always looks
+// healthier than the second, and every map reads as draining.
+constexpr double kOfflineWarmupFraction = 0.25;
+
+// Close enough to a full pool to count as one. A character whose pool comes
+// back to the top after the warm-up is not draining, whatever the dips between
+// do -- so this is asked before any trend is fitted.
+constexpr double kOfflineFullPool = 0.999;
+
 // What one stepped sample of the fight came to.
 struct Sample {
   double seconds = 0.0;  // how much was actually stepped
   std::vector<int64_t> kills;
   bool died = false;
-  // The lowest the pool fell in each half of the sample, as a fraction. The
-  // trough rather than the last reading, because HP swings within every beat:
-  // it drops to the mob's hits and comes back on the respawn. Two troughs a
-  // half-sample apart are what say whether the character is holding.
+  // The lowest the pool fell in each half of the stretch past the warm-up, as
+  // a fraction. The trough rather than the last reading, because HP swings
+  // within every beat: it drops to the mob's hits and comes back on the
+  // respawn.
   double first_trough = 1.0;
   double second_trough = 1.0;
+  // Whether the pool came back to full after the warm-up.
+  bool refilled = false;
 };
 
 // Steps a cold fight through `seconds` on `params`, stopping early if the
@@ -37,7 +51,8 @@ Sample StepSample(const CombatParams& params, double seconds) {
   Sample sample;
   sample.kills.assign(params.types.size(), 0);
   CombatSim sim;
-  double half = seconds / 2.0;
+  double warmup = seconds * kOfflineWarmupFraction;
+  double half = warmup + (seconds - warmup) / 2.0;
   for (double elapsed = 0.0; elapsed < seconds;
        elapsed += kOfflineStepSeconds) {
     sim.Advance(params, kOfflineStepSeconds);
@@ -45,9 +60,13 @@ Sample StepSample(const CombatParams& params, double seconds) {
       sample.kills[i] += sim.kills_this_step()[i];
     }
     sample.seconds = elapsed + kOfflineStepSeconds;
-    double& trough =
-        elapsed < half ? sample.first_trough : sample.second_trough;
-    trough = std::min(trough, sim.player_hp_fraction());
+    if (elapsed >= warmup) {
+      double& trough =
+          elapsed < half ? sample.first_trough : sample.second_trough;
+      trough = std::min(trough, sim.player_hp_fraction());
+      sample.refilled =
+          sample.refilled || sim.player_hp_fraction() >= kOfflineFullPool;
+    }
     if (sim.died_this_step()) {
       sample.died = true;
       return sample;
@@ -57,17 +76,21 @@ Sample StepSample(const CombatParams& params, double seconds) {
 }
 
 // Seconds the character has left before the pool runs out, projected from how
-// far the trough fell between the two halves of `sample`. Infinite for a
-// character whose pool held or recovered, which is every map they can farm
-// indefinitely.
+// far the trough fell between the two halves of the sample past its warm-up.
+// Infinite for a character whose pool held or recovered, which is every map
+// they can farm indefinitely.
 double SecondsUntilDry(const Sample& sample) {
-  double drop = sample.first_trough - sample.second_trough;
-  if (drop <= 0.0 || sample.seconds <= 0.0) {
+  if (sample.refilled) {
     return std::numeric_limits<double>::infinity();
   }
-  // The troughs are half a sample apart, so that is the stretch the drop was
-  // taken over. What is left of the pool is the second trough.
-  double per_second = drop / (sample.seconds / 2.0);
+  double measured = sample.seconds * (1.0 - kOfflineWarmupFraction);
+  double drop = sample.first_trough - sample.second_trough;
+  if (drop <= 0.0 || measured <= 0.0) {
+    return std::numeric_limits<double>::infinity();
+  }
+  // The troughs are half the measured stretch apart, so that is what the drop
+  // was taken over. What is left of the pool is the second trough.
+  double per_second = drop / (measured / 2.0);
   return sample.second_trough / per_second;
 }
 

@@ -38,6 +38,35 @@ std::unique_ptr<GameState> SnailFarmer() {
   return state;
 }
 
+// A character on a field of boars that hit for `attack`. The lever that
+// decides whether the map is one they hold forever or one that bleeds them:
+// at 40 their pool swings and comes back to full, at 46 it never does.
+std::unique_ptr<GameState> BoarFarmer(int attack) {
+  Mob boar;
+  boar.set_name("Boar");
+  boar.set_level(10);
+  boar.set_max_hp(2000);
+  boar.set_exp(3);
+  boar.set_attack(attack);
+  MapData field;
+  field.set_name("Boar Field");
+  Spawn* spawn = field.add_spawns();
+  spawn->set_mob("boar");
+  spawn->set_count(6);
+
+  std::unique_ptr<GameState> state = std::make_unique<GameState>(
+      std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
+      std::map<std::string, ItemPrototype>{},
+      std::map<std::string, Mob>{{"boar", boar}},
+      std::map<std::string, MapData>{{"field", field}, {kHomeMap, HomeMap()}});
+  state->current_map = "field";
+  EquipSword(*state);
+  while (state->character.proto().level() < 20) {
+    state->character.LevelUp();
+  }
+  return state;
+}
+
 // --- the absence itself ---
 
 TEST(AbsenceSecondsTest, MeasuresTheGapAndRefusesTheRest) {
@@ -154,40 +183,35 @@ TEST(OfflineTest, DyingCutsTheAbsenceShortAndSendsThePlayerHome) {
 
 // The map nobody can hold forever: a character wins every fight on it but
 // loses a little more of their pool between beats than comes back. No sample
-// can watch that to the end, so the trough it fell to over the sample projects
-// the moment it runs out -- and the absence is paid only up to there.
+// can watch that to the end, so the trend it fell along projects the moment it
+// runs out -- and the absence is paid only up to there. This boar has the
+// character dry at 2241s, well past the sample.
 TEST(OfflineTest, ASlowBleedIsProjectedForwardToTheFall) {
-  Mob boar;
-  boar.set_name("Boar");
-  boar.set_level(10);
-  boar.set_max_hp(2000);
-  boar.set_exp(3);
-  boar.set_attack(40);
-  MapData field;
-  field.set_name("Boar Field");
-  Spawn* spawn = field.add_spawns();
-  spawn->set_mob("boar");
-  spawn->set_count(6);
+  std::unique_ptr<GameState> state = BoarFarmer(46);
 
-  GameState state(
-      std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
-      std::map<std::string, ItemPrototype>{},
-      std::map<std::string, Mob>{{"boar", boar}},
-      std::map<std::string, MapData>{{"field", field}, {kHomeMap, HomeMap()}});
-  state.current_map = "field";
-  EquipSword(state);
-  while (state.character.proto().level() < 20) {
-    state.character.LevelUp();
-  }
-
-  OfflineReport report = ApplyOfflineProgress(state, 36000.0);
+  OfflineReport report = ApplyOfflineProgress(*state, 36000.0);
 
   EXPECT_TRUE(report.died);
   EXPECT_GT(report.seconds, kOfflineSampleSeconds)
       << "the sample itself was survived; the fall is the projection's";
   EXPECT_LT(report.seconds, 36000.0);
-  EXPECT_EQ(state.current_map, kHomeMap);
+  EXPECT_EQ(state->current_map, kHomeMap);
   EXPECT_GT(report.kills, 0) << "what was farmed before the fall stands";
+}
+
+// A pool that swings and comes back to full is not draining, however the dips
+// happen to land within the sample. Read off the troughs alone this map used
+// to condemn the character after an hour, because a sample opens at full HP
+// and slides into its band -- which makes any first half look healthier than
+// any second.
+TEST(OfflineTest, APoolThatRefillsIsNeverProjectedToDie) {
+  std::unique_ptr<GameState> state = BoarFarmer(40);
+
+  OfflineReport report = ApplyOfflineProgress(*state, 36000.0);
+
+  EXPECT_FALSE(report.died);
+  EXPECT_DOUBLE_EQ(report.seconds, 36000.0);
+  EXPECT_EQ(state->current_map, "field");
 }
 
 TEST(OfflineTest, ASurvivableMapDoesNotSendThePlayerHome) {
