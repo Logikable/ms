@@ -17,6 +17,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
+#include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -73,6 +74,9 @@ class PartyInspectPanel {
 
  private:
   ftxui::Element RenderEquipped() const;
+  // The columns the member's gear is listed in, gated on the reader's own
+  // unlocks.
+  ItemColumns Columns() const;
   // How many item rows to draw at once, for the terminal and the list there
   // are to fit.
   int VisibleRows(int items) const;

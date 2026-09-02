@@ -92,7 +92,7 @@ class MultiSellTest : public PanelTest {
 TEST_F(MultiSellTest, OpensWithTheChosenRowMarked) {
   GiveEquip("Sword", 1000);
   GiveEquip("Axe", 2000);
-  MultiSellPanel panel(c_);
+  MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 1);
   EXPECT_EQ(panel.basket().equips, std::set<int>({1}));
   EXPECT_EQ(panel.Total(), 2000);
@@ -104,7 +104,7 @@ TEST_F(MultiSellTest, OpensWithTheChosenRowMarked) {
 TEST_F(MultiSellTest, EnterTogglesTheMarkAndTheTotalFollows) {
   GiveEquip("Sword", 1000);
   GiveEquip("Axe", 2000);
-  MultiSellPanel panel(c_);
+  MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   Press(panel, ftxui::Event::ArrowDown);
   Press(panel, ftxui::Event::Return);
@@ -117,7 +117,7 @@ TEST_F(MultiSellTest, TheBasketRunsAcrossTabs) {
   GiveEquip("Sword", 1000);
   GiveStack("Red Potion", ITEM_CATEGORY_USE, 50, 4);
   GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 7, 3);
-  MultiSellPanel panel(c_);
+  MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   // Up to the tab bar, right to Use, down onto the stack, mark it.
   Press(panel, ftxui::Event::ArrowUp);
@@ -135,7 +135,7 @@ TEST_F(MultiSellTest, TheBasketRunsAcrossTabs) {
 TEST_F(MultiSellTest, TheWindowStandsAtTheSameHeightOnEveryTab) {
   GiveEquip("Sword", 1000);
   GiveStack("Red Potion", ITEM_CATEGORY_USE, 50, 4);
-  MultiSellPanel panel(c_);
+  MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   int top = TopRow(panel);
   EXPECT_GE(top, 0);
@@ -151,7 +151,7 @@ TEST_F(MultiSellTest, TheWindowStandsAtTheSameHeightOnEveryTab) {
 // player empties the tab.
 TEST_F(MultiSellTest, ACurrencyStackIsMarkableAndPaysNothing) {
   GiveStack("Spell Trace", ITEM_CATEGORY_ETC, 0, 60);
-  MultiSellPanel panel(c_);
+  MultiSellPanel panel(c_, account_);
   panel.Reset(kEtcTab, 0);
   EXPECT_EQ(panel.basket().etc, std::set<int>({0}));
   EXPECT_EQ(panel.Total(), 0);
@@ -163,7 +163,7 @@ TEST_F(MultiSellTest, ATraceIsMarkableAndPaysNothing) {
   state.set_equip_name(sword_.name());
   state.set_trace(true);
   c_.PickUp(std::make_unique<EquipTrace>(sword_, state));
-  MultiSellPanel panel(c_);
+  MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 1);
   EXPECT_EQ(panel.basket().equips, std::set<int>({1}));
   EXPECT_EQ(panel.Total(), 0);
@@ -172,7 +172,7 @@ TEST_F(MultiSellTest, ATraceIsMarkableAndPaysNothing) {
 TEST_F(MultiSellTest, TheCursorRingRunsBarToRowsToButtons) {
   GiveEquip("Sword", 1000);
   GiveStack("Red Potion", ITEM_CATEGORY_USE, 50, 4);
-  MultiSellPanel panel(c_);
+  MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   // Right does nothing while a row holds the cursor: the tabs are the bar's.
   Press(panel, ftxui::Event::ArrowRight);
@@ -191,7 +191,7 @@ TEST_F(MultiSellTest, TheCursorRingRunsBarToRowsToButtons) {
 
 TEST_F(MultiSellTest, ConfirmDoesNothingWithAnEmptyBasket) {
   GiveEquip("Sword", 1000);
-  MultiSellPanel panel(c_);
+  MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   Press(panel, ftxui::Event::Return);  // unmark the only row
   Press(panel, ftxui::Event::ArrowDown);
@@ -201,7 +201,7 @@ TEST_F(MultiSellTest, ConfirmDoesNothingWithAnEmptyBasket) {
 
 TEST_F(MultiSellTest, TheDialogOpensOnConfirm) {
   GiveEquip("Sword", 1000);
-  MultiSellPanel panel(c_);
+  MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   Press(panel, ftxui::Event::ArrowDown);
   Press(panel, ftxui::Event::Return);
@@ -216,7 +216,7 @@ TEST_F(MultiSellTest, TheDialogOpensOnConfirm) {
 
 TEST_F(MultiSellTest, EscapeLeavesTheScreen) {
   GiveEquip("Sword", 1000);
-  MultiSellPanel panel(c_);
+  MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   EXPECT_EQ(Press(panel, ftxui::Event::Escape), ConfirmChoice::kCancelled);
 }
@@ -224,7 +224,7 @@ TEST_F(MultiSellTest, EscapeLeavesTheScreen) {
 TEST_F(MultiSellTest, TheHeaderCarriesTheMesoAndTheRunningTotal) {
   c_.AddMeso(12345);
   GiveEquip("Sword", 1000);
-  MultiSellPanel panel(c_);
+  MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   EXPECT_TRUE(ScreenHas(panel, "12,345"));
   EXPECT_TRUE(ScreenHas(panel, "+1,000"));
@@ -233,7 +233,7 @@ TEST_F(MultiSellTest, TheHeaderCarriesTheMesoAndTheRunningTotal) {
 TEST_F(MultiSellTest, EveryRowShowsWhatItWouldPay) {
   GiveStack("Red Potion", ITEM_CATEGORY_USE, 50, 4);
   GiveStack("Spell Trace", ITEM_CATEGORY_ETC, 0, 60);
-  MultiSellPanel panel(c_);
+  MultiSellPanel panel(c_, account_);
   panel.Reset(kUseTab, 0);
   // The whole stack, on the row it belongs to.
   EXPECT_NE(RowFor(panel, "Red Potion").find("200"), std::string::npos);

@@ -18,6 +18,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/account.h"
 #include "src/character/character.h"
 #include "src/frontend/widgets/confirm_prompt.h"
 #include "src/frontend/widgets/inventory_list.h"
@@ -58,7 +59,8 @@ int64_t SellBasket(CharacterInstance& character, const SaleBasket& basket);
 
 class MultiSellPanel {
  public:
-  explicit MultiSellPanel(const CharacterInstance& character);
+  MultiSellPanel(const CharacterInstance& character,
+                 const AccountInstance& account);
 
   // Opens the screen on `tab` with `row` marked: the item the player chose
   // Multi-Sell on is the one thing in the basket to begin with.
@@ -107,6 +109,10 @@ class MultiSellPanel {
   ftxui::Element PriceCell(int row) const;
 
   const CharacterInstance& character_;
+  // Which upgrade columns the list draws is the account's answer, not the
+  // item's: a mechanic the player has not met is not shown a column here
+  // any more than it is in the bag.
+  const AccountInstance& account_;
   SaleBasket basket_;
   Zone zone_ = kZoneList;
   int active_tab_ = kEquipTab;

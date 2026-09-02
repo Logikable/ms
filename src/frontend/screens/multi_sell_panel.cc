@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/character/progression.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
@@ -118,8 +119,9 @@ int64_t SellBasket(CharacterInstance& character, const SaleBasket& basket) {
   return earned;
 }
 
-MultiSellPanel::MultiSellPanel(const CharacterInstance& character)
-    : character_(character) {
+MultiSellPanel::MultiSellPanel(const CharacterInstance& character,
+                               const AccountInstance& account)
+    : character_(character), account_(account) {
 }
 
 void MultiSellPanel::Reset(int tab, int row) {
@@ -274,7 +276,13 @@ ftxui::Element MultiSellPanel::RenderHeader() const {
 }
 
 ftxui::Element MultiSellPanel::RenderEquipTab() {
-  rows_ = BuildEquipRows(character_, selected_, name_clock_.Elapsed());
+  ItemListOptions options;
+  options.bag = true;
+  options.scrolling = Unlocked(Feature::kScrolling, character_, account_);
+  options.star_force = Unlocked(Feature::kStarForce, character_, account_);
+  options.potential = Unlocked(Feature::kPotential, character_, account_);
+  ItemColumns columns = FitItemColumns(kEquipRowWidth, options);
+  rows_ = BuildEquipRows(character_, selected_, name_clock_.Elapsed(), columns);
   std::vector<ftxui::Element> list;
   for (int i = 0; i < static_cast<int>(rows_.size()); ++i) {
     bool on_cursor = zone_ == kZoneList && i == selected_;
@@ -286,8 +294,8 @@ ftxui::Element MultiSellPanel::RenderEquipTab() {
     list.push_back(std::move(row));
   }
   return ftxui::vbox({
-      EquipHeader(ftxui::text(PadRight(" Sell", kMarkWidth)), TailCell("Price"),
-                  kEquipRowWidth),
+      EquipHeader(columns, ftxui::text(PadRight(" Sell", kMarkWidth)),
+                  TailCell("Price"), kEquipRowWidth),
       ThemedSeparator(),
       ftxui::vbox(std::move(list)) | ftxui::vscroll_indicator | ftxui::yframe |
           ftxui::flex,

@@ -222,7 +222,8 @@ class TuiControllerTest : public testing::Test {
         std::make_unique<TraceRecoverPanel>(state_->character);
     sell_panel_ = std::make_unique<SellPanel>();
     sell_equip_panel_ = std::make_unique<SellEquipPanel>();
-    multi_sell_panel_ = std::make_unique<MultiSellPanel>(state_->character);
+    multi_sell_panel_ =
+        std::make_unique<MultiSellPanel>(state_->character, state_->account);
     map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
     mob_inspect_panel_ = std::make_unique<MobInspectPanel>(*state_);
     boss_select_panel_ = std::make_unique<BossSelectPanel>(*state_);
@@ -2621,7 +2622,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
   SellEquipPanel sell_equip;
-  MultiSellPanel multi_sell(fresh.character);
+  MultiSellPanel multi_sell(fresh.character, fresh.account);
   MapSelectPanel maps(fresh);
   MobInspectPanel mobs(fresh);
   BossSelectPanel bosses(fresh);
@@ -2684,7 +2685,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
   SellEquipPanel sell_equip;
-  MultiSellPanel multi_sell(fresh.character);
+  MultiSellPanel multi_sell(fresh.character, fresh.account);
   MapSelectPanel maps(fresh);
   MobInspectPanel mobs(fresh);
   BossSelectPanel bosses(fresh);
@@ -2730,7 +2731,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
   SellEquipPanel sell_equip;
-  MultiSellPanel multi_sell(fresh.character);
+  MultiSellPanel multi_sell(fresh.character, fresh.account);
   MapSelectPanel maps(fresh);
   MobInspectPanel mobs(fresh);
   BossSelectPanel bosses(fresh);
@@ -2776,7 +2777,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
   SellEquipPanel sell_equip;
-  MultiSellPanel multi_sell(fresh.character);
+  MultiSellPanel multi_sell(fresh.character, fresh.account);
   MapSelectPanel maps(fresh);
   MobInspectPanel mobs(fresh);
   BossSelectPanel bosses(fresh);

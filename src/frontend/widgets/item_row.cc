@@ -1,67 +1,99 @@
 #include "src/frontend/widgets/item_row.h"
 
-#include <algorithm>
 #include <chrono>
 #include <string>
 
+#include "src/character/character.h"
 #include "src/frontend/widgets/format.h"
+#include "src/frontend/widgets/game_names.h"
+#include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
 namespace ms {
-namespace {
 
-// The columns after the name, in the order a row writes them.
-constexpr int kSlotWidth = 10;
-constexpr int kInfoWidth = 20;
-constexpr int kScrollWidth = 6;
-
-}  // namespace
-
-int ItemNameWidthFor(int width) {
-  return std::clamp(width - kItemListGutter - kItemListFixedWidth,
-                    kItemNameWidth, kItemNameMax);
+const std::string& ItemCells::Get(ItemColumn column) const {
+  static_assert(kNumItemColumns == 8, "a new column needs a cell");
+  const std::string* const cells[kNumItemColumns] = {
+      &name, &slot, &level, &job, &stats, &scroll, &stars, &potential};
+  return *cells[static_cast<int>(column)];
 }
 
-std::string ItemNameCell(const std::string& name,
-                         std::chrono::steady_clock::duration elapsed,
-                         int name_width) {
-  return ScrollingWindow(name, name_width, elapsed);
+// The stat column of one row: the attack this job swings with, then the stat
+// its damage is built on.
+std::string ItemStatsCell(Job job, const EquipStats& stats) {
+  // One column for the stat this job's damage is built on -- the same question
+  // the character panel and the AP reset ask, so asked in the same place
+  // rather than switched over jobs here.
+  StatField primary = PrimaryStatField(job);
+  const DisplayStat* main = DisplayStatFor(primary);
+  std::string main_str;
+  if (main != nullptr && main->GetFrom(stats) > 0) {
+    main_str = "+" + std::to_string(main->GetFrom(stats)) + " " + main->label;
+  }
+  // Room for one attack figure, so show the one this job swings with. A wand
+  // carries both, and a magician's weapon attack never reaches the damage
+  // chain.
+  //
+  // Asked of the stat this job builds on rather than listed job by job: every
+  // INT job is a magician, so a new magician branch reads right the day it is
+  // added instead of the day someone remembers this list.
+  std::string atk_str;
+  bool magic = primary == STAT_FIELD_INT;
+  if (!magic && stats.attack() > 0) {
+    atk_str = "+" + std::to_string(stats.attack()) + " ATT";
+  } else if (stats.magic_attack() > 0) {
+    atk_str = "+" + std::to_string(stats.magic_attack()) + " MATT";
+  } else if (stats.attack() > 0) {
+    atk_str = "+" + std::to_string(stats.attack()) + " ATT";
+  }
+  // Attack leads: it is the number that decides a weapon, and the main stat
+  // qualifies it.
+  return PadRight(atk_str, 10) + PadRight(main_str, 10);
 }
 
-std::string FormatItemEntry(const std::string& name,
-                            const std::string& slot_label,
-                            const std::string& info, int scroll_pass,
-                            int scroll_slots, int stars,
-                            std::chrono::steady_clock::duration elapsed,
-                            int name_width) {
+ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state) {
+  ItemCells cells;
   // The slot count rides along so a row says how far the item can still go,
   // not only how far it has come.
-  std::string scrolls = scroll_pass < 0
-                            ? "-"
-                            : "+" + std::to_string(scroll_pass) + "/" +
-                                  std::to_string(scroll_slots);
-  std::string star_force = stars < 0 ? "-" : std::to_string(stars) + "\u2605";
-  return ItemNameCell(name, elapsed, name_width) + "  " +
-         PadRight(slot_label, kSlotWidth) + "  " + PadRight(info, kInfoWidth) +
-         "  " + PadRight(scrolls, kScrollWidth) + "  " + star_force;
+  int slots = TotalUpgradeSlots(proto, state);
+  cells.scroll = slots > 0 ? "+" + std::to_string(state.scroll_successes()) +
+                                 "/" + std::to_string(slots)
+                           : "-";
+  cells.stars = Supports(proto, UPGRADE_STAR_FORCE)
+                    ? std::to_string(state.stars()) + "★"
+                    : "-";
+  const Potential& potential = state.main_potential();
+  // The first line alone: it is the one that carries the potential's own
+  // rank, and so the one that says what the item rolled.
+  cells.potential =
+      potential.lines().empty()
+          ? "-"
+          : PotentialLineCell(potential.lines(0), proto.required_level());
+  return cells;
 }
 
-std::string FormatItemEntry(const std::string& name,
-                            const std::string& slot_label,
-                            const std::string& info,
-                            const EquipPrototype& proto, const Equip& state,
-                            std::chrono::steady_clock::duration elapsed,
-                            int name_width) {
-  // An upgrade the item refuses outright reads "-": a zero there would look
-  // like a ledger standing ready to be spent.
-  int slots = TotalUpgradeSlots(proto, state);
-  int pass = slots > 0 ? state.scroll_successes() : -1;
-  int stars = Supports(proto, UPGRADE_STAR_FORCE) ? state.stars() : -1;
-  return FormatItemEntry(name, slot_label, info, pass, slots, stars, elapsed,
-                         name_width);
+ItemRowText FormatItemRow(const ItemColumns& columns, const ItemCells& cells,
+                          std::chrono::steady_clock::duration elapsed) {
+  ItemRowText row;
+  for (int i = 0; i < kNumItemColumns; ++i) {
+    ItemColumn column = static_cast<ItemColumn>(i);
+    if (!columns.Shows(column)) {
+      continue;
+    }
+    int start = static_cast<int>(row.text.size());
+    // The name follows the cursor, which is the gap in front of it.
+    if (column != ItemColumn::kName) {
+      row.text.append(kItemCellGap, ' ');
+    }
+    row.text += column == ItemColumn::kName
+                    ? ScrollingWindow(cells.name, columns.name_width, elapsed)
+                    : PadRight(cells.Get(column), columns.Width(column));
+    row.span[i] = {start, static_cast<int>(row.text.size()) - start};
+  }
+  return row;
 }
 
 }  // namespace ms

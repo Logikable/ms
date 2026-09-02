@@ -418,7 +418,9 @@ cc_library(
     srcs = ["multi_sell_panel.cc"],
     hdrs = ["multi_sell_panel.h"],
     deps = [
+        "//src:account",
         "//src/character",
+        "//src/character:progression",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:confirm_prompt",
@@ -784,6 +786,7 @@ cc_library(
         ":all_stats_panel",
         "//src:game_state",
         "//src/character",
+        "//src/character:progression",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:equipped_list",
         "//src/frontend/widgets:keys",

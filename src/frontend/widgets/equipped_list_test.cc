@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "src/frontend/panel_widths.h"
+#include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/item_row.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/frontend/widgets/text_columns.h"
@@ -21,10 +22,16 @@ namespace {
 
 class EquippedListTest : public PanelTest {
  protected:
-  // The rows for a character of `job` wearing `item`, in a name column
-  // `name_width` wide.
+  // The equipped list's columns at `width`, with every mechanic open.
+  ItemColumns Columns(int width = kRightColumnMin - 2) {
+    return FitItemColumns(width, {/*bag=*/false, /*scrolling=*/true,
+                                  /*star_force=*/true, /*potential=*/true});
+  }
+
+  // The rows for a character of `job` wearing `item`, in a panel `width`
+  // columns wide.
   std::vector<EquippedRow> RowsWearing(Job job, const EquipPrototype& item,
-                                       int name_width = kItemNameWidth) {
+                                       int width = kRightColumnMin - 2) {
     Character proto;
     proto.set_level(60);
     proto.set_job(job);
@@ -34,7 +41,7 @@ class EquippedListTest : public PanelTest {
     c.Equip(0);
     return EquippedRows(c, /*selected=*/-1,
                         std::chrono::steady_clock::duration::zero(),
-                        name_width);
+                        Columns(width));
   }
 
   EquipPrototype Weapon(EquipType type) {
@@ -56,10 +63,15 @@ TEST_F(EquippedListTest, ShowsTheAttackTheJobSwingsWith) {
   staff.mutable_base_stats()->set_magic_attack(75);
   staff.mutable_base_stats()->set_int_(30);
 
-  std::vector<EquippedRow> mage = RowsWearing(JOB_ICE_LIGHTNING_WIZARD, staff);
+  // Wide enough for the stats column, which a narrow panel is the first to
+  // drop.
+  std::vector<EquippedRow> mage =
+      RowsWearing(JOB_ICE_LIGHTNING_WIZARD, staff, /*width=*/120);
   ASSERT_EQ(mage.size(), 1u);
-  EXPECT_NE(mage[0].text.find("+75 MATT"), std::string::npos) << mage[0].text;
-  EXPECT_NE(mage[0].text.find("+30 INT"), std::string::npos) << mage[0].text;
+  EXPECT_NE(mage[0].text.text.find("+75 MATT"), std::string::npos)
+      << mage[0].text.text;
+  EXPECT_NE(mage[0].text.text.find("+30 INT"), std::string::npos)
+      << mage[0].text.text;
   EXPECT_EQ(mage[0].slot, EQUIP_SLOT_PRIMARY_WEAPON);
   EXPECT_FALSE(mage[0].inactive);
 }
@@ -77,7 +89,7 @@ TEST_F(EquippedListTest, MarksAmmunitionWithNothingToDrawIt) {
   std::vector<EquippedRow> rows = RowsWearing(JOB_HUNTER, arrows);
   ASSERT_EQ(rows.size(), 1u);
   EXPECT_TRUE(rows[0].inactive);
-  EXPECT_NE(rows[0].text.find("Bronze Arrow"), std::string::npos);
+  EXPECT_NE(rows[0].text.text.find("Bronze Arrow"), std::string::npos);
 }
 
 // The name cell is what a caller splits the row on to colour the name apart
@@ -85,22 +97,25 @@ TEST_F(EquippedListTest, MarksAmmunitionWithNothingToDrawIt) {
 // the split still has to land where the columns begin.
 TEST_F(EquippedListTest, ReportsWhereTheNameCellEnds) {
   EquipPrototype sword = Weapon(EQUIP_TYPE_ONE_HANDED_SWORD);
-  sword.set_name("Frozen Blade of the Frigid North");
+  sword.set_name("Frozen Blade of the Frigid North Wind");
   sword.mutable_base_stats()->set_attack(50);
 
   std::vector<EquippedRow> rows = RowsWearing(JOB_FIGHTER, sword);
   ASSERT_EQ(rows.size(), 1u);
-  EXPECT_EQ(rows[0].text.substr(0, rows[0].name_bytes),
-            "Frozen Blade of the Frigid");
+  CellSpan name = rows[0].text.Span(ItemColumn::kName);
+  EXPECT_EQ(name.offset, 0);
+  EXPECT_EQ(rows[0].text.text.substr(0, name.bytes),
+            "Frozen Blade of the Frigid North Wind ");
   // What follows the cell is the columns, starting with the slot.
-  EXPECT_NE(rows[0].text.substr(rows[0].name_bytes).find("Weapon"),
+  EXPECT_NE(rows[0].text.text.substr(name.bytes).find("Weapon"),
             std::string::npos);
 }
 
 TEST_F(EquippedListTest, IsEmptyWithNothingWorn) {
   CharacterInstance c = MakeCharacter();
-  EXPECT_TRUE(
-      EquippedRows(c, -1, std::chrono::steady_clock::duration::zero()).empty());
+  EXPECT_TRUE(EquippedRows(c, -1, std::chrono::steady_clock::duration::zero(),
+                           Columns())
+                  .empty());
 }
 
 // The name column grows with the panel, and the header over it with the rows.
@@ -108,21 +123,21 @@ TEST_F(EquippedListTest, AWideNameColumnHoldsTheWholeName) {
   EquipPrototype wordy = Weapon(EQUIP_TYPE_ONE_HANDED_SWORD);
   wordy.set_name("Metallic Blue Book (Antistrophe)");
 
-  std::vector<EquippedRow> narrow = RowsWearing(JOB_FIGHTER, wordy);
-  std::vector<EquippedRow> wide = RowsWearing(JOB_FIGHTER, wordy, kItemNameMax);
+  // Narrow enough that the stats column is in and the name is at its
+  // shortest, against a panel wide enough to hold the whole name.
+  std::vector<EquippedRow> narrow = RowsWearing(JOB_FIGHTER, wordy, 93);
+  std::vector<EquippedRow> wide = RowsWearing(JOB_FIGHTER, wordy, 120);
   ASSERT_EQ(narrow.size(), 1u);
   ASSERT_EQ(wide.size(), 1u);
-  EXPECT_EQ(narrow[0].text.find("Metallic Blue Book (Antistrophe)"),
+  EXPECT_EQ(narrow[0].text.text.find("Metallic Blue Book (Antistrophe)"),
             std::string::npos)
       << "the narrow column cuts it, which is what this compares against";
-  EXPECT_NE(wide[0].text.find("Metallic Blue Book (Antistrophe)"),
+  EXPECT_NE(wide[0].text.text.find("Metallic Blue Book (Antistrophe)"),
             std::string::npos);
-  EXPECT_EQ(wide[0].name_bytes - narrow[0].name_bytes,
-            kItemNameMax - kItemNameWidth);
   // The header moves over with them, so the columns still name themselves.
-  EXPECT_EQ(
-      TextColumns(EquippedHeader(kItemNameMax)) - TextColumns(EquippedHeader()),
-      kItemNameMax - kItemNameWidth);
+  EXPECT_EQ(TextColumns(ItemListHeader(Columns(120))) -
+                TextColumns(ItemListHeader(Columns(93))),
+            Columns(120).name_width - Columns(93).name_width);
 }
 
 // The order the window lists what is worn: down the body, then the
@@ -158,26 +173,32 @@ TEST_F(EquippedListTest, ListsWhatIsWornInTheWindowsOrder) {
     ASSERT_TRUE(c.Equip(0)) << EquipSlot_Name(*it);
   }
 
-  std::vector<EquippedRow> rows =
-      EquippedRows(c, -1, std::chrono::steady_clock::duration::zero());
+  std::vector<EquippedRow> rows = EquippedRows(
+      c, -1, std::chrono::steady_clock::duration::zero(), Columns());
   std::vector<EquipSlot> worn;
   for (const EquippedRow& row : rows) {
     worn.push_back(row.slot);
   }
   EXPECT_EQ(worn, kExpected);
   // A family's rows say which of its slots they are; every other row does not.
-  EXPECT_NE(rows[16].text.find("Ring 3"), std::string::npos) << rows[16].text;
-  EXPECT_NE(rows[13].text.find("Pendant 2"), std::string::npos)
-      << rows[13].text;
+  EXPECT_NE(rows[16].text.text.find("Ring 3"), std::string::npos)
+      << rows[16].text.text;
+  EXPECT_NE(rows[13].text.text.find("Pendant 2"), std::string::npos)
+      << rows[13].text.text;
 }
 
-// The right column's minimum width in panel_widths.h is this header, the
-// gutter inside its right border and the border itself, so a column added
-// here has to move that number rather than quietly run off the edge of a
-// narrow terminal.
+// The right column's minimum width in panel_widths.h is what the list is
+// fitted into, and at that width it still carries the name, the slot and all
+// three upgrades -- which is what the number is for.
 TEST_F(EquippedListTest, TheHeadersFitTheRightColumnMinimum) {
-  EXPECT_EQ(TextColumns(EquippedHeader()) + kItemListGutter + 2,
+  ItemColumns columns = Columns();
+  EXPECT_LE(TextColumns(ItemListHeader(columns)) + kItemListGutter + 2,
             kRightColumnMin);
+  for (ItemColumn column :
+       {ItemColumn::kName, ItemColumn::kSlot, ItemColumn::kScroll,
+        ItemColumn::kStars, ItemColumn::kPotential}) {
+    EXPECT_TRUE(columns.Shows(column));
+  }
   EXPECT_LE(TextColumns(kSymbolHeader) + kItemListGutter + 2, kRightColumnMin);
 }
 

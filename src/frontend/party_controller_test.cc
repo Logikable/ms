@@ -73,7 +73,8 @@ struct Client {
     scroll_panel =
         std::make_unique<ScrollPanel>(state->character, state->scrolls);
     trace_recover_panel = std::make_unique<TraceRecoverPanel>(state->character);
-    multi_sell_panel = std::make_unique<MultiSellPanel>(state->character);
+    multi_sell_panel =
+        std::make_unique<MultiSellPanel>(state->character, state->account);
     map_select_panel = std::make_unique<MapSelectPanel>(*state);
     mob_inspect_panel = std::make_unique<MobInspectPanel>(*state);
     boss_select_panel = std::make_unique<BossSelectPanel>(*state);

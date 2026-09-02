@@ -190,10 +190,11 @@ ItemCategory InventoryPanel::active_category() const {
 }
 
 int InventoryPanel::menu_column() const {
-  // The border, the cursor caret, the name cell and its separator, the slot
-  // cell and its separator.
-  constexpr int kSlotCell = 10;
-  return 1 + 2 + NameWidth() + 2 + kSlotCell + 2;
+  // The border, then the row up to the end of the slot cell: the caret, the
+  // name and the slot, with the gaps in front of each.
+  ItemColumns columns = Columns();
+  return 1 + kItemListCursor + columns.name_width + kItemCellGap +
+         columns.Width(ItemColumn::kSlot) + kItemCellGap;
 }
 
 bool InventoryPanel::on_shop_tab() const {
@@ -518,19 +519,30 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
   return kItemMenu;
 }
 
+ItemColumns InventoryPanel::Columns() const {
+  ItemListOptions options;
+  options.bag = true;
+  options.scrolling = Unlocked(Feature::kScrolling, character_, account_);
+  options.star_force = Unlocked(Feature::kStarForce, character_, account_);
+  options.potential = Unlocked(Feature::kPotential, character_, account_);
+  // Less the two borders: the width the panel was given is the column's, and
+  // the list is drawn inside it.
+  return FitItemColumns(width_ - 2, options);
+}
+
 ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
-  rows_ =
-      BuildEquipRows(character_, selected_, name_clock_.Elapsed(), NameWidth());
+  ItemColumns columns = Columns();
+  rows_ = BuildEquipRows(character_, selected_, name_clock_.Elapsed(), columns);
   entries_.clear();
   for (const InventoryRowState& row : rows_) {
-    entries_.push_back(row.label);
+    entries_.push_back(row.label.text);
   }
   if (entries_.empty()) {
     return ftxui::vbox({EmptyState("empty", /*gutter=*/2), ftxui::filler()});
   }
   selected_ = std::min(selected_, character_.inventory().size() - 1);
   return ftxui::vbox({
-      EquipHeader(nullptr, nullptr, /*body_width=*/0, NameWidth()),
+      EquipHeader(columns),
       PanelSeparator(highlighted_),
       // Only the items scroll; the header row and the rule stay put.
       // ftxui::Menu marks its selected entry, which is what the frame scrolls

@@ -35,6 +35,7 @@
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/equipped_list.h"
+#include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/item_menu.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/protos/equip.pb.h"
@@ -149,9 +150,9 @@ class EquippedPanel {
                    const std::function<void()>& on_enter);
   // The header row over the active tab's columns.
   std::string Header() const;
-  // The columns the name cell gets, which is whatever the cells after it
-  // leave of the panel's width.
-  int NameWidth() const;
+  // The columns the list draws at the panel's width, with the mechanics the
+  // account has not unlocked left out.
+  ItemColumns Columns() const;
 
   CharacterInstance& character_;
   // Not const: walking a gold trail is recorded on the account.

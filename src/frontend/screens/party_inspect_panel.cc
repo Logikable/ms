@@ -7,6 +7,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "google/protobuf/util/message_differencer.h"
+#include "src/character/progression.h"
 #include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/equipped_list.h"
@@ -64,6 +65,20 @@ const EquipInstance* PartyInspectPanel::selected_item() const {
   return nullptr;
 }
 
+// The columns a member's gear is listed in. Gated on the reader's own
+// unlocks: a sheet says what somebody else is wearing, never which mechanics
+// they have met.
+ItemColumns PartyInspectPanel::Columns() const {
+  ItemListOptions options;
+  options.scrolling =
+      Unlocked(Feature::kScrolling, state_.character, state_.account);
+  options.star_force =
+      Unlocked(Feature::kStarForce, state_.character, state_.account);
+  options.potential =
+      Unlocked(Feature::kPotential, state_.character, state_.account);
+  return FitItemColumns(kContentWidth, options);
+}
+
 int PartyInspectPanel::VisibleRows(int items) const {
   int room = max_rows_ > 0 ? max_rows_ - kFixedRows : kListRows;
   return std::clamp(items, 1,
@@ -71,16 +86,17 @@ int PartyInspectPanel::VisibleRows(int items) const {
 }
 
 ftxui::Element PartyInspectPanel::RenderEquipped() const {
+  ItemColumns columns = Columns();
   std::vector<EquippedRow> rows =
-      EquippedRows(character_, cursor_, name_clock_.Elapsed());
+      EquippedRows(character_, cursor_, name_clock_.Elapsed(), columns);
   if (rows.empty()) {
     return EmptyState("empty");
   }
   std::vector<ftxui::Element> drawn;
   for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
     bool on_cursor = i == cursor_;
-    ftxui::Element row =
-        ftxui::text((on_cursor ? kCursorHere : kCursorAway) + rows[i].text);
+    ftxui::Element row = ftxui::text((on_cursor ? kCursorHere : kCursorAway) +
+                                     rows[i].text.text);
     if (rows[i].inactive) {
       // Worn but contributing nothing, the same as on the player's own list.
       row |= ftxui::dim;
@@ -92,7 +108,7 @@ ftxui::Element PartyInspectPanel::RenderEquipped() const {
     drawn.push_back(std::move(row));
   }
   return ftxui::vbox({
-      ftxui::text(EquippedHeader()),
+      ftxui::text(ItemListHeader(columns)),
       ThemedSeparator(),
       ftxui::vbox(std::move(drawn)) | ftxui::vscroll_indicator | ftxui::yframe |
           ftxui::size(ftxui::HEIGHT, ftxui::EQUAL,

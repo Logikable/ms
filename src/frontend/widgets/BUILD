@@ -96,12 +96,33 @@ cc_test(
 )
 
 cc_library(
+    name = "item_columns",
+    srcs = ["item_columns.cc"],
+    hdrs = ["item_columns.h"],
+    deps = [":format"],
+)
+
+cc_test(
+    name = "item_columns_test",
+    size = "small",
+    srcs = ["item_columns_test.cc"],
+    deps = [
+        ":item_columns",
+        ":text_columns",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "item_row",
     srcs = ["item_row.cc"],
     hdrs = ["item_row.h"],
     deps = [
         ":format",
+        ":game_names",
+        ":item_columns",
         ":marquee",
+        "//src/character",
         "//src/item",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
@@ -113,8 +134,10 @@ cc_test(
     size = "small",
     srcs = ["item_row_test.cc"],
     deps = [
+        ":item_columns",
         ":item_row",
         ":marquee",
+        ":text_columns",
         "//src/protos:equip_proto_cc",
         "@googletest//:gtest_main",
     ],
@@ -451,6 +474,7 @@ cc_library(
         ":screen_text",
         "//src:account",
         "//src/character",
+        "//src/character:exp_table",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "@ftxui//:component",

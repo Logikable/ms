@@ -16,22 +16,6 @@
 namespace ms {
 namespace {
 
-// Two leading spaces match the "  " / "> " cursor the rows open with.
-std::string ColumnHeader(int name_width) {
-  return "  " + PadRight("Name", name_width) +  // cursor + name
-         "  Equip Slot"                         // 2 sep + 10 slot
-         "  Level  Job          "               // 2 sep + 20 info
-         "  Scroll"                             // 2 sep + 6 scroll
-         "  Star Force";                        // 2 sep + label
-}
-
-// Byte spans of an Equip row's cells, measured from the end of its name:
-// the slot cell with its separators, then the level and job halves of the
-// info column. The name's own length is on the row -- see name_bytes.
-constexpr int kSlotSpan = 14;
-constexpr int kLevelSpan = 7;
-constexpr int kJobSpan = 13;
-
 // The row's cells hboxed together, with whichever affixes the caller brought.
 ftxui::Element Row(ftxui::Element lead, std::vector<ftxui::Element> cells,
                    ftxui::Element tail, int body_width) {
@@ -68,23 +52,23 @@ ItemCategory TabCategory(int tab) {
 
 std::vector<InventoryRowState> BuildEquipRows(
     const CharacterInstance& character, int selected,
-    std::chrono::steady_clock::duration elapsed, int name_width) {
+    std::chrono::steady_clock::duration elapsed, const ItemColumns& columns) {
   std::vector<InventoryRowState> rows;
   for (int i = 0; i < character.inventory().size(); ++i) {
     const EquipTabItem& item = character.inventory()[i];
     const EquipPrototype& proto = item.prototype();
     int level = proto.required_level() > 0 ? proto.required_level() : 1;
-    std::string info = "Lv" + PadRight(std::to_string(level), 3) + "  " +
-                       FormatJobCategories(proto);
+    ItemCells cells = EquipUpgradeCells(proto, item.equip_state());
+    cells.name = item.name();
+    cells.slot = FormatSlot(proto.equip_slot());
+    cells.level = "Lv" + std::to_string(level);
+    cells.job = FormatJobCategories(proto);
+    cells.stats = ItemStatsCell(character.proto().job(), item.stats());
     InventoryRowState row;
     // Only the selected row's name slides; the rest sit at their heads.
     std::chrono::steady_clock::duration slide =
         i == selected ? elapsed : std::chrono::steady_clock::duration::zero();
-    row.name_bytes =
-        static_cast<int>(ItemNameCell(item.name(), slide, name_width).size());
-    row.label =
-        FormatItemEntry(item.name(), FormatSlot(proto.equip_slot()), info,
-                        proto, item.equip_state(), slide, name_width);
+    row.label = FormatItemRow(columns, cells, slide);
     row.is_trace = character.inventory().equip_instance(i) == nullptr;
     row.level_ok = character.MeetsLevel(proto);
     row.job_ok = character.MeetsJob(proto);
@@ -93,9 +77,9 @@ std::vector<InventoryRowState> BuildEquipRows(
   return rows;
 }
 
-ftxui::Element EquipHeader(ftxui::Element lead, ftxui::Element tail,
-                           int body_width, int name_width) {
-  return Row(std::move(lead), {ftxui::text(ColumnHeader(name_width))},
+ftxui::Element EquipHeader(const ItemColumns& columns, ftxui::Element lead,
+                           ftxui::Element tail, int body_width) {
+  return Row(std::move(lead), {ftxui::text(ItemListHeader(columns))},
              std::move(tail), body_width);
 }
 
@@ -103,35 +87,34 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
                               ftxui::Element lead, ftxui::Element tail,
                               int body_width) {
   std::string cursor = on_cursor ? "> " : "  ";
-  const std::string& label = row.label;
+  const ItemRowText& label = row.label;
   // A row nothing can be done with: too low for it, the wrong class for it, or
   // a trace, which is a record of an item rather than one. Dimmed whole, the
   // way the skills tab dims a skill that cannot be learned -- one answer for
   // "this row's action is shut", in both lists (colors.h).
   bool blocked = !row.level_ok || !row.job_ok || row.is_trace;
-  int slot_end = row.name_bytes + kSlotSpan;
-  int level_end = slot_end + kLevelSpan;
-  int job_end = level_end + kJobSpan;
-  if (blocked && static_cast<int>(label.size()) >= job_end) {
-    // The cell that says WHY stays bright and red while the rest of the row
-    // dims. Dimming it too would mute the one thing on the row worth reading.
-    ftxui::Element name =
-        ftxui::text(label.substr(0, row.name_bytes)) | ftxui::dim;
-    ftxui::Element slot =
-        ftxui::text(label.substr(row.name_bytes, kSlotSpan)) | ftxui::dim;
-    ftxui::Element lv = ftxui::text(label.substr(slot_end, kLevelSpan));
-    lv = row.level_ok ? lv | ftxui::dim : lv | ftxui::color(kRed);
-    ftxui::Element job = ftxui::text(label.substr(level_end, kJobSpan));
-    job = row.job_ok ? job | ftxui::dim : job | ftxui::color(kRed);
-    ftxui::Element rest = ftxui::text(label.substr(job_end)) | ftxui::dim;
-    // The caret stays bright: it is the cursor, not part of the row.
-    return Row(std::move(lead),
-               {ftxui::text(cursor), std::move(name), std::move(slot),
-                std::move(lv), std::move(job), std::move(rest)},
+  if (!blocked) {
+    return Row(std::move(lead), {ftxui::text(cursor + label.text)},
                std::move(tail), body_width);
   }
-  return Row(std::move(lead), {ftxui::text(cursor + label)}, std::move(tail),
-             body_width);
+  // The caret stays bright: it is the cursor, not part of the row.
+  std::vector<ftxui::Element> cells = {ftxui::text(cursor)};
+  for (int i = 0; i < kNumItemColumns; ++i) {
+    ItemColumn column = static_cast<ItemColumn>(i);
+    CellSpan span = label.Span(column);
+    if (span.bytes == 0) {
+      continue;
+    }
+    ftxui::Element cell =
+        ftxui::text(label.text.substr(span.offset, span.bytes));
+    // The cell that says WHY stays bright and red while the rest of the row
+    // dims. Dimming it too would mute the one thing on the row worth reading.
+    bool why = (column == ItemColumn::kLevel && !row.level_ok) ||
+               (column == ItemColumn::kJob && !row.job_ok);
+    cells.push_back(why ? std::move(cell) | ftxui::color(kRed)
+                        : std::move(cell) | ftxui::dim);
+  }
+  return Row(std::move(lead), std::move(cells), std::move(tail), body_width);
 }
 
 ftxui::Element StackHeader(ftxui::Element lead, ftxui::Element tail,

@@ -26,40 +26,6 @@ constexpr int kSymbolNameWidth = 32;
 constexpr int kSymbolLevelWidth = 3;
 constexpr int kSymbolExpWidth = 7;
 
-// The stat column of one row: the attack this job swings with, then the stat
-// its damage is built on.
-std::string RowInfo(const CharacterInstance& character,
-                    const EquipStats& stats) {
-  // One column for the stat this job's damage is built on -- the same question
-  // the character panel and the AP reset ask, so asked in the same place
-  // rather than switched over jobs here.
-  StatField primary = PrimaryStatField(character.proto().job());
-  const DisplayStat* main = DisplayStatFor(primary);
-  std::string main_str;
-  if (main != nullptr && main->GetFrom(stats) > 0) {
-    main_str = "+" + std::to_string(main->GetFrom(stats)) + " " + main->label;
-  }
-  // Room for one attack figure, so show the one this job swings with. A wand
-  // carries both, and a magician's weapon attack never reaches the damage
-  // chain.
-  //
-  // Asked of the stat this job builds on rather than listed job by job: every
-  // INT job is a magician, so a new magician branch reads right the day it is
-  // added instead of the day someone remembers this list.
-  std::string atk_str;
-  bool magic = primary == STAT_FIELD_INT;
-  if (!magic && stats.attack() > 0) {
-    atk_str = "+" + std::to_string(stats.attack()) + " ATT";
-  } else if (stats.magic_attack() > 0) {
-    atk_str = "+" + std::to_string(stats.magic_attack()) + " MATT";
-  } else if (stats.attack() > 0) {
-    atk_str = "+" + std::to_string(stats.attack()) + " ATT";
-  }
-  // Attack leads: it is the number that decides a weapon, and the main stat
-  // qualifies it.
-  return PadRight(atk_str, 10) + PadRight(main_str, 10);
-}
-
 // How far along its next level a symbol is, or "MAX" for one that has no next
 // level to be along.
 std::string SymbolExpCell(const Equip& state) {
@@ -72,14 +38,6 @@ std::string SymbolExpCell(const Equip& state) {
 
 }  // namespace
 
-std::string EquippedHeader(int name_width) {
-  return "  " + PadRight("Name", name_width) +  // cursor + name
-         "  Equip Slot"                         // 2 sep + 10 slot
-         "  Stats               "               // 2 sep + 20 info
-         "  Scroll"                             // 2 sep + 6 scroll
-         "  Star Force";                        // 2 sep + label
-}
-
 const char kSymbolHeader[] =
     "  Name                            "  // 2 cursor + 32 name
     "  Lv "                               // 2 sep + 3 level
@@ -88,7 +46,7 @@ const char kSymbolHeader[] =
 
 std::vector<EquippedRow> EquippedRows(
     const CharacterInstance& character, int selected,
-    std::chrono::steady_clock::duration elapsed, int name_width) {
+    std::chrono::steady_clock::duration elapsed, const ItemColumns& columns) {
   std::vector<EquipSlot> slots;
   for (const std::pair<const EquipSlot, EquipInstance>& kv :
        character.equipped()) {
@@ -107,15 +65,14 @@ std::vector<EquippedRow> EquippedRows(
         static_cast<int>(rows.size()) == selected
             ? elapsed
             : std::chrono::steady_clock::duration::zero();
+    ItemCells cells = EquipUpgradeCells(item.prototype(), item.equip_state());
+    cells.name = item.prototype().name();
+    cells.slot = FormatWornSlot(slot);
+    cells.stats = ItemStatsCell(character.proto().job(), item.stats());
     EquippedRow row;
     row.slot = slot;
     row.inactive = !character.AttackCounts(item.prototype());
-    row.name_bytes = static_cast<int>(
-        ItemNameCell(item.prototype().name(), slide, name_width).size());
-    row.text =
-        FormatItemEntry(item.prototype().name(), FormatWornSlot(slot),
-                        RowInfo(character, item.stats()), item.prototype(),
-                        item.equip_state(), slide, name_width);
+    row.text = FormatItemRow(columns, cells, slide);
     rows.push_back(std::move(row));
   }
   return rows;
@@ -143,11 +100,14 @@ std::vector<EquippedRow> SymbolRows(
         ScrollingWindow(item.prototype().name(), kSymbolNameWidth, slide);
     EquippedRow row;
     row.slot = kv.first;
-    row.name_bytes = static_cast<int>(name.size());
-    row.text = name + "  " +
-               PadRight(std::to_string(level), kSymbolLevelWidth) + "  " +
-               PadRight(SymbolExpCell(state), kSymbolExpWidth) + "  +" +
-               std::to_string(SymbolArcaneForce(level));
+    // Columns of its own, so the row is written out rather than fitted: a
+    // symbol has no slot, no upgrades and no potential to show.
+    row.text.text = name + "  " +
+                    PadRight(std::to_string(level), kSymbolLevelWidth) + "  " +
+                    PadRight(SymbolExpCell(state), kSymbolExpWidth) + "  +" +
+                    std::to_string(SymbolArcaneForce(level));
+    row.text.span[static_cast<int>(ItemColumn::kName)] = {
+        0, static_cast<int>(name.size())};
     rows.push_back(std::move(row));
   }
   return rows;

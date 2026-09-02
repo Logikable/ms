@@ -136,7 +136,7 @@ Tui::Tui(GameState& state, std::string save_path, std::string server)
       keybinds_panel_(keys_),
       all_stats_panel_(state.character, &state.account, state.skills),
       party_inspect_panel_(state),
-      multi_sell_panel_(state.character),
+      multi_sell_panel_(state.character, state.account),
       shop_panel_(state.character, state.equips, state.items),
       controller_(
           state,

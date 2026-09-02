@@ -1,8 +1,15 @@
 /* One row of an item list, as text.
  *
- * The equipped panel and the bag draw the same row -- a name, the slot, an
- * info cell, and how far the item has been upgraded -- so they measure and
- * write it here rather than each laying out its own columns.
+ * The equipped panel and the bag draw the same row, so they fill in the same
+ * cells and hand them here rather than each laying out its own columns. Which
+ * cells are drawn is not this file's question -- see ItemColumns.
+ *
+ * A row comes back with the byte span of every cell in it, because a caller
+ * that colours one cell apart from the rest -- a name being pointed at, a
+ * level the character has not reached -- cannot count the bytes itself: a name
+ * may hold multibyte characters, and the columns come and go with the width.
+ * The spans butt up against each other and cover the whole row, so a caller
+ * can write it out cell by cell and lose nothing.
  */
 #ifndef MS_SRC_FRONTEND_WIDGETS_ITEM_ROW_H_
 #define MS_SRC_FRONTEND_WIDGETS_ITEM_ROW_H_
@@ -10,74 +17,67 @@
 #include <chrono>
 #include <string>
 
-#include "src/frontend/widgets/marquee.h"
+#include "src/character/character.h"
+#include "src/frontend/widgets/item_columns.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
 namespace ms {
 
-// How much room an item name gets in a list on the narrowest panel that draws
-// one. Names run past it -- "Fafnir Mistilteinn Trace" does -- so a name is
-// cut to this and slides under it while its row is selected; see
-// ScrollingWindow.
-constexpr int kItemNameWidth = 26;
+// What one item has to say in each column. A caller fills in the cells its
+// list draws and leaves the rest; an empty cell comes out as blanks.
+struct ItemCells {
+  // The whole name. Cut to the name column and slid under it by the
+  // formatter, which is the only place that knows how wide the column came
+  // out.
+  std::string name;
+  std::string slot;
+  std::string level;
+  std::string job;
+  std::string stats;
+  std::string scroll;
+  std::string stars;
+  std::string potential;
 
-// And what the column grows to on a wide one: the longest name the game
-// ships, a trace's " Trace" included. Past this the columns after the name
-// would be pushed away from it for no name's sake.
-constexpr int kItemNameMax = 38;
+  const std::string& Get(ItemColumn column) const;
+};
 
-// The columns an item row spends on everything but the name: its cursor, and
-// the slot, info, scroll and star cells after it, separators included.
-constexpr int kItemListFixedWidth = 56;
+// Where one cell sits in a row: its offset in bytes and how many it takes,
+// the two blank columns in front of it included. Zero bytes for a column the
+// row does not draw.
+struct CellSpan {
+  int offset = 0;
+  int bytes = 0;
+};
 
-// The blank column a list keeps between its last cell and the panel's border.
-// Only on the right: the column inside the left border is the cursor's, which
-// is clearance of its own.
-constexpr int kItemListGutter = 1;
+// A row, and where to find each of its cells.
+struct ItemRowText {
+  std::string text;
+  CellSpan span[kNumItemColumns];
 
-// The name column an item list gets inside `width` columns -- whatever the
-// cells after it and the gutter leave, held between the two numbers above.
-int ItemNameWidthFor(int width);
+  CellSpan Span(ItemColumn column) const {
+    return span[static_cast<int>(column)];
+  }
+};
 
-// The name cell of a list row: `name` cut to `name_width` columns, sliding
-// under them while the row is selected. FormatItemEntry opens with exactly
-// this, so a caller that wants to colour the name on its own can split the
-// rendered row on this cell's length -- the name may hold multibyte
-// characters, and its column width says nothing about how many bytes it is.
-std::string ItemNameCell(const std::string& name,
-                         std::chrono::steady_clock::duration elapsed =
-                             std::chrono::steady_clock::duration::zero(),
-                         int name_width = kItemNameWidth);
+// The stat cell of an item row: the attack the job swings with, and the stat
+// its damage is built on. Two figures is all a column holds, and a wand
+// carries both attacks.
+std::string ItemStatsCell(Job job, const EquipStats& stats);
 
-// Formats a single item list entry: name (`name_width` cols), `slot_label`
-// (10 cols), info (padded to 20 cols), scrolls as "+pass/slots", and star
-// force level. The label is passed rather than the slot because a bag row and
-// a worn row name the same slot differently -- FormatSlot and FormatWornSlot.
-// Pass -1 for either upgrade to render "-" (use for an item that refuses
-// it).
-//
-// `elapsed` is how long this row has been the selected one, which is what
-// slides a name too long for the column. Zero -- the default, and what every
-// unselected row passes -- shows the head of the name and holds it there.
-std::string FormatItemEntry(const std::string& name,
-                            const std::string& slot_label,
-                            const std::string& info, int scroll_pass,
-                            int scroll_slots, int stars,
-                            std::chrono::steady_clock::duration elapsed =
-                                std::chrono::steady_clock::duration::zero(),
-                            int name_width = kItemNameWidth);
+// The scroll, star force and potential cells of an item, which read the same
+// wherever it is listed. An upgrade the item refuses reads "-", and so does
+// an item carrying no potential: a blank would look like a column that failed
+// to draw rather than an item with nothing there.
+ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state);
 
-// The same row, with both upgrades read off the item itself. Every list that
-// draws equipment uses this one, so no two of them can disagree about what an
-// item that takes neither shows.
-std::string FormatItemEntry(const std::string& name,
-                            const std::string& slot_label,
-                            const std::string& info,
-                            const EquipPrototype& proto, const Equip& state,
-                            std::chrono::steady_clock::duration elapsed =
-                                std::chrono::steady_clock::duration::zero(),
-                            int name_width = kItemNameWidth);
+// `cells` laid out in `columns`. `elapsed` is how long this row has been the
+// selected one, which is what slides a name too long for its column; zero --
+// the default, and what every unselected row passes -- shows the head of the
+// name and holds it there.
+ItemRowText FormatItemRow(const ItemColumns& columns, const ItemCells& cells,
+                          std::chrono::steady_clock::duration elapsed =
+                              std::chrono::steady_clock::duration::zero());
 
 }  // namespace ms
 

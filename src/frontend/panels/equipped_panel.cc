@@ -13,6 +13,7 @@
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/equipped_list.h"
+#include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/item_row.h"
 #include "src/frontend/widgets/keys.h"
 #include "src/item/equip_instance.h"
@@ -68,11 +69,17 @@ std::vector<EquippedRow> EquippedPanel::Rows(
   }
   return active_tab_ == kSymbolTab
              ? SymbolRows(character_, selected_, slide)
-             : EquippedRows(character_, selected_, slide, NameWidth());
+             : EquippedRows(character_, selected_, slide, Columns());
 }
 
-int EquippedPanel::NameWidth() const {
-  return ItemNameWidthFor(width_ - 2);
+ItemColumns EquippedPanel::Columns() const {
+  ItemListOptions options;
+  options.scrolling = Unlocked(Feature::kScrolling, character_, account_);
+  options.star_force = Unlocked(Feature::kStarForce, character_, account_);
+  options.potential = Unlocked(Feature::kPotential, character_, account_);
+  // Less the two borders: the width the panel was given is the column's, and
+  // the list is drawn inside it.
+  return FitItemColumns(width_ - 2, options);
 }
 
 int EquippedPanel::ListCount() const {
@@ -107,10 +114,11 @@ void EquippedPanel::MoveCursor(int delta) {
 }
 
 int EquippedPanel::menu_column() const {
-  // The border, the cursor caret, the name cell and its separator, the slot
-  // cell and its separator.
-  constexpr int kSlotCell = 10;
-  return 1 + 2 + NameWidth() + 2 + kSlotCell + 2;
+  // The border, then the row up to the end of the slot cell: the caret, the
+  // name and the slot, with the gaps in front of each.
+  ItemColumns columns = Columns();
+  return 1 + kItemListCursor + columns.name_width + kItemCellGap +
+         columns.Width(ItemColumn::kSlot) + kItemCellGap;
 }
 
 void EquippedPanel::OpenMenu() {
@@ -277,8 +285,7 @@ ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
 }
 
 std::string EquippedPanel::Header() const {
-  return active_tab_ == kSymbolTab ? kSymbolHeader
-                                   : EquippedHeader(NameWidth());
+  return active_tab_ == kSymbolTab ? kSymbolHeader : ItemListHeader(Columns());
 }
 
 void EquippedPanel::RebuildRows() {
@@ -296,9 +303,9 @@ void EquippedPanel::RebuildRows() {
   bool lead = LeadToWeapon(character_, account_);
   for (const EquippedRow& row : Rows(name_clock_.Elapsed())) {
     inactive_.push_back(row.inactive);
-    name_bytes_.push_back(row.name_bytes);
+    name_bytes_.push_back(row.text.Span(ItemColumn::kName).bytes);
     led_.push_back(lead && row.slot == EQUIP_SLOT_PRIMARY_WEAPON);
-    entries_.push_back(row.text);
+    entries_.push_back(row.text.text);
   }
   if (!entries_.empty()) {
     selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);

@@ -34,6 +34,7 @@
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/inventory_list.h"
+#include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/item_menu.h"
 #include "src/frontend/widgets/item_row.h"
 #include "src/frontend/widgets/marquee.h"
@@ -151,11 +152,9 @@ class InventoryPanel {
   // See SetWidth.
   int width_ = kRightColumnMin;
 
-  // The columns the Equip tab's name cell gets, which is whatever the cells
-  // after it leave of the panel's width.
-  int NameWidth() const {
-    return ItemNameWidthFor(width_ - 2);
-  }
+  // The columns the Equip tab draws at the panel's width, with the mechanics
+  // the account has not unlocked left out.
+  ItemColumns Columns() const;
 
   // The two vertical focus zones: the tab bar on top and the active tab's item
   // list below it.

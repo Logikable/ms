@@ -14,6 +14,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/account.h"
 #include "src/character/character.h"
+#include "src/character/exp_table.h"
 #include "src/frontend/widgets/screen_text.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -161,6 +162,13 @@ class PanelTest : public testing::Test {
     sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
     sword_.set_required_level(10);
     sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  }
+
+  // Opens every level-gated mechanic for the account, for a test that is
+  // about what a panel draws once the game is fully open rather than about
+  // the gate itself.
+  void UnlockEverything() {
+    account_.RecordProgress(kMaxLevel, /*job_stage=*/4);
   }
 
   std::mt19937 rng_{0};

@@ -326,6 +326,7 @@ TEST_F(EquippedPanelTest, TheUpgradeColumnsReadADashWhenRefused) {
   stars.add_unsupported_upgrades(UPGRADE_SCROLL);
   stars.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
   sword_.set_upgrade_slots(7);
+  UnlockEverything();
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.PickUp(std::make_unique<EquipInstance>(stars));
   c_.Equip(0);
@@ -339,15 +340,25 @@ TEST_F(EquippedPanelTest, TheUpgradeColumnsReadADashWhenRefused) {
   EXPECT_EQ(LineWith(rendered, "Subi").find("\u2605"), std::string::npos);
 }
 
+// The upgrade columns arrive with the mechanics behind them: a player who
+// has never scrolled is not shown a Scroll column standing empty.
 TEST_F(EquippedPanelTest, ShowsColumnHeader) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  EquippedPanel panel(c_, account_, panel_focus_);
-  std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
+  EquippedPanel locked(c_, account_, panel_focus_);
+  std::string rendered = RenderComponent(locked.MakeComponent([]() {}));
   EXPECT_NE(rendered.find("Name"), std::string::npos);
   EXPECT_NE(rendered.find("Equip Slot"), std::string::npos);
+  EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
+  EXPECT_EQ(rendered.find("Stars"), std::string::npos);
+  EXPECT_EQ(rendered.find("Potential"), std::string::npos);
+
+  UnlockEverything();
+  EquippedPanel open(c_, account_, panel_focus_);
+  rendered = RenderComponent(open.MakeComponent([]() {}));
   EXPECT_NE(rendered.find("Scroll"), std::string::npos);
-  EXPECT_NE(rendered.find("Star Force"), std::string::npos);
+  EXPECT_NE(rendered.find("Stars"), std::string::npos);
+  EXPECT_NE(rendered.find("Potential"), std::string::npos);
 }
 
 TEST_F(EquippedPanelTest, SelectedSlotReturnsEquippedSlot) {

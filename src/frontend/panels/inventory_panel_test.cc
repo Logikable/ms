@@ -437,8 +437,12 @@ TEST_F(InventoryPanelTest, ShowsEmptyWhenBagIsEmpty) {
 // sword_ is a level 10 warrior weapon, so one row carries every column.
 TEST_F(InventoryPanelTest, ARowNamesTheItemAndItsColumns) {
   sword_.set_upgrade_slots(7);
+  UnlockEverything();
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, account_, panel_focus_);
+  // Wide enough for every column at once: at the right column's minimum the
+  // job column is one of the two the list drops.
+  panel.SetWidth(kTestScreenWidth - 2);
   std::string drawn = RenderComponent(panel.MakeComponent([]() {}));
   EXPECT_NE(drawn.find("Sword"), std::string::npos);
   EXPECT_NE(drawn.find("Weapon"), std::string::npos);
@@ -520,14 +524,26 @@ TEST_F(InventoryPanelTest, EquipTabCursorHiddenWhenPanelNotFocused) {
   EXPECT_EQ(RenderComponentText(comp).find("> Sword"), std::string::npos);
 }
 
+// The upgrade columns arrive with the mechanics behind them: a player who
+// has never scrolled is not shown a Scroll column standing empty.
 TEST_F(InventoryPanelTest, ShowsColumnHeader) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  InventoryPanel panel(c_, account_, panel_focus_);
-  std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
+  InventoryPanel locked(c_, account_, panel_focus_);
+  std::string rendered = RenderComponent(locked.MakeComponent([]() {}));
   EXPECT_NE(rendered.find("Name"), std::string::npos);
   EXPECT_NE(rendered.find("Equip Slot"), std::string::npos);
+  EXPECT_NE(rendered.find("Level"), std::string::npos);
+  EXPECT_NE(rendered.find("Job"), std::string::npos);
+  EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
+  EXPECT_EQ(rendered.find("Stars"), std::string::npos);
+  EXPECT_EQ(rendered.find("Potential"), std::string::npos);
+
+  UnlockEverything();
+  InventoryPanel open(c_, account_, panel_focus_);
+  rendered = RenderComponent(open.MakeComponent([]() {}));
   EXPECT_NE(rendered.find("Scroll"), std::string::npos);
-  EXPECT_NE(rendered.find("Star Force"), std::string::npos);
+  EXPECT_NE(rendered.find("Stars"), std::string::npos);
+  EXPECT_NE(rendered.find("Potential"), std::string::npos);
 }
 
 TEST_F(InventoryPanelTest, ShowsAllForUniversalItem) {
