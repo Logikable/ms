@@ -1,13 +1,19 @@
 /* InventoryPanel shows the character's inventory as three tabs: Equip (equip-
  * tab items as a navigable menu), Use, and Etc (read-only stackable lists).
  *
- * Focus moves top-to-bottom through two zones, Down descending and Up
+ * Focus moves top-to-bottom through three zones, Down descending and Up
  * ascending, matching the character panel. The top zone is the Equip/Use/Etc
  * tab bar: there Left/Right switch tabs and the active tab is drawn white to
  * show the row is selected. Down descends into the tab's item list (only when
  * it is non-empty); there Up off the top row returns to the tab bar and Enter
  * opens the item context menu via the on_enter callback passed to
  * MakeComponent(). The Use and Etc tabs have no menu actions beyond Sell.
+ *
+ * The buttons drawn at the right of the tab bar are the last zone rather than
+ * part of the bar. The ring wraps, so Up from the bar reaches them in one
+ * key from whichever tab is open -- walking right along the bar to get to
+ * them would drag the active tab to the end first, and [Sort] sorts the tab
+ * the player is looking at.
  *
  * Call MakeComponent() exactly once; the returned Component captures references
  * to internal state, so the panel object must outlive the Component.
@@ -114,9 +120,19 @@ class InventoryPanel {
     return ItemNameWidthFor(width_ - 2);
   }
 
-  // The two vertical focus zones: the Equip/Use/Etc tab bar on top, the active
-  // tab's item list below. Down descends into the list, Up ascends back.
-  enum Zone { kZoneTabs, kZoneList };
+  // The three vertical focus zones: the Equip/Use/Etc tab bar on top, the
+  // active tab's item list below it, and the bar's own buttons last -- see the
+  // header comment for why they are not part of the bar.
+  enum Zone { kZoneTabs, kZoneList, kZoneButtons };
+
+  // The buttons at the right of the tab bar, left to right.
+  enum BarButton : int { kBarSort = 0, kNumBarButtons = 1 };
+
+  // Whether [Sort] has anything to act on. The shop is a door rather than a
+  // list, so there is nothing there to put in order.
+  bool CanSort() const;
+  // Files the active tab, which is what [Sort] does.
+  void SortActiveTab();
 
   // What OpenMenu opens, by tab.
   void OpenStackMenu();
@@ -136,10 +152,13 @@ class InventoryPanel {
   // One row of the Equip list, with the cursor and whatever the row has to say
   // in red or dim. The ftxui::Menu's row transform.
   ftxui::Element RenderRow(const ftxui::EntryState& state);
-  // The key handlers, one per place the cursor can be: the tab bar, a Use/Etc
-  // list, the Equip list.
+  // The bar's buttons, drawn right-aligned in the tab row.
+  ftxui::Element RenderButtons(bool focused) const;
+  // The key handlers, one per place the cursor can be: the tab bar, the bar's
+  // buttons, a Use/Etc list, the Equip list.
   bool OnTabBarEvent(const ftxui::Event& event,
                      const std::function<void()>& on_enter);
+  bool OnButtonEvent(const ftxui::Event& event);
   bool OnStackListEvent(const ftxui::Event& event,
                         const std::function<void()>& on_enter);
   bool OnEquipListEvent(const ftxui::Event& event,
@@ -179,6 +198,7 @@ class InventoryPanel {
   SelectionClock
       name_clock_;          // selected row on the Equip tab (ftxui::Menu index)
   int selected_stack_ = 0;  // selected row on the active Use/Etc tab
+  int button_ = kBarSort;   // which bar button the cursor is on
   int active_tab_ = 0;      // 0 = Equip, 1 = Use, 2 = Etc
   std::vector<InventoryRowState> rows_;
   std::vector<std::string>

@@ -190,15 +190,18 @@ TEST_F(InventoryPanelTest, TheCursorLeavesAListThatEmptiedUnderIt) {
 
 // --- the tab bar and the list are one ring ---
 
-// The bar is a stop in the same ring as the rows, so Up off it arrives at the
-// bottom of the list rather than doing nothing.
-TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastItem) {
+// The bar, the rows and the button row are one ring, in that order. Up off
+// the bar reaches the buttons, and the row after them is the last item.
+TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarWalksBackThroughTheButtons) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderComponent(comp);
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(RenderComponentText(comp).find("> Sword"), std::string::npos)
+      << "the buttons hold the cursor, so no row is caretted";
   comp->OnEvent(ftxui::Event::ArrowUp);
   EXPECT_EQ(panel.selected(), 1) << "the second and last row";
 }
@@ -215,7 +218,8 @@ TEST_F(InventoryPanelTest, TheCaretShowsOnArrivalFromTheTabBar) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderComponent(comp);
 
-  comp->OnEvent(ftxui::Event::ArrowUp);  // the bar -> the last row
+  comp->OnEvent(ftxui::Event::ArrowUp);  // the bar -> the buttons
+  comp->OnEvent(ftxui::Event::ArrowUp);  // the buttons -> the last row
   ASSERT_EQ(panel.selected(), 24);
   EXPECT_NE(RenderComponentText(comp).find("> Item24"), std::string::npos)
       << "no caret after wrapping up onto the last row";
@@ -236,7 +240,9 @@ TEST_F(InventoryPanelTest, TheCaretShowsOnReturnToTheFirstRow) {
     RenderComponent(comp);
   }
   ASSERT_EQ(panel.selected(), 24);
-  comp->OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the bar
+  comp->OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the buttons
+  RenderComponent(comp);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // the buttons -> the bar
   RenderComponent(comp);
   comp->OnEvent(ftxui::Event::ArrowDown);  // the bar -> the first row
 
@@ -253,10 +259,11 @@ TEST_F(InventoryPanelTest, DownFromTheLastItemReturnsToTheBar) {
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> the one item
   ASSERT_NE(RenderComponentText(comp).find("> Sword"), std::string::npos);
 
-  comp->OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the tab bar
+  comp->OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the buttons
   // The cursor is drawn only in the list zone, so its absence is where the
   // cursor went. Left still switching tabs is the other half of the answer.
   EXPECT_EQ(RenderComponentText(comp).find("> Sword"), std::string::npos);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // the buttons -> the tab bar
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_TRUE(panel.on_stackable_tab());
 }
@@ -268,6 +275,7 @@ TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastStack) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowUp);     // the bar -> the buttons
   comp->OnEvent(ftxui::Event::ArrowUp);
   EXPECT_NE(RenderComponentText(comp).find("> Blue Potion"), std::string::npos);
 }
@@ -285,17 +293,75 @@ TEST_F(InventoryPanelTest, DownFromTheLastStackReturnsToTheBar) {
   EXPECT_EQ(RenderComponentText(comp).find("> Red Potion"), std::string::npos);
 }
 
-// A tab with nothing under it is a ring of one stop, so neither key moves the
-// cursor off the bar and onto a row that is not drawn.
-TEST_F(InventoryPanelTest, UpFromTheBarStaysOnAnEmptyTab) {
+// A tab with nothing under it is a ring of the bar and the buttons, so neither
+// key lands on a row that is not drawn.
+TEST_F(InventoryPanelTest, TheEmptyTabRingIsTheBarAndTheButtons) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   ASSERT_EQ(c_.inventory().size(), 0);
-  comp->OnEvent(ftxui::Event::ArrowUp);
-  // Still on the bar, so Right still switches tabs rather than moving a row.
+  comp->OnEvent(ftxui::Event::ArrowUp);    // the bar -> the buttons
+  comp->OnEvent(ftxui::Event::ArrowDown);  // and back
+  // Back on the bar, so Right switches tabs rather than moving a row.
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_TRUE(panel.on_stackable_tab());
+}
+
+// --- the bar's buttons ---
+
+TEST_F(InventoryPanelTest, TheBarCarriesASortButton) {
+  InventoryPanel panel(c_, account_, panel_focus_);
+  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("[Sort]"),
+            std::string::npos);
+}
+
+// The button acts on the tab the player is looking at, and reaching it does
+// not move them off that tab.
+TEST_F(InventoryPanelTest, SortFilesTheEquipTab) {
+  EquipPrototype wearable = sword_;
+  wearable.set_name("Zzz Club");
+  wearable.set_required_level(1);
+  wearable.clear_equip_job_categories();
+  wearable.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  sword_.set_name("Aaa Gated Sword");
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.PickUp(std::make_unique<EquipInstance>(wearable));
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  ASSERT_EQ(c_.inventory()[0].name(), "Aaa Gated Sword");
+
+  comp->OnEvent(ftxui::Event::ArrowUp);  // the bar -> [Sort]
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(c_.inventory()[0].name(), "Zzz Club")
+      << "what can be worn files above what cannot";
+  EXPECT_EQ(panel.active_tab(), kEquipTab);
+}
+
+TEST_F(InventoryPanelTest, SortFilesAStackTab) {
+  c_.AddStackable(MakeStackable("Zzz Shell", ITEM_CATEGORY_USE), 2);
+  c_.AddStackable(MakeStackable("Aaa Potion", ITEM_CATEGORY_USE), 40);
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowUp);     // the bar -> [Sort]
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_USE)[0].name(), "Aaa Potion")
+      << "the larger stack files first";
+}
+
+// The shop is a door rather than a list, so there is nothing to put in order.
+TEST_F(InventoryPanelTest, SortDimsOnTheShopTab) {
+  LevelTo(UnlockLevel(Feature::kShop));
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  EXPECT_FALSE(PixelOfRendered(comp, "[Sort]").dim);
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Shop
+  }
+  EXPECT_TRUE(PixelOfRendered(comp, "[Sort]").dim);
 }
 
 TEST_F(InventoryPanelTest, ShowsEmptyWhenBagIsEmpty) {
@@ -832,8 +898,9 @@ TEST_F(InventoryPanelTest, DownDoesNotDescendIntoTheShopTab) {
   for (int i = 0; i < 3; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);
   }
-  comp->OnEvent(ftxui::Event::ArrowDown);
-  // Still on the tab bar, so Left still switches tabs rather than moving a row.
+  comp->OnEvent(ftxui::Event::ArrowDown);  // the bar -> the buttons
+  comp->OnEvent(ftxui::Event::ArrowDown);  // and back, no row in between
+  // Back on the tab bar, so Left switches tabs rather than moving a row.
   comp->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_FALSE(panel.on_shop_tab());
 }
