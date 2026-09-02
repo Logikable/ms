@@ -1070,75 +1070,52 @@ std::vector<AllyGrant> AllyBuffsFor(
   return buffs;
 }
 
-DerivedStats DerivedStatsFor(const CharacterInstance& character,
-                             const std::map<std::string, Skill>& skills,
-                             absl::Span<const Skill* const> buffs_up,
-                             absl::Span<const CharacterInstance> allies,
-                             StatPreset preset) {
-  const Character& proto = character.proto();
-  const AllocatedStats& allocated = proto.allocated_stats();
-  const EquipStats& equipped = character.equip_stats();
-  PassiveTotals passives = LearnedPassives(character, skills, buffs_up, allies);
-  // Before the fold: a potential's %stat and Maple Warrior's both read a base
-  // the other has not touched, and the two shares are added rather than
-  // compounded.
-  AddPotentials(character, passives);
-  FoldApStats(allocated, passives);
-  // After the fold, never before it: a Hyper Stat is final stat, and Maple
-  // Warrior takes its share of the allocation alone.
-  AddHyperStats(character, preset, passives);
-  AddInnerAbility(character, preset, passives);
+namespace {
 
-  // Sliced off the totals: every lever the two share is already in place, and
-  // what is left below is only what the fold has to change.
-  DerivedStats stats = passives;
-  // A worn percentage sums with what the skills grant rather than compounding
-  // with it, the same deal item_drop_rate takes: both are shares of the one
-  // pile, and the pendant is not worth more for being worn beside Hyper Body.
+// The HP and MP pools. A worn percentage sums with what the skills grant
+// rather than compounding with it, the same deal item_drop_rate takes: both
+// are shares of the one pile, and the pendant is not worth more for being worn
+// beside Hyper Body.
+void AddPools(int level, const AllocatedStats& allocated,
+              const EquipStats& equipped, const PassiveTotals& passives,
+              DerivedStats& stats) {
   stats.max_hp =
       FoldPercent(allocated.hp() + equipped.max_hp() + passives.hp_grant +
-                      passives.hp_per_level * proto.level(),
+                      passives.hp_per_level * level,
                   passives.max_hp_pct + equipped.max_hp_pct() / 100.0);
   stats.max_mp =
       FoldPercent(allocated.mp() + equipped.max_mp() + passives.mp_grant +
-                      passives.mp_per_level * proto.level(),
+                      passives.mp_per_level * level,
                   passives.max_mp_pct + equipped.max_mp_pct() / 100.0);
-  stats.skill_stats.set_def(passives.def_grant);
-  stats.skill_stats.set_str(passives.str);
-  stats.skill_stats.set_dex(passives.dex);
-  stats.skill_stats.set_int_(passives.int_);
-  stats.skill_stats.set_luk(passives.luk);
-  stats.skill_stats.set_attack(passives.attack);
-  stats.skill_stats.set_magic_attack(passives.magic_attack);
-  // Base DEF reads the totals rather than the allocation: a ring's LUK and a
-  // passive's LUK are worth the same DEF. Floored once at the end, as GMS
-  // shows it -- the worn and granted DEF are whole numbers already.
+}
+
+// Base DEF reads the totals rather than the allocation: a ring's LUK and a
+// passive's LUK are worth the same DEF. Floored once at the end, as GMS shows
+// it -- the worn and granted DEF are whole numbers already.
+//
+// The percentage then lands over the whole pile, exactly as it does on the HP
+// pool: what a character wears and what their stats buy are the same DEF. It
+// can also be a loss -- Reckless Hunt buys attack by giving DEF up -- and a
+// character deep enough in the red ends with less DEF than their stats alone
+// bought them.
+void AddDefense(const AllocatedStats& allocated, const EquipStats& equipped,
+                const PassiveTotals& passives, DerivedStats& stats) {
   int str = allocated.str() + equipped.str() + passives.str;
   int dex = allocated.dex() + equipped.dex() + passives.dex;
   int luk = allocated.luk() + equipped.luk() + passives.luk;
   stats.base_def = static_cast<int>(
       std::floor(kDefPerStr * str + kDefPerDexLuk * (dex + luk)));
-  // The percentage lands over the whole pile, exactly as it does on the HP
-  // pool: what a character wears and what their stats buy are the same DEF.
-  // It can also be a loss -- Reckless Hunt buys attack by giving DEF up -- and
-  // a character deep enough in the red ends with less DEF than their stats
-  // alone bought them.
   stats.def = FoldPercent(stats.base_def + equipped.def() + passives.def_grant,
                           passives.def_factor - 1.0);
-  // Floored at nothing rather than clamped to a share: a monster stripped of
-  // the whole of its attack still lands the 1 damage GMS insists on.
-  stats.enemy_attack_pct = std::min(1.0, stats.enemy_attack_pct);
-  // A pact that came back at once would read as no pact at all -- 0 is what
-  // says a character is never revived -- so the cut stops a second short.
-  if (stats.revive_cooldown_seconds > 0.0) {
-    stats.revive_cooldown_seconds = std::max(
-        1.0, stats.revive_cooldown_seconds - passives.revive_cooldown_cut);
-  }
-  // A fountain pours one more helping per whole step of INT, so Holy Water
-  // puts back twice its stated share at 2500 and three times it at 5000. The
-  // helping grows; the clock does not. Charged against the character's WHOLE
-  // INT -- what a ring grants and what Maple Warrior grants back count the
-  // same as what AP bought.
+}
+
+// A fountain pours one more helping per whole step of INT, so Holy Water puts
+// back twice its stated share at 2500 and three times it at 5000. The helping
+// grows; the clock does not. Charged against the character's WHOLE INT -- what
+// a ring grants and what Maple Warrior grants back count the same as what AP
+// bought.
+void AddRegenPulses(const AllocatedStats& allocated, const EquipStats& equipped,
+                    const PassiveTotals& passives, DerivedStats& stats) {
   int total_int = allocated.int_() + equipped.int_() + passives.int_;
   for (const RawRegen& source : passives.regen) {
     RegenPulse pulse = source.pulse;
@@ -1149,6 +1126,13 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
     }
     stats.regen_pulses.push_back(pulse);
   }
+}
+
+// What the character shakes loose: the drop and meso shares they wear, and the
+// two potions that lift them past what gear alone can reach.
+void AddDropAndMesoRates(const CharacterInstance& character,
+                         const EquipStats& equipped, StatPreset preset,
+                         DerivedStats& stats) {
   // The worn share is whole percents and the granted share a fraction. They
   // meet by summing, the way boss damage does in OffenseStatsFor.
   stats.item_drop_pct += equipped.item_drop_rate() / 100.0;
@@ -1171,20 +1155,71 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
       character.ConsumableInEffect(CONSUMABLE_TYPE_EXTREME_GREEN_POTION)) {
     stats.uncapped_attack_speed_bonus += kGreenPotionAttackSpeed;
   }
-  // Pick Pocket and Meso Explosion, worth nothing apart: a meso falls out of
-  // an enemy and is thrown straight back at them. It rides the swing exactly
-  // as a Final Attack does, except that the roll is per line -- so it is one
-  // more source in the same list rather than a mechanism of its own.
-  if (passives.meso_drop_chance > 0.0 && passives.meso_hit_pct > 0.0) {
-    FinalAttackSource meso;
-    meso.chance = passives.meso_drop_chance;
-    meso.damage_pct = passives.meso_hit_pct;
-    meso.boss_pct = passives.meso_boss_pct;
-    meso.damage_bonus_pct = passives.meso_damage_pct;
-    meso.ied = passives.meso_ied;
-    meso.per_line = true;
-    stats.final_attacks.push_back(meso);
+}
+
+// Pick Pocket and Meso Explosion, worth nothing apart: a meso falls out of an
+// enemy and is thrown straight back at them. It rides the swing exactly as a
+// Final Attack does, except that the roll is per line -- so it is one more
+// source in the same list rather than a mechanism of its own.
+void AddMesoStrike(const PassiveTotals& passives, DerivedStats& stats) {
+  if (passives.meso_drop_chance <= 0.0 || passives.meso_hit_pct <= 0.0) {
+    return;
   }
+  FinalAttackSource meso;
+  meso.chance = passives.meso_drop_chance;
+  meso.damage_pct = passives.meso_hit_pct;
+  meso.boss_pct = passives.meso_boss_pct;
+  meso.damage_bonus_pct = passives.meso_damage_pct;
+  meso.ied = passives.meso_ied;
+  meso.per_line = true;
+  stats.final_attacks.push_back(meso);
+}
+
+}  // namespace
+
+DerivedStats DerivedStatsFor(const CharacterInstance& character,
+                             const std::map<std::string, Skill>& skills,
+                             absl::Span<const Skill* const> buffs_up,
+                             absl::Span<const CharacterInstance> allies,
+                             StatPreset preset) {
+  const Character& proto = character.proto();
+  const AllocatedStats& allocated = proto.allocated_stats();
+  const EquipStats& equipped = character.equip_stats();
+  PassiveTotals passives = LearnedPassives(character, skills, buffs_up, allies);
+  // Before the fold: a potential's %stat and Maple Warrior's both read a base
+  // the other has not touched, and the two shares are added rather than
+  // compounded.
+  AddPotentials(character, passives);
+  FoldApStats(allocated, passives);
+  // After the fold, never before it: a Hyper Stat is final stat, and Maple
+  // Warrior takes its share of the allocation alone.
+  AddHyperStats(character, preset, passives);
+  AddInnerAbility(character, preset, passives);
+
+  // Sliced off the totals: every lever the two share is already in place, and
+  // what is left below is only what the fold has to change.
+  DerivedStats stats = passives;
+  AddPools(proto.level(), allocated, equipped, passives, stats);
+  stats.skill_stats.set_def(passives.def_grant);
+  stats.skill_stats.set_str(passives.str);
+  stats.skill_stats.set_dex(passives.dex);
+  stats.skill_stats.set_int_(passives.int_);
+  stats.skill_stats.set_luk(passives.luk);
+  stats.skill_stats.set_attack(passives.attack);
+  stats.skill_stats.set_magic_attack(passives.magic_attack);
+  AddDefense(allocated, equipped, passives, stats);
+  // Floored at nothing rather than clamped to a share: a monster stripped of
+  // the whole of its attack still lands the 1 damage GMS insists on.
+  stats.enemy_attack_pct = std::min(1.0, stats.enemy_attack_pct);
+  // A pact that came back at once would read as no pact at all -- 0 is what
+  // says a character is never revived -- so the cut stops a second short.
+  if (stats.revive_cooldown_seconds > 0.0) {
+    stats.revive_cooldown_seconds = std::max(
+        1.0, stats.revive_cooldown_seconds - passives.revive_cooldown_cut);
+  }
+  AddRegenPulses(allocated, equipped, passives, stats);
+  AddDropAndMesoRates(character, equipped, preset, stats);
+  AddMesoStrike(passives, stats);
   return stats;
 }
 
