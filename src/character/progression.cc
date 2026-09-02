@@ -96,6 +96,7 @@ constexpr Feature kUpgrades[] = {
     Feature::kScrolling,
     Feature::kStarForce,
     Feature::kHammer,
+    Feature::kPotential,
 };
 
 // The upgrades with a gold trail, and the slug their latch keys are built
@@ -116,6 +117,7 @@ constexpr Led kLedUpgrades[] = {
     {Feature::kScrolling, "scrolling", true},
     {Feature::kStarForce, "star_force", false},
     {Feature::kHammer, "hammer", false},
+    {Feature::kPotential, "potential", false},
 };
 
 std::string WeaponLeadKey(const char* slug) {

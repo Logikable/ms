@@ -204,9 +204,9 @@ TEST_F(ProgressionTest, GroundTheAccountHasCoveredAnnouncesNothing) {
       UpgradesUnlockedBetween(level - 1, level, /*account_level=*/140).empty());
   EXPECT_EQ(
       UpgradesUnlockedBetween(1, kTrialLevelCap, /*account_level=*/50).size(),
-      2u)
-      << "star force and the hammer are ahead of an account that stopped "
-         "at 50";
+      3u)
+      << "star force, the hammer and cubing are ahead of an account that "
+         "stopped at 50";
 }
 
 // Panels and tabs go gold on their own when they arrive; only the item-menu
@@ -217,15 +217,16 @@ TEST_F(ProgressionTest, OnlyTheItemMenuUpgradesAreAnnounced) {
                   .empty());
   EXPECT_EQ(
       UpgradesUnlockedBetween(1, kTrialLevelCap, /*account_level=*/0).size(),
-      3u)
-      << "scrolling, star force and the hammer, in the order they arrive";
+      4u)
+      << "scrolling, star force, the hammer and cubing, in the order they "
+         "arrive";
 }
 
 TEST_F(ProgressionTest, EveryFeatureHasAName) {
   const Feature kAll[] = {
       Feature::kEquipped,  Feature::kBag,       Feature::kUnequip,
       Feature::kScrolling, Feature::kStarForce, Feature::kHammer,
-      Feature::kSkills,    Feature::kShop,
+      Feature::kPotential, Feature::kSkills,    Feature::kShop,
   };
   for (Feature feature : kAll) {
     EXPECT_FALSE(FeatureName(feature).empty());

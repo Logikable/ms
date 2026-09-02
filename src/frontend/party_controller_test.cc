@@ -87,15 +87,14 @@ struct Client {
     keybinds_panel = std::make_unique<KeybindsPanel>(*keys);
     controller = std::make_unique<TuiController>(
         *state,
-        Screens{
-            *char_panel,          *equip_panel,         *inventory_panel,
-            *scroll_panel,        inspect_panel,        preview_inspect_panel,
-            star_force_panel,     *trace_recover_panel, sell_panel,
-            sell_equip_panel,     *multi_sell_panel,    *map_select_panel,
-            *mob_inspect_panel,   *boss_select_panel,   party_panel,
-            *party_inspect_panel, *shop_panel,          buy_panel,
-            *job_inspect_panel,   skill_inspect_panel,  pot_info_panel,
-            *menu_panel,          *keybinds_panel},
+        Screens{*char_panel,       *equip_panel,         *inventory_panel,
+                *scroll_panel,     inspect_panel,        preview_inspect_panel,
+                star_force_panel,  cube_panel,           *trace_recover_panel,
+                sell_panel,        sell_equip_panel,     *multi_sell_panel,
+                *map_select_panel, *mob_inspect_panel,   *boss_select_panel,
+                party_panel,       *party_inspect_panel, *shop_panel,
+                buy_panel,         *job_inspect_panel,   skill_inspect_panel,
+                pot_info_panel,    *menu_panel,          *keybinds_panel},
         analysis, *keys, focus, &session);
   }
 
@@ -120,6 +119,7 @@ struct Client {
   BattleAnalysis analysis;
   PartySelectPanel party_panel;
   StarForcePanel star_force_panel;
+  CubePanel cube_panel;
   SellPanel sell_panel;
   SellEquipPanel sell_equip_panel;
   BuyPanel buy_panel;

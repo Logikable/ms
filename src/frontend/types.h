@@ -47,6 +47,10 @@ enum Screen : int {
   kJobAdvance,
   kStarForce,
   kStarForceResult,
+  // Cubing on an item menu: the shelf of cubes and the item's card, with the
+  // question one cube asks in the middle. The one screen whose Confirm does
+  // not close what it is standing on.
+  kCubing,
   // Hammer on the item menu: the question, and the notice an item that will
   // take no more hammers answers with.
   kHammer,
@@ -139,11 +143,13 @@ enum MenuItem : int {
   kMenuScroll = 3,
   kMenuHammer = 4,
   kMenuStarForce = 5,
-  kMenuRecover = 6,
+  // The last upgrade a piece goes through, under the three that shape it.
+  kMenuCube = 6,
+  kMenuRecover = 7,
   // The two that part with the item, above Close. Neither sits where the
   // cursor lands: they are the entries on this menu there is no undoing.
-  kMenuSell = 7,
-  kMenuMultiSell = 8,
+  kMenuSell = 8,
+  kMenuMultiSell = 9,
 };
 // Entries of the worn-gear context menu, on Enter in the Equipped panel's Gear
 // tab. Shorter than the bag's: nothing worn is sold or combined, and only a
@@ -151,12 +157,14 @@ enum MenuItem : int {
 enum GearMenuItem : int {
   kGearMenuUnequip = 0,
   kGearMenuInspect = 1,
-  // The three upgrades in the order a piece goes through them: scrolls fill
-  // the shelf, a hammer widens it, and the stars wait for it to be full.
+  // The four upgrades in the order a piece goes through them: scrolls fill
+  // the shelf, a hammer widens it, the stars wait for it to be full, and a
+  // cube is what is left to do once it is finished.
   kGearMenuScroll = 2,
   kGearMenuHammer = 3,
   kGearMenuStarForce = 4,
-  kGearMenuClose = 5,
+  kGearMenuCube = 5,
+  kGearMenuClose = 6,
 };
 // Entries of the Arcane Symbol context menu, on Enter in the Symbols tab. The
 // first two share their places with the item menu's, so the two branches that

@@ -48,6 +48,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       inspect_panel_(screens.inspect_panel),
       preview_inspect_panel_(screens.preview_inspect_panel),
       star_force_panel_(screens.star_force_panel),
+      cube_panel_(screens.cube_panel),
       trace_recover_panel_(screens.trace_recover_panel),
       sell_panel_(screens.sell_panel),
       sell_equip_panel_(screens.sell_equip_panel),
@@ -448,6 +449,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnJobAdvanceEvent(event);
     case kStarForce:
       return OnStarForceEvent(event);
+    case kCubing:
+      return OnCubeEvent(event);
     case kStarForceResult:
       return OnStarForceResultEvent(event);
     case kHammer:
@@ -576,6 +579,11 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
     star_force_ref_ = SelectedItem();
     star_force_panel_.ResetConfirm();
     preview_inspect_panel_.Reset();
+    OpenInspectCards();
+  }
+  if (next == kCubing) {
+    cube_ref_ = SelectedItem();
+    cube_panel_.Reset();
     OpenInspectCards();
   }
   if (next == kHammer) {
@@ -1004,6 +1012,47 @@ bool TuiController::OnStarForceEvent(ftxui::Event event) {
     int stars_after = stars_before + (outcome == kStarForceSuccess ? 1 : 0);
     star_force_result_ = {outcome, equip_name, stars_before, stars_after};
     OpenNotice(kStarForceResult);
+  }
+  return true;
+}
+
+const EquipInstance* TuiController::cube_item() const {
+  if (screen_ != kCubing) {
+    return nullptr;
+  }
+  return cube_ref_.GetInstance(state_.character);
+}
+
+bool TuiController::OnCubeEvent(ftxui::Event event) {
+  // Told before it is asked: the panel greys its own Confirm off the purse,
+  // and what the purse holds is not something a keypress should have to wait
+  // for the next render to learn.
+  cube_panel_.SetItem(cube_item(), state_.character.meso());
+  bool busy = cube_panel_.IsConfirming();
+  if (IsBack(event) && !busy) {
+    screen_ = kMain;
+    return true;
+  }
+  // Tab hands the arrows to the card beside the shelf, as the star force
+  // screen does: a Legendary potential is more rows than a small terminal has.
+  if (!busy && IsSwitchPanel(event)) {
+    right_card_focused_ = !right_card_focused_;
+    return true;
+  }
+  if (!busy &&
+      (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown)) {
+    int delta = event == ftxui::Event::ArrowUp ? -1 : 1;
+    if (right_card_focused_) {
+      inspect_panel_.ScrollBy(delta);
+    } else {
+      cube_panel_.MoveCursor(delta);
+    }
+    return true;
+  }
+  if (cube_panel_.OnEvent(event) == ConfirmChoice::kConfirmed) {
+    // The window stays up over the item it just rerolled, which is the whole
+    // point of it: the player watches the lines change and presses again.
+    CubeItem(state_.character, cube_ref_, cube_panel_.selected_cube());
   }
   return true;
 }

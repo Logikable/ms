@@ -140,7 +140,7 @@ InventoryPanel::InventoryPanel(CharacterInstance& character,
       account_(account),
       panel_focus_(panel_focus),
       menu_({"Equip", "Inspect", "Combine", "Scroll", "Hammer", "Star Force",
-             "Recover", "Sell", "Multi-Sell", "Close"}),
+             "Cubing", "Recover", "Sell", "Multi-Sell", "Close"}),
       sell_menu_({"Inspect", "Use", "Sell", "Multi-Sell", "Close"}),
       tab_menu_({"Sort", "Close"}) {
 }
@@ -301,6 +301,7 @@ void InventoryPanel::OpenSymbolMenu(const EquipInstance& symbol) {
   menu_.Hide(kMenuScroll);
   menu_.Hide(kMenuHammer);
   menu_.Hide(kMenuStarForce);
+  menu_.Hide(kMenuCube);
   if (character_.equipped().count(symbol.prototype().equip_slot()) > 0) {
     menu_.Hide(kMenuAction);
   } else {
@@ -321,6 +322,9 @@ void InventoryPanel::HideLockedFeatures() {
   }
   if (!Unlocked(Feature::kStarForce, character_, account_)) {
     menu_.Hide(kMenuStarForce);
+  }
+  if (!Unlocked(Feature::kPotential, character_, account_)) {
+    menu_.Hide(kMenuCube);
   }
   // Recovery has no level of its own: owning a trace already means an item
   // exploded, which takes the 16th star. The item is the gate, so the entry
@@ -354,6 +358,12 @@ void InventoryPanel::HideRefusedUpgrades(const EquipInstance& equip) {
   if (!TakesUpgradeSlots(equip.prototype())) {
     menu_.Hide(kMenuHammer);
   }
+  // Where a piece is worn is what decides whether a cube goes into it, and the
+  // slots that refuse one -- the medal, the badge, the pocket -- refuse it for
+  // good.
+  if (!equip.CanCube()) {
+    menu_.Hide(kMenuCube);
+  }
   if (!Supports(equip.prototype(), UPGRADE_STAR_FORCE)) {
     menu_.Hide(kMenuStarForce);
   } else if (!equip.CanStarForce()) {
@@ -375,6 +385,9 @@ void InventoryPanel::HighlightUnusedUpgrades() {
   if (LeadToAction(Feature::kStarForce, character_, account_)) {
     menu_.Highlight(kMenuStarForce);
   }
+  if (LeadToAction(Feature::kPotential, character_, account_)) {
+    menu_.Highlight(kMenuCube);
+  }
 }
 
 void InventoryPanel::OpenEquipMenu() {
@@ -388,6 +401,7 @@ void InventoryPanel::OpenEquipMenu() {
     menu_.Hide(kMenuScroll);
     menu_.Hide(kMenuHammer);
     menu_.Hide(kMenuStarForce);
+    menu_.Hide(kMenuCube);
     return;
   }
   menu_.Hide(kMenuRecover);  // live items cannot be recovered
@@ -504,6 +518,10 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
     if (menu_.selected() == kMenuStarForce) {
       FollowedToAction(Feature::kStarForce, account_);
       return kStarForce;
+    }
+    if (menu_.selected() == kMenuCube) {
+      FollowedToAction(Feature::kPotential, account_);
+      return kCubing;
     }
     if (menu_.selected() == kMenuRecover) {
       return kTraceRecover;

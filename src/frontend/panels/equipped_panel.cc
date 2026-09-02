@@ -34,7 +34,8 @@ EquippedPanel::EquippedPanel(CharacterInstance& character,
     : character_(character),
       account_(account),
       panel_focus_(panel_focus),
-      menu_({"Unequip", "Inspect", "Scroll", "Hammer", "Star Force", "Close"}),
+      menu_({"Unequip", "Inspect", "Scroll", "Hammer", "Star Force", "Cubing",
+             "Close"}),
       symbol_menu_({"Unequip", "Inspect", "Level Up", "Close"}) {
 }
 
@@ -155,6 +156,9 @@ void EquippedPanel::OpenMenu() {
   if (!Unlocked(Feature::kStarForce, character_, account_)) {
     menu_.Hide(kGearMenuStarForce);
   }
+  if (!Unlocked(Feature::kPotential, character_, account_)) {
+    menu_.Hide(kGearMenuCube);
+  }
   EquipSlot slot = selected_slot();
   if (slot != EQUIP_SLOT_UNSPECIFIED) {
     const EquipInstance& item = character_.equipped().at(slot);
@@ -168,6 +172,12 @@ void EquippedPanel::OpenMenu() {
     // to begin with there is nothing for it to do, so it is not on the menu.
     if (!TakesUpgradeSlots(item.prototype())) {
       menu_.Hide(kGearMenuHammer);
+    }
+    // Where a piece is worn is what decides whether a cube goes into it, and
+    // the slots it refuses -- the medal, the badge, the pocket -- refuse it
+    // for good.
+    if (!item.CanCube()) {
+      menu_.Hide(kGearMenuCube);
     }
     if (!Supports(item.prototype(), UPGRADE_STAR_FORCE)) {
       menu_.Hide(kGearMenuStarForce);
@@ -188,6 +198,9 @@ void EquippedPanel::OpenMenu() {
   }
   if (LeadToAction(Feature::kStarForce, character_, account_)) {
     menu_.Highlight(kGearMenuStarForce);
+  }
+  if (LeadToAction(Feature::kPotential, character_, account_)) {
+    menu_.Highlight(kGearMenuCube);
   }
 }
 
@@ -236,6 +249,10 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
   if (open.selected() == kGearMenuStarForce) {
     FollowedToAction(Feature::kStarForce, account_);
     return kStarForce;
+  }
+  if (open.selected() == kGearMenuCube) {
+    FollowedToAction(Feature::kPotential, account_);
+    return kCubing;
   }
   return kMain;
 }

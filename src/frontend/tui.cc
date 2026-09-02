@@ -140,19 +140,18 @@ Tui::Tui(GameState& state, std::string save_path, std::string server)
       party_inspect_panel_(state),
       multi_sell_panel_(state.character, state.account),
       shop_panel_(state.character, state.equips, state.items),
-      controller_(state, Screens{char_panel_,         equip_panel_,
-                                 inventory_panel_,    scroll_panel_,
-                                 inspect_panel_,      preview_inspect_panel_,
-                                 star_force_panel_,   trace_recover_panel_,
-                                 sell_panel_,         sell_equip_panel_,
-                                 multi_sell_panel_,   map_select_panel_,
-                                 mob_inspect_panel_,  boss_select_panel_,
-                                 party_select_panel_, party_inspect_panel_,
-                                 shop_panel_,         buy_panel_,
-                                 job_inspect_panel_,  skill_inspect_panel_,
-                                 pot_info_panel_,     menu_panel_,
-                                 keybinds_panel_},
-                  analysis_, keys_, panel_focus_, multiplayer_.get()) {
+      controller_(
+          state,
+          Screens{
+              char_panel_,         equip_panel_,         inventory_panel_,
+              scroll_panel_,       inspect_panel_,       preview_inspect_panel_,
+              star_force_panel_,   cube_panel_,          trace_recover_panel_,
+              sell_panel_,         sell_equip_panel_,    multi_sell_panel_,
+              map_select_panel_,   mob_inspect_panel_,   boss_select_panel_,
+              party_select_panel_, party_inspect_panel_, shop_panel_,
+              buy_panel_,          job_inspect_panel_,   skill_inspect_panel_,
+              pot_info_panel_,     menu_panel_,          keybinds_panel_},
+          analysis_, keys_, panel_focus_, multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
   // being paid depends on what is worn.
@@ -704,6 +703,32 @@ ftxui::Element Tui::StarForceColumns() {
   return ftxui::hbox(std::move(columns));
 }
 
+// The shelf and the item's card, shoulder to shoulder in the middle of the
+// screen: two columns of about a width, neither run out to the edge. The
+// question, when one is open, is centred over both -- it is asked about the
+// cube on the left and the lines on the right at once.
+ftxui::Element Tui::RenderCubing() {
+  const EquipInstance* item = controller_.cube_item();
+  cube_panel_.SetItem(item, state_.character.meso());
+  inspect_panel_.SetItem(item);
+  inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
+  bool right = controller_.right_card_focused();
+  ftxui::Element columns = ftxui::hbox({
+      ftxui::filler(),
+      cube_panel_.Render(!right) | ftxui::vcenter,
+      ftxui::text("  "),
+      inspect_panel_.RenderItemOnly(right) | ftxui::vcenter,
+      ftxui::filler(),
+  });
+  if (!cube_panel_.IsConfirming()) {
+    return columns;
+  }
+  return ftxui::dbox({
+      std::move(columns),
+      ftxui::center(cube_panel_.RenderConfirm() | ftxui::clear_under),
+  });
+}
+
 ftxui::Element Tui::RenderInspect() {
   // One screen, two kinds of item: the panel takes whichever the cursor was on
   // and frames both the same way.
@@ -831,6 +856,8 @@ ftxui::Element Tui::RenderScreen() {
       });
     case kStarForce:
       return RenderStarForce();
+    case kCubing:
+      return RenderCubing();
     case kStarForceResult:
       return RenderStarForceResult();
     case kTraceRecover:

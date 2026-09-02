@@ -846,6 +846,31 @@ TEST_F(InventoryPanelTest, TheHammerSitsBetweenTheOtherTwoUpgrades) {
   EXPECT_LT(rendered.find("Hammer"), rendered.find("Star Force"));
 }
 
+// The bag's copy of the cubing rule: last of the upgrades, gold until it is
+// pressed, and gone from a trace, which is not an item any more.
+TEST_F(InventoryPanelTest, CubingArrivesLastAndNotOnATrace) {
+  LevelTo(UnlockLevel(Feature::kPotential));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  InventoryPanel panel(c_, account_, panel_focus_);
+  panel.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuCube), 0);
+  std::string rendered = RenderElement(panel.menu().Render(0, 0));
+  EXPECT_LT(rendered.find("Star Force"), rendered.find("Cubing"));
+  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Cubing"), kYellow);
+
+  // A trace is a husk rather than an item: nothing goes into it.
+  CharacterInstance wrecked = MakeCharacter(UnlockLevel(Feature::kPotential));
+  Equip lost;
+  lost.set_equip_name(sword_.name());
+  lost.set_stars(15);
+  wrecked.PickUp(std::make_unique<EquipTrace>(sword_, lost));
+  InventoryPanel trace_panel(wrecked, account_, panel_focus_);
+  trace_panel.OpenMenu();
+  EXPECT_EQ(RenderElement(trace_panel.menu().Render(0, 0)).find("Cubing"),
+            std::string::npos);
+}
+
 // A piece a hammer can do nothing to keeps no row, the way Scroll is hidden on
 // an item that refuses scrolls outright.
 TEST_F(InventoryPanelTest, NoHammerEntryWithoutASlotToWiden) {

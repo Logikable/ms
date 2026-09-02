@@ -836,6 +836,45 @@ TEST_F(EquippedPanelTest, TheHammerArrivesLastAndOnlyOnAPieceWithSlots) {
   EXPECT_LT(rendered.find("Hammer"), rendered.find("Star Force"));
 }
 
+// Cubing's own gate, above every other upgrade, and the slot that refuses a
+// cube outright.
+TEST_F(EquippedPanelTest, CubingArrivesLastAndOnlyWherePotentialReaches) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, account_, panel_focus_);
+  RenderComponent(panel.MakeComponent([]() {}));
+
+  LevelTo(UnlockLevel(Feature::kHammer));
+  panel.OpenMenu();
+  std::vector<int> before = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(before.begin(), before.end(), kGearMenuCube), 0);
+
+  LevelTo(UnlockLevel(Feature::kPotential));
+  panel.OpenMenu();
+  std::vector<int> after = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(after.begin(), after.end(), kGearMenuCube), 0);
+  std::string rendered = RenderElement(panel.menu().Render(0, 0));
+  EXPECT_LT(rendered.find("Star Force"), rendered.find("Cubing"));
+  // And gold, until the player presses it: cubing is the far end of a trail
+  // the level-up card starts.
+  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Cubing"), kYellow);
+}
+
+TEST_F(EquippedPanelTest, AMedalIsOfferedNoCube) {
+  EquipPrototype medal;
+  medal.set_name("Ludibrium Medal");
+  medal.set_equip_slot(EQUIP_SLOT_MEDAL);
+  LevelTo(UnlockLevel(Feature::kPotential));
+  c_.PickUp(std::make_unique<EquipInstance>(medal));
+  c_.Equip(0);
+  EquippedPanel panel(c_, account_, panel_focus_);
+  RenderComponent(panel.MakeComponent([]() {}));
+  panel.OpenMenu();
+
+  EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Cubing"),
+            std::string::npos);
+}
+
 // A piece a hammer can do nothing to keeps no row: the entry is hidden the way
 // Scroll is on an item that refuses scrolls outright.
 TEST_F(EquippedPanelTest, NoHammerEntryWithoutASlotToWiden) {

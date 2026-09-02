@@ -34,6 +34,7 @@
 #include "src/frontend/screens/analysis_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
+#include "src/frontend/screens/cube_panel.h"
 #include "src/frontend/screens/hyper_stat_inspect_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
@@ -145,6 +146,9 @@ class Tui {
   ftxui::Element RenderStarForceResult();
   // The three columns, from whatever the cache holds. Both callers draw it.
   ftxui::Element StarForceColumns();
+  // The cubing screen: the shelf beside the item's card, with the question
+  // centred over both when one is open.
+  ftxui::Element RenderCubing();
   ftxui::Element RenderInspect();
   ftxui::Element RenderScroll();
   ftxui::Element RenderExpBar();
@@ -197,6 +201,7 @@ class Tui {
   InspectPanel preview_inspect_panel_;
   SkillInspectPanel skill_inspect_panel_;
   StarForcePanel star_force_panel_;
+  CubePanel cube_panel_;
   // The item the star force screen last drew, and the same item one star on.
   // Held past the attempt: the result window stands over these two cards, and
   // an item that was destroyed is no longer in the bag to ask.

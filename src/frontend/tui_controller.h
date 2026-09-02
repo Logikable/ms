@@ -25,6 +25,7 @@
 #include "src/frontend/panels/menu_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
+#include "src/frontend/screens/cube_panel.h"
 #include "src/frontend/screens/hammer_panel.h"
 #include "src/frontend/screens/hyper_stat_level_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
@@ -84,6 +85,7 @@ struct Screens {
   InspectPanel& inspect_panel;
   InspectPanel& preview_inspect_panel;
   StarForcePanel& star_force_panel;
+  CubePanel& cube_panel;
   TraceRecoverPanel& trace_recover_panel;
   SellPanel& sell_panel;
   SellEquipPanel& sell_equip_panel;
@@ -439,6 +441,9 @@ class TuiController {
   // Returns the item being star forced while in kStarForce, or nullptr
   // otherwise. Do not call in kStarForceResult (item may be destroyed).
   const EquipInstance* star_force_item() const;
+  // The item the cubing screen is working on, live rather than cached: a cube
+  // destroys nothing, so the lines the screen draws are the item's own.
+  const EquipInstance* cube_item() const;
   // Returns the trace being recovered while in kTraceRecover, or nullptr.
   const EquipTabItem* trace_recover_item() const;
 
@@ -476,6 +481,7 @@ class TuiController {
   bool OnJobAdvanceEvent(ftxui::Event event);
   bool OnQuitEvent(ftxui::Event event);
   bool OnStarForceEvent(ftxui::Event event);
+  bool OnCubeEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnHammerEvent(ftxui::Event event);
   bool OnHammerNoticeEvent(ftxui::Event event);
@@ -584,6 +590,7 @@ class TuiController {
   InspectPanel& inspect_panel_;
   InspectPanel& preview_inspect_panel_;
   StarForcePanel& star_force_panel_;
+  CubePanel& cube_panel_;
   TraceRecoverPanel& trace_recover_panel_;
   SellPanel& sell_panel_;
   SellEquipPanel& sell_equip_panel_;
@@ -621,6 +628,7 @@ class TuiController {
   ItemRef scroll_ref_;
   ItemRef inspect_ref_;
   ItemRef star_force_ref_;
+  ItemRef cube_ref_;
   ItemRef hammer_ref_;
   // Recovery is a bag-only affair: a trace cannot be worn.
   int trace_index_ = 0;
