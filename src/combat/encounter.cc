@@ -245,188 +245,147 @@ void AddChannel(const Skill& skill, const OffenseStats& offense, int level,
   attack.swing_seconds = HoldSeconds(hold, hold.pulses);
 }
 
-// One attack's damage against every mob type on the map. `skill` is null for
-// the bare poke, which hits one target for the character's plain 100% swing.
-// `equipped` is everything the character wears plus everything their passives
-// grant, already summed -- the two are indistinguishable to the damage chain.
-AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
-                       EquipType weapon, const Skill* skill, int level,
-                       const std::vector<CombatType>& types,
-                       const DerivedStats& derived, int attack_speed,
-                       double speed_factor) {
-  AttackOption attack;
+// The clocks and conditions a skill puts on its own swing: how often it can be
+// swung, how long its cooldown and the ice it leaves last, and what the
+// character's own scarring and affliction damage are worth to it.
+//
+// A key-down skill fires at its own rate however fast the weapon swings, so it
+// is handed the stage the formula is the identity at rather than the
+// character's. The game's own pacing still stretches every clock here -- that
+// is about the game running slower than GMS, not about the weapon.
+void AddSwingClocks(const Skill* skill, int level, const DerivedStats& derived,
+                    int attack_speed, double speed_factor,
+                    AttackOption& attack) {
   int delay_ms = kDefaultSwingDelayMs;
-  // A key-down skill fires at its own rate however fast the weapon swings, so
-  // it is handed the stage the formula is the identity at rather than the
-  // character's. The game's own pacing still stretches it -- that is about the
-  // game running slower than GMS, not about the weapon.
   int stage = attack_speed;
-  if (skill != nullptr) {
-    attack.name = skill->name();
-    attack.max_enemies = std::max(1, skill->max_enemies());
-    if (skill->base_delay_ms() > 0) {
-      delay_ms = skill->base_delay_ms();
-    }
-    if (skill->fixed_delay()) {
-      stage = kUnscaledAttackSpeedStage;
-    }
+  if (skill == nullptr) {
+    attack.swing_seconds = SwingIntervalSeconds(delay_ms, stage) * speed_factor;
+    return;
+  }
+  attack.name = skill->name();
+  attack.max_enemies = std::max(1, skill->max_enemies());
+  if (skill->base_delay_ms() > 0) {
+    delay_ms = skill->base_delay_ms();
+  }
+  if (skill->fixed_delay()) {
+    stage = kUnscaledAttackSpeedStage;
   }
   attack.swing_seconds = SwingIntervalSeconds(delay_ms, stage) * speed_factor;
-  if (skill != nullptr) {
-    attack.cooldown_seconds =
-        ReducedCooldown(CooldownAt(*skill, level),
-                        derived.cooldown_reduction_seconds) *
-        speed_factor;
-    // Game-scaled like every other duration: the pacing band stretches the ice
-    // exactly as far as it stretches the summon clock relaying it, so what a
-    // freeze covers is the same span of the fight it covers in GMS.
-    attack.freeze_seconds = skill->freeze_seconds() * speed_factor;
-    // Chance Attack's damage against a scarred monster, which rides anything
-    // that lands on one -- a summon's pulse included.
-    attack.scar_fd = derived.scar.final_dmg_pct;
-    // What the enemy's own condition is worth, on the same terms: a monster
-    // that is frozen or burning is in that state whatever is hitting it, so a
-    // summon's pulse reads it too.
-    attack.fd_when_afflicted = derived.condition.final_dmg_pct_when_afflicted;
-    attack.fd_per_dot = derived.condition.final_dmg_pct_per_dot;
-    attack.dot_count_cap = derived.condition.dot_count_cap;
-    // The scar the character's own swings leave. Game-scaled like every other
-    // clock in the fight, and left off anything on a clock of its own -- GMS
-    // scars with the sword being swung.
-    if (skill->kind() == SKILL_KIND_ATTACK) {
-      attack.scar_chance = derived.scar.chance;
-      attack.scar_seconds = derived.scar.seconds * speed_factor;
-    }
-    SkillEffect granted = EffectAt(skill->base(), skill->per_level(), level);
-    attack.heal_fraction = granted.heal_pct();
-    // An ATTACK's recovery is its own swing's, exactly as its ignored defence
-    // is. Read here rather than off the character, who was handed everything
-    // but this -- see WithoutSwingLevers.
-    if (skill->kind() == SKILL_KIND_ATTACK) {
-      attack.hp_recover_pct = granted.hp_recover_pct();
-    }
+  attack.cooldown_seconds =
+      ReducedCooldown(CooldownAt(*skill, level),
+                      derived.cooldown_reduction_seconds) *
+      speed_factor;
+  // Game-scaled like every other duration: the pacing band stretches the ice
+  // exactly as far as it stretches the summon clock relaying it, so what a
+  // freeze covers is the same span of the fight it covers in GMS.
+  attack.freeze_seconds = skill->freeze_seconds() * speed_factor;
+  // Chance Attack's damage against a scarred monster, and what the enemy's own
+  // condition is worth. Both ride anything that lands on the mob -- a summon's
+  // pulse included -- since the mob is in that state whatever is hitting it.
+  attack.scar_fd = derived.scar.final_dmg_pct;
+  attack.fd_when_afflicted = derived.condition.final_dmg_pct_when_afflicted;
+  attack.fd_per_dot = derived.condition.final_dmg_pct_per_dot;
+  attack.dot_count_cap = derived.condition.dot_count_cap;
+  SkillEffect granted = EffectAt(skill->base(), skill->per_level(), level);
+  attack.heal_fraction = granted.heal_pct();
+  if (skill->kind() != SKILL_KIND_ATTACK) {
+    return;
   }
-  OffenseStats offense = OffenseStatsFor(
-      proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
-      skill, level, PassiveOffenseFor(derived));
+  // The scar the character's own swings leave, and the recovery they pay: both
+  // are the swing's own, kept off anything on a clock of its own -- GMS scars
+  // with the sword being swung. Read here rather than off the character, who
+  // was handed everything but this -- see WithoutSwingLevers.
+  attack.scar_chance = derived.scar.chance;
+  attack.scar_seconds = derived.scar.seconds * speed_factor;
+  attack.hp_recover_pct = granted.hp_recover_pct();
+}
+
+// The harder opening hit some swings land on a single enemy before spreading --
+// GMS's "strikes one, then detonates in place". Same character, same weapon,
+// the skill's other multiplier: only the target count differs, and that is the
+// fight's business rather than the damage chain's.
+void AddLeadHit(const Skill& skill, const OffenseStats& offense, int level,
+                const std::vector<CombatType>& types, AttackOption& attack) {
+  if (skill.base().lead_pct() <= 0.0) {
+    return;
+  }
+  OffenseStats lead = offense;
+  lead.skill_pct =
+      skill.base().lead_pct() + skill.per_level().lead_pct() * (level - 1);
+  lead.lines = std::max(1, skill.lead_lines());
+  // The shadow copies the opening hit as it copies every other line of the
+  // swing -- it is the same swing, landed on one enemy instead of all of them.
+  // Reset here because lead.lines just changed under it.
+  lead.mirror_lines = lead.lines;
   for (const CombatType& type : types) {
-    attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
+    attack.lead_damage.push_back(ExpectedAttackDamage(lead, *type.mob));
   }
-  // Damage off the character's own pool, which lands after the chain rather
-  // than through it: added once the multipliers are already in, so none of
-  // them reaches it. Every line pays it, as GMS pays it per attack.
-  if (skill != nullptr) {
-    double pool = (skill->base().max_hp_damage_pct() +
-                   skill->per_level().max_hp_damage_pct() * (level - 1)) *
-                  derived.max_hp * SkillLinesAt(*skill, level);
-    for (double& damage : attack.damage_per_hit) {
-      damage += pool;
-    }
-  }
-  attack.groups.push_back({attack.damage_per_hit, RollsFor(offense)});
-  if (skill != nullptr) {
-    attack.pierce_gain_pct = skill->pierce_gain_pct();
-    attack.lines = SkillLinesAt(*skill, level);
-    // A scattered swing is the same swing throughout -- what differs is how
-    // many of it land where, which is the fight's business rather than the
-    // damage chain's, exactly as the opening hit's target count is.
-    attack.scatter_hits = skill->scatter().hits();
-    attack.scatter_repeat_kept = 1.0 + skill->scatter().repeat_final_dmg_pct();
-  }
-  for (const SwingProc& proc : derived.procs) {
-    attack.procs.push_back({proc.chance, proc.damage_pct, proc.hp_recover_pct});
-  }
-  AddFreezeStacks(skill, derived, offense, types, attack);
-  // Some swings open with a harder hit on a single enemy before spreading --
-  // GMS's "strikes one, then detonates in place". Same character, same weapon,
-  // the skill's other multiplier: only the target count differs, and that is
-  // the fight's business rather than the damage chain's.
-  if (skill != nullptr && skill->base().lead_pct() > 0.0) {
-    OffenseStats lead = offense;
-    lead.skill_pct =
-        skill->base().lead_pct() + skill->per_level().lead_pct() * (level - 1);
-    lead.lines = std::max(1, skill->lead_lines());
-    // The shadow copies the opening hit as it copies every other line of the
-    // swing -- it is the same swing, landed on one enemy instead of all of
-    // them. Reset here because lead.lines just changed under it.
-    lead.mirror_lines = lead.lines;
-    for (const CombatType& type : types) {
-      attack.lead_damage.push_back(ExpectedAttackDamage(lead, *type.mob));
-    }
-    attack.lead_rolls = RollsFor(lead);
-    attack.lead_enemies = std::max(1, skill->lead_enemies());
-  }
-  // A swing that lands two hits at once: the hammer, and the brand it leaves
-  // exploding. Same character, same weapon, same reach -- what differs is the
-  // multiplier and what it adds against an ordinary monster, so each half is
-  // priced on its own and the two are summed into the one swing.
-  if (skill != nullptr) {
-    for (const SwingHit& hit : skill->extra_hit()) {
-      AddSwingHit(hit, offense, level, types, attack);
-    }
-    AddChannel(*skill, offense, level, types, speed_factor, attack);
-  }
-  // Final Attack rides the swing, not the skill: a plain hit worth its own
-  // percent, so it starts from the bare stat line and takes neither the skill's
-  // multiplier nor its lines. An attack on its own clock strips it back off --
-  // see ComputeCombatParams.
-  //
-  // A source naming a tag follows only the swings carrying it, which is how a
-  // fire mage's ignores everything they cast that is not fire. Every source
-  // that survives keeps its own entry, since each rolls on its own.
-  //
-  // A source rolling per line rolls the swing's line count of times: four
-  // lines knock four mesos loose where a Final Attack rolls once. The shadow's
-  // copies are not the character's lines and do not count.
-  int swing_lines = skill != nullptr ? SkillLinesAt(*skill, level) : 1;
-  OffenseStats follow =
-      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                      equipped, weapon, nullptr, 0, PassiveOffenseFor(derived));
-  // The shadow mimics the swing, and this is what the swing set off rather
-  // than the swing. Same line the skill's own multiplier and lines are already
-  // dropped on, two comments up.
-  follow.mirror_lines = 0;
-  // The burns this swing leaves behind: marks on what it reached rather than
-  // part of the strike, so they are priced here and paid out on their own
-  // clock. What one is worth is settled now and carried for the whole of its
-  // life, which is what makes a burn lit under a buff keep the buffed number.
-  //
-  // The character's own come first and in their own order, so that every swing
-  // writes one poison to one slot. They are priced off the bare stat line for
-  // the same reason a Final Attack is -- the poison is on the claw, not in the
-  // skill, and takes neither its multiplier nor its ignored defence.
-  //
-  // A boost names a skill, and the poison on a claw is the character's rather
-  // than any skill's, so the carried ones are handed nothing.
+  attack.lead_rolls = RollsFor(lead);
+  attack.lead_enemies = std::max(1, skill.lead_enemies());
+}
+
+// The burns this swing leaves behind: marks on what it reached rather than part
+// of the strike, so they are priced here and paid out on their own clock. What
+// one is worth is settled now and carried for the whole of its life, which is
+// what makes a burn lit under a buff keep the buffed number.
+//
+// The character's own come first and in their own order, so that every swing
+// writes one poison to one slot. They are priced off the bare stat line
+// `follow` for the same reason a Final Attack is -- the poison is on the claw,
+// not in the skill, and takes neither its multiplier nor its ignored defence.
+// A boost names a skill, so the carried ones are handed nothing.
+void AddBurns(const Skill* skill, const DerivedStats& derived,
+              const OffenseStats& offense, const OffenseStats& follow,
+              int level, const std::vector<CombatType>& types,
+              double speed_factor, AttackOption& attack) {
   for (const CharacterDot& carried : derived.dots) {
     attack.dots.push_back(BurnFor(carried.dot, follow, carried.level, types,
                                   speed_factor, nullptr));
     attack.dots.back().carried = true;
   }
-  if (skill != nullptr && skill->dot().interval_seconds() > 0.0) {
-    // By the name being swung rather than the parent's, so a form that ever
-    // states a burn of its own reads what was filed under its own name.
-    std::map<std::string, SkillBonus>::const_iterator boost =
-        derived.skill_bonus.find(skill->name());
-    attack.dots.push_back(
-        BurnFor(skill->dot(), offense, level, types, speed_factor,
-                boost != derived.skill_bonus.end() ? &boost->second : nullptr));
+  if (skill == nullptr || skill->dot().interval_seconds() <= 0.0) {
+    return;
   }
+  // By the name being swung rather than the parent's, so a form that ever
+  // states a burn of its own reads what was filed under its own name.
+  std::map<std::string, SkillBonus>::const_iterator boost =
+      derived.skill_bonus.find(skill->name());
+  attack.dots.push_back(
+      BurnFor(skill->dot(), offense, level, types, speed_factor,
+              boost != derived.skill_bonus.end() ? &boost->second : nullptr));
+}
+
+// Final Attack rides the swing, not the skill: a plain hit worth its own
+// percent, so it is priced off the bare stat line `follow` and takes neither
+// the skill's multiplier nor its lines. An attack on its own clock strips it
+// back off -- see ComputeCombatParams.
+//
+// A source naming a tag follows only the swings carrying it, which is how a
+// fire mage's ignores everything they cast that is not fire. Every source that
+// survives keeps its own entry, since each rolls on its own.
+//
+// A source rolling per line rolls `swing_lines` times: four lines knock four
+// mesos loose where a Final Attack rolls once. The shadow's copies are not the
+// character's lines and do not count.
+void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
+                     OffenseStats follow, int level, int swing_lines,
+                     const std::vector<CombatType>& types,
+                     AttackOption& attack) {
   attack.final_attack_damage.assign(types.size(), 0.0);
   attack.single_final_attack_damage.assign(types.size(), 0.0);
   // What this swing keeps of the character's chance to shake a coin loose.
   // Cruel Stab alone gives any of it up -- see SkillEffect.meso_drop_cut.
   double meso_kept = 1.0;
-  // What the character's own boss damage, plain damage and ignored defence are,
-  // before a source adds to any of them.
-  double carried_boss_pct = follow.boss_pct;
-  double carried_damage_pct = follow.damage_pct;
-  double carried_ied = follow.ied;
   if (skill != nullptr) {
     meso_kept -= skill->base().meso_drop_cut() +
                  skill->per_level().meso_drop_cut() * (level - 1);
     meso_kept = std::max(0.0, meso_kept);
   }
+  // What the character's own boss damage, plain damage and ignored defence are,
+  // before a source adds to any of them.
+  const double carried_boss_pct = follow.boss_pct;
+  const double carried_damage_pct = follow.damage_pct;
+  const double carried_ied = follow.ied;
   for (const FinalAttackSource& source : derived.final_attacks) {
     if (source.required_tag != SKILL_TAG_UNSPECIFIED &&
         !HasTag(skill, source.required_tag)) {
@@ -474,37 +433,112 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   if (attack.single_final_attack_rolls.empty()) {
     attack.single_final_attack_damage.clear();
   }
-  // The strike this swing sets off on a wait of its own, priced as a swing in
-  // its own right: its own reach, its own strikes, its own bargain against an
-  // ordinary monster. It is not the character's swing, so nothing rides it.
-  if (skill != nullptr && skill->has_side_strike()) {
-    const SideStrike& side = skill->side_strike();
-    // Off the character's own stat line rather than the swing's, because what
-    // the book aimed at this skill by NAME belongs to the swing: GMS's
-    // Showdown - Reinforce says in so many words that it leaves the shuriken
-    // alone. Everything else the skill states is still its own.
-    PassiveOffense unaimed = PassiveOffenseFor(derived);
-    unaimed.skill_bonus.erase(skill->name());
-    OffenseStats stats =
-        OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                        equipped, weapon, skill, level, unaimed);
-    SkillEffect thrown = EffectAt(side.base(), side.per_level(), level);
-    stats.skill_pct = thrown.skill_pct();
-    stats.normal_skill_pct = thrown.normal_skill_pct();
-    stats.lines = std::max(1, side.lines());
-    stats.mirror_lines = stats.lines;
-    AttackOption strike;
-    strike.name = side.label().empty() ? attack.name : side.label();
-    strike.max_enemies =
-        side.max_enemies() > 0 ? side.max_enemies() : attack.max_enemies;
-    strike.cooldown_seconds = side.cooldown_seconds() * speed_factor;
-    strike.scatter_hits = side.scatter().hits();
-    strike.scatter_repeat_kept = 1.0 + side.scatter().repeat_final_dmg_pct();
-    for (const CombatType& type : types) {
-      strike.damage_per_hit.push_back(ExpectedAttackDamage(stats, *type.mob));
+}
+
+// The strike this swing sets off on a wait of its own, priced as a swing in its
+// own right: its own reach, its own strikes, its own bargain against an
+// ordinary monster. It is not the character's swing, so nothing rides it.
+void AddSideStrike(const Character& proto, const EquipStats& equipped,
+                   EquipType weapon, const Skill& skill, int level,
+                   const std::vector<CombatType>& types,
+                   const DerivedStats& derived, double speed_factor,
+                   AttackOption& attack) {
+  const SideStrike& side = skill.side_strike();
+  // Off the character's own stat line rather than the swing's, because what
+  // the book aimed at this skill by NAME belongs to the swing: GMS's
+  // Showdown - Reinforce says in so many words that it leaves the shuriken
+  // alone. Everything else the skill states is still its own.
+  PassiveOffense unaimed = PassiveOffenseFor(derived);
+  unaimed.skill_bonus.erase(skill.name());
+  OffenseStats stats =
+      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                      equipped, weapon, &skill, level, unaimed);
+  SkillEffect thrown = EffectAt(side.base(), side.per_level(), level);
+  stats.skill_pct = thrown.skill_pct();
+  stats.normal_skill_pct = thrown.normal_skill_pct();
+  stats.lines = std::max(1, side.lines());
+  stats.mirror_lines = stats.lines;
+  AttackOption strike;
+  strike.name = side.label().empty() ? attack.name : side.label();
+  strike.max_enemies =
+      side.max_enemies() > 0 ? side.max_enemies() : attack.max_enemies;
+  strike.cooldown_seconds = side.cooldown_seconds() * speed_factor;
+  strike.scatter_hits = side.scatter().hits();
+  strike.scatter_repeat_kept = 1.0 + side.scatter().repeat_final_dmg_pct();
+  for (const CombatType& type : types) {
+    strike.damage_per_hit.push_back(ExpectedAttackDamage(stats, *type.mob));
+  }
+  strike.groups.push_back({strike.damage_per_hit, RollsFor(stats)});
+  attack.side = std::make_shared<const AttackOption>(std::move(strike));
+}
+
+// One attack's damage against every mob type on the map. `skill` is null for
+// the bare poke, which hits one target for the character's plain 100% swing.
+// `equipped` is everything the character wears plus everything their passives
+// grant, already summed -- the two are indistinguishable to the damage chain.
+AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
+                       EquipType weapon, const Skill* skill, int level,
+                       const std::vector<CombatType>& types,
+                       const DerivedStats& derived, int attack_speed,
+                       double speed_factor) {
+  AttackOption attack;
+  AddSwingClocks(skill, level, derived, attack_speed, speed_factor, attack);
+  OffenseStats offense = OffenseStatsFor(
+      proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
+      skill, level, PassiveOffenseFor(derived));
+  for (const CombatType& type : types) {
+    attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
+  }
+  if (skill != nullptr) {
+    // Damage off the character's own pool, which lands after the chain rather
+    // than through it: added once the multipliers are already in, so none of
+    // them reaches it. Every line pays it, as GMS pays it per attack.
+    double pool = (skill->base().max_hp_damage_pct() +
+                   skill->per_level().max_hp_damage_pct() * (level - 1)) *
+                  derived.max_hp * SkillLinesAt(*skill, level);
+    for (double& damage : attack.damage_per_hit) {
+      damage += pool;
     }
-    strike.groups.push_back({strike.damage_per_hit, RollsFor(stats)});
-    attack.side = std::make_shared<const AttackOption>(std::move(strike));
+  }
+  attack.groups.push_back({attack.damage_per_hit, RollsFor(offense)});
+  if (skill != nullptr) {
+    attack.pierce_gain_pct = skill->pierce_gain_pct();
+    attack.lines = SkillLinesAt(*skill, level);
+    // A scattered swing is the same swing throughout -- what differs is how
+    // many of it land where, which is the fight's business rather than the
+    // damage chain's, exactly as the opening hit's target count is.
+    attack.scatter_hits = skill->scatter().hits();
+    attack.scatter_repeat_kept = 1.0 + skill->scatter().repeat_final_dmg_pct();
+  }
+  for (const SwingProc& proc : derived.procs) {
+    attack.procs.push_back({proc.chance, proc.damage_pct, proc.hp_recover_pct});
+  }
+  AddFreezeStacks(skill, derived, offense, types, attack);
+  if (skill != nullptr) {
+    AddLeadHit(*skill, offense, level, types, attack);
+    // A swing that lands two hits at once: the hammer, and the brand it leaves
+    // exploding. Same character, same weapon, same reach -- what differs is the
+    // multiplier and what it adds against an ordinary monster, so each half is
+    // priced on its own and the two are summed into the one swing.
+    for (const SwingHit& hit : skill->extra_hit()) {
+      AddSwingHit(hit, offense, level, types, attack);
+    }
+    AddChannel(*skill, offense, level, types, speed_factor, attack);
+  }
+  // The bare stat line everything the swing sets off is priced from: no skill,
+  // so neither its multiplier nor its lines. The shadow mimics the swing, and
+  // this is what the swing set off rather than the swing.
+  OffenseStats follow =
+      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                      equipped, weapon, nullptr, 0, PassiveOffenseFor(derived));
+  follow.mirror_lines = 0;
+  AddBurns(skill, derived, offense, follow, level, types, speed_factor, attack);
+  AddFinalAttacks(skill, derived, follow, level,
+                  skill != nullptr ? SkillLinesAt(*skill, level) : 1, types,
+                  attack);
+  if (skill != nullptr && skill->has_side_strike()) {
+    AddSideStrike(proto, equipped, weapon, *skill, level, types, derived,
+                  speed_factor, attack);
   }
   return attack;
 }
