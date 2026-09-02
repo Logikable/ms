@@ -236,16 +236,18 @@ class TuiControllerTest : public testing::Test {
     keys_ = std::make_unique<KeyMap>(state_->account.mutable_keybinds());
     keybinds_panel_ = std::make_unique<KeybindsPanel>(*keys_);
     controller_ = std::make_unique<TuiController>(
-        *state_,
-        Screens{
-            *char_panel_,          *equip_panel_,         *inventory_panel_,
-            *scroll_panel_,        inspect_panel_,        trace_inspect_panel_,
-            *star_force_panel_,    *trace_recover_panel_, *sell_panel_,
-            *sell_equip_panel_,    *multi_sell_panel_,    *map_select_panel_,
-            *mob_inspect_panel_,   *boss_select_panel_,   party_select_panel_,
-            *party_inspect_panel_, *shop_panel_,          *buy_panel_,
-            *job_inspect_panel_,   skill_inspect_panel_,  pot_info_panel_,
-            *menu_panel_,          *keybinds_panel_},
+        *state_, Screens{*char_panel_,        *equip_panel_,
+                         *inventory_panel_,   *scroll_panel_,
+                         inspect_panel_,      preview_inspect_panel_,
+                         *star_force_panel_,  *trace_recover_panel_,
+                         *sell_panel_,        *sell_equip_panel_,
+                         *multi_sell_panel_,  *map_select_panel_,
+                         *mob_inspect_panel_, *boss_select_panel_,
+                         party_select_panel_, *party_inspect_panel_,
+                         *shop_panel_,        *buy_panel_,
+                         *job_inspect_panel_, skill_inspect_panel_,
+                         pot_info_panel_,     *menu_panel_,
+                         *keybinds_panel_},
         analysis_, *keys_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
@@ -375,16 +377,18 @@ class TuiControllerTest : public testing::Test {
     boss_select_panel_ = std::make_unique<BossSelectPanel>(*state_);
     party_inspect_panel_ = std::make_unique<PartyInspectPanel>(*state_);
     controller_ = std::make_unique<TuiController>(
-        *state_,
-        Screens{
-            *char_panel_,          *equip_panel_,         *inventory_panel_,
-            *scroll_panel_,        inspect_panel_,        trace_inspect_panel_,
-            *star_force_panel_,    *trace_recover_panel_, *sell_panel_,
-            *sell_equip_panel_,    *multi_sell_panel_,    *map_select_panel_,
-            *mob_inspect_panel_,   *boss_select_panel_,   party_select_panel_,
-            *party_inspect_panel_, *shop_panel_,          *buy_panel_,
-            *job_inspect_panel_,   skill_inspect_panel_,  pot_info_panel_,
-            *menu_panel_,          *keybinds_panel_},
+        *state_, Screens{*char_panel_,        *equip_panel_,
+                         *inventory_panel_,   *scroll_panel_,
+                         inspect_panel_,      preview_inspect_panel_,
+                         *star_force_panel_,  *trace_recover_panel_,
+                         *sell_panel_,        *sell_equip_panel_,
+                         *multi_sell_panel_,  *map_select_panel_,
+                         *mob_inspect_panel_, *boss_select_panel_,
+                         party_select_panel_, *party_inspect_panel_,
+                         *shop_panel_,        *buy_panel_,
+                         *job_inspect_panel_, skill_inspect_panel_,
+                         pot_info_panel_,     *menu_panel_,
+                         *keybinds_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -493,16 +497,18 @@ class TuiControllerTest : public testing::Test {
     scroll_panel_ =
         std::make_unique<ScrollPanel>(state_->character, state_->scrolls);
     controller_ = std::make_unique<TuiController>(
-        *state_,
-        Screens{
-            *char_panel_,          *equip_panel_,         *inventory_panel_,
-            *scroll_panel_,        inspect_panel_,        trace_inspect_panel_,
-            *star_force_panel_,    *trace_recover_panel_, *sell_panel_,
-            *sell_equip_panel_,    *multi_sell_panel_,    *map_select_panel_,
-            *mob_inspect_panel_,   *boss_select_panel_,   party_select_panel_,
-            *party_inspect_panel_, *shop_panel_,          *buy_panel_,
-            *job_inspect_panel_,   skill_inspect_panel_,  pot_info_panel_,
-            *menu_panel_,          *keybinds_panel_},
+        *state_, Screens{*char_panel_,        *equip_panel_,
+                         *inventory_panel_,   *scroll_panel_,
+                         inspect_panel_,      preview_inspect_panel_,
+                         *star_force_panel_,  *trace_recover_panel_,
+                         *sell_panel_,        *sell_equip_panel_,
+                         *multi_sell_panel_,  *map_select_panel_,
+                         *mob_inspect_panel_, *boss_select_panel_,
+                         party_select_panel_, *party_inspect_panel_,
+                         *shop_panel_,        *buy_panel_,
+                         *job_inspect_panel_, skill_inspect_panel_,
+                         pot_info_panel_,     *menu_panel_,
+                         *keybinds_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -544,7 +550,7 @@ class TuiControllerTest : public testing::Test {
   SkillInspectPanel skill_inspect_panel_;
   PotInfoPanel pot_info_panel_;
   InspectPanel inspect_panel_;
-  InspectPanel trace_inspect_panel_;
+  InspectPanel preview_inspect_panel_;
   BattleAnalysis analysis_;
   std::unique_ptr<MenuPanel> menu_panel_;
   std::unique_ptr<KeyMap> keys_;
@@ -1795,6 +1801,66 @@ TEST_F(TuiControllerTest, EnterOnASuccessReturnsToStarForce) {
     controller_->OnEvent(ftxui::Event::Return);
     EXPECT_EQ(controller_->screen(), kStarForce);
   }
+}
+
+// Two cards, one either side of the panel: Tab picks which the arrows scroll,
+// and Left and Right stay the button row's.
+TEST_F(TuiControllerTest, TabOnStarForceMovesBetweenTheCards) {
+  LevelTo(UnlockLevel(Feature::kStarForce));
+  PickUpScrolledSword();
+  DescendIntoBag();
+
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kStarForce
+  ASSERT_EQ(controller_->screen(), kStarForce);
+  EXPECT_FALSE(controller_->right_card_focused());
+
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_TRUE(controller_->right_card_focused());
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_FALSE(controller_->right_card_focused()) << "and back round";
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(controller_->screen(), kStarForce)
+      << "neither Tab nor the scrolling arrows leave";
+}
+
+// An item at its last star has no after to draw, so there is no second card
+// for Tab to reach and no attempt for Enter to open. The screen is reached by
+// starring an item up to its limit: the bag greys the entry for one already
+// there.
+TEST_F(TuiControllerTest, MaxStarsStarForceHasOneCard) {
+  LevelTo(UnlockLevel(Feature::kStarForce));
+  state_->character.AddMeso(200'000'000);
+  PickUpScrolledSword();
+  DescendIntoBag();
+
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kStarForce
+  ASSERT_EQ(controller_->screen(), kStarForce);
+
+  // Nothing is destroyed below 15 stars, and this sword stops at 5, so the
+  // attempts run out of stars to gain rather than out of item.
+  const EquipInstance* item = controller_->star_force_item();
+  ASSERT_NE(item, nullptr);
+  for (int i = 0; i < 200 && item->stars() < item->max_stars(); ++i) {
+    controller_->OnEvent(ftxui::Event::Return);  // open the confirm bar
+    controller_->OnEvent(ftxui::Event::Return);  // confirm
+    controller_->OnEvent(ftxui::Event::Return);  // dismiss the result
+  }
+  ASSERT_EQ(item->stars(), item->max_stars());
+  ASSERT_EQ(controller_->screen(), kStarForce);
+
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_FALSE(controller_->right_card_focused());
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kStarForce);
 }
 
 // --- Star Force via bag panel ---

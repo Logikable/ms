@@ -46,7 +46,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       inventory_panel_(screens.inventory_panel),
       scroll_panel_(screens.scroll_panel),
       inspect_panel_(screens.inspect_panel),
-      trace_inspect_panel_(screens.trace_inspect_panel),
+      preview_inspect_panel_(screens.preview_inspect_panel),
       star_force_panel_(screens.star_force_panel),
       trace_recover_panel_(screens.trace_recover_panel),
       sell_panel_(screens.sell_panel),
@@ -575,6 +575,8 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   if (next == kStarForce) {
     star_force_ref_ = SelectedItem();
     star_force_panel_.ResetConfirm();
+    preview_inspect_panel_.Reset();
+    OpenInspectCards();
   }
   if (next == kHammer) {
     hammer_ref_ = SelectedItem();
@@ -591,7 +593,7 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
     }
   }
   if (next == kTraceRecover) {
-    trace_inspect_panel_.Reset();
+    preview_inspect_panel_.Reset();
     OpenInspectCards();
     trace_index_ = inventory_panel_.selected();
     trace_recover_panel_.SetTrace(&state_.character.inventory()[trace_index_]);
@@ -963,12 +965,31 @@ const EquipInstance* TuiController::star_force_item() const {
 }
 
 bool TuiController::OnStarForceEvent(ftxui::Event event) {
-  if (IsBack(event) && !star_force_panel_.IsConfirming()) {
+  bool busy = star_force_panel_.IsConfirming();
+  if (IsBack(event) && !busy) {
     screen_ = kMain;
     return true;
   }
   const EquipInstance* item = star_force_item();
-  if (item->stars() >= item->max_stars()) {
+  // The item as it stands on the left, the item one star on to the right.
+  // Tab picks which of the two the up and down arrows scroll; left and right
+  // stay the button row's, so the two never argue over a key.
+  bool has_after = item->stars() < item->max_stars();
+  if (!busy && has_after && IsSwitchPanel(event)) {
+    right_card_focused_ = !right_card_focused_;
+    return true;
+  }
+  if (!busy &&
+      (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown)) {
+    int delta = event == ftxui::Event::ArrowUp ? -1 : 1;
+    if (right_card_focused_) {
+      preview_inspect_panel_.ScrollBy(delta);
+    } else {
+      inspect_panel_.ScrollBy(delta);
+    }
+    return true;
+  }
+  if (!has_after) {
     return true;
   }
   ConfirmChoice choice = star_force_panel_.OnEvent(event);
@@ -1038,7 +1059,7 @@ bool TuiController::OnTraceRecoverEvent(ftxui::Event event) {
     if (right_card_focused_) {
       inspect_panel_.ScrollBy(delta);
     } else {
-      trace_inspect_panel_.ScrollBy(delta);
+      preview_inspect_panel_.ScrollBy(delta);
     }
     return true;
   }

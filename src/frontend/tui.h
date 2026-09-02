@@ -13,6 +13,7 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "ftxui/component/component.hpp"
@@ -52,6 +53,7 @@
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/game_state.h"
+#include "src/item/equip_instance.h"
 #include "src/multiplayer/session.h"
 #include "src/save.h"
 
@@ -136,6 +138,13 @@ class Tui {
   ftxui::Element RenderBuyBackInspect(const BuyBackEntry& entry);
   ftxui::Element RenderJobInspect();
   ftxui::Element RenderTraceRecover();
+  // The item as it stands, the panel, and the item one star on. Caches both
+  // items, so the result screen can draw the same three columns behind its
+  // window -- by then a destroyed item is gone from the bag.
+  ftxui::Element RenderStarForce();
+  ftxui::Element RenderStarForceResult();
+  // The three columns, from whatever the cache holds. Both callers draw it.
+  ftxui::Element StarForceColumns();
   ftxui::Element RenderInspect();
   ftxui::Element RenderScroll();
   ftxui::Element RenderExpBar();
@@ -184,9 +193,15 @@ class Tui {
   InventoryPanel inventory_panel_;
   ScrollPanel scroll_panel_;
   InspectPanel inspect_panel_;
-  InspectPanel trace_inspect_panel_;  // left panel on kTraceRecover (preview)
+  // The second card: kTraceRecover's recovered item, kStarForce's next star.
+  InspectPanel preview_inspect_panel_;
   SkillInspectPanel skill_inspect_panel_;
   StarForcePanel star_force_panel_;
+  // The item the star force screen last drew, and the same item one star on.
+  // Held past the attempt: the result window stands over these two cards, and
+  // an item that was destroyed is no longer in the bag to ask.
+  std::optional<EquipInstance> star_force_before_;
+  std::optional<EquipInstance> star_force_after_;
   TraceRecoverPanel trace_recover_panel_;
   SellPanel sell_panel_;
   SellEquipPanel sell_equip_panel_;

@@ -9,6 +9,7 @@
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
 #include "absl/log/log.h"
 #include "ftxui/component/component.hpp"
@@ -46,6 +47,7 @@
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
+#include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
 #include "src/save.h"
 
@@ -138,23 +140,24 @@ Tui::Tui(GameState& state, std::string save_path, std::string server)
       party_inspect_panel_(state),
       multi_sell_panel_(state.character, state.account),
       shop_panel_(state.character, state.equips, state.items),
-      controller_(
-          state,
-          Screens{
-              char_panel_,          equip_panel_,         inventory_panel_,
-              scroll_panel_,        inspect_panel_,       trace_inspect_panel_,
-              star_force_panel_,    trace_recover_panel_, sell_panel_,
-              sell_equip_panel_,    multi_sell_panel_,    map_select_panel_,
-              mob_inspect_panel_,   boss_select_panel_,   party_select_panel_,
-              party_inspect_panel_, shop_panel_,          buy_panel_,
-              job_inspect_panel_,   skill_inspect_panel_, pot_info_panel_,
-              menu_panel_,          keybinds_panel_},
-          analysis_, keys_, panel_focus_, multiplayer_.get()) {
+      controller_(state, Screens{char_panel_,         equip_panel_,
+                                 inventory_panel_,    scroll_panel_,
+                                 inspect_panel_,      preview_inspect_panel_,
+                                 star_force_panel_,   trace_recover_panel_,
+                                 sell_panel_,         sell_equip_panel_,
+                                 multi_sell_panel_,   map_select_panel_,
+                                 mob_inspect_panel_,  boss_select_panel_,
+                                 party_select_panel_, party_inspect_panel_,
+                                 shop_panel_,         buy_panel_,
+                                 job_inspect_panel_,  skill_inspect_panel_,
+                                 pot_info_panel_,     menu_panel_,
+                                 keybinds_panel_},
+                  analysis_, keys_, panel_focus_, multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
   // being paid depends on what is worn.
   inspect_panel_.UseCharacter(state.character);
-  trace_inspect_panel_.UseCharacter(state.character);
+  preview_inspect_panel_.UseCharacter(state.character);
   party_item_panel_.UseCharacter(party_inspect_panel_.character());
 }
 
@@ -619,12 +622,12 @@ ftxui::Element Tui::RenderJobInspect() {
 
 ftxui::Element Tui::RenderTraceRecover() {
   EquipInstance preview = trace_recover_panel_.PreviewResult();
-  trace_inspect_panel_.SetItem(&preview);
+  preview_inspect_panel_.SetItem(&preview);
   int base_idx = trace_recover_panel_.selected_index();
   inspect_panel_.SetItem(base_idx >= 0 ? &state_.character.inventory()[base_idx]
                                        : nullptr);
   int rows = ftxui::Terminal::Size().dimy;
-  trace_inspect_panel_.SetMaxRows(rows);
+  preview_inspect_panel_.SetMaxRows(rows);
   // The right card shares its column with the chip row above it and the
   // confirm bar below, so it gets what those two leave.
   inspect_panel_.SetMaxRows(rows - kRecoverTabRows -
@@ -635,8 +638,65 @@ ftxui::Element Tui::RenderTraceRecover() {
       inspect_panel_.RenderItemOnly(right),
       trace_recover_panel_.RenderBelow(),
   });
-  return ftxui::hbox({trace_inspect_panel_.RenderItemOnly(!right) | ftxui::flex,
-                      std::move(right_col) | ftxui::flex});
+  return ftxui::hbox(
+      {preview_inspect_panel_.RenderItemOnly(!right) | ftxui::flex,
+       std::move(right_col) | ftxui::flex});
+}
+
+// The item as it stands, the panel, and the item one star on. At max stars
+// there is no after: the panel says so, and a second card would say it twice.
+ftxui::Element Tui::RenderStarForce() {
+  const EquipInstance* item = controller_.star_force_item();
+  star_force_before_.reset();
+  star_force_after_.reset();
+  if (item != nullptr) {
+    star_force_before_.emplace(item->prototype(), item->equip_state());
+    if (item->stars() < item->max_stars()) {
+      Equip next = item->equip_state();
+      next.set_stars(item->stars() + 1);
+      star_force_after_.emplace(item->prototype(), next);
+    }
+  }
+  // The panel reads the cached copy rather than the bag's item, so the result
+  // screen below can draw the same panel after the item is destroyed.
+  star_force_panel_.SetItem(
+      star_force_before_.has_value() ? &*star_force_before_ : nullptr,
+      state_.character.meso());
+  return StarForceColumns();
+}
+
+// The result window over the cards the attempt was made on. The item may be
+// gone by now, which is why the columns come from the cache.
+ftxui::Element Tui::RenderStarForceResult() {
+  ftxui::Element result =
+      star_force_panel_.RenderResult(controller_.star_force_result());
+  return ftxui::dbox({
+      StarForceColumns(),
+      ftxui::center(std::move(result) | ftxui::clear_under),
+  });
+}
+
+ftxui::Element Tui::StarForceColumns() {
+  ftxui::Element panel = star_force_panel_.Render();
+  if (!star_force_before_.has_value()) {
+    return ftxui::center(std::move(panel));
+  }
+  int rows = ftxui::Terminal::Size().dimy;
+  bool right = controller_.right_card_focused();
+  bool two_cards = star_force_after_.has_value();
+  inspect_panel_.SetItem(&*star_force_before_);
+  inspect_panel_.SetMaxRows(rows);
+  std::vector<ftxui::Element> columns;
+  columns.push_back(inspect_panel_.RenderItemOnly(two_cards && !right) |
+                    ftxui::flex);
+  columns.push_back(std::move(panel));
+  if (two_cards) {
+    preview_inspect_panel_.SetItem(&*star_force_after_);
+    preview_inspect_panel_.SetMaxRows(rows);
+    columns.push_back(preview_inspect_panel_.RenderItemOnly(right) |
+                      ftxui::flex);
+  }
+  return ftxui::hbox(std::move(columns));
 }
 
 ftxui::Element Tui::RenderInspect() {
@@ -765,12 +825,9 @@ ftxui::Element Tui::RenderScreen() {
           ftxui::center(buy_panel_.Render() | ftxui::clear_under),
       });
     case kStarForce:
-      star_force_panel_.SetItem(controller_.star_force_item(),
-                                state_.character.meso());
-      return ftxui::center(star_force_panel_.Render());
+      return RenderStarForce();
     case kStarForceResult:
-      return ftxui::center(
-          star_force_panel_.RenderResult(controller_.star_force_result()));
+      return RenderStarForceResult();
     case kTraceRecover:
       return RenderTraceRecover();
     case kTraceRecoverResult:

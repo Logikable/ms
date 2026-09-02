@@ -349,6 +349,7 @@ cc_library(
         "//src/multiplayer:party_fight",
         "//src/multiplayer:session",
         "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",

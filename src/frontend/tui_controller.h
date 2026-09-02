@@ -79,9 +79,10 @@ struct Screens {
   EquippedPanel& equip_panel;
   InventoryPanel& inventory_panel;
   ScrollPanel& scroll_panel;
-  // The item card, and the recovered-item card beside it on kTraceRecover.
+  // The item card, and the preview card beside it on kTraceRecover and
+  // kStarForce.
   InspectPanel& inspect_panel;
-  InspectPanel& trace_inspect_panel;
+  InspectPanel& preview_inspect_panel;
   StarForcePanel& star_force_panel;
   TraceRecoverPanel& trace_recover_panel;
   SellPanel& sell_panel;
@@ -577,10 +578,11 @@ class TuiController {
   EquippedPanel& equip_panel_;
   InventoryPanel& inventory_panel_;
   ScrollPanel& scroll_panel_;
-  // The item card, and the recovered-item card beside it on kTraceRecover.
-  // Held so the arrows can scroll whichever of them the player is reading.
+  // The item card, and the preview card beside it on kTraceRecover and
+  // kStarForce. Held so the arrows can scroll whichever of them the player is
+  // reading.
   InspectPanel& inspect_panel_;
-  InspectPanel& trace_inspect_panel_;
+  InspectPanel& preview_inspect_panel_;
   StarForcePanel& star_force_panel_;
   TraceRecoverPanel& trace_recover_panel_;
   SellPanel& sell_panel_;
