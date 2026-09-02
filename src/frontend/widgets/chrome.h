@@ -127,7 +127,10 @@ struct TabSpec {
 
 // A whole tab bar, cut to `width` columns. Chips past the edge are held back
 // behind a mark, shown only while there is something that way. The window
-// follows `active`, which is therefore always drawn.
+// follows `active`, which is therefore always drawn. Pass -1 for a bar with no
+// active chip -- one whose cursor has stepped off it onto something drawn
+// beside it, where a second highlight would say the selection is in two
+// places.
 //
 // The right mark keeps a column of its own, reserved either way so the chips
 // do not shuffle as it comes and goes; the left one stands in the leading

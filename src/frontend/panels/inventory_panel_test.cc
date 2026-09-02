@@ -357,8 +357,15 @@ TEST_F(InventoryPanelTest, TheExpandTabIsTheEndOfTheBar) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
   comp->OnEvent(ftxui::Event::ArrowRight);  // Etc -> Expand
   comp->OnEvent(ftxui::Event::ArrowRight);  // and no further
+  // A chip the cursor is on is drawn white, so only one chip may be.
+  EXPECT_EQ(PixelOfRendered(comp, "Expand").background_color,
+            ftxui::Color::White);
+  EXPECT_NE(PixelOfRendered(comp, "Etc").background_color, ftxui::Color::White)
+      << "the highlight is in one place, not two";
   comp->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_EQ(panel.active_tab(), kEtcTab);
+  EXPECT_EQ(PixelOfRendered(comp, "Etc").background_color, ftxui::Color::White)
+      << "and comes back";
   EXPECT_NE(RenderComponent(comp).find("Quantity"), std::string::npos)
       << "the list is back";
 }

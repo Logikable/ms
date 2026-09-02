@@ -47,15 +47,17 @@ std::string TabKey(int tab, const CharacterInstance& character) {
 // Renders the left-aligned chip row in the shared tab style, with a centered
 // meso counter and the right-aligned `expand` tab overlaid in the empty space,
 // over a separator. `tabs` is what the character has unlocked, so a locked tab
-// leaves no gap behind it. `row_selected` is false while the cursor is out on
-// Expand, so only one chip anywhere is drawn white.
+// leaves no gap behind it. `active_tab` is -1 while the cursor is out on
+// Expand, so the highlight is in one place rather than two.
 ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
                             int64_t meso, bool row_selected,
                             const CharacterInstance& character,
                             const AccountInstance& account, bool highlighted,
                             ftxui::Element expand, ftxui::Box& bar_box) {
   std::vector<TabSpec> specs;
-  int active = 0;
+  // Stays -1 when `active_tab` names no visible tab, which is how the caller
+  // asks for a bar with nothing on it highlighted.
+  int active = -1;
   for (int tab : tabs) {
     // Asking Seen("") would answer no and leave those tabs gold forever.
     std::string key = TabKey(tab, character);
@@ -589,12 +591,13 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   }
   return AccentWindow(
       " Inventory ",
-      ftxui::vbox({RenderTabBar(VisibleTabs(), active_tab_, character_.meso(),
-                                focused && zone_ == kZoneTabs && !on_expand_,
-                                character_, account_, highlighted_,
-                                RenderExpandTab(focused && zone_ == kZoneTabs),
-                                bar_box_),
-                   std::move(body) | ftxui::flex}),
+      ftxui::vbox(
+          {RenderTabBar(VisibleTabs(), on_expand_ ? -1 : active_tab_,
+                        character_.meso(), focused && zone_ == kZoneTabs,
+                        character_, account_, highlighted_,
+                        RenderExpandTab(focused && zone_ == kZoneTabs),
+                        bar_box_),
+           std::move(body) | ftxui::flex}),
       PanelAccent(highlighted_), focused);
 }
 

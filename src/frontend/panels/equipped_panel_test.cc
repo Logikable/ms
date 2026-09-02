@@ -987,6 +987,13 @@ TEST_F(SymbolTabTest, TheExpandTabIsTheEndOfTheBar) {
   std::string rendered = RenderComponent(component);
   EXPECT_NE(rendered.find("Hit Enter to fullscreen Equipment"),
             std::string::npos);
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                               ftxui::Dimension::Fixed(20));
+  ftxui::Render(screen, component->Render());
+  // A chip the cursor is on is drawn white, so only one chip may be.
+  EXPECT_EQ(PixelOf(screen, "Expand").background_color, ftxui::Color::White);
+  EXPECT_NE(PixelOf(screen, "Symbols").background_color, ftxui::Color::White)
+      << "the highlight is in one place, not two";
   component->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(expands, 1);
 

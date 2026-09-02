@@ -333,10 +333,10 @@ ftxui::Element EquippedPanel::RenderTabBar(bool row_selected) const {
       TabChip(expanded_ ? "Close" : "Expand", on_expand_, row_selected);
   // Two layers over one row: the chips from the left, Expand from the right.
   // No width limit on the chips: two of them fit several times over in a row
-  // this wide. The bar is told it is unfocused while the cursor is out on
-  // Expand, so only one chip anywhere is drawn white.
+  // this wide. The bar has no active chip while the cursor is out on Expand,
+  // so the highlight is in one place rather than two.
   return ftxui::dbox({
-      TabBar(specs, active, row_selected && !on_expand_, /*width=*/0),
+      TabBar(specs, on_expand_ ? -1 : active, row_selected, /*width=*/0),
       ftxui::hbox({ftxui::filler(), std::move(expand)}),
   });
 }
