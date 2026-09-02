@@ -121,7 +121,11 @@ TEST_F(SaveTest, WritesAndReadsBackACharacter) {
   std::unique_ptr<GameState> saved = MakeState();
   saved->character.LevelUp();
   saved->character.AddMeso(1234);
-  saved->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  auto potted = std::make_unique<EquipInstance>(sword_);
+  std::mt19937 cube_rng(1);
+  ASSERT_TRUE(potted->Cube(CubeType::kRed, cube_rng));
+  const Potential rolled = potted->potential();
+  saved->character.PickUp(std::move(potted));
   saved->character.AddStackable(shell_, 17);
   saved->character.ToggleScrollPin("2:1:30");
   saved->character.RecordBossClear("zakum", "Normal", 1755000000);
@@ -135,6 +139,13 @@ TEST_F(SaveTest, WritesAndReadsBackACharacter) {
             saved->character.proto().level());
   EXPECT_EQ(loaded->character.meso(), 1234);
   EXPECT_EQ(loaded->character.inventory().size(), 1);
+  // A rolled potential is worth more than the item under it, so it had better
+  // come back with it.
+  const EquipInstance* back = loaded->character.inventory().equip_instance(0);
+  ASSERT_NE(back, nullptr);
+  EXPECT_EQ(back->potential().rank(), rolled.rank());
+  ASSERT_EQ(back->potential().lines_size(), rolled.lines_size());
+  EXPECT_EQ(back->potential().lines(0).type(), rolled.lines(0).type());
   ASSERT_EQ(loaded->character.stackables(ITEM_CATEGORY_ETC).size(), 1u);
   EXPECT_EQ(loaded->character.stackables(ITEM_CATEGORY_ETC)[0].count(), 17);
   // A pinned scroll is a standing preference, so it rides the save.
