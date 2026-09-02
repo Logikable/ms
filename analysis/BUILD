@@ -146,6 +146,17 @@ sim_binary(
 )
 
 sim_binary(
+    name = "cube_sim",
+    srcs = ["cube_sim.cc"],
+    deps = [
+        "//src/item:potential",
+        "//src/protos:equip_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+    ],
+)
+
+sim_binary(
     name = "weapon_sim",
     srcs = ["weapon_sim.cc"],
     deps = [
