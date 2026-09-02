@@ -241,7 +241,8 @@ class TuiControllerTest : public testing::Test {
     equip_component_ = equip_panel_->MakeComponent([]() {});
     // The inventory component drives tab switching and opens the context menu.
     inventory_component_ = inventory_panel_->MakeComponent(
-        [this]() { controller_->OpenInventoryMenu(); });
+        [this]() { controller_->OpenInventoryMenu(); },
+        [this]() { controller_->ToggleBagExpanded(); });
   }
 
   // Opens the Keybinds screen the way a player does, from the Settings box.
@@ -2864,6 +2865,31 @@ TEST_F(TuiControllerTest, NothingFarmedRaisesNoCard) {
   controller_->OpenOfflineReport(report);
 
   EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// --- the expanded bag ---
+
+// The expanded bag is the main view, so Escape closes it rather than opening
+// the quit prompt, and the game is only asked about once it is shut.
+TEST_F(TuiControllerTest, EscapeClosesTheExpandedBagBeforeTheGame) {
+  controller_->ToggleBagExpanded();
+  ASSERT_TRUE(controller_->bag_expanded());
+
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_FALSE(controller_->bag_expanded());
+  EXPECT_EQ(controller_->screen(), kMain);
+
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kQuit);
+}
+
+// Nothing to walk to: the other panels are not drawn behind it.
+TEST_F(TuiControllerTest, TabDoesNotLeaveTheExpandedBag) {
+  panel_focus_ = kInventoryPanel;
+  controller_->ToggleBagExpanded();
+
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(panel_focus_, kInventoryPanel);
 }
 
 // --- quitting ---

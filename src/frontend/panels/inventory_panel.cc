@@ -180,6 +180,13 @@ ItemCategory InventoryPanel::active_category() const {
   return TabCategory(active_tab_);
 }
 
+int InventoryPanel::menu_column() const {
+  // The border, the cursor caret, the name cell and its separator, the slot
+  // cell and its separator.
+  constexpr int kSlotCell = 10;
+  return 1 + 2 + NameWidth() + 2 + kSlotCell + 2;
+}
+
 bool InventoryPanel::on_shop_tab() const {
   return active_tab_ == kShopTab;
 }
@@ -252,7 +259,12 @@ ftxui::Element InventoryPanel::RenderButtons(bool focused) const {
   if (!CanSort()) {
     sort = std::move(sort) | ftxui::dim;
   }
-  return ftxui::hbox({std::move(sort), ftxui::text(" ")});
+  // The second button's label is the state it would leave the bag in, the way
+  // the pot switch reads.
+  ftxui::Element expand = ActionButton(expanded_ ? "Close" : "Expand",
+                                       focused && button_ == kBarExpand);
+  return ftxui::hbox(
+      {std::move(sort), ftxui::text(" "), std::move(expand), ftxui::text(" ")});
 }
 
 // The Use/Etc {Sell, Close} menu, for whatever stack the cursor is on.
@@ -605,7 +617,8 @@ bool InventoryPanel::OnTabBarEvent(const ftxui::Event& event,
   return true;
 }
 
-bool InventoryPanel::OnButtonEvent(const ftxui::Event& event) {
+bool InventoryPanel::OnButtonEvent(const ftxui::Event& event,
+                                   const std::function<void()>& on_expand) {
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
@@ -617,6 +630,10 @@ bool InventoryPanel::OnButtonEvent(const ftxui::Event& event) {
   }
   if (IsForward(event) && button_ == kBarSort && CanSort()) {
     SortActiveTab();
+    return true;
+  }
+  if (IsForward(event) && button_ == kBarExpand && on_expand != nullptr) {
+    on_expand();
     return true;
   }
   // Swallowed like the tab bar's, or it leaks to the hidden Equip menu.
@@ -659,7 +676,8 @@ bool InventoryPanel::OnEquipListEvent(const ftxui::Event& event,
   return false;
 }
 
-ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
+ftxui::Component InventoryPanel::MakeComponent(
+    std::function<void()> on_enter, std::function<void()> on_expand) {
   ftxui::MenuOption opt;
   opt.on_enter = [on_enter]() { on_enter(); };
   // Drawn here rather than at entry-generation time because ftxui::Menu only
@@ -676,18 +694,19 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
   // tab bar down with a list it has nothing to do with.
   ftxui::Component renderer = AlwaysFocusable(ftxui::Renderer(
       menu, [this, menu]() -> ftxui::Element { return RenderContent(menu); }));
-  return ftxui::CatchEvent(renderer, [this, on_enter](ftxui::Event event) {
-    if (zone_ == kZoneTabs) {
-      return OnTabBarEvent(event, on_enter);
-    }
-    if (zone_ == kZoneButtons) {
-      return OnButtonEvent(event);
-    }
-    if (active_tab_ != kEquipTab) {
-      return OnStackListEvent(event, on_enter);
-    }
-    return OnEquipListEvent(event, on_enter);
-  });
+  return ftxui::CatchEvent(renderer,
+                           [this, on_enter, on_expand](ftxui::Event event) {
+                             if (zone_ == kZoneTabs) {
+                               return OnTabBarEvent(event, on_enter);
+                             }
+                             if (zone_ == kZoneButtons) {
+                               return OnButtonEvent(event, on_expand);
+                             }
+                             if (active_tab_ != kEquipTab) {
+                               return OnStackListEvent(event, on_enter);
+                             }
+                             return OnEquipListEvent(event, on_enter);
+                           });
 }
 
 }  // namespace ms

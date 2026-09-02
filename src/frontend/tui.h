@@ -88,6 +88,9 @@ class Tui {
   // is open. See the definition for where each is anchored.
   ftxui::Element OpenMenu(const MainWidths& widths);
   ftxui::Element RenderMain();
+  // The bag over the whole terminal, which is what RenderMain draws while the
+  // player has it open. See the definition.
+  ftxui::Element RenderExpandedBag();
   // Floats `dialog` centred over the main view.
   ftxui::Element OverMain(ftxui::Element dialog);
   // The dialogs, and the screens that take more than a line to build.

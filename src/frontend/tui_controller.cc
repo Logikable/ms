@@ -86,6 +86,10 @@ void TuiController::OpenEquipMenu() {
   equip_panel_.OpenMenu();
 }
 
+void TuiController::ToggleBagExpanded() {
+  bag_expanded_ = !bag_expanded_;
+}
+
 void TuiController::OpenInventoryMenu() {
   if (inventory_panel_.on_shop_tab()) {
     shop_panel_.Reset();
@@ -352,6 +356,12 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
     return false;
   }
   if (IsBack(event)) {
+    if (bag_expanded_) {
+      // The bag fills the screen, so Escape closes it rather than the game --
+      // the same key [Close] is, one view at a time.
+      bag_expanded_ = false;
+      return true;
+    }
     // Opened on Cancel: leaving is not what an accidental Escape means, and a
     // stray Enter behind one should not end the session.
     quit_prompt_.Open(/*cancel_selected=*/true);
@@ -360,6 +370,10 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
   }
   if (!IsSwitchPanel(event)) {
     return false;
+  }
+  if (bag_expanded_) {
+    // Nothing to walk to: the other panels are not drawn.
+    return true;
   }
   // Round the panels until the next one actually on screen. The character
   // panel always is, so this always lands somewhere. Backwards is a step of

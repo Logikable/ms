@@ -162,7 +162,8 @@ void Tui::BuildComponents() {
   equip_component_ =
       equip_panel_.MakeComponent([this]() { controller_.OpenEquipMenu(); });
   inventory_component_ = inventory_panel_.MakeComponent(
-      [this]() { controller_.OpenInventoryMenu(); });
+      [this]() { controller_.OpenInventoryMenu(); },
+      [this]() { controller_.ToggleBagExpanded(); });
   CharacterPanelActions char_actions;
   char_actions.allocate = [this](StatField field) {
     controller_.OpenApAllocate(field);
@@ -296,6 +297,7 @@ ftxui::Element Tui::RenderFrame() {
   char_panel_.SetHighlighted(celebration_.Lights(kCharPanel));
   equip_panel_.SetHighlighted(celebration_.Lights(kEquipPanel));
   inventory_panel_.SetHighlighted(celebration_.Lights(kInventoryPanel));
+  inventory_panel_.SetExpanded(controller_.bag_expanded());
 
   ftxui::Element frame = RenderScreen();
   if (controller_.party_notice_prompt().open()) {
@@ -854,12 +856,31 @@ ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
       on_equip ? equip_panel_.cursor_row() : inventory_panel_.cursor_row();
   ItemMenu& menu = on_equip ? equip_panel_.menu() : inventory_panel_.menu();
   // Past the char panel border, menu cursor, name column, slot column and
-  // separators, so the menu covers stats rather than item names.
-  int col = widths.left + 1 + 2 + 18 + 2 + 10 + 2;
+  // separators, so the menu covers stats rather than item names. The expanded
+  // bag hands out a wider name column than the fixed 18 allows for, and has no
+  // left column in front of it, so it is asked where its own columns end.
+  int col = controller_.bag_expanded() ? inventory_panel_.menu_column()
+                                       : widths.left + 1 + 2 + 18 + 2 + 10 + 2;
   return Floating(menu.Render(std::max(0, cursor_row - 1), col));
 }
 
+// The bag opened up to the whole terminal. It stands in for the main view
+// rather than being a screen of its own, so the item menu floats over it and
+// every dialog the bag raises keeps working untouched.
+ftxui::Element Tui::RenderExpandedBag() {
+  inventory_panel_.SetWidth(ftxui::Terminal::Size().dimx);
+  ftxui::Element bag = inventory_component_->Render();
+  ftxui::Element menu = OpenMenu(MainWidths{/*left=*/0, /*right=*/0});
+  if (menu == nullptr) {
+    return bag;
+  }
+  return ftxui::dbox({std::move(bag), std::move(menu)});
+}
+
 ftxui::Element Tui::RenderMain() {
+  if (controller_.bag_expanded()) {
+    return RenderExpandedBag();
+  }
   // The character panel and the combat panel share the left column, and combat
   // is pinned to its foot. Without a budget the character panel takes the room
   // it wants and the mob bars are drawn off the bottom of a short terminal.

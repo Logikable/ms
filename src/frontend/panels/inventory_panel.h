@@ -47,7 +47,11 @@ class InventoryPanel {
  public:
   InventoryPanel(CharacterInstance& character, AccountInstance& account,
                  int& panel_focus);
-  ftxui::Component MakeComponent(std::function<void()> on_enter);
+  // `on_enter` is Enter on a row -- the item context menu, or the shop from the
+  // Shop tab. `on_expand` is the button at the right of the tab bar, which
+  // opens the bag up to the whole screen and closes it again.
+  ftxui::Component MakeComponent(std::function<void()> on_enter,
+                                 std::function<void()> on_expand = nullptr);
   void OpenMenu();
   // Handles Up/Down/Escape/Return for the item context menu and executes the
   // selected action. Returns the next screen state. On the Equip tab this
@@ -92,6 +96,11 @@ class InventoryPanel {
   int selected_stack() const {
     return selected_stack_;
   }
+  // The column the item menu hangs at, measured from the panel's left border:
+  // past the cursor and the name and slot cells, so the menu covers an item's
+  // stats rather than its name. Asked of the panel because the name column
+  // follows the panel's own width.
+  int menu_column() const;
 
   // Records the active tab as opened, which is what puts its gold out. Called
   // by the panel when the player steps onto a tab, and by the controller when
@@ -107,10 +116,19 @@ class InventoryPanel {
     highlighted_ = highlighted;
   }
 
+  // Whether the bag is currently drawn over the whole screen. Set from the
+  // render, like SetHighlighted: the screen the player is on is the
+  // controller's to know, and the panel only needs it to label the button.
+  void SetExpanded(bool expanded) {
+    expanded_ = expanded;
+  }
+
  private:
   // Whether the border is currently lit gold. Set from outside, read by the
   // render; no part of the panel's own state machine.
   bool highlighted_ = false;
+  // See SetExpanded.
+  bool expanded_ = false;
   // See SetWidth.
   int width_ = kRightColumnMin;
 
@@ -126,7 +144,7 @@ class InventoryPanel {
   enum Zone { kZoneTabs, kZoneList, kZoneButtons };
 
   // The buttons at the right of the tab bar, left to right.
-  enum BarButton : int { kBarSort = 0, kNumBarButtons = 1 };
+  enum BarButton : int { kBarSort = 0, kBarExpand = 1, kNumBarButtons = 2 };
 
   // Whether [Sort] has anything to act on. The shop is a door rather than a
   // list, so there is nothing there to put in order.
@@ -158,7 +176,8 @@ class InventoryPanel {
   // buttons, a Use/Etc list, the Equip list.
   bool OnTabBarEvent(const ftxui::Event& event,
                      const std::function<void()>& on_enter);
-  bool OnButtonEvent(const ftxui::Event& event);
+  bool OnButtonEvent(const ftxui::Event& event,
+                     const std::function<void()>& on_expand);
   bool OnStackListEvent(const ftxui::Event& event,
                         const std::function<void()>& on_enter);
   bool OnEquipListEvent(const ftxui::Event& event,

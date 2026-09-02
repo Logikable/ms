@@ -309,10 +309,33 @@ TEST_F(InventoryPanelTest, TheEmptyTabRingIsTheBarAndTheButtons) {
 
 // --- the bar's buttons ---
 
-TEST_F(InventoryPanelTest, TheBarCarriesASortButton) {
+TEST_F(InventoryPanelTest, TheBarCarriesItsTwoButtons) {
   InventoryPanel panel(c_, account_, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("[Sort]"),
-            std::string::npos);
+  std::string screen = RenderComponent(panel.MakeComponent([]() {}));
+  EXPECT_NE(screen.find("[Sort]"), std::string::npos);
+  EXPECT_NE(screen.find("[Expand]"), std::string::npos);
+}
+
+// The second button's label is the state pressing it would leave the bag in.
+TEST_F(InventoryPanelTest, TheExpandButtonReadsCloseWhileExpanded) {
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  panel.SetExpanded(true);
+  std::string screen = RenderComponent(comp);
+  EXPECT_NE(screen.find("[Close]"), std::string::npos);
+  EXPECT_EQ(screen.find("[Expand]"), std::string::npos);
+}
+
+TEST_F(InventoryPanelTest, EnterOnExpandCallsBack) {
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  int expands = 0;
+  ftxui::Component comp =
+      panel.MakeComponent([]() {}, [&expands]() { ++expands; });
+  comp->OnEvent(ftxui::Event::ArrowUp);     // the bar -> [Sort]
+  comp->OnEvent(ftxui::Event::ArrowRight);  // [Sort] -> [Expand]
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(expands, 1);
 }
 
 // The button acts on the tab the player is looking at, and reaching it does
