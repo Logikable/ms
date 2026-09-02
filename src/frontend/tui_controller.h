@@ -640,18 +640,19 @@ class TuiController {
   // focus at the time. One ref for every modal, because one modal is open at a
   // time: each accessor below gates on screen_, which is what says whose it is.
   ItemRef subject_;
-  // Recovery is a bag-only affair: a trace cannot be worn.
-  int trace_index_ = 0;
+  // The bag row the open modal is about -- recovery and the equip sale are
+  // both bag-only affairs, a trace cannot be worn and an item has to come off
+  // before it is sold. One row, for the reason subject_ is one ref.
+  int bag_row_ = 0;
   // See right_card_focused(). False on every screen that opens, so the arrows
   // start on the list or the card the player came in reading.
   bool right_card_focused_ = false;
   // See expanded_panel().
   int expanded_panel_ = kNoPanel;
+  // The stack the Use/Etc sale is open on, which is a row in its own tab
+  // rather than in the bag.
   ItemCategory sell_category_ = ITEM_CATEGORY_UNSPECIFIED;
   int sell_index_ = 0;
-  // The bag row the equip sale is open on. Bag-only, like recovery: an item
-  // has to come off before it can be sold.
-  int sell_equip_index_ = 0;
   StatField ap_field_ = STAT_FIELD_UNSPECIFIED;
   AmountSelector ap_selector_;
   Skill skill_learn_;

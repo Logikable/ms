@@ -597,16 +597,16 @@ Screen TuiController::SeedSaleScreen(Screen next) {
   if (next == kTraceRecover) {
     preview_inspect_panel_.Reset();
     OpenInspectCards();
-    trace_index_ = inventory_panel_.selected();
-    trace_recover_panel_.SetTrace(&state_.character.inventory()[trace_index_]);
+    bag_row_ = inventory_panel_.selected();
+    trace_recover_panel_.SetTrace(&state_.character.inventory()[bag_row_]);
   }
   if (next == kSellEquip) {
-    sell_equip_index_ = inventory_panel_.selected();
-    const EquipTabItem& item = state_.character.inventory()[sell_equip_index_];
+    bag_row_ = inventory_panel_.selected();
+    const EquipTabItem& item = state_.character.inventory()[bag_row_];
     // A trace pays nothing whatever its prototype says, so the dialog is told
     // what the sale will really hand over rather than what the item cost.
-    bool is_trace = state_.character.inventory().equip_instance(
-                        sell_equip_index_) == nullptr;
+    bool is_trace =
+        state_.character.inventory().equip_instance(bag_row_) == nullptr;
     int price = is_trace ? 0 : SellPrice(item.prototype());
     sell_equip_panel_.Reset(item.name(), price);
   }
@@ -1120,7 +1120,7 @@ const EquipTabItem* TuiController::trace_recover_item() const {
   if (screen_ != kTraceRecover) {
     return nullptr;
   }
-  return &state_.character.inventory()[trace_index_];
+  return &state_.character.inventory()[bag_row_];
 }
 
 bool TuiController::OnTraceRecoverEvent(ftxui::Event event) {
@@ -1149,9 +1149,8 @@ bool TuiController::OnTraceRecoverEvent(ftxui::Event event) {
   if (trace_recover_panel_.OnEvent(event) == ConfirmChoice::kConfirmed) {
     int base_index = trace_recover_panel_.selected_index();
     std::string equip_name =
-        state_.character.inventory()[trace_index_].prototype().name();
-    int stars_recovered =
-        state_.character.RecoverTrace(trace_index_, base_index);
+        state_.character.inventory()[bag_row_].prototype().name();
+    int stars_recovered = state_.character.RecoverTrace(bag_row_, base_index);
     trace_recovery_result_ = {equip_name, stars_recovered};
     OpenNotice(kTraceRecoverResult);
   }
@@ -2101,7 +2100,7 @@ bool TuiController::OnSellEquipEvent(ftxui::Event event) {
     return true;
   }
   if (choice == ConfirmChoice::kConfirmed) {
-    state_.character.SellEquip(sell_equip_index_);
+    state_.character.SellEquip(bag_row_);
   }
   screen_ = kMain;
   return true;
