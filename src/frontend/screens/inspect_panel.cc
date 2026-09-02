@@ -290,8 +290,9 @@ CardRows InspectPanel::SymbolRows() const {
 }
 
 // Where the symbol stands and what that is worth, in the equip card's own stat
-// spacing. The stat it grants is the wearer's own, so a card with nobody
-// behind it shows the force alone rather than guessing at a job.
+// spacing. A rule splits the two: how far it has grown is not a stat it pays.
+// The stat it grants is the wearer's own, so a card with nobody behind it
+// shows the force alone rather than guessing at a job.
 std::vector<CardRow> InspectPanel::SymbolStatRows(int level) const {
   int needed = SymbolExpToNextLevel(level);
   std::vector<CardRow> rows = {
@@ -301,6 +302,7 @@ std::vector<CardRow> InspectPanel::SymbolStatRows(int level) const {
                      ? "MAX"
                      : std::to_string(item_->equip_state().symbol_exp()) +
                            " / " + std::to_string(needed))),
+      RuleRow(ThemedSeparator()),
   };
   if (character_ != nullptr) {
     StatField primary = PrimaryStatField(character_->proto().job());

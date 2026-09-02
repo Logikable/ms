@@ -859,6 +859,20 @@ int Count(const std::string& rendered, const std::string& glyph) {
   return found;
 }
 
+// The row drawn under the one holding `text`, for checking a rule falls where
+// it should.
+std::string LineAfter(const std::string& rendered, const std::string& text) {
+  size_t at = rendered.find(text);
+  if (at == std::string::npos) {
+    return "";
+  }
+  size_t eol = rendered.find('\n', at);
+  if (eol == std::string::npos) {
+    return "";
+  }
+  return rendered.substr(eol + 1, rendered.find('\n', eol + 1) - eol - 1);
+}
+
 // A symbol grants nothing an equip's rows could show, so it gets a card of its
 // own: where its level stands, and what that level is worth.
 TEST_F(InspectPanelTest, ASymbolCardIsItsLevelExpStatAndForce) {
@@ -879,6 +893,9 @@ TEST_F(InspectPanelTest, ASymbolCardIsItsLevelExpStatAndForce) {
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Growth Level  8"), std::string::npos) << rendered;
   EXPECT_NE(rendered.find("EXP  12 / 75"), std::string::npos) << rendered;
+  // How far it has grown is not a stat it pays, so a rule splits the two.
+  EXPECT_NE(LineAfter(rendered, "EXP  12 / 75").find("──"), std::string::npos)
+      << rendered;
   EXPECT_NE(rendered.find("STR  +1000"), std::string::npos) << rendered;
   EXPECT_NE(rendered.find("Arcane Force  +100"), std::string::npos) << rendered;
   // The head an equip carries, since a symbol has the same two facts to state.
