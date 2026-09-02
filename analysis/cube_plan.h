@@ -73,6 +73,11 @@ struct CubeBasis {
   // in -- the sum TotalEquipStats folds, not its answer. A potential moves
   // %ATT, so the fold has to be redone per candidate.
   EquipStats raw;
+  // What a boss's defence leaves of the character as they stand. Every
+  // candidate is measured against this, so what a cube is worth reads in the
+  // same combat power a star is worth rather than in a scaled currency of its
+  // own.
+  double defence = 1.0;
 };
 
 CubeBasis CubeBasisFor(const GameState& state);

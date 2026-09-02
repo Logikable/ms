@@ -57,12 +57,18 @@ PotentialTotals PotentialsBut(const CharacterInstance& character,
   return totals;
 }
 
-// What a character carrying `totals` in place of the potentials they wear hits
-// a boss for. The same closed form the scroll and star offers are ranked on,
-// with the share a boss's defence cancels folded in -- CombatPower leaves
-// ignored defence out, and a weapon is cubed for it.
-double PowerOf(const GameState& state, const CubeBasis& basis,
-               const PotentialTotals& totals) {
+// What a boss's defence leaves of a character who ignores `ied` of it.
+// CombatPower has no target and so cannot say, but ignored defence is one of
+// the three lines a weapon is cubed for -- a shopper blind to it would never
+// buy one.
+double DefenceFactor(double ied) {
+  return 1.0 - kBossPdr * (1.0 - ied);
+}
+
+// The character's damage chain with `totals` in place of the potentials they
+// wear. Everything a potential moves, and nothing else.
+OffenseStats OffenseWith(const GameState& state, const CubeBasis& basis,
+                         const PotentialTotals& totals) {
   const CharacterInstance& character = state.character;
   const Character& proto = character.proto();
   const PotentialTotals& worn = character.potential_totals();
@@ -89,12 +95,21 @@ double PowerOf(const GameState& state, const CubeBasis& basis,
   passives.ied = CombineIgnoredDefense(
       WithoutIgnoredDefense(basis.derived.ied, worn.ied), totals.ied);
 
-  OffenseStats offense =
-      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                      stats, character.weapon_type(), /*attack_skill=*/nullptr,
-                      /*attack_level=*/0, passives);
-  double power = CombatPower(offense, /*vs_boss=*/true);
-  return power * (1.0 - kBossPdr * (1.0 - offense.ied));
+  return OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                         stats, character.weapon_type(),
+                         /*attack_skill=*/nullptr, /*attack_level=*/0,
+                         passives);
+}
+
+// What a character carrying `totals` hits a boss for, in the units the scroll
+// and star offers are ranked in: their own combat power, times what an
+// ignored-defence line moves against what they already ignore. So a cube and
+// a star are compared in one currency.
+double PowerOf(const GameState& state, const CubeBasis& basis,
+               const PotentialTotals& totals) {
+  OffenseStats offense = OffenseWith(state, basis, totals);
+  return CombatPower(offense, /*vs_boss=*/true) * DefenceFactor(offense.ied) /
+         basis.defence;
 }
 
 // What swapping the worn potentials for `totals` is worth in income, priced in
@@ -127,6 +142,8 @@ CubeBasis CubeBasisFor(const GameState& state) {
   const EquipStats sources[] = {state.character.equip_stats(),
                                 basis.derived.skill_stats};
   basis.raw = SumEquipStats(absl::MakeConstSpan(sources));
+  basis.defence = DefenceFactor(
+      OffenseWith(state, basis, state.character.potential_totals()).ied);
   return basis;
 }
 
