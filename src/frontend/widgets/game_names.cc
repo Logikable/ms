@@ -12,6 +12,7 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
 #include "src/item/item.h"
+#include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
@@ -487,6 +488,94 @@ std::string AbilityLineValueText(const AbilityLine& line) {
                        line.type() == ABILITY_LINE_TYPE_MESO;
   const int value = AbilityLineValue(line.type(), line.rank());
   return "+" + std::to_string(value) + (percent ? "%" : "");
+}
+
+std::string PotentialRankName(PotentialRank rank) {
+  static_assert(PotentialRank_ARRAYSIZE == 5,
+                "a new potential rank needs a name");
+  switch (rank) {
+    case POTENTIAL_RANK_RARE:
+      return "Rare";
+    case POTENTIAL_RANK_EPIC:
+      return "Epic";
+    case POTENTIAL_RANK_UNIQUE:
+      return "Unique";
+    case POTENTIAL_RANK_LEGENDARY:
+      return "Legendary";
+    default:
+      return "";
+  }
+}
+
+std::string PotentialLineName(PotentialLineType type) {
+  static_assert(PotentialLineType_ARRAYSIZE == 28,
+                "a new potential line needs a name");
+  switch (type) {
+    case POTENTIAL_LINE_TYPE_STR:
+    case POTENTIAL_LINE_TYPE_STR_PCT:
+      return "STR";
+    case POTENTIAL_LINE_TYPE_DEX:
+    case POTENTIAL_LINE_TYPE_DEX_PCT:
+      return "DEX";
+    case POTENTIAL_LINE_TYPE_INT:
+    case POTENTIAL_LINE_TYPE_INT_PCT:
+      return "INT";
+    case POTENTIAL_LINE_TYPE_LUK:
+    case POTENTIAL_LINE_TYPE_LUK_PCT:
+      return "LUK";
+    case POTENTIAL_LINE_TYPE_ALL_STATS:
+    case POTENTIAL_LINE_TYPE_ALL_STATS_PCT:
+      return "All Stats";
+    case POTENTIAL_LINE_TYPE_MAX_HP:
+    case POTENTIAL_LINE_TYPE_MAX_HP_PCT:
+      return "Max HP";
+    case POTENTIAL_LINE_TYPE_ATTACK_PCT:
+      return "ATT";
+    case POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT:
+      return "MATT";
+    case POTENTIAL_LINE_TYPE_DAMAGE_PCT:
+      return "Damage";
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15:
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30:
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35:
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40:
+      return "Ignore DEF";
+    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30:
+    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35:
+    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40:
+      return "Boss Damage";
+    case POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT:
+      return "Critical Damage";
+    case POTENTIAL_LINE_TYPE_MESO_RATE:
+      return "Meso Drop Rate";
+    case POTENTIAL_LINE_TYPE_ITEM_DROP_RATE:
+      return "Item Drop Rate";
+    case POTENTIAL_LINE_TYPE_COOLDOWN_1:
+    case POTENTIAL_LINE_TYPE_COOLDOWN_2:
+      return "Cooldown";
+    default:
+      return "";
+  }
+}
+
+std::string PotentialLineValueText(const PotentialLine& line, int item_level) {
+  const int value = PotentialLineValue(line.type(), line.rank(), item_level);
+  switch (line.type()) {
+    // The two lines that take something away rather than granting it.
+    case POTENTIAL_LINE_TYPE_COOLDOWN_1:
+    case POTENTIAL_LINE_TYPE_COOLDOWN_2:
+      return "-" + std::to_string(value) + "s";
+    // The flat grants. Everything else is a share of something.
+    case POTENTIAL_LINE_TYPE_STR:
+    case POTENTIAL_LINE_TYPE_DEX:
+    case POTENTIAL_LINE_TYPE_INT:
+    case POTENTIAL_LINE_TYPE_LUK:
+    case POTENTIAL_LINE_TYPE_ALL_STATS:
+    case POTENTIAL_LINE_TYPE_MAX_HP:
+      return "+" + std::to_string(value);
+    default:
+      return "+" + std::to_string(value) + "%";
+  }
 }
 
 std::string HyperStatName(HyperStatField field) {

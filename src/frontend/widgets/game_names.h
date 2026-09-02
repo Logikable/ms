@@ -90,6 +90,18 @@ std::string AbilityLineName(AbilityLineType type);
 // the single swing stage Attack Speed grants.
 std::string AbilityLineValueText(const AbilityLine& line);
 
+// The rank a potential reads as: "Rare" through "Legendary", and "" for an
+// item carrying none.
+std::string PotentialRankName(PotentialRank rank);
+
+// The name a potential line is listed under (e.g. "Boss Damage"). A flat line
+// and its percent twin share one: the value beside it carries the %.
+std::string PotentialLineName(PotentialLineType type);
+
+// What `line` is worth on an item of `item_level`, as the player reads it:
+// "+12", "+9%", and "-2s" for the seconds a cooldown line takes off.
+std::string PotentialLineValueText(const PotentialLine& line, int item_level);
+
 // The tag a skill row opens with: what the player does with the skill, said
 // once at the front of the row instead of being worked out from the name.
 // Four columns wide whichever tag it is, so every name after it starts at the

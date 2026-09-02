@@ -186,6 +186,21 @@ ftxui::Color RarityColor(AbilityRank rank) {
   }
 }
 
+ftxui::Color RarityColor(PotentialRank rank) {
+  static_assert(PotentialRank_ARRAYSIZE == 5,
+                "a new potential rank needs a colour");
+  switch (rank) {
+    case POTENTIAL_RANK_EPIC:
+      return kEpic.ToColor();
+    case POTENTIAL_RANK_UNIQUE:
+      return kUnique.ToColor();
+    case POTENTIAL_RANK_LEGENDARY:
+      return kLegendary.ToColor();
+    default:
+      return kRare.ToColor();
+  }
+}
+
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label) {
   return ProgressBar(frac, fill, std::vector<std::string>{label});

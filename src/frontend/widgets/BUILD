@@ -73,6 +73,7 @@ cc_library(
         "//src/character:hyper_stats",
         "//src/character:inner_ability",
         "//src/item",
+        "//src/item:potential",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",

@@ -12,7 +12,9 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/character/arcane_force.h"
 #include "src/character/character.h"
+#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
@@ -283,6 +285,73 @@ TEST_F(InspectPanelTest, ShowsScrollInfo) {
   // 7 slots, 4 left, 0 successes → 3 restores.
   EXPECT_NE(Render(panel).find("0 Successful Scrolls"), std::string::npos);
   EXPECT_NE(Render(panel).find("4 Left, 3 Restores"), std::string::npos);
+}
+
+// A Legendary potential on a weapon: the middle line came out a rung down,
+// which is what makes the per-line colour worth drawing at all.
+Potential WeaponPotential() {
+  Potential potential;
+  potential.set_rank(POTENTIAL_RANK_LEGENDARY);
+  PotentialLine* first = potential.add_lines();
+  first->set_type(POTENTIAL_LINE_TYPE_LUK_PCT);
+  first->set_rank(POTENTIAL_RANK_LEGENDARY);
+  PotentialLine* second = potential.add_lines();
+  second->set_type(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30);
+  second->set_rank(POTENTIAL_RANK_UNIQUE);
+  PotentialLine* third = potential.add_lines();
+  third->set_type(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35);
+  third->set_rank(POTENTIAL_RANK_LEGENDARY);
+  return potential;
+}
+
+TEST_F(InspectPanelTest, ShowsPotentialUnderTheScrollCount) {
+  sword_.set_required_level(100);
+  sword_.set_upgrade_slots(7);
+  Equip state;
+  *state.mutable_main_potential() = WeaponPotential();
+  EquipInstance item(sword_, state);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("L Legendary Potential"), std::string::npos)
+      << rendered;
+  // What each line is worth is read off the item's level, so a level 100
+  // weapon pays the third band.
+  EXPECT_NE(rendered.find("·  LUK  +12%"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("·  Boss Damage  +30%"), std::string::npos)
+      << rendered;
+  EXPECT_NE(rendered.find("·  Ignore DEF  +35%"), std::string::npos)
+      << rendered;
+  EXPECT_LT(rendered.find("Successful Scroll"),
+            rendered.find("Legendary Potential"));
+}
+
+TEST_F(InspectPanelTest, PaintsEveryPotentialLineItsOwnRank) {
+  sword_.set_required_level(100);
+  Equip state;
+  *state.mutable_main_potential() = WeaponPotential();
+  EquipInstance item(sword_, state);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  ftxui::Screen screen = Draw(panel);
+  // The letter is the rank's colour turned inside out, so it reads as a mark
+  // rather than as another word.
+  EXPECT_TRUE(PixelOf(screen, "L Legendary").inverted);
+  EXPECT_EQ(ColorOf(screen, "L Legendary"), kLegendary.ToColor());
+  EXPECT_EQ(ColorOf(screen, "Legendary Potential"), kLegendary.ToColor());
+  // The dot carries the line's own rank, which the middle one does not share
+  // with the header.
+  EXPECT_EQ(ColorOf(screen, "·  LUK"), kLegendary.ToColor());
+  EXPECT_EQ(ColorOf(screen, "·  Boss Damage"), kUnique.ToColor());
+  // What the line grants stays plain: the rank is the dot's to say.
+  EXPECT_NE(ColorOf(screen, "Boss Damage"), kUnique.ToColor());
+}
+
+TEST_F(InspectPanelTest, AnItemWithNoPotentialSaysNothingAboutIt) {
+  EquipInstance item(sword_);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  EXPECT_EQ(RenderWide(panel).find("Potential"), std::string::npos);
 }
 
 TEST_F(InspectPanelTest, ShowsPercentageStatsUnderTheFlatOnes) {

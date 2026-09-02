@@ -13,6 +13,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/colors.h"
 #include "src/protos/character.pb.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 
@@ -25,6 +26,8 @@ ftxui::Color MarkColor(CurrencyColor color);
 // the text rather than a background, so a row is its rank's colour and the
 // lock beside it stays plain.
 ftxui::Color RarityColor(AbilityRank rank);
+// The same four colours for a potential's rank, which shares the ladder.
+ftxui::Color RarityColor(PotentialRank rank);
 
 // A one-row bar filled to frac (clamped to [0, 1]) in `fill`, `label` centred
 // over it dark-on-filled and light-on-empty. Pass "" for no label.

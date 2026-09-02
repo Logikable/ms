@@ -261,5 +261,41 @@ TEST(AbilityLineTextTest, NamesAndValuesEveryKindOfLine) {
   EXPECT_EQ(AbilityLineName(ABILITY_LINE_TYPE_UNSPECIFIED), "");
 }
 
+// A potential line reads its value off the item's level, and the flat lines,
+// the shares and the two cooldown lines each say it their own way.
+TEST(PotentialLineTextTest, NamesAndValuesEveryKindOfLine) {
+  PotentialLine line;
+  line.set_type(POTENTIAL_LINE_TYPE_LUK_PCT);
+  line.set_rank(POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(PotentialLineName(line.type()), "LUK");
+  EXPECT_EQ(PotentialLineValueText(line, 100), "+12%");
+  // The same line on a lesser item pays a lesser band.
+  EXPECT_EQ(PotentialLineValueText(line, 30), "+6%");
+
+  line.set_type(POTENTIAL_LINE_TYPE_ALL_STATS);
+  line.set_rank(POTENTIAL_RANK_RARE);
+  EXPECT_EQ(PotentialLineName(line.type()), "All Stats");
+  EXPECT_EQ(PotentialLineValueText(line, 100), "+5");
+
+  line.set_type(POTENTIAL_LINE_TYPE_COOLDOWN_2);
+  line.set_rank(POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(PotentialLineName(line.type()), "Cooldown");
+  EXPECT_EQ(PotentialLineValueText(line, 100), "-2s");
+
+  line.set_type(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35);
+  EXPECT_EQ(PotentialLineName(line.type()), "Ignore DEF");
+  EXPECT_EQ(PotentialLineValueText(line, 100), "+35%");
+
+  EXPECT_EQ(PotentialLineName(POTENTIAL_LINE_TYPE_UNSPECIFIED), "");
+}
+
+TEST(PotentialLineTextTest, NamesEveryRank) {
+  EXPECT_EQ(PotentialRankName(POTENTIAL_RANK_RARE), "Rare");
+  EXPECT_EQ(PotentialRankName(POTENTIAL_RANK_EPIC), "Epic");
+  EXPECT_EQ(PotentialRankName(POTENTIAL_RANK_UNIQUE), "Unique");
+  EXPECT_EQ(PotentialRankName(POTENTIAL_RANK_LEGENDARY), "Legendary");
+  EXPECT_EQ(PotentialRankName(POTENTIAL_RANK_UNSPECIFIED), "");
+}
+
 }  // namespace
 }  // namespace ms

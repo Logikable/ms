@@ -546,10 +546,41 @@ std::vector<CardRow> InspectPanel::SlotRows() const {
   };
 }
 
+// The rolled lines. The rank is marked once at the head, and each line's own
+// dot says whether it came out prime: a line a rung down wears the colour of
+// the rank below the header's.
+std::vector<CardRow> InspectPanel::PotentialRows() const {
+  const Potential& potential = item_->potential();
+  if (potential.rank() == POTENTIAL_RANK_UNSPECIFIED) {
+    return {};
+  }
+  const std::string rank = PotentialRankName(potential.rank());
+  const ftxui::Color rank_color = RarityColor(potential.rank());
+  std::vector<CardRow> rows = {
+      RuleRow(ThemedSeparator()),
+      TextRow(ftxui::hbox({
+          ftxui::text(" "),
+          ftxui::text(rank.substr(0, 1)) | ftxui::inverted |
+              ftxui::color(rank_color),
+          ftxui::text(" " + rank + " Potential ") | ftxui::color(rank_color),
+      })),
+  };
+  const int level = item_->prototype().required_level();
+  for (const PotentialLine& line : potential.lines()) {
+    rows.push_back(TextRow(ftxui::hbox({
+        ftxui::text(" ·") | ftxui::color(RarityColor(line.rank())),
+        ftxui::text("  " + PotentialLineName(line.type()) + "  " +
+                    PotentialLineValueText(line, level) + " "),
+    })));
+  }
+  return rows;
+}
+
 CardRows InspectPanel::EquipRows() const {
   std::vector<CardRow> head = HeadRows();
   std::vector<CardRow> stats = StatRows();
   std::vector<CardRow> slots = SlotRows();
+  Append(slots, PotentialRows());
   // What the item has to say sets the width; the two rows that can be folded
   // are measured against it rather than the other way round.
   int fixed =

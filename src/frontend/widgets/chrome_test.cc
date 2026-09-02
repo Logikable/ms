@@ -31,6 +31,11 @@ TEST(RarityColorsTest, WritesEachRankInItsOwnColour) {
   EXPECT_EQ(RarityColor(ABILITY_RANK_EPIC), kEpic.ToColor());
   EXPECT_EQ(RarityColor(ABILITY_RANK_UNIQUE), kUnique.ToColor());
   EXPECT_EQ(RarityColor(ABILITY_RANK_LEGENDARY), kLegendary.ToColor());
+  // A potential shares the ladder, so it shares the four colours.
+  EXPECT_EQ(RarityColor(POTENTIAL_RANK_RARE), kRare.ToColor());
+  EXPECT_EQ(RarityColor(POTENTIAL_RANK_EPIC), kEpic.ToColor());
+  EXPECT_EQ(RarityColor(POTENTIAL_RANK_UNIQUE), kUnique.ToColor());
+  EXPECT_EQ(RarityColor(POTENTIAL_RANK_LEGENDARY), kLegendary.ToColor());
 }
 
 // --- ScrollBar ---

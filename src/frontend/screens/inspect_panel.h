@@ -97,6 +97,9 @@ class InspectPanel {
   std::vector<CardRow> StarRows(int fixed) const;
   std::vector<CardRow> StatRows() const;
   std::vector<CardRow> SlotRows() const;
+  // The rolled lines, under what the item has spent. Empty for an item
+  // carrying no potential, which is every item until a cube goes in.
+  std::vector<CardRow> PotentialRows() const;
   // The set the inspected item is a piece of, or nullptr for an item that
   // belongs to none -- which is every item but a handful.
   const EquipSet* SetOfItem() const;
