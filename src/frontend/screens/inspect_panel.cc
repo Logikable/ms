@@ -546,7 +546,7 @@ std::vector<CardRow> InspectPanel::SlotRows() const {
   };
 }
 
-// The rolled lines. The rank is marked once at the head, and each line's own
+// The rolled lines. The rank is named once at the head, and each line's own
 // dot says whether it came out prime: a line a rung down wears the colour of
 // the rank below the header's.
 std::vector<CardRow> InspectPanel::PotentialRows() const {
@@ -558,17 +558,13 @@ std::vector<CardRow> InspectPanel::PotentialRows() const {
   const ftxui::Color rank_color = RarityColor(potential.rank());
   std::vector<CardRow> rows = {
       RuleRow(ThemedSeparator()),
-      TextRow(ftxui::hbox({
-          ftxui::text(" "),
-          ftxui::text(rank.substr(0, 1)) | ftxui::inverted |
-              ftxui::color(rank_color),
-          ftxui::text(" " + rank + " Potential ") | ftxui::color(rank_color),
-      })),
+      TextRow(ftxui::text(" " + rank + " Potential ") |
+              ftxui::color(rank_color)),
   };
   const int level = item_->prototype().required_level();
   for (const PotentialLine& line : potential.lines()) {
     rows.push_back(TextRow(ftxui::hbox({
-        ftxui::text(" ·") | ftxui::color(RarityColor(line.rank())),
+        ftxui::text(" ●") | ftxui::color(RarityColor(line.rank())),
         ftxui::text("  " + PotentialLineName(line.type()) + "  " +
                     PotentialLineValueText(line, level) + " "),
     })));

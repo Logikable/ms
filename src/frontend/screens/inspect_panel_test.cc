@@ -313,14 +313,14 @@ TEST_F(InspectPanelTest, ShowsPotentialUnderTheScrollCount) {
   InspectPanel panel;
   panel.SetItem(&item);
   std::string rendered = RenderWide(panel);
-  EXPECT_NE(rendered.find("L Legendary Potential"), std::string::npos)
+  EXPECT_NE(rendered.find("Legendary Potential"), std::string::npos)
       << rendered;
   // What each line is worth is read off the item's level, so a level 100
   // weapon pays the third band.
-  EXPECT_NE(rendered.find("·  LUK  +12%"), std::string::npos) << rendered;
-  EXPECT_NE(rendered.find("·  Boss Damage  +30%"), std::string::npos)
+  EXPECT_NE(rendered.find("●  LUK  +12%"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("●  Boss Damage  +30%"), std::string::npos)
       << rendered;
-  EXPECT_NE(rendered.find("·  Ignore DEF  +35%"), std::string::npos)
+  EXPECT_NE(rendered.find("●  Ignore DEF  +35%"), std::string::npos)
       << rendered;
   EXPECT_LT(rendered.find("Successful Scroll"),
             rendered.find("Legendary Potential"));
@@ -334,15 +334,11 @@ TEST_F(InspectPanelTest, PaintsEveryPotentialLineItsOwnRank) {
   InspectPanel panel;
   panel.SetItem(&item);
   ftxui::Screen screen = Draw(panel);
-  // The letter is the rank's colour turned inside out, so it reads as a mark
-  // rather than as another word.
-  EXPECT_TRUE(PixelOf(screen, "L Legendary").inverted);
-  EXPECT_EQ(ColorOf(screen, "L Legendary"), kLegendary.ToColor());
   EXPECT_EQ(ColorOf(screen, "Legendary Potential"), kLegendary.ToColor());
   // The dot carries the line's own rank, which the middle one does not share
   // with the header.
-  EXPECT_EQ(ColorOf(screen, "·  LUK"), kLegendary.ToColor());
-  EXPECT_EQ(ColorOf(screen, "·  Boss Damage"), kUnique.ToColor());
+  EXPECT_EQ(ColorOf(screen, "●  LUK"), kLegendary.ToColor());
+  EXPECT_EQ(ColorOf(screen, "●  Boss Damage"), kUnique.ToColor());
   // What the line grants stays plain: the rank is the dot's to say.
   EXPECT_NE(ColorOf(screen, "Boss Damage"), kUnique.ToColor());
 }
