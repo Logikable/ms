@@ -331,6 +331,7 @@ cc_library(
         "//src/frontend/widgets:format",
         "//src/frontend/widgets:game_names",
         "//src/frontend/widgets:keys",
+        "//src/frontend/widgets:text_columns",
         "//src/item:equip_instance",
         "//src/item:star_force_cost",
         "@ftxui//:component",

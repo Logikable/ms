@@ -173,6 +173,23 @@ TEST_F(StarForcePanelTest, RenderShowsWhatTheAttemptCosts) {
   EXPECT_LT(price, rendered.find("Enhance")) << "the price is below the button";
 }
 
+// The purse stands under the price, labelled: the screen is on its own, so
+// there is nothing else on it saying what the player has to spend.
+TEST_F(StarForcePanelTest, ThePurseStandsUnderThePrice) {
+  EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
+  StarForcePanel panel;
+  panel.SetItem(&item, 98'765'432'100);
+  std::string rendered = Render(panel);
+  size_t cost = rendered.find("Cost");
+  size_t held = rendered.find("Held");
+  ASSERT_NE(held, std::string::npos) << rendered;
+  EXPECT_LT(cost, held) << "the price is read first";
+  EXPECT_NE(rendered.find("98,765,432,100"), std::string::npos);
+  EXPECT_LT(held, rendered.find("Enhance"));
+  // The purse is a fact, not a refusal: only the price ever reddens.
+  EXPECT_NE(PixelOf(panel, "98,765,432,100").foreground_color, kRed);
+}
+
 // The name and the star it is going for are one heading, so the rules start
 // below the two of them rather than between.
 TEST_F(StarForcePanelTest, NoRuleThroughTheHeading) {

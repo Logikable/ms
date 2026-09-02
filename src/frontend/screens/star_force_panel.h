@@ -13,6 +13,7 @@
 #define MS_SRC_FRONTEND_SCREENS_STAR_FORCE_PANEL_H_
 
 #include <cstdint>
+#include <vector>
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
@@ -48,6 +49,8 @@ class StarForcePanel {
   int64_t Cost() const;
   // Whether the purse covers it. False parks the cursor on [Cancel].
   bool Affordable() const;
+  // The price and the purse it comes out of, labelled and in one column.
+  std::vector<ftxui::Element> PriceRows() const;
   // Whether the cursor is on [Cancel] -- either because the player moved it
   // there, or because [Enhance] cannot be pressed. Derived rather than stored,
   // so it is right from the first frame: the panel is handed its item during
