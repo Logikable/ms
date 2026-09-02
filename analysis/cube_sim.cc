@@ -241,13 +241,16 @@ void Run() {
   PrintCost(meso.name, meso_cost);
   PrintCost(drop.name, drop_cost);
   PrintCost(both.name, both_cost);
-  // The farming set the user asked for: five pieces carrying the whole 100%
-  // meso cap, three of them carrying a drop line as well.
+  // The farming set: eight accessories, one wanted line apiece. Five meso
+  // lines fill the 100% the worn share is capped at and three drop lines come
+  // to 60%. Spreading them over eight pieces rather than doubling up on five
+  // is half the price -- a piece asked for two named lines wants the second to
+  // come up prime, and that is the whole difference.
   std::printf(
-      "\n  5 pieces at 20%% meso, 3 of them also 20%% drop:"
-      "\n    %.0f cubes on average -- 2 x %.1f for the meso alone,"
-      " 3 x %.1f for both.\n",
-      2 * meso_cost.mean + 3 * both_cost.mean, meso_cost.mean, both_cost.mean);
+      "\n  8 pieces, one wanted line each -- 5 meso and 3 drop:"
+      "\n    %.0f cubes on average, against %.0f for the same lines"
+      " doubled up on 5 pieces.\n",
+      8 * meso_cost.mean, 2 * meso_cost.mean + 3 * both_cost.mean);
 
   const std::vector<Goal> weapon = {
       {"2 useful lines (%ATT, boss, IED), any rank", PotentialGroup::kWeaponry,
