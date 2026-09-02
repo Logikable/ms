@@ -13,6 +13,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/boss_reset.h"
 #include "src/character/honor.h"
+#include "src/combat/drop.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
@@ -355,17 +356,6 @@ void BossSelectPanel::RenderPhaseHp(std::vector<ftxui::Element>& rows,
   }
 }
 
-std::string BossSelectPanel::RewardName(const MobDrop& drop) const {
-  if (drop.has_equip()) {
-    std::map<std::string, EquipPrototype>::const_iterator it =
-        state_.equips.find(drop.equip());
-    return it == state_.equips.end() ? "" : it->second.name();
-  }
-  std::map<std::string, ItemPrototype>::const_iterator it =
-      state_.items.find(drop.item());
-  return it == state_.items.end() ? "" : it->second.name();
-}
-
 void BossSelectPanel::RenderRewards(std::vector<ftxui::Element>& rows,
                                     const BossDifficulty& difficulty) const {
   // The meso first: it is the one thing a clear always pays, and everything
@@ -387,33 +377,33 @@ void BossSelectPanel::RenderRewards(std::vector<ftxui::Element>& rows,
     rows.push_back(DetailRow("Honor", FormatWithCommas(kBossClearHonor)));
     ++named;
   }
-  // The gear last and apart, commonest first: what a clear always pays reads
+  // The prizes last and apart, commonest first: what a clear always pays reads
   // as one block, and the drop a player is here for is at the bottom of it. A
   // drop no catalog holds names nothing and is left out here, before its place
   // in the list is counted.
-  std::vector<const MobDrop*> items;
-  std::vector<const MobDrop*> equips;
+  std::vector<const MobDrop*> paid;
+  std::vector<const MobDrop*> prizes;
   for (const MobDrop& drop : difficulty.drops()) {
-    if (RewardName(drop).empty()) {
+    if (DropName(state_, drop).empty()) {
       continue;
     }
-    (drop.has_equip() ? equips : items).push_back(&drop);
+    (DropIsPrize(state_, drop) ? prizes : paid).push_back(&drop);
   }
-  std::stable_sort(equips.begin(), equips.end(),
+  std::stable_sort(prizes.begin(), prizes.end(),
                    [](const MobDrop* a, const MobDrop* b) {
                      return a->per_kill() > b->per_kill();
                    });
-  for (const MobDrop* drop : items) {
+  for (const MobDrop* drop : paid) {
     RenderDropRow(rows, *drop);
   }
-  named += static_cast<int>(items.size());
-  if (!equips.empty() && named > 0) {
+  named += static_cast<int>(paid.size());
+  if (!prizes.empty() && named > 0) {
     rows.push_back(ThemedSeparator());
   }
-  for (const MobDrop* drop : equips) {
+  for (const MobDrop* drop : prizes) {
     RenderDropRow(rows, *drop);
   }
-  named += static_cast<int>(equips.size());
+  named += static_cast<int>(prizes.size());
   if (named == 0) {
     rows.push_back(EmptyState("empty"));
   }
@@ -421,7 +411,7 @@ void BossSelectPanel::RenderRewards(std::vector<ftxui::Element>& rows,
 
 void BossSelectPanel::RenderDropRow(std::vector<ftxui::Element>& rows,
                                     const MobDrop& drop) const {
-  std::string name = RewardName(drop);
+  std::string name = DropName(state_, drop);
   // Wrapped rather than cut, and rather than let the panel grow: these are the
   // longest names in the game, and half of one names nothing. The chance sits
   // on the last line of the name, where a one-line name puts it in the same

@@ -64,8 +64,14 @@ std::map<std::string, ItemPrototype> DropItems() {
   ItemPrototype shard;
   shard.set_name("Zakum's Soul Shard");
   shard.set_category(ITEM_CATEGORY_ETC);
+  shard.set_kind(ITEM_KIND_SOUL_SHARD);
   shard.set_max_stack(100);
-  return {{"shard", shard}};
+  ItemPrototype token;
+  token.set_name("Cygnus Shoulder Token");
+  token.set_category(ITEM_CATEGORY_ETC);
+  token.set_kind(ITEM_KIND_TOKEN);
+  token.set_max_stack(100);
+  return {{"shard", shard}, {"token", token}};
 }
 
 std::map<std::string, EquipPrototype> DropEquips() {
@@ -476,21 +482,38 @@ TEST(BossRunTest, DropRateDoesNotDoubleACertainDrop) {
   ASSERT_TRUE(run.won());
   ASSERT_EQ(run.reward().items.size(), 1u);
   EXPECT_EQ(run.reward().items[0].count, 1);
-  EXPECT_FALSE(run.reward().items[0].equip);
+  EXPECT_FALSE(run.reward().items[0].prize);
   EXPECT_EQ(state->character.CountStackable(DropItems().at("shard")), 1);
 }
 
-// The card lists the gear apart from the rest, so a clear says which of its
-// rows is the piece the player came for.
-TEST(BossRunTest, AClearMarksWhichDropsAreGear) {
+// The card lists the prizes apart from the rest, at the rate they fell at, so
+// it can say which of its rows is what the player came for and lead with the
+// rarest of them.
+TEST(BossRunTest, AClearMarksWhichDropsArePrizesAndAtWhatRate) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = RewardingBoss(/*mark_chance=*/1.0);
   BossRun run("zakum", boss, 0);
   RunToEnd(run, *state);
 
   ASSERT_EQ(run.reward().items.size(), 2u);
-  EXPECT_TRUE(run.reward().items[0].equip);
-  EXPECT_FALSE(run.reward().items[1].equip);
+  EXPECT_TRUE(run.reward().items[0].prize);
+  EXPECT_DOUBLE_EQ(run.reward().items[0].chance, 1.0);
+  EXPECT_FALSE(run.reward().items[1].prize);
+  EXPECT_DOUBLE_EQ(run.reward().items[1].chance, 1.0);
+}
+
+// A token is a prize too: the shop trades it for a piece of gear, so it is
+// listed with the gear rather than with what every clear pays.
+TEST(BossRunTest, ATokenIsAPrize) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = RewardingBoss(/*mark_chance=*/0.0);
+  boss.mutable_difficulties(0)->mutable_drops(1)->set_item("token");
+  BossRun run("zakum", boss, 0);
+  RunToEnd(run, *state);
+
+  ASSERT_EQ(run.reward().items.size(), 1u);
+  EXPECT_EQ(run.reward().items[0].name, "Cygnus Shoulder Token");
+  EXPECT_TRUE(run.reward().items[0].prize);
 }
 
 // A drop that misses its roll is not on the card. Over many runs it lands

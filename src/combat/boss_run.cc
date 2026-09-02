@@ -10,6 +10,7 @@
 
 #include "src/character/honor.h"
 #include "src/combat/combat.h"
+#include "src/combat/drop.h"
 #include "src/combat/encounter.h"
 #include "src/combat/loot.h"
 #include "src/game_state.h"
@@ -436,8 +437,9 @@ void BossRun::PayReward(GameState& state,
     int64_t granted = GrantDrop(state, award.drop, award.count);
     std::string name = DropName(state, award.drop);
     if (granted > 0 && !name.empty()) {
-      reward_.items.push_back(
-          {std::move(name), granted, award.drop.has_equip()});
+      reward_.items.push_back({std::move(name), granted,
+                               DropIsPrize(state, award.drop),
+                               award.drop.per_kill()});
     }
   }
 }

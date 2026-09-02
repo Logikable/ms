@@ -706,6 +706,7 @@ cc_library(
         "//src:spawn",
         "//src/character:boss_reset",
         "//src/character:honor",
+        "//src/combat:drop",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:format",

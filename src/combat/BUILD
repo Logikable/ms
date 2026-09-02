@@ -67,6 +67,34 @@ cc_library(
     deps = ["//src/protos:mob_proto_cc"],
 )
 
+cc_library(
+    name = "drop",
+    srcs = ["drop.cc"],
+    hdrs = ["drop.h"],
+    deps = [
+        "//src:game_state",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:mob_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "drop_test",
+    size = "small",
+    srcs = ["drop_test.cc"],
+    deps = [
+        ":drop",
+        "//src:game_state",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "loot_test",
     size = "small",
@@ -83,6 +111,7 @@ cc_library(
     srcs = ["combat.cc"],
     hdrs = ["combat.h"],
     deps = [
+        ":drop",
         ":encounter",
         ":fight",
         ":loot",
@@ -151,6 +180,7 @@ cc_library(
     deps = [
         ":boss_timing",
         ":combat",
+        ":drop",
         ":encounter",
         ":fight",
         ":fight_authority",

@@ -271,6 +271,34 @@ TEST(BossSelectPanelTest, TheGearIsRuledOffAndOrderedByChance) {
   EXPECT_NE(rows[shard_row + 1].find("\u2500"), std::string::npos);
 }
 
+// A token buys a piece of gear, so it is ruled off with the gear rather than
+// read as one more thing every clear pays.
+TEST(BossSelectPanelTest, ATokenIsRuledOffWithTheGear) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  ItemPrototype shard;
+  shard.set_name("Shard");
+  shard.set_kind(ITEM_KIND_SOUL_SHARD);
+  state.items["shard"] = shard;
+  ItemPrototype token;
+  token.set_name("Token");
+  token.set_kind(ITEM_KIND_TOKEN);
+  state.items["token"] = token;
+  BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
+  MobDrop* token_drop = normal->add_drops();
+  token_drop->set_item("token");
+  token_drop->set_per_kill(1.0);
+  MobDrop* shard_drop = normal->add_drops();
+  shard_drop->set_item("shard");
+  shard_drop->set_per_kill(1.0);
+
+  BossSelectPanel panel(state);
+  std::vector<std::string> rows = RenderRows(panel);
+  int shard_row = RowOf(rows, "Shard");
+  ASSERT_EQ(RowOf(rows, "Token"), shard_row + 2);
+  EXPECT_NE(rows[shard_row + 1].find("\u2500"), std::string::npos);
+}
+
 // The names are the longest strings on this screen, and a row that ran past
 // the label and value columns used to push the whole panel wider than the
 // detail rows it stands among.

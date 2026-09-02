@@ -11,6 +11,7 @@
 #include "src/character/character.h"
 #include "src/character/consumables.h"
 #include "src/character/honor.h"
+#include "src/combat/drop.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/combat/loot.h"
@@ -43,17 +44,6 @@ void TallyItem(RewardTally& tally, const std::string& name, int64_t count,
 }
 
 }  // namespace
-
-std::string DropName(const GameState& state, const MobDrop& drop) {
-  if (drop.has_equip()) {
-    std::map<std::string, EquipPrototype>::const_iterator it =
-        state.equips.find(drop.equip());
-    return it == state.equips.end() ? "" : it->second.name();
-  }
-  std::map<std::string, ItemPrototype>::const_iterator it =
-      state.items.find(drop.item());
-  return it == state.items.end() ? "" : it->second.name();
-}
 
 int64_t GrantDrop(GameState& state, const MobDrop& drop, int64_t count) {
   if (drop.has_equip()) {

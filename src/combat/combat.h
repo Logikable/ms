@@ -83,13 +83,6 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
 // Shared with the boss runs, which pay a cleared fight's table through it.
 int64_t GrantDrop(GameState& state, const MobDrop& drop, int64_t count);
 
-// The name the player knows a drop by, or empty for one neither catalog has
-// heard of. The drop names a catalog key; what is shown is the prototype's own
-// name.
-//
-// Shared with the boss runs, whose clear card names what the fight paid.
-std::string DropName(const GameState& state, const MobDrop& drop);
-
 }  // namespace ms
 
 #endif  // MS_SRC_COMBAT_COMBAT_H_

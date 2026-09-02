@@ -42,8 +42,8 @@ BossReward FullReward() {
   reward.meso = 3062500;
   reward.exp = 4611597;
   reward.honor = 150;
-  reward.items.push_back({"Condensed Power Crystal", 1, /*equip=*/true});
-  reward.items.push_back({"Zakum's Soul Shard", 3});
+  reward.items.push_back({"Condensed Power Crystal", 1, /*prize=*/true, 1.0});
+  reward.items.push_back({"Zakum's Soul Shard", 3, /*prize=*/false, 1.0});
   return reward;
 }
 
@@ -73,8 +73,8 @@ TEST(BossClearPanelTest, TheHonorWaitsForInnerAbility) {
   EXPECT_TRUE(AnyRowHas(screen, "3,062,500 meso"));
 }
 
-// The gear is ruled off from the meso, the EXP, the honor and the shard, and
-// sits under them however the table listed it.
+// The prizes are ruled off from the meso, the EXP, the honor and the shard,
+// and sit under them.
 TEST(BossClearPanelTest, ARuleDividesWhatWasPaidFromTheGear) {
   ftxui::Screen screen = RenderCard(FullReward());
   int shard = RowOf(screen, "Zakum's Soul Shard");
@@ -89,11 +89,41 @@ TEST(BossClearPanelTest, ARuleDividesWhatWasPaidFromTheGear) {
 // the one line it has.
 TEST(BossClearPanelTest, GearAloneIsNotRuledOffFromNothing) {
   BossReward reward;
-  reward.items.push_back({"Condensed Power Crystal", 1, /*equip=*/true});
+  reward.items.push_back({"Condensed Power Crystal", 1, /*prize=*/true, 1.0});
   ftxui::Screen screen = RenderCard(reward);
   // Straight under the card's own rule, with nothing ruled off above it.
   EXPECT_EQ(RowOf(screen, "Condensed Power Crystal"),
             RowOf(screen, "Normal Zakum") + 2);
+}
+
+// The rarest thing a clear paid is the line the player is looking for, so it
+// leads its group -- the reverse of the Fight panel, which lists what might
+// fall rather than what did.
+TEST(BossClearPanelTest, TheRarestPrizeLeadsTheGroup) {
+  BossReward reward;
+  reward.meso = 3062500;
+  reward.items.push_back({"Common Ring", 1, /*prize=*/true, 0.5});
+  reward.items.push_back({"Rare Earring", 1, /*prize=*/true, 0.05});
+  reward.items.push_back({"Middling Belt", 1, /*prize=*/true, 0.2});
+  ftxui::Screen screen = RenderCard(reward);
+
+  EXPECT_LT(RowOf(screen, "Rare Earring"), RowOf(screen, "Middling Belt"));
+  EXPECT_LT(RowOf(screen, "Middling Belt"), RowOf(screen, "Common Ring"));
+}
+
+// A token buys a piece of gear, so it is one of the prizes: under the rule,
+// ordered among them.
+TEST(BossClearPanelTest, ATokenStandsWithTheGear) {
+  BossReward reward;
+  reward.meso = 10300000;
+  reward.items.push_back({"Cygnus's Soul Shard", 1, /*prize=*/false, 1.0});
+  reward.items.push_back({"Cygnus Shoulder Token", 1, /*prize=*/true, 1.0});
+  ftxui::Screen screen = RenderCard(reward);
+
+  int shard = RowOf(screen, "Cygnus's Soul Shard");
+  int token = RowOf(screen, "Cygnus Shoulder Token");
+  ASSERT_EQ(token, shard + 2);
+  EXPECT_NE(ScreenRows(screen)[shard + 1].find("\u2500"), std::string::npos);
 }
 
 // A clear that rolled nothing still says so rather than leaving a gap where

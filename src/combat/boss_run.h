@@ -77,9 +77,13 @@ struct DamageStack {
 struct BossRewardItem {
   std::string name;
   int64_t count = 0;
-  // True for a piece of gear. The card reads it: an equip is what a player
-  // came for, and it is listed apart from the meso and the shard.
-  bool equip = false;
+  // DropIsPrize: the gear, or the token that buys a piece of it. The card
+  // reads it, and lists what the player came for apart from what every clear
+  // pays.
+  bool prize = false;
+  // The rate the table dropped it at, before any drop rate. The card sorts on
+  // it, so the rarest thing a clear paid is the top line of its group.
+  double chance = 0.0;
 };
 
 // What a cleared fight paid. What actually landed, not what the table offers:
