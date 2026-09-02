@@ -458,6 +458,27 @@ TEST(BossRunTest, AFightThatRanOutOfTimePaysNothing) {
   EXPECT_TRUE(run.reward().items.empty());
 }
 
+// Drop rate lifts a chance and never a certainty: the shard the table
+// guarantees is one shard, not one and a fifth of a second roll.
+TEST(BossRunTest, DropRateDoesNotDoubleACertainDrop) {
+  std::unique_ptr<GameState> state = MakeState();
+  EquipPrototype hat;
+  hat.set_name("Lucky Hat");
+  hat.set_equip_slot(EQUIP_SLOT_HAT);
+  hat.mutable_base_stats()->set_item_drop_rate(200);
+  state->character.PickUp(std::make_unique<EquipInstance>(hat));
+  state->character.Equip(0);
+
+  Boss boss = RewardingBoss(/*mark_chance=*/0.0);
+  BossRun run("zakum", boss, 0);
+  RunToEnd(run, *state);
+
+  ASSERT_TRUE(run.won());
+  ASSERT_EQ(run.reward().items.size(), 1u);
+  EXPECT_EQ(run.reward().items[0].count, 1);
+  EXPECT_EQ(state->character.CountStackable(DropItems().at("shard")), 1);
+}
+
 // A drop that misses its roll is not on the card. Over many runs it lands
 // about half the time, which is what the table asks for.
 TEST(BossRunTest, AChanceDropIsRolledFor) {

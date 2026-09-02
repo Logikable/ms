@@ -301,20 +301,33 @@ TEST(FightDropsTest, EveryUnitOfARepeatedDropIsDealt) {
 }
 
 // The party brings a drop rate along for everybody, so the roll takes the
-// best one anyone is carrying.
+// best one anyone is carrying: a coin flip the one rich player turns into a
+// certainty for all of them.
 TEST(FightDropsTest, TheBestDropRateInThePartyRollsTheDrops) {
+  Boss boss = Dropping(0.5);
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("p1-1", "zakum", boss, 0, mobs, PartyOf(3));
+  FightUpdate rich;
+  rich.set_item_drop_pct(1.0);
+  fight.Report("three", rich);
+  fight.Report("two", FightUpdate());
+  Clear(fight);
+
+  EXPECT_EQ(TotalAwards(fight), 1);
+}
+
+// Drop rate lifts a chance, never a certainty: a guaranteed drop is one copy
+// however much of it the party is carrying.
+TEST(FightDropsTest, DropRateDoesNotDoubleACertainDrop) {
   Boss boss = Dropping(1.0);
   std::map<std::string, Mob> mobs = Mobs();
   PartyFight fight("p1-1", "zakum", boss, 0, mobs, PartyOf(3));
   FightUpdate rich;
   rich.set_item_drop_pct(2.0);
-  fight.Report("three", rich);
-  fight.Report("two", FightUpdate());
+  fight.Report("one", rich);
   Clear(fight);
 
-  // Tripled by the one player carrying it, not left alone by the two who
-  // are not.
-  EXPECT_EQ(TotalAwards(fight), 3);
+  EXPECT_EQ(TotalAwards(fight), 1);
 }
 
 TEST(FightDropsTest, NothingIsDealtToAPlayerWhoHasGone) {

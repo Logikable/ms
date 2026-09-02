@@ -39,6 +39,27 @@ TEST(RollDropsTest, ARateAboveOnePaysItsWholePartEveryTime) {
   }
 }
 
+// Drop rate lifts the chance and not the copies: a boss's table is paid once,
+// so a certain drop stays one however much drop gear is worn, and a rate
+// stating two of something states two.
+TEST(BossDropRateTest, LiftsTheChanceButNeverTheCertainty) {
+  EXPECT_DOUBLE_EQ(BossDropRate(1.0, 2.0), 1.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(0.4, 1.0), 0.8);
+  EXPECT_DOUBLE_EQ(BossDropRate(0.4, 4.0), 1.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(2.0, 3.0), 2.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(2.5, 1.0), 3.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(0.5, 0.0), 0.5);
+}
+
+TEST(BossDropRateTest, NothingComesOfNothing) {
+  EXPECT_DOUBLE_EQ(BossDropRate(0.0, 1.0), 0.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(-1.0, 1.0), 0.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(std::numeric_limits<double>::quiet_NaN(), 1.0),
+                   0.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(0.5, std::numeric_limits<double>::quiet_NaN()),
+                   0.5);
+}
+
 TEST(RollDropsTest, NothingComesOfNothing) {
   std::mt19937 rng(3);
   EXPECT_EQ(RollDrops(0.0, 1000, rng), 0);

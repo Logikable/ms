@@ -58,6 +58,13 @@ int64_t RollMeso(const Mob& mob, int64_t kills, double item_drop_pct,
 // rolls the rest. A non-finite or non-positive rate yields no drops.
 int64_t RollDrops(double per_kill, int64_t kills, std::mt19937& rng);
 
+// The rate one line of a boss's table is rolled at, for a character carrying
+// `item_drop_pct` extra drop rate. A boss pays its table once, so drop gear
+// lifts the chance and not the copies: the whole part of the rate stands as
+// the table wrote it, and what is boosted is the fraction over it, capped at
+// certain as MesoDropChance is.
+double BossDropRate(double per_kill, double item_drop_pct);
+
 }  // namespace ms
 
 #endif  // MS_SRC_COMBAT_LOOT_H_
