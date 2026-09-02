@@ -242,6 +242,10 @@ class CombatSim {
   // being fought. Leaves the swing clock alone, since whether a top-up should
   // interrupt the swing depends on why it happened.
   void TopUp(const CombatParams& params);
+  // Puts the healthiest of the roster at the front, so a swing too narrow to
+  // reach all of it spends itself on the monsters that will outlast it.
+  // Nothing at all on a map -- see CombatParams::focus_healthiest.
+  void AimAtHealthiest(const CombatParams& params);
   // The share of the player's pool a landed `attack` puts back through the
   // chances it rolled. Returned rather than paid here because a strike knows
   // nothing about the pool -- see Proc.

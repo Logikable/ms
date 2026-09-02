@@ -426,6 +426,14 @@ struct CombatParams {
   // Freeze Stacks the character can hold at once. 0 for everyone who holds
   // none, which switches the whole mechanism off.
   int freeze_cap = 0;
+  // Whether a swing picks the healthiest of the roster rather than whatever
+  // stands at the front of the queue. On for a boss, whose parts differ in HP
+  // and none of which respawns: a swing too narrow to reach the whole of it
+  // spends itself on the parts that would otherwise outlast the fight, and
+  // every part stays standing to take a hit rather than the reach idling once
+  // the small ones are dead. Off on a map, where a roster of one kind of
+  // monster is refilled on the beat.
+  bool focus_healthiest = false;
   // Whether the fight should record every line it lands, for a caller drawing
   // the damage as numbers. The boss screen asks for it; the map does not, and
   // neither do the sims, which step the fight millions of times.

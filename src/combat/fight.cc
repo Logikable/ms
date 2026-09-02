@@ -62,6 +62,17 @@ void CombatSim::TopUp(const CombatParams& params) {
   std::shuffle(queue_.begin() + first_new, queue_.end(), rng_);
 }
 
+void CombatSim::AimAtHealthiest(const CombatParams& params) {
+  if (!params.focus_healthiest || queue_.size() < 2) {
+    return;
+  }
+  // Stable, so parts standing on the same HP keep the order they spawned in
+  // and a fight plays out the same way twice.
+  std::stable_sort(
+      queue_.begin(), queue_.end(),
+      [](const QueuedMob& a, const QueuedMob& b) { return a.hp > b.hp; });
+}
+
 // How many of the queue one swing of `attack` lands on. A scattered swing is
 // held to the strikes it throws as well as to its reach: eleven flames cannot
 // burn a twelfth enemy, and one that took no strike takes no mark either.
@@ -1745,6 +1756,10 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   // After the hit and before the swing, so a fountain is worth something on
   // the step it was needed rather than only on the next one.
   RunRegen(params, dt);
+  // Before anything swings, so the summons and the character's own attack
+  // both pick their targets off one order -- and so the swing is CHOSEN
+  // against the monsters it is about to hit.
+  AimAtHealthiest(params);
   RunAutoCasts(params, dt);
   // After the summons and before the swing, so a burn lit last step has landed
   // its ticks before this step's swing decides what is worth hitting. The

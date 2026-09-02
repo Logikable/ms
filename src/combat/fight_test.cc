@@ -523,6 +523,36 @@ TEST(CombatSimTest, APiercingSwingIsChosenForWhatItsGainIsWorth) {
   EXPECT_EQ(without.attack_name(), "Bolt Burst");
 }
 
+// A boss's parts differ in HP and none of them respawns, so a swing too narrow
+// for the whole roster has to spend itself on the parts that will outlast it:
+// kill the small ones first and the reach idles for the rest of the fight.
+// Four parts with three of them reachable clear in six swings picking the
+// healthiest, where taking the front of the queue takes eight.
+TEST(CombatSimTest, ABossSwingPicksTheHealthiestOfTheRoster) {
+  std::vector<Mob> mobs;
+  for (int i = 0; i < 4; ++i) {
+    mobs.push_back(MakeMob("Part" + std::to_string(i), 1000));
+  }
+  std::vector<TypeSpec> specs;
+  for (const Mob& mob : mobs) {
+    specs.push_back(MakeType(&mob, 250.0, 1));
+  }
+  CombatParams params = MakeParams(1.0, 1e9, specs, /*reach=*/3);
+  std::vector<int> swings;
+  for (bool focus : {true, false}) {
+    params.focus_healthiest = focus;
+    CombatSim sim;
+    int taken = 0;
+    while (taken < 20 && (taken == 0 || !sim.roster().empty())) {
+      sim.Advance(params, 1.0);
+      ++taken;
+    }
+    swings.push_back(taken);
+  }
+  EXPECT_EQ(swings[0], 6);
+  EXPECT_EQ(swings[1], 8);
+}
+
 // Which enemy the arrow meets first is drawn fresh, so the gain does not
 // always fall on the same end of the queue. Without this the front mob would
 // take the plain hit every swing of the fight.

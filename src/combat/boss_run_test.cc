@@ -3,7 +3,9 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -497,7 +499,8 @@ TEST(BossRunTest, ASwingLeavesAStackOnWhatItHit) {
 }
 
 // One monster holds one stack per source: the swing keeps rewriting its own
-// numbers rather than piling a second lot beside them.
+// numbers rather than piling a second lot beside them. Two arms stand here and
+// the swing takes the healthier of them, so the count to watch is per arm.
 TEST(BossRunTest, ASwingReplacesItsOwnNumbers) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1);
   Boss boss = TwoPhaseBoss();
@@ -508,17 +511,18 @@ TEST(BossRunTest, ASwingReplacesItsOwnNumbers) {
   // Three seconds of swinging, which is several swings inside one stack's life:
   // without the rule they would pile up beside each other.
   int landed = 0;
-  double age = run.damage_stacks()[0].age;
+  std::map<int, double> age;  // the age of the stack each arm is holding
   for (int step = 0; step < 60; ++step) {
     run.Advance(*state, 0.05);
-    ASSERT_LE(run.damage_stacks().size(), 1u) << "at step " << step;
-    if (run.damage_stacks().empty()) {
-      age = kDamageStackSeconds;
-      continue;
+    std::set<int> held;
+    for (const DamageStack& stack : run.damage_stacks()) {
+      ASSERT_TRUE(held.insert(stack.mob_id).second)
+          << "two stacks on one arm at step " << step;
+      // A stack younger than the one that arm held is a fresh one in its place.
+      std::map<int, double>::iterator was = age.find(stack.mob_id);
+      landed += was == age.end() || stack.age < was->second ? 1 : 0;
+      age[stack.mob_id] = stack.age;
     }
-    // A stack younger than the one before it is a fresh one in its place.
-    landed += run.damage_stacks()[0].age < age ? 1 : 0;
-    age = run.damage_stacks()[0].age;
   }
   EXPECT_GT(landed, 1) << "several swings landed";
 }

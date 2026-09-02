@@ -1409,6 +1409,8 @@ CombatParams ComputeBossParams(const GameState& state,
   }
   AddAttacks(state, derived, *weapon, 1.0, StatPreset::kBossing, params);
   HalveBossReach(params);
+  // A boss's parts are hit hardest-first: see CombatParams::focus_healthiest.
+  params.focus_healthiest = true;
   // The boss screen draws every line as a number, which the map does not.
   params.record_damage_lines = true;
   params.active = true;
