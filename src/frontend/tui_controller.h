@@ -635,14 +635,11 @@ class TuiController {
   int buy_back_row_ = 0;
   int& panel_focus_;
   Screen screen_ = kMain;
-  // Each modal remembers the item it was opened on. Where that item lives is
-  // settled once, when the player picks it, so nothing downstream has to ask
-  // which panel had focus at the time.
-  ItemRef scroll_ref_;
-  ItemRef inspect_ref_;
-  ItemRef star_force_ref_;
-  ItemRef cube_ref_;
-  ItemRef hammer_ref_;
+  // The item the open modal was opened on. Where it lives is settled once,
+  // when the player picks it, so nothing downstream has to ask which panel had
+  // focus at the time. One ref for every modal, because one modal is open at a
+  // time: each accessor below gates on screen_, which is what says whose it is.
+  ItemRef subject_;
   // Recovery is a bag-only affair: a trace cannot be worn.
   int trace_index_ = 0;
   // See right_card_focused(). False on every screen that opens, so the arrows

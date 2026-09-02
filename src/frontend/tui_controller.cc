@@ -328,7 +328,7 @@ const EquipTabItem* TuiController::inspect_item() const {
   if (screen_ != kInspect) {
     return nullptr;
   }
-  return inspect_ref_.Get(state_.character);
+  return subject_.Get(state_.character);
 }
 
 const ItemPrototype* TuiController::item_inspect_item() const {
@@ -348,7 +348,7 @@ const EquipInstance* TuiController::scroll_item() const {
   if (screen_ != kScrollSelect && screen_ != kScrollResult) {
     return nullptr;
   }
-  return scroll_ref_.GetInstance(state_.character);
+  return subject_.GetInstance(state_.character);
 }
 
 // Keys on the main view, once every screen above it has had its say. A back
@@ -559,24 +559,27 @@ void TuiController::EnsureFocusIsVisible() {
 }
 
 Screen TuiController::SeedUpgradeScreen(Screen next) {
+  if (next != kScrollSelect && next != kStarForce && next != kCubing &&
+      next != kHammer) {
+    return next;
+  }
+  // All four are about the item under the cursor, settled here so nothing
+  // downstream asks which panel had focus.
+  subject_ = SelectedItem();
   if (next == kScrollSelect) {
-    scroll_ref_ = SelectedItem();
     OpenInspectCards();
   }
   if (next == kStarForce) {
-    star_force_ref_ = SelectedItem();
     star_force_panel_.ResetConfirm();
     preview_inspect_panel_.Reset();
     OpenInspectCards();
   }
   if (next == kCubing) {
-    cube_ref_ = SelectedItem();
     cube_panel_.Reset();
     OpenInspectCards();
   }
   if (next == kHammer) {
-    hammer_ref_ = SelectedItem();
-    const EquipInstance* item = hammer_ref_.GetInstance(state_.character);
+    const EquipInstance* item = subject_.GetInstance(state_.character);
     if (item == nullptr || !item->CanHammer()) {
       // The entry stands on a piece that has taken both of its hammers, and
       // says so when pressed: a row that vanished at the second one would
@@ -665,7 +668,7 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   }
   GrantLevelRewards(state_, level_before, state_.character.proto().level());
   if (next == kInspect) {
-    inspect_ref_ = SelectedItem();
+    subject_ = SelectedItem();
   }
   if (next == kInspect || next == kItemInspect) {
     OpenInspectCards();
@@ -752,7 +755,7 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     scroll_panel_.OpenConfirm();
   }
   if (choice == ConfirmChoice::kConfirmed) {
-    const EquipInstance* item = scroll_ref_.GetInstance(state_.character);
+    const EquipInstance* item = subject_.GetInstance(state_.character);
     std::string equip_name = item->prototype().name();
     const Scroll& scroll = scroll_panel_.selected_scroll();
     // Paid for before it is used, and only used if it was paid for. The panel
@@ -762,7 +765,7 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
                                            scroll_panel_.CostOfSelected())) {
       return true;
     }
-    ScrollOutcome outcome = ScrollItem(state_.character, scroll_ref_, scroll);
+    ScrollOutcome outcome = ScrollItem(state_.character, subject_, scroll);
     int slots_remaining =
         item ? item->equip_state().remaining_upgrade_slots() : 0;
     scroll_result_ = {outcome, equip_name, scroll.name(), slots_remaining,
@@ -991,7 +994,7 @@ const EquipInstance* TuiController::star_force_item() const {
   if (screen_ != kStarForce) {
     return nullptr;
   }
-  return star_force_ref_.GetInstance(state_.character);
+  return subject_.GetInstance(state_.character);
 }
 
 bool TuiController::OnStarForceEvent(ftxui::Event event) {
@@ -1030,7 +1033,7 @@ bool TuiController::OnStarForceEvent(ftxui::Event event) {
   if (choice == ConfirmChoice::kConfirmed) {
     std::string equip_name = item->prototype().name();
     int stars_before = item->stars();
-    StarForceOutcome outcome = StarForceItem(state_.character, star_force_ref_);
+    StarForceOutcome outcome = StarForceItem(state_.character, subject_);
     int stars_after = stars_before + (outcome == kStarForceSuccess ? 1 : 0);
     star_force_result_ = {outcome, equip_name, stars_before, stars_after};
     OpenNotice(kStarForceResult);
@@ -1042,7 +1045,7 @@ const EquipInstance* TuiController::cube_item() const {
   if (screen_ != kCubing) {
     return nullptr;
   }
-  return cube_ref_.GetInstance(state_.character);
+  return subject_.GetInstance(state_.character);
 }
 
 bool TuiController::OnCubeEvent(ftxui::Event event) {
@@ -1075,7 +1078,7 @@ bool TuiController::OnCubeEvent(ftxui::Event event) {
     // The window stays up over the item it just rerolled, which is the whole
     // point of it: the player watches the lines change and presses again.
     const PotentialRank before = cube_item()->potential().rank();
-    CubeItem(state_.character, cube_ref_, cube_panel_.selected_cube());
+    CubeItem(state_.character, subject_, cube_panel_.selected_cube());
     // The first cube into a bare item always hands over a Rare potential, so
     // it is a grant rather than a rank up and the window stays steel blue.
     cube_panel_.SetRankUp(before != POTENTIAL_RANK_UNSPECIFIED &&
@@ -1090,7 +1093,7 @@ bool TuiController::OnHammerEvent(ftxui::Event event) {
     return true;
   }
   if (choice == ConfirmChoice::kConfirmed) {
-    HammerItem(state_.character, hammer_ref_);
+    HammerItem(state_.character, subject_);
   }
   screen_ = kMain;
   return true;
