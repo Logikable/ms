@@ -85,10 +85,15 @@ class BossSelectPanel {
   // it is matters.
   void RenderPhaseHp(std::vector<ftxui::Element>& rows,
                      const BossDifficulty& difficulty) const;
-  // Appends the reward rows -- the clear's meso, then a name and a chance per
-  // drop -- to the detail panel.
+  // Appends the reward rows to the detail panel: what every clear pays, then
+  // the drops -- the shard and its like, then the gear under a rule of its
+  // own, commonest first.
   void RenderRewards(std::vector<ftxui::Element>& rows,
                      const BossDifficulty& difficulty) const;
+  // Appends one drop's name and chance, wrapping a name too long for the
+  // panel.
+  void RenderDropRow(std::vector<ftxui::Element>& rows,
+                     const MobDrop& drop) const;
   // What a drop is called, out of whichever catalog holds it. Empty for one
   // neither does, which is a drop nothing would be granted for.
   std::string RewardName(const MobDrop& drop) const;

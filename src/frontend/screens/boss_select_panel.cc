@@ -12,6 +12,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/boss_reset.h"
+#include "src/character/honor.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
@@ -369,38 +370,72 @@ void BossSelectPanel::RenderRewards(std::vector<ftxui::Element>& rows,
                                     const BossDifficulty& difficulty) const {
   // The meso first: it is the one thing a clear always pays, and everything
   // under it is a chance at something.
+  int named = 0;
   if (difficulty.meso() > 0) {
     rows.push_back(DetailRow("Meso", FormatWithCommas(difficulty.meso())));
+    ++named;
   }
   if (difficulty.exp() > 0) {
     rows.push_back(DetailRow("EXP", FormatWithCommas(difficulty.exp())));
+    ++named;
   }
-  int named = difficulty.meso() > 0 ? 1 : 0;
-  named += difficulty.exp() > 0 ? 1 : 0;
+  // Honor is paid for a clear the calendar gates, as PayReward has it, and is
+  // named only to a player who has something to spend it on.
+  if (difficulty.reset() != RESET_PERIOD_UNSPECIFIED &&
+      HonorVisible(state_.character.proto().level(),
+                   state_.account.max_level())) {
+    rows.push_back(DetailRow("Honor", FormatWithCommas(kBossClearHonor)));
+    ++named;
+  }
+  // The gear last and apart, commonest first: what a clear always pays reads
+  // as one block, and the drop a player is here for is at the bottom of it. A
+  // drop no catalog holds names nothing and is left out here, before its place
+  // in the list is counted.
+  std::vector<const MobDrop*> items;
+  std::vector<const MobDrop*> equips;
   for (const MobDrop& drop : difficulty.drops()) {
-    std::string name = RewardName(drop);
-    if (name.empty()) {
+    if (RewardName(drop).empty()) {
       continue;
     }
-    ++named;
-    // Wrapped rather than cut, and rather than let the panel grow: these are
-    // the longest names in the game, and half of one names nothing. The
-    // chance sits on the last line of the name, where a one-line name puts it
-    // in the same column every other value on this panel stands in.
-    std::string chance = DropChance(drop.per_kill());
-    int width = kDetailWidth - 2;
-    std::vector<std::string> lines = WrapBalanced(
-        name, width, static_cast<int>(chance.size()) + 1, kNameIndent);
-    for (int i = 0; i + 1 < static_cast<int>(lines.size()); ++i) {
-      rows.push_back(ftxui::text(" " + PadRight(lines[i], width) + " "));
-    }
-    rows.push_back(ftxui::text(
-        " " + PadRight(lines.back(), width - static_cast<int>(chance.size())) +
-        chance + " "));
+    (drop.has_equip() ? equips : items).push_back(&drop);
   }
+  std::stable_sort(equips.begin(), equips.end(),
+                   [](const MobDrop* a, const MobDrop* b) {
+                     return a->per_kill() > b->per_kill();
+                   });
+  for (const MobDrop* drop : items) {
+    RenderDropRow(rows, *drop);
+  }
+  named += static_cast<int>(items.size());
+  if (!equips.empty() && named > 0) {
+    rows.push_back(ThemedSeparator());
+  }
+  for (const MobDrop* drop : equips) {
+    RenderDropRow(rows, *drop);
+  }
+  named += static_cast<int>(equips.size());
   if (named == 0) {
     rows.push_back(EmptyState("empty"));
   }
+}
+
+void BossSelectPanel::RenderDropRow(std::vector<ftxui::Element>& rows,
+                                    const MobDrop& drop) const {
+  std::string name = RewardName(drop);
+  // Wrapped rather than cut, and rather than let the panel grow: these are the
+  // longest names in the game, and half of one names nothing. The chance sits
+  // on the last line of the name, where a one-line name puts it in the same
+  // column every other value on this panel stands in.
+  std::string chance = DropChance(drop.per_kill());
+  int width = kDetailWidth - 2;
+  std::vector<std::string> lines = WrapBalanced(
+      name, width, static_cast<int>(chance.size()) + 1, kNameIndent);
+  for (int i = 0; i + 1 < static_cast<int>(lines.size()); ++i) {
+    rows.push_back(ftxui::text(" " + PadRight(lines[i], width) + " "));
+  }
+  rows.push_back(ftxui::text(
+      " " + PadRight(lines.back(), width - static_cast<int>(chance.size())) +
+      chance + " "));
 }
 
 ftxui::Element BossSelectPanel::Render() const {

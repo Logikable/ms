@@ -705,6 +705,7 @@ cc_library(
         "//src:game_state",
         "//src:spawn",
         "//src/character:boss_reset",
+        "//src/character:honor",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:format",
@@ -724,6 +725,7 @@ cc_test(
     deps = [
         ":boss_select_panel",
         "//src:game_state",
+        "//src/character:inner_ability",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:screen_text",
         "//src/protos:boss_proto_cc",

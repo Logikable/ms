@@ -7,9 +7,11 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/inner_ability.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/screen_text.h"
 #include "src/game_state.h"
@@ -107,6 +109,26 @@ std::string Render(const BossSelectPanel& panel, int height = 30) {
   return screen.ToString();
 }
 
+// The panel's rows as text, for asking which of them comes before which.
+std::vector<std::string> RenderRows(const BossSelectPanel& panel,
+                                    int height = 30) {
+  ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+                                               ftxui::Dimension::Fixed(height));
+  ftxui::Render(screen, element);
+  return ScreenRows(screen);
+}
+
+// Which row says `needle`, or -1 for a panel that does not.
+int RowOf(const std::vector<std::string>& rows, const std::string& needle) {
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    if (rows[i].find(needle) != std::string::npos) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 // The colour the first character of the row holding `needle` is drawn in.
 // Read off the pixel, because ToString() is where colour goes to die: a red
 // row and a white one produce the same string.
@@ -176,6 +198,77 @@ TEST(BossSelectPanelTest, TheRewardsListNamesWhatAClearPays) {
   EXPECT_NE(out.find("Zakum's Soul Shard"), std::string::npos);
   EXPECT_NE(out.find("100%"), std::string::npos);
   EXPECT_EQ(out.find("(empty)"), std::string::npos);
+}
+
+// Honor is the third thing every gated clear pays, and it reads in the block
+// with the meso and the EXP -- above the drops, which are chances.
+TEST(BossSelectPanelTest, TheRewardsListNamesTheHonorAClearPays) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  LevelTo(state, kInnerAbilityUnlockLevel);
+  BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
+  normal->set_meso(3062500);
+  normal->set_exp(4750740);
+  BossSelectPanel panel(state);
+  std::vector<std::string> rows = RenderRows(panel);
+  EXPECT_LT(RowOf(rows, "Meso"), RowOf(rows, "EXP"));
+  EXPECT_LT(RowOf(rows, "EXP"), RowOf(rows, "Honor"));
+  EXPECT_NE(rows[RowOf(rows, "Honor")].find("1,500"), std::string::npos);
+}
+
+// Nothing spends honor before Inner Ability opens, so nothing names it.
+TEST(BossSelectPanelTest, TheHonorRowWaitsForInnerAbility) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  BossSelectPanel panel(state);
+  EXPECT_EQ(Render(panel).find("Honor"), std::string::npos);
+}
+
+// A fight the calendar does not gate pays no honor, so it names none.
+TEST(BossSelectPanelTest, AFightWithNoLockoutNamesNoHonor) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  LevelTo(state, kInnerAbilityUnlockLevel);
+  state.bosses["zakum"].mutable_difficulties(0)->clear_reset();
+  BossSelectPanel panel(state);
+  EXPECT_EQ(Render(panel).find("Honor"), std::string::npos);
+}
+
+// The gear is ruled off from what the clear always pays and the shard, and
+// stands under it commonest first: the rarest drop is the bottom line.
+TEST(BossSelectPanelTest, TheGearIsRuledOffAndOrderedByChance) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  EquipPrototype crystal;
+  crystal.set_name("Crystal");
+  state.equips["crystal"] = crystal;
+  EquipPrototype eye;
+  eye.set_name("Eye");
+  state.equips["eye"] = eye;
+  ItemPrototype shard;
+  shard.set_name("Shard");
+  state.items["shard"] = shard;
+  BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
+  // Listed rarest first, and by the equip, to show neither is what orders it.
+  MobDrop* rare = normal->add_drops();
+  rare->set_equip("eye");
+  rare->set_per_kill(0.1);
+  MobDrop* common = normal->add_drops();
+  common->set_equip("crystal");
+  common->set_per_kill(0.5);
+  MobDrop* item = normal->add_drops();
+  item->set_item("shard");
+  item->set_per_kill(1.0);
+
+  BossSelectPanel panel(state);
+  std::vector<std::string> rows = RenderRows(panel);
+  int shard_row = RowOf(rows, "Shard");
+  int crystal_row = RowOf(rows, "Crystal");
+  EXPECT_LT(shard_row, crystal_row);
+  EXPECT_LT(crystal_row, RowOf(rows, "Eye"));
+  // The rule between them, and no other between the shard and the gear.
+  EXPECT_EQ(crystal_row, shard_row + 2);
+  EXPECT_NE(rows[shard_row + 1].find("\u2500"), std::string::npos);
 }
 
 // The names are the longest strings on this screen, and a row that ran past
