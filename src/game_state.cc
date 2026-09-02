@@ -103,11 +103,11 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"steely_throwing_knives", "dark_gigantic", "evil_ender_charm"};
     case JOB_BANDIT:
       return {"deadly_fin", "vanishing_shadow"};
-    // The 3rd jobs, at level 100 -- the top of the game, so this is the best
-    // gear there is. Each takes the better of its line's two weapons on
-    // //analysis:weapon_sim, and keeps its 2nd job's off-hand: a 3rd job opens
-    // no new slot. The Crusader's axe beats the sword of the same tier on
-    // Weapon Mastery's axe bonus alone.
+    // The 3rd jobs, at level 100: the best gear meso alone reaches, since the
+    // Frozen tier below is bought with tokens. Each takes the better of its
+    // line's two weapons on //analysis:weapon_sim, and keeps its 2nd job's
+    // off-hand -- a 3rd job opens no new slot. The Crusader's axe beats the
+    // sword of the same tier on Weapon Mastery's axe bonus alone.
     case JOB_BERSERKER:
       return {"pinaka", "berserk_chain"};
     // The 4th job, at the level cap, so its gear is the Frozen tier a token
