@@ -10,8 +10,12 @@
 
 #include "src/character/arcane_force.h"
 #include "src/character/character.h"
+#include "src/character/consumables.h"
 #include "src/character/exp_table.h"
+#include "src/character/hyper_stats.h"
+#include "src/character/max_character.h"
 #include "src/character/progression.h"
+#include "src/character/stat_preset.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
@@ -252,7 +256,7 @@ std::map<std::string, Scroll> WarriorWeaponTraces() {
   return {{"str_100", sure}, {"str_30", risky}};
 }
 
-GameState MakeEquipsState(TestEquips equips) {
+GameState MakeEquipsState(GearSetup equips) {
   TestOptions test;
   test.job = JOB_ADVANCEMENT_SWORDMAN;
   test.equips = equips;
@@ -266,7 +270,7 @@ const Equip& WornWeapon(const GameState& state) {
 
 // No flag at all: gear arrives as it drops, slots to spend and no stars.
 TEST(GameStateTest, NoUpgradeFlagLeavesTheGearAsItDrops) {
-  GameState state = MakeEquipsState(TestEquips());
+  GameState state = MakeEquipsState(GearSetup());
   EXPECT_EQ(WornWeapon(state).remaining_upgrade_slots(), 7);
   EXPECT_EQ(WornWeapon(state).hammers(), 0);
   EXPECT_EQ(WornWeapon(state).scroll_successes(), 0);
@@ -276,7 +280,7 @@ TEST(GameStateTest, NoUpgradeFlagLeavesTheGearAsItDrops) {
 // Each flag does its own job and nothing else: the hammers widen the shelf,
 // leaving every slot on it unspent.
 TEST(GameStateTest, HammeredWidensTheShelfWithoutFillingIt) {
-  TestEquips equips;
+  GearSetup equips;
   equips.hammered = true;
   const Equip& worn = WornWeapon(MakeEquipsState(equips));
   EXPECT_EQ(worn.hammers(), kMaxHammers);
@@ -287,7 +291,7 @@ TEST(GameStateTest, HammeredWidensTheShelfWithoutFillingIt) {
 // And scrolling alone passes the shelf the item shipped with, with the trace
 // that pays the most.
 TEST(GameStateTest, ScrolledPassesTheSlotsTheItemHas) {
-  TestEquips equips;
+  GearSetup equips;
   equips.scrolled = true;
   const Equip& worn = WornWeapon(MakeEquipsState(equips));
   EXPECT_EQ(worn.hammers(), 0);
@@ -300,7 +304,7 @@ TEST(GameStateTest, ScrolledPassesTheSlotsTheItemHas) {
 
 // Together the wider shelf is the one that gets filled.
 TEST(GameStateTest, HammeredAndScrolledFillTheWiderShelf) {
-  TestEquips equips;
+  GearSetup equips;
   equips.hammered = true;
   equips.scrolled = true;
   const Equip& worn = WornWeapon(MakeEquipsState(equips));
@@ -314,7 +318,7 @@ TEST(GameStateTest, HammeredAndScrolledFillTheWiderShelf) {
 // --sf sets exactly the stars it names, and the item's own cap is the ceiling
 // -- a level 30 weapon takes five of them however many are asked for.
 TEST(GameStateTest, SfSetsTheStarsItNamesUpToTheItemsCap) {
-  TestEquips equips;
+  GearSetup equips;
   equips.scrolled = true;
   equips.stars = 3;
   EXPECT_EQ(WornWeapon(MakeEquipsState(equips)).stars(), 3);
@@ -327,7 +331,7 @@ TEST(GameStateTest, SfSetsTheStarsItNamesUpToTheItemsCap) {
 // Stars need nothing left to scroll, which is the upgrade screen's own rule --
 // so --sf on an item with slots unspent leaves it unstarred.
 TEST(GameStateTest, SfWaitsForAShelfWithNothingLeftOnIt) {
-  TestEquips equips;
+  GearSetup equips;
   equips.stars = 3;
   EXPECT_EQ(WornWeapon(MakeEquipsState(equips)).stars(), 0);
 
@@ -866,6 +870,141 @@ TEST(GameStateTest, TheWorkbenchAtTheCapWearsItsSymbolAndCarriesSpares) {
     EXPECT_TRUE(IsArcaneSymbol(bag[i].prototype()))
         << "row " << i << " is not a symbol";
   }
+}
+
+// --- max mode ---
+
+// A catalog holding a piece of each kind --mode=max dresses a Hero in, at the
+// levels the real ones are: what a star run reaches is the item's own cap, so
+// a level 30 stand-in would hide every band above five.
+std::map<std::string, EquipPrototype> MaxCatalog() {
+  EquipPrototype axe;
+  axe.set_name("Frozen Two-handed Axe");
+  axe.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  axe.set_required_level(120);
+  axe.set_upgrade_slots(7);
+  axe.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  EquipPrototype hat = axe;
+  hat.set_name("Frozen Hat");
+  hat.set_equip_slot(EQUIP_SLOT_HAT);
+  hat.set_required_level(140);
+  EquipPrototype shoulder = hat;
+  shoulder.set_name("Royal Black Metal Shoulder");
+  shoulder.set_equip_slot(EQUIP_SLOT_SHOULDER);
+  EquipPrototype cygnus = shoulder;
+  cygnus.set_name("Lionheart Battle Shoulder");
+  return {{"frozen_two_handed_axe", axe},
+          {"frozen_hat", hat},
+          {"royal_black_metal_shoulder", shoulder},
+          {"lionheart_battle_shoulder", cygnus}};
+}
+
+// Traces for both slots, so every shelf the seeding opens gets filled.
+std::map<std::string, Scroll> MaxTraces() {
+  std::map<std::string, Scroll> traces = WarriorWeaponTraces();
+  Scroll hat = traces.at("str_100");
+  hat.set_target(SCROLL_TARGET_ARMOUR);
+  hat.set_tier(TierForLevel(140));
+  traces["hat_str_100"] = hat;
+  Scroll weapon = traces.at("str_100");
+  weapon.set_tier(TierForLevel(120));
+  traces["weapon_str_100"] = weapon;
+  return traces;
+}
+
+GameState MakeMaxState(int level) {
+  TestOptions options;
+  options.job = JOB_ADVANCEMENT_HERO;
+  options.level = level;
+  return GameState(MaxCatalog(), MaxTraces(), {}, {}, {}, EveryStageBook(),
+                   GameMode::kMax, options);
+}
+
+const EquipInstance& Worn(const GameState& state, EquipSlot slot) {
+  return state.character.equipped().at(slot);
+}
+
+// The ceiling at the cap: hammers driven in, every slot of the wider shelf
+// passed, and the stars the level's own band pays for -- the weapon three
+// past the rest of it.
+TEST(GameStateTest, MaxModeAtTheCapWearsTheWholeBand) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  const Equip& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).equip_state();
+  EXPECT_EQ(weapon.hammers(), kMaxHammers);
+  EXPECT_EQ(weapon.remaining_upgrade_slots(), 0);
+  EXPECT_EQ(weapon.scroll_successes(), 9);
+  EXPECT_EQ(weapon.stars(), MaxGearForLevel(kTrialLevelCap).weapon_stars);
+  EXPECT_EQ(Worn(state, EQUIP_SLOT_HAT).stars(),
+            MaxGearForLevel(kTrialLevelCap).stars);
+}
+
+// Every piece carries the same lines, written rather than rolled: the weapon
+// the one it is cubed for, the armour three lots of the stat the job fights
+// with.
+TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  const Potential& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).potential();
+  EXPECT_EQ(weapon.rank(), POTENTIAL_RANK_UNIQUE);
+  ASSERT_EQ(weapon.lines_size(), kPotentialLines);
+  EXPECT_EQ(weapon.lines(0).type(), POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30);
+
+  const Potential& hat = Worn(state, EQUIP_SLOT_HAT).potential();
+  EXPECT_EQ(hat.rank(), POTENTIAL_RANK_EPIC);
+  ASSERT_EQ(hat.lines_size(), kPotentialLines);
+  EXPECT_EQ(hat.lines(0).type(), POTENTIAL_LINE_TYPE_STR_PCT);
+}
+
+// Both potions bought and switched on, with the change of the climb left in
+// the purse -- not the workbench's hundred billion.
+TEST(GameStateTest, MaxModeAtTheCapHasBoughtBothPotions) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  for (const ConsumableInfo& potion : AllConsumables()) {
+    EXPECT_TRUE(state.character.ConsumableOwned(potion.type)) << potion.name;
+    EXPECT_TRUE(state.character.ConsumableActive(potion.type)) << potion.name;
+  }
+  EXPECT_EQ(state.character.meso(), 50000000);
+  EXPECT_EQ(state.exp_multiplier, 1);
+  EXPECT_TRUE(state.character.stackables(ITEM_CATEGORY_USE).empty());
+}
+
+// The pools are all spent: the AP into the stat the job swings on, the SP
+// into its book, and both Hyper Stat allocations down to the change.
+TEST(GameStateTest, MaxModeSpendsEveryPool) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  EXPECT_EQ(state.character.proto().ap(), 0);
+  for (int stage = 1; stage <= 4; ++stage) {
+    EXPECT_EQ(state.character.sp(stage), 0) << "stage " << stage;
+  }
+  for (StatPreset preset : {StatPreset::kFarming, StatPreset::kBossing}) {
+    EXPECT_LT(state.character.hyper_stat_points_left(preset), 20);
+  }
+  EXPECT_EQ(state.character.ability(StatPreset::kBossing).rank(),
+            ABILITY_RANK_LEGENDARY);
+}
+
+// A level 140 character is a long way short of the cap's band: no hammers,
+// which are 340M across an outfit, and nothing cubed -- cubing opens at 180.
+TEST(GameStateTest, MaxModeAtOneFortyIsShortOfTheCapsBand) {
+  GameState state = MakeMaxState(kHyperStatUnlockLevel);
+  const Equip& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).equip_state();
+  EXPECT_EQ(weapon.hammers(), 0);
+  EXPECT_EQ(weapon.scroll_successes(), 7);
+  EXPECT_EQ(weapon.stars(), 14);
+  EXPECT_EQ(Worn(state, EQUIP_SLOT_HAT).stars(), 10);
+  EXPECT_EQ(Worn(state, EQUIP_SLOT_HAT).potential().lines_size(), 0);
+  for (const ConsumableInfo& potion : AllConsumables()) {
+    EXPECT_FALSE(state.character.ConsumableOwned(potion.type)) << potion.name;
+  }
+}
+
+// The Cygnus shoulder is bought with a token off the fight nobody has won, so
+// a character measured against the boss roster does not wear one -- and the
+// three the workbench carries are not in the bag either.
+TEST(GameStateTest, MaxModeWearsNoCygnusShoulder) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  EXPECT_EQ(Worn(state, EQUIP_SLOT_SHOULDER).name(),
+            "Royal Black Metal Shoulder");
+  EXPECT_TRUE(state.character.inventory().empty());
 }
 
 }  // namespace

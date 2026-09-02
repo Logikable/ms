@@ -34,17 +34,19 @@
 
 ABSL_FLAG(std::string, mode, "play",
           "Which state to start in: 'play' for a new character on Maple "
-          "Island, or 'test' for the workbench -- a level 10 Beginner with "
-          "meso and a spread of items to exercise the screens with.");
+          "Island, 'test' for the workbench -- a level 1 Beginner with meso "
+          "and a spread of items to exercise the screens with -- or 'max' "
+          "for the ceiling, a character standing in everything the climb to "
+          "--level pays for.");
 ABSL_FLAG(std::string, job, "",
-          "Workbench only (--mode=test): a job advancement to start at the "
-          "top of, such as 'hunter' or 'archer'. The character arrives at the "
+          "--mode=test or --mode=max: a job advancement to start at the top "
+          "of, such as 'hunter' or 'archer'. The character arrives at the "
           "last level before their next advancement, with the AP spent. Unset "
-          "starts the workbench's own job.");
+          "starts the seeded character's own job.");
 ABSL_FLAG(int32_t, level, 0,
-          "Workbench only (--mode=test): the level to arrive at, instead of "
-          "the top of the job's own band. Never below the level the job is "
-          "taken at, and never above the highest level the game has.");
+          "--mode=test or --mode=max: the level to arrive at, instead of the "
+          "top of the job's own band. Never below the level the job is taken "
+          "at, and never above the highest level the game has.");
 ABSL_FLAG(bool, hammered, false,
           "Workbench only (--mode=test): drive both Golden Hammers into every "
           "piece of the character's gear, widening its upgrade shelf by two.");
@@ -77,7 +79,11 @@ ms::GameMode ParseMode(const std::string& mode) {
   if (mode == "test") {
     return ms::GameMode::kTest;
   }
-  LOG(FATAL) << "Unknown --mode '" << mode << "'; expected 'play' or 'test'";
+  if (mode == "max") {
+    return ms::GameMode::kMax;
+  }
+  LOG(FATAL) << "Unknown --mode '" << mode
+             << "'; expected 'play', 'test' or 'max'";
 }
 
 // Every advancement a character can actually be started at, as --job spells
@@ -113,8 +119,17 @@ void RefuseOutsideTheWorkbench(const char* flag, ms::GameMode mode) {
   }
 }
 
-ms::TestEquips ParseEquips(ms::GameMode mode) {
-  ms::TestEquips equips;
+// The two flags a seeded character shares. --mode=max answers the gear and
+// the book itself -- what a level has paid for is the whole of what the mode
+// says -- so those flags stay the workbench's alone.
+void RefuseInPlay(const char* flag, ms::GameMode mode) {
+  if (mode == ms::GameMode::kPlay) {
+    LOG(FATAL) << flag << " is for --mode=test or --mode=max";
+  }
+}
+
+ms::GearSetup ParseEquips(ms::GameMode mode) {
+  ms::GearSetup equips;
   equips.hammered = absl::GetFlag(FLAGS_hammered);
   equips.scrolled = absl::GetFlag(FLAGS_scrolled);
   equips.stars = absl::GetFlag(FLAGS_sf);
@@ -147,7 +162,7 @@ int ParseLevel(int level, ms::JobAdvancement job, ms::GameMode mode) {
   if (level == 0) {
     return 0;
   }
-  RefuseOutsideTheWorkbench("--level", mode);
+  RefuseInPlay("--level", mode);
   int floor = ms::NextAdvancementLevel(
       ms::StageForAdvancement(
           job == ms::JOB_ADVANCEMENT_UNSPECIFIED ? ms::kTestAdvancement : job) -
@@ -166,7 +181,7 @@ ms::JobAdvancement ParseJob(const std::string& job, ms::GameMode mode) {
   if (job.empty()) {
     return ms::JOB_ADVANCEMENT_UNSPECIFIED;
   }
-  RefuseOutsideTheWorkbench("--job", mode);
+  RefuseInPlay("--job", mode);
   ms::JobAdvancement value = ms::JOB_ADVANCEMENT_UNSPECIFIED;
   if (ms::JobAdvancement_Parse(kJobPrefix + absl::AsciiStrToUpper(job),
                                &value) &&

@@ -33,23 +33,26 @@ namespace ms {
 // other one is the player's choice.
 inline constexpr char kHomeMap[] = "maple_island";
 
-// The two states the game can be started in.
+// The three states the game can be started in.
 //
 // kPlay is the game as a player meets it: a level 1 Beginner on Maple Island
-// with a Sword and nothing else. kTest is the workbench -- a level 10 Beginner
-// standing at their first advancement, with the meso and the spread of items
-// the upgrade and shop screens need to be exercised without playing up to
-// them.
+// with a Sword and nothing else. kTest is the workbench -- a level 1 Beginner
+// with the meso and the spread of items the upgrade and shop screens need to
+// be exercised without playing up to them. kMax is the ceiling: the character
+// a player who spent well is standing in at the level asked for, which is
+// what a boss is measured against.
 enum class GameMode {
   kPlay,
   kTest,
+  kMax,
 };
 
-// What state the workbench's gear arrives in, as --hammered, --scrolled and
-// --sf name it. Every piece is treated the same: the tester is asking what a
-// character at this point of the ladder hits for, not what one lucky item
-// does. All three unset is gear as it drops, slots unspent.
-struct TestEquips {
+// What state a seeded character's gear arrives in. The workbench fills it
+// from --hammered, --scrolled and --sf; kMax fills it from the level's own
+// band. Every piece is treated the same: the question is what a character at
+// this point of the ladder hits for, not what one lucky item does. All unset
+// is gear as it drops, slots unspent.
+struct GearSetup {
   // Both Golden Hammers driven in, which widens the upgrade shelf by two.
   bool hammered = false;
   // Every upgrade slot passed, with the trace that raises what the job fights
@@ -59,6 +62,10 @@ struct TestEquips {
   // Stars go on an item with nothing left to scroll -- the rule the upgrade
   // screen keeps -- so an item with slots needs `scrolled` behind this.
   int stars = 0;
+  // The weapon alone, which is where the meso goes first and the one piece
+  // worth taking past the rest. Zero leaves it on `stars` with everything
+  // else.
+  int weapon_stars = 0;
 };
 
 // What the workbench does with the book its job is standing in, as --skills
@@ -85,10 +92,12 @@ inline constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_HERO;
 //
 // `level` is --level: the level to arrive at. 0 leaves it to the job, which is
 // the top of that job's own band.
+//
+// kMax reads `job` and `level` too, and fills `equips` and `skills` itself.
 struct TestOptions {
   JobAdvancement job = JOB_ADVANCEMENT_UNSPECIFIED;
   int level = 0;
-  TestEquips equips;
+  GearSetup equips;
   TestSkills skills = TestSkills::kZero;
 };
 

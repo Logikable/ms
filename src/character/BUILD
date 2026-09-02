@@ -334,3 +334,34 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "max_character",
+    srcs = ["max_character.cc"],
+    hdrs = ["max_character.h"],
+    deps = [
+        ":character",
+        ":hyper_stats",
+        ":inner_ability",
+        ":job_branch",
+        ":stat_preset",
+        "//src/item:potential",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "max_character_test",
+    size = "small",
+    srcs = ["max_character_test.cc"],
+    deps = [
+        ":character",
+        ":hyper_stats",
+        ":max_character",
+        "//src/item:potential",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)

@@ -458,6 +458,12 @@ class CharacterInstance {
   // takes no honor and rolls nothing if the pool is short or the panel is not
   // open to this character yet.
   bool ResetAbility(StatPreset preset = StatPreset::kFarming);
+  // Writes `lines` into `preset` outright, paying no honor. For seeding a
+  // character who is meant to arrive already holding them -- a reset chase
+  // that lands on a named sheet takes hundreds of rolls, and a mode that
+  // rolled for it would hand back a different character every run.
+  void SetAbility(const AbilityPreset& lines,
+                  StatPreset preset = StatPreset::kFarming);
 
   // The points `skill` is bought with: the Hyper pool for a Hyper Skill, and
   // its job stage's for every other. Asked here so the panel offering the

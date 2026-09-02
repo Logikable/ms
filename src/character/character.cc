@@ -1159,6 +1159,11 @@ bool CharacterInstance::ResetAbility(StatPreset preset) {
   return true;
 }
 
+void CharacterInstance::SetAbility(const AbilityPreset& lines,
+                                   StatPreset preset) {
+  PresetOf(*character_.mutable_inner_ability(), preset) = lines;
+}
+
 bool CharacterInstance::AllocateHyperStat(HyperStatField field,
                                           StatPreset preset, int amount) {
   if (amount <= 0 || !HyperStatUnlocked(field, character_.level())) {

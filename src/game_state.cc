@@ -14,9 +14,12 @@
 
 #include "src/character/arcane_force.h"
 #include "src/character/character.h"
+#include "src/character/consumables.h"
 #include "src/character/exp_table.h"
 #include "src/character/honor.h"
 #include "src/character/job_name.h"
+#include "src/character/max_character.h"
+#include "src/character/stat_preset.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
 #include "src/item/inventory.h"
@@ -234,7 +237,7 @@ const Scroll* BestScrollFor(const GameState& state,
 // Written straight into the state rather than rolled through Scroll() and
 // StarForce(): the tester asked for the finished item, not for the odds.
 Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
-                    const TestEquips& equips) {
+                    const GearSetup& equips) {
   Equip built;
   built.set_equip_name(proto.name());
   built.set_remaining_upgrade_slots(proto.upgrade_slots());
@@ -254,10 +257,14 @@ Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
   // Stars go on an item with nothing left to scroll, which is the rule the
   // upgrade screen holds to as well -- so --sf without --scrolled leaves an
   // item that has slots unstarred.
-  if (equips.stars > 0 && built.remaining_upgrade_slots() == 0 &&
+  const int wanted =
+      proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON && equips.weapon_stars > 0
+          ? equips.weapon_stars
+          : equips.stars;
+  if (wanted > 0 && built.remaining_upgrade_slots() == 0 &&
       Supports(proto, UPGRADE_STAR_FORCE)) {
     built.set_stars(std::min(
-        equips.stars, EquipTabItem::MaxStarsForLevel(proto.required_level())));
+        wanted, EquipTabItem::MaxStarsForLevel(proto.required_level())));
   }
   return built;
 }
@@ -266,7 +273,7 @@ Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
 // has no such entry. Lets a GameState be built for a test without the game's
 // data files behind it.
 void GiveEquip(GameState& state, const std::string& name,
-               const TestEquips& equips = TestEquips()) {
+               const GearSetup& equips = GearSetup()) {
   std::map<std::string, EquipPrototype>::const_iterator it =
       state.equips.find(name);
   if (it == state.equips.end()) {
@@ -283,7 +290,7 @@ void GiveEquip(GameState& state, const std::string& name,
 // Cygnus shoulders are one slot fought over by four branches, and Equip itself
 // asks neither question.
 void WearAll(GameState& state, const std::vector<std::string>& names,
-             const TestEquips& equips) {
+             const GearSetup& equips) {
   for (const std::string& name : names) {
     std::map<std::string, EquipPrototype>::const_iterator it =
         state.equips.find(name);
@@ -339,16 +346,20 @@ std::vector<std::string> BossAccessories() {
 //
 // The four Cygnus shoulders come last, after the boss drop they supersede:
 // each names one branch, so whichever the workbench is wears one of them and
-// carries the other three.
-std::vector<std::string> ShopAccessories() {
-  return {"lightning_god_ring",
-          "meister_ring",
-          "gold_maple_leaf_emblem",
-          "master_adventurer",
-          "lionheart_battle_shoulder",
-          "dragon_tail_mage_shoulder",
-          "falcon_wing_sentinel_shoulder",
-          "raven_horn_chaser_shoulder"};
+// carries the other three. `cygnus_shoulders` leaves them out, which is what
+// a character measured against a boss roster wants -- the shoulder is bought
+// with a token off Cygnus, and Cygnus is the fight nobody has won yet.
+std::vector<std::string> ShopAccessories(bool cygnus_shoulders) {
+  std::vector<std::string> names = {"lightning_god_ring", "meister_ring",
+                                    "gold_maple_leaf_emblem",
+                                    "master_adventurer"};
+  if (cygnus_shoulders) {
+    names.insert(
+        names.end(),
+        {"lionheart_battle_shoulder", "dragon_tail_mage_shoulder",
+         "falcon_wing_sentinel_shoulder", "raven_horn_chaser_shoulder"});
+  }
+  return names;
 }
 
 // Passed as `unspent_stage` to spend every point the climb earns.
@@ -411,7 +422,8 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
 // advancement on the way to it. `level` is where the climb stops, or 0 for the
 // last level before the next advancement would be offered.
 void GrowToJob(GameState& state, JobAdvancement advancement, int level,
-               int unspent_stage, const TestEquips& equips) {
+               int unspent_stage, const GearSetup& equips,
+               bool cygnus_shoulders = true) {
   Job job = JobForAdvancement(advancement);
   int stage = StageForAdvancement(advancement);
   std::vector<Job> path;
@@ -435,7 +447,7 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   if (stage >= 3) {
     WearAll(state, FrozenArmour(), equips);
     WearAll(state, BossAccessories(), equips);
-    WearAll(state, ShopAccessories(), equips);
+    WearAll(state, ShopAccessories(cygnus_shoulders), equips);
   }
   WearStarterSymbol(state);
 }
@@ -604,6 +616,98 @@ void SeedTest(GameState& state, const TestOptions& test) {
   state.current_map = "right_around_lith_harbor";
 }
 
+// The level a character stops at when nothing names one: the top of the job's
+// own band, held to the cap the EXP table pays up to. GrowToJob works the
+// same level out for itself; kMax has to know it before it dresses anybody.
+int LevelForJob(JobAdvancement advancement, int level) {
+  return level > 0
+             ? level
+             : std::min(NextAdvancementLevel(StageForAdvancement(advancement)),
+                        kTrialLevelCap);
+}
+
+// What the ceiling is left holding. The climb's whole income is spent by the
+// time it gets here -- see max_character.cc for the arithmetic -- and this is
+// the change in the pocket rather than a purse to shop with.
+constexpr int64_t kMaxLeftoverMeso = 50000000;
+
+// Every permanent potion the character's level has opened. Each is paid for
+// at its own price, so the purse the mode leaves behind is the change and not
+// the price of a potion the level cannot reach yet. Switched on, because a
+// player who bought one is using it.
+void BuyMaxConsumables(GameState& state) {
+  for (const ConsumableInfo& potion : AllConsumables()) {
+    if (state.character.proto().level() < potion.unlock_level) {
+      continue;
+    }
+    state.character.AddMeso(potion.permanent_price);
+    if (state.character.BuyConsumable(potion.type)) {
+      state.character.ToggleConsumable(potion.type);
+    }
+  }
+}
+
+// The same lines on every piece of one kind. Written rather than cubed for:
+// what a real sheet holds is luck, and a fight measured against a character
+// who is a little different every run says nothing. See MaxPotentialFor.
+void DressMaxPotentials(GameState& state, const MaxGear& gear) {
+  const StatField primary = PrimaryStatField(state.character.proto().job());
+  std::vector<EquipSlot> slots;
+  for (const std::pair<const EquipSlot, EquipInstance>& worn :
+       state.character.equipped()) {
+    slots.push_back(worn.first);
+  }
+  for (EquipSlot slot : slots) {
+    const Potential potential = MaxPotentialFor(slot, gear, primary);
+    if (potential.lines_size() > 0) {
+      state.character.TakePotential(slot, potential);
+    }
+  }
+}
+
+// The ceiling: the character a player who spent well is standing in at this
+// level. Everything is written outright rather than played for, and every
+// number is priced against what the climb pays by then -- max_character.cc
+// carries the arithmetic band by band.
+//
+// Nothing of the workbench is here. No purse to spend, no Level-Up items, no
+// EXP bonus and no spare gear: a fight measured against this character has to
+// be measured against one the game could really produce.
+void SeedMax(GameState& state, const TestOptions& options) {
+  // The same default the workbench takes: the top of the line as far as the
+  // game is written, which is where a boss roster is measured from.
+  const JobAdvancement advancement = options.job != JOB_ADVANCEMENT_UNSPECIFIED
+                                         ? options.job
+                                         : kTestAdvancement;
+  const int level = LevelForJob(advancement, options.level);
+  const MaxGear gear = MaxGearForLevel(level);
+  GearSetup equips;
+  equips.hammered = gear.hammered;
+  equips.scrolled = true;
+  equips.stars = gear.stars;
+  equips.weapon_stars = gear.weapon_stars;
+
+  state.character.SetUsername(UsernameFor(advancement));
+  state.character.AddMeso(kMaxLeftoverMeso);
+  GrowToJob(state, advancement, level, kSpendEveryStage, equips,
+            /*cygnus_shoulders=*/false);
+  // The leftovers of the climb: a piece a level gate says is carried rather
+  // than worn, and the weapons a later one displaced.
+  state.character.ClearEquipInventory();
+
+  DressMaxPotentials(state, gear);
+  SpendMaxHyperStats(state.character);
+  if (state.character.inner_ability_unlocked()) {
+    const StatField primary = PrimaryStatField(state.character.proto().job());
+    state.character.SetAbility(MaxAbilityPreset(StatPreset::kFarming, primary),
+                               StatPreset::kFarming);
+    state.character.SetAbility(MaxAbilityPreset(StatPreset::kBossing, primary),
+                               StatPreset::kBossing);
+  }
+  BuyMaxConsumables(state);
+  state.current_map = kHomeMap;
+}
+
 }  // namespace
 
 GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
@@ -631,6 +735,8 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       created_unix_seconds(static_cast<int64_t>(std::time(nullptr))) {
   if (mode == GameMode::kTest) {
     SeedTest(*this, test);
+  } else if (mode == GameMode::kMax) {
+    SeedMax(*this, test);
   } else {
     SeedPlay(*this);
   }
