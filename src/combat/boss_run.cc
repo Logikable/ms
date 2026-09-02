@@ -436,7 +436,8 @@ void BossRun::PayReward(GameState& state,
     int64_t granted = GrantDrop(state, award.drop, award.count);
     std::string name = DropName(state, award.drop);
     if (granted > 0 && !name.empty()) {
-      reward_.items.push_back({std::move(name), granted});
+      reward_.items.push_back(
+          {std::move(name), granted, award.drop.has_equip()});
     }
   }
 }

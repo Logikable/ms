@@ -41,8 +41,21 @@ ftxui::Element BossClearPanel(const std::string& title,
   if (reward.honor > 0 && show_honor) {
     rows.push_back(CenteredRow(FormatWithCommas(reward.honor) + " Honor"));
   }
+  // The gear goes under a rule of its own, below what every clear pays: a drop
+  // the player waited on should not have to be picked out of the numbers.
+  std::vector<ftxui::Element> equips;
   for (const BossRewardItem& item : reward.items) {
-    rows.push_back(CenteredRow(DropLine(item)));
+    if (item.equip) {
+      equips.push_back(CenteredRow(DropLine(item)));
+    } else {
+      rows.push_back(CenteredRow(DropLine(item)));
+    }
+  }
+  if (!equips.empty() && rows.size() > 2) {
+    rows.push_back(AccentSeparator(kYellow));
+  }
+  for (ftxui::Element& equip : equips) {
+    rows.push_back(std::move(equip));
   }
   if (rows.size() == 2) {
     rows.push_back(EmptyState("no rewards"));

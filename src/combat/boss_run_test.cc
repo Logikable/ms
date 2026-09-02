@@ -476,7 +476,21 @@ TEST(BossRunTest, DropRateDoesNotDoubleACertainDrop) {
   ASSERT_TRUE(run.won());
   ASSERT_EQ(run.reward().items.size(), 1u);
   EXPECT_EQ(run.reward().items[0].count, 1);
+  EXPECT_FALSE(run.reward().items[0].equip);
   EXPECT_EQ(state->character.CountStackable(DropItems().at("shard")), 1);
+}
+
+// The card lists the gear apart from the rest, so a clear says which of its
+// rows is the piece the player came for.
+TEST(BossRunTest, AClearMarksWhichDropsAreGear) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = RewardingBoss(/*mark_chance=*/1.0);
+  BossRun run("zakum", boss, 0);
+  RunToEnd(run, *state);
+
+  ASSERT_EQ(run.reward().items.size(), 2u);
+  EXPECT_TRUE(run.reward().items[0].equip);
+  EXPECT_FALSE(run.reward().items[1].equip);
 }
 
 // A drop that misses its roll is not on the card. Over many runs it lands

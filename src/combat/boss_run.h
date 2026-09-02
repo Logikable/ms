@@ -77,6 +77,9 @@ struct DamageStack {
 struct BossRewardItem {
   std::string name;
   int64_t count = 0;
+  // True for a piece of gear. The card reads it: an equip is what a player
+  // came for, and it is listed apart from the meso and the shard.
+  bool equip = false;
 };
 
 // What a cleared fight paid. What actually landed, not what the table offers:

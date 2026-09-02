@@ -22,13 +22,19 @@ ftxui::Screen RenderCard(const BossReward& reward, bool show_honor = true) {
   return screen;
 }
 
-bool AnyRowHas(const ftxui::Screen& screen, const std::string& needle) {
-  for (const std::string& row : ScreenRows(screen)) {
-    if (row.find(needle) != std::string::npos) {
-      return true;
+// Which row `needle` is on, or -1 for a card that does not say it.
+int RowOf(const ftxui::Screen& screen, const std::string& needle) {
+  std::vector<std::string> rows = ScreenRows(screen);
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    if (rows[i].find(needle) != std::string::npos) {
+      return i;
     }
   }
-  return false;
+  return -1;
+}
+
+bool AnyRowHas(const ftxui::Screen& screen, const std::string& needle) {
+  return RowOf(screen, needle) >= 0;
 }
 
 BossReward FullReward() {
@@ -36,7 +42,7 @@ BossReward FullReward() {
   reward.meso = 3062500;
   reward.exp = 4611597;
   reward.honor = 150;
-  reward.items.push_back({"Condensed Power Crystal", 1});
+  reward.items.push_back({"Condensed Power Crystal", 1, /*equip=*/true});
   reward.items.push_back({"Zakum's Soul Shard", 3});
   return reward;
 }
@@ -65,6 +71,29 @@ TEST(BossClearPanelTest, TheHonorWaitsForInnerAbility) {
   ftxui::Screen screen = RenderCard(FullReward(), /*show_honor=*/false);
   EXPECT_FALSE(AnyRowHas(screen, "Honor"));
   EXPECT_TRUE(AnyRowHas(screen, "3,062,500 meso"));
+}
+
+// The gear is ruled off from the meso, the EXP, the honor and the shard, and
+// sits under them however the table listed it.
+TEST(BossClearPanelTest, ARuleDividesWhatWasPaidFromTheGear) {
+  ftxui::Screen screen = RenderCard(FullReward());
+  int shard = RowOf(screen, "Zakum's Soul Shard");
+  int gear = RowOf(screen, "Condensed Power Crystal");
+  ASSERT_GT(shard, 0);
+  ASSERT_EQ(gear, shard + 2);
+  std::vector<std::string> rows = ScreenRows(screen);
+  EXPECT_NE(rows[shard + 1].find("\u2500"), std::string::npos);
+}
+
+// Nothing to rule off from: a clear that paid only gear draws no rule above
+// the one line it has.
+TEST(BossClearPanelTest, GearAloneIsNotRuledOffFromNothing) {
+  BossReward reward;
+  reward.items.push_back({"Condensed Power Crystal", 1, /*equip=*/true});
+  ftxui::Screen screen = RenderCard(reward);
+  // Straight under the card's own rule, with nothing ruled off above it.
+  EXPECT_EQ(RowOf(screen, "Condensed Power Crystal"),
+            RowOf(screen, "Normal Zakum") + 2);
 }
 
 // A clear that rolled nothing still says so rather than leaving a gap where
