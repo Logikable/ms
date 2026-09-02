@@ -38,14 +38,14 @@ std::unique_ptr<GameState> SnailFarmer() {
   return state;
 }
 
-// A character on a field of boars that hit for `attack`. The lever that
-// decides whether the map is one they hold forever or one that bleeds them:
-// at 40 their pool swings and comes back to full, at 46 it never does.
-std::unique_ptr<GameState> BoarFarmer(int attack) {
+// A character on a field of boars that hit for `attack` and hold `max_hp`.
+// Between them the two levers put the character anywhere from a map they hold
+// forever to one that bleeds them dry in minutes.
+std::unique_ptr<GameState> BoarFarmer(int attack, int max_hp = 2000) {
   Mob boar;
   boar.set_name("Boar");
   boar.set_level(10);
-  boar.set_max_hp(2000);
+  boar.set_max_hp(max_hp);
   boar.set_exp(3);
   boar.set_attack(attack);
   MapData field;
@@ -212,6 +212,31 @@ TEST(OfflineTest, APoolThatRefillsIsNeverProjectedToDie) {
   EXPECT_FALSE(report.died);
   EXPECT_DOUBLE_EQ(report.seconds, 36000.0);
   EXPECT_EQ(state->current_map, "field");
+}
+
+// A pool that comes back to full but goes within a twentieth of empty on the
+// way is not one the character is holding. The refill says nothing here: the
+// dip only has to land on a worse beat once, and an absence is hundreds of
+// them. Credited to the sample and no further.
+TEST(OfflineTest, APoolThatNearlyEmptiesIsNotCreditedPastTheSample) {
+  std::unique_ptr<GameState> state = BoarFarmer(108, /*max_hp=*/50);
+
+  OfflineReport report = ApplyOfflineProgress(*state, 36000.0);
+
+  EXPECT_TRUE(report.died);
+  EXPECT_NEAR(report.seconds, kOfflineSampleSeconds, kOfflineStepSeconds);
+  EXPECT_EQ(state->current_map, kHomeMap);
+  EXPECT_GT(report.kills, 0) << "what was farmed before the fall stands";
+}
+
+// The projection lands where the fall actually comes: this boar has the
+// character dry at 2241s stepped in full, and the sample sees ten minutes.
+TEST(OfflineTest, TheProjectedFallLandsNearTheRealOne) {
+  std::unique_ptr<GameState> state = BoarFarmer(46);
+
+  OfflineReport report = ApplyOfflineProgress(*state, 36000.0);
+
+  EXPECT_NEAR(report.seconds, 2241.0, 250.0);
 }
 
 TEST(OfflineTest, ASurvivableMapDoesNotSendThePlayerHome) {

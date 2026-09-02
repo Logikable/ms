@@ -13,9 +13,9 @@
  * than they left them.
  *
  * The one approximation is death. A sample cannot prove a map is survivable
- * forever, so the sample's HP trend is measured: a pool that is draining
- * projects the moment it runs out, and the player is credited to there and
- * sent home. See ApplyOfflineProgress.
+ * forever, so a trend is fitted to the pool across it: one draining faster
+ * than it swings projects the moment it runs out, and the player is credited
+ * to there and sent home. See ApplyOfflineProgress.
  */
 #ifndef MS_SRC_COMBAT_OFFLINE_H_
 #define MS_SRC_COMBAT_OFFLINE_H_
@@ -68,9 +68,10 @@ double AbsenceSeconds(int64_t last_seen_unix_seconds, int64_t now_unix_seconds);
 // for it, returning what they earned.
 //
 // The absence is stepped in full when it is shorter than the sample; past
-// that, the sample's kills are scaled to what is left. A sample that dies, or
-// one whose HP is draining fast enough to run out before the player returns,
-// is credited only up to the death and leaves them on Maple Island.
+// that, the sample's kills are scaled to what is left. Three samples are
+// credited only up to the fall and leave the player on Maple Island: one that
+// dies, one whose pool is draining fast enough to run out before the player
+// returns, and one that held but came within a twentieth of empty doing it.
 OfflineReport ApplyOfflineProgress(GameState& state, double seconds);
 
 }  // namespace ms
