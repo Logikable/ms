@@ -610,5 +610,32 @@ TEST_F(PartyControllerTest, TheEntrySaysSoWhenThereIsNoConnection) {
   EXPECT_FALSE(client.controller->party_notice().empty());
 }
 
+TEST_F(PartyControllerTest, PartyOpensOnceTheServerCatchesUp) {
+  // The server is the end that is behind, which is what a deploy left undone
+  // looks like from a player's seat.
+  TestServer behind(TestBosses(), TestMobs(), kMultiplayerVersion - 1);
+  ASSERT_TRUE(behind.Start());
+  Client player("Dagger", behind.port());
+  player.session.Start(*player.state);
+  ASSERT_TRUE(WaitFor({&player}, [&]() {
+    return player.session.Snapshot().state == ConnectionState::kUnavailable;
+  }));
+
+  player.controller->OpenMenuEntry(MenuEntry::kParty);
+  ASSERT_NE(player.controller->screen(), kPartySelect);
+  EXPECT_EQ(player.controller->party_notice(),
+            "The server is running an older version. Trying again.");
+
+  // The server is deployed. Pressing Party again is what asks the connection
+  // to try now rather than at the end of its backoff, so the player gets in
+  // without restarting the game.
+  ASSERT_TRUE(behind.RestartSpeaking(kMultiplayerVersion));
+  player.controller->OpenMenuEntry(MenuEntry::kParty);
+  ASSERT_TRUE(WaitFor({&player}, [&]() {
+    return player.session.Snapshot().state == ConnectionState::kConnected;
+  }));
+  OpenParty(player);
+}
+
 }  // namespace
 }  // namespace ms

@@ -294,6 +294,12 @@ void TuiController::OpenMenuEntry(MenuEntry entry) {
   if (entry == MenuEntry::kParty) {
     MultiplayerSnapshot lobby = Lobby();
     if (lobby.state != ConnectionState::kConnected) {
+      // Ask for a fresh attempt on the way out. Whatever turned the connection
+      // away may be gone -- a server since deployed is the common one -- and
+      // finding out should not cost the player a restart.
+      if (multiplayer_ != nullptr) {
+        multiplayer_->client().Reconnect();
+      }
       RaisePartyNotice(
           lobby.message.empty() ? "Could not reach the server." : lobby.message,
           /*refusal=*/true);

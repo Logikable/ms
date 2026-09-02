@@ -210,13 +210,13 @@ TEST_F(ClientTest, SaysWhichEndIsBehind) {
 TEST_F(ClientTest, HealsWhenTheServerCatchesUp) {
   // The server is the end that is behind, which is what a deploy left undone
   // looks like. The client is built right and still cannot get in.
-  TestServer old_server(TestBosses(), TestMobs(), kMultiplayerVersion + 1);
+  TestServer old_server(TestBosses(), TestMobs(), kMultiplayerVersion - 1);
   ASSERT_TRUE(old_server.Start());
   MultiplayerClient client("127.0.0.1", old_server.port());
   client.Start(Player("Dagger"), "");
   ASSERT_TRUE(WaitFor(client, [](const MultiplayerSnapshot& snapshot) {
     return snapshot.state == ConnectionState::kUnavailable &&
-           snapshot.server_protocol_version == kMultiplayerVersion + 1;
+           snapshot.server_protocol_version == kMultiplayerVersion - 1;
   }));
 
   ASSERT_TRUE(old_server.RestartSpeaking(kMultiplayerVersion));
