@@ -447,39 +447,39 @@ Screen InventoryPanel::OnTabMenuEvent(ftxui::Event event) {
   return kItemMenu;
 }
 
-Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
-                                   ScrollPanel& scroll_panel) {
-  if (active_tab_ != kEquipTab) {
-    // Use/Etc {Sell, Close} menu.
-    if (IsBack(event)) {
-      return kMain;
-    }
-    if (event == ftxui::Event::ArrowUp) {
-      sell_menu_.Up();
-      return kItemMenu;
-    }
-    if (event == ftxui::Event::ArrowDown) {
-      sell_menu_.Down();
-      return kItemMenu;
-    }
-    if (IsForward(event)) {
-      if (sell_menu_.selected() == kStackInspect) {
-        return kItemInspect;
-      }
-      if (sell_menu_.selected() == kStackUse) {
-        character_.UseStackable(active_category(), selected_stack_);
-        return kMain;
-      }
-      if (sell_menu_.selected() == kStackSell) {
-        return kSell;
-      }
-      if (sell_menu_.selected() == kStackMultiSell) {
-        return kMultiSell;
-      }
-      return kMain;
-    }
+Screen InventoryPanel::OnStackMenuEvent(ftxui::Event event) {
+  if (IsBack(event)) {
+    return kMain;
+  }
+  if (event == ftxui::Event::ArrowUp) {
+    sell_menu_.Up();
     return kItemMenu;
   }
+  if (event == ftxui::Event::ArrowDown) {
+    sell_menu_.Down();
+    return kItemMenu;
+  }
+  if (!IsForward(event)) {
+    return kItemMenu;
+  }
+  if (sell_menu_.selected() == kStackInspect) {
+    return kItemInspect;
+  }
+  if (sell_menu_.selected() == kStackUse) {
+    character_.UseStackable(active_category(), selected_stack_);
+    return kMain;
+  }
+  if (sell_menu_.selected() == kStackSell) {
+    return kSell;
+  }
+  if (sell_menu_.selected() == kStackMultiSell) {
+    return kMultiSell;
+  }
+  return kMain;
+}
+
+Screen InventoryPanel::OnEquipMenuEvent(ftxui::Event event,
+                                        ScrollPanel& scroll_panel) {
   if (IsBack(event)) {
     return kMain;
   }
@@ -491,50 +491,56 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
     menu_.Down();
     return kItemMenu;
   }
-  if (IsForward(event)) {
-    if (menu_.selected() == kMenuAction) {
-      character_.Equip(selected_);
-      return kMain;
-    }
-    if (menu_.selected() == kMenuInspect) {
-      return kInspect;
-    }
-    if (menu_.selected() == kMenuCombine) {
-      return kSymbolCombine;
-    }
-    if (menu_.selected() == kMenuScroll) {
-      // Followed whether or not there is a scroll to show: they pressed the
-      // entry, which is what the gold was asking them to do.
-      FollowedToAction(Feature::kScrolling, account_);
-      if (scroll_panel.SetFilterForPrototype(
-              character_.inventory()[selected_].prototype())) {
-        return kScrollSelect;
-      }
-    }
-    if (menu_.selected() == kMenuHammer) {
-      FollowedToAction(Feature::kHammer, account_);
-      return kHammer;
-    }
-    if (menu_.selected() == kMenuStarForce) {
-      FollowedToAction(Feature::kStarForce, account_);
-      return kStarForce;
-    }
-    if (menu_.selected() == kMenuCube) {
-      FollowedToAction(Feature::kPotential, account_);
-      return kCubing;
-    }
-    if (menu_.selected() == kMenuRecover) {
-      return kTraceRecover;
-    }
-    if (menu_.selected() == kMenuSell) {
-      return kSellEquip;
-    }
-    if (menu_.selected() == kMenuMultiSell) {
-      return kMultiSell;
-    }
+  if (!IsForward(event)) {
+    return kItemMenu;
+  }
+  if (menu_.selected() == kMenuAction) {
+    character_.Equip(selected_);
     return kMain;
   }
-  return kItemMenu;
+  if (menu_.selected() == kMenuInspect) {
+    return kInspect;
+  }
+  if (menu_.selected() == kMenuCombine) {
+    return kSymbolCombine;
+  }
+  if (menu_.selected() == kMenuScroll) {
+    // Followed whether or not there is a scroll to show: they pressed the
+    // entry, which is what the gold was asking them to do.
+    FollowedToAction(Feature::kScrolling, account_);
+    if (scroll_panel.SetFilterForPrototype(
+            character_.inventory()[selected_].prototype())) {
+      return kScrollSelect;
+    }
+  }
+  if (menu_.selected() == kMenuHammer) {
+    FollowedToAction(Feature::kHammer, account_);
+    return kHammer;
+  }
+  if (menu_.selected() == kMenuStarForce) {
+    FollowedToAction(Feature::kStarForce, account_);
+    return kStarForce;
+  }
+  if (menu_.selected() == kMenuCube) {
+    FollowedToAction(Feature::kPotential, account_);
+    return kCubing;
+  }
+  if (menu_.selected() == kMenuRecover) {
+    return kTraceRecover;
+  }
+  if (menu_.selected() == kMenuSell) {
+    return kSellEquip;
+  }
+  if (menu_.selected() == kMenuMultiSell) {
+    return kMultiSell;
+  }
+  return kMain;
+}
+
+Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
+                                   ScrollPanel& scroll_panel) {
+  return active_tab_ == kEquipTab ? OnEquipMenuEvent(event, scroll_panel)
+                                  : OnStackMenuEvent(event);
 }
 
 ItemColumns InventoryPanel::Columns() const {

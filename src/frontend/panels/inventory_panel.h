@@ -144,6 +144,11 @@ class InventoryPanel {
   }
 
  private:
+  // The two menus OnMenuEvent drives, one per tab family: the equip menu on
+  // Equip, the {Inspect, Use, Sell, Multi-Sell} menu on Use/Etc.
+  Screen OnEquipMenuEvent(ftxui::Event event, ScrollPanel& scroll_panel);
+  Screen OnStackMenuEvent(ftxui::Event event);
+
   // Whether the border is currently lit gold. Set from outside, read by the
   // render; no part of the panel's own state machine.
   bool highlighted_ = false;
