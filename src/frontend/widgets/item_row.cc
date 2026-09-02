@@ -59,19 +59,16 @@ ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state) {
   // The slot count rides along so a row says how far the item can still go,
   // not only how far it has come.
   int slots = TotalUpgradeSlots(proto, state);
-  cells.scroll = slots > 0 ? "+" + std::to_string(state.scroll_successes()) +
-                                 "/" + std::to_string(slots)
+  cells.scroll = slots > 0 ? std::to_string(state.scroll_successes()) + "/" +
+                                 std::to_string(slots)
                            : "-";
   cells.stars = Supports(proto, UPGRADE_STAR_FORCE)
                     ? std::to_string(state.stars()) + "★"
                     : "-";
   const Potential& potential = state.main_potential();
-  // The first line alone: it is the one that carries the potential's own
-  // rank, and so the one that says what the item rolled.
-  cells.potential =
-      potential.lines().empty()
-          ? "-"
-          : PotentialLineCell(potential.lines(0), proto.required_level());
+  cells.potential = potential.lines().empty()
+                        ? "-"
+                        : PotentialCell(potential, proto.required_level());
   return cells;
 }
 

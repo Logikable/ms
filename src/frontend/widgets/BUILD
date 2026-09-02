@@ -90,6 +90,7 @@ cc_test(
         ":colors",
         ":game_names",
         ":text_columns",
+        "//src/item:potential",
         "//src/protos:skill_proto_cc",
         "@googletest//:gtest_main",
     ],

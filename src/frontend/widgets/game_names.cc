@@ -1,6 +1,7 @@
 #include "src/frontend/widgets/game_names.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <map>
 #include <set>
@@ -574,13 +575,21 @@ std::string PotentialLineName(PotentialLineType type) {
   }
 }
 
-std::string PotentialLineValueText(const PotentialLine& line, int item_level) {
-  const int value = PotentialLineValue(line.type(), line.rank(), item_level);
-  switch (line.type()) {
-    // The two lines that take something away rather than granting it.
+namespace {
+
+// Whether a line takes something away rather than granting it, which is the
+// two cooldown lines and nothing else.
+bool TakesAway(PotentialLineType type) {
+  return type == POTENTIAL_LINE_TYPE_COOLDOWN_1 ||
+         type == POTENTIAL_LINE_TYPE_COOLDOWN_2;
+}
+
+// A value with the unit its line is stated in, and no sign: "12", "9%", "2s".
+std::string PotentialValueText(PotentialLineType type, int value) {
+  switch (type) {
     case POTENTIAL_LINE_TYPE_COOLDOWN_1:
     case POTENTIAL_LINE_TYPE_COOLDOWN_2:
-      return "-" + std::to_string(value) + "s";
+      return std::to_string(value) + "s";
     // The flat grants. Everything else is a share of something.
     case POTENTIAL_LINE_TYPE_STR:
     case POTENTIAL_LINE_TYPE_DEX:
@@ -588,10 +597,58 @@ std::string PotentialLineValueText(const PotentialLine& line, int item_level) {
     case POTENTIAL_LINE_TYPE_LUK:
     case POTENTIAL_LINE_TYPE_ALL_STATS:
     case POTENTIAL_LINE_TYPE_MAX_HP:
-      return "+" + std::to_string(value);
+      return std::to_string(value);
     default:
-      return "+" + std::to_string(value) + "%";
+      return std::to_string(value) + "%";
   }
+}
+
+// The type two lines of one effect both count under. GMS states ignored
+// defence, boss damage and cooldown at several fixed sizes, and each size is
+// its own type here; adding two of them up asks for the effect, not the size.
+PotentialLineType PotentialLineFamily(PotentialLineType type) {
+  static_assert(PotentialLineType_ARRAYSIZE == 28,
+                "a new potential line needs a family");
+  switch (type) {
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30:
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35:
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40:
+      return POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15;
+    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35:
+    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40:
+      return POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30;
+    case POTENTIAL_LINE_TYPE_COOLDOWN_2:
+      return POTENTIAL_LINE_TYPE_COOLDOWN_1;
+    default:
+      return type;
+  }
+}
+
+// What the lines of `family` in `potential` come to together. Everything adds
+// up except ignored defence, which meets in reverse the way it does
+// everywhere else -- see AddPotential.
+int PotentialFamilyTotal(const Potential& potential, PotentialLineType family,
+                         int item_level) {
+  bool ied = family == POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15;
+  int total = 0;
+  double left = 1.0;
+  for (const PotentialLine& line : potential.lines()) {
+    if (PotentialLineFamily(line.type()) != family) {
+      continue;
+    }
+    int value = PotentialLineValue(line.type(), line.rank(), item_level);
+    total += value;
+    left *= 1.0 - value / 100.0;
+  }
+  return ied ? static_cast<int>(std::lround((1.0 - left) * 100.0)) : total;
+}
+
+}  // namespace
+
+std::string PotentialLineValueText(const PotentialLine& line, int item_level) {
+  const int value = PotentialLineValue(line.type(), line.rank(), item_level);
+  return (TakesAway(line.type()) ? "-" : "+") +
+         PotentialValueText(line.type(), value);
 }
 
 std::string PotentialLineShortName(PotentialLineType type) {
@@ -629,10 +686,19 @@ std::string PotentialLineShortName(PotentialLineType type) {
   }
 }
 
-std::string PotentialLineCell(const PotentialLine& line, int item_level) {
-  return PadRight(PotentialLineValueText(line, item_level) + " " +
-                      PotentialLineShortName(line.type()),
-                  kPotentialCellWidth);
+std::string PotentialCell(const Potential& potential, int item_level) {
+  if (potential.lines().empty()) {
+    return PadRight("", kPotentialCellWidth);
+  }
+  // The first line names the effect the column reports: it is the one that
+  // carries the potential's own rank, and so the one that says what the item
+  // rolled.
+  PotentialLineType family = PotentialLineFamily(potential.lines(0).type());
+  int total = PotentialFamilyTotal(potential, family, item_level);
+  std::string text = TakesAway(family) ? "-" : "";
+  text +=
+      PotentialValueText(family, total) + " " + PotentialLineShortName(family);
+  return PadRight(text, kPotentialCellWidth);
 }
 
 std::string HyperStatName(HyperStatField field) {

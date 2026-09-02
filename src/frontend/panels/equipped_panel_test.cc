@@ -334,9 +334,9 @@ TEST_F(EquippedPanelTest, TheUpgradeColumnsReadADashWhenRefused) {
 
   EquippedPanel panel(c_, account_, panel_focus_);
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
-  EXPECT_NE(LineWith(rendered, "Sword").find("+0"), std::string::npos);
+  EXPECT_NE(LineWith(rendered, "Sword").find("0/7"), std::string::npos);
   EXPECT_NE(LineWith(rendered, "Sword").find("0\u2605"), std::string::npos);
-  EXPECT_EQ(LineWith(rendered, "Subi").find("+"), std::string::npos);
+  EXPECT_EQ(LineWith(rendered, "Subi").find("/"), std::string::npos);
   EXPECT_EQ(LineWith(rendered, "Subi").find("\u2605"), std::string::npos);
 }
 

@@ -114,15 +114,15 @@ TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
   PotentialLine* line = state.mutable_main_potential()->add_lines();
   line->set_type(POTENTIAL_LINE_TYPE_ATTACK_PCT);
   line->set_rank(POTENTIAL_RANK_LEGENDARY);
-  // A second line, which the column never shows: only the first carries the
-  // potential's own rank.
+  // A second line granting something else, which the first line's total
+  // leaves alone.
   state.mutable_main_potential()->add_lines()->set_type(
       POTENTIAL_LINE_TYPE_MESO_RATE);
 
   ItemCells cells = EquipUpgradeCells(proto, state);
-  EXPECT_EQ(cells.scroll, "+3/7");
+  EXPECT_EQ(cells.scroll, "3/7");
   EXPECT_EQ(cells.stars, "12★");
-  EXPECT_EQ(cells.potential, "+12% ATT     ");
+  EXPECT_EQ(cells.potential, "12% ATT     ");
 
   // An upgrade the item refuses, and an item carrying no potential, each read
   // "-" rather than blank.

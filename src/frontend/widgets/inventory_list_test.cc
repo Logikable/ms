@@ -96,16 +96,16 @@ TEST_F(InventoryListTest, StackRowsNameTheirCount) {
 // over rather than staying where a narrow panel put them.
 TEST_F(InventoryListTest, AWideNameColumnMovesTheColumnsAfterIt) {
   EquipPrototype wordy = sword_;
-  wordy.set_name("Metallic Blue Book (Antistrophe)");
+  wordy.set_name("Metallic Blue Book (Antistrophe) Trace");
   c_.PickUp(std::make_unique<EquipInstance>(wordy));
 
   std::vector<InventoryRowState> narrow = Rows();
   std::vector<InventoryRowState> wide = Rows(200);
   ASSERT_EQ(wide.size(), 1u);
-  EXPECT_EQ(narrow[0].label.text.find("Metallic Blue Book (Antistrophe)"),
+  EXPECT_EQ(narrow[0].label.text.find("Metallic Blue Book (Antistrophe) Trace"),
             std::string::npos)
       << "the narrow column cuts it, which is what this compares against";
-  EXPECT_NE(wide[0].label.text.find("Metallic Blue Book (Antistrophe)"),
+  EXPECT_NE(wide[0].label.text.find("Metallic Blue Book (Antistrophe) Trace"),
             std::string::npos);
   // The row still reads as columns: the header over it makes the same room.
   // The row carries no cursor of its own, so its slot cell sits two columns

@@ -112,11 +112,13 @@ std::string PotentialLineValueText(const PotentialLine& line, int item_level);
 // PotentialLineName instead.
 std::string PotentialLineShortName(PotentialLineType type);
 
-// One line as a list cell reads it, value first: "+12% ATT", "-2s CD". Held
-// to kPotentialCellWidth columns, which the longest line the game rolls
-// fills exactly.
-std::string PotentialLineCell(const PotentialLine& line, int item_level);
-inline constexpr int kPotentialCellWidth = 13;
+// What a list column says about `potential`: its first line's effect, with
+// every other line granting the same one folded in, so two %INT lines read as
+// one total. Value first and no "+" -- a column of rows has no room to spend
+// on a sign every row carries. Held to kPotentialCellWidth columns, which the
+// widest total the game rolls fills exactly.
+std::string PotentialCell(const Potential& potential, int item_level);
+inline constexpr int kPotentialCellWidth = 12;
 
 // The tag a skill row opens with: what the player does with the skill, said
 // once at the front of the row instead of being worked out from the name.

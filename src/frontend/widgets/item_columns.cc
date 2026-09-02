@@ -10,14 +10,15 @@ namespace {
 
 // What each column holds, at the width of the widest thing in it: "Equip
 // Slot" itself, "Lv150", "Magician", an attack figure beside a stat figure,
-// "+7/7", "25*" and the longest potential line the game rolls.
+// the "Scroll" heading over "7/7", "25*" and the widest potential total the
+// game rolls.
 constexpr int kSlotWidth = 10;
 constexpr int kLevelWidth = 5;
 constexpr int kJobWidth = 8;
 constexpr int kStatsWidth = 20;
 constexpr int kScrollWidth = 6;
 constexpr int kStarsWidth = 5;
-constexpr int kPotentialWidth = 13;
+constexpr int kPotentialWidth = 12;
 
 // Whether the mechanic behind `column` is open. The name and the slot answer
 // to nothing: an item always has both.

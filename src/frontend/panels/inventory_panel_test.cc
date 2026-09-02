@@ -449,7 +449,7 @@ TEST_F(InventoryPanelTest, ARowNamesTheItemAndItsColumns) {
   EXPECT_NE(drawn.find("Lv10"), std::string::npos);
   EXPECT_NE(drawn.find("Warrior"), std::string::npos);
   // Fresh item: nothing passed, no stars.
-  EXPECT_NE(drawn.find("+0"), std::string::npos);
+  EXPECT_NE(drawn.find("0/7"), std::string::npos);
   EXPECT_NE(drawn.find("0\u2605"), std::string::npos);
 }
 

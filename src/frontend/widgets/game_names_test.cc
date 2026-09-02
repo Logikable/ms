@@ -9,6 +9,7 @@
 
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/text_columns.h"
+#include "src/item/potential.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -309,26 +310,78 @@ TEST(PotentialLineTextTest, ShortensEveryNameThatOutgrowsAColumn) {
   EXPECT_EQ(PotentialLineShortName(POTENTIAL_LINE_TYPE_DAMAGE_PCT), "Damage");
 }
 
+// One line of `type` at `rank`, as a potential the cell can read.
+Potential OneLine(PotentialLineType type, PotentialRank rank) {
+  Potential potential;
+  PotentialLine* line = potential.add_lines();
+  line->set_type(type);
+  line->set_rank(rank);
+  return potential;
+}
+
 TEST(PotentialLineTextTest, CellIsValueThenNameAtOneWidth) {
-  PotentialLine line;
-  line.set_type(POTENTIAL_LINE_TYPE_ATTACK_PCT);
-  line.set_rank(POTENTIAL_RANK_LEGENDARY);
-  EXPECT_EQ(PotentialLineCell(line, 150), "+12% ATT     ");
+  EXPECT_EQ(PotentialCell(OneLine(POTENTIAL_LINE_TYPE_ATTACK_PCT,
+                                  POTENTIAL_RANK_LEGENDARY),
+                          150),
+            "12% ATT     ");
+  EXPECT_EQ(PotentialCell(OneLine(POTENTIAL_LINE_TYPE_COOLDOWN_2,
+                                  POTENTIAL_RANK_LEGENDARY),
+                          150),
+            "-2s CD      ");
 
-  line.set_type(POTENTIAL_LINE_TYPE_COOLDOWN_2);
-  EXPECT_EQ(PotentialLineCell(line, 150), "-2s CD       ");
-
-  // The longest line the game rolls fills the column exactly, and no line is
-  // cut to reach it: the cell holds its width because every line fits.
-  line.set_type(POTENTIAL_LINE_TYPE_ALL_STATS_PCT);
-  EXPECT_EQ(PotentialLineCell(line, 200), "+10% All Stat");
-  for (int type = 0; type < PotentialLineType_ARRAYSIZE; ++type) {
-    line.set_type(static_cast<PotentialLineType>(type));
-    EXPECT_EQ(TextColumns(PotentialLineCell(line, 200)), kPotentialCellWidth);
-    EXPECT_LE(TextColumns(PotentialLineValueText(line, 200) + " " +
-                          PotentialLineShortName(line.type())),
-              kPotentialCellWidth);
+  // The widest total the game rolls fills the column exactly, and nothing is
+  // cut to reach it: three of the widest line still hold the width.
+  Potential all_stats;
+  for (int i = 0; i < kPotentialLines; ++i) {
+    PotentialLine* line = all_stats.add_lines();
+    line->set_type(POTENTIAL_LINE_TYPE_ALL_STATS_PCT);
+    line->set_rank(POTENTIAL_RANK_LEGENDARY);
   }
+  EXPECT_EQ(PotentialCell(all_stats, 200), "30% All Stat");
+  for (int type = 0; type < PotentialLineType_ARRAYSIZE; ++type) {
+    Potential potential;
+    for (int i = 0; i < kPotentialLines; ++i) {
+      PotentialLine* line = potential.add_lines();
+      line->set_type(static_cast<PotentialLineType>(type));
+      line->set_rank(POTENTIAL_RANK_LEGENDARY);
+    }
+    EXPECT_EQ(TextColumns(PotentialCell(potential, 200)), kPotentialCellWidth)
+        << "type " << type;
+  }
+}
+
+// A column reports what the item grants, not what one of its lines says: two
+// lines of one stat are one figure.
+TEST(PotentialLineTextTest, CellSumsEveryLineGrantingTheTopStat) {
+  Potential potential;
+  PotentialLine* line = potential.add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_INT_PCT);
+  line->set_rank(POTENTIAL_RANK_LEGENDARY);
+  // A line of something else, which the total leaves alone.
+  line = potential.add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_MESO_RATE);
+  line->set_rank(POTENTIAL_RANK_LEGENDARY);
+  line = potential.add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_INT_PCT);
+  line->set_rank(POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(PotentialCell(potential, 150), "21% INT     ");
+
+  // Ignored defence meets in reverse, as it does everywhere else: 15% and 30%
+  // together leave 59.5% of the defence standing.
+  Potential ied =
+      OneLine(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15, POTENTIAL_RANK_EPIC);
+  line = ied.add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30);
+  line->set_rank(POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(PotentialCell(ied, 150), "41% IED     ");
+
+  // Boss damage is stated at three sizes and adds up across all of them.
+  Potential boss =
+      OneLine(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30, POTENTIAL_RANK_UNIQUE);
+  line = boss.add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40);
+  line->set_rank(POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(PotentialCell(boss, 150), "70% Boss    ");
 }
 
 TEST(PotentialLineTextTest, NamesEveryRank) {
