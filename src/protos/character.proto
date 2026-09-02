@@ -3,7 +3,6 @@ syntax = "proto3";
 package ms;
 
 import "src/protos/equip.proto";
-import "src/protos/item.proto";
 
 // The character's current job, named for the first advancement (Swordman,
 // Archer, ...). One Job spans every advancement stage of its line; which tier
@@ -408,8 +407,9 @@ message BossClear {
 // One stack on the Use or Etc tab. Carries the catalog key and a count, not
 // the item itself: prototypes are loaded from data/ and resolved by name, so a
 // save stays small and the data files stay authoritative over what an item is.
+// Which tab it belongs to is the prototype's to say, for the same reason.
 message StackableStack {
   string name = 1;
   int32 count = 2;
-  ItemCategory category = 3;
+  reserved 3;  // the tab, which the prototype already names
 }

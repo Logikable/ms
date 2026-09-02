@@ -34,6 +34,8 @@ class SaveTest : public testing::Test {
     sword_.set_upgrade_slots(7);
     shell_.set_name("Green Snail Shell");
     shell_.set_category(ITEM_CATEGORY_ETC);
+    potion_.set_name("Red Potion");
+    potion_.set_category(ITEM_CATEGORY_USE);
 
     dir_ = std::filesystem::temp_directory_path() /
            ("ms_save_test_" +
@@ -56,7 +58,8 @@ class SaveTest : public testing::Test {
     // a save refers to items by the name the player sees, and a fixture that
     // conflated the two would hide a lookup against the wrong key.
     std::map<std::string, EquipPrototype> equips{{"sword", sword_}};
-    std::map<std::string, ItemPrototype> items{{"green_snail_shell", shell_}};
+    std::map<std::string, ItemPrototype> items{{"green_snail_shell", shell_},
+                                               {"red_potion", potion_}};
     return std::make_unique<GameState>(equips, std::map<std::string, Scroll>{},
                                        items, std::map<std::string, Mob>{},
                                        std::map<std::string, MapData>{},
@@ -98,6 +101,7 @@ class SaveTest : public testing::Test {
 
   EquipPrototype sword_;
   ItemPrototype shell_;
+  ItemPrototype potion_;
   std::filesystem::path dir_;
   std::string path_;
 };
@@ -127,6 +131,7 @@ TEST_F(SaveTest, WritesAndReadsBackACharacter) {
   const Potential rolled = potted->potential();
   saved->character.PickUp(std::move(potted));
   saved->character.AddStackable(shell_, 17);
+  saved->character.AddStackable(potion_, 3);
   saved->character.ToggleScrollPin("2:1:30");
   saved->character.RecordBossClear("zakum", "Normal", 1755000000);
   saved->current_map = "lith";
@@ -146,8 +151,14 @@ TEST_F(SaveTest, WritesAndReadsBackACharacter) {
   EXPECT_EQ(back->potential().rank(), rolled.rank());
   ASSERT_EQ(back->potential().lines_size(), rolled.lines_size());
   EXPECT_EQ(back->potential().lines(0).type(), rolled.lines(0).type());
+  // Which tab a stack lands on is the prototype's to say, so a save carrying
+  // both had better sort them apart on the way back in.
   ASSERT_EQ(loaded->character.stackables(ITEM_CATEGORY_ETC).size(), 1u);
   EXPECT_EQ(loaded->character.stackables(ITEM_CATEGORY_ETC)[0].count(), 17);
+  ASSERT_EQ(loaded->character.stackables(ITEM_CATEGORY_USE).size(), 1u);
+  EXPECT_EQ(loaded->character.stackables(ITEM_CATEGORY_USE)[0].name(),
+            "Red Potion");
+  EXPECT_EQ(loaded->character.stackables(ITEM_CATEGORY_USE)[0].count(), 3);
   // A pinned scroll is a standing preference, so it rides the save.
   EXPECT_TRUE(loaded->character.ScrollPinned("2:1:30"));
   EXPECT_FALSE(loaded->character.ScrollPinned("2:1:70"));

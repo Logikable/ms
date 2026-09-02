@@ -15,6 +15,7 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 

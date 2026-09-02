@@ -209,18 +209,15 @@ EquipJobCategory JobToCategory(Job job) {
   return EQUIP_JOB_CATEGORY_UNSPECIFIED;
 }
 
-// Appends `stacks` to the saved character under `category`. The tab an item
-// belongs to is a property of the item, but it is stored alongside the count
-// so a load does not have to consult the catalog to know where to put it --
-// and so a stack whose prototype has since vanished lands nowhere rather than
-// on the wrong tab.
-void AppendStacks(const std::vector<StackableItem>& stacks,
-                  ItemCategory category, Character* out) {
+// Appends `stacks` to the saved character. The tab an item belongs to is the
+// prototype's to say, and a load has the prototype in hand before it has
+// anywhere to put the stack -- one whose prototype has since vanished is
+// dropped rather than landing on a tab.
+void AppendStacks(const std::vector<StackableItem>& stacks, Character* out) {
   for (const StackableItem& stack : stacks) {
     StackableStack* saved = out->add_stacks();
     saved->set_name(stack.name());
     saved->set_count(stack.count());
-    saved->set_category(category);
   }
 }
 
@@ -1839,7 +1836,6 @@ int64_t CharacterInstance::SellStackable(ItemCategory category, int index,
   BuyBackEntry entry;
   entry.mutable_stack()->set_name(stack.name());
   entry.mutable_stack()->set_count(count);
-  entry.mutable_stack()->set_category(category);
   entry.set_unit_price(price);
   stack.add_count(-count);
   if (stack.count() <= 0) {
@@ -2283,8 +2279,8 @@ Character CharacterInstance::ToProto() const {
     (*saved.mutable_equipped())[static_cast<int>(worn.first)] =
         worn.second.equip_state();
   }
-  AppendStacks(use_items_, ITEM_CATEGORY_USE, &saved);
-  AppendStacks(etc_items_, ITEM_CATEGORY_ETC, &saved);
+  AppendStacks(use_items_, &saved);
+  AppendStacks(etc_items_, &saved);
   return saved;
 }
 
@@ -2340,7 +2336,7 @@ void CharacterInstance::RestoreFrom(
     if (proto == items_by_name.end()) {
       continue;
     }
-    StacksFor(stack.category())
+    StacksFor(proto->second->category())
         .push_back(StackableItem(*proto->second, stack.count()));
   }
 
