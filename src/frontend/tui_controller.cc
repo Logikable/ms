@@ -406,6 +406,14 @@ bool TuiController::OnEvent(ftxui::Event event) {
   // equipped panel, which a level 1 character has not unlocked. Settled before
   // dispatch so a key never reaches a panel that is not drawn.
   EnsureFocusIsVisible();
+  // A rank up is gold until the next thing the player does, and this is where
+  // the doing is counted. Cleared before dispatch, so the keypress that rolls
+  // the rank sets it back on its way through. Custom is the ticker's own
+  // redraw and is nobody doing anything.
+  if (event != ftxui::Event::Custom) {
+    ability_rank_up_ = false;
+    cube_panel_.SetRankUp(false);
+  }
   // The notice floats over whatever is on screen, so it takes keys before the
   // screen under it gets a look.
   if (party_notice_prompt_.open()) {
@@ -1052,7 +1060,12 @@ bool TuiController::OnCubeEvent(ftxui::Event event) {
   if (cube_panel_.OnEvent(event) == ConfirmChoice::kConfirmed) {
     // The window stays up over the item it just rerolled, which is the whole
     // point of it: the player watches the lines change and presses again.
+    const PotentialRank before = cube_item()->potential().rank();
     CubeItem(state_.character, cube_ref_, cube_panel_.selected_cube());
+    // The first cube into a bare item always hands over a Rare potential, so
+    // it is a grant rather than a rank up and the window stays steel blue.
+    cube_panel_.SetRankUp(before != POTENTIAL_RANK_UNSPECIFIED &&
+                          cube_item()->potential().rank() > before);
   }
   return true;
 }
@@ -2119,7 +2132,10 @@ bool TuiController::OnAbilityRerollEvent(ftxui::Event event) {
     return true;
   }
   if (choice == ConfirmChoice::kConfirmed) {
+    const AbilityRank before = state_.character.ability(ability_preset_).rank();
     state_.character.ResetAbility(ability_preset_);
+    ability_rank_up_ =
+        state_.character.ability(ability_preset_).rank() > before;
   }
   screen_ = kMain;
   return true;

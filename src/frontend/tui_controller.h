@@ -211,6 +211,12 @@ class TuiController {
   // not holding. What the player is being asked about, and the only lines the
   // dialog lists.
   std::vector<AbilityLine> ability_reroll_lines() const;
+  // Whether the last reroll carried the ability up a rank, which lights the
+  // character panel gold. True only until the player's next key: the news is
+  // worth a moment, and the moment ends when they do something with it.
+  bool ability_rank_up() const {
+    return ability_rank_up_;
+  }
   // Float the job's context menu over the main view: read the job, take it, or
   // walk away. Enter in the Advance tab lands here rather than on the
   // confirmation -- what a job is should be readable before it is chosen.
@@ -669,6 +675,9 @@ class TuiController {
   // And which allocation the open Inner Ability question is about, kept apart
   // from the Hyper one above so neither answer can land on the other's.
   StatPreset ability_preset_ = StatPreset::kFarming;
+  // See ability_rank_up(). Put out by OnEvent before it dispatches, so the
+  // reroll that sets it keeps it and the key after it does not.
+  bool ability_rank_up_ = false;
   SymbolCombinePanel symbol_combine_panel_;
   HammerPanel hammer_panel_;
   // The worn symbol the two symbol dialogs are asking about. Held so the

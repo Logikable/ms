@@ -12,6 +12,10 @@
  * rerolls and the lines under the question change where the player is looking.
  * Once the purse is short the window says so itself: the price goes red,
  * Confirm greys, and the cursor is moved off it.
+ *
+ * A reroll that carries the potential up a rank turns the window gold, and it
+ * stays that way until the player's next key -- the one moment on the screen
+ * worth stopping at, said where they are already looking.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_CUBE_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_CUBE_PANEL_H_
@@ -44,6 +48,12 @@ class CubePanel {
   bool IsConfirming() const {
     return confirm_.open();
   }
+  // Whether the last reroll ranked the potential up, which is what the window
+  // goes gold on. Set by the caller, which is the only one that sees the
+  // potential either side of the cube; cleared by it on the next key.
+  void SetRankUp(bool rank_up) {
+    rank_up_ = rank_up;
+  }
   // Walks the shelf, wrapping. Refused while the question is up.
   void MoveCursor(int delta);
   // Enter opens the question; inside it, Confirm answers kConfirmed WITHOUT
@@ -63,6 +73,7 @@ class CubePanel {
   const EquipInstance* item_ = nullptr;
   int64_t meso_ = 0;
   int selected_ = 0;
+  bool rank_up_ = false;  // see SetRankUp
   ConfirmPrompt confirm_;
 };
 

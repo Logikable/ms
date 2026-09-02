@@ -77,6 +77,7 @@ void CubePanel::SetItem(const EquipInstance* item, int64_t meso) {
 
 void CubePanel::Reset() {
   selected_ = 0;
+  rank_up_ = false;
   confirm_.Close();
 }
 
@@ -156,22 +157,26 @@ std::vector<ftxui::Element> CubePanel::LineRows() const {
 ftxui::Element CubePanel::RenderConfirm() const {
   const bool fresh = item_ == nullptr ||
                      item_->potential().rank() == POTENTIAL_RANK_UNSPECIFIED;
+  // Gold on a rank up, steel blue otherwise. The body's own rules take it too:
+  // an AccentWindow draws its content white, so a themed rule inside a gold
+  // window comes out as a seam across it.
+  const ftxui::Color accent = PanelAccent(rank_up_);
   std::vector<ftxui::Element> body = {
       CenteredRow(fresh ? "Grant potential?" : "Reroll these lines?"),
-      ThemedSeparator(),
+      AccentSeparator(accent),
   };
   if (item_ != nullptr) {
     for (ftxui::Element& row : LineRows()) {
       body.push_back(std::move(row));
     }
   }
-  body.push_back(ThemedSeparator());
+  body.push_back(AccentSeparator(accent));
   // The purse over the price: the window is the only thing on screen saying
   // what a reroll leaves the player with, and it is what the greyed Confirm
   // below is explained by.
   body.push_back(PriceBlock(meso_, Cost(), Affordable()));
   return DialogWindow(" " + CubeName(selected_cube()) + " ", std::move(body),
-                      ConfirmButtons(confirm_.focus(), Affordable()));
+                      ConfirmButtons(confirm_.focus(), Affordable()), accent);
 }
 
 ConfirmChoice CubePanel::OnEvent(ftxui::Event event) {

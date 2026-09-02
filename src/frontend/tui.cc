@@ -297,7 +297,10 @@ ftxui::Element Tui::RenderFrame() {
   // Set from the celebration every frame rather than when one starts, so the
   // panels go out on their own -- on the clock or on being visited, whichever
   // one is holding them -- and nothing has to remember to put them back.
-  char_panel_.SetHighlighted(celebration_.Lights(kCharPanel));
+  // The ability rank up rides the same gold: it lands on the panel the player
+  // is already looking at, and goes out on their next key rather than a clock.
+  char_panel_.SetHighlighted(celebration_.Lights(kCharPanel) ||
+                             controller_.ability_rank_up());
   equip_panel_.SetHighlighted(celebration_.Lights(kEquipPanel));
   inventory_panel_.SetHighlighted(celebration_.Lights(kInventoryPanel));
   equip_panel_.SetExpanded(controller_.expanded_panel() == kEquipPanel);

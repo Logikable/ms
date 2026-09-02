@@ -145,6 +145,35 @@ TEST_F(CubePanelTest, AnUnaffordableCubeStillOpensItsQuestion) {
 }
 
 // The shelf is a ring, and the question holds the arrows while it is up.
+// A reroll that carries the potential up a rank turns the whole window gold,
+// rules included: a steel-blue rule across a gold window reads as a seam.
+TEST_F(CubePanelTest, ARankUpTurnsTheWholeQuestionGold) {
+  EquipInstance item = Cubed();
+  CubePanel panel = Open(item, 5 * kCubeCost);
+  EXPECT_EQ(BorderColor(panel.RenderConfirm()), kTheme);
+
+  panel.SetRankUp(true);
+  EXPECT_EQ(BorderColor(panel.RenderConfirm()), kYellow);
+  for (ftxui::Color color : InnerRuleColors(panel.RenderConfirm())) {
+    EXPECT_EQ(color, kYellow);
+  }
+
+  panel.SetRankUp(false);
+  EXPECT_EQ(BorderColor(panel.RenderConfirm()), kTheme);
+}
+
+// Opening the screen starts it steel blue, whatever the last item's last
+// reroll did.
+TEST_F(CubePanelTest, ResetPutsTheGoldOut) {
+  EquipInstance item = Cubed();
+  CubePanel panel = Open(item, 5 * kCubeCost);
+  panel.SetRankUp(true);
+  panel.Reset();
+  panel.SetItem(&item, 5 * kCubeCost);
+  panel.OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(BorderColor(panel.RenderConfirm()), kTheme);
+}
+
 TEST_F(CubePanelTest, TheCursorWrapsAndTheQuestionHoldsIt) {
   EquipInstance item = Cubed();
   CubePanel panel;

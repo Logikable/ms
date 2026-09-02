@@ -37,6 +37,7 @@
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/widgets/chrome.h"
+#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/screen_text.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -459,6 +460,15 @@ class TuiControllerTest : public testing::Test {
                                               ftxui::Dimension::Fixed(20));
     ftxui::Render(scr, skill_inspect_panel_.Render());
     return scr.ToString();
+  }
+
+  // The colour the open cube question is drawn in, which is its border's.
+  // Gold on a reroll that ranked the potential up, steel blue otherwise.
+  ftxui::Color CubeQuestionColor() {
+    ftxui::Screen scr = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
+                                              ftxui::Dimension::Fixed(20));
+    ftxui::Render(scr, cube_panel_.RenderConfirm());
+    return scr.PixelAt(0, 0).foreground_color;
   }
 
   // The equip sell dialog as text, for asserting what it tells the player.
@@ -1909,6 +1919,39 @@ TEST_F(TuiControllerTest, ConfirmRerollsWithoutLeavingTheScreen) {
                 .potential()
                 .rank(),
             POTENTIAL_RANK_RARE);
+}
+
+// A cube that ranks the potential up lights the question gold, and the next
+// key puts it out. Rerolled until one lands: Rare ranks up one cube in seven,
+// so the loop is a formality.
+TEST_F(TuiControllerTest, ARankUpLightsTheCubeQuestionUntilTheNextKey) {
+  LevelTo(UnlockLevel(Feature::kPotential));
+  PickUpScrolledSword();
+  state_->character.Equip(0);
+  RenderEquipPanel();
+  state_->character.AddMeso(500 * kCubeCost);
+
+  controller_->OpenEquipMenu();
+  WalkGearMenuTo(kGearMenuCube);
+  controller_->OnEvent(ftxui::Event::Return);  // the screen
+  controller_->OnEvent(ftxui::Event::Return);  // the question
+  controller_->OnEvent(ftxui::Event::Return);  // the grant, always Rare
+  EXPECT_EQ(CubeQuestionColor(), kTheme) << "a grant is not a rank up";
+
+  const EquipInstance& worn =
+      state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
+  for (int i = 0; i < 200 && worn.potential().rank() == POTENTIAL_RANK_RARE;
+       ++i) {
+    controller_->OnEvent(ftxui::Event::Return);
+  }
+  ASSERT_GT(worn.potential().rank(), POTENTIAL_RANK_RARE);
+  EXPECT_EQ(CubeQuestionColor(), kYellow);
+
+  controller_->OnEvent(ftxui::Event::Custom);
+  EXPECT_EQ(CubeQuestionColor(), kYellow) << "a redraw is nobody doing"
+                                             " anything";
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(CubeQuestionColor(), kTheme);
 }
 
 // --- Star Force via bag panel ---
@@ -3718,6 +3761,27 @@ TEST_F(TuiControllerTest, TheRerollOpensOnConfirmAndIsPaidOnce) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(state_->character.honor(), pool - cost) << "Cancel spends nothing";
+}
+
+// A reroll that ranks the ability up lights the character panel, and the next
+// key puts it out. Rare ranks up one reset in twenty, so the loop stands in
+// for a seed the fixture does not fix.
+TEST_F(TuiControllerTest, AnAbilityRankUpLightsTheCharacterPanel) {
+  LevelTo(kInnerAbilityUnlockLevel);
+  state_->character.AddHonor(1'000'000'000);
+
+  for (int i = 0; i < 500 && !controller_->ability_rank_up(); ++i) {
+    controller_->OpenAbilityReroll(StatPreset::kFarming);
+    controller_->OnEvent(ftxui::Event::Return);
+  }
+  ASSERT_TRUE(controller_->ability_rank_up());
+  EXPECT_GT(state_->character.ability(StatPreset::kFarming).rank(),
+            ABILITY_RANK_RARE);
+
+  controller_->OnEvent(ftxui::Event::Custom);
+  EXPECT_TRUE(controller_->ability_rank_up()) << "a redraw is not an action";
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_FALSE(controller_->ability_rank_up());
 }
 
 // The two allocations are rerolled apart: the question names one of them.

@@ -184,6 +184,7 @@ cc_test(
         "//src/frontend/screens:symbol_level_panel",
         "//src/frontend/screens:trace_recover_panel",
         "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:colors",
         "//src/frontend/widgets:confirm_prompt",
         "//src/frontend/widgets:continue_prompt",
         "//src/frontend/widgets:screen_text",
