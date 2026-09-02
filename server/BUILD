@@ -136,6 +136,7 @@ cc_library(
     hdrs = ["test_server.h"],
     deps = [
         ":server",
+        "//src/multiplayer:protocol",
         "//src/net:socket",
         "//src/protos:boss_proto_cc",
         "//src/protos:mob_proto_cc",

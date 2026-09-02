@@ -24,6 +24,7 @@
 
 #include "server/fight.h"
 #include "server/lobby.h"
+#include "src/multiplayer/protocol.h"
 #include "src/net/socket.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/mob.pb.h"
@@ -41,9 +42,12 @@ class Server {
   // catalogs, owned by the caller and outliving the server: the fights a party
   // may ask for, and the monsters those fights stand up. `seed` fixes the
   // stream ids are drawn from, so a test can say what it will be handed.
+  // `protocol_version` is what the server holds a client to. It is an
+  // argument only so that a test can be an out-of-date server.
   Server(Socket listener, const std::map<std::string, Boss>& bosses,
          const std::map<std::string, Mob>& mobs,
-         unsigned int seed = std::random_device()());
+         unsigned int seed = std::random_device()(),
+         int protocol_version = kMultiplayerVersion);
 
   // One pass of the loop: wait up to `timeout` for a socket to be ready, take
   // what has arrived, send what is queued, and then let go of whatever the
@@ -175,6 +179,7 @@ class Server {
   // does not know is adopted.
   std::map<std::string, std::string> tokens_;
   std::mt19937 rng_;
+  int protocol_version_ = kMultiplayerVersion;
   bool draining_ = false;
 };
 

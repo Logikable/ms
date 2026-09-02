@@ -17,6 +17,7 @@
 #include <utility>
 
 #include "server/server.h"
+#include "src/multiplayer/protocol.h"
 #include "src/net/socket.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/mob.pb.h"
@@ -64,8 +65,11 @@ inline std::map<std::string, Mob> TestMobs() {
 class TestServer {
  public:
   explicit TestServer(std::map<std::string, Boss> bosses = TestBosses(),
-                      std::map<std::string, Mob> mobs = TestMobs())
-      : bosses_(std::move(bosses)), mobs_(std::move(mobs)) {
+                      std::map<std::string, Mob> mobs = TestMobs(),
+                      int protocol_version = kMultiplayerVersion)
+      : bosses_(std::move(bosses)),
+        mobs_(std::move(mobs)),
+        protocol_version_(protocol_version) {
   }
   ~TestServer() {
     Stop();
@@ -82,14 +86,20 @@ class TestServer {
       return false;
     }
     port_ = LocalPort(*listener);
-    running_ = true;
-    thread_ = std::thread([this, socket = std::move(*listener)]() mutable {
-      Server server(std::move(socket), bosses_, mobs_, 3);
-      while (running_) {
-        server.Step(std::chrono::steady_clock::now(),
-                    std::chrono::milliseconds(5));
-      }
-    });
+    Serve(std::move(*listener));
+    return true;
+  }
+
+  // Stops and comes back on the same port speaking `protocol_version`. What a
+  // deploy does, so a test can watch a client that was turned away get in.
+  bool RestartSpeaking(int protocol_version) {
+    Stop();
+    protocol_version_ = protocol_version;
+    std::optional<Socket> listener = Listen(port_);
+    if (!listener.has_value()) {
+      return false;
+    }
+    Serve(std::move(*listener));
     return true;
   }
 
@@ -105,8 +115,21 @@ class TestServer {
   }
 
  private:
+  // Steps the server on a thread of its own until Stop().
+  void Serve(Socket listener) {
+    running_ = true;
+    thread_ = std::thread([this, socket = std::move(listener)]() mutable {
+      Server server(std::move(socket), bosses_, mobs_, 3, protocol_version_);
+      while (running_) {
+        server.Step(std::chrono::steady_clock::now(),
+                    std::chrono::milliseconds(5));
+      }
+    });
+  }
+
   std::map<std::string, Boss> bosses_;
   std::map<std::string, Mob> mobs_;
+  int protocol_version_ = kMultiplayerVersion;
   std::atomic<bool> running_{false};
   int port_ = 0;
   std::thread thread_;

@@ -149,12 +149,14 @@ std::string AskedFor(const ClientMessage& message) {
 }  // namespace
 
 Server::Server(Socket listener, const std::map<std::string, Boss>& bosses,
-               const std::map<std::string, Mob>& mobs, unsigned int seed)
+               const std::map<std::string, Mob>& mobs, unsigned int seed,
+               int protocol_version)
     : listener_(std::move(listener)),
       bosses_(&bosses),
       mobs_(&mobs),
       lobby_(bosses, OtherStream(seed)),
-      rng_(seed) {
+      rng_(seed),
+      protocol_version_(protocol_version) {
 }
 
 void Server::Step(std::chrono::steady_clock::time_point now,
@@ -596,7 +598,7 @@ void Server::HandleLobby(Session& session, const ClientMessage& message) {
 }
 
 void Server::HandleHello(Session& session, const Hello& hello) {
-  if (hello.protocol_version() != kMultiplayerVersion) {
+  if (hello.protocol_version() != protocol_version_) {
     Reject(session, Rejected::REASON_UPDATE_REQUIRED, kUpdateMessage);
     return;
   }
@@ -652,8 +654,7 @@ void Server::Reject(Session& session, Rejected::Reason reason,
   LOG(INFO) << Describe(session) << " turned away: " << message;
   ServerMessage rejection;
   rejection.mutable_rejected()->set_reason(reason);
-  rejection.mutable_rejected()->set_server_protocol_version(
-      kMultiplayerVersion);
+  rejection.mutable_rejected()->set_server_protocol_version(protocol_version_);
   rejection.mutable_rejected()->set_message(message);
   Send(session, rejection);
   session.closing = true;
