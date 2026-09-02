@@ -2951,6 +2951,34 @@ TEST(CombatSimTest, ABuffComesBackWhenItsWaitIsOut) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.91, 1e-9);
 }
 
+// A buff belongs to the character, not to the map: walking somewhere else
+// neither takes one away nor hands its wait back early. Both halves are the
+// same clock, so one walk tests them: the buff stands out the rest of the
+// duration it left with, then comes round on the wait it was already serving.
+TEST(CombatSimTest, WalkingToAnotherMapKeepsTheBuffsClocks) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams field = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  GiveBuff(field, /*duration=*/2.0, /*cooldown=*/5.0, /*factor=*/2.0);
+  sim.Advance(field, 1.0);  // up, with a second of it left and four of wait
+
+  CombatParams forest = field;
+  forest.encounter = "forest";
+  // The mob here is a fresh one, so what the fractions measure is this map.
+  sim.Advance(forest, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.98, 1e-9)
+      << "the buff walked over still standing";
+  for (int step = 0; step < 3; ++step) {
+    sim.Advance(forest, 1.0);
+  }
+  // 10 three times: it lapses on the second here, not two steps later, and a
+  // fresh map does not hand the wait back.
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);
+  sim.Advance(forest, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.93, 1e-9)
+      << "and it comes back on the wait it left the other map serving";
+}
+
 // What the player buys by swinging fast, beyond the damage: the buff comes
 // round sooner. Five seconds of waiting, less a second for every swing landed
 // in the meantime, is a buff back in four steps rather than six.
