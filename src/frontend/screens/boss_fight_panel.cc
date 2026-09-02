@@ -583,9 +583,14 @@ std::string FightHeading(const BossRun& run) {
       return run.title() + " - Out of Time";
     case BossRunState::kAborted:
       return run.title() + " - Left";
-    default:
-      return run.title() + " - P" + std::to_string(run.phase()) + " - " +
+    default: {
+      // The phase is named only by a fight that has more than one: "P1" on a
+      // boss fought in one room says nothing the player could not see.
+      std::string phase =
+          run.phase_count() > 1 ? " - P" + std::to_string(run.phase()) : "";
+      return run.title() + phase + " - " +
              std::to_string(Percent(run.phase_hp_fraction())) + "%";
+    }
   }
 }
 

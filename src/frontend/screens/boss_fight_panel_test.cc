@@ -338,6 +338,18 @@ TEST(BossFightPanelTest, TheHeadingNamesThePhaseAndWhatIsLeftOfIt) {
   EXPECT_EQ(FightHeading(run), "Normal Zakum - Left");
 }
 
+// A fight of one room has no phase to name: "P1" would only ask the player
+// which other phase there was.
+TEST(BossFightPanelTest, AOnePhaseFightNamesNoPhase) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = Zakum();
+  boss.mutable_difficulties(0)->mutable_phases()->DeleteSubrange(1, 1);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+
+  EXPECT_EQ(FightHeading(run), "Normal Zakum - 100%");
+}
+
 TEST(BossFightPanelTest, EveryArmIsDrawnAndTheClockIsUnderTheHeading) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = Zakum();
