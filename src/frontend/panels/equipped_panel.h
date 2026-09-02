@@ -113,6 +113,13 @@ class EquippedPanel {
   // the rows, so one pair of keys walks the whole panel.
   enum Zone { kZoneTabs, kZoneList };
 
+  // The three passes OpenMenu makes over the gear menu: what the account has
+  // not unlocked comes off, then what this piece refuses, then the gold trail
+  // lands on the entries as they finally stand.
+  void HideLockedEntries();
+  void HideRefusedEntries(EquipSlot slot);
+  void HighlightTrail();
+
   // One row of the list, with the cursor and a dim pass over anything worn
   // that is doing nothing. The ftxui::Menu's row transform.
   ftxui::Element RenderRow(const ftxui::EntryState& state);

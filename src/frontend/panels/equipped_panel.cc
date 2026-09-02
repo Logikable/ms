@@ -122,6 +122,76 @@ int EquippedPanel::menu_column() const {
          columns.Width(ItemColumn::kSlot) + kItemCellGap;
 }
 
+// Entries the player has not reached yet are not drawn at all, ahead of any
+// question about the item under the cursor: a character who has just been
+// handed this panel has no bag to unequip into yet, and asking about scrolls
+// means nothing to them for a long while after that.
+void EquippedPanel::HideLockedEntries() {
+  if (!Unlocked(Feature::kUnequip, character_, account_)) {
+    menu_.Hide(kGearMenuUnequip);
+  }
+  if (!Unlocked(Feature::kScrolling, character_, account_)) {
+    menu_.Hide(kGearMenuScroll);
+  }
+  if (!Unlocked(Feature::kHammer, character_, account_)) {
+    menu_.Hide(kGearMenuHammer);
+  }
+  if (!Unlocked(Feature::kStarForce, character_, account_)) {
+    menu_.Hide(kGearMenuStarForce);
+  }
+  if (!Unlocked(Feature::kPotential, character_, account_)) {
+    menu_.Hide(kGearMenuCube);
+  }
+}
+
+// What the worn piece itself refuses. All of these ask the prototype: an
+// upgrade the item turns down outright is worth no row, and everything else
+// keeps one. So a weapon and a piece of armour carry the same entries however
+// far along either of them is.
+void EquippedPanel::HideRefusedEntries(EquipSlot slot) {
+  if (slot == EQUIP_SLOT_UNSPECIFIED) {
+    return;
+  }
+  const EquipInstance& item = character_.equipped().at(slot);
+  if (!Supports(item.prototype(), UPGRADE_SCROLL)) {
+    menu_.Hide(kGearMenuScroll);
+  }
+  // A hammer widens a shelf; it cannot build one. On a piece with no slots to
+  // begin with there is nothing for it to do, so it is not on the menu.
+  if (!TakesUpgradeSlots(item.prototype())) {
+    menu_.Hide(kGearMenuHammer);
+  }
+  // Where a piece is worn is what decides whether a cube goes into it, and the
+  // slots it refuses -- the medal, the badge, the pocket -- refuse it for good.
+  if (!item.CanCube()) {
+    menu_.Hide(kGearMenuCube);
+  }
+  if (!Supports(item.prototype(), UPGRADE_STAR_FORCE)) {
+    menu_.Hide(kGearMenuStarForce);
+  } else if (!item.CanStarForce()) {
+    // Greyed, not gone: stars come after the slots are spent, and a row that
+    // stands there dim is how the player learns the order.
+    menu_.Disable(kGearMenuStarForce);
+  }
+}
+
+// Gold on an upgrade the player has been handed but never used, which is where
+// the trail from the level-up card ends.
+void EquippedPanel::HighlightTrail() {
+  if (LeadToAction(Feature::kScrolling, character_, account_)) {
+    menu_.Highlight(kGearMenuScroll);
+  }
+  if (LeadToAction(Feature::kHammer, character_, account_)) {
+    menu_.Highlight(kGearMenuHammer);
+  }
+  if (LeadToAction(Feature::kStarForce, character_, account_)) {
+    menu_.Highlight(kGearMenuStarForce);
+  }
+  if (LeadToAction(Feature::kPotential, character_, account_)) {
+    menu_.Highlight(kGearMenuCube);
+  }
+}
+
 void EquippedPanel::OpenMenu() {
   if (active_tab_ == kSymbolTab) {
     symbol_menu_.Reset();
@@ -140,68 +210,9 @@ void EquippedPanel::OpenMenu() {
     FollowedToWeapon(character_, account_);
   }
   menu_.Reset();
-  // Entries the player has not reached yet are not drawn at all, ahead of any
-  // question about this particular item: a character who has just been handed
-  // this panel has no bag to unequip into yet, and asking about scrolls means
-  // nothing to them for a long while after that.
-  if (!Unlocked(Feature::kUnequip, character_, account_)) {
-    menu_.Hide(kGearMenuUnequip);
-  }
-  if (!Unlocked(Feature::kScrolling, character_, account_)) {
-    menu_.Hide(kGearMenuScroll);
-  }
-  if (!Unlocked(Feature::kHammer, character_, account_)) {
-    menu_.Hide(kGearMenuHammer);
-  }
-  if (!Unlocked(Feature::kStarForce, character_, account_)) {
-    menu_.Hide(kGearMenuStarForce);
-  }
-  if (!Unlocked(Feature::kPotential, character_, account_)) {
-    menu_.Hide(kGearMenuCube);
-  }
-  EquipSlot slot = selected_slot();
-  if (slot != EQUIP_SLOT_UNSPECIFIED) {
-    const EquipInstance& item = character_.equipped().at(slot);
-    // All three ask the prototype: an upgrade the item refuses outright is
-    // worth no row, and everything else keeps one. So a weapon and a piece of
-    // armour carry the same entries however far along either of them is.
-    if (!Supports(item.prototype(), UPGRADE_SCROLL)) {
-      menu_.Hide(kGearMenuScroll);
-    }
-    // A hammer widens a shelf; it cannot build one. On a piece with no slots
-    // to begin with there is nothing for it to do, so it is not on the menu.
-    if (!TakesUpgradeSlots(item.prototype())) {
-      menu_.Hide(kGearMenuHammer);
-    }
-    // Where a piece is worn is what decides whether a cube goes into it, and
-    // the slots it refuses -- the medal, the badge, the pocket -- refuse it
-    // for good.
-    if (!item.CanCube()) {
-      menu_.Hide(kGearMenuCube);
-    }
-    if (!Supports(item.prototype(), UPGRADE_STAR_FORCE)) {
-      menu_.Hide(kGearMenuStarForce);
-    } else if (!item.CanStarForce()) {
-      // Greyed, not gone: stars come after the slots are spent, and a row that
-      // stands there dim is how the player learns the order.
-      menu_.Disable(kGearMenuStarForce);
-    }
-  }
-  // Gold on an upgrade the player has been handed but never used, which is
-  // where the trail from the level-up card ends. Last, so it lands on the
-  // entries as they finally stand.
-  if (LeadToAction(Feature::kScrolling, character_, account_)) {
-    menu_.Highlight(kGearMenuScroll);
-  }
-  if (LeadToAction(Feature::kHammer, character_, account_)) {
-    menu_.Highlight(kGearMenuHammer);
-  }
-  if (LeadToAction(Feature::kStarForce, character_, account_)) {
-    menu_.Highlight(kGearMenuStarForce);
-  }
-  if (LeadToAction(Feature::kPotential, character_, account_)) {
-    menu_.Highlight(kGearMenuCube);
-  }
+  HideLockedEntries();
+  HideRefusedEntries(selected_slot());
+  HighlightTrail();
 }
 
 Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
