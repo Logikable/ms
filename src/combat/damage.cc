@@ -398,23 +398,12 @@ double BaseMastery(Job job) {
   }
 }
 
-OffenseStats OffenseStatsFor(Job job, int level,
-                             const AllocatedStats& allocated,
-                             const EquipStats& equipped, EquipType weapon,
-                             const Skill* attack_skill, int attack_level,
-                             const PassiveOffense& passives) {
-  OffenseStats offense;
-  offense.level = level;
-  offense.weapon_constant = WeaponConstant(job, weapon);
-  offense.crit_rate = passives.crit_rate;
-  offense.crit_dmg = passives.crit_dmg;
-  offense.damage_pct = passives.damage_pct;
-  offense.final_dmg_pct = passives.final_dmg_pct;
-  offense.arcane_pct = passives.arcane_pct;
-  // The line's own base, plus whatever the best mastery skill grants on top.
-  offense.mastery = BaseMastery(job) + passives.mastery;
-  // Primary/secondary stat by branch; an unknown job falls through to 0,
-  // matching MainStatValue in equipped_panel.
+namespace {
+
+// Primary and secondary stat by branch; an unknown job is left at 0, matching
+// MainStatValue in equipped_panel.
+void AddStatsByBranch(Job job, const AllocatedStats& allocated,
+                      const EquipStats& equipped, OffenseStats& offense) {
   switch (BranchOf(job)) {
     // The beginner swings on STR, as the warriors they have not yet become do.
     case JobBranch::kBeginner:
@@ -439,6 +428,102 @@ OffenseStats OffenseStatsFor(Job job, int level,
     case JobBranch::kNone:
       break;
   }
+}
+
+// What the rest of the book hands this skill by name. Each lever meets the
+// swing's own the way two of it always meet -- damage added to the multiplier
+// rather than beside it, so it is worth its value once per line, which is how
+// GMS states it.
+void AddNamedBoost(const Skill& attack_skill, const PassiveOffense& passives,
+                   OffenseStats& offense) {
+  std::map<std::string, SkillBonus>::const_iterator boost =
+      passives.skill_bonus.find(attack_skill.name());
+  if (boost == passives.skill_bonus.end()) {
+    return;
+  }
+  const SkillBonus& bonus = boost->second;
+  offense.skill_pct += bonus.skill_pct;
+  offense.damage_pct += bonus.damage_pct;
+  offense.boss_pct += bonus.boss_pct;
+  offense.ied = CombineIgnoredDefense(offense.ied, bonus.ied);
+  offense.crit_rate += bonus.crit_rate;
+  offense.final_dmg_pct =
+      (1.0 + offense.final_dmg_pct) * (1.0 + bonus.final_dmg_pct) - 1.0;
+}
+
+// Ignored defence, boss damage, critical rate and final damage written on an
+// ATTACK ride that attack alone. GMS states them on the skill -- Gungnir's
+// Descent ignores 30%, Heaven's Hammer hits bosses for 30% harder, Snipe always
+// crits, Mist Eruption is worth 20% more for the pair of mists it sets off --
+// and none of them follows the character to their next swing.
+//
+// A passive granting any of them is the other shape, and folds into the
+// character where it belongs; so is a summon's, which is never swung.
+void AddSwingLevers(const Skill& attack_skill, int attack_level,
+                    OffenseStats& offense) {
+  offense.ied = CombineIgnoredDefense(
+      offense.ied, attack_skill.base().ied_pct() +
+                       attack_skill.per_level().ied_pct() * (attack_level - 1));
+  offense.boss_pct += attack_skill.base().boss_pct() +
+                      attack_skill.per_level().boss_pct() * (attack_level - 1);
+  // Added to what the character brought rather than replacing it, so 1.00 is
+  // certainty however little they have bought.
+  offense.crit_rate +=
+      attack_skill.base().crit_rate() +
+      attack_skill.per_level().crit_rate() * (attack_level - 1);
+  // Multiplied into what the character brought, the way two final damage
+  // sources always meet here -- see SkillEffect::final_dmg_pct.
+  double swing_fd =
+      attack_skill.base().final_dmg_pct() +
+      attack_skill.per_level().final_dmg_pct() * (attack_level - 1);
+  offense.final_dmg_pct =
+      (1.0 + offense.final_dmg_pct) * (1.0 + swing_fd) - 1.0;
+}
+
+// The learned attack skill's multiplier, which replaces the bare 100% poke.
+// Effect at level L is base + per_level*(L-1). Passive skills fold elsewhere
+// (their levers are all defensive -- see DerivedStatsFor), so they are ignored
+// here. A skill that fires on its own clock still deals its damage the same
+// way; what differs is when it goes off, which is the fight's business.
+void AddAttackSkill(const Skill& attack_skill, int attack_level,
+                    const PassiveOffense& passives, OffenseStats& offense) {
+  offense.skill_pct = attack_skill.base().skill_pct() +
+                      attack_skill.per_level().skill_pct() * (attack_level - 1);
+  offense.normal_skill_pct =
+      attack_skill.base().normal_skill_pct() +
+      attack_skill.per_level().normal_skill_pct() * (attack_level - 1);
+  AddNamedBoost(attack_skill, passives, offense);
+  if (attack_skill.kind() == SKILL_KIND_ATTACK) {
+    AddSwingLevers(attack_skill, attack_level, offense);
+  }
+  // A multi-hit skill strikes each target this many times per swing, so its
+  // per-target damage is skill_pct once per line.
+  offense.lines = SkillLinesAt(attack_skill, attack_level);
+  // Bolt Surplus's strike, on a swing that already lands more than one and on
+  // nothing that fires by itself. See SkillEffect::bonus_attack_lines.
+  if (offense.lines > 1 && attack_skill.kind() == SKILL_KIND_ATTACK) {
+    offense.lines += passives.bonus_attack_lines;
+  }
+}
+
+}  // namespace
+
+OffenseStats OffenseStatsFor(Job job, int level,
+                             const AllocatedStats& allocated,
+                             const EquipStats& equipped, EquipType weapon,
+                             const Skill* attack_skill, int attack_level,
+                             const PassiveOffense& passives) {
+  OffenseStats offense;
+  offense.level = level;
+  offense.weapon_constant = WeaponConstant(job, weapon);
+  offense.crit_rate = passives.crit_rate;
+  offense.crit_dmg = passives.crit_dmg;
+  offense.damage_pct = passives.damage_pct;
+  offense.final_dmg_pct = passives.final_dmg_pct;
+  offense.arcane_pct = passives.arcane_pct;
+  // The line's own base, plus whatever the best mastery skill grants on top.
+  offense.mastery = BaseMastery(job) + passives.mastery;
+  AddStatsByBranch(job, allocated, equipped, offense);
   // Magicians swing on magic attack; the rest of the chain treats it exactly
   // as weapon attack, so it rides the same field.
   offense.attack =
@@ -449,71 +534,8 @@ OffenseStats OffenseStatsFor(Job job, int level,
   offense.mirror_pct = passives.mirror_line_pct;
   offense.ied = CombineIgnoredDefense(
       equipped.ignore_enemy_defense() / kPercentToFraction, passives.ied);
-  // The learned attack skill's multiplier replaces the bare 100% poke. Effect
-  // at level L is base + per_level*(L-1). Passive skills fold elsewhere (their
-  // levers are all defensive -- see DerivedStatsFor), so they are ignored here.
-  // A skill that fires on its own clock still deals its damage the same way;
-  // what differs is when it goes off, which is the fight's business.
   if (attack_skill != nullptr && DealsDamage(attack_skill->kind())) {
-    offense.skill_pct =
-        attack_skill->base().skill_pct() +
-        attack_skill->per_level().skill_pct() * (attack_level - 1);
-    offense.normal_skill_pct =
-        attack_skill->base().normal_skill_pct() +
-        attack_skill->per_level().normal_skill_pct() * (attack_level - 1);
-    // What the rest of the book hands this skill by name. Each lever meets the
-    // swing's own the way two of it always meet, so the block reads like the
-    // one below it -- damage added to the multiplier rather than beside it, so
-    // it is worth its value once per line, which is how GMS states it.
-    std::map<std::string, SkillBonus>::const_iterator boost =
-        passives.skill_bonus.find(attack_skill->name());
-    if (boost != passives.skill_bonus.end()) {
-      const SkillBonus& bonus = boost->second;
-      offense.skill_pct += bonus.skill_pct;
-      offense.damage_pct += bonus.damage_pct;
-      offense.boss_pct += bonus.boss_pct;
-      offense.ied = CombineIgnoredDefense(offense.ied, bonus.ied);
-      offense.crit_rate += bonus.crit_rate;
-      offense.final_dmg_pct =
-          (1.0 + offense.final_dmg_pct) * (1.0 + bonus.final_dmg_pct) - 1.0;
-    }
-    // Ignored defence, boss damage, critical rate and final damage written on
-    // an ATTACK ride that attack alone. GMS states them on the skill --
-    // Gungnir's Descent ignores 30%, Heaven's Hammer hits bosses for 30%
-    // harder, Snipe always crits, Mist Eruption is worth 20% more for the pair
-    // of mists it sets off -- and none of them follows the character to their
-    // next swing.
-    // A passive granting any of them is the other shape, and folds into the
-    // character where it belongs; so is a summon's, which is never swung.
-    if (attack_skill->kind() == SKILL_KIND_ATTACK) {
-      offense.ied = CombineIgnoredDefense(
-          offense.ied,
-          attack_skill->base().ied_pct() +
-              attack_skill->per_level().ied_pct() * (attack_level - 1));
-      offense.boss_pct +=
-          attack_skill->base().boss_pct() +
-          attack_skill->per_level().boss_pct() * (attack_level - 1);
-      // Added to what the character brought rather than replacing it, so 1.00
-      // is certainty however little they have bought.
-      offense.crit_rate +=
-          attack_skill->base().crit_rate() +
-          attack_skill->per_level().crit_rate() * (attack_level - 1);
-      // Multiplied into what the character brought, the way two final damage
-      // sources always meet here -- see SkillEffect::final_dmg_pct.
-      double swing_fd =
-          attack_skill->base().final_dmg_pct() +
-          attack_skill->per_level().final_dmg_pct() * (attack_level - 1);
-      offense.final_dmg_pct =
-          (1.0 + offense.final_dmg_pct) * (1.0 + swing_fd) - 1.0;
-    }
-    // A multi-hit skill strikes each target this many times per swing, so its
-    // per-target damage is skill_pct once per line.
-    offense.lines = SkillLinesAt(*attack_skill, attack_level);
-    // Bolt Surplus's strike, on a swing that already lands more than one and on
-    // nothing that fires by itself. See SkillEffect::bonus_attack_lines.
-    if (offense.lines > 1 && attack_skill->kind() == SKILL_KIND_ATTACK) {
-      offense.lines += passives.bonus_attack_lines;
-    }
+    AddAttackSkill(*attack_skill, attack_level, passives, offense);
   }
   // The shadow copies whatever the swing turned out to be, the bare poke's one
   // line included. Set last, so it cannot be read before lines is settled.
