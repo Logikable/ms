@@ -65,20 +65,30 @@ bool AllStatsPanel::OnEvent(const ftxui::Event& event) {
 
 ftxui::Element AllStatsPanel::Pairs(const std::vector<StatLine>& lines) {
   std::vector<ftxui::Element> rows;
-  // A rule breaks the pairing as well as the list: the group under it starts
-  // in the left column, rather than filling the gap the group above left.
-  for (size_t i = 0; i < lines.size();) {
-    if (lines[i].rule) {
+  // Each group between rules fills its left column top to bottom before it
+  // starts the right one, so the list is read down a column rather than
+  // zigzagged across the screen. A group with an odd count leaves the gap at
+  // the bottom right, where nothing follows it.
+  for (size_t start = 0; start < lines.size();) {
+    if (lines[start].rule) {
       rows.push_back(ThemedSeparator());
-      ++i;
+      ++start;
       continue;
     }
-    StatLine right;
-    if (i + 1 < lines.size() && !lines[i + 1].rule) {
-      right = lines[i + 1];
+    size_t end = start;
+    while (end < lines.size() && !lines[end].rule) {
+      ++end;
     }
-    rows.push_back(ftxui::text(ColumnText(lines[i]) + ColumnText(right)));
-    i += right.label.empty() ? 1 : 2;
+    size_t left = (end - start + 1) / 2;
+    for (size_t i = 0; i < left; ++i) {
+      StatLine right;
+      if (start + left + i < end) {
+        right = lines[start + left + i];
+      }
+      rows.push_back(
+          ftxui::text(ColumnText(lines[start + i]) + ColumnText(right)));
+    }
+    start = end;
   }
   return ftxui::vbox(std::move(rows));
 }

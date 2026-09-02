@@ -55,36 +55,51 @@ class AllStatsPanelTest : public PanelTest {
   }
 };
 
-TEST_F(AllStatsPanelTest, PairsTheStatsTwoToARow) {
+TEST_F(AllStatsPanelTest, FillsTheLeftColumnBeforeTheRight) {
   CharacterInstance c = MakeWarrior();
   AllStatsPanel panel(c, &account_, {});
-  // The pairings the screen is laid out for. Reading the left label and
-  // finding the right one on the same row is the whole assertion.
+  // The pairings the layout comes to. Reading the left label and finding the
+  // right one on the same row is the whole assertion.
   //
   // This character is a 1st job, whose Character panel holds the four percent
   // rows back until the 2nd. They are here regardless: the gate is on the
   // panel, and this screen is where all of them always are.
-  EXPECT_NE(RowWith(panel.Render(), "HP").find("MP"), std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "STR").find("INT"), std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "DEX").find("LUK"), std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Attack ").find("Magic Attack"),
+  EXPECT_NE(RowWith(panel.Render(), "Attack ").find("Ignore DEF"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Damage").find("Final Damage"),
+  EXPECT_NE(RowWith(panel.Render(), "Magic Attack").find("Critical Rate"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Boss Damage").find("Normal Damage"),
+  EXPECT_NE(RowWith(panel.Render(), "Final Damage").find("Critical Damage"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Ignore DEF").find("Critical Rate"),
+  EXPECT_NE(RowWith(panel.Render(), "Damage").find("Buff Duration"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Critical Damage").find("Buff Duration"),
+  EXPECT_NE(RowWith(panel.Render(), "Boss Damage").find("Attack Speed"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Meso Drop Rate").find("Item Drop Rate"),
+  EXPECT_NE(RowWith(panel.Render(), "Meso Drop Rate").find("Additional EXP"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Additional EXP").find("Arcane Force"),
+  EXPECT_NE(RowWith(panel.Render(), "Item Drop Rate").find("Arcane Force"),
             std::string::npos);
-  // The rule breaks the pairing too: Meso Drop Rate opens the group under it
-  // in the left column rather than filling the gap Attack Speed left.
+  // Eleven combat stats, so the right column runs a row short and the gap is
+  // at the bottom of it.
+  EXPECT_EQ(RowWith(panel.Render(), "Normal Damage").find_last_not_of(' '),
+            static_cast<size_t>(AllStatsPanel::kColumnWidth) - 2);
+  // The rule breaks the columns too: Meso Drop Rate opens the group under it
+  // in the left column rather than filling the gap Normal Damage left.
   EXPECT_LT(RowWith(panel.Render(), "Meso Drop Rate").find("Meso Drop Rate"),
             static_cast<size_t>(AllStatsPanel::kColumnWidth));
+}
+
+// HP and MP are drawn as gauges on the Character panel. A number for them here
+// said nothing the bar does not, so this screen is the AP stats only.
+TEST_F(AllStatsPanelTest, DoesNotShowThePools) {
+  CharacterInstance c = MakeWarrior();
+  AllStatsPanel panel(c, &account_, {});
+  std::vector<std::string> rows = Rows(panel.Render());
+  for (const std::string& row : rows) {
+    EXPECT_EQ(row.find("HP"), std::string::npos) << row;
+    EXPECT_EQ(row.find("MP"), std::string::npos) << row;
+  }
 }
 
 TEST_F(AllStatsPanelTest, ShowsTheHeadingAndNothingSpendable) {
@@ -145,28 +160,19 @@ TEST_F(AllStatsPanelTest, ALongValueKeepsTheColumn) {
   c.Equip(0);
 
   AllStatsPanel panel(c, &account_, skills);
-  std::vector<std::string> rows = Rows(panel.Render());
-  std::string magic;
-  std::string other;
-  for (const std::string& row : rows) {
-    if (row.find("Magic Attack") != std::string::npos) {
-      magic = row;
-    }
-    if (row.find("Critical Rate") != std::string::npos) {
-      other = row;
-    }
-  }
+  std::string magic = RowWith(panel.Render(), "Magic Attack");
   ASSERT_FALSE(magic.empty());
   ASSERT_NE(magic.find("(800+200) 1000"), std::string::npos)
       << "the value the case is built on changed: " << magic;
-  ASSERT_FALSE(other.empty());
 
-  // Magic Attack pairs into the second column, so its value ends where that
-  // column's values end. A value that broke out would run past this.
+  // The long value sits in the left column and stops at its edge: the stat it
+  // pairs with still starts the second column, and the row ends where every
+  // other row does.
+  EXPECT_EQ(magic.find("Critical Rate"),
+            static_cast<size_t>(AllStatsPanel::kColumnWidth) + 1)
+      << "[" << magic << "]";
   EXPECT_EQ(magic.find_last_not_of(' '), 2 * AllStatsPanel::kColumnWidth - 2)
       << "[" << magic << "]";
-  EXPECT_EQ(other.find_last_not_of(' '), 2 * AllStatsPanel::kColumnWidth - 2)
-      << "[" << other << "]";
 }
 
 // A 4th job at the level Hyper Stats open at, with a different STR level in

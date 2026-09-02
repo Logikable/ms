@@ -61,9 +61,11 @@ std::vector<StatLine> PanelExtraStatLines(
     const std::map<std::string, Skill>& skills,
     StatPreset preset = StatPreset::kFarming);
 
-// The pools and the four AP stats: HP, MP, STR, INT, DEX, LUK. That order
-// pairs them the way the All Stats screen reads them, two to a row. An AP stat
-// gear or a skill has added to reads "(base+bonus) total".
+// The four AP stats: STR, DEX, INT, LUK. The order fills the All Stats
+// screen's left column and then its right, so the two rows read STR/INT and
+// DEX/LUK. An AP stat gear or a skill has added to reads "(base+bonus)
+// total". HP and MP are not here: the panel draws them as gauges, and a
+// number beside them says nothing the bar does not.
 std::vector<StatLine> MainStatLines(const CharacterInstance& character,
                                     const std::map<std::string, Skill>& skills,
                                     StatPreset preset = StatPreset::kFarming);

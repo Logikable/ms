@@ -85,8 +85,10 @@ std::vector<StatLine> CombatStatLines(
        TotalWithBreakdown(flat_magic, e.magic_attack() - flat_magic)},
   };
   if (with_percents) {
-    lines.push_back({"Damage", Percent(derived.damage_pct)});
+    // Final Damage leads because it multiplies the whole chain the rows under
+    // it feed, which is the order they are read in.
     lines.push_back({"Final Damage", Percent(derived.final_dmg_pct)});
+    lines.push_back({"Damage", Percent(derived.damage_pct)});
     // The two that only ever matter against something the character has not
     // met yet: boss damage pays on no monster in the game, and ignoring DEF
     // pays little until the monsters have some. Both sit above the crit pair
@@ -168,11 +170,9 @@ std::vector<StatLine> MainStatLines(const CharacterInstance& character,
   const EquipStats e = TotalEquipStats(character, derived);
   const AllocatedStats& a = character.proto().allocated_stats();
   return {
-      {"HP", std::to_string(derived.max_hp)},
-      {"MP", std::to_string(derived.max_mp)},
       {"STR", TotalWithBreakdown(a.str(), e.str())},
-      {"INT", TotalWithBreakdown(a.int_(), e.int_())},
       {"DEX", TotalWithBreakdown(a.dex(), e.dex())},
+      {"INT", TotalWithBreakdown(a.int_(), e.int_())},
       {"LUK", TotalWithBreakdown(a.luk(), e.luk())},
   };
 }

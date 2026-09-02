@@ -1641,7 +1641,7 @@ TEST_F(CharacterPanelTest, ARowBudgetDropsTheLeastImportantStatsFirst) {
   // stats and the row that leads to the rest of them.
   panel.SetMaxRows(19);
   EXPECT_EQ(ExtrasShown(panel.Render()),
-            (std::vector<std::string>{"Attack", "Magic Attack", "Damage",
+            (std::vector<std::string>{"Attack", "Magic Attack", "Final Damage",
                                       "View All Stats"}));
 }
 

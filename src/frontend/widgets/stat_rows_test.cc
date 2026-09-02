@@ -89,11 +89,12 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
     labels.push_back(line.label);
   }
   // The Character panel drops the tail of this list on a short terminal, and
-  // the All Stats screen pairs it two to a row. Both depend on this order.
+  // the All Stats screen lays it out down one column and then the other. Both
+  // depend on this order.
   // The empty label is the rule between the combat stats and the three that
   // are not about a fight.
   EXPECT_EQ(labels, (std::vector<std::string>{
-                        "Attack", "Magic Attack", "Damage", "Final Damage",
+                        "Attack", "Magic Attack", "Final Damage", "Damage",
                         "Boss Damage", "Normal Damage", "Ignore DEF",
                         "Critical Rate", "Critical Damage", "Buff Duration",
                         "Attack Speed", "", "Meso Drop Rate", "Item Drop Rate",
@@ -236,7 +237,7 @@ TEST_F(StatRowsTest, EachPotShowsOnTheTabItPaysOn) {
   EXPECT_EQ(ValueOf(boss, "Attack Speed"), "Fastest 1");
 }
 
-TEST_F(StatRowsTest, TheMainStatsPairUpForTheTwoColumnScreen) {
+TEST_F(StatRowsTest, TheMainStatsAreTheFourApStats) {
   CharacterInstance c = MakeWarrior();
   EquipPrototype sword;
   sword.set_name("Sword");
@@ -250,8 +251,9 @@ TEST_F(StatRowsTest, TheMainStatsPairUpForTheTwoColumnScreen) {
   for (const StatLine& line : lines) {
     labels.push_back(line.label);
   }
-  EXPECT_EQ(labels,
-            (std::vector<std::string>{"HP", "MP", "STR", "INT", "DEX", "LUK"}));
+  // Down the left column and then the right, so the screen reads STR/INT over
+  // DEX/LUK.
+  EXPECT_EQ(labels, (std::vector<std::string>{"STR", "DEX", "INT", "LUK"}));
   // The breakdown leads the total, so the totals still end in one column.
   EXPECT_EQ(ValueOf(lines, "STR"), "(40+5) 45");
   EXPECT_EQ(ValueOf(lines, "LUK"), "0");
