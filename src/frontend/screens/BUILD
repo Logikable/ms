@@ -476,6 +476,43 @@ cc_test(
 )
 
 cc_library(
+    name = "cube_panel",
+    srcs = ["cube_panel.cc"],
+    hdrs = ["cube_panel.h"],
+    deps = [
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
+        "//src/frontend/widgets:keys",
+        "//src/item:equip_instance",
+        "//src/item:potential",
+        "//src/protos:equip_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "cube_panel_test",
+    size = "small",
+    srcs = ["cube_panel_test.cc"],
+    deps = [
+        ":cube_panel",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:panel_test_base",
+        "//src/item:equip_instance",
+        "//src/item:potential",
+        "//src/protos:equip_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "hammer_panel",
     srcs = ["hammer_panel.cc"],
     hdrs = ["hammer_panel.h"],

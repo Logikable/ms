@@ -19,6 +19,10 @@ void ConfirmPrompt::Close() {
   cancel_selected_ = false;
 }
 
+void ConfirmPrompt::FocusCancel() {
+  cancel_selected_ = true;
+}
+
 ConfirmChoice ConfirmPrompt::OnEvent(ftxui::Event event, bool confirm_enabled) {
   if (!open_) {
     return ConfirmChoice::kPending;

@@ -14,6 +14,7 @@
 
 #include "ftxui/screen/color.hpp"
 #include "src/character/hyper_stats.h"
+#include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
@@ -97,6 +98,11 @@ std::string AbilityRankName(AbilityRank rank);
 // The rank a potential reads as: "Rare" through "Legendary", and "" for an
 // item carrying none.
 std::string PotentialRankName(PotentialRank rank);
+
+// What a cube is called on the shelf, and which of an item's two potentials
+// it rerolls: "Red Cube", "Main".
+std::string CubeName(CubeType cube);
+std::string CubeTrackName(PotentialTrack track);
 
 // The name a potential line is listed under (e.g. "Boss Damage"). A flat line
 // and its percent twin share one: the value beside it carries the %.

@@ -507,6 +507,24 @@ std::string AbilityRankName(AbilityRank rank) {
   }
 }
 
+std::string CubeName(CubeType cube) {
+  switch (cube) {
+    case CubeType::kRed:
+      return "Red Cube";
+  }
+  return "";
+}
+
+std::string CubeTrackName(PotentialTrack track) {
+  switch (track) {
+    case PotentialTrack::kMain:
+      return "Main";
+    case PotentialTrack::kBonus:
+      return "Bonus";
+  }
+  return "";
+}
+
 std::string PotentialRankName(PotentialRank rank) {
   static_assert(PotentialRank_ARRAYSIZE == 5,
                 "a new potential rank needs a name");

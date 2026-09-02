@@ -58,6 +58,11 @@ class ConfirmPrompt {
   // again rather than the dialog vanishing as though something happened. Pass
   // the same flag ConfirmButtons is greying the button with.
   ConfirmChoice OnEvent(ftxui::Event event, bool confirm_enabled = true);
+  // Moves the cursor to [Cancel] on a prompt that is already up, for the
+  // answer that stopped being available while the player was looking at it:
+  // the cubing window greys Confirm the moment the purse cannot buy another
+  // roll, and the cursor must not be left standing on a greyed button.
+  void FocusCancel();
   // Which button the cursor is on, for a caller drawing the row itself --
   // a dialog that greys Confirm out needs the focus and the enabled flag
   // together, and only ConfirmButtons takes both.
