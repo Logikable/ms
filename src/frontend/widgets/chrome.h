@@ -56,6 +56,18 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 // slides back onto it, and one too big for the screen loses its top-left.
 ftxui::Element Floating(ftxui::Element element);
 
+// ftxui's clear_under, and the half glyph it leaves standing beside itself.
+//
+// A two-column glyph -- the meso mark, an emoji -- whose left half sits just
+// outside the overlay keeps both of its columns when the screen is printed,
+// and the overlay's border in the cell beside it is never drawn at all. There
+// is no drawing half a glyph, so the half left over is blanked.
+//
+// Every overlay in the game is wrapped in this rather than in bare
+// clear_under: which row a floating window lands beside is not something its
+// author gets to know.
+ftxui::Element ClearUnder(ftxui::Element element);
+
 // A modal result screen: the subject over a rule, `body`, a rule, [Continue].
 // Scrolling, star forcing and recovering all end on one of these, so the rules
 // and the button land in the same place on each.

@@ -312,7 +312,7 @@ ftxui::Element Tui::RenderFrame() {
     // them to be on the party screen before removing them from a party.
     frame = ftxui::dbox({
         std::move(frame),
-        ftxui::center(PartyNoticeDialog() | ftxui::clear_under),
+        ftxui::center(ClearUnder(PartyNoticeDialog())),
     });
   }
   if (!celebration_.card_visible()) {
@@ -327,14 +327,14 @@ ftxui::Element Tui::RenderFrame() {
   // off the longest line in it.
   return ftxui::dbox({
       std::move(frame),
-      ftxui::center(celebration_.Render() | ftxui::clear_under),
+      ftxui::center(ClearUnder(celebration_.Render())),
   });
 }
 
 ftxui::Element Tui::OverMain(ftxui::Element dialog) {
   return ftxui::dbox({
       RenderMain(),
-      ftxui::center(std::move(dialog) | ftxui::clear_under),
+      ftxui::center(ClearUnder(std::move(dialog))),
   });
 }
 
@@ -465,7 +465,7 @@ ftxui::Element Tui::RenderParty() {
   }
   return ftxui::dbox({
       std::move(screen),
-      ftxui::center(PartyConfirmDialog() | ftxui::clear_under),
+      ftxui::center(ClearUnder(PartyConfirmDialog())),
   });
 }
 
@@ -549,7 +549,7 @@ ftxui::Element Tui::RenderBossFight() {
   }
   return ftxui::dbox({
       std::move(fight),
-      ftxui::center(std::move(overlay) | ftxui::clear_under),
+      ftxui::center(ClearUnder(std::move(overlay))),
   });
 }
 
@@ -674,7 +674,7 @@ ftxui::Element Tui::RenderStarForceResult() {
       star_force_panel_.RenderResult(controller_.star_force_result());
   return ftxui::dbox({
       StarForceColumns(),
-      ftxui::center(std::move(result) | ftxui::clear_under),
+      ftxui::center(ClearUnder(std::move(result))),
   });
 }
 
@@ -728,7 +728,7 @@ ftxui::Element Tui::RenderCubing() {
   }
   return ftxui::dbox({
       std::move(columns),
-      ftxui::center(cube_panel_.RenderConfirm() | ftxui::clear_under),
+      ftxui::center(ClearUnder(cube_panel_.RenderConfirm())),
   });
 }
 
@@ -753,8 +753,7 @@ ftxui::Element Tui::RenderScroll() {
   if (controller_.screen() == kScrollResult) {
     ftxui::Element dialog =
         scroll_panel_.RenderResult(controller_.scroll_result());
-    scroll_view =
-        ftxui::dbox({scroll_view, ftxui::center(dialog | ftxui::clear_under)});
+    scroll_view = ftxui::dbox({scroll_view, ftxui::center(ClearUnder(dialog))});
   }
   return ftxui::hbox(
       {scroll_view | ftxui::flex,
@@ -769,7 +768,7 @@ ftxui::Element Tui::RenderMultiSell() {
   }
   return ftxui::dbox({
       std::move(screen),
-      ftxui::center(multi_sell_panel_.RenderConfirm() | ftxui::clear_under),
+      ftxui::center(ClearUnder(multi_sell_panel_.RenderConfirm())),
   });
 }
 
@@ -832,7 +831,7 @@ ftxui::Element Tui::RenderScreen() {
     case kBossConfirm:
       return ftxui::dbox({
           ftxui::center(boss_select_panel_.Render()),
-          ftxui::center(BossConfirmDialog() | ftxui::clear_under),
+          ftxui::center(ClearUnder(BossConfirmDialog())),
       });
     // Over the arena for a fight that ran out of clock, and over the list for
     // a notice raised instead of a fight -- no weapon, or a daily already
@@ -843,7 +842,7 @@ ftxui::Element Tui::RenderScreen() {
       }
       return ftxui::dbox({
           ftxui::center(boss_select_panel_.Render()),
-          ftxui::center(NoticeDialog() | ftxui::clear_under),
+          ftxui::center(ClearUnder(NoticeDialog())),
       });
     // kShopMenu draws the same thing: the menu is anchored to a row of the
     // list, so the panel puts it up itself.
@@ -855,7 +854,7 @@ ftxui::Element Tui::RenderScreen() {
     case kShopBuy:
       return ftxui::dbox({
           ftxui::center(shop_panel_.Render()),
-          ftxui::center(buy_panel_.Render() | ftxui::clear_under),
+          ftxui::center(ClearUnder(buy_panel_.Render())),
       });
     case kStarForce:
       return RenderStarForce();

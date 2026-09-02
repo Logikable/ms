@@ -163,9 +163,8 @@ ftxui::Element MenuPanel::RenderBox() const {
   }
   // Cleared under, so the box covers the interior of whatever it stands on
   // rather than letting the panel below show through it.
-  ftxui::Element box = ThemedWindow(" " + EntryLabel(box_entry_) + " ",
-                                    ftxui::vbox(std::move(rows))) |
-                       ftxui::clear_under;
+  ftxui::Element box = ClearUnder(ThemedWindow(
+      " " + EntryLabel(box_entry_) + " ", ftxui::vbox(std::move(rows))));
   // The margin stands the box over the word that raised it. A filler rather
   // than blanks: nothing behind the box should be painted over.
   return ftxui::hbox({

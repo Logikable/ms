@@ -11,6 +11,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/component_base.hpp"
 #include "ftxui/component/event.hpp"
+#include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/widgets/colors.h"
@@ -23,6 +24,59 @@
 
 namespace ms {
 namespace {
+
+// --- ClearUnder ---
+
+namespace {
+
+// A row carrying the meso mark, with a bordered overlay whose left border
+// lands `cut` columns in. At cut 3 the border falls on the mark's second
+// column.
+std::string OverlaidRow(int cut, bool guarded) {
+  ftxui::Element under = ftxui::vbox({
+      ftxui::text("ab\U0001FA99 12,000,000xyz"),
+      ftxui::text("ab\U0001FA99 12,000,000xyz"),
+      ftxui::text("ab\U0001FA99 12,000,000xyz"),
+  });
+  ftxui::Element window = ftxui::window(ftxui::text("W"), ftxui::text("body")) |
+                          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 8);
+  window = guarded ? ClearUnder(std::move(window))
+                   : std::move(window) | ftxui::clear_under;
+  ftxui::Element over = ftxui::hbox({
+      ftxui::text(std::string(cut, ' ')),
+      std::move(window),
+      ftxui::filler(),
+  });
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(30),
+                                               ftxui::Dimension::Fixed(3));
+  ftxui::Render(screen, ftxui::dbox({std::move(under), std::move(over)}));
+  // The second row, which is the one the mark is on: the first is the
+  // overlay's top border and has nothing beside it.
+  const std::string all = screen.ToString();
+  const size_t split = all.find("\r\n");
+  return split == std::string::npos ? all : all.substr(split + 2);
+}
+
+}  // namespace
+
+// A two-column glyph whose left half is outside the overlay keeps both of its
+// columns when the screen prints, and the border beside it never appears. The
+// glyph is blanked instead, since there is no drawing half of one.
+TEST(ClearUnderTest, BlanksAGlyphHangingIntoTheOverlaysBorder) {
+  EXPECT_EQ(OverlaidRow(3, /*guarded=*/false).find("ab\U0001FA99body"), 0u)
+      << "bare clear_under: the mark keeps both columns and eats the border";
+  EXPECT_EQ(OverlaidRow(3, /*guarded=*/true).find("ab \u2502body"), 0u)
+      << "the half glyph is blanked, not half drawn";
+}
+
+// A glyph clear of the border is left alone, on both sides of it.
+TEST(ClearUnderTest, LeavesAGlyphThatIsNotInTheWay) {
+  for (int cut : {5, 6}) {
+    EXPECT_NE(OverlaidRow(cut, /*guarded=*/true).find("\U0001FA99"),
+              std::string::npos)
+        << "cut " << cut;
+  }
+}
 
 // --- Rarity colours ---
 

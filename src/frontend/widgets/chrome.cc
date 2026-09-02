@@ -155,6 +155,44 @@ class FloatingNode : public ftxui::Node {
   }
 };
 
+// The overlay's own left edge, and the half glyph it can leave standing
+// outside itself. See ClearUnder.
+class ClearUnderNode : public ftxui::Node {
+ public:
+  explicit ClearUnderNode(ftxui::Element child)
+      : ftxui::Node(ftxui::Elements{std::move(child)}) {
+  }
+
+  void ComputeRequirement() override {
+    ftxui::Node::ComputeRequirement();
+    requirement_ = children_[0]->requirement();
+  }
+
+  void SetBox(ftxui::Box box) override {
+    ftxui::Node::SetBox(box);
+    children_[0]->SetBox(box);
+  }
+
+  void Render(ftxui::Screen& screen) override {
+    ftxui::Node::Render(screen);
+    // The column outside the overlay's left border. A two-column glyph
+    // starting there keeps both of its columns when the screen is printed --
+    // ftxui skips the cell after one -- so the border is never drawn. Blanked,
+    // there being no way to draw half a glyph.
+    const int x = box_.x_min - 1;
+    if (x < 0) {
+      return;
+    }
+    const int last = std::min(box_.y_max, screen.dimy() - 1);
+    for (int y = std::max(0, box_.y_min); y <= last; ++y) {
+      ftxui::Pixel& pixel = screen.PixelAt(x, y);
+      if (ftxui::string_width(pixel.character) == 2) {
+        pixel.character = " ";
+      }
+    }
+  }
+};
+
 }  // namespace
 
 ftxui::Color MarkColor(CurrencyColor color) {
@@ -221,6 +259,11 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 
 ftxui::Element Floating(ftxui::Element element) {
   return std::make_shared<FloatingNode>(std::move(element));
+}
+
+ftxui::Element ClearUnder(ftxui::Element element) {
+  return std::make_shared<ClearUnderNode>(std::move(element) |
+                                          ftxui::clear_under);
 }
 
 ftxui::Element ResultWindow(const std::string& title,

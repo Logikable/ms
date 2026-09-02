@@ -259,8 +259,8 @@ void ScrollPanel::ResetComponent() {
       // Over the list rather than under it: the question is about the row the
       // cursor is on, and a window that pushed the list around while asking
       // would move that row out from under it.
-      return ftxui::dbox({std::move(main),
-                          ftxui::center(RenderConfirm() | ftxui::clear_under)});
+      return ftxui::dbox(
+          {std::move(main), ftxui::center(ClearUnder(RenderConfirm()))});
     }
     if (menu_open_) {
       // Opened a row above the selection, so the entry standing highlighted

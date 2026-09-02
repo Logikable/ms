@@ -40,8 +40,9 @@ ftxui::Element ItemMenu::Render(int row, int col) const {
       ftxui::filler() | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, row),
       ftxui::hbox({
           ftxui::filler() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, col),
-          ftxui::vbox(std::move(items)) | ftxui::color(ftxui::Color::White) |
-              ftxui::border | ftxui::color(kTheme) | ftxui::clear_under,
+          ClearUnder(ftxui::vbox(std::move(items)) |
+                     ftxui::color(ftxui::Color::White) | ftxui::border |
+                     ftxui::color(kTheme)),
           ftxui::filler(),
       }),
       ftxui::filler(),
