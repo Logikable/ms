@@ -252,20 +252,21 @@ bool InspectPanel::HasSetCard() const {
   return SetOfItem() != nullptr;
 }
 
-ftxui::Element InspectPanel::RenderItemOnly(bool focused) const {
+ftxui::Element InspectPanel::RenderItemOnly(bool focused,
+                                            const std::string& title) const {
   // The stackable body is a paragraph, which wraps to as many lines as it
   // needs and so cannot be sliced into a scrolling window. It is two lines at
   // its longest, and never outgrows a terminal.
   if (stackable_ != nullptr) {
-    return ThemedWindow(" Inspect ", RenderStackable(), focused) |
+    return ThemedWindow(title, RenderStackable(), focused) |
            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kStackableWidth);
   }
   if (item_ == nullptr) {
-    return ThemedWindow(" Inspect ", EmptyState("no item"), focused);
+    return ThemedWindow(title, EmptyState("no item"), focused);
   }
   CardRows rows =
       IsArcaneSymbol(item_->prototype()) ? SymbolRows() : EquipRows();
-  return item_card_.Render(" Inspect ", std::move(rows), /*content_width=*/0,
+  return item_card_.Render(title, std::move(rows), /*content_width=*/0,
                            focused);
 }
 

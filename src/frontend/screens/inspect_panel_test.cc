@@ -606,7 +606,9 @@ TEST_F(InspectPanelTest, ShowsTheWholeSetBesideOneOfItsPieces) {
 }
 
 // The scroll screen puts its list where the set card would go, and three
-// windows in a row leaves none of them the width they need.
+// windows in a row leaves none of them the width they need. A screen showing
+// the same item twice titles its cards itself -- Star Force says Before and
+// After.
 TEST_F(InspectPanelTest, TheCardAloneLeavesTheSetCardOut) {
   InspectPanel& panel = Card();
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
@@ -615,6 +617,12 @@ TEST_F(InspectPanelTest, TheCardAloneLeavesTheSetCardOut) {
   std::string rendered = StripAnsi(screen.ToString());
   EXPECT_EQ(rendered.find("Set Effect"), std::string::npos);
   EXPECT_NE(rendered.find("Frozen Hat"), std::string::npos);
+  EXPECT_NE(rendered.find("Inspect"), std::string::npos);
+
+  ftxui::Render(screen, panel.RenderItemOnly(/*focused=*/false, " Before "));
+  rendered = StripAnsi(screen.ToString());
+  EXPECT_NE(rendered.find("Before"), std::string::npos);
+  EXPECT_EQ(rendered.find("Inspect"), std::string::npos);
 }
 
 TEST_F(InspectPanelTest, ReadsWhatEachTierPays) {

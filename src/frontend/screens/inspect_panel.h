@@ -74,7 +74,12 @@ class InspectPanel {
   // already has a panel of its own next to the item asks for: three windows
   // in a row leaves none of them the width they need. `focused` lights the
   // title, for a screen where the card takes turns holding the arrows.
-  ftxui::Element RenderItemOnly(bool focused = false) const;
+  //
+  // `title` names the window. A screen showing one item leaves it alone; a
+  // screen showing the same item twice says which is which -- Star Force
+  // titles its two cards Before and After.
+  ftxui::Element RenderItemOnly(bool focused = false,
+                                const std::string& title = " Inspect ") const;
 
  private:
   // The body for each kind. All three are framed by the same card, so the

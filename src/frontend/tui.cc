@@ -690,16 +690,19 @@ ftxui::Element Tui::StarForceColumns() {
   inspect_panel_.SetMaxRows(rows);
   // Each card takes the width it asks for and no more, and the slack goes to
   // the two ends: what the player compares is the three of them shoulder to
-  // shoulder, not a card pushed out to the edge of the terminal.
+  // shoulder, not a card pushed out to the edge of the terminal. They hold
+  // one item a star apart, so they are titled for which side of the attempt
+  // they are rather than both saying Inspect.
   std::vector<ftxui::Element> columns;
   columns.push_back(ftxui::filler());
-  columns.push_back(inspect_panel_.RenderItemOnly(two_cards && !right) |
-                    ftxui::yflex);
+  columns.push_back(
+      inspect_panel_.RenderItemOnly(two_cards && !right, " Before ") |
+      ftxui::yflex);
   columns.push_back(std::move(panel));
   if (two_cards) {
     preview_inspect_panel_.SetItem(&*star_force_after_);
     preview_inspect_panel_.SetMaxRows(rows);
-    columns.push_back(preview_inspect_panel_.RenderItemOnly(right) |
+    columns.push_back(preview_inspect_panel_.RenderItemOnly(right, " After ") |
                       ftxui::yflex);
   }
   columns.push_back(ftxui::filler());
