@@ -558,27 +558,7 @@ void TuiController::EnsureFocusIsVisible() {
   }
 }
 
-bool TuiController::OnItemMenuEvent(ftxui::Event event) {
-  Screen next;
-  // The debug Level-Up item is used from this menu, and a level gained hands
-  // things over out of the catalogs. Measured around the call rather than
-  // hooked to that one entry: whatever else ever grants a level from here is
-  // covered by the same two lines.
-  int level_before = state_.character.proto().level();
-  if (panel_focus_ == kEquipPanel) {
-    next = equip_panel_.OnMenuEvent(event, scroll_panel_);
-  } else if (inventory_panel_.on_tab_bar()) {
-    next = inventory_panel_.OnTabMenuEvent(event);
-  } else {
-    next = inventory_panel_.OnMenuEvent(event, scroll_panel_);
-  }
-  GrantLevelRewards(state_, level_before, state_.character.proto().level());
-  if (next == kInspect) {
-    inspect_ref_ = SelectedItem();
-  }
-  if (next == kInspect || next == kItemInspect) {
-    OpenInspectCards();
-  }
+Screen TuiController::SeedUpgradeScreen(Screen next) {
   if (next == kScrollSelect) {
     scroll_ref_ = SelectedItem();
     OpenInspectCards();
@@ -603,11 +583,14 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
       // read as the feature going away.
       OpenNotice(kHammerNotice, {"This item is fully Hammered."},
                  /*refusal=*/true);
-      next = kHammerNotice;
-    } else {
-      hammer_panel_.Reset(state_.character.meso());
+      return kHammerNotice;
     }
+    hammer_panel_.Reset(state_.character.meso());
   }
+  return next;
+}
+
+Screen TuiController::SeedSaleScreen(Screen next) {
   if (next == kTraceRecover) {
     preview_inspect_panel_.Reset();
     OpenInspectCards();
@@ -624,6 +607,24 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
     int price = is_trace ? 0 : SellPrice(item.prototype());
     sell_equip_panel_.Reset(item.name(), price);
   }
+  if (next == kMultiSell) {
+    int tab = inventory_panel_.active_tab();
+    multi_sell_panel_.Reset(tab, tab == kEquipTab
+                                     ? inventory_panel_.selected()
+                                     : inventory_panel_.selected_stack());
+  }
+  if (next == kSell) {
+    sell_category_ = inventory_panel_.active_category();
+    sell_index_ = inventory_panel_.selected_stack();
+    const StackableItem& stack =
+        state_.character.stackables(sell_category_)[sell_index_];
+    sell_panel_.Reset(stack.name(), stack.prototype().sell_price(),
+                      stack.count());
+  }
+  return next;
+}
+
+Screen TuiController::SeedSymbolScreen(Screen next) {
   if (next == kSymbolLevel) {
     symbol_slot_ = equip_panel_.selected_slot();
     const EquipInstance& symbol = state_.character.equipped().at(symbol_slot_);
@@ -645,20 +646,33 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
                                 SymbolExpToNextLevel(level),
                                 state_.character.SpareSymbols(symbol_slot_));
   }
-  if (next == kMultiSell) {
-    int tab = inventory_panel_.active_tab();
-    multi_sell_panel_.Reset(tab, tab == kEquipTab
-                                     ? inventory_panel_.selected()
-                                     : inventory_panel_.selected_stack());
+  return next;
+}
+
+bool TuiController::OnItemMenuEvent(ftxui::Event event) {
+  Screen next;
+  // The debug Level-Up item is used from this menu, and a level gained hands
+  // things over out of the catalogs. Measured around the call rather than
+  // hooked to that one entry: whatever else ever grants a level from here is
+  // covered by the same two lines.
+  int level_before = state_.character.proto().level();
+  if (panel_focus_ == kEquipPanel) {
+    next = equip_panel_.OnMenuEvent(event, scroll_panel_);
+  } else if (inventory_panel_.on_tab_bar()) {
+    next = inventory_panel_.OnTabMenuEvent(event);
+  } else {
+    next = inventory_panel_.OnMenuEvent(event, scroll_panel_);
   }
-  if (next == kSell) {
-    sell_category_ = inventory_panel_.active_category();
-    sell_index_ = inventory_panel_.selected_stack();
-    const StackableItem& stack =
-        state_.character.stackables(sell_category_)[sell_index_];
-    sell_panel_.Reset(stack.name(), stack.prototype().sell_price(),
-                      stack.count());
+  GrantLevelRewards(state_, level_before, state_.character.proto().level());
+  if (next == kInspect) {
+    inspect_ref_ = SelectedItem();
   }
+  if (next == kInspect || next == kItemInspect) {
+    OpenInspectCards();
+  }
+  next = SeedUpgradeScreen(next);
+  next = SeedSaleScreen(next);
+  next = SeedSymbolScreen(next);
   screen_ = next;
   return true;
 }

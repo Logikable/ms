@@ -472,6 +472,13 @@ class TuiController {
 
   bool OnMainViewEvent(ftxui::Event event);
   bool OnItemMenuEvent(ftxui::Event event);
+
+  // The three families of screen an item menu opens, each seeding the panel it
+  // is about to hand the screen to. `next` is what the menu chose; a seed that
+  // finds the item cannot take the screen returns the one it opened instead.
+  Screen SeedUpgradeScreen(Screen next);
+  Screen SeedSaleScreen(Screen next);
+  Screen SeedSymbolScreen(Screen next);
   bool OnInspectEvent(ftxui::Event event);
   bool OnScrollSelectEvent(ftxui::Event event);
   bool OnScrollResultEvent(ftxui::Event event);
