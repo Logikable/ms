@@ -165,6 +165,30 @@ sim_binary(
 )
 
 sim_binary(
+    name = "frame_sim",
+    srcs = ["frame_sim.cc"],
+    deps = [
+        ":sim_world",
+        "//src:game_state",
+        "//src/character:character_stats",
+        "//src/character:job_name",
+        "//src/character:stat_preset",
+        "//src/combat:encounter",
+        "//src/combat:fight",
+        "//src/frontend/panels:character_panel",
+        "//src/frontend/panels:combat_panel",
+        "//src/frontend/panels:equipped_panel",
+        "//src/frontend/panels:inventory_panel",
+        "//src/frontend/widgets:marquee",
+        "//src/protos:character_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+    ],
+)
+
+sim_binary(
     name = "cube_sim",
     srcs = ["cube_sim.cc"],
     deps = [
