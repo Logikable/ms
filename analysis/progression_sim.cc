@@ -2494,20 +2494,39 @@ FightStanding StandingOn(const Climb& climb, const std::string& key) {
   return standing;
 }
 
-// The level `pct` of the branches had the fight beaten by, nearest-rank: the
+// Where one clear falls in a character's life. A fight beaten at the cap is
+// read on the clock instead of the level, since every branch that waits that
+// long would otherwise print the same Lv200.
+struct ClearPoint {
+  int level = 0;            // 0 for a fight never won
+  double after_cap = -1.0;  // playtime past the cap the clear landed at
+};
+
+bool ClearIsEarlier(const ClearPoint& a, const ClearPoint& b) {
+  int a_level = a.level == 0 ? std::numeric_limits<int>::max() : a.level;
+  int b_level = b.level == 0 ? std::numeric_limits<int>::max() : b.level;
+  return a_level != b_level ? a_level < b_level : a.after_cap < b.after_cap;
+}
+
+std::string ClearCell(const ClearPoint& point) {
+  if (point.level == 0) {
+    return "never";
+  }
+  if (point.level < kMilestones[kNumMilestones - 1]) {
+    return absl::StrCat("Lv", point.level);
+  }
+  return absl::StrCat("+", Clock(std::max(point.after_cap, 0.0)));
+}
+
+// The clear `pct` of the branches had the fight beaten by, nearest-rank: the
 // half mark of ten branches is the fifth of them. A branch that never won it
 // sorts past every one that did, so 80% reads "never" once three in ten could
 // not do it -- which is the reading, not a gap in the table.
-std::string LevelAtPercentile(std::vector<int> levels, double pct) {
-  for (int& level : levels) {
-    level = level == 0 ? std::numeric_limits<int>::max() : level;
-  }
-  std::sort(levels.begin(), levels.end());
-  int index = static_cast<int>(std::ceil(pct * levels.size())) - 1;
-  index = std::min(std::max(index, 0), static_cast<int>(levels.size()) - 1);
-  return levels[index] == std::numeric_limits<int>::max()
-             ? "never"
-             : absl::StrCat("Lv", levels[index]);
+std::string ClearAtPercentile(std::vector<ClearPoint> points, double pct) {
+  std::sort(points.begin(), points.end(), ClearIsEarlier);
+  int index = static_cast<int>(std::ceil(pct * points.size())) - 1;
+  index = std::min(std::max(index, 0), static_cast<int>(points.size()) - 1);
+  return ClearCell(points[index]);
 }
 
 // The headline: what level each fight falls at, over the branches.
@@ -2518,20 +2537,20 @@ void PrintTimelineSummary(const std::vector<FightRow>& fights,
               "min", "50%", "80%", "max");
   std::printf("  %s\n", std::string(70, '-').c_str());
   for (const FightRow& fight : fights) {
-    std::vector<int> levels;
+    std::vector<ClearPoint> points;
     int cleared = 0;
     for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
       FightStanding standing = StandingOn(climbs[i], fight.key);
-      levels.push_back(standing.level);
+      points.push_back({standing.level, standing.after_cap});
       cleared += standing.level > 0 ? 1 : 0;
     }
     std::printf("  %-17s %6s %5d/%-3d %8s %8s %8s %8s\n", fight.label.c_str(),
                 absl::StrCat("Lv", fight.unlock_level).c_str(), cleared,
                 static_cast<int>(branches.size()),
-                LevelAtPercentile(levels, 0.0).c_str(),
-                LevelAtPercentile(levels, 0.5).c_str(),
-                LevelAtPercentile(levels, 0.8).c_str(),
-                LevelAtPercentile(levels, 1.0).c_str());
+                ClearAtPercentile(points, 0.0).c_str(),
+                ClearAtPercentile(points, 0.5).c_str(),
+                ClearAtPercentile(points, 0.8).c_str(),
+                ClearAtPercentile(points, 1.0).c_str());
   }
 }
 
@@ -2591,7 +2610,7 @@ void PrintBossTimeline(const Catalogs& catalogs,
       "\nWhere each fight falls, over the typical run of every branch. A "
       "branch that never won it\ncounts as worse than every branch that did, "
       "so a percentile reads \"never\" once that many\nof them could not do "
-      "it.\n\n");
+      "it. A cell reading +Nh is a clear at the cap, timed from Lv200.\n\n");
   std::vector<FightRow> fights = LiveFights(catalogs);
   PrintTimelineSummary(fights, branches, climbs);
   for (const FightRow& fight : fights) {
