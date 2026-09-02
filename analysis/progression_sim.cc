@@ -731,27 +731,48 @@ const char* const kFrozenTokenKeys[] = {"frozen_weapon_token",
                                         "frozen_secondary_token"};
 constexpr int kNumFrozenTokens = 2;
 
+// What one milestone level found: when the climb reached it, and what the
+// character was standing in and had been paid by then.
+struct Milestone {
+  // Playtime in seconds when the level was reached, or -1 for one never
+  // reached -- which is what every other field here is read against.
+  double seconds = -1.0;
+  // Meso the character had been paid, all told, and what the shop had taken
+  // back off them.
+  int64_t meso = 0;
+  int64_t spent = 0;
+  // What they were standing in: the weapon's stars and the slots still open in
+  // it, and how much of each set was on their back.
+  int stars = 0;
+  int slots = 0;
+  int frozen = 0;
+  int boss_set = 0;
+  // The honor the pool had been PAID -- what it is holding plus whatever has
+  // been rerolled away -- and the two parts of it that can be named: what the
+  // levels paid and what the daily clears paid. Whatever is left over is what
+  // the monsters dropped.
+  int64_t honor = 0;
+  int64_t level_honor = 0;
+  int64_t boss_honor = 0;
+};
+
+// What one Frozen token came to over a climb.
+struct TokenProgress {
+  // The level it first dropped at, or 0 for one that never did. The only
+  // reading there is on whether a climb ever gets to hold the tier it buys.
+  int level = 0;
+  // Kills off mobs that carry it, and the log of the chance every one of them
+  // came up empty. One climb either drops a token or does not, which says
+  // almost nothing at a rate this long; the kills behind it say how likely
+  // that was, which is the number worth reading.
+  int64_t kills = 0;
+  double log_miss = 0.0;
+};
+
 // What one branch's climb came to.
 struct Climb {
-  // Playtime in seconds at each milestone, or -1 for one never reached.
-  double milestone_seconds[kNumMilestones];
-  // Meso the character had been paid, all told, by each milestone, and what
-  // the shop had taken back off them.
-  int64_t milestone_meso[kNumMilestones] = {0};
-  int64_t milestone_spent[kNumMilestones] = {0};
-  // What they were standing in at each milestone: the weapon's stars and the
-  // slots still open in it, and how much of each set was on their back.
-  int milestone_stars[kNumMilestones] = {0};
-  int milestone_slots[kNumMilestones] = {0};
-  int milestone_frozen[kNumMilestones] = {0};
-  int milestone_boss_set[kNumMilestones] = {0};
-  // The honor the pool had been PAID by each milestone -- what it is holding
-  // plus whatever has been rerolled away -- and the two parts of it that can
-  // be named: what the levels paid and what the daily clears paid. Whatever is
-  // left over is what the monsters dropped.
-  int64_t milestone_honor[kNumMilestones] = {0};
-  int64_t milestone_level_honor[kNumMilestones] = {0};
-  int64_t milestone_boss_honor[kNumMilestones] = {0};
+  // One per kMilestones entry, in that order.
+  Milestone milestones[kNumMilestones];
   // What the Inner Ability came to: the honor spent rerolling it, and the
   // lines each preset was holding when the run ended.
   int64_t ability_honor_spent = 0;
@@ -802,18 +823,11 @@ struct Climb {
   Character final_character;
   std::string money_map;
   // The level each Frozen piece first dropped at, or 0 for one that never
-  // did. The rates are set so that all four arrive before the level cap --
+  // did. The rates are set so that every piece arrives before the level cap --
   // this is the check on that, farmed rather than argued.
-  int frozen_level[kNumFrozenPieces] = {0, 0, 0, 0};
-  // The same for the two tokens, which is the only reading there is on
-  // whether a climb ever gets to hold the tier they buy.
-  int token_level[kNumFrozenTokens] = {0, 0};
-  // Kills off mobs that carry each token, and the log of the chance every one
-  // of them came up empty. One climb either drops a token or does not, which
-  // says almost nothing at a rate this long; the kills behind it say how
-  // likely that was, which is the number worth reading.
-  int64_t token_kills[kNumFrozenTokens] = {0, 0};
-  double token_log_miss[kNumFrozenTokens] = {0.0, 0.0};
+  int frozen_level[kNumFrozenPieces] = {0};
+  // One per kFrozenTokens entry, in that order.
+  TokenProgress tokens[kNumFrozenTokens];
   std::vector<Stint> stints;
 };
 
@@ -829,8 +843,8 @@ void NoteTokenChances(const CombatParams& params,
         if (drop.item() != kFrozenTokenKeys[token] || drop.per_kill() <= 0.0) {
           continue;
         }
-        climb.token_kills[token] += kills[i];
-        climb.token_log_miss[token] += kills[i] * std::log1p(-drop.per_kill());
+        climb.tokens[token].kills += kills[i];
+        climb.tokens[token].log_miss += kills[i] * std::log1p(-drop.per_kill());
       }
     }
   }
@@ -919,9 +933,9 @@ void NoteFrozenDrops(const GameState& state, int level, Climb& climb) {
   for (const StackableItem& stack :
        state.character.stackables(ITEM_CATEGORY_ETC)) {
     for (int token = 0; token < kNumFrozenTokens; ++token) {
-      if (climb.token_level[token] == 0 &&
+      if (climb.tokens[token].level == 0 &&
           stack.name() == kFrozenTokens[token]) {
-        climb.token_level[token] = level;
+        climb.tokens[token].level = level;
       }
     }
   }
@@ -951,22 +965,22 @@ void NoteMilestones(const GameState& state, int level, double seconds,
     climb.frozen_set_level = level;
   }
   for (int i = 0; i < kNumMilestones; ++i) {
-    if (level < kMilestones[i] || climb.milestone_seconds[i] >= 0.0) {
+    if (level < kMilestones[i] || climb.milestones[i].seconds >= 0.0) {
       continue;
     }
-    climb.milestone_seconds[i] = seconds;
-    climb.milestone_meso[i] = purse.earned;
-    climb.milestone_spent[i] = purse.spent;
-    climb.milestone_stars[i] = weapon.first;
-    climb.milestone_slots[i] = weapon.second;
-    climb.milestone_frozen[i] = frozen;
-    climb.milestone_boss_set[i] = PiecesWorn(state, "boss_accessory");
+    climb.milestones[i].seconds = seconds;
+    climb.milestones[i].meso = purse.earned;
+    climb.milestones[i].spent = purse.spent;
+    climb.milestones[i].stars = weapon.first;
+    climb.milestones[i].slots = weapon.second;
+    climb.milestones[i].frozen = frozen;
+    climb.milestones[i].boss_set = PiecesWorn(state, "boss_accessory");
     // Paid, not held: the pool has one sink and this is the only thing that
     // spends it, so what went out of it is known exactly.
-    climb.milestone_honor[i] =
+    climb.milestones[i].honor =
         state.character.honor() + climb.ability_honor_spent;
-    climb.milestone_level_honor[i] = HonorForLevels(1, level);
-    climb.milestone_boss_honor[i] = kBossClearHonor * ClearsSoFar(climb);
+    climb.milestones[i].level_honor = HonorForLevels(1, level);
+    climb.milestones[i].boss_honor = kBossClearHonor * ClearsSoFar(climb);
   }
 }
 
@@ -1581,26 +1595,39 @@ Stint LoadStint(const CheckpointStint& from) {
   return {from.level(), from.seconds(), from.map(), from.weapon()};
 }
 
+void SaveMilestone(const Milestone& milestone, CheckpointMilestone* to) {
+  to->set_seconds(milestone.seconds);
+  to->set_meso(milestone.meso);
+  to->set_spent(milestone.spent);
+  to->set_stars(milestone.stars);
+  to->set_slots(milestone.slots);
+  to->set_frozen(milestone.frozen);
+  to->set_boss_set(milestone.boss_set);
+  to->set_honor(milestone.honor);
+  to->set_level_honor(milestone.level_honor);
+  to->set_boss_honor(milestone.boss_honor);
+}
+
+Milestone LoadMilestone(const CheckpointMilestone& from) {
+  return {from.seconds(),     from.meso(),      from.spent(),    from.stars(),
+          from.slots(),       from.frozen(),    from.boss_set(), from.honor(),
+          from.level_honor(), from.boss_honor()};
+}
+
+void SaveToken(const TokenProgress& token, CheckpointToken* to) {
+  to->set_level(token.level);
+  to->set_kills(token.kills);
+  to->set_log_miss(token.log_miss);
+}
+
+TokenProgress LoadToken(const CheckpointToken& from) {
+  return {from.level(), from.kills(), from.log_miss()};
+}
+
 void SaveClimb(const Climb& climb, CheckpointClimb* to) {
-  SaveArray(climb.milestone_seconds, kNumMilestones,
-            to->mutable_milestone_seconds());
-  SaveArray(climb.milestone_meso, kNumMilestones, to->mutable_milestone_meso());
-  SaveArray(climb.milestone_spent, kNumMilestones,
-            to->mutable_milestone_spent());
-  SaveArray(climb.milestone_stars, kNumMilestones,
-            to->mutable_milestone_stars());
-  SaveArray(climb.milestone_slots, kNumMilestones,
-            to->mutable_milestone_slots());
-  SaveArray(climb.milestone_frozen, kNumMilestones,
-            to->mutable_milestone_frozen());
-  SaveArray(climb.milestone_boss_set, kNumMilestones,
-            to->mutable_milestone_boss_set());
-  SaveArray(climb.milestone_honor, kNumMilestones,
-            to->mutable_milestone_honor());
-  SaveArray(climb.milestone_level_honor, kNumMilestones,
-            to->mutable_milestone_level_honor());
-  SaveArray(climb.milestone_boss_honor, kNumMilestones,
-            to->mutable_milestone_boss_honor());
+  for (const Milestone& milestone : climb.milestones) {
+    SaveMilestone(milestone, to->add_milestones());
+  }
   to->set_ability_honor_spent(climb.ability_honor_spent);
   *to->mutable_ability_farming() = climb.ability_farming;
   *to->mutable_ability_bossing() = climb.ability_bossing;
@@ -1610,29 +1637,18 @@ void SaveClimb(const Climb& climb, CheckpointClimb* to) {
   to->set_frozen_set_level(climb.frozen_set_level);
   SaveBossLogs(climb, to);
   SaveArray(climb.frozen_level, kNumFrozenPieces, to->mutable_frozen_level());
-  SaveArray(climb.token_level, kNumFrozenTokens, to->mutable_token_level());
-  SaveArray(climb.token_kills, kNumFrozenTokens, to->mutable_token_kills());
-  SaveArray(climb.token_log_miss, kNumFrozenTokens,
-            to->mutable_token_log_miss());
+  for (const TokenProgress& token : climb.tokens) {
+    SaveToken(token, to->add_tokens());
+  }
   for (const Stint& stint : climb.stints) {
     SaveStint(stint, to->add_stints());
   }
 }
 
 void LoadClimb(const CheckpointClimb& from, Climb* climb) {
-  LoadArray(from.milestone_seconds(), kNumMilestones, climb->milestone_seconds);
-  LoadArray(from.milestone_meso(), kNumMilestones, climb->milestone_meso);
-  LoadArray(from.milestone_spent(), kNumMilestones, climb->milestone_spent);
-  LoadArray(from.milestone_stars(), kNumMilestones, climb->milestone_stars);
-  LoadArray(from.milestone_slots(), kNumMilestones, climb->milestone_slots);
-  LoadArray(from.milestone_frozen(), kNumMilestones, climb->milestone_frozen);
-  LoadArray(from.milestone_boss_set(), kNumMilestones,
-            climb->milestone_boss_set);
-  LoadArray(from.milestone_honor(), kNumMilestones, climb->milestone_honor);
-  LoadArray(from.milestone_level_honor(), kNumMilestones,
-            climb->milestone_level_honor);
-  LoadArray(from.milestone_boss_honor(), kNumMilestones,
-            climb->milestone_boss_honor);
+  for (int i = 0; i < kNumMilestones && i < from.milestones_size(); ++i) {
+    climb->milestones[i] = LoadMilestone(from.milestones(i));
+  }
   climb->ability_honor_spent = from.ability_honor_spent();
   climb->ability_farming = from.ability_farming();
   climb->ability_bossing = from.ability_bossing();
@@ -1642,9 +1658,9 @@ void LoadClimb(const CheckpointClimb& from, Climb* climb) {
   climb->frozen_set_level = from.frozen_set_level();
   LoadBossLogs(from, climb);
   LoadArray(from.frozen_level(), kNumFrozenPieces, climb->frozen_level);
-  LoadArray(from.token_level(), kNumFrozenTokens, climb->token_level);
-  LoadArray(from.token_kills(), kNumFrozenTokens, climb->token_kills);
-  LoadArray(from.token_log_miss(), kNumFrozenTokens, climb->token_log_miss);
+  for (int i = 0; i < kNumFrozenTokens && i < from.tokens_size(); ++i) {
+    climb->tokens[i] = LoadToken(from.tokens(i));
+  }
   for (const CheckpointStint& stint : from.stints()) {
     climb->stints.push_back(LoadStint(stint));
   }
@@ -1995,9 +2011,6 @@ Climb Play(const Catalogs& catalogs, Job branch,
   // fights one has to say so. This one runs the dailies.
   state.bosses = catalogs.bosses;
   Climb climb;
-  for (int i = 0; i < kNumMilestones; ++i) {
-    climb.milestone_seconds[i] = -1.0;
-  }
   GearPlan plan;
   plan.star_ceiling = absl::GetFlag(FLAGS_star_ceiling);
   plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
@@ -2088,10 +2101,10 @@ void PrintTokenOdds(const Job* branches, const std::vector<Climb>& climbs,
       continue;
     }
     std::printf("%-13s  %11lld", BranchName(branches[i]).c_str(),
-                static_cast<long long>(climbs[i].token_kills[0]));
+                static_cast<long long>(climbs[i].tokens[0].kills));
     for (int token = 0; token < kNumFrozenTokens; ++token) {
       std::printf("  %17.1f%%",
-                  100.0 * std::exp(climbs[i].token_log_miss[token]));
+                  100.0 * std::exp(climbs[i].tokens[token].log_miss));
     }
     std::printf("\n");
   }
@@ -2111,7 +2124,7 @@ void PrintPlaytime(const Catalogs& catalogs, const std::vector<Job>& branches,
   for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
     std::printf("%-13s", BranchName(branches[i]).c_str());
     for (int m = 0; m < kNumMilestones; ++m) {
-      std::printf("  %8s", Clock(climbs[i].milestone_seconds[m]).c_str());
+      std::printf("  %8s", Clock(climbs[i].milestones[m].seconds).c_str());
     }
     std::printf("\n");
     if (absl::GetFlag(FLAGS_detail)) {
@@ -2136,9 +2149,9 @@ void PrintMeso(const std::vector<Job>& branches,
     std::printf("%-13s", BranchName(branches[i]).c_str());
     for (int m = 0; m < kNumMilestones; ++m) {
       char money[16];
-      FormatShort(static_cast<double>(climbs[i].milestone_meso[m]), money,
+      FormatShort(static_cast<double>(climbs[i].milestones[m].meso), money,
                   sizeof(money));
-      std::printf("  %8s", climbs[i].milestone_seconds[m] < 0.0 ? "-" : money);
+      std::printf("  %8s", climbs[i].milestones[m].seconds < 0.0 ? "-" : money);
     }
     std::printf("\n");
   }
@@ -2161,9 +2174,9 @@ void PrintHonor(const std::vector<Job>& branches,
     std::printf("%-13s", BranchName(branches[i]).c_str());
     for (int m = 0; m < kNumMilestones; ++m) {
       char honor[16];
-      FormatShort(static_cast<double>(climbs[i].milestone_honor[m]), honor,
+      FormatShort(static_cast<double>(climbs[i].milestones[m].honor), honor,
                   sizeof(honor));
-      std::printf("  %8s", climbs[i].milestone_seconds[m] < 0.0 ? "-" : honor);
+      std::printf("  %8s", climbs[i].milestones[m].seconds < 0.0 ? "-" : honor);
     }
     std::printf("\n");
   }
@@ -2189,16 +2202,17 @@ void PrintHonor(const std::vector<Job>& branches,
         continue;
       }
       const Climb& climb = climbs[i];
-      if (climb.milestone_seconds[m] < 0.0) {
+      if (climb.milestones[m].seconds < 0.0) {
         std::printf("  %9s %9s %9s %9s", "-", "-", "-", "-");
         continue;
       }
-      int64_t mobs = climb.milestone_honor[m] - climb.milestone_level_honor[m] -
-                     climb.milestone_boss_honor[m];
+      int64_t mobs = climb.milestones[m].honor -
+                     climb.milestones[m].level_honor -
+                     climb.milestones[m].boss_honor;
       std::printf("  %9lld %9lld %9lld %9lld",
-                  static_cast<long long>(climb.milestone_honor[m]),
-                  static_cast<long long>(climb.milestone_level_honor[m]),
-                  static_cast<long long>(climb.milestone_boss_honor[m]),
+                  static_cast<long long>(climb.milestones[m].honor),
+                  static_cast<long long>(climb.milestones[m].level_honor),
+                  static_cast<long long>(climb.milestones[m].boss_honor),
                   static_cast<long long>(mobs));
     }
     std::printf("\n");
@@ -2314,7 +2328,7 @@ void PrintFrozenDrops(const std::vector<Job>& branches,
                   level == 0 ? "-" : ("Lv" + std::to_string(level)).c_str());
     }
     for (int token = 0; token < kNumFrozenTokens; ++token) {
-      int level = climbs[i].token_level[token];
+      int level = climbs[i].tokens[token].level;
       std::printf("  %15s",
                   level == 0 ? "-" : ("Lv" + std::to_string(level)).c_str());
     }
@@ -2327,20 +2341,20 @@ void PrintFrozenDrops(const std::vector<Job>& branches,
 void PrintLedgerRow(const Climb& climb, int m) {
   char earned[16];
   char spent[16];
-  FormatShort(static_cast<double>(climb.milestone_meso[m]), earned,
+  FormatShort(static_cast<double>(climb.milestones[m].meso), earned,
               sizeof(earned));
-  FormatShort(static_cast<double>(climb.milestone_spent[m]), spent,
+  FormatShort(static_cast<double>(climb.milestones[m].spent), spent,
               sizeof(spent));
   char weapon[16];
-  if (climb.milestone_stars[m] < 0) {
+  if (climb.milestones[m].stars < 0) {
     std::snprintf(weapon, sizeof(weapon), "%s", "-");
   } else {
     std::snprintf(weapon, sizeof(weapon), "%d*/%d open",
-                  climb.milestone_stars[m], climb.milestone_slots[m]);
+                  climb.milestones[m].stars, climb.milestones[m].slots);
   }
   std::printf("  %5d  %9s  %9s  %13s  %8d  %10d\n", kMilestones[m], earned,
-              spent, weapon, climb.milestone_frozen[m],
-              climb.milestone_boss_set[m]);
+              spent, weapon, climb.milestones[m].frozen,
+              climb.milestones[m].boss_set);
 }
 
 // What the purse went on and what the branch has to show for it.
@@ -2356,7 +2370,7 @@ void PrintLedger(const std::vector<Job>& branches,
                 "spent", "weapon", "Frozen", "Boss acc.");
     std::printf("  %s\n", std::string(62, '-').c_str());
     for (int m = 0; m < kNumMilestones; ++m) {
-      if (climbs[i].milestone_seconds[m] >= 0.0) {
+      if (climbs[i].milestones[m].seconds >= 0.0) {
         PrintLedgerRow(climbs[i], m);
       }
     }
@@ -2487,7 +2501,7 @@ FightStanding StandingOn(const Climb& climb, const std::string& key) {
   standing.best_done = log->second.best_done;
   standing.level = log->second.first_clear_level;
   standing.seconds = log->second.first_clear_seconds;
-  double cap = climb.milestone_seconds[kNumMilestones - 1];
+  double cap = climb.milestones[kNumMilestones - 1].seconds;
   if (standing.level > 0 && cap >= 0.0 && standing.seconds > cap) {
     standing.after_cap = standing.seconds - cap;
   }
@@ -2845,7 +2859,7 @@ void PrintCharacterSheet(const Catalogs& catalogs, Job branch,
   FormatShort(static_cast<double>(state.character.meso()), held, sizeof(held));
   std::printf("%s, Lv%d, %s played, %s meso held, %d CombatPower\n",
               BranchName(branch).c_str(), proto.level(),
-              Clock(climb.milestone_seconds[kNumMilestones - 1]).c_str(), held,
+              Clock(climb.milestones[kNumMilestones - 1].seconds).c_str(), held,
               PowerNow(state));
   std::printf(
       "  HP %d   MP %d   crit %.0f%% at %.0f%%   boss %.0f%%   IED %.0f%%   "
@@ -2897,7 +2911,7 @@ std::vector<Job> BranchesToClimb() {
 int TypicalRun(const std::vector<Climb>& runs) {
   std::vector<std::pair<double, int>> by_time;
   for (int i = 0; i < static_cast<int>(runs.size()); ++i) {
-    double capped = runs[i].milestone_seconds[kNumMilestones - 1];
+    double capped = runs[i].milestones[kNumMilestones - 1].seconds;
     // Never reached is the far end of the sort, not the near one.
     by_time.push_back(
         {capped < 0.0 ? std::numeric_limits<double>::infinity() : capped, i});
@@ -2940,7 +2954,7 @@ void PrintTargets(const std::vector<Job>& branches,
     PrintTarget(
         "Frozen Set complete by the cap", frozen, total,
         typical.frozen_set_level == 0
-            ? std::to_string(typical.milestone_frozen[kNumMilestones - 1]) +
+            ? std::to_string(typical.milestones[kNumMilestones - 1].frozen) +
                   " of " + std::to_string(typical.frozen_set_size)
             : "Lv" + std::to_string(typical.frozen_set_level));
 

@@ -59,19 +59,45 @@ message CheckpointWorth {
   repeated double rate = 1 [packed = true];
 }
 
+// What one milestone level found: when the climb reached it, and what the
+// character was standing in and had been paid by then. One per kMilestones
+// entry, in that order.
+message CheckpointMilestone {
+  // Playtime when the level was reached, or -1 for one never reached -- which
+  // is what every other field here is read against.
+  double seconds = 1;
+  // Meso the character had been paid, all told, and what the shop had taken
+  // back off them.
+  int64 meso = 2;
+  int64 spent = 3;
+  // The weapon's stars and the slots still open in it, and how much of each
+  // set was on their back.
+  int32 stars = 4;
+  int32 slots = 5;
+  int32 frozen = 6;
+  int32 boss_set = 7;
+  // The honor the pool had been PAID -- what it holds plus whatever has been
+  // rerolled away -- and the two parts of it that can be named. Whatever is
+  // left over is what the monsters dropped.
+  int64 honor = 8;
+  int64 level_honor = 9;
+  int64 boss_honor = 10;
+}
+
+// What one Frozen token came to. One per kFrozenTokens entry, in that order.
+message CheckpointToken {
+  // The level it first dropped at, or 0 for one that never did.
+  int32 level = 1;
+  // Kills off mobs that carry it, and the log of the chance every one of them
+  // came up empty.
+  int64 kills = 2;
+  double log_miss = 3;
+}
+
 // Everything the tables have collected so far. Parallel to Climb, field for
 // field: a row added there is a row missing here.
 message CheckpointClimb {
-  repeated double milestone_seconds = 1 [packed = true];
-  repeated int64 milestone_meso = 2 [packed = true];
-  repeated int64 milestone_spent = 3 [packed = true];
-  repeated int32 milestone_stars = 4 [packed = true];
-  repeated int32 milestone_slots = 5 [packed = true];
-  repeated int32 milestone_frozen = 6 [packed = true];
-  repeated int32 milestone_boss_set = 7 [packed = true];
-  repeated int64 milestone_honor = 8 [packed = true];
-  repeated int64 milestone_level_honor = 9 [packed = true];
-  repeated int64 milestone_boss_honor = 10 [packed = true];
+  repeated CheckpointMilestone milestones = 1;
   int64 ability_honor_spent = 11;
   AbilityPreset ability_farming = 12;
   AbilityPreset ability_bossing = 13;
@@ -81,9 +107,7 @@ message CheckpointClimb {
   int32 frozen_set_level = 17;
   repeated CheckpointBossLog bosses = 18;
   repeated int32 frozen_level = 19 [packed = true];
-  repeated int32 token_level = 20 [packed = true];
-  repeated int64 token_kills = 21 [packed = true];
-  repeated double token_log_miss = 22 [packed = true];
+  repeated CheckpointToken tokens = 20;
   repeated CheckpointStint stints = 23;
 }
 
