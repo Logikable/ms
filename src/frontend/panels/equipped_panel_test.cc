@@ -854,10 +854,10 @@ TEST_F(EquippedPanelTest, CubingArrivesLastAndOnlyWherePotentialReaches) {
   std::vector<int> after = ReachableMenuEntries(panel.menu());
   EXPECT_NE(std::count(after.begin(), after.end(), kGearMenuCube), 0);
   std::string rendered = RenderElement(panel.menu().Render(0, 0));
-  EXPECT_LT(rendered.find("Star Force"), rendered.find("Cubing"));
+  EXPECT_LT(rendered.find("Star Force"), rendered.find("Cube"));
   // And gold, until the player presses it: cubing is the far end of a trail
   // the level-up card starts.
-  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Cubing"), kYellow);
+  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Cube"), kYellow);
 }
 
 TEST_F(EquippedPanelTest, AMedalIsOfferedNoCube) {
@@ -871,7 +871,7 @@ TEST_F(EquippedPanelTest, AMedalIsOfferedNoCube) {
   RenderComponent(panel.MakeComponent([]() {}));
   panel.OpenMenu();
 
-  EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Cubing"),
+  EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Cube"),
             std::string::npos);
 }
 

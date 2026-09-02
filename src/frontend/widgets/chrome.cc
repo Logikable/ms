@@ -16,6 +16,7 @@
 #include "ftxui/screen/string.hpp"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -475,6 +476,24 @@ ftxui::Element PanelSeparator(bool highlighted) {
 
 ftxui::Element RedUnless(ftxui::Element cell, bool ok) {
   return ok ? cell : std::move(cell) | ftxui::color(kRed);
+}
+
+ftxui::Element PriceBlock(int64_t held, int64_t cost, bool affordable) {
+  // The width the column is held to whatever is in the purse today.
+  constexpr int64_t kWidestQuietPurse = 100'000'000'000;
+  const std::string held_text = FormatMeso(held);
+  const std::string cost_text = FormatMeso(cost);
+  const int width = std::max({TextColumns(FormatMeso(kWidestQuietPurse)),
+                              TextColumns(held_text), TextColumns(cost_text)});
+  constexpr int kLabelWidth = 4;  // "Held", "Cost"
+  return ftxui::vbox({
+      CenteredRow(PadRight("Held", kLabelWidth) + "  " +
+                  PadLeft(held_text, width)),
+      CenteredRow(ftxui::hbox({
+          ftxui::text(PadRight("Cost", kLabelWidth) + "  "),
+          RedUnless(ftxui::text(PadLeft(cost_text, width)), affordable),
+      })),
+  });
 }
 
 ftxui::Element ThemedSeparator() {

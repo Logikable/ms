@@ -318,6 +318,7 @@ cc_test(
         ":game_names",
         ":item_row",
         ":keys",
+        ":screen_text",
         "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",

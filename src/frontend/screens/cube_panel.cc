@@ -115,10 +115,8 @@ ftxui::Element CubePanel::Render(bool focused) const {
   for (int i = std::size(kCubes); i < kShelfRows; ++i) {
     rows.push_back(ftxui::text(""));
   }
-  // The purse rides in the title, where it is read against every row's Cost
-  // and cannot be taken for one of them.
-  return ThemedWindow(" Cube Selection — " + FormatMeso(meso_) + " ",
-                      ftxui::vbox(std::move(rows)), focused);
+  return ThemedWindow(" Cube Selection ", ftxui::vbox(std::move(rows)),
+                      focused);
 }
 
 std::vector<ftxui::Element> CubePanel::LineRows() const {
@@ -168,7 +166,10 @@ ftxui::Element CubePanel::RenderConfirm() const {
     }
   }
   body.push_back(ThemedSeparator());
-  body.push_back(RedUnless(CenteredRow(FormatMeso(Cost())), Affordable()));
+  // The purse over the price: the window is the only thing on screen saying
+  // what a reroll leaves the player with, and it is what the greyed Confirm
+  // below is explained by.
+  body.push_back(PriceBlock(meso_, Cost(), Affordable()));
   return DialogWindow(" " + CubeName(selected_cube()) + " ", std::move(body),
                       ConfirmButtons(confirm_.focus(), Affordable()));
 }

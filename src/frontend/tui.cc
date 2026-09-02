@@ -716,7 +716,7 @@ ftxui::Element Tui::RenderCubing() {
   ftxui::Element columns = ftxui::hbox({
       ftxui::filler(),
       cube_panel_.Render(!right) | ftxui::vcenter,
-      ftxui::text("  "),
+      ftxui::text(" "),
       inspect_panel_.RenderItemOnly(right) | ftxui::vcenter,
       ftxui::filler(),
   });

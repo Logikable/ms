@@ -15,7 +15,6 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/keys.h"
-#include "src/frontend/widgets/text_columns.h"
 #include "src/item/equip_instance.h"
 #include "src/item/star_force_cost.h"
 
@@ -115,26 +114,6 @@ std::vector<ftxui::Element> OddsRows(const StarForceRate& rate) {
   return rows;
 }
 
-// What the attempt takes, charged whichever of the three ways it lands, and
-// what there is to pay it with. Their own section between the odds and the
-// button: they are the last thing the player reads before pressing. Both
-// labelled, since two bare figures in a column read as arithmetic; red on the
-// price is the reason the button below it is greyed.
-std::vector<ftxui::Element> StarForcePanel::PriceRows() const {
-  const std::string cost = FormatMeso(Cost());
-  const std::string held = FormatMeso(meso_);
-  constexpr int kLabelWidth = 4;  // "Cost", "Held"
-  const int value_width = std::max(TextColumns(cost), TextColumns(held));
-  ftxui::Element price = ftxui::hbox({
-      ftxui::text(PadRight("Cost", kLabelWidth) + "  "),
-      RedUnless(ftxui::text(PadLeft(cost, value_width)), Affordable()),
-  });
-  return {
-      CenteredRow(std::move(price)),
-      TwoColumnRow("Held", kLabelWidth, held, value_width),
-  };
-}
-
 ftxui::Element StarForcePanel::Render() const {
   if (item_ == nullptr) {
     return ThemedWindow(" Star Force ", EmptyState("no item"));
@@ -173,9 +152,10 @@ ftxui::Element StarForcePanel::Render() const {
     rows.push_back(std::move(row));
   }
   rows.push_back(ThemedSeparator());
-  for (ftxui::Element& row : PriceRows()) {
-    rows.push_back(std::move(row));
-  }
+  // The purse and what the attempt takes, in their own section between the
+  // odds and the button: they are the last thing the player reads before
+  // pressing.
+  rows.push_back(PriceBlock(meso_, Cost(), Affordable()));
   rows.push_back(ThemedSeparator());
   rows.push_back(CenteredRow(ButtonRow("Enhance", "Cancel",
                                        /*go_focused=*/!OnCancel(),

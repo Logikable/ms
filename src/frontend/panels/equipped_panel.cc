@@ -34,7 +34,7 @@ EquippedPanel::EquippedPanel(CharacterInstance& character,
     : character_(character),
       account_(account),
       panel_focus_(panel_focus),
-      menu_({"Unequip", "Inspect", "Scroll", "Hammer", "Star Force", "Cubing",
+      menu_({"Unequip", "Inspect", "Scroll", "Hammer", "Star Force", "Cube",
              "Close"}),
       symbol_menu_({"Unequip", "Inspect", "Level Up", "Close"}) {
 }

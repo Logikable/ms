@@ -7,6 +7,7 @@
 #ifndef MS_SRC_FRONTEND_WIDGETS_CHROME_H_
 #define MS_SRC_FRONTEND_WIDGETS_CHROME_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -242,6 +243,17 @@ ftxui::Element PanelSeparator(bool highlighted);
 // on the cell that carries it rather than on the row around it. This is how it
 // is written: `RedUnless(text(price), Affordable())`.
 ftxui::Element RedUnless(ftxui::Element cell, bool ok);
+
+// The purse over the price, labelled and right-aligned in one column: what
+// the player holds, and then what they are about to spend it on. Every
+// screen that charges for something draws this, so the pair reads the same
+// wherever it is asked, and `affordable` reddens the price on the one that
+// cannot be met.
+//
+// The column is never narrower than a hundred billion meso, so a window does
+// not shrink around the player as they spend. A purse past a trillion widens
+// it, there being nothing else to do with a number that long.
+ftxui::Element PriceBlock(int64_t held, int64_t cost, bool affordable);
 
 // Returns a horizontal separator rule in the theme border color.
 ftxui::Element ThemedSeparator();

@@ -50,8 +50,6 @@ TEST_F(CubePanelTest, TheShelfNamesTheCubeItsTrackAndItsPrice) {
   EXPECT_NE(rendered.find("Red Cube"), std::string::npos);
   EXPECT_NE(rendered.find("Main"), std::string::npos);
   EXPECT_NE(rendered.find("12,000,000"), std::string::npos);
-  // The purse rides in the title, so a player reads it against every Cost.
-  EXPECT_NE(rendered.find("60,000,000"), std::string::npos);
 }
 
 // One cube, six rows: the shelf is the same height whatever is on it, so the
@@ -94,7 +92,13 @@ TEST_F(CubePanelTest, TheQuestionShowsTheLinesItWouldThrowAway) {
   EXPECT_NE(rendered.find("Red Cube"), std::string::npos);
   EXPECT_NE(rendered.find("Reroll these lines?"), std::string::npos);
   EXPECT_NE(rendered.find("STR"), std::string::npos);
-  EXPECT_NE(rendered.find("12,000,000"), std::string::npos);
+  // The purse and the price, in that order: what the reroll leaves is read
+  // before what it takes, and the window is the only place either is said.
+  size_t held = rendered.find("60,000,000");
+  size_t cost = rendered.find("12,000,000");
+  ASSERT_NE(held, std::string::npos) << rendered;
+  ASSERT_NE(cost, std::string::npos) << rendered;
+  EXPECT_LT(held, cost);
 }
 
 // An item with nothing on it yet is not being asked the same question.
@@ -126,6 +130,7 @@ TEST_F(CubePanelTest, AnEmptiedPurseStopsTheReroll) {
 
   panel.SetItem(&item, 0);
   EXPECT_EQ(LabelColor(panel.RenderConfirm(), "12,000,000"), kRed);
+  EXPECT_NE(LabelColor(panel.RenderConfirm(), "Held"), kRed);
   // The cursor is on Cancel, so Enter leaves rather than doing nothing.
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
 }

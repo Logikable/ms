@@ -140,7 +140,7 @@ InventoryPanel::InventoryPanel(CharacterInstance& character,
       account_(account),
       panel_focus_(panel_focus),
       menu_({"Equip", "Inspect", "Combine", "Scroll", "Hammer", "Star Force",
-             "Cubing", "Recover", "Sell", "Multi-Sell", "Close"}),
+             "Cube", "Recover", "Sell", "Multi-Sell", "Close"}),
       sell_menu_({"Inspect", "Use", "Sell", "Multi-Sell", "Close"}),
       tab_menu_({"Sort", "Close"}) {
 }

@@ -173,9 +173,9 @@ TEST_F(StarForcePanelTest, RenderShowsWhatTheAttemptCosts) {
   EXPECT_LT(price, rendered.find("Enhance")) << "the price is below the button";
 }
 
-// The purse stands under the price, labelled: the screen is on its own, so
+// The purse stands over the price, labelled: the screen is on its own, so
 // there is nothing else on it saying what the player has to spend.
-TEST_F(StarForcePanelTest, ThePurseStandsUnderThePrice) {
+TEST_F(StarForcePanelTest, ThePurseStandsOverThePrice) {
   EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
   StarForcePanel panel;
   panel.SetItem(&item, 98'765'432'100);
@@ -183,9 +183,9 @@ TEST_F(StarForcePanelTest, ThePurseStandsUnderThePrice) {
   size_t cost = rendered.find("Cost");
   size_t held = rendered.find("Held");
   ASSERT_NE(held, std::string::npos) << rendered;
-  EXPECT_LT(cost, held) << "the price is read first";
+  EXPECT_LT(held, cost) << "the purse is read first";
   EXPECT_NE(rendered.find("98,765,432,100"), std::string::npos);
-  EXPECT_LT(held, rendered.find("Enhance"));
+  EXPECT_LT(cost, rendered.find("Enhance"));
   // The purse is a fact, not a refusal: only the price ever reddens.
   EXPECT_NE(PixelOf(panel, "98,765,432,100").foreground_color, kRed);
 }
@@ -245,7 +245,9 @@ TEST_F(StarForcePanelTest, APurseTooThinGreysEnhanceAndParksOnCancel) {
   EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
   StarForcePanel panel;
   panel.SetItem(&item, 135999);
-  EXPECT_EQ(PixelOf(panel, "🪙").foreground_color, kRed);
+  EXPECT_EQ(PixelOf(panel, "136,000").foreground_color, kRed);
+  EXPECT_NE(PixelOf(panel, "135,999").foreground_color, kRed)
+      << "the purse is a fact, not a refusal";
   EXPECT_TRUE(PixelOf(panel, "[Enhance]").dim);
   EXPECT_FALSE(PixelOf(panel, "[Enhance]").inverted);
   EXPECT_TRUE(PixelOf(panel, "[Cancel]").inverted);
@@ -256,9 +258,11 @@ TEST_F(StarForcePanelTest, APurseTooThinGreysEnhanceAndParksOnCancel) {
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
   EXPECT_FALSE(panel.IsConfirming());
 
-  // One more meso and the screen is the ordinary one again.
-  panel.SetItem(&item, 136000);
-  EXPECT_NE(PixelOf(panel, "🪙").foreground_color, kRed);
+  // A purse that covers it and the screen is the ordinary one again. Not
+  // 136,000 exactly: two rows reading the same figure would let the assertion
+  // land on the purse.
+  panel.SetItem(&item, 500'000);
+  EXPECT_NE(PixelOf(panel, "136,000").foreground_color, kRed);
   EXPECT_FALSE(PixelOf(panel, "[Enhance]").dim);
   EXPECT_TRUE(PixelOf(panel, "[Enhance]").inverted);
 }

@@ -856,8 +856,8 @@ TEST_F(InventoryPanelTest, CubingArrivesLastAndNotOnATrace) {
   std::vector<int> reachable = ReachableMenuEntries(panel.menu());
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuCube), 0);
   std::string rendered = RenderElement(panel.menu().Render(0, 0));
-  EXPECT_LT(rendered.find("Star Force"), rendered.find("Cubing"));
-  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Cubing"), kYellow);
+  EXPECT_LT(rendered.find("Star Force"), rendered.find("Cube"));
+  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Cube"), kYellow);
 
   // A trace is a husk rather than an item: nothing goes into it.
   CharacterInstance wrecked = MakeCharacter(UnlockLevel(Feature::kPotential));
@@ -867,7 +867,7 @@ TEST_F(InventoryPanelTest, CubingArrivesLastAndNotOnATrace) {
   wrecked.PickUp(std::make_unique<EquipTrace>(sword_, lost));
   InventoryPanel trace_panel(wrecked, account_, panel_focus_);
   trace_panel.OpenMenu();
-  EXPECT_EQ(RenderElement(trace_panel.menu().Render(0, 0)).find("Cubing"),
+  EXPECT_EQ(RenderElement(trace_panel.menu().Render(0, 0)).find("Cube"),
             std::string::npos);
 }
 

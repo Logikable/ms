@@ -18,6 +18,7 @@
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_row.h"
 #include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -629,6 +630,33 @@ TEST(HyperStatTextTest, NamesEveryStatInTheOrder) {
     EXPECT_FALSE(HyperStatName(kHyperStatOrder[i]).empty()) << i;
   }
   EXPECT_EQ(HyperStatName(HYPER_STAT_FIELD_UNSPECIFIED), "");
+}
+
+// --- the price block ---
+
+// The window it sits in does not shrink around a player as they spend: the
+// column holds a hundred billion whether or not there is one in the purse.
+TEST(PriceBlockTest, HoldsItsWidthUntilATrillion) {
+  auto width = [](int64_t held) {
+    ftxui::Element block = PriceBlock(held, 12'000'000, /*affordable=*/true);
+    block->ComputeRequirement();
+    return block->requirement().min_x;
+  };
+  const int pinned = width(100'000'000'000);
+  EXPECT_EQ(width(0), pinned);
+  EXPECT_EQ(width(999'999'999'999), pinned);
+  EXPECT_GT(width(1'000'000'000'000), pinned);
+}
+
+// The purse over the price, and red on the one that cannot be met.
+TEST(PriceBlockTest, NamesBothAndReddensOnlyThePrice) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
+                                               ftxui::Dimension::Fixed(4));
+  ftxui::Render(screen, PriceBlock(500, 12'000'000, /*affordable=*/false));
+  std::string rendered = screen.ToString();
+  EXPECT_LT(rendered.find("Held"), rendered.find("Cost"));
+  EXPECT_EQ(ColorOf(screen, "12,000,000"), kRed);
+  EXPECT_NE(ColorOf(screen, "500"), kRed);
 }
 
 }  // namespace
