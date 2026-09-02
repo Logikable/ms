@@ -164,21 +164,14 @@ std::vector<int> InventoryPanel::VisibleTabs() const {
 }
 
 void InventoryPanel::StepTab(int direction) {
-  if (on_expand_) {
-    // The far right of the bar: Left steps back onto the tab the list is
-    // still showing, and there is nothing further right to reach.
-    on_expand_ = direction > 0;
-    return;
+  TabStop next =
+      StepTabRing(VisibleTabs(), {active_tab_, on_expand_}, direction);
+  on_expand_ = next.on_door;
+  if (next.tab != active_tab_) {
+    active_tab_ = next.tab;
+    selected_stack_ = 0;
+    MarkActiveTabSeen();
   }
-  int next = ms::StepTab(VisibleTabs(), active_tab_, direction);
-  if (next == active_tab_) {
-    // The left end is a wall; the right one opens onto Expand.
-    on_expand_ = direction > 0;
-    return;
-  }
-  active_tab_ = next;
-  selected_stack_ = 0;
-  MarkActiveTabSeen();
 }
 
 void InventoryPanel::MarkActiveTabSeen() {
@@ -648,6 +641,12 @@ bool InventoryPanel::OnTabBarEvent(const ftxui::Event& event,
     // to ask about a page there is no list under.
     if (on_expand_) {
       if (on_expand != nullptr) {
+        if (!expanded_) {
+          // The door is not a page, so the wide bag opens on the first tab
+          // rather than on the button that would close it again. One step
+          // right is exactly that, the bar being a ring.
+          StepTab(+1);
+        }
         on_expand();
       }
     } else {

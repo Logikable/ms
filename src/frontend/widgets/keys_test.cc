@@ -79,31 +79,36 @@ TEST(StepCursorTest, TakesMoreThanOneStopAtATime) {
   EXPECT_EQ(StepCursor(0, -5, 4), 3);
 }
 
-// --- StepTab ---
-
-// Unlike the cursor's ring, the ends of a tab bar are walls: a step off either
-// one leaves the tab where it was.
-TEST(StepTabTest, WalksTheBarAndStopsAtBothEnds) {
-  std::vector<int> tabs = {0, 1, 2};
-  EXPECT_EQ(StepTab(tabs, 0, 1), 1);
-  EXPECT_EQ(StepTab(tabs, 2, -1), 1);
-  EXPECT_EQ(StepTab(tabs, 0, -1), 0) << "the first tab is a wall";
-  EXPECT_EQ(StepTab(tabs, 2, 1), 2) << "and so is the last";
-}
+// --- StepTabRing ---
 
 // The bar holds only the tabs the character has reached, so its entries need
 // not run 0, 1, 2 -- a step is one place along the bar, not one on the tab.
-TEST(StepTabTest, StepsAlongTheBarRatherThanTheTabNumbers) {
-  std::vector<int> tabs = {0, 3};
-  EXPECT_EQ(StepTab(tabs, 0, 1), 3);
-  EXPECT_EQ(StepTab(tabs, 3, -1), 0);
+TEST(StepTabRingTest, StepsAlongTheBarRatherThanTheTabNumbers) {
+  std::vector<int> tabs = {0, 3, 5};
+  EXPECT_EQ(StepTabRing(tabs, {0, false}, 1).tab, 3);
+  EXPECT_EQ(StepTabRing(tabs, {5, false}, -1).tab, 3);
+  EXPECT_FALSE(StepTabRing(tabs, {0, false}, 1).on_door);
+}
+
+// The door is the stop past the last tab, and the bar comes round through it.
+TEST(StepTabRingTest, TheDoorClosesTheRing) {
+  std::vector<int> tabs = {0, 1};
+  TabStop door = StepTabRing(tabs, {1, false}, 1);
+  EXPECT_TRUE(door.on_door);
+  EXPECT_EQ(door.tab, 1) << "the door shows no list, so the tab stands still";
+  EXPECT_EQ(StepTabRing(tabs, door, 1).tab, 0) << "right off the door wraps";
+  EXPECT_FALSE(StepTabRing(tabs, door, 1).on_door);
+  EXPECT_EQ(StepTabRing(tabs, door, -1).tab, 1) << "and left steps back";
+  EXPECT_TRUE(StepTabRing(tabs, {0, false}, -1).on_door)
+      << "left off the first tab reaches the door";
 }
 
 // A tab that is not on the bar at all: nothing locks one away today, but
 // landing on the first beats landing on a tab the player cannot see.
-TEST(StepTabTest, ATabOffTheBarLandsOnTheFirst) {
-  EXPECT_EQ(StepTab({1, 2}, 7, 1), 1);
-  EXPECT_EQ(StepTab({}, 7, 1), 7) << "with no bar there is nothing to land on";
+TEST(StepTabRingTest, ATabOffTheBarLandsOnTheFirst) {
+  EXPECT_EQ(StepTabRing({1, 2}, {7, false}, 1).tab, 1);
+  EXPECT_EQ(StepTabRing({}, {7, false}, 1).tab, 7)
+      << "with no bar there is nothing to land on";
 }
 
 // --- WrappingList ---

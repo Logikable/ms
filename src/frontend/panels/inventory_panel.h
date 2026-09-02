@@ -11,7 +11,9 @@
  *
  * The Expand tab holds the far right of the bar, past the meso counter. It is
  * a door rather than a page: standing on it draws one line saying so, and
- * Enter opens the bag up to the whole screen.
+ * Enter opens the bag up to the whole screen, on its first tab. The bar wraps
+ * there -- Right off Expand comes round to Equip, and Left off Equip goes to
+ * Expand.
  *
  * Call MakeComponent() exactly once; the returned Component captures references
  * to internal state, so the panel object must outlive the Component.
@@ -215,8 +217,9 @@ class InventoryPanel {
   // are absent rather than greyed, so the bar simply ends early. Expand is not
   // one of these, being a door rather than a page.
   std::vector<int> VisibleTabs() const;
-  // Moves one stop along the bar, Expand included. The left end is a wall; the
-  // right one opens onto Expand.
+  // Moves one stop along the bar, Expand included. The bar is a ring: Right
+  // off Expand comes round to the first tab, and Left off the first tab goes
+  // to Expand.
   void StepTab(int direction);
 
   CharacterInstance& character_;

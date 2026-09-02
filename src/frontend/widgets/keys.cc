@@ -38,20 +38,24 @@ int StepCursor(int current, int delta, int stops) {
   return ((current + delta) % stops + stops) % stops;
 }
 
-int StepTab(const std::vector<int>& tabs, int active, int delta) {
+TabStop StepTabRing(const std::vector<int>& tabs, TabStop from, int delta) {
   if (tabs.empty()) {
-    return active;
+    return from;
   }
-  std::vector<int>::const_iterator at =
-      std::find(tabs.begin(), tabs.end(), active);
-  if (at == tabs.end()) {
-    return tabs.front();
+  int door = static_cast<int>(tabs.size());
+  int at = door;
+  if (!from.on_door) {
+    std::vector<int>::const_iterator it =
+        std::find(tabs.begin(), tabs.end(), from.tab);
+    if (it == tabs.end()) {
+      return {tabs.front(), false};
+    }
+    at = static_cast<int>(it - tabs.begin());
   }
-  int next = static_cast<int>(at - tabs.begin()) + delta;
-  if (next < 0 || next >= static_cast<int>(tabs.size())) {
-    return active;
-  }
-  return tabs[next];
+  // The door is the stop past the last tab, so the whole bar is one ring of
+  // tabs.size() + 1 and StepCursor walks it.
+  int next = StepCursor(at, delta, door + 1);
+  return next == door ? TabStop{from.tab, true} : TabStop{tabs[next], false};
 }
 
 ftxui::Component AlwaysFocusable(ftxui::Component child) {

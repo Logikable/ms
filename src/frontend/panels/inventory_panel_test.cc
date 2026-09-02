@@ -341,14 +341,15 @@ TEST_F(InventoryPanelTest, EnterOnTheExpandTabCallsBack) {
   }
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(expands, 1);
-  comp->OnEvent(ftxui::Event::ArrowLeft);  // back onto the tab it was showing
+  EXPECT_EQ(panel.active_tab(), kEquipTab)
+      << "the wide bag opens on the first tab, not on the door";
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(expands, 1) << "Enter on a page raises a menu, not the fullscreen";
 }
 
-// Left off Expand comes back to the tab the list was showing all along, and
-// Right on it has nowhere further to go.
-TEST_F(InventoryPanelTest, TheExpandTabIsTheEndOfTheBar) {
+// The bar comes round through Expand: Right off it lands on Equip, and Left
+// off Equip reaches it again.
+TEST_F(InventoryPanelTest, TheExpandTabClosesTheRing) {
   c_.AddStackable(MakeStackable("Ore", ITEM_CATEGORY_ETC), 1);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -356,18 +357,19 @@ TEST_F(InventoryPanelTest, TheExpandTabIsTheEndOfTheBar) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
   comp->OnEvent(ftxui::Event::ArrowRight);  // Etc -> Expand
-  comp->OnEvent(ftxui::Event::ArrowRight);  // and no further
   // A chip the cursor is on is drawn white, so only one chip may be.
   EXPECT_EQ(PixelOfRendered(comp, "Expand").background_color,
             ftxui::Color::White);
   EXPECT_NE(PixelOfRendered(comp, "Etc").background_color, ftxui::Color::White)
       << "the highlight is in one place, not two";
-  comp->OnEvent(ftxui::Event::ArrowLeft);
-  EXPECT_EQ(panel.active_tab(), kEtcTab);
-  EXPECT_EQ(PixelOfRendered(comp, "Etc").background_color, ftxui::Color::White)
-      << "and comes back";
-  EXPECT_NE(RenderComponent(comp).find("Quantity"), std::string::npos)
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Expand -> Equip, coming round
+  EXPECT_EQ(panel.active_tab(), kEquipTab);
+  EXPECT_EQ(RenderComponent(comp).find("Hit Enter to fullscreen Inventory"),
+            std::string::npos)
       << "the list is back";
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // Equip -> Expand again
+  EXPECT_EQ(PixelOfRendered(comp, "Expand").background_color,
+            ftxui::Color::White);
 }
 
 // --- the tab menu ---
@@ -915,7 +917,7 @@ TEST_F(InventoryPanelTest, TheShopTabArrivesAtItsLevel) {
 
   LevelTo(UnlockLevel(Feature::kShop));
   EXPECT_NE(RenderComponent(comp).find("Shop"), std::string::npos);
-  for (int i = 0; i < 5; ++i) {
+  for (int i = 0; i < 3; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);
   }
   EXPECT_TRUE(panel.on_shop_tab());
@@ -936,16 +938,20 @@ TEST_F(InventoryPanelTest, ShopTabSaysHowToOpenTheShop) {
             std::string::npos);
 }
 
-// It is the last tab, so Right must stop there rather than walking off the bar.
-TEST_F(InventoryPanelTest, ShopIsTheRightmostTab) {
+// It is the last page of the bar, with only the Expand door past it.
+TEST_F(InventoryPanelTest, ShopIsTheLastTabBeforeTheDoor) {
   LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < 3; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);
   }
   EXPECT_TRUE(panel.on_shop_tab());
   EXPECT_NE(RenderComponent(comp).find("Shop"), std::string::npos);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_NE(RenderComponent(comp).find("Hit Enter to fullscreen Inventory"),
+            std::string::npos)
+      << "and then the door";
 }
 
 // Down would leave the cursor nowhere: there is no list under this tab. The

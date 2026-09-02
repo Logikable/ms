@@ -61,13 +61,21 @@ ftxui::Component WrappingList(ftxui::Component list, int& selected,
 // stops answers 0; a `current` outside the ring is folded back into it.
 int StepCursor(int current, int delta, int stops);
 
-// The tab `active` becomes after stepping `delta` along a bar showing exactly
-// `tabs`, in that order. Unlike the cursor's ring the ends of a bar are walls,
-// so a step off either one leaves the tab where it was. A tab that is not on
-// the bar at all answers the first one: nothing locks a tab away today --
-// levels only go up -- but landing on the first beats landing on a tab the
-// player cannot see.
-int StepTab(const std::vector<int>& tabs, int active, int delta);
+// Where the cursor stands on a tab bar that ends in a door -- Expand -- rather
+// than in a wall: on one of the pages the bar lists, or out on the door.
+struct TabStop {
+  int tab;
+  bool on_door;
+};
+
+// The stop `from` becomes after stepping `delta` along a bar showing exactly
+// `tabs`, in that order, with the door past their right end. The bar is a
+// ring: Right off the door comes round to the first tab, and Left off the
+// first tab goes to the door. The door shows no list of its own, so stepping
+// onto it leaves the tab where it was. A tab that is not on the bar at all
+// answers the first one: nothing locks a tab away today -- levels only go up
+// -- but landing on the first beats landing on a tab the player cannot see.
+TabStop StepTabRing(const std::vector<int>& tabs, TabStop from, int delta);
 
 }  // namespace ms
 

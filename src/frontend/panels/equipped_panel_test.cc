@@ -965,9 +965,9 @@ TEST_F(SymbolTabTest, TheExpandTabArrivesWithTheBar) {
 }
 
 // The far right of the bar, past the Symbols tab. A door rather than a page:
-// standing on it says so where the tabs list what is worn, and Enter goes
-// through.
-TEST_F(SymbolTabTest, TheExpandTabIsTheEndOfTheBar) {
+// standing on it says so where the tabs list what is worn, and the bar comes
+// round through it.
+TEST_F(SymbolTabTest, TheExpandTabClosesTheRing) {
   CharacterInstance c = Traveller();
   EquipPrototype sword;
   sword.set_name("Sword");
@@ -983,10 +983,9 @@ TEST_F(SymbolTabTest, TheExpandTabIsTheEndOfTheBar) {
   component->OnEvent(ftxui::Event::ArrowUp);     // the list -> the bar
   component->OnEvent(ftxui::Event::ArrowRight);  // Gear -> Symbols
   component->OnEvent(ftxui::Event::ArrowRight);  // Symbols -> Expand
-  component->OnEvent(ftxui::Event::ArrowRight);  // and no further
-  std::string rendered = RenderComponent(component);
-  EXPECT_NE(rendered.find("Hit Enter to fullscreen Equipment"),
-            std::string::npos);
+  EXPECT_NE(
+      RenderComponent(component).find("Hit Enter to fullscreen Equipment"),
+      std::string::npos);
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
                                                ftxui::Dimension::Fixed(20));
   ftxui::Render(screen, component->Render());
@@ -994,13 +993,24 @@ TEST_F(SymbolTabTest, TheExpandTabIsTheEndOfTheBar) {
   EXPECT_EQ(PixelOf(screen, "Expand").background_color, ftxui::Color::White);
   EXPECT_NE(PixelOf(screen, "Symbols").background_color, ftxui::Color::White)
       << "the highlight is in one place, not two";
+
   component->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(expands, 1);
-
-  component->OnEvent(ftxui::Event::ArrowLeft);  // back onto Symbols
+  EXPECT_EQ(panel.active_tab(), EquippedPanel::kGearTab)
+      << "the wide panel opens on the first tab, not on the door";
   component->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(expands, 1) << "Enter on a page does nothing; it is not a door";
-  EXPECT_EQ(panel.active_tab(), EquippedPanel::kSymbolTab);
+
+  component->OnEvent(ftxui::Event::ArrowLeft);  // Gear -> Expand, coming round
+  EXPECT_NE(
+      RenderComponent(component).find("Hit Enter to fullscreen Equipment"),
+      std::string::npos);
+  component->OnEvent(ftxui::Event::ArrowRight);  // Expand -> Gear again
+  EXPECT_EQ(
+      RenderComponent(component).find("Hit Enter to fullscreen Equipment"),
+      std::string::npos)
+      << "the list is back";
+  EXPECT_EQ(panel.active_tab(), EquippedPanel::kGearTab);
 }
 
 // A worn symbol reads its level, how far along the next one it is, and what it

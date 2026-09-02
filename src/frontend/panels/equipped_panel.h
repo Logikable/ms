@@ -10,8 +10,10 @@
  *
  * The Expand tab holds the far right of the bar, past the others. It is a door
  * rather than a page: standing on it draws one line saying so, and Enter opens
- * the panel up to the whole screen. It arrives with the bar itself -- before
- * there is a second tab there is no bar to hang it in.
+ * the panel up to the whole screen, on its first tab. The bar wraps there --
+ * Right off Expand comes round to Gear, and Left off Gear goes to Expand. It
+ * arrives with the bar itself -- before there is a second tab there is no bar
+ * to hang it in.
  *
  * Call MakeComponent() exactly once; the returned Component captures references
  * to internal state, so the panel object must outlive the Component.
@@ -122,8 +124,9 @@ class EquippedPanel {
   // arrives with Arcane River; Expand is not one of these, being a door
   // rather than a page.
   std::vector<int> VisibleTabs() const;
-  // Moves `direction` stops along the bar, Expand included. The left end is a
-  // wall; the right one opens onto Expand.
+  // Moves `direction` stops along the bar, Expand included. The bar is a ring:
+  // Right off Expand comes round to the first tab, and Left off the first tab
+  // goes to Expand.
   void StepTab(int direction);
   // Moves the cursor `delta` stops through the ring the bar and the rows make.
   void MoveCursor(int delta);
