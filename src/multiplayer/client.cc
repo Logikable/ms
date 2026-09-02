@@ -26,6 +26,20 @@ constexpr std::chrono::milliseconds kPumpTimeout(50);
 constexpr char kUnreachableMessage[] = "Cannot reach the server.";
 constexpr char kLostMessage[] = "Lost connection.";
 
+// What to show for a rejection. A version mismatch is worded here rather than
+// taken from the server, because the client is the end that knows both
+// numbers, and which of them is behind decides what the player can do about
+// it. Every other reason is the server's own to explain.
+std::string RejectionMessage(const Rejected& rejected, int our_version) {
+  if (rejected.reason() != Rejected::REASON_UPDATE_REQUIRED) {
+    return rejected.message();
+  }
+  if (rejected.server_protocol_version() > our_version) {
+    return "Update the game to play with others.";
+  }
+  return "The server is running an older version. Trying again.";
+}
+
 // Pushes the whole of `outgoing`, waiting on a socket that fills up. Only the
 // Hello goes out this way: everything after it rides the connection's own
 // pass over the socket.
@@ -88,6 +102,10 @@ void MultiplayerClient::Stop() {
   snapshot_.state = ConnectionState::kOffline;
   snapshot_.parties.Clear();
   snapshot_.party.Clear();
+}
+
+void MultiplayerClient::Reconnect() {
+  retry_now_ = true;
 }
 
 void MultiplayerClient::SetPlayer(const PlayerInfo& player) {
@@ -175,28 +193,39 @@ void MultiplayerClient::Run() {
   StartSockets();
   std::chrono::seconds wait = kFirstRetry;
   while (running_) {
-    if (!RunConnection()) {
+    Attempt attempt = RunConnection();
+    if (attempt == Attempt::kFinal || !running_) {
       return;
     }
-    if (!running_) {
-      return;
+    // A connection that was welcomed earns a fresh ramp. A rejection goes
+    // straight to the ceiling: the far end has to change before there is any
+    // point asking again, so the short waits would only be traffic.
+    if (attempt == Attempt::kWelcomed) {
+      wait = kFirstRetry;
+    } else if (attempt == Attempt::kRejected) {
+      wait = kLongestRetry;
     }
-    // Waited out in slices, so that Stop() does not have to sit through it.
-    std::chrono::steady_clock::time_point until =
-        std::chrono::steady_clock::now() + wait;
-    while (running_ && std::chrono::steady_clock::now() < until) {
-      std::this_thread::sleep_for(kPumpTimeout);
-    }
+    WaitToRetry(wait);
     wait = std::min(wait * 2, kLongestRetry);
   }
 }
 
-bool MultiplayerClient::RunConnection() {
+void MultiplayerClient::WaitToRetry(std::chrono::seconds wait) {
+  retry_now_ = false;
+  std::chrono::steady_clock::time_point until =
+      std::chrono::steady_clock::now() + wait;
+  while (running_ && !retry_now_ && std::chrono::steady_clock::now() < until) {
+    std::this_thread::sleep_for(kPumpTimeout);
+  }
+  retry_now_ = false;
+}
+
+Attempt MultiplayerClient::RunConnection() {
   ForgetLobby();
   Socket socket;
   if (!Open(socket)) {
     SetState(ConnectionState::kUnavailable, kUnreachableMessage);
-    return true;
+    return Attempt::kFailed;
   }
   std::string incoming;
   std::string outgoing;
@@ -207,14 +236,12 @@ bool MultiplayerClient::RunConnection() {
   // A rejection has already said what was wrong; anything else ended without
   // a word, and losing the connection is the story.
   std::lock_guard<std::mutex> lock(mutex_);
-  if (snapshot_.state == ConnectionState::kRefused) {
-    return false;
-  }
-  if (running_ && snapshot_.state != ConnectionState::kUnavailable) {
+  if (outcome_ != Attempt::kRejected && outcome_ != Attempt::kFinal &&
+      running_ && snapshot_.state != ConnectionState::kUnavailable) {
     snapshot_.state = ConnectionState::kUnavailable;
     snapshot_.message = kLostMessage;
   }
-  return true;
+  return outcome_;
 }
 
 bool MultiplayerClient::Open(Socket& socket) {
@@ -290,6 +317,7 @@ void MultiplayerClient::Handle(const ServerMessage& message, bool& keep) {
       snapshot_.token = message.welcome().token();
       snapshot_.state = ConnectionState::kConnected;
       snapshot_.message.clear();
+      outcome_ = Attempt::kWelcomed;
       return;
     case ServerMessage::kPartyList:
       snapshot_.parties = message.party_list();
@@ -310,15 +338,21 @@ void MultiplayerClient::Handle(const ServerMessage& message, bool& keep) {
       ++snapshot_.notice_serial;
       return;
     case ServerMessage::kRejected:
-      // Maintenance passes; the other reasons do not, and retrying would only
-      // be turned away again.
-      snapshot_.message = message.rejected().message();
+      // Only a message the server could not read is final -- that is this
+      // build being wrong. Every other reason describes a condition on the far
+      // end, and a later attempt may find it changed: a server updated since,
+      // one that has come back up, an account the other session has let go.
       snapshot_.server_protocol_version =
           message.rejected().server_protocol_version();
-      snapshot_.state =
-          message.rejected().reason() == Rejected::REASON_MAINTENANCE
-              ? ConnectionState::kUnavailable
-              : ConnectionState::kRefused;
+      snapshot_.message =
+          RejectionMessage(message.rejected(), protocol_version_);
+      if (message.rejected().reason() == Rejected::REASON_MALFORMED) {
+        snapshot_.state = ConnectionState::kRefused;
+        outcome_ = Attempt::kFinal;
+      } else {
+        snapshot_.state = ConnectionState::kUnavailable;
+        outcome_ = Attempt::kRejected;
+      }
       keep = false;
       return;
     case ServerMessage::kFightState:
@@ -362,6 +396,7 @@ void MultiplayerClient::SetState(ConnectionState state,
 
 void MultiplayerClient::ForgetLobby() {
   std::lock_guard<std::mutex> lock(mutex_);
+  outcome_ = Attempt::kFailed;
   snapshot_.parties.Clear();
   snapshot_.party.Clear();
   // A fight does not survive the connection that was watching it.

@@ -172,21 +172,77 @@ TEST_F(ClientTest, KeepsTryingWhenNobodyAnswers) {
   EXPECT_FALSE(client.Snapshot().message.empty());
 }
 
-TEST_F(ClientTest, StopsWhenToldToUpdate) {
+TEST_F(ClientTest, KeepsTryingWhenToldToUpdate) {
   MultiplayerClient client("127.0.0.1", server_.port(),
                            kMultiplayerVersion + 1);
   client.Start(Player("Dagger"), "");
 
   ASSERT_TRUE(WaitFor(client, [](const MultiplayerSnapshot& snapshot) {
-    return snapshot.state == ConnectionState::kRefused;
+    return snapshot.state == ConnectionState::kUnavailable;
   }));
-  EXPECT_FALSE(client.Snapshot().message.empty());
   // The server's own version comes back with the refusal, which is what
   // names the mismatch -- the deploy check has nothing else to report.
   EXPECT_EQ(client.Snapshot().server_protocol_version, kMultiplayerVersion);
-  // It stays refused rather than going round again.
+  // A mismatch is not the end of the connection: it waits rather than giving
+  // up, because the server is one of the two ends that can change.
   std::this_thread::sleep_for(milliseconds(100));
-  EXPECT_EQ(client.Snapshot().state, ConnectionState::kRefused);
+  EXPECT_EQ(client.Snapshot().state, ConnectionState::kUnavailable);
+}
+
+TEST_F(ClientTest, SaysWhichEndIsBehind) {
+  MultiplayerClient ahead("127.0.0.1", server_.port(), kMultiplayerVersion - 1);
+  ahead.Start(Player("Dagger"), "");
+  ASSERT_TRUE(WaitFor(ahead, [](const MultiplayerSnapshot& snapshot) {
+    return !snapshot.message.empty();
+  }));
+  EXPECT_EQ(ahead.Snapshot().message, "Update the game to play with others.");
+
+  MultiplayerClient behind("127.0.0.1", server_.port(),
+                           kMultiplayerVersion + 1);
+  behind.Start(Player("Wand"), "");
+  ASSERT_TRUE(WaitFor(behind, [](const MultiplayerSnapshot& snapshot) {
+    return !snapshot.message.empty();
+  }));
+  EXPECT_EQ(behind.Snapshot().message,
+            "The server is running an older version. Trying again.");
+}
+
+TEST_F(ClientTest, HealsWhenTheServerCatchesUp) {
+  // The server is the end that is behind, which is what a deploy left undone
+  // looks like. The client is built right and still cannot get in.
+  TestServer old_server(TestBosses(), TestMobs(), kMultiplayerVersion + 1);
+  ASSERT_TRUE(old_server.Start());
+  MultiplayerClient client("127.0.0.1", old_server.port());
+  client.Start(Player("Dagger"), "");
+  ASSERT_TRUE(WaitFor(client, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.state == ConnectionState::kUnavailable &&
+           snapshot.server_protocol_version == kMultiplayerVersion + 1;
+  }));
+
+  ASSERT_TRUE(old_server.RestartSpeaking(kMultiplayerVersion));
+  client.Reconnect();
+  EXPECT_TRUE(WaitUntilConnected(client))
+      << "a deploy should let a client in without restarting the game";
+}
+
+TEST_F(ClientTest, KeepsTryingWhenTheTokenIsWrong) {
+  MultiplayerClient first("127.0.0.1", server_.port());
+  first.Start(Player("Dagger"), "");
+  ASSERT_TRUE(WaitUntilConnected(first));
+  std::string account = first.Snapshot().account_id;
+  ASSERT_FALSE(account.empty());
+
+  // That account claimed with a token the server does not hold for it. The
+  // server's token map is what says no, and a restart clears it, so the
+  // client waits rather than ending the connection for good.
+  MultiplayerClient impostor("127.0.0.1", server_.port());
+  impostor.Start(Player("Dagger", account), "not-the-token");
+  ASSERT_TRUE(WaitFor(impostor, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.state == ConnectionState::kUnavailable;
+  }));
+  EXPECT_FALSE(impostor.Snapshot().message.empty());
+  std::this_thread::sleep_for(milliseconds(100));
+  EXPECT_EQ(impostor.Snapshot().state, ConnectionState::kUnavailable);
 }
 
 TEST_F(ClientTest, SaysNothingAboutAVersionUntilTheServerRefuses) {

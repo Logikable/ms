@@ -40,10 +40,12 @@ enum class ConnectionState {
   kConnecting,
   // Greeted, in the lobby, and listening.
   kConnected,
-  // The server could not be reached or went away. Trying again.
+  // There is no connection and one is being tried for: the server could not
+  // be reached, went away, or turned this client away for a reason that may
+  // pass -- a version that does not match, an account already being played.
   kUnavailable,
-  // The server turned this build or this account away for good. Nothing is
-  // retried; the message says what the player has to do.
+  // The server turned this connection away for good: it could not read what
+  // this build sent. Nothing is retried, and the thread ends.
   kRefused,
 };
 
@@ -74,6 +76,18 @@ struct MultiplayerSnapshot {
   int server_protocol_version = 0;
 };
 
+// How one pass over the connection ended, which is what the backoff reads.
+enum class Attempt {
+  // Greeted and served, then lost.
+  kWelcomed,
+  // Never got in.
+  kFailed,
+  // Turned away for a reason a later attempt may find changed.
+  kRejected,
+  // Turned away for good.
+  kFinal,
+};
+
 class MultiplayerClient {
  public:
   // `protocol_version` is what the client introduces itself as. It is an
@@ -89,6 +103,10 @@ class MultiplayerClient {
   void Start(const PlayerInfo& player, const std::string& token);
   // Stops the thread and closes the connection. Called by the destructor.
   void Stop();
+  // Wakes a connection that is waiting to retry, so the next attempt happens
+  // now rather than at the end of the backoff. Nothing if a connection is up,
+  // or if the server turned this build away for good.
+  void Reconnect();
 
   // The character as the lobby should see them: sent now if there is a
   // connection, and again with the next Hello.
@@ -121,9 +139,11 @@ class MultiplayerClient {
  private:
   // The thread's whole life: connect, talk, reconnect.
   void Run();
-  // One connection, from the Hello to whatever ends it. Returns false when
-  // there is no point trying again.
-  bool RunConnection();
+  // One connection, from the Hello to whatever ends it.
+  Attempt RunConnection();
+  // Waits out the backoff in slices, so that Stop() and Reconnect() are
+  // answered promptly.
+  void WaitToRetry(std::chrono::seconds wait);
   // Opens a socket and sends the Hello. Nothing means the server could not be
   // reached.
   bool Open(Socket& socket);
@@ -137,19 +157,24 @@ class MultiplayerClient {
   void Ask(const ClientMessage& message);
 
   void SetState(ConnectionState state, const std::string& message);
-  // Puts the lobby back to how a fresh connection starts. What the player has
-  // asked for is left alone: an ask made before the connection landed is one
-  // they still want.
+  // Puts the lobby back to how a fresh connection starts, this attempt's
+  // outcome included. What the player has asked for is left alone: an ask made
+  // before the connection landed is one they still want.
   void ForgetLobby();
 
   std::string host_;
   int port_ = 0;
   int protocol_version_ = 0;
   std::atomic<bool> running_{false};
+  // Set by Reconnect() and cleared by the wait it cuts short.
+  std::atomic<bool> retry_now_{false};
   std::thread thread_;
 
   mutable std::mutex mutex_;
   MultiplayerSnapshot snapshot_;
+  // How the connection in progress has ended so far, which is what the backoff
+  // reads once it is over.
+  Attempt outcome_ = Attempt::kFailed;
   PlayerInfo player_;
   std::vector<ClientMessage> queued_;
   // What the server has said about the fight and nobody has read yet.
