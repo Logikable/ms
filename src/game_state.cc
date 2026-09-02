@@ -10,6 +10,7 @@
 #include <set>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "src/character/arcane_force.h"
 #include "src/character/character.h"
@@ -20,6 +21,7 @@
 #include "src/item/equip_stats.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
+#include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -481,9 +483,52 @@ std::string UsernameFor(JobAdvancement advancement) {
 // farming Vanishing Journey for it.
 constexpr int kTestSymbols = 15;
 
+// The most cubes one workbench slot will take reaching for its rank. Rare to
+// Legendary is about 65 rolls on average; this is far enough past that the
+// guard never fires in practice.
+constexpr int kMaxSeedCubes = 100000;
+
 void GiveSymbols(GameState& state) {
   for (int i = 0; i < kTestSymbols; ++i) {
     GiveEquip(state, kStarterSymbol);
+  }
+}
+
+// Potential on the workbench's gear. Every rank is meant to be on screen at
+// once, so the cubeable slots are shuffled and dealt the four ranks in turn
+// rather than each rolling its own -- a run where nothing came out Legendary
+// would leave a quarter of the display untested.
+//
+// A rank is reached by cubing until the item arrives at it, which is how a
+// player reaches one too: the odds are short but the loop is only tens of
+// rolls, since nothing here is paying for them.
+void SeedPotentials(GameState& state) {
+  std::vector<EquipSlot> slots;
+  for (const std::pair<const EquipSlot, EquipInstance>& kv :
+       state.character.equipped()) {
+    if (kv.second.CanCube()) {
+      slots.push_back(kv.first);
+    }
+  }
+  std::shuffle(slots.begin(), slots.end(), state.rng);
+
+  constexpr PotentialRank kRanks[] = {POTENTIAL_RANK_RARE, POTENTIAL_RANK_EPIC,
+                                      POTENTIAL_RANK_UNIQUE,
+                                      POTENTIAL_RANK_LEGENDARY};
+  for (size_t i = 0; i < slots.size(); ++i) {
+    const PotentialRank want = kRanks[i % std::size(kRanks)];
+    // Guarded rather than trusted to the odds: a cube that stopped ranking up
+    // would otherwise hang the workbench on startup.
+    for (int tries = 0; tries < kMaxSeedCubes; ++tries) {
+      if (!state.character.CubeWorn(slots[i], CubeType::kRed)) {
+        break;
+      }
+      const std::map<EquipSlot, EquipInstance>::const_iterator it =
+          state.character.equipped().find(slots[i]);
+      if (it->second.potential().rank() >= want) {
+        break;
+      }
+    }
   }
 }
 
@@ -552,6 +597,7 @@ void SeedTest(GameState& state, const TestOptions& test) {
   // should see what they put there, not that.
   state.character.ClearEquipInventory();
   GiveSymbols(state);
+  SeedPotentials(state);
 
   // The weakest hunting ground there is; the tester picks anywhere else from
   // the map select.

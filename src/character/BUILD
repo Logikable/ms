@@ -273,6 +273,7 @@ cc_test(
         ":inner_ability",
         "//src/item",
         "//src/item:equip_instance",
+        "//src/item:potential",
         "//src/item:star_force_cost",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

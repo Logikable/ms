@@ -555,6 +555,11 @@ class CharacterInstance {
   const PotentialTotals& potential_totals() const {
     return potential_totals_;
   }
+  // One cube into the item worn in `slot`, which rerolls its lines and may
+  // carry it a rank up. Charging for it is the caller's, as it is for star
+  // force. False, changing nothing, when the slot is empty or the piece takes
+  // no potential at all.
+  bool CubeWorn(EquipSlot slot, CubeType cube);
   // Spare copies of the Arcane Symbol for `slot` sitting in the equip bag.
   // Traces do not count, as they never do -- see CountOwned.
   int SpareSymbols(EquipSlot slot) const;

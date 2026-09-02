@@ -1492,6 +1492,16 @@ int CharacterInstance::CombineSymbols(EquipSlot slot, int count) {
   return taken;
 }
 
+bool CharacterInstance::CubeWorn(EquipSlot slot, CubeType cube) {
+  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
+  if (it == equipped_.end() || !it->second.Cube(cube, rng_)) {
+    return false;
+  }
+  // The lines are worn stats, so the totals have just moved.
+  RecomputeEquipStats();
+  return true;
+}
+
 bool CharacterInstance::LevelUpSymbol(EquipSlot slot) {
   std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
   if (it == equipped_.end() || !IsArcaneSymbol(it->second.prototype())) {

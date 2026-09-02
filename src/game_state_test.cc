@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -13,6 +14,7 @@
 #include "src/character/progression.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
+#include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -702,6 +704,56 @@ TEST(GameStateTest, TestModeWearsTheWholeFrozenSet) {
   for (int i = 0; i < bag.size(); ++i) {
     EXPECT_EQ(bag[i].prototype().name().find("Frozen"), std::string::npos)
         << bag[i].prototype().name() << " is carried as well as worn";
+  }
+}
+
+// Potential is worth looking at at every rank, so the workbench deals the
+// four over the gear it wears rather than letting each piece roll its own: a
+// run where nothing came out Legendary would leave the display half-tested.
+TEST(GameStateTest, TestModeCubesEveryPieceItCanAndSpreadsTheRanks) {
+  // The armour the workbench wears, which with the sword is five slots the
+  // potential reaches -- enough for every rank to be dealt.
+  struct Piece {
+    const char* key;
+    EquipSlot slot;
+  };
+  const Piece kPieces[] = {{"frozen_hat", EQUIP_SLOT_HAT},
+                           {"frozen_top", EQUIP_SLOT_TOP},
+                           {"frozen_bottom", EQUIP_SLOT_BOTTOM},
+                           {"frozen_cape", EQUIP_SLOT_CAPE}};
+  std::map<std::string, EquipPrototype> catalog = SwordCatalog();
+  for (const Piece& piece : kPieces) {
+    EquipPrototype proto;
+    proto.set_name(piece.key);
+    proto.set_equip_slot(piece.slot);
+    proto.set_required_level(100);
+    catalog[piece.key] = proto;
+  }
+
+  GameState state(catalog, {}, {}, {}, {}, {}, GameMode::kTest);
+  std::set<PotentialRank> ranks;
+  int cubed = 0;
+  for (const std::pair<const EquipSlot, EquipInstance>& kv :
+       state.character.equipped()) {
+    ASSERT_TRUE(kv.second.CanCube()) << kv.second.prototype().name();
+    const Potential& potential = kv.second.potential();
+    EXPECT_EQ(potential.lines_size(), kPotentialLines)
+        << kv.second.prototype().name() << " was never cubed";
+    ranks.insert(potential.rank());
+    ++cubed;
+  }
+  ASSERT_EQ(cubed, 5) << "the four ranks need four pieces to be dealt over";
+  EXPECT_EQ(ranks, (std::set<PotentialRank>{
+                       POTENTIAL_RANK_RARE, POTENTIAL_RANK_EPIC,
+                       POTENTIAL_RANK_UNIQUE, POTENTIAL_RANK_LEGENDARY}));
+}
+
+// Nothing is cubed for a player: potential is a thing they buy.
+TEST(GameStateTest, PlayModeStartsWithNoPotential) {
+  GameState state = MakePlayModeState();
+  for (const std::pair<const EquipSlot, EquipInstance>& kv :
+       state.character.equipped()) {
+    EXPECT_EQ(kv.second.potential().lines_size(), 0);
   }
 }
 

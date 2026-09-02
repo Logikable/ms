@@ -15,6 +15,7 @@
 #include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
+#include "src/item/potential.h"
 #include "src/item/star_force_cost.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -3343,6 +3344,49 @@ TEST_F(SymbolTest, TheGrantFollowsTheJob) {
   c_.AdvanceJob(JOB_HERO);
   EXPECT_EQ(c_.equip_stats().int_(), 0);
   EXPECT_EQ(c_.equip_stats().str(), 300) << "and a Hero on STR";
+}
+
+// --- Cubing worn gear ---
+
+// A worn piece the potential reaches, at a level where every band pays.
+EquipPrototype Cubeable(EquipSlot slot) {
+  EquipPrototype proto;
+  proto.set_name("Gear");
+  proto.set_equip_slot(slot);
+  proto.set_required_level(100);
+  return proto;
+}
+
+// The totals are rebuilt off the worn map, so a cube reaches the stats
+// without anything having to be told about it.
+TEST_F(CharacterTest, CubingWornGearRollsItsLinesAndMovesTheTotals) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(
+      std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_PRIMARY_WEAPON)));
+  ASSERT_TRUE(c.Equip(0));
+
+  ASSERT_TRUE(c.CubeWorn(EQUIP_SLOT_PRIMARY_WEAPON, CubeType::kRed));
+  const Potential& potential =
+      c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).potential();
+  EXPECT_EQ(potential.rank(), POTENTIAL_RANK_RARE) << "the first cube is Rare";
+  EXPECT_EQ(potential.lines_size(), kPotentialLines);
+  // Everything a weapon rolls at Rare is a share of something, so one of
+  // these moved whichever three lines came out.
+  const PotentialTotals& totals = c.potential_totals();
+  EXPECT_GT(totals.str_pct + totals.dex_pct + totals.int_pct + totals.luk_pct +
+                totals.attack_pct + totals.magic_attack_pct +
+                totals.damage_pct + totals.max_hp_pct,
+            0.0);
+}
+
+TEST_F(CharacterTest, CubingRefusesAnEmptySlotAndAPieceThatTakesNoPotential) {
+  CharacterInstance c = MakeCharacter(rng_);
+  EXPECT_FALSE(c.CubeWorn(EQUIP_SLOT_PRIMARY_WEAPON, CubeType::kRed));
+
+  c.PickUp(std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_MEDAL)));
+  ASSERT_TRUE(c.Equip(0));
+  EXPECT_FALSE(c.CubeWorn(EQUIP_SLOT_MEDAL, CubeType::kRed));
+  EXPECT_EQ(c.equipped().at(EQUIP_SLOT_MEDAL).potential().lines_size(), 0);
 }
 
 // --- ReconcileSkills ---
