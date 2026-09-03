@@ -237,6 +237,8 @@ cc_test(
     srcs = ["hyper_stat_inspect_panel_test.cc"],
     deps = [
         ":hyper_stat_inspect_panel",
+        "//src/character:hyper_stats",
+        "//src/frontend/widgets:game_names",
         "//src/frontend/widgets:panel_test_base",
         "@ftxui//:dom",
         "@ftxui//:screen",
