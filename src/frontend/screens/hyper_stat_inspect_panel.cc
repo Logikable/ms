@@ -26,9 +26,10 @@ constexpr int kCardChrome = 2;  // the two border columns
 // from its own text has no slack of its own, so it has to be asked for.
 constexpr int kRightGutter = 1;
 
-// The widest name in the roster and the widest value any stat reaches, which
-// together fix the width of every card. Measured rather than written down: a
-// stat added to the roster widens the card without this file changing.
+// The widest name in the roster and the widest value any stat reaches at any
+// level, which together fix the width of every card. Measured rather than
+// written down: a stat added to the roster widens the card without this file
+// changing.
 int LabelWidth() {
   int widest = 0;
   for (int i = 0; i < kNumHyperStats; ++i) {
@@ -37,11 +38,17 @@ int LabelWidth() {
   return widest;
 }
 
+// Every level, not just the ceiling: EXP steps by halves below level 10 and
+// lands on whole percents above it, so its widest value ("+4.5%") is nowhere
+// near its last one ("+10%"). Measured at the ceiling alone, the card came out
+// a column short and the % of a decimal ate the right gutter.
 int ValueWidth() {
   int widest = 0;
   for (int i = 0; i < kNumHyperStats; ++i) {
-    widest = std::max(widest, TextColumns(HyperStatBonusText(
-                                  kHyperStatOrder[i], kMaxHyperStatLevel)));
+    for (int level = 1; level <= kMaxHyperStatLevel; ++level) {
+      widest = std::max(
+          widest, TextColumns(HyperStatBonusText(kHyperStatOrder[i], level)));
+    }
   }
   return widest;
 }

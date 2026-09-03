@@ -6,6 +6,8 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/character/hyper_stats.h"
+#include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/protos/character.pb.h"
 
@@ -93,17 +95,22 @@ TEST_F(HyperStatInspectPanelTest, EveryCardAsksForTheSameNarrowWidth) {
             std::string::npos);
 }
 
-// A card that measures its own width has to ask for the margin: without it
-// the widest value is welded to the right border.
+// A card that measures its own width has to ask for the margin: without it a
+// value is welded to the right border. Every stat at every level, because the
+// one that broke this was EXP at a level nobody would have picked to check --
+// its widest value is a decimal below level 10, not the whole percent it ends
+// on.
 TEST_F(HyperStatInspectPanelTest, EveryRowKeepsAColumnClearOfTheRightBorder) {
-  for (int level : {0, 5, 10}) {
-    HyperStatInspectPanel panel;
-    // The widest value in the roster, which is the row that sets the width.
-    panel.SetStat(HYPER_STAT_FIELD_STR, level, 10);
-    std::vector<std::string> touching =
-        RowsTouchingTheRightBorder(panel.Render());
-    EXPECT_TRUE(touching.empty())
-        << "level " << level << ": " << (touching.empty() ? "" : touching[0]);
+  for (int i = 0; i < kNumHyperStats; ++i) {
+    for (int level = 0; level <= kMaxHyperStatLevel; ++level) {
+      HyperStatInspectPanel panel;
+      panel.SetStat(kHyperStatOrder[i], level, kMaxHyperStatLevel);
+      std::vector<std::string> touching =
+          RowsTouchingTheRightBorder(panel.Render());
+      EXPECT_TRUE(touching.empty())
+          << HyperStatName(kHyperStatOrder[i]) << " level " << level << ": "
+          << (touching.empty() ? "" : touching[0]);
+    }
   }
 }
 
