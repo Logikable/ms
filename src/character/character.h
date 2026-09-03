@@ -664,8 +664,8 @@ class CharacterInstance {
   // in through call it, which is what makes username() never empty.
   void EnsureUsername();
   // Seeds both Inner Ability presets with the three lines every character is
-  // handed. Runs at construction, so a save written before Inner Ability
-  // existed comes back holding them.
+  // handed. Both doors a Character comes in through call it, so a save written
+  // before Inner Ability existed comes back holding them.
   void EnsureInnerAbility();
   // Spends one star force attempt's price, or returns false and spends
   // nothing. Both StarForce entry points call it before they roll.

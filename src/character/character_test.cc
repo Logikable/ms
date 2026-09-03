@@ -150,6 +150,35 @@ TEST_F(InnerAbilityTest, BothPresetsStartOnTheDefaultLines) {
   EXPECT_EQ(c.ability_reset_cost(), 100);
 }
 
+// A save written before Inner Ability existed comes back holding the default
+// lines: RestoreFrom assigns over the character the constructor seeded.
+TEST_F(InnerAbilityTest, RestoringAnOldSaveSeedsTheLines) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
+  Character old;
+  old.set_level(160);
+  c.RestoreFrom(old, {}, {});
+  for (StatPreset preset : {StatPreset::kFarming, StatPreset::kBossing}) {
+    const AbilityPreset& lines = c.ability(preset);
+    EXPECT_EQ(lines.rank(), ABILITY_RANK_RARE);
+    EXPECT_EQ(lines.lines_size(), kAbilityLines);
+  }
+  EXPECT_EQ(c.ability_reset_cost(), 100);
+}
+
+// Lines without a rank price no reset, which would strand the preset forever.
+TEST_F(InnerAbilityTest, RanklessPresetKeepsItsLines) {
+  Character proto;
+  proto.set_level(160);
+  AbilityPreset& lines = *proto.mutable_inner_ability()->mutable_farming();
+  lines.add_lines()->set_type(ABILITY_LINE_TYPE_MESO);
+  CharacterInstance c(rng_, std::move(proto));
+
+  EXPECT_EQ(c.ability().rank(), ABILITY_RANK_RARE);
+  ASSERT_EQ(c.ability().lines_size(), 1);
+  EXPECT_EQ(c.ability().lines(0).type(), ABILITY_LINE_TYPE_MESO);
+  EXPECT_EQ(c.ability_reset_cost(), 100);
+}
+
 TEST_F(InnerAbilityTest, ResetNeedsTheLevelAndTheHonor) {
   CharacterInstance below = MakeCharacter(rng_, /*level=*/159);
   below.AddHonor(1000);

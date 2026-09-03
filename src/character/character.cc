@@ -866,8 +866,12 @@ void CharacterInstance::EnsureUsername() {
 void CharacterInstance::EnsureInnerAbility() {
   InnerAbility& ability = *character_.mutable_inner_ability();
   for (StatPreset preset : {StatPreset::kFarming, StatPreset::kBossing}) {
-    if (PresetOf(ability, preset).lines_size() == 0) {
-      PresetOf(ability, preset) = DefaultAbilityPreset();
+    AbilityPreset& lines = PresetOf(ability, preset);
+    if (lines.lines_size() == 0) {
+      lines = DefaultAbilityPreset();
+    } else if (lines.rank() == ABILITY_RANK_UNSPECIFIED) {
+      // A rankless preset prices no reset, so nothing could ever reroll it.
+      lines.set_rank(kDefaultAbilityRank);
     }
   }
 }
@@ -2378,8 +2382,11 @@ void CharacterInstance::RestoreFrom(
     const Character& saved, const std::map<std::string, EquipPrototype>& equips,
     const std::map<std::string, ItemPrototype>& items) {
   character_ = saved;
-  // A save written before characters had names.
+  // A save written before characters had names, or before Inner Ability
+  // existed. Assigning over character_ drops what the constructor seeded, so
+  // both doors have to ask again.
   EnsureUsername();
+  EnsureInnerAbility();
   // The item fields are the live containers' business from here; leaving
   // copies behind would let the two drift and ToProto pick the stale one.
   character_.clear_inventory();
