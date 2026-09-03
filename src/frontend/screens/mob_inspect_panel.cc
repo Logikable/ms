@@ -198,9 +198,9 @@ ftxui::Element MobInspectPanel::RenderStats(const Mob& mob) const {
   // describes the monster, not the player standing over it.
   rows.push_back(InfoRow("Meso", FormatWithCommas(static_cast<int64_t>(
                                      std::llround(MeanMesoPerDrop(mob))))));
-  // Honor is the same off every monster in the game, which is why it is not
-  // read off the proto: it is a rule, not a stat.
-  rows.push_back(InfoRow("Honor", FormatWithCommas(kMobHonorPerDrop)));
+  // No Honor row: what one pays is the same off every monster in the game, so
+  // it says nothing about the one being read. The chance still sits among the
+  // drops, which is where a rule that fires sometimes belongs.
   return ftxui::vbox(std::move(rows));
 }
 
