@@ -223,6 +223,12 @@ class BossRun {
   double countdown_left() const {
     return countdown_left_;
   }
+  // How long the run has been on screen, count-in included. A clock for
+  // anything the arena animates on its own rather than off the fight -- a
+  // name too long for its nameplate, sliding under it.
+  double elapsed_seconds() const {
+    return elapsed_seconds_;
+  }
   // Every bar of the current phase, in the order they were spawned.
   const std::vector<BossSlot>& slots() const {
     return slots_;
@@ -335,6 +341,7 @@ class BossRun {
   double countdown_left_ = kBossCountdownSeconds;
   double seconds_left_ = 0.0;
   double clear_seconds_ = 0.0;
+  double elapsed_seconds_ = 0.0;
   // Seconds left of whatever beat is being held: the gap between phases, or
   // the pause at the end before the screen goes back.
   double hold_left_ = 0.0;

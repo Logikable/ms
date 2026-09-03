@@ -1,6 +1,7 @@
 #include "src/frontend/screens/boss_fight_panel.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <map>
 #include <memory>
@@ -15,6 +16,7 @@
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/text_columns.h"
 #include "src/protos/boss.pb.h"
 
@@ -67,6 +69,13 @@ ftxui::Element MobBar(const BossSlot& slot, int rows) {
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
 }
 
+// A count of seconds as the marquee reads clocks. The run counts in doubles;
+// everything that slides takes a duration.
+std::chrono::steady_clock::duration Since(double seconds) {
+  return std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+      std::chrono::duration<double>(seconds));
+}
+
 // One player's panel: whatever they are winding up, under their name. No HP --
 // nothing in a boss fight hits back yet. `self` is the player at this screen,
 // whose panel is the bright one and the one the count-in stands on.
@@ -82,11 +91,14 @@ ftxui::Element MemberPanel(const BossRun& run, const FightMember& member,
   ftxui::Color accent = self ? kTheme : kFaintTheme;
   ftxui::Element bar = ProgressBar(static_cast<float>(member.attack_fraction),
                                    accent, BarLines(label, kPlayerBarRows));
-  // Their name, cut to what the frame holds. Everybody else is named; the
-  // player themselves is not, since they know.
+  // Their name in what the frame holds. Everybody else is named; the player
+  // themselves is not, since they know. A name longer than the plate slides
+  // under it on the run's own clock -- there is no cursor here to start it,
+  // and nobody is waiting on the answer, so it goes back and forth all fight.
   std::string title =
       self ? "You"
-           : ColumnWindow(member.name, 0, kBossPanelWidth - kPanelClearance);
+           : ScrollingWindow(member.name, kBossPanelWidth - kPanelClearance,
+                             Since(run.elapsed_seconds()));
   return AccentWindow(" " + title + " ", std::move(bar), accent) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
 }
