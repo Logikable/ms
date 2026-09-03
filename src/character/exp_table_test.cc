@@ -28,10 +28,12 @@ TEST(ExpToNextLevelTest, MatchesTheTableAtItsLandmarks) {
   }
 }
 
-// 5th job starts at 200 with a large jump from level 199's cost.
+// 5th job starts at 200 with a large jump from level 199's cost. Level 210 is
+// the first the Non-GMS table costs less than GMS's 7,956,335,678.
 TEST(ExpToNextLevelTest, FifthJobBoundaryJump) {
   EXPECT_EQ(ExpToNextLevel(199), 571115568);
   EXPECT_EQ(ExpToNextLevel(200), 2207026470LL);
+  EXPECT_EQ(ExpToNextLevel(210), 7344309856LL);
 }
 
 }  // namespace

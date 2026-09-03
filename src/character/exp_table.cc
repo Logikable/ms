@@ -6,7 +6,8 @@ namespace ms {
 namespace {
 
 // kTable[level] = EXP required to advance from `level` to `level + 1`.
-// Index 0 is unused. Source: KMS (March 2026 reduction applied at 200+).
+// Index 0 is unused. Source: the wiki's leveling tables, the Non-GMS column
+// where 200+ splits -- GMS never took the reduction the other regions did.
 const int64_t kTable[300] = {
     0,  // [0] unused
 
