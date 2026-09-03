@@ -227,12 +227,27 @@ cc_binary(
     deps = _MAIN_DEPS,
 )
 
+# The version resource, compiled to a COFF object the link takes like any
+# other. windres runs on the build machine, so it stays in the exec
+# configuration while its output belongs to the Windows binary.
+genrule(
+    name = "ms_version",
+    srcs = ["ms.rc"],
+    outs = ["ms_version.o"],
+    cmd = "$(execpath @llvm_mingw//:windres) --no-preprocess" +
+          " --target=pe-x86-64 -i $< -o $@",
+    tools = ["@llvm_mingw//:windres"],
+)
+
 # The same game, named for Windows. It needs its own target because the name
 # has to carry .exe: the mingw driver appends that to any output without an
 # extension, and Bazel would then go looking for a file nothing wrote.
 cc_binary(
     name = "ms.exe",
-    srcs = ["main.cc"],
+    srcs = [
+        "main.cc",
+        ":ms_version",
+    ],
     target_compatible_with = ["@platforms//os:windows"],
     deps = _MAIN_DEPS,
 )

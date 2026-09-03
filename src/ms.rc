@@ -1,0 +1,40 @@
+// What Windows reads off the executable: the Properties dialog, the name in
+// Task Manager, the publisher a security prompt names.
+//
+// This is here for a reason beyond tidiness. Defender's ML heuristics score an
+// unsigned binary carrying no version resource at all as a stronger candidate
+// than one that describes itself, and a fresh static mingw build starts with
+// no reputation of its own to argue with.
+//
+// The version tracks the release tag: lv200.0 is 200,0,0,0. Bump both on each
+// ship. Resource 1 is VS_VERSION_INFO, spelled as its number so the file needs
+// no Windows headers and no preprocessor.
+
+1 VERSIONINFO
+FILEVERSION 200, 0, 0, 0
+PRODUCTVERSION 200, 0, 0, 0
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS 0x40004L    // VOS_NT_WINDOWS32
+FILETYPE 0x1L      // VFT_APP
+FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"    // US English, Unicode
+        BEGIN
+            VALUE "CompanyName", "Logikable"
+            VALUE "FileDescription", "MapleStory"
+            VALUE "FileVersion", "lv200.0"
+            VALUE "InternalName", "ms"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Logikable"
+            VALUE "OriginalFilename", "ms.exe"
+            VALUE "ProductName", "MapleStory"
+            VALUE "ProductVersion", "lv200.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

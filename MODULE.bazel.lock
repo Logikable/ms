@@ -221,7 +221,7 @@
   "moduleExtensions": {
     "//tools:llvm_mingw.bzl%llvm_mingw": {
       "general": {
-        "bzlTransitiveDigest": "WeypCivXQTOiFPO+x1/1ML2fEMNKdcZHWYltxCCmlps=",
+        "bzlTransitiveDigest": "khxAHbluEUrXVJZ+QrbYR46utO00OjvONNcn24MCCVg=",
         "usagesDigest": "dI63g3U5349+0RFHcXAnlAIKgM/JfwomxgvleMeCatI=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools",

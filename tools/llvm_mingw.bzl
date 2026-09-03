@@ -55,6 +55,14 @@ filegroup(
     ),
 )
 
+# The resource compiler, named on its own so a genrule can run it. It finds
+# libLLVM at $ORIGIN/../lib, so the rest of the archive has to ride along.
+filegroup(
+    name = "windres",
+    srcs = ["bin/x86_64-w64-mingw32-windres"],
+    data = [":all_files"],
+)
+
 platform(
     name = "windows_x86_64",
     constraint_values = [
