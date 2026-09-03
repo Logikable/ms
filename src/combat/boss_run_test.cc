@@ -316,6 +316,72 @@ TEST(BossRunTest, EveryArmGetsItsOwnBarWhereItsPhasePutsIt) {
   EXPECT_EQ(run.arena_height(), 2);
 }
 
+// Vellum's step: a monster given an interval walks its row on the run's own
+// clock, never landing where it already stands, and never leaving the arena or
+// the row it spawned on. The bar beside it, which was given no interval, stays
+// where it was put.
+TEST(BossRunTest, AMonsterWithAnIntervalWalksItsRowAndTheRestStandStill) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = TwoPhaseBoss();
+  Spawn* arms =
+      boss.mutable_difficulties(0)->mutable_phases(0)->mutable_spawns(0);
+  arms->set_move_interval_seconds(30);
+  // A second spawn that was told nothing, to stand still beside it.
+  Spawn* still = boss.mutable_difficulties(0)->mutable_phases(0)->add_spawns();
+  still->set_mob("arm");
+  still->add_spots()->set_x(3);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  ASSERT_EQ(run.slots().size(), 3u);
+  int home = run.slots()[0].x;
+  int width = run.arena_width();
+
+  std::vector<int> seen;
+  int last = home;
+  for (int step = 0; step < 8; ++step) {
+    run.Advance(*state, 30.0);
+    int now = run.slots()[0].x;
+    EXPECT_NE(now, last) << "step " << step << " left it where it was";
+    EXPECT_GE(now, 0);
+    EXPECT_LT(now, width);
+    EXPECT_EQ(run.slots()[0].y, 0) << "it left its row";
+    EXPECT_EQ(run.slots()[2].x, 3) << "the bar with no interval moved";
+    seen.push_back(now);
+    last = now;
+  }
+  EXPECT_GT(std::set<int>(seen.begin(), seen.end()).size(), 1u)
+      << "it walked between only one cell and its home";
+}
+
+// The step is drawn off the clock, not rolled: two runs of the same fight put
+// the monster on the same cell at the same second, which is what lets a party
+// draw it in the same place with nothing sent between them.
+TEST(BossRunTest, TheWalkIsTheSameOnEveryClientAndOnlyMovesOnTheBeat) {
+  std::unique_ptr<GameState> first_state = MakeState(1000000000, 1);
+  std::unique_ptr<GameState> second_state = MakeState(1000000000, 1);
+  Boss boss = TwoPhaseBoss();
+  boss.mutable_difficulties(0)
+      ->mutable_phases(0)
+      ->mutable_spawns(0)
+      ->set_move_interval_seconds(30);
+  BossRun first("zakum", boss, 0);
+  BossRun second("zakum", boss, 0);
+  first.Advance(*first_state, kBossCountdownSeconds);
+  second.Advance(*second_state, kBossCountdownSeconds);
+  int home = first.slots()[0].x;
+
+  // A whole interval but for a moment: still standing where it started.
+  first.Advance(*first_state, 29.0);
+  EXPECT_EQ(first.slots()[0].x, home);
+  first.Advance(*first_state, 1.5);
+  EXPECT_NE(first.slots()[0].x, home);
+
+  // The other run walks there in one step and lands on the same cell.
+  second.Advance(*second_state, 30.5);
+  EXPECT_EQ(second.slots()[0].x, first.slots()[0].x);
+  EXPECT_EQ(second.slots()[1].x, first.slots()[1].x);
+}
+
 // A dead bar holds its slot for a beat and then leaves it empty: the arms
 // beside it never move.
 TEST(BossRunTest, ADeadBarFadesAndItsSlotStaysEmpty) {

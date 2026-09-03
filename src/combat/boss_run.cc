@@ -39,6 +39,32 @@ ArenaSpot ArenaExtent(const BossPhase& phase) {
   return extent;
 }
 
+// A number that looks drawn but is not: the same monster and the same step
+// always give the same one, on every client, with nothing sent between them.
+uint32_t Mixed(int id, int step) {
+  uint32_t h = static_cast<uint32_t>(id) * 2654435761u +
+               static_cast<uint32_t>(step) * 2246822519u;
+  h ^= h >> 15;
+  h *= 2654435761u;
+  h ^= h >> 13;
+  return h;
+}
+
+// Where a monster that walks stands after `steps` of them, having started on
+// `home`. Each step is one of the cells it is not already on, so it is never a
+// step that leaves it where it was.
+int SteppedX(int id, int steps, int width, int home) {
+  if (width < 2 || steps <= 0) {
+    return home;
+  }
+  int x = std::clamp(home, 0, width - 1);
+  for (int step = 1; step <= steps; ++step) {
+    int pick = static_cast<int>(Mixed(id, step) % (width - 1));
+    x = pick >= x ? pick + 1 : pick;
+  }
+  return x;
+}
+
 }  // namespace
 
 int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy) {
@@ -316,8 +342,24 @@ void BossRun::FillSlots(const CombatParams& params) {
       slot_of_mob_[mob.id] = slot;
       mob_of_slot_[slot] = mob.id;
     }
-    slots_.push_back(
-        {mob.id, mob.name, spot.x(), spot.y(), mob.hp_fraction, true, true});
+    slots_.push_back({mob.id, mob.name, spot.x(), spot.y(), spot.x(),
+                      params.types[mob.type].move_interval_seconds,
+                      mob.hp_fraction, true, true});
+  }
+}
+
+void BossRun::DriftSlots() {
+  int width = arena_width();
+  double limit = difficulty() == nullptr
+                     ? 0.0
+                     : static_cast<double>(difficulty()->time_limit_seconds());
+  double elapsed = std::max(0.0, limit - seconds_left_);
+  for (BossSlot& slot : slots_) {
+    if (slot.move_interval_seconds <= 0) {
+      continue;
+    }
+    int steps = static_cast<int>(elapsed / slot.move_interval_seconds);
+    slot.x = SteppedX(slot.id, steps, width, slot.home_x);
   }
 }
 
@@ -381,6 +423,8 @@ void BossRun::RunPhase(GameState& state, double dt) {
   }
   ComputePhaseHp(params);
   seconds_left_ = std::max(0.0, seconds_left_ - dt);
+  // After the clock, which is what says where anything that walks stands.
+  DriftSlots();
   if (!sim_.view().roster.empty()) {
     if (seconds_left_ <= 0.0) {
       Finish(BossRunState::kTimedOut);
@@ -563,6 +607,7 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
   }
   sim_.ClampRoster(params, said);
   SyncSlots(dt);
+  DriftSlots();
   ComputePhaseHp(params);
 }
 

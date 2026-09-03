@@ -39,6 +39,14 @@ message Spawn {
   // count, and a phase cannot write a different number of each. Empty on a
   // map, which has no arena to stand anyone in.
   repeated ArenaSpot spots = 3;
+  // Seconds between this monster stepping to another cell on the row it
+  // started on. 0, and every monster in the game but Vellum, stands still.
+  //
+  // Where it lands is drawn off the run's own clock rather than rolled, so
+  // every client of a shared fight draws it in the same place with nothing
+  // sent between them. Scenery: an arena cell gates nothing, and a fight is
+  // the same fight whichever cell it is fought in.
+  int32 move_interval_seconds = 4;
 }
 
 // Static definition of a monster type. Loaded from data/mobs textprotos at

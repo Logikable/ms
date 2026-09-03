@@ -34,6 +34,9 @@ struct CombatType {
   // spawn whose mob the catalog does not hold never becomes a type, and an
   // index into the phase would slide every part after it onto the wrong cell.
   std::vector<ArenaSpot> spots;
+  // Seconds between one of these stepping along its row, from the spawn that
+  // named it. 0 for everything that stands still. See Spawn.
+  int move_interval_seconds = 0;
   // Expected damage one hit from this mob does to the player, already through
   // their DEF. Held per type rather than per mob because every member of a
   // type hits alike.

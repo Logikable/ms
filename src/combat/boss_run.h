@@ -104,9 +104,14 @@ struct BossReward {
 struct BossSlot {
   int id = 0;
   std::string name;
-  // Where this one stands, from the phase that spawned it.
+  // Where this one stands. It begins on the cell the phase spawned it on and
+  // stays there, unless it is one of the few that walk: see home_x.
   int x = 0;
   int y = 0;
+  // The cell it spawned on, and the seconds between its steps along the row.
+  // 0 seconds is a monster that stands still, which is all of them but Vellum.
+  int home_x = 0;
+  int move_interval_seconds = 0;
   double hp_fraction = 0.0;
   bool alive = true;
   // False once the dead bar's hold has run out. The slot stays in the list --
@@ -274,6 +279,9 @@ class BossRun {
   // Rebuilds the bars from the fight's roster: what is still standing keeps
   // its bar, and what has gone starts fading in the slot it held.
   void SyncSlots(double dt);
+  // Walks whatever walks to where the run's clock says it stands. Called after
+  // the slots are in step with the roster, alone and in a shared fight both.
+  void DriftSlots();
   // What is left of the phase, over what it holds when full.
   void ComputePhaseHp(const CombatParams& params);
   // Steps one phase of the fight forward, moving on when it empties.

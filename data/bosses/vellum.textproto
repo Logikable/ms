@@ -2,9 +2,15 @@ name: "Vellum"
 difficulties {
   # No Normal: Root Abyss is fought at Chaos or not at all.
   name: "Chaos"
-  # One body alone in the arena, as Hilla, Magnus, Arkarium and Cygnus are.
+  # One body alone in the arena, as Hilla, Magnus, Arkarium and Cygnus are --
+  # and the only one that does not stay where it was put. He steps along his
+  # row every half minute; it is scenery, and it costs the player nothing.
   phases {
-    spawns { mob: "chaos_vellum" spots { x: 4 y: 4 } }
+    spawns {
+      mob: "chaos_vellum"
+      spots { x: 4 y: 4 }
+      move_interval_seconds: 30
+    }
     # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
