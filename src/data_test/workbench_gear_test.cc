@@ -73,9 +73,14 @@ class WorkbenchGearTest : public ::testing::Test {
     return runfiles_->Rlocation("ms/data/" + name);
   }
 
-  GameState Workbench(JobAdvancement advancement) {
+  // `level` 0 stands the character at the top of their advancement, which is
+  // where --job leaves them.
+  GameState Workbench(JobAdvancement advancement, int level = 0) {
+    TestOptions options;
+    options.job = advancement;
+    options.level = level;
     return GameState(equips_, scrolls_, items_, mobs_, maps_, skills_,
-                     GameMode::kTest, TestOptions{advancement});
+                     GameMode::kTest, options);
   }
 
   // The required levels the catalog offers on `worn`'s own ladder among the
@@ -222,6 +227,27 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
   for (const std::pair<const EquipSlot, std::string>& want : kExpected) {
     ASSERT_EQ(worn.count(want.first), 1u) << EquipSlot_Name(want.first);
     EXPECT_EQ(worn.at(want.first).prototype().name(), want.second);
+  }
+}
+
+// The tier a branch finishes in can open above the level the branch does: a
+// Hero advances at 100 and the Frozen axe they end up holding asks for 120.
+// Standing in between they hold the tier under it rather than nothing, which
+// is what --mode=max needs to measure a boss at every level one opens at.
+TEST_F(WorkbenchGearTest, TheFourthJobIsArmedAtEveryLevelABossOpensAt) {
+  for (JobAdvancement advancement : EveryAdvancement()) {
+    if (StageForAdvancement(advancement) != 4) {
+      continue;
+    }
+    SCOPED_TRACE(JobAdvancement_Name(advancement));
+    for (int level = 110; level <= kTrialLevelCap; level += 10) {
+      GameState state = Workbench(advancement, level);
+      SCOPED_TRACE(level);
+      EXPECT_EQ(state.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON), 1u)
+          << "nothing in hand";
+      EXPECT_EQ(state.character.equipped().count(EQUIP_SLOT_SECONDARY), 1u)
+          << "no off-hand";
+    }
   }
 }
 

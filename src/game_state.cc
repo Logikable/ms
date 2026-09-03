@@ -307,6 +307,55 @@ void WearAll(GameState& state, const std::vector<std::string>& names,
   }
 }
 
+// Every stage's gear, the job's own last. A character standing below the
+// level the top tier asks for is still armed off the tier under it: a Hero's
+// Frozen axe opens at 120, so a Lv110 one would otherwise meet a boss with
+// nothing to swing.
+//
+// Only the slots the job's own gear names are filled this way, and only when
+// the level cannot reach what it offers there. A Bandit is not handed the
+// Rogue's throwing stars because the branch stopped carrying them, and a
+// character at the top of their advancement carries no spares at all.
+void WearThePath(GameState& state, const std::vector<Job>& path,
+                 const GearSetup& equips) {
+  if (path.empty()) {
+    return;
+  }
+  std::set<EquipSlot> wanted;
+  for (const std::string& name : WorkbenchGearFor(path.back())) {
+    std::map<std::string, EquipPrototype>::const_iterator it =
+        state.equips.find(name);
+    if (it != state.equips.end()) {
+      wanted.insert(it->second.equip_slot());
+    }
+  }
+  std::set<EquipSlot> filled;
+  std::vector<std::vector<std::string>> by_stage(path.size());
+  for (int i = static_cast<int>(path.size()) - 1; i >= 0; --i) {
+    std::set<EquipSlot> reached;
+    for (const std::string& name : WorkbenchGearFor(path[i])) {
+      std::map<std::string, EquipPrototype>::const_iterator it =
+          state.equips.find(name);
+      if (it == state.equips.end() ||
+          wanted.count(it->second.equip_slot()) == 0 ||
+          filled.count(it->second.equip_slot()) > 0) {
+        continue;
+      }
+      // Two of one slot in one stage is a choice the workbench offers -- the
+      // Rogue's dagger and claw -- so a stage is filtered whole rather than
+      // item by item.
+      by_stage[i].push_back(name);
+      if (state.character.MeetsLevel(it->second)) {
+        reached.insert(it->second.equip_slot());
+      }
+    }
+    filled.insert(reached.begin(), reached.end());
+  }
+  for (const std::vector<std::string>& stage : by_stage) {
+    WearAll(state, stage, equips);
+  }
+}
+
 // The only armour there is. Universal, so it fits whoever the workbench is.
 // The gloves and the boots ask for level 140, which a 3rd job standing at 100
 // carries rather than wears.
@@ -437,8 +486,9 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
       level > 0 ? level : std::min(NextAdvancementLevel(stage), kTrialLevelCap),
       path, unspent_stage);
   // The job's own gear, worn rather than carried, since there is no
-  // advancement moment here to put it on at.
-  WearAll(state, WorkbenchGearFor(job), equips);
+  // advancement moment here to put it on at -- and the stages under it for
+  // whatever the level cannot reach yet.
+  WearThePath(state, path, equips);
   // The Frozen set on top, from the 3rd job up. It drops rather than sells, so
   // a workbench is the only character that will ever be seen in the whole of
   // it -- and every piece is inside a 3rd job's level 100, which is what makes
