@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
@@ -35,7 +36,9 @@ void BuyPanel::Reset(const std::string& item_name, int unit_price,
   }
   int64_t max = std::min({affordable, static_cast<int64_t>(std::max(0, room)),
                           static_cast<int64_t>(kMaxQuantity)});
-  selector_.Reset(static_cast<int>(max), /*initial=*/1);
+  room_ = std::max(0, room);
+  cap_ = static_cast<int>(max);
+  selector_.Reset(cap_, /*initial=*/1);
   selector_.set_confirm_enabled(Affordable());
 }
 
@@ -47,6 +50,19 @@ bool BuyPanel::Affordable() const {
   // A quantity of zero is not a purchase, so Confirm has nothing to honour --
   // the same reason it goes down when the total runs past the balance.
   return total() <= balance_ && selector_.value() > 0;
+}
+
+// The bag before the purse: a player with neither has to clear a slot whatever
+// they do about the meso, and naming the currency for an item that has nowhere
+// to go would send them off to earn what they could not spend.
+std::string BuyPanel::Reason() const {
+  if (cap_ > 0) {
+    return "";
+  }
+  if (room_ <= 0) {
+    return "Bag full";
+  }
+  return token_ == nullptr ? "Not enough meso" : "Not enough " + token_->name();
 }
 
 // The mark keeps its own colour whatever the number does: red is the reason
@@ -67,7 +83,7 @@ ftxui::Element BuyPanel::Render() const {
   ftxui::Element label = RedUnless(ftxui::text("Total: "), !red);
   ftxui::Element total_row =
       ftxui::hbox({std::move(label), Amount(total(), red)});
-  ftxui::Element content = ftxui::vbox({
+  std::vector<ftxui::Element> rows = {
       CenteredRow(item_name_),
       ThemedSeparator(),
       // Above the price, because it is the question asked first: a player
@@ -78,10 +94,16 @@ ftxui::Element BuyPanel::Render() const {
       CenteredRow(ftxui::hbox(
           {Amount(unit_price_, /*red=*/false), ftxui::text(" each")})),
       CenteredRow(std::move(total_row)),
-      ThemedSeparator(),
-      selector_.Render(),
-  });
-  return ThemedWindow(" Buy ", std::move(content));
+  };
+  // Drawn only where there is nothing to offer: with a price the player can
+  // meet it would be a caption to a number that already reads.
+  std::string reason = Reason();
+  if (!reason.empty()) {
+    rows.push_back(CenteredRow(ftxui::text(reason) | ftxui::color(kRed)));
+  }
+  rows.push_back(ThemedSeparator());
+  rows.push_back(selector_.Render());
+  return ThemedWindow(" Buy ", ftxui::vbox(std::move(rows)));
 }
 
 ConfirmChoice BuyPanel::OnEvent(ftxui::Event event) {

@@ -12,6 +12,10 @@
  * balance it is counted against, quantity() reports the chosen amount, and
  * OnEvent answers with the ConfirmChoice every dialog answers with.
  *
+ * A cap of zero -- nothing affordable, or nowhere to put it -- draws a red
+ * reason under the total, since the dialog otherwise says only "0" and leaves
+ * the player to guess which of the two it was.
+ *
  * A price is not always meso. An item off the shop's token shelf is priced in
  * the token it names, and the dialog then counts in that instead -- the same
  * arithmetic against a different balance, with the token's own mark on it.
@@ -55,6 +59,10 @@ class BuyPanel {
  private:
   // What the current quantity would cost, in whichever currency it is priced.
   int64_t total() const;
+  // Why the dialog can offer nothing, or "" while it can offer something. A
+  // cap of zero is the same dead end whichever ceiling closed it, so the row
+  // that says which is the only thing telling a full bag from an empty purse.
+  std::string Reason() const;
   // One amount as the dialog draws it: the mark, then the number, which is the
   // half that reddens when the player cannot pay it.
   ftxui::Element Amount(int64_t value, bool red) const;
@@ -65,6 +73,10 @@ class BuyPanel {
   std::string item_name_;
   int unit_price_ = 0;
   int owned_ = 0;
+  int room_ = 0;
+  // The most this dialog may be confirmed for, which is zero when a ceiling
+  // has closed it. Kept because the reason row asks whether one has.
+  int cap_ = 0;
   int64_t balance_ = 0;
   // The catalog outlives every dialog, so the panel holds the prototype rather
   // than a copy of its mark and colour.

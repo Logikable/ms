@@ -180,13 +180,37 @@ TEST(BuyPanelTest, CannotTypePastWhatTheBagHasRoomFor) {
 }
 
 // A full bag reads like an unaffordable item: the dialog opens and says no,
-// rather than offering a number that would be refused.
+// rather than offering a number that would be refused. [1] is no way around
+// it -- a button that set one anyway would hand Confirm an amount the shop
+// only refuses, which is a purchase that silently does nothing.
 TEST(BuyPanelTest, AFullBagOpensAtZeroAndCannotConfirm) {
   BuyPanel panel;
   panel.Reset("Machete", 10, /*meso=*/1000000, /*room=*/0, /*owned=*/0);
   EXPECT_EQ(panel.quantity(), 0);
-  panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  panel.OnEvent(ftxui::Event::ArrowLeft);  // textbox -> [1]
+  panel.OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(panel.quantity(), 0);
+  panel.OnEvent(ftxui::Event::ArrowDown);  // [1] -> [Confirm]
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
+}
+
+// Both dead ends draw the same 0, so the row naming the one that closed is
+// all that tells a bag with no slot from a purse with no meso.
+TEST(BuyPanelTest, AClosedDialogSaysWhichCeilingClosedIt) {
+  BuyPanel panel;
+  panel.Reset("Machete", 10, /*meso=*/1000000, /*room=*/0, /*owned=*/0);
+  EXPECT_NE(Render(panel).find("Bag full"), std::string::npos);
+  EXPECT_EQ(CellColor(panel, "Bag full", "B"), kRed);
+
+  // The purse only when the bag is not the problem: an item with nowhere to go
+  // is not bought by earning more.
+  panel.Reset("Machete", 10, /*meso=*/9, /*room=*/kRoomy, /*owned=*/0);
+  EXPECT_NE(Render(panel).find("Not enough meso"), std::string::npos);
+
+  // Nothing to explain while the shop can still sell one.
+  panel.Reset("Machete", 10, /*meso=*/1000000, /*room=*/kRoomy, /*owned=*/0);
+  EXPECT_EQ(Render(panel).find("Bag full"), std::string::npos);
+  EXPECT_EQ(Render(panel).find("Not enough"), std::string::npos);
 }
 
 // Neither the balance nor the bag is the only ceiling: the field itself stops,
@@ -268,6 +292,16 @@ TEST(BuyPanelTest, ATokenPriceIsCountedInTokens) {
   std::string rendered = Render(panel);
   EXPECT_EQ(rendered.find("🪙"), std::string::npos) << "no meso on this shelf";
   EXPECT_NE(rendered.find("each"), std::string::npos);
+}
+
+// A shelf priced in tokens names the token it is short of, not meso.
+TEST(BuyPanelTest, AShortTokenBalanceNamesTheToken) {
+  ItemPrototype token = WeaponToken();
+  BuyPanel panel;
+  panel.Reset("Frozen Sword", /*unit_price=*/1, /*balance=*/0, /*room=*/kRoomy,
+              /*owned=*/0, &token);
+  EXPECT_NE(Render(panel).find("Not enough Frozen Weapon Token"),
+            std::string::npos);
 }
 
 // Red is the reason, and a currency is not a reason -- so the mark stays its
