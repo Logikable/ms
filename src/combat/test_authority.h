@@ -28,6 +28,7 @@ class TestAuthority : public FightAuthority {
   }
 
   void Report(const FightReport& report) override {
+    ++reports_;
     reported_phase_ = report.phase;
     reported_spot_ = report.spot;
     reported_attack_ = report.attack_name;
@@ -58,6 +59,9 @@ class TestAuthority : public FightAuthority {
 
   SharedFight fight_;
   bool open_ = true;
+  // How many reports arrived, for a test about the beat they go out on
+  // rather than what they carried.
+  int reports_ = 0;
   int reported_phase_ = -1;
   int reported_spot_ = -1;
   std::string reported_attack_;

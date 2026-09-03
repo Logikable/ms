@@ -737,6 +737,15 @@ TEST(BossRunTest, AFollowedRunTakesTheClockAndThePhaseItIsGiven) {
   EXPECT_EQ(run.phase(), 2);
 }
 
+// Everything a run has told the party, added up.
+int64_t Landed(const std::vector<SharedLine>& lines) {
+  int64_t total = 0;
+  for (const SharedLine& line : lines) {
+    total += line.damage;
+  }
+  return total;
+}
+
 TEST(BossRunTest, AFollowedRunReportsWhatItLanded) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = TwoPhaseBoss();
@@ -764,6 +773,37 @@ TEST(BossRunTest, AFollowedRunReportsWhatItLanded) {
     }
   }
   EXPECT_GT(drawn, 0);
+}
+
+// The screen runs at kBossFightStep and the wire at kFightPublishInterval, so
+// a fight stepped at the screen's rate must not say so at the screen's rate.
+TEST(BossRunTest, AFollowedRunReportsOnTheWiresBeatAndLosesNoLine) {
+  std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
+  Boss boss = TwoPhaseBoss();
+  TestAuthority authority(2);
+  BossRun run("zakum", boss, 0, &authority);
+
+  const double kStep = kBossFightStep.count() / 1000.0;
+  const double kSeconds = 3.0;
+  for (int i = 0; i < static_cast<int>(kSeconds / kStep); ++i) {
+    run.Advance(*state, kStep);
+  }
+
+  // One report per wire beat, not one per step -- and a step is the shorter.
+  int beats = static_cast<int>(kSeconds * 1000 / kFightPublishInterval.count());
+  EXPECT_NEAR(authority.reports_, beats, 1);
+  EXPECT_LT(authority.reports_, static_cast<int>(kSeconds / kStep));
+
+  // Nothing is lost between reports: the same fight stepped a beat at a time
+  // reports every line the stepped-faster one did.
+  TestAuthority slow(2);
+  BossRun paced("zakum", boss, 0, &slow);
+  const double kBeat = kFightPublishInterval.count() / 1000.0;
+  for (int i = 0; i < static_cast<int>(kSeconds / kBeat); ++i) {
+    paced.Advance(*state, kBeat);
+  }
+  EXPECT_EQ(Landed(authority.reported_), Landed(slow.reported_));
+  EXPECT_GT(Landed(authority.reported_), 0);
 }
 
 TEST(BossRunTest, TheSharedRosterSaysWhatIsLeft) {

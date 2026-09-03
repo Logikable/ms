@@ -158,6 +158,7 @@ cc_test(
 cc_library(
     name = "boss_timing",
     hdrs = ["boss_timing.h"],
+    deps = [":constants"],
 )
 
 cc_library(
