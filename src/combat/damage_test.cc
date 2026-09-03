@@ -161,6 +161,18 @@ TEST_F(OffenseTest, IedNegatesMobDefense) {
                    kBaseline * kEqualLevel * kBaseCrit);
 }
 
+TEST_F(OffenseTest, DefensePast100PercentFloorsDamageAtOne) {
+  OffenseStats s = Baseline();
+  // Vellum's 200%: below 50% IED there is nothing left of the swing, and it
+  // must floor rather than turn.
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(200)), 1.0);
+  s.ied = 0.25;
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(200)), 1.0);
+  s.ied = 0.75;  // 1 - 2.0*0.25 == 0.5 of the swing survives
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(200)),
+                   kBaseline * 0.50 * kEqualLevel * kBaseCrit);
+}
+
 TEST_F(OffenseTest, BossesTakeHalfElementalByDefault) {
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(0, true)),
                    kBaseline * 0.5 * kEqualLevel * kBaseCrit);

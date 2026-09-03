@@ -565,15 +565,20 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
             (is_boss ? offense.boss_pct : offense.normal_pct);
   damage *= 1.0 + CritFactor(offense);
   damage *= 1.0 + offense.final_dmg_pct;
-  damage *= 1.0 - mob_pdr * (1.0 - offense.ied);
+  // Defence past 100% -- the Chaos Root Abyss bodies -- outruns a character
+  // whose IED cannot cut it back under one, and the factor would otherwise
+  // turn negative. Clamped at zero, and the floor below carries it.
+  damage *= std::max(0.0, 1.0 - mob_pdr * (1.0 - offense.ied));
   if (is_boss) {
     damage *= kBossElementalBase * (1.0 + offense.ier);
   }
   double level_mult = LevelMultiplier(offense.level, mob.level());
   if (level_mult <= 0.0) {
-    return 1.0;  // 40+ levels under the mob: output is floored to 1 damage.
+    return 1.0;  // 40+ levels under the mob.
   }
-  return damage * level_mult * offense.arcane_pct;
+  // Output floors at 1 damage, whatever cancelled it: 40 levels of gap, or
+  // defence the character never dented.
+  return std::max(1.0, damage * level_mult * offense.arcane_pct);
 }
 
 double DefenseShare(const Mob& mob, double ied) {

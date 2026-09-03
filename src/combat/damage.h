@@ -300,7 +300,9 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob);
 //
 // 0 against a monster carrying no defence, and against one whose defence the
 // character has already cancelled outright -- neither has anything left to
-// ignore. See SkillEffect.ied_pct_per_freeze_stack, the one lever that asks.
+// ignore. 0 as well while c is still 1 or more, which only defence past 100%
+// reaches: the swing sits on its 1-damage floor and a further e does not lift
+// it off. See SkillEffect.ied_pct_per_freeze_stack, the one lever that asks.
 double DefenseShare(const Mob& mob, double ied);
 
 // One number for "how hard this character hits", for comparing characters
