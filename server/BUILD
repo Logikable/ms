@@ -98,6 +98,7 @@ cc_library(
         ":lobby",
         "//src/character",
         "//src/character:job_name",
+        "//src/combat:boss_timing",
         "//src/multiplayer:protocol",
         "//src/net:socket",
         "//src/protos:boss_proto_cc",

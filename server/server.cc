@@ -19,6 +19,7 @@
 #include "server/lobby.h"
 #include "src/character/character.h"
 #include "src/character/job_name.h"
+#include "src/combat/boss_timing.h"
 #include "src/multiplayer/protocol.h"
 #include "src/net/socket.h"
 #include "src/protos/multiplayer.pb.h"
@@ -81,10 +82,6 @@ std::string Became(const PlayerInfo& before, const PlayerInfo& after) {
   }
   return absl::StrJoin(changes, " and ");
 }
-
-// How often a fight is told to the party fighting it. Ten times a second: a
-// bar and a damage number are watched, not aimed at.
-constexpr std::chrono::milliseconds kFightPublishInterval(100);
 
 // The fight's own state as the wire spells it. Only the three it can be in
 // while it runs; the ways of being over ride FightEnded.

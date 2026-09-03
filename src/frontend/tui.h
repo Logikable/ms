@@ -11,6 +11,7 @@
 #ifndef MS_SRC_FRONTEND_TUI_H_
 #define MS_SRC_FRONTEND_TUI_H_
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <optional>
@@ -181,6 +182,11 @@ class Tui {
   // while the map is the fight in front of the player.
   BattleAnalysis analysis_;
   std::chrono::steady_clock::time_point last_combat_update_;
+  // Whether the ticker should keep a fight's faster beat. Written by the loop
+  // thread at the end of every tick and read by the ticker thread, which is
+  // the one thing the two share -- everything else about the fight is the
+  // loop thread's alone.
+  std::atomic<bool> in_boss_fight_ = false;
   // Shared with equip_panel_, inventory_panel_, and Container::Tab; mutated by
   // controller_ (Tab) and panels (Equip/Unequip actions).
   int panel_focus_ = kEquipPanel;

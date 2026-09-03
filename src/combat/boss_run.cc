@@ -22,6 +22,9 @@
 namespace ms {
 namespace {
 
+// The beat between reports, in the seconds the run counts in.
+constexpr double kReportSeconds = kFightPublishInterval.count() / 1000.0;
+
 // How far out anyone stands on each axis, counted in cells: the size an arena
 // that names none is measured to.
 ArenaSpot ArenaExtent(const BossPhase& phase) {
@@ -255,7 +258,6 @@ void BossRun::CollectDamageStacks() {
   // is the stack. Nothing here sorts: the order they landed in is the order
   // they are read down the screen.
   std::uniform_int_distribution<int> side(0, 3);
-  landed_.clear();
   for (std::size_t i = 0; i < lines.size();) {
     DamageStack stack;
     stack.mob_id = lines[i].mob_id;
@@ -483,8 +485,11 @@ void BossRun::TakeShared(const SharedFight& shared) {
     phase_ = shared.phase;
     slots_.clear();
     // A monster id means nothing outside the encounter that handed it out, and
-    // the arena is a different one anyway.
+    // the arena is a different one anyway. Lines waiting on the next report go
+    // with them: they name slots of a phase that is over.
     damage_stacks_.clear();
+    landed_.clear();
+    report_due_ = 0.0;
     // Where everyone stands in a new phase is the server's to say.
     player_at_ = -1;
   }
@@ -551,8 +556,7 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
     FillSlots(params);
   }
   CollectDamageStacks();
-  authority_->Report({phase_, landed_, player_at_, sim_.view().attack_name,
-                      sim_.view().attack_fraction, item_drop_pct_});
+  ReportToParty(dt);
   // The shared roster is what everybody is hitting, so it decides what is
   // left. This copy of it may run ahead of the party's, never behind.
   std::map<int, double> said;
@@ -564,6 +568,23 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
   sim_.ClampRoster(params, said);
   SyncSlots(dt);
   ComputePhaseHp(params);
+}
+
+// The screen runs at kBossFightStep and the wire at kFightPublishInterval, so
+// a report carries every line landed since the last one rather than one step's
+// worth. Told faster than this, the server would only sit on it: it does not
+// tell the party again until its own beat.
+void BossRun::ReportToParty(double dt) {
+  report_due_ -= dt;
+  if (report_due_ > 0.0) {
+    return;
+  }
+  // Added rather than reset, so a run of short steps keeps the beat rather
+  // than drifting a step later every time.
+  report_due_ += kReportSeconds;
+  authority_->Report({phase_, landed_, player_at_, sim_.view().attack_name,
+                      sim_.view().attack_fraction, item_drop_pct_});
+  landed_.clear();
 }
 
 void BossRun::AddSharedStacks(const std::vector<SharedLine>& lines) {

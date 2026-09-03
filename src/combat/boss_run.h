@@ -303,6 +303,9 @@ class BossRun {
   // land, the roster is brought down to what the server says is left, and
   // what was landed is reported back.
   void RunSharedPhase(GameState& state, double dt, const SharedFight& shared);
+  // Tells the party what this run has landed, on the wire's own beat rather
+  // than the screen's, which is the faster of the two.
+  void ReportToParty(double dt);
   // Draws what everybody else landed. A line naming a monster this client has
   // already buried is dropped: there is nowhere left to put it.
   void AddSharedStacks(const std::vector<SharedLine>& lines);
@@ -365,10 +368,13 @@ class BossRun {
   // Which member each of the shared fight's players is, since this player is
   // held first and the server holds them in party order.
   std::vector<int> member_of_player_;
-  // What this run landed on the last step, in the shape the report takes.
-  // Rounded as the numbers on screen are, so what the party's roster loses is
-  // what its players watched.
+  // What this run has landed since its last report, in the shape the report
+  // takes. Rounded as the numbers on screen are, so what the party's roster
+  // loses is what its players watched.
   std::vector<SharedLine> landed_;
+  // Seconds until the next report goes out. 0 sends on the coming step, which
+  // is what a fight and a new phase both open on.
+  double report_due_ = 0.0;
   // What the last step's params said drop rate was, for a clear that is
   // declared on a step this run computed nothing.
   double item_drop_pct_ = 0.0;

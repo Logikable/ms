@@ -23,6 +23,7 @@
 #include "src/character/honor.h"
 #include "src/character/job_name.h"
 #include "src/character/progression.h"
+#include "src/combat/boss_timing.h"
 #include "src/combat/combat.h"
 #include "src/frontend/keybinds.h"
 #include "src/frontend/main_layout.h"
@@ -262,11 +263,13 @@ void Tui::Run() {
   std::atomic<bool> running = true;
   std::thread ticker([this, &screen, &running]() {
     while (running) {
-      // The repaint period, set by the fastest thing on screen that moves --
-      // a name sliding under its column. Everything else here is driven by
-      // elapsed time rather than by tick count, so waking more often costs
-      // only the wakeups.
-      std::this_thread::sleep_for(kMarqueeStep);
+      // The repaint period, set by the fastest thing on screen that moves: a
+      // name sliding under its column out here, a swing charging in a boss
+      // fight, which is quicker than any name. Everything is driven by elapsed
+      // time rather than by tick count, so waking more often costs only the
+      // wakeups.
+      std::this_thread::sleep_for(in_boss_fight_ ? kBossFightStep
+                                                 : kMarqueeStep);
       screen.Post([this, &screen]() {
         Tick();
         save_policy_.AutosaveIfDue(state_, std::chrono::steady_clock::now());
@@ -1121,6 +1124,9 @@ void Tui::Tick() {
   if (combat_sim_.view().died_this_step) {
     celebration_.BeginDeath();
   }
+  // Last of all, so the beat the ticker sleeps next is the one this tick left
+  // the player on.
+  in_boss_fight_ = controller_.in_boss_fight();
 }
 
 Panel Tui::FocusedPanel() const {
