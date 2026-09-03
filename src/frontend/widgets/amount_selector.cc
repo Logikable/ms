@@ -108,7 +108,10 @@ ftxui::Element AmountSelector::Render() const {
 
 ConfirmChoice AmountSelector::Activate() {
   if (focus_ == kOne) {
-    value_ = 1;
+    // Clamped like every other way in: a cap of zero means the caller cannot
+    // honour one either, and a button that sets one anyway hands Confirm an
+    // amount that would only be refused.
+    value_ = std::min(1, max_);
   } else if (focus_ == kMax) {
     value_ = max_;
   } else if (focus_ == kConfirm) {

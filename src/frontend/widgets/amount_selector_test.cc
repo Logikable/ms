@@ -144,6 +144,11 @@ TEST(AmountSelectorTest, ClampsTheOpeningAmountToMax) {
   AmountSelector sel;
   sel.Reset(0, /*initial=*/1);
   EXPECT_EQ(sel.value(), 0);
+  // Including by the shortcut: a caller that will not honour one must not be
+  // handed one by the button either.
+  sel.OnEvent(ftxui::Event::ArrowLeft);  // textbox -> [1]
+  sel.OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(sel.value(), 0);
 }
 
 // The single line holding `needle`, escape codes and all.
