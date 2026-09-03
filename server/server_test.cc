@@ -14,6 +14,7 @@
 #include "absl/log/log_entry.h"
 #include "absl/log/log_sink.h"
 #include "absl/log/log_sink_registry.h"
+#include "src/character/character.h"
 #include "src/multiplayer/protocol.h"
 #include "src/net/socket.h"
 #include "src/protos/boss.pb.h"
@@ -627,9 +628,10 @@ TEST_F(ServerTest, TellsAPlayerTheyWereRemoved) {
 }
 
 TEST_F(ServerTest, CutsALongNameDown) {
+  const std::string kTooLong(kMaxUsernameLength + 8, 'x');
   TestClient client;
   ASSERT_TRUE(client.Open(port_));
-  client.SayHello("A Very Long Name Indeed");
+  client.SayHello(kTooLong);
   ASSERT_EQ(AwaitKind(client, ServerMessage::kWelcome).kind_case(),
             ServerMessage::kWelcome);
 
@@ -637,7 +639,7 @@ TEST_F(ServerTest, CutsALongNameDown) {
   ServerMessage state = AwaitKind(client, ServerMessage::kPartyState);
   ASSERT_EQ(state.party_state().party().members_size(), 1);
   EXPECT_EQ(state.party_state().party().members(0).player().name(),
-            "A Very Long ");
+            kTooLong.substr(0, kMaxUsernameLength));
 }
 
 TEST_F(ServerTest, TakesAPartyWithThePlayerWhoLeft) {

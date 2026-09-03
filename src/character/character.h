@@ -42,9 +42,10 @@ inline constexpr int kBeginnerStr = 13;
 // written comes forward with it rather than with a blank row.
 inline constexpr char kDefaultUsername[] = "Set Username";
 
-// The longest name the player may set, GMS's own limit. The Character panel is
-// a fixed width, so a name is capped rather than allowed to widen it.
-inline constexpr int kMaxUsernameLength = 12;
+// The longest name the player may set. Every column that shows one is sized
+// from this, and the one place a name outgrows -- the boss arena's nameplate,
+// twelve columns wide -- slides it under the panel instead.
+inline constexpr int kMaxUsernameLength = 20;
 
 // Every AP the game has ever handed a character at `level` holding
 // `job_stage` advancements, spent and unspent together. AP is only ever moved

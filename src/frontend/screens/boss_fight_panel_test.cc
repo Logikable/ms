@@ -2,7 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <map>
 #include <memory>
 #include <set>
@@ -17,6 +19,7 @@
 #include "src/combat/test_authority.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/boss.pb.h"
@@ -562,6 +565,20 @@ TEST(BossFightPanelTest, TheSpotsThePlayerIsNotOnAreMarked) {
 
 // A party's fight: the whole of Zakum's arena with three people in it, this
 // player on the floor and the other two on the ledges.
+// A duration as the run counts them.
+double Seconds(std::chrono::milliseconds ms) {
+  return ms.count() / 1000.0;
+}
+
+// Steps `run` until its clock reads `seconds`, in beats no wider than a frame,
+// so what the arena draws is what it would have drawn on the way there.
+void RunTo(BossRun& run, GameState& state, double seconds) {
+  const double kFrame = 0.03;
+  while (run.elapsed_seconds() < seconds) {
+    run.Advance(state, std::min(kFrame, seconds - run.elapsed_seconds()));
+  }
+}
+
 std::unique_ptr<TestAuthority> PartyOfThree() {
   std::unique_ptr<TestAuthority> authority = std::make_unique<TestAuthority>(8);
   authority->fight_.players.resize(3);
@@ -591,6 +608,37 @@ TEST(BossFightPanelTest, EverybodyInThePartyStandsInTheArena) {
   EXPECT_EQ(MarkedSpots(run), 2);
   // The two on the ledges are drawn above the one on the floor.
   EXPECT_LT(RowOf(rows, "Wand"), RowOf(rows, "You"));
+}
+
+// A name wider than the twelve-column plate is not cut and left there: it
+// slides under the plate on the run's own clock, over and over, since there
+// is no cursor here to start it and nobody is waiting on the answer.
+TEST(BossFightPanelTest, ALongPartyNameSlidesUnderItsPlateAndComesBack) {
+  const std::string kLong = "Twenty Characters Ok";
+  const int kPlate = kBossPanelWidth - 4;  // the plate inside the frame
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+  Boss boss = Zakum();
+  std::unique_ptr<TestAuthority> authority = PartyOfThree();
+  authority->fight_.players[1].name = kLong;
+  BossRun run("zakum", boss, 0, authority.get());
+
+  // A round trip is a pause at each end with a step for every offset between.
+  double step = Seconds(kMarqueeStep);
+  double pause = Seconds(kMarqueePause);
+  double slide = step * (static_cast<int>(kLong.size()) - kPlate - 1);
+
+  // The head first, held over the pause so it can be read before it goes.
+  RunTo(run, *state, 0.1);
+  EXPECT_NE(RowOf(Rows(run), kLong.substr(0, kPlate)), -1);
+
+  // Through the slide and into the pause at the far end, where the tail is.
+  RunTo(run, *state, pause + slide + pause / 2);
+  EXPECT_EQ(RowOf(Rows(run), kLong.substr(0, kPlate)), -1) << "the head went";
+  EXPECT_NE(RowOf(Rows(run), kLong.substr(kLong.size() - kPlate)), -1);
+
+  // And round again: the name starts over rather than sitting on its tail.
+  RunTo(run, *state, 2 * pause + slide + 0.1);
+  EXPECT_NE(RowOf(Rows(run), kLong.substr(0, kPlate)), -1);
 }
 
 TEST(BossFightPanelTest, APlayerWhoLeavesLeavesAnEmptySpot) {

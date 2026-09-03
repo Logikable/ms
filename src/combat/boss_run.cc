@@ -598,6 +598,7 @@ void BossRun::Advance(GameState& state, double elapsed_seconds) {
     return;
   }
   double dt = std::max(0.0, elapsed_seconds);
+  elapsed_seconds_ += dt;
   if (authority_ != nullptr) {
     AdvanceShared(state, dt);
     return;

@@ -1852,6 +1852,24 @@ TEST_F(CharacterPanelTest, TypingANameAndPressingEnterKeepsIt) {
   EXPECT_TRUE(OnScreen(comp, "Sean99"));
 }
 
+// The cap is 20 columns and the row is wider than that, so a full-length name
+// with spaces in it arrives whole and is shown whole.
+TEST_F(CharacterPanelTest, AFullLengthNameWithSpacesIsKeptWhole) {
+  const std::string kFull = "Twenty Characters Ok";
+  ASSERT_EQ(static_cast<int>(kFull.size()), kMaxUsernameLength);
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
+  CharacterPanel panel(c, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent();
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  comp->OnEvent(ftxui::Event::Return);
+  for (char ch : kFull + "!Dropped") {
+    comp->OnEvent(ftxui::Event::Character(ch));
+  }
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(c.username(), kFull);
+  EXPECT_TRUE(OnScreen(comp, kFull));
+}
+
 TEST_F(CharacterPanelTest, EscapeLeavesTheOldName) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
   c.SetUsername("Logikable");
