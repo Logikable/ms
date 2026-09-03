@@ -1,6 +1,7 @@
 #include "src/frontend/widgets/format.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <sstream>
@@ -131,6 +132,17 @@ std::string FormatCompact(int64_t n) {
     return (n < 0 ? "-" : "") + text + unit.suffix;
   }
   return FormatWithCommas(n);
+}
+
+std::string FormatClock(double seconds) {
+  int total = static_cast<int>(std::ceil(std::max(0.0, seconds)));
+  int minutes = total / 60;
+  int rest = total % 60;
+  std::string text = std::to_string(minutes) + ":";
+  if (rest < 10) {
+    text += "0";
+  }
+  return text + std::to_string(rest);
 }
 
 std::string FormatMeso(int64_t meso) {

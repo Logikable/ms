@@ -95,6 +95,19 @@ TEST(DropChanceTest, KeepsATinyRateAChance) {
   EXPECT_EQ(DropChance(0.0), "0%");
 }
 
+// --- FormatClock ---
+
+TEST(FormatClockTest, CountsInMinutesAndSeconds) {
+  EXPECT_EQ(FormatClock(300.0), "5:00");
+  EXPECT_EQ(FormatClock(299.5), "5:00");
+  EXPECT_EQ(FormatClock(65.0), "1:05");
+  EXPECT_EQ(FormatClock(9.2), "0:10");
+  // Only actually being out of time reads 0:00.
+  EXPECT_EQ(FormatClock(0.1), "0:01");
+  EXPECT_EQ(FormatClock(0.0), "0:00");
+  EXPECT_EQ(FormatClock(-5.0), "0:00");
+}
+
 // --- FormatMeso ---
 
 TEST(FormatMesoTest, PrefixesIndicatorAndFormatsValue) {

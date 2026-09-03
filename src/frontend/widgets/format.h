@@ -52,6 +52,10 @@ std::string FormatWithCommas(int64_t n);
 // out with commas.
 std::string FormatCompact(int64_t n);
 
+// A stretch of seconds as m:ss: "0:04", "2:47", "10:00". Rounded up, so the
+// last second of a countdown reads 0:01 until it is gone.
+std::string FormatClock(double seconds);
+
 // Formats a meso amount as the coin indicator followed by the comma-separated
 // value (e.g. "🪙 1,234,567"). Use everywhere meso is shown.
 std::string FormatMeso(int64_t meso);

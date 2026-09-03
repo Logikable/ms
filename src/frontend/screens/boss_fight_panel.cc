@@ -495,7 +495,7 @@ class ArenaNode : public ftxui::Node {
 // The clock, which the arena stands across its own top row rather than taking
 // a strip of the screen for.
 ftxui::Element ClockPanel(const BossRun& run) {
-  return ThemedWindow("", CenteredRow(FightClock(run.seconds_left())));
+  return ThemedWindow("", CenteredRow(FormatClock(run.seconds_left())));
 }
 
 // The arena: every bar of the phase in the cell the fight gave it, the player
@@ -563,17 +563,6 @@ ftxui::Element Arena(const BossRun& run) {
 }
 
 }  // namespace
-
-std::string FightClock(double seconds_left) {
-  int total = static_cast<int>(std::ceil(std::max(0.0, seconds_left)));
-  int minutes = total / 60;
-  int seconds = total % 60;
-  std::string text = std::to_string(minutes) + ":";
-  if (seconds < 10) {
-    text += "0";
-  }
-  return text + std::to_string(seconds);
-}
 
 std::string FightHeading(const BossRun& run) {
   switch (run.state()) {

@@ -692,6 +692,7 @@ cc_test(
         "//src/combat:boss_run",
         "//src/combat:test_authority",
         "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:format",
         "//src/item:equip_instance",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",

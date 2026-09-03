@@ -41,11 +41,11 @@ void MeasureAMinute(BattleAnalysis& analysis) {
 }
 
 TEST(AnalysisPanelTest, TheClockIsHoursMinutesSeconds) {
-  EXPECT_EQ(FormatClock(0.0), "00:00:00");
-  EXPECT_EQ(FormatClock(59.9), "00:00:59");
-  EXPECT_EQ(FormatClock(3661.0), "01:01:01");
+  EXPECT_EQ(FormatElapsed(0.0), "00:00:00");
+  EXPECT_EQ(FormatElapsed(59.9), "00:00:59");
+  EXPECT_EQ(FormatElapsed(3661.0), "01:01:01");
   // Hours are not wrapped: a run left overnight says so.
-  EXPECT_EQ(FormatClock(360000.0), "100:00:00");
+  EXPECT_EQ(FormatElapsed(360000.0), "100:00:00");
 }
 
 TEST(AnalysisPanelTest, ItDrawsTheTenRowsAndTheirRates) {

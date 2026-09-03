@@ -47,7 +47,7 @@ ftxui::Element DataRow(const std::string& label, const std::string& value,
 
 }  // namespace
 
-std::string FormatClock(double seconds) {
+std::string FormatElapsed(double seconds) {
   int64_t whole = static_cast<int64_t>(seconds);
   if (whole < 0) {
     whole = 0;
@@ -74,7 +74,7 @@ ftxui::Element AnalysisPanel::Render() const {
   // The measurement itself, under a rule: the two rows above say what the tool
   // is doing, and these ten say what it found.
   std::vector<std::pair<std::string, std::string>> found = {
-      {"Time", FormatClock(analysis_.seconds())},
+      {"Time", FormatElapsed(analysis_.seconds())},
       {"Respawn Cycles", FormatWithCommas(analysis_.cycles())},
       {"Damage Dealt", FormatWithCommas(analysis_.damage())},
       {"DPS", FormatWithCommas(analysis_.damage_per_second())},

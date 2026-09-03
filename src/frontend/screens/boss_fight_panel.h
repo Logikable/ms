@@ -54,10 +54,6 @@ inline constexpr int kMinTerminalRows = 30;
 inline constexpr int kArenaColumns = 9;
 inline constexpr int kArenaRows = 6;
 
-// Seconds as mm:ss, rounded up so the clock reads 0:00 only when the time is
-// actually gone.
-std::string FightClock(double seconds_left);
-
 // The line across the top: "Normal Zakum - P1 - 100%", or what became of the
 // fight once it is over.
 std::string FightHeading(const BossRun& run);

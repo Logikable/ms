@@ -19,9 +19,10 @@
 
 namespace ms {
 
-// Seconds as HH:mm:ss. Hours are not wrapped: a measurement left running
-// overnight should say so rather than starting again at zero.
-std::string FormatClock(double seconds);
+// Seconds as HH:mm:ss, for a measurement's own clock. Hours are not wrapped: a
+// measurement left running overnight should say so rather than starting again
+// at zero.
+std::string FormatElapsed(double seconds);
 
 class AnalysisPanel {
  public:

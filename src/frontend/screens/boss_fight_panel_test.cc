@@ -16,6 +16,7 @@
 #include "src/combat/boss_run.h"
 #include "src/combat/test_authority.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/format.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/boss.pb.h"
@@ -314,17 +315,6 @@ std::string Render(const BossRun& run) {
                                                ftxui::Dimension::Fixed(30));
   ftxui::Render(screen, BossFightPanel(run));
   return screen.ToString();
-}
-
-TEST(BossFightPanelTest, TheClockCountsInMinutesAndSeconds) {
-  EXPECT_EQ(FightClock(300.0), "5:00");
-  EXPECT_EQ(FightClock(299.5), "5:00");
-  EXPECT_EQ(FightClock(65.0), "1:05");
-  EXPECT_EQ(FightClock(9.2), "0:10");
-  // Only actually being out of time reads 0:00.
-  EXPECT_EQ(FightClock(0.1), "0:01");
-  EXPECT_EQ(FightClock(0.0), "0:00");
-  EXPECT_EQ(FightClock(-5.0), "0:00");
 }
 
 TEST(BossFightPanelTest, TheHeadingNamesThePhaseAndWhatIsLeftOfIt) {
@@ -792,7 +782,7 @@ TEST(BossFightPanelTest, NumbersShareTheClocksRowsButNotItsBox) {
   EXPECT_EQ(middle.front(), '#');
   EXPECT_EQ(middle.back(), '#');
   EXPECT_EQ(middle.substr(1, width - 2),
-            " " + FightClock(below.seconds_left()) + " ");
+            " " + FormatClock(below.seconds_left()) + " ");
 }
 
 // Orange for a critical line and the theme blue for a plain one, which is the
