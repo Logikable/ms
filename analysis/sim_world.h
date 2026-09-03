@@ -13,6 +13,7 @@
 
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
+#include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
@@ -47,6 +48,15 @@ Catalogs LoadCatalogs();
 // draws: what a set pays is most of what the last tier of gear is worth. The
 // bosses are a plain field, and a sim that fights one assigns them itself.
 GameState NewState(const Catalogs& catalogs, unsigned int seed);
+
+// The ceiling at `level`, in the branch `advancement` ends: the character
+// --mode=max seeds, a player who spent well standing there. A fight measured
+// against one is measured against the game's own answer rather than a sim's.
+//
+// The bosses are a plain field here as in NewState, so a sim that fights one
+// assigns them itself.
+GameState NewMaxState(const Catalogs& catalogs, JobAdvancement advancement,
+                      int level, unsigned int seed);
 
 // The maps worth fighting on: the ones with something on them, in the order a
 // player meets them -- by weighted mob level, then by key so two maps of a

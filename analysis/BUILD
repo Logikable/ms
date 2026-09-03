@@ -262,6 +262,25 @@ sim_binary(
 )
 
 sim_binary(
+    name = "boss_ladder_sim",
+    srcs = ["boss_ladder_sim.cc"],
+    deps = [
+        ":parallel",
+        ":sim_boss",
+        ":sim_format",
+        ":sim_jobs",
+        ":sim_world",
+        "//src:game_state",
+        "//src/character",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:character_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/strings",
+    ],
+)
+
+sim_binary(
     name = "progression_sim",
     srcs = ["progression_sim.cc"],
     deps = [

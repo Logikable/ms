@@ -32,6 +32,16 @@ GameState NewState(const Catalogs& catalogs, unsigned int seed) {
                    GameMode::kPlay, TestOptions{}, seed, catalogs.sets);
 }
 
+GameState NewMaxState(const Catalogs& catalogs, JobAdvancement advancement,
+                      int level, unsigned int seed) {
+  TestOptions options;
+  options.job = advancement;
+  options.level = level;
+  return GameState(catalogs.equips, catalogs.scrolls, catalogs.items,
+                   catalogs.mobs, catalogs.maps, catalogs.skills,
+                   GameMode::kMax, options, seed, catalogs.sets);
+}
+
 std::vector<std::string> HuntingGrounds(const Catalogs& catalogs) {
   std::vector<std::pair<double, std::string>> sorted;
   for (const std::pair<const std::string, MapData>& entry : catalogs.maps) {
