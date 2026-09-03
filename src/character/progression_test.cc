@@ -353,11 +353,13 @@ TEST_F(ProgressionTest, EachBandStartsOnTheLevelItNames) {
   EXPECT_DOUBLE_EQ(GameSpeedFactor(29), 3.0);
   EXPECT_DOUBLE_EQ(GameSpeedFactor(30), 4.0);
   EXPECT_DOUBLE_EQ(GameSpeedFactor(59), 4.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(60), 6.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(99), 6.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(100), 8.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(139), 8.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(140), 10.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(60), 5.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(99), 5.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(100), 6.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(139), 6.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(140), 8.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(199), 8.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(200), 10.0);
 }
 
 // Nothing beyond the last band, and nothing below the first: the table has to
