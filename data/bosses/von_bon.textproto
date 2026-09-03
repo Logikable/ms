@@ -1,0 +1,35 @@
+name: "Von Bon"
+difficulties {
+  # No Normal: Root Abyss is fought at Chaos or not at all.
+  name: "Chaos"
+  # One body alone in the arena, as Hilla, Magnus, Arkarium and Cygnus are.
+  phases {
+    spawns { mob: "chaos_von_bon" spots { x: 4 y: 4 } }
+    # The floor under the boss, walked end to end.
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  # The same clock Cygnus is fought against, the other fight at the cap.
+  time_limit_seconds: 900
+  # The level cap. All four open together, on the day the character tops out.
+  unlock_level: 200
+  # Five Intense Power Crystals at what GMS prices this fight, divided by
+  # seven: GMS clears Root Abyss once a week and this game once a day.
+  meso: 11550000
+  # No EXP for the clear. A character standing at the cap has nowhere to put
+  # it, and these four are fought for what they drop.
+  drops {
+    item: "piece_of_time"
+    per_kill: 1.0
+  }
+  drops {
+    item: "von_bons_soul_shard"
+    per_kill: 1.0
+  }
+}

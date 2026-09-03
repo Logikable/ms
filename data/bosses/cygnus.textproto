@@ -15,8 +15,9 @@ difficulties {
     arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
-  # What every fight past the level-160 gate allows.
-  time_limit_seconds: 600
+  # Half again what the fights below her allow. She is the wall at the cap,
+  # and Root Abyss stands beside her on the same clock.
+  time_limit_seconds: 900
   # The last gate in the game, and the only one at the level cap.
   unlock_level: 200
   # Five Intense Power Crystals at what GMS prices hers, divided by seven:

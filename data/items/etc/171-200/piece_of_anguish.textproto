@@ -1,0 +1,7 @@
+# A currency rather than litter: it sells for nothing, and one falls from every
+# clear. No mark yet -- a mark is what the shop asks by, and the Root Abyss
+# gear these buy is not built. It comes with the gear.
+name: "Piece of Anguish"
+category: ITEM_CATEGORY_ETC
+kind: ITEM_KIND_TOKEN
+description: "A cinder from the Chaos Crimson Queen's fire, too hot to set down."

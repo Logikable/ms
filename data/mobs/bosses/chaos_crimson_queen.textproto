@@ -1,0 +1,7 @@
+name: "Chaos Crimson Queen"
+level: 190
+attack: 20400
+max_hp: 140000000000
+exp: 0
+pdr: 120
+boss: true

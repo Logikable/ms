@@ -1,0 +1,7 @@
+name: "Chaos Vellum"
+level: 190
+attack: 46000
+max_hp: 200000000000
+exp: 0
+pdr: 200
+boss: true

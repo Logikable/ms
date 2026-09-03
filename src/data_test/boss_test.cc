@@ -97,8 +97,10 @@ TEST_F(BossDataTest, EveryDifficultyIsNamedClockedAndReset) {
 
 // EXP and meso belong to the fight, not to the body that ends it: the clear
 // pays them once, flat, and the reward path ignores whatever a boss mob
-// carries. A number left on the mob is a payout nobody ever receives.
+// carries. A number left on the mob is a payout nobody ever receives. Meso is
+// owed by every fight; EXP is not, and the exception is pinned below.
 TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
+  std::vector<std::string> unpaid;
   for (const std::pair<const std::string, Mob>& entry : mobs_) {
     if (!entry.second.boss()) {
       continue;
@@ -111,12 +113,16 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
       if (difficulty.coming_soon()) {
         continue;
       }
-      EXPECT_GT(difficulty.exp(), 0)
-          << entry.first << " " << difficulty.name() << " pays no EXP";
       EXPECT_GT(difficulty.meso(), 0)
           << entry.first << " " << difficulty.name() << " pays no meso";
+      if (difficulty.exp() == 0) {
+        unpaid.push_back(entry.first);
+      }
     }
   }
+  // Root Abyss alone, which opens at the cap and pays in pieces instead.
+  EXPECT_EQ(unpaid, std::vector<std::string>(
+                        {"crimson_queen", "pierre", "vellum", "von_bon"}));
 }
 
 // A fight that is not built yet must say nothing it has not decided: the
@@ -236,8 +242,9 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).kind(), ITEM_KIND_SOUL_SHARD) << where;
     }
   }
-  EXPECT_EQ(fights, 9) << "Zakum, Magnus, Pink Bean, Arkarium, Cygnus and "
-                          "both difficulties of Hilla and of Horntail";
+  EXPECT_EQ(fights, 13) << "Zakum, Magnus, Pink Bean, Arkarium, Cygnus, the "
+                           "four of Root Abyss, and both difficulties of "
+                           "Hilla and of Horntail";
 }
 
 // A boss pays in meso and in gear, and the gear is the reward: selling it back
@@ -466,7 +473,7 @@ TEST_F(BossDataTest, NormalCygnusIsOneBodyBehindTheLastGate) {
   const BossDifficulty& normal = bosses_.at("cygnus").difficulties(0);
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
-  EXPECT_EQ(normal.time_limit_seconds(), 600);
+  EXPECT_EQ(normal.time_limit_seconds(), 900);
   EXPECT_EQ(normal.unlock_level(), 200);
   EXPECT_EQ(normal.meso(), 10300000);
   EXPECT_EQ(normal.exp(), 204000000);
@@ -549,9 +556,10 @@ TEST_F(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
 // three always has somewhere left to walk.
 TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   std::map<std::string, std::vector<int>> expected = {
-      {"zakum", {7, 5}},    {"hilla", {5}},    {"horntail", {6, 6, 6}},
-      {"magnus", {5}},      {"arkarium", {5}}, {"cygnus", {5}},
-      {"pink_bean", {5, 5}}};
+      {"zakum", {7, 5}},      {"hilla", {5}},    {"horntail", {6, 6, 6}},
+      {"magnus", {5}},        {"arkarium", {5}}, {"cygnus", {5}},
+      {"pink_bean", {5, 5}},  {"pierre", {5}},   {"von_bon", {5}},
+      {"crimson_queen", {5}}, {"vellum", {5}}};
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses_.count(want.first), 0u) << want.first;
     for (const BossDifficulty& difficulty :
@@ -564,6 +572,63 @@ TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
             << where << " phase " << i + 1;
       }
     }
+  }
+}
+
+// The four of Root Abyss, which open together at the cap. Same lone body in
+// the same room as Hilla and Cygnus, told apart by what stands in it: HP
+// climbing 80B to 200B and defence climbing with it, past the 100% no fight
+// before them crossed. Pinned for the reason Zakum's numbers are.
+TEST_F(BossDataTest, RootAbyssIsFourBodiesBehindClimbingDefence) {
+  struct Want {
+    std::string boss;
+    std::string mob;
+    int64_t hp;
+    int attack;
+    int pdr;
+    int64_t meso;
+    int seconds;
+    std::string piece;
+  };
+  std::vector<Want> wants = {
+      {"pierre", "chaos_pierre", 80000000000LL, 35000, 80, 11550000, 900,
+       "piece_of_mockery"},
+      {"von_bon", "chaos_von_bon", 100000000000LL, 30000, 100, 11550000, 900,
+       "piece_of_time"},
+      {"crimson_queen", "chaos_crimson_queen", 140000000000LL, 20400, 120,
+       11550000, 900, "piece_of_anguish"},
+      {"vellum", "chaos_vellum", 200000000000LL, 46000, 200, 15000000, 1200,
+       "piece_of_destruction"}};
+  std::map<std::string, ItemPrototype> items = LoadItems();
+  for (const Want& want : wants) {
+    ASSERT_GT(bosses_.count(want.boss), 0u) << want.boss;
+    // No Normal rung: Root Abyss is fought at Chaos or not at all.
+    ASSERT_EQ(bosses_.at(want.boss).difficulties_size(), 1) << want.boss;
+    const BossDifficulty& chaos = bosses_.at(want.boss).difficulties(0);
+    EXPECT_EQ(chaos.name(), "Chaos") << want.boss;
+    EXPECT_EQ(chaos.reset(), RESET_PERIOD_DAILY) << want.boss;
+    EXPECT_EQ(chaos.unlock_level(), 200) << want.boss;
+    EXPECT_EQ(chaos.time_limit_seconds(), want.seconds) << want.boss;
+    EXPECT_EQ(chaos.meso(), want.meso) << want.boss;
+    ASSERT_EQ(chaos.phases_size(), 1) << want.boss;
+    ASSERT_EQ(chaos.phases(0).spawns_size(), 1) << want.boss;
+    EXPECT_EQ(SpawnCount(chaos.phases(0).spawns(0)), 1) << want.boss;
+    EXPECT_EQ(chaos.phases(0).spawns(0).mob(), want.mob) << want.boss;
+    const Mob& mob = mobs_.at(want.mob);
+    EXPECT_EQ(mob.level(), 190) << want.boss;
+    EXPECT_EQ(mob.max_hp(), want.hp) << want.boss;
+    EXPECT_EQ(mob.attack(), want.attack) << want.boss;
+    EXPECT_EQ(mob.pdr(), want.pdr) << want.boss;
+    // The piece is the prize, and a token is what buys gear with: the Root
+    // Abyss set it pays for is not built yet, so it carries no mark to be
+    // asked for by.
+    ASSERT_GT(items.count(want.piece), 0u) << want.piece;
+    EXPECT_EQ(items.at(want.piece).kind(), ITEM_KIND_TOKEN) << want.piece;
+    bool dropped = false;
+    for (const MobDrop& drop : chaos.drops()) {
+      dropped = dropped || drop.item() == want.piece;
+    }
+    EXPECT_TRUE(dropped) << want.boss << " drops no " << want.piece;
   }
 }
 
