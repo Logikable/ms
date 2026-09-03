@@ -483,10 +483,10 @@ bool TitleChipLit(std::chrono::steady_clock::time_point now) {
 }
 
 ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
-                            ftxui::Color accent, bool focused,
+                            ftxui::Color accent, bool focused, bool blink,
                             std::chrono::steady_clock::time_point now) {
   ftxui::Element title_el = ftxui::text(title) | ftxui::color(accent);
-  if (focused && TitleChipLit(now)) {
+  if (focused && (!blink || TitleChipLit(now))) {
     title_el = title_el | ftxui::inverted;
   }
   return ftxui::window(std::move(title_el),
@@ -495,9 +495,9 @@ ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
 }
 
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
-                            bool focused,
+                            bool focused, bool blink,
                             std::chrono::steady_clock::time_point now) {
-  return AccentWindow(title, std::move(content), kTheme, focused, now);
+  return AccentWindow(title, std::move(content), kTheme, focused, blink, now);
 }
 
 ftxui::Element CenteredRow(ftxui::Element row) {

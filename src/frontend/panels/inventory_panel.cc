@@ -627,7 +627,7 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
                         RenderExpandTab(focused && zone_ == kZoneTabs),
                         bar_box_),
            std::move(body) | ftxui::flex}),
-      PanelAccent(highlighted_), focused);
+      PanelAccent(highlighted_), focused, account_.panel_title_blink());
 }
 
 ftxui::Element InventoryPanel::RenderRow(const ftxui::EntryState& state) {

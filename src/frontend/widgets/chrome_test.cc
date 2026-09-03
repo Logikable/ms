@@ -253,11 +253,12 @@ std::chrono::steady_clock::time_point LitBeat() {
 }
 
 // The pixel under the title's first letter, with the blink's clock pinned.
-ftxui::Pixel TitlePixel(bool focused,
-                        std::chrono::steady_clock::time_point at) {
+ftxui::Pixel TitlePixel(bool focused, std::chrono::steady_clock::time_point at,
+                        bool blink = true) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(12),
                                                ftxui::Dimension::Fixed(3));
-  ftxui::Render(screen, ThemedWindow(" T ", ftxui::text("x"), focused, at));
+  ftxui::Render(screen,
+                ThemedWindow(" T ", ftxui::text("x"), focused, blink, at));
   return screen.PixelAt(2, 0);
 }
 
@@ -275,6 +276,17 @@ TEST(TitleBlinkTest, TheFocusedTitleChipComesAndGoes) {
   std::chrono::steady_clock::time_point lit = LitBeat();
   EXPECT_TRUE(TitlePixel(/*focused=*/true, lit).inverted);
   EXPECT_FALSE(TitlePixel(/*focused=*/true, lit + kTitleBlinkHalf).inverted);
+}
+
+// With the option off the chip stops pulsing but still marks the panel: the
+// blink is what the player switched off, not the mark itself.
+TEST(TitleBlinkTest, WithoutTheOptionTheChipIsHeldSolid) {
+  std::chrono::steady_clock::time_point lit = LitBeat();
+  EXPECT_TRUE(TitlePixel(/*focused=*/true, lit, /*blink=*/false).inverted);
+  EXPECT_TRUE(TitlePixel(/*focused=*/true, lit + kTitleBlinkHalf,
+                         /*blink=*/false)
+                  .inverted);
+  EXPECT_FALSE(TitlePixel(/*focused=*/false, lit, /*blink=*/false).inverted);
 }
 
 // Only the focused window blinks, and it blinks back to the ordinary title

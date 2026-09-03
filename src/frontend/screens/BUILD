@@ -60,6 +60,33 @@ cc_test(
 )
 
 cc_library(
+    name = "options_panel",
+    srcs = ["options_panel.cc"],
+    hdrs = ["options_panel.h"],
+    deps = [
+        "//src:account",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:keys",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "options_panel_test",
+    size = "small",
+    srcs = ["options_panel_test.cc"],
+    deps = [
+        ":options_panel",
+        "//src:account",
+        "//src/frontend/widgets:screen_text",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "inspect_panel",
     srcs = ["inspect_panel.cc"],
     hdrs = ["inspect_panel.h"],

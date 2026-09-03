@@ -1219,7 +1219,8 @@ ftxui::Element CharacterPanel::Render() const {
   }
   rows.push_back(content);
   return AccentWindow(" Character ", ftxui::vbox(std::move(rows)),
-                      PanelAccent(highlighted_), focused);
+                      PanelAccent(highlighted_), focused,
+                      account_.panel_title_blink());
 }
 
 bool CharacterPanel::OnUsernameEvent(const ftxui::Event& event) {

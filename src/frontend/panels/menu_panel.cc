@@ -76,7 +76,7 @@ std::vector<std::string> MenuPanel::BoxEntries(MenuEntry entry) const {
     case MenuEntry::kAnalysis:
       return {analysis_.stops_on_press() ? "Stop" : "Start", "View"};
     case MenuEntry::kSettings:
-      return {"Keybinds"};
+      return {"Keybinds", "Options"};
   }
   return {};
 }
@@ -108,8 +108,7 @@ void MenuPanel::MoveBoxCursor(int delta) {
 }
 
 SettingsEntry MenuPanel::selected_settings_entry() const {
-  // One entry, so the cursor cannot be on anything else.
-  return SettingsEntry::kKeybinds;
+  return box_cursor_ <= 0 ? SettingsEntry::kKeybinds : SettingsEntry::kOptions;
 }
 
 AnalysisEntry MenuPanel::selected_analysis_entry() const {
@@ -199,7 +198,8 @@ ftxui::Element MenuPanel::Render() const {
     row.push_back(std::move(button));
   }
   row.push_back(ftxui::text(" "));
-  return ThemedWindow(" Menu ", ftxui::hbox(std::move(row)), focused);
+  return ThemedWindow(" Menu ", ftxui::hbox(std::move(row)), focused,
+                      state_.account.panel_title_blink());
 }
 
 ftxui::Component MenuPanel::MakeComponent(

@@ -63,6 +63,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       pot_info_panel_(screens.pot_info_panel),
       menu_panel_(screens.menu_panel),
       keybinds_panel_(screens.keybinds_panel),
+      options_panel_(screens.options_panel),
       analysis_(analysis),
       keys_(keys),
       shop_panel_(screens.shop_panel),
@@ -533,6 +534,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnAnalysisEvent(event);
     case kKeybinds:
       return OnKeybindsEvent(event);
+    case kOptions:
+      return OnOptionsEvent(event);
     case kOffline:
       return OnOfflineEvent(event);
     case kQuit:
@@ -1844,6 +1847,10 @@ void TuiController::OpenBoxEntry() {
           keybinds_panel_.Reset();
           screen_ = kKeybinds;
           return;
+        case SettingsEntry::kOptions:
+          options_panel_.Reset();
+          screen_ = kOptions;
+          return;
       }
       return;
   }
@@ -1867,6 +1874,36 @@ void TuiController::LeaveKeybinds() {
   // Back to the box it was opened from, which is still standing where the
   // player left it.
   screen_ = kMenuBox;
+}
+
+void TuiController::LeaveOptions() {
+  screen_ = kMenuBox;
+}
+
+// Every switch takes effect where it is thrown, so there is nothing to
+// confirm and nothing to undo: Escape and Close are the same door.
+bool TuiController::OnOptionsEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    options_panel_.MoveRow(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    options_panel_.MoveRow(1);
+    return true;
+  }
+  if (IsForward(event)) {
+    if (options_panel_.on_close()) {
+      LeaveOptions();
+      return true;
+    }
+    options_panel_.Toggle();
+    return true;
+  }
+  if (IsBack(event)) {
+    LeaveOptions();
+    return true;
+  }
+  return true;
 }
 
 // The Battle Analysis overlay reads the tool and does nothing to it, so any

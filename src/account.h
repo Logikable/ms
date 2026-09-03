@@ -63,6 +63,15 @@ class AccountInstance {
   void SetMultiplayerAccount(const std::string& account_id,
                              const std::string& token);
 
+  // Whether the focused panel's title blinks, and the switch that sets it.
+  // Off by default: the blink is the option, not the chip that marks focus.
+  bool panel_title_blink() const {
+    return account_.options().panel_title_blink();
+  }
+  void SetPanelTitleBlink(bool on) {
+    account_.mutable_options()->set_panel_title_blink(on);
+  }
+
   // Raises the two watermarks to take in a character who has reached `level`
   // and `job_stage`. They only ever climb: an account does not forget a
   // feature it has opened.

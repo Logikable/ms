@@ -390,12 +390,14 @@ ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
                                    : "Hit Enter to fullscreen Equipment"));
     rows.push_back(ftxui::filler());
     return AccentWindow(" Equipped ", ftxui::vbox(std::move(rows)),
-                        PanelAccent(highlighted_), focused);
+                        PanelAccent(highlighted_), focused,
+                        account_.panel_title_blink());
   }
   if (entries_.empty()) {
     rows.push_back(EmptyState("empty"));
     return AccentWindow(" Equipped ", ftxui::vbox(std::move(rows)),
-                        PanelAccent(highlighted_), focused);
+                        PanelAccent(highlighted_), focused,
+                        account_.panel_title_blink());
   }
   rows.push_back(ftxui::text(Header()));
   rows.push_back(PanelSeparator(highlighted_));
@@ -405,7 +407,8 @@ ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
   rows.push_back(menu->Render() | ftxui::vscroll_indicator | ftxui::yframe |
                  ftxui::flex);
   return AccentWindow(" Equipped ", ftxui::vbox(std::move(rows)),
-                      PanelAccent(highlighted_), focused);
+                      PanelAccent(highlighted_), focused,
+                      account_.panel_title_blink());
 }
 
 bool EquippedPanel::OnTabBarEvent(const ftxui::Event& event,

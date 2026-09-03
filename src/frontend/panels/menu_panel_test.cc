@@ -191,6 +191,11 @@ TEST(MenuPanelTest, TheBoxAndTheMenuRowShareOneCursor) {
   int focus = kMenuPanel;
   MenuPanel panel(state, analysis, focus);
   OpenBoxOn(panel, MenuEntry::kSettings);
+  // Up walks the box from the bottom, so the entry nearest the row is the one
+  // the cursor meets first.
+  panel.MoveBoxCursor(1);
+  EXPECT_EQ(panel.box_cursor(), 1);
+  EXPECT_EQ(panel.selected_settings_entry(), SettingsEntry::kOptions);
   panel.MoveBoxCursor(1);
   EXPECT_EQ(panel.box_cursor(), 0);
   EXPECT_EQ(panel.selected_settings_entry(), SettingsEntry::kKeybinds);

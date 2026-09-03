@@ -34,6 +34,7 @@
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
+#include "src/frontend/screens/options_panel.h"
 #include "src/frontend/screens/party_inspect_panel.h"
 #include "src/frontend/screens/party_select_panel.h"
 #include "src/frontend/screens/pot_info_panel.h"
@@ -102,6 +103,7 @@ struct Screens {
   PotInfoPanel& pot_info_panel;
   MenuPanel& menu_panel;
   KeybindsPanel& keybinds_panel;
+  OptionsPanel& options_panel;
 };
 
 class TuiController {
@@ -573,12 +575,14 @@ class TuiController {
   void OpenAnalysisEntry(AnalysisEntry entry);
   bool OnAnalysisEvent(ftxui::Event event);
   bool OnKeybindsEvent(ftxui::Event event);
+  bool OnOptionsEvent(ftxui::Event event);
   // Puts the captured key in the waiting slot, or says why it could not go
   // there. Ignores what is not a key at all -- the ticker's own redraw among
   // them -- so the slot goes on waiting for one.
   void TakeCapturedKey(const ftxui::Event& key);
   // Leaves the Keybinds screen for the box it was opened from.
   void LeaveKeybinds();
+  void LeaveOptions();
   bool OnShopEvent(ftxui::Event event);
   bool OnShopMenuEvent(ftxui::Event event);
   bool OnShopInspectEvent(ftxui::Event event);
@@ -624,6 +628,7 @@ class TuiController {
   PotInfoPanel& pot_info_panel_;
   MenuPanel& menu_panel_;
   KeybindsPanel& keybinds_panel_;
+  OptionsPanel& options_panel_;
   // The measurement the Analysis entry starts and stops. Owned by the session,
   // not by the controller: it outlives every screen it is read from.
   BattleAnalysis& analysis_;

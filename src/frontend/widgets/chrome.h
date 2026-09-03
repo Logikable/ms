@@ -234,19 +234,25 @@ bool TitleChipLit(std::chrono::steady_clock::time_point now);
 // of the steel blue to be noticed. Every window is built from this, so a lit
 // one differs from an ordinary one in colour and nothing else.
 //
+// `blink` is the player's Options setting, which only the five main-screen
+// panels have any reason to pass: a focused title pulses with it and is held
+// solid without it. It defaults to off, so a window blinks only where someone
+// hands it the preference.
+//
 // `now` is the blink's clock, which only a test has any reason to hand in.
 ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
                             ftxui::Color accent, bool focused = false,
+                            bool blink = false,
                             std::chrono::steady_clock::time_point now =
                                 std::chrono::steady_clock::now());
 
 // Wraps content in a bordered window with the game's steel-blue theme color on
 // the border and title. Content foreground is set to white; explicitly colored
 // elements (gold stars, gold SF, and so on) and ThemedSeparator override it.
-// Pass focused=true to blink the title into a solid chip, marking the panel
-// that currently holds focus.
+// Pass focused=true to light the title into a solid chip, marking the panel
+// that currently holds focus, and blink=true to pulse that chip instead.
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
-                            bool focused = false,
+                            bool focused = false, bool blink = false,
                             std::chrono::steady_clock::time_point now =
                                 std::chrono::steady_clock::now());
 

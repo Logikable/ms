@@ -86,6 +86,7 @@ struct Client {
     menu_panel = std::make_unique<MenuPanel>(*state, analysis, focus);
     keys = std::make_unique<KeyMap>(state->account.mutable_keybinds());
     keybinds_panel = std::make_unique<KeybindsPanel>(*keys);
+    options_panel = std::make_unique<OptionsPanel>(state->account);
     controller = std::make_unique<TuiController>(
         *state,
         Screens{*char_panel,       *equip_panel,         *inventory_panel,
@@ -95,7 +96,8 @@ struct Client {
                 *map_select_panel, *mob_inspect_panel,   *boss_select_panel,
                 party_panel,       *party_inspect_panel, *shop_panel,
                 buy_panel,         *job_inspect_panel,   skill_inspect_panel,
-                pot_info_panel,    *menu_panel,          *keybinds_panel},
+                pot_info_panel,    *menu_panel,          *keybinds_panel,
+                *options_panel},
         analysis, *keys, focus, &session);
   }
 
@@ -143,6 +145,7 @@ struct Client {
   std::unique_ptr<MenuPanel> menu_panel;
   std::unique_ptr<KeyMap> keys;
   std::unique_ptr<KeybindsPanel> keybinds_panel;
+  std::unique_ptr<OptionsPanel> options_panel;
   std::unique_ptr<TuiController> controller;
 };
 

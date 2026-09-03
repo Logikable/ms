@@ -136,6 +136,7 @@ Tui::Tui(GameState& state, std::string save_path, std::string server)
       party_select_panel_(),
       job_inspect_panel_(state.skills),
       keybinds_panel_(keys_),
+      options_panel_(state.account),
       all_stats_panel_(state.character, &state.account, state.skills),
       party_inspect_panel_(state),
       multi_sell_panel_(state.character, state.account),
@@ -150,7 +151,8 @@ Tui::Tui(GameState& state, std::string save_path, std::string server)
               map_select_panel_,   mob_inspect_panel_,   boss_select_panel_,
               party_select_panel_, party_inspect_panel_, shop_panel_,
               buy_panel_,          job_inspect_panel_,   skill_inspect_panel_,
-              pot_info_panel_,     menu_panel_,          keybinds_panel_},
+              pot_info_panel_,     menu_panel_,          keybinds_panel_,
+              options_panel_},
           analysis_, keys_, panel_focus_, multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
@@ -821,6 +823,8 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(analysis_panel_.Render());
     case kKeybinds:
       return ftxui::center(keybinds_panel_.Render());
+    case kOptions:
+      return ftxui::center(options_panel_.Render());
     case kPartySelect:
     case kPartyMenu:
     case kPartyConfirm:

@@ -237,6 +237,7 @@ class TuiControllerTest : public testing::Test {
     menu_panel_ = std::make_unique<MenuPanel>(*state_, analysis_, panel_focus_);
     keys_ = std::make_unique<KeyMap>(state_->account.mutable_keybinds());
     keybinds_panel_ = std::make_unique<KeybindsPanel>(*keys_);
+    options_panel_ = std::make_unique<OptionsPanel>(state_->account);
     controller_ = std::make_unique<TuiController>(
         *state_,
         Screens{
@@ -247,7 +248,8 @@ class TuiControllerTest : public testing::Test {
             *map_select_panel_,  *mob_inspect_panel_,   *boss_select_panel_,
             party_select_panel_, *party_inspect_panel_, *shop_panel_,
             *buy_panel_,         *job_inspect_panel_,   skill_inspect_panel_,
-            pot_info_panel_,     *menu_panel_,          *keybinds_panel_},
+            pot_info_panel_,     *menu_panel_,          *keybinds_panel_,
+            *options_panel_},
         analysis_, *keys_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
@@ -259,7 +261,16 @@ class TuiControllerTest : public testing::Test {
   }
 
   // Opens the Keybinds screen the way a player does, from the Settings box.
+  // Up walks the Settings box from the bottom, so Keybinds is the second stop
+  // and Options the first.
   void OpenKeybinds() {
+    controller_->OpenMenuEntry(MenuEntry::kSettings);
+    controller_->OnEvent(ftxui::Event::ArrowUp);
+    controller_->OnEvent(ftxui::Event::ArrowUp);
+    controller_->OnEvent(ftxui::Event::Return);
+  }
+
+  void OpenOptions() {
     controller_->OpenMenuEntry(MenuEntry::kSettings);
     controller_->OnEvent(ftxui::Event::ArrowUp);
     controller_->OnEvent(ftxui::Event::Return);
@@ -386,7 +397,8 @@ class TuiControllerTest : public testing::Test {
             *map_select_panel_,  *mob_inspect_panel_,   *boss_select_panel_,
             party_select_panel_, *party_inspect_panel_, *shop_panel_,
             *buy_panel_,         *job_inspect_panel_,   skill_inspect_panel_,
-            pot_info_panel_,     *menu_panel_,          *keybinds_panel_},
+            pot_info_panel_,     *menu_panel_,          *keybinds_panel_,
+            *options_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -522,7 +534,8 @@ class TuiControllerTest : public testing::Test {
             *map_select_panel_,  *mob_inspect_panel_,   *boss_select_panel_,
             party_select_panel_, *party_inspect_panel_, *shop_panel_,
             *buy_panel_,         *job_inspect_panel_,   skill_inspect_panel_,
-            pot_info_panel_,     *menu_panel_,          *keybinds_panel_},
+            pot_info_panel_,     *menu_panel_,          *keybinds_panel_,
+            *options_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -570,6 +583,7 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<MenuPanel> menu_panel_;
   std::unique_ptr<KeyMap> keys_;
   std::unique_ptr<KeybindsPanel> keybinds_panel_;
+  std::unique_ptr<OptionsPanel> options_panel_;
   std::unique_ptr<TuiController> controller_;
   ftxui::Component equip_component_;
   ftxui::Component inventory_component_;
@@ -2798,12 +2812,13 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   MenuPanel menu(fresh, analysis, focus);
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
+  OptionsPanel options(fresh.account);
   TuiController controller(
-      fresh,
-      Screens{chars, equip, bag,        scroll, item_card,     trace_card,
-              star,  cube,  trace,      sell,   sell_equip,    multi_sell,
-              maps,  mobs,  bosses,     party,  party_inspect, shop,
-              buy,   jobs,  skill_card, pots,   menu,          keybinds},
+      fresh, Screens{chars,      equip,         bag,  scroll,   item_card,
+                     trace_card, star,          cube, trace,    sell,
+                     sell_equip, multi_sell,    maps, mobs,     bosses,
+                     party,      party_inspect, shop, buy,      jobs,
+                     skill_card, pots,          menu, keybinds, options},
       analysis, keys, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
@@ -2862,12 +2877,13 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   MenuPanel menu(fresh, analysis, focus);
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
+  OptionsPanel options(fresh.account);
   TuiController controller(
-      fresh,
-      Screens{chars, equip, bag,        scroll, item_card,     trace_card,
-              star,  cube,  trace,      sell,   sell_equip,    multi_sell,
-              maps,  mobs,  bosses,     party,  party_inspect, shop,
-              buy,   jobs,  skill_card, pots,   menu,          keybinds},
+      fresh, Screens{chars,      equip,         bag,  scroll,   item_card,
+                     trace_card, star,          cube, trace,    sell,
+                     sell_equip, multi_sell,    maps, mobs,     bosses,
+                     party,      party_inspect, shop, buy,      jobs,
+                     skill_card, pots,          menu, keybinds, options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
@@ -2909,12 +2925,13 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   MenuPanel menu(fresh, analysis, focus);
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
+  OptionsPanel options(fresh.account);
   TuiController controller(
-      fresh,
-      Screens{chars, equip, bag,        scroll, item_card,     trace_card,
-              star,  cube,  trace,      sell,   sell_equip,    multi_sell,
-              maps,  mobs,  bosses,     party,  party_inspect, shop,
-              buy,   jobs,  skill_card, pots,   menu,          keybinds},
+      fresh, Screens{chars,      equip,         bag,  scroll,   item_card,
+                     trace_card, star,          cube, trace,    sell,
+                     sell_equip, multi_sell,    maps, mobs,     bosses,
+                     party,      party_inspect, shop, buy,      jobs,
+                     skill_card, pots,          menu, keybinds, options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
@@ -2956,12 +2973,13 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   MenuPanel menu(fresh, analysis, focus);
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
+  OptionsPanel options(fresh.account);
   TuiController controller(
-      fresh,
-      Screens{chars, equip, bag,        scroll, item_card,     trace_card,
-              star,  cube,  trace,      sell,   sell_equip,    multi_sell,
-              maps,  mobs,  bosses,     party,  party_inspect, shop,
-              buy,   jobs,  skill_card, pots,   menu,          keybinds},
+      fresh, Screens{chars,      equip,         bag,  scroll,   item_card,
+                     trace_card, star,          cube, trace,    sell,
+                     sell_equip, multi_sell,    maps, mobs,     bosses,
+                     party,      party_inspect, shop, buy,      jobs,
+                     skill_card, pots,          menu, keybinds, options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all
@@ -3139,7 +3157,7 @@ TEST_F(TuiControllerTest, SettingsOpensItsBoxOverTheCorner) {
   // The cursor is still on the menu row until the player walks up into it.
   EXPECT_EQ(menu_panel_->box_cursor(), -1);
   controller_->OnEvent(ftxui::Event::ArrowUp);
-  EXPECT_EQ(menu_panel_->box_cursor(), 0);
+  EXPECT_EQ(menu_panel_->box_cursor(), 1);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(menu_panel_->box_cursor(), -1);
   // Escape puts the box away.
@@ -3169,13 +3187,11 @@ TEST_F(TuiControllerTest, LeftInsideTheBoxDoesNothing) {
   controller_->OnEvent(ftxui::Event::ArrowUp);
   controller_->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_TRUE(menu_panel_->box_open());
-  EXPECT_EQ(menu_panel_->box_cursor(), 0);
+  EXPECT_EQ(menu_panel_->box_cursor(), 1);
 }
 
 TEST_F(TuiControllerTest, KeybindsOpensFromTheBoxAndComesBackToIt) {
-  controller_->OpenMenuEntry(MenuEntry::kSettings);
-  controller_->OnEvent(ftxui::Event::ArrowUp);
-  controller_->OnEvent(ftxui::Event::Return);
+  OpenKeybinds();
   EXPECT_EQ(controller_->screen(), kKeybinds);
   // Escape on a slot with nothing in it goes back to the box, which is still
   // standing where it was left.
@@ -3266,6 +3282,36 @@ TEST_F(TuiControllerTest, TheCloseButtonLeavesTheScreen) {
   EXPECT_TRUE(keybinds_panel_->on_close());
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMenuBox);
+}
+
+TEST_F(TuiControllerTest, OptionsOpensFromTheBoxAndComesBackToIt) {
+  OpenOptions();
+  EXPECT_EQ(controller_->screen(), kOptions);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMenuBox);
+  EXPECT_TRUE(menu_panel_->box_open());
+}
+
+// The switch takes effect where it is thrown: there is no confirmation and
+// nothing to close before the panels are drawing the other way.
+TEST_F(TuiControllerTest, EnterOnAnOptionThrowsItsSwitch) {
+  OpenOptions();
+  ASSERT_FALSE(state_->account.panel_title_blink());
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(state_->account.panel_title_blink());
+  EXPECT_EQ(controller_->screen(), kOptions) << "the screen stays up";
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(state_->account.panel_title_blink());
+}
+
+TEST_F(TuiControllerTest, TheOptionsCloseButtonLeavesTheScreen) {
+  OpenOptions();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_TRUE(options_panel_->on_close());
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMenuBox);
+  // Close threw no switch on its way out.
+  EXPECT_FALSE(state_->account.panel_title_blink());
 }
 
 // --- battle analysis ---

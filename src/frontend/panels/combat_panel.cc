@@ -117,7 +117,8 @@ ftxui::Element CombatPanel::Render() const {
                                kOrange, "Respawn", ftxui::Color::White));
   }
 
-  return ThemedWindow(" Combat ", ftxui::vbox(std::move(rows)), focused);
+  return ThemedWindow(" Combat ", ftxui::vbox(std::move(rows)), focused,
+                      state_.account.panel_title_blink());
 }
 
 ftxui::Component CombatPanel::MakeComponent(std::function<void()> on_travel) {

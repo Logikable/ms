@@ -42,6 +42,7 @@
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
+#include "src/frontend/screens/options_panel.h"
 #include "src/frontend/screens/party_inspect_panel.h"
 #include "src/frontend/screens/party_select_panel.h"
 #include "src/frontend/screens/pot_info_panel.h"
@@ -224,6 +225,7 @@ class Tui {
   JobInspectPanel job_inspect_panel_;
   // The keys, on a screen of their own, reached from the Settings box.
   KeybindsPanel keybinds_panel_;
+  OptionsPanel options_panel_;
   // Every stat on one screen, reached from the Character panel's last row.
   AllStatsPanel all_stats_panel_;
   HyperStatInspectPanel hyper_stat_inspect_panel_;

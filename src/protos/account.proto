@@ -41,4 +41,17 @@ message Account {
   // opened, gold trails walked. The keys are the frontend's -- see
   // chrome.h and progression.cc -- and this only keeps the record.
   repeated string seen_keys = 4;
+
+  // What the player has switched on and off on the Options screen.
+  Options options = 7;
+}
+
+// The switches the Options screen holds, one field apiece. Every one is
+// written so that its default -- an unset field, which is what a save from
+// before the option existed has -- is the state the game ships in. A new
+// option that ships on has to be phrased as what it turns off.
+message Options {
+  // Whether the title of the panel holding focus blinks. Off, which is the
+  // default, holds the chip lit instead of pulsing it.
+  bool panel_title_blink = 1;
 }

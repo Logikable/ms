@@ -39,6 +39,7 @@ enum class MenuEntry {
 // What the Settings box holds, top to bottom.
 enum class SettingsEntry {
   kKeybinds,
+  kOptions,
 };
 
 // What the Analysis box holds, top to bottom. The first entry starts the
