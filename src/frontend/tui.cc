@@ -789,8 +789,10 @@ ftxui::Element Tui::RenderScreen() {
     case kQuit:
       return OverMain(QuitDialog());
     case kOffline:
-      return OverMain(OfflinePopupPanel(controller_.offline_report(),
-                                        controller_.offline_prompt().Render()));
+      return OverMain(OfflinePopupPanel(
+          controller_.offline_report(), controller_.offline_prompt().Render(),
+          HonorVisible(state_.character.proto().level(),
+                       state_.account.max_level())));
     case kSell:
       return OverMain(sell_panel_.Render());
     case kSellEquip:

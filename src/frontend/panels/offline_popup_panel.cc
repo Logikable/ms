@@ -50,7 +50,7 @@ std::string FormatAbsence(double seconds) {
 }
 
 ftxui::Element OfflinePopupPanel(const OfflineReport& report,
-                                 ftxui::Element prompt) {
+                                 ftxui::Element prompt, bool show_honor) {
   std::vector<ftxui::Element> rows;
   rows.push_back(CenteredRow("Away for " + FormatAbsence(report.absence)));
   rows.push_back(AccentSeparator(kTheme));
@@ -61,16 +61,25 @@ ftxui::Element OfflinePopupPanel(const OfflineReport& report,
   } else {
     rows.push_back(CenteredRow(FormatWithCommas(report.kills) + " kills on " +
                                report.map_name));
-    if (report.rewards.exp > 0) {
-      rows.push_back(
-          CenteredRow(FormatWithCommas(report.rewards.exp) + " EXP"));
-    }
+    // The levels first: climbing one is the news, and everything under it is
+    // what the climb was made of.
     if (report.end_level > report.start_level) {
       rows.push_back(CenteredRow("Level " + std::to_string(report.start_level) +
                                  " -> " + std::to_string(report.end_level)));
     }
+    if (report.rewards.exp > 0) {
+      rows.push_back(
+          CenteredRow(FormatWithCommas(report.rewards.exp) + " EXP"));
+    }
     if (report.rewards.meso > 0) {
       rows.push_back(CenteredRow(FormatMeso(report.rewards.meso)));
+    }
+    if (report.rewards.honor > 0 && show_honor) {
+      rows.push_back(
+          CenteredRow(FormatWithCommas(report.rewards.honor) + " Honor"));
+    }
+    if (!report.rewards.items.empty()) {
+      rows.push_back(AccentSeparator(kTheme));
     }
     for (const RewardItem& item : report.rewards.items) {
       rows.push_back(ItemRow(item));
