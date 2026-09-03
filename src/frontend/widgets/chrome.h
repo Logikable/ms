@@ -7,6 +7,7 @@
 #ifndef MS_SRC_FRONTEND_WIDGETS_CHROME_H_
 #define MS_SRC_FRONTEND_WIDGETS_CHROME_H_
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -219,19 +220,35 @@ ftxui::Color PanelAccent(bool highlighted);
 // rather than padding, so a card does not breathe as a level gains a digit.
 inline constexpr int kCelebrationContentWidth = 21;
 
+// How long the focused panel's title chip is held lit, and then dark. The
+// blink is what says where the keys are going, so it is slow enough to read
+// as a heartbeat rather than as a flicker.
+constexpr std::chrono::milliseconds kTitleBlinkHalf(600);
+
+// Whether a focused title's chip is lit at `now`. The phase comes off the
+// clock itself rather than off the moment focus arrived, so every window on
+// screen blinks on one beat and Tab does not restart it.
+bool TitleChipLit(std::chrono::steady_clock::time_point now);
+
 // ThemedWindow in a colour of your choosing, for the few things that step out
 // of the steel blue to be noticed. Every window is built from this, so a lit
 // one differs from an ordinary one in colour and nothing else.
+//
+// `now` is the blink's clock, which only a test has any reason to hand in.
 ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
-                            ftxui::Color accent, bool focused = false);
+                            ftxui::Color accent, bool focused = false,
+                            std::chrono::steady_clock::time_point now =
+                                std::chrono::steady_clock::now());
 
 // Wraps content in a bordered window with the game's steel-blue theme color on
 // the border and title. Content foreground is set to white; explicitly colored
 // elements (gold stars, gold SF, and so on) and ThemedSeparator override it.
-// Pass focused=true to invert the title into a solid chip, marking the panel
+// Pass focused=true to blink the title into a solid chip, marking the panel
 // that currently holds focus.
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
-                            bool focused = false);
+                            bool focused = false,
+                            std::chrono::steady_clock::time_point now =
+                                std::chrono::steady_clock::now());
 
 // Centres a row in its window with a column of clearance on each side. Every
 // centred row in the game goes through this rather than bare hcenter, so that

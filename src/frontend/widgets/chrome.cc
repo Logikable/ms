@@ -1,6 +1,7 @@
 #include "src/frontend/widgets/chrome.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <memory>
@@ -477,10 +478,15 @@ ftxui::Color PanelAccent(bool highlighted) {
   return highlighted ? kYellow : kTheme;
 }
 
+bool TitleChipLit(std::chrono::steady_clock::time_point now) {
+  return (now.time_since_epoch() / kTitleBlinkHalf) % 2 == 0;
+}
+
 ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
-                            ftxui::Color accent, bool focused) {
+                            ftxui::Color accent, bool focused,
+                            std::chrono::steady_clock::time_point now) {
   ftxui::Element title_el = ftxui::text(title) | ftxui::color(accent);
-  if (focused) {
+  if (focused && TitleChipLit(now)) {
     title_el = title_el | ftxui::inverted;
   }
   return ftxui::window(std::move(title_el),
@@ -489,8 +495,9 @@ ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
 }
 
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
-                            bool focused) {
-  return AccentWindow(title, std::move(content), kTheme, focused);
+                            bool focused,
+                            std::chrono::steady_clock::time_point now) {
+  return AccentWindow(title, std::move(content), kTheme, focused, now);
 }
 
 ftxui::Element CenteredRow(ftxui::Element row) {

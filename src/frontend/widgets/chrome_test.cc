@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <map>
 #include <set>
 #include <string>
@@ -233,6 +234,58 @@ TEST(ResultWindowTest, RulesOffTheSubjectAndTheButton) {
   // And the subject is centered by the helper, so no caller can forget to.
   EXPECT_EQ(rows[1].find("Sword"), rows[1].rfind("Sword"));
   EXPECT_GT(rows[1].find("Sword"), 1u);
+}
+
+// --- the focused title's blink ---
+
+// The moment a lit half begins, found by stepping off the end of one half and
+// onto the start of the next, so it does not assume which side of the beat
+// the clock's own zero falls on.
+std::chrono::steady_clock::time_point LitBeat() {
+  std::chrono::steady_clock::time_point at{};
+  while (TitleChipLit(at)) {
+    at += std::chrono::milliseconds(1);
+  }
+  while (!TitleChipLit(at)) {
+    at += std::chrono::milliseconds(1);
+  }
+  return at;
+}
+
+// The pixel under the title's first letter, with the blink's clock pinned.
+ftxui::Pixel TitlePixel(bool focused,
+                        std::chrono::steady_clock::time_point at) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(12),
+                                               ftxui::Dimension::Fixed(3));
+  ftxui::Render(screen, ThemedWindow(" T ", ftxui::text("x"), focused, at));
+  return screen.PixelAt(2, 0);
+}
+
+// The lit half and the dark half are the same length, and the beat is taken
+// off the clock itself -- so two windows drawn a moment apart share it.
+TEST(TitleBlinkTest, AlternatesEveryHalfPeriod) {
+  std::chrono::steady_clock::time_point lit = LitBeat();
+  EXPECT_TRUE(
+      TitleChipLit(lit + kTitleBlinkHalf - std::chrono::milliseconds(1)));
+  EXPECT_FALSE(TitleChipLit(lit + kTitleBlinkHalf));
+  EXPECT_TRUE(TitleChipLit(lit + 2 * kTitleBlinkHalf));
+}
+
+TEST(TitleBlinkTest, TheFocusedTitleChipComesAndGoes) {
+  std::chrono::steady_clock::time_point lit = LitBeat();
+  EXPECT_TRUE(TitlePixel(/*focused=*/true, lit).inverted);
+  EXPECT_FALSE(TitlePixel(/*focused=*/true, lit + kTitleBlinkHalf).inverted);
+}
+
+// Only the focused window blinks, and it blinks back to the ordinary title
+// rather than to nothing: a dark beat still reads as the same panel.
+TEST(TitleBlinkTest, AnUnfocusedTitleNeverInverts) {
+  std::chrono::steady_clock::time_point lit = LitBeat();
+  EXPECT_FALSE(TitlePixel(/*focused=*/false, lit).inverted);
+  EXPECT_FALSE(TitlePixel(/*focused=*/false, lit + kTitleBlinkHalf).inverted);
+  EXPECT_EQ(
+      TitlePixel(/*focused=*/true, lit + kTitleBlinkHalf).foreground_color,
+      kTheme);
 }
 
 // --- CenteredRow ---
