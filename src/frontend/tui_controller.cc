@@ -1749,6 +1749,7 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
     // up when the run goes.
     boss_clear_title_ = boss_run_->title();
     boss_clear_reward_ = boss_run_->reward();
+    boss_clear_seconds_ = boss_run_->clear_seconds();
     boss_clear_prompt_.Open();
     screen_ = kBossClear;
     return;

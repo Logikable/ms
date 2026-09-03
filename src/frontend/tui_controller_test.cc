@@ -3595,6 +3595,7 @@ TEST_F(TuiControllerTest, TheClearCardNamesTheFightAndWhatItPaid) {
   // is what the card stands over.
   EXPECT_NE(controller_->boss_run(), nullptr);
   EXPECT_EQ(controller_->boss_clear_title(), "Normal Zakum");
+  EXPECT_GT(controller_->boss_clear_seconds(), 0.0);
   EXPECT_EQ(controller_->boss_clear_reward().meso, 3062500);
   ASSERT_EQ(controller_->boss_clear_reward().items.size(), 1u);
   EXPECT_EQ(controller_->boss_clear_reward().items[0].name, shard_.name());

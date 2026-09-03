@@ -34,11 +34,11 @@ void RarestFirst(std::vector<const BossRewardItem*>& items) {
 
 }  // namespace
 
-ftxui::Element BossClearPanel(const std::string& title,
+ftxui::Element BossClearPanel(const std::string& title, double seconds,
                               const BossReward& reward, ftxui::Element prompt,
                               bool show_honor) {
   std::vector<ftxui::Element> rows;
-  rows.push_back(CenteredRow(title));
+  rows.push_back(CenteredRow(title + " in " + FormatClock(seconds)));
   rows.push_back(AccentSeparator(kYellow));
   // The meso first: it is the one line every clear pays, so the drops under it
   // read as what this run happened to give.

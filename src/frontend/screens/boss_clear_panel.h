@@ -18,9 +18,12 @@ namespace ms {
 // dismisses it -- inside the border rather than under the card, so the whole
 // of what the player is reading sits in one box.
 //
+// `seconds` is how long the clear took, which the title row carries: "Normal
+// Zakum in 2:47".
+//
 // `show_honor` is HonorVisible: the clear pays honor either way, but a player
 // with nothing to spend it on is not told about a currency yet.
-ftxui::Element BossClearPanel(const std::string& title,
+ftxui::Element BossClearPanel(const std::string& title, double seconds,
                               const BossReward& reward, ftxui::Element prompt,
                               bool show_honor);
 

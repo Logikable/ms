@@ -414,6 +414,7 @@ std::vector<SharedAward> BossRun::RollAwards(GameState& state,
 void BossRun::PayReward(GameState& state,
                         const std::vector<SharedAward>& awards) {
   const BossDifficulty* chosen = difficulty();
+  clear_seconds_ = std::max(0.0, chosen->time_limit_seconds() - seconds_left_);
   // A party splits the purse and nothing else. The EXP is what the fight is
   // worth to a character, and three people beating a boss have each beaten it.
   double share = 1.0 / std::max(1, share_count_);

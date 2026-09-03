@@ -450,6 +450,20 @@ TEST(BossRunTest, AFightWithNoLockoutPaysNoHonor) {
   EXPECT_EQ(state->character.honor(), 0);
 }
 
+// What the clear card reads: the fight's own clock, count-in aside.
+TEST(BossRunTest, AClearRemembersHowLongItTook) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = RewardingBoss(/*mark_chance=*/0.0);
+  BossRun run("zakum", boss, 0);
+  RunToEnd(run, *state);
+
+  ASSERT_TRUE(run.won());
+  EXPECT_GT(run.clear_seconds(), 0.0);
+  EXPECT_DOUBLE_EQ(
+      run.clear_seconds(),
+      boss.difficulties(0).time_limit_seconds() - run.seconds_left());
+}
+
 TEST(BossRunTest, AFightThatRanOutOfTimePaysNothing) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = RewardingBoss(/*mark_chance=*/1.0);
@@ -458,6 +472,7 @@ TEST(BossRunTest, AFightThatRanOutOfTimePaysNothing) {
   RunToEnd(run, *state);
 
   ASSERT_EQ(run.state(), BossRunState::kTimedOut);
+  EXPECT_EQ(run.clear_seconds(), 0.0);
   EXPECT_EQ(state->character.proto().meso(), 0);
   EXPECT_EQ(run.reward().meso, 0);
   EXPECT_EQ(run.reward().exp, 0);

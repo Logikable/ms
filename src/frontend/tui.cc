@@ -526,6 +526,7 @@ ftxui::Element Tui::BossFightOverlay() {
       return NoticeDialog();
     case kBossClear:
       return BossClearPanel(controller_.boss_clear_title(),
+                            controller_.boss_clear_seconds(),
                             controller_.boss_clear_reward(),
                             controller_.boss_clear_prompt().Render(),
                             HonorVisible(state_.character.proto().level(),

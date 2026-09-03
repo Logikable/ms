@@ -199,6 +199,11 @@ class BossRun {
   const BossReward& reward() const {
     return reward_;
   }
+  // How long the clear took: the fight's clock from the end of the count-in
+  // to the last monster falling, phase gaps included. 0 until it is won.
+  double clear_seconds() const {
+    return clear_seconds_;
+  }
   // What is left of the current phase, over what it started with. Every
   // monster in the phase counts toward it, so eight arms at half HP reads 50%.
   double phase_hp_fraction() const {
@@ -321,6 +326,7 @@ class BossRun {
   int phase_ = 0;
   double countdown_left_ = kBossCountdownSeconds;
   double seconds_left_ = 0.0;
+  double clear_seconds_ = 0.0;
   // Seconds left of whatever beat is being held: the gap between phases, or
   // the pause at the end before the screen goes back.
   double hold_left_ = 0.0;

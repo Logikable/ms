@@ -366,6 +366,9 @@ class TuiController {
   const std::string& boss_clear_title() const {
     return boss_clear_title_;
   }
+  double boss_clear_seconds() const {
+    return boss_clear_seconds_;
+  }
   const BossReward& boss_clear_reward() const {
     return boss_clear_reward_;
   }
@@ -717,6 +720,7 @@ class TuiController {
   ContinuePrompt offline_prompt_;
   std::string boss_clear_title_;
   BossReward boss_clear_reward_;
+  double boss_clear_seconds_ = 0.0;
   ContinuePrompt boss_clear_prompt_;
   // The fight in progress, and which catalog entry it is being fought
   // against, so the clear can be recorded under the same names the reset

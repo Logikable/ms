@@ -14,8 +14,9 @@
 namespace ms {
 namespace {
 
-ftxui::Screen RenderCard(const BossReward& reward, bool show_honor = true) {
-  ftxui::Element card = BossClearPanel("Normal Zakum", reward,
+ftxui::Screen RenderCard(const BossReward& reward, bool show_honor = true,
+                         double seconds = 167.0) {
+  ftxui::Element card = BossClearPanel("Normal Zakum", seconds, reward,
                                        ftxui::text("[ Continue ]"), show_honor);
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
   ftxui::Render(screen, card);
@@ -49,7 +50,7 @@ BossReward FullReward() {
 
 TEST(BossClearPanelTest, NamesTheFightThePurseTheExpTheHonorAndEveryDrop) {
   ftxui::Screen screen = RenderCard(FullReward());
-  EXPECT_TRUE(AnyRowHas(screen, "Normal Zakum"));
+  EXPECT_TRUE(AnyRowHas(screen, "Normal Zakum in 2:47"));
   EXPECT_TRUE(AnyRowHas(screen, "3,062,500 meso"));
   EXPECT_TRUE(AnyRowHas(screen, "4,611,597 EXP"));
   EXPECT_TRUE(AnyRowHas(screen, "150 Honor"));
