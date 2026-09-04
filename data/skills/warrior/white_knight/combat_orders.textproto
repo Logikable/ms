@@ -18,6 +18,7 @@ description:
   "increased to master level."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+exclusive_group: "Combat Orders"
 max_level: 10
 required_skill {
   skill_name: "HP Recovery"

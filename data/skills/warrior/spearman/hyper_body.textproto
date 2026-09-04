@@ -5,6 +5,7 @@ skill_order: 3
 description: "Increases your Max HP and Max MP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
+exclusive_group: "Hyper Body"
 max_level: 10
 required_skill {
   skill_name: "Iron Wall"

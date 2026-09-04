@@ -383,8 +383,13 @@ std::vector<Row> ReplacesRows(const Skill& skill) {
 // The group a skill shares its levers with, where it is in one. The same
 // warning as the row above and a weaker one: these do stack with everything
 // else, and only outbid each other. See Skill.exclusive_group.
+//
+// A group is usually named for the skill the rest of it stands in for, so the
+// row is left off that one: "Sharp Eyes does not stack with Sharp Eyes" says
+// nothing, and what it does not stack with says so on its own card.
 std::vector<Row> ExclusiveGroupRows(const Skill& skill) {
-  if (skill.exclusive_group().empty()) {
+  if (skill.exclusive_group().empty() ||
+      skill.exclusive_group() == skill.name()) {
     return {};
   }
   return {EffectRow("Does Not Stack With", skill.exclusive_group())};

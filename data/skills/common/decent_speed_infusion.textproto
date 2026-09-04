@@ -1,0 +1,28 @@
+# See decent_sharp_eyes.textproto for the shape all six share. The one Decent
+# with nothing in any book to not stack with: Speed Infusion is a pirate's, and
+# there are no pirates here.
+#
+# Its stage PASSES the soft cap rather than counting towards it. Every branch's
+# book comes to seven stages or eight against a cap of eight, so a stage held
+# to the cap would be worth nothing to half of them and would put out the Inner
+# Ability line that pays the same thing. See SkillEffect.uncapped_attack_speed.
+name: "Decent Speed Infusion"
+skill_order: 8
+description: "Increases your attack speed by 1."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_COMMON
+v_node: V_NODE_KIND_COMMON
+max_level: 30
+base {
+  uncapped_attack_speed: 1
+  str: 1
+  dex: 1
+  int: 1
+  luk: 1
+}
+per_level {
+  str: 0.2
+  dex: 0.2
+  int: 0.2
+  luk: 0.2
+}

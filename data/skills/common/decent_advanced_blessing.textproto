@@ -1,0 +1,32 @@
+# See decent_sharp_eyes.textproto for the shape all six share. The group holds
+# three: GMS says "only the highest effect from Bless, Advanced Blessing, or
+# Decent Advanced Blessing will be applied", and this clears a maxed Bless on
+# every lever while losing to a Bishop's own book from its first level.
+name: "Decent Advanced Blessing"
+skill_order: 7
+description:
+  "Increases Attack Power, Magic ATT, DEF, Max HP, and Max MP. Only the "
+  "highest effect from Bless, Advanced Blessing, or Decent Advanced Blessing "
+  "will be applied."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_COMMON
+v_node: V_NODE_KIND_COMMON
+exclusive_group: "Blessing"
+max_level: 30
+base {
+  attack: 20
+  magic_attack: 20
+  def: 425
+  max_hp: 475
+  max_mp: 475
+  str: 1
+  dex: 1
+  int: 1
+  luk: 1
+}
+per_level {
+  str: 0.2
+  dex: 0.2
+  int: 0.2
+  luk: 0.2
+}

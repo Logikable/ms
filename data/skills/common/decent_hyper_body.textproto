@@ -1,0 +1,26 @@
+# See decent_sharp_eyes.textproto for the shape all six share. GMS's 40% is
+# two thirds of what a maxed Hyper Body pays, so the Spearman's book outbids
+# this from its seventh level and no sooner.
+name: "Decent Hyper Body"
+skill_order: 5
+description:
+  "Increases Max HP and Max MP. Does not stack with Hyper Body."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_COMMON
+v_node: V_NODE_KIND_COMMON
+exclusive_group: "Hyper Body"
+max_level: 30
+base {
+  max_hp_pct: 0.40
+  max_mp_pct: 0.40
+  str: 1
+  dex: 1
+  int: 1
+  luk: 1
+}
+per_level {
+  str: 0.2
+  dex: 0.2
+  int: 0.2
+  luk: 0.2
+}

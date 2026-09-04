@@ -1,0 +1,23 @@
+# See decent_sharp_eyes.textproto for the shape all six share. This one climbs
+# in status resistance rather than All Stats, which is GMS's own -- and which
+# nothing in this game reads, there being no status to resist. It is kept with
+# the skill and shown on the stats page, as every other grant of it is.
+#
+# The White Knight's own book pays a level from ITS level 1 and two at the top,
+# so it outbids this everywhere and the group never turns the other way.
+name: "Decent Combat Orders"
+skill_order: 6
+description:
+  "Increases all of your skill levels. 4th job skills that have already "
+  "reached the master level can be raised further; other skills can only be "
+  "increased to master level. Does not stack with Combat Orders."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_COMMON
+v_node: V_NODE_KIND_COMMON
+exclusive_group: "Combat Orders"
+max_level: 30
+base {
+  skill_level_bonus: 1.0
+  status_resistance: 1
+}
+per_level { status_resistance: 0.2 }

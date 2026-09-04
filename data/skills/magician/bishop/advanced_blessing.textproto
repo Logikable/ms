@@ -13,6 +13,7 @@ description:
   "HP, and Max MP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BISHOP
+exclusive_group: "Blessing"
 max_level: 10
 exceeds_master_level: true
 required_skill {

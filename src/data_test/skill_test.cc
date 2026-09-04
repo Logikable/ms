@@ -1290,15 +1290,19 @@ TEST(SkillDataTest, EveryPerOrbBargainHasOrbsToBePaidAgainst) {
 // under the level it climbs to and is only carried over by the epsilon the
 // floor adds -- shorten the literal in the data and the last level buys
 // nothing. This is the test that says so.
+//
+// A grant with no step at all is not a ladder and answers to neither rule:
+// Decent Combat Orders lends one level at every one of its thirty, and what
+// its levels buy is the other half of the node.
 TEST(SkillDataTest, ABonusLevelLadderEndsOnAWholeLevel) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    double step = skill.base().skill_level_bonus();
-    if (step <= 0.0) {
+    double step = skill.per_level().skill_level_bonus();
+    if (skill.base().skill_level_bonus() <= 0.0 || step <= 0.0) {
       continue;
     }
     double top =
-        step + skill.per_level().skill_level_bonus() * (skill.max_level() - 1);
+        skill.base().skill_level_bonus() + step * (skill.max_level() - 1);
     EXPECT_NEAR(top, std::round(top), 1e-9)
         << entry.first << " ends its ladder between two levels";
     EXPECT_GT(top, 1.0) << entry.first << " never climbs at all";
@@ -1556,6 +1560,23 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
 // skill stops paying at all -- so it may only name a skill the same character
 // can hold, and never itself. A self-reference would leave a book that
 // silently teaches nothing.
+// A group of one is a typo: the label is what ties two skills together, and a
+// skill alone in one competes with nothing and reads as though it did. Every
+// member states the same string, so this is where a slip shows up.
+TEST(SkillDataTest, EveryExclusiveGroupHoldsMoreThanOneSkill) {
+  std::map<std::string, int> members;
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    if (!entry.second.exclusive_group().empty()) {
+      ++members[entry.second.exclusive_group()];
+    }
+  }
+  EXPECT_FALSE(members.empty()) << "no skill in the catalog names a group";
+  for (const std::pair<const std::string, int>& group : members) {
+    EXPECT_GT(group.second, 1)
+        << "\"" << group.first << "\" holds one skill and thins nothing";
+  }
+}
+
 TEST(SkillDataTest, EverySupersededSkillIsHoldable) {
   std::map<std::string, Skill> skills = LoadSkills();
   int checked = 0;

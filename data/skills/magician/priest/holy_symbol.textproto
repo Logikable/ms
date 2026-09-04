@@ -11,6 +11,7 @@ description:
   "Allows all nearby party members to gain additional EXP while hunting."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PRIEST
+exclusive_group: "Holy Symbol"
 max_level: 20
 base { exp_pct: 0.215 }
 per_level { exp_pct: 0.015 }

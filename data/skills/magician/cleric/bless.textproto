@@ -12,6 +12,7 @@ description:
   "members."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CLERIC
+exclusive_group: "Blessing"
 max_level: 10
 required_skill {
   skill_name: "Invincible"

@@ -1,0 +1,27 @@
+# See decent_sharp_eyes.textproto for the shape all six share. The exception
+# among them: GMS gives this one no All Stats, its two halves climbing instead
+# -- 20+floor(x/2)% EXP and 14+floor(x/3)% drop rate, which end on 35 and 24.
+# Both are held to those and given a step a reader recognises, half a point a
+# level, which moves only where they start.
+#
+# The Priest's own book outbids the EXP from its tenth level. The drop rate it
+# has none of, so that half stands either way -- the group settles one lever at
+# a time.
+name: "Decent Holy Symbol"
+skill_order: 9
+description:
+  "Gain extra EXP and items when hunting monsters. Does not stack with Holy "
+  "Symbol."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_COMMON
+v_node: V_NODE_KIND_COMMON
+exclusive_group: "Holy Symbol"
+max_level: 30
+base {
+  exp_pct: 0.205
+  item_drop_pct: 0.095
+}
+per_level {
+  exp_pct: 0.005
+  item_drop_pct: 0.005
+}
