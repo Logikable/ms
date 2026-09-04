@@ -661,9 +661,9 @@ TEST_F(AddExpTest, NoOpAtTheLevelCap) {
 
 TEST_F(AddExpTest, StopsAtTheLevelCapAndZeroesExp) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/kTrialLevelCap - 1);
-  // Far more than the last threshold below the cap, and far more than the
-  // several after it: none of them are reachable.
-  c.AddExp(1000000000LL);
+  // Far more than the last threshold below the cap -- 46.7B -- and far more
+  // than the several after it: none of them are reachable.
+  c.AddExp(500000000000LL);
   EXPECT_EQ(c.proto().level(), kTrialLevelCap);
   EXPECT_EQ(c.proto().exp(), 0);
 }

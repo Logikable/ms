@@ -534,6 +534,20 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
   }
 }
 
+// The level a character stops at when nothing names one: the top of the job's
+// own band, held to the cap the EXP table pays up to. The last advancement the
+// game has written has no band above it -- the 5th job's level is a number in
+// the table and nothing else -- so that one climbs to the cap instead.
+int LevelForJob(JobAdvancement advancement, int level) {
+  if (level > 0) {
+    return level;
+  }
+  int stage = StageForAdvancement(advancement);
+  return stage >= kLastJobStage
+             ? kTrialLevelCap
+             : std::min(NextAdvancementLevel(stage), kTrialLevelCap);
+}
+
 // Climbs into `advancement`: the job it names, having taken every earlier
 // advancement on the way to it. `level` is where the climb stops, or 0 for the
 // last level before the next advancement would be offered.
@@ -546,12 +560,7 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   for (int i = 1; i <= stage; ++i) {
     path.push_back(JobForAdvancement(AdvancementForJobStage(job, i)));
   }
-  // Held to the cap: the 5th advancement's level is above it, so the 4th job
-  // stops where the EXP table does rather than climbing past the end.
-  GrowTo(
-      state,
-      level > 0 ? level : std::min(NextAdvancementLevel(stage), kTrialLevelCap),
-      path, unspent_stage);
+  GrowTo(state, LevelForJob(advancement, level), path, unspent_stage);
   // The job's own gear, worn rather than carried, since there is no
   // advancement moment here to put it on at -- and the stages under it for
   // whatever the level cannot reach yet.
@@ -736,16 +745,6 @@ void SeedTest(GameState& state, const TestOptions& test) {
   // The weakest hunting ground there is; the tester picks anywhere else from
   // the map select.
   state.current_map = "right_around_lith_harbor";
-}
-
-// The level a character stops at when nothing names one: the top of the job's
-// own band, held to the cap the EXP table pays up to. GrowToJob works the
-// same level out for itself; kMax has to know it before it dresses anybody.
-int LevelForJob(JobAdvancement advancement, int level) {
-  return level > 0
-             ? level
-             : std::min(NextAdvancementLevel(StageForAdvancement(advancement)),
-                        kTrialLevelCap);
 }
 
 // What the ceiling is left holding. The climb's whole income is spent by the

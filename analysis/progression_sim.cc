@@ -219,11 +219,28 @@ namespace ms {
 namespace {
 
 // The levels the table reports a running total at. Every tenth to 140, where
-// the SP schedule ends and the books are finished, then every twentieth to the
-// cap -- past 140 a level buys HP, MP and AP and nothing else, so the rungs
-// need not be as close together.
-constexpr int kMilestones[] = {10,  20,  30,  40,  50,  60,  70,  80, 90,
-                               100, 110, 120, 130, 140, 160, 180, 200};
+// the SP schedule ends and the books are finished, then every twentieth, and
+// the cap itself last -- past 140 a level buys HP, MP and AP and nothing else,
+// so the rungs need not be as close together.
+constexpr int kMilestones[] = {10,
+                               20,
+                               30,
+                               40,
+                               50,
+                               60,
+                               70,
+                               80,
+                               90,
+                               100,
+                               110,
+                               120,
+                               130,
+                               140,
+                               160,
+                               180,
+                               200,
+                               220,
+                               kTrialLevelCap};
 constexpr int kNumMilestones = sizeof(kMilestones) / sizeof(kMilestones[0]);
 
 // The rank a character rolls the ability up to before holding anything.
@@ -2580,7 +2597,7 @@ FightStanding StandingOn(const Climb& climb, const std::string& key) {
 
 // Where one clear falls in a character's life. A fight beaten at the cap is
 // read on the clock instead of the level, since every branch that waits that
-// long would otherwise print the same Lv200.
+// long would otherwise print the same capped level.
 struct ClearPoint {
   int level = 0;            // 0 for a fight never won
   double after_cap = -1.0;  // playtime past the cap the clear landed at
@@ -2639,7 +2656,7 @@ void PrintTimelineSummary(const std::vector<FightRow>& fights,
 }
 
 // One fight, branch by branch, quickest to it first. The two clocks are the
-// reading once a fight opens at the cap and every level column says Lv200.
+// reading once a fight opens at the cap and every level column says the same.
 void PrintFightDetail(const Catalogs& catalogs, const FightRow& fight,
                       const std::vector<Job>& branches,
                       const std::vector<Climb>& climbs) {
@@ -2682,7 +2699,7 @@ void PrintFightDetail(const Catalogs& catalogs, const FightRow& fight,
 
 // When each fight falls in a character's life, across the branches: the level
 // the first clear came at, and -- for the fights that only open at the cap,
-// where every level column would read Lv200 -- the clock instead.
+// where every level column would read the cap -- the clock instead.
 //
 // The whole point of a run under --total_days: a fight nobody beats inside
 // the month is not a fight that is merely late, and how much of it they could
@@ -2694,7 +2711,8 @@ void PrintBossTimeline(const Catalogs& catalogs,
       "\nWhere each fight falls, over the typical run of every branch. A "
       "branch that never won it\ncounts as worse than every branch that did, "
       "so a percentile reads \"never\" once that many\nof them could not do "
-      "it. A cell reading +Nh is a clear at the cap, timed from Lv200.\n\n");
+      "it. A cell reading +Nh is a clear at the cap, timed from Lv%d.\n\n",
+      kTrialLevelCap);
   std::vector<FightRow> fights = LiveFights(catalogs);
   PrintTimelineSummary(fights, branches, climbs);
   for (const FightRow& fight : fights) {

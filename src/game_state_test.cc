@@ -164,12 +164,11 @@ TEST(GameStateTest, ConstructorStoresEveryCatalog) {
 // it. Play mode is where the climb is worth watching a level at a time.
 TEST(GameStateTest, TestModeStartsAtTheTopOfTheWrittenLine) {
   GameState test = MakeTestModeState();
-  // The top of 4th job, held to the level cap: the 5th advancement's level is
-  // above the cap, so the workbench stops where the EXP table does.
+  // The cap: the 4th job is the last one written, so there is no band above
+  // it and the workbench stops where the EXP table stops paying.
   int stage = test.character.proto().job_stage();
-  EXPECT_EQ(stage, 4);
-  EXPECT_EQ(test.character.proto().level(),
-            std::min(NextAdvancementLevel(stage), kTrialLevelCap));
+  EXPECT_EQ(stage, kLastJobStage);
+  EXPECT_EQ(test.character.proto().level(), kTrialLevelCap);
   // Some warrior branch, not a particular one -- see WorkbenchJob. Walked down
   // the tree from the 1st job, so a workbench standing somewhere the choices
   // cannot reach fails here.

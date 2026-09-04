@@ -366,8 +366,8 @@ TEST(AdvanceCombatTest, FarmingStopsAtTheLevelCap) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", SnailMap()}});
   state.current_map = "field";
   // Big enough that one level at the top of the table falls inside the farm
-  // below: the last one costs 571M, and a snail pays what a snail pays.
-  state.exp_multiplier = 200000;
+  // below: the last one costs 46.7B, and a snail pays what a snail pays.
+  state.exp_multiplier = 20000000;
   EquipSword(state);
   // Set down one level short rather than farmed up the whole table: the
   // ceiling is what is being tested, and the climb to it only costs time --

@@ -59,6 +59,11 @@ int ExpectedTotalAp(int level, int job_stage);
 // could be at walks to here and keeps working when the next one lands.
 inline constexpr int kMaxJobStage = 6;
 
+// The last job stage this game has branches for. GMS goes on to a 5th and a
+// 6th; kAdvancementLevels names the levels those open at, and nothing here
+// grants them -- so a 4th job has no band above it and climbs to the cap.
+inline constexpr int kLastJobStage = 4;
+
 // The advancement a job is at once it reaches `stage` (1 = 1st job). Returns
 // JOB_ADVANCEMENT_UNSPECIFIED for a stage the job hasn't defined yet.
 JobAdvancement AdvancementForJobStage(Job job, int stage);

@@ -282,8 +282,8 @@ TEST_F(WorkbenchGearTest, EachJobStartsAtTheTopOfItsOwnBand) {
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_BANDIT).character.proto().level(), 60);
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_BERSERKER).character.proto().level(),
             100);
-  // The 4th job stops at the cap rather than at the 5th advancement's level,
-  // which is above everything the EXP table describes.
+  // The 4th job climbs to the cap: it is the last advancement written, so
+  // there is no band above it to stop at.
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_DARK_KNIGHT).character.proto().level(),
             kTrialLevelCap);
 }
