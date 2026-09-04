@@ -1140,6 +1140,9 @@ struct Session {
   // The CombatPower the worth table was measured on, so it can be taken again
   // once the character it described has been outgrown.
   int ability_power = 0;
+  // What was worn last time anything was allocated: one line per slot, the
+  // item's name and nothing else. See GearChanged.
+  std::string worn_gear;
   // Where this climb is written down, and what it is called there.
   const Checkpointing* saves = nullptr;
   std::string key;
@@ -1327,18 +1330,41 @@ int PowerNow(const GameState& state) {
 // one who spent the first.
 constexpr double kRemeasureGrowth = 1.5;
 
+// Whether a slot is holding a different ITEM than it was the last time
+// anything was allocated. A new piece is a reason to allocate again whatever
+// the power reading says: a weapon two tiers up reorders what every stat is
+// worth to the swing, and a character who bought one and left their Hyper
+// Stats where they were is not a player.
+//
+// Names alone, so stars and scrolls do not count. Those land on nearly every
+// look, and re-measuring that often costs more than the allocation it moves.
+bool GearChanged(Session& run) {
+  std::string worn;
+  for (const std::pair<const EquipSlot, EquipInstance>& item :
+       run.state.character.equipped()) {
+    worn += item.second.name();
+    worn += '\n';
+  }
+  if (worn == run.worn_gear) {
+    return false;
+  }
+  run.worn_gear = std::move(worn);
+  return true;
+}
+
 // The Hyper Stat points the levels have paid out, spent on both presets.
 // Nothing happens before level 140, where the pool opens.
 //
 // Both, unlike the Ability below: the points are paid per level and cost
 // nothing to move, so there is no pool to split and no reason the farming
 // allocation should wait on the bossing one.
-void SpendHyperPoints(Session& run) {
+void SpendHyperPoints(Session& run, bool regeared) {
   if (run.state.character.proto().level() < kHyperStatUnlockLevel) {
     return;
   }
   int power = PowerNow(run.state);
-  if (!run.hyper_measured || power >= run.hyper_power * kRemeasureGrowth) {
+  if (!run.hyper_measured || regeared ||
+      power >= run.hyper_power * kRemeasureGrowth) {
     run.hyper_farming = MeasureHyperWorth(
         run.state, StatPreset::kFarming,
         [](GameState& state) { return CrowdRateOver(state, kBookSeconds); });
@@ -1360,6 +1386,13 @@ void SpendHyperPoints(Session& run) {
 // the fights are what the climb is short of. The farming table is measured
 // anyway -- it is one more pass, and it is what says whether that is still the
 // right call.
+//
+// A new piece of gear does NOT force the table here, though it forces the
+// Hyper Stats above. A fresh table can name a different goal line, and Settled
+// then unlocks the top slot and starts the chase over -- which a pool that
+// runs dry leaves half done, on a worse sheet than the one it gave up. Both
+// sweeps measured: forcing this too cost a Cygnus clear (7/10 to 6/10) and
+// bought nothing Pierre or Von Bon did not already get from the Hyper Stats.
 void SpendHonor(Session& run) {
   if (!run.state.character.inner_ability_unlocked()) {
     return;
@@ -1793,7 +1826,7 @@ double GiveUpAt() {
 void Restock(Session& run) {
   Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
          run.purse, run.shopper, run.scout, run.climb.ledger);
-  SpendHyperPoints(run);
+  SpendHyperPoints(run, GearChanged(run));
   SpendHonor(run);
 }
 
@@ -1930,7 +1963,7 @@ void RestockAtCap(Session& run, const CombatParams& params,
       std::max<int64_t>(0, before_shelf - run.state.character.meso());
   run.shopper.Spend(run.state);
   run.purse.Note(run.state.character);
-  SpendHyperPoints(run);
+  SpendHyperPoints(run, GearChanged(run));
   SpendHonor(run);
   PickMoneyMap(run.state, run.maps, run.beats, run.step);
   run.climb.money_map = run.state.current_map;
