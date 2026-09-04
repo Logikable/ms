@@ -84,33 +84,34 @@ class JobInspectPanelTest : public PanelTest {
     return "";
   }
 
-  JobInspectPanel PanelOn(Job job) {
+  JobInspectPanel PanelOn(Job job, int stage) {
     JobInspectPanel panel(Catalog());
-    panel.SetJob(job);
+    panel.SetJob(job, stage);
     return panel;
   }
 };
 
 TEST_F(JobInspectPanelTest, TitlesItselfWithTheJobsFullName) {
-  EXPECT_NE(RenderElement(PanelOn(JOB_FIGHTER).Render()).find("Fighter"),
+  EXPECT_NE(RenderElement(PanelOn(JOB_FIGHTER, 2).Render()).find("Fighter"),
             std::string::npos);
 }
 
 // The one thing a player cannot read off the skills: most of a book names no
 // weapon at all, and neither warrior line's 3rd job names one.
 TEST_F(JobInspectPanelTest, NamesTheWeaponsTheJobIsBuiltAround) {
-  EXPECT_NE(RenderElement(PanelOn(JOB_FIGHTER).Render()).find("Sword / Axe"),
+  EXPECT_NE(RenderElement(PanelOn(JOB_FIGHTER, 2).Render()).find("Sword / Axe"),
             std::string::npos);
-  EXPECT_NE(RenderElement(PanelOn(JOB_CRUSADER).Render()).find("Sword / Axe"),
-            std::string::npos);
-  EXPECT_NE(RenderElement(PanelOn(JOB_PRIEST).Render()).find("Staff"),
+  EXPECT_NE(
+      RenderElement(PanelOn(JOB_CRUSADER, 3).Render()).find("Sword / Axe"),
+      std::string::npos);
+  EXPECT_NE(RenderElement(PanelOn(JOB_PRIEST, 3).Render()).find("Staff"),
             std::string::npos);
 }
 
 // This job's own book, not the line's: a player choosing between a Fighter and
 // a Page already holds the Swordman's skills.
 TEST_F(JobInspectPanelTest, ListsThisJobsBookAndNoOther) {
-  std::string rendered = RenderElement(PanelOn(JOB_FIGHTER).Render());
+  std::string rendered = RenderElement(PanelOn(JOB_FIGHTER, 2).Render());
   EXPECT_NE(rendered.find("Brandish"), std::string::npos);
   EXPECT_NE(rendered.find("Weapon Mastery"), std::string::npos);
   EXPECT_EQ(rendered.find("Divine Swing"), std::string::npos);
@@ -118,7 +119,7 @@ TEST_F(JobInspectPanelTest, ListsThisJobsBookAndNoOther) {
 }
 
 TEST_F(JobInspectPanelTest, SkillsAreInBookOrderWithTheirTagAndMaxLevel) {
-  JobInspectPanel panel = PanelOn(JOB_FIGHTER);
+  JobInspectPanel panel = PanelOn(JOB_FIGHTER, 2);
   std::string rendered = RenderElement(panel.Render());
   EXPECT_LT(rendered.find("Brandish"), rendered.find("Weapon Mastery"));
   EXPECT_LT(rendered.find("Weapon Mastery"), rendered.find("Agile Arms"));
@@ -135,7 +136,7 @@ TEST_F(JobInspectPanelTest, SkillsAreInBookOrderWithTheirTagAndMaxLevel) {
 // does too -- an inverted name would read as a button, and nothing here is
 // pressed.
 TEST_F(JobInspectPanelTest, TheSelectedRowWearsTheCursor) {
-  JobInspectPanel panel = PanelOn(JOB_FIGHTER);
+  JobInspectPanel panel = PanelOn(JOB_FIGHTER, 2);
   std::string rendered = RenderElement(panel.Render());
   EXPECT_NE(LineWith(rendered, "Brandish").find(">"), std::string::npos);
   EXPECT_EQ(LineWith(rendered, "Weapon Mastery").find(">"), std::string::npos);
@@ -154,18 +155,18 @@ TEST_F(JobInspectPanelTest, ALongNameIsCutToItsColumnAndNotPastIt) {
   std::map<std::string, Skill> catalog = {
       {"expert", MakeSkill(kLongest, JOB_ADVANCEMENT_FIGHTER, 1, 20)}};
   JobInspectPanel panel(catalog);
-  panel.SetJob(JOB_FIGHTER);
+  panel.SetJob(JOB_FIGHTER, 2);
   std::string rendered = RenderElement(panel.Render());
 
   EXPECT_EQ(rendered.find(kLongest), std::string::npos)
       << "the whole name fits, so this test proves nothing";
   EXPECT_NE(rendered.find(kLongest.substr(0, 19)), std::string::npos);
-  EXPECT_EQ(Cols(panel.Render()), Cols(PanelOn(JOB_FIGHTER).Render()))
+  EXPECT_EQ(Cols(panel.Render()), Cols(PanelOn(JOB_FIGHTER, 2).Render()))
       << "a long name widened the panel";
 }
 
 TEST_F(JobInspectPanelTest, TheCursorStartsAtTheTopAndWrapsBothWays) {
-  JobInspectPanel panel = PanelOn(JOB_FIGHTER);
+  JobInspectPanel panel = PanelOn(JOB_FIGHTER, 2);
   ASSERT_NE(panel.selected_skill(), nullptr);
   EXPECT_EQ(panel.selected_skill()->name(), "Brandish");
   panel.MoveCursor(1);
@@ -181,9 +182,9 @@ TEST_F(JobInspectPanelTest, TheCursorStartsAtTheTopAndWrapsBothWays) {
 // Opening the panel on another job puts the cursor back at the top of its
 // book: the old row number means nothing in a book it did not come from.
 TEST_F(JobInspectPanelTest, ANewJobStartsTheCursorOver) {
-  JobInspectPanel panel = PanelOn(JOB_FIGHTER);
+  JobInspectPanel panel = PanelOn(JOB_FIGHTER, 2);
   panel.MoveCursor(1);
-  panel.SetJob(JOB_PAGE);
+  panel.SetJob(JOB_PAGE, 2);
   ASSERT_NE(panel.selected_skill(), nullptr);
   EXPECT_EQ(panel.selected_skill()->name(), "Divine Swing");
 }
@@ -191,7 +192,7 @@ TEST_F(JobInspectPanelTest, ANewJobStartsTheCursorOver) {
 // The 4th job is the last stage a job can sit at, and asking only about the
 // stages below it left every one of these pages blank.
 TEST_F(JobInspectPanelTest, AFourthJobListsItsOwnBook) {
-  JobInspectPanel panel = PanelOn(JOB_HERO);
+  JobInspectPanel panel = PanelOn(JOB_HERO, 4);
   ASSERT_NE(panel.selected_skill(), nullptr);
   EXPECT_EQ(panel.selected_skill()->name(), "Puncture");
   std::string rendered = RenderElement(panel.Render());
@@ -200,7 +201,8 @@ TEST_F(JobInspectPanelTest, AFourthJobListsItsOwnBook) {
 }
 
 TEST_F(JobInspectPanelTest, AJobWithNoBookSaysSoRatherThanCrashing) {
-  JobInspectPanel panel = PanelOn(JOB_HERMIT);  // no Hermit skills in Catalog()
+  JobInspectPanel panel =
+      PanelOn(JOB_HERMIT, 3);  // no Hermit skills in Catalog()
   EXPECT_EQ(panel.selected_skill(), nullptr);
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected_skill(), nullptr);
@@ -223,7 +225,7 @@ TEST_F(JobInspectPanelTest, ABookTallerThanEveryCardIsNotClipped) {
 // A card that measures its own width has to ask for its right margin.
 TEST_F(JobInspectPanelTest, EveryRowKeepsAColumnClearOfTheRightBorder) {
   std::vector<std::string> touching =
-      RowsTouchingTheRightBorder(PanelOn(JOB_FIGHTER).Render());
+      RowsTouchingTheRightBorder(PanelOn(JOB_FIGHTER, 2).Render());
   EXPECT_TRUE(touching.empty()) << (touching.empty() ? "" : touching[0]);
 }
 

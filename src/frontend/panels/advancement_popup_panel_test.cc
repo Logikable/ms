@@ -15,8 +15,8 @@
 namespace ms {
 namespace {
 
-ftxui::Screen RenderCard(Job from, Job to) {
-  ftxui::Element card = AdvancementPopupPanel(from, to);
+ftxui::Screen RenderCard(Job from, Job to, int to_stage = 1) {
+  ftxui::Element card = AdvancementPopupPanel(from, to, to_stage);
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
   ftxui::Render(screen, card);
   return screen;
@@ -42,6 +42,15 @@ TEST(AdvancementPopupPanelTest, NamesWhicheverJobsItIsGiven) {
   ftxui::Screen screen = RenderCard(JOB_BEGINNER, JOB_MAGICIAN);
   EXPECT_GE(RowIndexOf(screen, "Magician"), 0);
   EXPECT_LT(RowIndexOf(screen, "Swordman"), 0);
+}
+
+// The 5th advancement leaves the job where it was, so a card naming both
+// halves the same way would say nothing happened.
+TEST(AdvancementPopupPanelTest, TheFifthAdvancementTakesAV) {
+  ftxui::Screen screen = RenderCard(JOB_NIGHT_LORD, JOB_NIGHT_LORD, 5);
+  EXPECT_NE(ScreenRow(screen, 2).find("Night Lord"), std::string::npos);
+  EXPECT_EQ(ScreenRow(screen, 2).find("Night Lord V"), std::string::npos);
+  EXPECT_NE(ScreenRow(screen, 4).find("Night Lord V"), std::string::npos);
 }
 
 TEST(AdvancementPopupPanelTest, IsTitledAndBorderedInGold) {

@@ -63,12 +63,14 @@ void Celebration::BeginLevelUp(int from_level, int to_level, int ap, int sp,
   }
 }
 
-void Celebration::BeginAdvancement(Job from_job, Job to_job, Panel focused) {
+void Celebration::BeginAdvancement(Job from_job, Job to_job, int to_stage,
+                                   Panel focused) {
   kind_ = Kind::kAdvancement;
   card_seconds_ = kCelebrationSeconds;
   glow_seconds_ = kCelebrationSeconds;
   from_job_ = from_job;
   to_job_ = to_job;
+  to_stage_ = to_stage;
 
   std::fill(std::begin(glow_), std::end(glow_), Glow::kOff);
   // The character panel alone: an advancement hands over a job whose stats and
@@ -124,7 +126,7 @@ ftxui::Element Celebration::Render() const {
     return DeathPopupPanel();
   }
   if (kind_ == Kind::kAdvancement) {
-    return AdvancementPopupPanel(from_job_, to_job_);
+    return AdvancementPopupPanel(from_job_, to_job_, to_stage_);
   }
   return LevelUpPopupPanel(from_level_, to_level_, ap_, sp_, hyper_sp_, honor_,
                            unlocks_);

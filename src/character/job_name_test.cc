@@ -39,5 +39,17 @@ TEST(JobNameTest, TheWizardsAreSpelledOutInFullAndAbbreviated) {
   EXPECT_EQ(ShortJobName(JOB_SPEARMAN), "Spearman");
 }
 
+// The 5th advancement is the only one that leaves the job's name where it
+// was, so it is the only one that has to be told apart from the job itself.
+TEST(JobNameTest, OnlyTheFifthAdvancementTakesAV) {
+  EXPECT_EQ(AdvancementName(JOB_NIGHT_LORD, 5), "Night Lord V");
+  EXPECT_EQ(AdvancementName(JOB_NIGHT_LORD, 4), "Night Lord");
+  EXPECT_EQ(AdvancementName(JOB_SWORDMAN, 1), "Swordman");
+  EXPECT_EQ(ShortAdvancementName(JOB_ICE_LIGHTNING_ARCH_MAGE, 5),
+            "I/L Arch Mage V");
+  EXPECT_EQ(ShortAdvancementName(JOB_ICE_LIGHTNING_ARCH_MAGE, 4),
+            "I/L Arch Mage");
+}
+
 }  // namespace
 }  // namespace ms

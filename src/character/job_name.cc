@@ -102,4 +102,19 @@ std::string ShortJobName(Job job) {
   }
 }
 
+namespace {
+
+// The stage whose advancement leaves the job's name where it was.
+constexpr int kFifthJobStage = 5;
+
+}  // namespace
+
+std::string AdvancementName(Job job, int stage) {
+  return JobName(job) + (stage == kFifthJobStage ? " V" : "");
+}
+
+std::string ShortAdvancementName(Job job, int stage) {
+  return ShortJobName(job) + (stage == kFifthJobStage ? " V" : "");
+}
+
 }  // namespace ms

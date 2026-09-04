@@ -8,10 +8,13 @@
 namespace ms {
 namespace {
 
-Character At(int level, Job job) {
+// `stage` defaults to 1, which is every job here but the Beginner's: what a
+// test cares about is that it moves when the job does.
+Character At(int level, Job job, int stage = 1) {
   Character proto;
   proto.set_level(level);
   proto.set_job(job);
+  proto.set_job_stage(job == JOB_BEGINNER ? 0 : stage);
   return proto;
 }
 
@@ -61,8 +64,21 @@ TEST(ProgressWatcherTest, AnAdvancementWinsOverTheLevelBesideIt) {
   EXPECT_EQ(progress.kind, kJobAdvanced);
   EXPECT_EQ(progress.from_job, JOB_BEGINNER);
   EXPECT_EQ(progress.to_job, JOB_SWORDMAN);
+  EXPECT_EQ(progress.to_stage, 1);
   // The level it arrived at is taken with it, so it is not reported twice.
   EXPECT_EQ(watcher.Notice(At(11, JOB_SWORDMAN)).kind, kNothingNoticed);
+}
+
+// The 5th advancement leaves the job's name alone, so a watcher reading the
+// name would never notice the largest thing a level 200 character does.
+TEST(ProgressWatcherTest, TheFifthAdvancementIsNoticedThoughTheJobIsNot) {
+  ProgressWatcher watcher(At(200, JOB_NIGHT_LORD, 4));
+  Progress progress = watcher.Notice(At(200, JOB_NIGHT_LORD, 5));
+  EXPECT_EQ(progress.kind, kJobAdvanced);
+  EXPECT_EQ(progress.from_job, JOB_NIGHT_LORD);
+  EXPECT_EQ(progress.to_job, JOB_NIGHT_LORD);
+  EXPECT_EQ(progress.to_stage, 5);
+  EXPECT_EQ(watcher.Notice(At(200, JOB_NIGHT_LORD, 5)).kind, kNothingNoticed);
 }
 
 // A level that somehow went down must not leave the next real level-up

@@ -192,7 +192,7 @@ TEST_F(CelebrationTest, ASecondCharacterIsToldAboutTheirHonor) {
 }
 
 TEST_F(CelebrationTest, AnAdvancementLightsTheCharacterPanelOnly) {
-  celebration_.BeginAdvancement(JOB_BEGINNER, JOB_SWORDMAN, kCombatPanel);
+  celebration_.BeginAdvancement(JOB_BEGINNER, JOB_SWORDMAN, 1, kCombatPanel);
   EXPECT_TRUE(celebration_.Lights(kCharPanel));
   EXPECT_FALSE(celebration_.Lights(kEquipPanel));
   EXPECT_FALSE(celebration_.Lights(kInventoryPanel));
@@ -202,7 +202,7 @@ TEST_F(CelebrationTest, AnAdvancementInheritsNoLitPanels) {
   int level = UnlockLevel(Feature::kBag);
   BeginAway(level - 1, level);
   ASSERT_TRUE(celebration_.Lights(kInventoryPanel));
-  celebration_.BeginAdvancement(JOB_BEGINNER, JOB_SWORDMAN, kCombatPanel);
+  celebration_.BeginAdvancement(JOB_BEGINNER, JOB_SWORDMAN, 1, kCombatPanel);
   EXPECT_FALSE(celebration_.Lights(kInventoryPanel));
 }
 
@@ -303,7 +303,7 @@ TEST_F(CelebrationTest, ALevelUpRendersTheLevelUpCard) {
 }
 
 TEST_F(CelebrationTest, AnAdvancementRendersTheAdvancementCard) {
-  celebration_.BeginAdvancement(JOB_BEGINNER, JOB_MAGICIAN, kCombatPanel);
+  celebration_.BeginAdvancement(JOB_BEGINNER, JOB_MAGICIAN, 1, kCombatPanel);
   std::string text = CardText(celebration_);
   EXPECT_NE(text.find("Advancement"), std::string::npos);
   EXPECT_NE(text.find("Beginner"), std::string::npos);
@@ -316,7 +316,7 @@ TEST_F(CelebrationTest, AnAdvancementRendersTheAdvancementCard) {
 // again first.
 TEST_F(CelebrationTest, AnAdvancementReplacesALevelUpCard) {
   BeginAway(29, 30);
-  celebration_.BeginAdvancement(JOB_BEGINNER, JOB_SWORDMAN, kCombatPanel);
+  celebration_.BeginAdvancement(JOB_BEGINNER, JOB_SWORDMAN, 1, kCombatPanel);
   EXPECT_EQ(celebration_.kind(), Celebration::Kind::kAdvancement);
   EXPECT_NE(CardText(celebration_).find("Advancement"), std::string::npos);
 }

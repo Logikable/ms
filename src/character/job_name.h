@@ -27,6 +27,15 @@ std::string JobName(Job job);
 // the player is picking between deserves its whole name, once.
 std::string ShortJobName(Job job);
 
+// What the advancement into `job` at `stage` is called. Every stage but the
+// 5th is the job's own name; the 5th takes a " V", because it is the one that
+// does not change the job, and "Advance to Night Lord?" asked of a Night Lord
+// says nothing.
+std::string AdvancementName(Job job, int stage);
+
+// The same, shortened the way ShortJobName shortens a job.
+std::string ShortAdvancementName(Job job, int stage);
+
 }  // namespace ms
 
 #endif  // MS_SRC_CHARACTER_JOB_NAME_H_

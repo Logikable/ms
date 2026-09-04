@@ -52,7 +52,7 @@ class Celebration {
 
   // Starts the advancement card, replacing a level-up still on screen: it is
   // the larger news, and stacking the two would make the player wait.
-  void BeginAdvancement(Job from_job, Job to_job, Panel focused);
+  void BeginAdvancement(Job from_job, Job to_job, int to_stage, Panel focused);
 
   // Starts the death card, replacing whatever is up: being picked up and put
   // somewhere else outranks any news still being read. Lights nothing, and
@@ -132,6 +132,7 @@ class Celebration {
   std::vector<std::string> unlocks_;
   Job from_job_ = JOB_BEGINNER;
   Job to_job_ = JOB_BEGINNER;
+  int to_stage_ = 0;
 };
 
 }  // namespace ms

@@ -380,7 +380,9 @@ ftxui::Element Tui::JobAdvanceDialog() {
   return DialogWindow(
       " Job Advancement ",
       {
-          CenteredRow("Advance to " + JobName(controller_.job_advance_job()) +
+          CenteredRow("Advance to " +
+                      AdvancementName(controller_.job_advance_job(),
+                                      controller_.job_advance_stage()) +
                       "?"),
           CenteredRow("This action is irreversible."),
       },
@@ -1148,7 +1150,7 @@ void Tui::NoticeProgress() {
   switch (progress.kind) {
     case kJobAdvanced:
       celebration_.BeginAdvancement(progress.from_job, progress.to_job,
-                                    FocusedPanel());
+                                    progress.to_stage, FocusedPanel());
       return;
     case kLevelGained:
       celebration_.BeginLevelUp(progress.from_level, progress.to_level,

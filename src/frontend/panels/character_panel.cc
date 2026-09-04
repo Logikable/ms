@@ -1184,15 +1184,15 @@ ftxui::Element CharacterPanel::RenderPotsTab(bool rows_focused) const {
 }
 
 ftxui::Element CharacterPanel::RenderAdvanceTab(bool content_focused) const {
-  std::vector<Job> jobs = JobChoicesForStage(
-      character_.proto().job(), character_.proto().job_stage() + 1);
+  int stage = character_.proto().job_stage() + 1;
+  std::vector<Job> jobs = JobChoicesForStage(character_.proto().job(), stage);
   std::vector<ftxui::Element> rows;
   for (int i = 0; i < static_cast<int>(jobs.size()); ++i) {
     // A caret rather than the [+] the other tabs use: there is nothing to
     // spend here, only one of four things to become.
     std::string cursor = content_focused && job_sel_ == i ? " > " : "   ";
-    ftxui::Element row =
-        ftxui::text(PadRight(cursor + JobName(jobs[i]), ContentWidth()));
+    ftxui::Element row = ftxui::text(
+        PadRight(cursor + AdvancementName(jobs[i], stage), ContentWidth()));
     if (job_sel_ == i) {
       row = std::move(row) | ftxui::reflect(job_cursor_box_);
     }

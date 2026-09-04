@@ -300,10 +300,15 @@ class TuiController {
   int skill_inspect_level() const;
   int skill_inspect_bonus() const;
 
-  // The job the pending advancement would take, and its prompt, for the dialog
-  // Tui floats over the main view.
+  // The job the pending advancement would take, the stage it would take it
+  // at, and its prompt, for the dialog Tui floats over the main view. The
+  // stage is the one above where the character stands: an advancement is only
+  // ever offered from the stage below it.
   Job job_advance_job() const {
     return job_advance_;
+  }
+  int job_advance_stage() const {
+    return state_.character.proto().job_stage() + 1;
   }
   const ConfirmPrompt& job_advance_prompt() const {
     return job_advance_prompt_;

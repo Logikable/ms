@@ -8,7 +8,7 @@
 
 namespace ms {
 
-ftxui::Element AdvancementPopupPanel(Job from_job, Job to_job) {
+ftxui::Element AdvancementPopupPanel(Job from_job, Job to_job, int to_stage) {
   // The level-up card's shape: five rows inside the border, same width floor.
   // No rule across it -- that card has one because it has two things to say.
   //
@@ -20,7 +20,7 @@ ftxui::Element AdvancementPopupPanel(Job from_job, Job to_job) {
                           ftxui::text(""),
                           CenteredRow(ShortJobName(from_job)),
                           CenteredRow("↓"),
-                          CenteredRow(ShortJobName(to_job)),
+                          CenteredRow(ShortAdvancementName(to_job, to_stage)),
                           ftxui::text(""),
                       }) | ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN,
                                        kCelebrationContentWidth),

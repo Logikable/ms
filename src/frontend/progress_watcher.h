@@ -31,6 +31,9 @@ struct Progress {
   int hyper_sp = 0;
   Job from_job = JOB_UNSPECIFIED;
   Job to_job = JOB_UNSPECIFIED;
+  // The stage advanced into. Needed to name the advancement: the 5th leaves
+  // the job where it was, so the two job fields alone read as no change.
+  int to_stage = 0;
 };
 
 class ProgressWatcher {
@@ -46,6 +49,7 @@ class ProgressWatcher {
  private:
   int last_level_;
   Job last_job_;
+  int last_stage_;
 };
 
 }  // namespace ms

@@ -956,7 +956,7 @@ bool TuiController::OnJobMenuEvent(ftxui::Event event) {
   }
   switch (job_menu_.selected()) {
     case kJobMenuInspect:
-      job_inspect_panel_.SetJob(job_advance_);
+      job_inspect_panel_.SetJob(job_advance_, job_advance_stage());
       screen_ = kJobInspect;
       break;
     case kJobMenuAdvance:

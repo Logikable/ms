@@ -41,26 +41,10 @@ constexpr int kCursorWidth = 2;
 constexpr int kNameWidth =
     kContentWidth - kCursorWidth - kSkillTagWidth - kMaxLevelWidth;
 
-// Room for any book under one job, so a row number in one book and the same
-// row number in another are different keys to the name clock.
+// Room for any book, so a row number in one and the same row number in
+// another are different keys to the name clock. Keyed by job and stage both:
+// a 4th job holds two books, its own and its V.
 constexpr int kJobClockStride = 100;
-
-// The advancement whose book is `job`'s own -- the inverse of
-// JobForAdvancement. Walked rather than switched, because every stage of a job
-// answers AdvancementForJobStage and only one of them names this job back: a
-// Fighter is at the Swordman's advancement in stage 1 and their own in stage 2.
-// Every stage has to be asked: stopping short leaves the jobs above with no
-// book at all.
-JobAdvancement AdvancementOf(Job job) {
-  for (int stage = 1; stage <= kMaxJobStage; ++stage) {
-    JobAdvancement advancement = AdvancementForJobStage(job, stage);
-    if (advancement != JOB_ADVANCEMENT_UNSPECIFIED &&
-        JobForAdvancement(advancement) == job) {
-      return advancement;
-    }
-  }
-  return JOB_ADVANCEMENT_UNSPECIFIED;
-}
 
 }  // namespace
 
@@ -68,8 +52,9 @@ JobInspectPanel::JobInspectPanel(std::map<std::string, Skill> skills)
     : skills_(std::move(skills)) {
 }
 
-void JobInspectPanel::SetJob(Job job) {
+void JobInspectPanel::SetJob(Job job, int stage) {
   job_ = job;
+  stage_ = stage;
   selected_ = 0;
 }
 
@@ -77,7 +62,7 @@ std::vector<const Skill*> JobInspectPanel::Skills() const {
   // This job's own book and no other. A player choosing between a Fighter and
   // a Page already holds the Swordman's, so listing it again would bury what
   // they are actually choosing between.
-  return SkillsForAdvancement(skills_, AdvancementOf(job_));
+  return SkillsForAdvancement(skills_, AdvancementForJobStage(job_, stage_));
 }
 
 const Skill* JobInspectPanel::selected_skill() const {
@@ -117,7 +102,9 @@ ftxui::Element JobInspectPanel::Render() const {
   // Folded with the job so that opening another book restarts the slide: the
   // cursor is back on row 0 either way, and row 0 of a book nobody has read
   // is a new name.
-  name_clock_.Follow(static_cast<int>(job_) * kJobClockStride + selected_);
+  name_clock_.Follow((static_cast<int>(job_) * kMaxJobStage + stage_) *
+                         kJobClockStride +
+                     selected_);
 
   std::vector<ftxui::Element> rows;
   // What the job is built around, which is the one thing a player cannot read
@@ -136,7 +123,7 @@ ftxui::Element JobInspectPanel::Render() const {
     rows.push_back(RenderSkillRow(*skills[i], i));
   }
   return ThemedWindow(
-      " " + JobName(job_) + " ",
+      " " + AdvancementName(job_, stage_) + " ",
       ftxui::vbox(std::move(rows)) |
           ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth));
 }

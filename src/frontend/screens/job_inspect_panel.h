@@ -31,8 +31,11 @@ class JobInspectPanel {
   // the catalog is fixed after load, as the Character panel's is.
   explicit JobInspectPanel(std::map<std::string, Skill> skills = {});
 
-  // Opens the panel on `job`, cursor back at the top of its book.
-  void SetJob(Job job);
+  // Opens the panel on the advancement into `job` at `stage`, cursor back at
+  // the top of its book. The stage is needed as well as the job because the
+  // 5th advancement keeps the job's name: without it a Night Lord V would
+  // open the Night Lord's book.
+  void SetJob(Job job, int stage);
   Job job() const {
     return job_;
   }
@@ -56,6 +59,7 @@ class JobInspectPanel {
 
   std::map<std::string, Skill> skills_;
   Job job_ = JOB_UNSPECIFIED;
+  int stage_ = 0;
   int selected_ = 0;
   // How long the cursor has sat where it is, for sliding a long name under
   // its column. Mutable because it is written by the render, which is where
