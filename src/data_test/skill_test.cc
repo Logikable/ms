@@ -362,6 +362,11 @@ TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
     EXPECT_EQ(skill.required_level(), 0)
         << skill.name() << " is gated by the matrix, not by a level";
     EXPECT_FALSE(skill.hyper()) << skill.name() << " cannot be both";
+    // A ladder reads base + per_level x (L - 1), so a node with no base is a
+    // node whose first level buys nothing -- and V Points are bought a level
+    // at a time.
+    EXPECT_TRUE(skill.has_base())
+        << skill.name() << " grants nothing at its first level";
     if (skill.v_node() == V_NODE_KIND_COMMON) {
       ++commons;
       EXPECT_TRUE(common_home)

@@ -117,6 +117,19 @@ TEST_F(SkillInspectPanelTest, ReadsEveryLeverAtTheLearnedLevel) {
   EXPECT_NE(RowIn(rendered, "Max HP", "+625"), std::string::npos) << rendered;
 }
 
+// Decent Mystic Door's shape: a whole point every fifth level, written as a
+// fifth of one per level. The page must read the rung the character is
+// standing on, not the one below it.
+TEST_F(SkillInspectPanelTest, AFractionalLadderReadsWhatItGrants) {
+  Skill skill = IronBody();
+  skill.clear_base();
+  skill.clear_per_level();
+  skill.mutable_base()->set_str(1);
+  skill.mutable_per_level()->set_str(0.2);
+  EXPECT_NE(RowIn(RenderAt(skill, 5), "STR", "+1"), std::string::npos);
+  EXPECT_NE(RowIn(RenderAt(skill, 6), "STR", "+2"), std::string::npos);
+}
+
 // Reckless Hunt sells DEF for damage. The price is half the skill, so the page
 // prints it as a loss rather than dropping the row for not being a gain.
 TEST_F(SkillInspectPanelTest, ShowsALeverTheSkillTakesAway) {

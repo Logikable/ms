@@ -837,7 +837,10 @@ std::vector<Row> LeverRows(const SkillEffect& base, const SkillEffect& per,
                            int level, const std::string& suffix) {
   std::vector<Row> rows;
   for (const FlatLever& lever : kFlatLevers) {
-    int value = (base.*lever.fn)() + (per.*lever.fn)() * (level - 1);
+    // WholeValue rather than a cast, so the page floors a fractional ladder
+    // by the same rule the character is granted by rather than restating it.
+    int value =
+        WholeValue((base.*lever.fn)() + (per.*lever.fn)() * (level - 1));
     if (value == 0) {
       continue;
     }

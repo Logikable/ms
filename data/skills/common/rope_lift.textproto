@@ -12,6 +12,12 @@ kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_COMMON
 v_node: V_NODE_KIND_COMMON
 max_level: 30
+base {
+  str: 1
+  dex: 1
+  int: 1
+  luk: 1
+}
 per_level {
   str: 1
   dex: 1
