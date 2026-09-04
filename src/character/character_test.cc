@@ -12,6 +12,7 @@
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
+#include "src/character/v_matrix.h"
 #include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
@@ -870,6 +871,11 @@ TEST(JobChoicesTest, ABerserkerCountsAsAWarriorThroughout) {
 TEST(JobChoicesTest, EveryAdvancementRoundTripsToItsJob) {
   for (int i = 1; i <= JobAdvancement_MAX; ++i) {
     JobAdvancement advancement = static_cast<JobAdvancement>(i);
+    // The common nodes' home is nobody's advancement, so it names no job.
+    if (advancement == JOB_ADVANCEMENT_COMMON) {
+      EXPECT_EQ(JobForAdvancement(advancement), JOB_UNSPECIFIED);
+      continue;
+    }
     Job job = JobForAdvancement(advancement);
     ASSERT_NE(job, JOB_UNSPECIFIED) << JobAdvancement_Name(advancement);
     EXPECT_EQ(AdvancementForJobStage(job, StageForAdvancement(advancement)),
@@ -974,6 +980,69 @@ CharacterInstance MakeDarkKnight(std::mt19937& rng, int level, int hyper_sp) {
   proto.set_job_stage(4);
   proto.set_hyper_sp(hyper_sp);
   return CharacterInstance(rng, std::move(proto));
+}
+
+// A common node, which every matrix holds.
+Skill MakeCommonNode() {
+  Skill skill;
+  skill.set_name("Rope Lift");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_COMMON);
+  skill.set_v_node(V_NODE_KIND_COMMON);
+  skill.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
+  return skill;
+}
+
+// A 5th job holding `v_points` and no SP of any kind.
+CharacterInstance MakeFifthJob(std::mt19937& rng, int64_t v_points) {
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_DARK_KNIGHT);
+  proto.set_job_stage(5);
+  proto.set_v_points(v_points);
+  return CharacterInstance(rng, std::move(proto));
+}
+
+// A node is bought out of the V Points, by its kind's ladder rather than a
+// point a level -- so the first level of a common node costs seven.
+TEST_F(LearnSkillTest, ANodeSpendsVPointsByItsLadder) {
+  CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/20);
+  const Skill node = MakeCommonNode();
+  ASSERT_TRUE(c.LearnSkill(node));
+  EXPECT_EQ(c.skill_level(node), 1);
+  EXPECT_EQ(c.v_points(), 13) << "seven for the first level";
+  EXPECT_EQ(c.sp(5), 0) << "no stage paid for it";
+
+  // Three more at four apiece, and then the pool is a point short.
+  ASSERT_TRUE(c.LearnSkill(node, 3));
+  EXPECT_EQ(c.skill_level(node), 4);
+  EXPECT_EQ(c.v_points(), 1);
+  EXPECT_FALSE(c.LearnSkill(node));
+  EXPECT_EQ(c.v_points(), 1) << "and nothing is taken for the refusal";
+}
+
+// The matrix is what holds a node, so a character without one buys nothing
+// however many points they are carrying.
+TEST_F(LearnSkillTest, ANodeNeedsAMatrixAndTheRightMatrix) {
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_DARK_KNIGHT);
+  proto.set_job_stage(4);
+  proto.set_v_points(1000);
+  CharacterInstance fourth(rng_, std::move(proto));
+  EXPECT_FALSE(fourth.LearnSkill(MakeCommonNode()));
+  EXPECT_EQ(fourth.v_points(), 1000);
+
+  // One job's own node names its 5th advancement, and only that job holds it.
+  Skill job_node = MakeCommonNode();
+  job_node.set_name("Radiant Evil");
+  job_node.set_v_node(V_NODE_KIND_JOB);
+  job_node.set_job_advancement(JOB_ADVANCEMENT_PALADIN_V);
+  CharacterInstance knight = MakeFifthJob(rng_, /*v_points=*/1000);
+  EXPECT_FALSE(knight.LearnSkill(job_node));
+  job_node.set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT_V);
+  EXPECT_TRUE(knight.LearnSkill(job_node));
+  EXPECT_EQ(knight.v_points(), 1000) << "a job node's first level is free";
 }
 
 TEST_F(LearnSkillTest, AHyperSkillSpendsTheHyperPool) {

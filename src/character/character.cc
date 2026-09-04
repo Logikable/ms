@@ -20,6 +20,7 @@
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/job_branch.h"
+#include "src/character/v_matrix.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
 #include "src/item/inventory.h"
@@ -821,7 +822,7 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
 }
 
 int StageForAdvancement(JobAdvancement advancement) {
-  static_assert(JobAdvancement_ARRAYSIZE == 45,
+  static_assert(JobAdvancement_ARRAYSIZE == 46,
                 "a new advancement needs its stage here");
   switch (advancement) {
     case JOB_ADVANCEMENT_SWORDMAN:
@@ -873,6 +874,10 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_NIGHT_LORD_V:
     case JOB_ADVANCEMENT_SHADOWER_V:
       return 5;
+    // A common node's home is not a stage anybody advances into, so it has
+    // none. Nothing keyed by stage -- the SP pools, the skills tab's numbered
+    // pages -- reaches a common node.
+    case JOB_ADVANCEMENT_COMMON:
     default:
       return 0;
   }
@@ -1132,7 +1137,11 @@ int CharacterInstance::ReconcileSkills(
         // Nowhere in the book to put it. A book costs exactly what its levels
         // pay out, so there always should be -- the point goes back to the
         // pool that bought it rather than being lost.
-        if (taught.hyper()) {
+        if (taught.v_node() != V_NODE_KIND_UNSPECIFIED) {
+          character_.set_v_points(
+              character_.v_points() +
+              VNodeStepCost(taught.v_node(), taught.max_level() + 1));
+        } else if (taught.hyper()) {
           character_.set_hyper_sp(character_.hyper_sp() + 1);
         } else {
           (*character_.mutable_sp_by_stage())[StageForAdvancement(
@@ -1433,6 +1442,11 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   if (!skill.replaces_skill_name().empty()) {
     return false;
   }
+  // A V Matrix node is bought with V Points and held to its kind's ladder, so
+  // none of the SP rules below reach it.
+  if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
+    return LearnVNode(skill, amount);
+  }
   if (!HasAdvancement(skill.job_advancement())) {
     return false;
   }
@@ -1459,6 +1473,40 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   int stage = StageForAdvancement(skill.job_advancement());
   (*character_.mutable_skill_levels())[skill.name()] += amount;
   (*character_.mutable_sp_by_stage())[stage] -= amount;
+  return true;
+}
+
+bool CharacterInstance::ReachesVNode(const Skill& skill) const {
+  if (!v_matrix_unlocked()) {
+    return false;
+  }
+  // A common node belongs to no job at all, so every matrix holds it. Every
+  // other names the 5th advancement whose job may buy it.
+  return skill.job_advancement() == JOB_ADVANCEMENT_COMMON ||
+         HasAdvancement(skill.job_advancement());
+}
+
+int CharacterInstance::VNodeCostFor(const Skill& skill, int amount) const {
+  if (skill.v_node() == V_NODE_KIND_UNSPECIFIED || amount <= 0) {
+    return 0;
+  }
+  int level = skill_level(skill);
+  return VNodeCost(skill.v_node(), level, level + amount);
+}
+
+bool CharacterInstance::LearnVNode(const Skill& skill, int amount) {
+  if (!ReachesVNode(skill)) {
+    return false;
+  }
+  if (skill_level(skill) + amount > skill.max_level()) {
+    return false;
+  }
+  int cost = VNodeCostFor(skill, amount);
+  if (cost > character_.v_points()) {
+    return false;
+  }
+  character_.set_v_points(character_.v_points() - cost);
+  (*character_.mutable_skill_levels())[skill.name()] += amount;
   return true;
 }
 

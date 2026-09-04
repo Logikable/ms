@@ -9,6 +9,8 @@
 #ifndef MS_CHARACTER_H_
 #define MS_CHARACTER_H_
 
+#include <algorithm>
+#include <climits>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -492,9 +494,18 @@ class CharacterInstance {
   // skill, the screen counting out the points and LearnSkill itself cannot
   // disagree about which pool is being spent.
   int SpFor(const Skill& skill) const {
+    if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
+      // Counted in V Points rather than in levels: a node's levels are not
+      // one point each, so what this buys is VNodeCostFor's to say.
+      return static_cast<int>(std::min<int64_t>(v_points(), INT_MAX));
+    }
     return skill.hyper() ? hyper_sp()
                          : sp(StageForAdvancement(skill.job_advancement()));
   }
+  // What raising `skill` by `amount` levels costs in V Points. Zero for
+  // anything that is not a node. Asked here so the panel offering the node and
+  // LearnSkill cannot disagree about the price.
+  int VNodeCostFor(const Skill& skill, int amount) const;
   // The character's learned level in `skill` (0 = unlearned).
   //
   // A Vengeance form is learned to whatever its Benevolence skill was bought
@@ -525,6 +536,10 @@ class CharacterInstance {
   // LearnSkill refuses when this is false; the skills tab asks it directly so
   // it can dim a row rather than let the player press an unspendable [+].
   bool MeetsSkillRequirement(const Skill& skill) const;
+  // Whether `skill`, a V Matrix node, is one this character's matrix holds:
+  // a common node reaches every job, and every other names the 5th
+  // advancement whose job may buy it. False for a character with no matrix.
+  bool ReachesVNode(const Skill& skill) const;
   // The whole character as one proto, with the live containers -- the equip
   // tab, the worn items and the Use/Etc stacks -- folded back into the fields
   // held for them. proto() alone does not carry those: they live in C++
@@ -682,6 +697,9 @@ class CharacterInstance {
   int PiecesWornOf(const EquipSet& set) const;
 
  private:
+  // Buys `amount` levels of a V Matrix node out of the V Point pool, at what
+  // its kind's ladder charges for the levels being crossed. All or nothing.
+  bool LearnVNode(const Skill& skill, int amount);
   // Gives a nameless character kDefaultUsername. Both doors a Character comes
   // in through call it, which is what makes username() never empty.
   void EnsureUsername();

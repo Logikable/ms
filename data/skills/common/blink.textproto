@@ -1,0 +1,15 @@
+# See rope_lift.textproto: one of the three forgotten nodes. GMS pays this one
+# in attack rather than in stat, and at the same rate -- a point a level.
+name: "Blink"
+skill_order: 2
+description:
+  "Teleports you somewhere else on the map. Nobody here remembers what it was "
+  "for."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_COMMON
+v_node: V_NODE_KIND_COMMON
+max_level: 30
+per_level {
+  attack: 1
+  magic_attack: 1
+}

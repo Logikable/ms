@@ -1035,6 +1035,22 @@ message SkillRequirement {
 //
 // Numbered in the same two blocks as SkillEffect, by the same test: a general
 // mechanism up to 99, one job line's own from 100 up.
+// Which of the V Matrix's kinds of node a skill is, or none at all for an
+// ordinary skill. The kind settles what a level costs and how far the node
+// goes -- see v_matrix.h -- so a node names its kind rather than restating a
+// ladder every other node of that kind shares.
+enum VNodeKind {
+  V_NODE_KIND_UNSPECIFIED = 0;
+  // Shared by every job, or by every job of one line. Lives under
+  // JOB_ADVANCEMENT_COMMON.
+  V_NODE_KIND_COMMON = 1;
+  // One job's own: an active skill on a cooldown. Four per job.
+  V_NODE_KIND_JOB = 2;
+  // One job's own: a passive lifting between one and four of the skills below
+  // it. Six per job, and the only kind that goes past level 30.
+  V_NODE_KIND_BOOST = 3;
+}
+
 message Skill {
   string name = 1;
   SkillKind kind = 2;
@@ -1317,6 +1333,11 @@ message Skill {
   // The level the skill unlocks at. 0 is every skill whose advancement is the
   // whole gate, which is all of them but a hyper.
   int32 required_level = 47;
+
+  // Which kind of V Matrix node this is, if it is one. A node is bought with
+  // V Points rather than SP and is held to its kind's ladder, so this is what
+  // tells the two apart -- see LearnSkill.
+  VNodeKind v_node = 54;
 
   // Whether the player switches this skill on and off, rather than simply
   // holding it. Righteously Indignant is what it exists for: a button that

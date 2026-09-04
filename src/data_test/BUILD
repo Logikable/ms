@@ -89,6 +89,7 @@ cc_test(
         "//src:proto_loader",
         "//src/character",
         "//src/character:exp_table",
+        "//src/character:v_matrix",
         "//src/item",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
@@ -125,6 +126,7 @@ cc_test(
     data = ["//data/skills:all"],
     deps = [
         "//src/character",
+        "//src/character:v_matrix",
         "//src/combat:constants",
         "//src/combat:damage",
         "//src/frontend:panel_widths",
@@ -154,6 +156,7 @@ cc_test(
     ],
     deps = [
         "//src/character",
+        "//src/character:v_matrix",
         "//src/frontend/widgets:game_names",
         "//src/frontend/widgets:item_row",
         "//src/frontend/widgets:text_columns",

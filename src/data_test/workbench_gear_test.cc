@@ -39,10 +39,16 @@ using bazel::tools::cpp::runfiles::Runfiles;
 // Every advancement in the enum, taken from the descriptor rather than listed:
 // a hardcoded list is one a new job joins only when somebody remembers to add
 // it, which is exactly how a new job comes to stand there unarmed.
+// Every advancement a character can stand at. JOB_ADVANCEMENT_COMMON is not
+// one: it is where the V Matrix's common nodes live, and no job takes it.
 std::vector<JobAdvancement> EveryAdvancement() {
   std::vector<JobAdvancement> all;
   for (int i = 1; i <= JobAdvancement_MAX; ++i) {
-    all.push_back(static_cast<JobAdvancement>(i));
+    JobAdvancement advancement = static_cast<JobAdvancement>(i);
+    if (advancement == JOB_ADVANCEMENT_COMMON) {
+      continue;
+    }
+    all.push_back(advancement);
   }
   return all;
 }

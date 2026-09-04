@@ -13,6 +13,7 @@ cc_library(
         ":hyper_stats",
         ":inner_ability",
         ":job_branch",
+        ":v_matrix",
         "//src/item",
         "//src/item:equip_instance",
         "//src/item:equip_stats",
@@ -85,6 +86,7 @@ cc_library(
     name = "v_matrix",
     srcs = ["v_matrix.cc"],
     hdrs = ["v_matrix.h"],
+    deps = ["//src/protos:skill_proto_cc"],
 )
 
 cc_test(
@@ -93,6 +95,7 @@ cc_test(
     srcs = ["v_matrix_test.cc"],
     deps = [
         ":v_matrix",
+        "//src/protos:skill_proto_cc",
         "@googletest//:gtest_main",
     ],
 )
@@ -288,6 +291,7 @@ cc_test(
         ":character",
         ":exp_table",
         ":inner_ability",
+        ":v_matrix",
         "//src/item",
         "//src/item:equip_instance",
         "//src/item:potential",

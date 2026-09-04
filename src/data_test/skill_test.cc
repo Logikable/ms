@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "src/character/character.h"
+#include "src/character/v_matrix.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
 #include "src/frontend/panel_widths.h"
@@ -301,9 +302,12 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   std::map<int, int> cost_by_advancement;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     // A Hyper Skill is bought from a pool of its own -- see the page's own
-    // test below. A Vengeance form is bought by buying the skill it stands in
-    // for, so it is that skill's ladder either way.
-    if (entry.second.hyper() || !entry.second.replaces_skill_name().empty()) {
+    // test below -- and a V Matrix node from the V Points, which no level pays
+    // out. A Vengeance form is bought by buying the skill it stands in for, so
+    // it is that skill's ladder either way.
+    if (entry.second.hyper() ||
+        entry.second.v_node() != V_NODE_KIND_UNSPECIFIED ||
+        !entry.second.replaces_skill_name().empty()) {
       continue;
     }
     cost_by_advancement[entry.second.job_advancement()] +=
@@ -316,7 +320,10 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   // rather than a folder gone missing.
   for (JobAdvancement advancement :
        EveryValueOf<JobAdvancement>(JobAdvancement_descriptor())) {
-    if (StageForAdvancement(advancement) >= 5) {
+    // The 5th jobs are written one at a time, and the common nodes are bought
+    // with V Points rather than SP -- neither belongs to a book this counts.
+    if (StageForAdvancement(advancement) >= 5 ||
+        advancement == JOB_ADVANCEMENT_COMMON) {
       continue;
     }
     EXPECT_TRUE(cost_by_advancement.count(advancement))
@@ -335,6 +342,35 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
         << "advancement " << entry.first << " costs " << entry.second
         << " against the " << kSpByStage[stage] << " its levels pay out";
   }
+}
+
+// A node is held to its kind: how far it goes is the kind's to say, and where
+// it lives follows from whose matrix holds it.
+TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
+  int commons = 0;
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    bool common_home = skill.job_advancement() == JOB_ADVANCEMENT_COMMON;
+    if (skill.v_node() == V_NODE_KIND_UNSPECIFIED) {
+      EXPECT_FALSE(common_home)
+          << skill.name() << " is not a node but lives among them";
+      continue;
+    }
+    EXPECT_EQ(skill.max_level(), MaxVNodeLevel(skill.v_node()))
+        << skill.name() << " does not go as far as its kind";
+    EXPECT_EQ(skill.required_level(), 0)
+        << skill.name() << " is gated by the matrix, not by a level";
+    EXPECT_FALSE(skill.hyper()) << skill.name() << " cannot be both";
+    if (skill.v_node() == V_NODE_KIND_COMMON) {
+      ++commons;
+      EXPECT_TRUE(common_home)
+          << skill.name() << " is common and belongs under COMMON";
+    } else {
+      EXPECT_EQ(StageForAdvancement(skill.job_advancement()), 5)
+          << skill.name() << " is one job's own and belongs to its 5th";
+    }
+  }
+  EXPECT_GT(commons, 0) << "the common folder stopped being read";
 }
 
 // A requirement may name a skill from a book below it -- Evil Eye Shock II

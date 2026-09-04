@@ -18,6 +18,8 @@
 #include <cstdint>
 #include <random>
 
+#include "src/protos/skill.pb.h"
+
 namespace ms {
 
 // The share of kills that pay a V Point, before item drop rate lifts it. Set
@@ -32,6 +34,20 @@ double VPointsPerKill(double item_drop_pct);
 // V Points `kills` actually paid. One roll over the batch, as the meso and the
 // honor are: which kills paid is not a question anything downstream asks.
 int64_t RollMobVPoints(int64_t kills, double item_drop_pct, std::mt19937& rng);
+
+// How far a node of `kind` goes: thirty for a common or a job node, sixty for
+// a boost. Zero for a skill that is not a node.
+int MaxVNodeLevel(VNodeKind kind);
+
+// What the step up to `level` costs. GMS's own ladders, which climb by bands
+// of ten rather than per level: a job node's first level is free and a
+// common's is 7, and both then cost 4, 6 and 9 through their three bands. A
+// boost costs one a level to forty and two past it.
+int VNodeStepCost(VNodeKind kind, int level);
+
+// What raising a node of `kind` from `from` to `to` costs altogether. Zero for
+// a climb that goes nowhere or backwards.
+int VNodeCost(VNodeKind kind, int from, int to);
 
 }  // namespace ms
 

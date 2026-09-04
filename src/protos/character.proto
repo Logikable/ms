@@ -129,6 +129,11 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_BISHOP_V = 42;
   JOB_ADVANCEMENT_NIGHT_LORD_V = 43;
   JOB_ADVANCEMENT_SHADOWER_V = 44;
+  // Not an advancement any character takes: the home of the V Matrix's common
+  // nodes, which every job holds alike. A skill belongs to exactly one
+  // advancement, and a node shared by ten jobs would otherwise be ten copies
+  // of one file.
+  JOB_ADVANCEMENT_COMMON = 45;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.
