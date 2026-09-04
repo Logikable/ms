@@ -534,7 +534,8 @@ TEST_F(InspectPanelTest, FoldsTheJobRowWhenNothingElseIsWide) {
 }
 
 TEST_F(InspectPanelTest, KeepsTheJobRowWholeWhenTheCardIsWideAnyway) {
-  sword_.set_name("Fafnir Mistilteinn of Preposterous Length and Renown Trace");
+  sword_.set_name(
+      "Fafnir Windwing Shooter of Preposterous Length and Renown Trace");
   EquipInstance item(sword_);
   InspectPanel panel;
   panel.SetItem(&item);

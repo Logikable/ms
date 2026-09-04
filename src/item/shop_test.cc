@@ -194,9 +194,10 @@ TEST(ShopTest, TheTokenShelvesHoldWhatATokenBuys) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::vector<std::string> weapons = ShopWeaponStock(equips, kPaidInTokens);
   std::vector<std::string> worn = ShopEquipStock(equips, kPaidInTokens);
-  EXPECT_EQ(weapons.size(), 10u) << "one Frozen weapon per type";
-  EXPECT_EQ(worn.size(), 14u)
-      << "one Frozen off-hand per branch, and one Cygnus shoulder per branch";
+  EXPECT_EQ(weapons.size(), 20u) << "a Frozen and a Root Abyss weapon per type";
+  EXPECT_EQ(worn.size(), 26u)
+      << "ten Frozen off-hands, four Cygnus shoulders, and three pieces of "
+         "Root Abyss armour per branch";
   for (const std::vector<std::string>& shelf : {weapons, worn}) {
     for (const std::string& key : shelf) {
       const EquipPrototype& proto = equips.at(key);

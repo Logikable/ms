@@ -1,0 +1,47 @@
+name: EQUIP_SET_NAME_ROOT_ABYSS_THIEF
+# Four slots, all of them filled: the three pieces of armour Chaos Pierre, Von
+# Bon and the Crimson Queen pay for, and the weapon Vellum does. Written once
+# per branch because every piece of it belongs to one class -- the set a
+# thief wears is not the set anybody else does.
+complete_pieces: 4
+members {
+  slot: EQUIP_SLOT_HAT
+  items { name: "Royal Assassin Hood" }
+}
+members {
+  slot: EQUIP_SLOT_TOP
+  items { name: "Eagle Eye Assassin Shirt" }
+}
+members {
+  slot: EQUIP_SLOT_BOTTOM
+  items { name: "Trixter Assassin Pants" }
+}
+# Named as a family rather than by name: the branch's weapons are one piece
+# with a version per line, and a player wears exactly one of them.
+members {
+  slot: EQUIP_SLOT_PRIMARY_WEAPON
+  family: "Root Abyss Thief Weapon"
+}
+tiers {
+  pieces: 2
+  effect {
+    dex: 20
+    luk: 20
+    max_hp: 1000
+    max_mp: 1000
+  }
+}
+tiers {
+  pieces: 3
+  effect {
+    max_hp_pct: 0.10
+    max_mp_pct: 0.10
+    attack: 50
+  }
+}
+tiers {
+  pieces: 4
+  effect {
+    boss_pct: 0.30
+  }
+}

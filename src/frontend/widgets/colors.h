@@ -42,15 +42,19 @@ inline const ftxui::Color kGray = ftxui::Color::RGB(100, 100, 100);
 // it that the two tags cannot be read as shades of each other, and cool where
 // the other two marks are warm and blue.
 inline const ftxui::Color kPurple = ftxui::Color::RGB(173, 163, 255);
-// A skill list's attack tag, and the Star Force share of a stat.
+// A skill list's attack tag, the Star Force share of a stat, and the mark a
+// Root Abyss hat's price is asked in.
 inline const ftxui::Color kGold = ftxui::Color::RGB(255, 198, 50);
 // A critical damage line, and the mark an off-hand's price is asked in. Well
 // clear of the gold above: a crit has to be told apart from a plain line at a
 // glance, and the two marks from each other.
 inline const ftxui::Color kOrange = ftxui::Color::RGB(240, 140, 60);
 
-// Star Force outcome rates.
+// Star Force outcome rates, and the mark a Root Abyss top's price is asked in.
 inline const ftxui::Color kGreen = ftxui::Color::RGB(100, 175, 100);
+// The mark a Root Abyss bottom's price is asked in. Warm where kPurple is
+// cool, so the two never read as one another on the token shelf.
+inline const ftxui::Color kPink = ftxui::Color::RGB(235, 130, 175);
 inline const ftxui::Color kMutedYellow = ftxui::Color::RGB(185, 155, 70);
 
 // The reason something is refused, and a bad outcome: a requirement not met,

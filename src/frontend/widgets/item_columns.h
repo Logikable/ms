@@ -42,8 +42,8 @@ inline constexpr ItemColumn kItemColumnPriority[kNumItemColumns] = {
 };
 
 // The name column at its narrowest, on a panel that can spare nothing. Names
-// run past it -- "Fafnir Mistilteinn Trace" does -- so a name is cut to the
-// column and slides under it while its row is selected; see ScrollingWindow.
+// run past it -- "Fafnir Windwing Shooter Trace" does -- so a name is cut to
+// the column and slides under it while selected; see ScrollingWindow.
 inline constexpr int kItemNameWidth = 26;
 
 // And at its widest: the longest name the game ships, a trace's " Trace"

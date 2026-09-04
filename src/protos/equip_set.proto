@@ -12,6 +12,12 @@ enum EquipSetName {
   EQUIP_SET_NAME_UNSPECIFIED = 0;
   EQUIP_SET_NAME_FROZEN = 1;
   EQUIP_SET_NAME_BOSS_ACCESSORY = 2;
+  // One per branch: every piece of the Root Abyss set belongs to one class,
+  // so there is no single set to belong to.
+  EQUIP_SET_NAME_ROOT_ABYSS_WARRIOR = 3;
+  EQUIP_SET_NAME_ROOT_ABYSS_BOWMAN = 4;
+  EQUIP_SET_NAME_ROOT_ABYSS_MAGICIAN = 5;
+  EQUIP_SET_NAME_ROOT_ABYSS_THIEF = 6;
 }
 
 // What wearing several pieces of one set is worth. Each tier is a SkillEffect

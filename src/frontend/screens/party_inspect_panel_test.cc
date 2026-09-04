@@ -273,7 +273,7 @@ TEST_F(PartyInspectPanelTest, ShowingAnotherMemberForgetsTheFirst) {
 // loaded against changed catalogs drops it. Everything else still reads.
 TEST_F(PartyInspectPanelTest, DropsAnItemThisBuildDoesNotHave) {
   EquipPrototype unknown;
-  unknown.set_name("Fafnir Mistilteinn");
+  unknown.set_name("Fafnir Windwing Shooter");
   unknown.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   unknown.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
 

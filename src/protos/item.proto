@@ -27,6 +27,11 @@ enum CurrencyColor {
   CURRENCY_COLOR_THEME = 1;
   CURRENCY_COLOR_ORANGE = 2;
   CURRENCY_COLOR_PURPLE = 3;
+  // The Root Abyss armour, one colour per piece: the three fall in the shop
+  // together, so no two of them may read as shades of each other.
+  CURRENCY_COLOR_GOLD = 4;
+  CURRENCY_COLOR_GREEN = 5;
+  CURRENCY_COLOR_PINK = 6;
 }
 
 // What a stackable is for, where nothing else about it says so. The bag's

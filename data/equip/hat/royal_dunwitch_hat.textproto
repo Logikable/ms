@@ -1,0 +1,20 @@
+# The Root Abyss hat for this branch, bought with what Chaos Crimson Queen
+# drops. One of four: the piece a class wears is its own, so the
+# set is written four times over rather than once around a
+# universal armour.
+name: "Royal Dunwitch Hat"
+required_level: 150
+base_stats {
+  int: 40
+  luk: 40
+  magic_attack: 2
+  max_hp: 360
+  max_mp: 360
+  def: 180
+  ignore_enemy_defense: 10
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_HAT
+upgrade_slots: 11
+token_item: "piece_of_anguish"
+token_price: 5

@@ -1,0 +1,18 @@
+# The Root Abyss bottom for this branch, bought with what Chaos Pierre
+# drops. One of four: the piece a class wears is its own, so the
+# set is written four times over rather than once around a
+# universal armour.
+name: "Trixter Dunwitch Pants"
+required_level: 150
+base_stats {
+  int: 30
+  luk: 30
+  magic_attack: 2
+  def: 120
+  ignore_enemy_defense: 5
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_BOTTOM
+upgrade_slots: 7
+token_item: "piece_of_mockery"
+token_price: 5

@@ -176,10 +176,11 @@ TEST_F(WorkbenchGearTest, EveryJobPastTheFirstWearsAnOffHand) {
 }
 
 // The Frozen set drops rather than sells, so the workbench is the only place
-// the whole of it is ever seen. A 3rd job at 100 reaches the four armour
-// pieces inside its level and keeps its meso weapon and off-hand; a 4th job at
-// the cap adds the two the token shelf sells and the two that ask for 140, for
-// all eight. Below that, none.
+// so much of it is ever seen. A 3rd job at 100 reaches the four armour pieces
+// inside its level and keeps its meso weapon and off-hand. A 4th job at the
+// cap adds the two that ask for 140 and the off-hand the token shelf sells,
+// but hands the hat, top, bottom and weapon over to the Root Abyss set below
+// -- four apiece. Under the 3rd job, none.
 TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
   for (JobAdvancement advancement : EveryAdvancement()) {
     GameState state = Workbench(advancement);
@@ -189,8 +190,31 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
          state.character.equipped()) {
       frozen += IsFrozen(worn.second.prototype()) ? 1 : 0;
     }
+    EXPECT_EQ(frozen, StageForAdvancement(advancement) < 3 ? 0 : 4);
+  }
+}
+
+// The Root Abyss set is bought with what the Chaos Root Abyss bosses drop, and
+// they open at 200 -- so a 4th job standing at the cap wears all four pieces
+// and the 3rd job under it, which wears the same four slots, wears none.
+TEST_F(WorkbenchGearTest, OnlyTheCapWearsTheRootAbyssSet) {
+  const EquipSlot kSlots[] = {EQUIP_SLOT_HAT, EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM,
+                              EQUIP_SLOT_PRIMARY_WEAPON};
+  for (JobAdvancement advancement : EveryAdvancement()) {
     int stage = StageForAdvancement(advancement);
-    EXPECT_EQ(frozen, stage < 3 ? 0 : (stage == 3 ? 4 : 8));
+    if (stage < 3) {
+      continue;  // wears no armour at all; the Frozen test above says so
+    }
+    GameState state = Workbench(advancement);
+    SCOPED_TRACE(JobAdvancement_Name(advancement));
+    for (EquipSlot slot : kSlots) {
+      std::map<EquipSlot, EquipInstance>::const_iterator worn =
+          state.character.equipped().find(slot);
+      ASSERT_NE(worn, state.character.equipped().end())
+          << EquipSlot_Name(slot) << " is empty";
+      EXPECT_EQ(worn->second.prototype().required_level() == 150, stage >= 4)
+          << EquipSlot_Name(slot) << " holds " << worn->second.name();
+    }
   }
 }
 

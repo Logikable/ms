@@ -96,6 +96,8 @@ struct LeverPair {
 };
 
 const LeverPair<int> kFlatPairs[] = {
+    {"Max HP & MP", "Max HP", "Max MP", &SkillEffect::max_hp,
+     &SkillEffect::max_mp},
     {"Attack Power & Magic ATT", "Attack Power", "Magic ATT",
      &SkillEffect::attack, &SkillEffect::magic_attack},
 };

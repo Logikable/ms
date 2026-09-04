@@ -1,0 +1,22 @@
+# The Root Abyss weapon for this line, bought with what Chaos Vellum drops.
+# Two tiers above the Frozen weapon it replaces: the attack alone is a third
+# more, and it is the first weapon in the game to carry boss damage and
+# ignored defence of its own.
+name: "Fafnir Mana Crown"
+required_level: 150
+base_stats {
+  int: 40
+  luk: 40
+  attack: 126
+  magic_attack: 204
+  boss_damage: 30
+  ignore_enemy_defense: 10
+}
+attack_speed: ATTACK_SPEED_SLOW_1
+equip_type: EQUIP_TYPE_STAFF
+upgrade_slots: 8
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+token_item: "piece_of_destruction"
+token_price: 15
+set_family: "Root Abyss Magician Weapon"

@@ -1,0 +1,18 @@
+# The Root Abyss top for this branch, bought with what Chaos Von Bon
+# drops. One of four: the piece a class wears is its own, so the
+# set is written four times over rather than once around a
+# universal armour.
+name: "Eagle Eye Ranger Cowl"
+required_level: 150
+base_stats {
+  str: 30
+  dex: 30
+  attack: 2
+  def: 135
+  ignore_enemy_defense: 5
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+equip_slot: EQUIP_SLOT_TOP
+upgrade_slots: 7
+token_item: "piece_of_time"
+token_price: 5

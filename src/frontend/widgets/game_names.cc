@@ -198,6 +198,14 @@ std::string FormatEquipSet(EquipSetName set) {
       return "Frozen Set";
     case EQUIP_SET_NAME_BOSS_ACCESSORY:
       return "Boss Accessory Set";
+    case EQUIP_SET_NAME_ROOT_ABYSS_WARRIOR:
+      return "Root Abyss Set (Warrior)";
+    case EQUIP_SET_NAME_ROOT_ABYSS_BOWMAN:
+      return "Root Abyss Set (Bowman)";
+    case EQUIP_SET_NAME_ROOT_ABYSS_MAGICIAN:
+      return "Root Abyss Set (Magician)";
+    case EQUIP_SET_NAME_ROOT_ABYSS_THIEF:
+      return "Root Abyss Set (Thief)";
     default:
       return "";
   }

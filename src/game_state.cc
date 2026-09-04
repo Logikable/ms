@@ -17,6 +17,7 @@
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
 #include "src/character/honor.h"
+#include "src/character/job_branch.h"
 #include "src/character/job_name.h"
 #include "src/character/max_character.h"
 #include "src/character/stat_preset.h"
@@ -356,12 +357,78 @@ void WearThePath(GameState& state, const std::vector<Job>& path,
   }
 }
 
-// The only armour there is. Universal, so it fits whoever the workbench is.
+// The only universal armour there is, so it fits whoever the workbench is.
 // The gloves and the boots ask for level 140, which a 3rd job standing at 100
 // carries rather than wears.
 std::vector<std::string> FrozenArmour() {
   return {"frozen_hat",  "frozen_top",    "frozen_bottom",
           "frozen_cape", "frozen_gloves", "frozen_boots"};
+}
+
+// The level the Chaos Root Abyss opens at, and so the earliest anybody can own
+// what its Pieces buy. The gear itself is worn at 150; nothing pays for a
+// piece of it until 200, and a character dressed here is one the game could
+// really have produced.
+constexpr int kRootAbyssLevel = 200;
+
+// The Root Abyss set the branch wears, worn over the Frozen tier: three pieces
+// of armour and the weapon, which supersede the Frozen hat, top, bottom and
+// weapon. Nothing here fills the off-hand, so the Frozen secondary stays on
+// and the Frozen set keeps paying at four pieces.
+std::vector<std::string> RootAbyssArmour(Job job) {
+  switch (BranchOf(job)) {
+    case JobBranch::kWarrior:
+      return {"royal_warrior_helm", "eagle_eye_warrior_armor",
+              "trixter_warrior_pants"};
+    case JobBranch::kArcher:
+      return {"royal_ranger_beret", "eagle_eye_ranger_cowl",
+              "trixter_ranger_pants"};
+    case JobBranch::kMagician:
+      return {"royal_dunwitch_hat", "eagle_eye_dunwitch_robe",
+              "trixter_dunwitch_pants"};
+    case JobBranch::kRogue:
+      return {"royal_assassin_hood", "eagle_eye_assassin_shirt",
+              "trixter_assassin_pants"};
+    default:
+      return {};
+  }
+}
+
+// The Root Abyss weapon a 4th job swings: the same line's choice the Frozen
+// tier makes in WorkbenchGearFor. Empty for anybody below the 4th job, who
+// reaches level 200 only if a tester asks for it by hand.
+std::string RootAbyssWeapon(Job job) {
+  switch (job) {
+    case JOB_HERO:
+      return "fafnir_battle_cleaver";
+    case JOB_PALADIN:
+      return "fafnir_lightning_striker";
+    case JOB_DARK_KNIGHT:
+      return "fafnir_brionak";
+    case JOB_BOW_MASTER:
+      return "fafnir_wind_chaser";
+    case JOB_MARKSMAN:
+      return "fafnir_windwing_shooter";
+    case JOB_ICE_LIGHTNING_ARCH_MAGE:
+    case JOB_FIRE_POISON_ARCH_MAGE:
+    case JOB_BISHOP:
+      return "fafnir_mana_crown";
+    case JOB_NIGHT_LORD:
+      return "fafnir_risk_holder";
+    case JOB_SHADOWER:
+      return "fafnir_damascus";
+    default:
+      return "";
+  }
+}
+
+std::vector<std::string> RootAbyssGear(Job job) {
+  std::vector<std::string> names = RootAbyssArmour(job);
+  std::string weapon = RootAbyssWeapon(job);
+  if (!weapon.empty()) {
+    names.push_back(std::move(weapon));
+  }
+  return names;
 }
 
 // What the bosses pay, which is the only thing that fills the accessory and
@@ -498,6 +565,11 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
     WearAll(state, FrozenArmour(), equips);
     WearAll(state, BossAccessories(), equips);
     WearAll(state, ShopAccessories(cygnus_shoulders), equips);
+  }
+  // Last, so it displaces the Frozen pieces it supersedes rather than the
+  // other way round.
+  if (state.character.proto().level() >= kRootAbyssLevel) {
+    WearAll(state, RootAbyssGear(state.character.proto().job()), equips);
   }
   WearStarterSymbol(state);
 }

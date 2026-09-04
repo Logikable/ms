@@ -784,7 +784,7 @@ TEST_F(ShopPanelTest, ThePanelIsOneWidthWhateverItHolds) {
 
   // A price with three digits more than anything the catalog stocks today.
   std::map<std::string, EquipPrototype> dear = equips_;
-  dear["dear"] = MakeItem("Fafnir Mistilteinn", 100, 9999999);
+  dear["dear"] = MakeItem("Fafnir Windwing Shooter", 100, 9999999);
   ShopPanel expensive(rich, dear, items_);
   EXPECT_EQ(RenderWidth(expensive), width) << "a dear item widened it";
   EXPECT_NE(Render(expensive).find("9,999,999"), std::string::npos)

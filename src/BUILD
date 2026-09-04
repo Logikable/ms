@@ -174,6 +174,7 @@ cc_library(
         "//src/character:consumables",
         "//src/character:exp_table",
         "//src/character:honor",
+        "//src/character:job_branch",
         "//src/character:job_name",
         "//src/character:max_character",
         "//src/character:stat_preset",

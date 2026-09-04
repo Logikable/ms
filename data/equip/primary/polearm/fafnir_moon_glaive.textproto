@@ -1,0 +1,21 @@
+# The Root Abyss weapon for this line, bought with what Chaos Vellum drops.
+# Two tiers above the Frozen weapon it replaces: the attack alone is a third
+# more, and it is the first weapon in the game to carry boss damage and
+# ignored defence of its own.
+name: "Fafnir Moon Glaive"
+required_level: 150
+base_stats {
+  str: 40
+  dex: 40
+  attack: 153
+  boss_damage: 30
+  ignore_enemy_defense: 10
+}
+attack_speed: ATTACK_SPEED_FAST_1
+equip_type: EQUIP_TYPE_POLEARM
+upgrade_slots: 8
+equip_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+token_item: "piece_of_destruction"
+token_price: 15
+set_family: "Root Abyss Warrior Weapon"

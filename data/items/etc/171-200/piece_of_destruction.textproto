@@ -1,7 +1,9 @@
 # A currency rather than litter: it sells for nothing, and one falls from every
-# clear. No mark yet -- a mark is what the shop asks by, and the Root Abyss
-# gear these buy is not built. It comes with the gear.
+# clear. The triangle says which stage of the game it belongs to and the colour
+# which piece of the Root Abyss set it buys, so one glyph reads on both axes.
 name: "Piece of Destruction"
 category: ITEM_CATEGORY_ETC
 kind: ITEM_KIND_TOKEN
 description: "A scale torn from Chaos Vellum. The rock it fell on is still open."
+currency_mark: "▲"
+currency_color: CURRENCY_COLOR_THEME

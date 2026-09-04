@@ -55,9 +55,9 @@ ABSL_FLAG(std::string, weapons, "40,70,100,140",
           "Weapon levels to scroll and to star force.");
 ABSL_FLAG(int, slots, 7,
           "Upgrade slots on those weapons. Every weapon the game hands out "
-          "has 7; only the workbench's own level 150 sword has 8. No golden "
-          "hammer is assumed.");
-ABSL_FLAG(std::string, fifteen_equip, "fafnir_mistilteinn",
+          "has 7; only the level 150 tier has 8. No golden hammer is "
+          "assumed.");
+ABSL_FLAG(std::string, fifteen_equip, "fafnir_penitent_tears",
           "Data file stem of the weapon scrolled at 15%.");
 ABSL_FLAG(int, hammers, ms::kMaxHammers,
           "Golden hammers driven into the 15% weapon. Each adds an upgrade "

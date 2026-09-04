@@ -317,33 +317,44 @@ TEST(EquipDataTest, EveryWeaponTypeReachesTheTopMesoTier) {
   }
 }
 
-// Every weapon type the shop's ladder reaches the cap with has a Frozen one
-// above it, so no branch is asked to farm tokens for a weapon it cannot hold.
-// The one-handed sword is out for the reason its ladder stops: nobody swings
-// one past their 2nd job.
-TEST(EquipDataTest, EveryWeaponTypeHasAFrozenTier) {
-  std::map<EquipType, int> frozen;
+// Every weapon type the shop's ladder reaches the cap with has both token
+// tiers above it, so no branch is asked to farm tokens for a weapon it cannot
+// hold. The one-handed sword is out for the reason its ladder stops: nobody
+// swings one past their 2nd job.
+TEST(EquipDataTest, EveryWeaponTypeHasBothTokenTiers) {
+  // Level -> type -> the one weapon of it a token buys at that level.
+  std::map<int, std::map<EquipType, std::string>> token_tiers;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
-    if (proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON &&
-        proto.token_price() > 0) {
-      EXPECT_EQ(frozen.count(proto.equip_type()), 0u)
-          << entry.first << " is a second Frozen "
-          << FormatEquipType(proto.equip_type());
-      frozen[proto.equip_type()] = proto.required_level();
+    if (proto.equip_slot() != EQUIP_SLOT_PRIMARY_WEAPON ||
+        proto.token_price() <= 0) {
+      continue;
     }
+    std::map<EquipType, std::string>& tier =
+        token_tiers[proto.required_level()];
+    EXPECT_EQ(tier.count(proto.equip_type()), 0u)
+        << entry.first << " is a second " << FormatEquipType(proto.equip_type())
+        << " at level " << proto.required_level();
+    tier[proto.equip_type()] = entry.first;
   }
+  const int kTokenTiers[] = {120, 150};  // Frozen, then Root Abyss
+  for (int level : kTokenTiers) {
+    ASSERT_GT(token_tiers.count(level), 0u)
+        << "no token weapons at level " << level;
+  }
+  EXPECT_EQ(token_tiers.size(), std::size(kTokenTiers))
+      << "a token weapon sits outside the two tiers";
   for (const std::pair<const EquipType, std::vector<int>>& ladder :
        WeaponLadders()) {
     if (ladder.first == EQUIP_TYPE_ONE_HANDED_SWORD) {
       continue;
     }
-    ASSERT_EQ(frozen.count(ladder.first), 1u)
-        << FormatEquipType(ladder.first) << " has no Frozen tier";
-    EXPECT_EQ(frozen[ladder.first], 120)
-        << "the Frozen " << FormatEquipType(ladder.first)
-        << " is worn at the wrong level";
+    for (int level : kTokenTiers) {
+      EXPECT_EQ(token_tiers[level].count(ladder.first), 1u)
+          << FormatEquipType(ladder.first) << " has no level " << level
+          << " token tier";
+    }
   }
 }
 
@@ -661,14 +672,54 @@ TEST(EquipDataTest, TheFrozenSetAddsUpToItsAgreedTotals) {
   EXPECT_DOUBLE_EQ(set->tiers(5).effect().boss_pct(), 0.20);
 }
 
+// The four Root Abyss sets are one set written per branch, so what they pay
+// has to agree piece for piece: a class reading a weaker card than another
+// would be a typo nothing else catches. Totals rather than what each tier
+// adds, for the reason the two sets above are pinned that way.
+TEST(EquipDataTest, EveryRootAbyssSetAddsUpToTheSameTotals) {
+  const std::set<EquipSetName> kBranches = {
+      EQUIP_SET_NAME_ROOT_ABYSS_WARRIOR, EQUIP_SET_NAME_ROOT_ABYSS_BOWMAN,
+      EQUIP_SET_NAME_ROOT_ABYSS_MAGICIAN, EQUIP_SET_NAME_ROOT_ABYSS_THIEF};
+  std::set<EquipSetName> seen;
+  for (const std::pair<const std::string, EquipSet>& entry : LoadSets()) {
+    const EquipSet& set = entry.second;
+    if (kBranches.count(set.name()) == 0) {
+      continue;
+    }
+    seen.insert(set.name());
+    ASSERT_EQ(set.complete_pieces(), 4) << entry.first;
+    ASSERT_EQ(set.tiers_size(), 3) << entry.first;
+    // Two stats of the four, and which two follows the branch -- so they are
+    // added rather than named here.
+    int stat = 0;
+    int attack = 0;
+    for (const EquipSetTier& tier : set.tiers()) {
+      const SkillEffect& effect = tier.effect();
+      stat += effect.str() + effect.dex() + effect.int_() + effect.luk();
+      attack += effect.attack() + effect.magic_attack();
+    }
+    EXPECT_EQ(stat, 40) << entry.first;
+    EXPECT_EQ(attack, 50) << entry.first;
+    EXPECT_EQ(set.tiers(0).pieces(), 2) << entry.first;
+    EXPECT_EQ(set.tiers(0).effect().max_hp(), 1000) << entry.first;
+    EXPECT_EQ(set.tiers(0).effect().max_mp(), 1000) << entry.first;
+    EXPECT_EQ(set.tiers(1).pieces(), 3) << entry.first;
+    EXPECT_DOUBLE_EQ(set.tiers(1).effect().max_hp_pct(), 0.10) << entry.first;
+    EXPECT_DOUBLE_EQ(set.tiers(1).effect().max_mp_pct(), 0.10) << entry.first;
+    EXPECT_EQ(set.tiers(2).pieces(), 4) << entry.first;
+    EXPECT_DOUBLE_EQ(set.tiers(2).effect().boss_pct(), 0.30) << entry.first;
+  }
+  EXPECT_EQ(seen, kBranches) << "a branch has no Root Abyss set";
+}
+
 // The levers the inspect screen's set card writes a row for. A tier that pulls
 // one outside this list pays the player a bonus nothing tells them about, so
 // the card and this list move together -- see InspectPanel::EffectLines.
 const char* const kShownLevers[] = {
-    "str",        "dex",          "int",           "luk",        "def",
-    "attack",     "magic_attack", "attack_pct",    "max_hp_pct", "max_mp_pct",
-    "damage_pct", "boss_pct",     "ied_pct",       "crit_rate",  "crit_dmg",
-    "meso_pct",   "exp_pct",      "item_drop_pct",
+    "str",        "dex",          "int",        "luk",      "def",
+    "attack",     "magic_attack", "attack_pct", "max_hp",   "max_mp",
+    "max_hp_pct", "max_mp_pct",   "damage_pct", "boss_pct", "ied_pct",
+    "crit_rate",  "crit_dmg",     "meso_pct",   "exp_pct",  "item_drop_pct",
 };
 
 TEST(EquipDataTest, EverySetTierLeverHasARowOnTheInspectScreen) {

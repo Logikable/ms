@@ -197,7 +197,7 @@ class ClearUnderNode : public ftxui::Node {
 }  // namespace
 
 ftxui::Color MarkColor(CurrencyColor color) {
-  static_assert(CurrencyColor_ARRAYSIZE == 4,
+  static_assert(CurrencyColor_ARRAYSIZE == 7,
                 "a new currency colour needs a colour to draw its mark in");
   switch (color) {
     case CURRENCY_COLOR_THEME:
@@ -206,6 +206,12 @@ ftxui::Color MarkColor(CurrencyColor color) {
       return kOrange;
     case CURRENCY_COLOR_PURPLE:
       return kPurple;
+    case CURRENCY_COLOR_GOLD:
+      return kGold;
+    case CURRENCY_COLOR_GREEN:
+      return kGreen;
+    case CURRENCY_COLOR_PINK:
+      return kPink;
     default:
       return kTheme;
   }
