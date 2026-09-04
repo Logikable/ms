@@ -16,6 +16,7 @@
 #include "src/character/max_character.h"
 #include "src/character/progression.h"
 #include "src/character/stat_preset.h"
+#include "src/character/v_matrix.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
@@ -71,6 +72,22 @@ std::map<std::string, Skill> EveryStageBook() {
     skill.set_max_level(kSpByStage[stage]);
     book.insert({"stage_" + std::to_string(stage), skill});
   }
+  // The 5th job's book is the matrix: a node of its own, and a common one,
+  // which every matrix holds whatever the job.
+  Skill node;
+  node.set_name("Fifth Surge");
+  node.set_kind(SKILL_KIND_ATTACK);
+  node.set_job_advancement(
+      AdvancementForJobStage(WorkbenchJob(), kFifthJobStage));
+  node.set_v_node(V_NODE_KIND_JOB);
+  node.set_max_level(MaxVNodeLevel(V_NODE_KIND_JOB));
+  book.insert({"fifth_surge", node});
+  Skill common = node;
+  common.set_name("Common Lift");
+  common.set_job_advancement(JOB_ADVANCEMENT_COMMON);
+  common.set_v_node(V_NODE_KIND_COMMON);
+  common.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
+  book.insert({"common_lift", common});
   return book;
 }
 
@@ -920,9 +937,9 @@ std::map<std::string, Scroll> MaxTraces() {
   return traces;
 }
 
-GameState MakeMaxState(int level) {
+GameState MakeMaxState(int level, JobAdvancement job = JOB_ADVANCEMENT_HERO) {
   TestOptions options;
-  options.job = JOB_ADVANCEMENT_HERO;
+  options.job = job;
   options.level = level;
   return GameState(MaxCatalog(), MaxTraces(), {}, {}, {}, EveryStageBook(),
                    GameMode::kMax, options);
@@ -988,6 +1005,40 @@ TEST(GameStateTest, MaxModeSpendsEveryPool) {
   }
   EXPECT_EQ(state.character.ability(StatPreset::kBossing).rank(),
             ABILITY_RANK_LEGENDARY);
+}
+
+// --job names the line, not where to stop in it: the 5th advancement opens at
+// 200 and the ceiling has taken it.
+TEST(GameStateTest, MaxModeTakesEveryAdvancementTheLevelOffers) {
+  GameState state = MakeMaxState(NextAdvancementLevel(kFifthJobStage - 1));
+  EXPECT_EQ(state.character.proto().job_stage(), kFifthJobStage);
+  EXPECT_TRUE(state.character.v_matrix_unlocked());
+  EXPECT_EQ(state.character.proto().job(), JOB_HERO);
+}
+
+// A stage the line does not answer for stops the climb: nothing says which of
+// the three a Swordman became.
+TEST(GameStateTest, MaxModeStaysPutWhenTheLineDoesNotBranch) {
+  GameState state = MakeMaxState(kTrialLevelCap, JOB_ADVANCEMENT_SWORDMAN);
+  EXPECT_EQ(state.character.proto().job_stage(), 1);
+}
+
+// Every node of the matrix at its ceiling -- the common ones with them -- and
+// nothing left in the pool: the ceiling is a character who spent everything.
+TEST(GameStateTest, MaxModeMaxesTheWholeMatrix) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  int nodes = 0;
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    if (entry.second.v_node() == V_NODE_KIND_UNSPECIFIED) {
+      continue;
+    }
+    ++nodes;
+    EXPECT_EQ(state.character.skill_level(entry.second),
+              entry.second.max_level())
+        << entry.first;
+  }
+  EXPECT_EQ(nodes, 2);
+  EXPECT_EQ(state.character.v_points(), 0);
 }
 
 // A level 140 character is a long way short of the cap's band: no hammers,

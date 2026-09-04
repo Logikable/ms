@@ -561,6 +561,23 @@ int LevelForJob(JobAdvancement advancement, int level) {
              : std::min(NextAdvancementLevel(stage), kTrialLevelCap);
 }
 
+// The highest advancement `level` opens in the same line. The ceiling is the
+// character a player who spent well is standing in, and they took every
+// advancement their level offered -- so --job names the line and the level
+// says how far up it. A stage the branch does not answer for stops the climb:
+// a Swordman at 200 is still a Swordman, since nothing says which of the three
+// they became.
+JobAdvancement HighestAdvancementAt(JobAdvancement advancement, int level) {
+  Job job = JobForAdvancement(advancement);
+  int stage = StageForAdvancement(advancement);
+  while (stage < kLastJobStage && level >= NextAdvancementLevel(stage) &&
+         AdvancementForJobStage(job, stage + 1) !=
+             JOB_ADVANCEMENT_UNSPECIFIED) {
+    ++stage;
+  }
+  return AdvancementForJobStage(job, stage);
+}
+
 // Climbs into `advancement`: the job it names, having taken every earlier
 // advancement on the way to it. `level` is where the climb stops, or 0 for the
 // last level before the next advancement would be offered.
@@ -623,7 +640,7 @@ constexpr int kTestSpellTraces = 30000;
 
 // V Points enough to fill the whole matrix twice over: what the workbench is
 // for is looking at a node, not farming the sixty days one costs.
-constexpr int64_t kTestVPoints = 10000;
+constexpr int64_t kTestVPoints = 5000;
 
 // `advancement`'s job name as a username: letters, digits and spaces only, so
 // "I/L Arch Mage" arrives as "IL Arch Mage".
@@ -804,6 +821,26 @@ void DressMaxPotentials(GameState& state, const MaxGear& gear) {
   }
 }
 
+// Every node of the matrix at its ceiling. The points are granted at the price
+// of the node they buy, so nothing is left in the pool: what this mode seeds
+// is a character who spent everything, not one holding a currency.
+void MaxVMatrix(GameState& state) {
+  CharacterInstance& character = state.character;
+  if (!character.v_matrix_unlocked()) {
+    return;
+  }
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    const Skill& skill = entry.second;
+    if (skill.v_node() == V_NODE_KIND_UNSPECIFIED ||
+        !character.ReachesVNode(skill)) {
+      continue;
+    }
+    int room = skill.max_level() - character.skill_level(skill);
+    character.AddVPoints(character.VNodeCostFor(skill, room));
+    character.LearnSkill(skill, room);
+  }
+}
+
 // The ceiling: the character a player who spent well is standing in at this
 // level. Everything is written outright rather than played for, and every
 // number is priced against what the climb pays by then -- max_character.cc
@@ -815,10 +852,13 @@ void DressMaxPotentials(GameState& state, const MaxGear& gear) {
 void SeedMax(GameState& state, const TestOptions& options) {
   // The same default the workbench takes: the top of the line as far as the
   // game is written, which is where a boss roster is measured from.
-  const JobAdvancement advancement = options.job != JOB_ADVANCEMENT_UNSPECIFIED
-                                         ? options.job
-                                         : kTestAdvancement;
-  const int level = LevelForJob(advancement, options.level);
+  const JobAdvancement chosen = options.job != JOB_ADVANCEMENT_UNSPECIFIED
+                                    ? options.job
+                                    : kTestAdvancement;
+  const int level = LevelForJob(chosen, options.level);
+  // --job names the line, not where to stop in it: a ceiling at a level has
+  // taken every advancement that level offers.
+  const JobAdvancement advancement = HighestAdvancementAt(chosen, level);
   const MaxGear gear = MaxGearForLevel(level);
   GearSetup equips;
   equips.hammered = gear.hammered;
@@ -835,6 +875,7 @@ void SeedMax(GameState& state, const TestOptions& options) {
   state.character.ClearEquipInventory();
 
   DressMaxPotentials(state, gear);
+  MaxVMatrix(state);
   SpendMaxHyperStats(state.character);
   if (state.character.inner_ability_unlocked()) {
     const StatField primary = PrimaryStatField(state.character.proto().job());

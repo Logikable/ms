@@ -281,6 +281,7 @@ cc_test(
         "//src/character:max_character",
         "//src/character:progression",
         "//src/character:stat_preset",
+        "//src/character:v_matrix",
         "//src/item",
         "//src/item:equip_instance",
         "//src/item:potential",
