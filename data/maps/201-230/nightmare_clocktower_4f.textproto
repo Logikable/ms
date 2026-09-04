@@ -1,0 +1,4 @@
+name: "Nightmare Clocktower 4F"
+spawns { mob: "red_eyed_gargoyle" count: 35 }
+# The clocktower above the ballroom, and the most Lachelein asks.
+arcane_force: 240

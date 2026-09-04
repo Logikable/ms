@@ -1,0 +1,10 @@
+name: "Snow Cloud Spirit"
+level: 233
+attack: 16538
+max_hp: 276278400
+exp: 415702
+pdr: 10
+# The area's Arcane Symbol, at the rate GMS drops one: near enough to never
+# that the dailies are what really level a symbol. A duplicate is worth one
+# EXP toward the next rung -- see arcane_force.h.
+drops { equip: "symbol_arcana" per_kill: 0.0001 }

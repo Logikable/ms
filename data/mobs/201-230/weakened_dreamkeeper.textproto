@@ -1,0 +1,10 @@
+name: "Weakened Dreamkeeper"
+level: 224
+attack: 15525
+max_hp: 206683440
+exp: 335675
+pdr: 10
+# The area's Arcane Symbol, at the rate GMS drops one: near enough to never
+# that the dailies are what really level a symbol. A duplicate is worth one
+# EXP toward the next rung -- see arcane_force.h.
+drops { equip: "symbol_lachelein" per_kill: 0.0001 }

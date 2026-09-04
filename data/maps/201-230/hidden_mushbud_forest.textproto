@@ -1,0 +1,6 @@
+name: "Hidden Mushbud Forest"
+spawns { mob: "potent_bunshroom" count: 17 }
+spawns { mob: "potent_monkeyrog" count: 17 }
+# The clearing hidden off Mushbud Forest 6, where Yum Yum Island keeps its
+# augmented mobs and asks well past what its own symbol pays.
+arcane_force: 190

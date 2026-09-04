@@ -1,0 +1,10 @@
+name: "Experiment Gone Wrong"
+level: 241
+attack: 17438
+max_hp: 406700000
+exp: 485614
+pdr: 10
+# The area's Arcane Symbol, at the rate GMS drops one: near enough to never
+# that the dailies are what really level a symbol. A duplicate is worth one
+# EXP toward the next rung -- see arcane_force.h.
+drops { equip: "symbol_morass" per_kill: 0.0001 }

@@ -1,0 +1,4 @@
+name: "Snow Cloud Clearing"
+spawns { mob: "snow_cloud_spirit" count: 36 }
+# Arcana's spirit forest, off the Grove of the Spirit Tree.
+arcane_force: 320

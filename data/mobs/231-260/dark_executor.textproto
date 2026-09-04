@@ -1,0 +1,10 @@
+name: "Dark Executor"
+level: 249
+attack: 18338
+max_hp: 473680000
+exp: 553217
+pdr: 10
+# The area's Arcane Symbol, at the rate GMS drops one: near enough to never
+# that the dailies are what really level a symbol. A duplicate is worth one
+# EXP toward the next rung -- see arcane_force.h.
+drops { equip: "symbol_esfera" per_kill: 0.0001 }

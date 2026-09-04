@@ -1,0 +1,4 @@
+name: "Cavern Lower Path"
+spawns { mob: "befuddled_spirit" count: 36 }
+# Deeper into Arcana, under the cavern.
+arcane_force: 360

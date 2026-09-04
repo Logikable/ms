@@ -1,0 +1,4 @@
+name: "Abandoned Area"
+spawns { mob: "experiment_gone_wrong" count: 37 }
+# Morass' closed research area, past the lab.
+arcane_force: 480

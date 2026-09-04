@@ -1,0 +1,4 @@
+name: "Radiant Temple 4"
+spawns { mob: "dark_executor" count: 37 }
+# The temple below the Radiant Throne, and the most any map asks.
+arcane_force: 640

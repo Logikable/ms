@@ -1,0 +1,4 @@
+name: "Mirror-touched Sea 4"
+spawns { mob: "aranea" count: 37 }
+# The far end of Esfera's sea.
+arcane_force: 600

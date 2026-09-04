@@ -1,0 +1,10 @@
+name: "Red-eyed Gargoyle"
+level: 228
+attack: 15975
+max_hp: 226241600
+exp: 363430
+pdr: 10
+# The area's Arcane Symbol, at the rate GMS drops one: near enough to never
+# that the dailies are what really level a symbol. A duplicate is worth one
+# EXP toward the next rung -- see arcane_force.h.
+drops { equip: "symbol_lachelein" per_kill: 0.0001 }

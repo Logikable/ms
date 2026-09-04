@@ -1,0 +1,10 @@
+name: "Potent Monkeyrog"
+level: 220
+attack: 15075
+max_hp: 187966240
+exp: 309470
+pdr: 10
+# The area's Arcane Symbol, at the rate GMS drops one: near enough to never
+# that the dailies are what really level a symbol. A duplicate is worth one
+# EXP toward the next rung -- see arcane_force.h.
+drops { equip: "symbol_chu_chu_island" per_kill: 0.0001 }

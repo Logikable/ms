@@ -1,0 +1,4 @@
+name: "Occupied Dance Floor 1"
+spawns { mob: "weakened_dreamkeeper" count: 35 }
+# Lachelein's ballroom, and where the Dreaming City opens.
+arcane_force: 210
