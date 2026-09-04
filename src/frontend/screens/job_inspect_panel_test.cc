@@ -26,6 +26,13 @@ Skill MakeSkill(const std::string& name, JobAdvancement advancement, int order,
   return skill;
 }
 
+Skill Node(const std::string& name, JobAdvancement advancement, int order,
+           VNodeKind kind, int max_level) {
+  Skill skill = MakeSkill(name, advancement, order, max_level);
+  skill.set_v_node(kind);
+  return skill;
+}
+
 // A block `rows` tall, standing in for a card or a book of that height.
 ftxui::Element Block(int rows) {
   std::vector<ftxui::Element> lines;
@@ -61,6 +68,14 @@ class JobInspectPanelTest : public PanelTest {
         {"slash_blast",
          MakeSkill("Slash Blast", JOB_ADVANCEMENT_SWORDMAN, 1, 20)},
         {"puncture", MakeSkill("Puncture", JOB_ADVANCEMENT_HERO, 1, 30)},
+        // The Hero's matrix: a common node, and one of each kind the job
+        // itself holds. Boost nodes go to 60 where the other two stop at 30.
+        {"rope_lift",
+         Node("Rope Lift", JOB_ADVANCEMENT_COMMON, 1, V_NODE_KIND_COMMON, 30)},
+        {"radiant_evil",
+         Node("Radiant Evil", JOB_ADVANCEMENT_HERO_V, 1, V_NODE_KIND_JOB, 30)},
+        {"puncture_boost", Node("Puncture Boost", JOB_ADVANCEMENT_HERO_V, 2,
+                                V_NODE_KIND_BOOST, 60)},
     };
   }
 
@@ -187,6 +202,22 @@ TEST_F(JobInspectPanelTest, ANewJobStartsTheCursorOver) {
   panel.SetJob(JOB_PAGE, 2);
   ASSERT_NE(panel.selected_skill(), nullptr);
   EXPECT_EQ(panel.selected_skill()->name(), "Divine Swing");
+}
+
+// The 5th hands over a matrix rather than a book, and the matrix is the
+// commons as well as the job's own -- every kind of node, boosts included,
+// which go to 60 where the other two stop at 30. Listing only the job's own
+// would have shown one node where advancing gives three.
+TEST_F(JobInspectPanelTest, AFifthAdvancementListsItsWholeMatrix) {
+  JobInspectPanel panel = PanelOn(JOB_HERO, 5);
+  std::vector<const Skill*> nodes = panel.Skills();
+  ASSERT_EQ(nodes.size(), 3u);
+  EXPECT_EQ(nodes[0]->name(), "Rope Lift") << "the commons lead the matrix";
+  EXPECT_EQ(nodes[1]->name(), "Radiant Evil");
+  EXPECT_EQ(nodes[2]->name(), "Puncture Boost");
+
+  EXPECT_NE(RenderElement(panel.Render()).find("Max 60"), std::string::npos)
+      << "a boost node goes twice as far as the rest";
 }
 
 // The 4th job is the last stage a job can sit at, and asking only about the

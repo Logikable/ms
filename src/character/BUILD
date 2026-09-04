@@ -161,7 +161,10 @@ cc_library(
     name = "job_name",
     srcs = ["job_name.cc"],
     hdrs = ["job_name.h"],
-    deps = ["//src/protos:character_proto_cc"],
+    deps = [
+        ":hyper_stats",
+        "//src/protos:character_proto_cc",
+    ],
 )
 
 cc_test(

@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "src/character/hyper_stats.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {
@@ -101,13 +102,6 @@ std::string ShortJobName(Job job) {
       return JobName(job);
   }
 }
-
-namespace {
-
-// The stage whose advancement leaves the job's name where it was.
-constexpr int kFifthJobStage = 5;
-
-}  // namespace
 
 std::string AdvancementName(Job job, int stage) {
   return JobName(job) + (stage == kFifthJobStage ? " V" : "");

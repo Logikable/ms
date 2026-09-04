@@ -347,6 +347,32 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
 
 // A node is held to its kind: how far it goes is the kind's to say, and where
 // it lives follows from whose matrix holds it.
+// The Job Inspect screen is what a player reads before an advancement, so an
+// advancement it can be opened on with nothing to show is content that shipped
+// half-written. Walks what the Advance tab can offer rather than the whole
+// enum: JOB_ADVANCEMENT_COMMON is nobody's advancement, and a 5th shows its
+// matrix, which the commons alone already fill.
+TEST(SkillDataTest, EveryAdvancementAPlayerIsOfferedHasSomethingToRead) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  JobInspectPanel panel(skills);
+  int offered = 0;
+  for (int stage = 1; stage <= kMaxJobStage; ++stage) {
+    for (int j = Job_MIN; j <= Job_MAX; ++j) {
+      if (!Job_IsValid(j)) {
+        continue;
+      }
+      for (Job to : JobChoicesForStage(static_cast<Job>(j), stage)) {
+        ++offered;
+        panel.SetJob(to, stage);
+        EXPECT_FALSE(panel.Skills().empty())
+            << JobAdvancement_Name(AdvancementForJobStage(to, stage))
+            << " inspects empty";
+      }
+    }
+  }
+  EXPECT_GT(offered, 0) << "nothing is offered at all";
+}
+
 TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
   int commons = 0;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {

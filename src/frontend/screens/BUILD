@@ -191,6 +191,7 @@ cc_library(
     hdrs = ["job_inspect_panel.h"],
     deps = [
         "//src/character",
+        "//src/character:hyper_stats",
         "//src/character:job_name",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:format",

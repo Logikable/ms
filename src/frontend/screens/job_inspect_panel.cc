@@ -9,6 +9,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
+#include "src/character/hyper_stats.h"
 #include "src/character/job_name.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
@@ -59,10 +60,18 @@ void JobInspectPanel::SetJob(Job job, int stage) {
 }
 
 std::vector<const Skill*> JobInspectPanel::Skills() const {
-  // This job's own book and no other. A player choosing between a Fighter and
-  // a Page already holds the Swordman's, so listing it again would bury what
-  // they are actually choosing between.
-  return SkillsForAdvancement(skills_, AdvancementForJobStage(job_, stage_));
+  JobAdvancement advancement = AdvancementForJobStage(job_, stage_);
+  // The 5th hands over a V Matrix rather than a book, and the matrix is the
+  // common nodes as well as the job's own -- every kind of node alike, so a
+  // boost node lists here the day one is written. Asked of the same function
+  // the V page draws, so the two cannot disagree.
+  if (stage_ == kFifthJobStage) {
+    return VNodesFor(skills_, advancement);
+  }
+  // Below it, this job's own book and no other. A player choosing between a
+  // Fighter and a Page already holds the Swordman's, so listing it again
+  // would bury what they are actually choosing between.
+  return SkillsForAdvancement(skills_, advancement);
 }
 
 const Skill* JobInspectPanel::selected_skill() const {

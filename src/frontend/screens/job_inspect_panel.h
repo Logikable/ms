@@ -3,6 +3,9 @@
  * the left of a SkillInspectPanel showing whichever skill the cursor is on, so
  * the two together answer "what would I become".
  *
+ * The 5th advancement hands over a V Matrix instead of a book, so that is
+ * what it lists: the common nodes alongside the job's own.
+ *
  * Read-only. Up and Down walk the skills and nothing else on the screen takes
  * a key -- the advancement itself is taken from the menu this screen opened
  * from, so there is one path to it and it still confirms.
