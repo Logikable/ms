@@ -69,10 +69,10 @@ enum SkillTag {
 // free to move, unlike character.proto's.
 message SkillEffect {
   // Primary stats, exactly as a worn item grants them.
-  int32 str = 1;
-  int32 dex = 2;
-  int32 int = 3;
-  int32 luk = 4;
+  double str = 1;
+  double dex = 2;
+  double int = 3;
+  double luk = 4;
 
   // HP and MP pools. The flat amounts land first -- the outright grant and the
   // per-level one alike -- and the percent scales what they come to.
@@ -80,14 +80,14 @@ message SkillEffect {
   // The pair below is per LEVEL, which is how most of GMS's pool skills read.
   // Advanced Blessing simply grants 750, so the flat pair above it is what a
   // worn item's Max HP is: the same number at level 1 and at 140.
-  int32 max_hp = 25;
-  int32 max_mp = 26;
-  int32 max_hp_per_level = 5;
+  double max_hp = 25;
+  double max_mp = 26;
+  double max_hp_per_level = 5;
   double max_hp_pct = 6;
-  int32 max_mp_per_level = 7;
+  double max_mp_per_level = 7;
   double max_mp_pct = 8;
 
-  int32 attack = 9;  // flat weapon attack, as a worn weapon grants it
+  double attack = 9;  // flat weapon attack, as a worn weapon grants it
   // Percentage added to the whole of the character's attack, worn and granted
   // alike, and the last thing to land on it -- the same bargain def_pct makes
   // with DEF. Unlike that one it pays: attack is the second factor of the
@@ -96,7 +96,7 @@ message SkillEffect {
   // Flat magic attack, likewise. A magician swings on this where everyone else
   // swings on attack, so the two are separate fields for the same reason a
   // staff's two numbers are: a skill grants one or the other, not both.
-  int32 magic_attack = 10;
+  double magic_attack = 10;
   double skill_pct = 11;  // damage multiplier (attack skills)
   // Added chance for a swing to crit. On a passive it rides the character; on
   // an ATTACK it rides that attack alone, the way ied_pct and boss_pct do --
@@ -107,7 +107,7 @@ message SkillEffect {
   // character crits for. Worth its share of the swings: a crit rate of 20%
   // makes 5% of critical damage worth 1% of damage.
   double crit_dmg = 13;
-  int32 attack_speed = 14;  // faster-swing stages, added to the weapon's own
+  double attack_speed = 14;  // faster-swing stages, added to the weapon's own
   // Weapon mastery, 0..1: how close the swing's minimum roll comes to its
   // maximum. Unlike everything else here, masteries do not stack -- a
   // character holding two takes the better one, not the sum.
@@ -150,9 +150,9 @@ message SkillEffect {
   // rather than to the level -- see Skill.follows_skill_tag.
   double final_attack_chance = 18;
   double final_attack_pct = 19;
-  int32 final_attack_lines = 32;
+  double final_attack_lines = 32;
 
-  int32 def = 20;                // flat weapon DEF
+  double def = 20;                // flat weapon DEF
   double damage_taken_pct = 21;  // share of incoming damage cancelled
   // Chance an incoming hit misses outright (0.30 == 30%). Not reduction: what
   // it cancels is the whole hit rather than a share of one. The two are still
@@ -234,7 +234,7 @@ message SkillEffect {
   //
   // A swing that lands once is left alone. GMS grants this to multi-hit skills,
   // and a single strike doubling would be the largest lever in the game.
-  int32 bonus_attack_lines = 33;
+  double bonus_attack_lines = 33;
   // Expected share of the HP pool a landed swing puts back (0.02 == 2%). GMS
   // states it as a chance of a fixed amount; the expectation is what an
   // expected-damage fight can use, so the two are multiplied out here. Unlike
@@ -304,7 +304,7 @@ message SkillEffect {
   //
   // Set beside regen_pct or instead of it. Either half is enough to make a
   // fountain, and one pouring both pours both.
-  int32 regen_hp = 49;
+  double regen_hp = 49;
   // Total INT that buys one more helping of the pulse above, so at 2500 a
   // character with 5000 INT is poured three times what the fountain states.
   // Holy Water is what it exists for -- GMS's "HP Recovery is increased by 5%
@@ -352,7 +352,7 @@ message SkillEffect {
   // worth is this times the orbs the character has -- stated per orb rather
   // than as the product because a later skill raises the count and only the
   // count. See Skill.combo_orbs.
-  int32 attack_per_combo_orb = 100;
+  double attack_per_combo_orb = 100;
   // The Crusader's, and the same bargain per orb as the field above.
   double final_dmg_pct_per_combo_orb = 101;
   // The Hero's, and the same bargain again: boss damage per orb, and DEF per
@@ -360,7 +360,7 @@ message SkillEffect {
   // passed the cap on their stats alone -- and is written per orb rather than
   // as its product so that it says what GMS says.
   double boss_pct_per_combo_orb = 112;
-  int32 def_per_combo_orb = 113;
+  double def_per_combo_orb = 113;
   // The Magician's. Share of incoming damage that comes out of MP rather than
   // HP. Nothing tracks MP, so it lands as plain reduction alongside
   // damage_taken_pct.
@@ -433,8 +433,8 @@ message SkillEffect {
   // worth to an ice swing. Neither means anything without a cap to raise --
   // the mechanism is Freezing Crush's, and a character who has not learned it
   // holds no stacks to pay for.
-  int32 freeze_stack_cap_bonus = 114;
-  int32 magic_attack_per_freeze_stack = 115;
+  double freeze_stack_cap_bonus = 114;
+  double magic_attack_per_freeze_stack = 115;
   // Shatter's. Enemy defence ignored for every Freeze Stack the character is
   // holding, on any swing they make -- a frozen enemy is frozen whichever
   // element is hitting it. Combines with the rest of what they ignore the way

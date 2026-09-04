@@ -1,0 +1,25 @@
+# See rope_lift.textproto: one of the three forgotten nodes, and the smallest
+# of them -- GMS pays this one a fifth of what it pays Rope Lift, a point of
+# All Stats every fifth level. A fractional step is how a ladder says that:
+# `base 1, per_level 0.2` is floored where it is read, which is GMS's own
+# ceil(L/5) exactly.
+name: "Decent Mystic Door"
+skill_order: 3
+description:
+  "Opens a portal to the nearest town. Nobody here remembers what it was for."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_COMMON
+v_node: V_NODE_KIND_COMMON
+max_level: 30
+base {
+  str: 1
+  dex: 1
+  int: 1
+  luk: 1
+}
+per_level {
+  str: 0.2
+  dex: 0.2
+  int: 0.2
+  luk: 0.2
+}

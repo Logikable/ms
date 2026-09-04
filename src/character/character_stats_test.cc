@@ -252,6 +252,36 @@ TEST_F(DerivedStatsTest, ACommonNodeGrantsWhatItStates) {
       << "a point a level, to 30";
 }
 
+// A node whose ladder climbs every fifth level rather than every one, which is
+// what GMS's Decent nodes pay. The fraction is floored where it is read, so
+// the character sees whole points at the levels GMS steps on.
+TEST_F(DerivedStatsTest, AFractionalLadderStepsEveryFifthLevel) {
+  Skill door;
+  door.set_name("Decent Mystic Door");
+  door.set_kind(SKILL_KIND_PASSIVE);
+  door.set_job_advancement(JOB_ADVANCEMENT_COMMON);
+  door.set_v_node(V_NODE_KIND_COMMON);
+  door.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
+  door.mutable_base()->set_str(1);
+  door.mutable_per_level()->set_str(0.2);
+  std::map<std::string, Skill> catalog = {{"decent_mystic_door", door}};
+
+  CharacterInstance c = MakeCharacter(rng_, 15, 50, /*mp=*/20);
+  while (c.proto().job_stage() < kFifthJobStage) {
+    c.AdvanceJob(c.proto().job());
+  }
+  c.AddVPoints(VNodeCost(V_NODE_KIND_COMMON, 0, door.max_level()));
+
+  const int kExpected[] = {1, 1, 2, 2, 6};
+  const int kLevels[] = {1, 5, 6, 10, 30};
+  for (int i = 0; i < 5; ++i) {
+    ASSERT_TRUE(c.LearnSkill(door, kLevels[i] - c.skill_level(door)));
+    EXPECT_EQ(TotalEquipStats(c, DerivedStatsFor(c, catalog)).str(),
+              kExpected[i])
+        << "level " << kLevels[i];
+  }
+}
+
 // --- set bonuses ---
 
 // A four-piece set, tiered at three and four, with levers on both sides of the

@@ -17,6 +17,29 @@
 namespace ms {
 namespace {
 
+// A ladder whose step is a fraction climbs every few levels rather than every
+// one, and the floor is what turns it back into a whole number. GMS's own
+// ceil(L/5) -- the Decent nodes' All Stats -- is `base 1, per_level 0.2`.
+TEST(WholeValueTest, AFractionalStepClimbsEveryFewLevels) {
+  const int kExpected[] = {1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3};
+  for (int level = 1; level <= 11; ++level) {
+    EXPECT_EQ(WholeValue(1.0 + 0.2 * (level - 1)), kExpected[level - 1])
+        << "level " << level;
+  }
+  EXPECT_EQ(WholeValue(1.0 + 0.2 * 29), 6) << "level 30 tops out at six";
+  // GMS's other stepped shape, floor(L/N), is the same ladder with its first
+  // step in the base rather than a whole point there: `base 0.5, per_level
+  // 0.5` is floor(L/2).
+  const int kHalves[] = {0, 1, 1, 2, 2};
+  for (int level = 1; level <= 5; ++level) {
+    EXPECT_EQ(WholeValue(0.5 + 0.5 * (level - 1)), kHalves[level - 1])
+        << "level " << level;
+  }
+  // A whole number stays itself however it was arrived at.
+  EXPECT_EQ(WholeValue(30.0 * 9), 270);
+  EXPECT_EQ(WholeValue(0.0), 0);
+}
+
 // A mob carrying just the damage-relevant fields: PDR (whole percent), the boss
 // flag, and level (for the level multiplier).
 Mob MakeMob(int pdr = 0, bool boss = false, int level = 0) {

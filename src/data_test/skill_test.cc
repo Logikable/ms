@@ -88,7 +88,8 @@ double LeverValue(const SkillEffect& effect,
   // A Final Attack's percent is per strike, so on its own it says nothing
   // about what one is worth: three of 112% beat one of 147%.
   if (field->name() == "final_attack_pct") {
-    return effect.final_attack_pct() * std::max(1, effect.final_attack_lines());
+    return effect.final_attack_pct() *
+           std::max(1, WholeValue(effect.final_attack_lines()));
   }
   const google::protobuf::Reflection* reflection = effect.GetReflection();
   switch (field->cpp_type()) {

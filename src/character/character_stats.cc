@@ -158,23 +158,23 @@ struct PassiveTotals : DerivedStats {
 // Split out from AddPassive because a weapon bonus is a second helping of the
 // same levers, gated on the weapon rather than on the skill.
 void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
-  totals.hp_grant += granted.max_hp();
-  totals.mp_grant += granted.max_mp();
-  totals.hp_per_level += granted.max_hp_per_level();
+  totals.hp_grant += WholeValue(granted.max_hp());
+  totals.mp_grant += WholeValue(granted.max_mp());
+  totals.hp_per_level += WholeValue(granted.max_hp_per_level());
   totals.max_hp_pct += granted.max_hp_pct();
-  totals.mp_per_level += granted.max_mp_per_level();
+  totals.mp_per_level += WholeValue(granted.max_mp_per_level());
   totals.max_mp_pct += granted.max_mp_pct();
-  totals.def_grant += granted.def();
+  totals.def_grant += WholeValue(granted.def());
   totals.def_factor *= 1.0 + granted.def_pct();
-  totals.str += granted.str();
-  totals.dex += granted.dex();
-  totals.int_ += granted.int_();
-  totals.luk += granted.luk();
-  totals.attack += granted.attack();
+  totals.str += WholeValue(granted.str());
+  totals.dex += WholeValue(granted.dex());
+  totals.int_ += WholeValue(granted.int_());
+  totals.luk += WholeValue(granted.luk());
+  totals.attack += WholeValue(granted.attack());
   // One lever on a skill pays both attacks; only a potential tells them apart.
   totals.attack_pct += granted.attack_pct();
   totals.magic_attack_pct += granted.attack_pct();
-  totals.magic_attack += granted.magic_attack();
+  totals.magic_attack += WholeValue(granted.magic_attack());
   // Damage sent to the MP pool is damage the HP pool never sees, and nothing
   // here tracks MP -- so Magic Guard reads as reduction, which is its whole
   // effect. Reduction multiplies rather than adds: two halves leave a quarter
@@ -200,10 +200,11 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   // The pulse and its interval stay apart all the way to the fight, which
   // pours on the clock rather than smearing it over the seconds between.
   if (granted.regen_interval_seconds() > 0.0 &&
-      (granted.regen_pct() > 0.0 || granted.regen_hp() > 0)) {
-    totals.regen.push_back(RawRegen{{granted.regen_pct(), granted.regen_hp(),
-                                     granted.regen_interval_seconds()},
-                                    granted.regen_int_step()});
+      (granted.regen_pct() > 0.0 || granted.regen_hp() > 0.0)) {
+    totals.regen.push_back(
+        RawRegen{{granted.regen_pct(), WholeValue(granted.regen_hp()),
+                  granted.regen_interval_seconds()},
+                 granted.regen_int_step()});
   }
   totals.status_resistance += granted.status_resistance();
   totals.elemental_resistance += granted.elemental_resistance();
@@ -214,16 +215,17 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   totals.buff_duration_pct += granted.buff_duration_pct();
   totals.meso_drop_chance += granted.meso_drop_chance();
   totals.mirror_line_pct += granted.mirror_line_pct();
-  totals.bonus_attack_lines += granted.bonus_attack_lines();
-  totals.attack_per_combo_orb += granted.attack_per_combo_orb();
+  totals.bonus_attack_lines += WholeValue(granted.bonus_attack_lines());
+  totals.attack_per_combo_orb += WholeValue(granted.attack_per_combo_orb());
   totals.final_dmg_pct_per_combo_orb += granted.final_dmg_pct_per_combo_orb();
   totals.boss_pct_per_combo_orb += granted.boss_pct_per_combo_orb();
-  totals.def_per_combo_orb += granted.def_per_combo_orb();
+  totals.def_per_combo_orb += WholeValue(granted.def_per_combo_orb());
   totals.ap_stat_pct += granted.ap_stat_pct();
   // Read here rather than beside the cap itself, so that a BUFF granting
   // either lands them: a buff folds in through this door alone.
-  totals.freeze_cap_bonus += granted.freeze_stack_cap_bonus();
-  totals.freeze.matt_per_stack += granted.magic_attack_per_freeze_stack();
+  totals.freeze_cap_bonus += WholeValue(granted.freeze_stack_cap_bonus());
+  totals.freeze.matt_per_stack +=
+      WholeValue(granted.magic_attack_per_freeze_stack());
   // The shortest wait rather than the sum: two pacts are not one long one,
   // and what a character wants to know is how soon the next one comes.
   double revive = granted.revive_cooldown_seconds();
@@ -235,7 +237,7 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   // seconds rather than a choice between clocks. Cashed in once every passive
   // is read -- see DerivedStatsFor.
   totals.revive_cooldown_cut += granted.revive_cooldown_cut_seconds();
-  totals.attack_speed_bonus += granted.attack_speed();
+  totals.attack_speed_bonus += WholeValue(granted.attack_speed());
   totals.ied = CombineIgnoredDefense(totals.ied, granted.ied_pct());
   // The one lever taken at its best rather than summed: two masteries are not
   // twice as steady a swing, they are the better of the two.
@@ -258,7 +260,7 @@ void AddFinalAttack(const Skill& skill, const SkillEffect& granted,
   if (source.chance <= 0.0 || source.damage_pct <= 0.0) {
     return;
   }
-  source.lines = std::max(1, granted.final_attack_lines());
+  source.lines = std::max(1, WholeValue(granted.final_attack_lines()));
   source.required_tag = skill.follows_skill_tag();
   source.single_enemy = skill.final_attack_single_enemy();
   source.skill_name = skill.name();

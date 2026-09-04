@@ -148,7 +148,7 @@ const PercentLever kNumberLevers[] = {
 
 struct FlatLever {
   const char* label;
-  int (SkillEffect::*fn)() const;
+  double (SkillEffect::*fn)() const;
   // What the number counts, when it is not the stat itself. "" for a plain
   // total; a stage or a per-character-level grant needs saying.
   const char* unit;
@@ -186,9 +186,10 @@ double PercentAt(const Skill& skill, double (SkillEffect::*fn)() const,
   return (skill.base().*fn)() + (skill.per_level().*fn)() * (level - 1);
 }
 
-// The same, for a lever counted in whole numbers.
-int FlatAt(const Skill& skill, int (SkillEffect::*fn)() const, int level) {
-  return (skill.base().*fn)() + (skill.per_level().*fn)() * (level - 1);
+// The same, for a lever counted in whole numbers: the ladder is walked as a
+// fraction and floored where it is read, as everywhere else.
+int FlatAt(const Skill& skill, double (SkillEffect::*fn)() const, int level) {
+  return WholeValue(PercentAt(skill, fn, level));
 }
 
 // A fraction as a percentage, to one decimal, with a whole number left whole.
@@ -972,8 +973,7 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   // A strike on every swing the character already lands more than once. Worth
   // most on the shortest of them, which the row cannot say and the player will
   // work out the first time they read a nine-line skill.
-  int strikes = skill.base().bonus_attack_lines() +
-                skill.per_level().bonus_attack_lines() * (level - 1);
+  int strikes = FlatAt(skill, &SkillEffect::bonus_attack_lines, level);
   if (strikes > 0) {
     rows.push_back(EffectRow("Extra Strike", "+" + std::to_string(strikes) +
                                                  " on every multi-hit skill"));
@@ -1076,8 +1076,7 @@ std::vector<Row> SwingRiderRows(const Skill& skill, int level) {
     // Wrapped, because that note is the one thing long enough to push the row
     // past its column, and clipped to a comma so Blizzard's own fits on a line.
     std::string reach = skill.final_attack_single_enemy() ? ", one enemy" : "";
-    int strikes = skill.base().final_attack_lines() +
-                  skill.per_level().final_attack_lines() * (level - 1);
+    int strikes = FlatAt(skill, &SkillEffect::final_attack_lines, level);
     std::string text =
         FormatPercent(proc) + " for " +
         SwingText(PercentAt(skill, &SkillEffect::final_attack_pct, level),

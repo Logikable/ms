@@ -93,6 +93,7 @@ cc_library(
     deps = [
         "//src/character",
         "//src/character:arcane_force",
+        "//src/combat:damage",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:format",
         "//src/frontend/widgets:game_names",

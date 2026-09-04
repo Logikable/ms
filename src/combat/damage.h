@@ -149,6 +149,15 @@ bool DealsDamage(SkillKind kind);
 SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
                      int level);
 
+// What a ladder's value comes to as a whole number. Every number a SkillEffect
+// carries is a double, so that a value climbing every few levels rather than
+// every one is stated as a fraction of a level's step -- 0.2 is one more every
+// fifth, and GMS's own ceil(L/5) is `base 1, per_level 0.2`. The floor is
+// taken here, per source, because a skill grants whole points; the epsilon
+// covers the arithmetic that got us to a round figure, since 1 + 0.2 x 5 is
+// not exactly 2.
+int WholeValue(double value);
+
 // How many times one swing of `skill` strikes each enemy at `level`: its
 // `lines`, plus whole lines its `lines_per_level` has bought since level 1.
 // Never below 1, so an attack that says nothing still lands once.

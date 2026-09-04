@@ -273,6 +273,11 @@ bool DealsDamage(SkillKind kind) {
   return kind == SKILL_KIND_ATTACK || kind == SKILL_KIND_AUTO_ATTACK;
 }
 
+int WholeValue(double value) {
+  constexpr double kLadderEpsilon = 1e-9;
+  return static_cast<int>(std::floor(value + kLadderEpsilon));
+}
+
 SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
                      int level) {
   SkillEffect at = base;
@@ -292,12 +297,6 @@ SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
             reflect->GetDouble(base, field) +
                 reflect->GetDouble(per_level, field) * (level - 1));
         break;
-      case google::protobuf::FieldDescriptor::CPPTYPE_INT32:
-        reflect->SetInt32(
-            &at, field,
-            reflect->GetInt32(base, field) +
-                reflect->GetInt32(per_level, field) * (level - 1));
-        break;
       case google::protobuf::FieldDescriptor::CPPTYPE_BOOL:
         reflect->SetBool(&at, field, true);
         break;
@@ -309,16 +308,11 @@ SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
 }
 
 int SkillLinesAt(const Skill& skill, int level) {
-  // The nudge is for a rate written as a decimal: 2/30 typed out lands a
-  // hair under the line it is meant to buy, and a skill would gain its strike
-  // a level late.
-  constexpr double kLineEpsilon = 1e-9;
   int lines = std::max(1, skill.lines());
   if (skill.lines_per_level() <= 0.0 || level <= 1) {
     return lines;
   }
-  return lines + static_cast<int>(std::floor(
-                     skill.lines_per_level() * (level - 1) + kLineEpsilon));
+  return lines + WholeValue(skill.lines_per_level() * (level - 1));
 }
 
 std::string EmpoweredSkillName(const std::string& target) {

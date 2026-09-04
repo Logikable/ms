@@ -11,6 +11,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/arcane_force.h"
+#include "src/combat/damage.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
@@ -95,7 +96,7 @@ struct LeverPair {
   T (SkillEffect::*b)() const;
 };
 
-const LeverPair<int> kFlatPairs[] = {
+const LeverPair<double> kFlatPairs[] = {
     {"Max HP & MP", "Max HP", "Max MP", &SkillEffect::max_hp,
      &SkillEffect::max_mp},
     {"Attack Power & Magic ATT", "Attack Power", "Magic ATT",
@@ -110,7 +111,7 @@ const LeverPair<double> kPercentPairs[] = {
 // The levers a set states on their own, in display order.
 struct FlatLever {
   const char* label;
-  int (SkillEffect::*fn)() const;
+  double (SkillEffect::*fn)() const;
 };
 
 const FlatLever kFlatLevers[] = {
@@ -143,11 +144,13 @@ struct StatValue {
 void AppendStatLines(const SkillEffect& e, std::vector<std::string>& lines) {
   if (e.str() != 0 && e.str() == e.dex() && e.dex() == e.int_() &&
       e.int_() == e.luk()) {
-    lines.push_back("All Stats +" + std::to_string(e.str()));
+    lines.push_back("All Stats +" + std::to_string(WholeValue(e.str())));
     return;
   }
-  const StatValue kStats[] = {
-      {"STR", e.str()}, {"DEX", e.dex()}, {"INT", e.int_()}, {"LUK", e.luk()}};
+  const StatValue kStats[] = {{"STR", WholeValue(e.str())},
+                              {"DEX", WholeValue(e.dex())},
+                              {"INT", WholeValue(e.int_())},
+                              {"LUK", WholeValue(e.luk())}};
   for (const StatValue& stat : kStats) {
     if (stat.value != 0) {
       lines.push_back(std::string(stat.label) + " +" +
@@ -156,9 +159,11 @@ void AppendStatLines(const SkillEffect& e, std::vector<std::string>& lines) {
   }
 }
 
-// A flat lever's own figure, so both kinds of pair share one shape.
-std::string SetWhole(int value) {
-  return std::to_string(value);
+// A flat lever's own figure, so both kinds of pair share one shape. A set
+// bonus states whole numbers, but every SkillEffect number is a double -- see
+// WholeValue.
+std::string SetWhole(double value) {
+  return std::to_string(WholeValue(value));
 }
 
 // Adds a pair as one row when both halves agree, and as a row each when they
@@ -187,7 +192,7 @@ std::vector<std::string> EffectLines(const SkillEffect& e) {
   std::vector<std::string> lines;
   AppendStatLines(e, lines);
   for (const FlatLever& lever : kFlatLevers) {
-    int value = (e.*lever.fn)();
+    int value = WholeValue((e.*lever.fn)());
     if (value != 0) {
       lines.push_back(std::string(lever.label) + " +" + std::to_string(value));
     }
@@ -195,7 +200,7 @@ std::vector<std::string> EffectLines(const SkillEffect& e) {
   for (const LeverPair<double>& pair : kPercentPairs) {
     AppendPairLines(pair, e, SetPercent, lines);
   }
-  for (const LeverPair<int>& pair : kFlatPairs) {
+  for (const LeverPair<double>& pair : kFlatPairs) {
     AppendPairLines(pair, e, SetWhole, lines);
   }
   for (const PercentLever& lever : kPercentLevers) {

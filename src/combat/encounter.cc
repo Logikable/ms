@@ -703,13 +703,14 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
     const std::map<std::string, Skill>& skills, int bonus) {
   // The nudge SkillLinesAt takes, for the same reason: a rate written as a
   // decimal lands a hair under the level it is meant to buy.
-  constexpr double kEnemyEpsilon = 1e-9;
   std::map<std::string, SkillBoosts> by_target;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     // Learned levels are keyed by display name and the warrior branches share
-    // several, so only the character's own book grants anything.
-    if (!character.HasAdvancement(skill.job_advancement())) {
+    // several, so only the character's own book grants anything -- and a V
+    // Matrix node belongs to no book at all, which is why this asks the
+    // character rather than the advancement.
+    if (!character.HoldsSkillFrom(skill)) {
       continue;
     }
     int learned = EffectiveSkillLevel(character, skill, bonus);
@@ -717,10 +718,8 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
       continue;
     }
     for (const SkillBoost& boost : skill.boost()) {
-      int enemies =
-          boost.max_enemies() +
-          static_cast<int>(std::floor(
-              boost.max_enemies_per_level() * (learned - 1) + kEnemyEpsilon));
+      int enemies = boost.max_enemies() +
+                    WholeValue(boost.max_enemies_per_level() * (learned - 1));
       // The skill's own entry, and the empowered form's where the boost
       // follows it there -- the form swings under a name of its own, so this
       // is where the two part company.
