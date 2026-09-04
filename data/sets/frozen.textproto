@@ -37,67 +37,41 @@ members {
   slot: EQUIP_SLOT_SECONDARY
   family: "Frozen Secondary"
 }
+# GMS's own three tiers, at GMS's own values. Its Frozen set spans five slots
+# -- hat, overall, cape, weapon, secondary -- where this one spans eight, so
+# the whole of it is earned at five pieces and the three above that pay
+# nothing. The eight stay members: what a piece is worth toward the set is not
+# the only reason to wear it.
 tiers {
   pieces: 3
-  effect {
-    str: 5
-    dex: 5
-    int: 5
-    luk: 5
-    attack: 3
-    magic_attack: 3
-  }
-}
-tiers {
-  pieces: 4
-  effect {
-    max_hp_pct: 0.05
-    max_mp_pct: 0.05
-    attack: 5
-    magic_attack: 5
-  }
-}
-tiers {
-  pieces: 5
   effect {
     str: 7
     dex: 7
     int: 7
     luk: 7
-    attack: 7
-    magic_attack: 7
-    damage_pct: 0.03
+    attack: 6
+    magic_attack: 6
   }
 }
 tiers {
-  pieces: 6
+  pieces: 4
   effect {
-    max_hp_pct: 0.10
-    max_mp_pct: 0.10
-    attack: 9
-    magic_attack: 9
+    max_hp_pct: 0.20
+    max_mp_pct: 0.20
+    attack: 14
+    magic_attack: 14
+    damage_pct: 0.09
+  }
+}
+tiers {
+  pieces: 5
+  effect {
+    str: 8
+    dex: 8
+    int: 8
+    luk: 8
+    attack: 20
+    magic_attack: 20
     ied_pct: 0.30
-  }
-}
-tiers {
-  pieces: 7
-  effect {
-    str: 9
-    dex: 9
-    int: 9
-    luk: 9
-    attack: 11
-    magic_attack: 11
-    damage_pct: 0.06
-  }
-}
-tiers {
-  pieces: 8
-  effect {
-    max_hp_pct: 0.15
-    max_mp_pct: 0.15
-    attack: 13
-    magic_attack: 13
-    boss_pct: 0.20
   }
 }
