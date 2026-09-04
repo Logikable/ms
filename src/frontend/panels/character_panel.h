@@ -401,6 +401,16 @@ class CharacterPanel {
   bool HasHyperPage() const;
   // Whether page `page` (0-based, as skill_tab_ is) is the Hyper page.
   bool IsHyperPage(int page) const;
+  // Whether the V page is offered, which it is once the character has a
+  // matrix and the catalog holds a node they reach.
+  bool HasVPage() const;
+  // Whether page `page` is the V page, which is always the last one.
+  bool IsVPage(int page) const;
+  // The advancement whose own nodes the V page lists beside the common ones.
+  JobAdvancement VAdvancement() const;
+  // The pool counter on the page bar, in the units the page spends.
+  std::string PoolText() const;
+
   // The skills of page `page`, in the order it lists them. Empty if none.
   std::vector<const Skill*> SkillsForPage(int page) const;
   // Whether the character may not learn `skill` yet -- a skill below it still

@@ -16,6 +16,7 @@
 #include "ftxui/dom/requirement.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/consumables.h"
+#include "src/character/v_matrix.h"
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/chrome.h"
@@ -831,14 +832,41 @@ TEST_F(CharacterPanelTest, TheHyperPageComesAfterTheAdvancements) {
   EXPECT_NE(hyper.find("1 SP"), std::string::npos) << "the Hyper pool";
 }
 
-// The 5th job keeps the 4th's Hyper page, and its own numeral draws only once
-// a node has been written for that job -- an empty page is worse than none.
-TEST_F(CharacterPanelTest, TheFifthJobKeepsItsHypersAndDrawsNoEmptyPage) {
-  CharacterInstance c = MakeDarkKnight(rng_, /*level=*/200);
+// A 5th job at `v_points`, holding the Hyper SP MakeDarkKnight hands out.
+CharacterInstance MakeFifthJob(std::mt19937& rng, int64_t v_points) {
+  CharacterInstance c = MakeDarkKnight(rng, /*level=*/200);
   c.AdvanceJob(JOB_DARK_KNIGHT);  // the 5th, which renames nobody
-  ASSERT_EQ(c.proto().job_stage(), 5);
+  c.AddVPoints(v_points);
+  return c;
+}
 
-  CharacterPanel bare(c, account_, panel_focus_, HyperCatalog());
+// One common node and one of the Dark Knight's own, over the hyper catalog.
+std::map<std::string, Skill> NodeCatalog() {
+  std::map<std::string, Skill> catalog = HyperCatalog();
+  Skill rope;
+  rope.set_name("Rope Lift");
+  rope.set_kind(SKILL_KIND_PASSIVE);
+  rope.set_job_advancement(JOB_ADVANCEMENT_COMMON);
+  rope.set_v_node(V_NODE_KIND_COMMON);
+  rope.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
+  catalog["rope_lift"] = rope;
+
+  Skill radiant;
+  radiant.set_name("Radiant Evil");
+  radiant.set_kind(SKILL_KIND_AUTO_ATTACK);
+  radiant.set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT_V);
+  radiant.set_v_node(V_NODE_KIND_JOB);
+  radiant.set_max_level(MaxVNodeLevel(V_NODE_KIND_JOB));
+  catalog["radiant_evil"] = radiant;
+  return catalog;
+}
+
+// The 5th job keeps the 4th's Hyper page and gains a V page behind it, holding
+// the common nodes and its own together. Without a node there is no V page: an
+// empty one is worse than none.
+TEST_F(CharacterPanelTest, TheVPageComesAfterTheHyperOne) {
+  CharacterInstance bare_c = MakeFifthJob(rng_, /*v_points=*/0);
+  CharacterPanel bare(bare_c, account_, panel_focus_, HyperCatalog());
   ftxui::Component comp = bare.MakeComponent();
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> page bar
@@ -846,30 +874,52 @@ TEST_F(CharacterPanelTest, TheFifthJobKeepsItsHypersAndDrawsNoEmptyPage) {
   EXPECT_NE(bars.find(" H "), std::string::npos)
       << "the hypers are still theirs";
   EXPECT_EQ(bars.find(" V "), std::string::npos) << "no node is written";
+
+  CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/11);
+  CharacterPanel noded(c, account_, panel_focus_, NodeCatalog());
+  ftxui::Component page = noded.MakeComponent();
+  page->OnEvent(ftxui::Event::ArrowRight);
+  page->OnEvent(ftxui::Event::ArrowDown);
   for (int i = 0; i < 4; ++i) {
-    comp->OnEvent(ftxui::Event::ArrowRight);  // page I -> H
+    page->OnEvent(ftxui::Event::ArrowRight);  // page I -> H
   }
-  EXPECT_NE(RenderComponent(comp).find("Gungnir's Reinforce"),
+  EXPECT_NE(RenderComponent(page).find("Gungnir's Reinforce"),
             std::string::npos);
 
-  // The same character against a catalog that holds one.
-  std::map<std::string, Skill> catalog = HyperCatalog();
-  Skill radiant;
-  radiant.set_name("Radiant Evil");
-  radiant.set_kind(SKILL_KIND_AUTO_ATTACK);
-  radiant.set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT_V);
-  radiant.set_max_level(30);
-  catalog["radiant_evil"] = radiant;
+  page->OnEvent(ftxui::Event::ArrowRight);  // H -> V
+  std::string matrix = RenderComponent(page);
+  EXPECT_NE(matrix.find("Rope Lift"), std::string::npos) << "the common node";
+  EXPECT_NE(matrix.find("Radiant Evil"), std::string::npos) << "its own";
+  EXPECT_EQ(matrix.find("Gungnir\'s Reinforce"), std::string::npos)
+      << "a hyper is not a node";
+  EXPECT_NE(matrix.find("11 VP"), std::string::npos)
+      << "the pool reads in V Points";
+}
 
-  CharacterPanel noded(c, account_, panel_focus_, catalog);
-  ftxui::Component with_node = noded.MakeComponent();
-  with_node->OnEvent(ftxui::Event::ArrowRight);
-  with_node->OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_NE(RenderComponent(with_node).find(" V "), std::string::npos);
-  for (int i = 0; i < 4; ++i) {
-    with_node->OnEvent(ftxui::Event::ArrowRight);  // page I -> V
+// A node\'s [+] is live only while the pool covers its next level, which is a
+// price rather than a point: a common node\'s first costs seven.
+TEST_F(CharacterPanelTest, ANodeIsBoughtAtItsLadderPrice) {
+  CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/6);
+  CharacterPanel panel(c, account_, panel_focus_, NodeCatalog());
+  std::string bought;
+  CharacterPanelActions actions;
+  actions.learn = [&](const Skill& skill) { bought = skill.name(); };
+  ftxui::Component page = panel.MakeComponent(actions);
+  page->OnEvent(ftxui::Event::ArrowRight);
+  page->OnEvent(ftxui::Event::ArrowDown);
+  for (int i = 0; i < 5; ++i) {
+    page->OnEvent(ftxui::Event::ArrowRight);  // page I -> V
   }
-  EXPECT_NE(RenderComponent(with_node).find("Radiant Evil"), std::string::npos);
+  page->OnEvent(ftxui::Event::ArrowDown);   // page bar -> node rows
+  page->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
+  ASSERT_NE(RenderComponent(page).find("Rope Lift"), std::string::npos);
+  page->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(bought.empty())
+      << "six points does not cover a seven-point level";
+
+  c.AddVPoints(1);
+  page->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(bought, "Rope Lift");
 }
 
 // A hyper above the character's level is on the page but shut: the [+] does

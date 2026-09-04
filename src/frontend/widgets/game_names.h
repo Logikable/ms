@@ -160,6 +160,13 @@ std::vector<const Skill*> SkillsForAdvancement(
     const std::map<std::string, Skill>& catalog, JobAdvancement advancement,
     bool hyper = false, const std::set<std::string>& toggles_on = {});
 
+// Every V Matrix node a character standing at `advancement` -- their 5th, if
+// they have taken one -- holds: the common nodes every job shares, then that
+// job's own. One list because the matrix is one page, and commons lead it
+// because they are the half a player recognises from every other character.
+std::vector<const Skill*> VNodesFor(const std::map<std::string, Skill>& catalog,
+                                    JobAdvancement advancement);
+
 // The name of an attack-speed stage, "Slower" through "Fastest 3", or "" for
 // an unspecified one. The stage number is the proto enum's own value, so a
 // caller wanting both can print it beside this.

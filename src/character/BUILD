@@ -319,6 +319,7 @@ cc_test(
         ":consumables",
         ":hyper_stats",
         ":inner_ability",
+        ":v_matrix",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

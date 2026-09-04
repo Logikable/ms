@@ -1476,6 +1476,13 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   return true;
 }
 
+bool CharacterInstance::HoldsSkillFrom(const Skill& skill) const {
+  if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
+    return ReachesVNode(skill);
+  }
+  return HasAdvancement(skill.job_advancement());
+}
+
 bool CharacterInstance::ReachesVNode(const Skill& skill) const {
   if (!v_matrix_unlocked()) {
     return false;
@@ -1492,6 +1499,23 @@ int CharacterInstance::VNodeCostFor(const Skill& skill, int amount) const {
   }
   int level = skill_level(skill);
   return VNodeCost(skill.v_node(), level, level + amount);
+}
+
+int CharacterInstance::LevelsAffordable(const Skill& skill) const {
+  int room = skill.max_level() - skill_level(skill);
+  if (room <= 0) {
+    return 0;
+  }
+  if (skill.v_node() == V_NODE_KIND_UNSPECIFIED) {
+    return std::min(SpFor(skill), room);
+  }
+  // Walked up the ladder rather than divided: a node's levels are not one
+  // price, so how many the pool buys depends on where the node stands.
+  int levels = 0;
+  while (levels < room && VNodeCostFor(skill, levels + 1) <= v_points()) {
+    ++levels;
+  }
+  return levels;
 }
 
 bool CharacterInstance::LearnVNode(const Skill& skill, int amount) {

@@ -514,11 +514,9 @@ bool GrantsBuff(const Skill& skill) {
 // learned.
 bool GrantsAnything(const CharacterInstance& character, const Skill& skill,
                     int bonus) {
-  // Learned levels are keyed by display name, and the warrior branches share
-  // several names -- so only the character's own book counts, or the other
-  // branch's copy would fold in beside it.
-  return character.HasAdvancement(skill.job_advancement()) &&
-         SkillGearMet(character, skill) &&
+  // A common node belongs to no advancement at all, so this asks the character
+  // which books they hold rather than the advancement directly.
+  return character.HoldsSkillFrom(skill) && SkillGearMet(character, skill) &&
          EffectiveSkillLevel(character, skill, bonus) > 0;
 }
 

@@ -172,6 +172,18 @@ std::vector<const Skill*> SkillsForAdvancement(
   return ordered;
 }
 
+std::vector<const Skill*> VNodesFor(const std::map<std::string, Skill>& catalog,
+                                    JobAdvancement advancement) {
+  std::vector<const Skill*> nodes =
+      SkillsForAdvancement(catalog, JOB_ADVANCEMENT_COMMON);
+  for (const Skill* skill : SkillsForAdvancement(catalog, advancement)) {
+    if (skill->v_node() != V_NODE_KIND_UNSPECIFIED) {
+      nodes.push_back(skill);
+    }
+  }
+  return nodes;
+}
+
 KindTag TagFor(const Skill& skill) {
   // Orange rather than red for the attack tag: red is the colour that says a
   // thing is refused (colors.h), and every attack skill carrying it on a

@@ -1021,6 +1021,24 @@ TEST_F(LearnSkillTest, ANodeSpendsVPointsByItsLadder) {
   EXPECT_EQ(c.v_points(), 1) << "and nothing is taken for the refusal";
 }
 
+// What the pool buys is levels, not points: how many depends on where the node
+// stands on its ladder, so a pool is counted up it rather than divided by it.
+TEST_F(LearnSkillTest, ANodeOffersOnlyTheLevelsItsPoolReaches) {
+  const Skill node = MakeCommonNode();
+  // Seven for the first level and four apiece after it: ten points is one.
+  CharacterInstance thin = MakeFifthJob(rng_, /*v_points=*/10);
+  EXPECT_EQ(thin.LevelsAffordable(node), 1);
+  CharacterInstance fuller = MakeFifthJob(rng_, /*v_points=*/15);
+  EXPECT_EQ(fuller.LevelsAffordable(node), 3) << "7 + 4 + 4";
+  CharacterInstance broke = MakeFifthJob(rng_, /*v_points=*/6);
+  EXPECT_EQ(broke.LevelsAffordable(node), 0);
+  // Never past what the node has left.
+  CharacterInstance rich = MakeFifthJob(rng_, /*v_points=*/100000);
+  EXPECT_EQ(rich.LevelsAffordable(node), node.max_level());
+  ASSERT_TRUE(rich.LearnSkill(node, node.max_level()));
+  EXPECT_EQ(rich.LevelsAffordable(node), 0);
+}
+
 // The matrix is what holds a node, so a character without one buys nothing
 // however many points they are carrying.
 TEST_F(LearnSkillTest, ANodeNeedsAMatrixAndTheRightMatrix) {

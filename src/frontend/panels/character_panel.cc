@@ -661,6 +661,18 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool bar_focused,
   return ftxui::vbox(std::move(rows));
 }
 
+std::string CharacterPanel::PoolText() const {
+  // V Points buy a node's next level rather than one level a point, so the
+  // pool is written out in full: what it buys is on the row itself.
+  if (IsVPage(skill_tab_)) {
+    return FormatWithCommas(character_.v_points()) + " VP";
+  }
+  if (IsHyperPage(skill_tab_)) {
+    return std::to_string(character_.hyper_sp()) + " SP";
+  }
+  return std::to_string(character_.sp(skill_tab_ + 1)) + " SP";
+}
+
 ftxui::Element CharacterPanel::RenderAdvTabBar(bool bar_focused) const {
   // One chip per page, in the shared tab style: the stages by their numeral,
   // and the Hyper page by an H, which is what GMS calls it. The selected
@@ -668,16 +680,22 @@ ftxui::Element CharacterPanel::RenderAdvTabBar(bool bar_focused) const {
   // counter.
   std::vector<TabSpec> specs;
   for (int page = 0; page < SkillPages(); ++page) {
-    specs.push_back({IsHyperPage(page) ? "H" : kStageNumerals[page + 1]});
+    if (IsVPage(page)) {
+      specs.push_back({"V"});
+    } else if (IsHyperPage(page)) {
+      specs.push_back({"H"});
+    } else {
+      specs.push_back({kStageNumerals[page + 1]});
+    }
   }
-  // The SP counter shares the row, so the bar gets what is left of it.
+  // The pool counter shares the row, so the bar gets what is left of it.
+  std::string pool = PoolText();
   std::vector<ftxui::Element> row;
   row.push_back(
-      TabBar(specs, skill_tab_, bar_focused, ContentWidth() - kSpCol));
+      TabBar(specs, skill_tab_, bar_focused,
+             ContentWidth() - std::max<int>(kSpCol, pool.size() + 1)));
   row.push_back(ftxui::filler());
-  int points = IsHyperPage(skill_tab_) ? character_.hyper_sp()
-                                       : character_.sp(skill_tab_ + 1);
-  row.push_back(ftxui::text(std::to_string(points) + " SP "));
+  row.push_back(ftxui::text(pool + " "));
   return ftxui::hbox(std::move(row));
 }
 
@@ -715,25 +733,31 @@ bool CharacterPanel::HasHyperPage() const {
 }
 
 int CharacterPanel::NumberedSkillPages() const {
-  int stages = character_.proto().job_stage();
-  // The 5th job's page waits on a node being written for that job, the same
-  // rule the H page follows: a page with nothing on it is worse than no page.
-  if (stages == kLastJobStage &&
-      SkillsForAdvancement(
-          skills_, AdvancementForJobStage(character_.proto().job(), stages),
-          /*hyper=*/false)
-          .empty()) {
-    --stages;
-  }
-  return stages;
+  // The numbered pages are the books SP buys. The 5th job's nodes are not one
+  // of them -- they are the V page, whatever advancement they are filed under.
+  return std::min(character_.proto().job_stage(), kLastSpJobStage);
+}
+
+JobAdvancement CharacterPanel::VAdvancement() const {
+  return AdvancementForJobStage(character_.proto().job(),
+                                character_.proto().job_stage());
+}
+
+bool CharacterPanel::HasVPage() const {
+  return character_.v_matrix_unlocked() &&
+         !VNodesFor(skills_, VAdvancement()).empty();
 }
 
 int CharacterPanel::SkillPages() const {
-  return NumberedSkillPages() + (HasHyperPage() ? 1 : 0);
+  return NumberedSkillPages() + (HasHyperPage() ? 1 : 0) + (HasVPage() ? 1 : 0);
 }
 
 bool CharacterPanel::IsHyperPage(int page) const {
   return HasHyperPage() && page == NumberedSkillPages();
+}
+
+bool CharacterPanel::IsVPage(int page) const {
+  return HasVPage() && page == SkillPages() - 1;
 }
 
 std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
@@ -743,6 +767,9 @@ std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
   // advancement the character is at now, which is the book its skills upgrade.
   std::set<std::string> toggles_on(character_.proto().active_skill().begin(),
                                    character_.proto().active_skill().end());
+  if (IsVPage(page)) {
+    return VNodesFor(skills_, VAdvancement());
+  }
   if (IsHyperPage(page)) {
     return SkillsForAdvancement(skills_, HyperAdvancement(), /*hyper=*/true,
                                 toggles_on);
@@ -764,7 +791,7 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   int learned = character_.skill_level(skill);
   bool selected = rows_focused && skill_sel_ == index;
   bool maxed = learned >= skill.max_level();
-  bool has_sp = character_.SpFor(skill) > 0;
+  bool has_sp = character_.LevelsAffordable(skill) > 0;
   // A skill still waiting on another one, or on a level, is not a skill this
   // character has yet, so the whole row dims -- name included. Running out of
   // SP dims the [+] alone, because that is a thing about the moment rather
@@ -1522,7 +1549,7 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
     }
     bool maxed = character_.skill_level(skill) >= skill.max_level();
     if (actions.learn && !maxed && !SkillLocked(skill) &&
-        character_.SpFor(skill) > 0) {
+        character_.LevelsAffordable(skill) > 0) {
       actions.learn(skill);
     }
     return true;

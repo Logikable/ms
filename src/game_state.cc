@@ -508,6 +508,20 @@ void WearStarterSymbol(GameState& state) {
 // hundred keypresses between the tester and the screen they came for. SP is
 // spent below `unspent_stage` only, leaving the book they are standing in --
 // usually the question -- to spend by hand.
+// Whether the climb leaves `skill` for the tester to buy. The book the
+// character is standing in is theirs to spend, and for a 5th job that book is
+// the whole matrix -- the common nodes with it, since they come out of the
+// same points and belong to no stage at all.
+bool LeaveUnbought(const Skill& skill, int unspent_stage) {
+  if (unspent_stage == kSpendEveryStage) {
+    return false;
+  }
+  if (unspent_stage >= kFifthJobStage) {
+    return skill.v_node() != V_NODE_KIND_UNSPECIFIED;
+  }
+  return StageForAdvancement(skill.job_advancement()) >= unspent_stage;
+}
+
 void GrowTo(GameState& state, int level, const std::vector<Job>& path,
             int unspent_stage) {
   CharacterInstance& character = state.character;
@@ -524,8 +538,7 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
     while (character.AllocateStat(PrimaryStatField(character.proto().job()))) {
     }
     for (const std::pair<const std::string, Skill>& entry : state.skills) {
-      int stage = StageForAdvancement(entry.second.job_advancement());
-      if (unspent_stage != kSpendEveryStage && stage >= unspent_stage) {
+      if (LeaveUnbought(entry.second, unspent_stage)) {
         continue;
       }
       while (character.LearnSkill(entry.second)) {
@@ -607,6 +620,10 @@ constexpr int kTestTokens = 20;
 // second. Carried rather than bought: the shop counts them out 5,000 meso at a
 // time, which is a long walk to reach the scroll screen.
 constexpr int kTestSpellTraces = 30000;
+
+// V Points enough to fill the whole matrix twice over: what the workbench is
+// for is looking at a node, not farming the sixty days one costs.
+constexpr int64_t kTestVPoints = 10000;
 
 // `advancement`'s job name as a username: letters, digits and spaces only, so
 // "I/L Arch Mage" arrives as "IL Arch Mage".
@@ -701,6 +718,7 @@ void SeedTest(GameState& state, const TestOptions& test) {
   if (trace != state.items.end()) {
     state.character.AddStackable(trace->second, kTestSpellTraces);
   }
+  state.character.AddVPoints(kTestVPoints);
 
   // A handful of every token, so the shop's token shelves can be bought from
   // without farming the mobs that drop them.
@@ -728,12 +746,9 @@ void SeedTest(GameState& state, const TestOptions& test) {
   // Named after the job it was built for, so several workbenches in a party
   // are told apart without anybody typing a name.
   state.character.SetUsername(UsernameFor(advancement));
-  // --skills=0 leaves the book the character stands in unbought, held to the
-  // last one SP buys: a 5th job's is bought with V Points, and leaving it is
-  // what would put the tester in front of an empty pool.
-  int unspent = std::min(StageForAdvancement(advancement), kLastSpJobStage);
   GrowToJob(state, advancement, test.level,
-            test.skills == TestSkills::kZero ? unspent : kSpendEveryStage,
+            test.skills == TestSkills::kZero ? StageForAdvancement(advancement)
+                                             : kSpendEveryStage,
             test.equips);
 
   // Everything above dresses the character; nothing is meant to be carried.

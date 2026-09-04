@@ -506,6 +506,13 @@ class CharacterInstance {
   // anything that is not a node. Asked here so the panel offering the node and
   // LearnSkill cannot disagree about the price.
   int VNodeCostFor(const Skill& skill, int amount) const;
+  // How many more levels of `skill` the character can buy right now, held to
+  // what the skill has left. A point a level for an ordinary skill; for a node
+  // it is as far up the ladder as the V Points reach, which is not the same as
+  // how many points are in the pool. The panel dims its [+] on this and the
+  // learn dialog counts up to it, so neither can offer what LearnSkill would
+  // refuse.
+  int LevelsAffordable(const Skill& skill) const;
   // The character's learned level in `skill` (0 = unlearned).
   //
   // A Vengeance form is learned to whatever its Benevolence skill was bought
@@ -536,6 +543,11 @@ class CharacterInstance {
   // LearnSkill refuses when this is false; the skills tab asks it directly so
   // it can dim a row rather than let the player press an unspendable [+].
   bool MeetsSkillRequirement(const Skill& skill) const;
+  // Whether `skill` comes from a book this character holds -- their matrix for
+  // a node, and the advancement it names for everything else. Learned levels
+  // are keyed by display name and the branches share several, so this is what
+  // stops another branch's copy of a name from folding in beside their own.
+  bool HoldsSkillFrom(const Skill& skill) const;
   // Whether `skill`, a V Matrix node, is one this character's matrix holds:
   // a common node reaches every job, and every other names the 5th
   // advancement whose job may buy it. False for a character with no matrix.

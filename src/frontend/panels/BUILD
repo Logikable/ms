@@ -39,6 +39,7 @@ cc_test(
     deps = [
         ":character_panel",
         "//src/character:consumables",
+        "//src/character:v_matrix",
         "//src/frontend:panel_widths",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",

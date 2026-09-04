@@ -196,17 +196,24 @@ TEST(GameStateTest, TestModeStartsAtTheTopOfTheWrittenLine) {
 // the job for.
 TEST(GameStateTest, SkillsZeroLeavesTheJobsOwnBookUnbought) {
   GameState state = MakeTestModeStateWithSkills();
-  // The last book SP buys, not the stage the character stands in: a 5th job's
-  // book is bought with V Points and has no pool to leave unspent.
-  int top = kLastSpJobStage;
+  int top = state.character.proto().job_stage();
   for (int stage = 1; stage < top; ++stage) {
     EXPECT_EQ(state.character.sp(stage), 0) << "stage " << stage;
   }
-  EXPECT_GT(state.character.sp(top), 0);
+  // The 5th job's book is the matrix, so what is left unbought is every node
+  // -- the common ones with them -- and the points are still in the pool.
+  bool fifth = top >= kFifthJobStage;
+  if (fifth) {
+    EXPECT_GT(state.character.v_points(), 0);
+  } else {
+    EXPECT_GT(state.character.sp(top), 0);
+  }
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    int stage = StageForAdvancement(entry.second.job_advancement());
-    int expected = stage < top ? entry.second.max_level() : 0;
-    EXPECT_EQ(state.character.skill_level(entry.second), expected)
+    const Skill& skill = entry.second;
+    int stage = StageForAdvancement(skill.job_advancement());
+    bool held = fifth ? skill.v_node() == V_NODE_KIND_UNSPECIFIED : stage < top;
+    int expected = held ? skill.max_level() : 0;
+    EXPECT_EQ(state.character.skill_level(skill), expected)
         << entry.first << " at stage " << stage;
   }
 }

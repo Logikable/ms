@@ -11,6 +11,7 @@
 
 #include "src/character/consumables.h"
 #include "src/character/inner_ability.h"
+#include "src/character/v_matrix.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -221,6 +222,34 @@ TEST_F(DerivedStatsTest, SumsAllocatedAndEquippedWithoutSkills) {
   EXPECT_EQ(stats.max_mp, 60);
   EXPECT_EQ(stats.def, 30);
   EXPECT_DOUBLE_EQ(stats.damage_taken_pct, 0.0);
+}
+
+// A V Matrix node grants what it states like any other passive: it belongs to
+// no book the character advanced through, so nothing is allowed to gate it on
+// one.
+TEST_F(DerivedStatsTest, ACommonNodeGrantsWhatItStates) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50, /*mp=*/20);
+  Skill rope;
+  rope.set_name("Rope Lift");
+  rope.set_kind(SKILL_KIND_PASSIVE);
+  rope.set_job_advancement(JOB_ADVANCEMENT_COMMON);
+  rope.set_v_node(V_NODE_KIND_COMMON);
+  rope.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
+  rope.mutable_base()->set_str(1);
+  rope.mutable_per_level()->set_str(1);
+  std::map<std::string, Skill> catalog = {{"rope_lift", rope}};
+
+  EXPECT_EQ(TotalEquipStats(c, DerivedStatsFor(c, catalog)).str(), 0)
+      << "unlearned it pays nothing";
+
+  c.AdvanceJob(c.proto().job());  // whatever stage the fixture left them at
+  while (c.proto().job_stage() < kFifthJobStage) {
+    c.AdvanceJob(c.proto().job());
+  }
+  c.AddVPoints(VNodeCost(V_NODE_KIND_COMMON, 0, rope.max_level()));
+  ASSERT_TRUE(c.LearnSkill(rope, rope.max_level()));
+  EXPECT_EQ(TotalEquipStats(c, DerivedStatsFor(c, catalog)).str(), 30)
+      << "a point a level, to 30";
 }
 
 // --- set bonuses ---
