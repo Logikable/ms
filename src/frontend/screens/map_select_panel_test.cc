@@ -112,11 +112,18 @@ Mob ErdaMob() {
   return mob;
 }
 
+Mob SpiritMob() {
+  Mob mob;
+  mob.set_name("Snow Cloud Spirit");
+  mob.set_level(233);
+  return mob;
+}
+
 // One map on every band, so a test can page across the whole list: Green
 // (level 1) and Horny (level 8) on the 1-10 band, then Temple (15) on 11-30,
 // Cave (40) on 31-60, Meadow (86) on 61-100, Nest (106) on 101-140, Road
-// (141) on 141-170, District (172) on 171-200 and Zone (201) on 201-220,
-// each alone on its own.
+// (141) on 141-170, District (172) on 171-200, Zone (201) on 201-230 and
+// Clearing (233) on 231-260, each alone on its own.
 // **Adding a band to kLevelBands means adding a map here**, or paging to the
 // end lands on an empty band and the tests below say nothing.
 GameState EveryBand() {
@@ -147,6 +154,9 @@ GameState EveryBand() {
   MapData zone;
   zone.set_name("Zone");
   AddSpawn(&zone, "erda", 3);
+  MapData clearing;
+  clearing.set_name("Clearing");
+  AddSpawn(&clearing, "spirit", 3);
   return GameState({}, {}, {},
                    {{"snail", SnailMob()},
                     {"mushroom", MushroomMob()},
@@ -156,7 +166,8 @@ GameState EveryBand() {
                     {"harp", HarpMob()},
                     {"monk", MonkMob()},
                     {"knight", KnightMob()},
-                    {"erda", ErdaMob()}},
+                    {"erda", ErdaMob()},
+                    {"spirit", SpiritMob()}},
                    {{"green_field", green},
                     {"horny_field", horny},
                     {"temple", temple},
@@ -165,7 +176,8 @@ GameState EveryBand() {
                     {"nest", nest},
                     {"road", road},
                     {"district", district},
-                    {"zone", zone}});
+                    {"zone", zone},
+                    {"clearing", clearing}});
 }
 
 int Width(const MapSelectPanel& panel) {
@@ -604,7 +616,7 @@ TEST(MapSelectPanelTest, PagingStopsAtBothEndsOfTheBands) {
   EXPECT_EQ(panel.selected_map(), "green_field");
 
   panel.ChangePage(kPastEveryBand);
-  EXPECT_EQ(panel.selected_map(), "zone");
+  EXPECT_EQ(panel.selected_map(), "clearing");
 }
 
 TEST(MapSelectPanelTest, MapsPastTheLastBandShowOnIt) {
@@ -688,20 +700,17 @@ TEST(MapSelectPanelTest, HandlesAWorldWithNoMaps) {
 
 // A map inside Arcane River, whose mobs put it in the last band.
 GameState ArcaneMaps() {
-  Mob erda;
-  erda.set_name("Raging Erda");
-  erda.set_level(201);
-  MapData rage;
-  rage.set_name("Weathered Land of Rage");
-  AddSpawn(&rage, "erda", 33);
-  // 130 rather than a rounder number: the band chips read "11-30" and
-  // "101-140", and a test looking for the cell must not find one of those.
-  rage.set_arcane_force(130);
+  MapData clearing;
+  clearing.set_name("Snow Cloud Clearing");
+  AddSpawn(&clearing, "spirit", 36);
+  // 320 rather than a rounder number: a test looking for the cell must not
+  // find one of the band chips, which read "11-30", "101-140" and the rest.
+  clearing.set_arcane_force(320);
   MapData plain;
   plain.set_name("Green Field");
   AddSpawn(&plain, "snail", 4);
-  return GameState({}, {}, {}, {{"erda", erda}, {"snail", SnailMob()}},
-                   {{"rage", rage}, {"green_field", plain}});
+  return GameState({}, {}, {}, {{"spirit", SpiritMob()}, {"snail", SnailMob()}},
+                   {{"clearing", clearing}, {"green_field", plain}});
 }
 
 // The column only stands over bands that want force. Outside Arcane River no
@@ -713,15 +722,15 @@ TEST(MapSelectPanelTest, TheArcaneForceColumnFollowsTheBand) {
   std::string rendered = Render(panel);
   // The first band holds the plain map, which names no force.
   EXPECT_EQ(rendered.find("AF"), std::string::npos) << rendered;
-  EXPECT_EQ(rendered.find("130"), std::string::npos) << rendered;
+  EXPECT_EQ(rendered.find("320"), std::string::npos) << rendered;
   int plain_width = Width(panel);
 
   GoToTheBar(&panel);
   panel.ChangePage(kPastEveryBand);
   std::string arcane = Render(panel);
-  EXPECT_NE(arcane.find("Weathered Land of Rage"), std::string::npos);
+  EXPECT_NE(arcane.find("Snow Cloud Clearing"), std::string::npos);
   EXPECT_NE(arcane.find("AF"), std::string::npos) << arcane;
-  EXPECT_NE(arcane.find("130"), std::string::npos) << arcane;
+  EXPECT_NE(arcane.find("320"), std::string::npos) << arcane;
   // The column holds its width without its header, so the window does not
   // walk sideways as the player pages.
   EXPECT_EQ(Width(panel), plain_width);
