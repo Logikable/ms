@@ -309,11 +309,16 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
     cost_by_advancement[entry.second.job_advancement()] +=
         entry.second.max_level();
   }
-  // Every advancement has to turn up, not just sum correctly: the skills sit in
-  // a folder per job, and a folder that stopped being read would drop one out
-  // of the map entirely and leave the rest to pass on their own.
+  // Every advancement below the 5th has to turn up, not just sum correctly:
+  // the skills sit in a folder per job, and a folder that stopped being read
+  // would drop one out of the map entirely and leave the rest to pass on their
+  // own. The 5th jobs are written one at a time, so an empty one is expected
+  // rather than a folder gone missing.
   for (JobAdvancement advancement :
        EveryValueOf<JobAdvancement>(JobAdvancement_descriptor())) {
+    if (StageForAdvancement(advancement) >= 5) {
+      continue;
+    }
     EXPECT_TRUE(cost_by_advancement.count(advancement))
         << "advancement " << advancement << " has no skills at all";
   }

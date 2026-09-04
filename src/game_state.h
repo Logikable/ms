@@ -83,7 +83,7 @@ enum class TestSkills {
 // has to hand out. It moves up with the line rather than staying put -- a
 // workbench with an advancement still waiting is one the tester has to finish
 // before they can look at anything.
-inline constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_HERO;
+inline constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_HERO_V;
 
 // The workbench's own settings, one per flag. kPlay ignores every one of them.
 //

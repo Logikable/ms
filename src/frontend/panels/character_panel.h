@@ -389,6 +389,12 @@ class CharacterPanel {
   // How many pages the Skills tab offers: one per advancement taken, and the
   // Hyper page after them once the character has reached it.
   int SkillPages() const;
+  // How many of those are numbered -- one per advancement taken, less the 5th
+  // while no node has been written for this character's job.
+  int NumberedSkillPages() const;
+  // The advancement whose Hyper Skills this character holds, which is their
+  // 4th job's whether or not they have taken a 5th.
+  JobAdvancement HyperAdvancement() const;
   // Whether the Hyper page is one of them, which it is once a Hyper Skill of
   // this character's own book has come within reach of their level. Before
   // that the page could only ever be a list of things they cannot have.

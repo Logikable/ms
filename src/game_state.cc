@@ -536,7 +536,7 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
 
 // The level a character stops at when nothing names one: the top of the job's
 // own band, held to the cap the EXP table pays up to. The last advancement the
-// game has written has no band above it -- the 5th job's level is a number in
+// game has written has no band above it -- the 6th job's level is a number in
 // the table and nothing else -- so that one climbs to the cap instead.
 int LevelForJob(JobAdvancement advancement, int level) {
   if (level > 0) {
@@ -728,9 +728,12 @@ void SeedTest(GameState& state, const TestOptions& test) {
   // Named after the job it was built for, so several workbenches in a party
   // are told apart without anybody typing a name.
   state.character.SetUsername(UsernameFor(advancement));
+  // --skills=0 leaves the book the character stands in unbought, held to the
+  // last one SP buys: a 5th job's is bought with V Points, and leaving it is
+  // what would put the tester in front of an empty pool.
+  int unspent = std::min(StageForAdvancement(advancement), kLastSpJobStage);
   GrowToJob(state, advancement, test.level,
-            test.skills == TestSkills::kZero ? StageForAdvancement(advancement)
-                                             : kSpendEveryStage,
+            test.skills == TestSkills::kZero ? unspent : kSpendEveryStage,
             test.equips);
 
   // Everything above dresses the character; nothing is meant to be carried.

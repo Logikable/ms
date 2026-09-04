@@ -196,7 +196,9 @@ TEST(GameStateTest, TestModeStartsAtTheTopOfTheWrittenLine) {
 // the job for.
 TEST(GameStateTest, SkillsZeroLeavesTheJobsOwnBookUnbought) {
   GameState state = MakeTestModeStateWithSkills();
-  int top = state.character.proto().job_stage();
+  // The last book SP buys, not the stage the character stands in: a 5th job's
+  // book is bought with V Points and has no pool to leave unspent.
+  int top = kLastSpJobStage;
   for (int stage = 1; stage < top; ++stage) {
     EXPECT_EQ(state.character.sp(stage), 0) << "stage " << stage;
   }

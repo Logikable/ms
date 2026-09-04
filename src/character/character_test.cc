@@ -824,8 +824,13 @@ TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
             (std::vector<Job>{JOB_NIGHT_LORD}));
   EXPECT_EQ(JobChoicesForStage(JOB_CHIEF_BANDIT, 4),
             (std::vector<Job>{JOB_SHADOWER}));
-  EXPECT_TRUE(JobChoicesForStage(JOB_DARK_KNIGHT, 5).empty());
-  EXPECT_TRUE(JobChoicesForStage(JOB_PALADIN, 5).empty());
+  // The 5th offers the job already held: it opens a book without renaming
+  // anybody, so there is nothing to choose between.
+  EXPECT_EQ(JobChoicesForStage(JOB_DARK_KNIGHT, 5),
+            (std::vector<Job>{JOB_DARK_KNIGHT}));
+  EXPECT_EQ(JobChoicesForStage(JOB_PALADIN, 5),
+            (std::vector<Job>{JOB_PALADIN}));
+  EXPECT_TRUE(JobChoicesForStage(JOB_DARK_KNIGHT, 6).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_BEGINNER, 0).empty());
 }
 

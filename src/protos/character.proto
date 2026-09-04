@@ -116,11 +116,19 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_BISHOP = 32;
   JOB_ADVANCEMENT_NIGHT_LORD = 33;
   JOB_ADVANCEMENT_SHADOWER = 34;
-  // The 5th advancements, at level 200. Nothing reaches one yet: no character
-  // takes a 5th job stage, so its book is unbuyable and its page never draws.
-  // The advancement exists so a 5th job skill has somewhere to be written --
-  // see data/skills/warrior/dark_knight/fifth.
+  // The 5th advancements, at level 200. The job's name does not change -- a
+  // Dark Knight stays a Dark Knight and opens another book -- so these exist to
+  // give a 5th job skill somewhere to be written, not to rename anything.
   JOB_ADVANCEMENT_DARK_KNIGHT_V = 35;
+  JOB_ADVANCEMENT_PALADIN_V = 36;
+  JOB_ADVANCEMENT_HERO_V = 37;
+  JOB_ADVANCEMENT_BOW_MASTER_V = 38;
+  JOB_ADVANCEMENT_MARKSMAN_V = 39;
+  JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V = 40;
+  JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V = 41;
+  JOB_ADVANCEMENT_BISHOP_V = 42;
+  JOB_ADVANCEMENT_NIGHT_LORD_V = 43;
+  JOB_ADVANCEMENT_SHADOWER_V = 44;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

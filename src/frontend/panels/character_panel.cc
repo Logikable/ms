@@ -105,6 +105,10 @@ constexpr int kPotFixedWidth = 1 + kPotTagWidth + 1 + 1 + 1;
 // Roman numerals for the job-advancement tabs, indexed by stage (1..6).
 const char* kStageNumerals[] = {"", "I", "II", "III", "IV", "V", "VI"};
 
+// Hyper Skills are the 4th job's own book -- a 5th job keeps them rather
+// than growing a set of its own -- so the H page always hangs off stage four.
+constexpr int kHyperJobStage = 4;
+
 // Columns the SP counter takes off the end of the stage bar's row: " 999 SP ".
 constexpr int kSpCol = 8;
 
@@ -691,15 +695,18 @@ CharacterPanel::LevelColumn CharacterPanel::MeasureLevelColumn(
   return column;
 }
 
+JobAdvancement CharacterPanel::HyperAdvancement() const {
+  return AdvancementForJobStage(
+      character_.proto().job(),
+      std::min(character_.proto().job_stage(), kHyperJobStage));
+}
+
 bool CharacterPanel::HasHyperPage() const {
   // The lowest level any of this character's Hyper Skills opens at. Asked of
   // the catalog rather than written as a number, so the page arrives the level
   // the first skill on it does however the data moves.
-  for (const Skill* skill : SkillsForAdvancement(
-           skills_,
-           AdvancementForJobStage(character_.proto().job(),
-                                  character_.proto().job_stage()),
-           /*hyper=*/true)) {
+  for (const Skill* skill :
+       SkillsForAdvancement(skills_, HyperAdvancement(), /*hyper=*/true)) {
     if (character_.proto().level() >= skill->required_level()) {
       return true;
     }
@@ -707,12 +714,26 @@ bool CharacterPanel::HasHyperPage() const {
   return false;
 }
 
+int CharacterPanel::NumberedSkillPages() const {
+  int stages = character_.proto().job_stage();
+  // The 5th job's page waits on a node being written for that job, the same
+  // rule the H page follows: a page with nothing on it is worse than no page.
+  if (stages == kLastJobStage &&
+      SkillsForAdvancement(
+          skills_, AdvancementForJobStage(character_.proto().job(), stages),
+          /*hyper=*/false)
+          .empty()) {
+    --stages;
+  }
+  return stages;
+}
+
 int CharacterPanel::SkillPages() const {
-  return character_.proto().job_stage() + (HasHyperPage() ? 1 : 0);
+  return NumberedSkillPages() + (HasHyperPage() ? 1 : 0);
 }
 
 bool CharacterPanel::IsHyperPage(int page) const {
-  return HasHyperPage() && page == character_.proto().job_stage();
+  return HasHyperPage() && page == NumberedSkillPages();
 }
 
 std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
@@ -720,12 +741,15 @@ std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
   // at -- so a Swordman never sees an Archer's skills, and vice versa. An
   // unreached or undefined advancement has none. The Hyper page hangs off the
   // advancement the character is at now, which is the book its skills upgrade.
-  int stage = IsHyperPage(page) ? character_.proto().job_stage() : page + 1;
   std::set<std::string> toggles_on(character_.proto().active_skill().begin(),
                                    character_.proto().active_skill().end());
+  if (IsHyperPage(page)) {
+    return SkillsForAdvancement(skills_, HyperAdvancement(), /*hyper=*/true,
+                                toggles_on);
+  }
   return SkillsForAdvancement(
-      skills_, AdvancementForJobStage(character_.proto().job(), stage),
-      IsHyperPage(page), toggles_on);
+      skills_, AdvancementForJobStage(character_.proto().job(), page + 1),
+      /*hyper=*/false, toggles_on);
 }
 
 bool CharacterPanel::SkillLocked(const Skill& skill) const {

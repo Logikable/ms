@@ -831,6 +831,47 @@ TEST_F(CharacterPanelTest, TheHyperPageComesAfterTheAdvancements) {
   EXPECT_NE(hyper.find("1 SP"), std::string::npos) << "the Hyper pool";
 }
 
+// The 5th job keeps the 4th's Hyper page, and its own numeral draws only once
+// a node has been written for that job -- an empty page is worse than none.
+TEST_F(CharacterPanelTest, TheFifthJobKeepsItsHypersAndDrawsNoEmptyPage) {
+  CharacterInstance c = MakeDarkKnight(rng_, /*level=*/200);
+  c.AdvanceJob(JOB_DARK_KNIGHT);  // the 5th, which renames nobody
+  ASSERT_EQ(c.proto().job_stage(), 5);
+
+  CharacterPanel bare(c, account_, panel_focus_, HyperCatalog());
+  ftxui::Component comp = bare.MakeComponent();
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> page bar
+  std::string bars = RenderComponent(comp);
+  EXPECT_NE(bars.find(" H "), std::string::npos)
+      << "the hypers are still theirs";
+  EXPECT_EQ(bars.find(" V "), std::string::npos) << "no node is written";
+  for (int i = 0; i < 4; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);  // page I -> H
+  }
+  EXPECT_NE(RenderComponent(comp).find("Gungnir's Reinforce"),
+            std::string::npos);
+
+  // The same character against a catalog that holds one.
+  std::map<std::string, Skill> catalog = HyperCatalog();
+  Skill radiant;
+  radiant.set_name("Radiant Evil");
+  radiant.set_kind(SKILL_KIND_AUTO_ATTACK);
+  radiant.set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT_V);
+  radiant.set_max_level(30);
+  catalog["radiant_evil"] = radiant;
+
+  CharacterPanel noded(c, account_, panel_focus_, catalog);
+  ftxui::Component with_node = noded.MakeComponent();
+  with_node->OnEvent(ftxui::Event::ArrowRight);
+  with_node->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_NE(RenderComponent(with_node).find(" V "), std::string::npos);
+  for (int i = 0; i < 4; ++i) {
+    with_node->OnEvent(ftxui::Event::ArrowRight);  // page I -> V
+  }
+  EXPECT_NE(RenderComponent(with_node).find("Radiant Evil"), std::string::npos);
+}
+
 // A hyper above the character's level is on the page but shut: the [+] does
 // nothing, and the point stays in the pool.
 TEST_F(CharacterPanelTest, AHyperAboveItsLevelCannotBeBought) {
