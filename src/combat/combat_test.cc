@@ -9,6 +9,7 @@
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
 #include "src/character/honor.h"
+#include "src/character/v_matrix.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/combat/loot.h"
@@ -184,6 +185,31 @@ TEST(AwardCombatRewardsTest, KillsPayHonorIntoTheTallyAndThePool) {
   EXPECT_NEAR(tally.honor, 10000 * kMobHonorPerKill, 800);
   EXPECT_EQ(tally.honor % kMobHonorPerDrop, 0);
   EXPECT_EQ(state.character.honor(), tally.honor);
+}
+
+// V Points are the 5th job's alone: a 4th job's kills pay none however many
+// they are, and the same kills pay once the advancement is taken.
+TEST(AwardCombatRewardsTest, OnlyAFifthJobIsPaidVPoints) {
+  Mob mob = SnailMob();
+  mob.set_exp(0);
+  GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", mob}}, {{"field", SnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+  CombatParams params = ComputeCombatParams(state);
+
+  EXPECT_EQ(AwardCombatRewards(state, params, {100000}).v_points, 0);
+  EXPECT_EQ(state.character.v_points(), 0);
+
+  for (int stage = state.character.proto().job_stage(); stage < kFifthJobStage;
+       ++stage) {
+    state.character.AdvanceJob(state.character.proto().job());
+  }
+  ASSERT_TRUE(state.character.v_matrix_unlocked());
+
+  RewardTally tally = AwardCombatRewards(state, params, {100000});
+  EXPECT_NEAR(tally.v_points, 100000 * kVPointDropChance, 40);
+  EXPECT_EQ(state.character.v_points(), tally.v_points);
 }
 
 // A boss is paid for out of its fight's own table, so the body itself is

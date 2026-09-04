@@ -11,6 +11,7 @@
 #include "src/character/character.h"
 #include "src/character/consumables.h"
 #include "src/character/honor.h"
+#include "src/character/v_matrix.h"
 #include "src/combat/drop.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
@@ -112,6 +113,16 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
       if (honor > 0) {
         character.AddHonor(honor);
         tally.honor += honor;
+      }
+      // V Points are a drop, so drop rate lifts them -- and only a 5th job has
+      // a matrix for them to go into.
+      if (character.v_matrix_unlocked()) {
+        int64_t points =
+            RollMobVPoints(kills[i], params.item_drop_pct, state.rng);
+        if (points > 0) {
+          character.AddVPoints(points);
+          tally.v_points += points;
+        }
       }
     }
     for (const MobDrop& drop : mob.drops()) {

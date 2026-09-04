@@ -252,6 +252,9 @@ class CharacterInstance {
   // Adds `amount` honor, the pool an Inner Ability reset is paid out of. No-op
   // if amount <= 0. Nothing in the game calls this yet.
   void AddHonor(int64_t amount);
+  // Banks V Points. Negative amounts are ignored: points leave the pool only
+  // by being spent on a node.
+  void AddVPoints(int64_t amount);
 
   /* The potions. A pot is owned or rented, and on or off; the pair decides
    * both what it does and what it costs. See //src/character/consumables.h.
@@ -448,6 +451,15 @@ class CharacterInstance {
   // Honor left to spend on an Inner Ability reset.
   int64_t honor() const {
     return character_.honor();
+  }
+  // V Points left to spend on the V Matrix.
+  int64_t v_points() const {
+    return character_.v_points();
+  }
+  // Whether the character has taken the 5th advancement, which is what opens
+  // the matrix and what makes their kills pay V Points at all.
+  bool v_matrix_unlocked() const {
+    return character_.job_stage() >= kFifthJobStage;
   }
   // Whether the character is high enough for their Inner Ability to pay --
   // and, since the two go together, for the panel to open at all.

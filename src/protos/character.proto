@@ -393,6 +393,11 @@ message Character {
   // Nothing pays into it yet.
   int64 honor = 22;
 
+  // V Points, which level the nodes of the 5th job's V Matrix. Its own pool,
+  // held per character the way honor is. Only a character who has taken the
+  // 5th advancement earns any -- see v_matrix.h.
+  int64 v_points = 24;
+
   // The potions, which open at level 170. Per character because meso is: a
   // permanent unlock is bought out of one character's purse.
   Consumables consumables = 23;

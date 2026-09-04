@@ -1948,6 +1948,13 @@ void CharacterInstance::AddHonor(int64_t amount) {
   character_.set_honor(character_.honor() + amount);
 }
 
+void CharacterInstance::AddVPoints(int64_t amount) {
+  if (amount <= 0) {
+    return;
+  }
+  character_.set_v_points(character_.v_points() + amount);
+}
+
 int64_t CharacterInstance::SellStackable(ItemCategory category, int index,
                                          int count) {
   std::vector<StackableItem>& stacks = StacksFor(category);

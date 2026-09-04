@@ -30,13 +30,14 @@ struct RewardItem {
   int64_t discarded = 0;
 };
 
-// What a stretch of fighting paid: the EXP, the meso, the honor and the items.
-// Filled by AwardCombatRewards for whoever wants to show it; a caller with
-// nothing to show drops it on the floor.
+// What a stretch of fighting paid: the EXP, the meso, the honor, the V Points
+// and the items. Filled by AwardCombatRewards for whoever wants to show it; a
+// caller with nothing to show drops it on the floor.
 struct RewardTally {
   int64_t exp = 0;
   int64_t meso = 0;
   int64_t honor = 0;
+  int64_t v_points = 0;
   std::vector<RewardItem> items;  // in the order the drop tables list them
   // What the potions took back out of the purse over the same stretch. The one
   // number here that is a cost rather than a payment, and it is here because

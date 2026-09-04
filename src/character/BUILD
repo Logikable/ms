@@ -81,6 +81,22 @@ cc_library(
     deps = [":inner_ability"],
 )
 
+cc_library(
+    name = "v_matrix",
+    srcs = ["v_matrix.cc"],
+    hdrs = ["v_matrix.h"],
+)
+
+cc_test(
+    name = "v_matrix_test",
+    size = "small",
+    srcs = ["v_matrix_test.cc"],
+    deps = [
+        ":v_matrix",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "honor_test",
     size = "small",

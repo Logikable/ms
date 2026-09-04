@@ -28,7 +28,7 @@ inline constexpr int kHyperStatUnlockLevel = 140;
 inline constexpr int kMaxHyperStatLevel = 15;
 
 // Until the 5th job advancement GMS holds every stat five levels short of
-// that. No character here takes a 5th job, so ten is the real ceiling.
+// that, so a 4th job stops at ten and a 5th reaches the whole fifteen.
 inline constexpr int kHyperStatLevelsBeforeFifthJob = 5;
 inline constexpr int kFifthJobStage = 5;
 

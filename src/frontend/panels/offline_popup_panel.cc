@@ -78,6 +78,12 @@ ftxui::Element OfflinePopupPanel(const OfflineReport& report,
       rows.push_back(
           CenteredRow(FormatWithCommas(report.rewards.honor) + " Honor"));
     }
+    // No flag on this one: only a 5th job is paid V Points at all, so anyone
+    // with some to show already knows what they are.
+    if (report.rewards.v_points > 0) {
+      rows.push_back(
+          CenteredRow(FormatWithCommas(report.rewards.v_points) + " V Points"));
+    }
     if (!report.rewards.items.empty()) {
       rows.push_back(AccentSeparator(kTheme));
     }
