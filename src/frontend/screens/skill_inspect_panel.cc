@@ -611,6 +611,11 @@ std::vector<Row> InvariantRows(const Skill& skill) {
     rows.push_back(EffectRow(
         "Fires Every", std::to_string(skill.attacks_per_cast()) + " Attacks"));
   }
+  // The other counted clock: what the player leaves dead behind them.
+  if (skill.kills_per_cast() > 0) {
+    rows.push_back(EffectRow(
+        "Fires Every", std::to_string(skill.kills_per_cast()) + " Defeats"));
+  }
   Append(EmpoweredRows(skill), rows);
   // How long the player swings something else for afterwards, which is what a
   // skill this much better than the usual swing costs. A wait that shortens as

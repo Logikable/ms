@@ -422,6 +422,15 @@ class CombatSim {
   // seventh must not have six sevenths of it thrown away, or a rapid attack
   // would never set the skill off at all.
   void CreditSwing(const CombatParams& params, double weight);
+  // Credits the enemies defeated since it last ran to the skills clocked by
+  // dying, and fires any whose count has come round. Runs beside the other
+  // own-clock casts, off a count the reaping keeps, so a defeat is credited
+  // however it was dealt -- a swing, a summon, a burn or a reflected blow.
+  //
+  // What one of these kills charges the next release rather than this one: the
+  // pending count is taken before anything strikes, so a wide cast on a dying
+  // crowd cannot set itself off again and again in the one step.
+  void CreditKills(const CombatParams& params);
   // Winds every recharging swing down by dt, before the swing is aimed, so one
   // that comes back this step is available to it.
   void RunCooldowns(const CombatParams& params, double dt);
@@ -503,6 +512,14 @@ class CombatSim {
   // params.triggered_attacks. Fractional, since a swing can be worth less than
   // a whole one.
   std::vector<double> trigger_count_;
+  // Defeats credited toward each triggered attack's next cast, parallel to the
+  // same list. Whole, since a monster either died or did not.
+  std::vector<int> kill_count_;
+  // Defeats since CreditKills last ran, counted by Reap and Reflect wherever
+  // they clear a body. Held rather than read off view_.kills_this_step because
+  // that is zeroed at the top of every step, and the count belongs to the
+  // skill's clock rather than to the step.
+  int kills_pending_ = 0;
   // Where one swing stands, one entry per attack in params.attacks.
   struct AttackClock {
     // Seconds before it can be chosen again. 0 for a swing that is ready,

@@ -1,0 +1,30 @@
+# GMS's node is Erda Shower, and the fountain is one of its two halves: the
+# player either fires the blast or plants the object. Only the object is built
+# here, because past the point a character holds a matrix it is the half they
+# use -- the blast is a boss button, and a boss is not what a common node is
+# for.
+#
+# The kill clock is its own: GMS releases the gathered Erda every twelve
+# enemies defeated, which makes it a crowd's skill and nothing else's. See
+# Skill.kills_per_cast. The 60-second cooldown GMS states is on planting the
+# object, not on a release, and the object lives exactly as long -- so it
+# stands unbroken and the twelve are the whole rule.
+#
+# Damage is GMS's 450 + 15x: 465% at level 1 and 900% at 30, four lines on ten
+# enemies. GMS turns Shadow Partner into final damage on this skill rather
+# than a doubled line; here a skill on its own clock gets no shadow at all,
+# which is the engine's blanket rule for everything a character did not swing.
+name: "Erda Fountain"
+skill_order: 11
+description:
+  "Plants an object filled with pure Erda. Erda released by defeated enemies "
+  "condenses around it, and enough of it gathered is released at once."
+kind: SKILL_KIND_AUTO_ATTACK
+job_advancement: JOB_ADVANCEMENT_COMMON
+v_node: V_NODE_KIND_COMMON
+max_level: 30
+max_enemies: 10
+lines: 4
+kills_per_cast: 12
+base { skill_pct: 4.65 }
+per_level { skill_pct: 0.15 }

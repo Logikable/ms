@@ -596,8 +596,9 @@ bool Swingable(const GameState& state, const Skill& skill,
   }
   // Another branch's book can share a skill's display name, and learned levels
   // are keyed by that name -- so ask whose book this is before reading a level
-  // off it. See CharacterInstance::HasAdvancement.
-  if (!state.character.HasAdvancement(skill.job_advancement())) {
+  // off it. HoldsSkillFrom rather than HasAdvancement, or a V node would never
+  // be swingable: a common node's advancement is nobody's.
+  if (!state.character.HoldsSkillFrom(skill)) {
     return false;
   }
   // A skill the gear in hand cannot swing is no option, however well learned.
@@ -959,9 +960,11 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     }
     attack.swing_seconds = 0.0;  // not swung, so never charged
     ClearSwingRiders(attack);    // what rides a swing needs one
-    // Clocked by swings landed rather than by seconds passed.
-    if (swung.attacks_per_cast() > 0) {
+    // Clocked by something counted rather than by seconds passed: swings
+    // landed, or enemies defeated.
+    if (swung.attacks_per_cast() > 0 || swung.kills_per_cast() > 0) {
       attack.attacks_per_cast = swung.attacks_per_cast();
+      attack.kills_per_cast = swung.kills_per_cast();
       set.triggered_attacks.push_back(std::move(attack));
       continue;
     }

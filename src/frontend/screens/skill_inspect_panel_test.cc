@@ -300,12 +300,19 @@ TEST_F(SkillInspectPanelTest, KeepsWhatTheWeaponMovesOffThePage) {
             std::string::npos);
 }
 
-// The one clock the player sets themselves, and the only one the page states.
-TEST_F(SkillInspectPanelTest, SaysHowManyAttacksSetASkillOff) {
+// The two clocks the player sets themselves -- what they swing and what they
+// leave dead -- and the only ones the page states.
+TEST_F(SkillInspectPanelTest, SaysWhatCountSetsASkillOff) {
   Skill mirage = MakeLuckySeven();
   mirage.set_kind(SKILL_KIND_AUTO_ATTACK);
   mirage.set_attacks_per_cast(4);
   EXPECT_NE(RowIn(RenderAt(mirage, 1), "Fires Every", "4 Attacks"),
+            std::string::npos);
+
+  Skill fountain = MakeLuckySeven();
+  fountain.set_kind(SKILL_KIND_AUTO_ATTACK);
+  fountain.set_kills_per_cast(12);
+  EXPECT_NE(RowIn(RenderAt(fountain, 1), "Fires Every", "12 Defeats"),
             std::string::npos);
 }
 

@@ -307,6 +307,9 @@ double OffClockDps(const CombatParams& params, const Sequence& played,
   // How often a triggered attack goes off depends on the swing feeding it: a
   // rapid attack counting a seventh apiece is worth no more of these than a
   // slow one counting a whole attack.
+  //
+  // One clocked by enemies defeated is left out: what feeds it is the map's
+  // kill rate, which a weapon measured against a dummy has no reading of.
   for (const AttackOption& extra : params.triggered_attacks) {
     if (extra.damage_per_hit.empty() || extra.attacks_per_cast <= 0) {
       continue;

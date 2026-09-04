@@ -23,6 +23,7 @@ enum class DamageOrigin {
   kSwing,
   kOwnClock,    // a summon, or a skill on a clock of its own
   kSwingClock,  // a skill fired by swings landed rather than by seconds
+  kKillClock,   // a skill fired by enemies defeated
   kSideStrike,  // the strike a swing sets off beside itself
   kBurn,
 };

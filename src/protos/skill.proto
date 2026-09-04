@@ -1203,15 +1203,22 @@ message Skill {
   // cooldown skill is one the player would fire the moment it came back.
   // Ignored for every other kind. A skill with no interval never fires.
   double cast_interval_seconds = 18;
-  // The other clock a SKILL_KIND_AUTO_ATTACK can run on: swings landed rather
+  // The second clock a SKILL_KIND_AUTO_ATTACK can run on: swings landed rather
   // than seconds passed. Speed Mirage fires once every four of them.
   //
-  // A skill names one clock or the other. Counting attacks rather than seconds
+  // A skill names one clock of the three. Counting attacks rather than seconds
   // is what keeps such a skill worth the same behind a fast swing and a slow
   // one -- and it is the shape GMS states these in, because what the player is
   // being paid for is attacking.
   int32 attacks_per_cast = 20;
-  // How many landed swings of THIS attack count as one toward the field above.
+  // The third clock: enemies defeated rather than swings landed or seconds
+  // passed. Erda Fountain fires once every twelve of them.
+  //
+  // A skill names one clock of the three. Counting defeats rather than swings
+  // is what makes such a skill a crowd's alone -- on a boss almost nothing
+  // dies, and the skill goes quiet on its own without being told to.
+  int32 kills_per_cast = 35;
+  // How many landed swings of THIS attack count as one toward attacks_per_cast.
   // Unset is one, which is what an ordinary swing is worth.
   //
   // Above one for a swing that lands far faster than the rest: Arrow Blaster

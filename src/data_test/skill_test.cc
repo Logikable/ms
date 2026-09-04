@@ -590,23 +590,20 @@ TEST(SkillDataTest, OnlyAnAttackStatesAKeptHalf) {
 }
 
 // An auto-attack naming no clock never fires, so a skill that means to be one
-// and forgets to say when is a skill that silently does nothing. There are two
-// clocks it can name -- seconds passed, or swings landed -- and it needs one.
+// and forgets to say when is a skill that silently does nothing. There are
+// three clocks it can name -- seconds passed, swings landed, or enemies
+// defeated -- and it needs exactly one.
 TEST(SkillDataTest, EveryAutoAttackSaysWhenItFires) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    bool by_seconds = skill.cast_interval_seconds() > 0.0;
-    bool by_swings = skill.attacks_per_cast() > 0;
+    int clocks = (skill.cast_interval_seconds() > 0.0) +
+                 (skill.attacks_per_cast() > 0) + (skill.kills_per_cast() > 0);
     if (skill.kind() != SKILL_KIND_AUTO_ATTACK) {
-      EXPECT_FALSE(by_seconds)
-          << entry.first << " sets an interval it will never be asked for";
-      EXPECT_FALSE(by_swings)
-          << entry.first << " sets a swing count it will never be asked for";
+      EXPECT_EQ(clocks, 0) << entry.first
+                           << " sets a clock it will never be asked for";
       continue;
     }
-    EXPECT_TRUE(by_seconds || by_swings) << entry.first << " would never fire";
-    EXPECT_FALSE(by_seconds && by_swings)
-        << entry.first << " runs on two clocks at once";
+    EXPECT_EQ(clocks, 1) << entry.first << " names " << clocks << " clocks";
     EXPECT_GT(skill.base().skill_pct(), 0.0)
         << entry.first << " would fire for nothing";
   }
@@ -787,6 +784,8 @@ TEST(SkillDataTest, NoSkillNamesBothClocks) {
       continue;
     }
     EXPECT_EQ(entry.second.cast_interval_seconds(), 0.0)
+        << entry.first << " both recharges and fires on its own clock";
+    EXPECT_EQ(entry.second.kills_per_cast(), 0)
         << entry.first << " both recharges and fires on its own clock";
     // A passive that raises a buff is the one exception: Divine Shield goes up
     // when the character is struck rather than when they press anything, so

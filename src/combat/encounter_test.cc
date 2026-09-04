@@ -9,6 +9,7 @@
 #include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
+#include "src/character/v_matrix.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
 #include "src/game_state.h"
@@ -2900,6 +2901,48 @@ TEST(ComputeCombatParamsTest, ASwingClockedSkillLandsOnTheTriggeredList) {
   EXPECT_GT(params.triggered_attacks[0].damage_per_hit[0], 0.0);
   // Counted in swings, so the pacing band never touches it.
   EXPECT_DOUBLE_EQ(params.triggered_attacks[0].interval_seconds, 0.0);
+}
+
+// A skill clocked by enemies defeated joins the swing-clocked ones on the
+// triggered list: both are counted rather than timed, and the fight tells them
+// apart by which count they name.
+TEST(ComputeCombatParamsTest, AKillClockedSkillLandsOnTheTriggeredList) {
+  // A common node, which is also the only shape that has one: it belongs to no
+  // book, so nothing here may gate the swing on an advancement.
+  Skill fountain;
+  fountain.set_name("Erda Fountain");
+  fountain.set_kind(SKILL_KIND_AUTO_ATTACK);
+  fountain.set_job_advancement(JOB_ADVANCEMENT_COMMON);
+  fountain.set_v_node(V_NODE_KIND_COMMON);
+  fountain.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
+  fountain.set_max_enemies(10);
+  fountain.set_lines(4);
+  fountain.set_kills_per_cast(12);
+  fountain.mutable_base()->set_skill_pct(4.65);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"erda_fountain", fountain}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  while (state.character.proto().job_stage() < kFifthJobStage) {
+    state.character.AdvanceJob(state.character.proto().job());
+  }
+  state.character.AddVPoints(VNodeCost(V_NODE_KIND_COMMON, 0, 1));
+  ASSERT_TRUE(state.character.LearnSkill(fountain, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  EXPECT_EQ(params.attacks.size(), 1u);  // the bare poke, and nothing else
+  EXPECT_TRUE(params.auto_attacks.empty());
+  ASSERT_EQ(params.triggered_attacks.size(), 1u);
+  const AttackOption& cast = params.triggered_attacks[0];
+  EXPECT_EQ(cast.name, "Erda Fountain");
+  EXPECT_EQ(cast.kills_per_cast, 12);
+  EXPECT_EQ(cast.attacks_per_cast, 0);  // it names one clock, not two
+  EXPECT_EQ(cast.max_enemies, 10);
+  EXPECT_GT(cast.damage_per_hit[0], 0.0);
+  // Counted in defeats, so neither the pacing band nor the swing touches it.
+  EXPECT_DOUBLE_EQ(cast.interval_seconds, 0.0);
+  EXPECT_DOUBLE_EQ(cast.swing_seconds, 0.0);
 }
 
 // Speed Mirage II's shape: a passive that resets the clock of the skill it

@@ -636,6 +636,18 @@ void AddTriggeredAttack(CombatParams& params, int attacks, double damage,
   params.triggered_attacks.push_back(std::move(cast));
 }
 
+// Adds a skill clocked by enemies defeated, hitting `reach` mobs for `damage`
+// apiece every `kills` of them.
+void AddKillClockedAttack(CombatParams& params, int kills, double damage,
+                          int reach = 1) {
+  AttackOption cast;
+  cast.name = "Erda Fountain";
+  cast.max_enemies = reach;
+  cast.kills_per_cast = kills;
+  cast.damage_per_hit.assign(params.types.size(), damage);
+  params.triggered_attacks.push_back(std::move(cast));
+}
+
 // Gives `attack` a bigger form that takes the place of every `every`th swing
 // of it, hitting `reach` mobs for `damage` apiece. With `marks` the count runs
 // against each mob struck instead, and the form lands on top of the strike
@@ -1492,14 +1504,17 @@ TEST(CombatSimTest, ReflectionHurtsTheMobThatHits) {
 TEST(CombatSimTest, ReflectionCanFinishAMob) {
   Mob snail = MakeMob("Snail", 40);
   CombatSim sim;
-  CombatParams params = MakeParams(100.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  CombatParams params = MakeParams(100.0, 1000.0, {MakeType(&snail, 1.0, 2)});
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
   params.damage_reflect_pct = 5.0;
-
   // A kill is a kill however it happened: the reward layer pays for this one
-  // exactly as it pays for a swing's.
+  // exactly as it pays for a swing's, and it charges a kill-clocked skill the
+  // same way. The swing is 100 seconds off, so neither is the swing's doing.
+  AddKillClockedAttack(params, /*kills=*/1, /*damage=*/40.0);
+
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.view().kills_this_step[0], 1);
+  EXPECT_EQ(sim.view().kills_this_step[0], 2);  // the reflection, and the
+                                                // release it charged
   EXPECT_TRUE(sim.respawning());
 }
 
@@ -1874,6 +1889,64 @@ TEST(CombatSimTest, ATriggeredAttackReachesWhatItsSkillSays) {
 
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().kills_this_step[0], 6);
+}
+
+// Erda Fountain's clock: the twelfth enemy to fall releases what the eleven
+// before it gathered. The defeats are credited a step behind, so the release
+// lands on the step after the one that finished the count.
+TEST(CombatSimTest, AKillClockedAttackFiresOnTheTwelfthDefeat) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  // One swing, one kill; the release kills one more when it comes.
+  CombatParams params = MakeParams(1.0, 1.0, {MakeType(&snail, 10.0, 13)});
+  AddKillClockedAttack(params, /*kills=*/12, /*damage=*/10.0);
+
+  for (int i = 0; i < 12; ++i) {
+    sim.Advance(params, 1.0);
+    EXPECT_EQ(sim.view().kills_this_step[0], 1) << "swing " << i + 1;
+  }
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.view().kills_this_step[0], 2);  // the release, and the swing
+}
+
+// A wide swing can bring down more than the whole count at once, and owes a
+// release for each of them. What is left over carries rather than being thrown
+// away, exactly as the swing count does.
+TEST(CombatSimTest, ACrowdFallingAtOnceOwesEveryReleaseItCharged) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1.0, 1.0, {MakeType(&snail, 10.0, 24)}, /*reach=*/12);
+  AddKillClockedAttack(params, /*kills=*/5, /*damage=*/10.0);
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.view().kills_this_step[0], 12);  // the swing alone
+  // Twelve defeats owe two releases with two to spare, so the next twelve owe
+  // three: the remainder is still there to be counted.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.view().kills_this_step[0], 14);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.view().kills_this_step[0], 15);
+}
+
+// A defeat is a defeat however it was dealt: the character never swings here,
+// and a summon's kills charge the fountain on their own. The release's own
+// kill counts too, which is what keeps it going once it has started.
+TEST(CombatSimTest, ADefeatChargesItHoweverItWasDealt) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1.0, {MakeType(&snail, 0.0, 8)});
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/10.0);
+  AddKillClockedAttack(params, /*kills=*/2, /*damage=*/10.0);
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.view().kills_this_step[0], 1);  // the summon, charging it
+  // The second defeat releases, and its own kill is half of the next count --
+  // so from here the summon alone keeps a release coming every step.
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(params, 1.0);
+    EXPECT_EQ(sim.view().kills_this_step[0], 2) << "step " << i + 2;
+  }
 }
 
 // A healing cast is not an attack, so it credits nothing -- a character

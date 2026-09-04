@@ -876,6 +876,7 @@ void CombatSim::Reap() {
   for (QueuedMob& mob : queue_) {
     if (mob.hp <= 0.0) {
       ++view_.kills_this_step[mob.type];
+      ++kills_pending_;
     } else {
       survivors.push_back(std::move(mob));
     }
@@ -1300,6 +1301,7 @@ void CombatSim::Reflect(const CombatParams& params, double damage_taken) {
     return;
   }
   ++view_.kills_this_step[front.type];
+  ++kills_pending_;
   queue_.erase(queue_.begin());
 }
 
@@ -1548,6 +1550,29 @@ void CombatSim::CreditSwing(const CombatParams& params, double weight) {
   }
 }
 
+void CombatSim::CreditKills(const CombatParams& params) {
+  // Taken before anything strikes: what these casts kill is credited to the
+  // next release, not to this one.
+  int defeated = kills_pending_;
+  kills_pending_ = 0;
+  const std::vector<AttackOption>& casts = TriggeredAttacks(params);
+  kill_count_.resize(casts.size(), 0);
+  for (int i = 0; i < static_cast<int>(casts.size()); ++i) {
+    const AttackOption& cast = casts[i];
+    if (cast.kills_per_cast <= 0) {
+      continue;
+    }
+    kill_count_[i] += defeated;
+    // A while rather than an if, as in CreditSwing: a wide swing can bring
+    // down more than the whole count in one step, and each of them owes a
+    // release. The remainder carries, so nothing counted is thrown away.
+    while (kill_count_[i] >= cast.kills_per_cast) {
+      kill_count_[i] -= cast.kills_per_cast;
+      Strike(cast, {DamageOrigin::kKillClock, i});
+    }
+  }
+}
+
 const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
   int previous = aimed_;
   aimed_ = ChooseAttack(params);
@@ -1764,6 +1789,10 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   // against the monsters it is about to hit.
   AimAtHealthiest(params);
   RunAutoCasts(params, dt);
+  // With them, and after the respawn beat has topped the roster up, so a
+  // release charged by the swing that emptied the map still finds something
+  // to fall on.
+  CreditKills(params);
   // After the summons and before the swing, so a burn lit last step has landed
   // its ticks before this step's swing decides what is worth hitting. The
   // thaw runs with them, and for the same reason: a monster that came out of

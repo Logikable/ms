@@ -155,8 +155,11 @@ struct AttackOption {
   double interval_seconds = 0.0;
   // Landed swings between casts, for an attack clocked by the character's
   // attacking rather than by the clock. 0 for everything else. An attack
-  // carries this or interval_seconds, never both.
+  // carries one of the three clocks, never two.
   int attacks_per_cast = 0;
+  // Enemies defeated between casts, for an attack clocked by the dying rather
+  // than by either of the above. 0 for everything else.
+  int kills_per_cast = 0;
   // What one landed swing of this attack counts toward the field above, on
   // whichever attacks are so clocked. 1 for an ordinary swing; less for one
   // that lands several times a second.
@@ -448,13 +451,14 @@ struct CombatParams {
   // summons and cooldown skills. Not candidates for the swing, so a wide one
   // never crowds out the character's own attack; they simply also happen.
   std::vector<AttackOption> auto_attacks;
-  // The same, but clocked by swings landed rather than by seconds passed. Held
-  // apart from auto_attacks because the fight has to count something for these
-  // and nothing for those, and one list with an empty field on half its
-  // entries would hide which half.
+  // The same, but clocked by something counted rather than by seconds passed:
+  // swings landed, or enemies defeated. Held apart from auto_attacks because
+  // the fight has to count something for these and nothing for those, and one
+  // list with an empty field on half its entries would hide which half.
   //
-  // A cast of one of these does not itself count toward any of them: what the
-  // player is being paid for is their own attacking.
+  // A cast of one of these does not itself count toward any swing count: what
+  // the player is being paid for is their own attacking. What it kills does
+  // count, since a defeat is a defeat however it was dealt.
   std::vector<AttackOption> triggered_attacks;
   // The timed buffs this character can put up. Empty for everyone but a Dark
   // Knight; the fight runs their clocks and asks for the matching attacks.
