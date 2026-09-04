@@ -9,6 +9,8 @@
 #include <vector>
 
 #include "src/character/character_stats.h"
+#include "src/character/hyper_stats.h"
+#include "src/character/job_branch.h"
 #include "src/character/progression.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
@@ -25,6 +27,18 @@ std::string Percent(double fraction) {
   char buf[32];
   snprintf(buf, sizeof(buf), "%.2f%%", fraction * 100.0);
   return buf;
+}
+
+// What the Critical Rate row says, which is not always what the character has
+// bought. Every swing in the game rolls against a rate held to 100%, so a
+// bigger number would promise damage no attack can land. The exception is the
+// archer's 5th job, whose skill spends the overflow -- it is the one build the
+// excess is worth showing, and even there the fight still rolls against 100%.
+std::string CritRateText(const CharacterInstance& character, double rate) {
+  bool spends_excess =
+      BranchOf(character.proto().job()) == JobBranch::kArcher &&
+      character.proto().job_stage() >= kFifthJobStage;
+  return Percent(spends_excess ? rate : std::min(1.0, rate));
 }
 
 // The stage the character swings at: the stage their job starts from plus
@@ -110,7 +124,8 @@ std::vector<StatLine> CombatStatLines(
     // 0.00% for both would be telling a character with a 5% chance of a 35%
     // bonus that they never crit at all.
     lines.push_back(
-        {"Critical Rate", Percent(kBaseCritRate + derived.crit_rate)});
+        {"Critical Rate",
+         CritRateText(character, kBaseCritRate + derived.crit_rate)});
     lines.push_back(
         {"Critical Damage", Percent(kBaseCritDamage + derived.crit_dmg)});
     // Under the crit pair because it qualifies neither: what it lengthens is

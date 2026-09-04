@@ -286,6 +286,7 @@ cc_library(
         "//src/character",
         "//src/character:character_stats",
         "//src/character:hyper_stats",
+        "//src/character:job_branch",
         "//src/character:progression",
         "//src/combat:constants",
         "//src/combat:damage",

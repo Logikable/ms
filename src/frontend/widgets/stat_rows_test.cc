@@ -32,6 +32,28 @@ class StatRowsTest : public testing::Test {
     return CharacterInstance(rng_, std::move(proto));
   }
 
+  // A bow master far enough along to be asked the 5th job question.
+  CharacterInstance MakeArcher(int job_stage) {
+    Character proto;
+    proto.set_level(200);
+    proto.set_job(JOB_BOW_MASTER);
+    proto.set_job_stage(job_stage);
+    proto.mutable_allocated_stats()->set_dex(40);
+    (*proto.mutable_sp_by_stage())[1] = 20;
+    return CharacterInstance(rng_, std::move(proto));
+  }
+
+  // A passive worth more crit than any character can roll against.
+  static Skill CritPassive(JobAdvancement advancement) {
+    Skill skill;
+    skill.set_name("Sharp Eyes");
+    skill.set_kind(SKILL_KIND_PASSIVE);
+    skill.set_job_advancement(advancement);
+    skill.set_max_level(1);
+    skill.mutable_base()->set_crit_rate(1.2);
+    return skill;
+  }
+
   CharacterInstance MakeMagician() {
     Character proto;
     proto.set_level(15);
@@ -158,6 +180,30 @@ TEST_F(StatRowsTest, CritReadsItsBaseWithNothingBehindIt) {
   std::vector<StatLine> lines = ExtraStatLines(c, {});
   EXPECT_EQ(ValueOf(lines, "Critical Rate"), "5.00%");
   EXPECT_EQ(ValueOf(lines, "Critical Damage"), "35.00%");
+}
+
+// A rate past 100% promises damage no swing can land: every roll in the fight
+// is held there. The archer's 5th job is the one build that spends the excess,
+// and the only one shown it.
+TEST_F(StatRowsTest, CritRateReadsCappedBelowTheArchersFifthJob) {
+  Skill warrior_crit = CritPassive(JOB_ADVANCEMENT_SWORDMAN);
+  std::map<std::string, Skill> warrior_skills = {{"crit", warrior_crit}};
+  CharacterInstance warrior = MakeWarrior();
+  ASSERT_TRUE(warrior.LearnSkill(warrior_crit, 1));
+  EXPECT_EQ(ValueOf(ExtraStatLines(warrior, warrior_skills), "Critical Rate"),
+            "100.00%");
+
+  Skill archer_crit = CritPassive(JOB_ADVANCEMENT_ARCHER);
+  std::map<std::string, Skill> archer_skills = {{"crit", archer_crit}};
+  CharacterInstance fourth = MakeArcher(4);
+  ASSERT_TRUE(fourth.LearnSkill(archer_crit, 1));
+  EXPECT_EQ(ValueOf(ExtraStatLines(fourth, archer_skills), "Critical Rate"),
+            "100.00%");
+
+  CharacterInstance fifth = MakeArcher(kFifthJobStage);
+  ASSERT_TRUE(fifth.LearnSkill(archer_crit, 1));
+  EXPECT_EQ(ValueOf(ExtraStatLines(fifth, archer_skills), "Critical Rate"),
+            "125.00%");
 }
 
 TEST_F(StatRowsTest, AttackSpeedNamesTheStageOrDashesWithNoWeapon) {
