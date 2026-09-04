@@ -380,9 +380,69 @@ void AddSkillBonuses(const Skill& skill, int level, PassiveTotals& totals) {
   }
 }
 
+// The best each exclusive group pays for each lever, and which source pays
+// it. Built over the whole of what the character and their party are holding
+// before anything folds, because a group is settled between its members rather
+// than as each one arrives. See Skill.exclusive_group.
+class ExclusiveBest {
+ public:
+  void Consider(const Skill& skill, const SkillEffect& effect) {
+    if (skill.exclusive_group().empty()) {
+      return;
+    }
+    std::map<int, Claim>& group = best_[skill.exclusive_group()];
+    std::vector<const google::protobuf::FieldDescriptor*> paid;
+    effect.GetReflection()->ListFields(effect, &paid);
+    for (const google::protobuf::FieldDescriptor* field : paid) {
+      if (field->cpp_type() !=
+          google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE) {
+        continue;
+      }
+      double value = effect.GetReflection()->GetDouble(effect, field);
+      Claim& claim = group[field->number()];
+      // A tie goes to whichever was read first -- the catalog's own order --
+      // so two members paying the same pay once between them.
+      if (claim.source.empty() || value > claim.value) {
+        claim = Claim{value, skill.name()};
+      }
+    }
+  }
+
+  // `effect` with every lever another member of its group pays more of taken
+  // out. Unchanged for a skill in no group, which is nearly every skill.
+  SkillEffect Thin(const Skill& skill, const SkillEffect& effect) const {
+    std::map<std::string, std::map<int, Claim>>::const_iterator group =
+        best_.find(skill.exclusive_group());
+    if (skill.exclusive_group().empty() || group == best_.end()) {
+      return effect;
+    }
+    SkillEffect thinned = effect;
+    std::vector<const google::protobuf::FieldDescriptor*> paid;
+    thinned.GetReflection()->ListFields(thinned, &paid);
+    for (const google::protobuf::FieldDescriptor* field : paid) {
+      std::map<int, Claim>::const_iterator claim =
+          group->second.find(field->number());
+      if (claim != group->second.end() &&
+          claim->second.source != skill.name()) {
+        thinned.GetReflection()->ClearField(&thinned, field);
+      }
+    }
+    return thinned;
+  }
+
+ private:
+  struct Claim {
+    double value = 0.0;
+    std::string source;
+  };
+  // Group, then the lever's field number: what it pays and who pays it.
+  std::map<std::string, std::map<int, Claim>> best_;
+};
+
 void AddPassive(const Skill& skill, int level, EquipType weapon,
-                PassiveTotals& totals) {
-  SkillEffect granted = EffectAt(skill.base(), skill.per_level(), level);
+                const ExclusiveBest& exclusive, PassiveTotals& totals) {
+  SkillEffect granted =
+      exclusive.Thin(skill, EffectAt(skill.base(), skill.per_level(), level));
   if (skill.kind() == SKILL_KIND_ATTACK) {
     AddEffect(WithoutSwingLevers(granted), totals);
     // The half an attack states apart because it keeps it: no lever of this
@@ -574,15 +634,21 @@ std::vector<AllyGrant> PartyGrants(const CharacterInstance& character,
 
 // Sums every passive the character has learned. HP has to know its whole flat
 // total before any percentage lands on it, so nothing is folded here.
-PassiveTotals LearnedPassives(const CharacterInstance& character,
-                              const std::map<std::string, Skill>& skills,
-                              absl::Span<const Skill* const> buffs_up,
-                              absl::Span<const CharacterInstance> allies) {
-  PassiveTotals totals;
-  EquipType weapon = character.weapon_type();
-  int bonus = BonusSkillLevels(character, skills, allies);
+// One skill out of the character's book that is paying, and the level it pays
+// at. Gathered whole before anything folds: an exclusive group is settled
+// between its members, so every member has to be read first.
+struct PayingSkill {
+  const Skill* skill = nullptr;
+  int level = 0;
+};
+
+std::vector<PayingSkill> PayingSkills(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills, int bonus,
+    absl::Span<const CharacterInstance> allies) {
   std::set<std::string> superseded =
       DormantSkillNames(character, skills, bonus);
+  std::vector<PayingSkill> paying;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     // An Advanced X states the whole of the X it replaces rather than a delta,
@@ -605,8 +671,41 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
     if (!GrantsAnything(character, skill, bonus)) {
       continue;
     }
-    AddPassive(skill, EffectiveSkillLevel(character, skill, bonus), weapon,
-               totals);
+    paying.push_back(
+        PayingSkill{&skill, EffectiveSkillLevel(character, skill, bonus)});
+  }
+  return paying;
+}
+
+// What an ally's grant comes to at the level they hold it.
+SkillEffect AllyEffectOf(const AllyGrant& grant) {
+  return EffectAt(grant.skill->ally_base(), grant.skill->ally_per_level(),
+                  grant.level);
+}
+
+PassiveTotals LearnedPassives(const CharacterInstance& character,
+                              const std::map<std::string, Skill>& skills,
+                              absl::Span<const Skill* const> buffs_up,
+                              absl::Span<const CharacterInstance> allies) {
+  PassiveTotals totals;
+  EquipType weapon = character.weapon_type();
+  int bonus = BonusSkillLevels(character, skills, allies);
+  std::vector<PayingSkill> paying =
+      PayingSkills(character, skills, bonus, allies);
+  std::vector<AllyGrant> party = PartyGrants(character, skills, allies);
+  // Both halves of one rule: a group holds whatever is paying into it, the
+  // character's own book and the party's alike.
+  ExclusiveBest exclusive;
+  for (const PayingSkill& entry : paying) {
+    exclusive.Consider(
+        *entry.skill,
+        EffectAt(entry.skill->base(), entry.skill->per_level(), entry.level));
+  }
+  for (const AllyGrant& grant : party) {
+    exclusive.Consider(*grant.skill, AllyEffectOf(grant));
+  }
+  for (const PayingSkill& entry : paying) {
+    AddPassive(*entry.skill, entry.level, weapon, exclusive, totals);
   }
   // A set bonus grants what a passive grants, so it folds in through the same
   // door. It carries no level and no per-level step: a tier is worth what it
@@ -625,10 +724,8 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   }
   // What the party is holding over them, at the level its caster has it. The
   // same door again, and for the same reason.
-  for (const AllyGrant& grant : PartyGrants(character, skills, allies)) {
-    AddEffect(EffectAt(grant.skill->ally_base(), grant.skill->ally_per_level(),
-                       grant.level),
-              totals);
+  for (const AllyGrant& grant : party) {
+    AddEffect(exclusive.Thin(*grant.skill, AllyEffectOf(grant)), totals);
   }
   FoldMesoExplosion(totals);
   FoldFinalAttackBoosts(totals);
@@ -942,18 +1039,30 @@ bool SkillAllowsWeapon(const Skill& skill, EquipType weapon) {
 int BonusSkillLevels(const CharacterInstance& character,
                      const std::map<std::string, Skill>& skills,
                      absl::Span<const CharacterInstance> allies) {
-  double bonus = 0.0;
+  // What each source pays, keyed by its exclusive group -- or by its own name
+  // where it is in none, so two ungrouped sources still sum. A group pays its
+  // best rather than the sum, exactly as every other lever does.
+  std::map<std::string, double> by_source;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    if (!GrantsSkillLevels(skill) ||
-        !character.HasAdvancement(skill.job_advancement())) {
+    // Their whole book, a common node included: HoldsSkillFrom rather than the
+    // advancement, which no common node names.
+    if (!GrantsSkillLevels(skill) || !character.HoldsSkillFrom(skill)) {
       continue;
     }
     int level = character.skill_level(skill);
     if (level > 0) {
-      bonus += skill.base().skill_level_bonus() +
-               skill.per_level().skill_level_bonus() * (level - 1);
+      double& paid =
+          by_source[skill.exclusive_group().empty() ? skill.name()
+                                                    : skill.exclusive_group()];
+      paid = std::max(paid,
+                      skill.base().skill_level_bonus() +
+                          skill.per_level().skill_level_bonus() * (level - 1));
     }
+  }
+  double bonus = 0.0;
+  for (const std::pair<const std::string, double>& source : by_source) {
+    bonus += source.second;
   }
   // What the party is holding out, if the character has none of their own --
   // the buff rule PartyGrants keeps. Read at the ally's LEARNED level: a skill
@@ -964,7 +1073,7 @@ int BonusSkillLevels(const CharacterInstance& character,
         const Skill& skill = entry.second;
         int level = ally.skill_level(skill);
         if (!GrantsToAllies(skill) || level <= 0 ||
-            !ally.HasAdvancement(skill.job_advancement())) {
+            !ally.HoldsSkillFrom(skill)) {
           continue;
         }
         bonus = std::max(bonus, skill.ally_base().skill_level_bonus() +

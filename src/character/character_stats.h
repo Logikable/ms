@@ -387,6 +387,10 @@ SkillEffect SwingLeversOf(const SkillEffect& effect);
 // (Skill.supersedes_skill_name); and a Vengeance form and the Benevolence
 // skill it stands in for are one row of the book, so whichever the toggle is
 // not showing lies dormant (Skill.replaces_skill_name).
+//
+// Skill.exclusive_group is the third and finest form of the same idea, and is
+// not answered here: it puts levers to sleep rather than skills, so a member
+// of a group goes on paying whatever the rest of the group does not.
 std::set<std::string> DormantSkillNames(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills, int bonus);

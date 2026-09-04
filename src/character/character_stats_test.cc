@@ -1111,6 +1111,81 @@ TEST_F(DerivedStatsTest, ASkillGrantingNothingSupersedesNothing) {
   }
 }
 
+// --- Exclusive groups ---
+
+// The Sharp Eyes pair, which is what a group is for: a Decent one that beats
+// three points spent in the real skill and loses to a maxed one, and a stat it
+// pays beside them that no member of the group competes for.
+Skill SharpEyes() {
+  Skill skill;
+  skill.set_name("Sharp Eyes");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(20);
+  skill.set_exclusive_group("Sharp Eyes");
+  skill.mutable_base()->set_crit_rate(0.01);
+  skill.mutable_per_level()->set_crit_rate(0.01);
+  *skill.mutable_ally_base() = skill.base();
+  *skill.mutable_ally_per_level() = skill.per_level();
+  return skill;
+}
+
+Skill DecentSharpEyes() {
+  Skill skill;
+  skill.set_name("Decent Sharp Eyes");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(30);
+  skill.set_exclusive_group("Sharp Eyes");
+  skill.mutable_base()->set_crit_rate(0.10);
+  skill.mutable_base()->set_luk(6);
+  return skill;
+}
+
+TEST_F(DerivedStatsTest, AGroupPaysItsBestSourceOfEachLever) {
+  Skill sharp = SharpEyes();
+  Skill decent = DecentSharpEyes();
+  std::map<std::string, Skill> skills = {{"sharp_eyes", sharp},
+                                         {"decent", decent}};
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(c.LearnSkill(decent, 1));
+  ASSERT_TRUE(c.LearnSkill(sharp, 3));
+
+  // The Decent's, the three points in the real skill paying nothing -- and its
+  // LUK stands whichever of the two wins, the group holding no other source
+  // of it.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.crit_rate, 0.10, 1e-9);
+  EXPECT_EQ(stats.skill_stats.luk(), 6);
+
+  ASSERT_TRUE(c.LearnSkill(sharp, 17));
+  stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.crit_rate, 0.20, 1e-9);
+  EXPECT_EQ(stats.skill_stats.luk(), 6);
+}
+
+// Two members paying the same amount are one payment, not two -- and a skill
+// in no group goes on summing with everything, which is every other skill in
+// the catalog.
+TEST_F(DerivedStatsTest, ATiedGroupPaysOnceAndTheUngroupedStillSum) {
+  Skill sharp = SharpEyes();
+  Skill decent = DecentSharpEyes();
+  decent.mutable_base()->set_crit_rate(0.20);
+  Skill loose = DecentSharpEyes();
+  loose.set_name("Critical Shot");
+  loose.clear_exclusive_group();
+  loose.mutable_base()->set_crit_rate(0.05);
+  loose.mutable_base()->clear_luk();
+  std::map<std::string, Skill> skills = {
+      {"sharp_eyes", sharp}, {"decent", decent}, {"loose", loose}};
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(c.LearnSkill(sharp, 20));
+  ASSERT_TRUE(c.LearnSkill(decent, 1));
+  ASSERT_TRUE(c.LearnSkill(loose, 1));
+
+  EXPECT_NEAR(DerivedStatsFor(c, skills).crit_rate, 0.25, 1e-9);
+}
+
 TEST_F(DerivedStatsTest, SkillStatsJoinWornStatsInTheTotal) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   EquipArmor(c, /*max_hp=*/0, /*def=*/7);
@@ -1311,6 +1386,26 @@ TEST_F(DerivedStatsTest, BonusLevelsCarryAMarkedSkillPastItsMasterLevel) {
   EXPECT_EQ(DerivedStatsFor(c, skills).def, 220);
   EXPECT_EQ(EffectiveSkillLevel(c, iron_body, 5), 22)
       << "two past the master level however many are going";
+}
+
+// The bonus levels a group hands out are one grant too, read where every other
+// skill reads its level rather than through the passive fold.
+TEST_F(DerivedStatsTest, BonusLevelsDoNotStackInsideAGroup) {
+  Skill orders = CombatOrders();
+  orders.set_exclusive_group("Combat Orders");
+  Skill decent = CombatOrders();
+  decent.set_name("Decent Combat Orders");
+  decent.set_exclusive_group("Combat Orders");
+  decent.set_max_level(30);
+  decent.clear_per_level();
+  std::map<std::string, Skill> skills = {{"combat_orders", orders},
+                                         {"decent", decent}};
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(c.LearnSkill(decent, 30));
+  EXPECT_EQ(BonusSkillLevels(c, skills), 1);
+
+  ASSERT_TRUE(c.LearnSkill(orders, 10));
+  EXPECT_EQ(BonusSkillLevels(c, skills), 2) << "the White Knight's alone";
 }
 
 // The same four rules read off a bare level, which is what the skill page
@@ -3016,6 +3111,24 @@ TEST_F(DerivedStatsTest, AnAllyHandsOutOnlyWhatTheirOwnBookLeftStanding) {
   CharacterInstance plain = MakeCharacter(rng_, 100, 0);
   EXPECT_EQ(DerivedStatsFor(plain, skills, {}, party).skill_stats.attack(), 30)
       << "the Advanced Blessing alone, not both";
+}
+
+// A group is settled over the party too: an archer's Sharp Eyes and the Decent
+// one the character bought are two sources of one lever, wherever they stand.
+TEST_F(DerivedStatsTest, AnAllysGrantJoinsTheGroupRatherThanAddingToIt) {
+  Skill sharp = SharpEyes();
+  Skill decent = DecentSharpEyes();
+  std::map<std::string, Skill> skills = {{"sharp_eyes", sharp},
+                                         {"decent", decent}};
+  CharacterInstance archer = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(archer.LearnSkill(sharp, 20));
+  std::vector<CharacterInstance> party = PartyOf(std::move(archer));
+
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(c.LearnSkill(decent, 1));
+  DerivedStats stats = DerivedStatsFor(c, skills, {}, party);
+  EXPECT_NEAR(stats.crit_rate, 0.20, 1e-9) << "the archer's alone";
+  EXPECT_EQ(stats.skill_stats.luk(), 6) << "the Decent's own half stands";
 }
 
 // --- Toggle skills ---

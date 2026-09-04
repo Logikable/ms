@@ -377,6 +377,16 @@ std::vector<Row> ReplacesRows(const Skill& skill) {
   return {EffectRow("Replaces", skill.supersedes_skill_name())};
 }
 
+// The group a skill shares its levers with, where it is in one. The same
+// warning as the row above and a weaker one: these do stack with everything
+// else, and only outbid each other. See Skill.exclusive_group.
+std::vector<Row> ExclusiveGroupRows(const Skill& skill) {
+  if (skill.exclusive_group().empty()) {
+    return {};
+  }
+  return {EffectRow("Does Not Stack With", skill.exclusive_group())};
+}
+
 // A plain number, to one decimal, with a whole number left whole. The same
 // rounding FormatPercent does and for the same reason.
 std::string FormatNumber(double value, int decimals = 1) {
@@ -566,6 +576,7 @@ std::vector<Row> ElementRows(const Skill& skill) {
 std::vector<Row> InvariantRows(const Skill& skill) {
   std::vector<Row> rows = RequirementRows(skill);
   Append(ReplacesRows(skill), rows);
+  Append(ExclusiveGroupRows(skill), rows);
   Append(ElementRows(skill), rows);
   Append(ReachRows(skill), rows);
   // How deep the pile of Freeze Stacks the skill grants goes. Stated here

@@ -1260,6 +1260,23 @@ message Skill {
   // The superseded skill stays learned and keeps its page. What it stops doing
   // is paying.
   string supersedes_skill_name = 36;
+  // A group of skills that do not stack, named by the group rather than by a
+  // member: within one, every lever pays its best single source instead of the
+  // sum. GMS says "Does not stack with X", or "only the highest effect will be
+  // applied", and means this.
+  //
+  // Settled lever by lever, and at the levels the character actually has, so
+  // neither member has to beat the other everywhere: a Decent Sharp Eyes
+  // outbids a Sharp Eyes three points have been spent on and loses to a maxed
+  // one, and the All Stats it pays beside them stands either way, no member of
+  // the group paying any. That is the whole difference from
+  // supersedes_skill_name above, which is one skill stating the whole of
+  // another and settles at level 1 and forever.
+  //
+  // A group may hold three: Bless, Advanced Blessing and the Decent between
+  // them. Two paying the same lever the same amount is one payment, the source
+  // named first taking it.
+  string exclusive_group = 55;
   // How many times the opening hit strikes, on the enemies it picks. Damage is
   // SkillEffect.lead_pct per line, exactly as `lines` reads skill_pct. Unset/0
   // is treated as 1, and means nothing without a lead_pct.
