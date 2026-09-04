@@ -1,0 +1,28 @@
+# The seventh Decent, and the one with nothing behind it: GMS's half of this
+# node is a fountain the player walks up to and presses up at, and there is
+# nowhere here to walk. So it keeps its passive alone -- GMS's own All Stats
+# +ceil(x/5), the `base 1, per_level 0.2` ladder half the Decents share.
+#
+# No exclusive_group: what does not stack is the flat half, and this one has
+# none. See decent_sharp_eyes.textproto for the rule.
+name: "Decent Holy Fountain"
+skill_order: 10
+description:
+  "Summons a fountain that restores the HP of anyone who drinks from it. "
+  "Nobody here ever stops walking long enough."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_COMMON
+v_node: V_NODE_KIND_COMMON
+max_level: 30
+base {
+  str: 1
+  dex: 1
+  int: 1
+  luk: 1
+}
+per_level {
+  str: 0.2
+  dex: 0.2
+  int: 0.2
+  luk: 0.2
+}
