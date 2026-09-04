@@ -979,6 +979,27 @@ TEST(CombatSimTest, ACooldownRunsDownOnAnEmptyMap) {
       << "the respawned mob survived, so the burst was still recharging";
 }
 
+// A cooldown belongs to the character, not to what is in front of them, so
+// arriving somewhere new does not hand one back. A boss phase is a change of
+// encounter too -- without this a fight reopens every phase with every skill
+// ready.
+TEST(CombatSimTest, ACooldownSurvivesAChangeOfEncounter) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams first =
+      MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)}, 1, "phase 1");
+  first.attacks[0].name = "Attack";
+  first.attacks.push_back(MakeBurst());
+  CombatParams second = first;
+  second.encounter = "phase 2";
+
+  sim.Advance(first, 1.0);
+  ASSERT_NEAR(sim.view().target_hp_fraction, 0.97, 1e-9);  // the burst landed
+  sim.Advance(second, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.99, 1e-9)
+      << "the burst was ready again in the new encounter";
+}
+
 // The pair of skills a wizard alternates between: each one out of reach for a
 // moment after it lands, so the other one is what there is.
 CombatParams MakeAlternatingParams(const Mob& snail) {
@@ -2322,9 +2343,9 @@ TEST(CombatSimTest, LandsAnEmpoweredPulseOnceEveryNth) {
       << "and the count starts again from the fifth";
 }
 
-// Walking somewhere else is starting again: another map's attacks were another
-// map's indices, so the count toward the bigger form starts from nothing.
-TEST(CombatSimTest, WalkingToAnotherMapForgetsTheEmpoweredCount) {
+// The count toward the bigger form is the character's, like their cooldowns:
+// three swings spent are three swings spent wherever they land.
+TEST(CombatSimTest, TheEmpoweredCountSurvivesAChangeOfEncounter) {
   Mob snail = MakeMob("Snail", 20);
   CombatSim sim;
   CombatParams field = MakeParams(1.0, 1000.0, {MakeType(&snail, 1.0, 1)});
@@ -2335,21 +2356,16 @@ TEST(CombatSimTest, WalkingToAnotherMapForgetsTheEmpoweredCount) {
 
   CombatParams forest = field;
   forest.encounter = "forest";
-  // The swing that would have been the fourth is the first here, so it is an
-  // ordinary one. Carrying the count over would take half the mob's HP.
+  // The fourth swing is the fourth wherever it lands, so it detonates on the
+  // fresh mob this encounter put in front of it.
   sim.Advance(forest, 1.0);
-  EXPECT_NEAR(sim.view().target_hp_fraction, 0.95, 1e-9);
-  for (int i = 0; i < 3; ++i) {
-    sim.Advance(forest, 1.0);
-  }
-  EXPECT_NEAR(sim.view().target_hp_fraction, 0.35, 1e-9)
-      << "the fourth swing here lands the empowered form";
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.5, 1e-9);
 }
 
-// And the same for the wait on the strike a swing sets off. It used to be the
-// one clock BeginMapIfChanged did not reset, so a Night Lord walking away kept
-// Showdown's wait while the shuriken's own went back to nothing.
-TEST(CombatSimTest, WalkingToAnotherMapForgetsTheSideStrikesWait) {
+// And the same for the wait on the strike a swing sets off, which runs beside
+// the swing's own: a Night Lord walking away keeps Showdown's wait exactly as
+// they keep the shuriken's.
+TEST(CombatSimTest, TheSideStrikesWaitSurvivesAChangeOfEncounter) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams field = MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 1)});
   AttackOption strike;
@@ -2364,10 +2380,9 @@ TEST(CombatSimTest, WalkingToAnotherMapForgetsTheSideStrikesWait) {
   CombatParams forest = field;
   forest.encounter = "forest";
   sim.Advance(forest, 1.0);
-  // A fresh map is a fresh wait, so the strike goes out again at once. Keeping
-  // the wait would leave the mob untouched: the swing itself deals nothing.
-  double taken = (1.0 - sim.view().target_hp_fraction) * 1000000.0;
-  EXPECT_NEAR(taken, 1000.0, 1e-6);
+  // The mob is untouched: the swing itself deals nothing, and the strike that
+  // would have is still a hundred seconds from coming round.
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9);
 }
 
 // The two clocks count apart. A swing landing its empowered form must not
