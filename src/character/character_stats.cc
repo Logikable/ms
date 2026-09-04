@@ -1152,8 +1152,7 @@ std::vector<const Skill*> BuffSkillsFor(
     // gear it demands is in hand, and whether it is learned at all -- plus the
     // one a buff shares with a swing, since a skill the book is not showing
     // has no buff to raise either.
-    if (!GrantsBuff(skill) ||
-        !character.HasAdvancement(skill.job_advancement()) ||
+    if (!GrantsBuff(skill) || !character.HoldsSkillFrom(skill) ||
         !SkillGearMet(character, skill) || character.skill_level(skill) <= 0 ||
         dormant.count(skill.name()) > 0) {
       continue;

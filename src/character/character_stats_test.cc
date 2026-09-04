@@ -2829,6 +2829,29 @@ TEST_F(DerivedStatsTest, OnlyALearnedBuffIsOneTheCharacterCanPutUp) {
   EXPECT_EQ(buffs[0]->name(), "Dark Resonance");
 }
 
+// A node's buff is one the character can put up, the same as a book's. The
+// gate is their matrix rather than an advancement, since a common node names
+// one nobody has.
+TEST_F(DerivedStatsTest, ANodesBuffIsOneTheCharacterCanPutUp) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 100);
+  Skill node = DarkResonance();
+  node.set_name("Decent Advanced Blessing");
+  node.set_job_advancement(JOB_ADVANCEMENT_COMMON);
+  node.set_v_node(V_NODE_KIND_COMMON);
+  node.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
+  std::map<std::string, Skill> skills = {{"decent_advanced_blessing", node}};
+  while (c.proto().job_stage() < kFifthJobStage) {
+    c.AdvanceJob(c.proto().job());
+  }
+  EXPECT_TRUE(BuffSkillsFor(c, skills).empty()) << "unlearned it raises none";
+
+  c.AddVPoints(VNodeCost(V_NODE_KIND_COMMON, 0, 1));
+  ASSERT_TRUE(c.LearnSkill(node, 1));
+  std::vector<const Skill*> buffs = BuffSkillsFor(c, skills);
+  ASSERT_EQ(buffs.size(), 1u);
+  EXPECT_EQ(buffs[0]->name(), "Decent Advanced Blessing");
+}
+
 // Drop rate arrives in two currencies -- whole percents on an equip, a
 // fraction on a passive -- and has to come out as one number.
 TEST_F(DerivedStatsTest, DropRateSumsWornAndGranted) {
