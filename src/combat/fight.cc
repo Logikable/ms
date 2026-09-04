@@ -1128,13 +1128,13 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   attack_phase_ = 0.0;
   hit_phase_ = 0.0;
   next_mob_id_ = 0;
-  auto_clocks_.assign(params.auto_attacks.size(), AutoClock());
-  attack_clocks_.assign(params.attacks.size(), AttackClock());
-  // The buff and fountain clocks are deliberately left alone: they belong to
-  // the character rather than to the map, and walking somewhere else neither
-  // takes a buff away nor hands back a pulse early.
-  // Another map's attacks were another map's indices, and nothing here is
-  // part-way through a swing at it any more.
+  // Every clock the character carries is left alone -- cooldowns, casts,
+  // buffs, fountains. They belong to the character rather than to the mobs in
+  // front of them, so arriving somewhere new neither takes a buff away nor
+  // hands back a cooldown early. A boss phase is a new encounter too, and a
+  // fight is not meant to reopen with every skill off cooldown.
+  //
+  // Nothing here is part-way through a swing at the last encounter any more.
   aimed_ = -1;
   player_hp_ = params.max_player_hp;
   queue_.clear();
