@@ -238,6 +238,8 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   // is read -- see DerivedStatsFor.
   totals.revive_cooldown_cut += granted.revive_cooldown_cut_seconds();
   totals.attack_speed_bonus += WholeValue(granted.attack_speed());
+  totals.uncapped_attack_speed_bonus +=
+      WholeValue(granted.uncapped_attack_speed());
   totals.ied = CombineIgnoredDefense(totals.ied, granted.ied_pct());
   // The one lever taken at its best rather than summed: two masteries are not
   // twice as steady a swing, they are the better of the two.

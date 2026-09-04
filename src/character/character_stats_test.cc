@@ -777,6 +777,29 @@ TEST_F(DerivedStatsTest, AttackSpeedBonusIsFlatRegardlessOfLevel) {
   EXPECT_EQ(stats.attack_speed_bonus, 1);
 }
 
+// A skill's stages go to one channel or the other, never both: the cap holds
+// what the weapon and the book come to, and only the second passes it.
+TEST_F(DerivedStatsTest, StagesThatPassTheCapAreCountedApart) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50);
+  Skill mastery = ArcheryMastery();
+  Skill infusion = ArcheryMastery();
+  infusion.set_name("Decent Speed Infusion");
+  infusion.mutable_base()->clear_attack_speed();
+  infusion.mutable_base()->set_uncapped_attack_speed(1);
+  std::map<std::string, Skill> skills = {{"archery_mastery", mastery},
+                                         {"infusion", infusion}};
+  ASSERT_TRUE(c.LearnSkill(mastery, 15));
+  ASSERT_TRUE(c.LearnSkill(infusion, 1));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_EQ(stats.attack_speed_bonus, 1);
+  EXPECT_EQ(stats.uncapped_attack_speed_bonus, 1);
+  // A character already at the cap keeps the second stage and not the first.
+  EXPECT_EQ(AttackSpeedStage(kAttackSpeedSoftCap, stats.attack_speed_bonus,
+                             stats.uncapped_attack_speed_bonus),
+            kAttackSpeedSoftCap + 1);
+}
+
 TEST_F(DerivedStatsTest, SkillGrantedLukLandsInTheStatLine) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   Skill nimble = NimbleBody();

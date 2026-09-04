@@ -177,6 +177,9 @@ const FlatLever kFlatLevers[] = {
     {"Max HP", &SkillEffect::max_hp_per_level, " per level", false},
     {"Max MP", &SkillEffect::max_mp_per_level, " per level", false},
     {"Attack Speed", &SkillEffect::attack_speed, " stage", true},
+    // The same row: what the card has to say about a stage is what it is
+    // worth, and the cap it answers to is the stats page's business.
+    {"Attack Speed", &SkillEffect::uncapped_attack_speed, " stage", true},
 };
 
 // The value of a lever at learned level L, in the same shape the stats
