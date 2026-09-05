@@ -1,0 +1,25 @@
+# Meso Explosion is not a swing -- the coins Pick Pocket knocks loose ride the
+# Shadower's own attack as a Final Attack does. Everything the node grants is
+# cashed onto that strike, which is why the coins had to learn to carry a
+# critical rate and a final damage share.
+name: "Meso Explosion Boost"
+description: "Strengthens Meso Explosion."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_V skill_order: 5 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Meso Explosion"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Meso Explosion"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Meso Explosion"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
