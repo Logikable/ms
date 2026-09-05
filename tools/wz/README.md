@@ -5,6 +5,7 @@ tools read it.
 
     python3 tools/wz/build_cache.py     # rebuild the cache from the client
     python3 tools/wz/audit_skills.py    # every shipped skill vs the client
+    python3 tools/wz/pack_probe.py      # measure a .ms pack (see below)
 
 `string_cache.json.gz` is committed, so the audit runs without the client
 mounted. Rebuild it only when the client updates.
@@ -67,6 +68,13 @@ The remaining step is the **ChaCha20/SNOW key**. It is not a constant near the
 cipher -- those five call sites are 17 KB unrolled SIMD rounds taking the key
 as an argument -- so it has to be traced from the package-open path. That
 wants a decompiler.
+
+`pack_probe.py` is the harness for the next attempt: **decrypt a header, drop
+it in, and `coverage` says whether it worked.** Today it reads
+
+    header   ends 0x713c  entropy 7.986  zeros 0.90%
+    coverage 106 runs >2KB, 11.1 MB parses (44.8%)
+    pool     `Property` in file: False
 
 Also known, from the PKG1 reader at `0x1529d7891`: the first 8 bytes of a pack
 are a salt and a check,
