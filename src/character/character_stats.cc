@@ -134,12 +134,14 @@ struct PassiveTotals : DerivedStats {
   // Per line until FoldMesoExplosion multiplies the count in.
   double meso_hit_pct = 0.0;
   int meso_lines = 1;
-  // Boss damage, plain damage and ignored defence a thrown meso carries, once
-  // FoldMesoExplosion has cashed in what the skills naming Meso Explosion
-  // granted it.
+  // Boss damage, plain damage, ignored defence, critical rate and final damage
+  // a thrown meso carries, once FoldMesoExplosion has cashed in what the skills
+  // naming Meso Explosion granted it.
   double meso_boss_pct = 0.0;
   double meso_damage_pct = 0.0;
   double meso_ied = 0.0;
+  double meso_crit_rate = 0.0;
+  double meso_final_dmg_pct = 0.0;
   std::string meso_skill;
   // What the book takes off the shortest revival wait. Summed apart and
   // subtracted once that shortest is known.
@@ -515,6 +517,8 @@ void FoldMesoExplosion(PassiveTotals& totals) {
     totals.meso_boss_pct = boost->second.boss_pct;
     totals.meso_damage_pct = boost->second.damage_pct;
     totals.meso_ied = boost->second.ied;
+    totals.meso_crit_rate = boost->second.crit_rate;
+    totals.meso_final_dmg_pct = boost->second.final_dmg_pct;
   }
   totals.meso_hit_pct *= totals.meso_lines;
 }
@@ -1311,6 +1315,8 @@ void AddMesoStrike(const PassiveTotals& passives, DerivedStats& stats) {
   meso.boss_pct = passives.meso_boss_pct;
   meso.damage_bonus_pct = passives.meso_damage_pct;
   meso.ied = passives.meso_ied;
+  meso.crit_rate = passives.meso_crit_rate;
+  meso.final_dmg_pct = passives.meso_final_dmg_pct;
   meso.per_line = true;
   stats.final_attacks.push_back(meso);
 }

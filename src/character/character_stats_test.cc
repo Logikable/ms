@@ -2203,6 +2203,33 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   ASSERT_EQ(branded.final_attacks.size(), 1u);
   EXPECT_NEAR(branded.final_attacks[0].boss_pct, 0.30, 1e-9);
   EXPECT_NEAR(branded.boss_pct, 0.0, 1e-9);
+
+  // A boost node aims critical rate and final damage at it too, and the coins
+  // are the only place either can land -- Meso Explosion is not a swing.
+  Skill node;
+  node.set_name("Meso Explosion Boost");
+  node.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(node, JOB_ADVANCEMENT_SWORDMAN);
+  node.set_max_level(3);
+  SkillBoost* node_boost = node.add_boost();
+  node_boost->set_skill_name("Meso Explosion");
+  node_boost->mutable_effect()->set_final_dmg_pct(0.60);
+  node_boost->mutable_effect_per_level()->set_final_dmg_pct(0.60);
+  SkillBoost* node_crit = node.add_boost();
+  node_crit->set_skill_name("Meso Explosion");
+  node_crit->set_min_level(2);
+  node_crit->mutable_effect()->set_crit_rate(0.05);
+  skills["node"] = node;
+  ASSERT_TRUE(c.LearnSkill(node, 3));
+  DerivedStats boosted = DerivedStatsFor(c, skills);
+
+  ASSERT_EQ(boosted.final_attacks.size(), 1u);
+  EXPECT_NEAR(boosted.final_attacks[0].final_dmg_pct, 1.80, 1e-9);
+  EXPECT_NEAR(boosted.final_attacks[0].crit_rate, 0.05, 1e-9);
+  // Neither reaches the character: the node names one skill, and that skill
+  // throws coins rather than swinging.
+  EXPECT_NEAR(boosted.final_dmg_pct, branded.final_dmg_pct, 1e-9);
+  EXPECT_NEAR(boosted.crit_rate, branded.crit_rate, 1e-9);
 }
 
 // Boss damage sums across the passives granting it, like plain damage and
