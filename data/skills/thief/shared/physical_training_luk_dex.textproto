@@ -1,6 +1,6 @@
 # The rogues' Physical Training, on GMS's own figure: six points of each of
 # their two stats a level. Everyone else's pays STR -- see
-# physical_training_str_dex.textproto.
+# shared/second/physical_training_str_dex.textproto.
 name: "Physical Training"
 description:
   "Permanently increases LUK and DEX through sheer physical training."

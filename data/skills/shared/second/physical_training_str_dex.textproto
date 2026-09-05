@@ -1,6 +1,6 @@
 # The warriors' and archers' Physical Training, on GMS's own figure: six
 # points of each of their two stats a level. The rogues' pays LUK instead
-# and is its own file -- see physical_training_luk_dex.textproto.
+# and is its own file -- see thief/shared/physical_training_luk_dex.textproto.
 name: "Physical Training"
 description:
   "Permanently increases STR and DEX through sheer physical training."

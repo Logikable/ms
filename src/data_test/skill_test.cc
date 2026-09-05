@@ -388,7 +388,7 @@ TEST(SkillDataTest, EveryBookListingASkillChargesItToTheSamePool) {
           << entry.first << " is listed in books at two different stages";
     }
   }
-  EXPECT_GT(shared, 0) << "data/skills/shared stopped being read";
+  EXPECT_GT(shared, 0) << "the shared skill folders stopped being read";
 }
 
 // A node is held to its kind: how far it goes is the kind's to say, and where
