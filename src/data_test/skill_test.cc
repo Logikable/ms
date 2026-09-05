@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/str_join.h"
 #include "src/character/character.h"
 #include "src/character/v_matrix.h"
 #include "src/combat/constants.h"
@@ -417,6 +418,32 @@ TEST(SkillDataTest, EveryAdvancementAPlayerIsOfferedHasSomethingToRead) {
     }
   }
   EXPECT_GT(offered, 0) << "nothing is offered at all";
+}
+
+// The engine models one damage table per combination of timed buffs, so a
+// character holding more than kMaxBuffWindows of them keeps the first four and
+// silently loses the rest -- a buff that costs a point and does nothing.
+//
+// Counted off the books rather than off a built character: what a job can
+// raise is a fact about its data, and this has to fail while the buff is being
+// written rather than the day somebody profiles a fight and finds it missing.
+TEST(SkillDataTest, NoBookHandsOutMoreBuffsThanTheFightModels) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  for (Job job : EveryValueOf<Job>(Job_descriptor())) {
+    std::set<JobAdvancement> books = BooksFor(job);
+    // The V Matrix's commons belong to no job's stage but are held by every
+    // character who reaches the fifth.
+    books.insert(JOB_ADVANCEMENT_COMMON);
+    std::vector<std::string> raised;
+    for (const std::pair<const std::string, Skill>& entry : skills) {
+      if (entry.second.buff().duration_seconds() > 0.0 &&
+          ReachedBy(books, entry.second)) {
+        raised.push_back(entry.second.name());
+      }
+    }
+    EXPECT_LE(static_cast<int>(raised.size()), kMaxBuffWindows)
+        << Job_Name(job) << " raises " << absl::StrJoin(raised, ", ");
+  }
 }
 
 TEST(SkillDataTest, EveryVNodeMatchesItsKind) {

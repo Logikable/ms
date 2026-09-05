@@ -1049,12 +1049,6 @@ AttackSet BuildAttackSet(const GameState& state, const DerivedStats& derived,
   return set;
 }
 
-// How many timed buffs are modelled at once. Every combination of them needs a
-// damage table of its own, so the count of tables doubles with each one --
-// which is affordable at four and would stop being so before long. A character
-// holding more keeps the first four; nothing in the game holds two.
-constexpr int kMaxBuffWindows = 4;
-
 // Where `name`'s swing sits among the attacks, or -1 if the character cannot
 // swing it. Answered off the unbuffed set, which holds the same attacks in the
 // same order as every buffed one.

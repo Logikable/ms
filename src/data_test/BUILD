@@ -140,6 +140,7 @@ cc_test(
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",
         "//src/testing:data_files",
+        "@abseil-cpp//absl/strings",
         "@bazel_tools//tools/cpp/runfiles",
         "@googletest//:gtest_main",
     ],

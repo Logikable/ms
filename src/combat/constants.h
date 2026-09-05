@@ -26,6 +26,17 @@ constexpr int kTickMs = 30;
 constexpr double kBaseCritRate = 0.05;
 constexpr double kBaseCritDamage = 0.35;
 
+// How many timed buffs are modelled at once. Every combination of them needs a
+// damage table of its own, so the count of tables doubles with each one --
+// which is affordable at four and would stop being so before long. A character
+// holding more keeps the first four and silently loses the rest, so
+// //src/data_test:skill_test refuses a book that hands out more.
+//
+// Five of the ten jobs sit exactly on it -- Hero, Paladin, Dark Knight, Bow
+// Master and Bishop -- so the next buff written for any of them has to raise
+// this first.
+constexpr int kMaxBuffWindows = 4;
+
 }  // namespace ms
 
 #endif  // MS_SRC_COMBAT_CONSTANTS_H_
