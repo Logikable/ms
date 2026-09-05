@@ -1,0 +1,39 @@
+# Nothing supersedes the Page's Final Attack, so it takes GMS's name directly.
+# Both halves take a critical rate at 20: Final Attack's strike reaches only
+# the one enemy the swing found, and Smite Shield's fifteen is the map already.
+name: "Final Attack Boost"
+description: "Strengthens Final Attack and Smite Shield."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_V skill_order: 7 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Final Attack"
+  effect { final_dmg_pct: 0.04 }
+  effect_per_level { final_dmg_pct: 0.04 }
+}
+boost {
+  skill_name: "Final Attack"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Final Attack"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Smite Shield"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Smite Shield"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Smite Shield"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

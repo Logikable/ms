@@ -1,0 +1,21 @@
+name: "Heaven's Hammer Boost"
+description: "Strengthens Heaven's Hammer."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_V skill_order: 6 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Heaven's Hammer"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Heaven's Hammer"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Heaven's Hammer"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
