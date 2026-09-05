@@ -1,0 +1,38 @@
+# The recharging swing and the summon that fires while it recharges, both at
+# the wider tier: neither is a single-target shot.
+name: "Bolt Burst Boost"
+description: "Strengthens Bolt Burst and Frostprey."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 6 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Bolt Burst"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Bolt Burst"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Bolt Burst"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Frostprey"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Frostprey"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Frostprey"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

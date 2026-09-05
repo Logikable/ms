@@ -1,0 +1,28 @@
+# GMS names Piercing Arrow, which Piercing Arrow II supersedes -- a boost keyed
+# by the superseded name reaches nothing, so it aims at the arrow a Marksman
+# actually fires. GMS names the empowered form beside it, which is the form
+# Greater Empowered Arrows grants, so each grant reaches both.
+name: "Piercing Arrow II Boost"
+description: "Strengthens Piercing Arrow II and its empowered form."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 5 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Piercing Arrow II"
+  reach: BOOST_REACH_BOTH
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Piercing Arrow II"
+  reach: BOOST_REACH_BOTH
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Piercing Arrow II"
+  reach: BOOST_REACH_BOTH
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

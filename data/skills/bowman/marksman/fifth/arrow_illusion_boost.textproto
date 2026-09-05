@@ -1,0 +1,40 @@
+# The decoy and the swing a bow buys before anything else. Arrow Blow carries
+# the better rate for the same reason it does in the Bow Master's book, and its
+# tier at 20 is the only one on this page that is neither an enemy nor a
+# critical rate.
+name: "Arrow Illusion Boost"
+description: "Strengthens Arrow Illusion and Arrow Blow."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 9 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Arrow Illusion"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Arrow Illusion"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Arrow Illusion"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Arrow Blow"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Arrow Blow"
+  min_level: 20
+  effect { normal_pct: 0.10 }
+}
+boost {
+  skill_name: "Arrow Blow"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

@@ -1,0 +1,24 @@
+# GMS pairs this with Final Attack: Crossbow, which took a page of its own to
+# fill the node Covering Fire and Swift Surge left empty -- see
+# final_attack_crossbow_boost. The widest swing the book has, so the wider tier.
+name: "High Speed Shot Boost"
+description: "Strengthens High Speed Shot."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 7 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "High Speed Shot"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "High Speed Shot"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "High Speed Shot"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

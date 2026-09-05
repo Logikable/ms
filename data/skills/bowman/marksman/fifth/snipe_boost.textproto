@@ -1,0 +1,27 @@
+# GMS names Snipe and Empowered Snipe both, which is one skill and its form
+# here -- so each grant reaches both. The shot takes one enemy on purpose, so
+# the normal-monster damage is the tier it can use.
+name: "Snipe Boost"
+description: "Strengthens Snipe and Empowered Snipe."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 4 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Snipe"
+  reach: BOOST_REACH_BOTH
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Snipe"
+  reach: BOOST_REACH_BOTH
+  min_level: 20
+  effect { normal_pct: 0.10 }
+}
+boost {
+  skill_name: "Snipe"
+  reach: BOOST_REACH_BOTH
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
