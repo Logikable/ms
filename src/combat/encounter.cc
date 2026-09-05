@@ -582,12 +582,12 @@ bool Castable(const Skill& skill) {
   return skill.kind() == SKILL_KIND_ACTIVE && skill.base().heal_pct() > 0.0;
 }
 
-// Whether a learned skill is one this character can swing right now.
-bool Swingable(const GameState& state, const Skill& skill,
-               EquipType weapon_type, const std::set<std::string>& superseded) {
-  if (!Castable(skill)) {
-    return false;
-  }
+// Whether a learned skill is one this character has at all right now. Says
+// nothing about swinging it: a passive carrying an own-clock half is not
+// swingable and still fights, so this is the gate the fight asks first, and
+// Castable then decides whether a swing is also on offer.
+bool Available(const GameState& state, const Skill& skill,
+               const std::set<std::string>& superseded) {
   // A skill the book has replaced stops offering its swing along with its
   // levers -- Piercing Arrow II states the whole of the Piercing Arrow it
   // takes over, so both being swingable would be one skill offered twice.
@@ -923,7 +923,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
     int learned = EffectiveSkillLevel(state.character, skill, bonus);
-    if (learned <= 0 || !Swingable(state, skill, weapon_type, superseded)) {
+    if (learned <= 0 || !Available(state, skill, superseded)) {
       continue;
     }
     // Strikes and reach another skill in the book grants this one, folded in
@@ -932,6 +932,12 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     const Skill& swung = Boosted(skill, learned, boosts, boosted);
     AddAutoModes(proto, total_stats, weapon_type, swung, learned, off_clock,
                  speed_factor, types, set);
+    // A skill the fight cannot spend a swing on is done here. Its own-clock
+    // halves are already in, which is the whole of what a passive like Weapon
+    // Aura contributes -- an aura is not something the character swings.
+    if (!Castable(swung)) {
+      continue;
+    }
     // Everything from here reads `swung`, never `skill`: a boost that changed
     // the clock would otherwise be dropped, the reach and the strikes having
     // already been taken from the copy.

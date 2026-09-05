@@ -1316,6 +1316,39 @@ TEST(ComputeCombatParamsTest, ASkillCanCarrySeveralOwnClockHalves) {
             params.auto_attacks[2].damage_per_hit[0]);
 }
 
+// Weapon Aura's shape: a passive whose levers ride the character, carrying an
+// own-clock half that fights. The fight can spend no swing on it, so the gate
+// that offers swings must not be the one that decides whether its wave fires.
+TEST(ComputeCombatParamsTest, APassiveStillFiresItsOwnClockHalf) {
+  Skill aura;
+  aura.set_name("Weapon Aura");
+  aura.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(aura, JOB_ADVANCEMENT_SWORDMAN);
+  aura.set_max_level(30);
+  aura.mutable_base()->set_ied_pct(0.102);
+  AutoMode* wave = aura.add_auto_mode();
+  wave->set_label("Aura Wave");
+  wave->set_cast_interval_seconds(5.0);
+  wave->set_max_enemies(10);
+  wave->set_lines(6);
+  wave->mutable_base()->set_skill_pct(5.20);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"aura", aura}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(aura, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  EXPECT_EQ(params.attacks.size(), 1u);  // the bare poke; a passive is no swing
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  EXPECT_EQ(params.auto_attacks[0].max_enemies, 10);
+  EXPECT_DOUBLE_EQ(params.auto_attacks[0].interval_seconds,
+                   5.0 * GameSpeedFactor(state.character.proto().level()));
+  EXPECT_EQ(params.auto_attacks[0].lines, 6);
+}
+
 // A timed buff needs a damage table of its own, because what it grants -- a
 // share of the monster's DEF ignored -- cannot be applied to a damage number
 // after that number has been worked out.
