@@ -1,0 +1,21 @@
+# GMS's poison on the weapon: everything a swing reaches burns for 375 + 15x%
+# twice a second for 30 seconds. The tooltip states the damage, the two hits
+# and the duration but not the interval -- that comes from the client's own
+# 400040000, whose dotInterval is 1.
+#
+# No chance is rolled. The older form of this skill took hold half the time;
+# the one GMS ships now simply poisons what the swing hit.
+name: "Venom Burst"
+description: "Poison your weapon to deal damage over time to enemies."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_V skill_order: 1 }
+v_node: V_NODE_KIND_ARCHETYPE
+max_level: 30
+dot {
+  interval_seconds: 1.0
+  duration_seconds: 30.0
+  lines: 2
+  base { skill_pct: 3.90 }
+  per_level { skill_pct: 0.15 }
+}

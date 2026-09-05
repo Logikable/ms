@@ -1,0 +1,28 @@
+# GMS's vow has two stages: a cast raises the first, and a second cast during
+# it enters the stronger one with half the remaining duration. Only the second
+# is built -- a player who wants the skill double-taps it, so the first stage
+# is a keystroke rather than a choice. That fixes the duration at 15 seconds,
+# half of GMS's 30.
+#
+# The 100 HP the cast costs goes with the stage it belonged to; nothing here
+# spends HP.
+#
+# Both ladders step by a clean amount rather than GMS's floor, so master lands
+# on its 24% and 60 seconds exactly and only where they start moves.
+name: "Last Resort"
+description: "You vow to destroy your enemies at any cost."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_V skill_order: 2 }
+v_node: V_NODE_KIND_ARCHETYPE
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 74.5
+cooldown_seconds_per_level: -0.5
+base { attack: 1 }
+per_level { attack: 1 }
+buff {
+  duration_seconds: 15.0
+  base { final_dmg_pct: 0.182 }
+  per_level { final_dmg_pct: 0.002 }
+}
