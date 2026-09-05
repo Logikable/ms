@@ -3,10 +3,11 @@
 #
 #     tools/wikifetch.sh <url>            # prints the page to stdout
 #
-# What each source wants, measured 2026-08-26:
+# What each source wants, measured 2026-09-05:
 #
-#   maplestorywiki.net  Any curl works, with or without a User-Agent. Its API
-#                       is /api.php, NOT /w/api.php. WebFetch is refused.
+#   maplestorywiki.net  The PAGE is Cloudflare-challenged again; no header here
+#                       beats it. Its API still answers plain curl, at
+#                       /api.php -- NOT /w/api.php. Fetch articles that way.
 #   namu.wiki           A browser User-Agent with no client hints is refused;
 #                       one sec-ch-ua header is enough to be let in. Both
 #                       namu.wiki and en.namu.wiki serve the Korean article.
