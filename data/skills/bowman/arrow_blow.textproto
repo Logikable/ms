@@ -2,10 +2,9 @@
 # swing spends -- the client's bulletConsume -- and the skill states no attack
 # count at all, unlike Wind Arrow, which states three.
 name: "Arrow Blow"
-skill_order: 1
 description: "Shoot consecutive arrows at multiple enemies."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_ARCHER
+placement { job_advancement: JOB_ADVANCEMENT_ARCHER skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_BOW
 required_equip_type: EQUIP_TYPE_CROSSBOW

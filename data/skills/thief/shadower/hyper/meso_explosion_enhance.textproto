@@ -3,11 +3,10 @@
 # so every meso is thrown the moment it falls and no cap ever binds. The chance
 # is the whole of the skill, and it lifts Pick Pocket from 30% to 40%.
 name: "Meso Explosion - Enhance"
-skill_order: 3
 description:
   "Increases the chance of Mesos dropping from Pick Pocket and Blood Money."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SHADOWER
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER skill_order: 3 }
 hyper: true
 required_level: 180
 max_level: 1

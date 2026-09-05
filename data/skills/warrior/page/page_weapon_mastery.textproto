@@ -3,10 +3,9 @@
 # somewhere. So the mastery climbs 2% a level from 12 and reaches GMS's 50 at
 # the top all the same.
 name: "Weapon Mastery"
-skill_order: 4
 description: "Increases Sword Mastery, Blunt Weapon Mastery, and Attack Speed."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PAGE
+placement { job_advancement: JOB_ADVANCEMENT_PAGE skill_order: 4 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

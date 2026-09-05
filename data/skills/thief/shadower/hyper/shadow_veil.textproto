@@ -9,11 +9,10 @@
 # The stealth half is dropped: Advanced Dark Sight here is final damage and
 # nothing else, so a better chance of it means nothing.
 name: "Shadow Veil"
-skill_order: 11
 description:
   "Summons a dark ally to deal damage over time."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_SHADOWER
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER skill_order: 11 }
 hyper: true
 required_level: 160
 max_level: 1

@@ -7,12 +7,11 @@
 # own top pair -- 20% critical rate and 15% critical damage. Both ladders step
 # by their level-1 value, so each is worth exactly its share of the climb.
 name: "Sharp Eyes"
-skill_order: 5
 description:
   "Grants party members the ability to locate an enemy's weak spot to deal "
   "fatal damage to that enemy."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 5 }
 exclusive_group: "Sharp Eyes"
 max_level: 20
 exceeds_master_level: true

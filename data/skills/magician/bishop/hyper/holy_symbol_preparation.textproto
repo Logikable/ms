@@ -7,12 +7,11 @@
 # or an element. The stats page shows it so the player can see what the point
 # bought.
 name: "Holy Symbol - Preparation"
-skill_order: 8
 description:
   "Increases resistance to status ailments and all elements from using Holy "
   "Symbol."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 8 }
 hyper: true
 required_level: 165
 max_level: 1

@@ -8,10 +8,9 @@
 # Nothing here reaches the party. GMS's only party clause is a cooldown Dispel
 # shortens, and the resistances are stated for the caster alone.
 name: "Divine Protection"
-skill_order: 5
 description: "Permanently increases Status Resistance and Elemental Resistance."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PRIEST
+placement { job_advancement: JOB_ADVANCEMENT_PRIEST skill_order: 5 }
 max_level: 20
 base {
   status_resistance: 2

@@ -7,10 +7,9 @@
 # swing carries a harder proc. The MP half of the recovery is dropped: there is
 # no MP pool to fill.
 name: "Mortal Blow"
-skill_order: 5
 description: "Chance to deal additional damage to an enemy and recover HP."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SNIPER
+placement { job_advancement: JOB_ADVANCEMENT_SNIPER skill_order: 5 }
 max_level: 10
 proc {
   chance: 0.01

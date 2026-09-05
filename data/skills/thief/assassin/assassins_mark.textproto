@@ -9,13 +9,12 @@
 # The two stars are two lines rather than one worth double, so each rolls its
 # own crit and its own mastery. Same 300% at master level either way.
 name: "Assassin's Mark"
-skill_order: 2
 description:
   "Has a chance to tag the enemy with the assassin's mark when attacking. The "
   "next attack on a marked enemy will cause throwing stars to form on that "
   "enemy and attack other enemies nearby."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ASSASSIN
+placement { job_advancement: JOB_ADVANCEMENT_ASSASSIN skill_order: 2 }
 max_level: 10
 base {
   final_attack_chance: 0.22

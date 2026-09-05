@@ -5,10 +5,9 @@
 # its ceiling, so the ladder starts at what GMS reaches at 11 rather than at
 # its own level 1 -- a skill this central is not worth 306% for a decade.
 name: "Big Bang"
-skill_order: 2
 description: "Holy power spreads out, culminating in a holy explosion."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 2 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true

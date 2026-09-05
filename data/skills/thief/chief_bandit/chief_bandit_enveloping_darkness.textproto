@@ -2,12 +2,11 @@
 # resistance over 4 levels, and five levels at 4% and 5 lands near its ceiling
 # for a point more. Both resistances ship dead, as every resistance here does.
 name: "Enveloping Darkness"
-skill_order: 9
 description:
   "Cloaks yourself in darkness, increasing Max HP, Abnormal Status Resistance "
   "and Elemental Resistance permanently."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+placement { job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT skill_order: 9 }
 max_level: 5
 base {
   max_hp_pct: 0.04

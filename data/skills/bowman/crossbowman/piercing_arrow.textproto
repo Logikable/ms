@@ -4,10 +4,9 @@
 # doubling. The swing draws the order it goes through them in, nothing here
 # having a position. Worth +46% on a full six and nothing at all on one mob.
 name: "Piercing Arrow"
-skill_order: 1
 description: "Fire an arrow. Its effect increases with each enemy it hits."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
+placement { job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_CROSSBOW
 base_delay_ms: 780

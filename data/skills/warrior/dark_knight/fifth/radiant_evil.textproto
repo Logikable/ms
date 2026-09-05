@@ -7,12 +7,11 @@
 # shout itself: an eye that appears every 20 seconds and hits ten enemies six
 # times, ignoring a fifth of their defence.
 name: "Radiant Evil"
-skill_order: 1
 description:
   "The Evil Eye reveals itself and blasts nearby enemies. Only usable while "
   "Evil Eye of Domination is active."
 kind: SKILL_KIND_AUTO_ATTACK
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 1 }
 v_node: V_NODE_KIND_JOB
 max_level: 30
 max_enemies: 10

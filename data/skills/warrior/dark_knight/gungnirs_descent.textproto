@@ -6,12 +6,11 @@
 # 660ms is the animation's own, from the frame data: the same as Dark Impale,
 # which is what leaves the two attacks to be told apart by their reach.
 name: "Gungnir's Descent"
-skill_order: 1
 description:
   "Throw a mythical spear to deal fatal damage. You deal higher damage with "
   "greater Max HP."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 1 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_SPEAR
 required_equip_type: EQUIP_TYPE_POLEARM

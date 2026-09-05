@@ -5,12 +5,11 @@
 # Half seconds rather than whole ones because the drop from level 1 to 10 has
 # to divide nine, and 7.5 is the nearest start to eight that does.
 name: "Holy Fountain"
-skill_order: 3
 description:
   "Summons a Holy Fountain that restores party members' HP on its own."
 kind: SKILL_KIND_PASSIVE
 tags: SKILL_TAG_BENEVOLENCE
-job_advancement: JOB_ADVANCEMENT_PRIEST
+placement { job_advancement: JOB_ADVANCEMENT_PRIEST skill_order: 3 }
 max_level: 10
 base {
   regen_pct: 0.13

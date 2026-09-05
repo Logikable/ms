@@ -4,10 +4,9 @@
 # It does not supersede Bow Mastery and must not: masteries take the better of
 # two rather than the sum, so this simply outbids the Hunter's 50% on its own.
 name: "Bow Expert"
-skill_order: 7
 description: "Increases Bow Mastery, Attack Power, and Critical Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 7 }
 max_level: 20
 exceeds_master_level: true
 required_equip_type: EQUIP_TYPE_BOW

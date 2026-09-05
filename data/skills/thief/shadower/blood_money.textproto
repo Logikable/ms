@@ -7,12 +7,11 @@
 # about the drop needs saying. Its buff is Assassinate's finishing blow, which
 # that skill already assumes. Combat Orders does not reach it in GMS either.
 name: "Blood Money"
-skill_order: 3
 description:
   "Drops coins branded with an Assassin's Mark. Enhances Meso Explosion. "
   "Permanently increases LUK and Critical Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SHADOWER
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER skill_order: 3 }
 max_level: 20
 required_skill {
   skill_name: "Meso Explosion"

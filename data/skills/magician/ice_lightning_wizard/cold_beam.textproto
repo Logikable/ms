@@ -7,12 +7,11 @@
 # says whether they are collected at all, and Storm Magic asks for nothing
 # else. Between them they are the whole reason to cast the weaker of the two.
 name: "Cold Beam"
-skill_order: 1
 description: "An ice-attribute attack. Grow sharp ice crystals in front."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
 freeze_seconds: 8.0
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD skill_order: 1 }
 max_level: 10
 required_equip_type: EQUIP_TYPE_STAFF
 base_delay_ms: 810

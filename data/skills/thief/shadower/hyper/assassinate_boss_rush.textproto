@@ -1,11 +1,10 @@
 # The Shadower's single-target swing, so the twenty points land where the
 # skill is already chosen -- against a boss and nothing else.
 name: "Assassinate - Boss Rush"
-skill_order: 8
 description:
   "Increases damage when attacking Boss Monsters with Assassinate."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SHADOWER
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER skill_order: 8 }
 hyper: true
 required_level: 165
 max_level: 1

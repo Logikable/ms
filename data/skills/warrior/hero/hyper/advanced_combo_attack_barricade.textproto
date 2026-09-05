@@ -7,11 +7,10 @@
 # attacking monster's own attack, and a Hero has passed that cap on their stats
 # alone. See SkillEffect.def_pct, dead by the same design.
 name: "Advanced Combo Attack - Barricade"
-skill_order: 5
 description:
   "DEF increased for each additional Combo Orb."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HERO
+placement { job_advancement: JOB_ADVANCEMENT_HERO skill_order: 5 }
 hyper: true
 required_level: 150
 max_level: 1

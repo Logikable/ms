@@ -3,12 +3,11 @@
 # "+5% critical rate while holding a wand" is a weapon-type condition, which
 # nothing here models.
 name: "MP Boost"
-skill_order: 4
 description:
   "Increases Max MP and Attack Speed. Also increases MP proportional to your "
   "level."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_MAGICIAN
+placement { job_advancement: JOB_ADVANCEMENT_MAGICIAN skill_order: 4 }
 max_level: 20
 base {
   attack_speed: 1

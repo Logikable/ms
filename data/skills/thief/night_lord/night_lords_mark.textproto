@@ -3,12 +3,11 @@
 # in GMS and none here, so what is left is a Final Attack -- the same shape
 # Assassin's Mark takes, one star wider and half again as likely.
 name: "Night Lord's Mark"
-skill_order: 3
 description:
   "Further enhances the assassin's mark, increasing the probability of "
   "leaving a mark, the damage, and the number of throwing stars."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 3 }
 max_level: 10
 exceeds_master_level: true
 supersedes_skill_name: "Assassin's Mark"

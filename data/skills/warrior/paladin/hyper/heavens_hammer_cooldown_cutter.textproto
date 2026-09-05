@@ -3,11 +3,10 @@
 # is taught, and the cut is 30% of wherever it stands, so a maxed hammer comes
 # back in 10.5.
 name: "Heaven's Hammer - Cooldown Cutter"
-skill_order: 11
 description:
   "Reduces the cooldown of Heaven's Hammer."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PALADIN
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN skill_order: 11 }
 hyper: true
 required_level: 150
 max_level: 1

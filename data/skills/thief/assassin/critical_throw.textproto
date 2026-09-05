@@ -5,10 +5,9 @@
 # times in a hundred; an Assassin crits fifty, which is the only reason their
 # critical damage is worth anything at all.
 name: "Critical Throw"
-skill_order: 5
 description: "Increases Critical Rate and Critical Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ASSASSIN
+placement { job_advancement: JOB_ADVANCEMENT_ASSASSIN skill_order: 5 }
 max_level: 30
 required_skill {
   skill_name: "Claw Mastery"

@@ -10,10 +10,9 @@
 # Four enemies against GMS's five, off a 310x150 box -- the same cut Double
 # Stab takes, for the same reason. See Skill.max_enemies.
 name: "Lucky Seven"
-skill_order: 2
 description: "Throw lucky throwing stars to attack enemies in front."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_ROGUE
+placement { job_advancement: JOB_ADVANCEMENT_ROGUE skill_order: 2 }
 max_level: 20
 base_delay_ms: 690
 lines: 3

@@ -9,6 +9,7 @@
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
 #include "src/character/honor.h"
+#include "src/character/skill_placement.h"
 #include "src/character/v_matrix.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
@@ -538,7 +539,7 @@ TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
   Skill symbol;
   symbol.set_name("Holy Symbol");
   symbol.set_kind(SKILL_KIND_PASSIVE);
-  symbol.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(symbol, JOB_ADVANCEMENT_SWORDMAN);
   symbol.set_max_level(1);
   symbol.mutable_base()->set_exp_pct(1.0);
 
@@ -578,7 +579,7 @@ TEST(AdvanceCombatTest, MesoMasteryPaysMesoAndNothingElse) {
   Skill mastery;
   mastery.set_name("Meso Mastery");
   mastery.set_kind(SKILL_KIND_PASSIVE);
-  mastery.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(mastery, JOB_ADVANCEMENT_SWORDMAN);
   mastery.set_max_level(1);
   mastery.mutable_base()->set_meso_pct(1.0);
 

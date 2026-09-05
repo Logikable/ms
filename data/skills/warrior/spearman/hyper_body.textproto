@@ -1,10 +1,9 @@
 # GMS runs this for 80 + 12*L seconds off an MP cost. There is nothing here to
 # spend MP on and nothing to watch a buff timer with, so it is simply always on.
 name: "Hyper Body"
-skill_order: 3
 description: "Increases your Max HP and Max MP."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SPEARMAN
+placement { job_advancement: JOB_ADVANCEMENT_SPEARMAN skill_order: 3 }
 exclusive_group: "Hyper Body"
 max_level: 10
 required_skill {

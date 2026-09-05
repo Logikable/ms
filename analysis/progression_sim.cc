@@ -319,8 +319,7 @@ double WindowFor(const GameState& state, double seconds) {
   double cycle = 0.0;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
-    if (skill.has_buff() &&
-        state.character.HasAdvancement(skill.job_advancement())) {
+    if (skill.has_buff() && state.character.HasBookFor(skill)) {
       cycle = std::max(cycle, skill.cooldown_seconds());
     }
   }
@@ -2836,8 +2835,9 @@ int WeakestBranch(const Catalogs& catalogs, const std::vector<Climb>& climbs) {
 // the book lists them.
 void PrintBook(const GameState& state) {
   // Off the character's own map rather than off the catalog. A skill is keyed
-  // there by NAME, and ten jobs each have an Epic Adventure -- walking the
-  // catalog lists one of them per job and calls them all learned.
+  // there by NAME, and several branches still write a name of their own -- two
+  // Endures, three Final Attacks -- so walking the catalog would list one per
+  // job and call them all learned.
   std::vector<std::pair<int, std::string>> learned;
   for (const std::pair<const std::string, int32_t>& held :
        state.character.proto().skill_levels()) {
@@ -2847,8 +2847,10 @@ void PrintBook(const GameState& state) {
     int order = 0;
     bool hyper = false;
     for (const std::pair<const std::string, Skill>& entry : state.skills) {
-      if (entry.second.name() == held.first) {
-        order = entry.second.skill_order();
+      JobAdvancement book = state.character.BookHeldFor(entry.second);
+      if (entry.second.name() == held.first &&
+          book != JOB_ADVANCEMENT_UNSPECIFIED) {
+        order = SkillOrderIn(entry.second, book);
         hyper = entry.second.hyper();
         break;
       }

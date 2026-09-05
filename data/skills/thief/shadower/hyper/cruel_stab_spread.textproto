@@ -1,10 +1,9 @@
 # Eight enemies to ten, which is what makes Cruel Stab the Shadower's mobbing
 # swing outright -- Sudden Raid's fifteen are behind a minute's wait.
 name: "Cruel Stab - Spread"
-skill_order: 5
 description: "Increases the max number of enemies hit by Cruel Stab."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SHADOWER
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER skill_order: 5 }
 hyper: true
 required_level: 165
 max_level: 1

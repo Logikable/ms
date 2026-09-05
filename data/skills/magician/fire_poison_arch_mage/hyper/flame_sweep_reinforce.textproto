@@ -1,10 +1,9 @@
 # GMS excludes the explosion HEXA Flame Sweep's ember leaves. There is no HEXA
 # here and no ember, so the exception has nothing to except.
 name: "Flame Sweep - Reinforce"
-skill_order: 7
 description: "Increases the damage of Flame Sweep."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 7 }
 hyper: true
 required_level: 140
 max_level: 1

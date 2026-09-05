@@ -5,13 +5,12 @@
 # Only the Crossbowman's arrow gains nothing beside itself: the fragment is
 # Piercing Arrow II's mechanic, and GMS names it only there.
 name: "Piercing Arrow - Extra Strike"
-skill_order: 9
 description:
   "Increases the number of attacks of Piercing Arrow, Piercing Arrow II, "
   "Arrow Fragments, Empowered Piercing Arrow, and Empowered Piercing Arrow "
   "II."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 9 }
 hyper: true
 required_level: 180
 max_level: 1

@@ -6,12 +6,11 @@
 # The barrier it really is, with a cap on what it can absorb, is not modelled:
 # nothing here tracks damage dealt over a window.
 name: "Aggressive Resistance"
-skill_order: 6
 description:
   "When attacking, creates a barrier that reduces a percentage of incoming "
   "damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SNIPER
+placement { job_advancement: JOB_ADVANCEMENT_SNIPER skill_order: 6 }
 max_level: 20
 base { damage_taken_pct: 0.03 }
 per_level { damage_taken_pct: 0.03 }

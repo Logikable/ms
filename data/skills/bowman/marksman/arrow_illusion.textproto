@@ -10,12 +10,11 @@
 # Three seconds between strikes, watched rather than read: GMS states no rate
 # for it, and unlike Phoenix it carries no cadence in its animation either.
 name: "Arrow Illusion"
-skill_order: 4
 description:
   "Summons an arrow illusion that damages enemies on its own. Also increases "
   "Ignore Defense permanently."
 kind: SKILL_KIND_AUTO_ATTACK
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 4 }
 max_level: 20
 exceeds_master_level: true
 max_enemies: 6

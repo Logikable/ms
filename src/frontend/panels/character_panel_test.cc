@@ -16,6 +16,7 @@
 #include "ftxui/dom/requirement.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/consumables.h"
+#include "src/character/skill_placement.h"
 #include "src/character/v_matrix.h"
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/types.h"
@@ -51,7 +52,7 @@ CharacterInstance MakeWarrior(std::mt19937& rng, int sp, int ap = 0) {
 Skill MakeSlashBlast() {
   Skill skill;
   skill.set_name("Slash Blast");
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   return skill;
 }
@@ -71,7 +72,7 @@ Skill MakeSpearSweep() {
   Skill skill;
   skill.set_name("Spear Sweep");
   skill.set_kind(SKILL_KIND_ATTACK);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SPEARMAN);
   skill.set_max_level(20);
   return skill;
 }
@@ -79,7 +80,7 @@ Skill MakeSpearSweep() {
 Skill MakePowerStrike() {
   Skill skill;
   skill.set_name("Power Strike");
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   return skill;
 }
@@ -114,13 +115,13 @@ std::map<std::string, Skill> HyperCatalog() {
   Skill impale;
   impale.set_name("Dark Impale");
   impale.set_kind(SKILL_KIND_ATTACK);
-  impale.set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT);
+  PlaceIn(impale, JOB_ADVANCEMENT_DARK_KNIGHT);
   impale.set_max_level(30);
   catalog["dark_impale"] = impale;
 
   Skill reinforce;
   reinforce.set_name("Gungnir's Reinforce");
-  reinforce.set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT);
+  PlaceIn(reinforce, JOB_ADVANCEMENT_DARK_KNIGHT);
   reinforce.set_max_level(1);
   reinforce.set_hyper(true);
   reinforce.set_required_level(150);
@@ -487,7 +488,7 @@ TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHp) {
   Skill iron_body;
   iron_body.set_name("Iron Body");
   iron_body.set_kind(SKILL_KIND_PASSIVE);
-  iron_body.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(iron_body, JOB_ADVANCEMENT_SWORDMAN);
   iron_body.set_max_level(20);
   iron_body.mutable_base()->set_max_hp_pct(0.01);
   iron_body.mutable_per_level()->set_max_hp_pct(0.01);
@@ -514,7 +515,7 @@ TEST_F(CharacterPanelTest, ALongValueKeepsTheRowWidth) {
   Skill marks;
   marks.set_name("Marksmanship");
   marks.set_kind(SKILL_KIND_PASSIVE);
-  marks.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(marks, JOB_ADVANCEMENT_SWORDMAN);
   marks.set_max_level(1);
   marks.mutable_base()->set_attack_pct(1.0);
   std::map<std::string, Skill> catalog = {{"marksmanship", marks}};
@@ -846,7 +847,7 @@ std::map<std::string, Skill> NodeCatalog() {
   Skill rope;
   rope.set_name("Rope Lift");
   rope.set_kind(SKILL_KIND_PASSIVE);
-  rope.set_job_advancement(JOB_ADVANCEMENT_COMMON);
+  PlaceIn(rope, JOB_ADVANCEMENT_COMMON);
   rope.set_v_node(V_NODE_KIND_COMMON);
   rope.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
   catalog["rope_lift"] = rope;
@@ -854,7 +855,7 @@ std::map<std::string, Skill> NodeCatalog() {
   Skill radiant;
   radiant.set_name("Radiant Evil");
   radiant.set_kind(SKILL_KIND_AUTO_ATTACK);
-  radiant.set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT_V);
+  PlaceIn(radiant, JOB_ADVANCEMENT_DARK_KNIGHT_V);
   radiant.set_v_node(V_NODE_KIND_JOB);
   radiant.set_max_level(MaxVNodeLevel(V_NODE_KIND_JOB));
   catalog["radiant_evil"] = radiant;
@@ -998,9 +999,9 @@ TEST_F(CharacterPanelTest, TheListFollowsSkillOrderAndNotKind) {
     Skill skill;
     skill.set_name(names[i]);
     skill.set_kind(kinds[i]);
-    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    // Numbered the reverse of what the old kind rank wanted.
+    PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN, i + 1);
     skill.set_max_level(20);
-    skill.set_skill_order(i + 1);  // the reverse of what KindOrder wanted
     catalog[stems[i]] = skill;
   }
 
@@ -1025,9 +1026,8 @@ std::map<std::string, Skill> WordyCatalog() {
   Skill wordy;
   wordy.set_name("Final Attack: Crossbow");
   wordy.set_kind(SKILL_KIND_PASSIVE);
-  wordy.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(wordy, JOB_ADVANCEMENT_SWORDMAN, 1);
   wordy.set_max_level(20);
-  wordy.set_skill_order(1);
   return {{"wordy", wordy}};
 }
 
@@ -1138,9 +1138,8 @@ TEST_F(CharacterPanelTest, NamesAndLevelsStayColumnsWhateverTheNameLength) {
   Skill brief;
   brief.set_name("Rush");
   brief.set_kind(SKILL_KIND_PASSIVE);
-  brief.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(brief, JOB_ADVANCEMENT_SWORDMAN, 2);
   brief.set_max_level(20);
-  brief.set_skill_order(2);
   std::map<std::string, Skill> catalog = WordyCatalog();
   catalog["rush"] = brief;
 
@@ -1170,9 +1169,8 @@ std::map<std::string, Skill> LendingCatalog() {
   Skill orders;
   orders.set_name("Combat Orders");
   orders.set_kind(SKILL_KIND_PASSIVE);
-  orders.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(orders, JOB_ADVANCEMENT_SWORDMAN, 2);
   orders.set_max_level(10);
-  orders.set_skill_order(2);
   orders.mutable_base()->set_skill_level_bonus(1.0);
   orders.mutable_per_level()->set_skill_level_bonus(0.11111111111);
   std::map<std::string, Skill> catalog = SkillCatalog();  // slash_blast
@@ -1305,9 +1303,8 @@ std::map<std::string, Skill> AllKindsCatalog() {
     Skill skill;
     skill.set_name(names[i]);
     skill.set_kind(kinds[i]);
-    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN, i + 1);
     skill.set_max_level(20);
-    skill.set_skill_order(i + 1);
     catalog[names[i]] = skill;
   }
   return catalog;
@@ -1359,14 +1356,14 @@ TEST_F(CharacterPanelTest, ASkillIsListedUnderTheOneItWaitsOn) {
   Skill hyper_body;
   hyper_body.set_name("Hyper Body");
   hyper_body.set_kind(SKILL_KIND_PASSIVE);
-  hyper_body.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(hyper_body, JOB_ADVANCEMENT_SWORDMAN);
   hyper_body.set_max_level(10);
   hyper_body.mutable_required_skill()->set_skill_name("Iron Wall");
   hyper_body.mutable_required_skill()->set_level(3);
   Skill iron_wall;
   iron_wall.set_name("Iron Wall");
   iron_wall.set_kind(SKILL_KIND_PASSIVE);
-  iron_wall.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(iron_wall, JOB_ADVANCEMENT_SWORDMAN);
   iron_wall.set_max_level(10);
   // A second link, so the chain is deeper than one hop -- the Cleric's Bless
   // waits on Invincible, which waits on Heal.
@@ -1375,12 +1372,12 @@ TEST_F(CharacterPanelTest, ASkillIsListedUnderTheOneItWaitsOn) {
   Skill endure;
   endure.set_name("Endure");
   endure.set_kind(SKILL_KIND_PASSIVE);
-  endure.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(endure, JOB_ADVANCEMENT_SWORDMAN);
   endure.set_max_level(10);
   Skill physical_training;
   physical_training.set_name("Physical Training");
   physical_training.set_kind(SKILL_KIND_PASSIVE);
-  physical_training.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(physical_training, JOB_ADVANCEMENT_SWORDMAN);
   physical_training.set_max_level(5);
   // Stem order puts the gated skill first and something unrelated between the
   // pair, so both halves of the claim have somewhere to fail.
@@ -1806,9 +1803,8 @@ std::map<std::string, Skill> BookOf(int count) {
     char name[16];
     std::snprintf(name, sizeof(name), "Skill %02d", i);
     skill.set_name(name);
-    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN, i);
     skill.set_max_level(20);
-    skill.set_skill_order(i);
     catalog[name] = skill;
   }
   return catalog;
@@ -2294,7 +2290,7 @@ TEST_F(CharacterPanelTest, MarkingTheActiveTabReadsIt) {
 Skill MakeGatedSkill() {
   Skill skill;
   skill.set_name("Hyper Body");
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(10);
   skill.mutable_required_skill()->set_skill_name("Slash Blast");
   skill.mutable_required_skill()->set_level(3);

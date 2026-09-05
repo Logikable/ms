@@ -2,12 +2,11 @@
 # there is nothing to aim a boost at: the 5% lands here and meets the pact's
 # own the way two sources of final damage always meet, by multiplying.
 name: "Final Pact - Damage"
-skill_order: 7
 description:
   "Increases passive final damage of Final Pact. Stacks with existing final "
   "damage bonuses."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 7 }
 hyper: true
 required_level: 140
 max_level: 1

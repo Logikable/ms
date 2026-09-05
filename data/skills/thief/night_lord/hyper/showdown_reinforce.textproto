@@ -2,12 +2,11 @@
 # what GMS's "Damage: +20%" is. It stops at the talisman: a boost names a
 # skill, and the shuriken beside it is not that skill's swing.
 name: "Showdown - Reinforce"
-skill_order: 4
 description:
   "Increases the damage of Showdown. Doesn't apply to the shadow shuriken "
   "created with Showdown."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 4 }
 hyper: true
 required_level: 140
 max_level: 1

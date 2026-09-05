@@ -5,10 +5,9 @@
 # Its other two levers are cut to fit the longer ladder: the crit rate still
 # ends at GMS's 5%, and the magic attack is held to a point a level.
 name: "Spell Mastery"
-skill_order: 7
 description: "Increases Magic Mastery, Magic ATT and Critical Rate."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CLERIC
+placement { job_advancement: JOB_ADVANCEMENT_CLERIC skill_order: 7 }
 max_level: 20
 base {
   mastery: 0.12

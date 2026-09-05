@@ -4,11 +4,10 @@
 # The crit-on-dodge second and the knockback resistance are left out: one is a
 # window this game has no clock for, and the other is a thing no mob does.
 name: "Evasion Boost"
-skill_order: 7
 description:
   "Grants a chance to dodge enemy attacks. Also permanently increases Max HP."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_RANGER
+placement { job_advancement: JOB_ADVANCEMENT_RANGER skill_order: 7 }
 max_level: 10
 base { dodge_chance: 0.12 max_hp_pct: 0.13 }
 per_level { dodge_chance: 0.02 max_hp_pct: 0.03 }

@@ -5,10 +5,9 @@
 # The wiki leads with the MP the swing costs. Nothing here spends MP, so the
 # attack is all that is left to say.
 name: "Slash Blast"
-skill_order: 1
 description: "Attack nearby enemies all at once."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_SWORDMAN
+placement { job_advancement: JOB_ADVANCEMENT_SWORDMAN skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

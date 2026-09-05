@@ -1,11 +1,10 @@
 # Boss damage rides this one swing and follows the character nowhere, which is
 # how GMS states every skill-bound share of it.
 name: "Gungnir's Descent - Boss Rush"
-skill_order: 12
 description:
   "Damage increases when attacking Boss Monsters with Gungnir's Descent."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 12 }
 hyper: true
 required_level: 190
 max_level: 1

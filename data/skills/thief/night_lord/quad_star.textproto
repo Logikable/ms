@@ -2,10 +2,9 @@
 # single target is the whole of what this skill is -- a Night Lord keeps it for
 # bosses and Showdown for everything else. 660ms is the animation's own.
 name: "Quad Star"
-skill_order: 1
 description: "Masterfully unleash four throwing stars."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 1 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_CLAW
 exceeds_master_level: true

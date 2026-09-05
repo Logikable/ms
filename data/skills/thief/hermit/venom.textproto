@@ -3,12 +3,11 @@
 # enemy the swing reached, and the poison burns on the monster rather than
 # pulsing out of the character.
 name: "Venom"
-skill_order: 7
 description:
   "Poison is permanently applied to your Claw, giving all your attacks the "
   "chance to Poison enemies."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HERMIT
+placement { job_advancement: JOB_ADVANCEMENT_HERMIT skill_order: 7 }
 max_level: 10
 dot {
   interval_seconds: 1.0

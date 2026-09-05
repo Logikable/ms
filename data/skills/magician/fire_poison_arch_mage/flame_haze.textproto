@@ -5,12 +5,11 @@
 # it lands. None of the three has anything to act on here, so the skill is the
 # damage and the burn: everything a single enemy is worth.
 name: "Flame Haze"
-skill_order: 4
 description:
   "Surrounds enemies with burning poisonous mist, dealing continuous damage."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_FIRE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 4 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true

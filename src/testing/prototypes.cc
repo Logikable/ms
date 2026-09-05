@@ -1,5 +1,6 @@
 #include "src/testing/prototypes.h"
 
+#include "src/character/skill_placement.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
@@ -45,7 +46,7 @@ Skill IronBody() {
   Skill skill;
   skill.set_name("Iron Body");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   skill.set_description("Boosts DEF and Max HP.");
   skill.mutable_base()->set_def(10);
@@ -61,7 +62,7 @@ Skill LeverPassive() {
   Skill skill;
   skill.set_name("Levers");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(1);
   skill.mutable_base()->set_damage_pct(0.075);
   skill.mutable_base()->set_final_dmg_pct(0.05);

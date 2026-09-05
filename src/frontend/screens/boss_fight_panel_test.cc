@@ -15,6 +15,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/box.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/skill_placement.h"
 #include "src/combat/boss_run.h"
 #include "src/combat/test_authority.h"
 #include "src/frontend/widgets/colors.h"
@@ -196,7 +197,7 @@ std::unique_ptr<GameState> EightLineState(Skill beside = Skill()) {
   Skill flurry;
   flurry.set_name("Flurry");
   flurry.set_kind(SKILL_KIND_ATTACK);
-  flurry.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(flurry, JOB_ADVANCEMENT_SWORDMAN);
   flurry.set_max_level(1);
   flurry.set_max_enemies(1);
   flurry.set_lines(8);
@@ -224,7 +225,7 @@ std::unique_ptr<GameState> SummonState() {
   Skill phoenix;
   phoenix.set_name("Phoenix");
   phoenix.set_kind(SKILL_KIND_AUTO_ATTACK);
-  phoenix.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(phoenix, JOB_ADVANCEMENT_SWORDMAN);
   phoenix.set_max_level(1);
   phoenix.set_max_enemies(1);
   phoenix.set_lines(2);
@@ -408,7 +409,7 @@ TEST(BossFightPanelTest, ALongSwingNameWrapsOverThePlayersRows) {
   Skill carnival;
   carnival.set_name("Midnight Carnival");
   carnival.set_kind(SKILL_KIND_ATTACK);
-  carnival.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(carnival, JOB_ADVANCEMENT_SWORDMAN);
   carnival.set_max_level(1);
   carnival.set_max_enemies(6);
   carnival.mutable_base()->set_skill_pct(5.0);

@@ -2,10 +2,9 @@
 # 960ms with the rest of the Dark Knight's swings, so the ten-second wait now
 # buys a nuke that costs no more to throw than Gungnir's Descent.
 name: "Nightshade Explosion"
-skill_order: 2
 description: "Release your inner power to lay waste to nearby enemies."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 2 }
 hyper: true
 required_level: 160
 max_level: 1

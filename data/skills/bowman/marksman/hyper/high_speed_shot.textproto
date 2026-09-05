@@ -2,11 +2,10 @@
 # enemies every fifteen seconds, and the only wide swing the book has: Piercing
 # Arrow II reaches eight and Snipe one.
 name: "High Speed Shot"
-skill_order: 2
 description:
   "Fires off a focused shot that pierces all enemies within range."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 2 }
 hyper: true
 required_level: 160
 max_level: 1

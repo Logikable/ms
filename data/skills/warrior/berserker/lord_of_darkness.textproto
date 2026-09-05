@@ -8,12 +8,11 @@
 # it comes to, because that is what an expected-damage fight can spend: 0.2% of
 # the pool per landed swing at level 1, 2% at 10.
 name: "Lord of Darkness"
-skill_order: 6
 description:
   "Increases Critical Rate and Critical Damage, and grants a chance to "
   "recover HP during the attack."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BERSERKER
+placement { job_advancement: JOB_ADVANCEMENT_BERSERKER skill_order: 6 }
 max_level: 10
 base {
   crit_rate: 0.12

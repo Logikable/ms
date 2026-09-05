@@ -2,13 +2,12 @@
 # it ends a little above Cold Beam on the same animation length. The lightning
 # half: it spends the Freeze Stacks the ice one left.
 name: "Thunder Bolt"
-skill_order: 3
 description:
   "A lightning-attribute attack. Create a powerful magnetic field, which "
   "hurls down lightning bolts on enemies."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_LIGHTNING
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD skill_order: 3 }
 max_level: 10
 required_equip_type: EQUIP_TYPE_STAFF
 base_delay_ms: 810

@@ -8,12 +8,11 @@
 # The DEF it grants is dead by design, like every other percentage of DEF in
 # the game -- see SkillEffect.def_pct.
 name: "Phoenix"
-skill_order: 3
 description:
   "Summons a Phoenix to deal Fire damage on its own. Permanently increases "
   "DEF."
 kind: SKILL_KIND_AUTO_ATTACK
-job_advancement: JOB_ADVANCEMENT_RANGER
+placement { job_advancement: JOB_ADVANCEMENT_RANGER skill_order: 3 }
 max_level: 10
 max_enemies: 4
 cast_interval_seconds: 1.71

@@ -3,11 +3,10 @@
 # two levers, at 10 + floor(L/2)% and 10 + floor(L/3)%, walked as lines to the
 # same 25% and 20%.
 name: "Enrage"
-skill_order: 7
 description:
   "Focuses your rage into your combo orbs to deal powerful damage to enemies."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HERO
+placement { job_advancement: JOB_ADVANCEMENT_HERO skill_order: 7 }
 max_level: 30
 exceeds_master_level: true
 required_skill {

@@ -11,13 +11,12 @@
 # exists: a strike each to Divine Charge and Blast, and two more enemies for
 # Divine Charge by the tenth level -- GMS's ceil(L/5).
 name: "Greater Vessel of Light"
-skill_order: 8
 description:
   "Empowers Vessel of Light to its limit with your mastery. Increases Divine "
   "Charge's max number of targets and the attack count of both Divine Charge "
   "and Blast."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PALADIN
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN skill_order: 8 }
 max_level: 10
 exceeds_master_level: true
 supersedes_skill_name: "Vessel of Light"

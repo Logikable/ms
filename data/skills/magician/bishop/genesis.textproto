@@ -5,12 +5,11 @@
 # The critical rate rides this swing and hands nothing to the next one, which
 # is what GMS states on the skill rather than under a passive heading.
 name: "Genesis"
-skill_order: 3
 description:
   "A holy ray of light shines down from the sky, dealing tremendous holy "
   "damage."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 3 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true

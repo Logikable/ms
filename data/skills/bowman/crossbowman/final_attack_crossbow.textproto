@@ -6,12 +6,11 @@
 # and its readout names the target it picks -- "attacks the boss with the
 # highest HP first".
 name: "Final Attack: Crossbow"
-skill_order: 5
 description:
   "When a direct attack skill lands, there's a chance to trigger additional "
   "hits."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
+placement { job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN skill_order: 5 }
 final_attack_single_enemy: true
 max_level: 20
 required_equip_type: EQUIP_TYPE_CROSSBOW

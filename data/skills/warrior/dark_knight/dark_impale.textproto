@@ -2,10 +2,9 @@
 # The rate carries it to a 7th at 31, so the two levels Combat Orders grants
 # are worth a whole strike rather than a rounding.
 name: "Dark Impale"
-skill_order: 2
 description: "Launch rapid spear thrusts on multiple enemies."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 2 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_SPEAR
 required_equip_type: EQUIP_TYPE_POLEARM

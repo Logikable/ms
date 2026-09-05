@@ -8,10 +8,9 @@
 # fifth of a percent and half a second a level, which lands on GMS's master
 # exactly and starts a little over its first rung.
 name: "Self Recovery"
-skill_order: 4
 description: "Regularly recovers some HP, even in combat."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CRUSADER
+placement { job_advancement: JOB_ADVANCEMENT_CRUSADER skill_order: 4 }
 max_level: 10
 base {
   regen_pct: 0.022

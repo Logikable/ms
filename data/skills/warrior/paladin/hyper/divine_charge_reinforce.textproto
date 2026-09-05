@@ -5,11 +5,10 @@
 # It reaches the White Knight's skill from the Paladin's page, which is where
 # the Paladin is still swinging it from.
 name: "Divine Charge - Reinforce"
-skill_order: 4
 description:
   "Increases the damage of Divine Charge."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PALADIN
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN skill_order: 4 }
 hyper: true
 required_level: 140
 max_level: 1

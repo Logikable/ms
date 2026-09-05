@@ -12,12 +12,11 @@
 # and its readout names the target it picks -- "attacks the boss with the
 # highest HP first".
 name: "Advanced Final Attack"
-skill_order: 9
 description:
   "Permanently increases Attack Power. Greatly increases activation rate and "
   "damage of Final Attack."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 9 }
 final_attack_single_enemy: true
 max_level: 20
 exceeds_master_level: true

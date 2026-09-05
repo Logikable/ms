@@ -6,10 +6,9 @@
 # A boost rather than a supersede. Speed Mirage keeps paying, which it must:
 # the Wind Arrow bonus is its own and this skill says nothing about it.
 name: "Speed Mirage II"
-skill_order: 3
 description: "Your continued archery training has empowered your Speed Mirage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 3 }
 max_level: 20
 exceeds_master_level: true
 boost {

@@ -4,11 +4,10 @@
 # 900ms is the animation's own, from the frame data -- the slowest swing in the
 # game, and a Priest already hits softest.
 name: "Shining Ray"
-skill_order: 1
 description:
   "Attack multiple enemies at once with a ray of holy light."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_PRIEST
+placement { job_advancement: JOB_ADVANCEMENT_PRIEST skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_STAFF
 base_delay_ms: 900

@@ -13,12 +13,11 @@
 #
 # GMS's own ten levels, exact at every one of them.
 name: "Divine Shield"
-skill_order: 8
 description:
   "When struck, generates a shield that blocks a number of blows and "
   "permanently increases your Attack Power."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT skill_order: 8 }
 max_level: 10
 base { attack: 2 }
 per_level { attack: 2 }

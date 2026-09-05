@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "src/character/skill_placement.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/text_columns.h"
 #include "src/item/potential.h"
@@ -195,9 +196,8 @@ TEST(FormatWornSlotTest, NumbersOnlyTheSlotsWithSiblings) {
 Skill PageSkill(const std::string& name, int order) {
   Skill skill;
   skill.set_name(name);
-  skill.set_job_advancement(JOB_ADVANCEMENT_CLERIC);
+  PlaceIn(skill, JOB_ADVANCEMENT_CLERIC, order);
   skill.set_max_level(10);
-  skill.set_skill_order(order);
   return skill;
 }
 

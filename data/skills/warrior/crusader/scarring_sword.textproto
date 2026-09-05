@@ -12,12 +12,11 @@
 # left is the attack power, which is a barrier like any other and sums with
 # the rest of what the character carries -- see SkillEffect.enemy_attack_pct.
 name: "Scarring Sword"
-skill_order: 5
 description:
   "Infuses the sword with spirit, which leaves an indelible scar on the "
   "enemy, weakening its attacks."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CRUSADER
+placement { job_advancement: JOB_ADVANCEMENT_CRUSADER skill_order: 5 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

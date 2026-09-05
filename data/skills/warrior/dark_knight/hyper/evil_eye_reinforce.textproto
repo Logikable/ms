@@ -8,12 +8,11 @@
 # is a 5th job skill nothing reaches yet -- the boost simply never resolves
 # until something does.
 name: "Evil Eye - Reinforce"
-skill_order: 4
 description:
   "Increases damage for Evil Eye of Domination, Evil Eye Shock, Revenge of "
   "the Evil Eye, and Radiant Evil."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 4 }
 hyper: true
 required_level: 140
 max_level: 1

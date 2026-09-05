@@ -2,11 +2,10 @@
 # criticals: GMS adds an ordinary attack, so Raging Blow becomes three strikes
 # and then the pair that always crit.
 name: "Raging Blow - Extra Strike"
-skill_order: 12
 description:
   "Increases Raging Blow's attack count."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HERO
+placement { job_advancement: JOB_ADVANCEMENT_HERO skill_order: 12 }
 hyper: true
 required_level: 190
 max_level: 1

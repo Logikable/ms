@@ -1,10 +1,9 @@
 # GMS spends this skill on not consuming arrows, and grants the attack as an
 # aside. There are no arrows to consume here, so the aside is the whole skill.
 name: "Soul Arrow: Bow"
-skill_order: 4
 description: "Increases Attack Power."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HUNTER
+placement { job_advancement: JOB_ADVANCEMENT_HUNTER skill_order: 4 }
 max_level: 10
 required_equip_type: EQUIP_TYPE_BOW
 base { attack: 12 }

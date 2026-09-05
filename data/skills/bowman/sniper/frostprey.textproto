@@ -5,10 +5,9 @@
 # GMS, 3 at master. Skill.freeze_seconds carries no ladder, so it holds the
 # master figure. Phoenix's stun stays out; nothing here is stunned.
 name: "Frostprey"
-skill_order: 2
 description: "Summons a Frostprey that attacks on its own. Also increases DEF."
 kind: SKILL_KIND_AUTO_ATTACK
-job_advancement: JOB_ADVANCEMENT_SNIPER
+placement { job_advancement: JOB_ADVANCEMENT_SNIPER skill_order: 2 }
 max_level: 10
 max_enemies: 4
 freeze_seconds: 3.0

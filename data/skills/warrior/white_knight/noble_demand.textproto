@@ -15,12 +15,11 @@
 # The six enemies it reaches say nothing either: only the mob at the front of
 # the queue hits back.
 name: "Noble Demand"
-skill_order: 3
 description:
   "Releases the pride of the Holy Knight, decreasing the Attack Power of "
   "nearby enemies."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT skill_order: 3 }
 max_level: 20
 base { enemy_attack_pct: 0.30 }
 per_level { enemy_attack_pct: 0.01 }

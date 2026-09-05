@@ -5,10 +5,9 @@
 # carries an element, so neither is ever read -- they are here to keep the
 # wiki's figures beside the skill, and the stats page shows them.
 name: "Elemental Adaptation"
-skill_order: 3
 description: "Permanently increases Status Resistance and Elemental Resistance."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE skill_order: 3 }
 max_level: 20
 base {
   status_resistance: 1

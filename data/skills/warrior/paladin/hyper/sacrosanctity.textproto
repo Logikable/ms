@@ -11,11 +11,10 @@
 # charged the sequence's flat 120ms all the same: one cast every 300 seconds
 # is not worth a way of saying so in the data.
 name: "Sacrosanctity"
-skill_order: 1
 description:
   "Call upon the heavens to protect you from all attacks for a short time."
 kind: SKILL_KIND_ACTIVE
-job_advancement: JOB_ADVANCEMENT_PALADIN
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN skill_order: 1 }
 hyper: true
 required_level: 140
 max_level: 1

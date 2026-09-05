@@ -5,12 +5,11 @@
 # monster's DEF as a number it could take from. Boss damage is 1% a level over
 # 20, where GMS pays 5+ceil(x/2)% over 30.
 name: "Frailty Curse"
-skill_order: 5
 description:
   "Summons a barrier around you. Decreases the Attack Power of enemies that "
   "step into the barrier. Also allows you to deal more damage to bosses."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 5 }
 max_level: 20
 exceeds_master_level: true
 base {

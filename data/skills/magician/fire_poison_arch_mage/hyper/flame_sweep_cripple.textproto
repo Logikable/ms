@@ -1,9 +1,8 @@
 # Points on the tick, as Poison Mist's Cripple is: 240% a second becomes 260%.
 name: "Flame Sweep - Cripple"
-skill_order: 8
 description: "Increases Flame Sweep's damage over time."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 8 }
 hyper: true
 required_level: 165
 max_level: 1

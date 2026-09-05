@@ -3,12 +3,11 @@
 # covers both halves of Arrow Blaster on its own -- the turret carries its
 # parent's name, which is what a boost is keyed by.
 name: "Hurricane - Reinforce"
-skill_order: 10
 description:
   "Increases damage for Hurricane, Arrow Blaster, and installed Arrow "
   "Blaster."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 10 }
 hyper: true
 required_level: 150
 max_level: 1

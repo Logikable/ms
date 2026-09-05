@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/character/skill_placement.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/protos/equip.pb.h"
@@ -69,7 +70,7 @@ Skill MakeLuckySeven() {
   Skill skill;
   skill.set_name("Lucky Seven");
   skill.set_kind(SKILL_KIND_ATTACK);
-  skill.set_job_advancement(JOB_ADVANCEMENT_ROGUE);
+  PlaceIn(skill, JOB_ADVANCEMENT_ROGUE);
   skill.set_max_level(20);
   skill.set_description("Throw 7 lucky throwing stars.");
   skill.set_lines(3);
@@ -605,7 +606,7 @@ TEST_F(SkillInspectPanelTest, APiercingSwingStatesItsGainBesideItsReach) {
   Skill arrow;
   arrow.set_name("Piercing Arrow");
   arrow.set_kind(SKILL_KIND_ATTACK);
-  arrow.set_job_advancement(JOB_ADVANCEMENT_CROSSBOWMAN);
+  PlaceIn(arrow, JOB_ADVANCEMENT_CROSSBOWMAN);
   arrow.set_max_level(20);
   arrow.set_max_enemies(6);
   arrow.set_lines(4);
@@ -1160,7 +1161,7 @@ Skill MakeEvilEyeShock() {
   Skill skill;
   skill.set_name("Evil Eye Shock");
   skill.set_kind(SKILL_KIND_AUTO_ATTACK);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SPEARMAN);
   skill.set_max_level(10);
   skill.set_max_enemies(10);
   skill.set_lines(6);
@@ -1200,7 +1201,7 @@ TEST_F(SkillInspectPanelTest, ReadsAFormOnEveryCastAsUnconditional) {
   Skill skill;
   skill.set_name("Mist Eruption");
   skill.set_kind(SKILL_KIND_ATTACK);
-  skill.set_job_advancement(JOB_ADVANCEMENT_FIRE_POISON_MAGE);
+  PlaceIn(skill, JOB_ADVANCEMENT_FIRE_POISON_MAGE);
   skill.set_max_level(20);
   skill.set_description("Sets off the poison hanging around you.");
   skill.set_max_enemies(12);
@@ -1223,7 +1224,7 @@ TEST_F(SkillInspectPanelTest, ReadsADotAsOneRow) {
   Skill skill;
   skill.set_name("Flame Sweep");
   skill.set_kind(SKILL_KIND_ATTACK);
-  skill.set_job_advancement(JOB_ADVANCEMENT_FIRE_POISON_MAGE);
+  PlaceIn(skill, JOB_ADVANCEMENT_FIRE_POISON_MAGE);
   skill.set_max_level(30);
   skill.set_description("Sweeps the room with flame.");
   skill.set_max_enemies(8);
@@ -1259,7 +1260,7 @@ TEST_F(SkillInspectPanelTest, ReadsASideStrikeWithItsWait) {
   Skill skill;
   skill.set_name("Showdown");
   skill.set_kind(SKILL_KIND_ATTACK);
-  skill.set_job_advancement(JOB_ADVANCEMENT_HERMIT);
+  PlaceIn(skill, JOB_ADVANCEMENT_HERMIT);
   skill.set_max_level(30);
   skill.set_description("Provoke the enemies around you.");
   skill.set_max_enemies(6);
@@ -1286,7 +1287,7 @@ TEST_F(SkillInspectPanelTest, ReadsFinalAttackAsOneFact) {
   Skill skill;
   skill.set_name("Final Attack");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SPEARMAN);
   skill.set_max_level(20);
   skill.set_description("A chance at a second blow.");
   skill.mutable_base()->set_final_attack_chance(0.02);
@@ -1319,7 +1320,7 @@ TEST_F(SkillInspectPanelTest, ReadsTheNewStatLevers) {
   Skill skill;
   skill.set_name("Physical Training");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SPEARMAN);
   skill.set_max_level(5);
   skill.set_description("Raises STR and DEX.");
   skill.mutable_base()->set_str(6);
@@ -1338,7 +1339,7 @@ TEST_F(SkillInspectPanelTest, ReadsTheWizardsLevers) {
   Skill skill;
   skill.set_name("Freezing Crush");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_MAGICIAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_MAGICIAN);
   skill.set_max_level(10);
   skill.set_description("Sharpens what a critical hit is worth.");
   skill.mutable_base()->set_crit_dmg(0.005);

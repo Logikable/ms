@@ -5,10 +5,9 @@
 # another. The character simply holds the better one, which from level 2 is
 # this.
 name: "Holy Focus"
-skill_order: 8
 description: "Permanently increases your Critical Rate and Magic Mastery."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PRIEST
+placement { job_advancement: JOB_ADVANCEMENT_PRIEST skill_order: 8 }
 max_level: 10
 base {
   crit_rate: 0.04

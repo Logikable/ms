@@ -12,13 +12,12 @@
 # Its 20% ignored defence is the point of the skill. It rides the swing alone,
 # which is what an ied_pct on an attack means -- see WithoutSwingLevers.
 name: "Divine Judgment"
-skill_order: 3
 description:
   "Marks enemies struck by your Blast skill with a Divine Brand. Upon "
   "reaching the max number of stacks, the Divine Brands detonate, inflicting "
   "additional damage that ignores some of the enemy's Defense."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PALADIN
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN skill_order: 3 }
 max_level: 30
 exceeds_master_level: true
 required_skill {

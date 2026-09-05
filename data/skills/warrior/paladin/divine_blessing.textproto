@@ -6,10 +6,9 @@
 # Twenty levels rather than GMS's thirty, a point of final damage each, ending
 # on the 20% GMS reaches.
 name: "Divine Blessing"
-skill_order: 5
 description: "A holy blessing increases your Final Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PALADIN
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN skill_order: 5 }
 max_level: 20
 exceeds_master_level: true
 base { final_dmg_pct: 0.01 }

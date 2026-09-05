@@ -5,12 +5,11 @@
 # percentage of the whole pile, worn and granted alike, and the ignored DEF
 # meets the gear's in reverse rather than summing with it.
 name: "Marksmanship"
-skill_order: 8
 description:
   "When attacking, ignores a portion of enemy DEF. Permanently increases your "
   "Attack Power."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_RANGER
+placement { job_advancement: JOB_ADVANCEMENT_RANGER skill_order: 8 }
 max_level: 20
 base { ied_pct: 0.06 attack_pct: 0.06 }
 per_level { ied_pct: 0.01 attack_pct: 0.01 }

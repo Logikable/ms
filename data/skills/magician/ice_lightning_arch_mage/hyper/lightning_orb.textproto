@@ -14,13 +14,12 @@
 # stack it went in holding. GMS's line about attack reflection is dropped with
 # the rest of what this game has no notion of.
 name: "Lightning Orb"
-skill_order: 2
 description:
   "Creates a large, unstable sphere of electricity to continuously zap "
   "enemies."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_LIGHTNING
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 2 }
 hyper: true
 required_level: 160
 max_level: 1

@@ -2,10 +2,9 @@
 # ends in the same place -- 20 -- for half the points, as Agile Arms and Agile
 # Bows do.
 name: "Agile Magic"
-skill_order: 5
 description: "Increases Attack Speed and INT."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD skill_order: 5 }
 max_level: 5
 required_skill {
   skill_name: "Spell Mastery"

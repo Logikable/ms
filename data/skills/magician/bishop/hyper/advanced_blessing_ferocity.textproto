@@ -3,12 +3,11 @@
 # Holy Symbol - Experience is one: the skill it is named for is a permanent
 # passive, so what this adds lands in the same total.
 name: "Advanced Blessing - Ferocity"
-skill_order: 10
 description:
   "Increases the Attack Power and Magic ATT Advanced Blessing grants you and "
   "your party members."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 10 }
 hyper: true
 required_level: 150
 max_level: 1

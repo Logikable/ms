@@ -5,12 +5,11 @@
 # Its points land on a LINE of the explosion, which is how GMS states them and
 # why it says "per shot" -- 20 points at master is 40% on a two-line meso.
 name: "Meso Mastery"
-skill_order: 8
 description:
   "Increases Attack Power, amount of Mesos that drop, and Meso Explosion's "
   "damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+placement { job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT skill_order: 8 }
 max_level: 10
 base {
   attack: 2

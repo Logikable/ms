@@ -1,8 +1,7 @@
 name: "Arcane Aim"
-skill_order: 9
 description: "Ignores a portion of enemy DEF when attacking."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 9 }
 max_level: 20
 exceeds_master_level: true
 base {

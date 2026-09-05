@@ -5,10 +5,9 @@
 # their books' mastery skill; the Priest's Holy Focus already reaches 70%, so
 # a Bishop holds a staff as well as anyone before the 4th job starts.
 name: "Bahamut"
-skill_order: 6
 description: "Summons Bahamut to deal Holy damage."
 kind: SKILL_KIND_AUTO_ATTACK
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 6 }
 max_level: 20
 exceeds_master_level: true
 max_enemies: 3

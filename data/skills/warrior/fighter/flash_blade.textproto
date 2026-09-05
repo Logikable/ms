@@ -2,10 +2,9 @@
 # the fight has no notion of a player saving one for later -- so the cooldown
 # is simply how long it is until the next.
 name: "Flash Blade"
-skill_order: 2
 description: "Zip forward in a flash, cutting enemies in your path."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_FIGHTER
+placement { job_advancement: JOB_ADVANCEMENT_FIGHTER skill_order: 2 }
 max_level: 9
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

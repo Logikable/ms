@@ -134,6 +134,26 @@ SkillEffect AllyEffectAt(const Skill& skill, int level) {
   return EffectFrom(skill.ally_base(), skill.ally_per_level(), level);
 }
 
+// Whether any of `books` lists `skill`. A shared skill sits in several at
+// once, so one book of the job's is enough to reach it.
+bool ReachedBy(const std::set<JobAdvancement>& books, const Skill& skill) {
+  for (const SkillPlacement& placement : skill.placement()) {
+    if (books.count(placement.job_advancement()) > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Where a skill sits, book by book.
+std::map<int, int> OrdersOf(const Skill& skill) {
+  std::map<int, int> orders;
+  for (const SkillPlacement& placement : skill.placement()) {
+    orders[placement.job_advancement()] = placement.skill_order();
+  }
+  return orders;
+}
+
 // Whether some one job holds both `skill`'s book and the book of a skill
 // called `name`. Every reference one skill makes to another is by display
 // name, and a name no character can reach from where the reference is written
@@ -142,12 +162,11 @@ bool SameCharacterCanHold(const std::map<std::string, Skill>& skills,
                           const Skill& skill, const std::string& name) {
   for (Job job : EveryValueOf<Job>(Job_descriptor())) {
     std::set<JobAdvancement> books = BooksFor(job);
-    if (books.count(skill.job_advancement()) == 0) {
+    if (!ReachedBy(books, skill)) {
       continue;
     }
     for (const std::pair<const std::string, Skill>& other : skills) {
-      if (other.second.name() == name &&
-          books.count(other.second.job_advancement()) > 0) {
+      if (other.second.name() == name && ReachedBy(books, other.second)) {
         return true;
       }
     }
@@ -198,7 +217,7 @@ std::map<std::string, Skill> LoadSkills() {
 // fight and what tag opens its row in the book.
 TEST(SkillDataTest, EverySkillNamesItsAdvancementAndItsKind) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    EXPECT_NE(entry.second.job_advancement(), JOB_ADVANCEMENT_UNSPECIFIED)
+    EXPECT_FALSE(entry.second.placement().empty())
         << entry.first << " would be unreachable: no tab shows it and no SP "
         << "pool buys it";
     EXPECT_NE(entry.second.kind(), SKILL_KIND_UNSPECIFIED)
@@ -311,8 +330,12 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
         !entry.second.replaces_skill_name().empty()) {
       continue;
     }
-    cost_by_advancement[entry.second.job_advancement()] +=
-        entry.second.max_level();
+    // Charged to every book that lists it: a shared skill is one file, but
+    // each job that holds it pays for its levels out of their own pool.
+    for (const SkillPlacement& placement : entry.second.placement()) {
+      cost_by_advancement[placement.job_advancement()] +=
+          entry.second.max_level();
+    }
   }
   // Every advancement below the 5th has to turn up, not just sum correctly:
   // the skills sit in a folder per job, and a folder that stopped being read
@@ -377,7 +400,7 @@ TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
   int commons = 0;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    bool common_home = skill.job_advancement() == JOB_ADVANCEMENT_COMMON;
+    bool common_home = ListedIn(skill, JOB_ADVANCEMENT_COMMON);
     if (skill.v_node() == V_NODE_KIND_UNSPECIFIED) {
       EXPECT_FALSE(common_home)
           << skill.name() << " is not a node but lives among them";
@@ -398,7 +421,7 @@ TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
       EXPECT_TRUE(common_home)
           << skill.name() << " is common and belongs under COMMON";
     } else {
-      EXPECT_EQ(StageForAdvancement(skill.job_advancement()), 5)
+      EXPECT_EQ(StageForAdvancement(BookOf(skill)), 5)
           << skill.name() << " is one job's own and belongs to its 5th";
     }
   }
@@ -423,12 +446,12 @@ TEST(SkillDataTest, EveryRequirementNamesAHoldableSkill) {
     bool satisfiable = false;
     for (Job job : jobs) {
       std::set<JobAdvancement> books = BooksFor(job);
-      if (books.count(entry.second.job_advancement()) == 0) {
+      if (!ReachedBy(books, entry.second)) {
         continue;
       }
       for (const std::pair<const std::string, Skill>& other : skills) {
         if (other.second.name() != required.skill_name() ||
-            books.count(other.second.job_advancement()) == 0) {
+            !ReachedBy(books, other.second)) {
           continue;
         }
         EXPECT_LE(required.level(), other.second.max_level())
@@ -452,19 +475,21 @@ TEST(SkillDataTest, EveryBookIsNumberedOneThroughItsSize) {
   // advancement but are two lists, so each is numbered from one.
   std::map<std::pair<int, bool>, std::map<int, std::string>> by_advancement;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    int order = entry.second.skill_order();
-    EXPECT_GT(order, 0) << entry.first << " has no place in its book";
-    // A Vengeance form takes the row of the skill it stands in for rather than
-    // one of its own -- the test below holds it to that number.
-    if (!entry.second.replaces_skill_name().empty()) {
-      continue;
+    for (const SkillPlacement& placement : entry.second.placement()) {
+      int order = placement.skill_order();
+      EXPECT_GT(order, 0) << entry.first << " has no place in its book";
+      // A Vengeance form takes the row of the skill it stands in for rather
+      // than one of its own -- the test below holds it to that number.
+      if (!entry.second.replaces_skill_name().empty()) {
+        continue;
+      }
+      std::pair<std::map<int, std::string>::iterator, bool> added =
+          by_advancement[{placement.job_advancement(), entry.second.hyper()}]
+              .insert({order, entry.first});
+      EXPECT_TRUE(added.second)
+          << entry.first << " and " << added.first->second << " both sit at "
+          << order << " of advancement " << placement.job_advancement();
     }
-    std::pair<std::map<int, std::string>::iterator, bool> added =
-        by_advancement[{entry.second.job_advancement(), entry.second.hyper()}]
-            .insert({order, entry.first});
-    EXPECT_TRUE(added.second)
-        << entry.first << " and " << added.first->second << " both sit at "
-        << order << " of advancement " << entry.second.job_advancement();
   }
   for (const std::pair<const std::pair<int, bool>, std::map<int, std::string>>&
            book : by_advancement) {
@@ -511,9 +536,9 @@ TEST(SkillDataTest, EveryFormStandsInAnotherSkillsRow) {
     EXPECT_TRUE(toggle->toggle())
         << entry.first << " waits on " << skill.toggle_skill_name()
         << ", which is not a switch";
-    EXPECT_EQ(skill.job_advancement(), replaced->job_advancement())
-        << entry.first << " is listed on a page it never replaces a row on";
-    EXPECT_EQ(skill.skill_order(), replaced->skill_order()) << entry.first;
+    EXPECT_EQ(OrdersOf(skill), OrdersOf(*replaced))
+        << entry.first << " is listed on a page it never replaces a row on, "
+        << "or at a place the skill it stands in for does not sit";
     EXPECT_EQ(skill.max_level(), replaced->max_level())
         << entry.first << " climbs a ladder the skill it replaces does not";
     EXPECT_FALSE(skill.hyper())
@@ -555,10 +580,12 @@ TEST(SkillDataTest, EveryHyperPageIsWholeAndOpensOnARung) {
           << entry.first << " gates on a level nothing but a hyper carries";
       continue;
     }
-    ++hypers_by_advancement[skill.job_advancement()];
+    for (const SkillPlacement& placement : skill.placement()) {
+      ++hypers_by_advancement[placement.job_advancement()];
+    }
     EXPECT_EQ(skill.max_level(), 1)
         << entry.first << " is bought with one point and must cost one";
-    EXPECT_EQ(StageForAdvancement(skill.job_advancement()), 4)
+    EXPECT_EQ(StageForAdvancement(BookOf(skill)), 4)
         << entry.first << " hangs off a book with no Hyper page";
     EXPECT_GE(skill.required_level(), kFirstHyperLevel) << entry.first;
     EXPECT_LE(skill.required_level(), kLastHyperLevel) << entry.first;
@@ -983,14 +1010,15 @@ TEST(SkillDataTest, EveryAttackIsSwungWithItsBooksWeapons) {
     if (skill.kind() != SKILL_KIND_ATTACK) {
       continue;
     }
-    seen.insert(skill.job_advancement());
+    JobAdvancement book = BookOf(skill);
+    seen.insert(book);
     std::map<JobAdvancement, std::set<EquipType>>::const_iterator it =
-        expected.find(skill.job_advancement());
+        expected.find(book);
     ASSERT_NE(it, expected.end())
         << entry.first << "'s book names no weapons in this test";
     std::set<EquipType> weapons = WeaponLists(skill).front();
     // The rogue's book splits, so each of its attacks takes one of its two.
-    if (skill.job_advancement() == JOB_ADVANCEMENT_ROGUE) {
+    if (book == JOB_ADVANCEMENT_ROGUE) {
       EXPECT_EQ(weapons.size(), 1u) << entry.first;
       for (EquipType type : weapons) {
         EXPECT_GT(it->second.count(type), 0u) << entry.first;
@@ -1096,11 +1124,11 @@ TEST(SkillDataTest, FreezeStacksHaveBothHalvesAndBothElements) {
     bool lightning = false;
     for (Job job : jobs) {
       std::set<JobAdvancement> books = BooksFor(job);
-      if (books.count(skill.job_advancement()) == 0) {
+      if (!ReachedBy(books, skill)) {
         continue;
       }
       for (const std::pair<const std::string, Skill>& other : skills) {
-        if (books.count(other.second.job_advancement()) == 0) {
+        if (!ReachedBy(books, other.second)) {
           continue;
         }
         pile = pile || other.second.freeze_stack_cap() > 0;
@@ -1137,11 +1165,11 @@ TEST(SkillDataTest, AConditionIsBothInflictedAndRead) {
     bool counted = false;
     for (Job job : jobs) {
       std::set<JobAdvancement> books = BooksFor(job);
-      if (books.count(skill.job_advancement()) == 0) {
+      if (!ReachedBy(books, skill)) {
         continue;
       }
       for (const std::pair<const std::string, Skill>& other : skills) {
-        if (books.count(other.second.job_advancement()) == 0) {
+        if (!ReachedBy(books, other.second)) {
           continue;
         }
         inflicted = inflicted || afflicts(other.second);
@@ -1188,11 +1216,11 @@ TEST(SkillDataTest, AScarIsBothLeftAndRead) {
     bool scars = false;
     for (Job job : jobs) {
       std::set<JobAdvancement> books = BooksFor(job);
-      if (books.count(entry.second.job_advancement()) == 0) {
+      if (!ReachedBy(books, entry.second)) {
         continue;
       }
       for (const std::pair<const std::string, Skill>& other : skills) {
-        scars = scars || (books.count(other.second.job_advancement()) > 0 &&
+        scars = scars || (ReachedBy(books, other.second) &&
                           other.second.base().scar_chance() > 0.0);
       }
     }
@@ -1271,12 +1299,12 @@ TEST(SkillDataTest, EveryPerOrbBargainHasOrbsToBePaidAgainst) {
     bool paid = false;
     for (Job job : jobs) {
       std::set<JobAdvancement> books = BooksFor(job);
-      if (books.count(skill.job_advancement()) == 0) {
+      if (!ReachedBy(books, skill)) {
         continue;
       }
       for (const std::pair<const std::string, Skill>& other : skills) {
         paid = paid || (other.second.combo_orbs() > 0 &&
-                        books.count(other.second.job_advancement()) > 0);
+                        ReachedBy(books, other.second));
       }
     }
     EXPECT_TRUE(paid) << entry.first
@@ -1346,7 +1374,7 @@ bool GmsHoldsItToTheMasterLevel(const std::string& stem) {
 TEST(SkillDataTest, OnlyA4thJobSkillPassesItsMasterLevel) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    bool eligible = StageForAdvancement(skill.job_advancement()) == 4 &&
+    bool eligible = StageForAdvancement(BookOf(skill)) == 4 &&
                     skill.max_level() >= kSmallestMasterLevelPastIt &&
                     !GmsHoldsItToTheMasterLevel(entry.first);
     if (eligible) {
@@ -1674,7 +1702,7 @@ TEST(SkillDataTest, OneSkillPerNamePerCharacter) {
     std::set<JobAdvancement> books = BooksFor(job);
     std::map<std::string, std::string> stem_by_name;
     for (const std::pair<const std::string, Skill>& entry : skills) {
-      if (books.count(entry.second.job_advancement()) == 0) {
+      if (!ReachedBy(books, entry.second)) {
         continue;
       }
       std::pair<std::map<std::string, std::string>::iterator, bool> added =
@@ -1695,7 +1723,7 @@ TEST(SkillDataTest, EveryFourthJobMasteryClimbsTheSameLadder) {
   int checked = 0;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    if (StageForAdvancement(skill.job_advancement()) != 4 ||
+    if (StageForAdvancement(BookOf(skill)) != 4 ||
         skill.base().mastery() <= 0.0) {
       continue;
     }

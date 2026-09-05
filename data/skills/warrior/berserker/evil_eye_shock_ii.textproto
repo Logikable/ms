@@ -10,10 +10,9 @@
 # The aura heal is restated because this supersedes the skill stating it, and
 # flat because it is the EYE's: a louder shout does not heal harder.
 name: "Evil Eye Shock II"
-skill_order: 4
 description: "Empowers Evil Eye Shock, increasing its damage."
 kind: SKILL_KIND_AUTO_ATTACK
-job_advancement: JOB_ADVANCEMENT_BERSERKER
+placement { job_advancement: JOB_ADVANCEMENT_BERSERKER skill_order: 4 }
 max_level: 20
 supersedes_skill_name: "Evil Eye Shock"
 required_skill {

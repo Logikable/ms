@@ -10,11 +10,10 @@
 # The party it is shared with, the undead it hurts and the cooldown the party
 # shortens are all still absent, as is the cooldown itself.
 name: "Heal"
-skill_order: 3
 description: "Restores your HP."
 kind: SKILL_KIND_ACTIVE
 tags: SKILL_TAG_BENEVOLENCE
-job_advancement: JOB_ADVANCEMENT_CLERIC
+placement { job_advancement: JOB_ADVANCEMENT_CLERIC skill_order: 3 }
 max_level: 10
 base_delay_ms: 600
 base { heal_pct: 0.10 }

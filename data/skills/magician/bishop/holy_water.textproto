@@ -11,13 +11,12 @@
 # The first lever in the game charged against a stat rather than a level, and
 # the reason a Bishop's INT is worth more than its damage says.
 name: "Holy Water"
-skill_order: 4
 description:
   "Summons a chalice of holy water nearby that restores party members' HP "
   "over time."
 kind: SKILL_KIND_PASSIVE
 tags: SKILL_TAG_BENEVOLENCE
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 4 }
 max_level: 10
 exceeds_master_level: true
 base {

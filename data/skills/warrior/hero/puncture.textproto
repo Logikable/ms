@@ -16,14 +16,13 @@
 # an ally ceil(x/3)% where the Hero takes 10+ceil(x/2)% -- 10% against 25% at
 # master.
 name: "Puncture"
-skill_order: 2
 description:
   "Pour your swordsman's spirit into a forward-downward strike, leaving a "
   "wound on your enemy that deals continuous damage. While taking continuous "
   "damage, the enemy will also take more damage."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_SWORDSMANSHIP
-job_advancement: JOB_ADVANCEMENT_HERO
+placement { job_advancement: JOB_ADVANCEMENT_HERO skill_order: 2 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

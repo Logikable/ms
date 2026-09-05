@@ -8,13 +8,12 @@
 # dropped, because a map mob dies inside a swing and a few seconds of ticking
 # never arrived -- what changed is that this class is built on them.
 name: "Flame Sweep"
-skill_order: 1
 description:
   "A fire-attribute attack. Sweep the area in front of you with a powerful "
   "flame. Enemies struck by the flame are burned and take continuous damage."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_FIRE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 1 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true

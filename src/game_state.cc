@@ -519,7 +519,7 @@ bool LeaveUnbought(const Skill& skill, int unspent_stage) {
   if (unspent_stage >= kFifthJobStage) {
     return skill.v_node() != V_NODE_KIND_UNSPECIFIED;
   }
-  return StageForAdvancement(skill.job_advancement()) >= unspent_stage;
+  return StageForAdvancement(BookOf(skill)) >= unspent_stage;
 }
 
 void GrowTo(GameState& state, int level, const std::vector<Job>& path,

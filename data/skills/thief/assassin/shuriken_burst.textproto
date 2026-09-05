@@ -10,12 +10,11 @@
 # at the struck monster's feet, wide enough for it and one neighbour, whatever
 # GMS lets it count. See Skill.max_enemies.
 name: "Shuriken Burst"
-skill_order: 1
 description:
   "Throw exploding shurikens that ricochet to nearby enemies on hit. "
   "Shurikens detonate when they hit their first enemy."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_ASSASSIN
+placement { job_advancement: JOB_ADVANCEMENT_ASSASSIN skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_CLAW
 base_delay_ms: 720

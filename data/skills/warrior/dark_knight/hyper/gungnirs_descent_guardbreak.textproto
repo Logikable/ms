@@ -2,10 +2,9 @@
 # against the skill's own 30% at master level it leaves 56% standing rather
 # than 50%.
 name: "Gungnir's Descent - Guardbreak"
-skill_order: 11
 description: "Increases Ignore Defense for Gungnir's Descent."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 11 }
 hyper: true
 required_level: 165
 max_level: 1

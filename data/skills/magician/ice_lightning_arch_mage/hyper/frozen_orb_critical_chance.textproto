@@ -1,10 +1,9 @@
 # The critical rate rides Frozen Orb's own swing and hands nothing to the one
 # after it, exactly as the skill's other levers do.
 name: "Frozen Orb - Critical Chance"
-skill_order: 12
 description: "Increases Frozen Orb critical chance bonus."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 12 }
 hyper: true
 required_level: 190
 max_level: 1

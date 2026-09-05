@@ -2,10 +2,9 @@
 # 1+ceil(x/3)%, ending at 5% -- the same 5% Critical Throw ends on, reached in
 # a third of the levels.
 name: "Critical Edge"
-skill_order: 2
 description: "Permanently increases Critical Rate and Critical Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BANDIT
+placement { job_advancement: JOB_ADVANCEMENT_BANDIT skill_order: 2 }
 max_level: 10
 base {
   crit_rate: 0.07

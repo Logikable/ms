@@ -7,11 +7,10 @@
 # I/L's five to thirteen -- and thirteen is the number Frozen Lightning's
 # "reduces Freeze Stacks by 10" was always written against.
 name: "Glacial Fury"
-skill_order: 1
 description:
   "Harnesses the extreme cold to greatly enhance your ice's Magic ATT."
 kind: SKILL_KIND_ACTIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 1 }
 hyper: true
 required_level: 140
 max_level: 1

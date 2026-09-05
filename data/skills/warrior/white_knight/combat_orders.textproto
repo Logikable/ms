@@ -10,14 +10,13 @@
 # The 4th job skills GMS lets this carry past their master level are far above
 # this game's cap, so here it stops at the master level every time.
 name: "Combat Orders"
-skill_order: 4
 description:
   "Grants bonus skill levels to the skills of all party members, including "
   "yourself. 4th job skills that have already "
   "reached the master level can be raised further; other skills can only be "
   "increased to master level."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT skill_order: 4 }
 exclusive_group: "Combat Orders"
 max_level: 10
 required_skill {

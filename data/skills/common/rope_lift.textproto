@@ -4,12 +4,11 @@
 # and worse. All three carry GMS's own passive, which is the whole of what they
 # do here, and GMS does not make them equal.
 name: "Rope Lift"
-skill_order: 1
 description:
   "Fires a grappling hook to a platform above you. Nobody here remembers what "
   "it was for."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_COMMON
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 1 }
 v_node: V_NODE_KIND_COMMON
 max_level: 30
 base {

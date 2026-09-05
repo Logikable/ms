@@ -6,11 +6,10 @@
 # and its readout names the target it picks -- "attacks the boss with the
 # highest HP first".
 name: "Final Attack"
-skill_order: 5
 description:
   "Chance to deal an additional hit after landing a direct attack skill."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PAGE
+placement { job_advancement: JOB_ADVANCEMENT_PAGE skill_order: 5 }
 final_attack_single_enemy: true
 max_level: 20
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD

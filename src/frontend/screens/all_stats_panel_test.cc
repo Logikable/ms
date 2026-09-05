@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "ftxui/component/event.hpp"
+#include "src/character/skill_placement.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/frontend/widgets/screen_text.h"
 #include "src/item/equip_instance.h"
@@ -145,7 +146,7 @@ TEST_F(AllStatsPanelTest, ALongValueKeepsTheColumn) {
   Skill marks;
   marks.set_name("Marksmanship");
   marks.set_kind(SKILL_KIND_PASSIVE);
-  marks.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(marks, JOB_ADVANCEMENT_SWORDMAN);
   marks.set_max_level(1);
   marks.mutable_base()->set_attack_pct(0.25);
   std::map<std::string, Skill> skills = {{"marksmanship", marks}};

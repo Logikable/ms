@@ -3,10 +3,9 @@
 # exactly where GMS's one level does. Its HP recovery is left out, along with
 # the status resistance, which nothing in this game would resist.
 name: "Vessel of Light"
-skill_order: 2
 description: "Amasses the power of light within you."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PAGE
+placement { job_advancement: JOB_ADVANCEMENT_PAGE skill_order: 2 }
 max_level: 20
 base {
   damage_pct: 0.005

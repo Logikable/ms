@@ -1,10 +1,9 @@
 # GMS's "Damage: +20%", read as it is everywhere else on this page: a share of
 # the character's damage that only Chain Lightning collects.
 name: "Chain Lightning - Reinforce"
-skill_order: 7
 description: "Increases Chain Lightning damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 7 }
 hyper: true
 required_level: 140
 max_level: 1

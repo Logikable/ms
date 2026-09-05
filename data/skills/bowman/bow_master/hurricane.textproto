@@ -10,11 +10,10 @@
 # keeps this ahead on a lone target is that both Final Attacks roll once per
 # SWING: eight rolls a second against Arrow Stream's two.
 name: "Hurricane"
-skill_order: 1
 description:
   "Launch a tremendous volley of arrows, like a catastrophic rainstorm."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 1 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_BOW
 exceeds_master_level: true

@@ -7,10 +7,9 @@
 # Four enemies against GMS's five: the box is 330x175, one storey tall, and
 # four stand across it. See Skill.max_enemies.
 name: "Double Stab"
-skill_order: 1
 description: "Quickly stab a nearby enemy."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_ROGUE
+placement { job_advancement: JOB_ADVANCEMENT_ROGUE skill_order: 1 }
 max_level: 20
 base_delay_ms: 690
 lines: 2

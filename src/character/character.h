@@ -21,6 +21,7 @@
 #include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
+#include "src/character/skill_placement.h"
 #include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
@@ -499,8 +500,7 @@ class CharacterInstance {
       // one point each, so what this buys is VNodeCostFor's to say.
       return static_cast<int>(std::min<int64_t>(v_points(), INT_MAX));
     }
-    return skill.hyper() ? hyper_sp()
-                         : sp(StageForAdvancement(skill.job_advancement()));
+    return skill.hyper() ? hyper_sp() : sp(StageForAdvancement(BookOf(skill)));
   }
   // What raising `skill` by `amount` levels costs in V Points. Zero for
   // anything that is not a node. Asked here so the panel offering the node and
@@ -538,6 +538,15 @@ class CharacterInstance {
   // does not say whose book a skill is from -- without this a Swordman could
   // spend their points on an Archer's.
   bool HasAdvancement(JobAdvancement advancement) const;
+  // The book this character holds that lists `skill`, or
+  // JOB_ADVANCEMENT_UNSPECIFIED if they hold none of them. A shared skill sits
+  // in several books at once, and which one the character has taken is what
+  // says whose SP pool its levels came out of.
+  JobAdvancement BookHeldFor(const Skill& skill) const;
+  // Whether any book this character holds lists `skill`.
+  bool HasBookFor(const Skill& skill) const {
+    return BookHeldFor(skill) != JOB_ADVANCEMENT_UNSPECIFIED;
+  }
   // Whether the character has learned whatever `skill` demands be learned
   // first. True for a skill that demands nothing, which is most of them.
   // LearnSkill refuses when this is false; the skills tab asks it directly so

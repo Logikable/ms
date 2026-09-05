@@ -2,10 +2,9 @@
 # same bargain Buff Duration strikes. The two meet: this lands first, and the
 # share is taken of the whole.
 name: "Holy Magic Shell - Persist"
-skill_order: 5
 description: "Increases the duration of Holy Magic Shell."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 5 }
 hyper: true
 required_level: 150
 max_level: 1

@@ -3,11 +3,10 @@
 # walked in fractions -- two helpings through level 5, three through 11 and
 # four at 12, which is what Combat Orders buys.
 name: "Toxic Venom"
-skill_order: 9
 description:
   "Increases Venom's poison chance and permanently increases poison damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 9 }
 max_level: 10
 exceeds_master_level: true
 supersedes_skill_name: "Venom"

@@ -7,12 +7,11 @@
 # again rather than piling one on: what it is worth is 2000% a second for as
 # long as the Night Lord keeps swinging.
 name: "Bleed Dart"
-skill_order: 1
 description:
   "Coats your stars with a deadly poison that causes bleeding, increasing "
   "Attack Power and inflicting continuous damage on enemies."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 1 }
 hyper: true
 required_level: 140
 max_level: 1

@@ -2,12 +2,11 @@
 # enemies, and both pulse at the same 900ms, for the reason written
 # there. A dagger hangs in the air where a shuriken does.
 name: "Dark Flare"
-skill_order: 3
 description:
   "Release dark energy to summon a large dagger, which attacks enemies "
   "nearby."
 kind: SKILL_KIND_AUTO_ATTACK
-job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+placement { job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT skill_order: 3 }
 max_level: 20
 max_enemies: 3
 cast_interval_seconds: 0.9

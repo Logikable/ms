@@ -4,13 +4,12 @@
 # The attack is the party's, as GMS writes it -- "Attack Power of Party Members
 # Including Yourself". The shelter and the reflection are the Fighter's alone.
 name: "Spirit Blade"
-skill_order: 4
 description:
   "The sword and the spirit are united to improve the Attack Power of party "
   "members including yourself, and reflect a multiple of the damage that you "
   "receive."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_FIGHTER
+placement { job_advancement: JOB_ADVANCEMENT_FIGHTER skill_order: 4 }
 max_level: 20
 base {
   attack: 11

@@ -6,12 +6,11 @@
 # No exclusive_group: what does not stack is the flat half, and this one has
 # none. See decent_sharp_eyes.textproto for the rule.
 name: "Decent Holy Fountain"
-skill_order: 10
 description:
   "Summons a fountain that restores the HP of anyone who drinks from it. "
   "Nobody here ever stops walking long enough."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_COMMON
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 10 }
 v_node: V_NODE_KIND_COMMON
 max_level: 30
 base {

@@ -7,13 +7,12 @@
 # 120ms. It strikes on a cadence of its own (`attackAfter`), as Phoenix does --
 # and read this way Phoenix gives back the 1710ms it already carries.
 name: "Thunder Sphere"
-skill_order: 2
 description:
   "Summon an orb of condensed lightning. The orb discharges a high-voltage "
   "current at nearby enemies to deal lightning-based damage."
 kind: SKILL_KIND_AUTO_ATTACK
 tags: SKILL_TAG_LIGHTNING
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE skill_order: 2 }
 max_level: 20
 max_enemies: 6
 lines: 3

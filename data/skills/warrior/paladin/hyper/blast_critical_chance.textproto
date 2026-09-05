@@ -2,11 +2,10 @@
 # Paladin makes at a boss, and it lands ten lines a swing for the rate to
 # work on.
 name: "Blast - Critical Chance"
-skill_order: 8
 description:
   "Increases Critical Rate of Blast."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PALADIN
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN skill_order: 8 }
 hyper: true
 required_level: 165
 max_level: 1

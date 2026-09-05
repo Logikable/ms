@@ -1,10 +1,9 @@
 name: "Buff Mastery"
-skill_order: 8
 description:
   "Permanently increases Magic ATT and increases the duration of all buffs on "
   "you."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 8 }
 max_level: 10
 exceeds_master_level: true
 base {

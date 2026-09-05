@@ -14,10 +14,9 @@
 # It does not pass its master level. GMS masters this at 1 and does not mark it
 # for Combat Orders, so there is no level above the top for a grant to reach.
 name: "Fervent Drain"
-skill_order: 10
 description: "Increases the effect of Elemental Drain."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 10 }
 max_level: 10
 supersedes_skill_name: "Elemental Drain"
 dot_count_cap: 5

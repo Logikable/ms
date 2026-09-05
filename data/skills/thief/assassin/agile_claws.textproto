@@ -2,10 +2,9 @@
 # in the same place -- 20 -- for half the points, as every other Agile skill
 # does.
 name: "Agile Claws"
-skill_order: 4
 description: "Increases Claw Attack Speed and LUK."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ASSASSIN
+placement { job_advancement: JOB_ADVANCEMENT_ASSASSIN skill_order: 4 }
 max_level: 5
 required_skill {
   skill_name: "Claw Mastery"

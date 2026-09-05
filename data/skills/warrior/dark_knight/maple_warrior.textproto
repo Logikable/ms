@@ -6,10 +6,9 @@
 # The ladder is GMS's own L/2%: half a point a level, 15% at 30, and 16% at the
 # second of the two levels Combat Orders reaches past the top.
 name: "Maple Warrior"
-skill_order: 5
 description: "The Goddess of Maple World's grace increases your stats."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 5 }
 max_level: 30
 exceeds_master_level: true
 base { ap_stat_pct: 0.005 }

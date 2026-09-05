@@ -1037,13 +1037,26 @@ message SkillRequirement {
   int32 level = 2;
 }
 
-// Static definition of a skill. Loaded from data/skills textprotos at startup,
-// keyed by filename stem; the Character's skill_levels map references the skill
-// by its display `name`. The effect at learned level L is base + per_level *
-// (L - 1), so `base` is the level-1 value and `per_level` the increment beyond.
+// Where a skill is listed: a book, and its place on that book's page.
 //
-// Numbered in the same two blocks as SkillEffect, by the same test: a general
-// mechanism up to 99, one job line's own from 100 up.
+// The advancement's SP pool buys the skill and the skills tab draws one page
+// per advancement, so this is also what settles the SP stage -- see
+// StageForAdvancement. Every placement of one skill is at the same stage,
+// because a skill is only ever shared between jobs standing on one rung of
+// the ladder.
+message SkillPlacement {
+  JobAdvancement job_advancement = 1;
+  // Where the skill sits on that book's page, counting from 1. GMS's own
+  // order, taken off the wiki's skill list for the job, so a player who knows
+  // the class finds the skills where they expect them. Distinct within a
+  // book; nothing compares it across two.
+  //
+  // This is the whole of the order. What a skill DOES has no say in where it
+  // is listed -- the attacks are not gathered above the passives -- because
+  // GMS does not sort that way and a second rule would only fight this one.
+  int32 skill_order = 2;
+}
+
 // Which of the V Matrix's kinds of node a skill is, or none at all for an
 // ordinary skill. The kind settles what a level costs and how far the node
 // goes -- see v_matrix.h -- so a node names its kind rather than restating a
@@ -1060,6 +1073,13 @@ enum VNodeKind {
   V_NODE_KIND_BOOST = 3;
 }
 
+// Static definition of a skill. Loaded from data/skills textprotos at startup,
+// keyed by filename stem; the Character's skill_levels map references the skill
+// by its display `name`. The effect at learned level L is base + per_level *
+// (L - 1), so `base` is the level-1 value and `per_level` the increment beyond.
+//
+// Numbered in the same two blocks as SkillEffect, by the same test: a general
+// mechanism up to 99, one job line's own from 100 up.
 message Skill {
   string name = 1;
   SkillKind kind = 2;
@@ -1071,20 +1091,11 @@ message Skill {
   // Groups this skill belongs to. Recorded so a group survives until something
   // needs it; see SkillTag.
   repeated SkillTag tags = 4;
-  // Where this skill sits on its advancement's page, counting from 1. GMS's
-  // own order, taken off the wiki's skill list for the job, so a player who
-  // knows the class finds the skills where they expect them. Distinct within
-  // an advancement; nothing compares it across two.
-  //
-  // This is the whole of the order. What a skill DOES has no say in where it
-  // is listed -- the attacks are not gathered above the passives -- because
-  // GMS does not sort that way and a second rule would only fight this one.
-  int32 skill_order = 5;
-
-  // The advancement this skill belongs to. Its SP pool buys the skill, and the
-  // skills tab groups one page per advancement. Determines the SP stage (see
-  // StageForAdvancement).
-  JobAdvancement job_advancement = 6;
+  // The books that list this skill, and where it sits on each. Almost every
+  // skill names one; a skill more than one job holds names one per book, so
+  // one file serves them all -- see data/skills/shared.
+  repeated SkillPlacement placement = 5;
+  reserved 6;
   int32 max_level = 7;
   // What must be learned first, if anything. Named `required_skill` rather
   // than `requires`, which C++20 has taken for itself.

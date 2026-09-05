@@ -7,14 +7,13 @@
 # difference between the halves is the certainty -- which is what makes them
 # worth telling apart at all.
 name: "Raging Blow"
-skill_order: 1
 description:
   "Instantly slash several times to slice multiple enemies in front of you. "
   "The final two blows will always be critical hits. Additionally enhances "
   "Beam Blade."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_SWORDSMANSHIP
-job_advancement: JOB_ADVANCEMENT_HERO
+placement { job_advancement: JOB_ADVANCEMENT_HERO skill_order: 1 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

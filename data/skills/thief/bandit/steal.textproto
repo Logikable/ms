@@ -3,10 +3,9 @@
 # left is the buff -- held permanently, at GMS's own 30 by the top of the
 # ladder.
 name: "Steal"
-skill_order: 3
 description: "Increases your Attack Power."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BANDIT
+placement { job_advancement: JOB_ADVANCEMENT_BANDIT skill_order: 3 }
 max_level: 10
 base { attack: 3 }
 per_level { attack: 3 }

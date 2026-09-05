@@ -6,11 +6,10 @@
 # belong with the skill, and the stats page shows both rows so a player can see
 # what their points bought.
 name: "Endure"
-skill_order: 7
 description:
   "Enhances your Abnormal Status Resistance and Elemental Resistance."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BERSERKER
+placement { job_advancement: JOB_ADVANCEMENT_BERSERKER skill_order: 7 }
 max_level: 20
 base {
   status_resistance: 1

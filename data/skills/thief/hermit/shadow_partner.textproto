@@ -4,10 +4,9 @@
 # It doubles the LINES rather than multiplying the damage -- the same total,
 # but the swing keeps the shape the player bought. See mirror_line_pct.
 name: "Shadow Partner"
-skill_order: 4
 description: "Summons a shadow partner that mimics the summoner."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HERMIT
+placement { job_advancement: JOB_ADVANCEMENT_HERMIT skill_order: 4 }
 max_level: 20
 base { mirror_line_pct: 0.51 }
 per_level { mirror_line_pct: 0.01 }

@@ -5,12 +5,11 @@
 # strikes over its 60 seconds, which agrees within a frame. Nothing in the
 # shuriken's animation sets a cadence -- that clock is the server's.
 name: "Dark Flare"
-skill_order: 3
 description:
   "Release dark energy to summon a large shuriken that attacks enemies "
   "nearby."
 kind: SKILL_KIND_AUTO_ATTACK
-job_advancement: JOB_ADVANCEMENT_HERMIT
+placement { job_advancement: JOB_ADVANCEMENT_HERMIT skill_order: 3 }
 max_level: 20
 max_enemies: 3
 cast_interval_seconds: 0.9

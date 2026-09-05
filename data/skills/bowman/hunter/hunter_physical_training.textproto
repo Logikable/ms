@@ -1,9 +1,8 @@
 name: "Physical Training"
-skill_order: 7
 description:
   "Permanently increases STR and DEX through sheer physical training."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HUNTER
+placement { job_advancement: JOB_ADVANCEMENT_HUNTER skill_order: 7 }
 max_level: 5
 base {
   str: 6

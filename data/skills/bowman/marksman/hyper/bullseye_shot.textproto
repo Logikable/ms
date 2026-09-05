@@ -4,11 +4,10 @@
 # Four levers for forty seconds on a wait three times as long, which is the
 # widest buff either archer gets -- the Bow Master's Concentration buys two.
 name: "Bullseye Shot"
-skill_order: 1
 description:
   "Hone in on the enemy's weak spot for a devastating shot."
 kind: SKILL_KIND_ACTIVE
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 1 }
 hyper: true
 required_level: 140
 max_level: 1

@@ -5,10 +5,9 @@
 # Reductions multiply rather than sum, so this and Magic Guard's 85% come to
 # 89% together, not 110% -- see character_stats.cc.
 name: "Invincible"
-skill_order: 6
 description: "Decreases all damage taken."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CLERIC
+placement { job_advancement: JOB_ADVANCEMENT_CLERIC skill_order: 6 }
 max_level: 20
 required_skill {
   skill_name: "Heal"

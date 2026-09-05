@@ -5,10 +5,9 @@
 # Status resistance is carried and never read: nothing inflicts a status. It is
 # here to keep the wiki's figure beside the skill it belongs to.
 name: "Absolute Zero Aura"
-skill_order: 4
 description: "Envelops you and nearby party members in a shield of cold."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD skill_order: 4 }
 max_level: 10
 base {
   damage_taken_pct: 0.02

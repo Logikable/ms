@@ -9,13 +9,12 @@
 # they cannot see. Nothing in a boss fight hits the player, so it pays only
 # once the party can farm together.
 name: "Angel Ray"
-skill_order: 1
 description:
   "Attack with a holy sword, dealing tremendous holy damage. Restores party "
   "members' HP."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_BENEVOLENCE
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 1 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true

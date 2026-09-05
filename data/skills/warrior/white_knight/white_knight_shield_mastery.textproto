@@ -7,13 +7,12 @@
 # nothing to resist, and DEF is already past what it can cancel. All of it
 # waits on the off hand, which for a White Knight can only be a rosary.
 name: "Shield Mastery"
-skill_order: 6
 description:
   "Increases Elemental Resistance, Abnormal Status Resistance, DEF, and "
   "Attack Power when a secondary weapon is equipped, and gives you a chance "
   "to guard."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT skill_order: 6 }
 max_level: 20
 requires_secondary: true
 base {

@@ -3,13 +3,12 @@
 # Decent Advanced Blessing will be applied", and this clears a maxed Bless on
 # every lever while losing to a Bishop's own book from its first level.
 name: "Decent Advanced Blessing"
-skill_order: 7
 description:
   "Increases Attack Power, Magic ATT, DEF, Max HP, and Max MP. Only the "
   "highest effect from Bless, Advanced Blessing, or Decent Advanced Blessing "
   "will be applied."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_COMMON
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 7 }
 v_node: V_NODE_KIND_COMMON
 exclusive_group: "Blessing"
 max_level: 30

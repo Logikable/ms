@@ -1,10 +1,9 @@
 # One lever, flat: GMS's 3+L% of final damage, the whole skill.
 name: "Last Man Standing"
-skill_order: 10
 description:
   "Increases the attack's power by training your strong, indomitable mind."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 10 }
 max_level: 10
 exceeds_master_level: true
 base { final_dmg_pct: 0.04 }

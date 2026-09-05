@@ -8,14 +8,13 @@
 # character is swinging -- which is the whole point of Arrow Blaster counting a
 # seventh. See Skill.hits_per_attack_count.
 name: "Speed Mirage"
-skill_order: 2
 description:
   "Fire arrows fast enough to leave afterimages. After striking enemies with "
   "enough arrow-based attacks, creates afterimages that fire enemy-seeking "
   "arrows before vanishing. These arrows target a single enemy in front of "
   "the afterimage and damage any foes pierced on the way to the target."
 kind: SKILL_KIND_AUTO_ATTACK
-job_advancement: JOB_ADVANCEMENT_RANGER
+placement { job_advancement: JOB_ADVANCEMENT_RANGER skill_order: 2 }
 max_level: 20
 max_enemies: 5
 lines: 4

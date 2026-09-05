@@ -1,10 +1,9 @@
 # GMS's third Teleport Mastery hyper lengthens a teleport, which is nothing
 # here. It is the Extra Strike every other line gets instead.
 name: "Ice Strike - Extra Strike"
-skill_order: 6
 description: "Increases Ice Strike's number of attacks."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 6 }
 hyper: true
 required_level: 180
 max_level: 1

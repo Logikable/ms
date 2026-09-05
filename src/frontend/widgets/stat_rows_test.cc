@@ -11,6 +11,7 @@
 
 #include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
+#include "src/character/skill_placement.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -48,7 +49,7 @@ class StatRowsTest : public testing::Test {
     Skill skill;
     skill.set_name("Sharp Eyes");
     skill.set_kind(SKILL_KIND_PASSIVE);
-    skill.set_job_advancement(advancement);
+    PlaceIn(skill, advancement);
     skill.set_max_level(1);
     skill.mutable_base()->set_crit_rate(1.2);
     return skill;
@@ -69,7 +70,7 @@ class StatRowsTest : public testing::Test {
     Skill skill;
     skill.set_name("Marksmanship");
     skill.set_kind(SKILL_KIND_PASSIVE);
-    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
     skill.set_max_level(1);
     skill.mutable_base()->set_attack_pct(share);
     return skill;

@@ -2,10 +2,9 @@
 # nothing here can be taunted -- so it lands the way Showdown's own EXP grant
 # does: as a permanent five points on both, for everything the character kills.
 name: "Showdown - Enhance"
-skill_order: 6
 description: "Increases EXP and items from enemies provoked by Showdown."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 6 }
 hyper: true
 required_level: 180
 max_level: 1

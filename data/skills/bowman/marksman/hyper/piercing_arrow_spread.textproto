@@ -7,13 +7,12 @@
 # arrow out to twelve here, as an extra hit always reaches whatever the swing
 # reached.
 name: "Piercing Arrow - Spread"
-skill_order: 8
 description:
   "Increases the max number of enemies hit by Piercing Arrow, Piercing Arrow "
   "II, Empowered Piercing Arrow, and Empowered Piercing Arrow II. Doesn't "
   "apply to the Arrow Fragments generated when Piercing Arrow lands."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 8 }
 hyper: true
 required_level: 165
 max_level: 1

@@ -3,11 +3,10 @@
 # Blow's own multiplier. Both halves of the swing collect it: the two certain
 # criticals are the same swing.
 name: "Raging Blow - Reinforce"
-skill_order: 10
 description:
   "Increases Raging Blow's damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HERO
+placement { job_advancement: JOB_ADVANCEMENT_HERO skill_order: 10 }
 hyper: true
 required_level: 150
 max_level: 1

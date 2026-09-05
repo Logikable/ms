@@ -14,6 +14,7 @@
 
 #include "src/character/character.h"
 #include "src/character/hyper_stats.h"
+#include "src/character/skill_placement.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -175,7 +176,7 @@ TEST_F(SaveTest, WritesAndReadsBackASwitchedOnToggle) {
   Skill toggle;
   toggle.set_name("Righteously Indignant");
   toggle.set_kind(SKILL_KIND_ACTIVE);
-  toggle.set_job_advancement(JOB_ADVANCEMENT_BISHOP);
+  PlaceIn(toggle, JOB_ADVANCEMENT_BISHOP);
   toggle.set_max_level(1);
   toggle.set_hyper(true);
   toggle.set_required_level(140);
@@ -820,7 +821,7 @@ TEST_F(SaveTest, ASaveTaughtPastAMaximumIsPutBackInsideItsBook) {
         std::pair<std::string, int>{"Iron Body", 20}}) {
     Skill& skill = skills[entry.first];
     skill.set_name(entry.first);
-    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
     skill.set_max_level(entry.second);
   }
   std::unique_ptr<GameState> saved = MakeState(skills);

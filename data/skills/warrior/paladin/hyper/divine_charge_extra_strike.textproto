@@ -1,11 +1,10 @@
 # On top of the strike Greater Vessel of Light already hands it: two boosts
 # naming one skill sum, so a Paladin holding both swings six.
 name: "Divine Charge - Extra Strike"
-skill_order: 6
 description:
   "Increases the attack count of Divine Charge."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PALADIN
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN skill_order: 6 }
 hyper: true
 required_level: 180
 max_level: 1

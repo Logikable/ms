@@ -6,10 +6,9 @@
 # exceeds_master_level here. GMS climbs this in steps of five levels to 30;
 # twenty levels walked evenly reach the same 91%.
 name: "Infinity"
-skill_order: 4
 description: "Bolsters the spirit to enhance your magic and recover HP."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 4 }
 max_level: 20
 base {
   final_dmg_pct: 0.15

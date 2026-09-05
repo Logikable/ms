@@ -3,10 +3,9 @@
 # levels; twenty here, so the attack lands a point a level and the critical
 # damage is flat at what GMS reaches.
 name: "Claw Expert"
-skill_order: 10
 description: "Increases Claw Mastery, Attack Power, and Critical Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 10 }
 max_level: 20
 exceeds_master_level: true
 required_skill {

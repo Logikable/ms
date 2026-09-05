@@ -1,10 +1,9 @@
 # Ignored defence combines in reverse rather than summing, so this and Mist
 # Eruption's own 40% leave the monster 48% of its DEF between them, not 40%.
 name: "Mist Eruption - Guardbreaker"
-skill_order: 11
 description: "Increases the DEF ignored by Mist Eruption."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 11 }
 hyper: true
 required_level: 165
 max_level: 1

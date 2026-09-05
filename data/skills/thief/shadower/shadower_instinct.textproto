@@ -2,12 +2,11 @@
 # 20 levels. Ten here, so all three arrive where GMS's do and the attack climbs
 # two points a level.
 name: "Shadower Instinct"
-skill_order: 7
 description:
   "Awakens your merciless Shadower's instincts, increasing your Attack, Final "
   "Damage, and Ignore Defense."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SHADOWER
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER skill_order: 7 }
 max_level: 10
 exceeds_master_level: true
 base {

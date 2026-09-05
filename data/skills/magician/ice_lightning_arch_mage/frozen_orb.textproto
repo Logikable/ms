@@ -11,13 +11,12 @@
 # ice skill in the book states a freeze duration -- so it builds the pile and
 # leaves the ice to the swings that make it.
 name: "Frozen Orb"
-skill_order: 3
 description:
   "Create and throw a Frozen Orb that fires ice shards everywhere to deal ice "
   "damage."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 3 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true

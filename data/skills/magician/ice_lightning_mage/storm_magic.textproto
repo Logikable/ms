@@ -7,11 +7,10 @@
 # and a second status over the first says nothing. What climbs with the pile is
 # Freezing Crush's own pair.
 name: "Storm Magic"
-skill_order: 7
 description:
   "Increases your Final Damage when attacking enemies that are Frozen."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE skill_order: 7 }
 max_level: 10
 base { final_dmg_pct_when_afflicted: 0.11 }
 per_level { final_dmg_pct_when_afflicted: 0.01 }

@@ -6,14 +6,13 @@
 # about the bolt arcing between nearby targets, which is only how GMS draws
 # reaching six enemies at once.
 name: "Chain Lightning"
-skill_order: 1
 description:
   "Attack the target with a high-voltage lightning-attribute attack with a "
   "high critical rate. Chain Lightning can chain attack targets near the "
   "target."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_LIGHTNING
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 1 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true

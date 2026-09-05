@@ -7,13 +7,12 @@
 # ends. The defence it strips off what it hits is dropped: nothing here holds
 # a condition on a monster.
 name: "Angelic Wrath"
-skill_order: 3
 description:
   "Calls down an avenging angel to strike the enemy. Enemies struck will be "
   "weakened."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_VENGEANCE
-job_advancement: JOB_ADVANCEMENT_CLERIC
+placement { job_advancement: JOB_ADVANCEMENT_CLERIC skill_order: 3 }
 max_level: 10
 replaces_skill_name: "Heal"
 toggle_skill_name: "Righteously Indignant"

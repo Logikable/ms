@@ -6,10 +6,9 @@
 # pair here. It is also GMS's slowest 2nd-job magician animation and reaches
 # the fewest enemies, which is what the Cleric pays for Blessed Ensemble.
 name: "Holy Arrow"
-skill_order: 1
 description: "Attack multiple monsters with Holy Arrows."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_CLERIC
+placement { job_advancement: JOB_ADVANCEMENT_CLERIC skill_order: 1 }
 max_level: 10
 required_equip_type: EQUIP_TYPE_STAFF
 base_delay_ms: 870

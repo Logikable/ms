@@ -10,6 +10,7 @@
 
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
+#include "src/character/skill_placement.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
 #include "src/item/item.h"
@@ -140,15 +141,15 @@ std::vector<const Skill*> SkillsForAdvancement(
     // A form takes its parent's row below rather than a row of its own: it
     // carries that skill's skill_order, so listing both would be two skills
     // at one place in the book.
-    if (entry.second.job_advancement() == advancement &&
-        entry.second.hyper() == hyper &&
+    if (ListedIn(entry.second, advancement) && entry.second.hyper() == hyper &&
         entry.second.replaces_skill_name().empty()) {
       result.push_back(&entry.second);
     }
   }
   std::stable_sort(result.begin(), result.end(),
-                   [](const Skill* a, const Skill* b) {
-                     return a->skill_order() < b->skill_order();
+                   [advancement](const Skill* a, const Skill* b) {
+                     return SkillOrderIn(*a, advancement) <
+                            SkillOrderIn(*b, advancement);
                    });
 
   std::map<std::string, const Skill*> by_name;

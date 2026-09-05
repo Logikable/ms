@@ -1,10 +1,9 @@
 name: "Weapon Mastery"
-skill_order: 5
 description:
   "Increases Sword and Axe Mastery, Attack Speed, Final Damage, and Critical "
   "Rate."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_FIGHTER
+placement { job_advancement: JOB_ADVANCEMENT_FIGHTER skill_order: 5 }
 max_level: 10
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

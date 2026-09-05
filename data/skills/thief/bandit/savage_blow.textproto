@@ -7,10 +7,9 @@
 # Four enemies against GMS's six: 340x175 is one storey, and four stand across
 # it. See Skill.max_enemies.
 name: "Savage Blow"
-skill_order: 1
 description: "Deal very quick consecutive attacks to the enemy in front."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_BANDIT
+placement { job_advancement: JOB_ADVANCEMENT_BANDIT skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_DAGGER
 base_delay_ms: 780

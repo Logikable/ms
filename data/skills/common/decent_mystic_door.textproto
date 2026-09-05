@@ -4,11 +4,10 @@
 # `base 1, per_level 0.2` is floored where it is read, which is GMS's own
 # ceil(L/5) exactly.
 name: "Decent Mystic Door"
-skill_order: 3
 description:
   "Opens a portal to the nearest town. Nobody here remembers what it was for."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_COMMON
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 3 }
 v_node: V_NODE_KIND_COMMON
 max_level: 30
 base {

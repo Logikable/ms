@@ -1,10 +1,9 @@
 # Mastery and nothing else, unlike the warriors' Weapon Mastery, which also
 # buys speed and crit. What the Hunter gets in its place is Quiver Cartridge.
 name: "Bow Mastery"
-skill_order: 5
 description: "Increases Bow Mastery."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HUNTER
+placement { job_advancement: JOB_ADVANCEMENT_HUNTER skill_order: 5 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_BOW
 base { mastery: 0.12 }

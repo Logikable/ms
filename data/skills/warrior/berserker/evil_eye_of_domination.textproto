@@ -7,10 +7,9 @@
 # One enemy and one strike, which is what makes it a modest skill: the eye
 # roams and picks its own target rather than joining the shout.
 name: "Evil Eye of Domination"
-skill_order: 3
 description: "Your Evil Eye roams freely, attacking nearby enemies."
 kind: SKILL_KIND_AUTO_ATTACK
-job_advancement: JOB_ADVANCEMENT_BERSERKER
+placement { job_advancement: JOB_ADVANCEMENT_BERSERKER skill_order: 3 }
 max_level: 10
 max_enemies: 1
 lines: 1

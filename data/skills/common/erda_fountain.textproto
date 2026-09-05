@@ -15,12 +15,11 @@
 # than a doubled line; here a skill on its own clock gets no shadow at all,
 # which is the engine's blanket rule for everything a character did not swing.
 name: "Erda Fountain"
-skill_order: 11
 description:
   "Plants an object filled with pure Erda. Erda released by defeated enemies "
   "condenses around it, and enough of it gathered is released at once."
 kind: SKILL_KIND_AUTO_ATTACK
-job_advancement: JOB_ADVANCEMENT_COMMON
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 11 }
 v_node: V_NODE_KIND_COMMON
 max_level: 30
 max_enemies: 10

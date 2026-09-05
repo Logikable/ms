@@ -2,10 +2,9 @@
 # over 20 levels rather than GMS's 30. Combat Orders does not carry it -- GMS
 # lets it, and two free levels of this were not worth handing over.
 name: "Infinity"
-skill_order: 5
 description: "Bolsters the spirit to enhance your magic and recover HP."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 5 }
 max_level: 20
 base {
   final_dmg_pct: 0.15

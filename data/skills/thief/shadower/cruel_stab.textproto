@@ -7,12 +7,11 @@
 # Six enemies against GMS's eight: 480x245 is one storey and holds six abreast.
 # See Skill.max_enemies.
 name: "Cruel Stab"
-skill_order: 2
 description:
   "Inflict a brutal stab with the dagger. Pick Pocket's Meso drop rate is "
   "halved for this skill. Permanently increases Final Damage."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_SHADOWER
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER skill_order: 2 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_DAGGER
 exceeds_master_level: true

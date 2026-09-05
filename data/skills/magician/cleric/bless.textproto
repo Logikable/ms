@@ -6,12 +6,11 @@
 # the other wizards end on +30 this ends on +15. The attack is granted as well
 # because GMS grants it, though a magician swings on the other number.
 name: "Bless"
-skill_order: 4
 description:
   "Increases the Attack Power, Magic ATT, and Defense of you and nearby party "
   "members."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CLERIC
+placement { job_advancement: JOB_ADVANCEMENT_CLERIC skill_order: 4 }
 exclusive_group: "Blessing"
 max_level: 10
 required_skill {

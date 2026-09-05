@@ -246,7 +246,7 @@ int BoostedLines(const GameState& state, const std::string& swing) {
   int lines = 0;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     if (state.character.skill_level(entry.second) <= 0 ||
-        !state.character.HasAdvancement(entry.second.job_advancement())) {
+        !state.character.HasBookFor(entry.second)) {
       continue;
     }
     for (const SkillBoost& boost : entry.second.boost()) {
@@ -269,8 +269,7 @@ void RecordBook(const GameState& state, const DerivedStats& derived,
   }
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     int learned = state.character.skill_level(entry.second);
-    if (learned <= 0 ||
-        !state.character.HasAdvancement(entry.second.job_advancement())) {
+    if (learned <= 0 || !state.character.HasBookFor(entry.second)) {
       continue;
     }
     result->skills.push_back({entry.second.name(), learned});

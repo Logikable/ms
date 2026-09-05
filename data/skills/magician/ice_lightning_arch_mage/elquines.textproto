@@ -10,14 +10,13 @@
 # every 4th job mastery lands. Spell Mastery keeps its page and stops paying:
 # a character holds the better of two masteries, never their sum.
 name: "Elquines"
-skill_order: 5
 description:
   "Summon Elquines. Elquines can attack multiple enemies at once. Attacks "
   "from Elquines freeze enemies. Permanently increases Spell Mastery."
 kind: SKILL_KIND_AUTO_ATTACK
 tags: SKILL_TAG_ICE
 freeze_seconds: 8.0
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 5 }
 max_level: 20
 exceeds_master_level: true
 required_skill {

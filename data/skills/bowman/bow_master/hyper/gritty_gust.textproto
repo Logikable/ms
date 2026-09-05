@@ -9,12 +9,11 @@
 #
 # The speed it takes off what it hits is dropped; nothing here moves.
 name: "Gritty Gust"
-skill_order: 2
 description:
   "Tear nearby enemies apart with a gust of wind. Also boosts Arrow Blaster "
   "and Arrow Blaster turrets."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 2 }
 hyper: true
 required_level: 160
 max_level: 1

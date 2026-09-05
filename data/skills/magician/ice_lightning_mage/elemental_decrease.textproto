@@ -3,10 +3,9 @@
 # final damage is the whole of it: GMS's 4x+4% ceiling of 40%, reached at the
 # ten levels this masters at rather than the nine it takes there.
 name: "Elemental Decrease"
-skill_order: 5
 description: "Permanently increases Final Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE skill_order: 5 }
 max_level: 10
 base { final_dmg_pct: 0.04 }
 per_level { final_dmg_pct: 0.04 }

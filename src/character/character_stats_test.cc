@@ -11,6 +11,7 @@
 
 #include "src/character/consumables.h"
 #include "src/character/inner_ability.h"
+#include "src/character/skill_placement.h"
 #include "src/character/v_matrix.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -93,7 +94,7 @@ Skill CriticalShot() {
   Skill skill;
   skill.set_name("Critical Shot");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   skill.mutable_base()->set_crit_rate(0.02);
   skill.mutable_per_level()->set_crit_rate(0.02);
@@ -105,7 +106,7 @@ Skill MpBoost() {
   Skill skill;
   skill.set_name("MP Boost");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   skill.mutable_base()->set_max_mp_pct(0.01);
   skill.mutable_base()->set_max_mp_per_level(25);
@@ -121,7 +122,7 @@ Skill NimbleBody() {
   Skill skill;
   skill.set_name("Nimble Body");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   skill.mutable_base()->set_luk(1);
   skill.mutable_per_level()->set_luk(1);
@@ -133,7 +134,7 @@ Skill PhysicalTraining() {
   Skill skill;
   skill.set_name("Physical Training");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(5);
   skill.mutable_base()->set_str(6);
   skill.mutable_base()->set_dex(6);
@@ -147,7 +148,7 @@ Skill WeaponMastery() {
   Skill skill;
   skill.set_name("Weapon Mastery");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(10);
   skill.mutable_base()->set_mastery(0.14);
   skill.mutable_per_level()->set_mastery(0.04);
@@ -160,7 +161,7 @@ Skill FinalAttack() {
   Skill skill;
   skill.set_name("Final Attack");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   skill.mutable_base()->set_final_attack_chance(0.02);
   skill.mutable_base()->set_final_attack_pct(1.22);
@@ -175,7 +176,7 @@ Skill ArcheryMastery() {
   Skill skill;
   skill.set_name("Archery Mastery");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(15);
   skill.mutable_base()->set_attack_speed(1);
   return skill;
@@ -186,7 +187,7 @@ Skill WarriorMastery() {
   Skill skill;
   skill.set_name("Warrior Mastery");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(15);
   skill.mutable_base()->set_max_hp_per_level(6);
   skill.mutable_per_level()->set_max_hp_per_level(1);
@@ -199,7 +200,7 @@ Skill AdvancedBlessing() {
   Skill skill;
   skill.set_name("Advanced Blessing");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(10);
   skill.mutable_base()->set_max_hp(525);
   skill.mutable_base()->set_max_mp(525);
@@ -232,7 +233,7 @@ TEST_F(DerivedStatsTest, ACommonNodeGrantsWhatItStates) {
   Skill rope;
   rope.set_name("Rope Lift");
   rope.set_kind(SKILL_KIND_PASSIVE);
-  rope.set_job_advancement(JOB_ADVANCEMENT_COMMON);
+  PlaceIn(rope, JOB_ADVANCEMENT_COMMON);
   rope.set_v_node(V_NODE_KIND_COMMON);
   rope.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
   rope.mutable_base()->set_str(1);
@@ -259,7 +260,7 @@ TEST_F(DerivedStatsTest, AFractionalLadderStepsEveryFifthLevel) {
   Skill door;
   door.set_name("Decent Mystic Door");
   door.set_kind(SKILL_KIND_PASSIVE);
-  door.set_job_advancement(JOB_ADVANCEMENT_COMMON);
+  PlaceIn(door, JOB_ADVANCEMENT_COMMON);
   door.set_v_node(V_NODE_KIND_COMMON);
   door.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
   door.mutable_base()->set_str(1);
@@ -529,7 +530,7 @@ Skill FreezingCrush() {
   Skill skill;
   skill.set_name("Freezing Crush");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(1);
   skill.set_freeze_stack_cap(5);
   skill.mutable_base()->set_crit_dmg_per_freeze_stack(0.01);
@@ -541,7 +542,7 @@ Skill GlacialFury() {
   Skill skill;
   skill.set_name("Glacial Fury");
   skill.set_kind(SKILL_KIND_ACTIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(1);
   skill.mutable_buff()->set_duration_seconds(20.0);
   skill.mutable_buff()->mutable_base()->set_freeze_stack_cap_bonus(8);
@@ -587,7 +588,7 @@ Skill MagicGuard() {
   Skill skill;
   skill.set_name("Magic Guard");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(10);
   skill.mutable_base()->set_damage_to_mp_pct(0.22);
   skill.mutable_per_level()->set_damage_to_mp_pct(0.07);
@@ -625,7 +626,7 @@ Skill EvasionBoost() {
   Skill skill;
   skill.set_name("Evasion Boost");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(10);
   skill.mutable_base()->set_dodge_chance(0.12);
   skill.mutable_per_level()->set_dodge_chance(0.02);
@@ -666,7 +667,7 @@ Skill Barrier() {
   Skill skill;
   skill.set_name("Frailty Curse");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   skill.mutable_base()->set_enemy_attack_pct(0.11);
   skill.mutable_per_level()->set_enemy_attack_pct(0.01);
@@ -903,7 +904,7 @@ TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackOfThePassiveItNames) {
   Skill hyper;
   hyper.set_name("Advanced Final Attack - Opportunity");
   hyper.set_kind(SKILL_KIND_PASSIVE);
-  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(hyper, JOB_ADVANCEMENT_SWORDMAN);
   hyper.set_max_level(1);
   SkillBoost* boost = hyper.add_boost();
   boost->set_skill_name("Final Attack");
@@ -932,7 +933,7 @@ TEST_F(DerivedStatsTest, ABoostCanLiftAFinalAttacksOwnMultiplier) {
   Skill hyper;
   hyper.set_name("Death Star");
   hyper.set_kind(SKILL_KIND_PASSIVE);
-  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(hyper, JOB_ADVANCEMENT_SWORDMAN);
   hyper.set_max_level(1);
   SkillBoost* boost = hyper.add_boost();
   boost->set_skill_name("Final Attack");
@@ -966,7 +967,7 @@ TEST_F(DerivedStatsTest, ABoostCanTakeALeverAway) {
   Skill hyper;
   hyper.set_name("Hurricane - Split Attack");
   hyper.set_kind(SKILL_KIND_PASSIVE);
-  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(hyper, JOB_ADVANCEMENT_SWORDMAN);
   hyper.set_max_level(1);
   SkillBoost* boost = hyper.add_boost();
   boost->set_skill_name("Hurricane");
@@ -990,7 +991,7 @@ TEST_F(DerivedStatsTest, AFinalAttackKeepsItsOwnChanceWhenNobodyNamesIt) {
   Skill hyper;
   hyper.set_name("Aimed Elsewhere");
   hyper.set_kind(SKILL_KIND_PASSIVE);
-  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(hyper, JOB_ADVANCEMENT_SWORDMAN);
   hyper.set_max_level(1);
   SkillBoost* boost = hyper.add_boost();
   boost->set_skill_name("Some Other Skill");
@@ -1012,7 +1013,7 @@ TEST_F(DerivedStatsTest, OnlyAPassivesBurnFollowsTheCharacter) {
   Skill venom;
   venom.set_name("Venom");
   venom.set_kind(SKILL_KIND_PASSIVE);
-  venom.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(venom, JOB_ADVANCEMENT_SWORDMAN);
   venom.set_max_level(10);
   venom.mutable_dot()->set_interval_seconds(1.0);
   venom.mutable_dot()->set_duration_seconds(6.0);
@@ -1071,7 +1072,7 @@ Skill AdvancedFinalAttack() {
   Skill skill;
   skill.set_name("Advanced Final Attack");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(30);
   skill.set_supersedes_skill_name("Final Attack");
   skill.mutable_base()->set_final_attack_chance(0.60);
@@ -1117,7 +1118,8 @@ TEST_F(DerivedStatsTest, ASkillGrantingNothingSupersedesNothing) {
     // have, and what a shared display name really does.
     Skill theirs = advanced;
     if (which == 1) {
-      theirs.set_job_advancement(JOB_ADVANCEMENT_FIGHTER);
+      theirs.clear_placement();
+      PlaceIn(theirs, JOB_ADVANCEMENT_FIGHTER);
     }
     std::map<std::string, Skill> skills = {{"final_attack", final_attack},
                                            {"advanced", theirs}};
@@ -1143,7 +1145,7 @@ Skill SharpEyes() {
   Skill skill;
   skill.set_name("Sharp Eyes");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   skill.set_exclusive_group("Sharp Eyes");
   skill.mutable_base()->set_crit_rate(0.01);
@@ -1157,7 +1159,7 @@ Skill DecentSharpEyes() {
   Skill skill;
   skill.set_name("Decent Sharp Eyes");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(30);
   skill.set_exclusive_group("Sharp Eyes");
   skill.mutable_base()->set_crit_rate(0.10);
@@ -1354,7 +1356,7 @@ Skill CombatOrders() {
   Skill skill;
   skill.set_name("Combat Orders");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(10);
   skill.mutable_base()->set_skill_level_bonus(1.0);
   skill.mutable_per_level()->set_skill_level_bonus(0.11111111111);
@@ -1490,7 +1492,8 @@ TEST_F(DerivedStatsTest, BonusLevelsComeOnlyFromTheCharactersOwnBook) {
   ASSERT_TRUE(c.LearnSkill(orders, 10));
   // Learned, then moved into a book this swordman does not hold. The level
   // stays -- it is keyed by display name -- and stops counting.
-  skills["combat_orders"].set_job_advancement(JOB_ADVANCEMENT_MAGICIAN);
+  skills["combat_orders"].mutable_placement(0)->set_job_advancement(
+      JOB_ADVANCEMENT_MAGICIAN);
 
   EXPECT_EQ(BonusSkillLevels(c, skills), 0);
   EXPECT_EQ(DerivedStatsFor(c, skills).def, 180);
@@ -1504,7 +1507,7 @@ TEST_F(DerivedStatsTest, AnAttackSkillsPermanentGrantsStillLand) {
   Skill phoenix;
   phoenix.set_name("Phoenix");
   phoenix.set_kind(SKILL_KIND_AUTO_ATTACK);
-  phoenix.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(phoenix, JOB_ADVANCEMENT_SWORDMAN);
   phoenix.set_max_level(10);
   phoenix.mutable_base()->set_skill_pct(2.28);  // what it hits for
   phoenix.mutable_base()->set_def(30);          // and what it grants for good
@@ -1532,9 +1535,10 @@ TEST_F(DerivedStatsTest, AnotherBranchsCopyOfASharedNameIsIgnored) {
   CharacterInstance c(rng_, std::move(proto));
 
   Skill mine = PhysicalTraining();
-  mine.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  PlaceIn(mine, JOB_ADVANCEMENT_SPEARMAN);
   Skill theirs = mine;
-  theirs.set_job_advancement(JOB_ADVANCEMENT_FIGHTER);
+  theirs.clear_placement();
+  PlaceIn(theirs, JOB_ADVANCEMENT_FIGHTER);
   std::map<std::string, Skill> skills = {{"spearman_physical_training", mine},
                                          {"fighter_physical_training", theirs}};
 
@@ -1553,7 +1557,7 @@ TEST_F(DerivedStatsTest, TheCharactersOwnBookStillCounts) {
   CharacterInstance c(rng_, std::move(proto));
 
   Skill mine = PhysicalTraining();
-  mine.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  PlaceIn(mine, JOB_ADVANCEMENT_SPEARMAN);
   std::map<std::string, Skill> skills = {{"spearman_physical_training", mine}};
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
 }
@@ -1565,7 +1569,7 @@ TEST_F(DerivedStatsTest, AttackAndReflectionFoldIn) {
   Skill blade;
   blade.set_name("Spirit Blade");
   blade.set_kind(SKILL_KIND_PASSIVE);
-  blade.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(blade, JOB_ADVANCEMENT_SWORDMAN);
   blade.set_max_level(20);
   blade.mutable_base()->set_attack(11);
   blade.mutable_base()->set_damage_reflect_pct(1.2);
@@ -1586,7 +1590,7 @@ TEST_F(DerivedStatsTest, ComboOrbsAreWorthTheirAttackApiece) {
   Skill combo;
   combo.set_name("Combo Attack");
   combo.set_kind(SKILL_KIND_PASSIVE);
-  combo.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(combo, JOB_ADVANCEMENT_SWORDMAN);
   combo.set_max_level(1);
   combo.set_combo_orbs(5);
   combo.mutable_base()->set_attack_per_combo_orb(2);
@@ -1606,14 +1610,14 @@ TEST_F(DerivedStatsTest, OneSkillPricesTheOrbsAnotherHandsOut) {
   Skill combo;
   combo.set_name("Combo Attack");
   combo.set_kind(SKILL_KIND_PASSIVE);
-  combo.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(combo, JOB_ADVANCEMENT_SWORDMAN);
   combo.set_max_level(1);
   combo.set_combo_orbs(5);
   combo.mutable_base()->set_attack_per_combo_orb(2);
   Skill synergy;
   synergy.set_name("Combo Synergy");
   synergy.set_kind(SKILL_KIND_PASSIVE);
-  synergy.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(synergy, JOB_ADVANCEMENT_SWORDMAN);
   synergy.set_max_level(20);
   synergy.mutable_base()->set_final_dmg_pct_per_combo_orb(0.0025);
   synergy.mutable_per_level()->set_final_dmg_pct_per_combo_orb(0.0025);
@@ -1639,7 +1643,7 @@ TEST_F(DerivedStatsTest, TwoOrbCountsLeaveTheLargerRing) {
     Skill skill;
     skill.set_name("Combo " + std::to_string(i));
     skill.set_kind(SKILL_KIND_PASSIVE);
-    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
     skill.set_max_level(1);
     skill.set_combo_orbs(counts[i]);
     skills.insert({"combo_" + std::to_string(i), skill});
@@ -1648,7 +1652,7 @@ TEST_F(DerivedStatsTest, TwoOrbCountsLeaveTheLargerRing) {
   Skill priced;
   priced.set_name("Combo Attack");
   priced.set_kind(SKILL_KIND_PASSIVE);
-  priced.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(priced, JOB_ADVANCEMENT_SWORDMAN);
   priced.set_max_level(1);
   priced.mutable_base()->set_attack_per_combo_orb(2);
   skills.insert({"combo_attack", priced});
@@ -1665,14 +1669,14 @@ TEST_F(DerivedStatsTest, AWiderRingIsStillPricedByTheSkillThatNamedIt) {
   Skill combo;
   combo.set_name("Combo Attack");
   combo.set_kind(SKILL_KIND_PASSIVE);
-  combo.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(combo, JOB_ADVANCEMENT_SWORDMAN);
   combo.set_max_level(1);
   combo.set_combo_orbs(5);
   combo.mutable_base()->set_attack_per_combo_orb(2);
   Skill advanced;
   advanced.set_name("Advanced Combo");
   advanced.set_kind(SKILL_KIND_PASSIVE);
-  advanced.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(advanced, JOB_ADVANCEMENT_SWORDMAN);
   advanced.set_max_level(20);
   advanced.set_combo_orbs(5);
   advanced.set_combo_orbs_per_level(0.26316);
@@ -1692,13 +1696,13 @@ TEST_F(DerivedStatsTest, BossDamageAndDefArePricedPerOrb) {
   Skill combo;
   combo.set_name("Advanced Combo");
   combo.set_kind(SKILL_KIND_PASSIVE);
-  combo.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(combo, JOB_ADVANCEMENT_SWORDMAN);
   combo.set_max_level(1);
   combo.set_combo_orbs(10);
   Skill rush;
   rush.set_name("Boss Rush");
   rush.set_kind(SKILL_KIND_PASSIVE);
-  rush.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(rush, JOB_ADVANCEMENT_SWORDMAN);
   rush.set_max_level(1);
   rush.mutable_base()->set_boss_pct_per_combo_orb(0.02);
   rush.mutable_base()->set_def_per_combo_orb(100);
@@ -1719,7 +1723,7 @@ TEST_F(DerivedStatsTest, PerOrbFinalDamageIsWorthNothingWithoutOrbs) {
   Skill synergy;
   synergy.set_name("Combo Synergy");
   synergy.set_kind(SKILL_KIND_PASSIVE);
-  synergy.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(synergy, JOB_ADVANCEMENT_SWORDMAN);
   synergy.set_max_level(20);
   synergy.mutable_base()->set_final_dmg_pct_per_combo_orb(0.05);
   synergy.mutable_base()->set_final_dmg_pct(0.10);
@@ -1738,7 +1742,7 @@ TEST_F(DerivedStatsTest, DamagePercentSumsAndFinalDamageMultiplies) {
     Skill skill;
     skill.set_name(name);
     skill.set_kind(SKILL_KIND_PASSIVE);
-    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
     skill.set_max_level(1);
     skill.mutable_base()->set_damage_pct(0.10);
     skill.mutable_base()->set_final_dmg_pct(0.10);
@@ -1773,7 +1777,7 @@ Skill Marksmanship() {
   Skill skill;
   skill.set_name("Marksmanship");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   skill.mutable_base()->set_ied_pct(0.06);
   skill.mutable_per_level()->set_ied_pct(0.01);
@@ -1786,7 +1790,7 @@ Skill AttackPercent() {
   Skill skill;
   skill.set_name("Marksmanship");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   skill.mutable_base()->set_attack_pct(0.06);
   skill.mutable_per_level()->set_attack_pct(0.01);
@@ -1799,7 +1803,7 @@ TEST_F(DerivedStatsTest, AttackPercentScalesWornAndGrantedAlike) {
   Skill grant;
   grant.set_name("Soul Arrow");
   grant.set_kind(SKILL_KIND_PASSIVE);
-  grant.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(grant, JOB_ADVANCEMENT_SWORDMAN);
   grant.set_max_level(1);
   grant.mutable_base()->set_attack(20);
   std::map<std::string, Skill> skills = {{"marksmanship", marks},
@@ -1845,7 +1849,7 @@ Skill SpeedMirage() {
   Skill skill;
   skill.set_name("Speed Mirage");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   SkillBoost* boost = skill.add_boost();
   boost->set_skill_name("Wind Arrow");
@@ -2025,7 +2029,7 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   Skill pocket;
   pocket.set_name("Pick Pocket");
   pocket.set_kind(SKILL_KIND_PASSIVE);
-  pocket.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(pocket, JOB_ADVANCEMENT_SWORDMAN);
   pocket.set_max_level(10);
   pocket.mutable_base()->set_meso_drop_chance(0.12);
   pocket.mutable_per_level()->set_meso_drop_chance(0.02);
@@ -2033,7 +2037,7 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   Skill explosion;
   explosion.set_name("Meso Explosion");
   explosion.set_kind(SKILL_KIND_PASSIVE);
-  explosion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(explosion, JOB_ADVANCEMENT_SWORDMAN);
   explosion.set_max_level(20);
   explosion.set_lines(2);
   explosion.mutable_base()->set_meso_hit_pct(0.43);
@@ -2042,7 +2046,7 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   Skill mastery;
   mastery.set_name("Meso Mastery");
   mastery.set_kind(SKILL_KIND_PASSIVE);
-  mastery.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(mastery, JOB_ADVANCEMENT_SWORDMAN);
   mastery.set_max_level(10);
   SkillBoost* mastery_boost = mastery.add_boost();
   mastery_boost->set_skill_name("Meso Explosion");
@@ -2078,7 +2082,7 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   Skill money;
   money.set_name("Blood Money");
   money.set_kind(SKILL_KIND_PASSIVE);
-  money.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(money, JOB_ADVANCEMENT_SWORDMAN);
   money.set_max_level(20);
   SkillBoost* money_boost = money.add_boost();
   money_boost->set_skill_name("Meso Explosion");
@@ -2100,7 +2104,7 @@ TEST_F(DerivedStatsTest, BossDamageSumsAcrossPassives) {
   Skill spirit;
   spirit.set_name("Spirit of the Star");
   spirit.set_kind(SKILL_KIND_PASSIVE);
-  spirit.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(spirit, JOB_ADVANCEMENT_SWORDMAN);
   spirit.set_max_level(10);
   spirit.mutable_base()->set_boss_pct(0.01);
   spirit.mutable_per_level()->set_boss_pct(0.01);
@@ -2123,7 +2127,7 @@ TEST_F(DerivedStatsTest, AFountainKeepsItsPulseAndItsInterval) {
   Skill fountain;
   fountain.set_name("Holy Fountain");
   fountain.set_kind(SKILL_KIND_PASSIVE);
-  fountain.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(fountain, JOB_ADVANCEMENT_SWORDMAN);
   fountain.set_max_level(10);
   fountain.mutable_base()->set_regen_pct(0.13);
   fountain.mutable_per_level()->set_regen_pct(0.03);
@@ -2151,7 +2155,7 @@ TEST_F(DerivedStatsTest, AFountainCanPourHarderForACleverCharacter) {
   Skill water;
   water.set_name("Holy Water");
   water.set_kind(SKILL_KIND_PASSIVE);
-  water.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(water, JOB_ADVANCEMENT_SWORDMAN);
   water.set_max_level(10);
   water.mutable_base()->set_regen_pct(0.005);
   water.mutable_per_level()->set_regen_pct(0.005);
@@ -2160,7 +2164,7 @@ TEST_F(DerivedStatsTest, AFountainCanPourHarderForACleverCharacter) {
   Skill wisdom;
   wisdom.set_name("High Wisdom");
   wisdom.set_kind(SKILL_KIND_PASSIVE);
-  wisdom.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(wisdom, JOB_ADVANCEMENT_SWORDMAN);
   wisdom.set_max_level(10);
   wisdom.mutable_base()->set_int_(1000);
   std::map<std::string, Skill> skills = {{"holy_water", water},
@@ -2198,14 +2202,14 @@ TEST_F(DerivedStatsTest, TwoFountainsKeepTheirOwnClocks) {
   Skill fountain;
   fountain.set_name("Holy Fountain");
   fountain.set_kind(SKILL_KIND_PASSIVE);
-  fountain.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(fountain, JOB_ADVANCEMENT_SWORDMAN);
   fountain.set_max_level(10);
   fountain.mutable_base()->set_regen_pct(0.13);
   fountain.mutable_base()->set_regen_interval_seconds(7.5);
   Skill infinity;
   infinity.set_name("Infinity");
   infinity.set_kind(SKILL_KIND_PASSIVE);
-  infinity.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(infinity, JOB_ADVANCEMENT_SWORDMAN);
   infinity.set_max_level(10);
   infinity.mutable_base()->set_regen_pct(0.10);
   infinity.mutable_base()->set_regen_interval_seconds(5.0);
@@ -2227,7 +2231,7 @@ TEST_F(DerivedStatsTest, AFountainWithNoIntervalGrantsNothing) {
   Skill fountain;
   fountain.set_name("Holy Fountain");
   fountain.set_kind(SKILL_KIND_PASSIVE);
-  fountain.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(fountain, JOB_ADVANCEMENT_SWORDMAN);
   fountain.set_max_level(10);
   fountain.mutable_base()->set_regen_pct(0.13);
   std::map<std::string, Skill> skills = {{"holy_fountain", fountain}};
@@ -2244,7 +2248,7 @@ TEST_F(DerivedStatsTest, SkillGrantedIntLandsInTheStatLineAndBuysNoDef) {
   Skill wisdom;
   wisdom.set_name("High Wisdom");
   wisdom.set_kind(SKILL_KIND_PASSIVE);
-  wisdom.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(wisdom, JOB_ADVANCEMENT_SWORDMAN);
   wisdom.set_max_level(5);
   wisdom.mutable_base()->set_int_(8);
   wisdom.mutable_per_level()->set_int_(8);
@@ -2265,7 +2269,7 @@ TEST_F(DerivedStatsTest, MagicAttackAndCritDamageFoldIn) {
   Skill crush;
   crush.set_name("Freezing Crush");
   crush.set_kind(SKILL_KIND_PASSIVE);
-  crush.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(crush, JOB_ADVANCEMENT_SWORDMAN);
   crush.set_max_level(10);
   crush.mutable_base()->set_crit_dmg(0.005);
   crush.mutable_base()->set_magic_attack(3);
@@ -2287,7 +2291,7 @@ TEST_F(DerivedStatsTest, AWeaponBonusLandsOnlyForItsOwnWeapons) {
   Skill mastery;
   mastery.set_name("Weapon Mastery");
   mastery.set_kind(SKILL_KIND_PASSIVE);
-  mastery.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(mastery, JOB_ADVANCEMENT_SWORDMAN);
   mastery.set_max_level(10);
   mastery.mutable_base()->set_mastery(0.5);
   mastery.add_required_equip_type(EQUIP_TYPE_SPEAR);
@@ -2320,7 +2324,7 @@ TEST_F(DerivedStatsTest, AWeaponBonusDoesNotGrowWithTheSkill) {
   Skill mastery;
   mastery.set_name("Weapon Mastery");
   mastery.set_kind(SKILL_KIND_PASSIVE);
-  mastery.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(mastery, JOB_ADVANCEMENT_SWORDMAN);
   mastery.set_max_level(10);
   mastery.mutable_per_level()->set_str(1);
   WeaponBonus* bonus = mastery.add_weapon_bonus();
@@ -2423,7 +2427,7 @@ Skill MapleWarrior() {
   Skill skill;
   skill.set_name("Maple Warrior");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(30);
   skill.mutable_base()->set_ap_stat_pct(0.01);
   skill.mutable_per_level()->set_ap_stat_pct(0.00483);
@@ -2720,7 +2724,7 @@ Skill FinalPact() {
   Skill skill;
   skill.set_name("Final Pact");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(30);
   skill.mutable_base()->set_revive_cooldown_seconds(1103);
   skill.mutable_per_level()->set_revive_cooldown_seconds(-7);
@@ -2783,7 +2787,7 @@ Skill DarkResonance() {
   Skill skill;
   skill.set_name("Dark Resonance");
   skill.set_kind(SKILL_KIND_ACTIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(30);
   skill.set_cooldown_seconds(70.0);
   skill.mutable_base()->set_ied_pct(0.01);
@@ -2836,7 +2840,7 @@ TEST_F(DerivedStatsTest, ANodesBuffIsOneTheCharacterCanPutUp) {
   CharacterInstance c = MakeCharacter(rng_, 100, 100);
   Skill node = DarkResonance();
   node.set_name("Decent Advanced Blessing");
-  node.set_job_advancement(JOB_ADVANCEMENT_COMMON);
+  PlaceIn(node, JOB_ADVANCEMENT_COMMON);
   node.set_v_node(V_NODE_KIND_COMMON);
   node.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
   std::map<std::string, Skill> skills = {{"decent_advanced_blessing", node}};
@@ -2870,7 +2874,7 @@ TEST_F(DerivedStatsTest, DropRateSumsWornAndGranted) {
   Skill greed;
   greed.set_name("Greed");
   greed.set_kind(SKILL_KIND_PASSIVE);
-  greed.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(greed, JOB_ADVANCEMENT_SWORDMAN);
   greed.set_max_level(10);
   greed.mutable_base()->set_item_drop_pct(0.01);
   greed.mutable_per_level()->set_item_drop_pct(0.01);
@@ -2900,7 +2904,7 @@ TEST_F(DerivedStatsTest, MesoCapsWhatIsWornAndThenTheWholeSum) {
   Skill greed;
   greed.set_name("Greed");
   greed.set_kind(SKILL_KIND_PASSIVE);
-  greed.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(greed, JOB_ADVANCEMENT_SWORDMAN);
   greed.set_max_level(10);
   greed.mutable_base()->set_meso_pct(0.05);
   greed.mutable_per_level()->set_meso_pct(0.05);
@@ -2968,7 +2972,7 @@ Skill Bless() {
   Skill skill;
   skill.set_name("Bless");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(10);
   skill.mutable_base()->set_attack(6);
   skill.mutable_per_level()->set_attack(1);
@@ -3010,7 +3014,7 @@ Skill Smokescreen() {
   Skill skill;
   skill.set_name("Smokescreen");
   skill.set_kind(SKILL_KIND_ACTIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(10);
   skill.set_cooldown_seconds(120.0);
   Buff& buff = *skill.mutable_buff();
@@ -3185,7 +3189,7 @@ Skill Toggle() {
   Skill skill;
   skill.set_name("Righteously Indignant");
   skill.set_kind(SKILL_KIND_ACTIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(1);
   skill.set_toggle(true);
   skill.mutable_base()->set_magic_attack(50);
@@ -3247,7 +3251,7 @@ TEST_F(DerivedStatsTest, AStackingGrantPaysOncePerAlly) {
   Skill ensemble;
   ensemble.set_name("Blessed Ensemble");
   ensemble.set_kind(SKILL_KIND_PASSIVE);
-  ensemble.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(ensemble, JOB_ADVANCEMENT_SWORDMAN);
   ensemble.set_max_level(10);
   ensemble.set_ally_effect_stacks(true);
   ensemble.mutable_ally_base()->set_exp_pct(0.02);
@@ -3273,7 +3277,7 @@ TEST_F(DerivedStatsTest, AStackingGrantIsNotThinnedBySupersession) {
   Skill ensemble;
   ensemble.set_name("Blessed Ensemble");
   ensemble.set_kind(SKILL_KIND_PASSIVE);
-  ensemble.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(ensemble, JOB_ADVANCEMENT_SWORDMAN);
   ensemble.set_max_level(10);
   ensemble.set_ally_effect_stacks(true);
   ensemble.mutable_ally_base()->set_exp_pct(0.20);

@@ -3,11 +3,10 @@
 # folded in here as permanent, and the skill is renamed for the DEF it hands
 # out instead. Which is worth nothing, deliberately.
 name: "Sharp Eyes - Bulwark"
-skill_order: 4
 description:
   "Grants Sharp Eyes a bonus to DEF."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 4 }
 hyper: true
 required_level: 140
 max_level: 1

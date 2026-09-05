@@ -9,12 +9,11 @@
 # GMS's knockback resistance is dropped -- nothing here knocks a character
 # back.
 name: "Buff Mastery"
-skill_order: 9
 description:
   "Permanently increases Magic ATT and Final Damage and increases the "
   "duration of all buffs on you."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 9 }
 max_level: 10
 exceeds_master_level: true
 base {

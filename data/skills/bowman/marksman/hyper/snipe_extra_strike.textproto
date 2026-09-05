@@ -3,12 +3,11 @@
 # Empowered Arrows -- which is what the boost following the skill into its
 # form reaches.
 name: "Snipe - Extra Strike"
-skill_order: 10
 description:
   "Increases the number of attacks of Snipe, Empowered Snipe, and of Snipe's "
   "additional hits."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 10 }
 hyper: true
 required_level: 140
 max_level: 1

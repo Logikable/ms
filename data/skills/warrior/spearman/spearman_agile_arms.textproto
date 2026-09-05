@@ -1,10 +1,9 @@
 # GMS gives 2 STR a level over 10 levels. Spread over 5 at 4 apiece, which ends
 # in the same place -- 20 -- for half the points.
 name: "Agile Arms"
-skill_order: 6
 description: "Increases Attack Speed and STR."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SPEARMAN
+placement { job_advancement: JOB_ADVANCEMENT_SPEARMAN skill_order: 6 }
 max_level: 5
 required_skill {
   skill_name: "Weapon Mastery"

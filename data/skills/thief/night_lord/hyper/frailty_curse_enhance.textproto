@@ -2,10 +2,9 @@
 # hitting the character. The DEF half of GMS's penalty goes with the one on the
 # skill itself: nothing here reads a monster's DEF as a number to take from.
 name: "Frailty Curse - Enhance"
-skill_order: 7
 description: "Increases the Attack Power penalty from Frailty Curse."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 7 }
 hyper: true
 required_level: 140
 max_level: 1

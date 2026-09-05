@@ -3,6 +3,26 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "skill_placement",
+    srcs = ["skill_placement.cc"],
+    hdrs = ["skill_placement.h"],
+    deps = [
+        "//src/protos:character_proto_cc",
+        "//src/protos:skill_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "skill_placement_test",
+    size = "small",
+    srcs = ["skill_placement_test.cc"],
+    deps = [
+        ":skill_placement",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "character",
     srcs = ["character.cc"],
     hdrs = ["character.h"],
@@ -13,6 +33,7 @@ cc_library(
         ":hyper_stats",
         ":inner_ability",
         ":job_branch",
+        ":skill_placement",
         ":v_matrix",
         "//src/item",
         "//src/item:equip_instance",

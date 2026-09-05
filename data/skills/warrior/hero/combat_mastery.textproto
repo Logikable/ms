@@ -1,10 +1,9 @@
 # 20 + L% straight from GMS. It pays against a boss and nowhere else: no map
 # mob sets any physical defence for a share of it to cancel.
 name: "Combat Mastery"
-skill_order: 5
 description: "Ignores a portion of a monster's defense while attacking."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HERO
+placement { job_advancement: JOB_ADVANCEMENT_HERO skill_order: 5 }
 max_level: 30
 exceeds_master_level: true
 base { ied_pct: 0.21 }

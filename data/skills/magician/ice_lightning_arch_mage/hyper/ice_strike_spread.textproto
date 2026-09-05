@@ -1,8 +1,7 @@
 name: "Ice Strike - Spread"
-skill_order: 5
 description: "Increases the max number of monsters hit by Ice Strike."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 5 }
 hyper: true
 required_level: 150
 max_level: 1

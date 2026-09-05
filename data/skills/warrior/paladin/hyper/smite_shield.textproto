@@ -7,12 +7,11 @@
 # swing usually costs. The stun it lands and the buffs it strips are dropped:
 # nothing in this game is stunned, and no monster here holds a buff.
 name: "Smite Shield"
-skill_order: 2
 description:
   "Summons a hammer imbued with unyielding strength to strike down nearby "
   "enemies."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_PALADIN
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN skill_order: 2 }
 hyper: true
 required_level: 160
 max_level: 1

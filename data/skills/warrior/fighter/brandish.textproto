@@ -2,11 +2,10 @@
 # holding 4 monsters side by side -- so 6 is a cap GMS never fills and this
 # fight would hit every time. See Skill.max_enemies.
 name: "Brandish"
-skill_order: 1
 description: "Perform a double attack on enemies in front of you."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_SWORDSMANSHIP
-job_advancement: JOB_ADVANCEMENT_FIGHTER
+placement { job_advancement: JOB_ADVANCEMENT_FIGHTER skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

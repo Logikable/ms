@@ -1084,18 +1084,17 @@ int CharacterInstance::ReconcileAp() {
 
 namespace {
 
-// Every skill of `book`'s own book the character could still put one point
-// into: below its own max, its requirement met, its level reached. Asked once
-// per point, so a skill that the point before it has just unlocked joins the
-// list rather than being missed.
+// Every skill of `book` the character could still put one point into: below
+// its own max, its requirement met, its level reached. Asked once per point,
+// so a skill that the point before it has just unlocked joins the list rather
+// than being missed.
 std::vector<const Skill*> TakersIn(const CharacterInstance& character,
                                    const std::map<std::string, Skill>& skills,
-                                   const Skill& book) {
+                                   JobAdvancement book, bool hyper) {
   std::vector<const Skill*> takers;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    if (skill.job_advancement() != book.job_advancement() ||
-        skill.hyper() != book.hyper() ||
+    if (!ListedIn(skill, book) || skill.hyper() != hyper ||
         character.skill_level(skill) >= skill.max_level() ||
         character.proto().level() < skill.required_level() ||
         !character.MeetsSkillRequirement(skill)) {
@@ -1116,7 +1115,8 @@ int CharacterInstance::ReconcileSkills(
   // and the book the character holds is what says which one they learned.
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& taught = entry.second;
-    if (!HasAdvancement(taught.job_advancement())) {
+    JobAdvancement book = BookHeldFor(taught);
+    if (book == JOB_ADVANCEMENT_UNSPECIFIED) {
       continue;
     }
     int spare = skill_level(taught) - taught.max_level();
@@ -1132,7 +1132,8 @@ int CharacterInstance::ReconcileSkills(
     (*character_.mutable_skill_levels())[taught.name()] = taught.max_level();
     moved += spare;
     for (; spare > 0; --spare) {
-      std::vector<const Skill*> takers = TakersIn(*this, skills, taught);
+      std::vector<const Skill*> takers =
+          TakersIn(*this, skills, book, taught.hyper());
       if (takers.empty()) {
         // Nowhere in the book to put it. A book costs exactly what its levels
         // pay out, so there always should be -- the point goes back to the
@@ -1144,8 +1145,7 @@ int CharacterInstance::ReconcileSkills(
         } else if (taught.hyper()) {
           character_.set_hyper_sp(character_.hyper_sp() + 1);
         } else {
-          (*character_.mutable_sp_by_stage())[StageForAdvancement(
-              taught.job_advancement())] += 1;
+          (*character_.mutable_sp_by_stage())[StageForAdvancement(book)] += 1;
         }
         continue;
       }
@@ -1166,14 +1166,15 @@ int CharacterInstance::ReconcileSp(const std::map<std::string, Skill>& skills) {
   int hyper_spent = 0;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
+    JobAdvancement book = BookHeldFor(skill);
     if (!skill.replaces_skill_name().empty() ||
-        !HasAdvancement(skill.job_advancement())) {
+        book == JOB_ADVANCEMENT_UNSPECIFIED) {
       continue;
     }
     if (skill.hyper()) {
       hyper_spent += skill_level(skill);
     } else {
-      spent[StageForAdvancement(skill.job_advancement())] += skill_level(skill);
+      spent[StageForAdvancement(book)] += skill_level(skill);
     }
   }
   int level = character_.level();
@@ -1447,7 +1448,7 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
     return LearnVNode(skill, amount);
   }
-  if (!HasAdvancement(skill.job_advancement())) {
+  if (!HasBookFor(skill)) {
     return false;
   }
   if (!MeetsSkillRequirement(skill)) {
@@ -1470,17 +1471,26 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
     (*character_.mutable_skill_levels())[skill.name()] += amount;
     return true;
   }
-  int stage = StageForAdvancement(skill.job_advancement());
+  int stage = StageForAdvancement(BookOf(skill));
   (*character_.mutable_skill_levels())[skill.name()] += amount;
   (*character_.mutable_sp_by_stage())[stage] -= amount;
   return true;
+}
+
+JobAdvancement CharacterInstance::BookHeldFor(const Skill& skill) const {
+  for (const SkillPlacement& placement : skill.placement()) {
+    if (HasAdvancement(placement.job_advancement())) {
+      return placement.job_advancement();
+    }
+  }
+  return JOB_ADVANCEMENT_UNSPECIFIED;
 }
 
 bool CharacterInstance::HoldsSkillFrom(const Skill& skill) const {
   if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
     return ReachesVNode(skill);
   }
-  return HasAdvancement(skill.job_advancement());
+  return HasBookFor(skill);
 }
 
 bool CharacterInstance::ReachesVNode(const Skill& skill) const {
@@ -1489,8 +1499,7 @@ bool CharacterInstance::ReachesVNode(const Skill& skill) const {
   }
   // A common node belongs to no job at all, so every matrix holds it. Every
   // other names the 5th advancement whose job may buy it.
-  return skill.job_advancement() == JOB_ADVANCEMENT_COMMON ||
-         HasAdvancement(skill.job_advancement());
+  return ListedIn(skill, JOB_ADVANCEMENT_COMMON) || HasBookFor(skill);
 }
 
 int CharacterInstance::VNodeCostFor(const Skill& skill, int amount) const {

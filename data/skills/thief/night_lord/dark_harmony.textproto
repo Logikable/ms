@@ -3,10 +3,9 @@
 # attack climbs a point a level off a base that already carries the ten GMS
 # pays before level 10.
 name: "Dark Harmony"
-skill_order: 7
 description: "Become one with the darkness to deal more damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 7 }
 max_level: 10
 exceeds_master_level: true
 base {

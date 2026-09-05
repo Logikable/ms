@@ -1,10 +1,9 @@
 # GMS's figures exactly: 10+2x% critical rate and 6+x% critical damage -- the
 # same rate the two mages buy, and a point more damage than either.
 name: "Magic Critical"
-skill_order: 7
 description: "Permanently increases Critical Rate and Critical Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PRIEST
+placement { job_advancement: JOB_ADVANCEMENT_PRIEST skill_order: 7 }
 max_level: 10
 base {
   crit_rate: 0.12

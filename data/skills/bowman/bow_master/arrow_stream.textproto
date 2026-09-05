@@ -2,10 +2,9 @@
 # five strikes across eight enemies. Hurricane's passive is worth 50 points on
 # every one of the five, which is why the pair are bought together.
 name: "Arrow Stream"
-skill_order: 2
 description: "Shoot a wild flurry of arrows straight ahead."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 2 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_BOW
 exceeds_master_level: true

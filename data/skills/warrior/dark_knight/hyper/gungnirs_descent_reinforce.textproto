@@ -2,10 +2,9 @@
 # with what the character already pays rather than adding points to the
 # skill's own multiplier.
 name: "Gungnir's Descent - Reinforce"
-skill_order: 10
 description: "Increases Gungnir's Descent's damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 10 }
 hyper: true
 required_level: 150
 max_level: 1

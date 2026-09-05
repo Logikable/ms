@@ -8,14 +8,13 @@
 # instead. Nothing here deals damage that way, so a boss's hit is what stands
 # in for one: never blocked, and 10% cheaper while the shell is up.
 name: "Holy Magic Shell"
-skill_order: 2
 description:
   "Create a shield that blocks a set number of attacks on you and your party "
   "members, and restores a percentage of everyone's HP. Attacks that deal "
   "damage in proportion to Max HP are not blocked, and deal reduced damage "
   "instead."
 kind: SKILL_KIND_ACTIVE
-job_advancement: JOB_ADVANCEMENT_PRIEST
+placement { job_advancement: JOB_ADVANCEMENT_PRIEST skill_order: 2 }
 max_level: 20
 base_delay_ms: 120
 cooldown_seconds: 90.0

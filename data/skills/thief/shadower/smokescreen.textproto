@@ -7,13 +7,12 @@
 # off damage taken in proportion to Max HP, is dropped: nothing here scales a
 # hit off the player's pool.
 name: "Smokescreen"
-skill_order: 6
 description:
   "Drop a Smokescreen near you. All party members within Smokescreen range "
   "will take no damage for the duration. In addition, enemies inside the "
   "Smokescreen will take more critical damage."
 kind: SKILL_KIND_ACTIVE
-job_advancement: JOB_ADVANCEMENT_SHADOWER
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER skill_order: 6 }
 max_level: 10
 exceeds_master_level: true
 base_delay_ms: 120

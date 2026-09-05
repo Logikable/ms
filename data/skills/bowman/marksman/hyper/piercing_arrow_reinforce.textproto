@@ -9,12 +9,11 @@
 # because GMS writes it, and because the day the arrow is swung again this
 # hyper should be paying.
 name: "Piercing Arrow - Reinforce"
-skill_order: 7
 description:
   "Increases damage of Piercing Arrow, Piercing Arrow II, Arrow Fragments, "
   "Empowered Piercing Arrow, and Empowered Piercing Arrow II."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 7 }
 hyper: true
 required_level: 140
 max_level: 1

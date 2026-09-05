@@ -2,10 +2,9 @@
 # boost aimed at Meso Explosion is worth is cashed in where the throw is priced
 # -- see FoldMesoExplosion.
 name: "Meso Explosion - Reinforce"
-skill_order: 1
 description: "Increases Meso Explosion's damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SHADOWER
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER skill_order: 1 }
 hyper: true
 required_level: 140
 max_level: 1

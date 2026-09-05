@@ -4,13 +4,12 @@
 # The one attack in this book that is fire, and the only reason the tag
 # exists: Ignite follows it and leaves Poison Breath alone.
 name: "Flame Orb"
-skill_order: 1
 description:
   "A fire-attribute attack. Create and throw a burning orb at multiple "
   "enemies."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_FIRE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD skill_order: 1 }
 max_level: 10
 required_equip_type: EQUIP_TYPE_STAFF
 base_delay_ms: 720

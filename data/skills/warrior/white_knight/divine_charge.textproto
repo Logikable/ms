@@ -7,12 +7,11 @@
 #
 # Divine Swing's animation, which is the same hammer one tier down.
 name: "Divine Charge"
-skill_order: 1
 description:
   "Instantly conjure a holy hammer that slams your enemies, inflicting "
   "damage."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

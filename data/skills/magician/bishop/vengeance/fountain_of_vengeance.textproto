@@ -6,13 +6,12 @@
 # Bishop putting it back down, so what it comes to is the rate. See
 # SKILL_KIND_AUTO_ATTACK.
 name: "Fountain of Vengeance"
-skill_order: 3
 description:
   "Summon a divine talisman of vengeance that punishes nearby enemies. The "
   "talisman erupts with light at regular intervals, damaging the enemy."
 kind: SKILL_KIND_AUTO_ATTACK
 tags: SKILL_TAG_VENGEANCE
-job_advancement: JOB_ADVANCEMENT_PRIEST
+placement { job_advancement: JOB_ADVANCEMENT_PRIEST skill_order: 3 }
 max_level: 10
 replaces_skill_name: "Holy Fountain"
 toggle_skill_name: "Righteously Indignant"

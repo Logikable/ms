@@ -6,12 +6,11 @@
 # 1200ms is both presses: 660 for the strike and 540 for the blow, which is one
 # swing here.
 name: "Assassinate"
-skill_order: 1
 description:
   "Attack an enemy's vital points over and over to deal tremendous damage, "
   "then strike a finishing blow."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_SHADOWER
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER skill_order: 1 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_DAGGER
 exceeds_master_level: true

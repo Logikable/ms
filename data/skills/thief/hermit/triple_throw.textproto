@@ -8,10 +8,9 @@
 # lands the swing on 510ms against Shuriken Challenge's 600, and this skill
 # loses on one enemy as well as on eight.
 name: "Triple Throw"
-skill_order: 1
 description: "Throw several throwing stars simultaneously."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_HERMIT
+placement { job_advancement: JOB_ADVANCEMENT_HERMIT skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_CLAW
 base_delay_ms: 630

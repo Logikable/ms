@@ -6,11 +6,10 @@
 # The strike is worth most where the swing is shortest: a tenth more of Snipe's
 # nine, a fifth more of Piercing Arrow II's five.
 name: "Bolt Surplus"
-skill_order: 9
 description:
   "Increases the number of attacks for all multi-hit skills and Final Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 9 }
 max_level: 10
 exceeds_master_level: true
 base {

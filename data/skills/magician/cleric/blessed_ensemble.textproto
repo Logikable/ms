@@ -8,13 +8,12 @@
 # grant in the game that stacks -- what it pays for is the company kept, not a
 # buff standing over the party. See Skill.ally_effect_stacks.
 name: "Blessed Ensemble"
-skill_order: 2
 description:
   "Blessings increase your Final Damage. Obtains additional EXP based on the "
   "number of Clerics, Priests, Bishops in the party. Your own effects do not "
   "apply to you."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CLERIC
+placement { job_advancement: JOB_ADVANCEMENT_CLERIC skill_order: 2 }
 max_level: 10
 ally_effect_stacks: true
 base { final_dmg_pct: 0.003 }

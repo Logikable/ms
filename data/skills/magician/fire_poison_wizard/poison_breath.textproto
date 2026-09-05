@@ -5,12 +5,11 @@
 # chooser prices a burn at the rate the swing can sustain, so which of the two
 # it reaches for is settled by that sum rather than by a cooldown.
 name: "Poison Breath"
-skill_order: 3
 description:
   "Conjure a poison-attribute cloud, inflicting fatal damage to enemies. The "
   "enemies will take additional periodic damage."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD skill_order: 3 }
 max_level: 10
 required_equip_type: EQUIP_TYPE_STAFF
 base_delay_ms: 780

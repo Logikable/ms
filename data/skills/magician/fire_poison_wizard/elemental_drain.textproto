@@ -9,12 +9,11 @@
 # where Poison Breath is the only thing that burns, hardly at all. GMS says so
 # in as many words.
 name: "Elemental Drain"
-skill_order: 2
 description:
   "Increases your Final Damage for each continuous damage effect your skills "
   "have on nearby enemies."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD skill_order: 2 }
 max_level: 10
 dot_count_cap: 5
 base { final_dmg_pct_per_dot: 0.003 }

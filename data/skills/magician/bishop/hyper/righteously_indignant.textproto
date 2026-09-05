@@ -10,12 +10,11 @@
 # has. Its half-second cooldown is the gap between two presses of the switch
 # and means nothing to a fight.
 name: "Righteously Indignant"
-skill_order: 1
 description:
   "Fuel your body with the fury of an avenging angel. Converts Benevolence "
   "skills to Vengeance skills."
 kind: SKILL_KIND_ACTIVE
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 1 }
 hyper: true
 required_level: 140
 max_level: 1

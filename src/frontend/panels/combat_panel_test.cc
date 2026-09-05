@@ -7,6 +7,7 @@
 
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/skill_placement.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/frontend/panel_widths.h"
@@ -352,7 +353,7 @@ TEST(CombatPanelTest, HeightMatchesWhatItDraws) {
   Skill sweep;
   sweep.set_name("Sweep");
   sweep.set_kind(SKILL_KIND_ATTACK);
-  sweep.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(sweep, JOB_ADVANCEMENT_SWORDMAN);
   sweep.set_max_level(1);
   sweep.set_max_enemies(6);
   sweep.mutable_base()->set_skill_pct(1.0);

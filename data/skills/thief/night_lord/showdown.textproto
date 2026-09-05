@@ -16,13 +16,12 @@
 # against a lone boss all six land on it, the second and every later one
 # keeping half of itself. GMS states that cut in so many words.
 name: "Showdown"
-skill_order: 2
 description:
   "Attacks enemies and provokes them. Provoked enemies grant more EXP. When "
   "the talisman explodes, it creates a dark shuriken, which then pursues and "
   "attacks nearby enemies."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 2 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_CLAW
 exceeds_master_level: true

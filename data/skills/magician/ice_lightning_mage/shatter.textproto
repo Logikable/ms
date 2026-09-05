@@ -4,12 +4,11 @@
 # stack, walked evenly over the twenty levels this book pays for. A full pile
 # of five ignores the 10% GMS's does.
 name: "Shatter"
-skill_order: 4
 description:
   "When attacking Frozen enemies, ignores a portion of their defenses for "
   "each stack."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE skill_order: 4 }
 max_level: 20
 base { ied_pct_per_freeze_stack: 0.001 }
 per_level { ied_pct_per_freeze_stack: 0.001 }

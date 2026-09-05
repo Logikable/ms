@@ -2,12 +2,11 @@
 # what GMS's "Damage: +20%" is. The mark takes it with the shot: both are
 # priced from the same offense.
 name: "Snipe - Reinforce"
-skill_order: 11
 description:
   "Increases damage of Snipe, Empowered Snipe, and of Snipe's additional "
   "hits."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 11 }
 hyper: true
 required_level: 150
 max_level: 1

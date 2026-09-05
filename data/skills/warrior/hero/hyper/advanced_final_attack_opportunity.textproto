@@ -3,11 +3,10 @@
 # how often the extra hit lands, which belongs to the source rather than to the
 # attack that set it off.
 name: "Advanced Final Attack - Opportunity"
-skill_order: 9
 description:
   "Increases the activation chance of Advanced Final Attack."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HERO
+placement { job_advancement: JOB_ADVANCEMENT_HERO skill_order: 9 }
 hyper: true
 required_level: 180
 max_level: 1

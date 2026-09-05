@@ -12,12 +12,11 @@
 # its largest rather than summed, so the Fighter's 2 ATT an orb goes on being
 # paid, now against ten of them.
 name: "Advanced Combo"
-skill_order: 4
 description:
   "Increases the Final Damage dealt per Combo Orb and enables you to gain "
   "more orbs. Additionally increases mastery."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HERO
+placement { job_advancement: JOB_ADVANCEMENT_HERO skill_order: 4 }
 max_level: 20
 exceeds_master_level: true
 supersedes_skill_name: "Combo Synergy"

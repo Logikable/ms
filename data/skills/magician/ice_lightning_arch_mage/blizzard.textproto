@@ -7,7 +7,6 @@
 # The Final Attack falls on ONE enemy, as GMS states it -- the reading every
 # Final Attack in the game takes. See Skill.final_attack_single_enemy.
 name: "Blizzard"
-skill_order: 2
 description:
   "Summon spears of ice from the sky, showering multiple enemies with a nasty "
   "blizzard. Upon attacking, permanently grants a chance to damage a single "
@@ -15,7 +14,7 @@ description:
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
 freeze_seconds: 8.0
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 2 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true

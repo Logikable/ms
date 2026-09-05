@@ -8,10 +8,9 @@
 # The magic attack GMS grants alongside the weapon attack is dropped: no
 # warrior weapon carries any, so it would be a row of zeroes.
 name: "Hex of the Evil Eye"
-skill_order: 5
 description: "Your Evil Eye buffs you and your party members."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BERSERKER
+placement { job_advancement: JOB_ADVANCEMENT_BERSERKER skill_order: 5 }
 max_level: 20
 base {
   attack: 2

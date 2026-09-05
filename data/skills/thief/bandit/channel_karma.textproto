@@ -4,10 +4,9 @@
 # The knockback resistance it also grants is dropped: nothing in this game
 # knocks the player anywhere.
 name: "Channel Karma"
-skill_order: 5
 description: "Increases your Attack Power."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BANDIT
+placement { job_advancement: JOB_ADVANCEMENT_BANDIT skill_order: 5 }
 max_level: 10
 base { attack: 12 }
 per_level { attack: 2 }

@@ -7,11 +7,10 @@
 # It meets Evasion Boost's the way two rolls meet, so the pair come to 51%
 # rather than 60%. The knockback resistance is left out: no mob knocks back.
 name: "Illusion Step"
-skill_order: 8
 description:
   "Greatly increases your DEX and Avoidability, and reduces damage taken."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 8 }
 max_level: 10
 exceeds_master_level: true
 base {

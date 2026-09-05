@@ -6,11 +6,10 @@
 # a boost normally cannot reach. What it strengthens is the extra hit rather
 # than a swing; see SkillBoost::effect.
 name: "Advanced Final Attack - Reinforce"
-skill_order: 7
 description:
   "Increases the damage of Advanced Final Attack."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HERO
+placement { job_advancement: JOB_ADVANCEMENT_HERO skill_order: 7 }
 hyper: true
 required_level: 140
 max_level: 1

@@ -2,12 +2,11 @@
 # the 20 levels it masters at. The Ranger's version buys attack instead, which
 # is a percentage of the whole pile; this one buys damage.
 name: "Marksmanship"
-skill_order: 8
 description:
   "When attacking, ignores a portion of enemy DEF. Permanently increases your "
   "Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SNIPER
+placement { job_advancement: JOB_ADVANCEMENT_SNIPER skill_order: 8 }
 max_level: 20
 base { ied_pct: 0.06 damage_pct: 0.02 }
 per_level { ied_pct: 0.01 damage_pct: 0.01 }

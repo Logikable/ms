@@ -7,11 +7,10 @@
 # defense, so the text has to say so or the levels below read as coming from
 # nowhere.
 name: "Archery Mastery"
-skill_order: 3
 description:
   "Gain proficiency in the fundamentals of Archery. Increases Attack Speed."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ARCHER
+placement { job_advancement: JOB_ADVANCEMENT_ARCHER skill_order: 3 }
 max_level: 20
 base {
   attack_speed: 1

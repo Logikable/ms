@@ -8,6 +8,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/skill_placement.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/skill.pb.h"
@@ -19,8 +20,7 @@ Skill MakeSkill(const std::string& name, JobAdvancement advancement, int order,
                 int max_level, SkillKind kind = SKILL_KIND_PASSIVE) {
   Skill skill;
   skill.set_name(name);
-  skill.set_job_advancement(advancement);
-  skill.set_skill_order(order);
+  PlaceIn(skill, advancement, order);
   skill.set_max_level(max_level);
   skill.set_kind(kind);
   return skill;

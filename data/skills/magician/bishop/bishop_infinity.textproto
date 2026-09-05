@@ -4,10 +4,9 @@
 # Combat Orders does not reach it, alone among the book -- so no
 # exceeds_master_level here.
 name: "Infinity"
-skill_order: 5
 description: "Bolsters the spirit to enhance your magic and recover HP."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 5 }
 max_level: 20
 base {
   final_dmg_pct: 0.15

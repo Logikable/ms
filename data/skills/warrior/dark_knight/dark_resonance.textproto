@@ -7,13 +7,12 @@
 # source. GMS states 30% permanent and 10% while up; those combine to 37%
 # rather than summing to 40%, and the ladder walks to that.
 name: "Dark Resonance"
-skill_order: 3
 description:
   "Resonate with your Evil Eye to unlock the power of pure darkness. Restores "
   "HP and increases Final Damage, Ignore Defense and Boss Damage for a time. "
   "Permanently increases Ignore Defense."
 kind: SKILL_KIND_ACTIVE
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 3 }
 max_level: 30
 exceeds_master_level: true
 base_delay_ms: 120

@@ -3,10 +3,9 @@
 # cannot copy Meso Explosion -- which it does not, a thrown meso being no
 # swing of the character's.
 name: "Shadow Partner"
-skill_order: 5
 description: "Summon a shadow partner that mimics the summoner."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+placement { job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT skill_order: 5 }
 max_level: 20
 base { mirror_line_pct: 0.51 }
 per_level { mirror_line_pct: 0.01 }

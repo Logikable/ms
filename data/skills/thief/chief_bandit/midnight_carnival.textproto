@@ -9,10 +9,9 @@
 # Five enemies against GMS's eight: 360x210 is one storey and holds five
 # abreast. Phase Dash's own 380x125 gives the same five. See Skill.max_enemies.
 name: "Midnight Carnival"
-skill_order: 1
 description: "Overwhelm enemies with supersonic slashes."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+placement { job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_DAGGER
 base_delay_ms: 750

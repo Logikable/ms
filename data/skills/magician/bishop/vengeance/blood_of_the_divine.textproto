@@ -3,12 +3,11 @@
 # GMS's own -- and the only skill in the book whose ten levels buy nothing,
 # exactly as GMS writes it. It is levelled by levelling Holy Water regardless.
 name: "Blood of the Divine"
-skill_order: 4
 description:
   "Enhance your power by conjuring a spell with your own hallowed blood."
 kind: SKILL_KIND_ACTIVE
 tags: SKILL_TAG_VENGEANCE
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 4 }
 max_level: 10
 exceeds_master_level: true
 replaces_skill_name: "Holy Water"

@@ -2,11 +2,10 @@
 # cannot express. The plain level/2 below is exact at every even level,
 # including the max, and half a point low at odd ones.
 name: "Iron Body"
-skill_order: 2
 description:
   "Boosts DEF and Max HP, and decreases damage taken when hit by enemies."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SWORDMAN
+placement { job_advancement: JOB_ADVANCEMENT_SWORDMAN skill_order: 2 }
 max_level: 20
 base {
   def: 10

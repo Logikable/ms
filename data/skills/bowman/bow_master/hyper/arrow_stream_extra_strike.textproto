@@ -1,11 +1,10 @@
 # Five strikes to six, and each one collects Hurricane's 50 points, so what
 # this really buys is a sixth helping of the pair the book sells together.
 name: "Arrow Stream - Extra Strike"
-skill_order: 9
 description:
   "Increases Arrow Stream's number of attacks."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 9 }
 hyper: true
 required_level: 180
 max_level: 1

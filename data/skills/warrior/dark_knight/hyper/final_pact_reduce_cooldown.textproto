@@ -3,10 +3,9 @@
 # pact that walks 1103 down to 900, which is a sixth of the wait at master
 # level.
 name: "Final Pact - Reduce Cooldown"
-skill_order: 8
 description: "Reduces the cooldown for reusing Final Pact."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 8 }
 hyper: true
 required_level: 165
 max_level: 1

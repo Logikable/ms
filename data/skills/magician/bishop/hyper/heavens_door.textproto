@@ -6,10 +6,9 @@
 # was not going to survive, and what would read it is a boss that kills the
 # player outright. That boss is what it waits for.
 name: "Heaven's Door"
-skill_order: 2
 description: "Knocks on the door to the heavens to punish enemies."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 2 }
 hyper: true
 required_level: 160
 max_level: 1

@@ -10,11 +10,10 @@
 # Unlike Speed Mirage's boost on Wind Arrow, this one is felt: Bolt Burst
 # recharges for seven seconds, so Piercing Arrow stays the filler swing.
 name: "Empowered Arrows"
-skill_order: 1
 description:
   "Empowers certain attack skills as you use them. Enhances Piercing Arrow."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SNIPER
+placement { job_advancement: JOB_ADVANCEMENT_SNIPER skill_order: 1 }
 max_level: 20
 required_skill {
   skill_name: "Piercing Arrow"

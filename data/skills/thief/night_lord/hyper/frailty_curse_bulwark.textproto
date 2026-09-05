@@ -4,10 +4,9 @@
 # paying at a share of the attacking monster's attack, and a 4th job has passed
 # that cap on their stats alone.
 name: "Frailty Curse - Bulwark"
-skill_order: 8
 description: "Grants Frailty Curse a bonus to DEF."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 8 }
 hyper: true
 required_level: 165
 max_level: 1

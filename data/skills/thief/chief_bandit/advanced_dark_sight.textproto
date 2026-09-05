@@ -3,10 +3,9 @@
 # so what is left is the final damage -- 1% a level over five, kept low because
 # the character is never asked to earn it.
 name: "Advanced Dark Sight"
-skill_order: 6
 description: "Hones your stealth technique, increasing Final Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+placement { job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT skill_order: 6 }
 max_level: 5
 base { final_dmg_pct: 0.01 }
 per_level { final_dmg_pct: 0.01 }

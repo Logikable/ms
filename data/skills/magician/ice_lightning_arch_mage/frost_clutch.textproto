@@ -7,10 +7,9 @@
 # It does not pass its master level. GMS masters this at 1 and does not mark it
 # for Combat Orders, so there is no level above the top for a grant to reach.
 name: "Frost Clutch"
-skill_order: 9
 description: "Increases the effect of Freezing Crush."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 9 }
 max_level: 10
 base { crit_dmg_per_freeze_stack: 0.002 }
 per_level { crit_dmg_per_freeze_stack: 0.002 }

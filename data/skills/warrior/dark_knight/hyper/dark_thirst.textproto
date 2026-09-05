@@ -6,12 +6,11 @@
 # share of the pool every swing puts back. What it really buys a Dark Knight
 # is the freedom to keep swinging while Final Pact's wait runs down.
 name: "Dark Thirst"
-skill_order: 1
 description:
   "Channels your inner vampire to increase Attack Power and sap life from "
   "enemies."
 kind: SKILL_KIND_ACTIVE
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 1 }
 hyper: true
 required_level: 140
 max_level: 1

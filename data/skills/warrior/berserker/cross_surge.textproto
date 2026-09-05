@@ -7,10 +7,9 @@
 # character is missing. That is dropped: it pays most when nearly dead, and a
 # fight that heals a tenth of the pool on every beat never sits there.
 name: "Cross Surge"
-skill_order: 2
 description: "Increases Final Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BERSERKER
+placement { job_advancement: JOB_ADVANCEMENT_BERSERKER skill_order: 2 }
 max_level: 20
 base { final_dmg_pct: 0.225 }
 per_level { final_dmg_pct: 0.025 }

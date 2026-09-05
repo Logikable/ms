@@ -7,10 +7,9 @@
 # to the cap would be worth nothing to half of them and would put out the Inner
 # Ability line that pays the same thing. See SkillEffect.uncapped_attack_speed.
 name: "Decent Speed Infusion"
-skill_order: 8
 description: "Increases your attack speed by 1."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_COMMON
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 8 }
 v_node: V_NODE_KIND_COMMON
 max_level: 30
 base {

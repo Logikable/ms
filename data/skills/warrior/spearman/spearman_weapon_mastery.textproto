@@ -1,8 +1,7 @@
 name: "Weapon Mastery"
-skill_order: 5
 description: "Increases Spear and Polearm Mastery."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SPEARMAN
+placement { job_advancement: JOB_ADVANCEMENT_SPEARMAN skill_order: 5 }
 max_level: 10
 required_equip_type: EQUIP_TYPE_SPEAR
 required_equip_type: EQUIP_TYPE_POLEARM

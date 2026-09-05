@@ -13,6 +13,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/character/consumables.h"
 #include "src/character/progression.h"
+#include "src/character/skill_placement.h"
 #include "src/combat/boss_run.h"
 #include "src/combat/offline.h"
 #include "src/frontend/panels/character_panel.h"
@@ -691,7 +692,7 @@ TEST_F(TuiControllerTest, CancelInApAllocDoesNotAllocate) {
 Skill SlashBlast() {
   Skill skill;
   skill.set_name("Slash Blast");
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   return skill;
 }
@@ -722,7 +723,7 @@ TEST_F(TuiControllerTest, ConfirmLearnsTheChosenPoints) {
 Skill RighteouslyIndignant() {
   Skill skill;
   skill.set_name("Righteously Indignant");
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(1);
   skill.set_toggle(true);
   return skill;

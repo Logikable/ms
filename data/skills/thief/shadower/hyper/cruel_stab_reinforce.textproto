@@ -1,9 +1,8 @@
 # GMS's own twenty points.
 name: "Cruel Stab - Reinforce"
-skill_order: 4
 description: "Increases Cruel Stab damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SHADOWER
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER skill_order: 4 }
 hyper: true
 required_level: 140
 max_level: 1

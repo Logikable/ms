@@ -6,13 +6,12 @@
 # own. Here they simply fall on that clock: a Bishop with a swing to make is
 # always striking something, so the two come to the same thing.
 name: "Triumph Feather"
-skill_order: 4
 description:
   "Harness the power of the Angel of Victory. Angel feathers appear and seek "
   "out and attack nearby enemies."
 kind: SKILL_KIND_AUTO_ATTACK
 tags: SKILL_TAG_VENGEANCE
-job_advancement: JOB_ADVANCEMENT_PRIEST
+placement { job_advancement: JOB_ADVANCEMENT_PRIEST skill_order: 4 }
 max_level: 10
 replaces_skill_name: "Dispel"
 toggle_skill_name: "Righteously Indignant"

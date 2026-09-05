@@ -6,13 +6,12 @@
 # The critical damage rides every swing, since a frozen enemy is frozen whichever
 # element is hitting it. Only the final damage is bought with the stacks.
 name: "Freezing Crush"
-skill_order: 2
 description:
   "Grants bonus Critical Damage when attacking Frozen enemies. Bonus "
   "increases per stack of skill. Using lightning-based attacks against Frozen "
   "targets consumes stacks and increases Final Damage for each stack."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD skill_order: 2 }
 max_level: 10
 freeze_stack_cap: 5
 base {

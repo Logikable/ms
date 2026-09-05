@@ -7,11 +7,10 @@
 # GMS states the party on Sharp Eyes's own page rather than here, so the clause
 # is written rather than deleted down to.
 name: "Sharp Eyes - Guardbreak"
-skill_order: 5
 description:
   "Grants Sharp Eyes a bonus to Enemy DEF Ignored. Applies to party members."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 5 }
 hyper: true
 required_level: 150
 max_level: 1

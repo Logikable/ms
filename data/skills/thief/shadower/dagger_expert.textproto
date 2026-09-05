@@ -3,10 +3,9 @@
 # 30 levels; twenty here, so the attack lands a point a level and the critical
 # damage walks GMS's own 5% to 15% over the levels this book gives it.
 name: "Dagger Expert"
-skill_order: 10
 description: "Increases Dagger Mastery, Attack Power, and Critical Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SHADOWER
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER skill_order: 10 }
 max_level: 20
 exceeds_master_level: true
 required_skill {

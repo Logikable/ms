@@ -7,12 +7,11 @@
 # starts at clears what Bless ends at, and the replacement holds over the whole
 # party: a Cleric standing beside a Bishop stops casting.
 name: "Advanced Blessing"
-skill_order: 7
 description:
   "Greatly increases nearby party members' Attack Power, Magic ATT, DEF, Max "
   "HP, and Max MP."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 7 }
 exclusive_group: "Blessing"
 max_level: 10
 exceeds_master_level: true

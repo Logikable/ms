@@ -5,10 +5,9 @@
 # 14%, where the full 40 would have made it the best passive in the game.
 # The wiki says "Luck"; every stat this game shows the player says LUK.
 name: "Nimble Body"
-skill_order: 3
 description: "Permanently increases LUK."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ROGUE
+placement { job_advancement: JOB_ADVANCEMENT_ROGUE skill_order: 3 }
 max_level: 20
 base {
   luk: 1

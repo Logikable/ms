@@ -1,11 +1,10 @@
 # The Bow Master's, to the number and for the same reasons -- see that file.
 name: "Sharp Eyes"
-skill_order: 5
 description:
   "Grants party members the ability to locate an enemy's weak spot to deal "
   "fatal damage to that enemy."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 5 }
 exclusive_group: "Sharp Eyes"
 max_level: 20
 exceeds_master_level: true

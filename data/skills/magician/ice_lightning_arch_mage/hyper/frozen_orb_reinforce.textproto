@@ -1,8 +1,7 @@
 name: "Frozen Orb - Reinforce"
-skill_order: 10
 description: "Increases the damage of Frozen Orb."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 10 }
 hyper: true
 required_level: 150
 max_level: 1

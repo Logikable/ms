@@ -18,14 +18,13 @@
 # Piercing Arrow, which Piercing Arrow II has already taken the place of, so it
 # goes quiet on its own the moment the swing it names stops being swung.
 name: "Greater Empowered Arrows"
-skill_order: 3
 description:
   "Enhances the strength of your Empowered Arrows. Empowered Piercing Arrow "
   "is enhanced to Empowered Piercing Arrow II, and Empowered Arrows can also "
   "be used during Snipe. Permanently increases Final Damage and Ignore "
   "Defense."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 3 }
 max_level: 20
 exceeds_master_level: true
 required_skill {

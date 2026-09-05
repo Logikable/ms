@@ -8,12 +8,11 @@
 # level, and attack ending at its +20. All of it waits on the off hand. The DEF
 # is worth nothing and is here for the figure -- see SkillEffect::def_pct.
 name: "Shield Mastery"
-skill_order: 8
 description:
   "Increases DEF and Attack Power when a secondary weapon is equipped, and "
   "reduces damage taken."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BANDIT
+placement { job_advancement: JOB_ADVANCEMENT_BANDIT skill_order: 8 }
 max_level: 10
 requires_secondary: true
 base {

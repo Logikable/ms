@@ -2,11 +2,10 @@
 # meets Advanced Combo's own the way two per-orb bargains always do, as one
 # source folded against one ring.
 name: "Advanced Combo Attack - Reinforce"
-skill_order: 4
 description:
   "Final Damage increased for each additional Combo Orb."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_HERO
+placement { job_advancement: JOB_ADVANCEMENT_HERO skill_order: 4 }
 hyper: true
 required_level: 140
 max_level: 1

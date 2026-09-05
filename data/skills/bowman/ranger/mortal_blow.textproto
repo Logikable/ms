@@ -7,11 +7,10 @@
 # the character fires: five seconds in every five plus the time thirty more
 # lines take.
 name: "Mortal Blow"
-skill_order: 5
 description:
   "If the attack hits a certain number of times, the damage increases."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_RANGER
+placement { job_advancement: JOB_ADVANCEMENT_RANGER skill_order: 5 }
 max_level: 10
 buff {
   base { damage_pct: 0.08 }

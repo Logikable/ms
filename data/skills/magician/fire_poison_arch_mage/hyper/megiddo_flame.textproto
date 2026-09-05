@@ -14,13 +14,12 @@
 # The delay is ours: GMS states none, and 660ms is what every other cast in
 # this book takes.
 name: "Megiddo Flame"
-skill_order: 2
 description:
   "Fires a blue flame that burns the enemy to the very soul. After burning an "
   "enemy, the blue flame spreads to a set number of additional targets."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_FIRE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 2 }
 hyper: true
 required_level: 160
 max_level: 1

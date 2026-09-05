@@ -11,12 +11,11 @@
 # GMS paces itself, and the turret is a summon, which nothing has ever hurried.
 # So a Ranger gets nothing from Agile Bows, exactly as in GMS.
 name: "Arrow Blaster"
-skill_order: 1
 description:
   "Shoot an arrow at a high angle, and set up an Arrow Blaster which fires "
   "arrows automatically."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_RANGER
+placement { job_advancement: JOB_ADVANCEMENT_RANGER skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_BOW
 base_delay_ms: 120

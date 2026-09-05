@@ -1,12 +1,11 @@
 # The Hermit's, to the number: GMS gives both branches 50+4x% a second and the
 # same chance of it taking hold.
 name: "Venom"
-skill_order: 7
 description:
   "Permanently coats your dagger with venom, giving all your attacks the "
   "chance to Poison enemies."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+placement { job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT skill_order: 7 }
 max_level: 10
 dot {
   interval_seconds: 1.0

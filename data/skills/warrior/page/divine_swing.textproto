@@ -1,11 +1,10 @@
 # GMS stuns for 10+4x% on top of this. Nothing here is ever stunned, so the
 # hammer only hits.
 name: "Divine Swing"
-skill_order: 1
 description:
   "Swing a large hammer conjured from light, damaging nearby enemies."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_PAGE
+placement { job_advancement: JOB_ADVANCEMENT_PAGE skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

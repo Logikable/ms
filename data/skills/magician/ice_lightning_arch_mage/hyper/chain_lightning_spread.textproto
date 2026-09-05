@@ -1,8 +1,7 @@
 name: "Chain Lightning - Spread"
-skill_order: 8
 description: "Increases the max number of monsters hit by Chain Lightning."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 8 }
 hyper: true
 required_level: 165
 max_level: 1

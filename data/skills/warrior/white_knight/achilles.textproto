@@ -2,12 +2,11 @@
 # 30%. It multiplies with every other reduction the character carries rather
 # than summing -- see AddEffect.
 name: "Achilles"
-skill_order: 7
 description:
   "Permanently increases your defensive abilities so you take less damage "
   "from enemies."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT skill_order: 7 }
 max_level: 20
 base { damage_taken_pct: 0.11 }
 per_level { damage_taken_pct: 0.01 }

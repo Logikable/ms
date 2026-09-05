@@ -12,6 +12,7 @@
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
+#include "src/character/skill_placement.h"
 #include "src/character/v_matrix.h"
 #include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
@@ -86,7 +87,7 @@ Skill MakeSkill(const std::string& name, JobAdvancement advancement,
                 int max_level) {
   Skill skill;
   skill.set_name(name);
-  skill.set_job_advancement(advancement);
+  PlaceIn(skill, advancement);
   skill.set_max_level(max_level);
   return skill;
 }
@@ -905,7 +906,7 @@ Skill MakeGatedSkill() {
   Skill skill;
   skill.set_name("Hyper Body");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SPEARMAN);
   skill.set_max_level(10);
   skill.mutable_required_skill()->set_skill_name("Iron Wall");
   skill.mutable_required_skill()->set_level(3);
@@ -916,7 +917,7 @@ Skill MakeGateSkill() {
   Skill skill;
   skill.set_name("Iron Wall");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SPEARMAN);
   skill.set_max_level(10);
   return skill;
 }
@@ -964,7 +965,7 @@ Skill MakeHyperSkill(int required_level = 150) {
   Skill skill;
   skill.set_name("Gungnir's Descent - Reinforce");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT);
+  PlaceIn(skill, JOB_ADVANCEMENT_DARK_KNIGHT);
   skill.set_max_level(1);
   skill.set_hyper(true);
   skill.set_required_level(required_level);
@@ -987,7 +988,7 @@ Skill MakeCommonNode() {
   Skill skill;
   skill.set_name("Rope Lift");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_COMMON);
+  PlaceIn(skill, JOB_ADVANCEMENT_COMMON);
   skill.set_v_node(V_NODE_KIND_COMMON);
   skill.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
   return skill;
@@ -1055,10 +1056,12 @@ TEST_F(LearnSkillTest, ANodeNeedsAMatrixAndTheRightMatrix) {
   Skill job_node = MakeCommonNode();
   job_node.set_name("Radiant Evil");
   job_node.set_v_node(V_NODE_KIND_JOB);
-  job_node.set_job_advancement(JOB_ADVANCEMENT_PALADIN_V);
+  job_node.clear_placement();
+  PlaceIn(job_node, JOB_ADVANCEMENT_PALADIN_V);
   CharacterInstance knight = MakeFifthJob(rng_, /*v_points=*/1000);
   EXPECT_FALSE(knight.LearnSkill(job_node));
-  job_node.set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT_V);
+  job_node.clear_placement();
+  PlaceIn(job_node, JOB_ADVANCEMENT_DARK_KNIGHT_V);
   EXPECT_TRUE(knight.LearnSkill(job_node));
   EXPECT_EQ(knight.v_points(), 1000) << "a job node's first level is free";
 }
@@ -1110,7 +1113,7 @@ Skill MakeToggleSkill() {
   Skill skill;
   skill.set_name("Righteously Indignant");
   skill.set_kind(SKILL_KIND_ACTIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_BISHOP);
+  PlaceIn(skill, JOB_ADVANCEMENT_BISHOP);
   skill.set_max_level(1);
   skill.set_hyper(true);
   skill.set_required_level(140);
@@ -1123,7 +1126,7 @@ Skill MakeVengeanceForm() {
   Skill skill;
   skill.set_name("Angelic Wrath");
   skill.set_kind(SKILL_KIND_ATTACK);
-  skill.set_job_advancement(JOB_ADVANCEMENT_CLERIC);
+  PlaceIn(skill, JOB_ADVANCEMENT_CLERIC);
   skill.set_max_level(10);
   skill.set_replaces_skill_name("Heal");
   skill.set_toggle_skill_name("Righteously Indignant");

@@ -3,10 +3,9 @@
 # Lightning or Frozen Orb, and twenty points of damage on a 3rd job spell does
 # not change that. The trio ships knowingly worthless, as GMS's own does.
 name: "Ice Strike - Reinforce"
-skill_order: 4
 description: "Increases Ice Strike damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 4 }
 hyper: true
 required_level: 140
 max_level: 1

@@ -1,11 +1,10 @@
 # The Ranger's, line for line -- GMS gives both branches the same skill. See
 # bowman/ranger/evasion_boost for why it is stretched from 4 levels to 10.
 name: "Evasion Boost"
-skill_order: 7
 description:
   "Grants a chance to dodge enemy attacks. Also permanently increases Max HP."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SNIPER
+placement { job_advancement: JOB_ADVANCEMENT_SNIPER skill_order: 7 }
 max_level: 10
 base { dodge_chance: 0.12 max_hp_pct: 0.13 }
 per_level { dodge_chance: 0.02 max_hp_pct: 0.03 }

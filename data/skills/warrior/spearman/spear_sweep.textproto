@@ -6,10 +6,9 @@
 # no positions to pull across and no state for a mob to be stunned in -- so
 # what is left is a wide, hard swing, which is most of what the skill is.
 name: "Spear Sweep"
-skill_order: 1
 description: "Swing your spear in a long arc at the enemies around you."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_SPEARMAN
+placement { job_advancement: JOB_ADVANCEMENT_SPEARMAN skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_SPEAR
 required_equip_type: EQUIP_TYPE_POLEARM

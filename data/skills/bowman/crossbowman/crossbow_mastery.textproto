@@ -2,10 +2,9 @@
 # the trade between the two branches: the Crossbowman's damage is steady and
 # multiplies everything, the Hunter's arrives as a second Final Attack.
 name: "Crossbow Mastery"
-skill_order: 4
 description: "Increases Crossbow Mastery and Final Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
+placement { job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN skill_order: 4 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_CROSSBOW
 base {

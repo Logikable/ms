@@ -5,13 +5,12 @@
 # 840ms is the animation's own, from the frame data: a beat slower than the
 # Cold Beam and Thunder Bolt it takes over from.
 name: "Ice Strike"
-skill_order: 1
 description:
   "Create an ice-attribute explosion near you that attacks nearby enemies."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
 freeze_seconds: 8.0
-job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_STAFF
 base_delay_ms: 840

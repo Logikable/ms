@@ -4,12 +4,11 @@
 # 40 seconds of it is fight on, which is what a full pool already buys them.
 # The kills that shorten the wait are dropped with it.
 name: "Final Pact"
-skill_order: 4
 description:
   "When your HP reaches 0, your dark contract keeps you alive. Permanently "
   "increases Final Damage, Critical Rate, and Critical Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 4 }
 max_level: 30
 exceeds_master_level: true
 base {

@@ -3,10 +3,9 @@
 # orb rather than as the +10 it comes to, because a later skill raises the
 # count and nothing else.
 name: "Combo Attack"
-skill_order: 3
 description: "Grants a chance to add each attack to the Combo Orb."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_FIGHTER
+placement { job_advancement: JOB_ADVANCEMENT_FIGHTER skill_order: 3 }
 max_level: 1
 combo_orbs: 5
 base { attack_per_combo_orb: 2 }

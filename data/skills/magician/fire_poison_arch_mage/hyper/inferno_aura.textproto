@@ -7,12 +7,11 @@
 # on a clock of its own is not the character's swing, so no Final Attack ever
 # follows it.
 name: "Inferno Aura"
-skill_order: 1
 description:
   "Channel fire chakras to burst into flame, damaging nearby enemies."
 kind: SKILL_KIND_AUTO_ATTACK
 tags: SKILL_TAG_FIRE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 1 }
 hyper: true
 required_level: 140
 max_level: 1

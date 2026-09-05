@@ -13,12 +13,11 @@
 # The final damage is GMS's own (5+x at 30), which is the number to watch when
 # the line is measured against the Dark Knight's Final Pact.
 name: "High Paladin"
-skill_order: 7
 description:
   "Increases Weapon Mastery, DEF, Critical Rate, Critical Damage, Ignore "
   "Defense, and Final Damage through your extensive experience as a Paladin."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_PALADIN
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN skill_order: 7 }
 max_level: 20
 exceeds_master_level: true
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD

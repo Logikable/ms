@@ -6,12 +6,11 @@
 # A guard cancels the whole hit rather than shaving a share off it, which is
 # what dodge_chance is. GMS's own ten levels, exact at every one of them.
 name: "Parashock Guard"
-skill_order: 5
 description:
   "Reduces the damage nearby party members receive and gives them a chance to "
   "guard. Increases your Attack Power."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT skill_order: 5 }
 max_level: 10
 requires_party: true
 base { attack: 2 }

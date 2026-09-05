@@ -5,12 +5,11 @@
 #
 # GMS's own ladder, 250+3x%, so a maxed Blast strikes for 340% ten times.
 name: "Blast"
-skill_order: 2
 description:
   "Call upon the full divine might of the Paladin to deal a powerful blow to "
   "your enemies."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_PALADIN
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN skill_order: 2 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

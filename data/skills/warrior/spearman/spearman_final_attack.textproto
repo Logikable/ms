@@ -6,11 +6,10 @@
 # and its readout names the target it picks -- "attacks the boss with the
 # highest HP first".
 name: "Final Attack"
-skill_order: 7
 description:
   "Grants a chance to deliver an additional hit after a direct skill attack."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_SPEARMAN
+placement { job_advancement: JOB_ADVANCEMENT_SPEARMAN skill_order: 7 }
 final_attack_single_enemy: true
 max_level: 20
 required_equip_type: EQUIP_TYPE_SPEAR

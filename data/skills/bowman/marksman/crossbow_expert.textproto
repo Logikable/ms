@@ -5,10 +5,9 @@
 # better of two rather than the sum, so this outbids the Crossbowman's on its
 # own while that one goes on paying its attack speed.
 name: "Crossbow Expert"
-skill_order: 7
 description: "Increases Crossbow Mastery, Attack Power, and Critical Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 7 }
 max_level: 20
 exceeds_master_level: true
 required_equip_type: EQUIP_TYPE_CROSSBOW

@@ -1,10 +1,9 @@
 # Two more attacks blocked, on top of the fifteen the shell already stops.
 # GMS's own figure.
 name: "Holy Magic Shell - Extra Guard"
-skill_order: 4
 description: "Increases Holy Magic Shell's guard count."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BISHOP
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 4 }
 hyper: true
 required_level: 140
 max_level: 1

@@ -5,10 +5,9 @@
 # 810ms is the animation's own, from the frame data: a beat slower than the
 # Spear Sweep it replaces as the Berserker's main attack.
 name: "La Mancha Spear"
-skill_order: 1
 description: "Spin your spear to attack enemies in front of you."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_BERSERKER
+placement { job_advancement: JOB_ADVANCEMENT_BERSERKER skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_SPEAR
 required_equip_type: EQUIP_TYPE_POLEARM

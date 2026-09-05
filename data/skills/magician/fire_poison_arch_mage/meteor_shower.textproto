@@ -6,14 +6,13 @@
 # that way, but the two passives carry the same numbers to the digit, and read
 # per enemy this one would pay fifteen times over on a full room.
 name: "Meteor Shower"
-skill_order: 3
 description:
   "Summon meteorites from the sky to inflict intense fire damage. Landing "
   "your attack skills has a permanent chance of summoning a meteorite, which "
   "falls on enemies to inflict damage."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_FIRE
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 3 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true

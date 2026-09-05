@@ -3,10 +3,9 @@
 # boss that needs it and the Vengeance form that answers it are both still to
 # come. The flag is what its page states instead of calling it empty.
 name: "Dispel"
-skill_order: 4
 description: "Removes the abnormal conditions afflicting you."
 kind: SKILL_KIND_PASSIVE
 tags: SKILL_TAG_BENEVOLENCE
-job_advancement: JOB_ADVANCEMENT_PRIEST
+placement { job_advancement: JOB_ADVANCEMENT_PRIEST skill_order: 4 }
 max_level: 10
 base { cures_conditions: true }

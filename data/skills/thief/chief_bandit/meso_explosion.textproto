@@ -9,10 +9,9 @@
 # Normal-enemy damage is dropped -- 2+floor(x/6)% is 5 points at master, on a
 # skill whose whole line is 200%.
 name: "Meso Explosion"
-skill_order: 2
 description: "Fling Mesos, dropped by Pick Pocket, to damage enemies."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+placement { job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT skill_order: 2 }
 max_level: 20
 lines: 2
 required_skill { skill_name: "Pick Pocket" level: 1 }

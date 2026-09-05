@@ -10,12 +10,11 @@
 # Six enemies against the pool's ten: GMS caps neither, and what separates them
 # is that one is a fog you stand in and the other spreads down the platform.
 name: "Poison Mist"
-skill_order: 2
 description:
   "Creates a poisonous fog around you, dealing poison damage to all enemies "
   "nearby on its own."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_FIRE_POISON_MAGE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_MAGE skill_order: 2 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_STAFF
 max_enemies: 6

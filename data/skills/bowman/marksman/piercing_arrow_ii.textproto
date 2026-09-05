@@ -6,12 +6,11 @@
 # went through, which is what lead_enemies is for: the same shape as a Rogue's
 # opening hit, landing on more than one of them.
 name: "Piercing Arrow II"
-skill_order: 1
 description:
   "Enhances Piercing Arrow. Upon striking the first foe, your Piercing Arrow "
   "now fragments, dealing damage to additional enemies."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 1 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_CROSSBOW
 exceeds_master_level: true

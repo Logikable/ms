@@ -9,11 +9,10 @@
 # The arrow "pursues the enemy" and states no mobCount, so it lands on ONE of
 # the enemies the swing reached -- the same shape as Final Attack.
 name: "Quiver Cartridge"
-skill_order: 2
 description: "Uses a special arrowhead."
 kind: SKILL_KIND_PASSIVE
 final_attack_single_enemy: true
-job_advancement: JOB_ADVANCEMENT_HUNTER
+placement { job_advancement: JOB_ADVANCEMENT_HUNTER skill_order: 2 }
 max_level: 10
 base {
   final_attack_chance: 0.12

@@ -8,6 +8,7 @@ cc_library(
     srcs = ["prototypes.cc"],
     hdrs = ["prototypes.h"],
     deps = [
+        "//src/character:skill_placement",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",

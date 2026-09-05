@@ -9,6 +9,7 @@
 #include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
+#include "src/character/skill_placement.h"
 #include "src/character/v_matrix.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
@@ -123,7 +124,7 @@ Skill SpeedPassive(int stages) {
   Skill skill;
   skill.set_name("Haste");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(1);
   skill.mutable_base()->set_attack_speed(stages);
   return skill;
@@ -209,7 +210,7 @@ TEST(ComputeCombatParamsTest, LearnedSkillsJoinTheBarePoke) {
   Skill slash;
   slash.set_name("Slash Blast");
   slash.set_kind(SKILL_KIND_ATTACK);
-  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(slash, JOB_ADVANCEMENT_SWORDMAN);
   slash.set_max_level(20);
   slash.set_max_enemies(6);
   slash.mutable_base()->set_skill_pct(1.83);
@@ -239,7 +240,7 @@ TEST(ComputeCombatParamsTest, AHeldSwingIsPricedAsAFullHold) {
   Skill orb;
   orb.set_name("Lightning Orb");
   orb.set_kind(SKILL_KIND_ATTACK);
-  orb.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(orb, JOB_ADVANCEMENT_SWORDMAN);
   orb.set_max_level(1);
   orb.set_max_enemies(8);
   orb.set_lines(15);
@@ -287,13 +288,13 @@ TEST(ComputeCombatParamsTest, OnlyAnIceSwingCollectsTheStackedMagicAttack) {
   Skill crush;
   crush.set_name("Freezing Crush");
   crush.set_kind(SKILL_KIND_PASSIVE);
-  crush.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(crush, JOB_ADVANCEMENT_SWORDMAN);
   crush.set_max_level(1);
   crush.set_freeze_stack_cap(5);
   Skill fury;
   fury.set_name("Glacial Fury");
   fury.set_kind(SKILL_KIND_ACTIVE);
-  fury.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(fury, JOB_ADVANCEMENT_SWORDMAN);
   fury.set_max_level(1);
   fury.set_cooldown_seconds(60.0);
   fury.mutable_buff()->set_duration_seconds(20.0);
@@ -303,7 +304,7 @@ TEST(ComputeCombatParamsTest, OnlyAnIceSwingCollectsTheStackedMagicAttack) {
   beam.set_name("Cold Beam");
   beam.set_kind(SKILL_KIND_ATTACK);
   beam.add_tags(SKILL_TAG_ICE);
-  beam.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(beam, JOB_ADVANCEMENT_SWORDMAN);
   beam.set_max_level(1);
   beam.mutable_base()->set_skill_pct(1.0);
   Skill bolt = beam;
@@ -348,7 +349,7 @@ TEST(ComputeCombatParamsTest, ASupersededSwingIsNotOffered) {
   Skill slash;
   slash.set_name("Slash Blast");
   slash.set_kind(SKILL_KIND_ATTACK);
-  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(slash, JOB_ADVANCEMENT_SWORDMAN);
   slash.set_max_level(20);
   slash.set_max_enemies(6);
   slash.mutable_base()->set_skill_pct(1.83);
@@ -381,7 +382,7 @@ TEST(ComputeCombatParamsTest, ASwingWithAnOpeningHitCarriesBothHalves) {
   Skill burst;
   burst.set_name("Shuriken Burst");
   burst.set_kind(SKILL_KIND_ATTACK);
-  burst.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(burst, JOB_ADVANCEMENT_SWORDMAN);
   burst.set_max_level(20);
   burst.set_max_enemies(6);
   burst.set_lines(6);
@@ -419,7 +420,7 @@ TEST(ComputeCombatParamsTest, TheOpeningHitCarriesItsOwnReach) {
   Skill piercing;
   piercing.set_name("Piercing Arrow II");
   piercing.set_kind(SKILL_KIND_ATTACK);
-  piercing.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(piercing, JOB_ADVANCEMENT_SWORDMAN);
   piercing.set_max_level(30);
   piercing.set_max_enemies(8);
   piercing.set_lines(5);
@@ -453,7 +454,7 @@ TEST(ComputeCombatParamsTest, TheShadowCopiesTheSwingAndItsOpeningHit) {
   Skill burst;
   burst.set_name("Shuriken Burst");
   burst.set_kind(SKILL_KIND_ATTACK);
-  burst.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(burst, JOB_ADVANCEMENT_SWORDMAN);
   burst.set_max_level(20);
   burst.set_max_enemies(6);
   burst.set_lines(6);
@@ -463,7 +464,7 @@ TEST(ComputeCombatParamsTest, TheShadowCopiesTheSwingAndItsOpeningHit) {
   Skill mist;
   mist.set_name("Poison Mist");
   mist.set_kind(SKILL_KIND_AUTO_ATTACK);
-  mist.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(mist, JOB_ADVANCEMENT_SWORDMAN);
   mist.set_max_level(20);
   mist.set_max_enemies(6);
   mist.set_cast_interval_seconds(1.0);
@@ -471,7 +472,7 @@ TEST(ComputeCombatParamsTest, TheShadowCopiesTheSwingAndItsOpeningHit) {
   Skill partner;
   partner.set_name("Shadow Partner");
   partner.set_kind(SKILL_KIND_PASSIVE);
-  partner.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(partner, JOB_ADVANCEMENT_SWORDMAN);
   partner.set_max_level(20);
   partner.mutable_base()->set_mirror_line_pct(0.70);
 
@@ -514,7 +515,7 @@ TEST(ComputeCombatParamsTest, MesosDropPerLineAndOnlyFromWhatIsSwung) {
   Skill carnival;
   carnival.set_name("Midnight Carnival");
   carnival.set_kind(SKILL_KIND_ATTACK);
-  carnival.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(carnival, JOB_ADVANCEMENT_SWORDMAN);
   carnival.set_max_level(20);
   carnival.set_max_enemies(8);
   carnival.set_lines(4);
@@ -522,7 +523,7 @@ TEST(ComputeCombatParamsTest, MesosDropPerLineAndOnlyFromWhatIsSwung) {
   Skill flare;
   flare.set_name("Dark Flare");
   flare.set_kind(SKILL_KIND_AUTO_ATTACK);
-  flare.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(flare, JOB_ADVANCEMENT_SWORDMAN);
   flare.set_max_level(20);
   flare.set_max_enemies(3);
   flare.set_cast_interval_seconds(1.5);
@@ -530,13 +531,13 @@ TEST(ComputeCombatParamsTest, MesosDropPerLineAndOnlyFromWhatIsSwung) {
   Skill pocket;
   pocket.set_name("Pick Pocket");
   pocket.set_kind(SKILL_KIND_PASSIVE);
-  pocket.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(pocket, JOB_ADVANCEMENT_SWORDMAN);
   pocket.set_max_level(10);
   pocket.mutable_base()->set_meso_drop_chance(0.30);
   Skill explosion;
   explosion.set_name("Meso Explosion");
   explosion.set_kind(SKILL_KIND_PASSIVE);
-  explosion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(explosion, JOB_ADVANCEMENT_SWORDMAN);
   explosion.set_max_level(20);
   explosion.set_lines(2);
   explosion.mutable_base()->set_meso_hit_pct(1.00);
@@ -591,7 +592,7 @@ TEST(ComputeCombatParamsTest, ASwingCanShakeFewerMesosLoose) {
   Skill stab;
   stab.set_name("Cruel Stab");
   stab.set_kind(SKILL_KIND_ATTACK);
-  stab.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(stab, JOB_ADVANCEMENT_SWORDMAN);
   stab.set_max_level(30);
   stab.set_max_enemies(8);
   stab.set_lines(6);
@@ -600,14 +601,14 @@ TEST(ComputeCombatParamsTest, ASwingCanShakeFewerMesosLoose) {
   Skill pocket;
   pocket.set_name("Pick Pocket");
   pocket.set_kind(SKILL_KIND_PASSIVE);
-  pocket.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(pocket, JOB_ADVANCEMENT_SWORDMAN);
   pocket.set_max_level(10);
   pocket.mutable_base()->set_meso_drop_chance(0.12);
   pocket.mutable_per_level()->set_meso_drop_chance(0.02);
   Skill explosion;
   explosion.set_name("Meso Explosion");
   explosion.set_kind(SKILL_KIND_PASSIVE);
-  explosion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(explosion, JOB_ADVANCEMENT_SWORDMAN);
   explosion.set_max_level(20);
   explosion.set_lines(2);
   explosion.mutable_base()->set_meso_hit_pct(1.00);
@@ -640,14 +641,14 @@ TEST(ComputeCombatParamsTest, AFinalAttackReinforceLandsOnTheExtraHitsAlone) {
   Skill final_attack;
   final_attack.set_name("Advanced Final Attack");
   final_attack.set_kind(SKILL_KIND_PASSIVE);
-  final_attack.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(final_attack, JOB_ADVANCEMENT_SWORDMAN);
   final_attack.set_max_level(30);
   final_attack.mutable_base()->set_final_attack_chance(0.60);
   final_attack.mutable_base()->set_final_attack_pct(1.70);
   Skill hyper;
   hyper.set_name("Advanced Final Attack - Reinforce");
   hyper.set_kind(SKILL_KIND_PASSIVE);
-  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(hyper, JOB_ADVANCEMENT_SWORDMAN);
   hyper.set_max_level(1);
   SkillBoost* boost = hyper.add_boost();
   boost->set_skill_name("Advanced Final Attack");
@@ -690,20 +691,20 @@ TEST(ComputeCombatParamsTest, ABrandedMesoHitsABossHarder) {
   Skill pocket;
   pocket.set_name("Pick Pocket");
   pocket.set_kind(SKILL_KIND_PASSIVE);
-  pocket.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(pocket, JOB_ADVANCEMENT_SWORDMAN);
   pocket.set_max_level(10);
   pocket.mutable_base()->set_meso_drop_chance(0.30);
   Skill explosion;
   explosion.set_name("Meso Explosion");
   explosion.set_kind(SKILL_KIND_PASSIVE);
-  explosion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(explosion, JOB_ADVANCEMENT_SWORDMAN);
   explosion.set_max_level(20);
   explosion.set_lines(2);
   explosion.mutable_base()->set_meso_hit_pct(1.00);
   Skill money;
   money.set_name("Blood Money");
   money.set_kind(SKILL_KIND_PASSIVE);
-  money.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(money, JOB_ADVANCEMENT_SWORDMAN);
   money.set_max_level(20);
   SkillBoost* brand = money.add_boost();
   brand->set_skill_name("Meso Explosion");
@@ -752,19 +753,19 @@ TEST(ComputeCombatParamsTest,
   Skill pocket;
   pocket.set_name("Pick Pocket");
   pocket.set_kind(SKILL_KIND_PASSIVE);
-  pocket.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(pocket, JOB_ADVANCEMENT_SWORDMAN);
   pocket.set_max_level(10);
   pocket.mutable_base()->set_meso_drop_chance(0.30);
   Skill explosion;
   explosion.set_name("Meso Explosion");
   explosion.set_kind(SKILL_KIND_PASSIVE);
-  explosion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(explosion, JOB_ADVANCEMENT_SWORDMAN);
   explosion.set_max_level(20);
   explosion.mutable_base()->set_meso_hit_pct(1.00);
   Skill hyper;
   hyper.set_name("Meso Explosion - Reinforce");
   hyper.set_kind(SKILL_KIND_PASSIVE);
-  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(hyper, JOB_ADVANCEMENT_SWORDMAN);
   hyper.set_max_level(1);
   SkillBoost* boost = hyper.add_boost();
   boost->set_skill_name("Meso Explosion");
@@ -809,7 +810,7 @@ TEST(ComputeCombatParamsTest, AnOrdinarySwingCarriesNoOpeningHit) {
   Skill slash;
   slash.set_name("Slash Blast");
   slash.set_kind(SKILL_KIND_ATTACK);
-  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(slash, JOB_ADVANCEMENT_SWORDMAN);
   slash.set_max_level(20);
   slash.mutable_base()->set_skill_pct(1.83);
   GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
@@ -831,14 +832,14 @@ TEST(ComputeCombatParamsTest, BonusLevelsReachTheSwing) {
   Skill slash;
   slash.set_name("Slash Blast");
   slash.set_kind(SKILL_KIND_ATTACK);
-  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(slash, JOB_ADVANCEMENT_SWORDMAN);
   slash.set_max_level(20);
   slash.mutable_base()->set_skill_pct(1.0);
   slash.mutable_per_level()->set_skill_pct(1.0);
   Skill orders;
   orders.set_name("Combat Orders");
   orders.set_kind(SKILL_KIND_PASSIVE);
-  orders.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(orders, JOB_ADVANCEMENT_SWORDMAN);
   orders.set_max_level(10);
   orders.mutable_base()->set_skill_level_bonus(1.0);
   GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
@@ -865,7 +866,7 @@ TEST(ComputeCombatParamsTest, ACastIsOfferedAsASwingButCarriesNoDamage) {
   Skill heal;
   heal.set_name("Heal");
   heal.set_kind(SKILL_KIND_ACTIVE);
-  heal.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(heal, JOB_ADVANCEMENT_SWORDMAN);
   heal.set_max_level(10);
   heal.set_base_delay_ms(600);
   heal.mutable_base()->set_heal_pct(0.10);
@@ -873,7 +874,7 @@ TEST(ComputeCombatParamsTest, ACastIsOfferedAsASwingButCarriesNoDamage) {
   Skill final_attack;
   final_attack.set_name("Final Attack");
   final_attack.set_kind(SKILL_KIND_PASSIVE);
-  final_attack.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(final_attack, JOB_ADVANCEMENT_SWORDMAN);
   final_attack.set_max_level(1);
   final_attack.mutable_base()->set_final_attack_chance(0.5);
   final_attack.mutable_base()->set_final_attack_pct(1.0);
@@ -906,7 +907,7 @@ TEST(ComputeCombatParamsTest, AFinalAttackCanStrikeOneEnemyOnly) {
   Skill wide;
   wide.set_name("Blizzard");
   wide.set_kind(SKILL_KIND_ATTACK);
-  wide.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(wide, JOB_ADVANCEMENT_SWORDMAN);
   wide.set_max_level(30);
   wide.set_base_delay_ms(900);
   wide.set_max_enemies(15);
@@ -944,7 +945,7 @@ TEST(ComputeCombatParamsTest, AFinalAttackLandsItsOwnStrikes) {
   Skill mark;
   mark.set_name("Night Lord's Mark");
   mark.set_kind(SKILL_KIND_PASSIVE);
-  mark.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(mark, JOB_ADVANCEMENT_SWORDMAN);
   mark.set_max_level(10);
   mark.mutable_base()->set_final_attack_chance(0.42);
   mark.mutable_base()->set_final_attack_pct(2.10);
@@ -978,7 +979,7 @@ TEST(ComputeCombatParamsTest, AnAttacksRecoveryRidesItsOwnSwing) {
   Skill ray;
   ray.set_name("Angel Ray");
   ray.set_kind(SKILL_KIND_ATTACK);
-  ray.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(ray, JOB_ADVANCEMENT_SWORDMAN);
   ray.set_max_level(30);
   ray.set_base_delay_ms(660);
   ray.mutable_base()->set_skill_pct(0.80);
@@ -1008,7 +1009,7 @@ TEST(ComputeCombatParamsTest, ACastWithNothingBehindItIsNoOption) {
   Skill shout;
   shout.set_name("Shout");
   shout.set_kind(SKILL_KIND_ACTIVE);
-  shout.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(shout, JOB_ADVANCEMENT_SWORDMAN);
   shout.set_max_level(10);
   GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
                   {{"field", TwoSnailMap()}}, {{"shout", shout}});
@@ -1031,7 +1032,7 @@ TEST(ComputeCombatParamsTest, ACooldownStretchesWithEverythingElse) {
   Skill burst;
   burst.set_name("Burst");
   burst.set_kind(SKILL_KIND_ATTACK);
-  burst.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(burst, JOB_ADVANCEMENT_SWORDMAN);
   burst.set_max_level(20);
   burst.set_base_delay_ms(720);
   burst.set_cooldown_seconds(4.0);
@@ -1054,7 +1055,7 @@ TEST(ComputeCombatParamsTest, EachSwingTakesItsOwnSkillsTime) {
   Skill slow;
   slow.set_name("Slow Swing");
   slow.set_kind(SKILL_KIND_ATTACK);
-  slow.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(slow, JOB_ADVANCEMENT_SWORDMAN);
   slow.set_max_level(20);
   slow.set_base_delay_ms(1200);
   slow.mutable_base()->set_skill_pct(1.83);
@@ -1083,7 +1084,7 @@ TEST(ComputeCombatParamsTest, AFixedDelaySwingIgnoresTheAttackSpeedStage) {
   Skill blaster;
   blaster.set_name("Arrow Blaster");
   blaster.set_kind(SKILL_KIND_ATTACK);
-  blaster.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(blaster, JOB_ADVANCEMENT_SWORDMAN);
   blaster.set_max_level(20);
   blaster.set_base_delay_ms(120);
   blaster.set_fixed_delay(true);
@@ -1114,7 +1115,7 @@ TEST(ComputeCombatParamsTest, AnOrdinarySwingStillAnswersToTheWeapon) {
   Skill wind;
   wind.set_name("Wind Arrow");
   wind.set_kind(SKILL_KIND_ATTACK);
-  wind.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(wind, JOB_ADVANCEMENT_SWORDMAN);
   wind.set_max_level(20);
   wind.set_base_delay_ms(810);
   wind.mutable_base()->set_skill_pct(0.83);
@@ -1160,7 +1161,7 @@ TEST(ComputeCombatParamsTest, ASwingWithNoDelayOfItsOwnTakesTheDefault) {
   Skill slash;
   slash.set_name("Slash Blast");
   slash.set_kind(SKILL_KIND_ATTACK);
-  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(slash, JOB_ADVANCEMENT_SWORDMAN);
   slash.set_max_level(20);
   slash.mutable_base()->set_skill_pct(1.83);
   GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
@@ -1182,7 +1183,7 @@ TEST(ComputeCombatParamsTest, AutoAttackSkillsLandOnTheirOwnList) {
   Skill evil_eye;
   evil_eye.set_name("Evil Eye Shock");
   evil_eye.set_kind(SKILL_KIND_AUTO_ATTACK);
-  evil_eye.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(evil_eye, JOB_ADVANCEMENT_SWORDMAN);
   evil_eye.set_max_level(10);
   evil_eye.set_max_enemies(10);
   evil_eye.set_cast_interval_seconds(12.0);
@@ -1213,7 +1214,7 @@ TEST(ComputeCombatParamsTest, ABoostReachesBothHalvesOfTheSkillItNames) {
   Skill blaster;
   blaster.set_name("Arrow Blaster");
   blaster.set_kind(SKILL_KIND_ATTACK);
-  blaster.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(blaster, JOB_ADVANCEMENT_SWORDMAN);
   blaster.set_max_level(20);
   blaster.set_max_enemies(4);
   blaster.mutable_base()->set_skill_pct(1.24);
@@ -1226,7 +1227,7 @@ TEST(ComputeCombatParamsTest, ABoostReachesBothHalvesOfTheSkillItNames) {
   Skill hyper;
   hyper.set_name("Gritty Gust");
   hyper.set_kind(SKILL_KIND_PASSIVE);
-  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(hyper, JOB_ADVANCEMENT_SWORDMAN);
   hyper.set_max_level(1);
   SkillBoost* boost = hyper.add_boost();
   boost->set_skill_name("Arrow Blaster");
@@ -1272,7 +1273,7 @@ TEST(ComputeCombatParamsTest, ASkillCanCarrySeveralOwnClockHalves) {
   Skill revenge;
   revenge.set_name("Revenge of the Evil Eye");
   revenge.set_kind(SKILL_KIND_AUTO_ATTACK);
-  revenge.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(revenge, JOB_ADVANCEMENT_SWORDMAN);
   revenge.set_max_level(30);
   revenge.set_max_enemies(10);
   revenge.set_cast_interval_seconds(5.0);
@@ -1322,7 +1323,7 @@ TEST(ComputeCombatParamsTest, ABuffGetsADamageTableOfItsOwn) {
   Skill resonance;
   resonance.set_name("Dark Resonance");
   resonance.set_kind(SKILL_KIND_ACTIVE);
-  resonance.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(resonance, JOB_ADVANCEMENT_SWORDMAN);
   resonance.set_max_level(30);
   resonance.set_cooldown_seconds(70.0);
   Buff* buff = resonance.mutable_buff();
@@ -1367,7 +1368,7 @@ TEST(ComputeCombatParamsTest, APartySharedBuffComesRoundOncePerHolder) {
   Skill epic;
   epic.set_name("Epic Adventure");
   epic.set_kind(SKILL_KIND_ACTIVE);
-  epic.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(epic, JOB_ADVANCEMENT_SWORDMAN);
   epic.set_max_level(1);
   epic.set_base_delay_ms(900);
   epic.set_cooldown_seconds(120.0);
@@ -1409,7 +1410,7 @@ TEST(ComputeCombatParamsTest, AShellReachesTheCasterAndThePartyAlike) {
   Skill shell;
   shell.set_name("Holy Magic Shell");
   shell.set_kind(SKILL_KIND_ACTIVE);
-  shell.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(shell, JOB_ADVANCEMENT_SWORDMAN);
   shell.set_max_level(20);
   shell.set_base_delay_ms(120);
   shell.set_cooldown_seconds(90.0);
@@ -1472,7 +1473,7 @@ TEST(ComputeCombatParamsTest, ABoostDeepensTheShellItNames) {
   Skill shell;
   shell.set_name("Holy Magic Shell");
   shell.set_kind(SKILL_KIND_ACTIVE);
-  shell.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(shell, JOB_ADVANCEMENT_SWORDMAN);
   shell.set_max_level(20);
   shell.set_cooldown_seconds(90.0);
   Buff* buff = shell.mutable_buff();
@@ -1487,7 +1488,7 @@ TEST(ComputeCombatParamsTest, ABoostDeepensTheShellItNames) {
   Skill hyper;
   hyper.set_name("Holy Magic Shell - Extra Guard");
   hyper.set_kind(SKILL_KIND_PASSIVE);
-  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(hyper, JOB_ADVANCEMENT_SWORDMAN);
   hyper.set_max_level(1);
   SkillBoost* boost = hyper.add_boost();
   boost->set_skill_name("Holy Magic Shell");
@@ -1541,7 +1542,7 @@ TEST(ComputeCombatParamsTest, AToggleSwapsWhichFormIsSwung) {
   Skill heal;
   heal.set_name("Heal");
   heal.set_kind(SKILL_KIND_ACTIVE);
-  heal.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(heal, JOB_ADVANCEMENT_SWORDMAN);
   heal.set_max_level(10);
   heal.mutable_base()->set_heal_pct(0.10);
   heal.mutable_per_level()->set_heal_pct(0.10);
@@ -1549,7 +1550,7 @@ TEST(ComputeCombatParamsTest, AToggleSwapsWhichFormIsSwung) {
   Skill wrath;
   wrath.set_name("Angelic Wrath");
   wrath.set_kind(SKILL_KIND_ATTACK);
-  wrath.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(wrath, JOB_ADVANCEMENT_SWORDMAN);
   wrath.set_max_level(10);
   wrath.set_max_enemies(6);
   wrath.set_lines(5);
@@ -1560,7 +1561,7 @@ TEST(ComputeCombatParamsTest, AToggleSwapsWhichFormIsSwung) {
   Skill toggle;
   toggle.set_name("Righteously Indignant");
   toggle.set_kind(SKILL_KIND_ACTIVE);
-  toggle.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(toggle, JOB_ADVANCEMENT_SWORDMAN);
   toggle.set_max_level(1);
   toggle.set_toggle(true);
 
@@ -1592,7 +1593,7 @@ TEST(ComputeCombatParamsTest, APartysBuffComesInOnItsCastersClock) {
   Skill smoke;
   smoke.set_name("Smokescreen");
   smoke.set_kind(SKILL_KIND_ACTIVE);
-  smoke.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(smoke, JOB_ADVANCEMENT_SWORDMAN);
   smoke.set_max_level(10);
   smoke.set_base_delay_ms(720);
   smoke.set_cooldown_seconds(120.0);
@@ -1636,7 +1637,7 @@ TEST(ComputeCombatParamsTest, APartysBuffTakesItsCastersBuffDuration) {
   Skill smoke;
   smoke.set_name("Smokescreen");
   smoke.set_kind(SKILL_KIND_ACTIVE);
-  smoke.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(smoke, JOB_ADVANCEMENT_SWORDMAN);
   smoke.set_max_level(10);
   smoke.set_cooldown_seconds(120.0);
   Buff* buff = smoke.mutable_buff();
@@ -1647,7 +1648,7 @@ TEST(ComputeCombatParamsTest, APartysBuffTakesItsCastersBuffDuration) {
   Skill mastery;
   mastery.set_name("Buff Mastery");
   mastery.set_kind(SKILL_KIND_PASSIVE);
-  mastery.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(mastery, JOB_ADVANCEMENT_SWORDMAN);
   mastery.set_max_level(10);
   mastery.mutable_base()->set_buff_duration_pct(0.05);
   mastery.mutable_per_level()->set_buff_duration_pct(0.05);
@@ -1686,7 +1687,7 @@ TEST(ComputeCombatParamsTest, BuffDurationLengthensTheBuffAndNotTheWait) {
   Skill resonance;
   resonance.set_name("Dark Resonance");
   resonance.set_kind(SKILL_KIND_ACTIVE);
-  resonance.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(resonance, JOB_ADVANCEMENT_SWORDMAN);
   resonance.set_max_level(30);
   resonance.set_cooldown_seconds(70.0);
   Buff* buff = resonance.mutable_buff();
@@ -1696,7 +1697,7 @@ TEST(ComputeCombatParamsTest, BuffDurationLengthensTheBuffAndNotTheWait) {
   Skill mastery;
   mastery.set_name("Buff Mastery");
   mastery.set_kind(SKILL_KIND_PASSIVE);
-  mastery.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(mastery, JOB_ADVANCEMENT_SWORDMAN);
   mastery.set_max_level(10);
   mastery.mutable_base()->set_buff_duration_pct(0.05);
   mastery.mutable_per_level()->set_buff_duration_pct(0.05);
@@ -1724,7 +1725,7 @@ TEST(ComputeCombatParamsTest, ASwingCanLeaveABurn) {
   Skill sweep;
   sweep.set_name("Flame Sweep");
   sweep.set_kind(SKILL_KIND_ATTACK);
-  sweep.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(sweep, JOB_ADVANCEMENT_SWORDMAN);
   sweep.set_max_level(30);
   sweep.set_base_delay_ms(780);
   sweep.set_max_enemies(8);
@@ -1739,7 +1740,7 @@ TEST(ComputeCombatParamsTest, ASwingCanLeaveABurn) {
   Skill summon;
   summon.set_name("Ifrit");
   summon.set_kind(SKILL_KIND_AUTO_ATTACK);
-  summon.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(summon, JOB_ADVANCEMENT_SWORDMAN);
   summon.set_max_level(20);
   summon.set_max_enemies(3);
   summon.set_cast_interval_seconds(3.0);
@@ -1813,7 +1814,7 @@ TEST(ComputeCombatParamsTest, APassivesBurnRidesEverySwing) {
   Skill venom;
   venom.set_name("Venom");
   venom.set_kind(SKILL_KIND_PASSIVE);
-  venom.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(venom, JOB_ADVANCEMENT_SWORDMAN);
   venom.set_max_level(10);
   Dot* poison = venom.mutable_dot();
   poison->set_interval_seconds(1.0);
@@ -1826,7 +1827,7 @@ TEST(ComputeCombatParamsTest, APassivesBurnRidesEverySwing) {
   Skill raid;
   raid.set_name("Sudden Raid");
   raid.set_kind(SKILL_KIND_ATTACK);
-  raid.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(raid, JOB_ADVANCEMENT_SWORDMAN);
   raid.set_max_level(30);
   raid.set_base_delay_ms(900);
   raid.mutable_base()->set_skill_pct(3.49);
@@ -1871,7 +1872,7 @@ TEST(ComputeCombatParamsTest, ABoostCanLiftTheNamedSkillsBurn) {
   Skill venom;
   venom.set_name("Venom");
   venom.set_kind(SKILL_KIND_PASSIVE);
-  venom.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(venom, JOB_ADVANCEMENT_SWORDMAN);
   venom.set_max_level(10);
   Dot* poison = venom.mutable_dot();
   poison->set_interval_seconds(1.0);
@@ -1881,7 +1882,7 @@ TEST(ComputeCombatParamsTest, ABoostCanLiftTheNamedSkillsBurn) {
   Skill mist;
   mist.set_name("Poison Mist");
   mist.set_kind(SKILL_KIND_ATTACK);
-  mist.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(mist, JOB_ADVANCEMENT_SWORDMAN);
   mist.set_max_level(20);
   mist.set_base_delay_ms(660);
   mist.set_max_enemies(6);
@@ -1896,7 +1897,7 @@ TEST(ComputeCombatParamsTest, ABoostCanLiftTheNamedSkillsBurn) {
   Skill haze;
   haze.set_name("Flame Haze");
   haze.set_kind(SKILL_KIND_ATTACK);
-  haze.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(haze, JOB_ADVANCEMENT_SWORDMAN);
   haze.set_max_level(20);
   haze.set_base_delay_ms(660);
   haze.mutable_base()->set_skill_pct(1.60);
@@ -1905,7 +1906,7 @@ TEST(ComputeCombatParamsTest, ABoostCanLiftTheNamedSkillsBurn) {
   Skill eruption;
   eruption.set_name("Mist Eruption");
   eruption.set_kind(SKILL_KIND_PASSIVE);
-  eruption.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(eruption, JOB_ADVANCEMENT_SWORDMAN);
   eruption.set_max_level(20);
   SkillBoost* boost = eruption.add_boost();
   boost->set_skill_name("Poison Mist");
@@ -1977,7 +1978,7 @@ TEST(ComputeCombatParamsTest, AScatteredSwingCarriesItsStrikesAndItsCut) {
   Skill megiddo;
   megiddo.set_name("Megiddo Flame");
   megiddo.set_kind(SKILL_KIND_ATTACK);
-  megiddo.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(megiddo, JOB_ADVANCEMENT_SWORDMAN);
   megiddo.set_max_level(1);
   megiddo.set_base_delay_ms(660);
   megiddo.set_max_enemies(11);
@@ -2011,7 +2012,7 @@ TEST(ComputeCombatParamsTest, ASwingCanSetOffAStrikeOnAWaitOfItsOwn) {
   Skill showdown;
   showdown.set_name("Showdown");
   showdown.set_kind(SKILL_KIND_ATTACK);
-  showdown.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(showdown, JOB_ADVANCEMENT_SWORDMAN);
   showdown.set_max_level(30);
   showdown.set_base_delay_ms(780);
   showdown.set_max_enemies(6);
@@ -2064,7 +2065,7 @@ TEST(ComputeCombatParamsTest, ABoostStopsAtTheStrikeTheSwingSetsOff) {
   Skill showdown;
   showdown.set_name("Showdown");
   showdown.set_kind(SKILL_KIND_ATTACK);
-  showdown.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(showdown, JOB_ADVANCEMENT_SWORDMAN);
   showdown.set_max_level(30);
   showdown.set_base_delay_ms(780);
   showdown.set_max_enemies(6);
@@ -2080,7 +2081,7 @@ TEST(ComputeCombatParamsTest, ABoostStopsAtTheStrikeTheSwingSetsOff) {
   Skill reinforce;
   reinforce.set_name("Showdown - Reinforce");
   reinforce.set_kind(SKILL_KIND_PASSIVE);
-  reinforce.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(reinforce, JOB_ADVANCEMENT_SWORDMAN);
   reinforce.set_max_level(1);
   SkillBoost* boost = reinforce.add_boost();
   boost->set_skill_name("Showdown");
@@ -2113,7 +2114,7 @@ TEST(ComputeCombatParamsTest, ABuffOnAnAttackIsLaidByThatSwing) {
   Skill puncture;
   puncture.set_name("Puncture");
   puncture.set_kind(SKILL_KIND_ATTACK);
-  puncture.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(puncture, JOB_ADVANCEMENT_SWORDMAN);
   puncture.set_max_level(30);
   puncture.set_base_delay_ms(720);
   puncture.set_max_enemies(8);
@@ -2201,7 +2202,7 @@ TEST(ComputeCombatParamsTest, ASummonCutsDeeperIntoANormalMonsterToo) {
   Skill orb;
   orb.set_name("Thunder Sphere");
   orb.set_kind(SKILL_KIND_AUTO_ATTACK);
-  orb.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(orb, JOB_ADVANCEMENT_SWORDMAN);
   orb.set_max_level(10);
   orb.set_cast_interval_seconds(2.0);
   orb.mutable_base()->set_skill_pct(1.00);
@@ -2235,7 +2236,7 @@ TEST(ComputeCombatParamsTest, ASwingCanLandTwoHitsPricedSeparately) {
   Skill mark;
   mark.set_name("Divine Mark");
   mark.set_kind(SKILL_KIND_ATTACK);
-  mark.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(mark, JOB_ADVANCEMENT_SWORDMAN);
   mark.set_max_level(30);
   mark.set_max_enemies(10);
   mark.set_lines(7);
@@ -2287,7 +2288,7 @@ TEST(ComputeCombatParamsTest, AHalfOfASwingCanBeCertainToCrit) {
   Skill blow;
   blow.set_name("Raging Blow");
   blow.set_kind(SKILL_KIND_ATTACK);
-  blow.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(blow, JOB_ADVANCEMENT_SWORDMAN);
   blow.set_max_level(30);
   blow.set_max_enemies(8);
   blow.set_lines(2);
@@ -2330,7 +2331,7 @@ TEST(ComputeCombatParamsTest, APassiveHandsStrikesAndReachToSkillsItNames) {
   Skill charge;
   charge.set_name("Divine Charge");
   charge.set_kind(SKILL_KIND_ATTACK);
-  charge.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(charge, JOB_ADVANCEMENT_SWORDMAN);
   charge.set_max_level(20);
   charge.set_max_enemies(8);
   charge.set_lines(4);
@@ -2338,7 +2339,7 @@ TEST(ComputeCombatParamsTest, APassiveHandsStrikesAndReachToSkillsItNames) {
   Skill vessel;
   vessel.set_name("Greater Vessel of Light");
   vessel.set_kind(SKILL_KIND_PASSIVE);
-  vessel.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(vessel, JOB_ADVANCEMENT_SWORDMAN);
   vessel.set_max_level(10);
   SkillBoost* boost = vessel.add_boost();
   boost->set_skill_name("Divine Charge");
@@ -2380,7 +2381,7 @@ TEST(ComputeCombatParamsTest, ABoostCanShortenTheWaitOfTheSkillItNames) {
   Skill hammer;
   hammer.set_name("Heaven's Hammer");
   hammer.set_kind(SKILL_KIND_ATTACK);
-  hammer.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(hammer, JOB_ADVANCEMENT_SWORDMAN);
   hammer.set_max_level(30);
   hammer.set_max_enemies(15);
   hammer.set_lines(8);
@@ -2390,7 +2391,7 @@ TEST(ComputeCombatParamsTest, ABoostCanShortenTheWaitOfTheSkillItNames) {
   Skill hyper;
   hyper.set_name("Heaven's Hammer - Cooldown Cutter");
   hyper.set_kind(SKILL_KIND_PASSIVE);
-  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(hyper, JOB_ADVANCEMENT_SWORDMAN);
   hyper.set_max_level(1);
   SkillBoost* boost = hyper.add_boost();
   boost->set_skill_name("Heaven's Hammer");
@@ -2426,7 +2427,7 @@ TEST(ComputeCombatParamsTest, ASummonCanUpgradeItsOwnPulse) {
   Skill toxin;
   toxin.set_name("Creeping Toxin");
   toxin.set_kind(SKILL_KIND_AUTO_ATTACK);
-  toxin.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(toxin, JOB_ADVANCEMENT_SWORDMAN);
   toxin.set_max_level(10);
   toxin.set_max_enemies(10);
   toxin.set_cast_interval_seconds(1.0);
@@ -2465,7 +2466,7 @@ TEST(ComputeCombatParamsTest, OneSkillCanEmpowerTwoDifferentSwings) {
   Skill piercing;
   piercing.set_name("Piercing Arrow II");
   piercing.set_kind(SKILL_KIND_ATTACK);
-  piercing.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(piercing, JOB_ADVANCEMENT_SWORDMAN);
   piercing.set_max_level(30);
   piercing.set_max_enemies(8);
   piercing.set_lines(5);
@@ -2478,7 +2479,7 @@ TEST(ComputeCombatParamsTest, OneSkillCanEmpowerTwoDifferentSwings) {
   Skill greater;
   greater.set_name("Greater Empowered Arrows");
   greater.set_kind(SKILL_KIND_PASSIVE);
-  greater.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(greater, JOB_ADVANCEMENT_SWORDMAN);
   greater.set_max_level(20);
   EmpoweredForm* arrow = greater.add_empowered_form();
   arrow->set_skill_name("Piercing Arrow II");
@@ -2542,7 +2543,7 @@ TEST(ComputeCombatParamsTest, ABoostAddsAStrikeToASwingsSecondHits) {
   Skill piercing;
   piercing.set_name("Piercing Arrow II");
   piercing.set_kind(SKILL_KIND_ATTACK);
-  piercing.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(piercing, JOB_ADVANCEMENT_SWORDMAN);
   piercing.set_max_level(30);
   piercing.set_max_enemies(8);
   piercing.set_lines(5);
@@ -2554,7 +2555,7 @@ TEST(ComputeCombatParamsTest, ABoostAddsAStrikeToASwingsSecondHits) {
   Skill greater;
   greater.set_name("Greater Empowered Arrows");
   greater.set_kind(SKILL_KIND_PASSIVE);
-  greater.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(greater, JOB_ADVANCEMENT_SWORDMAN);
   greater.set_max_level(20);
   EmpoweredForm* form = greater.add_empowered_form();
   form->set_skill_name("Piercing Arrow II");
@@ -2570,7 +2571,7 @@ TEST(ComputeCombatParamsTest, ABoostAddsAStrikeToASwingsSecondHits) {
   Skill extra;
   extra.set_name("Piercing Arrow - Extra Strike");
   extra.set_kind(SKILL_KIND_PASSIVE);
-  extra.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(extra, JOB_ADVANCEMENT_SWORDMAN);
   extra.set_max_level(1);
 
   GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
@@ -2619,7 +2620,7 @@ TEST(ComputeCombatParamsTest, ABoostReachesTheFormOnlyWhenItSaysSo) {
   Skill piercing;
   piercing.set_name("Piercing Arrow II");
   piercing.set_kind(SKILL_KIND_ATTACK);
-  piercing.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(piercing, JOB_ADVANCEMENT_SWORDMAN);
   piercing.set_max_level(30);
   piercing.set_max_enemies(8);
   piercing.set_lines(5);
@@ -2628,7 +2629,7 @@ TEST(ComputeCombatParamsTest, ABoostReachesTheFormOnlyWhenItSaysSo) {
   Skill greater;
   greater.set_name("Greater Empowered Arrows");
   greater.set_kind(SKILL_KIND_PASSIVE);
-  greater.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(greater, JOB_ADVANCEMENT_SWORDMAN);
   greater.set_max_level(20);
   EmpoweredForm* form = greater.add_empowered_form();
   form->set_skill_name("Piercing Arrow II");
@@ -2640,7 +2641,7 @@ TEST(ComputeCombatParamsTest, ABoostReachesTheFormOnlyWhenItSaysSo) {
   Skill spread;
   spread.set_name("Piercing Arrow - Spread");
   spread.set_kind(SKILL_KIND_PASSIVE);
-  spread.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(spread, JOB_ADVANCEMENT_SWORDMAN);
   spread.set_max_level(1);
   SkillBoost* boost = spread.add_boost();
   boost->set_skill_name("Piercing Arrow II");
@@ -2688,7 +2689,7 @@ TEST(ComputeCombatParamsTest, ACertainCritRidesOnlyItsOwnSwing) {
   Skill snipe;
   snipe.set_name("Snipe");
   snipe.set_kind(SKILL_KIND_ATTACK);
-  snipe.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(snipe, JOB_ADVANCEMENT_SWORDMAN);
   snipe.set_max_level(30);
   snipe.set_max_enemies(1);
   snipe.mutable_base()->set_skill_pct(1.00);
@@ -2734,14 +2735,14 @@ TEST(ComputeCombatParamsTest, ASummonsIgnoredDefenceFollowsTheCharacter) {
   Skill plain;
   plain.set_name("Plain Shot");
   plain.set_kind(SKILL_KIND_ATTACK);
-  plain.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(plain, JOB_ADVANCEMENT_SWORDMAN);
   plain.set_max_level(20);
   plain.set_max_enemies(1);
   plain.mutable_base()->set_skill_pct(1.00);
   Skill illusion;
   illusion.set_name("Arrow Illusion");
   illusion.set_kind(SKILL_KIND_AUTO_ATTACK);
-  illusion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(illusion, JOB_ADVANCEMENT_SWORDMAN);
   illusion.set_max_level(20);
   illusion.set_max_enemies(6);
   illusion.set_cast_interval_seconds(3.0);
@@ -2774,7 +2775,7 @@ TEST(ComputeCombatParamsTest, AnExtraStrikeReachesOnlyMultiHitSwings) {
   Skill snipe;
   snipe.set_name("Snipe");
   snipe.set_kind(SKILL_KIND_ATTACK);
-  snipe.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(snipe, JOB_ADVANCEMENT_SWORDMAN);
   snipe.set_max_level(30);
   snipe.set_max_enemies(1);
   snipe.set_lines(9);
@@ -2782,7 +2783,7 @@ TEST(ComputeCombatParamsTest, AnExtraStrikeReachesOnlyMultiHitSwings) {
   Skill illusion;
   illusion.set_name("Arrow Illusion");
   illusion.set_kind(SKILL_KIND_AUTO_ATTACK);
-  illusion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(illusion, JOB_ADVANCEMENT_SWORDMAN);
   illusion.set_max_level(20);
   illusion.set_max_enemies(6);
   illusion.set_lines(4);
@@ -2791,7 +2792,7 @@ TEST(ComputeCombatParamsTest, AnExtraStrikeReachesOnlyMultiHitSwings) {
   Skill surplus;
   surplus.set_name("Bolt Surplus");
   surplus.set_kind(SKILL_KIND_PASSIVE);
-  surplus.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(surplus, JOB_ADVANCEMENT_SWORDMAN);
   surplus.set_max_level(10);
   surplus.mutable_base()->set_bonus_attack_lines(1);
 
@@ -2829,7 +2830,7 @@ TEST(ComputeCombatParamsTest, AnEmpoweredFormLandsItsOwnSecondHit) {
   Skill snipe;
   snipe.set_name("Snipe");
   snipe.set_kind(SKILL_KIND_ATTACK);
-  snipe.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(snipe, JOB_ADVANCEMENT_SWORDMAN);
   snipe.set_max_level(30);
   snipe.set_max_enemies(1);
   snipe.set_lines(9);
@@ -2838,7 +2839,7 @@ TEST(ComputeCombatParamsTest, AnEmpoweredFormLandsItsOwnSecondHit) {
   Skill greater;
   greater.set_name("Greater Empowered Arrows");
   greater.set_kind(SKILL_KIND_PASSIVE);
-  greater.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(greater, JOB_ADVANCEMENT_SWORDMAN);
   greater.set_max_level(20);
   EmpoweredForm* shot = greater.add_empowered_form();
   shot->set_skill_name("Snipe");
@@ -2878,7 +2879,7 @@ TEST(ComputeCombatParamsTest, ASwingClockedSkillLandsOnTheTriggeredList) {
   Skill mirage;
   mirage.set_name("Speed Mirage");
   mirage.set_kind(SKILL_KIND_AUTO_ATTACK);
-  mirage.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(mirage, JOB_ADVANCEMENT_SWORDMAN);
   mirage.set_max_level(20);
   mirage.set_max_enemies(6);
   mirage.set_lines(4);
@@ -2912,7 +2913,7 @@ TEST(ComputeCombatParamsTest, AKillClockedSkillLandsOnTheTriggeredList) {
   Skill fountain;
   fountain.set_name("Erda Fountain");
   fountain.set_kind(SKILL_KIND_AUTO_ATTACK);
-  fountain.set_job_advancement(JOB_ADVANCEMENT_COMMON);
+  PlaceIn(fountain, JOB_ADVANCEMENT_COMMON);
   fountain.set_v_node(V_NODE_KIND_COMMON);
   fountain.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
   fountain.set_max_enemies(10);
@@ -2951,7 +2952,7 @@ TEST(ComputeCombatParamsTest, ABoostCanResetTheClockItNames) {
   Skill mirage;
   mirage.set_name("Speed Mirage");
   mirage.set_kind(SKILL_KIND_AUTO_ATTACK);
-  mirage.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(mirage, JOB_ADVANCEMENT_SWORDMAN);
   mirage.set_max_level(20);
   mirage.set_max_enemies(6);
   mirage.set_lines(4);
@@ -2960,7 +2961,7 @@ TEST(ComputeCombatParamsTest, ABoostCanResetTheClockItNames) {
   Skill second;
   second.set_name("Speed Mirage II");
   second.set_kind(SKILL_KIND_PASSIVE);
-  second.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(second, JOB_ADVANCEMENT_SWORDMAN);
   second.set_max_level(20);
   SkillBoost* boost = second.add_boost();
   boost->set_skill_name("Speed Mirage");
@@ -2994,7 +2995,7 @@ TEST(ComputeCombatParamsTest, ARapidSwingCountsForLessThanAWholeAttack) {
   Skill blaster;
   blaster.set_name("Arrow Blaster");
   blaster.set_kind(SKILL_KIND_ATTACK);
-  blaster.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(blaster, JOB_ADVANCEMENT_SWORDMAN);
   blaster.set_max_level(20);
   blaster.set_hits_per_attack_count(7);
   blaster.mutable_base()->set_skill_pct(1.24);
@@ -3017,14 +3018,14 @@ TEST(ComputeCombatParamsTest, OnlyOwnSwingsCarryFinalAttack) {
   Skill evil_eye;
   evil_eye.set_name("Evil Eye Shock");
   evil_eye.set_kind(SKILL_KIND_AUTO_ATTACK);
-  evil_eye.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(evil_eye, JOB_ADVANCEMENT_SWORDMAN);
   evil_eye.set_max_level(10);
   evil_eye.set_cast_interval_seconds(12.0);
   evil_eye.mutable_base()->set_skill_pct(1.23);
   Skill final_attack;
   final_attack.set_name("Final Attack");
   final_attack.set_kind(SKILL_KIND_PASSIVE);
-  final_attack.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(final_attack, JOB_ADVANCEMENT_SWORDMAN);
   final_attack.set_max_level(20);
   final_attack.mutable_base()->set_final_attack_chance(0.40);
   final_attack.mutable_base()->set_final_attack_pct(1.60);
@@ -3052,14 +3053,14 @@ TEST(ComputeCombatParamsTest, OnlyOwnSwingsCarryTheClawsPoison) {
   Skill evil_eye;
   evil_eye.set_name("Evil Eye Shock");
   evil_eye.set_kind(SKILL_KIND_AUTO_ATTACK);
-  evil_eye.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(evil_eye, JOB_ADVANCEMENT_SWORDMAN);
   evil_eye.set_max_level(10);
   evil_eye.set_cast_interval_seconds(12.0);
   evil_eye.mutable_base()->set_skill_pct(1.23);
   Skill venom;
   venom.set_name("Venom");
   venom.set_kind(SKILL_KIND_PASSIVE);
-  venom.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(venom, JOB_ADVANCEMENT_SWORDMAN);
   venom.set_max_level(10);
   Dot* poison = venom.mutable_dot();
   poison->set_interval_seconds(1.0);
@@ -3088,20 +3089,20 @@ TEST(ComputeCombatParamsTest, ATaggedFinalAttackFollowsOnlyThatTagsSwings) {
   Skill flame;
   flame.set_name("Flame Orb");
   flame.set_kind(SKILL_KIND_ATTACK);
-  flame.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(flame, JOB_ADVANCEMENT_SWORDMAN);
   flame.set_max_level(10);
   flame.add_tags(SKILL_TAG_FIRE);
   flame.mutable_base()->set_skill_pct(1.48);
   Skill cold;
   cold.set_name("Cold Beam");
   cold.set_kind(SKILL_KIND_ATTACK);
-  cold.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(cold, JOB_ADVANCEMENT_SWORDMAN);
   cold.set_max_level(10);
   cold.mutable_base()->set_skill_pct(1.48);
   Skill ignite;
   ignite.set_name("Ignite");
   ignite.set_kind(SKILL_KIND_PASSIVE);
-  ignite.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(ignite, JOB_ADVANCEMENT_SWORDMAN);
   ignite.set_max_level(10);
   ignite.set_follows_skill_tag(SKILL_TAG_FIRE);
   ignite.mutable_base()->set_final_attack_chance(0.50);
@@ -3146,7 +3147,7 @@ TEST(ComputeCombatParamsTest, AnAutoAttackNeedsAnInterval) {
   Skill evil_eye;
   evil_eye.set_name("Evil Eye Shock");
   evil_eye.set_kind(SKILL_KIND_AUTO_ATTACK);
-  evil_eye.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(evil_eye, JOB_ADVANCEMENT_SWORDMAN);
   evil_eye.set_max_level(10);
   evil_eye.mutable_base()->set_skill_pct(1.23);
   GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
@@ -3166,7 +3167,7 @@ TEST(ComputeCombatParamsTest, AttacksTheWeaponCannotSwingAreNotOptions) {
   Skill lucky_seven;
   lucky_seven.set_name("Lucky Seven");
   lucky_seven.set_kind(SKILL_KIND_ATTACK);
-  lucky_seven.set_job_advancement(JOB_ADVANCEMENT_ROGUE);
+  PlaceIn(lucky_seven, JOB_ADVANCEMENT_ROGUE);
   lucky_seven.set_max_level(20);
   lucky_seven.add_required_equip_type(EQUIP_TYPE_CLAW);
   lucky_seven.mutable_base()->set_skill_pct(0.72);
@@ -3188,7 +3189,7 @@ TEST(ComputeCombatParamsTest, AttacksTheWeaponCanSwingAreOptions) {
   Skill lucky_seven;
   lucky_seven.set_name("Lucky Seven");
   lucky_seven.set_kind(SKILL_KIND_ATTACK);
-  lucky_seven.set_job_advancement(JOB_ADVANCEMENT_ROGUE);
+  PlaceIn(lucky_seven, JOB_ADVANCEMENT_ROGUE);
   lucky_seven.set_max_level(20);
   lucky_seven.add_required_equip_type(EQUIP_TYPE_CLAW);
   lucky_seven.mutable_base()->set_skill_pct(0.72);
@@ -3211,7 +3212,7 @@ TEST(ComputeCombatParamsTest, StatGrantingPassivesReachTheSwing) {
   Skill nimble;
   nimble.set_name("Nimble Body");
   nimble.set_kind(SKILL_KIND_PASSIVE);
-  nimble.set_job_advancement(JOB_ADVANCEMENT_ROGUE);
+  PlaceIn(nimble, JOB_ADVANCEMENT_ROGUE);
   nimble.set_max_level(20);
   nimble.mutable_base()->set_luk(1);
   nimble.mutable_per_level()->set_luk(1);
@@ -3351,7 +3352,7 @@ TEST(ComputeCombatParamsTest, ABarrierWeakensWhatMobsSwingWith) {
   Skill curse;
   curse.set_name("Frailty Curse");
   curse.set_kind(SKILL_KIND_PASSIVE);
-  curse.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(curse, JOB_ADVANCEMENT_SWORDMAN);
   curse.set_max_level(20);
   curse.mutable_base()->set_enemy_attack_pct(0.30);
 
@@ -3567,7 +3568,7 @@ TEST(ComputeBossParamsTest, ASwingReachesHalfAsManyPartsOfABoss) {
   Skill slash;
   slash.set_name("Slash Blast");
   slash.set_kind(SKILL_KIND_ATTACK);
-  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  PlaceIn(slash, JOB_ADVANCEMENT_SWORDMAN);
   slash.set_max_level(20);
   slash.set_max_enemies(5);
   slash.mutable_base()->set_skill_pct(1.83);

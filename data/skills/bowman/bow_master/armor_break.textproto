@@ -2,12 +2,11 @@
 # against a boss and nowhere else: no map mob sets any physical defence, so a
 # player farming sees only the final damage.
 name: "Armor Break"
-skill_order: 10
 description:
   "Pierces the enemy's defenses with the sharpness of a bowman that sees "
   "through the enemy's weakness, and increases Final Damage."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 10 }
 max_level: 10
 exceeds_master_level: true
 base {

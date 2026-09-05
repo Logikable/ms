@@ -2,11 +2,10 @@
 # GMS stores this 5% in Sharp Eyes's own block rather than as a modifier aimed
 # at the caster's damage, and what rides the buff reaches whoever it reaches.
 name: "Sharp Eyes - Guardbreak"
-skill_order: 5
 description:
   "Grants Sharp Eyes a bonus to Enemy DEF Ignored. Applies to party members."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_MARKSMAN
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 5 }
 hyper: true
 required_level: 150
 max_level: 1

@@ -5,10 +5,9 @@
 # GMS raises the magic attack beside it. Hex states none here -- no warrior
 # weapon carries any -- so there is nothing for this to raise.
 name: "Evil Eye - Hex Reinforce"
-skill_order: 5
 description: "Increases Hex of the Evil Eye's Attack Power boost."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 5 }
 hyper: true
 required_level: 150
 max_level: 1

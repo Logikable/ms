@@ -1,11 +1,10 @@
 # GMS's own figure: a 35+x% chance that a wooden doll takes the hit instead.
 # The knockback resistance beside it goes, as every other one has.
 name: "Shadow Shifter"
-skill_order: 8
 description:
   "Grants a chance to summon a wooden doll to take damage in your place."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 8 }
 max_level: 10
 exceeds_master_level: true
 base { dodge_chance: 0.36 }

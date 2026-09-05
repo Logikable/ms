@@ -3,10 +3,9 @@
 # climbs 5s to 10s there; it is flat at the master level's here, as every other
 # duration in the game is. 720ms is the animation's own.
 name: "Sudden Raid"
-skill_order: 4
 description: "Call in a horde of friends to attack enemies."
 kind: SKILL_KIND_ATTACK
-job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 4 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_CLAW
 exceeds_master_level: true

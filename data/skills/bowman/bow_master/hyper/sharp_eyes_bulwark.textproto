@@ -11,11 +11,10 @@
 # Alone among the three, this stays with the archer who bought it: it is not
 # GMS's grant, so it does not inherit GMS's party rule.
 name: "Sharp Eyes - Bulwark"
-skill_order: 4
 description:
   "Grants Sharp Eyes a bonus to DEF."
 kind: SKILL_KIND_PASSIVE
-job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 4 }
 hyper: true
 required_level: 140
 max_level: 1
