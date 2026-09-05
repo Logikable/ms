@@ -1,0 +1,25 @@
+# GMS aims this at Assassin's Mark, which Night Lord's Mark supersedes -- a
+# boost keyed by the superseded name reaches nothing. The mark is a Final
+# Attack here, and a Final Attack collects final damage, critical rate and
+# ignored defence alike.
+name: "Night Lord's Mark Boost"
+description: "Strengthens Night Lord's Mark."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 5 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Night Lord's Mark"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Night Lord's Mark"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Night Lord's Mark"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

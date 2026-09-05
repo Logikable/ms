@@ -1,0 +1,41 @@
+# The provoking swing and the shuriken summoned to guard it.
+#
+# Showdown's own shuriken is out of reach on purpose: a side strike is priced
+# off the character's bare stat line, with everything aimed at the skill by
+# name stripped out, exactly as GMS's Showdown - Reinforce says.
+name: "Showdown Boost"
+description: "Strengthens Showdown and Dark Flare."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 6 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Showdown"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Showdown"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Showdown"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Dark Flare"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Dark Flare"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Dark Flare"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

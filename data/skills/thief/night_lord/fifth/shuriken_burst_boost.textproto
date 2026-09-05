@@ -1,0 +1,40 @@
+# GMS's sixth node is Gust Charm / Shuriken Burst, and no charm is thrown here.
+# Lucky Seven takes the empty half at 5% a level -- the one swing no other node
+# of the book claims, and a first-job attack needs the better rate to be worth
+# a node. The claw it demands is what keeps it the Night Lord's own.
+name: "Shuriken Burst Boost"
+description: "Strengthens Shuriken Burst and Lucky Seven."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 9 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Shuriken Burst"
+  effect { final_dmg_pct: 0.05 }
+  effect_per_level { final_dmg_pct: 0.05 }
+}
+boost {
+  skill_name: "Shuriken Burst"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Shuriken Burst"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Lucky Seven"
+  effect { final_dmg_pct: 0.05 }
+  effect_per_level { final_dmg_pct: 0.05 }
+}
+boost {
+  skill_name: "Lucky Seven"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Lucky Seven"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
