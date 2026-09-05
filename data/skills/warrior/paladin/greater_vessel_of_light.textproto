@@ -10,6 +10,10 @@
 # The strikes and the reach are the rest of the skill and the reason SkillBoost
 # exists: a strike each to Divine Charge and Blast, and two more enemies for
 # Divine Charge by the tenth level -- GMS's ceil(L/5).
+#
+# Those two carry Divine Charge to seven, past the five its 415x200 box holds.
+# That stands: the reach rule floors what a swing states for itself, and a
+# book's grant is allowed to lift it.
 name: "Greater Vessel of Light"
 description:
   "Empowers Vessel of Light to its limit with your mastery. Increases Divine "

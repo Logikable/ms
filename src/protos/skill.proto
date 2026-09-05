@@ -955,6 +955,9 @@ message SkillBoost {
   // Enemies added to its reach at level 1, and the rate that climbs, read
   // exactly as Skill.lines and Skill.lines_per_level are -- 0.2 is one more
   // enemy every fifth level, which is GMS's ceil(L/5).
+  //
+  // This sums onto the skill's own with no ceiling, so it may carry a swing
+  // past what its hitbox holds -- see Skill.max_enemies for why that stands.
   int32 max_enemies = 3;
   double max_enemies_per_level = 4;
   // The swing count a skill clocked by swings landed now fires on, replacing
@@ -1210,8 +1213,14 @@ message Skill {
   //     Ignite's wall of fire is 80x40 and Creeping Toxin's pool 200x200, both
   //     with twenty of that box laid down.
   //
-  // Applied to every branch on 2026-08-28. A file whose reach was cut says so
-  // at the top.
+  // The rule floors what a skill states FOR ITSELF. A SkillBoost's reach is
+  // added on top and is not held to the box, so a book can carry a swing past
+  // the ground it covers: Cruel Stab's 6 becomes 8 under its hyper, and Divine
+  // Charge's 5 becomes 7. Both are deliberate -- the alternative is a hyper
+  // point that buys nothing at all. See SkillBoost.max_enemies.
+  //
+  // Applied to every branch on 2026-08-28 and swept again on 2026-09-05, which
+  // found nothing left to cut. A file whose reach was cut says so at the top.
   int32 max_enemies = 14;
   // How many times one swing strikes each enemy it reaches. Damage is
   // skill_pct per line, so a 90% 2-line skill deals 180% to every target.
