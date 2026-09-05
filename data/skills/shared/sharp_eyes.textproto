@@ -1,0 +1,34 @@
+# GMS casts this on the party for 300 seconds at a time, which is a buff only
+# in the sense that Hyper Body is: a player holds it up for good. Folded in as
+# a permanent passive over the whole party, the same treatment every such skill
+# gets here.
+#
+# Mastered at 20 rather than GMS's 30 to pay the book's 200, landing on GMS's
+# own top pair -- 20% critical rate and 15% critical damage. Both ladders step
+# by their level-1 value, so each is worth exactly its share of the climb.
+name: "Sharp Eyes"
+description:
+  "Grants party members the ability to locate an enemy's weak spot to deal "
+  "fatal damage to that enemy."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 5 }
+exclusive_group: "Sharp Eyes"
+max_level: 20
+exceeds_master_level: true
+base {
+  crit_rate: 0.01
+  crit_dmg: 0.0075
+}
+per_level {
+  crit_rate: 0.01
+  crit_dmg: 0.0075
+}
+ally_base {
+  crit_rate: 0.01
+  crit_dmg: 0.0075
+}
+ally_per_level {
+  crit_rate: 0.01
+  crit_dmg: 0.0075
+}

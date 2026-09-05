@@ -1092,8 +1092,13 @@ message Skill {
   // needs it; see SkillTag.
   repeated SkillTag tags = 4;
   // The books that list this skill, and where it sits on each. Almost every
-  // skill names one; a skill more than one job holds names one per book, so
-  // one file serves them all -- see data/skills/shared.
+  // skill names one, and lives in that book's folder; a skill more than one
+  // job holds names one per book and lives in data/skills/shared, so there is
+  // one file to keep right rather than ten copies to keep in step.
+  //
+  // BEFORE WRITING A NEW SKILL, look for it under data/skills/shared and in
+  // the other jobs of its line. If a job already has it, add a placement to
+  // that file rather than copying it.
   repeated SkillPlacement placement = 5;
   reserved 6;
   int32 max_level = 7;

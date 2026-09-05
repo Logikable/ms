@@ -1,0 +1,20 @@
+# The largest single lever any book grants, and the reason the class is worth
+# reaching: 91% of final damage, plus a tenth of the pool back every five
+# seconds whether the character is winning or losing.
+#
+# Combat Orders does not reach it, alone among the book -- so no
+# exceeds_master_level here. GMS climbs this in steps of five levels to 30;
+# twenty levels walked evenly reach the same 91%.
+name: "Infinity"
+description: "Bolsters the spirit to enhance your magic and recover HP."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 4 }
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 5 }
+max_level: 20
+base {
+  final_dmg_pct: 0.15
+  regen_pct: 0.10
+  regen_interval_seconds: 5.0
+}
+per_level { final_dmg_pct: 0.04 }

@@ -368,6 +368,29 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   }
 }
 
+// A skill more than one book lists is one file with a placement per book, so
+// there is one ladder to keep right rather than ten copies to keep in step.
+// What holds that together is the stage: sharing only ever comes of two jobs
+// standing on one rung, so every book listing a skill charges it to the same
+// pool. A placement at another stage would mean one file whose levels cost a
+// 2nd job's points and a 3rd job's alike.
+TEST(SkillDataTest, EveryBookListingASkillChargesItToTheSamePool) {
+  int shared = 0;
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (skill.placement_size() < 2) {
+      continue;
+    }
+    ++shared;
+    int stage = StageForAdvancement(BookOf(skill));
+    for (const SkillPlacement& placement : skill.placement()) {
+      EXPECT_EQ(StageForAdvancement(placement.job_advancement()), stage)
+          << entry.first << " is listed in books at two different stages";
+    }
+  }
+  EXPECT_GT(shared, 0) << "data/skills/shared stopped being read";
+}
+
 // A node is held to its kind: how far it goes is the kind's to say, and where
 // it lives follows from whose matrix holds it.
 // The Job Inspect screen is what a player reads before an advancement, so an

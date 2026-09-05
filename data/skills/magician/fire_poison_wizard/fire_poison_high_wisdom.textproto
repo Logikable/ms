@@ -1,9 +1,0 @@
-# The magician's Physical Training: eight points of the job's own stat a level,
-# on GMS's own figure.
-name: "High Wisdom"
-description: "Permanently increases INT through mental discipline."
-kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD skill_order: 8 }
-max_level: 5
-base { int: 8 }
-per_level { int: 8 }

@@ -1,0 +1,23 @@
+# The mastery skill, over 20 levels rather than GMS's 10 so that the book costs
+# the 90 a magician's 2nd job levels pay out. The mastery runs 12% to 50%, which is the
+# same climb every other 20-level mastery makes.
+#
+# Its other two levers are cut to fit the longer ladder: the crit rate still
+# ends at GMS's 5%, and the magic attack is held to a point a level.
+name: "Spell Mastery"
+description: "Increases Magic Mastery, Magic ATT and Critical Rate."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_CLERIC skill_order: 7 }
+max_level: 20
+base {
+  mastery: 0.12
+  magic_attack: 1
+  crit_rate: 0.0025
+}
+per_level {
+  mastery: 0.02
+  magic_attack: 1
+  crit_rate: 0.0025
+}

@@ -1,0 +1,21 @@
+# The warriors' and archers' Physical Training, on GMS's own figure: six
+# points of each of their two stats a level. The rogues' pays LUK instead
+# and is its own file -- see physical_training_luk_dex.textproto.
+name: "Physical Training"
+description:
+  "Permanently increases STR and DEX through sheer physical training."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_FIGHTER skill_order: 8 }
+placement { job_advancement: JOB_ADVANCEMENT_PAGE skill_order: 6 }
+placement { job_advancement: JOB_ADVANCEMENT_SPEARMAN skill_order: 8 }
+placement { job_advancement: JOB_ADVANCEMENT_HUNTER skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN skill_order: 6 }
+max_level: 5
+base {
+  str: 6
+  dex: 6
+}
+per_level {
+  str: 6
+  dex: 6
+}

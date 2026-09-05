@@ -1,0 +1,24 @@
+# Magic attack, and the first source of Buff Duration in the game. The second
+# half grants nothing today: no magician skill raises a buff with a duration
+# to lengthen. It is written because the lever is what the class is for, and a
+# page that showed only the attack would be describing a different skill.
+#
+# GMS's knockback resistance is dropped -- nothing here knocks a character
+# back.
+name: "Buff Mastery"
+description:
+  "Permanently increases Magic ATT and increases the duration of all buffs on "
+  "you."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 8 }
+max_level: 10
+exceeds_master_level: true
+base {
+  magic_attack: 3
+  buff_duration_pct: 0.05
+}
+per_level {
+  magic_attack: 3
+  buff_duration_pct: 0.05
+}

@@ -1,0 +1,24 @@
+# GMS's own reading of this skill is "all stats with a direct AP investment",
+# and the share it grants is classified as an added stat -- so it lands where
+# a ring's stat lands and anything scaling the character's stats scales it
+# too. See SkillEffect.ap_stat_pct.
+#
+# The ladder is GMS's own L/2%: half a point a level, 15% at 30, and 16% at the
+# second of the two levels Combat Orders reaches past the top.
+name: "Maple Warrior"
+description: "The Goddess of Maple World's grace increases your stats."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN skill_order: 6 }
+placement { job_advancement: JOB_ADVANCEMENT_HERO skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 6 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 6 }
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 6 }
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 8 }
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 6 }
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER skill_order: 5 }
+max_level: 30
+exceeds_master_level: true
+base { ap_stat_pct: 0.005 }
+per_level { ap_stat_pct: 0.005 }

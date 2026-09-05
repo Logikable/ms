@@ -1,0 +1,18 @@
+# The rogues' Physical Training, on GMS's own figure: six points of each of
+# their two stats a level. Everyone else's pays STR -- see
+# physical_training_str_dex.textproto.
+name: "Physical Training"
+description:
+  "Permanently increases LUK and DEX through sheer physical training."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_ASSASSIN skill_order: 6 }
+placement { job_advancement: JOB_ADVANCEMENT_BANDIT skill_order: 7 }
+max_level: 5
+base {
+  luk: 6
+  dex: 6
+}
+per_level {
+  luk: 6
+  dex: 6
+}

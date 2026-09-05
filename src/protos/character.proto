@@ -130,9 +130,9 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_NIGHT_LORD_V = 43;
   JOB_ADVANCEMENT_SHADOWER_V = 44;
   // Not an advancement any character takes: the home of the V Matrix's common
-  // nodes, which every job holds alike. A skill belongs to exactly one
-  // advancement, and a node shared by ten jobs would otherwise be ten copies
-  // of one file.
+  // nodes, which every job holds alike. They belong to no job's book, so this
+  // is the one book they are all listed in -- naming ten placements on each
+  // would say the same thing ten times.
   JOB_ADVANCEMENT_COMMON = 45;
 }
 
