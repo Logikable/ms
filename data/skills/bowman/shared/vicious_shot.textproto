@@ -13,8 +13,8 @@ description:
   "When inflicting a critical wound, your strike hits the enemy where they "
   "are most vulnerable, dealing greater damage."
 kind: SKILL_KIND_ACTIVE
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 2 }
-placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 3 }
 v_node: V_NODE_KIND_ARCHETYPE
 max_level: 30
 base_delay_ms: 120

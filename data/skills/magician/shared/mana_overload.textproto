@@ -11,9 +11,9 @@ name: "Mana Overload"
 description:
   "Increases your attack skills by overloading the mana flowing through you."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 1 }
-placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 1 }
-placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 2 }
 v_node: V_NODE_KIND_ARCHETYPE
 max_level: 30
 base { final_dmg_pct: 0.051 }

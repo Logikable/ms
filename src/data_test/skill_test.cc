@@ -485,10 +485,10 @@ TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
     EXPECT_FALSE(skill.hyper()) << skill.name() << " cannot be both";
     // A ladder reads base + per_level x (L - 1), so a node with no base is a
     // node whose first level buys nothing -- and V Points are bought a level
-    // at a time. A node whose whole grant is a buff or a burn states its
-    // ladder there instead.
+    // at a time. A node whose whole grant is a buff, a burn or the pulse a
+    // buff beats out states its ladder there instead.
     EXPECT_TRUE(skill.has_base() || skill.buff().has_base() ||
-                skill.dot().has_base())
+                skill.dot().has_base() || skill.buff().pulse().has_base())
         << skill.name() << " grants nothing at its first level";
     if (skill.v_node() == V_NODE_KIND_COMMON) {
       ++commons;
@@ -1077,6 +1077,9 @@ std::vector<BookWeapons> ExpectedBookWeapons() {
   every_warrior.insert(kSpears.begin(), kSpears.end());
   return {
       {JOB_ADVANCEMENT_SWORDMAN, every_warrior},
+      // Blitz Shield: one list for all three books, since every warrior
+      // swings it whatever their own line masters.
+      {JOB_ADVANCEMENT_HERO_V, every_warrior},
       {JOB_ADVANCEMENT_FIGHTER, kSwordAxe},
       {JOB_ADVANCEMENT_CRUSADER, kSwordAxe},
       {JOB_ADVANCEMENT_HERO, kSwordAxe},

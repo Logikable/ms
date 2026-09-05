@@ -11,8 +11,8 @@
 name: "Guided Arrow"
 description: "Creates spirit arrows that pursue and attack nearby enemies."
 kind: SKILL_KIND_AUTO_ATTACK
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 1 }
-placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 2 }
 v_node: V_NODE_KIND_ARCHETYPE
 max_level: 30
 max_enemies: 1

@@ -1,0 +1,38 @@
+# GMS's shield is a shell the warrior detonates: 5% of their health raises it,
+# it absorbs 15 + floor(x/5)% of their maximum for five seconds, and a second
+# press two seconds in blows it up. Only the blast is built. A shell nobody
+# keeps is not a shell, nothing here spends HP, and the client's own trigger is
+# `condition: damaged` -- a hit taken at the moment it stands, which is not
+# something a character here is asked to time.
+#
+# Damage is GMS's 500 + 20x exactly: 520% at level 1 and 1100% at 30, five
+# lines on twelve enemies every fifteen seconds. The blast carries no hitbox in
+# the client, so its reach is GMS's cap and the reach rule has nothing to floor
+# it with -- the same standing as Flash Blade and Cry Valhalla.
+#
+# One weapon list covers all three books, the way the Swordman's own attacks
+# do: every warrior swings this, whatever their line masters.
+name: "Blitz Shield"
+description:
+  "Draws on your own lifeforce to raise a shield, then detonates it over the "
+  "enemies around you."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 2 }
+v_node: V_NODE_KIND_ARCHETYPE
+max_level: 30
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_AXE
+required_equip_type: EQUIP_TYPE_TWO_HANDED_AXE
+required_equip_type: EQUIP_TYPE_ONE_HANDED_BLUNT
+required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
+required_equip_type: EQUIP_TYPE_SPEAR
+required_equip_type: EQUIP_TYPE_POLEARM
+base_delay_ms: 600
+cooldown_seconds: 15.0
+max_enemies: 12
+lines: 5
+base { skill_pct: 5.20 }
+per_level { skill_pct: 0.20 }

@@ -1,0 +1,42 @@
+# The bird does not gain an attack -- it is replaced. The client keeps this
+# skill's whole animation set under a `summon` node, and the 6th job skill that
+# reads it says "while Fury of the Wild is summoned", so for forty seconds the
+# Phoenix or the Frostprey IS this.
+#
+# 3.42 seconds is not published anywhere. It is twice the 1.71 the two birds
+# are held at, which is what their animations say: theirs runs 1170ms and this
+# one 2310ms, near enough exactly double. `attackAfter` is not the period --
+# both birds state 450 against a real 1710.
+#
+# Reach is GMS's 10 and stays there: the summon's attack box is 730x240, and
+# floor(730/70) is 10 on the nose.
+#
+# Damage is GMS's 450 + 15x, seven lines: 465% at level 1 and 900% at 30. A
+# pulse on its own clock gets no Final Attack and no Shadow Partner, the rule
+# every summon here follows -- nothing the character did not swing is doubled.
+#
+# Every explorer archer holds a bird by their third book, so GMS's "only while
+# one is summoned" needs no gate.
+name: "Fury of the Wild"
+description:
+  "Fills your summoned bird with an older, wilder power, and for a while it "
+  "hunts as the thing it used to be."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 1 }
+v_node: V_NODE_KIND_ARCHETYPE
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 119.5
+cooldown_seconds_per_level: -0.5
+buff {
+  duration_seconds: 40.0
+  pulse {
+    label: "Empowered Summon"
+    cast_interval_seconds: 3.42
+    max_enemies: 10
+    lines: 7
+    base { skill_pct: 4.65 }
+    per_level { skill_pct: 0.15 }
+  }
+}

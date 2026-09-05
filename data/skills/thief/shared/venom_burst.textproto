@@ -8,8 +8,8 @@
 name: "Venom Burst"
 description: "Poison your weapon to deal damage over time to enemies."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 1 }
-placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_V skill_order: 2 }
 v_node: V_NODE_KIND_ARCHETYPE
 max_level: 30
 dot {

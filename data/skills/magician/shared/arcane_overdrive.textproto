@@ -1,0 +1,31 @@
+# Three stages of final damage, one shed every ten seconds. GMS pays
+# 2 + floor(x/6)% per stage over 15 + floor(x/2) seconds, so a magician who
+# spends their heaviest buttons the moment it lands gets three times what one
+# who waits gets -- which is why the stages are run rather than averaged.
+#
+# The client's readout says Final Damage where the wiki's template says
+# Damage; the client wins. Both ladders step by a clean amount rather than
+# GMS's floor, so master lands on its 7% a stage and 30 seconds exactly and
+# only where they start moves.
+#
+# Each stage costs a buff window -- see combat/constants.h kMaxBuffWindows.
+name: "Arcane Overdrive"
+description:
+  "Reforges the lost secrets of the ancients. The power is copied "
+  "imperfectly, and drains away as you hold it."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 1 }
+v_node: V_NODE_KIND_ARCHETYPE
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 15.5
+  duration_seconds_per_level: 0.5
+  stages: 3
+  stage_interval_seconds: 10.0
+  base { final_dmg_pct: 0.012 }
+  per_level { final_dmg_pct: 0.002 }
+}
