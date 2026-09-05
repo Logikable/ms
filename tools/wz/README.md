@@ -29,29 +29,50 @@ the audit compares against.
 
 Per-level formulas live in `Data/Packs/Skill_0000N.ms` (9 files, ~950 MB) and
 `Mob_0000N.ms`. `Packs.ini` names them (`Skill|8`). Nothing here reads them
-yet. What is known:
+yet, but the shape is now known.
 
-- **They are not PKG1 or PKG2.** `NameSpace.dll` reads both magics
-  (`0x31474b50`, `0x32474b50`) and the packs carry neither.
-- **The first 8 bytes are a salt and a check.** `NameSpace.dll` computes
-  `~(rotl(((hash + 0x1a2b3c4d) ^ salt), (salt & 15) + (hash & 15)) ^ salt ^ hash)`
-  and compares it to the second word, where `hash` is an FNV-1a of a UTF-16
-  name folded with `0x85ebca6b`. Brute-forcing the check leaves one or two
-  candidate hashes per pack; the name behind them is still unknown.
-- **The imgs inside are plain, unencrypted WZ property data.** Whole regions
-  decode with the ordinary `0xAA` mask -- `Skill/_Canvas/1214.img/skill/...`
-  path strings, and property trees like
-  `70000013 = { common: { maxLevel: 30, madX: ... }, psd: 1 }`. The
-  high-entropy stretches between them are canvas bitmaps, not ciphertext.
-- **What blocks it is the directory.** Each img's string references are
-  offsets from that img's own base, and the bases sit inside the opaque
-  stretches. Without the index there is no way to know where an img begins, so
-  a reference resolves to nothing. Scanning for parseable islands recovers
-  fragments but not whole skills.
-- `MapleBrowser_WZ2.exe` and `UI/WZ2Lua` say the new format is called WZ2
-  internally. `NameSpace.dll` carries `LAPackage`, `PackageHeader2/3`,
-  `ChaCha20Cipher` and `SnowCipher`, and
+**A pack is an encrypted header followed by plaintext bodies.**
+
+- The header measures 5 KB to 850 KB depending on the pack, and carries
+  **entropy 7.7-7.99 with under 1% zero bytes**. That is ciphertext.
+- Everything after it is **ordinary unencrypted WZ property data**. It decodes
+  with the plain `0xAA` ascending mask, entropy 4.9 and ~36% zeros. Parsing
+  from `0x1000`-aligned offsets, **44.8% of `Skill_00008.ms` reads as valid
+  property trees**, in runs over 100 KB -- real content like
+  `70000013 = { common: { maxLevel: 30, madX: ... } }`.
+- `NameSpace.dll` names the design: `CipherHeaderStream<ChaCha20Cipher>` and
+  `CipherHeaderStream<SnowCipher>` -- a stream that enciphers the header
+  alone. It also carries `LAPackage`, `PackageHeader2/3` and a leftover
   `C:\Git\lapacker\lib\FileSystemLib/PackageLoader.inl`.
+
+**What the header holds, and why the bodies are useless without it.** WZ
+strings are back-references: a repeated name is written once inline and later
+cited by its offset from the img's start. Every pack body cites offsets 1, 44,
+70, 201 and the like -- `Property`, `Canvas`, `Shape2D#Vector2D`, `common` --
+but **the string `Property` appears nowhere in any pack**, under any mask.
+The packer strips each img's header and string table into the encrypted index,
+leaving bodies whose every name is a dangling citation. So a body parses, and
+still cannot say which skill or which field it describes.
+
+Two dead ends already walked, so nobody repeats them:
+
+- **The bodies are not compressed.** No inflatable zlib stream exists in the
+  first 2 MB; the `78 9c 62 60 ...` runs sprinkled through them are empty
+  canvas placeholders.
+- **The headers do not reuse a keystream.** XOR any two and entropy stays
+  above 7.1, so there is no two-time pad to unpick. Consecutive packs share a
+  ~250-byte prefix, but that is a common plaintext prologue, not key reuse.
+
+The remaining step is the **ChaCha20/SNOW key**. It is not a constant near the
+cipher -- those five call sites are 17 KB unrolled SIMD rounds taking the key
+as an argument -- so it has to be traced from the package-open path. That
+wants a decompiler.
+
+Also known, from the PKG1 reader at `0x1529d7891`: the first 8 bytes of a pack
+are a salt and a check,
+`~(rotl(((hash + 0x1a2b3c4d) ^ salt), (salt&15)+(hash&15)) ^ salt ^ hash)`,
+where `hash` is an FNV-1a over UTF-16 folded with `0x85ebca6b`. Brute-forcing
+leaves one or two candidate hashes per pack; the name behind them is unknown.
 
 So the recipe stands: **`h` text and field names from the local String.wz;
 per-level values from maplestorywiki.net.**
