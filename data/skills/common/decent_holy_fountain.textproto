@@ -1,16 +1,18 @@
-# The seventh Decent, and the one with nothing behind it: GMS's half of this
-# node is a fountain the player walks up to and presses up at, and there is
-# nowhere here to walk. So it keeps its passive alone -- GMS's own All Stats
-# +ceil(x/5), the `base 1, per_level 0.2` ladder half the Decents share.
+# The seventh Decent, and the fourth of the forgotten nodes -- see
+# rope_lift.textproto. GMS's half of this one is a fountain the player walks up
+# to and presses up at, and there is nowhere here to walk, so it sits at the
+# foot of the page with the other three that do nothing.
 #
-# No exclusive_group: what does not stack is the flat half, and this one has
-# none. See decent_sharp_eyes.textproto for the rule.
+# It keeps its passive alone: GMS's own All Stats +ceil(x/5), the
+# `base 1, per_level 0.2` ladder half the Decents share. No exclusive_group --
+# what does not stack is the flat half, and this one has none. See
+# decent_sharp_eyes.textproto for that rule.
 name: "Decent Holy Fountain"
 description:
   "Summons a fountain that restores the HP of anyone who drinks from it. "
-  "Nobody here ever stops walking long enough."
+  "Nobody here remembers what it was for."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 8 }
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 11 }
 v_node: V_NODE_KIND_COMMON
 max_level: 30
 base {

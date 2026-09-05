@@ -1,14 +1,15 @@
-# One of the three nodes the V Matrix keeps for the joke: a skill the game has
-# no use for any more -- there is no platform to climb, no town to open a door
-# to, nowhere to blink -- kept because a matrix without them would be tidier
-# and worse. All three carry GMS's own passive, which is the whole of what they
-# do here, and GMS does not make them equal.
+# One of the four nodes at the foot of the V page: a skill the game has no use
+# for any more -- there is no platform to climb, no town to open a door to,
+# nowhere to blink and no fountain to walk up to -- kept because a matrix
+# without them would be tidier and worse. All four carry GMS's own passive,
+# which is the whole of what they do here, and GMS does not make them equal.
+# All four say so in the same words.
 name: "Rope Lift"
 description:
   "Fires a grappling hook to a platform above you. Nobody here remembers what "
   "it was for."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 9 }
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 8 }
 v_node: V_NODE_KIND_COMMON
 max_level: 30
 base {

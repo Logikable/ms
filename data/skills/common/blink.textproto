@@ -1,11 +1,11 @@
-# See rope_lift.textproto: one of the three forgotten nodes. GMS pays this one
+# See rope_lift.textproto: one of the four forgotten nodes. GMS pays this one
 # in attack rather than in stat, and at the same rate -- a point a level.
 name: "Blink"
 description:
   "Teleports you somewhere else on the map. Nobody here remembers what it was "
   "for."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 10 }
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 9 }
 v_node: V_NODE_KIND_COMMON
 max_level: 30
 base {
