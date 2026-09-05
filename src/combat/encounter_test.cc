@@ -2195,9 +2195,10 @@ TEST(ComputeCombatParamsTest, ABuffOnAnAttackIsLaidByThatSwing) {
   EXPECT_EQ(gated.auto_attacks[0].max_enemies, 8);
   EXPECT_DOUBLE_EQ(gated.auto_attacks[0].interval_seconds,
                    2.0 * GameSpeedFactor(state.character.proto().level()));
+  // Tagged in the buffed window too, which is built the moment it is read.
   ASSERT_EQ(gated.buffed.size(), 1u);
-  ASSERT_EQ(gated.buffed[0].auto_attacks.size(), 1u);
-  EXPECT_EQ(gated.buffed[0].auto_attacks[0].needs_buff, 0);
+  ASSERT_EQ(gated.AutoAttacks(1).size(), 1u);
+  EXPECT_EQ(gated.AutoAttacks(1)[0].needs_buff, 0);
   // A wound borrowing the swing's reach lands once a tick and never runs out.
   EXPECT_EQ(gated.auto_attacks[0].strikes_per_pulse, 1);
   EXPECT_EQ(gated.auto_attacks[0].max_pulses, 0);

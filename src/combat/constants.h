@@ -27,14 +27,15 @@ constexpr double kBaseCritRate = 0.05;
 constexpr double kBaseCritDamage = 0.35;
 
 // How many timed buffs are modelled at once. Every combination of them needs a
-// damage table of its own, so the count of tables doubles with each one: 31 at
-// five, and it would stop being affordable a step or two later. A character
-// holding more keeps the first five and silently loses the rest, so
-// //src/data_test:skill_test refuses a book that hands out more.
+// damage table of its own, and the count of combinations doubles with each
+// one -- but a table is built the first time the fight asks for it, so what a
+// raise really costs is the combinations a fight stands in rather than the 31
+// it could. A character holding more than this keeps the first five and
+// silently loses the rest, so //src/data_test:skill_test refuses a book that
+// hands out more.
 //
 // Raised from four for Vicious Shot, which put Bow Master over. Hero, Paladin,
-// Dark Knight, Bishop and both archers sit within one of it, so the next buff
-// written for any of them is the one that has to raise it again.
+// Dark Knight, Bishop and both archers sit within one of it.
 constexpr int kMaxBuffWindows = 5;
 
 }  // namespace ms

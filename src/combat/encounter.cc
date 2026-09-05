@@ -1193,53 +1193,81 @@ void AddAllyBuffs(const GameState& state, double speed_factor,
   }
 }
 
-// Points each bleeding buff's pulse at the buff it belongs to, in the base set
-// and in every buffed one alike -- the fight reads whichever set the mask
-// names, so a tag on one of them would come and go with the buffs.
+// Points each bleeding buff's pulse at the buff it belongs to. Run over the
+// base set and over every buffed one as it is built -- the fight reads
+// whichever set the mask names, so a tag on one of them alone would come and
+// go with the buffs.
 //
 // Matched by name because a pulse keeps its parent skill's name, and so does
 // the buff: one skill, one row in the book, one name.
-void TagBuffGatedPulses(const std::vector<const Skill*>& buff_skills,
-                        CombatParams& params) {
-  for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
+void TagBuffGatedPulses(const std::vector<BuffOption>& buffs,
+                        const std::vector<const Skill*>& buff_skills,
+                        std::vector<AttackOption>& casts) {
+  for (int i = 0; i < static_cast<int>(buffs.size()); ++i) {
     if (i >= static_cast<int>(buff_skills.size()) ||
         buff_skills[i]->buff().pulse().cast_interval_seconds() <= 0.0) {
       continue;
     }
-    std::vector<std::vector<AttackOption>*> sets = {&params.auto_attacks};
-    for (AttackSet& set : params.buffed) {
-      sets.push_back(&set.auto_attacks);
-    }
-    for (std::vector<AttackOption>* set : sets) {
-      for (AttackOption& cast : *set) {
-        if (cast.name == params.buffs[i].name) {
-          cast.needs_buff = i;
-        }
+    for (AttackOption& cast : casts) {
+      if (cast.name == buffs[i].name) {
+        cast.needs_buff = i;
       }
     }
   }
 }
 
-// A damage table for every combination of the character's buffs, indexed the
-// way CombatParams::Attacks reads them: the mask of which are up, less one.
+// A slot for every combination of the character's buffs, indexed the way
+// CombatParams::Attacks reads them: the mask of which are up, less one. Left
+// empty, and filled by BuildBuffedSet the first time one is asked for.
 void AddBuffedSets(const GameState& state,
                    const std::vector<const Skill*>& buff_skills,
                    const EquipPrototype& weapon, double speed_factor,
                    StatPreset preset, CombatParams& params) {
-  int count = static_cast<int>(buff_skills.size());
-  for (int mask = 1; mask < (1 << count); ++mask) {
-    std::vector<const Skill*> up;
-    for (int i = 0; i < count; ++i) {
-      if ((mask & (1 << i)) != 0) {
-        up.push_back(buff_skills[i]);
-      }
-    }
-    DerivedStats derived =
-        DerivedStatsFor(state.character, state.skills, absl::MakeConstSpan(up),
-                        state.party, preset);
-    params.buffed.push_back(
-        BuildAttackSet(state, derived, weapon, speed_factor, params.types));
+  if (buff_skills.empty()) {
+    return;
   }
+  params.buffed_source.state = &state;
+  params.buffed_source.weapon = &weapon;
+  params.buffed_source.buff_skills = buff_skills;
+  params.buffed_source.speed_factor = speed_factor;
+  params.buffed_source.preset = preset;
+  params.buffed.assign((1 << buff_skills.size()) - 1, std::nullopt);
+}
+
+// Halves how far one swing reaches, rounding up. A boss stands its parts a
+// room apart -- Zakum's arms down two columns, the dragon around his own
+// wings, Pink Bean's statues across the whole arena -- so a sweep that gathers
+// eight monsters off a map is not gathering eight of those. Rounded up, so a
+// skill still reaches the part it was aimed at.
+void HalveReach(std::vector<AttackOption>& attacks) {
+  for (AttackOption& attack : attacks) {
+    attack.max_enemies = (std::max(1, attack.max_enemies) + 1) / 2;
+  }
+}
+
+// One combination's attack set, built off what AddBuffedSets kept. Every pass
+// the base set was put through is run here too: a window the fight picks a
+// swing from has to be the same shape as the one it picked from a moment ago.
+AttackSet BuildBuffedSet(const CombatParams& params, int mask) {
+  const BuffedSetSource& source = params.buffed_source;
+  std::vector<const Skill*> up;
+  for (int i = 0; i < static_cast<int>(source.buff_skills.size()); ++i) {
+    if ((mask & (1 << i)) != 0) {
+      up.push_back(source.buff_skills[i]);
+    }
+  }
+  DerivedStats derived = DerivedStatsFor(
+      source.state->character, source.state->skills, absl::MakeConstSpan(up),
+      source.state->party, source.preset);
+  AttackSet set = BuildAttackSet(*source.state, derived, *source.weapon,
+                                 source.speed_factor, params.types);
+  TagBuffGatedPulses(params.buffs, source.buff_skills, set.auto_attacks);
+  if (source.halve_reach) {
+    HalveReach(set.attacks);
+    HalveReach(set.auto_attacks);
+    HalveReach(set.triggered_attacks);
+  }
+  return set;
 }
 
 }  // namespace
@@ -1249,33 +1277,39 @@ double HoldSeconds(const ChannelHold& hold, int pulses) {
                   pulses * hold.pulse_seconds + hold.finish_seconds);
 }
 
-const std::vector<AttackOption>& CombatParams::Attacks(int mask) const {
+// The window `mask` names, built now if this is the first time it was asked
+// for. Null for a mask no combination of buffs reaches, which the four readers
+// below answer with the unbuffed lists.
+const AttackSet* CombatParams::Window(int mask) const {
   if (mask <= 0 || mask > static_cast<int>(buffed.size())) {
-    return attacks;
+    return nullptr;
   }
-  return buffed[mask - 1].attacks;
+  std::optional<AttackSet>& slot = buffed[mask - 1];
+  if (!slot.has_value()) {
+    slot = BuildBuffedSet(*this, mask);
+  }
+  return &slot.value();
+}
+
+const std::vector<AttackOption>& CombatParams::Attacks(int mask) const {
+  const AttackSet* set = Window(mask);
+  return set == nullptr ? attacks : set->attacks;
 }
 
 const std::vector<AttackOption>& CombatParams::AutoAttacks(int mask) const {
-  if (mask <= 0 || mask > static_cast<int>(buffed.size())) {
-    return auto_attacks;
-  }
-  return buffed[mask - 1].auto_attacks;
+  const AttackSet* set = Window(mask);
+  return set == nullptr ? auto_attacks : set->auto_attacks;
 }
 
 const std::vector<AttackOption>& CombatParams::TriggeredAttacks(
     int mask) const {
-  if (mask <= 0 || mask > static_cast<int>(buffed.size())) {
-    return triggered_attacks;
-  }
-  return buffed[mask - 1].triggered_attacks;
+  const AttackSet* set = Window(mask);
+  return set == nullptr ? triggered_attacks : set->triggered_attacks;
 }
 
 int CombatParams::FreezeCap(int mask) const {
-  if (mask <= 0 || mask > static_cast<int>(buffed.size())) {
-    return freeze_cap;
-  }
-  return buffed[mask - 1].freeze_cap;
+  const AttackSet* set = Window(mask);
+  return set == nullptr ? freeze_cap : set->freeze_cap;
 }
 
 namespace {
@@ -1342,31 +1376,17 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   AddBuffs(state, buff_skills, speed_factor, derived, params);
   AddAllyBuffs(state, speed_factor, params);
   AddBuffedSets(state, buff_skills, weapon, speed_factor, preset, params);
-  TagBuffGatedPulses(buff_skills, params);
-}
-
-// Halves how far one swing reaches, rounding up. A boss stands its parts a
-// room apart -- Zakum's arms down two columns, the dragon around his own
-// wings, Pink Bean's statues across the whole arena -- so a sweep that gathers
-// eight monsters off a map is not gathering eight of those. Rounded up, so a
-// skill still reaches the part it was aimed at.
-void HalveReach(std::vector<AttackOption>& attacks) {
-  for (AttackOption& attack : attacks) {
-    attack.max_enemies = (std::max(1, attack.max_enemies) + 1) / 2;
-  }
+  TagBuffGatedPulses(params.buffs, buff_skills, params.auto_attacks);
 }
 
 // Every list a swing can be picked from, the buffed windows included: a table
 // built for one combination of buffs reaches as far as the unbuffed one does.
+// The windows are not built yet, so they are marked rather than walked.
 void HalveBossReach(CombatParams& params) {
   HalveReach(params.attacks);
   HalveReach(params.auto_attacks);
   HalveReach(params.triggered_attacks);
-  for (AttackSet& set : params.buffed) {
-    HalveReach(set.attacks);
-    HalveReach(set.auto_attacks);
-    HalveReach(set.triggered_attacks);
-  }
+  params.buffed_source.halve_reach = true;
 }
 
 }  // namespace

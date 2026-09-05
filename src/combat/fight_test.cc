@@ -2926,7 +2926,7 @@ TEST(CombatSimTest, APulseGatedOnABuffWaitsForItToBeLaid) {
   GiveWound(params, /*duration=*/3.0, /*factor=*/1.0);
   params.auto_attacks[0].name = "Puncture";
   params.auto_attacks[0].needs_buff = 0;
-  params.buffed[0].auto_attacks = params.auto_attacks;
+  params.buffed[0]->auto_attacks = params.auto_attacks;
 
   // 5 for the swing that lays it and nothing from the pulse: no wound stood
   // when the step began.
@@ -2950,7 +2950,7 @@ TEST(CombatSimTest, ACappedPulseFallsSilentBeforeTheBuffLapses) {
   params.auto_attacks[0].max_pulses = 4;
   GiveBuff(params, /*duration=*/8.0, /*cooldown=*/1000.0, /*factor=*/1.0);
   params.auto_attacks[0].needs_buff = 0;
-  params.buffed[0].auto_attacks = params.auto_attacks;
+  params.buffed[0]->auto_attacks = params.auto_attacks;
 
   // Three strikes of 100 a tick, four ticks: 1200 of the snail's 100000.
   for (int step = 0; step < 4; ++step) {
@@ -2976,7 +2976,7 @@ TEST(CombatSimTest, ACappedPulseIsWorthItsWholeCountAgainNextWindow) {
   params.auto_attacks[0].max_pulses = 2;
   GiveBuff(params, /*duration=*/3.0, /*cooldown=*/6.0, /*factor=*/1.0);
   params.auto_attacks[0].needs_buff = 0;
-  params.buffed[0].auto_attacks = params.auto_attacks;
+  params.buffed[0]->auto_attacks = params.auto_attacks;
 
   // Two ticks of 300 while the first window stands, then nothing until it
   // comes round on the seventh second and pays another two.

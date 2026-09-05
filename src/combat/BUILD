@@ -275,6 +275,7 @@ cc_library(
         "//src/character:character_stats",
         "//src/character:hyper_stats",
         "//src/character:progression",
+        "//src/character:stat_preset",
         "//src/item:equip_instance",
         "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",

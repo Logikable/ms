@@ -12,10 +12,12 @@
 #define MS_SRC_COMBAT_ENCOUNTER_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "src/character/character_stats.h"
+#include "src/character/stat_preset.h"
 #include "src/combat/damage.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
@@ -322,6 +324,25 @@ struct AttackSet {
   int freeze_cap = 0;
 };
 
+// What one combination of buffs needs to have its attack set built: the same
+// inputs AddAttacks was handed, kept so a window can be built the first time
+// the fight asks for it rather than all of them up front.
+//
+// Borrowed, not owned -- exactly as CombatType::mob is. The params are read
+// while the state they were computed from stands, and a change to that state
+// is what recomputes them.
+struct BuffedSetSource {
+  const GameState* state = nullptr;
+  const EquipPrototype* weapon = nullptr;
+  // The buffs in CombatParams::buffs order, so bit i of a mask is skill i.
+  std::vector<const Skill*> buff_skills;
+  double speed_factor = 1.0;
+  StatPreset preset = StatPreset::kFarming;
+  // Whether a window's reach is halved on the way out, which is what a boss
+  // fight does to every list a swing can be picked from.
+  bool halve_reach = false;
+};
+
 // A buff the character puts up for a while, on a wait of its own. What it
 // GRANTS is not here: it is already folded into the buffed attack sets,
 // because a lever like ignored defence cannot be applied to a damage number
@@ -463,10 +484,20 @@ struct CombatParams {
   // The timed buffs this character can put up. Empty for everyone but a Dark
   // Knight; the fight runs their clocks and asks for the matching attacks.
   std::vector<BuffOption> buffs;
-  // One attack set per combination of those buffs, indexed by the bitmask of
-  // which are up, less one -- the three lists above are the set for none of
-  // them. Empty when nothing grants a buff.
-  std::vector<AttackSet> buffed;
+  // One slot per combination of those buffs, indexed by the bitmask of which
+  // are up, less one -- the three lists above are the set for none of them.
+  // Empty when nothing grants a buff.
+  //
+  // A slot is filled the first time the fight asks for it, off buffed_source
+  // below, and most of them never are: the count doubles with each buff, while
+  // the combinations a fight actually stands in do not. Mutable for that
+  // reason, which makes the four readers below unsafe to call on one
+  // CombatParams from two threads at once. Nothing does; a sim gives every
+  // worker its own.
+  mutable std::vector<std::optional<AttackSet>> buffed;
+  // What those slots are built from. Empty for params nothing can build --
+  // a hand-built one in a test, where every slot is filled up front.
+  BuffedSetSource buffed_source;
   // The buffs the REST OF THE PARTY puts up over this character, on their
   // casters' clocks. Kept apart from `buffs` above because that vector's index
   // is the bitmask into `buffed`, and a party buff has no attack set of its
@@ -477,6 +508,10 @@ struct CombatParams {
   // together. See AllyBuffsFor.
   std::vector<BuffOption> ally_buffs;
 
+  // The window `mask` names, built the first time it is asked for. Null for a
+  // mask out of range, which is what a fight one step behind a change in what
+  // the character has learned holds.
+  const AttackSet* Window(int mask) const;
   // The three lists above as they stand with `mask`'s buffs up. Out of range
   // reads as none of them, so a fight one step behind a change in what the
   // character has learned swings unbuffed rather than off the end.
