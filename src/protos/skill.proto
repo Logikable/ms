@@ -1072,14 +1072,20 @@ message SkillPlacement {
 // ladder every other node of that kind shares.
 enum VNodeKind {
   V_NODE_KIND_UNSPECIFIED = 0;
-  // Shared by every job, or by every job of one line. Lives under
-  // JOB_ADVANCEMENT_COMMON.
+  // Shared by every job in the game. Lives under JOB_ADVANCEMENT_COMMON,
+  // which is nobody's advancement, so every matrix holds it.
   V_NODE_KIND_COMMON = 1;
   // One job's own: an active skill on a cooldown. Four per job.
   V_NODE_KIND_JOB = 2;
   // One job's own: a passive lifting between one and four of the skills below
   // it. Six per job, and the only kind that goes past level 30.
   V_NODE_KIND_BOOST = 3;
+  // Shared by every job of one LINE -- Weapon Aura, which every warrior has.
+  // Priced and capped exactly as a common, since it is one; what it does not
+  // share is a home. There is no advancement every warrior holds and no other
+  // line does, so it names each 5th job book that lists it, and reaching it is
+  // then the ordinary question of whether the character holds one of them.
+  V_NODE_KIND_ARCHETYPE = 4;
 }
 
 // Static definition of a skill. Loaded from data/skills textprotos at startup,

@@ -403,20 +403,25 @@ Skill Node(const std::string& name, VNodeKind kind, JobAdvancement book,
   return skill;
 }
 
-// The matrix is one page in three blocks: the job's own actives, the boosts
-// under them, then the commons every character has. Each block keeps its own
-// numbering, which is all `skill_order` can say -- the blocks sit in different
-// books, so nothing in the data orders one against the next.
+// The matrix is one page in four blocks, running from the node fewest
+// characters have to the node everybody does: the job's own actives, the
+// boosts under them, the line's own, and the commons at the foot. Each block
+// keeps its own numbering, which is all `skill_order` can say -- the blocks
+// sit in different books, so nothing in the data orders one against the next.
 TEST(VNodesForTest, TheJobsOwnLeadAndTheCommonsSitAtTheFoot) {
   std::map<std::string, Skill> catalog = {
       {"lift",
        Node("Rope Lift", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 9)},
       {"erda",
        Node("Erda Fountain", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 1)},
+      {"skin", Node("Impenetrable Skin", V_NODE_KIND_ARCHETYPE,
+                    JOB_ADVANCEMENT_DARK_KNIGHT_V, 8)},
       {"boost_b",
        Node("Boost B", V_NODE_KIND_BOOST, JOB_ADVANCEMENT_DARK_KNIGHT_V, 6)},
       {"radiant",
        Node("Radiant Evil", V_NODE_KIND_JOB, JOB_ADVANCEMENT_DARK_KNIGHT_V, 2)},
+      {"aura", Node("Weapon Aura", V_NODE_KIND_ARCHETYPE,
+                    JOB_ADVANCEMENT_DARK_KNIGHT_V, 7)},
       {"boost_a",
        Node("Boost A", V_NODE_KIND_BOOST, JOB_ADVANCEMENT_DARK_KNIGHT_V, 5)},
       {"dark", Node("Dark Synthesis", V_NODE_KIND_JOB,
@@ -425,7 +430,23 @@ TEST(VNodesForTest, TheJobsOwnLeadAndTheCommonsSitAtTheFoot) {
   EXPECT_EQ(
       NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_DARK_KNIGHT_V)),
       (std::vector<std::string>{"Dark Synthesis", "Radiant Evil", "Boost A",
-                                "Boost B", "Erda Fountain", "Rope Lift"}));
+                                "Boost B", "Weapon Aura", "Impenetrable Skin",
+                                "Erda Fountain", "Rope Lift"}));
+}
+
+// An archetype node is listed by every 5th job of its line and by no other, so
+// a magician's matrix has no Weapon Aura in it however many warriors do.
+TEST(VNodesForTest, AnotherLinesArchetypeNodeIsNotOnThePage) {
+  std::map<std::string, Skill> catalog = {
+      {"erda",
+       Node("Erda Fountain", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 1)},
+      {"aura", Node("Weapon Aura", V_NODE_KIND_ARCHETYPE,
+                    JOB_ADVANCEMENT_DARK_KNIGHT_V, 7)},
+  };
+  EXPECT_EQ(NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_BISHOP_V)),
+            (std::vector<std::string>{"Erda Fountain"}));
+  EXPECT_EQ(NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_DARK_KNIGHT_V)),
+            (std::vector<std::string>{"Weapon Aura", "Erda Fountain"}));
 }
 
 // A job with no nodes of its own written yet still has a matrix: the commons

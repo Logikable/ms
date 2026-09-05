@@ -112,17 +112,23 @@ void EmitAfterRequirement(const Skill& skill,
 }
 
 // Which block of the V page a kind of node sits in: the job's own four first,
-// the boosts under them, and the commons at the foot. Spelled out rather than
-// taken off the enum's own order, so renumbering VNodeKind cannot quietly
-// rearrange the page.
+// the boosts under them, then the line's own, and the commons every character
+// has at the foot. Spelled out rather than taken off the enum's own order, so
+// renumbering VNodeKind cannot quietly rearrange the page.
+//
+// The blocks run from the most exclusive node to the least, which is what puts
+// an archetype node above the commons: every warrior has Weapon Aura and
+// nobody else does, where Erda Fountain is everybody's.
 int VNodeRank(VNodeKind kind) {
   switch (kind) {
     case V_NODE_KIND_JOB:
       return 0;
     case V_NODE_KIND_BOOST:
       return 1;
-    default:
+    case V_NODE_KIND_ARCHETYPE:
       return 2;
+    default:
+      return 3;
   }
 }
 

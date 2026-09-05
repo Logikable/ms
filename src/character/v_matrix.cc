@@ -11,7 +11,9 @@ namespace {
 
 // The three bands a common or job node climbs through, and what a level costs
 // in each. The first level is stated on its own: a job node's is free and a
-// common's is 7, and everything above them is the same ladder.
+// common's is 7, and everything above them is the same ladder. An archetype
+// node is a common in every respect but where it lives, so it is priced here
+// as one.
 constexpr int kBandTop[] = {10, 20, 30};
 constexpr int kBandCost[] = {4, 6, 9};
 
@@ -23,6 +25,7 @@ constexpr int kBoostStep = 40;
 int MaxVNodeLevel(VNodeKind kind) {
   switch (kind) {
     case V_NODE_KIND_COMMON:
+    case V_NODE_KIND_ARCHETYPE:
     case V_NODE_KIND_JOB:
       return 30;
     case V_NODE_KIND_BOOST:
@@ -40,7 +43,7 @@ int VNodeStepCost(VNodeKind kind, int level) {
     return level <= kBoostStep ? 1 : 2;
   }
   if (level == 1) {
-    return kind == V_NODE_KIND_COMMON ? 7 : 0;
+    return kind == V_NODE_KIND_JOB ? 0 : 7;
   }
   for (int band = 0; band < 3; ++band) {
     if (level <= kBandTop[band]) {

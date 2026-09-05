@@ -470,9 +470,17 @@ TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
       ++commons;
       EXPECT_TRUE(common_home)
           << skill.name() << " is common and belongs under COMMON";
-    } else {
-      EXPECT_EQ(StageForAdvancement(BookOf(skill)), 5)
-          << skill.name() << " is one job's own and belongs to its 5th";
+      continue;
+    }
+    EXPECT_EQ(StageForAdvancement(BookOf(skill)), 5)
+        << skill.name() << " is not everybody's and belongs to a 5th job";
+    // An archetype node has no book of its own to live in, so it names every
+    // 5th job of its line -- more than one, or it is that job's own node.
+    if (skill.v_node() == V_NODE_KIND_ARCHETYPE) {
+      EXPECT_GT(skill.placement_size(), 1)
+          << skill.name() << " is a line's and names one job";
+      EXPECT_FALSE(common_home)
+          << skill.name() << " is one line's, not everybody's";
     }
   }
   EXPECT_GT(commons, 0) << "the common folder stopped being read";

@@ -19,11 +19,15 @@ TEST(VMatrixTest, DropRateLiftsTheRateAndNeverPastCertainty) {
 // GMS's own totals, which are what the three ladders have to come to.
 TEST(VMatrixTest, EachLadderCostsWhatGmsChargesForTheWholeNode) {
   EXPECT_EQ(MaxVNodeLevel(V_NODE_KIND_COMMON), 30);
+  EXPECT_EQ(MaxVNodeLevel(V_NODE_KIND_ARCHETYPE), 30);
   EXPECT_EQ(MaxVNodeLevel(V_NODE_KIND_JOB), 30);
   EXPECT_EQ(MaxVNodeLevel(V_NODE_KIND_BOOST), 60);
   EXPECT_EQ(MaxVNodeLevel(V_NODE_KIND_UNSPECIFIED), 0);
 
   EXPECT_EQ(VNodeCost(V_NODE_KIND_COMMON, 0, 30), 193);
+  // A line's own is priced as a common, first level and all.
+  EXPECT_EQ(VNodeCost(V_NODE_KIND_ARCHETYPE, 0, 30), 193);
+  EXPECT_EQ(VNodeStepCost(V_NODE_KIND_ARCHETYPE, 1), 7);
   EXPECT_EQ(VNodeCost(V_NODE_KIND_JOB, 0, 30), 186);
   EXPECT_EQ(VNodeCost(V_NODE_KIND_BOOST, 0, 60), 80);
 
