@@ -1,0 +1,40 @@
+# GMS pairs Ice Strike with Frost Ward, which this book does not have, so the
+# page goes to the magician's opening swing instead -- the only attack in the
+# line still unclaimed, at the better rate a first-job skill needs to be worth
+# a node.
+name: "Ice Strike Boost"
+description: "Strengthens Ice Strike and Energy Bolt."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 7 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Ice Strike"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Ice Strike"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Ice Strike"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Energy Bolt"
+  effect { final_dmg_pct: 0.05 }
+  effect_per_level { final_dmg_pct: 0.05 }
+}
+boost {
+  skill_name: "Energy Bolt"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Energy Bolt"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

@@ -1,0 +1,22 @@
+# The held sphere alone, and the fifth node in the game aimed at a hyper.
+name: "Lightning Orb Boost"
+description: "Strengthens Lightning Orb."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 5 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Lightning Orb"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Lightning Orb"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Lightning Orb"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

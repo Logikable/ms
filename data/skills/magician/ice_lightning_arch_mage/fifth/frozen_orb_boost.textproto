@@ -1,0 +1,39 @@
+# The thrown orb and the shower that recharges beside it. Blizzard takes the
+# critical rate rather than the enemy, which is GMS's call and a sound one: it
+# already reaches fifteen, and its Final Attack collects the rate too.
+name: "Frozen Orb Boost"
+description: "Strengthens Frozen Orb and Blizzard."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 4 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Frozen Orb"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Frozen Orb"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Frozen Orb"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Blizzard"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Blizzard"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Blizzard"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

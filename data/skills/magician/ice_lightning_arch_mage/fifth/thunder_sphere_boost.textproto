@@ -1,0 +1,38 @@
+# The two summons that fire while the wizard swings something else, both at
+# the wider tier.
+name: "Thunder Sphere Boost"
+description: "Strengthens Thunder Sphere and Elquines."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 6 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Thunder Sphere"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Thunder Sphere"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Thunder Sphere"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Elquines"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Elquines"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Elquines"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
