@@ -467,6 +467,18 @@ TEST(SkillDataTest, NoSheddingBuffAlsoBleeds) {
   }
 }
 
+// Whether any boost the skill hands out is already paying at level 1, which
+// is how a boost node -- whose whole grant is in what it lifts -- earns the
+// first level a player buys.
+bool GrantsAtFirstLevel(const Skill& skill) {
+  for (const SkillBoost& boost : skill.boost()) {
+    if (boost.min_level() <= 1) {
+      return true;
+    }
+  }
+  return false;
+}
+
 TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
   int commons = 0;
   int archetypes = 0;
@@ -486,9 +498,11 @@ TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
     // A ladder reads base + per_level x (L - 1), so a node with no base is a
     // node whose first level buys nothing -- and V Points are bought a level
     // at a time. A node whose whole grant is a buff, a burn or the pulse a
-    // buff beats out states its ladder there instead.
+    // buff beats out states its ladder there instead, and a boost node states
+    // it on the skills it lifts.
     EXPECT_TRUE(skill.has_base() || skill.buff().has_base() ||
-                skill.dot().has_base() || skill.buff().pulse().has_base())
+                skill.dot().has_base() || skill.buff().pulse().has_base() ||
+                GrantsAtFirstLevel(skill))
         << skill.name() << " grants nothing at its first level";
     if (skill.v_node() == V_NODE_KIND_COMMON) {
       ++commons;
@@ -1641,6 +1655,11 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
       // A per-level step with no level-1 value behind it is half a lever.
       EXPECT_FALSE(boost.has_effect_per_level() && !boost.has_effect())
           << entry.first << " climbs a lever it never grants";
+      // A gate above what the granting skill can be taught to is a gift
+      // nobody ever collects.
+      EXPECT_LE(boost.min_level(), entry.second.max_level())
+          << entry.first << " gates what it hands " << boost.skill_name()
+          << " behind a level it never reaches";
       EXPECT_FALSE(boost.dot_skill_pct_per_level() != 0.0 &&
                    boost.dot_skill_pct() == 0.0)
           << entry.first << " climbs a burn it never lifts";

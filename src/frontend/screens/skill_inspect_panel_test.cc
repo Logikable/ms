@@ -436,7 +436,8 @@ TEST_F(SkillInspectPanelTest, StatesEachHitOfASwingThatLandsTwo) {
 
 // What a skill hands another that is not damage reads as the same sentence the
 // damage boost does, one row per skill named -- two skills granted different
-// things cannot share a row.
+// things cannot share a row. Several named take a heading, which buys each row
+// the columns "Boosts" would have cost it.
 TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
   Skill vessel = IronBody();
   vessel.set_max_level(10);
@@ -450,13 +451,47 @@ TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
   blast->set_lines(1);
 
   std::string rendered = RenderAt(vessel, 10);
-  EXPECT_NE(RowIn(rendered, "Boosts Divine Charge", "+1 Strike, +2 Enemies"),
+  EXPECT_NE(rendered.find("Boosts"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Divine Charge", "+1 Strike, +2 Enemies"),
             std::string::npos);
-  EXPECT_NE(RowIn(rendered, "Boosts Blast", "+1 Strike"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Blast", "+1 Strike"), std::string::npos);
+  // One skill named needs no heading and says so on its own row.
+  Skill alone = vessel;
+  alone.mutable_boost()->DeleteSubrange(1, 1);
+  EXPECT_NE(RowIn(RenderAt(alone, 10), "Boosts Divine Charge",
+                  "+1 Strike, +2 Enemies"),
+            std::string::npos);
   // The reach climbs with the level; the strike does not.
   EXPECT_NE(RenderAt(vessel, 1).find("+1 Strike, +1 Enemy"), std::string::npos);
   // A skill granting neither writes no row.
   EXPECT_EQ(RenderAt(IronBody(), 1).find("Boosts Divine Charge"),
+            std::string::npos);
+}
+
+// A boost node states its damage from level 1, one more enemy at 20 and
+// ignored defence at 40 -- three grants naming one skill, on one row, and
+// nothing said about a tier the node has not reached.
+TEST_F(SkillInspectPanelTest, AGatedBoostSaysNothingUntilItsLevel) {
+  Skill node = IronBody();
+  node.set_max_level(60);
+  SkillBoost* damage = node.add_boost();
+  damage->set_skill_name("Raging Blow");
+  damage->mutable_effect()->set_final_dmg_pct(0.02);
+  damage->mutable_effect_per_level()->set_final_dmg_pct(0.02);
+  SkillBoost* reach = node.add_boost();
+  reach->set_skill_name("Raging Blow");
+  reach->set_min_level(20);
+  reach->set_max_enemies(1);
+
+  // Level 18 rather than 19: the card reads the next level beside the current
+  // one, so at 19 the enemy arriving at 20 is already on it.
+  std::string under = RenderAt(node, 18);
+  EXPECT_NE(RowIn(under, "Boosts Raging Blow", "+36% Final Damage"),
+            std::string::npos);
+  EXPECT_EQ(under.find("+1 Enemy"), std::string::npos);
+  // In the order the tiers arrive, which is the order they are written in.
+  EXPECT_NE(RowIn(RenderAt(node, 20), "Boosts Raging Blow",
+                  "+40% Final Damage, +1 Enemy"),
             std::string::npos);
 
   // A clock handed over reads as the clock it becomes, not as a change to one.

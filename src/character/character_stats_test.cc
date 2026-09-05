@@ -1892,6 +1892,59 @@ TEST_F(DerivedStatsTest, ABoostsPlainDamageStaysWithItsSkill) {
   EXPECT_DOUBLE_EQ(stats.damage_pct, 0.0);
 }
 
+// A boost node states its damage from level 1 and its extras at 20 and 40, so
+// a gift below its gate is not read at all. See SkillBoost::min_level.
+TEST_F(DerivedStatsTest, AGatedBoostPaysNothingBelowItsLevel) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill node = SpeedMirage();
+  SkillBoost* gated = node.add_boost();
+  gated->set_skill_name("Wind Arrow");
+  gated->set_min_level(20);
+  gated->mutable_effect()->set_ied_pct(0.20);
+  std::map<std::string, Skill> skills = {{"speed_mirage", node}};
+  ASSERT_TRUE(c.LearnSkill(node, 19));
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).skill_bonus.at("Wind Arrow").ied,
+                   0.0);
+
+  ASSERT_TRUE(c.LearnSkill(node, 1));
+  EXPECT_NEAR(DerivedStatsFor(c, skills).skill_bonus.at("Wind Arrow").ied, 0.20,
+              1e-9);
+}
+
+// A boost aimed at the passive a Final Attack belongs to has no swing to ride,
+// so its levers land on the extra hit -- all of them, not only the damage.
+TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackItNames) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill strike;
+  strike.set_name("Final Attack");
+  strike.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(strike, JOB_ADVANCEMENT_SWORDMAN);
+  strike.set_max_level(20);
+  strike.mutable_base()->set_final_attack_chance(0.40);
+  strike.mutable_base()->set_final_attack_pct(1.60);
+  Skill node = SpeedMirage();
+  SkillBoost* boost = node.mutable_boost(0);
+  boost->set_skill_name("Final Attack");
+  boost->clear_effect_per_level();
+  boost->mutable_effect()->clear_skill_pct();
+  boost->mutable_effect()->set_crit_rate(0.05);
+  boost->mutable_effect()->set_ied_pct(0.20);
+  boost->mutable_effect()->set_final_dmg_pct(1.20);
+  std::map<std::string, Skill> skills = {{"final_attack", strike},
+                                         {"speed_mirage", node}};
+  ASSERT_TRUE(c.LearnSkill(strike, 20));
+  ASSERT_TRUE(c.LearnSkill(node, 20));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  ASSERT_EQ(stats.final_attacks.size(), 1u);
+  const FinalAttackSource& source = stats.final_attacks.front();
+  EXPECT_NEAR(source.crit_rate, 0.05, 1e-9);
+  EXPECT_NEAR(source.ied, 0.20, 1e-9);
+  EXPECT_NEAR(source.final_dmg_pct, 1.20, 1e-9);
+  // None of it follows the character to their ordinary swings.
+  EXPECT_DOUBLE_EQ(stats.crit_rate, 0.0);
+}
+
 TEST_F(DerivedStatsTest, TwoBoostsOnOneSkillSum) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill first = SpeedMirage();

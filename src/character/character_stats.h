@@ -58,6 +58,13 @@ struct FinalAttackSource {
   // The skill that sets this off, so a boost naming that skill can find it.
   // Empty for a source no skill owns -- a thrown meso's.
   std::string skill_name;
+  // Critical rate and final damage only these extra hits carry, from a boost
+  // aimed at the skill that sets them off. Beside boss_pct and ied above for
+  // the same reason, and meeting the character's the way each of them always
+  // does: rate sums, final damage multiplies. A boost node aimed at a Final
+  // Attack is what they exist for.
+  double crit_rate = 0.0;
+  double final_dmg_pct = 0.0;
   // Whether that skill is one the character swings. A boost's points on a
   // multiplier land on the SWING where there is one, so only a passive's
   // strike collects them here -- otherwise one grant would be read twice.

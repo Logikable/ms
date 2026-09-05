@@ -1266,6 +1266,63 @@ TEST(ComputeCombatParamsTest, ABoostReachesBothHalvesOfTheSkillItNames) {
               1.56 / 0.66, 1e-6);
 }
 
+// A boost node hands its damage out from level 1, one more enemy at 20 and
+// ignored defence at 40, so what the fight sees depends on how far the node is
+// taught. Written as a real node rather than a passive: a boost node belongs
+// to no book, and every gate on the way has to ask the matrix instead.
+TEST(ComputeCombatParamsTest, ABoostNodePaysEachTierAtItsOwnLevel) {
+  Skill swing;
+  swing.set_name("Raging Blow");
+  swing.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(swing, JOB_ADVANCEMENT_SWORDMAN);
+  swing.set_max_level(20);
+  swing.set_max_enemies(4);
+  swing.mutable_base()->set_skill_pct(1.24);
+
+  Skill node;
+  node.set_name("Raging Blow Boost");
+  node.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(node, JOB_ADVANCEMENT_SWORDMAN);
+  node.set_v_node(V_NODE_KIND_BOOST);
+  node.set_max_level(MaxVNodeLevel(V_NODE_KIND_BOOST));
+  SkillBoost* damage = node.add_boost();
+  damage->set_skill_name("Raging Blow");
+  damage->mutable_effect()->set_final_dmg_pct(0.02);
+  damage->mutable_effect_per_level()->set_final_dmg_pct(0.02);
+  SkillBoost* reach = node.add_boost();
+  reach->set_skill_name("Raging Blow");
+  reach->set_min_level(20);
+  reach->set_max_enemies(1);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"swing", swing}, {"node", node}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  while (state.character.proto().job_stage() < kFifthJobStage) {
+    state.character.AdvanceJob(state.character.proto().job());
+  }
+  state.character.AddVPoints(VNodeCost(V_NODE_KIND_BOOST, 0, 20));
+  ASSERT_TRUE(state.character.LearnSkill(swing, 1));
+
+  CombatParams bare = ComputeCombatParams(state);
+  ASSERT_TRUE(state.character.LearnSkill(node, 19));
+  CombatParams under = ComputeCombatParams(state);
+  EXPECT_EQ(under.attacks[1].max_enemies, 4);
+  // 38% final damage at 19, which is the whole of what the node pays yet.
+  EXPECT_NEAR(
+      under.attacks[1].damage_per_hit[0] / bare.attacks[1].damage_per_hit[0],
+      1.38, 1e-6);
+
+  ASSERT_TRUE(state.character.LearnSkill(node, 1));
+  CombatParams over = ComputeCombatParams(state);
+  EXPECT_EQ(over.attacks[1].max_enemies, 5);
+  EXPECT_NEAR(
+      over.attacks[1].damage_per_hit[0] / bare.attacks[1].damage_per_hit[0],
+      1.40, 1e-6);
+}
+
 // Revenge of the Evil Eye's shape: one skill that fires on its own clock AND
 // carries two more clocks behind it, each reaching a different number of
 // enemies -- which is why they cannot be folded into one attack.

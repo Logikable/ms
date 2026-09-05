@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <map>
 #include <set>
 #include <string>
 #include <utility>
@@ -1198,19 +1199,50 @@ std::vector<Row> OwnClockRows(const Skill& skill, int level) {
   return rows;
 }
 
+// A heading over one half of a skill that has two. Orange and green are the
+// skill list's own tags for active and passive (game_names' TagFor), so the
+// two halves are told apart here by the colours the player learned there.
+// Only the heading is coloured: a value that is always coloured says nothing.
+Row SectionRow(const std::string& label, ftxui::Color color) {
+  return TextRow(ftxui::text(" " + label) | ftxui::color(color));
+}
+
 // What this skill hands to another skill in the book, one sentence a grant.
 std::vector<Row> BoostRows(const Skill& skill, int level) {
   std::vector<Row> rows;
-  // The skill it boosts belongs in the label: the label says what is boosted
-  // and the value by how much, which is the shape every other row here has.
-  // One row per skill named, because two skills granted different things
-  // cannot share a row.
+  // The label says what is boosted and the value by how much, which is the
+  // shape every other row here has. One row per skill named, however many
+  // times it is named: a boost node states its damage, the enemy it adds at
+  // level 20 and the defence it ignores at 40 as three grants, and all three
+  // belong on that skill's one row.
+  std::map<std::string, std::string> gained;
+  std::vector<std::string> named;
   for (const SkillBoost& granted : skill.boost()) {
+    if (level < granted.min_level()) {
+      continue;
+    }
     std::string gains = BoostText(granted, level);
     if (gains.empty()) {
       continue;
     }
-    rows.push_back(EffectRow("Boosts " + granted.skill_name(), gains));
+    if (gained.find(granted.skill_name()) == gained.end()) {
+      named.push_back(granted.skill_name());
+    }
+    AppendGain(gains, gained[granted.skill_name()]);
+  }
+  // One skill named is a row that says so itself, which is every Hyper Skill.
+  // Several want the heading instead: "Boosts" said once buys each row the
+  // seven columns the word costs, which a boost node lifting three skills
+  // needs to fit the card beside the book.
+  if (named.size() > 1) {
+    rows.push_back(SectionRow("Boosts", kGreen));
+    for (const std::string& name : named) {
+      rows.push_back(EffectRow(name, gained[name]));
+    }
+    return rows;
+  }
+  for (const std::string& name : named) {
+    rows.push_back(EffectRow("Boosts " + name, gained[name]));
   }
   return rows;
 }
@@ -1223,14 +1255,6 @@ std::vector<Row> ExtraAttackRows(const Skill& skill, int level) {
   Append(OwnClockRows(skill, level), rows);
   Append(BoostRows(skill, level), rows);
   return rows;
-}
-
-// A heading over one half of a skill that has two. Orange and green are the
-// skill list's own tags for active and passive (game_names' TagFor), so the
-// two halves are told apart here by the colours the player learned there.
-// Only the heading is coloured: a value that is always coloured says nothing.
-Row SectionRow(const std::string& label, ftxui::Color color) {
-  return TextRow(ftxui::text(" " + label) | ftxui::color(color));
 }
 
 // The shell a buff stands as: the hits it swallows whole, and what it does

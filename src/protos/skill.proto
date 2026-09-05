@@ -1065,6 +1065,15 @@ message SkillBoost {
   // see effect_per_level.
   SkillEffect effect = 6;
   SkillEffect effect_per_level = 7;
+  // The level the GRANTING skill has to reach before any of this is handed
+  // over. 0 is a boost that pays from level 1, which is nearly all of them.
+  //
+  // A V Matrix boost node is what it exists for: GMS gives one a damage ladder
+  // from level 1, a second bonus at 20 and a third at 40, so a node states its
+  // gifts as three boosts naming one skill rather than one boost that has to
+  // describe a staircase. Below the gate the boost is not read at all, which
+  // is why it gates the whole message and not a lever.
+  int32 min_level = 18;
 }
 
 // A skill that has to be learned to a level before another can be bought at

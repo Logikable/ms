@@ -380,6 +380,11 @@ void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
 // strengthened is written on the boost, not on the lever.
 void AddSkillBonuses(const Skill& skill, int level, PassiveTotals& totals) {
   for (const SkillBoost& boost : skill.boost()) {
+    // Nothing until the granting skill reaches the level the gift is gated
+    // behind -- see SkillBoost.min_level.
+    if (level < boost.min_level()) {
+      continue;
+    }
     AddSkillBonus(boost, level, totals.skill_bonus[boost.skill_name()]);
     // A boost that follows the skill into its empowered form is filed under
     // the form's name too: the form is a swing of its own, and the fight looks
@@ -523,6 +528,11 @@ void FoldFinalAttackBoosts(PassiveTotals& totals) {
     }
     source.chance += boost->second.final_attack_chance;
     source.damage_bonus_pct += boost->second.damage_pct;
+    source.crit_rate += boost->second.crit_rate;
+    source.ied = CombineIgnoredDefense(source.ied, boost->second.ied);
+    source.final_dmg_pct =
+        (1.0 + source.final_dmg_pct) * (1.0 + boost->second.final_dmg_pct) -
+        1.0;
     // Points on the strike's own multiplier, which is what GMS's "Night Lord's
     // Mark Damage: +100% points" is -- the other damage a boost can hand a
     // Final Attack, and the one every star of it lands. Only where the skill

@@ -388,6 +388,8 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
   const double carried_boss_pct = follow.boss_pct;
   const double carried_damage_pct = follow.damage_pct;
   const double carried_ied = follow.ied;
+  const double carried_crit_rate = follow.crit_rate;
+  const double carried_final_dmg_pct = follow.final_dmg_pct;
   for (const FinalAttackSource& source : derived.final_attacks) {
     if (source.required_tag != SKILL_TAG_UNSPECIFIED &&
         !HasTag(skill, source.required_tag)) {
@@ -405,8 +407,12 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
     follow.boss_pct = carried_boss_pct + source.boss_pct;
     follow.damage_pct = carried_damage_pct + source.damage_bonus_pct;
     // Ignored defence meets the character's rather than adding to it, the way
-    // two sources of it always do -- Meso Explosion - Guardbreak.
+    // two sources of it always do -- Meso Explosion - Guardbreak. Critical
+    // rate and final damage meet it the way each of them always does.
     follow.ied = CombineIgnoredDefense(carried_ied, source.ied);
+    follow.crit_rate = carried_crit_rate + source.crit_rate;
+    follow.final_dmg_pct =
+        (1.0 + carried_final_dmg_pct) * (1.0 + source.final_dmg_pct) - 1.0;
     roll.count = source.per_line ? swing_lines : 1;
     follow.skill_pct = source.damage_pct;
     // Its own strikes, not the swing's: a Night Lord's mark throws three stars
@@ -722,6 +728,11 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
       continue;
     }
     for (const SkillBoost& boost : skill.boost()) {
+      // A gift the granting skill has not grown into yet -- the enemy a boost
+      // node's Lv20 tier adds, before the node reaches 20.
+      if (learned < boost.min_level()) {
+        continue;
+      }
       int enemies = boost.max_enemies() +
                     WholeValue(boost.max_enemies_per_level() * (learned - 1));
       // The skill's own entry, and the empowered form's where the boost
