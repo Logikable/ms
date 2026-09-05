@@ -1,0 +1,57 @@
+# GMS names Evil Eye Shock here, but the shout a Dark Knight actually casts is
+# Revenge of the Evil Eye, two supersedes further on -- a boost keyed by a
+# superseded name reaches nothing. Kept GMS's own node name: no one skill here
+# is the head of the three.
+name: "Evil Eye Boost"
+description:
+  "Strengthens Evil Eye of Domination, Revenge of the Evil Eye and Radiant "
+  "Evil."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 7 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Evil Eye of Domination"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Evil Eye of Domination"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Evil Eye of Domination"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Revenge of the Evil Eye"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Revenge of the Evil Eye"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Revenge of the Evil Eye"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Radiant Evil"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Radiant Evil"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Radiant Evil"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

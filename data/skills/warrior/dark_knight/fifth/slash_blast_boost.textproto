@@ -1,0 +1,25 @@
+# GMS's fifth node is Leap Attack / Rush, neither of which exists here. It goes
+# to the swing no other node claims instead, at 5% a level rather than GMS's 3%
+# -- Slash Blast is a first-job attack, and needs the better rate to be worth a
+# node at all.
+name: "Slash Blast Boost"
+description: "Strengthens Slash Blast."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 9 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Slash Blast"
+  effect { final_dmg_pct: 0.05 }
+  effect_per_level { final_dmg_pct: 0.05 }
+}
+boost {
+  skill_name: "Slash Blast"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Slash Blast"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

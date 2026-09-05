@@ -1,0 +1,38 @@
+# Final Attack takes a critical rate at 20 where the swing takes an enemy: its
+# strike already reaches only the one enemy the direct hit found.
+name: "Nightshade Explosion Boost"
+description: "Strengthens Nightshade Explosion and Final Attack."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 8 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Nightshade Explosion"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Nightshade Explosion"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Nightshade Explosion"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Final Attack"
+  effect { final_dmg_pct: 0.04 }
+  effect_per_level { final_dmg_pct: 0.04 }
+}
+boost {
+  skill_name: "Final Attack"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Final Attack"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
