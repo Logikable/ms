@@ -776,6 +776,7 @@ TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsLevers) {
   bonus.skill_pct = 0.70;
   bonus.damage_pct = 1.50;
   bonus.boss_pct = 0.30;
+  bonus.normal_pct = 0.10;
   bonus.ied = 0.20;
   bonus.crit_rate = 0.20;
   bonus.final_dmg_pct = 0.15;
@@ -795,6 +796,7 @@ TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsLevers) {
   // it always meet.
   EXPECT_DOUBLE_EQ(boosted.damage_pct, untouched.damage_pct + 1.50);
   EXPECT_DOUBLE_EQ(boosted.boss_pct, untouched.boss_pct + 0.30);
+  EXPECT_DOUBLE_EQ(boosted.normal_pct, untouched.normal_pct + 0.10);
   EXPECT_DOUBLE_EQ(boosted.ied, CombineIgnoredDefense(untouched.ied, 0.20));
   EXPECT_DOUBLE_EQ(boosted.crit_rate, untouched.crit_rate + 0.20);
   EXPECT_DOUBLE_EQ(boosted.final_dmg_pct,
@@ -803,6 +805,7 @@ TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsLevers) {
   EXPECT_DOUBLE_EQ(untouched.skill_pct, 1.78);
   EXPECT_DOUBLE_EQ(untouched.damage_pct, 0.0);
   EXPECT_DOUBLE_EQ(untouched.boss_pct, 0.10);
+  EXPECT_DOUBLE_EQ(untouched.normal_pct, 0.0);
   EXPECT_DOUBLE_EQ(untouched.ied, 0.20);
 }
 

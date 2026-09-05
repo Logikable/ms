@@ -1236,11 +1236,12 @@ std::vector<Row> BoostRows(const Skill& skill, int level) {
     }
     AppendGain(gains, gained[target]);
   }
-  // One skill named is a row that says so itself, which is every Hyper Skill.
-  // Several want the heading instead: "Boosts" said once buys each row the
-  // seven columns the word costs, which a boost node lifting three skills
-  // needs to fit the card beside the book.
-  if (named.size() > 1) {
+  // A boost node is nothing but its boosts, so it takes the heading however
+  // many skills it names: "Boosts" said once buys every row the seven columns
+  // the word costs, which the widest of them need to fit beside the book. A
+  // Hyper Skill has a card of its own to spend the line on, and names one
+  // skill, so it says so in the row.
+  if (named.size() > 1 || skill.v_node() == V_NODE_KIND_BOOST) {
     rows.push_back(SectionRow("Boosts", kGreen));
     for (const std::string& name : named) {
       rows.push_back(EffectRow(name, gained[name]));

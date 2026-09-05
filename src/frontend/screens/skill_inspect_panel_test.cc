@@ -461,6 +461,14 @@ TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
   EXPECT_NE(RowIn(RenderAt(alone, 10), "Boosts Divine Charge",
                   "+1 Strike, +2 Enemies"),
             std::string::npos);
+  // Unless it is a boost node, whose card is nothing but its boosts and needs
+  // back the columns the word costs.
+  Skill single_node = alone;
+  single_node.set_v_node(V_NODE_KIND_BOOST);
+  std::string node_alone = RenderAt(single_node, 10);
+  EXPECT_EQ(node_alone.find("Boosts Divine Charge"), std::string::npos);
+  EXPECT_NE(RowIn(node_alone, "Divine Charge", "+1 Strike, +2 Enemies"),
+            std::string::npos);
   // The reach climbs with the level; the strike does not.
   EXPECT_NE(RenderAt(vessel, 1).find("+1 Strike, +1 Enemy"), std::string::npos);
   // A skill granting neither writes no row.
