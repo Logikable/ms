@@ -72,6 +72,8 @@ const PercentLever kPercentLevers[] = {
     {"Final Damage", &SkillEffect::final_dmg_pct, kPlus, ""},
     {"Boss Damage", &SkillEffect::boss_pct, kPlus, ""},
     {"Normal Enemy Damage", &SkillEffect::normal_pct, kPlus, ""},
+    {"Critical Damage", &SkillEffect::crit_dmg_per_crit_rate, kPlus,
+     " of Critical Rate"},
     {"Ignore DEF", &SkillEffect::ied_pct, kPlus, ""},
     {"Final Damage", &SkillEffect::final_dmg_pct_per_combo_orb, kPlus,
      " per Combo Orb"},

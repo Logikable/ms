@@ -12,6 +12,7 @@
 #include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
+#include "src/combat/constants.h"
 #include "src/combat/damage.h"
 #include "src/item/equip_stats.h"
 #include "src/protos/character.pb.h"
@@ -198,6 +199,7 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   totals.enemy_attack_reaches_boss |= granted.enemy_attack_reaches_boss();
   totals.damage_reflect_pct += granted.damage_reflect_pct();
   totals.crit_rate += granted.crit_rate();
+  totals.crit_dmg_per_crit_rate += granted.crit_dmg_per_crit_rate();
   totals.crit_dmg += granted.crit_dmg();
   totals.hp_recover_pct += granted.hp_recover_pct();
   totals.exp_pct += granted.exp_pct();
@@ -1318,6 +1320,10 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   // Warrior takes its share of the allocation alone.
   AddHyperStats(character, preset, passives);
   AddInnerAbility(character, preset, passives);
+  // Last of all, because it spends a crit rate nothing more will add to. Read
+  // uncapped and with the base rate in, the way the stats page shows it.
+  passives.crit_dmg +=
+      passives.crit_dmg_per_crit_rate * (passives.crit_rate + kBaseCritRate);
 
   // Sliced off the totals: every lever the two share is already in place, and
   // what is left below is only what the fold has to change.

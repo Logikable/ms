@@ -223,6 +223,14 @@ message SkillEffect {
   // Enemies: +20%". Rides one swing or the character by the rule ied_pct and
   // boss_pct do.
   double normal_pct = 30;
+  // Vicious Shot. Share of the character's own CRITICAL RATE handed back as
+  // critical damage (0.50 == half of it), read with the base 5% in and
+  // UNCAPPED -- the whole point of the skill is the rate past 100%, which the
+  // critical roll itself still clamps away.
+  //
+  // The rate a swing states for itself is not counted, as GMS says in so many
+  // words: Snipe's certain critical does not make one.
+  double crit_dmg_per_crit_rate = 31;
   // Damage percentage this attack ADDS against anything that is not a boss, per
   // line, exactly as skill_pct is per line -- so a 180% swing carrying 180%
   // here lands 360% on an ordinary monster. Beam Blade's whole identity.

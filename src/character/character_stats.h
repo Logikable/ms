@@ -186,6 +186,9 @@ struct DerivedStats {
   // swings that crit at all -- so it is the crit_rate skills that make it
   // worth anything.
   double crit_dmg = 0.0;
+  // Vicious Shot's bargain, folded into crit_dmg above once nothing more will
+  // be added to crit_rate. Never read after that fold.
+  double crit_dmg_per_crit_rate = 0.0;
   // Expected share of the HP pool a landed swing puts back. Costs no swing,
   // unlike a healing cast -- the fight adds it after the hit lands.
   double hp_recover_pct = 0.0;

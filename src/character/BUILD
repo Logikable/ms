@@ -248,6 +248,7 @@ cc_library(
         ":consumables",
         ":hyper_stats",
         ":inner_ability",
+        "//src/combat:constants",
         "//src/combat:damage",
         "//src/item:equip_stats",
         "//src/protos:character_proto_cc",

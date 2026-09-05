@@ -1985,6 +1985,32 @@ TEST_F(DerivedStatsTest, AnAttacksOwnSwingLeversStayOffTheStatLine) {
   EXPECT_NEAR(folded.final_dmg_pct, 0.20, 1e-9);
 }
 
+// Vicious Shot spends whatever critical rate the character ends up with, the
+// base 5% counted and nothing clamped away -- the excess past 100% is the only
+// thing the skill exists to buy.
+TEST_F(DerivedStatsTest, CriticalDamagePerCriticalRateSpendsTheUncappedRate) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill shot = Marksmanship();
+  shot.set_name("Vicious Shot");
+  shot.mutable_base()->clear_ied_pct();
+  shot.mutable_per_level()->clear_ied_pct();
+  shot.mutable_base()->set_crit_rate(0.60);
+  shot.mutable_base()->set_crit_dmg_per_crit_rate(0.50);
+  ASSERT_TRUE(c.LearnSkill(shot, 20));
+
+  DerivedStats stats = DerivedStatsFor(c, {{"vicious_shot", shot}});
+  EXPECT_NEAR(stats.crit_rate, 0.60, 1e-9);
+  EXPECT_NEAR(stats.crit_dmg, 0.50 * 0.65, 1e-9);
+
+  // Past 100% it keeps counting, which is the whole bargain.
+  CharacterInstance rich = MakeCharacter(rng_, 15, 100);
+  Skill over = shot;
+  over.mutable_base()->set_crit_rate(1.20);
+  ASSERT_TRUE(rich.LearnSkill(over, 20));
+  DerivedStats spent = DerivedStatsFor(rich, {{"vicious_shot", over}});
+  EXPECT_NEAR(spent.crit_dmg, 0.50 * 1.25, 1e-9);
+}
+
 // The half an attack states apart is the half it keeps, whatever the lever:
 // Cruel Stab's final damage follows the Shadower onto Assassinate, where the
 // 50% Assassinate states for itself does not follow them back.
