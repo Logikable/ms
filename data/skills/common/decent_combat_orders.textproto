@@ -9,7 +9,8 @@ name: "Decent Combat Orders"
 description:
   "Increases all of your skill levels. 4th job skills that have already "
   "reached the master level can be raised further; other skills can only be "
-  "increased to master level. Does not stack with Combat Orders."
+  "increased to master level. Exceptions: Combat Orders, hyper skills, and "
+  "5th job skills cannot be increased. Does not stack with Combat Orders."
 kind: SKILL_KIND_PASSIVE
 placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 5 }
 v_node: V_NODE_KIND_COMMON

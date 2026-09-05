@@ -14,7 +14,8 @@ description:
   "Grants bonus skill levels to the skills of all party members, including "
   "yourself. 4th job skills that have already "
   "reached the master level can be raised further; other skills can only be "
-  "increased to master level."
+  "increased to master level. Exceptions: Combat Orders, hyper skills, and "
+  "5th job skills cannot be increased."
 kind: SKILL_KIND_PASSIVE
 placement { job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT skill_order: 4 }
 exclusive_group: "Combat Orders"

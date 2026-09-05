@@ -63,6 +63,14 @@ bool GrantsSkillLevels(const Skill& skill) {
   return skill.base().skill_level_bonus() > 0.0;
 }
 
+// Whether a granted level reaches this skill at all. GMS's Combat Orders
+// names its exceptions: beginner skills, hyper skills and 5th job skills are
+// left where they stand. Nothing here is a beginner skill, so the two marks
+// below are the whole list.
+bool TakesGrantedLevels(const Skill& skill) {
+  return !skill.hyper() && skill.v_node() == V_NODE_KIND_UNSPECIFIED;
+}
+
 // Whether this skill gives the rest of the party anything -- for good, or for
 // as long as its buff stands. See Skill.ally_base and Buff.ally_base.
 bool GrantsToAllies(const Skill& skill) {
@@ -1113,7 +1121,7 @@ int BonusSkillLevels(const CharacterInstance& character,
 }
 
 int LevelWithBonus(const Skill& skill, int learned, int bonus) {
-  if (learned <= 0 || GrantsSkillLevels(skill)) {
+  if (learned <= 0 || GrantsSkillLevels(skill) || !TakesGrantedLevels(skill)) {
     return learned;
   }
   int ceiling = skill.max_level();

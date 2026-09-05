@@ -1448,6 +1448,19 @@ TEST_F(DerivedStatsTest, LevelWithBonusNeedsNoCharacter) {
       << "the skill handing out the levels does not take them";
 }
 
+// GMS's Combat Orders leaves hyper skills and 5th job skills where they
+// stand. Both have room to climb here, so neither is held back by its ceiling.
+TEST_F(DerivedStatsTest, GrantedLevelsSkipHypersAndVNodes) {
+  Skill hyper = IronBody();
+  hyper.set_hyper(true);
+  Skill node = IronBody();
+  node.set_v_node(V_NODE_KIND_COMMON);
+
+  EXPECT_EQ(LevelWithBonus(hyper, 5, 2), 5) << "a hyper skill";
+  EXPECT_EQ(LevelWithBonus(node, 5, 2), 5) << "a V Matrix node";
+  EXPECT_EQ(LevelWithBonus(IronBody(), 5, 2), 7) << "and the ordinary skill";
+}
+
 // Two rules the bonus has to hold at once for a skill NOT marked for the 4th
 // job's: it never carries the skill past its master level, and it never raises
 // the skill handing it out.

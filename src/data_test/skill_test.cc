@@ -1508,7 +1508,10 @@ bool GmsHoldsItToTheMasterLevel(const std::string& stem) {
 TEST(SkillDataTest, OnlyA4thJobSkillPassesItsMasterLevel) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    bool eligible = StageForAdvancement(BookOf(skill)) == 4 &&
+    // A hyper skill sits on a 4th job book but takes no granted level at all,
+    // so the mark would be dead on it -- see TakesGrantedLevels.
+    bool eligible = StageForAdvancement(BookOf(skill)) == 4 && !skill.hyper() &&
+                    skill.v_node() == V_NODE_KIND_UNSPECIFIED &&
                     skill.max_level() >= kSmallestMasterLevelPastIt &&
                     !GmsHoldsItToTheMasterLevel(entry.first);
     if (eligible) {

@@ -363,6 +363,9 @@ int BonusSkillLevels(const CharacterInstance& character,
 // describes. An unlearned skill stays unlearned, and the skill granting the
 // bonus does not receive it.
 //
+// Nor does a hyper skill or a V Matrix node: GMS's Combat Orders names both
+// among its exceptions, alongside the beginner skills this game has none of.
+//
 // For a caller holding a level rather than a character: the skill page asks
 // what one more point would buy, which is nobody's current level.
 int LevelWithBonus(const Skill& skill, int learned, int bonus);
