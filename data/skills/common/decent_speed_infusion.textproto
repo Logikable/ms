@@ -9,7 +9,7 @@
 name: "Decent Speed Infusion"
 description: "Increases your attack speed by 1."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 6 }
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 7 }
 v_node: V_NODE_KIND_COMMON
 max_level: 30
 base {

@@ -12,7 +12,7 @@ description:
   "Gain extra EXP and items when hunting monsters. Does not stack with Holy "
   "Symbol."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 8 }
 v_node: V_NODE_KIND_COMMON
 exclusive_group: "Holy Symbol"
 max_level: 30

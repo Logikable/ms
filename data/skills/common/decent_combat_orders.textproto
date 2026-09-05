@@ -11,7 +11,7 @@ description:
   "reached the master level can be raised further; other skills can only be "
   "increased to master level. Does not stack with Combat Orders."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 4 }
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 5 }
 v_node: V_NODE_KIND_COMMON
 exclusive_group: "Combat Orders"
 max_level: 30
