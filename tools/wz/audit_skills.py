@@ -50,7 +50,7 @@ LEVERS = [
     ('time', ['duration_seconds', 'duration_seconds_per_level'], TIMED),
     ('ignoreMobpdpR', ['ied_pct'], ANY),
     ('cr', ['crit_rate'], ANY),
-    ('damR', ['damage_pct'], ANY),
+    ('damR', ['damage_pct', 'final_dmg_pct_per_combo_orb'], ANY),
     ('bdR', ['boss_pct'], ANY),
     ('pdR', ['final_dmg_pct'], ANY),
     ('criticaldamage', ['crit_dmg'], ANY),
@@ -60,6 +60,56 @@ LEVERS = [
 # Eyes states its critical rate as `#x`. A tooltip carrying one of these could
 # be stating any lever, so it is no evidence that a lever we model is absent.
 VAGUE = {'x', 'y', 'z', 'u', 'v', 'w', 'q', 's', 'c'}
+
+# A GMS skill id is <branch><job><n>: 3120005 is the archer branch, the Bow
+# Master's job, its fifth skill. Every other class shares these names -- the
+# Wind Archer's Bow Mastery is 13100025 and grants Final Damage the Hunter's
+# 3100000 does not -- so an audit that matches on name alone silently compares
+# a skill against a different class's. This is what scopes it to Explorers.
+JOB_PREFIX = {
+    'JOB_ADVANCEMENT_COMMON': '000',
+    'JOB_ADVANCEMENT_SWORDMAN': '100',
+    'JOB_ADVANCEMENT_FIGHTER': '110',
+    'JOB_ADVANCEMENT_CRUSADER': '111',
+    'JOB_ADVANCEMENT_HERO': '112',
+    'JOB_ADVANCEMENT_PAGE': '120',
+    'JOB_ADVANCEMENT_WHITE_KNIGHT': '121',
+    'JOB_ADVANCEMENT_PALADIN': '122',
+    'JOB_ADVANCEMENT_SPEARMAN': '130',
+    'JOB_ADVANCEMENT_BERSERKER': '131',
+    'JOB_ADVANCEMENT_DARK_KNIGHT': '132',
+    'JOB_ADVANCEMENT_MAGICIAN': '200',
+    'JOB_ADVANCEMENT_FIRE_POISON_WIZARD': '210',
+    'JOB_ADVANCEMENT_FIRE_POISON_MAGE': '211',
+    'JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE': '212',
+    'JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD': '220',
+    'JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE': '221',
+    'JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE': '222',
+    'JOB_ADVANCEMENT_CLERIC': '230',
+    'JOB_ADVANCEMENT_PRIEST': '231',
+    'JOB_ADVANCEMENT_BISHOP': '232',
+    'JOB_ADVANCEMENT_ARCHER': '300',
+    'JOB_ADVANCEMENT_HUNTER': '310',
+    'JOB_ADVANCEMENT_RANGER': '311',
+    'JOB_ADVANCEMENT_BOW_MASTER': '312',
+    'JOB_ADVANCEMENT_CROSSBOWMAN': '320',
+    'JOB_ADVANCEMENT_SNIPER': '321',
+    'JOB_ADVANCEMENT_MARKSMAN': '322',
+    'JOB_ADVANCEMENT_ROGUE': '400',
+    'JOB_ADVANCEMENT_ASSASSIN': '410',
+    'JOB_ADVANCEMENT_HERMIT': '411',
+    'JOB_ADVANCEMENT_NIGHT_LORD': '412',
+    'JOB_ADVANCEMENT_BANDIT': '420',
+    'JOB_ADVANCEMENT_CHIEF_BANDIT': '421',
+    'JOB_ADVANCEMENT_SHADOWER': '422',
+}
+
+# Fifth-job skills sit in an id space of their own: 400 then a two-digit
+# branch, so Weapon Aura is 400011000 and Guided Arrow 400031000. A V node
+# names no job_advancement -- it belongs to a whole line, or to everyone -- so
+# the branch its file sits under is what says which pool to look in.
+V_PREFIX = {'common': '40000', 'shared': '40000', 'warrior': '40001',
+            'magician': '40002', 'bowman': '40003', 'thief': '40004'}
 
 # Skills whose GMS name this repo deliberately does not use. Each is a design
 # decision recorded where it was made, not a name to go fix.
@@ -78,27 +128,51 @@ KNOWN_RENAMES = {
 
 
 def our_skills():
-    """Every shipped skill: name -> (path, source text)."""
+    """Every shipped skill: name -> (path, text, the id prefixes it may take)."""
     out = {}
     pattern = os.path.join(ROOT, 'data', 'skills', '**', '*.textproto')
     for path in glob.glob(pattern, recursive=True):
         text = open(path).read()
         m = re.search(r'^name:\s*"([^"]*)"', text, re.M)
-        if m:
-            out[m.group(1)] = (os.path.relpath(path, ROOT), text)
+        if not m:
+            continue
+        rel = os.path.relpath(path, ROOT)
+        jobs = set(re.findall(r'job_advancement:\s*(\S+)', text))
+        prefixes = {JOB_PREFIX[j] for j in jobs if j in JOB_PREFIX}
+        branch = rel.split(os.sep)[2] if rel.count(os.sep) > 2 else ''
+        if branch in V_PREFIX:
+            prefixes.add(V_PREFIX[branch])
+        out[m.group(1)] = (rel, text, prefixes)
     return out
 
 
 def gms_skills(cache):
-    """Every named GMS skill: name -> the richest entry carrying that name."""
-    out = {}
+    """Named GMS skills: name -> [(id, entry)], Explorer ids only.
+
+    Every id is kept, not the richest. Which one a shipped skill means is the
+    caller's to say, from the job its placement names.
+    """
+    out = collections.defaultdict(list)
     for sid, entry in cache['Skill.img'].items():
         if not isinstance(entry, dict) or not isinstance(entry.get('name'), str):
             continue
-        prev = out.get(entry['name'])
-        if prev is None or len(str(entry.get('h', ''))) > len(str(prev[1].get('h', ''))):
-            out[entry['name']] = (sid, entry)
+        if not sid.isdigit() or len(sid) not in (7, 9):
+            continue                          # 8 digits is another class's
+        if len(sid) == 9 and not sid.startswith('400'):
+            continue                          # 9 digits that are not 5th job
+        out[entry['name']].append((sid, entry))
     return out
+
+
+def pick(entries, prefixes):
+    """The entry whose id sits in one of this skill's jobs, if any does."""
+    if not prefixes:
+        return None
+    for sid, entry in sorted(entries):
+        key = sid[:5] if len(sid) == 9 else sid.zfill(7)[:3]
+        if key in prefixes:
+            return sid, entry
+    return None
 
 
 def placeholders(entry):
@@ -131,13 +205,15 @@ def audit(verbose):
     findings = collections.defaultdict(list)
     matched = 0
     for name in sorted(ours):
-        path, text = ours[name]
-        if name not in theirs:
+        path, text, prefixes = ours[name]
+        found = pick(theirs.get(name, []), prefixes)
+        if found is None:
             if name not in KNOWN_RENAMES:
-                findings['unmatched'].append((name, path, ''))
+                note = 'no Explorer id in %s' % (','.join(sorted(prefixes)) or '?')
+                findings['unmatched'].append((name, path, note))
             continue
         matched += 1
-        sid, entry = theirs[name]
+        sid, entry = found
         states = placeholders(entry)
         kind = skill_kind(text)
         for tag, fields, kinds in LEVERS:
