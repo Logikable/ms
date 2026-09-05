@@ -1,0 +1,20 @@
+# GMS's is a toggle: 2% of Max MP for 5 + floor(x/10)% final damage, on a
+# 60 - x second wait. Nothing here spends MP and a toggle nobody would ever
+# switch off is a passive, so what is left is the final damage.
+#
+# The step is a tenth of a point a level rather than GMS's floor, so master
+# lands on its 8% exactly and only where the ladder starts moves.
+#
+# Ethereal Form, the magician's other node, is not built: it buys three
+# seconds of invincibility, and the fight has no input to spend them on.
+name: "Mana Overload"
+description:
+  "Increases your attack skills by overloading the mana flowing through you."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 1 }
+v_node: V_NODE_KIND_ARCHETYPE
+max_level: 30
+base { final_dmg_pct: 0.051 }
+per_level { final_dmg_pct: 0.001 }
