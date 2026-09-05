@@ -126,6 +126,7 @@ cc_test(
     data = ["//data/skills:all"],
     deps = [
         "//src/character",
+        "//src/character:job_branch",
         "//src/character:v_matrix",
         "//src/combat:constants",
         "//src/combat:damage",

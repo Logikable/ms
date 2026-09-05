@@ -16,6 +16,7 @@
 
 #include "absl/strings/str_join.h"
 #include "src/character/character.h"
+#include "src/character/job_branch.h"
 #include "src/character/v_matrix.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
@@ -487,6 +488,38 @@ TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
   }
   EXPECT_GT(commons, 0) << "the common folder stopped being read";
   EXPECT_GT(archetypes, 0) << "the line's shared folders stopped being read";
+}
+
+// An archetype node belongs to a job LINE, so every 5th job on that line lists
+// it -- the next one written included. Read off the data both ways round:
+// whatever one job's book names, its siblings' books have to name too.
+TEST(SkillDataTest, EveryFifthJobListsItsLinesArchetypeNodes) {
+  std::map<JobAdvancement, JobBranch> line_of;
+  std::map<JobBranch, std::set<JobAdvancement>> books_on;
+  for (Job job : EveryValueOf<Job>(Job_descriptor())) {
+    JobAdvancement fifth = AdvancementForJobStage(job, 5);
+    if (fifth == JOB_ADVANCEMENT_UNSPECIFIED) {
+      continue;
+    }
+    line_of[fifth] = BranchOf(job);
+    books_on[BranchOf(job)].insert(fifth);
+  }
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (skill.v_node() != V_NODE_KIND_ARCHETYPE) {
+      continue;
+    }
+    std::set<JobAdvancement> named;
+    for (const SkillPlacement& placement : skill.placement()) {
+      named.insert(placement.job_advancement());
+    }
+    ASSERT_FALSE(named.empty()) << skill.name() << " names no book";
+    for (JobAdvancement book : books_on[line_of[*named.begin()]]) {
+      EXPECT_GT(named.count(book), 0u)
+          << skill.name() << " is its line's and " << JobAdvancement_Name(book)
+          << " does not list it";
+    }
+  }
 }
 
 // A requirement may name a skill from a book below it -- Evil Eye Shock II
