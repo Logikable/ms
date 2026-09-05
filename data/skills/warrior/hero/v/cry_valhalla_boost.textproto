@@ -4,8 +4,8 @@
 # the enemy the other two get: what it swings is a buff's pulse, whose reach
 # is stated on the pulse itself.
 #
-# The one node named for its head skill alone: three names do not fit the
-# skill list's column, and the description below carries the other two.
+# Named for its head skill alone, as every node lifting more than one is: the
+# description below carries the other two.
 name: "Cry Valhalla Boost"
 description: "Strengthens Cry Valhalla, Puncture and Advanced Final Attack."
 kind: SKILL_KIND_PASSIVE

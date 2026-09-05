@@ -1,9 +1,10 @@
 # The two swings a Hero grows out of, and GMS pays the one they leave behind
 # sooner the better rate: 3% a level to Intrepid Slash against Brandish's 2%.
 #
-# No "Boost" on the end: the word costs six of the thirty columns the skill
-# list gives a name, and both skills said outright is worth more than it.
-name: "Brandish / Intrepid Slash"
+# Named for its head skill alone, as every node lifting more than one is: the
+# word "Boost" is what says the row is a node, and the description below is
+# where the rest of what it lifts is named.
+name: "Brandish Boost"
 description: "Strengthens Brandish and Intrepid Slash."
 kind: SKILL_KIND_PASSIVE
 placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 9 }
