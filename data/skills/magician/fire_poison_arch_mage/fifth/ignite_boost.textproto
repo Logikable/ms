@@ -1,0 +1,54 @@
+# The wall of fire a fire spell lights, and the two summons that burn beside
+# it. Ignite is a passive, but one carrying a Final Attack -- the levers land
+# on that strike, the same way the Hero's node reaches Advanced Final Attack.
+name: "Ignite Boost"
+description: "Strengthens Ignite, Ifrit, and Inferno Aura."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 5 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Ignite"
+  effect { final_dmg_pct: 0.04 }
+  effect_per_level { final_dmg_pct: 0.04 }
+}
+boost {
+  skill_name: "Ignite"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Ignite"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Ifrit"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Ifrit"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Ifrit"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Inferno Aura"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Inferno Aura"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Inferno Aura"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

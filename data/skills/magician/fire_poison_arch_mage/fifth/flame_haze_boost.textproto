@@ -1,0 +1,39 @@
+# The single-target burn and the detonation that spends every mark on the map.
+# Flame Haze takes the critical rate rather than the enemy, which is GMS's call
+# and the only one it could be: the whole skill is one enemy on purpose.
+name: "Flame Haze Boost"
+description: "Strengthens Flame Haze and Mist Eruption."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 4 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Flame Haze"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Flame Haze"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Flame Haze"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Mist Eruption"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Mist Eruption"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Mist Eruption"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

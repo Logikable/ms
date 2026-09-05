@@ -1,0 +1,57 @@
+# The pool, the sky and the pillar. GMS states one boost for the whole of
+# Creeping Toxin, and its every fourth tick is an empowered form here, so both
+# halves are reached -- otherwise a quarter of the totem's output takes nothing.
+name: "Creeping Toxin Boost"
+description: "Strengthens Creeping Toxin, Meteor Shower, and Megiddo Flame."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 6 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Creeping Toxin"
+  reach: BOOST_REACH_BOTH
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Creeping Toxin"
+  reach: BOOST_REACH_BOTH
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Creeping Toxin"
+  reach: BOOST_REACH_BOTH
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Meteor Shower"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Meteor Shower"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Meteor Shower"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Megiddo Flame"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Megiddo Flame"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Megiddo Flame"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
