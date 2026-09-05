@@ -44,10 +44,7 @@ extra_hit {
   lines: 5
   base {
     skill_pct: 2.03
-    normal_skill_pct: 0.609
+    normal_pct: 0.30
   }
-  per_level {
-    skill_pct: 0.03
-    normal_skill_pct: 0.009
-  }
+  per_level { skill_pct: 0.03 }
 }

@@ -19,11 +19,10 @@ max_level: 20
 exceeds_master_level: true
 max_enemies: 6
 cast_interval_seconds: 3.0
-base {
-  skill_pct: 1.05
-  ied_pct: 0.015
-}
-per_level {
-  skill_pct: 0.05
-  ied_pct: 0.015
-}
+base { skill_pct: 1.05 }
+per_level { skill_pct: 0.05 }
+# GMS writes the ignored defence under "[Passive Effects]", so it is the
+# Marksman's and not the decoy's -- unlike Radiant Evil's, which the eye
+# ignores as it swings.
+passive { ied_pct: 0.015 }
+passive_per_level { ied_pct: 0.015 }

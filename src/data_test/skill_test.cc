@@ -662,12 +662,13 @@ TEST(SkillDataTest, EveryHyperPageIsWholeAndOpensOnARung) {
   }
 }
 
-// Only an attack splits what it grants, so a kept half on anything else is a
-// half nobody reads -- every other kind keeps the whole of `base` already.
-TEST(SkillDataTest, OnlyAnAttackStatesAKeptHalf) {
+// Only a skill that deals damage splits what it grants, so a kept half on
+// anything else is a half nobody reads -- every other kind keeps the whole of
+// `base` already.
+TEST(SkillDataTest, OnlyADamagingSkillStatesAKeptHalf) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    if (skill.kind() == SKILL_KIND_ATTACK) {
+    if (DealsDamage(skill.kind())) {
       continue;
     }
     EXPECT_FALSE(skill.has_passive())

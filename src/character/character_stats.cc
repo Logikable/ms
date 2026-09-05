@@ -214,6 +214,7 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   totals.elemental_resistance += granted.elemental_resistance();
   totals.damage_pct += granted.damage_pct();
   totals.boss_pct += granted.boss_pct();
+  totals.normal_pct += granted.normal_pct();
   totals.meso_pct += granted.meso_pct();
   totals.item_drop_pct += granted.item_drop_pct();
   totals.buff_duration_pct += granted.buff_duration_pct();
@@ -356,6 +357,7 @@ void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
   into.skill_pct += aimed.skill_pct();
   into.damage_pct += aimed.damage_pct();
   into.boss_pct += aimed.boss_pct();
+  into.normal_pct += aimed.normal_pct();
   into.crit_rate += aimed.crit_rate();
   // The two that do not sum, for the reason they never do.
   into.ied = CombineIgnoredDefense(into.ied, aimed.ied_pct());
@@ -450,7 +452,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
                 const ExclusiveBest& exclusive, PassiveTotals& totals) {
   SkillEffect granted =
       exclusive.Thin(skill, EffectAt(skill.base(), skill.per_level(), level));
-  if (skill.kind() == SKILL_KIND_ATTACK) {
+  if (DealsDamage(skill.kind())) {
     AddEffect(WithoutSwingLevers(granted), totals);
     // The half an attack states apart because it keeps it: no lever of this
     // one leaves with the swing. See Skill.passive.
@@ -1019,6 +1021,7 @@ SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
   SkillEffect kept = effect;
   kept.clear_ied_pct();
   kept.clear_boss_pct();
+  kept.clear_normal_pct();
   kept.clear_crit_rate();
   kept.clear_final_dmg_pct();
   kept.clear_hp_recover_pct();
@@ -1035,6 +1038,7 @@ SkillEffect SwingLeversOf(const SkillEffect& effect) {
   SkillEffect swing;
   swing.set_ied_pct(effect.ied_pct());
   swing.set_boss_pct(effect.boss_pct());
+  swing.set_normal_pct(effect.normal_pct());
   swing.set_crit_rate(effect.crit_rate());
   swing.set_final_dmg_pct(effect.final_dmg_pct());
   swing.set_hp_recover_pct(effect.hp_recover_pct());

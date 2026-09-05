@@ -439,6 +439,7 @@ void AddNamedBoost(const Skill& attack_skill, const PassiveOffense& passives,
   offense.skill_pct += bonus.skill_pct;
   offense.damage_pct += bonus.damage_pct;
   offense.boss_pct += bonus.boss_pct;
+  offense.normal_pct += bonus.normal_pct;
   offense.ied = CombineIgnoredDefense(offense.ied, bonus.ied);
   offense.crit_rate += bonus.crit_rate;
   offense.final_dmg_pct =
@@ -460,6 +461,9 @@ void AddSwingLevers(const Skill& attack_skill, int attack_level,
                        attack_skill.per_level().ied_pct() * (attack_level - 1));
   offense.boss_pct += attack_skill.base().boss_pct() +
                       attack_skill.per_level().boss_pct() * (attack_level - 1);
+  offense.normal_pct +=
+      attack_skill.base().normal_pct() +
+      attack_skill.per_level().normal_pct() * (attack_level - 1);
   // Added to what the character brought rather than replacing it, so 1.00 is
   // certainty however little they have bought.
   offense.crit_rate +=

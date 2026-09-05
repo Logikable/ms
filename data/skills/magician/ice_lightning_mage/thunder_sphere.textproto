@@ -1,7 +1,7 @@
 # A summon rather than a swing: the orb hangs there and discharges by itself,
 # so the wizard casts Ice Strike the whole time. GMS's 196+5x% three times on
-# six enemies, and its normal-enemy bonus of 70+5x percentage POINTS per line
-# -- Beam Blade's lever, so it lands on a map and drops away against a boss.
+# six enemies, and its 70+5x% against anything that is not a boss -- a share of
+# the character's damage, which GMS marks "(additive)" for that reason.
 #
 # 1.8s between discharges is the orb's own attack animation, fifteen frames of
 # 120ms. It strikes on a cadence of its own (`attackAfter`), as Phoenix does --
@@ -19,9 +19,9 @@ lines: 3
 cast_interval_seconds: 1.8
 base {
   skill_pct: 2.01
-  normal_skill_pct: 0.75
+  normal_pct: 0.75
 }
 per_level {
   skill_pct: 0.05
-  normal_skill_pct: 0.05
+  normal_pct: 0.05
 }

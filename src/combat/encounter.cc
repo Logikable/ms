@@ -116,6 +116,7 @@ DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
   burn.skill_pct =
       burns.skill_pct() + (boost != nullptr ? boost->dot_skill_pct : 0.0);
   burn.normal_skill_pct = burns.normal_skill_pct();
+  burn.normal_pct += burns.normal_pct();
   burn.lines = std::max(1, dot.lines());
   // A shadow copies the swing it was cast beside, not the mark that swing left
   // burning after it.
@@ -194,6 +195,7 @@ void AddSwingHit(const SwingHit& hit, const OffenseStats& offense, int level,
   SkillEffect lands = EffectAt(hit.base(), hit.per_level(), level);
   extra.skill_pct = lands.skill_pct();
   extra.normal_skill_pct = lands.normal_skill_pct();
+  extra.normal_pct += lands.normal_pct();
   extra.crit_rate += lands.crit_rate();
   extra.lines = std::max(1, hit.lines());
   // The shadow copies it as it copies the rest of the swing. Reset here
@@ -456,6 +458,7 @@ void AddSideStrike(const Character& proto, const EquipStats& equipped,
   SkillEffect thrown = EffectAt(side.base(), side.per_level(), level);
   stats.skill_pct = thrown.skill_pct();
   stats.normal_skill_pct = thrown.normal_skill_pct();
+  stats.normal_pct += thrown.normal_pct();
   stats.lines = std::max(1, side.lines());
   stats.mirror_lines = stats.lines;
   AttackOption strike;

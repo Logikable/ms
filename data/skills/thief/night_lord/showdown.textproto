@@ -45,7 +45,7 @@ side_strike {
   cooldown_seconds: 5.0
   base {
     skill_pct: 0.095
-    normal_skill_pct: 2.00
+    normal_pct: 2.00
   }
   per_level { skill_pct: 0.005 }
   scatter {

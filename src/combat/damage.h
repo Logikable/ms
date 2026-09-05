@@ -220,6 +220,8 @@ struct SkillBonus {
   // Boss damage, summed with the target's own and the character's -- all three
   // are shares of the same damage.
   double boss_pct = 0.0;
+  // The same against everything that is not a boss.
+  double normal_pct = 0.0;
   // Ignored defence, combined in reverse with the target's own rather than
   // summed: two sources of 20% leave 64% of the monster's DEF, not 60%.
   double ied = 0.0;
@@ -266,8 +268,8 @@ struct PassiveOffense {
   // it. Meets the gear's own by summing too -- both are shares of the same
   // damage, unlike ied.
   double boss_pct = 0.0;
-  // The same against everything that is not a boss. Only a Hyper Stat grants
-  // it; no gear carries one.
+  // The same against everything that is not a boss, out of Hyper Stats, Inner
+  // Ability and the passives granting one. No gear carries it.
   double normal_pct = 0.0;
   // Share of the monster's DEF the passives ignore, already combined across
   // them. Meets the gear's share in reverse, the same way they combined.

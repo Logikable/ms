@@ -1953,6 +1953,7 @@ TEST_F(DerivedStatsTest, AnAttacksOwnSwingLeversStayOffTheStatLine) {
   gungnir.set_name("Gungnir's Descent");
   gungnir.set_kind(SKILL_KIND_ATTACK);
   gungnir.mutable_base()->set_boss_pct(0.30);
+  gungnir.mutable_base()->set_normal_pct(0.20);
   gungnir.mutable_base()->set_final_dmg_pct(0.20);
   std::map<std::string, Skill> skills = {{"gungnirs_descent", gungnir}};
   ASSERT_TRUE(c.LearnSkill(gungnir, 20));
@@ -1960,7 +1961,19 @@ TEST_F(DerivedStatsTest, AnAttacksOwnSwingLeversStayOffTheStatLine) {
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_DOUBLE_EQ(stats.ied, 0.0);
   EXPECT_DOUBLE_EQ(stats.boss_pct, 0.0);
+  EXPECT_DOUBLE_EQ(stats.normal_pct, 0.0);
   EXPECT_DOUBLE_EQ(stats.final_dmg_pct, 0.0);
+
+  // A skill on its own clock keeps them the same way: Radiant Evil ignores
+  // defence as the eye swings, and the Dark Knight's own swing does not.
+  Skill clock = gungnir;
+  clock.set_kind(SKILL_KIND_AUTO_ATTACK);
+  clock.set_cast_interval_seconds(20.0);
+  DerivedStats ticking = DerivedStatsFor(c, {{"gungnirs_descent", clock}});
+  EXPECT_DOUBLE_EQ(ticking.ied, 0.0);
+  EXPECT_DOUBLE_EQ(ticking.boss_pct, 0.0);
+  EXPECT_DOUBLE_EQ(ticking.normal_pct, 0.0);
+  EXPECT_DOUBLE_EQ(ticking.final_dmg_pct, 0.0);
 
   // The same levers on a passive fold in as they always have.
   Skill passive = gungnir;
@@ -1968,6 +1981,7 @@ TEST_F(DerivedStatsTest, AnAttacksOwnSwingLeversStayOffTheStatLine) {
   DerivedStats folded = DerivedStatsFor(c, {{"gungnirs_descent", passive}});
   EXPECT_NEAR(folded.ied, 0.25, 1e-9);
   EXPECT_NEAR(folded.boss_pct, 0.30, 1e-9);
+  EXPECT_NEAR(folded.normal_pct, 0.20, 1e-9);
   EXPECT_NEAR(folded.final_dmg_pct, 0.20, 1e-9);
 }
 

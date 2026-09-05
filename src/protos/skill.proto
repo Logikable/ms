@@ -215,12 +215,20 @@ message SkillEffect {
   // Rides one swing or the character by the same rule ied_pct does: Heaven's
   // Hammer hits a boss 30% harder and hands nothing to the swing after it.
   double boss_pct = 27;
+  // The mirror of boss_pct: a share added to damage against anything that is
+  // NOT a boss (0.20 == +20%). Meets damage_pct in the same sum boss damage
+  // does, so what it is worth depends on what else the character has bought.
+  //
+  // This is GMS's `nbdR`, which its readouts write as "Damage Against Normal
+  // Enemies: +20%". Rides one swing or the character by the rule ied_pct and
+  // boss_pct do.
+  double normal_pct = 30;
   // Damage percentage this attack ADDS against anything that is not a boss, per
   // line, exactly as skill_pct is per line -- so a 180% swing carrying 180%
-  // here lands 360% on an ordinary monster. GMS states it as percentage POINTS
-  // on the skill for that reason, and it is Beam Blade's whole identity. Not
-  // the equipment's boss damage in mirror image: that one is a share of the
-  // character's damage, and this is a share of one swing's.
+  // here lands 360% on an ordinary monster. Beam Blade's whole identity.
+  //
+  // The OTHER of GMS's two, `nbdamPlus`, told apart by the word its readout
+  // spells out: "+20% points" is this one, a bare "+20%" is normal_pct above.
   double normal_skill_pct = 28;
   // Maple Warrior. Share of what AP bought that this skill grants back as flat
   // stat, stat by stat (0.15 == 15%): 1000 points of STR and 100 of DEX become
@@ -1139,14 +1147,15 @@ message Skill {
 
   SkillEffect base = 11;
   SkillEffect per_level = 12;
-  // Levers an ATTACK keeps for good, beside the ones above that ride only the
-  // swing stating them. Cruel Stab is what it exists for: GMS writes its final
-  // damage under "[Passive Effects]", which is the character's and follows
-  // them onto every other swing, and the lever-by-lever split in
-  // WithoutSwingLevers cannot tell that from Assassinate's, which does not.
+  // Levers a skill that DEALS DAMAGE keeps for good, beside the ones above that
+  // ride only the swing stating them. Cruel Stab is what it exists for: GMS
+  // writes its final damage under "[Passive Effects]", which is the
+  // character's and follows them onto every other swing, and the lever-by-
+  // lever split in WithoutSwingLevers cannot tell that from Assassinate's,
+  // which does not. Arrow Illusion is the same bargain on a clock.
   //
-  // Read only on an attack. Every other kind of skill keeps everything it
-  // grants already, so a second block would say nothing.
+  // Read only on an attack or an auto attack. Every other kind of skill keeps
+  // everything it grants already, so a second block would say nothing.
   SkillEffect passive = 26;
   SkillEffect passive_per_level = 27;
   // What the skill grants on top of `base` with particular weapons in hand.

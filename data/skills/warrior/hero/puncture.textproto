@@ -38,7 +38,7 @@ required_skill {
 }
 base {
   skill_pct: 3.13
-  normal_skill_pct: 0.50
+  normal_pct: 0.50
 }
 per_level { skill_pct: 0.03 }
 ally_base { damage_pct: 0.013 }

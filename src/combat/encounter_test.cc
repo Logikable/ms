@@ -2780,7 +2780,7 @@ TEST(ComputeCombatParamsTest, ASummonsIgnoredDefenceFollowsTheCharacter) {
   illusion.set_max_enemies(6);
   illusion.set_cast_interval_seconds(3.0);
   illusion.mutable_base()->set_skill_pct(1.00);
-  illusion.mutable_base()->set_ied_pct(0.30);
+  illusion.mutable_passive()->set_ied_pct(0.30);
 
   GameState state({}, {}, {}, {{"snail", MakeArmouredMob("Snail", 15, 60)}},
                   {{"field", TwoSnailMap()}},
@@ -2797,7 +2797,8 @@ TEST(ComputeCombatParamsTest, ASummonsIgnoredDefenceFollowsTheCharacter) {
   ASSERT_TRUE(state.character.LearnSkill(illusion, 1));
   CombatParams after = ComputeCombatParams(state);
   // The decoy's ignored defence lifts the character's own swing, which is what
-  // a passive grant means -- a swing lever would have stayed with the decoy.
+  // GMS's "[Passive Effects]" means. Written in `base` it would have stayed
+  // with the decoy, the way Radiant Evil's does.
   EXPECT_GT(after.attacks[1].damage_per_hit[0], swing_before);
 }
 
