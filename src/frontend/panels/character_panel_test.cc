@@ -911,7 +911,10 @@ TEST_F(CharacterPanelTest, ANodeIsBoughtAtItsLadderPrice) {
   for (int i = 0; i < 5; ++i) {
     page->OnEvent(ftxui::Event::ArrowRight);  // page I -> V
   }
-  page->OnEvent(ftxui::Event::ArrowDown);   // page bar -> node rows
+  page->OnEvent(ftxui::Event::ArrowDown);  // page bar -> node rows
+  // Down again to the commons at the foot: the job's own node leads the page
+  // and its first level is free, which would prove nothing about a price.
+  page->OnEvent(ftxui::Event::ArrowDown);
   page->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
   ASSERT_NE(RenderComponent(page).find("Rope Lift"), std::string::npos);
   page->OnEvent(ftxui::Event::Return);

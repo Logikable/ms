@@ -111,6 +111,21 @@ void EmitAfterRequirement(const Skill& skill,
   out.push_back(&skill);
 }
 
+// Which block of the V page a kind of node sits in: the job's own four first,
+// the boosts under them, and the commons at the foot. Spelled out rather than
+// taken off the enum's own order, so renumbering VNodeKind cannot quietly
+// rearrange the page.
+int VNodeRank(VNodeKind kind) {
+  switch (kind) {
+    case V_NODE_KIND_JOB:
+      return 0;
+    case V_NODE_KIND_BOOST:
+      return 1;
+    default:
+      return 2;
+  }
+}
+
 // The Vengeance forms standing right now, keyed by the skill each takes the
 // place of. A form whose toggle is switched off is not here, and so is not on
 // the page at all.
@@ -175,12 +190,19 @@ std::vector<const Skill*> SkillsForAdvancement(
 
 std::vector<const Skill*> VNodesFor(const std::map<std::string, Skill>& catalog,
                                     JobAdvancement advancement) {
-  std::vector<const Skill*> nodes =
-      SkillsForAdvancement(catalog, JOB_ADVANCEMENT_COMMON);
+  std::vector<const Skill*> nodes;
   for (const Skill* skill : SkillsForAdvancement(catalog, advancement)) {
     if (skill->v_node() != V_NODE_KIND_UNSPECIFIED) {
       nodes.push_back(skill);
     }
+  }
+  std::stable_sort(nodes.begin(), nodes.end(),
+                   [](const Skill* a, const Skill* b) {
+                     return VNodeRank(a->v_node()) < VNodeRank(b->v_node());
+                   });
+  for (const Skill* node :
+       SkillsForAdvancement(catalog, JOB_ADVANCEMENT_COMMON)) {
+    nodes.push_back(node);
   }
   return nodes;
 }

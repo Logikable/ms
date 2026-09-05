@@ -8,7 +8,7 @@ description:
   "Fires a grappling hook to a platform above you. Nobody here remembers what "
   "it was for."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 9 }
 v_node: V_NODE_KIND_COMMON
 max_level: 30
 base {

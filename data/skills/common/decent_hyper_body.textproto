@@ -5,7 +5,7 @@ name: "Decent Hyper Body"
 description:
   "Increases Max HP and Max MP. Does not stack with Hyper Body."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 3 }
 v_node: V_NODE_KIND_COMMON
 exclusive_group: "Hyper Body"
 max_level: 30

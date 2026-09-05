@@ -10,7 +10,7 @@ description:
   "Locates an enemy's weak spot to deal lethal damage. Does not stack with "
   "Sharp Eyes."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 4 }
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 2 }
 v_node: V_NODE_KIND_COMMON
 exclusive_group: "Sharp Eyes"
 max_level: 30

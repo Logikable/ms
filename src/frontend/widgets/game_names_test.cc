@@ -392,5 +392,53 @@ TEST(PotentialLineTextTest, NamesEveryRank) {
   EXPECT_EQ(PotentialRankName(POTENTIAL_RANK_UNSPECIFIED), "");
 }
 
+// --- VNodesFor ---
+
+Skill Node(const std::string& name, VNodeKind kind, JobAdvancement book,
+           int order) {
+  Skill skill;
+  skill.set_name(name);
+  skill.set_v_node(kind);
+  PlaceIn(skill, book, order);
+  return skill;
+}
+
+// The matrix is one page in three blocks: the job's own actives, the boosts
+// under them, then the commons every character has. Each block keeps its own
+// numbering, which is all `skill_order` can say -- the blocks sit in different
+// books, so nothing in the data orders one against the next.
+TEST(VNodesForTest, TheJobsOwnLeadAndTheCommonsSitAtTheFoot) {
+  std::map<std::string, Skill> catalog = {
+      {"lift",
+       Node("Rope Lift", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 9)},
+      {"erda",
+       Node("Erda Fountain", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 1)},
+      {"boost_b",
+       Node("Boost B", V_NODE_KIND_BOOST, JOB_ADVANCEMENT_DARK_KNIGHT_V, 6)},
+      {"radiant",
+       Node("Radiant Evil", V_NODE_KIND_JOB, JOB_ADVANCEMENT_DARK_KNIGHT_V, 2)},
+      {"boost_a",
+       Node("Boost A", V_NODE_KIND_BOOST, JOB_ADVANCEMENT_DARK_KNIGHT_V, 5)},
+      {"dark", Node("Dark Synthesis", V_NODE_KIND_JOB,
+                    JOB_ADVANCEMENT_DARK_KNIGHT_V, 1)},
+  };
+  EXPECT_EQ(
+      NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_DARK_KNIGHT_V)),
+      (std::vector<std::string>{"Dark Synthesis", "Radiant Evil", "Boost A",
+                                "Boost B", "Erda Fountain", "Rope Lift"}));
+}
+
+// A job with no nodes of its own written yet still has a matrix: the commons
+// alone fill it.
+TEST(VNodesForTest, AJobWithNoNodesOfItsOwnStillHoldsTheCommons) {
+  std::map<std::string, Skill> catalog = {
+      {"erda",
+       Node("Erda Fountain", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 1)},
+      {"slash", PageSkill("Slash Blast", 1)},
+  };
+  EXPECT_EQ(NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_HERO_V)),
+            (std::vector<std::string>{"Erda Fountain"}));
+}
+
 }  // namespace
 }  // namespace ms

@@ -161,9 +161,10 @@ std::vector<const Skill*> SkillsForAdvancement(
     bool hyper = false, const std::set<std::string>& toggles_on = {});
 
 // Every V Matrix node a character standing at `advancement` -- their 5th, if
-// they have taken one -- holds: the common nodes every job shares, then that
-// job's own. One list because the matrix is one page, and commons lead it
-// because they are the half a player recognises from every other character.
+// they have taken one -- holds. One list, because the matrix is one page, in
+// three blocks: the job's own actives, the boosts that lift its book, then the
+// commons every job shares. What is the character's own leads; what every
+// character has is at the foot.
 std::vector<const Skill*> VNodesFor(const std::map<std::string, Skill>& catalog,
                                     JobAdvancement advancement);
 

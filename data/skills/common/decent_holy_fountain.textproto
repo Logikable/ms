@@ -10,7 +10,7 @@ description:
   "Summons a fountain that restores the HP of anyone who drinks from it. "
   "Nobody here ever stops walking long enough."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 10 }
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 8 }
 v_node: V_NODE_KIND_COMMON
 max_level: 30
 base {

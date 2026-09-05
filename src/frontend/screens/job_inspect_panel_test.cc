@@ -212,9 +212,9 @@ TEST_F(JobInspectPanelTest, AFifthAdvancementListsItsWholeMatrix) {
   JobInspectPanel panel = PanelOn(JOB_HERO, 5);
   std::vector<const Skill*> nodes = panel.Skills();
   ASSERT_EQ(nodes.size(), 3u);
-  EXPECT_EQ(nodes[0]->name(), "Rope Lift") << "the commons lead the matrix";
-  EXPECT_EQ(nodes[1]->name(), "Radiant Evil");
-  EXPECT_EQ(nodes[2]->name(), "Puncture Boost");
+  EXPECT_EQ(nodes[0]->name(), "Radiant Evil") << "the job's own lead";
+  EXPECT_EQ(nodes[1]->name(), "Puncture Boost") << "then the boosts";
+  EXPECT_EQ(nodes[2]->name(), "Rope Lift") << "and the commons at the foot";
 
   EXPECT_NE(RenderElement(panel.Render()).find("Max 60"), std::string::npos)
       << "a boost node goes twice as far as the rest";

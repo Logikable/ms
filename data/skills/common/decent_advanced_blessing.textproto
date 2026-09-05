@@ -8,7 +8,7 @@ description:
   "highest effect from Bless, Advanced Blessing, or Decent Advanced Blessing "
   "will be applied."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_COMMON skill_order: 5 }
 v_node: V_NODE_KIND_COMMON
 exclusive_group: "Blessing"
 max_level: 30
