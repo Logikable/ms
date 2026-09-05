@@ -1,0 +1,39 @@
+# Gritty Gust is a Hyper Skill here rather than a fifth-job one. A node aiming
+# at a hyper is settled ground -- the Dark Knight's Nightshade Explosion and
+# the Paladin's Smite Shield are the others.
+name: "Gritty Gust Boost"
+description: "Strengthens Gritty Gust and Speed Mirage."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 7 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Gritty Gust"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Gritty Gust"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Gritty Gust"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Speed Mirage"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Speed Mirage"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Speed Mirage"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

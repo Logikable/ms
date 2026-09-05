@@ -1,0 +1,39 @@
+# The two swings a bow buys before its fourth job, which is why they carry the
+# best rates on the page. Arrow Blow's tier at 20 is the only one in the book
+# that is neither an enemy nor a critical rate.
+name: "Wind Arrow Boost"
+description: "Strengthens Wind Arrow and Arrow Blow."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 9 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Wind Arrow"
+  effect { final_dmg_pct: 0.05 }
+  effect_per_level { final_dmg_pct: 0.05 }
+}
+boost {
+  skill_name: "Wind Arrow"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Wind Arrow"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Arrow Blow"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Arrow Blow"
+  min_level: 20
+  effect { normal_pct: 0.10 }
+}
+boost {
+  skill_name: "Arrow Blow"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

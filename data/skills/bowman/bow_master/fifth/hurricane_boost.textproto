@@ -1,0 +1,26 @@
+# GMS pairs this with Final Attack: Bow. That skill is superseded here, so its
+# half moved to a node of its own -- see advanced_final_attack_boost.
+#
+# Hurricane reaches one enemy on purpose, so the critical rate is the tier it
+# can use.
+name: "Hurricane Boost"
+description: "Strengthens Hurricane."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 4 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Hurricane"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Hurricane"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Hurricane"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

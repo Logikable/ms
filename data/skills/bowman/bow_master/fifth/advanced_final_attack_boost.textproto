@@ -1,0 +1,29 @@
+# GMS's node 5 is Covering Fire and Swift Surge, neither of which exists here,
+# and every other swing in the line is already spoken for. So Final Attack
+# takes the page alone, at the 3% a level GMS pays node 5 rather than the 2%
+# it pays sharing node 1.
+#
+# It aims at Advanced Final Attack, not the Hunter's Final Attack: Bow the
+# node is named for in GMS -- the later skill supersedes the earlier one, and a
+# boost keyed by the superseded name reaches nothing.
+name: "Advanced Final Attack Boost"
+description: "Strengthens Advanced Final Attack."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 8 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Advanced Final Attack"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Advanced Final Attack"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Advanced Final Attack"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

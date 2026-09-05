@@ -1,0 +1,39 @@
+# One boost covers both halves of Arrow Blaster: the turret carries its
+# parent's name, which is what the lookup is keyed by. The enemy at 20 is the
+# volley's alone -- the turret takes its count from the AutoMode.
+name: "Arrow Blaster Boost"
+description: "Strengthens Arrow Blaster and Arrow Stream."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 5 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Arrow Blaster"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Arrow Blaster"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Arrow Blaster"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Arrow Stream"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Arrow Stream"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Arrow Stream"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

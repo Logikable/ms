@@ -1,0 +1,40 @@
+# GMS names Quiver Cartridge, which Enchanted Quiver supersedes -- a boost
+# keyed by the superseded name reaches nothing, so it aims at the arrowhead a
+# Bow Master actually fires. Its strike pursues one enemy, hence the critical
+# rate rather than a wider swing.
+name: "Enchanted Quiver Boost"
+description: "Strengthens Enchanted Quiver and Phoenix."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 6 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Enchanted Quiver"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Enchanted Quiver"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Enchanted Quiver"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Phoenix"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Phoenix"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Phoenix"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
