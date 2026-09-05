@@ -29,14 +29,15 @@ constexpr double kBaseCritDamage = 0.35;
 // How many timed buffs are modelled at once. Every combination of them needs a
 // damage table of its own, and the count of combinations doubles with each
 // one -- but a table is built the first time the fight asks for it, so what a
-// raise really costs is the combinations a fight stands in rather than the 31
-// it could. A character holding more than this keeps the first five and
+// raise really costs is the combinations a fight stands in rather than the 127
+// it could. A character holding more than this keeps the first of them and
 // silently loses the rest, so //src/data_test:skill_test refuses a book that
 // hands out more.
 //
-// Raised from four for Vicious Shot, which put Bow Master over. Hero, Paladin,
-// Dark Knight, Bishop and both archers sit within one of it.
-constexpr int kMaxBuffWindows = 5;
+// Raised from four for Vicious Shot, then from five for the archetype nodes:
+// Fury of the Wild put Bow Master on six, and Arcane Overdrive sheds three
+// stages that cost a window each, which puts Bishop on seven.
+constexpr int kMaxBuffWindows = 7;
 
 }  // namespace ms
 

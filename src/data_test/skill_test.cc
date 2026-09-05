@@ -439,11 +439,31 @@ TEST(SkillDataTest, NoBookHandsOutMoreBuffsThanTheFightModels) {
     for (const std::pair<const std::string, Skill>& entry : skills) {
       if (entry.second.buff().duration_seconds() > 0.0 &&
           ReachedBy(books, entry.second)) {
-        raised.push_back(entry.second.name());
+        // A buff that sheds stages is run as one window per stage, so it is
+        // that many of the budget rather than one. See Buff.stages.
+        raised.insert(raised.end(), std::max(1, entry.second.buff().stages()),
+                      entry.second.name());
       }
     }
     EXPECT_LE(static_cast<int>(raised.size()), kMaxBuffWindows)
         << Job_Name(job) << " raises " << absl::StrJoin(raised, ", ");
+  }
+}
+
+// A pulse is matched to the buff it hangs off BY NAME, and every stage of a
+// shedding buff carries the same one -- so a buff that both sheds and bleeds
+// would point its pulse at whichever stage was read last. Nothing does today;
+// this is here so nothing quietly starts to.
+TEST(SkillDataTest, NoSheddingBuffAlsoBleeds) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Buff& buff = entry.second.buff();
+    if (buff.stages() <= 1) {
+      continue;
+    }
+    EXPECT_GT(buff.stage_interval_seconds(), 0.0)
+        << entry.first << " sheds stages on no clock";
+    EXPECT_LE(buff.pulse().cast_interval_seconds(), 0.0)
+        << entry.first << " both sheds stages and bleeds";
   }
 }
 

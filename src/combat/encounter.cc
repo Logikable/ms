@@ -1085,11 +1085,20 @@ int PartyHolders(const CharacterInstance& character,
   return holders;
 }
 
+// Buff Duration reaches every buff but a V node's. GMS marks all of them
+// notIncBuffDuration, so the matrix stands outside the lever entirely -- a
+// rule about the whole matrix rather than a quirk of any node, which is why
+// it is asked of v_node rather than written into each file.
+double BuffDurationFor(const Skill& skill, double buff_duration_pct) {
+  return skill.v_node() == V_NODE_KIND_UNSPECIFIED ? buff_duration_pct : 0.0;
+}
+
 // What one buff's clock and shell come to once the book has had its say: the
 // seconds a hyper adds land before Buff Duration takes its share, one buff
 // being one length however many sources wrote it.
 BuffOption BuffClockFor(const Buff& buff, int level, const SkillBoosts& boost,
-                        double buff_duration_pct, double speed_factor) {
+                        double buff_duration_pct, double speed_factor,
+                        int stage) {
   BuffOption option;
   // Buff Duration lengthens the buff and not the wait below it, which is why
   // a percentage that grants nothing on its own is worth having.
@@ -1097,12 +1106,33 @@ BuffOption BuffClockFor(const Buff& buff, int level, const SkillBoosts& boost,
                              buff.duration_seconds_per_level() * (level - 1) +
                              boost.buff_duration_seconds) *
                             (1.0 + buff_duration_pct) * speed_factor;
+  // One stage of a shedding buff: the first falls a stage-interval in, the
+  // last stands the whole length. Clamped, so a buff shorter than its stages
+  // sheds what it has time to and takes the rest down with it.
+  if (buff.stages() > 1) {
+    option.duration_seconds =
+        std::min(option.duration_seconds,
+                 buff.stage_interval_seconds() * (stage + 1) * speed_factor);
+  }
   if (buff.has_shield()) {
     option.shield_hits = ShieldHitsAt(buff.shield(), level) + boost.shield_hits;
     option.boss_damage_taken_pct = buff.shield().boss_damage_taken_pct() +
                                    boost.shield_boss_damage_taken_pct;
   }
   return option;
+}
+
+// The buff list the fight runs, which is the character's with a shedding buff
+// written out one entry per stage. Each entry grants one stage's levers and
+// carries one stage's clock, so the mask that indexes the damage tables says
+// how many stages are still standing.
+std::vector<const Skill*> StagedBuffSkills(
+    const std::vector<const Skill*>& raised) {
+  std::vector<const Skill*> staged;
+  for (const Skill* skill : raised) {
+    staged.insert(staged.end(), std::max(1, skill->buff().stages()), skill);
+  }
+  return staged;
 }
 
 // What the fight needs to run each buff's clock, at the level it is learned.
@@ -1117,11 +1147,16 @@ void AddBuffs(const GameState& state,
   int bonus = BonusSkillLevels(character, skills);
   std::map<std::string, SkillBoosts> boosts =
       BoostsByTarget(character, skills, bonus);
+  const Skill* previous = nullptr;
+  int stage = 0;
   for (const Skill* skill : buff_skills) {
+    stage = skill == previous ? stage + 1 : 0;
+    previous = skill;
     int level = EffectiveSkillLevel(character, *skill, bonus);
     const Buff& buff = skill->buff();
     BuffOption option = BuffClockFor(buff, level, boosts[skill->name()],
-                                     buff_duration_pct, speed_factor);
+                                     BuffDurationFor(*skill, buff_duration_pct),
+                                     speed_factor, stage);
     option.name = skill->name();
     option.cooldown_seconds =
         ReducedCooldown(CooldownAt(*skill, level),
@@ -1145,6 +1180,11 @@ void AddBuffs(const GameState& state,
     // What raising it costs. A buff a swing lays is paid for by that swing, so
     // it is charged nothing here -- see BuffOption::cast_seconds.
     option.cast_seconds = skill->base_delay_ms() / 1000.0 * speed_factor;
+    // The stages of one shedding buff go up on the one cast, so only the first
+    // of them is charged for it.
+    if (stage > 0) {
+      option.cast_seconds = 0.0;
+    }
     // A buff hanging off an ATTACK is laid by that swing rather than raised on
     // a wait: what leaves the wound is puncturing something. See
     // BuffOption::laid_by_attack.
@@ -1175,9 +1215,9 @@ void AddAllyBuffs(const GameState& state, double speed_factor,
     std::map<std::string, SkillBoosts> boosts =
         BoostsByTarget(*grant.caster, state.skills,
                        BonusSkillLevels(*grant.caster, state.skills));
-    BuffOption option =
-        BuffClockFor(buff, grant.level, boosts[grant.skill->name()],
-                     buff_duration_pct, speed_factor);
+    BuffOption option = BuffClockFor(
+        buff, grant.level, boosts[grant.skill->name()],
+        BuffDurationFor(*grant.skill, buff_duration_pct), speed_factor, 0);
     option.name = grant.skill->name();
     option.cooldown_seconds =
         CooldownAt(*grant.skill, grant.level) * speed_factor;
@@ -1369,7 +1409,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   params.triggered_attacks = std::move(base.triggered_attacks);
   params.dot_count = DotSlotsNeeded(params);
   std::vector<const Skill*> buff_skills =
-      BuffSkillsFor(state.character, state.skills);
+      StagedBuffSkills(BuffSkillsFor(state.character, state.skills));
   if (static_cast<int>(buff_skills.size()) > kMaxBuffWindows) {
     buff_skills.resize(kMaxBuffWindows);
   }

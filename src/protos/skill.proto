@@ -676,6 +676,19 @@ message Buff {
   // Unset for every buff that only grants levers, which is all of them but
   // Holy Magic Shell.
   Shield shield = 11;
+  // A buff that goes up at `stages` times its levers and sheds one every
+  // `stage_interval_seconds`. Arcane Overdrive is what it exists for: three
+  // stages of final damage, one lost every ten seconds, so a player who
+  // spends their heaviest buttons the moment it lands gets more out of it
+  // than one who waits. 0 for a buff that stands at one strength, which is
+  // every other one.
+  //
+  // Run as `stages` buffs raised by the one cast, each granting one stage and
+  // each falling a stage-interval after the last -- so one of these costs
+  // that many buff windows, not one. See combat/constants.h kMaxBuffWindows.
+  // duration_seconds is still the whole length: a stage never outlasts it.
+  int32 stages = 12;
+  double stage_interval_seconds = 13;
 }
 
 // A chance a swing has to land harder on one of the enemies it reached, and

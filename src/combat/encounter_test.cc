@@ -1751,6 +1751,126 @@ TEST(ComputeCombatParamsTest, BuffDurationLengthensTheBuffAndNotTheWait) {
   EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_seconds, 70.0 * factor);
 }
 
+// A shedding buff is run as one window per stage: three clocks off one cast,
+// falling ten seconds apart, each granting a stage's worth. Only the first is
+// charged the cast, since one press raises them all.
+TEST(ComputeCombatParamsTest, ASheddingBuffRunsOneWindowPerStage) {
+  Skill overdrive;
+  overdrive.set_name("Arcane Overdrive");
+  overdrive.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(overdrive, JOB_ADVANCEMENT_SWORDMAN);
+  overdrive.set_max_level(30);
+  overdrive.set_base_delay_ms(120);
+  overdrive.set_cooldown_seconds(120.0);
+  Buff* buff = overdrive.mutable_buff();
+  buff->set_duration_seconds(30.0);
+  buff->set_stages(3);
+  buff->set_stage_interval_seconds(10.0);
+  buff->mutable_base()->set_final_dmg_pct(0.07);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"arcane_overdrive", overdrive}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(overdrive, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  double factor = GameSpeedFactor(state.character.proto().level());
+  ASSERT_EQ(params.buffs.size(), 3u);
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 10.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[1].duration_seconds, 20.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[2].duration_seconds, 30.0 * factor);
+  for (const BuffOption& stage : params.buffs) {
+    EXPECT_EQ(stage.name, "Arcane Overdrive");
+    EXPECT_DOUBLE_EQ(stage.cooldown_seconds, 120.0 * factor);
+  }
+  EXPECT_GT(params.buffs[0].cast_seconds, 0.0);
+  EXPECT_DOUBLE_EQ(params.buffs[1].cast_seconds, 0.0);
+  EXPECT_DOUBLE_EQ(params.buffs[2].cast_seconds, 0.0);
+
+  // All three up is three stages of the lever; the last stage alone is one.
+  EXPECT_GT(params.Attacks(0b111).front().damage_per_hit.front(),
+            params.Attacks(0b100).front().damage_per_hit.front());
+  EXPECT_GT(params.Attacks(0b100).front().damage_per_hit.front(),
+            params.attacks.front().damage_per_hit.front());
+}
+
+// A buff shorter than its stages sheds what it has time for and takes the rest
+// down with it: level 1 Arcane Overdrive stands 15 seconds, so its second and
+// third stages both end there rather than running past the buff.
+TEST(ComputeCombatParamsTest, ASheddingBuffNeverOutlastsItsDuration) {
+  Skill overdrive;
+  overdrive.set_name("Arcane Overdrive");
+  overdrive.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(overdrive, JOB_ADVANCEMENT_SWORDMAN);
+  overdrive.set_max_level(30);
+  overdrive.set_base_delay_ms(120);
+  overdrive.set_cooldown_seconds(120.0);
+  Buff* buff = overdrive.mutable_buff();
+  buff->set_duration_seconds(15.0);
+  buff->set_stages(3);
+  buff->set_stage_interval_seconds(10.0);
+  buff->mutable_base()->set_final_dmg_pct(0.07);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"arcane_overdrive", overdrive}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(overdrive, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  double factor = GameSpeedFactor(state.character.proto().level());
+  ASSERT_EQ(params.buffs.size(), 3u);
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 10.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[1].duration_seconds, 15.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[2].duration_seconds, 15.0 * factor);
+}
+
+// GMS marks every fifth job skill notIncBuffDuration, so the matrix stands
+// outside the lever: the same book lengthens an ordinary buff and leaves a
+// node's alone.
+TEST(ComputeCombatParamsTest, BuffDurationSkipsAVNode) {
+  Skill node;
+  node.set_name("Arcane Overdrive");
+  node.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(node, JOB_ADVANCEMENT_COMMON);
+  node.set_v_node(V_NODE_KIND_COMMON);
+  node.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
+  node.set_cooldown_seconds(120.0);
+  node.mutable_buff()->set_duration_seconds(30.0);
+  node.mutable_buff()->mutable_base()->set_final_dmg_pct(0.20);
+
+  Skill mastery;
+  mastery.set_name("Buff Mastery");
+  mastery.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(mastery, JOB_ADVANCEMENT_SWORDMAN);
+  mastery.set_max_level(10);
+  mastery.mutable_base()->set_buff_duration_pct(0.05);
+  mastery.mutable_per_level()->set_buff_duration_pct(0.05);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"arcane_overdrive", node}, {"buff_mastery", mastery}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 11);
+  while (state.character.proto().job_stage() < kFifthJobStage) {
+    state.character.AdvanceJob(state.character.proto().job());
+  }
+  state.character.AddVPoints(VNodeCost(V_NODE_KIND_COMMON, 0, 1));
+  ASSERT_TRUE(state.character.LearnSkill(node, 1));
+  ASSERT_TRUE(state.character.LearnSkill(mastery, 10));
+
+  CombatParams params = ComputeCombatParams(state);
+  double factor = GameSpeedFactor(state.character.proto().level());
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 30.0 * factor);
+}
+
 // Flame Sweep's shape: the swing leaves a burn on what it reached, priced on
 // its own multiplier and given a slot of its own. Nothing on a clock of its
 // own leaves one -- a summon marks nothing.

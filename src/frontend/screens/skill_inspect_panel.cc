@@ -1351,7 +1351,16 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   }
   base.clear_heal_pct();
   per.clear_heal_pct();
-  Append(LeverRows(base, per, level, ""), rows);
+  // A shedding buff grants its levers once per stage standing, so the count
+  // has to be on the card or the rows below it read as the whole grant.
+  std::string per_stage = "";
+  if (buff.stages() > 1) {
+    rows.push_back(EffectRow(
+        "Stages", std::to_string(buff.stages()) + ", one lost every " +
+                      FormatNumber(buff.stage_interval_seconds()) + "s"));
+    per_stage = " each";
+  }
+  Append(LeverRows(base, per, level, per_stage), rows);
   Append(ShieldRows(buff.shield(), level), rows);
   Append(PulseRows(buff.pulse(), level), rows);
   Append(AllyBuffRows(buff, level), rows);
