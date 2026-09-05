@@ -202,11 +202,19 @@ class PartyControllerTest : public ::testing::Test {
   void MakeParty(Client& leader, Client& guest) {
     OpenParty(leader);
     leader.controller->OnEvent(ftxui::Event::ArrowDown);
+    ASSERT_EQ(leader.party_panel.Chosen(), PartyAction::kCreate);
     leader.controller->OnEvent(ftxui::Event::Return);
     ASSERT_TRUE(WaitFor({&leader, &guest},
                         [&]() { return leader.party_panel.in_party(); }));
 
     OpenParty(guest);
+    // The new party has to reach this client's list before Enter can mean
+    // "join": on a list still empty the cursor is on Create, and the guest
+    // makes a party of their own instead. Wait for the stop, not for the
+    // screen -- see the wait rule in party_test_wait_rule.
+    ASSERT_TRUE(WaitFor({&leader, &guest}, [&]() {
+      return guest.party_panel.Chosen() == PartyAction::kJoin;
+    }));
     guest.controller->OnEvent(ftxui::Event::Return);
     ASSERT_TRUE(WaitFor({&leader, &guest}, [&]() {
       return guest.party_panel.in_party() &&
