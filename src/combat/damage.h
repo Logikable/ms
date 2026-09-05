@@ -170,8 +170,14 @@ int SkillLinesAt(const Skill& skill, int level);
 // What a skill's empowered form calls itself: the target's display name behind
 // "Empowered ". The form is a swing of its own and is keyed by this name
 // wherever a boost is looked up, so the fight and the fold have to spell it
-// the same way -- see EmpoweredForm and SkillBoost::reaches_empowered_form.
+// the same way -- see EmpoweredForm and SkillBoost::reach.
 std::string EmpoweredSkillName(const std::string& target);
+
+// The skill names `boost` is filed under: its target's, its target's empowered
+// form's, or both, as BoostReach says. Every reader of a boost goes through
+// here, so the fight, the stat fold and the skill page all agree on who a
+// grant reaches.
+std::vector<std::string> BoostTargetNames(const SkillBoost& boost);
 
 // How many Combo Orbs `skill` surrounds the character with at `level`: its
 // `combo_orbs`, plus whole orbs its `combo_orbs_per_level` has bought since

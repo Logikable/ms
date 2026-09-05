@@ -466,6 +466,21 @@ TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
   // A skill granting neither writes no row.
   EXPECT_EQ(RenderAt(IronBody(), 1).find("Boosts Divine Charge"),
             std::string::npos);
+  // A grant aimed at the empowered form alone takes the form's own row: the
+  // Paladin's Blast node lifts Blast and the Divine Brand on separate terms.
+  Skill node = IronBody();
+  node.set_max_level(60);
+  SkillBoost* swing = node.add_boost();
+  swing->set_skill_name("Blast");
+  swing->set_max_enemies(1);
+  SkillBoost* brand = node.add_boost();
+  brand->set_skill_name("Blast");
+  brand->set_reach(BOOST_REACH_EMPOWERED);
+  brand->mutable_effect()->set_crit_rate(0.05);
+  std::string split = RenderAt(node, 60);
+  EXPECT_NE(RowIn(split, "Blast", "+1 Enemy"), std::string::npos);
+  EXPECT_NE(RowIn(split, "Empowered Blast", "+5% Critical Rate"),
+            std::string::npos);
 }
 
 // A boost node states its damage from level 1, one more enemy at 20 and

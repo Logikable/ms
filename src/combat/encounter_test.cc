@@ -2809,7 +2809,7 @@ TEST(ComputeCombatParamsTest, ABoostAddsAStrikeToASwingsSecondHits) {
   boost->set_skill_name("Piercing Arrow II");
   boost->set_lines(1);
   boost->set_extra_hit_lines(1);
-  boost->set_reaches_empowered_form(true);
+  boost->set_reach(BOOST_REACH_BOTH);
   CombatParams boosted = ComputeCombatParams(state);
   const AttackOption* after = FindAttack(boosted, "Piercing Arrow II");
   ASSERT_NE(after, nullptr);
@@ -2825,9 +2825,9 @@ TEST(ComputeCombatParamsTest, ABoostAddsAStrikeToASwingsSecondHits) {
               1e-9);
 }
 
-// A hyper naming a swing reaches the empowered version of it where it says so,
-// and stops at the ordinary one where it does not.
-TEST(ComputeCombatParamsTest, ABoostReachesTheFormOnlyWhenItSaysSo) {
+// A boost naming a swing lands on the ordinary one, on both, or on the form
+// alone, as its reach says.
+TEST(ComputeCombatParamsTest, ABoostLandsWhereItsReachSays) {
   Skill piercing;
   piercing.set_name("Piercing Arrow II");
   piercing.set_kind(SKILL_KIND_ATTACK);
@@ -2881,9 +2881,8 @@ TEST(ComputeCombatParamsTest, ABoostReachesTheFormOnlyWhenItSaysSo) {
   EXPECT_EQ(arrow->empowered->max_enemies, 10);
   double plain_form = arrow->empowered->damage_per_hit[0];
 
-  state.skills["piercing_arrow_spread"]
-      .mutable_boost(0)
-      ->set_reaches_empowered_form(true);
+  state.skills["piercing_arrow_spread"].mutable_boost(0)->set_reach(
+      BOOST_REACH_BOTH);
   CombatParams follows = ComputeCombatParams(state);
   arrow = FindAttack(follows, "Piercing Arrow II");
   ASSERT_NE(arrow, nullptr);
@@ -2891,6 +2890,20 @@ TEST(ComputeCombatParamsTest, ABoostReachesTheFormOnlyWhenItSaysSo) {
   EXPECT_EQ(arrow->max_enemies, 10);
   EXPECT_EQ(arrow->empowered->max_enemies, 12);
   // The 20% the boost pays only the skill it names, now collected twice.
+  EXPECT_NEAR(arrow->empowered->damage_per_hit[0], plain_form * 1.2, 1e-9);
+
+  // The form alone: the ordinary swing is left exactly where it started, which
+  // is what the Paladin's Blast node needs of the Divine Brand's own tier.
+  double plain_swing = arrow->damage_per_hit[0] / 1.2;
+  state.skills["piercing_arrow_spread"].mutable_boost(0)->set_reach(
+      BOOST_REACH_EMPOWERED);
+  CombatParams form_only = ComputeCombatParams(state);
+  arrow = FindAttack(form_only, "Piercing Arrow II");
+  ASSERT_NE(arrow, nullptr);
+  ASSERT_NE(arrow->empowered, nullptr);
+  EXPECT_EQ(arrow->max_enemies, 8);
+  EXPECT_EQ(arrow->empowered->max_enemies, 12);
+  EXPECT_NEAR(arrow->damage_per_hit[0], plain_swing, 1e-9);
   EXPECT_NEAR(arrow->empowered->damage_per_hit[0], plain_form * 1.2, 1e-9);
 }
 

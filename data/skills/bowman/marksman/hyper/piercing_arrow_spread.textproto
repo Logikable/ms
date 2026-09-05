@@ -19,10 +19,10 @@ max_level: 1
 boost {
   skill_name: "Piercing Arrow"
   max_enemies: 2
-  reaches_empowered_form: true
+  reach: BOOST_REACH_BOTH
 }
 boost {
   skill_name: "Piercing Arrow II"
   max_enemies: 2
-  reaches_empowered_form: true
+  reach: BOOST_REACH_BOTH
 }

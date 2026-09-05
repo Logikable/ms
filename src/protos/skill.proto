@@ -938,6 +938,18 @@ message WeaponBonus {
   SkillEffect effect = 2;
 }
 
+// Which swing a boost lands on, for a skill that has an empowered form. GMS
+// settles it per grant: Piercing Arrow - Reinforce names Piercing Arrow II and
+// its empowered form both, while the Paladin's Blast node lifts Blast and the
+// Divine Brand it detonates on separate terms.
+enum BoostReach {
+  // The ordinary swing alone, which is what every boost naming a skill with no
+  // empowered form wants -- and most of those that do.
+  BOOST_REACH_ORDINARY = 0;
+  BOOST_REACH_BOTH = 1;
+  BOOST_REACH_EMPOWERED = 2;
+}
+
 // What one skill hands another by name. Two kinds of grant: the structural
 // ones -- strikes, reach, the clock -- and `effect`, a lever aimed at that one
 // skill rather than at the character. Greater Vessel of Light is the first
@@ -984,14 +996,10 @@ message SkillBoost {
   // Apart from `lines` because the two are different strikes: a swing whose
   // second hit is priced on its own does not gain one by gaining a line.
   int32 extra_hit_lines = 9;
-  // Whether this boost follows the named skill into its empowered form, which
-  // is a swing of its own and takes none of what its parent hands the ordinary
-  // version by default -- see EmpoweredForm.
-  //
-  // GMS settles it per hyper. Piercing Arrow - Reinforce names Piercing Arrow,
-  // Piercing Arrow II and both empowered forms, so it is set here; Empowered
-  // Arrows states its form's damage whole, so it is not.
-  bool reaches_empowered_form = 10;
+  // Which of the two swings this lands on, where the named skill has an
+  // empowered form -- the form is a swing of its own and takes none of what its
+  // parent hands the ordinary version by default. See EmpoweredForm.
+  BoostReach reach = 10;
   // Percentage points on the named skill's BURN tick, worth their value once
   // per tick line -- exactly what effect.skill_pct below is to its swing.
   //

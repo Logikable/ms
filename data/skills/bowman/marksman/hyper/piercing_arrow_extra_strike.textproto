@@ -17,11 +17,11 @@ max_level: 1
 boost {
   skill_name: "Piercing Arrow"
   lines: 1
-  reaches_empowered_form: true
+  reach: BOOST_REACH_BOTH
 }
 boost {
   skill_name: "Piercing Arrow II"
   lines: 1
   extra_hit_lines: 1
-  reaches_empowered_form: true
+  reach: BOOST_REACH_BOTH
 }

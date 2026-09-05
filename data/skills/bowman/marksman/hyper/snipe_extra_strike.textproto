@@ -15,5 +15,5 @@ boost {
   skill_name: "Snipe"
   lines: 1
   extra_hit_lines: 1
-  reaches_empowered_form: true
+  reach: BOOST_REACH_BOTH
 }

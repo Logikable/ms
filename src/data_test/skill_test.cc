@@ -1686,11 +1686,11 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
             << entry.first << " adds a strike to " << boost.skill_name()
             << "'s second hits, which it does not land";
       }
-      // Following a skill into a form it does not have reaches nothing.
-      if (boost.reaches_empowered_form()) {
+      // Naming a form the skill does not have reaches nothing.
+      if (boost.reach() != BOOST_REACH_ORDINARY) {
         EXPECT_TRUE(HasEmpoweredForm(skills, boost.skill_name()))
-            << entry.first << " follows " << boost.skill_name()
-            << " into an empowered form, which nothing gives it";
+            << entry.first << " aims at " << boost.skill_name()
+            << "'s empowered form, which nothing gives it";
       }
       // A clock handed to a skill that is not on one is a clock nothing reads,
       // and so is a share off a wait the named skill does not have.

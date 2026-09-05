@@ -385,13 +385,10 @@ void AddSkillBonuses(const Skill& skill, int level, PassiveTotals& totals) {
     if (level < boost.min_level()) {
       continue;
     }
-    AddSkillBonus(boost, level, totals.skill_bonus[boost.skill_name()]);
-    // A boost that follows the skill into its empowered form is filed under
-    // the form's name too: the form is a swing of its own, and the fight looks
-    // its entry up by the name it swings under.
-    if (boost.reaches_empowered_form()) {
-      AddSkillBonus(boost, level,
-                    totals.skill_bonus[EmpoweredSkillName(boost.skill_name())]);
+    // The form is a swing of its own and the fight looks its entry up by the
+    // name it swings under, so a grant reaching it is filed there too.
+    for (const std::string& name : BoostTargetNames(boost)) {
+      AddSkillBonus(boost, level, totals.skill_bonus[name]);
     }
   }
 }

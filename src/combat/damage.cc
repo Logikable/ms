@@ -319,6 +319,17 @@ std::string EmpoweredSkillName(const std::string& target) {
   return "Empowered " + target;
 }
 
+std::vector<std::string> BoostTargetNames(const SkillBoost& boost) {
+  std::vector<std::string> names;
+  if (boost.reach() != BOOST_REACH_EMPOWERED) {
+    names.push_back(boost.skill_name());
+  }
+  if (boost.reach() != BOOST_REACH_ORDINARY) {
+    names.push_back(EmpoweredSkillName(boost.skill_name()));
+  }
+  return names;
+}
+
 int ComboOrbsAt(const Skill& skill, int level) {
   // The nudge SkillLinesAt takes, and for the same reason.
   constexpr double kOrbEpsilon = 1e-9;

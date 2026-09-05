@@ -1225,10 +1225,16 @@ std::vector<Row> BoostRows(const Skill& skill, int level) {
     if (gains.empty()) {
       continue;
     }
-    if (gained.find(granted.skill_name()) == gained.end()) {
-      named.push_back(granted.skill_name());
+    // A grant aimed at the empowered form alone is a row of its own: it is a
+    // different swing, and merging it into its parent's row would read as the
+    // parent gaining what only the form does.
+    std::string target = granted.reach() == BOOST_REACH_EMPOWERED
+                             ? EmpoweredSkillName(granted.skill_name())
+                             : granted.skill_name();
+    if (gained.find(target) == gained.end()) {
+      named.push_back(target);
     }
-    AppendGain(gains, gained[granted.skill_name()]);
+    AppendGain(gains, gained[target]);
   }
   // One skill named is a row that says so itself, which is every Hyper Skill.
   // Several want the heading instead: "Boosts" said once buys each row the

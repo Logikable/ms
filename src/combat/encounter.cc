@@ -735,14 +735,9 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
       }
       int enemies = boost.max_enemies() +
                     WholeValue(boost.max_enemies_per_level() * (learned - 1));
-      // The skill's own entry, and the empowered form's where the boost
-      // follows it there -- the form swings under a name of its own, so this
-      // is where the two part company.
-      std::vector<std::string> names(1, boost.skill_name());
-      if (boost.reaches_empowered_form()) {
-        names.push_back(EmpoweredSkillName(boost.skill_name()));
-      }
-      for (const std::string& name : names) {
+      // The form swings under a name of its own, so a grant reaching it is
+      // filed there -- see BoostTargetNames.
+      for (const std::string& name : BoostTargetNames(boost)) {
         SkillBoosts& into = by_target[name];
         into.lines += boost.lines();
         into.extra_hit_lines += boost.extra_hit_lines();
@@ -811,7 +806,7 @@ const Skill& Boosted(const Skill& skill, int level,
 // chain builds it. It takes a name of its own -- unlike an own-clock half,
 // this really is a different swing, and it must not pick up the permanent
 // bonus its parent hands the ordinary version. What a boost hands it on
-// purpose is filed under this name -- see SkillBoost::reaches_empowered_form.
+// purpose is filed under this name -- see SkillBoost::reach.
 Skill EmpoweredSkill(const Skill& skill, const EmpoweredForm& upgrade,
                      const std::string& target, SkillKind kind, int reach) {
   Skill form;

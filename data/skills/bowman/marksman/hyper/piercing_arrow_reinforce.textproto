@@ -19,11 +19,11 @@ required_level: 140
 max_level: 1
 boost {
   skill_name: "Piercing Arrow"
-  reaches_empowered_form: true
+  reach: BOOST_REACH_BOTH
   effect { damage_pct: 0.20 }
 }
 boost {
   skill_name: "Piercing Arrow II"
-  reaches_empowered_form: true
+  reach: BOOST_REACH_BOTH
   effect { damage_pct: 0.20 }
 }
