@@ -2487,6 +2487,53 @@ TEST_F(DerivedStatsTest, MapleWarriorRoundsEachStatDown) {
   EXPECT_EQ(stats.skill_stats.luk(), 0);
 }
 
+// Maple World Goddess's Blessing, whose whole grant is a multiplier on the
+// skill above: GMS's "increases stat bonuses as Maple Warrior by 400%" is a
+// share of 3.00 added to the hundred percent already standing.
+Skill GoddessBlessing() {
+  Skill skill;
+  skill.set_name("Maple World Goddess's Blessing");
+  skill.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(skill, JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(30);
+  skill.mutable_buff()->mutable_base()->set_ap_stat_bonus_pct(0.10);
+  skill.mutable_buff()->mutable_per_level()->set_ap_stat_bonus_pct(0.10);
+  return skill;
+}
+
+TEST_F(DerivedStatsTest, GoddessBlessingMultipliesMapleWarriorsShare) {
+  CharacterInstance c = MapleWarriorCharacter(rng_);
+  Skill mw = MapleWarrior();
+  Skill blessing = GoddessBlessing();
+  std::map<std::string, Skill> skills = {{"maple_warrior", mw},
+                                         {"blessing", blessing}};
+  ASSERT_TRUE(c.LearnSkill(mw, 30));
+  ASSERT_TRUE(c.LearnSkill(blessing, 30));
+
+  // Unraised it pays nothing: 15% of the 1000 STR AP bought.
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 150);
+
+  // Up, the share is four times over -- 60% -- and the rounding is still per
+  // stat, so 100 DEX comes back as 60.
+  const Skill* up[] = {&blessing};
+  DerivedStats buffed = DerivedStatsFor(c, skills, up);
+  EXPECT_EQ(buffed.skill_stats.str(), 600);
+  EXPECT_EQ(buffed.skill_stats.dex(), 60);
+}
+
+// The multiplier has nothing of its own to grant. A character who never took
+// Maple Warrior gets four times nothing, which is GMS's "can only be used when
+// you have Maple Warrior" falling out of the arithmetic.
+TEST_F(DerivedStatsTest, GoddessBlessingGrantsNothingWithoutMapleWarrior) {
+  CharacterInstance c = MapleWarriorCharacter(rng_);
+  Skill blessing = GoddessBlessing();
+  std::map<std::string, Skill> skills = {{"blessing", blessing}};
+  ASSERT_TRUE(c.LearnSkill(blessing, 30));
+
+  const Skill* up[] = {&blessing};
+  EXPECT_EQ(DerivedStatsFor(c, skills, up).skill_stats.str(), 0);
+}
+
 // --- Hyper Stats ---
 
 // A character at the level cap, with the whole pool to spend.

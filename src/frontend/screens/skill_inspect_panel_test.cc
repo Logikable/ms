@@ -1495,6 +1495,20 @@ TEST_F(SkillInspectPanelTest, StatesTheShareOfApAndTheWaitToRevive) {
   EXPECT_NE(rendered.find("970s"), std::string::npos);
 }
 
+// The multiplier on that share is a share of another skill, so its row names
+// the skill rather than the character.
+TEST_F(SkillInspectPanelTest, NamesTheSkillTheApShareIsMultipliedFrom) {
+  Skill skill = IronBody();
+  skill.clear_base();
+  skill.clear_per_level();
+  skill.mutable_base()->set_ap_stat_bonus_pct(0.10);
+  skill.mutable_per_level()->set_ap_stat_bonus_pct(0.10);
+
+  std::string rendered = RenderAt(skill, 20);
+  EXPECT_NE(rendered.find("Maple Warrior"), std::string::npos);
+  EXPECT_NE(rendered.find("+200%"), std::string::npos);
+}
+
 // A timed buff is half of what the skill does, and the half a player has to
 // plan around -- so the page leads with it, heads both halves, and keeps the
 // wait for the next cast on one row with what a landed hit takes off it.

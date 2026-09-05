@@ -231,6 +231,15 @@ message SkillEffect {
   // total -- and what it grants IS a grant like theirs, so a percentage over
   // the character's stats would lift this too.
   double ap_stat_pct = 29;
+  // Maple World Goddess's Blessing. Share ADDED to what the lever above grants,
+  // so 3.00 is GMS's "increases stat bonuses as Maple Warrior by 400%": the
+  // hundred at the bottom of that number is the identity, not a gain.
+  //
+  // A multiplier rather than a second helping of ap_stat_pct because it is one:
+  // whatever Maple Warrior is taught to, this is that many times it. A
+  // character without Maple Warrior multiplies nothing and gets nothing, which
+  // is the whole of GMS's "can only be used when you have Maple Warrior".
+  double ap_stat_bonus_pct = 54;
   // Strikes added to every multi-line swing the character makes -- Bolt
   // Surplus's "+1 attack to all multi-hit skills". Summed across its sources,
   // of which there is one.

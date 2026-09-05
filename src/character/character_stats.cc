@@ -139,6 +139,10 @@ struct PassiveTotals : DerivedStats {
   // in against the allocation once every passive is read -- see
   // DerivedStatsFor.
   double ap_stat_pct = 0.0;
+  // Share added to the one above before it is cashed in, so what the character
+  // gets back is Maple Warrior's own grant multiplied. Summed, as every share
+  // here is; only one skill in the game pays it.
+  double ap_stat_bonus_pct = 0.0;
   // Combo Orbs, and the bargains priced per orb. The count is the best any
   // learned passive grants rather than the sum -- a character carries one ring
   // of orbs however many skills describe it -- and the bargains are folded
@@ -221,6 +225,7 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   totals.boss_pct_per_combo_orb += granted.boss_pct_per_combo_orb();
   totals.def_per_combo_orb += WholeValue(granted.def_per_combo_orb());
   totals.ap_stat_pct += granted.ap_stat_pct();
+  totals.ap_stat_bonus_pct += granted.ap_stat_bonus_pct();
   // Read here rather than beside the cap itself, so that a BUFF granting
   // either lands them: a buff folds in through this door alone.
   totals.freeze_cap_bonus += WholeValue(granted.freeze_stack_cap_bonus());
@@ -964,16 +969,20 @@ void AddPotentials(const CharacterInstance& character, PassiveTotals& totals) {
 // Rounded down per stat, as GMS rounds it, and nudged first for the reason
 // FoldPercent is: a per-level step that cannot be written exactly lands a hair
 // under the share it climbs to.
+//
+// Maple World Goddess's Blessing multiplies the share before it is cashed in,
+// which is why it lands here and not as a second helping of the lever above.
 void FoldApStats(const AllocatedStats& allocated, PassiveTotals& totals) {
   if (totals.ap_stat_pct <= 0.0) {
     return;
   }
   const int stats[] = {allocated.str(), allocated.dex(), allocated.int_(),
                        allocated.luk()};
+  const double share = totals.ap_stat_pct * (1.0 + totals.ap_stat_bonus_pct);
   int granted[4];
   for (int i = 0; i < 4; ++i) {
-    granted[i] = static_cast<int>(
-        std::floor(stats[i] * totals.ap_stat_pct + kPercentEpsilon));
+    granted[i] =
+        static_cast<int>(std::floor(stats[i] * share + kPercentEpsilon));
   }
   totals.str += granted[0];
   totals.dex += granted[1];

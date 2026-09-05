@@ -106,6 +106,9 @@ const PercentLever kPercentLevers[] = {
     // Maple Warrior's, and the only row charged against what the player spent
     // rather than against a total the game knows.
     {"Stats from AP", &SkillEffect::ap_stat_pct, kPlus, ""},
+    // Maple World Goddess's Blessing's, and a share of that row rather than of
+    // anything the character has -- so it names the skill it multiplies.
+    {"Maple Warrior", &SkillEffect::ap_stat_bonus_pct, kPlus, ""},
     {"Heal", &SkillEffect::heal_pct, kPlus, " HP"},
     {"Heal per Attack", &SkillEffect::hp_recover_pct, kPlus, " HP"},
     {"Elemental Resist", &SkillEffect::elemental_resistance, kPlus, ""},
