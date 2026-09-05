@@ -1,0 +1,41 @@
+# The two swings a Hero grows out of, and GMS pays the one they leave behind
+# sooner the better rate: 3% a level to Intrepid Slash against Brandish's 2%.
+#
+# No "Boost" on the end: the word costs six of the thirty columns the skill
+# list gives a name, and both skills said outright is worth more than it.
+name: "Brandish / Intrepid Slash"
+description: "Strengthens Brandish and Intrepid Slash."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 9 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Brandish"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Brandish"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Brandish"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Intrepid Slash"
+  effect { final_dmg_pct: 0.03 }
+  effect_per_level { final_dmg_pct: 0.03 }
+}
+boost {
+  skill_name: "Intrepid Slash"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Intrepid Slash"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

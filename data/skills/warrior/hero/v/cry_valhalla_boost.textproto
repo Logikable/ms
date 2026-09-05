@@ -1,0 +1,59 @@
+# GMS names Final Attack here, but a Hero's extra hit is fired by Advanced
+# Final Attack, which supersedes it -- so the grant is aimed at the skill that
+# actually strikes. Cry Valhalla takes a critical rate at 20 in the place of
+# the enemy the other two get: what it swings is a buff's pulse, whose reach
+# is stated on the pulse itself.
+#
+# The one node named for its head skill alone: three names do not fit the
+# skill list's column, and the description below carries the other two.
+name: "Cry Valhalla Boost"
+description: "Strengthens Cry Valhalla, Puncture and Advanced Final Attack."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 7 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Cry Valhalla"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Cry Valhalla"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Cry Valhalla"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Puncture"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Puncture"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Puncture"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Advanced Final Attack"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Advanced Final Attack"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Advanced Final Attack"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

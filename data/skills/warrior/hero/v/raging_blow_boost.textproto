@@ -1,0 +1,25 @@
+# The shape every boost node shares: a final damage ladder from level 1, one
+# more enemy at 20, and 20% of enemy defence ignored at 40 -- three grants
+# naming one skill, because each starts paying at a different level. GMS's
+# rate here is 2% a level, so master is +120% final damage.
+name: "Raging Blow Boost"
+description: "Strengthens Raging Blow."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 4 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Raging Blow"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Raging Blow"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Raging Blow"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

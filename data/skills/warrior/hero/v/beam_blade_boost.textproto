@@ -1,0 +1,21 @@
+name: "Beam Blade Boost"
+description: "Strengthens Beam Blade."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 6 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Beam Blade"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Beam Blade"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Beam Blade"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
