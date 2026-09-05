@@ -1,0 +1,40 @@
+# GMS's second here is Heal, which hurts the undead there and nothing at all
+# here -- this game's Heal restores HP and has no damage half for a boost to
+# land on. So the page goes to the magician's opening swing instead, as it does
+# in the I/L's and F/P's books.
+name: "Holy Arrow Boost"
+description: "Strengthens Holy Arrow and Energy Bolt."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 8 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Holy Arrow"
+  effect { final_dmg_pct: 0.05 }
+  effect_per_level { final_dmg_pct: 0.05 }
+}
+boost {
+  skill_name: "Holy Arrow"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Holy Arrow"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Energy Bolt"
+  effect { final_dmg_pct: 0.05 }
+  effect_per_level { final_dmg_pct: 0.05 }
+}
+boost {
+  skill_name: "Energy Bolt"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Energy Bolt"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

@@ -1,0 +1,52 @@
+# The Vengeance page in one node: the wrath, the fountain and the dragon.
+name: "Angelic Wrath Boost"
+description: "Strengthens Angelic Wrath, Fountain of Vengeance, and Bahamut."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 5 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Angelic Wrath"
+  effect { final_dmg_pct: 0.04 }
+  effect_per_level { final_dmg_pct: 0.04 }
+}
+boost {
+  skill_name: "Angelic Wrath"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Angelic Wrath"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Fountain of Vengeance"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Fountain of Vengeance"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Fountain of Vengeance"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Bahamut"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Bahamut"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Bahamut"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}

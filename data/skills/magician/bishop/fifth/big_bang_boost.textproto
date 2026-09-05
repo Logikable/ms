@@ -1,0 +1,37 @@
+# The charged blast and the feathers that fall while it charges.
+name: "Big Bang Boost"
+description: "Strengthens Big Bang and Triumph Feather."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 4 }
+v_node: V_NODE_KIND_BOOST
+max_level: 60
+boost {
+  skill_name: "Big Bang"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Big Bang"
+  min_level: 20
+  max_enemies: 1
+}
+boost {
+  skill_name: "Big Bang"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
+boost {
+  skill_name: "Triumph Feather"
+  effect { final_dmg_pct: 0.02 }
+  effect_per_level { final_dmg_pct: 0.02 }
+}
+boost {
+  skill_name: "Triumph Feather"
+  min_level: 20
+  effect { crit_rate: 0.05 }
+}
+boost {
+  skill_name: "Triumph Feather"
+  min_level: 40
+  effect { ied_pct: 0.20 }
+}
