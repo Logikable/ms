@@ -421,7 +421,7 @@ TEST(SkillDataTest, EveryAdvancementAPlayerIsOfferedHasSomethingToRead) {
 }
 
 // The engine models one damage table per combination of timed buffs, so a
-// character holding more than kMaxBuffWindows of them keeps the first four and
+// character holding more than kMaxBuffWindows of them keeps that many and
 // silently loses the rest -- a buff that costs a point and does nothing.
 //
 // Counted off the books rather than off a built character: what a job can

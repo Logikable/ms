@@ -1,0 +1,26 @@
+# The one skill that has any use for a critical rate past 100%: half of it,
+# at master, comes back as critical damage. 20 + x% of the rate, so 21% at
+# level 1 and 50% at 30 -- an archer sitting at 120% buys 60% critical damage.
+#
+# The rate a swing states for itself is not counted, which GMS says in so many
+# words: Snipe's certain critical does not make one. That is the character/
+# swing split the engine already has, so the lever reads the character's.
+#
+# The roll still clamps at 100%. Nothing else in the game spends the excess,
+# and GMS says the same.
+name: "Vicious Shot"
+description:
+  "When inflicting a critical wound, your strike hits the enemy where they "
+  "are most vulnerable, dealing greater damage."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 2 }
+v_node: V_NODE_KIND_ARCHETYPE
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 30.0
+  base { crit_dmg_per_crit_rate: 0.21 }
+  per_level { crit_dmg_per_crit_rate: 0.01 }
+}
