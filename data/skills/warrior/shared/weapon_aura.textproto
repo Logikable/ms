@@ -1,0 +1,40 @@
+# GMS's aura is an active: 100 HP, up for 70 + 2x seconds on a 120-second wait.
+# The wait is shorter than the duration at every level, so a player who presses
+# it holds it permanently -- which is what a passive is. The HP cost goes with
+# the cast that no longer happens.
+#
+# Both levers are x/5 in GMS, one floored and one ceiled: 10 + floor(x/5)% of
+# defence ignored and ceil(x/5)% final damage. Written straight, without the
+# rounding, that is a fifth of a point a level on each -- so master lands on
+# GMS's 16% and 6% exactly and only where they start moves.
+#
+# The wave is 500 + 20x%, six lines on ten enemies, on its own five-second
+# clock. GMS makes as many waves as the triggering skill has lines and pays a
+# share of that skill's damage; a flat wave on a clock is the same skill from
+# the fight's side, since a warrior at 5th job is always swinging something.
+name: "Weapon Aura"
+description:
+  "Infuses your weapon with a portion of your health, granting it a visible "
+  "aura and empowering it."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 2 }
+v_node: V_NODE_KIND_ARCHETYPE
+max_level: 30
+base {
+  ied_pct: 0.102
+  final_dmg_pct: 0.002
+}
+per_level {
+  ied_pct: 0.002
+  final_dmg_pct: 0.002
+}
+auto_mode {
+  label: "Aura Wave"
+  cast_interval_seconds: 5.0
+  max_enemies: 10
+  lines: 6
+  base { skill_pct: 5.20 }
+  per_level { skill_pct: 0.20 }
+}

@@ -448,6 +448,7 @@ TEST(SkillDataTest, NoBookHandsOutMoreBuffsThanTheFightModels) {
 
 TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
   int commons = 0;
+  int archetypes = 0;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
     bool common_home = ListedIn(skill, JOB_ADVANCEMENT_COMMON);
@@ -477,6 +478,7 @@ TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
     // An archetype node has no book of its own to live in, so it names every
     // 5th job of its line -- more than one, or it is that job's own node.
     if (skill.v_node() == V_NODE_KIND_ARCHETYPE) {
+      ++archetypes;
       EXPECT_GT(skill.placement_size(), 1)
           << skill.name() << " is a line's and names one job";
       EXPECT_FALSE(common_home)
@@ -484,6 +486,7 @@ TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
     }
   }
   EXPECT_GT(commons, 0) << "the common folder stopped being read";
+  EXPECT_GT(archetypes, 0) << "the line's shared folders stopped being read";
 }
 
 // A requirement may name a skill from a book below it -- Evil Eye Shock II

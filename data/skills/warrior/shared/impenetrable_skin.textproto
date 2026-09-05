@@ -1,0 +1,24 @@
+# Only the passive half is built: STR +x and Max HP +50x, GMS's own numbers at
+# every level.
+#
+# The active half is knockdown immunity and status resistance, and nothing in
+# this game does either to the player -- no monster knocks a character back and
+# no status lands on one. What is left of the cast is a 100 HP cost and a wait,
+# so the skill is a passive here and its description keeps the half it can
+# still claim.
+name: "Impenetrable Skin"
+description: "Makes your flesh as strong as steel."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_V skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 3 }
+v_node: V_NODE_KIND_ARCHETYPE
+max_level: 30
+base {
+  str: 1
+  max_hp: 50
+}
+per_level {
+  str: 1
+  max_hp: 50
+}
