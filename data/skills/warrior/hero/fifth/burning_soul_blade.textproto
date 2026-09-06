@@ -1,0 +1,61 @@
+# The Hero's first job node. GMS summons one sword in one of two forms, chosen
+# at the cast: a mobile one that follows the character for 20 seconds, and a
+# stationary one planted for 120 -- which, on a 120-second cooldown, is a sword
+# that is always out.
+#
+# GMS took the swap key away in KMS 1.2.404, so the form is settled when the
+# sword goes up. There is nothing here for a player to press: the fight prices
+# the two against the fight in front of it and raises whichever pays more. A
+# map never ends, so the stationary sword's rate wins there; a boss that will
+# not survive another cycle cannot collect on it, and the mobile sword wins.
+#
+# The 0.81-second clock is nine frames of the sword's own 90ms animation. GMS
+# stated one second for both forms until KMS 1.2.407 cut the mobile form's
+# interval by about 18% and took a third off both forms' damage.
+#
+# GMS fires the sword off the character's own attacking rather than on a bare
+# clock. The fight is always attacking, so the two come to the same thing.
+name: "Burning Soul Blade"
+description:
+  "Conjures a burning soul blade to fight at your side. Unaffected by "
+  "attack reflection. Periodically attacks enemies while it stands."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 1 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  stance {
+    label: "Mobile"
+    duration_seconds: 14.2
+    duration_seconds_per_level: 0.2
+    pulse {
+      label: "Mobile Sword"
+      cast_interval_seconds: 0.81
+      lines: 12
+      max_enemies: 8
+      base {
+        skill_pct: 2.09
+        crit_rate: 0.50
+      }
+      per_level { skill_pct: 0.09 }
+    }
+  }
+  stance {
+    label: "Stationary"
+    duration_seconds: 105.5
+    duration_seconds_per_level: 0.5
+    pulse {
+      label: "Stationary Sword"
+      cast_interval_seconds: 1.0
+      lines: 6
+      max_enemies: 8
+      base {
+        skill_pct: 1.07
+        crit_rate: 0.50
+      }
+      per_level { skill_pct: 0.05 }
+    }
+  }
+}

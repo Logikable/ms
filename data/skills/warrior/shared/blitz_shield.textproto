@@ -17,7 +17,7 @@ description:
   "Draws on your own lifeforce to raise a shield, then detonates it over the "
   "enemies around you."
 kind: SKILL_KIND_ATTACK
-placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 1 }
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 2 }
 placement { job_advancement: JOB_ADVANCEMENT_PALADIN_V skill_order: 1 }
 placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 2 }
 v_node: V_NODE_KIND_ARCHETYPE
