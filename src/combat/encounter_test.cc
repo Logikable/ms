@@ -2393,6 +2393,74 @@ TEST(ComputeCombatParamsTest, ABuffOnAnAttackIsLaidByThatSwing) {
   EXPECT_EQ(capped.auto_attacks[0].max_pulses, 12);
 }
 
+// Burning Soul Blade's shape: one buff, two forms, one pulse apiece. Both
+// pulses sit in the table tagged with the form that fires them, and each form
+// knows where its own pulse is, so the fight can price them without hunting.
+//
+// Stood up in the first job's book so one skill point buys it. What is under
+// test is the buff, and nothing about it asks which book it came from.
+TEST(ComputeCombatParamsTest, ABuffWithFormsBuildsAPulseForEach) {
+  Skill sword;
+  sword.set_name("Burning Soul Blade");
+  sword.set_kind(SKILL_KIND_ACTIVE);
+  sword.set_max_level(30);
+  sword.set_cooldown_seconds(120.0);
+  PlaceIn(sword, JOB_ADVANCEMENT_SWORDMAN);
+  Buff* summon = sword.mutable_buff();
+  Stance* mobile = summon->add_stance();
+  mobile->set_label("Mobile");
+  mobile->set_duration_seconds(20.0);
+  BuffPulse* dense = mobile->mutable_pulse();
+  dense->set_cast_interval_seconds(0.81);
+  dense->set_lines(12);
+  dense->set_max_enemies(8);
+  dense->mutable_base()->set_skill_pct(4.70);
+  Stance* stationary = summon->add_stance();
+  stationary->set_label("Stationary");
+  stationary->set_duration_seconds(120.0);
+  BuffPulse* thin = stationary->mutable_pulse();
+  thin->set_cast_interval_seconds(1.0);
+  thin->set_lines(6);
+  thin->set_max_enemies(8);
+  thin->mutable_base()->set_skill_pct(2.52);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"sword", sword}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(sword, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  double speed = GameSpeedFactor(state.character.proto().level());
+  ASSERT_EQ(params.buffs.size(), 1u);
+  // The buff's own length is the longest form's, so a caller asking how long
+  // it runs still has an answer.
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 120.0 * speed);
+  ASSERT_EQ(params.buffs[0].stances.size(), 2u);
+  EXPECT_DOUBLE_EQ(params.buffs[0].stances[0].duration_seconds, 20.0 * speed);
+  EXPECT_DOUBLE_EQ(params.buffs[0].stances[1].duration_seconds, 120.0 * speed);
+  EXPECT_DOUBLE_EQ(params.buffs[0].stances[0].pulse_interval_seconds,
+                   0.81 * speed);
+
+  // Both pulses are in, each gated on the buff AND on its own form.
+  ASSERT_EQ(params.auto_attacks.size(), 2u);
+  EXPECT_EQ(params.auto_attacks[0].needs_buff, 0);
+  EXPECT_EQ(params.auto_attacks[0].needs_buff_stance, 0);
+  EXPECT_EQ(params.auto_attacks[1].needs_buff, 0);
+  EXPECT_EQ(params.auto_attacks[1].needs_buff_stance, 1);
+  EXPECT_EQ(params.buffs[0].stances[0].pulse_attack, 0);
+  EXPECT_EQ(params.buffs[0].stances[1].pulse_attack, 1);
+  // The dense form lands twice the lines for twice the damage, which is what
+  // makes the choice between the forms a real one.
+  EXPECT_GT(params.auto_attacks[0].damage_per_hit[0],
+            params.auto_attacks[1].damage_per_hit[0]);
+  // A pulse waiting on a buff is not part of what the fight expects to be
+  // dealing before one goes up.
+  EXPECT_DOUBLE_EQ(params.reference_dps, params.attacks[0].damage_per_hit[0] /
+                                             params.attacks[0].swing_seconds);
+}
+
 // A character with no buff carries no tables at all: the cost of the
 // mechanism is paid only by the jobs that use it.
 TEST(ComputeCombatParamsTest, NoBuffMeansNoExtraTables) {

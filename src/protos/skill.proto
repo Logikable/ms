@@ -628,6 +628,25 @@ message Shield {
   bool party = 4;
 }
 
+// One form a buff can be raised in: how long it stands, and what it bleeds
+// while it does. Burning Soul Blade is what it exists for -- GMS gives it a
+// short, dense mobile sword and a long, thin stationary one, and took away the
+// key that swapped between them, so the form is settled at the cast.
+//
+// Read at the same learned level as the skill carrying it.
+message Stance {
+  // What the skill page calls this form, in the rows stating its length and
+  // its damage. Two forms sharing a label would say nothing about either.
+  string label = 1;
+  // Seconds it stands, on the same base + per_level * (L - 1) ladder
+  // Buff.duration_seconds climbs.
+  double duration_seconds = 2;
+  double duration_seconds_per_level = 3;
+  // What it bleeds while it stands, exactly as Buff.pulse does. A stance
+  // carries its own, since the pulse is most of what tells two forms apart.
+  BuffPulse pulse = 4;
+}
+
 message Buff {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
@@ -689,6 +708,14 @@ message Buff {
   // duration_seconds is still the whole length: a stage never outlasts it.
   int32 stages = 12;
   double stage_interval_seconds = 13;
+  // The forms this buff can be raised in, one chosen at each cast and standing
+  // until it lapses. A buff naming stances states neither duration_seconds nor
+  // pulse of its own; each stance carries both, and the fight prices them
+  // against the fight in front of it. See Stance.
+  //
+  // Still ONE buff window however many forms are written, since only one of
+  // them stands at a time.
+  repeated Stance stance = 14;
 }
 
 // A chance a swing has to land harder on one of the enemies it reached, and

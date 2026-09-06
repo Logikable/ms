@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <map>
 
 #include "src/combat/encounter.h"
@@ -851,6 +852,7 @@ void CombatSim::CreditFreeze(const CombatParams& params,
 void CombatSim::Hurt(QueuedMob& mob, double damage) {
   mob.hp -= damage;
   view_.damage_this_step += damage;
+  damage_dealt_ += damage;
 }
 
 void CombatSim::ClampRoster(const CombatParams& params,
@@ -1114,6 +1116,8 @@ void CombatSim::GoIdle() {
   auto_clocks_.clear();
   attack_clocks_.clear();
   regen_phase_.clear();
+  damage_dealt_ = 0.0;
+  fight_seconds_ = 0.0;
   aimed_ = -1;
 }
 
@@ -1129,6 +1133,10 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   attack_phase_ = 0.0;
   hit_phase_ = 0.0;
   next_mob_id_ = 0;
+  // The rate belongs to the encounter, not to the character: what was dealt to
+  // the last map's monsters says nothing about how long this fight has left.
+  damage_dealt_ = 0.0;
+  fight_seconds_ = 0.0;
   // Every clock the character carries is left alone -- cooldowns, casts,
   // buffs, fountains. They belong to the character rather than to the mobs in
   // front of them, so arriving somewhere new neither takes a buff away nor
@@ -1375,7 +1383,12 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     if (buff.laid_by_attack < 0 && clock.left <= 0.0 && ready &&
         !queue_.empty() && buff.duration_seconds > 0.0 &&
         ShieldWanted(params, buff)) {
-      clock.left = buff.duration_seconds;
+      // Which form goes up is settled here and never revisited: a sword
+      // planted for two minutes stays planted, however the fight turns.
+      clock.stance = StanceToRaise(params, buff);
+      clock.left = clock.stance < 0
+                       ? buff.duration_seconds
+                       : buff.stances[clock.stance].duration_seconds;
       clock.cooldown_left = buff.cooldown_seconds;
       clock.charge_left = buff.charge_lines;
       clock.blocks_left = buff.shield_hits;
@@ -1390,6 +1403,70 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
       buff_mask_ |= 1 << i;
     }
   }
+}
+
+double CombatSim::SecondsLeft(const CombatParams& params) const {
+  // A map refills on the beat, so there is no end to measure the fight
+  // against. Everything a summon does there is worth its rate, never its
+  // total, which is what an infinite horizon says.
+  if (params.respawn_seconds > 0.0) {
+    return std::numeric_limits<double>::infinity();
+  }
+  double standing = 0.0;
+  for (const QueuedMob& mob : queue_) {
+    standing += mob.hp;
+  }
+  // Measured once there is enough fight to measure, and the params' own
+  // estimate before that -- a buff raised on the opening step still needs a
+  // horizon to be priced against.
+  double rate = fight_seconds_ >= 1.0 && damage_dealt_ > 0.0
+                    ? damage_dealt_ / fight_seconds_
+                    : params.reference_dps;
+  if (rate <= 0.0) {
+    return std::numeric_limits<double>::infinity();
+  }
+  return standing / rate;
+}
+
+int CombatSim::StanceToRaise(const CombatParams& params,
+                             const BuffOption& buff) const {
+  if (buff.stances.empty()) {
+    return -1;
+  }
+  double left = SecondsLeft(params);
+  // Priced off the unbuffed table on purpose. What is being compared is two
+  // forms of one skill on one character, so every multiplier they share
+  // cancels; what does not cancel is how long each stands and how often it
+  // lands. Reading a buffed table here would also mean reading a mask that is
+  // still being built, this being called from the middle of that loop.
+  const std::vector<AttackOption>& casts = params.auto_attacks;
+  int best = 0;
+  double best_damage = -1.0;
+  for (int i = 0; i < static_cast<int>(buff.stances.size()); ++i) {
+    const StanceOption& form = buff.stances[i];
+    if (form.pulse_attack < 0 ||
+        form.pulse_attack >= static_cast<int>(casts.size()) ||
+        form.pulse_interval_seconds <= 0.0) {
+      continue;
+    }
+    const AttackOption& pulse = casts[form.pulse_attack];
+    if (pulse.damage_per_hit.empty()) {
+      continue;
+    }
+    // What this form delivers before the fight ends: its own rate over
+    // whichever runs out first, its clock or the encounter. That single
+    // comparison is the whole of the choice -- a short, dense form wins every
+    // fight that ends before a long, thin one has finished paying out, and
+    // loses every fight that does not.
+    double seconds = std::min(form.duration_seconds, left);
+    double damage = pulse.damage_per_hit[0] * pulse.strikes_per_pulse /
+                    form.pulse_interval_seconds * seconds;
+    if (damage > best_damage) {
+      best_damage = damage;
+      best = i;
+    }
+  }
+  return best;
 }
 
 void CombatSim::RunAllyBuffs(const CombatParams& params, double dt) {
@@ -1499,6 +1576,13 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
     // instant the wound lands and then again a moment later. What it has
     // already spent of the window goes back with it: the count is per raising.
     if (cast.needs_buff >= 0 && (buff_mask_ & (1 << cast.needs_buff)) == 0) {
+      clock.pulses = 0;
+      continue;
+    }
+    // A buff with forms bleeds through whichever one went up, and the other
+    // form's pulse waits out the window in silence.
+    if (cast.needs_buff_stance >= 0 &&
+        buffs_[cast.needs_buff].stance != cast.needs_buff_stance) {
       clock.pulses = 0;
       continue;
     }
@@ -1772,6 +1856,9 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   // rather than leaving them holding HP their stats do not give them.
   player_hp_ = std::min(player_hp_, static_cast<double>(params.max_player_hp));
 
+  // Counted before anything swings, so the rate this step's casts are priced
+  // against covers the fight up to here.
+  fight_seconds_ += dt;
   // Before the hit that may need it, so a wait that runs out this step is one
   // the player has the benefit of.
   revive_left_ = std::max(0.0, revive_left_ - dt);

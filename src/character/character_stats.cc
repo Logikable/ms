@@ -52,7 +52,7 @@ bool ListAllowsWeapon(const google::protobuf::RepeatedField<int>& types,
 // Whether this skill's timed buff stands over the party as well as over the
 // caster. Smokescreen alone. See Buff.ally_base.
 bool GrantsBuffToAllies(const Skill& skill) {
-  return skill.buff().duration_seconds() > 0.0 &&
+  return LongestBuffDuration(skill.buff()) > 0.0 &&
          (skill.buff().has_ally_base() || skill.buff().has_ally_per_level());
 }
 
@@ -593,7 +593,7 @@ void FoldComboOrbs(PassiveTotals& totals) {
 // Whether `skill` puts up a timed buff -- one the character has for a while
 // rather than for good. See Skill.buff.
 bool GrantsBuff(const Skill& skill) {
-  return skill.buff().duration_seconds() > 0.0;
+  return LongestBuffDuration(skill.buff()) > 0.0;
 }
 
 // Whether this character reads anything at all off `skill`: their own book,

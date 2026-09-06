@@ -646,6 +646,30 @@ Skill BuffPulseSkill(const Skill& skill, const BuffPulse& pulse) {
   return built;
 }
 
+// The bleeding half of one buff, or of one form of it: an attack on the buff's
+// own clock, gated on that buff -- and on that form -- standing. Nothing for a
+// buff that does not bleed, which is most of them.
+void AddBuffPulse(const Character& proto, const EquipStats& equipped,
+                  EquipType weapon_type, const Skill& skill,
+                  const BuffPulse& pulse, int stance, int level,
+                  const DerivedStats& derived, double speed_factor,
+                  const std::vector<CombatType>& types, AttackSet& set) {
+  if (pulse.cast_interval_seconds() <= 0.0) {
+    return;
+  }
+  Skill bleed = BuffPulseSkill(skill, pulse);
+  AttackOption wound =
+      AttackFor(proto, equipped, weapon_type, &bleed, level, types, derived,
+                kUnscaledAttackSpeedStage, speed_factor);
+  wound.swing_seconds = 0.0;
+  ClearSwingRiders(wound);
+  wound.interval_seconds = pulse.cast_interval_seconds() * speed_factor;
+  wound.strikes_per_pulse = std::max(1, pulse.casts());
+  wound.max_pulses = pulse.max_pulses();
+  wound.needs_buff_stance = stance;
+  set.auto_attacks.push_back(std::move(wound));
+}
+
 // Adds every own-clock half of a skill that has any, beside the swing it
 // already is. Nothing for the skills that have none, which is most of them.
 void AddAutoModes(const Character& proto, const EquipStats& equipped,
@@ -667,20 +691,15 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
     attack.interval_seconds = mode.cast_interval_seconds() * speed_factor;
     set.auto_attacks.push_back(std::move(attack));
   }
-  const BuffPulse& pulse = skill.buff().pulse();
-  if (pulse.cast_interval_seconds() <= 0.0) {
-    return;
+  AddBuffPulse(proto, equipped, weapon_type, skill, skill.buff().pulse(), -1,
+               level, derived, speed_factor, types, set);
+  // A buff with forms bleeds once per form. Both sit in the list and only the
+  // one the cast raised fires, which is what needs_buff_stance gates.
+  for (int i = 0; i < skill.buff().stance_size(); ++i) {
+    AddBuffPulse(proto, equipped, weapon_type, skill,
+                 skill.buff().stance(i).pulse(), i, level, derived,
+                 speed_factor, types, set);
   }
-  Skill bleed = BuffPulseSkill(skill, pulse);
-  AttackOption wound =
-      AttackFor(proto, equipped, weapon_type, &bleed, level, types, derived,
-                kUnscaledAttackSpeedStage, speed_factor);
-  wound.swing_seconds = 0.0;
-  ClearSwingRiders(wound);
-  wound.interval_seconds = pulse.cast_interval_seconds() * speed_factor;
-  wound.strikes_per_pulse = std::max(1, pulse.casts());
-  wound.max_pulses = pulse.max_pulses();
-  set.auto_attacks.push_back(std::move(wound));
 }
 
 // What the rest of the book hands one skill: strikes added to every swing,
@@ -1141,6 +1160,29 @@ std::vector<const Skill*> StagedBuffSkills(
   return staged;
 }
 
+// The forms one buff can be raised in, and the length of the buff itself where
+// it has any: the LONGEST of them, so a caller asking how long the buff runs
+// still has an answer. What stands is whichever form the fight picks.
+//
+// Buff Duration is not applied. Every buff with forms is a V node, which
+// BuffDurationFor already exempts, and a stationary sword stretched past its
+// own cooldown would be a summon nothing could ever interrupt.
+void AddStances(const Buff& buff, int level, double speed_factor,
+                BuffOption& option) {
+  for (const Stance& stance : buff.stance()) {
+    StanceOption form;
+    form.duration_seconds =
+        (stance.duration_seconds() +
+         stance.duration_seconds_per_level() * (level - 1)) *
+        speed_factor;
+    form.pulse_interval_seconds =
+        stance.pulse().cast_interval_seconds() * speed_factor;
+    option.duration_seconds =
+        std::max(option.duration_seconds, form.duration_seconds);
+    option.stances.push_back(form);
+  }
+}
+
 // What the fight needs to run each buff's clock, at the level it is learned.
 // The levers are not here: those are folded into the tables below.
 void AddBuffs(const GameState& state,
@@ -1164,6 +1206,7 @@ void AddBuffs(const GameState& state,
                                      BuffDurationFor(*skill, buff_duration_pct),
                                      speed_factor, stage);
     option.name = skill->name();
+    AddStances(buff, level, speed_factor, option);
     option.cooldown_seconds =
         ReducedCooldown(CooldownAt(*skill, level),
                         derived.cooldown_reduction_seconds) *
@@ -1239,6 +1282,20 @@ void AddAllyBuffs(const GameState& state, double speed_factor,
   }
 }
 
+// Whether a buff ticks damage at all, through its own pulse or through one of
+// its forms'.
+bool Bleeds(const Buff& buff) {
+  if (buff.pulse().cast_interval_seconds() > 0.0) {
+    return true;
+  }
+  for (const Stance& stance : buff.stance()) {
+    if (stance.pulse().cast_interval_seconds() > 0.0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Points each bleeding buff's pulse at the buff it belongs to. Run over the
 // base set and over every buffed one as it is built -- the fight reads
 // whichever set the mask names, so a tag on one of them alone would come and
@@ -1251,7 +1308,7 @@ void TagBuffGatedPulses(const std::vector<BuffOption>& buffs,
                         std::vector<AttackOption>& casts) {
   for (int i = 0; i < static_cast<int>(buffs.size()); ++i) {
     if (i >= static_cast<int>(buff_skills.size()) ||
-        buff_skills[i]->buff().pulse().cast_interval_seconds() <= 0.0) {
+        !Bleeds(buff_skills[i]->buff())) {
       continue;
     }
     for (AttackOption& cast : casts) {
@@ -1260,6 +1317,54 @@ void TagBuffGatedPulses(const std::vector<BuffOption>& buffs,
       }
     }
   }
+}
+
+// Points each form at the pulse it bleeds through, so the fight can price the
+// forms against each other without hunting the list at every cast. Run over
+// the base set alone: an attack keeps its index in every buffed set, so a
+// pointer taken here is good in all of them.
+void PointStancesAtPulses(const std::vector<AttackOption>& casts,
+                          std::vector<BuffOption>& buffs) {
+  for (int i = 0; i < static_cast<int>(casts.size()); ++i) {
+    const AttackOption& cast = casts[i];
+    if (cast.needs_buff < 0 || cast.needs_buff_stance < 0 ||
+        cast.needs_buff >= static_cast<int>(buffs.size())) {
+      continue;
+    }
+    std::vector<StanceOption>& stances = buffs[cast.needs_buff].stances;
+    if (cast.needs_buff_stance < static_cast<int>(stances.size())) {
+      stances[cast.needs_buff_stance].pulse_attack = i;
+    }
+  }
+}
+
+// Damage a second of this fight is expected to cost the enemy with no buff
+// standing: the hardest swing on offer, plus everything already firing on a
+// clock of its own. Measured against the first mob type, which is the one at
+// the front of the queue.
+//
+// A rough figure by design. It stands in for a measured rate only until the
+// fight has run long enough to have one -- see CombatSim::SecondsLeft.
+double ReferenceDps(const CombatParams& params) {
+  double best_swing = 0.0;
+  double own_clocks = 0.0;
+  for (const AttackOption& attack : params.attacks) {
+    if (attack.swing_seconds <= 0.0 || attack.damage_per_hit.empty()) {
+      continue;
+    }
+    best_swing =
+        std::max(best_swing, attack.damage_per_hit[0] / attack.swing_seconds);
+  }
+  for (const AttackOption& cast : params.auto_attacks) {
+    // A pulse waiting on a buff is not firing yet, and counting it would have
+    // the fight expect damage nothing is dealing.
+    if (cast.interval_seconds <= 0.0 || cast.needs_buff >= 0 ||
+        cast.damage_per_hit.empty()) {
+      continue;
+    }
+    own_clocks += cast.damage_per_hit[0] / cast.interval_seconds;
+  }
+  return best_swing + own_clocks;
 }
 
 // A slot for every combination of the character's buffs, indexed the way
@@ -1423,6 +1528,8 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   AddAllyBuffs(state, speed_factor, params);
   AddBuffedSets(state, buff_skills, weapon, speed_factor, preset, params);
   TagBuffGatedPulses(params.buffs, buff_skills, params.auto_attacks);
+  PointStancesAtPulses(params.auto_attacks, params.buffs);
+  params.reference_dps = ReferenceDps(params);
 }
 
 // Every list a swing can be picked from, the buffed windows included: a table

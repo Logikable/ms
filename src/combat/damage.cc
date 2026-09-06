@@ -350,6 +350,14 @@ double CooldownAt(const Skill& skill, int level) {
   return std::max(0.0, wait);
 }
 
+double LongestBuffDuration(const Buff& buff) {
+  double longest = buff.duration_seconds();
+  for (const Stance& stance : buff.stance()) {
+    longest = std::max(longest, stance.duration_seconds());
+  }
+  return longest;
+}
+
 double ReducedCooldown(double wait, double reduction_seconds) {
   constexpr double kUntouchedBelow = 5.0;
   constexpr double kHalvedBelow = 10.0;

@@ -2643,6 +2643,116 @@ void GiveBuff(CombatParams& params, double duration, double cooldown,
   params.buffed.push_back(std::move(set));
 }
 
+// A buff with two forms to choose between, the shape Burning Soul Blade has: a
+// short dense one and a long thin one, both bleeding through a pulse of their
+// own. Their pulses go in as auto attacks tagged with the form that fires them.
+void GiveStancedBuff(CombatParams& params, double cooldown, double dense_length,
+                     double dense_damage, double thin_length,
+                     double thin_damage) {
+  BuffOption buff;
+  buff.name = "Burning Soul Blade";
+  buff.cooldown_seconds = cooldown;
+  buff.duration_seconds = std::max(dense_length, thin_length);
+  double lengths[] = {dense_length, thin_length};
+  double damages[] = {dense_damage, thin_damage};
+  for (int i = 0; i < 2; ++i) {
+    AttackOption pulse;
+    pulse.name = buff.name;
+    pulse.interval_seconds = 1.0;
+    pulse.damage_per_hit.assign(params.types.size(), damages[i]);
+    pulse.needs_buff = 0;
+    pulse.needs_buff_stance = i;
+    StanceOption form;
+    form.duration_seconds = lengths[i];
+    form.pulse_interval_seconds = pulse.interval_seconds;
+    form.pulse_attack = static_cast<int>(params.auto_attacks.size());
+    buff.stances.push_back(form);
+    params.auto_attacks.push_back(std::move(pulse));
+  }
+  params.buffs.push_back(std::move(buff));
+  AttackSet set;
+  set.attacks = params.attacks;
+  set.auto_attacks = params.auto_attacks;
+  set.triggered_attacks = params.triggered_attacks;
+  params.buffed.push_back(std::move(set));
+}
+
+// The dense form delivers 2000 over its 20 seconds and the thin one 20 a
+// second, so the thin form needs 100 seconds to match it. A boss that will not
+// last that long cannot collect on the thin form, and the dense one wins with
+// no buff standing to make it.
+TEST(CombatSimTest, AShortFightRaisesTheDenseStance) {
+  Mob boss = MakeMob("Zakum", 3000);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1e9, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
+  params.reference_dps = 100.0;
+  GiveStancedBuff(params, /*cooldown=*/120.0, /*dense_length=*/20.0,
+                  /*dense_damage=*/100.0, /*thin_length=*/120.0,
+                  /*thin_damage=*/20.0);
+
+  // 3000 HP at 100 a second is 30 seconds left, well inside the crossover.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.view().damage_this_step, 100.0);
+}
+
+// The same boss with enough HP to outlast the dense form's whole payout: the
+// thin form pays more before the end, so that is what goes up.
+TEST(CombatSimTest, ALongFightRaisesTheThinStance) {
+  Mob boss = MakeMob("Zakum", 20000);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1e9, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
+  params.reference_dps = 100.0;
+  GiveStancedBuff(params, /*cooldown=*/120.0, /*dense_length=*/20.0,
+                  /*dense_damage=*/100.0, /*thin_length=*/120.0,
+                  /*thin_damage=*/20.0);
+
+  // 20000 HP at 100 a second is 200 seconds left, over the crossover.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.view().damage_this_step, 20.0);
+}
+
+// A map refills on the beat, so it never ends however little is standing on
+// it. The thin form's rate is what counts there, whatever the queue holds.
+TEST(CombatSimTest, AMapRaisesTheThinStanceHoweverLowItRuns) {
+  Mob snail = MakeMob("Snail", 1);
+  CombatSim sim;
+  CombatParams params = MakeParams(1e9, 600.0, {MakeType(&snail, 0.0, 1)});
+  params.reference_dps = 100.0;
+  GiveStancedBuff(params, /*cooldown=*/120.0, /*dense_length=*/20.0,
+                  /*dense_damage=*/100.0, /*thin_length=*/120.0,
+                  /*thin_damage=*/20.0);
+
+  // One snail with a single point of HP is a second of fight by the arithmetic
+  // a boss would use, and still the planted sword goes up.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.view().damage_this_step, 20.0);
+}
+
+// The form is settled at the cast. A thin sword raised for a fight that then
+// turns short keeps standing: GMS took away the key that swapped one form for
+// the other, so there is nothing to change its mind with.
+TEST(CombatSimTest, AStandingStanceIsNotSwappedWhenTheFightShortens) {
+  Mob boss = MakeMob("Zakum", 20000);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1e9, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
+  params.reference_dps = 100.0;
+  GiveStancedBuff(params, /*cooldown=*/120.0, /*dense_length=*/20.0,
+                  /*dense_damage=*/100.0, /*thin_length=*/120.0,
+                  /*thin_damage=*/20.0);
+
+  // The thin sword goes up against a 200-second fight.
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.view().damage_this_step, 20.0);
+  // Ten seconds later the boss is nearly dead -- and the sword planted for two
+  // minutes is still the one bleeding.
+  sim.Advance(params, 10.0);
+  ASSERT_LT(sim.view().target_hp_fraction, 0.99);
+  EXPECT_EQ(sim.view().damage_this_step, 200.0);
+}
+
 // A cast is time the character is not swinging in: raising the buff takes its
 // animation off the swing they were charging, so the step it goes up on lands
 // one swing fewer.

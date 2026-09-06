@@ -293,6 +293,11 @@ struct AttackOption {
   // so it ticks only where one was left. Off-clock attacks only -- a swing is
   // chosen rather than fired.
   int needs_buff = -1;
+  // Which FORM of that buff has to be standing, as an index into
+  // BuffOption::stances, or -1 for a pulse whose buff has one form. Burning
+  // Soul Blade is the case it exists for: both its swords sit in the list, and
+  // only the one the cast raised fires. Read only where needs_buff is set.
+  int needs_buff_stance = -1;
   // Strikes one due tick fires, each landing in full on its own. 1 for every
   // clock but Cry Valhalla's, whose three sword strikes fall together.
   int strikes_per_pulse = 1;
@@ -341,6 +346,19 @@ struct BuffedSetSource {
   // Whether a window's reach is halved on the way out, which is what a boss
   // fight does to every list a swing can be picked from.
   bool halve_reach = false;
+};
+
+// One form a buff can be raised in, priced against the fight at each cast.
+// See Buff.stance.
+struct StanceOption {
+  // Game-scaled, like every other duration here.
+  double duration_seconds = 0.0;
+  // Its pulse's clock, and where that pulse sits in AttackSet::auto_attacks.
+  // The damage is read off that option rather than copied here, because an
+  // attack table is built per buff window and the option keeps its index in
+  // every one of them.
+  double pulse_interval_seconds = 0.0;
+  int pulse_attack = -1;
 };
 
 // A buff the character puts up for a while, on a wait of its own. What it
@@ -392,6 +410,12 @@ struct BuffOption {
   // order in every buffed set: one index stays good however the buffs come and
   // go.
   int laid_by_attack = -1;
+  // The forms this buff can be raised in, for the fight to choose between at
+  // each cast. Empty for a buff with one form, which is every one but Burning
+  // Soul Blade -- and where it is filled, duration_seconds above is the
+  // LONGEST of them, so a caller asking how long the buff runs still has an
+  // answer. What actually stands is the chosen stance's own length.
+  std::vector<StanceOption> stances;
 };
 
 // A snapshot of the current encounter's combat parameters.
@@ -481,6 +505,12 @@ struct CombatParams {
   // the player is being paid for is their own attacking. What it kills does
   // count, since a defeat is a defeat however it was dealt.
   std::vector<AttackOption> triggered_attacks;
+  // Damage a second of this fight is expected to cost the enemy, worked out
+  // from the lists above with no buff standing. A rough figure, and only ever
+  // used as one: it is what the fight divides remaining HP by to guess how
+  // long the encounter has left, before enough of it has run to measure a rate
+  // of its own. See CombatSim::SecondsLeft.
+  double reference_dps = 0.0;
   // The timed buffs this character can put up. Empty for everyone but a Dark
   // Knight; the fight runs their clocks and asks for the matching attacks.
   std::vector<BuffOption> buffs;

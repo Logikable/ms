@@ -195,6 +195,12 @@ int ComboOrbsAt(const Skill& skill, int level);
 // and a wait that shortens as the skill is taught has to shorten in both.
 double CooldownAt(const Skill& skill, int level);
 
+// The longest `buff` can stand at its first level: its own length, or the
+// longest of the forms it can be raised in. A buff with forms states no length
+// of its own, so anything asking whether a buff stands at all has to ask here
+// rather than reading duration_seconds. See Buff.stance.
+double LongestBuffDuration(const Buff& buff);
+
 // What is left of a `wait` once the seconds a potential takes off it are
 // paid. GMS's own rule, which is not a plain subtraction: a wait under 5
 // seconds gives up nothing, one of 5 to 10 gives up 5% of itself per second

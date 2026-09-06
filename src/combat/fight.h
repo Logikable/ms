@@ -386,6 +386,13 @@ class CombatSim {
   // come round, and works out which are standing this step. Before the
   // attacks, so a buff that goes up now is one this step's swing has.
   void RunBuffs(const CombatParams& params, double dt);
+  // The form of `buff` worth the most over what is left of this fight, as an
+  // index into its stances, or -1 for a buff with one form. See SecondsLeft.
+  int StanceToRaise(const CombatParams& params, const BuffOption& buff) const;
+  // Seconds this encounter is expected to last, from the HP still standing and
+  // the rate the fight has been dealing at. Infinite where the roster refills,
+  // a map being an encounter that does not end.
+  double SecondsLeft(const CombatParams& params) const;
   // Runs the buffs the party puts up over the character, on their casters'
   // clocks. Apart from RunBuffs because none of these has an attack set: what
   // a party buff grants is taken off the hit, so nothing here touches the
@@ -477,6 +484,10 @@ class CombatSim {
     // hit at a time; a shell emptied falls at once, whatever is left of its
     // clock. 0 for every buff that is not a shell.
     int blocks_left = 0;
+    // Which form went up, as an index into BuffOption::stances, or -1 for a
+    // buff with one form. Chosen at the cast and left alone while it stands:
+    // GMS took away the key that swapped a summoned sword between its forms.
+    int stance = -1;
   };
   std::vector<BuffClock> buffs_;
   // Which buffs are standing, as the bitmask CombatParams indexes its damage
@@ -486,6 +497,11 @@ class CombatSim {
   // mask beside them: a party buff has no damage table, so what is standing is
   // read straight off the seconds left.
   std::vector<BuffClock> ally_buffs_;
+  // What the character has dealt this encounter and how long they have been
+  // dealing it, for the rate SecondsLeft divides remaining HP by. Map-scoped:
+  // another encounter's damage says nothing about how long this one has left.
+  double damage_dealt_ = 0.0;
+  double fight_seconds_ = 0.0;
   // Seconds left before a passive will revive the player again. Counts down
   // wherever the character is, since what it measures is the pact rather than
   // the fight, and stays at 0 for everyone who holds no such skill.

@@ -467,6 +467,16 @@ TEST(SkillDataTest, NoSheddingBuffAlsoBleeds) {
   }
 }
 
+// Whether any form of the buff bleeds a pulse that states a base.
+bool AnyStancePulseHasBase(const Buff& buff) {
+  for (const Stance& stance : buff.stance()) {
+    if (stance.pulse().has_base()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Whether any boost the skill hands out is already paying at level 1, which
 // is how a boost node -- whose whole grant is in what it lifts -- earns the
 // first level a player buys.
@@ -502,6 +512,7 @@ TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
     // it on the skills it lifts.
     EXPECT_TRUE(skill.has_base() || skill.buff().has_base() ||
                 skill.dot().has_base() || skill.buff().pulse().has_base() ||
+                AnyStancePulseHasBase(skill.buff()) ||
                 GrantsAtFirstLevel(skill))
         << skill.name() << " grants nothing at its first level";
     if (skill.v_node() == V_NODE_KIND_COMMON) {
@@ -866,7 +877,7 @@ TEST(SkillDataTest, EveryBuffStandsForAWhileAndWaitsForTheNextOne) {
     if (!skill.has_buff()) {
       continue;
     }
-    EXPECT_GT(skill.buff().duration_seconds(), 0.0)
+    EXPECT_GT(LongestBuffDuration(skill.buff()), 0.0)
         << entry.first << "'s buff would never stand";
     // A buff its own swing lays waits for that swing rather than for a clock,
     // and the swing costs the fight a turn either way. Only the ones raised
@@ -1015,7 +1026,7 @@ TEST(SkillDataTest, EveryCastDoesSomethingWithTheSwingItTakes) {
       continue;
     }
     EXPECT_TRUE(entry.second.base().heal_pct() > 0.0 ||
-                entry.second.buff().duration_seconds() > 0.0)
+                LongestBuffDuration(entry.second.buff()) > 0.0)
         << entry.first << " spends a swing and does nothing with it";
   }
 }
