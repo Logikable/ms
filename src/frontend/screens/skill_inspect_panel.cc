@@ -1310,15 +1310,27 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
   if (pulse.max_pulses() > 0) {
     damage += ", " + std::to_string(pulse.max_pulses()) + " times";
   }
+  // Whatever else the pulse carries rides its own strikes, not the character
+  // -- Burning Soul Blade's sword crits half again as often as its owner does.
+  SkillEffect base = pulse.base();
+  SkillEffect per = pulse.per_level();
+  base.clear_skill_pct();
+  per.clear_skill_pct();
+  std::vector<Row> levers = LeverRows(base, per, level, "");
+  std::vector<Row> rows;
   if (pulse.max_enemies() == 0) {
-    return {EffectRow(pulse.label(),
-                      damage + " every " +
-                          FormatNumber(pulse.cast_interval_seconds(), 2) +
-                          "s")};
+    rows.push_back(EffectRow(
+        pulse.label(), damage + " every " +
+                           FormatNumber(pulse.cast_interval_seconds(), 2) +
+                           "s"));
+  } else {
+    rows.push_back(EffectRow(pulse.label(), damage));
+    rows.push_back(EffectRow(
+        "Attacks",
+        ReachText(pulse.max_enemies(), pulse.cast_interval_seconds())));
   }
-  return {EffectRow(pulse.label(), damage),
-          EffectRow("Attacks", ReachText(pulse.max_enemies(),
-                                         pulse.cast_interval_seconds()))};
+  Append(std::move(levers), rows);
+  return rows;
 }
 
 // What everybody else in the party gets while the buff stands, in the colour
@@ -1350,10 +1362,28 @@ std::vector<Row> AllyBuffRows(const Buff& buff, int level) {
   return rows;
 }
 
+// The forms a buff can be raised in, a heading and its pulse apiece. The page
+// states both because the player never picks between them -- the fight does,
+// against the fight in front of it -- so what the card owes them is the pair
+// laid side by side. See Buff.stance.
+std::vector<Row> StanceRows(const Buff& buff, int level) {
+  std::vector<Row> rows;
+  for (const Stance& stance : buff.stance()) {
+    rows.push_back(SectionRow(
+        stance.label() + " for " +
+            FormatNumber(stance.duration_seconds() +
+                         stance.duration_seconds_per_level() * (level - 1)) +
+            "s",
+        kGold));
+    Append(PulseRows(stance.pulse(), level), rows);
+  }
+  return rows;
+}
+
 std::vector<Row> BuffRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   const Buff& buff = skill.buff();
-  if (buff.duration_seconds() <= 0.0) {
+  if (LongestBuffDuration(buff) <= 0.0) {
     return rows;
   }
   // A buff bought with landed hits says so in its heading: that count is the
@@ -1365,12 +1395,16 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   // A shared buff says so here rather than in a Your Party section: it grants
   // the party nothing of its own -- everyone raises the same one in turn.
   std::string shared = buff.party_shared() ? ", shared with your party" : "";
-  rows.push_back(SectionRow(
-      "Active for " +
-          FormatNumber(buff.duration_seconds() +
-                       buff.duration_seconds_per_level() * (level - 1)) +
-          "s" + charge + shared,
-      kGold));
+  // A buff with forms carries no length of its own: each form heads its own
+  // block below, and one heading for both would have to lie about one of them.
+  if (buff.stance().empty()) {
+    rows.push_back(SectionRow(
+        "Active for " +
+            FormatNumber(buff.duration_seconds() +
+                         buff.duration_seconds_per_level() * (level - 1)) +
+            "s" + charge + shared,
+        kGold));
+  }
   // The heal is handed over once, when the buff goes up -- so it is stated on
   // its own rather than among the levers that hold for as long as it stands.
   SkillEffect base = buff.base();
@@ -1394,6 +1428,7 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   Append(LeverRows(base, per, level, per_stage), rows);
   Append(ShieldRows(buff.shield(), level), rows);
   Append(PulseRows(buff.pulse(), level), rows);
+  Append(StanceRows(buff, level), rows);
   Append(AllyBuffRows(buff, level), rows);
   return rows;
 }

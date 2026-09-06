@@ -1708,6 +1708,41 @@ TEST_F(SkillInspectPanelTest, ASharedBuffSaysSoInItsHeading) {
             std::string::npos);
 }
 
+// A buff with forms has no one length to head it with, and the player never
+// picks between them -- so the page states both, each heading its own damage.
+TEST_F(SkillInspectPanelTest, ABuffWithFormsHeadsEachOfThem) {
+  Skill sword = IronBody();
+  sword.set_kind(SKILL_KIND_ACTIVE);
+  Stance* mobile = sword.mutable_buff()->add_stance();
+  mobile->set_label("Mobile");
+  mobile->set_duration_seconds(20.0);
+  mobile->mutable_pulse()->set_label("Mobile Sword");
+  mobile->mutable_pulse()->set_cast_interval_seconds(0.81);
+  mobile->mutable_pulse()->set_lines(12);
+  mobile->mutable_pulse()->set_max_enemies(8);
+  mobile->mutable_pulse()->mutable_base()->set_skill_pct(4.70);
+  Stance* stationary = sword.mutable_buff()->add_stance();
+  stationary->set_label("Stationary");
+  stationary->set_duration_seconds(120.0);
+  stationary->mutable_pulse()->set_label("Stationary Sword");
+  stationary->mutable_pulse()->set_cast_interval_seconds(1.0);
+  stationary->mutable_pulse()->set_lines(6);
+  stationary->mutable_pulse()->set_max_enemies(8);
+  stationary->mutable_pulse()->mutable_base()->set_skill_pct(2.52);
+
+  std::string rendered = RenderAt(sword, 1);
+  EXPECT_NE(rendered.find("Mobile for 20s"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Stationary for 120s"), std::string::npos)
+      << rendered;
+  EXPECT_NE(rendered.find("Mobile Sword"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Stationary Sword"), std::string::npos) << rendered;
+  // No heading of the buff's own: one length for two forms would misstate one.
+  EXPECT_EQ(rendered.find("Active for"), std::string::npos) << rendered;
+  SkillInspectPanel panel;
+  panel.SetSkill(&sword, 1, 0);
+  EXPECT_EQ(LabelColor(panel.Render(), "Mobile for 20s"), kGold);
+}
+
 // An attack's ignored defence is true only while that swing is in the air; the
 // ATT it grants is the character's for good. Unheaded the two rows read alike.
 // The same levers on a passive ARE the character's, so nothing heads them.
