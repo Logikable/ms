@@ -26,64 +26,43 @@ walk and the img property serialisation.
 `h` -- the readout naming which `#field` each number lives in. That is what
 the audit compares against.
 
-## What does not: the numbers
+## The numbers, and the packs that hold them
 
-Per-level formulas live in `Data/Packs/Skill_0000N.ms` (9 files, ~950 MB) and
-`Mob_0000N.ms`. `Packs.ini` names them (`Skill|8`). Nothing here reads them
-yet, but the shape is now known.
+**Cracked 2026-09-07.** `Data/Packs/Skill_0000N.ms` and `Mob_0000N.ms` open
+with `ms_pack.py` -- no key from the client, and no decompiler:
 
-**A pack is an encrypted header followed by plaintext bodies.**
+    python3 tools/wz/ms_pack.py common 400011073      # one skill's formulas
+    python3 tools/wz/ms_pack.py list Skill            # what each pack holds
+    python3 tools/wz/ms_pack.py extract Skill 40001.img out.img
 
-- The header measures 5 KB to 850 KB depending on the pack, and carries
-  **entropy 7.7-7.99 with under 1% zero bytes**. That is ciphertext.
-- Everything after it is **ordinary unencrypted WZ property data**. It decodes
-  with the plain `0xAA` ascending mask, entropy 4.9 and ~36% zeros. Parsing
-  from `0x1000`-aligned offsets, **44.8% of `Skill_00008.ms` reads as valid
-  property trees**, in runs over 100 KB -- real content like
-  `70000013 = { common: { maxLevel: 30, madX: ... } }`.
-- `NameSpace.dll` names the design: `CipherHeaderStream<ChaCha20Cipher>` and
-  `CipherHeaderStream<SnowCipher>` -- a stream that enciphers the header
-  alone. It also carries `LAPackage`, `PackageHeader2/3` and a leftover
-  `C:\Git\lapacker\lib\FileSystemLib/PackageLoader.inl`.
+A pack is a **version 4 LAPackage**: a ChaCha20 header, a ChaCha20 entry
+table, and images whose **first kilobyte alone** is enciphered -- which is why
+half of one parsed as plaintext before any of this. Every key is spelled out
+of the pack's own file name and a salt written in the clear at the front:
 
-**What the header holds, and why the bodies are useless without it.** WZ
-strings are back-references: a repeated name is written once inline and later
-cited by its offset from the img's start. Every pack body cites offsets 1, 44,
-70, 201 and the like -- `Property`, `Canvas`, `Shape2D#Vector2D`, `common` --
-but **the string `Property` appears nowhere in any pack**, under any mask.
-The packer strips each img's header and string table into the encrypted index,
-leaving bodies whose every name is a dangling citation. So a body parses, and
-still cannot say which skill or which field it describes.
+- `randByteCount = sum(chars of "skill_00005.ms") % 312 + 30`, and each of
+  those bytes is arithmetic-shifted right one.
+- The salt follows the version byte and a length, both XORed with `rand[0]`;
+  each salt char is `((a | 0x4B) << 1) - a - 75` over `rand[i] ^ salt[2i]`.
+- The header key is `(nameWithSalt[i % len] + i) ^ OBSCURE[i]`, the entry-table
+  key `(i + (i % 3 + 2) * nameWithSalt[len - 1 - i % len]) ^ OBSCURE[i]`, over
+  the same 32 obscure bytes.
+- Each image has its own key and nonce, spelled out of an FNV-1a of the salt,
+  the image's name and a 16-byte key in its table row.
 
-Two dead ends already walked, so nobody repeats them:
+**The entry-table reader rewinds the block counter** (`state[12] = 0`) every
+time a read lands on a 64-byte boundary. Nothing decodes past the first entry
+without it.
 
-- **The bodies are not compressed.** No inflatable zlib stream exists in the
-  first 2 MB; the `78 9c 62 60 ...` runs sprinkled through them are empty
-  canvas placeholders.
-- **The headers do not reuse a keystream.** XOR any two and entropy stays
-  above 7.1, so there is no two-time pad to unpick. Consecutive packs share a
-  ~250-byte prefix, but that is a common plaintext prologue, not key reuse.
+The format is Elem8100's and lastbattle's work, read off MapleLib
+(`MapleLib/WzLib/MSFile/`); this is a Python port of what those files say.
 
-The remaining step is the **ChaCha20/SNOW key**. It is not a constant near the
-cipher -- those five call sites are 17 KB unrolled SIMD rounds taking the key
-as an argument -- so it has to be traced from the package-open path. That
-wants a decompiler.
-
-`pack_probe.py` is the harness for the next attempt: **decrypt a header, drop
-it in, and `coverage` says whether it worked.** Today it reads
-
-    header   ends 0x713c  entropy 7.986  zeros 0.90%
-    coverage 106 runs >2KB, 11.1 MB parses (44.8%)
-    pool     `Property` in file: False
-
-Also known, from the PKG1 reader at `0x1529d7891`: the first 8 bytes of a pack
-are a salt and a check,
-`~(rotl(((hash + 0x1a2b3c4d) ^ salt), (salt&15)+(hash&15)) ^ salt ^ hash)`,
-where `hash` is an FNV-1a over UTF-16 folded with `0x85ebca6b`. Brute-forcing
-leaves one or two candidate hashes per pack; the name behind them is unknown.
-
-So the recipe stands: **`h` text and field names from the local String.wz;
-per-level values from maplestorywiki.net.**
+**So the whole client is readable now**: `common` carries every per-level
+formula GMS computes its readout from -- `damage = 190+7*x`, `attackCount`,
+`mobCount`, `cooltime`, `lt`/`rb` hitboxes -- with `x` the skill level, `d()`
+floor and `u()` ceiling. What is NOT there is anything the client hardcodes:
+Instinctual Combo's tear states 3 rifts, 6 hits and 6 enemies, and no interval
+at all.
 
 ## Calibrating a field
 
