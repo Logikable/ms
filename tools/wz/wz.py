@@ -235,13 +235,14 @@ class ImgReader(Reader):
             return (self.cint(), self.cint())
         if name == 'Shape2D#Convex2D':
             return [self.value(0x09) for _ in range(self.cint())]
-        if name == 'Sound_DX8':
-            self.p = end
-            return '<sound>'
         if name == 'UOL':
             self.u8()
             return '@' + self.string_block()
-        raise ValueError('extended %r at %#x' % (name, self.p))
+        # Sound_DX8, RawData and whatever else a pack carries: a blob whose
+        # own length the caller already has. Nothing here reads one, and a
+        # skill image that carries one still has to parse past it.
+        self.p = end
+        return '<%s>' % name
 
 
 def read_img(data, pos, pool=None, base=None):

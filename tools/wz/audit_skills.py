@@ -137,11 +137,20 @@ def our_skills():
         if not m:
             continue
         rel = os.path.relpath(path, ROOT)
-        jobs = set(re.findall(r'job_advancement:\s*(\S+)', text))
-        prefixes = {JOB_PREFIX[j] for j in jobs if j in JOB_PREFIX}
-        branch = rel.split(os.sep)[2] if rel.count(os.sep) > 2 else ''
-        if branch in V_PREFIX:
-            prefixes.add(V_PREFIX[branch])
+        # A V node's pool and a job's book both hold a skill called Quad Star,
+        # and the 5th job's id sorts first -- so a skill takes the ONE space it
+        # belongs to, never both.
+        if re.search(r'^v_node:', text, re.M):
+            # A node's own line, and the all-class pool beside it: GMS files
+            # the archetype nodes every warrior shares under 40000, not under
+            # the branch that gets them.
+            branch = rel.split(os.sep)[2] if rel.count(os.sep) > 2 else ''
+            prefixes = {V_PREFIX['common']}
+            if branch in V_PREFIX:
+                prefixes.add(V_PREFIX[branch])
+        else:
+            jobs = set(re.findall(r'job_advancement:\s*(\S+)', text))
+            prefixes = {JOB_PREFIX[j] for j in jobs if j in JOB_PREFIX}
         out[m.group(1)] = (rel, text, prefixes)
     return out
 
@@ -164,15 +173,24 @@ def gms_skills(cache):
     return out
 
 
-def pick(entries, prefixes):
-    """The entry whose id sits in one of this skill's jobs, if any does."""
+def candidates(entries, prefixes):
+    """Every entry whose id sits in one of this skill's jobs. GMS reuses a
+    name across a job's own book and its passive half -- Blizzard is a swing
+    and a Final Attack, both 222x -- so the caller picks between these."""
     if not prefixes:
-        return None
+        return []
+    out = []
     for sid, entry in sorted(entries):
         key = sid[:5] if len(sid) == 9 else sid.zfill(7)[:3]
         if key in prefixes:
-            return sid, entry
-    return None
+            out.append((sid, entry))
+    return out
+
+
+def pick(entries, prefixes):
+    """The entry whose id sits in one of this skill's jobs, if any does."""
+    found = candidates(entries, prefixes)
+    return found[0] if found else None
 
 
 def placeholders(entry):

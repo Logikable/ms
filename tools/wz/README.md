@@ -64,6 +64,28 @@ floor and `u()` ceiling. What is NOT there is anything the client hardcodes:
 Instinctual Combo's tear states 3 rifts, 6 hits and 6 enemies, and no interval
 at all.
 
+## The two audits
+
+    python3 tools/wz/audit_skills.py     # which levers a tooltip NAMES
+    python3 tools/wz/audit_values.py     # what those levers are WORTH
+
+`audit_values.py` reads each skill's `common` formula out of the packs and
+walks the shipped ladder to meet it: **master against master, level 1 against
+level 1.** A book here is rescaled to the levels it has room for, so the two
+ladders meet at their ends and nowhere in between -- which is why the level-1
+rows are behind `--level1` and mean much less.
+
+**Its 23 known departures are a table in the file**, each with the reason the
+textproto argues for it, so a NEW disagreement is the only thing that shows.
+Add to that table only after reading the file's own comment and agreeing.
+
+Both audits scope a name to the id space it belongs to: a skill's own job, or
+the 5th job pool for a V node -- never both, since GMS gives a 4th job skill
+and a V node the same name and the V id sorts first. Where a name still has
+several ids -- GMS calls Blizzard's swing and its Final Attack half the same
+thing -- `audit_values.py` tries each and holds the skill to the one it
+answers to best.
+
 ## Calibrating a field
 
 `common` holds the tooltip variables and **the key names mean nothing on their
