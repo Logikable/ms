@@ -176,6 +176,11 @@ const FlatLever kFlatLevers[] = {
     {"Ice MATT", &SkillEffect::magic_attack_per_freeze_stack,
      " per Freeze Stack", false},
     {"DEF", &SkillEffect::def_per_combo_orb, " per Combo Orb", false},
+    // Orbs lit for their final damage alone. Stated as the orbs it is worth
+    // rather than as a percentage, because the percentage is whatever the
+    // character's own per-orb bargain says today.
+    {"Final Damage", &SkillEffect::final_dmg_combo_orbs, " Combo Orbs' worth",
+     false},
     {"STR", &SkillEffect::str, "", false},
     {"DEX", &SkillEffect::dex, "", false},
     {"INT", &SkillEffect::int_, "", false},
@@ -649,21 +654,29 @@ std::vector<Row> InvariantRows(const Skill& skill) {
 // A swing's damage: the per-strike percentage, how many strikes, and what the
 // two come to against one enemy -- the total is what the player is really
 // comparing between skills. One strike states the one figure and stops.
-std::string SwingText(double per_hit, int lines) {
+std::string SwingText(double per_hit, int lines, int casts = 1) {
   // An unset lines means one strike, the same reading the damage chain takes.
   if (lines <= 0) {
     lines = 1;
   }
-  if (lines == 1) {
+  if (casts <= 0) {
+    casts = 1;
+  }
+  if (lines == 1 && casts == 1) {
     return FormatPercent(per_hit);
   }
-  return FormatPercent(per_hit) + " x" + std::to_string(lines) + " = " +
-         FormatPercent(per_hit * lines);
+  // Written in GMS's own order -- so much damage, so many lines, so many
+  // strikes -- because the total alone hides which of the three moved.
+  std::string text = FormatPercent(per_hit) + " x" + std::to_string(lines);
+  if (casts > 1) {
+    text += " x" + std::to_string(casts);
+  }
+  return text + " = " + FormatPercent(per_hit * lines * casts);
 }
 
 std::string DamageText(const Skill& skill, int level) {
   return SwingText(PercentAt(skill, &SkillEffect::skill_pct, level),
-                   SkillLinesAt(skill, level));
+                   SkillLinesAt(skill, level), SkillCasts(skill));
 }
 
 // What the same swing lands on anything that is not a boss, for a skill
@@ -676,7 +689,7 @@ std::string NormalMonsterText(const Skill& skill, int level) {
     return "";
   }
   return SwingText(PercentAt(skill, &SkillEffect::skill_pct, level) + bonus,
-                   SkillLinesAt(skill, level));
+                   SkillLinesAt(skill, level), SkillCasts(skill));
 }
 
 // One clause onto the list, comma-separated. A boost granting several has to
@@ -858,7 +871,7 @@ std::vector<Row> SwingHitRows(
     // about this damage rather than a lever of the character's, and a row of
     // its own would read as one. Wrapped, since the note is the one thing that
     // can push a damage row past its column.
-    std::string text = SwingText(per_hit, hit.lines());
+    std::string text = SwingText(per_hit, hit.lines(), SwingHitCasts(hit));
     double crit =
         hit.base().crit_rate() + hit.per_level().crit_rate() * (level - 1);
     if (crit >= 1.0) {
@@ -870,8 +883,9 @@ std::vector<Row> SwingHitRows(
     double bonus = hit.base().normal_skill_pct() +
                    hit.per_level().normal_skill_pct() * (level - 1);
     if (bonus > 0.0) {
-      rows.push_back(EffectRow(hit.label() + " Normal",
-                               SwingText(per_hit + bonus, hit.lines())));
+      rows.push_back(EffectRow(
+          hit.label() + " Normal",
+          SwingText(per_hit + bonus, hit.lines(), SwingHitCasts(hit))));
     }
   }
   return rows;
@@ -1006,8 +1020,9 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   // line apiece, so the per-line figure is the one that has to be shown.
   double meso_hit = PercentAt(skill, &SkillEffect::meso_hit_pct, level);
   if (meso_hit > 0.0) {
-    rows.push_back(EffectRow("Damage per Meso",
-                             SwingText(meso_hit, SkillLinesAt(skill, level))));
+    rows.push_back(EffectRow(
+        "Damage per Meso",
+        SwingText(meso_hit, SkillLinesAt(skill, level), SkillCasts(skill))));
   }
   // A share of what the hit it copies dealt, not a share of a bare swing: a
   // 70% shadow behind a 210% line lands 147%. The row says "of each hit"
@@ -1309,16 +1324,8 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
   }
   double per_hit =
       pulse.base().skill_pct() + pulse.per_level().skill_pct() * (level - 1);
-  int lines = std::max(1, pulse.lines());
-  int strikes = std::max(1, pulse.casts());
-  std::string damage = SwingText(per_hit, pulse.lines());
-  if (strikes > 1) {
-    // Written in GMS's own order -- so much damage, so many times, so many
-    // strikes -- because the total alone hides which of the three moved.
-    damage = FormatPercent(per_hit) + " x" + std::to_string(lines) + " x" +
-             std::to_string(strikes) + " = " +
-             FormatPercent(per_hit * lines * strikes);
-  }
+  std::string damage =
+      SwingText(per_hit, pulse.lines(), std::max(1, pulse.casts()));
   if (pulse.max_pulses() > 0) {
     damage += ", " + std::to_string(pulse.max_pulses()) + " times";
   }

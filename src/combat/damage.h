@@ -167,6 +167,15 @@ int WholeValue(double value);
 // a skill whose lines climb has to climb everywhere at once.
 int SkillLinesAt(const Skill& skill, int level);
 
+// Strikes one swing of `skill` lands, each of SkillLinesAt lines. Never below
+// 1, so a swing that says nothing lands once. No ladder: GMS states a slash
+// count that holds at every level. See Skill::casts.
+int SkillCasts(const Skill& skill);
+
+// Strikes one extra hit lands, read exactly as SkillCasts is. See
+// SwingHit::casts.
+int SwingHitCasts(const SwingHit& hit);
+
 // What a skill's empowered form calls itself: the target's display name behind
 // "Empowered ". The form is a swing of its own and is keyed by this name
 // wherever a boost is looked up, so the fight and the fold have to spell it

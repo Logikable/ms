@@ -434,6 +434,41 @@ TEST_F(SkillInspectPanelTest, StatesEachHitOfASwingThatLandsTwo) {
             std::string::npos);
 }
 
+// A swing that lands the same strike several times states all three figures in
+// GMS's own order -- so much damage, so many lines, so many strikes -- because
+// the total alone hides which of the three moved.
+TEST_F(SkillInspectPanelTest, StatesTheStrikeCountOfASwingThatRepeats) {
+  Skill illusion = MakeLuckySeven();
+  illusion.set_lines(4);
+  illusion.set_casts(12);
+  illusion.mutable_base()->set_skill_pct(1.30);
+  illusion.clear_per_level();
+  SwingHit* burst = illusion.add_extra_hit();
+  burst->set_label("Explosion");
+  burst->set_lines(5);
+  burst->set_casts(5);
+  burst->mutable_base()->set_skill_pct(2.60);
+
+  std::string rendered = RenderAt(illusion, 1);
+  EXPECT_NE(RowIn(rendered, "Damage", "130% x4 x12 = 6240%"),
+            std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Explosion", "260% x5 x5 = 6500%"),
+            std::string::npos);
+
+  // One strike says nothing about a count it does not have.
+  illusion.clear_casts();
+  EXPECT_NE(RowIn(RenderAt(illusion, 1), "Damage", "130% x4 = 520%"),
+            std::string::npos);
+
+  // Orbs lit for their final damage are stated as the orbs they are worth: the
+  // percentage is whatever the character's own per-orb bargain says today.
+  illusion.mutable_buff()->set_duration_seconds(8.0);
+  illusion.mutable_buff()->mutable_base()->set_final_dmg_combo_orbs(6);
+  EXPECT_NE(
+      RowIn(RenderAt(illusion, 1), "Final Damage", "+6 Combo Orbs' worth"),
+      std::string::npos);
+}
+
 // What a skill hands another that is not damage reads as the same sentence the
 // damage boost does, one row per skill named -- two skills granted different
 // things cannot share a row. Several named take a heading, which buys each row

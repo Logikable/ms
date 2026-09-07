@@ -70,6 +70,7 @@ DEPARTURES = {
     ('Shuriken Challenge', 'max_enemies'): 'reach rule: 5 off its hitbox',
     ('Slash Blast', 'max_enemies'): 'reach rule: 4 off a 295x175 hitbox',
     ('Spear Sweep', 'max_enemies'): 'reach rule: 5 off a 360x190 hitbox',
+    ('Sword Illusion', 'lines'): 'the explosions are priced apart, 4 + 5',
 }
 
 

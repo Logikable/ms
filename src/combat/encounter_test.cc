@@ -2624,6 +2624,72 @@ TEST(ComputeCombatParamsTest, ASwingCanLandTwoHitsPricedSeparately) {
                    31.0 * poke);
 }
 
+// Sword Illusion's shape: one strike priced once and landed twelve times, with
+// five explosions behind it. What it is WORTH is the same as one swing of all
+// those lines -- what it buys is that every strike rolls for itself, which is
+// what the ledger draws and what the page states.
+TEST(ComputeCombatParamsTest, ASwingCanLandTheSameStrikeSeveralTimes) {
+  Skill illusion;
+  illusion.set_name("Sword Illusion");
+  illusion.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(illusion, JOB_ADVANCEMENT_SWORDMAN);
+  illusion.set_max_level(30);
+  illusion.set_max_enemies(8);
+  illusion.set_lines(4);
+  illusion.set_casts(12);
+  illusion.mutable_base()->set_skill_pct(1.30);
+  SwingHit* burst = illusion.add_extra_hit();
+  burst->set_label("Explosion");
+  burst->set_lines(5);
+  burst->set_casts(5);
+  burst->mutable_base()->set_skill_pct(2.60);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"sword_illusion", illusion}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(illusion, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  const AttackOption& swing = params.attacks[1];
+  // 130% four times twelve over, and 260% five times five: 62.4 + 65 poke-fuls
+  // against the poke's own 100% once.
+  double poke = params.attacks[0].damage_per_hit[0];
+  EXPECT_NEAR(swing.damage_per_hit[0], 127.4 * poke, 1e-6);
+  // Seventeen groups rather than two: twelve slashes of four lines and five
+  // explosions of five, each rolling its own mastery and criticals.
+  ASSERT_EQ(swing.groups.size(), 17u);
+  EXPECT_EQ(swing.groups[0].rolls.lines, 4);
+  EXPECT_EQ(swing.groups[11].rolls.lines, 4);
+  EXPECT_EQ(swing.groups[12].rolls.lines, 5);
+  double summed = 0.0;
+  for (const HitGroup& group : swing.groups) {
+    summed += group.damage[0];
+  }
+  EXPECT_NEAR(summed, swing.damage_per_hit[0], 1e-6);
+  // The lines the rest of the fight counts are every strike's, not one
+  // strike's: a Final Attack on a line and a hit-counting buff both read this.
+  EXPECT_EQ(swing.lines, 48);
+
+  // Folded into one 48-line swing it would be worth exactly the same, which is
+  // the claim that lets the two be told apart on shape alone.
+  Skill folded = illusion;
+  folded.clear_casts();
+  folded.set_lines(48);
+  folded.clear_extra_hit();
+  SwingHit* whole = folded.add_extra_hit();
+  whole->set_label("Explosion");
+  whole->set_lines(25);
+  whole->mutable_base()->set_skill_pct(2.60);
+  state.skills["sword_illusion"] = folded;
+  CombatParams flattened = ComputeCombatParams(state);
+  const AttackOption& flat = flattened.attacks[1];
+  EXPECT_NEAR(flat.damage_per_hit[0], swing.damage_per_hit[0], 1e-6);
+  EXPECT_EQ(flat.groups.size(), 2u);
+}
+
 // Raging Blow's shape: four strikes of which the final two always crit. The
 // two halves are the same multiplier, so the whole of the difference between
 // them is the certainty -- which is what makes it worth telling them apart.

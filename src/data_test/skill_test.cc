@@ -843,6 +843,28 @@ TEST(SkillDataTest, EveryHeldSwingSaysHowItPulsesAndWhatItEndsOn) {
   }
 }
 
+// A repeated strike belongs to a swing and to nothing else, and a buff raised
+// at the cast belongs to a swing that lays one: neither says anything anywhere
+// else, so a file carrying one there has stated something no reader will find.
+TEST(SkillDataTest, RepeatedStrikesAndCastRaisedBuffsBelongToSwings) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (skill.casts() > 0) {
+      EXPECT_TRUE(DealsDamage(skill.kind()))
+          << entry.first << " repeats a strike it never lands";
+      EXPECT_GT(skill.base().skill_pct(), 0.0)
+          << entry.first << " repeats a strike worth nothing";
+    }
+    for (const SwingHit& hit : skill.extra_hit()) {
+      EXPECT_GE(hit.casts(), 0) << entry.first << " lands a negative count";
+    }
+    if (skill.buff().raised_on_cast()) {
+      EXPECT_EQ(skill.kind(), SKILL_KIND_ATTACK)
+          << entry.first << " raises a buff at a cast it never makes";
+    }
+  }
+}
+
 // A scattered swing has to be a swing, throw strikes, and reach no further than
 // it has strikes to throw -- an enemy no strike lands on is one the swing was
 // never going to touch, so a reach past the count is the file misstating what

@@ -3025,6 +3025,25 @@ TEST(CombatSimTest, TheFightSpendsASwingToLayALapsedBuff) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.9890, 1e-9);
 }
 
+// Sword Illusion's shape against Puncture's: the buff GMS grants "upon use"
+// goes up before its own swing lands, so the swing that lays it is already
+// under it.
+TEST(CombatSimTest, ABuffRaisedAtTheCastLiftsItsOwnSwing) {
+  Mob snail = MakeMob("Snail", 10000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  GiveWound(params, /*duration=*/3.0, /*factor=*/2.0);
+  params.buffs[0].raised_on_cast = true;
+
+  // 10 rather than Puncture's bare 5: the window opened at the cast, so the
+  // laying swing is priced inside it.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.9990, 1e-9);
+  // And every swing after it, exactly as before.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.9950, 1e-9);
+}
+
 // The wound itself: a pulse that waits for the buff its skill lays, so it
 // ticks only where one was left rather than from the moment the skill is
 // learned.

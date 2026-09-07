@@ -401,6 +401,16 @@ message SkillEffect {
   // handing out a fifth bargain per orb, so a Hero who never bought the hyper
   // paying boss damage per orb gets nothing more of it here either.
   double combo_orb_gain_pct = 124;
+  // The Hero's other V node. Combo Orbs' worth of FINAL DAMAGE granted beside
+  // the ring, without granting the orbs themselves: Sword Illusion's cast is
+  // worth six of them for eight seconds, and only the final damage lever reads
+  // them -- not the attack, the boss damage or the DEF an orb also pays.
+  //
+  // Added to the ring's own count rather than multiplied against it, which is
+  // GMS's "Final Damage increase from Combo Orb is additive". So a Hero with
+  // no per-orb final damage is paid nothing here, which is GMS's "while Combo
+  // Attack is active" with no gate to write. See FoldComboOrbs.
+  double final_dmg_combo_orbs = 125;
   // The Magician's. Share of incoming damage that comes out of MP rather than
   // HP. Nothing tracks MP, so it lands as plain reduction alongside
   // damage_taken_pct.
@@ -696,6 +706,15 @@ message Buff {
   // while it stands do not count, so its uptime is what their firing rate
   // buys. 0 for a buff that waits on a clock, which is every other one.
   int32 charge_lines = 7;
+  // Whether the buff goes up at the CAST rather than on the landing, so the
+  // swing that lays it is already under it. Only for a buff hanging off an
+  // attack; a buff on its own wait is up before anything swings anyway.
+  //
+  // Sword Illusion is what it exists for, and GMS's own wording is the whole
+  // of the distinction: the explosions come "afterwards" and the final damage
+  // "upon use". Puncture is the other reading and the default -- a wound lifts
+  // the swings after it, never the one that opened it.
+  bool raised_on_cast = 15;
   // What everybody ELSE in the party gets while this stands, read at the
   // caster's level. Smokescreen alone: GMS shelters the party under it, and
   // this hands them a share off what a hit costs instead.
@@ -830,6 +849,10 @@ message SwingHit {
   // What the skill page calls it, under the swing's own Damage row.
   string label = 3;
   int32 lines = 4;
+  // Strikes this hit lands, each of `lines` lines rolling on its own, exactly
+  // as Skill.casts is for the swing. Sword Illusion's five explosions are what
+  // it exists for. 0 reads as one, which is every other extra hit.
+  int32 casts = 5;
 }
 
 // A swing the player HOLDS rather than presses: it pulses while the key is
@@ -1290,6 +1313,18 @@ message Skill {
   // this buys is the level the next one arrives at. 1/15 is a line every
   // fifteen levels. See SkillLinesAt.
   double lines_per_level = 23;
+  // Strikes one swing lands, each its own attack of `lines` lines against the
+  // same `max_enemies` -- exactly what BuffPulse.casts is for a pulse. Sword
+  // Illusion is what it exists for: GMS slashes twelve times for 275% four
+  // times, and folding that into one 48-line swing would state the skill as
+  // something it is not.
+  //
+  // Every strike rolls its own mastery and criticals rather than sharing the
+  // swing's, so the ledger draws twelve landings of four, which is what GMS
+  // draws. What the swing is WORTH is unchanged: the expectation of N strikes
+  // of L lines is the expectation of N*L. Read through SkillCasts, and 0
+  // reads as one, which is every other swing.
+  int32 casts = 56;
   // What an arrow gains for every enemy it has already gone through, as a
   // fraction. It COMPOUNDS: at 0.15 the second enemy the swing reaches takes
   // 1.15 times the first and the sixth takes 1.15^5 = 2.01 times it, which is

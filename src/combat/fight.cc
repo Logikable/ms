@@ -1495,17 +1495,23 @@ void CombatSim::RunAllyBuffs(const CombatParams& params, double dt) {
   }
 }
 
-void CombatSim::LayBuffs(const CombatParams& params, int swung) {
+bool CombatSim::LayBuffs(const CombatParams& params, int swung, bool on_cast) {
+  bool laid = false;
   for (int i = 0; i < static_cast<int>(buffs_.size()); ++i) {
     const BuffOption& buff = params.buffs[i];
-    if (buff.laid_by_attack != swung) {
+    if (buff.laid_by_attack != swung || buff.raised_on_cast != on_cast) {
       continue;
     }
     // Refreshed rather than stacked, and its wait started from the swing that
     // laid it: what a second puncture leaves is one wound, not two.
     buffs_[i].left = buff.duration_seconds;
     buffs_[i].cooldown_left = buff.cooldown_seconds;
+    // The mask is built once a step, before anything swings, so one raised
+    // mid-swing has to say so itself or the strike would be priced without it.
+    buff_mask_ |= 1 << i;
+    laid = true;
   }
+  return laid;
 }
 
 // The swing that lays a buff nobody is holding, chosen ahead of the hardest
@@ -1718,8 +1724,16 @@ void CombatSim::LandSwing(const CombatParams& params,
         std::min(static_cast<double>(params.max_player_hp),
                  player_hp_ + attack.heal_fraction * params.max_player_hp);
   } else {
+    // A buff GMS grants "upon use" goes up before its own swing lands, so the
+    // strike is priced under it -- and the swing is re-read out of the set the
+    // raising just moved the fight into, the attacks being the same in the same
+    // order in every one. Every other swing-laid buff waits for the landing.
+    const AttackOption* cast = &attack;
+    if (LayBuffs(params, swung, /*on_cast=*/true)) {
+      cast = &Attacks(params)[swung];
+    }
     const AttackOption& landed =
-        FormToLand(attack_clocks_[swung].empowered_count, attack);
+        FormToLand(attack_clocks_[swung].empowered_count, *cast);
     double proc_recovered =
         Strike(landed, {DamageOrigin::kSwing, 0}, held_pulses_);
     CreditFreeze(params, landed);
@@ -1727,10 +1741,10 @@ void CombatSim::LandSwing(const CombatParams& params,
     // run out. Read off the aimed attack rather than off what landed: the
     // strike belongs to the skill, not to the form standing in for it this
     // time. It goes out after the swing, so it lands on what the swing left.
-    if (attack.side != nullptr &&
+    if (cast->side != nullptr &&
         attack_clocks_[swung].side_cooldown_left <= 0.0) {
-      Strike(*attack.side, {DamageOrigin::kSideStrike, swung});
-      attack_clocks_[swung].side_cooldown_left = attack.side->cooldown_seconds;
+      Strike(*cast->side, {DamageOrigin::kSideStrike, swung});
+      attack_clocks_[swung].side_cooldown_left = cast->side->cooldown_seconds;
     }
     // Recovery rides the hit, so a cast does not earn it and neither does a
     // swing at nothing. What landed pays it rather than what was aimed, and
@@ -1743,11 +1757,11 @@ void CombatSim::LandSwing(const CombatParams& params,
     // Credited after the strike, so the volley lands on what the swing left
     // standing rather than on mobs it was about to kill anyway. A healing cast
     // credits nothing: it is not an attack.
-    CreditSwing(params, attack.count_weight);
+    CreditSwing(params, cast->count_weight);
     // Attacking is what brings a buff round sooner, so the same swing that
     // credits the volleys credits the buffs. A cast credits neither.
-    CreditBuffs(params, attack.count_weight, landed.lines);
-    LayBuffs(params, swung);
+    CreditBuffs(params, cast->count_weight, landed.lines);
+    LayBuffs(params, swung, /*on_cast=*/false);
   }
   if (attack.cooldown_seconds > 0.0) {
     attack_clocks_[swung].cooldown_left = attack.cooldown_seconds;

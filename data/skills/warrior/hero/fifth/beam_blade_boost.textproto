@@ -1,7 +1,7 @@
 name: "Beam Blade Boost"
 description: "Strengthens Beam Blade."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 9 }
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 10 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {

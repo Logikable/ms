@@ -1,0 +1,51 @@
+# The Hero's last job node, and the biggest single cast in the game: twelve
+# slashes of four lines, then five explosions of five, all of it on eight
+# enemies. Modelled as the twelve and the five GMS states rather than as one
+# 48-line swing and one 25-line hit -- the total is the same either way, but a
+# folded swing would say the skill is something it is not, and the ledger would
+# draw one landing where GMS draws twelve.
+#
+# The final damage it detonates is worth six Combo Orbs for eight seconds, and
+# it goes up AT THE CAST. GMS draws the distinction in one sentence: the
+# explosions come "afterwards" and the final damage "upon use". So the whole of
+# this cast lands under it, and so does everything else for the rest of the
+# window -- about 1.3 times damage on every swing, once every 30 seconds.
+#
+# Six orbs' worth rather than six orbs: only the final damage an orb pays is
+# lifted, not the attack, the boss damage or the DEF one also carries. A Hero
+# who never learned a per-orb final damage is paid nothing, which is GMS's
+# "while Combo Attack is active" with no gate to write.
+#
+# The 660ms cast is short for a 5th job skill -- the slashes and the explosions
+# play out behind it rather than inside it.
+name: "Sword Illusion"
+description:
+  "Slice forward faster than the eye can see using a combo orb. Sword "
+  "Illusion is unaffected by attack reflection."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 4 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_AXE
+required_equip_type: EQUIP_TYPE_TWO_HANDED_AXE
+base_delay_ms: 660
+cooldown_seconds: 30.0
+max_enemies: 8
+lines: 4
+casts: 12
+base { skill_pct: 1.30 }
+per_level { skill_pct: 0.05 }
+extra_hit {
+  label: "Explosion"
+  lines: 5
+  casts: 5
+  base { skill_pct: 2.60 }
+  per_level { skill_pct: 0.10 }
+}
+buff {
+  duration_seconds: 8.0
+  raised_on_cast: true
+  base { final_dmg_combo_orbs: 6 }
+}

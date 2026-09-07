@@ -1769,6 +1769,50 @@ TEST_F(DerivedStatsTest, AGainLiftsEveryOrbBargainAtOnce) {
   EXPECT_EQ(after.skill_stats.def(), 1130);
 }
 
+// Sword Illusion's shape: six orbs' worth of final damage granted beside the
+// ring, reaching that one lever and no other -- and lifted by a gain as the
+// rest of the ring is.
+TEST_F(DerivedStatsTest, LitOrbsPayFinalDamageAndNothingElse) {
+  CharacterInstance c = MakeCharacter(rng_, 200, 0);
+  Skill combo;
+  combo.set_name("Advanced Combo");
+  combo.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(combo, JOB_ADVANCEMENT_SWORDMAN);
+  combo.set_max_level(1);
+  combo.set_combo_orbs(10);
+  combo.mutable_base()->set_attack_per_combo_orb(2);
+  combo.mutable_base()->set_final_dmg_pct_per_combo_orb(0.10);
+  combo.mutable_base()->set_boss_pct_per_combo_orb(0.02);
+  std::map<std::string, Skill> skills = {{"advanced_combo", combo}};
+  ASSERT_TRUE(c.LearnSkill(combo, 1));
+
+  Skill illusion;
+  illusion.set_name("Sword Illusion");
+  illusion.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(illusion, JOB_ADVANCEMENT_SWORDMAN);
+  illusion.set_max_level(1);
+  illusion.mutable_base()->set_final_dmg_combo_orbs(6);
+  skills.insert({"sword_illusion", illusion});
+  ASSERT_TRUE(c.LearnSkill(illusion, 1));
+
+  // Sixteen orbs of final damage, and ten orbs of everything else.
+  DerivedStats lit = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(lit.final_dmg_pct, 1.60, 1e-9);
+  EXPECT_EQ(lit.skill_stats.attack(), 20);
+  EXPECT_NEAR(lit.boss_pct, 0.20, 1e-9);
+
+  // A gain lifts the six with the ten: 18.08 orbs rather than 16.
+  Skill instinct;
+  instinct.set_name("Instinctual Combo");
+  instinct.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(instinct, JOB_ADVANCEMENT_SWORDMAN);
+  instinct.set_max_level(1);
+  instinct.mutable_base()->set_combo_orb_gain_pct(0.13);
+  skills.insert({"instinctual_combo", instinct});
+  ASSERT_TRUE(c.LearnSkill(instinct, 1));
+  EXPECT_NEAR(DerivedStatsFor(c, skills).final_dmg_pct, 1.808, 1e-9);
+}
+
 // A ring nobody hands out is no ring: the bargain is priced against nothing
 // and the character is left with the plain final damage they bought.
 TEST_F(DerivedStatsTest, PerOrbFinalDamageIsWorthNothingWithoutOrbs) {
@@ -1783,6 +1827,13 @@ TEST_F(DerivedStatsTest, PerOrbFinalDamageIsWorthNothingWithoutOrbs) {
   std::map<std::string, Skill> skills = {{"combo_synergy", synergy}};
   ASSERT_TRUE(c.LearnSkill(synergy, 1));
 
+  EXPECT_NEAR(DerivedStatsFor(c, skills).final_dmg_pct, 0.10, 1e-9);
+
+  // Nor do orbs lit for their final damage alone, which is GMS's "while Combo
+  // Attack is active" holding without a gate anywhere.
+  synergy.mutable_base()->clear_final_dmg_pct_per_combo_orb();
+  synergy.mutable_base()->set_final_dmg_combo_orbs(6);
+  skills["combo_synergy"] = synergy;
   EXPECT_NEAR(DerivedStatsFor(c, skills).final_dmg_pct, 0.10, 1e-9);
 }
 

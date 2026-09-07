@@ -315,6 +315,14 @@ int SkillLinesAt(const Skill& skill, int level) {
   return lines + WholeValue(skill.lines_per_level() * (level - 1));
 }
 
+int SkillCasts(const Skill& skill) {
+  return std::max(1, skill.casts());
+}
+
+int SwingHitCasts(const SwingHit& hit) {
+  return std::max(1, hit.casts());
+}
+
 std::string EmpoweredSkillName(const std::string& target) {
   return "Empowered " + target;
 }

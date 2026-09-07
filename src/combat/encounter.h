@@ -410,6 +410,11 @@ struct BuffOption {
   // order in every buffed set: one index stays good however the buffs come and
   // go.
   int laid_by_attack = -1;
+  // Whether the swing that lays it is already under it. False for Puncture's
+  // wound, which lifts the swings after it; true for Sword Illusion, whose
+  // final damage GMS grants "upon use" and whose slashes all land inside the
+  // window it opens. Read only where laid_by_attack is set.
+  bool raised_on_cast = false;
   // The forms this buff can be raised in, for the fight to choose between at
   // each cast. Empty for a buff with one form, which is every one but Burning
   // Soul Blade -- and where it is filled, duration_seconds above is the

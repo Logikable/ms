@@ -406,7 +406,10 @@ class CombatSim {
   void CreditBuffs(const CombatParams& params, double weight, int lines);
   // Puts up every buff the swing at index `swung` lays. Nothing for the
   // swings that lay none, which is all of them bar Puncture.
-  void LayBuffs(const CombatParams& params, int swung);
+  // Puts up the buffs the swing at `swung` lays, taking those raised at the
+  // cast or those laid by the landing as `on_cast` says. True where any went
+  // up, which is the caller's cue to re-read the swing under the new mask.
+  bool LayBuffs(const CombatParams& params, int swung, bool on_cast);
   // The attacks as they stand under the buffs currently up. Every set holds
   // the same attacks in the same order, so an index survives a buff going up
   // or lapsing under it.

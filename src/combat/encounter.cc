@@ -203,11 +203,16 @@ void AddSwingHit(const SwingHit& hit, const OffenseStats& offense, int level,
   extra.mirror_lines = extra.lines;
   HitGroup group;
   group.rolls = RollsFor(extra);
+  int casts = SwingHitCasts(hit);
   for (std::size_t i = 0; i < types.size(); ++i) {
     group.damage.push_back(ExpectedAttackDamage(extra, *types[i].mob));
-    attack.damage_per_hit[i] += group.damage.back();
+    attack.damage_per_hit[i] += group.damage.back() * casts;
   }
-  attack.groups.push_back(std::move(group));
+  // Landed once per strike, as the swing's own is: Sword Illusion sets off
+  // five explosions and each of them rolls for itself.
+  for (int i = 0; i < casts; ++i) {
+    attack.groups.push_back(group);
+  }
 }
 
 // The hold a held swing is. What has been priced already is ONE pulse, so the
@@ -509,10 +514,21 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
       damage += pool;
     }
   }
-  attack.groups.push_back({attack.damage_per_hit, RollsFor(offense)});
+  // What has been priced is ONE strike of the swing. A skill that slashes
+  // several times lands that strike again for each of them, every one rolling
+  // its own mastery and criticals -- the same total as one swing of all those
+  // lines, drawn as the several landings GMS draws.
+  int casts = skill != nullptr ? SkillCasts(*skill) : 1;
+  HitGroup strike{attack.damage_per_hit, RollsFor(offense)};
+  for (int i = 0; i < casts; ++i) {
+    attack.groups.push_back(strike);
+  }
+  for (double& damage : attack.damage_per_hit) {
+    damage *= casts;
+  }
   if (skill != nullptr) {
     attack.pierce_gain_pct = skill->pierce_gain_pct();
-    attack.lines = SkillLinesAt(*skill, level);
+    attack.lines = SkillLinesAt(*skill, level) * casts;
     // A scattered swing is the same swing throughout -- what differs is how
     // many of it land where, which is the fight's business rather than the
     // damage chain's, exactly as the opening hit's target count is.
@@ -543,8 +559,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   follow.mirror_lines = 0;
   AddBurns(skill, derived, offense, follow, level, types, speed_factor, attack);
   AddFinalAttacks(skill, derived, follow, level,
-                  skill != nullptr ? SkillLinesAt(*skill, level) : 1, types,
-                  attack);
+                  skill != nullptr ? attack.lines : 1, types, attack);
   if (skill != nullptr && skill->has_side_strike()) {
     AddSideStrike(proto, equipped, weapon, *skill, level, types, derived,
                   speed_factor, attack);
@@ -1267,6 +1282,7 @@ void AddBuffs(const GameState& state,
     // BuffOption::laid_by_attack.
     if (skill->kind() == SKILL_KIND_ATTACK) {
       option.laid_by_attack = AttackNamed(params.attacks, skill->name());
+      option.raised_on_cast = buff.raised_on_cast();
       option.cast_seconds = 0.0;
     }
     params.buffs.push_back(std::move(option));

@@ -1,7 +1,7 @@
 name: "Rising Rage Boost"
 description: "Strengthens Rising Rage."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 8 }
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 9 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {
