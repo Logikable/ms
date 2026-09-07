@@ -646,15 +646,41 @@ Skill BuffPulseSkill(const Skill& skill, const BuffPulse& pulse) {
   return built;
 }
 
+// How often a pulse fires: its own clock, or the swing of the skill it rides.
+// A skill nobody in the catalog answers to leaves nothing, which is the same
+// answer a pulse with no clock gives.
+double PulseIntervalSeconds(const BuffPulse& pulse,
+                            const std::map<std::string, Skill>& skills,
+                            int attack_speed, double speed_factor) {
+  if (pulse.paced_by_skill_name().empty()) {
+    return pulse.cast_interval_seconds() * speed_factor;
+  }
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& ridden = entry.second;
+    if (ridden.name() != pulse.paced_by_skill_name()) {
+      continue;
+    }
+    int delay_ms = ridden.base_delay_ms() > 0 ? ridden.base_delay_ms()
+                                              : kDefaultSwingDelayMs;
+    int stage = ridden.fixed_delay() ? kUnscaledAttackSpeedStage : attack_speed;
+    return SwingIntervalSeconds(delay_ms, stage) * speed_factor;
+  }
+  return 0.0;
+}
+
 // The bleeding half of one buff, or of one form of it: an attack on the buff's
 // own clock, gated on that buff -- and on that form -- standing. Nothing for a
 // buff that does not bleed, which is most of them.
 void AddBuffPulse(const Character& proto, const EquipStats& equipped,
                   EquipType weapon_type, const Skill& skill,
                   const BuffPulse& pulse, int stance, int level,
-                  const DerivedStats& derived, double speed_factor,
-                  const std::vector<CombatType>& types, AttackSet& set) {
-  if (pulse.cast_interval_seconds() <= 0.0) {
+                  const DerivedStats& derived,
+                  const std::map<std::string, Skill>& skills, int attack_speed,
+                  double speed_factor, const std::vector<CombatType>& types,
+                  AttackSet& set) {
+  double interval =
+      PulseIntervalSeconds(pulse, skills, attack_speed, speed_factor);
+  if (interval <= 0.0) {
     return;
   }
   Skill bleed = BuffPulseSkill(skill, pulse);
@@ -663,7 +689,7 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
                 kUnscaledAttackSpeedStage, speed_factor);
   wound.swing_seconds = 0.0;
   ClearSwingRiders(wound);
-  wound.interval_seconds = pulse.cast_interval_seconds() * speed_factor;
+  wound.interval_seconds = interval;
   wound.strikes_per_pulse = std::max(1, pulse.casts());
   wound.max_pulses = pulse.max_pulses();
   wound.needs_buff_stance = stance;
@@ -674,8 +700,10 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
 // already is. Nothing for the skills that have none, which is most of them.
 void AddAutoModes(const Character& proto, const EquipStats& equipped,
                   EquipType weapon_type, const Skill& skill, int level,
-                  const DerivedStats& derived, double speed_factor,
-                  const std::vector<CombatType>& types, AttackSet& set) {
+                  const DerivedStats& derived,
+                  const std::map<std::string, Skill>& skills, int attack_speed,
+                  double speed_factor, const std::vector<CombatType>& types,
+                  AttackSet& set) {
   for (const AutoMode& mode : skill.auto_mode()) {
     if (mode.cast_interval_seconds() <= 0.0) {
       continue;
@@ -692,13 +720,13 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
     set.auto_attacks.push_back(std::move(attack));
   }
   AddBuffPulse(proto, equipped, weapon_type, skill, skill.buff().pulse(), -1,
-               level, derived, speed_factor, types, set);
+               level, derived, skills, attack_speed, speed_factor, types, set);
   // A buff with forms bleeds once per form. Both sit in the list and only the
   // one the cast raised fires, which is what needs_buff_stance gates.
   for (int i = 0; i < skill.buff().stance_size(); ++i) {
     AddBuffPulse(proto, equipped, weapon_type, skill,
-                 skill.buff().stance(i).pulse(), i, level, derived,
-                 speed_factor, types, set);
+                 skill.buff().stance(i).pulse(), i, level, derived, skills,
+                 attack_speed, speed_factor, types, set);
   }
 }
 
@@ -959,7 +987,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     Skill boosted;
     const Skill& swung = Boosted(skill, learned, boosts, boosted);
     AddAutoModes(proto, total_stats, weapon_type, swung, learned, off_clock,
-                 speed_factor, types, set);
+                 state.skills, attack_speed, speed_factor, types, set);
     // A skill the fight cannot spend a swing on is done here. Its own-clock
     // halves are already in, which is the whole of what a passive like Weapon
     // Aura contributes -- an aura is not something the character swings.
@@ -1285,11 +1313,11 @@ void AddAllyBuffs(const GameState& state, double speed_factor,
 // Whether a buff ticks damage at all, through its own pulse or through one of
 // its forms'.
 bool Bleeds(const Buff& buff) {
-  if (buff.pulse().cast_interval_seconds() > 0.0) {
+  if (Pulses(buff.pulse())) {
     return true;
   }
   for (const Stance& stance : buff.stance()) {
-    if (stance.pulse().cast_interval_seconds() > 0.0) {
+    if (Pulses(stance.pulse())) {
       return true;
     }
   }

@@ -1398,21 +1398,42 @@ TEST(SkillDataTest, OnlyASwingCarriesAnElement) {
 
 // A pulse is its clock and its damage together: everything else written on one
 // -- its reach, its strikes, the count it runs out at -- is read only where
-// there is a clock to read it on.
+// there is a clock to read it on. A pulse riding a swing has a clock too; what
+// it may not have is one of its own as well, or a skill nobody swings.
 TEST(SkillDataTest, EveryBuffPulseStatesTheClockItTicksOn) {
-  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  std::set<std::string> names;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    names.insert(entry.second.name());
+  }
+  for (const std::pair<const std::string, Skill>& entry : skills) {
     const BuffPulse& pulse = entry.second.buff().pulse();
-    if (pulse.cast_interval_seconds() > 0.0) {
+    if (Pulses(pulse)) {
       EXPECT_GT(pulse.base().skill_pct(), 0.0)
           << entry.first << " ticks and deals nothing";
       EXPECT_FALSE(pulse.label().empty())
           << entry.first << " bleeds under no name";
+      if (!pulse.paced_by_skill_name().empty()) {
+        EXPECT_EQ(pulse.cast_interval_seconds(), 0.0)
+            << entry.first << " rides a swing and keeps a clock of its own";
+        EXPECT_GT(names.count(pulse.paced_by_skill_name()), 0u)
+            << entry.first << " rides \"" << pulse.paced_by_skill_name()
+            << "\", which no skill answers to";
+      }
       continue;
     }
     EXPECT_EQ(pulse.lines(), 0) << entry.first << " strikes on no clock";
     EXPECT_EQ(pulse.casts(), 0) << entry.first << " strikes on no clock";
     EXPECT_EQ(pulse.max_enemies(), 0) << entry.first << " reaches on no clock";
     EXPECT_EQ(pulse.max_pulses(), 0) << entry.first << " runs out of no clock";
+  }
+  // Only a buff's own pulse may ride a swing: a form's is raised and dropped
+  // with the form, and nothing reads a clock off one.
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    for (const Stance& stance : entry.second.buff().stance()) {
+      EXPECT_TRUE(stance.pulse().paced_by_skill_name().empty())
+          << entry.first << "'s form rides a swing";
+    }
   }
 }
 

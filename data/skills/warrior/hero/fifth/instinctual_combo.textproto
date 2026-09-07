@@ -1,0 +1,45 @@
+# The Hero's burst button. For 20 seconds the Combo Counter is worth more,
+# and every Raging Blow tears the space it swings through.
+#
+# The orb line reads as a fifth bargain per orb and is not one: it lifts what
+# the orbs ALREADY grant by 13%, whichever skill pays it. GMS's own spec
+# tables walk Combo Attack's 20 ATT to 22.2 and Advanced Combo's 120% final
+# damage to 133.2%, which is that multiplier and nothing else.
+#
+# Two of GMS's three clauses are dropped. The orb charge rate it halves has
+# nothing to bite on -- the ring is a static count here -- and Soul Trace
+# fires off Spirit Calibur, a 6th job skill this game never reaches.
+#
+# GMS says only "periodically" and keeps the number in Skill.wz, but a 41
+# second battle analysis settles it: 180 rifts over a 30 second window is 60
+# firings, one every half second, which is exactly a Raging Blow. The tear
+# rides the swing rather than a clock, so a faster Hero tears more often.
+#
+# That is 7,200% a firing against the swing's own 1,548%, and it is meant to
+# be: the Hero is a burst job, hugely stronger with this up than without.
+name: "Instinctual Combo"
+description:
+  "Tap into your subconscious abilities and use your power to its fullest "
+  "potential. Increases the ability gained from the Combo Orb and allows you "
+  "to leave a tear in space when Raging Blow is used. The tear in space is "
+  "unaffected by attack reflection."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 3 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 20.0
+  base { combo_orb_gain_pct: 0.043 }
+  per_level { combo_orb_gain_pct: 0.003 }
+  pulse {
+    label: "Tear in Space"
+    paced_by_skill_name: "Raging Blow"
+    casts: 3
+    lines: 6
+    max_enemies: 6
+    base { skill_pct: 1.97 }
+    per_level { skill_pct: 0.07 }
+  }
+}

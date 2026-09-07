@@ -195,6 +195,12 @@ int ComboOrbsAt(const Skill& skill, int level);
 // and a wait that shortens as the skill is taught has to shorten in both.
 double CooldownAt(const Skill& skill, int level);
 
+// Whether `pulse` bleeds at all: on a clock of its own, or on the swings of
+// the skill it rides. The fight and the skill page both ask, and a pulse that
+// rides a swing states no clock -- so neither can settle it by reading
+// cast_interval_seconds. See BuffPulse.paced_by_skill_name.
+bool Pulses(const BuffPulse& pulse);
+
 // The longest `buff` can stand at its first level: its own length, or the
 // longest of the forms it can be raised in. A buff with forms states no length
 // of its own, so anything asking whether a buff stands at all has to ask here

@@ -395,6 +395,12 @@ message SkillEffect {
   // as its product so that it says what GMS says.
   double boss_pct_per_combo_orb = 112;
   double def_per_combo_orb = 113;
+  // The Hero's V node. Share added to everything the orbs are already worth --
+  // all four levers above at once, whoever pays them. Instinctual Combo is
+  // what it exists for: GMS lifts what the Combo Counter grants rather than
+  // handing out a fifth bargain per orb, so a Hero who never bought the hyper
+  // paying boss damage per orb gets nothing more of it here either.
+  double combo_orb_gain_pct = 124;
   // The Magician's. Share of incoming damage that comes out of MP rather than
   // HP. Nothing tracks MP, so it lands as plain reduction alongside
   // damage_taken_pct.
@@ -581,6 +587,16 @@ message BuffPulse {
   // seconds of a 30-second buff -- which is why lengthening the buff buys
   // nothing.
   int32 max_pulses = 8;
+  // The skill whose swings this rides, instead of a clock of its own.
+  // Instinctual Combo's tear is what it exists for: GMS leaves one behind on
+  // every Raging Blow, so it fires as fast as the character swings that skill
+  // and quickens as their attack speed does.
+  //
+  // A pulse names this or cast_interval_seconds, never both -- and only a
+  // buff's own pulse may name it, not a stance's. Read as though every swing
+  // were the named one, which is what a fight spent on the skill this rides
+  // comes to.
+  string paced_by_skill_name = 9;
 }
 
 // A buff a skill puts up for a while, on a cooldown of its own: what it grants

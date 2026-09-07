@@ -2393,6 +2393,70 @@ TEST(ComputeCombatParamsTest, ABuffOnAnAttackIsLaidByThatSwing) {
   EXPECT_EQ(capped.auto_attacks[0].max_pulses, 12);
 }
 
+// Instinctual Combo's shape: the tear rides Raging Blow rather than a clock,
+// so it falls exactly as often as that swing does -- and quickens with it when
+// the weapon does. A ride nobody answers to leaves no pulse at all.
+TEST(ComputeCombatParamsTest, APulseRidesTheSwingItNames) {
+  Skill blow;
+  blow.set_name("Raging Blow");
+  blow.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(blow, JOB_ADVANCEMENT_SWORDMAN);
+  blow.set_max_level(30);
+  blow.set_base_delay_ms(660);
+  blow.set_max_enemies(8);
+  blow.mutable_base()->set_skill_pct(3.87);
+  Skill instinct;
+  instinct.set_name("Instinctual Combo");
+  instinct.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(instinct, JOB_ADVANCEMENT_SWORDMAN);
+  instinct.set_max_level(30);
+  instinct.set_cooldown_seconds(120.0);
+  Buff* buff = instinct.mutable_buff();
+  buff->set_duration_seconds(20.0);
+  BuffPulse* tear = buff->mutable_pulse();
+  tear->set_label("Tear in Space");
+  tear->set_paced_by_skill_name("Raging Blow");
+  tear->set_lines(6);
+  tear->set_casts(3);
+  tear->set_max_enemies(6);
+  tear->mutable_base()->set_skill_pct(4.0);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"raging_blow", blow}, {"instinctual_combo", instinct}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(blow, 1));
+  ASSERT_TRUE(state.character.LearnSkill(instinct, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  ASSERT_EQ(params.attacks[1].name, "Raging Blow");
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  EXPECT_DOUBLE_EQ(params.auto_attacks[0].interval_seconds,
+                   params.attacks[1].swing_seconds);
+  EXPECT_EQ(params.auto_attacks[0].strikes_per_pulse, 3);
+  EXPECT_EQ(params.auto_attacks[0].max_enemies, 6);
+  EXPECT_EQ(params.auto_attacks[0].needs_buff, 0);
+
+  // The ride is the swing's, not the tear's own animation: a slower Raging
+  // Blow is a slower tear.
+  blow.set_base_delay_ms(900);
+  state.skills["raging_blow"] = blow;
+  CombatParams slower = ComputeCombatParams(state);
+  ASSERT_EQ(slower.auto_attacks.size(), 1u);
+  EXPECT_GT(slower.auto_attacks[0].interval_seconds,
+            params.auto_attacks[0].interval_seconds);
+  EXPECT_DOUBLE_EQ(slower.auto_attacks[0].interval_seconds,
+                   slower.attacks[1].swing_seconds);
+
+  // And a swing nobody in the book answers to bleeds nothing.
+  tear->set_paced_by_skill_name("Nothing At All");
+  state.skills["instinctual_combo"] = instinct;
+  EXPECT_TRUE(ComputeCombatParams(state).auto_attacks.empty());
+}
+
 // Burning Soul Blade's shape: one buff, two forms, one pulse apiece. Both
 // pulses sit in the table tagged with the form that fires them, and each form
 // knows where its own pulse is, so the fight can price them without hunting.

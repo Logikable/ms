@@ -9,7 +9,7 @@
 name: "Impenetrable Skin"
 description: "Makes your flesh as strong as steel."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 6 }
 placement { job_advancement: JOB_ADVANCEMENT_PALADIN_V skill_order: 3 }
 placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 4 }
 v_node: V_NODE_KIND_ARCHETYPE

@@ -80,6 +80,7 @@ const PercentLever kPercentLevers[] = {
      " per Combo Orb"},
     {"Boss Damage", &SkillEffect::boss_pct_per_combo_orb, kPlus,
      " per Combo Orb"},
+    {"Combo Orb Effect", &SkillEffect::combo_orb_gain_pct, kPlus, ""},
     {"Critical Damage", &SkillEffect::crit_dmg_per_freeze_stack, kPlus,
      " per Freeze Stack"},
     {"Final Damage", &SkillEffect::final_dmg_pct_per_freeze_stack, kPlus,
@@ -424,10 +425,21 @@ std::string FormatNumber(double value, int decimals = 1) {
 // How far one attack reaches and how often it comes. The skill's own swing and
 // each of its own-clock halves say it in these same words, so two halves that
 // reach differently can be told apart at a glance.
+std::string ReachText(int enemies) {
+  return std::to_string(enemies) + (enemies == 1 ? " enemy" : " enemies");
+}
+
 std::string ReachText(int enemies, double clock) {
-  return std::to_string(enemies) +
-         (enemies == 1 ? " enemy every " : " enemies every ") +
-         FormatNumber(clock, 2) + "s";
+  return ReachText(enemies) + " every " + FormatNumber(clock, 2) + "s";
+}
+
+// How often a pulse comes round, as the tail of the row stating it: its own
+// clock, or the swing it rides.
+std::string PulseClockText(const BuffPulse& pulse) {
+  if (!pulse.paced_by_skill_name().empty()) {
+    return " with every " + pulse.paced_by_skill_name();
+  }
+  return " every " + FormatNumber(pulse.cast_interval_seconds(), 2) + "s";
 }
 
 // The wait before a skill can be swung again, at `level`. What a landed hit
@@ -1292,7 +1304,7 @@ std::vector<Row> ShieldRows(const Shield& shield, int level) {
 // every other own-clock half does, in an Attacks row, and keeps the damage row
 // for the damage.
 std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
-  if (pulse.cast_interval_seconds() <= 0.0) {
+  if (!Pulses(pulse)) {
     return {};
   }
   double per_hit =
@@ -1319,15 +1331,11 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
   std::vector<Row> levers = LeverRows(base, per, level, "");
   std::vector<Row> rows;
   if (pulse.max_enemies() == 0) {
-    rows.push_back(EffectRow(
-        pulse.label(), damage + " every " +
-                           FormatNumber(pulse.cast_interval_seconds(), 2) +
-                           "s"));
+    rows.push_back(EffectRow(pulse.label(), damage + PulseClockText(pulse)));
   } else {
     rows.push_back(EffectRow(pulse.label(), damage));
     rows.push_back(EffectRow(
-        "Attacks",
-        ReachText(pulse.max_enemies(), pulse.cast_interval_seconds())));
+        "Attacks", ReachText(pulse.max_enemies()) + PulseClockText(pulse)));
   }
   Append(std::move(levers), rows);
   return rows;

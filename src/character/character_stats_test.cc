@@ -1729,6 +1729,46 @@ TEST_F(DerivedStatsTest, BossDamageAndDefArePricedPerOrb) {
   EXPECT_EQ(stats.skill_stats.def(), 1000);
 }
 
+// Instinctual Combo's gain lifts what the ring is worth rather than adding a
+// bargain of its own, so every lever priced per orb moves at once -- and the
+// flat ones floor, as a whole-number grant does everywhere else.
+TEST_F(DerivedStatsTest, AGainLiftsEveryOrbBargainAtOnce) {
+  CharacterInstance c = MakeCharacter(rng_, 200, 0);
+  Skill combo;
+  combo.set_name("Advanced Combo");
+  combo.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(combo, JOB_ADVANCEMENT_SWORDMAN);
+  combo.set_max_level(1);
+  combo.set_combo_orbs(10);
+  combo.mutable_base()->set_attack_per_combo_orb(2);
+  combo.mutable_base()->set_final_dmg_pct_per_combo_orb(0.10);
+  combo.mutable_base()->set_boss_pct_per_combo_orb(0.02);
+  combo.mutable_base()->set_def_per_combo_orb(100);
+  std::map<std::string, Skill> skills = {{"advanced_combo", combo}};
+  ASSERT_TRUE(c.LearnSkill(combo, 1));
+
+  DerivedStats before = DerivedStatsFor(c, skills);
+  EXPECT_EQ(before.skill_stats.attack(), 20);
+  EXPECT_NEAR(before.final_dmg_pct, 1.0, 1e-9);
+  EXPECT_NEAR(before.boss_pct, 0.20, 1e-9);
+  EXPECT_EQ(before.skill_stats.def(), 1000);
+
+  Skill instinct;
+  instinct.set_name("Instinctual Combo");
+  instinct.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(instinct, JOB_ADVANCEMENT_SWORDMAN);
+  instinct.set_max_level(1);
+  instinct.mutable_base()->set_combo_orb_gain_pct(0.13);
+  skills.insert({"instinctual_combo", instinct});
+  ASSERT_TRUE(c.LearnSkill(instinct, 1));
+
+  DerivedStats after = DerivedStatsFor(c, skills);
+  EXPECT_EQ(after.skill_stats.attack(), 22);
+  EXPECT_NEAR(after.final_dmg_pct, 1.13, 1e-9);
+  EXPECT_NEAR(after.boss_pct, 0.226, 1e-9);
+  EXPECT_EQ(after.skill_stats.def(), 1130);
+}
+
 // A ring nobody hands out is no ring: the bargain is priced against nothing
 // and the character is left with the plain final damage they bought.
 TEST_F(DerivedStatsTest, PerOrbFinalDamageIsWorthNothingWithoutOrbs) {

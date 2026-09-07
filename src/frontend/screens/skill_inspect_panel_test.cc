@@ -1680,6 +1680,31 @@ TEST_F(SkillInspectPanelTest, APulseWithItsOwnReachStatesItBesideItsClock) {
       << rendered;
 }
 
+// A pulse riding a swing has no clock to state, so the page names the swing
+// instead -- the player reads how often it comes round off the skill they are
+// already pressing.
+TEST_F(SkillInspectPanelTest, APulseRidingASwingNamesIt) {
+  Skill instinct = IronBody();
+  instinct.set_kind(SKILL_KIND_ACTIVE);
+  Buff* buff = instinct.mutable_buff();
+  buff->set_duration_seconds(20.0);
+  BuffPulse* pulse = buff->mutable_pulse();
+  pulse->set_label("Tear in Space");
+  pulse->set_paced_by_skill_name("Raging Blow");
+  pulse->set_lines(6);
+  pulse->set_casts(3);
+  pulse->set_max_enemies(6);
+  pulse->mutable_base()->set_skill_pct(4.00);
+
+  std::string rendered = RenderAt(instinct, 1);
+  EXPECT_NE(RowIn(rendered, "Tear in Space", "400% x6 x3 = 7200%"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Attacks", "6 enemies with every Raging Blow"),
+            std::string::npos)
+      << rendered;
+}
+
 // The skill list tells an active from a passive by colour; a skill that is
 // both has to tell its own halves apart the same way, or the colours mean one
 // thing in the book and another on the page.

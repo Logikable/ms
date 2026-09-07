@@ -350,6 +350,11 @@ double CooldownAt(const Skill& skill, int level) {
   return std::max(0.0, wait);
 }
 
+bool Pulses(const BuffPulse& pulse) {
+  return pulse.cast_interval_seconds() > 0.0 ||
+         !pulse.paced_by_skill_name().empty();
+}
+
 double LongestBuffDuration(const Buff& buff) {
   double longest = buff.duration_seconds();
   for (const Stance& stance : buff.stance()) {

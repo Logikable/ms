@@ -164,6 +164,8 @@ struct PassiveTotals : DerivedStats {
   double final_dmg_pct_per_combo_orb = 0.0;
   double boss_pct_per_combo_orb = 0.0;
   int def_per_combo_orb = 0;
+  // Share added to all four of those at once, and to nothing else.
+  double combo_orb_gain_pct = 0.0;
 };
 
 // Folds one skill's levers in, on top of whatever is already there. Handed the
@@ -237,6 +239,7 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   totals.final_dmg_pct_per_combo_orb += granted.final_dmg_pct_per_combo_orb();
   totals.boss_pct_per_combo_orb += granted.boss_pct_per_combo_orb();
   totals.def_per_combo_orb += WholeValue(granted.def_per_combo_orb());
+  totals.combo_orb_gain_pct += granted.combo_orb_gain_pct();
   totals.ap_stat_pct += granted.ap_stat_pct();
   totals.ap_stat_bonus_pct += granted.ap_stat_bonus_pct();
   // Read here rather than beside the cap itself, so that a BUFF granting
@@ -583,10 +586,13 @@ void FoldFreezeStacks(PassiveTotals& totals) {
 }
 
 void FoldComboOrbs(PassiveTotals& totals) {
-  totals.attack += totals.attack_per_combo_orb * totals.combo_orbs;
-  totals.boss_pct += totals.boss_pct_per_combo_orb * totals.combo_orbs;
-  totals.def_grant += totals.def_per_combo_orb * totals.combo_orbs;
-  double orbs = totals.final_dmg_pct_per_combo_orb * totals.combo_orbs;
+  // The ring is worth its count of orbs, and a gain lifts the whole ring --
+  // so it multiplies here, once, rather than each lever where it is read.
+  double ring = totals.combo_orbs * (1.0 + totals.combo_orb_gain_pct);
+  totals.attack += WholeValue(totals.attack_per_combo_orb * ring);
+  totals.boss_pct += totals.boss_pct_per_combo_orb * ring;
+  totals.def_grant += WholeValue(totals.def_per_combo_orb * ring);
+  double orbs = totals.final_dmg_pct_per_combo_orb * ring;
   totals.final_dmg_pct = (1.0 + totals.final_dmg_pct) * (1.0 + orbs) - 1.0;
 }
 
