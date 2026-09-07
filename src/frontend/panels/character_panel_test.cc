@@ -1967,6 +1967,53 @@ TEST_F(CharacterPanelTest, DownOffTheBottomLandsOnTheName) {
   EXPECT_TRUE(IsInverted(comp, kDefaultUsername));
 }
 
+// Tabbing into the panel with a character still called "Set Username" opens
+// the cursor on the name row: the one thing waiting there.
+TEST_F(CharacterPanelTest, TabbingInOpensAnUnnamedCharacterOnTheName) {
+  panel_focus_ = kEquipPanel;
+  CharacterInstance c = MakeCharacter();
+  CharacterPanel panel(c, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent();
+  EXPECT_FALSE(IsInverted(comp, kDefaultUsername)) << "another panel has focus";
+
+  panel_focus_ = kCharPanel;
+  EXPECT_TRUE(IsInverted(comp, kDefaultUsername));
+}
+
+// A named character has nothing waiting, so the cursor opens where it always
+// did -- on the tab bar, which Right then walks along.
+TEST_F(CharacterPanelTest, TabbingInLandsOnTheTabBarForANamedCharacter) {
+  panel_focus_ = kEquipPanel;
+  CharacterInstance c = MakePendingBeginner(rng_);
+  c.SetUsername("Sean99");
+  CharacterPanel panel(c, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent();
+  panel_focus_ = kCharPanel;
+  EXPECT_FALSE(IsInverted(comp, "Sean99"));
+
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Advance
+  EXPECT_NE(RenderComponent(comp).find("Swordman"), std::string::npos);
+}
+
+// And the name row is only the opening stop. Once the player has moved the
+// cursor, leaving the panel and coming back keeps where they left it.
+TEST_F(CharacterPanelTest, TabbingBackInKeepsAMovedCursor) {
+  panel_focus_ = kEquipPanel;
+  CharacterInstance c = MakePendingBeginner(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent();
+  panel_focus_ = kCharPanel;
+  ASSERT_TRUE(IsInverted(comp, kDefaultUsername));
+
+  comp->OnEvent(ftxui::Event::ArrowDown);  // down onto the tab bar
+  panel_focus_ = kEquipPanel;
+  RenderComponent(comp);
+  panel_focus_ = kCharPanel;
+  EXPECT_FALSE(IsInverted(comp, kDefaultUsername));
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_NE(RenderComponent(comp).find("Swordman"), std::string::npos);
+}
+
 TEST_F(CharacterPanelTest, TypingANameAndPressingEnterKeepsIt) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
   CharacterPanel panel(c, account_, panel_focus_);

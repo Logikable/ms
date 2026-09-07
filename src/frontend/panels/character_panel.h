@@ -244,10 +244,16 @@ class CharacterPanel {
   // the stat to read about, and the point to spend on it.
   enum SkillCol { kColName, kColPlus };
 
-  // Per-focus-area event handlers, dispatched from MakeComponent by zone. Each
+  // Follows the panel focus, so that tabbing in can open an unnamed
+  // character's cursor on the name row. Render is what notices the panel was
+  // tabbed into, so it runs from there.
+  void NoteFocus() const;
+  // Per-focus-area event handlers, dispatched from RouteEvent by zone. Each
   // returns whether it consumed the event. OnTabsEvent drives the shared outer
   // tab bar (kZoneTabs); the other two own their tab's content zones -- the
   // stat rows for Stats, the advancement bar and skill rows for Skills.
+  bool RouteEvent(const ftxui::Event& event,
+                  const CharacterPanelActions& actions);
   bool OnUsernameEvent(const ftxui::Event& event);
   bool OnTabsEvent(const ftxui::Event& event);
   bool OnStatsTabEvent(const ftxui::Event& event,
@@ -473,11 +479,18 @@ class CharacterPanel {
   AccountInstance& account_;
   std::map<std::string, Skill> skills_;
   int& panel_focus_;
-  int active_tab_ = 0;     // index into VisibleTabs(): the selected tab
-  Zone zone_ = kZoneTabs;  // which focus zone holds the cursor
-  int stat_sel_ = 0;       // selected Stats-content row (0-3 = STR/DEX/INT/LUK)
-  int skill_tab_ = 0;      // selected page: a 0-based stage index, then Hyper
-  int skill_sel_ = 0;      // selected skill row within the current page
+  int active_tab_ = 0;  // index into VisibleTabs(): the selected tab
+  // Which focus zone holds the cursor. The tab bar, until NoteFocus opens an
+  // unnamed character on the name row instead.
+  mutable Zone zone_ = kZoneTabs;
+  // Whether the panel held focus at the last frame, and whether the player has
+  // moved the cursor yet. Mutable for the same reason zone_ is: NoteFocus runs
+  // from the render.
+  mutable bool was_focused_;
+  bool cursor_moved_ = false;
+  int stat_sel_ = 0;   // selected Stats-content row (0-3 = STR/DEX/INT/LUK)
+  int skill_tab_ = 0;  // selected page: a 0-based stage index, then Hyper
+  int skill_sel_ = 0;  // selected skill row within the current page
   SkillCol skill_col_ = kColName;  // selected column of that row
   // How long the cursor has sat on the selected skill row, for the name
   // scroll. Mutable because the render is what notices the row moved.

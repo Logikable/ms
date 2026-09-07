@@ -199,7 +199,20 @@ CharacterPanel::CharacterPanel(CharacterInstance& character,
     : character_(character),
       account_(account),
       skills_(std::move(skills)),
-      panel_focus_(panel_focus) {
+      panel_focus_(panel_focus),
+      was_focused_(panel_focus == kCharPanel) {
+}
+
+void CharacterPanel::NoteFocus() const {
+  bool focused = panel_focus_ == kCharPanel;
+  // An unnamed character has one thing waiting here, so tabbing in opens the
+  // cursor on the name row rather than the tab bar. Only until the player
+  // moves it: from then on the panel keeps the stop they left it on.
+  if (focused && !was_focused_ && !cursor_moved_ &&
+      character_.username() == kDefaultUsername) {
+    zone_ = kZoneUsername;
+  }
+  was_focused_ = focused;
 }
 
 // `row_width` is what the row has to lay out in, which is one short of the
@@ -1243,6 +1256,7 @@ ftxui::Element CharacterPanel::RenderUsername(bool row_selected) const {
 }
 
 ftxui::Element CharacterPanel::Render() const {
+  NoteFocus();
   const Character& p = character_.proto();
 
   // Right-aligned in three columns so the job name doesn't shuffle sideways
@@ -1582,6 +1596,34 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
   return false;
 }
 
+bool CharacterPanel::RouteEvent(const ftxui::Event& event,
+                                const CharacterPanelActions& actions) {
+  // Route by zone: the shared tab bar, else the active tab's content (only
+  // Stats reaches kZoneStatRows, only Skills the skill zones).
+  if (zone_ == kZoneUsername) {
+    return OnUsernameEvent(event);
+  }
+  if (zone_ == kZoneTabs) {
+    return OnTabsEvent(event);
+  }
+  if (ActiveTab() == kTabStats) {
+    return OnStatsTabEvent(event, actions);
+  }
+  if (ActiveTab() == kTabHyper) {
+    return OnHyperTabEvent(event, actions);
+  }
+  if (ActiveTab() == kTabAbility) {
+    return OnAbilityTabEvent(event, actions);
+  }
+  if (ActiveTab() == kTabPots) {
+    return OnPotsTabEvent(event, actions);
+  }
+  if (ActiveTab() == kTabAdvance) {
+    return OnAdvanceTabEvent(event, actions);
+  }
+  return OnSkillsTabEvent(event, actions);
+}
+
 ftxui::Component CharacterPanel::MakeComponent(CharacterPanelActions actions) {
   // Renderer(bool) overload is Focusable(), unlike Renderer() -- required so
   // Container::Tab's Focused() check passes when panel_focus_ == kCharPanel.
@@ -1599,30 +1641,15 @@ ftxui::Component CharacterPanel::MakeComponent(CharacterPanelActions actions) {
           active_tab_ = kTabStats;
         }
         zone_ = EffectiveZone();
-        // Route by zone: the shared tab bar, else the active tab's content
-        // (only Stats reaches kZoneStatRows, only Skills the skill zones).
-        if (zone_ == kZoneUsername) {
-          return OnUsernameEvent(event);
+        int tab_before = active_tab_;
+        Zone zone_before = zone_;
+        int stop_before = CursorStop();
+        bool handled = RouteEvent(event, actions);
+        if (active_tab_ != tab_before || EffectiveZone() != zone_before ||
+            CursorStop() != stop_before) {
+          cursor_moved_ = true;
         }
-        if (zone_ == kZoneTabs) {
-          return OnTabsEvent(event);
-        }
-        if (ActiveTab() == kTabStats) {
-          return OnStatsTabEvent(event, actions);
-        }
-        if (ActiveTab() == kTabHyper) {
-          return OnHyperTabEvent(event, actions);
-        }
-        if (ActiveTab() == kTabAbility) {
-          return OnAbilityTabEvent(event, actions);
-        }
-        if (ActiveTab() == kTabPots) {
-          return OnPotsTabEvent(event, actions);
-        }
-        if (ActiveTab() == kTabAdvance) {
-          return OnAdvanceTabEvent(event, actions);
-        }
-        return OnSkillsTabEvent(event, actions);
+        return handled;
       });
 }
 
