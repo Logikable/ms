@@ -162,11 +162,22 @@ std::vector<const Skill*> SkillsForAdvancement(
 
 // Every V Matrix node a character standing at `advancement` -- their 5th, if
 // they have taken one -- holds. One list, because the matrix is one page, in
-// three blocks: the job's own actives, the boosts that lift its book, then the
-// commons every job shares. What is the character's own leads; what every
-// character has is at the foot.
+// four blocks: the job's own actives, the boosts that lift its book, the
+// archetype nodes only its line has, then the commons every job shares. What
+// is the character's own leads; what every character has is at the foot. See
+// VNodeSectionBreaks for where one block ends and the next begins.
 std::vector<const Skill*> VNodesFor(const std::map<std::string, Skill>& catalog,
                                     JobAdvancement advancement);
+
+// Where a V page's list breaks into sections: the index of the FIRST node of
+// each block after the head one, in order. The page reads in four -- the job's
+// own actives, the boosts that lift its book, the archetype nodes only its
+// line has, and the commons every character shares -- and a page missing one
+// of them simply reports no break there.
+//
+// Indices into the list VNodesFor returned, so the caller draws a rule above
+// each of them and nothing has to be re-sorted.
+std::vector<int> VNodeSectionBreaks(const std::vector<const Skill*>& nodes);
 
 // The name of an attack-speed stage, "Slower" through "Fastest 3", or "" for
 // an unspecified one. The stage number is the proto enum's own value, so a

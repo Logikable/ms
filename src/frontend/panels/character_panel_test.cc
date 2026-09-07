@@ -268,6 +268,26 @@ bool IsDim(ftxui::Component comp, const std::string& needle, int rows = 20) {
 // Whether `needle` is on screen. RenderComponent's string is no use across a
 // change of colour: ToString writes escape codes between them, so a coloured
 // tag and the name beside it are not adjacent bytes.
+// Rows drawn as a horizontal rule, which is how the page says one block of it
+// has ended and another begun.
+int RuleRows(const std::string& rendered) {
+  int rules = 0;
+  std::size_t start = 0;
+  while (start <= rendered.size()) {
+    std::size_t end = rendered.find('\n', start);
+    std::string line = rendered.substr(
+        start, end == std::string::npos ? std::string::npos : end - start);
+    if (line.find("\u2500\u2500\u2500") != std::string::npos) {
+      ++rules;
+    }
+    if (end == std::string::npos) {
+      break;
+    }
+    start = end + 1;
+  }
+  return rules;
+}
+
 // The rightmost painted column of row `y`, the window's own border aside.
 // Two rows whose right-aligned cells line up end on the same one.
 int RowEnd(const ftxui::Screen& screen, int y) {
@@ -895,6 +915,26 @@ TEST_F(CharacterPanelTest, TheVPageComesAfterTheHyperOne) {
       << "a hyper is not a node";
   EXPECT_NE(matrix.find("11 VP"), std::string::npos)
       << "the pool reads in V Points";
+}
+
+// Rules where the page breaks into blocks: the job's own nodes read apart from
+// the commons under them. A numbered book is one list and takes none.
+TEST_F(CharacterPanelTest, TheVPageDrawsARuleBetweenItsBlocks) {
+  CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/11);
+  CharacterPanel panel(c, account_, panel_focus_, NodeCatalog());
+  ftxui::Component page = panel.MakeComponent();
+  page->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  page->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> page bar
+  int book = RuleRows(RenderComponentText(page));
+
+  for (int i = 0; i < 5; ++i) {
+    page->OnEvent(ftxui::Event::ArrowRight);  // page I -> V
+  }
+  std::string matrix = RenderComponentText(page);
+  ASSERT_NE(matrix.find("Radiant Evil"), std::string::npos);
+  ASSERT_NE(matrix.find("Rope Lift"), std::string::npos);
+  // One rule more than the book had: the job's own node, then the commons.
+  EXPECT_EQ(RuleRows(matrix), book + 1);
 }
 
 // A node\'s [+] is live only while the pool covers its next level, which is a

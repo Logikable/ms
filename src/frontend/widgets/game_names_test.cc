@@ -434,6 +434,40 @@ TEST(VNodesForTest, TheJobsOwnLeadAndTheCommonsSitAtTheFoot) {
                                 "Erda Fountain", "Rope Lift"}));
 }
 
+// The page draws a rule where one block ends and the next begins, so the four
+// read apart rather than as one long list.
+TEST(VNodesForTest, TheSectionsOfThePageAreReported) {
+  std::map<std::string, Skill> catalog = {
+      {"erda",
+       Node("Erda Fountain", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 1)},
+      {"lift",
+       Node("Rope Lift", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 2)},
+      {"skin", Node("Impenetrable Skin", V_NODE_KIND_ARCHETYPE,
+                    JOB_ADVANCEMENT_DARK_KNIGHT_V, 8)},
+      {"boost_a",
+       Node("Boost A", V_NODE_KIND_BOOST, JOB_ADVANCEMENT_DARK_KNIGHT_V, 5)},
+      {"boost_b",
+       Node("Boost B", V_NODE_KIND_BOOST, JOB_ADVANCEMENT_DARK_KNIGHT_V, 6)},
+      {"dark", Node("Dark Synthesis", V_NODE_KIND_JOB,
+                    JOB_ADVANCEMENT_DARK_KNIGHT_V, 1)},
+  };
+  std::vector<const Skill*> nodes =
+      VNodesFor(catalog, JOB_ADVANCEMENT_DARK_KNIGHT_V);
+  EXPECT_EQ(VNodeSectionBreaks(nodes), (std::vector<int>{1, 3, 4}));
+
+  // A page missing a block reports no rule where it would have gone -- a job
+  // with nothing of its own opens on the commons and needs none at all.
+  std::map<std::string, Skill> commons_only = {
+      {"erda",
+       Node("Erda Fountain", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 1)},
+      {"lift",
+       Node("Rope Lift", V_NODE_KIND_COMMON, JOB_ADVANCEMENT_COMMON, 2)},
+  };
+  EXPECT_TRUE(
+      VNodeSectionBreaks(VNodesFor(commons_only, JOB_ADVANCEMENT_BISHOP_V))
+          .empty());
+}
+
 // An archetype node is listed by every 5th job of its line and by no other, so
 // a magician's matrix has no Weapon Aura in it however many warriors do.
 TEST(VNodesForTest, AnotherLinesArchetypeNodeIsNotOnThePage) {

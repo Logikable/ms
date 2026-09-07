@@ -869,8 +869,24 @@ int CharacterPanel::SkillRowsShown(int total) const {
   return std::max(1, std::min(total, max_rows_ - kSkillsTabFixedRows));
 }
 
-int CharacterPanel::FirstSkillRow(int total, int visible) const {
-  return ScrollWindowStart(total, skill_sel_, visible);
+int CharacterPanel::FirstSkillRow(int total, int selected, int visible) const {
+  return ScrollWindowStart(total, selected, visible);
+}
+
+std::vector<int> CharacterPanel::SkillLines(
+    int page, const std::vector<const Skill*>& skills) const {
+  std::vector<int> breaks =
+      IsVPage(page) ? VNodeSectionBreaks(skills) : std::vector<int>();
+  std::vector<int> lines;
+  std::size_t next = 0;
+  for (int i = 0; i < static_cast<int>(skills.size()); ++i) {
+    if (next < breaks.size() && breaks[next] == i) {
+      lines.push_back(-1);
+      ++next;
+    }
+    lines.push_back(i);
+  }
+  return lines;
 }
 
 ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
@@ -892,9 +908,15 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
   // counts as a different skill and starts from its own head.
   name_clock_.Follow(skill_tab_ * kSkillClockPageStride + skill_sel_,
                      rows_focused);
-  int total = static_cast<int>(skills.size());
+  // Counted in drawn LINES rather than in skills, so the window, the scroll
+  // bar and the row budget all measure the same thing -- a rule between two
+  // sections of the V page takes a line exactly as a skill does.
+  std::vector<int> lines = SkillLines(skill_tab_, skills);
+  int total = static_cast<int>(lines.size());
   int visible = SkillRowsShown(total);
-  int first = FirstSkillRow(total, visible);
+  int cursor = static_cast<int>(
+      std::find(lines.begin(), lines.end(), skill_sel_) - lines.begin());
+  int first = FirstSkillRow(total, cursor, visible);
   // Empty while the whole book fits, and then the rows keep their full width.
   // The level column is measured over the whole book rather than the window,
   // so scrolling does not shuffle the names sideways.
@@ -902,8 +924,11 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
   int row_width = cells.empty() ? ContentWidth() : ContentWidth() - 1;
   LevelColumn column = MeasureLevelColumn(skills);
   for (int i = 0; i < visible; ++i) {
-    ftxui::Element row = RenderSkillRow(*skills[first + i], first + i, column,
-                                        rows_focused, row_width);
+    int index = lines[first + i];
+    ftxui::Element row = index < 0
+                             ? PanelSeparator(highlighted_)
+                             : RenderSkillRow(*skills[index], index, column,
+                                              rows_focused, row_width);
     if (cells.empty()) {
       rows.push_back(std::move(row));
       continue;

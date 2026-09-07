@@ -444,8 +444,14 @@ class CharacterPanel {
   // How many skill rows the row budget leaves room for, of the `total` on the
   // page. All of them when no budget is set, and never fewer than one.
   int SkillRowsShown(int total) const;
-  // The first skill row of the window -- ScrollWindowStart, as above.
-  int FirstSkillRow(int total, int visible) const;
+  // The first drawn line of the skill window -- ScrollWindowStart, as above.
+  // `selected` is a LINE rather than a skill, a divider taking one of its own.
+  int FirstSkillRow(int total, int selected, int visible) const;
+  // The lines the page draws for `skills`, in order: the index of each skill,
+  // and -1 where a rule between two sections goes. Only a V page has any --
+  // every other book is one list.
+  std::vector<int> SkillLines(int page,
+                              const std::vector<const Skill*>& skills) const;
   // How many of the `total` extra stats the row budget leaves room for, once
   // the View All Stats row under them has been paid for. All of them when no
   // budget is set.

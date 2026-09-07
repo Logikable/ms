@@ -213,6 +213,16 @@ std::vector<const Skill*> VNodesFor(const std::map<std::string, Skill>& catalog,
   return nodes;
 }
 
+std::vector<int> VNodeSectionBreaks(const std::vector<const Skill*>& nodes) {
+  std::vector<int> breaks;
+  for (int i = 1; i < static_cast<int>(nodes.size()); ++i) {
+    if (VNodeRank(nodes[i]->v_node()) != VNodeRank(nodes[i - 1]->v_node())) {
+      breaks.push_back(i);
+    }
+  }
+  return breaks;
+}
+
 KindTag TagFor(const Skill& skill) {
   // Orange rather than red for the attack tag: red is the colour that says a
   // thing is refused (colors.h), and every attack skill carrying it on a
