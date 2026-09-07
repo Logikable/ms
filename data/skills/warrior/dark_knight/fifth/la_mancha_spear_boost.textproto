@@ -4,7 +4,7 @@
 name: "La Mancha Spear Boost"
 description: "Strengthens La Mancha Spear and Spear Sweep."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 10 }
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 11 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {

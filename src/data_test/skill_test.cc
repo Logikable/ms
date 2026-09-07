@@ -1137,6 +1137,9 @@ std::vector<BookWeapons> ExpectedBookWeapons() {
       {JOB_ADVANCEMENT_SPEARMAN, {kSpears}},
       {JOB_ADVANCEMENT_BERSERKER, {kSpears}},
       {JOB_ADVANCEMENT_DARK_KNIGHT, {kSpears}},
+      // The Dark Knight's V book holds both, the way the Hero's does: Spear
+      // of Darkness is the line's own, Blitz Shield every warrior's.
+      {JOB_ADVANCEMENT_DARK_KNIGHT_V, {kSpears, every_warrior}},
       {JOB_ADVANCEMENT_ARCHER, {{EQUIP_TYPE_BOW, EQUIP_TYPE_CROSSBOW}}},
       {JOB_ADVANCEMENT_HUNTER, {{EQUIP_TYPE_BOW}}},
       {JOB_ADVANCEMENT_RANGER, {{EQUIP_TYPE_BOW}}},

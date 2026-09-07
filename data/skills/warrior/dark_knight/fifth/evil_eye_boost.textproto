@@ -7,7 +7,7 @@ description:
   "Strengthens Evil Eye of Domination, Revenge of the Evil Eye and Radiant "
   "Evil."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 8 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {
