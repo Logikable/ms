@@ -1080,12 +1080,13 @@ TEST(SkillDataTest, EveryAttackNamesTheWeaponsItNeeds) {
 
 // What each book's attacks are swung with. Written out rather than derived:
 // which weapons a line masters is a decision, and a book added without one
-// fails here until somebody makes it. The rogue's first book is the one that
-// holds two sets -- Double Stab is a dagger and Lucky Seven a claw, which is
-// the whole reason the branch exists.
+// fails here until somebody makes it. A book naming two lists holds two kinds
+// of attack: the rogue's first splits -- Double Stab is a dagger and Lucky
+// Seven a claw, which is the whole reason the branch exists -- and a V book
+// pairs its job's own node with an archetype node every warrior swings.
 struct BookWeapons {
   JobAdvancement book;
-  std::set<EquipType> weapons;
+  std::vector<std::set<EquipType>> lists;
 };
 
 const std::set<EquipType> kSwordAxe = {
@@ -1101,43 +1102,43 @@ std::vector<BookWeapons> ExpectedBookWeapons() {
   every_warrior.insert(kSwordBlunt.begin(), kSwordBlunt.end());
   every_warrior.insert(kSpears.begin(), kSpears.end());
   return {
-      {JOB_ADVANCEMENT_SWORDMAN, every_warrior},
-      // Blitz Shield: one list for all three books, since every warrior
-      // swings it whatever their own line masters.
-      {JOB_ADVANCEMENT_HERO_V, every_warrior},
-      {JOB_ADVANCEMENT_FIGHTER, kSwordAxe},
-      {JOB_ADVANCEMENT_CRUSADER, kSwordAxe},
-      {JOB_ADVANCEMENT_HERO, kSwordAxe},
-      {JOB_ADVANCEMENT_PAGE, kSwordBlunt},
-      {JOB_ADVANCEMENT_WHITE_KNIGHT, kSwordBlunt},
-      {JOB_ADVANCEMENT_PALADIN, kSwordBlunt},
-      {JOB_ADVANCEMENT_SPEARMAN, kSpears},
-      {JOB_ADVANCEMENT_BERSERKER, kSpears},
-      {JOB_ADVANCEMENT_DARK_KNIGHT, kSpears},
-      {JOB_ADVANCEMENT_ARCHER, {EQUIP_TYPE_BOW, EQUIP_TYPE_CROSSBOW}},
-      {JOB_ADVANCEMENT_HUNTER, {EQUIP_TYPE_BOW}},
-      {JOB_ADVANCEMENT_RANGER, {EQUIP_TYPE_BOW}},
-      {JOB_ADVANCEMENT_BOW_MASTER, {EQUIP_TYPE_BOW}},
-      {JOB_ADVANCEMENT_CROSSBOWMAN, {EQUIP_TYPE_CROSSBOW}},
-      {JOB_ADVANCEMENT_SNIPER, {EQUIP_TYPE_CROSSBOW}},
-      {JOB_ADVANCEMENT_MARKSMAN, {EQUIP_TYPE_CROSSBOW}},
-      {JOB_ADVANCEMENT_ROGUE, {EQUIP_TYPE_DAGGER, EQUIP_TYPE_CLAW}},
-      {JOB_ADVANCEMENT_ASSASSIN, {EQUIP_TYPE_CLAW}},
-      {JOB_ADVANCEMENT_HERMIT, {EQUIP_TYPE_CLAW}},
-      {JOB_ADVANCEMENT_NIGHT_LORD, {EQUIP_TYPE_CLAW}},
-      {JOB_ADVANCEMENT_BANDIT, {EQUIP_TYPE_DAGGER}},
-      {JOB_ADVANCEMENT_CHIEF_BANDIT, {EQUIP_TYPE_DAGGER}},
-      {JOB_ADVANCEMENT_SHADOWER, {EQUIP_TYPE_DAGGER}},
-      {JOB_ADVANCEMENT_MAGICIAN, {EQUIP_TYPE_STAFF}},
-      {JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD, {EQUIP_TYPE_STAFF}},
-      {JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE, {EQUIP_TYPE_STAFF}},
-      {JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE, {EQUIP_TYPE_STAFF}},
-      {JOB_ADVANCEMENT_FIRE_POISON_WIZARD, {EQUIP_TYPE_STAFF}},
-      {JOB_ADVANCEMENT_FIRE_POISON_MAGE, {EQUIP_TYPE_STAFF}},
-      {JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE, {EQUIP_TYPE_STAFF}},
-      {JOB_ADVANCEMENT_CLERIC, {EQUIP_TYPE_STAFF}},
-      {JOB_ADVANCEMENT_PRIEST, {EQUIP_TYPE_STAFF}},
-      {JOB_ADVANCEMENT_BISHOP, {EQUIP_TYPE_STAFF}},
+      {JOB_ADVANCEMENT_SWORDMAN, {every_warrior}},
+      // The Hero's V book holds both: Worldreaver is the Hero's own, and
+      // Blitz Shield is swung by every warrior whatever their line masters.
+      {JOB_ADVANCEMENT_HERO_V, {kSwordAxe, every_warrior}},
+      {JOB_ADVANCEMENT_FIGHTER, {kSwordAxe}},
+      {JOB_ADVANCEMENT_CRUSADER, {kSwordAxe}},
+      {JOB_ADVANCEMENT_HERO, {kSwordAxe}},
+      {JOB_ADVANCEMENT_PAGE, {kSwordBlunt}},
+      {JOB_ADVANCEMENT_WHITE_KNIGHT, {kSwordBlunt}},
+      {JOB_ADVANCEMENT_PALADIN, {kSwordBlunt}},
+      {JOB_ADVANCEMENT_SPEARMAN, {kSpears}},
+      {JOB_ADVANCEMENT_BERSERKER, {kSpears}},
+      {JOB_ADVANCEMENT_DARK_KNIGHT, {kSpears}},
+      {JOB_ADVANCEMENT_ARCHER, {{EQUIP_TYPE_BOW, EQUIP_TYPE_CROSSBOW}}},
+      {JOB_ADVANCEMENT_HUNTER, {{EQUIP_TYPE_BOW}}},
+      {JOB_ADVANCEMENT_RANGER, {{EQUIP_TYPE_BOW}}},
+      {JOB_ADVANCEMENT_BOW_MASTER, {{EQUIP_TYPE_BOW}}},
+      {JOB_ADVANCEMENT_CROSSBOWMAN, {{EQUIP_TYPE_CROSSBOW}}},
+      {JOB_ADVANCEMENT_SNIPER, {{EQUIP_TYPE_CROSSBOW}}},
+      {JOB_ADVANCEMENT_MARKSMAN, {{EQUIP_TYPE_CROSSBOW}}},
+      {JOB_ADVANCEMENT_ROGUE, {{EQUIP_TYPE_DAGGER}, {EQUIP_TYPE_CLAW}}},
+      {JOB_ADVANCEMENT_ASSASSIN, {{EQUIP_TYPE_CLAW}}},
+      {JOB_ADVANCEMENT_HERMIT, {{EQUIP_TYPE_CLAW}}},
+      {JOB_ADVANCEMENT_NIGHT_LORD, {{EQUIP_TYPE_CLAW}}},
+      {JOB_ADVANCEMENT_BANDIT, {{EQUIP_TYPE_DAGGER}}},
+      {JOB_ADVANCEMENT_CHIEF_BANDIT, {{EQUIP_TYPE_DAGGER}}},
+      {JOB_ADVANCEMENT_SHADOWER, {{EQUIP_TYPE_DAGGER}}},
+      {JOB_ADVANCEMENT_MAGICIAN, {{EQUIP_TYPE_STAFF}}},
+      {JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD, {{EQUIP_TYPE_STAFF}}},
+      {JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE, {{EQUIP_TYPE_STAFF}}},
+      {JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE, {{EQUIP_TYPE_STAFF}}},
+      {JOB_ADVANCEMENT_FIRE_POISON_WIZARD, {{EQUIP_TYPE_STAFF}}},
+      {JOB_ADVANCEMENT_FIRE_POISON_MAGE, {{EQUIP_TYPE_STAFF}}},
+      {JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE, {{EQUIP_TYPE_STAFF}}},
+      {JOB_ADVANCEMENT_CLERIC, {{EQUIP_TYPE_STAFF}}},
+      {JOB_ADVANCEMENT_PRIEST, {{EQUIP_TYPE_STAFF}}},
+      {JOB_ADVANCEMENT_BISHOP, {{EQUIP_TYPE_STAFF}}},
   };
 }
 
@@ -1145,9 +1146,9 @@ std::vector<BookWeapons> ExpectedBookWeapons() {
 // book's own weapons, and nothing else in the class will swing it. A book
 // whose attacks disagree with the table above is a mapping mistake.
 TEST(SkillDataTest, EveryAttackIsSwungWithItsBooksWeapons) {
-  std::map<JobAdvancement, std::set<EquipType>> expected;
+  std::map<JobAdvancement, std::vector<std::set<EquipType>>> expected;
   for (const BookWeapons& book : ExpectedBookWeapons()) {
-    expected[book.book] = book.weapons;
+    expected[book.book] = book.lists;
   }
   std::set<JobAdvancement> seen;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
@@ -1157,20 +1158,12 @@ TEST(SkillDataTest, EveryAttackIsSwungWithItsBooksWeapons) {
     }
     JobAdvancement book = BookOf(skill);
     seen.insert(book);
-    std::map<JobAdvancement, std::set<EquipType>>::const_iterator it =
-        expected.find(book);
+    std::map<JobAdvancement, std::vector<std::set<EquipType>>>::const_iterator
+        it = expected.find(book);
     ASSERT_NE(it, expected.end())
         << entry.first << "'s book names no weapons in this test";
     std::set<EquipType> weapons = WeaponLists(skill).front();
-    // The rogue's book splits, so each of its attacks takes one of its two.
-    if (book == JOB_ADVANCEMENT_ROGUE) {
-      EXPECT_EQ(weapons.size(), 1u) << entry.first;
-      for (EquipType type : weapons) {
-        EXPECT_GT(it->second.count(type), 0u) << entry.first;
-      }
-      continue;
-    }
-    EXPECT_EQ(weapons, it->second)
+    EXPECT_GT(std::count(it->second.begin(), it->second.end(), weapons), 0)
         << entry.first << " is not swung with its book's weapons";
   }
   // Every book named above must still hold attacks, or the table is carrying

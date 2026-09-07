@@ -1,0 +1,26 @@
+# One swing that cuts the screen in half. GMS makes the Hero invulnerable for
+# the whole of it, which is the point of the skill in a boss fight -- nothing
+# here threatens a character on a timetable they could dodge, so only the
+# damage is built.
+#
+# The 1.68-second cast is the longest in the game by a wide margin: seven
+# animation frames, and 1.14 seconds of that is the wind-up before the first
+# hit lands. It scales with attack speed like any other swing, so a Hero at
+# stage 7 stands still for 1.38 seconds -- about two and a half Raging Blows,
+# once every 25 seconds.
+name: "Worldreaver"
+description: "Unleashes a brutal slash."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_HERO_V skill_order: 2 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_AXE
+required_equip_type: EQUIP_TYPE_TWO_HANDED_AXE
+base_delay_ms: 1680
+cooldown_seconds: 25.0
+max_enemies: 15
+lines: 14
+base { skill_pct: 4.16 }
+per_level { skill_pct: 0.16 }
