@@ -6,7 +6,7 @@ name: "Slash Blast Boost"
 description: "Strengthens Slash Blast."
 kind: SKILL_KIND_PASSIVE
 placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 12 }
-placement { job_advancement: JOB_ADVANCEMENT_PALADIN_V skill_order: 11 }
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_V skill_order: 12 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {

@@ -941,6 +941,11 @@ message SideStrike {
   // six shurikens that each hunt down ONE enemy, so what the cast is worth
   // depends on how many there are to spread over.
   Scatter scatter = 7;
+  // Strikes one swing sets off, each of `lines` lines rolling on its own,
+  // exactly as SwingHit.casts is. Mighty Mjolnir is what it exists for: GMS
+  // leaves a shockwave behind on every enemy the hammer tracks down. 0 reads
+  // as one, which is Showdown's shuriken.
+  int32 casts = 8;
 }
 
 // A stronger version of a skill's attack, landed in place of every Nth

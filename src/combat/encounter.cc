@@ -488,10 +488,19 @@ void AddSideStrike(const Character& proto, const EquipStats& equipped,
   strike.cooldown_seconds = side.cooldown_seconds() * speed_factor;
   strike.scatter_hits = side.scatter().hits();
   strike.scatter_repeat_kept = 1.0 + side.scatter().repeat_final_dmg_pct();
+  std::vector<double> once;
   for (const CombatType& type : types) {
-    strike.damage_per_hit.push_back(ExpectedAttackDamage(stats, *type.mob));
+    once.push_back(ExpectedAttackDamage(stats, *type.mob));
   }
-  strike.groups.push_back({strike.damage_per_hit, RollsFor(stats)});
+  // Landed once per strike, as an extra hit's are: Mighty Mjolnir leaves a
+  // shockwave on every enemy the hammer tracks down, and each rolls for itself.
+  int casts = std::max(1, side.casts());
+  for (double damage : once) {
+    strike.damage_per_hit.push_back(damage * casts);
+  }
+  for (int i = 0; i < casts; ++i) {
+    strike.groups.push_back({once, RollsFor(stats)});
+  }
   attack.side = std::make_shared<const AttackOption>(std::move(strike));
 }
 

@@ -2310,6 +2310,46 @@ TEST(ComputeCombatParamsTest, ASwingCanSetOffAStrikeOnAWaitOfItsOwn) {
   EXPECT_EQ(params.attacks[0].side, nullptr);
 }
 
+// Mighty Mjolnir's shockwave: one side strike landed four times, each rolling
+// on its own, and no wait of its own -- the skill's cooldown is the wait.
+TEST(ComputeCombatParamsTest, ASideStrikeCanBeLandedSeveralTimes) {
+  Skill mjolnir;
+  mjolnir.set_name("Mighty Mjolnir");
+  mjolnir.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(mjolnir, JOB_ADVANCEMENT_SWORDMAN);
+  mjolnir.set_max_level(30);
+  mjolnir.set_base_delay_ms(570);
+  mjolnir.set_cooldown_seconds(12.0);
+  mjolnir.set_max_enemies(4);
+  mjolnir.set_lines(6);
+  mjolnir.mutable_base()->set_skill_pct(2.45);
+  SideStrike* side = mjolnir.mutable_side_strike();
+  side->set_label("Shockwave");
+  side->set_max_enemies(6);
+  side->set_lines(9);
+  side->set_casts(4);
+  side->mutable_base()->set_skill_pct(2.86);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"mjolnir", mjolnir}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(mjolnir, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  const AttackOption& swing = params.attacks[1];
+  ASSERT_NE(swing.side, nullptr);
+  // Four shockwaves of nine lines against the swing's six of 245%.
+  EXPECT_NEAR(swing.side->damage_per_hit[0] / (swing.damage_per_hit[0] / 6.0),
+              4.0 * 9.0 * 2.86 / 2.45, 0.02);
+  // Each rolls for itself, so there are four groups rather than one of
+  // thirty-six lines.
+  EXPECT_EQ(swing.side->groups.size(), 4u);
+  EXPECT_DOUBLE_EQ(swing.side->cooldown_seconds, 0.0);
+}
+
 // GMS's Showdown - Reinforce lifts the talisman and says in so many words that
 // the shuriken is left out of it. Anything the book aims at the skill by name
 // stops at the swing.

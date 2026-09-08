@@ -1,0 +1,50 @@
+# The Paladin's last job node: a thrown hammer that hunts down one enemy after
+# another, leaving a shockwave on each.
+#
+# GMS charges it rather than cooling it down -- one hammer every twelve
+# seconds, three held at most, thrown singly or all at once. Nothing here holds
+# charges, and it comes to the same thing over a fight: the cooldown is the
+# twelve seconds a hammer takes to prepare, not the 2.5 the readout states.
+#
+# The four it tracks are reached at once rather than one after another, which
+# is what a swing here can say. The shockwave reaches six of its own, so it is
+# a side strike rather than an extra hit -- an extra hit shares the swing's
+# reach by construction. It rides the cast with no wait of its own: this is
+# swung once a cooldown, so every swing is meant to set one off.
+#
+# 570ms is the pack's own q, the only leftover there that reads as a cast
+# length. GMS publishes no frame data for this one.
+#
+# Dropped: throwing several hammers on the directional keys, Omnia Mode, and
+# the whole of the right-click toggle -- key presses, all of them.
+name: "Mighty Mjolnir"
+description:
+  "Summon the hammer of an ancient god, then hurl it straight toward your "
+  "enemies. Each successful hit creates a powerful shockwave. The hammers "
+  "track down the enemy with the highest HP, aside from the one it had just "
+  "attacked. All of the hammers' attacks are unaffected by attack reflection."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_V skill_order: 4 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_BLUNT
+required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
+base_delay_ms: 570
+cooldown_seconds: 12.0
+max_enemies: 4
+lines: 6
+base {
+  skill_pct: 2.45
+  crit_rate: 0.50
+}
+per_level { skill_pct: 0.10 }
+side_strike {
+  label: "Shockwave"
+  max_enemies: 6
+  lines: 9
+  casts: 4
+  base { skill_pct: 2.86 }
+  per_level { skill_pct: 0.11 }
+}

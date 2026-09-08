@@ -803,7 +803,10 @@ TEST(SkillDataTest, EverySideStrikeSaysWhenItFiresAndForHowMuch) {
       continue;
     }
     const SideStrike& side = entry.second.side_strike();
-    EXPECT_GT(side.cooldown_seconds(), 0.0)
+    // A wait of its own, or the swing's -- a strike riding a skill that can be
+    // swung freely would go out on every one of them.
+    EXPECT_TRUE(side.cooldown_seconds() > 0.0 ||
+                entry.second.cooldown_seconds() > 0.0)
         << entry.first << "'s side strike would go out on every swing";
     EXPECT_GT(side.base().skill_pct(), 0.0)
         << entry.first << "'s side strike would go out for nothing";
