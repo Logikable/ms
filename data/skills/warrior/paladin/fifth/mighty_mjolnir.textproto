@@ -2,15 +2,22 @@
 # another, leaving a shockwave on each.
 #
 # GMS charges it rather than cooling it down -- one hammer every twelve
-# seconds, three held at most, thrown singly or all at once. Nothing here holds
-# charges, and it comes to the same thing over a fight: the cooldown is the
-# twelve seconds a hammer takes to prepare, not the 2.5 the readout states.
+# seconds, three held at most, thrown singly or all at once. Written as the
+# full purse thrown together: three hammers every thirty-six seconds. The
+# sustained rate is a hammer every twelve either way, and the burst is the
+# point -- a fight has no windows but a job does, and a Paladin spends this
+# alongside Divine Echo.
 #
-# The four it tracks are reached at once rather than one after another, which
-# is what a swing here can say. The shockwave reaches six of its own, so it is
-# a side strike rather than an extra hit -- an extra hit shares the swing's
-# reach by construction. It rides the cast with no wait of its own: this is
-# swung once a cooldown, so every swing is meant to set one off.
+# The four each hammer tracks are reached at once rather than one after
+# another, which is what a swing here can say -- so three hammers are three
+# strikes over the same four, not twelve separate targets. Twelve shockwaves
+# all the same: one for every enemy every hammer tracks down.
+#
+# The shockwave reaches six of its own, so it is a side strike rather than an
+# extra hit -- an extra hit shares the swing's reach by construction. It rides
+# the cast with no wait of its own: this is swung once a cooldown, so every
+# swing is meant to set one off. The extra critical rate is the hammer's and
+# stops there, which is where GMS states it.
 #
 # 570ms is the pack's own q, the only leftover there that reads as a cast
 # length. GMS publishes no frame data for this one.
@@ -32,9 +39,10 @@ required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_ONE_HANDED_BLUNT
 required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
 base_delay_ms: 570
-cooldown_seconds: 12.0
+cooldown_seconds: 36.0
 max_enemies: 4
 lines: 6
+casts: 3
 base {
   skill_pct: 2.45
   crit_rate: 0.50
@@ -44,7 +52,7 @@ side_strike {
   label: "Shockwave"
   max_enemies: 6
   lines: 9
-  casts: 4
+  casts: 12
   base { skill_pct: 2.86 }
   per_level { skill_pct: 0.11 }
 }
