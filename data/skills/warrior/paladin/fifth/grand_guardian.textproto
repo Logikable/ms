@@ -1,0 +1,46 @@
+# The Paladin's third job node, and a hold like Calamitous Cyclone: a cross of
+# light the player keeps up for as long as the key is down, sheltering behind
+# it while it beats.
+#
+# GMS's cross starts small and grows partway through the hold, hitting roughly
+# twice as hard from there. Nothing here has phases inside a hold, and GMS does
+# not publish when the growth lands -- so the whole hold is priced at the grown
+# cross and the count is cut to the 23 the pack states rather than the 26 that
+# fit in four seconds. The two readings land within 2% of each other, and this
+# one keeps GMS's own numbers on the page.
+#
+# The 550ms floor is what the four-second cap has left over once those 23
+# pulses are spent: the wind-up the hold cannot escape, which is three pulses
+# deep. There is no strike at the release -- GMS ends the cross by letting go
+# of it.
+#
+# Dropped: the knockback and status immunity while it is held, and the attack
+# speed the growth also buys, which has no number anywhere.
+name: "Grand Guardian"
+description:
+  "Blaze a glorious cross-section of light, symbolizing noble sacrifice. You "
+  "can continuously attack while moving, and gain more strength the longer "
+  "the sacrifice continues."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_V skill_order: 3 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_BLUNT
+required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
+base_delay_ms: 550
+cooldown_seconds: 120.0
+max_enemies: 12
+lines: 12
+base {
+  skill_pct: 4.89
+  crit_rate: 1.00
+  ied_pct: 1.00
+}
+per_level { skill_pct: 0.19 }
+channel {
+  pulse_interval_ms: 150
+  max_pulses: 23
+  damage_taken_pct: 0.50
+}

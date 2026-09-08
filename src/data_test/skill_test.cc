@@ -813,9 +813,11 @@ TEST(SkillDataTest, EverySideStrikeSaysWhenItFiresAndForHowMuch) {
 }
 
 // A held swing needs everything the hold is made of: a rate to pulse at, a
-// count to stop at, a floor to be let go after, and a strike to end on. Its
-// extra hits have to be that strike alone, since the fight reads everything
-// past the first block of lines as what the hold ended with.
+// count to stop at, and a floor to be let go after. The strike it ends on is
+// optional -- Grand Guardian ends by letting go -- but one that is written
+// needs a row to sit on. Its extra hits have to be that strike alone, since
+// the fight reads everything past the first block of lines as what the hold
+// ended with.
 TEST(SkillDataTest, EveryHeldSwingSaysHowItPulsesAndWhatItEndsOn) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
@@ -833,10 +835,12 @@ TEST(SkillDataTest, EveryHeldSwingSaysHowItPulsesAndWhatItEndsOn) {
         << entry.first << " would pulse for nothing";
     EXPECT_GT(skill.base_delay_ms(), channel.finish_delay_ms())
         << entry.first << " has no room to pulse inside its shortest hold";
-    EXPECT_GT(channel.finish().base().skill_pct(), 0.0)
-        << entry.first << "'s hold ends on nothing";
-    EXPECT_FALSE(channel.finish().label().empty())
-        << entry.first << "'s finish has no row to sit on";
+    if (channel.has_finish()) {
+      EXPECT_GT(channel.finish().base().skill_pct(), 0.0)
+          << entry.first << "'s hold ends on nothing";
+      EXPECT_FALSE(channel.finish().label().empty())
+          << entry.first << "'s finish has no row to sit on";
+    }
     EXPECT_EQ(skill.extra_hit_size(), 0)
         << entry.first << " lands extra hits the fight would read as its "
         << "finish";
@@ -1134,6 +1138,8 @@ std::vector<BookWeapons> ExpectedBookWeapons() {
       {JOB_ADVANCEMENT_PAGE, {kSwordBlunt}},
       {JOB_ADVANCEMENT_WHITE_KNIGHT, {kSwordBlunt}},
       {JOB_ADVANCEMENT_PALADIN, {kSwordBlunt}},
+      // And the Paladin's, the same way: Grand Guardian is the line's own.
+      {JOB_ADVANCEMENT_PALADIN_V, {kSwordBlunt, every_warrior}},
       {JOB_ADVANCEMENT_SPEARMAN, {kSpears}},
       {JOB_ADVANCEMENT_BERSERKER, {kSpears}},
       {JOB_ADVANCEMENT_DARK_KNIGHT, {kSpears}},
