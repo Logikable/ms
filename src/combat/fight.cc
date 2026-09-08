@@ -1752,6 +1752,12 @@ void CombatSim::LandSwing(const CombatParams& params,
     // lands, on top of whatever any passive recovers.
     double recovered =
         params.hp_recover_pct + landed.hp_recover_pct + proc_recovered;
+    // A hold pays per pulse, so a cast let go early is worth less of the pool:
+    // what the swing states is one pulse's, and the strike it ends on is
+    // already in the swing's own above.
+    if (landed.channel.pulses > 0) {
+      recovered += landed.channel.hp_recover_pct * held_pulses_;
+    }
     player_hp_ = std::min(static_cast<double>(params.max_player_hp),
                           player_hp_ + recovered * params.max_player_hp);
     // Credited after the strike, so the volley lands on what the swing left

@@ -887,6 +887,16 @@ std::vector<Row> SwingHitRows(
           hit.label() + " Normal",
           SwingText(per_hit + bonus, hit.lines(), SwingHitCasts(hit))));
     }
+    // A hit that heals pays per line of every strike, so its row is read the
+    // way the damage row over it is -- the total is the whole point, since a
+    // share of the pool that big is what makes the cast a full heal.
+    double heal = hit.base().hp_recover_pct() +
+                  hit.per_level().hp_recover_pct() * (level - 1);
+    if (heal > 0.0) {
+      rows.push_back(EffectRow(
+          hit.label() + " Heal",
+          "+" + SwingText(heal, hit.lines(), SwingHitCasts(hit)) + " HP"));
+    }
   }
   return rows;
 }

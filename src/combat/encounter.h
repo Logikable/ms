@@ -62,7 +62,7 @@ struct HitGroup {
 // hold ends on -- since a hold is that pulse landed over and over.
 //
 // `pulses` is 0 for every attack that is simply swung, which is all of them
-// but Lightning Orb. See Channel.
+// but the two the player holds. See Channel.
 struct ChannelHold {
   int pulses = 0;
   // The fewest a cast is committed to: the pulses that fit inside the floor
@@ -71,6 +71,10 @@ struct ChannelHold {
   double pulse_seconds = 0.0;
   double finish_seconds = 0.0;
   double min_seconds = 0.0;
+  // Share of the HP pool ONE pulse puts back, so a hold let go early recovers
+  // less than one held out. The strike it ends on pays its own, which is in
+  // AttackOption::hp_recover_pct with every other per-swing lever.
+  double hp_recover_pct = 0.0;
   // Share of every hit the player takes that the hold cancels while it runs.
   double damage_taken_pct = 0.0;
 };

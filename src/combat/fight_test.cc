@@ -3451,6 +3451,30 @@ TEST(CombatSimTest, AHoldShelttersThePlayerWhileItRuns) {
   EXPECT_EQ(sim.view().player_hp, 1000 - 150);
 }
 
+// A hold that heals pays for the pulses it landed, not for the pulses it could
+// have: the same swing let go at its floor puts back less of the pool than one
+// held to the end.
+TEST(CombatSimTest, AHoldRecoversForThePulsesItActuallyLanded) {
+  auto play = [](int mob_hp) {
+    Mob mob = MakeMob("Mob", mob_hp);
+    CombatParams params = MakeParams(1.0, 0.0, {MakeType(&mob, 0.0, 1)});
+    GivePlayerHp(params, 1000, /*interval=*/0.5, /*damage=*/200.0);
+    AttackOption orb = MakeHeldSwing();
+    orb.channel.hp_recover_pct = 0.01;
+    orb.hp_recover_pct = 0.05;
+    params.attacks.push_back(std::move(orb));
+    CombatSim sim;
+    RunFor(sim, params, 2.05);
+    return sim.view().player_hp;
+  };
+  // Held to the end: four hits taken over the two seconds, then twelve pulses
+  // and the finish put back 17% of the pool.
+  EXPECT_EQ(play(1000000), 1000 - 800 + 170);
+  // Let go at its 0.96s floor: one hit taken before it lands and five pulses
+  // paid for, then the fight idles on a cleared map.
+  EXPECT_EQ(play(60), 1000 - 200 + 100);
+}
+
 // Glacial Fury's half of the pile: magic attack per held stack, and only an
 // ice swing collects it.
 TEST(CombatSimTest, GlacialFurysMagicAttackRidesTheIceSwingAlone) {

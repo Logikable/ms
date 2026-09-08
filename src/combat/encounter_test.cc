@@ -281,6 +281,48 @@ TEST(ComputeCombatParamsTest, AHeldSwingIsPricedAsAFullHold) {
               1e-6);
 }
 
+// Calamitous Cyclone's shape: a hold that heals on both clocks. The swing's
+// own recovery is ONE pulse's, so it moves to the hold and a cast let go early
+// is worth less of the pool; the strike it ends on pays per line of every one
+// of its strikes.
+TEST(ComputeCombatParamsTest, AHoldPaysItsRecoveryPerPulseAndPerFinishLine) {
+  Skill cyclone;
+  cyclone.set_name("Calamitous Cyclone");
+  cyclone.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(cyclone, JOB_ADVANCEMENT_SWORDMAN);
+  cyclone.set_max_level(1);
+  cyclone.set_max_enemies(12);
+  cyclone.set_lines(8);
+  cyclone.set_base_delay_ms(870);
+  cyclone.mutable_base()->set_skill_pct(2.64);
+  cyclone.mutable_base()->set_hp_recover_pct(0.01);
+  Channel* channel = cyclone.mutable_channel();
+  channel->set_pulse_interval_ms(140);
+  channel->set_max_pulses(26);
+  channel->set_finish_delay_ms(720);
+  SwingHit* finish = channel->mutable_finish();
+  finish->set_lines(15);
+  finish->set_casts(8);
+  finish->mutable_base()->set_skill_pct(5.87);
+  finish->mutable_base()->set_hp_recover_pct(0.10);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"calamitous_cyclone", cyclone}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(cyclone, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  int held = IndexOfAttack(params.attacks, "Calamitous Cyclone");
+  ASSERT_GE(held, 0);
+  const AttackOption& attack = params.attacks[held];
+  EXPECT_DOUBLE_EQ(attack.channel.hp_recover_pct, 0.01);
+  // 10% for each of the 15 final attacks in each of the 8 shockwaves, which is
+  // the whole pool over twelve times and is what makes the cast a full heal.
+  EXPECT_DOUBLE_EQ(attack.hp_recover_pct, 12.0);
+}
+
 // Glacial Fury pays magic attack per Freeze Stack to ICE swings and to nothing
 // else, so the gain is written onto the ice swing alone -- and it is a share of
 // that swing, since damage is linear in the attack behind it.

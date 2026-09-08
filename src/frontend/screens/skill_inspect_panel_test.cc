@@ -989,6 +989,24 @@ TEST_F(SkillInspectPanelTest, TheHealingRowsNameWhatTheyAreAShareOf) {
   EXPECT_NE(RowIn(rendered, "Heal", "+23% HP"), std::string::npos);
 }
 
+// The strike a hold ends on heals per line of every one of its strikes, so its
+// row is read the way the damage row over it is -- the total is the point,
+// since a share of the pool that big is what makes the cast a full heal.
+TEST_F(SkillInspectPanelTest, AFinishThatHealsStatesTheWholeOfIt) {
+  Skill skill = MakeLuckySeven();
+  Channel* channel = skill.mutable_channel();
+  channel->set_pulse_interval_ms(140);
+  channel->set_max_pulses(26);
+  channel->mutable_finish()->set_label("Shockwave");
+  channel->mutable_finish()->set_lines(15);
+  channel->mutable_finish()->set_casts(8);
+  channel->mutable_finish()->mutable_base()->set_skill_pct(5.87);
+  channel->mutable_finish()->mutable_base()->set_hp_recover_pct(0.10);
+  std::string rendered = RenderAt(skill, 1);
+  EXPECT_NE(RowIn(rendered, "Shockwave Heal", "+10% x15 x8 = 1200% HP"),
+            std::string::npos);
+}
+
 // A skill that states the whole of an earlier one says which, or the two read
 // as though they stack.
 TEST_F(SkillInspectPanelTest, ASupersedingSkillNamesWhatItReplaces) {

@@ -213,6 +213,10 @@ void AddSwingHit(const SwingHit& hit, const OffenseStats& offense, int level,
   for (int i = 0; i < casts; ++i) {
     attack.groups.push_back(group);
   }
+  // A recovery a HIT states is paid per line of it, GMS's "for every final
+  // attack that lands" -- unlike the swing's own, which the skill states
+  // against the cast. Angel Ray heals once however many times it strikes.
+  attack.hp_recover_pct += lands.hp_recover_pct() * extra.lines * casts;
 }
 
 // The hold a held swing is. What has been priced already is ONE pulse, so the
@@ -231,8 +235,13 @@ void AddChannel(const Skill& skill, const OffenseStats& offense, int level,
     return;
   }
   std::vector<double> pulse = attack.damage_per_hit;
+  // The swing's own recovery is ONE pulse's, exactly as its damage is, so it
+  // moves to the hold before the finish adds its own on top.
+  double pulse_recover = attack.hp_recover_pct;
+  attack.hp_recover_pct = 0.0;
   AddSwingHit(channel.finish(), offense, level, types, attack);
   ChannelHold& hold = attack.channel;
+  hold.hp_recover_pct = pulse_recover;
   hold.pulses = channel.max_pulses();
   hold.pulse_seconds = channel.pulse_interval_ms() / 1000.0 * speed_factor;
   hold.finish_seconds = channel.finish_delay_ms() / 1000.0 * speed_factor;

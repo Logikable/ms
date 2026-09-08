@@ -842,6 +842,11 @@ message Dot {
 // character's critical DAMAGE is untouched: a certain crit is still worth what
 // their crits are worth.
 //
+// `hp_recover_pct` here is paid PER LINE of every strike, which is GMS's "for
+// every final attack that lands". The swing's own is stated against the cast
+// instead -- Angel Ray heals once however many times it strikes -- because
+// that is where GMS states each of them.
+//
 // Read at the same learned level as the skill carrying it.
 message SwingHit {
   SkillEffect base = 1;
@@ -870,6 +875,9 @@ message SwingHit {
 // emptied its targets goes on zapping the space where they stood, so the fight
 // lets go the moment another pulse would buy nothing -- which is the whole
 // reason the hold has a length to decide at all.
+//
+// Everything the SKILL states is one pulse's, its `hp_recover_pct` among them:
+// a hold let go early recovers as much of the pool as it landed pulses.
 // A swing thrown as single-target strikes scattered over the enemies in reach,
 // rather than one strike landing on all of them. It spreads before it doubles
 // up, so it is the enemy count that decides how hard any one of them is hit.

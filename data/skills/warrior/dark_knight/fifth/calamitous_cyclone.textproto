@@ -1,0 +1,59 @@
+# The Dark Knight's fourth job node, and the second swing in the game the
+# player HOLDS rather than presses: the spear turns into a dark storm for four
+# seconds and the release throws eight shockwaves out of it.
+#
+# One skill, not two, and the fight decides how long to hold it. A map mob dies
+# to the shockwave alone, so the hold is let go at its floor and the cast is
+# almost all release; a boss never does, so it is held out to all 26 pulses.
+# That is Channel's own rule -- see CombatSim::ChannelPulses -- and it lands
+# GMS's mobbing and bossing readings without either being written down.
+#
+# The 870ms floor is the 150ms wind-up and the 720ms release, which one pulse
+# fits inside. Every frame of both is positive, so the floor takes the attack
+# speed stage; the 140ms pulse clock is the skill's own, as a held swing's
+# always is.
+#
+# GMS heals 1% of the pool for every one of the 26 attacks and 10% for every
+# one of the 120 final attacks -- 1,226% of the pool, which is a full heal and
+# is meant to be. Both are stated as GMS states them rather than folded flat,
+# so anything that ever cuts healing cuts the right number.
+#
+# Dropped: the knockback and status immunity while it winds up, and the
+# shockwave ignoring attack reflection -- nothing here inflicts either.
+name: "Calamitous Cyclone"
+description:
+  "Swings a spear so fast it creates a dark storm and devastates the area in "
+  "front of you."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 3 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_SPEAR
+required_equip_type: EQUIP_TYPE_POLEARM
+base_delay_ms: 870
+cooldown_seconds: 120.0
+max_enemies: 12
+lines: 8
+base {
+  skill_pct: 2.64
+  crit_rate: 1.00
+  ied_pct: 0.50
+  hp_recover_pct: 0.01
+}
+per_level { skill_pct: 0.11 }
+channel {
+  pulse_interval_ms: 140
+  max_pulses: 26
+  finish_delay_ms: 720
+  damage_taken_pct: 0.50
+  finish {
+    label: "Shockwave"
+    lines: 15
+    casts: 8
+    base {
+      skill_pct: 5.87
+      hp_recover_pct: 0.10
+    }
+    per_level { skill_pct: 0.23 }
+  }
+}
