@@ -1,0 +1,55 @@
+# The Bow Master's headline node: a zone that rains arrows for as long as the
+# storm stands, and a third again on every other thing they do.
+#
+# GMS lays the zone where the player is attacking, rains on it every 5 seconds
+# for 2.5, and lets six of them stand at once so long as they do not overlap.
+# Nothing here has a position, so the six zones are one rain and the trigger
+# is dropped: this game's swing clock never idles while a monster stands, so
+# "when you attack with your own skills" is every five seconds.
+#
+# Four rains a cycle, not one. A 40-second battle analysis counts 29 uses and
+# 203 hits -- seven lines a rain exactly, and 32 rains is what eight cycles of
+# four come to. The four fall 0.83 seconds apart inside GMS's 2.5, which is
+# one moment here: a whole respawn beat is wider than the window they fall in.
+#
+# The rain grows with the crowd the SWING is on, never with its own reach.
+# GMS says "if currently attacking more than one enemy", and a Bow Master
+# bossing swings Hurricane at one part of eight -- read off the rain instead,
+# Zakum and Horntail would take the fifteen-line pour meant for a farm.
+#
+# Magic Arrow's doubling is the arrowhead Enchanted Quiver equips, which this
+# game already carries as that skill's Final Attack. Doubled it passes
+# certainty: one arrow outright and a fifth of a second one. GMS words the
+# clause against Quiver Cartridge, whose 30% doubled is exactly Enchanted
+# Quiver's own 60% -- a sentence that would grant nothing to the only class
+# that can cast this, so it is read as the rate doubling.
+name: "Storm of Arrows"
+description:
+  "Arrows shot into the sky fall like rain. Unaffected by attack reflection."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 1 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 41.0
+  duration_seconds_per_level: 1.0
+  base { final_dmg_pct: 0.155 }
+  per_level { final_dmg_pct: 0.005 }
+  boost {
+    skill_name: "Enchanted Quiver"
+    final_attack_chance_mult: 2.0
+  }
+  pulse {
+    label: "Arrow Rain"
+    cast_interval_seconds: 5.0
+    casts: 4
+    max_enemies: 10
+    lines: 7
+    lines_per_extra_enemy: 2
+    max_extra_lines: 8
+    base { skill_pct: 7.80 }
+    per_level { skill_pct: 0.30 }
+  }
+}
