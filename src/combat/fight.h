@@ -424,6 +424,8 @@ class CombatSim {
   // Fires the skills that attack on their own clock, before the swing is
   // aimed, so it is aimed at what they leave standing.
   void RunAutoCasts(const CombatParams& params, double dt);
+  // Puts `share` of the HP pool back, clamped at full.
+  void RecoverHp(const CombatParams& params, double share);
   // Credits a landed swing to the skills clocked by swings rather than by
   // seconds, and fires any whose count has come round. `weight` is what that
   // swing was worth -- a seventh for one that lands seven times as often.

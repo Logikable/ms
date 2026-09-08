@@ -1566,6 +1566,15 @@ void CombatSim::CreditBuffs(const CombatParams& params, double weight,
   }
 }
 
+// Puts a share of the pool back, never past full.
+void CombatSim::RecoverHp(const CombatParams& params, double share) {
+  if (share <= 0.0) {
+    return;
+  }
+  player_hp_ = std::min(static_cast<double>(params.max_player_hp),
+                        player_hp_ + share * params.max_player_hp);
+}
+
 void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
   // Their clocks run only while there is something to hit: a summon has
   // nothing to do on an empty map, and waiting there earns it no free cast.
@@ -1608,6 +1617,9 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
       // are one moment here, and each is its own attack on its own enemies.
       for (int strike = 0; strike < cast.strikes_per_pulse; ++strike) {
         Strike(landed, {DamageOrigin::kOwnClock, i});
+        // Paid per strike, as the pulse's damage is: Darkness Aura recovers
+        // for every attack the aura makes, and each strike is one.
+        RecoverHp(params, landed.hp_recover_pct);
       }
       // A summon leaves the ice it makes: Elquines freezes what it touches. It
       // never spends the pile -- ClearSwingRiders sees to that.
@@ -1758,8 +1770,7 @@ void CombatSim::LandSwing(const CombatParams& params,
     if (landed.channel.pulses > 0) {
       recovered += landed.channel.hp_recover_pct * held_pulses_;
     }
-    player_hp_ = std::min(static_cast<double>(params.max_player_hp),
-                          player_hp_ + recovered * params.max_player_hp);
+    RecoverHp(params, recovered);
     // Credited after the strike, so the volley lands on what the swing left
     // standing rather than on mobs it was about to kill anyway. A healing cast
     // credits nothing: it is not an attack.

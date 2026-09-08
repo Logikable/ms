@@ -2422,6 +2422,17 @@ TEST(ComputeCombatParamsTest, ABuffOnAnAttackIsLaidByThatSwing) {
   EXPECT_EQ(gated.auto_attacks[0].strikes_per_pulse, 1);
   EXPECT_EQ(gated.auto_attacks[0].max_pulses, 0);
 
+  // Darkness Aura's shape: the pulse states a recovery of its own, which the
+  // clearing of the swing's riders must not take with it -- the aura heals for
+  // every beat, not for the cast that raised it.
+  tick->mutable_base()->set_hp_recover_pct(0.03);
+  tick->mutable_per_level()->set_hp_recover_pct(0.01);
+  state.skills["puncture"] = puncture;
+  CombatParams healing = ComputeCombatParams(state);
+  ASSERT_EQ(healing.auto_attacks.size(), 1u);
+  EXPECT_DOUBLE_EQ(healing.auto_attacks[0].hp_recover_pct, 0.03);
+  EXPECT_DOUBLE_EQ(healing.attacks[1].hp_recover_pct, 0.0);
+
   // Cry Valhalla's shape over the same field: its own reach, three strikes a
   // tick, and a count that runs out inside the window.
   tick->set_max_enemies(6);

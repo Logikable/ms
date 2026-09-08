@@ -714,6 +714,12 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
   wound.swing_seconds = 0.0;
   ClearSwingRiders(wound);
   wound.interval_seconds = interval;
+  // The pulse's own recovery, put back after ClearSwingRiders takes the
+  // swing's away: Darkness Aura states its heal against the aura's attack, not
+  // against the swing that raised it, so it is paid every time the pulse
+  // fires.
+  wound.hp_recover_pct =
+      EffectAt(pulse.base(), pulse.per_level(), level).hp_recover_pct();
   wound.strikes_per_pulse = std::max(1, pulse.casts());
   wound.max_pulses = pulse.max_pulses();
   wound.needs_buff_stance = stance;

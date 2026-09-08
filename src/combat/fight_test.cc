@@ -1394,6 +1394,31 @@ TEST(CombatSimTest, AFountainPoursOnItsOwnClock) {
   EXPECT_EQ(sim.view().player_hp, 70);
 }
 
+// Darkness Aura: an own-clock pulse that heals as it lands. Paid per strike
+// of the tick rather than per tick, and never past a full pool.
+TEST(CombatSimTest, AnOwnClockPulseHealsAsItLands) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/10.0);
+  params.auto_attacks[0].hp_recover_pct = 0.03;
+  params.auto_attacks[0].strikes_per_pulse = 2;
+
+  // A hit a second against 6% of a hundred-point pool: down four a second.
+  for (int i = 0; i < 5; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_EQ(sim.view().player_hp, 80);
+
+  // And a pool already full takes nothing more.
+  CombatSim topped;
+  CombatParams quiet = params;
+  GivePlayerHp(quiet, 100, /*interval=*/1.0, /*damage=*/0.0);
+  topped.Advance(quiet, 1.0);
+  EXPECT_EQ(topped.view().player_hp, 100);
+}
+
 // The Evil Eye's aura, which pours a flat amount rather than a share of the
 // pool -- and pours it beside the share where a fountain states both.
 TEST(CombatSimTest, AFountainPoursItsFlatHalfToo) {
