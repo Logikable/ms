@@ -8,6 +8,12 @@
  * its own curve, and it can be out of step with the other two -- what a mob
  * costs to kill and what it does to the player on the way are set separately.
  *
+ * That table comes in three, because three ladders run through the same levels
+ * and none of them is on the others' curve: the overworld, Arcane River, and
+ * the bosses. Comparing across them prints arithmetic that means nothing --
+ * Black Heaven against the river beside it reads as a 65% drop in HP per level
+ * and is nothing of the sort.
+ *
  * The second weights each map by its spawn counts, which is what a player
  * actually meets, and carries the counts through to a kill rate. EXP/HP is the
  * column to read: spawn count caps kills per second, so a map with twice the
@@ -28,9 +34,11 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "src/character/arcane_force.h"
 #include "src/combat/constants.h"
 #include "src/embedded_data.h"
 #include "src/proto_loader.h"
+#include "src/protos/equip.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/spawn.h"
@@ -72,17 +80,41 @@ std::vector<Mob> MobsByLevel(const std::map<std::string, Mob>& mobs) {
   return ladder;
 }
 
-void PrintMobs(const std::map<std::string, Mob>& mobs) {
-  printf("\nthe ladder, in level order\n\n");
-  printf("%-22s %4s %9s %6s %6s %8s %8s %8s %8s\n", "mob", "lv", "hp", "exp",
+// Which ladder a mob stands on. What marks an Arcane River monster is the
+// symbol it drops -- every one of them drops its area's and nothing outside
+// the river drops one. The level does not say so: Black Heaven runs to 219
+// and asks for no Arcane Force at all.
+enum class Ladder { kOverworld, kArcaneRiver, kBoss };
+
+Ladder LadderOf(const Mob& mob,
+                const std::map<std::string, EquipPrototype>& equips) {
+  if (mob.boss()) {
+    return Ladder::kBoss;
+  }
+  for (const MobDrop& drop : mob.drops()) {
+    std::map<std::string, EquipPrototype>::const_iterator it =
+        equips.find(drop.equip());
+    if (it != equips.end() && IsArcaneSymbol(it->second)) {
+      return Ladder::kArcaneRiver;
+    }
+  }
+  return Ladder::kOverworld;
+}
+
+void PrintLadder(const char* title, const std::vector<Mob>& ladder) {
+  if (ladder.empty()) {
+    return;
+  }
+  printf("\n%s, in level order\n\n", title);
+  printf("%-22s %4s %11s %7s %6s %8s %8s %8s %8s\n", "mob", "lv", "hp", "exp",
          "att", "exp/hp", "hp x/lv", "exp x/lv", "att x/lv");
-  std::vector<Mob> ladder = MobsByLevel(mobs);
   for (int i = 0; i < static_cast<int>(ladder.size()); ++i) {
     const Mob& mob = ladder[i];
     double exp_per_hp =
         mob.max_hp() > 0 ? static_cast<double>(mob.exp()) / mob.max_hp() : 0.0;
-    printf("%-22s %4d %9d %6d %6d %8.3f", mob.name().c_str(), mob.level(),
-           mob.max_hp(), mob.exp(), mob.attack(), exp_per_hp);
+    printf("%-22s %4d %11lld %7lld %6d %8.3f", mob.name().c_str(), mob.level(),
+           static_cast<long long>(mob.max_hp()),
+           static_cast<long long>(mob.exp()), mob.attack(), exp_per_hp);
     // Nothing to grow from on the first row, and nothing to grow across
     // between two mobs sharing a level -- the mushrooms do.
     int steps = i == 0 ? 0 : mob.level() - ladder[i - 1].level();
@@ -96,6 +128,32 @@ void PrintMobs(const std::map<std::string, Mob>& mobs) {
            GrowthPerLevel(below.exp(), mob.exp(), steps),
            GrowthPerLevel(below.attack(), mob.attack(), steps));
   }
+}
+
+void PrintMobs(const std::map<std::string, Mob>& mobs,
+               const std::map<std::string, EquipPrototype>& equips) {
+  std::vector<Mob> overworld;
+  std::vector<Mob> river;
+  std::vector<Mob> bosses;
+  for (const Mob& mob : MobsByLevel(mobs)) {
+    switch (LadderOf(mob, equips)) {
+      case Ladder::kOverworld:
+        overworld.push_back(mob);
+        break;
+      case Ladder::kArcaneRiver:
+        river.push_back(mob);
+        break;
+      case Ladder::kBoss:
+        bosses.push_back(mob);
+        break;
+    }
+  }
+  PrintLadder("the overworld ladder", overworld);
+  PrintLadder("Arcane River", river);
+  // The bosses share no curve with each other either -- each is its own fight
+  // at its own gate -- so their growth columns say nothing. They are here for
+  // the HP and attack a boss carries at its level.
+  PrintLadder("the bosses", bosses);
 }
 
 // A map's mobs averaged by spawn count: two of a thing and four of another is
@@ -140,12 +198,12 @@ void PrintMaps(const std::map<std::string, MapData>& maps,
   printf("\nwhat a player meets, weighted by spawn count\n");
   printf("dps to cap is the damage per second that holds the spawn cap; ");
   printf("compare //analysis:weapon_sim\n\n");
-  printf("%-32s %5s %6s %9s %7s %7s %8s %8s %8s %10s\n", "map", "lv", "spawn",
+  printf("%-32s %5s %6s %11s %9s %7s %8s %8s %10s %12s\n", "map", "lv", "spawn",
          "avg hp", "avg exp", "avg att", "exp/hp", "kills/s", "exp/s",
          "dps to cap");
   for (const MapRow& row : rows) {
     double kills = row.spawns / kRespawnIntervalSeconds;
-    printf("%-32s %5.1f %6d %9.0f %7.1f %7.0f %8.3f %8.2f %8.1f %10.0f\n",
+    printf("%-32s %5.1f %6d %11.0f %9.1f %7.0f %8.3f %8.2f %10.1f %12.0f\n",
            row.name.c_str(), row.level, row.spawns, row.hp, row.exp, row.attack,
            row.hp > 0.0 ? row.exp / row.hp : 0.0, kills, kills * row.exp,
            kills * row.hp);
@@ -162,7 +220,8 @@ int main(int argc, char** argv) {
   std::map<std::string, ms::MapData> maps =
       ms::LoadTextProtoMap<ms::MapData>(ms::EmbeddedMaps());
   if (absl::GetFlag(FLAGS_mobs)) {
-    ms::PrintMobs(mobs);
+    ms::PrintMobs(
+        mobs, ms::LoadTextProtoMap<ms::EquipPrototype>(ms::EmbeddedEquips()));
   }
   if (absl::GetFlag(FLAGS_maps)) {
     ms::PrintMaps(maps, mobs);
