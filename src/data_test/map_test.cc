@@ -10,6 +10,7 @@
 #include <string>
 #include <utility>
 
+#include "src/character/arcane_force.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/widgets/format.h"
 #include "src/protos/equip.pb.h"
@@ -35,6 +36,22 @@ std::map<std::string, ItemPrototype> LoadItems() {
 
 std::map<std::string, EquipPrototype> LoadEquips() {
   return LoadTestData<EquipPrototype>("equip");
+}
+
+// Whether `mob` belongs to Arcane River. What says so is the Arcane Symbol it
+// drops: every monster in the river drops its area's, and nothing outside it
+// drops one. The level does not say so -- Black Heaven runs to 219 and asks
+// for no force at all.
+bool IsArcaneRiver(const Mob& mob,
+                   const std::map<std::string, EquipPrototype>& equips) {
+  for (const MobDrop& drop : mob.drops()) {
+    std::map<std::string, EquipPrototype>::const_iterator it =
+        equips.find(drop.equip());
+    if (it != equips.end() && IsArcaneSymbol(it->second)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // A spawn naming no mob file is dropped by the loader, so the map quietly
@@ -213,21 +230,20 @@ TEST(MapDataTest, EveryMobCanBeFoughtAndIsWorthFighting) {
 // bestiary blurb. Two things are exempt, and the panel shows an empty block
 // for both rather than a made-up one:
 //
-// Arcane River, which is everything past level 200. The wiki writes those
-// monsters no archive entry and gives them no named Etc drop either -- their
-// leftovers are one shared pool -- so the whole era arrives blurbless and
-// empty-handed rather than a mob at a time.
+// Arcane River. The wiki writes those monsters no archive entry and gives them
+// no named Etc drop either -- their leftovers are one shared pool -- so the
+// whole era arrives blurbless and empty-handed rather than a mob at a time.
 //
-// Onyx Stonegar, the one straggler below that line the wiki also says nothing
-// about. Inventing text for either would put words in the game's mouth that
-// no source stands behind.
+// Onyx Stonegar, the one straggler the wiki also says nothing about.
+// Inventing text for either would put words in the game's mouth that no source
+// stands behind.
 TEST(MapDataTest, EveryMapMobIsDescribed) {
-  constexpr int kArcaneRiver = 200;  // the last level the wiki writes about
   std::map<std::string, Mob> mobs = LoadMobs();
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
   for (const std::pair<const std::string, MapData>& entry : LoadMaps()) {
     for (const Spawn& spawn : entry.second.spawns()) {
       std::map<std::string, Mob>::const_iterator it = mobs.find(spawn.mob());
-      if (it == mobs.end() || it->second.level() > kArcaneRiver ||
+      if (it == mobs.end() || IsArcaneRiver(it->second, equips) ||
           spawn.mob() == "onyx_stonegar") {
         continue;
       }
@@ -243,18 +259,17 @@ TEST(MapDataTest, EveryMapMobIsDescribed) {
 }
 
 // Arcane River is the one place a map asks for Arcane Force, and every map
-// there asks. A map past level 200 that named none would let a character with
-// no symbols farm it at full damage, which is the whole of what the stat is
-// for.
+// there asks. A river map that named none would let a character with no
+// symbols farm it at full damage, which is the whole of what the stat is for.
 TEST(MapDataTest, EveryArcaneRiverMapNamesItsRequirement) {
-  constexpr int kArcaneRiverLevel = 200;
   std::map<std::string, Mob> mobs = LoadMobs();
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
   int checked = 0;
   for (const std::pair<const std::string, MapData>& entry : LoadMaps()) {
     bool arcane_river = false;
     for (const Spawn& spawn : entry.second.spawns()) {
       std::map<std::string, Mob>::const_iterator mob = mobs.find(spawn.mob());
-      if (mob != mobs.end() && mob->second.level() >= kArcaneRiverLevel) {
+      if (mob != mobs.end() && IsArcaneRiver(mob->second, equips)) {
         arcane_river = true;
       }
     }

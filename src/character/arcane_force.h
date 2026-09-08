@@ -1,7 +1,7 @@
 /* Arcane Force: the Arcane River stat, what a symbol is worth, and what
  * meeting a map's requirement does to a fight.
  *
- * Every map past level 200 asks for a number of Arcane Force, and how much of
+ * Every map in the river asks for a number of Arcane Force, and how much of
  * that the character carries scales both what they deal and what they take --
  * a tenth of their damage against 2.8x of the monster's at the bottom, half
  * again against nothing at the top. Arcane Symbols are what carry it.
