@@ -10,6 +10,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/widgets/screen_text.h"
 #include "src/game_state.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
@@ -84,6 +85,17 @@ std::string Render(const MobInspectPanel& panel) {
                                                ftxui::Dimension::Fixed(30));
   ftxui::Render(screen, element);
   return screen.ToString();
+}
+
+// The panel's rows with their styling stripped, so a test can read what sits
+// against a border. screen.ToString() keeps the colour escapes and would put
+// one between the last character and the rule beside it.
+std::vector<std::string> RenderRows(const MobInspectPanel& panel) {
+  ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                               ftxui::Dimension::Fixed(30));
+  ftxui::Render(screen, element);
+  return ScreenRows(screen);
 }
 
 int Height(const MobInspectPanel& panel) {
@@ -268,13 +280,23 @@ TEST(MobInspectPanelTest, NoArcaneRowsOutsideArcaneRiver) {
 }
 
 // A card that measures its own width has to ask for its right margin.
+// RowsTouchingTheRightBorder only sees the panel's outer edge, so the mob
+// list's own is checked by reading the rows back: the toll rows span the whole
+// list rather than sitting in its columns, and so are the ones with no column
+// padding to spare.
 TEST(MobInspectPanelTest, EveryRowKeepsAColumnClearOfTheRightBorder) {
-  GameState state = OneMap();
-  MobInspectPanel panel(state);
+  GameState plain = OneMap();
+  MobInspectPanel panel(plain);
   panel.SetMap("green_field");
   std::vector<std::string> touching =
       RowsTouchingTheRightBorder(panel.Render());
   EXPECT_TRUE(touching.empty()) << (touching.empty() ? "" : touching[0]);
+
+  GameState arcane = ArcaneMap();
+  MobInspectPanel toll(arcane);
+  toll.SetMap("rage");
+  std::vector<std::string> rows = RenderRows(toll);
+  EXPECT_NE(rows[2].find("Taken 2.8x │"), std::string::npos) << rows[2];
 }
 
 }  // namespace

@@ -56,6 +56,11 @@ static_assert(kStatColumnWidth + 1 + kDropColumnWidth == kFlavourWidth + 2);
 // two rows read as one name.
 constexpr int kNameIndent = 2;
 
+// The Arcane River rows run across the whole mob list rather than sitting in
+// its columns, so they keep their own right gutter: the other rows get one
+// free from a column padded past the text in it.
+constexpr int kTollLabelWidth = kMobNameWidth - 1;
+
 // The rows the screen always takes. Tall enough for the mob carrying the most
 // drops -- four lines of blurb, a rule, and eight rows of drops inside a
 // border -- so walking the list never moves the top of the panel.
@@ -133,14 +138,14 @@ void MobInspectPanel::RenderArcaneForce(
   ftxui::Element carried =
       RedUnless(ftxui::text(std::to_string(owned)), owned >= required);
   rows.push_back(ftxui::hbox({
-      ftxui::text("  " + PadRight("Arcane Force", kMobNameWidth)),
+      ftxui::text("  " + PadRight("Arcane Force", kTollLabelWidth)),
       std::move(carried),
       ftxui::text(" / " + std::to_string(required)),
   }));
   ArcaneFactors factors = ArcaneFactorsFor(owned, required);
   rows.push_back(ftxui::text(
       "  " +
-      PadRight("Damage " + DealtText(factors.damage_dealt), kMobNameWidth) +
+      PadRight("Damage " + DealtText(factors.damage_dealt), kTollLabelWidth) +
       "Taken " + TakenText(factors.damage_taken)));
   rows.push_back(ThemedSeparator());
 }

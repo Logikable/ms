@@ -843,6 +843,7 @@ cc_test(
         ":mob_inspect_panel",
         "//src:game_state",
         "//src/frontend/widgets:panel_test_base",
+        "//src/frontend/widgets:screen_text",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",
