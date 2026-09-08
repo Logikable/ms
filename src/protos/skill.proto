@@ -715,6 +715,14 @@ message Buff {
   // "upon use". Puncture is the other reading and the default -- a wound lifts
   // the swings after it, never the one that opened it.
   bool raised_on_cast = 15;
+  // What this buff hands a NAMED skill while it stands, exactly as
+  // Skill.boost does for good. Storm of Arrows is what it exists for: GMS
+  // doubles Magic Arrow's chance only under the storm, and a permanent boost
+  // would pay a 70-second window as though it never came down.
+  //
+  // Read at the same learned level as the skill carrying it, and folded only
+  // into the damage set built with this buff up -- see LearnedPassives.
+  repeated SkillBoost boost = 16;
   // What everybody ELSE in the party gets while this stands, read at the
   // caster's level. Smokescreen alone: GMS shelters the party under it, and
   // this hands them a share off what a hit costs instead.
@@ -1171,6 +1179,16 @@ message SkillBoost {
   // describe a staircase. Below the gate the boost is not read at all, which
   // is why it gates the whole message and not a lever.
   int32 min_level = 18;
+  // What the named skill's Final Attack chance is MULTIPLIED by, after every
+  // additive source has had its say. 2.0 doubles it; 0 leaves it alone, which
+  // is every boost but one. Storm of Arrows is what it exists for -- GMS
+  // doubles Magic Arrow's chance rather than adding points to it.
+  //
+  // Its own field rather than one of the seven `effect` carries, for the
+  // reason dot_skill_pct is: those sum with what the target already has, and
+  // this scales it. A doubled chance may pass certainty, which
+  // RolledFinalAttack reads as one hit outright plus a roll for the remainder.
+  double final_attack_chance_mult = 19;
 }
 
 // A skill that has to be learned to a level before another can be bought at

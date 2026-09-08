@@ -260,6 +260,10 @@ struct SkillBonus {
   // sets off, so it is folded onto that source rather than read where the
   // swing is built. See FinalAttackSource and SkillBoost::effect.
   double final_attack_chance = 0.0;
+  // What that chance is multiplied by once every additive source is in. 1.0
+  // is the identity, which is every skill but Storm of Arrows -- see
+  // SkillBoost::final_attack_chance_mult.
+  double final_attack_chance_mult = 1.0;
   // Points on the named skill's burn tick. The other lever here that never
   // reaches the swing: the burn takes the rest of this struct through the
   // stat line it is priced off, but states its own multiplier, so this one is

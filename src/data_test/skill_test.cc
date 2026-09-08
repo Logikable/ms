@@ -1706,11 +1706,21 @@ bool LandsASecondHit(const std::map<std::string, Skill>& skills,
 
 // A boost has to name a skill the same character can hold, and hand it
 // something: strikes, reach, a clock, or a lever that skill alone carries.
+// A buff's boosts answer to every rule its skill's own do -- the only
+// difference between them is how long the grant stands.
 TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
   std::map<std::string, Skill> skills = LoadSkills();
   int checked = 0;
   for (const std::pair<const std::string, Skill>& entry : skills) {
+    std::vector<const SkillBoost*> granted;
     for (const SkillBoost& boost : entry.second.boost()) {
+      granted.push_back(&boost);
+    }
+    for (const SkillBoost& boost : entry.second.buff().boost()) {
+      granted.push_back(&boost);
+    }
+    for (const SkillBoost* held : granted) {
+      const SkillBoost& boost = *held;
       EXPECT_FALSE(boost.skill_name().empty())
           << entry.first << " grants strikes to nobody";
       EXPECT_TRUE(
@@ -1719,9 +1729,16 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
           boost.attacks_per_cast() > 0 || boost.cooldown_pct() > 0.0 ||
           boost.dot_skill_pct() != 0.0 || boost.dot_duration_seconds() != 0.0 ||
           boost.buff_duration_seconds() != 0.0 || boost.shield_hits() != 0.0 ||
-          boost.shield_boss_damage_taken_pct() != 0.0 || boost.has_effect())
+          boost.shield_boss_damage_taken_pct() != 0.0 ||
+          boost.final_attack_chance_mult() != 0.0 || boost.has_effect())
           << entry.first << " names " << boost.skill_name()
           << " and hands it nothing";
+      // Scaling a rate to nothing, or backwards, is not a grant. GMS's only
+      // one doubles.
+      EXPECT_FALSE(boost.final_attack_chance_mult() != 0.0 &&
+                   boost.final_attack_chance_mult() < 1.0)
+          << entry.first << " scales " << boost.skill_name()
+          << "'s Final Attack rate down";
       // A share of a wait, so a whole one would leave the skill with no wait
       // at all and a figure above one would run it backwards.
       EXPECT_LT(boost.cooldown_pct(), 1.0)
@@ -1790,6 +1807,12 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
           EXPECT_GT(target.second.dot().interval_seconds(), 0.0)
               << entry.first << " lifts " << target.first
               << "'s burn, which it does not leave";
+        }
+        // Doubling a rate the named skill has not got doubles nothing.
+        if (boost.final_attack_chance_mult() != 0.0) {
+          EXPECT_GT(target.second.base().final_attack_chance(), 0.0)
+              << entry.first << " doubles " << target.first
+              << "'s Final Attack rate, which it does not have";
         }
       }
     }

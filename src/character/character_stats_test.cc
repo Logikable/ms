@@ -925,6 +925,37 @@ TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackOfThePassiveItNames) {
   EXPECT_NEAR(stats.damage_pct, 0.0, 1e-9);
 }
 
+// A buff's boost is its skill's own boost on a clock: it reaches the named
+// skill only in the set built with that buff up. Storm of Arrows is what it
+// exists for -- GMS doubles Magic Arrow's chance under the storm alone, and
+// the doubling is allowed past certainty.
+TEST_F(DerivedStatsTest, ABuffsBoostReachesTheNamedSkillOnlyWhileItStands) {
+  CharacterInstance c = MakeCharacter(rng_, 140, 50);
+  Skill final_attack = FinalAttack();
+  Skill storm;
+  storm.set_name("Storm of Arrows");
+  storm.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(storm, JOB_ADVANCEMENT_SWORDMAN);
+  storm.set_max_level(1);
+  storm.mutable_buff()->set_duration_seconds(70.0);
+  SkillBoost* boost = storm.mutable_buff()->add_boost();
+  boost->set_skill_name("Final Attack");
+  boost->set_final_attack_chance_mult(2.0);
+  std::map<std::string, Skill> skills = {{"final_attack", final_attack},
+                                         {"storm", storm}};
+  ASSERT_TRUE(c.LearnSkill(final_attack, 20));
+  ASSERT_TRUE(c.LearnSkill(storm, 1));
+
+  DerivedStats down = DerivedStatsFor(c, skills);
+  ASSERT_EQ(down.final_attacks.size(), 1u);
+  EXPECT_NEAR(down.final_attacks[0].chance, 0.40, 1e-9);
+
+  const Skill* up[] = {&skills["storm"]};
+  DerivedStats standing = DerivedStatsFor(c, skills, up);
+  ASSERT_EQ(standing.final_attacks.size(), 1u);
+  EXPECT_NEAR(standing.final_attacks[0].chance, 0.80, 1e-9);
+}
+
 // The other damage a boost can hand a Final Attack: points on the strike's own
 // multiplier, which is GMS's "Night Lord's Mark Damage: +100% points".
 TEST_F(DerivedStatsTest, ABoostCanLiftAFinalAttacksOwnMultiplier) {

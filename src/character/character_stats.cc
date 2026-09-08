@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "absl/types/span.h"
+#include "google/protobuf/repeated_ptr_field.h"
 #include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
@@ -391,13 +392,24 @@ void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
   into.dot_duration_seconds +=
       boost.dot_duration_seconds() +
       boost.dot_duration_seconds_per_level() * (level - 1);
+  // Multiplies rather than sums, so two of them would compound. Nothing grants
+  // a second one; the shape is what the lever means.
+  if (boost.final_attack_chance_mult() > 0.0) {
+    into.final_attack_chance_mult *= boost.final_attack_chance_mult();
+  }
 }
 
-// Notes down what `skill` hands other skills by name. Kept out of AddEffect,
-// which is handed levers with no skill behind them: which skill is
+// Notes down what one list of boosts hands other skills by name. Kept out of
+// AddEffect, which is handed levers with no skill behind them: which skill is
 // strengthened is written on the boost, not on the lever.
-void AddSkillBonuses(const Skill& skill, int level, PassiveTotals& totals) {
-  for (const SkillBoost& boost : skill.boost()) {
+//
+// A skill's own list and its buff's go through here alike -- the difference is
+// only which fold they are read into, since a buff's grant belongs to the
+// damage set built with that buff up.
+void AddSkillBonuses(
+    const google::protobuf::RepeatedPtrField<SkillBoost>& boosts, int level,
+    PassiveTotals& totals) {
+  for (const SkillBoost& boost : boosts) {
     // Nothing until the granting skill reaches the level the gift is gated
     // behind -- see SkillBoost.min_level.
     if (level < boost.min_level()) {
@@ -483,7 +495,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   } else {
     AddEffect(granted, totals);
   }
-  AddSkillBonuses(skill, level, totals);
+  AddSkillBonuses(skill.boost(), level, totals);
   AddFinalAttack(skill, granted, totals);
   AddProc(skill, level, totals);
   AddFreezeStacks(skill, granted, totals);
@@ -543,7 +555,11 @@ void FoldFinalAttackBoosts(PassiveTotals& totals) {
     if (source.skill_name.empty() || boost == totals.skill_bonus.end()) {
       continue;
     }
-    source.chance += boost->second.final_attack_chance;
+    // Scaled last, so a doubling reads every additive source that came before
+    // it. Past certainty is allowed: RolledFinalAttack lands that many hits
+    // outright and rolls for the remainder.
+    source.chance = (source.chance + boost->second.final_attack_chance) *
+                    boost->second.final_attack_chance_mult;
     source.damage_bonus_pct += boost->second.damage_pct;
     source.crit_rate += boost->second.crit_rate;
     source.ied = CombineIgnoredDefense(source.ied, boost->second.ied);
@@ -793,9 +809,13 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   // source of its own, so its ignored defence combines with the character's
   // rather than summing with it.
   for (const Skill* skill : buffs_up) {
-    AddEffect(EffectAt(skill->buff().base(), skill->buff().per_level(),
-                       EffectiveSkillLevel(character, *skill, bonus)),
+    int level = EffectiveSkillLevel(character, *skill, bonus);
+    AddEffect(EffectAt(skill->buff().base(), skill->buff().per_level(), level),
               totals);
+    // What the buff hands a named skill, through the same door a permanent
+    // boost takes -- it is only this fold that makes it a window rather than
+    // a gift for good.
+    AddSkillBonuses(skill->buff().boost(), level, totals);
   }
   // What the party is holding over them, at the level its caster has it. The
   // same door again, and for the same reason.

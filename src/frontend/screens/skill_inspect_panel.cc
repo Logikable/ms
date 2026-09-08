@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "google/protobuf/repeated_ptr_field.h"
 #include "src/character/character_stats.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/chrome.h"
@@ -816,6 +817,13 @@ std::string BoostText(const SkillBoost& boost, int level) {
       {"Critical Rate", &SkillEffect::crit_rate},
       {"Final Attack Rate", &SkillEffect::final_attack_chance},
   };
+  // Written as the multiple GMS writes, not as the points it comes to: what
+  // the row means is that the target's own rate doubles, whatever that rate is.
+  if (boost.final_attack_chance_mult() > 0.0) {
+    AppendGain("x" + FormatNumber(boost.final_attack_chance_mult()) +
+                   " Final Attack Rate",
+               gains);
+  }
   for (const BoostLever& lever : kBoostLevers) {
     double value = (boost.effect().*lever.fn)() +
                    (boost.effect_per_level().*lever.fn)() * (level - 1);
@@ -1264,8 +1272,12 @@ Row SectionRow(const std::string& label, ftxui::Color color) {
   return TextRow(ftxui::text(" " + label) | ftxui::color(color));
 }
 
-// What this skill hands to another skill in the book, one sentence a grant.
-std::vector<Row> BoostRows(const Skill& skill, int level) {
+// What one list of boosts hands other skills in the book, one sentence a
+// grant. `own_card` heads them rather than naming the skill in each row, which
+// is what a boost node -- nothing but its boosts -- wants.
+std::vector<Row> BoostRows(
+    const google::protobuf::RepeatedPtrField<SkillBoost>& boosts, int level,
+    bool own_card) {
   std::vector<Row> rows;
   // The label says what is boosted and the value by how much, which is the
   // shape every other row here has. One row per skill named, however many
@@ -1274,7 +1286,7 @@ std::vector<Row> BoostRows(const Skill& skill, int level) {
   // belong on that skill's one row.
   std::map<std::string, std::string> gained;
   std::vector<std::string> named;
-  for (const SkillBoost& granted : skill.boost()) {
+  for (const SkillBoost& granted : boosts) {
     if (level < granted.min_level()) {
       continue;
     }
@@ -1298,7 +1310,7 @@ std::vector<Row> BoostRows(const Skill& skill, int level) {
   // the word costs, which the widest of them need to fit beside the book. A
   // Hyper Skill has a card of its own to spend the line on, and names one
   // skill, so it says so in the row.
-  if (named.size() > 1 || skill.v_node() == V_NODE_KIND_BOOST) {
+  if (named.size() > 1 || own_card) {
     rows.push_back(SectionRow("Boosts", kGreen));
     for (const std::string& name : named) {
       rows.push_back(EffectRow(name, gained[name]));
@@ -1317,7 +1329,8 @@ std::vector<Row> ExtraAttackRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   Append(SwingRiderRows(skill, level), rows);
   Append(OwnClockRows(skill, level), rows);
-  Append(BoostRows(skill, level), rows);
+  Append(BoostRows(skill.boost(), level, skill.v_node() == V_NODE_KIND_BOOST),
+         rows);
   return rows;
 }
 
@@ -1472,6 +1485,9 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   }
   Append(LeverRows(base, per, level, per_stage), rows);
   Append(ShieldRows(buff.shield(), level), rows);
+  // Named in the row rather than headed: these stand under the buff's own
+  // heading, which has already said they last only as long as it does.
+  Append(BoostRows(buff.boost(), level, false), rows);
   Append(PulseRows(buff.pulse(), level), rows);
   Append(StanceRows(buff, level), rows);
   Append(AllyBuffRows(buff, level), rows);
