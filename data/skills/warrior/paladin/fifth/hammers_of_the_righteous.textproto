@@ -1,7 +1,12 @@
-# The Paladin's second job node: a ring of hammers that beats every 1.8 seconds
-# for thirty, on the same 30-of-60 window Divine Echo takes. Shaped like
-# Darkness Aura's aura, except that nothing is loosed out of it -- the cast
-# raises the ring and the ring is the whole skill.
+# The Paladin's second job node: a ring of hammers that beats every 0.63
+# seconds for thirty, on the same 30-of-60 window Divine Echo takes. Shaped
+# like Darkness Aura's aura, except that nothing is loosed out of it -- the
+# cast raises the ring and the ring is the whole skill.
+#
+# 0.63s is the user's own measurement off a video, and the client agrees: the
+# hit effect is seven frames of 90ms. attackDelay says 1800 and is not the
+# rate -- GMS's Phoenix states 3000 against a measured 1.71, so a summon's
+# attackDelay overstates in both.
 #
 # GMS also hangs five of these off Vessel of Light for free, sharing its
 # duration. Vessel of Light is a permanent passive here, so that half would put
@@ -21,7 +26,7 @@ buff {
   duration_seconds: 30.0
   pulse {
     label: "Hammers"
-    cast_interval_seconds: 1.8
+    cast_interval_seconds: 0.63
     lines: 4
     max_enemies: 8
     base { skill_pct: 5.46 }
