@@ -1,0 +1,47 @@
+# The Dark Knight's second job node: an aura that beats once a second for
+# forty, and one dark slash loosed out of it whenever the player chooses.
+#
+# The slash is the SWING here and the aura goes up with it. GMS presses twice,
+# once for each, but the slash lands once a cast wherever in the window it
+# falls, so nothing is lost by spending both animations at once:
+# base_delay_ms is the 600ms of 5thDarknessAura and the 570 of
+# 5thDarknessAuraEnd together.
+#
+# The 3% is paid per pulse rather than per line -- the reading Calamitous
+# Cyclone's own heal took -- so the aura is worth 120% of the pool over its
+# forty seconds.
+#
+# Dropped: the shield the overheal builds (75% of it, capped at a third of the
+# pool), the tenth off damage taken while the key is held, and the cancelling
+# of Gungnir's Descent, Nightshade Explosion and Calamitous Cyclone's
+# detonations -- nothing here models a cancel.
+name: "Darkness Aura"
+description:
+  "Unleash a dark aura that siphons the life force of nearby enemies. "
+  "Reusing the skill looses a dark slash out of it."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 2 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_SPEAR
+required_equip_type: EQUIP_TYPE_POLEARM
+base_delay_ms: 1170
+cooldown_seconds: 120.0
+max_enemies: 8
+lines: 13
+base { skill_pct: 4.36 }
+per_level { skill_pct: 0.16 }
+buff {
+  duration_seconds: 40.0
+  pulse {
+    label: "Dark Aura"
+    cast_interval_seconds: 1.0
+    lines: 5
+    max_enemies: 3
+    base {
+      skill_pct: 3.00
+      hp_recover_pct: 0.03
+    }
+    per_level { skill_pct: 0.10 }
+  }
+}

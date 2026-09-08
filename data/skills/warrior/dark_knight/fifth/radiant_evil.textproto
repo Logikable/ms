@@ -10,7 +10,7 @@ description:
   "The Evil Eye reveals itself and blasts nearby enemies. Only usable while "
   "Evil Eye of Domination is active."
 kind: SKILL_KIND_AUTO_ATTACK
-placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 3 }
 v_node: V_NODE_KIND_JOB
 max_level: 30
 max_enemies: 10

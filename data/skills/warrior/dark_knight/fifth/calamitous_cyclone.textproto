@@ -25,7 +25,7 @@ description:
   "Swings a spear so fast it creates a dark storm and devastates the area in "
   "front of you."
 kind: SKILL_KIND_ATTACK
-placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V skill_order: 4 }
 v_node: V_NODE_KIND_JOB
 max_level: 30
 required_equip_type: EQUIP_TYPE_SPEAR
