@@ -781,11 +781,15 @@ TEST(SkillDataTest, EveryAutoAttackSaysWhenItFires) {
 // A skill's own-clock half is a second attack out of one skill, so it needs
 // both halves of what makes an attack: something to fire, and when. And a
 // name, since the page has to tell one from another.
+//
+// Its when is one clock or the other -- seconds of its own, or a count of the
+// character's attacks. Naming both would leave the fight to pick, and naming
+// neither is a half that never fires.
 TEST(SkillDataTest, EveryAutoModeSaysWhenItFiresAndForHowMuch) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     for (const AutoMode& mode : entry.second.auto_mode()) {
-      EXPECT_GT(mode.cast_interval_seconds(), 0.0)
-          << entry.first << "'s own-clock half would never fire";
+      EXPECT_NE(mode.cast_interval_seconds() > 0.0, mode.attacks_per_cast() > 0)
+          << entry.first << "'s own-clock half names no clock, or two";
       EXPECT_GT(mode.base().skill_pct(), 0.0)
           << entry.first << "'s own-clock half would fire for nothing";
       EXPECT_FALSE(mode.label().empty())

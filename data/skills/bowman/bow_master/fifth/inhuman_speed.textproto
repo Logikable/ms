@@ -1,0 +1,54 @@
+# The afterimage's rate is the one number GMS never prints. Every language
+# says only "fires at set intervals", so it comes out of the client: both of
+# the skill's nodes carry subTime 180, and subTime is what this pack writes a
+# tick interval in -- Storm of Arrows' rain zone carries 1000 against a rate
+# measured at one a second, and Obsidian Barrier's 500 against a measured 510.
+#
+# GMS gives the buff 30 seconds and the afterimages 3, then hands them 3 more
+# for every second their attacks land, up to the buff. A Bow Master never
+# stops attacking, so the window is the buff: the ramp is dropped and the
+# afterimages fire for the whole 30. Kept literally it would be 370%/s over
+# the cooldown, an order of magnitude under the weakest job node in the game.
+#
+# One enemy a volley. GMS states no mobCount for this skill, and while the box
+# is wide enough for 24 by the reach rule, that rule floors a stated cap
+# rather than lifting an absent one -- the arrow is fired at an enemy ahead.
+#
+# The passive half counts ten of the character's own attacks, and nothing here
+# says what one is worth: Hurricane's own hits_per_attack_count divides it, so
+# a rate written in swings holds whatever they are swinging and moves on its
+# own if Hurricane ever changes. Five shots to a spawn, not six -- the
+# afterimage stands for a second, and the first shot costs its interval.
+name: "Inhuman Speed"
+description:
+  "Causes you to attack so quickly you produce afterimages. Unaffected by "
+  "attack reflection. After performing a certain number of attacks while the "
+  "active effect of the skill isn't active, an afterimage is created that "
+  "attacks for a short time."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 2 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 30.0
+  pulse {
+    label: "Afterimage"
+    cast_interval_seconds: 0.18
+    max_enemies: 1
+    lines: 3
+    base { skill_pct: 4.16 }
+    per_level { skill_pct: 0.16 }
+  }
+}
+auto_mode {
+  label: "Passive Afterimage"
+  attacks_per_cast: 10
+  casts: 5
+  max_enemies: 1
+  lines: 3
+  silent_while_buff_stands: true
+  base { skill_pct: 4.16 }
+  per_level { skill_pct: 0.16 }
+}

@@ -831,7 +831,10 @@ double OffClockRate(const CombatParams& params, const Sequence& played,
     if (extra.damage_per_hit.empty() || extra.interval_seconds <= 0.0) {
       continue;
     }
-    double per_pulse = CrowdDamage(extra, enemies);
+    // Every strike of a tick lands in full, as CombatSim::RunAutoCasts lands
+    // them: Storm of Arrows pours four rains a tick, not one.
+    double per_pulse =
+        CrowdDamage(extra, enemies) * std::max(1, extra.strikes_per_pulse);
     double share =
         gate >= 0 && gate < static_cast<int>(played.buff_uptime.size())
             ? played.buff_uptime[gate]

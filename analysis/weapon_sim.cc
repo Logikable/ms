@@ -313,7 +313,16 @@ double OffClockDps(const CombatParams& params, const Sequence& played,
     if (extra.damage_per_hit.empty() || extra.attacks_per_cast <= 0) {
       continue;
     }
-    dps += CrowdDamage(extra, enemies) * best.count_weight /
+    // A half that counts nothing while its own buff stands is worth only the
+    // rest of the fight: Inhuman Speed's passive afterimage waits out the
+    // active one.
+    int gate = extra.silent_while_buff ? extra.needs_buff : -1;
+    double share =
+        gate >= 0 && gate < static_cast<int>(played.buff_uptime.size())
+            ? 1.0 - played.buff_uptime[gate]
+            : 1.0;
+    dps += share * CrowdDamage(extra, enemies) *
+           std::max(1, extra.strikes_per_pulse) * best.count_weight /
            (swing_seconds * extra.attacks_per_cast);
   }
   return dps;

@@ -4,7 +4,7 @@
 name: "Wind Arrow Boost"
 description: "Strengthens Wind Arrow and Arrow Blow."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 8 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {
