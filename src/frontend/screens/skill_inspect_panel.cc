@@ -996,9 +996,6 @@ std::vector<Row> RegenRows(const Skill& skill, int level) {
 // read exactly as any other second hit, since that is what they are.
 std::vector<Row> ChannelFinishRows(const Skill& skill, int level) {
   google::protobuf::RepeatedPtrField<SwingHit> hits;
-  if (skill.channel().has_grown()) {
-    *hits.Add() = skill.channel().grown();
-  }
   if (skill.channel().has_finish()) {
     *hits.Add() = skill.channel().finish();
   }
@@ -1023,10 +1020,13 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
     rows.push_back(EffectRow(held ? "Damage per Pulse" : "Damage",
                              DamageText(skill, level)));
   }
-  // Where a growing hold stops beating at its opening strength. The pulse it
-  // grows into has a damage row of its own above; this is the count that says
-  // when it arrives.
-  if (held && skill.channel().small_pulses() > 0) {
+  // What a growing hold grows into, and where. Both sit directly under the
+  // opening pulse they follow on from -- a count of pulses to grow after means
+  // nothing until the reader has seen what arrives.
+  if (held && skill.channel().has_grown()) {
+    google::protobuf::RepeatedPtrField<SwingHit> grown;
+    *grown.Add() = skill.channel().grown();
+    Append(SwingHitRows(grown, level), rows);
     rows.push_back(
         EffectRow("Grows After",
                   std::to_string(skill.channel().small_pulses()) + " Pulses"));
@@ -1175,19 +1175,25 @@ std::vector<Row> SwingRiderRows(const Skill& skill, int level) {
   // is not the swing's -- see the Enemies Hit row above.
   if (skill.has_side_strike()) {
     const SideStrike& side = skill.side_strike();
+    int casts = std::max(1, side.casts());
     double per_hit =
         side.base().skill_pct() + side.per_level().skill_pct() * (level - 1);
-    std::string text = SwingText(per_hit, side.lines());
+    std::string text = SwingText(per_hit, side.lines(), casts);
     if (side.max_enemies() > 0 && side.max_enemies() != skill.max_enemies()) {
       text += ", " + std::to_string(side.max_enemies()) + " enemies";
     }
-    text += " every " + FormatNumber(side.cooldown_seconds()) + "s";
+    // Only where the strike really waits. One with no wait of its own goes out
+    // with every swing, and "every 0s" says that to nobody.
+    if (side.cooldown_seconds() > 0.0) {
+      text += " every " + FormatNumber(side.cooldown_seconds()) + "s";
+    }
     rows.push_back(EffectRow(side.label(), text));
     double normal = side.base().normal_skill_pct() +
                     side.per_level().normal_skill_pct() * (level - 1);
     if (normal > 0.0) {
-      rows.push_back(EffectRow(side.label() + " Normal",
-                               SwingText(per_hit + normal, side.lines())));
+      rows.push_back(
+          EffectRow(side.label() + " Normal",
+                    SwingText(per_hit + normal, side.lines(), casts)));
     }
     // A side strike scatters on its own row for the same reason the swing's
     // does, and under its own name: the reach above is how far it spreads.
