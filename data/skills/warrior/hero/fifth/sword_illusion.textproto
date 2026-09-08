@@ -1,9 +1,8 @@
-# The Hero's last job node, and the biggest single cast in the game: twelve
-# slashes of four lines, then five explosions of five, all of it on eight
-# enemies. Modelled as the twelve and the five GMS states rather than as one
-# 48-line swing and one 25-line hit -- the total is the same either way, but a
-# folded swing would say the skill is something it is not, and the ledger would
-# draw one landing where GMS draws twelve.
+# The Hero's last job node: twelve slashes of four lines, then five explosions
+# of five, all of it on eight enemies. Modelled as the twelve and the five GMS
+# states rather than as one 48-line swing and one 25-line hit -- the total is
+# the same either way, but a folded swing would say the skill is something it
+# is not, and the ledger would draw one landing where GMS draws twelve.
 #
 # The final damage it detonates is worth six Combo Orbs for eight seconds, and
 # it goes up AT THE CAST. GMS draws the distinction in one sentence: the
