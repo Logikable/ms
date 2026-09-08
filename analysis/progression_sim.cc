@@ -2003,8 +2003,6 @@ void NoteEndgame(Session& run, double began, int64_t earned_at_cap,
   run.climb.endgame_stars_worn = reached.stars;
   run.climb.endgame_hammers = reached.hammers;
   run.climb.potentials = PotentialsWorn(run.state);
-  run.climb.booms = run.shopper.life().booms;
-  run.climb.ledger.gear = run.shopper.life();
 }
 
 void FarmAtCap(Session& run) {
@@ -2116,6 +2114,11 @@ Climb Play(const Catalogs& catalogs, Job branch,
       state.character.proto().level() >= kTrialLevelCap) {
     FarmAtCap(run);
   }
+  // The shopper's whole life, read where every run ends rather than where the
+  // endgame section does: it spends on every level of the climb, and a run
+  // that never reached the cap was reporting none of it.
+  climb.ledger.gear = run.shopper.life();
+  climb.booms = run.shopper.life().booms;
   climb.ability_farming = state.character.ability(StatPreset::kFarming);
   climb.ability_bossing = state.character.ability(StatPreset::kBossing);
   // ToProto, not proto(): the live containers hold the gear, and the backing
