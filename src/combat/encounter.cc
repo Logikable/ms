@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <utility>
@@ -770,6 +771,20 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
   wound.strikes_per_pulse = std::max(1, pulse.casts());
   wound.max_pulses = pulse.max_pulses();
   wound.needs_buff_stance = stance;
+  // The rain that grows with the crowd carries one more of its own lines,
+  // built as a strike of exactly one so the fight can land as many as the
+  // character's swing has earned -- each rolling its own mastery and crit.
+  if (pulse.lines_per_extra_enemy() > 0 && pulse.max_extra_lines() > 0) {
+    bleed.set_lines(1);
+    AttackOption line =
+        AttackFor(proto, equipped, weapon_type, &bleed, level, types, derived,
+                  kUnscaledAttackSpeedStage, speed_factor);
+    line.swing_seconds = 0.0;
+    ClearSwingRiders(line);
+    wound.extra_line = std::make_shared<const AttackOption>(std::move(line));
+    wound.lines_per_extra_enemy = pulse.lines_per_extra_enemy();
+    wound.max_extra_lines = pulse.max_extra_lines();
+  }
   set.auto_attacks.push_back(std::move(wound));
 }
 

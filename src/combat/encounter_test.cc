@@ -2582,6 +2582,53 @@ TEST(ComputeCombatParamsTest, ABuffOnAnAttackIsLaidByThatSwing) {
   EXPECT_EQ(capped.auto_attacks[0].max_pulses, 12);
 }
 
+// Storm of Arrows' shape: the rain carries one more of its own lines, built as
+// a strike of exactly one so the fight can land as many as the swing earned.
+TEST(ComputeCombatParamsTest, APulseThatGrowsWithTheCrowdCarriesOneMoreLine) {
+  Skill storm;
+  storm.set_name("Storm of Arrows");
+  storm.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(storm, JOB_ADVANCEMENT_SWORDMAN);
+  storm.set_max_level(30);
+  storm.set_cooldown_seconds(120.0);
+  Buff* buff = storm.mutable_buff();
+  buff->set_duration_seconds(70.0);
+  BuffPulse* rain = buff->mutable_pulse();
+  rain->set_label("Arrow Rain");
+  rain->set_cast_interval_seconds(5.0);
+  rain->set_max_enemies(10);
+  rain->set_lines(7);
+  rain->set_lines_per_extra_enemy(2);
+  rain->set_max_extra_lines(8);
+  rain->mutable_base()->set_skill_pct(16.5);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"storm_of_arrows", storm}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(storm, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  const AttackOption& pulse = params.auto_attacks[0];
+  EXPECT_EQ(pulse.lines, 7);
+  EXPECT_EQ(pulse.lines_per_extra_enemy, 2);
+  EXPECT_EQ(pulse.max_extra_lines, 8);
+  ASSERT_NE(pulse.extra_line, nullptr);
+  // One of the rain's seven, and the rest of the pulse carried whole.
+  EXPECT_EQ(pulse.extra_line->lines, 1);
+  EXPECT_EQ(pulse.extra_line->max_enemies, 10);
+  ASSERT_FALSE(pulse.damage_per_hit.empty());
+  EXPECT_NEAR(pulse.extra_line->damage_per_hit[0],
+              pulse.damage_per_hit[0] / 7.0, 1e-6);
+
+  // A ramp with no cap on it is not a ramp: nothing is built.
+  rain->clear_max_extra_lines();
+  state.skills["storm_of_arrows"] = storm;
+  EXPECT_EQ(ComputeCombatParams(state).auto_attacks[0].extra_line, nullptr);
+}
+
 // Instinctual Combo's shape: the tear rides Raging Blow rather than a clock,
 // so it falls exactly as often as that swing does -- and quickens with it when
 // the weapon does. A ride nobody answers to leaves no pulse at all.

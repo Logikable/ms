@@ -1394,6 +1394,36 @@ TEST(CombatSimTest, AFountainPoursOnItsOwnClock) {
   EXPECT_EQ(sim.view().player_hp, 70);
 }
 
+// Storm of Arrows: the rain grows with the crowd the character's OWN SWING is
+// on, not with its own reach -- so a single-target swing calls down the short
+// rain however many monsters are standing under it.
+TEST(CombatSimTest, APulseGrowsWithTheSwingsCrowdRatherThanItsOwn) {
+  Mob snail = MakeMob("Snail", 1000000000);
+  double landed[2] = {0.0, 0.0};
+  for (int run = 0; run < 2; ++run) {
+    // The swing itself does nothing, so every point below is the rain's.
+    CombatParams params =
+        MakeParams(1.0, 1e9, {MakeType(&snail, 0.0, 6)}, run == 0 ? 1 : 4);
+    AddAutoAttack(params, /*interval=*/1.0, /*damage=*/70.0);
+    AttackOption line;
+    line.max_enemies = 1;
+    line.damage_per_hit = {10.0};
+    params.auto_attacks[0].extra_line =
+        std::make_shared<const AttackOption>(line);
+    params.auto_attacks[0].lines_per_extra_enemy = 2;
+    params.auto_attacks[0].max_extra_lines = 8;
+    CombatSim sim;
+    for (int step = 0; step < 5; ++step) {
+      sim.Advance(params, 1.0);
+      landed[run] += sim.view().damage_this_step;
+    }
+  }
+  // The first rain falls before any swing has been aimed, so it is short in
+  // both runs; the four after it are worth three extra enemies' six lines.
+  EXPECT_NEAR(landed[0], 5 * 70.0, 1e-6);
+  EXPECT_NEAR(landed[1], 70.0 + 4 * 130.0, 1e-6);
+}
+
 // Darkness Aura: an own-clock pulse that heals as it lands. Paid per strike
 // of the tick rather than per tick, and never past a full pool.
 TEST(CombatSimTest, AnOwnClockPulseHealsAsItLands) {

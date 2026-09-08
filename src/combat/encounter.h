@@ -246,6 +246,17 @@ struct AttackOption {
   // rather than owned outright for the reason `empowered` is: an AttackOption
   // is copied freely and the strike never changes.
   std::shared_ptr<const AttackOption> side;
+  // One more line of this same strike, for a pulse whose rain grows with the
+  // crowd the character's own swing is reaching: `lines_per_extra_enemy` of
+  // them per enemy past the first, capped at `max_extra_lines`. Null and 0 for
+  // every attack but Storm of Arrows' rain.
+  //
+  // A line rather than a multiplier because each of them rolls its own mastery
+  // and crit, which is what a line is. Shared rather than owned outright for
+  // the reason `empowered` is.
+  std::shared_ptr<const AttackOption> extra_line;
+  int lines_per_extra_enemy = 0;
+  int max_extra_lines = 0;
   // The chances this swing has to land harder on one of the enemies it
   // reached. Empty for every character but a Sniper, and stripped from
   // anything on a clock of its own -- what GMS rolls is the character

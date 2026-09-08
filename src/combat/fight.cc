@@ -86,6 +86,14 @@ int CombatSim::Reached(const AttackOption& attack) const {
   return hit;
 }
 
+int CombatSim::ExtraLines(const AttackOption& attack) const {
+  if (attack.extra_line == nullptr || attack.lines_per_extra_enemy <= 0) {
+    return 0;
+  }
+  return std::min(attack.max_extra_lines, attack.lines_per_extra_enemy *
+                                              std::max(0, swing_enemies_ - 1));
+}
+
 // What each of the `hit` enemies takes of one scattered swing, indexed by their
 // place in the queue. The strikes spread before they double up, so on eleven
 // enemies every one of them takes a whole flame and on a lone boss all eleven
@@ -154,6 +162,7 @@ double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
   // as the fight means to hold for -- weighing it at a full hold would price
   // pulses that will land on nothing.
   int pulses = ChannelPulses(attack, hit);
+  int extras = ExtraLines(attack);
   std::vector<double> shares = ScatterShares(attack, hit);
   for (int j = 0; j < hit; ++j) {
     int type = queue_[j].type;
@@ -166,7 +175,12 @@ double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
           pulses > 0 ? HeldPulseDamage(attack, type, attack.channel.pulses) -
                            HeldPulseDamage(attack, type, pulses)
                      : 0.0;
-      total += (attack.damage_per_hit[type] - dropped) *
+      double extra =
+          extras > 0 && type < static_cast<int>(
+                                   attack.extra_line->damage_per_hit.size())
+              ? extras * attack.extra_line->damage_per_hit[type]
+              : 0.0;
+      total += (attack.damage_per_hit[type] - dropped + extra) *
                (shares.empty() ? 1.0 : shares[j]);
     }
   }
@@ -421,6 +435,10 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   int held = attack.channel.pulses > 0
                  ? (pulses >= 0 ? pulses : ChannelPulses(attack, hit))
                  : 0;
+  // Settled once for the whole strike, so every enemy takes the same rain --
+  // the crowd is a property of the swing that called it down, not of who is
+  // standing under each arrow.
+  int extra = ExtraLines(attack);
   for (int step = 0; step < hit; ++step) {
     int j = order.empty() ? step : order[step];
     double gain =
@@ -432,6 +450,13 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
             ? ChannelDamage(attack, queue_[j].type, held, LandingAt(j, freeze))
             : DamageToMob(attack, j, LandingAt(j, gain * freeze * share)) *
                   gain;
+    // Each of them rolls on its own, being a line: they are the same arrow
+    // falling more times, not one arrow worth more.
+    for (int line = 0; line < extra; ++line) {
+      damage += RolledDamage(*attack.extra_line, queue_[j].type,
+                             LandingAt(j, gain * freeze * share)) *
+                gain;
+    }
     Hurt(queue_[j], damage * freeze * share);
   }
   for (int j : lead) {
@@ -1944,6 +1969,12 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   // both pick their targets off one order -- and so the swing is CHOSEN
   // against the monsters it is about to hit.
   AimAtHealthiest(params);
+  // Before anything on its own clock fires: a rain that grows with the crowd
+  // reads the swing that called it down, and that aim was settled last step.
+  const std::vector<AttackOption>& options = Attacks(params);
+  swing_enemies_ = aimed_ >= 0 && aimed_ < static_cast<int>(options.size())
+                       ? Reached(options[aimed_])
+                       : 0;
   RunAutoCasts(params, dt);
   // With them, and after the respawn beat has topped the roster up, so a
   // release charged by the swing that emptied the map still finds something

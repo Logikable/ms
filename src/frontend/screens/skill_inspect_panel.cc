@@ -1387,6 +1387,16 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
     rows.push_back(EffectRow(
         "Attacks", ReachText(pulse.max_enemies()) + PulseClockText(pulse)));
   }
+  // What a crowd is worth to the rain, where its strikes grow with the one the
+  // character is swinging. The cap belongs on the row: without it the ladder
+  // reads as unbounded.
+  if (pulse.lines_per_extra_enemy() > 0 && pulse.max_extra_lines() > 0) {
+    rows.push_back(EffectRow(
+        "Per Extra Enemy",
+        "+" + std::to_string(pulse.lines_per_extra_enemy()) +
+            (pulse.lines_per_extra_enemy() == 1 ? " Strike" : " Strikes") +
+            ", up to +" + std::to_string(pulse.max_extra_lines())));
+  }
   Append(std::move(levers), rows);
   return rows;
 }

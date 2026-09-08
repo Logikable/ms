@@ -607,6 +607,16 @@ message BuffPulse {
   // were the named one, which is what a fight spent on the skill this rides
   // comes to.
   string paced_by_skill_name = 9;
+  // Lines added to each strike for every enemy PAST THE FIRST that the
+  // character's own swing is reaching, and the most they can add. Storm of
+  // Arrows is what they exist for: GMS pours a longer rain when the attack
+  // that set it off hit a crowd, 7 lines walking to 15.
+  //
+  // The count is the SWING's, never the rain's own reach -- GMS reads "if
+  // currently attacking more than one enemy", and a rain that read its own
+  // would pour 15 on a boss whose parts it counts as a crowd.
+  int32 lines_per_extra_enemy = 10;
+  int32 max_extra_lines = 11;
 }
 
 // A buff a skill puts up for a while, on a cooldown of its own: what it grants

@@ -279,6 +279,10 @@ class CombatSim {
   // always falling on the same end of the queue. Empty for every other swing,
   // whose order cannot be seen.
   int Reached(const AttackOption& attack) const;
+  // Lines `attack` adds because the character's own swing is on a crowd:
+  // lines_per_extra_enemy for every enemy that swing reaches past the first,
+  // capped at max_extra_lines. 0 for every attack but Storm of Arrows' rain.
+  int ExtraLines(const AttackOption& attack) const;
   std::vector<double> ScatterShares(const AttackOption& attack, int hit) const;
   std::vector<int> PierceOrder(const AttackOption& attack, int hit);
   // Indices into the queue of the mobs `attack`'s opening hit picks, empty when
@@ -581,6 +585,12 @@ class CombatSim {
   // cooldown -- and, while it is charging, the swing that is committed to.
   // -1 with nothing aimed.
   int aimed_ = -1;
+  // Enemies the character's own swing is reaching, measured at the top of the
+  // step -- so a rain on its own clock and the swing that set it off agree
+  // about the crowd. The aim is a step old, the swing being chosen at the end
+  // of the last one, which is near enough for a count that moves with the
+  // queue. 0 with nothing aimed. See BuffPulse::lines_per_extra_enemy.
+  int swing_enemies_ = 0;
   // Pulses the aimed swing will be held for, settled when it was aimed and
   // kept until it lands: the orb the player is already holding is not re-timed
   // under them as the queue moves. 0 whenever the aimed swing is not held.
