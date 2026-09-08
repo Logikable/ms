@@ -1733,6 +1733,42 @@ TEST_F(SkillInspectPanelTest, APulseWithItsOwnReachStatesItBesideItsClock) {
       << rendered;
 }
 
+// Storm of Arrows' two rows: a rain whose strikes grow with the crowd says so
+// under its reach, cap and all, and what the storm hands another skill reads
+// under the buff's own heading rather than under a Boosts one.
+TEST_F(SkillInspectPanelTest, ARainStatesWhatACrowdAndAnAlliedSkillAreWorth) {
+  Skill storm = IronBody();
+  storm.set_kind(SKILL_KIND_ACTIVE);
+  Buff* buff = storm.mutable_buff();
+  buff->set_duration_seconds(70.0);
+  SkillBoost* boost = buff->add_boost();
+  boost->set_skill_name("Enchanted Quiver");
+  boost->set_final_attack_chance_mult(2.0);
+  BuffPulse* rain = buff->mutable_pulse();
+  rain->set_label("Arrow Rain");
+  rain->set_cast_interval_seconds(5.0);
+  rain->set_max_enemies(10);
+  rain->set_lines(7);
+  rain->set_casts(4);
+  rain->set_lines_per_extra_enemy(2);
+  rain->set_max_extra_lines(8);
+  rain->mutable_base()->set_skill_pct(16.50);
+
+  std::string rendered = RenderAt(storm, 1);
+  EXPECT_NE(RowIn(rendered, "Arrow Rain", "1650% x7 x4 = 46200%"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Attacks", "10 enemies every 5s"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Per Extra Enemy", "+2 Strikes, up to +8"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Boosts Enchanted Quiver", "x2 Final Attack Rate"),
+            std::string::npos)
+      << rendered;
+}
+
 // A pulse riding a swing has no clock to state, so the page names the swing
 // instead -- the player reads how often it comes round off the skill they are
 // already pressing.
