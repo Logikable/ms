@@ -59,7 +59,8 @@ struct HitGroup {
 // A swing that is HELD: the clock its pulses fall on, how many of them a full
 // hold is worth, and the floor under the shortest one. The damage is in the
 // swing's own groups -- the first is one pulse, the rest are the strike the
-// hold ends on -- since a hold is that pulse landed over and over.
+// hold ends on -- since a hold is that pulse landed over and over. A hold that
+// GROWS carries its second pulse here instead, beside the count it grows on.
 //
 // `pulses` is 0 for every attack that is simply swung, which is all of them
 // but the two the player holds. See Channel.
@@ -77,6 +78,13 @@ struct ChannelHold {
   double hp_recover_pct = 0.0;
   // Share of every hit the player takes that the hold cancels while it runs.
   double damage_taken_pct = 0.0;
+  // Pulses the hold beats at its opening strength before it grows. 0 for a
+  // hold that beats the same all the way through, which is every one whose
+  // `grown` carries no damage.
+  int small_pulses = 0;
+  // What one pulse is worth once the hold has grown. Empty damage for a hold
+  // that never grows, which is Calamitous Cyclone.
+  HitGroup grown;
 };
 
 // One burn a swing leaves on the enemies it reaches: what one tick is worth

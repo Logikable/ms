@@ -912,6 +912,16 @@ message Channel {
   // Share of every hit the player takes that is cancelled while the key is
   // held. The hold is the shelter, so it lasts exactly as long as the hold.
   double damage_taken_pct = 5;
+  // What the hold grows into, and how many pulses it beats at its opening
+  // strength first. Grand Guardian is what it exists for: GMS's cross gets
+  // bigger a second into the hold and hits about twice as hard from there.
+  //
+  // Read exactly as `finish` is -- its own multiplier and its own lines -- but
+  // landed every pulse from `small_pulses` on rather than once at the end.
+  // Unset for a hold that beats the same all the way through, which is
+  // Calamitous Cyclone.
+  SwingHit grown = 6;
+  int32 small_pulses = 7;
 }
 
 // A second attack the same swing sets off, on a wait of its own. Showdown's

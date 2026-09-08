@@ -266,6 +266,8 @@ class CombatSim {
   double PulseDamage(const AttackOption& attack, int type) const;
   // What the strike a hold ends on is worth against `type`: everything past
   // the swing's first block of lines, which is that strike and nothing else.
+  double HeldPulseDamage(const AttackOption& attack, int type,
+                         int pulses) const;
   double FinishDamage(const AttackOption& attack, int type) const;
   // What a hold of `pulses` lands on one mob of `type`: every pulse rolled on
   // its own, and the strike it ends on landed once.

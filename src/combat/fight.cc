@@ -154,14 +154,20 @@ double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
   // as the fight means to hold for -- weighing it at a full hold would price
   // pulses that will land on nothing.
   int pulses = ChannelPulses(attack, hit);
-  double dropped = pulses > 0 ? attack.channel.pulses - pulses : 0;
   std::vector<double> shares = ScatterShares(attack, hit);
   for (int j = 0; j < hit; ++j) {
     int type = queue_[j].type;
     if (type < static_cast<int>(attack.damage_per_hit.size())) {
-      total +=
-          (attack.damage_per_hit[type] - dropped * PulseDamage(attack, type)) *
-          (shares.empty() ? 1.0 : shares[j]);
+      // What the hold gives up by being let go early. Taken as the difference
+      // between a full hold and the one it means to run, since the pulses it
+      // drops are the LAST of them -- and on a hold that grows those are worth
+      // more than the ones it keeps.
+      double dropped =
+          pulses > 0 ? HeldPulseDamage(attack, type, attack.channel.pulses) -
+                           HeldPulseDamage(attack, type, pulses)
+                     : 0.0;
+      total += (attack.damage_per_hit[type] - dropped) *
+               (shares.empty() ? 1.0 : shares[j]);
     }
   }
   total *= PierceMean(attack.pierce_gain_pct, hit);
@@ -631,6 +637,20 @@ double CombatSim::PulseDamage(const AttackOption& attack, int type) const {
   return attack.groups.front().damage[type];
 }
 
+// What the first `pulses` of a hold come to against one target type. A hold
+// that grows beats at two strengths, so this is a sum of two runs rather than
+// a multiplication.
+double CombatSim::HeldPulseDamage(const AttackOption& attack, int type,
+                                  int pulses) const {
+  const ChannelHold& hold = attack.channel;
+  if (type >= static_cast<int>(hold.grown.damage.size())) {
+    return pulses * PulseDamage(attack, type);
+  }
+  int small = std::min(pulses, hold.small_pulses);
+  return small * PulseDamage(attack, type) +
+         (pulses - small) * hold.grown.damage[type];
+}
+
 double CombatSim::FinishDamage(const AttackOption& attack, int type) const {
   double total = 0.0;
   for (std::size_t i = 1; i < attack.groups.size(); ++i) {
@@ -661,7 +681,21 @@ int CombatSim::ChannelPulses(const AttackOption& attack, int hit) const {
     if (left <= 0.0) {
       continue;
     }
-    wanted = std::max(wanted, static_cast<int>(std::ceil(left / pulse)));
+    // A hold that grows is not a division: the opening run is spent first, and
+    // only what is still standing after it comes off the stronger pulses.
+    double opening = HeldPulseDamage(attack, type, hold.small_pulses) * freeze;
+    int need;
+    if (hold.grown.damage.empty() || left <= opening) {
+      need = static_cast<int>(std::ceil(left / pulse));
+    } else if (type < static_cast<int>(hold.grown.damage.size()) &&
+               hold.grown.damage[type] > 0.0) {
+      need = hold.small_pulses +
+             static_cast<int>(std::ceil((left - opening) /
+                                        (hold.grown.damage[type] * freeze)));
+    } else {
+      need = hold.pulses;
+    }
+    wanted = std::max(wanted, need);
   }
   return std::clamp(wanted, hold.min_pulses, hold.pulses);
 }
@@ -684,10 +718,14 @@ double CombatSim::HeldSeconds(const AttackOption& attack) const {
 double CombatSim::ChannelDamage(const AttackOption& attack, int type,
                                 int pulses, const Landing& landing) {
   double total = 0.0;
-  double pulse = PulseDamage(attack, type);
+  const ChannelHold& hold = attack.channel;
+  bool grows = type < static_cast<int>(hold.grown.damage.size());
   for (int i = 0; i < pulses; ++i) {
-    total += pulse *
-             RollFactor(attack.groups.front().rolls, rng_, ledger_.LineSink());
+    bool grown = grows && i >= hold.small_pulses;
+    double pulse = grown ? hold.grown.damage[type] : PulseDamage(attack, type);
+    const SwingRolls& rolls =
+        grown ? hold.grown.rolls : attack.groups.front().rolls;
+    total += pulse * RollFactor(rolls, rng_, ledger_.LineSink());
     ledger_.RecordRolls(landing, pulse * landing.scale);
   }
   // Everything past the first group is the strike the hold ends on, landed

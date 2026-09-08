@@ -323,6 +323,53 @@ TEST(ComputeCombatParamsTest, AHoldPaysItsRecoveryPerPulseAndPerFinishLine) {
   EXPECT_DOUBLE_EQ(attack.hp_recover_pct, 12.0);
 }
 
+// Grand Guardian's shape: a hold that grows partway through, so the full hold
+// is the opening run plus the stronger one rather than one pulse multiplied.
+TEST(ComputeCombatParamsTest, AHoldCanGrowPartwayThrough) {
+  Skill cross;
+  cross.set_name("Grand Guardian");
+  cross.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(cross, JOB_ADVANCEMENT_SWORDMAN);
+  cross.set_max_level(1);
+  cross.set_max_enemies(12);
+  cross.set_lines(12);
+  cross.set_base_delay_ms(1680);
+  cross.mutable_base()->set_skill_pct(2.54);
+  Channel* channel = cross.mutable_channel();
+  channel->set_pulse_interval_ms(150);
+  channel->set_max_pulses(23);
+  channel->set_small_pulses(7);
+  channel->set_finish_delay_ms(780);
+  SwingHit* grown = channel->mutable_grown();
+  grown->set_label("Grand Cross");
+  grown->set_lines(12);
+  grown->mutable_base()->set_skill_pct(4.89);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"grand_guardian", cross}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(cross, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  int held = IndexOfAttack(params.attacks, "Grand Guardian");
+  ASSERT_GE(held, 0);
+  const AttackOption& attack = params.attacks[held];
+  EXPECT_EQ(attack.channel.pulses, 23);
+  EXPECT_EQ(attack.channel.small_pulses, 7);
+  ASSERT_FALSE(attack.channel.grown.damage.empty());
+  // The grown pulse is priced on its own multiplier and kept off the swing's
+  // groups, which are read as one pulse and then the finish.
+  EXPECT_EQ(attack.groups.size(), 1u);
+  double one = attack.groups.front().damage[0];
+  EXPECT_NEAR(attack.channel.grown.damage[0] / one, 4.89 / 2.54, 0.01);
+  // Seven of the opening pulse and sixteen of the stronger one -- not 23 of
+  // either.
+  EXPECT_NEAR(attack.damage_per_hit[0],
+              7.0 * one + 16.0 * attack.channel.grown.damage[0], 1e-6);
+}
+
 // Glacial Fury pays magic attack per Freeze Stack to ICE swings and to nothing
 // else, so the gain is written onto the ice swing alone -- and it is a share of
 // that swing, since damage is linear in the attack behind it.

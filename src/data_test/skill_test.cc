@@ -844,6 +844,19 @@ TEST(SkillDataTest, EveryHeldSwingSaysHowItPulsesAndWhatItEndsOn) {
       EXPECT_FALSE(channel.finish().label().empty())
           << entry.first << "'s finish has no row to sit on";
     }
+    // A hold that grows needs both halves of the growth: what it grows into
+    // and where. Either alone is a hold that beats the same all the way
+    // through and says otherwise.
+    EXPECT_EQ(channel.has_grown(), channel.small_pulses() > 0)
+        << entry.first << " states half of a growth";
+    if (channel.has_grown()) {
+      EXPECT_GT(channel.grown().base().skill_pct(), 0.0)
+          << entry.first << " grows into nothing";
+      EXPECT_FALSE(channel.grown().label().empty())
+          << entry.first << "'s grown pulse has no row to sit on";
+      EXPECT_LT(channel.small_pulses(), channel.max_pulses())
+          << entry.first << " never reaches the pulse it grows into";
+    }
     EXPECT_EQ(skill.extra_hit_size(), 0)
         << entry.first << " lands extra hits the fight would read as its "
         << "finish";

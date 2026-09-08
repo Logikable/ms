@@ -185,12 +185,12 @@ void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
   }
 }
 
-// A second hit the same swing lands, priced on its own and summed into the
-// swing: its own multiplier, its own lines, its own critical rate on top of
-// what the character brought. The group it leaves behind is what makes it roll
-// separately -- see SwingHit.
-void AddSwingHit(const SwingHit& hit, const OffenseStats& offense, int level,
-                 const std::vector<CombatType>& types, AttackOption& attack) {
+// One strike of a SwingHit, priced against every mob type: its own multiplier,
+// its own lines, its own critical rate over what the character brought. What
+// makes it roll separately from the swing is that it is a group of its own.
+HitGroup SwingHitGroup(const SwingHit& hit, const OffenseStats& offense,
+                       int level, const std::vector<CombatType>& types,
+                       int& lines) {
   OffenseStats extra = offense;
   SkillEffect lands = EffectAt(hit.base(), hit.per_level(), level);
   extra.skill_pct = lands.skill_pct();
@@ -203,10 +203,24 @@ void AddSwingHit(const SwingHit& hit, const OffenseStats& offense, int level,
   extra.mirror_lines = extra.lines;
   HitGroup group;
   group.rolls = RollsFor(extra);
+  for (const CombatType& type : types) {
+    group.damage.push_back(ExpectedAttackDamage(extra, *type.mob));
+  }
+  lines = extra.lines;
+  return group;
+}
+
+// A second hit the same swing lands, priced on its own and summed into the
+// swing. The group it leaves behind is what makes it roll separately -- see
+// SwingHit.
+void AddSwingHit(const SwingHit& hit, const OffenseStats& offense, int level,
+                 const std::vector<CombatType>& types, AttackOption& attack) {
+  SkillEffect lands = EffectAt(hit.base(), hit.per_level(), level);
+  int lines = 0;
+  HitGroup group = SwingHitGroup(hit, offense, level, types, lines);
   int casts = SwingHitCasts(hit);
-  for (std::size_t i = 0; i < types.size(); ++i) {
-    group.damage.push_back(ExpectedAttackDamage(extra, *types[i].mob));
-    attack.damage_per_hit[i] += group.damage.back() * casts;
+  for (std::size_t i = 0; i < types.size() && i < group.damage.size(); ++i) {
+    attack.damage_per_hit[i] += group.damage[i] * casts;
   }
   // Landed once per strike, as the swing's own is: Sword Illusion sets off
   // five explosions and each of them rolls for itself.
@@ -216,12 +230,17 @@ void AddSwingHit(const SwingHit& hit, const OffenseStats& offense, int level,
   // A recovery a HIT states is paid per line of it, GMS's "for every final
   // attack that lands" -- unlike the swing's own, which the skill states
   // against the cast. Angel Ray heals once however many times it strikes.
-  attack.hp_recover_pct += lands.hp_recover_pct() * extra.lines * casts;
+  attack.hp_recover_pct += lands.hp_recover_pct() * lines * casts;
 }
 
 // The hold a held swing is. What has been priced already is ONE pulse, so the
 // strike the hold ends on is added beside it and the swing's damage is then
 // restated as a full hold: every pulse of it, and the one finish.
+//
+// A hold that GROWS beats at two strengths, so that restatement is a sum of
+// two runs rather than a multiplication. The grown pulse is priced exactly as
+// the finish is and kept on the hold, out of the swing's own groups -- those
+// are read as "the first is a pulse, the rest are the finish" everywhere.
 //
 // The floor is the animation's own, which is what base_delay_ms already became
 // -- the shortest the player can let go. The pulse clock is not scaled by
@@ -239,7 +258,12 @@ void AddChannel(const Skill& skill, const OffenseStats& offense, int level,
   // moves to the hold before the finish adds its own on top.
   double pulse_recover = attack.hp_recover_pct;
   attack.hp_recover_pct = 0.0;
-  AddSwingHit(channel.finish(), offense, level, types, attack);
+  // Only where there is one: a hold that ends by letting go leaves no strike,
+  // and pricing an empty one would leave a group behind that floors at a point
+  // of damage per enemy.
+  if (channel.has_finish()) {
+    AddSwingHit(channel.finish(), offense, level, types, attack);
+  }
   ChannelHold& hold = attack.channel;
   hold.hp_recover_pct = pulse_recover;
   hold.pulses = channel.max_pulses();
@@ -254,9 +278,19 @@ void AddChannel(const Skill& skill, const OffenseStats& offense, int level,
       std::clamp(static_cast<int>((hold.min_seconds - hold.finish_seconds) /
                                   hold.pulse_seconds),
                  1, hold.pulses);
+  int small = hold.pulses;
+  if (channel.has_grown()) {
+    int lines = 0;
+    hold.grown = SwingHitGroup(channel.grown(), offense, level, types, lines);
+    hold.small_pulses = std::clamp(channel.small_pulses(), 0, hold.pulses);
+    small = hold.small_pulses;
+  }
   for (std::size_t i = 0; i < pulse.size() && i < attack.damage_per_hit.size();
        ++i) {
-    attack.damage_per_hit[i] += pulse[i] * (hold.pulses - 1);
+    attack.damage_per_hit[i] += pulse[i] * (small - 1);
+    if (i < hold.grown.damage.size()) {
+      attack.damage_per_hit[i] += hold.grown.damage[i] * (hold.pulses - small);
+    }
   }
   attack.swing_seconds = HoldSeconds(hold, hold.pulses);
 }

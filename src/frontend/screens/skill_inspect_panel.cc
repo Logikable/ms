@@ -991,12 +991,18 @@ std::vector<Row> RegenRows(const Skill& skill, int level) {
   return {EffectRow("HP Recovered", text)};
 }
 
-// The strike a hold ends on, which reads exactly as any other second hit since
-// that is what it is -- one landed once however long the hold ran.
+// What a hold does beyond its own pulse: the strike it ends on, the pulse it
+// grows into, and the share of a hit it shelters the player from. Both strikes
+// read exactly as any other second hit, since that is what they are.
 std::vector<Row> ChannelFinishRows(const Skill& skill, int level) {
-  google::protobuf::RepeatedPtrField<SwingHit> finish;
-  *finish.Add() = skill.channel().finish();
-  std::vector<Row> rows = SwingHitRows(finish, level);
+  google::protobuf::RepeatedPtrField<SwingHit> hits;
+  if (skill.channel().has_grown()) {
+    *hits.Add() = skill.channel().grown();
+  }
+  if (skill.channel().has_finish()) {
+    *hits.Add() = skill.channel().finish();
+  }
+  std::vector<Row> rows = SwingHitRows(hits, level);
   if (skill.channel().damage_taken_pct() > 0.0) {
     rows.push_back(
         EffectRow("Damage Taken",
@@ -1016,6 +1022,14 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
     // its pulse count.
     rows.push_back(EffectRow(held ? "Damage per Pulse" : "Damage",
                              DamageText(skill, level)));
+  }
+  // Where a growing hold stops beating at its opening strength. The pulse it
+  // grows into has a damage row of its own above; this is the count that says
+  // when it arrives.
+  if (held && skill.channel().small_pulses() > 0) {
+    rows.push_back(
+        EffectRow("Grows After",
+                  std::to_string(skill.channel().small_pulses()) + " Pulses"));
   }
   // How many pulses one hold is worth. A count rather than a clock, which is
   // the half of the hold the player can act on -- they let go when it stops
