@@ -1,0 +1,2 @@
+name: "Scrapyard Hill 4"
+spawns { mob: "hunterizer_red" count: 33 }

@@ -1,0 +1,5 @@
+name: "Scrapyard Hill 2"
+spawns { mob: "modded_broken_android" count: 33 }
+# Where the ladder leaves Arcane River alone: Verne Mine's scrapyard runs
+# 202 to 219 and asks for no symbol, so a character who has just hit 200
+# has somewhere to farm before the river's first map will have them.
