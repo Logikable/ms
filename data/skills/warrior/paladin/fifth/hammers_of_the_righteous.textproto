@@ -1,0 +1,30 @@
+# The Paladin's second job node: a ring of hammers that beats every 1.8 seconds
+# for thirty, on the same 30-of-60 window Divine Echo takes. Shaped like
+# Darkness Aura's aura, except that nothing is loosed out of it -- the cast
+# raises the ring and the ring is the whole skill.
+#
+# GMS also hangs five of these off Vessel of Light for free, sharing its
+# duration. Vessel of Light is a permanent passive here, so that half would put
+# the ring up for good and leave the active with nothing to add. Dropped, and
+# the timed ring is what the skill is.
+name: "Hammers of the Righteous"
+description:
+  "Summons a whirling bulwark of righteous hammers to strike down nearby "
+  "enemies. Unaffected by attack reflection."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_V skill_order: 2 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 60.0
+buff {
+  duration_seconds: 30.0
+  pulse {
+    label: "Hammers"
+    cast_interval_seconds: 1.8
+    lines: 4
+    max_enemies: 8
+    base { skill_pct: 5.46 }
+    per_level { skill_pct: 0.21 }
+  }
+}
