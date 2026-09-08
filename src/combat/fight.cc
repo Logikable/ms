@@ -1702,6 +1702,13 @@ void CombatSim::CreditSwing(const CombatParams& params, double weight) {
     if (cast.attacks_per_cast <= 0) {
       continue;
     }
+    // A half that runs only while its own buff is down counts nothing while it
+    // stands. The tally is left where it was rather than cleared: what the
+    // character swung before the buff went up is still swung.
+    if (cast.silent_while_buff && cast.needs_buff >= 0 &&
+        (buff_mask_ & (1 << cast.needs_buff)) != 0) {
+      continue;
+    }
     trigger_count_[i] += weight;
     // A while rather than an if: nothing stops a swing being worth more than
     // the whole count, and one that is should fire the skill for each of them.
@@ -1710,7 +1717,12 @@ void CombatSim::CreditSwing(const CombatParams& params, double weight) {
     // would fire one swing late every time.
     while (trigger_count_[i] + kCountEpsilon >= cast.attacks_per_cast) {
       trigger_count_[i] -= cast.attacks_per_cast;
-      Strike(cast, {DamageOrigin::kSwingClock, i});
+      // Every strike of the firing lands in full, as a pulse's do: Inhuman
+      // Speed's afterimage stands for a second and shoots five times in it,
+      // which is one moment here.
+      for (int strike = 0; strike < cast.strikes_per_pulse; ++strike) {
+        Strike(cast, {DamageOrigin::kSwingClock, i});
+      }
     }
   }
 }

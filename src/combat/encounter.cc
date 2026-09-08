@@ -797,7 +797,7 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
                   double speed_factor, const std::vector<CombatType>& types,
                   AttackSet& set) {
   for (const AutoMode& mode : skill.auto_mode()) {
-    if (mode.cast_interval_seconds() <= 0.0) {
+    if (mode.cast_interval_seconds() <= 0.0 && mode.attacks_per_cast() <= 0) {
       continue;
     }
     Skill built = AutoModeSkill(skill, mode);
@@ -808,6 +808,15 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
                   kUnscaledAttackSpeedStage, speed_factor);
     attack.swing_seconds = 0.0;  // not swung, so never charged
     ClearSwingRiders(attack);    // what rides a swing needs one
+    attack.strikes_per_pulse = std::max(1, mode.casts());
+    attack.silent_while_buff = mode.silent_while_buff_stands();
+    // Clocked by the character's swings rather than by seconds passed, which
+    // is the list the fight credits a landed swing to.
+    if (mode.attacks_per_cast() > 0) {
+      attack.attacks_per_cast = mode.attacks_per_cast();
+      set.triggered_attacks.push_back(std::move(attack));
+      continue;
+    }
     attack.interval_seconds = mode.cast_interval_seconds() * speed_factor;
     set.auto_attacks.push_back(std::move(attack));
   }
@@ -1440,6 +1449,20 @@ void TagBuffGatedPulses(const std::vector<BuffOption>& buffs,
   }
 }
 
+// Points each silenced half at the buff that silences it, by the same name
+// match and for the same reason: one skill, one name, and a half that fires
+// only while its own buff is down has to know which buff that is.
+void TagBuffSilencedCasts(const std::vector<BuffOption>& buffs,
+                          std::vector<AttackOption>& casts) {
+  for (int i = 0; i < static_cast<int>(buffs.size()); ++i) {
+    for (AttackOption& cast : casts) {
+      if (cast.silent_while_buff && cast.name == buffs[i].name) {
+        cast.needs_buff = i;
+      }
+    }
+  }
+}
+
 // Points each form at the pulse it bleeds through, so the fight can price the
 // forms against each other without hunting the list at every cast. Run over
 // the base set alone: an attack keeps its index in every buffed set, so a
@@ -1534,6 +1557,7 @@ AttackSet BuildBuffedSet(const CombatParams& params, int mask) {
   AttackSet set = BuildAttackSet(*source.state, derived, *source.weapon,
                                  source.speed_factor, params.types);
   TagBuffGatedPulses(params.buffs, source.buff_skills, set.auto_attacks);
+  TagBuffSilencedCasts(params.buffs, set.triggered_attacks);
   if (source.halve_reach) {
     HalveReach(set.attacks);
     HalveReach(set.auto_attacks);
@@ -1649,6 +1673,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   AddAllyBuffs(state, speed_factor, params);
   AddBuffedSets(state, buff_skills, weapon, speed_factor, preset, params);
   TagBuffGatedPulses(params.buffs, buff_skills, params.auto_attacks);
+  TagBuffSilencedCasts(params.buffs, params.triggered_attacks);
   PointStancesAtPulses(params.auto_attacks, params.buffs);
   params.reference_dps = ReferenceDps(params);
 }

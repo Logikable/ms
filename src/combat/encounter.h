@@ -322,6 +322,11 @@ struct AttackOption {
   // Soul Blade is the case it exists for: both its swords sit in the list, and
   // only the one the cast raised fires. Read only where needs_buff is set.
   int needs_buff_stance = -1;
+  // Whether `needs_buff` reads the other way round: this fires only while that
+  // buff is DOWN. Inhuman Speed's afterimage is what it exists for -- the
+  // count of attacks that spawns one runs only while the active half is not
+  // standing. Read only where needs_buff is set.
+  bool silent_while_buff = false;
   // Strikes one due tick fires, each landing in full on its own. 1 for every
   // clock but Cry Valhalla's, whose three sword strikes fall together.
   int strikes_per_pulse = 1;

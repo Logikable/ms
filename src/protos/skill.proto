@@ -552,10 +552,32 @@ message AutoMode {
   // Seconds between its casts, exactly as Skill.cast_interval_seconds. Never
   // scaled by attack speed -- nothing on its own clock is.
   double cast_interval_seconds = 3;
+  // The other clock it can run on: the character's landed swings rather than
+  // seconds passed, exactly as Skill.attacks_per_cast. A mode names one clock
+  // or the other, never both. Inhuman Speed's afterimage is what it exists
+  // for -- GMS spawns one every ten attacks, and a rate written in swings
+  // holds whatever the character is swinging.
+  //
+  // Counted through the swing's own hits_per_attack_count, so a skill landing
+  // several times a second is worth a fraction of one attack here without
+  // this mode saying anything about it.
+  int32 attacks_per_cast = 7;
   // How many enemies it reaches, which is its own and not the skill's: the
   // Evil Eye's auras cover 3 where the volley fired with them covers 10.
   int32 max_enemies = 4;
   int32 lines = 5;
+  // Strikes one firing lands, each its own attack of `lines` lines against
+  // its own `max_enemies` -- exactly as BuffPulse.casts. Inhuman Speed's
+  // afterimage stands for a second and shoots five times in it, which is one
+  // moment here. 0 reads as one, which is every other mode.
+  int32 casts = 8;
+  // Whether this falls silent while its own skill's buff stands. Inhuman
+  // Speed is what it exists for: GMS spawns the afterimage on a count of
+  // attacks only while the active half is down, and says outright that the
+  // two never run together.
+  //
+  // Read only where the skill carrying this has a buff of its own.
+  bool silent_while_buff_stands = 9;
 }
 
 // The damage a buff itself ticks: a wound, bleeding for as long as the buff

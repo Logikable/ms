@@ -1936,6 +1936,21 @@ TEST(CombatSimTest, TheSwingCountCarriesItsRemainder) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.70, 1e-9);
 }
 
+// Inhuman Speed's afterimage: one firing is five shots, which land together
+// the way a pulse's strikes do rather than folding into one bigger hit.
+TEST(CombatSimTest, ATriggeredAttackLandsEveryStrikeOfOneFiring) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  AddTriggeredAttack(params, /*attacks=*/2, /*damage=*/100.0);
+  params.triggered_attacks[0].strikes_per_pulse = 5;
+
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9);
+  sim.Advance(params, 1.0);  // 5 x 100 of the snail's 1000
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.50, 1e-9);
+}
+
 TEST(CombatSimTest, ATriggeredAttackReachesWhatItsSkillSays) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
@@ -3119,6 +3134,32 @@ TEST(CombatSimTest, APulseGatedOnABuffWaitsForItToBeLaid) {
   // Now it ticks, beside the 20 the hardest swing lands.
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.9875, 1e-9);
+}
+
+// Inhuman Speed's passive half: it counts the character's swings only while
+// its own buff is down, and picks the count up again where it left off when
+// the buff lapses.
+TEST(CombatSimTest, ASilencedHalfCountsNothingWhileItsBuffStands) {
+  Mob snail = MakeMob("Snail", 10000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 10000.0, {MakeType(&snail, 0.0, 1)});
+  AddTriggeredAttack(params, /*attacks=*/2, /*damage=*/100.0);
+  params.triggered_attacks[0].silent_while_buff = true;
+  params.triggered_attacks[0].needs_buff = 0;
+  GiveBuff(params, /*duration=*/4.0, /*cooldown=*/1000.0, /*factor=*/1.0);
+  params.buffed[0]->triggered_attacks = params.triggered_attacks;
+
+  // The buff goes up on the first step and stands for four seconds. Nothing
+  // fires in them however many swings land.
+  for (int step = 0; step < 4; ++step) {
+    sim.Advance(params, 1.0);
+    EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9) << "step " << step;
+  }
+  // It lapses, and the count starts running again: two swings, one firing.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0, 1e-9);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.99, 1e-9);
 }
 
 // Cry Valhalla's shape: a pulse that lands several strikes at once and runs

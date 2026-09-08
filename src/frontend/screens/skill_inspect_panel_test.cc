@@ -363,6 +363,26 @@ TEST_F(SkillInspectPanelTest, AnAutoModeStatesItsOwnHalfOfTheSkill) {
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Turret"), std::string::npos);
 }
 
+// The other clock a half can run on: the character's own attacks. Inhuman
+// Speed's afterimage states its count where a turret states its seconds, and
+// its five shots where a swing states its lines.
+TEST_F(SkillInspectPanelTest, AnAutoModeCanBeClockedByAttacksInstead) {
+  Skill inhuman = MakeLuckySeven();
+  AutoMode* afterimage = inhuman.add_auto_mode();
+  afterimage->set_label("Afterimage");
+  afterimage->set_attacks_per_cast(10);
+  afterimage->set_casts(5);
+  afterimage->set_max_enemies(1);
+  afterimage->set_lines(3);
+  afterimage->mutable_base()->set_skill_pct(8.80);
+
+  std::string rendered = RenderAt(inhuman, 1);
+  EXPECT_NE(RowIn(rendered, "Afterimage", "1 enemy every 10 attacks"),
+            std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Afterimage", "880% x3 x5 = 13200%"),
+            std::string::npos);
+}
+
 // A summon's whole worth is how hard it hits and how often, and the second of
 // those used to be nowhere on the page. It rides the row that already states
 // the skill's reach, so it costs no row of its own.

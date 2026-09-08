@@ -3563,6 +3563,55 @@ TEST(ComputeCombatParamsTest, ASwingClockedSkillLandsOnTheTriggeredList) {
   EXPECT_DOUBLE_EQ(params.triggered_attacks[0].interval_seconds, 0.0);
 }
 
+// Inhuman Speed's shape: an own-clock half counted in the character's swings
+// rather than in seconds, silenced by the buff its own skill raises. It joins
+// the whole skills so clocked on the triggered list, and knows which buff
+// silences it.
+TEST(ComputeCombatParamsTest, ASwingClockedHalfIsSilencedByItsOwnBuff) {
+  Skill inhuman;
+  inhuman.set_name("Inhuman Speed");
+  inhuman.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(inhuman, JOB_ADVANCEMENT_SWORDMAN);
+  inhuman.set_max_level(30);
+  inhuman.set_cooldown_seconds(120.0);
+  inhuman.mutable_buff()->set_duration_seconds(30.0);
+  AutoMode* afterimage = inhuman.add_auto_mode();
+  afterimage->set_label("Afterimage");
+  afterimage->set_attacks_per_cast(10);
+  afterimage->set_casts(5);
+  afterimage->set_max_enemies(1);
+  afterimage->set_lines(3);
+  afterimage->set_silent_while_buff_stands(true);
+  afterimage->mutable_base()->set_skill_pct(4.16);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"inhuman", inhuman}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(inhuman, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  EXPECT_TRUE(params.auto_attacks.empty());
+  ASSERT_EQ(params.triggered_attacks.size(), 1u);
+  const AttackOption& half = params.triggered_attacks[0];
+  EXPECT_EQ(half.name, "Inhuman Speed");
+  EXPECT_EQ(half.attacks_per_cast, 10);
+  EXPECT_EQ(half.strikes_per_pulse, 5);  // five shots in the second it stands
+  EXPECT_EQ(half.max_enemies, 1);
+  EXPECT_GT(half.damage_per_hit[0], 0.0);
+  // Counted in swings, so the pacing band never touches it.
+  EXPECT_DOUBLE_EQ(half.interval_seconds, 0.0);
+  // And pointed at the buff that silences it, in the base table and in the
+  // buffed window alike.
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_TRUE(half.silent_while_buff);
+  EXPECT_EQ(half.needs_buff, 0);
+  ASSERT_EQ(params.TriggeredAttacks(1).size(), 1u);
+  EXPECT_TRUE(params.TriggeredAttacks(1)[0].silent_while_buff);
+  EXPECT_EQ(params.TriggeredAttacks(1)[0].needs_buff, 0);
+}
+
 // A skill clocked by enemies defeated joins the swing-clocked ones on the
 // triggered list: both are counted rather than timed, and the fight tells them
 // apart by which count they name.

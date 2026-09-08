@@ -439,6 +439,22 @@ std::string ReachText(int enemies, double clock) {
   return ReachText(enemies) + " every " + FormatNumber(clock, 2) + "s";
 }
 
+// How often an own-clock half comes round: seconds of its own, or a count of
+// the character's own attacks. It names one clock or the other.
+std::string ModeClockText(const AutoMode& mode) {
+  if (mode.attacks_per_cast() > 0) {
+    return " every " + std::to_string(mode.attacks_per_cast()) + " attacks";
+  }
+  return " every " + FormatNumber(mode.cast_interval_seconds(), 2) + "s";
+}
+
+// Whether a half fires at all, which is whether it names a clock. One that
+// names neither would fire every step, so it is read as not firing -- the same
+// reading the fight takes.
+bool ModeFires(const AutoMode& mode) {
+  return mode.cast_interval_seconds() > 0.0 || mode.attacks_per_cast() > 0;
+}
+
 // How often a pulse comes round, as the tail of the row stating it: its own
 // clock, or the swing it rides.
 std::string PulseClockText(const BuffPulse& pulse) {
@@ -529,12 +545,12 @@ std::vector<Row> ReachRows(const Skill& skill) {
   // fired with them reaches 10, and the damage rows alone would read as one
   // number simply being twice the other.
   for (const AutoMode& mode : skill.auto_mode()) {
-    if (mode.cast_interval_seconds() <= 0.0) {
+    if (!ModeFires(mode)) {
       continue;
     }
-    rows.push_back(
-        EffectRow(mode.label(), ReachText(std::max(1, mode.max_enemies()),
-                                          mode.cast_interval_seconds())));
+    rows.push_back(EffectRow(
+        mode.label(),
+        ReachText(std::max(1, mode.max_enemies())) + ModeClockText(mode)));
   }
   return rows;
 }
@@ -1227,13 +1243,13 @@ std::vector<Row> OwnClockRows(const Skill& skill, int level) {
   // skill with several ways of hurting things. Every one names itself, under
   // the same name its reach row above carries.
   for (const AutoMode& mode : skill.auto_mode()) {
-    if (mode.cast_interval_seconds() <= 0.0) {
+    if (!ModeFires(mode)) {
       continue;
     }
     rows.push_back(EffectRow(
         mode.label(), SwingText(mode.base().skill_pct() +
                                     mode.per_level().skill_pct() * (level - 1),
-                                mode.lines())));
+                                mode.lines(), mode.casts())));
   }
   // The upgraded attack's damage, beside the permanent bonus below it: one
   // skill that strengthens another twice over, so both halves read together.
