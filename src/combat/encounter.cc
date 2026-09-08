@@ -500,19 +500,23 @@ void AddSideStrike(const Character& proto, const EquipStats& equipped,
                    const DerivedStats& derived, double speed_factor,
                    AttackOption& attack) {
   const SideStrike& side = skill.side_strike();
-  // Off the character's own stat line rather than the swing's, because what
-  // the book aimed at this skill by NAME belongs to the swing: GMS's
+  // Off the character's own stat line rather than the swing's, twice over.
+  // What the book aimed at this skill by NAME belongs to the swing: GMS's
   // Showdown - Reinforce says in so many words that it leaves the shuriken
-  // alone. Everything else the skill states is still its own.
+  // alone. And the SKILL is not passed either, so the levers it states for
+  // itself stop at the swing too -- Mighty Mjolnir's extra critical rate is
+  // GMS's for the hammer that tracks a target down, not for the shockwave
+  // behind it. What the strike is worth is what the strike states.
   PassiveOffense unaimed = PassiveOffenseFor(derived);
   unaimed.skill_bonus.erase(skill.name());
   OffenseStats stats =
       OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                      equipped, weapon, &skill, level, unaimed);
+                      equipped, weapon, nullptr, level, unaimed);
   SkillEffect thrown = EffectAt(side.base(), side.per_level(), level);
   stats.skill_pct = thrown.skill_pct();
   stats.normal_skill_pct = thrown.normal_skill_pct();
   stats.normal_pct += thrown.normal_pct();
+  stats.crit_rate += thrown.crit_rate();
   stats.lines = std::max(1, side.lines());
   stats.mirror_lines = stats.lines;
   AttackOption strike;

@@ -2397,6 +2397,55 @@ TEST(ComputeCombatParamsTest, ASideStrikeCanBeLandedSeveralTimes) {
   EXPECT_DOUBLE_EQ(swing.side->cooldown_seconds, 0.0);
 }
 
+// A lever the SKILL states rides its swing and stops there: GMS gives Mighty
+// Mjolnir's extra critical rate to the hammer that tracks a target down, not
+// to the shockwave behind it. A strike states its own or has none.
+TEST(ComputeCombatParamsTest, ASwingsOwnLeversStopAtTheStrikeItSetsOff) {
+  Skill mjolnir;
+  mjolnir.set_name("Mighty Mjolnir");
+  mjolnir.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(mjolnir, JOB_ADVANCEMENT_SWORDMAN);
+  mjolnir.set_max_level(1);
+  mjolnir.set_base_delay_ms(570);
+  mjolnir.set_cooldown_seconds(36.0);
+  mjolnir.set_max_enemies(4);
+  mjolnir.set_lines(6);
+  mjolnir.mutable_base()->set_skill_pct(2.45);
+  SideStrike* side = mjolnir.mutable_side_strike();
+  side->set_label("Shockwave");
+  side->set_max_enemies(6);
+  side->set_lines(9);
+  side->mutable_base()->set_skill_pct(2.86);
+
+  GameState bare({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                 {{"field", TwoSnailMap()}}, {{"mjolnir", mjolnir}});
+  bare.current_map = "field";
+  EquipSword(bare);
+  GrantFirstJobSp(bare, 1);
+  ASSERT_TRUE(bare.character.LearnSkill(mjolnir, 1));
+  CombatParams without = ComputeCombatParams(bare);
+
+  mjolnir.mutable_base()->set_crit_rate(0.50);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"mjolnir", mjolnir}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(mjolnir, 1));
+  CombatParams with = ComputeCombatParams(state);
+
+  int i = IndexOfAttack(with.attacks, "Mighty Mjolnir");
+  int j = IndexOfAttack(without.attacks, "Mighty Mjolnir");
+  ASSERT_GE(i, 0);
+  ASSERT_GE(j, 0);
+  EXPECT_GT(with.attacks[i].damage_per_hit[0],
+            without.attacks[j].damage_per_hit[0]);
+  ASSERT_NE(with.attacks[i].side, nullptr);
+  ASSERT_NE(without.attacks[j].side, nullptr);
+  EXPECT_DOUBLE_EQ(with.attacks[i].side->damage_per_hit[0],
+                   without.attacks[j].side->damage_per_hit[0]);
+}
+
 // GMS's Showdown - Reinforce lifts the talisman and says in so many words that
 // the shuriken is left out of it. Anything the book aims at the skill by name
 // stops at the swing.
