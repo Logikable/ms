@@ -1955,6 +1955,8 @@ const char* const kPartySkills[] = {
     "Blessed Ensemble",
     "Blessed Harmony",
     "Combat Orders",
+    // The one grant that lands on a single member rather than on all of them.
+    "Divine Echo",
     "Hex of the Evil Eye",
     "Holy Fountain",
     "Holy Magic Shell",

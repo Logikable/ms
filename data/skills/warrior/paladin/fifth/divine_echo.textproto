@@ -1,0 +1,43 @@
+# The Paladin's first job node, and three GMS effects folded into one number.
+# GMS hangs an echo on a party member who then mirrors the Paladin's attacks,
+# and pays three separate shares of final damage for it: 75% to the Paladin,
+# 40% more output through the echo, and 15% again while Divine Blessing is on
+# whoever is carrying it. Final damage sources multiply here as they do there,
+# so 1.75 x 1.40 x 1.15 is one buff of 181.75% and says the same thing.
+#
+# The blessing's share is folded in unconditionally because this game's Divine
+# Blessing already is: it ships as a permanent passive with no cast to aim, so
+# there is no moment at which the echo is standing without it.
+#
+# The step is 2.5 points a level rather than the 2.474 an exact ladder between
+# GMS's ends would want. Master is GMS's to the hundredth; level 1 lands 0.75
+# under.
+#
+# The echo itself is worth 100% Buff Duration to one other member, granted for
+# good rather than on this skill's clock -- a 30-second buff behind a 60-second
+# wait cannot lengthen somebody else's buffs for only half of it, there being
+# one duration per fight. GMS's 50-65% plus 1% per 1000 STR, capped at 100%, is
+# rounded up to the cap it is reaching for.
+#
+# Dropped: everything GMS spends its description on -- picking the member by
+# number key, losing the echo when they walk out of range, and the bar on
+# echoing a Paladin who is already echoing somebody.
+name: "Divine Echo"
+description:
+  "Grants an echo of your battle prowess that mirrors your attack skills "
+  "alongside you. Increases your Final Damage, and one party member's Buff "
+  "Duration."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_PALADIN_V skill_order: 1 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 60.0
+ally_base { buff_duration_pct: 1.00 }
+ally_grant_reaches_one: true
+buff {
+  duration_seconds: 15.5
+  duration_seconds_per_level: 0.5
+  base { final_dmg_pct: 1.0925 }
+  per_level { final_dmg_pct: 0.025 }
+}

@@ -3390,6 +3390,47 @@ TEST_F(DerivedStatsTest, RequiresPartyGrantsNothingAlone) {
             15);
 }
 
+// Divine Echo's shape: the grant falls on ONE other member, and every reader
+// settles on the same one off the roster's names -- the caster's own excluded,
+// or a Paladin sorting first would echo nobody.
+TEST_F(DerivedStatsTest, AGrantReachingOneMemberLandsOnOneName) {
+  Skill echo = Bless();
+  echo.set_name("Divine Echo");
+  echo.set_ally_grant_reaches_one(true);
+  std::map<std::string, Skill> skills = {{"echo", echo}};
+  auto member = [&](const char* name, bool casts) {
+    CharacterInstance member = MakeCharacter(rng_, 100, 0);
+    member.SetUsername(name);
+    if (casts) {
+      member.LearnSkill(echo, 10);
+    }
+    return member;
+  };
+  auto party = [&](CharacterInstance caster, CharacterInstance other) {
+    std::vector<CharacterInstance> seated;
+    seated.push_back(std::move(caster));
+    seated.push_back(std::move(other));
+    return seated;
+  };
+
+  std::vector<CharacterInstance> beside_anna =
+      party(member("Paladin", true), member("Zoe", false));
+  std::vector<CharacterInstance> beside_zoe =
+      party(member("Paladin", true), member("Anna", false));
+  EXPECT_EQ(DerivedStatsFor(member("Anna", false), skills, {}, beside_anna)
+                .skill_stats.attack(),
+            15);
+  EXPECT_EQ(DerivedStatsFor(member("Zoe", false), skills, {}, beside_zoe)
+                .skill_stats.attack(),
+            0);
+
+  std::vector<CharacterInstance> beside_bob =
+      party(member("Aaron", true), member("Zoe", false));
+  EXPECT_EQ(DerivedStatsFor(member("Bob", false), skills, {}, beside_bob)
+                .skill_stats.attack(),
+            15);
+}
+
 // What one ally supersedes, the whole party loses -- a Bishop's Advanced
 // Blessing puts out the Cleric's Bless standing beside it.
 TEST_F(DerivedStatsTest, AnAllysSupersessionReachesTheWholeParty) {

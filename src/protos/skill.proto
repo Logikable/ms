@@ -1532,6 +1532,15 @@ message Skill {
   // True only for Blessed Ensemble, which is not a buff at all -- it pays for
   // the company kept, and GMS states it per Cleric in the party.
   bool ally_effect_stacks = 45;
+  // Whether the party half above reaches ONE other member rather than all of
+  // them. Divine Echo alone: GMS hangs the Paladin's echo on a single party
+  // member and lets them pick who by number key.
+  //
+  // Nobody is at the keyboard here, so it falls on whichever member sorts
+  // first by name, the caster excluded -- a choice every client in the party
+  // works out the same way off the same roster, with no message on the wire to
+  // agree it. See PartyGrants.
+  bool ally_grant_reaches_one = 57;
   // Whether this is a Hyper Skill: bought with the character's own pool of
   // Hyper SP rather than their job stage's, listed on a page of its own, and
   // gated on required_level rather than on a skill below it.

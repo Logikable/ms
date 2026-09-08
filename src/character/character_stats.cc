@@ -628,6 +628,26 @@ bool GrantsAnything(const CharacterInstance& character, const Skill& skill,
          EffectiveSkillLevel(character, skill, bonus) > 0;
 }
 
+// Whether a grant that reaches ONE member reaches this one. The roster is the
+// reader plus their allies, and the pick is the first name in it that is not
+// the caster's -- so every client in the party settles on the same member off
+// the same sheets, with nothing sent to agree it.
+//
+// Two members sharing a name would both take it. Names are the only thing a
+// seated ally carries that identifies them, and a collision costs one party
+// buff a while longer than it should.
+bool ReachesThisMember(const CharacterInstance& character,
+                       const AllyGrant& grant,
+                       absl::Span<const CharacterInstance> allies) {
+  std::string chosen = character.username();
+  for (const CharacterInstance& ally : allies) {
+    if (&ally != grant.caster && ally.username() < chosen) {
+      chosen = ally.username();
+    }
+  }
+  return chosen == character.username();
+}
+
 // What the rest of the party is holding over this character. Gathered whole
 // before anything folds, because both rules that thin the list -- the buff
 // rule and the party's supersessions -- need every ally read first.
@@ -675,7 +695,16 @@ std::vector<AllyGrant> PartyGrants(const CharacterInstance& character,
     }
     grants.push_back(entry.second);
   }
-  return grants;
+  // Last, because a grant landing on one member is still thinned by both rules
+  // above: whoever it falls on takes nothing if they hold the skill themselves.
+  std::vector<AllyGrant> reaching;
+  for (const AllyGrant& grant : grants) {
+    if (!grant.skill->ally_grant_reaches_one() ||
+        ReachesThisMember(character, grant, allies)) {
+      reaching.push_back(grant);
+    }
+  }
+  return reaching;
 }
 
 // Sums every passive the character has learned. HP has to know its whole flat
