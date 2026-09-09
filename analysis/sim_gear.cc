@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <map>
 #include <memory>
 #include <set>
@@ -351,6 +352,10 @@ void RunBuffClocks(const CombatParams& params, double step, BuffClocks& c) {
   c.mask = 0;
   for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
     const BuffOption& buff = params.buffs[i];
+    // What it stood for is what it had left, not the whole step: a step is as
+    // wide as the swing it covers now, and a buff lapsing partway through one
+    // stood for the part before it lapsed.
+    double stood = std::min(step, c.left[i]);
     c.left[i] = std::max(0.0, c.left[i] - step);
     c.cooldown[i] = std::max(0.0, c.cooldown[i] - step);
     bool ready =
@@ -360,12 +365,34 @@ void RunBuffClocks(const CombatParams& params, double step, BuffClocks& c) {
       c.left[i] = buff.duration_seconds;
       c.cooldown[i] = buff.cooldown_seconds;
       c.charge[i] = buff.charge_lines;
+      stood = step;  // back up the moment it came down, so none of it is a gap
     }
     if (c.left[i] > 0.0) {
       c.mask |= 1 << i;
-      c.standing[i] += step;
+    }
+    c.standing[i] += stood;
+  }
+}
+
+// How long until a buff goes up or comes down, which is the only clock besides
+// the swing that decides what the next one is worth. Infinity when none of
+// them will move again on its own -- a buff waiting on a swing to lay it, or on
+// lines to charge it, moves at a swing boundary and needs no step of its own.
+double NextBuffChange(const CombatParams& params, const BuffClocks& c) {
+  double soonest = std::numeric_limits<double>::infinity();
+  for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
+    const BuffOption& buff = params.buffs[i];
+    if (i >= static_cast<int>(c.left.size())) {
+      break;
+    }
+    if (c.left[i] > 0.0) {
+      soonest = std::min(soonest, c.left[i]);
+    } else if (buff.laid_by_attack < 0 && buff.charge_lines <= 0 &&
+               buff.duration_seconds > 0.0) {
+      soonest = std::min(soonest, c.cooldown[i]);
     }
   }
+  return soonest;
 }
 
 // Puts up every buff the swing at `swung` lays.
@@ -741,7 +768,13 @@ int BestSwing(const std::vector<AttackOption>& attacks,
 }  // namespace
 
 Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
-  constexpr double kStep = 0.01;
+  // Never advance by less than this. Nothing in a fight is this short; it is
+  // here so a clock reading zero cannot stall the loop.
+  constexpr double kLeastStep = 1e-6;
+  // Slack on the comparison that lands a swing. The step is sized to finish
+  // one exactly, and without this the arithmetic leaves it a hair short and
+  // buys another whole pass to cover it.
+  constexpr double kSlack = 1e-9;
   std::vector<double> cooldown(params.attacks.size(), 0.0);
   std::vector<int> swings(params.attacks.size(), 0);
   BuffClocks clocks;
@@ -758,14 +791,11 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
   double scar_odds = 0.0;
   double phase = 0.0;
   int pick = -1;  // the swing being wound up, held until it lands
-  for (double elapsed = 0.0; elapsed < horizon; elapsed += kStep) {
-    RunBuffClocks(params, kStep, clocks);
-    RunBurns(kStep, burning, played);
-    frozen_left =
-        RunOwnClockIce(kStep, summoned_ice, std::max(0.0, frozen_left - kStep));
-    for (double& left : cooldown) {
-      left = std::max(0.0, left - kStep);
-    }
+  // Sizes the clock vectors and puts up whatever stands from the off, before
+  // anything reads them: the swing is chosen at the top of the loop now, and
+  // it is chosen against the buffs standing.
+  RunBuffClocks(params, 0.0, clocks);
+  for (double elapsed = 0.0; elapsed < horizon;) {
     // Index 0 is the bare poke, which is never committed to.
     if (pick <= 0) {
       pick = SwingToLay(params, clocks, cooldown);
@@ -778,17 +808,35 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     if (pick < 0) {
       break;
     }
+    // Straight to the next thing that can change the answer, rather than a
+    // hundred steps of winding clocks between one swing and the next: the
+    // swing landing, or a buff going up or coming down. Nothing else needs a
+    // boundary of its own -- a burn is paid out pro rata over whatever step it
+    // is handed, the ice ticks in a loop, and a recharging attack is only ever
+    // read where a swing lands.
+    double step =
+        std::min(params.Attacks(clocks.mask)[pick].swing_seconds - phase,
+                 NextBuffChange(params, clocks));
+    step = std::min(std::max(step, kLeastStep), horizon - elapsed);
+    RunBuffClocks(params, step, clocks);
+    RunBurns(step, burning, played);
+    frozen_left =
+        RunOwnClockIce(step, summoned_ice, std::max(0.0, frozen_left - step));
+    for (double& left : cooldown) {
+      left = std::max(0.0, left - step);
+    }
+    elapsed += step;
     // Read off the table for the buffs standing now: the same swing is worth
     // more under a buff, and which one it is was settled when it was aimed.
     const AttackOption& swung = params.Attacks(clocks.mask)[pick];
     // A HELD swing is played to the end here. Nothing in this sim tracks what
     // one enemy has left, so there is nothing to let go early for -- and a
     // boss, which is what these numbers are for, is held to the end anyway.
-    phase += kStep;
-    if (phase < swung.swing_seconds) {
+    phase += step;
+    if (phase < swung.swing_seconds - kSlack) {
       continue;
     }
-    phase -= swung.swing_seconds;
+    phase = std::max(0.0, phase - swung.swing_seconds);
     // Read before the pile moves, so the swing is paid for the stacks it went
     // in holding.
     // Burn out: the clocks land its ticks as they fall due, which is the whole
