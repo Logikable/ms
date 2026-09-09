@@ -125,6 +125,11 @@ class CombatSim {
     // in the game facing anyone but the Crusader's line.
     double scarred_left_seconds = 0.0;
     double scar_odds = 0.0;
+    // The stun on it and what carrying it hands the swings that collect. Both
+    // 0 for every monster nobody has stunned, which is every monster in the
+    // game facing anyone but an I/L holding Jupiter Thunder.
+    double stunned_left_seconds = 0.0;
+    double stun_lift_pct = 0.0;
   };
 
   // Where the landing on the mob at queue index `index` is filed, scaled by
@@ -286,7 +291,20 @@ class CombatSim {
   // enemy an arrow meets first is arbitrary and drawing it keeps the gain from
   // always falling on the same end of the queue. Empty for every other swing,
   // whose order cannot be seen.
+  // What a stun somebody left on this monster multiplies the swing by: its
+  // lift where the swing collects, and 1 everywhere else.
+  double StunBoost(const AttackOption& attack, const QueuedMob& mob) const;
+  // Leaves this swing's stun on every one of the front `hit` mobs, and counts
+  // every stun down. Read exactly as ApplyFreeze and RunFreeze are.
+  void ApplyStun(const AttackOption& attack, int hit);
+  void RunStun(double dt);
   int Reached(const AttackOption& attack) const;
+  // Enemies the wide half of a swing finds, and what one roll of it is worth.
+  // See AttackOption::wide_hit_damage.
+  int WideHitTargets(const AttackOption& attack, int hit) const;
+  double RolledGroups(const std::vector<HitGroup>& groups,
+                      const std::vector<double>& expected, int type,
+                      const Landing& landing);
   // How many enemies the once-per-swing Final Attack bank falls on, given the
   // `hit` the swing itself reached. 0 where the swing landed on nothing or the
   // character carries no such source; otherwise the bank's own reach, held to

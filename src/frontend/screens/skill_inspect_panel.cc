@@ -602,18 +602,32 @@ std::vector<Row> EmpoweredRows(const Skill& skill) {
 // element, so the freeze takes a row of its own when nothing tags the skill.
 std::vector<Row> ElementRows(const Skill& skill) {
   bool freezes = skill.freeze_seconds() > 0.0;
+  std::vector<Row> rows;
   for (int i = 0; i < skill.tags_size(); ++i) {
     if (skill.tags(i) == SKILL_TAG_ICE) {
-      return {EffectRow("Element", freezes ? "Ice, Freezes" : "Ice")};
+      rows.push_back(EffectRow("Element", freezes ? "Ice, Freezes" : "Ice"));
+      break;
     }
     if (skill.tags(i) == SKILL_TAG_LIGHTNING) {
-      return {EffectRow("Element", "Lightning")};
+      rows.push_back(EffectRow("Element", "Lightning"));
+      break;
     }
   }
-  if (freezes) {
-    return {EffectRow("Freezes", "What it hits")};
+  if (rows.empty() && freezes) {
+    rows.push_back(EffectRow("Freezes", "What it hits"));
   }
-  return {};
+  // The stun and what carrying it hands the swings that collect. Its seconds
+  // go unprinted for the reason the ice's do; what a reader needs is that the
+  // swing stuns at all, and what the mark is then worth to the rest of the
+  // book.
+  if (skill.stun().duration_seconds() > 0.0) {
+    std::string text = "What it hits";
+    if (skill.stun().final_dmg_pct() > 0.0) {
+      text += ", +" + FormatPercent(skill.stun().final_dmg_pct()) + " taken";
+    }
+    rows.push_back(EffectRow("Stuns", text));
+  }
+  return rows;
 }
 
 // The rows that hold at every level: what the skill asks for and how far a

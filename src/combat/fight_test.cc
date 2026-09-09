@@ -3590,6 +3590,88 @@ TEST(CombatSimTest, AStrikeAloneLeavesItsOwnCountOfFreezeStacks) {
   EXPECT_EQ(crowd.freeze_stacks(), 1);
 }
 
+// Jupiter Thunder's rate: a shock spends one stack every five lines, so a pile
+// of five outlasts the opening shock instead of going with it.
+TEST(CombatSimTest, ASwingCanSpendTheFreezePileByTheLine) {
+  Mob snail = MakeMob("Snail", 1e9);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 1.0, 1)});
+  params.freeze_cap = 5;
+  AttackOption shock = MakeSkill("Jupiter Thunder", 100.0, /*cooldown=*/0.0);
+  shock.lines = 8;
+  shock.freeze_spends = true;
+  shock.freeze_lines_per_spend = 5;
+  params.attacks.push_back(shock);
+
+  // Seeded by hand: what the pile is worth is not the point here, only what a
+  // shock takes off it.
+  CombatParams built = params;
+  built.attacks[1].freeze_spends = false;
+  built.attacks[1].freeze_build = 5;
+  sim.Advance(built, 1.0);
+  ASSERT_EQ(sim.freeze_stacks(), 5);
+
+  // Eight lines at one per five is one stack, not eight.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.freeze_stacks(), 4);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.freeze_stacks(), 3);
+}
+
+// The current arcs onto two where the orb rides one, so the wide half lands on
+// an enemy the swing itself never touched.
+TEST(CombatSimTest, AWideHitReachesPastTheSwingCarryingIt) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 0.0, 4)});
+  AttackOption orb = MakeSkill("Jupiter Thunder", 0.0, /*cooldown=*/0.0);
+  orb.max_enemies = 1;
+  orb.damage_per_hit = {100.0};
+  orb.wide_hit_damage = {100.0};
+  orb.wide_hit_enemies = 2;
+  params.attacks.push_back(orb);
+
+  sim.Advance(params, 1.0);
+  // Two dead: the one the orb rode, taking both halves, and the one the
+  // current alone reached.
+  EXPECT_EQ(sim.view().kills_this_step[0], 2);
+}
+
+// Jupiter Thunder's shock: the enemy carrying it takes more from every OTHER
+// lightning swing, and nothing from its own.
+TEST(CombatSimTest, AStunLiftsTheSwingsThatCollectItAndNotItsOwn) {
+  Mob snail = MakeMob("Snail", 1e9);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 0.0, 1)});
+  AttackOption bolt = MakeSkill("Chain Lightning", 100.0, /*cooldown=*/0.0);
+  bolt.collects_stun_lift = true;
+  params.attacks.push_back(bolt);
+
+  // Nothing has stunned it yet, so the bolt lands for what it says.
+  sim.Advance(params, 1.0);
+  double plain = sim.view().damage_this_step;
+  EXPECT_NEAR(plain, 100.0, 1e-9);
+
+  // The orb alone first, to leave the stun on it, and then the bolt: under a
+  // mark worth 12% the same bolt lands for 112.
+  CombatSim stunned;
+  CombatParams shocking = MakeParams(1.0, 1e9, {MakeType(&snail, 0.0, 1)});
+  AttackOption orb = MakeSkill("Jupiter Thunder", 1.0, /*cooldown=*/0.0);
+  orb.stun_seconds = 4.0;
+  orb.stun_lift_pct = 0.12;
+  shocking.attacks.push_back(orb);
+  stunned.Advance(shocking, 1.0);
+  stunned.Advance(params, 1.0);
+  EXPECT_NEAR(stunned.view().damage_this_step, 112.0, 1e-9);
+
+  // The skill that left it never collects its own -- GMS excludes the shock
+  // from the swings its own shock lifts.
+  CombatSim itself;
+  itself.Advance(shocking, 1.0);
+  itself.Advance(shocking, 1.0);
+  EXPECT_NEAR(itself.view().damage_this_step, 1.0, 1e-9);
+}
+
 TEST(CombatSimTest, WithNoPileToBuildTheHarderSwingSimplyWins) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;

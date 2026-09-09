@@ -938,6 +938,12 @@ message SwingHit {
   // as Skill.casts is for the swing. Sword Illusion's five explosions are what
   // it exists for. 0 reads as one, which is every other extra hit.
   int32 casts = 5;
+  // Enemies this half reaches, where GMS gives it a crowd of its own. Jupiter
+  // Thunder is what it exists for: the orb rides ONE enemy and the current
+  // arcing off it reaches two, so the hit lands wider than the swing carrying
+  // it. 0 takes the swing's reach, which is every other extra hit -- Divine
+  // Mark's brand explodes on exactly what the hammer struck.
+  int32 max_enemies = 6;
 }
 
 // A swing the player HOLDS rather than presses: it pulses while the key is
@@ -994,6 +1000,29 @@ message FreezeBuild {
   int32 alone = 1;
   // Stacks a strike reaching more than one leaves.
   int32 crowd = 2;
+}
+
+// The stun a strike leaves on what it reaches: the third status this game keeps
+// on a monster, beside the ice a swing leaves and a burn. An enemy under it is
+// AFFLICTED, which is what Storm Magic and Burning Magic were already asking
+// about -- see SkillEffect::final_dmg_pct_when_afflicted, which said in so many
+// words that a status the game learns to inflict later joins the test and
+// nothing else moves. Nothing here models a monster acting on a schedule it
+// could be knocked off, so the stun costs the enemy nothing beyond that.
+//
+// It also lifts what OTHER swings do to the enemy carrying it. Jupiter Thunder
+// is what that exists for: GMS's shock makes the enemy take 12% more final
+// damage from lightning, and names the shock itself among the swings that do
+// NOT collect -- so the skill leaving a stun never takes its own lift.
+message Stun {
+  double duration_seconds = 1;
+  // Final damage a swing carrying `lifted_tag` takes against a stunned enemy,
+  // over everything it already multiplies by. 0 for a stun that is only a
+  // status, which is what a stun would be without a reader.
+  double final_dmg_pct = 2;
+  // Which swings collect that. Unset collects nothing, since a lift every
+  // swing takes is a lift the skill could simply have granted.
+  SkillTag lifted_tag = 3;
 }
 
 message Channel {
@@ -1744,6 +1773,9 @@ message Skill {
   // Not every ice swing freezes: GMS's Frozen Orb slows what it touches and
   // freezes nothing, so this is stated rather than read off the element.
   double freeze_seconds = 53;
+  // The stun this skill's strike leaves on what it reaches, if any. Unset for
+  // every skill but Jupiter Thunder. See Stun.
+  Stun stun = 60;
   // --- From here down, one job line apiece. See the message comment. ---
   // The Fighter's. How many Combo Orbs this skill surrounds the character with
   // at level 1, and the rate that ring grows -- read exactly as `lines` and
@@ -1767,6 +1799,13 @@ message Skill {
   // where GMS states a count rather than letting the element buy one per line.
   // Unset is every other ice skill. See FreezeBuild.
   FreezeBuild freeze_build = 104;
+  // The I/L Magician's. Lines this skill lands per Freeze Stack it SPENDS,
+  // where GMS states a rate rather than the stack-per-line a lightning swing
+  // otherwise pays. Jupiter Thunder is what it exists for: GMS spends one
+  // every five lines of its shocks, so a pile of five outlasts the opening
+  // shock instead of going with it. 0 reads as one, which is every other
+  // lightning swing.
+  int32 freeze_lines_per_spend = 105;
   // The F/P Magician's. Burns counted for SkillEffect::final_dmg_pct_per_dot,
   // and so whether they are counted at all: 0 says the mechanism is not
   // learned. The largest cap wins rather than the sum, as the Combo Orb ring

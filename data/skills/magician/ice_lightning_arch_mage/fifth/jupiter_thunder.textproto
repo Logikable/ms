@@ -14,17 +14,21 @@
 # position to do -- so it pounds the front of the queue and moves on when that
 # one falls. On a boss, which is what the skill is for, the two are the same.
 #
-# Departures, both of them things the pile cannot notice:
-#   - GMS spends a Freeze Stack every five lines, 48 over the barrage. The
-#     lightning tag spends one per line here, and a cap of five is emptied by
-#     the first shock either way.
-#   - The current reaches 2 where the orb reaches 1, and a hit beside a swing
-#     has no reach of its own here. On a lone boss there is no second enemy for
-#     it to want.
+# The stun is the third status this game keeps on a monster. Nothing here has a
+# schedule to be knocked off, so what it buys is that the enemy is AFFLICTED --
+# which Storm Magic has always been asking about, and which is 21% of final
+# damage on every I/L swing at master -- and that other lightning then takes
+# 12% more, which GMS states and excludes this skill from by name.
 #
-# Dropped: the stun itself, the 12% the shocked enemy then takes from other
-# lightning, and the 3.4s of cooldown refunded per shock never spent -- the orb
-# always spends all thirty here, having nothing to lose them to.
+# The four seconds are CHOSEN. GMS states no stun duration anywhere in the
+# common block, and a missing number there is the client hardcoding one. The
+# shocks refresh it every 330ms, so what the number really decides is how long
+# the rest of the book collects the 12% after the barrage ends.
+#
+# Dropped: the 3.4s of cooldown refunded for every shock that never fired. The
+# orb spends all thirty in every fight this game holds -- it rides the front of
+# the queue and the queue is never empty under it -- so the refund is zero
+# wherever it would be read.
 name: "Jupiter Thunder"
 description:
   "Launch orbs full of the thunder god's power directly at your enemies. "
@@ -40,12 +44,19 @@ base_delay_ms: 810
 cooldown_seconds: 120.0
 max_enemies: 1
 lines: 8
+freeze_lines_per_spend: 5
+stun {
+  duration_seconds: 4.0
+  final_dmg_pct: 0.12
+  lifted_tag: SKILL_TAG_LIGHTNING
+}
 casts: 30
 cast_interval_ms: 330
 base { skill_pct: 4.07 }
 per_level { skill_pct: 0.16 }
 extra_hit {
   label: "Electric Current"
+  max_enemies: 2
   lines: 4
   base { skill_pct: 2.52 }
   per_level { skill_pct: 0.09 }

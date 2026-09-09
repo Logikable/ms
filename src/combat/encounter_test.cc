@@ -1103,6 +1103,94 @@ TEST(ComputeCombatParamsTest, ABuffCanGrantAFinalAttackWithItsOwnReach) {
   EXPECT_TRUE(wide->final_attack_damage.empty());
 }
 
+// Jupiter Thunder's three marks on the fight: the rate it spends the pile at,
+// the current reaching past the orb, and the stun it leaves -- which lifts the
+// character's OTHER lightning and never its own.
+TEST(ComputeCombatParamsTest, AStunLeavesAMarkTheOtherLightningCollects) {
+  Skill crush;
+  crush.set_name("Freezing Crush");
+  crush.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(crush, JOB_ADVANCEMENT_SWORDMAN);
+  crush.set_max_level(10);
+  crush.set_freeze_stack_cap(5);
+  crush.mutable_base()->set_crit_dmg_per_freeze_stack(0.001);
+
+  Skill bolt;
+  bolt.set_name("Chain Lightning");
+  bolt.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(bolt, JOB_ADVANCEMENT_SWORDMAN);
+  bolt.set_max_level(30);
+  bolt.set_base_delay_ms(660);
+  bolt.add_tags(SKILL_TAG_LIGHTNING);
+  bolt.mutable_base()->set_skill_pct(1.33);
+
+  Skill orb;
+  orb.set_name("Jupiter Thunder");
+  orb.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(orb, JOB_ADVANCEMENT_SWORDMAN);
+  orb.set_max_level(30);
+  orb.set_base_delay_ms(810);
+  orb.add_tags(SKILL_TAG_LIGHTNING);
+  orb.set_max_enemies(1);
+  orb.set_lines(8);
+  orb.set_freeze_lines_per_spend(5);
+  orb.mutable_stun()->set_duration_seconds(4.0);
+  orb.mutable_stun()->set_final_dmg_pct(0.12);
+  orb.mutable_stun()->set_lifted_tag(SKILL_TAG_LIGHTNING);
+  orb.mutable_base()->set_skill_pct(8.71);
+  SwingHit* current = orb.add_extra_hit();
+  current->set_label("Electric Current");
+  current->set_lines(4);
+  current->set_max_enemies(2);
+  current->mutable_base()->set_skill_pct(5.13);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"freezing_crush", crush},
+                   {"chain_lightning", bolt},
+                   {"jupiter_thunder", orb}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 3);
+  ASSERT_TRUE(state.character.LearnSkill(crush, 1));
+  ASSERT_TRUE(state.character.LearnSkill(bolt, 1));
+  ASSERT_TRUE(state.character.LearnSkill(orb, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  const AttackOption* shock = nullptr;
+  const AttackOption* chain = nullptr;
+  for (const AttackOption& attack : params.attacks) {
+    if (attack.name == "Jupiter Thunder") {
+      shock = &attack;
+    } else if (attack.name == "Chain Lightning") {
+      chain = &attack;
+    }
+  }
+  ASSERT_NE(shock, nullptr);
+  ASSERT_NE(chain, nullptr);
+
+  // The stun is the orb's to leave and Chain Lightning's to collect.
+  EXPECT_GT(shock->stun_seconds, 0.0);
+  EXPECT_DOUBLE_EQ(shock->stun_lift_pct, 0.12);
+  EXPECT_FALSE(shock->collects_stun_lift);
+  EXPECT_TRUE(chain->collects_stun_lift);
+  EXPECT_DOUBLE_EQ(chain->stun_seconds, 0.0);
+
+  // One stack every five lines, where the plain lightning swing pays per line.
+  EXPECT_EQ(shock->freeze_lines_per_spend, 5);
+  EXPECT_EQ(chain->freeze_lines_per_spend, 1);
+
+  // The current is banked apart, reaching two where the orb reaches one, and
+  // is no part of what the orb does to the enemy it rides.
+  EXPECT_EQ(shock->max_enemies, 1);
+  EXPECT_EQ(shock->wide_hit_enemies, 2);
+  ASSERT_FALSE(shock->wide_hit_damage.empty());
+  EXPECT_GT(shock->wide_hit_damage[0], 0.0);
+  ASSERT_EQ(shock->wide_hit_groups.size(), 1u);
+  EXPECT_EQ(shock->wide_hit_groups[0].rolls.lines, 4);
+  EXPECT_TRUE(chain->wide_hit_damage.empty());
+}
+
 // Spirit of Snow's shape: a summon on a cooldown, which is a buff with a
 // pulse. The blizzard it calls down is ice whoever called it, so it feeds the
 // pile exactly as the character's own ice swing would.

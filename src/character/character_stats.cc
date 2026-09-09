@@ -328,6 +328,13 @@ void AddFreezeStacks(const Skill& skill, const SkillEffect& granted,
                granted.final_dmg_pct_per_freeze_stack());
   totals.freeze.ied_pct_per_stack = std::max(
       totals.freeze.ied_pct_per_stack, granted.ied_pct_per_freeze_stack());
+  // The stun's lift is not a pile and does not stack: one skill leaves it and
+  // names the swings that take it. A second would be a second status.
+  if (skill.stun().final_dmg_pct() > 0.0 &&
+      skill.stun().lifted_tag() != SKILL_TAG_UNSPECIFIED) {
+    totals.stun_lift.lifted_tag = skill.stun().lifted_tag();
+    totals.stun_lift.from_skill = skill.name();
+  }
 }
 
 // Folds the scar in. Two sources would leave the better of each standing

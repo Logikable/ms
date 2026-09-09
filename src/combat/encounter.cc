@@ -236,6 +236,8 @@ void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
   if (HasTag(skill, SKILL_TAG_LIGHTNING)) {
     attack.freeze_spends = true;
     attack.freeze_fd_per_stack = derived.freeze.final_dmg_pct_per_stack;
+    attack.freeze_lines_per_spend =
+        std::max(1, skill->freeze_lines_per_spend());
   }
 }
 
@@ -273,6 +275,26 @@ void AddSwingHit(const SwingHit& hit, const OffenseStats& offense, int level,
   int lines = 0;
   HitGroup group = SwingHitGroup(hit, offense, level, types, lines);
   int casts = SwingHitCasts(hit);
+  // A hit with a crowd of its own is banked apart, exactly as a Final Attack
+  // with its own reach is: it lands on enemies the swing never touched, so it
+  // cannot be added into what the swing does to each of the ones it did.
+  if (hit.max_enemies() > 0) {
+    if (attack.wide_hit_damage.empty()) {
+      attack.wide_hit_damage.assign(types.size(), 0.0);
+    }
+    for (std::size_t i = 0; i < types.size() && i < group.damage.size(); ++i) {
+      attack.wide_hit_damage[i] += group.damage[i] * casts;
+    }
+    for (int i = 0; i < casts; ++i) {
+      attack.wide_hit_groups.push_back(group);
+    }
+    // The widest of them, as the Final Attack bank takes it: they land on the
+    // one swing, so the crowd is the furthest any of them reaches.
+    attack.wide_hit_enemies =
+        std::max(attack.wide_hit_enemies, hit.max_enemies());
+    attack.hp_recover_pct += lands.hp_recover_pct() * lines * casts;
+    return;
+  }
   for (std::size_t i = 0; i < types.size() && i < group.damage.size(); ++i) {
     attack.damage_per_hit[i] += group.damage[i] * casts;
   }
@@ -383,6 +405,18 @@ void AddSwingClocks(const Skill* skill, int level, const DerivedStats& derived,
   // exactly as far as it stretches the summon clock relaying it, so what a
   // freeze covers is the same span of the fight it covers in GMS.
   attack.freeze_seconds = skill->freeze_seconds() * speed_factor;
+  // Game-scaled like the ice beside it, for the same reason: what a stun
+  // covers is the same span of the fight it covers in GMS.
+  attack.stun_seconds = skill->stun().duration_seconds() * speed_factor;
+  attack.stun_lift_pct = skill->stun().final_dmg_pct();
+  // A swing collects a stun's lift where it carries the tag that stun names
+  // and is not the skill that left it -- GMS excludes Jupiter Thunder from its
+  // own shock by name. Here rather than with the Freeze Stacks, which stop at
+  // a character holding no pile: a stun is nobody's pile.
+  attack.collects_stun_lift =
+      derived.stun_lift.lifted_tag != SKILL_TAG_UNSPECIFIED &&
+      HasTag(skill, derived.stun_lift.lifted_tag) &&
+      skill->name() != derived.stun_lift.from_skill;
   // Chance Attack's damage against a scarred monster, and what the enemy's own
   // condition is worth. Both ride anything that lands on the mob -- a summon's
   // pulse included -- since the mob is in that state whatever is hitting it.
@@ -766,9 +800,13 @@ bool Available(const GameState& state, const Skill& skill,
 void CarryElement(const Skill& skill, Skill& built) {
   *built.mutable_tags() = skill.tags();
   built.set_freeze_seconds(skill.freeze_seconds());
+  if (skill.has_stun()) {
+    *built.mutable_stun() = skill.stun();
+  }
   if (skill.has_freeze_build()) {
     *built.mutable_freeze_build() = skill.freeze_build();
   }
+  built.set_freeze_lines_per_spend(skill.freeze_lines_per_spend());
 }
 
 Skill AutoModeSkill(const Skill& skill, const AutoMode& mode) {

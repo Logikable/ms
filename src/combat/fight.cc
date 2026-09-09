@@ -86,6 +86,16 @@ int CombatSim::PerSwingFinalAttackTargets(const AttackOption& attack,
                   static_cast<int>(queue_.size()));
 }
 
+// Enemies the wide half of a swing finds. Held to the swing landing at all and
+// to what is actually standing, exactly as the Final Attack bank is.
+int CombatSim::WideHitTargets(const AttackOption& attack, int hit) const {
+  if (hit <= 0 || attack.wide_hit_damage.empty()) {
+    return 0;
+  }
+  return std::min(std::max(1, attack.wide_hit_enemies),
+                  static_cast<int>(queue_.size()));
+}
+
 int CombatSim::Reached(const AttackOption& attack) const {
   int hit = std::min(std::max(1, attack.max_enemies),
                      static_cast<int>(queue_.size()));
@@ -212,6 +222,15 @@ double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
     int type = queue_[j].type;
     if (type < static_cast<int>(attack.per_swing_final_attack_damage.size())) {
       total += attack.per_swing_final_attack_damage[type];
+    }
+  }
+  // The half of the swing with a crowd of its own, on the same footing: the
+  // chooser has to see it or a swing whose current is most of its worth reads
+  // as the orb alone.
+  for (int j = 0; j < WideHitTargets(attack, hit); ++j) {
+    int type = queue_[j].type;
+    if (type < static_cast<int>(attack.wide_hit_damage.size())) {
+      total += attack.wide_hit_damage[type];
     }
   }
   // A chance that lands on one enemy, so it is charged once however many the
@@ -516,11 +535,21 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
                                       queue_[j].type, LandingAt(j, freeze)) *
                         freeze);
   }
+  // The half of the swing that finds its own crowd: Jupiter Thunder's current
+  // arcs onto two where the orb rides one. Held to the swing landing at all,
+  // as the bank above is -- a current arcs off a shock, not off nothing.
+  for (int j = 0; j < WideHitTargets(attack, hit); ++j) {
+    double freeze = StateBoost(attack, queue_[j]);
+    Hurt(queue_[j], RolledGroups(attack.wide_hit_groups, attack.wide_hit_damage,
+                                 queue_[j].type, LandingAt(j, freeze)) *
+                        freeze);
+  }
   double recovered = RollProcs(attack, hit);
   // Marked before the dead are cleared, so the indices the swing reached are
   // still the ones the mark is written to.
   ApplyDots(attack, hit);
   ApplyFreeze(attack, hit);
+  ApplyStun(attack, hit);
   ApplyScar(attack, hit);
   Reap();
   return recovered;
@@ -582,12 +611,12 @@ double CombatSim::BoostForStacks(const AttackOption& attack, int stacks,
   return crit * spent * matt * shattered;
 }
 
-// Whether the monster is under any status the fight keeps on it. Two are: the
-// ice a swing left and a burn. GMS asks for a list of five, and the other
-// three are inflicted by nothing here -- when one of them arrives it joins the
-// test and no lever moves. See SkillEffect::final_dmg_pct_when_afflicted.
+// Whether the monster is under any status the fight keeps on it. Three are: the
+// ice a swing left, a burn, and a stun. GMS asks for a list of five, and the
+// other two are inflicted by nothing here -- when one of them arrives it joins
+// the test and no lever moves. See SkillEffect::final_dmg_pct_when_afflicted.
 bool CombatSim::Afflicted(const QueuedMob& mob) const {
-  if (mob.frozen_left_seconds > 0.0) {
+  if (mob.frozen_left_seconds > 0.0 || mob.stunned_left_seconds > 0.0) {
     return true;
   }
   for (const MobDot& burn : mob.dots) {
@@ -668,10 +697,20 @@ double CombatSim::ConditionBoost(const AttackOption& attack,
   return ConditionBoostFor(attack, Afflicted(mob), BurnsAlight());
 }
 
+// What a stun somebody left on this monster is worth to this swing. Only a
+// swing that collects takes it, which is never the swing that left it.
+double CombatSim::StunBoost(const AttackOption& attack,
+                            const QueuedMob& mob) const {
+  if (!attack.collects_stun_lift || mob.stunned_left_seconds <= 0.0) {
+    return 1.0;
+  }
+  return 1.0 + mob.stun_lift_pct;
+}
+
 double CombatSim::StateBoost(const AttackOption& attack,
                              const QueuedMob& mob) const {
   return FreezeBoost(attack, mob) * ScarBoost(attack, mob) *
-         ConditionBoost(attack, mob);
+         StunBoost(attack, mob) * ConditionBoost(attack, mob);
 }
 
 // The monster a reader with no particular enemy in mind takes -- nothing here
@@ -946,7 +985,12 @@ void CombatSim::CreditFreeze(const CombatParams& params,
   if (attack.freeze_build > 0) {
     freeze_stacks_ = std::min(cap, freeze_stacks_ + FreezeBuilt(attack));
   } else if (attack.freeze_spends) {
-    freeze_stacks_ = std::max(0, freeze_stacks_ - std::max(1, attack.lines));
+    // A stack per line is what the element spends. A skill stating a rate pays
+    // that instead, floored at one: a strike that spends nothing at all would
+    // take the pile's final damage for free every time it landed.
+    int lines = std::max(1, attack.lines);
+    int spent = std::max(1, lines / std::max(1, attack.freeze_lines_per_spend));
+    freeze_stacks_ = std::max(0, freeze_stacks_ - spent);
   }
 }
 
@@ -1033,6 +1077,25 @@ void CombatSim::ApplyFreeze(const AttackOption& attack, int hit) {
     // the full time from now, not for what was left plus the whole of it.
     queue_[j].frozen_left_seconds =
         std::max(queue_[j].frozen_left_seconds, attack.freeze_seconds);
+  }
+}
+
+void CombatSim::ApplyStun(const AttackOption& attack, int hit) {
+  if (attack.stun_seconds <= 0.0) {
+    return;
+  }
+  for (int j = 0; j < hit; ++j) {
+    // Written over rather than added to, exactly as the ice is: a monster
+    // stunned again is stunned for the full time from now.
+    queue_[j].stunned_left_seconds =
+        std::max(queue_[j].stunned_left_seconds, attack.stun_seconds);
+    queue_[j].stun_lift_pct = attack.stun_lift_pct;
+  }
+}
+
+void CombatSim::RunStun(double dt) {
+  for (QueuedMob& mob : queue_) {
+    mob.stunned_left_seconds = std::max(0.0, mob.stunned_left_seconds - dt);
   }
 }
 
@@ -1131,6 +1194,28 @@ double CombatSim::RolledDamage(const AttackOption& attack, int type,
   }
   double total = 0.0;
   for (const HitGroup& group : attack.groups) {
+    if (type < static_cast<int>(group.damage.size())) {
+      total += group.damage[type] *
+               RollFactor(group.rolls, rng_, ledger_.LineSink());
+      ledger_.RecordRolls(landing, group.damage[type] * landing.scale);
+    }
+  }
+  return total;
+}
+
+// One bank of groups rolled against a mob, as RolledDamage rolls the swing's
+// own: every group rolls its mastery and criticals for itself. `expected` is
+// what to land where nothing rolls, which is what a caller building an attack
+// by hand leaves behind.
+double CombatSim::RolledGroups(const std::vector<HitGroup>& groups,
+                               const std::vector<double>& expected, int type,
+                               const Landing& landing) {
+  if (groups.empty()) {
+    ledger_.RecordLine(landing, expected[type] * landing.scale, false);
+    return expected[type];
+  }
+  double total = 0.0;
+  for (const HitGroup& group : groups) {
     if (type < static_cast<int>(group.damage.size())) {
       total += group.damage[type] *
                RollFactor(group.rolls, rng_, ledger_.LineSink());
@@ -1877,8 +1962,11 @@ void CombatSim::LandSwing(const CombatParams& params,
     double proc_recovered = 0.0;
     for (int bolt = 0; bolt < std::max(1, landed.strikes_in_sequence); ++bolt) {
       proc_recovered += Strike(landed, {DamageOrigin::kSwing, 0}, held_pulses_);
+      // Per strike, not per swing: each shock of the orb spends its own share
+      // of the pile, so the stacks drain across the barrage rather than all at
+      // its opening -- which is the whole point of a rate.
+      CreditFreeze(params, landed);
     }
-    CreditFreeze(params, landed);
     // The strike this swing sets off beside itself, where its own wait has
     // run out. Read off the aimed attack rather than off what landed: the
     // strike belongs to the skill, not to the form standing in for it this
@@ -2060,6 +2148,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   // the ice this step is one this step's swing must see out of it.
   RunDots(dt);
   RunFreeze(dt);
+  RunStun(dt);
   RunScar(dt);
   RunCooldowns(params, dt);
   RunSwing(params, dt);

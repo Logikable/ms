@@ -115,6 +115,15 @@ struct FreezeStacks {
   int matt_per_stack = 0;
 };
 
+// The stun one of the character's skills leaves, and which of their swings it
+// then lifts. Named rather than counted because the skill leaving a stun never
+// collects its own -- GMS says so of Jupiter Thunder outright. Empty for every
+// character who stuns nothing, which is everyone but an I/L holding it.
+struct StunLift {
+  SkillTag lifted_tag = SKILL_TAG_UNSPECIFIED;
+  std::string from_skill;
+};
+
 // What the ENEMY's condition is worth to the character reading it. Two
 // readings, and both are the whole group's business rather than one skill's:
 // whether a monster is afflicted at all, and how many burns stand on the
@@ -275,6 +284,8 @@ struct DerivedStats {
   std::vector<SwingProc> procs;
   // What a Freeze Stack buys them, and how many they hold.
   FreezeStacks freeze;
+  // The stun one of their skills leaves, and what it lifts.
+  StunLift stun_lift;
   // What their swings leave behind on a monster, and what it is worth.
   Scar scar;
   // What the condition the enemy is already in is worth to them.

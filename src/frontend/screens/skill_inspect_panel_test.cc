@@ -420,6 +420,26 @@ TEST_F(SkillInspectPanelTest, ASkillOnItsOwnClockStatesItWithItsReach) {
             std::string::npos);
 }
 
+// A stun takes a row of its own beside the element, and says what the mark it
+// leaves is worth to the swings that collect it.
+TEST_F(SkillInspectPanelTest, StatesTheStunASwingLeavesAndWhatItLifts) {
+  Skill orb = MakeLuckySeven();
+  orb.add_tags(SKILL_TAG_LIGHTNING);
+  orb.mutable_stun()->set_duration_seconds(4.0);
+  orb.mutable_stun()->set_final_dmg_pct(0.12);
+  orb.mutable_stun()->set_lifted_tag(SKILL_TAG_LIGHTNING);
+
+  std::string rendered = RenderAt(orb, 1);
+  EXPECT_NE(RowIn(rendered, "Element", "Lightning"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Stuns", "What it hits, +12% taken"),
+            std::string::npos);
+
+  // A stun nothing collects says only that it stuns.
+  orb.mutable_stun()->clear_final_dmg_pct();
+  EXPECT_NE(RowIn(RenderAt(orb, 1), "Stuns", "What it hits"),
+            std::string::npos);
+}
+
 // Jupiter Thunder's shape: a swing told apart into thirty strikes lands what
 // rides it thirty times too, so the current's row counts the shocks. A swing
 // whose strikes fall together does not -- Sword Illusion's explosions are

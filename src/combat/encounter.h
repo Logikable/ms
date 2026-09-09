@@ -230,6 +230,13 @@ struct AttackOption {
   // follow-up with a reach of its own -- Split Shot reaches ten behind a swing
   // that reached one. Never 0 where the bank has anything in it.
   int per_swing_final_attack_enemies = 1;
+  // The half of this swing that reaches its own crowd rather than the swing's:
+  // what it is worth per target type, what rolls it, and how many it finds.
+  // Empty for every swing whose extra hits land on what the swing struck,
+  // which is all of them but Jupiter Thunder's current. See SwingHit.
+  std::vector<double> wide_hit_damage;
+  std::vector<HitGroup> wide_hit_groups;
+  int wide_hit_enemies = 0;
   // The burns this swing leaves on the enemies it reaches. Empty for every
   // swing that leaves none, which is most of them.
   std::vector<DotApplication> dots;
@@ -287,6 +294,10 @@ struct AttackOption {
   // Spirit of Snow's blizzard -- GMS pays that one more for a lone target.
   int freeze_build_alone = 0;
   bool freeze_spends = false;
+  // Lines it lands per stack spent. 1 for every lightning swing but Jupiter
+  // Thunder's shock, which pays one every five. See
+  // Skill.freeze_lines_per_spend.
+  int freeze_lines_per_spend = 1;
   double freeze_fd_per_stack = 0.0;
   // What one HELD stack adds to this swing's damage as a share, through the
   // critical damage Freezing Crush grants. Linear in the stacks held, since
@@ -303,6 +314,15 @@ struct AttackOption {
   // it. A summon carries it like any other swing, since Elquines freezing what
   // it touches is the whole reason the pair below stays lit.
   double freeze_seconds = 0.0;
+  // The stun this swing leaves, and what carrying it is worth to the swings
+  // that collect: the seconds it stands and the final damage it hands them.
+  // Both 0 for every swing but Jupiter Thunder's shock. See Skill.stun.
+  double stun_seconds = 0.0;
+  double stun_lift_pct = 0.0;
+  // Whether THIS swing collects a stun somebody else left -- it carries the
+  // tag the stunning skill lifts, and is not that skill. False for every swing
+  // of every character who stuns nothing.
+  bool collects_stun_lift = false;
   // Shatter's, as the share one held stack adds to this swing against each mob
   // type -- parallel to damage_per_hit, and per type because what ignoring a
   // little more defence is worth is that mob's own. Empty for a character
