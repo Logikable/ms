@@ -64,6 +64,13 @@ struct Sequence {
 // charge is already wound up when it returns. The buffs are the same problem
 // again: a buff worth 25% that stands for half the run is not worth 12.5% of
 // every swing, it is worth all of it to half of them.
+//
+// `horizon` is in the STRETCHED clock -- the one every duration inside
+// CombatParams is written in, GameSpeedFactor times the game's own. At level
+// 200 that factor is 10, so a two-minute cooldown reads 1200 here and a
+// horizon under it is a burst window with every timed buff up for the whole of
+// it. A caller working in game seconds must multiply by GameSpeedFactor first,
+// or its window means a different length at every level.
 Sequence PlaySwings(const CombatParams& params, double horizon,
                     int enemies = 1);
 

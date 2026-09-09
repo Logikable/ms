@@ -83,10 +83,14 @@ ABSL_FLAG(bool, max, false,
           "of what a 5th job is. One row a branch, holding whatever the "
           "ceiling armed it with.");
 ABSL_FLAG(double, seconds, 600.0,
-          "How long the swings are played out for. The default is long enough "
-          "that a two-minute cooldown lands dozens of times, so the figure is "
-          "a sustained one; a shorter window is a burst, with everything off "
-          "cooldown for the whole of it.");
+          "How long the swings are played out for, in the game's own seconds "
+          "-- the clock a cooldown is written in. The default is ten minutes, "
+          "long enough that a two-minute cooldown lands five times and the "
+          "figure is a sustained one. A window shorter than the longest "
+          "cooldown is a burst instead, with everything up for the whole of "
+          "it: 30 seconds and 240 are two different questions, and at level "
+          "200 the four branches holding V job nodes swap order between "
+          "them.");
 ABSL_FLAG(int, boss_pdr, 0,
           "Percent of the mob's physical defence, which every Ignore DEF "
           "lever in the game is measured against. 0 is the shipped catalog, "
@@ -422,14 +426,19 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
 
   CombatParams params = ComputeCombatParams(state);
   int enemies = absl::GetFlag(FLAGS_enemies);
-  Sequence played = PlaySwings(params, absl::GetFlag(FLAGS_seconds), enemies);
+  // Back out the pacing the game stretches everything by, so the figure is the
+  // 1x one and two levels can be compared without dividing by hand.
+  double speed = GameSpeedFactor(level);
+  // The horizon is asked for in game seconds and PlaySwings counts in the
+  // stretched ones, so it is stretched to match: at 200 a ten-minute window is
+  // 6000 of them. Handing PlaySwings the flag raw would make --seconds mean a
+  // different length at every level -- see GameSpeedFactor.
+  Sequence played =
+      PlaySwings(params, absl::GetFlag(FLAGS_seconds) * speed, enemies);
   if (played.main_attack < 0 || played.seconds <= 0.0) {
     return result;
   }
   const AttackOption* best = &params.attacks[played.main_attack];
-  // Back out the pacing the game stretches everything by, so the figure is the
-  // 1x one and two levels can be compared without dividing by hand.
-  double speed = GameSpeedFactor(level);
   result.swing = best->name;
   result.primary = bare.primary;
   result.attack = bare.attack;
