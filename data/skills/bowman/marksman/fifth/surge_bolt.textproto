@@ -1,0 +1,30 @@
+# The follow-up shot, written as a swing of its own. GMS offers it during
+# Piercing Arrow, Snipe, High Speed Shot and the cartridge -- a window the
+# player presses inside of -- and none of those is a thing the fight has: a
+# swing here is chosen by rate and lands whole. What survives is the cooldown,
+# which is what actually paces it.
+#
+# Twelve strikes twice over rather than twenty-four: GMS states a Strike Count
+# beside the attack count, and two bundles of twelve is what it fires.
+#
+# No hitbox at all in the client, so the stated ten stands -- the same case as
+# Storm of Arrows, where a missing box means the count is the reach.
+name: "Surge Bolt"
+description:
+  "Concentrate and deploy a powerful spirit arrow."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 2 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_CROSSBOW
+base_delay_ms: 480
+cooldown_seconds: 20.0
+max_enemies: 10
+lines: 12
+casts: 2
+base {
+  skill_pct: 9.10
+  ied_pct: 0.50
+  crit_rate: 1.0
+}
+per_level { skill_pct: 0.35 }
