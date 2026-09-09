@@ -3080,6 +3080,27 @@ TEST(ComputeCombatParamsTest, ASwingCanLandTheSameStrikeSeveralTimes) {
   // strike's: a Final Attack on a line and a hit-counting buff both read this.
   EXPECT_EQ(swing.lines, 48);
 
+  // A beat between the strikes takes the fold apart: one strike is priced and
+  // the fight is told how many to land, so the dead can be cleared between
+  // them. See ASequencedSwingClearsTheDeadBetweenItsStrikes in fight_test.
+  Skill walled = illusion;
+  walled.clear_extra_hit();
+  walled.set_cast_interval_ms(210);
+  GameState marched({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                    {{"field", TwoSnailMap()}}, {{"bolt_barrage", walled}});
+  marched.current_map = "field";
+  EquipSword(marched);
+  GrantFirstJobSp(marched, 1);
+  ASSERT_TRUE(marched.character.LearnSkill(walled, 1));
+  CombatParams walls = ComputeCombatParams(marched);
+  const AttackOption& wall = walls.attacks[1];
+  EXPECT_EQ(wall.strikes_in_sequence, 12);
+  // One strike's worth, one group, one strike's lines -- the twelve are the
+  // fight's business now.
+  EXPECT_NEAR(wall.damage_per_hit[0], 5.2 * poke, 1e-6);
+  ASSERT_EQ(wall.groups.size(), 1u);
+  EXPECT_EQ(wall.lines, 4);
+
   // Folded into one 48-line swing it would be worth exactly the same, which is
   // the claim that lets the two be told apart on shape alone.
   Skill folded = illusion;

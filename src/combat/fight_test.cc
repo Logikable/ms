@@ -2089,6 +2089,29 @@ TEST(CombatSimTest, TheSwingIsPickedAfterTheCasts) {
   EXPECT_TRUE(sim.view().attack_name.empty());
 }
 
+// Bolt Barrage's shape: a wall struck once per bolt rather than all at once.
+// The dead are cleared between the bolts, so a wall that reaches two clears
+// eight of them in one swing -- what folding the eight into one landing throws
+// away as overkill.
+TEST(CombatSimTest, ASequencedSwingClearsTheDeadBetweenItsStrikes) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1.0, 1e9, {MakeType(&snail, 10.0, 8)}, /*reach=*/2);
+  params.attacks[0].strikes_in_sequence = 4;
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.view().kills_this_step[0], 8);
+
+  // The same swing folded -- one strike of four times the damage -- reaches
+  // its two and no further, however much of it lands on them.
+  CombatSim folded;
+  CombatParams lump =
+      MakeParams(1.0, 1e9, {MakeType(&snail, 40.0, 8)}, /*reach=*/2);
+  folded.Advance(lump, 1.0);
+  EXPECT_EQ(folded.view().kills_this_step[0], 2);
+}
+
 TEST(CombatSimTest, AnAutoAttackClockWaitsWhileTheMapIsEmpty) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;

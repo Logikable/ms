@@ -345,6 +345,12 @@ struct AttackOption {
   // Strikes one due tick fires, each landing in full on its own. 1 for every
   // clock but Cry Valhalla's, whose three sword strikes fall together.
   int strikes_per_pulse = 1;
+  // The same for a SWING whose strikes are told apart in time rather than
+  // folded into one landing -- Bolt Barrage's eight bolts. Each is struck on
+  // its own, so the dead are cleared between them and a bolt that finds its
+  // crowd already down moves onto the next one. 1 for every other swing, whose
+  // casts are folded into its damage. See Skill.cast_interval_ms.
+  int strikes_in_sequence = 1;
   // Ticks one raising of the gating buff is worth, after which this falls
   // silent until the buff comes round again. 0 for a clock that never runs
   // out, which is every other one. See BuffPulse.max_pulses.

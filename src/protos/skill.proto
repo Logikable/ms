@@ -1448,6 +1448,21 @@ message Skill {
   // of L lines is the expectation of N*L. Read through SkillCasts, and 0
   // reads as one, which is every other swing.
   int32 casts = 56;
+  // Milliseconds between those strikes, where they do not fall together. Bolt
+  // Barrage is what it exists for: GMS conjures a wall of eight lightning
+  // bolts that pulses forward on a 210ms beat, and each bolt falls on the
+  // crowd the one before it left rather than on the crowd the swing opened
+  // against. A wall that clears the twelve in front of it moves onto the next
+  // twelve, which is what marching across the screen comes to here.
+  //
+  // The swing is still charged its cast alone. The wall marches on its own
+  // once conjured and GMS frees the player the moment it does, so the beat
+  // orders the strikes without costing the time they take.
+  //
+  // 0 is every other swing, whose strikes are one moment however GMS spaces
+  // them -- Sword Illusion's twelve at 60ms apart are not worth telling apart,
+  // and folding them is what makes them one landing to price.
+  int32 cast_interval_ms = 59;
   // What an arrow gains for every enemy it has already gone through, as a
   // fraction. It COMPOUNDS: at 0.15 the second enemy the swing reaches takes
   // 1.15 times the first and the sixth takes 1.15^5 = 2.01 times it, which is

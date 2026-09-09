@@ -627,16 +627,24 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // its own mastery and criticals -- the same total as one swing of all those
   // lines, drawn as the several landings GMS draws.
   int casts = skill != nullptr ? SkillCasts(*skill) : 1;
+  // A swing whose strikes are told apart in time is struck once for each of
+  // them instead, so what is priced here stays ONE of them -- the fight lands
+  // it again for every bolt, clearing the dead between. See
+  // Skill.cast_interval_ms.
+  bool in_sequence = skill != nullptr && skill->cast_interval_ms() > 0;
   HitGroup strike{attack.damage_per_hit, RollsFor(offense)};
-  for (int i = 0; i < casts; ++i) {
+  for (int i = 0; i < (in_sequence ? 1 : casts); ++i) {
     attack.groups.push_back(strike);
   }
-  for (double& damage : attack.damage_per_hit) {
-    damage *= casts;
+  if (!in_sequence) {
+    for (double& damage : attack.damage_per_hit) {
+      damage *= casts;
+    }
   }
   if (skill != nullptr) {
+    attack.strikes_in_sequence = in_sequence ? std::max(1, casts) : 1;
     attack.pierce_gain_pct = skill->pierce_gain_pct();
-    attack.lines = SkillLinesAt(*skill, level) * casts;
+    attack.lines = SkillLinesAt(*skill, level) * (in_sequence ? 1 : casts);
     // A scattered swing is the same swing throughout -- what differs is how
     // many of it land where, which is the fight's business rather than the
     // damage chain's, exactly as the opening hit's target count is.

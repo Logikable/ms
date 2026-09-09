@@ -1861,8 +1861,13 @@ void CombatSim::LandSwing(const CombatParams& params,
     }
     const AttackOption& landed =
         FormToLand(attack_clocks_[swung].empowered_count, *cast);
-    double proc_recovered =
-        Strike(landed, {DamageOrigin::kSwing, 0}, held_pulses_);
+    // A wall of bolts is struck once per bolt rather than all at once, so the
+    // dead are cleared between them and a bolt whose twelve are already down
+    // falls on the next twelve. One strike for every other swing.
+    double proc_recovered = 0.0;
+    for (int bolt = 0; bolt < std::max(1, landed.strikes_in_sequence); ++bolt) {
+      proc_recovered += Strike(landed, {DamageOrigin::kSwing, 0}, held_pulses_);
+    }
     CreditFreeze(params, landed);
     // The strike this swing sets off beside itself, where its own wait has
     // run out. Read off the aimed attack rather than off what landed: the
@@ -1892,7 +1897,8 @@ void CombatSim::LandSwing(const CombatParams& params,
     CreditSwing(params, cast->count_weight);
     // Attacking is what brings a buff round sooner, so the same swing that
     // credits the volleys credits the buffs. A cast credits neither.
-    CreditBuffs(params, cast->count_weight, landed.lines);
+    CreditBuffs(params, cast->count_weight,
+                landed.lines * std::max(1, landed.strikes_in_sequence));
     LayBuffs(params, swung, /*on_cast=*/false);
   }
   if (attack.cooldown_seconds > 0.0) {
