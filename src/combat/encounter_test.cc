@@ -1103,6 +1103,55 @@ TEST(ComputeCombatParamsTest, ABuffCanGrantAFinalAttackWithItsOwnReach) {
   EXPECT_TRUE(wide->final_attack_damage.empty());
 }
 
+// Spirit of Snow's shape: a summon on a cooldown, which is a buff with a
+// pulse. The blizzard it calls down is ice whoever called it, so it feeds the
+// pile exactly as the character's own ice swing would.
+TEST(ComputeCombatParamsTest, ABuffsPulseStrikesWithItsSkillsElement) {
+  Skill crush;
+  crush.set_name("Freezing Crush");
+  crush.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(crush, JOB_ADVANCEMENT_SWORDMAN);
+  crush.set_max_level(10);
+  crush.set_freeze_stack_cap(5);
+  crush.mutable_base()->set_crit_dmg_per_freeze_stack(0.001);
+
+  Skill spirit;
+  spirit.set_name("Spirit of Snow");
+  spirit.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(spirit, JOB_ADVANCEMENT_SWORDMAN);
+  spirit.set_max_level(30);
+  spirit.add_tags(SKILL_TAG_ICE);
+  spirit.set_freeze_seconds(8.0);
+  spirit.mutable_buff()->set_duration_seconds(30.0);
+  BuffPulse* blizzard = spirit.mutable_buff()->mutable_pulse();
+  blizzard->set_label("Blizzard");
+  blizzard->set_cast_interval_seconds(3.0);
+  blizzard->set_lines(12);
+  blizzard->set_max_enemies(10);
+  blizzard->mutable_base()->set_skill_pct(8.16);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"freezing_crush", crush}, {"spirit_of_snow", spirit}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(crush, 1));
+  ASSERT_TRUE(state.character.LearnSkill(spirit, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  const AttackOption& blast = params.auto_attacks[0];
+  EXPECT_EQ(blast.name, "Spirit of Snow");
+  // One stack per line, and the eight seconds of ice the skill states -- both
+  // read off the skill the pulse belongs to rather than off the pulse.
+  EXPECT_EQ(blast.freeze_build, 12);
+  EXPECT_DOUBLE_EQ(blast.freeze_seconds,
+                   8.0 * GameSpeedFactor(state.character.proto().level()));
+  // It never spends the pile, as no summon does.
+  EXPECT_FALSE(blast.freeze_spends);
+}
+
 // Frost Ark's shape: the same buff, but its shock is struck by the orb the
 // character left standing as well as by the bolts they cast. Every other Final
 // Attack stops at the swing, so the summon carries one only where the granting

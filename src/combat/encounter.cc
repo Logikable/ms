@@ -751,6 +751,16 @@ bool Available(const GameState& state, const Skill& skill,
 // damage chain builds it. It keeps the parent's name because it is one skill to
 // the player -- one row in the book, one SP ladder, one page -- and carries
 // none of the parent's tags: what fires by itself is not the character's swing.
+// The element an own-clock half strikes with, which belongs to the SKILL and
+// not to who swung it: Spirit of Snow's blizzard is ice whether the character
+// called it down or the summon did, so it leaves the same freeze behind. The
+// rest of the parent's tags come with it, none of them meaning anything to a
+// strike that is not the character's.
+void CarryElement(const Skill& skill, Skill& built) {
+  *built.mutable_tags() = skill.tags();
+  built.set_freeze_seconds(skill.freeze_seconds());
+}
+
 Skill AutoModeSkill(const Skill& skill, const AutoMode& mode) {
   Skill built;
   built.set_name(skill.name());
@@ -759,12 +769,13 @@ Skill AutoModeSkill(const Skill& skill, const AutoMode& mode) {
   *built.mutable_per_level() = mode.per_level();
   built.set_max_enemies(mode.max_enemies());
   built.set_lines(mode.lines());
+  CarryElement(skill, built);
   return built;
 }
 
 // The wound a skill's buff bleeds, as a skill in its own right. It reaches
 // what the swing reached, being the mark that swing left, and carries none of
-// the parent's tags for the reason AutoModeSkill gives.
+// the parent's tags but the element, for the reason CarryElement gives.
 Skill BuffPulseSkill(const Skill& skill, const BuffPulse& pulse) {
   Skill built;
   built.set_name(skill.name());
@@ -774,6 +785,7 @@ Skill BuffPulseSkill(const Skill& skill, const BuffPulse& pulse) {
   built.set_max_enemies(pulse.max_enemies() > 0 ? pulse.max_enemies()
                                                 : skill.max_enemies());
   built.set_lines(pulse.lines());
+  CarryElement(skill, built);
   return built;
 }
 

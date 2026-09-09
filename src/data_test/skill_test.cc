@@ -504,6 +504,25 @@ bool GrantsAtFirstLevel(const Skill& skill) {
   return false;
 }
 
+// Whether the skill lands a strike at all, by any of the three routes: a swing
+// the character takes, a turret firing on its own clock, or the pulse a buff
+// bleeds. Spirit of Snow is the third and nothing else -- the cast summons a
+// spirit and the spirit is what attacks.
+bool StrikesSomething(const Skill& skill) {
+  if (DealsDamage(skill.kind())) {
+    return true;
+  }
+  if (skill.buff().pulse().has_base() || AnyStancePulseHasBase(skill.buff())) {
+    return true;
+  }
+  for (const AutoMode& mode : skill.auto_mode()) {
+    if (mode.has_base()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Whether any turret the skill runs states a base of its own. Silhouette
 // Mirage is a node that is nothing but one.
 bool AnyAutoModeHasBase(const Skill& skill) {
@@ -1449,23 +1468,25 @@ TEST(SkillDataTest, AScarIsBothLeftAndRead) {
   }
 }
 
-// A freeze lands on what a swing reached, so a passive that touches nobody
-// cannot leave one. Being ICE is NOT required: the tag marks a swing that
+// A freeze lands on what a strike reached, so a passive that touches nobody
+// cannot leave one. Being ICE is NOT required: the tag marks a strike that
 // feeds the I/L's Freeze Stacks, and Frostprey freezes as a bird instead.
-TEST(SkillDataTest, OnlyASwingFreezes) {
+TEST(SkillDataTest, OnlyAStrikeFreezes) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
     if (skill.freeze_seconds() <= 0.0) {
       continue;
     }
-    EXPECT_TRUE(DealsDamage(skill.kind()))
+    EXPECT_TRUE(StrikesSomething(skill))
         << entry.first << " freezes what it never attacks";
   }
 }
 
-// An element is a mark on a SWING: it says what that swing does to the pile of
-// Freeze Stacks, and a passive does nothing to it either way.
-TEST(SkillDataTest, OnlyASwingCarriesAnElement) {
+// An element is a mark on a STRIKE: it says what that strike does to the pile
+// of Freeze Stacks, and a passive does nothing to it either way. The strike
+// need not be the character's -- a summon's blizzard is ice too, which is what
+// carries the element onto a pulse.
+TEST(SkillDataTest, OnlyAStrikeCarriesAnElement) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
     for (int i = 0; i < skill.tags_size(); ++i) {
@@ -1473,7 +1494,7 @@ TEST(SkillDataTest, OnlyASwingCarriesAnElement) {
           skill.tags(i) != SKILL_TAG_LIGHTNING) {
         continue;
       }
-      EXPECT_TRUE(DealsDamage(skill.kind()))
+      EXPECT_TRUE(StrikesSomething(skill))
           << entry.first << " is marked with an element but never attacks";
     }
   }
