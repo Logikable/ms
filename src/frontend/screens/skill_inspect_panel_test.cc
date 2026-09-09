@@ -420,6 +420,34 @@ TEST_F(SkillInspectPanelTest, ASkillOnItsOwnClockStatesItWithItsReach) {
             std::string::npos);
 }
 
+// Jupiter Thunder's shape: a swing told apart into thirty strikes lands what
+// rides it thirty times too, so the current's row counts the shocks. A swing
+// whose strikes fall together does not -- Sword Illusion's explosions are
+// their own count and land once for the swing.
+TEST_F(SkillInspectPanelTest, ASequencedSwingCountsItsExtraHitPerStrike) {
+  Skill orb = MakeLuckySeven();
+  orb.set_lines(8);
+  orb.set_casts(30);
+  orb.set_cast_interval_ms(330);
+  orb.mutable_base()->set_skill_pct(8.71);
+  orb.clear_per_level();
+  SwingHit* current = orb.add_extra_hit();
+  current->set_label("Electric Current");
+  current->set_lines(4);
+  current->mutable_base()->set_skill_pct(5.13);
+
+  std::string rendered = RenderAt(orb, 1);
+  EXPECT_NE(RowIn(rendered, "Damage", "871% x8 x30 = 209040%"),
+            std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Electric Current", "513% x4 x30 = 61560%"),
+            std::string::npos);
+
+  // The same skill with its strikes falling together lands the current once.
+  orb.clear_cast_interval_ms();
+  EXPECT_NE(RowIn(RenderAt(orb, 1), "Electric Current", "513% x4 = 2052%"),
+            std::string::npos);
+}
+
 // Divine Mark lands two hits at once and GMS prices them differently, so the
 // page prices them differently too: a row each, and the bonus against ordinary
 // monsters under the half that carries it rather than over both.

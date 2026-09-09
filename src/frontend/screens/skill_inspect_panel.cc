@@ -882,11 +882,22 @@ std::string LeadText(const Skill& skill, int level) {
 // The plain lever rows of one effect, at `level`. `suffix` goes after every
 // value: a weapon bonus uses it to name what has to be in hand, and the
 // skill's own levers pass "" because the Requires row above says it once.
+// Times over the swing carrying these hits lands them: once for every strike
+// it is told apart into, since each of those is a whole swing to the fight.
+// 1 for a swing whose strikes fall together, which is every other one -- Sword
+// Illusion's five explosions do not come once per slash. See
+// Skill.cast_interval_ms.
+int SequencedCasts(const Skill& skill) {
+  return skill.cast_interval_ms() > 0 ? SkillCasts(skill) : 1;
+}
+
 // The damage rows for hits a swing lands beside its own: each on its own line,
 // with what it is worth against an ordinary monster under it where that
-// differs. Shared, because an empowered form lands them too.
+// differs. Shared, because an empowered form lands them too. `swing_casts` is
+// what the swing itself repeats, which every hit beside it repeats with.
 std::vector<Row> SwingHitRows(
-    const google::protobuf::RepeatedPtrField<SwingHit>& hits, int level) {
+    const google::protobuf::RepeatedPtrField<SwingHit>& hits, int level,
+    int swing_casts = 1) {
   std::vector<Row> rows;
   for (const SwingHit& hit : hits) {
     double per_hit =
@@ -895,7 +906,8 @@ std::vector<Row> SwingHitRows(
     // about this damage rather than a lever of the character's, and a row of
     // its own would read as one. Wrapped, since the note is the one thing that
     // can push a damage row past its column.
-    std::string text = SwingText(per_hit, hit.lines(), SwingHitCasts(hit));
+    std::string text =
+        SwingText(per_hit, hit.lines(), SwingHitCasts(hit) * swing_casts);
     double crit =
         hit.base().crit_rate() + hit.per_level().crit_rate() * (level - 1);
     if (crit >= 1.0) {
@@ -907,9 +919,9 @@ std::vector<Row> SwingHitRows(
     double bonus = hit.base().normal_skill_pct() +
                    hit.per_level().normal_skill_pct() * (level - 1);
     if (bonus > 0.0) {
-      rows.push_back(EffectRow(
-          hit.label() + " Normal",
-          SwingText(per_hit + bonus, hit.lines(), SwingHitCasts(hit))));
+      rows.push_back(EffectRow(hit.label() + " Normal",
+                               SwingText(per_hit + bonus, hit.lines(),
+                                         SwingHitCasts(hit) * swing_casts)));
     }
     // A hit that heals pays per line of every strike, so its row is read the
     // way the damage row over it is -- the total is the whole point, since a
@@ -919,7 +931,8 @@ std::vector<Row> SwingHitRows(
     if (heal > 0.0) {
       rows.push_back(EffectRow(
           hit.label() + " Heal",
-          "+" + SwingText(heal, hit.lines(), SwingHitCasts(hit)) + " HP"));
+          "+" + SwingText(heal, hit.lines(), SwingHitCasts(hit) * swing_casts) +
+              " HP"));
     }
   }
   return rows;
@@ -1108,7 +1121,7 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   // The other hit the same swing lands, and its own reading against an
   // ordinary monster under it -- the pair reads exactly as the swing's own two
   // rows above, because that is what it is.
-  Append(SwingHitRows(skill.extra_hit(), level), rows);
+  Append(SwingHitRows(skill.extra_hit(), level, SequencedCasts(skill)), rows);
   if (held) {
     Append(ChannelFinishRows(skill, level), rows);
   }
