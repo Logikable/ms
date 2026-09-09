@@ -20,10 +20,12 @@
 # damage on every I/L swing at master -- and that other lightning then takes
 # 12% more, which GMS states and excludes this skill from by name.
 #
-# The four seconds are CHOSEN. GMS states no stun duration anywhere in the
-# common block, and a missing number there is the client hardcoding one. The
-# shocks refresh it every 330ms, so what the number really decides is how long
-# the rest of the book collects the 12% after the barrage ends.
+# The ten seconds are CHOSEN, and they are the BARRAGE's span rather than one
+# shock's: GMS states no stun duration anywhere in the common block, refreshes
+# it on each of the thirty shocks, and spreads those over 9.9 seconds. The
+# thirty land in one instant here, so a mark of one shock's length would leave
+# the rest of the book collecting the 12% for a fraction of the window GMS
+# gives it.
 #
 # Dropped: the 3.4s of cooldown refunded for every shock that never fired. The
 # orb spends all thirty in every fight this game holds -- it rides the front of
@@ -46,7 +48,7 @@ max_enemies: 1
 lines: 8
 freeze_lines_per_spend: 5
 stun {
-  duration_seconds: 4.0
+  duration_seconds: 10.0
   final_dmg_pct: 0.12
   lifted_tag: SKILL_TAG_LIGHTNING
 }

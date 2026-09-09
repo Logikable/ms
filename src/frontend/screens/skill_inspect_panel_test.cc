@@ -462,6 +462,13 @@ TEST_F(SkillInspectPanelTest, ASequencedSwingCountsItsExtraHitPerStrike) {
   EXPECT_NE(RowIn(rendered, "Electric Current", "513% x4 x30 = 61560%"),
             std::string::npos);
 
+  // A half with a crowd of its own states it, since the swing's says nothing
+  // about where this one lands.
+  current->set_max_enemies(2);
+  EXPECT_NE(
+      RowIn(RenderAt(orb, 1), "Electric Current", "513% x4 x30 = 61560%, 2"),
+      std::string::npos);
+
   // The same skill with its strikes falling together lands the current once.
   orb.clear_cast_interval_ms();
   EXPECT_NE(RowIn(RenderAt(orb, 1), "Electric Current", "513% x4 = 2052%"),

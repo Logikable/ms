@@ -922,6 +922,12 @@ std::vector<Row> SwingHitRows(
     // can push a damage row past its column.
     std::string text =
         SwingText(per_hit, hit.lines(), SwingHitCasts(hit) * swing_casts);
+    // A half that finds its own crowd says so, for the reason a Final Attack
+    // with one does: read against the swing's reach it would be wrong in
+    // whichever direction the two differ.
+    if (hit.max_enemies() > 0) {
+      text += ", " + ReachText(hit.max_enemies());
+    }
     double crit =
         hit.base().crit_rate() + hit.per_level().crit_rate() * (level - 1);
     if (crit >= 1.0) {
