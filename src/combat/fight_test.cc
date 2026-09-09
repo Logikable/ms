@@ -3490,6 +3490,53 @@ TEST(CombatSimTest, AChanceCanLandOneEnemyHarderAndPayTheHitBack) {
   EXPECT_EQ(healed.view().player_hp, 75);
 }
 
+// A barrage charges a hit-counting buff as its bolts LAND, not all at the cast:
+// a shock that finds an empty map landed nothing and counts for nothing.
+TEST(CombatSimTest, ABarrageChargesAHitBuffOnlyForBoltsThatLand) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  // One monster and a beat a second, so the barrage kills what it has and its
+  // last three bolts fall on an empty map.
+  CombatParams params = MakeParams(1.0, 1.0, {MakeType(&snail, 0.0, 1)});
+  BuffOption buff;
+  buff.name = "Mortal Blow";
+  buff.duration_seconds = 100.0;
+  buff.charge_lines = 2;
+  params.buffs.push_back(std::move(buff));
+  AttackOption orb = MakeSkill("Jupiter Thunder", 100.0, /*cooldown=*/0.0);
+  orb.lines = 1;
+  orb.max_enemies = 1;
+  orb.strikes_in_sequence = 4;
+  orb.cast_interval_seconds = 0.25;
+  params.attacks.push_back(orb);
+  AttackSet set;
+  set.attacks = params.attacks;
+  set.attacks[1].damage_per_hit[0] = 1000.0;
+  params.buffed.push_back(std::move(set));
+
+  // The cast lands one line and its three bolts land none, so one of the two
+  // the buff wants is paid.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().damage_this_step, 100.0, 1e-9);
+  for (int bolt = 0; bolt < 3; ++bolt) {
+    sim.Advance(params, 0.25);
+    EXPECT_NEAR(sim.view().damage_this_step, 0.0, 1e-9);
+  }
+
+  // The beat refills the map but the swing clock froze while it was empty, so
+  // the next cast is a step further out.
+  sim.Advance(params, 0.25);
+  EXPECT_NEAR(sim.view().damage_this_step, 0.0, 1e-9);
+  // That cast pays the second line and the buff goes up behind it, so it still
+  // lands plain. Charged at the cast it would have gone up three steps ago and
+  // this would already be the buffed thousand.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().damage_this_step, 100.0, 1e-9);
+  // And the one after it lands under the buff.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().damage_this_step, 1000.0, 1e-9);
+}
+
 // A buff bought with landed hits rather than with a wait: it goes up on the
 // hit that finishes the count, and nothing counts while it stands -- so its
 // uptime is what the character's firing rate buys and no more.

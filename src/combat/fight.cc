@@ -1949,6 +1949,10 @@ void CombatSim::RunBarrage(const CombatParams& params, double dt) {
     }
     RecoverHp(params, Strike(attack, {DamageOrigin::kSwing, 0}));
     CreditFreeze(params, attack);
+    // What this strike landed, for the buffs charged by hits. No weight: the
+    // wait a landed SWING takes off a buff was paid at the cast, and a bolt of
+    // it is not another swing.
+    CreditBuffs(params, 0.0, attack.lines);
   }
 }
 
@@ -2040,8 +2044,11 @@ void CombatSim::LandSwing(const CombatParams& params,
     CreditSwing(params, cast->count_weight);
     // Attacking is what brings a buff round sooner, so the same swing that
     // credits the volleys credits the buffs. A cast credits neither.
-    CreditBuffs(params, cast->count_weight,
-                landed.lines * std::max(1, landed.strikes_in_sequence));
+    // The opening strike's lines alone: the rest of a barrage credits its own
+    // as it lands, so a buff counting hits is never paid for shocks that go on
+    // to find an empty map. The swing's WEIGHT is the cast's and is credited
+    // once here -- thirty bolts are one press of the key.
+    CreditBuffs(params, cast->count_weight, landed.lines);
     LayBuffs(params, swung, /*on_cast=*/false);
   }
   if (attack.cooldown_seconds > 0.0) {
