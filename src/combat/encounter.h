@@ -122,6 +122,13 @@ struct FinalAttackRoll {
   int count = 1;
   std::vector<double> damage;  // per target type, one hit's worth
   SwingRolls rolls;            // how that hit itself varies
+  // Whether this survives on an attack the character does not swing. See
+  // Skill.follows_own_clock -- Frost Ark's shock is the one that does.
+  bool follows_own_clock = false;
+  // Enemies this one source reaches, where it rolls once for the whole swing.
+  // 0 for a source that follows the swing onto each enemy it reached. Kept on
+  // the roll so a list that loses one can work its crowd out again.
+  int max_enemies = 0;
 };
 
 // One chance a swing has to land harder on one of the enemies it reached, and
@@ -207,8 +214,8 @@ struct AttackOption {
   double scatter_repeat_kept = 1.0;
   // Expected Final Attack damage per target type, landing on every mob the
   // swing reached: it rolls separately for each of them. Empty for a character
-  // with no Final Attack, for a swing none of theirs follows, and for the
-  // skills that fire on their own clock -- those are not the character's swing.
+  // with no Final Attack and for a swing none of theirs follows. A skill firing
+  // on its own clock keeps only the sources that say they follow one.
   std::vector<double> final_attack_damage;
   // The same, one entry per source, as what actually rolls. Empty lands the
   // average above -- what a caller building an attack by hand wants.

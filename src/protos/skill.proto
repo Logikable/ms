@@ -1364,6 +1364,16 @@ message Skill {
   // and archers' Final Attacks want -- they are about the weapon in hand, and
   // required_equip_type already says so.
   SkillTag follows_skill_tag = 10;
+  // Whether that Final Attack follows an attack on its OWN clock as well as
+  // the character's swings -- a summon's discharge, a turret's shot, an aura's
+  // beat. Unset is every other Final Attack in the game, and the reason the
+  // rule exists at all: what a Rogue throws behind their stars is thrown by
+  // the Rogue.
+  //
+  // Frost Ark is what it exists for. GMS's ark is struck by lightning whatever
+  // cast it, and one of the three skills its client names is Thunder Sphere --
+  // an orb the character leaves standing and never swings again.
+  bool follows_own_clock = 58;
 
   SkillEffect base = 11;
   SkillEffect per_level = 12;

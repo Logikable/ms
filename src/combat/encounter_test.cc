@@ -1103,6 +1103,101 @@ TEST(ComputeCombatParamsTest, ABuffCanGrantAFinalAttackWithItsOwnReach) {
   EXPECT_TRUE(wide->final_attack_damage.empty());
 }
 
+// Frost Ark's shape: the same buff, but its shock is struck by the orb the
+// character left standing as well as by the bolts they cast. Every other Final
+// Attack stops at the swing, so the summon carries one only where the granting
+// skill says it follows an own clock.
+TEST(ComputeCombatParamsTest, AFinalAttackCanFollowASummonsOwnClock) {
+  Skill bolt;
+  bolt.set_name("Chain Lightning");
+  bolt.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(bolt, JOB_ADVANCEMENT_SWORDMAN);
+  bolt.set_max_level(30);
+  bolt.set_base_delay_ms(660);
+  bolt.set_max_enemies(6);
+  bolt.add_tags(SKILL_TAG_LIGHTNING);
+  bolt.mutable_base()->set_skill_pct(1.33);
+
+  Skill orb;
+  orb.set_name("Thunder Sphere");
+  orb.set_kind(SKILL_KIND_AUTO_ATTACK);
+  PlaceIn(orb, JOB_ADVANCEMENT_SWORDMAN);
+  orb.set_max_level(20);
+  orb.set_max_enemies(6);
+  orb.set_cast_interval_seconds(1.8);
+  orb.add_tags(SKILL_TAG_LIGHTNING);
+  orb.mutable_base()->set_skill_pct(2.01);
+
+  Skill ark;
+  ark.set_name("Frost Ark");
+  ark.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(ark, JOB_ADVANCEMENT_SWORDMAN);
+  ark.set_max_level(30);
+  ark.set_base_delay_ms(120);
+  ark.set_follows_skill_tag(SKILL_TAG_LIGHTNING);
+  ark.set_follows_own_clock(true);
+  ark.set_final_attack_max_enemies(15);
+  ark.mutable_buff()->set_duration_seconds(20.0);
+  ark.mutable_buff()->mutable_base()->set_final_attack_chance(1.0);
+  ark.mutable_buff()->mutable_base()->set_final_attack_pct(1.82);
+  ark.mutable_buff()->mutable_base()->set_final_attack_lines(5);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"bolt", bolt}, {"orb", orb}, {"ark", ark}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 3);
+  ASSERT_TRUE(state.character.LearnSkill(bolt, 1));
+  ASSERT_TRUE(state.character.LearnSkill(orb, 1));
+  ASSERT_TRUE(state.character.LearnSkill(ark, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.buffs.size(), 1u);
+  ASSERT_EQ(params.AutoAttacks(1).size(), 1u);
+  const AttackOption& summoned = params.AutoAttacks(1)[0];
+  EXPECT_EQ(summoned.name, "Thunder Sphere");
+  // The whole point: the orb sets the ark off, over the ark's own crowd.
+  ASSERT_FALSE(summoned.per_swing_final_attack_damage.empty());
+  EXPECT_EQ(summoned.per_swing_final_attack_enemies, 15);
+  ASSERT_EQ(summoned.per_swing_final_attack_rolls.size(), 1u);
+  EXPECT_DOUBLE_EQ(summoned.per_swing_final_attack_rolls[0].chance, 1.0);
+  EXPECT_DOUBLE_EQ(summoned.per_swing_final_attack_damage[0],
+                   summoned.per_swing_final_attack_rolls[0].damage[0]);
+  // And the character's own lightning swing still carries it.
+  const AttackOption* swung = nullptr;
+  for (const AttackOption& attack : params.Attacks(1)) {
+    if (attack.name == "Chain Lightning") {
+      swung = &attack;
+    }
+  }
+  ASSERT_NE(swung, nullptr);
+  EXPECT_EQ(swung->per_swing_final_attack_enemies, 15);
+
+  // Without the flag the orb is a summon like any other and follows nothing,
+  // while the swing is untouched.
+  ark.set_follows_own_clock(false);
+  GameState plain({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"bolt", bolt}, {"orb", orb}, {"ark", ark}});
+  plain.current_map = "field";
+  EquipSword(plain);
+  GrantFirstJobSp(plain, 3);
+  ASSERT_TRUE(plain.character.LearnSkill(bolt, 1));
+  ASSERT_TRUE(plain.character.LearnSkill(orb, 1));
+  ASSERT_TRUE(plain.character.LearnSkill(ark, 1));
+
+  CombatParams bare = ComputeCombatParams(plain);
+  ASSERT_EQ(bare.AutoAttacks(1).size(), 1u);
+  EXPECT_TRUE(bare.AutoAttacks(1)[0].per_swing_final_attack_damage.empty());
+  EXPECT_EQ(bare.AutoAttacks(1)[0].per_swing_final_attack_enemies, 1);
+  for (const AttackOption& attack : bare.Attacks(1)) {
+    if (attack.name == "Chain Lightning") {
+      EXPECT_EQ(attack.per_swing_final_attack_enemies, 15);
+    }
+  }
+}
+
 // A Night Lord's mark throws three stars where an Assassin's throws two. The
 // strikes are told apart rather than folded into one percent, so each rolls
 // its own crit -- and three of them are worth three times one.

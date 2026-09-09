@@ -46,6 +46,55 @@ constexpr double kMobHitIntervalSeconds = 1.5;
 // enduring it rather than only by killing fast enough to keep clearing it.
 constexpr double kBeatHealFraction = 0.10;
 
+// Drops every Final Attack this attack carries, banks and rolls together. For
+// a cast that deals no damage, which sets nothing off however it was clocked.
+void ClearFinalAttacks(AttackOption& attack) {
+  attack.final_attack_damage.clear();
+  attack.final_attack_rolls.clear();
+  attack.per_swing_final_attack_damage.clear();
+  attack.per_swing_final_attack_rolls.clear();
+  attack.per_swing_final_attack_enemies = 1;
+}
+
+// Drops the Final Attacks that only a swing sets off and adds the banks back up
+// off what survived. A filter rather than a wipe because Frost Ark's shock is
+// struck by the orb the character left standing as readily as by the bolts they
+// cast -- see Skill.follows_own_clock. Nothing set that flag before Frost Ark,
+// so this took everything.
+void KeepOwnClockFinalAttacks(AttackOption& attack) {
+  std::vector<double>* banks[] = {&attack.final_attack_damage,
+                                  &attack.per_swing_final_attack_damage};
+  std::vector<FinalAttackRoll>* lists[] = {
+      &attack.final_attack_rolls, &attack.per_swing_final_attack_rolls};
+  attack.per_swing_final_attack_enemies = 1;
+  for (int i = 0; i < 2; ++i) {
+    std::vector<FinalAttackRoll> kept;
+    for (FinalAttackRoll& roll : *lists[i]) {
+      if (roll.follows_own_clock) {
+        kept.push_back(std::move(roll));
+      }
+    }
+    *lists[i] = std::move(kept);
+    if (lists[i]->empty()) {
+      banks[i]->clear();
+      continue;
+    }
+    // The bank is the sum of what each source is worth, so what is left of it
+    // is that sum over the rolls that stayed.
+    std::fill(banks[i]->begin(), banks[i]->end(), 0.0);
+    for (const FinalAttackRoll& roll : *lists[i]) {
+      for (std::size_t t = 0; t < banks[i]->size(); ++t) {
+        (*banks[i])[t] += roll.damage[t] * roll.chance * roll.count;
+      }
+    }
+  }
+  // The widest of the sources that stayed, exactly as AddFinalAttacks took it.
+  for (const FinalAttackRoll& roll : attack.per_swing_final_attack_rolls) {
+    attack.per_swing_final_attack_enemies =
+        std::max(attack.per_swing_final_attack_enemies, roll.max_enemies);
+  }
+}
+
 // Strips everything that rides the character's own swing -- the recovery it
 // pays, its Final Attacks, the poison it carries and the strike it sets off.
 // Anything on a clock of its own (a summon, a wound, a form standing in for a
@@ -62,10 +111,7 @@ void ClearSwingRiders(AttackOption& attack) {
   // attacks without consuming freezing stacks.
   attack.freeze_spends = false;
   attack.freeze_fd_per_stack = 0.0;
-  attack.final_attack_damage.clear();
-  attack.final_attack_rolls.clear();
-  attack.per_swing_final_attack_damage.clear();
-  attack.per_swing_final_attack_rolls.clear();
+  KeepOwnClockFinalAttacks(attack);
   attack.dots.erase(
       std::remove_if(attack.dots.begin(), attack.dots.end(),
                      [](const DotApplication& burn) { return burn.carried; }),
@@ -463,6 +509,8 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
     follow.final_dmg_pct =
         (1.0 + carried_final_dmg_pct) * (1.0 + source.final_dmg_pct) - 1.0;
     roll.count = source.per_line ? swing_lines : 1;
+    roll.follows_own_clock = source.follows_own_clock;
+    roll.max_enemies = source.max_enemies;
     follow.skill_pct = source.damage_pct;
     // Its own strikes, not the swing's: a Night Lord's mark throws three stars
     // behind a four-star swing, and each of the three rolls on its own.
@@ -1162,6 +1210,9 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       attack.groups.clear();
       attack.lead_damage.clear();
       ClearSwingRiders(attack);
+      // Every one of them, not only the swing's: a cast that deals no damage
+      // strikes nothing, so nothing follows it however it is clocked.
+      ClearFinalAttacks(attack);
     }
     if (swung.kind() != SKILL_KIND_AUTO_ATTACK) {
       // What this swing counts toward the skills clocked by swings landed.

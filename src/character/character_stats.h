@@ -73,6 +73,10 @@ struct FinalAttackSource {
   // one that follows the swing onto each enemy it reached and rolls against
   // every one of them. See Skill.final_attack_max_enemies.
   int max_enemies = 0;
+  // Whether an attack on its own clock sets this off as readily as a swing.
+  // False for every other source: a Final Attack is what the character's own
+  // swing sets off. See Skill.follows_own_clock.
+  bool follows_own_clock = false;
 };
 
 // A burn the character leaves on everything they swing at, from a passive

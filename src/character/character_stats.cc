@@ -292,6 +292,7 @@ void AddFinalAttack(const Skill& skill, const SkillEffect& granted,
   source.lines = std::max(1, WholeValue(granted.final_attack_lines()));
   source.required_tag = skill.follows_skill_tag();
   source.max_enemies = skill.final_attack_max_enemies();
+  source.follows_own_clock = skill.follows_own_clock();
   source.skill_name = skill.name();
   source.owner_swings = DealsDamage(skill.kind());
   totals.final_attacks.push_back(source);
