@@ -1,0 +1,44 @@
+# One shot, six arrows. GMS's "Multiple Critical Shot Count: 6" is a
+# mistranslation of a volley: KMS states it as a bundle of six arrows, each
+# striking fourteen times for 2090%. Written as six casts rather than 84 lines,
+# because six arrows is what the skill is -- see Skill.casts.
+#
+# The cast is the aim, not the animation. The client's action is one 120ms
+# frame; everything after it is the scope, which the player holds for up to two
+# seconds before firing. Measured off a video at 2.12 seconds, and fixed: an
+# aim window is a number in the tooltip, and no attack-speed stage shortens it.
+#
+# Reach cut from GMS's 12 to what the box holds. The 310x310 hitbox is where
+# the whole volley lands -- the 1400x800 second box is the scope's aiming
+# range, not ground the arrows cover -- so the rule reads 4 abreast over 2
+# storeys.
+#
+# The +100% is GMS's damR: a share that sums with the character's own rather
+# than multiplying it, and it belongs to this swing alone. It is the first
+# attack in the game to state one, which is why damage_pct joined the swing
+# levers beside ignored defence and boss damage.
+#
+# Marked Target is dropped. Greater Empowered Arrows folds that buff into its
+# own passive, so a Marksman holding this node has it standing already.
+name: "Perfect Shot"
+description:
+  "Catch your enemies square in your sights. Unaffected by attack ignore and "
+  "attack reflection."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 1 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_CROSSBOW
+base_delay_ms: 2120
+fixed_delay: true
+cooldown_seconds: 60.0
+max_enemies: 8
+lines: 14
+casts: 6
+base {
+  skill_pct: 9.88
+  damage_pct: 1.0
+  crit_rate: 1.0
+  ied_pct: 1.0
+}
+per_level { skill_pct: 0.38 }

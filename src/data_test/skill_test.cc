@@ -1043,16 +1043,18 @@ TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
     }
     EXPECT_GT(entry.second.base_delay_ms(), 0)
         << entry.first << " would swing at the bare poke's speed";
-    EXPECT_LE(entry.second.base_delay_ms(), 2000) << entry.first;
     // Loose bounds either side of every animation GMS has for a 1st or 2nd job
-    // attack, to catch a figure entered in seconds or in frames. A key-down
-    // skill is not an animation and is not held to them: GMS paces those in
-    // the low hundreds of milliseconds, and Arrow Blaster is 120.
+    // attack, to catch a figure entered in seconds or in frames. A skill whose
+    // delay is fixed is not an animation and takes its own pair: GMS paces a
+    // key-down skill in the low hundreds of milliseconds, and Arrow Blaster is
+    // 120, while Perfect Shot's 2.12 seconds is an aim window.
     if (entry.second.fixed_delay()) {
       EXPECT_GE(entry.second.base_delay_ms(), kTickMs) << entry.first;
+      EXPECT_LE(entry.second.base_delay_ms(), 2500) << entry.first;
       continue;
     }
     EXPECT_GE(entry.second.base_delay_ms(), 300) << entry.first;
+    EXPECT_LE(entry.second.base_delay_ms(), 2000) << entry.first;
   }
 }
 
@@ -1184,6 +1186,9 @@ std::vector<BookWeapons> ExpectedBookWeapons() {
       {JOB_ADVANCEMENT_CROSSBOWMAN, {{EQUIP_TYPE_CROSSBOW}}},
       {JOB_ADVANCEMENT_SNIPER, {{EQUIP_TYPE_CROSSBOW}}},
       {JOB_ADVANCEMENT_MARKSMAN, {{EQUIP_TYPE_CROSSBOW}}},
+      // Perfect Shot is a crossbow shot like the rest of the line's, and the
+      // Marksman's V book holds nothing else that swings.
+      {JOB_ADVANCEMENT_MARKSMAN_V, {{EQUIP_TYPE_CROSSBOW}}},
       {JOB_ADVANCEMENT_ROGUE, {{EQUIP_TYPE_DAGGER}, {EQUIP_TYPE_CLAW}}},
       {JOB_ADVANCEMENT_ASSASSIN, {{EQUIP_TYPE_CLAW}}},
       {JOB_ADVANCEMENT_HERMIT, {{EQUIP_TYPE_CLAW}}},

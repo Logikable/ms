@@ -65,6 +65,7 @@ DEPARTURES = {
     ('Midnight Carnival', 'skill_pct'): 'carries Phase Dash, the two are one skill here',
     ('Midnight Carnival', 'max_enemies'): 'reach rule: 5 off a 360x210 hitbox',
     ('Mist Eruption', 'lines'): 'a cast sets off two mists, so ten hits land twice',
+    ('Perfect Shot', 'max_enemies'): 'reach rule: 8 off a 310x310 hitbox',
     ('Savage Blow', 'max_enemies'): 'reach rule: 4 off its hitbox',
     ('Shuriken Burst', 'max_enemies'): 'reach rule: 2 off its hitbox',
     ('Shuriken Challenge', 'max_enemies'): 'reach rule: 5 off its hitbox',
