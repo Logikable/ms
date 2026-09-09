@@ -315,6 +315,12 @@ std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
 // window off the latter would measure the character before a buff skill and
 // the character after it over two different horizons -- and SpendBook's whole
 // job is comparing exactly those two.
+//
+// `seconds` and a cooldown off the proto are both the game's own seconds;
+// PlaySwings counts in the stretched clock, so the window is scaled on the way
+// out. Without that a two-minute cycle asked for a window worth twenty-four
+// game seconds at level 200 and the buff never came down inside it -- the very
+// thing this exists to prevent.
 double WindowFor(const GameState& state, double seconds) {
   double cycle = 0.0;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
@@ -323,7 +329,8 @@ double WindowFor(const GameState& state, double seconds) {
       cycle = std::max(cycle, skill.cooldown_seconds());
     }
   }
-  return std::max(seconds, 2.0 * cycle);
+  return std::max(seconds, 2.0 * cycle) *
+         GameSpeedFactor(state.character.proto().level());
 }
 
 // What the character takes off the map they are standing on, a second: their

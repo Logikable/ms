@@ -34,10 +34,10 @@ namespace {
 constexpr char kTryoutMap[] = "__sim_gear_tryout";
 constexpr char kTryoutMob[] = "__sim_gear_tryout_mob";
 
-// How long each candidate is swung for. Long enough that a four-second
-// cooldown lands a dozen times, which is all the settling the comparison
-// needs -- weapon_sim's own horizon is ten times this because it prints the
-// number, where this only ranks with it.
+// How long each candidate is swung for, in the game's own seconds. Long enough
+// that a four-second cooldown lands a dozen times, which is all the settling
+// the comparison needs -- weapon_sim's own horizon is ten times this because
+// it prints the number, where this only ranks with it.
 constexpr double kTryoutSeconds = 60.0;
 
 // The required level of what is worn in `slot`, which is how one rung is
@@ -202,7 +202,11 @@ void CloseTryout(GameState& state, const std::string& farming) {
 // level: their swings, plus anything of theirs on a clock of its own.
 double MeasureRate(GameState& state) {
   CombatParams params = ComputeCombatParams(state);
-  Sequence played = PlaySwings(params, kTryoutSeconds);
+  // Stretched on the way in, since PlaySwings counts in that clock -- see its
+  // header. A minute here was six game seconds at level 200.
+  Sequence played =
+      PlaySwings(params, kTryoutSeconds *
+                             GameSpeedFactor(state.character.proto().level()));
   double rate = played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
   return rate + OffClockRate(params, played, 1.0);
 }
