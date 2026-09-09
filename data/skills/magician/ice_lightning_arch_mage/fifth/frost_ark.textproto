@@ -1,0 +1,40 @@
+# The I/L's first job node: a structure that shocks what stands in front of the
+# character every time lightning strikes it, for twenty seconds.
+#
+# A Final Attack rather than a clock, which is what GMS's ark is -- nothing but
+# the lightning moves it. Split Shot is the same shape, and the reach is stated
+# the same way: the shock carries its own mobCount of 15 and its own 480x625
+# box, so behind Chain Lightning, a swing that reaches six, it still reaches
+# fifteen.
+#
+# Which lightning is the group rather than a list of names. GMS names Parabolic
+# Bolt, Thunder Sphere and Cryo Shock, and this game has only the second -- as
+# an orb on its own clock, which is what follows_own_clock is for. Read as the
+# element it follows that orb, Chain Lightning, Thunder Bolt and Lightning Orb,
+# which is what "struck by lightning" means in this book.
+#
+# The 0.1s reactivation cooldown is not built: nothing here comes round faster
+# than 0.24s at the speed cap, so it never binds.
+name: "Frost Ark"
+description:
+  "Manifest the very essence of ice and lightning into a magical structure. "
+  "Each time the structure is struck by lightning, it shoots out a blast of "
+  "frozen electricity, dealing ice and lightning damage to nearby enemies."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 1 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 120.0
+follows_skill_tag: SKILL_TAG_LIGHTNING
+follows_own_clock: true
+final_attack_max_enemies: 15
+buff {
+  duration_seconds: 20.0
+  base {
+    final_attack_chance: 1.0
+    final_attack_pct: 1.82
+    final_attack_lines: 5
+  }
+  per_level { final_attack_pct: 0.07 }
+}
