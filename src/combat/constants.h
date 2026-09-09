@@ -36,10 +36,10 @@ constexpr double kBaseCritDamage = 0.35;
 //
 // Raised from four for Vicious Shot, then from five for the archetype nodes:
 // Fury of the Wild put Bow Master on six, and Arcane Overdrive sheds three
-// stages that cost a window each, which puts Bishop on seven. Then from seven
-// for Inhuman Speed, Bow Master's second job node -- and its last two, both
-// buffs as well, will each want one more.
-constexpr int kMaxBuffWindows = 8;
+// stages that cost a window each, which puts Bishop on seven. Then once for
+// Inhuman Speed and once for Quiver Barrage, Bow Master's second and third job
+// nodes -- and Silhouette Mirage, a buff as well, will want one more.
+constexpr int kMaxBuffWindows = 9;
 
 }  // namespace ms
 

@@ -1,0 +1,46 @@
+# Every arrowhead at once, and a flaming one on top of them. The buff is the
+# quiet half -- 15% final damage and 20% attack for 40 seconds -- and the
+# flaming arrows are the whole of the damage.
+#
+# One trigger fires six arrows, each its own attack of nine lines on six
+# enemies, and the six are consecutive rather than spread: GMS's "Duration: 5
+# sec." is how long an arrow hunts for a target, which is why namuwiki prizes
+# the long flight for farming. Namu prints the total outright, 534,600%, and
+# that is 6 arrows x 18 volleys x 9 lines x 550% exactly.
+#
+# The stock is eighteen volleys on a 2-second re-trigger, so it runs dry at 36
+# seconds of the 40-second buff -- the tooltip's own warning that the attack
+# stops while the buff still stands. GMS fires it "upon attack"; this game's
+# swing clock never idles, so that is simply the 2 seconds.
+#
+# The attack percentage joins the same pool Marksmanship's does. GMS writes
+# this one indiePadR against Marksmanship's plain padR, but one pool is what
+# this game has, and namuwiki's own spec table sums the pair to 45% too.
+name: "Quiver Barrage"
+description:
+  "Fire every type of arrowhead at once, including a special flaming arrowhead "
+  "that explodes when it hits an enemy. The Flaming Arrow targets the boss "
+  "with the highest HP first and is unaffected by attack reflection. The "
+  "Flaming Arrow is prepared in limited quantities and will no longer attack "
+  "once used up."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 3 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 40.0
+  base { final_dmg_pct: 0.15 attack_pct: 0.055 }
+  per_level { attack_pct: 0.005 }
+  pulse {
+    label: "Flaming Arrow"
+    cast_interval_seconds: 2.0
+    casts: 6
+    max_enemies: 6
+    lines: 9
+    max_pulses: 18
+    base { skill_pct: 2.60 }
+    per_level { skill_pct: 0.10 }
+  }
+}
