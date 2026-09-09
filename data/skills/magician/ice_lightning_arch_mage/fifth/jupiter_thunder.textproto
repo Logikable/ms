@@ -1,0 +1,52 @@
+# The I/L's fourth job node, and the branch's single-target nuke: an orb that
+# rides one enemy and shocks it thirty times over ten seconds, 871% eight lines
+# a shock at master, with a current arcing off each shock for 513% four more.
+#
+# GMS's wording is the worst in the book and none of it survives reading
+# literally. "Stunned #attackCount times" is eight LINES of one shock, not
+# eight shocks; the current is not periodic and not a burn -- it fires once per
+# shock, four lines at once. What the client actually holds: 30 shocks
+# (`x`) on a 330ms beat (`subTime`, the field that spaced Bolt Barrage), each
+# 391+16x over `mobCount 1`, and a separate invisible skill for the current at
+# 243+9x, `attackCount 4`, `mobCount 2`.
+#
+# The orb hops between enemies while they still stand, which nothing here has a
+# position to do -- so it pounds the front of the queue and moves on when that
+# one falls. On a boss, which is what the skill is for, the two are the same.
+#
+# Departures, both of them things the pile cannot notice:
+#   - GMS spends a Freeze Stack every five lines, 48 over the barrage. The
+#     lightning tag spends one per line here, and a cap of five is emptied by
+#     the first shock either way.
+#   - The current reaches 2 where the orb reaches 1, and a hit beside a swing
+#     has no reach of its own here. On a lone boss there is no second enemy for
+#     it to want.
+#
+# Dropped: the stun itself, the 12% the shocked enemy then takes from other
+# lightning, and the 3.4s of cooldown refunded per shock never spent -- the orb
+# always spends all thirty here, having nothing to lose them to.
+name: "Jupiter Thunder"
+description:
+  "Launch orbs full of the thunder god's power directly at your enemies. "
+  "The orb goes inside the enemy it touched to deal continuous shock damage. "
+  "An electric current flows around that enemy to attack others."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_LIGHTNING
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 4 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_STAFF
+base_delay_ms: 810
+cooldown_seconds: 120.0
+max_enemies: 1
+lines: 8
+casts: 30
+cast_interval_ms: 330
+base { skill_pct: 4.07 }
+per_level { skill_pct: 0.16 }
+extra_hit {
+  label: "Electric Current"
+  lines: 4
+  base { skill_pct: 2.52 }
+  per_level { skill_pct: 0.09 }
+}
