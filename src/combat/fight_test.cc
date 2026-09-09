@@ -2099,9 +2099,16 @@ TEST(CombatSimTest, ASequencedSwingClearsTheDeadBetweenItsStrikes) {
   CombatParams params =
       MakeParams(1.0, 1e9, {MakeType(&snail, 10.0, 8)}, /*reach=*/2);
   params.attacks[0].strikes_in_sequence = 4;
+  params.attacks[0].cast_interval_seconds = 0.25;
 
+  // The swing lands its opening strike and the rest come on the beat, two
+  // enemies at a time and never the same two: the dead are cleared between.
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.view().kills_this_step[0], 8);
+  EXPECT_EQ(sim.view().kills_this_step[0], 2);
+  for (int strike = 0; strike < 3; ++strike) {
+    sim.Advance(params, 0.25);
+    EXPECT_EQ(sim.view().kills_this_step[0], 2) << "strike " << strike + 2;
+  }
 
   // The same swing folded -- one strike of four times the damage -- reaches
   // its two and no further, however much of it lands on them.
@@ -2110,6 +2117,8 @@ TEST(CombatSimTest, ASequencedSwingClearsTheDeadBetweenItsStrikes) {
       MakeParams(1.0, 1e9, {MakeType(&snail, 40.0, 8)}, /*reach=*/2);
   folded.Advance(lump, 1.0);
   EXPECT_EQ(folded.view().kills_this_step[0], 2);
+  folded.Advance(lump, 0.25);
+  EXPECT_EQ(folded.view().kills_this_step[0], 0);
 }
 
 TEST(CombatSimTest, AnAutoAttackClockWaitsWhileTheMapIsEmpty) {
@@ -3616,6 +3625,51 @@ TEST(CombatSimTest, ASwingCanSpendTheFreezePileByTheLine) {
   EXPECT_EQ(sim.freeze_stacks(), 4);
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.freeze_stacks(), 3);
+}
+
+// Jupiter Thunder's refund: a barrage that outlives the crowd hands back the
+// wait for every shock it never spent, and hands back nothing on a boss.
+TEST(CombatSimTest, UnspentStrikesHandBackTheirOwnWait) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  // Two mobs and ten shocks, so eight of them find an empty map.
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 1.0, 2)});
+  AttackOption orb = MakeSkill("Jupiter Thunder", 200.0, /*cooldown=*/100.0);
+  orb.max_enemies = 1;
+  orb.strikes_in_sequence = 10;
+  orb.cast_interval_seconds = 0.25;
+  orb.cooldown_refund_seconds = 3.4;
+  params.attacks.push_back(orb);
+
+  // Read off the difference against the same barrage that hands nothing back,
+  // rather than off a clock that has also been running down.
+  CombatSim plain;
+  CombatParams unpaid = params;
+  unpaid.attacks[1].cooldown_refund_seconds = 0.0;
+  sim.Advance(params, 1.0);
+  plain.Advance(unpaid, 1.0);
+  for (int step = 0; step < 10; ++step) {
+    sim.Advance(params, 0.25);
+    plain.Advance(unpaid, 0.25);
+  }
+  EXPECT_EQ(sim.view().kills_this_step[0], 0);
+  // Two mobs took the opening shocks and eight found an empty map.
+  EXPECT_NEAR(plain.cooldown_left(1) - sim.cooldown_left(1), 3.4 * 8, 1e-9);
+
+  // A crowd deep enough to take every shock hands nothing back.
+  CombatSim full;
+  CombatSim full_unpaid;
+  CombatParams many = MakeParams(1.0, 1e9, {MakeType(&snail, 1.0, 20)});
+  many.attacks.push_back(orb);
+  CombatParams many_unpaid = many;
+  many_unpaid.attacks[1].cooldown_refund_seconds = 0.0;
+  full.Advance(many, 1.0);
+  full_unpaid.Advance(many_unpaid, 1.0);
+  for (int step = 0; step < 10; ++step) {
+    full.Advance(many, 0.25);
+    full_unpaid.Advance(many_unpaid, 0.25);
+  }
+  EXPECT_NEAR(full.cooldown_left(1), full_unpaid.cooldown_left(1), 1e-9);
 }
 
 // The current arcs onto two where the orb rides one, so the wide half lands on

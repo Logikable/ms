@@ -323,6 +323,9 @@ struct AttackOption {
   // tag the stunning skill lifts, and is not that skill. False for every swing
   // of every character who stuns nothing.
   bool collects_stun_lift = false;
+  // Seconds off this swing's own next cast for each of its strikes that found
+  // nothing standing. 0 for every swing but Jupiter Thunder's barrage.
+  double cooldown_refund_seconds = 0.0;
   // Shatter's, as the share one held stack adds to this swing against each mob
   // type -- parallel to damage_per_hit, and per type because what ignoring a
   // little more defence is worth is that mob's own. Empty for a character
@@ -375,6 +378,9 @@ struct AttackOption {
   // crowd already down moves onto the next one. 1 for every other swing, whose
   // casts are folded into its damage. See Skill.cast_interval_ms.
   int strikes_in_sequence = 1;
+  // Seconds between those strikes, game-scaled. 0 says they fall together,
+  // which is every swing but a barrage. See Skill.cast_interval_ms.
+  double cast_interval_seconds = 0.0;
   // Ticks one raising of the gating buff is worth, after which this falls
   // silent until the buff comes round again. 0 for a clock that never runs
   // out, which is every other one. See BuffPulse.max_pulses.

@@ -1776,6 +1776,15 @@ message Skill {
   // The stun this skill's strike leaves on what it reaches, if any. Unset for
   // every skill but Jupiter Thunder. See Stun.
   Stun stun = 60;
+  // Seconds off this skill's own next cast for every strike of it that found
+  // nothing standing. Jupiter Thunder is what it exists for: GMS refunds 3.4
+  // seconds per shock the orb never spent, and on a map the barrage has just
+  // cleared that is most of the thirty -- the boss fight it was built for is
+  // the case where it refunds nothing at all.
+  //
+  // Read only where a swing's strikes are told apart, since a swing landing as
+  // one moment either found something or did not. See cast_interval_ms.
+  double cooldown_refund_seconds = 61;
   // --- From here down, one job line apiece. See the message comment. ---
   // The Fighter's. How many Combo Orbs this skill surrounds the character with
   // at level 1, and the rate that ring grows -- read exactly as `lines` and

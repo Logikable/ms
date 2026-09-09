@@ -401,6 +401,10 @@ void AddSwingClocks(const Skill* skill, int level, const DerivedStats& derived,
       ReducedCooldown(CooldownAt(*skill, level),
                       derived.cooldown_reduction_seconds) *
       speed_factor;
+  // Game-scaled with the wait it comes off, or a barrage on a cleared map
+  // would hand back more of the band than it ever cost.
+  attack.cooldown_refund_seconds =
+      skill->cooldown_refund_seconds() * speed_factor;
   // Game-scaled like every other duration: the pacing band stretches the ice
   // exactly as far as it stretches the summon clock relaying it, so what a
   // freeze covers is the same span of the fight it covers in GMS.
@@ -684,6 +688,10 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   }
   if (skill != nullptr) {
     attack.strikes_in_sequence = in_sequence ? std::max(1, casts) : 1;
+    // Game-scaled like every other clock: the pacing band stretches the beat
+    // between the bolts exactly as far as it stretches the swing behind them.
+    attack.cast_interval_seconds =
+        in_sequence ? skill->cast_interval_ms() / 1000.0 * speed_factor : 0.0;
     attack.pierce_gain_pct = skill->pierce_gain_pct();
     attack.lines = SkillLinesAt(*skill, level) * (in_sequence ? 1 : casts);
     // A scattered swing is the same swing throughout -- what differs is how

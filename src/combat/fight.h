@@ -76,6 +76,13 @@ class CombatSim {
   int freeze_stacks() const {
     return freeze_stacks_;
   }
+  // Seconds before the attack at `index` in params.attacks can be chosen
+  // again. 0 for one that is ready, and for an index nothing has swung.
+  double cooldown_left(int index) const {
+    return index >= 0 && index < static_cast<int>(attack_clocks_.size())
+               ? attack_clocks_[index].cooldown_left
+               : 0.0;
+  }
 
  private:
   // One burn on one monster: how long it has left, how far into the current
@@ -299,6 +306,9 @@ class CombatSim {
   void ApplyStun(const AttackOption& attack, int hit);
   void RunStun(double dt);
   int Reached(const AttackOption& attack) const;
+  // Fires whichever strikes of a running barrage have come due, and hands back
+  // the wait for each that found nothing standing.
+  void RunBarrage(const CombatParams& params, double dt);
   // Enemies the wide half of a swing finds, and what one roll of it is worth.
   // See AttackOption::wide_hit_damage.
   int WideHitTargets(const AttackOption& attack, int hit) const;
@@ -606,6 +616,20 @@ class CombatSim {
   // map, like the buff clocks and unlike the queue, so it survives walking
   // somewhere else. 0 for everyone who holds none.
   int freeze_stacks_ = 0;
+  // A swing told apart into strikes that land on a beat rather than together:
+  // which attack it is, how many of its strikes are still to come, and how long
+  // until the next. The player is free while it runs, as GMS frees them the
+  // moment the orb is loosed -- what the cast bought is the barrage, not the
+  // time it takes.
+  //
+  // One at a time. A second cast of the same skill is a cooldown away, and
+  // nothing else in the game is told apart this way.
+  struct Barrage {
+    int attack = -1;
+    int strikes_left = 0;
+    double next_seconds = 0.0;
+  };
+  Barrage barrage_;
 
   // Shuffles each batch of arriving mobs so they are fought in mixed order
   // rather than one whole type at a time (see TopUp). Default-seeded, so a sim

@@ -1318,6 +1318,9 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   respawn_phase_ = 0.0;
   attack_phase_ = 0.0;
   hit_phase_ = 0.0;
+  // A barrage belongs to the fight it was loosed in: bolts still in the air do
+  // not follow the player to the next map.
+  barrage_ = Barrage();
   next_mob_id_ = 0;
   // The rate belongs to the encounter, not to the character: what was dealt to
   // the last map's monsters says nothing about how long this fight has left.
@@ -1913,6 +1916,42 @@ const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
   return attack;
 }
 
+void CombatSim::RunBarrage(const CombatParams& params, double dt) {
+  if (barrage_.strikes_left <= 0) {
+    return;
+  }
+  const std::vector<AttackOption>& options = Attacks(params);
+  if (barrage_.attack < 0 ||
+      barrage_.attack >= static_cast<int>(options.size())) {
+    barrage_ = Barrage();
+    return;
+  }
+  // Read by index rather than held by pointer: a buff going up between two
+  // bolts moves the fight into another attack table, and an attack keeps its
+  // index in every one of them.
+  const AttackOption& attack = options[barrage_.attack];
+  barrage_.next_seconds -= dt;
+  // A while rather than an if, as the swing clock takes it: a step wider than
+  // the beat owes every strike it covered.
+  while (barrage_.strikes_left > 0 && barrage_.next_seconds <= 0.0) {
+    barrage_.next_seconds += attack.cast_interval_seconds;
+    --barrage_.strikes_left;
+    // A shock that finds nothing standing is one the orb never spent, and GMS
+    // hands its wait back. Against a boss this never happens; on a map the
+    // barrage outlives the crowd and most of it does.
+    if (Reached(attack) <= 0) {
+      if (barrage_.attack < static_cast<int>(attack_clocks_.size())) {
+        attack_clocks_[barrage_.attack].cooldown_left =
+            std::max(0.0, attack_clocks_[barrage_.attack].cooldown_left -
+                              attack.cooldown_refund_seconds);
+      }
+      continue;
+    }
+    RecoverHp(params, Strike(attack, {DamageOrigin::kSwing, 0}));
+    CreditFreeze(params, attack);
+  }
+}
+
 void CombatSim::RunSwing(const CombatParams& params, double dt) {
   // Aimed against the queue as it stands, so the charge bar names the swing
   // that is really coming. Only the poke is re-aimed as mobs die out from
@@ -1959,13 +1998,19 @@ void CombatSim::LandSwing(const CombatParams& params,
     // A wall of bolts is struck once per bolt rather than all at once, so the
     // dead are cleared between them and a bolt whose twelve are already down
     // falls on the next twelve. One strike for every other swing.
-    double proc_recovered = 0.0;
-    for (int bolt = 0; bolt < std::max(1, landed.strikes_in_sequence); ++bolt) {
-      proc_recovered += Strike(landed, {DamageOrigin::kSwing, 0}, held_pulses_);
-      // Per strike, not per swing: each shock of the orb spends its own share
-      // of the pile, so the stacks drain across the barrage rather than all at
-      // its opening -- which is the whole point of a rate.
-      CreditFreeze(params, landed);
+    double proc_recovered =
+        Strike(landed, {DamageOrigin::kSwing, 0}, held_pulses_);
+    // Per strike, not per swing: each shock of the orb spends its own share of
+    // the pile, so the stacks drain across the barrage rather than all at its
+    // opening -- which is the whole point of a rate.
+    CreditFreeze(params, landed);
+    // The rest of a told-apart swing lands on its own beat while the player
+    // goes on swinging, so the map has time to fill under it and each strike
+    // finds the crowd as it then stands. See RunBarrage.
+    if (landed.strikes_in_sequence > 1 && landed.cast_interval_seconds > 0.0) {
+      barrage_.attack = swung;
+      barrage_.strikes_left = landed.strikes_in_sequence - 1;
+      barrage_.next_seconds = landed.cast_interval_seconds;
     }
     // The strike this swing sets off beside itself, where its own wait has
     // run out. Read off the aimed attack rather than off what landed: the
@@ -2151,6 +2196,9 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   RunStun(dt);
   RunScar(dt);
   RunCooldowns(params, dt);
+  // Before the swing, so a bolt still in the air lands on the crowd this step
+  // opened with rather than on what the next swing leaves.
+  RunBarrage(params, dt);
   RunSwing(params, dt);
 
   player_level_ = params.player_level;
