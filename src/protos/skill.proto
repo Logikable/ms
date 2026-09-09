@@ -981,6 +981,21 @@ message Scatter {
   double repeat_final_dmg_pct = 2;
 }
 
+// What a strike leaves on the I/L's pile of Freeze Stacks, where GMS states a
+// count for the skill itself instead of the stack-per-line its element buys.
+// Spirit of Snow is what it exists for: GMS pays 3 for a blizzard that finds a
+// single enemy and the ordinary 1 for one spread over a crowd, which is a
+// bossing bonus written into the skill rather than anything ice does.
+//
+// Both halves are read, so a skill stating this states the whole of what it
+// leaves and the element decides nothing but whether it leaves anything.
+message FreezeBuild {
+  // Stacks a strike reaching exactly ONE enemy leaves.
+  int32 alone = 1;
+  // Stacks a strike reaching more than one leaves.
+  int32 crowd = 2;
+}
+
 message Channel {
   int32 pulse_interval_ms = 1;
   // Pulses a full hold is worth. The hold runs no longer than these take.
@@ -1748,6 +1763,10 @@ message Skill {
   // what a held stack is worth is on the same skill -- see
   // SkillEffect::crit_dmg_per_freeze_stack.
   int32 freeze_stack_cap = 102;
+  // The I/L Magician's. What one strike of this skill leaves on that pile,
+  // where GMS states a count rather than letting the element buy one per line.
+  // Unset is every other ice skill. See FreezeBuild.
+  FreezeBuild freeze_build = 104;
   // The F/P Magician's. Burns counted for SkillEffect::final_dmg_pct_per_dot,
   // and so whether they are counted at all: 0 says the mechanism is not
   // learned. The largest cap wins rather than the sum, as the Combo Orb ring

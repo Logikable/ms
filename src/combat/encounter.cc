@@ -216,7 +216,14 @@ void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
     }
   }
   if (HasTag(skill, SKILL_TAG_ICE)) {
-    attack.freeze_build = attack.lines;
+    // A stack per line is what the element buys. A skill stating a count of
+    // its own replaces that outright, both halves of it -- see FreezeBuild.
+    if (skill->has_freeze_build()) {
+      attack.freeze_build = skill->freeze_build().crowd();
+      attack.freeze_build_alone = skill->freeze_build().alone();
+    } else {
+      attack.freeze_build = attack.lines;
+    }
     // Glacial Fury's magic attack, as the share of this swing one held stack
     // adds. Damage is linear in the attack behind it, so the two are the same
     // thing said twice -- and it is a share here because that is what the
@@ -759,6 +766,9 @@ bool Available(const GameState& state, const Skill& skill,
 void CarryElement(const Skill& skill, Skill& built) {
   *built.mutable_tags() = skill.tags();
   built.set_freeze_seconds(skill.freeze_seconds());
+  if (skill.has_freeze_build()) {
+    *built.mutable_freeze_build() = skill.freeze_build();
+  }
 }
 
 Skill AutoModeSkill(const Skill& skill, const AutoMode& mode) {

@@ -282,6 +282,10 @@ struct AttackOption {
   // takes `freeze_fd_per_stack` of final damage for each it went in holding.
   // Both are 0 for every swing of every other character.
   int freeze_build = 0;
+  // Stacks it leaves instead when it reaches exactly ONE enemy. 0 says the
+  // count above stands however few it finds, which is every ice swing but
+  // Spirit of Snow's blizzard -- GMS pays that one more for a lone target.
+  int freeze_build_alone = 0;
   bool freeze_spends = false;
   double freeze_fd_per_stack = 0.0;
   // What one HELD stack adds to this swing's damage as a share, through the

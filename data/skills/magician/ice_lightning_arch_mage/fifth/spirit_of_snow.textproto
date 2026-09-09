@@ -16,11 +16,10 @@
 # Ten enemies is GMS's own. The rule works out 51 from the spirit's 1200x700
 # box and floors nothing, as it never lifts.
 #
-# Departure: GMS gives 3 Freeze Stacks "when attacking 1 enemy", a bossing
-# bonus over whatever a crowd earns. This game's pile is one stack per line off
-# the element, with no count of its own to condition, so the blizzard leaves
-# twelve. A cap of five swallows the difference; only Glacial Fury's thirteen
-# can tell them apart.
+# GMS gives 3 Freeze Stacks "when attacking 1 enemy" and the ordinary 1 over a
+# crowd, which is a bossing bonus written into the skill rather than anything
+# ice does -- so it states both rather than taking the stack per line the
+# element would otherwise buy.
 name: "Spirit of Snow"
 description:
   "Summon the devastating frosts of the El Nath Mountains."
@@ -32,6 +31,10 @@ max_level: 30
 base_delay_ms: 120
 cooldown_seconds: 120.0
 freeze_seconds: 8.0
+freeze_build {
+  alone: 3
+  crowd: 1
+}
 buff {
   duration_seconds: 30.0
   pulse {

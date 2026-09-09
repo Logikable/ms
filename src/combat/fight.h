@@ -71,6 +71,11 @@ class CombatSim {
   const std::vector<DamageLine>& damage_lines_this_step() const {
     return ledger_.lines_this_step();
   }
+  // The I/L's pile of Freeze Stacks as it stands. 0 for every character who
+  // does not hold Freezing Crush.
+  int freeze_stacks() const {
+    return freeze_stacks_;
+  }
 
  private:
   // One burn on one monster: how long it has left, how far into the current
@@ -230,6 +235,9 @@ class CombatSim {
   // damage is, because a chooser reading only this swing would never build
   // anything -- an ice swing is worth less than the lightning one it makes
   // room for, right up until the pile is spent.
+  // Stacks one strike of `attack` leaves, which is its own count against a
+  // lone enemy where the skill states one. See AttackOption::freeze_build.
+  int FreezeBuilt(const AttackOption& attack) const;
   double FreezeCredit(const CombatParams& params,
                       const AttackOption& attack) const;
   // Moves the pile on for a landed attack: an ice one leaves a stack per line,

@@ -797,7 +797,7 @@ double CombatSim::ChannelDamage(const AttackOption& attack, int type,
 
 double CombatSim::FreezeCredit(const CombatParams& params,
                                const AttackOption& attack) const {
-  int room = std::min(attack.freeze_build, FreezeCap(params) - freeze_stacks_);
+  int room = std::min(FreezeBuilt(attack), FreezeCap(params) - freeze_stacks_);
   if (room <= 0) {
     return 0.0;
   }
@@ -927,6 +927,16 @@ double CombatSim::BurnStateCredit(const CombatParams& params,
   return credit;
 }
 
+int CombatSim::FreezeBuilt(const AttackOption& attack) const {
+  // A blizzard falling on one enemy is worth more of the pile than the same
+  // blizzard spread over ten, where the skill says so. Read off what the
+  // strike actually reaches rather than off what it could.
+  if (attack.freeze_build_alone > 0 && Reached(attack) == 1) {
+    return attack.freeze_build_alone;
+  }
+  return attack.freeze_build;
+}
+
 void CombatSim::CreditFreeze(const CombatParams& params,
                              const AttackOption& attack) {
   int cap = FreezeCap(params);
@@ -934,7 +944,7 @@ void CombatSim::CreditFreeze(const CombatParams& params,
     return;
   }
   if (attack.freeze_build > 0) {
-    freeze_stacks_ = std::min(cap, freeze_stacks_ + attack.freeze_build);
+    freeze_stacks_ = std::min(cap, freeze_stacks_ + FreezeBuilt(attack));
   } else if (attack.freeze_spends) {
     freeze_stacks_ = std::max(0, freeze_stacks_ - std::max(1, attack.lines));
   }

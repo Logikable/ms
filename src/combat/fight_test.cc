@@ -3562,6 +3562,34 @@ TEST(CombatSimTest, TheIceSwingBuildsThePileTheLightningSwingSpends) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.936, 1e-9);
 }
 
+// Spirit of Snow's shape: a blizzard worth three stacks to a lone enemy and
+// one to a crowd. What it leaves is read off what the strike actually reached,
+// so the same attack pays differently on the two maps.
+TEST(CombatSimTest, AStrikeAloneLeavesItsOwnCountOfFreezeStacks) {
+  Mob snail = MakeMob("Snail", 1e9);
+  CombatSim alone;
+  CombatParams one = MakeParams(1.0, 1e9, {MakeType(&snail, 1.0, 1)},
+                                /*reach=*/10);
+  one.freeze_cap = 9;
+  AttackOption blizzard = MakeSkill("Spirit of Snow", 100.0, /*cooldown=*/0.0);
+  blizzard.lines = 12;
+  blizzard.max_enemies = 10;
+  blizzard.freeze_build = 1;
+  blizzard.freeze_build_alone = 3;
+  one.attacks.push_back(blizzard);
+  alone.Advance(one, 1.0);
+  EXPECT_EQ(alone.freeze_stacks(), 3);
+
+  // The same blizzard over a crowd is worth the one GMS states.
+  CombatSim crowd;
+  CombatParams many = MakeParams(1.0, 1e9, {MakeType(&snail, 1.0, 8)},
+                                 /*reach=*/10);
+  many.freeze_cap = 9;
+  many.attacks.push_back(blizzard);
+  crowd.Advance(many, 1.0);
+  EXPECT_EQ(crowd.freeze_stacks(), 1);
+}
+
 TEST(CombatSimTest, WithNoPileToBuildTheHarderSwingSimplyWins) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;

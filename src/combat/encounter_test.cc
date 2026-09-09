@@ -1146,10 +1146,55 @@ TEST(ComputeCombatParamsTest, ABuffsPulseStrikesWithItsSkillsElement) {
   // One stack per line, and the eight seconds of ice the skill states -- both
   // read off the skill the pulse belongs to rather than off the pulse.
   EXPECT_EQ(blast.freeze_build, 12);
+  EXPECT_EQ(blast.freeze_build_alone, 0);
   EXPECT_DOUBLE_EQ(blast.freeze_seconds,
                    8.0 * GameSpeedFactor(state.character.proto().level()));
   // It never spends the pile, as no summon does.
   EXPECT_FALSE(blast.freeze_spends);
+}
+
+// A skill that states its own count replaces the stack-per-line outright, both
+// halves of it: Spirit of Snow pays 3 to a lone enemy and 1 to a crowd, where
+// twelve lines would otherwise have bought twelve.
+TEST(ComputeCombatParamsTest, ASkillCanStateTheFreezeStacksItLeaves) {
+  Skill crush;
+  crush.set_name("Freezing Crush");
+  crush.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(crush, JOB_ADVANCEMENT_SWORDMAN);
+  crush.set_max_level(10);
+  crush.set_freeze_stack_cap(5);
+  crush.mutable_base()->set_crit_dmg_per_freeze_stack(0.001);
+
+  Skill spirit;
+  spirit.set_name("Spirit of Snow");
+  spirit.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(spirit, JOB_ADVANCEMENT_SWORDMAN);
+  spirit.set_max_level(30);
+  spirit.add_tags(SKILL_TAG_ICE);
+  spirit.set_freeze_seconds(8.0);
+  spirit.mutable_freeze_build()->set_alone(3);
+  spirit.mutable_freeze_build()->set_crowd(1);
+  spirit.mutable_buff()->set_duration_seconds(30.0);
+  BuffPulse* blizzard = spirit.mutable_buff()->mutable_pulse();
+  blizzard->set_label("Blizzard");
+  blizzard->set_cast_interval_seconds(3.0);
+  blizzard->set_lines(12);
+  blizzard->set_max_enemies(10);
+  blizzard->mutable_base()->set_skill_pct(8.16);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"freezing_crush", crush}, {"spirit_of_snow", spirit}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(crush, 1));
+  ASSERT_TRUE(state.character.LearnSkill(spirit, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  EXPECT_EQ(params.auto_attacks[0].freeze_build, 1);
+  EXPECT_EQ(params.auto_attacks[0].freeze_build_alone, 3);
 }
 
 // Frost Ark's shape: the same buff, but its shock is struck by the orb the
