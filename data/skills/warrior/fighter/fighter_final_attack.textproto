@@ -10,7 +10,7 @@ name: "Final Attack"
 description: "Chance to deliver an additional hit after a direct attack skill."
 kind: SKILL_KIND_PASSIVE
 placement { job_advancement: JOB_ADVANCEMENT_FIGHTER skill_order: 7 }
-final_attack_single_enemy: true
+final_attack_max_enemies: 1
 max_level: 20
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

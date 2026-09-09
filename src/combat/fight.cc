@@ -77,6 +77,15 @@ void CombatSim::AimAtHealthiest(const CombatParams& params) {
 // How many of the queue one swing of `attack` lands on. A scattered swing is
 // held to the strikes it throws as well as to its reach: eleven flames cannot
 // burn a twelfth enemy, and one that took no strike takes no mark either.
+int CombatSim::PerSwingFinalAttackTargets(const AttackOption& attack,
+                                          int hit) const {
+  if (hit <= 0 || attack.per_swing_final_attack_damage.empty()) {
+    return 0;
+  }
+  return std::min(std::max(1, attack.per_swing_final_attack_enemies),
+                  static_cast<int>(queue_.size()));
+}
+
 int CombatSim::Reached(const AttackOption& attack) const {
   int hit = std::min(std::max(1, attack.max_enemies),
                      static_cast<int>(queue_.size()));
@@ -196,12 +205,14 @@ double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
       total += attack.final_attack_damage[type];
     }
   }
-  // Added once for the whole swing, not once per enemy: that is the whole
-  // difference between the two banks.
-  if (hit > 0 &&
-      queue_[0].type <
-          static_cast<int>(attack.single_final_attack_damage.size())) {
-    total += attack.single_final_attack_damage[queue_[0].type];
+  // Rolled once for the whole swing rather than once per enemy the swing
+  // reached -- that is the whole difference between the two banks -- but it
+  // lands on a crowd of its own, which may be wider than the swing.
+  for (int j = 0; j < PerSwingFinalAttackTargets(attack, hit); ++j) {
+    int type = queue_[j].type;
+    if (type < static_cast<int>(attack.per_swing_final_attack_damage.size())) {
+      total += attack.per_swing_final_attack_damage[type];
+    }
   }
   // A chance that lands on one enemy, so it is charged once however many the
   // swing reached -- and it is a share of what that one was taking anyway.
@@ -494,14 +505,15 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
                           freeze);
     }
   }
-  // Blizzard's rolls once for the swing and falls on one enemy, whatever the
-  // swing reached. The first in the queue is as good as any: nothing here has
-  // a position, so no enemy is nearer than another.
-  if (hit > 0 && !attack.single_final_attack_damage.empty()) {
-    double freeze = StateBoost(attack, queue_[0]);
-    Hurt(queue_[0], RolledFinalAttack(attack.single_final_attack_rolls,
-                                      attack.single_final_attack_damage,
-                                      queue_[0].type, LandingAt(0, freeze)) *
+  // Rolled once for the swing rather than against each enemy it reached, and
+  // falling on its own crowd: Blizzard's one, Split Shot's ten. The front of
+  // the queue is as good a crowd as any -- nothing here has a position, so no
+  // enemy is nearer than another.
+  for (int j = 0; j < PerSwingFinalAttackTargets(attack, hit); ++j) {
+    double freeze = StateBoost(attack, queue_[j]);
+    Hurt(queue_[j], RolledFinalAttack(attack.per_swing_final_attack_rolls,
+                                      attack.per_swing_final_attack_damage,
+                                      queue_[j].type, LandingAt(j, freeze)) *
                         freeze);
   }
   double recovered = RollProcs(attack, hit);

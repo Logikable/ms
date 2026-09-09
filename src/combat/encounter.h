@@ -213,12 +213,16 @@ struct AttackOption {
   // The same, one entry per source, as what actually rolls. Empty lands the
   // average above -- what a caller building an attack by hand wants.
   std::vector<FinalAttackRoll> final_attack_rolls;
-  // Blizzard's shape: the pair above, for the sources that roll ONCE for the
-  // whole swing and land on one of the enemies it reached. Kept apart rather
-  // than flagged inside the vectors above, because the difference is where the
-  // damage is added -- once per swing here, once per enemy there.
-  std::vector<double> single_final_attack_damage;
-  std::vector<FinalAttackRoll> single_final_attack_rolls;
+  // The pair above, for the sources that roll ONCE for the whole swing and
+  // land on a crowd of their own. Kept apart rather than flagged inside the
+  // vectors above, because the difference is where the damage is added -- once
+  // per swing here, once per enemy there.
+  std::vector<double> per_swing_final_attack_damage;
+  std::vector<FinalAttackRoll> per_swing_final_attack_rolls;
+  // How many enemies that bank lands on: 1 for Blizzard's shape, more for a
+  // follow-up with a reach of its own -- Split Shot reaches ten behind a swing
+  // that reached one. Never 0 where the bank has anything in it.
+  int per_swing_final_attack_enemies = 1;
   // The burns this swing leaves on the enemies it reaches. Empty for every
   // swing that leaves none, which is most of them.
   std::vector<DotApplication> dots;

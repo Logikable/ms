@@ -48,6 +48,10 @@ enum SkillTag {
   SKILL_TAG_ICE = 5;
   SKILL_TAG_LIGHTNING = 6;
   SKILL_TAG_VENGEANCE = 7;
+  // The Marksman's own shots -- Piercing Arrow, Snipe and the cartridge, the
+  // three GMS names. Split Shot reads it: the arrow splits behind those and
+  // behind nothing else, so the attacks say which of them it follows.
+  SKILL_TAG_MARKSMANSHIP = 8;
 }
 
 // A skill's per-level contribution to the character's stats. Only the levers we
@@ -1585,16 +1589,21 @@ message Skill {
   // bounces off the first enemy onto two of the eight the arrow went through.
   // The same field either way, because the fight does the same thing with it.
   int32 lead_enemies = 38;
-  // Whether this skill's Final Attack strikes ONE of the enemies the swing
-  // reached rather than each of them. Every Final Attack GMS ships is this
-  // shape: the client gives none of them a mobCount or a hitbox, and their
-  // readouts name the target they pick -- "attacks the boss with the highest
-  // HP first". Read the other way a Final Attack pays once per mob in front
-  // of the player, which on a six-enemy swing is six times over.
+  // How many enemies this skill's Final Attack lands on, and so which of two
+  // shapes it takes. 0 -- the default -- follows the character's swing onto
+  // each enemy it reached, rolling separately against every one of them.
   //
-  // The roll happens once for the whole swing, not once per enemy, so a wide
-  // swing is worth no more of it than a narrow one.
-  bool final_attack_single_enemy = 39;
+  // Any other number rolls ONCE for the whole swing and lands on that many,
+  // whatever the swing itself reached. Every Final Attack GMS ships is the
+  // second shape at 1: the client gives none of them a mobCount or a hitbox,
+  // and their readouts name the target they pick -- "attacks the boss with the
+  // highest HP first". Read the other way a Final Attack pays once per mob in
+  // front of the player, which on a six-enemy swing is six times over.
+  //
+  // Split Shot is why the count is a number rather than a flag: GMS gives its
+  // split a mobCount of its own, so off Snipe -- a swing that reaches one --
+  // it still reaches ten.
+  int32 final_attack_max_enemies = 39;
 
   // Whether this skill needs the secondary slot filled. Both Shield Masteries
   // ask for one, and data/equip/secondary now ships thirty of them, so a

@@ -212,9 +212,12 @@ double MeasureRate(GameState& state) {
   return rate + OffClockRate(params, played, 1.0);
 }
 
-// What one swing lands on the `hit` enemies it reached: the strike itself, the
-// opening hit, the Final Attacks that follow it and the chance rolled on top.
-double SpreadDamage(const AttackOption& attack, int hit) {
+// What one swing lands on the `hit` enemies it reached, out of a crowd of
+// `enemies`: the strike itself, the opening hit, the Final Attacks that follow
+// it and the chance rolled on top. The crowd is taken as well as the reach
+// because a Final Attack rolled once for the swing lands on its own crowd,
+// which may be wider than the swing that set it off.
+double SpreadDamage(const AttackOption& attack, int hit, int enemies) {
   double per = attack.damage_per_hit[0];
   // A swing that gains as it travels: the k'th enemy takes (1 + gain)^k, so
   // what the whole swing lands is the geometric sum rather than hit times one.
@@ -238,9 +241,12 @@ double SpreadDamage(const AttackOption& attack, int hit) {
   if (!attack.final_attack_damage.empty()) {
     damage += attack.final_attack_damage[0] * hit;
   }
-  // Rolled once for the whole swing, so it does not.
-  if (!attack.single_final_attack_damage.empty()) {
-    damage += attack.single_final_attack_damage[0];
+  // Rolled once for the whole swing rather than against each enemy, but landed
+  // on a crowd of its own -- which may be wider or narrower than the swing's.
+  if (!attack.per_swing_final_attack_damage.empty()) {
+    damage +=
+        attack.per_swing_final_attack_damage[0] *
+        std::min(std::max(1, attack.per_swing_final_attack_enemies), enemies);
   }
   // A chance that lands on one enemy, and worth a share of what that one was
   // taking anyway -- so it is charged once however wide the swing is.
@@ -284,7 +290,7 @@ double CrowdDamage(const AttackOption& attack, int enemies, bool charge_burns) {
   if (attack.scatter_hits > 0) {
     hit = std::min(hit, attack.scatter_hits);
   }
-  double damage = SpreadDamage(attack, hit);
+  double damage = SpreadDamage(attack, hit, std::max(1, enemies));
   if (charge_burns) {
     damage += BurnDamage(attack, hit);
   }
@@ -324,6 +330,11 @@ struct BuffClocks {
   std::vector<double> standing;  // seconds each has spent up over the run
   // Lines still to land before each buff bought with hits goes up.
   std::vector<double> charge;
+  // Swings still loaded, one entry per ATTACK rather than per buff -- a buff
+  // that loads one hands its charges back whole each time it goes up and takes
+  // what is left with it. 0 for every attack no buff loads. Kept here because
+  // it is the buff loop that fills and empties it. See Buff.magazine.
+  std::vector<int> magazine;
   int mask = 0;
 };
 
@@ -349,9 +360,11 @@ void RunBuffClocks(const CombatParams& params, double step, BuffClocks& c) {
       c.charge[i] = params.buffs[i].charge_lines;
     }
   }
+  c.magazine.resize(params.attacks.size(), 0);
   c.mask = 0;
   for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
     const BuffOption& buff = params.buffs[i];
+    bool stood_before = c.left[i] > 0.0;
     // What it stood for is what it had left, not the whole step: a step is as
     // wide as the swing it covers now, and a buff lapsing partway through one
     // stood for the part before it lapsed.
@@ -366,6 +379,16 @@ void RunBuffClocks(const CombatParams& params, double step, BuffClocks& c) {
       c.cooldown[i] = buff.cooldown_seconds;
       c.charge[i] = buff.charge_lines;
       stood = step;  // back up the moment it came down, so none of it is a gap
+      // A fresh load, whole: what was left of the last one is not carried.
+      if (buff.magazine_attack >= 0 &&
+          buff.magazine_attack < static_cast<int>(c.magazine.size())) {
+        c.magazine[buff.magazine_attack] =
+            params.attacks[buff.magazine_attack].charges;
+      }
+    } else if (stood_before && c.left[i] <= 0.0 && buff.magazine_attack >= 0 &&
+               buff.magazine_attack < static_cast<int>(c.magazine.size())) {
+      // Lapsed, so whatever it still had loaded goes with it.
+      c.magazine[buff.magazine_attack] = 0;
     }
     if (c.left[i] > 0.0) {
       c.mask |= 1 << i;
@@ -734,7 +757,8 @@ double RunOwnClockIce(double step, std::vector<OwnClockIce>& sources,
 // The swing landing the most per second of the ones off cooldown, or -1 when
 // none is. A cast is not among them: it deals no damage.
 int BestSwing(const std::vector<AttackOption>& attacks,
-              const std::vector<double>& cooldown, int enemies, int stacks,
+              const std::vector<double>& cooldown,
+              const std::vector<int>& magazine, int enemies, int stacks,
               int cap, const std::vector<Burn>& held, double frozen_left,
               double scar_odds) {
   int pick = -1;
@@ -743,6 +767,12 @@ int BestSwing(const std::vector<AttackOption>& attacks,
     const AttackOption& attack = attacks[i];
     if (attack.swing_seconds <= 0.0 || cooldown[i] > 0.0 ||
         attack.heal_fraction > 0.0) {
+      continue;
+    }
+    // Nothing loaded, so there is nothing to fire: an empty count stands for
+    // both "the buff is down" and "the cartridges are spent".
+    if (attack.charges > 0 &&
+        (i >= static_cast<int>(magazine.size()) || magazine[i] <= 0)) {
       continue;
     }
     bool frozen = frozen_left > 0.0;
@@ -800,9 +830,9 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     if (pick <= 0) {
       pick = SwingToLay(params, clocks, cooldown);
       if (pick < 0) {
-        pick = BestSwing(params.Attacks(clocks.mask), cooldown, enemies, freeze,
-                         params.FreezeCap(clocks.mask), burning, frozen_left,
-                         scar_odds);
+        pick = BestSwing(params.Attacks(clocks.mask), cooldown, clocks.magazine,
+                         enemies, freeze, params.FreezeCap(clocks.mask),
+                         burning, frozen_left, scar_odds);
       }
     }
     if (pick < 0) {
@@ -856,6 +886,10 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     played.seconds += swung.swing_seconds;
     ++swings[pick];
     cooldown[pick] = swung.cooldown_seconds;
+    if (swung.charges > 0 && pick < static_cast<int>(clocks.magazine.size()) &&
+        clocks.magazine[pick] > 0) {
+      --clocks.magazine[pick];
+    }
     LayBuff(params, pick, clocks);
     ChargeBuffs(params, swung.lines, clocks);
     pick = -1;

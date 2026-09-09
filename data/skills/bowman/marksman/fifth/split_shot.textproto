@@ -1,0 +1,38 @@
+# A Final Attack behind the Marksman's own shots, and the reason a Final
+# Attack can state a reach at all: GMS gives the split its own mobCount and its
+# own hitbox, so behind Snipe -- a swing that reaches one -- it still reaches
+# ten. Every other Final Attack in the game falls on the one enemy its swing
+# picked, which is what final_attack_max_enemies reads as 1.
+#
+# Which swings it follows is the group rather than a list of names: GMS names
+# Piercing Arrow, Snipe and the cartridge, and those three carry the tag. High
+# Speed Shot, Perfect Shot and Surge Bolt are deliberately not among them.
+#
+# GMS's readout says "Landing a hit with Full Burst Shot after using ..." and
+# then names the cartridge among the skills it follows, which makes the
+# sentence name that skill as an alternative to itself. Grandis Library states
+# it plainly -- successful attacks from those skills release the burst -- and
+# Final Aim's own text ("triggered up to 13 times") only makes sense if the
+# default is once per cast. Once per cast is what this is.
+name: "Split Shot"
+description:
+  "Magically enchants your arrows to explode as they approach the enemy, "
+  "releasing countless more arrows."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 2 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 120.0
+follows_skill_tag: SKILL_TAG_MARKSMANSHIP
+final_attack_max_enemies: 10
+buff {
+  duration_seconds: 72.0
+  base {
+    final_attack_chance: 1.0
+    final_attack_pct: 6.06
+    final_attack_lines: 5
+    ied_pct: 0.25
+  }
+  per_level { final_attack_pct: 0.24 }
+}

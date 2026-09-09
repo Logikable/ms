@@ -11,7 +11,7 @@
 name: "Quiver Cartridge"
 description: "Uses a special arrowhead."
 kind: SKILL_KIND_PASSIVE
-final_attack_single_enemy: true
+final_attack_max_enemies: 1
 placement { job_advancement: JOB_ADVANCEMENT_HUNTER skill_order: 2 }
 max_level: 10
 base {

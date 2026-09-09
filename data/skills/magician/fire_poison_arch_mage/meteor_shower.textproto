@@ -20,7 +20,7 @@ base_delay_ms: 900
 max_enemies: 15
 lines: 12
 cooldown_seconds: 45.0
-final_attack_single_enemy: true
+final_attack_max_enemies: 1
 base {
   skill_pct: 2.295
   final_attack_chance: 0.03

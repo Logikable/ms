@@ -64,8 +64,8 @@ void ClearSwingRiders(AttackOption& attack) {
   attack.freeze_fd_per_stack = 0.0;
   attack.final_attack_damage.clear();
   attack.final_attack_rolls.clear();
-  attack.single_final_attack_damage.clear();
-  attack.single_final_attack_rolls.clear();
+  attack.per_swing_final_attack_damage.clear();
+  attack.per_swing_final_attack_rolls.clear();
   attack.dots.erase(
       std::remove_if(attack.dots.begin(), attack.dots.end(),
                      [](const DotApplication& burn) { return burn.carried; }),
@@ -423,7 +423,7 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
                      const std::vector<CombatType>& types,
                      AttackOption& attack) {
   attack.final_attack_damage.assign(types.size(), 0.0);
-  attack.single_final_attack_damage.assign(types.size(), 0.0);
+  attack.per_swing_final_attack_damage.assign(types.size(), 0.0);
   // What this swing keeps of the character's chance to shake a coin loose.
   // Cruel Stab alone gives any of it up -- see SkillEffect.meso_drop_cut.
   double meso_kept = 1.0;
@@ -468,18 +468,21 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
     // behind a four-star swing, and each of the three rolls on its own.
     follow.lines = source.lines;
     roll.rolls = RollsFor(follow);
-    // A source that strikes one enemy is banked apart: what the swing is worth
-    // has to add it once rather than once for every mob in front of the
-    // player.
-    std::vector<double>& bank = source.single_enemy
-                                    ? attack.single_final_attack_damage
+    // A source with a reach of its own is banked apart: what the swing is
+    // worth has to add it over that reach rather than over the swing's.
+    std::vector<double>& bank = source.max_enemies > 0
+                                    ? attack.per_swing_final_attack_damage
                                     : attack.final_attack_damage;
     for (std::size_t i = 0; i < types.size(); ++i) {
       roll.damage.push_back(ExpectedAttackDamage(follow, *types[i].mob));
       bank[i] += roll.damage.back() * roll.chance * roll.count;
     }
-    if (source.single_enemy) {
-      attack.single_final_attack_rolls.push_back(std::move(roll));
+    if (source.max_enemies > 0) {
+      // The widest of the sources banked together: they roll on the one swing,
+      // so the crowd they land on is the furthest any of them reaches.
+      attack.per_swing_final_attack_enemies =
+          std::max(attack.per_swing_final_attack_enemies, source.max_enemies);
+      attack.per_swing_final_attack_rolls.push_back(std::move(roll));
     } else {
       attack.final_attack_rolls.push_back(std::move(roll));
     }
@@ -487,8 +490,8 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
   if (attack.final_attack_rolls.empty()) {
     attack.final_attack_damage.clear();
   }
-  if (attack.single_final_attack_rolls.empty()) {
-    attack.single_final_attack_damage.clear();
+  if (attack.per_swing_final_attack_rolls.empty()) {
+    attack.per_swing_final_attack_damage.clear();
   }
 }
 

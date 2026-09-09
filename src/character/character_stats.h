@@ -69,11 +69,10 @@ struct FinalAttackSource {
   // multiplier land on the SWING where there is one, so only a passive's
   // strike collects them here -- otherwise one grant would be read twice.
   bool owner_swings = false;
-  // Whether the whole swing rolls this ONCE and lands it on a single enemy.
-  // Blizzard's passive alone; every other source follows the swing onto every
-  // enemy it reached. Never set with per_line -- one counts enemies down to
-  // one, the other counts lines up.
-  bool single_enemy = false;
+  // Enemies this lands on once the whole swing has rolled it once, or 0 for
+  // one that follows the swing onto each enemy it reached and rolls against
+  // every one of them. See Skill.final_attack_max_enemies.
+  int max_enemies = 0;
 };
 
 // A burn the character leaves on everything they swing at, from a passive

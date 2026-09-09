@@ -1170,6 +1170,37 @@ std::vector<Row> ProcRows(const Skill& skill, int level) {
   return rows;
 }
 
+// Final Attack's chance and its damage are one fact, not two levers: neither
+// half says anything on its own, so they share a line. Taken as a pair of
+// effects rather than off the skill, because a buff can grant one for as long
+// as it stands and states its ladder there.
+std::vector<Row> FinalAttackRows(const SkillEffect& base,
+                                 const SkillEffect& per, int level,
+                                 int max_enemies) {
+  double proc =
+      base.final_attack_chance() + per.final_attack_chance() * (level - 1);
+  if (proc <= 0.0) {
+    return {};
+  }
+  // Where it falls on a crowd of its own the row has to say so: a player
+  // comparing it with the warriors' would otherwise read it as worth several
+  // times more, or several times less. Clipped to a comma so Blizzard's own
+  // fits on a line -- that note is the one thing long enough to push the row
+  // past its column, and the row wraps rather than clipping.
+  std::string reach;
+  if (max_enemies == 1) {
+    reach = ", one enemy";
+  } else if (max_enemies > 1) {
+    reach = ", " + ReachText(max_enemies);
+  }
+  int strikes = static_cast<int>(base.final_attack_lines() +
+                                 per.final_attack_lines() * (level - 1));
+  double damage =
+      base.final_attack_pct() + per.final_attack_pct() * (level - 1);
+  return {EffectRow("Final Attack", FormatPercent(proc) + " for " +
+                                        SwingText(damage, strikes) + reach)};
+}
+
 // The burn the swing leaves, and the strike it sets off beside itself.
 std::vector<Row> SwingRiderRows(const Skill& skill, int level) {
   std::vector<Row> rows;
@@ -1177,23 +1208,9 @@ std::vector<Row> SwingRiderRows(const Skill& skill, int level) {
   if (skill.dot().interval_seconds() > 0.0) {
     rows.push_back(EffectRow("DoT", DotText(skill.dot(), level)));
   }
-  // Final Attack's chance and its damage are one fact, not two levers: neither
-  // half says anything on its own, so they share a line.
-  double proc = PercentAt(skill, &SkillEffect::final_attack_chance, level);
-  if (proc > 0.0) {
-    // Where it falls on one enemy the row has to say so: a player comparing it
-    // with the warriors' would otherwise read it as worth several times more.
-    // Wrapped, because that note is the one thing long enough to push the row
-    // past its column, and clipped to a comma so Blizzard's own fits on a line.
-    std::string reach = skill.final_attack_single_enemy() ? ", one enemy" : "";
-    int strikes = FlatAt(skill, &SkillEffect::final_attack_lines, level);
-    std::string text =
-        FormatPercent(proc) + " for " +
-        SwingText(PercentAt(skill, &SkillEffect::final_attack_pct, level),
-                  strikes) +
-        reach;
-    rows.push_back(EffectRow("Final Attack", text));
-  }
+  Append(FinalAttackRows(skill.base(), skill.per_level(), level,
+                         skill.final_attack_max_enemies()),
+         rows);
   // The strike the swing sets off beside itself. Its wait rides the damage row
   // rather than taking one of its own, and its reach is stated only where it
   // is not the swing's -- see the Enemies Hit row above.
@@ -1538,6 +1555,10 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
     per_stage = " each";
   }
   Append(LeverRows(base, per, level, per_stage), rows);
+  // A Final Attack the buff hands over for as long as it stands. Under the
+  // buff's own heading, which has already said how long that is.
+  Append(FinalAttackRows(base, per, level, skill.final_attack_max_enemies()),
+         rows);
   Append(ShieldRows(buff.shield(), level), rows);
   // Named in the row rather than headed: these stand under the buff's own
   // heading, which has already said they last only as long as it does.

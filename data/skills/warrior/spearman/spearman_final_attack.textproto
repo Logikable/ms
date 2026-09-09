@@ -10,7 +10,7 @@ description:
   "Grants a chance to deliver an additional hit after a direct skill attack."
 kind: SKILL_KIND_PASSIVE
 placement { job_advancement: JOB_ADVANCEMENT_SPEARMAN skill_order: 7 }
-final_attack_single_enemy: true
+final_attack_max_enemies: 1
 max_level: 20
 required_equip_type: EQUIP_TYPE_SPEAR
 required_equip_type: EQUIP_TYPE_POLEARM

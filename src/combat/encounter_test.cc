@@ -1001,7 +1001,7 @@ TEST(ComputeCombatParamsTest, AFinalAttackCanStrikeOneEnemyOnly) {
   wide.set_base_delay_ms(900);
   wide.set_max_enemies(15);
   wide.mutable_base()->set_skill_pct(3.01);
-  wide.set_final_attack_single_enemy(true);
+  wide.set_final_attack_max_enemies(1);
   wide.mutable_base()->set_final_attack_chance(0.60);
   wide.mutable_base()->set_final_attack_pct(2.20);
 
@@ -1019,12 +1019,88 @@ TEST(ComputeCombatParamsTest, AFinalAttackCanStrikeOneEnemyOnly) {
   // Nothing in the ordinary bank, everything in the single-enemy one.
   EXPECT_TRUE(swing.final_attack_damage.empty());
   EXPECT_TRUE(swing.final_attack_rolls.empty());
-  ASSERT_EQ(swing.single_final_attack_rolls.size(), 1u);
-  EXPECT_NEAR(swing.single_final_attack_rolls[0].chance, 0.60, 1e-9);
-  EXPECT_EQ(swing.single_final_attack_rolls[0].count, 1);
-  ASSERT_FALSE(swing.single_final_attack_damage.empty());
-  EXPECT_DOUBLE_EQ(swing.single_final_attack_damage[0],
-                   swing.single_final_attack_rolls[0].damage[0] * 0.60);
+  ASSERT_EQ(swing.per_swing_final_attack_rolls.size(), 1u);
+  EXPECT_NEAR(swing.per_swing_final_attack_rolls[0].chance, 0.60, 1e-9);
+  EXPECT_EQ(swing.per_swing_final_attack_rolls[0].count, 1);
+  ASSERT_FALSE(swing.per_swing_final_attack_damage.empty());
+  EXPECT_DOUBLE_EQ(swing.per_swing_final_attack_damage[0],
+                   swing.per_swing_final_attack_rolls[0].damage[0] * 0.60);
+  EXPECT_EQ(swing.per_swing_final_attack_enemies, 1);
+}
+
+// Split Shot's shape: a buff whose whole grant is a Final Attack, gated on the
+// group the swing carries and landing on ten enemies behind a swing that
+// reaches one. Its own tag is what tells the two attacks apart.
+TEST(ComputeCombatParamsTest, ABuffCanGrantAFinalAttackWithItsOwnReach) {
+  Skill snipe;
+  snipe.set_name("Snipe");
+  snipe.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(snipe, JOB_ADVANCEMENT_SWORDMAN);
+  snipe.set_max_level(30);
+  snipe.set_base_delay_ms(660);
+  snipe.set_max_enemies(1);
+  snipe.add_tags(SKILL_TAG_MARKSMANSHIP);
+  snipe.mutable_base()->set_skill_pct(3.24);
+
+  Skill sweep;
+  sweep.set_name("High Speed Shot");
+  sweep.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(sweep, JOB_ADVANCEMENT_SWORDMAN);
+  sweep.set_max_level(30);
+  sweep.set_base_delay_ms(660);
+  sweep.set_max_enemies(12);
+  sweep.mutable_base()->set_skill_pct(4.50);
+
+  Skill split;
+  split.set_name("Split Shot");
+  split.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(split, JOB_ADVANCEMENT_SWORDMAN);
+  split.set_max_level(30);
+  split.set_base_delay_ms(120);
+  split.set_follows_skill_tag(SKILL_TAG_MARKSMANSHIP);
+  split.set_final_attack_max_enemies(10);
+  split.mutable_buff()->set_duration_seconds(72.0);
+  split.mutable_buff()->mutable_base()->set_final_attack_chance(1.0);
+  split.mutable_buff()->mutable_base()->set_final_attack_pct(6.06);
+  split.mutable_buff()->mutable_base()->set_final_attack_lines(5);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"snipe", snipe}, {"sweep", sweep}, {"split", split}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 3);
+  ASSERT_TRUE(state.character.LearnSkill(snipe, 1));
+  ASSERT_TRUE(state.character.LearnSkill(sweep, 1));
+  ASSERT_TRUE(state.character.LearnSkill(split, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.buffs.size(), 1u);
+  // The buff is not standing in the plain set, so nothing follows any swing.
+  for (const AttackOption& attack : params.attacks) {
+    EXPECT_TRUE(attack.per_swing_final_attack_damage.empty()) << attack.name;
+  }
+  const std::vector<AttackOption>& under = params.Attacks(1);
+  const AttackOption* aimed = nullptr;
+  const AttackOption* wide = nullptr;
+  for (const AttackOption& attack : under) {
+    if (attack.name == "Snipe") {
+      aimed = &attack;
+    } else if (attack.name == "High Speed Shot") {
+      wide = &attack;
+    }
+  }
+  ASSERT_NE(aimed, nullptr);
+  ASSERT_NE(wide, nullptr);
+  // Ten enemies behind a swing that reaches one -- the reach is the follow-up's
+  // own, which is the whole reason it is a count rather than a flag.
+  ASSERT_FALSE(aimed->per_swing_final_attack_damage.empty());
+  EXPECT_EQ(aimed->per_swing_final_attack_enemies, 10);
+  ASSERT_EQ(aimed->per_swing_final_attack_rolls.size(), 1u);
+  EXPECT_DOUBLE_EQ(aimed->per_swing_final_attack_rolls[0].chance, 1.0);
+  // The swing without the group carries none of it.
+  EXPECT_TRUE(wide->per_swing_final_attack_damage.empty());
+  EXPECT_TRUE(wide->final_attack_damage.empty());
 }
 
 // A Night Lord's mark throws three stars where an Assassin's throws two. The

@@ -17,7 +17,8 @@ description:
   "seeks the enemy in range with the most health, striking the sturdiest part "
   "of a boss first."
 kind: SKILL_KIND_ACTIVE
-placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 3 }
+tags: SKILL_TAG_MARKSMANSHIP
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 4 }
 v_node: V_NODE_KIND_JOB
 max_level: 30
 required_equip_type: EQUIP_TYPE_CROSSBOW

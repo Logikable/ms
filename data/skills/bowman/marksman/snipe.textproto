@@ -11,6 +11,7 @@ description:
   "target, causing future Empowered Snipe attacks against it to deal "
   "additional damage."
 kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_MARKSMANSHIP
 placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 2 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_CROSSBOW

@@ -12,7 +12,7 @@ name: "Enchanted Quiver"
 description:
   "Equips specialized arrowheads. Also permanently increases Final Damage."
 kind: SKILL_KIND_PASSIVE
-final_attack_single_enemy: true
+final_attack_max_enemies: 1
 placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 4 }
 max_level: 10
 supersedes_skill_name: "Quiver Cartridge"

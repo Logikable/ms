@@ -279,6 +279,12 @@ class CombatSim {
   // always falling on the same end of the queue. Empty for every other swing,
   // whose order cannot be seen.
   int Reached(const AttackOption& attack) const;
+  // How many enemies the once-per-swing Final Attack bank falls on, given the
+  // `hit` the swing itself reached. 0 where the swing landed on nothing or the
+  // character carries no such source; otherwise the bank's own reach, held to
+  // the roster in front of them -- Split Shot's ten behind a Snipe that
+  // reached one.
+  int PerSwingFinalAttackTargets(const AttackOption& attack, int hit) const;
   // Lines `attack` adds because the character's own swing is on a crowd:
   // lines_per_extra_enemy for every enemy that swing reaches past the first,
   // capped at max_extra_lines. 0 for every attack but Storm of Arrows' rain.

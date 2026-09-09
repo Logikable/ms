@@ -291,7 +291,7 @@ void AddFinalAttack(const Skill& skill, const SkillEffect& granted,
   }
   source.lines = std::max(1, WholeValue(granted.final_attack_lines()));
   source.required_tag = skill.follows_skill_tag();
-  source.single_enemy = skill.final_attack_single_enemy();
+  source.max_enemies = skill.final_attack_max_enemies();
   source.skill_name = skill.name();
   source.owner_swings = DealsDamage(skill.kind());
   totals.final_attacks.push_back(source);
@@ -810,8 +810,14 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   // rather than summing with it.
   for (const Skill* skill : buffs_up) {
     int level = EffectiveSkillLevel(character, *skill, bonus);
-    AddEffect(EffectAt(skill->buff().base(), skill->buff().per_level(), level),
-              totals);
+    SkillEffect held =
+        EffectAt(skill->buff().base(), skill->buff().per_level(), level);
+    AddEffect(held, totals);
+    // A buff can hand over a Final Attack for as long as it stands -- Split
+    // Shot's arrow splits only under it -- and what sets one off belongs to
+    // the skill, so the buff's grant goes through the same door a passive's
+    // does rather than through AddEffect alone.
+    AddFinalAttack(*skill, held, totals);
     // What the buff hands a named skill, through the same door a permanent
     // boost takes -- it is only this fold that makes it a window rather than
     // a gift for good.

@@ -13,7 +13,7 @@ name: "Surge Bolt"
 description:
   "Concentrate and deploy a powerful spirit arrow."
 kind: SKILL_KIND_ATTACK
-placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 3 }
 v_node: V_NODE_KIND_JOB
 max_level: 30
 required_equip_type: EQUIP_TYPE_CROSSBOW

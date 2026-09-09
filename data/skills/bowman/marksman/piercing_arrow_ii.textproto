@@ -10,6 +10,7 @@ description:
   "Enhances Piercing Arrow. Upon striking the first foe, your Piercing Arrow "
   "now fragments, dealing damage to additional enemies."
 kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_MARKSMANSHIP
 placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN skill_order: 1 }
 max_level: 30
 required_equip_type: EQUIP_TYPE_CROSSBOW

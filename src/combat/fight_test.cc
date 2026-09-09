@@ -443,7 +443,7 @@ TEST(CombatSimTest, ASingleEnemyFinalAttackDoesNotScaleWithTheReach) {
       CombatParams params =
           MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 40)}, reach);
       std::vector<double>& bank =
-          single == 1 ? params.attacks[0].single_final_attack_damage
+          single == 1 ? params.attacks[0].per_swing_final_attack_damage
                       : params.attacks[0].final_attack_damage;
       bank.assign(params.types.size(), 100.0);
       CombatSim sim;
@@ -457,6 +457,35 @@ TEST(CombatSimTest, ASingleEnemyFinalAttackDoesNotScaleWithTheReach) {
   // The ordinary bank pays per enemy reached; the single-enemy one does not.
   EXPECT_EQ(killed[0][1], 4 * killed[0][0]);
   EXPECT_EQ(killed[1][1], killed[1][0]);
+}
+
+// Split Shot's shape: rolled once for the swing like Blizzard's, but landing
+// on a crowd of its own. Four enemies behind a swing that reaches one, and
+// still four behind a swing that reaches four -- the reach is the follow-up's,
+// not the swing's.
+TEST(CombatSimTest, AFinalAttackWithItsOwnReachIgnoresTheSwings) {
+  // One hit of the follow-up kills outright, so kills count where it landed.
+  Mob mob = MakeMob("Snail", 100);
+  // Its own reach, and the swing's: one enemy behind a narrow swing, four
+  // behind the same swing, and four behind a swing four times as wide.
+  const int kOwn[] = {1, 4, 4};
+  const int kSwing[] = {1, 1, 4};
+  int64_t killed[3] = {0, 0, 0};
+  for (int i = 0; i < 3; ++i) {
+    CombatParams params =
+        MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 40)}, kSwing[i]);
+    params.attacks[0].per_swing_final_attack_damage.assign(params.types.size(),
+                                                           100.0);
+    params.attacks[0].per_swing_final_attack_enemies = kOwn[i];
+    CombatSim sim;
+    for (int step = 0; step < 5; ++step) {
+      sim.Advance(params, 1.0);
+      killed[i] += sim.view().kills_this_step[0];
+    }
+  }
+  ASSERT_GT(killed[0], 0);
+  EXPECT_EQ(killed[1], 4 * killed[0]) << "the follow-up ignored its own reach";
+  EXPECT_EQ(killed[2], killed[1]) << "the follow-up took the swing's reach";
 }
 
 // An arrow that gains as it travels: the enemy it reaches first takes the
