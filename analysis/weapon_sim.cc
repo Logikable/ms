@@ -75,6 +75,18 @@ ABSL_FLAG(bool, upgraded, false,
           "Wear everything at its ceiling: every upgrade slot filled with the "
           "spell trace that swings hardest on it, and stars up to the item's "
           "own maximum. The default is gear straight off the shelf.");
+ABSL_FLAG(bool, max, false,
+          "Measure the ceiling character at the level instead of one grown "
+          "down its path: --mode=max's gear, hyper stats, ability, pots and "
+          "V matrix. Below the 5th job it changes only the gear; at 200 it is "
+          "the difference between a V node at 1 and one at 30, which is most "
+          "of what a 5th job is. One row a branch, holding whatever the "
+          "ceiling armed it with.");
+ABSL_FLAG(double, seconds, 600.0,
+          "How long the swings are played out for. The default is long enough "
+          "that a two-minute cooldown lands dozens of times, so the figure is "
+          "a sustained one; a shorter window is a burst, with everything off "
+          "cooldown for the whole of it.");
 ABSL_FLAG(int, boss_pdr, 0,
           "Percent of the mob's physical defence, which every Ignore DEF "
           "lever in the game is measured against. 0 is the shipped catalog, "
@@ -355,20 +367,38 @@ void RecordShares(const CombatParams& params, const Sequence& played,
             });
 }
 
+// The ceiling character at `level`, dressed and skilled by --mode=max. The
+// branch is named by its own advancement, so the level decides how deep it
+// goes -- a Hero at 200 is seeded as a Hero V with the matrix bought out.
+GameState MaxState(const Catalogs& catalogs, int level, Job branch) {
+  return NewMaxState(catalogs, AdvancementForJobStage(branch, StageOf(branch)),
+                     level, kSimSeed);
+}
+
 Result Measure(const Catalogs& catalogs, int level, const Build& build) {
-  GameState state = NewState(catalogs, kSimSeed);
-  GrowTo(state, level, PathTo(build.job));
+  bool max = absl::GetFlag(FLAGS_max);
+  GameState state =
+      max ? MaxState(catalogs, level, build.job) : NewState(catalogs, kSimSeed);
   Result result;
-  if (!Wear(state, BestOfType(catalogs, build.weapon, level))) {
-    return result;
-  }
-  EquipType ammo = AmmoFor(build.weapon);
-  if (ammo != EQUIP_TYPE_UNSPECIFIED &&
-      !Wear(state, BestOfType(catalogs, ammo, level))) {
-    return result;
+  if (max) {
+    // The ceiling armed them already; the row this build asks about is
+    // whichever of the branch's weapons it chose.
+    if (state.character.weapon_type() != build.weapon) {
+      return result;
+    }
+  } else {
+    GrowTo(state, level, PathTo(build.job));
+    if (!Wear(state, BestOfType(catalogs, build.weapon, level))) {
+      return result;
+    }
+    EquipType ammo = AmmoFor(build.weapon);
+    if (ammo != EQUIP_TYPE_UNSPECIFIED &&
+        !Wear(state, BestOfType(catalogs, ammo, level))) {
+      return result;
+    }
   }
   state.current_map = kDummyMap;
-  if (absl::GetFlag(FLAGS_upgraded)) {
+  if (!max && absl::GetFlag(FLAGS_upgraded)) {
     FullyUpgrade(state);
   }
   int bonus_stat = absl::GetFlag(FLAGS_bonus_stat);
@@ -391,11 +421,8 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   result.combat_power = CombatPower(bare, /*vs_boss=*/true);
 
   CombatParams params = ComputeCombatParams(state);
-  // Long enough that a four-second cooldown lands hundreds of times, so the
-  // average is not moved by where the horizon happens to cut.
-  constexpr double kHorizonSeconds = 600.0;
   int enemies = absl::GetFlag(FLAGS_enemies);
-  Sequence played = PlaySwings(params, kHorizonSeconds, enemies);
+  Sequence played = PlaySwings(params, absl::GetFlag(FLAGS_seconds), enemies);
   if (played.main_attack < 0 || played.seconds <= 0.0) {
     return result;
   }
@@ -520,14 +547,21 @@ void Run(int level) {
                   enemies == 1 ? "" : "s");
   }
   std::printf(
-      "Level %d, all AP in the job's primary stat, every skill maxed. DPS is "
-      "against %s, at 1x speed.\n\n",
-      level, crowd);
+      "Level %d, %s. DPS is against %s over %.0fs, at 1x speed.\n\n", level,
+      absl::GetFlag(FLAGS_max)
+          ? "the ceiling character: max gear, hyper stats, ability and V matrix"
+          : "all AP in the job's primary stat, every skill maxed",
+      crowd, absl::GetFlag(FLAGS_seconds));
   std::printf("%-13s  %-22s  %7s  %12s  %-18s  %5s\n", "job", "weapon", "CP",
               "DPS", "swing", "sec");
   std::printf("%s\n", std::string(85, '-').c_str());
   for (const Build& build : kBuilds) {
     Result result = Measure(catalogs, level, build);
+    // A ceiling character the row does not match measured nothing: the branch
+    // holds its other weapon, and that row prints instead.
+    if (absl::GetFlag(FLAGS_max) && result.combat_power == 0) {
+      continue;
+    }
     std::string key = BestOfType(catalogs, build.weapon, level);
     std::string weapon = catalogs.equips.count(key) > 0
                              ? catalogs.equips.at(key).name()
