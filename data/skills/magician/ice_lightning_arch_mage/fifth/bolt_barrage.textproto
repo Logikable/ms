@@ -1,0 +1,39 @@
+# The I/L's second job node: a wall of eight lightning bolts that marches
+# across the screen, each bolt striking fifteen times for 860% at master.
+#
+# The eight are real, not scenery. GMS gives the wall two invisible attack
+# objects -- one for the moving form, one for the locked -- and each carries
+# the whole of `mobCount 12`, `attackCount 15` and `380+16x`, so an enemy the
+# wall passes over takes all eight. 103,200% at master is the largest single
+# swing in the game, and its rate against the cooldown is Spear of Darkness's
+# almost exactly: 2,580%/s against 2,589%/s.
+#
+# Twelve enemies is GMS's own mobCount and what this game's hitbox rule works
+# out for itself from the bolt's 300x610 box -- floor(300/70) * (1 +
+# floor(610/250)) = 12, the two agreeing exactly.
+#
+# `cast_interval_ms` is GMS's `subTime`: the bolts land one at a time on a
+# 210ms beat rather than together, so each falls on what the one before it
+# left standing. Nothing here has a position, so a wall that clears its twelve
+# moving onto the next twelve is what marching across the screen comes to.
+#
+# Dropped: the recast that locks the wall in place, which needs somewhere for
+# it to be; and the immunity to attack reflection, which nothing here has.
+name: "Bolt Barrage"
+description:
+  "Summons a wall of lightning that pulses forward, electrocuting enemies in "
+  "its path."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_LIGHTNING
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 2 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_STAFF
+base_delay_ms: 660
+cooldown_seconds: 40.0
+max_enemies: 12
+lines: 15
+casts: 8
+cast_interval_ms: 210
+base { skill_pct: 3.96 }
+per_level { skill_pct: 0.16 }
