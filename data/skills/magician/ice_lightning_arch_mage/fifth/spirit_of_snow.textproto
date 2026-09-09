@@ -1,0 +1,45 @@
+# The I/L's third job node: a spirit summoned for thirty seconds that calls
+# down El Nath's blizzard every three, twelve times over ten enemies.
+#
+# A buff with a pulse rather than a summon of its own, which is what a summon
+# on a cooldown IS here: Elquines and Thunder Sphere stand for good and want no
+# duration, and this one is up for a quarter of its wait. Darkness Aura is the
+# same shape.
+#
+# Three seconds is GMS's `x`, the one number in its common block the readout
+# never spends. The animation cannot settle it -- attack1 runs 810ms and
+# Phoenix's 1170ms ships at 1.71s, so the frames have never decided a summon's
+# cadence here -- and the band does: ten pulses is 205,800% against a 120s
+# wait, 1,715%/s where Bolt Barrage is 2,580%/s, while the 810ms reading is
+# 761,460% and nothing in the game is within a factor of seven of it.
+#
+# Ten enemies is GMS's own. The rule works out 51 from the spirit's 1200x700
+# box and floors nothing, as it never lifts.
+#
+# Departure: GMS gives 3 Freeze Stacks "when attacking 1 enemy", a bossing
+# bonus over whatever a crowd earns. This game's pile is one stack per line off
+# the element, with no count of its own to condition, so the blizzard leaves
+# twelve. A cap of five swallows the difference; only Glacial Fury's thirteen
+# can tell them apart.
+name: "Spirit of Snow"
+description:
+  "Summon the devastating frosts of the El Nath Mountains."
+kind: SKILL_KIND_ACTIVE
+tags: SKILL_TAG_ICE
+placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 3 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 120.0
+freeze_seconds: 8.0
+buff {
+  duration_seconds: 30.0
+  pulse {
+    label: "Blizzard"
+    cast_interval_seconds: 3.0
+    lines: 12
+    max_enemies: 10
+    base { skill_pct: 8.16 }
+    per_level { skill_pct: 0.31 }
+  }
+}
