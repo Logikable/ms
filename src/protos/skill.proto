@@ -709,6 +709,34 @@ message Stance {
   BuffPulse pulse = 4;
 }
 
+// An attack a buff loads and hands the player a fixed number of, one spent per
+// swing while the buff stands. Repeating Crossbow Cartridge is what it exists
+// for: GMS loads eight cartridges for sixty seconds, and each Full Burst Shot
+// spends one.
+//
+// A swing in its own right -- it costs the time it takes, unlike a pulse on
+// its own clock -- so it states the whole of one. Nested rather than written
+// as a skill of its own because GMS states it inside its buff's tooltip and
+// nothing learns it separately, which is the same bargain EmpoweredForm and
+// Stance already take.
+//
+// Read at the same learned level as the skill carrying it.
+message Magazine {
+  // What the skill page calls it, and the name its damage goes out under. The
+  // fight finds the swing by it, so two magazines must not share one.
+  string label = 1;
+  // Swings one raising of the buff pays for. The count runs out with the buff
+  // whether or not it was spent: cartridges are not carried between loads.
+  int32 charges = 2;
+  // The whole of an attack, exactly as the fields of these names on Skill.
+  int32 base_delay_ms = 3;
+  int32 max_enemies = 4;
+  int32 lines = 5;
+  int32 casts = 6;
+  SkillEffect base = 7;
+  SkillEffect per_level = 8;
+}
+
 message Buff {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
@@ -795,6 +823,10 @@ message Buff {
   // Still ONE buff window however many forms are written, since only one of
   // them stands at a time.
   repeated Stance stance = 14;
+  // The attack this buff loads, and how many swings of it one raising pays
+  // for. Unset for every buff that loads none, which is all of them but the
+  // Marksman's cartridge -- see Magazine.
+  Magazine magazine = 17;
 }
 
 // A chance a swing has to land harder on one of the enemies it reached, and

@@ -1,0 +1,42 @@
+# A magazine, not a swing: the cast loads eight cartridges and each press of
+# Full Burst Shot spends one, which is what Buff.magazine exists for. The
+# alternative was one 5,940ms swing standing for the whole burst -- eight
+# animations back to back read as a six-second cast on screen, and it would
+# have set Split Shot off once where GMS sets it off eight times.
+#
+# Single target, and deliberately: GMS gives the shot mobCount 1 and homes it
+# on the highest Max HP in range, which is what the fight already does with a
+# swing that reaches one. The 790x290 box is where the arrows fly, not a
+# crowd they cover.
+#
+# The group is the skill's rather than the magazine's: one press of one button,
+# so what Split Shot follows is the same mark either way.
+name: "Repeating Crossbow Cartridge"
+description:
+  "Load a special cartridge that fires several arrows at once. Full Burst Shot "
+  "seeks the enemy in range with the most health, striking the sturdiest part "
+  "of a boss first."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 3 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_CROSSBOW
+base_delay_ms: 660
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 60.0
+  magazine {
+    label: "Full Burst Shot"
+    charges: 8
+    base_delay_ms: 660
+    max_enemies: 1
+    lines: 9
+    casts: 4
+    base {
+      skill_pct: 5.20
+      ied_pct: 0.25
+      crit_rate: 1.0
+    }
+    per_level { skill_pct: 0.20 }
+  }
+}

@@ -207,7 +207,10 @@ constexpr int kBuffCastMs = 120;
 // a heal by the same test SpendsASwing uses: a heal is cast in place of the
 // swing, where a buff goes up on a clock of its own.
 bool RaisesOnlyABuff(const Skill& skill) {
-  return skill.kind() == SKILL_KIND_ACTIVE && !SpendsASwing(skill);
+  // A buff that LOADS a swing is pressed to open a burst rather than raised
+  // from the upkeep sequence, so it pays its own animation like any attack.
+  return skill.kind() == SKILL_KIND_ACTIVE && !SpendsASwing(skill) &&
+         skill.buff().magazine().charges() <= 0;
 }
 
 std::map<std::string, Skill> LoadSkills() {
@@ -238,18 +241,26 @@ TEST(SkillDataTest, EverySwingsNameFitsTheBossFightPanel) {
   int checked = 0;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    if (!SpendsASwing(skill)) {
-      continue;
+    // The magazine's own label, not the buff that loads it: the swing the
+    // panel names is the one being fired.
+    std::vector<std::string> names;
+    if (SpendsASwing(skill)) {
+      names.push_back(skill.name());
     }
-    ++checked;
-    std::vector<std::string> lines = WrapBalanced(skill.name(), kRoom);
-    EXPECT_LE(static_cast<int>(lines.size()), kPlayerBarRows)
-        << entry.first << " takes more rows than the arena has";
-    // A word too long for the row is not wrapped at all: it overhangs, which
-    // is a name with its head and tail cut off.
-    for (const std::string& line : lines) {
-      EXPECT_LE(static_cast<int>(line.size()), kRoom)
-          << entry.first << " has a word too long for the arena";
+    if (skill.buff().magazine().charges() > 0) {
+      names.push_back(skill.buff().magazine().label());
+    }
+    for (const std::string& name : names) {
+      ++checked;
+      std::vector<std::string> lines = WrapBalanced(name, kRoom);
+      EXPECT_LE(static_cast<int>(lines.size()), kPlayerBarRows)
+          << entry.first << " takes more rows than the arena has";
+      // A word too long for the row is not wrapped at all: it overhangs, which
+      // is a name with its head and tail cut off.
+      for (const std::string& line : lines) {
+        EXPECT_LE(static_cast<int>(line.size()), kRoom)
+            << entry.first << " has a word too long for the arena";
+      }
     }
   }
   EXPECT_GT(checked, 0);
@@ -481,6 +492,10 @@ bool AnyStancePulseHasBase(const Buff& buff) {
 // is how a boost node -- whose whole grant is in what it lifts -- earns the
 // first level a player buys.
 bool GrantsAtFirstLevel(const Skill& skill) {
+  // A buff whose whole grant is the swing it loads states its ladder there.
+  if (skill.buff().magazine().has_base()) {
+    return true;
+  }
   for (const SkillBoost& boost : skill.boost()) {
     if (boost.min_level() <= 1) {
       return true;

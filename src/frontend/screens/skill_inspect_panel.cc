@@ -1464,6 +1464,34 @@ std::vector<Row> StanceRows(const Buff& buff, int level) {
   return rows;
 }
 
+// The swing a buff loads, headed by its own name and what one raising pays
+// for. A block of its own rather than rows under the buff's, because it is a
+// separate press with its own damage, reach and levers -- and the count is
+// what the player needs to read first. See Buff.magazine.
+std::vector<Row> MagazineRows(const Magazine& magazine, int level) {
+  if (magazine.charges() <= 0) {
+    return {};
+  }
+  std::vector<Row> rows;
+  rows.push_back(SectionRow(
+      magazine.label() + ", " + std::to_string(magazine.charges()) + " shots",
+      kGold));
+  double per_hit = magazine.base().skill_pct() +
+                   magazine.per_level().skill_pct() * (level - 1);
+  rows.push_back(EffectRow("Damage", SwingText(per_hit, magazine.lines(),
+                                               std::max(1, magazine.casts()))));
+  rows.push_back(
+      EffectRow("Attacks", ReachText(std::max(1, magazine.max_enemies()))));
+  // Whatever else it carries rides its own strikes rather than the character:
+  // the cartridge crits every time, its owner does not.
+  SkillEffect base = magazine.base();
+  SkillEffect per = magazine.per_level();
+  base.clear_skill_pct();
+  per.clear_skill_pct();
+  Append(LeverRows(base, per, level, ""), rows);
+  return rows;
+}
+
 std::vector<Row> BuffRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   const Buff& buff = skill.buff();
@@ -1516,6 +1544,7 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   Append(BoostRows(buff.boost(), level, false), rows);
   Append(PulseRows(buff.pulse(), level), rows);
   Append(StanceRows(buff, level), rows);
+  Append(MagazineRows(buff.magazine(), level), rows);
   Append(AllyBuffRows(buff, level), rows);
   return rows;
 }

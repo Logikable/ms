@@ -1053,6 +1053,54 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
   }
 }
 
+// The attack a buff loads, as a skill in its own right, so the same damage
+// chain builds it. It takes the magazine's own label for a name: the fight
+// finds the swing by it, and a boost aimed at it is filed under it.
+Skill MagazineSkill(const Skill& skill, const Magazine& magazine) {
+  Skill loaded;
+  loaded.set_name(magazine.label());
+  loaded.set_kind(SKILL_KIND_ATTACK);
+  loaded.set_base_delay_ms(magazine.base_delay_ms());
+  loaded.set_max_enemies(magazine.max_enemies());
+  loaded.set_lines(magazine.lines());
+  loaded.set_casts(magazine.casts());
+  *loaded.mutable_base() = magazine.base();
+  *loaded.mutable_per_level() = magazine.per_level();
+  // The weapons and the group belong to the skill that loads it: one press of
+  // the same button, so what sets a Final Attack off is the same mark.
+  *loaded.mutable_required_equip_type() = skill.required_equip_type();
+  *loaded.mutable_tags() = skill.tags();
+  return loaded;
+}
+
+// Every magazine's swing, one per learned buff that loads one. A pass of its
+// own rather than a branch inside AddAttacks, because the skill carrying a
+// magazine is a buff and AddAttacks is done with it before it ever builds one.
+void AddMagazines(const GameState& state, const DerivedStats& derived,
+                  EquipType weapon_type, int attack_speed, double speed_factor,
+                  const std::vector<CombatType>& types, AttackSet& set) {
+  const EquipStats total_stats = TotalEquipStats(state.character, derived);
+  int bonus = BonusSkillLevels(state.character, state.skills);
+  std::map<std::string, SkillBoosts> boosts =
+      BoostsByTarget(state.character, state.skills, bonus);
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    const Skill& skill = entry.second;
+    const Magazine& magazine = skill.buff().magazine();
+    int learned = EffectiveSkillLevel(state.character, skill, bonus);
+    if (learned <= 0 || magazine.charges() <= 0) {
+      continue;
+    }
+    Skill loaded = MagazineSkill(skill, magazine);
+    Skill boosted;
+    const Skill& swung = Boosted(loaded, learned, boosts, boosted);
+    AttackOption attack =
+        AttackFor(state.character.proto(), total_stats, weapon_type, &swung,
+                  learned, types, derived, attack_speed, speed_factor);
+    attack.charges = magazine.charges();
+    set.attacks.push_back(std::move(attack));
+  }
+}
+
 // Every attack the character could swing: the bare poke first, then one per
 // learned attack skill, for the fight to pick between each swing. Skills that
 // fire on their own clock go to auto_attacks instead.
@@ -1204,6 +1252,8 @@ AttackSet BuildAttackSet(const GameState& state, const DerivedStats& derived,
   AttackSet set;
   AddAttacks(state, derived, weapon.equip_type(), attack_speed, speed_factor,
              types, set);
+  AddMagazines(state, derived, weapon.equip_type(), attack_speed, speed_factor,
+               types, set);
   AddEmpoweredForms(state, TotalEquipStats(state.character, derived),
                     weapon.equip_type(), derived, attack_speed, speed_factor,
                     types, set);
@@ -1366,6 +1416,12 @@ void AddBuffs(const GameState& state,
     // A buff hanging off an ATTACK is laid by that swing rather than raised on
     // a wait: what leaves the wound is puncturing something. See
     // BuffOption::laid_by_attack.
+    // The swing this buff loads, found by the magazine's own label -- the name
+    // AddMagazines built it under.
+    if (buff.magazine().charges() > 0) {
+      option.magazine_attack =
+          AttackNamed(params.attacks, buff.magazine().label());
+    }
     if (skill->kind() == SKILL_KIND_ATTACK) {
       option.laid_by_attack = AttackNamed(params.attacks, skill->name());
       option.raised_on_cast = buff.raised_on_cast();

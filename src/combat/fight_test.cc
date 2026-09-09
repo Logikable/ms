@@ -2713,6 +2713,78 @@ void GiveBuff(CombatParams& params, double duration, double cooldown,
   params.buffed.push_back(std::move(set));
 }
 
+// Gives `params` a buff that LOADS a swing: while it stands the character can
+// fire the loaded attack, and only `charges` times per raising. The shape
+// Repeating Crossbow Cartridge has.
+void GiveMagazine(CombatParams& params, double duration, double cooldown,
+                  int charges, double damage) {
+  AttackOption loaded;
+  loaded.name = "Full Burst Shot";
+  loaded.max_enemies = 1;
+  loaded.swing_seconds = 1.0;
+  loaded.charges = charges;
+  loaded.damage_per_hit.assign(params.types.size(), damage);
+  BuffOption buff;
+  buff.name = "Repeating Crossbow Cartridge";
+  buff.duration_seconds = duration;
+  buff.cooldown_seconds = cooldown;
+  buff.magazine_attack = static_cast<int>(params.attacks.size());
+  params.attacks.push_back(std::move(loaded));
+  params.buffs.push_back(std::move(buff));
+  AttackSet set;
+  set.attacks = params.attacks;
+  set.auto_attacks = params.auto_attacks;
+  set.triggered_attacks = params.triggered_attacks;
+  params.buffed.push_back(std::move(set));
+}
+
+// Runs `seconds` of fight in quarter-second steps and totals what landed.
+double DamageOver(CombatSim& sim, const CombatParams& params, double seconds) {
+  double total = 0.0;
+  for (double t = 0.0; t < seconds; t += 0.25) {
+    sim.Advance(params, 0.25);
+    total += sim.view().damage_this_step;
+  }
+  return total;
+}
+
+// Eight cartridges and a minute to spend them in: the loaded swing is the only
+// one that hurts, so what lands says how many charges were fired. It stops at
+// eight however long the buff stands, the count is gone with the buff rather
+// than carried, and a fresh load comes with the next raising.
+TEST(CombatSimTest, AMagazineFiresItsChargesAndNoMore) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
+  GiveMagazine(params, /*duration=*/30.0, /*cooldown=*/120.0, /*charges=*/8,
+               /*damage=*/100.0);
+
+  // Well past the eighth shot but still inside the buff: the spent magazine is
+  // what stops it, not the clock.
+  EXPECT_DOUBLE_EQ(DamageOver(sim, params, 25.0), 800.0);
+  // The buff lapses and the wait runs out at 120s, so nothing more lands until
+  // it comes round.
+  EXPECT_DOUBLE_EQ(DamageOver(sim, params, 90.0), 0.0);
+  // Reloaded whole, and spent again.
+  EXPECT_DOUBLE_EQ(DamageOver(sim, params, 25.0), 800.0);
+}
+
+// A buff too short to spend its load takes the rest of it down: the cartridges
+// are not carried past the duration.
+TEST(CombatSimTest, AnUnspentMagazineEmptiesWithItsBuff) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
+  GiveMagazine(params, /*duration=*/4.0, /*cooldown=*/120.0, /*charges=*/8,
+               /*damage=*/100.0);
+
+  double fired = DamageOver(sim, params, 20.0) / 100.0;
+  EXPECT_GT(fired, 0.0);
+  EXPECT_LT(fired, 8.0) << "the buff lapsed with charges still loaded";
+}
+
 // A buff with two forms to choose between, the shape Burning Soul Blade has: a
 // short dense one and a long thin one, both bleeding through a pulse of their
 // own. Their pulses go in as auto attacks tagged with the form that fires them.

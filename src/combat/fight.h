@@ -336,6 +336,9 @@ class CombatSim {
                            const Landing& landing);
   // Whether the attack at `index` is still winding back up.
   bool Recharging(int index) const;
+  // Whether the attack at `index` has a charge to spend, for one a buff loads.
+  // True for every attack no buff loads -- see AttackOption::charges.
+  bool Loaded(const CombatParams& params, int index) const;
   // Index into params.attacks of the healing cast to spend this swing on, or
   // -1 for none: the player is not low enough, has nothing to fight, or holds
   // no such skill. A cleared map heals on the beat for free, so a cast there
@@ -560,6 +563,10 @@ class CombatSim {
     // that has no empowered form, which is all of them but the Sniper's
     // Piercing Arrow.
     int empowered_count = 0;
+    // Swings of it the buff that loads it has left to pay for. Stays at 0 for
+    // every attack no buff loads -- and reads 0 for a loaded one whose buff is
+    // down, which is what keeps it off the list of swings on offer.
+    int charges_left = 0;
   };
   std::vector<AttackClock> attack_clocks_;
 

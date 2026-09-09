@@ -181,6 +181,10 @@ struct AttackOption {
   // Seconds this attack cannot be swung for after it lands, game-scaled. 0 for
   // one that is there every time, which is most of them.
   double cooldown_seconds = 0.0;
+  // Swings a raising of the buff that loads this one pays for, spent one per
+  // landing. 0 for an attack no buff loads, which is every one the character
+  // can simply swing -- see Magazine and BuffOption::magazine_attack.
+  int charges = 0;
   // Expected damage of the opening hit, per target type. It lands on ONE of
   // the mobs the swing reached -- the healthiest of them, because a hit this
   // big is worth least where it overkills. Empty for a swing that lands once,
@@ -428,6 +432,11 @@ struct BuffOption {
   // seconds. 0 for a buff on a clock, which is every other one. See
   // Buff::charge_lines.
   int charge_lines = 0;
+  // Index into AttackSet::attacks of the swing this buff LOADS, or -1 for a
+  // buff that loads none, which is all of them but the Marksman's cartridge.
+  // Its charges are handed back whole each time this goes up and are gone the
+  // moment it lapses. See AttackOption::charges.
+  int magazine_attack = -1;
   // Index into AttackSet::attacks of the swing that lays this buff, or -1 for
   // one the character raises on its own wait. A buff hanging off an ATTACK is
   // inseparable from the swing that delivers it -- Puncture's wound is left by

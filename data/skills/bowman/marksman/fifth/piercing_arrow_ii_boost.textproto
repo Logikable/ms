@@ -5,7 +5,7 @@
 name: "Piercing Arrow II Boost"
 description: "Strengthens Piercing Arrow II and its empowered form."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 7 }
+placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 8 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {

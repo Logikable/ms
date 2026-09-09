@@ -324,6 +324,10 @@ int CombatSim::BestAttack(const CombatParams& params) const {
     if (Recharging(i)) {
       continue;
     }
+    // Nothing loaded, so there is nothing to fire.
+    if (!Loaded(params, i)) {
+      continue;
+    }
     // Per second, not per swing: a skill that hits half again as hard but takes
     // twice as long is worse, and only the rate says so.
     //
@@ -348,6 +352,19 @@ int CombatSim::BestAttack(const CombatParams& params) const {
 bool CombatSim::Recharging(int index) const {
   return index < static_cast<int>(attack_clocks_.size()) &&
          attack_clocks_[index].cooldown_left > 0.0;
+}
+
+// A magazine's swing is off the list until its buff loads it: the charges are
+// handed back whole at each raising and are gone with it, so an empty count
+// stands for both "the buff is down" and "the cartridges are spent".
+bool CombatSim::Loaded(const CombatParams& params, int index) const {
+  const std::vector<AttackOption>& options = Attacks(params);
+  if (index >= static_cast<int>(options.size()) ||
+      options[index].charges <= 0) {
+    return true;
+  }
+  return index < static_cast<int>(attack_clocks_.size()) &&
+         attack_clocks_[index].charges_left > 0;
 }
 
 int CombatSim::HealToCast(const CombatParams& params) const {
@@ -398,7 +415,6 @@ void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
   // Unlike an auto-cast's clock, this runs on an empty map too: a player
   // waiting out a respawn really does have their cooldown back when the mobs
   // land, where a summon with nothing to hit has simply not fired.
-  attack_clocks_.resize(Attacks(params).size());
   for (AttackClock& clock : attack_clocks_) {
     clock.cooldown_left = std::max(0.0, clock.cooldown_left - dt);
     clock.side_cooldown_left = std::max(0.0, clock.side_cooldown_left - dt);
@@ -1455,6 +1471,12 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
       clock.cooldown_left = buff.cooldown_seconds;
       clock.charge_left = buff.charge_lines;
       clock.blocks_left = buff.shield_hits;
+      // A fresh load, whole: what was left of the last one is not carried.
+      if (buff.magazine_attack >= 0 &&
+          buff.magazine_attack < static_cast<int>(attack_clocks_.size())) {
+        attack_clocks_[buff.magazine_attack].charges_left =
+            Attacks(params)[buff.magazine_attack].charges;
+      }
       // Raising it costs the character its animation, taken off the swing they
       // were charging: a buff is cast instead of attacking, not alongside it.
       attack_phase_ -= buff.cast_seconds;
@@ -1464,6 +1486,12 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     }
     if (clock.left > 0.0) {
       buff_mask_ |= 1 << i;
+      continue;
+    }
+    // Lapsed, so whatever it still had loaded goes with it.
+    if (buff.magazine_attack >= 0 &&
+        buff.magazine_attack < static_cast<int>(attack_clocks_.size())) {
+      attack_clocks_[buff.magazine_attack].charges_left = 0;
     }
   }
 }
@@ -1858,6 +1886,9 @@ void CombatSim::LandSwing(const CombatParams& params,
   if (attack.cooldown_seconds > 0.0) {
     attack_clocks_[swung].cooldown_left = attack.cooldown_seconds;
   }
+  if (attack.charges > 0 && attack_clocks_[swung].charges_left > 0) {
+    --attack_clocks_[swung].charges_left;
+  }
   aimed_ = -1;  // the swing landed, so the next one is chosen afresh
   AimSwing(params);
 }
@@ -1970,6 +2001,9 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   revive_left_ = std::max(0.0, revive_left_ - dt);
   RespawnBeat(params, dt);
   TakeMobHit(params, dt);
+  // Grown to fit before the buffs run, since a buff going up now hands its
+  // magazine's swing a fresh load and needs that swing's clock to exist.
+  attack_clocks_.resize(Attacks(params).size());
   // After the hit, so a buff going up now answers it with its heal, and
   // before everything that attacks, so this step swings with it.
   RunBuffs(params, dt);
