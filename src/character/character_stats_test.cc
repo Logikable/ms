@@ -2239,7 +2239,7 @@ TEST_F(DerivedStatsTest, TheSwingLeversAndTheRestPartitionAnEffect) {
   EXPECT_DOUBLE_EQ(swing.final_dmg_pct(), 0.10);
   EXPECT_DOUBLE_EQ(swing.hp_recover_pct(), 0.08);
   EXPECT_EQ(swing.attack(), 0);
-  EXPECT_DOUBLE_EQ(swing.damage_pct(), 0.0);
+  EXPECT_DOUBLE_EQ(swing.damage_pct(), 0.05);
 
   SkillEffect kept = WithoutSwingLevers(effect);
   EXPECT_DOUBLE_EQ(kept.ied_pct(), 0.0);
@@ -2248,7 +2248,7 @@ TEST_F(DerivedStatsTest, TheSwingLeversAndTheRestPartitionAnEffect) {
   EXPECT_DOUBLE_EQ(kept.final_dmg_pct(), 0.0);
   EXPECT_DOUBLE_EQ(kept.hp_recover_pct(), 0.0);
   EXPECT_EQ(kept.attack(), 20);
-  EXPECT_DOUBLE_EQ(kept.damage_pct(), 0.05);
+  EXPECT_DOUBLE_EQ(kept.damage_pct(), 0.0);
 }
 
 // Pick Pocket knocks the meso loose and Meso Explosion throws it, so neither

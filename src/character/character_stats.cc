@@ -1107,6 +1107,7 @@ SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
   SkillEffect kept = effect;
   kept.clear_ied_pct();
   kept.clear_boss_pct();
+  kept.clear_damage_pct();
   kept.clear_normal_pct();
   kept.clear_crit_rate();
   kept.clear_final_dmg_pct();
@@ -1124,6 +1125,7 @@ SkillEffect SwingLeversOf(const SkillEffect& effect) {
   SkillEffect swing;
   swing.set_ied_pct(effect.ied_pct());
   swing.set_boss_pct(effect.boss_pct());
+  swing.set_damage_pct(effect.damage_pct());
   swing.set_normal_pct(effect.normal_pct());
   swing.set_crit_rate(effect.crit_rate());
   swing.set_final_dmg_pct(effect.final_dmg_pct());

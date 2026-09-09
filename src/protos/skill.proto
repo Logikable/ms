@@ -123,6 +123,10 @@ message SkillEffect {
   double mastery = 15;
   // Plain % damage (0.05 == +5%). Every source of it sums inside a single
   // multiplier, so two skills granting 5% come to 10%.
+  //
+  // On an ATTACK it rides that swing alone rather than following the character,
+  // the way ied_pct and boss_pct do -- Perfect Shot's +100% is the shot's, and
+  // the Snipe after it takes none of it. See WithoutSwingLevers.
   double damage_pct = 16;
   // Final damage (0.10 == +10%), which multiplies where damage_pct adds: two
   // sources of 10% are worth 21%, not 20%. The distinction is invisible until

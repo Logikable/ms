@@ -478,11 +478,12 @@ void AddNamedBoost(const Skill& attack_skill, const PassiveOffense& passives,
       (1.0 + offense.final_dmg_pct) * (1.0 + bonus.final_dmg_pct) - 1.0;
 }
 
-// Ignored defence, boss damage, critical rate and final damage written on an
-// ATTACK ride that attack alone. GMS states them on the skill -- Gungnir's
-// Descent ignores 30%, Heaven's Hammer hits bosses for 30% harder, Snipe always
-// crits, Mist Eruption is worth 20% more for the pair of mists it sets off --
-// and none of them follows the character to their next swing.
+// Ignored defence, boss damage, plain damage, critical rate and final damage
+// written on an ATTACK ride that attack alone. GMS states them on the skill --
+// Gungnir's Descent ignores 30%, Heaven's Hammer hits bosses for 30% harder,
+// Perfect Shot is worth 100% more damage, Snipe always crits, Mist Eruption is
+// worth 20% more for the pair of mists it sets off -- and none of them follows
+// the character to their next swing.
 //
 // A passive granting any of them is the other shape, and folds into the
 // character where it belongs; so is a summon's, which is never swung.
@@ -493,6 +494,9 @@ void AddSwingLevers(const Skill& attack_skill, int attack_level,
                        attack_skill.per_level().ied_pct() * (attack_level - 1));
   offense.boss_pct += attack_skill.base().boss_pct() +
                       attack_skill.per_level().boss_pct() * (attack_level - 1);
+  offense.damage_pct +=
+      attack_skill.base().damage_pct() +
+      attack_skill.per_level().damage_pct() * (attack_level - 1);
   offense.normal_pct +=
       attack_skill.base().normal_pct() +
       attack_skill.per_level().normal_pct() * (attack_level - 1);
