@@ -489,6 +489,17 @@ bool GrantsAtFirstLevel(const Skill& skill) {
   return false;
 }
 
+// Whether any turret the skill runs states a base of its own. Silhouette
+// Mirage is a node that is nothing but one.
+bool AnyAutoModeHasBase(const Skill& skill) {
+  for (const AutoMode& mode : skill.auto_mode()) {
+    if (mode.has_base()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
   int commons = 0;
   int archetypes = 0;
@@ -507,13 +518,13 @@ TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
     EXPECT_FALSE(skill.hyper()) << skill.name() << " cannot be both";
     // A ladder reads base + per_level x (L - 1), so a node with no base is a
     // node whose first level buys nothing -- and V Points are bought a level
-    // at a time. A node whose whole grant is a buff, a burn or the pulse a
-    // buff beats out states its ladder there instead, and a boost node states
-    // it on the skills it lifts.
+    // at a time. A node whose whole grant is a buff, a burn, the pulse a buff
+    // beats out or a turret states its ladder there instead, and a boost node
+    // states it on the skills it lifts.
     EXPECT_TRUE(skill.has_base() || skill.buff().has_base() ||
                 skill.dot().has_base() || skill.buff().pulse().has_base() ||
                 AnyStancePulseHasBase(skill.buff()) ||
-                GrantsAtFirstLevel(skill))
+                AnyAutoModeHasBase(skill) || GrantsAtFirstLevel(skill))
         << skill.name() << " grants nothing at its first level";
     if (skill.v_node() == V_NODE_KIND_COMMON) {
       ++commons;

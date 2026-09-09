@@ -6,7 +6,7 @@
 name: "Hurricane Boost"
 description: "Strengthens Hurricane."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 4 }
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 5 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {

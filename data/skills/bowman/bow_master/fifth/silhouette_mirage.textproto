@@ -1,0 +1,35 @@
+# A double that shoots for the character. GMS spawns one every 50 seconds up
+# to two, spends one to soak a hit worth half the character's HP, and fires
+# five illusory bullets whenever an attack lands with an enemy near.
+#
+# Only the bullets are kept. The damage reduction is a survival lever this
+# game does not price, and the number of doubles standing feeds nothing else:
+# one or two, the volley is five bullets either way. With the reduction gone
+# no double is ever spent, so a skill kept toggled on has both of them up
+# before any fight starts -- the 50-second wait and the cap of two go too.
+#
+# One enemy a bullet. GMS states no mobCount and the box is degenerate,
+# (-20,0) to (0,0), so there is no cap for the reach rule to lift -- the same
+# reading Inhuman Speed's afterimage takes. The five ride one target here,
+# which is a boss exactly and a farm generously understated.
+#
+# GMS fires them "when using an attack skill", and the swing clock never idles
+# while a monster stands, so the 7.5-second re-trigger is simply the rate.
+name: "Silhouette Mirage"
+description:
+  "Evades enemy attacks by moving fast enough to create illusory doubles of "
+  "yourself. Illusory doubles disperse the enemy's attention to inflict "
+  "damage on the enemy. Illusory doubles are unaffected by attack reflection."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER_V skill_order: 4 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+auto_mode {
+  label: "Illusory Bullets"
+  cast_interval_seconds: 7.5
+  casts: 5
+  lines: 3
+  max_enemies: 1
+  base { skill_pct: 8.00 }
+  per_level { skill_pct: 0.30 }
+}
