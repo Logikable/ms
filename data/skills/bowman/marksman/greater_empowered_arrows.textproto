@@ -68,7 +68,7 @@ empowered_form {
     ied_pct: 0.01
   }
   extra_hit {
-    label: "Marked Target"
+    label: "Mark"
     lines: 5
     base { skill_pct: 2.20 }
     per_level { skill_pct: 0.04 }
