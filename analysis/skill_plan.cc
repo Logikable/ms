@@ -79,8 +79,12 @@ void SpendBook(GameState& state, const SkillRate& rate) {
             best_levels = levels;
             best = &entry.second;
           }
+          // Only what was bought needs putting back. A skill the book cannot
+          // sell -- maxed, unaffordable, its requirement out of reach -- left
+          // the character untouched, and rebuilding them from the proto to
+          // undo nothing is most of what this loop used to cost.
+          state.character.RestoreFrom(before, state.equips, state.items);
         }
-        state.character.RestoreFrom(before, state.equips, state.items);
         if (entry.second.max_level() <= 1) {
           break;  // both tries are the same one
         }
