@@ -843,6 +843,17 @@ message Buff {
   // for. Unset for every buff that loads none, which is all of them but the
   // Marksman's cartridge -- see Magazine.
   Magazine magazine = 17;
+  // Seconds added to the window for every burn alight on the group, counted up
+  // to dot_count_cap of them. Elemental Fury is what it exists for: GMS
+  // lengthens the spirit's stay 0.6 seconds per active Fervent Drain, which is
+  // exactly one more strike of its 0.6-second clock.
+  //
+  // The count is the same one Fervent Drain itself reads -- burns across the
+  // whole group -- and it is taken LIVE at the raise, so a window opened with
+  // the rotation's poisons down is the short one. 0 for a buff that stands the
+  // same length whatever the enemies are carrying, which is every other one.
+  double duration_seconds_per_dot = 18;
+  int32 dot_count_cap = 19;
 }
 
 // A chance a swing has to land harder on one of the enemies it reached, and

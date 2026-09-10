@@ -367,6 +367,14 @@ void ChargeBuffs(const CombatParams& params, int lines, BuffClocks& c) {
   }
 }
 
+// Seconds one raising of a buff stands. There is no queue here to count burns
+// on either, so a window the burns lengthen is charged the whole of what they
+// can add -- the same reading ScatterHits takes, and for the same reason.
+double BuffWindowSeconds(const BuffOption& buff) {
+  return buff.duration_seconds +
+         buff.duration_seconds_per_dot * buff.dot_count_cap;
+}
+
 // Winds every buff's clocks on by one step and puts up any that has come round
 // on its own. A buff its own swing lays is left alone here -- see LayBuff.
 void RunBuffClocks(const CombatParams& params, double step, BuffClocks& c) {
@@ -394,7 +402,7 @@ void RunBuffClocks(const CombatParams& params, double step, BuffClocks& c) {
         buff.charge_lines > 0 ? c.charge[i] <= 0.0 : c.cooldown[i] <= 0.0;
     if (buff.laid_by_attack < 0 && c.left[i] <= 0.0 && ready &&
         buff.duration_seconds > 0.0) {
-      c.left[i] = buff.duration_seconds;
+      c.left[i] = BuffWindowSeconds(buff);
       c.cooldown[i] = buff.cooldown_seconds;
       c.charge[i] = buff.charge_lines;
       stood = step;  // back up the moment it came down, so none of it is a gap
@@ -444,7 +452,7 @@ void LayBuff(const CombatParams& params, int swung, BuffClocks& c) {
     if (buff.laid_by_attack != swung) {
       continue;
     }
-    c.left[i] = buff.duration_seconds;
+    c.left[i] = BuffWindowSeconds(buff);
     c.cooldown[i] = buff.cooldown_seconds;
     // A fresh load, whole, as RunBuffClocks hands one to a buff on its own
     // clock: what was left of the last one is not carried.

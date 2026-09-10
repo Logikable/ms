@@ -3367,6 +3367,42 @@ TEST(CombatSimTest, APulseGatedOnABuffWaitsForItToBeLaid) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.9875, 1e-9);
 }
 
+// Elemental Fury's shape: a window the poisons already alight lengthen, read
+// at the raise. The first raising finds a clean board and stands its own
+// second; the second finds both burns and stands three.
+TEST(CombatSimTest, ABuffStandsLongerForTheBurnsAlreadyAlight) {
+  Mob snail = MakeMob("Snail", 1000000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 100.0, 1)});
+  // Two burns worth nothing a tick, so the only thing they change is the count
+  // the window is read against.
+  params.attacks[0].dots.push_back(MakeBurn(0.0, 1.0, 30.0));
+  params.attacks[0].dots.push_back(MakeBurn(0.0, 1.0, 30.0));
+  params.attacks[0].dots[1].slot = 1;
+  params.dot_count = 2;
+  GiveBuff(params, /*duration=*/1.0, /*cooldown=*/4.0, /*factor=*/2.0);
+  params.buffs[0].duration_seconds_per_dot = 1.0;
+  params.buffs[0].dot_count_cap = 2;
+
+  double taken[8] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  double left = 1.0;
+  for (int step = 0; step < 8; ++step) {
+    sim.Advance(params, 1.0);
+    taken[step] = (left - sim.view().target_hp_fraction) * 1000000.0;
+    left = sim.view().target_hp_fraction;
+  }
+  // Nothing was burning when the first went up, so it stood one second. By the
+  // time it came round both burns were alight and it stood three.
+  EXPECT_NEAR(taken[0], 200.0, 1e-9);
+  EXPECT_NEAR(taken[1], 100.0, 1e-9);
+  EXPECT_NEAR(taken[2], 100.0, 1e-9);
+  EXPECT_NEAR(taken[3], 100.0, 1e-9);
+  EXPECT_NEAR(taken[4], 200.0, 1e-9);
+  EXPECT_NEAR(taken[5], 200.0, 1e-9);
+  EXPECT_NEAR(taken[6], 200.0, 1e-9);
+  EXPECT_NEAR(taken[7], 100.0, 1e-9);
+}
+
 // Inhuman Speed's passive half: it counts the character's swings only while
 // its own buff is down, and picks the count up again where it left off when
 // the buff lapses.

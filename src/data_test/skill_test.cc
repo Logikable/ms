@@ -1056,9 +1056,32 @@ TEST(SkillDataTest, EveryBuffStandsForAWhileAndWaitsForTheNextOne) {
         skill.buff().shield().hits_per_level() > 0.0) {
       continue;
     }
-    EXPECT_GT(skill.cooldown_seconds(), skill.buff().duration_seconds())
+    // The LONGEST it can stand, burns and all: a window the poisons stretch is
+    // still a window only if the wait outlives it.
+    double longest =
+        skill.buff().duration_seconds() +
+        skill.buff().duration_seconds_per_dot() * skill.buff().dot_count_cap();
+    EXPECT_GT(skill.cooldown_seconds(), longest)
         << entry.first << "'s buff is up for longer than it waits, so it is a "
         << "passive rather than a buff";
+  }
+}
+
+// A window the burns lengthen has to state both halves -- the seconds each one
+// adds and the count they stop at. Either alone is a rule with no bound or a
+// bound on nothing, and both need a window of their own to lengthen.
+TEST(SkillDataTest, EveryBuffLengthenedByBurnsSaysWhatStopsIt) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Buff& buff = entry.second.buff();
+    if (buff.duration_seconds_per_dot() <= 0.0 && buff.dot_count_cap() <= 0) {
+      continue;
+    }
+    EXPECT_GT(buff.duration_seconds_per_dot(), 0.0)
+        << entry.first << " counts burns its window never grows with";
+    EXPECT_GT(buff.dot_count_cap(), 0)
+        << entry.first << " grows with every burn alight and stops at none";
+    EXPECT_GT(buff.duration_seconds(), 0.0)
+        << entry.first << " lengthens a window it never opens";
   }
 }
 

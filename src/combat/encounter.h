@@ -520,6 +520,13 @@ struct BuffOption {
   // final damage GMS grants "upon use" and whose slashes all land inside the
   // window it opens. Read only where laid_by_attack is set.
   bool raised_on_cast = false;
+  // Seconds added to the window for every burn alight on the group, counted up
+  // to dot_count_cap of them, and read at the raise rather than baked in. 0
+  // for a buff whose window is the same length whatever the enemies are
+  // carrying, which is every one but Elemental Fury. See
+  // Buff::duration_seconds_per_dot.
+  double duration_seconds_per_dot = 0.0;
+  int dot_count_cap = 0;
   // The forms this buff can be raised in, for the fight to choose between at
   // each cast. Empty for a buff with one form, which is every one but Burning
   // Soul Blade -- and where it is filled, duration_seconds above is the

@@ -1560,6 +1560,21 @@ std::vector<Row> MagazineRows(const Magazine& magazine, int level) {
   return rows;
 }
 
+// How long the buff stands, for its own heading. A window the burns lengthen
+// states the band it runs in and the rule that moves it, the same way a
+// scattered swing states its own -- see ScatterText.
+std::string BuffWindowText(const Buff& buff, int level) {
+  double seconds =
+      buff.duration_seconds() + buff.duration_seconds_per_level() * (level - 1);
+  if (buff.duration_seconds_per_dot() <= 0.0 || buff.dot_count_cap() <= 0) {
+    return FormatNumber(seconds) + "s";
+  }
+  double longest =
+      seconds + buff.duration_seconds_per_dot() * buff.dot_count_cap();
+  return FormatNumber(seconds) + "-" + FormatNumber(longest) + "s, +" +
+         FormatNumber(buff.duration_seconds_per_dot()) + "s per DoT";
+}
+
 std::vector<Row> BuffRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   const Buff& buff = skill.buff();
@@ -1579,11 +1594,7 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   // block below, and one heading for both would have to lie about one of them.
   if (buff.stance().empty()) {
     rows.push_back(SectionRow(
-        "Active for " +
-            FormatNumber(buff.duration_seconds() +
-                         buff.duration_seconds_per_level() * (level - 1)) +
-            "s" + charge + shared,
-        kGold));
+        "Active for " + BuffWindowText(buff, level) + charge + shared, kGold));
   }
   // The heal is handed over once, when the buff goes up -- so it is stated on
   // its own rather than among the levers that hold for as long as it stands.

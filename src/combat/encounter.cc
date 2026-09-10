@@ -1481,6 +1481,11 @@ BuffOption BuffClockFor(const Buff& buff, int level, const SkillBoosts& boost,
         std::min(option.duration_seconds,
                  buff.stage_interval_seconds() * (stage + 1) * speed_factor);
   }
+  // The same rule the length above is under, since it is the same length: what
+  // the burns add is seconds of window, not a lever of its own.
+  option.duration_seconds_per_dot = buff.duration_seconds_per_dot() *
+                                    (1.0 + buff_duration_pct) * speed_factor;
+  option.dot_count_cap = buff.dot_count_cap();
   if (buff.has_shield()) {
     option.shield_hits = ShieldHitsAt(buff.shield(), level) + boost.shield_hits;
     option.boss_damage_taken_pct = buff.shield().boss_damage_taken_pct() +

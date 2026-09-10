@@ -209,6 +209,8 @@ class CombatSim {
   int BurnsAlight() const;
   // The same taken in stacks, which is what a scattered swing widens on.
   int BurnStacksAlight() const;
+  // Seconds one raising of this buff stands, the burns alight included.
+  double BuffWindowSeconds(const BuffOption& buff) const;
   double BurnLeftOn(const QueuedMob& mob, int slot) const;
   double BurningRate(const CombatParams& params, const QueuedMob& mob,
                      int alight) const;

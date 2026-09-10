@@ -715,6 +715,19 @@ int CombatSim::BurnsAlight() const {
   return alight;
 }
 
+// How long one raising of this buff stands: its own length, plus what the
+// burns already alight add to it. Read at the raise rather than baked onto the
+// option, because the count moves with the fight -- Elemental Fury's spirit
+// stays twice as long over a group the rotation has kept poisoned.
+double CombatSim::BuffWindowSeconds(const BuffOption& buff) const {
+  if (buff.duration_seconds_per_dot <= 0.0 || buff.dot_count_cap <= 0) {
+    return buff.duration_seconds;
+  }
+  return buff.duration_seconds +
+         buff.duration_seconds_per_dot *
+             std::min(BurnsAlight(), buff.dot_count_cap);
+}
+
 // The same count taken in STACKS, which is what GMS means by a damage over
 // time stack where it says so: a burn piled three deep is three. The two part
 // only over Poison Breath, the one burn in the game that stacks at all.
@@ -1636,7 +1649,7 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
       // planted for two minutes stays planted, however the fight turns.
       clock.stance = StanceToRaise(params, buff);
       clock.left = clock.stance < 0
-                       ? buff.duration_seconds
+                       ? BuffWindowSeconds(buff)
                        : buff.stances[clock.stance].duration_seconds;
       clock.cooldown_left = buff.cooldown_seconds;
       clock.charge_left = buff.charge_lines;
@@ -1765,7 +1778,7 @@ bool CombatSim::LayBuffs(const CombatParams& params, int swung, bool on_cast) {
     }
     // Refreshed rather than stacked, and its wait started from the swing that
     // laid it: what a second puncture leaves is one wound, not two.
-    buffs_[i].left = buff.duration_seconds;
+    buffs_[i].left = BuffWindowSeconds(buff);
     buffs_[i].cooldown_left = buff.cooldown_seconds;
     // A fresh load, whole, exactly as RunBuffs hands one to a buff on its own
     // clock: what was left of the last one is not carried.
