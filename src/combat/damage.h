@@ -149,6 +149,22 @@ bool DealsDamage(SkillKind kind);
 SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
                      int level);
 
+// A buff's party half once the caster's INT has grown it. Each of the buff's
+// ally_int_levers adds its effect once per whole `caster_int` step, and the
+// total is held to the ceiling that lever names -- or, where it names none, to
+// the caster's OWN value of the same lever divided by `party_size`.
+//
+// `half` is the party half at the caster's level and `own` is their own,
+// which is what the party share is a slice of. `party_size` counts the caster.
+// The share is rounded to whole percentage points, that being the unit GMS
+// states every one of these in: a third of 33% is 11%, a fifth 6.6% -> 7%.
+//
+// Returns `half` untouched for a buff naming no lever, which is every one but
+// Benediction's. See AllyIntLever.
+SkillEffect GrownByCasterInt(const Buff& buff, const SkillEffect& half,
+                             const SkillEffect& own, int caster_int,
+                             int party_size);
+
 // What a ladder's value comes to as a whole number. Every number a SkillEffect
 // carries is a double, so that a value climbing every few levels rather than
 // every one is stated as a fraction of a level's step -- 0.2 is one more every

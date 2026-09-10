@@ -782,9 +782,19 @@ SkillEffect AllyEffectOf(const AllyGrant& grant) {
                   grant.level);
 }
 
-// What a buff's party half comes to, at the level its caster holds it.
-SkillEffect AllyBuffEffect(const Buff& buff, int caster_level) {
-  return EffectAt(buff.ally_base(), buff.ally_per_level(), caster_level);
+// What a buff's party half comes to: the caster's level settles it, and their
+// INT then grows whatever levers the buff says grow. A share split between the
+// party is a slice of what the caster keeps for themselves, which is why their
+// own half is read here too.
+SkillEffect AllyBuffEffect(const Buff& buff, const BuffUp& up) {
+  SkillEffect half =
+      EffectAt(buff.ally_base(), buff.ally_per_level(), up.caster_level);
+  if (buff.ally_int_lever().empty()) {
+    return half;
+  }
+  return GrownByCasterInt(
+      buff, half, EffectAt(buff.base(), buff.per_level(), up.caster_level),
+      up.caster_int, up.party_size);
 }
 
 PassiveTotals LearnedPassives(const CharacterInstance& character,
@@ -828,7 +838,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
     // reader's does. It hands over levers and nothing else -- a Final Attack
     // and a boost are the caster's own, and follow their swings, not these.
     if (up.caster != nullptr) {
-      AddEffect(AllyBuffEffect(skill.buff(), up.caster_level), totals);
+      AddEffect(AllyBuffEffect(skill.buff(), up), totals);
       continue;
     }
     int level = EffectiveSkillLevel(character, skill, bonus);
@@ -1496,6 +1506,13 @@ EquipStats PotentialStatGrant(const CharacterInstance& character,
   int pile[4];
   StatPileFor(character, derived.skill_stats, derived.potential_stats, pile);
   return PotentialFlatGrant(pile, totals);
+}
+
+int TotalIntFor(const CharacterInstance& character,
+                const std::map<std::string, Skill>& skills) {
+  DerivedStats derived = DerivedStatsFor(character, skills);
+  return character.proto().allocated_stats().int_() +
+         TotalEquipStats(character, derived).int_();
 }
 
 EquipStats TotalEquipStats(const CharacterInstance& character,

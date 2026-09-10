@@ -1618,19 +1618,21 @@ void AddBuffs(const GameState& state,
 }
 
 // The buffs the rest of the party puts up over this character, on their
-// casters' clocks and at their casters' levels. What they grant never reaches
-// a damage table: all a party buff can hand over is a share off what a hit
-// costs, and the fight takes that off the hit itself.
+// casters' clocks and at their casters' levels, appended to the character's
+// own so that one mask covers both. An ally's blessing changes what a swing is
+// worth as readily as their own buff does, and what lays it is somebody else's
+// cast, so it costs this character no swing.
 //
 // A caster's Buff Duration lengthens their half of the cast and the party's
-// alike: one cloud, one clock, however many are standing in it.
-// The party's buffs, appended to the character's own so that one mask covers
-// both: an ally's blessing changes what a swing is worth, which needs a damage
-// table, and the character's own buffs already have the machinery for that.
-// What lays it is the ally's cast, so it costs this character no swing.
-std::vector<AllyGrant> AddAllyBuffs(const GameState& state, double speed_factor,
-                                    int budget, CombatParams& params) {
-  std::vector<AllyGrant> raised;
+// alike: one cloud, one clock, however many are standing in it. So does their
+// INT, where the buff says it grows -- worked out here, the party being in
+// hand, rather than inside the fold. See BuffUp.
+std::vector<BuffUp> AddAllyBuffs(const GameState& state, double speed_factor,
+                                 int budget, CombatParams& params) {
+  std::vector<BuffUp> raised;
+  // Everybody in the zone, the caster included -- there being no positions
+  // here, nobody is ever standing out of it. See AllyIntLever.
+  int party_size = static_cast<int>(state.party.size()) + 1;
   for (const AllyGrant& grant : AllyBuffsFor(
            state.character, state.skills, absl::MakeConstSpan(state.party))) {
     // The character's own book is served first: a party buff dropped is one
@@ -1661,7 +1663,9 @@ std::vector<AllyGrant> AddAllyBuffs(const GameState& state, double speed_factor,
     option.damage_taken_pct = shared.damage_taken_pct();
     option.heal_fraction = shared.heal_pct();
     params.buffs.push_back(std::move(option));
-    raised.push_back(grant);
+    raised.push_back(BuffUp{grant.skill, grant.caster, grant.level,
+                            TotalIntFor(*grant.caster, state.skills),
+                            party_size});
   }
   return raised;
 }
@@ -1770,7 +1774,7 @@ double ReferenceDps(const CombatParams& params) {
 // empty, and filled by BuildBuffedSet the first time one is asked for.
 void AddBuffedSets(const GameState& state,
                    const std::vector<const Skill*>& buff_skills,
-                   const std::vector<AllyGrant>& ally_buffs,
+                   const std::vector<BuffUp>& ally_buffs,
                    const EquipPrototype& weapon, double speed_factor,
                    StatPreset preset, CombatParams& params) {
   int count = static_cast<int>(buff_skills.size() + ally_buffs.size());
@@ -1813,8 +1817,7 @@ AttackSet BuildBuffedSet(const CombatParams& params, int mask) {
   // their half is read at the level of.
   for (int i = 0; i < static_cast<int>(source.ally_buffs.size()); ++i) {
     if ((mask & (1 << (own + i))) != 0) {
-      const AllyGrant& grant = source.ally_buffs[i];
-      up.push_back(BuffUp{grant.skill, grant.caster, grant.level});
+      up.push_back(source.ally_buffs[i]);
     }
   }
   DerivedStats derived = DerivedStatsFor(
@@ -1944,7 +1947,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     buff_skills.resize(kMaxBuffWindows);
   }
   AddBuffs(state, buff_skills, speed_factor, derived, params);
-  std::vector<AllyGrant> ally_buffs = AddAllyBuffs(
+  std::vector<BuffUp> ally_buffs = AddAllyBuffs(
       state, speed_factor,
       kMaxBuffWindows - static_cast<int>(buff_skills.size()), params);
   AddBuffedSets(state, buff_skills, ally_buffs, weapon, speed_factor, preset,

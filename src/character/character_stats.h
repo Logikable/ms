@@ -468,7 +468,20 @@ struct BuffUp {
   // own effective level; an ally's is read off Buff.ally_base at theirs.
   const CharacterInstance* caster = nullptr;
   int caster_level = 0;
+  // The caster's whole INT, and how many are in the party counting them --
+  // what Buff.ally_int_lever grows the party half on. Worked out where the
+  // party is in hand rather than inside the fold, which would send a reader's
+  // own stats round the caster's book and back. 0 for the character's own
+  // buff, which grows on nothing. See TotalIntFor.
+  int caster_int = 0;
+  int party_size = 0;
 };
+
+// A character's whole INT: what AP bought, what they wear, and what their book
+// grants. The number an INT-scaled lever is charged against -- see
+// SkillEffect::regen_int_step and Buff.ally_int_lever.
+int TotalIntFor(const CharacterInstance& character,
+                const std::map<std::string, Skill>& skills);
 
 // `skills` is the loaded skill catalog; every passive in it the character has
 // learned contributes its level's effect. Attack skills are ignored -- their

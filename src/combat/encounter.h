@@ -464,7 +464,11 @@ struct BuffedSetSource {
   // fold does one thing with both: an ally's blessing changes what a swing is
   // worth exactly as the character's own buff does, so it wants a damage table
   // for as long as it stands. Empty outside a party fight.
-  std::vector<AllyGrant> ally_buffs;
+  //
+  // Held as BuffUps rather than as AllyGrants because each carries its caster's
+  // INT and the party's size, worked out once here rather than in every window
+  // built off them.
+  std::vector<BuffUp> ally_buffs;
   double speed_factor = 1.0;
   StatPreset preset = StatPreset::kFarming;
   // Whether a window's reach is halved on the way out, which is what a boss

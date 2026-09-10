@@ -3352,6 +3352,7 @@ TEST_F(DerivedStatsTest, ABuffsPartyHalfIsAWindowRatherThanAPassive) {
 TEST_F(DerivedStatsTest, APartyBuffGrantsWhateverABuffGrants) {
   Skill blessing = Smokescreen();
   blessing.set_name("Benediction");
+  blessing.set_max_level(30);
   blessing.mutable_buff()->Clear();
   blessing.mutable_buff()->set_duration_seconds(30.0);
   blessing.mutable_buff()->mutable_base()->set_final_dmg_pct(0.33);
@@ -3371,6 +3372,86 @@ TEST_F(DerivedStatsTest, APartyBuffGrantsWhateverABuffGrants) {
   // Up, the CASTER's level settles it: six points is 5% plus five.
   const BuffUp up[] = {{raised[0].skill, raised[0].caster, raised[0].level}};
   EXPECT_NEAR(DerivedStatsFor(plain, skills, up, party).final_dmg_pct, 0.10,
+              1e-9);
+}
+
+// Benediction's shape: the party's share grows on the CASTER's INT, and is
+// held to what the caster keeps for themselves divided by the party, rounded.
+TEST_F(DerivedStatsTest, APartyBuffGrowsOnTheCastersIntAndSplitsBetweenThem) {
+  Skill blessing = Smokescreen();
+  blessing.set_name("Benediction");
+  blessing.set_max_level(30);
+  Buff* buff = blessing.mutable_buff();
+  buff->Clear();
+  buff->set_duration_seconds(30.0);
+  buff->mutable_base()->set_final_dmg_pct(0.33);
+  buff->mutable_ally_base()->set_final_dmg_pct(0.06);
+  AllyIntLever* lever = buff->add_ally_int_lever();
+  lever->set_int_step(3000);
+  lever->mutable_effect()->set_final_dmg_pct(0.01);
+  lever->set_cap_is_party_share(true);
+  std::map<std::string, Skill> skills = {{"benediction", blessing}};
+
+  CharacterInstance caster = MakeCharacter(rng_, 200, 0);
+  ASSERT_TRUE(caster.LearnSkill(blessing, 30));
+  CharacterInstance plain = MakeCharacter(rng_, 200, 0);
+  std::vector<CharacterInstance> party = PartyOf(std::move(caster));
+
+  // 24,000 INT is eight steps over the 6% floor, which two in the zone take
+  // whole: the ceiling there is half the caster's own 33%, rounded up to 17%.
+  const BuffUp pair[] = {{&skills["benediction"], &party[0], 30, 24000, 2}};
+  EXPECT_NEAR(DerivedStatsFor(plain, skills, pair, party).final_dmg_pct, 0.14,
+              1e-9);
+
+  // Three in the zone, and the same INT is held to a third of it: 33/3 = 11%.
+  const BuffUp trio[] = {{&skills["benediction"], &party[0], 30, 24000, 3}};
+  EXPECT_NEAR(DerivedStatsFor(plain, skills, trio, party).final_dmg_pct, 0.11,
+              1e-9);
+
+  // The step counts WHOLE thousands: 2,999 short of the ninth buys nothing.
+  const BuffUp under[] = {{&skills["benediction"], &party[0], 30, 26999, 2}};
+  EXPECT_NEAR(DerivedStatsFor(plain, skills, under, party).final_dmg_pct, 0.14,
+              1e-9);
+
+  // A Bishop with nothing to their name still pays the floor their level says.
+  const BuffUp poor[] = {{&skills["benediction"], &party[0], 30, 0, 2}};
+  EXPECT_NEAR(DerivedStatsFor(plain, skills, poor, party).final_dmg_pct, 0.06,
+              1e-9);
+
+  // What that INT is: the allocation, the gear and the book, summed.
+  EXPECT_EQ(
+      TotalIntFor(party[0], skills),
+      party[0].proto().allocated_stats().int_() +
+          TotalEquipStats(party[0], DerivedStatsFor(party[0], skills)).int_());
+}
+
+// A lever naming a cap of its own is held to that, whatever the party is: the
+// recovery and the attack speed are the caster's INT alone.
+TEST_F(DerivedStatsTest, ACappedIntLeverStopsAtItsOwnCeiling) {
+  Skill blessing = Smokescreen();
+  blessing.set_name("Benediction");
+  blessing.set_max_level(30);
+  Buff* buff = blessing.mutable_buff();
+  buff->Clear();
+  buff->set_duration_seconds(30.0);
+  buff->mutable_ally_base()->set_crit_rate(0.01);
+  AllyIntLever* lever = buff->add_ally_int_lever();
+  lever->set_int_step(2000);
+  lever->mutable_effect()->set_crit_rate(0.01);
+  lever->mutable_cap()->set_crit_rate(0.10);
+  std::map<std::string, Skill> skills = {{"benediction", blessing}};
+
+  CharacterInstance caster = MakeCharacter(rng_, 200, 0);
+  ASSERT_TRUE(caster.LearnSkill(blessing, 30));
+  CharacterInstance plain = MakeCharacter(rng_, 200, 0);
+  std::vector<CharacterInstance> party = PartyOf(std::move(caster));
+
+  // Four whole steps over the 1% floor, and the ceiling still miles off.
+  const BuffUp mid[] = {{&skills["benediction"], &party[0], 30, 8999, 2}};
+  EXPECT_NEAR(DerivedStatsFor(plain, skills, mid, party).crit_rate, 0.05, 1e-9);
+  // Past it, and the cap is what stands however much INT is behind it.
+  const BuffUp rich[] = {{&skills["benediction"], &party[0], 30, 900000, 2}};
+  EXPECT_NEAR(DerivedStatsFor(plain, skills, rich, party).crit_rate, 0.10,
               1e-9);
 }
 

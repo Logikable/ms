@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <map>
 #include <string>
 #include <vector>
@@ -305,6 +306,55 @@ SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
     }
   }
   return at;
+}
+
+namespace {
+
+// The ceiling one lever is held to, for one field of it. A lever naming a cap
+// of its own states it outright; one that does not takes a slice of what the
+// caster keeps for themselves, rounded to whole percentage points.
+double CasterIntCap(const AllyIntLever& lever, const SkillEffect& own,
+                    const google::protobuf::FieldDescriptor* field,
+                    int party_size) {
+  const google::protobuf::Reflection* reflect = own.GetReflection();
+  if (!lever.cap_is_party_share()) {
+    double cap = lever.cap().GetReflection()->GetDouble(lever.cap(), field);
+    return cap > 0.0 ? cap : std::numeric_limits<double>::infinity();
+  }
+  double share = reflect->GetDouble(own, field) / std::max(1, party_size);
+  return std::round(share * 100.0) / 100.0;
+}
+
+}  // namespace
+
+SkillEffect GrownByCasterInt(const Buff& buff, const SkillEffect& half,
+                             const SkillEffect& own, int caster_int,
+                             int party_size) {
+  SkillEffect grown = half;
+  const google::protobuf::Reflection* reflect = grown.GetReflection();
+  for (const AllyIntLever& lever : buff.ally_int_lever()) {
+    if (lever.int_step() <= 0.0) {
+      continue;
+    }
+    double steps = std::floor(caster_int / lever.int_step());
+    // Only the fields the lever actually grows, exactly as EffectAt walks only
+    // the ones a ladder climbs.
+    std::vector<const google::protobuf::FieldDescriptor*> growing;
+    const google::protobuf::Reflection* per = lever.effect().GetReflection();
+    per->ListFields(lever.effect(), &growing);
+    for (const google::protobuf::FieldDescriptor* field : growing) {
+      if (field->cpp_type() !=
+          google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE) {
+        continue;
+      }
+      double grew = reflect->GetDouble(grown, field) +
+                    per->GetDouble(lever.effect(), field) * steps;
+      reflect->SetDouble(
+          &grown, field,
+          std::min(grew, CasterIntCap(lever, own, field, party_size)));
+    }
+  }
+  return grown;
 }
 
 int SkillLinesAt(const Skill& skill, int level) {

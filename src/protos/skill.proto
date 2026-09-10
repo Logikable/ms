@@ -772,6 +772,37 @@ message Magazine {
   string spent_by_skill_name = 10;
 }
 
+// One lever of a buff's PARTY half that grows with the caster's INT rather
+// than standing at what their level says. GMS writes each as "+1 per N INT
+// (up to M)" and charges it against the Bishop's own wisdom rather than the
+// reader's -- unlike SkillEffect::regen_int_step, which a drinker earns for
+// themselves out of their own.
+//
+// Benediction is what it exists for: GMS grows all three of its party levers
+// this way, each off a step of its own, so one message written three times
+// says the whole of them.
+message AllyIntLever {
+  // INT that buys one more unit, and what a unit is worth. `effect` is added
+  // once per WHOLE step, so a 3000 step carrying final_dmg_pct 0.01 is GMS's
+  // "+1% per 3000 INT". The INT counted is the caster's whole total, exactly
+  // as a fountain counts the drinker's.
+  double int_step = 1;
+  SkillEffect effect = 2;
+  // The ceiling the lever is held to, ally_base included -- so a 10% cap over
+  // a 1% base is nine steps' worth of growing and no more. Unset for a lever
+  // GMS does not cap, which is none of them yet.
+  SkillEffect cap = 3;
+  // Whether that ceiling is instead the CASTER'S OWN value of the same lever,
+  // divided by the number of people in the party and rounded. Benediction's
+  // final damage alone: GMS splits one blessing between everybody standing in
+  // it, so a party of two takes half the Bishop's 33% each and a party of
+  // three a third. The Bishop's own share is untouched by the split.
+  //
+  // The count includes the caster. Every member of the party is taken to be
+  // inside the zone, there being no positions here to stand out of it.
+  bool cap_is_party_share = 4;
+}
+
 message Buff {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
@@ -832,6 +863,10 @@ message Buff {
   // 120-second wait folded in as a passive would pay four times over.
   SkillEffect ally_base = 9;
   SkillEffect ally_per_level = 10;
+  // What the CASTER's INT adds to that half, lever by lever. Empty for a party
+  // half worth exactly what the caster's level says, which is every one but
+  // Benediction's. See AllyIntLever.
+  repeated AllyIntLever ally_int_lever = 20;
   // The shell this buff stands as, over the caster and the party alike -- one
   // cast, one shell, and everyone under it gets their own count of blocks.
   // Unset for every buff that only grants levers, which is all of them but
