@@ -1,0 +1,69 @@
+# The F/P's fourth job node, and the last of them. A lash poisons two enemies,
+# and what the poison does is explode: every two seconds, five lines, harder
+# each time than the last.
+#
+# The accumulation is the skill. GMS's poison builds on anything that survives
+# an explosion, and every helping is worth 60 percentage points of the next
+# one, five deep -- so a boss walks 330% to 630% over six explosions and stays
+# there. That is what `skill_pct_per_repeat` was built for: the count of
+# helpings and the count of explosions are the same number seen from either
+# side, because a boss survives all of them.
+#
+# The two caps decide the damage, not the clock. GMS allows nine explosions on
+# one enemy and seventeen across every enemy, and the poison lasts up to twenty
+# seconds -- so the count runs out first and the interval only says how the
+# nine are spread. Nine at two seconds fill eighteen of the twenty.
+#
+# GMS publishes no interval: the client, the wiki and namu all say only
+# "periodically", and the one number its common block never spends is the three
+# crystals a map can hold, not a beat. Two seconds is ours, and it is bounded
+# rather than picked -- above 20/9 of a second the nine-explosion cap would be
+# dead on a boss, which is the one place GMS wrote it for.
+#
+# The extra explosion GMS goes out on -- "all poison is removed, followed by an
+# additional explosion" -- is not a tick. It lands with the ninth, at the top
+# of the ramp, which is `final_repeat_strike`.
+#
+# The crystal is dropped, and the spread with it. Both are how GMS moves the
+# poison off a mob that died, and the total is capped either way: two enemies
+# exploding nine times each is eighteen against GMS's seventeen. What is lost
+# is that a freshly infected mob starts its ramp again, so a crowd is worth
+# somewhat more here than in GMS. A boss, where this skill is measured, has
+# nothing to spread to at all.
+#
+# This poison is NOT a burn. GMS says it plainly -- it does not activate
+# Elemental Drain -- so it is a pulse rather than a `dot`, and DoT Punisher's
+# orb count and Fervent Drain's final damage never see it.
+name: "Poison Chain"
+description:
+  "Unleash a fatal poison on a chain of enemies. Poisoned enemies "
+  "periodically release clouds of additional poison, damaging both "
+  "themselves and other nearby enemies. Even if they survive the initial "
+  "explosion, the poison effect stacks, raising the power of further "
+  "explosions. Unaffected by attack reflection."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 4 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_STAFF
+base_delay_ms: 660
+cooldown_seconds: 25.0
+max_enemies: 2
+lines: 4
+base { skill_pct: 2.60 }
+per_level { skill_pct: 0.10 }
+buff {
+  duration_seconds: 20.0
+  pulse {
+    label: "Poison Explosion"
+    cast_interval_seconds: 2.0
+    lines: 5
+    max_pulses: 9
+    final_repeat_strike: true
+    max_repeats: 5
+    skill_pct_per_repeat: 0.31
+    skill_pct_per_repeat_per_level: 0.01
+    base { skill_pct: 1.56 }
+    per_level { skill_pct: 0.06 }
+  }
+}
