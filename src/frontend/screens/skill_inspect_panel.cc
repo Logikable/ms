@@ -502,6 +502,25 @@ std::vector<Row> Speaking(std::vector<Row> rows) {
 // How far the swing reaches and how often it lands, its own-clock halves
 // included. Reach and rate share a row where a skill has both: the two
 // together are the shape of it.
+// What a scattered swing throws, for the row that says so. A count that widens
+// with the burns already laid states the band it moves between and what widens
+// it, so the reader knows where in the band a fight will put them.
+std::string ScatterText(const Scatter& scatter) {
+  std::string text = std::to_string(scatter.hits());
+  if (scatter.hits_per_dot() > 0.0) {
+    text += "-" + std::to_string(scatter.max_hits());
+  }
+  text += " strikes";
+  if (scatter.hits_per_dot() > 0.0) {
+    text += ", +" + FormatNumber(scatter.hits_per_dot(), 2) + " per DoT stack";
+  }
+  if (scatter.repeat_final_dmg_pct() != 0.0) {
+    text += ", repeats at " + FormatPercent(scatter.repeat_final_dmg_pct()) +
+            " Final Damage";
+  }
+  return text;
+}
+
 std::vector<Row> ReachRows(const Skill& skill) {
   std::vector<Row> rows;
   // A skill with a clock of its own states it where it states its reach: the
@@ -532,13 +551,7 @@ std::vector<Row> ReachRows(const Skill& skill) {
   // is how far it can spread before it starts doubling up, and the cut is what
   // doubling up costs.
   if (skill.scatter().hits() > 0) {
-    std::string text = std::to_string(skill.scatter().hits()) + " strikes";
-    if (skill.scatter().repeat_final_dmg_pct() != 0.0) {
-      text += ", repeats at " +
-              FormatPercent(skill.scatter().repeat_final_dmg_pct()) +
-              " Final Damage";
-    }
-    rows.push_back(EffectRow("Scattered", text));
+    rows.push_back(EffectRow("Scattered", ScatterText(skill.scatter())));
   }
   // Each own-clock half states its own reach beside the swing's. Revenge of the
   // Evil Eye is why: its auras land 20 strikes on 3 enemies where the volley
@@ -1272,14 +1285,8 @@ std::vector<Row> SwingRiderRows(const Skill& skill, int level) {
     // A side strike scatters on its own row for the same reason the swing's
     // does, and under its own name: the reach above is how far it spreads.
     if (side.scatter().hits() > 0) {
-      std::string scattered =
-          std::to_string(side.scatter().hits()) + " strikes";
-      if (side.scatter().repeat_final_dmg_pct() != 0.0) {
-        scattered += ", repeats at " +
-                     FormatPercent(side.scatter().repeat_final_dmg_pct()) +
-                     " Final Damage";
-      }
-      rows.push_back(EffectRow(side.label() + " Scattered", scattered));
+      rows.push_back(
+          EffectRow(side.label() + " Scattered", ScatterText(side.scatter())));
     }
   }
   return rows;

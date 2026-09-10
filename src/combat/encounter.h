@@ -212,6 +212,11 @@ struct AttackOption {
   // same cast already reached (0.45 == GMS's "Final Damage -55%"). Read only
   // where scatter_hits is set.
   double scatter_repeat_kept = 1.0;
+  // Strikes thrown on top of scatter_hits for every burn stack alight on the
+  // group, up to scatter_max_hits of them in all. 0 for a swing whose count is
+  // fixed -- DoT Punisher is the one that widens with the burns already laid.
+  double scatter_hits_per_dot = 0.0;
+  int scatter_max_hits = 0;
   // Expected Final Attack damage per target type, landing on every mob the
   // swing reached: it rolls separately for each of them. Empty for a character
   // with no Final Attack and for a swing none of theirs follows. A skill firing

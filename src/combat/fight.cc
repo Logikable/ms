@@ -96,11 +96,29 @@ int CombatSim::WideHitTargets(const AttackOption& attack, int hit) const {
                   static_cast<int>(queue_.size()));
 }
 
+// Strikes a scattered swing throws. Fixed for every one of them but DoT
+// Punisher, which summons an orb apiece for the burn stacks already standing
+// on the group -- so a swing laid on top of the book's poisons is half again
+// as wide as one opening a fight.
+//
+// Read before anything of this cast lands, which is what freezes the count:
+// ApplyDots runs at the end of Strike, so the orbs never widen themselves.
+int CombatSim::ScatterHits(const AttackOption& attack) const {
+  if (attack.scatter_hits <= 0 || attack.scatter_hits_per_dot <= 0.0) {
+    return attack.scatter_hits;
+  }
+  int widened =
+      attack.scatter_hits +
+      static_cast<int>(attack.scatter_hits_per_dot * BurnStacksAlight());
+  return std::min(widened, attack.scatter_max_hits);
+}
+
 int CombatSim::Reached(const AttackOption& attack) const {
   int hit = std::min(std::max(1, attack.max_enemies),
                      static_cast<int>(queue_.size()));
-  if (attack.scatter_hits > 0) {
-    hit = std::min(hit, attack.scatter_hits);
+  int hits = ScatterHits(attack);
+  if (hits > 0) {
+    hit = std::min(hit, hits);
   }
   return hit;
 }
@@ -123,7 +141,8 @@ int CombatSim::ExtraLines(const AttackOption& attack) const {
 // with the HP.
 std::vector<double> CombatSim::ScatterShares(const AttackOption& attack,
                                              int hit) const {
-  if (attack.scatter_hits <= 0 || hit <= 0) {
+  int hits = ScatterHits(attack);
+  if (hits <= 0 || hit <= 0) {
     return {};
   }
   std::vector<int> healthiest(hit);
@@ -133,8 +152,8 @@ std::vector<double> CombatSim::ScatterShares(const AttackOption& attack,
   std::sort(healthiest.begin(), healthiest.end(),
             [this](int a, int b) { return queue_[a].hp > queue_[b].hp; });
   std::vector<double> shares(hit, 0.0);
-  int each = attack.scatter_hits / hit;
-  int spare = attack.scatter_hits % hit;
+  int each = hits / hit;
+  int spare = hits % hit;
   for (int rank = 0; rank < hit; ++rank) {
     int strikes = each + (rank < spare ? 1 : 0);
     shares[healthiest[rank]] = 1.0 + (strikes - 1) * attack.scatter_repeat_kept;
@@ -664,6 +683,21 @@ int CombatSim::BurnsAlight() const {
     for (const MobDot& burn : mob.dots) {
       if (burn.left_seconds > 0.0 && burn.stacks > 0) {
         ++alight;
+      }
+    }
+  }
+  return alight;
+}
+
+// The same count taken in STACKS, which is what GMS means by a damage over
+// time stack where it says so: a burn piled three deep is three. The two part
+// only over Poison Breath, the one burn in the game that stacks at all.
+int CombatSim::BurnStacksAlight() const {
+  int alight = 0;
+  for (const QueuedMob& mob : queue_) {
+    for (const MobDot& burn : mob.dots) {
+      if (burn.left_seconds > 0.0) {
+        alight += std::max(0, burn.stacks);
       }
     }
   }

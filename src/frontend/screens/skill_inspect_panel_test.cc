@@ -281,6 +281,26 @@ TEST_F(SkillInspectPanelTest, AMultiStrikeOpeningHitTotalsItself) {
   EXPECT_NE(RenderAt(skill, 1).find("(2 enemies)"), std::string::npos);
 }
 
+// A scattered swing states its strike count and what a repeat costs, and one
+// whose count widens with the burns already laid states the band instead of a
+// single number the reader would never see twice running.
+TEST_F(SkillInspectPanelTest, SpellsOutAScatteredSwingAndTheBandItWidensTo) {
+  Skill skill = MakeLuckySeven();
+  Scatter* scatter = skill.mutable_scatter();
+  scatter->set_hits(11);
+  scatter->set_repeat_final_dmg_pct(-0.55);
+  EXPECT_NE(RowIn(RenderAt(skill, 1), "Scattered",
+                  "11 strikes, repeats at -55% Final Damage"),
+            std::string::npos);
+
+  scatter->set_hits_per_dot(1.0);
+  scatter->set_max_hits(25);
+  EXPECT_NE(RowIn(RenderAt(skill, 1), "Scattered",
+                  "11-25 strikes, +1 per DoT stack, repeats at -55% Final "
+                  "Damage"),
+            std::string::npos);
+}
+
 // A clock the weapon can hurry is not one the page can state: an ordinary
 // swing's delay is scaled by the speed stage of whatever is in hand, so a
 // figure here would be wrong for half the weapons that can swing it. What one

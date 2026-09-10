@@ -212,6 +212,17 @@ double MeasureRate(GameState& state) {
   return rate + OffClockRate(params, played, 1.0);
 }
 
+// Strikes a scattered swing throws. There is no queue here to count burns on,
+// so a swing that widens with them is charged the whole of what it can reach:
+// the F/P's book keeps its poisons on everything it fights, which is where DoT
+// Punisher sits at its cap, and a lone boss is the only case that falls short.
+int ScatterHits(const AttackOption& attack) {
+  if (attack.scatter_hits <= 0 || attack.scatter_hits_per_dot <= 0.0) {
+    return attack.scatter_hits;
+  }
+  return attack.scatter_max_hits;
+}
+
 // What one swing lands on the `hit` enemies it reached, out of a crowd of
 // `enemies`: the strike itself, the opening hit, the Final Attacks that follow
 // it and the chance rolled on top. The crowd is taken as well as the reach
@@ -230,8 +241,9 @@ double SpreadDamage(const AttackOption& attack, int hit, int enemies) {
   // strike on each enemy it reached and what the repeat cut leaves of the rest.
   // No queue here to pick the healthiest from, and none is needed: the total is
   // the same whoever the leftovers fall on.
-  if (attack.scatter_hits > hit) {
-    damage += per * (attack.scatter_hits - hit) * attack.scatter_repeat_kept;
+  int hits = ScatterHits(attack);
+  if (hits > hit) {
+    damage += per * (hits - hit) * attack.scatter_repeat_kept;
   }
   if (!attack.lead_damage.empty()) {
     damage +=
@@ -287,8 +299,9 @@ double CrowdDamage(const AttackOption& attack, int enemies, bool charge_burns) {
     return 0.0;
   }
   int hit = std::min(std::max(1, attack.max_enemies), std::max(1, enemies));
-  if (attack.scatter_hits > 0) {
-    hit = std::min(hit, attack.scatter_hits);
+  int hits = ScatterHits(attack);
+  if (hits > 0) {
+    hit = std::min(hit, hits);
   }
   double damage = SpreadDamage(attack, hit, std::max(1, enemies));
   if (charge_burns) {

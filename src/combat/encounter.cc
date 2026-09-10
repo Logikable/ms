@@ -623,6 +623,8 @@ void AddSideStrike(const Character& proto, const EquipStats& equipped,
   strike.cooldown_seconds = side.cooldown_seconds() * speed_factor;
   strike.scatter_hits = side.scatter().hits();
   strike.scatter_repeat_kept = 1.0 + side.scatter().repeat_final_dmg_pct();
+  strike.scatter_hits_per_dot = side.scatter().hits_per_dot();
+  strike.scatter_max_hits = side.scatter().max_hits();
   std::vector<double> once;
   for (const CombatType& type : types) {
     once.push_back(ExpectedAttackDamage(stats, *type.mob));
@@ -699,6 +701,8 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     // damage chain's, exactly as the opening hit's target count is.
     attack.scatter_hits = skill->scatter().hits();
     attack.scatter_repeat_kept = 1.0 + skill->scatter().repeat_final_dmg_pct();
+    attack.scatter_hits_per_dot = skill->scatter().hits_per_dot();
+    attack.scatter_max_hits = skill->scatter().max_hits();
   }
   for (const SwingProc& proc : derived.procs) {
     attack.procs.push_back({proc.chance, proc.damage_pct, proc.hp_recover_pct});

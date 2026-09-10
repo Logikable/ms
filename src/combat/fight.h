@@ -207,6 +207,8 @@ class CombatSim {
                            int alight) const;
   // Burns standing across the group, which is what the drains count.
   int BurnsAlight() const;
+  // The same taken in stacks, which is what a scattered swing widens on.
+  int BurnStacksAlight() const;
   double BurnLeftOn(const QueuedMob& mob, int slot) const;
   double BurningRate(const CombatParams& params, const QueuedMob& mob,
                      int alight) const;
@@ -325,6 +327,8 @@ class CombatSim {
   // lines_per_extra_enemy for every enemy that swing reaches past the first,
   // capped at max_extra_lines. 0 for every attack but Storm of Arrows' rain.
   int ExtraLines(const AttackOption& attack) const;
+  // Strikes a scattered swing throws, which the burns already laid may widen.
+  int ScatterHits(const AttackOption& attack) const;
   std::vector<double> ScatterShares(const AttackOption& attack, int hit) const;
   std::vector<int> PierceOrder(const AttackOption& attack, int hit);
   // Indices into the queue of the mobs `attack`'s opening hit picks, empty when

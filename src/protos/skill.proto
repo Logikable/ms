@@ -985,6 +985,20 @@ message Scatter {
   // Read the way every other final damage here is, so 0 is a repeat strike
   // worth as much as the first.
   double repeat_final_dmg_pct = 2;
+  // Strikes the cast throws on top of `hits` for every stack of a burn
+  // standing on the group -- DoT Punisher's "1 additional orb for every 1 of
+  // your damage over time stack(s) on enemies in range".
+  //
+  // A count over the WHOLE GROUP and over STACKS rather than burns, so eight
+  // monsters carrying one burn apiece are eight and one boss carrying a burn
+  // three deep is three. Frozen when the cast lands, so the burns this very
+  // swing lights are not what decides how wide it was.
+  //
+  // 0 leaves `hits` the whole count.
+  double hits_per_dot = 3;
+  // Strikes the count may climb to. Read only where hits_per_dot is set, and
+  // GMS states it for the same skill: "Up to 25 Flame Orbs can be summoned".
+  int32 max_hits = 4;
 }
 
 // What a strike leaves on the I/L's pile of Freeze Stacks, where GMS states a

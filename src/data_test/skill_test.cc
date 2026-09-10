@@ -948,8 +948,19 @@ TEST(SkillDataTest, EveryScatteredSwingReachesNoFurtherThanItsStrikes) {
         << entry.first << " scatters strikes but is not a swing";
     EXPECT_GT(skill.scatter().hits(), 1)
         << entry.first << " scatters a single strike, which is every swing";
-    EXPECT_LE(std::max(1, skill.max_enemies()), skill.scatter().hits())
+    // A count that widens with the burns alight is held to the widest it can
+    // get, since that is the only reach every strike of it could ever fill.
+    int widest = std::max(skill.scatter().hits(), skill.scatter().max_hits());
+    EXPECT_LE(std::max(1, skill.max_enemies()), widest)
         << entry.first << " reaches further than it has strikes to throw";
+    if (skill.scatter().hits_per_dot() > 0.0) {
+      EXPECT_GT(skill.scatter().max_hits(), skill.scatter().hits())
+          << entry.first << " widens with the burns but no further than it "
+          << "already threw";
+    } else {
+      EXPECT_EQ(skill.scatter().max_hits(), 0)
+          << entry.first << " caps a count that never grows";
+    }
     // A cut of the whole would make a repeat worth nothing, and more than the
     // whole would have it healing the monster.
     EXPECT_GT(skill.scatter().repeat_final_dmg_pct(), -1.0)

@@ -2397,6 +2397,43 @@ TEST(CombatSimTest, AScatteredSwingReachesNoFurtherThanItsStrikes) {
   EXPECT_NEAR(snails->hp_fraction, 1.0 - 20.0 / 4000.0, 1e-9);
 }
 
+// DoT Punisher's count: the orbs are as many as the burn stacks already
+// standing, so the same swing widens as the fight goes on and stops at its
+// cap. The first cast proves the other half of the rule -- a swing's own burn
+// is laid after its damage, so it never widens itself.
+TEST(CombatSimTest, AScatteredSwingWidensWithTheBurnsAlreadyAlight) {
+  Mob snail = MakeMob("Snail", 1000000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 10.0, 1)},
+                                   /*reach=*/5);
+  AddScatter(params, /*hits=*/2, /*kept=*/0.5);
+  params.attacks[0].scatter_hits_per_dot = 1.0;
+  params.attacks[0].scatter_max_hits = 5;
+  // A burn worth nothing per tick, so the only thing it changes is the count.
+  DotApplication burn = MakeBurn(0.0, 1.0, 30.0);
+  // Deeper than the count can use, so the cap is what stops it and not the
+  // pile running out of room.
+  burn.max_stacks = 6;
+  params.attacks[0].dots.push_back(burn);
+  params.dot_count = 1;
+
+  double taken[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  double left = 1.0;
+  for (int cast = 0; cast < 6; ++cast) {
+    sim.Advance(params, 1.0);
+    taken[cast] = (left - sim.view().target_hp_fraction) * 1000000.0;
+    left = sim.view().target_hp_fraction;
+  }
+  // 2 strikes, then 3, 4 and 5 as the pile deepens, and 5 twice more with the
+  // pile still deepening under it: the count stops at its cap.
+  EXPECT_NEAR(taken[0], 15.0, 1e-9);
+  EXPECT_NEAR(taken[1], 20.0, 1e-9);
+  EXPECT_NEAR(taken[2], 25.0, 1e-9);
+  EXPECT_NEAR(taken[3], 30.0, 1e-9);
+  EXPECT_NEAR(taken[4], 30.0, 1e-9);
+  EXPECT_NEAR(taken[5], 30.0, 1e-9);
+}
+
 // Puts a healing cast beside the swing, worth `fraction` of the pool. It
 // carries damage the fight must never land: what makes a cast harmless is the
 // fight declining to strike with it, not the encounter having zeroed it.
