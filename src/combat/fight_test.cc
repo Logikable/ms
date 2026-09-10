@@ -3109,7 +3109,7 @@ TEST(CombatSimTest, APartysBuffSoftensTheHitsAndCostsNoSwing) {
   ally.duration_seconds = 2.0;
   ally.cooldown_seconds = 4.0;
   ally.damage_taken_pct = 0.5;
-  params.ally_buffs.push_back(std::move(ally));
+  params.buffs.push_back(std::move(ally));
 
   // Up after this step's blow has landed, as the character's own buffs are --
   // and the swing still lands, because nobody here cast anything.
@@ -3142,7 +3142,7 @@ TEST(CombatSimTest, APartysBuffMultipliesWithTheCharactersOwn) {
   ally.duration_seconds = 10.0;
   ally.cooldown_seconds = 60.0;
   ally.damage_taken_pct = 0.5;
-  params.ally_buffs.push_back(std::move(ally));
+  params.buffs.push_back(std::move(ally));
 
   sim.Advance(params, 1.0);
   ASSERT_EQ(sim.view().player_hp, 80);  // both go up behind this blow
@@ -3230,7 +3230,7 @@ TEST(CombatSimTest, APartysShellHealsAndBlocksForEverybodyUnderIt) {
   ally.cooldown_seconds = 1000.0;
   ally.shield_hits = 2;
   ally.heal_fraction = 0.5;
-  params.ally_buffs.push_back(std::move(ally));
+  params.buffs.push_back(std::move(ally));
 
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().player_hp, 60);
@@ -3259,7 +3259,7 @@ TEST(CombatSimTest, OneHitSpendsOneBlockHoweverManyShellsStand) {
   ally.duration_seconds = 100.0;
   ally.cooldown_seconds = 1000.0;
   ally.shield_hits = 1;
-  params.ally_buffs.push_back(std::move(ally));
+  params.buffs.push_back(std::move(ally));
 
   sim.Advance(params, 1.0);
   ASSERT_EQ(sim.view().player_hp, 60);

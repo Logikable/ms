@@ -451,19 +451,34 @@ double BuffDurationPctFor(const CharacterInstance& character,
 // ally skill whose BUFF carries a party half (Buff.ally_base), thinned by the
 // two rules DerivedStatsFor states below. What it grants is not folded in here
 // either -- an ally's buff is up only while their clock says so, so the fight
-// runs a window of its own for each one. See CombatParams::ally_buffs.
+// runs a window of its own for each one, exactly as it does for the
+// character's own. See BuffUp.
 std::vector<AllyGrant> AllyBuffsFor(const CharacterInstance& character,
                                     const std::map<std::string, Skill>& skills,
                                     absl::Span<const CharacterInstance> allies);
+
+// One buff standing over the character at this moment, whoever raised it.
+// Their own and an ally's are one list because the fold does one thing with
+// them: both are levers held for a while, and both want a damage table of
+// their own for as long as they stand.
+struct BuffUp {
+  const Skill* skill = nullptr;
+  // The party member holding it up, and the level their book has it at. Null
+  // and 0 for the character's own buff, which is read off Buff.base at their
+  // own effective level; an ally's is read off Buff.ally_base at theirs.
+  const CharacterInstance* caster = nullptr;
+  int caster_level = 0;
+};
 
 // `skills` is the loaded skill catalog; every passive in it the character has
 // learned contributes its level's effect. Attack skills are ignored -- their
 // lever is damage, which OffenseStatsFor handles.
 //
-// `buffs_up` are the timed buffs standing at this moment, out of the list
-// BuffSkillsFor gives: each one's levers fold in as a source of its own, so
-// they meet the character's permanent ones exactly as another skill's would.
-// Empty is the character as they are between casts.
+// `buffs_up` are the timed buffs standing at this moment -- the character's
+// own, out of the list BuffSkillsFor gives, and the party's, out of
+// AllyBuffsFor. Each one's levers fold in as a source of its own, so they meet
+// the character's permanent ones exactly as another skill's would. Empty is
+// the character as they are between casts.
 //
 // `allies` is everybody else in the party. Each of their skills carrying an
 // ally half (see Skill.ally_base) folds in through the same door, read at that
@@ -486,7 +501,7 @@ std::vector<AllyGrant> AllyBuffsFor(const CharacterInstance& character,
 // a boss fight or a screen showing the other one.
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills,
-                             absl::Span<const Skill* const> buffs_up = {},
+                             absl::Span<const BuffUp> buffs_up = {},
                              absl::Span<const CharacterInstance> allies = {},
                              StatPreset preset = StatPreset::kFarming);
 

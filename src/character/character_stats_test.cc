@@ -563,7 +563,7 @@ TEST_F(DerivedStatsTest, GlacialFuryDeepensThePileWhileItStands) {
   EXPECT_EQ(down.freeze.cap, 5);
   EXPECT_EQ(down.freeze.matt_per_stack, 0);
 
-  const Skill* up[] = {&fury};
+  const BuffUp up[] = {{&fury}};
   DerivedStats standing = DerivedStatsFor(c, skills, absl::MakeConstSpan(up));
   EXPECT_EQ(standing.freeze.cap, 13);
   EXPECT_EQ(standing.freeze.matt_per_stack, 5);
@@ -577,7 +577,7 @@ TEST_F(DerivedStatsTest, TheCapBonusGrantsNothingWithoutACap) {
   std::map<std::string, Skill> skills = {{"glacial_fury", fury}};
   ASSERT_TRUE(c.LearnSkill(fury, 1));
 
-  const Skill* up[] = {&fury};
+  const BuffUp up[] = {{&fury}};
   DerivedStats stats = DerivedStatsFor(c, skills, absl::MakeConstSpan(up));
   EXPECT_EQ(stats.freeze.cap, 0);
   EXPECT_EQ(stats.freeze.matt_per_stack, 0);
@@ -950,7 +950,7 @@ TEST_F(DerivedStatsTest, ABuffsBoostReachesTheNamedSkillOnlyWhileItStands) {
   ASSERT_EQ(down.final_attacks.size(), 1u);
   EXPECT_NEAR(down.final_attacks[0].chance, 0.40, 1e-9);
 
-  const Skill* up[] = {&skills["storm"]};
+  const BuffUp up[] = {{&skills["storm"]}};
   DerivedStats standing = DerivedStatsFor(c, skills, up);
   ASSERT_EQ(standing.final_attacks.size(), 1u);
   EXPECT_NEAR(standing.final_attacks[0].chance, 0.80, 1e-9);
@@ -2772,7 +2772,7 @@ TEST_F(DerivedStatsTest, GoddessBlessingMultipliesMapleWarriorsShare) {
 
   // Up, the share is four times over -- 60% -- and the rounding is still per
   // stat, so 100 DEX comes back as 60.
-  const Skill* up[] = {&blessing};
+  const BuffUp up[] = {{&blessing}};
   DerivedStats buffed = DerivedStatsFor(c, skills, up);
   EXPECT_EQ(buffed.skill_stats.str(), 600);
   EXPECT_EQ(buffed.skill_stats.dex(), 60);
@@ -2787,7 +2787,7 @@ TEST_F(DerivedStatsTest, GoddessBlessingGrantsNothingWithoutMapleWarrior) {
   std::map<std::string, Skill> skills = {{"blessing", blessing}};
   ASSERT_TRUE(c.LearnSkill(blessing, 30));
 
-  const Skill* up[] = {&blessing};
+  const BuffUp up[] = {{&blessing}};
   EXPECT_EQ(DerivedStatsFor(c, skills, up).skill_stats.str(), 0);
 }
 
@@ -3115,7 +3115,7 @@ TEST_F(DerivedStatsTest, ABuffCombinesWithThePermanentHalf) {
   ASSERT_TRUE(c.LearnSkill(resonance, 30));
 
   EXPECT_NEAR(DerivedStatsFor(c, skills).ied, 0.30, 1e-9);
-  const Skill* up[] = {&skills.at("dark_resonance")};
+  const BuffUp up[] = {{&skills.at("dark_resonance")}};
   DerivedStats buffed = DerivedStatsFor(c, skills, absl::MakeConstSpan(up));
   // 30% and 10%, which leave 63% of the monster's DEF between them.
   EXPECT_NEAR(buffed.ied, 0.37, 1e-9);
@@ -3345,6 +3345,33 @@ TEST_F(DerivedStatsTest, ABuffsPartyHalfIsAWindowRatherThanAPassive) {
   ASSERT_EQ(buffs.size(), 1u);
   EXPECT_EQ(buffs[0].skill->name(), "Smokescreen");
   EXPECT_EQ(buffs[0].level, 10);
+}
+
+// An ally's buff folds in through the same door the character's own does, and
+// so can grant anything a buff grants rather than a share off a hit alone.
+TEST_F(DerivedStatsTest, APartyBuffGrantsWhateverABuffGrants) {
+  Skill blessing = Smokescreen();
+  blessing.set_name("Benediction");
+  blessing.mutable_buff()->Clear();
+  blessing.mutable_buff()->set_duration_seconds(30.0);
+  blessing.mutable_buff()->mutable_base()->set_final_dmg_pct(0.33);
+  blessing.mutable_buff()->mutable_ally_base()->set_final_dmg_pct(0.05);
+  blessing.mutable_buff()->mutable_ally_per_level()->set_final_dmg_pct(0.01);
+  std::map<std::string, Skill> skills = {{"benediction", blessing}};
+  CharacterInstance caster = MakeCharacter(rng_, 200, 0);
+  ASSERT_TRUE(caster.LearnSkill(blessing, 6));
+  CharacterInstance plain = MakeCharacter(rng_, 200, 0);
+  std::vector<CharacterInstance> party = PartyOf(std::move(caster));
+
+  std::vector<AllyGrant> raised = AllyBuffsFor(plain, skills, party);
+  ASSERT_EQ(raised.size(), 1u);
+  // Down, it pays nothing at all -- a window, not a gift for good.
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(plain, skills, {}, party).final_dmg_pct,
+                   0.0);
+  // Up, the CASTER's level settles it: six points is 5% plus five.
+  const BuffUp up[] = {{raised[0].skill, raised[0].caster, raised[0].level}};
+  EXPECT_NEAR(DerivedStatsFor(plain, skills, up, party).final_dmg_pct, 0.10,
+              1e-9);
 }
 
 // The two rules that thin a permanent grant thin a buff's window the same

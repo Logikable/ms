@@ -1461,16 +1461,6 @@ double CombatSim::BuffDamageTakenFactor(const CombatParams& params) const {
       }
     }
   }
-  // A party's buff is one more reduction and multiplies like the rest: a
-  // Shadower's smokescreen over a Shadower's own is not twice the shelter.
-  for (int i = 0; i < static_cast<int>(ally_buffs_.size()); ++i) {
-    if (ally_buffs_[i].left > 0.0) {
-      factor *= 1.0 - params.ally_buffs[i].damage_taken_pct;
-      if (boss && ally_buffs_[i].blocks_left > 0) {
-        factor *= 1.0 - params.ally_buffs[i].boss_damage_taken_pct;
-      }
-    }
-  }
   // The shelter a HOLD is, which lasts exactly as long as the hold: the swing
   // being charged is the key being held down.
   const std::vector<AttackOption>& options = Attacks(params);
@@ -1498,15 +1488,6 @@ bool CombatSim::BlockHit(const CombatParams& params) {
     if (--buffs_[i].blocks_left == 0) {
       buffs_[i].left = 0.0;  // spent: the shell falls, clock or no clock
       buff_mask_ &= ~(1 << i);
-    }
-    return true;
-  }
-  for (int i = 0; i < static_cast<int>(ally_buffs_.size()); ++i) {
-    if (ally_buffs_[i].left <= 0.0 || ally_buffs_[i].blocks_left <= 0) {
-      continue;
-    }
-    if (--ally_buffs_[i].blocks_left == 0) {
-      ally_buffs_[i].left = 0.0;
     }
     return true;
   }
@@ -1741,32 +1722,6 @@ int CombatSim::StanceToRaise(const CombatParams& params,
     }
   }
   return best;
-}
-
-void CombatSim::RunAllyBuffs(const CombatParams& params, double dt) {
-  int count = static_cast<int>(params.ally_buffs.size());
-  ally_buffs_.resize(count);
-  for (int i = 0; i < count; ++i) {
-    const BuffOption& buff = params.ally_buffs[i];
-    BuffClock& clock = ally_buffs_[i];
-    clock.left = std::max(0.0, clock.left - dt);
-    clock.cooldown_left = std::max(0.0, clock.cooldown_left - dt);
-    // The same rule the character's own buffs go up under: the moment it comes
-    // round, and only with something to fight. What the ally is doing between
-    // casts is not modelled -- they are in the same fight, so they raise it
-    // when it is worth raising.
-    if (clock.left <= 0.0 && clock.cooldown_left <= 0.0 && !queue_.empty() &&
-        buff.duration_seconds > 0.0 && ShieldWanted(params, buff)) {
-      clock.left = buff.duration_seconds;
-      clock.cooldown_left = buff.cooldown_seconds;
-      clock.blocks_left = buff.shield_hits;
-      // An ally's cast reaches this character too: what it puts back is a
-      // share of THEIR pool, the caster's own being no business of this fight.
-      player_hp_ =
-          std::min(static_cast<double>(params.max_player_hp),
-                   player_hp_ + buff.heal_fraction * params.max_player_hp);
-    }
-  }
 }
 
 bool CombatSim::LayBuffs(const CombatParams& params, int swung, bool on_cast) {
@@ -2271,7 +2226,6 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   // After the hit, so a buff going up now answers it with its heal, and
   // before everything that attacks, so this step swings with it.
   RunBuffs(params, dt);
-  RunAllyBuffs(params, dt);
   // After the hit and before the swing, so a fountain is worth something on
   // the step it was needed rather than only on the next one.
   RunRegen(params, dt);

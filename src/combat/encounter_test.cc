@@ -1970,18 +1970,18 @@ TEST(ComputeCombatParamsTest, AShellReachesTheCasterAndThePartyAlike) {
   state.party.emplace_back(rng, ally);
 
   CombatParams params = ComputeCombatParams(state);
-  ASSERT_EQ(params.ally_buffs.size(), 1u);
-  EXPECT_EQ(params.ally_buffs[0].shield_hits, 10);
-  EXPECT_DOUBLE_EQ(params.ally_buffs[0].boss_damage_taken_pct, 0.10);
-  EXPECT_NEAR(params.ally_buffs[0].heal_fraction, 0.31, 1e-9);
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_EQ(params.buffs[0].shield_hits, 10);
+  EXPECT_DOUBLE_EQ(params.buffs[0].boss_damage_taken_pct, 0.10);
+  EXPECT_NEAR(params.buffs[0].heal_fraction, 0.31, 1e-9);
 
   // A shell that is not the party's shelters its caster and nobody else --
   // Divine Shield is the White Knight's own skin. See Shield.party.
   shell.mutable_buff()->mutable_shield()->set_party(false);
   state.skills["holy_magic_shell"] = shell;
   params = ComputeCombatParams(state);
-  ASSERT_EQ(params.ally_buffs.size(), 1u);
-  EXPECT_EQ(params.ally_buffs[0].shield_hits, 0);
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_EQ(params.buffs[0].shield_hits, 0);
   shell.mutable_buff()->mutable_shield()->set_party(true);
   state.skills["holy_magic_shell"] = shell;
   params = ComputeCombatParams(state);
@@ -1990,7 +1990,8 @@ TEST(ComputeCombatParamsTest, AShellReachesTheCasterAndThePartyAlike) {
   // party grant never doubles up on somebody already holding the skill.
   ASSERT_TRUE(state.character.LearnSkill(shell, 20));
   params = ComputeCombatParams(state);
-  EXPECT_TRUE(params.ally_buffs.empty());
+  // One shell, not two: the party's grant never doubles up on somebody
+  // already holding the skill.
   ASSERT_EQ(params.buffs.size(), 1u);
   EXPECT_EQ(params.buffs[0].shield_hits, 15);
   EXPECT_DOUBLE_EQ(params.buffs[0].boss_damage_taken_pct, 0.10);
@@ -2064,8 +2065,8 @@ TEST(ComputeCombatParamsTest, ABoostDeepensTheShellItNames) {
   EquipSword(other);
   other.party = std::move(party);
   CombatParams from_ally = ComputeCombatParams(other);
-  ASSERT_EQ(from_ally.ally_buffs.size(), 1u);
-  EXPECT_EQ(from_ally.ally_buffs[0].shield_hits, 15);
+  ASSERT_EQ(from_ally.buffs.size(), 1u);
+  EXPECT_EQ(from_ally.buffs[0].shield_hits, 15);
 }
 
 // A Vengeance form and the Benevolence skill it stands in for are one row of
@@ -2142,7 +2143,7 @@ TEST(ComputeCombatParamsTest, APartysBuffComesInOnItsCastersClock) {
   EquipSword(state);
   GrantFirstJobSp(state, 0);
   double factor = GameSpeedFactor(state.character.proto().level());
-  EXPECT_TRUE(ComputeCombatParams(state).ally_buffs.empty());
+  EXPECT_TRUE(ComputeCombatParams(state).buffs.empty());
 
   // The party member holds it; the character reading these params does not.
   std::mt19937 rng(1);
@@ -2151,16 +2152,15 @@ TEST(ComputeCombatParamsTest, APartysBuffComesInOnItsCastersClock) {
   state.party.emplace_back(rng, ally);
 
   CombatParams params = ComputeCombatParams(state);
-  ASSERT_EQ(params.ally_buffs.size(), 1u);
-  EXPECT_EQ(params.ally_buffs[0].name, "Smokescreen");
-  EXPECT_DOUBLE_EQ(params.ally_buffs[0].duration_seconds, 30.0 * factor);
-  EXPECT_DOUBLE_EQ(params.ally_buffs[0].cooldown_seconds, 120.0 * factor);
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_EQ(params.buffs[0].name, "Smokescreen");
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 30.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_seconds, 120.0 * factor);
   // Their level, not the reader's: eight points is 8% off a hit.
-  EXPECT_NEAR(params.ally_buffs[0].damage_taken_pct, 0.08, 1e-9);
-  // Nothing of it reaches the damage tables, so the reader who never learned
-  // it still has no buffs of their own.
-  EXPECT_TRUE(params.buffs.empty());
-  EXPECT_TRUE(params.buffed.empty());
+  EXPECT_NEAR(params.buffs[0].damage_taken_pct, 0.08, 1e-9);
+  // It gets a damage table of its own, exactly as a buff of the character's
+  // own would: what a party buff grants is not damage taken alone.
+  EXPECT_EQ(params.buffed.size(), 1u);
 }
 
 // A party buff is timed by whoever cast it: the caster's Buff Duration
@@ -2201,16 +2201,16 @@ TEST(ComputeCombatParamsTest, APartysBuffTakesItsCastersBuffDuration) {
   state.party.emplace_back(rng, ally);
 
   CombatParams params = ComputeCombatParams(state);
-  ASSERT_EQ(params.ally_buffs.size(), 1u);
-  EXPECT_DOUBLE_EQ(params.ally_buffs[0].duration_seconds, 45.0 * factor);
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 45.0 * factor);
   // The wait is untouched, as it is for a buff of one's own.
-  EXPECT_DOUBLE_EQ(params.ally_buffs[0].cooldown_seconds, 120.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_seconds, 120.0 * factor);
 
   // The reader's own Buff Duration is not what times somebody else's cast.
   ASSERT_TRUE(state.character.LearnSkill(mastery, 10));
   params = ComputeCombatParams(state);
-  ASSERT_EQ(params.ally_buffs.size(), 1u);
-  EXPECT_DOUBLE_EQ(params.ally_buffs[0].duration_seconds, 45.0 * factor);
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 45.0 * factor);
 }
 
 // Buff Mastery's lever lengthens the buff and leaves the wait alone, which is

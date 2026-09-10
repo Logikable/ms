@@ -454,11 +454,6 @@ class CombatSim {
   // the rate the fight has been dealing at. Infinite where the roster refills,
   // a map being an encounter that does not end.
   double SecondsLeft(const CombatParams& params) const;
-  // Runs the buffs the party puts up over the character, on their casters'
-  // clocks. Apart from RunBuffs because none of these has an attack set: what
-  // a party buff grants is taken off the hit, so nothing here touches the
-  // damage-table mask, and nothing here costs the character a swing.
-  void RunAllyBuffs(const CombatParams& params, double dt);
   // Takes what a landed swing is worth off the wait for each buff's next
   // cast. `weight` is what that swing counted for, the same share
   // CreditSwing uses -- a rapid swing must not pay a whole attack's worth.
@@ -559,10 +554,6 @@ class CombatSim {
   // Which buffs are standing, as the bitmask CombatParams indexes its damage
   // tables by. Worked out once a step, at the top.
   int buff_mask_ = 0;
-  // The same again for the party's buffs, parallel to params.ally_buffs. No
-  // mask beside them: a party buff has no damage table, so what is standing is
-  // read straight off the seconds left.
-  std::vector<BuffClock> ally_buffs_;
   // What the character has dealt this encounter and how long they have been
   // dealing it, for the rate SecondsLeft divides remaining HP by. Map-scoped:
   // another encounter's damage says nothing about how long this one has left.

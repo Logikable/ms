@@ -39,7 +39,11 @@ constexpr double kBaseCritDamage = 0.35;
 // stages that cost a window each, which puts Bishop on seven. Then once for
 // Inhuman Speed and once for Quiver Barrage, Bow Master's second and third job
 // nodes -- and Silhouette Mirage, a buff as well, will want one more.
-constexpr int kMaxBuffWindows = 9;
+//
+// This bounds the PARTY'S buffs too, which take the bits above the
+// character's own: a book at the cap standing beside two allies casting one
+// each is what the last two are for. See BuffedSetSource::ally_buffs.
+constexpr int kMaxBuffWindows = 11;
 
 }  // namespace ms
 

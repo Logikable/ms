@@ -1624,10 +1624,20 @@ void AddBuffs(const GameState& state,
 //
 // A caster's Buff Duration lengthens their half of the cast and the party's
 // alike: one cloud, one clock, however many are standing in it.
-void AddAllyBuffs(const GameState& state, double speed_factor,
-                  CombatParams& params) {
+// The party's buffs, appended to the character's own so that one mask covers
+// both: an ally's blessing changes what a swing is worth, which needs a damage
+// table, and the character's own buffs already have the machinery for that.
+// What lays it is the ally's cast, so it costs this character no swing.
+std::vector<AllyGrant> AddAllyBuffs(const GameState& state, double speed_factor,
+                                    int budget, CombatParams& params) {
+  std::vector<AllyGrant> raised;
   for (const AllyGrant& grant : AllyBuffsFor(
            state.character, state.skills, absl::MakeConstSpan(state.party))) {
+    // The character's own book is served first: a party buff dropped is one
+    // less blessing, while an own buff dropped is a hole in their rotation.
+    if (static_cast<int>(raised.size()) >= budget) {
+      break;
+    }
     const Buff& buff = grant.skill->buff();
     // The CASTER's book throughout, not the reader's: one cast stands the same
     // length and blocks the same hits over everybody under it. See
@@ -1650,8 +1660,10 @@ void AddAllyBuffs(const GameState& state, double speed_factor,
         EffectAt(buff.ally_base(), buff.ally_per_level(), grant.level);
     option.damage_taken_pct = shared.damage_taken_pct();
     option.heal_fraction = shared.heal_pct();
-    params.ally_buffs.push_back(std::move(option));
+    params.buffs.push_back(std::move(option));
+    raised.push_back(grant);
   }
+  return raised;
 }
 
 // Whether a buff ticks damage at all, through its own pulse or through one of
@@ -1758,17 +1770,20 @@ double ReferenceDps(const CombatParams& params) {
 // empty, and filled by BuildBuffedSet the first time one is asked for.
 void AddBuffedSets(const GameState& state,
                    const std::vector<const Skill*>& buff_skills,
+                   const std::vector<AllyGrant>& ally_buffs,
                    const EquipPrototype& weapon, double speed_factor,
                    StatPreset preset, CombatParams& params) {
-  if (buff_skills.empty()) {
+  int count = static_cast<int>(buff_skills.size() + ally_buffs.size());
+  if (count == 0) {
     return;
   }
   params.buffed_source.state = &state;
   params.buffed_source.weapon = &weapon;
   params.buffed_source.buff_skills = buff_skills;
+  params.buffed_source.ally_buffs = ally_buffs;
   params.buffed_source.speed_factor = speed_factor;
   params.buffed_source.preset = preset;
-  params.buffed.assign((1 << buff_skills.size()) - 1, std::nullopt);
+  params.buffed.assign((1 << count) - 1, std::nullopt);
 }
 
 // Halves how far one swing reaches, rounding up. A boss stands its parts a
@@ -1787,10 +1802,19 @@ void HalveReach(std::vector<AttackOption>& attacks) {
 // swing from has to be the same shape as the one it picked from a moment ago.
 AttackSet BuildBuffedSet(const CombatParams& params, int mask) {
   const BuffedSetSource& source = params.buffed_source;
-  std::vector<const Skill*> up;
-  for (int i = 0; i < static_cast<int>(source.buff_skills.size()); ++i) {
+  int own = static_cast<int>(source.buff_skills.size());
+  std::vector<BuffUp> up;
+  for (int i = 0; i < own; ++i) {
     if ((mask & (1 << i)) != 0) {
-      up.push_back(source.buff_skills[i]);
+      up.push_back(BuffUp{source.buff_skills[i]});
+    }
+  }
+  // The party's take the bits above the character's own, and carry the caster
+  // their half is read at the level of.
+  for (int i = 0; i < static_cast<int>(source.ally_buffs.size()); ++i) {
+    if ((mask & (1 << (own + i))) != 0) {
+      const AllyGrant& grant = source.ally_buffs[i];
+      up.push_back(BuffUp{grant.skill, grant.caster, grant.level});
     }
   }
   DerivedStats derived = DerivedStatsFor(
@@ -1920,8 +1944,11 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     buff_skills.resize(kMaxBuffWindows);
   }
   AddBuffs(state, buff_skills, speed_factor, derived, params);
-  AddAllyBuffs(state, speed_factor, params);
-  AddBuffedSets(state, buff_skills, weapon, speed_factor, preset, params);
+  std::vector<AllyGrant> ally_buffs = AddAllyBuffs(
+      state, speed_factor,
+      kMaxBuffWindows - static_cast<int>(buff_skills.size()), params);
+  AddBuffedSets(state, buff_skills, ally_buffs, weapon, speed_factor, preset,
+                params);
   TagBuffGatedPulses(params.buffs, buff_skills, params.auto_attacks);
   TagBuffSilencedCasts(params.buffs, params.triggered_attacks);
   PointStancesAtPulses(params.auto_attacks, params.buffs);

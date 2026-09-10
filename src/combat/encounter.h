@@ -456,8 +456,15 @@ struct AttackSet {
 struct BuffedSetSource {
   const GameState* state = nullptr;
   const EquipPrototype* weapon = nullptr;
-  // The buffs in CombatParams::buffs order, so bit i of a mask is skill i.
+  // The character's own buffs, in CombatParams::buffs order, so bit i of a
+  // mask is skill i.
   std::vector<const Skill*> buff_skills;
+  // The party's, taking the bits above those -- bit buff_skills.size() + j is
+  // ally_buffs[j]. They sit in one mask with the character's own because the
+  // fold does one thing with both: an ally's blessing changes what a swing is
+  // worth exactly as the character's own buff does, so it wants a damage table
+  // for as long as it stands. Empty outside a party fight.
+  std::vector<AllyGrant> ally_buffs;
   double speed_factor = 1.0;
   StatPreset preset = StatPreset::kFarming;
   // Whether a window's reach is halved on the way out, which is what a boss
@@ -662,16 +669,6 @@ struct CombatParams {
   // What those slots are built from. Empty for params nothing can build --
   // a hand-built one in a test, where every slot is filled up front.
   BuffedSetSource buffed_source;
-  // The buffs the REST OF THE PARTY puts up over this character, on their
-  // casters' clocks. Kept apart from `buffs` above because that vector's index
-  // is the bitmask into `buffed`, and a party buff has no attack set of its
-  // own: all it can grant is a share off what a hit costs, which the fight
-  // takes off the hit rather than folding into a damage table.
-  //
-  // Empty outside a party fight, which is everywhere but a boss fought
-  // together. See AllyBuffsFor.
-  std::vector<BuffOption> ally_buffs;
-
   // The window `mask` names, built the first time it is asked for. Null for a
   // mask out of range, which is what a fight one step behind a change in what
   // the character has learned holds.

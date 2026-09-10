@@ -782,9 +782,14 @@ SkillEffect AllyEffectOf(const AllyGrant& grant) {
                   grant.level);
 }
 
+// What a buff's party half comes to, at the level its caster holds it.
+SkillEffect AllyBuffEffect(const Buff& buff, int caster_level) {
+  return EffectAt(buff.ally_base(), buff.ally_per_level(), caster_level);
+}
+
 PassiveTotals LearnedPassives(const CharacterInstance& character,
                               const std::map<std::string, Skill>& skills,
-                              absl::Span<const Skill* const> buffs_up,
+                              absl::Span<const BuffUp> buffs_up,
                               absl::Span<const CharacterInstance> allies) {
   PassiveTotals totals;
   EquipType weapon = character.weapon_type();
@@ -816,20 +821,29 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   // is up, and folds in through the same door for the same reason -- as a
   // source of its own, so its ignored defence combines with the character's
   // rather than summing with it.
-  for (const Skill* skill : buffs_up) {
-    int level = EffectiveSkillLevel(character, *skill, bonus);
+  for (const BuffUp& up : buffs_up) {
+    const Skill& skill = *up.skill;
+    // An ally's, read off the buff's party half at THEIR level: what a Bishop
+    // stands over the party is worth what their book has it at, not what the
+    // reader's does. It hands over levers and nothing else -- a Final Attack
+    // and a boost are the caster's own, and follow their swings, not these.
+    if (up.caster != nullptr) {
+      AddEffect(AllyBuffEffect(skill.buff(), up.caster_level), totals);
+      continue;
+    }
+    int level = EffectiveSkillLevel(character, skill, bonus);
     SkillEffect held =
-        EffectAt(skill->buff().base(), skill->buff().per_level(), level);
+        EffectAt(skill.buff().base(), skill.buff().per_level(), level);
     AddEffect(held, totals);
     // A buff can hand over a Final Attack for as long as it stands -- Split
     // Shot's arrow splits only under it -- and what sets one off belongs to
     // the skill, so the buff's grant goes through the same door a passive's
     // does rather than through AddEffect alone.
-    AddFinalAttack(*skill, held, totals);
+    AddFinalAttack(skill, held, totals);
     // What the buff hands a named skill, through the same door a permanent
     // boost takes -- it is only this fold that makes it a window rather than
     // a gift for good.
-    AddSkillBonuses(skill->buff().boost(), level, totals);
+    AddSkillBonuses(skill.buff().boost(), level, totals);
   }
   // What the party is holding over them, at the level its caster has it. The
   // same door again, and for the same reason.
@@ -1406,7 +1420,7 @@ void AddMesoStrike(const PassiveTotals& passives, DerivedStats& stats) {
 
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills,
-                             absl::Span<const Skill* const> buffs_up,
+                             absl::Span<const BuffUp> buffs_up,
                              absl::Span<const CharacterInstance> allies,
                              StatPreset preset) {
   const Character& proto = character.proto();
