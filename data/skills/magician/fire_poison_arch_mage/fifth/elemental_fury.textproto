@@ -1,0 +1,57 @@
+# The F/P's third job node: Ifrit goes up in a rage for three seconds and
+# strikes every 0.6 of one, six lines over twelve enemies.
+#
+# 600ms is GMS's `x`, the one number in its common block the readout never
+# spends -- the same place Spirit of Snow's cadence was found. What settles it
+# is that `t`, the 0.6 seconds each active Fervent Drain adds, is the SAME
+# number: a stack buys exactly one more strike, and the window runs 3 to 6
+# seconds as five strikes run to ten.
+#
+# "Active Fervent Drain" is burns alight capped at five, which is the count
+# that skill reads for its own credit -- so this is the same board state seen
+# from the other side. On a boss the F/P sits at two to four of them most of
+# the time: Flame Sweep and Ifrit always, DoT Punisher and Poison Nova only
+# through part of their 25-second cycles. The window is really variable here,
+# not a cap dressed up as one.
+#
+# Small against its siblings on purpose -- 26,400% at the top of its range
+# against Poison Nova's 66,000%, and GMS wrote it that way. It is filler beside
+# the branch's two big buttons, and the numbers are all its own.
+#
+# Twelve enemies stands: the client gives this skill no hitbox at all, which is
+# the case where the stated cap is the reach.
+#
+# The 480ms cast masonym gives it is not what it costs: a buff is raised from
+# a sequence, which paces every one of them at 120ms alike.
+#
+# GMS's "only when Ifrit is summoned" is the required skill. A summon here is
+# permanent once learned, so the condition never binds -- but a book that has
+# not paid for Ifrit has not paid for this.
+name: "Elemental Fury"
+description:
+  "Unleash the fury of flame in the form of an enraged spirit. Can only be "
+  "used when Ifrit is summoned. Unaffected by attack reflection."
+kind: SKILL_KIND_ACTIVE
+tags: SKILL_TAG_FIRE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 3 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_skill {
+  skill_name: "Ifrit"
+  level: 20
+}
+base_delay_ms: 120
+cooldown_seconds: 60.0
+buff {
+  duration_seconds: 3.0
+  duration_seconds_per_dot: 0.6
+  dot_count_cap: 5
+  pulse {
+    label: "Enraged Ifrit"
+    cast_interval_seconds: 0.6
+    lines: 6
+    max_enemies: 12
+    base { skill_pct: 2.08 }
+    per_level { skill_pct: 0.08 }
+  }
+}

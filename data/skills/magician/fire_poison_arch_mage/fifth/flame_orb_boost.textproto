@@ -3,7 +3,7 @@
 name: "Flame Orb Boost"
 description: "Strengthens Flame Orb and Poison Breath."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 10 }
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 11 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {

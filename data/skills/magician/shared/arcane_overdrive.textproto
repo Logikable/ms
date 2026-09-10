@@ -14,7 +14,7 @@ description:
   "Reforges the lost secrets of the ancients. The power is copied "
   "imperfectly, and drains away as you hold it."
 kind: SKILL_KIND_ACTIVE
-placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 4 }
 placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 5 }
 placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 1 }
 v_node: V_NODE_KIND_ARCHETYPE
