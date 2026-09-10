@@ -405,6 +405,17 @@ struct AttackOption {
   // silent until the buff comes round again. 0 for a clock that never runs
   // out, which is every other one. See BuffPulse.max_pulses.
   int max_pulses = 0;
+  // The stronger forms this clock walks through as it repeats: the first is
+  // what its second firing lands, the last is where it pins. Empty for every
+  // clock but Poison Chain's explosion, whose poison accumulates on whatever
+  // survived the one before. Shared rather than owned outright for the reason
+  // `empowered` is -- an AttackOption is copied freely and the forms never
+  // change. See BuffPulse.skill_pct_per_repeat.
+  std::vector<std::shared_ptr<const AttackOption>> repeats;
+  // One more strike, at the last of those forms, the moment `max_pulses` runs
+  // out. Only Poison Chain's explosion sets it. See
+  // BuffPulse.final_repeat_strike.
+  bool final_repeat_strike = false;
   // The hold this swing is, for the one skill that is held. Its damage_per_hit
   // above is a FULL hold, so an attack weighed without asking is weighed at
   // what holding it to the end is worth.
@@ -414,6 +425,12 @@ struct AttackOption {
 // Seconds a hold of `pulses` takes: the pulses on their own clock and the
 // strike it ends on, never shorter than the animation's own floor.
 double HoldSeconds(const ChannelHold& hold, int pulses);
+
+// The form a clock lands on its `pulses`'th firing: the strike itself first,
+// then one step up the ramp for every repeat after it, pinned at the last.
+// Poison Chain's explosion is the only one that walks it -- every other clock
+// lands the same strike however many times it fires.
+const AttackOption& RepeatForm(const AttackOption& attack, int pulses);
 
 // Everything the character can attack with, as it stands under one particular
 // set of buffs. The same attacks in the same order in every set -- what

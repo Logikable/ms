@@ -3456,6 +3456,66 @@ TEST(CombatSimTest, ACappedPulseFallsSilentBeforeTheBuffLapses) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.988, 1e-9);
 }
 
+// Poison Chain's shape: a pulse that gains a step every time it fires and pins
+// at the top of its ramp. Nine ticks here of 100, 200, 300, 300... -- the ramp
+// is two deep, so the third tick and every one after it lands 300.
+TEST(CombatSimTest, ARampedPulseClimbsAStepAFiringAndPinsAtTheTop) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/100.0);
+  params.auto_attacks[0].name = "Poison Explosion";
+  params.auto_attacks[0].max_pulses = 5;
+  for (double damage : {200.0, 300.0}) {
+    AttackOption form = params.auto_attacks[0];
+    form.damage_per_hit.assign(params.types.size(), damage);
+    params.auto_attacks[0].repeats.push_back(
+        std::make_shared<const AttackOption>(std::move(form)));
+  }
+  GiveBuff(params, /*duration=*/100.0, /*cooldown=*/1000.0, /*factor=*/1.0);
+  params.auto_attacks[0].needs_buff = 0;
+  params.buffed[0]->auto_attacks = params.auto_attacks;
+
+  // 100 + 200 + 300 + 300 + 300 = 1200 of the snail's 100000, and the count
+  // stops it there however long the buff stands.
+  for (int step = 0; step < 5; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  ASSERT_NEAR(sim.view().target_hp_fraction, 0.988, 1e-9);
+  sim.Advance(params, 5.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.988, 1e-9);
+}
+
+// The extra explosion GMS goes out on: one more strike at the top of the ramp,
+// landing WITH the last tick rather than an interval after it.
+TEST(CombatSimTest, ARampedPulseGoesOutOnOneMoreStrikeAtTheTop) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/100.0);
+  params.auto_attacks[0].name = "Poison Explosion";
+  params.auto_attacks[0].max_pulses = 3;
+  params.auto_attacks[0].final_repeat_strike = true;
+  AttackOption top = params.auto_attacks[0];
+  top.damage_per_hit.assign(params.types.size(), 500.0);
+  params.auto_attacks[0].repeats.push_back(
+      std::make_shared<const AttackOption>(std::move(top)));
+  GiveBuff(params, /*duration=*/100.0, /*cooldown=*/1000.0, /*factor=*/1.0);
+  params.auto_attacks[0].needs_buff = 0;
+  params.buffed[0]->auto_attacks = params.auto_attacks;
+
+  // Two seconds in: 100 and then 500, with the count not yet spent.
+  sim.Advance(params, 1.0);
+  ASSERT_NEAR(sim.view().target_hp_fraction, 0.999, 1e-9);
+  sim.Advance(params, 1.0);
+  ASSERT_NEAR(sim.view().target_hp_fraction, 0.994, 1e-9);
+  // The third tick spends it, so 500 lands and another 500 goes out with it.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.984, 1e-9);
+  sim.Advance(params, 5.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.984, 1e-9);
+}
+
 // The count is per raising, not per fight: the next window is worth the whole
 // twelve again.
 TEST(CombatSimTest, ACappedPulseIsWorthItsWholeCountAgainNextWindow) {

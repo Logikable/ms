@@ -2982,6 +2982,55 @@ TEST(ComputeCombatParamsTest, APulseThatGrowsWithTheCrowdCarriesOneMoreLine) {
   EXPECT_EQ(ComputeCombatParams(state).auto_attacks[0].extra_line, nullptr);
 }
 
+// Poison Chain's shape: the pulse carries one stronger form per helping of
+// poison, each the whole strike again at its own damage. The step climbs with
+// the level, as every other number here does.
+TEST(ComputeCombatParamsTest, ARampedPulseCarriesAFormPerHelping) {
+  Skill chain;
+  chain.set_name("Poison Chain");
+  chain.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(chain, JOB_ADVANCEMENT_SWORDMAN);
+  chain.set_max_level(30);
+  chain.set_cooldown_seconds(25.0);
+  Buff* buff = chain.mutable_buff();
+  buff->set_duration_seconds(20.0);
+  BuffPulse* blast = buff->mutable_pulse();
+  blast->set_label("Poison Explosion");
+  blast->set_cast_interval_seconds(2.0);
+  blast->set_lines(5);
+  blast->set_max_pulses(9);
+  blast->set_max_repeats(3);
+  blast->set_skill_pct_per_repeat(0.31);
+  blast->set_skill_pct_per_repeat_per_level(0.01);
+  blast->set_final_repeat_strike(true);
+  blast->mutable_base()->set_skill_pct(1.56);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"poison_chain", chain}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(chain, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  const AttackOption& pulse = params.auto_attacks[0];
+  ASSERT_EQ(pulse.repeats.size(), 3u);
+  EXPECT_TRUE(pulse.final_repeat_strike);
+  ASSERT_FALSE(pulse.damage_per_hit.empty());
+  // 1.56 opening, and 0.31 more on each form at level 1.
+  for (int repeat = 1; repeat <= 3; ++repeat) {
+    EXPECT_NEAR(pulse.repeats[repeat - 1]->damage_per_hit[0],
+                pulse.damage_per_hit[0] * (1.56 + 0.31 * repeat) / 1.56, 1e-6)
+        << "repeat " << repeat;
+  }
+
+  // A step with no cap on it is not a ramp: nothing is built.
+  blast->clear_max_repeats();
+  state.skills["poison_chain"] = chain;
+  EXPECT_TRUE(ComputeCombatParams(state).auto_attacks[0].repeats.empty());
+}
+
 // Instinctual Combo's shape: the tear rides Raging Blow rather than a clock,
 // so it falls exactly as often as that swing does -- and quickens with it when
 // the weapon does. A ride nobody answers to leaves no pulse at all.

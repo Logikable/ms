@@ -1893,7 +1893,8 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
     while (clock.phase >= cast.interval_seconds) {
       clock.phase -= cast.interval_seconds;
       ++clock.pulses;
-      const AttackOption& landed = FormToLand(clock.empowered_count, cast);
+      const AttackOption& landed =
+          RepeatForm(FormToLand(clock.empowered_count, cast), clock.pulses);
       // Every strike of the tick lands in full: three sword strikes 60ms apart
       // are one moment here, and each is its own attack on its own enemies.
       for (int strike = 0; strike < cast.strikes_per_pulse; ++strike) {
@@ -1906,6 +1907,13 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
       // never spends the pile -- ClearSwingRiders sees to that.
       CreditFreeze(params, landed);
       if (cast.max_pulses > 0 && clock.pulses >= cast.max_pulses) {
+        // The poison coming off everything it was on goes off as it leaves:
+        // one more explosion, at the top of the ramp, landing with the last
+        // tick rather than an interval after it.
+        if (cast.final_repeat_strike) {
+          Strike(RepeatForm(cast, cast.max_pulses),
+                 {DamageOrigin::kOwnClock, i});
+        }
         break;
       }
     }

@@ -647,6 +647,25 @@ message BuffPulse {
   // would pour 15 on a boss whose parts it counts as a crowd.
   int32 lines_per_extra_enemy = 10;
   int32 max_extra_lines = 11;
+  // Skill damage this pulse gains for every time it has already fired, and
+  // the most helpings it can gather -- climbing the same
+  // base + per_level * (L - 1) ladder every other number here climbs. Poison
+  // Chain is what they exist for: GMS's poison accumulates on an enemy that
+  // survives an explosion, and each helping is worth 60 percentage points of
+  // the next one, five deep.
+  //
+  // The count is the pulse's own firings, not anything on the board. That is
+  // the same fact from the other side -- a boss survives every explosion, so
+  // what it has accumulated IS how many it has taken.
+  double skill_pct_per_repeat = 12;
+  double skill_pct_per_repeat_per_level = 13;
+  int32 max_repeats = 14;
+  // One more strike, at the top of that ramp, the moment `max_pulses` runs
+  // out. GMS's "if the skill ended because the available explosions were used
+  // up, all poison is removed, followed by an additional explosion" -- it is
+  // not a tick of the clock, so it lands with the last one rather than an
+  // interval after it.
+  bool final_repeat_strike = 15;
 }
 
 // A buff a skill puts up for a while, on a cooldown of its own: what it grants

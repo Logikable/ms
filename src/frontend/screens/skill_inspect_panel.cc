@@ -1448,6 +1448,11 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
       SwingText(per_hit, pulse.lines(), std::max(1, pulse.casts()));
   if (pulse.max_pulses() > 0) {
     damage += ", " + std::to_string(pulse.max_pulses()) + " times";
+    // The one it goes out on is not one of the count, so it is not folded into
+    // it: a player reading nine wants the tenth said out loud.
+    if (pulse.final_repeat_strike()) {
+      damage += ", then once more";
+    }
   }
   // Whatever else the pulse carries rides its own strikes, not the character
   // -- Burning Soul Blade's sword crits half again as often as its owner does.
@@ -1463,6 +1468,16 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
     rows.push_back(EffectRow(pulse.label(), damage));
     rows.push_back(EffectRow(
         "Attacks", ReachText(pulse.max_enemies()) + PulseClockText(pulse)));
+  }
+  // What surviving one of these is worth to the next, where the poison it
+  // leaves accumulates. Stated as the damage it walks to rather than as the
+  // step alone: the top of the ramp is what a boss takes for most of a cast.
+  double step = pulse.skill_pct_per_repeat() +
+                pulse.skill_pct_per_repeat_per_level() * (level - 1);
+  if (step > 0.0 && pulse.max_repeats() > 0) {
+    rows.push_back(EffectRow(
+        "Per Stack", "+" + FormatPercent(step) + ", up to " +
+                         FormatPercent(per_hit + step * pulse.max_repeats())));
   }
   // What a crowd is worth to the rain, where its strikes grow with the one the
   // character is swinging. The cap belongs on the row: without it the ladder

@@ -904,6 +904,24 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
   wound.strikes_per_pulse = std::max(1, pulse.casts());
   wound.max_pulses = pulse.max_pulses();
   wound.needs_buff_stance = stance;
+  // The ramp a poison that accumulates walks: one form per helping, each the
+  // whole strike again at its own damage, so every one of them rolls its own
+  // mastery and criticals rather than scaling a number that already has.
+  double step = pulse.skill_pct_per_repeat() +
+                pulse.skill_pct_per_repeat_per_level() * (level - 1);
+  for (int repeat = 1; repeat <= pulse.max_repeats() && step > 0.0; ++repeat) {
+    Skill stronger = bleed;
+    stronger.mutable_base()->set_skill_pct(bleed.base().skill_pct() +
+                                           step * repeat);
+    AttackOption form =
+        AttackFor(proto, equipped, weapon_type, &stronger, level, types,
+                  derived, kUnscaledAttackSpeedStage, speed_factor);
+    form.swing_seconds = 0.0;
+    ClearSwingRiders(form);
+    wound.repeats.push_back(
+        std::make_shared<const AttackOption>(std::move(form)));
+  }
+  wound.final_repeat_strike = pulse.final_repeat_strike();
   // The rain that grows with the crowd carries one more of its own lines,
   // built as a strike of exactly one so the fight can land as many as the
   // character's swing has earned -- each rolling its own mastery and crit.
@@ -1795,6 +1813,14 @@ AttackSet BuildBuffedSet(const CombatParams& params, int mask) {
 double HoldSeconds(const ChannelHold& hold, int pulses) {
   return std::max(hold.min_seconds,
                   pulses * hold.pulse_seconds + hold.finish_seconds);
+}
+
+const AttackOption& RepeatForm(const AttackOption& attack, int pulses) {
+  if (attack.repeats.empty() || pulses <= 1) {
+    return attack;
+  }
+  int step = std::min<int>(pulses - 1, attack.repeats.size());
+  return *attack.repeats[step - 1];
 }
 
 // The window `mask` names, built now if this is the first time it was asked

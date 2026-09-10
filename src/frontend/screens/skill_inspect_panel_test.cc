@@ -1864,6 +1864,33 @@ TEST_F(SkillInspectPanelTest, ARainStatesWhatACrowdAndAnAlliedSkillAreWorth) {
       << rendered;
 }
 
+// Poison Chain's two readings: the count says the extra explosion out loud,
+// and the ramp is stated as the damage it walks to rather than as the step
+// alone -- the top is what a boss takes for most of a cast.
+TEST_F(SkillInspectPanelTest, ARampedPulseStatesTheTopAndTheOneItGoesOutOn) {
+  Skill chain = IronBody();
+  chain.set_kind(SKILL_KIND_ACTIVE);
+  Buff* buff = chain.mutable_buff();
+  buff->set_duration_seconds(20.0);
+  BuffPulse* blast = buff->mutable_pulse();
+  blast->set_label("Poison Explosion");
+  blast->set_cast_interval_seconds(2.0);
+  blast->set_lines(5);
+  blast->set_max_pulses(9);
+  blast->set_max_repeats(5);
+  blast->set_skill_pct_per_repeat(0.60);
+  blast->set_final_repeat_strike(true);
+  blast->mutable_base()->set_skill_pct(3.30);
+
+  std::string rendered = RenderAt(chain, 1);
+  EXPECT_NE(RowIn(rendered, "Poison Explosion",
+                  "330% x5 = 1650%, 9 times, then once more every 2s"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Per Stack", "+60%, up to 630%"), std::string::npos)
+      << rendered;
+}
+
 // A pulse riding a swing has no clock to state, so the page names the swing
 // instead -- the player reads how often it comes round off the skill they are
 // already pressing.

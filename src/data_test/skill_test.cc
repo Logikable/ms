@@ -1611,12 +1611,25 @@ TEST(SkillDataTest, EveryBuffPulseStatesTheClockItTicksOn) {
             << entry.first << " rides \"" << pulse.paced_by_skill_name()
             << "\", which no skill answers to";
       }
+      // A ramp is a step and a cap together: either alone is a skill saying
+      // something it never pays out.
+      EXPECT_EQ(pulse.skill_pct_per_repeat() > 0.0, pulse.max_repeats() > 0)
+          << entry.first << " ramps by half a rule";
+      // The extra strike is taken at the top of the ramp when the count runs
+      // out, so it needs both to land at all.
+      if (pulse.final_repeat_strike()) {
+        EXPECT_GT(pulse.max_pulses(), 0)
+            << entry.first << " goes out on a count it never keeps";
+        EXPECT_GT(pulse.max_repeats(), 0)
+            << entry.first << " goes out at the top of no ramp";
+      }
       continue;
     }
     EXPECT_EQ(pulse.lines(), 0) << entry.first << " strikes on no clock";
     EXPECT_EQ(pulse.casts(), 0) << entry.first << " strikes on no clock";
     EXPECT_EQ(pulse.max_enemies(), 0) << entry.first << " reaches on no clock";
     EXPECT_EQ(pulse.max_pulses(), 0) << entry.first << " runs out of no clock";
+    EXPECT_EQ(pulse.max_repeats(), 0) << entry.first << " ramps on no clock";
   }
   // Only a buff's own pulse may ride a swing: a form's is raised and dropped
   // with the form, and nothing reads a clock off one.

@@ -967,6 +967,24 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
   return played;
 }
 
+// One tick of a clock that ramps, averaged over a raising: Poison Chain's
+// explosion opens at its base and pins at the top of its ramp, and the extra
+// one it goes out on is spread across the same ticks. A rate is all this sim
+// keeps, so what a tick is worth on average is the whole of the answer.
+double RampedPulseDamage(const AttackOption& pulse, int enemies) {
+  if (pulse.repeats.empty() || pulse.max_pulses <= 0) {
+    return CrowdDamage(pulse, enemies);
+  }
+  double total = 0.0;
+  for (int fired = 1; fired <= pulse.max_pulses; ++fired) {
+    total += CrowdDamage(RepeatForm(pulse, fired), enemies);
+  }
+  if (pulse.final_repeat_strike) {
+    total += CrowdDamage(RepeatForm(pulse, pulse.max_pulses), enemies);
+  }
+  return total / pulse.max_pulses;
+}
+
 double OffClockRate(const CombatParams& params, const Sequence& played,
                     double speed, int enemies) {
   double rate = 0.0;
@@ -981,8 +999,8 @@ double OffClockRate(const CombatParams& params, const Sequence& played,
     }
     // Every strike of a tick lands in full, as CombatSim::RunAutoCasts lands
     // them: Storm of Arrows pours four rains a tick, not one.
-    double per_pulse =
-        CrowdDamage(extra, enemies) * std::max(1, extra.strikes_per_pulse);
+    double per_pulse = RampedPulseDamage(extra, enemies) *
+                       std::max(1, extra.strikes_per_pulse);
     double share =
         gate >= 0 && gate < static_cast<int>(played.buff_uptime.size())
             ? played.buff_uptime[gate]
