@@ -1,0 +1,49 @@
+# The F/P's first job node, and the branch's payoff for a book that has spent
+# every advancement laying poison. Fifteen orbs from another dimension, one
+# more for every burn stack already standing on the group, up to twenty-five.
+#
+# Scatter is the shape -- the same one Megiddo Flame uses. Each orb hunts its
+# own enemy and the ones that double up keep 55% of their final damage, so a
+# crowd takes an orb apiece and a lone boss takes the lot. GMS sends them at
+# the boss with the highest HP first, which is what the spare strikes going to
+# the healthiest already is.
+#
+# The count is what makes this the F/P's own skill rather than another nuke.
+# Opened on a fresh fight it throws fifteen; thrown after Poison Mist, Ifrit,
+# Inferno Aura and whatever the rotation is swinging, it throws twenty or more,
+# and on a map where every mob is burning it sits at the cap. Read live off the
+# group each time, so the chooser learns the wait is worth more once the
+# poisons are down.
+#
+# GMS's `time 20` is how long an orb hunts before it expires, not a beat to
+# land them on: the client publishes no interval, so all of them land together.
+name: "DoT Punisher"
+description:
+  "Summons flame orbs from another dimension to pursue enemies. The flame "
+  "orbs target the boss with the highest HP first. The number of orbs you "
+  "summon depends on how many damage-over-time stacks you have on enemies."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_FIRE
+placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 1 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_STAFF
+base_delay_ms: 510
+cooldown_seconds: 25.0
+max_enemies: 25
+lines: 5
+base { skill_pct: 4.15 }
+per_level { skill_pct: 0.15 }
+scatter {
+  hits: 15
+  repeat_final_dmg_pct: -0.45
+  hits_per_dot: 1.0
+  max_hits: 25
+}
+dot {
+  interval_seconds: 1.0
+  duration_seconds: 8.0
+  lines: 1
+  base { skill_pct: 2.03 }
+  per_level { skill_pct: 0.03 }
+}
