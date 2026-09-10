@@ -5,14 +5,17 @@
 # GMS's wording is the worst in the book and none of it survives reading
 # literally. "Stunned #attackCount times" is eight LINES of one shock, not
 # eight shocks; the current is not periodic and not a burn -- it fires once per
-# shock, four lines at once. What the client actually holds: 30 shocks
-# (`x`) on a 330ms beat (`subTime`, the field that spaced Bolt Barrage), each
-# 391+16x over `mobCount 1`, and a separate invisible skill for the current at
-# 243+9x, `attackCount 4`, `mobCount 2`.
+# shock, four lines at once. What the client actually holds: 30 shocks (`x`) on
+# a 330ms beat (`subTime`, and the shock's own hit animation runs 360ms, so the
+# shocks land back to back), each 391+16x over `mobCount 1`, and a separate
+# invisible skill for the current at 243+9x, `attackCount 4`, `mobCount 2`.
+# `time 40000` is the orb's forty seconds to live, which only a barrage that
+# stops to hop between kills ever reaches.
 #
 # The orb hops between enemies while they still stand, which nothing here has a
 # position to do -- so it pounds the front of the queue and moves on when that
-# one falls. On a boss, which is what the skill is for, the two are the same.
+# one falls. On a boss, which is what the skill is for, the two are the same:
+# the orb rides it for all thirty, which is what KMS values the skill for.
 #
 # The stun is the third status this game keeps on a monster. Nothing here has a
 # schedule to be knocked off, so what it buys is that the enemy is AFFLICTED --
