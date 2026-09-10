@@ -440,9 +440,9 @@ TEST_F(SkillInspectPanelTest, ASkillOnItsOwnClockStatesItWithItsReach) {
             std::string::npos);
 }
 
-// A stun takes a row of its own beside the element, and says what the mark it
-// leaves is worth to the swings that collect it.
-TEST_F(SkillInspectPanelTest, StatesTheStunASwingLeavesAndWhatItLifts) {
+// What a stun is worth to the swings that collect it takes a row; that the
+// swing stuns at all is the description's job, so no row says it.
+TEST_F(SkillInspectPanelTest, StatesWhatAStunLifts) {
   Skill orb = MakeLuckySeven();
   orb.add_tags(SKILL_TAG_LIGHTNING);
   orb.mutable_stun()->set_duration_seconds(4.0);
@@ -451,13 +451,34 @@ TEST_F(SkillInspectPanelTest, StatesTheStunASwingLeavesAndWhatItLifts) {
 
   std::string rendered = RenderAt(orb, 1);
   EXPECT_NE(RowIn(rendered, "Element", "Lightning"), std::string::npos);
-  EXPECT_NE(RowIn(rendered, "Stuns", "What it hits, +12% taken"),
+  EXPECT_NE(RowIn(rendered, "Stunned Enemies",
+                  "+12% Final Damage from "
+                  "Lightning"),
             std::string::npos);
+  EXPECT_EQ(rendered.find("Stuns"), std::string::npos);
 
-  // A stun nothing collects says only that it stuns.
+  // A lift nothing collects is a lift nobody can read, so the row goes.
+  orb.mutable_stun()->clear_lifted_tag();
+  EXPECT_EQ(RenderAt(orb, 1).find("Stunned"), std::string::npos);
+  orb.mutable_stun()->set_lifted_tag(SKILL_TAG_LIGHTNING);
   orb.mutable_stun()->clear_final_dmg_pct();
-  EXPECT_NE(RowIn(RenderAt(orb, 1), "Stuns", "What it hits"),
-            std::string::npos);
+  EXPECT_EQ(RenderAt(orb, 1).find("Stunned"), std::string::npos);
+}
+
+// The freeze goes the same way the stun does: the element row names the
+// element and nothing more, and a summon that freezes without one draws no
+// row at all.
+TEST_F(SkillInspectPanelTest, TheElementRowNamesOnlyTheElement) {
+  Skill beam = MakeLuckySeven();
+  beam.add_tags(SKILL_TAG_ICE);
+  beam.set_freeze_seconds(8.0);
+  std::string rendered = RenderAt(beam, 1);
+  EXPECT_NE(RowIn(rendered, "Element", "Ice"), std::string::npos);
+  EXPECT_EQ(rendered.find("Freezes"), std::string::npos);
+
+  Skill prey = MakeLuckySeven();
+  prey.set_freeze_seconds(3.0);
+  EXPECT_EQ(RenderAt(prey, 1).find("Freez"), std::string::npos);
 }
 
 // Jupiter Thunder's shape: a swing told apart into thirty strikes lands what

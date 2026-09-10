@@ -22,7 +22,8 @@
 # element would otherwise buy.
 name: "Spirit of Snow"
 description:
-  "Summon the devastating frosts of the El Nath Mountains."
+  "Summon the devastating frosts of the El Nath Mountains. They freeze what "
+  "they touch."
 kind: SKILL_KIND_ACTIVE
 tags: SKILL_TAG_ICE
 placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 3 }

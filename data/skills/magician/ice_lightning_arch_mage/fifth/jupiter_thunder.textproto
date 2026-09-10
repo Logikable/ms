@@ -37,7 +37,8 @@ name: "Jupiter Thunder"
 description:
   "Launch orbs full of the thunder god's power directly at your enemies. "
   "The orb goes inside the enemy it touched to deal continuous shock damage. "
-  "An electric current flows around that enemy to attack others."
+  "Enemies touched by the orb are stunned. An electric current flows around "
+  "that enemy to attack others."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_LIGHTNING
 placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 4 }

@@ -7,7 +7,9 @@
 # says whether they are collected at all, and Storm Magic asks for nothing
 # else. Between them they are the whole reason to cast the weaker of the two.
 name: "Cold Beam"
-description: "An ice-attribute attack. Grow sharp ice crystals in front."
+description:
+  "An ice-attribute attack. Grow sharp ice crystals in front. Any enemies "
+  "who come in contact with the crystals will freeze."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
 freeze_seconds: 8.0

@@ -9,8 +9,8 @@
 name: "Blizzard"
 description:
   "Summon spears of ice from the sky, showering multiple enemies with a nasty "
-  "blizzard. Upon attacking, permanently grants a chance to damage a single "
-  "enemy with a Blizzard."
+  "blizzard to freeze them. Upon attacking, permanently grants a chance to "
+  "damage a single enemy with a Blizzard."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
 freeze_seconds: 8.0

@@ -608,21 +608,26 @@ std::vector<Row> EmpoweredRows(const Skill& skill) {
   return rows;
 }
 
+// The element a tag names, for a row that has to say which swings something
+// reaches. Only the two the page already draws can appear here.
+std::string TagName(SkillTag tag) {
+  return tag == SKILL_TAG_ICE ? "Ice" : "Lightning";
+}
+
 // Everything about a skill that reads the same at every level.
 // Which element a swing is, for the pair a Freezing Crush wizard alternates
 // between. Only these two tags reach the page: the rest mark a family nothing
 // in this game reads yet.
-// The element row, and the freeze riding it. How LONG the ice holds is not
-// printed for the reason no other clock is -- the pacing band stretches it --
-// but which swings freeze at all is a real difference between them, and the
-// one Frozen Orb is on the wrong side of. Frostprey freezes and carries no
-// element, so the freeze takes a row of its own when nothing tags the skill.
+//
+// That a swing freezes or stuns is the description's to say, not a row's: a
+// row here answers "how much", and neither status has a number the page
+// prints -- the pacing band stretches both durations. What the mark is WORTH
+// to the rest of the book does have one, and that takes the row below.
 std::vector<Row> ElementRows(const Skill& skill) {
-  bool freezes = skill.freeze_seconds() > 0.0;
   std::vector<Row> rows;
   for (int i = 0; i < skill.tags_size(); ++i) {
     if (skill.tags(i) == SKILL_TAG_ICE) {
-      rows.push_back(EffectRow("Element", freezes ? "Ice, Freezes" : "Ice"));
+      rows.push_back(EffectRow("Element", "Ice"));
       break;
     }
     if (skill.tags(i) == SKILL_TAG_LIGHTNING) {
@@ -630,19 +635,15 @@ std::vector<Row> ElementRows(const Skill& skill) {
       break;
     }
   }
-  if (rows.empty() && freezes) {
-    rows.push_back(EffectRow("Freezes", "What it hits"));
-  }
-  // The stun and what carrying it hands the swings that collect. Its seconds
-  // go unprinted for the reason the ice's do; what a reader needs is that the
-  // swing stuns at all, and what the mark is then worth to the rest of the
-  // book.
-  if (skill.stun().duration_seconds() > 0.0) {
-    std::string text = "What it hits";
-    if (skill.stun().final_dmg_pct() > 0.0) {
-      text += ", +" + FormatPercent(skill.stun().final_dmg_pct()) + " taken";
-    }
-    rows.push_back(EffectRow("Stuns", text));
+  // What a stun hands the swings that collect it. Only the swings carrying the
+  // tag the stun names do, so the row states that tag -- a lift with no tag is
+  // collected by nothing and writes no row at all.
+  if (skill.stun().final_dmg_pct() > 0.0 &&
+      skill.stun().lifted_tag() != SKILL_TAG_UNSPECIFIED) {
+    rows.push_back(EffectRow("Stunned Enemies",
+                             "+" + FormatPercent(skill.stun().final_dmg_pct()) +
+                                 " Final Damage from " +
+                                 TagName(skill.stun().lifted_tag())));
   }
   return rows;
 }

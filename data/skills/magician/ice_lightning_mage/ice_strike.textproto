@@ -6,7 +6,8 @@
 # Cold Beam and Thunder Bolt it takes over from.
 name: "Ice Strike"
 description:
-  "Create an ice-attribute explosion near you that attacks nearby enemies."
+  "Create an ice-attribute explosion near you that attacks nearby enemies. "
+  "Enemies caught in the blast freeze."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
 freeze_seconds: 8.0
