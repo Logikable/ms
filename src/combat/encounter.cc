@@ -625,6 +625,7 @@ void AddSideStrike(const Character& proto, const EquipStats& equipped,
   strike.scatter_repeat_kept = 1.0 + side.scatter().repeat_final_dmg_pct();
   strike.scatter_hits_per_dot = side.scatter().hits_per_dot();
   strike.scatter_max_hits = side.scatter().max_hits();
+  strike.scatter_max_hits_per_enemy = side.scatter().max_hits_per_enemy();
   std::vector<double> once;
   for (const CombatType& type : types) {
     once.push_back(ExpectedAttackDamage(stats, *type.mob));
@@ -703,6 +704,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     attack.scatter_repeat_kept = 1.0 + skill->scatter().repeat_final_dmg_pct();
     attack.scatter_hits_per_dot = skill->scatter().hits_per_dot();
     attack.scatter_max_hits = skill->scatter().max_hits();
+    attack.scatter_max_hits_per_enemy = skill->scatter().max_hits_per_enemy();
   }
   for (const SwingProc& proc : derived.procs) {
     attack.procs.push_back({proc.chance, proc.damage_pct, proc.hp_recover_pct});
@@ -1195,6 +1197,7 @@ Skill MagazineSkill(const Skill& skill, const Magazine& magazine) {
   loaded.set_max_enemies(magazine.max_enemies());
   loaded.set_lines(magazine.lines());
   loaded.set_casts(magazine.casts());
+  *loaded.mutable_scatter() = magazine.scatter();
   *loaded.mutable_base() = magazine.base();
   *loaded.mutable_per_level() = magazine.per_level();
   // The weapons and the group belong to the skill that loads it: one press of
@@ -1228,6 +1231,32 @@ void AddMagazines(const GameState& state, const DerivedStats& derived,
         AttackFor(state.character.proto(), total_stats, weapon_type, &swung,
                   learned, types, derived, attack_speed, speed_factor);
     attack.charges = magazine.charges();
+    // A load nothing else spends is a button in its own right, and the pass is
+    // done with it. One a skill spends stays on the list all the same -- that
+    // is where its charges are counted -- but is hung on the swing that presses
+    // it and taken out of the choice.
+    if (magazine.spent_by_skill_name().empty()) {
+      set.attacks.push_back(std::move(attack));
+      continue;
+    }
+    int at = static_cast<int>(set.attacks.size());
+    for (int i = 0; i < at; ++i) {
+      if (set.attacks[i].name != magazine.spent_by_skill_name()) {
+        continue;
+      }
+      attack.spent_by_attack = i;
+      // It rides that press rather than costing one of its own, so it is worth
+      // exactly what the swing carrying it is worth in time.
+      attack.swing_seconds = set.attacks[i].swing_seconds;
+      set.attacks[i].loaded = std::make_shared<AttackOption>(attack);
+      set.attacks[i].loaded_attack = at;
+    }
+    // Nobody holds the skill that would spend it, so the load is dropped
+    // rather than left on the list: an option nothing spends is one the fight
+    // would go on to choose for itself, which is the opposite of the bargain.
+    if (attack.spent_by_attack < 0) {
+      continue;
+    }
     set.attacks.push_back(std::move(attack));
   }
 }

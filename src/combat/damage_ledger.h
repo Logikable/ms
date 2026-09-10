@@ -26,6 +26,7 @@ enum class DamageOrigin {
   kKillClock,   // a skill fired by enemies defeated
   kSideStrike,  // the strike a swing sets off beside itself
   kBurn,
+  kLoad,  // the load another skill left for this press to spend
 };
 
 struct DamageSource {

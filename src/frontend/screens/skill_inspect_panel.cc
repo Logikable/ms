@@ -518,6 +518,10 @@ std::string ScatterText(const Scatter& scatter) {
     text += ", repeats at " + FormatPercent(scatter.repeat_final_dmg_pct()) +
             " Final Damage";
   }
+  if (scatter.max_hits_per_enemy() > 0) {
+    text += ", up to " + std::to_string(scatter.max_hits_per_enemy()) +
+            " per enemy";
+  }
   return text;
 }
 
@@ -1524,21 +1528,28 @@ std::vector<Row> StanceRows(const Buff& buff, int level) {
 // The swing a buff loads, headed by its own name and what one raising pays
 // for. A block of its own rather than rows under the buff's, because it is a
 // separate press with its own damage, reach and levers -- and the count is
-// what the player needs to read first. See Buff.magazine.
+// what the player needs to read first. A load another skill spends says whose
+// press sets it off instead, that being the whole of how it is fired. See
+// Buff.magazine.
 std::vector<Row> MagazineRows(const Magazine& magazine, int level) {
   if (magazine.charges() <= 0) {
     return {};
   }
   std::vector<Row> rows;
-  rows.push_back(SectionRow(
-      magazine.label() + ", " + std::to_string(magazine.charges()) + " shots",
-      kGold));
+  std::string spent = magazine.spent_by_skill_name().empty()
+                          ? std::to_string(magazine.charges()) +
+                                (magazine.charges() == 1 ? " shot" : " shots")
+                          : "on " + magazine.spent_by_skill_name();
+  rows.push_back(SectionRow(magazine.label() + ", " + spent, kGold));
   double per_hit = magazine.base().skill_pct() +
                    magazine.per_level().skill_pct() * (level - 1);
   rows.push_back(EffectRow("Damage", SwingText(per_hit, magazine.lines(),
                                                std::max(1, magazine.casts()))));
   rows.push_back(
       EffectRow("Attacks", ReachText(std::max(1, magazine.max_enemies()))));
+  if (magazine.scatter().hits() > 0) {
+    rows.push_back(EffectRow("Scattered", ScatterText(magazine.scatter())));
+  }
   // Whatever else it carries rides its own strikes rather than the character:
   // the cartridge crits every time, its owner does not.
   SkillEffect base = magazine.base();

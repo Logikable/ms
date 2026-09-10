@@ -2379,6 +2379,30 @@ TEST(CombatSimTest, AScatteredSwingLandsEveryStrikeOnALoneEnemy) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 28.0 / 100000.0, 1e-9);
 }
 
+// Poison Nova's cap: fifteen clouds burst on a lone boss and only the three
+// GMS allows land, the rest finding nothing. The strikes past the cap are LOST
+// rather than moved along, which is what tells this from a repeat cut.
+TEST(CombatSimTest, AScatteredSwingPilesNoDeeperThanItsCap) {
+  Mob snail = MakeMob("Snail", 100000);
+  Mob boar = MakeMob("Boar", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(
+      1.0, 1000.0, {MakeType(&snail, 10.0, 1), MakeType(&boar, 10.0, 1)},
+      /*reach=*/5);
+  AddScatter(params, /*hits=*/5, /*kept=*/1.0);
+  params.attacks[0].scatter_max_hits_per_enemy = 2;
+
+  // Five strikes over two enemies would be three and two; the cap holds the
+  // healthier one to two and the third strike is thrown away.
+  sim.Advance(params, 1.0);
+  const EngagedGroup* snails = FindGroup(sim.view().engaged_groups, "Snail");
+  const EngagedGroup* boars = FindGroup(sim.view().engaged_groups, "Boar");
+  ASSERT_NE(snails, nullptr);
+  ASSERT_NE(boars, nullptr);
+  EXPECT_NEAR(snails->hp_fraction, 1.0 - 20.0 / 100000.0, 1e-9);
+  EXPECT_NEAR(boars->hp_fraction, 1.0 - 20.0 / 100000.0, 1e-9);
+}
+
 // A swing reaching further than it has strikes to throw touches only as many
 // enemies as it threw. The burns and the freeze follow, all three being read
 // off the one count.
@@ -2844,6 +2868,43 @@ double DamageOver(CombatSim& sim, const CombatParams& params, double seconds) {
     total += sim.view().damage_this_step;
   }
   return total;
+}
+
+// Poison Nova's shape: the clouds are no button of their own, and go off on
+// the press of the skill named to spend them. One charge over a window that
+// holds several presses means the first takes the lot.
+TEST(CombatSimTest, ALoadGoesOffOnThePressThatSpendsIt) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
+  // The ordinary swing lands 10 a second and is what spends the load; the
+  // clouds are laid by a swing of their own, on a twenty-second wait.
+  params.attacks[0].damage_per_hit.assign(params.types.size(), 10.0);
+  params.attacks.push_back(MakeSkill("Nova", /*damage=*/1.0,
+                                     /*cooldown=*/20.0));
+  GiveMagazine(params, /*duration=*/10.0, /*cooldown=*/0.0, /*charges=*/1,
+               /*damage=*/500.0);
+  int loaded = static_cast<int>(params.attacks.size()) - 1;
+  params.attacks[loaded].spent_by_attack = 0;
+  params.attacks[0].loaded =
+      std::make_shared<AttackOption>(params.attacks[loaded]);
+  params.attacks[0].loaded_attack = loaded;
+  // Laid by the swing that carries it, which is Poison Nova's shape: the
+  // clouds go up on the cast rather than on a clock of the buff's own, and
+  // that swing's own wait is what says how often they can be laid again.
+  params.buffs.back().laid_by_attack = 1;
+  params.buffs.back().raised_on_cast = true;
+  params.buffed[0]->attacks = params.attacks;
+
+  // One second laying the clouds for 1, nine swings of 10, and the charge
+  // spent on the first of them. The buff refreshing every press is what the
+  // laying swing's own cooldown stops.
+  EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 1.0 + 90.0 + 500.0);
+  // The clouds have lapsed and Nova is still recharging: bare presses only.
+  EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 100.0);
+  // Nova comes round, and lays a fresh load.
+  EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 1.0 + 90.0 + 500.0);
 }
 
 // Eight cartridges and a minute to spend them in: the loaded swing is the only

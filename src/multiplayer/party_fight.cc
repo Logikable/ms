@@ -38,7 +38,7 @@ BossRunState StateOf(FightEnded::Outcome outcome) {
 DamageSource SourceOf(const FightDamage& line) {
   DamageSource source;
   if (line.origin() >= static_cast<int>(DamageOrigin::kSwing) &&
-      line.origin() <= static_cast<int>(DamageOrigin::kBurn)) {
+      line.origin() <= static_cast<int>(DamageOrigin::kLoad)) {
     source.origin = static_cast<DamageOrigin>(line.origin());
   }
   source.index = line.source_index();

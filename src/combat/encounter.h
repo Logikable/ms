@@ -192,6 +192,17 @@ struct AttackOption {
   // landing. 0 for an attack no buff loads, which is every one the character
   // can simply swing -- see Magazine and BuffOption::magazine_attack.
   int charges = 0;
+  // The swing whose press spends this one, where a load is no button of its
+  // own: Poison Nova's clouds go off on the F/P's Mist Eruption. -1 is every
+  // attack the fight may choose for itself, and an option carrying an index
+  // here is never chosen -- see Magazine::spent_by_skill_name.
+  int spent_by_attack = -1;
+  // The load this swing sets off beside itself while a charge stands, and
+  // where that charge is counted. Null and -1 for every swing that spends
+  // none, which is all of them but the one a magazine names. Shared rather
+  // than owned outright for the reason `empowered` is.
+  std::shared_ptr<const AttackOption> loaded;
+  int loaded_attack = -1;
   // Expected damage of the opening hit, per target type. It lands on ONE of
   // the mobs the swing reached -- the healthiest of them, because a hit this
   // big is worth least where it overkills. Empty for a swing that lands once,
@@ -217,6 +228,10 @@ struct AttackOption {
   // fixed -- DoT Punisher is the one that widens with the burns already laid.
   double scatter_hits_per_dot = 0.0;
   int scatter_max_hits = 0;
+  // Strikes any one enemy may take, however many the cast throws: what does
+  // not fit is lost. 0 lets them pile as deep as the count allows, which is
+  // every scattered swing but Poison Nova's clouds -- see Scatter.
+  int scatter_max_hits_per_enemy = 0;
   // Expected Final Attack damage per target type, landing on every mob the
   // swing reached: it rolls separately for each of them. Empty for a character
   // with no Final Attack and for a swing none of theirs follows. A skill firing

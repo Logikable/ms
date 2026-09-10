@@ -351,6 +351,10 @@ class CombatSim {
   // What the strike `attack` sets off is worth per swing, spread over the
   // swings that go out while it waits. 0 for an attack that sets none off.
   double SideStrikeDamage(const AttackOption& attack) const;
+  // What the load riding `attack` is worth this swing: the whole of it while a
+  // charge stands and nothing once it is spent, since one press takes the lot.
+  // 0 for every swing no magazine names.
+  double LoadedDamage(const AttackOption& attack) const;
   // What one swing of `attack` would land on the queue as it stands, the
   // opening hit and Final Attack included. An attack with an empowered form is
   // averaged over the run of swings that form takes its place in.

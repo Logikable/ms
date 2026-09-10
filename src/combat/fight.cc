@@ -139,6 +139,10 @@ int CombatSim::ExtraLines(const AttackOption& attack) const {
 // The leftovers go to the healthiest, which is GMS's rule read through what
 // this game has: the flames go for the boss first, and a boss is the monster
 // with the HP.
+//
+// Where the skill caps how deep the pile may go, the strikes past it are lost
+// rather than moved along: fifteen of Poison Nova's clouds bursting on a lone
+// boss land the three GMS allows and no more.
 std::vector<double> CombatSim::ScatterShares(const AttackOption& attack,
                                              int hit) const {
   int hits = ScatterHits(attack);
@@ -156,6 +160,9 @@ std::vector<double> CombatSim::ScatterShares(const AttackOption& attack,
   int spare = hits % hit;
   for (int rank = 0; rank < hit; ++rank) {
     int strikes = each + (rank < spare ? 1 : 0);
+    if (attack.scatter_max_hits_per_enemy > 0) {
+      strikes = std::min(strikes, attack.scatter_max_hits_per_enemy);
+    }
     shares[healthiest[rank]] = 1.0 + (strikes - 1) * attack.scatter_repeat_kept;
   }
   return shares;
@@ -320,13 +327,27 @@ double CombatSim::SideStrikeDamage(const AttackOption& attack) const {
   return SwingDamage(*attack.side) * attack.swing_seconds / every;
 }
 
+// A load is spent whole on one press rather than spread over the swings that
+// go out while it waits, which is what tells it from a side strike: the fight
+// should reach for the swing carrying it exactly while the charge stands, and
+// weigh that swing bare once it is gone.
+double CombatSim::LoadedDamage(const AttackOption& attack) const {
+  if (attack.loaded == nullptr || attack.loaded_attack < 0 ||
+      attack.loaded_attack >= static_cast<int>(attack_clocks_.size()) ||
+      attack_clocks_[attack.loaded_attack].charges_left <= 0) {
+    return 0.0;
+  }
+  int hit = Reached(*attack.loaded);
+  return StrikeDamage(*attack.loaded, hit) + BurnDamage(*attack.loaded, hit);
+}
+
 double CombatSim::SwingDamage(const AttackOption& attack) const {
   int hit = Reached(attack);
   double total = StrikeDamage(attack, hit) + BurnDamage(attack, hit);
   // The side strike is held aside rather than added, because it rides the
   // swing whichever form that swing took -- the averaging below is between the
-  // two forms, and this is outside it.
-  double side = SideStrikeDamage(attack);
+  // two forms, and this is outside it. A load rides the press the same way.
+  double side = SideStrikeDamage(attack) + LoadedDamage(attack);
   // A swing with an empowered form lands it once in every N, so what the
   // attack is worth per swing is the average of the two. The rate has to say
   // so, or the attack would be weighed on the weaker of the two things it
@@ -375,6 +396,11 @@ int CombatSim::BestAttack(const CombatParams& params) const {
     }
     // Nothing loaded, so there is nothing to fire.
     if (!Loaded(params, i)) {
+      continue;
+    }
+    // A load another skill's press sets off is no button of its own: it goes
+    // out with that swing, and its damage is already counted there.
+    if (attack.spent_by_attack >= 0) {
       continue;
     }
     // Per second, not per swing: a skill that hits half again as hard but takes
@@ -1741,6 +1767,13 @@ bool CombatSim::LayBuffs(const CombatParams& params, int swung, bool on_cast) {
     // laid it: what a second puncture leaves is one wound, not two.
     buffs_[i].left = buff.duration_seconds;
     buffs_[i].cooldown_left = buff.cooldown_seconds;
+    // A fresh load, whole, exactly as RunBuffs hands one to a buff on its own
+    // clock: what was left of the last one is not carried.
+    if (buff.magazine_attack >= 0 &&
+        buff.magazine_attack < static_cast<int>(attack_clocks_.size())) {
+      attack_clocks_[buff.magazine_attack].charges_left =
+          Attacks(params)[buff.magazine_attack].charges;
+    }
     // The mask is built once a step, before anything swings, so one raised
     // mid-swing has to say so itself or the strike would be priced without it.
     buff_mask_ |= 1 << i;
@@ -2058,6 +2091,14 @@ void CombatSim::LandSwing(const CombatParams& params,
         attack_clocks_[swung].side_cooldown_left <= 0.0) {
       Strike(*cast->side, {DamageOrigin::kSideStrike, swung});
       attack_clocks_[swung].side_cooldown_left = cast->side->cooldown_seconds;
+    }
+    // The load this press sets off, where one is still standing. Read off the
+    // aimed attack for the reason the side strike is, and spent here rather
+    // than below: what is charged is the press, not the load's own clock.
+    if (cast->loaded != nullptr && cast->loaded_attack >= 0 &&
+        attack_clocks_[cast->loaded_attack].charges_left > 0) {
+      Strike(*cast->loaded, {DamageOrigin::kLoad, cast->loaded_attack});
+      --attack_clocks_[cast->loaded_attack].charges_left;
     }
     // Recovery rides the hit, so a cast does not earn it and neither does a
     // swing at nothing. What landed pays it rather than what was aimed, and

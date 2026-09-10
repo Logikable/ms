@@ -230,6 +230,37 @@ TEST(SkillDataTest, EverySkillNamesItsAdvancementAndItsKind) {
   }
 }
 
+// A load is fired one of two ways and has to say which: as a button of its
+// own, which the fight chooses like any swing, or on the press of a skill that
+// exists to spend it. The second needs no animation -- it rides the press it
+// names -- and naming a skill nobody holds would leave the load unfireable.
+TEST(SkillDataTest, EveryLoadIsFiredByAButtonOrByASkillThatSpendsIt) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  std::set<std::string> names;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    names.insert(entry.second.name());
+  }
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Magazine& magazine = entry.second.buff().magazine();
+    if (magazine.charges() <= 0) {
+      continue;
+    }
+    if (magazine.spent_by_skill_name().empty()) {
+      EXPECT_GT(magazine.base_delay_ms(), 0)
+          << entry.first << " loads a swing of its own with no animation";
+      continue;
+    }
+    EXPECT_GT(names.count(magazine.spent_by_skill_name()), 0u)
+        << entry.first << " is spent by \"" << magazine.spent_by_skill_name()
+        << "\", which no skill answers to";
+    EXPECT_NE(magazine.spent_by_skill_name(), entry.second.name())
+        << entry.first << " is spent by its own press";
+    EXPECT_EQ(magazine.base_delay_ms(), 0)
+        << entry.first << " rides another skill's press and states an "
+        << "animation of its own";
+  }
+}
+
 // The name of the swing being charged goes in the player's panel in a boss
 // fight, which is the narrowest place a skill name is drawn. It wraps over the
 // panel's rows; a name that needs one more of them is half a name on screen,
@@ -934,39 +965,60 @@ TEST(SkillDataTest, RepeatedStrikesAndCastRaisedBuffsBelongToSwings) {
   }
 }
 
-// A scattered swing has to be a swing, throw strikes, and reach no further than
-// it has strikes to throw -- an enemy no strike lands on is one the swing was
-// never going to touch, so a reach past the count is the file misstating what
-// the skill does.
+// Everything a scattered cast has to hold, wherever it is stated: it throws
+// strikes, it reaches no further than it has strikes to throw -- an enemy no
+// strike lands on is one the cast was never going to touch -- and a repeat is
+// worth something but never more than the first.
+void CheckScatter(const std::string& what, const Scatter& scatter,
+                  int max_enemies) {
+  EXPECT_GT(scatter.hits(), 1)
+      << what << " scatters a single strike, which is every swing";
+  // A count that widens with the burns alight is held to the widest it can
+  // get, since that is the only reach every strike of it could ever fill.
+  int widest = std::max(scatter.hits(), scatter.max_hits());
+  EXPECT_LE(std::max(1, max_enemies), widest)
+      << what << " reaches further than it has strikes to throw";
+  if (scatter.hits_per_dot() > 0.0) {
+    EXPECT_GT(scatter.max_hits(), scatter.hits())
+        << what << " widens with the burns but no further than it already "
+        << "threw";
+  } else {
+    EXPECT_EQ(scatter.max_hits(), 0)
+        << what << " caps a count that never grows";
+  }
+  EXPECT_GT(scatter.repeat_final_dmg_pct(), -1.0)
+      << what << " takes the whole of a repeat strike away";
+  EXPECT_LE(scatter.repeat_final_dmg_pct(), 0.0)
+      << what << " pays a repeat strike more than the first";
+  // A cap of one is a cast that never doubles up, which is a swing written the
+  // hard way, and a cap past the count it could throw caps nothing.
+  if (scatter.max_hits_per_enemy() > 0) {
+    EXPECT_GT(scatter.max_hits_per_enemy(), 1)
+        << what << " caps the pile at one strike, which is an ordinary swing";
+    EXPECT_LT(scatter.max_hits_per_enemy(), widest)
+        << what << " caps the pile no lower than the strikes it throws";
+  }
+}
+
 TEST(SkillDataTest, EveryScatteredSwingReachesNoFurtherThanItsStrikes) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    if (!skill.has_scatter()) {
-      continue;
+    if (skill.has_scatter()) {
+      EXPECT_EQ(skill.kind(), SKILL_KIND_ATTACK)
+          << entry.first << " scatters strikes but is not a swing";
+      CheckScatter(entry.first, skill.scatter(), skill.max_enemies());
     }
-    EXPECT_EQ(skill.kind(), SKILL_KIND_ATTACK)
-        << entry.first << " scatters strikes but is not a swing";
-    EXPECT_GT(skill.scatter().hits(), 1)
-        << entry.first << " scatters a single strike, which is every swing";
-    // A count that widens with the burns alight is held to the widest it can
-    // get, since that is the only reach every strike of it could ever fill.
-    int widest = std::max(skill.scatter().hits(), skill.scatter().max_hits());
-    EXPECT_LE(std::max(1, skill.max_enemies()), widest)
-        << entry.first << " reaches further than it has strikes to throw";
-    if (skill.scatter().hits_per_dot() > 0.0) {
-      EXPECT_GT(skill.scatter().max_hits(), skill.scatter().hits())
-          << entry.first << " widens with the burns but no further than it "
-          << "already threw";
-    } else {
-      EXPECT_EQ(skill.scatter().max_hits(), 0)
-          << entry.first << " caps a count that never grows";
+    if (skill.side_strike().has_scatter()) {
+      const SideStrike& side = skill.side_strike();
+      CheckScatter(
+          entry.first + "'s side strike", side.scatter(),
+          side.max_enemies() > 0 ? side.max_enemies() : skill.max_enemies());
     }
-    // A cut of the whole would make a repeat worth nothing, and more than the
-    // whole would have it healing the monster.
-    EXPECT_GT(skill.scatter().repeat_final_dmg_pct(), -1.0)
-        << entry.first << " takes the whole of a repeat strike away";
-    EXPECT_LE(skill.scatter().repeat_final_dmg_pct(), 0.0)
-        << entry.first << " pays a repeat strike more than the first";
+    if (skill.buff().magazine().has_scatter()) {
+      const Magazine& magazine = skill.buff().magazine();
+      CheckScatter(entry.first + "'s " + magazine.label(), magazine.scatter(),
+                   magazine.max_enemies());
+    }
   }
 }
 

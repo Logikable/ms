@@ -739,6 +739,18 @@ message Magazine {
   int32 casts = 6;
   SkillEffect base = 7;
   SkillEffect per_level = 8;
+  // How the load scatters, read exactly as Skill.scatter is. Poison Nova's
+  // fifteen clouds are what it exists for.
+  Scatter scatter = 9;
+  // The skill whose press spends a charge, by display name. Named, the load is
+  // no button of its own: it lands BESIDE that swing, on its press and for its
+  // animation, so the character is charged nothing for the cast. Poison Nova
+  // is what it exists for -- GMS lays clouds that the F/P's own Mist Eruption
+  // sets off, rather than giving them a key.
+  //
+  // Empty is Repeating Crossbow Cartridge's shape: a swing in its own right,
+  // which the fight chooses like any other.
+  string spent_by_skill_name = 10;
 }
 
 message Buff {
@@ -999,6 +1011,15 @@ message Scatter {
   // Strikes the count may climb to. Read only where hits_per_dot is set, and
   // GMS states it for the same skill: "Up to 25 Flame Orbs can be summoned".
   int32 max_hits = 4;
+  // Strikes any ONE enemy may take of a cast. Poison Nova is what it exists
+  // for: GMS caps the pile-up outright -- "Explosion damage from poisonous
+  // clouds can apply up to 3 times for each enemy" -- where Megiddo Flame cuts
+  // what a repeat keeps instead. Strikes past the cap find nothing and are
+  // lost, which is what fifteen clouds bursting on a lone boss comes to.
+  //
+  // 0 lets the strikes pile as deep as the count allows, which is every other
+  // scattered swing.
+  int32 max_hits_per_enemy = 5;
 }
 
 // What a strike leaves on the I/L's pile of Freeze Stacks, where GMS states a

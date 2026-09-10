@@ -241,7 +241,13 @@ double SpreadDamage(const AttackOption& attack, int hit, int enemies) {
   // strike on each enemy it reached and what the repeat cut leaves of the rest.
   // No queue here to pick the healthiest from, and none is needed: the total is
   // the same whoever the leftovers fall on.
+  //
+  // Where the skill caps the pile, the count is held to what the crowd can
+  // take and the rest is lost, exactly as CombatSim::ScatterShares loses it.
   int hits = ScatterHits(attack);
+  if (attack.scatter_max_hits_per_enemy > 0) {
+    hits = std::min(hits, hit * attack.scatter_max_hits_per_enemy);
+  }
   if (hits > hit) {
     damage += per * (hits - hit) * attack.scatter_repeat_kept;
   }
@@ -434,9 +440,18 @@ double NextBuffChange(const CombatParams& params, const BuffClocks& c) {
 // Puts up every buff the swing at `swung` lays.
 void LayBuff(const CombatParams& params, int swung, BuffClocks& c) {
   for (int i = 0; i < static_cast<int>(c.left.size()); ++i) {
-    if (params.buffs[i].laid_by_attack == swung) {
-      c.left[i] = params.buffs[i].duration_seconds;
-      c.cooldown[i] = params.buffs[i].cooldown_seconds;
+    const BuffOption& buff = params.buffs[i];
+    if (buff.laid_by_attack != swung) {
+      continue;
+    }
+    c.left[i] = buff.duration_seconds;
+    c.cooldown[i] = buff.cooldown_seconds;
+    // A fresh load, whole, as RunBuffClocks hands one to a buff on its own
+    // clock: what was left of the last one is not carried.
+    if (buff.magazine_attack >= 0 &&
+        buff.magazine_attack < static_cast<int>(c.magazine.size())) {
+      c.magazine[buff.magazine_attack] =
+          params.attacks[buff.magazine_attack].charges;
     }
   }
 }
@@ -767,6 +782,19 @@ double RunOwnClockIce(double step, std::vector<OwnClockIce>& sources,
   return frozen_left;
 }
 
+// What the load riding `attack` lands on this press: the whole of it while a
+// charge stands, since one press takes the lot. 0 for every swing no magazine
+// names -- see CombatSim::LoadedDamage.
+double LoadedDamage(const AttackOption& attack,
+                    const std::vector<int>& magazine, int enemies) {
+  if (attack.loaded == nullptr || attack.loaded_attack < 0 ||
+      attack.loaded_attack >= static_cast<int>(magazine.size()) ||
+      magazine[attack.loaded_attack] <= 0) {
+    return 0.0;
+  }
+  return CrowdDamage(*attack.loaded, enemies, false);
+}
+
 // The swing landing the most per second of the ones off cooldown, or -1 when
 // none is. A cast is not among them: it deals no damage.
 int BestSwing(const std::vector<AttackOption>& attacks,
@@ -788,6 +816,11 @@ int BestSwing(const std::vector<AttackOption>& attacks,
         (i >= static_cast<int>(magazine.size()) || magazine[i] <= 0)) {
       continue;
     }
+    // A load another skill's press sets off is no button of its own, and what
+    // it lands is counted on that press instead.
+    if (attack.spent_by_attack >= 0) {
+      continue;
+    }
     bool frozen = frozen_left > 0.0;
     int alight = BurnsAlight(held);
     double rate =
@@ -798,7 +831,8 @@ int BestSwing(const std::vector<AttackOption>& attacks,
          BurnCredit(attack, enemies, held) +
          BurnStateCredit(attacks, attack, enemies, held, frozen || alight > 0) +
          FreezeCredit(attacks, attack, stacks, cap, enemies, frozen, alight) +
-         FrozenCredit(attacks, attack, stacks, enemies, frozen_left, alight)) /
+         FrozenCredit(attacks, attack, stacks, enemies, frozen_left, alight) +
+         LoadedDamage(attack, magazine, enemies)) /
         attack.swing_seconds;
     if (rate > best_rate) {
       best_rate = rate;
@@ -890,6 +924,13 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
         FreezeBoost(swung, freeze, frozen_left > 0.0) *
         ScarBoost(swung, scar_odds) *
         ConditionBoost(swung, frozen_left > 0.0 || alight > 0, alight);
+    // The load this press sets off, where one is still standing. Spent here
+    // rather than below: what is charged is the press, not the load's clock.
+    double loaded = LoadedDamage(swung, clocks.magazine, enemies);
+    if (loaded > 0.0) {
+      landed += loaded;
+      --clocks.magazine[swung.loaded_attack];
+    }
     LightBurns(swung, enemies, pick, burning);
     scar_odds = CreditScar(swung, scar_odds);
     frozen_left = std::max(frozen_left, swung.freeze_seconds);
