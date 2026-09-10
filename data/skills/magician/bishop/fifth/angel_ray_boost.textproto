@@ -3,7 +3,7 @@
 name: "Angel Ray Boost"
 description: "Strengthens Angel Ray."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 3 }
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 4 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {

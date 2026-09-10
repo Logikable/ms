@@ -1,0 +1,63 @@
+# The Bishop's first job node, and the first party half in the game worth
+# anything but a share off a hit.
+#
+# Two halves, and GMS keeps them apart. The Bishop's own is flat: 33% final
+# damage at master, whatever their INT and whoever is standing with them.
+# Everybody else's grows on the BISHOP's INT and is then held to a slice of
+# what the Bishop kept -- one blessing split between everybody in the zone, so
+# a party of two takes 17% each and a party of three 11%. See AllyIntLever.
+#
+# GMS's INT steps verbatim, though this game's stats do not reach GMS's: a
+# Bishop here tops out near 8,700 INT against the 100,000-plus an endgame GMS
+# Bishop carries, so the party is paid a few points rather than the ceiling and
+# the attack speed is bought by nobody yet. That is the ratio the description
+# states, and rescaling the steps would state a different skill.
+#
+# The two ladders are smoothed to land GMS's master value exactly: half a point
+# of final damage a level against GMS's `18+floor(x/2)`, and 0.35 seconds
+# against its `20+floor(x/3)`. Level 1 lands 0.5pp over and 0.15s under.
+#
+# The cast is kBuffCastMs like every other buff, not the 360ms its animation
+# runs: a buff is raised from a sequence, which paces them all alike.
+#
+# Dropped: the MP half of the recovery, MP being untracked here. Kept though
+# nothing reads them yet -- the status clear, and the attack speed, which the
+# soft cap at Fastest 1 eats for a party already carrying its own book's +3.
+name: "Benediction"
+description:
+  "Calls upon your holy power to create a consecrated space that empowers and "
+  "revitalizes your allies. Increases your Final Damage, and your party's "
+  "Final Damage, Attack Speed and HP recovery in proportion to your INT."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 1 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 19.85
+  duration_seconds_per_level: 0.35
+  base { final_dmg_pct: 0.185 }
+  per_level { final_dmg_pct: 0.005 }
+  ally_base {
+    final_dmg_pct: 0.06
+    regen_pct: 0.01
+    regen_interval_seconds: 2.0
+    cures_conditions: true
+  }
+  ally_int_lever {
+    int_step: 3000
+    effect { final_dmg_pct: 0.01 }
+    cap_is_party_share: true
+  }
+  ally_int_lever {
+    int_step: 2000
+    effect { regen_pct: 0.01 }
+    cap { regen_pct: 0.10 }
+  }
+  ally_int_lever {
+    int_step: 10000
+    effect { attack_speed: 1 }
+    cap { attack_speed: 3 }
+  }
+}

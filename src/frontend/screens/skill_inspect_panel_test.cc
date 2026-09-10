@@ -2141,6 +2141,39 @@ TEST_F(SkillInspectPanelTest, ABuffsPartyHalfSitsUnderTheBuff) {
   EXPECT_GT(taken, party) << "and sits under its own heading";
 }
 
+// Benediction's party rows: what the reader needs off the card is the RATE
+// their INT buys the party and where it stops, not a total that depends on
+// stats the card cannot see.
+TEST_F(SkillInspectPanelTest, APartyHalfStatesWhatTheCastersIntBuys) {
+  Skill blessing = IronBody();
+  blessing.set_name("Benediction");
+  blessing.set_max_level(30);
+  Buff* buff = blessing.mutable_buff();
+  buff->set_duration_seconds(30.0);
+  buff->mutable_base()->set_final_dmg_pct(0.33);
+  buff->mutable_ally_base()->set_final_dmg_pct(0.06);
+  AllyIntLever* split = buff->add_ally_int_lever();
+  split->set_int_step(3000);
+  split->mutable_effect()->set_final_dmg_pct(0.01);
+  split->set_cap_is_party_share(true);
+  AllyIntLever* capped = buff->add_ally_int_lever();
+  capped->set_int_step(2000);
+  buff->mutable_ally_base()->set_regen_pct(0.01);
+  buff->mutable_ally_base()->set_regen_interval_seconds(2.0);
+  capped->mutable_effect()->set_regen_pct(0.01);
+  capped->mutable_cap()->set_regen_pct(0.10);
+
+  std::string page = RenderAt(blessing, 30);
+  EXPECT_NE(
+      page.find(
+          "+1% per 3,000 INT, up to your own 33% split between the party"),
+      std::string::npos)
+      << page;
+  EXPECT_NE(page.find("1% every 2s, +1% per 2,000 INT up to 10%"),
+            std::string::npos)
+      << page;
+}
+
 // Parashock Guard pays its caster only for shielding somebody. A player
 // maxing it alone sees nothing move, so the heading over its own half has to
 // say why -- and it says so even on a page with no other section on it.

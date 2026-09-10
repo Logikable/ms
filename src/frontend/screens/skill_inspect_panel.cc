@@ -1493,6 +1493,78 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
   return rows;
 }
 
+// The party's fountain, stated as the character's own is: the pulse, its
+// clock, and what the caster's INT adds. Its own builder rather than a lever
+// row because neither half says anything alone -- see RegenRows.
+std::vector<Row> PartyRegenRows(const SkillEffect& half, const Buff& buff) {
+  if (half.regen_pct() <= 0.0 || half.regen_interval_seconds() <= 0.0) {
+    return {};
+  }
+  std::string text = FormatPercent(half.regen_pct()) + " every " +
+                     FormatNumber(half.regen_interval_seconds()) + "s";
+  for (const AllyIntLever& lever : buff.ally_int_lever()) {
+    if (lever.effect().regen_pct() <= 0.0 || lever.int_step() <= 0.0) {
+      continue;
+    }
+    text += ", +" + FormatPercent(lever.effect().regen_pct()) + " per " +
+            FormatWithCommas(static_cast<int64_t>(lever.int_step())) + " INT";
+    if (lever.cap().regen_pct() > 0.0) {
+      text += " up to " + FormatPercent(lever.cap().regen_pct());
+    }
+  }
+  return {EffectRow("HP Recovered", text)};
+}
+
+// The value a lever table writes for one field, by the label it writes it
+// under -- so a ceiling can be stated in the units its own lever is stated in.
+std::map<std::string, std::string> LeverValuesByLabel(const SkillEffect& at) {
+  std::map<std::string, std::string> values;
+  for (const Row& row : LeverRows(at, SkillEffect(), 1, "")) {
+    // The sign belongs to a grant, not to a ceiling being quoted.
+    values[row.label] = row.value.empty() || row.value.front() != '+'
+                            ? row.value
+                            : row.value.substr(1);
+  }
+  return values;
+}
+
+// What the CASTER's INT adds to the party's share, one row a lever: the rate
+// it grows at and the ceiling it stops at. Rendered at a single step, since
+// what the row states is the rate rather than a total -- the total depends on
+// the Bishop's own INT, which is the whole point of it. See AllyIntLever.
+std::vector<Row> AllyIntLeverRows(const Buff& buff, int level) {
+  std::map<std::string, std::string> own =
+      LeverValuesByLabel(EffectAt(buff.base(), buff.per_level(), level));
+  std::map<std::string, std::string> ceiling;
+  std::vector<Row> rows;
+  for (const AllyIntLever& lever : buff.ally_int_lever()) {
+    // The fountain states its own growth beside its pulse, above.
+    if (lever.int_step() <= 0.0 || lever.effect().regen_pct() > 0.0) {
+      continue;
+    }
+    if (!lever.cap_is_party_share()) {
+      ceiling = LeverValuesByLabel(lever.cap());
+    }
+    std::string per = " per " +
+                      FormatWithCommas(static_cast<int64_t>(lever.int_step())) +
+                      " INT";
+    for (Row& row : LeverRows(lever.effect(), SkillEffect(), 1, per)) {
+      const std::map<std::string, std::string>& against =
+          lever.cap_is_party_share() ? own : ceiling;
+      std::map<std::string, std::string>::const_iterator it =
+          against.find(row.label);
+      if (it != against.end()) {
+        row.value +=
+            lever.cap_is_party_share()
+                ? ", up to your own " + it->second + " split between the party"
+                : ", up to " + it->second;
+      }
+      rows.push_back(std::move(row));
+    }
+  }
+  return rows;
+}
+
 // What everybody else in the party gets while the buff stands, in the colour
 // the party screens are drawn in. Under the buff's own heading rather than at
 // the foot of the card, because these lapse with it. See Buff.ally_base.
@@ -1518,6 +1590,11 @@ std::vector<Row> AllyBuffRows(const Buff& buff, int level) {
         EffectRow("Heal on Cast", "+" + FormatPercent(heal) + " HP"));
   }
   Append(std::move(levers), rows);
+  Append(AllyIntLeverRows(buff, level), rows);
+  // Last of the three, being the half of the grant that is not a lever.
+  Append(PartyRegenRows(
+             EffectAt(buff.ally_base(), buff.ally_per_level(), level), buff),
+         rows);
   Append(std::move(shield), rows);
   return rows;
 }
