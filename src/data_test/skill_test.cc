@@ -550,6 +550,14 @@ bool GrantsAtFirstLevel(const Skill& skill) {
       return true;
     }
   }
+  // A buff whose whole grant is what it widens while it stands -- Throwing
+  // Star Barrage, which lands nothing itself and hands Quad Star three more
+  // directions from the first level bought.
+  for (const SkillBoost& boost : skill.buff().boost()) {
+    if (boost.min_level() <= 1) {
+      return true;
+    }
+  }
   return false;
 }
 

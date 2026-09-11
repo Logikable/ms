@@ -255,8 +255,9 @@ HitGroup SwingHitGroup(const SwingHit& hit, const OffenseStats& offense,
   extra.crit_rate += lands.crit_rate();
   extra.lines = std::max(1, hit.lines());
   // The shadow copies it as it copies the rest of the swing. Reset here
-  // because the line count just changed under it.
-  extra.mirror_lines = extra.lines;
+  // because the line count just changed under it -- and left at nothing for
+  // the one hit GMS keeps the shadow off. See SwingHit.skips_mirror.
+  extra.mirror_lines = hit.skips_mirror() ? 0 : extra.lines;
   HitGroup group;
   group.rolls = RollsFor(extra);
   for (const CombatType& type : types) {
@@ -731,6 +732,16 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     // priced on its own and the two are summed into the one swing.
     for (const SwingHit& hit : skill->extra_hit()) {
       AddSwingHit(hit, offense, level, types, attack);
+    }
+    // The hits another skill hands this one by name, which is a buff widening
+    // it while it stands. Priced exactly as its own are, and already read at
+    // the granting skill's level -- see SkillBoost::extra_hit.
+    std::map<std::string, SkillBonus>::const_iterator aimed =
+        derived.skill_bonus.find(skill->name());
+    if (aimed != derived.skill_bonus.end()) {
+      for (const SwingHit& hit : aimed->second.extra_hit) {
+        AddSwingHit(hit, offense, level, types, attack);
+      }
     }
     AddChannel(*skill, offense, level, types, speed_factor, attack);
   }

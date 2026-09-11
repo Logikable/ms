@@ -288,6 +288,11 @@ struct SkillBonus {
   // Seconds added to the named skill's burn, for the same reason as above: the
   // burn's clock is its own. See SkillBoost::dot_duration_seconds.
   double dot_duration_seconds = 0.0;
+  // Hits handed to the named skill's swing, each already read at the granting
+  // skill's level -- so what is here states its whole damage in `base` and
+  // carries no ladder. Empty for every boost but Throwing Star Barrage's, and
+  // landed where the skill's own extra hits are. See SkillBoost::extra_hit.
+  std::vector<SwingHit> extra_hit;
 };
 
 // What a character's learned passives add to every swing, whichever attack

@@ -4761,5 +4761,127 @@ TEST(ComputeBossParamsTest, InactivePastTheLastPhaseAndWithoutAWeapon) {
   EXPECT_FALSE(ComputeBossParams(state, "zakum", normal, 1).active);
 }
 
+// Throwing Star Barrage's shape: a buff that hands another skill hits of its
+// own while it stands -- three more sets of stars, each finding a crowd the
+// swing itself never reaches, and each left alone by the shadow.
+TEST(ComputeCombatParamsTest, ABuffCanWidenAnotherSkillWithHitsOfItsOwn) {
+  Skill quad;
+  quad.set_name("Quad Star");
+  quad.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(quad, JOB_ADVANCEMENT_SWORDMAN);
+  quad.set_max_level(30);
+  quad.set_base_delay_ms(660);
+  quad.set_max_enemies(1);
+  quad.set_lines(4);
+  quad.mutable_base()->set_skill_pct(1.00);
+
+  Skill partner;
+  partner.set_name("Shadow Partner");
+  partner.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(partner, JOB_ADVANCEMENT_SWORDMAN);
+  partner.set_max_level(20);
+  partner.mutable_base()->set_mirror_line_pct(0.70);
+
+  double kept[2] = {0.0, 0.0};
+  for (int pass = 0; pass < 2; ++pass) {
+    Skill barrage;
+    barrage.set_name("Throwing Star Barrage");
+    barrage.set_kind(SKILL_KIND_ACTIVE);
+    PlaceIn(barrage, JOB_ADVANCEMENT_SWORDMAN);
+    barrage.set_max_level(30);
+    barrage.set_base_delay_ms(120);
+    barrage.mutable_buff()->set_duration_seconds(30.0);
+    SkillBoost* spread = barrage.mutable_buff()->add_boost();
+    spread->set_skill_name("Quad Star");
+    SwingHit* stars = spread->add_extra_hit();
+    stars->set_label("Spread");
+    stars->set_casts(3);
+    stars->set_lines(4);
+    stars->set_max_enemies(4);
+    stars->set_skips_mirror(pass == 0);
+    stars->mutable_base()->set_skill_pct(3.79);
+
+    GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                    {{"field", TwoSnailMap()}},
+                    {{"quad_star", quad},
+                     {"shadow_partner", partner},
+                     {"barrage", barrage}});
+    state.current_map = "field";
+    EquipSword(state);
+    GrantFirstJobSp(state, 3);
+    ASSERT_TRUE(state.character.LearnSkill(quad, 1));
+    ASSERT_TRUE(state.character.LearnSkill(partner, 1));
+    ASSERT_TRUE(state.character.LearnSkill(barrage, 1));
+
+    CombatParams params = ComputeCombatParams(state);
+    ASSERT_EQ(params.buffs.size(), 1u);
+    ASSERT_EQ(params.attacks.size(), 2u);
+    // Nothing is widened until the barrage stands.
+    EXPECT_TRUE(params.attacks[1].wide_hit_damage.empty());
+    EXPECT_EQ(params.attacks[1].wide_hit_enemies, 0);
+
+    const std::vector<AttackOption>& under = params.Attacks(1);
+    ASSERT_EQ(under.size(), params.attacks.size());
+    const AttackOption& widened = under[1];
+    ASSERT_FALSE(widened.wide_hit_damage.empty());
+    // Three strikes of four stars, banked apart from the swing: they land on
+    // four enemies where the swing itself finds one.
+    EXPECT_EQ(widened.wide_hit_enemies, 4);
+    EXPECT_EQ(widened.wide_hit_groups.size(), 3u);
+    // The swing is untouched -- four lines and their shadow, as before.
+    EXPECT_NEAR(widened.damage_per_hit[0], params.attacks[1].damage_per_hit[0],
+                1e-9);
+    kept[pass] = widened.wide_hit_damage[0] / widened.damage_per_hit[0];
+  }
+  // Twelve stars at 379% against the swing's four lines at 100%, each of those
+  // copied by the shadow at 70%.
+  EXPECT_NEAR(kept[0], 12 * 3.79 / (4 * 1.70), 1e-9);
+  // The same hits with the shadow left on, which is what every other one does.
+  EXPECT_NEAR(kept[1] / kept[0], 1.70, 1e-9);
+}
+
+// The ladder on a handed-over hit is the GRANTING skill's: the swing it joins
+// is read at its own level, and a ladder left on the hit would climb twice.
+TEST(ComputeCombatParamsTest, AHandedHitClimbsTheGrantingSkillsLadder) {
+  Skill quad;
+  quad.set_name("Quad Star");
+  quad.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(quad, JOB_ADVANCEMENT_SWORDMAN);
+  quad.set_max_level(30);
+  quad.set_base_delay_ms(660);
+  quad.set_max_enemies(1);
+  quad.mutable_base()->set_skill_pct(1.00);
+
+  Skill barrage;
+  barrage.set_name("Throwing Star Barrage");
+  barrage.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(barrage, JOB_ADVANCEMENT_SWORDMAN);
+  barrage.set_max_level(30);
+  barrage.set_base_delay_ms(120);
+  barrage.mutable_buff()->set_duration_seconds(30.0);
+  SkillBoost* spread = barrage.mutable_buff()->add_boost();
+  spread->set_skill_name("Quad Star");
+  SwingHit* stars = spread->add_extra_hit();
+  stars->set_max_enemies(4);
+  stars->mutable_base()->set_skill_pct(1.00);
+  stars->mutable_per_level()->set_skill_pct(1.00);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"quad_star", quad}, {"barrage", barrage}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 5);
+  ASSERT_TRUE(state.character.LearnSkill(quad, 1));
+  ASSERT_TRUE(state.character.LearnSkill(barrage, 4));
+
+  CombatParams params = ComputeCombatParams(state);
+  const AttackOption& widened = params.Attacks(1)[1];
+  ASSERT_FALSE(widened.wide_hit_damage.empty());
+  // 400% at the barrage's fourth level, against a swing still worth 100%.
+  EXPECT_NEAR(widened.wide_hit_damage[0] / widened.damage_per_hit[0], 4.0,
+              1e-9);
+}
+
 }  // namespace
 }  // namespace ms

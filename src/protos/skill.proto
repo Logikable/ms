@@ -1049,6 +1049,11 @@ message SwingHit {
   // it. 0 takes the swing's reach, which is every other extra hit -- Divine
   // Mark's brand explodes on exactly what the hammer struck.
   int32 max_enemies = 6;
+  // Whether the shadow leaves this hit alone. Throwing Star Barrage is what it
+  // exists for: GMS's "Does not apply to Shadow Partner", said of the spread
+  // and of nothing else the Night Lord throws. False everywhere else -- a
+  // shadow copies the swing it stands behind, hits and all.
+  bool skips_mirror = 7;
 }
 
 // A swing the player HOLDS rather than presses: it pulses while the key is
@@ -1467,6 +1472,17 @@ message SkillBoost {
   // describe a staircase. Below the gate the boost is not read at all, which
   // is why it gates the whole message and not a lever.
   int32 min_level = 18;
+  // Hits added to the named skill's swing, each priced on its own exactly as
+  // Skill.extra_hit is: its own multiplier, its own strikes, its own reach.
+  // Throwing Star Barrage is what it exists for -- GMS widens Quad Star into
+  // three more directions while the barrage stands, each throwing a full set
+  // of stars at a crowd the swing itself never reaches.
+  //
+  // Apart from `lines`, which deepens the swing the skill already throws: this
+  // is a different strike, and it states what it lands for. Resolved at the
+  // GRANTING skill's level before it is handed over, so what reaches the
+  // target carries no ladder of its own to climb a second time.
+  repeated SwingHit extra_hit = 20;
   // What the named skill's Final Attack chance is MULTIPLIED by, after every
   // additive source has had its say. 2.0 doubles it; 0 leaves it alone, which
   // is every boost but one. Storm of Arrows is what it exists for -- GMS

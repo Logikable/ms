@@ -816,6 +816,19 @@ std::string StructureBoostText(const SkillBoost& boost, int level) {
     AppendGain("every " + std::to_string(boost.attacks_per_cast()) + " attacks",
                gains);
   }
+  // The hits it hands that swing, read as the swing's own extra hits are: so
+  // much damage, so many strikes, and the crowd each one finds. Named, since
+  // what it adds is a strike of its own rather than more of the swing.
+  for (const SwingHit& hit : boost.extra_hit()) {
+    std::string landed = SwingText(
+        hit.base().skill_pct() + hit.per_level().skill_pct() * (level - 1),
+        hit.lines(), SwingHitCasts(hit));
+    if (hit.max_enemies() > 0) {
+      landed += " on " + ReachText(hit.max_enemies());
+    }
+    AppendGain(hit.label().empty() ? landed : hit.label() + " " + landed,
+               gains);
+  }
   return gains;
 }
 

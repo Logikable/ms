@@ -410,6 +410,15 @@ void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
   if (boost.final_attack_chance_mult() > 0.0) {
     into.final_attack_chance_mult *= boost.final_attack_chance_mult();
   }
+  // The hits it hands that skill, each cashed in at the GRANTING skill's level
+  // on the way: the swing they join is read at its own, and a ladder left on
+  // them would be climbed a second time there.
+  for (const SwingHit& hit : boost.extra_hit()) {
+    SwingHit landed = hit;
+    *landed.mutable_base() = EffectAt(hit.base(), hit.per_level(), level);
+    landed.clear_per_level();
+    into.extra_hit.push_back(std::move(landed));
+  }
 }
 
 // Notes down what one list of boosts hands other skills by name. Kept out of
