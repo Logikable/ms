@@ -38,8 +38,8 @@ constexpr int kArcaneWidth = 4;
 // the window is sized by the maps in it rather than by the tabs over them.
 constexpr int kMapRowWidth = 2 + kMapNameWidth + kLevelWidth + kArcaneWidth;
 
-// Column widths of the mob table. Mob names top out at 19 ("Muddy Swamp
-// Monster"); the column is wider than that because the map's name stands over
+// Column widths of the mob table. Mob names top out at 21 ("Modded Broken
+// Android"); the column is wider than that because the map's name stands over
 // it, and PadRight truncates rather than overflows.
 constexpr int kMobNameWidth = 22;
 constexpr int kCountWidth = 6;

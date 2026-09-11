@@ -39,8 +39,8 @@ constexpr int kCountWidth = 6;
 constexpr int kLabelWidth = 7;
 constexpr int kValueWidth = 10;
 
-// The drops column, the wider of the two: the longest drop name is 22 columns
-// ("Frozen Secondary Token") and the longest chance six ("0.025%").
+// The drops column, the wider of the two. A drop name runs long enough to
+// wrap, which RenderDrops does; the longest chance is six ("0.025%").
 constexpr int kDropNameWidth = 24;
 constexpr int kChanceWidth = 6;
 

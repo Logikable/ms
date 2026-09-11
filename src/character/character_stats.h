@@ -373,8 +373,8 @@ bool SkillGearMet(const CharacterInstance& character, const Skill& skill);
 inline constexpr int kLevelsPastMasterLevel = 2;
 
 // Levels every skill the character has learned gains from a skill that grants
-// them -- Combat Orders, and nothing else so far. 0 for a character without
-// one and without an ally holding one.
+// them -- Combat Orders is what does. 0 for a character without one and
+// without an ally holding one.
 //
 // `allies` is the rest of the party; see DerivedStatsFor. A White Knight
 // ignores an ally's Combat Orders and keeps their own, by the rule there.

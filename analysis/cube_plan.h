@@ -47,7 +47,7 @@ inline constexpr int kReplaceableDenominator = 4;
 // line. CombatPower leaves ignored defence out on purpose -- it is a fact
 // about the target rather than the character -- but it is one of the three
 // lines a weapon is cubed for, so a shopper blind to it would never buy one.
-// Bosses in the catalog carry 40% to 100%; this is the middle of them.
+// Bosses in the catalog carry 40% and up; this is what most of them carry.
 inline constexpr double kBossPdr = 0.50;
 
 // What the run still has ahead of it and what it is earning, which is the
