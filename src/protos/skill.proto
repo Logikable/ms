@@ -38,9 +38,8 @@ enum SkillTag {
   // rather than rules: which form stands is settled by name, through
   // Skill.replaces_skill_name.
   SKILL_TAG_BENEVOLENCE = 3;
-  // The Hero line's Swordsmanship group -- Brandish and Intrepid Slash, the
-  // two swings GMS marks with it. Nothing reads it yet: what reads it in GMS
-  // is a 4th job skill, far above this game's cap.
+  // The Hero line's Swordsmanship group, on the swings GMS marks with it.
+  // Nothing reads it here: the skill GMS gates on it is not built.
   SKILL_TAG_SWORDSMANSHIP = 4;
   // The elements an I/L magician alternates between. Freezing Crush reads the
   // pair: an ice swing leaves Freeze Stacks behind it and a lightning swing
@@ -233,9 +232,8 @@ message SkillEffect {
   // == +10%). Sums with what gear grants, the two being the same quantity from
   // two places.
   //
-  // Ships dead, like the resistances below: no mob in the game sets `boss`.
-  // The stats page shows it so a player can see what their points and their
-  // gear bought, which is more than the equipment's own half ever got.
+  // The stats page shows it beside the gear's own half, so a player can see
+  // what the two came to between them.
   //
   // Rides one swing or the character by the same rule ied_pct does: Heaven's
   // Hammer hits a boss 30% harder and hands nothing to the swing after it.
@@ -291,8 +289,9 @@ message SkillEffect {
   // line count to add to. What is left is exactly the attacks the character
   // chooses between, an empowered form among them.
   //
-  // A swing that lands once is left alone. GMS grants this to multi-hit skills,
-  // and a single strike doubling would be the largest lever in the game.
+  // A swing that lands once is left alone. GMS grants this to multi-hit
+  // skills, where an added line is a share of the swing; on a single strike it
+  // would double the whole.
   double bonus_attack_lines = 33;
   // Expected share of the HP pool a landed swing puts back (0.02 == 2%). GMS
   // states it as a chance of a fixed amount; the expectation is what an
@@ -374,18 +373,15 @@ message SkillEffect {
   // is read. 0 for a fountain that pours the same however clever they are.
   double regen_int_step = 42;
   // Extra EXP every kill yields, as a fraction of what the mob was already
-  // worth (0.50 == half again). Summed across the passives granting it, and the
-  // only lever in the game that pays in something other than a fight -- what it
-  // buys is the time to the next level.
+  // worth (0.50 == half again). Summed across the passives granting it. What
+  // it buys is the time to the next level rather than anything in a fight.
   double exp_pct = 43;
   // Share added to the meso a kill yields (0.20 == +20%). Sums across its
-  // sources, and the second lever in the game to pay in something other than a
-  // fight -- exp_pct above is the first.
+  // sources, and pays outside a fight as exp_pct above does.
   double meso_pct = 44;
   // Share added to how often a kill drops anything at all (0.20 == a fifth
   // more often), covering the items a mob lists and the meso it carries alike.
-  // Sums across its sources, and the third lever to pay in something other
-  // than a fight.
+  // Sums across its sources, and pays outside a fight as the two above do.
   //
   // It moves the CHANCE, where meso_pct above moves the amount. A drop that is
   // already certain cannot be made more certain, so the chance is capped at
@@ -1067,7 +1063,7 @@ message Dot {
   // damage. A ladder rather than a number because Toxic Venom's count climbs,
   // and floored where it is read: GMS's 2 + floor(L/6) is 2 through level 5, 3
   // through 11 and 4 at 12, which only a fractional step can walk. 0 reads as
-  // one, which is every other burn in the game.
+  // one, the ordinary burn.
   double max_stacks = 9;
   double max_stacks_per_level = 10;
 }
@@ -1490,8 +1486,7 @@ message SkillBoost {
   double buff_duration_seconds = 15;
   // Hits added to the shell the named skill's buff stands as, and the share it
   // takes off a hit it cannot block. Holy Magic Shell - Extra Guard and
-  // - Enhance, which are the only two things in the game that could want
-  // either.
+  // - Enhance are the hypers that want them.
   //
   // Both are read at the granting skill's level and land before the shell is
   // built, so one shell is one count of blocks however many hypers deepened
@@ -1665,9 +1660,8 @@ message Skill {
   SkillTag follows_skill_tag = 10;
   // Whether that Final Attack follows an attack on its OWN clock as well as
   // the character's swings -- a summon's discharge, a turret's shot, an aura's
-  // beat. Unset is every other Final Attack in the game, and the reason the
-  // rule exists at all: what a Rogue throws behind their stars is thrown by
-  // the Rogue.
+  // beat. Unset is the ordinary case, and the reason the rule exists at all:
+  // what a Rogue throws behind their stars is thrown by the Rogue.
   //
   // Frost Ark is what it exists for. GMS's ark is struck by lightning whatever
   // cast it, and one of the three skills its client names is Thunder Sphere --
@@ -2064,14 +2058,14 @@ message Skill {
   int32 freeze_stack_cap = 102;
   // The I/L Magician's. What one strike of this skill leaves on that pile,
   // where GMS states a count rather than letting the element buy one per line.
-  // Unset is every other ice skill. See FreezeBuild.
+  // Unset is the ordinary ice swing. See FreezeBuild.
   FreezeBuild freeze_build = 104;
   // The I/L Magician's. Lines this skill lands per Freeze Stack it SPENDS,
   // where GMS states a rate rather than the stack-per-line a lightning swing
   // otherwise pays. Jupiter Thunder is what it exists for: GMS spends one
   // every five lines of its shocks, so a pile of five outlasts the opening
-  // shock instead of going with it. 0 reads as one, which is every other
-  // lightning swing.
+  // shock instead of going with it. 0 reads as one, the ordinary lightning
+  // swing.
   int32 freeze_lines_per_spend = 105;
   // The F/P Magician's. Burns counted for SkillEffect::final_dmg_pct_per_dot,
   // and so whether they are counted at all: 0 says the mechanism is not

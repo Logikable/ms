@@ -103,10 +103,9 @@ std::vector<StatLine> CombatStatLines(
     // it feed, which is the order they are read in.
     lines.push_back({"Final Damage", Percent(derived.final_dmg_pct)});
     lines.push_back({"Damage", Percent(derived.damage_pct)});
-    // The two that only ever matter against something the character has not
-    // met yet: boss damage pays on no monster in the game, and ignoring DEF
-    // pays little until the monsters have some. Both sit above the crit pair
-    // because they qualify the damage rows over them.
+    // Boss damage pays in a boss fight alone, and ignoring DEF against
+    // whatever defence the monster has. Both sit above the crit pair because
+    // they qualify the damage rows over them.
     if (with_advanced) {
       lines.push_back(
           {"Boss Damage", Percent(e.boss_damage() / 100.0 + derived.boss_pct)});

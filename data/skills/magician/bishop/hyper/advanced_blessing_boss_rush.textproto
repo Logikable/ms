@@ -1,5 +1,4 @@
 # GMS's own ten points of boss damage, to the party as well as the caster.
-# Ships dead like every other source of it: no mob in the game sets `boss`.
 name: "Advanced Blessing - Boss Rush"
 description:
   "Increases the damage you and your party members deal to Boss Monsters upon "
