@@ -1197,6 +1197,27 @@ message Channel {
   // Calamitous Cyclone.
   SwingHit grown = 6;
   int32 small_pulses = 7;
+
+  // A hold bought with charges that accrue on a clock rather than with a
+  // cooldown. Divine Punishment is what the three exist for: GMS prepares one
+  // holy light every eleven seconds, lets the Bishop bank five, and spends one
+  // for every second the key is held -- so the skill is limited by what has
+  // accrued rather than by a wait since the last press.
+  //
+  // What this buys the fight is a length that answers the map. On a crowd a
+  // press spends the one light standing and lets go; against a boss the lights
+  // pile up while the player swings and go out together. Neither needed
+  // teaching: a hold's rate is its pulse damage over its pulse clock whatever
+  // its length, so the chooser takes it whenever a light is in hand.
+  //
+  // All three or none. 0 for every hold paced by `Skill.cooldown_seconds`,
+  // which is both of the others.
+  double charge_seconds = 8;
+  int32 max_charges = 9;
+  // Pulses one charge buys. GMS states the spend in seconds -- a light a
+  // second -- so this is that second divided by the pulse clock, rounded to
+  // the pulse that fits inside it.
+  int32 pulses_per_charge = 10;
 }
 
 // A second attack the same swing sets off, on a wait of its own. Showdown's

@@ -396,6 +396,14 @@ int CombatSim::BestAttack(const CombatParams& params) const {
     if (!Loaded(params, i)) {
       continue;
     }
+    // The bank is empty, so a hold bought out of one cannot be started. The
+    // rate a hold is judged on is its pulse over its pulse clock whatever its
+    // length, so nothing more is needed here: a bank with one charge in it
+    // prices the same as a full one, and the chooser takes the hold the moment
+    // a charge lands.
+    if (!Charged(params, i)) {
+      continue;
+    }
     // A load another skill's press sets off is no button of its own: it goes
     // out with that swing, and its damage is already counted there.
     if (attack.spent_by_attack >= 0) {
@@ -438,6 +446,34 @@ bool CombatSim::Loaded(const CombatParams& params, int index) const {
   }
   return index < static_cast<int>(attack_clocks_.size()) &&
          attack_clocks_[index].charges_left > 0;
+}
+
+// A hold bought out of a bank is off the list until a whole charge has filled.
+// Nothing else keeps one, so every other attack answers true.
+bool CombatSim::Charged(const CombatParams& params, int index) const {
+  const std::vector<AttackOption>& options = Attacks(params);
+  if (index >= static_cast<int>(options.size()) ||
+      options[index].channel.charge_seconds <= 0.0) {
+    return true;
+  }
+  return index < static_cast<int>(attack_clocks_.size()) &&
+         attack_clocks_[index].hold_charges >= 1.0;
+}
+
+int CombatSim::ChargedPulses(const CombatParams& params, int index) const {
+  const std::vector<AttackOption>& options = Attacks(params);
+  if (index < 0 || index >= static_cast<int>(options.size())) {
+    return 0;
+  }
+  const ChannelHold& hold = options[index].channel;
+  if (hold.charge_seconds <= 0.0 || hold.pulses_per_charge <= 0) {
+    return hold.pulses;
+  }
+  if (index >= static_cast<int>(attack_clocks_.size())) {
+    return 0;
+  }
+  int banked = static_cast<int>(attack_clocks_[index].hold_charges);
+  return std::min(hold.pulses, banked * hold.pulses_per_charge);
 }
 
 int CombatSim::HealToCast(const CombatParams& params) const {
@@ -488,9 +524,23 @@ void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
   // Unlike an auto-cast's clock, this runs on an empty map too: a player
   // waiting out a respawn really does have their cooldown back when the mobs
   // land, where a summon with nothing to hit has simply not fired.
-  for (AttackClock& clock : attack_clocks_) {
+  const std::vector<AttackOption>& options = Attacks(params);
+  for (std::size_t i = 0; i < attack_clocks_.size(); ++i) {
+    AttackClock& clock = attack_clocks_[i];
     clock.cooldown_left = std::max(0.0, clock.cooldown_left - dt);
     clock.side_cooldown_left = std::max(0.0, clock.side_cooldown_left - dt);
+    if (i >= options.size()) {
+      continue;
+    }
+    // The bank fills on the same empty map the cooldowns run down on, and for
+    // the same reason: a player waiting out a respawn really does have their
+    // lights when the mobs land.
+    const ChannelHold& hold = options[i].channel;
+    if (hold.charge_seconds > 0.0) {
+      clock.hold_charges =
+          std::min(static_cast<double>(hold.max_charges),
+                   clock.hold_charges + dt / hold.charge_seconds);
+    }
   }
 }
 
@@ -2062,6 +2112,12 @@ const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
       held_pulses_ =
           ChannelPulses(*attack, std::min(std::max(1, attack->max_enemies),
                                           static_cast<int>(queue_.size())));
+      // Held to what is in the bank, where the hold is bought out of one. This
+      // is the only place the bank shortens a hold: the chooser judges a hold
+      // on its rate, which its length does not move.
+      if (attack->channel.charge_seconds > 0.0) {
+        held_pulses_ = std::min(held_pulses_, ChargedPulses(params, aimed_));
+      }
     }
     // A cast reaches nobody, so it leaves the window on whatever the last
     // swing set: the mob bars must not collapse for the length of the cast.
@@ -2236,6 +2292,16 @@ void CombatSim::LandSwing(const CombatParams& params,
   if (attack.charges > 0 && attack_clocks_[swung].charges_left > 0) {
     --attack_clocks_[swung].charges_left;
   }
+  // A whole charge for a part of one, as GMS spends a light for every second
+  // the key is held. What the bank has already filled toward the next is kept,
+  // so the lights arrive on their own clock rather than on the presses.
+  const ChannelHold& hold = attack.channel;
+  if (hold.charge_seconds > 0.0 && hold.pulses_per_charge > 0) {
+    double spent =
+        std::ceil(static_cast<double>(held_pulses_) / hold.pulses_per_charge);
+    attack_clocks_[swung].hold_charges =
+        std::max(0.0, attack_clocks_[swung].hold_charges - spent);
+  }
   attributing_ = -1;  // nothing is left to credit to this swing
   aimed_ = -1;        // the swing landed, so the next one is chosen afresh
   AimSwing(params);
@@ -2376,7 +2442,14 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   TakeMobHit(params, dt);
   // Grown to fit before the buffs run, since a buff going up now hands its
   // magazine's swing a fresh load and needs that swing's clock to exist.
+  int had_clocks = static_cast<int>(attack_clocks_.size());
   attack_clocks_.resize(Attacks(params).size());
+  // A bank starts FULL, the way a cooldown starts ready: the character walks
+  // in with what the seconds before the fight prepared.
+  const std::vector<AttackOption>& fresh = Attacks(params);
+  for (int i = had_clocks; i < static_cast<int>(attack_clocks_.size()); ++i) {
+    attack_clocks_[i].hold_charges = fresh[i].channel.max_charges;
+  }
   damage_by_attack_.resize(Attacks(params).size(), 0.0);
   swings_by_attack_.resize(Attacks(params).size(), 0);
   // After the hit, so a buff going up now answers it with its heal, and

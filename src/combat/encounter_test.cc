@@ -251,6 +251,9 @@ TEST(ComputeCombatParamsTest, AHeldSwingIsPricedAsAFullHold) {
   channel->set_max_pulses(12);
   channel->set_finish_delay_ms(200);
   channel->set_damage_taken_pct(0.5);
+  channel->set_charge_seconds(11.0);
+  channel->set_max_charges(5);
+  channel->set_pulses_per_charge(4);
   channel->mutable_finish()->set_lines(15);
   channel->mutable_finish()->mutable_base()->set_skill_pct(7.02);
   GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
@@ -270,6 +273,10 @@ TEST(ComputeCombatParamsTest, AHeldSwingIsPricedAsAFullHold) {
   EXPECT_DOUBLE_EQ(attack.channel.damage_taken_pct, 0.5);
   EXPECT_DOUBLE_EQ(attack.channel.pulse_seconds, 0.15 * speed);
   EXPECT_DOUBLE_EQ(attack.channel.finish_seconds, 0.2 * speed);
+  // The bank is stretched with every other clock here; what it buys is not.
+  EXPECT_DOUBLE_EQ(attack.channel.charge_seconds, 11.0 * speed);
+  EXPECT_EQ(attack.channel.max_charges, 5);
+  EXPECT_EQ(attack.channel.pulses_per_charge, 4);
   // Twelve pulses and the finish, which is longer than the floor.
   EXPECT_DOUBLE_EQ(attack.swing_seconds, 2.0 * speed);
   EXPECT_DOUBLE_EQ(HoldSeconds(attack.channel, 5), attack.channel.min_seconds);

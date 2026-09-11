@@ -958,6 +958,24 @@ TEST(SkillDataTest, EveryHeldSwingSaysHowItPulsesAndWhatItEndsOn) {
     EXPECT_EQ(skill.extra_hit_size(), 0)
         << entry.first << " lands extra hits the fight would read as its "
         << "finish";
+    // A hold is paced by a bank or by a cooldown, never by half of each: all
+    // three of the bank's numbers or none of them, and a bank fills no faster
+    // than it empties or the hold would never be held to anything.
+    bool banked = channel.charge_seconds() > 0.0;
+    EXPECT_EQ(banked, channel.max_charges() > 0)
+        << entry.first << " states half of a charge bank";
+    EXPECT_EQ(banked, channel.pulses_per_charge() > 0)
+        << entry.first << " states half of a charge bank";
+    if (banked) {
+      EXPECT_LE(channel.max_charges() * channel.pulses_per_charge(),
+                channel.max_pulses() + channel.pulses_per_charge())
+          << entry.first << "'s bank buys more hold than it has pulses";
+      EXPECT_GT(skill.cooldown_seconds(), 0.0)
+          << entry.first << " banks charges with nothing between presses";
+      EXPECT_LT(skill.cooldown_seconds(), channel.charge_seconds())
+          << entry.first << " waits longer than its charges take to fill, so "
+          << "the bank is not what paces it";
+    }
   }
 }
 

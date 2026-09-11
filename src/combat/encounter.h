@@ -85,6 +85,13 @@ struct ChannelHold {
   // What one pulse is worth once the hold has grown. Empty damage for a hold
   // that never grows, which is Calamitous Cyclone.
   HitGroup grown;
+  // A hold bought out of a bank that fills on a clock rather than out of a
+  // cooldown: one charge every `charge_seconds`, `max_charges` held at once,
+  // and `pulses_per_charge` of hold bought by each. 0 for a hold paced by a
+  // cooldown, which is every one but Divine Punishment. See Channel.
+  double charge_seconds = 0.0;
+  int max_charges = 0;
+  int pulses_per_charge = 0;
 };
 
 // One burn a swing leaves on the enemies it reaches: what one tick is worth

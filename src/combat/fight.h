@@ -450,6 +450,15 @@ class CombatSim {
   // Whether the attack at `index` has a charge to spend, for one a buff loads.
   // True for every attack no buff loads -- see AttackOption::charges.
   bool Loaded(const CombatParams& params, int index) const;
+
+  // Whether a hold bought out of a bank has a charge in hand. True for every
+  // attack that keeps no bank, which is all of them but Divine Punishment.
+  bool Charged(const CombatParams& params, int index) const;
+
+  // Pulses the bank will pay for at `index`, or the whole hold where the
+  // attack keeps no bank. A press spends a whole charge for a part of one, as
+  // GMS spends a light for every second the key is held.
+  int ChargedPulses(const CombatParams& params, int index) const;
   // Index into params.attacks of the healing cast to spend this swing on, or
   // -1 for none: the player is not low enough, has nothing to fight, or holds
   // no such skill. A cleared map heals on the beat for free, so a cast there
@@ -711,6 +720,11 @@ class CombatSim {
     // every attack no buff loads -- and reads 0 for a loaded one whose buff is
     // down, which is what keeps it off the list of swings on offer.
     int charges_left = 0;
+    // Charges banked for a hold bought out of a bank rather than out of a
+    // cooldown, fractional while the next one fills. Starts FULL, the way a
+    // cooldown starts ready: a player walks into the fight with what the wait
+    // before it prepared. Stays at 0 for every other attack.
+    double hold_charges = 0.0;
   };
   std::vector<AttackClock> attack_clocks_;
 

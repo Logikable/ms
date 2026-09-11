@@ -347,6 +347,11 @@ void AddChannel(const Skill& skill, const OffenseStats& offense, int level,
   hold.finish_seconds = channel.finish_delay_ms() / 1000.0 * speed_factor;
   hold.min_seconds = attack.swing_seconds;
   hold.damage_taken_pct = channel.damage_taken_pct();
+  // Game-scaled like every other clock here: the bank fills in the same
+  // stretched seconds the pulses fall in.
+  hold.charge_seconds = channel.charge_seconds() * speed_factor;
+  hold.max_charges = channel.max_charges();
+  hold.pulses_per_charge = channel.pulses_per_charge();
   // The pulses that fit inside the floor, which is the fewest a cast can be
   // let go after. At least one: a hold that landed no pulse at all would be a
   // swing that does nothing but its finish.

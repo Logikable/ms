@@ -4270,6 +4270,52 @@ TEST(CombatSimTest, AHoldRecoversForThePulsesItActuallyLanded) {
   EXPECT_EQ(play(60), 1000 - 200 + 100);
 }
 
+// Divine Punishment's shape: a hold bought out of a bank rather than out of a
+// cooldown. One charge every 2s, one banked at a time, and each buys four of
+// the twelve pulses -- so a press runs as long as the bank pays for and no
+// longer.
+AttackOption MakeBankedHold() {
+  AttackOption punish = MakeSkill("Divine Punishment", 0.0, /*cooldown=*/0.0);
+  punish.channel.pulses = 12;
+  punish.channel.min_pulses = 2;
+  punish.channel.pulse_seconds = 0.15;
+  punish.channel.min_seconds = 0.3;
+  punish.channel.charge_seconds = 2.0;
+  punish.channel.max_charges = 1;
+  punish.channel.pulses_per_charge = 4;
+  punish.groups.push_back({{10.0}, SwingRolls{}});
+  punish.damage_per_hit = {12 * 10.0};
+  punish.swing_seconds = HoldSeconds(punish.channel, punish.channel.pulses);
+  return punish;
+}
+
+// The boss survives whatever the hold is worth, so nothing but the bank can
+// shorten it: one charge buys four pulses, and the hold is let go at 0.6s
+// having dealt a third of what a full one would.
+TEST(CombatSimTest, ABankedHoldRunsOnlyAsLongAsItsChargesPayFor) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
+  params.attacks.push_back(MakeBankedHold());
+
+  CombatSim sim;
+  EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.55), 0.0);
+  EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.1), 40.0);
+}
+
+// The bank fills on its own clock while the player swings, so the hold comes
+// back on the charge rather than on a cooldown. The press spends a whole
+// charge and keeps whatever had filled toward the next, which is what puts the
+// second hold at 2s rather than at 2.6s.
+TEST(CombatSimTest, ABankRefillsOnItsOwnClockAndBringsTheHoldBack) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
+  params.attacks.push_back(MakeBankedHold());
+
+  CombatSim sim;
+  EXPECT_DOUBLE_EQ(RunFor(sim, params, 1.95), 40.0);  // the first hold alone
+  EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.7), 40.0);   // the bank paid again
+}
+
 // Glacial Fury's half of the pile: magic attack per held stack, and only an
 // ice swing collects it.
 TEST(CombatSimTest, GlacialFurysMagicAttackRidesTheIceSwingAlone) {

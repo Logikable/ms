@@ -1132,8 +1132,22 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   // the half of the hold the player can act on -- they let go when it stops
   // paying.
   if (held) {
+    std::string pulses =
+        "Up to " + std::to_string(skill.channel().max_pulses());
+    if (skill.channel().pulses_per_charge() > 0) {
+      pulses += ", " + std::to_string(skill.channel().pulses_per_charge()) +
+                " per Charge";
+    }
+    rows.push_back(EffectRow("Pulses", pulses));
+  }
+  // The bank a hold is bought out of, where it is bought out of one rather
+  // than out of a cooldown -- the row a player reads to know when they can
+  // press it again.
+  if (held && skill.channel().charge_seconds() > 0.0) {
     rows.push_back(EffectRow(
-        "Pulses", "Up to " + std::to_string(skill.channel().max_pulses())));
+        "Charges", "1 per " + FormatNumber(skill.channel().charge_seconds()) +
+                       "s, up to " +
+                       std::to_string(skill.channel().max_charges())));
   }
   Append(RegenRows(skill, level), rows);
   // What one meso is worth thrown back, read the way every other swing on this
