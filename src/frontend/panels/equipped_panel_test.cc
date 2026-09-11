@@ -410,20 +410,18 @@ class EquippedPanelRingTest : public EquippedPanelTest {
   ftxui::Component comp_;
 };
 
-// Nothing stands above this list -- it has no tab bar over it -- so Up off the
-// top row has nowhere to go but the bottom one.
-TEST_F(EquippedPanelRingTest, ArrowUpFromTheTopRowWrapsToTheBottom) {
+// The bar stands above the list at every level, so it is the stop past either
+// end: the ring comes round through it rather than row to row.
+TEST_F(EquippedPanelRingTest, TheBarIsTheStopPastEitherEndOfTheList) {
   ASSERT_EQ(c_.equipped().size(), 2u);
   ASSERT_EQ(panel_->selected(), 0);
   comp_->OnEvent(ftxui::Event::ArrowUp);
-  EXPECT_EQ(panel_->selected(), 1);
-}
+  comp_->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(panel_->selected(), 1) << "the bar, then the bottom row";
 
-TEST_F(EquippedPanelRingTest, ArrowDownFromTheBottomRowWrapsToTheTop) {
   comp_->OnEvent(ftxui::Event::ArrowDown);
-  ASSERT_EQ(panel_->selected(), 1) << "the bottom row";
   comp_->OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(panel_->selected(), 0);
+  EXPECT_EQ(panel_->selected(), 0) << "the bar, then the top row";
 }
 
 // The steps that are not at an edge still belong to the menu underneath.
@@ -549,6 +547,7 @@ TEST_F(EquippedPanelTest, TheCursorFollowsTheSelectionAroundTheRing) {
   comp->OnEvent(ftxui::Event::ArrowDown);  // to the second row
   RenderComponent(comp);
   ASSERT_EQ(panel.cursor_row(), top + 1);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // out to the bar
   comp->OnEvent(ftxui::Event::ArrowDown);  // round to the first
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                ftxui::Dimension::Fixed(20));
@@ -1018,12 +1017,12 @@ TEST_F(SymbolTabTest, TheTabArrivesWithArcaneRiver) {
   EXPECT_NE(rendered.find("Symbols"), std::string::npos);
 }
 
-// Expand hangs in the tab bar, so it arrives with the bar and not before:
-// there is nowhere to draw it until there is a second tab. Its label is the
-// state Enter would leave the panel in.
-TEST_F(SymbolTabTest, TheExpandTabArrivesWithTheBar) {
+// Expand hangs in the tab bar, which is drawn from the level the panel
+// arrives at -- so it is there with Gear the only chip, long before Symbols.
+// Its label is the state Enter would leave the panel in.
+TEST_F(SymbolTabTest, TheExpandTabIsThereWithGearAlone) {
   EquippedPanel bare(c_, account_, panel_focus_);
-  EXPECT_EQ(RenderComponent(bare.MakeComponent([]() {})).find("Expand"),
+  EXPECT_NE(RenderComponent(bare.MakeComponent([]() {})).find("Expand"),
             std::string::npos);
 
   CharacterInstance c = Traveller();

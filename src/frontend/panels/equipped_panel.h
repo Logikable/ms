@@ -147,10 +147,6 @@ class EquippedPanel {
   std::vector<EquippedRow> Rows(
       std::chrono::steady_clock::duration slide) const;
   int ListCount() const;
-  // Whether the bar is a stop in the ring, which it is only once there is a
-  // second tab to reach. With one tab the list wraps on itself, as it did
-  // before there were tabs at all.
-  bool HasTabBar() const;
   bool OnTabBarEvent(const ftxui::Event& event,
                      const std::function<void()>& on_expand);
   bool OnListEvent(const ftxui::Event& event,

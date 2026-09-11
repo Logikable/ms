@@ -88,24 +88,12 @@ int EquippedPanel::ListCount() const {
       Rows(std::chrono::steady_clock::duration::zero()).size());
 }
 
-bool EquippedPanel::HasTabBar() const {
-  return VisibleTabs().size() > 1;
-}
-
 int EquippedPanel::CursorStop() const {
   return zone_ == kZoneTabs ? 0 : selected_ + 1;
 }
 
 void EquippedPanel::MoveCursor(int delta) {
-  int count = ListCount();
-  if (!HasTabBar()) {
-    // No bar to step onto: the list is a ring on its own, as it was before
-    // there were tabs at all.
-    zone_ = kZoneList;
-    selected_ = StepCursor(selected_, delta, count);
-    return;
-  }
-  int next = StepCursor(CursorStop(), delta, 1 + count);
+  int next = StepCursor(CursorStop(), delta, 1 + ListCount());
   if (next == 0) {
     zone_ = kZoneTabs;
     return;
@@ -341,7 +329,7 @@ void EquippedPanel::RebuildRows() {
   }
   if (!entries_.empty()) {
     selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
-  } else if (HasTabBar() && zone_ == kZoneList) {
+  } else if (zone_ == kZoneList) {
     // Nothing to stand on, so the cursor comes up to the bar rather than
     // sitting on a row that is not drawn. Only from the list: the bar is a
     // stop of its own and an empty list does not disturb it.
@@ -379,12 +367,11 @@ ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
   RebuildRows();
   bool focused = panel_focus_ == kEquipPanel;
   std::vector<ftxui::Element> rows;
-  // The bar is drawn only once there is a second tab to reach: one chip over a
-  // list says nothing the window title has not already said.
-  if (HasTabBar()) {
-    rows.push_back(RenderTabBar(focused && zone_ == kZoneTabs));
-    rows.push_back(PanelSeparator(highlighted_));
-  }
+  // Drawn from the level the panel arrives at, with Gear its only chip until
+  // Symbols: Expand rides the far right of the bar, and fullscreen has no
+  // business waiting for level 200.
+  rows.push_back(RenderTabBar(focused && zone_ == kZoneTabs));
+  rows.push_back(PanelSeparator(highlighted_));
   if (on_expand_) {
     // A door rather than a page, so where the other tabs list what is worn,
     // this one says how to go through it. Over a filler because the window is
