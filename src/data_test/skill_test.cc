@@ -1346,6 +1346,7 @@ std::vector<BookWeapons> ExpectedBookWeapons() {
       {JOB_ADVANCEMENT_CLERIC, {{EQUIP_TYPE_STAFF}}},
       {JOB_ADVANCEMENT_PRIEST, {{EQUIP_TYPE_STAFF}}},
       {JOB_ADVANCEMENT_BISHOP, {{EQUIP_TYPE_STAFF}}},
+      {JOB_ADVANCEMENT_BISHOP_V, {{EQUIP_TYPE_STAFF}}},
   };
 }
 
@@ -2265,6 +2266,9 @@ const char* const kPartySkills[] = {
     "Holy Water",
     "Meditation",
     "Parashock Guard",
+    // The light reaches whoever it touches, the Bishop included, and pays
+    // them the same final damage it pays the caster.
+    "Peacemaker",
     "Puncture",
     "Sharp Eyes",
     // The two Hyper Skills that reach the party through the buff they name.

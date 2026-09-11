@@ -1,0 +1,63 @@
+# The Bishop's third job node: an orb hurled forward, striking as it drifts,
+# then bursting into a light that hits wider and hands the party a buff.
+#
+# GMS's readout carries TWO sixes and they are different things. `mobCount` is
+# the six enemies a beat reaches; the "Max Contact Count: 6" beside it is a
+# separate budget, and the sentence after it says only the recovery spends one.
+# So the contacts cap how many party members the orb can heal, never how often
+# it strikes.
+#
+# How often it strikes is published nowhere. The beat is GMS's `attackDelay`,
+# 350ms; the count is the community DPM calculator's three, and the orb's own
+# speed works out the same -- 600 pixels at `v 12`, six times slower than the
+# F/P's projectiles, keeps a 220-pixel body over a boss for about three beats.
+#
+# The buff is FINAL damage: Holy Light is its own skill, 400021077, and states
+# it as `indieDamR`. Twelve seconds against a ten-second wait means the Bishop
+# holds it permanently, which is the point of the skill -- namu has a Bishop
+# pressing this every ten seconds as the backbone of the cycle.
+#
+# The orb and the light both land when the cast ends. GMS flies the orb out
+# over three quarters of a second first, and nothing here has anywhere for it
+# to fly.
+#
+# Dropped: the 350 MP, untracked; the recast that dismisses an orb already out,
+# moot on a ten-second wait; and the immunity to attack reflection, which
+# nothing here has.
+name: "Peacemaker"
+description:
+  "Hurl the embodiment of divine power directly at your enemies. Upon contact "
+  "the power both damages them and restores your HP. As it disappears the "
+  "object transforms into Holy Light, attacking enemies nearby and granting a "
+  "buff to party members."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_HOLY
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 3 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_STAFF
+base_delay_ms: 660
+cooldown_seconds: 10.0
+max_enemies: 6
+lines: 4
+casts: 3
+cast_interval_ms: 350
+base {
+  skill_pct: 3.64
+  hp_recover_pct: 0.45
+}
+per_level { skill_pct: 0.14 }
+extra_hit {
+  label: "Holy Light"
+  max_enemies: 15
+  lines: 12
+  base { skill_pct: 3.64 }
+  per_level { skill_pct: 0.14 }
+}
+buff {
+  duration_seconds: 12.0
+  base { final_dmg_pct: 0.172 }
+  per_level { final_dmg_pct: 0.002 }
+  ally_base { final_dmg_pct: 0.172 }
+  ally_per_level { final_dmg_pct: 0.002 }
+}

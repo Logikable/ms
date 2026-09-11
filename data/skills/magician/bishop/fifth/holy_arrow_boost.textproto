@@ -5,7 +5,7 @@
 name: "Holy Arrow Boost"
 description: "Strengthens Holy Arrow and Energy Bolt."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 10 }
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 11 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {
