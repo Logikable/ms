@@ -500,9 +500,6 @@ std::vector<Row> Speaking(std::vector<Row> rows) {
   return kept;
 }
 
-// How far the swing reaches and how often it lands, its own-clock halves
-// included. Reach and rate share a row where a skill has both: the two
-// together are the shape of it.
 // What a scattered swing throws, for the row that says so. A count that widens
 // with the burns already laid states the band it moves between and what widens
 // it, so the reader knows where in the band a fight will put them.

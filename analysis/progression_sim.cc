@@ -621,17 +621,17 @@ struct WeaponScout {
   int settled_at = 0;
 };
 
+// How many levels a settled weapon type is trusted for. The scout is dear --
+// ten ladders, each swung for a simulated minute -- and the answer is a
+// branch's whole identity: a Paladin does not stop being a Paladin between
+// Lv61 and Lv65. It is re-asked at every advancement regardless, which is
+// where it actually moves.
+constexpr int kScoutEveryLevels = 5;
+
 // Everything the player does on levelling up, in the order that makes each
 // step pay for the next: the advancement first, then the points it hands over,
 // then the drops turned into meso, then the weapon that meso buys, and only
 // then the choice of where to take it.
-// How many levels a settled weapon type is trusted for. The scout is the
-// single most expensive thing a look does -- ten ladders, each swung for a
-// simulated minute -- and the answer is a branch's whole identity: a Paladin
-// does not stop being a Paladin between Lv61 and Lv65. It is re-asked at every
-// advancement regardless, which is where it actually moves.
-constexpr int kScoutEveryLevels = 5;
-
 void Retool(GameState& state, const std::vector<Job>& path, int* taken,
             const std::vector<std::string>& maps, int beats, double step,
             Purse& purse, GearShopper& shopper, WeaponScout& scout,
@@ -1329,9 +1329,6 @@ GearReached ReachedOnGear(const GameState& state) {
   return reached;
 }
 
-// Runs the dailies if one is due, and puts what they dropped on. Returns
-// whether anything happened, since the fight parameters have to be rebuilt
-// when it did.
 // What the character is hitting a boss for as they stand.
 int PowerNow(const GameState& state) {
   const Character& proto = state.character.proto();
@@ -1840,8 +1837,6 @@ double GiveUpAt() {
   return absl::GetFlag(FLAGS_give_up_hours) * 3600.0;
 }
 
-// Plays the character forward to the level cap, or until the give-up clock
-// runs out.
 // What every look at the game does once the shopping is settled: buy the gear
 // the purse can now afford, then spend the points that were waiting.
 void Restock(Session& run) {
@@ -2092,6 +2087,8 @@ std::string ClimbKey(Job branch, unsigned int seed) {
       seed, "_", settled);
 }
 
+// Plays the character forward to the level cap, or until the give-up clock
+// runs out.
 Climb Play(const Catalogs& catalogs, Job branch,
            const std::vector<std::string>& maps, unsigned int seed,
            const Checkpointing& saves) {

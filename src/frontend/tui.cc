@@ -966,10 +966,9 @@ ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
                                                    : inventory_panel_.menu();
   // Past the char panel border, menu cursor, name column, slot column and
   // separators, so the menu covers stats rather than item names. An expanded
-  // panel hands out a wider name column than the fixed 18 allows for, and has
-  // no left column in front of it, so it is asked where its own columns end.
-  // Nothing in front of an expanded panel, so the menu hangs at its own left
-  // border rather than past the character panel's column.
+  // panel is asked where its own columns end -- it hands out a wider name
+  // column than the fixed 18 allows for -- and hangs at its own left border,
+  // there being no left column in front of it.
   int left = controller_.expanded_panel() != kNoPanel ? 0 : widths.left;
   int col;
   if (!on_equip && inventory_panel_.on_tab_bar()) {

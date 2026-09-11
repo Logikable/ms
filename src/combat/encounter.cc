@@ -835,10 +835,6 @@ bool Available(const GameState& state, const Skill& skill,
   return SkillGearMet(state.character, skill);
 }
 
-// One of a skill's own-clock halves, as a skill in its own right, so the same
-// damage chain builds it. It keeps the parent's name because it is one skill to
-// the player -- one row in the book, one SP ladder, one page -- and carries
-// none of the parent's tags: what fires by itself is not the character's swing.
 // The element an own-clock half strikes with, which belongs to the SKILL and
 // not to who swung it: Spirit of Snow's blizzard is ice whether the character
 // called it down or the summon did, so it leaves the same freeze behind. The
@@ -859,6 +855,9 @@ void CarryElement(const Skill& skill, Skill& built) {
   built.set_freeze_lines_per_spend(skill.freeze_lines_per_spend());
 }
 
+// One of a skill's own-clock halves, as a skill in its own right, so the same
+// damage chain builds it. It keeps the parent's name because it is one skill
+// to the player -- one row in the book, one SP ladder, one page.
 Skill AutoModeSkill(const Skill& skill, const AutoMode& mode) {
   Skill built;
   built.set_name(skill.name());
@@ -1472,8 +1471,6 @@ int AttackSpeedStageFor(const GameState& state, const EquipPrototype& weapon,
                           derived.uncapped_attack_speed_bonus);
 }
 
-// Everything the character can attack with, at one particular set of stats --
-// theirs alone, or theirs with some buff up.
 // Hands each burn a slot of its own on the monsters it marks, so two never
 // write over each other. `shared` is how many of them the character carries
 // rather than any one swing. Numbered by attack order, which is the same in
@@ -1516,6 +1513,8 @@ int DotSlotsNeeded(const CombatParams& params) {
   return slots;
 }
 
+// Everything the character can attack with, at one particular set of stats --
+// theirs alone, or theirs with some buff up.
 AttackSet BuildAttackSet(const GameState& state, const DerivedStats& derived,
                          const EquipPrototype& weapon, double speed_factor,
                          const std::vector<CombatType>& types) {

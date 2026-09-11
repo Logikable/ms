@@ -745,8 +745,6 @@ std::vector<AllyGrant> PartyGrants(const CharacterInstance& character,
   return reaching;
 }
 
-// Sums every passive the character has learned. HP has to know its whole flat
-// total before any percentage lands on it, so nothing is folded here.
 // One skill out of the character's book that is paying, and the level it pays
 // at. Gathered whole before anything folds: an exclusive group is settled
 // between its members, so every member has to be read first.
@@ -811,6 +809,8 @@ SkillEffect AllyBuffEffect(const Buff& buff, const BuffUp& up) {
       up.caster_int, up.party_size);
 }
 
+// Sums every passive the character has learned. HP has to know its whole flat
+// total before any percentage lands on it, so nothing is folded here.
 PassiveTotals LearnedPassives(const CharacterInstance& character,
                               const std::map<std::string, Skill>& skills,
                               absl::Span<const BuffUp> buffs_up,
