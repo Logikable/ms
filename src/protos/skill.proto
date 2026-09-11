@@ -52,6 +52,13 @@ enum SkillTag {
   // three GMS names. Split Shot reads it: the arrow splits behind those and
   // behind nothing else, so the attacks say which of them it follows.
   SKILL_TAG_MARKSMANSHIP = 8;
+  // A holy spell, which the client's own `elemAttr: h` is the test of. Angel
+  // of Balance reads it: the angel's mark is spent by holy damage and by
+  // nothing else, so the attacks say which of them can spend one. Written on
+  // the Bishop's, being who leaves a mark -- and it is narrower than their
+  // book, since GMS gives the Vengeance forms no element, nor Heaven's Door,
+  // nor the angel itself, which is why the angel cannot spend its own mark.
+  SKILL_TAG_HOLY = 9;
 }
 
 // A skill's per-level contribution to the character's stats. Only the levers we

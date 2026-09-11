@@ -7,6 +7,7 @@ name: "Shining Ray"
 description:
   "Attack multiple enemies at once with a ray of holy light."
 kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_HOLY
 placement { job_advancement: JOB_ADVANCEMENT_PRIEST skill_order: 1 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_STAFF

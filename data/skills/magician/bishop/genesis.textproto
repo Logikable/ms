@@ -9,6 +9,7 @@ description:
   "A holy ray of light shines down from the sky, dealing tremendous holy "
   "damage."
 kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_HOLY
 placement { job_advancement: JOB_ADVANCEMENT_BISHOP skill_order: 3 }
 max_level: 20
 required_equip_type: EQUIP_TYPE_STAFF

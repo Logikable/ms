@@ -8,6 +8,7 @@
 name: "Holy Arrow"
 description: "Attack multiple monsters with Holy Arrows."
 kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_HOLY
 placement { job_advancement: JOB_ADVANCEMENT_CLERIC skill_order: 1 }
 max_level: 10
 required_equip_type: EQUIP_TYPE_STAFF
