@@ -99,8 +99,7 @@ enum EquipSlot {
   EQUIP_SLOT_EYE_ACCESSORY = 9;
 
   // The accessories star force treats as armour a character's Max HP climbs
-  // with -- see RaisesMaxHp in src/item/item.h. Nothing is worn in the belt or
-  // the shoulderpad yet; the ring and the pendant arrived with Horntail.
+  // with -- see RaisesMaxHp in src/item/item.h.
   //
   // These two are also the first of the four ring slots and the first of the
   // two pendant slots. The rest are at the bottom of this list.
