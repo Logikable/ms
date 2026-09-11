@@ -18,6 +18,7 @@
 #include <map>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "src/combat/boss_timing.h"
@@ -35,6 +36,10 @@ inline constexpr double kBossDeathHoldSeconds = 1.0;
 
 // How long a stack of damage numbers stays on screen.
 inline constexpr double kDamageStackSeconds = 0.9;
+// How long one strike of a stack shows before the next replaces it. One frame
+// of a boss fight (kBossFightStep), so a swing that slashes twelve times
+// flashes through all twelve as fast as the screen can draw them.
+inline constexpr double kDamageStrikeSeconds = 0.03;
 // The most stacks held at once. A generous ceiling on a phase of ten bars,
 // there so a fight cannot grow the list without bound if one is ever drawn
 // slower than the swings arrive. The oldest go first.
@@ -62,9 +67,22 @@ struct DamageStack {
   // rewritten, and a skill they switch to rewrites it too.
   DamageSource source;
   std::vector<DamageNumber> lines;
+  // Where each strike of the attack begins in `lines`. One entry for a swing
+  // that landed once; twelve for one that slashed twelve times, each of them
+  // rolled apart. Always starts at zero and is never empty while `lines` is
+  // not -- see StrikeAt, which is what a drawer asks.
+  std::vector<int> strike_starts;
   // Seconds it has been on screen. Real ones: it is an animation, and the
   // game's pacing band has no business stretching it.
   double age = 0.0;
+  // The half-open range of `lines` showing at `age`: one strike replacing the
+  // last every kDamageStrikeSeconds, and the last of them held for whatever
+  // is left of the stack's life.
+  std::pair<int, int> StrikeAt(double age) const;
+  // The most lines any one strike landed. What the drawer reserves, so a
+  // stack that flashes does not change shape under the reader.
+  int TallestStrike() const;
+
   // Which side of the bar the arena should try first, drawn when the stack was
   // made. Drawn once rather than per frame, or a stack that has not changed
   // would move every time it was redrawn. Unread for the swing, which always

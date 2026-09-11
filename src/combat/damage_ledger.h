@@ -9,6 +9,7 @@
 #ifndef MS_SRC_COMBAT_DAMAGE_LEDGER_H_
 #define MS_SRC_COMBAT_DAMAGE_LEDGER_H_
 
+#include <map>
 #include <vector>
 
 #include "src/combat/damage.h"
@@ -49,6 +50,12 @@ inline bool operator==(const DamageSource& a, const DamageSource& b) {
 struct DamageLine {
   int mob_id = 0;
   int event = 0;
+  // Which landing of the event this line belongs to, counted from zero. One
+  // roll is one strike: a swing that slashes twelve times files twelve of
+  // them under the one event, and so do a Final Attack and a lead hit that
+  // followed the strike onto the same monster. A caller drawing the fight
+  // shows one strike at a time -- see DamageStack.
+  int strike = 0;
   DamageSource source;
   double damage = 0.0;
   bool crit = false;
@@ -98,10 +105,12 @@ class DamageLedger {
     return ++next_event_;
   }
 
-  // Files one line of `damage`, already scaled, against `landing`.
+  // Files one line of `damage`, already scaled, against `landing`. One call
+  // is one strike of the landing's event.
   void RecordLine(const Landing& landing, double damage, bool crit);
   // Files what the last RollFactor put in the sink as a landing of `damage`,
-  // each line taking its own share of it.
+  // each line taking its own share of it. One call is one strike, however
+  // many lines came out of the roll.
   void RecordRolls(const Landing& landing, double damage);
   // Where a roll should write its per-line shares: the scratch buffer, or
   // nowhere at all when nobody is reading the record.
@@ -117,10 +126,20 @@ class DamageLedger {
   // worked out, parallel to the queue, and what is doing the damage.
   std::vector<int> landing_event_;
   DamageSource landing_source_;
+  // How many strikes each event has taken so far, so the several rolls one
+  // attack lands on one monster are told apart. Keyed rather than counted
+  // straight through: an event is come back to after every other monster of
+  // the swing has been hit, and a Final Attack lands on it then.
+  std::map<int, int> strikes_of_event_;
   std::vector<DamageLine> lines_this_step_;
   // Where RollFactor writes its per-line shares, reused every roll so a
   // recording fight allocates once rather than once a line.
   std::vector<LineRoll> line_rolls_;
+
+  // The strike number the next roll against `event` takes, and one more taken.
+  int NextStrike(int event);
+  // Files one line under a strike already counted.
+  void FileLine(const Landing& landing, double damage, bool crit, int strike);
 };
 
 }  // namespace ms

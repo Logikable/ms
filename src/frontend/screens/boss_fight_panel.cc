@@ -146,9 +146,19 @@ class DamageStackNode : public ftxui::Node {
   // `faint` is a party member's stack rather than the player's own, which is
   // drawn well under it.
   DamageStackNode(const DamageStack& stack, bool faint) : faint_(faint) {
-    for (const DamageNumber& line : stack.lines) {
-      numbers_.push_back({std::to_string(line.damage), line.crit});
-      width_ = std::max(width_, static_cast<int>(numbers_.back().text.size()));
+    // Only the strike showing now is drawn, but the box is the tallest and
+    // widest any of them takes: a stack that changed shape as it flashed
+    // would be placed somewhere new every frame.
+    std::pair<int, int> showing = stack.StrikeAt(stack.age);
+    rows_ = std::max(1, stack.TallestStrike());
+    for (int i = 0; i < static_cast<int>(stack.lines.size()); ++i) {
+      int width =
+          static_cast<int>(std::to_string(stack.lines[i].damage).size());
+      width_ = std::max(width_, width);
+      if (i >= showing.first && i < showing.second) {
+        numbers_.push_back(
+            {std::to_string(stack.lines[i].damage), stack.lines[i].crit});
+      }
     }
   }
 
@@ -160,7 +170,7 @@ class DamageStackNode : public ftxui::Node {
 
   void ComputeRequirement() override {
     requirement_.min_x = width_;
-    requirement_.min_y = static_cast<int>(numbers_.size());
+    requirement_.min_y = rows_;
   }
 
   void Render(ftxui::Screen& screen) override {
@@ -202,6 +212,9 @@ class DamageStackNode : public ftxui::Node {
 
   std::vector<Number> numbers_;
   std::vector<bool> drawn_;
+  // The rows the box holds, which is the tallest strike rather than what is
+  // drawn this frame. A shorter strike leaves the rest of them untouched.
+  int rows_ = 1;
   int width_ = 1;
   bool faint_ = false;
 };

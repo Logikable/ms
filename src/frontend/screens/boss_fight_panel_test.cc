@@ -219,6 +219,29 @@ std::unique_ptr<GameState> EightLineState(Skill beside = Skill()) {
   return state;
 }
 
+// A character whose swing slashes four times, two lines a slash: the same
+// eight numbers, landed as four strikes the screen flashes through.
+std::unique_ptr<GameState> FourStrikeState() {
+  Skill illusion;
+  illusion.set_name("Illusion");
+  illusion.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(illusion, JOB_ADVANCEMENT_SWORDMAN);
+  illusion.set_max_level(1);
+  illusion.set_max_enemies(1);
+  illusion.set_lines(2);
+  illusion.set_casts(4);
+  illusion.set_base_delay_ms(2000);
+  illusion.mutable_base()->set_skill_pct(5.0);
+  std::map<std::string, Skill> book = {{"illusion", illusion}};
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1, std::move(book));
+  state->character.AdvanceJob(JOB_SWORDMAN);
+  for (int i = 0; i < 110; ++i) {
+    state->character.LevelUp();
+  }
+  EXPECT_TRUE(state->character.LearnSkill(illusion, 1));
+  return state;
+}
+
 // The same character, holding a summon that pulses beside their swing: two
 // sources landing on one monster, which is what the arena has to keep apart.
 std::unique_ptr<GameState> SummonState() {
@@ -708,6 +731,54 @@ TEST(BossFightPanelTest, ASwingStandsOverWhatItHit) {
     EXPECT_LT(drawn[i].row, bar) << "over the bar, not on or under it";
     EXPECT_EQ(drawn[i].text.find(","), std::string::npos);
   }
+}
+
+// A swing of several strikes draws one of them at a time, the next replacing
+// it a frame later. Every number the swing landed is still in the stack --
+// what changes is which of them the screen is showing.
+TEST(BossFightPanelTest, ASwingOfSeveralStrikesFlashesThroughThem) {
+  std::unique_ptr<GameState> state = FourStrikeState();
+  Boss boss = OneArmBoss();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  ASSERT_TRUE(RunUntilLine(run, *state, false));
+  ASSERT_EQ(run.damage_stacks().size(), 1u);
+  const DamageStack& stack = run.damage_stacks().front();
+  ASSERT_EQ(stack.lines.size(), 8u);
+  ASSERT_EQ(stack.strike_starts.size(), 4u) << "four slashes, two lines each";
+
+  // What is on screen is the strike the stack's age picks, and no more.
+  std::vector<DrawnNumber> drawn = DrawnNumbers(RenderScreen(run, 60, 40));
+  std::pair<int, int> showing = stack.StrikeAt(stack.age);
+  ASSERT_EQ(static_cast<int>(drawn.size()), showing.second - showing.first);
+  ASSERT_LT(drawn.size(), stack.lines.size())
+      << "the whole swing went up at once";
+  for (int i = 0; i < static_cast<int>(drawn.size()); ++i) {
+    EXPECT_EQ(drawn[i].text,
+              std::to_string(stack.lines[showing.first + i].damage));
+  }
+}
+
+// The strikes come one per frame and the last of them stands for the rest of
+// the stack's life: a swing that has finished flashing does not go blank.
+TEST(BossFightPanelTest, TheStrikesStepOneAFrameAndTheLastOneHolds) {
+  DamageStack stack;
+  stack.lines = {{10, false}, {11, false}, {20, false}, {30, false}};
+  stack.strike_starts = {0, 2, 3};
+
+  EXPECT_EQ(stack.StrikeAt(0.0), std::make_pair(0, 2));
+  EXPECT_EQ(stack.StrikeAt(kDamageStrikeSeconds), std::make_pair(2, 3));
+  EXPECT_EQ(stack.StrikeAt(2 * kDamageStrikeSeconds), std::make_pair(3, 4));
+  EXPECT_EQ(stack.StrikeAt(kDamageStackSeconds), std::make_pair(3, 4))
+      << "the last strike holds rather than the stack going blank";
+  EXPECT_EQ(stack.TallestStrike(), 2);
+
+  // A swing that landed once is one strike, and stands still for its life.
+  DamageStack single;
+  single.lines = {{10, false}, {11, false}};
+  single.strike_starts = {0};
+  EXPECT_EQ(single.StrikeAt(0.0), std::make_pair(0, 2));
+  EXPECT_EQ(single.StrikeAt(kDamageStackSeconds), std::make_pair(0, 2));
 }
 
 // A row with something already in it costs that one number. The rest of the

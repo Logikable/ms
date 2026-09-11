@@ -42,6 +42,10 @@ struct SharedLine {
   int slot = 0;
   // Shared by every line one attack put on one monster.
   int event = 0;
+  // Which landing of that event it belongs to: a swing that slashes twelve
+  // times files twelve, and the reader flashes through them. See
+  // DamageLine::strike.
+  int strike = 0;
   DamageSource source;
   int64_t damage = 0;
   bool crit = false;

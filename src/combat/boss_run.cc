@@ -278,6 +278,29 @@ void BossRun::Replace(DamageStack stack) {
   damage_stacks_.push_back(std::move(stack));
 }
 
+// The strike showing now: one per kDamageStrikeSeconds, and the last of them
+// stands for whatever is left of the stack's life.
+std::pair<int, int> DamageStack::StrikeAt(double age) const {
+  if (strike_starts.empty()) {
+    return {0, static_cast<int>(lines.size())};
+  }
+  int last = static_cast<int>(strike_starts.size()) - 1;
+  int at = std::clamp(static_cast<int>(age / kDamageStrikeSeconds), 0, last);
+  int end = at == last ? static_cast<int>(lines.size()) : strike_starts[at + 1];
+  return {strike_starts[at], end};
+}
+
+int DamageStack::TallestStrike() const {
+  int tallest = 0;
+  for (int i = 0; i < static_cast<int>(strike_starts.size()); ++i) {
+    int end = i + 1 < static_cast<int>(strike_starts.size())
+                  ? strike_starts[i + 1]
+                  : static_cast<int>(lines.size());
+    tallest = std::max(tallest, end - strike_starts[i]);
+  }
+  return strike_starts.empty() ? static_cast<int>(lines.size()) : tallest;
+}
+
 void BossRun::CollectDamageStacks() {
   const std::vector<DamageLine>& lines = sim_.damage_lines_this_step();
   // The lines of one landing arrive together, so a run of them under one event
@@ -291,19 +314,24 @@ void BossRun::CollectDamageStacks() {
     stack.preference = side(rng_);
     int event = lines[i].event;
     std::map<int, int>::const_iterator slot = slot_of_mob_.find(stack.mob_id);
+    int strike = -1;
     for (; i < lines.size() && lines[i].event == event; ++i) {
       // Rounded up off zero: a line that landed at all is worth a 1 rather
       // than a number that says nothing happened.
       int64_t damage = static_cast<int64_t>(std::llround(lines[i].damage));
       damage = std::max<int64_t>(1, damage);
+      if (lines[i].strike != strike) {
+        strike = lines[i].strike;
+        stack.strike_starts.push_back(static_cast<int>(stack.lines.size()));
+      }
       stack.lines.push_back({damage, lines[i].crit});
       if (authority_ == nullptr || slot == slot_of_mob_.end()) {
         continue;
       }
       // The same number, so what the shared roster loses is what its players
       // watched come off it.
-      landed_.push_back(
-          {0, slot->second, event, stack.source, damage, lines[i].crit});
+      landed_.push_back({0, slot->second, event, lines[i].strike, stack.source,
+                         damage, lines[i].crit});
     }
     Replace(std::move(stack));
   }
@@ -647,9 +675,14 @@ void BossRun::AddSharedStacks(const std::vector<SharedLine>& lines) {
     bool placed =
         first.slot >= 0 && first.slot < static_cast<int>(mob_of_slot_.size());
     stack.mob_id = placed ? mob_of_slot_[first.slot] : 0;
+    int strike = -1;
     for (; i < lines.size() && lines[i].event == first.event &&
            lines[i].owner == first.owner && lines[i].slot == first.slot;
          ++i) {
+      if (lines[i].strike != strike) {
+        strike = lines[i].strike;
+        stack.strike_starts.push_back(static_cast<int>(stack.lines.size()));
+      }
       stack.lines.push_back({lines[i].damage, lines[i].crit});
     }
     // A monster this client has already buried has nowhere left to hold them.

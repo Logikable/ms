@@ -110,8 +110,8 @@ void PartyFightAuthority::TakeState(const FightState& state,
       continue;
     }
     for (const FightDamage& line : player.lines()) {
-      fight_.lines.push_back({i, line.slot(), line.event(), SourceOf(line),
-                              line.damage(), line.crit()});
+      fight_.lines.push_back({i, line.slot(), line.event(), line.strike(),
+                              SourceOf(line), line.damage(), line.crit()});
     }
   }
 }
@@ -154,6 +154,7 @@ void PartyFightAuthority::Report(const FightReport& report) {
     FightDamage* sent = update.add_lines();
     sent->set_slot(line.slot);
     sent->set_event(line.event);
+    sent->set_strike(line.strike);
     sent->set_origin(static_cast<int>(line.source.origin));
     sent->set_source_index(line.source.index);
     sent->set_damage(line.damage);

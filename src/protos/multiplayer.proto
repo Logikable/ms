@@ -136,6 +136,9 @@ message FightDamage {
   int32 source_index = 4;
   int64 damage = 5;
   bool crit = 6;
+  // Which landing of the event it belongs to, so a swing that slashes twelve
+  // times reads as twelve flashes on the watcher's screen too.
+  int32 strike = 7;
 }
 
 // What one client's fight has landed since it last spoke, and what its player

@@ -1,5 +1,6 @@
 #include "src/combat/damage_ledger.h"
 
+#include <map>
 #include <vector>
 
 namespace ms {
@@ -7,6 +8,7 @@ namespace ms {
 void DamageLedger::BeginStep(bool recording) {
   recording_ = recording;
   lines_this_step_.clear();
+  strikes_of_event_.clear();
 }
 
 void DamageLedger::OpenLandings(int mobs, int hit, DamageSource source) {
@@ -35,16 +37,28 @@ void DamageLedger::RecordLine(const Landing& landing, double damage,
   if (!recording_) {
     return;
   }
+  FileLine(landing, damage, crit, NextStrike(landing.event));
+}
+
+int DamageLedger::NextStrike(int event) {
+  return strikes_of_event_[event]++;
+}
+
+void DamageLedger::FileLine(const Landing& landing, double damage, bool crit,
+                            int strike) {
   lines_this_step_.push_back(
-      {landing.mob_id, landing.event, landing.source, damage, crit});
+      {landing.mob_id, landing.event, strike, landing.source, damage, crit});
 }
 
 void DamageLedger::RecordRolls(const Landing& landing, double damage) {
   if (!recording_) {
     return;
   }
+  // One strike for the whole roll: its lines fell together and are drawn
+  // together.
+  int strike = NextStrike(landing.event);
   for (const LineRoll& roll : line_rolls_) {
-    RecordLine(landing, damage * roll.share, roll.crit);
+    FileLine(landing, damage * roll.share, roll.crit, strike);
   }
 }
 
