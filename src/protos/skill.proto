@@ -693,6 +693,20 @@ message BuffPulse {
   // Unset for a pulse that throws only what the crowd earns it, which is every
   // other one.
   Scatter fixed_strikes = 16;
+  // The strike this clock goes out on, of a shape all its own, the moment
+  // `max_pulses` runs out. Dark Lord's Omen is what it exists for: GMS's
+  // scroll bursts when the duration ends, for damage and a reach neither of
+  // which is the volley's.
+  //
+  // Apart from final_repeat_strike above, which lands the PULSE once more at
+  // the top of its ramp. Both land WITH the last tick rather than an interval
+  // after it, and for the same reason: a strike timed at the end of the window
+  // falls after the buff has already come down.
+  //
+  // Its `casts` are strikes of the burst landed together, as everywhere else.
+  // Its `skips_mirror` says nothing here -- no shadow copies a clock of its
+  // own. Unset for every pulse that simply stops, which is every other one.
+  SwingHit final_strike = 17;
 }
 
 // A buff a skill puts up for a while, on a cooldown of its own: what it grants

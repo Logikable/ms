@@ -1932,6 +1932,43 @@ TEST_F(SkillInspectPanelTest, ARampedPulseStatesTheTopAndTheOneItGoesOutOn) {
       << rendered;
 }
 
+// Dark Lord's Omen's two readings: the stars the crowd does not earn are
+// stated whole, since the total is what a lone boss takes, and the burst it
+// goes out on says its own damage and its own reach.
+TEST_F(SkillInspectPanelTest, APulseStatesItsFixedStrikesAndTheBurstItEndsOn) {
+  Skill omen = IronBody();
+  omen.set_kind(SKILL_KIND_ACTIVE);
+  Buff* buff = omen.mutable_buff();
+  buff->set_duration_seconds(12.0);
+  BuffPulse* stars = buff->mutable_pulse();
+  stars->set_label("Throwing Stars");
+  stars->set_cast_interval_seconds(0.99);
+  stars->set_lines(6);
+  stars->set_max_enemies(7);
+  stars->set_max_pulses(12);
+  stars->mutable_base()->set_skill_pct(15.10);
+  stars->mutable_fixed_strikes()->set_hits(7);
+  SwingHit* burst = stars->mutable_final_strike();
+  burst->set_label("Explosion");
+  burst->set_lines(12);
+  burst->set_max_enemies(12);
+  burst->mutable_base()->set_skill_pct(34.30);
+
+  std::string rendered = RenderAt(omen, 1);
+  EXPECT_NE(RowIn(rendered, "Throwing Stars", "1510% x6 = 9060%, 12 times"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Attacks", "7 enemies every 0.99s"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Plus", "1510% x7 = 10570%, spread"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Explosion", "3430% x12 = 41160% on 12 enemies"),
+            std::string::npos)
+      << rendered;
+}
+
 // A pulse riding a swing has no clock to state, so the page names the swing
 // instead -- the player reads how often it comes round off the skill they are
 // already pressing.

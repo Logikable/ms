@@ -3686,6 +3686,34 @@ TEST(CombatSimTest, ARampedPulseGoesOutOnOneMoreStrikeAtTheTop) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.984, 1e-9);
 }
 
+// The scroll bursting as it leaves: a strike of its own shape, landing with the
+// last tick and as many times over as it states.
+TEST(CombatSimTest, APulseGoesOutOnAStrikeOfItsOwnShape) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/100.0);
+  params.auto_attacks[0].name = "Throwing Stars";
+  params.auto_attacks[0].max_pulses = 3;
+  AttackOption burst = params.auto_attacks[0];
+  burst.damage_per_hit.assign(params.types.size(), 400.0);
+  burst.strikes_per_pulse = 2;
+  params.auto_attacks[0].final_strike =
+      std::make_shared<const AttackOption>(std::move(burst));
+  GiveBuff(params, /*duration=*/100.0, /*cooldown=*/1000.0, /*factor=*/1.0);
+  params.auto_attacks[0].needs_buff = 0;
+  params.buffed[0]->auto_attacks = params.auto_attacks;
+
+  // Two ordinary ticks of 100, the count not yet spent.
+  sim.Advance(params, 2.0);
+  ASSERT_NEAR(sim.view().target_hp_fraction, 0.998, 1e-9);
+  // The third spends it: 100, then two strikes of 400 going out with it.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.989, 1e-9);
+  sim.Advance(params, 5.0);
+  EXPECT_NEAR(sim.view().target_hp_fraction, 0.989, 1e-9);
+}
+
 // The count is per raising, not per fight: the next window is worth the whole
 // twelve again.
 TEST(CombatSimTest, ACappedPulseIsWorthItsWholeCountAgainNextWindow) {

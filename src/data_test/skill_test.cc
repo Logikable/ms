@@ -1750,6 +1750,16 @@ TEST(SkillDataTest, EveryBuffPulseStatesTheClockItTicksOn) {
         EXPECT_GT(pulse.max_repeats(), 0)
             << entry.first << " goes out at the top of no ramp";
       }
+      // The strike it goes out on lands when the count runs out, so it needs
+      // one -- and it says what it is and what it deals, as the pulse does.
+      if (pulse.has_final_strike()) {
+        EXPECT_GT(pulse.max_pulses(), 0)
+            << entry.first << " bursts on a count it never keeps";
+        EXPECT_GT(pulse.final_strike().base().skill_pct(), 0.0)
+            << entry.first << " bursts for nothing";
+        EXPECT_FALSE(pulse.final_strike().label().empty())
+            << entry.first << " bursts under no name";
+      }
       continue;
     }
     EXPECT_EQ(pulse.lines(), 0) << entry.first << " strikes on no clock";
@@ -1759,6 +1769,8 @@ TEST(SkillDataTest, EveryBuffPulseStatesTheClockItTicksOn) {
     EXPECT_EQ(pulse.max_repeats(), 0) << entry.first << " ramps on no clock";
     EXPECT_EQ(pulse.fixed_strikes().hits(), 0)
         << entry.first << " scatters on no clock";
+    EXPECT_FALSE(pulse.has_final_strike())
+        << entry.first << " goes out of no clock";
   }
   // Only a buff's own pulse may ride a swing: a form's is raised and dropped
   // with the form, and nothing reads a clock off one.

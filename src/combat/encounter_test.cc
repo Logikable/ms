@@ -3084,8 +3084,8 @@ TEST(ComputeCombatParamsTest, ARampedPulseCarriesAFormPerHelping) {
 
 // Dark Lord's Omen's shape: the tick throws a volley worth what the crowd is
 // and a fixed handful besides, the second a strike of its own so a lone boss
-// takes all of it.
-TEST(ComputeCombatParamsTest, APulseThrowsItsFixedStrikesOnTheSameClock) {
+// takes all of it -- and the scroll bursts on a shape of its own as it leaves.
+TEST(ComputeCombatParamsTest, APulseThrowsItsFixedStrikesAndBurstsAsItLeaves) {
   Skill omen;
   omen.set_name("Dark Lord's Omen");
   omen.set_kind(SKILL_KIND_ACTIVE);
@@ -3102,6 +3102,11 @@ TEST(ComputeCombatParamsTest, APulseThrowsItsFixedStrikesOnTheSameClock) {
   stars->set_max_pulses(12);
   stars->mutable_base()->set_skill_pct(7.27);
   stars->mutable_fixed_strikes()->set_hits(7);
+  SwingHit* burst = stars->mutable_final_strike();
+  burst->set_label("Explosion");
+  burst->set_lines(12);
+  burst->set_max_enemies(12);
+  burst->mutable_base()->set_skill_pct(16.32);
 
   GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
                   {{"field", TwoSnailMap()}}, {{"omen", omen}});
@@ -3129,11 +3134,23 @@ TEST(ComputeCombatParamsTest, APulseThrowsItsFixedStrikesOnTheSameClock) {
   ASSERT_FALSE(volley.damage_per_hit.empty());
   ASSERT_FALSE(fixed.damage_per_hit.empty());
   EXPECT_NEAR(fixed.damage_per_hit[0], volley.damage_per_hit[0] / 6.0, 1e-6);
+  // The burst hangs off the volley's clock rather than standing as a clock of
+  // its own, and carries its own damage, lines and reach.
+  ASSERT_NE(volley.final_strike, nullptr);
+  EXPECT_EQ(fixed.final_strike, nullptr);
+  EXPECT_EQ(volley.final_strike->lines, 12);
+  EXPECT_EQ(volley.final_strike->max_enemies, 12);
+  EXPECT_NEAR(volley.final_strike->damage_per_hit[0],
+              volley.damage_per_hit[0] * (16.32 / 7.27) * 12.0 / 6.0, 1e-6);
 
-  // Nothing thrown is nothing built: the volley stands alone.
+  // Nothing thrown and nothing to go out on is nothing built: the volley
+  // stands alone.
   stars->clear_fixed_strikes();
+  stars->clear_final_strike();
   state.skills["omen"] = omen;
-  EXPECT_EQ(ComputeCombatParams(state).auto_attacks.size(), 1u);
+  CombatParams bare = ComputeCombatParams(state);
+  ASSERT_EQ(bare.auto_attacks.size(), 1u);
+  EXPECT_EQ(bare.auto_attacks[0].final_strike, nullptr);
 }
 
 // Instinctual Combo's shape: the tear rides Raging Blow rather than a clock,

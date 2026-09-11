@@ -1484,6 +1484,30 @@ std::vector<Row> ShieldRows(const Shield& shield, int level) {
 // What a timed buff grants, headed by how long it stands. The wait for the
 // next one is the skill's own Cooldown row, above. No row here says "while
 // up" -- the heading says it once for all of them.
+// The strike a pulse goes out on, stated whole: its own damage, its own reach,
+// and nothing of the clock above it, since it lands once and only when that
+// clock stops. Nothing for a pulse that simply stops, which is every other one.
+std::vector<Row> FinalStrikeRows(const BuffPulse& pulse, int level) {
+  if (!pulse.has_final_strike()) {
+    return {};
+  }
+  const SwingHit& burst = pulse.final_strike();
+  double per_hit =
+      burst.base().skill_pct() + burst.per_level().skill_pct() * (level - 1);
+  std::string text = SwingText(per_hit, burst.lines(), SwingHitCasts(burst));
+  if (burst.max_enemies() > 0) {
+    text += " on " + ReachText(burst.max_enemies());
+  }
+  std::vector<Row> rows = {EffectRow(burst.label(), text)};
+  // Whatever else it carries rides its own strike, exactly as the pulse's do.
+  SkillEffect base = burst.base();
+  SkillEffect per = burst.per_level();
+  base.clear_skill_pct();
+  per.clear_skill_pct();
+  Append(LeverRows(base, per, level, ""), rows);
+  return rows;
+}
+
 // What the buff bleeds. A pulse borrowing the swing's reach says its damage and
 // its clock on one row -- the two are one fact, and the enemies are the ones
 // the swing above already states. One reaching enemies of its own says so where
@@ -1548,6 +1572,7 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
             ", up to +" + std::to_string(pulse.max_extra_lines())));
   }
   Append(std::move(levers), rows);
+  Append(FinalStrikeRows(pulse, level), rows);
   return rows;
 }
 

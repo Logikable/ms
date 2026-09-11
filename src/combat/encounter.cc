@@ -969,6 +969,23 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
     wound.lines_per_extra_enemy = pulse.lines_per_extra_enemy();
     wound.max_extra_lines = pulse.max_extra_lines();
   }
+  // The strike the turret goes out on, of a shape all its own: the scroll
+  // bursts as it leaves. Landed WITH the last tick rather than an interval
+  // after it, for the reason final_repeat_strike is -- by then the window it
+  // belongs to is down.
+  if (pulse.has_final_strike()) {
+    const SwingHit& burst = pulse.final_strike();
+    Skill goes_out = bleed;
+    *goes_out.mutable_base() = burst.base();
+    *goes_out.mutable_per_level() = burst.per_level();
+    goes_out.set_lines(burst.lines());
+    if (burst.max_enemies() > 0) {
+      goes_out.set_max_enemies(burst.max_enemies());
+    }
+    AttackOption last = own_clock(goes_out);
+    last.strikes_per_pulse = SwingHitCasts(burst);
+    wound.final_strike = std::make_shared<const AttackOption>(std::move(last));
+  }
   set.auto_attacks.push_back(std::move(wound));
   // The stars a tick throws whatever the crowd is: a strike of their own, one
   // line apiece, scattered over what is there. Their own attack rather than

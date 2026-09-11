@@ -2200,6 +2200,14 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
           Strike(RepeatForm(cast, cast.max_pulses),
                  {DamageOrigin::kOwnClock, i});
         }
+        // The scroll bursting as it leaves: a strike of its own shape, landing
+        // with the last tick for the same reason the explosion above does.
+        if (cast.final_strike != nullptr) {
+          for (int strike = 0; strike < cast.final_strike->strikes_per_pulse;
+               ++strike) {
+            Strike(*cast.final_strike, {DamageOrigin::kOwnClock, i});
+          }
+        }
         break;
       }
     }

@@ -438,6 +438,11 @@ struct AttackOption {
   // out. Only Poison Chain's explosion sets it. See
   // BuffPulse.final_repeat_strike.
   bool final_repeat_strike = false;
+  // The strike this clock goes out on when `max_pulses` runs out, of a shape
+  // all its own -- its `strikes_per_pulse` is how many of it land together.
+  // Null for every clock but Dark Lord's Omen's scroll, which bursts as it
+  // leaves. See BuffPulse.final_strike.
+  std::shared_ptr<const AttackOption> final_strike;
   // The hold this swing is, for the one skill that is held. Its damage_per_hit
   // above is a FULL hold, so an attack weighed without asking is weighed at
   // what holding it to the end is worth.
