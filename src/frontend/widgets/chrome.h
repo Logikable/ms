@@ -166,8 +166,8 @@ struct TabSpec {
 // chip's own pad, so a bar that scrolls begins in the same column as one that
 // fits and two bars stacked in a panel line up.
 //
-// Prefer this to building a row of TabChips: a bar wide enough to overflow is
-// a bar that would otherwise widen the window around it, and which bar that
+// Prefer this to building a row of TabChip calls: a bar wide enough to overflow
+// is a bar that would otherwise widen the window around it, and which bar that
 // will be is not something the widget's author gets to know.
 //
 // `width` is the columns the bar may use, and should be the width of the rows

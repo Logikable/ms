@@ -476,8 +476,8 @@ double BaseMastery(Job job) {
 
 namespace {
 
-// Primary and secondary stat by branch; an unknown job is left at 0, matching
-// MainStatValue in equipped_panel.
+// Primary and secondary stat by branch; an unknown job is left at 0, as the
+// Equipped panel's own main-stat column leaves it.
 void AddStatsByBranch(Job job, const AllocatedStats& allocated,
                       const EquipStats& equipped, OffenseStats& offense) {
   switch (BranchOf(job)) {

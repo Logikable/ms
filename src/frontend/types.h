@@ -12,7 +12,7 @@ enum Screen : int {
   kMain,
   kItemMenu,
   kInspect,
-  // The stackable counterpart of kInspect: see ItemInspectPanel.
+  // The stackable counterpart of kInspect, drawn by the same InspectPanel.
   kItemInspect,
   kScrollSelect,
   kScrollResult,

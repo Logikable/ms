@@ -368,7 +368,8 @@ TEST_F(ShopPanelTest, OpensOnTheWeaponTabOverItsStock) {
   EXPECT_NE(rendered.find("Long Sword"), std::string::npos);
   EXPECT_NE(rendered.find("5,000"), std::string::npos);
   EXPECT_NE(rendered.find("10,000"), std::string::npos);
-  // Priced at zero, so not stocked -- the panel shows what ShopStock says.
+  // Priced at zero, so not stocked -- the panel shows what ShopEquipStock
+  // says.
   EXPECT_EQ(rendered.find("Heirloom"), std::string::npos);
 }
 

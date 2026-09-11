@@ -43,7 +43,8 @@ struct FinalAttackSource {
   // times the source.
   bool per_line = false;
   // Boss damage this source alone carries, on top of the character's. Only a
-  // thrown meso has any: see SkillEffect.boosted_boss_pct.
+  // thrown meso has any -- Meso Explosion - Guardbreak aims boss_pct at the
+  // skill, and FoldMesoExplosion reads it off the boost.
   double boss_pct = 0.0;
   // Ignored defence only these extra hits carry, meeting the character's the
   // way two sources of it always do. A thrown meso's alone -- Meso Explosion -

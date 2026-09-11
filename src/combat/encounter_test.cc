@@ -78,8 +78,7 @@ void EquipSwordAt(GameState& state, AttackSpeed speed) {
   sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   sword.set_attack_speed(speed);
   // Both halves, so the swing lands whatever job the starting character
-  // happens to be -- kStartingJob is a testing knob, not something the
-  // encounter math should depend on.
+  // happens to be: the encounter math must not depend on which it is.
   sword.mutable_base_stats()->set_attack(100);
   sword.mutable_base_stats()->set_magic_attack(100);
   state.character.PickUp(std::make_unique<EquipInstance>(sword));
@@ -4563,7 +4562,7 @@ TEST(ComputeCombatParamsTest, StatGrantingPassivesReachTheSwing) {
   state.current_map = "field";
   EquipSword(state);
   // LUK has to be a stat this job actually swings on, so the character becomes
-  // a rogue rather than whatever kStartingJob happens to be.
+  // a rogue rather than whatever job a new character starts on.
   state.character.AdvanceJob(JOB_ROGUE);
 
   double before = ComputeCombatParams(state).attacks[0].damage_per_hit[0];

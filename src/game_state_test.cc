@@ -563,7 +563,7 @@ TEST(GameStateTest, AChosenFirstJobKeepsItsWholeBook) {
 // chosen job would arrive with nothing in hand and half its book asleep.
 // An Archer is left at 30 holding the Ryden that a level 30 can wear; a Hunter
 // is left at 60 holding the Asianic Bow. Both are the top of the bow ladder
-// their level reaches -- see WorkbenchWeaponsFor.
+// their level reaches -- see WorkbenchGearFor.
 TEST(GameStateTest, ChosenJobWearsTheWeaponItsLevelTopsOutAt) {
   GameState archer = MakeChosenJobState(JOB_ADVANCEMENT_ARCHER);
   ASSERT_TRUE(archer.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));

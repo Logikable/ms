@@ -1654,7 +1654,7 @@ double CombatSim::DamageToMob(const AttackOption& attack, int index,
 const AttackOption& CombatSim::FormToLand(int& count,
                                           const AttackOption& attack) {
   // A form that marks enemies never stands in for the swing: the swing lands
-  // as itself, and DamageToBranded decides mob by mob what goes off on top.
+  // as itself, and DamageToMob decides mob by mob what goes off on top.
   if (attack.empowered == nullptr || attack.empowered_every <= 0 ||
       attack.brands_enemies) {
     return attack;

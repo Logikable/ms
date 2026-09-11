@@ -523,7 +523,7 @@ message SkillEffect {
   double scar_chance = 118;
   double scar_seconds = 119;
   // Chance Attack's. Final damage on every line landed on a scarred monster.
-  // Binary, as final_dmg_pct_when_frozen is: a scar is a scar, and a second
+  // Binary, as final_dmg_pct_when_afflicted is: a scar is a scar, and a second
   // one over it says nothing.
   double final_dmg_pct_when_scarred = 120;
   // Scarring Sword's other half. Share off the ATTACK of a monster that is

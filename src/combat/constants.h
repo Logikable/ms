@@ -8,7 +8,7 @@
 namespace ms {
 
 // GMS global respawn tick: every 7.56s the server refills up to one mob per
-// spawn point. A map's full-clear kill cap is spawn_count / this.
+// spawn point. A map's full-clear kill cap is its spawn points over this.
 constexpr double kRespawnIntervalSeconds = 7.56;
 
 // The pacing knob that used to live here -- how many times slower than GMS the
@@ -29,16 +29,10 @@ constexpr double kBaseCritDamage = 0.35;
 // How many timed buffs are modelled at once. Every combination of them needs a
 // damage table of its own, and the count of combinations doubles with each
 // one -- but a table is built the first time the fight asks for it, so what a
-// raise really costs is the combinations a fight stands in rather than the 127
-// it could. A character holding more than this keeps the first of them and
+// raise really costs is the combinations a fight stands in rather than every
+// one it could. A character holding more than this keeps the first of them and
 // silently loses the rest, so //src/data_test:skill_test refuses a book that
 // hands out more.
-//
-// Raised from four for Vicious Shot, then from five for the archetype nodes:
-// Fury of the Wild put Bow Master on six, and Arcane Overdrive sheds three
-// stages that cost a window each, which puts Bishop on seven. Then once for
-// Inhuman Speed and once for Quiver Barrage, Bow Master's second and third job
-// nodes -- and Silhouette Mirage, a buff as well, will want one more.
 //
 // This bounds the PARTY'S buffs too, which take the bits above the
 // character's own: a book at the cap standing beside two allies casting one

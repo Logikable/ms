@@ -547,8 +547,8 @@ ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
   std::vector<TabSpec> specs;
   int active = 0;
   for (int i = 0; i < static_cast<int>(tabs.size()); ++i) {
-    // A tab with no key never announces itself. Asking TabSeen("") instead
-    // would answer no and leave those tabs permanently gold.
+    // A tab with no key never announces itself. Asking Seen("") instead would
+    // answer no and leave those tabs permanently gold.
     //
     // Skills is one of them, and not for want of being new. It takes the exact
     // index the Advance tab vacates, so an advancement leaves the player
