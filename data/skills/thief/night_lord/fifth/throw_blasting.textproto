@@ -1,0 +1,55 @@
+# The Night Lord's fourth job node, and the branch's burst: explosive charms
+# that ride out on the shurikens the character is already throwing.
+#
+# GMS's own figures: 475+19x% five times on six enemies for one charm, one
+# charm prepared every ten seconds for nothing, and 46 of them dropped in at
+# once by the active half -- two to four spent on every attack skill pressed,
+# for 1000 MP on a 120s cooldown.
+#
+# ONE bank, filled two ways, which is how GMS states it: a charm is a charm,
+# and the passive and active halves differ only in what puts one in hand. That
+# is also the whole of GMS's "the active and passive effects cannot trigger
+# simultaneously" -- the clock that prepares one is held while a load stands,
+# and starts again the moment the burst's charges are gone.
+#
+# Which makes the 60s a ceiling that never binds. Namu times the 46 out in 14
+# to 17 Quad Star presses about 94% of the time, which at that skill's 600ms
+# is 8 to 11 seconds; the duration is there for a player who stops attacking.
+#
+# Three charms a press, GMS's two-to-four averaged. Spread over 46 that is 16
+# presses, inside the band namu measures.
+#
+# The charms are the character's own swing rather than something on a clock,
+# so Shadow Partner copies them and the Mark goes off on them. Namu states
+# both in so many words: the real hit count is twice what is printed and the
+# damage 1.7x, and 408,595% for a whole bank is the 240,350% below with the
+# shadow already in it.
+#
+# Dropped: the 1000 MP, the throwing stars a charm consumes, and the immunity
+# to attack reflection, none of which this game has.
+name: "Throw Blasting"
+description:
+  "Throw shurikens with explosive charms attached. The charms explode after "
+  "the shurikens hit, dealing additional attack to nearby enemies."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 4 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_CLAW
+base_delay_ms: 960
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 60.0
+  magazine {
+    label: "Explosive Charm"
+    charges: 46
+    charges_per_swing: 3
+    spent_by_every_swing: true
+    recharge_seconds: 10.0
+    recharge_max: 1
+    max_enemies: 6
+    lines: 5
+    base { skill_pct: 4.94 }
+    per_level { skill_pct: 0.19 }
+  }
+}

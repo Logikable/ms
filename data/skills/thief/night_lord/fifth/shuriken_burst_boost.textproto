@@ -5,7 +5,7 @@
 name: "Shuriken Burst Boost"
 description: "Strengthens Shuriken Burst and Lucky Seven."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 9 }
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 10 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {

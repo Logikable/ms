@@ -15,7 +15,7 @@ description:
   "Your stealth is honed past the point of breaking, and you strike from "
   "inside it."
 kind: SKILL_KIND_ACTIVE
-placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 10 }
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 11 }
 placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_V skill_order: 1 }
 v_node: V_NODE_KIND_ARCHETYPE
 max_level: 30
