@@ -4846,5 +4846,154 @@ TEST(CombatSimTest, TheNextEventIsTheSwingOrABuff) {
   EXPECT_NEAR(buffed.SecondsToNextEvent(params), 2.0, 1e-9);
 }
 
+// A fight with an ordinary swing and a big move on a cooldown, under a buff
+// that doubles every number. The buff stands for `up` seconds of every
+// `every`, so the window the chooser can see coming opens at `every`.
+CombatParams MakeWindowFight(const Mob& boss, double cooldown, double up,
+                             double every) {
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 10.0, 1)});
+  params.attacks.push_back(MakeSkill("Big Move", 100.0, cooldown));
+  GiveBuff(params, up, every, /*factor=*/2.0);
+  return params;
+}
+
+// When each swing of the attack at `index` landed, in seconds from the start.
+std::vector<double> SwingTimes(CombatSim& sim, const CombatParams& params,
+                               int index, double seconds) {
+  std::vector<double> times;
+  int landed = 0;
+  for (int step = 1; step * 0.01 < seconds; ++step) {
+    sim.Advance(params, 0.01);
+    const std::vector<int>& swings = sim.swings_by_attack();
+    int now = index < static_cast<int>(swings.size()) ? swings[index] : 0;
+    if (now > landed) {
+      landed = now;
+      times.push_back(step * 0.01);
+    }
+  }
+  return times;
+}
+
+// The window doubles every number, so a press landing inside it is worth two
+// outside. The second press comes free at 21 with the window four seconds off,
+// and waits rather than spending itself in the gap.
+TEST(CombatSimTest, ABigMoveWaitsForTheWindowComing) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatParams params =
+      MakeWindowFight(boss, /*cooldown=*/20.0, /*up=*/3.0, /*every=*/25.0);
+
+  CombatSim sim;
+  std::vector<double> times = SwingTimes(sim, params, 1, 30.0);
+  ASSERT_EQ(times.size(), 2u);
+  EXPECT_NEAR(times[0], 1.0, 0.02);
+  EXPECT_NEAR(times[1], 26.0, 0.02);
+  EXPECT_NEAR(sim.damage_by_attack()[1], 400.0, 1e-6);  // both doubled
+}
+
+// The same fight against a boss with a sliver left: the window is further off
+// than the fight has to live, so the press goes out while there is still
+// something to spend it on.
+TEST(CombatSimTest, NothingIsHeldForAWindowTheFightWontReach) {
+  Mob boss = MakeMob("Zakum", 440);
+  CombatParams params =
+      MakeWindowFight(boss, /*cooldown=*/20.0, /*up=*/3.0, /*every=*/25.0);
+
+  CombatSim sim;
+  std::vector<double> times = SwingTimes(sim, params, 1, 30.0);
+  ASSERT_EQ(times.size(), 2u);
+  EXPECT_NEAR(times[1], 21.0, 0.02);
+  EXPECT_NEAR(sim.damage_by_attack()[1], 300.0, 1e-6);  // the second bare
+}
+
+// A cooldown back on its feet before the window opens is spent now and had
+// again inside it: there is nothing to place, so nothing to wait for.
+TEST(CombatSimTest, ACooldownBackBeforeTheWindowIsSpentNow) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatParams params =
+      MakeWindowFight(boss, /*cooldown=*/4.0, /*up=*/5.0, /*every=*/20.0);
+
+  CombatSim sim;
+  std::vector<double> times = SwingTimes(sim, params, 1, 24.0);
+  // Every five seconds throughout, the one at 16 going out with the window
+  // four off and the next landing inside it.
+  ASSERT_EQ(times.size(), 5u);
+  EXPECT_NEAR(times[3], 16.0, 0.02);
+  EXPECT_NEAR(times[4], 21.0, 0.02);
+}
+
+// The window lifts the ordinary swing and leaves the big move where it was, so
+// what a press buys over the swing it displaces is smaller inside the window
+// than outside. Nothing is held.
+TEST(CombatSimTest, NothingIsHeldForAWindowThatLiftsTheFillerInstead) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatParams params =
+      MakeWindowFight(boss, /*cooldown=*/20.0, /*up=*/3.0, /*every=*/25.0);
+  params.buffed[0]->attacks[1].damage_per_hit[0] = 100.0;
+
+  CombatSim sim;
+  std::vector<double> times = SwingTimes(sim, params, 1, 30.0);
+  ASSERT_EQ(times.size(), 2u);
+  EXPECT_NEAR(times[1], 21.0, 0.02);
+}
+
+// Holding the only swing there is would mean standing still, and the fight
+// never idles to wait for a window.
+TEST(CombatSimTest, NothingIsHeldWithNothingElseToSwing) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatParams params =
+      MakeWindowFight(boss, /*cooldown=*/20.0, /*up=*/3.0, /*every=*/25.0);
+  params.attacks.erase(params.attacks.begin());
+  params.buffed[0]->attacks.erase(params.buffed[0]->attacks.begin());
+
+  CombatSim sim;
+  std::vector<double> times = SwingTimes(sim, params, 0, 30.0);
+  ASSERT_EQ(times.size(), 2u);
+  EXPECT_NEAR(times[1], 22.0, 0.02);
+}
+
+// Divine Punishment's shape with room in the bank: a charge every three
+// seconds and three held at once, each buying the whole short hold.
+AttackOption MakeRoomyBank() {
+  AttackOption punish = MakeSkill("Divine Punishment", 0.0, /*cooldown=*/0.0);
+  punish.channel.pulses = 4;
+  punish.channel.min_pulses = 2;
+  punish.channel.pulse_seconds = 0.15;
+  punish.channel.min_seconds = 0.3;
+  punish.channel.charge_seconds = 3.0;
+  punish.channel.max_charges = 3;
+  punish.channel.pulses_per_charge = 4;
+  punish.groups.push_back({{25.0}, SwingRolls{}});
+  punish.damage_per_hit = {4 * 25.0};
+  punish.swing_seconds = HoldSeconds(punish.channel, punish.channel.pulses);
+  return punish;
+}
+
+// Sitting on a bank costs nothing -- dribbling it and dumping it take the same
+// seconds -- so the charges that land in the seconds before a window are saved
+// and spent inside it. What stops the saving is the top of the bank, not a
+// cooldown.
+TEST(CombatSimTest, ABankFillsIntoTheWindowAndIsSpentInside) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 10.0, 1)});
+  params.attacks.push_back(MakeRoomyBank());
+  GiveBuff(params, /*duration=*/3.0, /*cooldown=*/12.0, /*factor=*/2.0);
+
+  CombatSim sim;
+  std::vector<double> times = SwingTimes(sim, params, 1, 16.0);
+  int before = 0;
+  int inside = 0;
+  for (double at : times) {
+    if (at > 4.0 && at < 12.0) {
+      ++before;
+    } else if (at >= 12.0 && at < 15.0) {
+      ++inside;
+    }
+  }
+  // The bank opened full and emptied at once, then held every charge that
+  // landed in the gap: two of them go out with the window, back to back.
+  EXPECT_EQ(before, 0);
+  EXPECT_EQ(inside, 3);
+}
+
 }  // namespace
 }  // namespace ms

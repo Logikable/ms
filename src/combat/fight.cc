@@ -372,15 +372,32 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
   return total + side;
 }
 
-int CombatSim::BestAttack(const CombatParams& params) const {
-  if (queue_.empty()) {
-    return -1;  // nothing to hit, so nothing to choose between
-  }
+// Per second, not per swing: a skill that hits half again as hard but takes
+// twice as long is worse, and only the rate says so.
+//
+// An ice swing is also paid for the pile it leaves and for the freeze it lays,
+// or the chooser would take the harder lightning swing every time and neither
+// would ever exist -- see FreezeCredit and FrozenCredit.
+double CombatSim::SwingRate(const CombatParams& params,
+                            const AttackOption& attack) const {
+  return (SwingDamage(attack) * StateBoost(attack, FrontMob()) +
+          FreezeCredit(params, attack) + FrozenCredit(params, attack) +
+          BurnStateCredit(params, attack)) /
+         SwingSecondsAgainst(attack);
+}
+
+int CombatSim::TopAttack(const CombatParams& params,
+                         const std::vector<bool>& held) const {
   int best = -1;
   double best_rate = -1.0;
   const std::vector<AttackOption>& options = Attacks(params);
   for (int i = 0; i < static_cast<int>(options.size()); ++i) {
     const AttackOption& attack = options[i];
+    // Set aside by the caller: it is being saved for a window, so what goes
+    // out now is chosen from the rest.
+    if (i < static_cast<int>(held.size()) && held[i]) {
+      continue;
+    }
     if (attack.swing_seconds <= 0.0) {
       continue;  // not a swing; a skill on its own clock is not chosen between
     }
@@ -409,20 +426,166 @@ int CombatSim::BestAttack(const CombatParams& params) const {
     if (attack.spent_by_attack >= 0) {
       continue;
     }
-    // Per second, not per swing: a skill that hits half again as hard but takes
-    // twice as long is worse, and only the rate says so.
-    //
-    // An ice swing is also paid for the pile it leaves and for the freeze it
-    // lays, or the chooser would take the harder lightning swing every time
-    // and neither would ever exist -- see FreezeCredit and FrozenCredit.
-    double rate = (SwingDamage(attack) * StateBoost(attack, FrontMob()) +
-                   FreezeCredit(params, attack) + FrozenCredit(params, attack) +
-                   BurnStateCredit(params, attack)) /
-                  SwingSecondsAgainst(attack);
+    double rate = SwingRate(params, attack);
     if (rate > best_rate) {
       best_rate = rate;
       best = i;
     }
+  }
+  return best;
+}
+
+CombatSim::ComingWindow CombatSim::NextWindow(
+    const CombatParams& params) const {
+  ComingWindow window;
+  window.seconds = std::numeric_limits<double>::infinity();
+  window.mask = buff_mask_;
+  int count = std::min(static_cast<int>(buffs_.size()),
+                       static_cast<int>(params.buffs.size()));
+  for (int i = 0; i < count; ++i) {
+    const BuffOption& buff = params.buffs[i];
+    // A shell is raised by need rather than by its clock -- see
+    // ShieldWanted -- so a cooldown run out on one promises nothing, and
+    // waiting for a window that may never open would stall the fight.
+    if (buffs_[i].left > 0.0 || buff.laid_by_attack >= 0 ||
+        buff.charge_lines > 0 || buff.shield_hits > 0 ||
+        buff.duration_seconds <= 0.0) {
+      continue;
+    }
+    window.seconds = std::min(window.seconds, buffs_[i].cooldown_left);
+  }
+  if (!std::isfinite(window.seconds)) {
+    return window;
+  }
+  // The mask as it would stand then: everything coming up at that moment set,
+  // and everything standing now that has lapsed by it cleared.
+  for (int i = 0; i < count; ++i) {
+    const BuffOption& buff = params.buffs[i];
+    const BuffClock& clock = buffs_[i];
+    if (clock.left > 0.0) {
+      if (clock.left <= window.seconds) {
+        window.mask &= ~(1 << i);
+      }
+      continue;
+    }
+    if (buff.laid_by_attack < 0 && buff.charge_lines <= 0 &&
+        buff.shield_hits <= 0 && buff.duration_seconds > 0.0 &&
+        clock.cooldown_left <= window.seconds) {
+      window.mask |= 1 << i;
+    }
+  }
+  return window;
+}
+
+bool CombatSim::HoldSaves(const CombatParams& params, int index,
+                          const ComingWindow& window) const {
+  const std::vector<AttackOption>& options = Attacks(params);
+  if (index < 0 || index >= static_cast<int>(options.size())) {
+    return false;
+  }
+  const AttackOption& attack = options[index];
+  // A swing that would land inside the window anyway saves nothing by waiting:
+  // what is aimed now lands at the end of its animation, under whatever is
+  // standing then. What is LEFT of that animation, since the swing being
+  // charged carries its phase over to whatever replaces it.
+  //
+  // Less this step, which the buff clocks have already taken and the swing has
+  // not -- the raise is wound down at the top of the step and the phase at the
+  // bottom. Without it the two are a step out of true, and a hold would let go
+  // one step before the window every time.
+  if (window.seconds <
+      SwingSecondsAgainst(attack) - attack_phase_ - step_seconds_) {
+    return false;
+  }
+  const ChannelHold& hold = attack.channel;
+  if (hold.charge_seconds > 0.0) {
+    // A bank costs nothing to sit on: dribbling it and dumping it take the
+    // same seconds either way. The only thing waiting can throw away is a
+    // charge that fills past the top of the bank.
+    double banked = index < static_cast<int>(attack_clocks_.size())
+                        ? attack_clocks_[index].hold_charges
+                        : 0.0;
+    return banked + window.seconds / hold.charge_seconds <= hold.max_charges;
+  }
+  // A cooldown that comes back before the window opens is free to spend now --
+  // this press and the one inside the window are both had. Only one that
+  // outlasts the wait is a press being placed rather than a press being had
+  // twice.
+  return attack.cooldown_seconds > window.seconds;
+}
+
+bool CombatSim::HoldPays(const CombatParams& params, int index, int filler,
+                         const ComingWindow& window) const {
+  if (filler < 0) {
+    return false;  // nothing else to swing, and the fight never idles
+  }
+  // Both sides priced off the STANDING masks rather than the granting ones. A
+  // buff that grants in bursts flickers inside its own window, and that
+  // flicker is shared by the two readings being compared -- what is being
+  // weighed here is which buffs stand, not which instant of one it is.
+  const std::vector<AttackOption>& now = params.Attacks(buff_mask_);
+  const std::vector<AttackOption>& then = params.Attacks(window.mask);
+  if (index >= static_cast<int>(now.size()) ||
+      filler >= static_cast<int>(now.size()) ||
+      index >= static_cast<int>(then.size()) ||
+      filler >= static_cast<int>(then.size())) {
+    return false;
+  }
+  // What one slot of this attack buys over the filler holding the same
+  // seconds. The difference of two rates, so everything the pair share falls
+  // out and what is left is the reason to reach for one over the other.
+  double seconds = SwingSecondsAgainst(now[index]);
+  double press_now =
+      (SwingRate(params, now[index]) - SwingRate(params, now[filler])) *
+      seconds;
+  double press_then =
+      (SwingRate(params, then[index]) - SwingRate(params, then[filler])) *
+      seconds;
+  double gain = press_then - press_now;
+  if (gain <= 0.0) {
+    return false;  // the window lifts the filler as much, so there is no wait
+                   // worth taking
+  }
+  if (now[index].channel.charge_seconds > 0.0) {
+    return true;  // a banked hold loses nothing by waiting; HoldSaves already
+                  // kept it from overflowing
+  }
+  // Waiting pushes the whole train of presses back, so over one cooldown a
+  // wait/cooldown share of a press goes missing. Priced at what a press is
+  // worth today, which is the conservative side of the comparison.
+  return gain > press_now * window.seconds / now[index].cooldown_seconds;
+}
+
+// The hardest swing on offer, except that a big move ready just before a buff
+// window is saved for it. What that is worth is the press landing inside the
+// window rather than outside it; what it costs is every later press of the
+// same skill pushed back by the wait. HoldPays weighs the two.
+//
+// The swing a hold is judged against is the one that would really go out in
+// its place, so a move set aside sends the question to the runner-up: holding
+// the best is only worth anything if what replaces it is worse now than it
+// would be in the window.
+int CombatSim::BestAttack(const CombatParams& params) const {
+  if (queue_.empty()) {
+    return -1;  // nothing to hit, so nothing to choose between
+  }
+  std::vector<bool> held;
+  int best = TopAttack(params, held);
+  ComingWindow window = NextWindow(params);
+  // Nothing on its way, nothing new in it, or a fight that will be over before
+  // it opens. The common case, and it costs one look at the buff clocks.
+  if (best < 0 || window.seconds <= 0.0 || window.mask == buff_mask_ ||
+      window.seconds >= SecondsLeft(params)) {
+    return best;
+  }
+  while (best >= 0 && HoldSaves(params, best, window)) {
+    held.resize(Attacks(params).size(), false);
+    held[best] = true;
+    int filler = TopAttack(params, held);
+    if (!HoldPays(params, best, filler, window)) {
+      return best;
+    }
+    best = filler;
   }
   return best;
 }
@@ -2419,6 +2582,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   double dt = measuring_ ? elapsed_seconds
                          : std::min(elapsed_seconds,
                                     params.attacks.front().swing_seconds);
+  step_seconds_ = dt;
 
   BeginMapIfChanged(params);
   // A level-up widens the pool and fills it, as GMS does. player_level_ is

@@ -464,11 +464,49 @@ class CombatSim {
   // no such skill. A cleared map heals on the beat for free, so a cast there
   // would buy nothing.
   int HealToCast(const CombatParams& params) const;
+  // What one swing of `attack` is worth per SECOND on the queue as it stands:
+  // its damage and the states it leaves over the seconds it takes. The one
+  // measure every pick in here is made on. Takes the option by reference so a
+  // swing can be priced under a mask the fight is not standing in yet.
+  double SwingRate(const CombatParams& params,
+                   const AttackOption& attack) const;
+
+  // A buff window the fight can see coming: how long until it opens, and which
+  // buffs would be standing once it had. seconds is infinite when nothing is
+  // on its way, and mask is then the mask standing now.
+  struct ComingWindow {
+    double seconds = 0.0;
+    int mask = 0;
+  };
+  // The next window to open, off the buff clocks. Only buffs on a clock of
+  // their own are visible here: one a swing lays or lines charge moves when
+  // the fight moves it, and a shell is raised by need rather than by its
+  // cooldown, so neither is something to wait for.
+  ComingWindow NextWindow(const CombatParams& params) const;
+  // Whether waiting for `window` would save the attack at `index` a press it
+  // would otherwise not have -- a cooldown that outlasts the wait, or a bank
+  // that would not overflow while it sat. False where the press is had either
+  // way, which is every swing without a clock of its own.
+  bool HoldSaves(const CombatParams& params, int index,
+                 const ComingWindow& window) const;
+  // Whether saving it pays: what the press gains by landing inside `window`
+  // rather than now, against what pushing the whole train of presses back
+  // costs. `filler` is the swing that would go out in its place, which is what
+  // makes this a comparison rather than a wish.
+  bool HoldPays(const CombatParams& params, int index, int filler,
+                const ComingWindow& window) const;
+  // The best ready swing, skipping every index `held` has set aside. -1 when
+  // nothing is on offer.
+  int TopAttack(const CombatParams& params,
+                const std::vector<bool>& held) const;
   // Index into params.attacks of the attack landing the most damage per SECOND
   // on the queue as it stands, or -1 with nothing to hit. Per second and per
   // queue, so a slow animation has to hit proportionally harder, and a wide
   // skill loses its reach bonus once the map thins out. An index, not a
   // pointer: the cooldown it starts is held per attack.
+  //
+  // A big move ready just before a buff window is saved for it rather than
+  // spent now -- see NextWindow and the note on the definition.
   int BestAttack(const CombatParams& params) const;
   // What this step swings with: the skill already winding up, or a fresh pick
   // from BestAttack. A skill mid-animation is committed to and finishes, so a
@@ -727,6 +765,9 @@ class CombatSim {
     double hold_charges = 0.0;
   };
   std::vector<AttackClock> attack_clocks_;
+  // What this step is worth in seconds, for the one reader that has to line
+  // the swing's phase up against a clock already wound down -- see HoldSaves.
+  double step_seconds_ = 0.0;
 
   // Freeze Stacks the character is holding. Belongs to them rather than to the
   // map, like the buff clocks and unlike the queue, so it survives walking
