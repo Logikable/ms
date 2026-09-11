@@ -1,10 +1,7 @@
 #include "analysis/sim_gear.h"
 
 #include <algorithm>
-#include <cmath>
-#include <limits>
 #include <map>
-#include <memory>
 #include <set>
 #include <string>
 #include <utility>
