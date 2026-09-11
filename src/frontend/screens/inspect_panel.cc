@@ -455,8 +455,8 @@ ftxui::Element InspectPanel::RenderStackable() const {
   } else {
     // paragraph wraps on spaces, so a description longer than the window
     // spills onto another line rather than off the edge. Spaced off both
-    // borders by hand: every other row in the game carries its own gutter in
-    // its string, and a paragraph has no string to put one in.
+    // borders by hand: every other row carries its own gutter in its string,
+    // and a paragraph has no string to put one in.
     description = ftxui::hbox({
         ftxui::text(" "),
         ftxui::paragraph(stackable_->description()),

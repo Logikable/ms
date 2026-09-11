@@ -382,8 +382,8 @@ ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
     whole += ChipWidth(tab);
   }
   // A bar that fits is drawn as it always was, marks and all left off. Their
-  // columns would otherwise indent every bar in the game for the sake of the
-  // one that scrolls.
+  // columns would otherwise indent every bar for the sake of the one that
+  // scrolls.
   bool scrolls = width > 0 && whole > width;
 
   int first = 0;

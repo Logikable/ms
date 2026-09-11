@@ -39,8 +39,8 @@ constexpr int kNameIndent = 2;
 // A column of clearance on each side, the way every panel here is padded.
 constexpr int kDetailWidth = kLabelWidth + kValueWidth + 2;
 // The rows the screen always takes, whichever fight the cursor is on. Tall
-// enough for the longest detail panel in the game -- a test holds it there --
-// so the top of the screen never moves.
+// enough for the tallest detail panel -- a test holds it there -- so the top
+// of the screen never moves.
 constexpr int kScreenHeight = 24;
 
 std::string ResetName(ResetPeriod period) {
@@ -412,8 +412,8 @@ void BossSelectPanel::RenderRewards(std::vector<ftxui::Element>& rows,
 void BossSelectPanel::RenderDropRow(std::vector<ftxui::Element>& rows,
                                     const MobDrop& drop) const {
   std::string name = DropName(state_, drop);
-  // Wrapped rather than cut, and rather than let the panel grow: these are the
-  // longest names in the game, and half of one names nothing. The chance sits
+  // Wrapped rather than cut, and rather than let the panel grow: drop names
+  // run long, and half of one names nothing. The chance sits
   // on the last line of the name, where a one-line name puts it in the same
   // column every other value on this panel stands in.
   std::string chance = DropChance(drop.per_kill());

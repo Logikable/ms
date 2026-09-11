@@ -1163,7 +1163,7 @@ TEST_F(SkillInspectPanelTest, ATinyLeverKeepsASecondDecimal) {
             std::string::npos);
 }
 
-// Every other skill in the game has none, so the row must not appear at all.
+// A skill without an opening hit must not draw the row at all.
 TEST_F(SkillInspectPanelTest, NoOpeningHitRowWithoutOne) {
   Skill skill = MakeLuckySeven();
   EXPECT_EQ(RenderAt(skill, 1).find("Opening"), std::string::npos);

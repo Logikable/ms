@@ -165,8 +165,8 @@ class TuiController {
   // Float the pot's context menu over the main view: read it, buy it outright,
   // or walk away.
   void OpenPotMenu(ConsumableType type);
-  // Ask before buying `type` outright. Opens on Cancel: it is the largest
-  // single spend in the game. A purse that cannot cover it still opens the
+  // Ask before buying `type` outright. Opens on Cancel: it costs hundreds of
+  // millions. A purse that cannot cover it still opens the
   // question -- with the price in red and [Confirm] greyed -- rather than
   // refusing at the menu, which would leave the player guessing at the price.
   void OpenPotBuy(ConsumableType type);

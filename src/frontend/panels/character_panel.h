@@ -354,8 +354,7 @@ class CharacterPanel {
   int AbilityRows() const;
 
   // Renders the Pots tab: one row per pot this character has reached. Nothing
-  // scrolls -- there are two pots in the game and the tab is never taller
-  // than they are.
+  // scrolls -- the pots are few enough that the tab never outgrows them.
   ftxui::Element RenderPotsTab(bool rows_focused) const;
   // One pot row: the tag saying whether it is rented or owned, its name, and
   // the mark at the end that says it is switched on. A pot that is off dims.

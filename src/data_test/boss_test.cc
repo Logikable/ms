@@ -333,9 +333,9 @@ TEST_F(BossDataTest, NormalMagnusIsOneBodyBehindALateGate) {
   EXPECT_EQ(normal.drops(2).per_kill(), 1.0);
 }
 
-// The biggest fight in the game and the only one whose first phase is most of
-// it: the five statues are 5.55B of the 7.65B. Pinned for the reason Zakum's
-// and Magnus's numbers are -- the shape of a fight is a design decision.
+// A fight whose first phase is most of it: the five statues are 5.55B of the
+// 7.65B. Pinned for the reason Zakum's and Magnus's numbers are -- the shape
+// of a fight is a design decision.
 TEST_F(BossDataTest, NormalPinkBeanIsFiveStatuesThenTheBean) {
   ASSERT_GT(bosses_.count("pink_bean"), 0u);
   const BossDifficulty& normal = bosses_.at("pink_bean").difficulties(0);
@@ -420,9 +420,8 @@ TEST_F(BossDataTest, HardHillaIsTheSameFightBehindALaterGate) {
   EXPECT_EQ(hard.drops(1).item(), "hillas_soul_shard");
 }
 
-// The biggest fight in the game: eleven parts over three phases adding to
-// 26.6B, and the one second difficulty that changes what a phase fights
-// rather than only how hard it hits.
+// Eleven parts over three phases adding to 26.6B, and a second difficulty
+// that changes what a phase fights rather than only how hard it hits.
 TEST_F(BossDataTest, ChaosHorntailIsTheSameShapeAtChaosNumbers) {
   ASSERT_GT(bosses_.count("horntail"), 0u);
   ASSERT_EQ(bosses_.at("horntail").difficulties_size(), 2);
@@ -614,7 +613,7 @@ TEST_F(BossDataTest, RootAbyssIsFourBodiesBehindClimbingDefence) {
     ASSERT_EQ(chaos.phases(0).spawns_size(), 1) << want.boss;
     EXPECT_EQ(SpawnCount(chaos.phases(0).spawns(0)), 1) << want.boss;
     EXPECT_EQ(chaos.phases(0).spawns(0).mob(), want.mob) << want.boss;
-    // Vellum walks his row; nothing else in the game moves at all.
+    // Vellum walks his row; the others stand still.
     EXPECT_EQ(chaos.phases(0).spawns(0).move_interval_seconds(),
               want.boss == "vellum" ? 30 : 0)
         << want.boss;

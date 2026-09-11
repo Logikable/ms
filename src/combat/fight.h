@@ -783,8 +783,7 @@ class CombatSim {
   // moment the orb is loosed -- what the cast bought is the barrage, not the
   // time it takes.
   //
-  // One at a time. A second cast of the same skill is a cooldown away, and
-  // nothing else in the game is told apart this way.
+  // One at a time: a second cast of the same skill is a cooldown away.
   struct Barrage {
     int attack = -1;
     int strikes_left = 0;

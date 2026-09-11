@@ -153,7 +153,7 @@ struct PassiveTotals : DerivedStats {
   double ap_stat_pct = 0.0;
   // Share added to the one above before it is cashed in, so what the character
   // gets back is Maple Warrior's own grant multiplied. Summed, as every share
-  // here is; only one skill in the game pays it.
+  // here is.
   double ap_stat_bonus_pct = 0.0;
   // Combo Orbs, and the bargains priced per orb. The count is the best any
   // learned passive grants rather than the sum -- a character carries one ring
@@ -1414,8 +1414,7 @@ void AddDropAndMesoRates(const CharacterInstance& character,
     stats.meso_final_mult *= kWealthPotionMesoMult;
   }
   // The Extreme Green Potion, the other half of that deal: stages in a boss
-  // fight and nowhere else, and stages that pass the soft cap, which nothing
-  // else in the game grants.
+  // fight and nowhere else, and stages that pass the soft cap.
   if (preset == StatPreset::kBossing &&
       character.ConsumableInEffect(CONSUMABLE_TYPE_EXTREME_GREEN_POTION)) {
     stats.uncapped_attack_speed_bonus += kGreenPotionAttackSpeed;

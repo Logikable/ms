@@ -110,8 +110,8 @@ TEST_F(CubePanelTest, AnItemWithNoPotentialIsAskedToBeGrantedOne) {
   EXPECT_EQ(rendered.find("Reroll these lines?"), std::string::npos);
 }
 
-// The one Confirm in the game that leaves its window up: the caller rerolls
-// and the same question is asked again over the new lines.
+// The Confirm leaves its window up: the caller rerolls and the same question
+// is asked again over the new lines.
 TEST_F(CubePanelTest, ConfirmDoesNotCloseTheQuestion) {
   EquipInstance item = Cubed();
   CubePanel panel = Open(item, 5 * kCubeCost);

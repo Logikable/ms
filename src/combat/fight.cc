@@ -976,7 +976,7 @@ double CombatSim::BuffWindowSeconds(const BuffOption& buff) const {
 
 // The same count taken in STACKS, which is what GMS means by a damage over
 // time stack where it says so: a burn piled three deep is three. The two part
-// only over Poison Breath, the one burn in the game that stacks at all.
+// only over a burn that stacks -- Toxic Venom's does.
 int CombatSim::BurnStacksAlight() const {
   int alight = 0;
   for (const QueuedMob& mob : queue_) {

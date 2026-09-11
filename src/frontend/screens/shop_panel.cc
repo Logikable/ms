@@ -470,7 +470,7 @@ ftxui::Element ShopPanel::RenderEquipRow(
                   "  " +
                   // The type scrolls too: "Arrow for Crossbow" is wider than
                   // the column, and a cut type reads as a different item. Only
-                  // here -- every other column in the game is written to fit.
+                  // here -- every other column is written to fit.
                   ScrollingWindow(TypeCell(proto), kTypeWidth, elapsed) + "  "),
       std::move(level),
       std::move(cost),

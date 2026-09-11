@@ -266,8 +266,7 @@ struct DerivedStats {
   // cast is untouched.
   double buff_duration_pct = 0.0;
   // Share added to damage against a boss and nothing else. Summed, and summed
-  // again with the equipment's own -- see OffenseStatsFor. Nothing in the game
-  // is a boss yet, so nothing reads it.
+  // again with the equipment's own -- see OffenseStatsFor.
   double boss_pct = 0.0;
   // The same against every monster that is not a boss. Only a Hyper Stat
   // grants it.

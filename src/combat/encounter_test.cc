@@ -31,8 +31,8 @@ Mob MakeMob(const std::string& name, int max_hp) {
   return mob;
 }
 
-// A mob with weapon defence to ignore, so an Ignore DEF lever has something to
-// cancel: every mob in the game itself has none.
+// A mob with weapon defence to ignore, so an Ignore DEF lever has something
+// to cancel: MakeMob above leaves it at zero.
 Mob MakeArmouredMob(const std::string& name, int max_hp, int pdr) {
   Mob mob = MakeMob(name, max_hp);
   mob.set_pdr(pdr);

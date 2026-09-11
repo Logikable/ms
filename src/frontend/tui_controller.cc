@@ -249,8 +249,8 @@ void TuiController::OpenPotMenu(ConsumableType type) {
 
 void TuiController::OpenPotBuy(ConsumableType type) {
   pot_type_ = type;
-  // Opens on Cancel: it is the largest single spend in the game, and Enter
-  // alone must not be able to make it.
+  // Opens on Cancel: buying a pot outright costs hundreds of millions, and
+  // Enter alone must not be able to make it.
   pot_buy_prompt_.Open(/*cancel_selected=*/true);
   screen_ = kPotBuy;
 }

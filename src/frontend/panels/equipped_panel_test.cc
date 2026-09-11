@@ -27,8 +27,8 @@
 namespace ms {
 namespace {
 
-// No context menu in the game has anywhere near this many entries, so a walk
-// that takes this many steps is walking in circles.
+// No context menu has anywhere near this many entries, so a walk that takes
+// this many steps is walking in circles.
 constexpr int kMenuWalkLimit = 32;
 
 class EquippedPanelTest : public PanelTest {

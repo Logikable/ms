@@ -332,7 +332,7 @@ TEST(BossSelectPanelTest, AOnePhaseFightLabelsItsHpPlainly) {
 
 // Walking the list must not move the top of the screen, so the panel takes
 // the same rows whichever fight is under the cursor -- and the tallest fight
-// in the game has to fit in them.
+// has to fit in them.
 TEST(BossSelectPanelTest, TheScreenIsTheSameHeightForEveryFight) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
   GameState& state = *owner;

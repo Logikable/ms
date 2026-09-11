@@ -191,8 +191,8 @@ ConfirmChoice CubePanel::OnEvent(ftxui::Event event) {
   }
   ConfirmChoice choice = confirm_.OnEvent(std::move(event), Affordable());
   if (choice == ConfirmChoice::kConfirmed) {
-    // The one Confirm in the game that leaves its window standing: what it
-    // buys is another roll of the lines the window is showing.
+    // The window stays standing: what the Confirm buys is another roll of the
+    // lines it is showing.
     confirm_.Open(/*cancel_selected=*/false);
   }
   return choice;

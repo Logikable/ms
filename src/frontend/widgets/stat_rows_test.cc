@@ -223,8 +223,8 @@ TEST_F(StatRowsTest, AttackSpeedNamesTheStageOrDashesWithNoWeapon) {
   EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Attack Speed"), "Fast 2");
 }
 
-// Every staff in the game is Slow, and no magician casts at Slow: the row has
-// to say what they swing at, not what they hold.
+// A staff is Slow and no magician casts at Slow: the row has to say what they
+// swing at, not what they hold.
 TEST_F(StatRowsTest, AMagiciansAttackSpeedIgnoresTheStaff) {
   EquipPrototype staff;
   staff.set_name("Staff");

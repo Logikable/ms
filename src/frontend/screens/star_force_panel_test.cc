@@ -17,8 +17,8 @@
 namespace ms {
 namespace {
 
-// More than the dearest attempt in the game, so a test that is not about the
-// price never trips over it.
+// More than any attempt costs, so a test that is not about the price never
+// trips over it.
 constexpr int64_t kDeepPurse = 1'000'000'000'000;
 
 class StarForcePanelTest : public PanelTest {

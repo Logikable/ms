@@ -162,9 +162,8 @@ TEST_F(JobInspectPanelTest, TheSelectedRowWearsTheCursor) {
   EXPECT_NE(LineWith(rendered, "Weapon Mastery").find(">"), std::string::npos);
 }
 
-// The longest name in the game is half again the column it sits in. It is cut
-// to the column and slides under it while selected, rather than widening the
-// panel or being lost.
+// A name half again the column it sits in is cut to the column and slides
+// under it while selected, rather than widening the panel or being lost.
 TEST_F(JobInspectPanelTest, ALongNameIsCutToItsColumnAndNotPastIt) {
   const std::string kLongest = "Expert Throwing Star Handling";
   std::map<std::string, Skill> catalog = {

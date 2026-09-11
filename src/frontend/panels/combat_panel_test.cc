@@ -110,9 +110,8 @@ TEST(CombatPanelTest, ShowsTheMapCursorOnlyWhenFocused) {
   EXPECT_NE(unfocused.find("  Snail Field"), std::string::npos);
 }
 
-// The longest map in the game is a column wider than the row. It is cut to
-// the row rather than pushing the panel out, and slides under it while the
-// panel holds focus.
+// A map name a column wider than the row is cut to the row rather than
+// pushing the panel out, and slides under it while the panel holds focus.
 TEST(CombatPanelTest, ALongMapNameIsCutToItsRow) {
   const std::string kLongest = "Battlefield of Fire and Darkness";
   MapData map = SnailField();

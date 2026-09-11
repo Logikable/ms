@@ -252,7 +252,7 @@ class CharacterInstance {
   // Adds `amount` meso to the character's balance. No-op if amount <= 0.
   void AddMeso(int64_t amount);
   // Adds `amount` honor, the pool an Inner Ability reset is paid out of. No-op
-  // if amount <= 0. Nothing in the game calls this yet.
+  // if amount <= 0.
   void AddHonor(int64_t amount);
   // Banks V Points. Negative amounts are ignored: points leave the pool only
   // by being spent on a node.

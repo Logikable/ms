@@ -426,8 +426,8 @@ TEST(BossFightPanelTest, TheCountdownShowsOnThePlayerPanel) {
   EXPECT_NE(Render(run).find("1"), std::string::npos);
 }
 
-// A name too long for one row wraps over the player's two rather than widening
-// the whole arena. "Midnight Carnival" is the longest swing in the game.
+// A name too long for one row wraps over the player's two rather than
+// widening the whole arena.
 TEST(BossFightPanelTest, ALongSwingNameWrapsOverThePlayersRows) {
   Skill carnival;
   carnival.set_name("Midnight Carnival");
