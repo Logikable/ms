@@ -4612,5 +4612,123 @@ TEST(CombatSimTest, TheRespawnBeatIsFlaggedOnItsStep) {
   EXPECT_FALSE(sim.view().respawned_this_step);
 }
 
+// A measured fight keeps its roster: the monsters take the damage and none of
+// them falls, so what is read is the rate rather than how fast the map emptied.
+TEST(CombatSimTest, AMeasuredRosterNeverFalls) {
+  Mob mob = MakeMob("Snail", 10);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 1000.0, 4)}, 4);
+  params.measuring = true;
+
+  CombatSim sim;
+  double damage = 0.0;
+  for (int step = 0; step < 100; ++step) {
+    sim.Advance(params, 1.0);
+    damage += sim.view().damage_this_step;
+    EXPECT_EQ(sim.view().kills_this_step[0], 0);
+  }
+  EXPECT_NEAR(damage, 100 * 4 * 1000.0, 1e-6);
+}
+
+// Every roll lands its mean while measuring, so two runs of one build agree to
+// the last digit and a difference between two builds is the build.
+TEST(CombatSimTest, AMeasuredSwingLandsItsMean) {
+  Mob mob = MakeMob("Snail", 1000000);
+  double dealt[3] = {0.0, 0.0, 0.0};
+  for (int run = 0; run < 3; ++run) {
+    CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 25.0, 1)});
+    params.measuring = true;
+    HitGroup group;
+    group.damage = {25.0};
+    group.rolls.lines = 4;
+    group.rolls.mastery = run == 1 ? 0.4 : 0.99;
+    group.rolls.crit_rate = run == 1 ? 0.5 : 0.0;
+    group.rolls.crit_dmg = 1.0;
+    params.attacks[0].groups.push_back(group);
+    CombatSim sim;
+    for (int step = 0; step < 50; ++step) {
+      sim.Advance(params, 1.0);
+      dealt[run] += sim.view().damage_this_step;
+    }
+  }
+  EXPECT_NEAR(dealt[0], 50 * 25.0, 1e-6);
+  EXPECT_NEAR(dealt[1], dealt[0], 1e-6);
+  EXPECT_NEAR(dealt[2], dealt[0], 1e-6);
+}
+
+// A Final Attack that lands a fifth of the time is worth a fifth of a hit to a
+// measurement, rather than a coin toss that takes a long run to average out.
+TEST(CombatSimTest, AMeasuredChanceIsPaidAsItsShare) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 1)});
+  params.measuring = true;
+  FinalAttackRoll source;
+  source.damage = {100.0};
+  source.chance = 0.2;
+  source.count = 1;
+  params.attacks[0].final_attack_damage = {20.0};
+  params.attacks[0].final_attack_rolls.push_back(source);
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().damage_this_step, 20.0, 1e-6);
+}
+
+// What each swing dealt, told apart. A burn is the swing's that lit it, and a
+// summon is nobody's -- it runs on a clock of its own.
+TEST(CombatSimTest, AMeasurementTellsTheSwingsApart) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 10.0, 1)});
+  params.measuring = true;
+  params.dot_count = 1;
+  DotApplication burn;
+  burn.slot = 0;
+  burn.damage = {5.0};
+  burn.interval_seconds = 1.0;
+  burn.duration_seconds = 100.0;
+  burn.chance = 1.0;
+  burn.max_stacks = 1;
+  params.attacks[0].dots.push_back(burn);
+  AttackOption summon;
+  summon.max_enemies = 1;
+  summon.interval_seconds = 1.0;
+  summon.damage_per_hit = {7.0};
+  params.auto_attacks.push_back(summon);
+
+  CombatSim sim;
+  for (int step = 0; step < 10; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  ASSERT_EQ(sim.damage_by_attack().size(), 1u);
+  EXPECT_EQ(sim.swings_by_attack()[0], 10);
+  // Ten swings at 10, and the burn ticking every second from the first swing.
+  EXPECT_NEAR(sim.damage_by_attack()[0], 10 * 10.0 + 9 * 5.0, 1e-6);
+  EXPECT_NEAR(sim.own_clock_damage(), 10 * 7.0, 1e-6);
+}
+
+// The step a measurement may take: to the swing landing, or to a buff moving,
+// whichever comes first.
+TEST(CombatSimTest, TheNextEventIsTheSwingOrABuff) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(4.0, 1e9, {MakeType(&mob, 10.0, 1)});
+  params.measuring = true;
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.SecondsToNextEvent(params), 3.0, 1e-9);
+
+  BuffOption buff;
+  buff.duration_seconds = 2.0;
+  buff.cooldown_seconds = 10.0;
+  params.buffs.push_back(buff);
+  AttackSet set;
+  set.attacks = params.attacks;
+  params.buffed.push_back(std::move(set));
+  CombatSim buffed;
+  buffed.Advance(params, 1.0);
+  // The buff went up on that step with its whole window, which runs out
+  // sooner than the three seconds the swing still needs.
+  EXPECT_NEAR(buffed.SecondsToNextEvent(params), 2.0, 1e-9);
+}
+
 }  // namespace
 }  // namespace ms

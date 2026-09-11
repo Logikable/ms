@@ -84,6 +84,38 @@ class CombatSim {
                : 0.0;
   }
 
+  // Seconds until the next thing that can change what a swing is worth: the
+  // one being wound up landing, or a buff going up or coming down. Nothing
+  // else needs a boundary of its own -- a burn is paid pro rata over whatever
+  // step it is handed, a summon pulses in a loop, and a recharging attack is
+  // only ever read where a swing lands.
+  //
+  // For a caller stepping the fight as fast as it can be stepped. A step
+  // wider than this is still correct; it just prices the swing it covers off
+  // the wrong buffs. Infinite when nothing will move on its own.
+  double SecondsToNextEvent(const CombatParams& params) const;
+
+  // What the fight has dealt since it began, told apart by the attack that
+  // dealt it. Parallel to params.attacks, with a burn credited to the swing
+  // that lit it. Damage from a clock of its own -- a summon, a triggered
+  // release, a side strike -- is in own_clock_damage() instead, so the two
+  // together come to everything that landed.
+  const std::vector<double>& damage_by_attack() const {
+    return damage_by_attack_;
+  }
+  double own_clock_damage() const {
+    return own_clock_damage_;
+  }
+  // Swings of each attack the character has landed, parallel to the same list.
+  const std::vector<int>& swings_by_attack() const {
+    return swings_by_attack_;
+  }
+  // Which of params.buffs are standing, as the bitmask CombatParams indexes
+  // its attack tables by. Refreshed at the top of every step.
+  int buff_mask() const {
+    return buff_mask_;
+  }
+
  private:
   // One burn on one monster: how long it has left, how far into the current
   // tick it is, and what a tick of it is worth. The damage is settled when the
@@ -96,9 +128,13 @@ class CombatSim {
     double damage = 0.0;
     // Helpings of it the monster is carrying, each ticking for the whole
     // damage. 1 for every burn but a Night Lord's poison, and 0 while nothing
-    // is burning at all.
-    int stacks = 0;
+    // is burning at all. Fractional only while measuring, where a burn that
+    // takes hold half the time is half a helping instead of a coin toss.
+    double stacks = 0.0;
     SwingRolls rolls;
+    // The attack that last lit it, so its ticks are credited home. -1 for a
+    // burn nothing lit, which is every slot on an unburned monster.
+    int lit_by = -1;
   };
 
   // A mob waiting in or being fought in the queue: its type (an index into
@@ -388,6 +424,15 @@ class CombatSim {
   // once per mob per landed swing.
   double DamageToMob(const AttackOption& attack, int index,
                      const Landing& landing);
+  // What this landing of `rolls` multiplies its expected damage by. The rolls
+  // themselves in a fight being played, and exactly 1 in one being measured:
+  // the mean of the roll is 1 by construction, so a measurement that lands it
+  // ranks two builds by what separates them rather than by the dice.
+  double Roll(const SwingRolls& rolls);
+  // How much of something that happens `chance` of the time happened: 1 or 0
+  // rolled, and `chance` itself while measuring. The one place the fight's
+  // coin tosses are paid as expectations instead.
+  double Chance(double chance);
   // What `attack` lands on one mob of `type` this time: each of its hit blocks
   // at its own roll. The plain expected damage for an attack carrying no
   // blocks, which is every one built by hand rather than by the encounter.
@@ -537,6 +582,9 @@ class CombatSim {
   bool active_ = false;
   bool initialized_ = false;
   bool respawning_ = false;
+  // Whether this fight is being measured rather than played, taken off the
+  // params at the top of every step. See CombatParams::measuring.
+  bool measuring_ = false;
   // The encounter the queue was filled from. Its type indices only mean
   // anything for that one, so a change here invalidates them.
   std::string encounter_;
@@ -581,6 +629,17 @@ class CombatSim {
   // another encounter's damage says nothing about how long this one has left.
   double damage_dealt_ = 0.0;
   double fight_seconds_ = 0.0;
+  // What each attack has dealt and how often it has been swung, parallel to
+  // params.attacks, and what everything on a clock of its own has dealt. These
+  // run for the life of the fight rather than per encounter: what reads them
+  // is a measurement, which fights one. See damage_by_attack().
+  std::vector<double> damage_by_attack_;
+  std::vector<int> swings_by_attack_;
+  double own_clock_damage_ = 0.0;
+  // Which attack the damage now landing belongs to, or -1 for damage on a
+  // clock of its own. Set around each strike, which is the only place that
+  // knows.
+  int attributing_ = -1;
   // Seconds left before a passive will revive the player again. Counts down
   // wherever the character is, since what it measures is the pact rather than
   // the fight, and stays at 0 for everyone who holds no such skill.

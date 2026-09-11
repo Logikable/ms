@@ -656,6 +656,10 @@ struct CombatParams {
   // the damage as numbers. The boss screen asks for it; the map does not, and
   // neither do the sims, which step the fight millions of times.
   bool record_damage_lines = false;
+  // Whether the fight is being MEASURED rather than played: the monsters never
+  // fall, every roll lands its mean, and the fight is as long as the horizon.
+  // What a sim ranking two builds wants -- see MeasureFight. Off for the game.
+  bool measuring = false;
   std::vector<CombatType> types;  // in map order
   // Every attack available, the bare poke first. Never empty while active.
   std::vector<AttackOption> attacks;

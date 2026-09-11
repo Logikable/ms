@@ -282,16 +282,14 @@ double CombatSim::BurnCredit(const DotApplication& burn, const QueuedMob& mob,
     return 0.0;
   }
   double left = 0.0;
-  int stacks = 0;
+  double stacks = 0.0;
   if (burn.slot >= 0 && burn.slot < static_cast<int>(mob.dots.size())) {
     left = mob.dots[burn.slot].left_seconds;
     stacks = mob.dots[burn.slot].stacks;
   }
   double lit = std::min(burn.duration_seconds, cadence);
   double gained = stacks * (lit - std::min(left, cadence));
-  if (stacks < burn.max_stacks) {
-    gained += lit;
-  }
+  gained += std::min(1.0, burn.max_stacks - stacks) * lit;
   return burn.damage[mob.type] * burn.chance * gained / burn.interval_seconds;
 }
 
@@ -556,8 +554,8 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   }
   for (int j : lead) {
     double freeze = StateBoost(attack, queue_[j]);
-    double damage = attack.lead_damage[queue_[j].type] *
-                    RollFactor(attack.lead_rolls, rng_, ledger_.LineSink());
+    double damage =
+        attack.lead_damage[queue_[j].type] * Roll(attack.lead_rolls);
     ledger_.RecordRolls(LandingAt(j, freeze),
                         attack.lead_damage[queue_[j].type] * freeze);
     Hurt(queue_[j], damage * freeze);
@@ -619,14 +617,14 @@ double CombatSim::RollProcs(const AttackOption& attack, int hit) {
   }
   double boost = StateBoost(attack, queue_[0]);
   for (const ProcRoll& proc : attack.procs) {
-    std::bernoulli_distribution fires(proc.chance);
-    if (!fires(rng_)) {
+    double fired = Chance(proc.chance);
+    if (fired <= 0.0) {
       continue;
     }
     Hurt(queue_[0], RolledDamage(attack, queue_[0].type,
                                  LandingAt(0, proc.damage_pct * boost)) *
-                        proc.damage_pct * boost);
-    recovered += proc.hp_recover_pct;
+                        proc.damage_pct * boost * fired);
+    recovered += proc.hp_recover_pct * fired;
   }
   return recovered;
 }
@@ -670,7 +668,7 @@ bool CombatSim::Afflicted(const QueuedMob& mob) const {
     return true;
   }
   for (const MobDot& burn : mob.dots) {
-    if (burn.left_seconds > 0.0 && burn.stacks > 0) {
+    if (burn.left_seconds > 0.0 && burn.stacks > 0.0) {
       return true;
     }
   }
@@ -712,7 +710,7 @@ int CombatSim::BurnsAlight() const {
   int alight = 0;
   for (const QueuedMob& mob : queue_) {
     for (const MobDot& burn : mob.dots) {
-      if (burn.left_seconds > 0.0 && burn.stacks > 0) {
+      if (burn.left_seconds > 0.0 && burn.stacks > 0.0) {
         ++alight;
       }
     }
@@ -741,7 +739,9 @@ int CombatSim::BurnStacksAlight() const {
   for (const QueuedMob& mob : queue_) {
     for (const MobDot& burn : mob.dots) {
       if (burn.left_seconds > 0.0) {
-        alight += std::max(0, burn.stacks);
+        // A measurement carries part of a helping; GMS counts them whole,
+        // so the nearest whole one is what a swing reading the count sees.
+        alight += static_cast<int>(std::lround(std::max(0.0, burn.stacks)));
       }
     }
   }
@@ -895,7 +895,7 @@ double CombatSim::ChannelDamage(const AttackOption& attack, int type,
     double pulse = grown ? hold.grown.damage[type] : PulseDamage(attack, type);
     const SwingRolls& rolls =
         grown ? hold.grown.rolls : attack.groups.front().rolls;
-    total += pulse * RollFactor(rolls, rng_, ledger_.LineSink());
+    total += pulse * Roll(rolls);
     ledger_.RecordRolls(landing, pulse * landing.scale);
   }
   // Everything past the first group is the strike the hold ends on, landed
@@ -905,8 +905,7 @@ double CombatSim::ChannelDamage(const AttackOption& attack, int type,
     if (type >= static_cast<int>(group.damage.size())) {
       continue;
     }
-    total +=
-        group.damage[type] * RollFactor(group.rolls, rng_, ledger_.LineSink());
+    total += group.damage[type] * Roll(group.rolls);
     ledger_.RecordRolls(landing, group.damage[type] * landing.scale);
   }
   return total;
@@ -992,7 +991,7 @@ double CombatSim::BurnLeftOn(const QueuedMob& mob, int slot) const {
   if (slot < 0 || slot >= static_cast<int>(mob.dots.size())) {
     return 0.0;
   }
-  return mob.dots[slot].stacks > 0 ? mob.dots[slot].left_seconds : 0.0;
+  return mob.dots[slot].stacks > 0.0 ? mob.dots[slot].left_seconds : 0.0;
 }
 
 // What one more burning monster is worth per second to whatever is swung next,
@@ -1073,9 +1072,19 @@ void CombatSim::CreditFreeze(const CombatParams& params,
 }
 
 void CombatSim::Hurt(QueuedMob& mob, double damage) {
-  mob.hp -= damage;
+  // A measurement's monsters never fall. What it asks is the rate, and a
+  // roster that emptied would measure the respawn beat instead.
+  if (!measuring_) {
+    mob.hp -= damage;
+  }
   view_.damage_this_step += damage;
   damage_dealt_ += damage;
+  if (attributing_ >= 0 &&
+      attributing_ < static_cast<int>(damage_by_attack_.size())) {
+    damage_by_attack_[attributing_] += damage;
+  } else {
+    own_clock_damage_ += damage;
+  }
 }
 
 void CombatSim::ClampRoster(const CombatParams& params,
@@ -1123,9 +1132,10 @@ void CombatSim::ApplyDots(const AttackOption& attack, int hit) {
         continue;
       }
       // Rolled per enemy, so a poison takes hold on some of what the swing
-      // reached and not the rest.
-      std::bernoulli_distribution takes(burn.chance);
-      if (burn.chance < 1.0 && !takes(rng_)) {
+      // reached and not the rest. A measurement takes the share instead: half
+      // a helping, and a clock carried half the way to a full duration.
+      double took = burn.chance < 1.0 ? Chance(burn.chance) : 1.0;
+      if (took <= 0.0) {
         continue;
       }
       // The damage is written over rather than added to, and only the duration
@@ -1135,13 +1145,15 @@ void CombatSim::ApplyDots(const AttackOption& attack, int hit) {
       MobDot& dot = mob.dots[burn.slot];
       if (dot.left_seconds <= 0.0) {
         dot.phase = 0.0;
-        dot.stacks = 0;
+        dot.stacks = 0.0;
       }
-      dot.stacks = std::min(burn.max_stacks, dot.stacks + 1);
-      dot.left_seconds = burn.duration_seconds;
+      dot.stacks = std::min<double>(burn.max_stacks, dot.stacks + took);
+      dot.left_seconds =
+          took * burn.duration_seconds + (1.0 - took) * dot.left_seconds;
       dot.interval_seconds = burn.interval_seconds;
       dot.damage = burn.damage[mob.type];
       dot.rolls = burn.rolls;
+      dot.lit_by = attributing_;
     }
   }
 }
@@ -1252,17 +1264,20 @@ void CombatSim::RunDots(double dt) {
       double spent = std::min(dt, dot.left_seconds);
       dot.left_seconds -= spent;
       dot.phase += spent;
+      attributing_ = dot.lit_by;
       while (dot.phase >= dot.interval_seconds) {
         dot.phase -= dot.interval_seconds;
         // Every helping ticks for the whole damage, and each rolls its own.
-        for (int i = 0; i < dot.stacks; ++i) {
-          Hurt(mob,
-               dot.damage * RollFactor(dot.rolls, rng_, ledger_.LineSink()));
+        // Part of one ticks for part of it, which only a measurement carries.
+        for (double left = dot.stacks; left > 0.0;) {
+          double helping = std::min(1.0, left);
+          left -= helping;
+          Hurt(mob, dot.damage * helping * Roll(dot.rolls));
           // A tick is its own landing: it falls on its own clock, between the
           // swings rather than with one.
           ledger_.RecordRolls(
               {mob.id, ledger_.NextEvent(), {DamageOrigin::kBurn, slot}, 1.0},
-              dot.damage);
+              dot.damage * helping);
         }
         burned = true;
       }
@@ -1274,6 +1289,7 @@ void CombatSim::RunDots(double dt) {
   if (burned) {
     Reap();
   }
+  attributing_ = -1;
 }
 
 void CombatSim::RunRegen(const CombatParams& params, double dt) {
@@ -1295,6 +1311,17 @@ void CombatSim::RunRegen(const CombatParams& params, double dt) {
   }
 }
 
+double CombatSim::Roll(const SwingRolls& rolls) {
+  return measuring_ ? 1.0 : RollFactor(rolls, rng_, ledger_.LineSink());
+}
+
+double CombatSim::Chance(double chance) {
+  if (measuring_) {
+    return std::clamp(chance, 0.0, 1.0);
+  }
+  return std::bernoulli_distribution(chance)(rng_) ? 1.0 : 0.0;
+}
+
 double CombatSim::RolledDamage(const AttackOption& attack, int type,
                                const Landing& landing) {
   if (attack.groups.empty()) {
@@ -1305,8 +1332,7 @@ double CombatSim::RolledDamage(const AttackOption& attack, int type,
   double total = 0.0;
   for (const HitGroup& group : attack.groups) {
     if (type < static_cast<int>(group.damage.size())) {
-      total += group.damage[type] *
-               RollFactor(group.rolls, rng_, ledger_.LineSink());
+      total += group.damage[type] * Roll(group.rolls);
       ledger_.RecordRolls(landing, group.damage[type] * landing.scale);
     }
   }
@@ -1327,8 +1353,7 @@ double CombatSim::RolledGroups(const std::vector<HitGroup>& groups,
   double total = 0.0;
   for (const HitGroup& group : groups) {
     if (type < static_cast<int>(group.damage.size())) {
-      total += group.damage[type] *
-               RollFactor(group.rolls, rng_, ledger_.LineSink());
+      total += group.damage[type] * Roll(group.rolls);
       ledger_.RecordRolls(landing, group.damage[type] * landing.scale);
     }
   }
@@ -1352,14 +1377,13 @@ double CombatSim::RolledFinalAttack(const std::vector<FinalAttackRoll>& sources,
     // one entry is exactly what this design stopped doing, so the shape has
     // to hold if one ever does.
     int certain = static_cast<int>(source.chance);
-    std::bernoulli_distribution lands(source.chance - certain);
     for (int roll = 0; roll < source.count; ++roll) {
-      int hits = certain + (lands(rng_) ? 1 : 0);
-      for (int hit = 0; hit < hits; ++hit) {
-        total += source.damage[type] *
-                 RollFactor(source.rolls, rng_, ledger_.LineSink());
-        ledger_.RecordRolls(landing, source.damage[type] * landing.scale);
+      double hits = certain + Chance(source.chance - certain);
+      if (hits <= 0.0) {
+        continue;
       }
+      total += source.damage[type] * hits * Roll(source.rolls);
+      ledger_.RecordRolls(landing, source.damage[type] * hits * landing.scale);
     }
   }
   return total;
@@ -1629,7 +1653,10 @@ const std::vector<AttackOption>& CombatSim::TriggeredAttacks(
 // damage is worth having up whatever the pool is at.
 bool CombatSim::ShieldWanted(const CombatParams& params,
                              const BuffOption& buff) const {
-  if (buff.shield_hits <= 0) {
+  // Nothing hits the player in a measurement, so a shell held back for a low
+  // pool would be held back forever -- and its levers would go missing from
+  // every reading. Raised on its clock there, as every other buff is.
+  if (buff.shield_hits <= 0 || params.measuring) {
     return true;
   }
   if (!queue_.empty() && params.types[queue_.front().type].mob->boss()) {
@@ -1649,6 +1676,17 @@ bool Granting(const BuffOption& buff, double duty_phase) {
     return true;
   }
   return std::fmod(duty_phase, buff.duty_interval_seconds) < buff.duty_seconds;
+}
+
+// Seconds until a buff granting in bursts next starts or stops granting.
+// Infinite for one that grants steadily, which never changes on its own.
+double NextDutyEdge(const BuffOption& buff, double duty_phase) {
+  if (buff.duty_seconds <= 0.0 || buff.duty_interval_seconds <= 0.0) {
+    return std::numeric_limits<double>::infinity();
+  }
+  double phase = std::fmod(duty_phase, buff.duty_interval_seconds);
+  return phase < buff.duty_seconds ? buff.duty_seconds - phase
+                                   : buff.duty_interval_seconds - phase;
 }
 
 }  // namespace
@@ -1725,8 +1763,10 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
 double CombatSim::SecondsLeft(const CombatParams& params) const {
   // A map refills on the beat, so there is no end to measure the fight
   // against. Everything a summon does there is worth its rate, never its
-  // total, which is what an infinite horizon says.
-  if (params.respawn_seconds > 0.0) {
+  // total, which is what an infinite horizon says. A measurement is the same
+  // question asked on purpose: its monsters never fall, so what it wants of a
+  // buff with two forms is the one worth more per second.
+  if (params.respawn_seconds > 0.0 || params.measuring) {
     return std::numeric_limits<double>::infinity();
   }
   double standing = 0.0;
@@ -2060,7 +2100,9 @@ void CombatSim::RunBarrage(const CombatParams& params, double dt) {
       }
       continue;
     }
+    attributing_ = barrage_.attack;
     RecoverHp(params, Strike(attack, {DamageOrigin::kSwing, 0}));
+    attributing_ = -1;
     CreditFreeze(params, attack);
     // What this strike landed, for the buffs charged by hits. No weight: the
     // wait a landed SWING takes off a buff was paid at the cast, and a bolt of
@@ -2097,6 +2139,12 @@ void CombatSim::LandSwing(const CombatParams& params,
                           const AttackOption& attack) {
   // Read before the strike, because aiming again below moves it.
   int swung = aimed_;
+  // Everything this swing lands is the swing's, the strike it sets off and the
+  // load it spends included -- they ride it rather than happening beside it.
+  attributing_ = swung;
+  if (swung >= 0 && swung < static_cast<int>(swings_by_attack_.size())) {
+    ++swings_by_attack_[swung];
+  }
   if (attack.heal_fraction > 0.0) {
     player_hp_ =
         std::min(static_cast<double>(params.max_player_hp),
@@ -2159,6 +2207,8 @@ void CombatSim::LandSwing(const CombatParams& params,
       recovered += landed.channel.hp_recover_pct * held_pulses_;
     }
     RecoverHp(params, recovered);
+    // The swing is over; a volley it sets off runs on a clock of its own.
+    attributing_ = -1;
     // Credited after the strike, so the volley lands on what the swing left
     // standing rather than on mobs it was about to kill anyway. A healing cast
     // credits nothing: it is not an attack.
@@ -2178,7 +2228,8 @@ void CombatSim::LandSwing(const CombatParams& params,
   if (attack.charges > 0 && attack_clocks_[swung].charges_left > 0) {
     --attack_clocks_[swung].charges_left;
   }
-  aimed_ = -1;  // the swing landed, so the next one is chosen afresh
+  attributing_ = -1;  // nothing is left to credit to this swing
+  aimed_ = -1;        // the swing landed, so the next one is chosen afresh
   AimSwing(params);
 }
 
@@ -2255,6 +2306,7 @@ void CombatSim::PublishTarget(const CombatParams& params) {
 
 void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   active_ = params.active;
+  measuring_ = params.measuring;
   view_.kills_this_step.assign(params.types.size(), 0);
   view_.damage_this_step = 0.0;
   view_.respawned_this_step = false;
@@ -2267,8 +2319,11 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   // Clamp a large real-time gap (a pause, say) to one swing, so the fight
   // resumes rather than jumping. Measured against the bare poke, which every
   // character has: which skill is coming is not known until the swing is aimed,
-  // several steps below this.
-  double dt = std::min(elapsed_seconds, params.attacks.front().swing_seconds);
+  // several steps below this. A measurement asks for the step it wants and
+  // gets it: there is no player there to have stalled.
+  double dt = measuring_ ? elapsed_seconds
+                         : std::min(elapsed_seconds,
+                                    params.attacks.front().swing_seconds);
 
   BeginMapIfChanged(params);
   // A level-up widens the pool and fills it, as GMS does. player_level_ is
@@ -2293,6 +2348,8 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   // Grown to fit before the buffs run, since a buff going up now hands its
   // magazine's swing a fresh load and needs that swing's clock to exist.
   attack_clocks_.resize(Attacks(params).size());
+  damage_by_attack_.resize(Attacks(params).size(), 0.0);
+  swings_by_attack_.resize(Attacks(params).size(), 0);
   // After the hit, so a buff going up now answers it with its heal, and
   // before everything that attacks, so this step swings with it.
   RunBuffs(params, dt);
@@ -2330,8 +2387,39 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   RunSwing(params, dt);
 
   player_level_ = params.player_level;
+  // A measurement draws nothing, and the picture costs a string per monster
+  // per step to build.
+  if (measuring_) {
+    respawning_ = queue_.empty();
+    return;
+  }
   PublishPlayer(params);
   PublishTarget(params);
+}
+
+double CombatSim::SecondsToNextEvent(const CombatParams& params) const {
+  double soonest = std::numeric_limits<double>::infinity();
+  if (aimed_ >= 0 && swing_seconds_ > 0.0) {
+    soonest = swing_seconds_ - attack_phase_;
+  }
+  for (int i = 0; i < static_cast<int>(buffs_.size()) &&
+                  i < static_cast<int>(params.buffs.size());
+       ++i) {
+    const BuffOption& buff = params.buffs[i];
+    const BuffClock& clock = buffs_[i];
+    if (clock.left > 0.0) {
+      soonest =
+          std::min({soonest, clock.left, NextDutyEdge(buff, clock.duty_phase)});
+      continue;
+    }
+    // One waiting on a swing to lay it, or on lines to charge it, moves at a
+    // swing boundary and needs no boundary of its own.
+    if (buff.laid_by_attack < 0 && buff.charge_lines <= 0 &&
+        buff.duration_seconds > 0.0) {
+      soonest = std::min(soonest, clock.cooldown_left);
+    }
+  }
+  return soonest;
 }
 
 }  // namespace ms
