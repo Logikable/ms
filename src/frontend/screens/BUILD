@@ -472,6 +472,7 @@ cc_test(
     srcs = ["multi_sell_panel_test.cc"],
     deps = [
         ":multi_sell_panel",
+        "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_test_base",
         "//src/frontend/widgets:screen_text",
         "//src/item:equip_instance",
@@ -885,6 +886,7 @@ cc_test(
         ":all_stats_panel",
         ":party_inspect_panel",
         "//src/character:progression",
+        "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_test_base",
         "//src/frontend/widgets:stat_rows",
         "//src/item:equip_instance",

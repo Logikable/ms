@@ -127,6 +127,7 @@ ftxui::Element PartyInspectPanel::RenderEquipped() const {
       // The row the frame scrolls to, so the cursor cannot walk out of view.
       row |= ftxui::focus;
     }
+    row = HighlightRow(std::move(row), on_cursor);
     drawn.push_back(std::move(row));
   }
   return ftxui::vbox({

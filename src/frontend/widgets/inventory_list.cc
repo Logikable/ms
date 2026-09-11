@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
@@ -94,8 +95,9 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
   // "this row's action is shut", in both lists (colors.h).
   bool blocked = !row.level_ok || !row.job_ok || row.is_trace;
   if (!blocked) {
-    return Row(std::move(lead), {ftxui::text(cursor + label.text)},
-               std::move(tail), body_width);
+    return HighlightRow(Row(std::move(lead), {ftxui::text(cursor + label.text)},
+                            std::move(tail), body_width),
+                        on_cursor);
   }
   // The caret stays bright: it is the cursor, not part of the row.
   std::vector<ftxui::Element> cells = {ftxui::text(cursor)};
@@ -114,7 +116,9 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
     cells.push_back(why ? std::move(cell) | ftxui::color(kRed)
                         : std::move(cell) | ftxui::dim);
   }
-  return Row(std::move(lead), std::move(cells), std::move(tail), body_width);
+  return HighlightRow(
+      Row(std::move(lead), std::move(cells), std::move(tail), body_width),
+      on_cursor);
 }
 
 ftxui::Element StackHeader(ftxui::Element lead, ftxui::Element tail,
@@ -133,7 +137,9 @@ ftxui::Element RenderStackRow(const StackableItem& stack, bool on_cursor,
   std::string text = cursor +
                      ScrollingWindow(stack.name(), kItemNameWidth, elapsed) +
                      PadRight(std::to_string(stack.count()), 10);
-  return Row(std::move(lead), {ftxui::text(text)}, std::move(tail), body_width);
+  return HighlightRow(
+      Row(std::move(lead), {ftxui::text(text)}, std::move(tail), body_width),
+      on_cursor);
 }
 
 }  // namespace ms

@@ -213,6 +213,7 @@ cc_library(
     srcs = ["inventory_list.cc"],
     hdrs = ["inventory_list.h"],
     deps = [
+        ":chrome",
         ":colors",
         ":format",
         ":game_names",

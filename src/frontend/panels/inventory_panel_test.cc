@@ -244,6 +244,69 @@ TEST_F(InventoryPanelTest, TheCaretShowsOnReturnToTheFirstRow) {
       << "no caret after coming back round to the first row";
 }
 
+// --- the band under the cursor ---
+
+// The caret says where the cursor is; the band says how far the row reaches, so
+// a stat eight columns out reads back to its own name. It has to cross the
+// whole panel to do that, borders excluded.
+TEST_F(InventoryPanelTest, TheSelectedRowWearsABandAcrossThePanel) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> the first item
+  ftxui::Screen screen = RenderToScreen(comp);
+
+  std::vector<BandSpan> bands = BandSpans(screen, kSelectedRow);
+  ASSERT_EQ(bands.size(), 1u) << "one row is selected, so one row is banded";
+  EXPECT_EQ(bands[0].y, RowWithCursor(screen)) << "the band is under the caret";
+  EXPECT_EQ(bands[0].first, 1) << "starts in the column inside the left border";
+  // Two columns short of the right border, not one: the list reserves the
+  // innermost for its scroll bar, and that column is not part of the row.
+  EXPECT_EQ(bands[0].last, screen.dimx() - 3) << "and runs to the scroll bar";
+}
+
+// Drawn under the same test the caret is, so the two are never out of step: a
+// band on a list the arrows are not reaching claims a selection that cannot
+// move.
+TEST_F(InventoryPanelTest, TheBandGoesWhereverTheCaretGoes) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> the one item
+  ASSERT_EQ(BandSpans(RenderToScreen(comp), kSelectedRow).size(), 1u);
+
+  comp->OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the tab bar
+  EXPECT_TRUE(BandSpans(RenderToScreen(comp), kSelectedRow).empty())
+      << "the cursor is up on the bar";
+
+  comp->OnEvent(ftxui::Event::ArrowDown);  // back onto the row
+  panel_focus_ = kEquipPanel;
+  EXPECT_TRUE(BandSpans(RenderToScreen(comp), kSelectedRow).empty())
+      << "another panel holds focus";
+}
+
+// The stack tabs draw their rows themselves rather than through an ftxui::Menu,
+// so the band is a second piece of code there and needs asking about.
+TEST_F(InventoryPanelTest, AStackRowWearsTheBandToo) {
+  c_.AddStackable(MakeStackable("Mixed Block", ITEM_CATEGORY_ETC), 5);
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> the one stack
+
+  ftxui::Screen screen = RenderToScreen(comp);
+  std::vector<BandSpan> bands = BandSpans(screen, kSelectedRow);
+  ASSERT_EQ(bands.size(), 1u);
+  EXPECT_EQ(bands[0].y, RowWithCursor(screen));
+  EXPECT_EQ(bands[0].first, 1);
+  EXPECT_EQ(bands[0].last, screen.dimx() - 3);
+}
+
 TEST_F(InventoryPanelTest, DownFromTheLastItemReturnsToTheBar) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;

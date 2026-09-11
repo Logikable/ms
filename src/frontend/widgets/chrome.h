@@ -93,6 +93,17 @@ ftxui::Element DialogWindow(const std::string& title,
                             ftxui::Element buttons,
                             ftxui::Color accent = kTheme);
 
+// `row` with the cursor's band behind it when `on_cursor`, and untouched
+// otherwise. Every list of items draws its selection this way: the caret says
+// where the cursor is, and the band says how far the row reaches, so a stat
+// eight columns out reads back to its own name.
+//
+// Pass the whole row, affixes and all -- a band that stops short of a column
+// reads as a column that is not part of the row. Gate it on the same test the
+// caret uses: a band on a list that does not hold focus claims a selection the
+// arrows would not move.
+ftxui::Element HighlightRow(ftxui::Element row, bool on_cursor);
+
 // The one way a panel says it has nothing to show: " (empty)". Use a specific
 // reason ("no matching items") only where it tells the player something they
 // could not already see. `gutter` lines the row up with the list's cursor

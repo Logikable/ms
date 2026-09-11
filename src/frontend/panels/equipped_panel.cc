@@ -301,7 +301,10 @@ ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
     // without taking the numbers away.
     row |= ftxui::dim;
   }
-  return row;
+  // Last, so the band sits under everything the row says -- the dim above
+  // included, a piece contributing nothing being as worth following across as
+  // any other.
+  return HighlightRow(std::move(row), on_cursor);
 }
 
 std::string EquippedPanel::Header() const {

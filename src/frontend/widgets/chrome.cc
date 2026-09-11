@@ -297,6 +297,16 @@ ftxui::Element DialogWindow(const std::string& title,
   return AccentWindow(title, ftxui::vbox(std::move(rows)), accent);
 }
 
+ftxui::Element HighlightRow(ftxui::Element row, bool on_cursor) {
+  if (!on_cursor) {
+    return row;
+  }
+  // bgcolor paints the whole box it is handed, and a row in a vbox is handed
+  // the list's full width -- so the band reaches the panel's border with no
+  // sizing of its own.
+  return std::move(row) | ftxui::bgcolor(kSelectedRow);
+}
+
 ftxui::Element EmptyState(const std::string& what, int gutter) {
   return ftxui::text(std::string(gutter, ' ') + "(" + what + ")");
 }

@@ -9,6 +9,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/frontend/widgets/screen_text.h"
 #include "src/item/equip_instance.h"
@@ -99,6 +100,27 @@ TEST_F(MultiSellTest, OpensWithTheChosenRowMarked) {
   // The mark rides the row it was made on, and no other.
   EXPECT_NE(RowFor(panel, "Axe").find("✓"), std::string::npos);
   EXPECT_EQ(RowFor(panel, "Sword").find("✓"), std::string::npos);
+}
+
+// The band under the cursor, which here has to cover the mark and the price as
+// well as the item's own cells: a band that stopped at the columns the bag
+// draws would cut the two this screen adds out of the row.
+TEST_F(MultiSellTest, TheBandUnderTheCursorCoversTheMarkAndThePrice) {
+  GiveEquip("Sword", 1000);
+  MultiSellPanel panel(c_, account_);
+  panel.Reset(kEquipTab, 0);
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(110),
+                                               ftxui::Dimension::Fixed(40));
+  ftxui::Render(screen, ftxui::center(panel.Render()));
+
+  std::vector<BandSpan> bands = BandSpans(screen, kSelectedRow);
+  ASSERT_EQ(bands.size(), 1u) << "one row is selected, so one row is banded";
+  int y = bands[0].y;
+  ASSERT_NE(ScreenRow(screen, y).find("Sword"), std::string::npos);
+  EXPECT_LT(bands[0].first, FindOnScreen(screen, "✓").x)
+      << "the mark is outside the band";
+  EXPECT_GE(bands[0].last, FindOnScreen(screen, "1,000").x + 4)
+      << "the band stops before the last digit of the price";
 }
 
 TEST_F(MultiSellTest, EnterTogglesTheMarkAndTheTotalFollows) {

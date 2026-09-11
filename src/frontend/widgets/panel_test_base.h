@@ -60,6 +60,38 @@ inline std::vector<std::string> RowsTouchingTheRightBorder(
   return touching;
 }
 
+// Where a band of background colour landed: the row, and the first and last
+// columns it covers. One entry per row that has any cell painted `color`.
+//
+// A list's selection band is asserted on the span rather than the row alone: a
+// band that stops short of the panel's borders reads as a column that is not
+// part of the row, which is the whole thing it exists to say.
+struct BandSpan {
+  int y = 0;
+  int first = 0;
+  int last = 0;
+};
+
+inline std::vector<BandSpan> BandSpans(const ftxui::Screen& screen,
+                                       ftxui::Color color) {
+  std::vector<BandSpan> spans;
+  for (int y = 0; y < screen.dimy(); ++y) {
+    BandSpan span = {y, -1, -1};
+    for (int x = 0; x < screen.dimx(); ++x) {
+      if (screen.PixelAt(x, y).background_color == color) {
+        if (span.first < 0) {
+          span.first = x;
+        }
+        span.last = x;
+      }
+    }
+    if (span.first >= 0) {
+      spans.push_back(span);
+    }
+  }
+  return spans;
+}
+
 // Shared fixture for panel tests. Provides c_ (level-1 Beginner character)
 // and sword_ (primary weapon slot, required level 10, Warrior only).
 class PanelTest : public testing::Test {

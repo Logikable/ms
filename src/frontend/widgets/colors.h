@@ -33,6 +33,12 @@ namespace ms {
 // a plain damage line, and the mark a weapon's price is asked in.
 inline const ftxui::Color kTheme = ftxui::Color::RGB(100, 150, 200);
 
+// The band under the row a list's cursor is on -- a background, never a
+// foreground. Dark enough that everything a row can say still reads on it: a
+// bright name, a red requirement, a dimmed row whose action is shut. See
+// HighlightRow in chrome.h, which is the only place it is used.
+inline const ftxui::Color kSelectedRow = ftxui::Color::RGB(40, 62, 92);
+
 // Star bar in the inspect panel.
 inline const ftxui::Color kYellow = ftxui::Color::RGB(255, 210, 50);
 inline const ftxui::Color kGray = ftxui::Color::RGB(100, 100, 100);

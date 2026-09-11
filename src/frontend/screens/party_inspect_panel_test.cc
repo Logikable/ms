@@ -11,6 +11,7 @@
 #include "ftxui/component/event.hpp"
 #include "src/character/progression.h"
 #include "src/frontend/screens/all_stats_panel.h"
+#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/frontend/widgets/stat_rows.h"
 #include "src/item/equip_instance.h"
@@ -270,6 +271,27 @@ TEST_F(PartyInspectPanelTest, TheCursorWalksTheWornItemsAndWraps) {
   EXPECT_EQ(panel.selected_item()->prototype().name(), first);
   panel.MoveCursor(-1);
   EXPECT_NE(panel.selected_item()->prototype().name(), first);
+}
+
+// The same band the player's own Equipped panel draws, for the same reason: a
+// stat eight columns out has to read back to its own piece.
+TEST_F(PartyInspectPanelTest, TheSelectedRowWearsABand) {
+  PartyInspectPanel panel(state_);
+  panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
+  ftxui::Screen screen = Draw(panel);
+
+  std::vector<BandSpan> bands = BandSpans(screen, kSelectedRow);
+  ASSERT_EQ(bands.size(), 1u) << "one row is selected, so one row is banded";
+  // The window's borders bracket every row, so the band is measured off them
+  // rather than off the text, which stops wherever the item name does.
+  std::pair<int, int> borders = RowSpan(screen, bands[0].y);
+  EXPECT_EQ(ScreenRow(screen, bands[0].y, borders.first + 1, borders.first + 2),
+            ">")
+      << "the band is under the caret";
+  EXPECT_EQ(bands[0].first, borders.first + 1) << "just inside the left border";
+  // Two columns short of the right border, not one: the list reserves the
+  // innermost for its scroll bar, and that column is not part of the row.
+  EXPECT_EQ(bands[0].last, borders.second - 2) << "and runs to the scroll bar";
 }
 
 // A member in nothing at all. The stats still read, and there is no item for

@@ -517,6 +517,34 @@ int RowWithCursor(const ftxui::Screen& screen) {
   return -1;
 }
 
+// The caret says where the cursor is; the band says how far the row reaches, so
+// a stat eight columns out reads back to its own piece. It has to cross the
+// whole panel to do that, and it is drawn under the same test the caret is.
+TEST_F(EquippedPanelTest, TheSelectedRowWearsABandAcrossThePanel) {
+  CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(rogue, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                               ftxui::Dimension::Fixed(20));
+  ftxui::Render(screen, comp->Render());
+
+  std::vector<BandSpan> bands = BandSpans(screen, kSelectedRow);
+  ASSERT_EQ(bands.size(), 1u) << "one row is selected, so one row is banded";
+  EXPECT_EQ(bands[0].y, RowWithCursor(screen)) << "the band is under the caret";
+  EXPECT_EQ(bands[0].first, 1) << "starts in the column inside the left border";
+  // Two columns short of the right border, not one: the list reserves the
+  // innermost for its scroll bar, and that column is not part of the row.
+  EXPECT_EQ(bands[0].last, screen.dimx() - 3) << "and runs to the scroll bar";
+
+  panel_focus_ = kInventoryPanel;
+  ftxui::Screen away = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                             ftxui::Dimension::Fixed(20));
+  ftxui::Render(away, comp->Render());
+  EXPECT_TRUE(BandSpans(away, kSelectedRow).empty())
+      << "another panel holds focus, so nothing here is selected";
+}
+
 // What the item menu anchors to. Read from the render rather than counted up
 // from the header rows above the list, which is what the caller used to do.
 TEST_F(EquippedPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
