@@ -1,0 +1,40 @@
+# The Night Lord's second job node: one huge shuriken thrown forward, striking
+# everything it passes, then spinning where it stops.
+#
+# GMS's own figures: 285+11x% seven times on six enemies, on a 25s cooldown.
+# What the tooltip never states is the beat -- the client's `subTime` is 180ms,
+# the same field Bolt Barrage and Inhuman Speed take theirs from. The shuriken
+# lives for its flight (600px at v25, about 0.4s) plus the 2 seconds it spins,
+# so fourteen strikes land: 60,270% at master, or 2,411%/s against the
+# cooldown, just under Bolt Barrage's 2,580%/s.
+#
+# `cast_interval_ms` is right twice over here. It is GMS's own beat, and the
+# strikes falling one at a time is what a shuriken that keeps hitting whatever
+# is still standing comes to in an engine with no positions.
+#
+# The mark is the price. GMS cuts Assassin's Mark to 40% of its normal chance
+# for a swing that would otherwise roll it fourteen times a press.
+#
+# Dropped: the recast that stops the shuriken where it is, which needs
+# somewhere for it to be, and the immunity to attack reflection, which nothing
+# here has.
+name: "Shurrikane"
+description:
+  "Throws a massive shuriken said to be used by the thieves of old. Reduced "
+  "chance of activating Assassin's Mark."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 2 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_CLAW
+base_delay_ms: 480
+cooldown_seconds: 25.0
+max_enemies: 6
+lines: 7
+casts: 14
+cast_interval_ms: 180
+base {
+  skill_pct: 2.96
+  final_attack_chance_cut: 0.60
+}
+per_level { skill_pct: 0.11 }

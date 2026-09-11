@@ -1357,6 +1357,9 @@ std::vector<BookWeapons> ExpectedBookWeapons() {
       {JOB_ADVANCEMENT_ASSASSIN, {{EQUIP_TYPE_CLAW}}},
       {JOB_ADVANCEMENT_HERMIT, {{EQUIP_TYPE_CLAW}}},
       {JOB_ADVANCEMENT_NIGHT_LORD, {{EQUIP_TYPE_CLAW}}},
+      // Shurrikane is a thrown star like the rest of the line's, and the
+      // Night Lord's V book holds nothing else that swings.
+      {JOB_ADVANCEMENT_NIGHT_LORD_V, {{EQUIP_TYPE_CLAW}}},
       {JOB_ADVANCEMENT_BANDIT, {{EQUIP_TYPE_DAGGER}}},
       {JOB_ADVANCEMENT_CHIEF_BANDIT, {{EQUIP_TYPE_DAGGER}}},
       {JOB_ADVANCEMENT_SHADOWER, {{EQUIP_TYPE_DAGGER}}},
