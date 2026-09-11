@@ -3082,6 +3082,60 @@ TEST(ComputeCombatParamsTest, ARampedPulseCarriesAFormPerHelping) {
   EXPECT_TRUE(ComputeCombatParams(state).auto_attacks[0].repeats.empty());
 }
 
+// Dark Lord's Omen's shape: the tick throws a volley worth what the crowd is
+// and a fixed handful besides, the second a strike of its own so a lone boss
+// takes all of it.
+TEST(ComputeCombatParamsTest, APulseThrowsItsFixedStrikesOnTheSameClock) {
+  Skill omen;
+  omen.set_name("Dark Lord's Omen");
+  omen.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(omen, JOB_ADVANCEMENT_SWORDMAN);
+  omen.set_max_level(30);
+  omen.set_cooldown_seconds(60.0);
+  Buff* buff = omen.mutable_buff();
+  buff->set_duration_seconds(12.0);
+  BuffPulse* stars = buff->mutable_pulse();
+  stars->set_label("Throwing Stars");
+  stars->set_cast_interval_seconds(0.99);
+  stars->set_lines(6);
+  stars->set_max_enemies(7);
+  stars->set_max_pulses(12);
+  stars->mutable_base()->set_skill_pct(7.27);
+  stars->mutable_fixed_strikes()->set_hits(7);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"omen", omen}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(omen, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.auto_attacks.size(), 2u);
+  const AttackOption& volley = params.auto_attacks[0];
+  const AttackOption& fixed = params.auto_attacks[1];
+  // One turret, two things it fires: the same clock, the same window, and the
+  // same buff standing over both.
+  EXPECT_EQ(fixed.interval_seconds, volley.interval_seconds);
+  EXPECT_EQ(fixed.max_pulses, volley.max_pulses);
+  EXPECT_EQ(fixed.needs_buff, volley.needs_buff);
+  EXPECT_GE(volley.needs_buff, 0);
+  // Six lines the crowd earns against seven single strikes scattered over it,
+  // each worth exactly one of the volley's.
+  EXPECT_EQ(volley.lines, 6);
+  EXPECT_EQ(fixed.lines, 1);
+  EXPECT_EQ(fixed.scatter_hits, 7);
+  EXPECT_EQ(fixed.max_enemies, volley.max_enemies);
+  ASSERT_FALSE(volley.damage_per_hit.empty());
+  ASSERT_FALSE(fixed.damage_per_hit.empty());
+  EXPECT_NEAR(fixed.damage_per_hit[0], volley.damage_per_hit[0] / 6.0, 1e-6);
+
+  // Nothing thrown is nothing built: the volley stands alone.
+  stars->clear_fixed_strikes();
+  state.skills["omen"] = omen;
+  EXPECT_EQ(ComputeCombatParams(state).auto_attacks.size(), 1u);
+}
+
 // Instinctual Combo's shape: the tear rides Raging Blow rather than a clock,
 // so it falls exactly as often as that swing does -- and quickens with it when
 // the weapon does. A ride nobody answers to leaves no pulse at all.

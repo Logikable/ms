@@ -1063,6 +1063,11 @@ TEST(SkillDataTest, EveryScatteredSwingReachesNoFurtherThanItsStrikes) {
       CheckScatter(entry.first + "'s " + magazine.label(), magazine.scatter(),
                    magazine.max_enemies());
     }
+    if (skill.buff().pulse().has_fixed_strikes()) {
+      const BuffPulse& pulse = skill.buff().pulse();
+      CheckScatter(entry.first + "'s " + pulse.label(), pulse.fixed_strikes(),
+                   pulse.max_enemies());
+    }
   }
 }
 
@@ -1752,6 +1757,8 @@ TEST(SkillDataTest, EveryBuffPulseStatesTheClockItTicksOn) {
     EXPECT_EQ(pulse.max_enemies(), 0) << entry.first << " reaches on no clock";
     EXPECT_EQ(pulse.max_pulses(), 0) << entry.first << " runs out of no clock";
     EXPECT_EQ(pulse.max_repeats(), 0) << entry.first << " ramps on no clock";
+    EXPECT_EQ(pulse.fixed_strikes().hits(), 0)
+        << entry.first << " scatters on no clock";
   }
   // Only a buff's own pulse may ride a swing: a form's is raised and dropped
   // with the form, and nothing reads a clock off one.

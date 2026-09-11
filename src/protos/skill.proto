@@ -683,6 +683,16 @@ message BuffPulse {
   // not a tick of the clock, so it lands with the last one rather than an
   // interval after it.
   bool final_repeat_strike = 15;
+  // Strikes a tick throws on top of its per-enemy volley, each one line of the
+  // pulse's own damage, spread over the enemies in reach before they double up
+  // -- read exactly as Skill.scatter is, and for the same reason.
+  //
+  // Dark Lord's Omen is what it exists for: GMS's scroll fires six stars at
+  // EACH enemy and seven more "regardless of the number of enemies", so all
+  // seven land on a lone boss where a full crowd of seven takes one apiece.
+  // Unset for a pulse that throws only what the crowd earns it, which is every
+  // other one.
+  Scatter fixed_strikes = 16;
 }
 
 // A buff a skill puts up for a while, on a cooldown of its own: what it grants

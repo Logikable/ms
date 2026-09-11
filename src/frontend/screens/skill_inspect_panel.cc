@@ -1530,6 +1530,13 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
         "Per Stack", "+" + FormatPercent(step) + ", up to " +
                          FormatPercent(per_hit + step * pulse.max_repeats())));
   }
+  // The strikes a tick throws whatever the crowd is. Stated whole rather than
+  // as a count beside the volley's row: the total here is what a lone boss
+  // takes, and spreading is what a crowd does to it.
+  if (pulse.fixed_strikes().hits() > 0) {
+    rows.push_back(EffectRow(
+        "Plus", SwingText(per_hit, pulse.fixed_strikes().hits()) + ", spread"));
+  }
   // What a crowd is worth to the rain, where its strikes grow with the one the
   // character is swinging. The cap belongs on the row: without it the ladder
   // reads as unbounded.

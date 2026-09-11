@@ -924,12 +924,18 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
   if (interval <= 0.0) {
     return;
   }
+  // Everything here fires on the buff's clock rather than being swung, so
+  // nothing that rides a swing rides any of it.
+  auto own_clock = [&](const Skill& built) {
+    AttackOption attack =
+        AttackFor(proto, equipped, weapon_type, &built, level, types, derived,
+                  kUnscaledAttackSpeedStage, speed_factor);
+    attack.swing_seconds = 0.0;
+    ClearSwingRiders(attack);
+    return attack;
+  };
   Skill bleed = BuffPulseSkill(skill, pulse);
-  AttackOption wound =
-      AttackFor(proto, equipped, weapon_type, &bleed, level, types, derived,
-                kUnscaledAttackSpeedStage, speed_factor);
-  wound.swing_seconds = 0.0;
-  ClearSwingRiders(wound);
+  AttackOption wound = own_clock(bleed);
   wound.interval_seconds = interval;
   // The pulse's own recovery, put back after ClearSwingRiders takes the
   // swing's away: Darkness Aura states its heal against the aura's attack, not
@@ -949,30 +955,36 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
     Skill stronger = bleed;
     stronger.mutable_base()->set_skill_pct(bleed.base().skill_pct() +
                                            step * repeat);
-    AttackOption form =
-        AttackFor(proto, equipped, weapon_type, &stronger, level, types,
-                  derived, kUnscaledAttackSpeedStage, speed_factor);
-    form.swing_seconds = 0.0;
-    ClearSwingRiders(form);
     wound.repeats.push_back(
-        std::make_shared<const AttackOption>(std::move(form)));
+        std::make_shared<const AttackOption>(own_clock(stronger)));
   }
   wound.final_repeat_strike = pulse.final_repeat_strike();
   // The rain that grows with the crowd carries one more of its own lines,
   // built as a strike of exactly one so the fight can land as many as the
   // character's swing has earned -- each rolling its own mastery and crit.
   if (pulse.lines_per_extra_enemy() > 0 && pulse.max_extra_lines() > 0) {
-    bleed.set_lines(1);
-    AttackOption line =
-        AttackFor(proto, equipped, weapon_type, &bleed, level, types, derived,
-                  kUnscaledAttackSpeedStage, speed_factor);
-    line.swing_seconds = 0.0;
-    ClearSwingRiders(line);
-    wound.extra_line = std::make_shared<const AttackOption>(std::move(line));
+    Skill one = bleed;
+    one.set_lines(1);
+    wound.extra_line = std::make_shared<const AttackOption>(own_clock(one));
     wound.lines_per_extra_enemy = pulse.lines_per_extra_enemy();
     wound.max_extra_lines = pulse.max_extra_lines();
   }
   set.auto_attacks.push_back(std::move(wound));
+  // The stars a tick throws whatever the crowd is: a strike of their own, one
+  // line apiece, scattered over what is there. Their own attack rather than
+  // lines on the volley beside them, because the volley is worth what the
+  // crowd is and these are worth the same on a lone boss. Same clock, same
+  // window, same buff -- one turret, two things it fires.
+  if (pulse.fixed_strikes().hits() > 0) {
+    Skill fixed = bleed;
+    fixed.set_lines(1);
+    *fixed.mutable_scatter() = pulse.fixed_strikes();
+    AttackOption strikes = own_clock(fixed);
+    strikes.interval_seconds = interval;
+    strikes.max_pulses = pulse.max_pulses();
+    strikes.needs_buff_stance = stance;
+    set.auto_attacks.push_back(std::move(strikes));
+  }
 }
 
 // Adds every own-clock half of a skill that has any, beside the swing it
