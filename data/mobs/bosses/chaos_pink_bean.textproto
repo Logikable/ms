@@ -1,5 +1,3 @@
-# A part of a fight that is not built yet: the boss screen reads its HP and
-# nothing else. See data/bosses.
 # GMS fights him as three bodies in a row; their 12.6B, 23.1B and 33.6B are
 # summed here, as Chaos Zakum's forms are.
 name: "Chaos Pink Bean"

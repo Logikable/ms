@@ -120,67 +120,22 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
       }
     }
   }
-  // Root Abyss alone, which opens at the cap and pays in pieces instead.
-  EXPECT_EQ(unpaid, std::vector<std::string>(
-                        {"crimson_queen", "pierre", "vellum", "von_bon"}));
+  // The four of Root Abyss, which open at the cap and pay in pieces instead,
+  // and Chaos Zakum, for whom GMS states no EXP at all.
+  EXPECT_EQ(unpaid, std::vector<std::string>({"crimson_queen", "pierre",
+                                              "vellum", "von_bon", "zakum"}));
 }
 
-// A fight that is not built yet must say nothing it has not decided: the
-// detail panel shows its HP alone, and a reward or a gate left in the file
-// would be a promise the screen never shows and the fight never keeps.
-TEST_F(BossDataTest, AComingSoonDifficultyStatesOnlyItsPhases) {
-  int coming_soon = 0;
+// Nothing is a shell any more -- Chaos Zakum, Hard Magnus and Chaos Pink Bean
+// were the last three, built 2026-09-11 -- so the lever itself is what is
+// pinned here. A difficulty carrying it is listed, dim and unenterable, and
+// one that also states a clock or a reward is a promise the screen never
+// shows.
+TEST_F(BossDataTest, NoFightIsStillAShell) {
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
-      if (!difficulty.coming_soon()) {
-        continue;
-      }
-      ++coming_soon;
-      std::string where = entry.first + " " + difficulty.name();
-      EXPECT_EQ(difficulty.time_limit_seconds(), 0) << where;
-      EXPECT_EQ(difficulty.reset(), RESET_PERIOD_UNSPECIFIED) << where;
-      EXPECT_EQ(difficulty.unlock_level(), 0) << where;
-      EXPECT_EQ(difficulty.meso(), 0) << where;
-      EXPECT_EQ(difficulty.exp(), 0) << where;
-      EXPECT_EQ(difficulty.drops_size(), 0) << where;
-    }
-  }
-  EXPECT_EQ(coming_soon, 3) << "Chaos Zakum, Chaos Pink Bean and Hard Magnus";
-}
-
-// The fights the screen advertises but cannot yet run, at the HP GMS gives
-// them. A number here is read straight off the detail panel, so a typo in the
-// mob files is a wrong promise on screen.
-TEST_F(BossDataTest, TheUnbuiltFightsCarryTheirGmsHp) {
-  struct Expectation {
-    const char* boss;
-    const char* difficulty;
-    std::vector<int64_t> phase_hp;
-  };
-  const std::vector<Expectation> kExpected = {
-      {"zakum", "Chaos", {84000000000LL, 84000000000LL}},
-      {"magnus", "Hard", {120000000000LL}},
-      {"pink_bean", "Chaos", {130200000000LL, 69300000000LL}},
-  };
-  for (const Expectation& want : kExpected) {
-    ASSERT_GT(bosses_.count(want.boss), 0u) << want.boss;
-    const BossDifficulty* found = nullptr;
-    for (const BossDifficulty& difficulty :
-         bosses_.at(want.boss).difficulties()) {
-      if (difficulty.name() == want.difficulty) {
-        found = &difficulty;
-      }
-    }
-    ASSERT_NE(found, nullptr) << want.boss << " " << want.difficulty;
-    EXPECT_TRUE(found->coming_soon()) << want.boss;
-    ASSERT_EQ(found->phases_size(), static_cast<int>(want.phase_hp.size()));
-    for (int i = 0; i < found->phases_size(); ++i) {
-      int64_t hp = 0;
-      for (const Spawn& spawn : found->phases(i).spawns()) {
-        hp += SpawnCount(spawn) * mobs_.at(spawn.mob()).max_hp();
-      }
-      EXPECT_EQ(hp, want.phase_hp[i])
-          << want.boss << " " << want.difficulty << " phase " << i + 1;
+      EXPECT_FALSE(difficulty.coming_soon())
+          << entry.first << " " << difficulty.name();
     }
   }
 }
@@ -242,9 +197,9 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).kind(), ITEM_KIND_SOUL_SHARD) << where;
     }
   }
-  EXPECT_EQ(fights, 13) << "Zakum, Magnus, Pink Bean, Arkarium, Cygnus, the "
-                           "four of Root Abyss, and both difficulties of "
-                           "Hilla and of Horntail";
+  EXPECT_EQ(fights, 16) << "Arkarium, Cygnus, the four of Root Abyss, and "
+                           "both difficulties of Zakum, Magnus, Pink Bean, "
+                           "Hilla and Horntail";
 }
 
 // A boss pays in meso and in gear, and the gear is the reward: selling it back
@@ -462,10 +417,10 @@ TEST_F(BossDataTest, ChaosHorntailIsTheSameShapeAtChaosNumbers) {
   EXPECT_EQ(chaos.drops(3).equip(), "dea_sidus_earring");
 }
 
-// The last fight the game opens and the biggest body in it: 63B behind 100%
-// PDR, standing where Hilla and Arkarium stand. She pays no equip at all --
-// the token she drops is what buys one -- so she is also the only fight whose
-// whole reward is a stackable. Pinned for the reason Zakum's numbers are.
+// The first fight to open at the cap: 63B behind 100% PDR, standing where
+// Hilla and Arkarium stand. She pays no equip at all -- the token she drops is
+// what buys one -- so she is also the only fight whose whole reward is a
+// stackable. Pinned for the reason Zakum's numbers are.
 TEST_F(BossDataTest, NormalCygnusIsOneBodyBehindTheLastGate) {
   ASSERT_GT(bosses_.count("cygnus"), 0u);
   ASSERT_EQ(bosses_.at("cygnus").difficulties_size(), 1);
@@ -487,6 +442,76 @@ TEST_F(BossDataTest, NormalCygnusIsOneBodyBehindTheLastGate) {
   ASSERT_EQ(normal.drops_size(), 2);
   EXPECT_EQ(normal.drops(0).item(), "cygnus_shoulder_token");
   EXPECT_EQ(normal.drops(1).item(), "cygnuss_soul_shard");
+}
+
+// The three hard rungs of fights already built, which open together at the cap
+// on the same fifteen-minute clock. Each is its Normal's shape at GMS's own
+// Chaos or Hard numbers and drops what Normal drops -- a rung buys the gear
+// faster, not different gear. Pinned for the reason Zakum's numbers are.
+TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
+  struct Want {
+    std::string boss;
+    std::string name;
+    int64_t meso;
+    int64_t exp;
+    int64_t hp;
+  };
+  const std::vector<Want> kRungs = {
+      {"zakum", "Chaos", 11550000, 0, 168000000000LL},
+      {"magnus", "Hard", 13600000, 22000000, 120000000000LL},
+      {"pink_bean", "Chaos", 9150000, 9590000, 199500000000LL}};
+  for (const Want& want : kRungs) {
+    ASSERT_GT(bosses_.count(want.boss), 0u) << want.boss;
+    ASSERT_EQ(bosses_.at(want.boss).difficulties_size(), 2) << want.boss;
+    const BossDifficulty& normal = bosses_.at(want.boss).difficulties(0);
+    const BossDifficulty& hard = bosses_.at(want.boss).difficulties(1);
+    SCOPED_TRACE(want.boss);
+    EXPECT_EQ(hard.name(), want.name);
+    EXPECT_FALSE(hard.coming_soon());
+    EXPECT_EQ(hard.reset(), RESET_PERIOD_DAILY);
+    EXPECT_EQ(hard.time_limit_seconds(), 900);
+    EXPECT_EQ(hard.unlock_level(), 200);
+    EXPECT_EQ(hard.meso(), want.meso);
+    EXPECT_EQ(hard.exp(), want.exp);
+    // Phase for phase and cell for cell, the fight Normal is.
+    ASSERT_EQ(hard.phases_size(), normal.phases_size());
+    int64_t total = 0;
+    for (int i = 0; i < hard.phases_size(); ++i) {
+      const BossPhase& shape = normal.phases(i);
+      const BossPhase& phase = hard.phases(i);
+      ASSERT_EQ(phase.spawns_size(), shape.spawns_size()) << "phase " << i + 1;
+      for (int j = 0; j < phase.spawns_size(); ++j) {
+        EXPECT_EQ(SpawnCount(phase.spawns(j)), SpawnCount(shape.spawns(j)));
+        EXPECT_EQ(phase.spawns(j).spots(0).x(), shape.spawns(j).spots(0).x());
+        EXPECT_EQ(phase.spawns(j).spots(0).y(), shape.spawns(j).spots(0).y());
+        total += SpawnCount(phase.spawns(j)) *
+                 mobs_.at(phase.spawns(j).mob()).max_hp();
+      }
+    }
+    EXPECT_EQ(total, want.hp);
+    // What Normal drops, in the order Normal drops it.
+    ASSERT_EQ(hard.drops_size(), normal.drops_size());
+    for (int i = 0; i < hard.drops_size(); ++i) {
+      EXPECT_EQ(hard.drops(i).SerializeAsString(),
+                normal.drops(i).SerializeAsString())
+          << "drop " << i + 1;
+    }
+  }
+}
+
+// Hard Magnus and the Chaos Pink Bean statues are the second and third bodies
+// written past 100% PDR, after Chaos Crimson Queen and Chaos Vellum: a fight
+// that asks for Ignore DEF before it takes anything at all. The number is the
+// design, so it is pinned rather than clamped.
+TEST_F(BossDataTest, TheHardRungsGateOnIgnoreDefense) {
+  EXPECT_EQ(mobs_.at("hard_magnus").pdr(), 120);
+  EXPECT_EQ(mobs_.at("chaos_zakum").pdr(), 100);
+  EXPECT_EQ(mobs_.at("chaos_pink_bean").pdr(), 100);
+  for (const std::string& statue :
+       {"chaos_solomon_the_wise", "chaos_rex_the_wise", "chaos_ariel",
+        "chaos_hugin", "chaos_munin"}) {
+    EXPECT_EQ(mobs_.at(statue).pdr(), 160) << statue;
+  }
 }
 
 // Where the parts stand is data, and two of them in one cell is a bar drawn on
