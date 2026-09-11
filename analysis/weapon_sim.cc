@@ -37,6 +37,7 @@
 #include "src/character/progression.h"
 #include "src/combat/damage.h"
 #include "src/combat/encounter.h"
+#include "src/combat/measure.h"
 #include "src/embedded_data.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -312,45 +313,12 @@ void RecordBook(const GameState& state, const DerivedStats& derived,
   }
 }
 
-// What the summons and the triggered attacks add, per second at 1x. They land
-// beside the swing rather than instead of it, so none of this competes with
-// the swing damage for the clock.
-double OffClockDps(const CombatParams& params, const Sequence& played,
-                   const AttackOption& best, double speed, double swing_seconds,
-                   int enemies) {
-  double dps = OffClockRate(params, played, speed, enemies);
-  // How often a triggered attack goes off depends on the swing feeding it: a
-  // rapid attack counting a seventh apiece is worth no more of these than a
-  // slow one counting a whole attack.
-  //
-  // One clocked by enemies defeated is left out: what feeds it is the map's
-  // kill rate, which a weapon measured against a dummy has no reading of.
-  for (const AttackOption& extra : params.triggered_attacks) {
-    if (extra.damage_per_hit.empty() || extra.attacks_per_cast <= 0) {
-      continue;
-    }
-    // A half that counts nothing while its own buff stands is worth only the
-    // rest of the fight: Inhuman Speed's passive afterimage waits out the
-    // active one.
-    int gate = extra.silent_while_buff ? extra.needs_buff : -1;
-    double share =
-        gate >= 0 && gate < static_cast<int>(played.buff_uptime.size())
-            ? 1.0 - played.buff_uptime[gate]
-            : 1.0;
-    dps += share * CrowdDamage(extra, enemies) *
-           std::max(1, extra.strikes_per_pulse) * best.count_weight /
-           (swing_seconds * extra.attacks_per_cast);
-  }
-  return dps;
-}
-
 // Where the run's damage went, as a share apiece. The swings are counted over
 // the run and everything on its own clock is one row, since a summon competes
 // with nothing for the clock and its share is simply what it added.
 void RecordShares(const CombatParams& params, const Sequence& played,
-                  double off_clock_dps, double speed, Result* result) {
-  double off_clock = off_clock_dps * played.seconds / speed;
-  double total = played.damage + off_clock;
+                  Result* result) {
+  double total = played.damage;
   if (total <= 0.0) {
     return;
   }
@@ -361,8 +329,8 @@ void RecordShares(const CombatParams& params, const Sequence& played,
     result->shares.push_back(
         {params.attacks[i].name, played.damage_by_attack[i] / total});
   }
-  if (off_clock > 0.0) {
-    result->shares.push_back({"(own clock)", off_clock / total});
+  if (played.own_clock_damage > 0.0) {
+    result->shares.push_back({"(own clock)", played.own_clock_damage / total});
   }
   std::sort(result->shares.begin(), result->shares.end(),
             [](const std::pair<std::string, double>& a,
@@ -429,12 +397,12 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   // Back out the pacing the game stretches everything by, so the figure is the
   // 1x one and two levels can be compared without dividing by hand.
   double speed = GameSpeedFactor(level);
-  // The horizon is asked for in game seconds and PlaySwings counts in the
+  // The horizon is asked for in game seconds and MeasureFight counts in the
   // stretched ones, so it is stretched to match: at 200 a ten-minute window is
-  // 6000 of them. Handing PlaySwings the flag raw would make --seconds mean a
+  // 6000 of them. Handing MeasureFight the flag raw would make --seconds mean a
   // different length at every level -- see GameSpeedFactor.
   Sequence played =
-      PlaySwings(params, absl::GetFlag(FLAGS_seconds) * speed, enemies);
+      MeasureFight(params, absl::GetFlag(FLAGS_seconds) * speed, enemies);
   if (played.main_attack < 0 || played.seconds <= 0.0) {
     return result;
   }
@@ -453,14 +421,11 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   RecordBook(state, derived, best->name, &result);
   result.mirror_pct = derived.mirror_line_pct;
   result.swing_seconds = best->swing_seconds / speed;
-  // Averaged over the swings that landed rather than the horizon, so the
-  // part-charged swing the horizon cuts off costs nothing. A cooldown skill is
-  // worth exactly the share of the swings it actually gets. Scaled back to 1x.
+  // Everything the run landed over how long it ran: the swings, the summons
+  // beside them and the burns they left. Scaled back to 1x, so two levels can
+  // be compared without dividing by hand.
   result.dps = played.damage * speed / played.seconds;
-  double off_clock =
-      OffClockDps(params, played, *best, speed, result.swing_seconds, enemies);
-  result.dps += off_clock;
-  RecordShares(params, played, off_clock, speed, &result);
+  RecordShares(params, played, &result);
   return result;
 }
 

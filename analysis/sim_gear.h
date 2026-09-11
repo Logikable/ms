@@ -15,73 +15,12 @@
 #include <vector>
 
 #include "src/character/character.h"
-#include "src/combat/encounter.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
 namespace ms {
-
-// What one swing of `attack` lands on `enemies` mobs standing together: every
-// rider the swing carries, and an empowered form averaged over the swings it
-// takes the place of -- the same reading CombatSim::SwingDamage takes. The
-// form has none of its own, so this recurs exactly once.
-//
-// Which riders count per enemy and which count once is the whole of what an
-// enemy count changes: a Final Attack that falls on one enemy is worth the
-// same against twelve, and a burn is worth twelve times as much.
-//
-// `charge_burns` false leaves the burns out entirely, for a caller keeping its
-// own burn clocks and landing their ticks as they fall due -- see PlaySwings.
-// True charges them at the rate the swing can sustain, which is right for
-// anything relit on a clock of its own and for measuring a swing on its own.
-double CrowdDamage(const AttackOption& attack, int enemies,
-                   bool charge_burns = true);
-
-// What a run of swings came to.
-struct Sequence {
-  double damage = 0.0;
-  double seconds = 0.0;  // time the swings that landed actually took
-  int main_attack = -1;  // index of the one swung most often
-  // What each swing came to over the run, parallel to CombatParams::attacks.
-  // Sums to `damage`, so a share is one entry over that.
-  std::vector<double> damage_by_attack;
-  // Share of the run each of the character's buffs spent standing, parallel to
-  // CombatParams::buffs. What a pulse gated on one is worth is its own damage
-  // times this -- see AttackOption::needs_buff.
-  std::vector<double> buff_uptime;
-};
-
-// Plays out the swings the fight would actually make against a lone mob, at
-// the same step and by the same rule as CombatSim: the best rate available,
-// with a recharging skill absent from the choice until it comes back, and the
-// timed buffs running beside it -- a swing lands for what it is worth under
-// whichever of them happen to be standing.
-//
-// A closed form cannot answer this once a cooldown exists -- what the skill is
-// worth depends on what gets swung while it recharges, and on how much of a
-// charge is already wound up when it returns. The buffs are the same problem
-// again: a buff worth 25% that stands for half the run is not worth 12.5% of
-// every swing, it is worth all of it to half of them.
-//
-// `horizon` is in the STRETCHED clock -- the one every duration inside
-// CombatParams is written in, GameSpeedFactor times the game's own. At level
-// 200 that factor is 10, so a two-minute cooldown reads 1200 here and a
-// horizon under it is a burst window with every timed buff up for the whole of
-// it. A caller working in game seconds must multiply by GameSpeedFactor first,
-// or its window means a different length at every level.
-Sequence PlaySwings(const CombatParams& params, double horizon,
-                    int enemies = 1);
-
-// What the character's summons and pulses add per second, at `speed` (1.0 for
-// the game-scaled figure, the speed factor to back the scaling out).
-//
-// A pulse gated on a buff is worth its own damage times the share of the run
-// that buff stood, and is priced off the table where it does stand -- it hits
-// harder there, which is the point of the buff it waits for.
-double OffClockRate(const CombatParams& params, const Sequence& played,
-                    double speed, int enemies = 1);
 
 // The name of the character's weapon, "-" for empty hands.
 std::string HeldWeaponName(const CharacterInstance& character);

@@ -121,6 +121,7 @@
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/combat/loot.h"
+#include "src/combat/measure.h"
 #include "src/embedded_data.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -317,8 +318,8 @@ std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
 // job is comparing exactly those two.
 //
 // `seconds` and a cooldown off the proto are both the game's own seconds;
-// PlaySwings counts in the stretched clock, so the window is scaled on the way
-// out. Without that a two-minute cycle asked for a window worth twenty-four
+// MeasureFight counts in the stretched clock, so the window is scaled on the
+// way out. Without that a two-minute cycle asked for a window worth twenty-four
 // game seconds at level 200 and the buff never came down inside it -- the very
 // thing this exists to prevent.
 double WindowFor(const GameState& state, double seconds) {
@@ -346,9 +347,8 @@ double CrowdRateOver(GameState& state, double seconds) {
     enemies += type.simultaneous;
   }
   enemies = std::max(1, enemies);
-  Sequence played = PlaySwings(params, WindowFor(state, seconds), enemies);
-  double rate = played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
-  return rate + OffClockRate(params, played, 1.0, enemies);
+  Sequence played = MeasureFight(params, WindowFor(state, seconds), enemies);
+  return played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
 }
 
 double CrowdRate(GameState& state) {
@@ -397,9 +397,8 @@ double BossRateOver(GameState& state, double seconds) {
   if (!params.active) {
     return 0.0;
   }
-  Sequence played = PlaySwings(params, WindowFor(state, seconds));
-  double rate = played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
-  return rate + OffClockRate(params, played, 1.0);
+  Sequence played = MeasureFight(params, WindowFor(state, seconds));
+  return played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
 }
 
 double BossRate(GameState& state) {
