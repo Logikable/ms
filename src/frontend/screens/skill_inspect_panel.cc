@@ -1484,9 +1484,10 @@ std::vector<Row> ShieldRows(const Shield& shield, int level) {
 // What a timed buff grants, headed by how long it stands. The wait for the
 // next one is the skill's own Cooldown row, above. No row here says "while
 // up" -- the heading says it once for all of them.
-// The strike a pulse goes out on, stated whole: its own damage, its own reach,
-// and nothing of the clock above it, since it lands once and only when that
-// clock stops. Nothing for a pulse that simply stops, which is every other one.
+// The strike a pulse goes out on: its own damage, its own reach, and nothing of
+// the clock above it, since it lands once and only when that clock stops. The
+// levers are the pulse's own row to state -- they ride the whole of what it
+// does. Nothing for a pulse that simply stops, which is every other one.
 std::vector<Row> FinalStrikeRows(const BuffPulse& pulse, int level) {
   if (!pulse.has_final_strike()) {
     return {};
@@ -1499,7 +1500,7 @@ std::vector<Row> FinalStrikeRows(const BuffPulse& pulse, int level) {
     text += " on " + ReachText(burst.max_enemies());
   }
   std::vector<Row> rows = {EffectRow(burst.label(), text)};
-  // Whatever else it carries rides its own strike, exactly as the pulse's do.
+  // What it states over and above the pulse's own, which it already keeps.
   SkillEffect base = burst.base();
   SkillEffect per = burst.per_level();
   base.clear_skill_pct();
@@ -1571,8 +1572,10 @@ std::vector<Row> PulseRows(const BuffPulse& pulse, int level) {
             (pulse.lines_per_extra_enemy() == 1 ? " Strike" : " Strikes") +
             ", up to +" + std::to_string(pulse.max_extra_lines())));
   }
-  Append(std::move(levers), rows);
   Append(FinalStrikeRows(pulse, level), rows);
+  // Last, because they ride everything above them: the levers a pulse states
+  // are the turret's, the strike it goes out on included.
+  Append(std::move(levers), rows);
   return rows;
 }
 

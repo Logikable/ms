@@ -1947,6 +1947,7 @@ TEST_F(SkillInspectPanelTest, APulseStatesItsFixedStrikesAndTheBurstItEndsOn) {
   stars->set_max_enemies(7);
   stars->set_max_pulses(12);
   stars->mutable_base()->set_skill_pct(15.10);
+  stars->mutable_base()->set_boss_pct(0.30);
   stars->mutable_fixed_strikes()->set_hits(7);
   SwingHit* burst = stars->mutable_final_strike();
   burst->set_label("Explosion");
@@ -1965,6 +1966,13 @@ TEST_F(SkillInspectPanelTest, APulseStatesItsFixedStrikesAndTheBurstItEndsOn) {
             std::string::npos)
       << rendered;
   EXPECT_NE(RowIn(rendered, "Explosion", "3430% x12 = 41160% on 12 enemies"),
+            std::string::npos)
+      << rendered;
+  // The turret's levers are stated once, under everything they ride, rather
+  // than again beside the burst that also keeps them.
+  EXPECT_NE(RowIn(rendered, "Boss Damage", "+30%"), std::string::npos)
+      << rendered;
+  EXPECT_EQ(rendered.find("Boss Damage", rendered.find("Boss Damage") + 1),
             std::string::npos)
       << rendered;
 }

@@ -703,6 +703,9 @@ message BuffPulse {
   // after it, and for the same reason: a strike timed at the end of the window
   // falls after the buff has already come down.
   //
+  // It keeps whatever levers the pulse states and states only what is its own:
+  // one turret, and GMS writes its boss damage once for everything it does.
+  //
   // Its `casts` are strikes of the burst landed together, as everywhere else.
   // Its `skips_mirror` says nothing here -- no shadow copies a clock of its
   // own. Unset for every pulse that simply stops, which is every other one.

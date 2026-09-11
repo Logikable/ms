@@ -975,9 +975,15 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
   // belongs to is down.
   if (pulse.has_final_strike()) {
     const SwingHit& burst = pulse.final_strike();
+    // It keeps whatever levers the pulse states and swaps in its own damage,
+    // being the same turret: GMS writes the scroll's boss damage once, for
+    // everything it does. Anything the burst states for itself wins, which is
+    // what merging a proto3 message over another comes to.
     Skill goes_out = bleed;
-    *goes_out.mutable_base() = burst.base();
-    *goes_out.mutable_per_level() = burst.per_level();
+    goes_out.mutable_base()->clear_skill_pct();
+    goes_out.mutable_per_level()->clear_skill_pct();
+    goes_out.mutable_base()->MergeFrom(burst.base());
+    goes_out.mutable_per_level()->MergeFrom(burst.per_level());
     goes_out.set_lines(burst.lines());
     if (burst.max_enemies() > 0) {
       goes_out.set_max_enemies(burst.max_enemies());

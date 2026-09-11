@@ -16,9 +16,9 @@
 # just under Storm of Arrows, where the once-at-the-start reading is 1,013%/s
 # and would leave this the weakest job node in the game.
 #
-# The 30% is the scroll's, so both halves state it. On the buff it would be a
-# character-wide boss bonus for twelve seconds of every sixty, which is a
-# different and far stronger skill.
+# The 30% is the scroll's, stated once on the pulse and kept by the burst that
+# goes out with it. On the buff it would be a character-wide boss bonus for
+# twelve seconds of every sixty, which is a different and far stronger skill.
 #
 # The cast is the 120ms every buff raised from a sequence costs, not the 360ms
 # of the scroll's own animation.
@@ -51,10 +51,7 @@ buff {
       label: "Explosion"
       lines: 12
       max_enemies: 12
-      base {
-        skill_pct: 16.32
-        boss_pct: 0.30
-      }
+      base { skill_pct: 16.32 }
       per_level { skill_pct: 0.62 }
     }
   }

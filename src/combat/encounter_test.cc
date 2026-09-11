@@ -3101,6 +3101,9 @@ TEST(ComputeCombatParamsTest, APulseThrowsItsFixedStrikesAndBurstsAsItLeaves) {
   stars->set_max_enemies(7);
   stars->set_max_pulses(12);
   stars->mutable_base()->set_skill_pct(7.27);
+  // A lever the pulse states rides the whole turret, the burst included -- it
+  // is what holds the damage relation below.
+  stars->mutable_base()->set_crit_rate(0.20);
   stars->mutable_fixed_strikes()->set_hits(7);
   SwingHit* burst = stars->mutable_final_strike();
   burst->set_label("Explosion");
