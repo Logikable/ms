@@ -1,7 +1,7 @@
 name: "Quad Star Boost"
 description: "Strengthens Quad Star."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 4 }
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 2 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {

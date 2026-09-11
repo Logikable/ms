@@ -1,0 +1,51 @@
+# The Night Lord's first job node: every star they throw goes out in a cone
+# instead of a line, and the extra sets find a crowd the swing itself cannot.
+#
+# GMS's own figures: Quad Star gains 3 extra directions dealing 379% and
+# Triple Throw 4 dealing 290%, each throwing that skill's own count of stars
+# -- the client states bulletCount 4 and 3 on the two spread entries, which is
+# what it states on the skills themselves. Each direction reaches 4 enemies
+# where the swings reach one, and that is the whole of "these can multihit".
+#
+# The damage is flat at every level and only the window grows, so a level
+# bought here buys uptime: 20 seconds of 120 at the first, 30 at the last.
+#
+# The shadow is kept off the spread, GMS saying so in the description. It is
+# worth 70% of every line it copies, so leaving it on would pay the node
+# almost twice over.
+name: "Throwing Star Barrage"
+description:
+  "Temporarily grants your throwing skills extra spread. Does not apply to "
+  "Shadow Partner."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 1 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 19.85
+  duration_seconds_per_level: 0.35
+  boost {
+    skill_name: "Quad Star"
+    extra_hit {
+      label: "Spread"
+      casts: 3
+      lines: 4
+      max_enemies: 4
+      skips_mirror: true
+      base { skill_pct: 3.79 }
+    }
+  }
+  boost {
+    skill_name: "Triple Throw"
+    extra_hit {
+      label: "Spread"
+      casts: 4
+      lines: 3
+      max_enemies: 4
+      skips_mirror: true
+      base { skill_pct: 2.90 }
+    }
+  }
+}

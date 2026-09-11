@@ -2006,7 +2006,8 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
           boost.dot_skill_pct() != 0.0 || boost.dot_duration_seconds() != 0.0 ||
           boost.buff_duration_seconds() != 0.0 || boost.shield_hits() != 0.0 ||
           boost.shield_boss_damage_taken_pct() != 0.0 ||
-          boost.final_attack_chance_mult() != 0.0 || boost.has_effect())
+          boost.final_attack_chance_mult() != 0.0 || boost.has_effect() ||
+          boost.extra_hit_size() > 0)
           << entry.first << " names " << boost.skill_name()
           << " and hands it nothing";
       // Scaling a rate to nothing, or backwards, is not a grant. GMS's only
