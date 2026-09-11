@@ -1436,6 +1436,7 @@ void CombatSim::GoIdle() {
   auto_clocks_.clear();
   attack_clocks_.clear();
   regen_phase_.clear();
+  owed_casts_.clear();
   damage_dealt_ = 0.0;
   fight_seconds_ = 0.0;
   aimed_ = -1;
@@ -1451,6 +1452,7 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   encounter_ = params.encounter;
   respawn_phase_ = 0.0;
   attack_phase_ = 0.0;
+  owed_casts_.clear();
   hit_phase_ = 0.0;
   // A barrage belongs to the fight it was loosed in: bolts still in the air do
   // not follow the player to the next map.
@@ -1499,6 +1501,7 @@ void CombatSim::RespawnBeat(const CombatParams& params, double dt) {
   }
   // Clearing the map is the bigger breather, and worth the whole pool.
   attack_phase_ = 0.0;
+  owed_casts_.clear();
   player_hp_ = params.max_player_hp;
   hit_phase_ = 0.0;
 }
@@ -1740,6 +1743,11 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
       }
       // Raising it costs the character its animation, taken off the swing they
       // were charging: a buff is cast instead of attacking, not alongside it.
+      // The clock it leaves in debt is what the charge bar draws the cast
+      // over, so the plate names the buff rather than sitting empty.
+      if (buff.cast_seconds > 0.0) {
+        owed_casts_.push_back({buff.name, attack_phase_, buff.cast_seconds});
+      }
       attack_phase_ -= buff.cast_seconds;
       player_hp_ =
           std::min(static_cast<double>(params.max_player_hp),
@@ -2301,7 +2309,28 @@ void CombatSim::PublishTarget(const CombatParams& params) {
       swing_seconds_ > 0.0
           ? std::clamp(attack_phase_ / swing_seconds_, 0.0, 1.0)
           : 0.0;
+  PublishCast();
   MergeEngagedWindow(params);
+}
+
+bool CombatSim::PublishCast() {
+  // Worked through newest first: a cast is finished when the swing clock has
+  // climbed back to the mark it was raised at, and the one raised last is the
+  // one that mark comes round for soonest.
+  while (!owed_casts_.empty() && owed_casts_.back().done_at <= attack_phase_) {
+    owed_casts_.pop_back();
+  }
+  if (owed_casts_.empty()) {
+    return false;
+  }
+  const OwedCast& cast = owed_casts_.back();
+  view_.attack_name = cast.name;
+  view_.attack_fraction =
+      cast.seconds > 0.0
+          ? std::clamp(1.0 - (cast.done_at - attack_phase_) / cast.seconds, 0.0,
+                       1.0)
+          : 1.0;
+  return true;
 }
 
 void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {

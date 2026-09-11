@@ -576,6 +576,10 @@ class CombatSim {
   void PublishPlayer(const CombatParams& params);
   // Refreshes the target and the engaged window for the panel to draw.
   void PublishTarget(const CombatParams& params);
+  // Puts the buff the character is casting on the charge bar and fills it
+  // over that animation, the swing clock being in debt for it. Drops the
+  // casts already played, and says whether one took the bar.
+  bool PublishCast();
   void MergeEngagedWindow(const CombatParams& params);
   void PublishRoster(const CombatParams& params);
 
@@ -591,9 +595,25 @@ class CombatSim {
   std::vector<QueuedMob> queue_;  // remaining mobs this cycle, front = engaged
   int next_mob_id_ = 0;           // stamped onto each arrival; see MobStatus
   double attack_phase_ = 0.0;     // seconds into the current swing
-  double respawn_phase_ = 0.0;    // seconds into the current respawn cycle
-  double player_hp_ = 0.0;        // remaining player HP, topped up on a beat
-  double hit_phase_ = 0.0;        // seconds into the engaged mob's next hit
+  // One buff animation the character owes. Raising a buff takes its cast off
+  // the swing clock, so a handful going up at once leaves that clock in debt
+  // and the character casting rather than swinging for as long as it takes.
+  // These say what they are casting while it lasts.
+  struct OwedCast {
+    std::string name;
+    // The swing phase this animation is finished at: the clock climbing back
+    // to it is what ends the cast.
+    double done_at = 0.0;
+    double seconds = 0.0;
+  };
+  // Newest last, which is also the order they are played out in: each one is
+  // finished by the swing clock climbing back to the mark it was raised at,
+  // and the last raised reaches its mark first. Cleared with the clock
+  // itself, the casts being owed against it.
+  std::vector<OwedCast> owed_casts_;
+  double respawn_phase_ = 0.0;  // seconds into the current respawn cycle
+  double player_hp_ = 0.0;      // remaining player HP, topped up on a beat
+  double hit_phase_ = 0.0;      // seconds into the engaged mob's next hit
   // One buff's clocks, one entry per buff in params.buffs. They keep running
   // across a change of map, unlike the fight's own: a buff belongs to the
   // character rather than to the mobs in front of them.

@@ -3161,6 +3161,7 @@ TEST(CombatSimTest, RaisingABuffCostsTheSwingItsAnimation) {
   Mob snail = MakeMob("Snail", 1e9);
   CombatSim sim;
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 10.0, 1)});
+  params.attacks[0].name = "Hurricane";
   GiveBuff(params, /*duration=*/10.0, /*cooldown=*/60.0, /*factor=*/1.0);
   params.buffs[0].cast_seconds = 0.6;
 
@@ -3168,9 +3169,78 @@ TEST(CombatSimTest, RaisingABuffCostsTheSwingItsAnimation) {
   // swing the step would have landed is still four-tenths short.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().damage_this_step, 0.0);
+  // A step this much wider than the cast ends with it long finished, so the
+  // bar is back on the swing and reads what is left of the animation.
+  EXPECT_EQ(sim.view().attack_name, "Hurricane");
+  EXPECT_DOUBLE_EQ(sim.view().attack_fraction, 0.4);
   // It carries, so the swing the cast held up lands on the step after.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.view().damage_this_step, 10.0);
+}
+
+// Several buffs going up at once leave the swing clock in debt, and the bar
+// spends it naming them: each cast in turn, filling over its own animation,
+// rather than an empty bar under the name of a swing that is not coming.
+TEST(CombatSimTest, TheChargeBarNamesEachBuffBeingCast) {
+  Mob snail = MakeMob("Snail", 1e9);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 10.0, 1)});
+  params.attacks[0].name = "Hurricane";
+  GiveBuff(params, /*duration=*/10.0, /*cooldown=*/60.0, /*factor=*/1.0);
+  GiveBuff(params, /*duration=*/10.0, /*cooldown=*/60.0, /*factor=*/1.0);
+  params.buffs[0].name = "Epic Adventure";
+  params.buffs[0].cast_seconds = 0.6;
+  params.buffs[1].name = "Sharp Eyes";
+  params.buffs[1].cast_seconds = 0.3;
+
+  // Both go up on the first step, nine-tenths of a second of animation
+  // against a one-second swing. The last raised is the one in hand.
+  sim.Advance(params, 0.1);
+  EXPECT_EQ(sim.view().attack_name, "Sharp Eyes");
+  EXPECT_NEAR(sim.view().attack_fraction, 1.0 / 3.0, 1e-9);
+  sim.Advance(params, 0.1);
+  EXPECT_EQ(sim.view().attack_name, "Sharp Eyes");
+  EXPECT_NEAR(sim.view().attack_fraction, 2.0 / 3.0, 1e-9);
+
+  // Finished, and the one under it takes the bar from the top.
+  sim.Advance(params, 0.1);
+  EXPECT_EQ(sim.view().attack_name, "Epic Adventure");
+  EXPECT_NEAR(sim.view().attack_fraction, 0.0, 1e-9);
+  sim.Advance(params, 0.3);
+  EXPECT_EQ(sim.view().attack_name, "Epic Adventure");
+  EXPECT_NEAR(sim.view().attack_fraction, 0.5, 1e-9);
+
+  // Out of debt: the swing has the bar back, and nothing has been landed yet.
+  sim.Advance(params, 0.3);
+  EXPECT_EQ(sim.view().attack_name, "Hurricane");
+  EXPECT_NEAR(sim.view().attack_fraction, 0.0, 1e-9);
+  EXPECT_EQ(sim.view().damage_this_step, 0.0);
+}
+
+// A cast raised over a part-charged swing holds the bar for the whole of its
+// animation too. Whether the clock it came off had enough banked to cover it
+// is the swing's business; the character is casting either way.
+TEST(CombatSimTest, ACastTakesTheBarOverAPartChargedSwing) {
+  Mob snail = MakeMob("Snail", 1e9);
+  CombatSim sim;
+  CombatParams params = MakeParams(8.0, 1e9, {MakeType(&snail, 10.0, 1)});
+  params.attacks[0].name = "Hurricane";
+  GiveBuff(params, /*duration=*/1.0, /*cooldown=*/1.0, /*factor=*/1.0);
+  params.buffs[0].name = "Sharp Eyes";
+  params.buffs[0].cast_seconds = 0.5;
+
+  // Five steps: the opening cast, three the swing charges through, and the
+  // buff coming round again half a second into the swing's own clock.
+  for (int step = 0; step < 5; ++step) {
+    sim.Advance(params, 0.25);
+  }
+  ASSERT_EQ(sim.view().attack_name, "Sharp Eyes");
+  EXPECT_DOUBLE_EQ(sim.view().attack_fraction, 0.5);
+
+  // Done casting, and the swing has every second it had charged for.
+  sim.Advance(params, 0.25);
+  EXPECT_EQ(sim.view().attack_name, "Hurricane");
+  EXPECT_DOUBLE_EQ(sim.view().attack_fraction, 0.0625);
 }
 
 // Smokescreen's shape: a buff that costs the mob rather than paying the
