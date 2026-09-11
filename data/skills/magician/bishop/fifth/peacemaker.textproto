@@ -21,6 +21,12 @@
 # over three quarters of a second first, and nothing here has anywhere for it
 # to fly.
 #
+# The three beats fall TOGETHER rather than on their own clock: a swing told
+# apart by `cast_interval_ms` re-lands the whole of itself on every beat, and
+# the whole of this one is the light as well as the orb. Telling them apart
+# would burst the light three times. Over the 700ms they would have spanned
+# the map does not move anyway.
+#
 # Dropped: the 350 MP, untracked; the recast that dismisses an orb already out,
 # moot on a ten-second wait; and the immunity to attack reflection, which
 # nothing here has.
@@ -41,7 +47,6 @@ cooldown_seconds: 10.0
 max_enemies: 6
 lines: 4
 casts: 3
-cast_interval_ms: 350
 base {
   skill_pct: 3.64
   hp_recover_pct: 0.45
