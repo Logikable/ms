@@ -361,6 +361,26 @@ TEST_F(SkillInspectPanelTest, ABoostNamesTheSkillItReachesAcrossTo) {
   EXPECT_EQ(RenderAt(bare, 1).find("Boosts Wind Arrow"), std::string::npos);
 }
 
+// A buff that widens another skill says what the extra strikes land for and
+// the crowd they find -- neither is on the widened skill's own page, which
+// states what it does when nothing is standing over it.
+TEST_F(SkillInspectPanelTest, ABoostSaysWhatTheHitsItHandsOverLandFor) {
+  Skill barrage = IronBody();
+  barrage.set_kind(SKILL_KIND_ACTIVE);
+  barrage.mutable_buff()->set_duration_seconds(30.0);
+  SkillBoost* spread = barrage.mutable_buff()->add_boost();
+  spread->set_skill_name("Quad Star");
+  SwingHit* stars = spread->add_extra_hit();
+  stars->set_label("Spread");
+  stars->set_casts(3);
+  stars->set_lines(4);
+  stars->set_max_enemies(4);
+  stars->mutable_base()->set_skill_pct(3.79);
+  EXPECT_NE(RowIn(RenderAt(barrage, 1), "Boosts Quad Star",
+                  "Spread 379% x4 x3 = 4548% on 4 enemies"),
+            std::string::npos);
+}
+
 // One skill with two ways of hurting things: the swing the player holds the
 // key for, and the turret it leaves behind. Both halves belong on the one page,
 // or the player buys twenty levels of a skill and sees half of what they got.
