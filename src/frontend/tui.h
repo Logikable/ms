@@ -160,7 +160,7 @@ class Tui {
   void Tick();
   // Raises the card for whatever the watcher noticed. Called after events as
   // well as after ticks, because combat levels a character during a tick while
-  // an advancement and the Level-Up item happen during an event.
+  // an advancement happens during an event.
   void NoticeProgress();
   // The panel the player is looking at, or kNoPanel when the main screen is
   // not what is in front of them. panel_focus_ still names a panel while the

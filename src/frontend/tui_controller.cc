@@ -651,11 +651,6 @@ Screen TuiController::SeedSymbolScreen(Screen next) {
 
 bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   Screen next;
-  // The debug Level-Up item is used from this menu, and a level gained hands
-  // things over out of the catalogs. Measured around the call rather than
-  // hooked to that one entry: whatever else ever grants a level from here is
-  // covered by the same two lines.
-  int level_before = state_.character.proto().level();
   if (panel_focus_ == kEquipPanel) {
     next = equip_panel_.OnMenuEvent(event, scroll_panel_);
   } else if (inventory_panel_.on_tab_bar()) {
@@ -663,7 +658,6 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   } else {
     next = inventory_panel_.OnMenuEvent(event, scroll_panel_);
   }
-  GrantLevelRewards(state_, level_before, state_.character.proto().level());
   if (next == kInspect) {
     subject_ = SelectedItem();
   }

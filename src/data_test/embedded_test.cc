@@ -32,13 +32,12 @@ TEST(EmbeddedDataTest, EquipsParse) {
 TEST(EmbeddedDataTest, ItemsParse) {
   std::map<std::string, ItemPrototype> items =
       LoadTextProtoMap<ItemPrototype>(EmbeddedItems());
-  ASSERT_TRUE(items.count("level_up") > 0);
-  EXPECT_EQ(items["level_up"].effect(), ITEM_EFFECT_LEVEL_UP);
-  // One drop out of each band's folder. level_up alone sits at the top of
-  // data/items, so it would still be here if the glob stopped recursing and
-  // every Etc drop in the game quietly went missing.
+  // One drop out of each band's folder: every item in the game sits in a
+  // subfolder, so a glob that stopped recursing would hand back an empty map
+  // rather than a short one.
   EXPECT_TRUE(items.count("green_snail_shell") > 0);
   EXPECT_TRUE(items.count("wooden_board") > 0);
+  EXPECT_TRUE(items.count("spell_trace") > 0);
 }
 
 // Spell traces are bought, never sold for anything. They are the currency

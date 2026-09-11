@@ -10,15 +10,6 @@ enum ItemCategory {
   ITEM_CATEGORY_ETC = 2;
 }
 
-// What using an item does. Most items do nothing yet and leave this unset,
-// which is what makes their Use entry inert.
-enum ItemEffect {
-  ITEM_EFFECT_UNSPECIFIED = 0;
-  // Advances the character one level, whatever their EXP. A debugging tool
-  // rather than something the game hands out.
-  ITEM_EFFECT_LEVEL_UP = 1;
-}
-
 // The colour of a currency item's mark. The mark's SHAPE says which stage of
 // the game the token belongs to, and its colour which piece it buys, so a
 // player reads both off one glyph without a legend.
@@ -63,9 +54,9 @@ message ItemPrototype {
   // What the item is, in a sentence, for the inspect screen. A stack has no
   // stats to show, so this is the whole of what inspecting one tells you.
   string description = 5;
-  // What one copy does when used. Unset means nothing happens, and the Use
-  // entry is offered but inert.
-  ItemEffect effect = 6;
+  // 6 was `effect`, what one copy did when used. Nothing in the game was ever
+  // usable but a debug Level-Up item, which is gone.
+  reserved 6;
   // Meso one copy costs in the shop. 0 = not stocked. Naming a price here is
   // the whole of how a stackable joins the shop, exactly as it is for equips.
   int32 shop_price = 7;

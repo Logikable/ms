@@ -217,13 +217,12 @@ enum PotMenuItem : int {
   kPotMenuBuyPerm = 2,
   kPotMenuClose = 3,
 };
-// Entries of the Use/Etc stackable context menu.
+// Entries of the Etc stackable context menu.
 enum StackMenuItem : int {
   kStackInspect = 0,
-  kStackUse = 1,
-  kStackSell = 2,
-  kStackMultiSell = 3,
-  kStackClose = 4,
+  kStackSell = 1,
+  kStackMultiSell = 2,
+  kStackClose = 3,
 };
 struct ScrollResult {
   ScrollOutcome outcome;

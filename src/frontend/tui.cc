@@ -1180,8 +1180,7 @@ bool Tui::OnEvent(ftxui::Event event) {
   // Tab that walked the player onto a panel waiting to be visited, and its gold
   // should be gone in the frame this event draws rather than the one after.
   celebration_.Visit(FocusedPanel());
-  // Advancement happens here rather than in the tick, and so does the debug
-  // Level-Up item.
+  // Advancement happens here rather than in the tick.
   NoticeProgress();
   return handled;
 }

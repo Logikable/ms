@@ -52,11 +52,6 @@ Character MakeBaseBeginnerProto() {
   return proto;
 }
 
-// How many Level-Up items the workbench opens with. Enough to carry the
-// character it starts as past every gate in the unlock table, and to keep
-// earning AP past kTrialLevelCap, since LevelUp is not bounded by it.
-constexpr int kTestLevelUpItems = 199;
-
 // Everything the workbench dresses a job in: the best of each thing it carries
 // that its starting level can wear. Advancing hands over gear for the level it
 // happens at, and the workbench starts at the TOP of an advancement, so a level
@@ -722,14 +717,6 @@ void SeedTest(GameState& state, const TestOptions& test) {
   // sixteen presses of the button.
   state.character.AddMeso(100000000000);
 
-  // The ladder in a bag. Skipped when the catalog has no such item, as every
-  // other piece of seeding is.
-  std::map<std::string, ItemPrototype>::const_iterator level_up =
-      state.items.find("level_up");
-  if (level_up != state.items.end()) {
-    state.character.AddStackable(level_up->second, kTestLevelUpItems);
-  }
-
   std::map<std::string, ItemPrototype>::const_iterator trace =
       state.items.find("spell_trace");
   if (trace != state.items.end()) {
@@ -846,9 +833,9 @@ void MaxVMatrix(GameState& state) {
 // number is priced against what the climb pays by then -- max_character.cc
 // carries the arithmetic band by band.
 //
-// Nothing of the workbench is here. No purse to spend, no Level-Up items, no
-// EXP bonus and no spare gear: a fight measured against this character has to
-// be measured against one the game could really produce.
+// Nothing of the workbench is here. No purse to spend, no EXP bonus and no
+// spare gear: a fight measured against this character has to be measured
+// against one the game could really produce.
 void SeedMax(GameState& state, const TestOptions& options) {
   // The same default the workbench takes: the top of the line as far as the
   // game is written, which is where a boss roster is measured from.
@@ -906,11 +893,8 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       skills(std::move(skills_arg)),
       equip_sets(std::move(sets)),
       rng(seed.has_value() ? *seed : std::random_device{}()),
-      // Both modes start at level 1. The workbench used to start at 10,
-      // standing at its first advancement, but the game reveals itself a
-      // level at a time now and starting part way up would skip the half of
-      // it worth watching. SeedTest hands it Level-Up items instead, so a
-      // tester climbs the ladder on demand rather than beginning above it.
+      // Every mode builds its character up from a level-1 Beginner; where the
+      // climb stops is --level's to say, and the seeding below walks it there.
       character(rng, MakeBaseBeginnerProto()),
       created_unix_seconds(static_cast<int64_t>(std::time(nullptr))) {
   if (mode == GameMode::kTest) {

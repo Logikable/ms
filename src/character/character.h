@@ -322,11 +322,6 @@ class CharacterInstance {
   // carries is worth nothing either -- scrolls and stars pay out at the base
   // item's price, and a trace pays out at none.
   int64_t SellEquip(int index);
-  // Uses one copy from the `index`-th stack in `category`: applies the item's
-  // effect and consumes it, erasing the stack once it empties. Returns false
-  // and consumes nothing if the index is out of range or the item has no
-  // effect -- an item that does nothing is not spent doing it.
-  bool UseStackable(ItemCategory category, int index);
   // Buys `count` copies of `proto` at its shop_price each, deducting the meso
   // and putting the copies in the bag. All or nothing: returns false and
   // changes nothing if `count` is not positive, the item is not for sale, or

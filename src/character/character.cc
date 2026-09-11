@@ -2157,28 +2157,6 @@ bool CharacterInstance::BuyBackStack(
   return true;
 }
 
-bool CharacterInstance::UseStackable(ItemCategory category, int index) {
-  std::vector<StackableItem>& stacks = StacksFor(category);
-  if (index < 0 || index >= static_cast<int>(stacks.size())) {
-    return false;
-  }
-  StackableItem& stack = stacks[index];
-  // Read before the stack is touched: applying the effect may look at the
-  // character, and erasing the stack would invalidate the reference.
-  ItemEffect effect = stack.prototype().effect();
-  if (effect == ITEM_EFFECT_UNSPECIFIED) {
-    return false;
-  }
-  if (effect == ITEM_EFFECT_LEVEL_UP) {
-    LevelUp();
-  }
-  stack.add_count(-1);
-  if (stack.count() <= 0) {
-    stacks.erase(stacks.begin() + index);
-  }
-  return true;
-}
-
 bool CharacterInstance::Buy(const EquipPrototype& proto, int count) {
   // Presence, not size: the shop stocks one item for nothing, and a price of
   // zero is what it charges rather than a refusal to sell.

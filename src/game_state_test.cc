@@ -98,13 +98,9 @@ GameState MakeTestModeStateWithSkills(TestSkills skills = TestSkills::kZero) {
                    GameMode::kTest, test);
 }
 
-// The item catalog under the key test mode's seeding asks for, plus a currency
-// and an ordinary Etc item to tell it from.
-std::map<std::string, ItemPrototype> LevelUpCatalog() {
-  ItemPrototype item;
-  item.set_name("Level-Up");
-  item.set_category(ITEM_CATEGORY_USE);
-  item.set_effect(ITEM_EFFECT_LEVEL_UP);
+// The item catalog test mode's seeding asks for: a currency, an ordinary Etc
+// item to tell it from, and the traces the workbench is handed.
+std::map<std::string, ItemPrototype> SeededItemCatalog() {
   ItemPrototype token;
   token.set_name("Weapon Token");
   token.set_category(ITEM_CATEGORY_ETC);
@@ -119,10 +115,7 @@ std::map<std::string, ItemPrototype> LevelUpCatalog() {
   trace.set_name("Spell Trace");
   trace.set_category(ITEM_CATEGORY_ETC);
   trace.set_max_stack(30000);
-  return {{"level_up", item},
-          {"weapon_token", token},
-          {"horn", horn},
-          {"spell_trace", trace}};
+  return {{"weapon_token", token}, {"horn", horn}, {"spell_trace", trace}};
 }
 
 // The stack of `name` on `category`'s tab, or nullptr when there is none.
@@ -137,12 +130,12 @@ const StackableItem* FindStack(const GameState& state, ItemCategory category,
 }
 
 GameState MakeTestModeStateWithItems() {
-  return GameState(SwordCatalog(), {}, LevelUpCatalog(), {}, {}, {},
+  return GameState(SwordCatalog(), {}, SeededItemCatalog(), {}, {}, {},
                    GameMode::kTest);
 }
 
 GameState MakePlayModeStateWithItems() {
-  return GameState(SwordCatalog(), {}, LevelUpCatalog(), {}, {}, {},
+  return GameState(SwordCatalog(), {}, SeededItemCatalog(), {}, {}, {},
                    GameMode::kPlay);
 }
 
@@ -581,21 +574,6 @@ TEST(GameStateTest, ChosenJobWearsTheWeaponItsLevelTopsOutAt) {
   ASSERT_TRUE(hunter.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
   EXPECT_EQ(hunter.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).name(),
             "Asianic Bow");
-}
-
-// Levels past the workbench's starting sixty, spent on demand. LevelUp is not
-// bounded by the trial cap, so this is also where more AP and SP come from
-// once the seeding has spent what the climb to sixty earned.
-TEST(GameStateTest, TestModeStartsWithLevelUpItems) {
-  GameState state = MakeTestModeStateWithItems();
-  const std::vector<StackableItem>& use =
-      state.character.stackables(ITEM_CATEGORY_USE);
-  ASSERT_EQ(use.size(), 1u);
-  EXPECT_EQ(use[0].name(), "Level-Up");
-  // Enough of them to climb past every gate in the unlock table without
-  // farming a level of it.
-  EXPECT_GT(use[0].count(), UnlockLevel(Feature::kStarForce));
-  EXPECT_EQ(use[0].prototype().effect(), ITEM_EFFECT_LEVEL_UP);
 }
 
 // The token shelves are unbuyable without one, and farming for one is exactly

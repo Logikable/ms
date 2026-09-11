@@ -1,8 +1,8 @@
 /* Spotting a level or a job that has changed since the last look.
  *
  * Polled rather than pushed: the character has no way to call back, and
- * polling catches every route to a new level -- combat EXP, the debug
- * Level-Up item, an advancement -- with one piece of code.
+ * polling catches every route to a new level -- combat EXP, an advancement --
+ * with one piece of code.
  */
 #ifndef MS_SRC_FRONTEND_PROGRESS_WATCHER_H_
 #define MS_SRC_FRONTEND_PROGRESS_WATCHER_H_
