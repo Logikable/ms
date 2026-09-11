@@ -321,6 +321,28 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "measure",
+    srcs = ["measure.cc"],
+    hdrs = ["measure.h"],
+    deps = [
+        ":encounter",
+        ":fight",
+    ],
+)
+
+cc_test(
+    name = "measure_test",
+    size = "small",
+    srcs = ["measure_test.cc"],
+    deps = [
+        ":encounter",
+        ":measure",
+        "//src/protos:mob_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "fight_test",
     size = "small",
