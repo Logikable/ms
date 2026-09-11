@@ -1,0 +1,74 @@
+# The Bishop's second job node: two angels for thirty seconds of a two-minute
+# wait, one handing out damage and one dealing it.
+#
+# The Angel of Benevolence RE-GRANTS rather than standing -- GMS gives it a
+# four-second buff every five seconds it is out, so the damage is up four
+# seconds in five, and 20% of the wait rather than 25%. See Buff.duty_seconds;
+# folding the duty into the numbers instead would have the card state 80%
+# where GMS states 100%.
+#
+# The Avenging Angel's 4.02-second clock is published nowhere: every number in
+# GMS's common block is spent by the readout, so the client holds this one. It
+# is the community DPM calculator's measurement, the same source whose 3.03
+# seconds Bahamut, Ifrit and Elquines already ship. Seven strikes a cast comes
+# to 77,000%, or 642%/s of the wait -- well under Spirit of Snow's 1,715%/s,
+# which is what a node carrying a buff this size should be.
+#
+# The mark is worth about a twentieth of a percent and is correct to have. It
+# is spent by ONE LINE -- GMS's footnotes count the spend in hits -- so seven
+# marks a cast buy seven lifted lines against the fourteen hundred a Bishop
+# lands in the same two minutes. The angel cannot spend its own: GMS gives it
+# no element, and only a holy hit spends one.
+#
+# The party's share keeps GMS's INT steps verbatim, as Benediction's do: 43,750
+# INT reaches the 40% ceiling and a Bishop here tops out near 8,700, so the
+# party is paid eleven points of it. Rescaling would state a different skill.
+#
+# Dropped: the MP, the attack reflection nothing here has, and "targets the
+# boss with the highest HP first" -- a boss swing already takes the healthiest
+# part standing. GMS's own "not usable while Bahamut is active" is dropped
+# from the description too, being the older wording: the client dismisses the
+# dragon instead, which is what silences_skill_name does and what the card's
+# Dismisses row says.
+name: "Angel of Balance"
+description:
+  "Summons an angel of compassion and vengeance. The Angel of Benevolence "
+  "heals your party and increases your damage and theirs; the Avenging Angel "
+  "strikes the enemy and marks what it hits."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 2 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 120.0
+mark {
+  duration_seconds: 60.0
+  final_dmg_pct: 0.10
+  lifted_tag: SKILL_TAG_HOLY
+}
+buff {
+  duration_seconds: 30.0
+  duty_seconds: 4.0
+  duty_interval_seconds: 5.0
+  silences_skill_name: "Bahamut"
+  base { damage_pct: 1.00 }
+  ally_base {
+    damage_pct: 0.05
+    regen_pct: 0.102
+    regen_interval_seconds: 5.0
+  }
+  ally_per_level { regen_pct: 0.002 }
+  ally_int_lever {
+    int_step: 1250
+    effect { damage_pct: 0.01 }
+    cap { damage_pct: 0.40 }
+  }
+  pulse {
+    label: "Avenging Angel"
+    cast_interval_seconds: 4.02
+    lines: 10
+    max_enemies: 12
+    base { skill_pct: 5.20 }
+    per_level { skill_pct: 0.20 }
+  }
+}

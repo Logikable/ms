@@ -1731,6 +1731,12 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
                       FormatNumber(buff.stage_interval_seconds()) + "s"));
     per_stage = " each";
   }
+  // The summon this buff puts out for as long as it stands. A statement
+  // rather than a number, like the Element row: what the player needs to know
+  // is that the dragon stops, and there is no figure to put on it.
+  if (!buff.silences_skill_name().empty()) {
+    rows.push_back(EffectRow("Dismisses", buff.silences_skill_name()));
+  }
   // A buff that grants in bursts says so, or every row below would read as
   // held for the whole window the heading just stated.
   if (buff.duty_seconds() > 0.0 && buff.duty_interval_seconds() > 0.0) {

@@ -16,7 +16,7 @@ description:
 kind: SKILL_KIND_ACTIVE
 placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE_V skill_order: 5 }
 placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 5 }
-placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 2 }
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 3 }
 v_node: V_NODE_KIND_ARCHETYPE
 max_level: 30
 base_delay_ms: 120

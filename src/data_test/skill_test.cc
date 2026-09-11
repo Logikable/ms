@@ -2245,6 +2245,7 @@ const char* const kPartySkills[] = {
     "Advanced Blessing - Extra Point",
     "Advanced Blessing - Ferocity",
     "Angel Ray",
+    "Angel of Balance",
     // The one party half that grows on the caster's own INT rather than on
     // their level, and is then split between everybody standing in it.
     "Benediction",
