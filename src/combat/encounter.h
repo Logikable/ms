@@ -555,6 +555,13 @@ struct BuffOption {
   // Buff::duration_seconds_per_dot.
   double duration_seconds_per_dot = 0.0;
   int dot_count_cap = 0;
+  // Seconds this buff GRANTS of every duty_interval_seconds it stands. The
+  // buff itself never flickers -- its pulse, its shell and its magazine run
+  // through the gap -- only what it is handing the character. Both 0 for a
+  // buff granting for the whole of its window, which is every one but Angel of
+  // Balance's. See Buff::duty_seconds.
+  double duty_seconds = 0.0;
+  double duty_interval_seconds = 0.0;
   // The forms this buff can be raised in, for the fight to choose between at
   // each cast. Empty for a buff with one form, which is every one but Burning
   // Soul Blade -- and where it is filled, duration_seconds above is the

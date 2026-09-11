@@ -509,6 +509,24 @@ TEST(SkillDataTest, NoSheddingBuffAlsoBleeds) {
   }
 }
 
+// A duty cycle is two numbers and means nothing without both: an interval with
+// no grant in it would silence the buff, and a grant with no interval would
+// never come back round.
+TEST(SkillDataTest, ADutyCycleStatesBothOfItsNumbers) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Buff& buff = entry.second.buff();
+    if (buff.duty_seconds() <= 0.0 && buff.duty_interval_seconds() <= 0.0) {
+      continue;
+    }
+    EXPECT_GT(buff.duty_seconds(), 0.0)
+        << entry.first << " cycles its grant on no grant";
+    EXPECT_LT(buff.duty_seconds(), buff.duty_interval_seconds())
+        << entry.first << " grants for its whole cycle, which is no cycle";
+    EXPECT_LE(buff.duty_interval_seconds(), buff.duration_seconds())
+        << entry.first << " cycles slower than it stands";
+  }
+}
+
 // Whether any form of the buff bleeds a pulse that states a base.
 bool AnyStancePulseHasBase(const Buff& buff) {
   for (const Stance& stance : buff.stance()) {

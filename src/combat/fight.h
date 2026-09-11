@@ -549,11 +549,19 @@ class CombatSim {
     // buff with one form. Chosen at the cast and left alone while it stands:
     // GMS took away the key that swapped a summoned sword between its forms.
     int stance = -1;
+    // Seconds into the duty cycle of a buff that grants in bursts, counted
+    // from the raise and wrapping at its interval. Held at 0 for every buff
+    // that grants for the whole of its window, which never reads it.
+    double duty_phase = 0.0;
   };
   std::vector<BuffClock> buffs_;
-  // Which buffs are standing, as the bitmask CombatParams indexes its damage
-  // tables by. Worked out once a step, at the top.
+  // Which buffs are STANDING, and which of those are granting right now. The
+  // two differ only while a duty-cycled buff is in the gap between grants: the
+  // angel goes on striking there, so its pulse is gated on the first mask
+  // while the damage tables are picked with the second. Worked out once a
+  // step, at the top. See BuffOption::duty_seconds.
   int buff_mask_ = 0;
+  int lever_mask_ = 0;
   // What the character has dealt this encounter and how long they have been
   // dealing it, for the rate SecondsLeft divides remaining HP by. Map-scoped:
   // another encounter's damage says nothing about how long this one has left.

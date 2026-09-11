@@ -1504,6 +1504,10 @@ BuffOption BuffClockFor(const Buff& buff, int level, const SkillBoosts& boost,
   option.duration_seconds_per_dot = buff.duration_seconds_per_dot() *
                                     (1.0 + buff_duration_pct) * speed_factor;
   option.dot_count_cap = buff.dot_count_cap();
+  // Game-scaled like every other clock here: the angel re-grants on the
+  // stretched second, as it strikes on one.
+  option.duty_seconds = buff.duty_seconds() * speed_factor;
+  option.duty_interval_seconds = buff.duty_interval_seconds() * speed_factor;
   if (buff.has_shield()) {
     option.shield_hits = ShieldHitsAt(buff.shield(), level) + boost.shield_hits;
     option.boss_damage_taken_pct = buff.shield().boss_damage_taken_pct() +

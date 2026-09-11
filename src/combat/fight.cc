@@ -1556,23 +1556,27 @@ void CombatSim::Reflect(const CombatParams& params, double damage_taken) {
   queue_.erase(queue_.begin());
 }
 
+// The four damage tables, all picked with the LEVER mask: what is being
+// granted this instant, which is what a strike landing now is worth. Whether a
+// buff is standing is a different question, and the gates below ask it of
+// buff_mask_.
 const std::vector<AttackOption>& CombatSim::Attacks(
     const CombatParams& params) const {
-  return params.Attacks(buff_mask_);
+  return params.Attacks(lever_mask_);
 }
 
 int CombatSim::FreezeCap(const CombatParams& params) const {
-  return params.FreezeCap(buff_mask_);
+  return params.FreezeCap(lever_mask_);
 }
 
 const std::vector<AttackOption>& CombatSim::AutoAttacks(
     const CombatParams& params) const {
-  return params.AutoAttacks(buff_mask_);
+  return params.AutoAttacks(lever_mask_);
 }
 
 const std::vector<AttackOption>& CombatSim::TriggeredAttacks(
     const CombatParams& params) const {
-  return params.TriggeredAttacks(buff_mask_);
+  return params.TriggeredAttacks(lever_mask_);
 }
 
 // Whether a shell is worth raising now. It is the one buff held back rather
@@ -1597,6 +1601,21 @@ bool CombatSim::ShieldWanted(const CombatParams& params,
   return player_hp_ < kHealBelowFraction * params.max_player_hp;
 }
 
+namespace {
+
+// Whether a standing buff is granting its levers this instant. True for the
+// whole window of every buff that grants steadily; true four seconds in five
+// for the angel, which re-grants rather than standing. See
+// BuffOption::duty_seconds.
+bool Granting(const BuffOption& buff, double duty_phase) {
+  if (buff.duty_seconds <= 0.0 || buff.duty_interval_seconds <= 0.0) {
+    return true;
+  }
+  return std::fmod(duty_phase, buff.duty_interval_seconds) < buff.duty_seconds;
+}
+
+}  // namespace
+
 void CombatSim::RunBuffs(const CombatParams& params, double dt) {
   int count = static_cast<int>(params.buffs.size());
   // Seeded with each buff's full charge rather than with nothing, or one
@@ -1608,11 +1627,13 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     }
   }
   buff_mask_ = 0;
+  lever_mask_ = 0;
   for (int i = 0; i < count; ++i) {
     const BuffOption& buff = params.buffs[i];
     BuffClock& clock = buffs_[i];
     clock.left = std::max(0.0, clock.left - dt);
     clock.cooldown_left = std::max(0.0, clock.cooldown_left - dt);
+    clock.duty_phase += dt;
     // Put up the moment it comes round, and only with something to fight: one
     // spent on an empty map is one the player does not have when the mobs
     // land. Nothing is recast while it is still standing -- a player timing
@@ -1635,6 +1656,7 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
       clock.cooldown_left = buff.cooldown_seconds;
       clock.charge_left = buff.charge_lines;
       clock.blocks_left = buff.shield_hits;
+      clock.duty_phase = 0.0;
       // A fresh load, whole: what was left of the last one is not carried.
       if (buff.magazine_attack >= 0 &&
           buff.magazine_attack < static_cast<int>(attack_clocks_.size())) {
@@ -1650,6 +1672,9 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     }
     if (clock.left > 0.0) {
       buff_mask_ |= 1 << i;
+      if (Granting(buff, clock.duty_phase)) {
+        lever_mask_ |= 1 << i;
+      }
       continue;
     }
     // Lapsed, so whatever it still had loaded goes with it.
@@ -1744,7 +1769,9 @@ bool CombatSim::LayBuffs(const CombatParams& params, int swung, bool on_cast) {
     }
     // The mask is built once a step, before anything swings, so one raised
     // mid-swing has to say so itself or the strike would be priced without it.
+    buffs_[i].duty_phase = 0.0;
     buff_mask_ |= 1 << i;
+    lever_mask_ |= 1 << i;
     laid = true;
   }
   return laid;

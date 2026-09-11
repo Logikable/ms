@@ -908,6 +908,19 @@ message Buff {
   // same length whatever the enemies are carrying, which is every other one.
   double duration_seconds_per_dot = 18;
   int32 dot_count_cap = 19;
+  // The levers above stand only `duty_seconds` of every
+  // `duty_interval_seconds` while the buff is up, over and over for as long as
+  // it is. Angel of Balance is what they exist for: GMS's angel re-grants a
+  // four-second buff every five seconds it stands, so the damage is up four
+  // seconds in five for the thirty the summon lasts.
+  //
+  // What flickers is the GRANT, never the buff. Its pulse goes on striking,
+  // its shell goes on blocking and its magazine stays loaded through the gap:
+  // the angel attacks on its own clock whatever the buff happens to be
+  // handing out. 0 for a buff granting for the whole of its window, which is
+  // every other one.
+  double duty_seconds = 21;
+  double duty_interval_seconds = 22;
 }
 
 // A chance a swing has to land harder on one of the enemies it reached, and

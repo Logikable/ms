@@ -1709,6 +1709,13 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
                       FormatNumber(buff.stage_interval_seconds()) + "s"));
     per_stage = " each";
   }
+  // A buff that grants in bursts says so, or every row below would read as
+  // held for the whole window the heading just stated.
+  if (buff.duty_seconds() > 0.0 && buff.duty_interval_seconds() > 0.0) {
+    rows.push_back(EffectRow(
+        "Granted", FormatNumber(buff.duty_seconds()) + "s of every " +
+                       FormatNumber(buff.duty_interval_seconds()) + "s"));
+  }
   Append(LeverRows(base, per, level, per_stage), rows);
   // A Final Attack the buff hands over for as long as it stands. Under the
   // buff's own heading, which has already said how long that is.

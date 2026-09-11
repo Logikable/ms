@@ -353,8 +353,34 @@ struct BuffClocks {
   // what is left with it. 0 for every attack no buff loads. Kept here because
   // it is the buff loop that fills and empties it. See Buff.magazine.
   std::vector<int> magazine;
+  // Seconds into the duty cycle of each buff that grants in bursts, counted
+  // from its raise. 0 for every buff granting steadily, which never reads it.
+  std::vector<double> duty_phase;
+  // Which buffs are standing, and which of those are granting this instant.
+  // They differ only in a duty-cycled buff's gap -- see CombatSim's own pair.
   int mask = 0;
+  int lever_mask = 0;
 };
+
+// Whether a standing buff is granting its levers, mirroring CombatSim's
+// Granting. See BuffOption::duty_seconds.
+bool Granting(const BuffOption& buff, double duty_phase) {
+  if (buff.duty_seconds <= 0.0 || buff.duty_interval_seconds <= 0.0) {
+    return true;
+  }
+  return std::fmod(duty_phase, buff.duty_interval_seconds) < buff.duty_seconds;
+}
+
+// Seconds until a duty-cycled buff next starts or stops granting. Infinity for
+// one that grants steadily, which never changes on its own.
+double NextDutyEdge(const BuffOption& buff, double duty_phase) {
+  if (buff.duty_seconds <= 0.0 || buff.duty_interval_seconds <= 0.0) {
+    return std::numeric_limits<double>::infinity();
+  }
+  double phase = std::fmod(duty_phase, buff.duty_interval_seconds);
+  return phase < buff.duty_seconds ? buff.duty_seconds - phase
+                                   : buff.duty_interval_seconds - phase;
+}
 
 // Takes a landed swing's lines off every buff bought with them, and only while
 // that buff is down -- the same rule CombatSim::CreditBuffs follows.
@@ -387,7 +413,9 @@ void RunBuffClocks(const CombatParams& params, double step, BuffClocks& c) {
     }
   }
   c.magazine.resize(params.attacks.size(), 0);
+  c.duty_phase.resize(params.buffs.size(), 0.0);
   c.mask = 0;
+  c.lever_mask = 0;
   for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
     const BuffOption& buff = params.buffs[i];
     bool stood_before = c.left[i] > 0.0;
@@ -397,6 +425,7 @@ void RunBuffClocks(const CombatParams& params, double step, BuffClocks& c) {
     double stood = std::min(step, c.left[i]);
     c.left[i] = std::max(0.0, c.left[i] - step);
     c.cooldown[i] = std::max(0.0, c.cooldown[i] - step);
+    c.duty_phase[i] += step;
     bool ready =
         buff.charge_lines > 0 ? c.charge[i] <= 0.0 : c.cooldown[i] <= 0.0;
     if (buff.laid_by_attack < 0 && c.left[i] <= 0.0 && ready &&
@@ -404,6 +433,7 @@ void RunBuffClocks(const CombatParams& params, double step, BuffClocks& c) {
       c.left[i] = BuffWindowSeconds(buff);
       c.cooldown[i] = buff.cooldown_seconds;
       c.charge[i] = buff.charge_lines;
+      c.duty_phase[i] = 0.0;
       stood = step;  // back up the moment it came down, so none of it is a gap
       // A fresh load, whole: what was left of the last one is not carried.
       if (buff.magazine_attack >= 0 &&
@@ -418,7 +448,12 @@ void RunBuffClocks(const CombatParams& params, double step, BuffClocks& c) {
     }
     if (c.left[i] > 0.0) {
       c.mask |= 1 << i;
+      if (Granting(buff, c.duty_phase[i])) {
+        c.lever_mask |= 1 << i;
+      }
     }
+    // What a gated pulse is priced on, and it is the BUFF's: the angel strikes
+    // through the gap its grant flickers off in.
     c.standing[i] += stood;
   }
 }
@@ -436,6 +471,7 @@ double NextBuffChange(const CombatParams& params, const BuffClocks& c) {
     }
     if (c.left[i] > 0.0) {
       soonest = std::min(soonest, c.left[i]);
+      soonest = std::min(soonest, NextDutyEdge(buff, c.duty_phase[i]));
     } else if (buff.laid_by_attack < 0 && buff.charge_lines <= 0 &&
                buff.duration_seconds > 0.0) {
       soonest = std::min(soonest, c.cooldown[i]);
@@ -453,6 +489,7 @@ void LayBuff(const CombatParams& params, int swung, BuffClocks& c) {
     }
     c.left[i] = BuffWindowSeconds(buff);
     c.cooldown[i] = buff.cooldown_seconds;
+    c.duty_phase[i] = 0.0;
     // A fresh load, whole, as RunBuffClocks hands one to a buff on its own
     // clock: what was left of the last one is not carried.
     if (buff.magazine_attack >= 0 &&
@@ -884,9 +921,10 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     if (pick <= 0) {
       pick = SwingToLay(params, clocks, cooldown);
       if (pick < 0) {
-        pick = BestSwing(params.Attacks(clocks.mask), cooldown, clocks.magazine,
-                         enemies, freeze, params.FreezeCap(clocks.mask),
-                         burning, frozen_left, scar_odds);
+        pick = BestSwing(params.Attacks(clocks.lever_mask), cooldown,
+                         clocks.magazine, enemies, freeze,
+                         params.FreezeCap(clocks.lever_mask), burning,
+                         frozen_left, scar_odds);
       }
     }
     if (pick < 0) {
@@ -899,7 +937,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     // is handed, the ice ticks in a loop, and a recharging attack is only ever
     // read where a swing lands.
     double step =
-        std::min(params.Attacks(clocks.mask)[pick].swing_seconds - phase,
+        std::min(params.Attacks(clocks.lever_mask)[pick].swing_seconds - phase,
                  NextBuffChange(params, clocks));
     step = std::min(std::max(step, kLeastStep), horizon - elapsed);
     RunBuffClocks(params, step, clocks);
@@ -912,7 +950,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     elapsed += step;
     // Read off the table for the buffs standing now: the same swing is worth
     // more under a buff, and which one it is was settled when it was aimed.
-    const AttackOption& swung = params.Attacks(clocks.mask)[pick];
+    const AttackOption& swung = params.Attacks(clocks.lever_mask)[pick];
     // A HELD swing is played to the end here. Nothing in this sim tracks what
     // one enemy has left, so there is nothing to let go early for -- and a
     // boss, which is what these numbers are for, is held to the end anyway.
@@ -941,7 +979,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     LightBurns(swung, enemies, pick, burning);
     scar_odds = CreditScar(swung, scar_odds);
     frozen_left = std::max(frozen_left, swung.freeze_seconds);
-    freeze = CreditFreeze(swung, freeze, params.FreezeCap(clocks.mask));
+    freeze = CreditFreeze(swung, freeze, params.FreezeCap(clocks.lever_mask));
     played.damage += landed;
     played.damage_by_attack[pick] += landed;
     played.seconds += swung.swing_seconds;

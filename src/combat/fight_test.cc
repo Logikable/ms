@@ -2944,6 +2944,48 @@ TEST(CombatSimTest, AnUnspentMagazineEmptiesWithItsBuff) {
   EXPECT_LT(fired, 8.0) << "the buff lapsed with charges still loaded";
 }
 
+// Angel of Balance's shape: a buff that stands for ten seconds but grants only
+// four seconds in every five, with a summon striking on its own clock
+// throughout. The swing hits for 10 and the buff doubles it, so what lands
+// says which seconds were granted.
+TEST(CombatSimTest, ADutyCycledBuffGrantsInBursts) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
+  params.attacks[0].damage_per_hit.assign(params.types.size(), 10.0);
+  GiveBuff(params, /*duration=*/10.0, /*cooldown=*/1000.0, /*factor=*/2.0);
+  params.buffs.back().duty_seconds = 4.0;
+  params.buffs.back().duty_interval_seconds = 5.0;
+
+  // Eight of the ten seconds at 20 and two at 10. Granted the whole window it
+  // would be 200.
+  EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 180.0);
+}
+
+// The grant flickers; the buff does not. A summon it put up strikes through
+// the gap, which is what keeps the two masks apart.
+TEST(CombatSimTest, ADutyCycledBuffsSummonStrikesThroughTheGap) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1e9, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
+  params.attacks[0].damage_per_hit.assign(params.types.size(), 0.0);
+  AttackOption pulse;
+  pulse.name = "Avenging Angel";
+  pulse.interval_seconds = 1.0;
+  pulse.damage_per_hit.assign(params.types.size(), 100.0);
+  pulse.needs_buff = 0;
+  params.auto_attacks.push_back(std::move(pulse));
+  GiveBuff(params, /*duration=*/10.0, /*cooldown=*/1000.0, /*factor=*/1.0);
+  params.buffs.back().duty_seconds = 4.0;
+  params.buffs.back().duty_interval_seconds = 5.0;
+  params.buffed[0]->auto_attacks = params.auto_attacks;
+
+  // Ten strikes over the ten seconds it stands, not the eight it grants.
+  EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 1000.0);
+}
+
 // A buff with two forms to choose between, the shape Burning Soul Blade has: a
 // short dense one and a long thin one, both bleeding through a pulse of their
 // own. Their pulses go in as auto attacks tagged with the form that fires them.
