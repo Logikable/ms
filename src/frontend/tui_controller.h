@@ -507,7 +507,6 @@ class TuiController {
   bool OnCubeEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnHammerEvent(ftxui::Event event);
-  bool OnHammerNoticeEvent(ftxui::Event event);
   bool OnTraceRecoverEvent(ftxui::Event event);
   bool OnTraceRecoverResultEvent(ftxui::Event event);
   bool OnSellEvent(ftxui::Event event);

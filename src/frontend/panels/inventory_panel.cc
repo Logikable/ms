@@ -357,6 +357,10 @@ void InventoryPanel::HideRefusedUpgrades(const EquipInstance& equip) {
   // begin with there is nothing for it to do, so it is not on the menu.
   if (!TakesUpgradeSlots(equip.prototype())) {
     menu_.Hide(kMenuHammer);
+  } else if (!equip.CanHammer()) {
+    // Greyed, not gone: both hammers are in, and a row that vanished at the
+    // second one would read as the feature going away.
+    menu_.Disable(kMenuHammer);
   }
   // Where a piece is worn is what decides whether a cube goes into it, and the
   // slots that refuse one -- the medal, the badge, the pocket -- refuse it for

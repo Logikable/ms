@@ -51,10 +51,9 @@ enum Screen : int {
   // question one cube asks in the middle. The one screen whose Confirm does
   // not close what it is standing on.
   kCubing,
-  // Hammer on the item menu: the question, and the notice an item that will
-  // take no more hammers answers with.
+  // Hammer on the item menu: the question a piece with a hammer left in it
+  // is asked. The entry is greyed once both are in.
   kHammer,
-  kHammerNotice,
   kTraceRecover,
   kTraceRecoverResult,
   kSell,

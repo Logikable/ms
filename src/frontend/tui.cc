@@ -810,8 +810,6 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(controller_.symbol_combine_panel().Render());
     case kHammer:
       return OverMain(controller_.hammer_panel().Render());
-    case kHammerNotice:
-      return OverMain(NoticeDialog());
     // The dialog is the panel's own, so the screen it belongs to is one state.
     case kMultiSell:
       return RenderMultiSell();

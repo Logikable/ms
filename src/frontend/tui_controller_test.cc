@@ -1662,36 +1662,6 @@ TEST_F(TuiControllerTest, AnUnaffordableHammerChangesNothing) {
             0);
 }
 
-// The third press on one item. The entry stands rather than vanishing, and
-// says why nothing happened.
-TEST_F(TuiControllerTest, AFullyHammeredItemSaysSo) {
-  LevelTo(UnlockLevel(Feature::kHammer));
-  state_->character.AddMeso(9 * kGoldenHammerCost);
-  Equip state;
-  state.set_equip_name(sword_.name());
-  state.set_remaining_upgrade_slots(sword_.upgrade_slots());
-  state.set_hammers(kMaxHammers);
-  state_->character.PickUp(std::make_unique<EquipInstance>(sword_, state));
-  state_->character.Equip(0);
-  RenderEquipPanel();
-
-  controller_->OpenEquipMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);
-
-  EXPECT_EQ(controller_->screen(), kHammerNotice);
-  ASSERT_EQ(controller_->notice_lines().size(), 1u);
-  EXPECT_EQ(controller_->notice_lines()[0], "This item is fully Hammered.");
-  EXPECT_TRUE(controller_->notice_is_refusal()) << "it is drawn in red";
-  EXPECT_EQ(state_->character.meso(), 9 * kGoldenHammerCost);
-
-  // And it leaves the player where they pressed, on the item's menu.
-  controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kItemMenu);
-}
-
 // The bag's copy of the same trip, which is the other half of ItemRef.
 TEST_F(TuiControllerTest, HammerBuysASlotOffTheBagMenu) {
   LevelTo(UnlockLevel(Feature::kHammer));

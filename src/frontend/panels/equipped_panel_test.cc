@@ -890,6 +890,28 @@ TEST_F(EquippedPanelTest, NoHammerEntryWithoutASlotToWiden) {
             std::string::npos);
 }
 
+// Both hammers in, and the entry stands there dim: gone, it would read as the
+// feature going away.
+TEST_F(EquippedPanelTest, TheHammerGreysOnAFullyHammeredPiece) {
+  sword_.set_upgrade_slots(1);
+  Equip state;
+  state.set_equip_name(sword_.name());
+  state.set_hammers(kMaxHammers);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_, state));
+  c_.Equip(0);
+  LevelTo(UnlockLevel(Feature::kHammer));
+  EquippedPanel panel(c_, account_, panel_focus_);
+  RenderComponent(panel.MakeComponent([]() {}));
+  panel.OpenMenu();
+
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kGearMenuHammer), 0)
+      << "a finished piece let the player onto the entry";
+  EXPECT_NE(RenderElement(panel.menu().Render(0, 0)).find("Hammer"),
+            std::string::npos)
+      << "greyed, not gone";
+}
+
 // Every item that takes stars at all carries the entry, greyed until its
 // slots are spent. Hidden, it would have made the order a secret: a player
 // scrolling a weapon would never see what scrolling it is for.

@@ -884,6 +884,26 @@ TEST_F(InventoryPanelTest, NoHammerEntryWithoutASlotToWiden) {
             std::string::npos);
 }
 
+// Both hammers in, and the entry stands there dim: gone, it would read as the
+// feature going away.
+TEST_F(InventoryPanelTest, TheHammerGreysOnAFullyHammeredPiece) {
+  LevelTo(UnlockLevel(Feature::kHammer));
+  sword_.set_upgrade_slots(1);
+  Equip state;
+  state.set_equip_name(sword_.name());
+  state.set_hammers(kMaxHammers);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_, state));
+  InventoryPanel panel(c_, account_, panel_focus_);
+  panel.OpenMenu();
+
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuHammer), 0)
+      << "a finished piece let the player onto the entry";
+  EXPECT_NE(RenderElement(panel.menu().Render(0, 0)).find("Hammer"),
+            std::string::npos)
+      << "greyed, not gone";
+}
+
 // --- the gold trail to a new upgrade ---
 
 // The far end of the trail that starts on the level-up card: the entry the

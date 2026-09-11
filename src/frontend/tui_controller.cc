@@ -469,8 +469,6 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnStarForceResultEvent(event);
     case kHammer:
       return OnHammerEvent(event);
-    case kHammerNotice:
-      return OnHammerNoticeEvent(event);
     case kTraceRecover:
       return OnTraceRecoverEvent(event);
     case kTraceRecoverResult:
@@ -587,15 +585,6 @@ Screen TuiController::SeedUpgradeScreen(Screen next) {
     OpenInspectCards();
   }
   if (next == kHammer) {
-    const EquipInstance* item = subject_.GetInstance(state_.character);
-    if (item == nullptr || !item->CanHammer()) {
-      // The entry stands on a piece that has taken both of its hammers, and
-      // says so when pressed: a row that vanished at the second one would
-      // read as the feature going away.
-      OpenNotice(kHammerNotice, {"This item is fully Hammered."},
-                 /*refusal=*/true);
-      return kHammerNotice;
-    }
     hammer_panel_.Reset(state_.character.meso());
   }
   return next;
@@ -1104,15 +1093,6 @@ bool TuiController::OnHammerEvent(ftxui::Event event) {
     HammerItem(state_.character, subject_);
   }
   screen_ = kMain;
-  return true;
-}
-
-bool TuiController::OnHammerNoticeEvent(ftxui::Event event) {
-  if (notice_prompt_.OnEvent(event)) {
-    // Back to the menu it was pressed on, the way a scroll with nowhere to go
-    // goes back to the scroll list: nothing happened, so nothing was left.
-    screen_ = kItemMenu;
-  }
   return true;
 }
 
