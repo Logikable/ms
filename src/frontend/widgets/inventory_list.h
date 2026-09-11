@@ -28,12 +28,11 @@ namespace ms {
 // The bag's tabs, in bar order. Multi-Sell shows every one but the shop.
 enum InventoryTab : int {
   kEquipTab = 0,
-  kUseTab = 1,
-  kEtcTab = 2,
+  kEtcTab = 1,
   // Not a list of anything the player owns -- it is the door to the shop, and
   // sits last because it is the only tab that leaves the panel.
-  kShopTab = 3,
-  kNumInventoryTabs = 4,
+  kShopTab = 2,
+  kNumInventoryTabs = 3,
 };
 
 extern const char* const kInventoryTabLabels[kNumInventoryTabs];
@@ -70,7 +69,7 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
                               ftxui::Element tail = nullptr,
                               int body_width = 0);
 
-// The header over a Use or Etc list, and one row of one.
+// The header over an Etc list, and one row of one.
 ftxui::Element StackHeader(ftxui::Element lead = nullptr,
                            ftxui::Element tail = nullptr, int body_width = 0);
 ftxui::Element RenderStackRow(const StackableItem& stack, bool on_cursor,

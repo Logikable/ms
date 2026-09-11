@@ -38,17 +38,11 @@ ftxui::Element Row(ftxui::Element lead, std::vector<ftxui::Element> cells,
 
 }  // namespace
 
-const char* const kInventoryTabLabels[kNumInventoryTabs] = {"Equip", "Use",
-                                                            "Etc", "Shop"};
+const char* const kInventoryTabLabels[kNumInventoryTabs] = {"Equip", "Etc",
+                                                            "Shop"};
 
 ItemCategory TabCategory(int tab) {
-  if (tab == kUseTab) {
-    return ITEM_CATEGORY_USE;
-  }
-  if (tab == kEtcTab) {
-    return ITEM_CATEGORY_ETC;
-  }
-  return ITEM_CATEGORY_UNSPECIFIED;
+  return tab == kEtcTab ? ITEM_CATEGORY_ETC : ITEM_CATEGORY_UNSPECIFIED;
 }
 
 std::vector<InventoryRowState> BuildEquipRows(

@@ -294,8 +294,7 @@ class TuiControllerTest : public testing::Test {
     shell.set_sell_price(sell_price);
     state_->character.AddStackable(shell, count);
     panel_focus_ = kInventoryPanel;
-    inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
-    inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+    inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
     inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> stack
   }
 
@@ -316,7 +315,7 @@ class TuiControllerTest : public testing::Test {
     // something the shop tests should be resting on.
     LevelTo(UnlockLevel(Feature::kShop));
     panel_focus_ = kInventoryPanel;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 2; ++i) {
       inventory_component_->OnEvent(ftxui::Event::ArrowRight);
     }
     inventory_component_->OnEvent(ftxui::Event::Return);
@@ -2263,26 +2262,24 @@ TEST_F(TuiControllerTest, MultiSellEscapeKeepsEverything) {
   EXPECT_EQ(state_->character.meso(), 0);
 }
 
-// The Use tab's menu leads to the same screen, opened on that tab.
+// The Etc tab's menu leads to the same screen, opened on that tab.
 TEST_F(TuiControllerTest, MultiSellOpensFromAStackToo) {
-  ItemPrototype potion;
-  potion.set_name("Red Potion");
-  potion.set_category(ITEM_CATEGORY_USE);
-  potion.set_sell_price(50);
-  state_->character.AddStackable(potion, 4);
+  ItemPrototype shell;
+  shell.set_name("Green Snail Shell");
+  shell.set_category(ITEM_CATEGORY_ETC);
+  shell.set_sell_price(50);
+  state_->character.AddStackable(shell, 4);
   panel_focus_ = kInventoryPanel;
   RenderInventoryPanel();
 
-  inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // onto Use
+  inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // onto Etc
   inventory_component_->OnEvent(ftxui::Event::ArrowDown);   // onto the stack
   controller_->OpenInventoryMenu();
-  // The stack menu is one entry shorter: Inspect, Use, Sell, Multi-Sell,
-  // Close, with Use hidden on Etc alone.
   StepToMultiSell(*controller_);
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_EQ(controller_->screen(), kMultiSell);
-  EXPECT_EQ(controller_->multi_sell_basket().use, std::set<int>({0}));
+  EXPECT_EQ(controller_->multi_sell_basket().etc, std::set<int>({0}));
 }
 
 // --- shop ---
@@ -2291,7 +2288,7 @@ TEST_F(TuiControllerTest, MultiSellOpensFromAStackToo) {
 // the tab bar.
 TEST_F(TuiControllerTest, EnterOnTheShopTabOpensTheShop) {
   panel_focus_ = kInventoryPanel;
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < 2; ++i) {
     inventory_component_->OnEvent(ftxui::Event::ArrowRight);
   }
   inventory_component_->OnEvent(ftxui::Event::Return);
@@ -2966,8 +2963,7 @@ TEST_F(TuiControllerTest, StackInspectShowsTheItemsDescription) {
   shell.set_description("A shell shed by a snail.");
   state_->character.AddStackable(shell, 3);
   panel_focus_ = kInventoryPanel;
-  inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
-  inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   inventory_component_->OnEvent(ftxui::Event::ArrowDown);   // into the list
   inventory_component_->OnEvent(ftxui::Event::Return);      // the stack menu
   controller_->OnEvent(ftxui::Event::Return);               // Inspect

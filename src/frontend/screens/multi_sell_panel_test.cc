@@ -137,26 +137,20 @@ TEST_F(MultiSellTest, EnterTogglesTheMarkAndTheTotalFollows) {
 
 TEST_F(MultiSellTest, TheBasketRunsAcrossTabs) {
   GiveEquip("Sword", 1000);
-  GiveStack("Red Potion", ITEM_CATEGORY_USE, 50, 4);
   GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 7, 3);
   MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
-  // Up to the tab bar, right to Use, down onto the stack, mark it.
+  // Up to the tab bar, right to Etc, down onto the stack, mark it.
   Press(panel, ftxui::Event::ArrowUp);
   Press(panel, ftxui::Event::ArrowRight);
   Press(panel, ftxui::Event::ArrowDown);
   Press(panel, ftxui::Event::Return);
-  EXPECT_EQ(panel.Total(), 1000 + 4 * 50);  // the whole stack goes
-  Press(panel, ftxui::Event::ArrowUp);
-  Press(panel, ftxui::Event::ArrowRight);
-  Press(panel, ftxui::Event::ArrowDown);
-  Press(panel, ftxui::Event::Return);
-  EXPECT_EQ(panel.Total(), 1000 + 200 + 21);
+  EXPECT_EQ(panel.Total(), 1000 + 3 * 7) << "the whole stack goes";
 }
 
 TEST_F(MultiSellTest, TheWindowStandsAtTheSameHeightOnEveryTab) {
   GiveEquip("Sword", 1000);
-  GiveStack("Red Potion", ITEM_CATEGORY_USE, 50, 4);
+  GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 7, 3);
   MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   int top = TopRow(panel);
@@ -193,7 +187,7 @@ TEST_F(MultiSellTest, ATraceIsMarkableAndPaysNothing) {
 
 TEST_F(MultiSellTest, TheCursorRingRunsBarToRowsToButtons) {
   GiveEquip("Sword", 1000);
-  GiveStack("Red Potion", ITEM_CATEGORY_USE, 50, 4);
+  GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 50, 4);
   MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   // Right does nothing while a row holds the cursor: the tabs are the bar's.
@@ -208,7 +202,7 @@ TEST_F(MultiSellTest, TheCursorRingRunsBarToRowsToButtons) {
   // Down again comes out on the bar, where Right does switch tabs.
   Press(panel, ftxui::Event::ArrowDown);
   Press(panel, ftxui::Event::ArrowRight);
-  EXPECT_TRUE(ScreenHas(panel, "Red Potion"));
+  EXPECT_TRUE(ScreenHas(panel, "Wild Boar Tooth"));
 }
 
 TEST_F(MultiSellTest, ConfirmDoesNothingWithAnEmptyBasket) {
@@ -253,45 +247,43 @@ TEST_F(MultiSellTest, TheHeaderCarriesTheMesoAndTheRunningTotal) {
 }
 
 TEST_F(MultiSellTest, EveryRowShowsWhatItWouldPay) {
-  GiveStack("Red Potion", ITEM_CATEGORY_USE, 50, 4);
   GiveStack("Spell Trace", ITEM_CATEGORY_ETC, 0, 60);
+  GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 50, 4);
   MultiSellPanel panel(c_, account_);
-  panel.Reset(kUseTab, 0);
-  // The whole stack, on the row it belongs to.
-  EXPECT_NE(RowFor(panel, "Red Potion").find("200"), std::string::npos);
-  // A row worth nothing says 0 rather than nothing at all.
   panel.Reset(kEtcTab, 0);
+  // The whole stack, on the row it belongs to.
+  EXPECT_NE(RowFor(panel, "Wild Boar Tooth").find("200"), std::string::npos);
+  // A row worth nothing says 0 rather than nothing at all.
   EXPECT_NE(RowFor(panel, "Spell Trace").find("0"), std::string::npos);
 }
 
 TEST_F(MultiSellTest, SellingPaysTheTotalAndEmptiesTheRows) {
   GiveEquip("Sword", 1000);
-  GiveStack("Red Potion", ITEM_CATEGORY_USE, 50, 4);
+  GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 50, 4);
   SaleBasket basket;
   basket.equips.insert(0);
-  basket.use.insert(0);
+  basket.etc.insert(0);
   EXPECT_EQ(BasketTotal(c_, basket), 1200);
   EXPECT_EQ(SellBasket(c_, basket), 1200);
   EXPECT_EQ(c_.inventory().size(), 0);
-  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_USE).empty());
+  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
   EXPECT_EQ(c_.meso(), 1200);
 }
 
-TEST_F(MultiSellTest, TheShelfReadsEquipThenUseThenEtcInBagOrder) {
+TEST_F(MultiSellTest, TheShelfReadsEquipThenEtcInBagOrder) {
   GiveEquip("Sword", 1000);
   GiveEquip("Axe", 2000);
-  GiveStack("Red Potion", ITEM_CATEGORY_USE, 50, 4);
   GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 7, 3);
+  GiveStack("Zzz Shell", ITEM_CATEGORY_ETC, 5, 2);
   SaleBasket basket;
   basket.equips = {0, 1};
-  basket.use = {0};
-  basket.etc = {0};
+  basket.etc = {0, 1};
   SellBasket(c_, basket);
   ASSERT_EQ(c_.buy_backs().size(), 4);
   EXPECT_EQ(c_.buy_backs()[0].equip().equip_name(), "Sword");
   EXPECT_EQ(c_.buy_backs()[1].equip().equip_name(), "Axe");
-  EXPECT_EQ(c_.buy_backs()[2].stack().name(), "Red Potion");
-  EXPECT_EQ(c_.buy_backs()[3].stack().name(), "Wild Boar Tooth");
+  EXPECT_EQ(c_.buy_backs()[2].stack().name(), "Wild Boar Tooth");
+  EXPECT_EQ(c_.buy_backs()[3].stack().name(), "Zzz Shell");
 }
 
 }  // namespace

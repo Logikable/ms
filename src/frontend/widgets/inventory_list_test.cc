@@ -37,9 +37,8 @@ class InventoryListTest : public PanelTest {
   }
 };
 
-TEST_F(InventoryListTest, TabCategoryNamesOnlyTheStackTabs) {
+TEST_F(InventoryListTest, TabCategoryNamesOnlyTheStackTab) {
   EXPECT_EQ(TabCategory(kEquipTab), ITEM_CATEGORY_UNSPECIFIED);
-  EXPECT_EQ(TabCategory(kUseTab), ITEM_CATEGORY_USE);
   EXPECT_EQ(TabCategory(kEtcTab), ITEM_CATEGORY_ETC);
   EXPECT_EQ(TabCategory(kShopTab), ITEM_CATEGORY_UNSPECIFIED);
 }
@@ -82,13 +81,13 @@ TEST_F(InventoryListTest, AffixColumnsRideEitherSideOfARow) {
 }
 
 TEST_F(InventoryListTest, StackRowsNameTheirCount) {
-  ItemPrototype potion;
-  potion.set_name("Red Potion");
-  potion.set_category(ITEM_CATEGORY_USE);
-  StackableItem stack(potion, 42);
+  ItemPrototype shell;
+  shell.set_name("Green Snail Shell");
+  shell.set_category(ITEM_CATEGORY_ETC);
+  StackableItem stack(shell, 42);
   std::string text = RowText(RenderStackRow(
       stack, /*on_cursor=*/true, std::chrono::steady_clock::duration::zero()));
-  EXPECT_NE(text.find("> Red Potion"), std::string::npos);
+  EXPECT_NE(text.find("> Green Snail Shell"), std::string::npos);
   EXPECT_NE(text.find("42"), std::string::npos);
 }
 

@@ -159,16 +159,16 @@ TEST_F(InventoryPanelTest, TheEquipTabOnlyLightsForAnAdvancementThatGives) {
 // Container::Tab drops keys aimed at a child that reports itself unfocusable,
 // and the equip Menu says exactly that when the bag is empty -- which used to
 // take the tab bar down with it, leaving a new character unable to reach the
-// Use, Etc or Shop tabs at all.
+// Etc or Shop tabs at all.
 TEST_F(InventoryPanelTest, TheTabBarStillSwitchesTabsOnAnEmptyBag) {
   InventoryPanel panel(c_, account_, panel_focus_);
   panel_focus_ = kInventoryPanel;
   ftxui::Component root = InTabContainer(panel.MakeComponent([]() {}));
   ASSERT_EQ(c_.inventory().size(), 0);
   root->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_TRUE(panel.on_stackable_tab()) << "Equip -> Use";
+  EXPECT_TRUE(panel.on_stackable_tab()) << "Equip -> Etc";
   root->OnEvent(ftxui::Event::ArrowLeft);
-  EXPECT_FALSE(panel.on_stackable_tab()) << "Use -> Equip";
+  EXPECT_FALSE(panel.on_stackable_tab()) << "Etc -> Equip";
 }
 
 // Equipping the last item in the bag takes the row the cursor was standing on
@@ -295,8 +295,7 @@ TEST_F(InventoryPanelTest, AStackRowWearsTheBandToo) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> the one stack
 
   ftxui::Screen screen = RenderToScreen(comp);
@@ -324,27 +323,27 @@ TEST_F(InventoryPanelTest, DownFromTheLastItemReturnsToTheBar) {
 }
 
 TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastStack) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
-  c_.AddStackable(MakeStackable("Blue Potion", ITEM_CATEGORY_USE), 3);
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
+  c_.AddStackable(MakeStackable("Blue Shell", ITEM_CATEGORY_ETC), 3);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   comp->OnEvent(ftxui::Event::ArrowUp);     // the bar -> the last stack
-  EXPECT_NE(RenderComponentText(comp).find("> Blue Potion"), std::string::npos);
+  EXPECT_NE(RenderComponentText(comp).find("> Blue Shell"), std::string::npos);
 }
 
 TEST_F(InventoryPanelTest, DownFromTheLastStackReturnsToTheBar) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> the one stack
-  ASSERT_NE(RenderComponentText(comp).find("> Red Potion"), std::string::npos);
+  ASSERT_NE(RenderComponentText(comp).find("> Red Shell"), std::string::npos);
 
   comp->OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(RenderComponentText(comp).find("> Red Potion"), std::string::npos);
+  EXPECT_EQ(RenderComponentText(comp).find("> Red Shell"), std::string::npos);
 }
 
 // A tab with nothing under it is a ring of the bar and the buttons, so neither
@@ -383,8 +382,7 @@ TEST_F(InventoryPanelTest, TheExpandTabSaysWhatEnterWouldDo) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderComponent(comp);
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   comp->OnEvent(ftxui::Event::ArrowRight);  // Etc -> Expand
   std::string screen = RenderComponent(comp);
   EXPECT_NE(screen.find("Hit Enter to fullscreen Inventory"),
@@ -399,8 +397,8 @@ TEST_F(InventoryPanelTest, EnterOnTheExpandTabCallsBack) {
   int expands = 0;
   ftxui::Component comp =
       panel.MakeComponent([]() {}, [&expands]() { ++expands; });
-  for (int i = 0; i < 3; ++i) {
-    comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> ... -> Expand
+  for (int i = 0; i < 2; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc -> Expand
   }
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(expands, 1);
@@ -417,8 +415,7 @@ TEST_F(InventoryPanelTest, TheExpandTabClosesTheRing) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   comp->OnEvent(ftxui::Event::ArrowRight);  // Etc -> Expand
   // A chip the cursor is on is drawn white, so only one chip may be.
   EXPECT_EQ(PixelOfRendered(comp, "Expand").background_color,
@@ -462,15 +459,15 @@ TEST_F(InventoryPanelTest, SortFilesTheEquipTab) {
 }
 
 TEST_F(InventoryPanelTest, SortFilesAStackTab) {
-  c_.AddStackable(MakeStackable("Zzz Shell", ITEM_CATEGORY_USE), 2);
-  c_.AddStackable(MakeStackable("Aaa Potion", ITEM_CATEGORY_USE), 40);
+  c_.AddStackable(MakeStackable("Zzz Shell", ITEM_CATEGORY_ETC), 2);
+  c_.AddStackable(MakeStackable("Aaa Shell", ITEM_CATEGORY_ETC), 40);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   panel.OpenTabMenu();
   panel.OnTabMenuEvent(ftxui::Event::Return);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_USE)[0].name(), "Aaa Potion")
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].name(), "Aaa Shell")
       << "the larger stack files first";
 }
 
@@ -482,7 +479,7 @@ TEST_F(InventoryPanelTest, TheShopTabIsEnteredNotAskedAbout) {
   InventoryPanel panel(c_, account_, panel_focus_);
   bool opened = false;
   ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < 2; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Shop
   }
   comp->OnEvent(ftxui::Event::Return);
@@ -573,7 +570,7 @@ TEST_F(InventoryPanelTest, NoSelectionCursorOnTheTabRow) {
             std::string::npos);
 }
 
-// The other half of the rule the Use tab already keeps: a caret on an
+// The other half of the rule the Etc tab already keeps: a caret on an
 // unfocused panel would claim the keys are going there.
 TEST_F(InventoryPanelTest, EquipTabCursorHiddenWhenPanelNotFocused) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -721,14 +718,14 @@ TEST_F(InventoryPanelTest, SellArrivesWithTheShop) {
 // shelf a mis-sale is undone at being the shop's.
 TEST_F(InventoryPanelTest, MultiSellSitsUnderSellOnBothMenus) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   LevelTo(UnlockLevel(Feature::kShop) - 1);
   panel.OpenMenu();
   std::vector<int> before = ReachableMenuEntries(panel.menu());
   EXPECT_EQ(std::count(before.begin(), before.end(), kMenuMultiSell), 0);
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   panel.OpenMenu();
   before = ReachableMenuEntries(panel.menu());
   EXPECT_EQ(std::count(before.begin(), before.end(), kStackMultiSell), 0);
@@ -740,7 +737,7 @@ TEST_F(InventoryPanelTest, MultiSellSitsUnderSellOnBothMenus) {
   // Both stand on a worthless item: a stack worth nothing is still a stack the
   // player wants out of the bag.
   c_.AddStackable(MakeStackable("Junk", ITEM_CATEGORY_ETC, 0), 5);
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   panel.OpenMenu();
   after = ReachableMenuEntries(panel.menu());
   EXPECT_NE(std::count(after.begin(), after.end(), kStackSell), 0);
@@ -750,7 +747,7 @@ TEST_F(InventoryPanelTest, MultiSellSitsUnderSellOnBothMenus) {
 TEST_F(InventoryPanelTest, MultiSellLeadsToItsScreen) {
   LevelTo(UnlockLevel(Feature::kShop));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   ScrollPanel sp(c_, {});
@@ -759,7 +756,7 @@ TEST_F(InventoryPanelTest, MultiSellLeadsToItsScreen) {
   panel.menu().Up();  // Multi-Sell
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kMultiSell);
 
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   panel.OpenMenu();
   panel.menu().Up();
   panel.menu().Up();
@@ -1041,7 +1038,7 @@ TEST_F(InventoryPanelTest, TheShopTabArrivesAtItsLevel) {
 
   LevelTo(UnlockLevel(Feature::kShop));
   EXPECT_NE(RenderComponent(comp).find("Shop"), std::string::npos);
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < 2; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);
   }
   EXPECT_TRUE(panel.on_shop_tab());
@@ -1054,7 +1051,7 @@ TEST_F(InventoryPanelTest, ShopTabSaysHowToOpenTheShop) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   panel_focus_ = kInventoryPanel;
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < 2; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);
   }
   EXPECT_TRUE(panel.on_shop_tab());
@@ -1067,7 +1064,7 @@ TEST_F(InventoryPanelTest, ShopIsTheLastTabBeforeTheDoor) {
   LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < 2; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);
   }
   EXPECT_TRUE(panel.on_shop_tab());
@@ -1087,7 +1084,7 @@ TEST_F(InventoryPanelTest, DownDoesNotDescendIntoTheShopTab) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   panel_focus_ = kInventoryPanel;
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < 2; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);
   }
   comp->OnEvent(ftxui::Event::ArrowDown);  // the bar -> the buttons
@@ -1102,7 +1099,7 @@ TEST_F(InventoryPanelTest, TheShopTabIsNotAStackableTab) {
   LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < 2; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);
   }
   EXPECT_FALSE(panel.on_stackable_tab());
@@ -1112,7 +1109,6 @@ TEST_F(InventoryPanelTest, ShowsTabBar) {
   InventoryPanel panel(c_, account_, panel_focus_);
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
   EXPECT_NE(rendered.find("Equip"), std::string::npos);
-  EXPECT_NE(rendered.find("Use"), std::string::npos);
   EXPECT_NE(rendered.find("Etc"), std::string::npos);
 }
 
@@ -1123,113 +1119,77 @@ TEST_F(InventoryPanelTest, ShowsMesoCounterWithCommas) {
             std::string::npos);
 }
 
-TEST_F(InventoryPanelTest, UseTabListsUseStacksWithQuantity) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+TEST_F(InventoryPanelTest, TheEtcTabListsItsStacksWithTheirQuantity) {
+  c_.AddStackable(MakeStackable("Snail Shell", ITEM_CATEGORY_ETC), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("Quantity"), std::string::npos);
-  EXPECT_NE(rendered.find("Red Potion"), std::string::npos);
-}
-
-TEST_F(InventoryPanelTest, EtcTabShowsOnlyEtcStacks) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
-  c_.AddStackable(MakeStackable("Snail Shell", ITEM_CATEGORY_ETC), 3);
-  InventoryPanel panel(c_, account_, panel_focus_);
-  ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
-  std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("Snail Shell"), std::string::npos);
-  EXPECT_EQ(rendered.find("Red Potion"), std::string::npos);
 }
 
 // The Equip tab has never drawn its column names over an empty bag, and the
-// stack tabs now match it: names label rows, so with no rows there is nothing
+// stack tab matches it: names label rows, so with no rows there is nothing
 // for them to label -- only the placeholder.
-TEST_F(InventoryPanelTest, EmptyUseTabShowsAPlaceholderAndNoColumnHeader) {
+TEST_F(InventoryPanelTest, AnEmptyEtcTabShowsAPlaceholderAndNoColumnHeader) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("(empty)"), std::string::npos);
   EXPECT_EQ(rendered.find("Quantity"), std::string::npos);
 }
 
-TEST_F(InventoryPanelTest, EmptyEtcTabShowsNoColumnHeader) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+TEST_F(InventoryPanelTest, TheStackCursorStartsOnTheFirstRowAndWalksDown) {
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
+  c_.AddStackable(MakeStackable("Blue Shell", ITEM_CATEGORY_ETC), 3);
+  panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> first stack
+  EXPECT_NE(RenderComponentText(comp).find("> Red Shell"), std::string::npos);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // cursor -> second stack
   std::string rendered = RenderComponent(comp);
-  EXPECT_NE(rendered.find("(empty)"), std::string::npos);
-  EXPECT_EQ(rendered.find("Quantity"), std::string::npos)
-      << "the Use tab's stack must not leak its header onto the Etc tab";
+  EXPECT_NE(rendered.find("> Blue Shell"), std::string::npos);
+  EXPECT_NE(rendered.find("  Red Shell"), std::string::npos);
 }
 
-TEST_F(InventoryPanelTest, UseTabCursorStartsOnFirstStack) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
-  panel_focus_ = kInventoryPanel;
-  InventoryPanel panel(c_, account_, panel_focus_);
-  // The stack list draws its cursor only while the panel holds focus, and this
-  // test compares cursor_row() against where that cursor landed.
-  panel_focus_ = kInventoryPanel;
-  ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
-  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> stack list
-  EXPECT_NE(RenderComponentText(comp).find("> Red Potion"), std::string::npos);
-}
-
-TEST_F(InventoryPanelTest, UseTabCursorHiddenWhenPanelNotFocused) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+TEST_F(InventoryPanelTest, TheStackCursorIsHiddenWhenThePanelIsNotFocused) {
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
   panel_focus_ = kEquipPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   std::string rendered = RenderComponent(comp);
-  EXPECT_NE(rendered.find("  Red Potion"), std::string::npos);
-  EXPECT_EQ(rendered.find("> Red Potion"), std::string::npos);
-}
-
-TEST_F(InventoryPanelTest, UseTabCursorMovesWithArrowDown) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
-  c_.AddStackable(MakeStackable("Blue Potion", ITEM_CATEGORY_USE), 3);
-  panel_focus_ = kInventoryPanel;
-  InventoryPanel panel(c_, account_, panel_focus_);
-  ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
-  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> first stack
-  comp->OnEvent(ftxui::Event::ArrowDown);   // cursor -> second stack
-  std::string rendered = RenderComponent(comp);
-  EXPECT_NE(rendered.find("> Blue Potion"), std::string::npos);
-  EXPECT_NE(rendered.find("  Red Potion"), std::string::npos);
+  EXPECT_NE(rendered.find("  Red Shell"), std::string::npos);
+  EXPECT_EQ(rendered.find("> Red Shell"), std::string::npos);
 }
 
 TEST_F(InventoryPanelTest, SwitchingTabsResetsStackCursor) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
-  c_.AddStackable(MakeStackable("Blue Potion", ITEM_CATEGORY_USE), 3);
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
+  c_.AddStackable(MakeStackable("Blue Shell", ITEM_CATEGORY_ETC), 3);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> first stack
   comp->OnEvent(ftxui::Event::ArrowDown);   // cursor -> second stack
   comp->OnEvent(ftxui::Event::ArrowUp);     // -> first stack
   comp->OnEvent(ftxui::Event::ArrowUp);     // -> tab bar
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
-  comp->OnEvent(ftxui::Event::ArrowLeft);   // Etc -> Use, cursor reset
+  comp->OnEvent(ftxui::Event::ArrowLeft);   // Etc -> Equip
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc, cursor reset
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> first stack
-  EXPECT_NE(RenderComponentText(comp).find("> Red Potion"), std::string::npos);
+  EXPECT_NE(RenderComponentText(comp).find("> Red Shell"), std::string::npos);
 }
 
-TEST_F(InventoryPanelTest, UseTabEnterOpensMenuOnNonEmptyStack) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
+TEST_F(InventoryPanelTest, EnterOnAStackOpensItsMenu) {
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   bool opened = false;
   ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> stack list
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(opened);
@@ -1241,7 +1201,7 @@ TEST_F(InventoryPanelTest, EnterOnAnEmptyTabAsksAboutTheTab) {
   InventoryPanel panel(c_, account_, panel_focus_);
   bool opened = false;
   ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use (empty)
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc (empty)
   comp->OnEvent(ftxui::Event::ArrowDown);   // nowhere below to go
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(opened);
@@ -1251,23 +1211,21 @@ TEST_F(InventoryPanelTest, EnterOnAnEmptyTabAsksAboutTheTab) {
 // Inspect leads, because looking at a thing is what you do before deciding
 // what to do with it.
 TEST_F(InventoryPanelTest, StackMenuOpensOnInspect) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   panel.OpenMenu();
   ScrollPanel sp(c_, {});
   EXPECT_EQ(panel.menu().selected(), kStackInspect);
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kItemInspect);
 }
 
-// --- Use ---
-
 TEST_F(InventoryPanelTest, StackMenuSellReturnsSellScreen) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   panel.OpenMenu();
   ScrollPanel sp(c_, {});
   panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Inspect -> Sell
@@ -1275,10 +1233,10 @@ TEST_F(InventoryPanelTest, StackMenuSellReturnsSellScreen) {
 }
 
 TEST_F(InventoryPanelTest, StackMenuCloseReturnsMain) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   panel.OpenMenu();
   ScrollPanel sp(c_, {});
   panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Inspect -> Sell
@@ -1292,8 +1250,7 @@ TEST_F(InventoryPanelTest, AWorthlessStackIsStillOfferedForSale) {
   c_.AddStackable(MakeStackable("Junk", ITEM_CATEGORY_ETC, 0), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Use
-  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Etc
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   panel.OpenMenu();
   std::vector<int> reachable = ReachableMenuEntries(panel.menu());
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kStackSell), 0);
@@ -1336,7 +1293,7 @@ TEST_F(InventoryPanelTest, ScrollIndicatorOnlyOnOverflow) {
       << "41 items do not fit, so how far down the list is should show";
 }
 
-// Use/Etc rows are plain text rather than an ftxui::Menu, so nothing marks the
+// Etc rows are plain text rather than an ftxui::Menu, so nothing marks the
 // cursor for the frame unless the panel does it itself.
 TEST_F(InventoryPanelTest, KeepsTheCursorInViewOnAStackableTab) {
   for (int i = 0; i < 40; ++i) {
@@ -1346,8 +1303,7 @@ TEST_F(InventoryPanelTest, KeepsTheCursorInViewOnAStackableTab) {
   InventoryPanel panel(c_, account_, panel_focus_);
   panel_focus_ = kInventoryPanel;
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Use
-  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Etc
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> stack list
   for (int i = 0; i < 39; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
@@ -1443,19 +1399,19 @@ TEST_F(InventoryPanelTest, CursorRowIsAScreenRow) {
   }
 }
 
-// The Use and Etc tabs hand-roll their rows rather than using ftxui::Menu, so
-// they need marking of their own.
+// The Etc tab hand-rolls its rows rather than using ftxui::Menu, so it needs
+// marking of its own.
 TEST_F(InventoryPanelTest, CursorRowFollowsTheStackListToo) {
   for (int i = 0; i < 30; ++i) {
     c_.AddStackable(
-        MakeStackable("Potion " + std::to_string(i), ITEM_CATEGORY_USE), 1);
+        MakeStackable("Shell " + std::to_string(i), ITEM_CATEGORY_ETC), 1);
   }
   InventoryPanel panel(c_, account_, panel_focus_);
   // The stack list draws its cursor only while the panel holds focus, and this
   // test compares cursor_row() against where that cursor landed.
   panel_focus_ = kInventoryPanel;
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> stack list
   for (int i = 0; i < 29; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
@@ -1484,11 +1440,11 @@ TEST_F(InventoryPanelTest, LightsItsBorderGoldWhenHighlighted) {
 // the one under the stack list's column headers. Both have to come up gold, so
 // this asks about every rule the panel drew rather than just the first.
 TEST_F(InventoryPanelTest, LightsEveryInnerRuleGoldToo) {
-  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
   panel_focus_ = kInventoryPanel;
-  component->OnEvent(ftxui::Event::ArrowRight);  // onto the Use tab
+  component->OnEvent(ftxui::Event::ArrowRight);  // onto the Etc tab
 
   std::vector<ftxui::Color> rules = InnerRuleColors(component->Render());
   ASSERT_EQ(rules.size(), 2u) << "expected the tab rule and the list rule";
@@ -1511,7 +1467,7 @@ TEST_F(InventoryPanelTest, ANewShopTabIsWrittenInGold) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
   EXPECT_EQ(LabelColor(component->Render(), "Shop"), kYellow);
-  EXPECT_EQ(LabelColor(component->Render(), "Use"), kTheme)
+  EXPECT_EQ(LabelColor(component->Render(), "Etc"), kTheme)
       << "the tabs that were always there say nothing";
 }
 
@@ -1524,8 +1480,8 @@ TEST_F(InventoryPanelTest, OpeningTheShopTabStopsItAnnouncingItself) {
   panel_focus_ = kInventoryPanel;
   ASSERT_EQ(LabelColor(component->Render(), "Shop"), kYellow);
 
-  // Equip -> Use -> Etc -> Shop.
-  for (int i = 0; i < 3; ++i) {
+  // Equip -> Etc -> Shop.
+  for (int i = 0; i < 2; ++i) {
     component->OnEvent(ftxui::Event::ArrowRight);
   }
   ASSERT_TRUE(panel.on_shop_tab()) << "the walk has to actually arrive";

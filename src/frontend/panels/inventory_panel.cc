@@ -28,7 +28,7 @@ namespace ms {
 namespace {
 
 // The seen-key `tab` announces itself under, or "" for a tab with nothing to
-// announce. Use and Etc have been there since the first frame of the game.
+// announce. Etc has been there since the first frame of the game.
 // Equip has one key per advancement that hands something over -- a weapon at
 // the 1st, an off-hand at the 2nd -- and none for the ones that do not, so the
 // tab stays quiet at the 3rd and 4th rather than sending the player to look at
@@ -74,7 +74,7 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
   // Reflected so a tab menu knows the row to open under.
   ftxui::Element tab_row =
       ftxui::dbox({
-          // No width limit: the bag's four tabs are a
+          // No width limit: the bag's three tabs are a
           // fixed set, and every one of them fits several
           // times over in a row 71 columns wide.
           TabBar(specs, active, row_selected, /*width=*/0),
@@ -153,7 +153,7 @@ ItemMenu& InventoryPanel::menu() {
 }
 
 std::vector<int> InventoryPanel::VisibleTabs() const {
-  std::vector<int> tabs = {kEquipTab, kUseTab, kEtcTab};
+  std::vector<int> tabs = {kEquipTab, kEtcTab};
   // The shop is a place in the world rather than a page of the bag, and it is
   // not open to a character who has nothing to spend and nothing to spend it
   // on. Until then the bar simply ends at Etc.
@@ -182,7 +182,7 @@ void InventoryPanel::MarkActiveTabSeen() {
 }
 
 bool InventoryPanel::on_stackable_tab() const {
-  return active_tab_ == kUseTab || active_tab_ == kEtcTab;
+  return active_tab_ == kEtcTab;
 }
 
 ItemCategory InventoryPanel::active_category() const {
@@ -591,7 +591,7 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
     // window is taller than this one line and the line belongs at the top.
     body =
         ftxui::vbox({CenteredRow("Hit Enter to open Shop"), ftxui::filler()});
-  } else if (active_tab_ == kUseTab || active_tab_ == kEtcTab) {
+  } else if (active_tab_ == kEtcTab) {
     const std::vector<StackableItem>& stacks =
         character_.stackables(TabCategory(active_tab_));
     // Keep the cursor in range as stacks are sold off.
@@ -625,7 +625,7 @@ ftxui::Element InventoryPanel::RenderRow(const ftxui::EntryState& state) {
   // -- are exactly the two the Menu never sees, so the caret went missing on
   // arrival from the bar. It agreed by luck on a list too short to scroll,
   // where both indices sat at 0. The two conditions after it are the same
-  // pair the Use and Etc lists ask: not while another panel has focus, and
+  // pair the Etc list asks: not while another panel has focus, and
   // not while the cursor is up on the tab bar.
   bool on_cursor =
       idx == selected_ && zone_ == kZoneList && panel_focus_ == kInventoryPanel;
@@ -684,7 +684,7 @@ bool InventoryPanel::OnTabBarEvent(const ftxui::Event& event,
 
 bool InventoryPanel::OnStackListEvent(const ftxui::Event& event,
                                       const std::function<void()>& on_enter) {
-  // Use/Etc: the whole ring is ours to walk, there being no ftxui::Menu under
+  // Etc: the whole ring is ours to walk, there being no ftxui::Menu under
   // these tabs. Navigation is swallowed either way, so the hidden Equip menu
   // stays put.
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {

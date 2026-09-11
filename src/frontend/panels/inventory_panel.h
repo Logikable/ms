@@ -1,13 +1,13 @@
-/* InventoryPanel shows the character's inventory as three tabs: Equip (equip-
- * tab items as a navigable menu), Use, and Etc (read-only stackable lists).
+/* InventoryPanel shows the character's inventory as two tabs: Equip (equip-tab
+ * items as a navigable menu) and Etc (a read-only stackable list).
  *
  * Focus moves top-to-bottom through three zones, Down descending and Up
- * ascending, matching the character panel. The top zone is the Equip/Use/Etc
- * tab bar: there Left/Right switch tabs and the active tab is drawn white to
- * show the row is selected. Down descends into the tab's item list (only when
- * it is non-empty); there Up off the top row returns to the tab bar and Enter
- * opens the item context menu via the on_enter callback passed to
- * MakeComponent(). The Use and Etc tabs have no menu actions beyond Sell.
+ * ascending, matching the character panel. The top zone is the Equip/Etc tab
+ * bar: there Left/Right switch tabs and the active tab is drawn white to show
+ * the row is selected. Down descends into the tab's item list (only when it is
+ * non-empty); there Up off the top row returns to the tab bar and Enter opens
+ * the item context menu via the on_enter callback passed to MakeComponent().
+ * The Etc tab has no menu actions beyond Sell.
  *
  * The Expand tab holds the far right of the bar, past the meso counter. It is
  * a door rather than a page: standing on it draws one line saying so, and
@@ -57,11 +57,11 @@ class InventoryPanel {
   void OpenMenu();
   // Handles Up/Down/Escape/Return for the item context menu and executes the
   // selected action. Returns the next screen state. On the Equip tab this
-  // drives the equip menu; on Use/Etc it drives the {Sell, Close} menu.
+  // drives the equip menu; on Etc it drives the {Sell, Close} menu.
   Screen OnMenuEvent(ftxui::Event event, ScrollPanel& scroll_panel);
 
   // The item context menu for the active tab: the equip menu on Equip, the
-  // sell menu on Use/Etc.
+  // sell menu on Etc.
   ItemMenu& menu();
   // The {Sort, Close} menu Enter opens on a tab. Kept apart from menu()
   // because it is about the tab rather than about anything in it, and the two
@@ -69,7 +69,7 @@ class InventoryPanel {
   ItemMenu& tab_menu() {
     return tab_menu_;
   }
-  // Resets it. Only ever opened on Equip, Use or Etc -- see TabMenuEntry.
+  // Resets it. Only ever opened on Equip or Etc -- see TabMenuEntry.
   void OpenTabMenu();
   // Handles Up/Down/Escape/Return for it and runs the chosen action.
   Screen OnTabMenuEvent(ftxui::Event event);
@@ -92,7 +92,7 @@ class InventoryPanel {
   int selected() const {
     return selected_;
   }
-  // True when a Use or Etc tab is active (as opposed to the Equip tab).
+  // True when the Etc tab is active (as opposed to the Equip tab).
   bool on_stackable_tab() const;
   // Whether the Shop tab is the active one. The shop is a screen rather than a
   // list, so the controller asks this to tell Enter on the tab bar apart from
@@ -104,7 +104,7 @@ class InventoryPanel {
   bool on_tab_bar() const {
     return zone_ == kZoneTabs;
   }
-  // The active Use/Etc tab's item category, or ITEM_CATEGORY_UNSPECIFIED on the
+  // The active stack tab's item category, or ITEM_CATEGORY_UNSPECIFIED on the
   // Equip tab.
   ItemCategory active_category() const;
   // Which tab is open, as an InventoryTab. The Multi-Sell screen opens on it,
@@ -112,7 +112,7 @@ class InventoryPanel {
   int active_tab() const {
     return active_tab_;
   }
-  // The selected stack row on the active Use/Etc tab.
+  // The selected stack row on the Etc tab.
   int selected_stack() const {
     return selected_stack_;
   }
@@ -145,7 +145,7 @@ class InventoryPanel {
 
  private:
   // The two menus OnMenuEvent drives, one per tab family: the equip menu on
-  // Equip, the {Inspect, Use, Sell, Multi-Sell} menu on Use/Etc.
+  // Equip, the {Inspect, Sell, Multi-Sell} menu on Etc.
   Screen OnEquipMenuEvent(ftxui::Event event, ScrollPanel& scroll_panel);
   Screen OnStackMenuEvent(ftxui::Event event);
 
@@ -193,7 +193,7 @@ class InventoryPanel {
   ftxui::Element RenderRow(const ftxui::EntryState& state);
   // The Expand tab, drawn right-aligned in the tab row.
   ftxui::Element RenderExpandTab(bool row_selected) const;
-  // The key handlers, one per place the cursor can be: the tab bar, a Use/Etc
+  // The key handlers, one per place the cursor can be: the tab bar, the Etc
   // list, the Equip list.
   bool OnTabBarEvent(const ftxui::Event& event,
                      const std::function<void()>& on_enter,
@@ -240,17 +240,17 @@ class InventoryPanel {
   // When the selection last moved, for sliding a long name under its column.
   SelectionClock
       name_clock_;          // selected row on the Equip tab (ftxui::Menu index)
-  int selected_stack_ = 0;  // selected row on the active Use/Etc tab
+  int selected_stack_ = 0;  // selected row on the Etc tab
   // Whether the cursor stands out on the Expand tab. Kept apart from
   // active_tab_ because the two are different facts: the list goes on showing
   // the tab it was showing, and Left steps back onto it.
   bool on_expand_ = false;
-  int active_tab_ = 0;  // 0 = Equip, 1 = Use, 2 = Etc
+  int active_tab_ = kEquipTab;
   std::vector<InventoryRowState> rows_;
   std::vector<std::string>
       entries_;         // labels derived from rows_ for ftxui::Menu
   ItemMenu menu_;       // Equip tab context menu.
-  ItemMenu sell_menu_;  // Use/Etc tab context menu.
+  ItemMenu sell_menu_;  // Etc tab context menu.
   ItemMenu tab_menu_;   // the {Sort, Close} menu Enter opens on a tab.
 };
 

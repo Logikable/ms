@@ -18,7 +18,12 @@ namespace {
 
 // The tabs of the bag Multi-Sell shows. The shop is not one of them: this is
 // the counter, and the player is already standing at it.
-constexpr int kTabs[] = {kEquipTab, kUseTab, kEtcTab};
+constexpr int kTabs[] = {kEquipTab, kEtcTab};
+
+// Room for any row index under one tab, so folding the tab and the row into
+// one name-clock key cannot make two different selections collide. The bag
+// holds its own copy of this, for the same reason.
+constexpr int kNameClockTabStride = 4096;
 
 // The mark column on the left, headed "Sell", and the price column on the
 // right. The equip list is the widest thing on the screen, so the window is
@@ -44,27 +49,15 @@ ftxui::Element TailCell(const std::string& text) {
 }  // namespace
 
 const std::set<int>& SaleBasket::For(int tab) const {
-  if (tab == kUseTab) {
-    return use;
-  }
-  if (tab == kEtcTab) {
-    return etc;
-  }
-  return equips;
+  return tab == kEtcTab ? etc : equips;
 }
 
 std::set<int>& SaleBasket::For(int tab) {
-  if (tab == kUseTab) {
-    return use;
-  }
-  if (tab == kEtcTab) {
-    return etc;
-  }
-  return equips;
+  return tab == kEtcTab ? etc : equips;
 }
 
 bool SaleBasket::empty() const {
-  return equips.empty() && use.empty() && etc.empty();
+  return equips.empty() && etc.empty();
 }
 
 int64_t RowSellValue(const CharacterInstance& character, int tab, int row) {
@@ -126,7 +119,7 @@ MultiSellPanel::MultiSellPanel(const CharacterInstance& character,
 
 void MultiSellPanel::Reset(int tab, int row) {
   basket_ = SaleBasket();
-  active_tab_ = tab == kUseTab || tab == kEtcTab ? tab : kEquipTab;
+  active_tab_ = tab == kEtcTab ? kEtcTab : kEquipTab;
   selected_ = std::max(0, row);
   zone_ = kZoneList;
   cancel_focused_ = false;
@@ -340,7 +333,7 @@ ftxui::Element MultiSellPanel::RenderList() {
 }
 
 ftxui::Element MultiSellPanel::Render() {
-  name_clock_.Follow(active_tab_ * kNumInventoryTabs + selected_);
+  name_clock_.Follow(active_tab_ * kNameClockTabStride + selected_);
   ftxui::Element body = RenderList();
   return ThemedWindow(
       " Multi-Sell ",

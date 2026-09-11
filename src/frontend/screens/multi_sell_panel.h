@@ -26,12 +26,11 @@
 
 namespace ms {
 
-// What the player has marked for sale. Equip rows are inventory indices, Use
-// and Etc rows indices into that category's stacks. The screen is modal and
-// nothing moves under it, so a row index is identity enough.
+// What the player has marked for sale. Equip rows are inventory indices, Etc
+// rows indices into that category's stacks. The screen is modal and nothing
+// moves under it, so a row index is identity enough.
 struct SaleBasket {
   std::set<int> equips;
-  std::set<int> use;
   std::set<int> etc;
 
   const std::set<int>& For(int tab) const;
@@ -50,11 +49,11 @@ int64_t BasketTotal(const CharacterInstance& character,
 
 // Sells everything in `basket` and returns the meso it paid.
 //
-// The rows go out back to front -- Etc, then Use, then Equip, each descending
-// -- for two reasons. Removing a row shifts every row after it, so a sale that
-// walked forwards would sell the wrong items; and the buy-back shelf lists the
-// newest sale first, so selling in reverse leaves the shelf reading Equip,
-// Use, Etc, each in bag order, from the top.
+// The rows go out back to front -- Etc, then Equip, each descending -- for two
+// reasons. Removing a row shifts every row after it, so a sale that walked
+// forwards would sell the wrong items; and the buy-back shelf lists the newest
+// sale first, so selling in reverse leaves the shelf reading Equip then Etc,
+// each in bag order, from the top.
 int64_t SellBasket(CharacterInstance& character, const SaleBasket& basket);
 
 class MultiSellPanel {
