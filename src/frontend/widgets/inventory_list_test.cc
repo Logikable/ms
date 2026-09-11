@@ -37,12 +37,6 @@ class InventoryListTest : public PanelTest {
   }
 };
 
-TEST_F(InventoryListTest, TabCategoryNamesOnlyTheStackTab) {
-  EXPECT_EQ(TabCategory(kEquipTab), ITEM_CATEGORY_UNSPECIFIED);
-  EXPECT_EQ(TabCategory(kEtcTab), ITEM_CATEGORY_ETC);
-  EXPECT_EQ(TabCategory(kShopTab), ITEM_CATEGORY_UNSPECIFIED);
-}
-
 TEST_F(InventoryListTest, EquipRowsCarryTheItemAndWhatShutsIt) {
   c_.PickUp(std::make_unique<EquipInstance>(
       sword_));  // required level 10, Warrior only

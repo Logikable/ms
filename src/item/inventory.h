@@ -16,9 +16,9 @@
 
 namespace ms {
 
-// Slots on each of the bag's tabs: Equip, Use and Etc hold this many rows
-// apiece. An equip takes a slot per copy; a stackable takes one per stack, so
-// a tab holds this many stacks rather than this many items.
+// Slots on each of the bag's tabs: Equip and Etc hold this many rows apiece.
+// An equip takes a slot per copy; a stackable takes one per stack, so a tab
+// holds this many stacks rather than this many items.
 inline constexpr int kTabCapacity = 128;
 
 class InventoryInstance {

@@ -440,18 +440,19 @@ ItemPrototype MakeStackable(const std::string& name,
                             const std::string& description) {
   ItemPrototype item;
   item.set_name(name);
-  item.set_category(ITEM_CATEGORY_USE);
+  item.set_category(ITEM_CATEGORY_ETC);
   item.set_description(description);
   return item;
 }
 
 TEST_F(InspectPanelTest, ShowsAStackablesNameAndDescription) {
-  ItemPrototype item = MakeStackable("Red Potion", "Recovers 50 HP.");
+  ItemPrototype item =
+      MakeStackable("Green Snail Shell", "A shell shed by a snail.");
   InspectPanel panel;
   panel.SetItem(&item);
   std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Red Potion"), std::string::npos);
-  EXPECT_NE(rendered.find("Recovers 50 HP."), std::string::npos);
+  EXPECT_NE(rendered.find("Green Snail Shell"), std::string::npos);
+  EXPECT_NE(rendered.find("A shell shed by a snail."), std::string::npos);
 }
 
 // A description longer than the window wraps rather than running off the edge
@@ -502,7 +503,8 @@ TEST_F(InspectPanelTest, EitherKindOfItemReplacesTheOther) {
   proto.set_name("Sword");
   proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   EquipInstance equip(proto);
-  ItemPrototype potion = MakeStackable("Red Potion", "Recovers 50 HP.");
+  ItemPrototype potion =
+      MakeStackable("Green Snail Shell", "A shell shed by a snail.");
 
   InspectPanel panel;
   panel.SetItem(&equip);

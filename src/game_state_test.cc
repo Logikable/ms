@@ -118,10 +118,10 @@ std::map<std::string, ItemPrototype> SeededItemCatalog() {
   return {{"weapon_token", token}, {"horn", horn}, {"spell_trace", trace}};
 }
 
-// The stack of `name` on `category`'s tab, or nullptr when there is none.
-const StackableItem* FindStack(const GameState& state, ItemCategory category,
+// The stack of `name` in the bag, or nullptr when there is none.
+const StackableItem* FindStack(const GameState& state,
                                const std::string& name) {
-  for (const StackableItem& stack : state.character.stackables(category)) {
+  for (const StackableItem& stack : state.character.stackables()) {
     if (stack.name() == name) {
       return &stack;
     }
@@ -581,13 +581,12 @@ TEST(GameStateTest, ChosenJobWearsTheWeaponItsLevelTopsOutAt) {
 // not something the shop asks a price in.
 TEST(GameStateTest, TestModeStartsWithEveryToken) {
   GameState state = MakeTestModeStateWithItems();
-  const StackableItem* token =
-      FindStack(state, ITEM_CATEGORY_ETC, "Weapon Token");
+  const StackableItem* token = FindStack(state, "Weapon Token");
   ASSERT_NE(token, nullptr);
   EXPECT_GT(token->count(), 1);
   // The ordinary Etc drop beside it in the catalog stays where it was: the
   // workbench is handed currencies, not somebody else's loot.
-  EXPECT_EQ(FindStack(state, ITEM_CATEGORY_ETC, "Beetle's Horn"), nullptr);
+  EXPECT_EQ(FindStack(state, "Beetle's Horn"), nullptr);
 }
 
 // Scrolling is priced in traces and the shop counts them out 5,000 meso at a
@@ -596,8 +595,7 @@ TEST(GameStateTest, TestModeStartsWithEveryToken) {
 // arrives as ONE row rather than a hundred and fifty.
 TEST(GameStateTest, TestModeCarriesAFullStackOfSpellTraces) {
   GameState state = MakeTestModeStateWithItems();
-  const StackableItem* traces =
-      FindStack(state, ITEM_CATEGORY_ETC, "Spell Trace");
+  const StackableItem* traces = FindStack(state, "Spell Trace");
   ASSERT_NE(traces, nullptr);
   EXPECT_EQ(traces->count(), traces->max_stack());
 }
@@ -606,8 +604,8 @@ TEST(GameStateTest, TestModeCarriesAFullStackOfSpellTraces) {
 // the tokens nor the level-up items.
 TEST(GameStateTest, PlayModeGetsNoTokensOrLevelUpItems) {
   GameState state = MakePlayModeStateWithItems();
-  EXPECT_TRUE(state.character.stackables(ITEM_CATEGORY_ETC).empty());
-  EXPECT_TRUE(state.character.stackables(ITEM_CATEGORY_USE).empty());
+  EXPECT_TRUE(state.character.stackables().empty());
+  EXPECT_TRUE(state.character.stackables().empty());
 }
 
 // --- play mode ---
@@ -967,7 +965,7 @@ TEST(GameStateTest, MaxModeAtTheCapHasBoughtBothPotions) {
   }
   EXPECT_EQ(state.character.meso(), 50000000);
   EXPECT_EQ(state.exp_multiplier, 1);
-  EXPECT_TRUE(state.character.stackables(ITEM_CATEGORY_USE).empty());
+  EXPECT_TRUE(state.character.stackables().empty());
 }
 
 // The pools are all spent: the AP into the stat the job swings on, the SP

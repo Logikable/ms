@@ -661,9 +661,8 @@ class TuiController {
   bool right_card_focused_ = false;
   // See expanded_panel().
   int expanded_panel_ = kNoPanel;
-  // The stack the Use/Etc sale is open on, which is a row in its own tab
-  // rather than in the bag.
-  ItemCategory sell_category_ = ITEM_CATEGORY_UNSPECIFIED;
+  // The stack the Etc sale is open on, which is a row in that tab rather than
+  // in the equip bag.
   int sell_index_ = 0;
   StatField ap_field_ = STAT_FIELD_UNSPECIFIED;
   AmountSelector ap_selector_;

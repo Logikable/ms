@@ -1187,7 +1187,7 @@ TEST_F(ShopPanelTest, TheBuyBackShelfShowsBothKindsOfRow) {
   c.PickUp(std::make_unique<EquipInstance>(sword));
   c.SellEquip(0);
   c.AddStackable(shell, 40);
-  c.SellStackable(ITEM_CATEGORY_ETC, 0, 40);
+  c.SellStackable(0, 40);
 
   ShopPanel panel(c, equips_, items_);
   OpenShelf(panel, kShopBuyBackTab);

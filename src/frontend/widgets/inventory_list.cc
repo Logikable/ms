@@ -41,10 +41,6 @@ ftxui::Element Row(ftxui::Element lead, std::vector<ftxui::Element> cells,
 const char* const kInventoryTabLabels[kNumInventoryTabs] = {"Equip", "Etc",
                                                             "Shop"};
 
-ItemCategory TabCategory(int tab) {
-  return tab == kEtcTab ? ITEM_CATEGORY_ETC : ITEM_CATEGORY_UNSPECIFIED;
-}
-
 std::vector<InventoryRowState> BuildEquipRows(
     const CharacterInstance& character, int selected,
     std::chrono::steady_clock::duration elapsed, const ItemColumns& columns) {

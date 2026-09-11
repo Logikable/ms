@@ -104,9 +104,6 @@ class InventoryPanel {
   bool on_tab_bar() const {
     return zone_ == kZoneTabs;
   }
-  // The active stack tab's item category, or ITEM_CATEGORY_UNSPECIFIED on the
-  // Equip tab.
-  ItemCategory active_category() const;
   // Which tab is open, as an InventoryTab. The Multi-Sell screen opens on it,
   // and on whichever row the cursor stands on there.
   int active_tab() const {

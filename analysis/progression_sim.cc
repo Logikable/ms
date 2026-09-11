@@ -508,14 +508,14 @@ std::pair<int, int> WeaponUpgrades(const GameState& state) {
 int64_t SellDrops(CharacterInstance& character) {
   int64_t earned = 0;
   int i = 0;
-  while (i < static_cast<int>(character.stackables(ITEM_CATEGORY_ETC).size())) {
-    const StackableItem& stack = character.stackables(ITEM_CATEGORY_ETC)[i];
+  while (i < static_cast<int>(character.stackables().size())) {
+    const StackableItem& stack = character.stackables()[i];
     int count = stack.count();
     if (stack.prototype().sell_price() <= 0) {
       ++i;
       continue;
     }
-    earned += character.SellStackable(ITEM_CATEGORY_ETC, i, count);
+    earned += character.SellStackable(i, count);
   }
   return earned;
 }
@@ -953,8 +953,7 @@ void NoteFrozenDrops(const GameState& state, int level, Climb& climb) {
       }
     }
   }
-  for (const StackableItem& stack :
-       state.character.stackables(ITEM_CATEGORY_ETC)) {
+  for (const StackableItem& stack : state.character.stackables()) {
     for (int token = 0; token < kNumFrozenTokens; ++token) {
       if (climb.tokens[token].level == 0 &&
           stack.name() == kFrozenTokens[token]) {
@@ -2897,8 +2896,7 @@ void PrintBag(const GameState& state) {
   for (const std::pair<const std::string, int>& entry : equips) {
     std::printf("    %-40s x%d\n", entry.first.c_str(), entry.second);
   }
-  const std::vector<StackableItem>& etc =
-      state.character.stackables(ITEM_CATEGORY_ETC);
+  const std::vector<StackableItem>& etc = state.character.stackables();
   std::printf("  Etc tab (%d of %d stacks)\n", static_cast<int>(etc.size()),
               kTabCapacity);
   for (const StackableItem& stack : etc) {

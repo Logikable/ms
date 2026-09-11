@@ -72,8 +72,7 @@ int64_t RowSellValue(const CharacterInstance& character, int tab, int row) {
     }
     return character.inventory()[row].prototype().sell_price();
   }
-  const std::vector<StackableItem>& stacks =
-      character.stackables(TabCategory(tab));
+  const std::vector<StackableItem>& stacks = character.stackables();
   if (row < 0 || row >= static_cast<int>(stacks.size())) {
     return 0;
   }
@@ -103,9 +102,8 @@ int64_t SellBasket(CharacterInstance& character, const SaleBasket& basket) {
       if (tab == kEquipTab) {
         earned += character.SellEquip(*it);
       } else {
-        ItemCategory category = TabCategory(tab);
-        int count = character.stackables(category)[*it].count();
-        earned += character.SellStackable(category, *it, count);
+        int count = character.stackables()[*it].count();
+        earned += character.SellStackable(*it, count);
       }
     }
   }
@@ -133,8 +131,7 @@ int MultiSellPanel::ListCount() const {
   if (active_tab_ == kEquipTab) {
     return character_.inventory().size();
   }
-  return static_cast<int>(
-      character_.stackables(TabCategory(active_tab_)).size());
+  return static_cast<int>(character_.stackables().size());
 }
 
 // Every row goes, whatever it is worth: a trace, a spent token and a stack of
@@ -296,8 +293,7 @@ ftxui::Element MultiSellPanel::RenderEquipTab() {
 }
 
 ftxui::Element MultiSellPanel::RenderStackTab() {
-  const std::vector<StackableItem>& stacks =
-      character_.stackables(TabCategory(active_tab_));
+  const std::vector<StackableItem>& stacks = character_.stackables();
   std::vector<ftxui::Element> list;
   for (int i = 0; i < static_cast<int>(stacks.size()); ++i) {
     bool on_cursor = zone_ == kZoneList && i == selected_;

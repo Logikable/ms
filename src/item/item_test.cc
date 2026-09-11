@@ -77,7 +77,7 @@ TEST_F(StackableItemTest, ExposesNameCountAndPrototype) {
   EXPECT_EQ(stack.prototype().category(), ITEM_CATEGORY_ETC);
 }
 
-// An explicit max_stack wins; a blank one falls back to the category's, and a
+// An explicit max_stack wins; a blank one falls back to the Etc default, and a
 // blank category to a stack of one.
 TEST_F(StackableItemTest, MaxStackTakesTheItemsOrItsCategorys) {
   ItemPrototype explicit_stack = MakeShell();
@@ -85,10 +85,6 @@ TEST_F(StackableItemTest, MaxStackTakesTheItemsOrItsCategorys) {
   EXPECT_EQ(StackableItem(explicit_stack, 1).max_stack(), 50);
 
   EXPECT_EQ(StackableItem(MakeShell(), 1).max_stack(), 200);
-
-  ItemPrototype use;
-  use.set_category(ITEM_CATEGORY_USE);
-  EXPECT_EQ(StackableItem(use, 1).max_stack(), 9999);
 
   EXPECT_EQ(StackableItem(ItemPrototype(), 1).max_stack(), 1);
 }

@@ -77,7 +77,7 @@ class Item {
   virtual const std::string& name() const = 0;
 };
 
-// A stack of identical non-equip items (Use/Etc) in the inventory. Wraps a
+// A stack of identical non-equip items in the inventory. Wraps a
 // shared ItemPrototype with a per-stack count.
 class StackableItem : public Item {
  public:

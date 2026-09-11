@@ -450,8 +450,7 @@ bool GearShopper::BuyScroll(GameState& state, const Candidate& candidate,
   }
   int traces = TraceCost(*candidate.scroll, item->prototype().required_level());
   if (!state.character.Buy(*trace, traces) ||
-      !state.character.ConsumeStackable(ITEM_CATEGORY_ETC, kSpellTraceName,
-                                        traces)) {
+      !state.character.ConsumeStackable(kSpellTraceName, traces)) {
     return false;  // the bag refused them, which is not the purse's fault
   }
   state.character.ScrollEquipped(candidate.slot, *candidate.scroll);

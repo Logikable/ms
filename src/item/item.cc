@@ -10,7 +10,6 @@
 namespace ms {
 namespace {
 
-constexpr int kUseDefaultMaxStack = 9999;
 constexpr int kEtcDefaultMaxStack = 200;
 
 // Per-star primary stat deltas for 1-15★ (index i = gain for i★→(i+1)★).
@@ -377,14 +376,7 @@ int StackableItem::max_stack() const {
   if (prototype_.max_stack() > 0) {
     return prototype_.max_stack();
   }
-  switch (prototype_.category()) {
-    case ITEM_CATEGORY_USE:
-      return kUseDefaultMaxStack;
-    case ITEM_CATEGORY_ETC:
-      return kEtcDefaultMaxStack;
-    default:
-      return 1;
-  }
+  return prototype_.category() == ITEM_CATEGORY_ETC ? kEtcDefaultMaxStack : 1;
 }
 
 const EquipPrototype* FindEquipByName(

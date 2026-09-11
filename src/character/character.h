@@ -217,7 +217,7 @@ class CharacterInstance {
   // workbench's, so a tester opens a bag holding only what they put there --
   // nothing in the game empties one.
   void ClearEquipInventory();
-  // Adds `count` of the item described by `proto` to the Use/Etc stacks. Tops
+  // Adds `count` of the item described by `proto` to the Etc stacks. Tops
   // up existing stacks of the same item first, then opens new stacks for any
   // overflow, each capped at the item's max_stack(). No-op if count <= 0.
   //
@@ -244,12 +244,11 @@ class CharacterInstance {
   // How many copies of a stackable the character is carrying, summed across
   // every stack of it. Matched on name, as CountOwned is.
   int CountStackable(const ItemPrototype& proto) const;
-  int CountStackable(ItemCategory category, const std::string& name) const;
+  int CountStackable(const std::string& name) const;
   // Spends `count` copies of a named stackable, emptying stacks as it goes.
   // All or nothing: returns false and takes nothing if the character is not
   // holding that many.
-  bool ConsumeStackable(ItemCategory category, const std::string& name,
-                        int count);
+  bool ConsumeStackable(const std::string& name, int count);
   // Adds `amount` meso to the character's balance. No-op if amount <= 0.
   void AddMeso(int64_t amount);
   // Adds `amount` honor, the pool an Inner Ability reset is paid out of. No-op
@@ -290,13 +289,13 @@ class CharacterInstance {
   // cannot cover it pays what it has and stops at 0; the pot works either way.
   // Nothing at all for a pot that is owned, off, or not yet open.
   int64_t ChargeConsumable(ConsumableType type, double procs);
-  // Sells up to `count` copies from the `index`-th stack in `category`,
-  // crediting count * sell_price meso and removing the sold copies; erases the
-  // stack entirely once it empties. No-op returning 0 if the index is out of
-  // range or count <= 0. Returns the meso earned, which is 0 for an item worth
-  // nothing -- that is a sale, not a refusal, and it is how a stack of
-  // currency is thrown away.
-  int64_t SellStackable(ItemCategory category, int index, int count);
+  // Sells up to `count` copies from the `index`-th stack, crediting
+  // count * sell_price meso and removing the sold copies; erases the stack
+  // entirely once it empties. No-op returning 0 if the index is out of range or
+  // count <= 0. Returns the meso earned, which is 0 for an item worth nothing
+  // -- that is a sale, not a refusal, and it is how a stack of currency is
+  // thrown away.
+  int64_t SellStackable(int index, int count);
   // The shop's buy-back shelf, newest sale first. Reading it is the panel's
   // business; BuyBack is the only thing that takes one off.
   const google::protobuf::RepeatedPtrField<BuyBackEntry>& buy_backs() const {
@@ -392,7 +391,7 @@ class CharacterInstance {
   // inventory_sort.h. Every row moves, so nothing may hold a row index across
   // one of these.
   void SortEquipTab();
-  void SortStackTab(ItemCategory category);
+  void SortStackTab();
 
   // The player's name for this character. Never empty: a character built or
   // loaded without one answers kDefaultUsername.
@@ -413,10 +412,10 @@ class CharacterInstance {
   const std::map<EquipSlot, EquipInstance>& equipped() const {
     return equipped_;
   }
-  // The `category`'s item stacks (ITEM_CATEGORY_USE or ITEM_CATEGORY_ETC), in
-  // pickup order.
-  const std::vector<StackableItem>& stackables(ItemCategory category) const {
-    return StacksFor(category);
+  // The item stacks the bag's Etc tab lists, in pickup order. Every stackable
+  // in the game is one: Use was dropped with the only item that was ever in it.
+  const std::vector<StackableItem>& stackables() const {
+    return etc_items_;
   }
   int64_t meso() const {
     return character_.meso();
@@ -557,7 +556,7 @@ class CharacterInstance {
   // advancement whose job may buy it. False for a character with no matrix.
   bool ReachesVNode(const Skill& skill) const;
   // The whole character as one proto, with the live containers -- the equip
-  // tab, the worn items and the Use/Etc stacks -- folded back into the fields
+  // tab, the worn items and the Etc stacks -- folded back into the fields
   // held for them. proto() alone does not carry those: they live in C++
   // containers and are only written here when someone asks for the lot.
   Character ToProto() const;
@@ -748,16 +747,10 @@ class CharacterInstance {
   // Rebuilds set_bonuses_: every tier of every known set that the worn pieces
   // reach. Cumulative, so a four-piece set contributes both its tiers.
   void RecomputeSetBonuses();
-  // The stack vector backing `category`. USE and ETC each have their own;
-  // anything else falls back to the Etc stacks (fail safe).
-  std::vector<StackableItem>& StacksFor(ItemCategory category);
-  const std::vector<StackableItem>& StacksFor(ItemCategory category) const;
-
   std::mt19937& rng_;
   Character character_;
   InventoryInstance inventory_;
   std::map<EquipSlot, EquipInstance> equipped_;
-  std::vector<StackableItem> use_items_;
   std::vector<StackableItem> etc_items_;
   EquipStats equip_stats_;
   EquipStats symbol_stats_;

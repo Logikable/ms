@@ -6,7 +6,8 @@ package ms;
 // EquipPrototype and never stacks.
 enum ItemCategory {
   ITEM_CATEGORY_UNSPECIFIED = 0;
-  ITEM_CATEGORY_USE = 1;
+  // 1 was USE, a bag tab whose only item was a debug one.
+  reserved 1;
   ITEM_CATEGORY_ETC = 2;
 }
 
@@ -43,8 +44,8 @@ enum ItemKind {
 message ItemPrototype {
   string name = 1;
   ItemCategory category = 2;
-  // Maximum per-slot stack. 0 means the category default (see MaxStack):
-  // Use = 9999, Etc = 200.
+  // Maximum per-slot stack. 0 means the category default of 200 -- see
+  // StackableItem::max_stack.
   int32 max_stack = 3;
   // Meso received when sold to a shop. Zero is a price, not a refusal: every
   // item can be sold, and one worth nothing is simply thrown away. That is

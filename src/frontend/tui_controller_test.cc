@@ -1402,8 +1402,7 @@ TEST_F(TuiControllerTest, ScrollingSpendsItsTraces) {
   controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
-  EXPECT_EQ(
-      state_->character.CountStackable(ITEM_CATEGORY_ETC, kSpellTraceName), 95);
+  EXPECT_EQ(state_->character.CountStackable(kSpellTraceName), 95);
 }
 
 // A failed roll is still a scroll spent -- the trace pays for the attempt,
@@ -1451,9 +1450,7 @@ TEST_F(TuiControllerTest, CloseLeavesTheMenuWithoutScrolling) {
   EXPECT_FALSE(scroll_panel_->IsConfirming());
   EXPECT_FALSE(scroll_panel_->SelectedIsPinned());
   EXPECT_EQ(controller_->screen(), kScrollSelect);
-  EXPECT_EQ(
-      state_->character.CountStackable(ITEM_CATEGORY_ETC, kSpellTraceName),
-      100);
+  EXPECT_EQ(state_->character.CountStackable(kSpellTraceName), 100);
 }
 
 // Escape closes the menu rather than the screen behind it. Without this the
@@ -1491,8 +1488,7 @@ TEST_F(TuiControllerTest, AFailedScrollStillCosts) {
   controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollFail);
-  EXPECT_EQ(
-      state_->character.CountStackable(ITEM_CATEGORY_ETC, kSpellTraceName), 95);
+  EXPECT_EQ(state_->character.CountStackable(kSpellTraceName), 95);
 }
 
 // Too few traces and Enter on the confirm window does nothing: no scroll, no
@@ -1511,8 +1507,7 @@ TEST_F(TuiControllerTest, ScrollingWithoutTheTracesIsRefused) {
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_EQ(controller_->screen(), kScrollSelect);
-  EXPECT_EQ(
-      state_->character.CountStackable(ITEM_CATEGORY_ETC, kSpellTraceName), 4);
+  EXPECT_EQ(state_->character.CountStackable(kSpellTraceName), 4);
   EXPECT_EQ(state_->character.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
                 .equip_state()
@@ -2482,7 +2477,7 @@ TEST_F(TuiControllerTest, SellConfirmSellsWholeStackAndCreditsMeso) {
   controller_->OnEvent(ftxui::Event::Return);     // Confirm (qty = 10)
 
   EXPECT_EQ(controller_->screen(), kMain);
-  EXPECT_TRUE(state_->character.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_TRUE(state_->character.stackables().empty());
   EXPECT_EQ(state_->character.meso(), 20);  // 10 * 2
 }
 
@@ -2492,7 +2487,7 @@ TEST_F(TuiControllerTest, SellEscapeCancelsWithoutSelling) {
   controller_->OnEvent(ftxui::Event::Escape);  // cancel
 
   EXPECT_EQ(controller_->screen(), kMain);
-  EXPECT_EQ(state_->character.stackables(ITEM_CATEGORY_ETC)[0].count(), 10);
+  EXPECT_EQ(state_->character.stackables()[0].count(), 10);
   EXPECT_EQ(state_->character.meso(), 0);
 }
 
@@ -2506,7 +2501,7 @@ TEST_F(TuiControllerTest, SellConfirmSellsTypedQuantity) {
   controller_->OnEvent(ftxui::Event::ArrowDown);       // textbox -> [Confirm]
   controller_->OnEvent(ftxui::Event::Return);          // Confirm
 
-  EXPECT_EQ(state_->character.stackables(ITEM_CATEGORY_ETC)[0].count(), 7);
+  EXPECT_EQ(state_->character.stackables()[0].count(), 7);
   EXPECT_EQ(state_->character.meso(), 6);  // 3 * 2
 }
 
@@ -2542,7 +2537,7 @@ TEST_F(TuiControllerTest, BuyingBackPartOfAStackLeavesTheRest) {
   shell.set_sell_price(7);
   state_->items["green_snail_shell"] = shell;
   state_->character.AddStackable(shell, 50);
-  state_->character.SellStackable(ITEM_CATEGORY_ETC, 0, 50);
+  state_->character.SellStackable(0, 50);
   int64_t meso = state_->character.meso();
 
   OpenBuyBackDialog();

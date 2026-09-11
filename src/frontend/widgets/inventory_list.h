@@ -37,10 +37,6 @@ enum InventoryTab : int {
 
 extern const char* const kInventoryTabLabels[kNumInventoryTabs];
 
-// The stackable category `tab` lists, or ITEM_CATEGORY_UNSPECIFIED for the
-// Equip and Shop tabs, which list no stack at all.
-ItemCategory TabCategory(int tab);
-
 // One Equip row: its cells, and the three things that can shut it.
 struct InventoryRowState {
   ItemRowText label;

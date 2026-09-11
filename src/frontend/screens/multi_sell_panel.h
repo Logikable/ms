@@ -1,5 +1,5 @@
 /* MultiSellPanel is the screen for selling many items at once. It shows the
- * bag -- Equip, Use and Etc, the shop tab left out -- with a sale mark down
+ * bag -- Equip and Etc, the shop tab left out -- with a sale mark down
  * the left of every row and what that row pays down the right. The running
  * total sits in the tab header beside the player's meso, and [Confirm] at the
  * foot opens an "Are you sure?" dialog over the list.

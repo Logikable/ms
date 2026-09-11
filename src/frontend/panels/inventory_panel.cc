@@ -185,10 +185,6 @@ bool InventoryPanel::on_stackable_tab() const {
   return active_tab_ == kEtcTab;
 }
 
-ItemCategory InventoryPanel::active_category() const {
-  return TabCategory(active_tab_);
-}
-
 int InventoryPanel::menu_column() const {
   // The border, then the row up to the end of the slot cell: the caret, the
   // name and the slot, with the gaps in front of each.
@@ -212,7 +208,7 @@ bool InventoryPanel::ActiveTabEmpty() const {
     // Nothing of the player's to descend into; Enter leaves for the shop.
     return true;
   }
-  return character_.stackables(TabCategory(active_tab_)).empty();
+  return character_.stackables().empty();
 }
 
 int InventoryPanel::ListCount() const {
@@ -225,7 +221,7 @@ int InventoryPanel::ListCount() const {
   if (active_tab_ == kShopTab) {
     return 0;
   }
-  return static_cast<int>(character_.stackables(active_category()).size());
+  return static_cast<int>(character_.stackables().size());
 }
 
 int InventoryPanel::CursorStop() const {
@@ -253,7 +249,7 @@ void InventoryPanel::SortActiveTab() {
   if (active_tab_ == kEquipTab) {
     character_.SortEquipTab();
   } else if (on_stackable_tab()) {
-    character_.SortStackTab(active_category());
+    character_.SortStackTab();
   }
 }
 
@@ -273,8 +269,7 @@ void InventoryPanel::OpenStackMenu() {
   if (!Unlocked(Feature::kShop, character_, account_)) {
     sell_menu_.Hide(kStackMultiSell);
   }
-  const std::vector<StackableItem>& stacks =
-      character_.stackables(TabCategory(active_tab_));
+  const std::vector<StackableItem>& stacks = character_.stackables();
   if (selected_stack_ >= static_cast<int>(stacks.size())) {
     sell_menu_.Disable(kStackSell);
     sell_menu_.Disable(kStackMultiSell);
@@ -592,8 +587,7 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
     body =
         ftxui::vbox({CenteredRow("Hit Enter to open Shop"), ftxui::filler()});
   } else if (active_tab_ == kEtcTab) {
-    const std::vector<StackableItem>& stacks =
-        character_.stackables(TabCategory(active_tab_));
+    const std::vector<StackableItem>& stacks = character_.stackables();
     // Keep the cursor in range as stacks are sold off.
     selected_stack_ = std::min(
         selected_stack_, std::max(0, static_cast<int>(stacks.size()) - 1));

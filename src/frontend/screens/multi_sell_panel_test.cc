@@ -266,7 +266,7 @@ TEST_F(MultiSellTest, SellingPaysTheTotalAndEmptiesTheRows) {
   EXPECT_EQ(BasketTotal(c_, basket), 1200);
   EXPECT_EQ(SellBasket(c_, basket), 1200);
   EXPECT_EQ(c_.inventory().size(), 0);
-  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_TRUE(c_.stackables().empty());
   EXPECT_EQ(c_.meso(), 1200);
 }
 

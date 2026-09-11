@@ -364,9 +364,9 @@ TEST_F(SortTabTest, StackTabFilesTracesFirstThenByCount) {
   horn.set_category(ITEM_CATEGORY_ETC);
   c_.AddStackable(horn, 50);
   c_.AddStackable(trace, 3);
-  c_.SortStackTab(ITEM_CATEGORY_ETC);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].name(), "Spell Trace");
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[1].name(), "Broken Horn");
+  c_.SortStackTab();
+  EXPECT_EQ(c_.stackables()[0].name(), "Spell Trace");
+  EXPECT_EQ(c_.stackables()[1].name(), "Broken Horn");
 }
 
 // --- LevelUp ---
@@ -1555,37 +1555,37 @@ class AddStackableTest : public CharacterTest {
 
 TEST_F(AddStackableTest, OpensNewStack) {
   c_.AddStackable(shell_, 5);
-  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), 1);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].name(), "Green Snail Shell");
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 5);
+  ASSERT_EQ(c_.stackables().size(), 1);
+  EXPECT_EQ(c_.stackables()[0].name(), "Green Snail Shell");
+  EXPECT_EQ(c_.stackables()[0].count(), 5);
 }
 
 TEST_F(AddStackableTest, MergesIntoExistingStack) {
   c_.AddStackable(shell_, 5);
   c_.AddStackable(shell_, 3);
-  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), 1);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 8);
+  ASSERT_EQ(c_.stackables().size(), 1);
+  EXPECT_EQ(c_.stackables()[0].count(), 8);
 }
 
 TEST_F(AddStackableTest, SplitsOverflowAtMaxStack) {
   c_.AddStackable(shell_, 250);
-  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), 2);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 200);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[1].count(), 50);
+  ASSERT_EQ(c_.stackables().size(), 2);
+  EXPECT_EQ(c_.stackables()[0].count(), 200);
+  EXPECT_EQ(c_.stackables()[1].count(), 50);
 }
 
 TEST_F(AddStackableTest, KeepsDistinctItemsSeparate) {
   c_.AddStackable(shell_, 5);
   c_.AddStackable(other_, 3);
-  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), 2);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].name(), "Green Snail Shell");
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[1].name(), "Blue Snail Shell");
+  ASSERT_EQ(c_.stackables().size(), 2);
+  EXPECT_EQ(c_.stackables()[0].name(), "Green Snail Shell");
+  EXPECT_EQ(c_.stackables()[1].name(), "Blue Snail Shell");
 }
 
 TEST_F(AddStackableTest, NonPositiveCountIsNoOp) {
   c_.AddStackable(shell_, 0);
   c_.AddStackable(shell_, -4);
-  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_TRUE(c_.stackables().empty());
 }
 
 // --- AddMeso ---
@@ -1770,15 +1770,15 @@ class BuyStackableTest : public CharacterTest {
 TEST_F(BuyStackableTest, TakesTheMesoAndStacksTheCopies) {
   EXPECT_TRUE(c_.Buy(trace_, 10));
   EXPECT_EQ(c_.meso(), 0);
-  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), 1);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 10);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].name(), "Spell Trace");
+  ASSERT_EQ(c_.stackables().size(), 1);
+  EXPECT_EQ(c_.stackables()[0].count(), 10);
+  EXPECT_EQ(c_.stackables()[0].name(), "Spell Trace");
 }
 
 TEST_F(BuyStackableTest, BuysNothingWhenItCannotBuyEverything) {
   EXPECT_FALSE(c_.Buy(trace_, 11));
   EXPECT_EQ(c_.meso(), 50000);
-  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_TRUE(c_.stackables().empty());
 }
 
 TEST_F(BuyStackableTest, WillNotSellWhatTheShopDoesNotStock) {
@@ -1787,7 +1787,7 @@ TEST_F(BuyStackableTest, WillNotSellWhatTheShopDoesNotStock) {
   unpriced.set_category(ITEM_CATEGORY_ETC);
   EXPECT_FALSE(c_.Buy(unpriced, 1));
   EXPECT_EQ(c_.meso(), 50000);
-  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_TRUE(c_.stackables().empty());
 }
 
 TEST_F(BuyStackableTest, NonPositiveCountIsNoOp) {
@@ -1804,7 +1804,7 @@ TEST_F(BuyStackableTest, BuysNothingWhenTheBagCannotHoldItAll) {
   c_.AddMeso(1000000000000LL);
   int room = c_.RoomFor(trace_);
   EXPECT_FALSE(c_.Buy(trace_, room + 1));
-  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_TRUE(c_.stackables().empty());
   EXPECT_TRUE(c_.Buy(trace_, room));
 }
 
@@ -1827,23 +1827,23 @@ class SellStackableTest : public CharacterTest {
 
 TEST_F(SellStackableTest, SellsCopiesAndCreditsMeso) {
   c_.AddStackable(shell_, 10);
-  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 4), 28);  // 4 * 7
-  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), 1);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 6);
+  EXPECT_EQ(c_.SellStackable(0, 4), 28);  // 4 * 7
+  ASSERT_EQ(c_.stackables().size(), 1);
+  EXPECT_EQ(c_.stackables()[0].count(), 6);
   EXPECT_EQ(c_.meso(), 28);
 }
 
 TEST_F(SellStackableTest, SellingWholeStackRemovesIt) {
   c_.AddStackable(shell_, 5);
-  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 5), 35);
-  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_EQ(c_.SellStackable(0, 5), 35);
+  EXPECT_TRUE(c_.stackables().empty());
   EXPECT_EQ(c_.meso(), 35);
 }
 
 TEST_F(SellStackableTest, ClampsCountToStackSize) {
   c_.AddStackable(shell_, 3);
-  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 10), 21);  // only 3 exist
-  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_EQ(c_.SellStackable(0, 10), 21);  // only 3 exist
+  EXPECT_TRUE(c_.stackables().empty());
   EXPECT_EQ(c_.meso(), 21);
 }
 
@@ -1851,11 +1851,11 @@ TEST_F(SellStackableTest, ClampsCountToStackSize) {
 // takes anything or pays anything.
 TEST_F(SellStackableTest, ANonPositiveCountOrAnIndexOffTheEndIsNoOp) {
   c_.AddStackable(shell_, 5);
-  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 0), 0);
-  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, -2), 0);
-  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 3, 1), 0);
-  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, -1, 1), 0);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 5);
+  EXPECT_EQ(c_.SellStackable(0, 0), 0);
+  EXPECT_EQ(c_.SellStackable(0, -2), 0);
+  EXPECT_EQ(c_.SellStackable(3, 1), 0);
+  EXPECT_EQ(c_.SellStackable(-1, 1), 0);
+  EXPECT_EQ(c_.stackables()[0].count(), 5);
   EXPECT_EQ(c_.meso(), 0);
 }
 
@@ -1863,10 +1863,10 @@ TEST_F(SellStackableTest, ANonPositiveCountOrAnIndexOffTheEndIsNoOp) {
 // a stack of currency is thrown away.
 TEST_F(SellStackableTest, AWorthlessItemStillSells) {
   c_.AddStackable(junk_, 5);
-  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 3), 0);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 2);
-  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 2), 0);
-  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_EQ(c_.SellStackable(0, 3), 0);
+  EXPECT_EQ(c_.stackables()[0].count(), 2);
+  EXPECT_EQ(c_.SellStackable(0, 2), 0);
+  EXPECT_TRUE(c_.stackables().empty());
   EXPECT_EQ(c_.meso(), 0);
 }
 
@@ -1978,7 +1978,7 @@ TEST_F(BuyBackTest, ASoldEquipLandsOnTheShelfAtWhatItPaid) {
 
 TEST_F(BuyBackTest, ASoldStackLandsOnTheShelfAtItsUnitPrice) {
   c_.AddStackable(shell_, 10);
-  c_.SellStackable(ITEM_CATEGORY_ETC, 0, 4);
+  c_.SellStackable(0, 4);
   ASSERT_EQ(c_.buy_backs().size(), 1);
   EXPECT_TRUE(c_.buy_backs().Get(0).has_stack());
   EXPECT_EQ(c_.buy_backs().Get(0).stack().name(), "Green Snail Shell");
@@ -2028,7 +2028,7 @@ TEST_F(BuyBackTest, ATraceComesBackATraceForNothing) {
 
 TEST_F(BuyBackTest, PartOfAStackLeavesTheRestWhereItWas) {
   c_.AddStackable(shell_, 100);
-  c_.SellStackable(ITEM_CATEGORY_ETC, 0, 100);
+  c_.SellStackable(0, 100);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.SellEquip(0);  // a newer row, so the shelf has an order to keep
   ASSERT_EQ(c_.buy_backs().size(), 2);
@@ -2048,8 +2048,8 @@ TEST_F(BuyBackTest, PartOfAStackLeavesTheRestWhereItWas) {
 // and the newer of them is the one on top.
 TEST_F(BuyBackTest, EachSaleIsItsOwnRowNewestFirst) {
   c_.AddStackable(shell_, 300);
-  c_.SellStackable(ITEM_CATEGORY_ETC, 0, 200);
-  c_.SellStackable(ITEM_CATEGORY_ETC, 0, 100);
+  c_.SellStackable(0, 200);
+  c_.SellStackable(0, 100);
   ASSERT_EQ(c_.buy_backs().size(), 2);
   EXPECT_EQ(c_.buy_backs().Get(0).stack().count(), 100)
       << "the later sale on top";
@@ -2060,7 +2060,7 @@ TEST_F(BuyBackTest, TheOldestRowFallsOffAFullShelf) {
   c_.AddStackable(shell_, 1000);
   for (int i = 0; i < kBuyBackSlots + 3; ++i) {
     c_.AddStackable(shell_, i + 1);
-    c_.SellStackable(ITEM_CATEGORY_ETC, 0, i + 1);
+    c_.SellStackable(0, i + 1);
   }
   ASSERT_EQ(c_.buy_backs().size(), kBuyBackSlots);
   // The last sale on top, and the three oldest gone from the bottom.
@@ -2085,7 +2085,7 @@ TEST_F(BuyBackTest, RefusesWhatTheCharacterCannotPayFor) {
 
 TEST_F(BuyBackTest, RefusesAStackTheBagHasNoRoomFor) {
   c_.AddStackable(shell_, 10);
-  c_.SellStackable(ITEM_CATEGORY_ETC, 0, 10);
+  c_.SellStackable(0, 10);
   c_.AddMeso(1000);
   int64_t meso = c_.meso();
   // Every Etc slot filled with something else, so topping up cannot help.
@@ -2769,7 +2769,7 @@ TEST_F(CapacityTest, RoomCountsPartStacksAndFreeSlots) {
   OpenDistinctStacks(kTabCapacity - 11);
   c_.AddStackable(shell_, 100);
   // 118 stacks open, so 10 slots free, and the shell stack has 100 spare.
-  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), kTabCapacity - 10);
+  ASSERT_EQ(c_.stackables().size(), kTabCapacity - 10);
   EXPECT_EQ(c_.RoomFor(shell_), 10 * 200 + 100);
 }
 
@@ -2777,7 +2777,7 @@ TEST_F(CapacityTest, RoomCountsPartStacksAndFreeSlots) {
 TEST_F(CapacityTest, RoomIgnoresOtherItemsPartStacks) {
   OpenDistinctStacks(kTabCapacity - 11);
   c_.AddStackable(other_, 100);
-  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), kTabCapacity - 10);
+  ASSERT_EQ(c_.stackables().size(), kTabCapacity - 10);
   EXPECT_EQ(c_.RoomFor(shell_), 10 * 200);
 }
 
@@ -2786,7 +2786,7 @@ TEST_F(CapacityTest, RoomIgnoresOtherItemsPartStacks) {
 TEST_F(CapacityTest, RoomOnAFullTabIsTheOpenStacks) {
   OpenDistinctStacks(kTabCapacity - 1);
   c_.AddStackable(shell_, 150);
-  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), kTabCapacity);
+  ASSERT_EQ(c_.stackables().size(), kTabCapacity);
   EXPECT_EQ(c_.RoomFor(shell_), 50);
 }
 
@@ -2795,13 +2795,13 @@ TEST_F(CapacityTest, RoomOnAFullTabOfOtherItemsIsNone) {
   EXPECT_EQ(c_.RoomFor(shell_), 0);
 }
 
-// Use items stack far deeper than Etc ones, and the room follows the item
-// rather than a fixed number.
+// The room follows the item's own stack size rather than a fixed number.
 TEST_F(CapacityTest, RoomFollowsTheItemsStackSize) {
-  ItemPrototype potion;
-  potion.set_name("Red Potion");
-  potion.set_category(ITEM_CATEGORY_USE);
-  EXPECT_EQ(c_.RoomFor(potion), kTabCapacity * 9999);
+  ItemPrototype deep;
+  deep.set_name("Spell Trace");
+  deep.set_category(ITEM_CATEGORY_ETC);
+  deep.set_max_stack(30000);
+  EXPECT_EQ(c_.RoomFor(deep), kTabCapacity * 30000);
   ItemPrototype tiny;
   tiny.set_name("Odd Thing");
   tiny.set_category(ITEM_CATEGORY_ETC);
@@ -2823,14 +2823,14 @@ TEST_F(CapacityTest, AddStackableTakesWhatFitsAndLosesTheRest) {
   EXPECT_EQ(c_.AddStackable(shell_, 500), 50);
   EXPECT_EQ(c_.RoomFor(shell_), 0);
   // The tab did not grow past its limit to hold the overflow.
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), kTabCapacity);
+  EXPECT_EQ(c_.stackables().size(), kTabCapacity);
 }
 
 // Topping up an open stack costs no slot, so a full tab still takes some.
 TEST_F(CapacityTest, AddStackableStillTopsUpOnAFullTab) {
   OpenDistinctStacks(kTabCapacity - 1);
   c_.AddStackable(shell_, 10);
-  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), kTabCapacity);
+  ASSERT_EQ(c_.stackables().size(), kTabCapacity);
   EXPECT_EQ(c_.AddStackable(shell_, 30), 30);
 }
 
@@ -2871,10 +2871,10 @@ class SaveRoundTripTest : public CharacterTest {
     shell.set_name("Green Snail Shell");
     shell.set_category(ITEM_CATEGORY_ETC);
     items_["green_snail_shell"] = shell;
-    ItemPrototype potion;
-    potion.set_name("Red Potion");
-    potion.set_category(ITEM_CATEGORY_USE);
-    items_["red_potion"] = potion;
+    ItemPrototype trace;
+    trace.set_name("Spell Trace");
+    trace.set_category(ITEM_CATEGORY_ETC);
+    items_["spell_trace"] = trace;
   }
 
   // A character rebuilt from `saved`, as a fresh launch would do it.
@@ -3007,7 +3007,7 @@ TEST_F(SaveRoundTripTest, CarriesTheBuyBackShelfAcross) {
   ItemPrototype shell = items_["green_snail_shell"];
   shell.set_sell_price(7);  // the fixture's copy is unsellable
   c.AddStackable(shell, 6);
-  ASSERT_GT(c.SellStackable(ITEM_CATEGORY_ETC, 0, 6), 0);
+  ASSERT_GT(c.SellStackable(0, 6), 0);
 
   CharacterInstance loaded = Reload(c.ToProto());
   ASSERT_EQ(loaded.buy_backs().size(), 2);
@@ -3031,19 +3031,17 @@ TEST_F(SaveRoundTripTest, CarriesWornItemsInTheirOwnSlots) {
   EXPECT_EQ(loaded.equip_stats().attack(), c.equip_stats().attack());
 }
 
-TEST_F(SaveRoundTripTest, CarriesBothStackableTabsAcross) {
+TEST_F(SaveRoundTripTest, CarriesEveryStackAcross) {
   CharacterInstance c = MakeCharacter(rng_);
   c.AddStackable(items_["green_snail_shell"], 47);
-  c.AddStackable(items_["red_potion"], 3);
+  c.AddStackable(items_["spell_trace"], 3);
 
   CharacterInstance loaded = Reload(c.ToProto());
-  ASSERT_EQ(loaded.stackables(ITEM_CATEGORY_ETC).size(), 1u);
-  EXPECT_EQ(loaded.stackables(ITEM_CATEGORY_ETC)[0].name(),
-            "Green Snail Shell");
-  EXPECT_EQ(loaded.stackables(ITEM_CATEGORY_ETC)[0].count(), 47);
-  ASSERT_EQ(loaded.stackables(ITEM_CATEGORY_USE).size(), 1u);
-  EXPECT_EQ(loaded.stackables(ITEM_CATEGORY_USE)[0].name(), "Red Potion");
-  EXPECT_EQ(loaded.stackables(ITEM_CATEGORY_USE)[0].count(), 3);
+  ASSERT_EQ(loaded.stackables().size(), 2u);
+  EXPECT_EQ(loaded.stackables()[0].name(), "Green Snail Shell");
+  EXPECT_EQ(loaded.stackables()[0].count(), 47);
+  EXPECT_EQ(loaded.stackables()[1].name(), "Spell Trace");
+  EXPECT_EQ(loaded.stackables()[1].count(), 3);
 }
 
 // Skills are keyed by name, so they survive without the skill catalog.
@@ -3074,7 +3072,7 @@ TEST_F(SaveRoundTripTest, DropsItemsTheCatalogsNoLongerName) {
   items_.clear();
   CharacterInstance loaded = Reload(saved);
   EXPECT_TRUE(loaded.inventory().empty());
-  EXPECT_TRUE(loaded.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_TRUE(loaded.stackables().empty());
   EXPECT_EQ(loaded.meso(), 99) << "the character survives its lost items";
 }
 
@@ -3087,7 +3085,7 @@ TEST_F(SaveRoundTripTest, ReplacesWhateverWasThereBefore) {
 
   c.RestoreFrom(Character{}, equips_, items_);
   EXPECT_TRUE(c.inventory().empty());
-  EXPECT_TRUE(c.stackables(ITEM_CATEGORY_USE).empty());
+  EXPECT_TRUE(c.stackables().empty());
 }
 
 // Taking something off has to empty the slot in the NEXT save too. A proto map

@@ -256,7 +256,7 @@ TEST(ShopEtcStockTest, OnlyPricedEtcItemsAreStocked) {
   std::map<std::string, ItemPrototype> items;
   items["trace"] = MakeStackable("Spell Trace", ITEM_CATEGORY_ETC, 5000);
   items["shell"] = MakeStackable("Snail Shell", ITEM_CATEGORY_ETC, 0);
-  items["potion"] = MakeStackable("Red Potion", ITEM_CATEGORY_USE, 50);
+  items["nameless"] = MakeStackable("Odd Thing", ITEM_CATEGORY_UNSPECIFIED, 50);
   EXPECT_EQ(ShopEtcStock(items), std::vector<std::string>{"trace"});
 }
 

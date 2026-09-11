@@ -1808,13 +1808,12 @@ int CharacterInstance::RoomFor(const EquipPrototype& proto) const {
 }
 
 int CharacterInstance::CountStackable(const ItemPrototype& proto) const {
-  return CountStackable(proto.category(), proto.name());
+  return CountStackable(proto.name());
 }
 
-int CharacterInstance::CountStackable(ItemCategory category,
-                                      const std::string& name) const {
+int CharacterInstance::CountStackable(const std::string& name) const {
   int owned = 0;
-  for (const StackableItem& stack : StacksFor(category)) {
+  for (const StackableItem& stack : etc_items_) {
     if (stack.name() == name) {
       owned += stack.count();
     }
@@ -1822,12 +1821,11 @@ int CharacterInstance::CountStackable(ItemCategory category,
   return owned;
 }
 
-bool CharacterInstance::ConsumeStackable(ItemCategory category,
-                                         const std::string& name, int count) {
-  if (count <= 0 || CountStackable(category, name) < count) {
+bool CharacterInstance::ConsumeStackable(const std::string& name, int count) {
+  if (count <= 0 || CountStackable(name) < count) {
     return false;
   }
-  std::vector<StackableItem>& stacks = StacksFor(category);
+  std::vector<StackableItem>& stacks = etc_items_;
   // Emptied stacks are dropped as they go, so spending the last trace leaves
   // no zero row behind in the bag.
   for (int i = static_cast<int>(stacks.size()) - 1; i >= 0 && count > 0; --i) {
@@ -1868,7 +1866,7 @@ int CharacterInstance::CountOwned(const EquipPrototype& proto) const {
 }
 
 int CharacterInstance::RoomFor(const ItemPrototype& proto) const {
-  const std::vector<StackableItem>& stacks = StacksFor(proto.category());
+  const std::vector<StackableItem>& stacks = etc_items_;
   int free_slots = kTabCapacity - static_cast<int>(stacks.size());
   // A stack that is open but not full takes more without costing a slot.
   int room = 0;
@@ -1886,34 +1884,13 @@ int CharacterInstance::RoomFor(const ItemPrototype& proto) const {
   return room + free_slots * fresh.max_stack();
 }
 
-std::vector<StackableItem>& CharacterInstance::StacksFor(
-    ItemCategory category) {
-  switch (category) {
-    case ITEM_CATEGORY_USE:
-      return use_items_;
-    default:
-      // Etc stacks double as the fail-safe destination for unspecified items.
-      return etc_items_;
-  }
-}
-
-const std::vector<StackableItem>& CharacterInstance::StacksFor(
-    ItemCategory category) const {
-  switch (category) {
-    case ITEM_CATEGORY_USE:
-      return use_items_;
-    default:
-      return etc_items_;
-  }
-}
-
 int CharacterInstance::AddStackable(const ItemPrototype& proto, int count) {
   if (count <= 0) {
     return 0;
   }
   count = std::min(count, RoomFor(proto));
   int added = count;
-  std::vector<StackableItem>& stacks = StacksFor(proto.category());
+  std::vector<StackableItem>& stacks = etc_items_;
   // Top up existing stacks of the same item before opening new ones.
   for (StackableItem& stack : stacks) {
     if (count <= 0) {
@@ -2036,9 +2013,8 @@ void CharacterInstance::AddVPoints(int64_t amount) {
   character_.set_v_points(character_.v_points() + amount);
 }
 
-int64_t CharacterInstance::SellStackable(ItemCategory category, int index,
-                                         int count) {
-  std::vector<StackableItem>& stacks = StacksFor(category);
+int64_t CharacterInstance::SellStackable(int index, int count) {
+  std::vector<StackableItem>& stacks = etc_items_;
   if (index < 0 || index >= static_cast<int>(stacks.size())) {
     return 0;
   }
@@ -2194,8 +2170,7 @@ bool CharacterInstance::BuyWithToken(const EquipPrototype& proto,
   if (count > RoomFor(proto)) {
     return false;
   }
-  if (!ConsumeStackable(ITEM_CATEGORY_ETC, token.name(),
-                        count * proto.token_price())) {
+  if (!ConsumeStackable(token.name(), count * proto.token_price())) {
     return false;
   }
   for (int i = 0; i < count; ++i) {
@@ -2409,8 +2384,8 @@ void CharacterInstance::SortEquipTab() {
       [this](const EquipPrototype& proto) { return CanEquip(proto); });
 }
 
-void CharacterInstance::SortStackTab(ItemCategory category) {
-  SortStacks(StacksFor(category));
+void CharacterInstance::SortStackTab() {
+  SortStacks(etc_items_);
 }
 
 bool CharacterInstance::CanEquip(const EquipPrototype& proto) const {
@@ -2473,7 +2448,6 @@ Character CharacterInstance::ToProto() const {
     (*saved.mutable_equipped())[static_cast<int>(worn.first)] =
         worn.second.equip_state();
   }
-  AppendStacks(use_items_, &saved);
   AppendStacks(etc_items_, &saved);
   return saved;
 }
@@ -2525,7 +2499,6 @@ void CharacterInstance::RestoreFrom(
                       EquipInstance(*proto->second, worn.second));
   }
 
-  use_items_.clear();
   etc_items_.clear();
   for (const StackableStack& stack : saved.stacks()) {
     std::map<std::string, const ItemPrototype*>::const_iterator proto =
@@ -2533,8 +2506,7 @@ void CharacterInstance::RestoreFrom(
     if (proto == items_by_name.end()) {
       continue;
     }
-    StacksFor(proto->second->category())
-        .push_back(StackableItem(*proto->second, stack.count()));
+    etc_items_.push_back(StackableItem(*proto->second, stack.count()));
   }
 
   RecomputeEquipStats();

@@ -292,9 +292,8 @@ TEST(AdvanceCombatTest, AccruesDropsWhileFarming) {
   EquipSword(state);
 
   Farm(state, 20000.0);
-  ASSERT_FALSE(state.character.stackables(ITEM_CATEGORY_ETC).empty());
-  EXPECT_EQ(state.character.stackables(ITEM_CATEGORY_ETC)[0].name(),
-            "Green Snail Shell");
+  ASSERT_FALSE(state.character.stackables().empty());
+  EXPECT_EQ(state.character.stackables()[0].name(), "Green Snail Shell");
 }
 
 // A mob can hand over equipment, not just stackables. It lands in the equip
@@ -436,8 +435,7 @@ TEST(AdvanceCombatTest, NoOpWithoutCurrentMap) {
 // snail drops a shell every time, which makes the Etc stack the body count.
 int64_t EtcHeld(const GameState& state) {
   int64_t held = 0;
-  for (const StackableItem& stack :
-       state.character.stackables(ITEM_CATEGORY_ETC)) {
+  for (const StackableItem& stack : state.character.stackables()) {
     held += stack.count();
   }
   return held;
@@ -526,10 +524,10 @@ TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
       << "no band change";
   ASSERT_GT(plain.character.proto().exp(), 0);
   EXPECT_EQ(boosted.character.proto().exp(), 5 * plain.character.proto().exp());
-  ASSERT_FALSE(plain.character.stackables(ITEM_CATEGORY_ETC).empty());
-  ASSERT_FALSE(boosted.character.stackables(ITEM_CATEGORY_ETC).empty());
-  EXPECT_EQ(boosted.character.stackables(ITEM_CATEGORY_ETC)[0].count(),
-            plain.character.stackables(ITEM_CATEGORY_ETC)[0].count());
+  ASSERT_FALSE(plain.character.stackables().empty());
+  ASSERT_FALSE(boosted.character.stackables().empty());
+  EXPECT_EQ(boosted.character.stackables()[0].count(),
+            plain.character.stackables()[0].count());
   EXPECT_EQ(boosted.character.meso(), plain.character.meso());
 }
 

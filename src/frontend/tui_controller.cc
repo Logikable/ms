@@ -341,8 +341,7 @@ const ItemPrototype* TuiController::item_inspect_item() const {
   if (screen_ != kItemInspect) {
     return nullptr;
   }
-  const std::vector<StackableItem>& stacks =
-      state_.character.stackables(inventory_panel_.active_category());
+  const std::vector<StackableItem>& stacks = state_.character.stackables();
   int index = inventory_panel_.selected_stack();
   if (index < 0 || index >= static_cast<int>(stacks.size())) {
     return nullptr;
@@ -614,10 +613,8 @@ Screen TuiController::SeedSaleScreen(Screen next) {
                                      : inventory_panel_.selected_stack());
   }
   if (next == kSell) {
-    sell_category_ = inventory_panel_.active_category();
     sell_index_ = inventory_panel_.selected_stack();
-    const StackableItem& stack =
-        state_.character.stackables(sell_category_)[sell_index_];
+    const StackableItem& stack = state_.character.stackables()[sell_index_];
     sell_panel_.Reset(stack.name(), stack.prototype().sell_price(),
                       stack.count());
   }
@@ -752,7 +749,7 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     // Paid for before it is used, and only used if it was paid for. The panel
     // will not confirm what the player cannot afford, so this refusing is a
     // second line rather than the first.
-    if (!state_.character.ConsumeStackable(ITEM_CATEGORY_ETC, kSpellTraceName,
+    if (!state_.character.ConsumeStackable(kSpellTraceName,
                                            scroll_panel_.CostOfSelected())) {
       return true;
     }
@@ -2107,8 +2104,7 @@ bool TuiController::OnShopBuyEvent(ftxui::Event event) {
 bool TuiController::OnSellEvent(ftxui::Event event) {
   ConfirmChoice sell_choice = sell_panel_.OnEvent(event);
   if (sell_choice == ConfirmChoice::kConfirmed) {
-    state_.character.SellStackable(sell_category_, sell_index_,
-                                   sell_panel_.quantity());
+    state_.character.SellStackable(sell_index_, sell_panel_.quantity());
     screen_ = kMain;
   } else if (sell_choice == ConfirmChoice::kCancelled) {
     screen_ = kMain;

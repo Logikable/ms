@@ -467,7 +467,7 @@ TEST_F(InventoryPanelTest, SortFilesAStackTab) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
   panel.OpenTabMenu();
   panel.OnTabMenuEvent(ftxui::Event::Return);
-  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].name(), "Aaa Shell")
+  EXPECT_EQ(c_.stackables()[0].name(), "Aaa Shell")
       << "the larger stack files first";
 }
 
