@@ -529,13 +529,19 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
                      AttackOption& attack) {
   attack.final_attack_damage.assign(types.size(), 0.0);
   attack.per_swing_final_attack_damage.assign(types.size(), 0.0);
-  // What this swing keeps of the character's chance to shake a coin loose.
-  // Cruel Stab alone gives any of it up -- see SkillEffect.meso_drop_cut.
+  // What this swing keeps of the character's two chances: to shake a coin
+  // loose, and to set the extra hit off at all. Cruel Stab alone gives up any
+  // of the coin and Shurrikane alone any of the hit -- see
+  // SkillEffect.meso_drop_cut and final_attack_chance_cut.
   double meso_kept = 1.0;
+  double follow_kept = 1.0;
   if (skill != nullptr) {
     meso_kept -= skill->base().meso_drop_cut() +
                  skill->per_level().meso_drop_cut() * (level - 1);
     meso_kept = std::max(0.0, meso_kept);
+    follow_kept -= skill->base().final_attack_chance_cut() +
+                   skill->per_level().final_attack_chance_cut() * (level - 1);
+    follow_kept = std::max(0.0, follow_kept);
   }
   // What the character's own boss damage, plain damage and ignored defence are,
   // before a source adds to any of them.
@@ -550,9 +556,12 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
       continue;
     }
     FinalAttackRoll roll;
-    // A meso is the one source a swing can shake fewer of loose; nothing cuts
-    // a Final Attack, which follows the swing whatever it was.
-    roll.chance = source.per_line ? source.chance * meso_kept : source.chance;
+    // The cut the swing states rides every source, and the coin's own rides
+    // the one source that is a coin.
+    roll.chance = source.chance * follow_kept;
+    if (source.per_line) {
+      roll.chance *= meso_kept;
+    }
     // Boss damage of its own, on top of the character's: Blood Money brands
     // the coins rather than the Shadower. Set every time round, since the last
     // source to carry any would otherwise hand it to the next one. Plain

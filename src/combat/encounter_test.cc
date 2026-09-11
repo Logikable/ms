@@ -731,6 +731,50 @@ TEST(ComputeCombatParamsTest, ASwingCanShakeFewerMesosLoose) {
   EXPECT_NEAR(swing.final_attack_rolls[0].chance, 0.10, 1e-9);
 }
 
+// A swing can give up part of the chance it sets the extra hit off with, and
+// only that swing does. Shurrikane's, and the same bargain the meso cut above
+// makes -- a share, so it holds at every level of the Final Attack it cuts.
+TEST(ComputeCombatParamsTest, ASwingCanSetOffFewerFinalAttacks) {
+  Skill shuriken;
+  shuriken.set_name("Shurrikane");
+  shuriken.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(shuriken, JOB_ADVANCEMENT_SWORDMAN);
+  shuriken.set_max_level(30);
+  shuriken.set_max_enemies(6);
+  shuriken.set_lines(7);
+  shuriken.mutable_base()->set_skill_pct(2.96);
+  shuriken.mutable_base()->set_final_attack_chance_cut(0.60);
+  Skill mark;
+  mark.set_name("Assassin's Mark");
+  mark.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(mark, JOB_ADVANCEMENT_SWORDMAN);
+  mark.set_max_level(10);
+  mark.mutable_base()->set_final_attack_chance(0.22);
+  mark.mutable_base()->set_final_attack_pct(0.78);
+  mark.mutable_per_level()->set_final_attack_chance(0.02);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"shurrikane", shuriken}, {"assassins_mark", mark}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 6);
+  ASSERT_TRUE(state.character.LearnSkill(shuriken, 1));
+  ASSERT_TRUE(state.character.LearnSkill(mark, 5));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  const AttackOption& poke = params.attacks[0];
+  const AttackOption& swing = params.attacks[1];
+  ASSERT_EQ(poke.final_attack_rolls.size(), 1u);
+  ASSERT_EQ(swing.final_attack_rolls.size(), 1u);
+  EXPECT_NEAR(poke.final_attack_rolls[0].chance, 0.30, 1e-9);
+  EXPECT_NEAR(swing.final_attack_rolls[0].chance, 0.12, 1e-9);
+  // What the extra hit is worth follows the chance, so the sims price it too.
+  EXPECT_DOUBLE_EQ(swing.final_attack_damage[0],
+                   swing.final_attack_rolls[0].damage[0] * 0.12);
+}
+
 // A Reinforce aimed at the passive a Final Attack belongs to lands on the extra
 // hits and nowhere else -- the swing that set them off is worth what it was.
 TEST(ComputeCombatParamsTest, AFinalAttackReinforceLandsOnTheExtraHitsAlone) {

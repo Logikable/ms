@@ -126,8 +126,9 @@ const PercentLever kPercentLevers[] = {
     // the field. Bare, because it is a chance rather than a gain.
     {"Meso Drop Chance", &SkillEffect::meso_drop_chance, kBare, ""},
     // The share of that chance this swing gives up, which is a price and reads
-    // as one.
+    // as one. The row under it is the same price paid over the extra hit.
     {"Meso Drop Chance", &SkillEffect::meso_drop_cut, kMinus, ""},
+    {"Final Attack Rate", &SkillEffect::final_attack_chance_cut, kMinus, ""},
     // Last, and the only rows here that are not about a fight -- the same
     // place they take on the stats page, for the same reason.
     {"Meso Drop Rate", &SkillEffect::meso_pct, kPlus, ""},

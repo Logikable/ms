@@ -175,6 +175,16 @@ message SkillEffect {
   double final_attack_chance = 18;
   double final_attack_pct = 19;
   double final_attack_lines = 32;
+  // The share of that chance one SWING gives up (0.60 == it sets the extra hit
+  // off at 40% of the normal rate). Shurrikane is what it exists for -- GMS
+  // states it "40% of normal chance to trigger Assassin's Mark", the price of
+  // a shuriken that keeps striking for two and a half seconds.
+  //
+  // A share rather than points, so it holds at every level of the Final Attack
+  // it cuts. Read off the skill being swung and nowhere else: it never folds
+  // into the character, and a skill that is not an attack states it for
+  // nobody. meso_drop_cut is the same bargain made over a coin.
+  double final_attack_chance_cut = 55;
 
   double def = 20;                // flat weapon DEF
   double damage_taken_pct = 21;  // share of incoming damage cancelled

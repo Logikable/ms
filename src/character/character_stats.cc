@@ -1165,6 +1165,7 @@ SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
   kept.clear_final_dmg_pct();
   kept.clear_hp_recover_pct();
   kept.clear_meso_drop_cut();
+  kept.clear_final_attack_chance_cut();
   kept.clear_max_hp_damage_pct();
   return kept;
 }
@@ -1183,6 +1184,7 @@ SkillEffect SwingLeversOf(const SkillEffect& effect) {
   swing.set_final_dmg_pct(effect.final_dmg_pct());
   swing.set_hp_recover_pct(effect.hp_recover_pct());
   swing.set_meso_drop_cut(effect.meso_drop_cut());
+  swing.set_final_attack_chance_cut(effect.final_attack_chance_cut());
   swing.set_max_hp_damage_pct(effect.max_hp_damage_pct());
   return swing;
 }
