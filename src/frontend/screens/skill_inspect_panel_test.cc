@@ -2030,6 +2030,39 @@ TEST_F(SkillInspectPanelTest, ASharedBuffSaysSoInItsHeading) {
             std::string::npos);
 }
 
+// Throw Blasting's card: the charm heads its own block with the count a
+// raising hands over, and states both the number a press takes and the one the
+// bank prepares for itself -- the passive half, which holds whether or not the
+// buff is ever raised.
+TEST_F(SkillInspectPanelTest, ASelfFillingLoadStatesWhatItSpendsAndPrepares) {
+  Skill blasting = IronBody();
+  blasting.set_kind(SKILL_KIND_ACTIVE);
+  blasting.set_max_level(30);
+  blasting.mutable_buff()->set_duration_seconds(60.0);
+  Magazine* charm = blasting.mutable_buff()->mutable_magazine();
+  charm->set_label("Explosive Charm");
+  charm->set_charges(46);
+  charm->set_charges_per_swing(3);
+  charm->set_spent_by_every_swing(true);
+  charm->set_recharge_seconds(10.0);
+  charm->set_recharge_max(1);
+  charm->set_max_enemies(6);
+  charm->set_lines(5);
+  charm->mutable_base()->set_skill_pct(4.94);
+  charm->mutable_per_level()->set_skill_pct(0.19);
+
+  std::string rendered = RenderAt(blasting, 30);
+  EXPECT_NE(rendered.find("Explosive Charm, 46 charges"), std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Damage", "1045% x5"), std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Spends", "3 per attack"), std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Prepared", "1 every 10s, passively"),
+            std::string::npos)
+      << rendered;
+}
+
 // A buff with forms has no one length to head it with, and the player never
 // picks between them -- so the page states both, each heading its own damage.
 TEST_F(SkillInspectPanelTest, ABuffWithFormsHeadsEachOfThem) {

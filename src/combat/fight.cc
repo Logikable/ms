@@ -335,8 +335,22 @@ double CombatSim::LoadedDamage(const AttackOption& attack) const {
       attack_clocks_[attack.loaded_attack].charges_left <= 0) {
     return 0.0;
   }
-  int hit = Reached(*attack.loaded);
-  return StrikeDamage(*attack.loaded, hit) + BurnDamage(*attack.loaded, hit);
+  const AttackOption& load = *attack.loaded;
+  int left = attack_clocks_[attack.loaded_attack].charges_left;
+  int hit = Reached(load);
+  double worth = (StrikeDamage(load, hit) + BurnDamage(load, hit)) *
+                 std::min(load.charges_per_swing, left);
+  // A charge the load prepared for itself will not be there for the next
+  // press, so it is worth its share of the wait for the one after -- the same
+  // bargain a side strike on a cooldown is weighed by. A raising of the buff
+  // is the other case and is left whole: those go out as fast as the player
+  // can press, which is what the chooser should reach for them for.
+  if (load.recharge_seconds > 0.0 && left <= load.recharge_max &&
+      attack.swing_seconds > 0.0) {
+    worth *= attack.swing_seconds /
+             std::max(load.recharge_seconds, attack.swing_seconds);
+  }
+  return worth;
 }
 
 double CombatSim::SwingDamage(const AttackOption& attack) const {
@@ -703,6 +717,22 @@ void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
       clock.hold_charges =
           std::min(static_cast<double>(hold.max_charges),
                    clock.hold_charges + dt / hold.charge_seconds);
+    }
+    // The charge a load prepares for itself fills here too, and the clock is
+    // held while the bank is already at its own cap -- so a raising of the
+    // buff is never topped up, and the passive half comes back the moment the
+    // burst's charges are gone rather than when the buff lapses.
+    const AttackOption& option = options[i];
+    if (option.recharge_seconds <= 0.0 ||
+        clock.charges_left >= option.recharge_max) {
+      clock.load_phase = 0.0;
+      continue;
+    }
+    clock.load_phase += dt;
+    while (clock.load_phase >= option.recharge_seconds &&
+           clock.charges_left < option.recharge_max) {
+      clock.load_phase -= option.recharge_seconds;
+      ++clock.charges_left;
     }
   }
 }
@@ -2426,8 +2456,15 @@ void CombatSim::LandSwing(const CombatParams& params,
     // than below: what is charged is the press, not the load's own clock.
     if (cast->loaded != nullptr && cast->loaded_attack >= 0 &&
         attack_clocks_[cast->loaded_attack].charges_left > 0) {
-      Strike(*cast->loaded, {DamageOrigin::kLoad, cast->loaded_attack});
-      --attack_clocks_[cast->loaded_attack].charges_left;
+      // A press that finds fewer left than it would take spends what is
+      // there, and lands the strike once for each: GMS's charms go out in
+      // twos to fours and the last of a bank is whatever it is.
+      int spent = std::min(cast->loaded->charges_per_swing,
+                           attack_clocks_[cast->loaded_attack].charges_left);
+      for (int i = 0; i < spent; ++i) {
+        Strike(*cast->loaded, {DamageOrigin::kLoad, cast->loaded_attack});
+      }
+      attack_clocks_[cast->loaded_attack].charges_left -= spent;
     }
     // Recovery rides the hit, so a cast does not earn it and neither does a
     // swing at nothing. What landed pays it rather than what was aimed, and
@@ -2621,6 +2658,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   const std::vector<AttackOption>& fresh = Attacks(params);
   for (int i = had_clocks; i < static_cast<int>(attack_clocks_.size()); ++i) {
     attack_clocks_[i].hold_charges = fresh[i].channel.max_charges;
+    attack_clocks_[i].charges_left = fresh[i].recharge_max;
   }
   damage_by_attack_.resize(Attacks(params).size(), 0.0);
   swings_by_attack_.resize(Attacks(params).size(), 0);

@@ -758,6 +758,10 @@ class CombatSim {
     // every attack no buff loads -- and reads 0 for a loaded one whose buff is
     // down, which is what keeps it off the list of swings on offer.
     int charges_left = 0;
+    // Seconds accrued toward the next charge a load prepares for itself. Held
+    // at 0 while the bank is already at its own cap, so a raising of the buff
+    // never has its clock running under it. 0 for every other attack.
+    double load_phase = 0.0;
     // Charges banked for a hold bought out of a bank rather than out of a
     // cooldown, fractional while the next one fills. Starts FULL, the way a
     // cooldown starts ready: a player walks into the fight with what the wait

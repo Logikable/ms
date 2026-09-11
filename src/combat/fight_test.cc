@@ -2929,6 +2929,64 @@ TEST(CombatSimTest, AMagazineFiresItsChargesAndNoMore) {
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 25.0), 800.0);
 }
 
+// Throw Blasting's shape: a press takes several charges out of the one bank
+// and lands the strike once for each. Eight at three a press is three presses
+// -- three, three, and the two that are left.
+TEST(CombatSimTest, APressSpendsSeveralChargesAndTheLastTakesWhatIsLeft) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
+  // The swing itself is worth nothing, so what lands is the load alone.
+  params.attacks[0].damage_per_hit.assign(params.types.size(), 0.0);
+  GiveMagazine(params, /*duration=*/30.0, /*cooldown=*/120.0, /*charges=*/8,
+               /*damage=*/100.0);
+  int loaded = static_cast<int>(params.attacks.size()) - 1;
+  params.attacks[loaded].charges_per_swing = 3;
+  params.attacks[loaded].spent_by_attack = 0;
+  params.attacks[0].loaded =
+      std::make_shared<AttackOption>(params.attacks[loaded]);
+  params.attacks[0].loaded_attack = loaded;
+  params.buffed[0]->attacks = params.attacks;
+
+  // Four seconds is four presses and only three of them find anything: one at
+  // a time the eight would still be going.
+  EXPECT_DOUBLE_EQ(DamageOver(sim, params, 4.0), 800.0);
+}
+
+// The other half of Throw Blasting: a bank that prepares a charge for itself
+// on a clock of its own. It is not topped up while a raising of the buff
+// stands -- and it comes back the moment those charges are gone, rather than
+// waiting out the duration, which is what GMS means by the active and passive
+// halves never firing together.
+TEST(CombatSimTest, ABankFillsItselfOnlyOnceTheLoadIsSpent) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
+  params.attacks[0].damage_per_hit.assign(params.types.size(), 0.0);
+  GiveMagazine(params, /*duration=*/30.0, /*cooldown=*/120.0, /*charges=*/4,
+               /*damage=*/100.0);
+  int loaded = static_cast<int>(params.attacks.size()) - 1;
+  params.attacks[loaded].recharge_seconds = 4.0;
+  params.attacks[loaded].recharge_max = 1;
+  params.attacks[loaded].spent_by_attack = 0;
+  params.attacks[0].loaded =
+      std::make_shared<AttackOption>(params.attacks[loaded]);
+  params.attacks[0].loaded_attack = loaded;
+  params.buffed[0]->attacks = params.attacks;
+
+  // The buff goes up on the opening step and hands over four, which the first
+  // four presses spend. Had the clock been running under them there would be
+  // more than four in those seconds.
+  EXPECT_DOUBLE_EQ(DamageOver(sim, params, 4.0), 400.0);
+  // The load is gone and the buff has twenty-six seconds still to run: the
+  // charge the bank prepares for itself lands every four of them.
+  double later = DamageOver(sim, params, 24.0);
+  EXPECT_GT(later, 0.0) << "the bank stayed silent for the rest of the buff";
+  EXPECT_DOUBLE_EQ(later, 600.0);
+}
+
 // A buff too short to spend its load takes the rest of it down: the cartridges
 // are not carried past the duration.
 TEST(CombatSimTest, AnUnspentMagazineEmptiesWithItsBuff) {

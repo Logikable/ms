@@ -1714,10 +1714,14 @@ std::vector<Row> MagazineRows(const Magazine& magazine, int level) {
     return {};
   }
   std::vector<Row> rows;
-  std::string spent = magazine.spent_by_skill_name().empty()
-                          ? std::to_string(magazine.charges()) +
-                                (magazine.charges() == 1 ? " shot" : " shots")
-                          : "on " + magazine.spent_by_skill_name();
+  std::string spent = std::to_string(magazine.charges()) +
+                      (magazine.charges() == 1 ? " charge" : " charges");
+  if (!magazine.spent_by_skill_name().empty()) {
+    spent = "on " + magazine.spent_by_skill_name();
+  } else if (!magazine.spent_by_every_swing()) {
+    spent = std::to_string(magazine.charges()) +
+            (magazine.charges() == 1 ? " shot" : " shots");
+  }
   rows.push_back(SectionRow(magazine.label() + ", " + spent, kGold));
   double per_hit = magazine.base().skill_pct() +
                    magazine.per_level().skill_pct() * (level - 1);
@@ -1727,6 +1731,20 @@ std::vector<Row> MagazineRows(const Magazine& magazine, int level) {
       EffectRow("Attacks", ReachText(std::max(1, magazine.max_enemies()))));
   if (magazine.scatter().hits() > 0) {
     rows.push_back(EffectRow("Scattered", ScatterText(magazine.scatter())));
+  }
+  if (magazine.charges_per_swing() > 1) {
+    rows.push_back(EffectRow(
+        "Spends",
+        std::to_string(magazine.charges_per_swing()) + " per attack"));
+  }
+  // What the bank fills to with no buff raised at all, which is the passive
+  // half of a skill written this way -- stated here rather than under the
+  // buff's heading, because it holds whether or not that buff ever goes up.
+  if (magazine.recharge_seconds() > 0.0 && magazine.recharge_max() > 0) {
+    rows.push_back(EffectRow(
+        "Prepared", std::to_string(magazine.recharge_max()) + " every " +
+                        FormatNumber(magazine.recharge_seconds()) +
+                        "s, passively"));
   }
   // Whatever else it carries rides its own strikes rather than the character:
   // the cartridge crits every time, its owner does not.

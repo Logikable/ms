@@ -210,6 +210,16 @@ struct AttackOption {
   // than owned outright for the reason `empowered` is.
   std::shared_ptr<const AttackOption> loaded;
   int loaded_attack = -1;
+  // Charges one press of the swing carrying this spends, and strikes it lands
+  // for them -- a press finding fewer left spends what is there. 1 for a load
+  // spent one at a time, which is every one but Throw Blasting's charms.
+  int charges_per_swing = 1;
+  // The clock a charge comes back on with no buff behind it, and the bank it
+  // fills to. The clock runs only while the bank is under that, so a load in
+  // hand is never topped up. 0 for a load only a buff fills -- see
+  // Magazine::recharge_seconds.
+  double recharge_seconds = 0.0;
+  int recharge_max = 0;
   // Expected damage of the opening hit, per target type. It lands on ONE of
   // the mobs the swing reached -- the healthiest of them, because a hit this
   // big is worth least where it overkills. Empty for a swing that lands once,

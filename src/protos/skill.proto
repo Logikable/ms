@@ -814,6 +814,36 @@ message Magazine {
   // Empty is Repeating Crossbow Cartridge's shape: a swing in its own right,
   // which the fight chooses like any other.
   string spent_by_skill_name = 10;
+  // Whether every swing the character makes spends this load, rather than the
+  // one skill above names. Throw Blasting is what it exists for: GMS attaches
+  // its charms to whatever throwing attack was pressed, so aiming them at a
+  // single skill would leave the load dead on the maps its six-enemy reach is
+  // for. The load still rides the press it lands on and is no button of its
+  // own, exactly as a named one is.
+  bool spent_by_every_swing = 11;
+  // Charges one press spends, and so how many times the strike lands for it.
+  // GMS's Throw Blasting attaches two to four charms to every attack skill,
+  // which is three on an average press; a press with fewer than that left
+  // spends what is there. 0 reads as one, which is every other magazine.
+  //
+  // Not `casts` above, which is strikes out of ONE charge: Full Burst Shot
+  // fires four arrows and spends a single cartridge doing it.
+  int32 charges_per_swing = 12;
+  // The clock a charge comes back on with no buff raised at all, and how many
+  // the bank holds that way. Throw Blasting is what the pair exists for: GMS
+  // prepares one explosive charm every ten seconds for nothing, and the active
+  // half drops forty-six into the same bank.
+  //
+  // The clock runs only while the bank is BELOW recharge_max, so a load in
+  // hand is never topped up. That is the whole of GMS's "the active and
+  // passive effects cannot trigger simultaneously" -- and it makes the buff's
+  // duration a ceiling rather than a silence, the passive coming back the
+  // moment the burst's charges are gone rather than when the icon does.
+  //
+  // Both or neither. 0 for a load only a raising of the buff fills, which is
+  // both of the others.
+  double recharge_seconds = 13;
+  int32 recharge_max = 14;
 }
 
 // One lever of a buff's PARTY half that grows with the caster's INT rather

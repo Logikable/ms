@@ -2707,6 +2707,92 @@ TEST(ComputeCombatParamsTest, AScatteredSwingCarriesItsStrikesAndItsCut) {
   EXPECT_EQ(swing->lines, 4);
 }
 
+// Throw Blasting's charms: one bank, hung on every swing the character has
+// rather than on the one skill a magazine names. The load is the character's
+// own swing for all that -- it is what the press throws -- so the Mark goes
+// off on it, which is what tells it from the shuriken a swing merely sets off.
+TEST(ComputeCombatParamsTest, ALoadSpentByEverySwingHangsOnAllOfThem) {
+  Skill quad;
+  quad.set_name("Quad Star");
+  quad.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(quad, JOB_ADVANCEMENT_ROGUE);
+  quad.set_max_level(20);
+  quad.add_required_equip_type(EQUIP_TYPE_CLAW);
+  quad.set_lines(4);
+  quad.mutable_base()->set_skill_pct(3.27);
+
+  Skill showdown = quad;
+  showdown.set_name("Showdown");
+  showdown.set_max_enemies(6);
+
+  Skill mark;
+  mark.set_name("Assassin's Mark");
+  mark.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(mark, JOB_ADVANCEMENT_ROGUE);
+  mark.set_max_level(1);
+  mark.mutable_base()->set_final_attack_chance(0.42);
+  mark.mutable_base()->set_final_attack_pct(2.10);
+
+  Skill blasting;
+  blasting.set_name("Throw Blasting");
+  blasting.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(blasting, JOB_ADVANCEMENT_ROGUE);
+  blasting.set_max_level(20);
+  blasting.add_required_equip_type(EQUIP_TYPE_CLAW);
+  blasting.set_base_delay_ms(960);
+  blasting.mutable_buff()->set_duration_seconds(60.0);
+  Magazine* charm = blasting.mutable_buff()->mutable_magazine();
+  charm->set_label("Explosive Charm");
+  charm->set_charges(46);
+  charm->set_charges_per_swing(3);
+  charm->set_spent_by_every_swing(true);
+  charm->set_recharge_seconds(10.0);
+  charm->set_recharge_max(1);
+  charm->set_max_enemies(6);
+  charm->set_lines(5);
+  charm->mutable_base()->set_skill_pct(4.94);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"quad_star", quad},
+                   {"showdown", showdown},
+                   {"mark", mark},
+                   {"throw_blasting", blasting}});
+  state.current_map = "field";
+  EquipClaw(state);
+  GrantFirstJobSp(state, 4, JOB_ROGUE);
+  ASSERT_TRUE(state.character.LearnSkill(quad, 1));
+  ASSERT_TRUE(state.character.LearnSkill(showdown, 1));
+  ASSERT_TRUE(state.character.LearnSkill(mark, 1));
+  ASSERT_TRUE(state.character.LearnSkill(blasting, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  const AttackOption* load = FindAttack(params, "Explosive Charm");
+  ASSERT_NE(load, nullptr);
+  // Out of the choice: a load riding other presses is no button of its own.
+  EXPECT_GE(load->spent_by_attack, 0);
+  EXPECT_EQ(load->charges, 46);
+  EXPECT_EQ(load->charges_per_swing, 3);
+  EXPECT_DOUBLE_EQ(load->recharge_seconds, 10.0);
+  EXPECT_EQ(load->recharge_max, 1);
+  // What the press throws, so the character's own Final Attack rides it --
+  // unlike the strike a swing merely sets off beside itself.
+  EXPECT_FALSE(load->final_attack_rolls.empty());
+
+  const AttackOption* quad_swing = FindAttack(params, "Quad Star");
+  const AttackOption* showdown_swing = FindAttack(params, "Showdown");
+  ASSERT_NE(quad_swing, nullptr);
+  ASSERT_NE(showdown_swing, nullptr);
+  ASSERT_NE(quad_swing->loaded, nullptr);
+  ASSERT_NE(showdown_swing->loaded, nullptr);
+  // One bank, however many buttons spend it.
+  EXPECT_EQ(quad_swing->loaded_attack, showdown_swing->loaded_attack);
+  // The bare poke is not an attack skill, and neither is the load itself.
+  EXPECT_EQ(params.attacks[0].name, "Attack");
+  EXPECT_EQ(params.attacks[0].loaded, nullptr);
+  EXPECT_EQ(load->loaded, nullptr);
+}
+
 // Showdown's shuriken: a second attack the swing sets off, with its own reach,
 // its own strikes, its own scatter and a wait of its own. Nothing rides it --
 // it is not the character's swing -- and a skill on its own clock never

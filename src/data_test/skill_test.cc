@@ -230,10 +230,11 @@ TEST(SkillDataTest, EverySkillNamesItsAdvancementAndItsKind) {
   }
 }
 
-// A load is fired one of two ways and has to say which: as a button of its
-// own, which the fight chooses like any swing, or on the press of a skill that
-// exists to spend it. The second needs no animation -- it rides the press it
-// names -- and naming a skill nobody holds would leave the load unfireable.
+// A load is fired one of three ways and has to say which: as a button of its
+// own, which the fight chooses like any swing; on the press of one skill that
+// exists to spend it; or on every swing the character makes. The last two ride
+// a press they did not pay for, so neither states an animation -- and naming a
+// skill nobody holds would leave the load unfireable.
 TEST(SkillDataTest, EveryLoadIsFiredByAButtonOrByASkillThatSpendsIt) {
   std::map<std::string, Skill> skills = LoadSkills();
   std::set<std::string> names;
@@ -245,19 +246,43 @@ TEST(SkillDataTest, EveryLoadIsFiredByAButtonOrByASkillThatSpendsIt) {
     if (magazine.charges() <= 0) {
       continue;
     }
-    if (magazine.spent_by_skill_name().empty()) {
+    if (!magazine.spent_by_skill_name().empty()) {
+      EXPECT_FALSE(magazine.spent_by_every_swing())
+          << entry.first << " names the skill that spends it AND takes every "
+          << "swing, which cannot both be how it is fired";
+      EXPECT_GT(names.count(magazine.spent_by_skill_name()), 0u)
+          << entry.first << " is spent by \"" << magazine.spent_by_skill_name()
+          << "\", which no skill answers to";
+      EXPECT_NE(magazine.spent_by_skill_name(), entry.second.name())
+          << entry.first << " is spent by its own press";
+    }
+    if (magazine.spent_by_skill_name().empty() &&
+        !magazine.spent_by_every_swing()) {
       EXPECT_GT(magazine.base_delay_ms(), 0)
           << entry.first << " loads a swing of its own with no animation";
       continue;
     }
-    EXPECT_GT(names.count(magazine.spent_by_skill_name()), 0u)
-        << entry.first << " is spent by \"" << magazine.spent_by_skill_name()
-        << "\", which no skill answers to";
-    EXPECT_NE(magazine.spent_by_skill_name(), entry.second.name())
-        << entry.first << " is spent by its own press";
     EXPECT_EQ(magazine.base_delay_ms(), 0)
-        << entry.first << " rides another skill's press and states an "
+        << entry.first << " rides a press it did not pay for and states an "
         << "animation of its own";
+  }
+}
+
+// A bank that fills itself states both halves of how: the clock a charge comes
+// back on and how many it holds that way. One without the other is a clock
+// that fills nothing, or a cap nothing ever reaches. What a press takes has to
+// fit in the bank too, or the load could never be spent whole.
+TEST(SkillDataTest, EverySelfFillingBankStatesItsClockAndItsCap) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Magazine& magazine = entry.second.buff().magazine();
+    if (magazine.charges() <= 0) {
+      continue;
+    }
+    EXPECT_EQ(magazine.recharge_seconds() > 0.0, magazine.recharge_max() > 0)
+        << entry.first << " states one half of a bank that fills itself";
+    EXPECT_LE(magazine.charges_per_swing(), magazine.charges())
+        << entry.first << " spends more charges on a press than a raising of "
+        << "the buff hands over";
   }
 }
 

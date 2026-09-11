@@ -1296,6 +1296,33 @@ Skill MagazineSkill(const Skill& skill, const Magazine& magazine) {
   return loaded;
 }
 
+// Hangs a load on every swing that spends it, and says whether anybody does.
+// `at` is where the load itself goes in the list, which is where its charges
+// are counted however many swings press it: one bank, not one per button.
+bool HangLoad(const Magazine& magazine, AttackOption& load, AttackSet& set) {
+  int at = static_cast<int>(set.attacks.size());
+  // From 1: AddAttacks puts the bare poke in first and it is no skill, so it
+  // spends nothing. Charged with a load it would also be the swing the fight
+  // reached for through a burst, the poke being the fastest thing there is.
+  for (int i = 1; i < at; ++i) {
+    // Another skill's load is not a swing either.
+    if (set.attacks[i].charges > 0) {
+      continue;
+    }
+    if (!magazine.spent_by_every_swing() &&
+        set.attacks[i].name != magazine.spent_by_skill_name()) {
+      continue;
+    }
+    load.spent_by_attack = i;
+    // It rides that press rather than costing one of its own, so it is worth
+    // exactly what the swing carrying it is worth in time.
+    load.swing_seconds = set.attacks[i].swing_seconds;
+    set.attacks[i].loaded = std::make_shared<AttackOption>(load);
+    set.attacks[i].loaded_attack = at;
+  }
+  return load.spent_by_attack >= 0;
+}
+
 // Every magazine's swing, one per learned buff that loads one. A pass of its
 // own rather than a branch inside AddAttacks, because the skill carrying a
 // magazine is a buff and AddAttacks is done with it before it ever builds one.
@@ -1320,30 +1347,22 @@ void AddMagazines(const GameState& state, const DerivedStats& derived,
         AttackFor(state.character.proto(), total_stats, weapon_type, &swung,
                   learned, types, derived, attack_speed, speed_factor);
     attack.charges = magazine.charges();
+    attack.charges_per_swing = std::max(1, magazine.charges_per_swing());
+    attack.recharge_seconds = magazine.recharge_seconds();
+    attack.recharge_max = magazine.recharge_max();
     // A load nothing else spends is a button in its own right, and the pass is
-    // done with it. One a skill spends stays on the list all the same -- that
-    // is where its charges are counted -- but is hung on the swing that presses
-    // it and taken out of the choice.
-    if (magazine.spent_by_skill_name().empty()) {
+    // done with it. One a swing spends stays on the list all the same -- that
+    // is where its charges are counted -- but is hung on the presses that
+    // spend it and taken out of the choice.
+    if (magazine.spent_by_skill_name().empty() &&
+        !magazine.spent_by_every_swing()) {
       set.attacks.push_back(std::move(attack));
       continue;
     }
-    int at = static_cast<int>(set.attacks.size());
-    for (int i = 0; i < at; ++i) {
-      if (set.attacks[i].name != magazine.spent_by_skill_name()) {
-        continue;
-      }
-      attack.spent_by_attack = i;
-      // It rides that press rather than costing one of its own, so it is worth
-      // exactly what the swing carrying it is worth in time.
-      attack.swing_seconds = set.attacks[i].swing_seconds;
-      set.attacks[i].loaded = std::make_shared<AttackOption>(attack);
-      set.attacks[i].loaded_attack = at;
-    }
-    // Nobody holds the skill that would spend it, so the load is dropped
-    // rather than left on the list: an option nothing spends is one the fight
-    // would go on to choose for itself, which is the opposite of the bargain.
-    if (attack.spent_by_attack < 0) {
+    // Nobody holds a skill that would spend it, so the load is dropped rather
+    // than left on the list: an option nothing spends is one the fight would
+    // go on to choose for itself, which is the opposite of the bargain.
+    if (!HangLoad(magazine, attack, set)) {
       continue;
     }
     set.attacks.push_back(std::move(attack));
