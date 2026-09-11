@@ -1,5 +1,5 @@
-# See rope_lift.textproto: one of the four forgotten nodes, and the smallest
-# of them -- GMS pays this one a fifth of what it pays Rope Lift, a point of
+# See rope_lift.textproto: one of the four forgotten nodes. GMS pays this one
+# a fifth of what it pays Rope Lift, a point of
 # All Stats every fifth level. A fractional step is how a ladder says that:
 # `base 1, per_level 0.2` is floored where it is read, which is GMS's own
 # ceil(L/5) exactly.

@@ -4,10 +4,9 @@
 # The eight are real, not scenery. GMS gives the wall two invisible attack
 # objects -- one for the moving form, one for the locked -- and each carries
 # the whole of `mobCount 12`, `attackCount 15` and `380+16x`, so an enemy the
-# wall passes over takes all eight. 103,200% at master is the largest single
-# PRESS in the game -- the holds land more over the seconds they run -- and its
-# rate against the cooldown is Spear of Darkness's almost exactly: 2,580%/s
-# against 2,589%/s.
+# wall passes over takes all eight. 103,200% at master, and its rate against
+# the cooldown is Spear of Darkness's almost exactly: 2,580%/s against
+# 2,589%/s.
 #
 # Twelve enemies is GMS's own mobCount and what this game's hitbox rule works
 # out for itself from the bolt's 300x610 box -- floor(300/70) * (1 +

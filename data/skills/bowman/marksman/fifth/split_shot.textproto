@@ -1,8 +1,8 @@
 # A Final Attack behind the Marksman's own shots, and the reason a Final
 # Attack can state a reach at all: GMS gives the split its own mobCount and its
 # own hitbox, so behind Snipe -- a swing that reaches one -- it still reaches
-# ten. Every other Final Attack in the game falls on the one enemy its swing
-# picked, which is what final_attack_max_enemies reads as 1.
+# ten. A Final Attack otherwise falls on the one enemy its swing picked, which
+# is what final_attack_max_enemies reads as 1.
 #
 # Which swings it follows is the group rather than a list of names: GMS names
 # Piercing Arrow, Snipe and the cartridge, and those three carry the tag. High

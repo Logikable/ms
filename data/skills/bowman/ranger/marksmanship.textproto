@@ -1,9 +1,8 @@
 # GMS masters this at 10 and reaches 25% of both. Stretched to 20 for the
 # book's budget, landing on the same pair.
 #
-# Both halves are the strongest levers a bow line has. The attack is a
-# percentage of the whole pile, worn and granted alike, and the ignored DEF
-# meets the gear's in reverse rather than summing with it.
+# The attack is a percentage of the whole pile, worn and granted alike, and
+# the ignored DEF meets the gear's in reverse rather than summing with it.
 name: "Marksmanship"
 description:
   "When attacking, ignores a portion of enemy DEF. Permanently increases your "

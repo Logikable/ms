@@ -1,5 +1,5 @@
-# The one skill in the game that takes a stat away. The DEF goes and the attack
-# and final damage come, and the stats page shows the loss as a loss -- see
+# This takes a stat away: the DEF goes and the attack and final damage come,
+# and the stats page shows the loss as a loss -- see
 # TotalWithBreakdown. It is a bargain the Ranger can afford: DEF stops paying
 # long before this much of it is gone.
 name: "Reckless Hunt: Bow"

@@ -1,4 +1,4 @@
-# The first swing in the game that is HELD: an orb that zaps everything around
+# A HELD swing: an orb that zaps everything around
 # it every 150ms for as long as the key is down, then bursts. Twelve pulses is
 # a full two seconds; 960ms is the shortest it can be let go after, which five
 # pulses and the burst fit inside.

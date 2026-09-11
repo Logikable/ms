@@ -1,7 +1,6 @@
 # GMS made this a plain passive in v267: the coin is flipped once and the
 # blessing is permanent, so there is nothing left to cast. Both figures are
-# GMS's own, and they are the largest single grant on any hyper page -- a
-# quarter of the Shadower's critical rate arrives here.
+# GMS's own: a quarter of the Shadower's critical rate arrives here.
 name: "Flip of the Coin"
 description:
   "Flips a lucky coin to conjure up a random blessing, permanently increasing "

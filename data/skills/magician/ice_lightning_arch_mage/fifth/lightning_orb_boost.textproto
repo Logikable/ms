@@ -1,4 +1,4 @@
-# The held sphere alone, and the fifth node in the game aimed at a hyper.
+# The held sphere alone: a node aimed at a hyper.
 name: "Lightning Orb Boost"
 description: "Strengthens Lightning Orb."
 kind: SKILL_KIND_PASSIVE

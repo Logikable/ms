@@ -1,5 +1,5 @@
-# The switch, and the first skill in the game the player uses rather than
-# holds. While it is on, the Bishop's four Benevolence skills stand as their
+# The switch: a skill the player uses rather than holds. While it is on, the
+# Bishop's four Benevolence skills stand as their
 # Vengeance forms -- see the vengeance folder, and Skill.toggle.
 #
 # What it grants is not gated on the switch: GMS marks it "[Passive Effects]",

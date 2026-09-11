@@ -1,7 +1,7 @@
 # The Night Lord's, to the number -- GMS gives both branches 344+5x% seven
 # times on fifteen enemies, a burn of 90+4x% a second, and a cooldown walking
 # 60s down to 30s. The burn's duration is flat at the master level's here, as
-# every other duration in the game is.
+# a duration is.
 name: "Sudden Raid"
 description: "Call in a horde of friends to attack enemies."
 kind: SKILL_KIND_ATTACK

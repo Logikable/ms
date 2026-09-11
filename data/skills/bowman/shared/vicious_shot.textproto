@@ -1,4 +1,4 @@
-# The one skill that has any use for a critical rate past 100%: half of it,
+# What a critical rate past 100% is good for: half of it,
 # at master, comes back as critical damage. 20 + x% of the rate, so 21% at
 # level 1 and 50% at 30 -- an archer sitting at 120% buys 60% critical damage.
 #
@@ -6,7 +6,7 @@
 # words: Snipe's certain critical does not make one. That is the character/
 # swing split the engine already has, so the lever reads the character's.
 #
-# The roll still clamps at 100%. Nothing else in the game spends the excess,
+# The roll still clamps at 100%; the excess is spent here and nowhere else,
 # and GMS says the same.
 name: "Vicious Shot"
 description:

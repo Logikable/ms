@@ -14,9 +14,8 @@
 # storeys.
 #
 # The +100% is GMS's damR: a share that sums with the character's own rather
-# than multiplying it, and it belongs to this swing alone. It is the first
-# attack in the game to state one, which is why damage_pct joined the swing
-# levers beside ignored defence and boss damage.
+# than multiplying it, and it belongs to this swing alone, which is why
+# damage_pct is a swing lever beside ignored defence and boss damage.
 #
 # Marked Target is dropped. Greater Empowered Arrows folds that buff into its
 # own passive, so a Marksman holding this node has it standing already.

@@ -13,8 +13,8 @@
 # so of the scroll -- of the stars it keeps firing, part of the count scales
 # with the crowd -- `bulletCount` is GMS's per-cast line count everywhere else,
 # and the band settles it: 276,720% at master is 4,612%/s against the wait,
-# just under Storm of Arrows, where the once-at-the-start reading is 1,013%/s
-# and would leave this the weakest job node in the game.
+# just under Storm of Arrows, where the once-at-the-start reading is 1,013%/s,
+# far below the band.
 #
 # The 30% is the scroll's, stated once on the pulse and kept by the burst that
 # goes out with it. On the buff it would be a character-wide boss bonus for

@@ -4,9 +4,9 @@
 #
 # The final damage is the Cleric's own, as GMS pays it. The EXP is not: GMS
 # says "your own effects do not apply to you", so it is granted outward and
-# nowhere else, and a Cleric hunting alone earns nothing from it. It is the one
-# grant in the game that stacks -- what it pays for is the company kept, not a
-# buff standing over the party. See Skill.ally_effect_stacks.
+# nowhere else, and a Cleric hunting alone earns nothing from it. It stacks --
+# what it pays for is the company kept, not a buff standing over the party.
+# See Skill.ally_effect_stacks.
 name: "Blessed Ensemble"
 description:
   "Blessings increase your Final Damage. Obtains additional EXP based on the "

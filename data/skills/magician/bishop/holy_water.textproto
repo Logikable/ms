@@ -8,8 +8,8 @@
 # Bishop's, the fold knowing only the character it is folding for. A helping
 # out of somebody else's chalice is worth what your own wisdom makes of it.
 #
-# The first lever in the game charged against a stat rather than a level, and
-# the reason a Bishop's INT is worth more than its damage says.
+# The lever is charged against a stat rather than a level, which is why a
+# Bishop's INT is worth more than its damage says.
 name: "Holy Water"
 description:
   "Summons a chalice of holy water nearby that restores party members' HP "

@@ -11,7 +11,7 @@
 # Phoenix's 1170ms ships at 1.71s, so the frames have never decided a summon's
 # cadence here -- and the band does: ten pulses is 205,800% against a 120s
 # wait, 1,715%/s where Bolt Barrage is 2,580%/s, while the 810ms reading is
-# 761,460% and nothing in the game is within a factor of seven of it.
+# 761,460%, far outside the band.
 #
 # Ten enemies is GMS's own. The rule works out 51 from the spirit's 1200x700
 # box and floors nothing, as it never lifts.

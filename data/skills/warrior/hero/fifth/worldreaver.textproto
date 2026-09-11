@@ -3,9 +3,8 @@
 # here threatens a character on a timetable they could dodge, so only the
 # damage is built.
 #
-# The 1.68-second cast is the longest in the game by a wide margin: seven
-# animation frames, and 1.14 seconds of that is the wind-up before the first
-# hit lands. It scales with attack speed like any other swing, so a Hero at
+# The cast is 1.68 seconds: seven animation frames, and 1.14 seconds of that
+# is the wind-up before the first hit lands. It scales with attack speed like any other swing, so a Hero at
 # stage 7 stands still for 1.38 seconds -- about two and a half Raging Blows,
 # once every 25 seconds.
 name: "Worldreaver"

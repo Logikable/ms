@@ -1,7 +1,7 @@
-# Magic attack, and the first source of Buff Duration in the game. The second
-# half grants nothing today: no magician skill raises a buff with a duration
-# to lengthen. It is written because the lever is what the class is for, and a
-# page that showed only the attack would be describing a different skill.
+# Magic attack and Buff Duration. The lever lengthens a buff and not the wait
+# under it, which is what makes a percentage granting nothing on its own worth
+# having. The V matrix stands outside it: GMS marks every node
+# notIncBuffDuration, and BuffDurationFor asks v_node rather than each file.
 #
 # GMS's knockback resistance is dropped -- nothing here knocks a character
 # back.

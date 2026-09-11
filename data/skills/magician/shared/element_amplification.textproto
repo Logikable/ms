@@ -1,6 +1,5 @@
 # GMS buys the damage with MP the spells then cost more of. Nothing here
-# spends MP, so the bargain is one-sided: 5x% damage, the biggest single lever
-# in the book.
+# spends MP, so the bargain is one-sided: 5x% damage for nothing.
 name: "Element Amplification"
 description: "Increases the Damage of your magic skills."
 kind: SKILL_KIND_PASSIVE

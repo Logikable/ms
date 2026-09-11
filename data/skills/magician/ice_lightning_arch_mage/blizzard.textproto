@@ -4,8 +4,8 @@
 # seconds the family freezes for -- GMS states no number of its own. The fight falls back on Chain Lightning in between, which is what
 # lets this one hit as hard as it does.
 #
-# The Final Attack falls on ONE enemy, as GMS states it -- the reading every
-# Final Attack in the game takes. See Skill.final_attack_max_enemies.
+# The Final Attack falls on ONE enemy, as GMS states it, which is the usual
+# reading. See Skill.final_attack_max_enemies.
 name: "Blizzard"
 description:
   "Summon spears of ice from the sky, showering multiple enemies with a nasty "

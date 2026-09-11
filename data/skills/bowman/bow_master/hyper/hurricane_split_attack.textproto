@@ -1,6 +1,6 @@
-# Two arrows a pulse for three quarters of the damage each: half again, and the
-# largest single thing on the page. Written as GMS states it -- a strike added
-# and a share taken off -- rather than folded into one multiplier, because what
+# Two arrows a pulse for three quarters of the damage each: half again.
+# Written as GMS states it -- a strike added and a share taken off -- rather
+# than folded into one multiplier, because what
 # the player is buying is the second arrow and the page should say so.
 name: "Hurricane - Split Attack"
 description:

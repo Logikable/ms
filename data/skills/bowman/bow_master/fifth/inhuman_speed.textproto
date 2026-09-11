@@ -8,7 +8,7 @@
 # for every second their attacks land, up to the buff. A Bow Master never
 # stops attacking, so the window is the buff: the ramp is dropped and the
 # afterimages fire for the whole 30. Kept literally it would be 370%/s over
-# the cooldown, an order of magnitude under the weakest job node in the game.
+# the cooldown, an order of magnitude under the job-node band.
 #
 # One enemy a volley. GMS states no mobCount for this skill, and while the box
 # is wide enough for 24 by the reach rule, that rule floors a stated cap

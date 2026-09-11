@@ -1,5 +1,5 @@
-# The first skill in the game whose buff is really timed. It stands for 30
-# seconds at master level against a 70-second wait, so a Dark Knight is buffed
+# The buff here is really timed: it stands for 30 seconds at master level
+# against a 70-second wait, so a Dark Knight is buffed
 # for part of a fight and bare for the rest -- and every swing they land takes
 # a third of a second off the wait for the next one.
 #

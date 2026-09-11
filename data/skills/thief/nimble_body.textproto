@@ -2,7 +2,7 @@
 # on. GMS grants 2 a level over 10 levels; this grants 1 over 20, ending at the
 # same +20. Halving it is what keeps the skill in line with its peers -- 20 LUK
 # is worth about 13% more damage at level 30, near enough to Critical Shot's
-# 14%, where the full 40 would have made it the best passive in the game.
+# 14%, where the full 40 would have put it well ahead of its peers.
 # The wiki says "Luck"; every stat this game shows the player says LUK.
 name: "Nimble Body"
 description: "Permanently increases LUK."
