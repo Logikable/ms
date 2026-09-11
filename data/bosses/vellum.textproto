@@ -22,7 +22,7 @@ difficulties {
   }
   reset: RESET_PERIOD_DAILY
   # A third longer than the three beside him: twice the HP of Pierre behind
-  # the heaviest defence in the game.
+  # 200% PDR.
   time_limit_seconds: 1200
   # The level cap. All four open together, on the day the character tops out.
   unlock_level: 200

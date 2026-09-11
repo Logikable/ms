@@ -13,5 +13,5 @@ equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_PENDANT
 upgrade_slots: 1
 # Dropped by Chaos Horntail, never stocked, at the top rung of the ladder:
-# his 190 gate is the latest in the game, shared with Hard Hilla.
+# his gate is 190, as Hard Hilla's is.
 sell_price: 0

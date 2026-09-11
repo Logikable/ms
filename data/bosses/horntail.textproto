@@ -82,7 +82,7 @@ difficulties {
   }
 }
 # The same three phases at the numbers GMS gives Chaos: 26.6B across the
-# fight, the most HP in the game, and every part behind 50% PDR.
+# fight, every part behind 50% PDR.
 difficulties {
   name: "Chaos"
   phases {
@@ -139,8 +139,8 @@ difficulties {
   # GMS's own number, kept.
   meso: 6760000
   # Paid for the clear, flat and untouched by any EXP bonus, as the other
-  # seven are. GMS pays the hardest fight in the game the least of the late
-  # bosses; the clear is for the necklace and the shard.
+  # seven are. GMS pays this one the least of the late bosses for all its
+  # length; the clear is for the necklace and the shard.
   exp: 8473319
   # What Normal drops, with the Chaos necklace in the plain one's place. The
   # shard is the same: a soul belongs to the boss, not to the rung.

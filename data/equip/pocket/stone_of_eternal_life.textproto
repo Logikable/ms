@@ -1,6 +1,6 @@
 name: "Stone of Eternal Life"
-# The only equip in the game with no level on it. A boss reward is kept from
-# the day it drops, and Hilla is a long way past anything it would gate.
+# No level on it: a boss reward is kept from the day it drops, and Hilla is a
+# long way past anything it would gate.
 required_level: 0
 base_stats {
   str: 3

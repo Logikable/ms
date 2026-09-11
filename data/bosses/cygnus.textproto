@@ -18,7 +18,7 @@ difficulties {
   # Half again what the fights below her allow. She is the wall at the cap,
   # and Root Abyss stands beside her on the same clock.
   time_limit_seconds: 900
-  # The last gate in the game, and the only one at the level cap.
+  # The level cap, where Root Abyss opens too.
   unlock_level: 200
   # Five Intense Power Crystals at what GMS prices hers, divided by seven:
   # GMS clears her once a week and this game once a day.

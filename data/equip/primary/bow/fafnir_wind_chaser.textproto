@@ -1,7 +1,6 @@
 # The Root Abyss weapon for this line, bought with what Chaos Vellum drops.
 # Two tiers above the Frozen weapon it replaces: the attack alone is a third
-# more, and it is the first weapon in the game to carry boss damage and
-# ignored defence of its own.
+# more, and it carries boss damage and ignored defence of its own.
 name: "Fafnir Wind Chaser"
 required_level: 150
 base_stats {

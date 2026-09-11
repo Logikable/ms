@@ -1,7 +1,7 @@
-# Magic attack, final damage, and Buff Duration beside them. The last grants
-# nothing today: no magician skill raises a buff with a duration to lengthen.
-# It is written because the lever is what the class is for, and a page showing
-# only the attack would be describing a different skill.
+# Magic attack, final damage, and Buff Duration beside them. The last
+# lengthens a buff and not the wait under it, which is what makes a percentage
+# granting nothing on its own worth having. The V matrix stands outside it:
+# GMS marks every node notIncBuffDuration.
 #
 # GMS pays 3+4*floor(x/5)% final damage, which is 11% at the master level.
 # Walked here as L+1, so the ladder is even and the top is GMS's.
