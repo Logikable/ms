@@ -1,0 +1,61 @@
+# The Night Lord's third job node: a scroll left hanging in the air that fires
+# stars for twelve seconds and bursts as it goes.
+#
+# GMS's own figures: 700+27x% a star, six of them at each of up to seven
+# enemies and seven more whatever the crowd is, then 1570+62x% twelve times on
+# twelve enemies when the duration ends. Bosses take 30% more of all of it.
+#
+# The beat is `subTime 990`, the same field Shurrikane and Bolt Barrage take
+# theirs from and the only number in the block the readout never spends. Twelve
+# firings fit the twelve seconds, and the twelfth is where the scroll bursts.
+#
+# The seven fixed stars are fired EVERY tick, not once at the start. Namu says
+# so of the scroll -- of the stars it keeps firing, part of the count scales
+# with the crowd -- `bulletCount` is GMS's per-cast line count everywhere else,
+# and the band settles it: 276,720% at master is 4,612%/s against the wait,
+# just under Storm of Arrows, where the once-at-the-start reading is 1,013%/s
+# and would leave this the weakest job node in the game.
+#
+# The 30% is the scroll's, so both halves state it. On the buff it would be a
+# character-wide boss bonus for twelve seconds of every sixty, which is a
+# different and far stronger skill.
+#
+# The cast is the 120ms every buff raised from a sequence costs, not the 360ms
+# of the scroll's own animation.
+#
+# Dropped: detonating it early, which needs a scroll to be somewhere, and the
+# immunity to attack reflection, which nothing here has.
+name: "Dark Lord's Omen"
+description: "Unleash the power of the Dark Lord's insight."
+kind: SKILL_KIND_ACTIVE
+placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 3 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+base_delay_ms: 120
+cooldown_seconds: 60.0
+buff {
+  duration_seconds: 12.0
+  pulse {
+    label: "Throwing Stars"
+    cast_interval_seconds: 0.99
+    lines: 6
+    max_enemies: 7
+    max_pulses: 12
+    base {
+      skill_pct: 7.27
+      boss_pct: 0.30
+    }
+    per_level { skill_pct: 0.27 }
+    fixed_strikes { hits: 7 }
+    final_strike {
+      label: "Explosion"
+      lines: 12
+      max_enemies: 12
+      base {
+        skill_pct: 16.32
+        boss_pct: 0.30
+      }
+      per_level { skill_pct: 0.62 }
+    }
+  }
+}
