@@ -1,0 +1,51 @@
+# The Bishop's fourth job node: a frontal channel bought out of a bank of holy
+# lights rather than out of a cooldown.
+#
+# GMS prepares one light every 11 seconds, banks five, and spends one for every
+# second the key is held -- so the skill answers the map rather than a clock.
+# On a crowd the Bishop spends the light standing and goes back to Angel Ray;
+# against a boss the lights pile up while they swing and go out together. A
+# flat 55-second cooldown would state the same throughput and the wrong skill:
+# it would lock the player out for five seconds at a time on a map, where the
+# respawn beat is 7.56.
+#
+# `pulses_per_charge` is GMS's second of hold against its 240ms beat -- 4.17
+# rounded to the pulse that fits inside it, so a full five-light dump is 20
+# pulses rather than 21. The beat itself is `attackDelay 240`, published
+# nowhere else; the community DPM calculator's key-down tick is 240 too, and
+# its note that nine lights fire 41 ticks agrees to within a hundredth.
+#
+# `base_delay_ms` is the client's own wind-up and release -- `prepare/time 240`
+# plus `keydownend/time 120` -- the floor a press is committed to. It never
+# binds: one light already buys 960ms. masonym's 1320 is the LOOP action, not
+# the floor.
+#
+# Dropped: the 40 MP an attack; the knockback and status immunity, neither of
+# which anything here inflicts; and the frontal hitbox, nothing having a
+# position. It does not retarget, which is faithful -- the light falls where
+# the Bishop is standing.
+name: "Divine Punishment"
+description:
+  "Punish the wicked in the name of Heaven. Spends the holy light you have "
+  "prepared, one for every second you hold the key, and shelters you from "
+  "half of what you take while it runs."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_HOLY
+placement { job_advancement: JOB_ADVANCEMENT_BISHOP_V skill_order: 4 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_STAFF
+base_delay_ms: 360
+cooldown_seconds: 1.5
+max_enemies: 6
+lines: 10
+base { skill_pct: 3.38 }
+per_level { skill_pct: 0.13 }
+channel {
+  pulse_interval_ms: 240
+  max_pulses: 20
+  damage_taken_pct: 0.50
+  charge_seconds: 11.0
+  max_charges: 5
+  pulses_per_charge: 4
+}
