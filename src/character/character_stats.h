@@ -124,6 +124,15 @@ struct StunLift {
   std::string from_skill;
 };
 
+// The mark one of the character's skills leaves, and which of their swings can
+// spend one. No `from_skill` beside it, unlike the stun above: what keeps the
+// angel off its own mark is that it carries no element to spend one with.
+// Empty for every character who marks nothing, which is everyone but a Bishop
+// holding Angel of Balance.
+struct MarkLift {
+  SkillTag lifted_tag = SKILL_TAG_UNSPECIFIED;
+};
+
 // What the ENEMY's condition is worth to the character reading it. Two
 // readings, and both are the whole group's business rather than one skill's:
 // whether a monster is afflicted at all, and how many burns stand on the
@@ -286,6 +295,8 @@ struct DerivedStats {
   FreezeStacks freeze;
   // The stun one of their skills leaves, and what it lifts.
   StunLift stun_lift;
+  // The mark one of their skills leaves, and what can spend one.
+  MarkLift mark_lift;
   // What their swings leave behind on a monster, and what it is worth.
   Scar scar;
   // What the condition the enemy is already in is worth to them.

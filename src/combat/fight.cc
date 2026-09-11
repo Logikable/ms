@@ -534,7 +534,11 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
     int j = order.empty() ? step : order[step];
     double gain =
         order.empty() ? 1.0 : std::pow(1.0 + attack.pierce_gain_pct, step);
-    double freeze = StateBoost(attack, queue_[j]);
+    // The mark is spent here and nowhere else: the strike proper is the first
+    // of this swing's landings to reach the monster, so it is the one that
+    // takes the lift. Every later bank finds the mark already gone.
+    double freeze =
+        StateBoost(attack, queue_[j]) * SpendMark(attack, queue_[j]);
     double share = shares.empty() ? 1.0 : shares[j];
     double damage =
         held > 0
@@ -595,6 +599,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   ApplyDots(attack, hit);
   ApplyFreeze(attack, hit);
   ApplyStun(attack, hit);
+  ApplyMark(attack, hit);
   ApplyScar(attack, hit);
   Reap();
   return recovered;
@@ -1170,6 +1175,38 @@ void CombatSim::RunStun(double dt) {
   for (QueuedMob& mob : queue_) {
     mob.stunned_left_seconds = std::max(0.0, mob.stunned_left_seconds - dt);
   }
+}
+
+void CombatSim::ApplyMark(const AttackOption& attack, int hit) {
+  if (attack.mark_seconds <= 0.0) {
+    return;
+  }
+  for (int j = 0; j < hit; ++j) {
+    // Written over rather than added to, exactly as the stun is: a monster
+    // marked again carries one mark, for the full time from now.
+    queue_[j].marked_left_seconds =
+        std::max(queue_[j].marked_left_seconds, attack.mark_seconds);
+    queue_[j].mark_lift_pct = attack.mark_lift_pct;
+  }
+}
+
+void CombatSim::RunMark(double dt) {
+  for (QueuedMob& mob : queue_) {
+    mob.marked_left_seconds = std::max(0.0, mob.marked_left_seconds - dt);
+  }
+}
+
+// One line of the swing spends the mark and lands that much harder. Taken as a
+// share of the whole swing rather than as a line of its own, so what the
+// ledger prints and what the monster loses stay the same number -- and the
+// share IS the line, every line of a swing being worth the same in
+// expectation.
+double CombatSim::SpendMark(const AttackOption& attack, QueuedMob& mob) {
+  if (!attack.collects_mark_lift || mob.marked_left_seconds <= 0.0) {
+    return 1.0;
+  }
+  mob.marked_left_seconds = 0.0;
+  return 1.0 + mob.mark_lift_pct / std::max(1, attack.lines);
 }
 
 void CombatSim::RunFreeze(double dt) {
@@ -2278,6 +2315,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   RunDots(dt);
   RunFreeze(dt);
   RunStun(dt);
+  RunMark(dt);
   RunScar(dt);
   RunCooldowns(params, dt);
   // Before the swing, so a bolt still in the air lands on the crowd this step

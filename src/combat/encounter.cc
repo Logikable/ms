@@ -421,6 +421,14 @@ void AddSwingClocks(const Skill* skill, int level, const DerivedStats& derived,
       derived.stun_lift.lifted_tag != SKILL_TAG_UNSPECIFIED &&
       HasTag(skill, derived.stun_lift.lifted_tag) &&
       skill->name() != derived.stun_lift.from_skill;
+  // The mark beside it, game-scaled the same way. Nothing excludes the skill
+  // that left one: the angel carries no element, so the tag keeps it off its
+  // own mark without anything having to say so.
+  attack.mark_seconds = skill->mark().duration_seconds() * speed_factor;
+  attack.mark_lift_pct = skill->mark().final_dmg_pct();
+  attack.collects_mark_lift =
+      derived.mark_lift.lifted_tag != SKILL_TAG_UNSPECIFIED &&
+      HasTag(skill, derived.mark_lift.lifted_tag);
   // Chance Attack's damage against a scarred monster, and what the enemy's own
   // condition is worth. Both ride anything that lands on the mob -- a summon's
   // pulse included -- since the mob is in that state whatever is hitting it.
@@ -816,6 +824,9 @@ void CarryElement(const Skill& skill, Skill& built) {
   built.set_freeze_seconds(skill.freeze_seconds());
   if (skill.has_stun()) {
     *built.mutable_stun() = skill.stun();
+  }
+  if (skill.has_mark()) {
+    *built.mutable_mark() = skill.mark();
   }
   if (skill.has_freeze_build()) {
     *built.mutable_freeze_build() = skill.freeze_build();

@@ -1145,6 +1145,29 @@ message Stun {
   SkillTag lifted_tag = 3;
 }
 
+// The mark a strike leaves on what it reaches, and what SPENDING it is worth.
+// Angel of Balance is what it exists for: GMS's angel brands every enemy it
+// touches for a minute, and the first holy hit anybody lands on a marked
+// enemy takes the mark off it and hits 10% harder for it.
+//
+// The same shape as a Stun above, differing in one thing and that one thing is
+// the whole of the distinction: a stun lifts every swing that collects, for as
+// long as it stands, while a mark pays ONE LINE and is gone. A swing of ten
+// lines that finds a mark is worth a tenth of the lift, not the whole of it --
+// which is GMS's own reading, its footnotes counting the spend in 타.
+//
+// Nothing excludes the skill leaving one, unlike a stun: the angel carries no
+// element, so it cannot collect what only a holy hit collects.
+message Mark {
+  double duration_seconds = 1;
+  // Final damage the line that spends the mark takes, over everything it
+  // already multiplies by.
+  double final_dmg_pct = 2;
+  // Which swings can spend one. Unset spends nothing, which would leave the
+  // mark a status with no reader.
+  SkillTag lifted_tag = 3;
+}
+
 message Channel {
   int32 pulse_interval_ms = 1;
   // Pulses a full hold is worth. The hold runs no longer than these take.
@@ -1905,6 +1928,9 @@ message Skill {
   // Read only where a swing's strikes are told apart, since a swing landing as
   // one moment either found something or did not. See cast_interval_ms.
   double cooldown_refund_seconds = 61;
+  // The mark this skill's strike leaves on what it reaches, if any. Unset for
+  // every skill but Angel of Balance. See Mark.
+  Mark mark = 62;
   // --- From here down, one job line apiece. See the message comment. ---
   // The Fighter's. How many Combo Orbs this skill surrounds the character with
   // at level 1, and the rate that ring grows -- read exactly as `lines` and

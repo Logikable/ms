@@ -611,29 +611,42 @@ std::vector<Row> EmpoweredRows(const Skill& skill) {
 // The element a tag names, for a row that has to say which swings something
 // reaches. Only the two the page already draws can appear here.
 std::string TagName(SkillTag tag) {
-  return tag == SKILL_TAG_ICE ? "Ice" : "Lightning";
+  switch (tag) {
+    case SKILL_TAG_ICE:
+      return "Ice";
+    case SKILL_TAG_HOLY:
+      return "Holy";
+    default:
+      return "Lightning";
+  }
+}
+
+// The element a swing is, where the page names one: the pair a Freezing Crush
+// wizard alternates between, and the holy spells that spend an angel's mark.
+// Every other tag marks a family nothing in this game reads yet, and names no
+// element to print.
+SkillTag ElementOf(const Skill& skill) {
+  for (int i = 0; i < skill.tags_size(); ++i) {
+    if (skill.tags(i) == SKILL_TAG_ICE ||
+        skill.tags(i) == SKILL_TAG_LIGHTNING ||
+        skill.tags(i) == SKILL_TAG_HOLY) {
+      return skill.tags(i);
+    }
+  }
+  return SKILL_TAG_UNSPECIFIED;
 }
 
 // Everything about a skill that reads the same at every level.
-// Which element a swing is, for the pair a Freezing Crush wizard alternates
-// between. Only these two tags reach the page: the rest mark a family nothing
-// in this game reads yet.
 //
-// That a swing freezes or stuns is the description's to say, not a row's: a
-// row here answers "how much", and neither status has a number the page
-// prints -- the pacing band stretches both durations. What the mark is WORTH
-// to the rest of the book does have one, and that takes the row below.
+// That a swing freezes, stuns or marks is the description's to say, not a
+// row's: a row here answers "how much", and no status has a number the page
+// prints -- the pacing band stretches every one of their durations. What the
+// mark is WORTH to the rest of the book does have one, and that takes the rows
+// below.
 std::vector<Row> ElementRows(const Skill& skill) {
   std::vector<Row> rows;
-  for (int i = 0; i < skill.tags_size(); ++i) {
-    if (skill.tags(i) == SKILL_TAG_ICE) {
-      rows.push_back(EffectRow("Element", "Ice"));
-      break;
-    }
-    if (skill.tags(i) == SKILL_TAG_LIGHTNING) {
-      rows.push_back(EffectRow("Element", "Lightning"));
-      break;
-    }
+  if (ElementOf(skill) != SKILL_TAG_UNSPECIFIED) {
+    rows.push_back(EffectRow("Element", TagName(ElementOf(skill))));
   }
   // What a stun hands the swings that collect it. Only the swings carrying the
   // tag the stun names do, so the row states that tag -- a lift with no tag is
@@ -644,6 +657,15 @@ std::vector<Row> ElementRows(const Skill& skill) {
                              "+" + FormatPercent(skill.stun().final_dmg_pct()) +
                                  " Final Damage from " +
                                  TagName(skill.stun().lifted_tag())));
+  }
+  // What spending a mark hands the line that spends it. One line does, so the
+  // row says so: read as the whole swing's it would be ten times the skill.
+  if (skill.mark().final_dmg_pct() > 0.0 &&
+      skill.mark().lifted_tag() != SKILL_TAG_UNSPECIFIED) {
+    rows.push_back(EffectRow("Marked Enemies",
+                             "+" + FormatPercent(skill.mark().final_dmg_pct()) +
+                                 " Final Damage to one " +
+                                 TagName(skill.mark().lifted_tag()) + " hit"));
   }
   return rows;
 }

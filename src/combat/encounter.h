@@ -343,6 +343,14 @@ struct AttackOption {
   // tag the stunning skill lifts, and is not that skill. False for every swing
   // of every character who stuns nothing.
   bool collects_stun_lift = false;
+  // The mark this swing leaves, and what spending one is worth to the line
+  // that spends it. Both 0 for every swing but the Avenging Angel's. See
+  // Skill.mark.
+  double mark_seconds = 0.0;
+  double mark_lift_pct = 0.0;
+  // Whether THIS swing can spend a mark: it carries the tag the marking skill
+  // names. False for every swing of every character who marks nothing.
+  bool collects_mark_lift = false;
   // Seconds off this swing's own next cast for each of its strikes that found
   // nothing standing. 0 for every swing but Jupiter Thunder's barrage.
   double cooldown_refund_seconds = 0.0;

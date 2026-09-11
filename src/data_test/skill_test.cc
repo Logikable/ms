@@ -1573,6 +1573,48 @@ TEST(SkillDataTest, AScarIsBothLeftAndRead) {
   }
 }
 
+// Whether the skill carries `tag`.
+bool Carries(const Skill& skill, SkillTag tag) {
+  for (int i = 0; i < skill.tags_size(); ++i) {
+    if (skill.tags(i) == tag) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// A mark nobody can spend is a status with no reader, and a mark worth nothing
+// to the line that spends it is no mark. Both halves have to be in the same
+// book, which is what the scar test above asks of its own pair.
+TEST(SkillDataTest, AMarkIsBothLeftAndSpendable) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  std::vector<Job> jobs = EveryValueOf<Job>(Job_descriptor());
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Mark& mark = entry.second.mark();
+    if (mark.duration_seconds() <= 0.0 && mark.final_dmg_pct() <= 0.0) {
+      continue;
+    }
+    EXPECT_GT(mark.duration_seconds(), 0.0)
+        << entry.first << " marks for no time at all";
+    EXPECT_GT(mark.final_dmg_pct(), 0.0)
+        << entry.first << " leaves a mark worth nothing to spend";
+    ASSERT_NE(mark.lifted_tag(), SKILL_TAG_UNSPECIFIED)
+        << entry.first << " leaves a mark nothing can spend";
+    bool spends = false;
+    for (Job job : jobs) {
+      std::set<JobAdvancement> books = BooksFor(job);
+      if (!ReachedBy(books, entry.second)) {
+        continue;
+      }
+      for (const std::pair<const std::string, Skill>& other : skills) {
+        spends = spends || (ReachedBy(books, other.second) &&
+                            Carries(other.second, mark.lifted_tag()));
+      }
+    }
+    EXPECT_TRUE(spends) << entry.first << " marks for a book that cannot spend";
+  }
+}
+
 // A freeze lands on what a strike reached, so a passive that touches nobody
 // cannot leave one. Being ICE is NOT required: the tag marks a strike that
 // feeds the I/L's Freeze Stacks, and Frostprey freezes as a bird instead.

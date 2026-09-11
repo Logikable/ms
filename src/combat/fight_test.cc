@@ -2944,6 +2944,42 @@ TEST(CombatSimTest, AnUnspentMagazineEmptiesWithItsBuff) {
   EXPECT_LT(fired, 8.0) << "the buff lapsed with charges still loaded";
 }
 
+// Angel of Balance's mark: the angel brands what it touches, the next holy
+// swing spends the brand, and ONE line of that swing is worth the lift. Built
+// twice over, differing only in what the mark is worth, so what the lift added
+// is the difference between the two.
+CombatParams MarkingParams(std::vector<TypeSpec> specs, double lift) {
+  CombatParams params = MakeParams(1.0, 0.0, std::move(specs), 1, "zakum");
+  params.attacks[0].lines = 4;
+  params.attacks[0].damage_per_hit.assign(params.types.size(), 100.0);
+  params.attacks[0].collects_mark_lift = true;
+  AttackOption angel;
+  angel.name = "Avenging Angel";
+  angel.interval_seconds = 4.0;
+  angel.max_pulses = 1;
+  angel.damage_per_hit.assign(params.types.size(), 5.0);
+  angel.mark_seconds = 60.0;
+  angel.mark_lift_pct = lift;
+  params.auto_attacks.push_back(std::move(angel));
+  return params;
+}
+
+TEST(CombatSimTest, AMarkIsWorthOneLineAndIsThenSpent) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatSim marked;
+  CombatSim plain;
+  CombatParams with = MarkingParams({MakeType(&boss, 0.0, 1)}, 0.10);
+  CombatParams without = MarkingParams({MakeType(&boss, 0.0, 1)}, 0.0);
+
+  // One swing of 100 over four lines found the mark: a quarter of the lift.
+  EXPECT_DOUBLE_EQ(
+      DamageOver(marked, with, 10.0) - DamageOver(plain, without, 10.0), 2.5);
+  // The angel has fired its one strike and the mark is spent, so the swings
+  // that follow land alike however long the mark had left on its clock.
+  EXPECT_DOUBLE_EQ(
+      DamageOver(marked, with, 10.0) - DamageOver(plain, without, 10.0), 0.0);
+}
+
 // Angel of Balance's shape: a buff that stands for ten seconds but grants only
 // four seconds in every five, with a summon striking on its own clock
 // throughout. The swing hits for 10 and the buff doubles it, so what lands

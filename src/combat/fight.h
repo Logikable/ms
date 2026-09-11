@@ -137,6 +137,11 @@ class CombatSim {
     // game facing anyone but an I/L holding Jupiter Thunder.
     double stunned_left_seconds = 0.0;
     double stun_lift_pct = 0.0;
+    // The angel's mark on it, and what the line that spends it takes. Both 0
+    // for every monster nobody has marked, which is every monster in the game
+    // facing anyone but a Bishop holding Angel of Balance.
+    double marked_left_seconds = 0.0;
+    double mark_lift_pct = 0.0;
   };
 
   // Where the landing on the mob at queue index `index` is filed, scaled by
@@ -309,6 +314,15 @@ class CombatSim {
   // every stun down. Read exactly as ApplyFreeze and RunFreeze are.
   void ApplyStun(const AttackOption& attack, int hit);
   void RunStun(double dt);
+  // What a mark on this monster multiplies the swing by, and it SPENDS the
+  // mark: one line of the swing takes the lift and the mark is gone, so a
+  // swing of ten lines collects a tenth of it. 1 for a swing that cannot
+  // spend one, and for a monster carrying none.
+  double SpendMark(const AttackOption& attack, QueuedMob& mob);
+  // Leaves this swing's mark on every one of the front `hit` mobs, and counts
+  // every mark down. Read exactly as ApplyStun and RunStun are.
+  void ApplyMark(const AttackOption& attack, int hit);
+  void RunMark(double dt);
   int Reached(const AttackOption& attack) const;
   // Fires whichever strikes of a running barrage have come due, and hands back
   // the wait for each that found nothing standing.

@@ -335,6 +335,11 @@ void AddFreezeStacks(const Skill& skill, const SkillEffect& granted,
     totals.stun_lift.lifted_tag = skill.stun().lifted_tag();
     totals.stun_lift.from_skill = skill.name();
   }
+  // The mark's, on the same footing and for the same reason.
+  if (skill.mark().final_dmg_pct() > 0.0 &&
+      skill.mark().lifted_tag() != SKILL_TAG_UNSPECIFIED) {
+    totals.mark_lift.lifted_tag = skill.mark().lifted_tag();
+  }
 }
 
 // Folds the scar in. Two sources would leave the better of each standing
