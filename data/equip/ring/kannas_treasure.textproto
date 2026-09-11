@@ -1,0 +1,18 @@
+name: "Kanna's Treasure"
+required_level: 140
+base_stats {
+  str: 5
+  dex: 5
+  int: 5
+  luk: 5
+  attack: 1
+  magic_attack: 1
+  max_hp: 200
+  max_mp: 200
+  def: 150
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_RING
+upgrade_slots: 1
+# Dropped by Princess No, never stocked, as every boss's gear is.
+sell_price: 0

@@ -197,9 +197,9 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).kind(), ITEM_KIND_SOUL_SHARD) << where;
     }
   }
-  EXPECT_EQ(fights, 16) << "Arkarium, Cygnus, the four of Root Abyss, and "
-                           "both difficulties of Zakum, Magnus, Pink Bean, "
-                           "Hilla and Horntail";
+  EXPECT_EQ(fights, 17) << "Arkarium, Cygnus, Princess No, the four of Root "
+                           "Abyss, and both difficulties of Zakum, Magnus, "
+                           "Pink Bean, Hilla and Horntail";
 }
 
 // A boss pays in meso and in gear, and the gear is the reward: selling it back
@@ -514,6 +514,46 @@ TEST_F(BossDataTest, TheHardRungsGateOnIgnoreDefense) {
   }
 }
 
+// The biggest body in the game by a factor of two and a half, and the only
+// fight outside Root Abyss on a twenty-minute clock. Her room is the other
+// difference: four ledges over the floor every other lone body is fought on.
+// Pinned for the reason Zakum's numbers are.
+TEST_F(BossDataTest, PrincessNoIsOneBodyOverAClimbableRoom) {
+  ASSERT_GT(bosses_.count("princess_no"), 0u);
+  ASSERT_EQ(bosses_.at("princess_no").difficulties_size(), 1);
+  const BossDifficulty& normal = bosses_.at("princess_no").difficulties(0);
+  EXPECT_EQ(normal.name(), "Normal");
+  EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
+  EXPECT_EQ(normal.time_limit_seconds(), 1200);
+  EXPECT_EQ(normal.unlock_level(), 200);
+  EXPECT_EQ(normal.meso(), 11550000);
+  EXPECT_EQ(normal.exp(), 90000000);
+  ASSERT_EQ(normal.phases_size(), 1);
+  ASSERT_EQ(normal.phases(0).spawns_size(), 1);
+  EXPECT_EQ(SpawnCount(normal.phases(0).spawns(0)), 1);
+  const Mob& princess = mobs_.at("princess_no");
+  EXPECT_EQ(princess.level(), 180);
+  EXPECT_EQ(princess.max_hp(), 500000000000LL);
+  EXPECT_EQ(princess.attack(), 52000);
+  EXPECT_EQ(princess.pdr(), 100);
+  // The five floor spots every lone body offers, then a ledge over each end
+  // and a second pair over those, a column further in.
+  const std::vector<std::pair<int, int>> kSpots = {
+      {4, 5}, {0, 5}, {8, 5}, {2, 5}, {6, 5}, {0, 3}, {8, 3}, {1, 1}, {7, 1}};
+  ASSERT_EQ(normal.phases(0).player_spots_size(),
+            static_cast<int>(kSpots.size()));
+  for (int i = 0; i < normal.phases(0).player_spots_size(); ++i) {
+    EXPECT_EQ(normal.phases(0).player_spots(i).x(), kSpots[i].first) << i;
+    EXPECT_EQ(normal.phases(0).player_spots(i).y(), kSpots[i].second) << i;
+  }
+  // The whole Sengoku Treasure Set in one clear, and her own shard.
+  ASSERT_EQ(normal.drops_size(), 4);
+  EXPECT_EQ(normal.drops(0).equip(), "kannas_treasure");
+  EXPECT_EQ(normal.drops(1).equip(), "ayames_treasure");
+  EXPECT_EQ(normal.drops(2).equip(), "hayatos_treasure");
+  EXPECT_EQ(normal.drops(3).item(), "princess_nos_soul_shard");
+}
+
 // Where the parts stand is data, and two of them in one cell is a bar drawn on
 // top of another one.
 TEST_F(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
@@ -583,7 +623,7 @@ TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
       {"zakum", {7, 5}},      {"hilla", {5}},    {"horntail", {6, 6, 6}},
       {"magnus", {5}},        {"arkarium", {5}}, {"cygnus", {5}},
       {"pink_bean", {5, 5}},  {"pierre", {5}},   {"von_bon", {5}},
-      {"crimson_queen", {5}}, {"vellum", {5}}};
+      {"crimson_queen", {5}}, {"vellum", {5}},   {"princess_no", {9}}};
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses_.count(want.first), 0u) << want.first;
     for (const BossDifficulty& difficulty :

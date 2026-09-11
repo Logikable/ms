@@ -18,6 +18,7 @@ enum EquipSetName {
   EQUIP_SET_NAME_ROOT_ABYSS_BOWMAN = 4;
   EQUIP_SET_NAME_ROOT_ABYSS_MAGICIAN = 5;
   EQUIP_SET_NAME_ROOT_ABYSS_THIEF = 6;
+  EQUIP_SET_NAME_SENGOKU_TREASURE = 7;
 }
 
 // What wearing several pieces of one set is worth. Each tier is a SkillEffect

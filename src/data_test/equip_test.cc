@@ -625,6 +625,49 @@ TEST(EquipDataTest, TheBossAccessorySetAddsUpToItsWikiTotals) {
   EXPECT_DOUBLE_EQ(set->tiers(3).effect().boss_pct(), 0.10);
 }
 
+// The Sengoku Treasure Set's totals, pinned the same way and for the same
+// reason. The smallest set in the game and the only one a player never
+// assembles: Princess No drops all three pieces in one clear, so the 3-set is
+// what it is worth in practice.
+TEST(EquipDataTest, TheSengokuTreasureSetAddsUpToItsWikiTotals) {
+  const EquipSet* set = nullptr;
+  std::map<std::string, EquipSet> sets = LoadSets();
+  for (const std::pair<const std::string, EquipSet>& entry : sets) {
+    if (entry.second.name() == EQUIP_SET_NAME_SENGOKU_TREASURE) {
+      set = &entry.second;
+    }
+  }
+  ASSERT_NE(set, nullptr);
+  ASSERT_EQ(set->complete_pieces(), 3);
+  ASSERT_EQ(set->members_size(), 3);
+  ASSERT_EQ(set->tiers_size(), 2);
+  const int kStat[] = {2, 12};
+  const int kAttack[] = {3, 18};
+  const int kDef[] = {20, 120};
+  const double kDamage[] = {0.03, 0.12};
+  int stat = 0;
+  int attack = 0;
+  int def = 0;
+  double damage = 0.0;
+  for (int i = 0; i < set->tiers_size(); ++i) {
+    const SkillEffect& effect = set->tiers(i).effect();
+    EXPECT_EQ(set->tiers(i).pieces(), i + 2);
+    stat += effect.str();
+    attack += effect.attack();
+    def += effect.def();
+    damage += effect.damage_pct();
+    EXPECT_EQ(stat, kStat[i]) << "at " << set->tiers(i).pieces() << " pieces";
+    EXPECT_EQ(attack, kAttack[i]) << "at " << set->tiers(i).pieces();
+    EXPECT_EQ(def, kDef[i]) << "at " << set->tiers(i).pieces();
+    EXPECT_DOUBLE_EQ(damage, kDamage[i]) << "at " << set->tiers(i).pieces();
+    // All four stats climb together, and magic attack shadows attack.
+    EXPECT_EQ(effect.dex(), effect.str());
+    EXPECT_EQ(effect.int_(), effect.str());
+    EXPECT_EQ(effect.luk(), effect.str());
+    EXPECT_EQ(effect.magic_attack(), effect.attack());
+  }
+}
+
 // The Frozen set's own totals, pinned the same way and for the same reason:
 // the data states what each tier ADDS, and the number a player sees is the
 // running sum. Read off the wiki's second column, where a typo in the middle

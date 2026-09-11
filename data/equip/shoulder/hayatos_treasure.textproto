@@ -1,0 +1,16 @@
+name: "Hayato's Treasure"
+required_level: 140
+base_stats {
+  str: 11
+  dex: 11
+  int: 11
+  luk: 11
+  attack: 7
+  magic_attack: 7
+  def: 100
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_SHOULDER
+upgrade_slots: 1
+# Dropped by Princess No, never stocked, as every boss's gear is.
+sell_price: 0

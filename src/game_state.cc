@@ -433,7 +433,8 @@ std::vector<std::string> RootAbyssGear(Job job) {
 //
 // Two slots hold a pair, Pink Bean's alternate for the eye and the pocket
 // after the piece it supersedes: worn in this order, a 3rd job at 100 keeps
-// the older one and a 4th at the cap swaps to the newer.
+// the older one and a 4th at the cap swaps to the newer. Princess No's belt
+// comes before the one it loses to for the same reason.
 std::vector<std::string> BossAccessories() {
   return {"aquatic_letter_eye_accessory",
           "black_bean_mark",
@@ -441,11 +442,14 @@ std::vector<std::string> BossAccessories() {
           "stone_of_eternal_life",
           "pink_holy_cup",
           "silver_blossom_ring",
+          "kannas_treasure",
           "chaos_horntail_necklace",
           "dominator_pendant",
           "dea_sidus_earring",
           "will_o_the_wisps",
           "royal_black_metal_shoulder",
+          "hayatos_treasure",
+          "ayames_treasure",
           "golden_clover_belt",
           "crystal_ventus_badge"};
 }

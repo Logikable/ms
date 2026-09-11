@@ -1,0 +1,55 @@
+name: "Princess No"
+difficulties {
+  name: "Normal"
+  # One body alone in the middle of her arena, as Hilla, Magnus, Arkarium and
+  # Cygnus are. The room around it is the difference: GMS hangs the Eight
+  # Trigrams over her head, so the floor is not the only place to stand.
+  phases {
+    spawns { mob: "princess_no" spots { x: 4 y: 4 } }
+    # The floor under the boss, walked end to end.
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    # A ledge over each end of the floor, and a second pair over those a
+    # column further in.
+    player_spots { x: 0 y: 3 }
+    player_spots { x: 8 y: 3 }
+    player_spots { x: 1 y: 1 }
+    player_spots { x: 7 y: 1 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  # Twenty minutes, which Chaos Vellum is the only other fight to get. She is
+  # 2.5x his body, and fifteen would be a clock nothing ever beats.
+  time_limit_seconds: 1200
+  # The level cap, where everything from here to Seren opens.
+  unlock_level: 200
+  # Five Intense Power Crystals at what GMS prices hers, divided by seven: GMS
+  # clears her once a week and this game once a day.
+  meso: 11550000
+  # Paid for the clear, flat and untouched by any EXP bonus. GMS's own figure,
+  # and well under Cygnus's for eight times the body: she is fought for the
+  # set, not for the climb.
+  exp: 90000000
+  # The whole Sengoku Treasure Set in one clear, as GMS drops it: three pieces
+  # filling three slots no other boss's set piece competes with.
+  drops {
+    equip: "kannas_treasure"
+    per_kill: 1.0
+  }
+  drops {
+    equip: "ayames_treasure"
+    per_kill: 1.0
+  }
+  drops {
+    equip: "hayatos_treasure"
+    per_kill: 1.0
+  }
+  drops {
+    item: "princess_nos_soul_shard"
+    per_kill: 1.0
+  }
+}

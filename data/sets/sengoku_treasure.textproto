@@ -1,0 +1,45 @@
+name: EQUIP_SET_NAME_SENGOKU_TREASURE
+# Three slots, all three filled the day Princess No opens: she drops the whole
+# set in one clear, so this is the only set a player never assembles.
+complete_pieces: 3
+members {
+  slot: EQUIP_SLOT_RING
+  items { name: "Kanna's Treasure" }
+}
+members {
+  slot: EQUIP_SLOT_BELT
+  items { name: "Ayame's Treasure" }
+}
+members {
+  slot: EQUIP_SLOT_SHOULDER
+  items { name: "Hayato's Treasure" }
+}
+tiers {
+  pieces: 2
+  effect {
+    str: 2
+    dex: 2
+    int: 2
+    luk: 2
+    attack: 3
+    magic_attack: 3
+    def: 20
+    damage_pct: 0.03
+  }
+}
+# The ring and the belt are the player's to spare; the shoulder is not, since
+# the Boss Accessory Set asks for that slot too. Wearing all three trades that
+# set's ninth piece for this one's %Damage.
+tiers {
+  pieces: 3
+  effect {
+    str: 10
+    dex: 10
+    int: 10
+    luk: 10
+    attack: 15
+    magic_attack: 15
+    def: 100
+    damage_pct: 0.09
+  }
+}
