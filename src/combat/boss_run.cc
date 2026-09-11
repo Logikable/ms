@@ -305,7 +305,7 @@ void BossRun::CollectDamageStacks() {
   const std::vector<DamageLine>& lines = sim_.damage_lines_this_step();
   // The lines of one landing arrive together, so a run of them under one event
   // is the stack. Nothing here sorts: the order they landed in is the order
-  // they are read down the screen.
+  // they are read up the screen.
   std::uniform_int_distribution<int> side(0, 3);
   for (std::size_t i = 0; i < lines.size();) {
     DamageStack stack;

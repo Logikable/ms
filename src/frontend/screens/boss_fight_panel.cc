@@ -138,9 +138,10 @@ struct ArenaCell {
 // has placed everything else, and SetBox runs after the rows would have been
 // built.
 //
-// The box is the whole stack's worth of rows, its n'th number on its n'th row,
-// and the arena says which of those rows to draw. So a row with a bar in it
-// costs that one number and leaves the rest where they were.
+// The box is the whole stack's worth of rows and the arena says which of them
+// to draw, so a row with a bar in it costs that one number and leaves the rest
+// where they were. The numbers are stacked upwards from the last row: the line
+// that landed first sits at the bottom, each one after it above.
 class DamageStackNode : public ftxui::Node {
  public:
   // `faint` is a party member's stack rather than the player's own, which is
@@ -177,11 +178,12 @@ class DamageStackNode : public ftxui::Node {
     if (box_.x_max < box_.x_min) {
       return;
     }
-    for (std::size_t row = 0; row < numbers_.size(); ++row) {
-      if (row >= drawn_.size() || !drawn_[row]) {
+    for (std::size_t i = 0; i < numbers_.size(); ++i) {
+      int row = rows_ - 1 - static_cast<int>(i);
+      if (row < 0 || row >= static_cast<int>(drawn_.size()) || !drawn_[row]) {
         continue;
       }
-      DrawRow(screen, box_.y_min + static_cast<int>(row), numbers_[row]);
+      DrawRow(screen, box_.y_min + row, numbers_[i]);
     }
   }
 
@@ -213,7 +215,8 @@ class DamageStackNode : public ftxui::Node {
   std::vector<Number> numbers_;
   std::vector<bool> drawn_;
   // The rows the box holds, which is the tallest strike rather than what is
-  // drawn this frame. A shorter strike leaves the rest of them untouched.
+  // drawn this frame. A shorter strike stands on the last of them and leaves
+  // the rest untouched.
   int rows_ = 1;
   int width_ = 1;
   bool faint_ = false;
@@ -395,9 +398,10 @@ class ArenaNode : public ftxui::Node {
   }
 
   // Stands the character's swing over the monster it hit, centred, its bottom
-  // row against the bar. A row of it that falls outside the arena or onto
-  // something else is simply not drawn -- the stack does not slide out of the
-  // way, because a swing's numbers belong over the thing they were dealt to.
+  // row against the bar -- where the first line landed sits. A row of it that
+  // falls outside the arena or onto something else is simply not drawn -- the
+  // stack does not slide out of the way, because a swing's numbers belong over
+  // the thing they were dealt to.
   void PlaceSwing(ftxui::Box arena, const ArenaStack& stack,
                   std::vector<ftxui::Box>& taken) {
     ftxui::Box owner = panel_box_[stack.owner];
@@ -441,14 +445,17 @@ class ArenaNode : public ftxui::Node {
         break;
       }
     }
+    // The rows that fit are the box's last ones, since the stack is read
+    // upwards: what a cramped side costs is the tail of the stack. The rows
+    // above them hang off the top of the spot and are never drawn.
     int height = stack.node->requirement().min_y;
     std::vector<bool> drawn(height, false);
-    for (int row = 0; row < best.rows; ++row) {
+    for (int row = height - best.rows; row < height; ++row) {
       drawn[row] = true;
     }
     stack.node->DrawRows(std::move(drawn));
-    stack.node->SetBox({best.box.x_min, best.box.x_max, best.box.y_min,
-                        best.box.y_min + height - 1});
+    int top = best.box.y_min - (height - best.rows);
+    stack.node->SetBox({best.box.x_min, best.box.x_max, top, top + height - 1});
     if (best.rows > 0) {
       taken.push_back(best.box);
     }
@@ -466,8 +473,8 @@ class ArenaNode : public ftxui::Node {
 
   // The room `side` of `owner` offers a stack of the size `want` asks for,
   // inside `arena` and clear of everything in `blocked`. Rows are dropped from
-  // the far end until what is left fits, so a cramped side shows the numbers
-  // nearest the monster rather than nothing.
+  // the far end until what is left fits, so a cramped side shows part of the
+  // stack rather than nothing.
   static Spot SpotOn(Side side, ftxui::Box owner, ftxui::Requirement want,
                      ftxui::Box arena, const std::vector<ftxui::Box>& blocked) {
     Spot spot;

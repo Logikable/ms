@@ -52,8 +52,8 @@ struct DamageNumber {
 };
 
 // One stack of numbers: what one attack landed on one monster, in the order
-// the lines landed. A stack is drawn whole or not at all -- what a cramped
-// corner costs is the rows furthest from the monster, not the stack.
+// the lines landed. It is read upwards, the first line at the bottom, so what
+// a cramped corner costs is the tail of the stack rather than the stack.
 struct DamageStack {
   // The slot that took it, by the id a slot keeps for its whole life.
   int mob_id = 0;

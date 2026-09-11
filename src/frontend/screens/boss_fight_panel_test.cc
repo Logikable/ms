@@ -710,7 +710,8 @@ TEST(BossFightPanelTest, APartyMembersNumbersAreDrawnFaint) {
 }
 
 // A swing puts its numbers over the monster it hit, all of them where there is
-// room, and written plainly -- no commas, whatever the number.
+// room, written plainly -- no commas, whatever the number -- and stacked
+// upwards: the line that landed first is the bottom one.
 TEST(BossFightPanelTest, ASwingStandsOverWhatItHit) {
   std::unique_ptr<GameState> state = EightLineState();
   Boss boss = OneArmBoss();
@@ -726,8 +727,10 @@ TEST(BossFightPanelTest, ASwingStandsOverWhatItHit) {
   ASSERT_EQ(drawn.size(), stack.lines.size()) << "a tall arena fits them all";
   int bar = PanelTop(RowsOf(screen), "Zakum's Arm");
   ASSERT_NE(bar, -1);
+  // Read down the screen, so the last line landed comes first.
   for (std::size_t i = 0; i < drawn.size(); ++i) {
-    EXPECT_EQ(drawn[i].text, std::to_string(stack.lines[i].damage));
+    std::size_t line = drawn.size() - 1 - i;
+    EXPECT_EQ(drawn[i].text, std::to_string(stack.lines[line].damage));
     EXPECT_LT(drawn[i].row, bar) << "over the bar, not on or under it";
     EXPECT_EQ(drawn[i].text.find(","), std::string::npos);
   }
@@ -754,8 +757,8 @@ TEST(BossFightPanelTest, ASwingOfSeveralStrikesFlashesThroughThem) {
   ASSERT_LT(drawn.size(), stack.lines.size())
       << "the whole swing went up at once";
   for (int i = 0; i < static_cast<int>(drawn.size()); ++i) {
-    EXPECT_EQ(drawn[i].text,
-              std::to_string(stack.lines[showing.first + i].damage));
+    int line = showing.second - 1 - i;
+    EXPECT_EQ(drawn[i].text, std::to_string(stack.lines[line].damage));
   }
 }
 
@@ -796,10 +799,10 @@ TEST(BossFightPanelTest, ABlockedRowCostsItsOwnNumberAndNoOther) {
   std::vector<DrawnNumber> drawn = DrawnNumbers(RenderScreen(run, 60, 16));
   ASSERT_FALSE(drawn.empty());
   ASSERT_LT(drawn.size(), stack.lines.size());
-  // What survives is the end of the stack nearest the monster, each number
-  // still on the row it would have had.
+  // What survives is the start of the stack, the end nearest the monster, each
+  // number still on the row it would have had.
   for (std::size_t i = 0; i < drawn.size(); ++i) {
-    std::size_t line = stack.lines.size() - drawn.size() + i;
+    std::size_t line = drawn.size() - 1 - i;
     EXPECT_EQ(drawn[i].text, std::to_string(stack.lines[line].damage));
   }
 }
@@ -921,8 +924,9 @@ TEST(BossFightPanelTest, ACriticalLineIsOrangeAndAPlainOneIsBlue) {
     ASSERT_EQ(drawn.size(), stack.lines.size());
     int matched = 0;
     for (std::size_t i = 0; i < drawn.size(); ++i) {
-      EXPECT_EQ(drawn[i].crit, stack.lines[i].crit) << drawn[i].text;
-      matched += stack.lines[i].crit == crit ? 1 : 0;
+      std::size_t line = drawn.size() - 1 - i;
+      EXPECT_EQ(drawn[i].crit, stack.lines[line].crit) << drawn[i].text;
+      matched += stack.lines[line].crit == crit ? 1 : 0;
     }
     EXPECT_GT(matched, 0) << "crit: " << crit;
   }
