@@ -928,6 +928,14 @@ message Buff {
   // every other one.
   double duty_seconds = 21;
   double duty_interval_seconds = 22;
+  // A summon this buff puts out for as long as it stands. Angel of Balance is
+  // what it exists for: GMS dismisses Bahamut to make room for the angel and
+  // will not have the two of them out at once.
+  //
+  // The named skill's own clock is left where it was rather than wound on, so
+  // it comes back at the same beat it was dismissed on. Empty for every buff
+  // that puts nothing out, which is every other one.
+  string silences_skill_name = 23;
 }
 
 // A chance a swing has to land harder on one of the enemies it reached, and

@@ -1573,6 +1573,38 @@ TEST(SkillDataTest, AScarIsBothLeftAndRead) {
   }
 }
 
+// A buff that puts a summon out has to name one the same character holds, and
+// one that stands on a clock of its own -- a swing nobody is casting cannot be
+// dismissed.
+TEST(SkillDataTest, ADismissedSummonIsOneTheBookHolds) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  std::vector<Job> jobs = EveryValueOf<Job>(Job_descriptor());
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const std::string& out = entry.second.buff().silences_skill_name();
+    if (out.empty()) {
+      continue;
+    }
+    const Skill* summon = nullptr;
+    for (const std::pair<const std::string, Skill>& other : skills) {
+      if (other.second.name() == out) {
+        summon = &other.second;
+      }
+    }
+    ASSERT_NE(summon, nullptr)
+        << entry.first << " puts out \"" << out << "\", which no book holds";
+    EXPECT_EQ(summon->kind(), SKILL_KIND_AUTO_ATTACK)
+        << entry.first << " puts out " << out << ", which is no summon";
+    bool together = false;
+    for (Job job : jobs) {
+      std::set<JobAdvancement> books = BooksFor(job);
+      together = together ||
+                 (ReachedBy(books, entry.second) && ReachedBy(books, *summon));
+    }
+    EXPECT_TRUE(together) << entry.first << " puts out " << out
+                          << ", which nobody holds with it";
+  }
+}
+
 // Whether the skill carries `tag`.
 bool Carries(const Skill& skill, SkillTag tag) {
   for (int i = 0; i < skill.tags_size(); ++i) {

@@ -1042,6 +1042,12 @@ double OffClockRate(const CombatParams& params, const Sequence& played,
         gate >= 0 && gate < static_cast<int>(played.buff_uptime.size())
             ? played.buff_uptime[gate]
             : 1.0;
+    // A summon another buff dismisses fires for the rest of the fight, and for
+    // nothing of the share that buff stands.
+    int out = params.auto_attacks[i].silenced_by_buff;
+    if (out >= 0 && out < static_cast<int>(played.buff_uptime.size())) {
+      share *= 1.0 - played.buff_uptime[out];
+    }
     rate += share * per_pulse / (extra.interval_seconds / speed);
   }
   return rate;

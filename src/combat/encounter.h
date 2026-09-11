@@ -397,6 +397,13 @@ struct AttackOption {
   // count of attacks that spawns one runs only while the active half is not
   // standing. Read only where needs_buff is set.
   bool silent_while_buff = false;
+  // Index into params.buffs of a buff that puts THIS summon out while it
+  // stands, or -1 for one nothing silences, which is every summon but
+  // Bahamut. Apart from the pair above, and the opposite sense: that is a
+  // triggered half waiting on its own skill's buff to come down, this is
+  // another skill's buff dismissing a summon outright. See
+  // Buff::silences_skill_name.
+  int silenced_by_buff = -1;
   // Strikes one due tick fires, each landing in full on its own. 1 for every
   // clock but Cry Valhalla's, whose three sword strikes fall together.
   int strikes_per_pulse = 1;

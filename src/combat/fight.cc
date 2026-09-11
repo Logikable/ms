@@ -1894,6 +1894,12 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
       clock.pulses = 0;
       continue;
     }
+    // Dismissed to make room for another skill's summon. Its phase is left
+    // where it was, not wound on: it comes back at the beat it went out on.
+    if (cast.silenced_by_buff >= 0 &&
+        (buff_mask_ & (1 << cast.silenced_by_buff)) != 0) {
+      continue;
+    }
     // A buff with forms bleeds through whichever one went up, and the other
     // form's pulse waits out the window in silence.
     if (cast.needs_buff_stance >= 0 &&

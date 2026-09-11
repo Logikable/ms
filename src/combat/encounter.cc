@@ -1736,6 +1736,25 @@ void TagBuffSilencedCasts(const std::vector<BuffOption>& buffs,
   }
 }
 
+// Points each dismissed summon at the buff that dismisses it, by the same name
+// match the two above use. The name here is the SILENCING buff's to state:
+// what it puts out is its own business, and Bahamut says nothing about it.
+void TagBuffSilencedSummons(const std::vector<BuffOption>& buffs,
+                            const std::vector<const Skill*>& buff_skills,
+                            std::vector<AttackOption>& casts) {
+  for (int i = 0; i < static_cast<int>(buffs.size()); ++i) {
+    if (i >= static_cast<int>(buff_skills.size()) ||
+        buff_skills[i]->buff().silences_skill_name().empty()) {
+      continue;
+    }
+    for (AttackOption& cast : casts) {
+      if (cast.name == buff_skills[i]->buff().silences_skill_name()) {
+        cast.silenced_by_buff = i;
+      }
+    }
+  }
+}
+
 // Points each form at the pulse it bleeds through, so the fight can price the
 // forms against each other without hunting the list at every cast. Run over
 // the base set alone: an attack keeps its index in every buffed set, so a
@@ -1841,6 +1860,7 @@ AttackSet BuildBuffedSet(const CombatParams& params, int mask) {
   AttackSet set = BuildAttackSet(*source.state, derived, *source.weapon,
                                  source.speed_factor, params.types);
   TagBuffGatedPulses(params.buffs, source.buff_skills, set.auto_attacks);
+  TagBuffSilencedSummons(params.buffs, source.buff_skills, set.auto_attacks);
   TagBuffSilencedCasts(params.buffs, set.triggered_attacks);
   if (source.halve_reach) {
     HalveReach(set.attacks);
@@ -1968,6 +1988,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   AddBuffedSets(state, buff_skills, ally_buffs, weapon, speed_factor, preset,
                 params);
   TagBuffGatedPulses(params.buffs, buff_skills, params.auto_attacks);
+  TagBuffSilencedSummons(params.buffs, buff_skills, params.auto_attacks);
   TagBuffSilencedCasts(params.buffs, params.triggered_attacks);
   PointStancesAtPulses(params.auto_attacks, params.buffs);
   params.reference_dps = ReferenceDps(params);

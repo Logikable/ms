@@ -2944,6 +2944,28 @@ TEST(CombatSimTest, AnUnspentMagazineEmptiesWithItsBuff) {
   EXPECT_LT(fired, 8.0) << "the buff lapsed with charges still loaded";
 }
 
+// Angel of Balance dismisses Bahamut: GMS will not have the two summons out
+// at once, so the dragon goes quiet for as long as the angel stands.
+TEST(CombatSimTest, ABuffPutsOutTheSummonItNames) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1e9, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
+  params.attacks[0].damage_per_hit.assign(params.types.size(), 0.0);
+  AttackOption dragon;
+  dragon.name = "Bahamut";
+  dragon.interval_seconds = 1.0;
+  dragon.damage_per_hit.assign(params.types.size(), 10.0);
+  dragon.silenced_by_buff = 0;
+  params.auto_attacks.push_back(std::move(dragon));
+  GiveBuff(params, /*duration=*/5.0, /*cooldown=*/1000.0, /*factor=*/1.0);
+  params.buffed[0]->auto_attacks = params.auto_attacks;
+
+  // The angel goes up on the opening step and stands five seconds, so the
+  // dragon strikes over the five that are left.
+  EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 50.0);
+}
+
 // Angel of Balance's mark: the angel brands what it touches, the next holy
 // swing spends the brand, and ONE line of that swing is worth the lift. Built
 // twice over, differing only in what the mark is worth, so what the lift added
