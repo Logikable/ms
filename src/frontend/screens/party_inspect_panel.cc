@@ -85,17 +85,26 @@ ItemColumns PartyInspectPanel::Columns() const {
       Unlocked(Feature::kStarForce, state_.character, state_.account);
   options.potential =
       Unlocked(Feature::kPotential, state_.character, state_.account);
-  return FitItemColumns(kContentWidth, options);
+  return FitItemColumns(ContentWidth(), options);
+}
+
+// The content columns the list draws in: what the terminal has left, less the
+// window's own two borders, and never less than the width the screen keeps
+// when nobody has said.
+int PartyInspectPanel::ContentWidth() const {
+  return std::max(kContentWidth, max_columns_ - 2);
 }
 
 int PartyInspectPanel::FixedRows() const {
   return kFixedRows + (stats_.ShowsPresetBar() ? 2 : 0);
 }
 
+// The list takes the rows the terminal has left over, and no more than it
+// needs: a member wearing six pieces draws six rows on any screen, and a
+// member wearing all of them grows until the terminal runs out.
 int PartyInspectPanel::VisibleRows(int items) const {
   int room = max_rows_ > 0 ? max_rows_ - FixedRows() : kListRows;
-  return std::clamp(items, 1,
-                    std::max(kLeastListRows, std::min(room, kListRows)));
+  return std::clamp(items, 1, std::max(kLeastListRows, room));
 }
 
 ftxui::Element PartyInspectPanel::RenderEquipped() const {
@@ -136,8 +145,14 @@ ftxui::Element PartyInspectPanel::Render() const {
   ftxui::Element sheet =
       stats_.Render() |
       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, AllStatsPanel::kTotalWidth);
+  // At the columns' own width rather than the terminal's: past the longest
+  // name there is to show, more room buys the list nothing and a window
+  // stretched to the screen would only put its border further away. Never
+  // under kContentWidth, which is the width the screen has always kept.
   ftxui::Element worn =
-      RenderEquipped() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth);
+      RenderEquipped() |
+      ftxui::size(ftxui::WIDTH, ftxui::EQUAL,
+                  std::max(kContentWidth, Columns().TotalWidth()));
   // A vbox stretches its children, so the narrower window is held to its width
   // and centred over the wider one by hand.
   return ftxui::vbox({

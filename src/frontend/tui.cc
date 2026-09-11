@@ -485,6 +485,7 @@ ftxui::Element Tui::RenderPartyInspect() {
     return Standalone(party_item_panel_.Render());
   }
   party_inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
+  party_inspect_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
   return Standalone(party_inspect_panel_.Render());
 }
 

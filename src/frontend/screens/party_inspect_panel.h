@@ -33,11 +33,12 @@ namespace ms {
 class PartyInspectPanel {
  public:
   // The Equipped row is the widest thing on the screen, so it sets the width
-  // of the screen; the stat window keeps its own and is centred over it.
+  // of the screen; the stat window keeps its own and is centred over it. This
+  // is the width with nothing said about the terminal -- see SetMaxColumns.
   static constexpr int kContentWidth = 82;
-  // How many worn items show at once when the terminal is not the constraint.
-  // A full set of gear is longer than this and the frame scrolls to the
-  // cursor.
+  // How many worn items show at once when nobody has said how tall the screen
+  // is. With a height to work from the list takes what the sheet leaves --
+  // see VisibleRows -- and this is only the fallback.
   static constexpr int kListRows = 8;
   // The rows everything but the item list takes: both windows' borders, the
   // three heading rows, the two rules between the stat blocks, the three
@@ -73,6 +74,13 @@ class PartyInspectPanel {
   void SetMaxRows(int rows) {
     max_rows_ = rows;
   }
+  // The columns the screen may take. What is left over goes to the name
+  // column, which stops at the longest name the game ships -- so a wide
+  // terminal widens the window only until the list has what it wants. Zero
+  // means kContentWidth, the width the screen keeps when nobody has said.
+  void SetMaxColumns(int columns) {
+    max_columns_ = columns;
+  }
   ftxui::Element Render() const;
 
   // The member as this build reads them, for whoever needs their stats.
@@ -91,6 +99,8 @@ class PartyInspectPanel {
   // The columns the member's gear is listed in, gated on the reader's own
   // unlocks.
   ItemColumns Columns() const;
+  // The content columns the list is fitted to, borders excluded.
+  int ContentWidth() const;
   // How many item rows to draw at once, for the terminal and the list there
   // are to fit.
   int VisibleRows(int items) const;
@@ -114,6 +124,8 @@ class PartyInspectPanel {
   int cursor_ = 0;
   // See SetMaxRows. Zero is "as many as it takes".
   int max_rows_ = 0;
+  // See SetMaxColumns. Zero is "the width the screen has always kept".
+  int max_columns_ = 0;
   // When the cursor last moved, for sliding a long name under its column.
   SelectionClock name_clock_;
 };

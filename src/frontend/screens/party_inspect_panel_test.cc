@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "ftxui/component/event.hpp"
+#include "src/character/progression.h"
 #include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/frontend/widgets/stat_rows.h"
@@ -224,6 +225,38 @@ TEST_F(PartyInspectPanelTest, TheStatWindowKeepsItsOwnWidth) {
   EXPECT_EQ(stats.first - worn.first, worn.second - stats.second);
 }
 
+// A wide terminal goes into the name column, and stops there: past the longest
+// name the game ships the window has everything it wants.
+TEST_F(PartyInspectPanelTest, TheWindowWidensWithTheTerminalAndThenStops) {
+  // The reader's own unlocks are what say how many columns there are, and a
+  // list of two never wanted more room than it had.
+  while (state_.character.proto().level() < UnlockLevel(Feature::kPotential)) {
+    state_.character.LevelUp();
+  }
+  PartyInspectPanel panel(state_);
+  panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
+
+  auto width = [](const ftxui::Screen& screen) {
+    std::pair<int, int> span = {screen.dimx(), -1};
+    for (int y = 0; y < screen.dimy(); ++y) {
+      std::pair<int, int> row = RowSpan(screen, y);
+      if (row.first >= 0) {
+        span.first = std::min(span.first, row.first);
+        span.second = std::max(span.second, row.second);
+      }
+    }
+    return span.second - span.first + 1;
+  };
+
+  int narrow = width(Draw(panel));
+  panel.SetMaxColumns(kTestScreenWidth);
+  int wide = width(Draw(panel));
+  EXPECT_GT(wide, narrow) << "the room the terminal had went nowhere";
+
+  panel.SetMaxColumns(kTestScreenWidth * 4);
+  EXPECT_EQ(width(Draw(panel)), wide) << "it kept widening past the names";
+}
+
 TEST_F(PartyInspectPanelTest, TheCursorWalksTheWornItemsAndWraps) {
   PartyInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
@@ -305,6 +338,27 @@ TEST_F(PartyInspectPanelTest, TheItemListGivesWayToAShortTerminal) {
   // Squeezed further, the screen is clipped rather than the list vanishing.
   panel.SetMaxRows(PartyInspectPanel::kFixedRows);
   EXPECT_EQ(Height(panel), squeezed);
+}
+
+// And it takes the room a tall terminal has, up to what the member is
+// actually wearing: nine pieces draw nine rows however much is left over.
+TEST_F(PartyInspectPanelTest, TheItemListGrowsIntoATallTerminal) {
+  PartyInspectPanel panel(state_);
+  panel.SetPlayer(Member("Bree", FullGear()));
+  int worn = static_cast<int>(FullGear().size());
+  ASSERT_GT(worn, PartyInspectPanel::kListRows) << "longer than the fallback";
+
+  panel.SetMaxRows(PartyInspectPanel::kFixedRows + worn);
+  int tall = Height(panel);
+  std::string screen = Screen(panel);
+  for (const EquipPrototype& item : FullGear()) {
+    EXPECT_NE(screen.find(item.name()), std::string::npos)
+        << item.name() << " was scrolled out of a terminal with room for it";
+  }
+
+  // Taller still buys nothing: the list stops at the gear it is listing.
+  panel.SetMaxRows(PartyInspectPanel::kFixedRows + worn + 20);
+  EXPECT_EQ(Height(panel), tall);
 }
 
 // A member past level 140 carries the Farm/Boss row their own screen carries,

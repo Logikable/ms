@@ -884,6 +884,7 @@ cc_test(
     deps = [
         ":all_stats_panel",
         ":party_inspect_panel",
+        "//src/character:progression",
         "//src/frontend/widgets:panel_test_base",
         "//src/frontend/widgets:stat_rows",
         "//src/item:equip_instance",
