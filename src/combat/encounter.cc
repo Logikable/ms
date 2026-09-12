@@ -253,6 +253,10 @@ HitGroup SwingHitGroup(const SwingHit& hit, const OffenseStats& offense,
   extra.normal_skill_pct = lands.normal_skill_pct();
   extra.normal_pct += lands.normal_pct();
   extra.crit_rate += lands.crit_rate();
+  // Multiplied into what the character and the swing already bring, the way
+  // two final damage sources always meet -- see SwingHit.
+  extra.final_dmg_pct =
+      (1.0 + extra.final_dmg_pct) * (1.0 + lands.final_dmg_pct()) - 1.0;
   extra.lines = std::max(1, hit.lines());
   // The shadow copies it as it copies the rest of the swing. Reset here
   // because the line count just changed under it -- and left at nothing for

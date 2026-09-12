@@ -3758,6 +3758,48 @@ TEST(ComputeCombatParamsTest, AHalfOfASwingCanBeCertainToCrit) {
               poke * 8.0, 1e-6);
 }
 
+// Assassinate's shape: six strikes and a finishing blow that alone carries
+// Murderous Intent's final damage. The swing's own base states none, so the
+// opening lines must come out at the bare multiplier.
+TEST(ComputeCombatParamsTest, AHalfOfASwingCanCarryItsOwnFinalDamage) {
+  Skill strike;
+  strike.set_name("Assassinate");
+  strike.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(strike, JOB_ADVANCEMENT_SWORDMAN);
+  strike.set_max_level(30);
+  strike.set_max_enemies(1);
+  strike.set_lines(2);
+  strike.mutable_base()->set_skill_pct(2.00);
+  SwingHit* blow = strike.add_extra_hit();
+  blow->set_label("Finishing Blow");
+  blow->set_lines(2);
+  blow->mutable_base()->set_skill_pct(2.00);
+  blow->mutable_base()->set_final_dmg_pct(0.50);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"assassinate", strike}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(strike, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  // Four poke-fuls from the opening half, and four more from the blow lifted
+  // by half again: ten.
+  double poke = params.attacks[0].damage_per_hit[0];
+  EXPECT_NEAR(params.attacks[1].damage_per_hit[0], poke * 10.0, 1e-6);
+
+  // Stated on the swing instead it reaches both halves, and the same skill is
+  // worth twelve. That fold is what this lever exists to undo.
+  Skill whole = strike;
+  whole.mutable_extra_hit(0)->mutable_base()->clear_final_dmg_pct();
+  whole.mutable_base()->set_final_dmg_pct(0.50);
+  state.skills["assassinate"] = whole;
+  EXPECT_NEAR(ComputeCombatParams(state).attacks[1].damage_per_hit[0],
+              poke * 12.0, 1e-6);
+}
+
 // Greater Vessel of Light's shape: one passive that hands a strike to two
 // attacks and widens one of them. The grant is folded into the target before
 // its attack is built, so the damage the fight sees is already carrying it.
