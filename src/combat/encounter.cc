@@ -593,6 +593,11 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
     roll.follows_own_clock = source.follows_own_clock;
     roll.max_enemies = source.max_enemies;
     follow.skill_pct = source.damage_pct;
+    // Points of its own against anything that is not a boss, on the source's
+    // multiplier rather than the character's share -- a thrown meso's, and the
+    // only bargain of the kind a Final Attack states. Set every time round for
+    // the reason the boss damage above is.
+    follow.normal_skill_pct = source.normal_skill_pct;
     // Its own strikes, not the swing's: a Night Lord's mark throws three stars
     // behind a four-star swing, and each of the three rolls on its own.
     follow.lines = source.lines;

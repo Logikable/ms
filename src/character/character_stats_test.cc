@@ -2272,6 +2272,8 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   explosion.set_lines(2);
   explosion.mutable_base()->set_meso_hit_pct(0.43);
   explosion.mutable_per_level()->set_meso_hit_pct(0.03);
+  explosion.mutable_base()->set_normal_skill_pct(0.012);
+  explosion.mutable_per_level()->set_normal_skill_pct(0.002);
 
   Skill mastery;
   mastery.set_name("Meso Mastery");
@@ -2306,6 +2308,12 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   // Nothing has branded the coins, so they hit a boss for what the character
   // does.
   EXPECT_NEAR(derived.final_attacks[0].boss_pct, 0.0, 1e-9);
+  // The points GMS pays a coin against anything that is not a boss ride the
+  // count in the same way the damage does: 5 a line, so 10 a meso.
+  EXPECT_NEAR(derived.final_attacks[0].normal_skill_pct, 2 * 0.05, 1e-9);
+  // And they stay off the character, who swings no harder at an ordinary
+  // monster for holding the pair.
+  EXPECT_NEAR(derived.damage_pct, 0.0, 1e-9);
 
   // Blood Money brands them. Its boss damage lands on the throw and not on the
   // Shadower, so the stat line is untouched.

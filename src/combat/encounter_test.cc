@@ -1008,6 +1008,53 @@ TEST(ComputeCombatParamsTest, ABrandedMesoHitsABossHarder) {
   EXPECT_NEAR(paid.damage_per_hit[0], plain.damage_per_hit[0], 1e-9);
 }
 
+// GMS pays a thrown coin percentage POINTS against anything that is not a
+// boss, and the points ride the coin rather than the character: an ordinary
+// monster takes them and a boss takes none.
+TEST(ComputeCombatParamsTest, AThrownMesoPaysPointsToAnOrdinaryMonster) {
+  Skill pocket;
+  pocket.set_name("Pick Pocket");
+  pocket.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(pocket, JOB_ADVANCEMENT_SWORDMAN);
+  pocket.set_max_level(10);
+  pocket.mutable_base()->set_meso_drop_chance(0.30);
+  Skill explosion;
+  explosion.set_name("Meso Explosion");
+  explosion.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(explosion, JOB_ADVANCEMENT_SWORDMAN);
+  explosion.set_max_level(20);
+  explosion.set_lines(2);
+  explosion.mutable_base()->set_meso_hit_pct(1.00);
+  Skill pointed = explosion;
+  pointed.mutable_base()->set_normal_skill_pct(0.05);
+
+  // The same pair twice over, once against an ordinary snail and once against
+  // a boss, with and without the points.
+  auto meso_damage = [&](bool boss, const Skill& thrown) {
+    Mob snail = MakeMob("Snail", 15);
+    snail.set_boss(boss);
+    GameState state({}, {}, {}, {{"snail", snail}}, {{"field", TwoSnailMap()}},
+                    {{"pick_pocket", pocket}, {"meso_explosion", thrown}});
+    state.current_map = "field";
+    EquipSword(state);
+    GrantFirstJobSp(state, 4);
+    EXPECT_TRUE(state.character.LearnSkill(pocket, 1));
+    EXPECT_TRUE(state.character.LearnSkill(thrown, 1));
+    CombatParams params = ComputeCombatParams(state);
+    EXPECT_EQ(params.attacks.size(), 1u);
+    EXPECT_FALSE(params.attacks[0].final_attack_damage.empty());
+    return params.attacks[0].final_attack_damage[0];
+  };
+
+  // Five points on each of the coin's two lines, over a coin worth 200%: a
+  // twentieth more, and not a share of anything the character carries.
+  EXPECT_NEAR(meso_damage(false, pointed) / meso_damage(false, explosion), 1.05,
+              1e-9);
+  // A boss collects none of it.
+  EXPECT_NEAR(meso_damage(true, pointed) / meso_damage(true, explosion), 1.00,
+              1e-9);
+}
+
 // Meso Explosion's hypers brand the coins too: plain damage and ignored
 // defence aimed at a skill that is thrown rather than swung reach the throw
 // alone, and the swing that shook it loose is worth exactly what it was.

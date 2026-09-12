@@ -1971,15 +1971,23 @@ TEST(SkillDataTest, ALineLadderBuysAStrikeBeforeTheMasterLevel) {
 // active can carry a permanent grant, which is how GMS writes Phoenix and how
 // LearnedPassives now reads it -- but a passive carrying a swing's damage is
 // still data nothing will ever read.
+//
+// Meso Explosion is the one exception and states why it is one: a passive that
+// throws a coin has a multiplier of its own, so the points GMS pays that coin
+// against an ordinary monster ride it. See AddMesoStrike.
 TEST(SkillDataTest, APassiveCarriesNoSwingsDamage) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    if (skill.kind() == SKILL_KIND_PASSIVE) {
-      EXPECT_EQ(skill.base().skill_pct(), 0.0)
-          << entry.first << " is a passive carrying a swing's damage";
-      EXPECT_EQ(skill.base().normal_skill_pct(), 0.0)
-          << entry.first << " is a passive carrying a swing's damage";
+    if (skill.kind() != SKILL_KIND_PASSIVE) {
+      continue;
     }
+    EXPECT_EQ(skill.base().skill_pct(), 0.0)
+        << entry.first << " is a passive carrying a swing's damage";
+    if (skill.base().meso_hit_pct() > 0.0) {
+      continue;
+    }
+    EXPECT_EQ(skill.base().normal_skill_pct(), 0.0)
+        << entry.first << " is a passive carrying a swing's damage";
   }
 }
 

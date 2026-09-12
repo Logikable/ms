@@ -140,6 +140,10 @@ struct PassiveTotals : DerivedStats {
   // naming Meso Explosion granted it.
   double meso_boss_pct = 0.0;
   double meso_damage_pct = 0.0;
+  // Percentage points a thrown meso adds against anything that is not a boss.
+  // Per line until FoldMesoExplosion multiplies the count in, as the damage
+  // above is: GMS states it per shot.
+  double meso_normal_skill_pct = 0.0;
   double meso_ied = 0.0;
   double meso_crit_rate = 0.0;
   double meso_final_dmg_pct = 0.0;
@@ -383,6 +387,7 @@ void AddMesoExplosion(const Skill& skill, const SkillEffect& granted, int level,
   }
   totals.meso_skill = skill.name();
   totals.meso_hit_pct += per_line;
+  totals.meso_normal_skill_pct += granted.normal_skill_pct();
   totals.meso_lines = SkillLinesAt(skill, level);
 }
 
@@ -584,6 +589,7 @@ void FoldMesoExplosion(PassiveTotals& totals) {
     totals.meso_final_dmg_pct = boost->second.final_dmg_pct;
   }
   totals.meso_hit_pct *= totals.meso_lines;
+  totals.meso_normal_skill_pct *= totals.meso_lines;
 }
 
 // Hands each Final Attack what the book aimed at the skill that sets it off.
@@ -1453,6 +1459,7 @@ void AddMesoStrike(const PassiveTotals& passives, DerivedStats& stats) {
   FinalAttackSource meso;
   meso.chance = passives.meso_drop_chance;
   meso.damage_pct = passives.meso_hit_pct;
+  meso.normal_skill_pct = passives.meso_normal_skill_pct;
   meso.boss_pct = passives.meso_boss_pct;
   meso.damage_bonus_pct = passives.meso_damage_pct;
   meso.ied = passives.meso_ied;

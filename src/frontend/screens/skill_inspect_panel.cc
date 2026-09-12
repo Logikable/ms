@@ -754,11 +754,14 @@ std::string DamageText(const Skill& skill, int level) {
 // "+180%" beside a 900% swing reads as 1080% when it is twice that.
 std::string NormalMonsterText(const Skill& skill, int level) {
   double bonus = PercentAt(skill, &SkillEffect::normal_skill_pct, level);
-  if (bonus <= 0.0) {
+  double damage = PercentAt(skill, &SkillEffect::skill_pct, level);
+  // Nothing to be the other reading OF. Meso Explosion states its points on a
+  // thrown coin rather than on a swing, and MesoRows prints that pair itself.
+  if (bonus <= 0.0 || damage <= 0.0) {
     return "";
   }
-  return SwingText(PercentAt(skill, &SkillEffect::skill_pct, level) + bonus,
-                   SkillLinesAt(skill, level), SkillCasts(skill));
+  return SwingText(damage + bonus, SkillLinesAt(skill, level),
+                   SkillCasts(skill));
 }
 
 // One clause onto the list, comma-separated. A boost granting several has to
@@ -1180,6 +1183,17 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
     rows.push_back(EffectRow(
         "Damage per Meso",
         SwingText(meso_hit, SkillLinesAt(skill, level), SkillCasts(skill))));
+    // The other reading of the row above, straight under it, exactly as a
+    // swing's two rows stand: GMS pays a thrown coin extra POINTS against an
+    // ordinary monster, and points on a multiplier are only legible as the
+    // total they come to.
+    double normal = PercentAt(skill, &SkillEffect::normal_skill_pct, level);
+    if (normal > 0.0) {
+      rows.push_back(
+          EffectRow("Normal Monsters",
+                    SwingText(meso_hit + normal, SkillLinesAt(skill, level),
+                              SkillCasts(skill))));
+    }
   }
   // A share of what the hit it copies dealt, not a share of a bare swing: a
   // 70% shadow behind a 210% line lands 147%. The row says "of each hit"

@@ -6,8 +6,9 @@
 # over: every meso that drops is thrown the moment it does. GMS's cap of 15 on
 # the ground has nothing to cap for the same reason.
 #
-# Normal-enemy damage is dropped -- 2+floor(x/6)% is 5 points at master, on a
-# skill whose whole line is 200%.
+# GMS's normal-enemy bargain is stated as POINTS on a line rather than a share
+# -- 2+floor(x/6)%, which is 5 at the master level and 10 on a two-line meso.
+# Walked evenly to that end, so only where it starts moves.
 name: "Meso Explosion"
 description: "Fling Mesos, dropped by Pick Pocket, to damage enemies."
 kind: SKILL_KIND_PASSIVE
@@ -15,5 +16,11 @@ placement { job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT skill_order: 2 }
 max_level: 20
 lines: 2
 required_skill { skill_name: "Pick Pocket" level: 1 }
-base { meso_hit_pct: 0.43 }
-per_level { meso_hit_pct: 0.03 }
+base {
+  meso_hit_pct: 0.43
+  normal_skill_pct: 0.012
+}
+per_level {
+  meso_hit_pct: 0.03
+  normal_skill_pct: 0.002
+}

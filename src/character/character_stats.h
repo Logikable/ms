@@ -59,6 +59,10 @@ struct FinalAttackSource {
   // The skill that sets this off, so a boost naming that skill can find it.
   // Empty for a source no skill owns -- a thrown meso's.
   std::string skill_name;
+  // Percentage POINTS these extra hits add against anything that is not a
+  // boss, per strike, exactly as SkillEffect::normal_skill_pct is per line. A
+  // thrown meso's alone: GMS states Meso Explosion's bargain as points.
+  double normal_skill_pct = 0.0;
   // Critical rate and final damage only these extra hits carry, from a boost
   // aimed at the skill that sets them off. Beside boss_pct and ied above for
   // the same reason, and meeting the character's the way each of them always

@@ -1033,6 +1033,15 @@ TEST_F(SkillInspectPanelTest, StatesWhatAMesoIsWorthAndHowOftenOneFalls) {
             std::string::npos);
   EXPECT_NE(RowIn(RenderAt(explosion, 20), "Damage per Meso", "100% x2 = 200%"),
             std::string::npos);
+  // No points stated, so no second reading of the row above.
+  EXPECT_EQ(RenderAt(explosion, 20).find("Normal Monsters"), std::string::npos);
+
+  // GMS's points against an ordinary monster land on a LINE of the coin, so
+  // the row states the whole throw the way the swing's own pair does.
+  explosion.mutable_base()->set_normal_skill_pct(0.012);
+  explosion.mutable_per_level()->set_normal_skill_pct(0.002);
+  EXPECT_NE(RowIn(RenderAt(explosion, 20), "Normal Monsters", "105% x2 = 210%"),
+            std::string::npos);
 
   Skill pocket = IronBody();
   pocket.clear_base();
