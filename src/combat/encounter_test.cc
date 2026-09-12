@@ -1727,6 +1727,38 @@ TEST(ComputeCombatParamsTest, AFixedDelaySwingIgnoresTheAttackSpeedStage) {
   EXPECT_DOUBLE_EQ(at_stage[0], at_stage[1]);
 }
 
+// An attack GMS lets the player throw mid-swing plays no cast action, so the
+// animation the file records is not what it costs -- and there is none left
+// for a faster weapon to shorten. See Skill.waives_cast.
+TEST(ComputeCombatParamsTest, AWaivedCastCostsThePressAndIgnoresTheWeapon) {
+  Skill formation;
+  formation.set_name("Slash Shadow Formation");
+  formation.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(formation, JOB_ADVANCEMENT_SWORDMAN);
+  formation.set_max_level(30);
+  formation.set_base_delay_ms(600);
+  formation.set_waives_cast(true);
+  formation.mutable_base()->set_skill_pct(7.33);
+
+  double at_stage[2] = {0.0, 0.0};
+  AttackSpeed speeds[2] = {ATTACK_SPEED_SLOWER, ATTACK_SPEED_FASTEST_3};
+  for (int i = 0; i < 2; ++i) {
+    GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                    {{"field", TwoSnailMap()}}, {{"formation", formation}});
+    state.current_map = "field";
+    EquipSwordAt(state, speeds[i]);
+    GrantFirstJobSp(state, 1);
+    ASSERT_TRUE(state.character.LearnSkill(formation, 1));
+    CombatParams params = ComputeCombatParams(state);
+    ASSERT_EQ(params.attacks.size(), 2u);
+    at_stage[i] = params.attacks[1].swing_seconds;
+    // The press alone, not the 600ms of frames the file still records.
+    EXPECT_DOUBLE_EQ(at_stage[i],
+                     0.120 * GameSpeedFactor(state.character.proto().level()));
+  }
+  EXPECT_DOUBLE_EQ(at_stage[0], at_stage[1]);
+}
+
 TEST(ComputeCombatParamsTest, AnOrdinarySwingStillAnswersToTheWeapon) {
   Skill wind;
   wind.set_name("Wind Arrow");

@@ -197,12 +197,6 @@ bool HasACastAnimation(const Skill& skill) {
   return skill.kind() == SKILL_KIND_ATTACK || skill.kind() == SKILL_KIND_ACTIVE;
 }
 
-// What raising a buff costs, whatever its animation would be. GMS paces a
-// skill sequence at a flat 120ms a skill, and a player puts their buffs up in
-// one -- so the animation only ever plays for the casts a sequence will not
-// take: a heal, and the invincibility skills GMS refuses to register.
-constexpr int kBuffCastMs = 120;
-
 // Whether the whole of what pressing it does is put a buff up. Told apart from
 // a heal by the same test SpendsASwing uses: a heal is cast in place of the
 // swing, where a buff goes up on a clock of its own.
@@ -1228,11 +1222,11 @@ TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
       continue;
     }
     // A buff is raised from a sequence, which paces every skill in it alike --
-    // so its own animation is never what it costs. See kBuffCastMs.
+    // so its own animation is never what it costs. See kWaivedCastMs.
     if (RaisesOnlyABuff(entry.second)) {
-      EXPECT_EQ(entry.second.base_delay_ms(), kBuffCastMs)
+      EXPECT_EQ(entry.second.base_delay_ms(), kWaivedCastMs)
           << entry.first << " charges its animation for a buff a sequence "
-          << "raises in " << kBuffCastMs << "ms";
+          << "raises in " << kWaivedCastMs << "ms";
       continue;
     }
     EXPECT_GT(entry.second.base_delay_ms(), 0)
@@ -1249,6 +1243,24 @@ TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
     }
     EXPECT_GE(entry.second.base_delay_ms(), 300) << entry.first;
     EXPECT_LE(entry.second.base_delay_ms(), 2000) << entry.first;
+  }
+}
+
+// A waived cast still records the animation GMS would have played: the flag
+// says the animation is not charged, and a file that dropped the figure with
+// it would be stating the waiver twice and the client's number nowhere.
+TEST(SkillDataTest, AWaivedCastStillRecordsTheAnimationItSkips) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (!skill.waives_cast()) {
+      continue;
+    }
+    EXPECT_EQ(skill.kind(), SKILL_KIND_ATTACK)
+        << entry.first << " waives a cast it never makes";
+    EXPECT_GE(skill.base_delay_ms(), 300)
+        << entry.first << " waives an animation it does not state";
+    EXPECT_FALSE(skill.fixed_delay())
+        << entry.first << " is a hold, which plays its animation";
   }
 }
 

@@ -469,6 +469,13 @@ int BaseAttackSpeedStage(Job job, int weapon_stage);
 // both Brandish and Spear Sweep have.
 inline constexpr int kDefaultSwingDelayMs = 780;
 
+// What a cast costs when its animation never plays: the press, and nothing
+// more. GMS paces a skill sequence at a flat 120ms a skill and a player raises
+// their buffs in one, and it waives the cast action outright on the handful of
+// attacks it lets a player throw mid-swing. Unscaled by attack speed either
+// way -- there is no animation left for a faster weapon to shorten.
+inline constexpr int kWaivedCastMs = 120;
+
 }  // namespace ms
 
 #endif  // MS_SRC_COMBAT_DAMAGE_H_

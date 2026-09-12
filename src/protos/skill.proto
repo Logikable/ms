@@ -2008,6 +2008,17 @@ message Skill {
   // swing it otherwise copies. Where the SWING says it, every hit of it is
   // covered too -- a hit cannot be copied by a partner that never came.
   bool skips_mirror = 64;
+  // Whether GMS waives this attack's cast action, so that pressing it costs
+  // the press alone. Slash Shadow Formation is what it exists for: the client
+  // lists the actions it can be thrown out of, and they are the two swings a
+  // Shadower is always in the middle of.
+  //
+  // base_delay_ms keeps the animation GMS would otherwise play, so the file
+  // still states what the client states. What the swing is CHARGED is
+  // kWaivedCastMs, unscaled by attack speed -- there is no animation left for
+  // a faster weapon to shorten, which is the same bargain a buff raised from a
+  // sequence makes.
+  bool waives_cast = 65;
 
   // Whether this skill needs the secondary slot filled. Both Shield Masteries
   // ask for one, and data/equip/secondary now ships thirty of them, so a

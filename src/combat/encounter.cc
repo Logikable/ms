@@ -402,7 +402,12 @@ void AddSwingClocks(const Skill* skill, int level, const DerivedStats& derived,
   if (skill->base_delay_ms() > 0) {
     delay_ms = skill->base_delay_ms();
   }
-  if (skill->fixed_delay()) {
+  // An attack GMS lets the player throw mid-swing plays no cast action, so the
+  // animation the file records is not what it costs. See Skill.waives_cast.
+  if (skill->waives_cast()) {
+    delay_ms = kWaivedCastMs;
+  }
+  if (skill->fixed_delay() || skill->waives_cast()) {
     stage = kUnscaledAttackSpeedStage;
   }
   attack.swing_seconds = SwingIntervalSeconds(delay_ms, stage) * speed_factor;
