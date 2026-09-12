@@ -70,7 +70,11 @@ class Tui {
   //
   // `server` is the multiplayer server as host:port; empty plays alone. The
   // connection is opened for the whole session and closed on the way out.
-  Tui(GameState& state, std::string save_path = "", std::string server = "");
+  //
+  // `bgm` false opens the null sound device instead of the machine's, which
+  // is silence the game cannot tell from a box with no sound card.
+  Tui(GameState& state, std::string save_path = "", std::string server = "",
+      bool bgm = true);
   // Raises the card showing what the character earned while the game was
   // closed. Called before Run(), so the first thing the player sees is what
   // they came back to; a report not worth a card raises nothing.
@@ -184,8 +188,8 @@ class Tui {
   Celebration celebration_;
   // The live fight: stepped by the ticker, read by the combat panel.
   CombatSim combat_sim_;
-  // The music. Silent in a build made with --define=audio=off, and on a
-  // machine with no sound device.
+  // The music. Silent in a build made with --define=audio=off, on a machine
+  // with no sound device, and under --nobgm.
   Jukebox jukebox_;
   // What the Battle Analysis tool has measured. Fed by the ticker, and only
   // while the map is the fight in front of the player.

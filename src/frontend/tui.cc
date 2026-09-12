@@ -116,11 +116,12 @@ std::unique_ptr<MultiplayerSession> MakeSession(const std::string& server) {
 
 }  // namespace
 
-Tui::Tui(GameState& state, std::string save_path, std::string server)
+Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
     : state_(state),
       save_policy_(std::move(save_path), std::chrono::steady_clock::now()),
       multiplayer_(MakeSession(server)),
       progress_watcher_(state.character.proto()),
+      jukebox_(bgm ? Jukebox::Backend::kDevice : Jukebox::Backend::kNull),
       last_combat_update_(std::chrono::steady_clock::now()),
       keys_(state.account.mutable_keybinds()),
       char_panel_(state.character, state.account, panel_focus_, state.skills),

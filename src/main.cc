@@ -65,6 +65,10 @@ ABSL_FLAG(std::string, server, ms::DefaultServerAddress(),
           "which is what a build made without multiplayer does whatever this "
           "says. The workbench connects only to a server named here, never to "
           "the one the game ships with.");
+ABSL_FLAG(bool, bgm, true,
+          "Play the map and boss music. --nobgm opens the null sound device "
+          "instead of the machine's, which is what to pass when the game is "
+          "being driven rather than played.");
 ABSL_FLAG(std::string, skills, "zero",
           "Workbench only (--mode=test): what to do with the book the "
           "character's job is standing in. 'zero' leaves it unbought with the "
@@ -271,7 +275,7 @@ int main(int argc, char** argv) {
   if (mode != ms::GameMode::kPlay && server == ms::DefaultServerAddress()) {
     server.clear();
   }
-  ms::Tui tui(state, save_path, server);
+  ms::Tui tui(state, save_path, server, absl::GetFlag(FLAGS_bgm));
   tui.ShowOfflineReport(offline);
   tui.Run();
   return 0;
