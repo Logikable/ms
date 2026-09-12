@@ -1,0 +1,60 @@
+# The Shadower's fourth job node, and the longest single thing they throw: ten
+# slashes over five and a quarter seconds off one press.
+#
+# GMS's own figures, and the client's beat with them. Nine allies appear for
+# 705+28x% eleven times across six enemies, the client spacing them 900, 780,
+# 660, 480, 360, 240, 180 and 120ms apart -- a formation closing in rather than
+# a drip. Then at 4170ms the leader lands for 790+30x% fifteen times across
+# eight, eight slashes of it 30ms apart. Every hit of it ignores defence
+# outright: GMS states one ignoreMobpdpR of 100 for the whole skill.
+#
+# The nine land as one moment rather than told apart on their beat, which
+# cast_interval_ms exists for. Two things rule it out, and both are about the
+# two minute wait. An extra hit rides every strike of a told-apart swing, so
+# the leader would arrive nine times over; and BarrageStrikes prices a beat
+# that overhangs the press at the rate it sustains, which for a 120ms press
+# and a 3.7 second beat is 0.29 of one strike -- a rule written for a swing
+# limited by how fast it can be thrown again, where this one is limited by its
+# cooldown. So the nine fall together and the ledger draws them as GMS's nine
+# landings of eleven.
+#
+# The leader rides as an extra hit with a crowd of its own, so it banks apart
+# onto the eight it reaches instead of folding into the six. Its own eight
+# slashes fall 30ms apart, which is one moment either way.
+#
+# The cast is 600ms of frames that GMS waives outright while Assassinate or
+# Cruel Stab is running, which for a Shadower is always: the client's
+# actionList names both, and they are the two swings the player is holding. So
+# the animation is recorded and the press is what it costs -- see waives_cast.
+#
+# Dropped: the 1200 MP, the immunity to attack reflection, and the second
+# press that calls the leader in early.
+name: "Slash Shadow Formation"
+description:
+  "Team up with dark allies in a special formation to perform a joint attack. "
+  "Unaffected by the effects of Shadow Partner."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_V skill_order: 4 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_DAGGER
+base_delay_ms: 600
+waives_cast: true
+cooldown_seconds: 120.0
+max_enemies: 6
+lines: 11
+casts: 9
+skips_mirror: true
+base {
+  skill_pct: 7.33
+  ied_pct: 1.00
+}
+per_level { skill_pct: 0.28 }
+extra_hit {
+  label: "Leader's Slash"
+  max_enemies: 8
+  lines: 15
+  casts: 8
+  base { skill_pct: 8.20 }
+  per_level { skill_pct: 0.30 }
+}
