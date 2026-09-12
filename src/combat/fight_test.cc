@@ -4230,6 +4230,47 @@ TEST(CombatSimTest, TheIceSwingBuildsThePileTheLightningSwingSpends) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.936, 1e-9);
 }
 
+// What an ice swing leaves is only worth laying if something can collect it.
+// Priced against every swing the character knows, a pile looks worth building
+// for a storm two minutes from its next cast -- and the chooser lays ice it
+// will never spend.
+TEST(CombatSimTest, FreezeIsNotLaidForASwingStillRecharging) {
+  Mob snail = MakeMob("Snail", 1e9);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 20.0, 1)});
+  params.attacks[0].name = "Magic Claw";
+  params.freeze_cap = 2;
+  AttackOption ice = MakeSkill("Cold Beam", 10.0, /*cooldown=*/0.0);
+  ice.freeze_build = 2;
+  ice.freeze_seconds = 4.0;
+  params.attacks.push_back(std::move(ice));
+  AttackOption storm = MakeSkill("Jupiter Thunder", 100.0, /*cooldown=*/100.0);
+  storm.freeze_spends = true;
+  storm.freeze_fd_per_stack = 0.5;
+  params.attacks.push_back(std::move(storm));
+
+  // The ice is laid once, for the storm standing ready, and the storm spends
+  // the pile. Its wait then leaves nothing on offer that can collect a stack,
+  // so the plain swing takes every press after it.
+  CombatSim spent;
+  for (int step = 0; step < 6; ++step) {
+    spent.Advance(params, 1.0);
+  }
+  EXPECT_NEAR(spent.damage_by_attack()[1], 10.0, 1e-9);
+  EXPECT_NEAR(spent.damage_by_attack()[2], 200.0, 1e-9);
+  EXPECT_NEAR(spent.damage_by_attack()[0], 80.0, 1e-9);
+
+  // The same storm with no wait on it collects every pile it is laid, so the
+  // ice goes on being worth the press and the plain swing never wins one.
+  CombatParams ready = params;
+  ready.attacks[2].cooldown_seconds = 0.0;
+  CombatSim standing;
+  for (int step = 0; step < 6; ++step) {
+    standing.Advance(ready, 1.0);
+  }
+  EXPECT_GT(standing.damage_by_attack()[1], 10.0);
+  EXPECT_NEAR(standing.damage_by_attack()[0], 0.0, 1e-9);
+}
+
 // Spirit of Snow's shape: a blizzard worth three stacks to a lone enemy and
 // one to a crowd. What it leaves is read off what the strike actually reached,
 // so the same attack pays differently on the two maps.

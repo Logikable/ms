@@ -500,6 +500,9 @@ class CombatSim {
   // its damage and the states it leaves over the seconds it takes. The one
   // measure every pick in here is made on. Takes the option by reference so a
   // swing can be priced under a mask the fight is not standing in yet.
+  // Whether the swing at `index` could go out on this press: a swing rather
+  // than a clock, off its cooldown, loaded, and charged.
+  bool OnOffer(const CombatParams& params, int index) const;
   double SwingRate(const CombatParams& params,
                    const AttackOption& attack) const;
 

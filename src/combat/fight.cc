@@ -423,6 +423,35 @@ double CombatSim::SwingRate(const CombatParams& params,
          SwingSecondsAgainst(attack);
 }
 
+// Whether the swing at `index` could go out on this press. What the chooser
+// picks between, and the only thing a lookahead may reach for: a skill two
+// minutes from its next cast is not what the fight will spend a pile of freeze
+// stacks on.
+bool CombatSim::OnOffer(const CombatParams& params, int index) const {
+  const std::vector<AttackOption>& options = Attacks(params);
+  if (index < 0 || index >= static_cast<int>(options.size())) {
+    return false;
+  }
+  const AttackOption& attack = options[index];
+  if (attack.swing_seconds <= 0.0) {
+    return false;  // not a swing; a skill on its own clock is not chosen
+                   // between
+  }
+  if (attack.heal_fraction > 0.0) {
+    return false;  // a cast is chosen by need, not by rate -- see HealToCast
+  }
+  // A load another skill's press sets off is no button of its own: it goes out
+  // with that swing, and its damage is already counted there.
+  if (attack.spent_by_attack >= 0) {
+    return false;
+  }
+  // Still recharging, nothing loaded to fire, or a hold whose bank has not
+  // filled. The rate a hold is judged on is its pulse over its pulse clock
+  // whatever its length, so a bank with one charge in it prices the same as a
+  // full one and the chooser takes the hold the moment a charge lands.
+  return !Recharging(index) && Loaded(params, index) && Charged(params, index);
+}
+
 int CombatSim::TopAttack(const CombatParams& params,
                          const std::vector<bool>& held) const {
   int best = -1;
@@ -435,32 +464,7 @@ int CombatSim::TopAttack(const CombatParams& params,
     if (i < static_cast<int>(held.size()) && held[i]) {
       continue;
     }
-    if (attack.swing_seconds <= 0.0) {
-      continue;  // not a swing; a skill on its own clock is not chosen between
-    }
-    if (attack.heal_fraction > 0.0) {
-      continue;  // a cast is chosen by need, not by rate -- see HealToCast
-    }
-    // Still recharging, so it is not among the swings on offer this time --
-    // which is the whole point of a cooldown on something this good.
-    if (Recharging(i)) {
-      continue;
-    }
-    // Nothing loaded, so there is nothing to fire.
-    if (!Loaded(params, i)) {
-      continue;
-    }
-    // The bank is empty, so a hold bought out of one cannot be started. The
-    // rate a hold is judged on is its pulse over its pulse clock whatever its
-    // length, so nothing more is needed here: a bank with one charge in it
-    // prices the same as a full one, and the chooser takes the hold the moment
-    // a charge lands.
-    if (!Charged(params, i)) {
-      continue;
-    }
-    // A load another skill's press sets off is no button of its own: it goes
-    // out with that swing, and its damage is already counted there.
-    if (attack.spent_by_attack >= 0) {
+    if (!OnOffer(params, i)) {
       continue;
     }
     double rate = SwingRate(params, attack);
@@ -1192,15 +1196,18 @@ double CombatSim::FreezeCredit(const CombatParams& params,
   }
   // What the deeper pile is worth to the swing that comes next -- the whole of
   // what a stack buys, not only the final damage a lightning swing spends it
-  // for. The best swing on offer, since that is the one the chooser will reach
-  // for once the stacks are down, whichever element it carries.
+  // for. The best swing REALLY on offer, whichever element it carries: reading
+  // a skill still on its cooldown makes an ice swing look worth laying for a
+  // payout two minutes out that the chooser cannot take.
   //
   // One swing of lookahead, which is as far as a greedy chooser sees. A deep
   // pile pays out over several swings and this credits it once.
   double best = 0.0;
   int deeper = freeze_stacks_ + room;
-  for (const AttackOption& other : Attacks(params)) {
-    if (other.swing_seconds <= 0.0) {
+  const std::vector<AttackOption>& options = Attacks(params);
+  for (int i = 0; i < static_cast<int>(options.size()); ++i) {
+    const AttackOption& other = options[i];
+    if (!OnOffer(params, i)) {
       continue;
     }
     const QueuedMob& front = FrontMob();
