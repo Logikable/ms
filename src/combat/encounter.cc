@@ -256,8 +256,10 @@ HitGroup SwingHitGroup(const SwingHit& hit, const OffenseStats& offense,
   extra.lines = std::max(1, hit.lines());
   // The shadow copies it as it copies the rest of the swing. Reset here
   // because the line count just changed under it -- and left at nothing for
-  // the one hit GMS keeps the shadow off. See SwingHit.skips_mirror.
-  extra.mirror_lines = hit.skips_mirror() ? 0 : extra.lines;
+  // the one hit GMS keeps the shadow off, and for every hit of a swing it
+  // never stood behind at all. See SwingHit.skips_mirror.
+  bool shadowed = !hit.skips_mirror() && offense.mirror_lines > 0;
+  extra.mirror_lines = shadowed ? extra.lines : 0;
   HitGroup group;
   group.rolls = RollsFor(extra);
   for (const CombatType& type : types) {
@@ -471,9 +473,10 @@ void AddLeadHit(const Skill& skill, const OffenseStats& offense, int level,
       skill.base().lead_pct() + skill.per_level().lead_pct() * (level - 1);
   lead.lines = std::max(1, skill.lead_lines());
   // The shadow copies the opening hit as it copies every other line of the
-  // swing -- it is the same swing, landed on one enemy instead of all of them.
-  // Reset here because lead.lines just changed under it.
-  lead.mirror_lines = lead.lines;
+  // swing -- it is the same swing, landed on one enemy instead of all of them,
+  // and it stays away from a swing it was never behind. Reset here because
+  // lead.lines just changed under it.
+  lead.mirror_lines = offense.mirror_lines > 0 ? lead.lines : 0;
   for (const CombatType& type : types) {
     attack.lead_damage.push_back(ExpectedAttackDamage(lead, *type.mob));
   }

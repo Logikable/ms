@@ -671,6 +671,62 @@ TEST(ComputeCombatParamsTest, TheShadowCopiesTheSwingAndItsOpeningHit) {
   EXPECT_NEAR(shadowed[2], bare[2], 1e-9);
 }
 
+// A swing GMS keeps the shadow off takes none of it anywhere: not its own
+// lines, not its opening hit, and not the extra hit riding it -- a hit cannot
+// be copied by a partner that never came. See Skill.skips_mirror.
+TEST(ComputeCombatParamsTest, ASwingTheShadowSkipsTakesNoneOfItAnywhere) {
+  Skill partner;
+  partner.set_name("Shadow Partner");
+  partner.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(partner, JOB_ADVANCEMENT_SWORDMAN);
+  partner.set_max_level(20);
+  partner.mutable_base()->set_mirror_line_pct(0.70);
+
+  double swing[2] = {0.0, 0.0};
+  double lead[2] = {0.0, 0.0};
+  double wide[2] = {0.0, 0.0};
+  for (int pass = 0; pass < 2; ++pass) {
+    Skill formation;
+    formation.set_name("Slash Shadow Formation");
+    formation.set_kind(SKILL_KIND_ATTACK);
+    PlaceIn(formation, JOB_ADVANCEMENT_SWORDMAN);
+    formation.set_max_level(30);
+    formation.set_max_enemies(6);
+    formation.set_lines(11);
+    formation.set_lead_lines(2);
+    formation.set_skips_mirror(pass == 0);
+    formation.mutable_base()->set_skill_pct(7.33);
+    formation.mutable_base()->set_lead_pct(3.00);
+    SwingHit* leader = formation.add_extra_hit();
+    leader->set_label("Leader's Slash");
+    leader->set_lines(15);
+    leader->set_max_enemies(8);
+    leader->mutable_base()->set_skill_pct(8.20);
+
+    GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                    {{"field", TwoSnailMap()}},
+                    {{"formation", formation}, {"shadow_partner", partner}});
+    state.current_map = "field";
+    EquipSword(state);
+    GrantFirstJobSp(state, 2);
+    ASSERT_TRUE(state.character.LearnSkill(formation, 1));
+    ASSERT_TRUE(state.character.LearnSkill(partner, 1));
+
+    CombatParams params = ComputeCombatParams(state);
+    ASSERT_EQ(params.attacks.size(), 2u);
+    const AttackOption& attack = params.attacks[1];
+    ASSERT_FALSE(attack.wide_hit_damage.empty());
+    swing[pass] = attack.damage_per_hit[0];
+    lead[pass] = attack.lead_damage[0];
+    wide[pass] = attack.wide_hit_damage[0];
+  }
+  // The shadow left on is worth 70% of every line of all three halves, which
+  // is what the skipped pass goes without.
+  EXPECT_NEAR(swing[1] / swing[0], 1.70, 1e-9);
+  EXPECT_NEAR(lead[1] / lead[0], 1.70, 1e-9);
+  EXPECT_NEAR(wide[1] / wide[0], 1.70, 1e-9);
+}
+
 // A meso falls out per LINE the swing lands, not per enemy it reaches, so a
 // four-line swing is worth four times what a one-line swing is. And a skill on
 // a clock of its own knocks none loose at all: the character did not swing it.

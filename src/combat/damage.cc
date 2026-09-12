@@ -622,8 +622,10 @@ OffenseStats OffenseStatsFor(Job job, int level,
     AddAttackSkill(*attack_skill, attack_level, passives, offense);
   }
   // The shadow copies whatever the swing turned out to be, the bare poke's one
-  // line included. Set last, so it cannot be read before lines is settled.
-  offense.mirror_lines = offense.lines;
+  // line included, unless the skill is one it leaves alone. Set last, so it
+  // cannot be read before lines is settled. See Skill.skips_mirror.
+  bool shadowed = attack_skill == nullptr || !attack_skill->skips_mirror();
+  offense.mirror_lines = shadowed ? offense.lines : 0;
   return offense;
 }
 

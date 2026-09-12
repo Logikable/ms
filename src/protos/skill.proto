@@ -2000,6 +2000,14 @@ message Skill {
   // which is what GMS's own readout names -- because the card has no way to
   // ask which skill the character is really holding.
   string final_attack_label = 63;
+  // Whether the shadow leaves this swing alone. Slash Shadow Formation is what
+  // it exists for: GMS's "Also unaffected by the effects of Shadow Partner",
+  // said of the whole skill rather than of one hit in it.
+  //
+  // The narrower SwingHit.skips_mirror keeps the shadow off a single hit of a
+  // swing it otherwise copies. Where the SWING says it, every hit of it is
+  // covered too -- a hit cannot be copied by a partner that never came.
+  bool skips_mirror = 64;
 
   // Whether this skill needs the secondary slot filled. Both Shield Masteries
   // ask for one, and data/equip/secondary now ships thirty of them, so a
