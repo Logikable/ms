@@ -2122,9 +2122,8 @@ TEST(CombatSimTest, ASequencedSwingClearsTheDeadBetweenItsStrikes) {
 }
 
 // What a told-apart swing is worth to the chooser is what the press really
-// lands. Every strike where the beat runs out inside the press; only the
-// sustained share where it overhangs, since those bolts fall at their own rate
-// however hard the player presses.
+// lands: the strikes its beat gets through before the same skill can be cast
+// again and start the wall over.
 TEST(CombatSimTest, ASequencedSwingIsPricedAtTheStrikesThePressBuys) {
   Mob boss = MakeMob("Boss", 1000000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&boss, 100.0, 1)});
@@ -2144,12 +2143,20 @@ TEST(CombatSimTest, ASequencedSwingIsPricedAtTheStrikesThePressBuys) {
   inside.Advance(params, 0.1);
   EXPECT_EQ(inside.view().attack_name, "Bolt Barrage");
 
-  // Stretch the beat past the press and the same four bolts land at four per
-  // three seconds, which is 133 against the flatter swing's 300.
+  // Stretch the beat to the length of the press and the next cast cuts the wall
+  // off after two bolts, which is 200 against the flatter swing's 300.
   params.attacks[0].cast_interval_seconds = 1.0;
   CombatSim overhanging;
   overhanging.Advance(params, 0.1);
   EXPECT_EQ(overhanging.view().attack_name, "Chain Lightning");
+
+  // A wait of its own is what the wall really runs against, and three seconds
+  // of one lets every bolt land. Jupiter Thunder's shape: a barrage nothing
+  // can cut short is worth all four.
+  params.attacks[0].cooldown_seconds = 3.0;
+  CombatSim waiting;
+  waiting.Advance(params, 0.1);
+  EXPECT_EQ(waiting.view().attack_name, "Bolt Barrage");
 }
 
 TEST(CombatSimTest, AnAutoAttackClockWaitsWhileTheMapIsEmpty) {

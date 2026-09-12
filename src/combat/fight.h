@@ -435,9 +435,10 @@ class CombatSim {
   // charge stands and nothing once it is spent, since one press takes the lot.
   // 0 for every swing no magazine names.
   double LoadedDamage(const AttackOption& attack) const;
-  // Strikes of a told-apart swing the press is credited with: all of them
-  // where the beat runs out inside the press, and the sustained share where it
-  // overhangs. 1 for every swing whose strikes fall together.
+  // Strikes of a told-apart swing the press is credited with: those the beat
+  // lands before the swing can go out again, which is its cooldown where it
+  // has one and its own press where it does not. 1 for every swing whose
+  // strikes fall together.
   double BarrageStrikes(const AttackOption& attack) const;
   // What one swing of `attack` would land on the queue as it stands, the
   // opening hit and Final Attack included. An attack with an empowered form is

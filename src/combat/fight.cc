@@ -354,19 +354,17 @@ double CombatSim::LoadedDamage(const AttackOption& attack) const {
   return worth;
 }
 
-// Strikes of a told-apart swing the press is credited with. All of them where
-// the beat runs out inside the press, and the sustained share where it
-// overhangs -- eight bolts on a 210ms beat behind a 660ms press really do land
-// at eight per 1.47s, not eight per press. 1 for every swing that falls
-// together.
+// Strikes of a told-apart swing the press is credited with. The wall lands on
+// its own beat while the player goes on swinging, so what cuts it short is the
+// next cast of the same skill -- a cooldown away where it has one, a press away
+// where it does not. 1 for every swing that falls together.
 double CombatSim::BarrageStrikes(const AttackOption& attack) const {
   int strikes = std::max(1, attack.strikes_in_sequence);
   if (strikes == 1 || attack.cast_interval_seconds <= 0.0) {
     return 1.0;
   }
-  double press = SwingSecondsAgainst(attack);
-  double span = std::max(press, (strikes - 1) * attack.cast_interval_seconds);
-  return span > 0.0 ? strikes * press / span : strikes;
+  double again = std::max(SwingSecondsAgainst(attack), attack.cooldown_seconds);
+  return std::min<double>(strikes, 1.0 + again / attack.cast_interval_seconds);
 }
 
 double CombatSim::SwingDamage(const AttackOption& attack) const {
