@@ -405,19 +405,20 @@ struct AttackOption {
   double scar_seconds = 0.0;
   double scar_fd = 0.0;
   // What the condition the enemy is ALREADY in adds to this swing. The first
-  // is Storm Magic's and Burning Magic's, taken whole on a monster under any
-  // status the fight keeps -- frozen or burning -- and nothing extra for a
-  // second one over the first. The rest are Elemental Drain's: final damage
-  // for each burn alight on the group, counted up to `dot_count_cap`.
+  // is Storm Magic's, Burning Magic's and Puncture's, taken whole on a monster
+  // under any status the fight keeps -- frozen or burning -- and nothing extra
+  // for a second one over the first. The rest are Elemental Drain's: final
+  // damage for each burn alight on the group, counted up to `dot_count_cap`.
   //
-  // All three are 0 for every character but an I/L and an F/P magician.
+  // The first is 0 for everyone but an I/L, an F/P and a Hero, the rest for
+  // everyone but an F/P.
   double fd_when_afflicted = 0.0;
   double fd_per_dot = 0.0;
   int dot_count_cap = 0;
   // Which of the character's buffs has to be standing for this to fire at all,
   // as an index into CombatParams::buffs, or -1 for a clock that runs on its
-  // own. Puncture's wound is the case it exists for: what ticks is the wound,
-  // so it ticks only where one was left. Off-clock attacks only -- a swing is
+  // own. Darkness Aura is the case it exists for: what ticks is the aura, so
+  // it ticks only where one was raised. Off-clock attacks only -- a swing is
   // chosen rather than fired.
   int needs_buff = -1;
   // Which FORM of that buff has to be standing, as an index into
@@ -587,8 +588,8 @@ struct BuffOption {
   int magazine_attack = -1;
   // Index into AttackSet::attacks of the swing that lays this buff, or -1 for
   // one the character raises on its own wait. A buff hanging off an ATTACK is
-  // inseparable from the swing that delivers it -- Puncture's wound is left by
-  // puncturing something -- so the fight has to spend a swing to put it up.
+  // inseparable from the swing that delivers it -- the Dark Knight's aura is
+  // the slash that opens it -- so the fight has to spend a swing to put it up.
   // Always -1 for a party buff: what lays that is an ally's cast, which this
   // fight never sees.
   //
@@ -596,8 +597,8 @@ struct BuffOption {
   // order in every buffed set: one index stays good however the buffs come and
   // go.
   int laid_by_attack = -1;
-  // Whether the swing that lays it is already under it. False for Puncture's
-  // wound, which lifts the swings after it; true for Sword Illusion, whose
+  // Whether the swing that lays it is already under it. False for Darkness
+  // Aura, which lifts the slashes after it; true for Sword Illusion, whose
   // final damage GMS grants "upon use" and whose slashes all land inside the
   // window it opens. Read only where laid_by_attack is set.
   bool raised_on_cast = false;

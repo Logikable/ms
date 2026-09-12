@@ -1,20 +1,18 @@
-# The wound is a buff the swing lays: what leaves one is puncturing something,
-# so it stands for a stretch and the fight spends a swing going back for it
-# when it lapses. Both halves of it wait on that -- the damage a wounded enemy
-# takes, and the pulse that ticks on them.
+# The wound rides the ENEMY, as GMS's does: the swing leaves a burn, and every
+# swing after it lands harder on whatever is still burning. So both halves wait
+# on a monster the Hero has actually punctured, rather than on a window over
+# the character.
 #
-# The tick's chance and its damage fold into one figure the way a Final
-# Attack's do: a 40 + 2L% chance of 75 + 3L% every two seconds is what one is
-# worth.
+# The burn is rolled -- 40 + 2L% on each enemy the swing reached, which is
+# certain at master level and only better above it. A boss takes it every time;
+# a room takes it on some of what the sweep caught.
 #
-# So the swing itself is one a Hero rarely spends -- Raging Blow lands harder
-# once the wound is up -- which is the shape GMS has: puncture, then hold.
+# So the swing itself is one a Hero rarely spends: the chooser goes back for it
+# as the burn nears its end and swings Raging Blow the rest of the time, which
+# is the shape GMS has -- puncture, then hold.
 #
-# The party's share of the wound is a flat grant rather than a mark on the
-# monster, because the Hero's own share already is: both are read off the
-# character, and the wound stands for all but a moment of the fight. GMS pays
-# an ally ceil(x/3)% where the Hero takes 10+ceil(x/2)% -- 10% against 25% at
-# master.
+# The party's share is the same bargain read off the ally: GMS pays them
+# ceil(L/3)% where the Hero takes 10 + ceil(L/2)% -- 10% against 25% at master.
 name: "Puncture"
 description:
   "Pour your swordsman's spirit into a forward-downward strike, leaving a "
@@ -39,20 +37,21 @@ required_skill {
 base {
   skill_pct: 3.13
   normal_pct: 0.50
+  final_dmg_pct_when_afflicted: 0.105
 }
-per_level { skill_pct: 0.03 }
-ally_base { damage_pct: 0.013 }
-ally_per_level { damage_pct: 0.003 }
-buff {
+per_level {
+  skill_pct: 0.03
+  final_dmg_pct_when_afflicted: 0.005
+}
+ally_base { final_dmg_pct_when_afflicted: 0.013 }
+ally_per_level { final_dmg_pct_when_afflicted: 0.003 }
+dot {
+  interval_seconds: 2.0
   duration_seconds: 45.5
   duration_seconds_per_level: 0.5
-  base { damage_pct: 0.105 }
-  per_level { damage_pct: 0.005 }
-  pulse {
-    label: "Wound"
-    cast_interval_seconds: 2.0
-    lines: 1
-    base { skill_pct: 0.345 }
-    per_level { skill_pct: 0.045 }
-  }
+  lines: 1
+  chance: 0.42
+  chance_per_level: 0.02
+  base { skill_pct: 0.78 }
+  per_level { skill_pct: 0.03 }
 }
