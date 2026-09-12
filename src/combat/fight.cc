@@ -1223,6 +1223,12 @@ double CombatSim::FreezeCredit(const CombatParams& params,
 // pair -- priced on the pile alone, an ice swing looks worth nothing at all to
 // a character whose only reader is Storm Magic, and the chooser never casts
 // it.
+//
+// Every swing is read, a recharging one included, and DELIBERATELY -- unlike
+// FreezeCredit, which asks OnOffer. What this prices is a condition standing on
+// a monster for seconds, not a pile the very next press spends: a reader on a
+// cooldown finds the ice still there when it comes up. Limiting it to what is
+// on offer was measured and is a loss.
 double CombatSim::FrozenRate(const CombatParams& params,
                              const QueuedMob& mob) const {
   double best = 0.0;
@@ -1273,7 +1279,12 @@ double CombatSim::BurnLeftOn(const QueuedMob& mob, int slot) const {
 }
 
 // What one more burning monster is worth per second to whatever is swung next,
-// through the gate and through the count. The mirror of FrozenRate.
+// through the gate and through the count. The mirror of FrozenRate, including
+// that it reads every swing rather than only the ones on offer. F/P's mist
+// stands 15.5 seconds and DoT Punisher reads it on a 25 second cooldown: the
+// mist is laid to be standing when the reader comes up, and a chooser that
+// credits it only while the reader is ready stops laying it at all. Measured
+// at -0.9% for the branch.
 double CombatSim::BurningRate(const CombatParams& params, const QueuedMob& mob,
                               int alight) const {
   double best = 0.0;
