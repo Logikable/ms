@@ -270,6 +270,7 @@ TEST(ComputeCombatParamsTest, AHeldSwingIsPricedAsAFullHold) {
   EXPECT_EQ(attack.channel.pulses, 12);
   EXPECT_EQ(attack.channel.min_pulses, 5);
   EXPECT_DOUBLE_EQ(attack.channel.damage_taken_pct, 0.5);
+  EXPECT_FALSE(attack.channel.holds_full);
   EXPECT_DOUBLE_EQ(attack.channel.pulse_seconds, 0.15 * speed);
   EXPECT_DOUBLE_EQ(attack.channel.finish_seconds, 0.2 * speed);
   // The bank is stretched with every other clock here; what it buys is not.

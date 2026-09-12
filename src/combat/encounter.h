@@ -78,6 +78,10 @@ struct ChannelHold {
   double hp_recover_pct = 0.0;
   // Share of every hit the player takes that the hold cancels while it runs.
   double damage_taken_pct = 0.0;
+  // Whether every cast runs to the last pulse rather than being let go once
+  // the crowd in front of it is dead. True only for Sonic Blow, which ends on
+  // no strike and buys nothing back for letting go -- see Channel.holds_full.
+  bool holds_full = false;
   // Pulses the hold beats at its opening strength before it grows. 0 for a
   // hold that beats the same all the way through, which is every one whose
   // `grown` carries no damage.

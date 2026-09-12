@@ -1096,6 +1096,9 @@ int CombatSim::ChannelPulses(const AttackOption& attack, int hit) const {
   if (hold.pulses <= 0) {
     return 0;
   }
+  if (hold.holds_full) {
+    return hold.pulses;
+  }
   // What the strike at the end will land anyway. The hold only has to bring
   // them within its reach: pulses past that fall on something already dead.
   int wanted = hold.min_pulses;

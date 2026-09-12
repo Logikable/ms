@@ -1286,6 +1286,15 @@ message Channel {
   // second -- so this is that second divided by the pulse clock, rounded to
   // the pulse that fits inside it.
   int32 pulses_per_charge = 10;
+
+  // Whether the hold always runs to its last pulse. A hold is ordinarily let
+  // go as soon as the crowd in front of it is dead, since the strike it ends
+  // on lands whenever the player lets go and the pulses past that fall on
+  // nothing. Sonic Blow is the other case: it ends on no strike, and GMS pays
+  // the Shadower to let it go early -- 3.3 seconds off a 60 second wait for
+  // every attack unspent -- where nothing here does. Letting go would throw
+  // pulses away and buy the wait back nothing, so it never does.
+  bool holds_full = 11;
 }
 
 // A second attack the same swing sets off, on a wait of its own. Showdown's
