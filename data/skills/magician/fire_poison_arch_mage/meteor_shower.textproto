@@ -14,6 +14,7 @@ kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_FIRE
 placement { job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE skill_order: 3 }
 max_level: 20
+final_attack_label: "Meteorite"
 required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true
 base_delay_ms: 900

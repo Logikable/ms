@@ -126,9 +126,9 @@ const PercentLever kPercentLevers[] = {
     // the field. Bare, because it is a chance rather than a gain.
     {"Meso Drop Chance", &SkillEffect::meso_drop_chance, kBare, ""},
     // The share of that chance this swing gives up, which is a price and reads
-    // as one. The row under it is the same price paid over the extra hit.
+    // as one. Its Final Attack twin is written by FinalAttackCutRow, which has
+    // to name what it is cutting.
     {"Meso Drop Chance", &SkillEffect::meso_drop_cut, kMinus, ""},
-    {"Final Attack Rate", &SkillEffect::final_attack_chance_cut, kMinus, ""},
     // Last, and the only rows here that are not about a fight -- the same
     // place they take on the stats page, for the same reason.
     {"Meso Drop Rate", &SkillEffect::meso_pct, kPlus, ""},
@@ -1274,7 +1274,7 @@ std::vector<Row> ProcRows(const Skill& skill, int level) {
 // as it stands and states its ladder there.
 std::vector<Row> FinalAttackRows(const SkillEffect& base,
                                  const SkillEffect& per, int level,
-                                 int max_enemies) {
+                                 int max_enemies, const std::string& label) {
   double proc =
       base.final_attack_chance() + per.final_attack_chance() * (level - 1);
   if (proc <= 0.0) {
@@ -1295,8 +1295,9 @@ std::vector<Row> FinalAttackRows(const SkillEffect& base,
                                  per.final_attack_lines() * (level - 1));
   double damage =
       base.final_attack_pct() + per.final_attack_pct() * (level - 1);
-  return {EffectRow("Final Attack", FormatPercent(proc) + " for " +
-                                        SwingText(damage, strikes) + reach)};
+  return {EffectRow(
+      label.empty() ? "Final Attack" : label,
+      FormatPercent(proc) + " for " + SwingText(damage, strikes) + reach)};
 }
 
 // The burn the swing leaves, and the strike it sets off beside itself.
@@ -1307,7 +1308,8 @@ std::vector<Row> SwingRiderRows(const Skill& skill, int level) {
     rows.push_back(EffectRow("DoT", DotText(skill.dot(), level)));
   }
   Append(FinalAttackRows(skill.base(), skill.per_level(), level,
-                         skill.final_attack_max_enemies()),
+                         skill.final_attack_max_enemies(),
+                         skill.final_attack_label()),
          rows);
   // The strike the swing sets off beside itself. Its wait rides the damage row
   // rather than taking one of its own, and its reach is stated only where it
@@ -1825,7 +1827,8 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   Append(LeverRows(base, per, level, per_stage), rows);
   // A Final Attack the buff hands over for as long as it stands. Under the
   // buff's own heading, which has already said how long that is.
-  Append(FinalAttackRows(base, per, level, skill.final_attack_max_enemies()),
+  Append(FinalAttackRows(base, per, level, skill.final_attack_max_enemies(),
+                         skill.final_attack_label()),
          rows);
   Append(ShieldRows(buff.shield(), level), rows);
   // Named in the row rather than headed: these stand under the buff's own
@@ -1870,6 +1873,20 @@ std::vector<Row> WeaponBonusRows(const Skill& skill) {
   return rows;
 }
 
+// The share of the character's Final Attack this swing gives up. Apart from
+// the lever table because it has to name what it is cutting: "Final Attack
+// Rate -60%" tells a Night Lord nothing, the only extra hit they have ever
+// been shown being Assassin's Mark. See Skill::final_attack_label.
+std::vector<Row> FinalAttackCutRow(const Skill& skill, int level) {
+  double cut = PercentAt(skill, &SkillEffect::final_attack_chance_cut, level);
+  if (cut <= 0.0) {
+    return {};
+  }
+  const std::string& label = skill.final_attack_label();
+  return {EffectRow((label.empty() ? "Final Attack" : label) + " Rate",
+                    "-" + FormatPercent(cut))};
+}
+
 // Everything the skill grants at `level`. Empty for a skill whose real effect
 // is something this game has no notion of.
 std::vector<Row> EffectRows(const Skill& skill, int level) {
@@ -1887,6 +1904,7 @@ std::vector<Row> EffectRows(const Skill& skill, int level) {
           ? LeverRows(SwingLeversOf(skill.base()),
                       SwingLeversOf(skill.per_level()), level, "")
           : std::vector<Row>();
+  Append(FinalAttackCutRow(skill, level), swing);
   std::vector<Row> permanent = PermanentRows(skill, level);
   std::vector<Row> buff = BuffRows(skill, level);
   // Read before either is handed over, since Append takes its rows by value.

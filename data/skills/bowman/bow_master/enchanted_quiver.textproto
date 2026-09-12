@@ -15,6 +15,7 @@ kind: SKILL_KIND_PASSIVE
 final_attack_max_enemies: 1
 placement { job_advancement: JOB_ADVANCEMENT_BOW_MASTER skill_order: 4 }
 max_level: 10
+final_attack_label: "Magic Arrow"
 supersedes_skill_name: "Quiver Cartridge"
 base {
   final_attack_chance: 0.33

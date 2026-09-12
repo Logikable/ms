@@ -9,6 +9,7 @@ description:
 kind: SKILL_KIND_PASSIVE
 placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD skill_order: 3 }
 max_level: 10
+final_attack_label: "Mark"
 exceeds_master_level: true
 supersedes_skill_name: "Assassin's Mark"
 base {

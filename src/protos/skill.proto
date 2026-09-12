@@ -1922,6 +1922,19 @@ message Skill {
   // split a mobCount of its own, so off Snipe -- a swing that reaches one --
   // it still reaches ten.
   int32 final_attack_max_enemies = 39;
+  // What the card calls the Final Attack this skill states, where GMS gives
+  // the extra hit a name of its own: Assassin's Mark leaves a Mark, Enchanted
+  // Quiver fires a Magic Arrow, Meteor Shower drops a Meteorite. Empty takes
+  // "Final Attack", which is what the seven skills literally called that leave
+  // it -- a row saying Final Attack on a card titled Final Attack: Bow needs
+  // no help.
+  //
+  // Display only. The lever is the same Final Attack wherever it comes from,
+  // and this changes no arithmetic. A skill that CUTS somebody else's names
+  // the skill rather than the hit -- Shurrikane states "Assassin's Mark",
+  // which is what GMS's own readout names -- because the card has no way to
+  // ask which skill the character is really holding.
+  string final_attack_label = 63;
 
   // Whether this skill needs the secondary slot filled. Both Shield Masteries
   // ask for one, and data/equip/secondary now ships thirty of them, so a

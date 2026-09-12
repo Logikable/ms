@@ -22,6 +22,7 @@ kind: SKILL_KIND_ACTIVE
 placement { job_advancement: JOB_ADVANCEMENT_MARKSMAN_V skill_order: 2 }
 v_node: V_NODE_KIND_JOB
 max_level: 30
+final_attack_label: "Split Arrows"
 base_delay_ms: 120
 cooldown_seconds: 120.0
 follows_skill_tag: SKILL_TAG_MARKSMANSHIP

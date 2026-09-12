@@ -26,6 +26,7 @@ kind: SKILL_KIND_ATTACK
 placement { job_advancement: JOB_ADVANCEMENT_NIGHT_LORD_V skill_order: 2 }
 v_node: V_NODE_KIND_JOB
 max_level: 30
+final_attack_label: "Assassin's Mark"
 required_equip_type: EQUIP_TYPE_CLAW
 base_delay_ms: 480
 cooldown_seconds: 25.0

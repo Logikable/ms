@@ -16,6 +16,7 @@ tags: SKILL_TAG_ICE
 freeze_seconds: 8.0
 placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 2 }
 max_level: 30
+final_attack_label: "Blizzard"
 required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true
 base_delay_ms: 900

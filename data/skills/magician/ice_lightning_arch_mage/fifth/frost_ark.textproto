@@ -24,6 +24,7 @@ kind: SKILL_KIND_ACTIVE
 placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE_V skill_order: 1 }
 v_node: V_NODE_KIND_JOB
 max_level: 30
+final_attack_label: "Blast"
 base_delay_ms: 120
 cooldown_seconds: 120.0
 follows_skill_tag: SKILL_TAG_LIGHTNING

@@ -1442,6 +1442,25 @@ TEST(SkillDataTest, EveryAttackIsSwungWithItsBooksWeapons) {
   }
 }
 
+// A card that says "Final Attack" to a player who has never been shown those
+// words says nothing. A skill granting or cutting one names what GMS calls it
+// -- unless the skill is itself called Final Attack, where the row sits under
+// a heading that has already said it.
+TEST(SkillDataTest, EveryFinalAttackIsNamedUnlessItsSkillAlreadyIs) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    bool states = skill.base().final_attack_chance() > 0.0 ||
+                  skill.base().final_attack_chance_cut() > 0.0 ||
+                  skill.buff().base().final_attack_chance() > 0.0;
+    if (!states) {
+      continue;
+    }
+    bool named_for_it = skill.name().find("Final Attack") != std::string::npos;
+    EXPECT_EQ(skill.final_attack_label().empty(), named_for_it)
+        << entry.first << " must name its Final Attack, or be named for it";
+  }
+}
+
 TEST(SkillDataTest, EveryWeaponBonusIsForAWeaponTheSkillAccepts) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
