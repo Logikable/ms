@@ -54,7 +54,8 @@ std::string ItemStatsCell(Job job, const EquipStats& stats) {
   return PadRight(atk_str, 10) + PadRight(main_str, 10);
 }
 
-ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state) {
+ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
+                            Job job) {
   ItemCells cells;
   // The slot count rides along so a row says how far the item can still go,
   // not only how far it has come.
@@ -65,10 +66,8 @@ ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state) {
   cells.stars = Supports(proto, UPGRADE_STAR_FORCE)
                     ? std::to_string(state.stars()) + "★"
                     : "-";
-  const Potential& potential = state.main_potential();
-  cells.potential = potential.lines().empty()
-                        ? "-"
-                        : PotentialCell(potential, proto.required_level());
+  cells.potential = PotentialCell(
+      state.main_potential(), proto.required_level(), PrimaryStatField(job));
   return cells;
 }
 

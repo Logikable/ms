@@ -321,69 +321,114 @@ Potential OneLine(PotentialLineType type, PotentialRank rank) {
   return potential;
 }
 
+// A line of `type` added to `potential` at `rank`.
+void AddLine(Potential& potential, PotentialLineType type, PotentialRank rank) {
+  PotentialLine* line = potential.add_lines();
+  line->set_type(type);
+  line->set_rank(rank);
+}
+
 TEST(PotentialLineTextTest, CellIsValueThenNameAtOneWidth) {
   EXPECT_EQ(PotentialCell(OneLine(POTENTIAL_LINE_TYPE_ATTACK_PCT,
                                   POTENTIAL_RANK_LEGENDARY),
-                          150),
+                          150, STAT_FIELD_STR),
             "12% ATT     ");
   EXPECT_EQ(PotentialCell(OneLine(POTENTIAL_LINE_TYPE_COOLDOWN_2,
                                   POTENTIAL_RANK_LEGENDARY),
-                          150),
+                          150, STAT_FIELD_STR),
             "-2s CD      ");
 
   // The widest total the game rolls fills the column exactly, and nothing is
   // cut to reach it: three of the widest line still hold the width.
-  Potential all_stats;
+  Potential crit;
   for (int i = 0; i < kPotentialLines; ++i) {
-    PotentialLine* line = all_stats.add_lines();
-    line->set_type(POTENTIAL_LINE_TYPE_ALL_STATS_PCT);
-    line->set_rank(POTENTIAL_RANK_LEGENDARY);
+    AddLine(crit, POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT,
+            POTENTIAL_RANK_LEGENDARY);
   }
-  EXPECT_EQ(PotentialCell(all_stats, 200), "30% All Stat");
+  EXPECT_EQ(PotentialCell(crit, 200, STAT_FIELD_STR), "24% Crit DMG");
   for (int type = 0; type < PotentialLineType_ARRAYSIZE; ++type) {
     Potential potential;
     for (int i = 0; i < kPotentialLines; ++i) {
-      PotentialLine* line = potential.add_lines();
-      line->set_type(static_cast<PotentialLineType>(type));
-      line->set_rank(POTENTIAL_RANK_LEGENDARY);
+      AddLine(potential, static_cast<PotentialLineType>(type),
+              POTENTIAL_RANK_LEGENDARY);
     }
-    EXPECT_EQ(TextColumns(PotentialCell(potential, 200)), kPotentialCellWidth)
+    EXPECT_EQ(TextColumns(PotentialCell(potential, 200, STAT_FIELD_LUK)),
+              kPotentialCellWidth)
         << "type " << type;
   }
 }
 
 // A column reports what the item grants, not what one of its lines says: two
 // lines of one stat are one figure.
-TEST(PotentialLineTextTest, CellSumsEveryLineGrantingTheTopStat) {
+TEST(PotentialLineTextTest, CellSumsEveryLineGrantingTheStatItReports) {
   Potential potential;
-  PotentialLine* line = potential.add_lines();
-  line->set_type(POTENTIAL_LINE_TYPE_INT_PCT);
-  line->set_rank(POTENTIAL_RANK_LEGENDARY);
+  AddLine(potential, POTENTIAL_LINE_TYPE_INT_PCT, POTENTIAL_RANK_LEGENDARY);
   // A line of something else, which the total leaves alone.
-  line = potential.add_lines();
-  line->set_type(POTENTIAL_LINE_TYPE_MESO_RATE);
-  line->set_rank(POTENTIAL_RANK_LEGENDARY);
-  line = potential.add_lines();
-  line->set_type(POTENTIAL_LINE_TYPE_INT_PCT);
-  line->set_rank(POTENTIAL_RANK_UNIQUE);
-  EXPECT_EQ(PotentialCell(potential, 150), "21% INT     ");
+  AddLine(potential, POTENTIAL_LINE_TYPE_MAX_HP_PCT, POTENTIAL_RANK_LEGENDARY);
+  AddLine(potential, POTENTIAL_LINE_TYPE_INT_PCT, POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_INT), "21% INT     ");
+
+  // All Stat% grants the stat the character builds on, so it is folded into
+  // the same figure rather than named on its own.
+  AddLine(potential, POTENTIAL_LINE_TYPE_ALL_STATS_PCT,
+          POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_INT), "30% INT     ");
 
   // Ignored defence meets in reverse, as it does everywhere else: 15% and 30%
   // together leave 59.5% of the defence standing.
   Potential ied =
       OneLine(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15, POTENTIAL_RANK_EPIC);
-  line = ied.add_lines();
-  line->set_type(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30);
-  line->set_rank(POTENTIAL_RANK_UNIQUE);
-  EXPECT_EQ(PotentialCell(ied, 150), "41% IED     ");
+  AddLine(ied, POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30, POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(PotentialCell(ied, 150, STAT_FIELD_STR), "41% IED     ");
 
   // Boss damage is stated at three sizes and adds up across all of them.
   Potential boss =
       OneLine(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30, POTENTIAL_RANK_UNIQUE);
-  line = boss.add_lines();
-  line->set_type(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40);
-  line->set_rank(POTENTIAL_RANK_LEGENDARY);
-  EXPECT_EQ(PotentialCell(boss, 150), "70% Boss    ");
+  AddLine(boss, POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40, POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(PotentialCell(boss, 150, STAT_FIELD_STR), "70% Boss    ");
+}
+
+// The column has room for one effect, so it reports the one the character
+// gets the most out of rather than the one the item lists first.
+TEST(PotentialLineTextTest, CellReportsTheEffectWorthMost) {
+  Potential potential;
+  AddLine(potential, POTENTIAL_LINE_TYPE_STR_PCT, POTENTIAL_RANK_LEGENDARY);
+  AddLine(potential, POTENTIAL_LINE_TYPE_DAMAGE_PCT, POTENTIAL_RANK_LEGENDARY);
+  AddLine(potential, POTENTIAL_LINE_TYPE_ATTACK_PCT, POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_STR), "9% ATT      ");
+
+  // Boss damage and ignored defence are worth the same rung, so the one the
+  // item rolled more of is shown.
+  Potential boss =
+      OneLine(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40, POTENTIAL_RANK_LEGENDARY);
+  AddLine(boss, POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15, POTENTIAL_RANK_EPIC);
+  EXPECT_EQ(PotentialCell(boss, 150, STAT_FIELD_STR), "40% Boss    ");
+  AddLine(boss, POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30, POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(PotentialCell(boss, 150, STAT_FIELD_STR), "41% IED     ");
+}
+
+// Half of what a potential can roll is worth nothing to a given character,
+// and a column that reported it would say nothing but the item's rank.
+TEST(PotentialLineTextTest, CellSkipsWhatThisCharacterDoesNotRead) {
+  // A magician's damage reads magic attack; the weapon attack a wand carries
+  // never reaches it.
+  Potential weapon =
+      OneLine(POTENTIAL_LINE_TYPE_ATTACK_PCT, POTENTIAL_RANK_LEGENDARY);
+  AddLine(weapon, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT, POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(PotentialCell(weapon, 150, STAT_FIELD_STR), "12% ATT     ");
+  EXPECT_EQ(PotentialCell(weapon, 150, STAT_FIELD_INT), "9% MATT     ");
+
+  // The three stats the character does not build on, the flat lines and %HP
+  // are all left unsaid -- which can leave nothing to say at all.
+  Potential armor =
+      OneLine(POTENTIAL_LINE_TYPE_DEX_PCT, POTENTIAL_RANK_LEGENDARY);
+  AddLine(armor, POTENTIAL_LINE_TYPE_MAX_HP_PCT, POTENTIAL_RANK_LEGENDARY);
+  AddLine(armor, POTENTIAL_LINE_TYPE_STR, POTENTIAL_RANK_RARE);
+  EXPECT_EQ(PotentialCell(armor, 150, STAT_FIELD_STR), "-           ");
+  EXPECT_EQ(PotentialCell(armor, 150, STAT_FIELD_DEX), "12% DEX     ");
+
+  // An item carrying no potential at all reads the same way.
+  EXPECT_EQ(PotentialCell(Potential(), 150, STAT_FIELD_STR), "-           ");
 }
 
 TEST(PotentialLineTextTest, NamesEveryRank) {

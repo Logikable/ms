@@ -682,24 +682,112 @@ std::string PotentialValueText(PotentialLineType type, int value) {
   }
 }
 
-// The type two lines of one effect both count under. GMS states ignored
-// defence, boss damage and cooldown at several fixed sizes, and each size is
-// its own type here; adding two of them up asks for the effect, not the size.
-PotentialLineType PotentialLineFamily(PotentialLineType type) {
+// The %stat line a character building on `primary` reads. HP and MP are not
+// stats a potential grants a share of, so they have no line.
+PotentialLineType PrimaryStatPercent(StatField primary) {
+  switch (primary) {
+    case STAT_FIELD_STR:
+      return POTENTIAL_LINE_TYPE_STR_PCT;
+    case STAT_FIELD_DEX:
+      return POTENTIAL_LINE_TYPE_DEX_PCT;
+    case STAT_FIELD_INT:
+      return POTENTIAL_LINE_TYPE_INT_PCT;
+    case STAT_FIELD_LUK:
+      return POTENTIAL_LINE_TYPE_LUK_PCT;
+    default:
+      return POTENTIAL_LINE_TYPE_UNSPECIFIED;
+  }
+}
+
+// The %attack line that reaches this character's damage. A magician swings
+// for magic attack, and the weapon attack a wand also carries never reaches
+// the chain -- the same question the stat column asks.
+PotentialLineType PrimaryAttackPercent(StatField primary) {
+  return primary == STAT_FIELD_INT ? POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT
+                                   : POTENTIAL_LINE_TYPE_ATTACK_PCT;
+}
+
+// The type the column counts `type` under, or UNSPECIFIED for a line it never
+// reports. Two jobs of work: GMS states ignored defence, boss damage and
+// cooldown at several fixed sizes, each its own type here, so adding two of
+// them up asks for the effect rather than the size; and All Stat% grants the
+// stat the character builds on, which is the only thing about it the column
+// has room to say.
+PotentialLineType SummaryFamily(PotentialLineType type, StatField primary) {
   static_assert(PotentialLineType_ARRAYSIZE == 28,
                 "a new potential line needs a family");
   switch (type) {
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15:
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30:
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_35:
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_40:
       return POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15;
+    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30:
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35:
     case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40:
       return POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30;
+    case POTENTIAL_LINE_TYPE_COOLDOWN_1:
     case POTENTIAL_LINE_TYPE_COOLDOWN_2:
       return POTENTIAL_LINE_TYPE_COOLDOWN_1;
-    default:
+    case POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT:
+    case POTENTIAL_LINE_TYPE_DAMAGE_PCT:
+    case POTENTIAL_LINE_TYPE_MESO_RATE:
+    case POTENTIAL_LINE_TYPE_ITEM_DROP_RATE:
       return type;
+    case POTENTIAL_LINE_TYPE_ALL_STATS_PCT:
+      return PrimaryStatPercent(primary);
+    case POTENTIAL_LINE_TYPE_ATTACK_PCT:
+    case POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT:
+      return type == PrimaryAttackPercent(primary)
+                 ? type
+                 : POTENTIAL_LINE_TYPE_UNSPECIFIED;
+    case POTENTIAL_LINE_TYPE_STR_PCT:
+    case POTENTIAL_LINE_TYPE_DEX_PCT:
+    case POTENTIAL_LINE_TYPE_INT_PCT:
+    case POTENTIAL_LINE_TYPE_LUK_PCT:
+      return type == PrimaryStatPercent(primary)
+                 ? type
+                 : POTENTIAL_LINE_TYPE_UNSPECIFIED;
+    // The flat lines and %HP, which Rare rolls and a player stops reading the
+    // day the item leaves Rare. A column that showed them would say nothing
+    // about most items but their rank.
+    default:
+      return POTENTIAL_LINE_TYPE_UNSPECIFIED;
+  }
+}
+
+// The rank of an effect the column never reports.
+constexpr int kUnreported = -1;
+
+// Where `family` sits in the order the column prefers to report, best first:
+// crit damage, cooldown, %attack, boss damage and ignored defence, %damage,
+// the two rates, then the stat the character builds on. A rank two effects
+// share is a tie the item settles -- whichever of them it rolled more of is
+// the one shown.
+int SummaryRank(PotentialLineType family) {
+  switch (family) {
+    case POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT:
+      return 0;
+    case POTENTIAL_LINE_TYPE_COOLDOWN_1:
+      return 1;
+    case POTENTIAL_LINE_TYPE_ATTACK_PCT:
+    case POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT:
+      return 2;
+    case POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30:
+    case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15:
+      return 3;
+    case POTENTIAL_LINE_TYPE_DAMAGE_PCT:
+      return 4;
+    case POTENTIAL_LINE_TYPE_MESO_RATE:
+    case POTENTIAL_LINE_TYPE_ITEM_DROP_RATE:
+      return 5;
+    case POTENTIAL_LINE_TYPE_STR_PCT:
+    case POTENTIAL_LINE_TYPE_DEX_PCT:
+    case POTENTIAL_LINE_TYPE_INT_PCT:
+    case POTENTIAL_LINE_TYPE_LUK_PCT:
+      return 6;
+    default:
+      return kUnreported;
   }
 }
 
@@ -707,12 +795,12 @@ PotentialLineType PotentialLineFamily(PotentialLineType type) {
 // up except ignored defence, which meets in reverse the way it does
 // everywhere else -- see AddPotential.
 int PotentialFamilyTotal(const Potential& potential, PotentialLineType family,
-                         int item_level) {
+                         int item_level, StatField primary) {
   bool ied = family == POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15;
   int total = 0;
   double left = 1.0;
   for (const PotentialLine& line : potential.lines()) {
-    if (PotentialLineFamily(line.type()) != family) {
+    if (SummaryFamily(line.type(), primary) != family) {
       continue;
     }
     int value = PotentialLineValue(line.type(), line.rank(), item_level);
@@ -765,18 +853,31 @@ std::string PotentialLineShortName(PotentialLineType type) {
   }
 }
 
-std::string PotentialCell(const Potential& potential, int item_level) {
-  if (potential.lines().empty()) {
-    return PadRight("", kPotentialCellWidth);
+std::string PotentialCell(const Potential& potential, int item_level,
+                          StatField primary) {
+  PotentialLineType best = POTENTIAL_LINE_TYPE_UNSPECIFIED;
+  int best_rank = kUnreported;
+  int best_total = 0;
+  for (const PotentialLine& line : potential.lines()) {
+    PotentialLineType family = SummaryFamily(line.type(), primary);
+    int rank = SummaryRank(family);
+    if (rank == kUnreported) {
+      continue;
+    }
+    int total = PotentialFamilyTotal(potential, family, item_level, primary);
+    if (best == POTENTIAL_LINE_TYPE_UNSPECIFIED || rank < best_rank ||
+        (rank == best_rank && total > best_total)) {
+      best = family;
+      best_rank = rank;
+      best_total = total;
+    }
   }
-  // The first line names the effect the column reports: it is the one that
-  // carries the potential's own rank, and so the one that says what the item
-  // rolled.
-  PotentialLineType family = PotentialLineFamily(potential.lines(0).type());
-  int total = PotentialFamilyTotal(potential, family, item_level);
-  std::string text = TakesAway(family) ? "-" : "";
+  if (best == POTENTIAL_LINE_TYPE_UNSPECIFIED) {
+    return PadRight("-", kPotentialCellWidth);
+  }
+  std::string text = TakesAway(best) ? "-" : "";
   text +=
-      PotentialValueText(family, total) + " " + PotentialLineShortName(family);
+      PotentialValueText(best, best_total) + " " + PotentialLineShortName(best);
   return PadRight(text, kPotentialCellWidth);
 }
 

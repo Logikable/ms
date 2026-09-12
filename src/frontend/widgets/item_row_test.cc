@@ -116,23 +116,29 @@ TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
   line->set_rank(POTENTIAL_RANK_LEGENDARY);
   // A second line granting something else, which the first line's total
   // leaves alone.
-  state.mutable_main_potential()->add_lines()->set_type(
-      POTENTIAL_LINE_TYPE_MESO_RATE);
+  line = state.mutable_main_potential()->add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_MESO_RATE);
+  line->set_rank(POTENTIAL_RANK_LEGENDARY);
 
-  ItemCells cells = EquipUpgradeCells(proto, state);
+  ItemCells cells = EquipUpgradeCells(proto, state, JOB_HERO);
   EXPECT_EQ(cells.scroll, "3/7");
   EXPECT_EQ(cells.stars, "12★");
   EXPECT_EQ(cells.potential, "12% ATT     ");
+
+  // The job decides which lines the potential cell reports: a bishop's damage
+  // never reads the weapon attack, so the same item falls through to the rate.
+  cells = EquipUpgradeCells(proto, state, JOB_BISHOP);
+  EXPECT_EQ(cells.potential, "20% Meso    ");
 
   // An upgrade the item refuses, and an item carrying no potential, each read
   // "-" rather than blank.
   proto.set_upgrade_slots(0);
   proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
   state.clear_main_potential();
-  cells = EquipUpgradeCells(proto, state);
+  cells = EquipUpgradeCells(proto, state, JOB_HERO);
   EXPECT_EQ(cells.scroll, "-");
   EXPECT_EQ(cells.stars, "-");
-  EXPECT_EQ(cells.potential, "-");
+  EXPECT_EQ(cells.potential, "-           ");
 }
 
 }  // namespace

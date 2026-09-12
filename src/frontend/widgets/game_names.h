@@ -118,12 +118,16 @@ std::string PotentialLineValueText(const PotentialLine& line, int item_level);
 // PotentialLineName instead.
 std::string PotentialLineShortName(PotentialLineType type);
 
-// What a list column says about `potential`: its first line's effect, with
-// every other line granting the same one folded in, so two %INT lines read as
-// one total. Value first and no "+" -- a column of rows has no room to spend
-// on a sign every row carries. Held to kPotentialCellWidth columns, which the
-// widest total the game rolls fills exactly.
-std::string PotentialCell(const Potential& potential, int item_level);
+// What a list column says about `potential`, for a character whose damage is
+// built on `primary`: the one effect on the item worth the most to that
+// character, with every other line granting it folded in, so two %INT lines
+// read as one total. See kSummaryOrder for the order of preference; an item
+// granting none of them reads "-". Value first and no "+" -- a column of rows
+// has no room to spend on a sign every row carries. Held to
+// kPotentialCellWidth columns, which the widest total the game rolls fills
+// exactly.
+std::string PotentialCell(const Potential& potential, int item_level,
+                          StatField primary);
 inline constexpr int kPotentialCellWidth = 12;
 
 // The tag a skill row opens with: what the player does with the skill, said

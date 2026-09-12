@@ -65,7 +65,8 @@ std::vector<EquippedRow> EquippedRows(
         static_cast<int>(rows.size()) == selected
             ? elapsed
             : std::chrono::steady_clock::duration::zero();
-    ItemCells cells = EquipUpgradeCells(item.prototype(), item.equip_state());
+    ItemCells cells = EquipUpgradeCells(item.prototype(), item.equip_state(),
+                                        character.proto().job());
     cells.name = item.prototype().name();
     cells.slot = FormatWornSlot(slot);
     cells.stats = ItemStatsCell(character.proto().job(), item.stats());
