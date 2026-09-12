@@ -46,5 +46,4 @@ channel {
   max_pulses: 15
   finish_delay_ms: 360
   damage_taken_pct: 0.50
-  holds_full: true
 }

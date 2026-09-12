@@ -11,11 +11,19 @@
 #ifndef MS_SRC_COMBAT_MEASURE_H_
 #define MS_SRC_COMBAT_MEASURE_H_
 
+#include <cstdint>
 #include <vector>
 
 #include "src/combat/encounter.h"
 
 namespace ms {
+
+// The HP to stand a monster up with for a measurement. Its monsters never
+// fall, so the one thing its HP still decides is how long a held swing is
+// worth holding -- and a monster that cannot be killed has to look it. Stood
+// up with its real HP instead, a hold is let go the moment the dummy would
+// have died and the sim reads a fraction of what the skill is worth.
+inline constexpr int64_t kMeasuredMobHp = 1'000'000'000'000'000;
 
 // What a measured run came to.
 struct Sequence {

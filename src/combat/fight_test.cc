@@ -4553,19 +4553,21 @@ TEST(CombatSimTest, AHoldIsLetGoOnceMorePulsesWouldBuyNothing) {
   EXPECT_TRUE(sim.view().roster.empty());
 }
 
-// Sonic Blow's shape: a hold that ends on no strike, so letting it go early
-// only throws pulses away. It runs to the last one against a snail the first
-// pulse would have killed.
-TEST(CombatSimTest, AHoldThatBuysNothingBackForLettingGoRunsToTheEnd) {
-  Mob snail = MakeMob("Snail", 5);
+// Sonic Blow's shape: a hold that ends on no strike. It is let go early all
+// the same -- the pulses past a dead crowd fall on corpses, and the seconds
+// they cost are real.
+TEST(CombatSimTest, AHoldThatEndsOnNoStrikeIsStillLetGoEarly) {
+  Mob snail = MakeMob("Snail", 30);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&snail, 0.0, 1)});
   AttackOption blow = MakeHeldSwing();
-  blow.channel.holds_full = true;
+  blow.groups.pop_back();
+  blow.damage_per_hit = {12 * 10.0};
   params.attacks.push_back(std::move(blow));
 
   CombatSim sim;
-  EXPECT_DOUBLE_EQ(RunFor(sim, params, 1.95), 0.0);
-  EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.1), 170.0);
+  EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.95), 0.0);
+  EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.02), 50.0);  // 5 x 10, at the floor
+  EXPECT_TRUE(sim.view().roster.empty());
 }
 
 // The hold is the shelter: what the player takes while the key is down is cut

@@ -171,12 +171,13 @@ std::vector<const EquipPrototype*> Ladders(const GameState& state,
 
 // Stands the tryout map and its mob up, and moves the character onto it.
 // The mob is their own level, so the level multiplier lands where a player
-// fighting their own tier would put it. Returns the map they came from.
+// fighting their own tier would put it, and carries the measurement's own HP
+// so a held swing is not let go early. Returns the map they came from.
 std::string OpenTryout(GameState& state) {
   Mob mob;
   mob.set_name("Tryout");
   mob.set_level(state.character.proto().level());
-  mob.set_max_hp(1);
+  mob.set_max_hp(kMeasuredMobHp);
   state.mobs[kTryoutMob] = mob;
   MapData map;
   map.set_name("Tryout");

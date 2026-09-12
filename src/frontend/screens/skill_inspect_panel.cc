@@ -1152,13 +1152,10 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   }
   // How many pulses one hold is worth. A count rather than a clock, which is
   // the half of the hold the player can act on -- they let go when it stops
-  // paying. A hold that always runs full says the flat number: there is no
-  // "up to" about it.
+  // paying, so the count is a ceiling rather than a promise.
   if (held) {
-    std::string pulses = std::to_string(skill.channel().max_pulses());
-    if (!skill.channel().holds_full()) {
-      pulses = "Up to " + pulses;
-    }
+    std::string pulses =
+        "Up to " + std::to_string(skill.channel().max_pulses());
     if (skill.channel().pulses_per_charge() > 0) {
       pulses += ", " + std::to_string(skill.channel().pulses_per_charge()) +
                 " per Charge";

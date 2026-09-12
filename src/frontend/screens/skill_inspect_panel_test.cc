@@ -1161,6 +1161,21 @@ TEST_F(SkillInspectPanelTest, AFinishThatHealsStatesTheWholeOfIt) {
             std::string::npos);
 }
 
+// The pulse count is a ceiling, not a promise: a hold is let go once what it
+// is aimed at is dead. Where charges pace it, the row says what one buys too.
+TEST_F(SkillInspectPanelTest, ThePulseCountReadsAsACeiling) {
+  Skill skill = MakeLuckySeven();
+  Channel* channel = skill.mutable_channel();
+  channel->set_pulse_interval_ms(140);
+  channel->set_max_pulses(26);
+  EXPECT_NE(RowIn(RenderAt(skill, 1), "Pulses", "Up to 26"), std::string::npos);
+
+  channel->set_charge_seconds(11.0);
+  channel->set_pulses_per_charge(4);
+  EXPECT_NE(RowIn(RenderAt(skill, 1), "Pulses", "Up to 26, 4 per Charge"),
+            std::string::npos);
+}
+
 // A skill that states the whole of an earlier one says which, or the two read
 // as though they stack.
 TEST_F(SkillInspectPanelTest, ASupersedingSkillNamesWhatItReplaces) {

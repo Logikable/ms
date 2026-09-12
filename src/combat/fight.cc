@@ -1106,9 +1106,13 @@ int CombatSim::ChannelPulses(const AttackOption& attack, int hit) const {
   if (hold.pulses <= 0) {
     return 0;
   }
-  if (hold.holds_full) {
-    return hold.pulses;
-  }
+  // Pulses to take `left` off at `per_pulse` each, capped at what the hold
+  // has. Capped before the cast, not after: a monster standing in for one
+  // that never falls asks for more pulses than fit in an int.
+  auto pulses_for = [&hold](double left, double per_pulse) {
+    double need = std::ceil(left / per_pulse);
+    return need >= hold.pulses ? hold.pulses : static_cast<int>(need);
+  };
   // What the strike at the end will land anyway. The hold only has to bring
   // them within its reach: pulses past that fall on something already dead.
   int wanted = hold.min_pulses;
@@ -1128,12 +1132,11 @@ int CombatSim::ChannelPulses(const AttackOption& attack, int hit) const {
     double opening = HeldPulseDamage(attack, type, hold.small_pulses) * freeze;
     int need;
     if (hold.grown.damage.empty() || left <= opening) {
-      need = static_cast<int>(std::ceil(left / pulse));
+      need = pulses_for(left, pulse);
     } else if (type < static_cast<int>(hold.grown.damage.size()) &&
                hold.grown.damage[type] > 0.0) {
       need = hold.small_pulses +
-             static_cast<int>(std::ceil((left - opening) /
-                                        (hold.grown.damage[type] * freeze)));
+             pulses_for(left - opening, hold.grown.damage[type] * freeze);
     } else {
       need = hold.pulses;
     }

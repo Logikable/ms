@@ -172,13 +172,14 @@ EquipPrototype Charm(Job job, int stat, int attack, int boss_pct) {
 // character's own level, so the level multiplier lands where a player fighting
 // their own tier would put it. No PDR and no boss flag unless the flags asked
 // -- the whole shipped catalog is built that way, and both would scale every
-// row alike anyway. Its HP is never read: DPS does not depend on it.
+// row alike anyway. Its HP is the measurement's own: the dummy never falls, so
+// a held swing has to see something no hold can finish.
 Catalogs LoadCatalogsWithDummy(int level) {
   Catalogs c = LoadCatalogs();
   Mob dummy;
   dummy.set_name("Dummy");
   dummy.set_level(level);
-  dummy.set_max_hp(1);
+  dummy.set_max_hp(kMeasuredMobHp);
   dummy.set_boss(absl::GetFlag(FLAGS_boss));
   dummy.set_pdr(absl::GetFlag(FLAGS_boss_pdr));
   c.mobs[kDummyMob] = dummy;

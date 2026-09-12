@@ -354,7 +354,6 @@ void AddChannel(const Skill& skill, const OffenseStats& offense, int level,
   hold.finish_seconds = channel.finish_delay_ms() / 1000.0 * speed_factor;
   hold.min_seconds = attack.swing_seconds;
   hold.damage_taken_pct = channel.damage_taken_pct();
-  hold.holds_full = channel.holds_full();
   // Game-scaled like every other clock here: the bank fills in the same
   // stretched seconds the pulses fall in.
   hold.charge_seconds = channel.charge_seconds() * speed_factor;

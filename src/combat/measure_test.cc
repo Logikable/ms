@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -12,7 +13,7 @@
 namespace ms {
 namespace {
 
-Mob MakeMob(const std::string& name, int max_hp) {
+Mob MakeMob(const std::string& name, int64_t max_hp) {
   Mob mob;
   mob.set_name(name);
   mob.set_max_hp(max_hp);
@@ -112,6 +113,29 @@ TEST(MeasureFightTest, ABuffReportsTheShareItStood) {
   Sequence played = MeasureFight(params, 1000.0);
   ASSERT_EQ(played.buff_uptime.size(), 1u);
   EXPECT_NEAR(played.buff_uptime[0], 0.2, 0.01);
+}
+
+// A hold is sized to the HP in front of it, so a dummy decides how much of one
+// the sim gets to see. At kMeasuredMobHp the orb runs all twelve pulses; stood
+// up with a real monster's HP the same swing is let go at its floor of five,
+// and the skill measures a fraction of what it is worth.
+TEST(MeasureFightTest, AHoldRunsItsFullLengthAgainstAMeasurementDummy) {
+  auto measure = [](int64_t hp) {
+    Mob mob = MakeMob("Dummy", hp);
+    CombatParams params = MakeParams(&mob, 0.0, 0.0);
+    AttackOption& orb = params.attacks[0];
+    orb.channel.pulses = 12;
+    orb.channel.min_pulses = 5;
+    orb.channel.pulse_seconds = 0.15;
+    orb.channel.finish_seconds = 0.2;
+    orb.channel.min_seconds = 0.96;
+    orb.groups.push_back({{10.0}, SwingRolls{}});
+    orb.damage_per_hit = {12 * 10.0};
+    orb.swing_seconds = HoldSeconds(orb.channel, orb.channel.pulses);
+    return MeasureFight(params, 96.0).damage;
+  };
+  EXPECT_NEAR(measure(kMeasuredMobHp), 48 * 120.0, 1e-6);  // 2s a hold
+  EXPECT_NEAR(measure(1), 100 * 50.0, 1e-6);               // 0.96s a hold
 }
 
 TEST(MeasureFightTest, NothingToFightMeasuresNothing) {
