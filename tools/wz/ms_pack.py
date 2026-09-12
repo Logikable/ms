@@ -267,10 +267,24 @@ def packs_named(stem):
     return [os.path.join(PACK_DIR, f) for f in files]
 
 
+_OPEN = {}
+
+
+def opened(path):
+    """The Pack for one file, read once. Opening one costs the whole file plus
+    a ChaCha20 pass over its entry table, and a sweep asks for every skill in
+    turn -- so a caller looking up a thousand ids must not pay that a thousand
+    times."""
+    pack = _OPEN.get(path)
+    if pack is None:
+        pack = _OPEN[path] = Pack(path)
+    return pack
+
+
 def find(stem, name):
     """The pack and entry holding `name`, searching every file of that WZ."""
     for path in packs_named(stem):
-        pack = Pack(path)
+        pack = opened(path)
         for entry in pack.entries:
             if entry.name == name or entry.name.endswith("/" + name):
                 return pack, entry
