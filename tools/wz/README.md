@@ -7,6 +7,7 @@ tools read it.
     python3 tools/wz/audit_skills.py    # every shipped skill vs the client
     python3 tools/wz/read_book.py HERO  # one book beside its readout, to read
     python3 tools/wz/pack_probe.py      # measure a .ms pack (see below)
+    python3 tools/wz/bgm.py find login  # the music, and which map plays what
 
 `string_cache.json.gz` is committed, so the audit runs without the client
 mounted. Rebuild it only when the client updates.
@@ -118,3 +119,19 @@ numbers as a bare `#x`, and hardcodes others into the sentence ("Number of
 Attacks: 3"), so a skill stating neither is no evidence of a gap -- `VAGUE` in
 `audit_skills.py` is what keeps those quiet. Treat every finding as a lead to
 check by hand against the wiki, not a defect.
+
+## The music
+
+`Sound/Sound_*.wz` holds 1134 BGM tracks, already MP3, across 93 `Bgm*.img`.
+`bgm.py` lists them, searches them and writes one out:
+
+    python3 tools/wz/bgm.py find login
+    python3 tools/wz/bgm.py get Bgm02/AboveTheTreetops out.mp3
+    python3 tools/wz/bgm.py map "Right Around Lith Harbor"
+
+A track is a `Sound_DX8` blob opening with a WAVEFORMATEX header of no fixed
+length; `carve` scans to the first frame sync instead of parsing it.
+
+`map` is the one to reach for when picking a track. It reads the map's name
+from `String.wz` and its `info/bgm` from `Map.wz`, so the answer is what GMS
+actually plays there rather than a guess.
