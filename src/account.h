@@ -9,12 +9,19 @@
 #ifndef MS_SRC_ACCOUNT_H_
 #define MS_SRC_ACCOUNT_H_
 
+#include <algorithm>
 #include <string>
 
 #include "src/protos/account.pb.h"
 #include "src/protos/keybinds.pb.h"
 
 namespace ms {
+
+// The volume the music ships at, and what an account that has never touched
+// the sliders plays at. Quiet on purpose: the game is read, not watched.
+inline constexpr int kDefaultBgmVolume = 10;
+// The loudest either slider goes. The scale is a percentage.
+inline constexpr int kMaxBgmVolume = 100;
 
 class AccountInstance {
  public:
@@ -70,6 +77,28 @@ class AccountInstance {
   }
   void SetPanelTitleBlink(bool on) {
     account_.mutable_options()->set_panel_title_blink(on);
+  }
+
+  // How loud a map's music and a boss fight's play, 0 to 100. An account that
+  // has never moved either slider -- including a save older than they are --
+  // gets kDefaultBgmVolume. Both setters clamp.
+  int map_bgm_volume() const {
+    return account_.options().has_map_bgm_volume()
+               ? account_.options().map_bgm_volume()
+               : kDefaultBgmVolume;
+  }
+  void SetMapBgmVolume(int volume) {
+    account_.mutable_options()->set_map_bgm_volume(
+        std::clamp(volume, 0, kMaxBgmVolume));
+  }
+  int boss_bgm_volume() const {
+    return account_.options().has_boss_bgm_volume()
+               ? account_.options().boss_bgm_volume()
+               : kDefaultBgmVolume;
+  }
+  void SetBossBgmVolume(int volume) {
+    account_.mutable_options()->set_boss_bgm_volume(
+        std::clamp(volume, 0, kMaxBgmVolume));
   }
 
   // Raises the two watermarks to take in a character who has reached `level`

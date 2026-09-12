@@ -54,4 +54,13 @@ message Options {
   // Whether the title of the panel holding focus blinks. Off, which is the
   // default, holds the chip lit instead of pulsing it.
   bool panel_title_blink = 1;
+
+  // How loud the music plays on a map and in a boss fight, 0 to 100.
+  //
+  // These two are optional where every other option is a bare field, and for
+  // the rule's own sake rather than against it: the state the game ships in
+  // is volume 10, and a bare int32 defaults to 0, which is silence. Presence
+  // is what lets an unset field mean the shipped volume.
+  optional int32 map_bgm_volume = 2;
+  optional int32 boss_bgm_volume = 3;
 }

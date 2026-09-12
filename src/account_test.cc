@@ -55,5 +55,22 @@ TEST(AccountTest, WrapsTheProtoItWasGiven) {
   EXPECT_TRUE(account.Seen("bag"));
 }
 
+TEST(AccountTest, BgmVolumesDefaultToTenAndClamp) {
+  AccountInstance account;
+  EXPECT_EQ(account.map_bgm_volume(), kDefaultBgmVolume);
+  EXPECT_EQ(account.boss_bgm_volume(), kDefaultBgmVolume);
+
+  account.SetMapBgmVolume(55);
+  account.SetBossBgmVolume(0);
+  EXPECT_EQ(account.map_bgm_volume(), 55);
+  // Zero is a volume the player chose, not an unset field falling back.
+  EXPECT_EQ(account.boss_bgm_volume(), 0);
+
+  account.SetMapBgmVolume(-5);
+  account.SetBossBgmVolume(500);
+  EXPECT_EQ(account.map_bgm_volume(), 0);
+  EXPECT_EQ(account.boss_bgm_volume(), kMaxBgmVolume);
+}
+
 }  // namespace
 }  // namespace ms
