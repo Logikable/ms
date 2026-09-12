@@ -18,6 +18,17 @@ inline constexpr bool kMultiplayerEnabled = false;
 inline constexpr bool kMultiplayerEnabled = true;
 #endif
 
+// Whether this build has music. A build with this off carries no tracks and
+// never opens an audio device, and its Options screen has no volume rows.
+//
+// Turned off by `--define=audio=off`. It is also the only way to build
+// without bgm/, whose tracks are gitignored.
+#ifdef MS_AUDIO_OFF
+inline constexpr bool kAudioEnabled = false;
+#else
+inline constexpr bool kAudioEnabled = true;
+#endif
+
 }  // namespace ms
 
 #endif  // MS_SRC_BUILD_CONFIG_H_

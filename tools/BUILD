@@ -6,3 +6,8 @@ py_binary(
     name = "embed_data",
     srcs = ["embed_data.py"],
 )
+
+py_binary(
+    name = "embed_audio",
+    srcs = ["embed_audio.py"],
+)

@@ -14,5 +14,8 @@ CLAUDE.md
 __pycache__/
 *.pyc
 
-# Ripped MapleStory BGM, kept local: never in the repo or a release zip
-bgm/
+# Ripped MapleStory BGM. The tracks stay out of the repo; the BUILD file that
+# globs them does not. Git cannot re-include a file under an excluded
+# directory, so this excludes the contents rather than the folder.
+bgm/*
+!bgm/BUILD

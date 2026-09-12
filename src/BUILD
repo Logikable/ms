@@ -30,11 +30,26 @@ config_setting(
     values = {"define": "multiplayer=off"},
 )
 
+# The other switch, for a build with no music in it:
+#
+#   bazelisk build --define=audio=off //src:ms
+#
+# It carries no tracks and opens no audio device, which is also the only way
+# to build without bgm/ present -- the tracks are gitignored, so a fresh clone
+# has none.
+config_setting(
+    name = "audio_off",
+    values = {"define": "audio=off"},
+)
+
 cc_library(
     name = "build_config",
     hdrs = ["build_config.h"],
     defines = select({
         ":multiplayer_off": ["MS_MULTIPLAYER_OFF"],
+        "//conditions:default": [],
+    }) + select({
+        ":audio_off": ["MS_AUDIO_OFF"],
         "//conditions:default": [],
     }),
 )
