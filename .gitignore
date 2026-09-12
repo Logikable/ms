@@ -13,3 +13,6 @@ CLAUDE.md
 .claude/
 __pycache__/
 *.pyc
+
+# Ripped MapleStory BGM, kept local: never in the repo or a release zip
+bgm/
