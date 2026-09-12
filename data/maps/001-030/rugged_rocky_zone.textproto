@@ -1,3 +1,4 @@
 name: "Rugged Rocky Zone"
+bgm: "HighlandStar"
 spawns { mob: "axe_stump" count: 8 }
 spawns { mob: "dark_axe_stump" count: 7 }

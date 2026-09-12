@@ -1,3 +1,4 @@
 name: "Humming Forest Trail"
+bgm: "FloralLife"
 spawns { mob: "green_mushroom" count: 8 }
 spawns { mob: "horny_mushroom" count: 5 }

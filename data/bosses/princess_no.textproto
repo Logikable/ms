@@ -5,6 +5,7 @@ difficulties {
   # Cygnus are. The room around it is the difference: GMS hangs the Eight
   # Trigrams over her head, so the floor is not the only place to stand.
   phases {
+    bgm: "Hieijan_nohime"
     spawns { mob: "princess_no" spots { x: 4 y: 4 } }
     # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }

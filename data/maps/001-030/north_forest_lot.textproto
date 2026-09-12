@@ -1,2 +1,3 @@
 name: "North Forest Lot"
+bgm: "MoonlightShadow"
 spawns { mob: "cold_eye" count: 16 }

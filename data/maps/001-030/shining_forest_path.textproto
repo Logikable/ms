@@ -1,3 +1,4 @@
 name: "Shining Forest Path"
+bgm: "MoonlightShadow"
 spawns { mob: "slime" count: 10 }
 spawns { mob: "orange_mushroom" count: 3 }

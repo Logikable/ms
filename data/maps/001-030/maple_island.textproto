@@ -2,3 +2,4 @@
 # no spawns. The map select shows it at level 0 and combat sits idle there
 # until the player picks somewhere with mobs on it.
 name: "Maple Island"
+bgm: "Start the Adventure"

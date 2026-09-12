@@ -4,6 +4,7 @@ difficulties {
   # One phase, one monster: she stands alone in the middle of the arena with
   # the player under her, and there is nothing else to kill.
   phases {
+    bgm: "RedWitch"
     spawns { mob: "hilla" spots { x: 4 y: 4 } }
     # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }
@@ -37,6 +38,7 @@ difficulties {
   # The same lone fight at the numbers GMS gives Hard, and the only body in the
   # game standing behind 100% PDR.
   phases {
+    bgm: "RedWitch"
     spawns { mob: "hard_hilla" spots { x: 4 y: 4 } }
     # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }

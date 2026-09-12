@@ -1,3 +1,4 @@
 name: "Peak of the Big Nest"
+bgm: "DragonNest"
 spawns { mob: "skelegon" count: 14 }
 spawns { mob: "skelosaurus" count: 14 }

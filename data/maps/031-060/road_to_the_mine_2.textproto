@@ -1,2 +1,3 @@
 name: "Road to the Mine 2"
+bgm: "LowGradeOre"
 spawns { mob: "safety_first" count: 17 }

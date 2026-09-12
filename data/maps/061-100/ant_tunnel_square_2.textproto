@@ -1,2 +1,3 @@
 name: "Ant Tunnel Square 2"
+bgm: "AncientMove"
 spawns { mob: "zombie_mushroom" count: 19 }

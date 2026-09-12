@@ -1,2 +1,3 @@
 name: "Unseen Danger"
+bgm: "JungleBook"
 spawns { mob: "muddy_swamp_monster" count: 18 }

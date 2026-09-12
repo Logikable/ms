@@ -1,2 +1,3 @@
 name: "Road to Oblivion 1"
+bgm: "Forgetfulness"
 spawns { mob: "oblivion_monk" count: 27 }

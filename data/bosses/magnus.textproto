@@ -4,6 +4,7 @@ difficulties {
   # One body alone in the middle of his arena, as Hilla is: nothing else to
   # kill, and the whole floor to walk while killing it.
   phases {
+    bgm: "thefinalWar"
     spawns { mob: "magnus" spots { x: 4 y: 4 } }
     # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }
@@ -51,6 +52,7 @@ difficulties {
   # PDR: the second body in the game to ask for Ignore DEF before it takes
   # anything at all.
   phases {
+    bgm: "thefinalWar"
     spawns { mob: "hard_magnus" spots { x: 4 y: 4 } }
     # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }

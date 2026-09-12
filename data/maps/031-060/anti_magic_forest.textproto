@@ -1,2 +1,3 @@
 name: "Anti-Magic Forest"
+bgm: "PantheonField"
 spawns { mob: "onyx_stonegar" count: 17 }

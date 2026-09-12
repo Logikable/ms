@@ -1,2 +1,3 @@
 name: "Tent of the Entertainers"
+bgm: "HotDesert"
 spawns { mob: "brown_hare" count: 21 }

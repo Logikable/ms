@@ -1,2 +1,3 @@
 name: "Mushroom Hill Entrance"
+bgm: "ElinForest"
 spawns { mob: "mossy_snail" count: 22 }

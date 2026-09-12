@@ -29,6 +29,10 @@ message BossPhase {
   // the spots themselves, which is a phase that wants no margin at all.
   int32 arena_width = 3;
   int32 arena_height = 4;
+  // The music this phase fights to, named by its stem under bgm/. Empty
+  // leaves whatever the phase before it started playing, which is what all
+  // but the first phase of a one-track boss says.
+  string bgm = 5;
 }
 
 // One difficulty of one boss: what the player fights, how long they have, how

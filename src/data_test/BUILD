@@ -176,3 +176,20 @@ cc_test(
         "@protobuf",
     ],
 )
+
+cc_test(
+    name = "bgm_test",
+    size = "small",
+    srcs = ["bgm_test.cc"],
+    data = [
+        "//data/bosses:all",
+        "//data/maps:all",
+    ],
+    deps = [
+        "//src/audio:tracks",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/testing:data_files",
+        "@googletest//:gtest_main",
+    ],
+)

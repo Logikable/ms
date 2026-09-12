@@ -1,2 +1,3 @@
 name: "Knight District 2"
+bgm: "knightsStronghold"
 spawns { mob: "official_knight_c" count: 30 }

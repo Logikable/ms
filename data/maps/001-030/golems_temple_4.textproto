@@ -1,2 +1,3 @@
 name: "Golem's Temple 4"
+bgm: "RestNPeace"
 spawns { mob: "mixed_golem" count: 14 }

@@ -1,2 +1,3 @@
 name: "The Ruins of Desert Nomads"
+bgm: "SunsetDesert"
 spawns { mob: "sand_dwarf" count: 21 }

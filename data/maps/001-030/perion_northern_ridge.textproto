@@ -1,2 +1,3 @@
 name: "Perion Northern Ridge"
+bgm: "HighlandStar"
 spawns { mob: "stump" count: 15 }

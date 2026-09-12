@@ -4,6 +4,7 @@ difficulties {
   # One body alone in her arena, as Hilla, Magnus and Arkarium are: nothing
   # else to kill, and the whole floor to walk while killing it.
   phases {
+    bgm: "CygnusGarden"
     spawns { mob: "cygnus" spots { x: 4 y: 4 } }
     # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }

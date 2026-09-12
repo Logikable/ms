@@ -1,2 +1,3 @@
 name: "Forsaken Excavation Site 2"
+bgm: "destructionPerion"
 spawns { mob: "sinister_rocky_mask" count: 32 }

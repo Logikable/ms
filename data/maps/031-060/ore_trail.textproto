@@ -1,2 +1,3 @@
 name: "Ore Trail"
+bgm: "LowGradeOre"
 spawns { mob: "big_boulder_muncher" count: 17 }

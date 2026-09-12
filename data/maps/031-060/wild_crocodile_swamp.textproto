@@ -1,2 +1,3 @@
 name: "Wild Crocodile Swamp"
+bgm: "JungleBook"
 spawns { mob: "ligator" count: 18 }

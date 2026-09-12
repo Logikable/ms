@@ -1,3 +1,4 @@
 name: "Sky Nest I"
+bgm: "Minar'sDream"
 spawns { mob: "harp" count: 11 }
 spawns { mob: "blood_harp" count: 12 }

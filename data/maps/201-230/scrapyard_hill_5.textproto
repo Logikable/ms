@@ -1,2 +1,3 @@
 name: "Scrapyard Hill 5"
+bgm: "JunkYard"
 spawns { mob: "hunterizer_blue" count: 33 }

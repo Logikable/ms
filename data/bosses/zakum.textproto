@@ -5,6 +5,7 @@ difficulties {
   # apiece. The lanes on either side of them are the player's, who fights from
   # the floor or from a ledge.
   phases {
+    bgm: "WelcomeToTheHell"
     spawns {
       mob: "zakum_arm"
       spots { x: 3 y: 1 }
@@ -70,6 +71,7 @@ difficulties {
   name: "Chaos"
   # The eight arms and the body again, standing where Normal's do.
   phases {
+    bgm: "WelcomeToTheHell"
     spawns {
       mob: "chaos_zakum_arm"
       spots { x: 3 y: 1 }

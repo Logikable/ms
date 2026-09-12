@@ -1,3 +1,4 @@
 name: "Right Around Lith Harbor"
+bgm: "AboveTheTreetops"
 spawns { mob: "snail" count: 2 }
 spawns { mob: "blue_snail" count: 4 }

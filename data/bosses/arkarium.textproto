@@ -3,6 +3,7 @@ difficulties {
   name: "Normal"
   # One body alone in the middle of his arena, as Hilla and Magnus are.
   phases {
+    bgm: "AltarOfAkayrum"
     spawns { mob: "arkarium" spots { x: 4 y: 4 } }
     # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }

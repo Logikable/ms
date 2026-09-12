@@ -1,3 +1,4 @@
 name: "Battlefield of Fire and Darkness"
+bgm: "AcientForest"
 spawns { mob: "black_kentaurus" count: 12 }
 spawns { mob: "red_kentaurus" count: 12 }

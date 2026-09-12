@@ -1,2 +1,3 @@
 name: "Dreamy Forest Trail"
+bgm: "destructionTown"
 spawns { mob: "mutant_ribbon_pig" count: 29 }

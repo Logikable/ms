@@ -1,2 +1,3 @@
 name: "Colossus East Road 3"
+bgm: "TheRaiders"
 spawns { mob: "dark_flora" count: 28 }

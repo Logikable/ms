@@ -6,6 +6,7 @@ difficulties {
   # and the only one that does not stay where it was put. He steps along his
   # row every half minute; it is scenery, and it costs the player nothing.
   phases {
+    bgm: "AbyssCave"
     spawns {
       mob: "chaos_vellum"
       spots { x: 4 y: 4 }

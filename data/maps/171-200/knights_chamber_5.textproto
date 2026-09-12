@@ -1,2 +1,3 @@
 name: "Knights' Chamber 5"
+bgm: "knightsStronghold"
 spawns { mob: "advanced_knight_e" count: 31 }

@@ -1,4 +1,5 @@
 name: "Nightmare Clocktower 4F"
+bgm: "ClockTowerofNightmare"
 spawns { mob: "red_eyed_gargoyle" count: 35 }
 # The clocktower above the ballroom, and the most Lachelein asks.
 arcane_force: 240

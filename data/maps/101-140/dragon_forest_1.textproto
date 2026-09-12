@@ -1,2 +1,3 @@
 name: "Dragon Forest I"
+bgm: "DragonLoad"
 spawns { mob: "red_dragon_turtle" count: 25 }

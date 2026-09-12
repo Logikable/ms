@@ -1,2 +1,3 @@
 name: "Desolate Hills"
+bgm: "destructionPerion"
 spawns { mob: "swollen_stump" count: 31 }

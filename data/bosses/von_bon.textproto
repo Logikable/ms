@@ -4,6 +4,7 @@ difficulties {
   name: "Chaos"
   # One body alone in the arena, as Hilla, Magnus, Arkarium and Cygnus are.
   phases {
+    bgm: "TimeChaos"
     spawns { mob: "chaos_von_bon" spots { x: 4 y: 4 } }
     # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }

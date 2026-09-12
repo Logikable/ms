@@ -1,2 +1,3 @@
 name: "Ice Valley II"
+bgm: "WarmRegard"
 spawns { mob: "white_fang" count: 21 }

@@ -1,2 +1,3 @@
 name: "Warrior Grounds"
+bgm: "destructionPerion"
 spawns { mob: "ancient_mixed_golem" count: 32 }

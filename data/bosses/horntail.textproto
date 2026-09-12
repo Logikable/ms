@@ -5,6 +5,7 @@ difficulties {
   # stands against the edge its name says, at the top of the arena, with the
   # player out at that same end of it rather than back in the middle.
   phases {
+    bgm: "CaveOfHontale"
     spawns { mob: "horntail_left_head" spots { x: 8 y: 0 } }
     # Three along the top and three along the bottom, running from under the
     # head out across the floor.
@@ -33,6 +34,7 @@ difficulties {
   # a pair of hands and the wings, the legs and the tail beneath them, and the
   # player on the floor to the left of all of it.
   phases {
+    bgm: "HonTale"
     spawns { mob: "horntail_head_a" spots { x: 2 y: 0 } }
     spawns { mob: "horntail_head_b" spots { x: 4 y: 0 } }
     spawns { mob: "horntail_head_c" spots { x: 6 y: 0 } }
@@ -86,6 +88,7 @@ difficulties {
 difficulties {
   name: "Chaos"
   phases {
+    bgm: "CaveOfHontale"
     spawns { mob: "chaos_horntail_left_head" spots { x: 8 y: 0 } }
     # Three along the top and three along the bottom, running from under the
     # head out across the floor.
@@ -111,6 +114,7 @@ difficulties {
     arena_height: 6
   }
   phases {
+    bgm: "HonTale"
     spawns { mob: "chaos_horntail_head_a" spots { x: 2 y: 0 } }
     spawns { mob: "chaos_horntail_head_b" spots { x: 4 y: 0 } }
     spawns { mob: "chaos_horntail_head_c" spots { x: 6 y: 0 } }

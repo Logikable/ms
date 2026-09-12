@@ -1,2 +1,3 @@
 name: "Memory Lane 1"
+bgm: "Remembrance"
 spawns { mob: "memory_monk" count: 26 }

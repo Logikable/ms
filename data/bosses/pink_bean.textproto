@@ -5,6 +5,7 @@ difficulties {
   # the other four, which is the arch his room is built as: the statue worth
   # three of the others is the one out of reach.
   phases {
+    bgm: "FightingPinkBeen"
     spawns { mob: "solomon_the_wise" spots { x: 0 y: 3 } }
     spawns { mob: "hugin" spots { x: 2 y: 3 } }
     spawns { mob: "ariel" spots { x: 4 y: 2 } }
@@ -67,6 +68,7 @@ difficulties {
   # The same five statues, standing where Normal's do and behind 160% PDR
   # apiece: the room is the Ignore DEF gate and the bean behind it is not.
   phases {
+    bgm: "FightingPinkBeen"
     spawns { mob: "chaos_solomon_the_wise" spots { x: 0 y: 3 } }
     spawns { mob: "chaos_hugin" spots { x: 2 y: 3 } }
     spawns { mob: "chaos_ariel" spots { x: 4 y: 2 } }

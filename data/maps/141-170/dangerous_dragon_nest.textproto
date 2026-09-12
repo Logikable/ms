@@ -1,2 +1,3 @@
 name: "Dangerous Dragon Nest"
+bgm: "DragonNest"
 spawns { mob: "nest_golem" count: 27 }

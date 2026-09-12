@@ -1,3 +1,4 @@
 name: "Black Heaven Maze 6"
+bgm: "BigMachine"
 spawns { mob: "alloy_xenoroid_dx" count: 17 }
 spawns { mob: "alloy_xenoroid_ex" count: 17 }

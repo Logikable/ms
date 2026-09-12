@@ -1,3 +1,4 @@
 name: "Endless Hallway"
+bgm: "EvilEyes"
 spawns { mob: "tauromacis" count: 10 }
 spawns { mob: "taurospear" count: 9 }

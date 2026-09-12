@@ -17,4 +17,7 @@ message MapData {
   // 2.8x at the bottom to half again against nothing at the top -- see
   // ArcaneFactorsFor. Unset outside Arcane River, which asks for none.
   int32 arcane_force = 3;
+  // The music that plays here, named by its stem under bgm/. Picked for the
+  // region rather than the exact GMS map, so neighbours share one track.
+  string bgm = 4;
 }

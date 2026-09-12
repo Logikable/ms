@@ -1,3 +1,4 @@
 name: "Six Path Crossway"
+bgm: "FloralLife"
 spawns { mob: "spore" count: 6 }
 spawns { mob: "red_snail" count: 3 }

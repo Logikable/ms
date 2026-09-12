@@ -1,2 +1,3 @@
 name: "Warped Path of Time <4>"
+bgm: "FairyTalediffvers"
 spawns { mob: "spirit_viking" count: 24 }

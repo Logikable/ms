@@ -1,2 +1,3 @@
 name: "Black Heaven Deck 2"
+bgm: "BattleOnTheDeck"
 spawns { mob: "salvoroid_blue" count: 34 }

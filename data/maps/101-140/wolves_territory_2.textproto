@@ -1,2 +1,3 @@
 name: "Wolves' Territory 2"
+bgm: "WolfWood"
 spawns { mob: "lycanthrope" count: 25 }

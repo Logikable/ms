@@ -1,2 +1,3 @@
 name: "Golem's Temple Entrance"
+bgm: "RestNPeace"
 spawns { mob: "stone_golem" count: 14 }

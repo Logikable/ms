@@ -1,3 +1,4 @@
 name: "Where the Forest Starts"
+bgm: "MoonlightShadow"
 spawns { mob: "red_snail" count: 9 }
 spawns { mob: "orange_mushroom" count: 2 }

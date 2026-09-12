@@ -1,2 +1,3 @@
 name: "Leafre : East Forest"
+bgm: "Minar'sDream"
 spawns { mob: "beetle" count: 23 }
