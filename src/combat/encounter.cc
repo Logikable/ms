@@ -752,6 +752,11 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
       for (const SwingHit& hit : aimed->second.extra_hit) {
         AddSwingHit(hit, offense, level, types, attack);
       }
+      // The wound another skill hands this one by name. Assassinate and Sonic
+      // Blow say nothing about it; Trickblade names them -- see Wound.
+      attack.wound_stacks = aimed->second.wound_stacks;
+      attack.wound_max_stacks = aimed->second.wound_max_stacks;
+      attack.wound_seconds = aimed->second.wound_seconds * speed_factor;
     }
     AddChannel(*skill, offense, level, types, speed_factor, attack);
   }
@@ -1198,6 +1203,44 @@ Skill EmpoweredSkill(const Skill& skill, const EmpoweredForm& upgrade,
   return form;
 }
 
+// The skill a wound's heavier form describes: its own multiplier, reach and
+// strikes, under a name of its own so the ledger and the swing plate can tell
+// the two presses apart.
+Skill WoundFormSkill(const Skill& skill, const WoundForm& form) {
+  Skill built;
+  built.set_name(form.label().empty() ? skill.name() : form.label());
+  built.set_kind(skill.kind());
+  *built.mutable_base() = form.base();
+  *built.mutable_per_level() = form.per_level();
+  built.set_max_enemies(form.max_enemies());
+  built.set_lines(form.lines());
+  built.set_casts(form.casts());
+  built.set_base_delay_ms(form.base_delay_ms());
+  built.set_cooldown_seconds(form.cooldown_seconds());
+  *built.mutable_required_equip_type() = skill.required_equip_type();
+  return built;
+}
+
+// Attaches the heavier form of a skill that states a wound, which the fight
+// lands in place of the ordinary press while one stands at full depth. Built
+// here rather than in a second pass, unlike an empowered form: a wound's form
+// always belongs to the skill stating it, so its attack is right here.
+void AttachWoundForm(const Character& proto, const EquipStats& equipped,
+                     EquipType weapon_type, const Skill& skill, int learned,
+                     const DerivedStats& derived, int attack_speed,
+                     double speed_factor, const std::vector<CombatType>& types,
+                     AttackOption& attack) {
+  const Wound& wound = skill.wound();
+  if (wound.max_stacks() <= 0 || !wound.has_form()) {
+    return;
+  }
+  Skill form = WoundFormSkill(skill, wound.form());
+  attack.wound_max_stacks = wound.max_stacks();
+  attack.wound_form = std::make_shared<AttackOption>(
+      AttackFor(proto, equipped, weapon_type, &form, learned, types, derived,
+                attack_speed, speed_factor));
+}
+
 // Attaches `skill`'s empowered form to every attack in `into` that it upgrades.
 // The form takes the place of the attack it lands for, so it inherits the
 // attack's pacing: an animation for a swing, nothing at all for a summon, which
@@ -1437,6 +1480,8 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       if (swung.hits_per_attack_count() > 1) {
         attack.count_weight = 1.0 / swung.hits_per_attack_count();
       }
+      AttachWoundForm(proto, total_stats, weapon_type, swung, learned, derived,
+                      attack_speed, speed_factor, types, attack);
       set.attacks.push_back(std::move(attack));
       continue;
     }
@@ -1705,6 +1750,7 @@ void AddBuffs(const GameState& state,
     if (skill->kind() == SKILL_KIND_ATTACK) {
       option.laid_by_attack = AttackNamed(params.attacks, skill->name());
       option.raised_on_cast = buff.raised_on_cast();
+      option.needs_wound_form = buff.needs_wound_form();
       option.cast_seconds = 0.0;
     }
     params.buffs.push_back(std::move(option));

@@ -1465,6 +1465,49 @@ TEST_F(SkillInspectPanelTest, ReadsAFormOnEveryCastAsUnconditional) {
   EXPECT_EQ(rendered.find("Every"), std::string::npos) << rendered;
 }
 
+// A skill with two forms has to say so on its card: what fills the wound, how
+// long it stands, and that the heavier press hits one enemy for a longer wait.
+TEST_F(SkillInspectPanelTest, ReadsBothFormsOfAWoundedSkill) {
+  Skill skill;
+  skill.set_name("Trickblade");
+  skill.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(skill, JOB_ADVANCEMENT_SHADOWER);
+  skill.set_max_level(30);
+  skill.set_description("Summon your hidden friends.");
+  skill.set_max_enemies(10);
+  skill.set_lines(5);
+  skill.set_cooldown_seconds(14.0);
+  skill.mutable_base()->set_skill_pct(7.02);
+  Wound* wound = skill.mutable_wound();
+  wound->set_duration_seconds(10.0);
+  wound->set_max_stacks(3);
+  Wound::Source* source = wound->add_source();
+  source->set_skill_name("Sonic Blow");
+  source->set_stacks(3);
+  WoundForm* form = wound->mutable_form();
+  form->set_label("Trickblade: Finish");
+  form->set_max_enemies(1);
+  form->set_lines(7);
+  form->set_casts(5);
+  form->set_cooldown_seconds(20.0);
+  form->mutable_base()->set_skill_pct(8.58);
+  form->mutable_base()->set_crit_rate(1.0);
+
+  std::string rendered = RenderAt(skill, 1);
+  EXPECT_NE(rendered.find("Wound, 3 deep on one enemy"), std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Left By", "Sonic Blow 3"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Lasts", "10s"), std::string::npos);
+  EXPECT_NE(rendered.find("Against a Full Wound"), std::string::npos)
+      << rendered;
+  // 858% seven times over, five slashes -- and its own reach and wait beside.
+  EXPECT_NE(RowIn(rendered, "Damage", "858% x7 x5 = 30030%"), std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Attacks", "1 enemy"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Cooldown", "20s"), std::string::npos) << rendered;
+  EXPECT_NE(RowIn(rendered, "Critical Rate", "+100%"), std::string::npos);
+}
+
 // A DoT is one row: what a tick is worth, how often it comes and how long it
 // lasts. None of the three says anything without the others.
 TEST_F(SkillInspectPanelTest, ReadsADotAsOneRow) {

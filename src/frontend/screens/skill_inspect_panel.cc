@@ -1141,10 +1141,13 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   }
   // How many pulses one hold is worth. A count rather than a clock, which is
   // the half of the hold the player can act on -- they let go when it stops
-  // paying.
+  // paying. A hold that always runs full says the flat number: there is no
+  // "up to" about it.
   if (held) {
-    std::string pulses =
-        "Up to " + std::to_string(skill.channel().max_pulses());
+    std::string pulses = std::to_string(skill.channel().max_pulses());
+    if (!skill.channel().holds_full()) {
+      pulses = "Up to " + pulses;
+    }
     if (skill.channel().pulses_per_charge() > 0) {
       pulses += ", " + std::to_string(skill.channel().pulses_per_charge()) +
                 " per Charge";
@@ -1452,9 +1455,59 @@ std::vector<Row> BoostRows(
 
 // Everything that lands beside the swing rather than as part of it, and what
 // the skill hands to another skill in the book.
+// The wound a skill leaves and the heavier press it opens. Two headings, and
+// both are needed: a player looking at Trickblade has to be told that the
+// press has a second form, what fills the wound that opens it, and that the
+// form costs a longer wait.
+std::vector<Row> WoundRows(const Skill& skill, int level) {
+  const Wound& wound = skill.wound();
+  std::vector<Row> rows;
+  if (wound.max_stacks() <= 0) {
+    return rows;
+  }
+  std::string left_by;
+  for (const Wound::Source& source : wound.source()) {
+    if (!left_by.empty()) {
+      left_by += ", ";
+    }
+    left_by += source.skill_name() + " " + std::to_string(source.stacks());
+  }
+  rows.push_back(SectionRow(
+      "Wound, " + std::to_string(wound.max_stacks()) + " deep on one enemy",
+      kGold));
+  if (!left_by.empty()) {
+    rows.push_back(EffectRow("Left By", left_by));
+  }
+  rows.push_back(
+      EffectRow("Lasts", FormatNumber(wound.duration_seconds()) + "s"));
+  if (!wound.has_form()) {
+    return rows;
+  }
+  const WoundForm& form = wound.form();
+  rows.push_back(SectionRow("Against a Full Wound", kGold));
+  double per_hit =
+      form.base().skill_pct() + form.per_level().skill_pct() * (level - 1);
+  rows.push_back(EffectRow(
+      "Damage", SwingText(per_hit, form.lines(), std::max(1, form.casts()))));
+  rows.push_back(
+      EffectRow("Attacks", ReachText(std::max(1, form.max_enemies()))));
+  if (form.cooldown_seconds() > 0.0) {
+    rows.push_back(
+        EffectRow("Cooldown", FormatNumber(form.cooldown_seconds()) + "s"));
+  }
+  // Everything but the damage, which the row above already states.
+  SkillEffect base = form.base();
+  SkillEffect per = form.per_level();
+  base.clear_skill_pct();
+  per.clear_skill_pct();
+  Append(LeverRows(base, per, level, ""), rows);
+  return rows;
+}
+
 std::vector<Row> ExtraAttackRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   Append(SwingRiderRows(skill, level), rows);
+  Append(WoundRows(skill, level), rows);
   Append(OwnClockRows(skill, level), rows);
   Append(BoostRows(skill.boost(), level, skill.v_node() == V_NODE_KIND_BOOST),
          rows);
@@ -1785,11 +1838,16 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   // A shared buff says so here rather than in a Your Party section: it grants
   // the party nothing of its own -- everyone raises the same one in turn.
   std::string shared = buff.party_shared() ? ", shared with your party" : "";
+  // A buff only the wound form raises says which press pays for it -- the
+  // ordinary one raises nothing, and a heading that did not say so would read
+  // as though both did.
+  std::string form = buff.needs_wound_form() ? ", after the wounded form" : "";
   // A buff with forms carries no length of its own: each form heads its own
   // block below, and one heading for both would have to lie about one of them.
   if (buff.stance().empty()) {
     rows.push_back(SectionRow(
-        "Active for " + BuffWindowText(buff, level) + charge + shared, kGold));
+        "Active for " + BuffWindowText(buff, level) + charge + shared + form,
+        kGold));
   }
   // The heal is handed over once, when the buff goes up -- so it is stated on
   // its own rather than among the levers that hold for as long as it stands.

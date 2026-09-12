@@ -915,6 +915,12 @@ message Buff {
   // "upon use". Puncture is the other reading and the default -- a wound lifts
   // the swings after it, never the one that opened it.
   bool raised_on_cast = 15;
+  // Whether only the WOUND FORM of the skill stating it raises this buff --
+  // the ordinary press leaves it alone. Trickblade is the one skill with two
+  // forms: GMS makes the Shadower invincible for the 1.8 seconds after the
+  // five slashes it lands on a wounded enemy, and says nothing of the sort
+  // about the spread it throws otherwise. See Wound.form.
+  bool needs_wound_form = 24;
   // What this buff hands a NAMED skill while it stands, exactly as
   // Skill.boost does for good. Storm of Arrows is what it exists for: GMS
   // doubles Magic Arrow's chance only under the storm, and a permanent boost
@@ -1572,6 +1578,56 @@ message SkillBoost {
 //
 // `skill_name` is the required skill's display name -- the same key a
 // character's learned levels are held under, so the check needs no catalog.
+// The heavier half of a skill that has two: its own multiplier, its own reach
+// and its own wait. Read at the same learned level as the skill carrying it
+// and priced exactly as that skill's own swing is.
+message WoundForm {
+  string label = 1;
+  SkillEffect base = 2;
+  SkillEffect per_level = 3;
+  int32 max_enemies = 4;
+  int32 lines = 5;
+  // Strikes one press lands, each of `lines` lines rolling on its own, exactly
+  // as Skill.casts is. GMS's Trickblade slashes five times.
+  int32 casts = 6;
+  int32 base_delay_ms = 7;
+  // The wait this form puts the skill on INSTEAD, where GMS charges the
+  // heavier press more. 0 keeps the skill's own.
+  double cooldown_seconds = 8;
+}
+
+// The wound one swing leaves on one enemy, and what the skill stating it lands
+// while a wound stands at full depth. The sixth status this game keeps on a
+// monster, beside the ice, the burn, the scar, the stun and the mark -- and
+// the only one that ONE monster carries at a time: a fresh wound takes it off
+// whoever had it, which is GMS's own rule rather than a simplification.
+//
+// It is stated by the skill that READS it rather than by the swings that leave
+// it, because that is where GMS hangs the whole mechanism: the wound belongs
+// to Trickblade's passive half and does not exist until that node is bought.
+// So the sources are named here, by display name, the way a SkillBoost names
+// what it strengthens.
+//
+// The wound itself is worth nothing to a swing that finds one. It is a key,
+// not a lift -- what it opens is `form` below.
+message Wound {
+  double duration_seconds = 1;
+  int32 max_stacks = 2;
+  // A swing that leaves one, and how deep. GMS's Assassinate leaves one with
+  // its finishing blow and every attack of Sonic Blow leaves three, which
+  // fills the wound in one.
+  message Source {
+    string skill_name = 1;
+    int32 stacks = 2;
+  }
+  repeated Source source = 3;
+  // What the skill stating this lands INSTEAD while a wound stands at full
+  // depth. The client calls the two Eviscerate Success and Eviscerate Fail:
+  // one key, and which goes out is settled by the wound rather than by the
+  // player -- so the fight reads it as it stands rather than choosing.
+  WoundForm form = 4;
+}
+
 message SkillRequirement {
   string skill_name = 1;
   int32 level = 2;
@@ -2095,4 +2151,8 @@ message Skill {
   // above does, so Fervent Drain raises Elemental Drain's rate without
   // replacing the count they share.
   int32 dot_count_cap = 103;
+  // The Shadower's. The wound this skill leaves on one enemy and the heavier
+  // form it lands while one stands at full depth. Unset for every skill but
+  // Trickblade. See Wound.
+  Wound wound = 106;
 }

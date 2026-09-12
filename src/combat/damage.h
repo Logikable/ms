@@ -293,6 +293,13 @@ struct SkillBonus {
   // carries no ladder. Empty for every boost but Throwing Star Barrage's, and
   // landed where the skill's own extra hits are. See SkillBoost::extra_hit.
   std::vector<SwingHit> extra_hit;
+  // The wound the named skill leaves on the enemy it reached, handed to it by
+  // the skill that STATES the wound -- Trickblade names Assassinate and Sonic
+  // Blow, and neither knows anything about it. All three are 0 for every other
+  // swing in the game. See Wound.
+  int wound_stacks = 0;
+  int wound_max_stacks = 0;
+  double wound_seconds = 0.0;
 };
 
 // What a character's learned passives add to every swing, whichever attack

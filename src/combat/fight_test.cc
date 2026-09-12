@@ -2840,6 +2840,137 @@ TEST(CombatSimTest, APactCatchesAgainOnceItsWaitIsOut) {
   EXPECT_EQ(sim.view().player_hp, 100);
 }
 
+// Trickblade's shape: a swing that hits ten for 10 apiece, and a heavier form
+// it lands instead on one enemy for 300 while a wound stands three deep. The
+// wound is left by another swing entirely -- GMS's Assassinate and Sonic Blow
+// -- so a test has to swing that one first.
+AttackOption MakeWoundedSwing() {
+  AttackOption blade = MakeSkill("Trickblade", 10.0, /*cooldown=*/14.0);
+  blade.max_enemies = 10;
+  std::shared_ptr<AttackOption> form = std::make_shared<AttackOption>(
+      MakeSkill("Trickblade: Finish", 300.0, /*cooldown=*/20.0));
+  blade.wound_max_stacks = 3;
+  blade.wound_form = form;
+  return blade;
+}
+
+// The swing that leaves the wound: `stacks` deep, for ten seconds.
+AttackOption MakeWoundingSwing(int stacks, int reach = 1) {
+  AttackOption blow = MakeSkill("Sonic Blow", 1.0, /*cooldown=*/0.0);
+  blow.max_enemies = reach;
+  blow.wound_stacks = stacks;
+  blow.wound_max_stacks = 3;
+  blow.wound_seconds = 10.0;
+  return blow;
+}
+
+// One swing of Sonic Blow fills the wound, so the next Trickblade is the
+// heavier form: 300 on one enemy rather than 10 across ten, and the longer
+// wait that form states rather than the skill's own.
+TEST(CombatSimTest, AFullWoundPutsTheHeavierFormInThePressesPlace) {
+  Mob boss = MakeMob("Zakum", 100000);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
+  params.attacks.push_back(MakeWoundingSwing(3));
+  params.attacks.push_back(MakeWoundedSwing());
+
+  CombatSim sim;
+  // Nothing is wounded yet, so the spread is what the press is worth.
+  sim.Advance(params, 1.0);
+  double dealt = 100000 * (1.0 - sim.view().roster.front().hp_fraction);
+  EXPECT_LT(dealt, 300.0);
+
+  // Sonic Blow lands, and from here Trickblade is the five slashes: three of
+  // them over the next minute on the twenty second wait the FORM states, not
+  // four on the skill's own fourteen.
+  for (int step = 0; step < 60; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  double total = 100000 * (1.0 - sim.view().roster.front().hp_fraction);
+  EXPECT_GT(total, 3 * 300.0);
+  EXPECT_LT(total, 4 * 300.0);
+}
+
+// The wound rides ONE monster: a fresh one takes it off whoever had it, and a
+// wounded monster that dies takes it to the grave. Either way the press falls
+// back to the spread.
+TEST(CombatSimTest, AWoundDiesWithItsMonster) {
+  Mob snail = MakeMob("Snail", 5);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 2)});
+  // Wide enough to kill what it wounds, which is the case the rule is about.
+  AttackOption blow = MakeWoundingSwing(3, /*reach=*/2);
+  blow.damage_per_hit = {100.0};
+  params.attacks.push_back(std::move(blow));
+  params.attacks.push_back(MakeWoundedSwing());
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  sim.Advance(params, 1.0);
+  // Nothing is left carrying a wound, so nothing to slash behind.
+  EXPECT_TRUE(sim.view().roster.empty());
+}
+
+// GMS names the wound's target by MAX HP rather than by what it has left, so
+// the snail standing beside a boss never takes it -- and killing the snail
+// leaves the wound where it was.
+TEST(CombatSimTest, AWoundGoesToTheBiggestEnemyTheSwingReached) {
+  Mob snail = MakeMob("Snail", 10);
+  Mob boss = MakeMob("Zakum", 100000);
+  CombatParams params = MakeParams(
+      1.0, 0.0, {MakeType(&snail, 0.0, 1), MakeType(&boss, 0.0, 1)}, 2);
+  AttackOption blow = MakeWoundingSwing(3, /*reach=*/2);
+  blow.damage_per_hit = {20.0, 1.0};  // clears the snail, tickles the boss
+  params.attacks.push_back(std::move(blow));
+  AttackOption blade = MakeWoundedSwing();
+  blade.damage_per_hit = {50.0, 50.0};
+  std::shared_ptr<AttackOption> form = std::make_shared<AttackOption>(
+      MakeSkill("Trickblade: Finish", 300.0, /*cooldown=*/20.0));
+  form->damage_per_hit = {50.0, 300.0};
+  blade.wound_form = form;
+  params.attacks.push_back(std::move(blade));
+
+  CombatSim sim;
+  for (int step = 0; step < 60; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  // The snail is long dead and the boss is still being slashed, which it would
+  // not be had the wound followed the snail.
+  ASSERT_EQ(sim.view().roster.size(), 1u);
+  EXPECT_GT(100000 * (1.0 - sim.view().roster.front().hp_fraction), 3 * 300.0);
+}
+
+// Trickblade's invulnerability rides the heavier form alone: the spread it
+// throws with nothing wounded raises nothing at all. Read off the damage, the
+// buffed table here being the same swings doubled.
+TEST(CombatSimTest, AFormOnlyBuffIsNotRaisedByTheOrdinaryPress) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
+  params.attacks.push_back(MakeWoundingSwing(3));
+  params.attacks.push_back(MakeWoundedSwing());
+  BuffOption shelter;
+  shelter.name = "Trickblade";
+  shelter.duration_seconds = 1000.0;
+  shelter.laid_by_attack = 2;
+  shelter.needs_wound_form = true;
+  params.buffs.push_back(std::move(shelter));
+  AttackSet set;
+  set.attacks = params.attacks;
+  for (AttackOption& attack : set.attacks) {
+    for (double& damage : attack.damage_per_hit) {
+      damage *= 2.0;
+    }
+  }
+  params.buffed.push_back(std::move(set));
+
+  CombatSim sim;
+  // Trickblade goes first, hitting hardest; nothing is wounded, so it throws
+  // the spread for 10 and raises nothing. Sonic Blow fills the wound after it
+  // and lands 1 a second while Trickblade recharges.
+  for (int step = 0; step < 15; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_NEAR(sim.view().target_hp_fraction, 1.0 - 24.0 / 1000000.0, 1e-9);
+}
+
 // Gives `params` a timed buff: while it is up, every swing hits `factor` times
 // as hard. Its table is the same attacks with bigger numbers in them, which is
 // the shape ComputeCombatParams really builds.

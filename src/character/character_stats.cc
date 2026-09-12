@@ -445,6 +445,23 @@ void AddSkillBonuses(
   }
 }
 
+// Notes down the wound a skill hands the swings that leave it. Read off the
+// skill that STATES the wound rather than off those swings, the way a boost
+// is: Assassinate and Sonic Blow carry no mention of it, and neither leaves
+// one until Trickblade is bought.
+void AddWoundSources(const Skill& skill, PassiveTotals& totals) {
+  const Wound& wound = skill.wound();
+  if (wound.max_stacks() <= 0) {
+    return;
+  }
+  for (const Wound::Source& source : wound.source()) {
+    SkillBonus& into = totals.skill_bonus[source.skill_name()];
+    into.wound_stacks += source.stacks();
+    into.wound_max_stacks = wound.max_stacks();
+    into.wound_seconds = wound.duration_seconds();
+  }
+}
+
 // The best each exclusive group pays for each lever, and which source pays
 // it. Built over the whole of what the character and their party are holding
 // before anything folds, because a group is settled between its members rather
@@ -518,6 +535,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
     AddEffect(granted, totals);
   }
   AddSkillBonuses(skill.boost(), level, totals);
+  AddWoundSources(skill, totals);
   AddFinalAttack(skill, granted, totals);
   AddProc(skill, level, totals);
   AddFreezeStacks(skill, granted, totals);

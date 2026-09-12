@@ -375,6 +375,18 @@ struct AttackOption {
   // Seconds off this swing's own next cast for each of its strikes that found
   // nothing standing. 0 for every swing but Jupiter Thunder's barrage.
   double cooldown_refund_seconds = 0.0;
+  // The wound this swing leaves on the healthiest enemy it reached: how deep,
+  // how deep one can go, and how long it stands. All three are 0 for every
+  // swing of every character but a Shadower holding Trickblade -- and for the
+  // Shadower's own, until that node is bought. See Wound.
+  int wound_stacks = 0;
+  int wound_max_stacks = 0;
+  double wound_seconds = 0.0;
+  // The heavier form this swing lands INSTEAD while a wound stands at full
+  // depth, which is `wound_max_stacks` above. Null for every swing but
+  // Trickblade's. Shared rather than owned outright for the reason `empowered`
+  // is: an AttackOption is copied freely and the form never changes.
+  std::shared_ptr<const AttackOption> wound_form;
   // Shatter's, as the share one held stack adds to this swing against each mob
   // type -- parallel to damage_per_hit, and per type because what ignoring a
   // little more defence is worth is that mob's own. Empty for a character
@@ -589,6 +601,11 @@ struct BuffOption {
   // final damage GMS grants "upon use" and whose slashes all land inside the
   // window it opens. Read only where laid_by_attack is set.
   bool raised_on_cast = false;
+  // Whether only the WOUND FORM of the swing laying it raises this buff.
+  // False for every buff but Trickblade's invulnerability, which GMS grants
+  // for the slashes it lands on a wound and not for the spread it throws
+  // otherwise. Read only where laid_by_attack is set.
+  bool needs_wound_form = false;
   // Seconds added to the window for every burn alight on the group, counted up
   // to dot_count_cap of them, and read at the raise rather than baked in. 0
   // for a buff whose window is the same length whatever the enemies are

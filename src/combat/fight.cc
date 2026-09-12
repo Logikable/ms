@@ -52,6 +52,7 @@ void CombatSim::TopUp(const CombatParams& params) {
       QueuedMob arrival;
       arrival.type = i;
       arrival.hp = params.types[i].mob->max_hp();
+      arrival.max_hp = arrival.hp;
       arrival.id = next_mob_id_++;
       queue_.push_back(std::move(arrival));
     }
@@ -369,6 +370,12 @@ double CombatSim::BarrageStrikes(const AttackOption& attack) const {
 }
 
 double CombatSim::SwingDamage(const AttackOption& attack) const {
+  // A wound's form is not averaged the way an empowered one is: it is not
+  // landed once in every N, it is what this press lands if a wound is standing
+  // and is not if none is. So the rate reads the queue as it stands.
+  if (WoundFull(attack)) {
+    return SwingDamage(*attack.wound_form);
+  }
   int hit = Reached(attack);
   double total = StrikeDamage(attack, hit) * BarrageStrikes(attack) +
                  BurnDamage(attack, hit);
@@ -857,6 +864,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   ApplyFreeze(attack, hit);
   ApplyStun(attack, hit);
   ApplyMark(attack, hit);
+  ApplyWound(attack, hit);
   ApplyScar(attack, hit);
   Reap();
   return recovered;
@@ -1133,6 +1141,9 @@ int CombatSim::ChannelPulses(const AttackOption& attack, int hit) const {
 }
 
 double CombatSim::SwingSecondsAgainst(const AttackOption& attack) const {
+  if (WoundFull(attack)) {
+    return SwingSecondsAgainst(*attack.wound_form);
+  }
   if (attack.channel.pulses <= 0) {
     return attack.swing_seconds;
   }
@@ -1470,6 +1481,55 @@ void CombatSim::RunMark(double dt) {
   }
 }
 
+void CombatSim::ApplyWound(const AttackOption& attack, int hit) {
+  if (attack.wound_stacks <= 0 || hit <= 0 || queue_.empty()) {
+    return;
+  }
+  // GMS names the target by MAX HP rather than by what is left of it, so a
+  // boss part worn down is still the one wounded. The queue is aimed by what
+  // is standing, which is a different question.
+  int want = 0;
+  for (int j = 1; j < hit && j < static_cast<int>(queue_.size()); ++j) {
+    if (queue_[j].max_hp > queue_[want].max_hp) {
+      want = j;
+    }
+  }
+  // A wound landing on somebody else takes the old one off whoever had it,
+  // which is what "only 1 enemy can receive the wound debuff" comes to. On the
+  // same monster it deepens instead, up to what the skill allows.
+  if (queue_[want].id != wound_.mob_id) {
+    wound_.mob_id = queue_[want].id;
+    wound_.stacks = 0;
+  }
+  wound_.stacks =
+      std::min(attack.wound_max_stacks, wound_.stacks + attack.wound_stacks);
+  wound_.left_seconds = attack.wound_seconds;
+}
+
+void CombatSim::RunWound(double dt) {
+  if (wound_.mob_id < 0) {
+    return;
+  }
+  wound_.left_seconds -= dt;
+  // Gone when it lapses, and gone with the monster: a wound is the monster's,
+  // and whatever respawns in its place is a fresh one.
+  bool standing = false;
+  for (const QueuedMob& mob : queue_) {
+    if (mob.id == wound_.mob_id) {
+      standing = true;
+      break;
+    }
+  }
+  if (!standing || wound_.left_seconds <= 0.0) {
+    wound_ = WoundState{};
+  }
+}
+
+bool CombatSim::WoundFull(const AttackOption& attack) const {
+  return attack.wound_form != nullptr && attack.wound_max_stacks > 0 &&
+         wound_.mob_id >= 0 && wound_.stacks >= attack.wound_max_stacks;
+}
+
 // One line of the swing spends the mark and lands that much harder. Taken as a
 // share of the whole swing rather than as a line of its own, so what the
 // ledger prints and what the monster loses stay the same number -- and the
@@ -1672,6 +1732,12 @@ double CombatSim::DamageToMob(const AttackOption& attack, int index,
 
 const AttackOption& CombatSim::FormToLand(int& count,
                                           const AttackOption& attack) {
+  // A wound's form stands in for the whole press, and is not counted: what
+  // decides it is the wound rather than a run of swings. Before the empowered
+  // count, so a skill that somehow had both would not spend one on the other.
+  if (WoundFull(attack)) {
+    return *attack.wound_form;
+  }
   // A form that marks enemies never stands in for the swing: the swing lands
   // as itself, and DamageToMob decides mob by mob what goes off on top.
   if (attack.empowered == nullptr || attack.empowered_every <= 0 ||
@@ -1689,6 +1755,7 @@ const AttackOption& CombatSim::FormToLand(int& count,
 
 void CombatSim::GoIdle() {
   view_.ClearPicture();
+  wound_ = WoundState{};
   initialized_ = false;
   respawning_ = false;
   reach_ = 1;
@@ -2103,6 +2170,11 @@ bool CombatSim::LayBuffs(const CombatParams& params, int swung, bool on_cast) {
     if (buff.laid_by_attack != swung || buff.raised_on_cast != on_cast) {
       continue;
     }
+    // Trickblade's invulnerability is the heavier press's alone, and the
+    // ordinary spread raises nothing.
+    if (buff.needs_wound_form && !WoundFull(Attacks(params)[swung])) {
+      continue;
+    }
     // Refreshed rather than stacked, and its wait started from the swing that
     // laid it: what a second puncture leaves is one wound, not two.
     buffs_[i].left = BuffWindowSeconds(buff);
@@ -2145,6 +2217,12 @@ int CombatSim::BuffToLay(const CombatParams& params) const {
     }
     if (i < static_cast<int>(buffs_.size()) && buffs_[i].left > 0.0) {
       continue;  // still standing, so there is nothing to go and do
+    }
+    // A buff only the wound form raises is never chased: it rides a press the
+    // fight would make for damage anyway, and going and getting it would put
+    // Trickblade out for 1.8 seconds of shelter instead of for what it hits.
+    if (buff.needs_wound_form) {
+      continue;
     }
     // The swing itself may be recharging, in which case there is no laying it
     // this time and the fight swings for damage instead.
@@ -2323,7 +2401,13 @@ const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
   int previous = aimed_;
   aimed_ = ChooseAttack(params);
   const AttackOption* attack = aimed_ >= 0 ? &Attacks(params)[aimed_] : nullptr;
-  view_.attack_name = attack != nullptr ? attack->name : "";
+  // The plate names the form really being charged: the wound is answered when
+  // the swing is aimed, and the hold above is already timed at the form's own
+  // animation -- a plate saying otherwise would count down the wrong clock.
+  view_.attack_name =
+      attack != nullptr
+          ? (WoundFull(*attack) ? attack->wound_form->name : attack->name)
+          : "";
   if (attack != nullptr) {
     // How long to hold is settled once, when the swing is first aimed. A hold
     // already running is the player's key held down: the queue moving under it
@@ -2513,8 +2597,13 @@ void CombatSim::LandSwing(const CombatParams& params,
     CreditBuffs(params, cast->count_weight, landed.lines);
     LayBuffs(params, swung, /*on_cast=*/false);
   }
-  if (attack.cooldown_seconds > 0.0) {
-    attack_clocks_[swung].cooldown_left = attack.cooldown_seconds;
+  // GMS charges Trickblade 14 seconds pressed cold and 20 landed on a wound,
+  // so the wait is the FORM's where one stood in. Every other form leaves the
+  // skill's own, having no wait of its own to state.
+  double wait = WoundFull(attack) ? attack.wound_form->cooldown_seconds
+                                  : attack.cooldown_seconds;
+  if (wait > 0.0) {
+    attack_clocks_[swung].cooldown_left = wait;
   }
   if (attack.charges > 0 && attack_clocks_[swung].charges_left > 0) {
     --attack_clocks_[swung].charges_left;
@@ -2710,6 +2799,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   RunFreeze(dt);
   RunStun(dt);
   RunMark(dt);
+  RunWound(dt);
   RunScar(dt);
   RunCooldowns(params, dt);
   // Before the swing, so a bolt still in the air lands on the crowd this step

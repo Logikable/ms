@@ -288,6 +288,73 @@ TEST(ComputeCombatParamsTest, AHeldSwingIsPricedAsAFullHold) {
               1e-6);
 }
 
+// Trickblade's shape: a skill that states a wound, hands the swings that leave
+// it their depth by name, and carries the heavier form it lands while one
+// stands. The form is built off the same learned level and priced as a swing
+// of its own.
+TEST(ComputeCombatParamsTest, AWoundIsHandedToTheSwingsThatLeaveIt) {
+  Skill blow;
+  blow.set_name("Sonic Blow");
+  blow.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(blow, JOB_ADVANCEMENT_SWORDMAN);
+  blow.set_max_level(1);
+  blow.set_lines(2);
+  blow.mutable_base()->set_skill_pct(1.0);
+
+  Skill blade;
+  blade.set_name("Trickblade");
+  blade.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(blade, JOB_ADVANCEMENT_SWORDMAN, /*order=*/2);
+  blade.set_max_level(1);
+  blade.set_max_enemies(10);
+  blade.set_lines(5);
+  blade.mutable_base()->set_skill_pct(7.02);
+  Wound* wound = blade.mutable_wound();
+  wound->set_duration_seconds(10.0);
+  wound->set_max_stacks(3);
+  Wound::Source* source = wound->add_source();
+  source->set_skill_name("Sonic Blow");
+  source->set_stacks(3);
+  WoundForm* form = wound->mutable_form();
+  form->set_label("Trickblade: Finish");
+  form->set_max_enemies(1);
+  form->set_lines(7);
+  form->set_casts(5);
+  form->set_cooldown_seconds(20.0);
+  form->mutable_base()->set_skill_pct(8.58);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"sonic_blow", blow}, {"trickblade", blade}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(blow, 1));
+  ASSERT_TRUE(state.character.LearnSkill(blade, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  double speed = GameSpeedFactor(state.character.proto().level());
+  // The swing that leaves it knows nothing about it; the skill stating it does
+  // the telling.
+  const AttackOption& leaves =
+      params.attacks[IndexOfAttack(params.attacks, "Sonic Blow")];
+  EXPECT_EQ(leaves.wound_stacks, 3);
+  EXPECT_EQ(leaves.wound_max_stacks, 3);
+  EXPECT_DOUBLE_EQ(leaves.wound_seconds, 10.0 * speed);
+  EXPECT_EQ(leaves.wound_form, nullptr);
+
+  const AttackOption& reads =
+      params.attacks[IndexOfAttack(params.attacks, "Trickblade")];
+  EXPECT_EQ(reads.wound_stacks, 0);  // it leaves none of its own
+  EXPECT_EQ(reads.wound_max_stacks, 3);
+  ASSERT_NE(reads.wound_form, nullptr);
+  EXPECT_EQ(reads.wound_form->name, "Trickblade: Finish");
+  EXPECT_EQ(reads.wound_form->max_enemies, 1);
+  EXPECT_DOUBLE_EQ(reads.wound_form->cooldown_seconds, 20.0 * speed);
+  // Five strikes of seven lines at 858%, against the press's five at 702%.
+  EXPECT_GT(reads.wound_form->damage_per_hit[0], reads.damage_per_hit[0]);
+}
+
 // Calamitous Cyclone's shape: a hold that heals on both clocks. The swing's
 // own recovery is ONE pulse's, so it moves to the hold and a cast let go early
 // is worth less of the pool; the strike it ends on pays per line of every one

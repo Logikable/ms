@@ -142,6 +142,10 @@ class CombatSim {
   struct QueuedMob {
     int type = 0;
     double hp = 0.0;
+    // What it stood up with, which is not what it has left. Carried because
+    // GMS names a wound's target by MAX HP -- a boss part worn down is still
+    // the biggest thing on the map. See ApplyWound.
+    double max_hp = 0.0;
     // Which monster this is, for a caller holding a bar per mob. Never reused
     // within one encounter, so a bar cannot be handed the mob that replaced
     // the one it was drawing.
@@ -178,6 +182,17 @@ class CombatSim {
     // facing anyone but a Bishop holding Angel of Balance.
     double marked_left_seconds = 0.0;
     double mark_lift_pct = 0.0;
+  };
+
+  // The wound on one monster: which monster, how deep, and how long it has
+  // left. One at a time for the whole fight rather than a field per mob,
+  // because that IS the rule -- GMS's wound moves to whoever was hit last and
+  // the one before it is gone. The monster is held by id, so a wound whose
+  // monster died is a wound nothing carries.
+  struct WoundState {
+    int mob_id = -1;
+    int stacks = 0;
+    double left_seconds = 0.0;
   };
 
   // Where the landing on the mob at queue index `index` is filed, scaled by
@@ -359,6 +374,17 @@ class CombatSim {
   // every mark down. Read exactly as ApplyStun and RunStun are.
   void ApplyMark(const AttackOption& attack, int hit);
   void RunMark(double dt);
+  // Leaves this swing's wound on the enemy it reached with the highest MAX HP,
+  // and counts the one wound down. Not read as the four statuses above are:
+  // ONE monster carries a wound at a time, so a fresh one takes it off whoever
+  // had it rather than joining it -- see Wound.
+  void ApplyWound(const AttackOption& attack, int hit);
+  void RunWound(double dt);
+  // Whether a wound stands as deep as `attack`'s heavier form asks, on a
+  // monster still in the queue. False for every swing that has no form, which
+  // is all of them but Trickblade's.
+  bool WoundFull(const AttackOption& attack) const;
+
   int Reached(const AttackOption& attack) const;
   // Fires whichever strikes of a running barrage have come due, and hands back
   // the wait for each that found nothing standing.
@@ -781,6 +807,10 @@ class CombatSim {
   // map, like the buff clocks and unlike the queue, so it survives walking
   // somewhere else. 0 for everyone who holds none.
   int freeze_stacks_ = 0;
+  // The one wound the character is keeping on a monster. Belongs to the queue
+  // rather than to the character -- a monster that dies takes its wound with
+  // it -- but is held here because only ever one stands. See WoundState.
+  WoundState wound_;
   // A swing told apart into strikes that land on a beat rather than together:
   // which attack it is, how many of its strikes are still to come, and how long
   // until the next. The player is free while it runs, as GMS frees them the
