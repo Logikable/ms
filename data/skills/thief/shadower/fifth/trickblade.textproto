@@ -1,0 +1,63 @@
+# The Shadower's third job node, and the one skill here with two forms. GMS
+# calls them Eviscerate Fail and Eviscerate Success, which is the whole of the
+# mechanism: one key, and what goes out is settled by whether an enemy is
+# carrying a full wound rather than by the player.
+#
+# Pressed cold it summons hidden friends -- 675+27x% five times across ten
+# enemies, on a 14 second wait. Landed on a wound at full depth the Shadower
+# appears behind that one enemy and slashes five times for 825+33x% seven
+# times, with the crit rate, the defence it ignores, the 1.8 seconds of
+# invulnerability and the longer 20 second wait that GMS states for that clause
+# alone.
+#
+# The wound is stated here because GMS hangs it off this skill's passive half:
+# Assassinate and Sonic Blow leave one and say nothing about it, and neither
+# leaves any until this node is bought. Assassinate's finishing blow leaves one
+# stack and every attack of Sonic Blow leaves three, so a single Sonic Blow
+# fills the wound and three Assassinates do. One enemy carries it at a time.
+#
+# Nothing here reads the wound for damage -- GMS's tooltip states no per-stack
+# lift, and the wound is purely the key that opens the heavier form.
+#
+# Dropped: the 650 MP, the link windows off Assassinate and Sonic Blow (there
+# is no key to press), and both forms' immunity to attack reflection.
+name: "Trickblade"
+description:
+  "Summon your hidden friends to strike the enemies around you. Against an "
+  "enemy wounded deeply enough, move behind it instead and cut it down."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_V skill_order: 3 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_DAGGER
+base_delay_ms: 480
+cooldown_seconds: 14.0
+max_enemies: 10
+lines: 5
+base { skill_pct: 7.02 }
+per_level { skill_pct: 0.27 }
+buff {
+  needs_wound_form: true
+  duration_seconds: 1.8
+  base { damage_taken_pct: 1.00 }
+}
+wound {
+  duration_seconds: 10.0
+  max_stacks: 3
+  source { skill_name: "Assassinate" stacks: 1 }
+  source { skill_name: "Sonic Blow" stacks: 3 }
+  form {
+    label: "Trickblade Finish"
+    max_enemies: 1
+    lines: 7
+    casts: 5
+    base_delay_ms: 1200
+    cooldown_seconds: 20.0
+    base {
+      skill_pct: 8.58
+      crit_rate: 1.00
+      ied_pct: 1.00
+    }
+    per_level { skill_pct: 0.33 }
+  }
+}
