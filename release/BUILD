@@ -2,17 +2,21 @@ load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_files")
 load("@rules_pkg//pkg:zip.bzl", "pkg_zip")
 load("//tools:release.bzl", "release_binary")
 
-# What a player downloads. Two zips, each holding one self-contained
-# executable and a launcher to click:
+# What a player downloads. One file per platform, each a self-contained
+# executable with nothing beside it to install, configure or click first:
 #
 #   bazelisk build //release:all
 #
+# Windows ships the .exe bare. Linux ships it in a zip, because a plain
+# download arrives without its executable bit and a zip carries the mode --
+# the archive is there for that alone, and holds the one file.
+#
 # The platform and the release flags come from the targets rather than the
-# command line, so the zips are the same whoever builds them.
+# command line, so what is built is the same whoever builds it.
 
 package(default_visibility = ["//visibility:public"])
 
-# What the files in the zips are dated. A fixed instant rather than the build
+# What the file in the zip is dated. A fixed instant rather than the build
 # clock, so two builds of the same commit still produce identical archives --
 # but a real one, because pkg_zip otherwise stamps everything 1980-01-01, which
 # reads as a corrupt download rather than a deliberate default.
@@ -45,13 +49,10 @@ release_binary(
 
 pkg_files(
     name = "linux_payload",
-    srcs = [
-        "play.sh",
-        ":ms_linux",
-    ],
-    # Both the game and its launcher have to be runnable straight out of the
-    # zip; a zip carries the mode bits, so set them here rather than asking
-    # the player to chmod.
+    srcs = [":ms_linux"],
+    # The whole reason there is an archive here: the game has to be runnable
+    # straight out of it, rather than after a chmod the player is told about
+    # somewhere else.
     attributes = pkg_attributes(mode = "0755"),
 )
 
@@ -61,16 +62,12 @@ pkg_zip(
     timestamp = _RELEASE_TIMESTAMP,
 )
 
-pkg_files(
-    name = "windows_payload",
-    srcs = [
-        "play.bat",
-        ":ms_windows",
-    ],
-)
-
-pkg_zip(
+# Copied rather than depended on directly so the download lands in
+# bazel-bin/release beside the Linux zip, instead of in whatever output
+# directory the release transition happened to name.
+genrule(
     name = "ms-windows-x86_64",
-    srcs = [":windows_payload"],
-    timestamp = _RELEASE_TIMESTAMP,
+    srcs = [":ms_windows"],
+    outs = ["ms.exe"],
+    cmd = "cp $< $@",
 )
