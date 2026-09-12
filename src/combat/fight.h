@@ -386,9 +386,11 @@ class CombatSim {
   bool WoundFull(const AttackOption& attack) const;
 
   int Reached(const AttackOption& attack) const;
-  // Fires whichever strikes of a running barrage have come due, and hands back
-  // the wait for each that found nothing standing.
+  // Fires whichever strikes of the running barrages have come due, and hands
+  // back the wait for each that found nothing standing.
   void RunBarrage(const CombatParams& params, double dt);
+  // The same for one attack's own strikes. See RunBarrage.
+  void RunBarrageOf(const CombatParams& params, int index, double dt);
   // Enemies the wide half of a swing finds, and what one roll of it is worth.
   // See AttackOption::wide_hit_damage.
   int WideHitTargets(const AttackOption& attack, int hit) const;
@@ -797,6 +799,13 @@ class CombatSim {
     // cooldown starts ready: a player walks into the fight with what the wait
     // before it prepared. Stays at 0 for every other attack.
     double hold_charges = 0.0;
+    // Strikes of a told-apart swing still to land, and the seconds until the
+    // next. The player is free while they run, as GMS frees them the moment
+    // the orb is loosed: what the cast bought is the barrage, not the time it
+    // takes. Held per attack because two barrages can be in the air at once
+    // and neither cuts the other short. 0 for every swing that falls together.
+    int strikes_left = 0;
+    double next_strike_seconds = 0.0;
   };
   std::vector<AttackClock> attack_clocks_;
   // What this step is worth in seconds, for the one reader that has to line
@@ -811,20 +820,6 @@ class CombatSim {
   // rather than to the character -- a monster that dies takes its wound with
   // it -- but is held here because only ever one stands. See WoundState.
   WoundState wound_;
-  // A swing told apart into strikes that land on a beat rather than together:
-  // which attack it is, how many of its strikes are still to come, and how long
-  // until the next. The player is free while it runs, as GMS frees them the
-  // moment the orb is loosed -- what the cast bought is the barrage, not the
-  // time it takes.
-  //
-  // One at a time: a second cast of the same skill is a cooldown away.
-  struct Barrage {
-    int attack = -1;
-    int strikes_left = 0;
-    double next_seconds = 0.0;
-  };
-  Barrage barrage_;
-
   // Shuffles each batch of arriving mobs so they are fought in mixed order
   // rather than one whole type at a time (see TopUp). Default-seeded, so a sim
   // plays out the same way every run -- which keeps tests reproducible.

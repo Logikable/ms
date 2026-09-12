@@ -1784,8 +1784,12 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   owed_casts_.clear();
   hit_phase_ = 0.0;
   // A barrage belongs to the fight it was loosed in: bolts still in the air do
-  // not follow the player to the next map.
-  barrage_ = Barrage();
+  // not follow the player to the next map. Every other clock an attack holds
+  // belongs to the character and is left alone.
+  for (AttackClock& clock : attack_clocks_) {
+    clock.strikes_left = 0;
+    clock.next_strike_seconds = 0.0;
+  }
   next_mob_id_ = 0;
   // The rate belongs to the encounter, not to the character: what was dealt to
   // the last map's monsters says nothing about how long this fight has left.
@@ -2438,37 +2442,36 @@ const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
 }
 
 void CombatSim::RunBarrage(const CombatParams& params, double dt) {
-  if (barrage_.strikes_left <= 0) {
-    return;
+  int clocks = static_cast<int>(attack_clocks_.size());
+  int options = static_cast<int>(Attacks(params).size());
+  for (int i = 0; i < std::min(clocks, options); ++i) {
+    if (attack_clocks_[i].strikes_left > 0) {
+      RunBarrageOf(params, i, dt);
+    }
   }
-  const std::vector<AttackOption>& options = Attacks(params);
-  if (barrage_.attack < 0 ||
-      barrage_.attack >= static_cast<int>(options.size())) {
-    barrage_ = Barrage();
-    return;
-  }
+}
+
+void CombatSim::RunBarrageOf(const CombatParams& params, int index, double dt) {
   // Read by index rather than held by pointer: a buff going up between two
   // bolts moves the fight into another attack table, and an attack keeps its
   // index in every one of them.
-  const AttackOption& attack = options[barrage_.attack];
-  barrage_.next_seconds -= dt;
+  const AttackOption& attack = Attacks(params)[index];
+  AttackClock& clock = attack_clocks_[index];
+  clock.next_strike_seconds -= dt;
   // A while rather than an if, as the swing clock takes it: a step wider than
   // the beat owes every strike it covered.
-  while (barrage_.strikes_left > 0 && barrage_.next_seconds <= 0.0) {
-    barrage_.next_seconds += attack.cast_interval_seconds;
-    --barrage_.strikes_left;
+  while (clock.strikes_left > 0 && clock.next_strike_seconds <= 0.0) {
+    clock.next_strike_seconds += attack.cast_interval_seconds;
+    --clock.strikes_left;
     // A shock that finds nothing standing is one the orb never spent, and GMS
     // hands its wait back. Against a boss this never happens; on a map the
     // barrage outlives the crowd and most of it does.
     if (Reached(attack) <= 0) {
-      if (barrage_.attack < static_cast<int>(attack_clocks_.size())) {
-        attack_clocks_[barrage_.attack].cooldown_left =
-            std::max(0.0, attack_clocks_[barrage_.attack].cooldown_left -
-                              attack.cooldown_refund_seconds);
-      }
+      clock.cooldown_left =
+          std::max(0.0, clock.cooldown_left - attack.cooldown_refund_seconds);
       continue;
     }
-    attributing_ = barrage_.attack;
+    attributing_ = index;
     RecoverHp(params, Strike(attack, {DamageOrigin::kSwing, 0}));
     attributing_ = -1;
     CreditFreeze(params, attack);
@@ -2541,9 +2544,8 @@ void CombatSim::LandSwing(const CombatParams& params,
     // goes on swinging, so the map has time to fill under it and each strike
     // finds the crowd as it then stands. See RunBarrage.
     if (landed.strikes_in_sequence > 1 && landed.cast_interval_seconds > 0.0) {
-      barrage_.attack = swung;
-      barrage_.strikes_left = landed.strikes_in_sequence - 1;
-      barrage_.next_seconds = landed.cast_interval_seconds;
+      attack_clocks_[swung].strikes_left = landed.strikes_in_sequence - 1;
+      attack_clocks_[swung].next_strike_seconds = landed.cast_interval_seconds;
     }
     // The strike this swing sets off beside itself, where its own wait has
     // run out. Read off the aimed attack rather than off what landed: the

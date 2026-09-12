@@ -4331,6 +4331,33 @@ TEST(CombatSimTest, UnspentStrikesHandBackTheirOwnWait) {
   EXPECT_NEAR(full.cooldown_left(1), full_unpaid.cooldown_left(1), 1e-9);
 }
 
+// Two barrages in the air at once, as an I/L Arch Mage holding both Jupiter
+// Thunder and Bolt Barrage has. Each keeps its own beat: casting the second
+// does not throw away what the first has left to land.
+TEST(CombatSimTest, ASecondBarrageDoesNotCutTheFirstShort) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&boss, 1.0, 1)});
+  AttackOption thunder =
+      MakeSkill("Jupiter Thunder", 100.0, /*cooldown=*/100.0);
+  thunder.strikes_in_sequence = 4;
+  thunder.cast_interval_seconds = 0.5;
+  params.attacks.push_back(thunder);
+  AttackOption bolts = MakeSkill("Bolt Barrage", 50.0, /*cooldown=*/100.0);
+  bolts.strikes_in_sequence = 2;
+  bolts.cast_interval_seconds = 0.5;
+  params.attacks.push_back(bolts);
+
+  // The thunder is cast first as the harder of the two, and its shocks fall at
+  // 1.5, 2.0 and 2.5 seconds. The bolts are cast at 2.0, in the middle of
+  // them, and their own second lands at 2.5 beside the thunder's last.
+  for (int step = 0; step < 6; ++step) {
+    sim.Advance(params, 0.5);
+  }
+  EXPECT_NEAR(sim.damage_by_attack()[1], 400.0, 1e-9);
+  EXPECT_NEAR(sim.damage_by_attack()[2], 100.0, 1e-9);
+}
+
 // The current arcs onto two where the orb rides one, so the wide half lands on
 // an enemy the swing itself never touched.
 TEST(CombatSimTest, AWideHitReachesPastTheSwingCarryingIt) {
