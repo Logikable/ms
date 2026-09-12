@@ -40,6 +40,12 @@ cc_library(
 )
 
 cc_library(
+    name = "console",
+    srcs = ["console.cc"],
+    hdrs = ["console.h"],
+)
+
+cc_library(
     name = "proto_loader",
     srcs = ["proto_loader.cc"],
     hdrs = ["proto_loader.h"],
@@ -197,6 +203,7 @@ cc_library(
 
 _MAIN_DEPS = [
     ":build_config",
+    ":console",
     ":embedded_data",
     ":save",
     ":game_state",

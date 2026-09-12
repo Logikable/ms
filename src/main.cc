@@ -15,6 +15,7 @@
 #include "src/build_config.h"
 #include "src/character/exp_table.h"
 #include "src/combat/offline.h"
+#include "src/console.h"
 #include "src/embedded_data.h"
 #include "src/frontend/tui.h"
 #include "src/game_state.h"
@@ -195,6 +196,12 @@ ms::JobAdvancement ParseJob(const std::string& job, ms::GameMode mode) {
 }  // namespace
 
 int main(int argc, char** argv) {
+  // A player who opens the game from a file manager gets a console
+  // window of its own, which closes the moment this returns. Name it,
+  // and hold it open at the end for whatever is still on it.
+  ms::NameConsoleWindow();
+  ms::ConsoleHold hold;
+
   absl::ParseCommandLine(argc, argv);
   ms::GameMode mode = ParseMode(absl::GetFlag(FLAGS_mode));
   ms::TestOptions test;
