@@ -65,6 +65,7 @@ cc_library(
     hdrs = ["options_panel.h"],
     deps = [
         "//src:account",
+        "//src:build_config",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:keys",
@@ -79,6 +80,7 @@ cc_test(
     deps = [
         ":options_panel",
         "//src:account",
+        "//src:build_config",
         "//src/frontend/widgets:screen_text",
         "@ftxui//:dom",
         "@ftxui//:screen",

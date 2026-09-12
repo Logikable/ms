@@ -3268,7 +3268,10 @@ TEST_F(TuiControllerTest, EnterOnAnOptionThrowsItsSwitch) {
 
 TEST_F(TuiControllerTest, TheOptionsCloseButtonLeavesTheScreen) {
   OpenOptions();
-  controller_->OnEvent(ftxui::Event::ArrowDown);
+  // Close is the stop past the last setting, however many there are.
+  for (int i = 0; i < kOptionCount; ++i) {
+    controller_->OnEvent(ftxui::Event::ArrowDown);
+  }
   EXPECT_TRUE(options_panel_->on_close());
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMenuBox);
@@ -3280,6 +3283,27 @@ TEST_F(TuiControllerTest, TheOptionsCloseButtonLeavesTheScreen) {
 
 // The first row of the box works the tool, and the box stays up: the row the
 // player pressed has just become the other one.
+// Left and Right work the volume the cursor is on, and only a volume.
+TEST_F(TuiControllerTest, ArrowsMoveTheVolumeUnderTheCursor) {
+  if (!kAudioEnabled) {
+    GTEST_SKIP() << "built with --define=audio=off";
+  }
+  OpenOptions();
+  // The cursor opens on the switch, which the arrows must leave alone.
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_FALSE(state_->account.panel_title_blink());
+
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_EQ(options_panel_->selected_option(), Option::kMapBgmVolume);
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(state_->account.map_bgm_volume(), kDefaultBgmVolume + 2);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_EQ(state_->account.map_bgm_volume(), kDefaultBgmVolume + 1);
+  EXPECT_EQ(state_->account.boss_bgm_volume(), kDefaultBgmVolume)
+      << "the other slider did not move";
+}
+
 TEST_F(TuiControllerTest, TheAnalysisBoxStartsAndStopsTheTool) {
   controller_->OpenMenuEntry(MenuEntry::kAnalysis);
   EXPECT_EQ(controller_->screen(), kMenuBox);

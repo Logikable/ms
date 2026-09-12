@@ -1861,6 +1861,16 @@ bool TuiController::OnOptionsEvent(ftxui::Event event) {
     options_panel_.MoveRow(1);
     return true;
   }
+  // A volume moves under Left and Right. Holding one repeats, which is the
+  // terminal's own key repeat rather than anything counted here.
+  if (event == ftxui::Event::ArrowLeft) {
+    options_panel_.Adjust(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    options_panel_.Adjust(1);
+    return true;
+  }
   if (IsForward(event)) {
     if (options_panel_.on_close()) {
       LeaveOptions();
