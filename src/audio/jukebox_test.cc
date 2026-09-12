@@ -4,7 +4,9 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "src/account.h"
 #include "src/audio/tracks.h"
+#include "src/build_config.h"
 
 namespace ms {
 namespace {
@@ -25,8 +27,8 @@ Jukebox MakeJukebox() {
 
 TEST(JukeboxTest, StartsSilentAtTen) {
   Jukebox jukebox = MakeJukebox();
-  EXPECT_TRUE(jukebox.ready());
-  EXPECT_EQ(jukebox.volume(), 10);
+  EXPECT_EQ(jukebox.ready(), kAudioEnabled);
+  EXPECT_EQ(jukebox.volume(), kDefaultBgmVolume);
   EXPECT_EQ(jukebox.playing(), "");
 }
 

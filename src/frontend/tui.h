@@ -19,6 +19,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/screen_interactive.hpp"
+#include "src/audio/jukebox.h"
 #include "src/combat/battle_analysis.h"
 #include "src/combat/fight.h"
 #include "src/combat/offline.h"
@@ -162,6 +163,11 @@ class Tui {
   // well as after ticks, because combat levels a character during a tick while
   // an advancement happens during an event.
   void NoticeProgress();
+  // Puts the music where the player is: the fight's track while a boss owns
+  // the screen, the map's otherwise, each at its own volume. Called at the
+  // end of every tick, and asking for the track already playing costs
+  // nothing.
+  void UpdateMusic();
   // The panel the player is looking at, or kNoPanel when the main screen is
   // not what is in front of them. panel_focus_ still names a panel while the
   // shop is open, but it is not one they can see, so nothing there counts as
@@ -178,6 +184,9 @@ class Tui {
   Celebration celebration_;
   // The live fight: stepped by the ticker, read by the combat panel.
   CombatSim combat_sim_;
+  // The music. Silent in a build made with --define=audio=off, and on a
+  // machine with no sound device.
+  Jukebox jukebox_;
   // What the Battle Analysis tool has measured. Fed by the ticker, and only
   // while the map is the fight in front of the player.
   BattleAnalysis analysis_;

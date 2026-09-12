@@ -6,11 +6,17 @@
 #include <string_view>
 
 #include "src/audio/tracks.h"
+#include "src/build_config.h"
 #include "third_party/miniaudio/miniaudio.h"
 
 namespace ms {
 
 Jukebox::Jukebox(Backend backend) {
+  if (!kAudioEnabled) {
+    // No tracks to play, so open no device: a silent build makes no sound
+    // thread and touches no sound card.
+    return;
+  }
   ma_backend null_backend = ma_backend_null;
   ma_context_config context_config = ma_context_config_init();
   ma_result result = ma_context_init(

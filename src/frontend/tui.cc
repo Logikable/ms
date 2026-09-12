@@ -1124,9 +1124,26 @@ void Tui::Tick() {
   if (combat_sim_.view().died_this_step) {
     celebration_.BeginDeath();
   }
+  UpdateMusic();
   // Last of all, so the beat the ticker sleeps next is the one this tick left
   // the player on.
   in_boss_fight_ = controller_.in_boss_fight();
+}
+
+void Tui::UpdateMusic() {
+  if (!jukebox_.ready()) {
+    return;
+  }
+  // A boss owns the screen and the volume with it; the map underneath is not
+  // where the player is.
+  if (const BossRun* run = controller_.boss_run(); run != nullptr) {
+    jukebox_.SetVolume(state_.account.boss_bgm_volume());
+    jukebox_.Play(run->bgm());
+    return;
+  }
+  jukebox_.SetVolume(state_.account.map_bgm_volume());
+  auto map = state_.maps.find(state_.current_map);
+  jukebox_.Play(map == state_.maps.end() ? "" : map->second.bgm());
 }
 
 Panel Tui::FocusedPanel() const {

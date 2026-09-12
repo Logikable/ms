@@ -19,6 +19,7 @@ cc_library(
     hdrs = ["jukebox.h"],
     deps = [
         ":tracks",
+        "//src:build_config",
         "//third_party/miniaudio",
     ],
 )
@@ -29,6 +30,8 @@ cc_test(
     deps = [
         ":jukebox",
         ":tracks",
+        "//src:account",
+        "//src:build_config",
         "@googletest//:gtest_main",
     ],
 )

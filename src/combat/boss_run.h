@@ -18,6 +18,7 @@
 #include <map>
 #include <random>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -215,6 +216,10 @@ class BossRun {
   int phase() const {
     return phase_ + 1;
   }
+  // The music this fight plays: the track the phase being fought names, or
+  // the last one a phase named, since a phase saying nothing keeps playing
+  // what the one before it started. Empty for a fight that names none.
+  std::string_view bgm() const;
   int phase_count() const {
     return phases_;
   }

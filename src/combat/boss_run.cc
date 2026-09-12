@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -171,6 +172,21 @@ void BossRun::StandSelf() {
   // owner 0.
   members_[0] = {"", player_at_, sim_.view().attack_name,
                  sim_.view().attack_fraction};
+}
+
+std::string_view BossRun::bgm() const {
+  const BossDifficulty* chosen = difficulty();
+  if (chosen == nullptr) {
+    return {};
+  }
+  // Walk back from the phase being fought: the first track named at or above
+  // it is what is playing, which is how one track covers a whole fight.
+  for (int i = std::min(phase_, chosen->phases_size() - 1); i >= 0; --i) {
+    if (!chosen->phases(i).bgm().empty()) {
+      return chosen->phases(i).bgm();
+    }
+  }
+  return {};
 }
 
 const BossDifficulty* BossRun::difficulty() const {
