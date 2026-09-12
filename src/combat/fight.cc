@@ -353,9 +353,25 @@ double CombatSim::LoadedDamage(const AttackOption& attack) const {
   return worth;
 }
 
+// Strikes of a told-apart swing the press is credited with. All of them where
+// the beat runs out inside the press, and the sustained share where it
+// overhangs -- eight bolts on a 210ms beat behind a 660ms press really do land
+// at eight per 1.47s, not eight per press. 1 for every swing that falls
+// together.
+double CombatSim::BarrageStrikes(const AttackOption& attack) const {
+  int strikes = std::max(1, attack.strikes_in_sequence);
+  if (strikes == 1 || attack.cast_interval_seconds <= 0.0) {
+    return 1.0;
+  }
+  double press = SwingSecondsAgainst(attack);
+  double span = std::max(press, (strikes - 1) * attack.cast_interval_seconds);
+  return span > 0.0 ? strikes * press / span : strikes;
+}
+
 double CombatSim::SwingDamage(const AttackOption& attack) const {
   int hit = Reached(attack);
-  double total = StrikeDamage(attack, hit) + BurnDamage(attack, hit);
+  double total = StrikeDamage(attack, hit) * BarrageStrikes(attack) +
+                 BurnDamage(attack, hit);
   // The side strike is held aside rather than added, because it rides the
   // swing whichever form that swing took -- the averaging below is between the
   // two forms, and this is outside it. A load rides the press the same way.

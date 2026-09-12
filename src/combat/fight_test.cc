@@ -2121,6 +2121,37 @@ TEST(CombatSimTest, ASequencedSwingClearsTheDeadBetweenItsStrikes) {
   EXPECT_EQ(folded.view().kills_this_step[0], 0);
 }
 
+// What a told-apart swing is worth to the chooser is what the press really
+// lands. Every strike where the beat runs out inside the press; only the
+// sustained share where it overhangs, since those bolts fall at their own rate
+// however hard the player presses.
+TEST(CombatSimTest, ASequencedSwingIsPricedAtTheStrikesThePressBuys) {
+  Mob boss = MakeMob("Boss", 1000000000);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&boss, 100.0, 1)});
+  params.attacks[0].name = "Bolt Barrage";
+  params.attacks[0].strikes_in_sequence = 4;
+  params.attacks[0].cast_interval_seconds = 0.25;
+  // Harder in one landing than a bolt, and softer than the four together.
+  AttackOption flat;
+  flat.name = "Chain Lightning";
+  flat.max_enemies = 1;
+  flat.swing_seconds = 1.0;
+  flat.damage_per_hit.assign(1, 300.0);
+  params.attacks.push_back(std::move(flat));
+
+  // Three beats of 0.25s fit inside the 1s press, so the wall is worth 400.
+  CombatSim inside;
+  inside.Advance(params, 0.1);
+  EXPECT_EQ(inside.view().attack_name, "Bolt Barrage");
+
+  // Stretch the beat past the press and the same four bolts land at four per
+  // three seconds, which is 133 against the flatter swing's 300.
+  params.attacks[0].cast_interval_seconds = 1.0;
+  CombatSim overhanging;
+  overhanging.Advance(params, 0.1);
+  EXPECT_EQ(overhanging.view().attack_name, "Chain Lightning");
+}
+
 TEST(CombatSimTest, AnAutoAttackClockWaitsWhileTheMapIsEmpty) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
