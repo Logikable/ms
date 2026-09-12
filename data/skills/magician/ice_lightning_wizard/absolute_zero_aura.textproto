@@ -1,6 +1,12 @@
-# A toggle in GMS, and worth an elemental resistance and a freeze that nothing
-# here has. What is left is the damage it cancels, which the wizard carries all
-# the time rather than while the aura is up.
+# A toggle in GMS, and worth an elemental resistance nothing here carries.
+# What is left is the damage it cancels, which the wizard carries all the time
+# rather than while the aura is up.
+#
+# Its freeze is dropped rather than missing. GMS says only that the aura
+# "freezes up to 15 enemies periodically" and the client states no interval to
+# read one off -- and the branch's own Cold Beam freezes for eight seconds off
+# a swing under a second, so what the book collects on a frozen enemy is
+# already collected.
 #
 # Status resistance is carried and never read: nothing inflicts a status. It is
 # here to keep the wiki's figure beside the skill it belongs to.

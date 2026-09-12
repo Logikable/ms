@@ -1,8 +1,9 @@
 # Two skills on one ladder: the roomwide swing on a 45-second wait, and a
 # Final Attack that follows everything else the character swings while it
 # recharges. It freezes the room it lands on, as GMS says, for the eight
-# seconds the family freezes for -- GMS states no number of its own. The fight falls back on Chain Lightning in between, which is what
-# lets this one hit as hard as it does.
+# seconds the family freezes for -- GMS states no number of its own. The fight
+# falls back on Chain Lightning in between, which is what lets this one hit as
+# hard as it does.
 #
 # The Final Attack falls on ONE enemy, as GMS states it, which is the usual
 # reading. See Skill.final_attack_max_enemies.

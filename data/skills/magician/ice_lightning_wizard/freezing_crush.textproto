@@ -3,8 +3,9 @@
 # were worth. GMS's own numbers -- 1% of each per stack at master, over a pile
 # five deep.
 #
-# The critical damage rides every swing, since a frozen enemy is frozen whichever
-# element is hitting it. Only the final damage is bought with the stacks.
+# The critical damage rides every swing, since a frozen enemy is frozen
+# whichever element is hitting it. Only the final damage is bought with the
+# stacks.
 name: "Freezing Crush"
 description:
   "Grants bonus Critical Damage when attacking Frozen enemies. Bonus "

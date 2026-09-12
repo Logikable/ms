@@ -1,5 +1,9 @@
 # The two swings a Hero grows out of, and GMS pays the one they leave behind
 # sooner the better rate: 3% a level to Intrepid Slash against Brandish's 2%.
+# Their level-20 tiers differ too, and only the client's formulas say so:
+# Brandish's node carries `cr`, Intrepid Slash's `targetPlus_5th`. The node's
+# own description line says "Max Targets" for both and is wrong -- a tier with
+# no formula behind it is one the client cannot pay.
 #
 # Named for its head skill alone, as every node lifting more than one is: the
 # word "Boost" is what says the row is a node, and the description below is
@@ -18,7 +22,7 @@ boost {
 boost {
   skill_name: "Brandish"
   min_level: 20
-  max_enemies: 1
+  effect { crit_rate: 0.05 }
 }
 boost {
   skill_name: "Brandish"

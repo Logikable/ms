@@ -1,6 +1,6 @@
 # The mastery skill, over 20 levels rather than GMS's 10 so that the book costs
-# the 90 a magician's 2nd job levels pay out. The mastery runs 12% to 50%, which is the
-# same climb every other 20-level mastery makes.
+# the 90 a magician's 2nd job levels pay out. The mastery runs 12% to 50%,
+# which is the same climb every other 20-level mastery makes.
 #
 # Its other two levers are cut to fit the longer ladder: the crit rate still
 # ends at GMS's 5%, and the magic attack is held to a point a level.
