@@ -5,6 +5,7 @@ tools read it.
 
     python3 tools/wz/build_cache.py     # rebuild the cache from the client
     python3 tools/wz/audit_skills.py    # every shipped skill vs the client
+    python3 tools/wz/read_book.py HERO  # one book beside its readout, to read
     python3 tools/wz/pack_probe.py      # measure a .ms pack (see below)
 
 `string_cache.json.gz` is committed, so the audit runs without the client
@@ -93,6 +94,22 @@ own** -- the `h` string says which `#field` is which. Weapon Aura's wave
 interval is `q`, Solar Crest's is `t`, and both are plain seconds with
 decimals, never scaled. A `z` is a hit count in one skill and a cooldown in the
 next.
+
+## Reading a book by hand
+
+    python3 tools/wz/read_book.py HERO --common
+    python3 tools/wz/read_book.py --path shared/
+
+`read_book.py` compares nothing. It lays our file's shape -- its kind and its
+sub-messages -- next to the GMS readout, and `--common` adds the per-level
+formulas behind it. That is the only way to find a mechanism no placeholder
+names: a swing that scatters, a bank of charges, a buff with several forms, a
+hold. The two audits cannot see any of those, because GMS states them in
+prose.
+
+It is slow work and meant to be: one book at a time, a person reading the
+pair. Assassinate's finishing blow was found this way -- GMS lifts it alone
+and we had lifted the whole swing.
 
 ## What the audit can and cannot say
 
