@@ -3,7 +3,7 @@
 name: "Sudden Raid Boost"
 description: "Strengthens Sudden Raid and Shadow Veil."
 kind: SKILL_KIND_PASSIVE
-placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_V skill_order: 5 }
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_V skill_order: 6 }
 v_node: V_NODE_KIND_BOOST
 max_level: 60
 boost {

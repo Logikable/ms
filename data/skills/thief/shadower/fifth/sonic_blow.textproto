@@ -1,0 +1,50 @@
+# The Shadower's second job node: a barrage held rather than pressed, the
+# dagger landing fifteen times in a second and a half.
+#
+# GMS's own figures: 660+27x% seven times on eight enemies, fifteen attacks
+# 100ms apart, all of it ignoring defence outright.
+#
+# The count is the one number the client states twice and disagrees with
+# itself over -- `updatableTime 2000` over `attackDelay 100` says twenty, and
+# `x` says fifteen. Fifteen is right, and the cooldown refund settles it: GMS
+# hands 3.3 seconds back per attack the player never spends, and at twenty a
+# cast cancelled after its first attack would refund 62.7 of a 60 second wait
+# and leave Sonic Blow free forever. At fifteen it leaves 13.8 seconds, which
+# is the loop the skill is built around.
+#
+# A hold, so 600ms is the floor -- 240ms of wind-up and a 360ms release, every
+# frame of both positive and so scaled by attack speed -- and the 100ms beat
+# is the skill's own. It runs to its last attack every time: a hold ordinarily
+# stops once the crowd in front of it is dead, but this one ends on no strike
+# and GMS's reason to let go early is the wait it buys back, which is the one
+# thing not modelled here.
+#
+# Dropped: the 1000 MP, the immunity to knockback and status while it runs,
+# the cancel into Trickblade or Shadow Assault, and the cooldown it refunds
+# for letting go early -- the last three are all the same button this game
+# does not have.
+name: "Sonic Blow"
+description:
+  "Move faster than the speed of sound, dealing consecutive attacks along the "
+  "way. You take less damage for as long as the attack runs."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_V skill_order: 2 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_DAGGER
+base_delay_ms: 600
+cooldown_seconds: 60.0
+max_enemies: 8
+lines: 7
+base {
+  skill_pct: 6.87
+  ied_pct: 1.00
+}
+per_level { skill_pct: 0.27 }
+channel {
+  pulse_interval_ms: 100
+  max_pulses: 15
+  finish_delay_ms: 360
+  damage_taken_pct: 0.50
+  holds_full: true
+}
