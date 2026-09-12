@@ -1,0 +1,36 @@
+# The Shadower's first job node: four dashes through the crowd, each slashing
+# everything it passes.
+#
+# GMS's own figures: 720+20x% six times on twelve enemies, four presses to a
+# 60s cooldown. The client carries an id per dash -- 400041002 chains through
+# 400041003-5, all three `invisible` -- and the 6th job boost lifts the count
+# from 4, which is what settles the number the tooltip muddles as "2-4".
+#
+# One press here, charged all four dashes: 420ms of frames apiece, and
+# `cast_interval_ms` tells them apart on that same beat so each finds the crowd
+# as it then stands rather than piling four landings onto one group of twelve.
+# The three follow-ups fall inside the 1680ms the press costs, so nothing is
+# had for free.
+#
+# The crit rate and the DEF it ignores ride this swing alone, as GMS states
+# them. Dropped: the 300 MP, the immunity while dashing, and the direction of
+# the dash -- nothing here has a place to be.
+name: "Shadow Assault"
+description: "Instantly move to slash enemies."
+kind: SKILL_KIND_ATTACK
+placement { job_advancement: JOB_ADVANCEMENT_SHADOWER_V skill_order: 1 }
+v_node: V_NODE_KIND_JOB
+max_level: 30
+required_equip_type: EQUIP_TYPE_DAGGER
+base_delay_ms: 1680
+cooldown_seconds: 60.0
+max_enemies: 12
+lines: 6
+casts: 4
+cast_interval_ms: 420
+base {
+  skill_pct: 7.40
+  crit_rate: 0.25
+  ied_pct: 1.00
+}
+per_level { skill_pct: 0.20 }
