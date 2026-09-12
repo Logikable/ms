@@ -568,6 +568,15 @@ TEST_F(SkillInspectPanelTest, StatesEachHitOfASwingThatLandsTwo) {
   mark.mutable_extra_hit(0)->mutable_base()->set_crit_rate(0.20);
   EXPECT_NE(RowIn(RenderAt(mark, 1), "Explosion", "290% x5 = 1450% (20% crit)"),
             std::string::npos);
+
+  // Final damage the half alone carries goes on the same row too -- the
+  // swing's own Final Damage row is the character's lever, and Assassinate
+  // states this one of the finishing blow.
+  mark.mutable_extra_hit(0)->mutable_base()->clear_crit_rate();
+  mark.mutable_extra_hit(0)->mutable_base()->set_final_dmg_pct(0.50);
+  EXPECT_NE(
+      RowIn(RenderAt(mark, 1), "Explosion", "290% x5 = 1450% (+50% final)"),
+      std::string::npos);
 }
 
 // A swing that lands the same strike several times states all three figures in

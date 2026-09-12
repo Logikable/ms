@@ -986,6 +986,14 @@ std::vector<Row> SwingHitRows(
     } else if (crit > 0.0) {
       text += " (" + FormatPercent(crit) + " crit)";
     }
+    // Final damage this half alone carries, said on its own damage row for the
+    // reason the critical rate beside it is: the swing's Final Damage row is
+    // the character's lever, and this is a fact about these strikes.
+    double lifted = hit.base().final_dmg_pct() +
+                    hit.per_level().final_dmg_pct() * (level - 1);
+    if (lifted > 0.0) {
+      text += " (+" + FormatPercent(lifted) + " final)";
+    }
     rows.push_back(EffectRow(hit.label(), text));
     double bonus = hit.base().normal_skill_pct() +
                    hit.per_level().normal_skill_pct() * (level - 1);
