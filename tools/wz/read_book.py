@@ -30,7 +30,7 @@ BLOCKS = re.compile(r'^(\w+) \{', re.M)
 def ours(job, path, keep_all):
     """Our files in scope: (path, name, text, id prefixes), in path order."""
     out = []
-    for name, (rel, text, prefixes) in A.our_skills().items():
+    for rel, (name, text, prefixes) in A.our_skills().items():
         if path is not None:
             if path not in rel:
                 continue

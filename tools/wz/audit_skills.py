@@ -128,7 +128,11 @@ KNOWN_RENAMES = {
 
 
 def our_skills():
-    """Every shipped skill: name -> (path, text, the id prefixes it may take)."""
+    """Every shipped skill: path -> (name, text, the id prefixes it may take).
+
+    Keyed by PATH, not name: three books each hold a Final Attack and a Weapon
+    Mastery of their own, and keying by name reads one and drops the rest.
+    """
     out = {}
     pattern = os.path.join(ROOT, 'data', 'skills', '**', '*.textproto')
     for path in glob.glob(pattern, recursive=True):
@@ -151,7 +155,7 @@ def our_skills():
         else:
             jobs = set(re.findall(r'job_advancement:\s*(\S+)', text))
             prefixes = {JOB_PREFIX[j] for j in jobs if j in JOB_PREFIX}
-        out[m.group(1)] = (rel, text, prefixes)
+        out[rel] = (m.group(1), text, prefixes)
     return out
 
 
@@ -222,8 +226,8 @@ def audit(verbose):
     ours, theirs = our_skills(), gms_skills(cache)
     findings = collections.defaultdict(list)
     matched = 0
-    for name in sorted(ours):
-        path, text, prefixes = ours[name]
+    for path in sorted(ours):
+        name, text, prefixes = ours[path]
         found = pick(theirs.get(name, []), prefixes)
         if found is None:
             if name not in KNOWN_RENAMES:

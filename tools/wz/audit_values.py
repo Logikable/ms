@@ -184,14 +184,14 @@ def ours_at(skill, key, level):
 def client_commons(wanted):
     """Every `common` block asked for, one image read apiece.
 
-    `wanted` is name -> [ids]; the answer is name -> [(id, common)], because
+    `wanted` is path -> [ids]; the answer is path -> [(id, common)], because
     GMS reuses a name across a job's own book and its passive half.
     """
     by_image = collections.defaultdict(list)
-    for name, ids in wanted.items():
+    for path, ids in wanted.items():
         for sid in ids:
             key = (sid[:5] if len(sid) == 9 else sid[:3]) + '.img'
-            by_image[key].append((name, sid))
+            by_image[key].append((path, sid))
     out = collections.defaultdict(list)
     for image, rows in sorted(by_image.items()):
         pack, entry = ms_pack.find('Skill', image)
@@ -199,10 +199,10 @@ def client_commons(wanted):
             continue
         tree, _ = wz.read_img(pack.image(entry), 0)
         catalog = tree.get('skill', {})
-        for name, sid in rows:
+        for path, sid in rows:
             node = catalog.get(sid)
             if isinstance(node, dict) and isinstance(node.get('common'), dict):
-                out[name].append((sid, node['common']))
+                out[path].append((sid, node['common']))
     return out
 
 
@@ -238,24 +238,24 @@ def audit(only=None):
     ours = skills_audit.our_skills()
     theirs = skills_audit.gms_skills(cache)
     wanted = {}
-    for name, (path, text, prefixes) in ours.items():
+    for path, (name, text, prefixes) in ours.items():
         if only and only.lower() not in name.lower():
             continue
         found = skills_audit.candidates(theirs.get(name, []), prefixes)
         if found:
-            wanted[name] = [sid for sid, _ in found]
+            wanted[path] = [sid for sid, _ in found]
     commons = client_commons(wanted)
 
     rows, checked, read = [], 0, 0
-    for name in sorted(commons):
-        path, text, _ = ours[name]
+    for path in sorted(commons):
+        name, text, _ = ours[path]
         skill = parse_textproto(text)
         read += 1
         # GMS gives a swing and its passive half the same name -- Blizzard is
         # both -- so every id in this skill's own job is tried and the one it
         # answers to best is the one it is held to.
         best = None
-        for sid, common in commons[name]:
+        for sid, common in commons[path]:
             disagreed, agreed = compare(skill, common)
             score = (agreed, -len(disagreed))
             if best is None or score > best[0]:
