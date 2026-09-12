@@ -271,6 +271,16 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   // The one lever taken at its best rather than summed: two masteries are not
   // twice as steady a swing, they are the better of the two.
   totals.mastery = std::max(totals.mastery, granted.mastery());
+  // What the enemy's own condition is worth, folded the same way and for the
+  // same reason: an afflicted monster is afflicted, and Fervent Drain raising
+  // Elemental Drain's rate is one rate rather than two. Here rather than
+  // beside the count they read against, because a SkillEffect is all an ALLY
+  // hands over -- Puncture pays a party member for the wound it leaves.
+  totals.condition.final_dmg_pct_when_afflicted =
+      std::max(totals.condition.final_dmg_pct_when_afflicted,
+               granted.final_dmg_pct_when_afflicted());
+  totals.condition.final_dmg_pct_per_dot = std::max(
+      totals.condition.final_dmg_pct_per_dot, granted.final_dmg_pct_per_dot());
   // Final damage is the one that multiplies: two sources of 10% are worth 21%.
   // Kept as the combined fraction, since that is the single number the damage
   // chain applies.
@@ -354,16 +364,9 @@ void AddScar(const SkillEffect& granted, PassiveTotals& totals) {
       totals.scar.enemy_attack_pct, granted.enemy_attack_pct_when_scarred());
 }
 
-// Folds in what the enemy's own condition is worth. The better of each stands
-// rather than the sum, as the scar and the freeze do: an afflicted monster is
-// afflicted, and Fervent Drain raising Elemental Drain's rate is one rate.
-void AddEnemyCondition(const Skill& skill, const SkillEffect& granted,
-                       PassiveTotals& totals) {
-  totals.condition.final_dmg_pct_when_afflicted =
-      std::max(totals.condition.final_dmg_pct_when_afflicted,
-               granted.final_dmg_pct_when_afflicted());
-  totals.condition.final_dmg_pct_per_dot = std::max(
-      totals.condition.final_dmg_pct_per_dot, granted.final_dmg_pct_per_dot());
+// How many burns a skill paying per burn will count. The rates themselves fold
+// in AddEffect with every other lever; only the cap is the Skill's own.
+void AddDotCount(const Skill& skill, PassiveTotals& totals) {
   totals.condition.dot_count_cap =
       std::max(totals.condition.dot_count_cap, skill.dot_count_cap());
 }
@@ -540,7 +543,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   AddProc(skill, level, totals);
   AddFreezeStacks(skill, granted, totals);
   AddScar(granted, totals);
-  AddEnemyCondition(skill, granted, totals);
+  AddDotCount(skill, totals);
   // A burn on a PASSIVE belongs to the character rather than to one swing: the
   // poison stays on the claw, so everything the claw hits takes it. One on an
   // attack is that swing's own, and one on a summon is its pulses' -- both are

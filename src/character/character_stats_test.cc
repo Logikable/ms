@@ -3513,6 +3513,30 @@ TEST_F(DerivedStatsTest, AllyHalfNeedNotMatchTheCastersOwn) {
   EXPECT_EQ(DerivedStatsFor(plain, skills, {}, party).skill_stats.attack(), 3);
 }
 
+// Puncture's shape: what an ally is handed is a lever read against the enemy's
+// own condition, which folds apart from the flat ones and has to make the trip.
+TEST_F(DerivedStatsTest, AllyHalfCarriesTheEnemysCondition) {
+  Skill puncture = Bless();
+  puncture.set_name("Puncture");
+  puncture.set_kind(SKILL_KIND_ATTACK);
+  puncture.mutable_base()->set_final_dmg_pct_when_afflicted(0.25);
+  puncture.mutable_ally_base()->set_final_dmg_pct_when_afflicted(0.10);
+  puncture.clear_per_level();
+  puncture.clear_ally_per_level();
+  std::map<std::string, Skill> skills = {{"puncture", puncture}};
+  CharacterInstance caster = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(caster.LearnSkill(puncture, 10));
+  CharacterInstance plain = MakeCharacter(rng_, 100, 0);
+
+  EXPECT_DOUBLE_EQ(
+      DerivedStatsFor(caster, skills).condition.final_dmg_pct_when_afflicted,
+      0.25);
+  std::vector<CharacterInstance> party = PartyOf(std::move(caster));
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(plain, skills, {}, party)
+                       .condition.final_dmg_pct_when_afflicted,
+                   0.10);
+}
+
 // Parashock Guard's shape: the caster is paid for shielding somebody, so alone
 // they are paid nothing.
 TEST_F(DerivedStatsTest, RequiresPartyGrantsNothingAlone) {
