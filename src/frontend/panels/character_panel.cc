@@ -76,15 +76,17 @@ constexpr char kUnlockedGlyph[] = "\U0001F513";
 // The banner the preset's own rank is written on, above the lines it deals.
 constexpr char kAbilityBannerGlyph[] = "\u2691";
 
-// The Hyper tab's columns. The level and the [+] are fixed and the name takes
-// what is left, which is what puts exactly one column between the level and
-// the [+] on every row -- the shape the skill rows have.
+// The Hyper tab's columns. The level sits between its two buttons and the
+// name takes what is left, which is what lines the buttons up down the list
+// however long a name runs.
 constexpr int kHyperLevelWidth = 2;
-constexpr int kHyperPlusWidth = 3;
+constexpr int kHyperButtonWidth = 3;
 
 // What the row spends on everything but the name: the leading gutter, the
-// level, the gap after it, the [+] and the trailing gutter.
-constexpr int kHyperFixedWidth = 1 + kHyperLevelWidth + 1 + kHyperPlusWidth + 1;
+// [-], the level between single gaps, the [+] and the trailing gutter. It
+// leaves 21 columns for the name, against a longest of 15.
+constexpr int kHyperFixedWidth =
+    1 + kHyperButtonWidth + 1 + kHyperLevelWidth + 1 + kHyperButtonWidth + 1;
 
 // The tag a pot row opens with, in the shape the skill rows use: what the pot
 // costs this character from here, said at the front of the row rather than in
@@ -966,6 +968,10 @@ bool CharacterPanel::CanRaiseHyperStat(HyperStatField field) const {
          character_.hyper_stat_points_left(hyper_preset_);
 }
 
+bool CharacterPanel::CanLowerHyperStat(HyperStatField field) const {
+  return character_.hyper_stat_level(field, hyper_preset_) > 0;
+}
+
 int CharacterPanel::HyperRowsShown() const {
   if (max_rows_ <= 0) {
     return kNumHyperStats;
@@ -996,23 +1002,29 @@ ftxui::Element CharacterPanel::RenderHyperRow(HyperStatField field, int index,
   int name_width = std::max(1, row_width - kHyperFixedWidth);
   int lit = std::min(static_cast<int>(text.size()), name_width);
   ftxui::Element name = ftxui::text(text.substr(0, lit));
-  if (selected && hyper_col_ == kColName) {
+  if (selected && hyper_col_ == kHyperColName) {
     name = std::move(name) | ftxui::inverted;
   } else if (locked) {
     name = std::move(name) | ftxui::dim;
   }
-  // Right-aligned with a single gutter after it, so the [+] on every row sits
-  // one column off the level however wide the panel came out.
+  // Right-aligned between single gutters, so both buttons sit one column off
+  // the level however wide the panel came out.
   ftxui::Element level_text =
-      ftxui::text(PadLeft(std::to_string(level), kHyperLevelWidth) + " ");
+      ftxui::text(" " + PadLeft(std::to_string(level), kHyperLevelWidth) + " ");
   if (locked) {
     level_text = std::move(level_text) | ftxui::dim;
   }
   // The cursor outranks the unavailable cue, as on the skill rows: a selected
-  // [+] inverts even with nothing to spend, so the cursor stays visible while
-  // the player reads down the list.
+  // button inverts with nothing to spend and nothing to give back, so the
+  // cursor stays visible while the player reads down the list.
+  ftxui::Element minus = ftxui::text("[-]");
+  if (selected && hyper_col_ == kHyperColMinus) {
+    minus = std::move(minus) | ftxui::inverted;
+  } else if (!CanLowerHyperStat(field)) {
+    minus = std::move(minus) | ftxui::dim;
+  }
   ftxui::Element plus = ftxui::text("[+]");
-  if (selected && hyper_col_ == kColPlus) {
+  if (selected && hyper_col_ == kHyperColPlus) {
     plus = std::move(plus) | ftxui::inverted;
   } else if (!CanRaiseHyperStat(field)) {
     plus = std::move(plus) | ftxui::dim;
@@ -1021,6 +1033,7 @@ ftxui::Element CharacterPanel::RenderHyperRow(HyperStatField field, int index,
              ftxui::text(" "),
              std::move(name),
              ftxui::text(std::string(name_width - lit, ' ')),
+             std::move(minus),
              std::move(level_text),
              std::move(plus),
              ftxui::text(" "),
@@ -1445,14 +1458,15 @@ bool CharacterPanel::OnHyperTabEvent(const ftxui::Event& event,
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
-  // Left/Right pick the column, as they do on a skill row. The [Reset] button
-  // is one button wide, so it hears neither.
+  // Left/Right walk the three columns and stop at the ends, the way the tab
+  // bars clamp. The [Reset] button is one button wide, so it hears neither.
   if (event == ftxui::Event::ArrowLeft && zone_ == kZoneHyperRows) {
-    hyper_col_ = kColName;
+    hyper_col_ = static_cast<HyperCol>(std::max(0, hyper_col_ - 1));
     return true;
   }
   if (event == ftxui::Event::ArrowRight && zone_ == kZoneHyperRows) {
-    hyper_col_ = kColPlus;
+    hyper_col_ =
+        static_cast<HyperCol>(std::min<int>(kHyperColPlus, hyper_col_ + 1));
     return true;
   }
   if (!IsForward(event)) {
@@ -1465,11 +1479,17 @@ bool CharacterPanel::OnHyperTabEvent(const ftxui::Event& event,
     return true;
   }
   HyperStatField field = kHyperStatOrder[hyper_sel_];
-  if (hyper_col_ == kColName) {
+  if (hyper_col_ == kHyperColName) {
     // Never gated: a stat the character's level holds shut is a stat they
     // most want to read about.
     if (actions.hyper_inspect) {
       actions.hyper_inspect(field);
+    }
+    return true;
+  }
+  if (hyper_col_ == kHyperColMinus) {
+    if (actions.hyper_lower && CanLowerHyperStat(field)) {
+      actions.hyper_lower(field);
     }
     return true;
   }

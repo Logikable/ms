@@ -54,8 +54,10 @@ struct CharacterPanelActions {
   std::function<void(const Skill&)> menu;
   // The Advance tab.
   std::function<void(Job)> advance;
-  // The Hyper tab.
+  // The Hyper tab. `hyper_allocate` buys the stat's next level and
+  // `hyper_lower` gives the last one back.
   std::function<void(HyperStatField)> hyper_allocate;
+  std::function<void(HyperStatField)> hyper_lower;
   std::function<void()> hyper_reset;
   std::function<void(HyperStatField)> hyper_inspect;
   // The Ability tab. `ability_lock` takes the index of the line the cursor is
@@ -240,9 +242,13 @@ class CharacterPanel {
   };
 
   // The two things a skill row offers, left to right. Left/Right move between
-  // them; each answers a different Enter. A Hyper Stat row is the same pair:
-  // the stat to read about, and the point to spend on it.
+  // them; each answers a different Enter.
   enum SkillCol { kColName, kColPlus };
+
+  // A Hyper Stat row's three, in the same screen order: the stat to read
+  // about, the level to give back, and the point to spend. Left/Right walk
+  // them and clamp at the ends, as the tab bars do.
+  enum HyperCol { kHyperColName, kHyperColMinus, kHyperColPlus };
 
   // Follows the panel focus, so that tabbing in can open an unnamed
   // character's cursor on the name row. Render is what notices the panel was
@@ -375,6 +381,9 @@ class CharacterPanel {
   // Whether a point can go into `field` at all: not maxed, not held shut by
   // the character's level, and the next rung paid for.
   bool CanRaiseHyperStat(HyperStatField field) const;
+  // Whether the stat has a level to give back, which is the whole of what
+  // the [-] asks: the points return by themselves.
+  bool CanLowerHyperStat(HyperStatField field) const;
   // How many Hyper Stat rows the row budget leaves room for, of the fourteen.
   int HyperRowsShown() const;
   // The first row of the window -- ScrollWindowStart, which keeps the
@@ -494,11 +503,11 @@ class CharacterPanel {
   // How long the cursor has sat on the selected skill row, for the name
   // scroll. Mutable because the render is what notices the row moved.
   mutable SelectionClock name_clock_;
-  int job_sel_ = 0;                // selected Advance-tab job row
-  int hyper_sel_ = 0;              // selected Hyper-tab stat row
-  SkillCol hyper_col_ = kColName;  // selected column of that row
-  int ability_sel_ = 0;            // selected Ability-tab line row
-  int pot_sel_ = 0;                // selected Buffs-tab row
+  int job_sel_ = 0;                     // selected Advance-tab job row
+  int hyper_sel_ = 0;                   // selected Hyper-tab stat row
+  HyperCol hyper_col_ = kHyperColName;  // selected column of that row
+  int ability_sel_ = 0;                 // selected Ability-tab line row
+  int pot_sel_ = 0;                     // selected Buffs-tab row
   // How long the cursor has sat on the selected pot, for the name scroll. Its
   // own clock rather than the skill rows': the two tabs share row numbers, and
   // one clock would carry a slide from one to the other.

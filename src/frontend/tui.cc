@@ -205,7 +205,10 @@ void Tui::BuildComponents() {
   };
   char_actions.advance = [this](Job job) { controller_.OpenJobMenu(job); };
   char_actions.hyper_allocate = [this](HyperStatField field) {
-    controller_.OpenHyperAllocate(field, char_panel_.hyper_preset());
+    controller_.RaiseHyperStat(field, char_panel_.hyper_preset());
+  };
+  char_actions.hyper_lower = [this](HyperStatField field) {
+    controller_.LowerHyperStat(field, char_panel_.hyper_preset());
   };
   char_actions.hyper_reset = [this]() {
     controller_.OpenHyperReset(char_panel_.hyper_preset());
@@ -900,8 +903,6 @@ ftxui::Element Tui::RenderScreen() {
           controller_.trace_recovery_result()));
     case kAllStats:
       return Standalone(all_stats_panel_.Render());
-    case kHyperAlloc:
-      return OverMain(controller_.hyper_stat_level_panel().Render());
     case kHyperReset:
       return OverMain(HyperResetDialog());
     case kAbilityReroll:

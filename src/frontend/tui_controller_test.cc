@@ -3641,30 +3641,42 @@ TEST_F(TuiControllerTest, TheClearCardNamesTheFightAndWhatItPaid) {
 
 // --- Hyper Stats ---
 
-TEST_F(TuiControllerTest, ConfirmingTheHyperQuestionSpendsThePoint) {
+// The [+] and the [-] spend and refund in place -- no dialog either way, so
+// the screen never leaves the main view.
+TEST_F(TuiControllerTest, RaisingAndLoweringAStatAsksNothing) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
-  ASSERT_EQ(controller_->screen(), kHyperAlloc);
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR), 1);
-}
 
-TEST_F(TuiControllerTest, WalkingAwayFromItSpendsNothing) {
-  LevelTo(kHyperStatUnlockLevel);
-  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
-  controller_->OnEvent(ftxui::Event::Escape);
+  controller_->LowerHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR), 0);
+  EXPECT_EQ(state_->character.hyper_stat_points_left(StatPreset::kFarming),
+            state_->character.hyper_stat_points())
+      << "the point came back";
+}
+
+// Each reaches the allocation it was handed and not the other.
+TEST_F(TuiControllerTest, RaisingAndLoweringNameTheirAllocation) {
+  LevelTo(kHyperStatUnlockLevel);
+  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kBossing);
+  EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR,
+                                               StatPreset::kFarming),
+            0);
+
+  // Nothing spent on the farming allocation, so its [-] has nothing to give.
+  controller_->LowerHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
+  EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR,
+                                               StatPreset::kBossing),
+            1);
 }
 
 // The question names the allocation, and the answer empties that one alone.
 TEST_F(TuiControllerTest, TheResetEmptiesTheAllocationItNamed) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_DEX, StatPreset::kBossing);
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
+  controller_->RaiseHyperStat(HYPER_STAT_FIELD_DEX, StatPreset::kBossing);
 
   controller_->OpenHyperReset(StatPreset::kBossing);
   EXPECT_EQ(controller_->hyper_reset_question(), "Reset Boss Hyper Stats?");
@@ -3684,8 +3696,7 @@ TEST_F(TuiControllerTest, TheResetEmptiesTheAllocationItNamed) {
 // character -- a point spent and the stat opened again says the new one.
 TEST_F(TuiControllerTest, TheHyperStatCardReadsTheAllocationItWasOpenedOn) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, StatPreset::kBossing);
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kBossing);
 
   controller_->OpenHyperStatInspect(HYPER_STAT_FIELD_STR, StatPreset::kBossing);
   EXPECT_EQ(controller_->screen(), kHyperStatInspect);
@@ -3706,8 +3717,7 @@ TEST_F(TuiControllerTest, TheHyperStatCardReadsTheAllocationItWasOpenedOn) {
 // Enter alone on the reset dialog walks away rather than emptying it.
 TEST_F(TuiControllerTest, TheResetOpensOnCancel) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->OpenHyperAllocate(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
   controller_->OpenHyperReset(StatPreset::kFarming);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR), 1);

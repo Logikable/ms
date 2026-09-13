@@ -26,7 +26,6 @@ enum Screen : int {
   kAllStats,
   // The Hyper tab's two questions: one rung of one stat, and the free reset
   // that takes a whole allocation back.
-  kHyperAlloc,
   kHyperReset,
   // Enter on a Hyper Stat's name: what it is worth now and what the next
   // level would buy. Nothing to do but read it, as the skill card is.

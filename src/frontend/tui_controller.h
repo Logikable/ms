@@ -27,7 +27,6 @@
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/cube_panel.h"
 #include "src/frontend/screens/hammer_panel.h"
-#include "src/frontend/screens/hyper_stat_level_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
@@ -147,9 +146,12 @@ class TuiController {
   void OpenSkillInspect(const Skill& skill);
   // Every stat the character has, on a screen of its own.
   void OpenAllStats();
-  // The Hyper tab's two questions. `preset` is the allocation the panel's
-  // Farm/Boss row is on, since the panel is what knows that.
-  void OpenHyperAllocate(HyperStatField field, StatPreset preset);
+  // Spends a point on `field` and gives the last one back. No dialog on
+  // either: the row's own [-] is the way out of a [+]. `preset` is the
+  // allocation the panel's Farm/Boss row is on, since the panel knows that.
+  void RaiseHyperStat(HyperStatField field, StatPreset preset);
+  void LowerHyperStat(HyperStatField field, StatPreset preset);
+  // The one question left on the tab: emptying an allocation whole.
   void OpenHyperReset(StatPreset preset);
 
   // Holds or frees the Inner Ability line at `index` of `preset`, whichever it
@@ -197,9 +199,6 @@ class TuiController {
   // a point spent and the stat inspected again shows the level it is at.
   int hyper_inspect_level() const;
   int hyper_inspect_max_level() const;
-  const HyperStatLevelPanel& hyper_stat_level_panel() const {
-    return hyper_stat_level_panel_;
-  }
   const ConfirmPrompt& hyper_reset_prompt() const {
     return hyper_reset_prompt_;
   }
@@ -512,7 +511,6 @@ class TuiController {
   bool OnSellEvent(ftxui::Event event);
   bool OnSellEquipEvent(ftxui::Event event);
   bool OnSymbolLevelEvent(ftxui::Event event);
-  bool OnHyperAllocateEvent(ftxui::Event event);
   bool OnHyperResetEvent(ftxui::Event event);
   bool OnAbilityRerollEvent(ftxui::Event event);
   bool OnSymbolCombineEvent(ftxui::Event event);
@@ -681,7 +679,6 @@ class TuiController {
   ItemMenu pot_menu_{{"Disable", "Inspect", "Buy Perm", "Close"}};
   ConfirmPrompt pot_buy_prompt_;
   SymbolLevelPanel symbol_level_panel_;
-  HyperStatLevelPanel hyper_stat_level_panel_;
   ConfirmPrompt hyper_reset_prompt_;
   // What the open Hyper Stat question is about. Held rather than read back off
   // the panel, so the answer lands on the stat the question named.

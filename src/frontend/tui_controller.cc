@@ -160,14 +160,12 @@ void TuiController::OpenAllStats() {
   screen_ = kAllStats;
 }
 
-void TuiController::OpenHyperAllocate(HyperStatField field, StatPreset preset) {
-  hyper_field_ = field;
-  hyper_preset_ = preset;
-  int level = state_.character.hyper_stat_level(field, preset);
-  hyper_stat_level_panel_.Reset(
-      HyperStatName(field), level, HyperStatLevelCost(level + 1),
-      state_.character.hyper_stat_points_left(preset));
-  screen_ = kHyperAlloc;
+void TuiController::RaiseHyperStat(HyperStatField field, StatPreset preset) {
+  state_.character.AllocateHyperStat(field, preset);
+}
+
+void TuiController::LowerHyperStat(HyperStatField field, StatPreset preset) {
+  state_.character.RefundHyperStat(field, preset);
 }
 
 void TuiController::OpenHyperStatInspect(HyperStatField field,
@@ -478,8 +476,6 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSellEquipEvent(event);
     case kSymbolLevel:
       return OnSymbolLevelEvent(event);
-    case kHyperAlloc:
-      return OnHyperAllocateEvent(event);
     case kHyperReset:
       return OnHyperResetEvent(event);
     case kAbilityReroll:
@@ -2141,18 +2137,6 @@ bool TuiController::OnSymbolLevelEvent(ftxui::Event event) {
   }
   if (choice == ConfirmChoice::kConfirmed) {
     state_.character.LevelUpSymbol(symbol_slot_);
-  }
-  screen_ = kMain;
-  return true;
-}
-
-bool TuiController::OnHyperAllocateEvent(ftxui::Event event) {
-  ConfirmChoice choice = hyper_stat_level_panel_.OnEvent(event);
-  if (choice == ConfirmChoice::kPending) {
-    return true;
-  }
-  if (choice == ConfirmChoice::kConfirmed) {
-    state_.character.AllocateHyperStat(hyper_field_, hyper_preset_);
   }
   screen_ = kMain;
   return true;
