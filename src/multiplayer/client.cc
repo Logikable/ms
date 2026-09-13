@@ -30,14 +30,21 @@ constexpr char kLostMessage[] = "Lost connection.";
 // taken from the server, because the client is the end that knows both
 // numbers, and which of them is behind decides what the player can do about
 // it. Every other reason is the server's own to explain.
+//
+// The two numbers go on a second line. Which build is where is the first
+// thing anyone asks when nobody can get in, and the player reading it is the
+// only one who can see both ends.
 std::string RejectionMessage(const Rejected& rejected, int our_version) {
   if (rejected.reason() != Rejected::REASON_UPDATE_REQUIRED) {
     return rejected.message();
   }
+  std::string versions = "\nClient: v" + std::to_string(our_version) +
+                         ", Server: v" +
+                         std::to_string(rejected.server_protocol_version());
   if (rejected.server_protocol_version() > our_version) {
-    return "Update the game to play with others.";
+    return "Update the game to play with others." + versions;
   }
-  return "The server is running an older version. Trying again.";
+  return "The server is running an older version. Trying again." + versions;
 }
 
 // Pushes the whole of `outgoing`, waiting on a socket that fills up. Only the

@@ -114,6 +114,22 @@ std::unique_ptr<MultiplayerSession> MakeSession(const std::string& server) {
   return std::make_unique<MultiplayerSession>(server.substr(0, colon), port);
 }
 
+// `text` as centred rows, one per line. A notice is one line nearly always;
+// a version mismatch is the case that puts the numbers under the wording.
+std::vector<ftxui::Element> CenteredRows(const std::string& text) {
+  std::vector<ftxui::Element> rows;
+  size_t start = 0;
+  while (start <= text.size()) {
+    size_t end = text.find('\n', start);
+    if (end == std::string::npos) {
+      end = text.size();
+    }
+    rows.push_back(CenteredRow(text.substr(start, end - start)));
+    start = end + 1;
+  }
+  return rows;
+}
+
 }  // namespace
 
 Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
@@ -459,7 +475,7 @@ ftxui::Element Tui::PartyNoticeDialog() {
   // Red when the server would not do something or the connection has gone,
   // theme blue for a party that changed under the player.
   ftxui::Color accent = controller_.party_notice_is_refusal() ? kRed : kTheme;
-  return DialogWindow("", {CenteredRow(controller_.party_notice())},
+  return DialogWindow("", CenteredRows(controller_.party_notice()),
                       controller_.party_notice_prompt().Render("Close"),
                       accent);
 }

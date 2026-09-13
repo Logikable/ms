@@ -195,7 +195,10 @@ TEST_F(ClientTest, SaysWhichEndIsBehind) {
   ASSERT_TRUE(WaitFor(ahead, [](const MultiplayerSnapshot& snapshot) {
     return !snapshot.message.empty();
   }));
-  EXPECT_EQ(ahead.Snapshot().message, "Update the game to play with others.");
+  EXPECT_EQ(ahead.Snapshot().message,
+            "Update the game to play with others.\nClient: v" +
+                std::to_string(kMultiplayerVersion - 1) + ", Server: v" +
+                std::to_string(kMultiplayerVersion));
 
   MultiplayerClient behind("127.0.0.1", server_.port(),
                            kMultiplayerVersion + 1);
@@ -204,7 +207,9 @@ TEST_F(ClientTest, SaysWhichEndIsBehind) {
     return !snapshot.message.empty();
   }));
   EXPECT_EQ(behind.Snapshot().message,
-            "The server is running an older version. Trying again.");
+            "The server is running an older version. Trying again.\nClient: v" +
+                std::to_string(kMultiplayerVersion + 1) + ", Server: v" +
+                std::to_string(kMultiplayerVersion));
 }
 
 TEST_F(ClientTest, HealsWhenTheServerCatchesUp) {

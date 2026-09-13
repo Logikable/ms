@@ -596,6 +596,11 @@ void Server::HandleLobby(Session& session, const ClientMessage& message) {
 
 void Server::HandleHello(Session& session, const Hello& hello) {
   if (hello.protocol_version() != protocol_version_) {
+    // Both numbers, because this log is the only place a client the server
+    // turns away shows up at all.
+    LOG(INFO) << Describe(session) << " speaks version "
+              << hello.protocol_version() << ", this server speaks "
+              << protocol_version_;
     Reject(session, Rejected::REASON_UPDATE_REQUIRED, kUpdateMessage);
     return;
   }
