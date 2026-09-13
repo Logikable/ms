@@ -22,9 +22,16 @@ namespace ms {
 //
 // The data half is the easy one to forget, and forgetting it is silent: a
 // release once played for days against a server whose boss table gave Cygnus
-// a fifteen-minute clock where the clients' gave her ten. Anything under
-// data/bosses or data/mobs is the protocol too.
-inline constexpr int kMultiplayerVersion = 4;
+// a fifteen-minute clock where the clients' gave her ten. What needs the bump
+// is a fight the two ends can BOTH name and disagree about -- a changed clock,
+// phase, drop or mob.
+//
+// Adding a fight does not, and neither does adding a mob only a new fight
+// spawns. Only the key crosses the wire, so a client asking for one the server
+// has never heard of is refused by name (REASON_UNKNOWN_BOSS) and a server
+// holding one no client knows is never asked. Both ends fail out loud, which
+// is the case this guard is not for.
+inline constexpr int kMultiplayerVersion = 3;
 
 // Where the server runs. The client's --server flag overrides both. A build
 // made without multiplayer carries no address at all -- there is nothing in
