@@ -568,7 +568,7 @@ TEST_F(BossDataTest, LotusIsThreeBodiesOnTheLongestClock) {
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
   EXPECT_EQ(normal.time_limit_seconds(), 1500);
-  EXPECT_EQ(normal.unlock_level(), 200);
+  EXPECT_EQ(normal.unlock_level(), 210);
   EXPECT_EQ(normal.meso(), 23200000);
   EXPECT_EQ(normal.exp(), 0);
   const std::vector<std::string> kMobs = {"lotus_phase_1", "lotus_phase_2",

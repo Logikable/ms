@@ -64,8 +64,9 @@ difficulties {
   # is 1.575T behind 300% PDR at level 210, three times the largest body
   # before it, and it is meant to be cleared by a party rather than alone.
   time_limit_seconds: 1500
-  # The level cap, where everything until Seren opens.
-  unlock_level: 200
+  # Ten past the cap: the Black Heaven fights are the first to ask for levels
+  # a character can only reach by farming past it.
+  unlock_level: 210
   # Five Intense Power Crystals at what GMS prices this fight, divided by
   # seven -- GMS clears Lotus once a week and this game once a day -- and
   # rounded to the nearest 50k.
