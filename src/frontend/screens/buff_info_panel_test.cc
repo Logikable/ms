@@ -48,6 +48,15 @@ TEST_F(BuffInfoPanelTest, ABossBuffIsPricedPerEntry) {
   EXPECT_NE(rendered.find("+1 Attack Speed"), std::string::npos);
 }
 
+// The totem's whole worth is the one line about the beat it plants.
+TEST_F(BuffInfoPanelTest, TheTotemStatesTheBeatItPlants) {
+  std::string rendered = RenderBuff(CONSUMABLE_TYPE_WILD_TOTEM);
+  EXPECT_NE(rendered.find("Wild Totem"), std::string::npos);
+  EXPECT_NE(rendered.find("Halves respawn time to 3.78s"), std::string::npos);
+  EXPECT_NE(rendered.find("1,000,000,000 to unlock permanently"),
+            std::string::npos);
+}
+
 // Bought outright, the price row says so instead of quoting a price again.
 TEST_F(BuffInfoPanelTest, AnOwnedBuffHasNothingLeftToBuy) {
   std::string rendered =

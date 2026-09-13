@@ -3021,9 +3021,15 @@ TEST_F(CharacterPanelTest, TheBuffsTabListsOnlyTheBuffsTheLevelHasOpened) {
   CharacterInstance late = MakeBuffHero(rng_, 190);
   CharacterPanel second(late, account_, panel_focus_);
   second.SetWidth(kLeftColumnMax);
-  EXPECT_NE(
-      ScreenText(RenderToScreen(OnBuffRows(second))).find("Extreme Green"),
-      std::string::npos);
+  rendered = ScreenText(RenderToScreen(OnBuffRows(second)));
+  EXPECT_NE(rendered.find("Extreme Green"), std::string::npos);
+  EXPECT_EQ(rendered.find("Wild Totem"), std::string::npos);
+
+  CharacterInstance capped = MakeBuffHero(rng_, 220);
+  CharacterPanel third(capped, account_, panel_focus_);
+  third.SetWidth(kLeftColumnMax);
+  EXPECT_NE(ScreenText(RenderToScreen(OnBuffRows(third))).find("Wild Totem"),
+            std::string::npos);
 }
 
 // One stop on the row, and Enter on it raises the menu wherever the cursor
