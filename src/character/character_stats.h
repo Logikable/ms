@@ -558,6 +558,21 @@ EquipStats PotentialStatGrant(const CharacterInstance& character,
                               const DerivedStats& derived,
                               const PotentialTotals& totals);
 
+// The character's offensive line with no attack skill behind it: what combat
+// power is read off, and where a caller pricing a stat against a monster's
+// defence finds the ied to price it with.
+OffenseStats CharacterOffense(const CharacterInstance& character,
+                              const std::map<std::string, Skill>& skills,
+                              StatPreset preset = StatPreset::kFarming);
+
+// What the character's whole stat line comes to, with no attack skill and no
+// target -- combat power stands for the character rather than for a swing.
+// The allocation names the monster too: the Boss preset counts boss %dmg and
+// the Farm one normal %dmg, so the two modes never both improve the number.
+int CharacterCombatPower(const CharacterInstance& character,
+                         const std::map<std::string, Skill>& skills,
+                         StatPreset preset = StatPreset::kFarming);
+
 }  // namespace ms
 
 #endif  // MS_SRC_CHARACTER_CHARACTER_STATS_H_

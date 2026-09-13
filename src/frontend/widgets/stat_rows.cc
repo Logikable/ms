@@ -191,20 +191,6 @@ std::vector<StatLine> MainStatLines(const CharacterInstance& character,
   };
 }
 
-int CharacterCombatPower(const CharacterInstance& character,
-                         const std::map<std::string, Skill>& skills,
-                         StatPreset preset) {
-  const Character& p = character.proto();
-  DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
-                                         /*allies=*/{}, preset);
-  OffenseStats offense = OffenseStatsFor(
-      p.job(), p.level(), p.allocated_stats(),
-      TotalEquipStats(character, derived), character.weapon_type(),
-      /*attack_skill=*/nullptr,
-      /*attack_level=*/0, PassiveOffenseFor(derived));
-  return CombatPower(offense, preset == StatPreset::kBossing);
-}
-
 std::string CombatPowerText(int power) {
   std::string value = FormatWithCommas(power);
   return (power > 999999 ? "CP " : "Combat Power ") + value;

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "ftxui/component/event.hpp"
+#include "src/character/character_stats.h"
 #include "src/character/progression.h"
 #include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/widgets/colors.h"

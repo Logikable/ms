@@ -383,18 +383,36 @@ cc_test(
 )
 
 cc_library(
+    name = "hyper_plan",
+    srcs = ["hyper_plan.cc"],
+    hdrs = ["hyper_plan.h"],
+    deps = [
+        ":character",
+        ":hyper_stats",
+        ":stat_preset",
+        "//src/protos:character_proto_cc",
+    ],
+)
+
+cc_library(
     name = "max_character",
     srcs = ["max_character.cc"],
     hdrs = ["max_character.h"],
     deps = [
         ":character",
+        ":character_stats",
+        ":hyper_plan",
         ":hyper_stats",
         ":inner_ability",
         ":job_branch",
         ":stat_preset",
+        "//src/combat:damage",
         "//src/item:potential",
+        "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:skill_proto_cc",
     ],
 )
 

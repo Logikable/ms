@@ -62,6 +62,16 @@ void EquipWeapon(CharacterInstance& character, EquipType type) {
   character.Equip(character.inventory().size() - 1);
 }
 
+// A weapon with attack on it, so combat power has a number to move at all.
+void EquipAttackWeapon(CharacterInstance& character) {
+  EquipPrototype weapon;
+  weapon.set_name("Bow");
+  weapon.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  weapon.mutable_base_stats()->set_attack(80);
+  character.PickUp(std::make_unique<EquipInstance>(weapon));
+  character.Equip(character.inventory().size() - 1);
+}
+
 // A character holding the four primary stats outright. These tests care what
 // the character holds, not how many AP it took to get there.
 CharacterInstance MakeStatCharacter(std::mt19937& rng, int str, int dex,
@@ -3982,6 +3992,49 @@ TEST(PotentialStatsTest, ACooldownLineReachesTheCharacter) {
       {POTENTIAL_LINE_TYPE_COOLDOWN_1, POTENTIAL_LINE_TYPE_COOLDOWN_2});
   DerivedStats stats = DerivedStatsFor(c, {});
   EXPECT_DOUBLE_EQ(stats.cooldown_reduction_seconds, 3.0);
+}
+
+// Boss damage is worth nothing while farming and normal damage nothing while
+// bossing, so each raises its own mode's combat power and neither raises the
+// other's. Level 200 with a weapon, so there is a number to move at all.
+TEST(CharacterCombatPowerTest, CountsTheModesMonsterOnly) {
+  std::mt19937 rng(1);
+  Character bare;
+  bare.set_level(200);
+  bare.set_job(JOB_SWORDMAN);
+  bare.set_job_stage(1);
+  bare.mutable_allocated_stats()->set_str(400);
+
+  Character spent = bare;
+  (*PresetOf(*spent.mutable_hyper_stats(), StatPreset::kFarming)
+        .mutable_levels())[HYPER_STAT_FIELD_NORMAL_DAMAGE] = 10;
+  (*PresetOf(*spent.mutable_hyper_stats(), StatPreset::kBossing)
+        .mutable_levels())[HYPER_STAT_FIELD_BOSS_DAMAGE] = 10;
+
+  CharacterInstance nothing(rng, std::move(bare));
+  EquipAttackWeapon(nothing);
+  CharacterInstance c(rng, std::move(spent));
+  EquipAttackWeapon(c);
+
+  int baseline = CharacterCombatPower(nothing, {});
+  // The same ladder either side, so the two modes come out equal -- and both
+  // above a character who has spent nothing.
+  EXPECT_GT(CharacterCombatPower(c, {}, StatPreset::kFarming), baseline);
+  EXPECT_EQ(CharacterCombatPower(c, {}, StatPreset::kFarming),
+            CharacterCombatPower(c, {}, StatPreset::kBossing));
+
+  // And the boss ladder buys nothing at all under the farming allocation.
+  Character misplaced;
+  misplaced.set_level(200);
+  misplaced.set_job(JOB_SWORDMAN);
+  misplaced.set_job_stage(1);
+  misplaced.mutable_allocated_stats()->set_str(400);
+  (*PresetOf(*misplaced.mutable_hyper_stats(), StatPreset::kFarming)
+        .mutable_levels())[HYPER_STAT_FIELD_BOSS_DAMAGE] = 10;
+  CharacterInstance boss_only(rng, std::move(misplaced));
+  EquipAttackWeapon(boss_only);
+  EXPECT_EQ(CharacterCombatPower(boss_only, {}, StatPreset::kFarming),
+            baseline);
 }
 
 }  // namespace

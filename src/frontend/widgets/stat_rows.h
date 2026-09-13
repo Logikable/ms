@@ -70,14 +70,6 @@ std::vector<StatLine> MainStatLines(const CharacterInstance& character,
                                     const std::map<std::string, Skill>& skills,
                                     StatPreset preset = StatPreset::kFarming);
 
-// What the character's whole stat line comes to, with no attack skill and no
-// target -- combat power stands for the character rather than for a swing.
-// The allocation names the monster too: the Boss preset counts boss %dmg and
-// the Farm one normal %dmg, so the two modes never both improve the number.
-int CharacterCombatPower(const CharacterInstance& character,
-                         const std::map<std::string, Skill>& skills,
-                         StatPreset preset = StatPreset::kFarming);
-
 // Combat power spelled out, until it outgrows the row it sits in. Past six
 // figures the label shortens to "CP" rather than the number being cut.
 std::string CombatPowerText(int power);

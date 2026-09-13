@@ -350,48 +350,6 @@ TEST_F(StatRowsTest, TheRowsReadThePresetTheyAreGiven) {
       "44.00%");
 }
 
-// Boss damage is worth nothing while farming and normal damage nothing while
-// bossing, so each raises its own mode's combat power and neither raises the
-// other's. Level 200 with a weapon, so there is a number to move at all.
-TEST_F(StatRowsTest, CombatPowerCountsTheModesMonsterOnly) {
-  Character bare;
-  bare.set_level(200);
-  bare.set_job(JOB_SWORDMAN);
-  bare.set_job_stage(1);
-  bare.mutable_allocated_stats()->set_str(400);
-
-  Character spent = bare;
-  (*PresetOf(*spent.mutable_hyper_stats(), StatPreset::kFarming)
-        .mutable_levels())[HYPER_STAT_FIELD_NORMAL_DAMAGE] = 10;
-  (*PresetOf(*spent.mutable_hyper_stats(), StatPreset::kBossing)
-        .mutable_levels())[HYPER_STAT_FIELD_BOSS_DAMAGE] = 10;
-
-  CharacterInstance nothing(rng_, std::move(bare));
-  EquipBow(nothing);
-  CharacterInstance c(rng_, std::move(spent));
-  EquipBow(c);
-
-  int baseline = CharacterCombatPower(nothing, {});
-  // The same ladder either side, so the two modes come out equal -- and both
-  // above a character who has spent nothing.
-  EXPECT_GT(CharacterCombatPower(c, {}, StatPreset::kFarming), baseline);
-  EXPECT_EQ(CharacterCombatPower(c, {}, StatPreset::kFarming),
-            CharacterCombatPower(c, {}, StatPreset::kBossing));
-
-  // And the boss ladder buys nothing at all under the farming allocation.
-  Character misplaced;
-  misplaced.set_level(200);
-  misplaced.set_job(JOB_SWORDMAN);
-  misplaced.set_job_stage(1);
-  misplaced.mutable_allocated_stats()->set_str(400);
-  (*PresetOf(*misplaced.mutable_hyper_stats(), StatPreset::kFarming)
-        .mutable_levels())[HYPER_STAT_FIELD_BOSS_DAMAGE] = 10;
-  CharacterInstance boss_only(rng_, std::move(misplaced));
-  EquipBow(boss_only);
-  EXPECT_EQ(CharacterCombatPower(boss_only, {}, StatPreset::kFarming),
-            baseline);
-}
-
 TEST(CombatPowerTextTest, SpellsItOutUntilSevenFigures) {
   EXPECT_EQ(CombatPowerText(0), "Combat Power 0");
   EXPECT_EQ(CombatPowerText(999999), "Combat Power 999,999");

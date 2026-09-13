@@ -6,6 +6,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/character/character_stats.h"
 #include "src/character/job_name.h"
 #include "src/character/progression.h"
 #include "src/frontend/widgets/chrome.h"
