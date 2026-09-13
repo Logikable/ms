@@ -48,6 +48,24 @@ message ArenaWalk {
     RANGE_STEP = 2;
   }
   Range range = 2;
+  // A rush across the arena now and then, in place of one ordinary step.
+  // Unset never dashes, which is every walker but Damien.
+  ArenaDash dash = 3;
+}
+
+// A dash: several cells in a row, one way, far quicker than the walk it
+// interrupts. It stops early at anything it cannot enter -- the edge of the
+// arena, or a cell the player may stand on -- and the walk picks up one
+// interval after the last cell it reached.
+message ArenaDash {
+  // Milliseconds between dashes. 0 never dashes, as an unset dash does.
+  int32 interval_ms = 1;
+  // How many cells one carries it, wall permitting.
+  int32 cells = 2;
+  // Milliseconds a cell takes. This is what makes it read as a dash rather
+  // than a walk: the arena is drawn every kFightPublishInterval, so a cell
+  // shorter than that would be a jump instead of a run.
+  int32 step_ms = 3;
 }
 
 // A mob type and how many of it stand in one encounter. Shared by the maps,

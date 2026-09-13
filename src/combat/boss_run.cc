@@ -63,6 +63,15 @@ bool PlayerMayStand(const BossPhase& phase, int x, int y) {
   return false;
 }
 
+// Whether a monster may stand on (x, y) at all: inside the arena, and not on
+// a cell the phase lets a player stand on.
+bool MayEnter(const BossPhase& phase, int x, int y, int width, int height) {
+  if (x < 0 || x >= width || y < 0 || y >= height) {
+    return false;
+  }
+  return !PlayerMayStand(phase, x, y);
+}
+
 // Everywhere one step of `walk` could carry a monster standing on (x, y),
 // inside an arena `width` by `height`. Never the cell it is already on, so a
 // step always moves it, and never one the player may stand on, since the arena
@@ -89,10 +98,8 @@ std::vector<ArenaSpot> WalkTargets(const BossPhase& phase,
     }
   }
   for (const ArenaSpot& to : tried) {
-    if (to.x() < 0 || to.x() >= width || to.y() < 0 || to.y() >= height) {
-      continue;
-    }
-    if ((to.x() == x && to.y() == y) || PlayerMayStand(phase, to.x(), to.y())) {
+    if ((to.x() == x && to.y() == y) ||
+        !MayEnter(phase, to.x(), to.y(), width, height)) {
       continue;
     }
     targets.push_back(to);
@@ -425,6 +432,10 @@ void BossRun::FillSlots(const CombatParams& params) {
     bar.x = spot.x();
     bar.y = spot.y();
     bar.walk = params.types[mob.type].walk;
+    // Both clocks run from the start of the fight rather than the start of
+    // the phase, so a body that comes out late walks the time already spent.
+    bar.next_move_at = bar.walk.interval_ms() / 1000.0;
+    bar.next_dash_at = bar.walk.dash().interval_ms() / 1000.0;
     bar.hp_fraction = mob.hp_fraction;
     slots_.push_back(std::move(bar));
   }
@@ -438,9 +449,62 @@ void BossRun::StepSlot(const BossPhase& phase, BossSlot& slot) {
   }
   // Drawn off the step it is, not rolled: every client walks it the same way.
   const ArenaSpot& to =
-      targets[Mixed(slot.id, slot.steps_taken + 1) % targets.size()];
+      targets[Mixed(slot.id, slot.steps_taken) % targets.size()];
   slot.x = to.x();
   slot.y = to.y();
+}
+
+bool BossRun::DashSlot(const BossPhase& phase, BossSlot& slot) {
+  int to = slot.x + slot.dash_dx;
+  if (!MayEnter(phase, to, slot.y, arena_width(), arena_height())) {
+    return false;
+  }
+  slot.x = to;
+  return true;
+}
+
+double BossRun::NextMoveAt(const BossSlot& slot) {
+  if (slot.dash_left > 0 || slot.walk.dash().interval_ms() <= 0) {
+    return slot.next_move_at;
+  }
+  return std::min(slot.next_move_at, slot.next_dash_at);
+}
+
+void BossRun::MoveSlot(const BossPhase& phase, BossSlot& slot) {
+  const ArenaDash& dash = slot.walk.dash();
+  ++slot.steps_taken;
+  // A dash falling due takes the step that was coming, and runs from the
+  // moment it was due rather than from whenever the step was.
+  if (slot.dash_left == 0 && dash.interval_ms() > 0 &&
+      slot.next_dash_at <= slot.next_move_at) {
+    slot.dash_left = std::max(1, dash.cells());
+    slot.next_move_at = slot.next_dash_at;
+    slot.next_dash_at += dash.interval_ms() / 1000.0;
+    slot.dash_dx = Mixed(slot.id, slot.steps_taken) % 2 == 0 ? 1 : -1;
+    // Already against that wall: a dash with nowhere to go is no dash at all,
+    // so it turns round instead of standing there for its whole length.
+    if (!MayEnter(phase, slot.x + slot.dash_dx, slot.y, arena_width(),
+                  arena_height())) {
+      slot.dash_dx = -slot.dash_dx;
+    }
+  }
+  if (slot.dash_left > 0) {
+    --slot.dash_left;
+    if (!DashSlot(phase, slot)) {
+      slot.dash_left = 0;  // Stopped at the wall, and stops there.
+    }
+  } else {
+    StepSlot(phase, slot);
+  }
+  slot.next_move_at +=
+      (slot.dash_left > 0 ? dash.step_ms() : slot.walk.interval_ms()) / 1000.0;
+}
+
+void BossRun::DriftSlot(const BossPhase& phase, BossSlot& slot,
+                        double elapsed) {
+  while (NextMoveAt(slot) <= elapsed) {
+    MoveSlot(phase, slot);
+  }
 }
 
 void BossRun::DriftSlots() {
@@ -456,10 +520,7 @@ void BossRun::DriftSlots() {
     if (slot.walk.interval_ms() <= 0) {
       continue;
     }
-    int steps = static_cast<int>(elapsed * 1000.0 / slot.walk.interval_ms());
-    for (; slot.steps_taken < steps; ++slot.steps_taken) {
-      StepSlot(*phase, slot);
-    }
+    DriftSlot(*phase, slot, elapsed);
   }
 }
 

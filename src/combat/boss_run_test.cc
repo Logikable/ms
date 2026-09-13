@@ -454,6 +454,72 @@ TEST(BossRunTest, TheRoamIsTheSameOnEveryClientHoweverItIsStepped) {
   EXPECT_EQ(leap.slots()[0].y, beat.slots()[0].y);
 }
 
+// Damien's dash: every dash interval the walk gives up its beat and the
+// monster runs a cell at a time, the whole length, one way -- and a run
+// stepped in one go lands where one stepped beat by beat does.
+TEST(BossRunTest, ADashRunsItsCellsOneWayOnItsOwnClock) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  std::unique_ptr<GameState> leap_state = MakeState(1000000000, 1);
+  Boss boss = TwoPhaseBoss();
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  phase->set_arena_width(9);
+  phase->set_arena_height(2);
+  ArenaWalk* walk = phase->mutable_spawns(0)->mutable_walk();
+  walk->set_interval_ms(30000);
+  walk->set_range(ArenaWalk::RANGE_ROW);
+  walk->mutable_dash()->set_interval_ms(10000);
+  walk->mutable_dash()->set_cells(4);
+  walk->mutable_dash()->set_step_ms(120);
+  BossRun run("zakum", boss, 0);
+  BossRun leap("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  leap.Advance(*leap_state, kBossCountdownSeconds);
+
+  // The walk's own beat is a long way off, so nothing but the dash moves him.
+  run.Advance(*state, 9.9);
+  ASSERT_EQ(run.slots()[0].x, 0) << "he moved before his dash was due";
+  // Against the left wall, so the dash turns round rather than standing
+  // still, and carries him a cell every 120ms.
+  for (int cell = 1; cell <= 4; ++cell) {
+    run.Advance(*state, 0.12);
+    EXPECT_EQ(run.slots()[0].x, cell) << "cell " << cell;
+  }
+  run.Advance(*state, 5.0);
+  EXPECT_EQ(run.slots()[0].x, 4) << "the dash ran past its length";
+
+  leap.Advance(*leap_state, 15.38);
+  EXPECT_EQ(leap.slots()[0].x, run.slots()[0].x);
+  EXPECT_EQ(leap.slots()[1].x, run.slots()[1].x);
+}
+
+// A dash into a wall stops at it: the cells it has left are lost, not walked
+// somewhere else, and the walk picks up from where it stopped.
+TEST(BossRunTest, ADashStopsAtTheWallAndStaysThere) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = TwoPhaseBoss();
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  phase->set_arena_width(3);
+  phase->set_arena_height(2);
+  Spawn* arms = phase->mutable_spawns(0);
+  arms->clear_spots();
+  arms->add_spots()->set_x(0);
+  ArenaWalk* walk = arms->mutable_walk();
+  walk->set_interval_ms(30000);
+  walk->set_range(ArenaWalk::RANGE_ROW);
+  walk->mutable_dash()->set_interval_ms(10000);
+  walk->mutable_dash()->set_cells(4);
+  walk->mutable_dash()->set_step_ms(120);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+
+  // Two cells of room and four cells of dash: he ends the fight's tenth
+  // second against the far wall.
+  run.Advance(*state, 11.0);
+  EXPECT_EQ(run.slots()[0].x, 2);
+  run.Advance(*state, 5.0);
+  EXPECT_EQ(run.slots()[0].x, 2) << "the wall did not stop the dash";
+}
+
 // A dead bar holds its slot for a beat and then leaves it empty: the arms
 // beside it never move.
 TEST(BossRunTest, ADeadBarFadesAndItsSlotStaysEmpty) {

@@ -127,13 +127,23 @@ struct BossSlot {
   // stays there, unless it is one of the few that walk: see walk.
   int x = 0;
   int y = 0;
-  // How it wanders, and how many steps of that walk are already behind it.
-  // An unset walk stands still, which is all of them but Vellum and
-  // Papulatus. The count is kept so a step costs one step's work: a boss that
-  // moves twice a second has thousands of them behind him by the end of a
-  // long clock, and every one would be walked again on every frame otherwise.
+  // How it wanders. An unset walk stands still, which is all of them but
+  // Vellum, Papulatus and Damien.
   ArenaWalk walk;
+  // How many moves of that walk are behind it, which is what each one is drawn
+  // off. The count is kept so a move costs one move's work: a boss that moves
+  // twice a second has thousands of them behind him by the end of a long
+  // clock, and every one would be walked again on every frame otherwise.
   int steps_taken = 0;
+  // When the next move and the next dash fall due, in the seconds the run
+  // counts. Both are set from the walk when the slot is made, so a monster
+  // that comes out in a later phase walks the clock the fight has already
+  // spent -- the same replay a client joining late does.
+  double next_move_at = 0.0;
+  double next_dash_at = 0.0;
+  // Cells of a dash still to run, and which way it is going.
+  int dash_left = 0;
+  int dash_dx = 0;
   double hp_fraction = 0.0;
   bool alive = true;
   // False once the dead bar's hold has run out. The slot stays in the list --
@@ -314,9 +324,21 @@ class BossRun {
   // Walks whatever walks to where the run's clock says it stands. Called after
   // the slots are in step with the roster, alone and in a shared fight both.
   void DriftSlots();
+  // Walks and dashes `slot` up to `elapsed` seconds into the run, one move at
+  // a time.
+  void DriftSlot(const BossPhase& phase, BossSlot& slot, double elapsed);
+  // When `slot`'s next move falls due: the next cell of a dash it is running,
+  // or the sooner of its next step and its next dash.
+  static double NextMoveAt(const BossSlot& slot);
+  // Makes `slot`'s next move, whichever of the two it is due, and schedules
+  // the one after it.
+  void MoveSlot(const BossPhase& phase, BossSlot& slot);
   // Takes `slot` one step of its walk, to wherever the run's clock sends it.
   // Stands it still when its walk has nowhere to go.
   void StepSlot(const BossPhase& phase, BossSlot& slot);
+  // Takes `slot` one cell along the dash it is running. Returns false when
+  // the cell is not one it may enter, which ends the dash where it stands.
+  bool DashSlot(const BossPhase& phase, BossSlot& slot);
   // What is left of the phase, over what it holds when full.
   void ComputePhaseHp(const CombatParams& params);
   // Steps one phase of the fight forward, moving on when it empties.
