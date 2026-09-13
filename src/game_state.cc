@@ -736,14 +736,15 @@ void SeedPlay(GameState& state) {
 // features reachable without farming for them.
 constexpr int kTestExpMultiplier = 5;
 
-// How many of each token the workbench opens with: enough to buy a shelf's
-// worth and still have one left to buy with.
+// How many of each currency the workbench opens with: enough token to buy a
+// shelf's worth and still have one left to buy with, and enough shards that
+// the Token tab's own column has something in it.
 constexpr int kTestTokens = 20;
 
 // A full stack of spell traces -- 30,000 is the item's own max_stack, so this
-// is one row of the Etc tab and the most the tester can be handed without a
-// second. Carried rather than bought: the shop counts them out 5,000 meso at a
-// time, which is a long walk to reach the scroll screen.
+// is the most the tester can be handed in one row. Carried rather than bought:
+// the shop counts them out 5,000 meso at a time, which is a long walk to reach
+// the scroll screen.
 constexpr int kTestSpellTraces = 30000;
 
 // V Points enough to fill the whole matrix twice over: what the workbench is
@@ -837,10 +838,12 @@ void SeedTest(GameState& state, const TestOptions& test) {
   }
   state.character.AddVPoints(kTestVPoints);
 
-  // A handful of every token, so the shop's token shelves can be bought from
-  // without farming the mobs that drop them.
+  // A handful of every currency, so the shop's token shelves can be bought
+  // from without farming the mobs that drop them, and the bag's Token tab has
+  // both its columns filled without clearing every boss first.
   for (const std::pair<const std::string, ItemPrototype>& entry : state.items) {
-    if (!entry.second.currency_mark().empty()) {
+    if (entry.second.kind() == ITEM_KIND_TOKEN ||
+        entry.second.kind() == ITEM_KIND_SOUL_SHARD) {
       state.character.AddStackable(entry.second, kTestTokens);
     }
   }

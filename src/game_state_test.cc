@@ -99,13 +99,19 @@ GameState MakeTestModeStateWithSkills(TestSkills skills = TestSkills::kZero) {
                    GameMode::kTest, test);
 }
 
-// The item catalog test mode's seeding asks for: a currency, an ordinary Etc
-// item to tell it from, and the traces the workbench is handed.
+// The item catalog test mode's seeding asks for: the two currencies, an
+// ordinary Etc item to tell them from, and the traces the workbench is handed.
 std::map<std::string, ItemPrototype> SeededItemCatalog() {
   ItemPrototype token;
   token.set_name("Weapon Token");
   token.set_category(ITEM_CATEGORY_ETC);
+  token.set_kind(ITEM_KIND_TOKEN);
   token.set_currency_mark("●");
+  ItemPrototype shard;
+  shard.set_name("Zakum's Soul Shard");
+  shard.set_category(ITEM_CATEGORY_ETC);
+  shard.set_kind(ITEM_KIND_SOUL_SHARD);
+  shard.set_short_name("Zakum's");
   ItemPrototype horn;
   horn.set_name("Beetle's Horn");
   horn.set_category(ITEM_CATEGORY_ETC);
@@ -116,7 +122,10 @@ std::map<std::string, ItemPrototype> SeededItemCatalog() {
   trace.set_name("Spell Trace");
   trace.set_category(ITEM_CATEGORY_ETC);
   trace.set_max_stack(30000);
-  return {{"weapon_token", token}, {"horn", horn}, {"spell_trace", trace}};
+  return {{"weapon_token", token},
+          {"zakums_soul_shard", shard},
+          {"horn", horn},
+          {"spell_trace", trace}};
 }
 
 // The stack of `name` in the bag, or nullptr when there is none.
@@ -577,16 +586,18 @@ TEST(GameStateTest, ChosenJobWearsTheWeaponItsLevelTopsOutAt) {
             "Asianic Bow");
 }
 
-// The token shelves are unbuyable without one, and farming for one is exactly
-// what a workbench is for skipping. Only a currency: an ordinary Etc drop is
-// not something the shop asks a price in.
-TEST(GameStateTest, TestModeStartsWithEveryToken) {
+// The token shelves are unbuyable without one, and clearing a boss for its
+// shard is exactly what a workbench is for skipping -- with no shard the Token
+// tab has only half its columns to look at. Only a currency: an ordinary Etc
+// drop is somebody else's loot.
+TEST(GameStateTest, TestModeStartsWithEveryCurrency) {
   GameState state = MakeTestModeStateWithItems();
   const StackableItem* token = FindStack(state, "Weapon Token");
   ASSERT_NE(token, nullptr);
   EXPECT_GT(token->count(), 1);
-  // The ordinary Etc drop beside it in the catalog stays where it was: the
-  // workbench is handed currencies, not somebody else's loot.
+  const StackableItem* shard = FindStack(state, "Zakum's Soul Shard");
+  ASSERT_NE(shard, nullptr);
+  EXPECT_GT(shard->count(), 1);
   EXPECT_EQ(FindStack(state, "Beetle's Horn"), nullptr);
 }
 
@@ -601,11 +612,10 @@ TEST(GameStateTest, TestModeCarriesAFullStackOfSpellTraces) {
   EXPECT_EQ(traces->count(), traces->max_stack());
 }
 
-// Test mode's stocked bag is test mode's alone: play mode is handed neither
-// the tokens nor the level-up items.
-TEST(GameStateTest, PlayModeGetsNoTokensOrLevelUpItems) {
+// Test mode's stocked bag is test mode's alone: play mode is handed none of
+// the currencies.
+TEST(GameStateTest, PlayModeGetsNoCurrencies) {
   GameState state = MakePlayModeStateWithItems();
-  EXPECT_TRUE(state.character.stackables().empty());
   EXPECT_TRUE(state.character.stackables().empty());
 }
 

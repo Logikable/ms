@@ -38,11 +38,12 @@ ftxui::Element Row(ftxui::Element lead, std::vector<ftxui::Element> cells,
 }
 
 // The Token tab's four columns. The name widths are the longest the game
-// ships -- "Frozen Secondary Token" and "Crimson Queen's" -- so no currency
-// slides, and the mark cell holds one glyph and the space after it.
+// ships -- "Frozen Secondary Token" and "Crimson Queen's" -- and two columns
+// over, so the longest name keeps a gap before its count rather than running
+// into it. The mark cell holds one glyph and the space after it.
 constexpr int kCurrencyMarkWidth = 2;
-constexpr int kTokenNameWidth = 22;
-constexpr int kShardNameWidth = 15;
+constexpr int kTokenNameWidth = 24;
+constexpr int kShardNameWidth = 17;
 constexpr int kCurrencyCountWidth = 10;
 // What separates the token half of a row from the shard half.
 constexpr char kCurrencyGap[] = "  ";
