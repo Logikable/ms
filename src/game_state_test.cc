@@ -6,6 +6,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "src/character/arcane_force.h"
@@ -905,10 +906,30 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
   shoulder.set_equip_slot(EQUIP_SLOT_SHOULDER);
   EquipPrototype cygnus = shoulder;
   cygnus.set_name("Lionheart Battle Shoulder");
-  return {{"frozen_two_handed_axe", axe},
-          {"frozen_hat", hat},
-          {"royal_black_metal_shoulder", shoulder},
-          {"lionheart_battle_shoulder", cygnus}};
+  std::map<std::string, EquipPrototype> catalog = {
+      {"frozen_two_handed_axe", axe},
+      {"frozen_hat", hat},
+      {"royal_black_metal_shoulder", shoulder},
+      {"lionheart_battle_shoulder", cygnus}};
+  // The six areas of the river at the levels they open, since which of them a
+  // ceiling character owns is read straight off those.
+  const std::pair<EquipSlot, int> kSymbols[] = {
+      {EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 200},
+      {EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND, 210},
+      {EQUIP_SLOT_SYMBOL_LACHELEIN, 220},
+      {EQUIP_SLOT_SYMBOL_ARCANA, 225},
+      {EQUIP_SLOT_SYMBOL_MORASS, 230},
+      {EQUIP_SLOT_SYMBOL_ESFERA, 235}};
+  for (const std::pair<EquipSlot, int>& entry : kSymbols) {
+    EquipPrototype symbol;
+    symbol.set_name("Symbol " + std::to_string(entry.second));
+    symbol.set_equip_slot(entry.first);
+    symbol.set_required_level(200);
+    symbol.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+    symbol.mutable_arcane_symbol()->set_area_level(entry.second);
+    catalog[symbol.name()] = symbol;
+  }
+  return catalog;
 }
 
 // Traces for both slots, so every shelf the seeding opens gets filled.
@@ -1002,6 +1023,30 @@ TEST(GameStateTest, MaxModeAtTheCapHasBoughtEveryBuff) {
   EXPECT_EQ(state.character.meso(), 50000000);
   EXPECT_EQ(state.exp_multiplier, 1);
   EXPECT_TRUE(state.character.stackables().empty());
+}
+
+// Every Arcane Symbol the level has opened, worn and raised -- and none it
+// has not. A ceiling character stands in the river, and the river is what the
+// Arcane Force is read against.
+TEST(GameStateTest, MaxModeWearsTheSymbolsItsLevelOpened) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  int worn = 0;
+  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+       state.character.equipped()) {
+    if (!IsArcaneSymbol(entry.second.prototype())) {
+      continue;
+    }
+    ++worn;
+    EXPECT_LE(entry.second.prototype().arcane_symbol().area_level(),
+              kTrialLevelCap)
+        << entry.second.prototype().name();
+    EXPECT_EQ(SymbolLevel(entry.second.equip_state()), 10)
+        << entry.second.prototype().name();
+  }
+  // Vanishing Journey, Chu Chu Island, Lachelein, Arcana and Morass: every
+  // area open at the cap, and Esfera's 235 is not.
+  EXPECT_EQ(worn, 5);
+  EXPECT_EQ(state.character.arcane_force(), 5 * SymbolArcaneForce(10));
 }
 
 // The pools are all spent: the AP into the stat the job swings on, the SP

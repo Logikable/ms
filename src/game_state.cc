@@ -906,6 +906,33 @@ void BuyMaxConsumables(GameState& state) {
   }
 }
 
+// The level every Arcane Symbol a ceiling character owns is seeded at. A
+// level-1 symbol is 30 Arcane Force against a river asking 190 and up, which
+// is the bottom bracket -- a tenth of the damage dealt and 2.8x taken. Ten
+// apiece is 120 each, which carries the maps the same levels opened.
+constexpr int kMaxModeSymbolLevel = 10;
+
+// Every symbol whose area the level has reached, worn and raised. Called
+// before the bag is cleared, so the level-1 starter this displaces is swept up
+// with the rest of the climb's leftovers.
+void WearMaxSymbols(GameState& state) {
+  const int level = state.character.proto().level();
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       state.equips) {
+    const EquipPrototype& proto = entry.second;
+    if (!IsArcaneSymbol(proto) || proto.arcane_symbol().area_level() > level) {
+      continue;
+    }
+    Equip raised;
+    raised.set_symbol_level(kMaxModeSymbolLevel);
+    int row = static_cast<int>(state.character.inventory().size());
+    state.character.PickUp(std::make_unique<EquipInstance>(proto, raised));
+    if (static_cast<int>(state.character.inventory().size()) > row) {
+      state.character.Equip(row);
+    }
+  }
+}
+
 // The same lines on every piece of one kind. Written rather than cubed for:
 // what a real sheet holds is luck, and a fight measured against a character
 // who is a little different every run says nothing. See MaxPotentialFor.
@@ -973,6 +1000,7 @@ void SeedMax(GameState& state, const TestOptions& options) {
   state.character.AddMeso(kMaxLeftoverMeso);
   GrowToJob(state, advancement, level, kSpendEveryStage, equips,
             /*cygnus_shoulders=*/false);
+  WearMaxSymbols(state);
   // The leftovers of the climb: a piece a level gate says is carried rather
   // than worn, and the weapons a later one displaced.
   state.character.ClearEquipInventory();
