@@ -62,7 +62,8 @@ cc_library(
     deps = [
         "//src:game_state",
         "//src/character",
-        "//src/character:hyper_stats",
+        "//src/character:hyper_plan",
+        "//src/character:stat_preset",
         "//src/protos:character_proto_cc",
     ],
 )
