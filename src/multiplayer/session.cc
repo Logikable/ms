@@ -19,6 +19,12 @@ Character PublicSheet(const CharacterInstance& character) {
   // the stats, what is worn, and the passives behind both. The bag, the
   // purse and the shelf of what was sold are nobody else's business, and
   // sending them would put a save's worth of message on every update.
+  //
+  // Every unspent balance goes with them. What a balance was spent on shows
+  // -- the skill levels, the ability lines -- and the balance itself is both
+  // private and the fastest-moving number on the sheet: honor climbs with
+  // every kill, so leaving it in sent a whole sheet per kill to a server
+  // that had no use for it.
   sheet.clear_inventory();
   sheet.clear_stacks();
   sheet.clear_buy_backs();
@@ -28,6 +34,8 @@ Character PublicSheet(const CharacterInstance& character) {
   sheet.clear_exp();
   sheet.clear_ap();
   sheet.clear_sp_by_stage();
+  sheet.clear_honor();
+  sheet.clear_v_points();
   return sheet;
 }
 

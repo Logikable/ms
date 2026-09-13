@@ -102,5 +102,6 @@ cc_test(
         "//src/protos:multiplayer_proto_cc",
         "//src/testing:prototypes",
         "@googletest//:gtest_main",
+        "@protobuf",
     ],
 )

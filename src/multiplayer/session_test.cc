@@ -9,6 +9,7 @@
 #include <string>
 #include <thread>
 
+#include "google/protobuf/util/message_differencer.h"
 #include "server/test_server.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -127,6 +128,8 @@ TEST_F(SessionTest, TellsTheLobbyAboutANewName) {
 TEST_F(SessionTest, TheSheetCarriesTheCharacterAndNotTheirBelongings) {
   state_->character.AddExp(50);
   state_->character.AddMeso(1'000'000);
+  state_->character.AddHonor(500);
+  state_->character.AddVPoints(30);
   state_->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
   state_->character.Equip(0);
   state_->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
@@ -138,6 +141,20 @@ TEST_F(SessionTest, TheSheetCarriesTheCharacterAndNotTheirBelongings) {
   EXPECT_EQ(sheet.inventory().equip_tab_size(), 0);
   EXPECT_EQ(sheet.meso(), 0);
   EXPECT_EQ(sheet.exp(), 0);
+  EXPECT_EQ(sheet.honor(), 0);
+  EXPECT_EQ(sheet.v_points(), 0);
+}
+
+// An update goes out whenever the sheet moves, so anything on the sheet that
+// moves with every kill sends the whole sheet that often -- 312 in one second,
+// measured against the live server. Honor is that, and no one else can see it.
+TEST_F(SessionTest, HonorEarnedDoesNotMoveTheSheet) {
+  Character before = PublicSheet(state_->character);
+  state_->character.AddHonor(500);
+  state_->character.AddVPoints(30);
+  EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(
+      before, PublicSheet(state_->character)))
+      << "a kill's honor must not be an update";
 }
 
 // A re-scrolled weapon changes what the Inspect screen draws and nothing the

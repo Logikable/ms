@@ -62,8 +62,10 @@ std::string DisplayName(const std::string& name) {
   return trimmed.empty() ? kFallbackName : trimmed;
 }
 
-// What an update changed, as a line for the log. A client sends one whenever
-// the name, level or job it last told the server has moved.
+// What an update changed, as a line for the log, or empty when it changed
+// nothing the log cares about. An update carries the whole sheet, so most of
+// them are a re-scrolled weapon or a spent point -- real to the party screen,
+// and not worth a line here.
 std::string Became(const PlayerInfo& before, const PlayerInfo& after) {
   std::vector<std::string> changes;
   std::string name = DisplayName(after.name());
@@ -76,9 +78,6 @@ std::string Became(const PlayerInfo& before, const PlayerInfo& after) {
   if (after.job() != before.job()) {
     changes.push_back(absl::StrCat(
         "advances to ", ShortJobName(JobForAdvancement(after.job()))));
-  }
-  if (changes.empty()) {
-    return "updates nothing";
   }
   return absl::StrJoin(changes, " and ");
 }
@@ -544,9 +543,12 @@ void Server::SetPlayer(Session& session, const PlayerInfo& player) {
 
 void Server::HandleLobby(Session& session, const ClientMessage& message) {
   if (message.kind_case() == ClientMessage::kUpdatePlayer) {
-    // Logged before the change lands, so a rename names both sides of it.
-    LOG(INFO) << Describe(session) << " "
-              << Became(session.player, message.update_player().player());
+    // Read before the change lands, so a rename names both sides of it.
+    std::string became =
+        Became(session.player, message.update_player().player());
+    if (!became.empty()) {
+      LOG(INFO) << Describe(session) << " " << became;
+    }
     SetPlayer(session, message.update_player().player());
     lobby_.UpdatePlayer(session.player);
     return;
