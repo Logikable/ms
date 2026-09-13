@@ -123,6 +123,7 @@ cc_library(
         "//src/frontend/widgets:marquee",
         "//src/item",
         "//src/item:equip_instance",
+        "//src/item:stack_tabs",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "@ftxui//:component",

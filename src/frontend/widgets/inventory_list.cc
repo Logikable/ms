@@ -12,6 +12,7 @@
 #include "src/frontend/widgets/item_row.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/item/equip_instance.h"
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -36,10 +37,64 @@ ftxui::Element Row(ftxui::Element lead, std::vector<ftxui::Element> cells,
   return ftxui::hbox(std::move(row));
 }
 
+// The Token tab's four columns. The name widths are the longest the game
+// ships -- "Frozen Secondary Token" and "Crimson Queen's" -- so no currency
+// slides, and the mark cell holds one glyph and the space after it.
+constexpr int kCurrencyMarkWidth = 2;
+constexpr int kTokenNameWidth = 22;
+constexpr int kShardNameWidth = 15;
+constexpr int kCurrencyCountWidth = 10;
+// What separates the token half of a row from the shard half.
+constexpr char kCurrencyGap[] = "  ";
+
+// Blanks as wide as a column pair, for the half of a row whose list ran out.
+ftxui::Element BlankCurrencyCell(int mark_width, int name_width) {
+  return ftxui::text(
+      std::string(mark_width + name_width + kCurrencyCountWidth, ' '));
+}
+
+// A name and its count. The mark rides in front of a token and keeps its own
+// colour, which is what says at a glance which piece the currency buys.
+ftxui::Element CurrencyCell(const StackableItem& stack, bool marked,
+                            int name_width) {
+  const ItemPrototype& proto = stack.prototype();
+  std::string body =
+      PadRight(ShortName(proto), name_width) +
+      PadRight(FormatWithCommas(stack.count()), kCurrencyCountWidth);
+  if (!marked) {
+    return ftxui::text(body);
+  }
+  return ftxui::hbox({
+      ftxui::text(PadRight(proto.currency_mark(), kCurrencyMarkWidth)) |
+          ftxui::color(MarkColor(proto.currency_color())),
+      ftxui::text(body),
+  });
+}
+
 }  // namespace
 
-const char* const kInventoryTabLabels[kNumInventoryTabs] = {"Equip", "Etc",
-                                                            "Shop"};
+const char* const kInventoryTabLabels[kNumInventoryTabs] = {"Equip", "Token",
+                                                            "Etc", "Shop"};
+
+ftxui::Element CurrencyHeader() {
+  return ftxui::text("  " + std::string(kCurrencyMarkWidth, ' ') +
+                     PadRight("Token", kTokenNameWidth) +
+                     PadRight("Quantity", kCurrencyCountWidth) + kCurrencyGap +
+                     PadRight("Soul Shard", kShardNameWidth) + "Quantity");
+}
+
+ftxui::Element RenderCurrencyRow(const StackableItem* token,
+                                 const StackableItem* shard) {
+  return ftxui::hbox({
+      ftxui::text("  "),
+      token == nullptr ? BlankCurrencyCell(kCurrencyMarkWidth, kTokenNameWidth)
+                       : CurrencyCell(*token, /*marked=*/true, kTokenNameWidth),
+      ftxui::text(kCurrencyGap),
+      shard == nullptr
+          ? BlankCurrencyCell(0, kShardNameWidth)
+          : CurrencyCell(*shard, /*marked=*/false, kShardNameWidth),
+  });
+}
 
 std::vector<InventoryRowState> BuildEquipRows(
     const CharacterInstance& character, int selected,

@@ -92,7 +92,8 @@ class InventoryPanel {
   int selected() const {
     return selected_;
   }
-  // True when the Etc tab is active (as opposed to the Equip tab).
+  // True when the Etc tab is active: the one tab of stacks whose rows the
+  // cursor walks.
   bool on_stackable_tab() const;
   // Whether the Shop tab is the active one. The shop is a screen rather than a
   // list, so the controller asks this to tell Enter on the tab bar apart from
@@ -109,10 +110,10 @@ class InventoryPanel {
   int active_tab() const {
     return active_tab_;
   }
-  // The selected stack row on the Etc tab.
-  int selected_stack() const {
-    return selected_stack_;
-  }
+  // The stack the Etc cursor stands on, as an index into the character's
+  // stacks -- Etc lists only part of them, so the row is not the index. -1
+  // when the tab has no row to stand on.
+  int selected_stack() const;
   // The column the item menu hangs at, measured from the panel's left border:
   // past the cursor and the name and slot cells, so the menu covers an item's
   // stats rather than its name. Asked of the panel because the name column
@@ -169,6 +170,14 @@ class InventoryPanel {
 
   // Files the active tab, which is what Sort does.
   void SortActiveTab();
+  // The stacks the Etc tab lists, as indices into the character's stacks: the
+  // currencies live on the Token tab and the spell trace in the tab bar, so
+  // what Etc shows is what is left.
+  std::vector<int> EtcRows() const;
+  // The Token tab: two read-only columns, the shop's currencies beside the
+  // bosses' soul shards. Nothing on it can be selected, so it takes no cursor
+  // and Enter on the bar above it opens the {Sort, Close} menu.
+  ftxui::Element RenderCurrencySheet() const;
 
   // What OpenMenu opens, by tab.
   void OpenStackMenu();
@@ -237,7 +246,7 @@ class InventoryPanel {
   // When the selection last moved, for sliding a long name under its column.
   SelectionClock
       name_clock_;          // selected row on the Equip tab (ftxui::Menu index)
-  int selected_stack_ = 0;  // selected row on the Etc tab
+  int selected_stack_ = 0;  // selected row of the Etc view
   // Whether the cursor stands out on the Expand tab. Kept apart from
   // active_tab_ because the two are different facts: the list goes on showing
   // the tab it was showing, and Left steps back onto it.

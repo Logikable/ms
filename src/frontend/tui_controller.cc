@@ -610,6 +610,9 @@ Screen TuiController::SeedSaleScreen(Screen next) {
   }
   if (next == kSell) {
     sell_index_ = inventory_panel_.selected_stack();
+    if (sell_index_ < 0) {
+      return kMain;  // the row went out from under the menu
+    }
     const StackableItem& stack = state_.character.stackables()[sell_index_];
     sell_panel_.Reset(stack.name(), stack.prototype().sell_price(),
                       stack.count());

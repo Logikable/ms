@@ -41,6 +41,15 @@ class MultiSellTest : public PanelTest {
     c_.AddStackable(proto, count);
   }
 
+  // A currency: a stack the bag files on its Token tab rather than in Etc.
+  void GiveCurrency(const std::string& name, ItemKind kind, int count) {
+    ItemPrototype proto;
+    proto.set_name(name);
+    proto.set_category(ITEM_CATEGORY_ETC);
+    proto.set_kind(kind);
+    c_.AddStackable(proto, count);
+  }
+
   // The screen as plain characters, one row per line.
   std::vector<std::string> ScreenRows(MultiSellPanel& panel) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(110),
@@ -163,14 +172,23 @@ TEST_F(MultiSellTest, TheWindowStandsAtTheSameHeightOnEveryTab) {
   EXPECT_EQ(TopRow(panel), top);
 }
 
-// A currency stack is worth nothing and goes anyway: marking it is how the
-// player empties the tab.
-TEST_F(MultiSellTest, ACurrencyStackIsMarkableAndPaysNothing) {
-  GiveStack("Spell Trace", ITEM_CATEGORY_ETC, 0, 60);
+// The counter deals in what the bag's Etc tab lists, and the currencies are
+// not on it: they are a balance on the Token tab, and a balance is not for
+// sale. The Etc rows here are bag stacks, so the basket names the stack
+// rather than the row it was drawn on.
+TEST_F(MultiSellTest, TheCurrenciesAreNotOnTheShelf) {
+  GiveCurrency("Spell Trace", ITEM_KIND_SPELL_TRACE, 60);
+  GiveCurrency("Frozen Weapon Token", ITEM_KIND_TOKEN, 3);
+  GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 50, 4);
+  GiveCurrency("Zakum's Soul Shard", ITEM_KIND_SOUL_SHARD, 9);
   MultiSellPanel panel(c_, account_);
-  panel.Reset(kEtcTab, 0);
-  EXPECT_EQ(panel.basket().etc, std::set<int>({0}));
-  EXPECT_EQ(panel.Total(), 0);
+  panel.Reset(kEtcTab, 2);
+  EXPECT_EQ(panel.basket().etc, std::set<int>({2}));
+  EXPECT_EQ(panel.Total(), 200);
+  EXPECT_TRUE(ScreenHas(panel, "Wild Boar Tooth"));
+  EXPECT_FALSE(ScreenHas(panel, "Frozen Weapon Token"));
+  EXPECT_FALSE(ScreenHas(panel, "Soul Shard"));
+  EXPECT_FALSE(ScreenHas(panel, "Spell Trace"));
 }
 
 TEST_F(MultiSellTest, ATraceIsMarkableAndPaysNothing) {
@@ -247,14 +265,14 @@ TEST_F(MultiSellTest, TheHeaderCarriesTheMesoAndTheRunningTotal) {
 }
 
 TEST_F(MultiSellTest, EveryRowShowsWhatItWouldPay) {
-  GiveStack("Spell Trace", ITEM_CATEGORY_ETC, 0, 60);
+  GiveStack("Firewood", ITEM_CATEGORY_ETC, 0, 60);
   GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 50, 4);
   MultiSellPanel panel(c_, account_);
   panel.Reset(kEtcTab, 0);
   // The whole stack, on the row it belongs to.
   EXPECT_NE(RowFor(panel, "Wild Boar Tooth").find("200"), std::string::npos);
   // A row worth nothing says 0 rather than nothing at all.
-  EXPECT_NE(RowFor(panel, "Spell Trace").find("0"), std::string::npos);
+  EXPECT_NE(RowFor(panel, "Firewood").find("0"), std::string::npos);
 }
 
 TEST_F(MultiSellTest, SellingPaysTheTotalAndEmptiesTheRows) {

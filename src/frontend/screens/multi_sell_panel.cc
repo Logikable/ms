@@ -12,6 +12,7 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/keys.h"
 #include "src/item/item.h"
+#include "src/item/stack_tabs.h"
 
 namespace ms {
 namespace {
@@ -46,6 +47,13 @@ ftxui::Element TailCell(const std::string& text) {
   return ftxui::text("  " + PadLeft(text, kPriceWidth) + " ");
 }
 
+// The stacks the Etc tab lists, as indices into `character`'s stacks. The
+// currencies are not among them: they live on the bag's Token tab, which is a
+// balance sheet rather than a shelf, and nothing there is for sale.
+std::vector<int> EtcRows(const CharacterInstance& character) {
+  return StacksIn(character.stackables(), StackView::kEtc);
+}
+
 }  // namespace
 
 const std::set<int>& SaleBasket::For(int tab) const {
@@ -60,25 +68,25 @@ bool SaleBasket::empty() const {
   return equips.empty() && etc.empty();
 }
 
-int64_t RowSellValue(const CharacterInstance& character, int tab, int row) {
+int64_t RowSellValue(const CharacterInstance& character, int tab, int item) {
   if (tab == kEquipTab) {
-    if (row < 0 || row >= character.inventory().size()) {
+    if (item < 0 || item >= character.inventory().size()) {
       return 0;
     }
     // A trace is the record of a destroyed item, not a copy of it, so it is
     // worth what the record is worth.
-    if (character.inventory().equip_instance(row) == nullptr) {
+    if (character.inventory().equip_instance(item) == nullptr) {
       return 0;
     }
-    return character.inventory()[row].prototype().sell_price();
+    return character.inventory()[item].prototype().sell_price();
   }
   const std::vector<StackableItem>& stacks = character.stackables();
-  if (row < 0 || row >= static_cast<int>(stacks.size())) {
+  if (item < 0 || item >= static_cast<int>(stacks.size())) {
     return 0;
   }
-  // The whole stack goes, so the whole stack is what the row is worth.
-  return static_cast<int64_t>(stacks[row].count()) *
-         stacks[row].prototype().sell_price();
+  // The whole stack goes, so the whole stack is what it is worth.
+  return static_cast<int64_t>(stacks[item].count()) *
+         stacks[item].prototype().sell_price();
 }
 
 int64_t BasketTotal(const CharacterInstance& character,
@@ -115,15 +123,25 @@ MultiSellPanel::MultiSellPanel(const CharacterInstance& character,
     : character_(character), account_(account) {
 }
 
-void MultiSellPanel::Reset(int tab, int row) {
+void MultiSellPanel::Reset(int tab, int item) {
   basket_ = SaleBasket();
   active_tab_ = tab == kEtcTab ? kEtcTab : kEquipTab;
-  selected_ = std::max(0, row);
+  selected_ = 0;
+  if (active_tab_ == kEquipTab) {
+    selected_ = std::max(0, item);
+  } else {
+    // The caller names a stack; the cursor stands on the row that draws it.
+    std::vector<int> rows = EtcRows(character_);
+    std::vector<int>::iterator it = std::find(rows.begin(), rows.end(), item);
+    if (it != rows.end()) {
+      selected_ = static_cast<int>(it - rows.begin());
+    }
+  }
   zone_ = kZoneList;
   cancel_focused_ = false;
   confirm_.Close();
   if (Markable(selected_)) {
-    basket_.For(active_tab_).insert(selected_);
+    basket_.For(active_tab_).insert(BasketKey(selected_));
   }
 }
 
@@ -131,11 +149,22 @@ int MultiSellPanel::ListCount() const {
   if (active_tab_ == kEquipTab) {
     return character_.inventory().size();
   }
-  return static_cast<int>(character_.stackables().size());
+  return static_cast<int>(EtcRows(character_).size());
 }
 
-// Every row goes, whatever it is worth: a trace, a spent token and a stack of
-// soul shards all pay nothing, and marking them is how they leave the bag.
+int MultiSellPanel::BasketKey(int row) const {
+  if (active_tab_ == kEquipTab) {
+    return row;
+  }
+  std::vector<int> rows = EtcRows(character_);
+  if (row < 0 || row >= static_cast<int>(rows.size())) {
+    return -1;
+  }
+  return rows[row];
+}
+
+// Every row goes, whatever it is worth: a trace of a destroyed item pays
+// nothing, and marking it is how it leaves the bag.
 bool MultiSellPanel::Markable(int row) const {
   return row >= 0 && row < ListCount();
 }
@@ -145,8 +174,9 @@ void MultiSellPanel::ToggleMark() {
     return;
   }
   std::set<int>& marks = basket_.For(active_tab_);
-  if (!marks.erase(selected_)) {
-    marks.insert(selected_);
+  int key = BasketKey(selected_);
+  if (!marks.erase(key)) {
+    marks.insert(key);
   }
 }
 
@@ -175,11 +205,14 @@ void MultiSellPanel::MoveCursor(int delta) {
 }
 
 void MultiSellPanel::StepTab(int direction) {
-  int next = active_tab_ + direction;
-  if (next < kEquipTab || next > kEtcTab) {
+  // The bar holds the two tabs of kTabs and nothing between them -- the bag's
+  // Token tab is not here -- so a step walks that list rather than the enum.
+  const int* here = std::find(std::begin(kTabs), std::end(kTabs), active_tab_);
+  const int* next = here + direction;
+  if (next < std::begin(kTabs) || next >= std::end(kTabs)) {
     return;  // the ends of the bar are walls, as in the bag
   }
-  active_tab_ = next;
+  active_tab_ = *next;
   selected_ = 0;
   // A tab with nothing in it has no row to stand on, so the cursor waits on
   // the bar until the player steps onto a tab that has.
@@ -232,13 +265,14 @@ ConfirmChoice MultiSellPanel::OnEvent(ftxui::Event event) {
 }
 
 ftxui::Element MultiSellPanel::MarkCell(int row) const {
-  bool marked = basket_.For(active_tab_).count(row) > 0;
+  bool marked = basket_.For(active_tab_).count(BasketKey(row)) > 0;
   return ftxui::text(marked ? "   ✓  " : "      ") | ftxui::color(kTheme);
 }
 
 ftxui::Element MultiSellPanel::PriceCell(int row) const {
-  int64_t value = RowSellValue(character_, active_tab_, row);
-  bool marked = basket_.For(active_tab_).count(row) > 0;
+  int key = BasketKey(row);
+  int64_t value = RowSellValue(character_, active_tab_, key);
+  bool marked = basket_.For(active_tab_).count(key) > 0;
   ftxui::Element cell = TailCell(FormatWithCommas(value));
   // Gold on a row that is going: the price column then adds up to the total in
   // the header, and the marks and the money say the same thing.
@@ -294,11 +328,12 @@ ftxui::Element MultiSellPanel::RenderEquipTab() {
 
 ftxui::Element MultiSellPanel::RenderStackTab() {
   const std::vector<StackableItem>& stacks = character_.stackables();
+  std::vector<int> rows = EtcRows(character_);
   std::vector<ftxui::Element> list;
-  for (int i = 0; i < static_cast<int>(stacks.size()); ++i) {
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
     bool on_cursor = zone_ == kZoneList && i == selected_;
     ftxui::Element row = RenderStackRow(
-        stacks[i], on_cursor,
+        stacks[rows[i]], on_cursor,
         i == selected_ ? name_clock_.Elapsed()
                        : std::chrono::steady_clock::duration::zero(),
         MarkCell(i), PriceCell(i), kEquipRowWidth);

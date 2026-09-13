@@ -21,6 +21,7 @@
 #include "src/frontend/widgets/keys.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
+#include "src/item/stack_tabs.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
@@ -92,25 +93,27 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
 // one key cannot make two different selections collide.
 constexpr int kNameClockTabStride = 4096;
 
-// Renders a Name/Quantity list of `stacks`, one row per stack, with a "> "
-// cursor on the `selected`-th row. An empty tab is just "(empty)", with no
-// column header over it. The cursor is drawn only when `focused`, matching the
-// Equip tab, whose menu takes its cursor from ftxui's own focus state.
+// Renders a Name/Quantity list of the stacks `rows` names, one row each, with
+// a "> " cursor on the `selected`-th of them. An empty tab is just "(empty)",
+// with no column header over it. The cursor is drawn only when `focused`,
+// matching the Equip tab, whose menu takes its cursor from ftxui's own focus
+// state.
 ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
-                               int selected, bool focused,
-                               ftxui::Box& cursor_box, bool highlighted,
+                               const std::vector<int>& rows, int selected,
+                               bool focused, ftxui::Box& cursor_box,
+                               bool highlighted,
                                std::chrono::steady_clock::duration elapsed) {
-  if (stacks.empty()) {
+  if (rows.empty()) {
     // No header over nothing, as on an empty Equip tab. Column names are there
     // to tell rows apart, and there are no rows to tell apart.
     return ftxui::vbox({EmptyState("empty", /*gutter=*/2), ftxui::filler()});
   }
-  std::vector<ftxui::Element> rows;
-  for (int i = 0; i < static_cast<int>(stacks.size()); ++i) {
+  std::vector<ftxui::Element> drawn;
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
     // The cursor shows only while the list holds focus, but the selected row
     // is marked either way -- see below.
     ftxui::Element row = RenderStackRow(
-        stacks[i], focused && i == selected,
+        stacks[rows[i]], focused && i == selected,
         i == selected ? elapsed : std::chrono::steady_clock::duration::zero());
     if (i == selected) {
       // What the frame scrolls to. These rows are plain text rather than an
@@ -121,13 +124,13 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
       // Reflected as well, so the item menu knows the row to open beside.
       row = std::move(row) | ftxui::focus | ftxui::reflect(cursor_box);
     }
-    rows.push_back(std::move(row));
+    drawn.push_back(std::move(row));
   }
   return ftxui::vbox({
       StackHeader(),
       PanelSeparator(highlighted),
       // Only the rows scroll; the header and its rule stay put.
-      ftxui::vbox(std::move(rows)) | ftxui::vscroll_indicator | ftxui::yframe |
+      ftxui::vbox(std::move(drawn)) | ftxui::vscroll_indicator | ftxui::yframe |
           ftxui::flex,
   });
 }
@@ -153,7 +156,15 @@ ItemMenu& InventoryPanel::menu() {
 }
 
 std::vector<int> InventoryPanel::VisibleTabs() const {
-  std::vector<int> tabs = {kEquipTab, kEtcTab};
+  std::vector<int> tabs = {kEquipTab};
+  // The Token tab opens on the first token or shard and closes again if the
+  // last one is spent: a page that can only ever be empty is worse than no
+  // page. No gold on it when it arrives -- what lands there came from a boss,
+  // and the boss screen has already said so.
+  if (HoldsCurrency(character_.stackables())) {
+    tabs.push_back(kTokenTab);
+  }
+  tabs.push_back(kEtcTab);
   // The shop is a place in the world rather than a page of the bag, and it is
   // not open to a character who has nothing to spend and nothing to spend it
   // on. Until then the bar simply ends at Etc.
@@ -185,6 +196,18 @@ bool InventoryPanel::on_stackable_tab() const {
   return active_tab_ == kEtcTab;
 }
 
+std::vector<int> InventoryPanel::EtcRows() const {
+  return StacksIn(character_.stackables(), StackView::kEtc);
+}
+
+int InventoryPanel::selected_stack() const {
+  std::vector<int> rows = EtcRows();
+  if (selected_stack_ < 0 || selected_stack_ >= static_cast<int>(rows.size())) {
+    return -1;
+  }
+  return rows[selected_stack_];
+}
+
 int InventoryPanel::menu_column() const {
   // The border, then the row up to the end of the slot cell: the caret, the
   // name and the slot, with the gaps in front of each.
@@ -208,7 +231,12 @@ bool InventoryPanel::ActiveTabEmpty() const {
     // Nothing of the player's to descend into; Enter leaves for the shop.
     return true;
   }
-  return character_.stackables().empty();
+  if (active_tab_ == kTokenTab) {
+    // A balance sheet rather than a list: there is nothing on it to act on,
+    // so the cursor stays up on the bar.
+    return true;
+  }
+  return EtcRows().empty();
 }
 
 int InventoryPanel::ListCount() const {
@@ -218,10 +246,10 @@ int InventoryPanel::ListCount() const {
   if (active_tab_ == kEquipTab) {
     return character_.inventory().size();
   }
-  if (active_tab_ == kShopTab) {
+  if (active_tab_ == kShopTab || active_tab_ == kTokenTab) {
     return 0;
   }
-  return static_cast<int>(character_.stackables().size());
+  return static_cast<int>(EtcRows().size());
 }
 
 int InventoryPanel::CursorStop() const {
@@ -248,7 +276,9 @@ void InventoryPanel::MoveCursor(int delta) {
 void InventoryPanel::SortActiveTab() {
   if (active_tab_ == kEquipTab) {
     character_.SortEquipTab();
-  } else if (on_stackable_tab()) {
+  } else if (active_tab_ == kEtcTab || active_tab_ == kTokenTab) {
+    // One sort for both: it files the bag's stacks by descending count within
+    // each kind, which is each of the Token tab's columns and the Etc list.
     character_.SortStackTab();
   }
 }
@@ -269,8 +299,7 @@ void InventoryPanel::OpenStackMenu() {
   if (!Unlocked(Feature::kShop, character_, account_)) {
     sell_menu_.Hide(kStackMultiSell);
   }
-  const std::vector<StackableItem>& stacks = character_.stackables();
-  if (selected_stack_ >= static_cast<int>(stacks.size())) {
+  if (selected_stack() < 0) {
     sell_menu_.Disable(kStackSell);
     sell_menu_.Disable(kStackMultiSell);
   }
@@ -557,7 +586,38 @@ ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
   });
 }
 
+ftxui::Element InventoryPanel::RenderCurrencySheet() const {
+  const std::vector<StackableItem>& stacks = character_.stackables();
+  std::vector<int> tokens = StacksIn(stacks, StackView::kTokens);
+  std::vector<int> shards = StacksIn(stacks, StackView::kSoulShards);
+  std::vector<ftxui::Element> rows;
+  // As long as the taller column: the two run out at different heights, and
+  // the shorter one simply leaves its half of the row blank.
+  for (int i = 0; i < static_cast<int>(std::max(tokens.size(), shards.size()));
+       ++i) {
+    rows.push_back(RenderCurrencyRow(
+        i < static_cast<int>(tokens.size()) ? &stacks[tokens[i]] : nullptr,
+        i < static_cast<int>(shards.size()) ? &stacks[shards[i]] : nullptr));
+  }
+  return ftxui::vbox({
+      CurrencyHeader(),
+      PanelSeparator(highlighted_),
+      // Only the rows scroll; the header and its rule stay put. Nothing here
+      // takes focus, so the frame shows the top and the player scrolls the
+      // panel rather than a cursor.
+      ftxui::vbox(std::move(rows)) | ftxui::vscroll_indicator | ftxui::yframe |
+          ftxui::flex,
+  });
+}
+
 ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
+  // The Token tab closes behind the last token spent, which can happen at the
+  // shop with the bag still standing on it. Falling back to Equip keeps the
+  // panel on a tab the bar actually draws.
+  std::vector<int> tabs = VisibleTabs();
+  if (std::find(tabs.begin(), tabs.end(), active_tab_) == tabs.end()) {
+    active_tab_ = kEquipTab;
+  }
   // A list that emptied under the cursor -- the last equip worn, the last
   // stack sold -- has no row left to stand on, so the cursor comes back up to
   // the tab bar. Left where it was it would be in a zone that cannot draw it,
@@ -586,16 +646,18 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
     // window is taller than this one line and the line belongs at the top.
     body =
         ftxui::vbox({CenteredRow("Hit Enter to open Shop"), ftxui::filler()});
+  } else if (active_tab_ == kTokenTab) {
+    body = RenderCurrencySheet();
   } else if (active_tab_ == kEtcTab) {
-    const std::vector<StackableItem>& stacks = character_.stackables();
+    std::vector<int> rows = EtcRows();
     // Keep the cursor in range as stacks are sold off.
-    selected_stack_ = std::min(
-        selected_stack_, std::max(0, static_cast<int>(stacks.size()) - 1));
+    selected_stack_ = std::min(selected_stack_,
+                               std::max(0, static_cast<int>(rows.size()) - 1));
     // The stack cursor shows only while the list zone holds focus, so it never
     // competes with the white tab-bar highlight.
-    body =
-        RenderStackList(stacks, selected_stack_, focused && zone_ == kZoneList,
-                        cursor_box_, highlighted_, name_clock_.Elapsed());
+    body = RenderStackList(character_.stackables(), rows, selected_stack_,
+                           focused && zone_ == kZoneList, cursor_box_,
+                           highlighted_, name_clock_.Elapsed());
   } else {
     body = RenderEquipList(menu);
   }

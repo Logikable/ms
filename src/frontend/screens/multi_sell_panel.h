@@ -26,9 +26,9 @@
 
 namespace ms {
 
-// What the player has marked for sale. Equip rows are inventory indices, Etc
-// rows indices into that category's stacks. The screen is modal and nothing
-// moves under it, so a row index is identity enough.
+// What the player has marked for sale: inventory indices for the equips, and
+// indices into the character's stacks for the Etc rows. The screen is modal
+// and nothing moves under it, so an index is identity enough.
 struct SaleBasket {
   std::set<int> equips;
   std::set<int> etc;
@@ -38,10 +38,11 @@ struct SaleBasket {
   bool empty() const;
 };
 
-// What one row pays if it is sold: the whole stack for a stackable, and
-// nothing at all for a spell trace, which is a record of an item rather than
-// one.
-int64_t RowSellValue(const CharacterInstance& character, int tab, int row);
+// What one entry of the basket pays if it is sold: the whole stack for a
+// stackable, and nothing at all for the trace of a destroyed item, which is a
+// record of one rather than one. `item` is what the basket holds -- an
+// inventory index on Equip, a stack index on Etc.
+int64_t RowSellValue(const CharacterInstance& character, int tab, int item);
 
 // What everything in `basket` pays, without selling any of it.
 int64_t BasketTotal(const CharacterInstance& character,
@@ -61,9 +62,11 @@ class MultiSellPanel {
   MultiSellPanel(const CharacterInstance& character,
                  const AccountInstance& account);
 
-  // Opens the screen on `tab` with `row` marked: the item the player chose
-  // Multi-Sell on is the one thing in the basket to begin with.
-  void Reset(int tab, int row);
+  // Opens the screen on `tab` with `item` marked: what the player chose
+  // Multi-Sell on is the one thing in the basket to begin with. `item` is an
+  // inventory index on Equip and a stack index on Etc -- what the basket
+  // holds, not the row it is drawn on.
+  void Reset(int tab, int item);
   ftxui::Element Render();
   // The "Are you sure?" dialog, drawn by the caller over the list.
   ftxui::Element RenderConfirm() const;
@@ -97,6 +100,9 @@ class MultiSellPanel {
   // Whether `row` is a row at all. Everything the bag holds can be sold, so
   // nothing else stands between a row and the basket.
   bool Markable(int row) const;
+  // What the basket calls the `row`-th row of the active tab: the row itself
+  // on Equip, and the stack it names on Etc, which lists only part of them.
+  int BasketKey(int row) const;
 
   // The tab bar, with the player's meso and the running total beside it.
   ftxui::Element RenderHeader() const;

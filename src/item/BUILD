@@ -139,6 +139,27 @@ cc_test(
 )
 
 cc_library(
+    name = "stack_tabs",
+    srcs = ["stack_tabs.cc"],
+    hdrs = ["stack_tabs.h"],
+    deps = [
+        ":item",
+        "//src/protos:item_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "stack_tabs_test",
+    size = "small",
+    srcs = ["stack_tabs_test.cc"],
+    deps = [
+        ":stack_tabs",
+        "//src/protos:item_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "inventory",
     srcs = ["inventory.cc"],
     hdrs = ["inventory.h"],

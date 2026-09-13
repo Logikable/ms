@@ -439,6 +439,7 @@ cc_library(
         "//src/frontend/widgets:keys",
         "//src/frontend/widgets:marquee",
         "//src/item",
+        "//src/item:stack_tabs",
         "@ftxui//:component",
         "@ftxui//:dom",
     ],

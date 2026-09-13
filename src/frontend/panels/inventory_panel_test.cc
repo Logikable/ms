@@ -81,6 +81,23 @@ class InventoryPanelTest : public PanelTest {
     return proto;
   }
 
+  ItemPrototype MakeToken(const std::string& name, const std::string& mark) {
+    ItemPrototype proto = MakeStackable(name, ITEM_CATEGORY_ETC);
+    proto.set_kind(ITEM_KIND_TOKEN);
+    proto.set_currency_mark(mark);
+    return proto;
+  }
+
+  // Named as the catalog names a shard: in full, with the short form the
+  // Token tab's own column calls it by.
+  ItemPrototype MakeShard(const std::string& boss) {
+    ItemPrototype proto =
+        MakeStackable(boss + "'s Soul Shard", ITEM_CATEGORY_ETC);
+    proto.set_short_name(boss + "'s");
+    proto.set_kind(ITEM_KIND_SOUL_SHARD);
+    return proto;
+  }
+
   // The same bounded screen RenderComponent uses, kept so a test can read
   // pixels rather than the joined string. The bound is the point: the list
   // really does overflow and scroll at this size.
@@ -358,6 +375,110 @@ TEST_F(InventoryPanelTest, TheEmptyTabRingIsTheBarAndTheButtons) {
   // Back on the bar, so Right switches tabs rather than moving a row.
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_TRUE(panel.on_stackable_tab());
+}
+
+// --- the Token tab ---
+
+// The tab is not in the bar until the player holds a currency, and it opens
+// between Equip and Etc when they do.
+TEST_F(InventoryPanelTest, TheTokenTabWaitsForACurrency) {
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
+  EXPECT_EQ(RenderComponentText(comp).find("Token"), std::string::npos);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_TRUE(panel.on_stackable_tab()) << "Equip -> Etc, with no tab between";
+
+  c_.AddStackable(MakeShard("Zakum"), 4);
+  RenderComponentText(comp);
+  EXPECT_NE(RenderComponentText(comp).find("Token"), std::string::npos);
+  comp->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_EQ(panel.active_tab(), kTokenTab) << "Etc -> Token";
+  comp->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_EQ(panel.active_tab(), kEquipTab) << "Token -> Equip";
+}
+
+// A balance sheet rather than a shelf: neither key walks down into it, so the
+// cursor stays on the bar and the arrows keep switching tabs.
+TEST_F(InventoryPanelTest, TheTokenTabTakesNoCursor) {
+  c_.AddStackable(MakeToken("Frozen Weapon Token", "●"), 3);
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_EQ(panel.active_tab(), kTokenTab);
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_TRUE(panel.on_tab_bar());
+  EXPECT_EQ(RenderComponentText(comp).find("> Frozen"), std::string::npos);
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_TRUE(panel.on_tab_bar());
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_TRUE(panel.on_stackable_tab()) << "the bar still has the arrows";
+}
+
+// Two columns side by side, each with its count. A shard goes by its short
+// name, its column heading having said the rest.
+TEST_F(InventoryPanelTest, TheTokenTabDrawsBothColumns) {
+  c_.AddStackable(MakeToken("Frozen Weapon Token", "●"), 3);
+  c_.AddStackable(MakeShard("Zakum"), 47);
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  std::string text = RenderComponentText(comp);
+  EXPECT_NE(text.find("Soul Shard"), std::string::npos) << "the heading";
+  EXPECT_NE(text.find("Frozen Weapon Token"), std::string::npos);
+  EXPECT_NE(text.find("Zakum's"), std::string::npos);
+  EXPECT_EQ(text.find("Zakum's Soul Shard"), std::string::npos)
+      << "the column already says Soul Shard";
+  EXPECT_NE(text.find("47"), std::string::npos);
+}
+
+// The currencies moved out of Etc, which keeps the ordinary drops. The spell
+// trace is on neither tab: it is a balance in the bar.
+TEST_F(InventoryPanelTest, EtcKeepsOnlyTheOrdinaryDrops) {
+  c_.AddStackable(MakeToken("Frozen Weapon Token", "●"), 3);
+  c_.AddStackable(MakeShard("Zakum"), 47);
+  ItemPrototype trace = MakeStackable(kSpellTraceName, ITEM_CATEGORY_ETC);
+  trace.set_kind(ITEM_KIND_SPELL_TRACE);
+  c_.AddStackable(trace, 900);
+  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_TRUE(panel.on_stackable_tab());
+  std::string text = RenderComponentText(comp);
+  EXPECT_NE(text.find("Red Shell"), std::string::npos);
+  EXPECT_EQ(text.find("Frozen Weapon Token"), std::string::npos);
+  EXPECT_EQ(text.find("Zakum"), std::string::npos);
+  EXPECT_EQ(text.find(kSpellTraceName), std::string::npos);
+
+  // And the cursor on the one row it has names that stack, not the fourth
+  // thing the bag happens to hold.
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(c_.stackables()[panel.selected_stack()].name(), "Red Shell");
+}
+
+// Sort files both columns, each from most to fewest.
+TEST_F(InventoryPanelTest, SortFilesBothTokenColumns) {
+  c_.AddStackable(MakeToken("AbsoLab Coin", "◆"), 2);
+  c_.AddStackable(MakeToken("Frozen Weapon Token", "●"), 9);
+  c_.AddStackable(MakeShard("Hilla"), 1);
+  c_.AddStackable(MakeShard("Zakum"), 8);
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_EQ(panel.active_tab(), kTokenTab);
+  panel.OpenTabMenu();
+  panel.OnTabMenuEvent(ftxui::Event::Return);
+
+  std::string text = RenderComponentText(comp);
+  EXPECT_LT(text.find("Frozen Weapon Token"), text.find("AbsoLab Coin"));
+  EXPECT_LT(text.find("Zakum's"), text.find("Hilla's"));
 }
 
 // --- the Expand tab ---

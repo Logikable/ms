@@ -28,11 +28,15 @@ namespace ms {
 // The bag's tabs, in bar order. Multi-Sell shows every one but the shop.
 enum InventoryTab : int {
   kEquipTab = 0,
-  kEtcTab = 1,
+  // Every currency but meso, read-only: what the player has to spend, rather
+  // than anything they can act on. It sits before Etc because a currency is
+  // worth more of a glance than a drop is.
+  kTokenTab = 1,
+  kEtcTab = 2,
   // Not a list of anything the player owns -- it is the door to the shop, and
   // sits last because it is the only tab that leaves the panel.
-  kShopTab = 2,
-  kNumInventoryTabs = 3,
+  kShopTab = 3,
+  kNumInventoryTabs = 4,
 };
 
 extern const char* const kInventoryTabLabels[kNumInventoryTabs];
@@ -64,6 +68,14 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
                               ftxui::Element lead = nullptr,
                               ftxui::Element tail = nullptr,
                               int body_width = 0);
+
+// The header over the Token tab, and one row of it. The tab is two lists side
+// by side -- the shop's currencies, then the bosses' soul shards -- so a row
+// carries one of each, and either may be null where that column has run out.
+// Nothing is ever selected there, so neither takes a cursor.
+ftxui::Element CurrencyHeader();
+ftxui::Element RenderCurrencyRow(const StackableItem* token,
+                                 const StackableItem* shard);
 
 // The header over an Etc list, and one row of one.
 ftxui::Element StackHeader(ftxui::Element lead = nullptr,
