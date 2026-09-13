@@ -549,12 +549,15 @@ TEST_F(BossDataTest, PrincessNoIsOneBodyOverAClimbableRoom) {
     EXPECT_EQ(normal.phases(0).player_spots(i).x(), kSpots[i].first) << i;
     EXPECT_EQ(normal.phases(0).player_spots(i).y(), kSpots[i].second) << i;
   }
-  // The whole Sengoku Treasure Set in one clear, and her own shard.
-  ASSERT_EQ(normal.drops_size(), 4);
+  // The whole Sengoku Treasure Set in one clear, her own shard, and the
+  // fragment fifteen of which buy one of her secondaries.
+  ASSERT_EQ(normal.drops_size(), 5);
   EXPECT_EQ(normal.drops(0).equip(), "kannas_treasure");
   EXPECT_EQ(normal.drops(1).equip(), "ayames_treasure");
   EXPECT_EQ(normal.drops(2).equip(), "hayatos_treasure");
   EXPECT_EQ(normal.drops(3).item(), "princess_nos_soul_shard");
+  EXPECT_EQ(normal.drops(4).item(), "captivating_fragment");
+  EXPECT_EQ(normal.drops(4).per_kill(), 1.0);
 }
 
 // The multiplayer fight of this release: three bodies summing 1.575T behind

@@ -368,8 +368,8 @@ constexpr int kRootAbyssLevel = 200;
 
 // The Root Abyss set the branch wears, worn over the Frozen tier: three pieces
 // of armour and the weapon, which supersede the Frozen hat, top, bottom and
-// weapon. Nothing here fills the off-hand, so the Frozen secondary stays on
-// and the Frozen set keeps paying at four pieces.
+// weapon. Nothing here fills the off-hand -- Princess No's secondary does,
+// below, off a fight opening at the same level.
 std::vector<std::string> RootAbyssArmour(Job job) {
   switch (BranchOf(job)) {
     case JobBranch::kWarrior:
@@ -424,6 +424,37 @@ std::vector<std::string> RootAbyssGear(Job job) {
     names.push_back(std::move(weapon));
   }
   return names;
+}
+
+// The off-hand Princess No's fragments buy, which is the first thing to
+// supersede the Frozen secondary. She opens at 200 as the Chaos Root Abyss
+// does, so one gate arms both; it belongs to no set, so the Frozen set is a
+// piece poorer for it. Empty below the 4th job, as the Root Abyss weapon is.
+std::vector<std::string> PrincessNoSecondary(Job job) {
+  switch (job) {
+    case JOB_HERO:
+      return {"princess_nos_medal"};
+    case JOB_PALADIN:
+      return {"princess_nos_rosary"};
+    case JOB_DARK_KNIGHT:
+      return {"princess_nos_flower_chain"};
+    case JOB_FIRE_POISON_ARCH_MAGE:
+      return {"princess_nos_flaming_book"};
+    case JOB_ICE_LIGHTNING_ARCH_MAGE:
+      return {"princess_nos_damp_book"};
+    case JOB_BISHOP:
+      return {"princess_nos_golden_book"};
+    case JOB_BOW_MASTER:
+      return {"princess_nos_feather"};
+    case JOB_MARKSMAN:
+      return {"princess_nos_wreath"};
+    case JOB_NIGHT_LORD:
+      return {"princess_nos_charm"};
+    case JOB_SHADOWER:
+      return {"princess_nos_purple_shadow"};
+    default:
+      return {};
+  }
 }
 
 // The level Damien and Lotus open at, and so the earliest anybody can own what
@@ -682,6 +713,7 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   // other way round.
   if (state.character.proto().level() >= kRootAbyssLevel) {
     WearAll(state, RootAbyssGear(state.character.proto().job()), equips);
+    WearAll(state, PrincessNoSecondary(state.character.proto().job()), equips);
   }
   if (state.character.proto().level() >= kAbsoLabLevel) {
     WearAll(state, AbsoLabGear(state.character.proto().job()), equips);
@@ -1009,9 +1041,11 @@ int OwnedFromLevel(const EquipPrototype& proto) {
     return kAbsoLabLevel;
   }
   // The four Chaos Root Abyss Pieces, which are the only tokens named this
-  // way. The Frozen tokens and the Cygnus one come off fights open well below
-  // the gear they buy, so they gate nothing.
-  if (proto.token_item().rfind("piece_of_", 0) == 0) {
+  // way, and Princess No's fragment, which comes off a fight opening at the
+  // same level. The Frozen tokens and the Cygnus one come off fights open well
+  // below the gear they buy, so they gate nothing.
+  if (proto.token_item().rfind("piece_of_", 0) == 0 ||
+      proto.token_item() == "captivating_fragment") {
     return kRootAbyssLevel;
   }
   return proto.required_level();

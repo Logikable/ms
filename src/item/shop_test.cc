@@ -196,9 +196,10 @@ TEST(ShopTest, TheTokenShelvesHoldWhatATokenBuys) {
   std::vector<std::string> worn = ShopEquipStock(equips, kPaidInTokens);
   EXPECT_EQ(weapons.size(), 30u) << "a weapon per type at each of the three "
                                     "token tiers";
-  EXPECT_EQ(worn.size(), 54u)
-      << "ten Frozen off-hands, four Cygnus shoulders, and three pieces of "
-         "Root Abyss and seven of AbsoLab armour per branch";
+  EXPECT_EQ(worn.size(), 64u)
+      << "ten Frozen and ten Princess No off-hands, four Cygnus shoulders, "
+         "and three pieces of Root Abyss and seven of AbsoLab armour per "
+         "branch";
   for (const std::vector<std::string>& shelf : {weapons, worn}) {
     for (const std::string& key : shelf) {
       const EquipPrototype& proto = equips.at(key);

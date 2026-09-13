@@ -227,10 +227,10 @@ TEST(EquipDataTest, SecondariesTakeNoUpgrades) {
 // One per branch at every tier, and no branch left out. A missing one is a 2nd
 // job with a level it cannot re-arm its off hand at. The two shelves are
 // counted apart: what meso buys climbs in tiers, and what a token buys is the
-// one Frozen piece.
+// Frozen piece and Princess No's above it.
 TEST(EquipDataTest, EverySecondJobHasEveryTier) {
   const std::vector<int> kMesoTiers{30, 60, 100};
-  const std::vector<int> kTokenTiers{120};
+  const std::vector<int> kTokenTiers{120, 140};
   std::map<JobAdvancement, std::vector<int>> meso;
   std::map<JobAdvancement, std::vector<int>> token;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -256,9 +256,10 @@ TEST(EquipDataTest, EverySecondJobHasEveryTier) {
     std::sort(own.begin(), own.end());
     EXPECT_EQ(own, kMesoTiers)
         << JobAdvancement_Name(advancement) << " has the wrong secondaries";
-    EXPECT_EQ(token[advancement], kTokenTiers)
-        << JobAdvancement_Name(advancement)
-        << " has the wrong Frozen secondary";
+    std::vector<int>& bought = token[advancement];
+    std::sort(bought.begin(), bought.end());
+    EXPECT_EQ(bought, kTokenTiers) << JobAdvancement_Name(advancement)
+                                   << " has the wrong token secondaries";
   }
 }
 

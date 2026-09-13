@@ -192,10 +192,10 @@ TEST_F(WorkbenchGearTest, EveryJobPastTheFirstWearsAnOffHand) {
 // The Frozen set drops rather than sells, so the workbench is the only place
 // so much of it is ever seen. A 3rd job at 100 reaches the four armour pieces
 // inside its level and keeps its meso weapon and off-hand. A 4th job at 200
-// adds the two that ask for 140 and the off-hand the token shelf sells, but
-// hands the hat, top, bottom and weapon over to the Root Abyss set -- four
-// apiece. A 5th job at the cap keeps only the off-hand: AbsoLab takes the
-// cape, the gloves and the boots as well. Under the 3rd job, none.
+// adds the two that ask for 140 but hands the hat, top, bottom and weapon over
+// to the Root Abyss set and the off-hand to Princess No -- three left, the
+// cape, the gloves and the boots. A 5th job at the cap wears none of it:
+// AbsoLab takes those three as well. Under the 3rd job, none either.
 TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
   for (JobAdvancement advancement : EveryAdvancement()) {
     GameState state = Workbench(advancement);
@@ -206,7 +206,7 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
       frozen += IsFrozen(worn.second.prototype()) ? 1 : 0;
     }
     int stage = StageForAdvancement(advancement);
-    EXPECT_EQ(frozen, stage < 3 ? 0 : stage < 5 ? 4 : 1);
+    EXPECT_EQ(frozen, stage == 3 ? 4 : stage == 4 ? 3 : 0);
   }
 }
 

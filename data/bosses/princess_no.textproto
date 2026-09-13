@@ -53,4 +53,10 @@ difficulties {
     item: "princess_nos_soul_shard"
     per_kill: 1.0
   }
+  # Fifteen buys one of her secondaries, so a whole one is a fortnight of
+  # clears -- the same price the Root Abyss pieces ask for a Fafnir weapon.
+  drops {
+    item: "captivating_fragment"
+    per_kill: 1.0
+  }
 }
