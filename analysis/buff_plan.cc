@@ -24,26 +24,37 @@ namespace {
 // run is not worth taking a star off the weapon for.
 constexpr double kBuyMargin = 2.0;
 
-// The meso a second the encounter pays with the Wealth Acquisition Potion
-// switched the way it is asked about. Switched back before returning: this is
-// a question, not a move.
-double RateWithWealthPotion(GameState& state, bool on,
-                            absl::Span<const Mob* const> mobs,
-                            absl::Span<const double> kills_per_second) {
+// The meso a second `kills` pays the character as they stand.
+double RateFor(GameState& state, absl::Span<const Mob* const> mobs,
+               absl::Span<const double> kills) {
+  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+  return BuffMesoPerSecond(mobs, kills, MesoBonus(derived),
+                           derived.meso_final_mult, derived.item_drop_pct);
+}
+
+// What switching the Wealth Acquisition Potion on adds to that. Switched back
+// before returning: this is a question, not a move.
+double WealthPotionGain(GameState& state, const BuffYield& yield) {
   CharacterInstance& character = state.character;
   bool was =
       character.ConsumableActive(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
-  if (was != on) {
-    character.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  character.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  double flipped = RateFor(state, yield.mobs, yield.kills_per_second);
+  character.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  double standing = RateFor(state, yield.mobs, yield.kills_per_second);
+  return was ? standing - flipped : flipped - standing;
+}
+
+// And what planting the totem adds: the kills it buys, valued at whatever the
+// character's %meso and drop rate are worth. The EXP and the drops those kills
+// also pay are gravy the decision does not need -- the rent clears on the meso
+// alone or it does not clear at all.
+double WildTotemGain(GameState& state, const BuffYield& yield) {
+  if (yield.kills_with_totem.empty()) {
+    return 0.0;
   }
-  DerivedStats derived = DerivedStatsFor(character, state.skills);
-  double rate =
-      BuffMesoPerSecond(mobs, kills_per_second, MesoBonus(derived),
-                        derived.meso_final_mult, derived.item_drop_pct);
-  if (was != on) {
-    character.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
-  }
-  return rate;
+  return RateFor(state, yield.mobs, yield.kills_with_totem) -
+         RateFor(state, yield.mobs, yield.kills_without_totem);
 }
 
 // Whether the Extreme Green Potion would actually buy the character a stage.
@@ -108,9 +119,27 @@ double BuffMesoPerSecond(absl::Span<const Mob* const> mobs,
   return total * (1.0 + meso_pct) * meso_mult;
 }
 
+// Whether `info` goes on, and what its rent is worth against. Each buff is a
+// different question, so each answers its own.
+bool WorthSwitchingOn(GameState& state, const BuffYield& yield,
+                      const ConsumableInfo& info) {
+  switch (info.type) {
+    case CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION:
+      // The map decides: a potion that drinks more than the crowd pays is one
+      // the player puts away until they are somewhere worth drinking it.
+      return WealthPotionGain(state, yield) > info.price;
+    case CONSUMABLE_TYPE_WILD_TOTEM:
+      return WildTotemGain(state, yield) > info.price;
+    default:
+      // A stage of attack speed against a million meso, in a fight whose clear
+      // is worth many times that: it goes on whenever it is worth a stage at
+      // all, and it is worth nothing to a character already at the ceiling.
+      return RaisesTheStage(state);
+  }
+}
+
 void PlanBuffs(GameState& state, const BuffPolicy& policy,
-               absl::Span<const Mob* const> mobs,
-               absl::Span<const double> kills_per_second, BuffSpend* spend) {
+               const BuffYield& yield, BuffSpend* spend) {
   CharacterInstance& character = state.character;
   int level = character.proto().level();
   for (const ConsumableInfo& info : AllConsumables()) {
@@ -121,26 +150,15 @@ void PlanBuffs(GameState& state, const BuffPolicy& policy,
       SetBuff(character, info.type, false);
       continue;
     }
-    if (info.per_second) {
-      // The map decides: a buff that drinks more than the crowd pays is one
-      // the player puts away until they are somewhere worth drinking it.
-      double gain = RateWithWealthPotion(state, true, mobs, kills_per_second) -
-                    RateWithWealthPotion(state, false, mobs, kills_per_second);
-      bool worth = gain > info.price;
-      SetBuff(character, info.type, worth);
-      if (worth) {
-        BuyIfWorthIt(state, policy, info, info.price, spend);
-      }
+    SetBuff(character, info.type, WorthSwitchingOn(state, yield, info));
+    if (!character.ConsumableActive(info.type)) {
       continue;
     }
-    // A stage of attack speed against a million meso, in a fight whose clear
-    // is worth many times that: it goes on whenever it is worth a stage at
-    // all, and it is worth nothing to a character already at the ceiling.
-    SetBuff(character, info.type, RaisesTheStage(state));
-    if (character.ConsumableActive(info.type)) {
-      BuyIfWorthIt(state, policy, info,
-                   info.price * policy.boss_entries_per_second, spend);
-    }
+    // What the rent comes to a second, which for a buff charged at a boss door
+    // is its price over how often the player walks through one.
+    double rent = info.per_second ? info.price
+                                  : info.price * policy.boss_entries_per_second;
+    BuyIfWorthIt(state, policy, info, rent, spend);
   }
 }
 

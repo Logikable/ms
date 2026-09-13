@@ -71,12 +71,26 @@ double BuffMesoPerSecond(absl::Span<const Mob* const> mobs,
                          absl::Span<const double> kills_per_second,
                          double meso_pct, double meso_mult, double drop_pct);
 
+// What the encounter in front of the character kills, which is what the buffs
+// are weighed against. `mobs` and `kills_per_second` are parallel.
+struct BuffYield {
+  absl::Span<const Mob* const> mobs;
+  absl::Span<const double> kills_per_second;
+  // The same rate measured twice more, with the beat at its full length and
+  // with the Wild Totem's halved one. No arithmetic over the rate above can
+  // stand in for the pair: the totem doubles how often the map puts a monster
+  // up, and a character who was never waiting on that kills exactly as much as
+  // before. Both empty when the caller did not measure them, which reads as
+  // the totem being worth nothing.
+  absl::Span<const double> kills_without_totem;
+  absl::Span<const double> kills_with_totem;
+};
+
 // Takes the buff decisions for the character as they stand, switching each on
 // or off and buying what is worth buying. Called at a look, beside the rest of
 // the player's shopping.
 void PlanBuffs(GameState& state, const BuffPolicy& policy,
-               absl::Span<const Mob* const> mobs,
-               absl::Span<const double> kills_per_second, BuffSpend* spend);
+               const BuffYield& yield, BuffSpend* spend);
 
 // Charges the buffs for `seconds` of farming. The sim jumps whole stretches
 // rather than ticking, so it pays for them here rather than through

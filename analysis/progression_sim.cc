@@ -112,12 +112,14 @@
 #include "analysis/sim_world.h"
 #include "analysis/skill_plan.h"
 #include "src/character/character.h"
+#include "src/character/consumables.h"
 #include "src/character/exp_table.h"
 #include "src/character/honor.h"
 #include "src/character/inner_ability.h"
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
 #include "src/combat/combat.h"
+#include "src/combat/constants.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/combat/loot.h"
@@ -1203,8 +1205,14 @@ BuffPolicy BuffPolicyFor(const Session& run) {
 }
 
 // Takes the buff decisions on the encounter the character is standing in. The
-// rates come off the yield already measured for the stretch ahead, so this
-// costs no fight of its own.
+// rates come off the yield already measured for the stretch ahead, so the
+// potions cost no fight of their own.
+//
+// The totem is the exception: what it is worth is the kills a halved beat
+// buys, and the only thing that knows those is the fight. So once the level
+// has opened it, the encounter is played out a second time with the shorter
+// beat -- a character who was never waiting on the respawn comes back with
+// the same rate and the totem stays in the bag.
 void PlanBuffsFor(Session& run, const CombatParams& params,
                   const Yield& yield) {
   std::vector<const Mob*> mobs;
@@ -1212,9 +1220,30 @@ void PlanBuffsFor(Session& run, const CombatParams& params,
   for (const CombatType& type : params.types) {
     mobs.push_back(type.mob);
   }
-  PlanBuffs(run.state, BuffPolicyFor(run), absl::MakeConstSpan(mobs),
-            absl::MakeConstSpan(yield.kills_per_second),
-            &run.climb.ledger.buffs);
+  BuffYield rates;
+  rates.mobs = absl::MakeConstSpan(mobs);
+  rates.kills_per_second = absl::MakeConstSpan(yield.kills_per_second);
+  // The yield already covers one side of the totem's question -- whichever
+  // beat the character is standing on -- so only the other side is played out.
+  Yield counter;
+  const ConsumableInfo* totem = ConsumableInfoFor(CONSUMABLE_TYPE_WILD_TOTEM);
+  if (totem != nullptr &&
+      run.state.character.proto().level() >= totem->unlock_level) {
+    bool planted =
+        run.state.character.ConsumableInEffect(CONSUMABLE_TYPE_WILD_TOTEM);
+    CombatParams other = params;
+    other.respawn_seconds =
+        (planted ? kRespawnIntervalSeconds : kWildTotemRespawnSeconds) *
+        GameSpeedFactor(run.state.character.proto().level());
+    counter = MeasureYield(run.state, other, run.beats, run.step);
+    if (!counter.died) {
+      rates.kills_without_totem = absl::MakeConstSpan(
+          planted ? counter.kills_per_second : yield.kills_per_second);
+      rates.kills_with_totem = absl::MakeConstSpan(
+          planted ? yield.kills_per_second : counter.kills_per_second);
+    }
+  }
+  PlanBuffs(run.state, BuffPolicyFor(run), rates, &run.climb.ledger.buffs);
 }
 
 // What the shopper needs to price a %meso or %drop potential line: those pay
