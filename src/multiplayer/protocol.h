@@ -19,7 +19,12 @@ namespace ms {
 // two ends disagreeing about what that boss is would be worse than not
 // connecting. Bump it when either changes; a client that does not match is
 // turned away and told to update.
-inline constexpr int kMultiplayerVersion = 2;
+//
+// The data half is the easy one to forget, and forgetting it is silent: a
+// release once played for days against a server whose boss table gave Cygnus
+// a fifteen-minute clock where the clients' gave her ten. Anything under
+// data/bosses or data/mobs is the protocol too.
+inline constexpr int kMultiplayerVersion = 3;
 
 // Where the server runs. The client's --server flag overrides both. A build
 // made without multiplayer carries no address at all -- there is nothing in
