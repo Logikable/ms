@@ -54,19 +54,50 @@ uint32_t Mixed(int id, int step) {
   return h;
 }
 
-// Where a monster that walks stands after `steps` of them, having started on
-// `home`. Each step is one of the cells it is not already on, so it is never a
-// step that leaves it where it was.
-int SteppedX(int id, int steps, int width, int home) {
-  if (width < 2 || steps <= 0) {
-    return home;
+bool PlayerMayStand(const BossPhase& phase, int x, int y) {
+  for (const ArenaSpot& spot : phase.player_spots()) {
+    if (spot.x() == x && spot.y() == y) {
+      return true;
+    }
   }
-  int x = std::clamp(home, 0, width - 1);
-  for (int step = 1; step <= steps; ++step) {
-    int pick = static_cast<int>(Mixed(id, step) % (width - 1));
-    x = pick >= x ? pick + 1 : pick;
+  return false;
+}
+
+// Everywhere one step of `walk` could carry a monster standing on (x, y),
+// inside an arena `width` by `height`. Never the cell it is already on, so a
+// step always moves it, and never one the player may stand on, since the arena
+// draws one bar per cell.
+std::vector<ArenaSpot> WalkTargets(const BossPhase& phase,
+                                   const ArenaWalk& walk, int x, int y,
+                                   int width, int height) {
+  std::vector<ArenaSpot> targets;
+  std::vector<ArenaSpot> tried;
+  if (walk.range() == ArenaWalk::RANGE_STEP) {
+    const int kSteps[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+    for (const int (&step)[2] : kSteps) {
+      ArenaSpot to;
+      to.set_x(x + step[0]);
+      to.set_y(y + step[1]);
+      tried.push_back(to);
+    }
+  } else {
+    for (int cell = 0; cell < width; ++cell) {
+      ArenaSpot to;
+      to.set_x(cell);
+      to.set_y(y);
+      tried.push_back(to);
+    }
   }
-  return x;
+  for (const ArenaSpot& to : tried) {
+    if (to.x() < 0 || to.x() >= width || to.y() < 0 || to.y() >= height) {
+      continue;
+    }
+    if ((to.x() == x && to.y() == y) || PlayerMayStand(phase, to.x(), to.y())) {
+      continue;
+    }
+    targets.push_back(to);
+  }
+  return targets;
 }
 
 }  // namespace
@@ -388,24 +419,47 @@ void BossRun::FillSlots(const CombatParams& params) {
       slot_of_mob_[mob.id] = slot;
       mob_of_slot_[slot] = mob.id;
     }
-    slots_.push_back({mob.id, mob.name, spot.x(), spot.y(), spot.x(),
-                      params.types[mob.type].move_interval_seconds,
-                      mob.hp_fraction, true, true});
+    BossSlot bar;
+    bar.id = mob.id;
+    bar.name = mob.name;
+    bar.x = spot.x();
+    bar.y = spot.y();
+    bar.walk = params.types[mob.type].walk;
+    bar.hp_fraction = mob.hp_fraction;
+    slots_.push_back(std::move(bar));
   }
 }
 
+void BossRun::StepSlot(const BossPhase& phase, BossSlot& slot) {
+  std::vector<ArenaSpot> targets = WalkTargets(phase, slot.walk, slot.x, slot.y,
+                                               arena_width(), arena_height());
+  if (targets.empty()) {
+    return;
+  }
+  // Drawn off the step it is, not rolled: every client walks it the same way.
+  const ArenaSpot& to =
+      targets[Mixed(slot.id, slot.steps_taken + 1) % targets.size()];
+  slot.x = to.x();
+  slot.y = to.y();
+}
+
 void BossRun::DriftSlots() {
-  int width = arena_width();
+  const BossPhase* phase = current_phase();
+  if (phase == nullptr) {
+    return;
+  }
   double limit = difficulty() == nullptr
                      ? 0.0
                      : static_cast<double>(difficulty()->time_limit_seconds());
   double elapsed = std::max(0.0, limit - seconds_left_);
   for (BossSlot& slot : slots_) {
-    if (slot.move_interval_seconds <= 0) {
+    if (slot.walk.interval_ms() <= 0) {
       continue;
     }
-    int steps = static_cast<int>(elapsed / slot.move_interval_seconds);
-    slot.x = SteppedX(slot.id, steps, width, slot.home_x);
+    int steps = static_cast<int>(elapsed * 1000.0 / slot.walk.interval_ms());
+    for (; slot.steps_taken < steps; ++slot.steps_taken) {
+      StepSlot(*phase, slot);
+    }
   }
 }
 

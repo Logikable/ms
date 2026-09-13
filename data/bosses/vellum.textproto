@@ -10,7 +10,7 @@ difficulties {
     spawns {
       mob: "chaos_vellum"
       spots { x: 4 y: 4 }
-      move_interval_seconds: 30
+      walk { interval_ms: 30000 range: RANGE_ROW }
     }
     # The floor under the boss, walked end to end.
     player_spots { x: 4 y: 5 }

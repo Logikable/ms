@@ -27,6 +27,29 @@ message ArenaSpot {
   int32 y = 2;
 }
 
+// How a monster moves around a boss arena. Where each step lands is drawn off
+// the run's own clock rather than rolled, so every client of a shared fight
+// draws it in the same place with nothing sent between them. Scenery: an
+// arena cell gates nothing, and a fight is the same fight whichever cell it is
+// fought in.
+//
+// A step never lands on a cell the phase lets a player stand on. The arena
+// draws one bar per cell, and a monster sharing one with the player would
+// stand on top of them.
+message ArenaWalk {
+  // Milliseconds between steps. 0 stands still, as an unset walk does.
+  int32 interval_ms = 1;
+  // How far one step may carry it.
+  enum Range {
+    RANGE_UNSPECIFIED = 0;
+    // Any other cell of the row it spawned on. Vellum paces his floor.
+    RANGE_ROW = 1;
+    // One cell up, down, left or right. Papulatus roams his whole room.
+    RANGE_STEP = 2;
+  }
+  Range range = 2;
+}
+
 // A mob type and how many of it stand in one encounter. Shared by the maps,
 // where the count is a map's spawn points, and by the boss phases, where it is
 // how many come out at once.
@@ -39,14 +62,9 @@ message Spawn {
   // count, and a phase cannot write a different number of each. Empty on a
   // map, which has no arena to stand anyone in.
   repeated ArenaSpot spots = 3;
-  // Seconds between this monster stepping to another cell on the row it
-  // started on. 0 stands still, which is nearly every monster.
-  //
-  // Where it lands is drawn off the run's own clock rather than rolled, so
-  // every client of a shared fight draws it in the same place with nothing
-  // sent between them. Scenery: an arena cell gates nothing, and a fight is
-  // the same fight whichever cell it is fought in.
-  int32 move_interval_seconds = 4;
+  // How this monster wanders its arena. Unset stands still, which is nearly
+  // every monster.
+  ArenaWalk walk = 4;
 }
 
 // Static definition of a monster type. Loaded from data/mobs textprotos at

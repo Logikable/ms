@@ -3,10 +3,12 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <cstdlib>
 #include <map>
 #include <memory>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "src/character/honor.h"
@@ -325,7 +327,8 @@ TEST(BossRunTest, AMonsterWithAnIntervalWalksItsRowAndTheRestStandStill) {
   Boss boss = TwoPhaseBoss();
   Spawn* arms =
       boss.mutable_difficulties(0)->mutable_phases(0)->mutable_spawns(0);
-  arms->set_move_interval_seconds(30);
+  arms->mutable_walk()->set_interval_ms(30000);
+  arms->mutable_walk()->set_range(ArenaWalk::RANGE_ROW);
   // A second spawn that was told nothing, to stand still beside it.
   Spawn* still = boss.mutable_difficulties(0)->mutable_phases(0)->add_spawns();
   still->set_mob("arm");
@@ -363,7 +366,8 @@ TEST(BossRunTest, TheWalkIsTheSameOnEveryClientAndOnlyMovesOnTheBeat) {
   boss.mutable_difficulties(0)
       ->mutable_phases(0)
       ->mutable_spawns(0)
-      ->set_move_interval_seconds(30);
+      ->mutable_walk()
+      ->set_interval_ms(30000);
   BossRun first("zakum", boss, 0);
   BossRun second("zakum", boss, 0);
   first.Advance(*first_state, kBossCountdownSeconds);
@@ -380,6 +384,74 @@ TEST(BossRunTest, TheWalkIsTheSameOnEveryClientAndOnlyMovesOnTheBeat) {
   second.Advance(*second_state, 30.5);
   EXPECT_EQ(second.slots()[0].x, first.slots()[0].x);
   EXPECT_EQ(second.slots()[1].x, first.slots()[1].x);
+}
+
+// Papulatus's roam: a monster whose walk steps rather than paces moves one
+// cell at a time, in any of the four directions, and never onto a cell the
+// player may stand on.
+TEST(BossRunTest, ASteppingMonsterRoamsTheRoomAndKeepsOffThePlayersCells) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = TwoPhaseBoss();
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  phase->set_arena_width(5);
+  phase->set_arena_height(3);
+  phase->clear_player_spots();
+  for (int x = 0; x < 5; x += 2) {
+    ArenaSpot* stand = phase->add_player_spots();
+    stand->set_x(x);
+    stand->set_y(2);
+  }
+  Spawn* arms = phase->mutable_spawns(0);
+  arms->mutable_walk()->set_interval_ms(500);
+  arms->mutable_walk()->set_range(ArenaWalk::RANGE_STEP);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+
+  std::set<std::pair<int, int>> seen;
+  int last_x = run.slots()[0].x;
+  int last_y = run.slots()[0].y;
+  for (int step = 0; step < 200; ++step) {
+    run.Advance(*state, 0.5);
+    const BossSlot& slot = run.slots()[0];
+    EXPECT_EQ(std::abs(slot.x - last_x) + std::abs(slot.y - last_y), 1)
+        << "step " << step << " was not one cell";
+    EXPECT_GE(slot.x, 0);
+    EXPECT_LT(slot.x, 5);
+    EXPECT_GE(slot.y, 0);
+    EXPECT_LT(slot.y, 3);
+    EXPECT_FALSE(slot.y == 2 && slot.x % 2 == 0)
+        << "it stood where the player stands";
+    seen.insert({slot.x, slot.y});
+    last_x = slot.x;
+    last_y = slot.y;
+  }
+  // Everywhere but the three cells the player holds.
+  EXPECT_EQ(seen.size(), 12u);
+}
+
+// Two runs of the same stepping fight walk the monster the same way, and a
+// run that is stepped in one go lands where one stepped beat by beat does.
+TEST(BossRunTest, TheRoamIsTheSameOnEveryClientHoweverItIsStepped) {
+  std::unique_ptr<GameState> beat_state = MakeState(1000000000, 1);
+  std::unique_ptr<GameState> leap_state = MakeState(1000000000, 1);
+  Boss boss = TwoPhaseBoss();
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  phase->set_arena_width(5);
+  phase->set_arena_height(3);
+  Spawn* arms = phase->mutable_spawns(0);
+  arms->mutable_walk()->set_interval_ms(500);
+  arms->mutable_walk()->set_range(ArenaWalk::RANGE_STEP);
+  BossRun beat("zakum", boss, 0);
+  BossRun leap("zakum", boss, 0);
+  beat.Advance(*beat_state, kBossCountdownSeconds);
+  leap.Advance(*leap_state, kBossCountdownSeconds);
+
+  for (int step = 0; step < 40; ++step) {
+    beat.Advance(*beat_state, 0.5);
+  }
+  leap.Advance(*leap_state, 20.0);
+  EXPECT_EQ(leap.slots()[0].x, beat.slots()[0].x);
+  EXPECT_EQ(leap.slots()[0].y, beat.slots()[0].y);
 }
 
 // A dead bar holds its slot for a beat and then leaves it empty: the arms

@@ -124,13 +124,16 @@ struct BossSlot {
   int id = 0;
   std::string name;
   // Where this one stands. It begins on the cell the phase spawned it on and
-  // stays there, unless it is one of the few that walk: see home_x.
+  // stays there, unless it is one of the few that walk: see walk.
   int x = 0;
   int y = 0;
-  // The cell it spawned on, and the seconds between its steps along the row.
-  // 0 seconds is a monster that stands still, which is all of them but Vellum.
-  int home_x = 0;
-  int move_interval_seconds = 0;
+  // How it wanders, and how many steps of that walk are already behind it.
+  // An unset walk stands still, which is all of them but Vellum and
+  // Papulatus. The count is kept so a step costs one step's work: a boss that
+  // moves twice a second has thousands of them behind him by the end of a
+  // long clock, and every one would be walked again on every frame otherwise.
+  ArenaWalk walk;
+  int steps_taken = 0;
   double hp_fraction = 0.0;
   bool alive = true;
   // False once the dead bar's hold has run out. The slot stays in the list --
@@ -311,6 +314,9 @@ class BossRun {
   // Walks whatever walks to where the run's clock says it stands. Called after
   // the slots are in step with the roster, alone and in a shared fight both.
   void DriftSlots();
+  // Takes `slot` one step of its walk, to wherever the run's clock sends it.
+  // Stands it still when its walk has nowhere to go.
+  void StepSlot(const BossPhase& phase, BossSlot& slot);
   // What is left of the phase, over what it holds when full.
   void ComputePhaseHp(const CombatParams& params);
   // Steps one phase of the fight forward, moving on when it empties.

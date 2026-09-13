@@ -815,7 +815,7 @@ void AddTypes(const GameState& state,
     type.mob = &mob_it->second;
     type.simultaneous = SpawnCount(spawn);
     type.spots.assign(spawn.spots().begin(), spawn.spots().end());
-    type.move_interval_seconds = spawn.move_interval_seconds();
+    type.walk = spawn.walk();
     type.damage_to_player = ExpectedDamageTaken(defense, *type.mob);
     type.damage_to_player_scarred = ExpectedDamageTaken(scarred, *type.mob);
     params.types.push_back(std::move(type));

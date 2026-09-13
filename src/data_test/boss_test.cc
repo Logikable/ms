@@ -679,8 +679,8 @@ TEST_F(BossDataTest, RootAbyssIsFourBodiesBehindClimbingDefence) {
     EXPECT_EQ(SpawnCount(chaos.phases(0).spawns(0)), 1) << want.boss;
     EXPECT_EQ(chaos.phases(0).spawns(0).mob(), want.mob) << want.boss;
     // Vellum walks his row; the others stand still.
-    EXPECT_EQ(chaos.phases(0).spawns(0).move_interval_seconds(),
-              want.boss == "vellum" ? 30 : 0)
+    EXPECT_EQ(chaos.phases(0).spawns(0).walk().interval_ms(),
+              want.boss == "vellum" ? 30000 : 0)
         << want.boss;
     const Mob& mob = mobs_.at(want.mob);
     EXPECT_EQ(mob.level(), 190) << want.boss;
