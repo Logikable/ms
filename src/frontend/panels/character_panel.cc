@@ -61,7 +61,7 @@ ftxui::Element CenteredCell(const std::string& label,
 
 // The outer tab labels, indexed by CharacterPanel::Tab.
 const char* kTabLabels[] = {"Stats",   "Skills", "Hyper",
-                            "Ability", "Pots",   "Advance"};
+                            "Ability", "Buffs",  "Advance"};
 
 // The Farm/Boss row, which names the two Hyper Stat allocations wherever the
 // player meets them.
@@ -261,11 +261,11 @@ std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
   if (character_.inner_ability_unlocked()) {
     tabs.push_back(kTabAbility);
   }
-  // Pots is gated on this character too, and for the same reason: a pot below
+  // Buffs is gated on this character too, and for the same reason: a pot below
   // its own level refuses to be switched on and refuses to be bought, whoever
   // else on the account has been there.
   if (character_.consumables_unlocked()) {
-    tabs.push_back(kTabPots);
+    tabs.push_back(kTabBuffs);
   }
   // The Advance tab exists only while there is an advancement to take, so it
   // arrives at level 10 and is gone the moment the player picks a job.
@@ -299,7 +299,7 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
     case kZoneAbilityReroll:
       return ActiveTab() == kTabAbility ? zone_ : kZoneTabs;
     case kZonePotRows:
-      return ActiveTab() == kTabPots ? zone_ : kZoneTabs;
+      return ActiveTab() == kTabBuffs ? zone_ : kZoneTabs;
     case kZoneAdvTabs:
     case kZoneSkillRows:
       return ActiveTab() == kTabSkills ? zone_ : kZoneTabs;
@@ -335,7 +335,7 @@ int CharacterPanel::RingStops() const {
     // [Reroll].
     return 3 + AbilityRows() + 1;
   }
-  if (ActiveTab() == kTabPots) {
+  if (ActiveTab() == kTabBuffs) {
     // The name, the tab bar, and a stop per pot. No Farm/Boss row: a pot is
     // the character's, not an allocation's.
     return 2 + static_cast<int>(PotsShown().size());
@@ -428,7 +428,7 @@ void CharacterPanel::SetCursorStop(int stop) {
     ability_sel_ = stop - 3;
     return;
   }
-  if (ActiveTab() == kTabPots) {
+  if (ActiveTab() == kTabBuffs) {
     zone_ = kZonePotRows;
     pot_sel_ = stop - 2;
     return;
@@ -472,10 +472,10 @@ std::string CharacterPanel::TabKey(Tab tab) const {
     // Inner Ability once.
     return kAbilityTabKey;
   }
-  if (tab == kTabPots) {
+  if (tab == kTabBuffs) {
     // The same deal as Ability: one key for the account, since what a pot is
     // is news once.
-    return kPotsTabKey;
+    return kBuffsTabKey;
   }
   if (tab == kTabAdvance) {
     // The stage being advanced INTO, so the tab that comes back at level 30 is
@@ -1285,7 +1285,7 @@ ftxui::Element CharacterPanel::Render() const {
     content = RenderAbilityTab(focused && zone == kZonePresets,
                                focused && zone == kZoneAbilityRows,
                                focused && zone == kZoneAbilityReroll);
-  } else if (ActiveTab() == kTabPots) {
+  } else if (ActiveTab() == kTabBuffs) {
     content = RenderPotsTab(focused && zone == kZonePotRows);
   } else if (ActiveTab() == kTabAdvance) {
     content = RenderAdvanceTab(focused && zone == kZoneJobRows);
@@ -1615,7 +1615,7 @@ bool CharacterPanel::RouteEvent(const ftxui::Event& event,
   if (ActiveTab() == kTabAbility) {
     return OnAbilityTabEvent(event, actions);
   }
-  if (ActiveTab() == kTabPots) {
+  if (ActiveTab() == kTabBuffs) {
     return OnPotsTabEvent(event, actions);
   }
   if (ActiveTab() == kTabAdvance) {

@@ -210,7 +210,7 @@ std::string FeatureName(Feature feature) {
     case Feature::kHyperStats:
       return "Hyper Stats";
     case Feature::kConsumables:
-      return "Pots";
+      return "Buffs";
     case Feature::kSymbols:
       return "Arcane Symbols";
     case Feature::kCombatStats:

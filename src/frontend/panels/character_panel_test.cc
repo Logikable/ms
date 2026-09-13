@@ -2915,7 +2915,7 @@ TEST_F(CharacterPanelTest, TheAbilityRingEndsOnTheRerollButton) {
   EXPECT_EQ(rerolls, 1);
 }
 
-// --- the Pots tab ---
+// --- the Buffs tab ---
 
 // A 4th-job Hero at `level`, which is what decides how many pots are listed.
 CharacterInstance MakePotHero(std::mt19937& rng, int level) {
@@ -2927,8 +2927,8 @@ CharacterInstance MakePotHero(std::mt19937& rng, int level) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-// Walks the cursor onto the Pots tab and down onto its first row. Stats ->
-// Skills -> Hyper -> Ability -> Pots is four steps right, and there is no
+// Walks the cursor onto the Buffs tab and down onto its first row. Stats ->
+// Skills -> Hyper -> Ability -> Buffs is four steps right, and there is no
 // Farm/Boss row in between.
 ftxui::Component OnPotRows(CharacterPanel& panel,
                            CharacterPanelActions actions = {}) {
@@ -2946,7 +2946,7 @@ TEST_F(CharacterPanelTest, ThePotsTabArrivesAt170AndIsGoldOnceAnAccount) {
   CharacterInstance early = MakePotHero(rng_, kConsumableUnlockLevel - 1);
   CharacterPanel before(early, account_, panel_focus_);
   before.SetWidth(kLeftColumnMax);
-  EXPECT_EQ(RenderElement(before.Render()).find("Pots"), std::string::npos);
+  EXPECT_EQ(RenderElement(before.Render()).find("Buffs"), std::string::npos);
 
   // Wide enough for the whole bar: at the narrowest it scrolls, and a chip
   // held back behind the mark has no colour to read.
@@ -2954,13 +2954,13 @@ TEST_F(CharacterPanelTest, ThePotsTabArrivesAt170AndIsGoldOnceAnAccount) {
   CharacterPanel panel(c, account_, panel_focus_);
   panel.SetWidth(kLeftColumnMax);
   panel_focus_ = kInventoryPanel;
-  EXPECT_EQ(LabelColor(panel.Render(), "Pots"), kYellow);
+  EXPECT_EQ(LabelColor(panel.Render(), "Buffs"), kYellow);
 
   panel_focus_ = kCharPanel;
   OnPotRows(panel);
   panel_focus_ = kInventoryPanel;
-  EXPECT_EQ(LabelColor(panel.Render(), "Pots"), kTheme);
-  EXPECT_TRUE(account_.Seen(kPotsTabKey));
+  EXPECT_EQ(LabelColor(panel.Render(), "Buffs"), kTheme);
+  EXPECT_TRUE(account_.Seen(kBuffsTabKey));
 }
 
 // A pot below its own level is not listed at all: it cannot be switched on or

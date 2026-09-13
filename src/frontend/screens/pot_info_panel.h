@@ -1,4 +1,4 @@
-/* PotInfoPanel is the Pots tab's counterpart to SkillInspectPanel: one pot's
+/* PotInfoPanel is the Buffs tab's counterpart to SkillInspectPanel: one pot's
  * name, what it is worth a line at a time, and the two prices it can be had
  * for -- the rent charged every time it procs, and what buying it outright
  * costs.

@@ -263,7 +263,7 @@ class CharacterInstance {
    */
 
   // Whether the character is high enough for the first pot to be had, and so
-  // for the Pots tab to open at all.
+  // for the Buffs tab to open at all.
   bool consumables_unlocked() const {
     return character_.level() >= kConsumableUnlockLevel;
   }

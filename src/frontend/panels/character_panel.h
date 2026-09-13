@@ -62,7 +62,7 @@ struct CharacterPanelActions {
   // on, and holds or frees it -- the panel does not know which way that goes.
   std::function<void(int)> ability_lock;
   std::function<void()> ability_reroll;
-  // The Pots tab. Enter on a row raises the pot's menu, which is where every
+  // The Buffs tab. Enter on a row raises the pot's menu, which is where every
   // one of its actions lives -- switching it on included.
   std::function<void(ConsumableType)> pot_menu;
 };
@@ -183,7 +183,7 @@ class CharacterPanel {
 
   // The Ability tab has no count of its own: it is these same rows plus a
   // fixed three lines and the cost row, and none of them is ever dropped.
-  // Neither has the Pots tab: two rows at the most, and no room to give back.
+  // Neither has the Buffs tab: two rows at the most, and no room to give back.
 
   // Whether the border is currently lit gold. Not part of the panel's own
   // state machine -- it is set from outside and read by Render.
@@ -212,7 +212,7 @@ class CharacterPanel {
     kTabSkills = 1,
     kTabHyper = 2,
     kTabAbility = 3,
-    kTabPots = 4,
+    kTabBuffs = 4,
     kTabAdvance = 5
   };
 
@@ -234,7 +234,7 @@ class CharacterPanel {
     // The Ability tab's three line rows, and the [Reroll] button under them.
     kZoneAbilityRows,
     kZoneAbilityReroll,
-    // The Pots tab's rows. One stop each: everything a pot offers is on the
+    // The Buffs tab's rows. One stop each: everything a pot offers is on the
     // menu Enter raises.
     kZonePotRows
   };
@@ -353,7 +353,7 @@ class CharacterPanel {
   // cursor ring is measured in.
   int AbilityRows() const;
 
-  // Renders the Pots tab: one row per pot this character has reached. Nothing
+  // Renders the Buffs tab: one row per pot this character has reached. Nothing
   // scrolls -- the pots are few enough that the tab never outgrows them.
   ftxui::Element RenderPotsTab(bool rows_focused) const;
   // One pot row: the tag saying whether it is rented or owned, its name, and
@@ -498,7 +498,7 @@ class CharacterPanel {
   int hyper_sel_ = 0;              // selected Hyper-tab stat row
   SkillCol hyper_col_ = kColName;  // selected column of that row
   int ability_sel_ = 0;            // selected Ability-tab line row
-  int pot_sel_ = 0;                // selected Pots-tab row
+  int pot_sel_ = 0;                // selected Buffs-tab row
   // How long the cursor has sat on the selected pot, for the name scroll. Its
   // own clock rather than the skill rows': the two tabs share row numbers, and
   // one clock would carry a slide from one to the other.

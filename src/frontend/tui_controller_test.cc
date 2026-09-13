@@ -846,7 +846,7 @@ TEST_F(TuiControllerTest, EnterAlsoLeavesTheSkillInspectScreen) {
 
 // --- Job advancement ---
 
-// --- the Pots tab's menu, card and question ---
+// --- the Buffs tab's menu, card and question ---
 
 // The switch is the menu's first entry, named for the state it would leave
 // the pot in, and pressing it asks nothing: nothing is spent until it procs.

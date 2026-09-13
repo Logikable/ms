@@ -248,7 +248,7 @@ class Tui {
   // Every stat on one screen, reached from the Character panel's last row.
   AllStatsPanel all_stats_panel_;
   HyperStatInspectPanel hyper_stat_inspect_panel_;
-  // One pot's effects and its two prices, reached from the Pots tab's menu.
+  // One pot's effects and its two prices, reached from the Buffs tab's menu.
   PotInfoPanel pot_info_panel_;
   ShopPanel shop_panel_;
   BuyPanel buy_panel_;
