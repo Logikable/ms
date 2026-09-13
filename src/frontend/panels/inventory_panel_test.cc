@@ -148,6 +148,17 @@ class InventoryPanelTest : public PanelTest {
     return ftxui::Container::Tab({std::move(panel)}, &tab_selector_);
   }
 
+  // Walks the bar right until `tab` is open. A test asks for the tab it wants
+  // rather than counting presses, so a tab added to the bar does not have to
+  // be counted into every test that only steps past it.
+  void OpenTab(const ftxui::Component& comp, const InventoryPanel& panel,
+               int tab) {
+    for (int step = 0; step < kNumInventoryTabs && panel.active_tab() != tab;
+         ++step) {
+      comp->OnEvent(ftxui::Event::ArrowRight);
+    }
+  }
+
   int tab_selector_ = 0;
 };
 
@@ -183,9 +194,9 @@ TEST_F(InventoryPanelTest, TheTabBarStillSwitchesTabsOnAnEmptyBag) {
   ftxui::Component root = InTabContainer(panel.MakeComponent([]() {}));
   ASSERT_EQ(c_.inventory().size(), 0);
   root->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_TRUE(panel.on_stackable_tab()) << "Equip -> Etc";
+  EXPECT_EQ(panel.active_tab(), kTokenTab) << "Equip -> Token";
   root->OnEvent(ftxui::Event::ArrowLeft);
-  EXPECT_FALSE(panel.on_stackable_tab()) << "Etc -> Equip";
+  EXPECT_EQ(panel.active_tab(), kEquipTab) << "Token -> Equip";
 }
 
 // Equipping the last item in the bag takes the row the cursor was standing on
@@ -201,7 +212,7 @@ TEST_F(InventoryPanelTest, TheCursorLeavesAListThatEmptiedUnderIt) {
   c_.Equip(0);
   RenderComponent(comp);
   comp->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_TRUE(panel.on_stackable_tab())
+  EXPECT_EQ(panel.active_tab(), kTokenTab)
       << "Right switched tabs, so the cursor is back on the tab bar";
 }
 
@@ -312,8 +323,8 @@ TEST_F(InventoryPanelTest, AStackRowWearsTheBandToo) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
-  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> the one stack
+  OpenTab(comp, panel, kEtcTab);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> the one stack
 
   ftxui::Screen screen = RenderToScreen(comp);
   std::vector<BandSpan> bands = BandSpans(screen, kSelectedRow);
@@ -336,7 +347,7 @@ TEST_F(InventoryPanelTest, DownFromTheLastItemReturnsToTheBar) {
   // cursor went. Left still switching tabs is the other half of the answer.
   EXPECT_EQ(RenderComponentText(comp).find("> Sword"), std::string::npos);
   comp->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_TRUE(panel.on_stackable_tab());
+  EXPECT_EQ(panel.active_tab(), kTokenTab);
 }
 
 TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastStack) {
@@ -345,8 +356,8 @@ TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastStack) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
-  comp->OnEvent(ftxui::Event::ArrowUp);     // the bar -> the last stack
+  OpenTab(comp, panel, kEtcTab);
+  comp->OnEvent(ftxui::Event::ArrowUp);  // the bar -> the last stack
   EXPECT_NE(RenderComponentText(comp).find("> Blue Shell"), std::string::npos);
 }
 
@@ -355,8 +366,8 @@ TEST_F(InventoryPanelTest, DownFromTheLastStackReturnsToTheBar) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
-  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> the one stack
+  OpenTab(comp, panel, kEtcTab);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> the one stack
   ASSERT_NE(RenderComponentText(comp).find("> Red Shell"), std::string::npos);
 
   comp->OnEvent(ftxui::Event::ArrowDown);
@@ -374,25 +385,29 @@ TEST_F(InventoryPanelTest, TheEmptyTabRingIsTheBarAndTheButtons) {
   comp->OnEvent(ftxui::Event::ArrowDown);  // and back
   // Back on the bar, so Right switches tabs rather than moving a row.
   comp->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_TRUE(panel.on_stackable_tab());
+  EXPECT_EQ(panel.active_tab(), kTokenTab);
 }
 
 // --- the Token tab ---
 
-// The tab is not in the bar until the player holds a currency, and it opens
-// between Equip and Etc when they do.
-TEST_F(InventoryPanelTest, TheTokenTabWaitsForACurrency) {
+// The tab stands between Equip and Etc from the first frame, whether or not
+// the bag holds a currency yet: a bar whose tabs came and went with what the
+// player happened to be carrying would move the others under their hand.
+TEST_F(InventoryPanelTest, TheTokenTabStandsInTheBarFromTheStart) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
-  EXPECT_EQ(RenderComponentText(comp).find("Token"), std::string::npos);
-  comp->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_TRUE(panel.on_stackable_tab()) << "Equip -> Etc, with no tab between";
-
-  c_.AddStackable(MakeShard("Zakum"), 4);
-  RenderComponentText(comp);
+  ASSERT_TRUE(c_.stackables().empty());
   EXPECT_NE(RenderComponentText(comp).find("Token"), std::string::npos);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(panel.active_tab(), kTokenTab) << "Equip -> Token";
+  // Empty, and saying so rather than heading two columns with no rows.
+  std::string text = RenderComponentText(comp);
+  EXPECT_NE(text.find("empty"), std::string::npos);
+  EXPECT_EQ(text.find("Soul Shard"), std::string::npos);
+
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_TRUE(panel.on_stackable_tab()) << "Token -> Etc";
   comp->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_EQ(panel.active_tab(), kTokenTab) << "Etc -> Token";
   comp->OnEvent(ftxui::Event::ArrowLeft);
@@ -541,7 +556,7 @@ TEST_F(InventoryPanelTest, TheExpandTabSaysWhatEnterWouldDo) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderComponent(comp);
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  OpenTab(comp, panel, kEtcTab);
   comp->OnEvent(ftxui::Event::ArrowRight);  // Etc -> Expand
   std::string screen = RenderComponent(comp);
   EXPECT_NE(screen.find("Hit Enter to fullscreen Inventory"),
@@ -556,9 +571,8 @@ TEST_F(InventoryPanelTest, EnterOnTheExpandTabCallsBack) {
   int expands = 0;
   ftxui::Component comp =
       panel.MakeComponent([]() {}, [&expands]() { ++expands; });
-  for (int i = 0; i < 2; ++i) {
-    comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc -> Expand
-  }
+  OpenTab(comp, panel, kEtcTab);
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Etc -> Expand
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(expands, 1);
   EXPECT_EQ(panel.active_tab(), kEquipTab)
@@ -574,7 +588,7 @@ TEST_F(InventoryPanelTest, TheExpandTabClosesTheRing) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  OpenTab(comp, panel, kEtcTab);
   comp->OnEvent(ftxui::Event::ArrowRight);  // Etc -> Expand
   // A chip the cursor is on is drawn white, so only one chip may be.
   EXPECT_EQ(PixelOfRendered(comp, "Expand").background_color,
@@ -623,7 +637,7 @@ TEST_F(InventoryPanelTest, SortFilesAStackTab) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  OpenTab(comp, panel, kEtcTab);
   panel.OpenTabMenu();
   panel.OnTabMenuEvent(ftxui::Event::Return);
   EXPECT_EQ(c_.stackables()[0].name(), "Aaa Shell")
@@ -639,7 +653,7 @@ TEST_F(InventoryPanelTest, TheShopTabIsEnteredNotAskedAbout) {
   bool opened = false;
   ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
   for (int i = 0; i < 2; ++i) {
-    comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Shop
+    OpenTab(comp, panel, kShopTab);
   }
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(opened);
@@ -884,7 +898,7 @@ TEST_F(InventoryPanelTest, MultiSellSitsUnderSellOnBothMenus) {
   panel.OpenMenu();
   std::vector<int> before = ReachableMenuEntries(panel.menu());
   EXPECT_EQ(std::count(before.begin(), before.end(), kMenuMultiSell), 0);
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  OpenTab(comp, panel, kEtcTab);
   panel.OpenMenu();
   before = ReachableMenuEntries(panel.menu());
   EXPECT_EQ(std::count(before.begin(), before.end(), kStackMultiSell), 0);
@@ -896,7 +910,7 @@ TEST_F(InventoryPanelTest, MultiSellSitsUnderSellOnBothMenus) {
   // Both stand on a worthless item: a stack worth nothing is still a stack the
   // player wants out of the bag.
   c_.AddStackable(MakeStackable("Junk", ITEM_CATEGORY_ETC, 0), 5);
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  OpenTab(comp, panel, kEtcTab);
   panel.OpenMenu();
   after = ReachableMenuEntries(panel.menu());
   EXPECT_NE(std::count(after.begin(), after.end(), kStackSell), 0);
@@ -915,7 +929,7 @@ TEST_F(InventoryPanelTest, MultiSellLeadsToItsScreen) {
   panel.menu().Up();  // Multi-Sell
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kMultiSell);
 
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  OpenTab(comp, panel, kEtcTab);
   panel.OpenMenu();
   panel.menu().Up();
   panel.menu().Up();
@@ -1197,9 +1211,7 @@ TEST_F(InventoryPanelTest, TheShopTabArrivesAtItsLevel) {
 
   LevelTo(UnlockLevel(Feature::kShop));
   EXPECT_NE(RenderComponent(comp).find("Shop"), std::string::npos);
-  for (int i = 0; i < 2; ++i) {
-    comp->OnEvent(ftxui::Event::ArrowRight);
-  }
+  OpenTab(comp, panel, kShopTab);
   EXPECT_TRUE(panel.on_shop_tab());
 }
 
@@ -1210,9 +1222,7 @@ TEST_F(InventoryPanelTest, ShopTabSaysHowToOpenTheShop) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   panel_focus_ = kInventoryPanel;
-  for (int i = 0; i < 2; ++i) {
-    comp->OnEvent(ftxui::Event::ArrowRight);
-  }
+  OpenTab(comp, panel, kShopTab);
   EXPECT_TRUE(panel.on_shop_tab());
   EXPECT_NE(RenderComponent(comp).find("Hit Enter to open Shop"),
             std::string::npos);
@@ -1223,9 +1233,7 @@ TEST_F(InventoryPanelTest, ShopIsTheLastTabBeforeTheDoor) {
   LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  for (int i = 0; i < 2; ++i) {
-    comp->OnEvent(ftxui::Event::ArrowRight);
-  }
+  OpenTab(comp, panel, kShopTab);
   EXPECT_TRUE(panel.on_shop_tab());
   EXPECT_NE(RenderComponent(comp).find("Shop"), std::string::npos);
   comp->OnEvent(ftxui::Event::ArrowRight);
@@ -1243,9 +1251,7 @@ TEST_F(InventoryPanelTest, DownDoesNotDescendIntoTheShopTab) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   panel_focus_ = kInventoryPanel;
-  for (int i = 0; i < 2; ++i) {
-    comp->OnEvent(ftxui::Event::ArrowRight);
-  }
+  OpenTab(comp, panel, kShopTab);
   comp->OnEvent(ftxui::Event::ArrowDown);  // the bar -> the buttons
   comp->OnEvent(ftxui::Event::ArrowDown);  // and back, no row in between
   // Back on the tab bar, so Left switches tabs rather than moving a row.
@@ -1258,9 +1264,7 @@ TEST_F(InventoryPanelTest, TheShopTabIsNotAStackableTab) {
   LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  for (int i = 0; i < 2; ++i) {
-    comp->OnEvent(ftxui::Event::ArrowRight);
-  }
+  OpenTab(comp, panel, kShopTab);
   EXPECT_FALSE(panel.on_stackable_tab());
 }
 
@@ -1297,7 +1301,7 @@ TEST_F(InventoryPanelTest, TheEtcTabListsItsStacksWithTheirQuantity) {
   c_.AddStackable(MakeStackable("Snail Shell", ITEM_CATEGORY_ETC), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  OpenTab(comp, panel, kEtcTab);
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("Quantity"), std::string::npos);
   EXPECT_NE(rendered.find("Snail Shell"), std::string::npos);
@@ -1309,7 +1313,7 @@ TEST_F(InventoryPanelTest, TheEtcTabListsItsStacksWithTheirQuantity) {
 TEST_F(InventoryPanelTest, AnEmptyEtcTabShowsAPlaceholderAndNoColumnHeader) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  OpenTab(comp, panel, kEtcTab);
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("(empty)"), std::string::npos);
   EXPECT_EQ(rendered.find("Quantity"), std::string::npos);
@@ -1321,8 +1325,8 @@ TEST_F(InventoryPanelTest, TheStackCursorStartsOnTheFirstRowAndWalksDown) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
-  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> first stack
+  OpenTab(comp, panel, kEtcTab);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> first stack
   EXPECT_NE(RenderComponentText(comp).find("> Red Shell"), std::string::npos);
   comp->OnEvent(ftxui::Event::ArrowDown);  // cursor -> second stack
   std::string rendered = RenderComponent(comp);
@@ -1335,7 +1339,7 @@ TEST_F(InventoryPanelTest, TheStackCursorIsHiddenWhenThePanelIsNotFocused) {
   panel_focus_ = kEquipPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  OpenTab(comp, panel, kEtcTab);
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("  Red Shell"), std::string::npos);
   EXPECT_EQ(rendered.find("> Red Shell"), std::string::npos);
@@ -1347,14 +1351,14 @@ TEST_F(InventoryPanelTest, SwitchingTabsResetsStackCursor) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
-  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> first stack
-  comp->OnEvent(ftxui::Event::ArrowDown);   // cursor -> second stack
-  comp->OnEvent(ftxui::Event::ArrowUp);     // -> first stack
-  comp->OnEvent(ftxui::Event::ArrowUp);     // -> tab bar
-  comp->OnEvent(ftxui::Event::ArrowLeft);   // Etc -> Equip
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc, cursor reset
-  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> first stack
+  OpenTab(comp, panel, kEtcTab);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> first stack
+  comp->OnEvent(ftxui::Event::ArrowDown);  // cursor -> second stack
+  comp->OnEvent(ftxui::Event::ArrowUp);    // -> first stack
+  comp->OnEvent(ftxui::Event::ArrowUp);    // -> tab bar
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // Etc -> Equip
+  OpenTab(comp, panel, kEtcTab);  // the stack cursor resets with the tab
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> first stack
   EXPECT_NE(RenderComponentText(comp).find("> Red Shell"), std::string::npos);
 }
 
@@ -1363,8 +1367,8 @@ TEST_F(InventoryPanelTest, EnterOnAStackOpensItsMenu) {
   InventoryPanel panel(c_, account_, panel_focus_);
   bool opened = false;
   ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
-  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> stack list
+  OpenTab(comp, panel, kEtcTab);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> stack list
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(opened);
 }
@@ -1375,8 +1379,8 @@ TEST_F(InventoryPanelTest, EnterOnAnEmptyTabAsksAboutTheTab) {
   InventoryPanel panel(c_, account_, panel_focus_);
   bool opened = false;
   ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc (empty)
-  comp->OnEvent(ftxui::Event::ArrowDown);   // nowhere below to go
+  OpenTab(comp, panel, kEtcTab);           // empty
+  comp->OnEvent(ftxui::Event::ArrowDown);  // nowhere below to go
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(opened);
   EXPECT_TRUE(panel.on_tab_bar());
@@ -1388,7 +1392,7 @@ TEST_F(InventoryPanelTest, StackMenuOpensOnInspect) {
   c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  OpenTab(comp, panel, kEtcTab);
   panel.OpenMenu();
   ScrollPanel sp(c_, {});
   EXPECT_EQ(panel.menu().selected(), kStackInspect);
@@ -1399,7 +1403,7 @@ TEST_F(InventoryPanelTest, StackMenuSellReturnsSellScreen) {
   c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  OpenTab(comp, panel, kEtcTab);
   panel.OpenMenu();
   ScrollPanel sp(c_, {});
   panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Inspect -> Sell
@@ -1410,7 +1414,7 @@ TEST_F(InventoryPanelTest, StackMenuCloseReturnsMain) {
   c_.AddStackable(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  OpenTab(comp, panel, kEtcTab);
   panel.OpenMenu();
   ScrollPanel sp(c_, {});
   panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Inspect -> Sell
@@ -1424,7 +1428,7 @@ TEST_F(InventoryPanelTest, AWorthlessStackIsStillOfferedForSale) {
   c_.AddStackable(MakeStackable("Junk", ITEM_CATEGORY_ETC, 0), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+  OpenTab(comp, panel, kEtcTab);
   panel.OpenMenu();
   std::vector<int> reachable = ReachableMenuEntries(panel.menu());
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kStackSell), 0);
@@ -1477,8 +1481,8 @@ TEST_F(InventoryPanelTest, KeepsTheCursorInViewOnAStackableTab) {
   InventoryPanel panel(c_, account_, panel_focus_);
   panel_focus_ = kInventoryPanel;
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
-  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> stack list
+  OpenTab(comp, panel, kEtcTab);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> stack list
   for (int i = 0; i < 39; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
     EXPECT_NE(RenderComponent(comp).find("> "), std::string::npos)
@@ -1585,8 +1589,8 @@ TEST_F(InventoryPanelTest, CursorRowFollowsTheStackListToo) {
   // test compares cursor_row() against where that cursor landed.
   panel_focus_ = kInventoryPanel;
   ftxui::Component comp = panel.MakeComponent([]() {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
-  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> stack list
+  OpenTab(comp, panel, kEtcTab);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> stack list
   for (int i = 0; i < 29; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
     ftxui::Screen screen = RenderToScreen(comp);
@@ -1618,7 +1622,7 @@ TEST_F(InventoryPanelTest, LightsEveryInnerRuleGoldToo) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
   panel_focus_ = kInventoryPanel;
-  component->OnEvent(ftxui::Event::ArrowRight);  // onto the Etc tab
+  OpenTab(component, panel, kEtcTab);
 
   std::vector<ftxui::Color> rules = InnerRuleColors(component->Render());
   ASSERT_EQ(rules.size(), 2u) << "expected the tab rule and the list rule";
@@ -1654,10 +1658,7 @@ TEST_F(InventoryPanelTest, OpeningTheShopTabStopsItAnnouncingItself) {
   panel_focus_ = kInventoryPanel;
   ASSERT_EQ(LabelColor(component->Render(), "Shop"), kYellow);
 
-  // Equip -> Etc -> Shop.
-  for (int i = 0; i < 2; ++i) {
-    component->OnEvent(ftxui::Event::ArrowRight);
-  }
+  OpenTab(component, panel, kShopTab);
   ASSERT_TRUE(panel.on_shop_tab()) << "the walk has to actually arrive";
   // Read unfocused: a focused active chip is black on white whatever its
   // history, which would hide the thing under test.

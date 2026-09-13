@@ -172,15 +172,10 @@ ItemMenu& InventoryPanel::menu() {
 }
 
 std::vector<int> InventoryPanel::VisibleTabs() const {
-  std::vector<int> tabs = {kEquipTab};
-  // The Token tab opens on the first token or shard and closes again if the
-  // last one is spent: a page that can only ever be empty is worse than no
-  // page. No gold on it when it arrives -- what lands there came from a boss,
-  // and the boss screen has already said so.
-  if (HoldsCurrency(character_.stackables())) {
-    tabs.push_back(kTokenTab);
-  }
-  tabs.push_back(kEtcTab);
+  // Token stands in the bar from the first frame, as Etc does. It is where a
+  // currency lives, and a bar whose tabs came and went with what the bag
+  // happened to hold would move the others under the player's hand.
+  std::vector<int> tabs = {kEquipTab, kTokenTab, kEtcTab};
   // The shop is a place in the world rather than a page of the bag, and it is
   // not open to a character who has nothing to spend and nothing to spend it
   // on. Until then the bar simply ends at Etc.
@@ -626,6 +621,11 @@ ftxui::Element InventoryPanel::RenderCurrencySheet() {
   std::vector<int> tokens = StacksIn(stacks, StackView::kTokens);
   std::vector<int> shards = StacksIn(stacks, StackView::kSoulShards);
   int count = CurrencyRowCount();
+  if (count == 0) {
+    // No headings over nothing, as on an empty Equip or Etc tab: column names
+    // are there to tell rows apart, and there are no rows to tell apart.
+    return ftxui::vbox({EmptyState("empty", /*gutter=*/2), ftxui::filler()});
+  }
   int height = CurrencySheetHeight();
   // The tab can lose rows while it is open -- the last of a token spent at the
   // shop -- so the offset is held to what there is to show.
@@ -663,13 +663,6 @@ ftxui::Element InventoryPanel::RenderCurrencySheet() {
 }
 
 ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
-  // The Token tab closes behind the last token spent, which can happen at the
-  // shop with the bag still standing on it. Falling back to Equip keeps the
-  // panel on a tab the bar actually draws.
-  std::vector<int> tabs = VisibleTabs();
-  if (std::find(tabs.begin(), tabs.end(), active_tab_) == tabs.end()) {
-    active_tab_ = kEquipTab;
-  }
   // A list that emptied under the cursor -- the last equip worn, the last
   // stack sold -- has no row left to stand on, so the cursor comes back up to
   // the tab bar. Left where it was it would be in a zone that cannot draw it,

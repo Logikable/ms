@@ -47,16 +47,13 @@ TEST(StackTabsTest, AViewKeepsTheBagsOrder) {
   EXPECT_EQ(StacksIn(bag, StackView::kTokens), (std::vector<int>{0, 2}));
 }
 
-// The Token tab opens on the first token or shard, and a bag of drops and
-// traces does not open it.
-TEST(StackTabsTest, CurrencyIsATokenOrAShard) {
-  EXPECT_TRUE(HoldsCurrency(Bag()));
-  EXPECT_FALSE(HoldsCurrency({}));
-  EXPECT_FALSE(HoldsCurrency({
-      Stack("Green Snail Shell", ITEM_KIND_UNSPECIFIED, 40),
-      Stack("Spell Trace", ITEM_KIND_SPELL_TRACE, 9000),
-  }));
-  EXPECT_TRUE(HoldsCurrency({Stack("Zakum's", ITEM_KIND_SOUL_SHARD, 1)}));
+// An empty bag lists nothing on any of them, rather than answering with every
+// stack it does not hold.
+TEST(StackTabsTest, AnEmptyBagFillsNoView) {
+  for (StackView view :
+       {StackView::kEtc, StackView::kTokens, StackView::kSoulShards}) {
+    EXPECT_TRUE(StacksIn({}, view).empty());
+  }
 }
 
 }  // namespace

@@ -294,8 +294,19 @@ class TuiControllerTest : public testing::Test {
     shell.set_sell_price(sell_price);
     state_->character.AddStackable(shell, count);
     panel_focus_ = kInventoryPanel;
-    inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
+    OpenBagTab(kEtcTab);
     inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> stack
+  }
+
+  // Walks the bag's tab bar right until `tab` is open. A test asks for the tab
+  // it wants rather than counting presses, so a tab added to the bar does not
+  // have to be counted into every test that only steps past it.
+  void OpenBagTab(int tab) {
+    for (int step = 0;
+         step < kNumInventoryTabs && inventory_panel_->active_tab() != tab;
+         ++step) {
+      inventory_component_->OnEvent(ftxui::Event::ArrowRight);
+    }
   }
 
   // Opens the stack context menu and walks to Sell, leaving the sell dialog
@@ -315,9 +326,7 @@ class TuiControllerTest : public testing::Test {
     // something the shop tests should be resting on.
     LevelTo(UnlockLevel(Feature::kShop));
     panel_focus_ = kInventoryPanel;
-    for (int i = 0; i < 2; ++i) {
-      inventory_component_->OnEvent(ftxui::Event::ArrowRight);
-    }
+    OpenBagTab(kShopTab);
     inventory_component_->OnEvent(ftxui::Event::Return);
   }
 
@@ -2267,8 +2276,8 @@ TEST_F(TuiControllerTest, MultiSellOpensFromAStackToo) {
   panel_focus_ = kInventoryPanel;
   RenderInventoryPanel();
 
-  inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // onto Etc
-  inventory_component_->OnEvent(ftxui::Event::ArrowDown);   // onto the stack
+  OpenBagTab(kEtcTab);
+  inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // onto the stack
   controller_->OpenInventoryMenu();
   StepToMultiSell(*controller_);
   controller_->OnEvent(ftxui::Event::Return);
@@ -2283,9 +2292,7 @@ TEST_F(TuiControllerTest, MultiSellOpensFromAStackToo) {
 // the tab bar.
 TEST_F(TuiControllerTest, EnterOnTheShopTabOpensTheShop) {
   panel_focus_ = kInventoryPanel;
-  for (int i = 0; i < 2; ++i) {
-    inventory_component_->OnEvent(ftxui::Event::ArrowRight);
-  }
+  OpenBagTab(kShopTab);
   inventory_component_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kShop);
 }
@@ -2958,10 +2965,10 @@ TEST_F(TuiControllerTest, StackInspectShowsTheItemsDescription) {
   shell.set_description("A shell shed by a snail.");
   state_->character.AddStackable(shell, 3);
   panel_focus_ = kInventoryPanel;
-  inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Etc
-  inventory_component_->OnEvent(ftxui::Event::ArrowDown);   // into the list
-  inventory_component_->OnEvent(ftxui::Event::Return);      // the stack menu
-  controller_->OnEvent(ftxui::Event::Return);               // Inspect
+  OpenBagTab(kEtcTab);
+  inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // into the list
+  inventory_component_->OnEvent(ftxui::Event::Return);     // the stack menu
+  controller_->OnEvent(ftxui::Event::Return);              // Inspect
 
   EXPECT_EQ(controller_->screen(), kItemInspect);
   ASSERT_NE(controller_->item_inspect_item(), nullptr);

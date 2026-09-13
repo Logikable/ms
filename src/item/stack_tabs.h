@@ -30,11 +30,6 @@ enum class StackView {
 std::vector<int> StacksIn(const std::vector<StackableItem>& stacks,
                           StackView view);
 
-// Whether the player holds anything the Token tab would list. What opens the
-// tab: a bar with a page that can only ever be empty on it is worse than one
-// without.
-bool HoldsCurrency(const std::vector<StackableItem>& stacks);
-
 }  // namespace ms
 
 #endif  // MS_SRC_ITEM_STACK_TABS_H_

@@ -35,14 +35,4 @@ std::vector<int> StacksIn(const std::vector<StackableItem>& stacks,
   return rows;
 }
 
-bool HoldsCurrency(const std::vector<StackableItem>& stacks) {
-  for (const StackableItem& stack : stacks) {
-    ItemKind kind = stack.prototype().kind();
-    if (kind == ITEM_KIND_TOKEN || kind == ITEM_KIND_SOUL_SHARD) {
-      return true;
-    }
-  }
-  return false;
-}
-
 }  // namespace ms
