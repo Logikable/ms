@@ -40,8 +40,9 @@ TEST(ConsumablesTest, ABuffWaitsForItsOwnLevel) {
   EXPECT_TRUE(open.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
   EXPECT_TRUE(
       open.ConsumableInEffect(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
-  // The green potion is twenty levels further out.
+  // The green potion is twenty levels further out, and the totem fifty.
   EXPECT_FALSE(open.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
+  EXPECT_FALSE(open.ToggleConsumable(CONSUMABLE_TYPE_WILD_TOTEM));
   EXPECT_FALSE(
       open.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
   EXPECT_FALSE(
@@ -103,6 +104,20 @@ TEST(ConsumablesTest, AShortPurseGetsItAtADiscount) {
   EXPECT_EQ(c.meso(), 0);
   EXPECT_EQ(c.ChargeConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION, 1), 0);
   EXPECT_TRUE(c.ConsumableInEffect(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
+}
+
+// One clock pays for every buff charged by the second, and for none of the
+// ones charged at a boss door.
+TEST(ConsumablesTest, TheFarmingClockChargesWhatIsPaidForBySecond) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeCharacter(rng, 220, 10'000'000);
+  ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
+  ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
+  ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_WILD_TOTEM));
+
+  // Ten seconds of the potion's thousand and the totem's two.
+  EXPECT_EQ(c.ChargeFarmingConsumables(10.0), 30'000);
+  EXPECT_EQ(c.meso(), 9'970'000);
 }
 
 // The live tick charges three times a second. A fraction of a meso left on

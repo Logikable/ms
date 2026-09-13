@@ -190,12 +190,13 @@ message HyperStats {
   HyperStatPreset bossing = 2;
 }
 
-// A consumable the player keeps up: a potion bought by the second or by the
-// fight, or bought once and held for good. Numbered in the order they unlock.
+// A buff the player keeps up: bought by the second or by the fight, or bought
+// once and held for good. Numbered in the order they unlock.
 enum ConsumableType {
   CONSUMABLE_TYPE_UNSPECIFIED = 0;
   CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION = 1;
   CONSUMABLE_TYPE_EXTREME_GREEN_POTION = 2;
+  CONSUMABLE_TYPE_WILD_TOTEM = 3;
 }
 
 // What the character has switched on and what they no longer pay for. Two

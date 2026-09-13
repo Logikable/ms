@@ -293,6 +293,11 @@ class CharacterInstance {
   // cannot cover it pays what it has and stops at 0; the buff works either way.
   // Nothing at all for a buff that is owned, off, or not yet open.
   int64_t ChargeConsumable(ConsumableType type, double procs);
+
+  // Charges every buff paid for by the second over `seconds` of farming, and
+  // reports what they took together. The ones charged per boss entry are left
+  // alone: this is the farming clock, not the door of a fight.
+  int64_t ChargeFarmingConsumables(double seconds);
   // Sells up to `count` copies from the `index`-th stack, crediting
   // count * sell_price meso and removing the sold copies; erases the stack
   // entirely once it empties. No-op returning 0 if the index is out of range or

@@ -165,11 +165,11 @@ RewardTally AdvanceCombat(GameState& state, CombatSim& sim,
   RewardTally tally =
       AwardCombatRewards(state, params, sim.view().kills_this_step);
   // Charged for the seconds farmed, and for those alone: a player standing in
-  // town or watching a boss is not drinking it. Taken after the kills are
-  // paid, so a second's farming can cover a second's drink.
+  // town or watching a boss is paying for neither. Taken after the kills are
+  // paid, so a second's farming can cover a second's rent.
   if (params.active) {
-    tally.consumable_cost = state.character.ChargeConsumable(
-        CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION, elapsed_seconds);
+    tally.consumable_cost =
+        state.character.ChargeFarmingConsumables(elapsed_seconds);
   }
   if (sim.view().died_this_step) {
     // Dying costs the trip home and nothing else -- no EXP, no meso. The

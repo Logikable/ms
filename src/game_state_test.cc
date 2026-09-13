@@ -991,13 +991,13 @@ TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
   EXPECT_EQ(hat.lines(0).type(), POTENTIAL_LINE_TYPE_STR_PCT);
 }
 
-// Both potions bought and switched on, with the change of the climb left in
+// Every buff bought and switched on, with the change of the climb left in
 // the purse -- not the workbench's hundred billion.
-TEST(GameStateTest, MaxModeAtTheCapHasBoughtBothPotions) {
+TEST(GameStateTest, MaxModeAtTheCapHasBoughtEveryBuff) {
   GameState state = MakeMaxState(kTrialLevelCap);
-  for (const ConsumableInfo& potion : AllConsumables()) {
-    EXPECT_TRUE(state.character.ConsumableOwned(potion.type)) << potion.name;
-    EXPECT_TRUE(state.character.ConsumableActive(potion.type)) << potion.name;
+  for (const ConsumableInfo& buff : AllConsumables()) {
+    EXPECT_TRUE(state.character.ConsumableOwned(buff.type)) << buff.name;
+    EXPECT_TRUE(state.character.ConsumableActive(buff.type)) << buff.name;
   }
   EXPECT_EQ(state.character.meso(), 50000000);
   EXPECT_EQ(state.exp_multiplier, 1);

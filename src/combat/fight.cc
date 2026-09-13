@@ -1799,6 +1799,7 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   }
   encounter_ = params.encounter;
   respawn_phase_ = 0.0;
+  respawn_interval_ = params.respawn_seconds;
   attack_phase_ = 0.0;
   owed_casts_.clear();
   hit_phase_ = 0.0;
@@ -1833,10 +1834,14 @@ void CombatSim::RespawnBeat(const CombatParams& params, double dt) {
     return;  // nothing more is coming: see CombatParams::respawn_seconds
   }
   respawn_phase_ += dt;
-  if (respawn_phase_ < params.respawn_seconds) {
+  if (respawn_phase_ < respawn_interval_) {
     return;
   }
-  respawn_phase_ -= params.respawn_seconds;
+  respawn_phase_ -= respawn_interval_;
+  // The wait that just ended ran at the interval it began under, and the next
+  // one takes whatever the params say now: a totem planted mid-cycle shortens
+  // the beat after this one, never the one already ticking.
+  respawn_interval_ = params.respawn_seconds;
   view_.respawned_this_step = true;
   bool was_idle = queue_.empty();
   TopUp(params);
@@ -2684,9 +2689,11 @@ void CombatSim::PublishPlayer(const CombatParams& params) {
           ? std::clamp(player_hp_ / params.max_player_hp, 0.0, 1.0)
           : 0.0;
   view_.respawns = params.respawn_seconds > 0.0;
+  // Against the interval this wait began under, so the bar does not jump when
+  // the totem goes up or comes down mid-cycle.
   view_.respawn_fraction =
-      view_.respawns
-          ? std::clamp(respawn_phase_ / params.respawn_seconds, 0.0, 1.0)
+      view_.respawns && respawn_interval_ > 0.0
+          ? std::clamp(respawn_phase_ / respawn_interval_, 0.0, 1.0)
           : 0.0;
 }
 

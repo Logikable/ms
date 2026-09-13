@@ -11,6 +11,12 @@ namespace {
 // Extreme Green Potion's 250m against 1m a fight is the other end of the
 // deal: bosses are locked to the day, so buying it outright is a decision a
 // player takes with a long climb still ahead of them.
+//
+// The Wild Totem's 2,000 a second is most of what a bare Lv220 earns off the
+// map, and the kills it buys are worth about that again -- so it pays for
+// itself on its own and turns a profit on whatever %meso the character wears.
+// Its billion is the four days of farming that makes renting it a decision
+// for a while rather than a formality.
 
 // The last line of each is where the buff pays out, which is the fact a player
 // weighing the rent needs before the numbers above it.
@@ -25,6 +31,10 @@ constexpr const char* kGreenEffects[] = {
     "May exceed the attack speed cap",
     "Boss fights only",
 };
+constexpr const char* kTotemEffects[] = {
+    "Halves respawn time to 3.78s",
+    "Farming only",
+};
 
 constexpr ConsumableInfo kConsumables[] = {
     {CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION, "Wealth Acquisition Potion",
@@ -33,6 +43,8 @@ constexpr ConsumableInfo kConsumables[] = {
     {CONSUMABLE_TYPE_EXTREME_GREEN_POTION, "Extreme Green Potion", 190,
      1'000'000, /*per_second=*/false, 250'000'000,
      absl::MakeConstSpan(kGreenEffects)},
+    {CONSUMABLE_TYPE_WILD_TOTEM, "Wild Totem", 220, 2'000,
+     /*per_second=*/true, 1'000'000'000, absl::MakeConstSpan(kTotemEffects)},
 };
 
 }  // namespace

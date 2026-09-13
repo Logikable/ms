@@ -13,6 +13,7 @@
 #include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
+#include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
 #include "src/combat/constants.h"
@@ -2145,6 +2146,14 @@ void HalveBossReach(CombatParams& params) {
   params.buffed_source.halve_reach = true;
 }
 
+// How long the map takes to put its monsters back up, before the pacing band
+// stretches it. The Wild Totem halves it, which is the whole of what it does.
+double RespawnIntervalFor(const CharacterInstance& character) {
+  return character.ConsumableInEffect(CONSUMABLE_TYPE_WILD_TOTEM)
+             ? kWildTotemRespawnSeconds
+             : kRespawnIntervalSeconds;
+}
+
 }  // namespace
 
 const EquipPrototype* EquippedWeapon(const GameState& state) {
@@ -2183,7 +2192,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   // The pace the whole encounter runs at, and the only thing here that asks
   // the character's level directly: the game stretches out as they climb.
   double speed_factor = GameSpeedFactor(state.character.proto().level());
-  params.respawn_seconds = kRespawnIntervalSeconds * speed_factor;
+  params.respawn_seconds = RespawnIntervalFor(state.character) * speed_factor;
   params.hit_seconds = kMobHitIntervalSeconds * speed_factor;
   AddPacing(state, derived, speed_factor, params);
   AddTypes(state, map_it->second.spawns(), DefenseFor(state, derived),

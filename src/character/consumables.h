@@ -1,4 +1,4 @@
-/* The potions: what each one costs, what it is worth, and when it opens.
+/* The buffs: what each one costs, what it is worth, and when it opens.
  *
  * A buff is either rented or owned. A rented one charges its price every time
  * it procs -- by the second while farming, or on the way into a boss fight --
@@ -63,6 +63,11 @@ inline constexpr double kWealthPotionMesoMult = 1.20;
 // What the Extreme Green Potion is worth: attack speed stages during a boss
 // fight, and they are stages that may pass the soft cap.
 inline constexpr int kGreenPotionAttackSpeed = 1;
+
+// What the Wild Totem is worth: the respawn beat it plants a map on, in place
+// of kRespawnIntervalSeconds. Half of it, so twice as many monsters come and
+// a player already killing everything the map puts up kills twice as much.
+inline constexpr double kWildTotemRespawnSeconds = 3.78;
 
 }  // namespace ms
 

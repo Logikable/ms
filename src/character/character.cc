@@ -2012,6 +2012,16 @@ int64_t CharacterInstance::ChargeConsumable(ConsumableType type, double procs) {
   return taken;
 }
 
+int64_t CharacterInstance::ChargeFarmingConsumables(double seconds) {
+  int64_t taken = 0;
+  for (const ConsumableInfo& info : AllConsumables()) {
+    if (info.per_second) {
+      taken += ChargeConsumable(info.type, seconds);
+    }
+  }
+  return taken;
+}
+
 void CharacterInstance::AddHonor(int64_t amount) {
   if (amount <= 0) {
     return;

@@ -5068,6 +5068,39 @@ TEST(CombatSimTest, TheRespawnBeatIsFlaggedOnItsStep) {
   EXPECT_FALSE(sim.view().respawned_this_step);
 }
 
+// A totem halves the beat in the middle of a wait, and the wait the player is
+// already standing through is not the one it shortens. Putting it away again
+// is the same rule the other way round.
+TEST(CombatSimTest, ChangingTheBeatWaitsOutTheCycleItFound) {
+  Mob mob = MakeMob("Snail", 1'000'000);  // never falls: only the beat moves
+  CombatParams slow = MakeParams(1.0, 8.0, {MakeType(&mob, 1.0, 1)});
+  CombatParams fast = slow;
+  fast.respawn_seconds = 4.0;
+
+  CombatSim sim;
+  // A second a step, since Advance clamps a step to one swing.
+  auto seconds = [&sim](const CombatParams& params, int n) {
+    bool beat = false;
+    for (int i = 0; i < n; ++i) {
+      sim.Advance(params, 1.0);
+      beat = beat || sim.view().respawned_this_step;
+    }
+    return beat;
+  };
+
+  EXPECT_FALSE(seconds(slow, 4));
+  EXPECT_FALSE(seconds(fast, 1)) << "the totem went up five seconds into eight";
+  EXPECT_NEAR(sim.view().respawn_fraction, 5.0 / 8.0, 1e-9);
+  EXPECT_FALSE(seconds(fast, 2));
+  EXPECT_TRUE(seconds(fast, 1)) << "eight, the wait this cycle began under";
+
+  EXPECT_FALSE(seconds(fast, 3));
+  EXPECT_TRUE(seconds(fast, 1)) << "and every cycle after it runs at four";
+
+  EXPECT_FALSE(seconds(slow, 3));
+  EXPECT_TRUE(seconds(slow, 1)) << "put away mid-cycle: this one stays short";
+}
+
 // A measured fight keeps its roster: the monsters take the damage and none of
 // them falls, so what is read is the rate rather than how fast the map emptied.
 TEST(CombatSimTest, AMeasuredRosterNeverFalls) {

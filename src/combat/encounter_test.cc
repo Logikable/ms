@@ -5146,6 +5146,33 @@ TEST(ComputeBossParamsTest, TheGreenPotionPassesTheSpeedCapInAFightAlone) {
       << "the map is not a boss fight";
 }
 
+// The Wild Totem halves the map's respawn beat, and the stretch the pacing
+// band puts on it rides over the top. A boss fight has no beat to halve.
+TEST(ComputeBossParamsTest, TheWildTotemHalvesTheBeatOnAMapAlone) {
+  GameState state({}, {}, {},
+                  {{"arm", MakeMob("Zakum's Arm", 700000)},
+                   {"body", MakeMob("Zakum", 7000000)},
+                   {"snail", MakeMob("Snail", 15)},
+                   {"blue_snail", MakeMob("Blue Snail", 20)}},
+                  {{"field", TwoSnailMap()}});
+  state.current_map = "field";
+  Character grown = state.character.ToProto();
+  grown.set_level(220);
+  state.character.RestoreFrom(grown, state.equips, state.items);
+  EquipSword(state);
+  double speed = GameSpeedFactor(220);
+
+  EXPECT_DOUBLE_EQ(ComputeCombatParams(state).respawn_seconds,
+                   kRespawnIntervalSeconds * speed);
+
+  ASSERT_TRUE(state.character.ToggleConsumable(CONSUMABLE_TYPE_WILD_TOTEM));
+  EXPECT_DOUBLE_EQ(ComputeCombatParams(state).respawn_seconds,
+                   kWildTotemRespawnSeconds * speed);
+  EXPECT_DOUBLE_EQ(
+      ComputeBossParams(state, "zakum", NormalTwoPhase(), 0).respawn_seconds,
+      0.0);
+}
+
 // A boss stands its parts a room apart, so a swing reaches half as many of
 // them. Rounded up, so nothing loses the part it was aimed at, and only in a
 // boss fight -- the same skill sweeps a whole map's worth on the field.

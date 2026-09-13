@@ -693,8 +693,12 @@ class CombatSim {
   // itself, the casts being owed against it.
   std::vector<OwedCast> owed_casts_;
   double respawn_phase_ = 0.0;  // seconds into the current respawn cycle
-  double player_hp_ = 0.0;      // remaining player HP, topped up on a beat
-  double hit_phase_ = 0.0;      // seconds into the engaged mob's next hit
+  // How long that cycle is, sampled when it began rather than read off the
+  // params every step: the Wild Totem halves the beat mid-fight, and the wait
+  // a player is already standing through is not the one it shortens.
+  double respawn_interval_ = 0.0;
+  double player_hp_ = 0.0;  // remaining player HP, topped up on a beat
+  double hit_phase_ = 0.0;  // seconds into the engaged mob's next hit
   // One buff's clocks, one entry per buff in params.buffs. They keep running
   // across a change of map, unlike the fight's own: a buff belongs to the
   // character rather than to the mobs in front of them.
