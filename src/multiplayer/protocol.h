@@ -24,7 +24,7 @@ namespace ms {
 // release once played for days against a server whose boss table gave Cygnus
 // a fifteen-minute clock where the clients' gave her ten. Anything under
 // data/bosses or data/mobs is the protocol too.
-inline constexpr int kMultiplayerVersion = 3;
+inline constexpr int kMultiplayerVersion = 4;
 
 // Where the server runs. The client's --server flag overrides both. A build
 // made without multiplayer carries no address at all -- there is nothing in

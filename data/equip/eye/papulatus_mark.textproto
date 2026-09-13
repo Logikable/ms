@@ -1,0 +1,17 @@
+name: "Papulatus Mark"
+required_level: 145
+base_stats {
+  str: 8
+  dex: 8
+  int: 8
+  luk: 8
+  attack: 1
+  magic_attack: 1
+  def: 150
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_EYE_ACCESSORY
+upgrade_slots: 5
+# Dropped by Papulatus, never stocked. The third piece for a slot the Aquatic
+# Letter and the Black Bean Mark already fill, and the best of the three.
+sell_price: 0

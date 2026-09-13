@@ -244,7 +244,7 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
   GameState fourth = Workbench(JOB_ADVANCEMENT_DARK_KNIGHT);
   const std::map<EquipSlot, EquipInstance>& worn = fourth.character.equipped();
   const std::map<EquipSlot, std::string> kExpected = {
-      {EQUIP_SLOT_EYE_ACCESSORY, "Black Bean Mark"},
+      {EQUIP_SLOT_EYE_ACCESSORY, "Papulatus Mark"},
       {EQUIP_SLOT_FACE_ACCESSORY, "Condensed Power Crystal"},
       {EQUIP_SLOT_POCKET, "Pink Holy Cup"},
       {EQUIP_SLOT_RING, "Silver Blossom Ring"},

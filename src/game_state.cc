@@ -438,6 +438,7 @@ std::vector<std::string> RootAbyssGear(Job job) {
 std::vector<std::string> BossAccessories() {
   return {"aquatic_letter_eye_accessory",
           "black_bean_mark",
+          "papulatus_mark",
           "condensed_power_crystal",
           "stone_of_eternal_life",
           "pink_holy_cup",

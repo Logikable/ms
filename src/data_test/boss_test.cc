@@ -197,9 +197,9 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).kind(), ITEM_KIND_SOUL_SHARD) << where;
     }
   }
-  EXPECT_EQ(fights, 17) << "Arkarium, Cygnus, Princess No, the four of Root "
-                           "Abyss, and both difficulties of Zakum, Magnus, "
-                           "Pink Bean, Hilla and Horntail";
+  EXPECT_EQ(fights, 18) << "Arkarium, Cygnus, Princess No, Papulatus, the "
+                           "four of Root Abyss, and both difficulties of "
+                           "Zakum, Magnus, Pink Bean, Hilla and Horntail";
 }
 
 // A boss pays in meso and in gear, and the gear is the reward: selling it back
@@ -623,7 +623,8 @@ TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
       {"zakum", {7, 5}},      {"hilla", {5}},    {"horntail", {6, 6, 6}},
       {"magnus", {5}},        {"arkarium", {5}}, {"cygnus", {5}},
       {"pink_bean", {5, 5}},  {"pierre", {5}},   {"von_bon", {5}},
-      {"crimson_queen", {5}}, {"vellum", {5}},   {"princess_no", {9}}};
+      {"crimson_queen", {5}}, {"vellum", {5}},   {"princess_no", {9}},
+      {"papulatus", {7, 5}}};
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses_.count(want.first), 0u) << want.first;
     for (const BossDifficulty& difficulty :
