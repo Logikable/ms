@@ -114,45 +114,6 @@ TEST(MaxCharacterTest, NothingIsCubedThatCannotBe) {
       0);
 }
 
-// The pool is spent to the point where nothing left is affordable, over
-// several stats rather than two maxed ones -- a level's price climbs with the
-// level it reaches, so the last twenty points buy four levels of a stat
-// standing at zero and none of one already at six.
-TEST(MaxCharacterTest, HyperStatsSpendThePoolAcrossTheList) {
-  std::mt19937 rng(1);
-  CharacterInstance character(rng, MaxProto());
-  SpendMaxHyperStats(character);
-
-  for (StatPreset preset : {StatPreset::kFarming, StatPreset::kBossing}) {
-    // What is left over is the tail of the ladder: every stat on the list is
-    // high enough that its next level costs more than the change.
-    EXPECT_LT(character.hyper_stat_points_left(preset),
-              TotalHyperStatPoints(200) / 20)
-        << "the pool went largely unspent";
-    EXPECT_GE(character.hyper_stat_level(HYPER_STAT_FIELD_ATTACK, preset), 5);
-    EXPECT_LE(character.hyper_stat_level(HYPER_STAT_FIELD_ATTACK, preset),
-              character.max_hyper_stat_level());
-  }
-  // The two presets differ where the fight does.
-  EXPECT_GT(character.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE,
-                                       StatPreset::kBossing),
-            0);
-  EXPECT_EQ(character.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE,
-                                       StatPreset::kFarming),
-            0);
-}
-
-// Allocating twice hands back the same allocation: the previous one is thrown
-// away rather than added to.
-TEST(MaxCharacterTest, HyperStatsAreReallocatedFromScratch) {
-  std::mt19937 rng(1);
-  CharacterInstance character(rng, MaxProto());
-  SpendMaxHyperStats(character);
-  const int spent = character.hyper_stat_points_left(StatPreset::kBossing);
-  SpendMaxHyperStats(character);
-  EXPECT_EQ(character.hyper_stat_points_left(StatPreset::kBossing), spent);
-}
-
 // One Legendary line and two Epic ones, which is the shape a reset chase
 // lands on. The stat line follows the job; the top line follows the preset.
 TEST(MaxCharacterTest, AbilityHoldsOneLegendaryLine) {

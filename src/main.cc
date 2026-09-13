@@ -235,8 +235,7 @@ int main(int argc, char** argv) {
 
   ms::GameState state(std::move(equips), std::move(scrolls), std::move(items),
                       std::move(mobs), std::move(maps), std::move(skills), mode,
-                      test, std::nullopt, std::move(sets));
-  state.bosses = std::move(bosses);
+                      test, std::nullopt, std::move(sets), std::move(bosses));
 
   // The workbench neither reads nor writes a save: it starts from its known
   // state every run, and must never be able to overwrite a real character.

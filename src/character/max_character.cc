@@ -1,16 +1,24 @@
 #include "src/character/max_character.h"
 
 #include <algorithm>
+#include <map>
+#include <string>
 #include <vector>
 
 #include "src/character/character.h"
+#include "src/character/character_stats.h"
+#include "src/character/hyper_plan.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/job_branch.h"
 #include "src/character/stat_preset.h"
+#include "src/combat/damage.h"
 #include "src/item/potential.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/mob.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -93,76 +101,66 @@ void AddLine(Potential& potential, PotentialLineType type, PotentialRank rank) {
   line.set_rank(rank);
 }
 
-// The stats a fight is won on. Order settles a tie between two equal offers
-// and nothing else: what decides the allocation is that a level's price
-// climbs with the level it reaches, so the pool spreads itself over the whole
-// list rather than maxing the head of it. That is the shape
-// //analysis:hyper_plan arrives at from measurement -- eight or nine stats
-// around level six at the cap, not two stats at ten.
-std::vector<HyperStatField> HyperStatsFor(StatPreset preset, Job job) {
-  HyperStatField stat = HYPER_STAT_FIELD_STR;
-  // The stat the damage chain adds to four times the primary. Worth a ninth
-  // of what the primary is, and here for the tail of the pool: the last
-  // twenty points buy four levels of a stat standing at zero and nothing at
-  // all of one already at six.
-  HyperStatField secondary = HYPER_STAT_FIELD_DEX;
-  switch (BranchOf(job)) {
-    case JobBranch::kArcher:
-      stat = HYPER_STAT_FIELD_DEX;
-      secondary = HYPER_STAT_FIELD_STR;
-      break;
-    case JobBranch::kMagician:
-      stat = HYPER_STAT_FIELD_INT;
-      secondary = HYPER_STAT_FIELD_LUK;
-      break;
-    case JobBranch::kRogue:
-      stat = HYPER_STAT_FIELD_LUK;
-      secondary = HYPER_STAT_FIELD_DEX;
-      break;
-    default:
-      break;
+// The monster the preset is spent against: the toughest boss whose gate the
+// character has passed for the Boss allocation, and the toughest ordinary
+// monster standing at or below their level for the Farm one. Both read off
+// the roster rather than picked, so a boss landing later moves this on its
+// own.
+//
+// Null for an empty roster, which is what the rate falls back to bare combat
+// power for.
+const Mob* NominalTarget(const std::map<std::string, Boss>& bosses,
+                         const std::map<std::string, Mob>& mobs, int level,
+                         StatPreset preset) {
+  const Mob* worst = nullptr;
+  auto harder = [&worst](const Mob& mob) {
+    if (worst == nullptr || mob.pdr() > worst->pdr()) {
+      worst = &mob;
+    }
+  };
+  if (preset == StatPreset::kFarming) {
+    for (const std::pair<const std::string, Mob>& entry : mobs) {
+      if (!entry.second.boss() && entry.second.level() <= level) {
+        harder(entry.second);
+      }
+    }
+    return worst;
   }
-  return {HYPER_STAT_FIELD_ATTACK,
-          HYPER_STAT_FIELD_DAMAGE,
-          preset == StatPreset::kBossing ? HYPER_STAT_FIELD_BOSS_DAMAGE
-                                         : HYPER_STAT_FIELD_NORMAL_DAMAGE,
-          HYPER_STAT_FIELD_IED,
-          HYPER_STAT_FIELD_CRIT_DAMAGE,
-          HYPER_STAT_FIELD_CRIT_RATE,
-          stat,
-          HYPER_STAT_FIELD_MAX_HP,
-          secondary};
-}
-
-// Spends one preset's pool: the cheapest level on offer, over and over, until
-// nothing left is affordable. Cheapest first rather than best first because
-// what a level costs is the whole of the difference here -- the fifteenth
-// level of one stat is 110 points against ten for the fifth of another, and
-// no stat on the list is worth eleven times another.
-void SpendPreset(CharacterInstance& character, StatPreset preset) {
-  character.ResetHyperStats(preset);
-  const std::vector<HyperStatField> stats =
-      HyperStatsFor(preset, character.proto().job());
-  while (true) {
-    HyperStatField cheapest = HYPER_STAT_FIELD_UNSPECIFIED;
-    int price = 0;
-    for (HyperStatField field : stats) {
-      const int next = character.hyper_stat_level(field, preset) + 1;
-      const int cost = HyperStatLevelCost(next);
-      if (next > character.max_hyper_stat_level() ||
-          cost > character.hyper_stat_points_left(preset)) {
+  for (const std::pair<const std::string, Boss>& entry : bosses) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      if (difficulty.coming_soon() || difficulty.unlock_level() > level) {
         continue;
       }
-      if (cheapest == HYPER_STAT_FIELD_UNSPECIFIED || cost < price) {
-        cheapest = field;
-        price = cost;
+      for (const BossPhase& phase : difficulty.phases()) {
+        for (const Spawn& spawn : phase.spawns()) {
+          auto found = mobs.find(spawn.mob());
+          if (found != mobs.end()) {
+            harder(found->second);
+          }
+        }
       }
     }
-    if (cheapest == HYPER_STAT_FIELD_UNSPECIFIED ||
-        !character.AllocateHyperStat(cheapest, preset)) {
-      return;
-    }
   }
+  return worst;
+}
+
+// What the character is worth to the allocation: one bare swing at the
+// monster ahead of them, through the whole damage chain. Rated against a real
+// target rather than by combat power alone because combat power has none in
+// it, and a stat that only pays against a defended monster -- Ignore Defense
+// -- would otherwise price at zero and never be bought.
+//
+// A monster that cancels the swing outright leaves every allocation on the
+// 1-damage floor together, and the preset then buys nothing. That is the
+// roster saying the fight is out of reach, not a tie to be broken.
+double MaxHyperRate(CharacterInstance& character,
+                    const std::map<std::string, Skill>& skills,
+                    StatPreset preset, const Mob* target) {
+  const OffenseStats offense = CharacterOffense(character, skills, preset);
+  if (target == nullptr) {
+    return CombatPower(offense, preset == StatPreset::kBossing);
+  }
+  return ExpectedAttackDamage(offense, *target);
 }
 
 }  // namespace
@@ -216,9 +214,19 @@ Potential MaxPotentialFor(EquipSlot slot, const MaxGear& gear,
   return potential;
 }
 
-void SpendMaxHyperStats(CharacterInstance& character) {
-  SpendPreset(character, StatPreset::kFarming);
-  SpendPreset(character, StatPreset::kBossing);
+void SpendMaxHyperStats(CharacterInstance& character,
+                        const std::map<std::string, Skill>& skills,
+                        const std::map<std::string, Boss>& bosses,
+                        const std::map<std::string, Mob>& mobs) {
+  const int level = character.proto().level();
+  for (StatPreset preset : {StatPreset::kFarming, StatPreset::kBossing}) {
+    const Mob* target = NominalTarget(bosses, mobs, level, preset);
+    HyperWorth worth = MeasureHyperWorth(
+        character, preset, [&skills, preset, target](CharacterInstance& c) {
+          return MaxHyperRate(c, skills, preset, target);
+        });
+    SpendHyperStats(character, preset, worth);
+  }
 }
 
 AbilityPreset MaxAbilityPreset(StatPreset preset, StatField primary) {

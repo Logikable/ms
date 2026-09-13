@@ -307,6 +307,7 @@ cc_test(
         "//src/item",
         "//src/item:equip_instance",
         "//src/item:potential",
+        "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",

@@ -976,7 +976,7 @@ void SeedMax(GameState& state, const TestOptions& options) {
 
   DressMaxPotentials(state, gear);
   MaxVMatrix(state);
-  SpendMaxHyperStats(state.character);
+  SpendMaxHyperStats(state.character, state.skills, state.bosses, state.mobs);
   if (state.character.inner_ability_unlocked()) {
     const StatField primary = PrimaryStatField(state.character.proto().job());
     state.character.SetAbility(MaxAbilityPreset(StatPreset::kFarming, primary),
@@ -997,7 +997,8 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
                      std::map<std::string, MapData> maps_arg,
                      std::map<std::string, Skill> skills_arg, GameMode mode,
                      TestOptions test, std::optional<unsigned int> seed,
-                     std::map<std::string, EquipSet> sets)
+                     std::map<std::string, EquipSet> sets,
+                     std::map<std::string, Boss> bosses_arg)
     : equips(std::move(equips_arg)),
       scrolls(std::move(scrolls_arg)),
       items(std::move(items_arg)),
@@ -1005,6 +1006,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       maps(std::move(maps_arg)),
       skills(std::move(skills_arg)),
       equip_sets(std::move(sets)),
+      bosses(std::move(bosses_arg)),
       rng(seed.has_value() ? *seed : std::random_device{}()),
       // Every mode builds its character up from a level-1 Beginner; where the
       // climb stops is --level's to say, and the seeding below walks it there.

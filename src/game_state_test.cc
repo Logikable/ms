@@ -21,6 +21,7 @@
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -913,12 +914,37 @@ std::map<std::string, Scroll> MaxTraces() {
   return traces;
 }
 
-GameState MakeMaxState(int level, JobAdvancement job = JOB_ADVANCEMENT_HERO) {
+// One defended boss and one ordinary monster, which is all the Hyper Stat
+// allocation reads the roster for: what the preset's fight cancels of a swing.
+std::map<std::string, Mob> MaxMobs(int boss_pdr = 100) {
+  std::map<std::string, Mob> mobs;
+  Mob& wall = mobs["wall"];
+  wall.set_boss(true);
+  wall.set_level(200);
+  wall.set_pdr(boss_pdr);
+  Mob& snail = mobs["snail"];
+  snail.set_level(200);
+  snail.set_pdr(10);
+  return mobs;
+}
+
+std::map<std::string, Boss> MaxBosses(int unlock_level = 200) {
+  std::map<std::string, Boss> bosses;
+  BossDifficulty& difficulty = *bosses["wall"].add_difficulties();
+  difficulty.set_unlock_level(unlock_level);
+  difficulty.add_phases()->add_spawns()->set_mob("wall");
+  return bosses;
+}
+
+GameState MakeMaxState(int level, JobAdvancement job = JOB_ADVANCEMENT_HERO,
+                       std::map<std::string, Boss> bosses = MaxBosses(),
+                       std::map<std::string, Mob> mobs = MaxMobs()) {
   TestOptions options;
   options.job = job;
   options.level = level;
-  return GameState(MaxCatalog(), MaxTraces(), {}, {}, {}, EveryStageBook(),
-                   GameMode::kMax, options);
+  return GameState(MaxCatalog(), MaxTraces(), {}, std::move(mobs), {},
+                   EveryStageBook(), GameMode::kMax, options, std::nullopt, {},
+                   std::move(bosses));
 }
 
 const EquipInstance& Worn(const GameState& state, EquipSlot slot) {
@@ -981,6 +1007,55 @@ TEST(GameStateTest, MaxModeSpendsEveryPool) {
   }
   EXPECT_EQ(state.character.ability(StatPreset::kBossing).rank(),
             ABILITY_RANK_LEGENDARY);
+}
+
+// Nothing goes on a stat this character's damage never reads. What each is
+// worth is measured through their combat power, and neither of these enters
+// it -- which is what keeps a hand-kept list of "the stats a fight is won on"
+// out of the seeding.
+TEST(GameStateTest, MaxModeBuysNoHyperStatThatPaysNothing) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  const CharacterInstance& c = state.character;
+  for (StatPreset preset : {StatPreset::kFarming, StatPreset::kBossing}) {
+    EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_MAX_HP, preset), 0);
+    EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_EXP, preset), 0);
+  }
+  // A Hero swings on STR, so the three stats they do not swing on are worth
+  // nothing at all beside it.
+  EXPECT_GT(c.hyper_stat_level(HYPER_STAT_FIELD_STR, StatPreset::kFarming), 0);
+  for (HyperStatField spare : {HYPER_STAT_FIELD_INT, HYPER_STAT_FIELD_LUK}) {
+    EXPECT_EQ(c.hyper_stat_level(spare, StatPreset::kFarming), 0)
+        << HyperStatField_Name(spare);
+  }
+}
+
+// The two allocations part company where the fight does: boss %dmg is worth
+// nothing to a farming character, and the defence a boss carries is what puts
+// a price on Ignore Defense.
+TEST(GameStateTest, MaxModeHyperStatsFollowTheFightTheyAreFor) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  const CharacterInstance& c = state.character;
+  EXPECT_GT(
+      c.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE, StatPreset::kBossing),
+      0);
+  EXPECT_EQ(
+      c.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE, StatPreset::kFarming),
+      0);
+  EXPECT_GT(c.hyper_stat_level(HYPER_STAT_FIELD_IED, StatPreset::kBossing),
+            c.hyper_stat_level(HYPER_STAT_FIELD_IED, StatPreset::kFarming))
+      << "the boss cancels most of a swing; the monsters barely any";
+}
+
+// A fight the character's level has not opened prices nothing: the gate is
+// what says whether it is ahead of them.
+TEST(GameStateTest, MaxModeIgnoresABossItCannotYetFight) {
+  GameState shut = MakeMaxState(kTrialLevelCap, JOB_ADVANCEMENT_HERO,
+                                MaxBosses(/*unlock_level=*/300));
+  GameState open = MakeMaxState(kTrialLevelCap);
+  EXPECT_LT(shut.character.hyper_stat_level(HYPER_STAT_FIELD_IED,
+                                            StatPreset::kBossing),
+            open.character.hyper_stat_level(HYPER_STAT_FIELD_IED,
+                                            StatPreset::kBossing));
 }
 
 // --job names the line, not where to stop in it: the 5th advancement opens at

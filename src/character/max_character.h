@@ -15,9 +15,15 @@
 #ifndef MS_SRC_CHARACTER_MAX_CHARACTER_H_
 #define MS_SRC_CHARACTER_MAX_CHARACTER_H_
 
+#include <map>
+#include <string>
+
 #include "src/character/character.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/mob.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -51,9 +57,16 @@ MaxGear MaxGearForLevel(int level);
 Potential MaxPotentialFor(EquipSlot slot, const MaxGear& gear,
                           StatField primary);
 
-// Spends the whole Hyper Stat pool on both presets, cheapest level first over
-// the stats a fight cares about. Throws away whatever was allocated before.
-void SpendMaxHyperStats(CharacterInstance& character);
+// Spends the whole Hyper Stat pool on both presets, best value per point
+// first, throwing away whatever was allocated before. What a stat is worth is
+// measured on this character rather than listed here -- see hyper_plan.h --
+// so the job's own stat line is what decides. `skills` is the catalog combat
+// power is read through; `bosses` and `mobs` are what Ignore Defense is priced
+// against -- the toughest fight the character's level has opened.
+void SpendMaxHyperStats(CharacterInstance& character,
+                        const std::map<std::string, Skill>& skills,
+                        const std::map<std::string, Boss>& bosses,
+                        const std::map<std::string, Mob>& mobs);
 
 // The three Inner Ability lines each preset holds: a Legendary line on top
 // and two Epic ones under it, which is what the honor a climb pays reaches.

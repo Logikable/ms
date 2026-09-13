@@ -126,7 +126,8 @@ struct GameState {
             std::map<std::string, Skill> skills = {},
             GameMode mode = GameMode::kPlay, TestOptions test = {},
             std::optional<unsigned int> seed = std::nullopt,
-            std::map<std::string, EquipSet> sets = {});
+            std::map<std::string, EquipSet> sets = {},
+            std::map<std::string, Boss> bosses = {});
   GameState(const GameState&) = delete;
   GameState& operator=(const GameState&) = delete;
 
@@ -140,9 +141,9 @@ struct GameState {
   // handed to the character, because a party member's sheet has to be rebuilt
   // against them to be inspected.
   std::map<std::string, EquipSet> equip_sets;
-  // The bosses that can be fought, by data file stem. Filled in after
-  // construction rather than passed to it: nothing the constructor seeds
-  // depends on them, and a boss is not somewhere a new character stands.
+  // The bosses that can be fought, by data file stem. Passed to the
+  // constructor: --mode=max prices Ignore Defense against the toughest fight
+  // the character's level has opened, so the seeding has to know them.
   std::map<std::string, Boss> bosses;
   std::mt19937 rng;
 
