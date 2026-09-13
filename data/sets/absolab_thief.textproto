@@ -1,0 +1,109 @@
+name: EQUIP_SET_NAME_ABSOLAB_THIEF
+# Eight slots, all of them filled: six pieces of armour, and the weapon whose
+# version a class picks. Written once per branch because every piece of it
+# belongs to one class, the way the Root Abyss set below is.
+#
+# GMS's set spans seven, because the Armor and the Pants are one overall
+# there. The tiers are spread over eight here and add up to the same totals:
+# all stats +30, HP/MP +1,500 and +20%, ATT/MATT +135, DEF +200, boss +30%,
+# and two 10% shares of ignored defence, which combine to GMS's 19%.
+complete_pieces: 8
+members {
+  slot: EQUIP_SLOT_HAT
+  items { name: "AbsoLab Bandit Cap" }
+}
+members {
+  slot: EQUIP_SLOT_TOP
+  items { name: "AbsoLab Bandit Armor" }
+}
+members {
+  slot: EQUIP_SLOT_BOTTOM
+  items { name: "AbsoLab Bandit Pants" }
+}
+members {
+  slot: EQUIP_SLOT_SHOES
+  items { name: "AbsoLab Bandit Shoes" }
+}
+members {
+  slot: EQUIP_SLOT_GLOVES
+  items { name: "AbsoLab Bandit Gloves" }
+}
+members {
+  slot: EQUIP_SLOT_CAPE
+  items { name: "AbsoLab Bandit Cape" }
+}
+members {
+  slot: EQUIP_SLOT_SHOULDER
+  items { name: "AbsoLab Bandit Shoulder" }
+}
+# Named as a family rather than by name: the branch's weapons are one piece
+# with a version per line, and a player wears exactly one of them.
+members {
+  slot: EQUIP_SLOT_PRIMARY_WEAPON
+  family: "AbsoLab Thief Weapon"
+}
+tiers {
+  pieces: 2
+  effect {
+    max_hp: 1500
+    max_mp: 1500
+    attack: 15
+    magic_attack: 15
+    boss_pct: 0.10
+  }
+}
+tiers {
+  pieces: 3
+  effect {
+    str: 30
+    dex: 30
+    int: 30
+    luk: 30
+    attack: 20
+    magic_attack: 20
+  }
+}
+tiers {
+  pieces: 4
+  effect {
+    attack: 20
+    magic_attack: 20
+    def: 200
+    boss_pct: 0.10
+  }
+}
+# The first of the two ignored-defence shares. They are separate sources, so
+# they combine rather than sum: 10% and 10% is 19%, which is GMS's own total.
+tiers {
+  pieces: 5
+  effect {
+    attack: 20
+    magic_attack: 20
+    ied_pct: 0.10
+  }
+}
+tiers {
+  pieces: 6
+  effect {
+    attack: 20
+    magic_attack: 20
+    boss_pct: 0.10
+  }
+}
+tiers {
+  pieces: 7
+  effect {
+    max_hp_pct: 0.20
+    max_mp_pct: 0.20
+    attack: 20
+    magic_attack: 20
+  }
+}
+tiers {
+  pieces: 8
+  effect {
+    attack: 20
+    magic_attack: 20
+    ied_pct: 0.10
+  }
+}

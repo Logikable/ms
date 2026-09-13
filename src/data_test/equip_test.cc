@@ -16,6 +16,7 @@
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/message.h"
 #include "src/character/character.h"
+#include "src/combat/damage.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_row.h"
 #include "src/frontend/widgets/text_columns.h"
@@ -776,6 +777,64 @@ TEST(EquipDataTest, EveryRootAbyssSetAddsUpToTheSameTotals) {
     EXPECT_DOUBLE_EQ(set.tiers(2).effect().boss_pct(), 0.30) << entry.first;
   }
   EXPECT_EQ(seen, kBranches) << "a branch has no Root Abyss set";
+}
+
+// The four AbsoLab sets, pinned the same way and for the same reason. Totals
+// rather than what each tier adds, and every one of them is GMS's own: its
+// set spans seven slots where this one spans eight, because the Armor and the
+// Pants are one overall there, so the tiers are spread differently and end in
+// the same place.
+TEST(EquipDataTest, EveryAbsoLabSetAddsUpToTheSameTotals) {
+  const std::set<EquipSetName> kBranches = {
+      EQUIP_SET_NAME_ABSOLAB_WARRIOR, EQUIP_SET_NAME_ABSOLAB_BOWMAN,
+      EQUIP_SET_NAME_ABSOLAB_MAGICIAN, EQUIP_SET_NAME_ABSOLAB_THIEF};
+  std::set<EquipSetName> seen;
+  for (const std::pair<const std::string, EquipSet>& entry : LoadSets()) {
+    const EquipSet& set = entry.second;
+    if (kBranches.count(set.name()) == 0) {
+      continue;
+    }
+    seen.insert(set.name());
+    ASSERT_EQ(set.complete_pieces(), 8) << entry.first;
+    ASSERT_EQ(set.members_size(), 8) << entry.first;
+    ASSERT_EQ(set.tiers_size(), 7) << entry.first;
+    int stat = 0;
+    int attack = 0;
+    int def = 0;
+    int pool = 0;
+    double pool_pct = 0.0;
+    double boss = 0.0;
+    // Ignored defence is the one lever a set pays twice, and two shares of it
+    // combine rather than sum -- the same arithmetic the character does.
+    double ied = 0.0;
+    for (int i = 0; i < set.tiers_size(); ++i) {
+      const SkillEffect& effect = set.tiers(i).effect();
+      EXPECT_EQ(set.tiers(i).pieces(), i + 2) << entry.first;
+      stat += effect.str();
+      attack += effect.attack();
+      def += effect.def();
+      pool += effect.max_hp();
+      pool_pct += effect.max_hp_pct();
+      boss += effect.boss_pct();
+      ied = CombineIgnoredDefense(ied, effect.ied_pct());
+      // All four stats climb together, magic attack shadows attack, and MP
+      // shadows HP.
+      EXPECT_EQ(effect.dex(), effect.str()) << entry.first;
+      EXPECT_EQ(effect.int_(), effect.str()) << entry.first;
+      EXPECT_EQ(effect.luk(), effect.str()) << entry.first;
+      EXPECT_EQ(effect.magic_attack(), effect.attack()) << entry.first;
+      EXPECT_EQ(effect.max_mp(), effect.max_hp()) << entry.first;
+      EXPECT_DOUBLE_EQ(effect.max_mp_pct(), effect.max_hp_pct()) << entry.first;
+    }
+    EXPECT_EQ(stat, 30) << entry.first;
+    EXPECT_EQ(attack, 135) << entry.first;
+    EXPECT_EQ(def, 200) << entry.first;
+    EXPECT_EQ(pool, 1500) << entry.first;
+    EXPECT_DOUBLE_EQ(pool_pct, 0.20) << entry.first;
+    EXPECT_DOUBLE_EQ(boss, 0.30) << entry.first;
+    EXPECT_DOUBLE_EQ(ied, 0.19) << entry.first;
+  }
+  EXPECT_EQ(seen, kBranches) << "a branch has no AbsoLab set";
 }
 
 // The levers the inspect screen's set card writes a row for. A tier that pulls

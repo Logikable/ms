@@ -259,6 +259,14 @@ std::string FormatEquipSet(EquipSetName set) {
       return "Root Abyss Set (Thief)";
     case EQUIP_SET_NAME_SENGOKU_TREASURE:
       return "Sengoku Treasure Set";
+    case EQUIP_SET_NAME_ABSOLAB_WARRIOR:
+      return "AbsoLab Set (Warrior)";
+    case EQUIP_SET_NAME_ABSOLAB_BOWMAN:
+      return "AbsoLab Set (Bowman)";
+    case EQUIP_SET_NAME_ABSOLAB_MAGICIAN:
+      return "AbsoLab Set (Magician)";
+    case EQUIP_SET_NAME_ABSOLAB_THIEF:
+      return "AbsoLab Set (Thief)";
     default:
       return "";
   }

@@ -160,6 +160,7 @@ cc_test(
     deps = [
         "//src/character",
         "//src/character:v_matrix",
+        "//src/combat:damage",
         "//src/frontend/widgets:game_names",
         "//src/frontend/widgets:item_row",
         "//src/frontend/widgets:text_columns",
