@@ -197,6 +197,10 @@ class CharacterInstance {
   // the stat is locked, the levels would pass the cap, or the pool is short.
   bool AllocateHyperStat(HyperStatField field, StatPreset preset,
                          int amount = 1);
+  // Takes `amount` levels back off `field` in `preset`, returning what every
+  // one of them cost to the pool. All or nothing: returns false and refunds
+  // nothing when the stat is not that many levels up.
+  bool RefundHyperStat(HyperStatField field, StatPreset preset, int amount = 1);
   // Puts every point in `preset` back in the pool. Free, and the only way out
   // of an allocation.
   void ResetHyperStats(StatPreset preset);

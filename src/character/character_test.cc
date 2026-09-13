@@ -294,6 +294,38 @@ TEST_F(HyperStatTest, PresetsSpendApartAndResetFree) {
       << "the other allocation is untouched";
 }
 
+// A refund gives back exactly what the level cost, and runs out at zero.
+TEST_F(HyperStatTest, RefundUndoesOneLevelAtATime) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
+  int pool = c.hyper_stat_points();
+  ASSERT_TRUE(
+      c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFarming, 4));
+  ASSERT_TRUE(c.RefundHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFarming));
+  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFarming),
+            3);
+  // 1 + 2 + 4 buys three levels, whatever order they were bought and sold in.
+  EXPECT_EQ(c.hyper_stat_points_left(StatPreset::kFarming), pool - 7);
+
+  ASSERT_TRUE(
+      c.RefundHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFarming, 3));
+  EXPECT_EQ(c.hyper_stat_points_left(StatPreset::kFarming), pool);
+  EXPECT_FALSE(c.RefundHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFarming))
+      << "nothing left to give back";
+}
+
+// All or nothing, and it reaches the allocation it was handed.
+TEST_F(HyperStatTest, RefundPastWhatIsSpentChangesNothing) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
+  ASSERT_TRUE(
+      c.AllocateHyperStat(HYPER_STAT_FIELD_LUK, StatPreset::kBossing, 2));
+  EXPECT_FALSE(
+      c.RefundHyperStat(HYPER_STAT_FIELD_LUK, StatPreset::kBossing, 3));
+  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_LUK, StatPreset::kBossing), 2);
+  EXPECT_FALSE(c.RefundHyperStat(HYPER_STAT_FIELD_LUK, StatPreset::kFarming))
+      << "the other allocation spent nothing on it";
+  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_LUK, StatPreset::kBossing), 2);
+}
+
 // A save from older rules: a stat past the cap, one the level has closed, and
 // an allocation that outspends the pool.
 TEST_F(HyperStatTest, ReconcileTrimsAnAllocationBackToThePool) {

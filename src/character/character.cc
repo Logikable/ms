@@ -1318,6 +1318,19 @@ bool CharacterInstance::AllocateHyperStat(HyperStatField field,
   return true;
 }
 
+bool CharacterInstance::RefundHyperStat(HyperStatField field, StatPreset preset,
+                                        int amount) {
+  int level = hyper_stat_level(field, preset);
+  if (amount <= 0 || amount > level) {
+    return false;
+  }
+  // The points come back by themselves: what is left is the pool less what
+  // the allocation holds, so lowering the level is the whole refund.
+  SetHyperStatLevel(PresetOf(*character_.mutable_hyper_stats(), preset), field,
+                    level - amount);
+  return true;
+}
+
 void CharacterInstance::ResetHyperStats(StatPreset preset) {
   PresetOf(*character_.mutable_hyper_stats(), preset).clear_levels();
 }
