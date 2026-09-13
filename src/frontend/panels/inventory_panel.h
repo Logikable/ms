@@ -177,7 +177,15 @@ class InventoryPanel {
   // The Token tab: two read-only columns, the shop's currencies beside the
   // bosses' soul shards. Nothing on it can be selected, so it takes no cursor
   // and Enter on the bar above it opens the {Sort, Close} menu.
-  ftxui::Element RenderCurrencySheet() const;
+  ftxui::Element RenderCurrencySheet();
+  // Rows on the Token tab: as many as its longer column.
+  int CurrencyRowCount() const;
+  // Rows of it the panel can show at once, from the last frame's box.
+  int CurrencySheetHeight() const;
+  // Scrolls the sheet `delta` rows, which is what Up and Down do on a tab with
+  // no cursor to move. Clamped rather than wrapped: this is a position in a
+  // page, not a cursor going round a ring.
+  void ScrollCurrencySheet(int delta);
 
   // What OpenMenu opens, by tab.
   void OpenStackMenu();
@@ -242,6 +250,11 @@ class InventoryPanel {
   ftxui::Box cursor_box_;
   // And on the tab bar, so a tab menu knows the row to open under.
   ftxui::Box bar_box_;
+  // And on the Token tab's scrolling frame, which is how Up and Down know how
+  // far one of them may take the sheet.
+  ftxui::Box sheet_box_;
+  // The first row of the sheet on screen.
+  int currency_scroll_ = 0;
   int selected_ = 0;
   // When the selection last moved, for sliding a long name under its column.
   SelectionClock

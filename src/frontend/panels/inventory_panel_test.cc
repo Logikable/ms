@@ -409,7 +409,7 @@ TEST_F(InventoryPanelTest, TheTokenTabTakesNoCursor) {
   comp->OnEvent(ftxui::Event::ArrowRight);
   ASSERT_EQ(panel.active_tab(), kTokenTab);
   comp->OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_TRUE(panel.on_tab_bar());
+  EXPECT_TRUE(panel.on_tab_bar()) << "Down scrolls the sheet, not the cursor";
   EXPECT_EQ(RenderComponentText(comp).find("> Frozen"), std::string::npos);
   comp->OnEvent(ftxui::Event::ArrowUp);
   EXPECT_TRUE(panel.on_tab_bar());
@@ -460,6 +460,44 @@ TEST_F(InventoryPanelTest, EtcKeepsOnlyTheOrdinaryDrops) {
   // thing the bag happens to hold.
   comp->OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(c_.stackables()[panel.selected_stack()].name(), "Red Shell");
+}
+
+// With no cursor to walk, Up and Down move the sheet itself -- by one row per
+// press, and no further than the last row. Sixteen shards against a panel that
+// can draw a handful is what the keys are for.
+TEST_F(InventoryPanelTest, UpAndDownScrollTheTokenSheet) {
+  for (const std::string& boss :
+       {"Arkarium", "Crimson Queen", "Cygnus", "Damien", "Hilla", "Horntail",
+        "Lotus", "Magnus", "Papulatus", "Pierre", "Pink Bean", "Princess No",
+        "Vellum", "Von Bon", "Zakum"}) {
+    c_.AddStackable(MakeShard(boss), 20);
+  }
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_EQ(panel.active_tab(), kTokenTab);
+  ASSERT_NE(RenderComponentText(comp).find("Arkarium's"), std::string::npos);
+
+  // One press, one row: the first row goes and the one after it leads.
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  std::string text = RenderComponentText(comp);
+  EXPECT_EQ(text.find("Arkarium's"), std::string::npos);
+  EXPECT_NE(text.find("Crimson Queen's"), std::string::npos);
+
+  // Down past the end stops at the last row rather than scrolling off it, so
+  // the way back up is not a run of dead presses.
+  for (int i = 0; i < 40; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+  }
+  ASSERT_NE(RenderComponentText(comp).find("Zakum's"), std::string::npos);
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_NE(RenderComponentText(comp).find("Von Bon's"), std::string::npos);
+
+  // And stepping off the tab and back opens it at the top again.
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_NE(RenderComponentText(comp).find("Arkarium's"), std::string::npos);
 }
 
 // Sort files both columns, each from most to fewest.

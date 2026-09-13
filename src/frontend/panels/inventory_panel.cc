@@ -197,6 +197,7 @@ void InventoryPanel::StepTab(int direction) {
   if (next.tab != active_tab_) {
     active_tab_ = next.tab;
     selected_stack_ = 0;
+    currency_scroll_ = 0;
     MarkActiveTabSeen();
   }
 }
@@ -602,27 +603,62 @@ ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
   });
 }
 
-ftxui::Element InventoryPanel::RenderCurrencySheet() const {
+int InventoryPanel::CurrencyRowCount() const {
+  const std::vector<StackableItem>& stacks = character_.stackables();
+  return static_cast<int>(
+      std::max(StacksIn(stacks, StackView::kTokens).size(),
+               StacksIn(stacks, StackView::kSoulShards).size()));
+}
+
+int InventoryPanel::CurrencySheetHeight() const {
+  // One frame behind, which is right: a key pressed now scrolls the sheet the
+  // player is looking at. One row until the sheet has been drawn once.
+  return std::max(1, sheet_box_.y_max - sheet_box_.y_min + 1);
+}
+
+void InventoryPanel::ScrollCurrencySheet(int delta) {
+  int last = std::max(0, CurrencyRowCount() - CurrencySheetHeight());
+  currency_scroll_ = std::max(0, std::min(last, currency_scroll_ + delta));
+}
+
+ftxui::Element InventoryPanel::RenderCurrencySheet() {
   const std::vector<StackableItem>& stacks = character_.stackables();
   std::vector<int> tokens = StacksIn(stacks, StackView::kTokens);
   std::vector<int> shards = StacksIn(stacks, StackView::kSoulShards);
-  std::vector<ftxui::Element> rows;
+  int count = CurrencyRowCount();
+  int height = CurrencySheetHeight();
+  // The tab can lose rows while it is open -- the last of a token spent at the
+  // shop -- so the offset is held to what there is to show.
+  currency_scroll_ = std::max(0, std::min(count - height, currency_scroll_));
+  std::vector<ftxui::Element> above;
+  std::vector<ftxui::Element> window;
+  std::vector<ftxui::Element> below;
   // As long as the taller column: the two run out at different heights, and
   // the shorter one simply leaves its half of the row blank.
-  for (int i = 0; i < static_cast<int>(std::max(tokens.size(), shards.size()));
-       ++i) {
-    rows.push_back(RenderCurrencyRow(
+  for (int i = 0; i < count; ++i) {
+    ftxui::Element row = RenderCurrencyRow(
         i < static_cast<int>(tokens.size()) ? &stacks[tokens[i]] : nullptr,
-        i < static_cast<int>(shards.size()) ? &stacks[shards[i]] : nullptr));
+        i < static_cast<int>(shards.size()) ? &stacks[shards[i]] : nullptr);
+    std::vector<ftxui::Element>& part =
+        i < currency_scroll_ ? above
+                             : (i < currency_scroll_ + height ? window : below);
+    part.push_back(std::move(row));
   }
+  // A frame scrolls to what is focused and centres it, so the rows that should
+  // be on screen are handed to it as one block: a block the height of the
+  // window centres on the window. Nothing here draws a cursor -- the focus is
+  // the scroll position, not a selection.
+  ftxui::Element body = ftxui::vbox({
+      ftxui::vbox(std::move(above)),
+      ftxui::vbox(std::move(window)) | ftxui::focus,
+      ftxui::vbox(std::move(below)),
+  });
   return ftxui::vbox({
       CurrencyHeader(),
       PanelSeparator(highlighted_),
-      // Only the rows scroll; the header and its rule stay put. Nothing here
-      // takes focus, so the frame shows the top and the player scrolls the
-      // panel rather than a cursor.
-      ftxui::vbox(std::move(rows)) | ftxui::vscroll_indicator | ftxui::yframe |
-          ftxui::flex,
+      // Only the rows scroll; the header and its rule stay put.
+      std::move(body) | ftxui::vscroll_indicator | ftxui::yframe |
+          ftxui::reflect(sheet_box_) | ftxui::flex,
   });
 }
 
@@ -728,7 +764,14 @@ bool InventoryPanel::OnTabBarEvent(const ftxui::Event& event,
     return true;
   }
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
-    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    int delta = event == ftxui::Event::ArrowUp ? -1 : 1;
+    // The Token tab has no row to step down onto, so the keys that would walk
+    // a list scroll the sheet under the bar instead.
+    if (active_tab_ == kTokenTab && !on_expand_) {
+      ScrollCurrencySheet(delta);
+      return true;
+    }
+    MoveCursor(delta);
     return true;
   }
   if (IsForward(event)) {
