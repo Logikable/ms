@@ -439,6 +439,35 @@ TEST(BossRunTest, ASteppingMonsterRoamsTheRoomAndKeepsOffThePlayersCells) {
   EXPECT_EQ(seen.size(), 12u);
 }
 
+// A walk held to its own row: one cell left or right, never up or down, so a
+// monster pacing over the player's heads does not come down among them.
+TEST(BossRunTest, ARowStepMonsterKeepsToItsOwnRow) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = TwoPhaseBoss();
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  phase->set_arena_width(5);
+  phase->set_arena_height(3);
+  phase->clear_player_spots();
+  Spawn* arms = phase->mutable_spawns(0);
+  arms->mutable_walk()->set_interval_ms(500);
+  arms->mutable_walk()->set_range(ArenaWalk::RANGE_ROW_STEP);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+
+  int row = run.slots()[0].y;
+  int last_x = run.slots()[0].x;
+  std::set<int> seen;
+  for (int step = 0; step < 100; ++step) {
+    run.Advance(*state, 0.5);
+    const BossSlot& slot = run.slots()[0];
+    EXPECT_EQ(slot.y, row) << "step " << step << " left the row";
+    EXPECT_EQ(std::abs(slot.x - last_x), 1) << "step " << step;
+    seen.insert(slot.x);
+    last_x = slot.x;
+  }
+  EXPECT_EQ(seen.size(), 5u) << "it paced the whole row";
+}
+
 // Two runs of the same stepping fight walk the monster the same way, and a
 // run that is stepped in one go lands where one stepped beat by beat does.
 TEST(BossRunTest, TheRoamIsTheSameOnEveryClientHoweverItIsStepped) {

@@ -2,13 +2,14 @@ name: "Damien"
 difficulties {
   # No Hard: GMS's is 6.7x this body, and Normal is already a party fight.
   name: "Normal"
-  # He paces the row over the player's heads, the whole floor theirs.
+  # He paces the row over the player's heads, a cell at a time, the whole
+  # floor theirs.
   phases {
     bgm: "Demian Spine"
     spawns {
       mob: "damien_phase_1"
       spots { x: 4 y: 4 }
-      walk { interval_ms: 3000 range: RANGE_ROW }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
@@ -18,17 +19,17 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  # The blade drawn, and the same room crossed rather than paced: every thirty
-  # seconds he runs four cells one way, a cell every 120ms, and the wall stops
-  # him where he meets it.
+  # The blade drawn, and the same pacing -- but every thirty seconds he crosses
+  # the room instead: four cells one way, a cell every 120ms, and the wall
+  # stops him where he meets it.
   phases {
     bgm: "Demian True"
     spawns {
       mob: "damien_phase_2"
       spots { x: 4 y: 4 }
       walk {
-        interval_ms: 3000
-        range: RANGE_ROW
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
         dash { interval_ms: 30000 cells: 4 step_ms: 120 }
       }
     }

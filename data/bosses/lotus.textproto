@@ -20,13 +20,14 @@ difficulties {
     arena_height: 6
   }
   # Out of the machine and down on the floor, pacing the row over the player's
-  # heads every three seconds. The room gains the gallery he was hanging in.
+  # heads a cell every ten seconds. The room gains the gallery he was hanging
+  # in.
   phases {
     bgm: "Suu2phase"
     spawns {
       mob: "lotus_phase_2"
       spots { x: 4 y: 4 }
-      walk { interval_ms: 3000 range: RANGE_ROW }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }
@@ -46,7 +47,7 @@ difficulties {
     spawns {
       mob: "lotus_phase_3"
       spots { x: 4 y: 4 }
-      walk { interval_ms: 3000 range: RANGE_ROW }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
     }
     player_spots { x: 4 y: 5 }
     player_spots { x: 0 y: 5 }

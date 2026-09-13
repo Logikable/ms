@@ -598,8 +598,9 @@ TEST_F(BossDataTest, LotusIsThreeBodiesOnTheLongestClock) {
   EXPECT_EQ(normal.phases(0).spawns(0).walk().interval_ms(), 0);
   for (int i = 1; i < normal.phases_size(); ++i) {
     EXPECT_EQ(normal.phases(i).spawns(0).spots(0).y(), 4) << i;
-    EXPECT_EQ(normal.phases(i).spawns(0).walk().interval_ms(), 3000) << i;
-    EXPECT_EQ(normal.phases(i).spawns(0).walk().range(), ArenaWalk::RANGE_ROW)
+    EXPECT_EQ(normal.phases(i).spawns(0).walk().interval_ms(), 10000) << i;
+    EXPECT_EQ(normal.phases(i).spawns(0).walk().range(),
+              ArenaWalk::RANGE_ROW_STEP)
         << i;
   }
   // A coin per clear, which is the only source of AbsoLab gear, and his shard.
@@ -633,8 +634,8 @@ TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
     EXPECT_EQ(phase.bgm(), kTracks[i]) << i;
     // Both phases pace the row over the player's heads, on Lotus's beat.
     EXPECT_EQ(phase.spawns(0).spots(0).y(), 4) << i;
-    EXPECT_EQ(phase.spawns(0).walk().interval_ms(), 3000) << i;
-    EXPECT_EQ(phase.spawns(0).walk().range(), ArenaWalk::RANGE_ROW) << i;
+    EXPECT_EQ(phase.spawns(0).walk().interval_ms(), 10000) << i;
+    EXPECT_EQ(phase.spawns(0).walk().range(), ArenaWalk::RANGE_ROW_STEP) << i;
     const Mob& mob = mobs_.at(kMobs[i]);
     EXPECT_EQ(mob.name(), "Damien") << i;
     EXPECT_EQ(mob.level(), 210) << i;
@@ -781,9 +782,14 @@ TEST_F(BossDataTest, RootAbyssIsFourBodiesBehindClimbingDefence) {
     ASSERT_EQ(chaos.phases(0).spawns_size(), 1) << want.boss;
     EXPECT_EQ(SpawnCount(chaos.phases(0).spawns(0)), 1) << want.boss;
     EXPECT_EQ(chaos.phases(0).spawns(0).mob(), want.mob) << want.boss;
-    // Vellum walks his row; the others stand still.
+    // Vellum blinks along his row, the one walk in the game that does not
+    // step; the others stand still.
     EXPECT_EQ(chaos.phases(0).spawns(0).walk().interval_ms(),
               want.boss == "vellum" ? 30000 : 0)
+        << want.boss;
+    EXPECT_EQ(chaos.phases(0).spawns(0).walk().range(),
+              want.boss == "vellum" ? ArenaWalk::RANGE_ROW
+                                    : ArenaWalk::RANGE_UNSPECIFIED)
         << want.boss;
     const Mob& mob = mobs_.at(want.mob);
     EXPECT_EQ(mob.level(), 190) << want.boss;

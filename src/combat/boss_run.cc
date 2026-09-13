@@ -81,12 +81,15 @@ std::vector<ArenaSpot> WalkTargets(const BossPhase& phase,
                                    int width, int height) {
   std::vector<ArenaSpot> targets;
   std::vector<ArenaSpot> tried;
-  if (walk.range() == ArenaWalk::RANGE_STEP) {
+  if (walk.range() == ArenaWalk::RANGE_STEP ||
+      walk.range() == ArenaWalk::RANGE_ROW_STEP) {
+    // Sideways first, so a walk held to its own row takes the first two.
     const int kSteps[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-    for (const int (&step)[2] : kSteps) {
+    int sides = walk.range() == ArenaWalk::RANGE_ROW_STEP ? 2 : 4;
+    for (int side = 0; side < sides; ++side) {
       ArenaSpot to;
-      to.set_x(x + step[0]);
-      to.set_y(y + step[1]);
+      to.set_x(x + kSteps[side][0]);
+      to.set_y(y + kSteps[side][1]);
       tried.push_back(to);
     }
   } else {
