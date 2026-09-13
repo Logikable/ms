@@ -17,6 +17,7 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/frontend/widgets/screen_text.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
@@ -93,7 +94,7 @@ class InventoryPanelTest : public PanelTest {
   ItemPrototype MakeShard(const std::string& boss) {
     ItemPrototype proto =
         MakeStackable(boss + "'s Soul Shard", ITEM_CATEGORY_ETC);
-    proto.set_short_name(boss + "'s");
+    proto.set_short_name(boss);
     proto.set_kind(ITEM_KIND_SOUL_SHARD);
     return proto;
   }
@@ -444,7 +445,7 @@ TEST_F(InventoryPanelTest, TheTokenTabDrawsBothColumns) {
   std::string text = RenderComponentText(comp);
   EXPECT_NE(text.find("Soul Shard"), std::string::npos) << "the heading";
   EXPECT_NE(text.find("Frozen Weapon Token"), std::string::npos);
-  EXPECT_NE(text.find("Zakum's"), std::string::npos);
+  EXPECT_NE(text.find("Zakum"), std::string::npos);
   EXPECT_EQ(text.find("Zakum's Soul Shard"), std::string::npos)
       << "the column already says Soul Shard";
   EXPECT_NE(text.find("47"), std::string::npos);
@@ -492,27 +493,27 @@ TEST_F(InventoryPanelTest, UpAndDownScrollTheTokenSheet) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);
   ASSERT_EQ(panel.active_tab(), kTokenTab);
-  ASSERT_NE(RenderComponentText(comp).find("Arkarium's"), std::string::npos);
+  ASSERT_NE(RenderComponentText(comp).find("Arkarium"), std::string::npos);
 
   // One press, one row: the first row goes and the one after it leads.
   comp->OnEvent(ftxui::Event::ArrowDown);
   std::string text = RenderComponentText(comp);
-  EXPECT_EQ(text.find("Arkarium's"), std::string::npos);
-  EXPECT_NE(text.find("Crimson Queen's"), std::string::npos);
+  EXPECT_EQ(text.find("Arkarium"), std::string::npos);
+  EXPECT_NE(text.find("Crimson Queen"), std::string::npos);
 
   // Down past the end stops at the last row rather than scrolling off it, so
   // the way back up is not a run of dead presses.
   for (int i = 0; i < 40; ++i) {
     comp->OnEvent(ftxui::Event::ArrowDown);
   }
-  ASSERT_NE(RenderComponentText(comp).find("Zakum's"), std::string::npos);
+  ASSERT_NE(RenderComponentText(comp).find("Zakum"), std::string::npos);
   comp->OnEvent(ftxui::Event::ArrowUp);
-  EXPECT_NE(RenderComponentText(comp).find("Von Bon's"), std::string::npos);
+  EXPECT_NE(RenderComponentText(comp).find("Von Bon"), std::string::npos);
 
   // And stepping off the tab and back opens it at the top again.
   comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::ArrowLeft);
-  EXPECT_NE(RenderComponentText(comp).find("Arkarium's"), std::string::npos);
+  EXPECT_NE(RenderComponentText(comp).find("Arkarium"), std::string::npos);
 }
 
 // Sort files both columns, each from most to fewest.
@@ -531,7 +532,7 @@ TEST_F(InventoryPanelTest, SortFilesBothTokenColumns) {
 
   std::string text = RenderComponentText(comp);
   EXPECT_LT(text.find("Frozen Weapon Token"), text.find("AbsoLab Coin"));
-  EXPECT_LT(text.find("Zakum's"), text.find("Hilla's"));
+  EXPECT_LT(text.find("Zakum"), text.find("Hilla"));
 }
 
 // --- the Expand tab ---
@@ -1280,6 +1281,30 @@ TEST_F(InventoryPanelTest, ShowsMesoCounterWithCommas) {
   InventoryPanel panel(c_, account_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("1,234,567"),
             std::string::npos);
+}
+
+// The balances are centred in the bar, but never closer than a gutter to the
+// last chip: at the narrowest panel the game lays out, centring alone used to
+// stand them against the tabs, and a count touching a tab reads as part of it.
+TEST_F(InventoryPanelTest, TheBalancesKeepClearOfTheTabs) {
+  LevelTo(UnlockLevel(Feature::kShop));
+  c_.AddMeso(1234567);
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  std::string bar;
+  for (const std::string& row : ScreenRows(RenderToScreen(comp))) {
+    if (row.find("Shop") != std::string::npos) {
+      bar = row;
+      break;
+    }
+  }
+  ASSERT_FALSE(bar.empty()) << "the whole Shop chip has to survive the row";
+  size_t after_tabs = bar.find("Shop") + 4;
+  size_t coin = bar.find("🪙");
+  ASSERT_NE(coin, std::string::npos);
+  ASSERT_GT(coin, after_tabs);
+  EXPECT_GE(TextColumns(bar.substr(after_tabs, coin - after_tabs)), 8)
+      << "the balances are up against the tab bar: [" << bar << "]";
 }
 
 // The trace balance stands beside the meso from the level traces can first be

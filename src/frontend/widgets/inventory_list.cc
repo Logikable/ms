@@ -45,8 +45,10 @@ constexpr int kCurrencyMarkWidth = 2;
 constexpr int kTokenNameWidth = 24;
 constexpr int kShardNameWidth = 17;
 constexpr int kCurrencyCountWidth = 10;
-// What separates the token half of a row from the shard half.
-constexpr char kCurrencyGap[] = "  ";
+// What separates the token half of a row from the shard half. Wider than the
+// gap between ordinary columns: it is the seam between two lists, not between
+// two columns of one.
+constexpr char kCurrencyGap[] = "      ";
 
 // Blanks as wide as a column pair, for the half of a row whose list ran out.
 ftxui::Element BlankCurrencyCell(int mark_width, int name_width) {

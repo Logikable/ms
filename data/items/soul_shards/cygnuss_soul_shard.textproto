@@ -1,6 +1,6 @@
 name: "Cygnus's Soul Shard"
 category: ITEM_CATEGORY_ETC
 kind: ITEM_KIND_SOUL_SHARD
-short_name: "Cygnus's"
+short_name: "Cygnus"
 max_stack: 100
 description: "A fragment that contains a piece of Cygnus's Soul."

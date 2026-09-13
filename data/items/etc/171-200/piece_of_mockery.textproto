@@ -4,6 +4,8 @@
 name: "Piece of Mockery"
 category: ITEM_CATEGORY_ETC
 kind: ITEM_KIND_TOKEN
+currency_level: 150
+currency_slot: EQUIP_SLOT_BOTTOM
 description: "A sliver of the mirror Chaos Pierre wears for a face, still wearing your own."
 currency_mark: "▲"
 currency_color: CURRENCY_COLOR_PINK

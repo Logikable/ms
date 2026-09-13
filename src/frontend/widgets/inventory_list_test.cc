@@ -45,11 +45,11 @@ class InventoryListTest : public PanelTest {
     return StackableItem(proto, count);
   }
 
-  // Named the short way, as the shards in the catalog are.
-  StackableItem Shard(const std::string& short_name, int count) {
+  // Named the short way, as the shards in the catalog are: the boss alone.
+  StackableItem Shard(const std::string& boss, int count) {
     ItemPrototype proto;
-    proto.set_name(short_name + " Soul Shard");
-    proto.set_short_name(short_name);
+    proto.set_name(boss + "'s Soul Shard");
+    proto.set_short_name(boss);
     proto.set_kind(ITEM_KIND_SOUL_SHARD);
     return StackableItem(proto, count);
   }
@@ -157,7 +157,7 @@ TEST_F(InventoryListTest, TheHeadersFitTheRightColumnMinimum) {
   // Four columns on one row, which is the widest the bag asks a stack tab for,
   // at the longest name each of them ships.
   StackableItem token = Token("Frozen Secondary Token", "●", 999);
-  StackableItem shard = Shard("Crimson Queen's", 99);
+  StackableItem shard = Shard("Crimson Queen", 99);
   ftxui::Element currency = CurrencyHeader();
   ftxui::Element currency_row = RenderCurrencyRow(&token, &shard);
   EXPECT_LE(ftxui::Dimension::Fit(currency).dimx + kItemListGutter + 2,
@@ -170,12 +170,12 @@ TEST_F(InventoryListTest, TheHeadersFitTheRightColumnMinimum) {
 // the short name is what a shard goes by under its own heading.
 TEST_F(InventoryListTest, ACurrencyRowCarriesBothColumns) {
   StackableItem token = Token("Frozen Weapon Token", "●", 3);
-  StackableItem shard = Shard("Zakum's", 47);
+  StackableItem shard = Shard("Zakum", 47);
   std::string text = RowText(RenderCurrencyRow(&token, &shard));
   EXPECT_NE(text.find("●"), std::string::npos);
   EXPECT_NE(text.find("Frozen Weapon Token"), std::string::npos);
   EXPECT_NE(text.find("3"), std::string::npos);
-  EXPECT_NE(text.find("Zakum's"), std::string::npos);
+  EXPECT_NE(text.find("Zakum"), std::string::npos);
   EXPECT_EQ(text.find("Soul Shard"), std::string::npos)
       << "the column above it already says so";
   EXPECT_NE(text.find("47"), std::string::npos);
@@ -185,12 +185,12 @@ TEST_F(InventoryListTest, ACurrencyRowCarriesBothColumns) {
 // it holds its width so the other stays under its heading.
 TEST_F(InventoryListTest, AHalfEmptyCurrencyRowKeepsItsColumns) {
   StackableItem token = Token("Frozen Weapon Token", "●", 3);
-  StackableItem shard = Shard("Zakum's", 47);
+  StackableItem shard = Shard("Zakum", 47);
   ftxui::Element both = RenderCurrencyRow(&token, &shard);
   ftxui::Element shard_only = RenderCurrencyRow(nullptr, &shard);
   EXPECT_EQ(ftxui::Dimension::Fit(shard_only).dimx,
             ftxui::Dimension::Fit(both).dimx);
-  EXPECT_NE(RowText(std::move(shard_only)).find("Zakum's"), std::string::npos);
+  EXPECT_NE(RowText(std::move(shard_only)).find("Zakum"), std::string::npos);
 }
 
 }  // namespace

@@ -142,6 +142,7 @@ cc_test(
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_test_base",
         "//src/frontend/widgets:screen_text",
+        "//src/frontend/widgets:text_columns",
         "//src/testing:prototypes",
         "@ftxui//:component",
         "@ftxui//:dom",

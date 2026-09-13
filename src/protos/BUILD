@@ -91,6 +91,7 @@ cc_proto_library(
 proto_library(
     name = "item_proto",
     srcs = ["item.proto"],
+    deps = [":equip_proto"],
 )
 
 cc_proto_library(

@@ -4,6 +4,8 @@
 name: "Piece of Destruction"
 category: ITEM_CATEGORY_ETC
 kind: ITEM_KIND_TOKEN
+currency_level: 150
+currency_slot: EQUIP_SLOT_PRIMARY_WEAPON
 description: "A scale torn from Chaos Vellum. The rock it fell on is still open."
 currency_mark: "▲"
 currency_color: CURRENCY_COLOR_THEME

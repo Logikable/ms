@@ -61,16 +61,24 @@ ftxui::Element RenderBalances(int64_t meso, const CharacterInstance& character,
   return ftxui::hbox(std::move(counters));
 }
 
-// Renders the left-aligned chip row in the shared tab style, with the centered
-// balances and the right-aligned `expand` tab overlaid in the empty space,
-// over a separator. `tabs` is what the character has unlocked, so a locked tab
-// leaves no gap behind it. `active_tab` is -1 while the cursor is out on
-// Expand, so the highlight is in one place rather than two.
+// The least the balances stand off the last tab chip. The bar is read left to
+// right and the two run into each other without it: a count reads as part of
+// the tab beside it.
+constexpr int kBalanceGutter = 8;
+
+// Renders the left-aligned chip row in the shared tab style, with the balances
+// centred in what the chips leave and the right-aligned `expand` tab past
+// them, over a separator. `tabs` is what the character has unlocked, so a
+// locked tab leaves no gap behind it. `active_tab` is -1 while the cursor is
+// out on Expand, so the highlight is in one place rather than two. `width` is
+// the columns inside the panel's borders, which is what the balances centre
+// in.
 ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
                             int64_t meso, bool row_selected,
                             const CharacterInstance& character,
                             const AccountInstance& account, bool highlighted,
-                            ftxui::Element expand, ftxui::Box& bar_box) {
+                            ftxui::Element expand, int width,
+                            ftxui::Box& bar_box) {
   std::vector<TabSpec> specs;
   // Stays -1 when `active_tab` names no visible tab, which is how the caller
   // asks for a bar with nothing on it highlighted.
@@ -84,21 +92,38 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
     specs.push_back(
         {kInventoryTabLabels[tab], !key.empty() && !account.Seen(key)});
   }
-  // Three layers over one row: the chips from the left, the balances down the
-  // middle, Expand from the right. The panel is 85 columns at its narrowest
-  // and the three together take under 60, so none of them reaches another.
+  // One row, left to right: the chips, the balances, Expand on the far right.
+  // The balances sit centred in the row, except where that would stand them
+  // against the last chip -- a fourth tab took the bar out to where a centred
+  // counter was drawn on top of it, and a fifth would reach further still --
+  // and there they are pushed right to keep kBalanceGutter clear. Measured
+  // rather than left to a pair of fillers, so the gutter is a promise rather
+  // than a ratio.
   //
   // Reflected so a tab menu knows the row to open under.
-  ftxui::Element tab_row =
-      ftxui::dbox({
-          // No width limit: the bag's three tabs are a
-          // fixed set, and every one of them fits several
-          // times over in a row 71 columns wide.
-          TabBar(specs, active, row_selected, /*width=*/0),
-          RenderBalances(meso, character, account) | ftxui::hcenter,
-          ftxui::hbox({ftxui::filler(), std::move(expand)}),
-      }) |
-      ftxui::reflect(bar_box);
+  //
+  // No width limit on the chips: the bag's tabs are a fixed set, and every one
+  // of them fits several times over in a row 71 columns wide.
+  ftxui::Element chips = TabBar(specs, active, row_selected, /*width=*/0);
+  ftxui::Element balances = RenderBalances(meso, character, account);
+  int chips_width = ftxui::Dimension::Fit(chips).dimx;
+  int balances_width = ftxui::Dimension::Fit(balances).dimx;
+  // What the row has left once everything on it is drawn. The gutter gives
+  // way to it rather than the other way round: a bar squeezed until the
+  // balances fit is better than a number with digits cut off the end.
+  int room = std::max(0, width - chips_width - balances_width -
+                             ftxui::Dimension::Fit(expand).dimx);
+  int lead =
+      std::max(kBalanceGutter, (width - balances_width) / 2 - chips_width);
+  lead = std::min(lead, room);
+  ftxui::Element tab_row = ftxui::hbox({
+                               std::move(chips),
+                               ftxui::text(std::string(lead, ' ')),
+                               std::move(balances),
+                               ftxui::filler(),
+                               std::move(expand),
+                           }) |
+                           ftxui::reflect(bar_box);
   return ftxui::vbox({
       std::move(tab_row),
       PanelSeparator(highlighted),
@@ -713,7 +738,7 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
                         character_.meso(), focused && zone_ == kZoneTabs,
                         character_, account_, highlighted_,
                         RenderExpandTab(focused && zone_ == kZoneTabs),
-                        bar_box_),
+                        width_ - 2, bar_box_),
            std::move(body) | ftxui::flex}),
       PanelAccent(highlighted_), focused, account_.panel_title_blink());
 }

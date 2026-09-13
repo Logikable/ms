@@ -84,6 +84,17 @@ StackableItem Stack(const std::string& name, int count,
   return StackableItem(proto, count);
 }
 
+StackableItem Token(const std::string& name, int level, EquipSlot slot,
+                    int count) {
+  ItemPrototype proto;
+  proto.set_name(name);
+  proto.set_category(ITEM_CATEGORY_ETC);
+  proto.set_kind(ITEM_KIND_TOKEN);
+  proto.set_currency_level(level);
+  proto.set_currency_slot(slot);
+  return StackableItem(proto, count);
+}
+
 TEST(SortStacksTest, RanksKindThenCountThenName) {
   std::vector<StackableItem> stacks = {
       Stack("Egg Shell", 5),
@@ -114,6 +125,41 @@ TEST(SortStacksTest, TiesSettleOnCountThenName) {
   EXPECT_EQ(stacks[0].name(), "Gamma");
   EXPECT_EQ(stacks[1].name(), "Alpha");
   EXPECT_EQ(stacks[2].name(), "Beta");
+}
+
+// A token is filed by the shelf it buys from, not by how many of it are in the
+// bag: the best gear first, the weapon ahead of the rest of a set, and a token
+// that buys a whole set leading its own level. Count only settles a tie.
+TEST(SortStacksTest, TokensRankByWhatTheyBuy) {
+  std::vector<StackableItem> stacks = {
+      Token("Frozen Weapon Token", 120, EQUIP_SLOT_PRIMARY_WEAPON, 99),
+      Token("Piece of Time", 150, EQUIP_SLOT_TOP, 1),
+      Token("AbsoLab Coin", 160, EQUIP_SLOT_UNSPECIFIED, 1),
+      Token("Captivating Fragment", 140, EQUIP_SLOT_SECONDARY, 40),
+      Token("Piece of Destruction", 150, EQUIP_SLOT_PRIMARY_WEAPON, 1),
+      Token("Cygnus Shoulder Token", 140, EQUIP_SLOT_SHOULDER, 40),
+      Token("Frozen Secondary Token", 120, EQUIP_SLOT_SECONDARY, 99),
+  };
+  SortStacks(stacks);
+  std::vector<std::string> names;
+  for (const StackableItem& stack : stacks) {
+    names.push_back(stack.name());
+  }
+  EXPECT_EQ(names, (std::vector<std::string>{
+                       "AbsoLab Coin", "Piece of Destruction", "Piece of Time",
+                       "Captivating Fragment", "Cygnus Shoulder Token",
+                       "Frozen Weapon Token", "Frozen Secondary Token"}));
+}
+
+// Two tokens off the same shelf fall to the count, as every other stack does.
+TEST(SortStacksTest, TokenTiesSettleOnCount) {
+  std::vector<StackableItem> stacks = {
+      Token("Few", 150, EQUIP_SLOT_HAT, 2),
+      Token("Many", 150, EQUIP_SLOT_HAT, 20),
+  };
+  SortStacks(stacks);
+  EXPECT_EQ(stacks[0].name(), "Many");
+  EXPECT_EQ(stacks[1].name(), "Few");
 }
 
 }  // namespace

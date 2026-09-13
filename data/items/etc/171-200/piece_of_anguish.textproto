@@ -4,6 +4,8 @@
 name: "Piece of Anguish"
 category: ITEM_CATEGORY_ETC
 kind: ITEM_KIND_TOKEN
+currency_level: 150
+currency_slot: EQUIP_SLOT_HAT
 description: "A cinder from the Chaos Crimson Queen's fire, too hot to set down."
 currency_mark: "▲"
 currency_color: CURRENCY_COLOR_GOLD
