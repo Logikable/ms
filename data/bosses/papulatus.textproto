@@ -6,7 +6,7 @@ difficulties {
   # The robot, stationary in the middle of a room with a ledge over each side
   # of it. Three quarters of the fight is here.
   phases {
-    bgm: "ClockTowerofNightmare"
+    bgm: "WhereverYouAre"
     spawns {
       mob: "chaos_papulatus_clock"
       spots { x: 4 y: 4 }
