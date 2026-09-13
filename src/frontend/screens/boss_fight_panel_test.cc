@@ -762,6 +762,27 @@ TEST(BossFightPanelTest, ASwingStandsOverWhatItHit) {
   }
 }
 
+// The numbers are right-aligned: a short one and a long one in the same column
+// end on the same cell, so the digits line up under one another.
+TEST(BossFightPanelTest, TheNumbersOfAColumnShareTheirRightEdge) {
+  std::unique_ptr<GameState> state = EightLineState();
+  Boss boss = OneArmBoss();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  ASSERT_TRUE(RunUntilLine(run, *state, false));
+
+  std::vector<DrawnNumber> drawn = DrawnNumbers(RenderScreen(run, 60, 40));
+  ASSERT_GE(drawn.size(), 2u);
+  std::set<std::size_t> widths;
+  std::set<int> edges;
+  for (const DrawnNumber& number : drawn) {
+    widths.insert(number.text.size());
+    edges.insert(number.column + static_cast<int>(number.text.size()));
+  }
+  ASSERT_GT(widths.size(), 1u) << "every number is the same width to begin";
+  EXPECT_EQ(edges.size(), 1u) << "the numbers do not end on one cell";
+}
+
 // A swing of several strikes files a write apiece and they come up one after
 // another, so the two rows it fills flash rather than the whole swing going up
 // at once.

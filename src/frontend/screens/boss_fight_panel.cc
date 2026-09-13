@@ -209,8 +209,8 @@ class DamageNumbersNode : public ftxui::Node {
     if (number.text.empty()) {
       return;
     }
-    int width = box_.x_max - box_.x_min + 1;
-    int left = box_.x_min + (width - static_cast<int>(number.text.size())) / 2;
+    // Right-aligned, so the digits of every row line up under one another.
+    int left = box_.x_max - static_cast<int>(number.text.size()) + 1;
     for (std::size_t i = 0; i < number.text.size(); ++i) {
       int x = left + static_cast<int>(i);
       if (x < box_.x_min || x > box_.x_max) {
