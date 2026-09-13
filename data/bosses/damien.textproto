@@ -1,0 +1,65 @@
+name: "Damien"
+difficulties {
+  # No Hard: GMS's is 6.7x this body, and Normal is already a party fight.
+  name: "Normal"
+  # He paces the row over the player's heads, the whole floor theirs.
+  phases {
+    bgm: "Demian Spine"
+    spawns {
+      mob: "damien_phase_1"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 3000 range: RANGE_ROW }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  # The blade drawn, and the same room crossed rather than paced: every thirty
+  # seconds he runs four cells one way, a cell every 120ms, and the wall stops
+  # him where he meets it.
+  phases {
+    bgm: "Demian True"
+    spawns {
+      mob: "damien_phase_2"
+      spots { x: 4 y: 4 }
+      walk {
+        interval_ms: 3000
+        range: RANGE_ROW
+        dash { interval_ms: 30000 cells: 4 step_ms: 120 }
+      }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  # Twenty-five minutes, which only Lotus otherwise has. GMS allows thirty;
+  # this is 1.2T behind 300% PDR, and the clock is the wall.
+  time_limit_seconds: 1500
+  # Beside Lotus, ten past the cap.
+  unlock_level: 210
+  # Five Intense Power Crystals at what GMS prices this fight, divided by
+  # seven -- GMS clears Damien once a week and this game once a day -- and
+  # rounded to the nearest 50k.
+  meso: 24150000
+  # GMS pays this on the second body; here the clear pays it, flat and
+  # untouched by any EXP bonus, as every other fight's is.
+  exp: 22000000
+  # One coin per clear, which is what AbsoLab gear is bought with.
+  drops {
+    item: "absolab_coin"
+    per_kill: 1.0
+  }
+  drops {
+    item: "damiens_soul_shard"
+    per_kill: 1.0
+  }
+}

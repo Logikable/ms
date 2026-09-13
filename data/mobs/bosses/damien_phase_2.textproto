@@ -1,0 +1,9 @@
+# The second body, the cursed blade drawn. GMS pays the fight's whole 22M EXP
+# on this one; here the clear pays it, as every other fight's does.
+name: "Damien"
+level: 210
+attack: 22000
+max_hp: 360000000000
+exp: 0
+pdr: 300
+boss: true

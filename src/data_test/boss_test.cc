@@ -199,9 +199,10 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).kind(), ITEM_KIND_SOUL_SHARD) << where;
     }
   }
-  EXPECT_EQ(fights, 19) << "Arkarium, Cygnus, Princess No, Papulatus, Lotus, "
-                           "the four of Root Abyss, and both difficulties of "
-                           "Zakum, Magnus, Pink Bean, Hilla and Horntail";
+  EXPECT_EQ(fights, 20) << "Arkarium, Cygnus, Princess No, Papulatus, Lotus, "
+                           "Damien, the four of Root Abyss, and both "
+                           "difficulties of Zakum, Magnus, Pink Bean, Hilla "
+                           "and Horntail";
 }
 
 // A boss pays in meso and in gear, and the gear is the reward: selling it back
@@ -607,6 +608,53 @@ TEST_F(BossDataTest, LotusIsThreeBodiesOnTheLongestClock) {
   EXPECT_EQ(normal.drops(1).item(), "lotuss_soul_shard");
 }
 
+// 1.2T over two bodies behind the same 300% PDR Lotus stands behind, on the
+// same twenty-five minute clock and at the same gate. Every number is GMS's
+// own but the meso and the clock. Pinned for the reason Zakum's numbers are.
+TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
+  ASSERT_GT(bosses_.count("damien"), 0u);
+  ASSERT_EQ(bosses_.at("damien").difficulties_size(), 1);
+  const BossDifficulty& normal = bosses_.at("damien").difficulties(0);
+  EXPECT_EQ(normal.name(), "Normal");
+  EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
+  EXPECT_EQ(normal.time_limit_seconds(), 1500);
+  EXPECT_EQ(normal.unlock_level(), 210);
+  EXPECT_EQ(normal.meso(), 24150000);
+  EXPECT_EQ(normal.exp(), 22000000);
+  const std::vector<std::string> kMobs = {"damien_phase_1", "damien_phase_2"};
+  const std::vector<int64_t> kHp = {840000000000LL, 360000000000LL};
+  const std::vector<std::string> kTracks = {"Demian Spine", "Demian True"};
+  ASSERT_EQ(normal.phases_size(), static_cast<int>(kMobs.size()));
+  for (int i = 0; i < normal.phases_size(); ++i) {
+    const BossPhase& phase = normal.phases(i);
+    ASSERT_EQ(phase.spawns_size(), 1) << i;
+    EXPECT_EQ(SpawnCount(phase.spawns(0)), 1) << i;
+    EXPECT_EQ(phase.spawns(0).mob(), kMobs[i]) << i;
+    EXPECT_EQ(phase.bgm(), kTracks[i]) << i;
+    // Both phases pace the row over the player's heads, on Lotus's beat.
+    EXPECT_EQ(phase.spawns(0).spots(0).y(), 4) << i;
+    EXPECT_EQ(phase.spawns(0).walk().interval_ms(), 3000) << i;
+    EXPECT_EQ(phase.spawns(0).walk().range(), ArenaWalk::RANGE_ROW) << i;
+    const Mob& mob = mobs_.at(kMobs[i]);
+    EXPECT_EQ(mob.name(), "Damien") << i;
+    EXPECT_EQ(mob.level(), 210) << i;
+    EXPECT_EQ(mob.attack(), 22000) << i;
+    EXPECT_EQ(mob.pdr(), 300) << i;
+    EXPECT_EQ(mob.max_hp(), kHp[i]) << i;
+  }
+  // The blade drawn: the second phase crosses the row rather than pacing it,
+  // and it is the only walk in the game that does.
+  EXPECT_FALSE(normal.phases(0).spawns(0).walk().has_dash());
+  const ArenaDash& dash = normal.phases(1).spawns(0).walk().dash();
+  EXPECT_EQ(dash.interval_ms(), 30000);
+  EXPECT_EQ(dash.cells(), 4);
+  EXPECT_EQ(dash.step_ms(), 120);
+  // A coin per clear, as Lotus pays, and his shard.
+  ASSERT_EQ(normal.drops_size(), 2);
+  EXPECT_EQ(normal.drops(0).item(), "absolab_coin");
+  EXPECT_EQ(normal.drops(1).item(), "damiens_soul_shard");
+}
+
 // Where the parts stand is data, and two of them in one cell is a bar drawn on
 // top of another one.
 TEST_F(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
@@ -674,11 +722,11 @@ TEST_F(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
 // three always has somewhere left to walk.
 TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   std::map<std::string, std::vector<int>> expected = {
-      {"zakum", {7, 5}},      {"hilla", {5}},      {"horntail", {6, 6, 6}},
-      {"magnus", {5}},        {"arkarium", {5}},   {"cygnus", {5}},
-      {"pink_bean", {5, 5}},  {"pierre", {5}},     {"von_bon", {5}},
-      {"crimson_queen", {5}}, {"vellum", {5}},     {"princess_no", {9}},
-      {"papulatus", {7, 5}},  {"lotus", {5, 8, 8}}};
+      {"zakum", {7, 5}},      {"hilla", {5}},       {"horntail", {6, 6, 6}},
+      {"magnus", {5}},        {"arkarium", {5}},    {"cygnus", {5}},
+      {"pink_bean", {5, 5}},  {"pierre", {5}},      {"von_bon", {5}},
+      {"crimson_queen", {5}}, {"vellum", {5}},      {"princess_no", {9}},
+      {"papulatus", {7, 5}},  {"lotus", {5, 8, 8}}, {"damien", {5, 5}}};
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses_.count(want.first), 0u) << want.first;
     for (const BossDifficulty& difficulty :

@@ -1,0 +1,9 @@
+# The first of two bodies, and the larger: seven parts in ten of the fight.
+# GMS names both "Damien" -- the bar says which phase of the fight it is.
+name: "Damien"
+level: 210
+attack: 22000
+max_hp: 840000000000
+exp: 0
+pdr: 300
+boss: true
