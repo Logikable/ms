@@ -1240,6 +1240,21 @@ TEST_F(InventoryPanelTest, ShowsMesoCounterWithCommas) {
             std::string::npos);
 }
 
+// The trace balance stands beside the meso from the level traces can first be
+// bought, and not before: below it there is no way to hold one, and a counter
+// that can only ever read zero says nothing.
+TEST_F(InventoryPanelTest, TheTraceBalanceArrivesWithTheShop) {
+  ItemPrototype trace = MakeStackable(kSpellTraceName, ITEM_CATEGORY_ETC);
+  trace.set_kind(ITEM_KIND_SPELL_TRACE);
+  c_.AddStackable(trace, 8400);
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  LevelTo(UnlockLevel(Feature::kShop) - 1);
+  EXPECT_EQ(RenderComponentText(comp).find("8,400"), std::string::npos);
+  LevelTo(UnlockLevel(Feature::kShop));
+  EXPECT_NE(RenderComponentText(comp).find("8,400"), std::string::npos);
+}
+
 TEST_F(InventoryPanelTest, TheEtcTabListsItsStacksWithTheirQuantity) {
   c_.AddStackable(MakeStackable("Snail Shell", ITEM_CATEGORY_ETC), 5);
   InventoryPanel panel(c_, account_, panel_focus_);

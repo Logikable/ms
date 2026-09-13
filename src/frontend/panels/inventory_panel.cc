@@ -45,8 +45,24 @@ std::string TabKey(int tab, const CharacterInstance& character) {
   return "";
 }
 
-// Renders the left-aligned chip row in the shared tab style, with a centered
-// meso counter and the right-aligned `expand` tab overlaid in the empty space,
+// The balances the bar carries down its middle: meso, and the spell traces
+// beside it once the shop is open -- the level a trace can first be bought,
+// and so the first level a balance in them can exist.
+ftxui::Element RenderBalances(int64_t meso, const CharacterInstance& character,
+                              const AccountInstance& account) {
+  std::vector<ftxui::Element> counters = {ftxui::text(FormatMeso(meso)) |
+                                          ftxui::color(kTheme)};
+  if (Unlocked(Feature::kShop, character, account)) {
+    counters.push_back(ftxui::text("   "));
+    counters.push_back(ftxui::text(FormatSpellTraces(
+                           character.CountStackable(kSpellTraceName))) |
+                       ftxui::color(kTheme));
+  }
+  return ftxui::hbox(std::move(counters));
+}
+
+// Renders the left-aligned chip row in the shared tab style, with the centered
+// balances and the right-aligned `expand` tab overlaid in the empty space,
 // over a separator. `tabs` is what the character has unlocked, so a locked tab
 // leaves no gap behind it. `active_tab` is -1 while the cursor is out on
 // Expand, so the highlight is in one place rather than two.
@@ -68,9 +84,9 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
     specs.push_back(
         {kInventoryTabLabels[tab], !key.empty() && !account.Seen(key)});
   }
-  // Three layers over one row: the chips from the left, the meso down the
+  // Three layers over one row: the chips from the left, the balances down the
   // middle, Expand from the right. The panel is 85 columns at its narrowest
-  // and the three together take under 40, so none of them reaches another.
+  // and the three together take under 60, so none of them reaches another.
   //
   // Reflected so a tab menu knows the row to open under.
   ftxui::Element tab_row =
@@ -79,7 +95,7 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
           // fixed set, and every one of them fits several
           // times over in a row 71 columns wide.
           TabBar(specs, active, row_selected, /*width=*/0),
-          ftxui::text(FormatMeso(meso)) | ftxui::color(kTheme) | ftxui::hcenter,
+          RenderBalances(meso, character, account) | ftxui::hcenter,
           ftxui::hbox({ftxui::filler(), std::move(expand)}),
       }) |
       ftxui::reflect(bar_box);

@@ -253,7 +253,7 @@ void ScrollPanel::ResetComponent() {
     // The balance rides in the title: it is the number every row's Cost is
     // read against, and up there it never scrolls away with the list.
     ftxui::Element main =
-        ThemedWindow(" Scrolls — " + FormatWithCommas(TracesOwned()) + " 📜 ",
+        ThemedWindow(" Scrolls — " + FormatSpellTraces(TracesOwned()) + " ",
                      ftxui::vbox(std::move(rows)), focused_);
     if (confirm_.open()) {
       // Over the list rather than under it: the question is about the row the

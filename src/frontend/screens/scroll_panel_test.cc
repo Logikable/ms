@@ -418,10 +418,11 @@ TEST_F(ScrollPanelTest, TheCostColumnLinesUpWithItsHeading) {
             DisplayColumns(row.substr(0, row.find("📜") + 4)));
 }
 
+// A balance leads with its mark, the way meso does everywhere else.
 TEST_F(ScrollPanelTest, TheTitleShowsWhatThePlayerOwns) {
-  EXPECT_NE(Render(panel_).find("0 📜"), std::string::npos);
+  EXPECT_NE(Render(panel_).find("📜 0"), std::string::npos);
   GiveTraces(1240);
-  EXPECT_NE(Render(panel_).find("1,240 📜"), std::string::npos);
+  EXPECT_NE(Render(panel_).find("📜 1,240"), std::string::npos);
 }
 
 TEST_F(ScrollPanelTest, AffordabilityFollowsTheBalance) {

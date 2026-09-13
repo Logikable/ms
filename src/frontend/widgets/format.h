@@ -60,6 +60,11 @@ std::string FormatClock(double seconds);
 // value (e.g. "🪙 1,234,567"). Use everywhere meso is shown.
 std::string FormatMeso(int64_t meso);
 
+// The same for a spell trace balance: "📜 30,000". A balance leads with its
+// mark, as meso does; a price in traces writes it after the number instead,
+// the number being what the column is read for.
+std::string FormatSpellTraces(int64_t traces);
+
 // Appends "+val label" to out (with "  " separator if non-empty).
 // No-op if val <= 0.
 void AppendStat(std::string& out, int val, const std::string& label);

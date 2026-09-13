@@ -149,6 +149,10 @@ std::string FormatMeso(int64_t meso) {
   return "🪙 " + FormatWithCommas(meso);
 }
 
+std::string FormatSpellTraces(int64_t traces) {
+  return "📜 " + FormatWithCommas(traces);
+}
+
 void AppendStat(std::string& out, int val, const std::string& label) {
   if (val <= 0) {
     return;
