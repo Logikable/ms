@@ -17,12 +17,15 @@ struct MainWidths {
 // `has_right_column` is whether the equipped panel or the bag is on screen --
 // the corner panel alone does not reserve a column, since it sizes itself.
 //
-// The left column
-// grows to its maximum before the right column gets anything past its own
-// minimum, and on a terminal too narrow for both minimums the left column
-// keeps its own and the right column takes what is left -- its rightmost
-// columns run off the edge, which beats cutting the stats the player is
-// spending AP on.
+// The left column grows to its maximum before the right column gets anything
+// past its own minimum, and on a terminal too narrow for both minimums the
+// left column keeps its own and the right column takes what is left -- its
+// rightmost columns run off the edge, which beats cutting the stats the player
+// is spending AP on.
+//
+// The left column is the same width either way: the right column's room is
+// held for it before it is unlocked, so the character panel does not resize
+// the moment the equipped panel arrives.
 MainWidths ComputeMainWidths(int terminal_width, bool has_right_column);
 
 // Arranges the main view: the character panel over combat on the left, the

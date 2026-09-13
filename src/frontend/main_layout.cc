@@ -84,10 +84,13 @@ ftxui::Element HalfAndRest(ftxui::Element top, ftxui::Element bottom) {
 }  // namespace
 
 MainWidths ComputeMainWidths(int terminal_width, bool has_right_column) {
-  int reserved = has_right_column ? kRightColumnMin : 0;
   MainWidths widths;
-  widths.left =
-      std::clamp(terminal_width - reserved, kLeftColumnMin, kLeftColumnMax);
+  // The right column's room is reserved whether or not it is on screen, so
+  // the character panel is the same width before and after the equipped panel
+  // unlocks. A panel that resizes under the player is worse than the blank
+  // columns beside it in the meantime.
+  widths.left = std::clamp(terminal_width - kRightColumnMin, kLeftColumnMin,
+                           kLeftColumnMax);
   if (has_right_column) {
     widths.right = std::max(0, terminal_width - widths.left);
   }

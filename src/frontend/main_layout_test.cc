@@ -371,13 +371,16 @@ TEST(MainWidthsTest, ATinyTerminalKeepsTheLeftMinimum) {
   EXPECT_EQ(widths.right, 0);
 }
 
-// Before the equipped panel is unlocked there is nothing to reserve room for,
-// but the character panel still stops at its maximum rather than stretching
-// across the terminal.
-TEST(MainWidthsTest, NoRightColumnStillCapsTheLeftOne) {
-  MainWidths widths = ComputeMainWidths(200, /*has_right_column=*/false);
-  EXPECT_EQ(widths.left, kLeftColumnMax);
-  EXPECT_EQ(widths.right, 0);
+// Unlocking the equipped panel must not resize the character panel under the
+// player: the left column is the same at every width, wide enough for its
+// maximum or narrow enough to be squeezed to its minimum.
+TEST(MainWidthsTest, UnlockingTheRightColumnLeavesTheLeftOneAlone) {
+  for (int width : {20, 100, kLeftColumnMax + kRightColumnMin, 200}) {
+    EXPECT_EQ(ComputeMainWidths(width, false).left,
+              ComputeMainWidths(width, true).left)
+        << "at width " << width;
+    EXPECT_EQ(ComputeMainWidths(width, false).right, 0) << "at width " << width;
+  }
 }
 
 }  // namespace
