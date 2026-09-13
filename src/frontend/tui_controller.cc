@@ -60,7 +60,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       party_inspect_panel_(screens.party_inspect_panel),
       job_inspect_panel_(screens.job_inspect_panel),
       skill_inspect_panel_(screens.skill_inspect_panel),
-      pot_info_panel_(screens.pot_info_panel),
+      buff_info_panel_(screens.buff_info_panel),
       menu_panel_(screens.menu_panel),
       keybinds_panel_(screens.keybinds_panel),
       options_panel_(screens.options_panel),
@@ -229,37 +229,37 @@ void TuiController::ToggleConsumable(ConsumableType type) {
   state_.character.ToggleConsumable(type);
 }
 
-void TuiController::OpenPotMenu(ConsumableType type) {
-  pot_type_ = type;
-  pot_menu_.Reset();
+void TuiController::OpenBuffMenu(ConsumableType type) {
+  buff_type_ = type;
+  buff_menu_.Reset();
   // The switch reads as what pressing it does, so the entry is named for the
-  // state it would leave the pot in rather than for the state it is in.
-  pot_menu_.SetLabel(kPotMenuToggle, state_.character.ConsumableActive(type)
-                                         ? "Disable"
-                                         : "Enable");
-  // A pot already bought has nothing left to buy. The entry stays on the menu
+  // state it would leave the buff in rather than for the state it is in.
+  buff_menu_.SetLabel(kBuffMenuToggle, state_.character.ConsumableActive(type)
+                                           ? "Disable"
+                                           : "Enable");
+  // A buff already bought has nothing left to buy. The entry stays on the menu
   // greyed rather than gone: its absence would be the surprise.
   if (state_.character.ConsumableOwned(type)) {
-    pot_menu_.Disable(kPotMenuBuyPerm);
+    buff_menu_.Disable(kBuffMenuBuyPerm);
   }
-  screen_ = kPotMenu;
+  screen_ = kBuffMenu;
 }
 
-void TuiController::OpenPotBuy(ConsumableType type) {
-  pot_type_ = type;
-  // Opens on Cancel: buying a pot outright costs hundreds of millions, and
+void TuiController::OpenBuffBuy(ConsumableType type) {
+  buff_type_ = type;
+  // Opens on Cancel: buying a buff outright costs hundreds of millions, and
   // Enter alone must not be able to make it.
-  pot_buy_prompt_.Open(/*cancel_selected=*/true);
-  screen_ = kPotBuy;
+  buff_buy_prompt_.Open(/*cancel_selected=*/true);
+  screen_ = kBuffBuy;
 }
 
-int64_t TuiController::pot_buy_price() const {
-  const ConsumableInfo* info = ConsumableInfoFor(pot_type_);
+int64_t TuiController::buff_buy_price() const {
+  const ConsumableInfo* info = ConsumableInfoFor(buff_type_);
   return info == nullptr ? 0 : info->permanent_price;
 }
 
-bool TuiController::pot_buy_affordable() const {
-  return state_.character.proto().meso() >= pot_buy_price();
+bool TuiController::buff_buy_affordable() const {
+  return state_.character.proto().meso() >= buff_buy_price();
 }
 
 void TuiController::OpenJobMenu(Job job) {
@@ -448,12 +448,12 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSkillInspectEvent(event);
     case kJobMenu:
       return OnJobMenuEvent(event);
-    case kPotMenu:
-      return OnPotMenuEvent(event);
-    case kPotInfo:
-      return OnPotInfoEvent(event);
-    case kPotBuy:
-      return OnPotBuyEvent(event);
+    case kBuffMenu:
+      return OnBuffMenuEvent(event);
+    case kBuffInfo:
+      return OnBuffInfoEvent(event);
+    case kBuffBuy:
+      return OnBuffBuyEvent(event);
     case kJobInspect:
       return OnJobInspectEvent(event);
     case kJobAdvance:
@@ -857,13 +857,13 @@ bool TuiController::OnQuitEvent(ftxui::Event event) {
   return true;
 }
 
-bool TuiController::OnPotMenuEvent(ftxui::Event event) {
+bool TuiController::OnBuffMenuEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowUp) {
-    pot_menu_.Up();
+    buff_menu_.Up();
     return true;
   }
   if (event == ftxui::Event::ArrowDown) {
-    pot_menu_.Down();
+    buff_menu_.Down();
     return true;
   }
   if (IsBack(event)) {
@@ -873,20 +873,20 @@ bool TuiController::OnPotMenuEvent(ftxui::Event event) {
   if (!IsForward(event)) {
     return true;  // The menu is modal: nothing behind it hears a key.
   }
-  switch (pot_menu_.selected()) {
-    case kPotMenuToggle:
+  switch (buff_menu_.selected()) {
+    case kBuffMenuToggle:
       // Nothing to confirm and nothing to spend, so the switch takes effect on
       // the keypress and the menu closes behind it.
-      ToggleConsumable(pot_type_);
+      ToggleConsumable(buff_type_);
       screen_ = kMain;
       break;
-    case kPotMenuInspect:
-      pot_info_panel_.SetPot(pot_type_,
-                             state_.character.ConsumableOwned(pot_type_));
-      screen_ = kPotInfo;
+    case kBuffMenuInspect:
+      buff_info_panel_.SetBuff(buff_type_,
+                               state_.character.ConsumableOwned(buff_type_));
+      screen_ = kBuffInfo;
       break;
-    case kPotMenuBuyPerm:
-      OpenPotBuy(pot_type_);
+    case kBuffMenuBuyPerm:
+      OpenBuffBuy(buff_type_);
       break;
     default:
       screen_ = kMain;
@@ -898,20 +898,20 @@ bool TuiController::OnPotMenuEvent(ftxui::Event event) {
 // Nothing to point at, only text to read, and the card is short enough that
 // nothing scrolls. Back returns to the menu it was opened from, as the job
 // card does: the decision is one keypress away there.
-bool TuiController::OnPotInfoEvent(ftxui::Event event) {
+bool TuiController::OnBuffInfoEvent(ftxui::Event event) {
   if (IsBack(event)) {
-    screen_ = kPotMenu;
+    screen_ = kBuffMenu;
   }
   return true;
 }
 
-bool TuiController::OnPotBuyEvent(ftxui::Event event) {
-  ConfirmChoice choice = pot_buy_prompt_.OnEvent(event, pot_buy_affordable());
+bool TuiController::OnBuffBuyEvent(ftxui::Event event) {
+  ConfirmChoice choice = buff_buy_prompt_.OnEvent(event, buff_buy_affordable());
   if (choice == ConfirmChoice::kPending) {
     return true;
   }
   if (choice == ConfirmChoice::kConfirmed) {
-    state_.character.BuyConsumable(pot_type_);
+    state_.character.BuyConsumable(buff_type_);
   }
   screen_ = kMain;
   return true;

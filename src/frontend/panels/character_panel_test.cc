@@ -2958,8 +2958,8 @@ TEST_F(CharacterPanelTest, TheAbilityRingEndsOnTheRerollButton) {
 
 // --- the Buffs tab ---
 
-// A 4th-job Hero at `level`, which is what decides how many pots are listed.
-CharacterInstance MakePotHero(std::mt19937& rng, int level) {
+// A 4th-job Hero at `level`, which is what decides how many buffs are listed.
+CharacterInstance MakeBuffHero(std::mt19937& rng, int level) {
   Character proto;
   proto.set_level(level);
   proto.set_job(JOB_HERO);
@@ -2971,8 +2971,8 @@ CharacterInstance MakePotHero(std::mt19937& rng, int level) {
 // Walks the cursor onto the Buffs tab and down onto its first row. Stats ->
 // Skills -> Hyper -> Ability -> Buffs is four steps right, and there is no
 // Farm/Boss row in between.
-ftxui::Component OnPotRows(CharacterPanel& panel,
-                           CharacterPanelActions actions = {}) {
+ftxui::Component OnBuffRows(CharacterPanel& panel,
+                            CharacterPanelActions actions = {}) {
   ftxui::Component comp = panel.MakeComponent(std::move(actions));
   for (int i = 0; i < 4; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);
@@ -2983,59 +2983,60 @@ ftxui::Component OnPotRows(CharacterPanel& panel,
 
 // Gated on this character's own level, and gold once for the account -- the
 // same deal the Ability tab gets, and for the same reason.
-TEST_F(CharacterPanelTest, ThePotsTabArrivesAt170AndIsGoldOnceAnAccount) {
-  CharacterInstance early = MakePotHero(rng_, kConsumableUnlockLevel - 1);
+TEST_F(CharacterPanelTest, TheBuffsTabArrivesAt170AndIsGoldOnceAnAccount) {
+  CharacterInstance early = MakeBuffHero(rng_, kConsumableUnlockLevel - 1);
   CharacterPanel before(early, account_, panel_focus_);
   before.SetWidth(kLeftColumnMax);
   EXPECT_EQ(RenderElement(before.Render()).find("Buffs"), std::string::npos);
 
   // Wide enough for the whole bar: at the narrowest it scrolls, and a chip
   // held back behind the mark has no colour to read.
-  CharacterInstance c = MakePotHero(rng_, kConsumableUnlockLevel);
+  CharacterInstance c = MakeBuffHero(rng_, kConsumableUnlockLevel);
   CharacterPanel panel(c, account_, panel_focus_);
   panel.SetWidth(kLeftColumnMax);
   panel_focus_ = kInventoryPanel;
   EXPECT_EQ(LabelColor(panel.Render(), "Buffs"), kYellow);
 
   panel_focus_ = kCharPanel;
-  OnPotRows(panel);
+  OnBuffRows(panel);
   panel_focus_ = kInventoryPanel;
   EXPECT_EQ(LabelColor(panel.Render(), "Buffs"), kTheme);
   EXPECT_TRUE(account_.Seen(kBuffsTabKey));
 }
 
-// A pot below its own level is not listed at all: it cannot be switched on or
+// A buff below its own level is not listed at all: it cannot be switched on or
 // bought, and a greyed row would only advertise it.
-TEST_F(CharacterPanelTest, ThePotsTabListsOnlyThePotsTheLevelHasOpened) {
-  CharacterInstance early = MakePotHero(rng_, kConsumableUnlockLevel);
+TEST_F(CharacterPanelTest, TheBuffsTabListsOnlyTheBuffsTheLevelHasOpened) {
+  CharacterInstance early = MakeBuffHero(rng_, kConsumableUnlockLevel);
   CharacterPanel first(early, account_, panel_focus_);
   first.SetWidth(kLeftColumnMax);
   panel_focus_ = kCharPanel;
-  std::string rendered = ScreenText(RenderToScreen(OnPotRows(first)));
+  std::string rendered = ScreenText(RenderToScreen(OnBuffRows(first)));
   EXPECT_NE(rendered.find("Wealth Acquisition"), std::string::npos);
   EXPECT_EQ(rendered.find("Extreme Green"), std::string::npos);
   // Unbought and unswitched: the rent tag, and no mark.
   EXPECT_NE(rendered.find("R:"), std::string::npos);
   EXPECT_EQ(rendered.find("\u2713"), std::string::npos);
 
-  CharacterInstance late = MakePotHero(rng_, 190);
+  CharacterInstance late = MakeBuffHero(rng_, 190);
   CharacterPanel second(late, account_, panel_focus_);
   second.SetWidth(kLeftColumnMax);
-  EXPECT_NE(ScreenText(RenderToScreen(OnPotRows(second))).find("Extreme Green"),
-            std::string::npos);
+  EXPECT_NE(
+      ScreenText(RenderToScreen(OnBuffRows(second))).find("Extreme Green"),
+      std::string::npos);
 }
 
 // One stop on the row, and Enter on it raises the menu wherever the cursor
 // sits: there is no second column to answer for.
-TEST_F(CharacterPanelTest, EnterOnAPotRowOpensItsMenu) {
-  CharacterInstance c = MakePotHero(rng_, kConsumableUnlockLevel);
+TEST_F(CharacterPanelTest, EnterOnABuffRowOpensItsMenu) {
+  CharacterInstance c = MakeBuffHero(rng_, kConsumableUnlockLevel);
   CharacterPanel panel(c, account_, panel_focus_);
   panel.SetWidth(kLeftColumnMax);
   panel_focus_ = kCharPanel;
   std::vector<ConsumableType> opened;
   CharacterPanelActions actions;
-  actions.pot_menu = [&](ConsumableType type) { opened.push_back(type); };
-  ftxui::Component comp = OnPotRows(panel, actions);
+  actions.buff_menu = [&](ConsumableType type) { opened.push_back(type); };
+  ftxui::Component comp = OnBuffRows(panel, actions);
 
   comp->OnEvent(ftxui::Event::ArrowRight);  // nothing to move to
   comp->OnEvent(ftxui::Event::Return);
@@ -3043,16 +3044,16 @@ TEST_F(CharacterPanelTest, EnterOnAPotRowOpensItsMenu) {
   EXPECT_EQ(opened[0], CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
 }
 
-// A pot that is switched on is the lit row with the mark on the end; one that
+// A buff that is switched on is the lit row with the mark on the end; one that
 // is off carries neither.
-TEST_F(CharacterPanelTest, ASwitchedOnPotIsMarkedAndLit) {
-  // Both pots, so the cursor can sit on the first and leave the second to be
+TEST_F(CharacterPanelTest, ASwitchedOnBuffIsMarkedAndLit) {
+  // Both buffs, so the cursor can sit on the first and leave the second to be
   // read without the highlight on it.
-  CharacterInstance c = MakePotHero(rng_, 190);
+  CharacterInstance c = MakeBuffHero(rng_, 190);
   CharacterPanel panel(c, account_, panel_focus_);
   panel.SetWidth(kLeftColumnMax);
   panel_focus_ = kCharPanel;
-  ftxui::Component comp = OnPotRows(panel);
+  ftxui::Component comp = OnBuffRows(panel);
   EXPECT_TRUE(IsDim(comp, "Extreme"));
 
   c.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION);
@@ -3065,13 +3066,13 @@ TEST_F(CharacterPanelTest, ASwitchedOnPotIsMarkedAndLit) {
 
 // Bought outright, the row is tagged O: in place of the rent's R: -- nothing
 // is charged for it again.
-TEST_F(CharacterPanelTest, AnOwnedPotIsTaggedInsteadOfPriced) {
-  CharacterInstance c = MakePotHero(rng_, kConsumableUnlockLevel);
+TEST_F(CharacterPanelTest, AnOwnedBuffIsTaggedInsteadOfPriced) {
+  CharacterInstance c = MakeBuffHero(rng_, kConsumableUnlockLevel);
   ASSERT_TRUE(c.BuyConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
   CharacterPanel panel(c, account_, panel_focus_);
   panel.SetWidth(kLeftColumnMax);
   panel_focus_ = kCharPanel;
-  ftxui::Component comp = OnPotRows(panel);
+  ftxui::Component comp = OnBuffRows(panel);
   EXPECT_EQ(ColorOf(comp, "O:"), kGreen);
   EXPECT_EQ(ScreenText(RenderToScreen(comp)).find("R:"), std::string::npos);
 }

@@ -18,7 +18,7 @@ CharacterInstance MakeCharacter(std::mt19937& rng, int level, int64_t meso) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-TEST(ConsumablesTest, EveryPotHasATableRowAndTheyOpenInOrder) {
+TEST(ConsumablesTest, EveryBuffHasATableRowAndTheyOpenInOrder) {
   int last = 0;
   for (const ConsumableInfo& info : AllConsumables()) {
     EXPECT_EQ(ConsumableInfoFor(info.type), &info);
@@ -30,7 +30,7 @@ TEST(ConsumablesTest, EveryPotHasATableRowAndTheyOpenInOrder) {
   EXPECT_EQ(ConsumableInfoFor(CONSUMABLE_TYPE_UNSPECIFIED), nullptr);
 }
 
-TEST(ConsumablesTest, APotWaitsForItsOwnLevel) {
+TEST(ConsumablesTest, ABuffWaitsForItsOwnLevel) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng, 169, 0);
   EXPECT_FALSE(c.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
@@ -69,8 +69,8 @@ TEST(ConsumablesTest, BuyingOutrightEndsTheRent) {
   EXPECT_FALSE(c.BuyConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
   EXPECT_EQ(c.meso(), 500'000'000);
 
-  // Both halves survive a save: an owned pot the player has to switch back on
-  // every launch is an owned pot they will think they lost.
+  // Both halves survive a save: an owned buff the player has to switch back on
+  // every launch is an owned buff they will think they lost.
   Character saved = c.ToProto();
   ASSERT_EQ(saved.consumables().owned_size(), 1);
   EXPECT_EQ(saved.consumables().owned(0),
@@ -80,8 +80,8 @@ TEST(ConsumablesTest, BuyingOutrightEndsTheRent) {
             CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
 }
 
-// A pot that is off costs nothing, and one that is on is charged per proc.
-TEST(ConsumablesTest, OnlyASwitchedOnPotCharges) {
+// A buff that is off costs nothing, and one that is on is charged per proc.
+TEST(ConsumablesTest, OnlyASwitchedOnBuffCharges) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng, 190, 10'000'000);
   EXPECT_EQ(c.ChargeConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION, 1), 0);
@@ -92,7 +92,7 @@ TEST(ConsumablesTest, OnlyASwitchedOnPotCharges) {
   EXPECT_EQ(c.meso(), 9'000'000);
 }
 
-// The purse pays what it has and stops at nothing. The pot is still on.
+// The purse pays what it has and stops at nothing. The buff is still on.
 TEST(ConsumablesTest, AShortPurseGetsItAtADiscount) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng, 190, 400'000);

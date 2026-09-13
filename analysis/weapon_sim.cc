@@ -78,7 +78,7 @@ ABSL_FLAG(bool, upgraded, false,
           "own maximum. The default is gear straight off the shelf.");
 ABSL_FLAG(bool, max, false,
           "Measure the ceiling character at the level instead of one grown "
-          "down its path: --mode=max's gear, hyper stats, ability, pots and "
+          "down its path: --mode=max's gear, hyper stats, ability, buffs and "
           "V matrix. Below the 5th job it changes only the gear; at 200 it is "
           "the difference between a V node at 1 and one at 30, which is most "
           "of what a 5th job is. One row a branch, holding whatever the "

@@ -21,9 +21,9 @@
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/panels/menu_panel.h"
+#include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/party_inspect_panel.h"
 #include "src/frontend/screens/party_select_panel.h"
-#include "src/frontend/screens/pot_info_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
@@ -96,7 +96,7 @@ struct Client {
                 *map_select_panel, *mob_inspect_panel,   *boss_select_panel,
                 party_panel,       *party_inspect_panel, *shop_panel,
                 buy_panel,         *job_inspect_panel,   skill_inspect_panel,
-                pot_info_panel,    *menu_panel,          *keybinds_panel,
+                buff_info_panel,   *menu_panel,          *keybinds_panel,
                 *options_panel},
         analysis, *keys, focus, &session);
   }
@@ -127,7 +127,7 @@ struct Client {
   SellEquipPanel sell_equip_panel;
   BuyPanel buy_panel;
   SkillInspectPanel skill_inspect_panel;
-  PotInfoPanel pot_info_panel;
+  BuffInfoPanel buff_info_panel;
   InspectPanel inspect_panel;
   InspectPanel preview_inspect_panel;
   std::unique_ptr<CharacterPanel> char_panel;

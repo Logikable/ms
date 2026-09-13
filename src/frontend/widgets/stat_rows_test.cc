@@ -257,8 +257,8 @@ TEST_F(StatRowsTest, AttackSpeedStopsAtTheSoftCap) {
   EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Attack Speed"), "Fastest 1");
 }
 
-// The two pots pull in opposite directions, and each tab shows only its own.
-TEST_F(StatRowsTest, EachPotShowsOnTheTabItPaysOn) {
+// The two buffs pull in opposite directions, and each tab shows only its own.
+TEST_F(StatRowsTest, EachBuffShowsOnTheTabItPaysOn) {
   Character proto;
   proto.set_level(190);
   proto.set_job(JOB_SWORDMAN);

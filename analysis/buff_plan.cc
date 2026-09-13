@@ -1,4 +1,4 @@
-#include "analysis/pot_plan.h"
+#include "analysis/buff_plan.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -20,7 +20,7 @@ namespace {
 
 // How far a permanent unlock has to clear its own price before it is worth
 // the purse it takes. Twice over rather than once: the meso would otherwise
-// have gone on gear, and a pot that only breaks even by the last day of the
+// have gone on gear, and a buff that only breaks even by the last day of the
 // run is not worth taking a star off the weapon for.
 constexpr double kBuyMargin = 2.0;
 
@@ -38,8 +38,8 @@ double RateWithWealthPotion(GameState& state, bool on,
   }
   DerivedStats derived = DerivedStatsFor(character, state.skills);
   double rate =
-      PotMesoPerSecond(mobs, kills_per_second, MesoBonus(derived),
-                       derived.meso_final_mult, derived.item_drop_pct);
+      BuffMesoPerSecond(mobs, kills_per_second, MesoBonus(derived),
+                        derived.meso_final_mult, derived.item_drop_pct);
   if (was != on) {
     character.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
   }
@@ -63,7 +63,7 @@ bool RaisesTheStage(GameState& state) {
 }
 
 // Switches `type` to `on`, which is a no-op when it is already there.
-void SetPot(CharacterInstance& character, ConsumableType type, bool on) {
+void SetBuff(CharacterInstance& character, ConsumableType type, bool on) {
   if (character.ConsumableActive(type) != on) {
     character.ToggleConsumable(type);
   }
@@ -77,13 +77,13 @@ bool WorthBuying(double rent_per_second, double seconds_left,
 
 // Buys `info` outright if the mode allows it, the purse covers it, and -- in
 // kAuto -- the rent left to pay is worth more than the price.
-void BuyIfWorthIt(GameState& state, const PotPolicy& policy,
+void BuyIfWorthIt(GameState& state, const BuffPolicy& policy,
                   const ConsumableInfo& info, double rent_per_second,
-                  PotSpend* spend) {
-  if (policy.mode == PotMode::kRent || policy.mode == PotMode::kOff) {
+                  BuffSpend* spend) {
+  if (policy.mode == BuffMode::kRent || policy.mode == BuffMode::kOff) {
     return;
   }
-  if (policy.mode == PotMode::kAuto &&
+  if (policy.mode == BuffMode::kAuto &&
       !WorthBuying(rent_per_second, policy.seconds_left,
                    info.permanent_price)) {
     return;
@@ -95,9 +95,9 @@ void BuyIfWorthIt(GameState& state, const PotPolicy& policy,
 
 }  // namespace
 
-double PotMesoPerSecond(absl::Span<const Mob* const> mobs,
-                        absl::Span<const double> kills_per_second,
-                        double meso_pct, double meso_mult, double drop_pct) {
+double BuffMesoPerSecond(absl::Span<const Mob* const> mobs,
+                         absl::Span<const double> kills_per_second,
+                         double meso_pct, double meso_mult, double drop_pct) {
   double total = 0.0;
   for (std::size_t i = 0; i < mobs.size() && i < kills_per_second.size(); ++i) {
     if (mobs[i] == nullptr || mobs[i]->boss()) {
@@ -108,26 +108,26 @@ double PotMesoPerSecond(absl::Span<const Mob* const> mobs,
   return total * (1.0 + meso_pct) * meso_mult;
 }
 
-void PlanPots(GameState& state, const PotPolicy& policy,
-              absl::Span<const Mob* const> mobs,
-              absl::Span<const double> kills_per_second, PotSpend* spend) {
+void PlanBuffs(GameState& state, const BuffPolicy& policy,
+               absl::Span<const Mob* const> mobs,
+               absl::Span<const double> kills_per_second, BuffSpend* spend) {
   CharacterInstance& character = state.character;
   int level = character.proto().level();
   for (const ConsumableInfo& info : AllConsumables()) {
     if (level < info.unlock_level) {
       continue;
     }
-    if (policy.mode == PotMode::kOff) {
-      SetPot(character, info.type, false);
+    if (policy.mode == BuffMode::kOff) {
+      SetBuff(character, info.type, false);
       continue;
     }
     if (info.per_second) {
-      // The map decides: a pot that drinks more than the crowd pays is one
+      // The map decides: a buff that drinks more than the crowd pays is one
       // the player puts away until they are somewhere worth drinking it.
       double gain = RateWithWealthPotion(state, true, mobs, kills_per_second) -
                     RateWithWealthPotion(state, false, mobs, kills_per_second);
       bool worth = gain > info.price;
-      SetPot(character, info.type, worth);
+      SetBuff(character, info.type, worth);
       if (worth) {
         BuyIfWorthIt(state, policy, info, info.price, spend);
       }
@@ -136,7 +136,7 @@ void PlanPots(GameState& state, const PotPolicy& policy,
     // A stage of attack speed against a million meso, in a fight whose clear
     // is worth many times that: it goes on whenever it is worth a stage at
     // all, and it is worth nothing to a character already at the ceiling.
-    SetPot(character, info.type, RaisesTheStage(state));
+    SetBuff(character, info.type, RaisesTheStage(state));
     if (character.ConsumableActive(info.type)) {
       BuyIfWorthIt(state, policy, info,
                    info.price * policy.boss_entries_per_second, spend);
@@ -144,7 +144,7 @@ void PlanPots(GameState& state, const PotPolicy& policy,
   }
 }
 
-void DrinkPots(GameState& state, double seconds, PotSpend* spend) {
+void DrinkBuffs(GameState& state, double seconds, BuffSpend* spend) {
   if (seconds <= 0.0) {
     return;
   }
@@ -161,7 +161,7 @@ void DrinkPots(GameState& state, double seconds, PotSpend* spend) {
   }
 }
 
-void EnterFightWithPots(GameState& state, PotSpend* spend) {
+void EnterFightWithBuffs(GameState& state, BuffSpend* spend) {
   ++spend->entries;
   for (const ConsumableInfo& info : AllConsumables()) {
     if (!info.per_second) {

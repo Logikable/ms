@@ -101,7 +101,7 @@ class GearShopper {
 
   // What the run has left to earn and what it earns, which is the whole of
   // what a %meso or %drop potential line is worth -- see CubeIncome. Set at
-  // each look, beside the pot decisions. A shopper never told stays blind to
+  // each look, beside the buff decisions. A shopper never told stays blind to
   // the income lines and prices a cube on combat power alone.
   void SetIncome(const CubeIncome& income) {
     income_ = income;

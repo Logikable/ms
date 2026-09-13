@@ -227,9 +227,9 @@ cc_test(
 )
 
 cc_library(
-    name = "pot_info_panel",
-    srcs = ["pot_info_panel.cc"],
-    hdrs = ["pot_info_panel.h"],
+    name = "buff_info_panel",
+    srcs = ["buff_info_panel.cc"],
+    hdrs = ["buff_info_panel.h"],
     deps = [
         "//src/character:consumables",
         "//src/frontend/widgets:chrome",
@@ -241,11 +241,11 @@ cc_library(
 )
 
 cc_test(
-    name = "pot_info_panel_test",
+    name = "buff_info_panel_test",
     size = "small",
-    srcs = ["pot_info_panel_test.cc"],
+    srcs = ["buff_info_panel_test.cc"],
     deps = [
-        ":pot_info_panel",
+        ":buff_info_panel",
         "//src/character:consumables",
         "//src/frontend/widgets:panel_test_base",
         "@ftxui//:dom",

@@ -124,7 +124,7 @@ inline constexpr char kHyperTabKey[] = "hyper";
 // it.
 inline constexpr char kAbilityTabKey[] = "ability";
 
-// And the Buffs tab's, for the same reason and on the same terms: what a pot
+// And the Buffs tab's, for the same reason and on the same terms: what a buff
 // is arrives once, and the account is told about it once. The key still reads
 // "pots" because the saves do: renaming the tab must not forget who has seen
 // it.

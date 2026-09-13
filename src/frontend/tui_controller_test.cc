@@ -21,6 +21,7 @@
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/panels/menu_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
+#include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/cube_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
@@ -29,7 +30,6 @@
 #include "src/frontend/screens/multi_sell_panel.h"
 #include "src/frontend/screens/party_inspect_panel.h"
 #include "src/frontend/screens/party_select_panel.h"
-#include "src/frontend/screens/pot_info_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
@@ -249,7 +249,7 @@ class TuiControllerTest : public testing::Test {
             *map_select_panel_,  *mob_inspect_panel_,   *boss_select_panel_,
             party_select_panel_, *party_inspect_panel_, *shop_panel_,
             *buy_panel_,         *job_inspect_panel_,   skill_inspect_panel_,
-            pot_info_panel_,     *menu_panel_,          *keybinds_panel_,
+            buff_info_panel_,    *menu_panel_,          *keybinds_panel_,
             *options_panel_},
         analysis_, *keys_, panel_focus_);
 
@@ -372,9 +372,9 @@ class TuiControllerTest : public testing::Test {
     controller_->OnEvent(ftxui::Event::Return);      // -> kShopBuy
   }
 
-  // The pot menu's entries, read the same way.
-  std::string RenderPotMenu() {
-    ftxui::Element menu = controller_->pot_menu().Render(0, 0);
+  // The buff menu's entries, read the same way.
+  std::string RenderBuffMenu() {
+    ftxui::Element menu = controller_->buff_menu().Render(0, 0);
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(menu));
     ftxui::Render(screen, menu);
     return ScreenText(screen);
@@ -406,7 +406,7 @@ class TuiControllerTest : public testing::Test {
             *map_select_panel_,  *mob_inspect_panel_,   *boss_select_panel_,
             party_select_panel_, *party_inspect_panel_, *shop_panel_,
             *buy_panel_,         *job_inspect_panel_,   skill_inspect_panel_,
-            pot_info_panel_,     *menu_panel_,          *keybinds_panel_,
+            buff_info_panel_,    *menu_panel_,          *keybinds_panel_,
             *options_panel_},
         analysis_, *keys_, panel_focus_);
   }
@@ -543,7 +543,7 @@ class TuiControllerTest : public testing::Test {
             *map_select_panel_,  *mob_inspect_panel_,   *boss_select_panel_,
             party_select_panel_, *party_inspect_panel_, *shop_panel_,
             *buy_panel_,         *job_inspect_panel_,   skill_inspect_panel_,
-            pot_info_panel_,     *menu_panel_,          *keybinds_panel_,
+            buff_info_panel_,    *menu_panel_,          *keybinds_panel_,
             *options_panel_},
         analysis_, *keys_, panel_focus_);
   }
@@ -585,7 +585,7 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<BuyPanel> buy_panel_;
   std::unique_ptr<JobInspectPanel> job_inspect_panel_;
   SkillInspectPanel skill_inspect_panel_;
-  PotInfoPanel pot_info_panel_;
+  BuffInfoPanel buff_info_panel_;
   InspectPanel inspect_panel_;
   InspectPanel preview_inspect_panel_;
   BattleAnalysis analysis_;
@@ -858,48 +858,49 @@ TEST_F(TuiControllerTest, EnterAlsoLeavesTheSkillInspectScreen) {
 // --- the Buffs tab's menu, card and question ---
 
 // The switch is the menu's first entry, named for the state it would leave
-// the pot in, and pressing it asks nothing: nothing is spent until it procs.
+// the buff in, and pressing it asks nothing: nothing is spent until it procs.
 TEST_F(TuiControllerTest, TheFirstEntryThrowsTheSwitchAndSaysWhichWay) {
   LevelTo(kConsumableUnlockLevel);
-  controller_->OpenPotMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
-  EXPECT_NE(RenderPotMenu().find("Enable"), std::string::npos);
+  controller_->OpenBuffMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  EXPECT_NE(RenderBuffMenu().find("Enable"), std::string::npos);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_TRUE(state_->character.ConsumableActive(
       CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
 
-  controller_->OpenPotMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
-  EXPECT_NE(RenderPotMenu().find("Disable"), std::string::npos);
+  controller_->OpenBuffMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  EXPECT_NE(RenderBuffMenu().find("Disable"), std::string::npos);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(state_->character.ConsumableActive(
       CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
 }
 
-TEST_F(TuiControllerTest, ThePotMenuOpensOnInspectAndReadsTheCard) {
+TEST_F(TuiControllerTest, TheBuffMenuOpensOnInspectAndReadsTheCard) {
   LevelTo(kConsumableUnlockLevel);
-  controller_->OpenPotMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
-  EXPECT_EQ(controller_->screen(), kPotMenu);
-  EXPECT_EQ(controller_->pot_type(), CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  controller_->OpenBuffMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  EXPECT_EQ(controller_->screen(), kBuffMenu);
+  EXPECT_EQ(controller_->buff_type(),
+            CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Enable -> Inspect
   controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kPotInfo);
+  EXPECT_EQ(controller_->screen(), kBuffInfo);
   // Read-only, and Back returns to the menu it was opened from.
   controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kPotInfo);
+  EXPECT_EQ(controller_->screen(), kBuffInfo);
   controller_->OnEvent(ftxui::Event::Escape);
-  EXPECT_EQ(controller_->screen(), kPotMenu);
+  EXPECT_EQ(controller_->screen(), kBuffMenu);
 }
 
-TEST_F(TuiControllerTest, BuyPermBuysThePotOutright) {
+TEST_F(TuiControllerTest, BuyPermBuysTheBuffOutright) {
   LevelTo(kConsumableUnlockLevel);
   state_->character.AddMeso(200'000'000);
-  controller_->OpenPotMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  controller_->OpenBuffMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Enable -> Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect -> Buy Perm
   controller_->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(controller_->screen(), kPotBuy);
-  EXPECT_EQ(controller_->pot_buy_price(), 100'000'000);
-  EXPECT_TRUE(controller_->pot_buy_affordable());
+  ASSERT_EQ(controller_->screen(), kBuffBuy);
+  EXPECT_EQ(controller_->buff_buy_price(), 100'000'000);
+  EXPECT_TRUE(controller_->buff_buy_affordable());
 
   // Opens on Cancel, so buying is Left then Enter.
   const int64_t before = state_->character.proto().meso();
@@ -915,39 +916,39 @@ TEST_F(TuiControllerTest, BuyPermBuysThePotOutright) {
 // read what it would have cost -- but [Confirm] answers nothing.
 TEST_F(TuiControllerTest, AShortPurseOpensTheQuestionAndRefusesTheAnswer) {
   LevelTo(kConsumableUnlockLevel);
-  controller_->OpenPotBuy(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
-  ASSERT_EQ(controller_->screen(), kPotBuy);
-  EXPECT_FALSE(controller_->pot_buy_affordable());
+  controller_->OpenBuffBuy(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  ASSERT_EQ(controller_->screen(), kBuffBuy);
+  EXPECT_FALSE(controller_->buff_buy_affordable());
   controller_->OnEvent(ftxui::Event::ArrowLeft);
   controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kPotBuy);
+  EXPECT_EQ(controller_->screen(), kBuffBuy);
   EXPECT_FALSE(state_->character.ConsumableOwned(
       CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// A pot already bought keeps its entry, greyed, and the cursor steps over it.
-TEST_F(TuiControllerTest, AnOwnedPotHasNothingLeftToBuy) {
+// A buff already bought keeps its entry, greyed, and the cursor steps over it.
+TEST_F(TuiControllerTest, AnOwnedBuffHasNothingLeftToBuy) {
   LevelTo(kConsumableUnlockLevel);
   state_->character.AddMeso(200'000'000);
   ASSERT_TRUE(state_->character.BuyConsumable(
       CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
-  controller_->OpenPotMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  controller_->OpenBuffMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Enable -> Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect -> Close, stepping
   controller_->OnEvent(ftxui::Event::Return);     // over the greyed Buy Perm
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-TEST_F(TuiControllerTest, CloseAndEscapeBothLeaveThePotMenu) {
+TEST_F(TuiControllerTest, CloseAndEscapeBothLeaveTheBuffMenu) {
   LevelTo(kConsumableUnlockLevel);
-  controller_->OpenPotMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  controller_->OpenBuffMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
   controller_->OnEvent(ftxui::Event::ArrowUp);  // Enable -> Close, wrapping
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
 
-  controller_->OpenPotMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
+  controller_->OpenBuffMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
 }
@@ -2773,7 +2774,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
-  PotInfoPanel pots;
+  BuffInfoPanel buffs;
   InspectPanel item_card;
   InspectPanel trace_card;
   CubePanel cube;
@@ -2788,7 +2789,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
                      trace_card, star,          cube, trace,    sell,
                      sell_equip, multi_sell,    maps, mobs,     bosses,
                      party,      party_inspect, shop, buy,      jobs,
-                     skill_card, pots,          menu, keybinds, options},
+                     skill_card, buffs,         menu, keybinds, options},
       analysis, keys, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
@@ -2838,7 +2839,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
-  PotInfoPanel pots;
+  BuffInfoPanel buffs;
   InspectPanel item_card;
   InspectPanel trace_card;
   CubePanel cube;
@@ -2853,7 +2854,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
                      trace_card, star,          cube, trace,    sell,
                      sell_equip, multi_sell,    maps, mobs,     bosses,
                      party,      party_inspect, shop, buy,      jobs,
-                     skill_card, pots,          menu, keybinds, options},
+                     skill_card, buffs,         menu, keybinds, options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
@@ -2886,7 +2887,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
-  PotInfoPanel pots;
+  BuffInfoPanel buffs;
   InspectPanel item_card;
   InspectPanel trace_card;
   CubePanel cube;
@@ -2901,7 +2902,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
                      trace_card, star,          cube, trace,    sell,
                      sell_equip, multi_sell,    maps, mobs,     bosses,
                      party,      party_inspect, shop, buy,      jobs,
-                     skill_card, pots,          menu, keybinds, options},
+                     skill_card, buffs,         menu, keybinds, options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
@@ -2934,7 +2935,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
-  PotInfoPanel pots;
+  BuffInfoPanel buffs;
   InspectPanel item_card;
   InspectPanel trace_card;
   CubePanel cube;
@@ -2949,7 +2950,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
                      trace_card, star,          cube, trace,    sell,
                      sell_equip, multi_sell,    maps, mobs,     bosses,
                      party,      party_inspect, shop, buy,      jobs,
-                     skill_card, pots,          menu, keybinds, options},
+                     skill_card, buffs,         menu, keybinds, options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all

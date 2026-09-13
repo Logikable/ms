@@ -1,4 +1,4 @@
-#include "src/frontend/screens/pot_info_panel.h"
+#include "src/frontend/screens/buff_info_panel.h"
 
 #include <algorithm>
 #include <string>
@@ -18,7 +18,7 @@ namespace {
 // The two border columns, and the gutter either side of the text between them.
 constexpr int kCardChrome = 4;
 
-// What an owned pot's price row says in place of the price. It keeps the row
+// What an owned buff's price row says in place of the price. It keeps the row
 // rather than dropping it: a player who bought one is owed the news.
 constexpr char kOwnedText[] = "Unlocked permanently";
 
@@ -53,7 +53,7 @@ std::string ConsumablePermanentText(ConsumableType type) {
   return FormatMeso(info->permanent_price) + " to unlock permanently";
 }
 
-int PotInfoPanel::Columns() {
+int BuffInfoPanel::Columns() {
   int widest = TextColumns(kOwnedText);
   for (const ConsumableInfo& info : AllConsumables()) {
     for (const std::string& line : CardLines(info)) {
@@ -63,19 +63,19 @@ int PotInfoPanel::Columns() {
   return kCardChrome + widest;
 }
 
-void PotInfoPanel::SetPot(ConsumableType type, bool owned) {
+void BuffInfoPanel::SetBuff(ConsumableType type, bool owned) {
   type_ = type;
   owned_ = owned;
 }
 
-ftxui::Element PotInfoPanel::Render() const {
+ftxui::Element BuffInfoPanel::Render() const {
   const ConsumableInfo* info = ConsumableInfoFor(type_);
   if (info == nullptr) {
-    return ThemedWindow(" Pot Info ", EmptyState("no pot"));
+    return ThemedWindow(" Buff Info ", EmptyState("no buff"));
   }
   const int content = Columns() - 2;
   // Every row is centred on the card's one width, which the widest line of the
-  // widest pot sets.
+  // widest buff sets.
   auto row = [content](const std::string& text) {
     return CenteredRow(text) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, content);
   };
@@ -84,7 +84,7 @@ ftxui::Element PotInfoPanel::Render() const {
     rows.push_back(row(effect));
   }
   rows.push_back(ThemedSeparator());
-  // A bought pot is never charged again, so its rent is a fact about the pot
+  // A bought buff is never charged again, so its rent is a fact about the buff
   // rather than a price this player pays: it dims, and the row under it says
   // so outright.
   ftxui::Element rent = row(ConsumableRentText(type_));
@@ -93,7 +93,7 @@ ftxui::Element PotInfoPanel::Render() const {
   }
   rows.push_back(std::move(rent));
   rows.push_back(row(owned_ ? kOwnedText : ConsumablePermanentText(type_)));
-  return ThemedWindow(" Pot Info ", ftxui::vbox(std::move(rows)));
+  return ThemedWindow(" Buff Info ", ftxui::vbox(std::move(rows)));
 }
 
 }  // namespace ms

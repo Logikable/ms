@@ -64,9 +64,9 @@ struct CharacterPanelActions {
   // on, and holds or frees it -- the panel does not know which way that goes.
   std::function<void(int)> ability_lock;
   std::function<void()> ability_reroll;
-  // The Buffs tab. Enter on a row raises the pot's menu, which is where every
+  // The Buffs tab. Enter on a row raises the buff's menu, which is where every
   // one of its actions lives -- switching it on included.
-  std::function<void(ConsumableType)> pot_menu;
+  std::function<void(ConsumableType)> buff_menu;
 };
 
 class CharacterPanel {
@@ -135,10 +135,10 @@ class CharacterPanel {
     return job_cursor_box_.y_min;
   }
 
-  // The screen row the selected pot was last drawn on, for anchoring the pot
+  // The screen row the selected buff was last drawn on, for anchoring the buff
   // menu beside it. Read from the render, as the two above are.
-  int pot_cursor_row() const {
-    return pot_cursor_box_.y_min;
+  int buff_cursor_row() const {
+    return buff_cursor_box_.y_min;
   }
 
   // True while the name field is taking keys. Tui asks so the player's own
@@ -236,9 +236,9 @@ class CharacterPanel {
     // The Ability tab's three line rows, and the [Reroll] button under them.
     kZoneAbilityRows,
     kZoneAbilityReroll,
-    // The Buffs tab's rows. One stop each: everything a pot offers is on the
+    // The Buffs tab's rows. One stop each: everything a buff offers is on the
     // menu Enter raises.
-    kZonePotRows
+    kZoneBuffRows
   };
 
   // The two things a skill row offers, left to right. Left/Right move between
@@ -282,8 +282,8 @@ class CharacterPanel {
                        const CharacterPanelActions& actions);
   bool OnAbilityTabEvent(const ftxui::Event& event,
                          const CharacterPanelActions& actions);
-  bool OnPotsTabEvent(const ftxui::Event& event,
-                      const CharacterPanelActions& actions);
+  bool OnBuffsTabEvent(const ftxui::Event& event,
+                       const CharacterPanelActions& actions);
 
   // The tabs on offer, in bar order. The Advance tab is only among them while
   // an advancement is pending, so the count is not a constant.
@@ -359,17 +359,17 @@ class CharacterPanel {
   // cursor ring is measured in.
   int AbilityRows() const;
 
-  // Renders the Buffs tab: one row per pot this character has reached. Nothing
-  // scrolls -- the pots are few enough that the tab never outgrows them.
-  ftxui::Element RenderPotsTab(bool rows_focused) const;
-  // One pot row: the tag saying whether it is rented or owned, its name, and
-  // the mark at the end that says it is switched on. A pot that is off dims.
-  ftxui::Element RenderPotRow(const ConsumableInfo& info, int index,
-                              bool rows_focused) const;
-  // The pots this character has reached, in the order they open. A pot below
+  // Renders the Buffs tab: one row per buff this character has reached. Nothing
+  // scrolls -- the buffs are few enough that the tab never outgrows them.
+  ftxui::Element RenderBuffsTab(bool rows_focused) const;
+  // One buff row: the tag saying whether it is rented or owned, its name, and
+  // the mark at the end that says it is switched on. A buff that is off dims.
+  ftxui::Element RenderBuffRow(const ConsumableInfo& info, int index,
+                               bool rows_focused) const;
+  // The buffs this character has reached, in the order they open. A buff below
   // its own level is not listed: it cannot be switched on or bought, and a
   // greyed row would only advertise it.
-  std::vector<const ConsumableInfo*> PotsShown() const;
+  std::vector<const ConsumableInfo*> BuffsShown() const;
   // Whether the honor pool covers a reroll of the selected allocation.
   bool CanRerollAbility() const;
 
@@ -507,18 +507,18 @@ class CharacterPanel {
   int hyper_sel_ = 0;                   // selected Hyper-tab stat row
   HyperCol hyper_col_ = kHyperColName;  // selected column of that row
   int ability_sel_ = 0;                 // selected Ability-tab line row
-  int pot_sel_ = 0;                     // selected Buffs-tab row
-  // How long the cursor has sat on the selected pot, for the name scroll. Its
+  int buff_sel_ = 0;                    // selected Buffs-tab row
+  // How long the cursor has sat on the selected buff, for the name scroll. Its
   // own clock rather than the skill rows': the two tabs share row numbers, and
   // one clock would carry a slide from one to the other.
-  mutable SelectionClock pot_clock_;
+  mutable SelectionClock buff_clock_;
   // Which allocation the Farm/Boss row is on -- see hyper_preset().
   StatPreset hyper_preset_ = StatPreset::kFarming;
   TextField username_field_{kMaxUsernameLength};
   // Written by ftxui::reflect on the selected job row each render.
   mutable ftxui::Box job_cursor_box_;
   mutable ftxui::Box skill_cursor_box_;
-  mutable ftxui::Box pot_cursor_box_;
+  mutable ftxui::Box buff_cursor_box_;
 };
 
 }  // namespace ms

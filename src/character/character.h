@@ -262,11 +262,11 @@ class CharacterInstance {
   // by being spent on a node.
   void AddVPoints(int64_t amount);
 
-  /* The potions. A pot is owned or rented, and on or off; the pair decides
+  /* The potions. A buff is owned or rented, and on or off; the pair decides
    * both what it does and what it costs. See //src/character/consumables.h.
    */
 
-  // Whether the character is high enough for the first pot to be had, and so
+  // Whether the character is high enough for the first buff to be had, and so
   // for the Buffs tab to open at all.
   bool consumables_unlocked() const {
     return character_.level() >= kConsumableUnlockLevel;
@@ -275,23 +275,23 @@ class CharacterInstance {
   // for it again.
   bool ConsumableOwned(ConsumableType type) const;
   // Whether the player has it switched on. Says nothing about their level: an
-  // owned pot stays switched on through a character who cannot yet use it.
+  // owned buff stays switched on through a character who cannot yet use it.
   bool ConsumableActive(ConsumableType type) const;
   // Whether it is actually doing anything -- switched on, and at the level it
-  // opens at. Everything reading a pot's effect asks this rather than the two
+  // opens at. Everything reading a buff's effect asks this rather than the two
   // above.
   bool ConsumableInEffect(ConsumableType type) const;
   // Switches it on if it is off and off if it is on, and says which it now
-  // is. Refuses a pot this character's level has not opened, leaving it off.
+  // is. Refuses a buff this character's level has not opened, leaving it off.
   bool ToggleConsumable(ConsumableType type);
   // Buys `type` outright at its permanent price. All or nothing: takes no
   // meso and buys nothing when the purse is short, when it is already owned,
   // or when the level has not opened it.
   bool BuyConsumable(ConsumableType type);
-  // Charges `procs` procs of `type` -- seconds of farming for one pot, boss
+  // Charges `procs` procs of `type` -- seconds of farming for one buff, boss
   // entries for the other -- and returns the meso actually taken. A purse that
-  // cannot cover it pays what it has and stops at 0; the pot works either way.
-  // Nothing at all for a pot that is owned, off, or not yet open.
+  // cannot cover it pays what it has and stops at 0; the buff works either way.
+  // Nothing at all for a buff that is owned, off, or not yet open.
   int64_t ChargeConsumable(ConsumableType type, double procs);
   // Sells up to `count` copies from the `index`-th stack, crediting
   // count * sell_price meso and removing the sold copies; erases the stack
@@ -760,7 +760,7 @@ class CharacterInstance {
   EquipStats symbol_stats_;
   PotentialTotals potential_totals_;
   int arcane_force_ = 0;
-  // Meso the pots have run up and not yet been charged for, always under 1.
+  // Meso the buffs have run up and not yet been charged for, always under 1.
   // The live tick charges three times a second, so without this a potion at
   // 1,000 a second would quietly cost 999. Not saved: it is worth less than
   // the smallest coin.

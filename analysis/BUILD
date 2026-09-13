@@ -69,9 +69,9 @@ cc_library(
 )
 
 cc_library(
-    name = "pot_plan",
-    srcs = ["pot_plan.cc"],
-    hdrs = ["pot_plan.h"],
+    name = "buff_plan",
+    srcs = ["buff_plan.cc"],
+    hdrs = ["buff_plan.h"],
     deps = [
         "//src:game_state",
         "//src/character",
@@ -287,12 +287,12 @@ sim_binary(
     srcs = ["progression_sim.cc"],
     deps = [
         ":ability_plan",
+        ":buff_plan",
         ":checkpoint",
         ":cube_plan",
         ":gear_plan",
         ":hyper_plan",
         ":parallel",
-        ":pot_plan",
         ":sim_boss",
         ":sim_checkpoint_proto_cc",
         ":sim_format",

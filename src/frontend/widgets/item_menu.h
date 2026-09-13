@@ -55,7 +55,7 @@ class ItemMenu {
   // Width() -- the new label is one the box has to be wide enough for.
   //
   // For an action whose name is the state it would leave the item in, where
-  // two entries would only ever offer one of themselves: a pot's Enable and
+  // two entries would only ever offer one of themselves: a buff's Enable and
   // Disable are the same door.
   void SetLabel(int index, std::string label);
   // The columns the rendered box takes, borders included. What a caller

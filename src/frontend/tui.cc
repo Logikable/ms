@@ -169,7 +169,7 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
               map_select_panel_,   mob_inspect_panel_,   boss_select_panel_,
               party_select_panel_, party_inspect_panel_, shop_panel_,
               buy_panel_,          job_inspect_panel_,   skill_inspect_panel_,
-              pot_info_panel_,     menu_panel_,          keybinds_panel_,
+              buff_info_panel_,    menu_panel_,          keybinds_panel_,
               options_panel_},
           analysis_, keys_, panel_focus_, multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
@@ -222,8 +222,8 @@ void Tui::BuildComponents() {
   char_actions.ability_reroll = [this]() {
     controller_.OpenAbilityReroll(char_panel_.hyper_preset());
   };
-  char_actions.pot_menu = [this](ConsumableType type) {
-    controller_.OpenPotMenu(type);
+  char_actions.buff_menu = [this](ConsumableType type) {
+    controller_.OpenBuffMenu(type);
   };
   char_component_ = char_panel_.MakeComponent(std::move(char_actions));
   combat_component_ =
@@ -430,10 +430,10 @@ ftxui::Element Tui::AbilityRerollDialog() {
                       controller_.ability_reroll_prompt().Render());
 }
 
-ftxui::Element Tui::PotBuyDialog() {
-  const ConsumableInfo* info = ConsumableInfoFor(controller_.pot_type());
-  const bool affordable = controller_.pot_buy_affordable();
-  // Three short rows rather than one long one: the pot's name is what the
+ftxui::Element Tui::BuffBuyDialog() {
+  const ConsumableInfo* info = ConsumableInfoFor(controller_.buff_type());
+  const bool affordable = controller_.buff_buy_affordable();
+  // Three short rows rather than one long one: the buff's name is what the
   // player is deciding about, and the price is what they are weighing.
   return DialogWindow(
       "",
@@ -441,10 +441,10 @@ ftxui::Element Tui::PotBuyDialog() {
           CenteredRow(info == nullptr ? "" : "Buy " + std::string(info->name)),
           CenteredRow("permanently for"),
           CenteredRow(
-              RedUnless(ftxui::text(FormatMeso(controller_.pot_buy_price())),
+              RedUnless(ftxui::text(FormatMeso(controller_.buff_buy_price())),
                         affordable)),
       },
-      ConfirmButtons(controller_.pot_buy_prompt().focus(), affordable));
+      ConfirmButtons(controller_.buff_buy_prompt().focus(), affordable));
 }
 
 ftxui::Element Tui::QuitDialog() {
@@ -907,10 +907,10 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(HyperResetDialog());
     case kAbilityReroll:
       return OverMain(AbilityRerollDialog());
-    case kPotBuy:
-      return OverMain(PotBuyDialog());
-    case kPotInfo:
-      return Standalone(pot_info_panel_.Render());
+    case kBuffBuy:
+      return OverMain(BuffBuyDialog());
+    case kBuffInfo:
+      return Standalone(buff_info_panel_.Render());
     case kHyperStatInspect:
       hyper_stat_inspect_panel_.SetStat(controller_.hyper_inspect_field(),
                                         controller_.hyper_inspect_level(),
@@ -959,16 +959,16 @@ ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
     return Floating(controller_.job_menu().Render(
         std::max(0, char_panel_.job_cursor_row() - 1), kJobMenuCol));
   }
-  if (controller_.screen() == kPotMenu) {
-    // Past the widest a pot name is drawn, so the menu covers the two columns
+  if (controller_.screen() == kBuffMenu) {
+    // Past the widest a buff name is drawn, so the menu covers the two columns
     // after it rather than the name the entry is about. Held inside the
     // character panel, whose column narrows with the terminal: a narrow panel
     // takes a name's tail instead, as the skill menu does.
-    constexpr int kPotMenuCol = 26;
-    const ItemMenu& menu = controller_.pot_menu();
-    int col = std::max(0, std::min(kPotMenuCol, widths.left - menu.Width()));
+    constexpr int kBuffMenuCol = 26;
+    const ItemMenu& menu = controller_.buff_menu();
+    int col = std::max(0, std::min(kBuffMenuCol, widths.left - menu.Width()));
     return Floating(
-        menu.Render(std::max(0, char_panel_.pot_cursor_row() - 1), col));
+        menu.Render(std::max(0, char_panel_.buff_cursor_row() - 1), col));
   }
   if (controller_.screen() != kItemMenu) {
     return nullptr;

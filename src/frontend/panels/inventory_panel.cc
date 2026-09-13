@@ -321,7 +321,7 @@ void InventoryPanel::SortActiveTab() {
 }
 
 ftxui::Element InventoryPanel::RenderExpandTab(bool row_selected) const {
-  // Its label is the state Enter would leave the bag in, the way the pot
+  // Its label is the state Enter would leave the bag in, the way the buff
   // switch reads. Drawn as its own layer rather than as another chip of the
   // bar, so it keeps the far right past the meso counter.
   return TabChip(expanded_ ? "Close" : "Expand", on_expand_, row_selected);

@@ -60,7 +60,7 @@ constexpr Unlock kUnlocks[] = {
     // see kHyperStatUnlockLevel.
     {Feature::kHyperStats, kHyperStatUnlockLevel},
     // The Wealth Acquisition Potion's own level -- see
-    // kConsumableUnlockLevel. The second pot waits until 190 and is not
+    // kConsumableUnlockLevel. The second buff waits until 190 and is not
     // listed at all before then.
     {Feature::kConsumables, kConsumableUnlockLevel},
     // Arcane River opens at 200, and it opens with a symbol handed over -- so

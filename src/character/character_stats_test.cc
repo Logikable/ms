@@ -3265,7 +3265,7 @@ TEST_F(DerivedStatsTest, TheWealthPotionAddsAShareADropRateAndAMultiplier) {
   EXPECT_NEAR(after.meso_final_mult, 1.20, 1e-9);
   EXPECT_NEAR(after.item_drop_pct, 0.20, 1e-9);
 
-  // A boss fight pays none of it: the pot is farming's, and the bossing
+  // A boss fight pays none of it: the buff is farming's, and the bossing
   // preset is what a fight -- and the Boss stats tab -- reads.
   DerivedStats bossing = DerivedStatsFor(c, {}, {}, {}, StatPreset::kBossing);
   EXPECT_NEAR(MesoBonus(bossing), 1.00, 1e-9);

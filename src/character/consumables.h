@@ -1,15 +1,15 @@
 /* The potions: what each one costs, what it is worth, and when it opens.
  *
- * A pot is either rented or owned. A rented one charges its price every time
+ * A buff is either rented or owned. A rented one charges its price every time
  * it procs -- by the second while farming, or on the way into a boss fight --
  * and an owned one never charges again. Either way the player switches it on
- * and off, and an owned pot switched off does nothing.
+ * and off, and an owned buff switched off does nothing.
  *
- * A charge the purse cannot cover takes what is there and no more. The pot
+ * A charge the purse cannot cover takes what is there and no more. The buff
  * still works: a player who is broke gets it at a discount rather than losing
  * it at the moment they can least afford to.
  *
- * One table, the way hyper_stats.h and inner_ability.h are: what a pot is
+ * One table, the way hyper_stats.h and inner_ability.h are: what a buff is
  * worth to the character is read off it by DerivedStatsFor and by the boss
  * params, and who may buy what is CharacterInstance's business.
  */
@@ -24,30 +24,30 @@
 
 namespace ms {
 
-// The level the first pot opens at, which is the level the tab arrives at.
+// The level the first buff opens at, which is the level the tab arrives at.
 inline constexpr int kConsumableUnlockLevel = 170;
 
-// What one pot costs and when it opens. The price is charged per proc, and
-// what a proc is differs by pot -- see `per_second`.
+// What one buff costs and when it opens. The price is charged per proc, and
+// what a proc is differs by buff -- see `per_second`.
 struct ConsumableInfo {
   ConsumableType type;
   const char* name;
   int unlock_level;
-  // What one proc costs a player who has not bought the pot outright.
+  // What one proc costs a player who has not bought the buff outright.
   int64_t price;
-  // Whether that proc is a second of farming. False for a pot charged on the
+  // Whether that proc is a second of farming. False for a buff charged on the
   // way into a boss fight instead.
   bool per_second;
   // What buying it outright costs, after which the price above is never
   // charged again.
   int64_t permanent_price;
-  // What the pot is worth, one line each, as the Pot Info card lists them.
+  // What the buff is worth, one line each, as the Buff Info card lists them.
   // Written here rather than derived from the constants below: the card states
   // what the player gets, which is not always one lever.
   absl::Span<const char* const> effects;
 };
 
-// Every pot in the game, in the order they open.
+// Every buff in the game, in the order they open.
 absl::Span<const ConsumableInfo> AllConsumables();
 
 // What `type` is, or null for a type no table row describes.

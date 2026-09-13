@@ -33,12 +33,12 @@ enum Screen : int {
   // [Reroll] on the Ability tab: the question, over the lines it would throw
   // away. Locking a line asks nothing and has no screen of its own.
   kAbilityReroll,
-  // Enter on a pot's name in the Character panel's Buffs tab: read it, buy it
+  // Enter on a buff's name in the Character panel's Buffs tab: read it, buy it
   // outright, or walk away. The switch beside the name asks nothing -- it
   // takes effect where it is pressed.
-  kPotMenu,
-  kPotInfo,
-  kPotBuy,
+  kBuffMenu,
+  kBuffInfo,
+  kBuffBuy,
   // Enter on a job in the Character panel's Advance tab: read it, take it, or
   // walk away. The screen it leads to reads the job's book without taking it.
   kJobMenu,
@@ -206,15 +206,15 @@ enum JobMenuItem : int {
   kJobMenuAdvance = 1,
   kJobMenuClose = 2,
 };
-// Entries of the pot context menu, on Enter in the Buffs tab. Buy Perm sits
+// Entries of the buff context menu, on Enter in the Buffs tab. Buy Perm sits
 // under Inspect for the reason Advance does: it is the entry that spends, and
-// it is not where the cursor lands. It dims once the pot is owned.
-enum PotMenuItem : int {
-  // The switch, whose label is the state it would leave the pot in.
-  kPotMenuToggle = 0,
-  kPotMenuInspect = 1,
-  kPotMenuBuyPerm = 2,
-  kPotMenuClose = 3,
+// it is not where the cursor lands. It dims once the buff is owned.
+enum BuffMenuItem : int {
+  // The switch, whose label is the state it would leave the buff in.
+  kBuffMenuToggle = 0,
+  kBuffMenuInspect = 1,
+  kBuffMenuBuyPerm = 2,
+  kBuffMenuClose = 3,
 };
 // Entries of the Etc stackable context menu.
 enum StackMenuItem : int {

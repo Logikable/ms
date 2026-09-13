@@ -144,7 +144,7 @@ TEST(AdvanceCombatTest, TheWealthPotionDrinksBySecondAndPaysAMultiple) {
     }
   }
 
-  // A hundred seconds at a thousand each, and the pot switched off drank
+  // A hundred seconds at a thousand each, and the buff switched off drank
   // nothing at all.
   EXPECT_EQ(drunk[0], 0);
   EXPECT_EQ(drunk[1], 100'000);

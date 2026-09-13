@@ -41,7 +41,7 @@
  *   --ledger    what the purse went on and what the character has to show for
  *               it: the weapon's slots and stars, and how much of each set is
  *               on their back. The potions are two columns of it -- what they
- *               drank and what a permanent unlock cost; --pots reads the
+ *               drank and what a permanent unlock cost; --buffs reads the
  *               counterfactual, off, rent or buy.
  *   --boss_report
  *               where each fight falls across the branches: the level of the
@@ -99,12 +99,12 @@
 #include "absl/strings/str_join.h"
 #include "absl/types/span.h"
 #include "analysis/ability_plan.h"
+#include "analysis/buff_plan.h"
 #include "analysis/checkpoint.h"
 #include "analysis/cube_plan.h"
 #include "analysis/gear_plan.h"
 #include "analysis/hyper_plan.h"
 #include "analysis/parallel.h"
-#include "analysis/pot_plan.h"
 #include "analysis/sim_boss.h"
 #include "analysis/sim_format.h"
 #include "analysis/sim_gear.h"
@@ -155,7 +155,7 @@ ABSL_FLAG(bool, detail, false,
 // number is the seed and how much is the game.
 ABSL_FLAG(int, seed, 20260813, "The random stream every climb draws from.");
 ABSL_FLAG(bool, playtime, true, "Print how long the climb takes.");
-ABSL_FLAG(std::string, pots, "auto",
+ABSL_FLAG(std::string, buffs, "auto",
           "What the player does about the potions: auto (on when they pay, "
           "bought when the horizon says they pay twice over), off, rent or "
           "buy.");
@@ -439,7 +439,7 @@ struct Ledger {
   int64_t boss_clears = 0;
   int64_t gear_bought = 0;  // the shop's own shelves: weapon, off-hand, equips
   GearSpend gear;           // scrolls, stars, hammers, replacements
-  PotSpend pots;            // drunk by the second and by the fight, and bought
+  BuffSpend buffs;          // drunk by the second and by the fight, and bought
 
   int64_t named_income() const {
     return etc_sales + gear.sold + boss_clears;
@@ -1023,7 +1023,7 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
   ++log.attempts;
   // Drunk on the way in, and counted before the purse is read for the clear
   // -- what a fight pays is not what a fight cost.
-  EnterFightWithPots(state, &climb.ledger.pots);
+  EnterFightWithBuffs(state, &climb.ledger.buffs);
   int64_t before_fight = state.character.meso();
   BossOutcome outcome = FightBoss(state, fight.first, fight.second);
   climb.ledger.boss_clears +=
@@ -1172,47 +1172,49 @@ struct Session {
 };
 
 // The flag's word for what the player does about the potions.
-PotMode PotModeFromFlag() {
-  std::string mode = absl::GetFlag(FLAGS_pots);
+BuffMode BuffModeFromFlag() {
+  std::string mode = absl::GetFlag(FLAGS_buffs);
   if (mode == "off") {
-    return PotMode::kOff;
+    return BuffMode::kOff;
   }
   if (mode == "rent") {
-    return PotMode::kRent;
+    return BuffMode::kRent;
   }
   if (mode == "buy") {
-    return PotMode::kBuy;
+    return BuffMode::kBuy;
   }
   if (mode != "auto") {
-    LOG(FATAL) << "--pots must be auto, off, rent or buy";
+    LOG(FATAL) << "--buffs must be auto, off, rent or buy";
   }
-  return PotMode::kAuto;
+  return BuffMode::kAuto;
 }
 
-// What the player knows about the pots as they stand: how much run is left,
+// What the player knows about the buffs as they stand: how much run is left,
 // and how often they have been walking into a fight.
-PotPolicy PotPolicyFor(const Session& run) {
-  PotPolicy policy;
-  policy.mode = PotModeFromFlag();
+BuffPolicy BuffPolicyFor(const Session& run) {
+  BuffPolicy policy;
+  policy.mode = BuffModeFromFlag();
   policy.seconds_left = std::max(0.0, run.horizon - run.seconds);
   if (run.seconds > 0.0) {
     policy.boss_entries_per_second =
-        run.climb.ledger.pots.entries / run.seconds;
+        run.climb.ledger.buffs.entries / run.seconds;
   }
   return policy;
 }
 
-// Takes the pot decisions on the encounter the character is standing in. The
+// Takes the buff decisions on the encounter the character is standing in. The
 // rates come off the yield already measured for the stretch ahead, so this
 // costs no fight of its own.
-void PlanPotsFor(Session& run, const CombatParams& params, const Yield& yield) {
+void PlanBuffsFor(Session& run, const CombatParams& params,
+                  const Yield& yield) {
   std::vector<const Mob*> mobs;
   mobs.reserve(params.types.size());
   for (const CombatType& type : params.types) {
     mobs.push_back(type.mob);
   }
-  PlanPots(run.state, PotPolicyFor(run), absl::MakeConstSpan(mobs),
-           absl::MakeConstSpan(yield.kills_per_second), &run.climb.ledger.pots);
+  PlanBuffs(run.state, BuffPolicyFor(run), absl::MakeConstSpan(mobs),
+            absl::MakeConstSpan(yield.kills_per_second),
+            &run.climb.ledger.buffs);
 }
 
 // What the shopper needs to price a %meso or %drop potential line: those pay
@@ -1241,9 +1243,9 @@ void SetShopperIncome(Session& run, const CombatParams& params,
     for (const Mob& mob : mobs) {
       pointers.push_back(&mob);
     }
-    return PotMesoPerSecond(absl::MakeConstSpan(pointers),
-                            absl::MakeConstSpan(kills), meso_bonus, mult,
-                            drop_pct);
+    return BuffMesoPerSecond(absl::MakeConstSpan(pointers),
+                             absl::MakeConstSpan(kills), meso_bonus, mult,
+                             drop_pct);
   };
   run.shopper.SetIncome(income);
 }
@@ -1847,11 +1849,11 @@ void Restock(Session& run) {
 }
 
 // The player opening the game. The potion plan and the shopper's income come
-// ahead of the gear: a pot that pays its price back in a day multiplies every
+// ahead of the gear: a buff that pays its price back in a day multiplies every
 // meso the rest of the run earns, and a star bought first is a star bought
 // with the slower purse.
 void TakeLook(Session& run, const CombatParams& params, const Yield& yield) {
-  PlanPotsFor(run, params, yield);
+  PlanBuffsFor(run, params, yield);
   SetShopperIncome(run, params, yield);
   run.purse.Note(run.state.character);
   Restock(run);
@@ -1878,7 +1880,7 @@ void EarnOver(Session& run, const CombatParams& params, const Yield& yield,
   NoteTokenChances(params, kills, run.climb);
   // The stretch is jumped rather than ticked, so the potion is charged for it
   // here -- AdvanceCombat, which does it in the game, never runs.
-  DrinkPots(run.state, horizon, &run.climb.ledger.pots);
+  DrinkBuffs(run.state, horizon, &run.climb.ledger.buffs);
   run.purse.Note(run.state.character);
   run.seconds += horizon;
 }
@@ -1970,7 +1972,7 @@ void RestockAtCap(Session& run, const CombatParams& params,
   run.climb.ledger.etc_sales += SellDrops(run.state.character);
   WearBestFromBag(run.state.character);
   // Before the shelf, for the reason the climb takes it before Retool.
-  PlanPotsFor(run, params, yield);
+  PlanBuffsFor(run, params, yield);
   SetShopperIncome(run, params, yield);
   run.purse.Note(run.state.character);
   int64_t before_shelf = run.state.character.meso();
@@ -2043,7 +2045,7 @@ void FarmAtCap(Session& run) {
     jump = std::max(jump, run.step);
     std::vector<int64_t> kills = KillsOver(yield, jump, &carry);
     AwardCombatRewards(run.state, params, kills);
-    DrinkPots(run.state, jump, &run.climb.ledger.pots);
+    DrinkBuffs(run.state, jump, &run.climb.ledger.buffs);
     run.purse.Note(run.state.character);
     run.seconds += jump;
     bool fought = TakeOnBosses(run, level, /*levelled=*/false);
@@ -2781,7 +2783,7 @@ void PrintMesoLedger(const std::vector<Job>& branches,
       "source claims.\n\n");
   const char* kHeads[] = {"mobs",  "Etc sold", "gear sold", "bosses",
                           "shelf", "scrolls",  "stars",     "hammers",
-                          "cubes", "copies",   "pots",      "pots own"};
+                          "cubes", "copies",   "buffs",     "buffs own"};
   std::printf("%-13s", "branch");
   for (const char* head : kHeads) {
     std::printf(" %9s", head);
@@ -2800,8 +2802,8 @@ void PrintMesoLedger(const std::vector<Job>& branches,
                       ledger.gear.hammers,
                       ledger.gear.cubes,
                       ledger.gear.replacements,
-                      ledger.pots.drained,
-                      ledger.pots.bought};
+                      ledger.buffs.drained,
+                      ledger.buffs.bought};
     std::printf("%-13s", BranchName(branches[i]).c_str());
     for (int64_t value : rows) {
       char text[16];

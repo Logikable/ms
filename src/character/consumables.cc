@@ -12,7 +12,7 @@ namespace {
 // deal: bosses are locked to the day, so buying it outright is a decision a
 // player takes with a long climb still ahead of them.
 
-// The last line of each is where the pot pays out, which is the fact a player
+// The last line of each is where the buff pays out, which is the fact a player
 // weighing the rent needs before the numbers above it.
 constexpr const char* kWealthEffects[] = {
     "+20% Meso Obtained",

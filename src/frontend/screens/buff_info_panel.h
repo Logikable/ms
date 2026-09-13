@@ -1,14 +1,14 @@
-/* PotInfoPanel is the Buffs tab's counterpart to SkillInspectPanel: one pot's
+/* BuffInfoPanel is the Buffs tab's counterpart to SkillInspectPanel: one buff's
  * name, what it is worth a line at a time, and the two prices it can be had
  * for -- the rent charged every time it procs, and what buying it outright
  * costs.
  *
  * Every card is the same width, measured from the widest line of the widest
- * pot in the table, so walking the tab does not resize the window under the
- * cursor. Its height is its own: a pot with fewer effects is a shorter card.
+ * buff in the table, so walking the tab does not resize the window under the
+ * cursor. Its height is its own: a buff with fewer effects is a shorter card.
  */
-#ifndef MS_SRC_FRONTEND_SCREENS_POT_INFO_PANEL_H_
-#define MS_SRC_FRONTEND_SCREENS_POT_INFO_PANEL_H_
+#ifndef MS_SRC_FRONTEND_SCREENS_BUFF_INFO_PANEL_H_
+#define MS_SRC_FRONTEND_SCREENS_BUFF_INFO_PANEL_H_
 
 #include <string>
 
@@ -17,15 +17,15 @@
 
 namespace ms {
 
-class PotInfoPanel {
+class BuffInfoPanel {
  public:
-  // Seeds the card: which pot, and whether this character has bought it. An
-  // owned pot is never charged again, so its prices read differently.
-  void SetPot(ConsumableType type, bool owned);
+  // Seeds the card: which buff, and whether this character has bought it. An
+  // owned buff is never charged again, so its prices read differently.
+  void SetBuff(ConsumableType type, bool owned);
 
   ftxui::Element Render() const;
 
-  // The columns the card takes, borders included. The same for every pot.
+  // The columns the card takes, borders included. The same for every buff.
   static int Columns();
 
  private:
@@ -34,7 +34,7 @@ class PotInfoPanel {
 };
 
 // What one proc of `type` costs, as the card and the tab both state it --
-// "🪙 1,000 per second while farming". Empty for a type no pot describes.
+// "🪙 1,000 per second while farming". Empty for a type no buff describes.
 std::string ConsumableRentText(ConsumableType type);
 
 // And what buying it outright costs: "🪙 100,000,000 to unlock permanently".
@@ -42,4 +42,4 @@ std::string ConsumablePermanentText(ConsumableType type);
 
 }  // namespace ms
 
-#endif  // MS_SRC_FRONTEND_SCREENS_POT_INFO_PANEL_H_
+#endif  // MS_SRC_FRONTEND_SCREENS_BUFF_INFO_PANEL_H_

@@ -88,21 +88,21 @@ constexpr int kHyperButtonWidth = 3;
 constexpr int kHyperFixedWidth =
     1 + kHyperButtonWidth + 1 + kHyperLevelWidth + 1 + kHyperButtonWidth + 1;
 
-// The tag a pot row opens with, in the shape the skill rows use: what the pot
+// The tag a buff row opens with, in the shape the skill rows use: what the buff
 // costs this character from here, said at the front of the row rather than in
 // a column of its own. Green for a fact that is settled, the way the passive
 // tag is; the coin's own yellow for a price still being charged.
-constexpr char kPotOwnedTag[] = "O: ";
-constexpr char kPotRentTag[] = "R: ";
-constexpr int kPotTagWidth = 3;
+constexpr char kBuffOwnedTag[] = "O: ";
+constexpr char kBuffRentTag[] = "R: ";
+constexpr int kBuffTagWidth = 3;
 
-// And the mark at the other end of the row, for a pot that is switched on.
-// The row it sits on is the lit one; a pot that is off dims instead.
-constexpr char kPotOnGlyph[] = "✓";
+// And the mark at the other end of the row, for a buff that is switched on.
+// The row it sits on is the lit one; a buff that is off dims instead.
+constexpr char kBuffOnGlyph[] = "✓";
 
-// What a pot row spends on everything but the name: the leading gutter, the
+// What a buff row spends on everything but the name: the leading gutter, the
 // tag, a gap before the mark, the mark, and the trailing gutter.
-constexpr int kPotFixedWidth = 1 + kPotTagWidth + 1 + 1 + 1;
+constexpr int kBuffFixedWidth = 1 + kBuffTagWidth + 1 + 1 + 1;
 
 // Roman numerals for the job-advancement tabs, indexed by stage (1..6).
 const char* kStageNumerals[] = {"", "I", "II", "III", "IV", "V", "VI"};
@@ -263,7 +263,7 @@ std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
   if (character_.inner_ability_unlocked()) {
     tabs.push_back(kTabAbility);
   }
-  // Buffs is gated on this character too, and for the same reason: a pot below
+  // Buffs is gated on this character too, and for the same reason: a buff below
   // its own level refuses to be switched on and refuses to be bought, whoever
   // else on the account has been there.
   if (character_.consumables_unlocked()) {
@@ -300,7 +300,7 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
     case kZoneAbilityRows:
     case kZoneAbilityReroll:
       return ActiveTab() == kTabAbility ? zone_ : kZoneTabs;
-    case kZonePotRows:
+    case kZoneBuffRows:
       return ActiveTab() == kTabBuffs ? zone_ : kZoneTabs;
     case kZoneAdvTabs:
     case kZoneSkillRows:
@@ -338,9 +338,9 @@ int CharacterPanel::RingStops() const {
     return 3 + AbilityRows() + 1;
   }
   if (ActiveTab() == kTabBuffs) {
-    // The name, the tab bar, and a stop per pot. No Farm/Boss row: a pot is
+    // The name, the tab bar, and a stop per buff. No Farm/Boss row: a buff is
     // the character's, not an allocation's.
-    return 2 + static_cast<int>(PotsShown().size());
+    return 2 + static_cast<int>(BuffsShown().size());
   }
   if (ActiveTab() == kTabAdvance) {
     return 2 + static_cast<int>(
@@ -380,8 +380,8 @@ int CharacterPanel::CursorStop() const {
       return ability_sel_ + 3;
     case kZoneAbilityReroll:
       return AbilityRows() + 3;
-    case kZonePotRows:
-      return pot_sel_ + 2;
+    case kZoneBuffRows:
+      return buff_sel_ + 2;
   }
   return 0;
 }
@@ -431,8 +431,8 @@ void CharacterPanel::SetCursorStop(int stop) {
     return;
   }
   if (ActiveTab() == kTabBuffs) {
-    zone_ = kZonePotRows;
-    pot_sel_ = stop - 2;
+    zone_ = kZoneBuffRows;
+    buff_sel_ = stop - 2;
     return;
   }
   if (ActiveTab() == kTabAdvance) {
@@ -475,7 +475,7 @@ std::string CharacterPanel::TabKey(Tab tab) const {
     return kAbilityTabKey;
   }
   if (tab == kTabBuffs) {
-    // The same deal as Ability: one key for the account, since what a pot is
+    // The same deal as Ability: one key for the account, since what a buff is
     // is news once.
     return kBuffsTabKey;
   }
@@ -1162,27 +1162,27 @@ ftxui::Element CharacterPanel::RenderAbilityTab(bool bar_focused,
   return ftxui::vbox(std::move(rows));
 }
 
-std::vector<const ConsumableInfo*> CharacterPanel::PotsShown() const {
-  std::vector<const ConsumableInfo*> pots;
+std::vector<const ConsumableInfo*> CharacterPanel::BuffsShown() const {
+  std::vector<const ConsumableInfo*> buffs;
   for (const ConsumableInfo& info : AllConsumables()) {
     if (character_.proto().level() >= info.unlock_level) {
-      pots.push_back(&info);
+      buffs.push_back(&info);
     }
   }
-  return pots;
+  return buffs;
 }
 
-ftxui::Element CharacterPanel::RenderPotRow(const ConsumableInfo& info,
-                                            int index,
-                                            bool rows_focused) const {
-  const bool selected = rows_focused && pot_sel_ == index;
+ftxui::Element CharacterPanel::RenderBuffRow(const ConsumableInfo& info,
+                                             int index,
+                                             bool rows_focused) const {
+  const bool selected = rows_focused && buff_sel_ == index;
   const bool owned = character_.ConsumableOwned(info.type);
-  // A pot that is off is not costing anything and not doing anything, so the
+  // A buff that is off is not costing anything and not doing anything, so the
   // whole row dims -- the same thing dim says of a skill this character has
   // not got yet.
   const bool on = character_.ConsumableActive(info.type);
 
-  ftxui::Element tag = ftxui::text(owned ? kPotOwnedTag : kPotRentTag) |
+  ftxui::Element tag = ftxui::text(owned ? kBuffOwnedTag : kBuffRentTag) |
                        ftxui::color(owned ? kGreen : kYellow);
   if (!on) {
     tag = std::move(tag) | ftxui::dim;
@@ -1191,10 +1191,10 @@ ftxui::Element CharacterPanel::RenderPotRow(const ConsumableInfo& info,
   // A name too long for the column slides under it while the row is selected,
   // the way a skill name does, and the padding rides outside the cursor so the
   // highlight covers the name and stops.
-  const int name_width = ContentWidth() - kPotFixedWidth;
+  const int name_width = ContentWidth() - kBuffFixedWidth;
   const std::string window =
       ScrollingWindow(info.name, name_width,
-                      selected ? pot_clock_.Elapsed()
+                      selected ? buff_clock_.Elapsed()
                                : std::chrono::steady_clock::duration::zero());
   const int lit =
       std::min(static_cast<int>(TextColumns(info.name)), name_width);
@@ -1206,7 +1206,7 @@ ftxui::Element CharacterPanel::RenderPotRow(const ConsumableInfo& info,
   }
 
   ftxui::Element mark =
-      ftxui::text(on ? kPotOnGlyph : " ") | ftxui::color(kGreen);
+      ftxui::text(on ? kBuffOnGlyph : " ") | ftxui::color(kGreen);
 
   ftxui::Element row = ftxui::hbox({
       ftxui::text(" "),
@@ -1218,18 +1218,18 @@ ftxui::Element CharacterPanel::RenderPotRow(const ConsumableInfo& info,
       ftxui::text(" "),
   });
   if (selected) {
-    row = std::move(row) | ftxui::reflect(pot_cursor_box_);
+    row = std::move(row) | ftxui::reflect(buff_cursor_box_);
   }
   return std::move(row) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, ContentWidth());
 }
 
-ftxui::Element CharacterPanel::RenderPotsTab(bool rows_focused) const {
-  std::vector<const ConsumableInfo*> pots = PotsShown();
-  pot_clock_.Follow(pot_sel_, rows_focused);
+ftxui::Element CharacterPanel::RenderBuffsTab(bool rows_focused) const {
+  std::vector<const ConsumableInfo*> buffs = BuffsShown();
+  buff_clock_.Follow(buff_sel_, rows_focused);
   std::vector<ftxui::Element> rows;
-  for (int i = 0; i < static_cast<int>(pots.size()); ++i) {
-    rows.push_back(RenderPotRow(*pots[i], i, rows_focused));
+  for (int i = 0; i < static_cast<int>(buffs.size()); ++i) {
+    rows.push_back(RenderBuffRow(*buffs[i], i, rows_focused));
   }
   return ftxui::vbox(std::move(rows));
 }
@@ -1299,7 +1299,7 @@ ftxui::Element CharacterPanel::Render() const {
                                focused && zone == kZoneAbilityRows,
                                focused && zone == kZoneAbilityReroll);
   } else if (ActiveTab() == kTabBuffs) {
-    content = RenderPotsTab(focused && zone == kZonePotRows);
+    content = RenderBuffsTab(focused && zone == kZoneBuffRows);
   } else if (ActiveTab() == kTabAdvance) {
     content = RenderAdvanceTab(focused && zone == kZoneJobRows);
   } else {
@@ -1528,8 +1528,8 @@ bool CharacterPanel::OnAbilityTabEvent(const ftxui::Event& event,
   return true;
 }
 
-bool CharacterPanel::OnPotsTabEvent(const ftxui::Event& event,
-                                    const CharacterPanelActions& actions) {
+bool CharacterPanel::OnBuffsTabEvent(const ftxui::Event& event,
+                                     const CharacterPanelActions& actions) {
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
@@ -1537,15 +1537,15 @@ bool CharacterPanel::OnPotsTabEvent(const ftxui::Event& event,
   if (!IsForward(event)) {
     return false;
   }
-  std::vector<const ConsumableInfo*> pots = PotsShown();
-  if (pot_sel_ >= static_cast<int>(pots.size())) {
+  std::vector<const ConsumableInfo*> buffs = BuffsShown();
+  if (buff_sel_ >= static_cast<int>(buffs.size())) {
     return true;
   }
-  // Everything a pot offers is on the menu, switching it on included: a row
+  // Everything a buff offers is on the menu, switching it on included: a row
   // this wide has no room for a second stop, and nothing here is pressed
   // often enough to want one.
-  if (actions.pot_menu) {
-    actions.pot_menu(pots[pot_sel_]->type);
+  if (actions.buff_menu) {
+    actions.buff_menu(buffs[buff_sel_]->type);
   }
   return true;
 }
@@ -1636,7 +1636,7 @@ bool CharacterPanel::RouteEvent(const ftxui::Event& event,
     return OnAbilityTabEvent(event, actions);
   }
   if (ActiveTab() == kTabBuffs) {
-    return OnPotsTabEvent(event, actions);
+    return OnBuffsTabEvent(event, actions);
   }
   if (ActiveTab() == kTabAdvance) {
     return OnAdvanceTabEvent(event, actions);
