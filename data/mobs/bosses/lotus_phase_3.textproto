@@ -1,0 +1,8 @@
+# The last body, a third again as large as either before it.
+name: "Lotus"
+level: 210
+attack: 22000
+max_hp: 630000000000
+exp: 0
+pdr: 300
+boss: true

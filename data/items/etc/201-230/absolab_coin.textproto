@@ -1,0 +1,11 @@
+# A currency rather than litter: it sells for nothing, and one falls from every
+# clear. The diamond says which stage of the game it belongs to, as the circle
+# says Frozen and the triangle Root Abyss and Cygnus.
+name: "AbsoLab Coin"
+category: ITEM_CATEGORY_ETC
+kind: ITEM_KIND_TOKEN
+description:
+  "Scrap off the Black Heaven itself. The shop trades these for AbsoLab "
+  "equipment."
+currency_mark: "◆"
+currency_color: CURRENCY_COLOR_THEME

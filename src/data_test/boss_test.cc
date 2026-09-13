@@ -120,10 +120,12 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
       }
     }
   }
-  // The four of Root Abyss, which open at the cap and pay in pieces instead,
-  // and Chaos Zakum, for whom GMS states no EXP at all.
-  EXPECT_EQ(unpaid, std::vector<std::string>({"crimson_queen", "pierre",
-                                              "vellum", "von_bon", "zakum"}));
+  // The four of Root Abyss, which open at the cap and pay in pieces instead;
+  // Chaos Zakum, for whom GMS states no EXP at all; and Lotus, who is the
+  // same case and is fought for the coin.
+  EXPECT_EQ(unpaid,
+            std::vector<std::string>({"crimson_queen", "lotus", "pierre",
+                                      "vellum", "von_bon", "zakum"}));
 }
 
 // Nothing is a shell any more -- Chaos Zakum, Hard Magnus and Chaos Pink Bean
@@ -197,8 +199,8 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).kind(), ITEM_KIND_SOUL_SHARD) << where;
     }
   }
-  EXPECT_EQ(fights, 18) << "Arkarium, Cygnus, Princess No, Papulatus, the "
-                           "four of Root Abyss, and both difficulties of "
+  EXPECT_EQ(fights, 19) << "Arkarium, Cygnus, Princess No, Papulatus, Lotus, "
+                           "the four of Root Abyss, and both difficulties of "
                            "Zakum, Magnus, Pink Bean, Hilla and Horntail";
 }
 
@@ -554,6 +556,57 @@ TEST_F(BossDataTest, PrincessNoIsOneBodyOverAClimbableRoom) {
   EXPECT_EQ(normal.drops(3).item(), "princess_nos_soul_shard");
 }
 
+// The multiplayer fight of this release: three bodies summing 1.575T behind
+// 300% PDR at level 210, on the longest clock in the game. Every number is
+// GMS's own but the meso and the clock, and it is the first fight to play a
+// different track in each of its phases. Pinned for the reason Zakum's
+// numbers are.
+TEST_F(BossDataTest, LotusIsThreeBodiesOnTheLongestClock) {
+  ASSERT_GT(bosses_.count("lotus"), 0u);
+  ASSERT_EQ(bosses_.at("lotus").difficulties_size(), 1);
+  const BossDifficulty& normal = bosses_.at("lotus").difficulties(0);
+  EXPECT_EQ(normal.name(), "Normal");
+  EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
+  EXPECT_EQ(normal.time_limit_seconds(), 1500);
+  EXPECT_EQ(normal.unlock_level(), 200);
+  EXPECT_EQ(normal.meso(), 23200000);
+  EXPECT_EQ(normal.exp(), 0);
+  const std::vector<std::string> kMobs = {"lotus_phase_1", "lotus_phase_2",
+                                          "lotus_phase_3"};
+  const std::vector<int64_t> kHp = {472500000000LL, 472500000000LL,
+                                    630000000000LL};
+  const std::vector<std::string> kTracks = {"Suu1phase", "Suu2phase",
+                                            "Suu3phase"};
+  ASSERT_EQ(normal.phases_size(), static_cast<int>(kMobs.size()));
+  for (int i = 0; i < normal.phases_size(); ++i) {
+    const BossPhase& phase = normal.phases(i);
+    ASSERT_EQ(phase.spawns_size(), 1) << i;
+    EXPECT_EQ(SpawnCount(phase.spawns(0)), 1) << i;
+    EXPECT_EQ(phase.spawns(0).mob(), kMobs[i]) << i;
+    EXPECT_EQ(phase.bgm(), kTracks[i]) << i;
+    const Mob& mob = mobs_.at(kMobs[i]);
+    EXPECT_EQ(mob.name(), "Lotus") << i;
+    EXPECT_EQ(mob.level(), 210) << i;
+    EXPECT_EQ(mob.attack(), 22000) << i;
+    EXPECT_EQ(mob.pdr(), 300) << i;
+    EXPECT_EQ(mob.max_hp(), kHp[i]) << i;
+  }
+  // He hangs over the middle of an empty floor, then comes down to walk the
+  // row above the player's heads, leaving the gallery he hung in to stand on.
+  EXPECT_EQ(normal.phases(0).spawns(0).spots(0).y(), 2);
+  EXPECT_EQ(normal.phases(0).spawns(0).walk().interval_ms(), 0);
+  for (int i = 1; i < normal.phases_size(); ++i) {
+    EXPECT_EQ(normal.phases(i).spawns(0).spots(0).y(), 4) << i;
+    EXPECT_EQ(normal.phases(i).spawns(0).walk().interval_ms(), 3000) << i;
+    EXPECT_EQ(normal.phases(i).spawns(0).walk().range(), ArenaWalk::RANGE_ROW)
+        << i;
+  }
+  // A coin per clear, which is the only source of AbsoLab gear, and his shard.
+  ASSERT_EQ(normal.drops_size(), 2);
+  EXPECT_EQ(normal.drops(0).item(), "absolab_coin");
+  EXPECT_EQ(normal.drops(1).item(), "lotuss_soul_shard");
+}
+
 // Where the parts stand is data, and two of them in one cell is a bar drawn on
 // top of another one.
 TEST_F(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
@@ -614,17 +667,18 @@ TEST_F(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
 
 // How much room each fight gives the player is a design decision, so the
 // count per phase is pinned: five on the floor of every fight, plus the two
-// ledges over the ends of Zakum's first phase, and six around each of
-// Horntail's heads and six around the dragon. Every difficulty of a boss is
+// ledges over the ends of Zakum's first phase, six around each of Horntail's
+// heads and six around the dragon, and the three-ledge gallery Lotus leaves
+// behind when he comes down off it. Every difficulty of a boss is
 // laid out alike, and every phase holds more than a full party, so a party of
 // three always has somewhere left to walk.
 TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   std::map<std::string, std::vector<int>> expected = {
-      {"zakum", {7, 5}},      {"hilla", {5}},    {"horntail", {6, 6, 6}},
-      {"magnus", {5}},        {"arkarium", {5}}, {"cygnus", {5}},
-      {"pink_bean", {5, 5}},  {"pierre", {5}},   {"von_bon", {5}},
-      {"crimson_queen", {5}}, {"vellum", {5}},   {"princess_no", {9}},
-      {"papulatus", {7, 5}}};
+      {"zakum", {7, 5}},      {"hilla", {5}},      {"horntail", {6, 6, 6}},
+      {"magnus", {5}},        {"arkarium", {5}},   {"cygnus", {5}},
+      {"pink_bean", {5, 5}},  {"pierre", {5}},     {"von_bon", {5}},
+      {"crimson_queen", {5}}, {"vellum", {5}},     {"princess_no", {9}},
+      {"papulatus", {7, 5}},  {"lotus", {5, 8, 8}}};
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses_.count(want.first), 0u) << want.first;
     for (const BossDifficulty& difficulty :

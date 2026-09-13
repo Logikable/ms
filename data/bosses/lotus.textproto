@@ -1,0 +1,85 @@
+name: "Lotus"
+difficulties {
+  # No Easy or Hard: GMS's Hard is 6.3x this body and Easy does not exist.
+  name: "Normal"
+  # He fights out of the machine first, hanging over the middle of the room
+  # while the floor under him stays clear.
+  phases {
+    bgm: "Suu1phase"
+    spawns {
+      mob: "lotus_phase_1"
+      spots { x: 4 y: 2 }
+    }
+    # The floor, walked end to end. Nothing to climb while he is up there.
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  # Out of the machine and down on the floor, pacing the row over the player's
+  # heads every three seconds. The room gains the gallery he was hanging in.
+  phases {
+    bgm: "Suu2phase"
+    spawns {
+      mob: "lotus_phase_2"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 3000 range: RANGE_ROW }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    # The gallery: three ledges where he hung in the phase before.
+    player_spots { x: 2 y: 2 }
+    player_spots { x: 4 y: 2 }
+    player_spots { x: 6 y: 2 }
+    arena_width: 9
+    arena_height: 6
+  }
+  # The same room and the same walk, a third again as much of him.
+  phases {
+    bgm: "Suu3phase"
+    spawns {
+      mob: "lotus_phase_3"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 3000 range: RANGE_ROW }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 2 y: 2 }
+    player_spots { x: 4 y: 2 }
+    player_spots { x: 6 y: 2 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  # Twenty-five minutes, the longest clock in the game. It needs to be: this
+  # is 1.575T behind 300% PDR at level 210, three times the largest body
+  # before it, and it is meant to be cleared by a party rather than alone.
+  time_limit_seconds: 1500
+  # The level cap, where everything until Seren opens.
+  unlock_level: 200
+  # Five Intense Power Crystals at what GMS prices this fight, divided by
+  # seven -- GMS clears Lotus once a week and this game once a day -- and
+  # rounded to the nearest 50k.
+  meso: 23200000
+  # No EXP: GMS states none on any of the three bodies, and a fight this far
+  # past the cap is fought for the coin, not the climb.
+  exp: 0
+  # One coin per clear, which is what AbsoLab gear is bought with.
+  drops {
+    item: "absolab_coin"
+    per_kill: 1.0
+  }
+  drops {
+    item: "lotuss_soul_shard"
+    per_kill: 1.0
+  }
+}

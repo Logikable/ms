@@ -1,0 +1,9 @@
+# The first of three bodies, and the only one that stands still. GMS names all
+# three "Lotus" -- the bar says which phase of the fight it is.
+name: "Lotus"
+level: 210
+attack: 22000
+max_hp: 472500000000
+exp: 0
+pdr: 300
+boss: true
