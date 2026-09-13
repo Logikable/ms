@@ -11,6 +11,22 @@
 namespace ms {
 namespace {
 
+// A drop table line of each kind. Only the rate and which side of the oneof
+// is set matter here -- BossDropRate never looks the name up.
+MobDrop Equip(double per_kill) {
+  MobDrop drop;
+  drop.set_equip("gear");
+  drop.set_per_kill(per_kill);
+  return drop;
+}
+
+MobDrop Item(double per_kill) {
+  MobDrop drop;
+  drop.set_item("token");
+  drop.set_per_kill(per_kill);
+  return drop;
+}
+
 // A rate below one is a chance per kill, so a big enough sample lands near
 // the rate and no single kill is owed anything.
 TEST(RollDropsTest, PaysTheRateOverManyKills) {
@@ -39,25 +55,34 @@ TEST(RollDropsTest, ARateAboveOnePaysItsWholePartEveryTime) {
   }
 }
 
-// Drop rate lifts the chance and not the copies: a boss's table is paid once,
-// so a certain drop stays one however much drop gear is worn, and a rate
-// stating two of something states two.
-TEST(BossDropRateTest, LiftsTheChanceButNeverTheCertainty) {
-  EXPECT_DOUBLE_EQ(BossDropRate(1.0, 2.0), 1.0);
-  EXPECT_DOUBLE_EQ(BossDropRate(0.4, 1.0), 0.8);
-  EXPECT_DOUBLE_EQ(BossDropRate(0.4, 4.0), 1.0);
-  EXPECT_DOUBLE_EQ(BossDropRate(2.0, 3.0), 2.0);
-  EXPECT_DOUBLE_EQ(BossDropRate(2.5, 1.0), 3.0);
-  EXPECT_DOUBLE_EQ(BossDropRate(0.5, 0.0), 0.5);
+// A boss's table is paid once, so drop gear buys a piece of gear a better
+// chance at falling and never a second copy of it.
+TEST(BossDropRateTest, GearTakesTheChanceAndNeverTheCertainty) {
+  EXPECT_DOUBLE_EQ(BossDropRate(Equip(1.0), 2.0), 1.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(Equip(0.4), 1.0), 0.8);
+  EXPECT_DOUBLE_EQ(BossDropRate(Equip(0.4), 4.0), 1.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(Equip(2.0), 3.0), 2.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(Equip(2.5), 1.0), 3.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(Equip(0.5), 0.0), 0.5);
+}
+
+// A token or a soul shard stacks, so the rate buys copies: a certain drop at
+// 250% rate is two outright and a coin flip for a third.
+TEST(BossDropRateTest, AStackableTakesTheCopies) {
+  EXPECT_DOUBLE_EQ(BossDropRate(Item(1.0), 1.5), 2.5);
+  EXPECT_DOUBLE_EQ(BossDropRate(Item(1.0), 2.0), 3.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(Item(0.4), 1.0), 0.8);
+  EXPECT_DOUBLE_EQ(BossDropRate(Item(0.4), 4.0), 2.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(Item(1.0), 0.0), 1.0);
 }
 
 TEST(BossDropRateTest, NothingComesOfNothing) {
-  EXPECT_DOUBLE_EQ(BossDropRate(0.0, 1.0), 0.0);
-  EXPECT_DOUBLE_EQ(BossDropRate(-1.0, 1.0), 0.0);
-  EXPECT_DOUBLE_EQ(BossDropRate(std::numeric_limits<double>::quiet_NaN(), 1.0),
-                   0.0);
-  EXPECT_DOUBLE_EQ(BossDropRate(0.5, std::numeric_limits<double>::quiet_NaN()),
-                   0.5);
+  EXPECT_DOUBLE_EQ(BossDropRate(Item(0.0), 1.0), 0.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(Equip(-1.0), 1.0), 0.0);
+  double nan = std::numeric_limits<double>::quiet_NaN();
+  EXPECT_DOUBLE_EQ(BossDropRate(Item(nan), 1.0), 0.0);
+  EXPECT_DOUBLE_EQ(BossDropRate(Equip(0.5), nan), 0.5);
+  EXPECT_DOUBLE_EQ(BossDropRate(Item(0.5), nan), 0.5);
 }
 
 TEST(RollDropsTest, NothingComesOfNothing) {

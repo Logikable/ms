@@ -643,10 +643,9 @@ std::vector<SharedAward> BossRun::RollAwards(GameState& state,
                                              double item_drop_pct) const {
   std::vector<SharedAward> awards;
   for (const MobDrop& drop : difficulty()->drops()) {
-    // One roll for the fight, where a map rolls one per kill. Drop rate lifts
-    // the chance the same way it lifts a monster's, up to certain.
-    int64_t rolled =
-        RollDrops(BossDropRate(drop.per_kill(), item_drop_pct), 1, state.rng);
+    // One roll for the fight, where a map rolls one per kill. What drop rate
+    // buys depends on what falls -- see BossDropRate.
+    int64_t rolled = RollDrops(BossDropRate(drop, item_drop_pct), 1, state.rng);
     if (rolled > 0) {
       awards.push_back({drop, rolled});
     }

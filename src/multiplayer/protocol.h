@@ -31,7 +31,7 @@ namespace ms {
 // has never heard of is refused by name (REASON_UNKNOWN_BOSS) and a server
 // holding one no client knows is never asked. Both ends fail out loud, which
 // is the case this guard is not for.
-inline constexpr int kMultiplayerVersion = 3;
+inline constexpr int kMultiplayerVersion = 4;
 
 // Where the server runs. The client's --server flag overrides both. A build
 // made without multiplayer carries no address at all -- there is nothing in

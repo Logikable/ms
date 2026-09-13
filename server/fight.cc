@@ -154,10 +154,10 @@ void PartyFight::DealDrops() {
   std::uniform_int_distribution<size_t> who(0, paid.size() - 1);
   std::vector<int64_t> won(paid.size());
   for (const MobDrop& drop : chosen->drops()) {
-    // One roll for the fight, where a map rolls one per kill, and never more
-    // than one of a line: drop rate lifts a chance, not a certainty.
-    int64_t rolled =
-        RollDrops(BossDropRate(drop.per_kill(), best_drop_pct), 1, rng_);
+    // One roll for the fight, where a map rolls one per kill. What drop rate
+    // buys depends on what falls -- see BossDropRate. A line that fell more
+    // than once is dealt copy by copy below, so two people can win it.
+    int64_t rolled = RollDrops(BossDropRate(drop, best_drop_pct), 1, rng_);
     std::fill(won.begin(), won.end(), 0);
     for (int64_t i = 0; i < rolled; ++i) {
       // Each of them drawn for separately, so a drop that fell twice can fall

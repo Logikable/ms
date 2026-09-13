@@ -59,11 +59,17 @@ int64_t RollMeso(const Mob& mob, int64_t kills, double item_drop_pct,
 int64_t RollDrops(double per_kill, int64_t kills, std::mt19937& rng);
 
 // The rate one line of a boss's table is rolled at, for a character carrying
-// `item_drop_pct` extra drop rate. A boss pays its table once, so drop gear
-// lifts the chance and not the copies: the whole part of the rate stands as
-// the table wrote it, and what is boosted is the fraction over it, capped at
-// certain as MesoDropChance is.
-double BossDropRate(double per_kill, double item_drop_pct);
+// `item_drop_pct` extra drop rate. What the rate buys depends on what falls.
+//
+// A stackable -- every token and every soul shard -- takes the plain multiply
+// a map's per-kill rolls take, so the rate pays extra copies: a certain drop
+// at 250% rate is two outright and a coin flip for a third.
+//
+// A piece of gear takes a better chance and nothing more: the whole part of
+// the rate stands as the table wrote it, and only the fraction over it is
+// lifted, capped at certain as MesoDropChance is. A boss pays its table once,
+// and one necklace is what the fight is worth.
+double BossDropRate(const MobDrop& drop, double item_drop_pct);
 
 }  // namespace ms
 

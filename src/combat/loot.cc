@@ -87,13 +87,19 @@ int64_t RollDrops(double per_kill, int64_t kills, std::mt19937& rng) {
   return dropped;
 }
 
-double BossDropRate(double per_kill, double item_drop_pct) {
+double BossDropRate(const MobDrop& drop, double item_drop_pct) {
+  double per_kill = drop.per_kill();
   if (!std::isfinite(per_kill) || per_kill <= 0.0) {
     return 0.0;
   }
+  bool lifts = std::isfinite(item_drop_pct) && item_drop_pct > 0.0;
+  if (!drop.has_equip()) {
+    // A stackable: the rate buys copies, so the whole rate is multiplied.
+    return lifts ? per_kill * (1.0 + item_drop_pct) : per_kill;
+  }
   double whole = std::floor(per_kill);
   double chance = per_kill - whole;
-  if (std::isfinite(item_drop_pct) && item_drop_pct > 0.0) {
+  if (lifts) {
     chance = std::min(1.0, chance * (1.0 + item_drop_pct));
   }
   return whole + chance;

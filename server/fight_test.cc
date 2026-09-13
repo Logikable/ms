@@ -59,17 +59,17 @@ Party PartyOf(int count) {
   return party;
 }
 
-// The same fight with something to drop: shards at `per_kill`, and a mark
-// that never falls.
-Boss Dropping(double per_kill) {
+// The same fight with something to drop: a stackable shard and a mark that is
+// gear, so one table holds both halves of the drop-rate rule.
+Boss Dropping(double shard_rate, double mark_rate = 0.0) {
   Boss boss = TwoPhases();
   BossDifficulty* normal = boss.mutable_difficulties(0);
   MobDrop* shard = normal->add_drops();
   shard->set_item("shard");
-  shard->set_per_kill(per_kill);
+  shard->set_per_kill(shard_rate);
   MobDrop* mark = normal->add_drops();
   mark->set_equip("mark");
-  mark->set_per_kill(0.0);
+  mark->set_per_kill(mark_rate);
   return boss;
 }
 
@@ -316,10 +316,10 @@ TEST(FightDropsTest, TheBestDropRateInThePartyRollsTheDrops) {
   EXPECT_EQ(TotalAwards(fight), 1);
 }
 
-// Drop rate lifts a chance, never a certainty: a guaranteed drop is one copy
-// however much of it the party is carrying.
-TEST(FightDropsTest, DropRateDoesNotDoubleACertainDrop) {
-  Boss boss = Dropping(1.0);
+// Drop rate buys gear a chance and never a copy: a guaranteed piece is one
+// piece however much of it the party is carrying.
+TEST(FightDropsTest, DropRateDoesNotDoubleACertainPieceOfGear) {
+  Boss boss = Dropping(0.0, 1.0);
   std::map<std::string, Mob> mobs = Mobs();
   PartyFight fight("p1-1", "zakum", boss, 0, mobs, PartyOf(3));
   FightUpdate rich;
@@ -328,6 +328,23 @@ TEST(FightDropsTest, DropRateDoesNotDoubleACertainDrop) {
   Clear(fight);
 
   EXPECT_EQ(TotalAwards(fight), 1);
+}
+
+// A stackable does take the copies, and each is dealt on its own: 250% drop
+// on a certain shard is two outright, so at least two of the three are paid
+// and nobody holds all three by anything but luck.
+TEST(FightDropsTest, DropRateStacksACertainShard) {
+  Boss boss = Dropping(1.0);
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("p1-1", "zakum", boss, 0, mobs, PartyOf(3));
+  FightUpdate rich;
+  rich.set_item_drop_pct(1.5);
+  fight.Report("one", rich);
+  Clear(fight);
+
+  int total = TotalAwards(fight);
+  EXPECT_GE(total, 2);
+  EXPECT_LE(total, 3);
 }
 
 TEST(FightDropsTest, NothingIsDealtToAPlayerWhoHasGone) {

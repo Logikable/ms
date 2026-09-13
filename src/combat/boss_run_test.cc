@@ -122,6 +122,16 @@ std::unique_ptr<GameState> MakeState(int arm_hp = 1, int body_hp = 1) {
   return state;
 }
 
+// Puts `rate` whole percents of Item Drop Rate on the character's head.
+void WearDropGear(GameState& state, int rate) {
+  EquipPrototype hat;
+  hat.set_name("Lucky Hat");
+  hat.set_equip_slot(EQUIP_SLOT_HAT);
+  hat.mutable_base_stats()->set_item_drop_rate(rate);
+  state.character.PickUp(std::make_unique<EquipInstance>(hat));
+  state.character.Equip(0);
+}
+
 // Runs the fight to its end, or until it plainly is not going to end.
 void RunToEnd(BossRun& run, GameState& state, double step = 0.1,
               int max_steps = 20000) {
@@ -722,16 +732,28 @@ TEST(BossRunTest, AFightThatRanOutOfTimePaysNothing) {
   EXPECT_TRUE(run.reward().items.empty());
 }
 
-// Drop rate lifts a chance and never a certainty: the shard the table
-// guarantees is one shard, not one and a fifth of a second roll.
-TEST(BossRunTest, DropRateDoesNotDoubleACertainDrop) {
+// Drop rate buys gear a chance and never a copy: the mark the table
+// guarantees is one mark however much drop gear is worn.
+TEST(BossRunTest, DropRateDoesNotDoubleACertainPieceOfGear) {
   std::unique_ptr<GameState> state = MakeState();
-  EquipPrototype hat;
-  hat.set_name("Lucky Hat");
-  hat.set_equip_slot(EQUIP_SLOT_HAT);
-  hat.mutable_base_stats()->set_item_drop_rate(200);
-  state->character.PickUp(std::make_unique<EquipInstance>(hat));
-  state->character.Equip(0);
+  WearDropGear(*state, 200);
+
+  Boss boss = RewardingBoss(/*mark_chance=*/1.0);
+  boss.mutable_difficulties(0)->mutable_drops(1)->set_per_kill(0.0);
+  BossRun run("zakum", boss, 0);
+  RunToEnd(run, *state);
+
+  ASSERT_TRUE(run.won());
+  ASSERT_EQ(run.reward().items.size(), 1u);
+  EXPECT_EQ(run.reward().items[0].count, 1);
+  EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 1);
+}
+
+// A stackable does take the copies: at 250% drop the certain shard is two
+// outright and a coin flip for a third.
+TEST(BossRunTest, DropRateStacksACertainShard) {
+  std::unique_ptr<GameState> state = MakeState();
+  WearDropGear(*state, 150);
 
   Boss boss = RewardingBoss(/*mark_chance=*/0.0);
   BossRun run("zakum", boss, 0);
@@ -739,9 +761,11 @@ TEST(BossRunTest, DropRateDoesNotDoubleACertainDrop) {
 
   ASSERT_TRUE(run.won());
   ASSERT_EQ(run.reward().items.size(), 1u);
-  EXPECT_EQ(run.reward().items[0].count, 1);
+  EXPECT_GE(run.reward().items[0].count, 2);
+  EXPECT_LE(run.reward().items[0].count, 3);
   EXPECT_FALSE(run.reward().items[0].prize);
-  EXPECT_EQ(state->character.CountStackable(DropItems().at("shard")), 1);
+  EXPECT_EQ(state->character.CountStackable(DropItems().at("shard")),
+            run.reward().items[0].count);
 }
 
 // The card lists the prizes apart from the rest, at the rate they fell at, so
@@ -1141,12 +1165,7 @@ TEST(BossRunTest, ASharedClearPaysTheDropsItWasDealt) {
 // against the best one in the party.
 TEST(BossRunTest, ASharedRunReportsItsDropRate) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
-  EquipPrototype hat;
-  hat.set_name("Lucky Hat");
-  hat.set_equip_slot(EQUIP_SLOT_HAT);
-  hat.mutable_base_stats()->set_item_drop_rate(50);
-  state->character.PickUp(std::make_unique<EquipInstance>(hat));
-  state->character.Equip(0);
+  WearDropGear(*state, 50);
 
   Boss boss = TwoPhaseBoss();
   TestAuthority authority(2);
