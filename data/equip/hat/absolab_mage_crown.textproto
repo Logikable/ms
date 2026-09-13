@@ -1,0 +1,17 @@
+# The AbsoLab hat for this branch, bought with the coins Damien and Lotus
+# drop. One of four: the piece a class wears is its own, so the set is written
+# four times over rather than once around a universal armour.
+name: "AbsoLab Mage Crown"
+required_level: 160
+base_stats {
+  int: 45
+  luk: 45
+  magic_attack: 3
+  def: 400
+  ignore_enemy_defense: 10
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_HAT
+upgrade_slots: 11
+token_item: "absolab_coin"
+token_price: 2

@@ -1,0 +1,16 @@
+# The AbsoLab shoes for this branch, bought with the coins Damien and Lotus
+# drop. One of four: the piece a class wears is its own, so the set is written
+# four times over rather than once around a universal armour.
+name: "AbsoLab Archer Shoes"
+required_level: 160
+base_stats {
+  str: 20
+  dex: 20
+  attack: 5
+  def: 150
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+equip_slot: EQUIP_SLOT_SHOES
+upgrade_slots: 7
+token_item: "absolab_coin"
+token_price: 2

@@ -426,6 +426,79 @@ std::vector<std::string> RootAbyssGear(Job job) {
   return names;
 }
 
+// The level Damien and Lotus open at, and so the earliest anybody can own what
+// their coins buy. The same rule the Root Abyss follows one tier down: the
+// gear is worn at 160 and nothing pays for a piece of it until 210.
+constexpr int kAbsoLabLevel = 210;
+
+// The AbsoLab weapon a 4th job swings, which is the same line's choice the two
+// tiers below it make. Empty for anybody below the 4th job, who reaches level
+// 210 only if a tester asks for it by hand.
+std::string AbsoLabWeapon(Job job) {
+  switch (job) {
+    case JOB_HERO:
+      return "absolab_broad_axe";
+    case JOB_PALADIN:
+      return "absolab_broad_hammer";
+    case JOB_DARK_KNIGHT:
+      return "absolab_piercing_spear";
+    case JOB_BOW_MASTER:
+      return "absolab_sureshot_bow";
+    case JOB_MARKSMAN:
+      return "absolab_crossbow";
+    case JOB_ICE_LIGHTNING_ARCH_MAGE:
+    case JOB_FIRE_POISON_ARCH_MAGE:
+    case JOB_BISHOP:
+      return "absolab_spellsong_staff";
+    case JOB_NIGHT_LORD:
+      return "absolab_revenge_guard";
+    case JOB_SHADOWER:
+      return "absolab_blade_lord";
+    default:
+      return "";
+  }
+}
+
+// The AbsoLab armour the branch wears, worn over the Root Abyss tier: six
+// pieces, which supersede the Root Abyss hat, top and bottom and the Frozen
+// cape, gloves and boots. The shoulder takes the slot Cygnus's does, so the
+// Boss Accessory Set drops a piece for it.
+std::vector<std::string> AbsoLabArmour(Job job) {
+  switch (BranchOf(job)) {
+    case JobBranch::kWarrior:
+      return {"absolab_knight_helm",    "absolab_knight_armor",
+              "absolab_knight_pants",   "absolab_knight_shoes",
+              "absolab_knight_gloves",  "absolab_knight_cape",
+              "absolab_knight_shoulder"};
+    case JobBranch::kArcher:
+      return {"absolab_archer_hood",    "absolab_archer_armor",
+              "absolab_archer_pants",   "absolab_archer_shoes",
+              "absolab_archer_gloves",  "absolab_archer_cape",
+              "absolab_archer_shoulder"};
+    case JobBranch::kMagician:
+      return {"absolab_mage_crown",   "absolab_mage_armor",
+              "absolab_mage_pants",   "absolab_mage_shoes",
+              "absolab_mage_gloves",  "absolab_mage_cape",
+              "absolab_mage_shoulder"};
+    case JobBranch::kRogue:
+      return {"absolab_bandit_cap",     "absolab_bandit_armor",
+              "absolab_bandit_pants",   "absolab_bandit_shoes",
+              "absolab_bandit_gloves",  "absolab_bandit_cape",
+              "absolab_bandit_shoulder"};
+    default:
+      return {};
+  }
+}
+
+std::vector<std::string> AbsoLabGear(Job job) {
+  std::vector<std::string> names = AbsoLabArmour(job);
+  std::string weapon = AbsoLabWeapon(job);
+  if (!weapon.empty()) {
+    names.push_back(std::move(weapon));
+  }
+  return names;
+}
+
 // What the bosses pay, which is the only thing that fills the accessory and
 // pocket slots. A boss drop is a long way to walk for a screen, so the
 // workbench starts in it -- and the crystal asks for level 110, which a 3rd
@@ -609,6 +682,9 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   // other way round.
   if (state.character.proto().level() >= kRootAbyssLevel) {
     WearAll(state, RootAbyssGear(state.character.proto().job()), equips);
+  }
+  if (state.character.proto().level() >= kAbsoLabLevel) {
+    WearAll(state, AbsoLabGear(state.character.proto().job()), equips);
   }
   WearStarterSymbol(state);
 }
@@ -926,6 +1002,19 @@ void GrantLevelRewards(GameState& state, int from_level, int to_level) {
     return;
   }
   state.character.PickUp(std::make_unique<EquipInstance>(symbol->second));
+}
+
+int OwnedFromLevel(const EquipPrototype& proto) {
+  if (proto.token_item() == "absolab_coin") {
+    return kAbsoLabLevel;
+  }
+  // The four Chaos Root Abyss Pieces, which are the only tokens named this
+  // way. The Frozen tokens and the Cygnus one come off fights open well below
+  // the gear they buy, so they gate nothing.
+  if (proto.token_item().rfind("piece_of_", 0) == 0) {
+    return kRootAbyssLevel;
+  }
+  return proto.required_level();
 }
 
 }  // namespace ms

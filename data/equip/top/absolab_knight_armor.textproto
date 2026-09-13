@@ -1,0 +1,19 @@
+# The AbsoLab top for this branch, bought with the coins Damien and Lotus
+# drop. One of four: the piece a class wears is its own, so the set is written
+# four times over rather than once around a universal armour.
+# GMS writes the top and the bottom as one overall. Split here because the two
+# slots are kept apart: the pair adds back up to the suit's +65/+65, ATT +5,
+# DEF 300.
+name: "AbsoLab Knight Armor"
+required_level: 160
+base_stats {
+  str: 35
+  dex: 35
+  attack: 3
+  def: 180
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+equip_slot: EQUIP_SLOT_TOP
+upgrade_slots: 7
+token_item: "absolab_coin"
+token_price: 2

@@ -1,0 +1,19 @@
+# The AbsoLab shoulder, bought with the coins Damien and Lotus drop. One of
+# four: the piece a class wears is its own, so the set is written four times
+# over rather than once around a universal armour.
+name: "AbsoLab Bandit Shoulder"
+required_level: 160
+base_stats {
+  str: 14
+  dex: 14
+  int: 14
+  luk: 14
+  attack: 10
+  magic_attack: 10
+  def: 100
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
+equip_slot: EQUIP_SLOT_SHOULDER
+upgrade_slots: 1
+token_item: "absolab_coin"
+token_price: 2

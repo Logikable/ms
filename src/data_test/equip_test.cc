@@ -317,11 +317,11 @@ TEST(EquipDataTest, EveryWeaponTypeReachesTheTopMesoTier) {
   }
 }
 
-// Every weapon type the shop's ladder reaches the cap with has both token
+// Every weapon type the shop's ladder reaches the cap with has all three token
 // tiers above it, so no branch is asked to farm tokens for a weapon it cannot
 // hold. The one-handed sword is out for the reason its ladder stops: nobody
 // swings one past their 2nd job.
-TEST(EquipDataTest, EveryWeaponTypeHasBothTokenTiers) {
+TEST(EquipDataTest, EveryWeaponTypeHasEveryTokenTier) {
   // Level -> type -> the one weapon of it a token buys at that level.
   std::map<int, std::map<EquipType, std::string>> token_tiers;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -338,13 +338,14 @@ TEST(EquipDataTest, EveryWeaponTypeHasBothTokenTiers) {
         << " at level " << proto.required_level();
     tier[proto.equip_type()] = entry.first;
   }
-  const int kTokenTiers[] = {120, 150};  // Frozen, then Root Abyss
+  // Frozen, then Root Abyss, then AbsoLab.
+  const int kTokenTiers[] = {120, 150, 160};
   for (int level : kTokenTiers) {
     ASSERT_GT(token_tiers.count(level), 0u)
         << "no token weapons at level " << level;
   }
   EXPECT_EQ(token_tiers.size(), std::size(kTokenTiers))
-      << "a token weapon sits outside the two tiers";
+      << "a token weapon sits outside the three tiers";
   for (const std::pair<const EquipType, std::vector<int>>& ladder :
        WeaponLadders()) {
     if (ladder.first == EQUIP_TYPE_ONE_HANDED_SWORD) {
@@ -411,12 +412,18 @@ TEST(EquipDataTest, EveryTokenPriceNamesATokenThatExists) {
   EXPECT_GT(seen, 0) << "nothing in the catalog is bought with a token";
 }
 
-// The token shelf's second stage. Cygnus drops one token and four shoulders
-// answer to it, one per branch that plays the game -- a branch left out is one
-// whose clear buys nothing, and a second shoulder for a branch is a choice
-// between two identical pieces.
-TEST(EquipDataTest, EveryBranchHasACygnusShoulder) {
-  std::map<EquipJobCategory, std::string> shoulder;
+// The token shelf's per-branch shoulders. Cygnus drops one token and four
+// shoulders answer to it, one per branch that plays the game, and AbsoLab's
+// coin buys the tier above it the same way -- a branch left out is one whose
+// clear buys nothing, and a second shoulder for a branch is a choice between
+// two identical pieces.
+TEST(EquipDataTest, EveryBranchHasAShoulderAtEachTokenTier) {
+  // The level each token's shoulder is worn at, which is what says a tier is
+  // written here at all rather than having quietly grown a third.
+  const std::map<std::string, int> kTiers = {{"cygnus_shoulder_token", 140},
+                                             {"absolab_coin", 160}};
+  // Token -> branch -> the one shoulder of that branch it buys.
+  std::map<std::string, std::map<EquipJobCategory, std::string>> shoulders;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
@@ -425,21 +432,32 @@ TEST(EquipDataTest, EveryBranchHasACygnusShoulder) {
     }
     ASSERT_EQ(proto.equip_job_categories_size(), 1)
         << entry.first << " is a shoulder for more than one branch";
+    std::map<std::string, int>::const_iterator tier =
+        kTiers.find(proto.token_item());
+    ASSERT_NE(tier, kTiers.end())
+        << entry.first << " is bought with " << proto.token_item()
+        << ", which is a shoulder tier nothing here knows about";
+    EXPECT_EQ(proto.required_level(), tier->second) << entry.first;
     EquipJobCategory branch = proto.equip_job_categories(0);
-    EXPECT_TRUE(shoulder.emplace(branch, entry.first).second)
-        << entry.first << " and " << shoulder[branch]
-        << " are both the shoulder for " << EquipJobCategory_Name(branch);
-    EXPECT_EQ(proto.required_level(), 140) << entry.first;
-    EXPECT_EQ(proto.token_item(), "cygnus_shoulder_token") << entry.first;
+    std::map<EquipJobCategory, std::string>& worn = shoulders[tier->first];
+    EXPECT_TRUE(worn.emplace(branch, entry.first).second)
+        << entry.first << " and " << worn[branch] << " are both the "
+        << tier->first << " shoulder for " << EquipJobCategory_Name(branch);
   }
   const std::vector<EquipJobCategory> kBranches = {
       EQUIP_JOB_CATEGORY_WARRIOR, EQUIP_JOB_CATEGORY_MAGICIAN,
       EQUIP_JOB_CATEGORY_BOWMAN, EQUIP_JOB_CATEGORY_THIEF};
-  for (EquipJobCategory branch : kBranches) {
-    EXPECT_EQ(shoulder.count(branch), 1u)
-        << EquipJobCategory_Name(branch) << " has no Cygnus shoulder";
+  EXPECT_EQ(shoulders.size(), kTiers.size());
+  for (const std::pair<const std::string,
+                       std::map<EquipJobCategory, std::string>>& tier :
+       shoulders) {
+    for (EquipJobCategory branch : kBranches) {
+      EXPECT_EQ(tier.second.count(branch), 1u)
+          << EquipJobCategory_Name(branch) << " has no " << tier.first
+          << " shoulder";
+    }
+    EXPECT_EQ(tier.second.size(), kBranches.size()) << tier.first;
   }
-  EXPECT_EQ(shoulder.size(), kBranches.size());
 }
 
 // One tier, one price. Every weapon a level opens costs the same, so the choice

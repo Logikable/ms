@@ -53,6 +53,12 @@ std::vector<JobAdvancement> EveryAdvancement() {
   return all;
 }
 
+// Where the two token tiers become ownable, which is where the bosses paying
+// for them open rather than where their gear can be worn -- see OwnedFromLevel
+// in game_state.h.
+constexpr int kRootAbyssOpens = 200;
+constexpr int kAbsoLabOpens = 210;
+
 // Every piece of the set is named for it, which is what the player reads too.
 // The armour carries no set_family -- only the two the token shelf sells do,
 // where the family is what stops a second of one being bought.
@@ -92,7 +98,8 @@ class WorkbenchGearTest : public ::testing::Test {
   // The required levels the catalog offers on `worn`'s own ladder among the
   // items this character could put on, highest first -- CanEquip asks about
   // their level and their job together, which is the same question the shop
-  // asks.
+  // asks, and OwnedFromLevel asks the one it cannot: a token tier waits on the
+  // fight that pays for it, not on the level it is worn at.
   //
   // A ladder is a slot family and a type together. The type alone would put a
   // Fighter's swords and axes on one, which is the choice the workbench makes;
@@ -106,7 +113,8 @@ class WorkbenchGearTest : public ::testing::Test {
       const EquipPrototype& proto = entry.second;
       if (BaseSlot(proto.equip_slot()) == BaseSlot(worn.equip_slot()) &&
           proto.equip_type() == worn.equip_type() &&
-          character.CanEquip(proto)) {
+          character.CanEquip(proto) &&
+          character.proto().level() >= OwnedFromLevel(proto)) {
         levels.push_back(proto.required_level());
       }
     }
@@ -183,10 +191,11 @@ TEST_F(WorkbenchGearTest, EveryJobPastTheFirstWearsAnOffHand) {
 
 // The Frozen set drops rather than sells, so the workbench is the only place
 // so much of it is ever seen. A 3rd job at 100 reaches the four armour pieces
-// inside its level and keeps its meso weapon and off-hand. A 4th job at the
-// cap adds the two that ask for 140 and the off-hand the token shelf sells,
-// but hands the hat, top, bottom and weapon over to the Root Abyss set below
-// -- four apiece. Under the 3rd job, none.
+// inside its level and keeps its meso weapon and off-hand. A 4th job at 200
+// adds the two that ask for 140 and the off-hand the token shelf sells, but
+// hands the hat, top, bottom and weapon over to the Root Abyss set -- four
+// apiece. A 5th job at the cap keeps only the off-hand: AbsoLab takes the
+// cape, the gloves and the boots as well. Under the 3rd job, none.
 TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
   for (JobAdvancement advancement : EveryAdvancement()) {
     GameState state = Workbench(advancement);
@@ -196,30 +205,39 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
          state.character.equipped()) {
       frozen += IsFrozen(worn.second.prototype()) ? 1 : 0;
     }
-    EXPECT_EQ(frozen, StageForAdvancement(advancement) < 3 ? 0 : 4);
+    int stage = StageForAdvancement(advancement);
+    EXPECT_EQ(frozen, stage < 3 ? 0 : stage < 5 ? 4 : 1);
   }
 }
 
-// The Root Abyss set is bought with what the Chaos Root Abyss bosses drop, and
-// they open at 200 -- so a 4th job standing at the cap wears all four pieces
-// and the 3rd job under it, which wears the same four slots, wears none.
-TEST_F(WorkbenchGearTest, OnlyTheCapWearsTheRootAbyssSet) {
+// Each token tier waits on the fight that pays for it: the Chaos Root Abyss
+// opens at 200 and Damien and Lotus at 210. So the three advancements that
+// wear these four slots wear a tier each -- a 5th job at the cap in AbsoLab, a
+// 4th at 200 in Root Abyss, and the 3rd job under both in neither.
+TEST_F(WorkbenchGearTest, EachAdvancementWearsTheTokenTierItPaysFor) {
   const EquipSlot kSlots[] = {EQUIP_SLOT_HAT, EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM,
                               EQUIP_SLOT_PRIMARY_WEAPON};
   for (JobAdvancement advancement : EveryAdvancement()) {
-    int stage = StageForAdvancement(advancement);
-    if (stage < 3) {
+    if (StageForAdvancement(advancement) < 3) {
       continue;  // wears no armour at all; the Frozen test above says so
     }
     GameState state = Workbench(advancement);
     SCOPED_TRACE(JobAdvancement_Name(advancement));
+    int level = state.character.proto().level();
     for (EquipSlot slot : kSlots) {
       std::map<EquipSlot, EquipInstance>::const_iterator worn =
           state.character.equipped().find(slot);
       ASSERT_NE(worn, state.character.equipped().end())
           << EquipSlot_Name(slot) << " is empty";
-      EXPECT_EQ(worn->second.prototype().required_level() == 150, stage >= 4)
-          << EquipSlot_Name(slot) << " holds " << worn->second.name();
+      int tier = worn->second.prototype().required_level();
+      SCOPED_TRACE(EquipSlot_Name(slot) + (" holds " + worn->second.name()));
+      if (level >= kAbsoLabOpens) {
+        EXPECT_EQ(tier, 160);
+      } else if (level >= kRootAbyssOpens) {
+        EXPECT_EQ(tier, 150);
+      } else {
+        EXPECT_LT(tier, 150);
+      }
     }
   }
 }

@@ -209,6 +209,13 @@ struct GameState {
 // reason.
 void GrantLevelRewards(GameState& state, int from_level, int to_level);
 
+// The level a piece of gear can first be OWNED at, which is not always the
+// level it can be worn at: token-bought gear waits on the fight that pays for
+// it. Root Abyss gear is worn at 150 and paid for by bosses that open at 200;
+// AbsoLab is worn at 160 and paid for by bosses that open at 210. Everything
+// else is owned the moment it can be worn.
+int OwnedFromLevel(const EquipPrototype& proto);
+
 }  // namespace ms
 
 #endif  // MS_SRC_GAME_STATE_H_

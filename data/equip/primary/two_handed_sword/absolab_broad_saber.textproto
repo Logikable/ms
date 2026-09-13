@@ -1,0 +1,20 @@
+# The AbsoLab weapon for this line, bought with the coins Damien and Lotus
+# drop. A tier above the Root Abyss weapon it replaces, and the last weapon
+# the shop sells.
+name: "AbsoLab Broad Saber"
+required_level: 160
+base_stats {
+  str: 60
+  dex: 60
+  attack: 205
+  boss_damage: 30
+  ignore_enemy_defense: 10
+}
+attack_speed: ATTACK_SPEED_AVERAGE
+equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+upgrade_slots: 8
+equip_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+token_item: "absolab_coin"
+token_price: 5
+set_family: "AbsoLab Warrior Weapon"
