@@ -45,6 +45,10 @@ inline constexpr double kDamageStrikeSeconds = 0.03;
 // there so a fight cannot grow the list without bound if one is ever drawn
 // slower than the swings arrive. The oldest go first.
 inline constexpr int kMaxDamageStacks = 64;
+// The same ceiling for this player's own writes, which are filed a strike
+// apiece rather than an attack apiece: one swing across ten bars files a
+// write per slash per bar.
+inline constexpr int kMaxDamageWrites = 512;
 
 // One number a landing left behind.
 struct DamageNumber {
@@ -52,15 +56,18 @@ struct DamageNumber {
   bool crit = false;
 };
 
-// One stack of numbers: what one attack landed on one monster, in the order
-// the lines landed. It is read upwards, the first line at the bottom, so what
-// a cramped corner costs is the tail of the stack rather than the stack.
+// One party member's stack of numbers: what one attack of theirs landed on one
+// monster, in the order the lines landed. It is read upwards, the first line
+// at the bottom, so what a cramped corner costs is the tail of the stack
+// rather than the stack.
+//
+// The player at this screen has no stacks. Their numbers are written row by
+// row into the column above the monster instead -- see DamageWrite.
 struct DamageStack {
   // The slot that took it, by the id a slot keeps for its whole life.
   int mob_id = 0;
-  // Who landed it, as an index into the run's members. 0 is the player at
-  // this screen, who is always the first of them: everybody else's numbers
-  // are drawn dim.
+  // Who landed it, as an index into the run's members. Never 0, which is the
+  // player at this screen; everybody else's numbers are drawn dim.
   int owner = 0;
   // What did it. One monster holds at most one stack per player per source: a
   // landing takes the place of whatever that source last left there, however
@@ -86,10 +93,54 @@ struct DamageStack {
 
   // Which side of the bar the arena should try first, drawn when the stack was
   // made. Drawn once rather than per frame, or a stack that has not changed
-  // would move every time it was redrawn. Unread for the swing, which always
-  // stands over its monster.
+  // would move every time it was redrawn.
   int preference = 0;
 };
+
+// One strike of the player's own damage, written into the rows standing above
+// the monster it fell on: line i goes to row i, counting up from the bar.
+//
+// A write owns rows rather than a block. It leaves the rows above its own
+// height alone, so a one-line attack landing after a fifteen-line one takes
+// the bottom row and the other fourteen numbers stay where they are until
+// their own time is up.
+struct DamageWrite {
+  // The slot that took it, by the id a slot keeps for its whole life.
+  int mob_id = 0;
+  std::vector<DamageNumber> lines;
+  // How long after the attack landed this strike shows. A swing that slashes
+  // twelve times files twelve writes at once, each kDamageStrikeSeconds
+  // behind the last, so they flash through the rows as fast as the screen can
+  // draw them.
+  double delay = 0.0;
+  // Seconds since the attack landed. Real ones: it is an animation, and the
+  // game's pacing band has no business stretching it.
+  double age = 0.0;
+
+  // Seconds this write has been showing, negative until its strike is due.
+  double showing() const {
+    return age - delay;
+  }
+  // Whether it is on screen at all: due, and not yet faded.
+  bool live() const {
+    return showing() >= 0.0 && showing() < kDamageStackSeconds;
+  }
+};
+
+// One row of the column above a monster. An unfilled row is one nobody has
+// written to, or one whose number has faded, and holds nothing to draw.
+struct DamageRow {
+  bool filled = false;
+  DamageNumber number;
+};
+
+// The numbers standing above `mob_id` now, row 0 against the bar. Each row
+// takes the newest live write that reached it, so a tall attack keeps its
+// upper rows while shorter ones come and go beneath them. The column is as
+// tall as the tallest live write; a caller with less room than that draws
+// what fits.
+std::vector<DamageRow> DamageColumn(const std::vector<DamageWrite>& writes,
+                                    int mob_id);
 
 // One line of what a clear paid: an item's display name and how many of it
 // reached the bag.
@@ -269,9 +320,15 @@ class BossRun {
   const std::vector<BossSlot>& slots() const {
     return slots_;
   }
-  // The damage numbers still on screen, oldest first.
+  // The party's damage numbers still on screen, oldest first. Never this
+  // player's, whose numbers are written rows rather than stacks.
   const std::vector<DamageStack>& damage_stacks() const {
     return damage_stacks_;
+  }
+  // This player's own numbers still on screen, oldest first. Ask
+  // DamageColumn what a monster's rows hold.
+  const std::vector<DamageWrite>& damage_writes() const {
+    return damage_writes_;
   }
   // Everyone fighting it, the player at this screen first. One member for a
   // fight taken alone.
@@ -308,12 +365,14 @@ class BossRun {
   const CombatParams& PhaseParams(const GameState& state);
   // The phase being fought, or null once the run is over.
   const BossPhase* current_phase() const;
-  // Ages the stacks of numbers by dt and drops the ones whose time is up.
-  void AgeDamageStacks(double dt);
-  // Turns what the fight just landed into stacks, one per attack per monster.
-  void CollectDamageStacks();
-  // Puts `stack` on screen in place of whatever its source last left on the
-  // same monster.
+  // Ages the numbers on screen by dt, this player's and the party's both, and
+  // drops the ones whose time is up.
+  void AgeDamageNumbers(double dt);
+  // Turns what this player's fight just landed into writes, one per strike
+  // per monster.
+  void CollectDamageWrites();
+  // Puts `stack` on screen in place of whatever that member's source last left
+  // on the same monster.
   void Replace(DamageStack stack);
   // Draws a bar per monster of a phase just started, each on the spot its
   // spawn named for it.
@@ -415,6 +474,7 @@ class BossRun {
   int player_at_ = -1;
   std::vector<BossSlot> slots_;
   std::vector<DamageStack> damage_stacks_;
+  std::vector<DamageWrite> damage_writes_;
   // The party's shared fight, or null for a boss taken alone.
   FightAuthority* authority_ = nullptr;
   std::vector<FightMember> members_;

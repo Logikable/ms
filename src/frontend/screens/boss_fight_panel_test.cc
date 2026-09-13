@@ -275,6 +275,8 @@ struct DrawnNumber {
   int row = 0;
   int column = 0;
   bool crit = false;
+  // A party member's number rather than the player's own, by its colour.
+  bool faint = false;
 };
 
 // Whether this cell is a digit in a damage number's colours. A panel's own
@@ -282,7 +284,14 @@ struct DrawnNumber {
 // is that title's, not a swing's.
 bool NumberCell(const ftxui::Pixel& px) {
   return px.character.size() == 1 && isdigit(px.character[0]) &&
-         (px.foreground_color == kTheme || px.foreground_color == kOrange);
+         (px.foreground_color == kTheme || px.foreground_color == kOrange ||
+          px.foreground_color == kFaintTheme ||
+          px.foreground_color == kFaintOrange);
+}
+
+bool FaintCell(const ftxui::Pixel& px) {
+  return px.foreground_color == kFaintTheme ||
+         px.foreground_color == kFaintOrange;
 }
 
 std::vector<DrawnNumber> DrawnNumbers(const ftxui::Screen& screen) {
@@ -296,7 +305,9 @@ std::vector<DrawnNumber> DrawnNumbers(const ftxui::Screen& screen) {
         if (number.text.empty()) {
           number.row = y;
           number.column = x;
-          number.crit = px->foreground_color == kOrange;
+          number.crit = px->foreground_color == kOrange ||
+                        px->foreground_color == kFaintOrange;
+          number.faint = FaintCell(*px);
         }
         number.text += px->character;
         continue;
@@ -320,13 +331,13 @@ int PanelTop(const std::vector<std::string>& rows, const std::string& title) {
   return -1;
 }
 
-// Steps the fight until a stack holding a critical line -- or a plain one --
-// is on screen, and says whether it found one.
+// Steps the fight until the player has a critical line -- or a plain one --
+// on screen, and says whether it found one.
 bool RunUntilLine(BossRun& run, GameState& state, bool crit) {
   for (int step = 0; step < 2000; ++step) {
     run.Advance(state, 0.05);
-    for (const DamageStack& stack : run.damage_stacks()) {
-      for (const DamageNumber& line : stack.lines) {
+    for (const DamageWrite& write : run.damage_writes()) {
+      for (const DamageNumber& line : write.lines) {
         if (line.crit == crit) {
           return true;
         }
@@ -334,6 +345,24 @@ bool RunUntilLine(BossRun& run, GameState& state, bool crit) {
     }
   }
   return false;
+}
+
+// The rows standing over the one monster of a one-bar fight.
+std::vector<DamageRow> OnlyColumn(const BossRun& run) {
+  return DamageColumn(run.damage_writes(), run.slots().front().id);
+}
+
+// The numbers of `column` read down the screen, which is the top row first --
+// the reverse of the rows, which are read up from the bar. An empty row holds
+// nothing and is not one of them.
+std::vector<std::string> ColumnDownwards(const std::vector<DamageRow>& column) {
+  std::vector<std::string> text;
+  for (std::size_t i = column.size(); i > 0; --i) {
+    if (column[i - 1].filled) {
+      text.push_back(std::to_string(column[i - 1].number.damage));
+    }
+  }
+  return text;
 }
 
 std::string Render(const BossRun& run) {
@@ -718,48 +747,48 @@ TEST(BossFightPanelTest, ASwingStandsOverWhatItHit) {
   BossRun run("zakum", boss, 0);
   run.Advance(*state, kBossCountdownSeconds);
   ASSERT_TRUE(RunUntilLine(run, *state, false));
-  ASSERT_EQ(run.damage_stacks().size(), 1u);
-  const DamageStack& stack = run.damage_stacks().front();
-  ASSERT_EQ(stack.lines.size(), 8u);
+  std::vector<std::string> want = ColumnDownwards(OnlyColumn(run));
+  ASSERT_EQ(want.size(), 8u);
 
   ftxui::Screen screen = RenderScreen(run, 60, 40);
   std::vector<DrawnNumber> drawn = DrawnNumbers(screen);
-  ASSERT_EQ(drawn.size(), stack.lines.size()) << "a tall arena fits them all";
+  ASSERT_EQ(drawn.size(), want.size()) << "a tall arena fits them all";
   int bar = PanelTop(RowsOf(screen), "Zakum's Arm");
   ASSERT_NE(bar, -1);
-  // Read down the screen, so the last line landed comes first.
   for (std::size_t i = 0; i < drawn.size(); ++i) {
-    std::size_t line = drawn.size() - 1 - i;
-    EXPECT_EQ(drawn[i].text, std::to_string(stack.lines[line].damage));
+    EXPECT_EQ(drawn[i].text, want[i]);
     EXPECT_LT(drawn[i].row, bar) << "over the bar, not on or under it";
     EXPECT_EQ(drawn[i].text.find(","), std::string::npos);
   }
 }
 
-// A swing of several strikes draws one of them at a time, the next replacing
-// it a frame later. Every number the swing landed is still in the stack --
-// what changes is which of them the screen is showing.
+// A swing of several strikes files a write apiece and they come up one after
+// another, so the two rows it fills flash rather than the whole swing going up
+// at once.
 TEST(BossFightPanelTest, ASwingOfSeveralStrikesFlashesThroughThem) {
   std::unique_ptr<GameState> state = FourStrikeState();
   Boss boss = OneArmBoss();
   BossRun run("zakum", boss, 0);
   run.Advance(*state, kBossCountdownSeconds);
   ASSERT_TRUE(RunUntilLine(run, *state, false));
-  ASSERT_EQ(run.damage_stacks().size(), 1u);
-  const DamageStack& stack = run.damage_stacks().front();
-  ASSERT_EQ(stack.lines.size(), 8u);
-  ASSERT_EQ(stack.strike_starts.size(), 4u) << "four slashes, two lines each";
-
-  // What is on screen is the strike the stack's age picks, and no more.
-  std::vector<DrawnNumber> drawn = DrawnNumbers(RenderScreen(run, 60, 40));
-  std::pair<int, int> showing = stack.StrikeAt(stack.age);
-  ASSERT_EQ(static_cast<int>(drawn.size()), showing.second - showing.first);
-  ASSERT_LT(drawn.size(), stack.lines.size())
-      << "the whole swing went up at once";
-  for (int i = 0; i < static_cast<int>(drawn.size()); ++i) {
-    int line = showing.second - 1 - i;
-    EXPECT_EQ(drawn[i].text, std::to_string(stack.lines[line].damage));
+  ASSERT_EQ(run.damage_writes().size(), 4u) << "four slashes, a write each";
+  for (const DamageWrite& write : run.damage_writes()) {
+    EXPECT_EQ(write.lines.size(), 2u);
   }
+
+  // Two rows hold the swing, whichever strike is showing in them.
+  std::vector<std::string> first = ColumnDownwards(OnlyColumn(run));
+  ASSERT_EQ(first.size(), 2u) << "the whole swing went up at once";
+  std::vector<DrawnNumber> drawn = DrawnNumbers(RenderScreen(run, 60, 40));
+  ASSERT_EQ(drawn.size(), 2u);
+  EXPECT_EQ(drawn[0].text, first[0]);
+  EXPECT_EQ(drawn[1].text, first[1]);
+
+  // A frame on, the next strike is due and has taken the same two rows.
+  run.Advance(*state, kDamageStrikeSeconds);
+  std::vector<std::string> next = ColumnDownwards(OnlyColumn(run));
+  ASSERT_EQ(next.size(), 2u);
+  EXPECT_NE(next, first) << "the strikes flash through the rows";
 }
 
 // The strikes come one per frame and the last of them stands for the rest of
@@ -792,18 +821,16 @@ TEST(BossFightPanelTest, ABlockedRowCostsItsOwnNumberAndNoOther) {
   BossRun run("zakum", boss, 0);
   run.Advance(*state, kBossCountdownSeconds);
   ASSERT_TRUE(RunUntilLine(run, *state, false));
-  ASSERT_EQ(run.damage_stacks().size(), 1u);
-  const DamageStack& stack = run.damage_stacks().front();
+  std::vector<std::string> want = ColumnDownwards(OnlyColumn(run));
 
-  // Short enough that the top of the arena cuts the stack off partway.
+  // Short enough that the top of the arena cuts the column off partway.
   std::vector<DrawnNumber> drawn = DrawnNumbers(RenderScreen(run, 60, 16));
   ASSERT_FALSE(drawn.empty());
-  ASSERT_LT(drawn.size(), stack.lines.size());
-  // What survives is the start of the stack, the end nearest the monster, each
-  // number still on the row it would have had.
+  ASSERT_LT(drawn.size(), want.size());
+  // What survives is the end nearest the monster, each number still on the row
+  // it would have had.
   for (std::size_t i = 0; i < drawn.size(); ++i) {
-    std::size_t line = drawn.size() - 1 - i;
-    EXPECT_EQ(drawn[i].text, std::to_string(stack.lines[line].damage));
+    EXPECT_EQ(drawn[i].text, want[want.size() - drawn.size() + i]);
   }
 }
 
@@ -917,94 +944,74 @@ TEST(BossFightPanelTest, ACriticalLineIsOrangeAndAPlainOneIsBlue) {
     BossRun run("zakum", boss, 0);
     run.Advance(*state, kBossCountdownSeconds);
     ASSERT_TRUE(RunUntilLine(run, *state, crit)) << "crit: " << crit;
-    ASSERT_EQ(run.damage_stacks().size(), 1u);
-    const DamageStack& stack = run.damage_stacks().front();
+    std::vector<DamageRow> column = OnlyColumn(run);
 
     std::vector<DrawnNumber> drawn = DrawnNumbers(RenderScreen(run, 60, 40));
-    ASSERT_EQ(drawn.size(), stack.lines.size());
+    ASSERT_EQ(drawn.size(), column.size());
     int matched = 0;
     for (std::size_t i = 0; i < drawn.size(); ++i) {
-      std::size_t line = drawn.size() - 1 - i;
-      EXPECT_EQ(drawn[i].crit, stack.lines[line].crit) << drawn[i].text;
-      matched += stack.lines[line].crit == crit ? 1 : 0;
+      const DamageRow& row = column[drawn.size() - 1 - i];
+      EXPECT_EQ(drawn[i].crit, row.number.crit) << drawn[i].text;
+      matched += row.number.crit == crit ? 1 : 0;
     }
     EXPECT_GT(matched, 0) << "crit: " << crit;
   }
 }
 
-// A summon's numbers never stand over a monster: that space is the swing's,
-// whether or not a swing is holding it just now.
-TEST(BossFightPanelTest, OnlyTheSwingStandsOverAMonster) {
+// Every source the player has writes into the one column over the monster:
+// a summon's numbers take rows there the same as a swing's, rather than
+// standing somewhere of their own.
+TEST(BossFightPanelTest, ASummonWritesIntoTheSameColumnAsTheSwing) {
   std::unique_ptr<GameState> state = SummonState();
   Boss boss = OneArmBoss();
   BossRun run("zakum", boss, 0);
   run.Advance(*state, kBossCountdownSeconds);
-  // Until the arm is holding both lots of numbers at once, which is the case
-  // the reserved space is for.
-  bool together = false;
-  for (int step = 0; step < 400 && !together; ++step) {
-    run.Advance(*state, 0.05);
-    bool swing = false;
-    bool summon = false;
-    for (const DamageStack& stack : run.damage_stacks()) {
-      swing = swing || stack.source.origin == DamageOrigin::kSwing;
-      summon = summon || stack.source.origin == DamageOrigin::kOwnClock;
-    }
-    together = swing && summon;
-  }
-  ASSERT_TRUE(together);
-
-  std::set<std::string> swung;
+  // Until the arm has taken both, which is the case the one column is for.
   std::set<std::string> summoned;
-  for (const DamageStack& stack : run.damage_stacks()) {
-    for (const DamageNumber& line : stack.lines) {
-      bool swing = stack.source.origin == DamageOrigin::kSwing;
-      (swing ? swung : summoned).insert(std::to_string(line.damage));
+  for (int step = 0; step < 400 && summoned.empty(); ++step) {
+    run.Advance(*state, 0.05);
+    for (const DamageWrite& write : run.damage_writes()) {
+      if (!write.live()) {
+        continue;
+      }
+      for (const DamageNumber& line : write.lines) {
+        summoned.insert(std::to_string(line.damage));
+      }
     }
   }
+  ASSERT_FALSE(summoned.empty());
 
+  // Everything on screen stands over the arm, whatever landed it.
   ftxui::Screen screen = RenderScreen(run, 60, 40);
   int bar = PanelTop(RowsOf(screen), "Zakum's Arm");
   ASSERT_NE(bar, -1);
-  int above = 0;
-  int beside = 0;
-  for (const DrawnNumber& number : DrawnNumbers(screen)) {
-    if (number.row < bar) {
-      ++above;
-      EXPECT_GT(swung.count(number.text), 0u)
-          << number.text << " stood over the arm and was not the swing's";
-    } else {
-      beside += summoned.count(number.text) > 0 ? 1 : 0;
-    }
+  std::vector<DrawnNumber> drawn = DrawnNumbers(screen);
+  ASSERT_FALSE(drawn.empty());
+  for (const DrawnNumber& number : drawn) {
+    EXPECT_LT(number.row, bar) << number.text << " was not over the arm";
+    EXPECT_GT(summoned.count(number.text), 0u) << number.text;
   }
-  EXPECT_GT(above, 0) << "the swing stood over the arm";
-  EXPECT_GT(beside, 0) << "the summon was drawn, beside the arm";
+  EXPECT_EQ(drawn.size(), ColumnDownwards(OnlyColumn(run)).size());
 }
 
-// The column over a monster stays the swing's even while no swing is holding
-// it: a summon's numbers never drift into the gap over the lower of two arms,
-// whichever side they happened to reach for.
-TEST(BossFightPanelTest, TheColumnOverAMonsterStaysTheSwings) {
-  std::unique_ptr<GameState> state = SummonState();
+// The column over a monster is this player's, and a party member's numbers
+// stay out of it -- even while no number of the player's is holding it.
+TEST(BossFightPanelTest, APartyMembersNumbersStayOutOfTheColumn) {
+  // Arms nothing can kill: the party's numbers have to have somewhere to go
+  // for the whole run, and a buried monster is nowhere.
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
   Boss boss = ColumnBoss();
-  BossRun run("zakum", boss, 0);
-  run.Advance(*state, kBossCountdownSeconds);
+  std::unique_ptr<TestAuthority> authority = PartyOfThree();
+  BossRun run("zakum", boss, 0, authority.get());
+  run.Advance(*state, 0.1);
 
-  int summons_drawn = 0;
-  for (int step = 0; step < 300; ++step) {
+  int theirs_drawn = 0;
+  for (int step = 0; step < 200; ++step) {
+    authority->OtherLanded(0, 424242);
     run.Advance(*state, 0.05);
-    std::set<std::string> swung;
-    std::set<std::string> summoned;
-    for (const DamageStack& stack : run.damage_stacks()) {
-      for (const DamageNumber& line : stack.lines) {
-        bool swing = stack.source.origin == DamageOrigin::kSwing;
-        (swing ? swung : summoned).insert(std::to_string(line.damage));
-      }
-    }
     ftxui::Screen screen = RenderScreen(run, 80, 40);
     std::vector<std::string> rows = RowsOf(screen);
-    // The lower of the two bars: everything over it is one swing's or the
-    // other's, and nothing else may be there.
+    // The lower of the two bars: the column over it is the player's.
     int lower = -1;
     for (int y = 0; y < static_cast<int>(rows.size()); ++y) {
       if (rows[y].find("Zakum's Arm") != std::string::npos) {
@@ -1017,15 +1024,16 @@ TEST(BossFightPanelTest, TheColumnOverAMonsterStaysTheSwings) {
     int left = static_cast<int>(rows[lower].rfind('#', name));
     int right = static_cast<int>(rows[lower].find('#', name));
     for (const DrawnNumber& number : DrawnNumbers(screen)) {
-      summons_drawn += summoned.count(number.text) > 0 ? 1 : 0;
-      int last = number.column + static_cast<int>(number.text.size()) - 1;
-      if (number.row < lower && last >= left && number.column <= right) {
-        EXPECT_EQ(summoned.count(number.text), 0u)
-            << number.text << " stood over the arm at step " << step;
+      if (number.text != "424242") {
+        continue;
       }
+      ++theirs_drawn;
+      int last = number.column + static_cast<int>(number.text.size()) - 1;
+      bool over = number.row < lower && last >= left && number.column <= right;
+      EXPECT_FALSE(over) << "theirs stood over the arm at step " << step;
     }
   }
-  EXPECT_GT(summons_drawn, 0) << "the summon was drawn somewhere";
+  EXPECT_GT(theirs_drawn, 0) << "their numbers were drawn somewhere";
 }
 
 // A phase on the shipped grid with the player standing wherever `spots` says

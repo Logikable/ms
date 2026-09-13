@@ -305,16 +305,26 @@ void BossRun::Finish(BossRunState outcome) {
   hold_left_ = outcome == BossRunState::kAborted ? 0.0 : kBossEndHoldSeconds;
 }
 
-void BossRun::AgeDamageStacks(double dt) {
-  std::vector<DamageStack> live;
-  live.reserve(damage_stacks_.size());
+void BossRun::AgeDamageNumbers(double dt) {
+  std::vector<DamageStack> stacks;
+  stacks.reserve(damage_stacks_.size());
   for (DamageStack& stack : damage_stacks_) {
     stack.age += dt;
     if (stack.age < kDamageStackSeconds) {
-      live.push_back(std::move(stack));
+      stacks.push_back(std::move(stack));
     }
   }
-  damage_stacks_ = std::move(live);
+  damage_stacks_ = std::move(stacks);
+  std::vector<DamageWrite> writes;
+  writes.reserve(damage_writes_.size());
+  for (DamageWrite& write : damage_writes_) {
+    write.age += dt;
+    // A write that is not due yet has its whole life ahead of it.
+    if (write.showing() < kDamageStackSeconds) {
+      writes.push_back(std::move(write));
+    }
+  }
+  damage_writes_ = std::move(writes);
 }
 
 void BossRun::Replace(DamageStack stack) {
@@ -355,45 +365,70 @@ int DamageStack::TallestStrike() const {
   return strike_starts.empty() ? static_cast<int>(lines.size()) : tallest;
 }
 
-void BossRun::CollectDamageStacks() {
+std::vector<DamageRow> DamageColumn(const std::vector<DamageWrite>& writes,
+                                    int mob_id) {
+  std::vector<DamageRow> rows;
+  // How long ago each row was written, so a row keeps the freshest number that
+  // reached it rather than the last one the list happened to hold.
+  std::vector<double> since;
+  for (const DamageWrite& write : writes) {
+    if (write.mob_id != mob_id || !write.live()) {
+      continue;
+    }
+    if (write.lines.size() > rows.size()) {
+      rows.resize(write.lines.size());
+      since.resize(write.lines.size(), kDamageStackSeconds);
+    }
+    for (std::size_t row = 0; row < write.lines.size(); ++row) {
+      if (rows[row].filled && write.showing() > since[row]) {
+        continue;
+      }
+      rows[row] = {true, write.lines[row]};
+      since[row] = write.showing();
+    }
+  }
+  return rows;
+}
+
+void BossRun::CollectDamageWrites() {
   const std::vector<DamageLine>& lines = sim_.damage_lines_this_step();
-  // The lines of one landing arrive together, so a run of them under one event
-  // is the stack. Nothing here sorts: the order they landed in is the order
-  // they are read up the screen.
-  std::uniform_int_distribution<int> side(0, 3);
+  // The lines of one landing arrive together, and a run of them under one
+  // strike is one write. Nothing here sorts: the order they landed in is the
+  // order they are read up the screen.
   for (std::size_t i = 0; i < lines.size();) {
-    DamageStack stack;
-    stack.mob_id = lines[i].mob_id;
-    stack.source = lines[i].source;
-    stack.preference = side(rng_);
     int event = lines[i].event;
-    std::map<int, int>::const_iterator slot = slot_of_mob_.find(stack.mob_id);
-    int strike = -1;
-    for (; i < lines.size() && lines[i].event == event; ++i) {
+    std::map<int, int>::const_iterator slot =
+        slot_of_mob_.find(lines[i].mob_id);
+    DamageSource source = lines[i].source;
+    // Counted here rather than taken from the line: the delay is how many
+    // strikes of this landing came before, which is what the flash is.
+    int strikes = 0;
+    for (int strike = -1; i < lines.size() && lines[i].event == event; ++i) {
+      if (lines[i].strike != strike) {
+        strike = lines[i].strike;
+        damage_writes_.push_back(
+            {lines[i].mob_id, {}, strikes * kDamageStrikeSeconds, 0.0});
+        ++strikes;
+      }
       // Rounded up off zero: a line that landed at all is worth a 1 rather
       // than a number that says nothing happened.
       int64_t damage = static_cast<int64_t>(std::llround(lines[i].damage));
       damage = std::max<int64_t>(1, damage);
-      if (lines[i].strike != strike) {
-        strike = lines[i].strike;
-        stack.strike_starts.push_back(static_cast<int>(stack.lines.size()));
-      }
-      stack.lines.push_back({damage, lines[i].crit});
+      damage_writes_.back().lines.push_back({damage, lines[i].crit});
       if (authority_ == nullptr || slot == slot_of_mob_.end()) {
         continue;
       }
       // The same number, so what the shared roster loses is what its players
       // watched come off it.
-      landed_.push_back({0, slot->second, event, lines[i].strike, stack.source,
+      landed_.push_back({0, slot->second, event, lines[i].strike, source,
                          damage, lines[i].crit});
     }
-    Replace(std::move(stack));
   }
-  if (static_cast<int>(damage_stacks_.size()) > kMaxDamageStacks) {
-    damage_stacks_.erase(
-        damage_stacks_.begin(),
-        damage_stacks_.begin() +
-            (static_cast<int>(damage_stacks_.size()) - kMaxDamageStacks));
+  if (static_cast<int>(damage_writes_.size()) > kMaxDamageWrites) {
+    damage_writes_.erase(
+        damage_writes_.begin(),
+        damage_writes_.begin() +
+            (static_cast<int>(damage_writes_.size()) - kMaxDamageWrites));
   }
 }
 
@@ -576,7 +611,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
     return;
   }
   AdvanceCombat(state, sim_, params, dt);
-  CollectDamageStacks();
+  CollectDamageWrites();
   if (slots_.empty()) {
     FillSlots(params);
   } else {
@@ -652,7 +687,7 @@ void BossRun::PayReward(GameState& state,
 }
 
 void BossRun::AdvanceShared(GameState& state, double dt) {
-  AgeDamageStacks(dt);
+  AgeDamageNumbers(dt);
   SharedFight shared;
   if (!authority_->Fetch(shared)) {
     // Nothing has arrived. A run with an authority decides nothing itself, so
@@ -758,7 +793,7 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
   if (slots_.empty()) {
     FillSlots(params);
   }
-  CollectDamageStacks();
+  CollectDamageWrites();
   ReportToParty(dt);
   // The shared roster is what everybody is hitting, so it decides what is
   // left. This copy of it may run ahead of the party's, never behind.
@@ -821,6 +856,12 @@ void BossRun::AddSharedStacks(const std::vector<SharedLine>& lines) {
       Replace(std::move(stack));
     }
   }
+  if (static_cast<int>(damage_stacks_.size()) > kMaxDamageStacks) {
+    damage_stacks_.erase(
+        damage_stacks_.begin(),
+        damage_stacks_.begin() +
+            (static_cast<int>(damage_stacks_.size()) - kMaxDamageStacks));
+  }
 }
 
 void BossRun::Advance(GameState& state, double elapsed_seconds) {
@@ -841,7 +882,7 @@ void BossRun::RunAlone(GameState& state, double dt) {
   // Ahead of everything, and whatever the run is doing: the numbers left by
   // the swing that ended a phase should fade out over the gap rather than
   // hang there until the next phase lands one.
-  AgeDamageStacks(dt);
+  AgeDamageNumbers(dt);
   if (state_ == BossRunState::kCountdown) {
     // The monsters are on screen before the count-in starts: what the player
     // is about to fight is the whole point of being given three seconds.

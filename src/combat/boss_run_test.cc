@@ -24,6 +24,16 @@
 namespace ms {
 namespace {
 
+// `count` lines whose damage counts up from `base`, so a test can say which
+// row it is reading and which write put the number there.
+std::vector<DamageNumber> Numbers(int count, int64_t base) {
+  std::vector<DamageNumber> lines;
+  for (int i = 0; i < count; ++i) {
+    lines.push_back({base + i, false});
+  }
+  return lines;
+}
+
 Mob MakeMob(const std::string& name, int max_hp, int64_t exp) {
   Mob mob;
   mob.set_name(name);
@@ -755,67 +765,87 @@ TEST(BossRunTest, AChanceDropIsRolledFor) {
   EXPECT_LT(landed, 140);
 }
 
-// A landing on a monster leaves one stack against that monster, and nothing
-// is left against a monster nothing hit.
-TEST(BossRunTest, ASwingLeavesAStackOnWhatItHit) {
+// A landing on a monster writes numbers over that monster, and nothing is
+// written over a monster nothing hit.
+TEST(BossRunTest, ASwingWritesNumbersOverWhatItHit) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1);
   Boss boss = TwoPhaseBoss();
   BossRun run("zakum", boss, 0);
-  EXPECT_TRUE(run.damage_stacks().empty()) << "nothing has swung yet";
+  EXPECT_TRUE(run.damage_writes().empty()) << "nothing has swung yet";
 
   run.Advance(*state, kBossCountdownSeconds + 1.0);
-  ASSERT_FALSE(run.damage_stacks().empty());
+  ASSERT_FALSE(run.damage_writes().empty());
   ASSERT_FALSE(run.slots().empty());
-  for (const DamageStack& stack : run.damage_stacks()) {
-    EXPECT_EQ(stack.mob_id, run.slots()[0].id) << "one arm was in reach";
-    EXPECT_FALSE(stack.lines.empty());
-    for (const DamageNumber& line : stack.lines) {
+  for (const DamageWrite& write : run.damage_writes()) {
+    EXPECT_EQ(write.mob_id, run.slots()[0].id) << "one arm was in reach";
+    EXPECT_FALSE(write.lines.empty());
+    for (const DamageNumber& line : write.lines) {
       EXPECT_GE(line.damage, 1);
     }
   }
+  EXPECT_FALSE(DamageColumn(run.damage_writes(), run.slots()[0].id).empty());
+  EXPECT_TRUE(DamageColumn(run.damage_writes(), run.slots()[1].id).empty())
+      << "the other arm was never hit";
 }
 
-// One monster holds one stack per source: the swing keeps rewriting its own
-// numbers rather than piling a second lot beside them. Two arms stand here and
-// the swing takes the healthier of them, so the count to watch is per arm.
-TEST(BossRunTest, ASwingReplacesItsOwnNumbers) {
-  std::unique_ptr<GameState> state = MakeState(1000000, 1);
-  Boss boss = TwoPhaseBoss();
-  BossRun run("zakum", boss, 0);
-  run.Advance(*state, kBossCountdownSeconds + 1.0);
-  ASSERT_EQ(run.damage_stacks().size(), 1u);
+// Each row above a monster keeps the newest number written to it. A short
+// attack landing after a tall one takes the bottom rows and leaves the rest of
+// the tall one standing -- this is the whole of the rule, in the shape the
+// screen reads it.
+TEST(BossRunTest, AShortAttackTakesTheBottomRowsAndLeavesTheRest) {
+  std::vector<DamageWrite> writes;
+  writes.push_back({7, Numbers(10, 100), 0.0, 0.25});
+  writes.push_back({7, Numbers(6, 200), 0.0, 0.15});
+  writes.push_back({7, Numbers(2, 300), 0.0, 0.05});
 
-  // Three seconds of swinging, which is several swings inside one stack's life:
-  // without the rule they would pile up beside each other.
-  int landed = 0;
-  std::map<int, double> age;  // the age of the stack each arm is holding
-  for (int step = 0; step < 60; ++step) {
-    run.Advance(*state, 0.05);
-    std::set<int> held;
-    for (const DamageStack& stack : run.damage_stacks()) {
-      ASSERT_TRUE(held.insert(stack.mob_id).second)
-          << "two stacks on one arm at step " << step;
-      // A stack younger than the one that arm held is a fresh one in its place.
-      std::map<int, double>::iterator was = age.find(stack.mob_id);
-      landed += was == age.end() || stack.age < was->second ? 1 : 0;
-      age[stack.mob_id] = stack.age;
-    }
+  std::vector<DamageRow> column = DamageColumn(writes, 7);
+  ASSERT_EQ(column.size(), 10u) << "as tall as the tallest live write";
+  for (int row = 0; row < 10; ++row) {
+    ASSERT_TRUE(column[row].filled) << "row " << row;
+    // The bottom two are the last attack's, the next four the one before it,
+    // and the top four are still the first attack's.
+    int64_t want = row < 2 ? 300 + row : row < 6 ? 200 + row : 100 + row;
+    EXPECT_EQ(column[row].number.damage, want) << "row " << row;
   }
-  EXPECT_GT(landed, 1) << "several swings landed";
+
+  // The first attack's time runs out first, and the column loses exactly the
+  // rows nothing else had reached.
+  writes[0].age = kDamageStackSeconds;
+  column = DamageColumn(writes, 7);
+  ASSERT_EQ(column.size(), 6u);
+  EXPECT_EQ(column[0].number.damage, 300);
+  EXPECT_EQ(column[5].number.damage, 205);
+}
+
+// A strike waits its turn: the writes of one swing are filed together and come
+// up one after another, so a swing that slashes twelve times flashes.
+TEST(BossRunTest, AStrikeShowsNothingUntilItIsDue) {
+  std::vector<DamageWrite> writes;
+  writes.push_back({7, Numbers(1, 100), 0.0, 0.01});
+  writes.push_back({7, Numbers(1, 200), kDamageStrikeSeconds, 0.01});
+
+  std::vector<DamageRow> column = DamageColumn(writes, 7);
+  ASSERT_EQ(column.size(), 1u);
+  EXPECT_EQ(column[0].number.damage, 100) << "the second strike is not due";
+
+  writes[0].age = writes[1].age = kDamageStrikeSeconds + 0.01;
+  column = DamageColumn(writes, 7);
+  ASSERT_EQ(column.size(), 1u);
+  EXPECT_EQ(column[0].number.damage, 200) << "and now it is the fresher one";
 }
 
 // The numbers are an animation: they age off on their own, whether or not
 // anything else is happening.
-TEST(BossRunTest, AStackFadesAfterItsTime) {
+TEST(BossRunTest, AWriteFadesAfterItsTime) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1);
   Boss boss = TwoPhaseBoss();
   BossRun run("zakum", boss, 0);
   run.Advance(*state, kBossCountdownSeconds + 1.0);
-  ASSERT_FALSE(run.damage_stacks().empty());
+  ASSERT_FALSE(run.damage_writes().empty());
 
   run.Advance(*state, kDamageStackSeconds);
-  for (const DamageStack& stack : run.damage_stacks()) {
-    EXPECT_LT(stack.age, kDamageStackSeconds);
+  for (const DamageWrite& write : run.damage_writes()) {
+    EXPECT_LT(write.showing(), kDamageStackSeconds);
   }
 }
 
@@ -834,8 +864,8 @@ TEST(BossRunTest, APhaseChangeClearsTheNumbers) {
   // Whatever is on screen belongs to the phase being fought. The arms left
   // numbers, and none of them survived the turnover.
   ASSERT_FALSE(run.slots().empty());
-  for (const DamageStack& stack : run.damage_stacks()) {
-    EXPECT_EQ(stack.mob_id, run.slots()[0].id);
+  for (const DamageWrite& write : run.damage_writes()) {
+    EXPECT_EQ(write.mob_id, run.slots()[0].id);
   }
 }
 
@@ -905,8 +935,8 @@ TEST(BossRunTest, AFollowedRunReportsWhatItLanded) {
   }
   // The same numbers the player watched, so the two cannot drift.
   int64_t drawn = 0;
-  for (const DamageStack& stack : run.damage_stacks()) {
-    for (const DamageNumber& number : stack.lines) {
+  for (const DamageWrite& write : run.damage_writes()) {
+    for (const DamageNumber& number : write.lines) {
       drawn += number.damage;
     }
   }
@@ -968,38 +998,29 @@ TEST(BossRunTest, EverybodysNumbersAreDrawnAndHeldApart) {
   TestAuthority authority(2);
   BossRun run("zakum", boss, 0, &authority);
   // Far enough in that this player has landed a swing of their own.
-  for (int i = 0; i < 40 && run.damage_stacks().empty(); ++i) {
+  for (int i = 0; i < 40 && run.damage_writes().empty(); ++i) {
     run.Advance(*state, 0.1);
   }
   authority.OtherLanded(0, 1234);
   run.Advance(*state, 0.1);
 
-  int mine = 0;
-  int theirs = 0;
-  for (const DamageStack& stack : run.damage_stacks()) {
-    if (stack.owner == 0) {
-      ++mine;
-    } else {
-      ++theirs;
-      EXPECT_EQ(stack.owner, 1);
-      ASSERT_EQ(stack.lines.size(), 1u);
-      EXPECT_EQ(stack.lines[0].damage, 1234);
-    }
-  }
-  EXPECT_GT(mine, 0);
-  EXPECT_EQ(theirs, 1);
+  EXPECT_FALSE(run.damage_writes().empty()) << "mine are written rows";
+  ASSERT_EQ(run.damage_stacks().size(), 1u) << "and theirs a stack beside";
+  EXPECT_EQ(run.damage_stacks()[0].owner, 1);
+  ASSERT_EQ(run.damage_stacks()[0].lines.size(), 1u);
+  EXPECT_EQ(run.damage_stacks()[0].lines[0].damage, 1234);
 
-  // One stack per player per source: theirs replaces theirs, not mine.
+  // One stack per player per source: theirs replaces theirs, and nothing of
+  // theirs reaches mine.
   authority.OtherLanded(0, 4321);
   run.Advance(*state, 0.1);
-  int still_theirs = 0;
-  for (const DamageStack& stack : run.damage_stacks()) {
-    if (stack.owner != 0) {
-      ++still_theirs;
-      EXPECT_EQ(stack.lines[0].damage, 4321);
+  ASSERT_EQ(run.damage_stacks().size(), 1u);
+  EXPECT_EQ(run.damage_stacks()[0].lines[0].damage, 4321);
+  for (const DamageWrite& write : run.damage_writes()) {
+    for (const DamageNumber& number : write.lines) {
+      EXPECT_NE(number.damage, 4321);
     }
   }
-  EXPECT_EQ(still_theirs, 1);
 }
 
 TEST(BossRunTest, AWalkPassesOverSomebodyElsesSpot) {
