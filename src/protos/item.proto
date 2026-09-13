@@ -67,4 +67,8 @@ message ItemPrototype {
   CurrencyColor currency_color = 9;
   // See ItemKind.
   ItemKind kind = 10;
+  // What a list calls the item where its own column already says the rest:
+  // "Zakum's" under a column headed Soul Shard. Empty means the name does the
+  // whole job, which is true of everything but the shards.
+  string short_name = 11;
 }

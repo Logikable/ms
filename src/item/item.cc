@@ -344,6 +344,10 @@ int SlotIndex(EquipSlot slot) {
                           family.begin());
 }
 
+const std::string& ShortName(const ItemPrototype& proto) {
+  return proto.short_name().empty() ? proto.name() : proto.short_name();
+}
+
 bool Supports(const EquipPrototype& proto, Upgrade upgrade) {
   for (int i = 0; i < proto.unsupported_upgrades_size(); ++i) {
     if (proto.unsupported_upgrades(i) == upgrade) {

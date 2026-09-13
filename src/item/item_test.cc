@@ -151,5 +151,18 @@ TEST(SlotFamilyTest, EverySlotIsInExactlyOneFamily) {
   }
 }
 
+// An item with no short form is called by its name; one with a short form is
+// called by that, and the two are independent strings.
+TEST(ShortNameTest, TheShortFormFallsBackToTheName) {
+  ItemPrototype plain;
+  plain.set_name("Spell Trace");
+  EXPECT_EQ(ShortName(plain), "Spell Trace");
+
+  ItemPrototype shard;
+  shard.set_name("Zakum's Soul Shard");
+  shard.set_short_name("Zakum's");
+  EXPECT_EQ(ShortName(shard), "Zakum's");
+}
+
 }  // namespace
 }  // namespace ms

@@ -26,6 +26,11 @@ namespace ms {
 // boundary, so the string is load-bearing in more than one place.
 constexpr char kSpellTraceName[] = "Spell Trace";
 
+// What a list calls `proto` where its own column already says the rest: a soul
+// shard reads "Zakum's" under a column headed Soul Shard. Falls back to the
+// full name, which is the whole of what most items have to say.
+const std::string& ShortName(const ItemPrototype& proto);
+
 // Whether `proto` accepts `upgrade` at all. This is the item's own answer,
 // asked before any question about the state of a particular drop: a weapon
 // that supports scrolling may still have no slots left, and one that supports
