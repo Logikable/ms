@@ -211,14 +211,18 @@ extern const int kNumHyperStats;
 // What a Hyper Stat is called on screen, or "" for one with no name.
 std::string HyperStatName(HyperStatField field);
 
-// What a preset slot is called. With the autoswap on the first two are named
-// for what they are for; with it off they are numbered.
-std::string PresetSlotName(StatPreset slot, bool autoswap);
+// What a preset slot is called. With the autoswap on the slots something
+// names are named for what they are for; with it off they are numbered.
+// `kind` is asked because gear's third slot is the Drop preset, where the
+// other kinds' third is storage nothing names.
+std::string PresetSlotName(StatPreset slot, bool autoswap,
+                           PresetKind kind = PresetKind::kHyperStats);
 
 // The chip that name draws as on the row that picks between them, where the
 // one in use carries a mark. The mark keeps its column either way, so a chip
 // never changes width as one is put in use.
-std::string PresetSlotLabel(StatPreset slot, bool autoswap, bool in_use);
+std::string PresetSlotLabel(StatPreset slot, bool autoswap, bool in_use,
+                            PresetKind kind = PresetKind::kHyperStats);
 
 // What `field` at `level` is worth, written the way a row shows it: "+30" for
 // a flat stat and "+3%" for a percentage, trailing zeros trimmed. Level 0

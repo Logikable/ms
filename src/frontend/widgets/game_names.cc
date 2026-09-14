@@ -889,9 +889,10 @@ std::string PotentialCell(const Potential& potential, int item_level,
   return PadRight(text, kPotentialCellWidth);
 }
 
-std::string PresetSlotName(StatPreset slot, bool autoswap) {
-  // The autoswap names the two it reads for what they are for; the third is
-  // storage it never reaches, so it keeps its number.
+std::string PresetSlotName(StatPreset slot, bool autoswap, PresetKind kind) {
+  // The autoswap names the two it reads for what they are for. The third is
+  // storage it never reaches -- except for gear, where the boss drop roll
+  // reads it whatever the switch says.
   if (autoswap) {
     switch (slot) {
       case StatPreset::kFirst:
@@ -899,14 +900,18 @@ std::string PresetSlotName(StatPreset slot, bool autoswap) {
       case StatPreset::kSecond:
         return "Boss";
       case StatPreset::kThird:
+        if (kind == PresetKind::kEquip) {
+          return "Drop";
+        }
         break;
     }
   }
   return std::to_string(IndexOf(slot) + 1);
 }
 
-std::string PresetSlotLabel(StatPreset slot, bool autoswap, bool in_use) {
-  const std::string name = PresetSlotName(slot, autoswap);
+std::string PresetSlotLabel(StatPreset slot, bool autoswap, bool in_use,
+                            PresetKind kind) {
+  const std::string name = PresetSlotName(slot, autoswap, kind);
   // No mark while the autoswap is on: what is in use is the fight's to say,
   // and it is neither of them for good.
   if (autoswap) {

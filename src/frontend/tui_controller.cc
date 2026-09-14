@@ -395,7 +395,8 @@ void TuiController::OpenMenuEntry(MenuEntry entry) {
 
 ItemRef TuiController::SelectedItem() const {
   if (panel_focus_ == kEquipPanel) {
-    return ItemRef::Equipped(equip_panel_.selected_slot());
+    return ItemRef::Equipped(equip_panel_.selected_slot(),
+                             equip_panel_.gear_preset());
   }
   return ItemRef::InBag(inventory_panel_.selected());
 }
@@ -728,7 +729,8 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   } else if (inventory_panel_.on_tab_bar()) {
     next = inventory_panel_.OnTabMenuEvent(event);
   } else {
-    next = inventory_panel_.OnMenuEvent(event, scroll_panel_);
+    next = inventory_panel_.OnMenuEvent(event, scroll_panel_,
+                                        equip_panel_.gear_preset());
   }
   if (next == kInspect) {
     subject_ = SelectedItem();

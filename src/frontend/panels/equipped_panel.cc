@@ -13,6 +13,7 @@
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/equipped_list.h"
+#include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/item_row.h"
 #include "src/frontend/widgets/keys.h"
@@ -68,9 +69,9 @@ std::vector<EquippedRow> EquippedPanel::Rows(
   if (on_expand_) {
     return {};  // a door has nothing under it to walk down into
   }
-  return active_tab_ == kSymbolTab
-             ? SymbolRows(character_, selected_, slide)
-             : EquippedRows(character_, selected_, slide, Columns());
+  return active_tab_ == kSymbolTab ? SymbolRows(character_, selected_, slide)
+                                   : EquippedRows(character_, selected_, slide,
+                                                  Columns(), gear_preset_);
 }
 
 ItemColumns EquippedPanel::Columns() const {
@@ -88,18 +89,44 @@ int EquippedPanel::ListCount() const {
       Rows(std::chrono::steady_clock::duration::zero()).size());
 }
 
+bool EquippedPanel::ShowsPresetBar() const {
+  return active_tab_ == kGearTab && !on_expand_ &&
+         Unlocked(Feature::kEquipPresets, character_, account_);
+}
+
+// The rows above the list: the tab bar always, and the preset row under it
+// while the Gear tab has one.
 int EquippedPanel::CursorStop() const {
-  return zone_ == kZoneTabs ? 0 : selected_ + 1;
+  int bars = ShowsPresetBar() ? 2 : 1;
+  switch (zone_) {
+    case kZoneTabs:
+      return 0;
+    case kZonePresets:
+      return 1;
+    case kZoneList:
+      return bars + selected_;
+  }
+  return 0;
 }
 
 void EquippedPanel::MoveCursor(int delta) {
-  int next = StepCursor(CursorStop(), delta, 1 + ListCount());
+  int bars = ShowsPresetBar() ? 2 : 1;
+  int next = StepCursor(CursorStop(), delta, bars + ListCount());
   if (next == 0) {
     zone_ = kZoneTabs;
     return;
   }
+  if (bars == 2 && next == 1) {
+    zone_ = kZonePresets;
+    return;
+  }
   zone_ = kZoneList;
-  selected_ = next - 1;
+  selected_ = next - bars;
+}
+
+void EquippedPanel::StepPreset(int direction) {
+  gear_preset_ = StatPresetAt(
+      std::clamp(IndexOf(gear_preset_) + direction, 0, kNumStatPresets - 1));
 }
 
 int EquippedPanel::menu_column() const {
@@ -140,7 +167,13 @@ void EquippedPanel::HideRefusedEntries(EquipSlot slot) {
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return;
   }
-  const EquipInstance& item = *character_.equipped().at(slot);
+  // A preset takes off only what is its own. An inherited piece belongs to the
+  // Farm preset, which is where it comes off -- dimmed rather than hidden, so
+  // the row says why rather than quietly losing an entry.
+  if (character_.InheritsSlot(gear_preset_, slot)) {
+    menu_.Disable(kGearMenuUnequip);
+  }
+  const EquipInstance& item = *character_.WornAt(gear_preset_, slot);
   if (!Supports(item.prototype(), UPGRADE_SCROLL)) {
     menu_.Hide(kGearMenuScroll);
   }
@@ -227,7 +260,7 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
   // Unequip and Inspect are the first two entries of both menus, so neither
   // has to ask which one is open.
   if (open.selected() == kGearMenuUnequip) {
-    character_.Unequip(selected_slot());
+    character_.Unequip(selected_slot(), gear_preset_);
     return kMain;
   }
   if (open.selected() == kGearMenuInspect) {
@@ -241,7 +274,7 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
     // entry, which is what the gold was asking them to do.
     FollowedToAction(Feature::kScrolling, account_);
     if (scroll_panel.SetFilterForPrototype(
-            character_.equipped().at(selected_slot())->prototype())) {
+            character_.WornAt(gear_preset_, selected_slot())->prototype())) {
       return kScrollSelect;
     }
   }
@@ -325,7 +358,7 @@ void EquippedPanel::RebuildRows() {
   // character, and only the worn weapon's row acts on it.
   bool lead = LeadToWeapon(character_, account_);
   for (const EquippedRow& row : Rows(name_clock_.Elapsed())) {
-    inactive_.push_back(row.inactive);
+    inactive_.push_back(row.inactive || row.inherited);
     name_bytes_.push_back(row.text.Span(ItemColumn::kName).bytes);
     led_.push_back(lead && row.slot == EQUIP_SLOT_PRIMARY_WEAPON);
     entries_.push_back(row.text.text);
@@ -364,6 +397,17 @@ ftxui::Element EquippedPanel::RenderTabBar(bool row_selected) const {
   });
 }
 
+ftxui::Element EquippedPanel::RenderPresetBar(bool row_selected) const {
+  std::vector<TabSpec> specs;
+  for (int i = 0; i < kNumStatPresets; ++i) {
+    const StatPreset slot = StatPresetAt(i);
+    specs.push_back({PresetSlotLabel(
+        slot, character_.autoswap_presets(),
+        character_.SlotInUse(PresetKind::kEquip) == slot, PresetKind::kEquip)});
+  }
+  return TabBar(specs, IndexOf(gear_preset_), row_selected, /*width=*/0);
+}
+
 ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
   // Rebuilt from equipped() on every render, so the display stays in step with
   // whatever the item menu did.
@@ -374,6 +418,11 @@ ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
   // Symbols: Expand rides the far right of the bar, and fullscreen has no
   // business waiting for level 200.
   rows.push_back(RenderTabBar(focused && zone_ == kZoneTabs));
+  // Under the bar rather than in it: these are three faces of one tab, and a
+  // row of its own is what says so.
+  if (ShowsPresetBar()) {
+    rows.push_back(RenderPresetBar(focused && zone_ == kZonePresets));
+  }
   rows.push_back(PanelSeparator(highlighted_));
   if (on_expand_) {
     // A door rather than a page, so where the other tabs list what is worn,
@@ -436,6 +485,19 @@ bool EquippedPanel::OnTabBarEvent(const ftxui::Event& event,
   return true;
 }
 
+bool EquippedPanel::OnPresetBarEvent(const ftxui::Event& event) {
+  if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
+    StepPreset(event == ftxui::Event::ArrowLeft ? -1 : 1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  // Swallow the rest, for the reason the bar above does.
+  return true;
+}
+
 bool EquippedPanel::OnListEvent(const ftxui::Event& event,
                                 const std::function<void()>& on_enter) {
   // Take the two ends of the list and leave everything between them to the
@@ -477,6 +539,9 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter,
                            [this, on_enter, on_expand](ftxui::Event event) {
                              if (zone_ == kZoneTabs) {
                                return OnTabBarEvent(event, on_expand);
+                             }
+                             if (zone_ == kZonePresets) {
+                               return OnPresetBarEvent(event);
                              }
                              return OnListEvent(event, on_enter);
                            });

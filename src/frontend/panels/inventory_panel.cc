@@ -527,7 +527,8 @@ Screen InventoryPanel::OnStackMenuEvent(ftxui::Event event) {
 }
 
 Screen InventoryPanel::OnEquipMenuEvent(ftxui::Event event,
-                                        ScrollPanel& scroll_panel) {
+                                        ScrollPanel& scroll_panel,
+                                        StatPreset gear) {
   if (IsBack(event)) {
     return kMain;
   }
@@ -543,7 +544,7 @@ Screen InventoryPanel::OnEquipMenuEvent(ftxui::Event event,
     return kItemMenu;
   }
   if (menu_.selected() == kMenuAction) {
-    character_.Equip(selected_);
+    character_.Equip(selected_, gear);
     return kMain;
   }
   if (menu_.selected() == kMenuInspect) {
@@ -586,8 +587,8 @@ Screen InventoryPanel::OnEquipMenuEvent(ftxui::Event event,
 }
 
 Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
-                                   ScrollPanel& scroll_panel) {
-  return active_tab_ == kEquipTab ? OnEquipMenuEvent(event, scroll_panel)
+                                   ScrollPanel& scroll_panel, StatPreset gear) {
+  return active_tab_ == kEquipTab ? OnEquipMenuEvent(event, scroll_panel, gear)
                                   : OnStackMenuEvent(event);
 }
 

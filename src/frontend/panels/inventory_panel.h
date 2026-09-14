@@ -30,6 +30,7 @@
 #include "ftxui/screen/box.hpp"
 #include "src/account.h"
 #include "src/character/character.h"
+#include "src/character/stat_preset.h"
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
@@ -58,7 +59,12 @@ class InventoryPanel {
   // Handles Up/Down/Escape/Return for the item context menu and executes the
   // selected action. Returns the next screen state. On the Equip tab this
   // drives the equip menu; on Etc it drives the {Sell, Close} menu.
-  Screen OnMenuEvent(ftxui::Event event, ScrollPanel& scroll_panel);
+  //
+  // `gear` is the preset the Equipped panel is showing, which is the one an
+  // Equip puts the item into: what the player is looking at is what they are
+  // dressing.
+  Screen OnMenuEvent(ftxui::Event event, ScrollPanel& scroll_panel,
+                     StatPreset gear = StatPreset::kFirst);
 
   // The item context menu for the active tab: the equip menu on Equip, the
   // sell menu on Etc.
@@ -144,7 +150,8 @@ class InventoryPanel {
  private:
   // The two menus OnMenuEvent drives, one per tab family: the equip menu on
   // Equip, the {Inspect, Sell, Multi-Sell} menu on Etc.
-  Screen OnEquipMenuEvent(ftxui::Event event, ScrollPanel& scroll_panel);
+  Screen OnEquipMenuEvent(ftxui::Event event, ScrollPanel& scroll_panel,
+                          StatPreset gear);
   Screen OnStackMenuEvent(ftxui::Event event);
 
   // Whether the border is currently lit gold. Set from outside, read by the

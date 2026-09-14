@@ -68,6 +68,7 @@ cc_library(
         "//src/frontend/screens:scroll_panel",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:equipped_list",
+        "//src/frontend/widgets:game_names",
         "//src/frontend/widgets:item_columns",
         "//src/frontend/widgets:item_menu",
         "//src/frontend/widgets:item_row",

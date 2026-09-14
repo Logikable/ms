@@ -31,6 +31,10 @@ struct EquippedRow {
   // Whether the item is worn but contributing nothing, which a list draws
   // dimmed rather than hidden.
   bool inactive = false;
+  // Whether this preset is wearing the first preset's item rather than one of
+  // its own. Drawn dimmed too: the row says what is on the character, and the
+  // dim says the preset has nothing of its own to say about that slot.
+  bool inherited = false;
 };
 
 // The rows for the gear `character` is wearing. Arcane Symbols are left out:
@@ -40,10 +44,12 @@ struct EquippedRow {
 // Only the row at `selected` slides a name too long for its column, and
 // `elapsed` is how long it has been the selected one; pass -1 and zero for a
 // list whose names all sit at their heads. `columns` is what the panel fitted
-// into its width -- see FitItemColumns.
+// into its width -- see FitItemColumns. `preset` is which of the character's
+// three gear setups is being listed.
 std::vector<EquippedRow> EquippedRows(
     const CharacterInstance& character, int selected,
-    std::chrono::steady_clock::duration elapsed, const ItemColumns& columns);
+    std::chrono::steady_clock::duration elapsed, const ItemColumns& columns,
+    StatPreset preset = StatPreset::kFirst);
 
 // The rows for the Arcane Symbols `character` is wearing, in the order their
 // areas open. Empty until the first one is put on, which is the whole of what

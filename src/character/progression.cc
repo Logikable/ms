@@ -66,6 +66,9 @@ constexpr Unlock kUnlocks[] = {
     // Arcane River opens at 200, and it opens with a symbol handed over -- so
     // the tab arrives with something to put in it.
     {Feature::kSymbols, 200},
+    // Cubing's own level: the presets arrive with the reason to keep two sets
+    // of gear. See Feature::kEquipPresets.
+    {Feature::kEquipPresets, kPotentialUnlockLevel},
 };
 
 // What an advancement opens rather than a level, and which one opens it: 1 is
@@ -213,6 +216,8 @@ std::string FeatureName(Feature feature) {
       return "Buffs";
     case Feature::kSymbols:
       return "Arcane Symbols";
+    case Feature::kEquipPresets:
+      return "Equip Presets";
     case Feature::kCombatStats:
       return "Combat Stats";
     case Feature::kDamageStats:

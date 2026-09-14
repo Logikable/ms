@@ -63,6 +63,10 @@ enum class Feature {
   // there is no symbol to be had, and a tab that can only ever be empty is
   // worse than no tab.
   kSymbols,
+  // The Farm/Boss/Drop row under the Gear tab. Cubing's own level: a second
+  // set of gear is worth keeping once a piece is worth more than the tier it
+  // belongs to, which is what a cube makes true.
+  kEquipPresets,
   // The combat stat block on the Character panel, in two halves. Gated on the
   // advancement rather than the level: what fills those rows is a job's
   // passives and the gear a job can wear, so a Beginner has nothing to read

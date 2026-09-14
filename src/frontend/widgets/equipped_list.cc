@@ -46,10 +46,11 @@ const char kSymbolHeader[] =
 
 std::vector<EquippedRow> EquippedRows(
     const CharacterInstance& character, int selected,
-    std::chrono::steady_clock::duration elapsed, const ItemColumns& columns) {
+    std::chrono::steady_clock::duration elapsed, const ItemColumns& columns,
+    StatPreset preset) {
   std::vector<EquipSlot> slots;
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
-       character.equipped()) {
+       character.equipped(preset)) {
     if (!IsArcaneSymbol(kv.second->prototype())) {
       slots.push_back(kv.first);
     }
@@ -59,7 +60,7 @@ std::vector<EquippedRow> EquippedRows(
   });
   std::vector<EquippedRow> rows;
   for (EquipSlot slot : slots) {
-    const EquipInstance& item = *character.equipped().at(slot);
+    const EquipInstance& item = *character.equipped(preset).at(slot);
     // Only the selected row's name slides; the rest sit at their heads.
     std::chrono::steady_clock::duration slide =
         static_cast<int>(rows.size()) == selected
@@ -72,7 +73,8 @@ std::vector<EquippedRow> EquippedRows(
     cells.stats = ItemStatsCell(character.proto().job(), item.stats());
     EquippedRow row;
     row.slot = slot;
-    row.inactive = !character.AttackCounts(item.prototype());
+    row.inactive = !character.AttackCounts(item.prototype(), preset);
+    row.inherited = character.InheritsSlot(preset, slot);
     row.text = FormatItemRow(columns, cells, slide);
     rows.push_back(std::move(row));
   }

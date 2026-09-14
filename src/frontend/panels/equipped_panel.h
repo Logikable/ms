@@ -4,7 +4,9 @@
  * along the next one it is, and the Arcane Force it grants.
  *
  * Focus moves top-to-bottom through zones, the way the bag's does. The top
- * zone is the tab bar: there Left and Right switch tabs. Down descends into
+ * zone is the tab bar: there Left and Right switch tabs. Under it, once
+ * cubing has opened them, the Gear tab carries a second row of its own: the
+ * three gear presets, which Left and Right step between. Down descends into
  * the tab's list, and Up off the top row returns to the bar. Enter opens the
  * item context menu via the on_enter callback passed to MakeComponent().
  *
@@ -64,6 +66,12 @@ class EquippedPanel {
   int selected() const {
     return selected_;
   }
+  // The gear preset the Gear tab is showing, which is what the item menu and
+  // the bag's Equip act on. The first until the player steps along the preset
+  // row.
+  StatPreset gear_preset() const {
+    return gear_preset_;
+  }
   // Which of the content tabs is open. The controller asks so that Enter on a
   // symbol reaches the symbol's screens rather than an equip's. Unchanged by
   // stepping out onto Expand, which is where the cursor is rather than what
@@ -111,7 +119,7 @@ class EquippedPanel {
  private:
   // Which focus zone holds the cursor. The bar is a stop in the same ring as
   // the rows, so one pair of keys walks the whole panel.
-  enum Zone { kZoneTabs, kZoneList };
+  enum Zone { kZoneTabs, kZonePresets, kZoneList };
 
   // The three passes OpenMenu makes over the gear menu: what the account has
   // not unlocked comes off, then what this piece refuses, then the gold trail
@@ -128,6 +136,14 @@ class EquippedPanel {
   // The titled window around the tab bar and the list.
   ftxui::Element RenderContent(ftxui::Component menu);
   ftxui::Element RenderTabBar(bool row_selected) const;
+  // The Farm/Boss/Drop row under the bar, and whether it is there at all: the
+  // Gear tab carries it once cubing has opened the presets.
+  ftxui::Element RenderPresetBar(bool row_selected) const;
+  bool ShowsPresetBar() const;
+  // Moves `direction` chips along the preset row, which does not wrap: it is
+  // a row of three, not a ring like the bar above it.
+  void StepPreset(int direction);
+  bool OnPresetBarEvent(const ftxui::Event& event);
   // The content tabs the character has reached, left to right. Symbols
   // arrives with Arcane River; Expand is not one of these, being a door
   // rather than a page.
@@ -169,6 +185,7 @@ class EquippedPanel {
   // the tab it was showing, and Left steps back onto it.
   bool on_expand_ = false;
   Zone zone_ = kZoneList;
+  StatPreset gear_preset_ = StatPreset::kFirst;
   int selected_ = 0;
   // When the selection last moved, for sliding a long name under its column.
   SelectionClock name_clock_;
@@ -182,8 +199,8 @@ class EquippedPanel {
   // Parallel to entries_: whether the row's name is drawn gold, which the worn
   // weapon is while an upgrade waits that the player has not come to look at.
   std::vector<bool> led_;
-  // Parallel to entries_: whether that item is currently doing nothing, which
-  // the entry transform draws as a dimmed row.
+  // Parallel to entries_: whether that row is drawn dimmed, which is a piece
+  // doing nothing or one the open preset wears only because the first does.
   std::vector<bool> inactive_;
   // Written by ftxui::reflect on the highlighted row each render.
   ftxui::Box cursor_box_;

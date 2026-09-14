@@ -1003,6 +1003,131 @@ TEST_F(EquippedPanelTest, LightsUpEvenWithNothingEquipped) {
 
 // --- The Symbols tab ---
 
+// --- The gear preset row ---
+
+class GearPresetTest : public EquippedPanelTest {
+ protected:
+  // A character at the level cubing opens at, which is the level the presets
+  // do. Holds the panel's character for the life of the test.
+  CharacterInstance& Cuber() {
+    Character proto;
+    proto.set_level(kPotentialUnlockLevel);
+    proto.set_job(JOB_HERO);
+    proto.set_job_stage(4);
+    characters_.push_back(
+        std::make_unique<CharacterInstance>(rng_, std::move(proto)));
+    return *characters_.back();
+  }
+
+  void Wear(CharacterInstance& c, const std::string& name, EquipSlot slot,
+            StatPreset preset) {
+    EquipPrototype proto;
+    proto.set_name(name);
+    proto.set_equip_slot(slot);
+    c.PickUp(std::make_unique<EquipInstance>(proto));
+    ASSERT_TRUE(c.Equip(c.inventory().size() - 1, preset));
+  }
+};
+
+// Below the level cubing opens at there is only one set of gear, so the row
+// is not drawn and the panel reads as it always did.
+TEST_F(GearPresetTest, NoRowBeforeCubing) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, account_, panel_focus_);
+  std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
+  EXPECT_EQ(rendered.find("Farm"), std::string::npos);
+  EXPECT_EQ(rendered.find("Drop"), std::string::npos);
+}
+
+// With the autoswap on the three are named for what they are for -- the third
+// included, unlike the allocations', because the boss drop roll reads it.
+TEST_F(GearPresetTest, NamesTheThreeWithTheAutoswapOn) {
+  CharacterInstance& c = Cuber();
+  c.set_autoswap_presets(true);
+  Wear(c, "Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kFirst);
+  EquippedPanel panel(c, account_, panel_focus_);
+  std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
+  EXPECT_NE(rendered.find("Farm"), std::string::npos);
+  EXPECT_NE(rendered.find("Boss"), std::string::npos);
+  EXPECT_NE(rendered.find("Drop"), std::string::npos);
+}
+
+// Off, they are numbered, and one of them carries the mark saying it is the
+// one being worn.
+TEST_F(GearPresetTest, NumbersThemWithTheAutoswapOff) {
+  CharacterInstance& c = Cuber();
+  c.SetSlotInUse(PresetKind::kEquip, StatPreset::kSecond);
+  Wear(c, "Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kFirst);
+  EquippedPanel panel(c, account_, panel_focus_);
+  std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
+  EXPECT_EQ(rendered.find("Farm"), std::string::npos);
+  EXPECT_NE(rendered.find("2 \u2713"), std::string::npos);
+}
+
+// Stepping right shows what that preset wears, and a slot it has nothing of
+// its own in is drawn dimmed: the item is on the character, but it is the
+// Farm preset's.
+TEST_F(GearPresetTest, TheRowPicksWhichPresetIsListed) {
+  CharacterInstance& c = Cuber();
+  c.set_autoswap_presets(true);
+  Wear(c, "Farm Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kFirst);
+  Wear(c, "Farm Hat", EQUIP_SLOT_HAT, StatPreset::kFirst);
+  Wear(c, "Boss Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kSecond);
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  RenderComponent(component);
+  component->OnEvent(ftxui::Event::ArrowUp);  // the list -> the preset row
+  component->OnEvent(ftxui::Event::ArrowRight);
+
+  std::string rendered = RenderComponent(component);
+  EXPECT_EQ(panel.gear_preset(), StatPreset::kSecond);
+  EXPECT_NE(rendered.find("Boss Sword"), std::string::npos);
+  EXPECT_EQ(rendered.find("Farm Sword"), std::string::npos);
+  EXPECT_EQ(LineWith(rendered, "Boss Sword").find("\033[2m"), std::string::npos)
+      << "its own, so it is drawn plainly";
+  EXPECT_NE(LineWith(rendered, "Farm Hat").find("\033[2m"), std::string::npos)
+      << "inherited, so it is dimmed";
+}
+
+// The row is three chips and not a ring: Left off the first stays on it, and
+// Right off the last stays there.
+TEST_F(GearPresetTest, TheRowDoesNotWrap) {
+  CharacterInstance& c = Cuber();
+  Wear(c, "Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kFirst);
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  RenderComponent(component);
+  component->OnEvent(ftxui::Event::ArrowUp);
+  component->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_EQ(panel.gear_preset(), StatPreset::kFirst);
+  for (int i = 0; i < 5; ++i) {
+    component->OnEvent(ftxui::Event::ArrowRight);
+  }
+  EXPECT_EQ(panel.gear_preset(), StatPreset::kThird);
+}
+
+// A preset takes off only what is its own, so the entry is dimmed on a row it
+// inherits rather than taking the Farm preset's item away under it.
+TEST_F(GearPresetTest, UnequipIsDimmedOnAnInheritedRow) {
+  CharacterInstance& c = Cuber();
+  Wear(c, "Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kFirst);
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  RenderComponent(component);
+  component->OnEvent(ftxui::Event::ArrowUp);
+  component->OnEvent(ftxui::Event::ArrowRight);
+  component->OnEvent(ftxui::Event::ArrowDown);
+  panel.OpenMenu();
+
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::find(reachable.begin(), reachable.end(), kGearMenuUnequip),
+            reachable.end());
+}
+
 class SymbolTabTest : public EquippedPanelTest {
  protected:
   // A character in Arcane River, which is what puts the second tab on the bar.
@@ -1025,6 +1150,14 @@ class SymbolTabTest : public EquippedPanelTest {
     state.set_symbol_exp(exp);
     c.PickUp(std::make_unique<EquipInstance>(proto, state));
     ASSERT_TRUE(c.Equip(0));
+  }
+
+  // Up to the tab bar and one step right, which is the Symbols tab. The walk
+  // up passes through the Gear tab's preset row, which a traveller has.
+  void OpenSymbolTab(const ftxui::Component& component) {
+    component->OnEvent(ftxui::Event::ArrowUp);
+    component->OnEvent(ftxui::Event::ArrowUp);
+    component->OnEvent(ftxui::Event::ArrowRight);
   }
 };
 
@@ -1079,7 +1212,8 @@ TEST_F(SymbolTabTest, TheExpandTabClosesTheRing) {
   ftxui::Component component =
       panel.MakeComponent([]() {}, [&expands]() { ++expands; });
   RenderComponent(component);
-  component->OnEvent(ftxui::Event::ArrowUp);     // the list -> the bar
+  component->OnEvent(ftxui::Event::ArrowUp);     // the list -> the presets
+  component->OnEvent(ftxui::Event::ArrowUp);     // the presets -> the bar
   component->OnEvent(ftxui::Event::ArrowRight);  // Gear -> Symbols
   component->OnEvent(ftxui::Event::ArrowRight);  // Symbols -> Expand
   EXPECT_NE(
@@ -1121,8 +1255,7 @@ TEST_F(SymbolTabTest, ASymbolRowIsItsLevelExpAndForce) {
   EquippedPanel panel(c, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
   // Down off the bar, then Right onto Symbols.
-  component->OnEvent(ftxui::Event::ArrowUp);
-  component->OnEvent(ftxui::Event::ArrowRight);
+  OpenSymbolTab(component);
   std::string rendered = RenderComponent(component);
   EXPECT_NE(rendered.find("Vanishing Journey"), std::string::npos);
   EXPECT_NE(rendered.find("12/75"), std::string::npos) << rendered;
@@ -1146,8 +1279,7 @@ TEST_F(SymbolTabTest, TheTwoListsDoNotShareItems) {
   EXPECT_NE(gear.find("Sword"), std::string::npos);
   EXPECT_EQ(gear.find("Vanishing Journey"), std::string::npos);
 
-  component->OnEvent(ftxui::Event::ArrowUp);
-  component->OnEvent(ftxui::Event::ArrowRight);
+  OpenSymbolTab(component);
   std::string symbols = RenderComponent(component);
   EXPECT_NE(symbols.find("Vanishing Journey"), std::string::npos);
   EXPECT_EQ(symbols.find("Sword"), std::string::npos);
@@ -1159,8 +1291,7 @@ TEST_F(SymbolTabTest, TheTabIsEmptyUntilASymbolIsWorn) {
   CharacterInstance c = Traveller();
   EquippedPanel panel(c, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
-  component->OnEvent(ftxui::Event::ArrowUp);
-  component->OnEvent(ftxui::Event::ArrowRight);
+  OpenSymbolTab(component);
   EXPECT_NE(RenderComponent(component).find("(empty)"), std::string::npos);
 }
 
@@ -1172,8 +1303,7 @@ TEST_F(SymbolTabTest, TheSymbolMenuLeavesTheUpgradesOff) {
              EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, /*level=*/1, /*exp=*/0);
   EquippedPanel panel(c, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
-  component->OnEvent(ftxui::Event::ArrowUp);
-  component->OnEvent(ftxui::Event::ArrowRight);
+  OpenSymbolTab(component);
   panel.OpenMenu();
   std::string rendered = RenderElement(panel.menu().Render(0, 0));
   EXPECT_NE(rendered.find("Unequip"), std::string::npos);
@@ -1190,8 +1320,7 @@ TEST_F(SymbolTabTest, LevelUpWaitsForTheDuplicates) {
              EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, /*level=*/1, /*exp=*/11);
   EquippedPanel panel(waiting, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
-  component->OnEvent(ftxui::Event::ArrowUp);
-  component->OnEvent(ftxui::Event::ArrowRight);
+  OpenSymbolTab(component);
   panel.OpenMenu();
   std::vector<int> reachable = ReachableMenuEntries(panel.menu());
   EXPECT_EQ(std::find(reachable.begin(), reachable.end(), kSymbolMenuLevelUp),
@@ -1202,8 +1331,7 @@ TEST_F(SymbolTabTest, LevelUpWaitsForTheDuplicates) {
              EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, /*level=*/1, /*exp=*/12);
   EquippedPanel open(ready, account_, panel_focus_);
   ftxui::Component ready_component = open.MakeComponent([]() {});
-  ready_component->OnEvent(ftxui::Event::ArrowUp);
-  ready_component->OnEvent(ftxui::Event::ArrowRight);
+  OpenSymbolTab(ready_component);
   open.OpenMenu();
   reachable = ReachableMenuEntries(open.menu());
   EXPECT_NE(std::find(reachable.begin(), reachable.end(), kSymbolMenuLevelUp),
@@ -1217,8 +1345,7 @@ TEST_F(SymbolTabTest, LevelUpOpensTheDialog) {
              EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, /*level=*/1, /*exp=*/12);
   EquippedPanel panel(c, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
-  component->OnEvent(ftxui::Event::ArrowUp);
-  component->OnEvent(ftxui::Event::ArrowRight);
+  OpenSymbolTab(component);
   panel.OpenMenu();
   panel.menu().Down();
   panel.menu().Down();
