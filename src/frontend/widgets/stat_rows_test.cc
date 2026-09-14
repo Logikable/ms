@@ -119,10 +119,10 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
   EXPECT_EQ(labels, (std::vector<std::string>{
                         "Attack", "Magic Attack", "Final Damage", "Damage",
                         "Boss Damage", "Normal Damage", "Ignore DEF",
-                        "Ignore Elem RES", "Critical Rate", "Critical Damage",
-                        "Buff Duration", "Attack Speed", "", "Meso Drop Rate",
-                        "Item Drop Rate", "Additional EXP", "Arcane Force"}));
-  EXPECT_TRUE(lines[12].rule) << "the empty row is the rule, not a blank stat";
+                        "Critical Rate", "Critical Damage", "Buff Duration",
+                        "Attack Speed", "", "Meso Drop Rate", "Item Drop Rate",
+                        "Additional EXP", "Arcane Force"}));
+  EXPECT_TRUE(lines[11].rule) << "the empty row is the rule, not a blank stat";
 }
 
 // The panel's list is the same one, opened up by the advancements. The All
@@ -133,7 +133,7 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   proto.set_job(JOB_BEGINNER);
   CharacterInstance beginner(rng_, std::move(proto));
   EXPECT_TRUE(PanelExtraStatLines(beginner, account_, {}).empty());
-  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 17u);
+  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 16u);
 
   CharacterInstance first = MakeWarrior();
   std::vector<std::string> labels;
@@ -157,7 +157,7 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   third_proto.set_job(JOB_BERSERKER);
   third_proto.set_job_stage(3);
   CharacterInstance third(rng_, std::move(third_proto));
-  EXPECT_EQ(PanelExtraStatLines(third, account_, {}).size(), 17u);
+  EXPECT_EQ(PanelExtraStatLines(third, account_, {}).size(), 16u);
 }
 
 TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {
@@ -176,14 +176,14 @@ TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {
 
 // A character who has bought nothing still crits, still ignores a share of
 // armour and still holds a buff longer: the page says so rather than reading
-// 0.00% at five numbers every character has. See constants.h.
+// 0.00% at four numbers every character has. The fifth base, ignored elemental
+// resistance, is not a row -- see constants.h.
 TEST_F(StatRowsTest, TheBasesEveryCharacterCarriesAreShown) {
   CharacterInstance c = MakeWarrior();
   std::vector<StatLine> lines = ExtraStatLines(c, {});
   EXPECT_EQ(ValueOf(lines, "Critical Rate"), "5.00%");
   EXPECT_EQ(ValueOf(lines, "Critical Damage"), "35.00%");
   EXPECT_EQ(ValueOf(lines, "Ignore DEF"), "10.00%");
-  EXPECT_EQ(ValueOf(lines, "Ignore Elem RES"), "5.00%");
   EXPECT_EQ(ValueOf(lines, "Buff Duration"), "10.00%");
 }
 
