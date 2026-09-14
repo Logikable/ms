@@ -2176,6 +2176,26 @@ TEST_F(DerivedStatsTest, TwoSourcesOfIgnoredDefenceCombineInReverse) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).ied, 1.0 - 0.75 * 0.60, 1e-9);
 }
 
+// Its elemental twin does sum, which is the whole difference between them:
+// GMS applies each to the resistance itself rather than to what the source
+// before it left standing.
+TEST_F(DerivedStatsTest, TwoSourcesOfIgnoredElementalResistanceSum) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill decrease = Marksmanship();
+  decrease.set_name("Elemental Decrease");
+  decrease.clear_per_level();
+  decrease.mutable_base()->clear_ied_pct();
+  decrease.mutable_base()->set_ier_pct(0.10);
+  Skill indignant = decrease;
+  indignant.set_name("Righteously Indignant");
+  std::map<std::string, Skill> skills = {{"elemental_decrease", decrease},
+                                         {"righteously_indignant", indignant}};
+  ASSERT_TRUE(c.LearnSkill(decrease, 1));
+  ASSERT_TRUE(c.LearnSkill(indignant, 1));
+
+  EXPECT_NEAR(DerivedStatsFor(c, skills).ier, 0.20, 1e-9);
+}
+
 // An ATTACK's own ignored defence, boss damage and final damage belong to its
 // swing, so they never reach the character's stat line -- OffenseStatsFor
 // reads them off the skill being swung instead. Gungnir's Descent is the
@@ -2270,6 +2290,7 @@ TEST_F(DerivedStatsTest, AnAttacksKeptHalfReachesTheStatLine) {
 TEST_F(DerivedStatsTest, TheSwingLeversAndTheRestPartitionAnEffect) {
   SkillEffect effect;
   effect.set_ied_pct(0.40);
+  effect.set_ier_pct(0.15);
   effect.set_boss_pct(0.30);
   effect.set_crit_rate(0.20);
   effect.set_final_dmg_pct(0.10);
@@ -2279,6 +2300,7 @@ TEST_F(DerivedStatsTest, TheSwingLeversAndTheRestPartitionAnEffect) {
 
   SkillEffect swing = SwingLeversOf(effect);
   EXPECT_DOUBLE_EQ(swing.ied_pct(), 0.40);
+  EXPECT_DOUBLE_EQ(swing.ier_pct(), 0.15);
   EXPECT_DOUBLE_EQ(swing.boss_pct(), 0.30);
   EXPECT_DOUBLE_EQ(swing.crit_rate(), 0.20);
   EXPECT_DOUBLE_EQ(swing.final_dmg_pct(), 0.10);
@@ -2288,6 +2310,7 @@ TEST_F(DerivedStatsTest, TheSwingLeversAndTheRestPartitionAnEffect) {
 
   SkillEffect kept = WithoutSwingLevers(effect);
   EXPECT_DOUBLE_EQ(kept.ied_pct(), 0.0);
+  EXPECT_DOUBLE_EQ(kept.ier_pct(), 0.0);
   EXPECT_DOUBLE_EQ(kept.boss_pct(), 0.0);
   EXPECT_DOUBLE_EQ(kept.crit_rate(), 0.0);
   EXPECT_DOUBLE_EQ(kept.final_dmg_pct(), 0.0);

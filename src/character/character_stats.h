@@ -286,6 +286,11 @@ struct DerivedStats {
   // reverse across the passives granting it. Gear grants it too, and the two
   // meet the same way -- see OffenseStatsFor.
   double ied = 0.0;
+  // Share of a BOSS's elemental resistance they ignore, summed across the
+  // passives granting it. Half of every boss hit sits behind that resistance;
+  // this and the base in constants.h are the whole of what reaches it. No gear
+  // grants any. See SkillEffect::ier_pct.
+  double ier = 0.0;
   // The best weapon mastery the passives grant, 0..1 -- the better of two
   // rather than their sum, since two masteries are not twice as steady a
   // swing. The job line's own base is added under it; see BaseMastery.

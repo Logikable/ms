@@ -273,6 +273,9 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   totals.uncapped_attack_speed_bonus +=
       WholeValue(granted.uncapped_attack_speed());
   totals.ied = CombineIgnoredDefense(totals.ied, granted.ied_pct());
+  // Its elemental twin, which sums rather than combining in reverse: GMS
+  // applies it to the resistance itself, not to what the last source left.
+  totals.ier += granted.ier_pct();
   // The one lever taken at its best rather than summed: two masteries are not
   // twice as steady a swing, they are the better of the two.
   totals.mastery = std::max(totals.mastery, granted.mastery());
@@ -1197,6 +1200,7 @@ int FoldPercent(int flat, double pct) {
 SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
   SkillEffect kept = effect;
   kept.clear_ied_pct();
+  kept.clear_ier_pct();
   kept.clear_boss_pct();
   kept.clear_damage_pct();
   kept.clear_normal_pct();
@@ -1216,6 +1220,7 @@ SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
 SkillEffect SwingLeversOf(const SkillEffect& effect) {
   SkillEffect swing;
   swing.set_ied_pct(effect.ied_pct());
+  swing.set_ier_pct(effect.ier_pct());
   swing.set_boss_pct(effect.boss_pct());
   swing.set_damage_pct(effect.damage_pct());
   swing.set_normal_pct(effect.normal_pct());
@@ -1565,6 +1570,7 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
   passives.bonus_attack_lines = derived.bonus_attack_lines;
   passives.final_dmg_pct = derived.final_dmg_pct;
   passives.ied = derived.ied;
+  passives.ier = derived.ier;
   passives.skill_bonus = derived.skill_bonus;
   passives.arcane_pct = derived.arcane_damage_factor;
   return passives;

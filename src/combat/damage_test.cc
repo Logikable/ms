@@ -726,11 +726,13 @@ TEST(OffenseStatsForTest, AnAttacksOwnLeversRideThatSwing) {
   gungnir.mutable_base()->set_skill_pct(1.96);
   gungnir.mutable_base()->set_ied_pct(0.01);
   gungnir.mutable_per_level()->set_ied_pct(0.01);
+  gungnir.mutable_base()->set_ier_pct(0.05);
   gungnir.mutable_base()->set_boss_pct(0.30);
   gungnir.mutable_base()->set_normal_pct(0.25);
   gungnir.mutable_base()->set_final_dmg_pct(0.20);
   PassiveOffense passives;
   passives.ied = 0.40;
+  passives.ier = 0.10;
   passives.boss_pct = 0.10;
   passives.normal_pct = 0.05;
   passives.final_dmg_pct = 0.50;
@@ -741,6 +743,8 @@ TEST(OffenseStatsForTest, AnAttacksOwnLeversRideThatSwing) {
   // 30% at level 30, meeting the character's 40% in reverse rather than
   // summing.
   EXPECT_DOUBLE_EQ(offense.ied, 1.0 - 0.60 * 0.70);
+  // Its elemental twin sums with the character's instead.
+  EXPECT_DOUBLE_EQ(offense.ier, 0.15);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.40);
   EXPECT_DOUBLE_EQ(offense.normal_pct, 0.30);
   // Final damage multiplies where the two above do not: 1.5 x 1.2.
@@ -752,6 +756,7 @@ TEST(OffenseStatsForTest, AnAttacksOwnLeversRideThatSwing) {
       OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), EquipStats(),
                       EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
   EXPECT_DOUBLE_EQ(bare.ied, 0.40);
+  EXPECT_DOUBLE_EQ(bare.ier, 0.10);
   EXPECT_DOUBLE_EQ(bare.boss_pct, 0.10);
   EXPECT_DOUBLE_EQ(bare.normal_pct, 0.05);
   EXPECT_DOUBLE_EQ(bare.final_dmg_pct, 0.50);

@@ -228,6 +228,19 @@ message SkillEffect {
   // things by them. See WithoutSwingLevers.
   double ied_pct = 23;
 
+  // Share of a boss's ELEMENTAL resistance the character ignores (0.10 ==
+  // 10%). Half of every hit on a boss sits behind that resistance, and this is
+  // the only thing that reaches it -- see kBossElementalBase.
+  //
+  // GMS multiplies rather than subtracting points: 10% ignored brings the
+  // reduction from 50% to 45%, not to 40%. Two sources sum, unlike ied_pct's
+  // two -- nothing in the game grants a second, since Elemental Decrease is
+  // the I/L and F/P mage's and Righteously Indignant is the Bishop's.
+  //
+  // Rides one swing or the character by the same rule ied_pct does: GMS writes
+  // the arch mage's 4th-job form of Elemental Decrease as a cast.
+  double ier_pct = 56;
+
   // Share added to the character's damage against a boss and nothing else (0.10
   // == +10%). Sums with what gear grants, the two being the same quantity from
   // two places.

@@ -337,6 +337,9 @@ struct PassiveOffense {
   // Share of the monster's DEF the passives ignore, already combined across
   // them. Meets the gear's share in reverse, the same way they combined.
   double ied = 0.0;
+  // Its elemental twin, summed across them. No gear grants any, so this is
+  // the whole of what a character bought. See OffenseStats::ier.
+  double ier = 0.0;
   // What the book hands particular skills, keyed by display name. Only the
   // entry matching the skill being swung is read, and most characters carry
   // none.

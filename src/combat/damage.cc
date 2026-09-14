@@ -543,6 +543,8 @@ void AddSwingLevers(const Skill& attack_skill, int attack_level,
   offense.ied = CombineIgnoredDefense(
       offense.ied, attack_skill.base().ied_pct() +
                        attack_skill.per_level().ied_pct() * (attack_level - 1));
+  offense.ier += attack_skill.base().ier_pct() +
+                 attack_skill.per_level().ier_pct() * (attack_level - 1);
   offense.boss_pct += attack_skill.base().boss_pct() +
                       attack_skill.per_level().boss_pct() * (attack_level - 1);
   offense.damage_pct +=
@@ -606,6 +608,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
   offense.damage_pct = passives.damage_pct;
   offense.final_dmg_pct = passives.final_dmg_pct;
   offense.arcane_pct = passives.arcane_pct;
+  offense.ier = passives.ier;
   // The line's own base, plus whatever the best mastery skill grants on top.
   offense.mastery = BaseMastery(job) + passives.mastery;
   AddStatsByBranch(job, allocated, equipped, offense);
