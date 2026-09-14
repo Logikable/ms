@@ -90,7 +90,7 @@ class PartyInspectPanel {
   // The item the cursor is on, or null with nothing worn.
   const EquipInstance* selected_item() const;
   // Which of the member's two Hyper Stat allocations is being read.
-  StatPreset preset() const {
+  Activity preset() const {
     return stats_.preset();
   }
 

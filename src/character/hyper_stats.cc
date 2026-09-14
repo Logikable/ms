@@ -34,15 +34,15 @@ int FloorLog(int base, int value) {
 
 }  // namespace
 
-const HyperStatPreset& PresetOf(const HyperStats& stats, StatPreset preset) {
-  if (preset == StatPreset::kBossing) {
+const HyperStatPreset& PresetOf(const HyperStats& stats, StatPreset slot) {
+  if (slot == StatPreset::kSecond) {
     return stats.bossing();
   }
   return stats.farming();
 }
 
-HyperStatPreset& PresetOf(HyperStats& stats, StatPreset preset) {
-  if (preset == StatPreset::kBossing) {
+HyperStatPreset& PresetOf(HyperStats& stats, StatPreset slot) {
+  if (slot == StatPreset::kSecond) {
     return *stats.mutable_bossing();
   }
   return *stats.mutable_farming();

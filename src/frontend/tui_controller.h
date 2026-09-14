@@ -683,11 +683,11 @@ class TuiController {
   // What the open Hyper Stat question is about. Held rather than read back off
   // the panel, so the answer lands on the stat the question named.
   HyperStatField hyper_field_ = HYPER_STAT_FIELD_UNSPECIFIED;
-  StatPreset hyper_preset_ = StatPreset::kFarming;
+  StatPreset hyper_preset_ = StatPreset::kFirst;
   ConfirmPrompt ability_reroll_prompt_;
   // And which allocation the open Inner Ability question is about, kept apart
   // from the Hyper one above so neither answer can land on the other's.
-  StatPreset ability_preset_ = StatPreset::kFarming;
+  StatPreset ability_preset_ = StatPreset::kFirst;
   // See ability_rank_up(). Put out by OnEvent before it dispatches, so the
   // reroll that sets it keeps it and the key after it does not.
   bool ability_rank_up_ = false;

@@ -111,14 +111,14 @@ void AddLine(Potential& potential, PotentialLineType type, PotentialRank rank) {
 // power for.
 const Mob* NominalTarget(const std::map<std::string, Boss>& bosses,
                          const std::map<std::string, Mob>& mobs, int level,
-                         StatPreset preset) {
+                         Activity preset) {
   const Mob* worst = nullptr;
   auto harder = [&worst](const Mob& mob) {
     if (worst == nullptr || mob.pdr() > worst->pdr()) {
       worst = &mob;
     }
   };
-  if (preset == StatPreset::kFarming) {
+  if (preset == Activity::kFarming) {
     for (const std::pair<const std::string, Mob>& entry : mobs) {
       if (!entry.second.boss() && entry.second.level() <= level) {
         harder(entry.second);
@@ -154,11 +154,11 @@ const Mob* NominalTarget(const std::map<std::string, Boss>& bosses,
 // 1-damage floor together, and the preset then buys nothing. That is the
 // roster saying the fight is out of reach, not a tie to be broken.
 double MaxHyperRate(CharacterInstance& character,
-                    const std::map<std::string, Skill>& skills,
-                    StatPreset preset, const Mob* target) {
+                    const std::map<std::string, Skill>& skills, Activity preset,
+                    const Mob* target) {
   const OffenseStats offense = CharacterOffense(character, skills, preset);
   if (target == nullptr) {
-    return CombatPower(offense, preset == StatPreset::kBossing);
+    return CombatPower(offense, preset == Activity::kBossing);
   }
   return ExpectedAttackDamage(offense, *target);
 }
@@ -219,17 +219,18 @@ void SpendMaxHyperStats(CharacterInstance& character,
                         const std::map<std::string, Boss>& bosses,
                         const std::map<std::string, Mob>& mobs) {
   const int level = character.proto().level();
-  for (StatPreset preset : {StatPreset::kFarming, StatPreset::kBossing}) {
-    const Mob* target = NominalTarget(bosses, mobs, level, preset);
+  for (Activity activity : {Activity::kFarming, Activity::kBossing}) {
+    const Mob* target = NominalTarget(bosses, mobs, level, activity);
+    const StatPreset slot = SlotFor(activity);
     HyperWorth worth = MeasureHyperWorth(
-        character, preset, [&skills, preset, target](CharacterInstance& c) {
-          return MaxHyperRate(c, skills, preset, target);
+        character, slot, [&skills, activity, target](CharacterInstance& c) {
+          return MaxHyperRate(c, skills, activity, target);
         });
-    SpendHyperStats(character, preset, worth);
+    SpendHyperStats(character, slot, worth);
   }
 }
 
-AbilityPreset MaxAbilityPreset(StatPreset preset, StatField primary) {
+AbilityPreset MaxAbilityPreset(Activity preset, StatField primary) {
   AbilityLineType stat = ABILITY_LINE_TYPE_STR;
   switch (primary) {
     case STAT_FIELD_DEX:
@@ -254,14 +255,14 @@ AbilityPreset MaxAbilityPreset(StatPreset preset, StatField primary) {
   // here: the Extreme Green Potion already hands a boss fight its extra
   // stage, past the cap this line is held to, so a max character is holding
   // a dead line the moment they walk through a boss door.
-  const AbilityLineType top = preset == StatPreset::kBossing
+  const AbilityLineType top = preset == Activity::kBossing
                                   ? ABILITY_LINE_TYPE_CRIT_RATE
                                   : ABILITY_LINE_TYPE_NORMAL_DAMAGE;
   const AbilityLineType attack = primary == STAT_FIELD_INT
                                      ? ABILITY_LINE_TYPE_MAGIC_ATTACK
                                      : ABILITY_LINE_TYPE_ATTACK;
   const AbilityLineType second =
-      preset == StatPreset::kBossing ? attack : ABILITY_LINE_TYPE_ALL_STATS;
+      preset == Activity::kBossing ? attack : ABILITY_LINE_TYPE_ALL_STATS;
 
   AbilityPreset built;
   built.set_rank(ABILITY_RANK_LEGENDARY);

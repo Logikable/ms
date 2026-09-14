@@ -107,12 +107,16 @@ class CharacterPanel {
   // that only means to look at the panel passes none of them.
   ftxui::Component MakeComponent(CharacterPanelActions actions = {});
 
-  // Which of the character's two Hyper Stat allocations the panel is reading,
-  // which the Farm/Boss row picks. The All Stats screen opens on it too, so
-  // the two never disagree about whose numbers are on screen.
+  // Which preset slot the panel is reading, which the Farm/Boss row picks. The
+  // All Stats screen opens on it too, so the two never disagree about whose
+  // numbers are on screen.
   StatPreset hyper_preset() const {
     return hyper_preset_;
   }
+
+  // What the selected slot stands for, which is what the stats the panel shows
+  // are read against -- the Farm chip shows a farming character.
+  Activity SelectedActivity() const;
 
   // Records the active tab as opened, which is what puts its gold out. Called
   // wherever the tab bar moves, and by the controller when focus arrives on
@@ -513,7 +517,7 @@ class CharacterPanel {
   // one clock would carry a slide from one to the other.
   mutable SelectionClock buff_clock_;
   // Which allocation the Farm/Boss row is on -- see hyper_preset().
-  StatPreset hyper_preset_ = StatPreset::kFarming;
+  StatPreset hyper_preset_ = StatPreset::kFirst;
   TextField username_field_{kMaxUsernameLength};
   // Written by ftxui::reflect on the selected job row each render.
   mutable ftxui::Box job_cursor_box_;

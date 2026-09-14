@@ -118,7 +118,7 @@ TEST(MaxCharacterTest, NothingIsCubedThatCannotBe) {
 // lands on. The stat line follows the job; the top line follows the preset.
 TEST(MaxCharacterTest, AbilityHoldsOneLegendaryLine) {
   const AbilityPreset boss =
-      MaxAbilityPreset(StatPreset::kBossing, STAT_FIELD_LUK);
+      MaxAbilityPreset(Activity::kBossing, STAT_FIELD_LUK);
   EXPECT_EQ(boss.rank(), ABILITY_RANK_LEGENDARY);
   ASSERT_EQ(boss.lines_size(), kAbilityLines);
   EXPECT_EQ(boss.lines(0).type(), ABILITY_LINE_TYPE_CRIT_RATE);
@@ -127,7 +127,7 @@ TEST(MaxCharacterTest, AbilityHoldsOneLegendaryLine) {
   EXPECT_EQ(boss.lines(2).type(), ABILITY_LINE_TYPE_LUK);
 
   const AbilityPreset farm =
-      MaxAbilityPreset(StatPreset::kFarming, STAT_FIELD_INT);
+      MaxAbilityPreset(Activity::kFarming, STAT_FIELD_INT);
   EXPECT_EQ(farm.lines(0).type(), ABILITY_LINE_TYPE_NORMAL_DAMAGE);
   EXPECT_EQ(farm.lines(2).type(), ABILITY_LINE_TYPE_INT);
   // No two lines ever share a type, which the roll itself guarantees.
@@ -136,7 +136,7 @@ TEST(MaxCharacterTest, AbilityHoldsOneLegendaryLine) {
 
   // A magician swings on magic attack, so that is the line they hold.
   EXPECT_EQ(
-      MaxAbilityPreset(StatPreset::kBossing, STAT_FIELD_INT).lines(1).type(),
+      MaxAbilityPreset(Activity::kBossing, STAT_FIELD_INT).lines(1).type(),
       ABILITY_LINE_TYPE_MAGIC_ATTACK);
 }
 

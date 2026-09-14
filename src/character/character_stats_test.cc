@@ -2825,7 +2825,7 @@ CharacterInstance HyperStatCharacter(std::mt19937& rng) {
 
 TEST_F(DerivedStatsTest, HyperStatsReachEveryLeverTheyName) {
   CharacterInstance c = HyperStatCharacter(rng_);
-  const StatPreset farming = StatPreset::kFarming;
+  const StatPreset farming = StatPreset::kFirst;
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_STR, farming, 10));
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_MAX_HP, farming, 5));
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_CRIT_RATE, farming, 5));
@@ -2844,7 +2844,7 @@ TEST_F(DerivedStatsTest, HyperStatsReachEveryLeverTheyName) {
 
 TEST_F(DerivedStatsTest, HyperDamageLeversSplitBossFromNormal) {
   CharacterInstance c = HyperStatCharacter(rng_);
-  const StatPreset farming = StatPreset::kFarming;
+  const StatPreset farming = StatPreset::kFirst;
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, farming, 5));
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_BOSS_DAMAGE, farming, 5));
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_NORMAL_DAMAGE, farming, 5));
@@ -2867,7 +2867,7 @@ TEST_F(DerivedStatsTest, MapleWarriorLeavesTheHyperStatAlone) {
   std::map<std::string, Skill> skills = {{"maple_warrior", mw}};
   ASSERT_TRUE(c.LearnSkill(mw, 30));
   ASSERT_TRUE(
-      c.AllocateHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming, 10));
+      c.AllocateHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst, 10));
 
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_EQ(stats.skill_stats.str(), 150 + 300 + 30)
@@ -2879,7 +2879,7 @@ TEST_F(DerivedStatsTest, MapleWarriorLeavesTheHyperStatAlone) {
 // A character holding `lines` in the named preset, at a level that pays them.
 CharacterInstance AbilityCharacter(std::mt19937& rng, AbilityRank rank,
                                    const std::vector<AbilityLine>& lines,
-                                   StatPreset preset = StatPreset::kFarming,
+                                   StatPreset preset = StatPreset::kFirst,
                                    int level = 160) {
   Character proto;
   proto.set_level(level);
@@ -2906,8 +2906,8 @@ AbilityLine Line(AbilityLineType type, AbilityRank rank) {
 // The lines every character is handed pay +10 all stat apiece, and nothing
 // below the unlock level pays at all.
 TEST_F(DerivedStatsTest, TheDefaultLinesPayFromLevel160) {
-  CharacterInstance below = AbilityCharacter(
-      rng_, ABILITY_RANK_RARE, {}, StatPreset::kFarming, /*level=*/159);
+  CharacterInstance below = AbilityCharacter(rng_, ABILITY_RANK_RARE, {},
+                                             StatPreset::kFirst, /*level=*/159);
   EXPECT_EQ(DerivedStatsFor(below, {}).skill_stats.str(), 0);
 
   CharacterInstance c = AbilityCharacter(rng_, ABILITY_RANK_RARE, {});
@@ -3010,22 +3010,22 @@ TEST_F(DerivedStatsTest, TheBossingAbilityIsReadOnlyWhenAskedFor) {
       {Line(ABILITY_LINE_TYPE_BOSS_DAMAGE, ABILITY_RANK_LEGENDARY),
        Line(ABILITY_LINE_TYPE_MESO, ABILITY_RANK_EPIC),
        Line(ABILITY_LINE_TYPE_ITEM_DROP, ABILITY_RANK_EPIC)},
-      StatPreset::kBossing);
+      StatPreset::kSecond);
 
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).boss_pct, 0.0);
-  EXPECT_DOUBLE_EQ(
-      DerivedStatsFor(c, {}, {}, {}, StatPreset::kBossing).boss_pct, 0.20);
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kBossing).boss_pct,
+                   0.20);
 }
 
 // The allocation read is the one the caller asks for.
 TEST_F(DerivedStatsTest, TheBossingAllocationIsReadOnlyWhenAskedFor) {
   CharacterInstance c = HyperStatCharacter(rng_);
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_BOSS_DAMAGE,
-                                  StatPreset::kBossing, 10));
+                                  StatPreset::kSecond, 10));
 
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).boss_pct, 0.0);
-  EXPECT_DOUBLE_EQ(
-      DerivedStatsFor(c, {}, {}, {}, StatPreset::kBossing).boss_pct, 0.35);
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kBossing).boss_pct,
+                   0.35);
 }
 
 // Arcane Force from the Hyper Stat meets what the symbols carry.
@@ -3033,9 +3033,9 @@ TEST_F(DerivedStatsTest, HyperArcaneForceAddsToTheSymbols) {
   CharacterInstance c = HyperStatCharacter(rng_);
   EXPECT_EQ(c.arcane_force(), 0);
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_ARCANE_FORCE,
-                                  StatPreset::kFarming, 10));
+                                  StatPreset::kFirst, 10));
   EXPECT_EQ(c.arcane_force(), 50);
-  EXPECT_EQ(c.arcane_force(StatPreset::kBossing), 0);
+  EXPECT_EQ(c.arcane_force(Activity::kBossing), 0);
 }
 
 // --- Final Pact ---
@@ -3267,7 +3267,7 @@ TEST_F(DerivedStatsTest, TheWealthPotionAddsAShareADropRateAndAMultiplier) {
 
   // A boss fight pays none of it: the buff is farming's, and the bossing
   // preset is what a fight -- and the Boss stats tab -- reads.
-  DerivedStats bossing = DerivedStatsFor(c, {}, {}, {}, StatPreset::kBossing);
+  DerivedStats bossing = DerivedStatsFor(c, {}, {}, {}, Activity::kBossing);
   EXPECT_NEAR(MesoBonus(bossing), 1.00, 1e-9);
   EXPECT_NEAR(bossing.meso_final_mult, 1.0, 1e-9);
   EXPECT_NEAR(bossing.item_drop_pct, 0.0, 1e-9);
@@ -3281,7 +3281,7 @@ TEST_F(DerivedStatsTest, TheGreenPotionIsAStageInABossFightAlone) {
   ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
 
   EXPECT_EQ(DerivedStatsFor(c, {}).uncapped_attack_speed_bonus, 0);
-  EXPECT_EQ(DerivedStatsFor(c, {}, {}, {}, StatPreset::kBossing)
+  EXPECT_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kBossing)
                 .uncapped_attack_speed_bonus,
             kGreenPotionAttackSpeed);
 }
@@ -4006,9 +4006,9 @@ TEST(CharacterCombatPowerTest, CountsTheModesMonsterOnly) {
   bare.mutable_allocated_stats()->set_str(400);
 
   Character spent = bare;
-  (*PresetOf(*spent.mutable_hyper_stats(), StatPreset::kFarming)
+  (*PresetOf(*spent.mutable_hyper_stats(), StatPreset::kFirst)
         .mutable_levels())[HYPER_STAT_FIELD_NORMAL_DAMAGE] = 10;
-  (*PresetOf(*spent.mutable_hyper_stats(), StatPreset::kBossing)
+  (*PresetOf(*spent.mutable_hyper_stats(), StatPreset::kSecond)
         .mutable_levels())[HYPER_STAT_FIELD_BOSS_DAMAGE] = 10;
 
   CharacterInstance nothing(rng, std::move(bare));
@@ -4019,9 +4019,9 @@ TEST(CharacterCombatPowerTest, CountsTheModesMonsterOnly) {
   int baseline = CharacterCombatPower(nothing, {});
   // The same ladder either side, so the two modes come out equal -- and both
   // above a character who has spent nothing.
-  EXPECT_GT(CharacterCombatPower(c, {}, StatPreset::kFarming), baseline);
-  EXPECT_EQ(CharacterCombatPower(c, {}, StatPreset::kFarming),
-            CharacterCombatPower(c, {}, StatPreset::kBossing));
+  EXPECT_GT(CharacterCombatPower(c, {}, Activity::kFarming), baseline);
+  EXPECT_EQ(CharacterCombatPower(c, {}, Activity::kFarming),
+            CharacterCombatPower(c, {}, Activity::kBossing));
 
   // And the boss ladder buys nothing at all under the farming allocation.
   Character misplaced;
@@ -4029,12 +4029,11 @@ TEST(CharacterCombatPowerTest, CountsTheModesMonsterOnly) {
   misplaced.set_job(JOB_SWORDMAN);
   misplaced.set_job_stage(1);
   misplaced.mutable_allocated_stats()->set_str(400);
-  (*PresetOf(*misplaced.mutable_hyper_stats(), StatPreset::kFarming)
+  (*PresetOf(*misplaced.mutable_hyper_stats(), StatPreset::kFirst)
         .mutable_levels())[HYPER_STAT_FIELD_BOSS_DAMAGE] = 10;
   CharacterInstance boss_only(rng, std::move(misplaced));
   EquipAttackWeapon(boss_only);
-  EXPECT_EQ(CharacterCombatPower(boss_only, {}, StatPreset::kFarming),
-            baseline);
+  EXPECT_EQ(CharacterCombatPower(boss_only, {}, Activity::kFarming), baseline);
 }
 
 }  // namespace

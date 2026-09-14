@@ -59,11 +59,11 @@ bool AllStatsPanel::OnEvent(const ftxui::Event& event) {
   }
   // Clamped at the ends, as every tab bar in the game is.
   if (event == ftxui::Event::ArrowLeft) {
-    preset_ = StatPreset::kFarming;
+    preset_ = Activity::kFarming;
     return true;
   }
   if (event == ftxui::Event::ArrowRight) {
-    preset_ = StatPreset::kBossing;
+    preset_ = Activity::kBossing;
     return true;
   }
   return false;
@@ -117,7 +117,7 @@ ftxui::Element AllStatsPanel::RenderBody() const {
   // drawn focused.
   if (ShowsPresetBar()) {
     std::vector<TabSpec> specs = {{"Farm"}, {"Boss"}};
-    int active = preset_ == StatPreset::kBossing ? 1 : 0;
+    int active = preset_ == Activity::kBossing ? 1 : 0;
     rows.push_back(ftxui::hbox({
         TabBar(specs, active, /*row_focused=*/true, kContentWidth),
         ftxui::filler(),

@@ -1010,10 +1010,10 @@ void SeedMax(GameState& state, const TestOptions& options) {
   SpendMaxHyperStats(state.character, state.skills, state.bosses, state.mobs);
   if (state.character.inner_ability_unlocked()) {
     const StatField primary = PrimaryStatField(state.character.proto().job());
-    state.character.SetAbility(MaxAbilityPreset(StatPreset::kFarming, primary),
-                               StatPreset::kFarming);
-    state.character.SetAbility(MaxAbilityPreset(StatPreset::kBossing, primary),
-                               StatPreset::kBossing);
+    for (Activity activity : {Activity::kFarming, Activity::kBossing}) {
+      state.character.SetAbility(MaxAbilityPreset(activity, primary),
+                                 SlotFor(activity));
+    }
   }
   BuyMaxConsumables(state);
   state.current_map = kHomeMap;

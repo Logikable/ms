@@ -48,7 +48,7 @@ void PartyInspectPanel::SetPlayer(const PlayerInfo& player) {
 
 void PartyInspectPanel::Reset() {
   cursor_ = 0;
-  stats_.SetPreset(StatPreset::kFarming);
+  stats_.SetPreset(Activity::kFarming);
 }
 
 int PartyInspectPanel::ItemCount() const {

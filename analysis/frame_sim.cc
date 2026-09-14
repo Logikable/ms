@@ -109,8 +109,7 @@ void Run() {
 
   std::printf("The fight\n");
   Time("DerivedStatsFor", reps, [&state] {
-    DerivedStatsFor(state.character, state.skills, {}, {},
-                    StatPreset::kFarming);
+    DerivedStatsFor(state.character, state.skills, {}, {}, Activity::kFarming);
   });
   double params_cost = Time("ComputeCombatParams", reps,
                             [&state] { ComputeCombatParams(state); });

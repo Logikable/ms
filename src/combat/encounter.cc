@@ -1952,7 +1952,7 @@ void AddBuffedSets(const GameState& state,
                    const std::vector<const Skill*>& buff_skills,
                    const std::vector<BuffUp>& ally_buffs,
                    const EquipPrototype& weapon, double speed_factor,
-                   StatPreset preset, CombatParams& params) {
+                   Activity preset, CombatParams& params) {
   int count = static_cast<int>(buff_skills.size() + ally_buffs.size());
   if (count == 0) {
     return;
@@ -2111,7 +2111,7 @@ void AddPacing(const GameState& state, const DerivedStats& derived,
 // hit itself; see BuffOption.damage_taken_pct.
 void AddAttacks(const GameState& state, const DerivedStats& derived,
                 const EquipPrototype& weapon, double speed_factor,
-                StatPreset preset, CombatParams& params) {
+                Activity preset, CombatParams& params) {
   AttackSet base =
       BuildAttackSet(state, derived, weapon, speed_factor, params.types);
   params.attacks = std::move(base.attacks);
@@ -2200,8 +2200,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   if (params.types.empty()) {
     return params;
   }
-  AddAttacks(state, derived, *weapon, speed_factor, StatPreset::kFarming,
-             params);
+  AddAttacks(state, derived, *weapon, speed_factor, Activity::kFarming, params);
   params.active = true;
   return params;
 }
@@ -2221,7 +2220,7 @@ CombatParams ComputeBossParams(const GameState& state,
 
   // A boss fight is what the bossing allocation is for.
   DerivedStats derived = DerivedStatsFor(state.character, state.skills, {},
-                                         state.party, StatPreset::kBossing);
+                                         state.party, Activity::kBossing);
   // A boss fight runs in real time whatever the character's level: the pacing
   // band stretches an idle map out so it can be left alone, and a fight the
   // player is sitting and watching wants neither the stretch nor a beat.
@@ -2232,7 +2231,7 @@ CombatParams ComputeBossParams(const GameState& state,
   if (params.types.empty()) {
     return params;
   }
-  AddAttacks(state, derived, *weapon, 1.0, StatPreset::kBossing, params);
+  AddAttacks(state, derived, *weapon, 1.0, Activity::kBossing, params);
   HalveBossReach(params);
   // A boss's parts are hit hardest-first: see CombatParams::focus_healthiest.
   params.focus_healthiest = true;

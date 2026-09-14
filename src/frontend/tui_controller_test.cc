@@ -3653,14 +3653,14 @@ TEST_F(TuiControllerTest, TheClearCardNamesTheFightAndWhatItPaid) {
 // the screen never leaves the main view.
 TEST_F(TuiControllerTest, RaisingAndLoweringAStatAsksNothing) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
+  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR), 1);
 
-  controller_->LowerHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
+  controller_->LowerHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR), 0);
-  EXPECT_EQ(state_->character.hyper_stat_points_left(StatPreset::kFarming),
+  EXPECT_EQ(state_->character.hyper_stat_points_left(StatPreset::kFirst),
             state_->character.hyper_stat_points())
       << "the point came back";
 }
@@ -3668,35 +3668,35 @@ TEST_F(TuiControllerTest, RaisingAndLoweringAStatAsksNothing) {
 // Each reaches the allocation it was handed and not the other.
 TEST_F(TuiControllerTest, RaisingAndLoweringNameTheirAllocation) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kBossing);
+  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kSecond);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR,
-                                               StatPreset::kFarming),
+                                               StatPreset::kFirst),
             0);
 
   // Nothing spent on the farming allocation, so its [-] has nothing to give.
-  controller_->LowerHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
+  controller_->LowerHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR,
-                                               StatPreset::kBossing),
+                                               StatPreset::kSecond),
             1);
 }
 
 // The question names the allocation, and the answer empties that one alone.
 TEST_F(TuiControllerTest, TheResetEmptiesTheAllocationItNamed) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
-  controller_->RaiseHyperStat(HYPER_STAT_FIELD_DEX, StatPreset::kBossing);
+  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst);
+  controller_->RaiseHyperStat(HYPER_STAT_FIELD_DEX, StatPreset::kSecond);
 
-  controller_->OpenHyperReset(StatPreset::kBossing);
+  controller_->OpenHyperReset(StatPreset::kSecond);
   EXPECT_EQ(controller_->hyper_reset_question(), "Reset Boss Hyper Stats?");
   // It opens on Cancel, so getting to Confirm is a step of its own.
   controller_->OnEvent(ftxui::Event::ArrowLeft);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_DEX,
-                                               StatPreset::kBossing),
+                                               StatPreset::kSecond),
             0);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR,
-                                               StatPreset::kFarming),
+                                               StatPreset::kFirst),
             1);
 }
 
@@ -3704,9 +3704,9 @@ TEST_F(TuiControllerTest, TheResetEmptiesTheAllocationItNamed) {
 // character -- a point spent and the stat opened again says the new one.
 TEST_F(TuiControllerTest, TheHyperStatCardReadsTheAllocationItWasOpenedOn) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kBossing);
+  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kSecond);
 
-  controller_->OpenHyperStatInspect(HYPER_STAT_FIELD_STR, StatPreset::kBossing);
+  controller_->OpenHyperStatInspect(HYPER_STAT_FIELD_STR, StatPreset::kSecond);
   EXPECT_EQ(controller_->screen(), kHyperStatInspect);
   EXPECT_EQ(controller_->hyper_inspect_field(), HYPER_STAT_FIELD_STR);
   EXPECT_EQ(controller_->hyper_inspect_level(), 1);
@@ -3714,7 +3714,7 @@ TEST_F(TuiControllerTest, TheHyperStatCardReadsTheAllocationItWasOpenedOn) {
             state_->character.max_hyper_stat_level());
 
   // The other allocation has had nothing spent on it.
-  controller_->OpenHyperStatInspect(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
+  controller_->OpenHyperStatInspect(HYPER_STAT_FIELD_STR, StatPreset::kFirst);
   EXPECT_EQ(controller_->hyper_inspect_level(), 0);
 
   // Nothing to do but read it, so either key leaves.
@@ -3725,8 +3725,8 @@ TEST_F(TuiControllerTest, TheHyperStatCardReadsTheAllocationItWasOpenedOn) {
 // Enter alone on the reset dialog walks away rather than emptying it.
 TEST_F(TuiControllerTest, TheResetOpensOnCancel) {
   LevelTo(kHyperStatUnlockLevel);
-  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming);
-  controller_->OpenHyperReset(StatPreset::kFarming);
+  controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst);
+  controller_->OpenHyperReset(StatPreset::kFirst);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR), 1);
 }
@@ -3737,14 +3737,14 @@ TEST_F(TuiControllerTest, TheResetOpensOnCancel) {
 TEST_F(TuiControllerTest, LockingALineAsksNothing) {
   LevelTo(kInnerAbilityUnlockLevel);
   // A fresh ability is three Rare lines, and a Rare line holds like any other.
-  controller_->ToggleAbilityLock(0, StatPreset::kFarming);
+  controller_->ToggleAbilityLock(0, StatPreset::kFirst);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_TRUE(state_->character.ability().lines(0).locked());
-  controller_->ToggleAbilityLock(0, StatPreset::kFarming);
+  controller_->ToggleAbilityLock(0, StatPreset::kFirst);
   EXPECT_FALSE(state_->character.ability().lines(0).locked());
 
   // An index off the end of the ability is not an ability to change.
-  controller_->ToggleAbilityLock(9, StatPreset::kFarming);
+  controller_->ToggleAbilityLock(9, StatPreset::kFirst);
   EXPECT_EQ(state_->character.ability().lines_size(), kAbilityLines);
 }
 
@@ -3753,7 +3753,7 @@ TEST_F(TuiControllerTest, TheRerollDialogListsOnlyTheLinesItRerolls) {
   LevelTo(kInnerAbilityUnlockLevel);
   ASSERT_TRUE(state_->character.LockAbilityLine(0, true));
 
-  controller_->OpenAbilityReroll(StatPreset::kFarming);
+  controller_->OpenAbilityReroll(StatPreset::kFirst);
   EXPECT_EQ(controller_->screen(), kAbilityReroll);
   std::vector<AbilityLine> listed = controller_->ability_reroll_lines();
   ASSERT_EQ(listed.size(), 2u);
@@ -3770,12 +3770,12 @@ TEST_F(TuiControllerTest, TheRerollOpensOnConfirmAndIsPaidOnce) {
   state_->character.AddHonor(2 * cost);
   const int64_t pool = state_->character.honor();
 
-  controller_->OpenAbilityReroll(StatPreset::kFarming);
+  controller_->OpenAbilityReroll(StatPreset::kFirst);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(state_->character.honor(), pool - cost);
 
-  controller_->OpenAbilityReroll(StatPreset::kFarming);
+  controller_->OpenAbilityReroll(StatPreset::kFirst);
   controller_->OnEvent(ftxui::Event::ArrowRight);  // -> Cancel
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
@@ -3790,11 +3790,11 @@ TEST_F(TuiControllerTest, AnAbilityRankUpLightsTheCharacterPanel) {
   state_->character.AddHonor(1'000'000'000);
 
   for (int i = 0; i < 500 && !controller_->ability_rank_up(); ++i) {
-    controller_->OpenAbilityReroll(StatPreset::kFarming);
+    controller_->OpenAbilityReroll(StatPreset::kFirst);
     controller_->OnEvent(ftxui::Event::Return);
   }
   ASSERT_TRUE(controller_->ability_rank_up());
-  EXPECT_GT(state_->character.ability(StatPreset::kFarming).rank(),
+  EXPECT_GT(state_->character.ability(StatPreset::kFirst).rank(),
             ABILITY_RANK_RARE);
 
   controller_->OnEvent(ftxui::Event::Custom);
@@ -3808,12 +3808,11 @@ TEST_F(TuiControllerTest, TheRerollLandsOnTheAllocationItNamed) {
   LevelTo(kInnerAbilityUnlockLevel);
   state_->character.AddHonor(100000);
   const std::string before =
-      state_->character.ability(StatPreset::kFarming).DebugString();
+      state_->character.ability(StatPreset::kFirst).DebugString();
 
-  controller_->OpenAbilityReroll(StatPreset::kBossing);
+  controller_->OpenAbilityReroll(StatPreset::kSecond);
   controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(state_->character.ability(StatPreset::kFarming).DebugString(),
-            before)
+  EXPECT_EQ(state_->character.ability(StatPreset::kFirst).DebugString(), before)
       << "the farming ability was not the one asked about";
 }
 

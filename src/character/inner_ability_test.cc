@@ -151,11 +151,11 @@ TEST(InnerAbilityTest, PresetOfPicksTheNamedSetup) {
   InnerAbility ability;
   ability.mutable_farming()->set_rank(ABILITY_RANK_EPIC);
   ability.mutable_bossing()->set_rank(ABILITY_RANK_LEGENDARY);
-  EXPECT_EQ(PresetOf(ability, StatPreset::kFarming).rank(), ABILITY_RANK_EPIC);
-  EXPECT_EQ(PresetOf(ability, StatPreset::kBossing).rank(),
+  EXPECT_EQ(PresetOf(ability, StatPreset::kFirst).rank(), ABILITY_RANK_EPIC);
+  EXPECT_EQ(PresetOf(ability, StatPreset::kSecond).rank(),
             ABILITY_RANK_LEGENDARY);
 
-  PresetOf(ability, StatPreset::kFarming).set_rank(ABILITY_RANK_UNIQUE);
+  PresetOf(ability, StatPreset::kFirst).set_rank(ABILITY_RANK_UNIQUE);
   EXPECT_EQ(ability.farming().rank(), ABILITY_RANK_UNIQUE);
   EXPECT_EQ(ability.bossing().rank(), ABILITY_RANK_LEGENDARY);
 }

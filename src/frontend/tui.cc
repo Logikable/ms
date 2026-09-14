@@ -194,7 +194,7 @@ void Tui::BuildComponents() {
   char_actions.all_stats = [this]() {
     // The screen opens on whichever allocation the panel behind it is showing,
     // so one Enter never changes the numbers.
-    all_stats_panel_.SetPreset(char_panel_.hyper_preset());
+    all_stats_panel_.SetPreset(char_panel_.SelectedActivity());
     controller_.OpenAllStats();
   };
   char_actions.learn = [this](const Skill& skill) {

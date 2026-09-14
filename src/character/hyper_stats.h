@@ -7,8 +7,8 @@
  * banked: what a character has to spend is the points their level has paid
  * out, less what the allocation in front of them costs.
  *
- * A character keeps two allocations -- one for farming and one for bossing --
- * and the game picks between them by what the player is doing.
+ * A character keeps an allocation per preset slot, and the game picks between
+ * them by what the player is doing -- see stat_preset.h.
  *
  * Pure math over the protos, like arcane_force.h. Who is allowed to raise
  * what is CharacterInstance::AllocateHyperStat's business.
@@ -36,9 +36,9 @@ inline constexpr int kFifthJobStage = 5;
 // stat is worth nothing without one.
 inline constexpr int kArcaneForceHyperLevel = 200;
 
-// The allocation `preset` names.
-const HyperStatPreset& PresetOf(const HyperStats& stats, StatPreset preset);
-HyperStatPreset& PresetOf(HyperStats& stats, StatPreset preset);
+// The allocation held in `slot`.
+const HyperStatPreset& PresetOf(const HyperStats& stats, StatPreset slot);
+HyperStatPreset& PresetOf(HyperStats& stats, StatPreset slot);
 
 // Points reaching `level` pays out: floor(level / 10) - 11, so 3 a level at
 // 140, 4 at 150, and 19 at 300. Zero below the unlock level.

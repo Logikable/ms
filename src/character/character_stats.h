@@ -531,7 +531,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills,
                              absl::Span<const BuffUp> buffs_up = {},
                              absl::Span<const CharacterInstance> allies = {},
-                             StatPreset preset = StatPreset::kFarming);
+                             Activity preset = Activity::kFarming);
 
 // The offensive half of the derived stats, in the shape combat/damage.h asks
 // for them. One place to keep in step with DerivedStats, rather than every
@@ -563,7 +563,7 @@ EquipStats PotentialStatGrant(const CharacterInstance& character,
 // defence finds the ied to price it with.
 OffenseStats CharacterOffense(const CharacterInstance& character,
                               const std::map<std::string, Skill>& skills,
-                              StatPreset preset = StatPreset::kFarming);
+                              Activity preset = Activity::kFarming);
 
 // What the character's whole stat line comes to, with no attack skill and no
 // target -- combat power stands for the character rather than for a swing.
@@ -571,7 +571,7 @@ OffenseStats CharacterOffense(const CharacterInstance& character,
 // the Farm one normal %dmg, so the two modes never both improve the number.
 int CharacterCombatPower(const CharacterInstance& character,
                          const std::map<std::string, Skill>& skills,
-                         StatPreset preset = StatPreset::kFarming);
+                         Activity preset = Activity::kFarming);
 
 }  // namespace ms
 

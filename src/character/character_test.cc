@@ -109,28 +109,28 @@ TEST_F(HyperStatTest, PointsArriveWithTheLevel) {
   CharacterInstance below = MakeCharacter(rng_, /*level=*/139);
   EXPECT_EQ(below.hyper_stat_points(), 0);
   EXPECT_FALSE(
-      below.AllocateHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming));
+      below.AllocateHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst));
 
   CharacterInstance c = MakeCharacter(rng_, /*level=*/140);
   EXPECT_EQ(c.hyper_stat_points(), 3);
-  EXPECT_EQ(c.hyper_stat_points_left(StatPreset::kFarming), 3);
-  EXPECT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming));
-  EXPECT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFarming));
+  EXPECT_EQ(c.hyper_stat_points_left(StatPreset::kFirst), 3);
+  EXPECT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst));
+  EXPECT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst));
   EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_STR), 2);
   EXPECT_EQ(c.hyper_stat_points_left(), 0) << "level 2 costs the other two";
   EXPECT_DOUBLE_EQ(c.hyper_stat_bonus(HYPER_STAT_FIELD_STR), 60.0);
-  EXPECT_FALSE(c.AllocateHyperStat(HYPER_STAT_FIELD_DEX, StatPreset::kFarming));
+  EXPECT_FALSE(c.AllocateHyperStat(HYPER_STAT_FIELD_DEX, StatPreset::kFirst));
 }
 
 TEST_F(HyperStatTest, RaisingSeveralLevelsIsAllOrNothing) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/150);
   EXPECT_EQ(c.hyper_stat_points(), 34);
   EXPECT_FALSE(
-      c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFarming, 6))
+      c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFirst, 6))
       << "level 6 costs 40 altogether";
   EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_DAMAGE), 0);
   EXPECT_TRUE(
-      c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFarming, 5));
+      c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFirst, 5));
   EXPECT_EQ(c.hyper_stat_points_left(), 9);
 }
 
@@ -140,7 +140,7 @@ class InnerAbilityTest : public CharacterTest {};
 
 TEST_F(InnerAbilityTest, BothPresetsStartOnTheDefaultLines) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
-  for (StatPreset preset : {StatPreset::kFarming, StatPreset::kBossing}) {
+  for (StatPreset preset : {StatPreset::kFirst, StatPreset::kSecond}) {
     const AbilityPreset& lines = c.ability(preset);
     EXPECT_EQ(lines.rank(), ABILITY_RANK_RARE);
     ASSERT_EQ(lines.lines_size(), kAbilityLines);
@@ -159,7 +159,7 @@ TEST_F(InnerAbilityTest, RestoringAnOldSaveSeedsTheLines) {
   Character old;
   old.set_level(160);
   c.RestoreFrom(old, {}, {});
-  for (StatPreset preset : {StatPreset::kFarming, StatPreset::kBossing}) {
+  for (StatPreset preset : {StatPreset::kFirst, StatPreset::kSecond}) {
     const AbilityPreset& lines = c.ability(preset);
     EXPECT_EQ(lines.rank(), ABILITY_RANK_RARE);
     EXPECT_EQ(lines.lines_size(), kAbilityLines);
@@ -207,12 +207,12 @@ TEST_F(InnerAbilityTest, ResetNeedsTheLevelAndTheHonor) {
 TEST_F(InnerAbilityTest, PresetsAreSeparateAndTheHonorIsNot) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
   c.AddHonor(1000);
-  EXPECT_TRUE(c.ResetAbility(StatPreset::kBossing));
+  EXPECT_TRUE(c.ResetAbility(StatPreset::kSecond));
   EXPECT_EQ(c.honor(), 900);
-  EXPECT_EQ(c.ability(StatPreset::kFarming).lines(0).type(),
+  EXPECT_EQ(c.ability(StatPreset::kFirst).lines(0).type(),
             ABILITY_LINE_TYPE_ALL_STATS)
       << "rolling one preset leaves the other alone";
-  EXPECT_TRUE(c.ResetAbility(StatPreset::kFarming));
+  EXPECT_TRUE(c.ResetAbility(StatPreset::kFirst));
   EXPECT_EQ(c.honor(), 800);
 }
 
@@ -255,42 +255,41 @@ TEST_F(InnerAbilityTest, AnOldSaveIsSeededOnLoad) {
   proto.set_level(200);
   CharacterInstance c(rng_, std::move(proto));
   EXPECT_EQ(c.ability().lines_size(), kAbilityLines);
-  EXPECT_EQ(c.ability(StatPreset::kBossing).lines_size(), kAbilityLines);
+  EXPECT_EQ(c.ability(StatPreset::kSecond).lines_size(), kAbilityLines);
 }
 
 TEST_F(HyperStatTest, StatsStopAtTheCapAndArcaneForceAtLevel200) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/199);
   EXPECT_EQ(c.max_hyper_stat_level(), 10) << "no character takes a 5th job";
-  EXPECT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_CRIT_RATE,
-                                  StatPreset::kBossing, 10));
+  EXPECT_TRUE(
+      c.AllocateHyperStat(HYPER_STAT_FIELD_CRIT_RATE, StatPreset::kSecond, 10));
   EXPECT_FALSE(
-      c.AllocateHyperStat(HYPER_STAT_FIELD_CRIT_RATE, StatPreset::kBossing));
+      c.AllocateHyperStat(HYPER_STAT_FIELD_CRIT_RATE, StatPreset::kSecond));
   EXPECT_DOUBLE_EQ(
-      c.hyper_stat_bonus(HYPER_STAT_FIELD_CRIT_RATE, StatPreset::kBossing),
+      c.hyper_stat_bonus(HYPER_STAT_FIELD_CRIT_RATE, StatPreset::kSecond),
       15.0);
   EXPECT_FALSE(
-      c.AllocateHyperStat(HYPER_STAT_FIELD_ARCANE_FORCE, StatPreset::kBossing));
+      c.AllocateHyperStat(HYPER_STAT_FIELD_ARCANE_FORCE, StatPreset::kSecond));
   c.LevelUp();
   EXPECT_TRUE(
-      c.AllocateHyperStat(HYPER_STAT_FIELD_ARCANE_FORCE, StatPreset::kBossing));
+      c.AllocateHyperStat(HYPER_STAT_FIELD_ARCANE_FORCE, StatPreset::kSecond));
 }
 
 // Each preset spends the same pool on its own, and a reset gives it all back.
 TEST_F(HyperStatTest, PresetsSpendApartAndResetFree) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
-  ASSERT_TRUE(
-      c.AllocateHyperStat(HYPER_STAT_FIELD_EXP, StatPreset::kFarming, 5));
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_EXP, StatPreset::kFirst, 5));
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_BOSS_DAMAGE,
-                                  StatPreset::kBossing, 5));
-  EXPECT_EQ(c.hyper_stat_points_left(StatPreset::kFarming),
-            c.hyper_stat_points_left(StatPreset::kBossing));
-  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_EXP, StatPreset::kBossing), 0);
+                                  StatPreset::kSecond, 5));
+  EXPECT_EQ(c.hyper_stat_points_left(StatPreset::kFirst),
+            c.hyper_stat_points_left(StatPreset::kSecond));
+  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_EXP, StatPreset::kSecond), 0);
 
-  c.ResetHyperStats(StatPreset::kFarming);
-  EXPECT_EQ(c.hyper_stat_points_left(StatPreset::kFarming),
+  c.ResetHyperStats(StatPreset::kFirst);
+  EXPECT_EQ(c.hyper_stat_points_left(StatPreset::kFirst),
             c.hyper_stat_points());
   EXPECT_EQ(
-      c.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE, StatPreset::kBossing), 5)
+      c.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE, StatPreset::kSecond), 5)
       << "the other allocation is untouched";
 }
 
@@ -299,17 +298,16 @@ TEST_F(HyperStatTest, RefundUndoesOneLevelAtATime) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
   int pool = c.hyper_stat_points();
   ASSERT_TRUE(
-      c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFarming, 4));
-  ASSERT_TRUE(c.RefundHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFarming));
-  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFarming),
-            3);
+      c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFirst, 4));
+  ASSERT_TRUE(c.RefundHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFirst));
+  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFirst), 3);
   // 1 + 2 + 4 buys three levels, whatever order they were bought and sold in.
-  EXPECT_EQ(c.hyper_stat_points_left(StatPreset::kFarming), pool - 7);
+  EXPECT_EQ(c.hyper_stat_points_left(StatPreset::kFirst), pool - 7);
 
   ASSERT_TRUE(
-      c.RefundHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFarming, 3));
-  EXPECT_EQ(c.hyper_stat_points_left(StatPreset::kFarming), pool);
-  EXPECT_FALSE(c.RefundHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFarming))
+      c.RefundHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFirst, 3));
+  EXPECT_EQ(c.hyper_stat_points_left(StatPreset::kFirst), pool);
+  EXPECT_FALSE(c.RefundHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFirst))
       << "nothing left to give back";
 }
 
@@ -317,13 +315,12 @@ TEST_F(HyperStatTest, RefundUndoesOneLevelAtATime) {
 TEST_F(HyperStatTest, RefundPastWhatIsSpentChangesNothing) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
   ASSERT_TRUE(
-      c.AllocateHyperStat(HYPER_STAT_FIELD_LUK, StatPreset::kBossing, 2));
-  EXPECT_FALSE(
-      c.RefundHyperStat(HYPER_STAT_FIELD_LUK, StatPreset::kBossing, 3));
-  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_LUK, StatPreset::kBossing), 2);
-  EXPECT_FALSE(c.RefundHyperStat(HYPER_STAT_FIELD_LUK, StatPreset::kFarming))
+      c.AllocateHyperStat(HYPER_STAT_FIELD_LUK, StatPreset::kSecond, 2));
+  EXPECT_FALSE(c.RefundHyperStat(HYPER_STAT_FIELD_LUK, StatPreset::kSecond, 3));
+  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_LUK, StatPreset::kSecond), 2);
+  EXPECT_FALSE(c.RefundHyperStat(HYPER_STAT_FIELD_LUK, StatPreset::kFirst))
       << "the other allocation spent nothing on it";
-  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_LUK, StatPreset::kBossing), 2);
+  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_LUK, StatPreset::kSecond), 2);
 }
 
 // A save from older rules: a stat past the cap, one the level has closed, and

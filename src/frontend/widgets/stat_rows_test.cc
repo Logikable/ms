@@ -273,12 +273,12 @@ TEST_F(StatRowsTest, EachBuffShowsOnTheTabItPaysOn) {
   ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
   ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
 
-  std::vector<StatLine> farm = ExtraStatLines(c, {}, StatPreset::kFarming);
+  std::vector<StatLine> farm = ExtraStatLines(c, {}, Activity::kFarming);
   EXPECT_EQ(ValueOf(farm, "Meso Drop Rate"), "44.00%");
   EXPECT_EQ(ValueOf(farm, "Item Drop Rate"), "20.00%");
   EXPECT_EQ(ValueOf(farm, "Attack Speed"), "Faster");
 
-  std::vector<StatLine> boss = ExtraStatLines(c, {}, StatPreset::kBossing);
+  std::vector<StatLine> boss = ExtraStatLines(c, {}, Activity::kBossing);
   EXPECT_EQ(ValueOf(boss, "Meso Drop Rate"), "0.00%");
   EXPECT_EQ(ValueOf(boss, "Item Drop Rate"), "0.00%");
   EXPECT_EQ(ValueOf(boss, "Attack Speed"), "Fastest 1");
@@ -346,7 +346,7 @@ TEST_F(StatRowsTest, TheRowsReadThePresetTheyAreGiven) {
 
   EXPECT_EQ(ValueOf(ExtraStatLines(c, {}), "Critical Damage"), "40.00%");
   EXPECT_EQ(
-      ValueOf(ExtraStatLines(c, {}, StatPreset::kBossing), "Critical Damage"),
+      ValueOf(ExtraStatLines(c, {}, Activity::kBossing), "Critical Damage"),
       "44.00%");
 }
 

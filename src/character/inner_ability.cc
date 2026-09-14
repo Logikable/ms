@@ -134,15 +134,15 @@ AbilityLine RollLine(AbilityRank rank, std::set<AbilityLineType>& taken,
 
 }  // namespace
 
-const AbilityPreset& PresetOf(const InnerAbility& ability, StatPreset preset) {
-  if (preset == StatPreset::kBossing) {
+const AbilityPreset& PresetOf(const InnerAbility& ability, StatPreset slot) {
+  if (slot == StatPreset::kSecond) {
     return ability.bossing();
   }
   return ability.farming();
 }
 
-AbilityPreset& PresetOf(InnerAbility& ability, StatPreset preset) {
-  if (preset == StatPreset::kBossing) {
+AbilityPreset& PresetOf(InnerAbility& ability, StatPreset slot) {
+  if (slot == StatPreset::kSecond) {
     return *ability.mutable_bossing();
   }
   return *ability.mutable_farming();

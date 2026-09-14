@@ -193,7 +193,7 @@ void TuiController::OpenHyperReset(StatPreset preset) {
 
 std::string TuiController::hyper_reset_question() const {
   return std::string("Reset ") +
-         (hyper_preset_ == StatPreset::kBossing ? "Boss" : "Farm") +
+         (hyper_preset_ == StatPreset::kSecond ? "Boss" : "Farm") +
          " Hyper Stats?";
 }
 

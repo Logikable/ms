@@ -45,10 +45,10 @@ class AllStatsPanel {
 
   // Which allocation the screen reads. Set from the Character panel when the
   // screen opens, so the two never show different numbers for one stat.
-  void SetPreset(StatPreset preset) {
+  void SetPreset(Activity preset) {
     preset_ = preset;
   }
-  StatPreset preset() const {
+  Activity preset() const {
     return preset_;
   }
 
@@ -72,7 +72,7 @@ class AllStatsPanel {
   const CharacterInstance& character_;
   const AccountInstance* account_ = nullptr;
   const std::map<std::string, Skill>& skills_;
-  StatPreset preset_ = StatPreset::kFarming;
+  Activity preset_ = Activity::kFarming;
 };
 
 }  // namespace ms

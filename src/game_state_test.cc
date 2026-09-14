@@ -1057,10 +1057,10 @@ TEST(GameStateTest, MaxModeSpendsEveryPool) {
   for (int stage = 1; stage <= 4; ++stage) {
     EXPECT_EQ(state.character.sp(stage), 0) << "stage " << stage;
   }
-  for (StatPreset preset : {StatPreset::kFarming, StatPreset::kBossing}) {
+  for (StatPreset preset : {StatPreset::kFirst, StatPreset::kSecond}) {
     EXPECT_LT(state.character.hyper_stat_points_left(preset), 20);
   }
-  EXPECT_EQ(state.character.ability(StatPreset::kBossing).rank(),
+  EXPECT_EQ(state.character.ability(StatPreset::kSecond).rank(),
             ABILITY_RANK_LEGENDARY);
 }
 
@@ -1071,15 +1071,15 @@ TEST(GameStateTest, MaxModeSpendsEveryPool) {
 TEST(GameStateTest, MaxModeBuysNoHyperStatThatPaysNothing) {
   GameState state = MakeMaxState(kTrialLevelCap);
   const CharacterInstance& c = state.character;
-  for (StatPreset preset : {StatPreset::kFarming, StatPreset::kBossing}) {
+  for (StatPreset preset : {StatPreset::kFirst, StatPreset::kSecond}) {
     EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_MAX_HP, preset), 0);
     EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_EXP, preset), 0);
   }
   // A Hero swings on STR, so the three stats they do not swing on are worth
   // nothing at all beside it.
-  EXPECT_GT(c.hyper_stat_level(HYPER_STAT_FIELD_STR, StatPreset::kFarming), 0);
+  EXPECT_GT(c.hyper_stat_level(HYPER_STAT_FIELD_STR, StatPreset::kFirst), 0);
   for (HyperStatField spare : {HYPER_STAT_FIELD_INT, HYPER_STAT_FIELD_LUK}) {
-    EXPECT_EQ(c.hyper_stat_level(spare, StatPreset::kFarming), 0)
+    EXPECT_EQ(c.hyper_stat_level(spare, StatPreset::kFirst), 0)
         << HyperStatField_Name(spare);
   }
 }
@@ -1091,13 +1091,11 @@ TEST(GameStateTest, MaxModeHyperStatsFollowTheFightTheyAreFor) {
   GameState state = MakeMaxState(kTrialLevelCap);
   const CharacterInstance& c = state.character;
   EXPECT_GT(
-      c.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE, StatPreset::kBossing),
-      0);
+      c.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE, StatPreset::kSecond), 0);
   EXPECT_EQ(
-      c.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE, StatPreset::kFarming),
-      0);
-  EXPECT_GT(c.hyper_stat_level(HYPER_STAT_FIELD_IED, StatPreset::kBossing),
-            c.hyper_stat_level(HYPER_STAT_FIELD_IED, StatPreset::kFarming))
+      c.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE, StatPreset::kFirst), 0);
+  EXPECT_GT(c.hyper_stat_level(HYPER_STAT_FIELD_IED, StatPreset::kSecond),
+            c.hyper_stat_level(HYPER_STAT_FIELD_IED, StatPreset::kFirst))
       << "the boss cancels most of a swing; the monsters barely any";
 }
 
@@ -1108,9 +1106,9 @@ TEST(GameStateTest, MaxModeIgnoresABossItCannotYetFight) {
                                 MaxBosses(/*unlock_level=*/300));
   GameState open = MakeMaxState(kTrialLevelCap);
   EXPECT_LT(shut.character.hyper_stat_level(HYPER_STAT_FIELD_IED,
-                                            StatPreset::kBossing),
+                                            StatPreset::kSecond),
             open.character.hyper_stat_level(HYPER_STAT_FIELD_IED,
-                                            StatPreset::kBossing));
+                                            StatPreset::kSecond));
 }
 
 // --job names the line, not where to stop in it: the 5th advancement opens at

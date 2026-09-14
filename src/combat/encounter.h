@@ -520,7 +520,7 @@ struct BuffedSetSource {
   // built off them.
   std::vector<BuffUp> ally_buffs;
   double speed_factor = 1.0;
-  StatPreset preset = StatPreset::kFarming;
+  Activity preset = Activity::kFarming;
   // Whether a window's reach is halved on the way out, which is what a boss
   // fight does to every list a swing can be picked from.
   bool halve_reach = false;

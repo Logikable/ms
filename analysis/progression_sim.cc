@@ -1415,18 +1415,18 @@ void SpendHyperPoints(Session& run, bool regeared) {
   if (!run.hyper_measured || regeared ||
       power >= run.hyper_power * kRemeasureGrowth) {
     run.hyper_farming = MeasureHyperWorth(
-        run.state, StatPreset::kFarming,
+        run.state, StatPreset::kFirst,
         [](GameState& state) { return CrowdRateOver(state, kBookSeconds); });
     run.hyper_bossing = MeasureHyperWorth(
-        run.state, StatPreset::kBossing,
+        run.state, StatPreset::kSecond,
         [](GameState& state) { return BossRateOver(state, kBookSeconds); });
     run.hyper_measured = true;
     run.hyper_power = power;
   }
   // Redone every look rather than only on a fresh table: the pool grows a
   // level at a time, and a new point can be worth moving an old one.
-  SpendHyperStats(run.state, StatPreset::kFarming, run.hyper_farming);
-  SpendHyperStats(run.state, StatPreset::kBossing, run.hyper_bossing);
+  SpendHyperStats(run.state, StatPreset::kFirst, run.hyper_farming);
+  SpendHyperStats(run.state, StatPreset::kSecond, run.hyper_bossing);
 }
 
 // The honor the pool has collected, spent on the BOSSING Inner Ability alone.
@@ -1452,10 +1452,10 @@ void SpendHonor(Session& run) {
     // Buff Duration is one of the lines being priced, and it is invisible to
     // any window a buff does not lapse inside. See WindowFor.
     run.farming_worth = MeasureAbilityWorth(
-        run.state, StatPreset::kFarming,
+        run.state, StatPreset::kFirst,
         [](GameState& state) { return CrowdRateOver(state, kBookSeconds); });
     run.bossing_worth = MeasureAbilityWorth(
-        run.state, StatPreset::kBossing,
+        run.state, StatPreset::kSecond,
         [](GameState& state) { return BossRateOver(state, kBookSeconds); });
     run.ability_measured = true;
     run.ability_power = power;
@@ -1463,7 +1463,7 @@ void SpendHonor(Session& run) {
     run.climb.bossing_worth = run.bossing_worth;
   }
   run.climb.ability_honor_spent += SpendHonorOnAbility(
-      run.state, AbilityRankWanted(), StatPreset::kBossing, run.bossing_worth);
+      run.state, AbilityRankWanted(), StatPreset::kSecond, run.bossing_worth);
 }
 
 // What a fight leaves behind: the drops worn, and the purse spent on them.
@@ -2152,8 +2152,8 @@ Climb Play(const Catalogs& catalogs, Job branch,
   // that never reached the cap was reporting none of it.
   climb.ledger.gear = run.shopper.life();
   climb.booms = run.shopper.life().booms;
-  climb.ability_farming = state.character.ability(StatPreset::kFarming);
-  climb.ability_bossing = state.character.ability(StatPreset::kBossing);
+  climb.ability_farming = state.character.ability(StatPreset::kFirst);
+  climb.ability_bossing = state.character.ability(StatPreset::kSecond);
   // ToProto, not proto(): the live containers hold the gear, and the backing
   // message they came out of has none of it. See MeasureAbilityWorth.
   climb.final_character = state.character.ToProto();
@@ -3007,8 +3007,8 @@ void PrintCharacterSheet(const Catalogs& catalogs, Job branch,
 
   std::printf("\n  Hyper Stats (%d points paid, by preset)\n",
               state.character.hyper_stat_points());
-  PrintHyperRow("farming", PresetOf(proto.hyper_stats(), StatPreset::kFarming));
-  PrintHyperRow("bossing", PresetOf(proto.hyper_stats(), StatPreset::kBossing));
+  PrintHyperRow("farming", PresetOf(proto.hyper_stats(), StatPreset::kFirst));
+  PrintHyperRow("bossing", PresetOf(proto.hyper_stats(), StatPreset::kSecond));
 
   std::printf("\n  Inner Ability (%s honor held)\n",
               std::to_string(state.character.honor()).c_str());

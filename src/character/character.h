@@ -443,14 +443,14 @@ class CharacterInstance {
   // Every Hyper Stat point the character's level has ever paid out.
   int hyper_stat_points() const;
   // What is left of them once `preset` is paid for.
-  int hyper_stat_points_left(StatPreset preset = StatPreset::kFarming) const;
+  int hyper_stat_points_left(StatPreset preset = StatPreset::kFirst) const;
   // The level `field` is raised to in `preset`.
   int hyper_stat_level(HyperStatField field,
-                       StatPreset preset = StatPreset::kFarming) const;
+                       StatPreset preset = StatPreset::kFirst) const;
   // What `field` is worth to this character right now, in the units the stat
   // is stated in. Zero for one they have not raised.
   double hyper_stat_bonus(HyperStatField field,
-                          StatPreset preset = StatPreset::kFarming) const;
+                          StatPreset preset = StatPreset::kFirst) const;
   // The highest level any of their stats may reach.
   int max_hyper_stat_level() const;
 
@@ -473,25 +473,25 @@ class CharacterInstance {
     return character_.level() >= kInnerAbilityUnlockLevel;
   }
   // The three lines `preset` is holding, and the rank of the whole.
-  const AbilityPreset& ability(StatPreset preset = StatPreset::kFarming) const {
+  const AbilityPreset& ability(StatPreset preset = StatPreset::kFirst) const {
     return PresetOf(character_.inner_ability(), preset);
   }
   // What one reset of `preset` would cost at the lines it is holding now.
-  int64_t ability_reset_cost(StatPreset preset = StatPreset::kFarming) const;
+  int64_t ability_reset_cost(StatPreset preset = StatPreset::kFirst) const;
   // Holds or frees the line at `index`, by the rules SetAbilityLineLocked
   // states. Returns whether anything changed.
   bool LockAbilityLine(int index, bool locked,
-                       StatPreset preset = StatPreset::kFarming);
+                       StatPreset preset = StatPreset::kFirst);
   // Pays the reset out of the honor pool and rerolls `preset`. All or nothing:
   // takes no honor and rolls nothing if the pool is short or the panel is not
   // open to this character yet.
-  bool ResetAbility(StatPreset preset = StatPreset::kFarming);
+  bool ResetAbility(StatPreset preset = StatPreset::kFirst);
   // Writes `lines` into `preset` outright, paying no honor. For seeding a
   // character who is meant to arrive already holding them -- a reset chase
   // that lands on a named sheet takes hundreds of rolls, and a mode that
   // rolled for it would hand back a different character every run.
   void SetAbility(const AbilityPreset& lines,
-                  StatPreset preset = StatPreset::kFarming);
+                  StatPreset preset = StatPreset::kFirst);
 
   // The points `skill` is bought with: the Hyper pool for a Hyper Skill, and
   // its job stage's for every other. Asked here so the panel offering the
@@ -675,7 +675,7 @@ class CharacterInstance {
   // plus what the Hyper Stat adds. What every Arcane River map measures them
   // against -- see ArcaneFactorsFor. Zero for anyone wearing no symbol and
   // holding no points there, which is everyone below level 200.
-  int arcane_force(StatPreset preset = StatPreset::kFarming) const;
+  int arcane_force(Activity activity = Activity::kFarming) const;
   // Whether an item of this type contributes its attack, given what is
   // equipped right now. Throwing stars arm a claw and nothing else; every
   // other item always counts. equip_stats() applies this itself -- it is

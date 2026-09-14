@@ -5102,7 +5102,7 @@ TEST(ComputeBossParamsTest, TheFightPicksTheAllocationForTheActivity) {
   state.character.RestoreFrom(grown, state.equips, state.items);
   EquipSword(state);
   ASSERT_TRUE(state.character.AllocateHyperStat(HYPER_STAT_FIELD_ATTACK,
-                                                StatPreset::kBossing, 10));
+                                                StatPreset::kSecond, 10));
 
   BossDifficulty normal = NormalTwoPhase();
   CombatParams boss = ComputeBossParams(state, "zakum", normal, 0);

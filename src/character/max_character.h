@@ -70,7 +70,7 @@ void SpendMaxHyperStats(CharacterInstance& character,
 
 // The three Inner Ability lines each preset holds: a Legendary line on top
 // and two Epic ones under it, which is what the honor a climb pays reaches.
-AbilityPreset MaxAbilityPreset(StatPreset preset, StatField primary);
+AbilityPreset MaxAbilityPreset(Activity preset, StatField primary);
 
 }  // namespace ms
 

@@ -447,11 +447,11 @@ TEST_F(PartyControllerTest, AMemberInspectsAnother) {
 
   // Left/Right read between the member's two Hyper Stat allocations; the
   // screen keeps every other key.
-  EXPECT_EQ(guest->party_inspect_panel->preset(), StatPreset::kFarming);
+  EXPECT_EQ(guest->party_inspect_panel->preset(), Activity::kFarming);
   guest->controller->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_EQ(guest->party_inspect_panel->preset(), StatPreset::kBossing);
+  EXPECT_EQ(guest->party_inspect_panel->preset(), Activity::kBossing);
   guest->controller->OnEvent(ftxui::Event::ArrowLeft);
-  EXPECT_EQ(guest->party_inspect_panel->preset(), StatPreset::kFarming);
+  EXPECT_EQ(guest->party_inspect_panel->preset(), Activity::kFarming);
 
   // Enter on a worn item opens its card, off the panel's cursor rather than a
   // pointer held across a tick that may rebuild the member.

@@ -10,7 +10,7 @@
  * rank, the other two are rolled a rung or more below it, and a reset can
  * carry the whole ability up a rank but never down.
  *
- * A character keeps one setup per StatPreset, and both are paid for out of
+ * A character keeps one setup per preset slot, and both are paid for out of
  * the one honor pool.
  *
  * Pure math over the protos, like hyper_stats.h. Spending the honor is
@@ -42,9 +42,9 @@ inline constexpr AbilityLineType kDefaultAbilityLineType =
     ABILITY_LINE_TYPE_ALL_STATS;
 inline constexpr AbilityRank kDefaultAbilityRank = ABILITY_RANK_RARE;
 
-// The setup `preset` names.
-const AbilityPreset& PresetOf(const InnerAbility& ability, StatPreset preset);
-AbilityPreset& PresetOf(InnerAbility& ability, StatPreset preset);
+// The setup held in `slot`.
+const AbilityPreset& PresetOf(const InnerAbility& ability, StatPreset slot);
+AbilityPreset& PresetOf(InnerAbility& ability, StatPreset slot);
 
 // The three Rare All Stats lines a new character is handed.
 AbilityPreset DefaultAbilityPreset();

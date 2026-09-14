@@ -911,7 +911,7 @@ void CharacterInstance::EnsureUsername() {
 
 void CharacterInstance::EnsureInnerAbility() {
   InnerAbility& ability = *character_.mutable_inner_ability();
-  for (StatPreset preset : {StatPreset::kFarming, StatPreset::kBossing}) {
+  for (StatPreset preset : {StatPreset::kFirst, StatPreset::kSecond}) {
     AbilityPreset& lines = PresetOf(ability, preset);
     if (lines.lines_size() == 0) {
       lines = DefaultAbilityPreset();
@@ -1245,9 +1245,9 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
   return true;
 }
 
-int CharacterInstance::arcane_force(StatPreset preset) const {
+int CharacterInstance::arcane_force(Activity activity) const {
   return arcane_force_ + static_cast<int>(hyper_stat_bonus(
-                             HYPER_STAT_FIELD_ARCANE_FORCE, preset));
+                             HYPER_STAT_FIELD_ARCANE_FORCE, SlotFor(activity)));
 }
 
 int CharacterInstance::hyper_stat_points() const {
@@ -1385,7 +1385,7 @@ int CharacterInstance::ReconcileHyperPreset(StatPreset preset) {
 
 int CharacterInstance::ReconcileHyperStats() {
   int moved = 0;
-  const StatPreset presets[] = {StatPreset::kFarming, StatPreset::kBossing};
+  const StatPreset presets[] = {StatPreset::kFirst, StatPreset::kSecond};
   for (StatPreset preset : presets) {
     moved += ReconcileHyperPreset(preset);
   }

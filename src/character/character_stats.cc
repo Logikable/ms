@@ -918,50 +918,50 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
 // Percentages arrive as whole percents and are divided here, the way a worn
 // item's are. Arcane Force is not among them -- it is not a stat the damage
 // chain reads, and CharacterInstance::arcane_force answers for it.
-void AddHyperStats(const CharacterInstance& character, StatPreset preset,
+void AddHyperStats(const CharacterInstance& character, StatPreset slot,
                    PassiveTotals& totals) {
   static_assert(HyperStatField_ARRAYSIZE == 16,
                 "a new Hyper Stat needs somewhere to land");
   if (character.proto().level() < kHyperStatUnlockLevel) {
     return;
   }
-  totals.str += static_cast<int>(
-      character.hyper_stat_bonus(HYPER_STAT_FIELD_STR, preset));
-  totals.dex += static_cast<int>(
-      character.hyper_stat_bonus(HYPER_STAT_FIELD_DEX, preset));
-  totals.int_ += static_cast<int>(
-      character.hyper_stat_bonus(HYPER_STAT_FIELD_INT, preset));
-  totals.luk += static_cast<int>(
-      character.hyper_stat_bonus(HYPER_STAT_FIELD_LUK, preset));
+  totals.str +=
+      static_cast<int>(character.hyper_stat_bonus(HYPER_STAT_FIELD_STR, slot));
+  totals.dex +=
+      static_cast<int>(character.hyper_stat_bonus(HYPER_STAT_FIELD_DEX, slot));
+  totals.int_ +=
+      static_cast<int>(character.hyper_stat_bonus(HYPER_STAT_FIELD_INT, slot));
+  totals.luk +=
+      static_cast<int>(character.hyper_stat_bonus(HYPER_STAT_FIELD_LUK, slot));
   totals.max_hp_pct +=
-      character.hyper_stat_bonus(HYPER_STAT_FIELD_MAX_HP, preset) /
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_MAX_HP, slot) /
       kPercentToFraction;
   totals.crit_rate +=
-      character.hyper_stat_bonus(HYPER_STAT_FIELD_CRIT_RATE, preset) /
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_CRIT_RATE, slot) /
       kPercentToFraction;
   totals.crit_dmg +=
-      character.hyper_stat_bonus(HYPER_STAT_FIELD_CRIT_DAMAGE, preset) /
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_CRIT_DAMAGE, slot) /
       kPercentToFraction;
   // Ignored defence meets what the book already ignores in reverse, the way
   // two sources of it always meet.
   totals.ied = CombineIgnoredDefense(
-      totals.ied, character.hyper_stat_bonus(HYPER_STAT_FIELD_IED, preset) /
+      totals.ied, character.hyper_stat_bonus(HYPER_STAT_FIELD_IED, slot) /
                       kPercentToFraction);
   totals.damage_pct +=
-      character.hyper_stat_bonus(HYPER_STAT_FIELD_DAMAGE, preset) /
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_DAMAGE, slot) /
       kPercentToFraction;
   totals.boss_pct +=
-      character.hyper_stat_bonus(HYPER_STAT_FIELD_BOSS_DAMAGE, preset) /
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_BOSS_DAMAGE, slot) /
       kPercentToFraction;
   totals.normal_pct +=
-      character.hyper_stat_bonus(HYPER_STAT_FIELD_NORMAL_DAMAGE, preset) /
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_NORMAL_DAMAGE, slot) /
       kPercentToFraction;
   // One stat pays both, so a magician and a warrior read the same row.
   int attack = static_cast<int>(
-      character.hyper_stat_bonus(HYPER_STAT_FIELD_ATTACK, preset));
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_ATTACK, slot));
   totals.attack += attack;
   totals.magic_attack += attack;
-  totals.exp_pct += character.hyper_stat_bonus(HYPER_STAT_FIELD_EXP, preset) /
+  totals.exp_pct += character.hyper_stat_bonus(HYPER_STAT_FIELD_EXP, slot) /
                     kPercentToFraction;
 }
 
@@ -973,14 +973,14 @@ void AddHyperStats(const CharacterInstance& character, StatPreset preset,
 //
 // A line below the unlock level pays nothing, so the panel opening and the
 // stats arriving are one event.
-void AddInnerAbility(const CharacterInstance& character, StatPreset preset,
+void AddInnerAbility(const CharacterInstance& character, StatPreset slot,
                      PassiveTotals& totals) {
   static_assert(AbilityLineType_ARRAYSIZE == 17,
                 "a new Inner Ability line needs somewhere to land");
   if (!character.inner_ability_unlocked()) {
     return;
   }
-  for (const AbilityLine& line : character.ability(preset).lines()) {
+  for (const AbilityLine& line : character.ability(slot).lines()) {
     const int value = AbilityLineValue(line.type(), line.rank());
     const double share = value / kPercentToFraction;
     switch (line.type()) {
@@ -1423,7 +1423,7 @@ void AddRegenPulses(const AllocatedStats& allocated, const EquipStats& equipped,
 // What the character shakes loose: the drop and meso shares they wear, and the
 // two potions that lift them past what gear alone can reach.
 void AddDropAndMesoRates(const CharacterInstance& character,
-                         const EquipStats& equipped, StatPreset preset,
+                         const EquipStats& equipped, Activity preset,
                          DerivedStats& stats) {
   // The worn share is whole percents and the granted share a fraction. They
   // meet by summing, the way boss damage does in OffenseStatsFor.
@@ -1434,7 +1434,7 @@ void AddDropAndMesoRates(const CharacterInstance& character,
   // The Wealth Acquisition Potion, worth three things at once: a share past
   // the equipment cap, the same share of drop rate, and a multiplier over the
   // purse the two of them fill. Farming only -- a boss pays none of it.
-  if (preset == StatPreset::kFarming &&
+  if (preset == Activity::kFarming &&
       character.ConsumableInEffect(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION)) {
     stats.meso_pct += kWealthPotionMesoPct;
     stats.item_drop_pct += kWealthPotionDropPct;
@@ -1442,7 +1442,7 @@ void AddDropAndMesoRates(const CharacterInstance& character,
   }
   // The Extreme Green Potion, the other half of that deal: stages in a boss
   // fight and nowhere else, and stages that pass the soft cap.
-  if (preset == StatPreset::kBossing &&
+  if (preset == Activity::kBossing &&
       character.ConsumableInEffect(CONSUMABLE_TYPE_EXTREME_GREEN_POTION)) {
     stats.uncapped_attack_speed_bonus += kGreenPotionAttackSpeed;
   }
@@ -1475,7 +1475,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills,
                              absl::Span<const BuffUp> buffs_up,
                              absl::Span<const CharacterInstance> allies,
-                             StatPreset preset) {
+                             Activity preset) {
   const Character& proto = character.proto();
   const AllocatedStats& allocated = proto.allocated_stats();
   const EquipStats& equipped = character.equip_stats();
@@ -1487,8 +1487,10 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   FoldApStats(allocated, passives);
   // After the fold, never before it: a Hyper Stat is final stat, and Maple
   // Warrior takes its share of the allocation alone.
-  AddHyperStats(character, preset, passives);
-  AddInnerAbility(character, preset, passives);
+  // The activity names the allocation: what it reads is the slot that answers
+  // for it -- see stat_preset.h.
+  AddHyperStats(character, SlotFor(preset), passives);
+  AddInnerAbility(character, SlotFor(preset), passives);
   // Last of all, because it spends a crit rate nothing more will add to. Read
   // uncapped and with the base rate in, the way the stats page shows it.
   passives.crit_dmg +=
@@ -1574,7 +1576,7 @@ EquipStats TotalEquipStats(const CharacterInstance& character,
 
 OffenseStats CharacterOffense(const CharacterInstance& character,
                               const std::map<std::string, Skill>& skills,
-                              StatPreset preset) {
+                              Activity preset) {
   const Character& p = character.proto();
   DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
                                          /*allies=*/{}, preset);
@@ -1587,9 +1589,9 @@ OffenseStats CharacterOffense(const CharacterInstance& character,
 
 int CharacterCombatPower(const CharacterInstance& character,
                          const std::map<std::string, Skill>& skills,
-                         StatPreset preset) {
+                         Activity preset) {
   return CombatPower(CharacterOffense(character, skills, preset),
-                     preset == StatPreset::kBossing);
+                     preset == Activity::kBossing);
 }
 
 }  // namespace ms

@@ -522,10 +522,15 @@ int CharacterPanel::StatsTabFixedRows() const {
   return kStatsTabFixedRows + (ShowsPresetBar() ? 1 : 0);
 }
 
+Activity CharacterPanel::SelectedActivity() const {
+  return hyper_preset_ == StatPreset::kSecond ? Activity::kBossing
+                                              : Activity::kFarming;
+}
+
 ftxui::Element CharacterPanel::RenderPresetBar(
     bool bar_focused, const std::string& trailing) const {
   std::vector<TabSpec> specs = {{kFarmTabLabel}, {kBossTabLabel}};
-  int active = hyper_preset_ == StatPreset::kBossing ? 1 : 0;
+  int active = IndexOf(hyper_preset_);
   // The chips take what the trailing text and its gutter leave. Two four-letter
   // labels never come near even the narrowest of that, so the bar does not
   // scroll here whatever the number beside it grows to.
@@ -626,7 +631,7 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool bar_focused,
   // values, so they come from the derived totals rather than a bare sum. The
   // stat rows do too: a skill's LUK belongs in the same column as a ring's.
   DerivedStats derived = DerivedStatsFor(character_, skills_, /*buffs_up=*/{},
-                                         /*allies=*/{}, hyper_preset_);
+                                         /*allies=*/{}, SelectedActivity());
   const EquipStats e = TotalEquipStats(character_, derived);
 
   std::vector<ftxui::Element> rows;
@@ -651,7 +656,7 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool bar_focused,
     rows.push_back(PanelSeparator(highlighted_));
   }
   std::vector<StatLine> extras =
-      PanelExtraStatLines(character_, account_, skills_, hyper_preset_);
+      PanelExtraStatLines(character_, account_, skills_, SelectedActivity());
   int shown = ExtraStatsShown(static_cast<int>(extras.size()));
   // A rule with nothing under it reads as a row that failed to draw, so the
   // cut takes it too rather than leaving it on the end.
@@ -1278,9 +1283,9 @@ ftxui::Element CharacterPanel::Render() const {
   std::string title =
       Centered("Lv" + lvl + " " + ShortJobName(p.job()), ContentWidth());
 
-  std::string power = Centered(
-      CombatPowerText(CharacterCombatPower(character_, skills_, hyper_preset_)),
-      ContentWidth());
+  std::string power = Centered(CombatPowerText(CharacterCombatPower(
+                                   character_, skills_, SelectedActivity())),
+                               ContentWidth());
 
   bool focused = panel_focus_ == kCharPanel;
   Zone zone = EffectiveZone();
@@ -1401,11 +1406,11 @@ bool CharacterPanel::OnPresetBarEvent(const ftxui::Event& event) {
     return true;
   }
   if (event == ftxui::Event::ArrowLeft) {
-    hyper_preset_ = StatPreset::kFarming;
+    hyper_preset_ = StatPreset::kFirst;
     return true;
   }
   if (event == ftxui::Event::ArrowRight) {
-    hyper_preset_ = StatPreset::kBossing;
+    hyper_preset_ = StatPreset::kSecond;
     return true;
   }
   return false;

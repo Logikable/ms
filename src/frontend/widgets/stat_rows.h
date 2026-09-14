@@ -47,7 +47,7 @@ inline StatLine StatRule() {
 // and farming is what a caller with no tab of its own wants.
 std::vector<StatLine> ExtraStatLines(const CharacterInstance& character,
                                      const std::map<std::string, Skill>& skills,
-                                     StatPreset preset = StatPreset::kFarming);
+                                     Activity preset = Activity::kFarming);
 
 // The same list as the Character panel shows it, which is less of it early on:
 // empty until a first job advancement, and without the four percent rows until
@@ -59,7 +59,7 @@ std::vector<StatLine> ExtraStatLines(const CharacterInstance& character,
 std::vector<StatLine> PanelExtraStatLines(
     const CharacterInstance& character, const AccountInstance& account,
     const std::map<std::string, Skill>& skills,
-    StatPreset preset = StatPreset::kFarming);
+    Activity preset = Activity::kFarming);
 
 // The four AP stats: STR, DEX, INT, LUK. The order fills the All Stats
 // screen's left column and then its right, so the two rows read STR/INT and
@@ -68,7 +68,7 @@ std::vector<StatLine> PanelExtraStatLines(
 // number beside them says nothing the bar does not.
 std::vector<StatLine> MainStatLines(const CharacterInstance& character,
                                     const std::map<std::string, Skill>& skills,
-                                    StatPreset preset = StatPreset::kFarming);
+                                    Activity preset = Activity::kFarming);
 
 // Combat power spelled out, until it outgrows the row it sits in. Past six
 // figures the label shortens to "CP" rather than the number being cut.
