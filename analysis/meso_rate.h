@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "absl/types/span.h"
+#include "analysis/drop_value.h"
 #include "src/combat/encounter.h"
 #include "src/game_state.h"
 #include "src/protos/item.pb.h"
@@ -25,17 +26,15 @@
 
 namespace ms {
 
-// What the Etc off one kill of `mob` fetches at the counter, before drop rate
-// lifts it. A token or a soul shard is worth nothing here -- the counter pays
-// nothing for either, and what they really buy is priced elsewhere.
-double EtcPerKill(const std::map<std::string, ItemPrototype>& items,
-                  const Mob& mob);
-
-// What one kill pays, with the Etc already resolved: the meso drop, whose
-// chance caps at certain, plus the Etc, whose rate does not. The character's
-// %meso is left out -- it multiplies every mob alike, so a caller ranking maps
-// needs only this.
-double MesoPerKill(const Mob& mob, double etc, double item_drop_pct);
+// What one kill pays, with its drops already valued: the meso drop, whose
+// chance caps at certain, plus everything else that falls, whose rate does
+// not. `drops` is //analysis:drop_value's answer -- the Etc at the counter's
+// price, and a token, a symbol duplicate or a piece of gear at what the purse
+// would otherwise spend for the same combat power.
+//
+// The character's %meso is left out: it multiplies every mob alike, so a
+// caller ranking maps needs only this.
+double MesoPerKill(const Mob& mob, double drops, double item_drop_pct);
 
 // The monsters in front of the character and how fast they are falling, with
 // everything the catalogs had to answer already resolved -- so a plan can keep
@@ -46,9 +45,9 @@ double MesoPerKill(const Mob& mob, double etc, double item_drop_pct);
 // pays nothing here: it pays out of its own table, which no %meso reaches.
 struct Crowd {
   std::vector<Mob> mobs;
-  // Parallel to `mobs`: what one kill's Etc fetches, and how many fall a
+  // Parallel to `mobs`: what one kill's drops are worth, and how many fall a
   // second.
-  std::vector<double> etc;
+  std::vector<double> drops;
   std::vector<double> kills_per_second;
 
   // The same crowd killed at a different rate. What the Wild Totem question
@@ -56,7 +55,11 @@ struct Crowd {
   Crowd At(absl::Span<const double> rate) const;
 };
 
-Crowd CrowdFor(const GameState& state, const CombatParams& params,
+// `basis` is what the drops are valued against -- see DropBasisFor. Resolved
+// here and kept, so a plan reading the rate many times over one look pays for
+// the catalogs once.
+Crowd CrowdFor(const GameState& state, const DropBasis& basis,
+               const CombatParams& params,
                absl::Span<const double> kills_per_second);
 
 // Meso a second `crowd` pays under one set of levers.

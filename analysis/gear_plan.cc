@@ -618,11 +618,16 @@ void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
       continue;
     }
     const EquipPrototype& proto = item->prototype();
-    // Never a symbol. The counter pays nothing for one, and what a spare is
-    // really worth is the rung it is combined into -- so selling one is a
-    // duplicate thrown away for no meso. CollectSymbols banks them at the
-    // look; this is what stops the two getting out of order.
-    if (IsArcaneSymbol(proto)) {
+    // Never a spare of a symbol the character is wearing: what it is worth is
+    // the rung it is combined into, so selling one throws a duplicate away for
+    // no meso. CollectSymbols banks them at the look; this is what stops the
+    // two getting out of order.
+    //
+    // A symbol they are NOT wearing falls through to the allowance below and
+    // keeps one copy, like any other piece waiting for its slot -- otherwise
+    // the Esfera an unreachable area drops piles up a bag row at a time.
+    if (IsArcaneSymbol(proto) &&
+        WornStars(state.character, proto.name()) >= 0) {
       ++i;
       continue;
     }

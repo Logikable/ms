@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "absl/types/span.h"
+#include "analysis/drop_value.h"
 #include "src/character/character_stats.h"
 #include "src/combat/encounter.h"
 #include "src/combat/loot.h"
@@ -15,24 +16,9 @@
 
 namespace ms {
 
-double EtcPerKill(const std::map<std::string, ItemPrototype>& items,
-                  const Mob& mob) {
-  double total = 0.0;
-  for (const MobDrop& drop : mob.drops()) {
-    if (!drop.has_item()) {
-      continue;
-    }
-    std::map<std::string, ItemPrototype>::const_iterator it =
-        items.find(drop.item());
-    if (it != items.end() && it->second.sell_price() > 0) {
-      total += drop.per_kill() * it->second.sell_price();
-    }
-  }
-  return total;
-}
-
-double MesoPerKill(const Mob& mob, double etc, double item_drop_pct) {
-  return ExpectedMesoPerKill(mob, item_drop_pct) + etc * (1.0 + item_drop_pct);
+double MesoPerKill(const Mob& mob, double drops, double item_drop_pct) {
+  return ExpectedMesoPerKill(mob, item_drop_pct) +
+         drops * (1.0 + item_drop_pct);
 }
 
 Crowd Crowd::At(absl::Span<const double> rate) const {
@@ -42,13 +28,15 @@ Crowd Crowd::At(absl::Span<const double> rate) const {
   return copy;
 }
 
-Crowd CrowdFor(const GameState& state, const CombatParams& params,
+Crowd CrowdFor(const GameState& state, const DropBasis& basis,
+               const CombatParams& params,
                absl::Span<const double> kills_per_second) {
   Crowd crowd;
   for (std::size_t i = 0; i < params.types.size(); ++i) {
     const Mob* mob = params.types[i].mob;
     crowd.mobs.push_back(mob == nullptr ? Mob() : *mob);
-    crowd.etc.push_back(mob == nullptr ? 0.0 : EtcPerKill(state.items, *mob));
+    crowd.drops.push_back(mob == nullptr ? 0.0
+                                         : DropsPerKill(state, basis, *mob));
     crowd.kills_per_second.push_back(
         i < kills_per_second.size() ? kills_per_second[i] : 0.0);
   }
@@ -63,7 +51,7 @@ double MesoPerSecond(const Crowd& crowd, double meso_pct, double meso_mult,
       continue;
     }
     total += crowd.kills_per_second[i] *
-             MesoPerKill(crowd.mobs[i], crowd.etc[i], item_drop_pct);
+             MesoPerKill(crowd.mobs[i], crowd.drops[i], item_drop_pct);
   }
   return total * (1.0 + meso_pct) * meso_mult;
 }

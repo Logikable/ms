@@ -124,6 +124,14 @@ class GearShopper {
     return life_;
   }
 
+  // Combat power a meso buys on this shelf, off the best offer of the last
+  // pass. The rate that turns a drop nothing sells into meso -- see
+  // //analysis:drop_value. Zero until the shopper has priced a round, which
+  // reads as a drop being worth nothing rather than as a guess.
+  double power_per_meso() const {
+    return income_.power_per_meso;
+  }
+
  private:
   // One thing the purse could buy next.
   struct Candidate {

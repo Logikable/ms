@@ -604,9 +604,6 @@ void OutfitWeapon(GameState& state, EquipType type) {
   BuyAccessories(state, /*budget=*/false);
 }
 
-// Whether the character has reached the map that hands `proto` over. A symbol
-// is not a drop off a ladder: one waits at each Arcane River checkpoint, so a
-// character standing at 200 has the first of the six and none of the rest.
 bool ReachedSymbolArea(const CharacterInstance& character,
                        const EquipPrototype& proto) {
   return !IsArcaneSymbol(proto) ||

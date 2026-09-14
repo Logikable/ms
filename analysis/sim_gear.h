@@ -66,6 +66,13 @@ EquipType SettledWeaponType(GameState& state, bool budget);
 // weapon has to be in hand.
 void OutfitWeapon(GameState& state, EquipType type);
 
+// Whether the character has reached the map that hands `proto` over. A symbol
+// is not a drop off a ladder: one waits at each Arcane River checkpoint, so a
+// character standing at 200 has the first of the six and none of the rest.
+// True for everything that is not a symbol.
+bool ReachedSymbolArea(const CharacterInstance& character,
+                       const EquipPrototype& proto);
+
 // Feeds every worn Arcane Symbol the spare copies of itself the bag is
 // holding, and says how many it absorbed. A symbol is the one ladder climbed
 // with duplicates rather than with either upgrade path, and a spare nothing

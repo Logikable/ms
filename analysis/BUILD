@@ -69,10 +69,28 @@ cc_library(
 )
 
 cc_library(
+    name = "drop_value",
+    srcs = ["drop_value.cc"],
+    hdrs = ["drop_value.h"],
+    deps = [
+        ":sim_gear",
+        "//src:game_state",
+        "//src/character:arcane_force",
+        "//src/character:character_stats",
+        "//src/combat:damage",
+        "//src/item:equip_instance",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:mob_proto_cc",
+    ],
+)
+
+cc_library(
     name = "meso_rate",
     srcs = ["meso_rate.cc"],
     hdrs = ["meso_rate.h"],
     deps = [
+        ":drop_value",
         "//src:game_state",
         "//src/character:character_stats",
         "//src/combat:encounter",
@@ -307,6 +325,7 @@ sim_binary(
         ":buff_plan",
         ":checkpoint",
         ":cube_plan",
+        ":drop_value",
         ":gear_plan",
         ":hyper_plan",
         ":meso_rate",
