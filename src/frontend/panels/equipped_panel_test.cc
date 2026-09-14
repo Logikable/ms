@@ -1109,6 +1109,45 @@ TEST_F(GearPresetTest, TheRowDoesNotWrap) {
   EXPECT_EQ(panel.gear_preset(), StatPreset::kThird);
 }
 
+// With the switch off the player picks which preset is worn, and Enter on the
+// chip is the whole of how: one action, so no menu is raised over it.
+TEST_F(GearPresetTest, EnterWearsThePresetWithTheAutoswapOff) {
+  CharacterInstance& c = Cuber();
+  Wear(c, "Farm Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kFirst);
+  Wear(c, "Boss Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kSecond);
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  RenderComponent(component);
+  component->OnEvent(ftxui::Event::ArrowUp);
+  component->OnEvent(ftxui::Event::ArrowRight);
+  component->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(c.SlotInUse(PresetKind::kEquip), StatPreset::kSecond);
+  EXPECT_EQ(c.weapon_type(c.SlotFor(PresetKind::kEquip, Activity::kFarming)),
+            c.WornAt(StatPreset::kSecond, EQUIP_SLOT_PRIMARY_WEAPON)
+                ->prototype()
+                .equip_type());
+  EXPECT_NE(RenderComponent(component).find("2 \u2713"), std::string::npos);
+}
+
+// On, there is nothing to pick: the activity is already wearing whichever
+// preset it names.
+TEST_F(GearPresetTest, EnterPicksNothingWithTheAutoswapOn) {
+  CharacterInstance& c = Cuber();
+  c.set_autoswap_presets(true);
+  Wear(c, "Farm Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kFirst);
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  RenderComponent(component);
+  component->OnEvent(ftxui::Event::ArrowUp);
+  component->OnEvent(ftxui::Event::ArrowRight);
+  component->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(c.SlotInUse(PresetKind::kEquip), StatPreset::kFirst);
+}
+
 // A preset takes off only what is its own, so the entry is dimmed on a row it
 // inherits rather than taking the Farm preset's item away under it.
 TEST_F(GearPresetTest, UnequipIsDimmedOnAnInheritedRow) {

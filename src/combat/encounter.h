@@ -670,6 +670,12 @@ struct CombatParams {
   // wears and what their passives grant. Read by AwardCombatRewards, like
   // exp_pct above: it raises the chance of a drop rather than the size of one.
   double item_drop_pct = 0.0;
+  // The rate a boss's own drops are rolled at, which is the Drop preset's and
+  // not the one the fight was fought in: the player is given no moment to
+  // change into drop gear before the drops fall, so the preset they set aside
+  // for it answers whatever they are wearing. See kDropPreset. Zero, and
+  // unread, outside a boss fight -- a map's drops are the fight's own.
+  double drop_roll_item_drop_pct = 0.0;
   // The fountains the character carries, their intervals already stretched by
   // the pacing band. Each runs on its own clock, whether or not the character
   // is swinging.

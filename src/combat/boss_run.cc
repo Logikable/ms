@@ -631,7 +631,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
     return;
   }
   if (phase_ + 1 >= phases_) {
-    PayReward(state, RollAwards(state, params.item_drop_pct));
+    PayReward(state, RollAwards(state, params.drop_roll_item_drop_pct));
     Finish(BossRunState::kWon);
     return;
   }
@@ -790,7 +790,7 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
     SyncSlots(dt);
     return;
   }
-  item_drop_pct_ = params.item_drop_pct;
+  item_drop_pct_ = params.drop_roll_item_drop_pct;
   AdvanceCombat(state, sim_, params, dt);
   if (slots_.empty()) {
     FillSlots(params);

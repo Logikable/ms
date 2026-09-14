@@ -2206,6 +2206,22 @@ CombatParams ComputeCombatParams(const GameState& state) {
   return params;
 }
 
+// The rate the boss's drops are rolled at: the same character read again in
+// the gear they set aside for it. Read twice only when the two presets are
+// wearing different things, which is what a Drop preset nobody filled in is.
+double DropRollRate(const GameState& state, const DerivedStats& bossing) {
+  const CharacterInstance& character = state.character;
+  const StatPreset worn =
+      character.SlotFor(PresetKind::kEquip, Activity::kBossing);
+  if (worn == kDropPreset ||
+      character.equipped(worn) == character.equipped(kDropPreset)) {
+    return bossing.item_drop_pct;
+  }
+  return DerivedStatsFor(character, state.skills, {}, state.party,
+                         Activity::kBossing, kDropPreset)
+      .item_drop_pct;
+}
+
 CombatParams ComputeBossParams(const GameState& state,
                                const std::string& boss_key,
                                const BossDifficulty& difficulty, int phase) {
@@ -2233,6 +2249,7 @@ CombatParams ComputeBossParams(const GameState& state,
     return params;
   }
   AddAttacks(state, derived, *weapon, 1.0, Activity::kBossing, params);
+  params.drop_roll_item_drop_pct = DropRollRate(state, derived);
   HalveBossReach(params);
   // A boss's parts are hit hardest-first: see CombatParams::focus_healthiest.
   params.focus_healthiest = true;

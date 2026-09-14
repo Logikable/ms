@@ -494,6 +494,14 @@ bool EquippedPanel::OnPresetBarEvent(const ftxui::Event& event) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
+  // Enter wears the preset the cursor is on. One action and no menu, the way
+  // Enter on the Expand tab goes through the door rather than asking about it.
+  // With the autoswap on there is nothing to pick: the activity is wearing
+  // whichever preset it names.
+  if (IsForward(event) && !character_.autoswap_presets()) {
+    character_.SetSlotInUse(PresetKind::kEquip, gear_preset_);
+    return true;
+  }
   // Swallow the rest, for the reason the bar above does.
   return true;
 }

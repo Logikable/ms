@@ -494,8 +494,9 @@ class BossRun {
   // Seconds until the next report goes out. 0 sends on the coming step, which
   // is what a fight and a new phase both open on.
   double report_due_ = 0.0;
-  // What the last step's params said drop rate was, for a clear that is
-  // declared on a step this run computed nothing.
+  // What the last step's params said the drop roll's rate was -- the Drop
+  // preset's, which is what the party's best-rate rule is told. Held for a
+  // clear that is declared on a step this run computed nothing.
   double item_drop_pct_ = 0.0;
   // Picks which side of a bar each stack asks for. Default-seeded, so a run
   // plays out the same way twice and a test can say where a stack went.

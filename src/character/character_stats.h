@@ -8,6 +8,7 @@
 #define MS_SRC_CHARACTER_CHARACTER_STATS_H_
 
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -535,14 +536,19 @@ int TotalIntFor(const CharacterInstance& character,
 // Empty is a character playing alone, which is every character outside a
 // party fight.
 //
-// `preset` picks which of the character's two setups to read -- their Hyper
-// Stat allocation and their Inner Ability alike. Farming unless the caller is
-// a boss fight or a screen showing the other one.
+// `preset` picks which of the character's setups to read -- their Hyper Stat
+// allocation, their Inner Ability and their gear alike. Farming unless the
+// caller is a boss fight or a screen showing the other one.
+//
+// `gear` overrides the preset the worn items are read from, leaving everything
+// else as `preset` had it. One caller: the boss drop roll, which reads the
+// Drop preset's gear off a character who fought in their boss gear.
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills,
                              absl::Span<const BuffUp> buffs_up = {},
                              absl::Span<const CharacterInstance> allies = {},
-                             Activity preset = Activity::kFarming);
+                             Activity preset = Activity::kFarming,
+                             std::optional<StatPreset> gear = std::nullopt);
 
 // The offensive half of the derived stats, in the shape combat/damage.h asks
 // for them. One place to keep in step with DerivedStats, rather than every

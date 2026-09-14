@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -845,9 +846,13 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
                               const std::map<std::string, Skill>& skills,
                               absl::Span<const BuffUp> buffs_up,
                               absl::Span<const CharacterInstance> allies,
-                              Activity activity) {
+                              Activity activity,
+                              std::optional<StatPreset> worn = std::nullopt) {
   PassiveTotals totals;
-  const StatPreset gear = character.SlotFor(PresetKind::kEquip, activity);
+  // The character's own gear; an ally's is read off theirs, which is what the
+  // activity answers for them.
+  const StatPreset gear =
+      worn.value_or(character.SlotFor(PresetKind::kEquip, activity));
   EquipType weapon = character.weapon_type(gear);
   int bonus = BonusSkillLevels(character, skills, allies);
   std::vector<PayingSkill> paying =
@@ -1089,8 +1094,7 @@ EquipStats PotentialFlatGrant(const int pile[4],
 // The character's stat pile as PotentialFlatGrant wants it: everything a
 // %stat line may multiply, with the potentials' own share taken back off.
 void StatPileFor(const CharacterInstance& character, const EquipStats& passives,
-                 const EquipStats& paid, Activity activity, int pile[4]) {
-  const StatPreset gear = character.SlotFor(PresetKind::kEquip, activity);
+                 const EquipStats& paid, StatPreset gear, int pile[4]) {
   const AllocatedStats& allocated = character.proto().allocated_stats();
   const EquipStats& worn = character.equip_stats(gear);
   const EquipStats& symbols = character.symbol_stats(gear);
@@ -1105,9 +1109,8 @@ void StatPileFor(const CharacterInstance& character, const EquipStats& passives,
 }
 
 void AddPotentials(const CharacterInstance& character, Activity activity,
-                   PassiveTotals& totals) {
-  const PotentialTotals& potential = character.potential_totals(
-      character.SlotFor(PresetKind::kEquip, activity));
+                   StatPreset worn, PassiveTotals& totals) {
+  const PotentialTotals& potential = character.potential_totals(worn);
   // Nothing has been paid yet, so the pile is the passives' own flat grant.
   EquipStats passives;
   passives.set_str(totals.str);
@@ -1115,7 +1118,7 @@ void AddPotentials(const CharacterInstance& character, Activity activity,
   passives.set_int_(totals.int_);
   passives.set_luk(totals.luk);
   int pile[4];
-  StatPileFor(character, passives, EquipStats(), activity, pile);
+  StatPileFor(character, passives, EquipStats(), worn, pile);
   const EquipStats paid = PotentialFlatGrant(pile, potential);
   totals.potential_stats = paid;
   totals.str += paid.str();
@@ -1488,19 +1491,20 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills,
                              absl::Span<const BuffUp> buffs_up,
                              absl::Span<const CharacterInstance> allies,
-                             Activity preset) {
+                             Activity preset, std::optional<StatPreset> gear) {
   const Character& proto = character.proto();
   const AllocatedStats& allocated = proto.allocated_stats();
-  // The activity names the gear as well as the allocations: what the
-  // character is wearing is one of three presets -- see stat_preset.h.
-  const StatPreset gear = character.SlotFor(PresetKind::kEquip, preset);
-  const EquipStats& equipped = character.equip_stats(gear);
+  // The activity names the gear as well as the allocations, unless the caller
+  // named a preset itself -- see stat_preset.h.
+  const StatPreset worn =
+      gear.value_or(character.SlotFor(PresetKind::kEquip, preset));
+  const EquipStats& equipped = character.equip_stats(worn);
   PassiveTotals passives =
-      LearnedPassives(character, skills, buffs_up, allies, preset);
+      LearnedPassives(character, skills, buffs_up, allies, preset, worn);
   // Before the fold: a potential's %stat and Maple Warrior's both read a base
   // the other has not touched, and the two shares are added rather than
   // compounded.
-  AddPotentials(character, preset, passives);
+  AddPotentials(character, preset, worn, passives);
   FoldApStats(allocated, passives);
   // After the fold, never before it: a Hyper Stat is final stat, and Maple
   // Warrior takes its share of the allocation alone.
@@ -1571,7 +1575,7 @@ EquipStats PotentialStatGrant(const CharacterInstance& character,
                               const PotentialTotals& totals) {
   int pile[4];
   StatPileFor(character, derived.skill_stats, derived.potential_stats,
-              derived.activity, pile);
+              character.SlotFor(PresetKind::kEquip, derived.activity), pile);
   return PotentialFlatGrant(pile, totals);
 }
 

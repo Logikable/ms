@@ -5116,6 +5116,55 @@ TEST(ComputeBossParamsTest, TheFightPicksTheAllocationForTheActivity) {
       << "30 attack the farming allocation never bought";
 }
 
+// The boss's drops are rolled at the Drop preset's rate whatever the fight was
+// fought in: the player is given no moment to change into drop gear before
+// they fall.
+TEST(ComputeBossParamsTest, TheDropPresetRollsTheDrops) {
+  GameState state({}, {}, {},
+                  {{"arm", MakeMob("Zakum's Arm", 700000)},
+                   {"body", MakeMob("Zakum", 7000000)},
+                   {"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}});
+  state.current_map = "field";
+  state.account.SetAutoswapPresets(true);
+  state.ApplyPresetOptions();
+  EquipSword(state);
+  EquipPrototype charm;
+  charm.set_name("Drop Charm");
+  charm.set_equip_slot(EQUIP_SLOT_PENDANT);
+  charm.mutable_base_stats()->set_item_drop_rate(40);
+  state.character.PickUp(std::make_unique<EquipInstance>(charm));
+  ASSERT_TRUE(state.character.Equip(0, kDropPreset));
+
+  CombatParams params = ComputeBossParams(state, "zakum", NormalTwoPhase(), 0);
+  ASSERT_TRUE(params.active);
+  EXPECT_DOUBLE_EQ(params.item_drop_pct, 0.0) << "the fight wears no charm";
+  EXPECT_DOUBLE_EQ(params.drop_roll_item_drop_pct, 0.40);
+}
+
+// With the switch off it is still the third preset that rolls them. The
+// player has put one preset in use and is fighting in it; the drop gear they
+// set aside is the point of the third.
+TEST(ComputeBossParamsTest, TheDropPresetRollsThemWithTheAutoswapOff) {
+  GameState state({}, {}, {},
+                  {{"arm", MakeMob("Zakum's Arm", 700000)},
+                   {"body", MakeMob("Zakum", 7000000)},
+                   {"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+  EquipPrototype charm;
+  charm.set_name("Drop Charm");
+  charm.set_equip_slot(EQUIP_SLOT_PENDANT);
+  charm.mutable_base_stats()->set_item_drop_rate(40);
+  state.character.PickUp(std::make_unique<EquipInstance>(charm));
+  ASSERT_TRUE(state.character.Equip(0, kDropPreset));
+
+  CombatParams params = ComputeBossParams(state, "zakum", NormalTwoPhase(), 0);
+  ASSERT_TRUE(params.active);
+  EXPECT_DOUBLE_EQ(params.drop_roll_item_drop_pct, 0.40);
+}
+
 // The Extreme Green Potion is worth a stage in a boss fight and nothing on a
 // map -- and the stage it is worth passes the cap the map holds them to.
 TEST(ComputeBossParamsTest, TheGreenPotionPassesTheSpeedCapInAFightAlone) {
