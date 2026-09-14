@@ -26,6 +26,13 @@ constexpr int kTickMs = 30;
 constexpr double kBaseCritRate = 0.05;
 constexpr double kBaseCritDamage = 0.35;
 
+// What every character ignores of a boss's elemental resistance before a
+// single skill is bought. GMS's one universal source is the Insight trait,
+// worth half a point per ten levels of it and capped at 5%, which every
+// endgame character has filled; this game has no traits, so the cap is carried
+// as a base the way the crit pair above is.
+constexpr double kBaseIgnoreElementalResistance = 0.05;
+
 // How many timed buffs are modelled at once. Every combination of them needs a
 // damage table of its own, and the count of combinations doubles with each
 // one -- but a table is built the first time the fight asks for it, so what a

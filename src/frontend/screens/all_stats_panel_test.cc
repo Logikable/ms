@@ -71,24 +71,22 @@ TEST_F(AllStatsPanelTest, FillsTheLeftColumnBeforeTheRight) {
   EXPECT_NE(RowWith(panel.Render(), "DEX").find("LUK"), std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Attack ").find("Ignore DEF"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Magic Attack").find("Critical Rate"),
+  EXPECT_NE(RowWith(panel.Render(), "Magic Attack").find("Ignore Elem RES"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Final Damage").find("Critical Damage"),
+  EXPECT_NE(RowWith(panel.Render(), "Final Damage").find("Critical Rate"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Damage").find("Buff Duration"),
+  EXPECT_NE(RowWith(panel.Render(), "Damage").find("Critical Damage"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Boss Damage").find("Attack Speed"),
+  EXPECT_NE(RowWith(panel.Render(), "Boss Damage").find("Buff Duration"),
+            std::string::npos);
+  EXPECT_NE(RowWith(panel.Render(), "Normal Damage").find("Attack Speed"),
             std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Meso Drop Rate").find("Additional EXP"),
             std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Item Drop Rate").find("Arcane Force"),
             std::string::npos);
-  // Eleven combat stats, so the right column runs a row short and the gap is
-  // at the bottom of it.
-  EXPECT_EQ(RowWith(panel.Render(), "Normal Damage").find_last_not_of(' '),
-            static_cast<size_t>(AllStatsPanel::kColumnWidth) - 2);
-  // The rule breaks the columns too: Meso Drop Rate opens the group under it
-  // in the left column rather than filling the gap Normal Damage left.
+  // Twelve combat stats, so both columns fill. The rule still breaks them:
+  // Meso Drop Rate opens the group under it in the left column.
   EXPECT_LT(RowWith(panel.Render(), "Meso Drop Rate").find("Meso Drop Rate"),
             static_cast<size_t>(AllStatsPanel::kColumnWidth));
 }
@@ -171,7 +169,7 @@ TEST_F(AllStatsPanelTest, ALongValueKeepsTheColumn) {
   // The long value sits in the left column and stops at its edge: the stat it
   // pairs with still starts the second column, and the row ends where every
   // other row does.
-  EXPECT_EQ(magic.find("Critical Rate"),
+  EXPECT_EQ(magic.find("Ignore Elem RES"),
             static_cast<size_t>(AllStatsPanel::kColumnWidth) + 1)
       << "[" << magic << "]";
   EXPECT_EQ(magic.find_last_not_of(' '), 2 * AllStatsPanel::kColumnWidth - 2)

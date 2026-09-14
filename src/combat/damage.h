@@ -55,7 +55,11 @@ struct OffenseStats {
   double crit_dmg = 0.0;       // 0..1
   double final_dmg_pct = 0.0;  // final damage, as fraction
   double ied = 0.0;            // ignore enemy defense, 0..1
-  double ier = 0.0;            // ignore elemental resistance, 0..1
+  // What the character ignores of a boss's elemental resistance, atop the
+  // base in constants.h that the formula adds; this carries only what skills
+  // bought. Half of a boss's damage is behind that resistance, so 1.0 is a
+  // swing the halving never touched.
+  double ier = 0.0;
   // GMS's leading weapon constant; see WeaponConstant. 1.0 is the identity a
   // bare stat line carries, not a value any real weapon has.
   double weapon_constant = 1.0;

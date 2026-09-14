@@ -58,6 +58,10 @@ constexpr double kEqualLevel = 1.1;
 // Every figure below carries it, the level multiplier included.
 constexpr double kBaseCrit = 1.0 + kBaseCritRate * kBaseCritDamage;
 
+// What a boss's elemental resistance leaves of a hit from a character who has
+// bought no more than the base share of it that everyone ignores.
+constexpr double kBossElemental = 0.5 * (1.0 + kBaseIgnoreElementalResistance);
+
 // What the baseline swing below comes to before any modifier: 45 max base at
 // the melee mastery the default carries, 45 * (1 + 0.20) / 2.
 constexpr double kBaseline = 27.0;
@@ -125,7 +129,7 @@ TEST_F(OffenseTest, NormalPctAppliesToEverythingButABoss) {
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
                    kBaseline * 1.5 * kEqualLevel * kBaseCrit);
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, true)),
-                   kBaseline * 0.5 * kEqualLevel * kBaseCrit);
+                   kBaseline * kBossElemental * kEqualLevel * kBaseCrit);
 }
 
 // The mirror of boss_pct, and pointedly not in the same place: it joins the
@@ -145,7 +149,7 @@ TEST_F(OffenseTest, NormalSkillPctIsWorthNothingAgainstABoss) {
   OffenseStats s = Baseline();
   s.normal_skill_pct = 0.50;
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, true)),
-                   kBaseline * 0.5 * kEqualLevel * kBaseCrit);
+                   kBaseline * kBossElemental * kEqualLevel * kBaseCrit);
 }
 
 // A rate of 1 is already every swing, so the base 5% has nowhere to go and the
@@ -196,15 +200,21 @@ TEST_F(OffenseTest, DefensePast100PercentFloorsDamageAtOne) {
                    kBaseline * 0.50 * kEqualLevel * kBaseCrit);
 }
 
-TEST_F(OffenseTest, BossesTakeHalfElementalByDefault) {
+TEST_F(OffenseTest, BossElementalResistanceAndWhatIgnoresIt) {
+  // Half the hit sits behind the resistance, less the base share of it every
+  // character ignores before buying any.
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(0, true)),
-                   kBaseline * 0.5 * kEqualLevel * kBaseCrit);
-}
-
-TEST_F(OffenseTest, IerRestoresBossElemental) {
+                   kBaseline * kBossElemental * kEqualLevel * kBaseCrit);
+  // A book's own share multiplies rather than subtracts points, so ignoring
+  // all of it is a swing the halving never touched -- and the base rides atop
+  // that, exactly as it does for a character who bought none.
   OffenseStats s = Baseline();
-  s.ier = 1.0;  // 0.5*(1+1) == 1.0
+  s.ier = 1.0;
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, true)),
+                   kBaseline * 0.5 * (2.0 + kBaseIgnoreElementalResistance) *
+                       kEqualLevel * kBaseCrit);
+  // A normal monster has no resistance to ignore, so none of this is read.
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, false)),
                    kBaseline * kEqualLevel * kBaseCrit);
 }
 

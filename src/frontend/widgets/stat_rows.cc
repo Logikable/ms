@@ -116,6 +116,11 @@ std::vector<StatLine> CombatStatLines(
       lines.push_back(
           {"Ignore DEF", Percent(CombineIgnoredDefense(
                              e.ignore_enemy_defense() / 100.0, derived.ied))});
+      // Its sibling against the other half of a boss's armour: the elemental
+      // resistance behind which half of every boss hit sits. Carries the base
+      // every character has, as the crit rows below do.
+      lines.push_back(
+          {"Ignore Elem RES", Percent(kBaseIgnoreElementalResistance)});
     }
     // The base pair every character carries, plus what they bought. The stats
     // a skill writes to hold only its own contribution, so a page reading

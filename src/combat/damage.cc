@@ -18,7 +18,8 @@ namespace ms {
 namespace {
 
 // Bosses take half elemental damage by default; ignore-elemental-resistance
-// claws it back via 0.5 * (1 + ier).
+// claws it back via 0.5 * (1 + ier). GMS multiplies rather than subtracts
+// points: 10% ignored brings the reduction from 50% to 45%, not to 40%.
 constexpr double kBossElementalBase = 0.5;
 
 // Attack speed: delay = base * (kSpeedBase - stage) / kSpeedDivisor, then
@@ -656,7 +657,10 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
   // turn negative. Clamped at zero, and the floor below carries it.
   damage *= std::max(0.0, 1.0 - mob_pdr * (1.0 - offense.ied));
   if (is_boss) {
-    damage *= kBossElementalBase * (1.0 + offense.ier);
+    // The base every character carries plus what their book bought, the way
+    // the crit pair meets its own base above.
+    damage *= kBossElementalBase *
+              (1.0 + kBaseIgnoreElementalResistance + offense.ier);
   }
   double level_mult = LevelMultiplier(offense.level, mob.level());
   if (level_mult <= 0.0) {
