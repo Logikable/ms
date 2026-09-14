@@ -427,14 +427,13 @@ ftxui::Element Tui::PresetMoveDialog() {
       AccentSeparator(kTheme),
   };
   for (int i = 0; i < kNumStatPresets; ++i) {
-    body.push_back(CenteredRow(HighlightRow(
-        ftxui::text(PresetSlotName(StatPresetAt(i), autoswap)) | ftxui::center,
-        i == controller_.preset_move_row())));
+    body.push_back(
+        HighlightRow(CenteredRow(PresetSlotName(StatPresetAt(i), autoswap)),
+                     i == controller_.preset_move_row()));
   }
   return DialogWindow(
       "", std::move(body),
-      CenteredRow(ActionButton(
-          "Cancel", controller_.preset_move_row() == kNumStatPresets)));
+      ActionButton("Cancel", controller_.preset_move_row() == kNumStatPresets));
 }
 
 ftxui::Element Tui::AbilityRerollDialog() {
@@ -979,9 +978,9 @@ ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
         menu.Render(std::max(0, char_panel_.skill_cursor_row() - 1), col));
   }
   if (controller_.screen() == kPresetMenu) {
-    // Under the chip the menu was raised on, and held inside the panel: the
-    // row is short, so the menu sits at its left rather than beside a name.
-    constexpr int kPresetMenuCol = 2;
+    // Past the last chip rather than over them, so the row the menu is about
+    // stays readable behind it. Held inside the panel, as the others are.
+    constexpr int kPresetMenuCol = 14;
     const ItemMenu& menu = controller_.preset_menu();
     int col = std::max(0, std::min(kPresetMenuCol, widths.left - menu.Width()));
     return Floating(menu.Render(std::max(0, char_panel_.preset_row()), col));
