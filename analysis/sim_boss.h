@@ -12,6 +12,8 @@
 #include <map>
 #include <set>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
@@ -63,6 +65,27 @@ int BossObjectivePhase(const std::map<std::string, Mob>& mobs,
 // The index of the difficulty called `name`, or 0 for an empty name. -1 when
 // the boss has no such difficulty.
 int BossDifficultyIndex(const Boss& boss, const std::string& name);
+
+// The fights open to `level`, by boss key and difficulty, lowest unlock
+// first. Only the difficulties the game has actually built: one marked coming
+// soon is a shell with nothing in it but HP.
+std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
+                                                        int level);
+
+// The fight every plan is aimed at: the stiffest one open to the character,
+// or the next one to open before any are. A player spends points, and cubes,
+// on the boss they are about to meet rather than on the one they beat last
+// month. False when the catalog holds no fight they could ever reach.
+bool AimedFight(const GameState& state, std::pair<std::string, int>* fight);
+
+// The defence that fight stands behind, as a fraction. 0 where there is no
+// fight to aim at, which prices an ignored-defence lever at what it is worth
+// to a character with nothing in front of them: nothing.
+//
+// This is what makes the requirement a function of the ladder rather than a
+// number somebody keeps. Lotus's 300% asks three times what Cygnus's 100%
+// does of the same character.
+double AimedDefence(const GameState& state);
 
 }  // namespace ms
 

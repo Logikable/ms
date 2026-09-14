@@ -5,6 +5,8 @@
 #include <map>
 #include <set>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "src/combat/boss_run.h"
 #include "src/game_state.h"
@@ -109,6 +111,62 @@ int BossPdr(const std::map<std::string, Mob>& mobs,
     }
   }
   return pdr;
+}
+
+std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
+                                                        int level) {
+  std::vector<std::pair<int, std::pair<std::string, int>>> open;
+  for (const std::pair<const std::string, Boss>& entry : state.bosses) {
+    for (int i = 0; i < entry.second.difficulties_size(); ++i) {
+      const BossDifficulty& difficulty = entry.second.difficulties(i);
+      if (difficulty.coming_soon() || difficulty.unlock_level() > level) {
+        continue;
+      }
+      open.push_back({difficulty.unlock_level(), {entry.first, i}});
+    }
+  }
+  std::sort(open.begin(), open.end());
+  std::vector<std::pair<std::string, int>> fights;
+  for (const std::pair<int, std::pair<std::string, int>>& entry : open) {
+    fights.push_back(entry.second);
+  }
+  return fights;
+}
+
+bool AimedFight(const GameState& state, std::pair<std::string, int>* fight) {
+  int level = state.character.proto().level();
+  std::vector<std::pair<std::string, int>> open = UnlockedBosses(state, level);
+  if (!open.empty()) {
+    *fight = open.back();
+    return true;
+  }
+  int soonest = 0;
+  for (const std::pair<const std::string, Boss>& entry : state.bosses) {
+    for (int i = 0; i < entry.second.difficulties_size(); ++i) {
+      const BossDifficulty& difficulty = entry.second.difficulties(i);
+      if (difficulty.coming_soon() || difficulty.unlock_level() <= level) {
+        continue;
+      }
+      if (soonest == 0 || difficulty.unlock_level() < soonest) {
+        soonest = difficulty.unlock_level();
+        *fight = {entry.first, i};
+      }
+    }
+  }
+  return soonest > 0;
+}
+
+double AimedDefence(const GameState& state) {
+  std::pair<std::string, int> fight;
+  if (!AimedFight(state, &fight)) {
+    return 0.0;
+  }
+  std::map<std::string, Boss>::const_iterator boss =
+      state.bosses.find(fight.first);
+  if (boss == state.bosses.end()) {
+    return 0.0;
+  }
+  return BossPdr(state.mobs, boss->second.difficulties(fight.second)) / 100.0;
 }
 
 std::set<std::string> BossOwnDrops(const BossDifficulty& difficulty) {

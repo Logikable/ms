@@ -287,29 +287,6 @@ constexpr double kBookSeconds = 10.0;
 // so a day of playtime is a day.
 constexpr double kDaySeconds = 24.0 * 60.0 * 60.0;
 
-// The fights open to `level`, by boss key and difficulty, lowest unlock
-// first. Only the difficulties the game has actually built: one marked coming
-// soon is a shell with nothing in it but HP.
-std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
-                                                        int level) {
-  std::vector<std::pair<int, std::pair<std::string, int>>> open;
-  for (const std::pair<const std::string, Boss>& entry : state.bosses) {
-    for (int i = 0; i < entry.second.difficulties_size(); ++i) {
-      const BossDifficulty& difficulty = entry.second.difficulties(i);
-      if (difficulty.coming_soon() || difficulty.unlock_level() > level) {
-        continue;
-      }
-      open.push_back({difficulty.unlock_level(), {entry.first, i}});
-    }
-  }
-  std::sort(open.begin(), open.end());
-  std::vector<std::pair<std::string, int>> fights;
-  for (const std::pair<int, std::pair<std::string, int>>& entry : open) {
-    fights.push_back(entry.second);
-  }
-  return fights;
-}
-
 // How long to play a character out for, given what is asked. A window shorter
 // than a buff's own cycle cannot see the buff go up or come down: everything
 // that is standing stays standing, and a lever that lengthens a buff reads
@@ -399,32 +376,6 @@ double CrowdRate(GameState& state, const DropBasis& basis) {
   return CrowdRateOver(state, basis, kBookSeconds);
 }
 
-// The fight the book is aimed at: the stiffest one open to them, or the next
-// one to open before any are. A player spends points on the boss they are
-// about to meet rather than on the one they beat last month.
-bool BookTarget(const GameState& state, std::pair<std::string, int>* fight) {
-  int level = state.character.proto().level();
-  std::vector<std::pair<std::string, int>> open = UnlockedBosses(state, level);
-  if (!open.empty()) {
-    *fight = open.back();
-    return true;
-  }
-  int soonest = 0;
-  for (const std::pair<const std::string, Boss>& entry : state.bosses) {
-    for (int i = 0; i < entry.second.difficulties_size(); ++i) {
-      const BossDifficulty& difficulty = entry.second.difficulties(i);
-      if (difficulty.coming_soon() || difficulty.unlock_level() <= level) {
-        continue;
-      }
-      if (soonest == 0 || difficulty.unlock_level() < soonest) {
-        soonest = difficulty.unlock_level();
-        *fight = {entry.first, i};
-      }
-    }
-  }
-  return soonest > 0;
-}
-
 // What one clear of `difficulty` pays. The meso a boss hands over is flat --
 // no %meso reaches it -- and its drops take the rate, each of them worth what
 // the counter would give for it.
@@ -471,7 +422,7 @@ double BossPayout(const GameState& state, const DropBasis& basis,
 // divisor: a faster clear is the same purse sooner.
 double BossRateOver(GameState& state, const DropBasis& basis, double seconds) {
   std::pair<std::string, int> fight;
-  if (!BookTarget(state, &fight)) {
+  if (!AimedFight(state, &fight)) {
     return 0.0;
   }
   const BossDifficulty& difficulty =
@@ -1251,6 +1202,12 @@ struct Session {
   HyperWorth hyper_bossing;
   bool hyper_measured = false;
   int hyper_power = 0;
+  // The fight the tables above were measured against. What a point of ignored
+  // defence is worth is a fact about that fight, and the ladder triples it
+  // between Cygnus and Lotus -- so a new target is as good a reason to
+  // re-measure as a bigger character.
+  std::pair<std::string, int> hyper_aim;
+  std::pair<std::string, int> ability_aim;
   bool ability_measured = false;
   // The CombatPower the worth table was measured on, so it can be taken again
   // once the character it described has been outgrown.
@@ -1486,7 +1443,9 @@ void SpendHyperPoints(Session& run, bool regeared) {
     return;
   }
   int power = PowerNow(run.state);
-  if (!run.hyper_measured || regeared ||
+  std::pair<std::string, int> aim;
+  AimedFight(run.state, &aim);
+  if (!run.hyper_measured || regeared || aim != run.hyper_aim ||
       power >= run.hyper_power * kRemeasureGrowth) {
     // One basis for the whole table: a Hyper Stat point moves what the
     // character hits for, not what the catalogs hand over for a kill.
@@ -1501,6 +1460,7 @@ void SpendHyperPoints(Session& run, bool regeared) {
         });
     run.hyper_measured = true;
     run.hyper_power = power;
+    run.hyper_aim = aim;
   }
   // Redone every look rather than only on a fresh table: the pool grows a
   // level at a time, and a new point can be worth moving an old one.
@@ -1526,7 +1486,10 @@ void SpendHonor(Session& run) {
     return;
   }
   int power = PowerNow(run.state);
-  if (!run.ability_measured || power >= run.ability_power * kRemeasureGrowth) {
+  std::pair<std::string, int> aim;
+  AimedFight(run.state, &aim);
+  if (!run.ability_measured || aim != run.ability_aim ||
+      power >= run.ability_power * kRemeasureGrowth) {
     DropBasis basis = DropBasisFor(run.state, run.shopper.power_per_meso());
     // Over a buff cycle rather than the ten seconds the book is ranked on:
     // Buff Duration is one of the lines being priced, and it is invisible to
@@ -1541,6 +1504,7 @@ void SpendHonor(Session& run) {
         });
     run.ability_measured = true;
     run.ability_power = power;
+    run.ability_aim = aim;
     run.climb.farming_worth = run.farming_worth;
     run.climb.bossing_worth = run.bossing_worth;
   }
@@ -2848,22 +2812,6 @@ void PrintBossTimeline(const Catalogs& catalogs,
 // cubed piece ended up wearing.
 //
 // Bought against kept is the reading that matters. A cube is a chance rather
-// The stiffest defence `fight` puts up: a boss is several bodies and a swing
-// meets one of them, so the hardest part is what the character has to beat.
-double FightDefence(const std::map<std::string, Mob>& mobs,
-                    const BossDifficulty& difficulty) {
-  double pdr = 0.0;
-  for (const BossPhase& phase : difficulty.phases()) {
-    for (const Spawn& spawn : phase.spawns()) {
-      std::map<std::string, Mob>::const_iterator found = mobs.find(spawn.mob());
-      if (found != mobs.end()) {
-        pdr = std::max(pdr, found->second.pdr() / 100.0);
-      }
-    }
-  }
-  return pdr;
-}
-
 // What each branch's ignored defence leaves of the fight they are aimed at.
 //
 // Defence multiplies the whole swing, and past the point a branch's ignored
@@ -2893,12 +2841,12 @@ void PrintDefence(const Catalogs& catalogs, const std::vector<Job>& branches,
     DerivedStats derived = DerivedStatsFor(state.character, state.skills, {},
                                            state.party, Activity::kBossing);
     std::pair<std::string, int> fight;
-    if (!BookTarget(state, &fight)) {
+    if (!AimedFight(state, &fight)) {
       continue;
     }
     const BossDifficulty& difficulty =
         state.bosses[fight.first].difficulties(fight.second);
-    double pdr = FightDefence(state.mobs, difficulty);
+    double pdr = BossPdr(state.mobs, difficulty) / 100.0;
     double left = std::max(0.0, 1.0 - pdr * (1.0 - derived.ied));
     std::string aimed =
         absl::StrCat(difficulty.name(), " ", state.bosses[fight.first].name());

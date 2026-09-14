@@ -43,13 +43,6 @@ inline constexpr int kCubeSamples = 64;
 inline constexpr int kReplaceableNumerator = 1;
 inline constexpr int kReplaceableDenominator = 4;
 
-// The share of a boss's defence a swing meets, for pricing an ignored-defence
-// line. CombatPower leaves ignored defence out on purpose -- it is a fact
-// about the target rather than the character -- but it is one of the three
-// lines a weapon is cubed for, so a shopper blind to it would never buy one.
-// Bosses in the catalog carry 40% and up; this is what most of them carry.
-inline constexpr double kBossPdr = 0.50;
-
 // What the run still has ahead of it and what it is earning, which is the
 // whole of what a %meso or %drop line is worth.
 struct CubeIncome {
@@ -73,10 +66,16 @@ struct CubeBasis {
   // in -- the sum TotalEquipStats folds, not its answer. A potential moves
   // %ATT, so the fold has to be redone per candidate.
   EquipStats raw;
-  // What a boss's defence leaves of the character as they stand. Every
-  // candidate is measured against this, so what a cube is worth reads in the
-  // same combat power a star is worth rather than in a scaled currency of its
-  // own.
+  // The defence of the fight the character is aimed at, as a fraction --
+  // AimedDefence's answer. What an ignored-defence line is worth is a fact
+  // about that fight and not about the character, and it moves by a factor of
+  // three between Cygnus and Lotus, so a constant here would price the one
+  // line that breaks a defence wall as though the wall were always the same
+  // height.
+  double boss_pdr = 0.0;
+  // What that defence leaves of the character as they stand. Every candidate
+  // is measured against this, so what a cube is worth reads in the same combat
+  // power a star is worth rather than in a scaled currency of its own.
   double defence = 1.0;
 };
 

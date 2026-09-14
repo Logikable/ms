@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "absl/types/span.h"
+#include "analysis/sim_boss.h"
 #include "src/character/character_stats.h"
 #include "src/combat/damage.h"
 #include "src/item/equip_instance.h"
@@ -56,12 +57,17 @@ PotentialTotals PotentialsBut(const CharacterInstance& character,
   return totals;
 }
 
-// What a boss's defence leaves of a character who ignores `ied` of it.
-// CombatPower has no target and so cannot say, but ignored defence is one of
-// the three lines a weapon is cubed for -- a shopper blind to it would never
-// buy one.
-double DefenceFactor(double ied) {
-  return 1.0 - kBossPdr * (1.0 - ied);
+// What the aimed fight's defence leaves of a character who ignores `ied` of
+// it. CombatPower has no target and so cannot say, but ignored defence is one
+// of the three lines a weapon is cubed for -- a shopper blind to it would
+// never buy one.
+//
+// Clamped at zero the way the damage chain clamps it: past the point a
+// character's ignored defence stops cancelling the fight's, every line is on
+// the 1-damage floor, and a negative factor here would price a cube in a
+// currency that does not exist.
+double DefenceFactor(double boss_pdr, double ied) {
+  return std::max(0.0, 1.0 - boss_pdr * (1.0 - ied));
 }
 
 // The character's damage chain with `totals` in place of the potentials they
@@ -107,8 +113,8 @@ OffenseStats OffenseWith(const GameState& state, const CubeBasis& basis,
 double PowerOf(const GameState& state, const CubeBasis& basis,
                const PotentialTotals& totals) {
   OffenseStats offense = OffenseWith(state, basis, totals);
-  return CombatPower(offense, /*vs_boss=*/true) * DefenceFactor(offense.ied) /
-         basis.defence;
+  return CombatPower(offense, /*vs_boss=*/true) *
+         DefenceFactor(basis.boss_pdr, offense.ied) / basis.defence;
 }
 
 // What swapping the worn potentials for `totals` is worth in income, priced in
@@ -141,7 +147,9 @@ CubeBasis CubeBasisFor(const GameState& state) {
   const EquipStats sources[] = {state.character.equip_stats(),
                                 basis.derived.skill_stats};
   basis.raw = SumEquipStats(absl::MakeConstSpan(sources));
+  basis.boss_pdr = AimedDefence(state);
   basis.defence = DefenceFactor(
+      basis.boss_pdr,
       OffenseWith(state, basis, state.character.potential_totals()).ied);
   return basis;
 }

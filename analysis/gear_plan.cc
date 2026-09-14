@@ -326,7 +326,7 @@ std::optional<GearShopper::Candidate> GearShopper::SymbolOffer(
   // What the rung pays is the primary stat the next level grants over this
   // one. The Arcane Force it also carries is left out: that is a fact about
   // the maps the character may then stand on rather than about the character,
-  // the way ignored defence is -- see CubePlan's kBossPdr.
+  // the way ignored defence is -- see CubeBasis.boss_pdr.
   StatField primary = PrimaryStatField(state.character.proto().job());
   EquipStats added =
       Minus(SymbolStatsFor(primary, level + 1), SymbolStatsFor(primary, level));
