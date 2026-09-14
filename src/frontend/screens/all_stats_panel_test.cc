@@ -226,6 +226,7 @@ TEST_F(AllStatsPanelTest, SomebodyElsesSheetIsGatedOnItsOwnLevel) {
   proto.set_job(JOB_HERO);
   proto.set_job_stage(4);
   CharacterInstance them(rng_, proto);
+  them.set_autoswap_presets(true);
   AllStatsPanel panel(them, /*account=*/nullptr, {});
   EXPECT_NE(RowWith(panel.Render(), "Farm").find("Boss"), std::string::npos);
   EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
@@ -233,9 +234,23 @@ TEST_F(AllStatsPanelTest, SomebodyElsesSheetIsGatedOnItsOwnLevel) {
 
   proto.set_level(139);
   CharacterInstance younger(rng_, std::move(proto));
+  younger.set_autoswap_presets(true);
   AllStatsPanel below(younger, /*account=*/nullptr, {});
   EXPECT_EQ(RowWith(below.Render(), "Farm"), "");
   EXPECT_FALSE(below.OnEvent(ftxui::Event::ArrowRight));
+}
+
+// With their switch off there is one allocation in play, so the screen shows
+// it and offers nothing to pick between.
+TEST_F(AllStatsPanelTest, ASheetWithNoAutoswapCarriesNoRow) {
+  Character proto;
+  proto.set_level(140);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  CharacterInstance them(rng_, std::move(proto));
+  AllStatsPanel panel(them, /*account=*/nullptr, {});
+  EXPECT_EQ(RowWith(panel.Render(), "Farm"), "");
+  EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
 }
 
 // A card that measures its own width has to ask for its right margin.

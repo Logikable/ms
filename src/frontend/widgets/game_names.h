@@ -14,6 +14,7 @@
 
 #include "ftxui/screen/color.hpp"
 #include "src/character/hyper_stats.h"
+#include "src/character/stat_preset.h"
 #include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -209,6 +210,15 @@ extern const int kNumHyperStats;
 
 // What a Hyper Stat is called on screen, or "" for one with no name.
 std::string HyperStatName(HyperStatField field);
+
+// What a preset slot is called. With the autoswap on the first two are named
+// for what they are for; with it off they are numbered.
+std::string PresetSlotName(StatPreset slot, bool autoswap);
+
+// The chip that name draws as on the row that picks between them, where the
+// one in use carries a mark. The mark keeps its column either way, so a chip
+// never changes width as one is put in use.
+std::string PresetSlotLabel(StatPreset slot, bool autoswap, bool in_use);
 
 // What `field` at `level` is worth, written the way a row shows it: "+30" for
 // a flat stat and "+3%" for a percentage, trailing zeros trimmed. Level 0

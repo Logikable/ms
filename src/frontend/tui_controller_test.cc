@@ -3688,6 +3688,10 @@ TEST_F(TuiControllerTest, TheResetEmptiesTheAllocationItNamed) {
   controller_->RaiseHyperStat(HYPER_STAT_FIELD_DEX, StatPreset::kSecond);
 
   controller_->OpenHyperReset(StatPreset::kSecond);
+  // The question names the chip, which is a number while the autoswap is off.
+  EXPECT_EQ(controller_->hyper_reset_question(), "Reset 2 Hyper Stats?");
+  state_->account.SetAutoswapPresets(true);
+  state_->ApplyPresetOptions();
   EXPECT_EQ(controller_->hyper_reset_question(), "Reset Boss Hyper Stats?");
   // It opens on Cancel, so getting to Confirm is a step of its own.
   controller_->OnEvent(ftxui::Event::ArrowLeft);

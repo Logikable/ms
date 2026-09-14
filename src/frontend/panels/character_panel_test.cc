@@ -2469,6 +2469,17 @@ TEST_F(CharacterPanelTest, TheStatsTabGetsAFarmBossRowAt140) {
   EXPECT_NE(rendered.find("Boss"), std::string::npos);
 }
 
+// With the switch off there is one allocation in play, so the Stats tab has
+// nothing to pick between and drops the row.
+TEST_F(CharacterPanelTest, TheStatsTabDropsTheRowWithTheAutoswapOff) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  c.set_autoswap_presets(false);
+  CharacterPanel panel(c, account_, panel_focus_);
+  std::string rendered = RenderElement(panel.Render());
+  EXPECT_EQ(rendered.find("Farm"), std::string::npos);
+  EXPECT_EQ(rendered.find("1  "), std::string::npos);
+}
+
 // The two rows of tabs sit together, with the rule under the pair.
 TEST_F(CharacterPanelTest, NoRuleBetweenTheTwoRowsOfTabs) {
   CharacterInstance c = MakeHyperHero(rng_);
@@ -2553,6 +2564,53 @@ TEST_F(CharacterPanelTest, TheHyperTabArrivesWithTheStatsAndIsGoldUntilRead) {
 }
 
 // Every stat, its level and the points left -- and nothing else.
+// The Hyper tab spends into a slot, so its row names all three of them --
+// numbered with the switch off, and the one in use carrying the mark.
+TEST_F(CharacterPanelTest, TheHyperRowNamesEveryPresetSlot) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  c.set_autoswap_presets(false);
+  c.SetSlotInUse(PresetKind::kHyperStats, StatPreset::kSecond);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  std::string rendered = ScreenText(RenderToScreen(OnHyperRows(panel), 32));
+  EXPECT_NE(rendered.find("2 ✓"), std::string::npos);
+  EXPECT_NE(rendered.find("3"), std::string::npos);
+  EXPECT_EQ(rendered.find("Farm"), std::string::npos);
+
+  // With the switch on the first two are named for what they are for, and no
+  // mark is drawn: which one is read is the fight's to say.
+  c.set_autoswap_presets(true);
+  CharacterPanel autoswapped(c, account_, panel_focus_);
+  rendered = ScreenText(RenderToScreen(OnHyperRows(autoswapped), 32));
+  EXPECT_NE(rendered.find("Farm"), std::string::npos);
+  EXPECT_NE(rendered.find("Boss"), std::string::npos);
+  EXPECT_EQ(rendered.find("✓"), std::string::npos);
+}
+
+// The cursor reaches the third slot on the Hyper tab and holds it across a
+// look at the Stats tab, whose row has only the two activities on it.
+TEST_F(CharacterPanelTest, TheThirdSlotSurvivesALookAtTheStatsTab) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp = panel.MakeComponent();
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Hyper
+  comp->OnEvent(ftxui::Event::ArrowDown);   // -> the preset row
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(panel.hyper_preset(), StatPreset::kThird);
+  // And no further: the row clamps at its last chip.
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(panel.hyper_preset(), StatPreset::kThird);
+
+  comp->OnEvent(ftxui::Event::ArrowUp);    // -> the outer tab bar
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // -> Skills
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // -> Stats
+  EXPECT_EQ(panel.hyper_preset(), StatPreset::kThird);
+  EXPECT_EQ(panel.SelectedActivity(), Activity::kBossing);
+}
+
 TEST_F(CharacterPanelTest, TheHyperTabListsTheStatsAndTheSparePoints) {
   CharacterInstance c = MakeHyperHero(rng_);
   CharacterPanel panel(c, account_, panel_focus_);

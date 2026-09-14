@@ -335,9 +335,18 @@ class CharacterPanel {
   // Stats, which has no [+] of its own to spend either on.
   ftxui::Element RenderPresetBar(bool bar_focused,
                                  const std::string& trailing) const;
-  // Whether the active tab carries a Farm/Boss row. Only from level 140, and
-  // only on a tab whose numbers come out of an allocation.
+  // Whether the active tab carries a preset row. Only from level 140, and only
+  // on a tab whose numbers come out of an allocation -- and on the Stats tab,
+  // only while the autoswap has two of them to tell apart.
   bool ShowsPresetBar() const;
+  // Whether that row names the preset slots, which the Hyper and Ability tabs
+  // spend into, rather than the two activities the Stats tab shows.
+  bool PresetBarNamesSlots() const;
+  // How many chips the row draws, and which of them the cursor is on. The
+  // selection is held across a tab change and clamped to what the row has, so
+  // a third slot survives a look at the Stats tab.
+  int PresetChips() const;
+  StatPreset PresetBarSelection() const;
   // Whether the active tab has a second row of tabs at all -- the Farm/Boss
   // row, or the Skills tab's advancement bar. The rule under the outer tab bar
   // is dropped for one, since the second row does the same job of separating.

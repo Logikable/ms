@@ -889,6 +889,34 @@ std::string PotentialCell(const Potential& potential, int item_level,
   return PadRight(text, kPotentialCellWidth);
 }
 
+std::string PresetSlotName(StatPreset slot, bool autoswap) {
+  // The autoswap names the two it reads for what they are for; the third is
+  // storage it never reaches, so it keeps its number.
+  if (autoswap) {
+    switch (slot) {
+      case StatPreset::kFirst:
+        return "Farm";
+      case StatPreset::kSecond:
+        return "Boss";
+      case StatPreset::kThird:
+        break;
+    }
+  }
+  return std::to_string(IndexOf(slot) + 1);
+}
+
+std::string PresetSlotLabel(StatPreset slot, bool autoswap, bool in_use) {
+  const std::string name = PresetSlotName(slot, autoswap);
+  // No mark while the autoswap is on: what is in use is the fight's to say,
+  // and it is neither of them for good.
+  if (autoswap) {
+    return name;
+  }
+  // The mark's column is held open either way, so putting a preset in use does
+  // not shuffle the row sideways.
+  return name + (in_use ? " \u2713" : "  ");
+}
+
 std::string HyperStatName(HyperStatField field) {
   static_assert(HyperStatField_ARRAYSIZE == 16,
                 "a new Hyper Stat needs a name and a place in the order");

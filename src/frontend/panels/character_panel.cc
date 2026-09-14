@@ -497,11 +497,31 @@ void CharacterPanel::MarkActiveTabSeen() {
   }
 }
 
+bool CharacterPanel::PresetBarNamesSlots() const {
+  return ActiveTab() == kTabHyper || ActiveTab() == kTabAbility;
+}
+
+int CharacterPanel::PresetChips() const {
+  // The Stats tab's row names the two activities rather than the slots behind
+  // them: there is no third thing a character can be doing.
+  return PresetBarNamesSlots() ? kNumStatPresets : 2;
+}
+
+StatPreset CharacterPanel::PresetBarSelection() const {
+  return StatPresetAt(std::min(IndexOf(hyper_preset_), PresetChips() - 1));
+}
+
 bool CharacterPanel::ShowsPresetBar() const {
   // The Ability tab is never there below the level Hyper Stats open at, so its
   // row is not gated on anything further.
   if (ActiveTab() == kTabAbility) {
     return true;
+  }
+  // The Stats tab shows numbers rather than spending points, so its row is
+  // there only while the autoswap has two sets of them to tell apart. With the
+  // switch off there is one allocation in play and nothing to pick.
+  if (ActiveTab() == kTabStats && !character_.autoswap_presets()) {
+    return false;
   }
   // Otherwise only the tabs whose numbers come out of an allocation carry it.
   // The Advance tab lists jobs, and the Skills tab has a bar of its own.
@@ -523,17 +543,29 @@ int CharacterPanel::StatsTabFixedRows() const {
 }
 
 Activity CharacterPanel::SelectedActivity() const {
-  return hyper_preset_ == StatPreset::kSecond ? Activity::kBossing
-                                              : Activity::kFarming;
+  return PresetBarSelection() == StatPreset::kSecond ? Activity::kBossing
+                                                     : Activity::kFarming;
 }
 
 ftxui::Element CharacterPanel::RenderPresetBar(
     bool bar_focused, const std::string& trailing) const {
-  std::vector<TabSpec> specs = {{kFarmTabLabel}, {kBossTabLabel}};
-  int active = IndexOf(hyper_preset_);
-  // The chips take what the trailing text and its gutter leave. Two four-letter
-  // labels never come near even the narrowest of that, so the bar does not
-  // scroll here whatever the number beside it grows to.
+  std::vector<TabSpec> specs;
+  if (PresetBarNamesSlots()) {
+    const PresetKind kind = ActiveTab() == kTabAbility
+                                ? PresetKind::kInnerAbility
+                                : PresetKind::kHyperStats;
+    for (int i = 0; i < PresetChips(); ++i) {
+      const StatPreset slot = StatPresetAt(i);
+      specs.push_back({PresetSlotLabel(slot, character_.autoswap_presets(),
+                                       character_.SlotInUse(kind) == slot)});
+    }
+  } else {
+    specs = {{kFarmTabLabel}, {kBossTabLabel}};
+  }
+  int active = IndexOf(PresetBarSelection());
+  // The chips take what the trailing text and its gutter leave. Three of them
+  // never come near even the narrowest of that, so the bar does not scroll
+  // here whatever the number beside it grows to.
   int width = ContentWidth();
   if (!trailing.empty()) {
     width -= static_cast<int>(ftxui::string_width(trailing)) + 1;
@@ -1405,12 +1437,11 @@ bool CharacterPanel::OnPresetBarEvent(const ftxui::Event& event) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
-  if (event == ftxui::Event::ArrowLeft) {
-    hyper_preset_ = StatPreset::kFirst;
-    return true;
-  }
-  if (event == ftxui::Event::ArrowRight) {
-    hyper_preset_ = StatPreset::kSecond;
+  // Clamped at the ends, as every tab bar in this panel is.
+  if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
+    int step = event == ftxui::Event::ArrowLeft ? -1 : 1;
+    int at = IndexOf(PresetBarSelection()) + step;
+    hyper_preset_ = StatPresetAt(std::clamp(at, 0, PresetChips() - 1));
     return true;
   }
   return false;

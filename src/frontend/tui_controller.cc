@@ -192,8 +192,10 @@ void TuiController::OpenHyperReset(StatPreset preset) {
 }
 
 std::string TuiController::hyper_reset_question() const {
-  return std::string("Reset ") +
-         (hyper_preset_ == StatPreset::kSecond ? "Boss" : "Farm") +
+  // The chip's own name, so the question names what the row does. No mark:
+  // which preset is in use is not what is being reset.
+  return "Reset " +
+         PresetSlotName(hyper_preset_, state_.character.autoswap_presets()) +
          " Hyper Stats?";
 }
 

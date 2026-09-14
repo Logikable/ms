@@ -44,6 +44,12 @@ AllStatsPanel::AllStatsPanel(const CharacterInstance& character,
 }
 
 bool AllStatsPanel::ShowsPresetBar() const {
+  // Nothing to pick between while the character reads one allocation for
+  // everything: the screen shows whichever they have in use. Their own switch,
+  // not the reader's -- a party member's sheet carries it.
+  if (!character_.autoswap_presets()) {
+    return false;
+  }
   // The player's own screen asks the account, which knows about characters
   // besides this one. A party member's sheet is the whole of what we have of
   // them, so their own level answers for it.

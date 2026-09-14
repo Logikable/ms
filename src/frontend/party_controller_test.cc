@@ -421,6 +421,10 @@ TEST_F(PartyControllerTest, AMemberInspectsAnother) {
   while (leader->state->character.proto().level() < kHyperStatUnlockLevel) {
     leader->state->character.LevelUp();
   }
+  // Their own switch, which is what says the screen has two to read between.
+  // Thrown before the gear, which is what sends the sheet.
+  leader->state->account.SetAutoswapPresets(true);
+  leader->state->ApplyPresetOptions();
   leader->state->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
   leader->state->character.Equip(0);
   ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {

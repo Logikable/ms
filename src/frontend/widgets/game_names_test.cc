@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "ftxui/screen/string.hpp"
 #include "src/character/skill_placement.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/text_columns.h"
@@ -540,6 +541,35 @@ TEST(VNodesForTest, AJobWithNoNodesOfItsOwnStillHoldsTheCommons) {
   };
   EXPECT_EQ(NamesOf(VNodesFor(catalog, JOB_ADVANCEMENT_HERO_V)),
             (std::vector<std::string>{"Erda Fountain"}));
+}
+
+// A chip must not change width as a preset is put in use, or the row shuffles
+// sideways under the cursor.
+TEST(PresetSlotLabelTest, TheMarkKeepsItsColumnEitherWay) {
+  const std::string idle =
+      PresetSlotLabel(StatPreset::kFirst, /*autoswap=*/false,
+                      /*in_use=*/false);
+  const std::string used = PresetSlotLabel(StatPreset::kFirst,
+                                           /*autoswap=*/false,
+                                           /*in_use=*/true);
+  EXPECT_EQ(idle, "1  ");
+  EXPECT_EQ(used, "1 ✓");
+  EXPECT_EQ(ftxui::string_width(idle), ftxui::string_width(used));
+  EXPECT_EQ(PresetSlotLabel(StatPreset::kThird, /*autoswap=*/false,
+                            /*in_use=*/false),
+            "3  ");
+}
+
+// With the autoswap on the two it reads are named for what they are for, the
+// third keeps its number, and none of them carries a mark.
+TEST(PresetSlotLabelTest, TheAutoswapNamesTheTwoItReads) {
+  EXPECT_EQ(PresetSlotName(StatPreset::kFirst, /*autoswap=*/true), "Farm");
+  EXPECT_EQ(PresetSlotName(StatPreset::kSecond, /*autoswap=*/true), "Boss");
+  EXPECT_EQ(PresetSlotName(StatPreset::kThird, /*autoswap=*/true), "3");
+  EXPECT_EQ(PresetSlotName(StatPreset::kSecond, /*autoswap=*/false), "2");
+  EXPECT_EQ(PresetSlotLabel(StatPreset::kFirst, /*autoswap=*/true,
+                            /*in_use=*/true),
+            "Farm");
 }
 
 }  // namespace
