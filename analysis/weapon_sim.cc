@@ -56,6 +56,7 @@
 #include "src/item/equip_instance.h"
 #include "src/item/projectile.h"
 #include "src/proto_loader.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -128,6 +129,7 @@ constexpr unsigned int kSimSeed = 20260813;
 // would let a wide skill answer a question about one weapon against one mob.
 constexpr char kDummyMap[] = "__dps_dummy";
 constexpr char kDummyMob[] = "__dps_dummy_mob";
+constexpr char kDummyBoss[] = "__dps_dummy_boss";
 
 // One row of the table: which branch, holding what. Whatever the weapon draws
 // from is bought with it, since an empty projectile slot reads as a broken
@@ -210,6 +212,27 @@ Catalogs LoadCatalogsWithDummy(int level) {
   spawn->set_count(1);
   c.maps[kDummyMap] = map;
   return c;
+}
+
+// The fight --boss asks about: one phase holding the dummy alone.
+//
+// Built rather than taken from the catalog because the dummy is what makes a
+// measurement a measurement -- it never falls and it is the character's own
+// level. Handing it to ComputeBossParams instead of building the encounter
+// here is the point: a boss fight paces at 1x where a map stretches, halves
+// reach, takes the healthiest part first and reads the character's BOSSING
+// preset. Approximating that with a boss-flagged mob on a farming character
+// is what this sim did until 2026-09-14, and it measured a different
+// character than progression_sim did -- by 49% on a Bishop, whose damage is
+// one attack-speed-bound cast, and by nothing at all on a Bow Master, whose
+// damage is mostly summons.
+BossDifficulty DummyFight() {
+  BossDifficulty difficulty;
+  difficulty.set_name("Dummy");
+  Spawn* spawn = difficulty.add_phases()->add_spawns();
+  spawn->set_mob(kDummyMob);
+  spawn->set_count(1);
+  return difficulty;
 }
 
 // Puts `key` on the character, in whichever slot its prototype names, dropping
@@ -405,8 +428,16 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
     Wear(state, kCharm);
   }
 
+  // A boss fight reads the character's bossing preset -- its hyper stats, its
+  // Inner Ability and its gear -- and it is the only preset the Extreme Green
+  // Potion's attack speed lands under. Farming here dressed every branch for
+  // the wrong fight.
+  bool boss = absl::GetFlag(FLAGS_boss);
+  Activity activity = boss ? Activity::kBossing : Activity::kFarming;
+
   const Character& proto = state.character.proto();
-  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+  DerivedStats derived =
+      DerivedStatsFor(state.character, state.skills, {}, {}, activity);
   OffenseStats bare = OffenseStatsFor(
       proto.job(), proto.level(), proto.allocated_stats(),
       TotalEquipStats(state.character, derived), state.character.weapon_type(),
@@ -415,11 +446,15 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   // sim: normal %dmg buys nothing a player of this game is short of.
   result.combat_power = CombatPower(bare, /*vs_boss=*/true);
 
-  CombatParams params = ComputeCombatParams(state);
+  BossDifficulty fight = DummyFight();
+  CombatParams params = boss ? ComputeBossParams(state, kDummyBoss, fight, 0)
+                             : ComputeCombatParams(state);
   int enemies = absl::GetFlag(FLAGS_enemies);
-  // Back out the pacing the game stretches everything by, so the figure is the
-  // 1x one and two levels can be compared without dividing by hand.
-  double speed = GameSpeedFactor(level);
+  // Back out the pacing the game stretches a map by, so the figure is the 1x
+  // one and two levels can be compared without dividing by hand. A boss fight
+  // is already 1x -- ComputeBossParams pins it there, because a fight the
+  // player sits and watches wants neither the stretch nor a respawn beat.
+  double speed = boss ? 1.0 : GameSpeedFactor(level);
   // The horizon is asked for in game seconds and MeasureFight counts in the
   // stretched ones, so it is stretched to match: at 200 a ten-minute window is
   // 6000 of them. Handing MeasureFight the flag raw would make --seconds mean a
