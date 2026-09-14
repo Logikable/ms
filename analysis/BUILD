@@ -268,58 +268,6 @@ sim_binary(
 )
 
 sim_binary(
-    name = "balance_sim",
-    srcs = ["balance_sim.cc"],
-    deps = [
-        ":parallel",
-        ":sim_format",
-        ":sim_gear",
-        ":sim_jobs",
-        ":sim_world",
-        "//src:embedded_data",
-        "//src:game_state",
-        "//src:map_level",
-        "//src:proto_loader",
-        "//src/character",
-        "//src/character:progression",
-        "//src/combat",
-        "//src/combat:encounter",
-        "//src/combat:fight",
-        "//src/item:equip_instance",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:item_proto_cc",
-        "//src/protos:map_proto_cc",
-        "//src/protos:mob_proto_cc",
-        "//src/protos:scroll_proto_cc",
-        "//src/protos:skill_proto_cc",
-        "@abseil-cpp//absl/flags:flag",
-        "@abseil-cpp//absl/flags:parse",
-        "@abseil-cpp//absl/log",
-        "@abseil-cpp//absl/strings",
-    ],
-)
-
-sim_binary(
-    name = "boss_ladder_sim",
-    srcs = ["boss_ladder_sim.cc"],
-    deps = [
-        ":parallel",
-        ":sim_boss",
-        ":sim_format",
-        ":sim_jobs",
-        ":sim_world",
-        "//src:game_state",
-        "//src/character",
-        "//src/protos:boss_proto_cc",
-        "//src/protos:character_proto_cc",
-        "@abseil-cpp//absl/flags:flag",
-        "@abseil-cpp//absl/flags:parse",
-        "@abseil-cpp//absl/strings",
-    ],
-)
-
-sim_binary(
     name = "progression_sim",
     srcs = ["progression_sim.cc"],
     deps = [
@@ -391,12 +339,6 @@ sim_binary(
 )
 
 cc_library(
-    name = "gms_mob_exp",
-    srcs = ["gms_mob_exp.cc"],
-    hdrs = ["gms_mob_exp.h"],
-)
-
-cc_library(
     name = "sim_gear",
     srcs = ["sim_gear.cc"],
     hdrs = ["sim_gear.h"],
@@ -454,40 +396,6 @@ cc_library(
     hdrs = ["sim_format.h"],
     deps = [
         "//src/character:exp_table",
-        "@abseil-cpp//absl/log",
-    ],
-)
-
-cc_library(
-    name = "meso_curve",
-    srcs = ["meso_curve.cc"],
-    hdrs = ["meso_curve.h"],
-    deps = [
-        ":gms_mob_exp",
-        "//src/character:exp_table",
-        "//src/combat:loot",
-        "//src/protos:mob_proto_cc",
-    ],
-)
-
-sim_binary(
-    name = "economy_sim",
-    srcs = ["economy_sim.cc"],
-    deps = [
-        ":meso_curve",
-        ":sim_format",
-        ":star_force_curve",
-        "//src:embedded_data",
-        "//src:proto_loader",
-        "//src/character:exp_table",
-        "//src/item",
-        "//src/item:equip_instance",
-        "//src/item:spell_trace_cost",
-        "//src/item:star_force_cost",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:scroll_proto_cc",
-        "@abseil-cpp//absl/flags:flag",
-        "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log",
     ],
 )

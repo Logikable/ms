@@ -1,22 +1,35 @@
-/* What each 2nd-job branch hits for with each weapon it can hold: combat power
- * and single-target DPS, for a maxed character at a chosen level.
+/* The counterfactual bench: every branch held at the same numbers, so a gap
+ * between two of them can be attributed to a cause.
  *
- * The character is grown the way a player gets there -- every AP on the primary
- * stat, every SP on whatever it will buy -- so what is compared is a finished
- * build rather than a stat line typed in by hand. By default DPS is measured
- * against a lone mob of the character's own level on an otherwise empty map, so
- * it is the character and the weapon being compared and nothing else: no crowd
- * for a wide skill to take advantage of, no spawn cap to hide a difference
- * behind. --enemies and --boss ask the other two questions, and the header
- * says which of the three was asked.
+ * This is the one question progression_sim cannot answer, and not for want of
+ * accuracy -- by construction every character it produces got where they are
+ * differently, which is the whole point of it. Here the gear is written rather
+ * than earned, the charm flags (--bonus_stat, --bonus_attack, --bonus_boss_pct,
+ * --bonus_ied) hand every branch the same helping of one lever, and --boss_pdr
+ * dials a property of the target. Sweep one and the field's answer to it is
+ * what moves. That is how ignored defence was shown to be the whole of the
+ * Lv230 class spread: the ten branches spread 1.50x at 0% defence and 2.76x at
+ * 300%.
+ *
+ * So READ NOTHING HERE AS A FORECAST. The DPS column says what a branch would
+ * do holding gear this file wrote for it, which is not gear anybody reached --
+ * the ceiling cubes one ignored-defence line by fiat where the played
+ * character ends up with whatever the shopper bought. What a branch actually
+ * manages is progression_sim's question and only its question.
+ *
+ * By default DPS is measured against a lone mob of the character's own level
+ * on an otherwise empty map, so it is the character and the weapon being
+ * compared and nothing else: no crowd for a wide skill to take advantage of,
+ * no spawn cap to hide a difference behind. --enemies and --boss ask the other
+ * two questions, and the header says which of the three was asked.
  *
  * Not a test. Tests pin behaviour that must not change; this prints numbers to
  * look at while deciding what the behaviour should be.
  *
- *   bazelisk run //analysis:weapon_sim
- *   bazelisk run //analysis:weapon_sim -- --level=40
  *   bazelisk run //analysis:weapon_sim -- --level=140 --enemies=8
- *   bazelisk run //analysis:weapon_sim -- --level=140 --boss --boss_pdr=40
+ *   bazelisk run //analysis:weapon_sim -- --level=230 --max --boss
+ * --boss_pdr=300 bazelisk run //analysis:weapon_sim -- --level=230 --max --boss
+ * --bonus_ied=60
  */
 #include <algorithm>
 #include <cstdint>
