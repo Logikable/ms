@@ -42,7 +42,13 @@ inline constexpr AbilityLineType kDefaultAbilityLineType =
     ABILITY_LINE_TYPE_ALL_STATS;
 inline constexpr AbilityRank kDefaultAbilityRank = ABILITY_RANK_RARE;
 
-// The setup held in `slot`.
+// Folds a save's farming and bossing setups into `presets` and fills the list
+// out to kNumStatPresets. The mirror of MigrateHyperStats, and called the same
+// way.
+void MigrateInnerAbility(InnerAbility& ability);
+
+// The setup held in `slot`. An empty one for a slot a proto that has not been
+// migrated does not hold yet.
 const AbilityPreset& PresetOf(const InnerAbility& ability, StatPreset slot);
 AbilityPreset& PresetOf(InnerAbility& ability, StatPreset slot);
 

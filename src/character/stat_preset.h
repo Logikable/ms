@@ -19,9 +19,9 @@
 namespace ms {
 
 // One of the setups a character keeps, by position.
-enum class StatPreset { kFirst, kSecond };
+enum class StatPreset { kFirst, kSecond, kThird };
 
-inline constexpr int kNumStatPresets = 2;
+inline constexpr int kNumStatPresets = 3;
 
 // What the character is doing, which is what picks a slot.
 enum class Activity { kFarming, kBossing };
@@ -39,7 +39,8 @@ inline StatPreset StatPresetAt(int index) {
   return static_cast<StatPreset>(index);
 }
 
-// The slot `activity` reads: farming takes the first, bossing the second.
+// The slot `activity` reads: farming takes the first, bossing the second. The
+// third is storage no activity names.
 inline StatPreset SlotFor(Activity activity) {
   return activity == Activity::kBossing ? StatPreset::kSecond
                                         : StatPreset::kFirst;

@@ -36,7 +36,13 @@ inline constexpr int kFifthJobStage = 5;
 // stat is worth nothing without one.
 inline constexpr int kArcaneForceHyperLevel = 200;
 
-// The allocation held in `slot`.
+// Folds a save's farming and bossing allocations into `presets` and fills the
+// list out to kNumStatPresets. Idempotent, and what every mutable PresetOf
+// calls before it hands one out.
+void MigrateHyperStats(HyperStats& stats);
+
+// The allocation held in `slot`. An empty one for a slot a proto that has not
+// been migrated does not hold yet.
 const HyperStatPreset& PresetOf(const HyperStats& stats, StatPreset slot);
 HyperStatPreset& PresetOf(HyperStats& stats, StatPreset slot);
 

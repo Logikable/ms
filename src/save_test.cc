@@ -226,9 +226,8 @@ TEST_F(SaveTest, ASaveWithOverspentHyperStatsIsTrimmed) {
   std::unique_ptr<GameState> saved = MakeState();
   Character grown;
   grown.set_level(145);
-  (*grown.mutable_hyper_stats()
-        ->mutable_farming()
-        ->mutable_levels())[HYPER_STAT_FIELD_DAMAGE] = 10;
+  (*PresetOf(*grown.mutable_hyper_stats(), StatPreset::kFirst)
+        .mutable_levels())[HYPER_STAT_FIELD_DAMAGE] = 10;
   saved->character.RestoreFrom(grown, saved->equips, saved->items);
   ASSERT_TRUE(SaveGameToFile(*saved, path_));
 
@@ -236,6 +235,36 @@ TEST_F(SaveTest, ASaveWithOverspentHyperStatsIsTrimmed) {
   ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
   EXPECT_LE(loaded->character.hyper_stat_level(HYPER_STAT_FIELD_DAMAGE), 5);
   EXPECT_GE(loaded->character.hyper_stat_points_left(), 0);
+}
+
+// A save from before there was a third preset slot: the two allocations it
+// names by hand become the first two slots, and the third arrives empty.
+TEST_F(SaveTest, ASaveWithTheOldTwoAllocationsLoadsIntoTheSlots) {
+  SaveGame save;
+  save.set_format_version(kSaveFormatVersion);
+  Character& c = *save.add_characters()->mutable_character();
+  c.set_level(160);
+  HyperStats& hyper = *c.mutable_hyper_stats();
+  (*hyper.mutable_legacy_farming()->mutable_levels())[HYPER_STAT_FIELD_EXP] = 4;
+  (*hyper.mutable_legacy_bossing()
+        ->mutable_levels())[HYPER_STAT_FIELD_BOSS_DAMAGE] = 5;
+  AbilityPreset& ability = *c.mutable_inner_ability()->mutable_legacy_bossing();
+  ability.set_rank(ABILITY_RANK_UNIQUE);
+  ability.add_lines()->set_type(ABILITY_LINE_TYPE_BOSS_DAMAGE);
+  std::string bytes;
+  ASSERT_TRUE(save.SerializeToString(&bytes));
+  WriteRaw(path_, bytes);
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  const CharacterInstance& read = loaded->character;
+  EXPECT_EQ(read.hyper_stat_level(HYPER_STAT_FIELD_EXP, StatPreset::kFirst), 4);
+  EXPECT_EQ(
+      read.hyper_stat_level(HYPER_STAT_FIELD_BOSS_DAMAGE, StatPreset::kSecond),
+      5);
+  EXPECT_EQ(read.ability(StatPreset::kSecond).rank(), ABILITY_RANK_UNIQUE);
+  EXPECT_EQ(read.proto().hyper_stats().presets_size(), kNumStatPresets);
+  EXPECT_FALSE(read.proto().hyper_stats().has_legacy_farming());
 }
 
 TEST_F(SaveTest, WritesAndReadsBackTheUsername) {

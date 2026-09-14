@@ -147,17 +147,36 @@ TEST(InnerAbilityTest, DefaultPresetIsThreeRareAllStats) {
   }
 }
 
-TEST(InnerAbilityTest, PresetOfPicksTheNamedSetup) {
+TEST(InnerAbilityTest, PresetOfPicksTheNamedSlot) {
   InnerAbility ability;
-  ability.mutable_farming()->set_rank(ABILITY_RANK_EPIC);
-  ability.mutable_bossing()->set_rank(ABILITY_RANK_LEGENDARY);
+  PresetOf(ability, StatPreset::kFirst).set_rank(ABILITY_RANK_EPIC);
+  PresetOf(ability, StatPreset::kThird).set_rank(ABILITY_RANK_LEGENDARY);
+  EXPECT_EQ(ability.presets_size(), kNumStatPresets);
   EXPECT_EQ(PresetOf(ability, StatPreset::kFirst).rank(), ABILITY_RANK_EPIC);
   EXPECT_EQ(PresetOf(ability, StatPreset::kSecond).rank(),
+            ABILITY_RANK_UNSPECIFIED);
+  EXPECT_EQ(PresetOf(ability, StatPreset::kThird).rank(),
             ABILITY_RANK_LEGENDARY);
+}
 
-  PresetOf(ability, StatPreset::kFirst).set_rank(ABILITY_RANK_UNIQUE);
-  EXPECT_EQ(ability.farming().rank(), ABILITY_RANK_UNIQUE);
-  EXPECT_EQ(ability.bossing().rank(), ABILITY_RANK_LEGENDARY);
+// A save written before there was a third slot.
+TEST(InnerAbilityTest, TheOldTwoSetupsBecomeTheFirstTwoSlots) {
+  InnerAbility ability;
+  ability.mutable_legacy_farming()->set_rank(ABILITY_RANK_EPIC);
+  ability.mutable_legacy_bossing()->set_rank(ABILITY_RANK_LEGENDARY);
+
+  MigrateInnerAbility(ability);
+  EXPECT_FALSE(ability.has_legacy_farming());
+  EXPECT_FALSE(ability.has_legacy_bossing());
+  ASSERT_EQ(ability.presets_size(), kNumStatPresets);
+  EXPECT_EQ(ability.presets(0).rank(), ABILITY_RANK_EPIC);
+  EXPECT_EQ(ability.presets(1).rank(), ABILITY_RANK_LEGENDARY);
+  EXPECT_EQ(ability.presets(2).rank(), ABILITY_RANK_UNSPECIFIED);
+
+  // And running again leaves what it already wrote alone.
+  MigrateInnerAbility(ability);
+  ASSERT_EQ(ability.presets_size(), kNumStatPresets);
+  EXPECT_EQ(ability.presets(0).rank(), ABILITY_RANK_EPIC);
 }
 
 // A line of any rank holds; the third is what a preset refuses.

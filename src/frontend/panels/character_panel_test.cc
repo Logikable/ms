@@ -2445,12 +2445,11 @@ CharacterInstance MakeHyperHero(std::mt19937& rng, int ap = 0) {
   proto.set_ap(ap);
   proto.set_job(JOB_HERO);
   proto.set_job_stage(4);
-  (*proto.mutable_hyper_stats()
-        ->mutable_farming()
-        ->mutable_levels())[HYPER_STAT_FIELD_STR] = 1;
-  (*proto.mutable_hyper_stats()
-        ->mutable_bossing()
-        ->mutable_levels())[HYPER_STAT_FIELD_STR] = 2;
+  HyperStats& hyper = *proto.mutable_hyper_stats();
+  (*PresetOf(hyper, StatPreset::kFirst)
+        .mutable_levels())[HYPER_STAT_FIELD_STR] = 1;
+  (*PresetOf(hyper, StatPreset::kSecond)
+        .mutable_levels())[HYPER_STAT_FIELD_STR] = 2;
   return CharacterInstance(rng, std::move(proto));
 }
 
@@ -2754,9 +2753,9 @@ CharacterInstance MakeAbilityHero(std::mt19937& rng, int64_t honor) {
   proto.set_job(JOB_HERO);
   proto.set_job_stage(4);
   proto.set_honor(honor);
-  for (AbilityPreset* preset :
-       {proto.mutable_inner_ability()->mutable_farming(),
-        proto.mutable_inner_ability()->mutable_bossing()}) {
+  InnerAbility& ability = *proto.mutable_inner_ability();
+  for (AbilityPreset* preset : {&PresetOf(ability, StatPreset::kFirst),
+                                &PresetOf(ability, StatPreset::kSecond)}) {
     preset->set_rank(ABILITY_RANK_LEGENDARY);
     AbilityLine* top = preset->add_lines();
     top->set_type(ABILITY_LINE_TYPE_BOSS_DAMAGE);

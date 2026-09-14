@@ -134,18 +134,29 @@ AbilityLine RollLine(AbilityRank rank, std::set<AbilityLineType>& taken,
 
 }  // namespace
 
-const AbilityPreset& PresetOf(const InnerAbility& ability, StatPreset slot) {
-  if (slot == StatPreset::kSecond) {
-    return ability.bossing();
+void MigrateInnerAbility(InnerAbility& ability) {
+  if (ability.has_legacy_farming() || ability.has_legacy_bossing()) {
+    ability.clear_presets();
+    *ability.add_presets() = ability.legacy_farming();
+    *ability.add_presets() = ability.legacy_bossing();
+    ability.clear_legacy_farming();
+    ability.clear_legacy_bossing();
   }
-  return ability.farming();
+  while (ability.presets_size() < kNumStatPresets) {
+    ability.add_presets();
+  }
+}
+
+const AbilityPreset& PresetOf(const InnerAbility& ability, StatPreset slot) {
+  if (IndexOf(slot) >= ability.presets_size()) {
+    return AbilityPreset::default_instance();
+  }
+  return ability.presets(IndexOf(slot));
 }
 
 AbilityPreset& PresetOf(InnerAbility& ability, StatPreset slot) {
-  if (slot == StatPreset::kSecond) {
-    return *ability.mutable_bossing();
-  }
-  return *ability.mutable_farming();
+  MigrateInnerAbility(ability);
+  return *ability.mutable_presets(IndexOf(slot));
 }
 
 AbilityPreset DefaultAbilityPreset() {

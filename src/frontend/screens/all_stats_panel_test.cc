@@ -9,7 +9,9 @@
 #include <vector>
 
 #include "ftxui/component/event.hpp"
+#include "src/character/hyper_stats.h"
 #include "src/character/skill_placement.h"
+#include "src/character/stat_preset.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/frontend/widgets/screen_text.h"
 #include "src/item/equip_instance.h"
@@ -183,12 +185,11 @@ TEST_F(AllStatsPanelTest, TheFarmBossRowPicksWhoseNumbersTheseAre) {
   proto.set_level(140);
   proto.set_job(JOB_HERO);
   proto.set_job_stage(4);
-  (*proto.mutable_hyper_stats()
-        ->mutable_farming()
-        ->mutable_levels())[HYPER_STAT_FIELD_STR] = 1;
-  (*proto.mutable_hyper_stats()
-        ->mutable_bossing()
-        ->mutable_levels())[HYPER_STAT_FIELD_STR] = 2;
+  HyperStats& hyper = *proto.mutable_hyper_stats();
+  (*PresetOf(hyper, StatPreset::kFirst)
+        .mutable_levels())[HYPER_STAT_FIELD_STR] = 1;
+  (*PresetOf(hyper, StatPreset::kSecond)
+        .mutable_levels())[HYPER_STAT_FIELD_STR] = 2;
   CharacterInstance c(rng_, std::move(proto));
   AllStatsPanel panel(c, &account_, {});
 

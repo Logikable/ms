@@ -171,7 +171,8 @@ TEST_F(InnerAbilityTest, RestoringAnOldSaveSeedsTheLines) {
 TEST_F(InnerAbilityTest, RanklessPresetKeepsItsLines) {
   Character proto;
   proto.set_level(160);
-  AbilityPreset& lines = *proto.mutable_inner_ability()->mutable_farming();
+  AbilityPreset& lines =
+      PresetOf(*proto.mutable_inner_ability(), StatPreset::kFirst);
   lines.add_lines()->set_type(ABILITY_LINE_TYPE_MESO);
   CharacterInstance c(rng_, std::move(proto));
 
@@ -220,7 +221,8 @@ TEST_F(InnerAbilityTest, PresetsAreSeparateAndTheHonorIsNot) {
 TEST_F(InnerAbilityTest, LockingRaisesTheResetPrice) {
   Character proto;
   proto.set_level(160);
-  AbilityPreset& lines = *proto.mutable_inner_ability()->mutable_farming();
+  AbilityPreset& lines =
+      PresetOf(*proto.mutable_inner_ability(), StatPreset::kFirst);
   lines.set_rank(ABILITY_RANK_LEGENDARY);
   for (AbilityLineType type :
        {ABILITY_LINE_TYPE_BOSS_DAMAGE, ABILITY_LINE_TYPE_ATTACK,
@@ -328,7 +330,8 @@ TEST_F(HyperStatTest, RefundPastWhatIsSpentChangesNothing) {
 TEST_F(HyperStatTest, ReconcileTrimsAnAllocationBackToThePool) {
   Character proto;
   proto.set_level(150);
-  HyperStatPreset& farming = *proto.mutable_hyper_stats()->mutable_farming();
+  HyperStatPreset& farming =
+      PresetOf(*proto.mutable_hyper_stats(), StatPreset::kFirst);
   (*farming.mutable_levels())[HYPER_STAT_FIELD_STR] = 14;
   (*farming.mutable_levels())[HYPER_STAT_FIELD_ARCANE_FORCE] = 3;
   (*farming.mutable_levels())[HYPER_STAT_FIELD_DAMAGE] = 8;

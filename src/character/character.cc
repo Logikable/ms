@@ -911,8 +911,9 @@ void CharacterInstance::EnsureUsername() {
 
 void CharacterInstance::EnsureInnerAbility() {
   InnerAbility& ability = *character_.mutable_inner_ability();
-  for (StatPreset preset : {StatPreset::kFirst, StatPreset::kSecond}) {
-    AbilityPreset& lines = PresetOf(ability, preset);
+  MigrateHyperStats(*character_.mutable_hyper_stats());
+  for (int i = 0; i < kNumStatPresets; ++i) {
+    AbilityPreset& lines = PresetOf(ability, StatPresetAt(i));
     if (lines.lines_size() == 0) {
       lines = DefaultAbilityPreset();
     } else if (lines.rank() == ABILITY_RANK_UNSPECIFIED) {
@@ -1385,9 +1386,8 @@ int CharacterInstance::ReconcileHyperPreset(StatPreset preset) {
 
 int CharacterInstance::ReconcileHyperStats() {
   int moved = 0;
-  const StatPreset presets[] = {StatPreset::kFirst, StatPreset::kSecond};
-  for (StatPreset preset : presets) {
-    moved += ReconcileHyperPreset(preset);
+  for (int i = 0; i < kNumStatPresets; ++i) {
+    moved += ReconcileHyperPreset(StatPresetAt(i));
   }
   if (moved > 0) {
     LOG(WARNING) << "Character Hyper Stats were over by " << moved

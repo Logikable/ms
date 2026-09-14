@@ -336,12 +336,11 @@ TEST_F(StatRowsTest, TheRowsReadThePresetTheyAreGiven) {
   proto.set_level(200);
   proto.set_job(JOB_SWORDMAN);
   proto.set_job_stage(1);
-  (*proto.mutable_hyper_stats()
-        ->mutable_farming()
-        ->mutable_levels())[HYPER_STAT_FIELD_CRIT_DAMAGE] = 5;
-  (*proto.mutable_hyper_stats()
-        ->mutable_bossing()
-        ->mutable_levels())[HYPER_STAT_FIELD_CRIT_DAMAGE] = 9;
+  HyperStats& hyper = *proto.mutable_hyper_stats();
+  (*PresetOf(hyper, StatPreset::kFirst)
+        .mutable_levels())[HYPER_STAT_FIELD_CRIT_DAMAGE] = 5;
+  (*PresetOf(hyper, StatPreset::kSecond)
+        .mutable_levels())[HYPER_STAT_FIELD_CRIT_DAMAGE] = 9;
   CharacterInstance c(rng_, std::move(proto));
 
   EXPECT_EQ(ValueOf(ExtraStatLines(c, {}), "Critical Damage"), "40.00%");

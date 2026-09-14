@@ -34,18 +34,29 @@ int FloorLog(int base, int value) {
 
 }  // namespace
 
-const HyperStatPreset& PresetOf(const HyperStats& stats, StatPreset slot) {
-  if (slot == StatPreset::kSecond) {
-    return stats.bossing();
+void MigrateHyperStats(HyperStats& stats) {
+  if (stats.has_legacy_farming() || stats.has_legacy_bossing()) {
+    stats.clear_presets();
+    *stats.add_presets() = stats.legacy_farming();
+    *stats.add_presets() = stats.legacy_bossing();
+    stats.clear_legacy_farming();
+    stats.clear_legacy_bossing();
   }
-  return stats.farming();
+  while (stats.presets_size() < kNumStatPresets) {
+    stats.add_presets();
+  }
+}
+
+const HyperStatPreset& PresetOf(const HyperStats& stats, StatPreset slot) {
+  if (IndexOf(slot) >= stats.presets_size()) {
+    return HyperStatPreset::default_instance();
+  }
+  return stats.presets(IndexOf(slot));
 }
 
 HyperStatPreset& PresetOf(HyperStats& stats, StatPreset slot) {
-  if (slot == StatPreset::kSecond) {
-    return *stats.mutable_bossing();
-  }
-  return *stats.mutable_farming();
+  MigrateHyperStats(stats);
+  return *stats.mutable_presets(IndexOf(slot));
 }
 
 int HyperStatPointsAtLevel(int level) {
