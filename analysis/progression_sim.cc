@@ -2848,6 +2848,66 @@ void PrintBossTimeline(const Catalogs& catalogs,
 // cubed piece ended up wearing.
 //
 // Bought against kept is the reading that matters. A cube is a chance rather
+// The stiffest defence `fight` puts up: a boss is several bodies and a swing
+// meets one of them, so the hardest part is what the character has to beat.
+double FightDefence(const std::map<std::string, Mob>& mobs,
+                    const BossDifficulty& difficulty) {
+  double pdr = 0.0;
+  for (const BossPhase& phase : difficulty.phases()) {
+    for (const Spawn& spawn : phase.spawns()) {
+      std::map<std::string, Mob>::const_iterator found = mobs.find(spawn.mob());
+      if (found != mobs.end()) {
+        pdr = std::max(pdr, found->second.pdr() / 100.0);
+      }
+    }
+  }
+  return pdr;
+}
+
+// What each branch's ignored defence leaves of the fight they are aimed at.
+//
+// Defence multiplies the whole swing, and past the point a branch's ignored
+// defence stops cancelling it the factor clamps at zero and every line floors
+// at 1 damage. So this is not a column where a small number means a little
+// behind: a branch reading 0% is not fighting the boss at all, whatever else
+// it carries. The bossing preset, since that is what the fight reads.
+//
+// The character's own ignored defence, not a swing's. A skill carrying its
+// own -- the Shadower's four V nodes ignore defence outright -- meets a
+// different number, and the branch clears fights this table says it cannot.
+void PrintDefence(const Catalogs& catalogs, const std::vector<Job>& branches,
+                  const std::vector<Climb>& climbs) {
+  std::printf(
+      "\nWhat each branch's ignored defence leaves of the fight their points "
+      "are aimed at. The\nfactor multiplies the whole swing and clamps at "
+      "zero, so a branch reading 0%% is on the\n1-damage floor rather than "
+      "merely behind.\n\n");
+  std::printf("%-16s  %8s  %26s  %8s  %8s\n", "branch", "IED", "aimed at",
+              "its DEF", "left");
+  std::printf("  %s\n", std::string(74, '-').c_str());
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    GameState state = NewState(catalogs, 1);
+    state.bosses = catalogs.bosses;
+    state.character.RestoreFrom(climbs[i].final_character, state.equips,
+                                state.items);
+    DerivedStats derived = DerivedStatsFor(state.character, state.skills, {},
+                                           state.party, Activity::kBossing);
+    std::pair<std::string, int> fight;
+    if (!BookTarget(state, &fight)) {
+      continue;
+    }
+    const BossDifficulty& difficulty =
+        state.bosses[fight.first].difficulties(fight.second);
+    double pdr = FightDefence(state.mobs, difficulty);
+    double left = std::max(0.0, 1.0 - pdr * (1.0 - derived.ied));
+    std::string aimed =
+        absl::StrCat(difficulty.name(), " ", state.bosses[fight.first].name());
+    std::printf("%-16s  %7.0f%%  %26s  %7.0f%%  %7.0f%%\n",
+                BranchName(branches[i]).c_str(), 100.0 * derived.ied,
+                aimed.c_str(), 100.0 * pdr, 100.0 * left);
+  }
+}
+
 // than a purchase, so the gap between them is the meso that bought nothing,
 // which is the trap a keep-better rule invites.
 void PrintCubing(const std::vector<Job>& branches,
@@ -3097,12 +3157,22 @@ void PrintCharacterSheet(const Catalogs& catalogs, Job branch,
               BranchName(branch).c_str(), proto.level(),
               Clock(climb.milestones[kNumMilestones - 1].seconds).c_str(), held,
               PowerNow(state));
-  std::printf(
-      "  HP %d   MP %d   crit %.0f%% at %.0f%%   boss %.0f%%   IED %.0f%%   "
-      "damage %.0f%%\n",
-      derived.max_hp, derived.max_mp, 100.0 * derived.crit_rate,
-      100.0 * derived.crit_dmg, 100.0 * derived.boss_pct, 100.0 * derived.ied,
-      100.0 * derived.damage_pct);
+  // Both presets: the two differ in every lever a fight reads, and quoting
+  // the farming one against a boss roster is how a branch looks armed for a
+  // fight it cannot touch.
+  DerivedStats bossing = DerivedStatsFor(state.character, state.skills, {},
+                                         state.party, Activity::kBossing);
+  std::printf("  HP %d   MP %d\n", derived.max_hp, derived.max_mp);
+  const std::pair<const char*, const DerivedStats*> presets[] = {
+      {"farming", &derived}, {"bossing", &bossing}};
+  for (const std::pair<const char*, const DerivedStats*>& preset : presets) {
+    std::printf(
+        "    %-7s  crit %.0f%% at %.0f%%   boss %.0f%%   IED %.0f%%   "
+        "damage %.0f%%\n",
+        preset.first, 100.0 * preset.second->crit_rate,
+        100.0 * preset.second->crit_dmg, 100.0 * preset.second->boss_pct,
+        100.0 * preset.second->ied, 100.0 * preset.second->damage_pct);
+  }
 
   std::printf("\n  Worn\n");
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
@@ -3287,6 +3357,7 @@ void Run() {
     PrintBossTimeline(catalogs, branches, typical);
     PrintMesoLedger(branches, typical);
     PrintCubing(branches, typical);
+    PrintDefence(catalogs, branches, typical);
     int weakest = WeakestBranch(catalogs, typical);
     PrintCharacterSheet(catalogs, branches[weakest], typical[weakest]);
   }
