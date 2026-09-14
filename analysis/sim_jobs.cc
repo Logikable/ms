@@ -87,6 +87,33 @@ std::string BranchName(Job job) {
   }
 }
 
+std::string BranchAbbrev(Job job) {
+  switch (job) {
+    case JOB_HERO:
+      return "Hero";
+    case JOB_PALADIN:
+      return "Pala";
+    case JOB_DARK_KNIGHT:
+      return "DK";
+    case JOB_BISHOP:
+      return "Bish";
+    case JOB_ICE_LIGHTNING_ARCH_MAGE:
+      return "I/L";
+    case JOB_FIRE_POISON_ARCH_MAGE:
+      return "F/P";
+    case JOB_BOW_MASTER:
+      return "BM";
+    case JOB_MARKSMAN:
+      return "MM";
+    case JOB_NIGHT_LORD:
+      return "NL";
+    case JOB_SHADOWER:
+      return "Shad";
+    default:
+      return BranchName(job).substr(0, 4);
+  }
+}
+
 std::vector<Job> PathTo(Job branch) {
   std::vector<Job> path;
   for (int stage = 1;; ++stage) {

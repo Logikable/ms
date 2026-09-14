@@ -182,10 +182,12 @@ ABSL_FLAG(bool, endgame, true,
           "farmed and the dailies run, with the purse still spending.");
 ABSL_FLAG(double, endgame_days, 7.0,
           "Days played at the cap for the endgame section.");
-ABSL_FLAG(double, total_days, 0.0,
+ABSL_FLAG(double, total_days, 40.0,
           "Stop every branch this many days after it started -- the climb and "
-          "the days after the cap are one budget. 0 leaves --give_up_hours "
-          "and --endgame_days to say where each half stops on its own.");
+          "the days after the cap are one budget, which is what makes a fight "
+          "nobody beats a wall rather than a run that stopped short. 0 leaves "
+          "--give_up_hours and --endgame_days to say where each half stops on "
+          "its own.");
 ABSL_FLAG(bool, boss_report, true,
           "Print where each fight falls across the branches: the level of the "
           "first clear, the clock at it, and how far the branches that never "
@@ -2620,6 +2622,7 @@ void PrintBossReadiness(const Catalogs& catalogs,
 // nobody in the sweep ever reached still gets a row.
 struct FightRow {
   std::string key;
+  std::string boss;  // the catalog key on its own, which the key above joins
   std::string label;
   int unlock_level = 0;
   const BossDifficulty* difficulty = nullptr;
@@ -2634,7 +2637,7 @@ std::vector<FightRow> LiveFights(const Catalogs& catalogs) {
         continue;
       }
       fights.push_back(
-          {FightKey(entry.first, i),
+          {FightKey(entry.first, i), entry.first,
            absl::StrCat(difficulty.name(), " ", entry.second.name()),
            difficulty.unlock_level(), &difficulty});
     }
@@ -2690,12 +2693,6 @@ struct ClearPoint {
   double after_cap = -1.0;  // playtime past the cap the clear landed at
 };
 
-bool ClearIsEarlier(const ClearPoint& a, const ClearPoint& b) {
-  int a_level = a.level == 0 ? std::numeric_limits<int>::max() : a.level;
-  int b_level = b.level == 0 ? std::numeric_limits<int>::max() : b.level;
-  return a_level != b_level ? a_level < b_level : a.after_cap < b.after_cap;
-}
-
 std::string ClearCell(const ClearPoint& point) {
   if (point.level == 0) {
     return "never";
@@ -2706,39 +2703,32 @@ std::string ClearCell(const ClearPoint& point) {
   return absl::StrCat("+", Clock(std::max(point.after_cap, 0.0)));
 }
 
-// The clear `pct` of the branches had the fight beaten by, nearest-rank: the
-// half mark of ten branches is the fifth of them. A branch that never won it
-// sorts past every one that did, so 80% reads "never" once three in ten could
-// not do it -- which is the reading, not a gap in the table.
-std::string ClearAtPercentile(std::vector<ClearPoint> points, double pct) {
-  std::sort(points.begin(), points.end(), ClearIsEarlier);
-  int index = static_cast<int>(std::ceil(pct * points.size())) - 1;
-  index = std::min(std::max(index, 0), static_cast<int>(points.size()) - 1);
-  return ClearCell(points[index]);
-}
-
-// The headline: what level each fight falls at, over the branches.
-void PrintTimelineSummary(const std::vector<FightRow>& fights,
-                          const std::vector<Job>& branches,
-                          const std::vector<Climb>& climbs) {
-  std::printf("  %-17s %6s %9s %8s %8s %8s %8s\n", "fight", "opens", "cleared",
-              "min", "50%", "80%", "max");
-  std::printf("  %s\n", std::string(70, '-').c_str());
+// The headline: every fight against every branch, one cell each. A summary
+// over the row -- a median, a spread -- hides the thing the table is read for,
+// which is WHICH branches are in the column that says never.
+void PrintClearMatrix(const std::vector<FightRow>& fights,
+                      const std::vector<Job>& branches,
+                      const std::vector<Climb>& climbs) {
+  std::printf("  %-20s %6s %8s", "fight", "opens", "cleared");
+  for (Job branch : branches) {
+    std::printf(" %7s", BranchAbbrev(branch).c_str());
+  }
+  std::printf("\n  %s\n", std::string(33 + 8 * branches.size(), '-').c_str());
   for (const FightRow& fight : fights) {
-    std::vector<ClearPoint> points;
+    std::vector<std::string> cells;
     int cleared = 0;
-    for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
-      FightStanding standing = StandingOn(climbs[i], fight.key);
-      points.push_back({standing.level, standing.after_cap});
+    for (const Climb& climb : climbs) {
+      FightStanding standing = StandingOn(climb, fight.key);
+      cells.push_back(ClearCell({standing.level, standing.after_cap}));
       cleared += standing.level > 0 ? 1 : 0;
     }
-    std::printf("  %-17s %6s %5d/%-3d %8s %8s %8s %8s\n", fight.label.c_str(),
+    std::printf("  %-20s %6s %4d/%-3d", fight.label.c_str(),
                 absl::StrCat("Lv", fight.unlock_level).c_str(), cleared,
-                static_cast<int>(branches.size()),
-                ClearAtPercentile(points, 0.0).c_str(),
-                ClearAtPercentile(points, 0.5).c_str(),
-                ClearAtPercentile(points, 0.8).c_str(),
-                ClearAtPercentile(points, 1.0).c_str());
+                static_cast<int>(branches.size()));
+    for (const std::string& cell : cells) {
+      std::printf(" %7s", cell.c_str());
+    }
+    std::printf("\n");
   }
 }
 
@@ -2784,6 +2774,90 @@ void PrintFightDetail(const Catalogs& catalogs, const FightRow& fight,
   }
 }
 
+// The stiffest fight the game holds: the last rung of the ladder, which is
+// where it opens and then what it is carrying. Null for a catalog with no
+// fight in it at all.
+const FightRow* HardestFight(const Catalogs& catalogs,
+                             const std::vector<FightRow>& fights) {
+  const FightRow* hardest = nullptr;
+  int64_t hardest_hp = 0;
+  for (const FightRow& fight : fights) {
+    int64_t body = BossTotalHp(catalogs.mobs, *fight.difficulty);
+    if (hardest == nullptr ||
+        std::make_pair(fight.unlock_level, body) >
+            std::make_pair(hardest->unlock_level, hardest_hp)) {
+      hardest = &fight;
+      hardest_hp = body;
+    }
+  }
+  return hardest;
+}
+
+// How long a build is played out for to read its throughput. The clock an
+// endgame fight allows, and the one almost everything past Lotus will allow:
+// long enough that every cooldown in the game comes round several times, so
+// what it reads is throughput rather than an opening burst.
+constexpr double kDpmSeconds = 30.0 * 60.0;
+
+// What one branch's final build takes off `fight` a minute, or 0 where it
+// cannot fight at all.
+double FinalDpm(const Catalogs& catalogs, const FightRow& fight,
+                const Climb& climb) {
+  GameState state = NewState(catalogs, 1);
+  state.bosses = catalogs.bosses;
+  state.character.RestoreFrom(climb.final_character, state.equips, state.items);
+  int phase = BossObjectivePhase(state.mobs, *fight.difficulty);
+  CombatParams params =
+      ComputeBossParams(state, fight.boss, *fight.difficulty, phase);
+  if (!params.active) {
+    return 0.0;
+  }
+  Sequence played = MeasureFight(params, kDpmSeconds);
+  return played.seconds > 0.0 ? played.damage / played.seconds * 60.0 : 0.0;
+}
+
+// What every branch's final build does to the hardest fight in the game,
+// measured rather than fought: its parts stood up for the whole clock and
+// never falling, so a branch that never won it still reads a throughput and
+// the table above says "nowhere near" rather than only "no".
+//
+// Played out over kDpmSeconds. A boss runs in real seconds at any level --
+// ComputeBossParams pins the pacing at 1.0 -- so this horizon is not put
+// through WindowFor, whose stretch belongs to a map.
+void PrintFinalDpm(const Catalogs& catalogs,
+                   const std::vector<FightRow>& fights,
+                   const std::vector<Job>& branches,
+                   const std::vector<Climb>& climbs) {
+  const FightRow* fight = HardestFight(catalogs, fights);
+  if (fight == nullptr) {
+    return;
+  }
+  int64_t body = BossTotalHp(catalogs.mobs, *fight->difficulty);
+  char hp[16];
+  FormatShort(static_cast<double>(body), hp, sizeof(hp));
+  std::printf(
+      "\nWhat each branch's final build does to %s, measured rather than "
+      "cleared: its parts stood\nup for %s and never falling, at the bossing "
+      "preset. %s to take down, so the clear that\nimplies is what the "
+      "throughput asks for with nothing left to the clock.\n\n",
+      fight->label.c_str(), FightClock(kDpmSeconds).c_str(), hp);
+  std::printf("  %-16s %10s %10s\n", "branch", "DPM", "implies");
+  std::printf("  %s\n", std::string(38, '-').c_str());
+
+  std::vector<std::pair<double, int>> order;
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    order.push_back({FinalDpm(catalogs, *fight, climbs[i]), i});
+  }
+  std::sort(order.begin(), order.end(), std::greater<std::pair<double, int>>());
+  for (const std::pair<double, int>& row : order) {
+    char dpm[16];
+    FormatShort(row.first, dpm, sizeof(dpm));
+    std::printf(
+        "  %-16s %10s %10s\n", BranchName(branches[row.second]).c_str(), dpm,
+        Clock(row.first > 0.0 ? body / (row.first / 60.0) : -1.0).c_str());
+  }
+}
+
 // When each fight falls in a character's life, across the branches: the level
 // the first clear came at, and -- for the fights that only open at the cap,
 // where every level column would read the cap -- the clock instead.
@@ -2795,13 +2869,14 @@ void PrintBossTimeline(const Catalogs& catalogs,
                        const std::vector<Job>& branches,
                        const std::vector<Climb>& climbs) {
   std::printf(
-      "\nWhere each fight falls, over the typical run of every branch. A "
-      "branch that never won it\ncounts as worse than every branch that did, "
-      "so a percentile reads \"never\" once that many\nof them could not do "
-      "it. A cell reading +Nh is a clear at the cap, timed from Lv%d.\n\n",
+      "\nWhere each fight falls, over the typical run of every branch: the "
+      "level its first clear\ncame at. A cell reading +Nh is a clear at the "
+      "cap, timed from Lv%d, since every branch\nthat waited that long would "
+      "otherwise print the same level.\n\n",
       kTrialLevelCap);
   std::vector<FightRow> fights = LiveFights(catalogs);
-  PrintTimelineSummary(fights, branches, climbs);
+  PrintClearMatrix(fights, branches, climbs);
+  PrintFinalDpm(catalogs, fights, branches, climbs);
   for (const FightRow& fight : fights) {
     PrintFightDetail(catalogs, fight, branches, climbs);
   }

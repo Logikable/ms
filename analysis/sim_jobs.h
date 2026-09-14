@@ -25,6 +25,12 @@ namespace ms {
 // into.
 std::string BranchName(Job job);
 
+// The same branch as a column header, four characters at the most: ten of
+// them have to stand side by side over a table and the spelled-out names do
+// not fit. Only the branches a sweep climbs are named; anything else falls
+// back to the front of BranchName.
+std::string BranchAbbrev(Job job);
+
 // The advancements a branch is reached through, in order, so a sweep climbs
 // the same path a player does and collects each book's skills on the way.
 // Empty for a job that takes no advancement of its own.
