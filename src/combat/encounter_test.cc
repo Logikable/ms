@@ -5097,6 +5097,8 @@ TEST(ComputeBossParamsTest, TheFightPicksTheAllocationForTheActivity) {
                    {"snail", MakeMob("Snail", 15)}},
                   {{"field", TwoSnailMap()}});
   state.current_map = "field";
+  state.account.SetAutoswapPresets(true);
+  state.ApplyPresetOptions();
   Character grown = state.character.ToProto();
   grown.set_level(200);
   state.character.RestoreFrom(grown, state.equips, state.items);

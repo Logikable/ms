@@ -39,9 +39,16 @@ inline StatPreset StatPresetAt(int index) {
   return static_cast<StatPreset>(index);
 }
 
-// The slot `activity` reads: farming takes the first, bossing the second. The
-// third is storage no activity names.
-inline StatPreset SlotFor(Activity activity) {
+// Which of the things a character keeps a preset of is being asked about.
+// Each kind holds its own presets and its own choice of which is in use, so a
+// character can have Hyper 1 and Ability 3 in play at once.
+enum class PresetKind { kHyperStats, kInnerAbility };
+
+// The slot Autoswap Presets reads for `activity`: farming takes the first,
+// bossing the second. The third is storage the autoswap never names --
+// CharacterInstance::SlotFor is what asks this, and only while the switch is
+// on.
+inline StatPreset AutoswapSlotFor(Activity activity) {
   return activity == Activity::kBossing ? StatPreset::kSecond
                                         : StatPreset::kFirst;
 }

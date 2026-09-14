@@ -3011,15 +3011,22 @@ TEST_F(DerivedStatsTest, TheBossingAbilityIsReadOnlyWhenAskedFor) {
        Line(ABILITY_LINE_TYPE_MESO, ABILITY_RANK_EPIC),
        Line(ABILITY_LINE_TYPE_ITEM_DROP, ABILITY_RANK_EPIC)},
       StatPreset::kSecond);
+  c.set_autoswap_presets(true);
 
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).boss_pct, 0.0);
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kBossing).boss_pct,
                    0.20);
+
+  // With the autoswap off, the one in use answers for both.
+  c.set_autoswap_presets(false);
+  c.SetSlotInUse(PresetKind::kInnerAbility, StatPreset::kSecond);
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).boss_pct, 0.20);
 }
 
 // The allocation read is the one the caller asks for.
 TEST_F(DerivedStatsTest, TheBossingAllocationIsReadOnlyWhenAskedFor) {
   CharacterInstance c = HyperStatCharacter(rng_);
+  c.set_autoswap_presets(true);
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_BOSS_DAMAGE,
                                   StatPreset::kSecond, 10));
 
@@ -3028,9 +3035,31 @@ TEST_F(DerivedStatsTest, TheBossingAllocationIsReadOnlyWhenAskedFor) {
                    0.35);
 }
 
+// With the autoswap off there is no activity to follow: the slot the player
+// put in use answers for the map and the boss alike, and the two kinds are
+// chosen apart.
+TEST_F(DerivedStatsTest, TheSlotInUseAnswersForEveryActivity) {
+  CharacterInstance c = HyperStatCharacter(rng_);
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_BOSS_DAMAGE,
+                                  StatPreset::kThird, 10));
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).boss_pct, 0.0);
+
+  c.SetSlotInUse(PresetKind::kHyperStats, StatPreset::kThird);
+  EXPECT_EQ(c.SlotInUse(PresetKind::kHyperStats), StatPreset::kThird);
+  EXPECT_EQ(c.SlotInUse(PresetKind::kInnerAbility), StatPreset::kFirst);
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).boss_pct, 0.35);
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kBossing).boss_pct,
+                   0.35);
+
+  // And the switch overrules it: the autoswap reads the first two slots.
+  c.set_autoswap_presets(true);
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).boss_pct, 0.0);
+}
+
 // Arcane Force from the Hyper Stat meets what the symbols carry.
 TEST_F(DerivedStatsTest, HyperArcaneForceAddsToTheSymbols) {
   CharacterInstance c = HyperStatCharacter(rng_);
+  c.set_autoswap_presets(true);
   EXPECT_EQ(c.arcane_force(), 0);
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_ARCANE_FORCE,
                                   StatPreset::kFirst, 10));
@@ -4012,8 +4041,10 @@ TEST(CharacterCombatPowerTest, CountsTheModesMonsterOnly) {
         .mutable_levels())[HYPER_STAT_FIELD_BOSS_DAMAGE] = 10;
 
   CharacterInstance nothing(rng, std::move(bare));
+  nothing.set_autoswap_presets(true);
   EquipAttackWeapon(nothing);
   CharacterInstance c(rng, std::move(spent));
+  c.set_autoswap_presets(true);
   EquipAttackWeapon(c);
 
   int baseline = CharacterCombatPower(nothing, {});
@@ -4032,6 +4063,7 @@ TEST(CharacterCombatPowerTest, CountsTheModesMonsterOnly) {
   (*PresetOf(*misplaced.mutable_hyper_stats(), StatPreset::kFirst)
         .mutable_levels())[HYPER_STAT_FIELD_BOSS_DAMAGE] = 10;
   CharacterInstance boss_only(rng, std::move(misplaced));
+  boss_only.set_autoswap_presets(true);
   EquipAttackWeapon(boss_only);
   EXPECT_EQ(CharacterCombatPower(boss_only, {}, Activity::kFarming), baseline);
 }

@@ -267,6 +267,20 @@ TEST_F(SaveTest, ASaveWithTheOldTwoAllocationsLoadsIntoTheSlots) {
   EXPECT_FALSE(read.proto().hyper_stats().has_legacy_farming());
 }
 
+// The switch is the account's, and the character being played is handed it at
+// load -- every stat read asks the character, not the account.
+TEST_F(SaveTest, TheAutoswapSwitchReachesTheCharacterOnLoad) {
+  std::unique_ptr<GameState> saved = MakeState();
+  EXPECT_FALSE(saved->character.autoswap_presets());
+  saved->account.SetAutoswapPresets(true);
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_TRUE(loaded->account.autoswap_presets());
+  EXPECT_TRUE(loaded->character.autoswap_presets());
+}
+
 TEST_F(SaveTest, WritesAndReadsBackTheUsername) {
   std::unique_ptr<GameState> saved = MakeState();
   EXPECT_EQ(saved->character.username(), kDefaultUsername);

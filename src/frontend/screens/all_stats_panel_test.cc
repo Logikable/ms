@@ -191,6 +191,7 @@ TEST_F(AllStatsPanelTest, TheFarmBossRowPicksWhoseNumbersTheseAre) {
   (*PresetOf(hyper, StatPreset::kSecond)
         .mutable_levels())[HYPER_STAT_FIELD_STR] = 2;
   CharacterInstance c(rng_, std::move(proto));
+  c.set_autoswap_presets(true);
   AllStatsPanel panel(c, &account_, {});
 
   EXPECT_NE(RowWith(panel.Render(), "Farm").find("Boss"), std::string::npos);

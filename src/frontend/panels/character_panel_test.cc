@@ -2450,7 +2450,10 @@ CharacterInstance MakeHyperHero(std::mt19937& rng, int ap = 0) {
         .mutable_levels())[HYPER_STAT_FIELD_STR] = 1;
   (*PresetOf(hyper, StatPreset::kSecond)
         .mutable_levels())[HYPER_STAT_FIELD_STR] = 2;
-  return CharacterInstance(rng, std::move(proto));
+  CharacterInstance c(rng, std::move(proto));
+  // Two allocations to tell apart is what the autoswap is for.
+  c.set_autoswap_presets(true);
+  return c;
 }
 
 // The row arrives with the Hyper Stats it picks between, and not before.

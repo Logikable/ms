@@ -72,6 +72,16 @@ class AccountInstance {
 
   // Whether the focused panel's title blinks, and the switch that sets it.
   // Off by default: the blink is the option, not the chip that marks focus.
+  // Whether the game picks a preset by what the character is doing. Off is
+  // what it ships with -- the player puts one in use themselves. Mirrored onto
+  // the character being played; see GameState::ApplyPresetOptions.
+  bool autoswap_presets() const {
+    return account_.options().autoswap_presets();
+  }
+  void SetAutoswapPresets(bool on) {
+    account_.mutable_options()->set_autoswap_presets(on);
+  }
+
   bool panel_title_blink() const {
     return account_.options().panel_title_blink();
   }

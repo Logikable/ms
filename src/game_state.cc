@@ -980,6 +980,10 @@ void MaxVMatrix(GameState& state) {
 // spare gear: a fight measured against this character has to be measured
 // against one the game could really produce.
 void SeedMax(GameState& state, const TestOptions& options) {
+  // A ceiling holds both allocations at once, which is what the autoswap is
+  // for, whatever the state was asked for.
+  state.account.SetAutoswapPresets(true);
+  state.ApplyPresetOptions();
   // The same default the workbench takes: the top of the line as far as the
   // game is written, which is where a boss roster is measured from.
   const JobAdvancement chosen = options.job != JOB_ADVANCEMENT_UNSPECIFIED
@@ -1012,7 +1016,7 @@ void SeedMax(GameState& state, const TestOptions& options) {
     const StatField primary = PrimaryStatField(state.character.proto().job());
     for (Activity activity : {Activity::kFarming, Activity::kBossing}) {
       state.character.SetAbility(MaxAbilityPreset(activity, primary),
-                                 SlotFor(activity));
+                                 AutoswapSlotFor(activity));
     }
   }
   BuyMaxConsumables(state);
@@ -1043,6 +1047,10 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       // climb stops is --level's to say, and the seeding below walks it there.
       character(rng, MakeBaseBeginnerProto()),
       created_unix_seconds(static_cast<int64_t>(std::time(nullptr))) {
+  // Before the seeding: a max character's allocations are measured by playing
+  // the fight, and the fight reads the switch.
+  account.SetAutoswapPresets(test.autoswap_presets);
+  ApplyPresetOptions();
   if (mode == GameMode::kTest) {
     SeedTest(*this, test);
   } else if (mode == GameMode::kMax) {
@@ -1051,6 +1059,11 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
     SeedPlay(*this);
   }
   character.UseEquipSets(equip_sets);
+  ApplyPresetOptions();
+}
+
+void GameState::ApplyPresetOptions() {
+  character.set_autoswap_presets(account.autoswap_presets());
 }
 
 void GrantLevelRewards(GameState& state, int from_level, int to_level) {

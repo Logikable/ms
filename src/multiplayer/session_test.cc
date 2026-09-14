@@ -105,6 +105,22 @@ TEST_F(SessionTest, IntroducesTheCharacterBeingPlayed) {
   EXPECT_EQ(snapshot.party.members(0).player().name(), "Dagger");
   EXPECT_EQ(snapshot.party.members(0).player().level(),
             state_->character.proto().level());
+  // Their own Autoswap switch travels with them, so a sheet is read the way
+  // its owner reads it.
+  EXPECT_FALSE(snapshot.party.members(0).player().autoswap_presets());
+}
+
+TEST_F(SessionTest, TheAutoswapSwitchTravelsWithThePlayer) {
+  state_->account.SetAutoswapPresets(true);
+  MultiplayerSession session = MakeSession();
+  session.Start(*state_);
+  ASSERT_TRUE(WaitUntilConnected(session));
+
+  session.client().CreateParty();
+  ASSERT_TRUE(WaitFor(session, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.party.members_size() == 1;
+  }));
+  EXPECT_TRUE(session.Snapshot().party.members(0).player().autoswap_presets());
 }
 
 TEST_F(SessionTest, TellsTheLobbyAboutANewName) {

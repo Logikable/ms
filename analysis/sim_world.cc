@@ -27,9 +27,14 @@ Catalogs LoadCatalogs() {
 }
 
 GameState NewState(const Catalogs& catalogs, unsigned int seed) {
+  TestOptions options;
+  // A sim models a player who uses what the game offers, and the plans it runs
+  // build one allocation for the map and one for the boss. The game itself
+  // ships the switch off -- see Options.autoswap_presets.
+  options.autoswap_presets = true;
   return GameState(catalogs.equips, catalogs.scrolls, catalogs.items,
                    catalogs.mobs, catalogs.maps, catalogs.skills,
-                   GameMode::kPlay, TestOptions{}, seed, catalogs.sets);
+                   GameMode::kPlay, options, seed, catalogs.sets);
 }
 
 GameState NewMaxState(const Catalogs& catalogs, JobAdvancement advancement,
@@ -37,6 +42,7 @@ GameState NewMaxState(const Catalogs& catalogs, JobAdvancement advancement,
   TestOptions options;
   options.job = advancement;
   options.level = level;
+  options.autoswap_presets = true;
   return GameState(catalogs.equips, catalogs.scrolls, catalogs.items,
                    catalogs.mobs, catalogs.maps, catalogs.skills,
                    GameMode::kMax, options, seed, catalogs.sets);

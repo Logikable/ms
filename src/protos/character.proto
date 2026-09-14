@@ -193,6 +193,11 @@ message HyperStats {
   HyperStatPreset legacy_bossing = 2 [deprecated = true];
 
   repeated HyperStatPreset presets = 3;
+
+  // Which of them the player has put in use, as an index into `presets`. Read
+  // only while Autoswap Presets is off; an index off the end reads as the
+  // first slot.
+  int32 active = 4;
 }
 
 // A buff the player keeps up: bought by the second or by the fight, or bought
@@ -283,6 +288,11 @@ message InnerAbility {
   AbilityPreset legacy_bossing = 2 [deprecated = true];
 
   repeated AbilityPreset presets = 3;
+
+  // Which of them the player has put in use. Its own field rather than the
+  // Hyper Stats' one: the two are chosen apart, so a character can hold Hyper
+  // 1 and Ability 3 at once.
+  int32 active = 4;
 }
 
 // A character's own stat amounts, before equipment or skills. STR/DEX/INT/LUK

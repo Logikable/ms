@@ -130,6 +130,9 @@ void LoadCharacters(const SaveGame& save, GameState& state) {
     state.created_unix_seconds = active.created_unix_seconds();
   }
 
+  // After the account, whose switch it reads.
+  state.ApplyPresetOptions();
+
   state.active_character = slot;
   state.inactive_characters.clear();
   for (int i = 0; i < save.characters_size(); ++i) {

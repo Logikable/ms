@@ -440,6 +440,24 @@ class CharacterInstance {
   int hyper_sp() const {
     return character_.hyper_sp();
   }
+
+  // The account's Autoswap Presets switch, mirrored here because every stat
+  // read has the character in hand and none of them has the account. GameState
+  // pushes it -- see GameState::ApplyPresetOptions.
+  bool autoswap_presets() const {
+    return autoswap_presets_;
+  }
+  void set_autoswap_presets(bool on) {
+    autoswap_presets_ = on;
+  }
+  // Which preset of `kind` the player has put in use, and the way to change
+  // it. Read only while the autoswap is off; each kind keeps its own.
+  StatPreset SlotInUse(PresetKind kind) const;
+  void SetSlotInUse(PresetKind kind, StatPreset slot);
+  // Which preset of `kind` answers while the character is doing `activity`:
+  // the slot the autoswap names, or the one in use with the switch off. What
+  // every stat read asks before it reaches an allocation.
+  StatPreset SlotFor(PresetKind kind, Activity activity) const;
   // Every Hyper Stat point the character's level has ever paid out.
   int hyper_stat_points() const;
   // What is left of them once `preset` is paid for.
@@ -726,6 +744,11 @@ class CharacterInstance {
   bool LearnVNode(const Skill& skill, int amount);
   // Gives a nameless character kDefaultUsername. Both doors a Character comes
   // in through call it, which is what makes username() never empty.
+  // Mirrors the account's switch -- see autoswap_presets(). Off is what the
+  // game ships with, so a character with no account behind them is left to
+  // whichever preset is in use.
+  bool autoswap_presets_ = false;
+
   void EnsureUsername();
   // Seeds both Inner Ability presets with the three lines every character is
   // handed. Both doors a Character comes in through call it, so a save written

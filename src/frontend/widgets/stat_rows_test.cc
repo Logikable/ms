@@ -342,6 +342,7 @@ TEST_F(StatRowsTest, TheRowsReadThePresetTheyAreGiven) {
   (*PresetOf(hyper, StatPreset::kSecond)
         .mutable_levels())[HYPER_STAT_FIELD_CRIT_DAMAGE] = 9;
   CharacterInstance c(rng_, std::move(proto));
+  c.set_autoswap_presets(true);
 
   EXPECT_EQ(ValueOf(ExtraStatLines(c, {}), "Critical Damage"), "40.00%");
   EXPECT_EQ(

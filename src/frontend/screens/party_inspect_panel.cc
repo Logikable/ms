@@ -36,6 +36,7 @@ void PartyInspectPanel::SetPlayer(const PlayerInfo& player) {
   bool same_member = player.account_id() == shown_.account_id();
   shown_ = player;
   character_.RestoreFrom(player.sheet(), state_.equips, state_.items);
+  character_.set_autoswap_presets(player.autoswap_presets());
   character_.UseEquipSets(state_.equip_sets);
   if (!same_member) {
     Reset();

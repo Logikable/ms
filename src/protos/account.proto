@@ -63,4 +63,10 @@ message Options {
   // is what lets an unset field mean the shipped volume.
   optional int32 map_bgm_volume = 2;
   optional int32 boss_bgm_volume = 3;
+
+  // Whether the game picks a preset by what the character is doing -- the
+  // first while farming, the second at a boss -- rather than leaving the
+  // player to put one in use by hand. Off, which is the default, names the
+  // presets by number and hands the choice over: see stat_preset.h.
+  bool autoswap_presets = 4;
 }

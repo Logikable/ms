@@ -50,6 +50,9 @@ PlayerInfo PlayerFor(const GameState& state) {
   // Beside the sheet rather than in it: the server checks these before it
   // lets a party at a boss on a reset clock, and PublicSheet strips them.
   *player.mutable_boss_clears() = state.character.proto().boss_clears();
+  // Their switch, not the reader's: whose allocation a sheet shows is the
+  // question its owner has already answered.
+  player.set_autoswap_presets(state.account.autoswap_presets());
   return player;
 }
 

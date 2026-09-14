@@ -143,6 +143,7 @@ class PartyInspectPanelTest : public PanelTest {
     player.set_name(name);
     player.set_level(proto.level());
     proto.set_name(name);
+    player.set_autoswap_presets(true);
     *player.mutable_sheet() = std::move(proto);
     return player;
   }

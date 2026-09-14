@@ -1283,6 +1283,7 @@ void TuiController::SeatParty(const MultiplayerSnapshot& lobby) {
     // one, and the same way a save is loaded.
     CharacterInstance ally(state_.rng, Character());
     ally.RestoreFrom(member.player().sheet(), state_.equips, state_.items);
+    ally.set_autoswap_presets(member.player().autoswap_presets());
     ally.UseEquipSets(state_.equip_sets);
     state_.party.push_back(std::move(ally));
   }
@@ -1876,6 +1877,8 @@ bool TuiController::OnOptionsEvent(ftxui::Event event) {
       return true;
     }
     options_panel_.Toggle();
+    // The Autoswap switch is among them, and the character reads it.
+    state_.ApplyPresetOptions();
     return true;
   }
   if (IsBack(event)) {

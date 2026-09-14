@@ -24,6 +24,10 @@
 
 namespace ms {
 
+// Every sim runs with Autoswap Presets on, whatever the game ships with: a
+// plan that builds a farming allocation and a bossing one is measuring a
+// player who gets both.
+
 // Everything the game ships, by catalog key. Held apart from any one
 // GameState because a sweep builds a character per row and they all read the
 // same data.

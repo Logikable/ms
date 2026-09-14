@@ -1246,9 +1246,29 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
   return true;
 }
 
+StatPreset CharacterInstance::SlotInUse(PresetKind kind) const {
+  return StatPresetAt(kind == PresetKind::kHyperStats
+                          ? character_.hyper_stats().active()
+                          : character_.inner_ability().active());
+}
+
+void CharacterInstance::SetSlotInUse(PresetKind kind, StatPreset slot) {
+  if (kind == PresetKind::kHyperStats) {
+    character_.mutable_hyper_stats()->set_active(IndexOf(slot));
+    return;
+  }
+  character_.mutable_inner_ability()->set_active(IndexOf(slot));
+}
+
+StatPreset CharacterInstance::SlotFor(PresetKind kind,
+                                      Activity activity) const {
+  return autoswap_presets_ ? AutoswapSlotFor(activity) : SlotInUse(kind);
+}
+
 int CharacterInstance::arcane_force(Activity activity) const {
   return arcane_force_ + static_cast<int>(hyper_stat_bonus(
-                             HYPER_STAT_FIELD_ARCANE_FORCE, SlotFor(activity)));
+                             HYPER_STAT_FIELD_ARCANE_FORCE,
+                             SlotFor(PresetKind::kHyperStats, activity)));
 }
 
 int CharacterInstance::hyper_stat_points() const {

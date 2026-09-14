@@ -50,6 +50,17 @@ TEST_F(OptionsPanelTest, BlinkShipsOffAndEnterThrowsIt) {
   EXPECT_FALSE(account_.panel_title_blink());
 }
 
+TEST_F(OptionsPanelTest, AutoswapShipsOffAndEnterThrowsIt) {
+  panel_.MoveRow(1);
+  ASSERT_EQ(panel_.selected_option(), Option::kAutoswapPresets);
+  EXPECT_NE(Render().find("Autoswap Presets"), std::string::npos);
+  EXPECT_FALSE(account_.autoswap_presets());
+  panel_.Toggle();
+  EXPECT_TRUE(account_.autoswap_presets());
+  panel_.Toggle();
+  EXPECT_FALSE(account_.autoswap_presets());
+}
+
 TEST_F(OptionsPanelTest, CursorWrapsThroughCloseAndBack) {
   EXPECT_FALSE(panel_.on_close());
   EXPECT_EQ(panel_.selected_option(), Option::kPanelTitleBlink);

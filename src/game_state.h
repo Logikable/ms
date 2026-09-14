@@ -94,11 +94,16 @@ inline constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_HERO_V;
 // the top of that job's own band.
 //
 // kMax reads `job` and `level` too, and fills `equips` and `skills` itself.
+// `autoswap_presets` is read by every mode: the switch the state starts with,
+// which the constructor is the only place to throw -- a GameState cannot be
+// named before it is returned. The game ships it off and every sim turns it
+// on; see //analysis:sim_world.
 struct TestOptions {
   JobAdvancement job = JOB_ADVANCEMENT_UNSPECIFIED;
   int level = 0;
   GearSetup equips;
   TestSkills skills = TestSkills::kZero;
+  bool autoswap_presets = false;
 };
 
 struct GameState {
@@ -146,6 +151,12 @@ struct GameState {
   // the character's level has opened, so the seeding has to know them.
   std::map<std::string, Boss> bosses;
   std::mt19937 rng;
+
+  // Hands the character the account's Autoswap Presets switch. Every stat read
+  // asks the character which allocation answers, and none of them has the
+  // account, so the two have to be put together here: when the state is built,
+  // when a save arrives, and when the option is thrown.
+  void ApplyPresetOptions();
 
   // The character being played. The others on the account are inert until a
   // character select exists to swap one in.

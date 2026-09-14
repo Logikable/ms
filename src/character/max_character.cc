@@ -221,7 +221,7 @@ void SpendMaxHyperStats(CharacterInstance& character,
   const int level = character.proto().level();
   for (Activity activity : {Activity::kFarming, Activity::kBossing}) {
     const Mob* target = NominalTarget(bosses, mobs, level, activity);
-    const StatPreset slot = SlotFor(activity);
+    const StatPreset slot = AutoswapSlotFor(activity);
     HyperWorth worth = MeasureHyperWorth(
         character, slot, [&skills, activity, target](CharacterInstance& c) {
           return MaxHyperRate(c, skills, activity, target);

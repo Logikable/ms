@@ -27,10 +27,11 @@ namespace ms {
 // there in a build that has music; see kAudioEnabled.
 enum class Option {
   kPanelTitleBlink,
+  kAutoswapPresets,
   kMapBgmVolume,
   kBossBgmVolume,
 };
-inline constexpr int kOptionCount = kAudioEnabled ? 3 : 1;
+inline constexpr int kOptionCount = kAudioEnabled ? 4 : 2;
 
 class OptionsPanel {
  public:

@@ -1489,8 +1489,11 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   // Warrior takes its share of the allocation alone.
   // The activity names the allocation: what it reads is the slot that answers
   // for it -- see stat_preset.h.
-  AddHyperStats(character, SlotFor(preset), passives);
-  AddInnerAbility(character, SlotFor(preset), passives);
+  AddHyperStats(character, character.SlotFor(PresetKind::kHyperStats, preset),
+                passives);
+  AddInnerAbility(character,
+                  character.SlotFor(PresetKind::kInnerAbility, preset),
+                  passives);
   // Last of all, because it spends a crit rate nothing more will add to. Read
   // uncapped and with the base rate in, the way the stats page shows it.
   passives.crit_dmg +=
