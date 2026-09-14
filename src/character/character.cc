@@ -1260,6 +1260,28 @@ void CharacterInstance::SetSlotInUse(PresetKind kind, StatPreset slot) {
   character_.mutable_inner_ability()->set_active(IndexOf(slot));
 }
 
+void CharacterInstance::SwapPresets(PresetKind kind, StatPreset a,
+                                    StatPreset b) {
+  if (a == b) {
+    return;
+  }
+  if (kind == PresetKind::kHyperStats) {
+    HyperStats& stats = *character_.mutable_hyper_stats();
+    MigrateHyperStats(stats);
+    stats.mutable_presets()->SwapElements(IndexOf(a), IndexOf(b));
+  } else {
+    InnerAbility& ability = *character_.mutable_inner_ability();
+    MigrateInnerAbility(ability);
+    ability.mutable_presets()->SwapElements(IndexOf(a), IndexOf(b));
+  }
+  const StatPreset in_use = SlotInUse(kind);
+  if (in_use == a) {
+    SetSlotInUse(kind, b);
+  } else if (in_use == b) {
+    SetSlotInUse(kind, a);
+  }
+}
+
 StatPreset CharacterInstance::SlotFor(PresetKind kind,
                                       Activity activity) const {
   return autoswap_presets_ ? AutoswapSlotFor(activity) : SlotInUse(kind);

@@ -67,6 +67,10 @@ struct CharacterPanelActions {
   // The Buffs tab. Enter on a row raises the buff's menu, which is where every
   // one of its actions lives -- switching it on included.
   std::function<void(ConsumableType)> buff_menu;
+  // The preset row, on the tabs that spend into a slot. Enter raises the menu
+  // that puts a preset in use or moves one; the row naming the two activities
+  // has nothing to offer and raises nothing.
+  std::function<void(PresetKind, StatPreset)> preset_menu;
 };
 
 class CharacterPanel {
@@ -143,6 +147,13 @@ class CharacterPanel {
   // menu beside it. Read from the render, as the two above are.
   int buff_cursor_row() const {
     return buff_cursor_box_.y_min;
+  }
+
+  // The screen row the preset row was last drawn on, for anchoring its menu
+  // under it. The row is one of a kind: there is no cursor walking a list, so
+  // the chip's own row is what the menu hangs from.
+  int preset_row() const {
+    return preset_row_box_.y_min;
   }
 
   // True while the name field is taking keys. Tui asks so the player's own
@@ -270,7 +281,8 @@ class CharacterPanel {
                        const CharacterPanelActions& actions);
   // Left/Right on the Farm/Boss row. They clamp at the ends, as every tab bar
   // in this panel does.
-  bool OnPresetBarEvent(const ftxui::Event& event);
+  bool OnPresetBarEvent(const ftxui::Event& event,
+                        const CharacterPanelActions& actions);
   // Whether the cursor is on the View All Stats row rather than on a stat.
   // It is the one stop in the ring that spends nothing.
   bool OnViewAllStatsRow() const;
@@ -530,6 +542,7 @@ class CharacterPanel {
   TextField username_field_{kMaxUsernameLength};
   // Written by ftxui::reflect on the selected job row each render.
   mutable ftxui::Box job_cursor_box_;
+  mutable ftxui::Box preset_row_box_;
   mutable ftxui::Box skill_cursor_box_;
   mutable ftxui::Box buff_cursor_box_;
 };

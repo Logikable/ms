@@ -961,6 +961,92 @@ TEST_F(TuiControllerTest, OpenJobMenuFloatsTheMenuAndNotTheConfirmation) {
   EXPECT_EQ(controller_->job_advance_job(), JOB_ROGUE);
 }
 
+// --- the preset menu ---
+
+TEST_F(TuiControllerTest, TheMenuPutsAPresetInUse) {
+  LevelTo(kHyperStatUnlockLevel);
+  controller_->OpenPresetMenu(PresetKind::kHyperStats, StatPreset::kThird);
+  ASSERT_EQ(controller_->screen(), kPresetMenu);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.SlotInUse(PresetKind::kHyperStats),
+            StatPreset::kThird);
+  // The other kind keeps its own choice.
+  EXPECT_EQ(state_->character.SlotInUse(PresetKind::kInnerAbility),
+            StatPreset::kFirst);
+}
+
+// Use is dimmed where it would do nothing: on the preset already in use, and
+// on every one of them while the autoswap is picking. The menu steps past a
+// dimmed entry, so Enter lands on Move.
+TEST_F(TuiControllerTest, UseIsDimmedWhereItWouldDoNothing) {
+  LevelTo(kHyperStatUnlockLevel);
+  controller_->OpenPresetMenu(PresetKind::kHyperStats, StatPreset::kFirst);
+  EXPECT_EQ(controller_->preset_menu().selected(), kPresetMenuMove);
+
+  state_->account.SetAutoswapPresets(true);
+  state_->ApplyPresetOptions();
+  controller_->OpenPresetMenu(PresetKind::kHyperStats, StatPreset::kThird);
+  EXPECT_EQ(controller_->preset_menu().selected(), kPresetMenuMove);
+}
+
+TEST_F(TuiControllerTest, MoveSwapsThePresetsAndWhatIsInUseWithThem) {
+  LevelTo(kHyperStatUnlockLevel);
+  ASSERT_TRUE(state_->character.AllocateHyperStat(HYPER_STAT_FIELD_STR,
+                                                  StatPreset::kFirst, 1));
+  state_->character.SetSlotInUse(PresetKind::kHyperStats, StatPreset::kFirst);
+
+  controller_->OpenPresetMenu(PresetKind::kHyperStats, StatPreset::kFirst);
+  // Use is dimmed on the preset already in use, so the menu opens on Move.
+  ASSERT_EQ(controller_->preset_menu().selected(), kPresetMenuMove);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kPresetMove);
+  // Opens on the preset the menu named, so a swap needs a step first.
+  EXPECT_EQ(controller_->preset_move_row(), 0);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR,
+                                               StatPreset::kThird),
+            1);
+  EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR,
+                                               StatPreset::kFirst),
+            0);
+  // What is in play followed its contents: moving presets is not a way to
+  // change the one being played with.
+  EXPECT_EQ(state_->character.SlotInUse(PresetKind::kHyperStats),
+            StatPreset::kThird);
+}
+
+TEST_F(TuiControllerTest, CancelAndEscapeBothLeaveTheMoveAlone) {
+  LevelTo(kHyperStatUnlockLevel);
+  ASSERT_TRUE(state_->character.AllocateHyperStat(HYPER_STAT_FIELD_STR,
+                                                  StatPreset::kFirst, 1));
+  controller_->OpenPresetMenu(PresetKind::kHyperStats, StatPreset::kFirst);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kPresetMove);
+  // Cancel is the stop past the last preset.
+  for (int i = 0; i < kNumStatPresets; ++i) {
+    controller_->OnEvent(ftxui::Event::ArrowDown);
+  }
+  EXPECT_EQ(controller_->preset_move_row(), kNumStatPresets);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR,
+                                               StatPreset::kFirst),
+            1);
+
+  controller_->OpenPresetMenu(PresetKind::kHyperStats, StatPreset::kFirst);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR,
+                                               StatPreset::kFirst),
+            1);
+}
+
 TEST_F(TuiControllerTest, TheJobMenuOpensOnInspect) {
   controller_->OpenJobMenu(JOB_ROGUE);
   controller_->OnEvent(ftxui::Event::Return);

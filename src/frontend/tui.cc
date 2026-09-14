@@ -225,6 +225,9 @@ void Tui::BuildComponents() {
   char_actions.buff_menu = [this](ConsumableType type) {
     controller_.OpenBuffMenu(type);
   };
+  char_actions.preset_menu = [this](PresetKind kind, StatPreset slot) {
+    controller_.OpenPresetMenu(kind, slot);
+  };
   char_component_ = char_panel_.MakeComponent(std::move(char_actions));
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
@@ -413,6 +416,25 @@ ftxui::Element Tui::HyperResetDialog() {
   // Titleless, like the quit dialog: the question is the whole dialog.
   return DialogWindow("", {CenteredRow(controller_.hyper_reset_question())},
                       controller_.hyper_reset_prompt().Render());
+}
+
+ftxui::Element Tui::PresetMoveDialog() {
+  const bool autoswap = state_.character.autoswap_presets();
+  std::vector<ftxui::Element> body = {
+      CenteredRow("Swap " +
+                  PresetSlotName(controller_.preset_slot(), autoswap) +
+                  " with"),
+      AccentSeparator(kTheme),
+  };
+  for (int i = 0; i < kNumStatPresets; ++i) {
+    body.push_back(CenteredRow(HighlightRow(
+        ftxui::text(PresetSlotName(StatPresetAt(i), autoswap)) | ftxui::center,
+        i == controller_.preset_move_row())));
+  }
+  return DialogWindow(
+      "", std::move(body),
+      CenteredRow(ActionButton(
+          "Cancel", controller_.preset_move_row() == kNumStatPresets)));
 }
 
 ftxui::Element Tui::AbilityRerollDialog() {
@@ -905,6 +927,8 @@ ftxui::Element Tui::RenderScreen() {
       return Standalone(all_stats_panel_.Render());
     case kHyperReset:
       return OverMain(HyperResetDialog());
+    case kPresetMove:
+      return OverMain(PresetMoveDialog());
     case kAbilityReroll:
       return OverMain(AbilityRerollDialog());
     case kBuffBuy:
@@ -953,6 +977,14 @@ ftxui::Element Tui::OpenMenu(const MainWidths& widths) {
     int col = std::max(0, std::min(kSkillMenuCol, widths.left - menu.Width()));
     return Floating(
         menu.Render(std::max(0, char_panel_.skill_cursor_row() - 1), col));
+  }
+  if (controller_.screen() == kPresetMenu) {
+    // Under the chip the menu was raised on, and held inside the panel: the
+    // row is short, so the menu sits at its left rather than beside a name.
+    constexpr int kPresetMenuCol = 2;
+    const ItemMenu& menu = controller_.preset_menu();
+    int col = std::max(0, std::min(kPresetMenuCol, widths.left - menu.Width()));
+    return Floating(menu.Render(std::max(0, char_panel_.preset_row()), col));
   }
   if (controller_.screen() == kJobMenu) {
     constexpr int kJobMenuCol = 14;

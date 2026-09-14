@@ -30,6 +30,10 @@ enum Screen : int {
   // Enter on a Hyper Stat's name: what it is worth now and what the next
   // level would buy. Nothing to do but read it, as the skill card is.
   kHyperStatInspect,
+  // Enter on the preset row: put one in use, move one, or walk away. Move
+  // opens the second, which lists the presets to swap the first one with.
+  kPresetMenu,
+  kPresetMove,
   // [Reroll] on the Ability tab: the question, over the lines it would throw
   // away. Locking a line asks nothing and has no screen of its own.
   kAbilityReroll,
@@ -205,6 +209,14 @@ enum JobMenuItem : int {
   kJobMenuInspect = 0,
   kJobMenuAdvance = 1,
   kJobMenuClose = 2,
+};
+// Entries of the preset menu, on Enter in the preset row. Use is dimmed while
+// the autoswap is on -- which preset is read is the fight's to say then -- and
+// on the one already in use.
+enum PresetMenuItem : int {
+  kPresetMenuUse = 0,
+  kPresetMenuMove = 1,
+  kPresetMenuClose = 2,
 };
 // Entries of the buff context menu, on Enter in the Buffs tab. Buy Perm sits
 // under Inspect for the reason Advance does: it is the entry that spends, and

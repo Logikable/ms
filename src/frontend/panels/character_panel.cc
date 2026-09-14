@@ -570,7 +570,8 @@ ftxui::Element CharacterPanel::RenderPresetBar(
   if (!trailing.empty()) {
     width -= static_cast<int>(ftxui::string_width(trailing)) + 1;
   }
-  std::vector<ftxui::Element> row = {TabBar(specs, active, bar_focused, width),
+  std::vector<ftxui::Element> row = {TabBar(specs, active, bar_focused, width) |
+                                         ftxui::reflect(preset_row_box_),
                                      ftxui::filler()};
   if (!trailing.empty()) {
     // The counter reads like the AP and SP counters above it: what there is
@@ -1432,7 +1433,8 @@ bool CharacterPanel::OnAdvanceTabEvent(const ftxui::Event& event,
   return false;
 }
 
-bool CharacterPanel::OnPresetBarEvent(const ftxui::Event& event) {
+bool CharacterPanel::OnPresetBarEvent(const ftxui::Event& event,
+                                      const CharacterPanelActions& actions) {
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
@@ -1444,13 +1446,19 @@ bool CharacterPanel::OnPresetBarEvent(const ftxui::Event& event) {
     hyper_preset_ = StatPresetAt(std::clamp(at, 0, PresetChips() - 1));
     return true;
   }
+  if (IsForward(event) && PresetBarNamesSlots() && actions.preset_menu) {
+    actions.preset_menu(ActiveTab() == kTabAbility ? PresetKind::kInnerAbility
+                                                   : PresetKind::kHyperStats,
+                        PresetBarSelection());
+    return true;
+  }
   return false;
 }
 
 bool CharacterPanel::OnStatsTabEvent(const ftxui::Event& event,
                                      const CharacterPanelActions& actions) {
   if (zone_ == kZonePresets) {
-    return OnPresetBarEvent(event);
+    return OnPresetBarEvent(event, actions);
   }
   // Stat rows: Up/Down walk them, and off either end is the tab bar. Left/Right
   // do nothing here -- they belong to the tab bar.
@@ -1488,7 +1496,7 @@ bool CharacterPanel::ShowsCombatStats() const {
 bool CharacterPanel::OnHyperTabEvent(const ftxui::Event& event,
                                      const CharacterPanelActions& actions) {
   if (zone_ == kZonePresets) {
-    return OnPresetBarEvent(event);
+    return OnPresetBarEvent(event, actions);
   }
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
@@ -1538,7 +1546,7 @@ bool CharacterPanel::OnHyperTabEvent(const ftxui::Event& event,
 bool CharacterPanel::OnAbilityTabEvent(const ftxui::Event& event,
                                        const CharacterPanelActions& actions) {
   if (zone_ == kZonePresets) {
-    return OnPresetBarEvent(event);
+    return OnPresetBarEvent(event, actions);
   }
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);

@@ -2587,6 +2587,35 @@ TEST_F(CharacterPanelTest, TheHyperRowNamesEveryPresetSlot) {
   EXPECT_EQ(rendered.find("✓"), std::string::npos);
 }
 
+// Enter on the row raises the menu for the slot under the cursor, and names
+// the kind of preset the tab spends into. The Stats row picks between two
+// activities rather than slots, so it raises nothing.
+TEST_F(CharacterPanelTest, EnterOnThePresetRowRaisesItsMenu) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  std::vector<std::pair<PresetKind, StatPreset>> raised;
+  CharacterPanelActions actions;
+  actions.preset_menu = [&raised](PresetKind kind, StatPreset slot) {
+    raised.push_back({kind, slot});
+  };
+  ftxui::Component comp = panel.MakeComponent(actions);
+
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> the preset row
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(raised.empty()) << "the Stats row names activities, not slots";
+
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Hyper
+  comp->OnEvent(ftxui::Event::ArrowDown);   // -> the preset row
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> the second slot
+  comp->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(raised.size(), 1u);
+  EXPECT_EQ(raised[0].first, PresetKind::kHyperStats);
+  EXPECT_EQ(raised[0].second, StatPreset::kSecond);
+}
+
 // The cursor reaches the third slot on the Hyper tab and holds it across a
 // look at the Stats tab, whose row has only the two activities on it.
 TEST_F(CharacterPanelTest, TheThirdSlotSurvivesALookAtTheStatsTab) {
@@ -2829,6 +2858,27 @@ CharacterInstance MakeAbilityHero(std::mt19937& rng, int64_t honor) {
     bottom->set_rank(ABILITY_RANK_EPIC);
   }
   return CharacterInstance(rng, std::move(proto));
+}
+
+// The row on the Ability tab raises the menu for the other kind of preset:
+// the two are chosen apart.
+TEST_F(CharacterPanelTest, ThePresetRowOnAbilityNamesTheAbilityPresets) {
+  CharacterInstance c = MakeAbilityHero(rng_, /*honor=*/0);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  std::vector<PresetKind> raised;
+  CharacterPanelActions actions;
+  actions.preset_menu = [&raised](PresetKind kind, StatPreset) {
+    raised.push_back(kind);
+  };
+  ftxui::Component comp = panel.MakeComponent(actions);
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> ... -> Ability
+  }
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the preset row
+  comp->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(raised.size(), 1u);
+  EXPECT_EQ(raised[0], PresetKind::kInnerAbility);
 }
 
 // Walks the cursor onto the Ability tab and down into its line rows. Stats ->

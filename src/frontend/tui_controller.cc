@@ -270,6 +270,76 @@ void TuiController::OpenJobMenu(Job job) {
   screen_ = kJobMenu;
 }
 
+void TuiController::OpenPresetMenu(PresetKind kind, StatPreset slot) {
+  preset_kind_ = kind;
+  preset_slot_ = slot;
+  preset_menu_.Reset();
+  // Nothing to put in use while the autoswap is picking, and nothing to do to
+  // the one already in use. The entry stays visible either way: its absence
+  // would be the surprise.
+  if (state_.character.autoswap_presets() ||
+      state_.character.SlotInUse(kind) == slot) {
+    preset_menu_.Disable(kPresetMenuUse);
+  }
+  screen_ = kPresetMenu;
+}
+
+bool TuiController::OnPresetMenuEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    preset_menu_.Up();
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    preset_menu_.Down();
+    return true;
+  }
+  if (IsBack(event)) {
+    screen_ = kMain;
+    return true;
+  }
+  if (!IsForward(event)) {
+    return true;  // The menu is modal: nothing behind it hears a key.
+  }
+  switch (preset_menu_.selected()) {
+    case kPresetMenuUse:
+      state_.character.SetSlotInUse(preset_kind_, preset_slot_);
+      break;
+    case kPresetMenuMove:
+      // Opens on the preset the menu was raised on, which is the one a swap
+      // with itself does nothing to.
+      preset_move_row_ = IndexOf(preset_slot_);
+      screen_ = kPresetMove;
+      return true;
+    default:
+      break;
+  }
+  screen_ = kMain;
+  return true;
+}
+
+bool TuiController::OnPresetMoveEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    // Cancel is the stop past the last preset, and the ring comes round.
+    preset_move_row_ =
+        StepCursor(preset_move_row_, event == ftxui::Event::ArrowUp ? -1 : 1,
+                   kNumStatPresets + 1);
+    return true;
+  }
+  if (IsBack(event)) {
+    screen_ = kMain;
+    return true;
+  }
+  if (!IsForward(event)) {
+    return true;
+  }
+  if (preset_move_row_ < kNumStatPresets) {
+    state_.character.SwapPresets(preset_kind_, preset_slot_,
+                                 StatPresetAt(preset_move_row_));
+  }
+  screen_ = kMain;
+  return true;
+}
+
 void TuiController::OpenJobAdvance(Job job) {
   job_advance_ = job;
   // Opens on Cancel: an advancement cannot be undone, so Enter alone must not
@@ -450,6 +520,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSkillInspectEvent(event);
     case kJobMenu:
       return OnJobMenuEvent(event);
+    case kPresetMenu:
+      return OnPresetMenuEvent(event);
+    case kPresetMove:
+      return OnPresetMoveEvent(event);
     case kBuffMenu:
       return OnBuffMenuEvent(event);
     case kBuffInfo:

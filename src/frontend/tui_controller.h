@@ -222,6 +222,11 @@ class TuiController {
   // walk away. Enter in the Advance tab lands here rather than on the
   // confirmation -- what a job is should be readable before it is chosen.
   void OpenJobMenu(Job job);
+
+  // Enter on the preset row: the menu that puts a preset in use or moves one.
+  // `kind` is which set of presets the row belongs to, and `slot` the chip the
+  // cursor was on -- the one every entry acts on.
+  void OpenPresetMenu(PresetKind kind, StatPreset slot);
   // Float the job-advancement confirmation over the main view. The prompt opens
   // on Cancel: the choice cannot be taken back.
   void OpenJobAdvance(Job job);
@@ -316,6 +321,22 @@ class TuiController {
   // The job menu, for the overlay Tui floats beside the job's row.
   const ItemMenu& job_menu() const {
     return job_menu_;
+  }
+
+  // The preset menu, floated beside the preset row the same way, and what the
+  // Move popup behind it needs: which presets it is listing, and which row of
+  // it the cursor is on. kNumStatPresets is the Cancel button under them.
+  const ItemMenu& preset_menu() const {
+    return preset_menu_;
+  }
+  PresetKind preset_kind() const {
+    return preset_kind_;
+  }
+  StatPreset preset_slot() const {
+    return preset_slot_;
+  }
+  int preset_move_row() const {
+    return preset_move_row_;
   }
 
   // The Level Up dialog for an Arcane Symbol, and the Combine one. Owned
@@ -496,6 +517,8 @@ class TuiController {
   bool OnSkillMenuEvent(ftxui::Event event);
   bool OnSkillInspectEvent(ftxui::Event event);
   bool OnJobMenuEvent(ftxui::Event event);
+  bool OnPresetMenuEvent(ftxui::Event event);
+  bool OnPresetMoveEvent(ftxui::Event event);
   bool OnBuffMenuEvent(ftxui::Event event);
   bool OnBuffInfoEvent(ftxui::Event event);
   bool OnBuffBuyEvent(ftxui::Event event);
@@ -673,6 +696,14 @@ class TuiController {
   ItemMenu skill_menu_{{"Inspect", "Activate", "Close"}};
   Job job_advance_ = JOB_UNSPECIFIED;
   ItemMenu job_menu_{{"Inspect", "Advance", "Close"}};
+  // What the preset menu and the Move popup behind it are about: the row's own
+  // kind, and the chip the menu was raised on. Held rather than read back off
+  // the panel, so a swap lands on the preset the menu named.
+  PresetKind preset_kind_ = PresetKind::kHyperStats;
+  StatPreset preset_slot_ = StatPreset::kFirst;
+  ItemMenu preset_menu_{{"Use", "Move", "Close"}};
+  // The Move popup's cursor: a preset, or kNumStatPresets for Cancel.
+  int preset_move_row_ = 0;
   // The buff the menu, the card and the question are all about. Held so the
   // answer lands on the buff the question named, whatever the cursor did.
   ConsumableType buff_type_ = CONSUMABLE_TYPE_UNSPECIFIED;
