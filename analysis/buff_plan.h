@@ -22,8 +22,8 @@
 #include <cstdint>
 
 #include "absl/types/span.h"
+#include "analysis/meso_rate.h"
 #include "src/game_state.h"
-#include "src/protos/mob.pb.h"
 
 namespace ms {
 
@@ -64,24 +64,16 @@ struct BuffSpend {
   double drinking_seconds = 0.0;
 };
 
-// Meso a second the encounter pays under one set of levers. `mobs` and
-// `kills_per_second` are parallel; a boss body is skipped, since a boss pays
-// out of its own table and no %meso reaches it.
-double BuffMesoPerSecond(absl::Span<const Mob* const> mobs,
-                         absl::Span<const double> kills_per_second,
-                         double meso_pct, double meso_mult, double drop_pct);
-
 // What the encounter in front of the character kills, which is what the buffs
-// are weighed against. `mobs` and `kills_per_second` are parallel.
+// are weighed against -- see //analysis:meso_rate for the currency.
 struct BuffYield {
-  absl::Span<const Mob* const> mobs;
-  absl::Span<const double> kills_per_second;
-  // The same rate measured twice more, with the beat at its full length and
-  // with the Wild Totem's halved one. No arithmetic over the rate above can
-  // stand in for the pair: the totem doubles how often the map puts a monster
-  // up, and a character who was never waiting on that kills exactly as much as
-  // before. Both empty when the caller did not measure them, which reads as
-  // the totem being worth nothing.
+  Crowd crowd;
+  // The same crowd's kill rate measured twice more, with the beat at its full
+  // length and with the Wild Totem's halved one. No arithmetic over `crowd`
+  // can stand in for the pair: the totem doubles how often the map puts a
+  // monster up, and a character who was never waiting on that kills exactly as
+  // much as before. Both empty when the caller did not measure them, which
+  // reads as the totem being worth nothing.
   absl::Span<const double> kills_without_totem;
   absl::Span<const double> kills_with_totem;
 };

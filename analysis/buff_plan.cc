@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "absl/types/span.h"
+#include "analysis/meso_rate.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/consumables.h"
@@ -24,14 +25,6 @@ namespace {
 // run is not worth taking a star off the weapon for.
 constexpr double kBuyMargin = 2.0;
 
-// The meso a second `kills` pays the character as they stand.
-double RateFor(GameState& state, absl::Span<const Mob* const> mobs,
-               absl::Span<const double> kills) {
-  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
-  return BuffMesoPerSecond(mobs, kills, MesoBonus(derived),
-                           derived.meso_final_mult, derived.item_drop_pct);
-}
-
 // What switching the Wealth Acquisition Potion on adds to that. Switched back
 // before returning: this is a question, not a move.
 double WealthPotionGain(GameState& state, const BuffYield& yield) {
@@ -39,9 +32,9 @@ double WealthPotionGain(GameState& state, const BuffYield& yield) {
   bool was =
       character.ConsumableActive(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
   character.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
-  double flipped = RateFor(state, yield.mobs, yield.kills_per_second);
+  double flipped = MesoPerSecondFor(state, yield.crowd);
   character.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
-  double standing = RateFor(state, yield.mobs, yield.kills_per_second);
+  double standing = MesoPerSecondFor(state, yield.crowd);
   return was ? standing - flipped : flipped - standing;
 }
 
@@ -53,8 +46,8 @@ double WildTotemGain(GameState& state, const BuffYield& yield) {
   if (yield.kills_with_totem.empty()) {
     return 0.0;
   }
-  return RateFor(state, yield.mobs, yield.kills_with_totem) -
-         RateFor(state, yield.mobs, yield.kills_without_totem);
+  return MesoPerSecondFor(state, yield.crowd.At(yield.kills_with_totem)) -
+         MesoPerSecondFor(state, yield.crowd.At(yield.kills_without_totem));
 }
 
 // Whether the Extreme Green Potion would actually buy the character a stage.
@@ -105,19 +98,6 @@ void BuyIfWorthIt(GameState& state, const BuffPolicy& policy,
 }
 
 }  // namespace
-
-double BuffMesoPerSecond(absl::Span<const Mob* const> mobs,
-                         absl::Span<const double> kills_per_second,
-                         double meso_pct, double meso_mult, double drop_pct) {
-  double total = 0.0;
-  for (std::size_t i = 0; i < mobs.size() && i < kills_per_second.size(); ++i) {
-    if (mobs[i] == nullptr || mobs[i]->boss()) {
-      continue;
-    }
-    total += kills_per_second[i] * ExpectedMesoPerKill(*mobs[i], drop_pct);
-  }
-  return total * (1.0 + meso_pct) * meso_mult;
-}
 
 // Whether `info` goes on, and what its rent is worth against. Each buff is a
 // different question, so each answers its own.

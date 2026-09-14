@@ -104,6 +104,7 @@
 #include "analysis/cube_plan.h"
 #include "analysis/gear_plan.h"
 #include "analysis/hyper_plan.h"
+#include "analysis/meso_rate.h"
 #include "analysis/parallel.h"
 #include "analysis/sim_boss.h"
 #include "analysis/sim_format.h"
@@ -336,9 +337,41 @@ double WindowFor(const GameState& state, double seconds) {
          GameSpeedFactor(state.character.proto().level());
 }
 
-// What the character takes off the map they are standing on, a second: their
-// swings against the crowd it holds, plus anything of theirs on a clock of its
-// own.
+// What a point of damage into the map in front of the character is worth, in
+// meso: what the crowd pays for falling over, against what felling it costs.
+// Each type weighted by how many of it stand there at once, which is the mix
+// the map really holds.
+//
+// This is the whole of the conversion the rate below needs. A measured fight
+// cannot count kills -- CombatParams::measuring holds every monster's HP still
+// on purpose, so the rate is the swings and not the dice -- so the kills are
+// read off the damage instead, at what one of them costs.
+double MesoPerDamage(const GameState& state, const CombatParams& params,
+                     double item_drop_pct) {
+  double paid = 0.0;
+  double body = 0.0;
+  for (const CombatType& type : params.types) {
+    if (type.mob == nullptr || type.mob->boss() || type.mob->max_hp() <= 0) {
+      continue;
+    }
+    double count = std::max(1, type.simultaneous);
+    paid += count * MesoPerKill(*type.mob, EtcPerKill(state.items, *type.mob),
+                                item_drop_pct);
+    body += count * type.mob->max_hp();
+  }
+  return body > 0.0 ? paid / body : 0.0;
+}
+
+// What the character takes off the map they are standing on a second, in meso.
+// Damage is in it: the kills are what the swings buy, so a point that hits
+// harder shows up here as more of them. What a damage rate could not see is
+// the rest of it -- the drop and meso levers, which fill the purse without
+// moving a swing, and which every farming decision has to be able to weigh.
+//
+// What it does not carry is the respawn cap: a character already killing the
+// map as fast as it stands back up buys nothing with more damage, and this
+// still reads the swing. The buff plan is where that question is asked, and it
+// asks it of a fight played out rather than of a rate -- see BuffYield.
 double CrowdRateOver(GameState& state, double seconds) {
   CombatParams params = ComputeCombatParams(state);
   if (!params.active || params.types.empty()) {
@@ -350,7 +383,13 @@ double CrowdRateOver(GameState& state, double seconds) {
   }
   enemies = std::max(1, enemies);
   Sequence played = MeasureFight(params, WindowFor(state, seconds), enemies);
-  return played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
+  if (played.seconds <= 0.0) {
+    return 0.0;
+  }
+  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+  return played.damage / played.seconds *
+         MesoPerDamage(state, params, derived.item_drop_pct) *
+         (1.0 + MesoBonus(derived)) * derived.meso_final_mult;
 }
 
 double CrowdRate(GameState& state) {
@@ -383,9 +422,39 @@ bool BookTarget(const GameState& state, std::pair<std::string, int>* fight) {
   return soonest > 0;
 }
 
-// What the character takes off that fight a second. One enemy standing behind
-// its own defence, which is a different question from the crowd above: the
-// swing that clears twelve is rarely the one that kills the one that matters.
+// What one clear of `difficulty` pays. The meso a boss hands over is flat --
+// no %meso reaches it -- and its drops take the rate, each of them worth what
+// the counter would give for it.
+//
+// A drop nothing sells is worth nothing HERE, which is most of a boss's table:
+// the gear, the tokens and the soul shards all price at zero. What a token
+// really buys is the tier of gear it is spent on, and pricing that needs an
+// exchange rate between combat power and meso that this does not have.
+double BossPayout(const GameState& state, const BossDifficulty& difficulty,
+                  double item_drop_pct) {
+  double paid = difficulty.meso();
+  for (const MobDrop& drop : difficulty.drops()) {
+    if (!drop.has_item()) {
+      continue;
+    }
+    std::map<std::string, ItemPrototype>::const_iterator it =
+        state.items.find(drop.item());
+    if (it != state.items.end() && it->second.sell_price() > 0) {
+      paid += BossDropRate(drop, item_drop_pct) * it->second.sell_price();
+    }
+  }
+  return paid;
+}
+
+// What the fight the book is aimed at pays the character a second of it: the
+// purse a clear hands over, divided by how long they would take to get there.
+// One enemy standing behind its own defence, which is a different question
+// from the crowd above -- the swing that clears twelve is rarely the one that
+// kills the one that matters.
+//
+// In meso, like the crowd rate, so the two are the same currency and the book
+// can weigh one against the other. Damage is the whole of what moves the
+// divisor: a faster clear is the same purse sooner.
 double BossRateOver(GameState& state, double seconds) {
   std::pair<std::string, int> fight;
   if (!BookTarget(state, &fight)) {
@@ -400,7 +469,15 @@ double BossRateOver(GameState& state, double seconds) {
     return 0.0;
   }
   Sequence played = MeasureFight(params, WindowFor(state, seconds));
-  return played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
+  int64_t body = BossTotalHp(state.mobs, difficulty);
+  if (played.seconds <= 0.0 || body <= 0) {
+    return 0.0;
+  }
+  double dps = played.damage / played.seconds;
+  double drop_pct = DerivedStatsFor(state.character, state.skills, {},
+                                    state.party, Activity::kBossing)
+                        .item_drop_pct;
+  return BossPayout(state, difficulty, drop_pct) * dps / body;
 }
 
 double BossRate(GameState& state) {
@@ -412,11 +489,12 @@ double BossRate(GameState& state) {
 // anybody plays: ranked on the map alone the Hero reaches Hilla holding
 // nothing that kills her.
 //
-// The geometric mean because it needs no weight chosen for it, and because it
-// scores a build that cannot do one of the two at nothing at all, which is the
-// whole point of asking for both. Either leg stands in alone when the other
-// has nothing to measure -- before the first fight exists, and on the walk
-// home where there is no map.
+// Both legs are meso a second, so the two are commensurate and a point can be
+// weighed on either. The geometric mean rather than the sum they would now
+// admit: a sum lets a build that cannot touch a boss score well on the map
+// alone, and scoring that at nothing at all is the whole point of asking for
+// both. Either leg stands in alone when the other has nothing to measure --
+// before the first fight exists, and on the walk home where there is no map.
 double BookRate(GameState& state) {
   double crowd = CrowdRate(state);
   double boss = BossRate(state);
@@ -528,25 +606,6 @@ struct Probe {
   bool died = false;
 };
 
-// What one kill of `mob` is worth in meso: what it drops, plus what its Etc
-// drops fetch, which the climb sells at every level. The character's own meso
-// bonus is left out -- it multiplies every map alike, and this is only ever
-// read to rank them.
-double MesoPerKill(const GameState& state, const Mob& mob) {
-  double meso = ExpectedMesoPerKill(mob, /*item_drop_pct=*/0.0);
-  for (const MobDrop& drop : mob.drops()) {
-    if (!drop.has_item()) {
-      continue;
-    }
-    std::map<std::string, ItemPrototype>::const_iterator it =
-        state.items.find(drop.item());
-    if (it != state.items.end()) {
-      meso += drop.per_kill() * it->second.sell_price();
-    }
-  }
-  return meso;
-}
-
 // Plays `map` out for a few respawn beats with the character exactly as they
 // stand, and reports what it pays. Nothing is banked -- the fight is run
 // straight off CombatParams rather than through AdvanceCombat, so the probe
@@ -565,22 +624,30 @@ Probe ProbeMap(GameState& state, const std::string& map, int beats,
   }
   double horizon = beats * params.respawn_seconds;
   double exp = 0.0;
-  double meso = 0.0;
+  std::vector<double> killed(params.types.size(), 0.0);
   CombatSim sim;
   for (double elapsed = 0.0; elapsed < horizon; elapsed += step) {
     sim.Advance(params, step);
     const std::vector<int64_t>& kills = sim.view().kills_this_step;
     for (int i = 0; i < static_cast<int>(params.types.size()); ++i) {
       exp += kills[i] * params.types[i].mob->exp();
-      meso += kills[i] * MesoPerKill(state, *params.types[i].mob);
+      killed[i] += kills[i];
     }
     if (sim.view().died_this_step) {
       probe.died = true;
       return probe;
     }
   }
+  for (double& kills : killed) {
+    kills /= horizon;
+  }
   probe.exp_per_second = exp / horizon;
-  probe.meso_per_second = meso / horizon;
+  // The character's own levers are in it, not left out as multiplying every
+  // map alike: drop rate does not. It lifts the Etc a map leaves without
+  // limit and the meso it drops only as far as certain, so which map pays
+  // best is a different answer at +100% than at nothing.
+  probe.meso_per_second =
+      MesoPerSecondFor(state, CrowdFor(state, params, killed));
   return probe;
 }
 
@@ -1215,14 +1282,8 @@ BuffPolicy BuffPolicyFor(const Session& run) {
 // the same rate and the totem stays in the bag.
 void PlanBuffsFor(Session& run, const CombatParams& params,
                   const Yield& yield) {
-  std::vector<const Mob*> mobs;
-  mobs.reserve(params.types.size());
-  for (const CombatType& type : params.types) {
-    mobs.push_back(type.mob);
-  }
   BuffYield rates;
-  rates.mobs = absl::MakeConstSpan(mobs);
-  rates.kills_per_second = absl::MakeConstSpan(yield.kills_per_second);
+  rates.crowd = CrowdFor(run.state, params, yield.kills_per_second);
   // The yield already covers one side of the totem's question -- whichever
   // beat the character is standing on -- so only the other side is played out.
   Yield counter;
@@ -1248,33 +1309,17 @@ void PlanBuffsFor(Session& run, const CombatParams& params,
 
 // What the shopper needs to price a %meso or %drop potential line: those pay
 // a rate rather than damage, and only the encounter in front of the character
-// says what the rate is. The monsters are copied rather than pointed at --
-// the shopper keeps this between looks, and the fight it came from does not.
+// says what the rate is. The Crowd carries its own copies -- the shopper keeps
+// this between looks, and the fight it came from does not.
 void SetShopperIncome(Session& run, const CombatParams& params,
                       const Yield& yield) {
-  std::vector<Mob> mobs;
-  std::vector<double> kills;
-  for (std::size_t i = 0; i < params.types.size(); ++i) {
-    if (params.types[i].mob == nullptr || params.types[i].mob->boss()) {
-      continue;  // a boss pays out of its own table, which no %meso reaches
-    }
-    mobs.push_back(*params.types[i].mob);
-    kills.push_back(
-        i < yield.kills_per_second.size() ? yield.kills_per_second[i] : 0.0);
-  }
+  Crowd crowd = CrowdFor(run.state, params, yield.kills_per_second);
   double mult =
       DerivedStatsFor(run.state.character, run.state.skills).meso_final_mult;
   CubeIncome income;
   income.seconds_left = std::max(0.0, run.horizon - run.seconds);
-  income.rate = [mobs, kills, mult](double meso_bonus, double drop_pct) {
-    std::vector<const Mob*> pointers;
-    pointers.reserve(mobs.size());
-    for (const Mob& mob : mobs) {
-      pointers.push_back(&mob);
-    }
-    return BuffMesoPerSecond(absl::MakeConstSpan(pointers),
-                             absl::MakeConstSpan(kills), meso_bonus, mult,
-                             drop_pct);
+  income.rate = [crowd, mult](double meso_bonus, double drop_pct) {
+    return MesoPerSecond(crowd, meso_bonus, mult, drop_pct);
   };
   run.shopper.SetIncome(income);
 }

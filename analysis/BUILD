@@ -69,10 +69,26 @@ cc_library(
 )
 
 cc_library(
+    name = "meso_rate",
+    srcs = ["meso_rate.cc"],
+    hdrs = ["meso_rate.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character:character_stats",
+        "//src/combat:encounter",
+        "//src/combat:loot",
+        "//src/protos:item_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@abseil-cpp//absl/types:span",
+    ],
+)
+
+cc_library(
     name = "buff_plan",
     srcs = ["buff_plan.cc"],
     hdrs = ["buff_plan.h"],
     deps = [
+        ":meso_rate",
         "//src:game_state",
         "//src/character",
         "//src/character:character_stats",
@@ -292,6 +308,7 @@ sim_binary(
         ":cube_plan",
         ":gear_plan",
         ":hyper_plan",
+        ":meso_rate",
         ":parallel",
         ":sim_boss",
         ":sim_checkpoint_proto_cc",
