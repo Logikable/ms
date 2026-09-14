@@ -620,8 +620,12 @@ OffenseStats OffenseStatsFor(Job job, int level,
       equipped.boss_damage() / kPercentToFraction + passives.boss_pct;
   offense.normal_pct = passives.normal_pct;
   offense.mirror_pct = passives.mirror_line_pct;
+  // The base every character carries meets gear and book the way any third
+  // source would -- in reverse, taking its share of what they left standing.
   offense.ied = CombineIgnoredDefense(
-      equipped.ignore_enemy_defense() / kPercentToFraction, passives.ied);
+      kBaseIgnoreDefense,
+      CombineIgnoredDefense(
+          equipped.ignore_enemy_defense() / kPercentToFraction, passives.ied));
   if (attack_skill != nullptr && DealsDamage(attack_skill->kind())) {
     AddAttackSkill(*attack_skill, attack_level, passives, offense);
   }

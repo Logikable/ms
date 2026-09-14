@@ -2127,7 +2127,10 @@ TEST(ComputeCombatParamsTest, ABuffGetsADamageTableOfItsOwn) {
   double factor = GameSpeedFactor(state.character.proto().level());
   ASSERT_EQ(params.buffs.size(), 1u);
   EXPECT_EQ(params.buffs[0].name, "Dark Resonance");
-  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 30.0 * factor);
+  // The base Buff Duration every character carries lengthens it; the cooldown
+  // under it is untouched, which is the whole point of the lever.
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds,
+                   30.0 * factor * (1.0 + kBaseBuffDuration));
   EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_seconds, 70.0 * factor);
   EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_reduction_seconds, 0.35 * factor);
   EXPECT_DOUBLE_EQ(params.buffs[0].heal_fraction, 1.00);
@@ -2292,14 +2295,17 @@ TEST(ComputeCombatParamsTest, ABoostDeepensTheShellItNames) {
   CombatParams before = ComputeCombatParams(state);
   ASSERT_EQ(before.buffs.size(), 1u);
   EXPECT_EQ(before.buffs[0].shield_hits, 15);
-  // Game-scaled, as every duration here is: 15 seconds at this level's pace.
-  EXPECT_NEAR(before.buffs[0].duration_seconds, 45.0, 1e-9);
+  // Game-scaled, as every duration here is: 15 seconds at this level's pace,
+  // and the base Buff Duration on top.
+  EXPECT_NEAR(before.buffs[0].duration_seconds,
+              45.0 * (1.0 + kBaseBuffDuration), 1e-9);
 
   ASSERT_TRUE(state.character.LearnSkill(hyper, 1));
   CombatParams params = ComputeCombatParams(state);
   ASSERT_EQ(params.buffs.size(), 1u);
   EXPECT_EQ(params.buffs[0].shield_hits, 17);
-  EXPECT_NEAR(params.buffs[0].duration_seconds, 60.0, 1e-9);
+  EXPECT_NEAR(params.buffs[0].duration_seconds,
+              60.0 * (1.0 + kBaseBuffDuration), 1e-9);
   EXPECT_DOUBLE_EQ(params.buffs[0].boss_damage_taken_pct, 0.15);
 
   // The same shell raised by somebody else, whose book holds no hyper: what
@@ -2406,7 +2412,8 @@ TEST(ComputeCombatParamsTest, APartysBuffComesInOnItsCastersClock) {
   CombatParams params = ComputeCombatParams(state);
   ASSERT_EQ(params.buffs.size(), 1u);
   EXPECT_EQ(params.buffs[0].name, "Smokescreen");
-  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 30.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds,
+                   30.0 * factor * (1.0 + kBaseBuffDuration));
   EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_seconds, 120.0 * factor);
   // Their level, not the reader's: eight points is 8% off a hit.
   EXPECT_NEAR(params.buffs[0].damage_taken_pct, 0.08, 1e-9);
@@ -2445,7 +2452,8 @@ TEST(ComputeCombatParamsTest, APartysBuffTakesItsCastersBuffDuration) {
   GrantFirstJobSp(state, 18);
   double factor = GameSpeedFactor(state.character.proto().level());
 
-  // The ally holds both: their fifty percent stretches the cloud to 45s.
+  // The ally holds both: their fifty percent, over the base every character
+  // carries, stretches the cloud from 30s.
   std::mt19937 rng(1);
   Character ally = state.character.proto();
   (*ally.mutable_skill_levels())["Smokescreen"] = 8;
@@ -2454,7 +2462,8 @@ TEST(ComputeCombatParamsTest, APartysBuffTakesItsCastersBuffDuration) {
 
   CombatParams params = ComputeCombatParams(state);
   ASSERT_EQ(params.buffs.size(), 1u);
-  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 45.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds,
+                   30.0 * (1.50 + kBaseBuffDuration) * factor);
   // The wait is untouched, as it is for a buff of one's own.
   EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_seconds, 120.0 * factor);
 
@@ -2462,7 +2471,8 @@ TEST(ComputeCombatParamsTest, APartysBuffTakesItsCastersBuffDuration) {
   ASSERT_TRUE(state.character.LearnSkill(mastery, 10));
   params = ComputeCombatParams(state);
   ASSERT_EQ(params.buffs.size(), 1u);
-  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 45.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds,
+                   30.0 * (1.50 + kBaseBuffDuration) * factor);
 }
 
 // Buff Mastery's lever lengthens the buff and leaves the wait alone, which is
@@ -2498,7 +2508,8 @@ TEST(ComputeCombatParamsTest, BuffDurationLengthensTheBuffAndNotTheWait) {
   CombatParams params = ComputeCombatParams(state);
   double factor = GameSpeedFactor(state.character.proto().level());
   ASSERT_EQ(params.buffs.size(), 1u);
-  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 45.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds,
+                   30.0 * (1.50 + kBaseBuffDuration) * factor);
   EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_seconds, 70.0 * factor);
 }
 
@@ -2576,9 +2587,13 @@ TEST(ComputeCombatParamsTest, ASheddingBuffNeverOutlastsItsDuration) {
   CombatParams params = ComputeCombatParams(state);
   double factor = GameSpeedFactor(state.character.proto().level());
   ASSERT_EQ(params.buffs.size(), 3u);
+  // The stage interval is not a duration and is not lengthened; what the last
+  // two are held to is, so they stop at the buff's own length plus the base.
   EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 10.0 * factor);
-  EXPECT_DOUBLE_EQ(params.buffs[1].duration_seconds, 15.0 * factor);
-  EXPECT_DOUBLE_EQ(params.buffs[2].duration_seconds, 15.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[1].duration_seconds,
+                   15.0 * (1.0 + kBaseBuffDuration) * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[2].duration_seconds,
+                   15.0 * (1.0 + kBaseBuffDuration) * factor);
 }
 
 // GMS marks every fifth job skill notIncBuffDuration, so the matrix stands

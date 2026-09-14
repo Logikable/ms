@@ -1627,8 +1627,14 @@ int PartyHolders(const CharacterInstance& character,
 // notIncBuffDuration, so the matrix stands outside the lever entirely -- a
 // rule about the whole matrix rather than a quirk of any node, which is why
 // it is asked of v_node rather than written into each file.
+//
+// The base in constants.h is added here rather than to the stat line, so that
+// the matrix stands outside it too: GMS's rule is about the lever, and a base
+// slipped past the gate would be a lever the rule did not reach.
 double BuffDurationFor(const Skill& skill, double buff_duration_pct) {
-  return skill.v_node() == V_NODE_KIND_UNSPECIFIED ? buff_duration_pct : 0.0;
+  return skill.v_node() == V_NODE_KIND_UNSPECIFIED
+             ? kBaseBuffDuration + buff_duration_pct
+             : 0.0;
 }
 
 // What one buff's clock and shell come to once the book has had its say: the

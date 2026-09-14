@@ -26,12 +26,16 @@ constexpr int kTickMs = 30;
 constexpr double kBaseCritRate = 0.05;
 constexpr double kBaseCritDamage = 0.35;
 
-// What every character ignores of a boss's elemental resistance before a
-// single skill is bought. GMS's one universal source is the Insight trait,
-// worth half a point per ten levels of it and capped at 5%, which every
-// endgame character has filled; this game has no traits, so the cap is carried
-// as a base the way the crit pair above is.
-constexpr double kBaseIgnoreElementalResistance = 0.05;
+// The three traits, at the caps every endgame character fills them to. GMS
+// pays Insight in ignored elemental resistance, Ambition in ignored defence
+// and Empathy in buff duration, each climbing with a trait level nobody
+// endgame is short of. This game has no traits and no screen for them, so
+// what they come to is carried as a base -- the call the crit pair above
+// made, for the same reason: a number every character has is not a number
+// worth making them find.
+constexpr double kBaseIgnoreElementalResistance = 0.05;  // Insight
+constexpr double kBaseIgnoreDefense = 0.10;              // Ambition
+constexpr double kBaseBuffDuration = 0.10;               // Empathy
 
 // How many timed buffs are modelled at once. Every combination of them needs a
 // damage table of its own, and the count of combinations doubles with each

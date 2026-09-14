@@ -62,6 +62,10 @@ constexpr double kBaseCrit = 1.0 + kBaseCritRate * kBaseCritDamage;
 // bought no more than the base share of it that everyone ignores.
 constexpr double kBossElemental = 0.5 * (1.0 + kBaseIgnoreElementalResistance);
 
+// What the armour has left once the base share every character ignores has
+// taken its cut, which every ied figure below is built on top of.
+constexpr double kBaseArmourLeft = 1.0 - kBaseIgnoreDefense;
+
 // What the baseline swing below comes to before any modifier: 45 max base at
 // the melee mastery the default carries, 45 * (1 + 0.20) / 2.
 constexpr double kBaseline = 27.0;
@@ -628,7 +632,7 @@ TEST(OffenseStatsForTest, GearGraduatesBossPctAndIed) {
       OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), equipped,
                       EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.30);
-  EXPECT_DOUBLE_EQ(offense.ied, 0.20);
+  EXPECT_DOUBLE_EQ(offense.ied, 1.0 - kBaseArmourLeft * 0.80);
 }
 
 // Boss damage from gear and from a passive are the same quantity from two
@@ -652,8 +656,9 @@ TEST(OffenseStatsForTest, WornAndLearnedIedMeetInReverse) {
   OffenseStats offense =
       OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), equipped,
                       EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
-  // Summed they would be 70%; what is left of the armour is 0.70 * 0.60.
-  EXPECT_DOUBLE_EQ(offense.ied, 1.0 - 0.70 * 0.60);
+  // Summed they would be 70%; what is left of the armour is 0.70 * 0.60, less
+  // the base share again.
+  EXPECT_DOUBLE_EQ(offense.ied, 1.0 - kBaseArmourLeft * 0.70 * 0.60);
 }
 
 // Gungnir's Descent ignores 30% of a monster's defence and Heaven's Hammer
@@ -742,7 +747,7 @@ TEST(OffenseStatsForTest, AnAttacksOwnLeversRideThatSwing) {
                       EQUIP_TYPE_UNSPECIFIED, &gungnir, 30, passives);
   // 30% at level 30, meeting the character's 40% in reverse rather than
   // summing.
-  EXPECT_DOUBLE_EQ(offense.ied, 1.0 - 0.60 * 0.70);
+  EXPECT_DOUBLE_EQ(offense.ied, 1.0 - kBaseArmourLeft * 0.60 * 0.70);
   // Its elemental twin sums with the character's instead.
   EXPECT_DOUBLE_EQ(offense.ier, 0.15);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.40);
@@ -755,7 +760,7 @@ TEST(OffenseStatsForTest, AnAttacksOwnLeversRideThatSwing) {
   OffenseStats bare =
       OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), EquipStats(),
                       EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
-  EXPECT_DOUBLE_EQ(bare.ied, 0.40);
+  EXPECT_DOUBLE_EQ(bare.ied, 1.0 - kBaseArmourLeft * 0.60);
   EXPECT_DOUBLE_EQ(bare.ier, 0.10);
   EXPECT_DOUBLE_EQ(bare.boss_pct, 0.10);
   EXPECT_DOUBLE_EQ(bare.normal_pct, 0.05);
@@ -821,7 +826,7 @@ TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsLevers) {
   EXPECT_DOUBLE_EQ(untouched.damage_pct, 0.0);
   EXPECT_DOUBLE_EQ(untouched.boss_pct, 0.10);
   EXPECT_DOUBLE_EQ(untouched.normal_pct, 0.0);
-  EXPECT_DOUBLE_EQ(untouched.ied, 0.20);
+  EXPECT_DOUBLE_EQ(untouched.ied, 1.0 - kBaseArmourLeft * 0.80);
 }
 
 // The mastery a bare character of `job` swings at, holding `passives`.
@@ -966,7 +971,8 @@ TEST(OffenseStatsForTest, DefaultsAreUntouchedWithoutGear) {
   EXPECT_DOUBLE_EQ(offense.mastery, 0.20);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.0);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.0);
-  EXPECT_DOUBLE_EQ(offense.ied, 0.0);
+  // Not an identity: the base share of a monster's armour is everyone's.
+  EXPECT_DOUBLE_EQ(offense.ied, kBaseIgnoreDefense);
 }
 
 TEST(OffenseStatsForTest, ArcherReadsDexAsTheMainStat) {

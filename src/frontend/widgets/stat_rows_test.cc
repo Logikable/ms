@@ -174,13 +174,17 @@ TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {
   EXPECT_EQ(ValueOf(lines, "Critical Damage"), "37.50%");
 }
 
-// A character who has bought nothing still crits: the page says so rather
-// than reading 0.00% at a character with a one-in-twenty chance of +35%.
-TEST_F(StatRowsTest, CritReadsItsBaseWithNothingBehindIt) {
+// A character who has bought nothing still crits, still ignores a share of
+// armour and still holds a buff longer: the page says so rather than reading
+// 0.00% at five numbers every character has. See constants.h.
+TEST_F(StatRowsTest, TheBasesEveryCharacterCarriesAreShown) {
   CharacterInstance c = MakeWarrior();
   std::vector<StatLine> lines = ExtraStatLines(c, {});
   EXPECT_EQ(ValueOf(lines, "Critical Rate"), "5.00%");
   EXPECT_EQ(ValueOf(lines, "Critical Damage"), "35.00%");
+  EXPECT_EQ(ValueOf(lines, "Ignore DEF"), "10.00%");
+  EXPECT_EQ(ValueOf(lines, "Ignore Elem RES"), "5.00%");
+  EXPECT_EQ(ValueOf(lines, "Buff Duration"), "10.00%");
 }
 
 // A rate past 100% promises damage no swing can land: every roll in the fight
