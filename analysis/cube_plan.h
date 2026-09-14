@@ -95,10 +95,14 @@ bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
 
 // Whether the shopper is likely to replace what `slot` holds: the catalog
 // offers a piece for that slot at a higher level which the character can
-// already wear. A weapon has to match the type in hand as well -- a Lv140
-// sword is not a replacement for a Lv120 axe a Hero measured their way into,
-// and counting it as one discounts the piece a weapon's %ATT lines are worth
-// the most on.
+// already wear AND could pay for. A weapon has to match the type in hand as
+// well -- a Lv140 sword is not a replacement for a Lv120 axe a Hero measured
+// their way into, and counting it as one discounts the piece a weapon's %ATT
+// lines are worth the most on.
+//
+// Listed is not the same as reachable. A tier priced in a token counts only
+// once one of that token is in the bag, so a character locked out of the fight
+// that drops it cubes what they are holding rather than saving for scenery.
 //
 // Meso spent cubing one of these still buys the climb toward its replacement,
 // so the gain is discounted rather than refused.

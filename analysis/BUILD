@@ -135,6 +135,7 @@ cc_library(
         "//src/item:equip_stats",
         "//src/item:potential",
         "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
         "@abseil-cpp//absl/types:span",
     ],
 )

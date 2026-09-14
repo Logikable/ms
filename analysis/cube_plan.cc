@@ -14,6 +14,7 @@
 #include "src/item/equip_stats.h"
 #include "src/item/potential.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 namespace {
@@ -218,6 +219,23 @@ bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
          0.0;
 }
 
+// Whether the character could ever pay for `proto`, as against whether the
+// catalog lists it. A tier priced in a token is only a prospect once one of
+// that token has dropped: the AbsoLab weapon costs coins Damien and Lotus
+// alone hand out, so to a character who cannot clear them it is not the next
+// weapon -- it is scenery, and the piece in their hand is the one they keep.
+bool WithinReach(const GameState& state, const EquipPrototype& proto) {
+  if (proto.token_price() <= 0) {
+    return true;
+  }
+  std::map<std::string, ItemPrototype>::const_iterator token =
+      state.items.find(proto.token_item());
+  if (token == state.items.end()) {
+    return false;
+  }
+  return state.character.CountStackable(token->second.name()) > 0;
+}
+
 bool Replaceable(const GameState& state, EquipSlot slot) {
   const EquipInstance* item = Worn(state, slot);
   if (item == nullptr) {
@@ -240,7 +258,7 @@ bool Replaceable(const GameState& state, EquipSlot slot) {
     if (type != EQUIP_TYPE_UNSPECIFIED && proto.equip_type() != type) {
       continue;
     }
-    if (state.character.MeetsJob(proto)) {
+    if (state.character.MeetsJob(proto) && WithinReach(state, proto)) {
       return true;
     }
   }
