@@ -182,6 +182,11 @@ struct RegenPulse {
 };
 
 struct DerivedStats {
+  // What the character was doing when these were read, which is what picked
+  // the gear preset and the allocations behind them. Carried so that a caller
+  // folding the worn stats in afterwards reads the same gear -- see
+  // TotalEquipStats.
+  Activity activity = Activity::kFarming;
   int max_hp = 0;
   int max_mp = 0;
   // What the character's stats alone are worth in DEF: 1.5 per STR and 0.4 per
@@ -369,7 +374,11 @@ bool SkillAllowsWeapon(const Skill& skill, EquipType weapon);
 // type it names, and something in the secondary slot if it asks for one. A
 // skill whose demand is unmet stays learned -- it is the effect that lapses,
 // and it comes back with the right gear on.
-bool SkillGearMet(const CharacterInstance& character, const Skill& skill);
+//
+// `activity` names the gear preset to ask of -- what the character is wearing
+// while bossing need not be what they farm in.
+bool SkillGearMet(const CharacterInstance& character, const Skill& skill,
+                  Activity activity = Activity::kFarming);
 
 // How far past its master level a granted level can carry a skill that allows
 // it. Two, which is what Combat Orders hands out at its own master level, so a
@@ -437,14 +446,16 @@ SkillEffect SwingLeversOf(const SkillEffect& effect);
 // of a group goes on paying whatever the rest of the group does not.
 std::set<std::string> DormantSkillNames(
     const CharacterInstance& character,
-    const std::map<std::string, Skill>& skills, int bonus);
+    const std::map<std::string, Skill>& skills, int bonus,
+    Activity activity = Activity::kFarming);
 
 // The timed buffs this character can put up: the skills they have learned that
 // carry one, in catalog order. What a buff grants is not folded in here -- it
 // is up only some of the time, so the fight decides when. See Skill.buff.
 std::vector<const Skill*> BuffSkillsFor(
     const CharacterInstance& character,
-    const std::map<std::string, Skill>& skills);
+    const std::map<std::string, Skill>& skills,
+    Activity activity = Activity::kFarming);
 
 // One skill an ally is holding over the party, and the level their book has it
 // at. What it grants is read at that level, not at the reader's.
@@ -543,6 +554,8 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived);
 // character's equipment stats": a skill that grants LUK is worth exactly as
 // much as a ring that grants LUK, and nothing downstream should have to know
 // which one it came from. `derived` is the result of DerivedStatsFor above.
+// The gear is the preset `derived.activity` names, so the fold cannot reach
+// past what the character was measured in.
 EquipStats TotalEquipStats(const CharacterInstance& character,
                            const DerivedStats& derived);
 

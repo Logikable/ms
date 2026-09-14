@@ -838,7 +838,7 @@ bool Castable(const Skill& skill) {
 // swingable and still fights, so this is the gate the fight asks first, and
 // Castable then decides whether a swing is also on offer.
 bool Available(const GameState& state, const Skill& skill,
-               const std::set<std::string>& superseded) {
+               const std::set<std::string>& superseded, Activity activity) {
   // A skill the book has replaced stops offering its swing along with its
   // levers -- Piercing Arrow II states the whole of the Piercing Arrow it
   // takes over, so both being swingable would be one skill offered twice.
@@ -855,7 +855,7 @@ bool Available(const GameState& state, const Skill& skill,
   // A skill the gear in hand cannot swing is no option, however well learned.
   // The bare poke always is, so the character is never left with nothing to
   // attack with.
-  return SkillGearMet(state.character, skill);
+  return SkillGearMet(state.character, skill, activity);
 }
 
 // The element an own-clock half strikes with, which belongs to the SKILL and
@@ -1452,11 +1452,12 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   std::map<std::string, SkillBoosts> boosts =
       BoostsByTarget(state.character, state.skills, bonus);
   std::set<std::string> superseded =
-      DormantSkillNames(state.character, state.skills, bonus);
+      DormantSkillNames(state.character, state.skills, bonus, derived.activity);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
     int learned = EffectiveSkillLevel(state.character, skill, bonus);
-    if (learned <= 0 || !Available(state, skill, superseded)) {
+    if (learned <= 0 ||
+        !Available(state, skill, superseded, derived.activity)) {
       continue;
     }
     // Strikes and reach another skill in the book grants this one, folded in
@@ -2119,7 +2120,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   params.triggered_attacks = std::move(base.triggered_attacks);
   params.dot_count = DotSlotsNeeded(params);
   std::vector<const Skill*> buff_skills =
-      StagedBuffSkills(BuffSkillsFor(state.character, state.skills));
+      StagedBuffSkills(BuffSkillsFor(state.character, state.skills, preset));
   if (static_cast<int>(buff_skills.size()) > kMaxBuffWindows) {
     buff_skills.resize(kMaxBuffWindows);
   }
@@ -2156,8 +2157,10 @@ double RespawnIntervalFor(const CharacterInstance& character) {
 
 }  // namespace
 
-const EquipPrototype* EquippedWeapon(const GameState& state) {
-  const WornGear& equipped = state.character.equipped();
+const EquipPrototype* EquippedWeapon(const GameState& state,
+                                     Activity activity) {
+  const WornGear& equipped = state.character.equipped(
+      state.character.SlotFor(PresetKind::kEquip, activity));
   WornGear::const_iterator it = equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
   return it == equipped.end() ? nullptr : &it->second->prototype();
 }
@@ -2172,7 +2175,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.encounter = state.current_map;
   std::map<std::string, MapData>::const_iterator map_it =
       state.maps.find(state.current_map);
-  const EquipPrototype* weapon = EquippedWeapon(state);
+  const EquipPrototype* weapon = EquippedWeapon(state, Activity::kFarming);
   if (map_it == state.maps.end() || weapon == nullptr) {
     return params;
   }
@@ -2211,7 +2214,7 @@ CombatParams ComputeBossParams(const GameState& state,
     return params;
   }
   params.encounter = BossEncounterKey(boss_key, difficulty.name(), phase);
-  const EquipPrototype* weapon = EquippedWeapon(state);
+  const EquipPrototype* weapon = EquippedWeapon(state, Activity::kBossing);
   if (weapon == nullptr) {
     return params;
   }

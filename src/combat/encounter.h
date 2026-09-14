@@ -758,7 +758,8 @@ struct CombatParams {
 // fight needs one -- without it there is no swing and every encounter comes
 // back inactive -- so a screen that offers a fight asks this before it starts
 // one.
-const EquipPrototype* EquippedWeapon(const GameState& state);
+const EquipPrototype* EquippedWeapon(const GameState& state,
+                                     Activity activity = Activity::kFarming);
 
 // Reads `state`'s current map/character into a CombatParams. active is false
 // (and types empty) when there is no current map, no equipped weapon, or no

@@ -686,10 +686,11 @@ bool GrantsBuff(const Skill& skill) {
 // a wand and Shield Mastery does nothing with an empty off hand, but both stay
 // learned.
 bool GrantsAnything(const CharacterInstance& character, const Skill& skill,
-                    int bonus) {
+                    int bonus, Activity activity) {
   // A common node belongs to no advancement at all, so this asks the character
   // which books they hold rather than the advancement directly.
-  return character.HoldsSkillFrom(skill) && SkillGearMet(character, skill) &&
+  return character.HoldsSkillFrom(skill) &&
+         SkillGearMet(character, skill, activity) &&
          EffectiveSkillLevel(character, skill, bonus) > 0;
 }
 
@@ -721,20 +722,22 @@ bool ReachesThisMember(const CharacterInstance& character,
 // granted THEM does not. See DerivedStatsFor.
 std::vector<AllyGrant> PartyGrants(const CharacterInstance& character,
                                    const std::map<std::string, Skill>& skills,
-                                   absl::Span<const CharacterInstance> allies) {
+                                   absl::Span<const CharacterInstance> allies,
+                                   Activity activity) {
   std::map<std::string, AllyGrant> best;
   std::vector<AllyGrant> stacking;
   std::set<std::string> superseded;
   for (const CharacterInstance& ally : allies) {
     int bonus = BonusSkillLevels(ally, skills);
-    std::set<std::string> theirs = DormantSkillNames(ally, skills, bonus);
+    std::set<std::string> theirs =
+        DormantSkillNames(ally, skills, bonus, activity);
     for (const std::pair<const std::string, Skill>& entry : skills) {
       const Skill& skill = entry.second;
       // An Advanced X states the whole of the X it replaces, its party half
       // included -- so a Bishop hands out Blessed Harmony and not the Blessed
       // Ensemble under it.
       if (theirs.count(skill.name()) > 0 || !GrantsToAllies(skill) ||
-          !GrantsAnything(ally, skill, bonus)) {
+          !GrantsAnything(ally, skill, bonus, activity)) {
         continue;
       }
       int level = EffectiveSkillLevel(ally, skill, bonus);
@@ -783,9 +786,9 @@ struct PayingSkill {
 std::vector<PayingSkill> PayingSkills(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills, int bonus,
-    absl::Span<const CharacterInstance> allies) {
+    absl::Span<const CharacterInstance> allies, Activity activity) {
   std::set<std::string> superseded =
-      DormantSkillNames(character, skills, bonus);
+      DormantSkillNames(character, skills, bonus, activity);
   std::vector<PayingSkill> paying;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
@@ -806,7 +809,7 @@ std::vector<PayingSkill> PayingSkills(
     // Phoenix is the first here -- a summon that also raises DEF for good. A
     // skill with no lever contributes nothing whatever kind it is, so this
     // costs the rest of the catalog nothing.
-    if (!GrantsAnything(character, skill, bonus)) {
+    if (!GrantsAnything(character, skill, bonus, activity)) {
       continue;
     }
     paying.push_back(
@@ -841,13 +844,16 @@ SkillEffect AllyBuffEffect(const Buff& buff, const BuffUp& up) {
 PassiveTotals LearnedPassives(const CharacterInstance& character,
                               const std::map<std::string, Skill>& skills,
                               absl::Span<const BuffUp> buffs_up,
-                              absl::Span<const CharacterInstance> allies) {
+                              absl::Span<const CharacterInstance> allies,
+                              Activity activity) {
   PassiveTotals totals;
-  EquipType weapon = character.weapon_type();
+  const StatPreset gear = character.SlotFor(PresetKind::kEquip, activity);
+  EquipType weapon = character.weapon_type(gear);
   int bonus = BonusSkillLevels(character, skills, allies);
   std::vector<PayingSkill> paying =
-      PayingSkills(character, skills, bonus, allies);
-  std::vector<AllyGrant> party = PartyGrants(character, skills, allies);
+      PayingSkills(character, skills, bonus, allies, activity);
+  std::vector<AllyGrant> party =
+      PartyGrants(character, skills, allies, activity);
   // Both halves of one rule: a group holds whatever is paying into it, the
   // character's own book and the party's alike.
   ExclusiveBest exclusive;
@@ -865,7 +871,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   // A set bonus grants what a passive grants, so it folds in through the same
   // door. It carries no level and no per-level step: a tier is worth what it
   // says however far the character has come.
-  for (const SkillEffect& bonus : character.set_bonuses()) {
+  for (const SkillEffect& bonus : character.set_bonuses(gear)) {
     AddEffect(bonus, totals);
   }
   // A buff standing right now grants what a passive grants for as long as it
@@ -1083,10 +1089,11 @@ EquipStats PotentialFlatGrant(const int pile[4],
 // The character's stat pile as PotentialFlatGrant wants it: everything a
 // %stat line may multiply, with the potentials' own share taken back off.
 void StatPileFor(const CharacterInstance& character, const EquipStats& passives,
-                 const EquipStats& paid, int pile[4]) {
+                 const EquipStats& paid, Activity activity, int pile[4]) {
+  const StatPreset gear = character.SlotFor(PresetKind::kEquip, activity);
   const AllocatedStats& allocated = character.proto().allocated_stats();
-  const EquipStats& worn = character.equip_stats();
-  const EquipStats& symbols = character.symbol_stats();
+  const EquipStats& worn = character.equip_stats(gear);
+  const EquipStats& symbols = character.symbol_stats(gear);
   pile[0] = allocated.str() + worn.str() - symbols.str() + passives.str() -
             paid.str();
   pile[1] = allocated.dex() + worn.dex() - symbols.dex() + passives.dex() -
@@ -1097,8 +1104,10 @@ void StatPileFor(const CharacterInstance& character, const EquipStats& passives,
             paid.luk();
 }
 
-void AddPotentials(const CharacterInstance& character, PassiveTotals& totals) {
-  const PotentialTotals& potential = character.potential_totals();
+void AddPotentials(const CharacterInstance& character, Activity activity,
+                   PassiveTotals& totals) {
+  const PotentialTotals& potential = character.potential_totals(
+      character.SlotFor(PresetKind::kEquip, activity));
   // Nothing has been paid yet, so the pile is the passives' own flat grant.
   EquipStats passives;
   passives.set_str(totals.str);
@@ -1106,7 +1115,7 @@ void AddPotentials(const CharacterInstance& character, PassiveTotals& totals) {
   passives.set_int_(totals.int_);
   passives.set_luk(totals.luk);
   int pile[4];
-  StatPileFor(character, passives, EquipStats(), pile);
+  StatPileFor(character, passives, EquipStats(), activity, pile);
   const EquipStats paid = PotentialFlatGrant(pile, potential);
   totals.potential_stats = paid;
   totals.str += paid.str();
@@ -1290,14 +1299,14 @@ int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
 
 std::set<std::string> DormantSkillNames(
     const CharacterInstance& character,
-    const std::map<std::string, Skill>& skills, int bonus) {
+    const std::map<std::string, Skill>& skills, int bonus, Activity activity) {
   std::set<std::string> names;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     // A skill granting nothing replaces nothing: an unlearned Piercing Arrow
     // II leaves the Piercing Arrow it will one day take over still swinging.
     if (!skill.supersedes_skill_name().empty() &&
-        GrantsAnything(character, skill, bonus)) {
+        GrantsAnything(character, skill, bonus, activity)) {
       names.insert(skill.supersedes_skill_name());
     }
     if (skill.replaces_skill_name().empty()) {
@@ -1315,19 +1324,21 @@ std::set<std::string> DormantSkillNames(
   return names;
 }
 
-bool SkillGearMet(const CharacterInstance& character, const Skill& skill) {
-  if (skill.requires_secondary() && !character.has_secondary()) {
+bool SkillGearMet(const CharacterInstance& character, const Skill& skill,
+                  Activity activity) {
+  const StatPreset gear = character.SlotFor(PresetKind::kEquip, activity);
+  if (skill.requires_secondary() && !character.has_secondary(gear)) {
     return false;
   }
-  return SkillAllowsWeapon(skill, character.weapon_type());
+  return SkillAllowsWeapon(skill, character.weapon_type(gear));
 }
 
 std::vector<const Skill*> BuffSkillsFor(
     const CharacterInstance& character,
-    const std::map<std::string, Skill>& skills) {
+    const std::map<std::string, Skill>& skills, Activity activity) {
   std::vector<const Skill*> buffs;
-  std::set<std::string> dormant =
-      DormantSkillNames(character, skills, BonusSkillLevels(character, skills));
+  std::set<std::string> dormant = DormantSkillNames(
+      character, skills, BonusSkillLevels(character, skills), activity);
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     // The same three gates every passive passes: whose book it is, whether the
@@ -1335,8 +1346,8 @@ std::vector<const Skill*> BuffSkillsFor(
     // one a buff shares with a swing, since a skill the book is not showing
     // has no buff to raise either.
     if (!GrantsBuff(skill) || !character.HoldsSkillFrom(skill) ||
-        !SkillGearMet(character, skill) || character.skill_level(skill) <= 0 ||
-        dormant.count(skill.name()) > 0) {
+        !SkillGearMet(character, skill, activity) ||
+        character.skill_level(skill) <= 0 || dormant.count(skill.name()) > 0) {
       continue;
     }
     buffs.push_back(&skill);
@@ -1346,7 +1357,8 @@ std::vector<const Skill*> BuffSkillsFor(
 
 double BuffDurationPctFor(const CharacterInstance& character,
                           const std::map<std::string, Skill>& skills) {
-  return LearnedPassives(character, skills, {}, {}).buff_duration_pct;
+  return LearnedPassives(character, skills, {}, {}, Activity::kFarming)
+      .buff_duration_pct;
 }
 
 std::vector<AllyGrant> AllyBuffsFor(
@@ -1354,7 +1366,8 @@ std::vector<AllyGrant> AllyBuffsFor(
     const std::map<std::string, Skill>& skills,
     absl::Span<const CharacterInstance> allies) {
   std::vector<AllyGrant> buffs;
-  for (const AllyGrant& grant : PartyGrants(character, skills, allies)) {
+  for (const AllyGrant& grant :
+       PartyGrants(character, skills, allies, Activity::kFarming)) {
     if (GrantsBuffToAllies(*grant.skill)) {
       buffs.push_back(grant);
     }
@@ -1478,12 +1491,16 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              Activity preset) {
   const Character& proto = character.proto();
   const AllocatedStats& allocated = proto.allocated_stats();
-  const EquipStats& equipped = character.equip_stats();
-  PassiveTotals passives = LearnedPassives(character, skills, buffs_up, allies);
+  // The activity names the gear as well as the allocations: what the
+  // character is wearing is one of three presets -- see stat_preset.h.
+  const StatPreset gear = character.SlotFor(PresetKind::kEquip, preset);
+  const EquipStats& equipped = character.equip_stats(gear);
+  PassiveTotals passives =
+      LearnedPassives(character, skills, buffs_up, allies, preset);
   // Before the fold: a potential's %stat and Maple Warrior's both read a base
   // the other has not touched, and the two shares are added rather than
   // compounded.
-  AddPotentials(character, passives);
+  AddPotentials(character, preset, passives);
   FoldApStats(allocated, passives);
   // After the fold, never before it: a Hyper Stat is final stat, and Maple
   // Warrior takes its share of the allocation alone.
@@ -1502,6 +1519,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   // Sliced off the totals: every lever the two share is already in place, and
   // what is left below is only what the fold has to change.
   DerivedStats stats = passives;
+  stats.activity = preset;
   AddPools(proto.level(), allocated, equipped, passives, stats);
   stats.skill_stats.set_def(passives.def_grant);
   stats.skill_stats.set_str(passives.str);
@@ -1552,7 +1570,8 @@ EquipStats PotentialStatGrant(const CharacterInstance& character,
                               const DerivedStats& derived,
                               const PotentialTotals& totals) {
   int pile[4];
-  StatPileFor(character, derived.skill_stats, derived.potential_stats, pile);
+  StatPileFor(character, derived.skill_stats, derived.potential_stats,
+              derived.activity, pile);
   return PotentialFlatGrant(pile, totals);
 }
 
@@ -1565,7 +1584,9 @@ int TotalIntFor(const CharacterInstance& character,
 
 EquipStats TotalEquipStats(const CharacterInstance& character,
                            const DerivedStats& derived) {
-  const EquipStats sources[] = {character.equip_stats(), derived.skill_stats};
+  const EquipStats sources[] = {character.equip_stats(character.SlotFor(
+                                    PresetKind::kEquip, derived.activity)),
+                                derived.skill_stats};
   EquipStats total = SumEquipStats(absl::MakeConstSpan(sources));
   // The percentage lands here rather than in skill_stats, because what it
   // scales is the weapon in the character's hand as much as the skill's own
@@ -1583,11 +1604,12 @@ OffenseStats CharacterOffense(const CharacterInstance& character,
   const Character& p = character.proto();
   DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
                                          /*allies=*/{}, preset);
-  return OffenseStatsFor(p.job(), p.level(), p.allocated_stats(),
-                         TotalEquipStats(character, derived),
-                         character.weapon_type(),
-                         /*attack_skill=*/nullptr,
-                         /*attack_level=*/0, PassiveOffenseFor(derived));
+  return OffenseStatsFor(
+      p.job(), p.level(), p.allocated_stats(),
+      TotalEquipStats(character, derived),
+      character.weapon_type(character.SlotFor(PresetKind::kEquip, preset)),
+      /*attack_skill=*/nullptr,
+      /*attack_level=*/0, PassiveOffenseFor(derived));
 }
 
 int CharacterCombatPower(const CharacterInstance& character,

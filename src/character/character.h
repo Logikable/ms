@@ -489,7 +489,8 @@ class CharacterInstance {
   void SetSlotInUse(PresetKind kind, StatPreset slot);
   // Swaps what two slots of `kind` hold, and moves the choice of which is in
   // use with the contents: a player reordering their presets is not asking to
-  // change the one they are playing with.
+  // change the one they are playing with. Does nothing for gear, which is not
+  // moved -- see the definition.
   void SwapPresets(PresetKind kind, StatPreset a, StatPreset b);
   // Which preset of `kind` answers while the character is doing `activity`:
   // the slot the autoswap names, or the one in use with the switch off. What

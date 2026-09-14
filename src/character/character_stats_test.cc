@@ -235,6 +235,41 @@ TEST_F(DerivedStatsTest, SumsAllocatedAndEquippedWithoutSkills) {
   EXPECT_DOUBLE_EQ(stats.damage_taken_pct, 0.0);
 }
 
+// With the autoswap on, the activity picks the gear as well as the
+// allocations: the boss preset's weapon is the one a boss fight is measured
+// with, and the farming preset never sees it.
+TEST_F(DerivedStatsTest, TheActivityPicksTheGearPreset) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50, /*mp=*/20);
+  c.set_autoswap_presets(true);
+  EquipArmor(c, 100, 30);
+  EquipPrototype boss_armor;
+  boss_armor.set_name("Boss Armor");
+  boss_armor.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  boss_armor.mutable_base_stats()->set_max_hp(900);
+  c.PickUp(std::make_unique<EquipInstance>(boss_armor));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1, StatPreset::kSecond));
+
+  EXPECT_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kFarming).max_hp, 150);
+  EXPECT_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kBossing).max_hp, 950);
+}
+
+// Off, one preset answers for both: the switch is what hands the activity the
+// choice at all.
+TEST_F(DerivedStatsTest, WithTheAutoswapOffOnePresetAnswersForBoth) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50, /*mp=*/20);
+  EquipArmor(c, 100, 30);
+  EquipPrototype boss_armor;
+  boss_armor.set_name("Boss Armor");
+  boss_armor.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  boss_armor.mutable_base_stats()->set_max_hp(900);
+  c.PickUp(std::make_unique<EquipInstance>(boss_armor));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1, StatPreset::kSecond));
+
+  EXPECT_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kBossing).max_hp, 150);
+  c.SetSlotInUse(PresetKind::kEquip, StatPreset::kSecond);
+  EXPECT_EQ(DerivedStatsFor(c, {}, {}, {}, Activity::kFarming).max_hp, 950);
+}
+
 // A V Matrix node grants what it states like any other passive: it belongs to
 // no book the character advanced through, so nothing is allowed to gate it on
 // one.

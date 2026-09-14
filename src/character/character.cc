@@ -1248,22 +1248,40 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
 }
 
 StatPreset CharacterInstance::SlotInUse(PresetKind kind) const {
-  return StatPresetAt(kind == PresetKind::kHyperStats
-                          ? character_.hyper_stats().active()
-                          : character_.inner_ability().active());
+  switch (kind) {
+    case PresetKind::kHyperStats:
+      return StatPresetAt(character_.hyper_stats().active());
+    case PresetKind::kInnerAbility:
+      return StatPresetAt(character_.inner_ability().active());
+    case PresetKind::kEquip:
+      return StatPresetAt(character_.equip_presets().active());
+  }
+  return StatPreset::kFirst;
 }
 
 void CharacterInstance::SetSlotInUse(PresetKind kind, StatPreset slot) {
-  if (kind == PresetKind::kHyperStats) {
-    character_.mutable_hyper_stats()->set_active(IndexOf(slot));
-    return;
+  switch (kind) {
+    case PresetKind::kHyperStats:
+      character_.mutable_hyper_stats()->set_active(IndexOf(slot));
+      return;
+    case PresetKind::kInnerAbility:
+      character_.mutable_inner_ability()->set_active(IndexOf(slot));
+      return;
+    case PresetKind::kEquip:
+      character_.mutable_equip_presets()->set_active(IndexOf(slot));
+      return;
   }
-  character_.mutable_inner_ability()->set_active(IndexOf(slot));
 }
 
 void CharacterInstance::SwapPresets(PresetKind kind, StatPreset a,
                                     StatPreset b) {
   if (a == b) {
+    return;
+  }
+  if (kind == PresetKind::kEquip) {
+    // Gear presets are not moved: the first holds a whole body and the others
+    // hold what differs from it, so swapping two would leave the character
+    // wearing one preset's overrides and nothing else. Nothing offers it.
     return;
   }
   if (kind == PresetKind::kHyperStats) {

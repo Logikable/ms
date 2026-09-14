@@ -84,13 +84,14 @@ std::vector<StatLine> CombatStatLines(
   DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
                                          /*allies=*/{}, preset);
   const EquipStats e = TotalEquipStats(character, derived);
+  // The gear the row is showing, which is the preset the activity names.
+  const EquipStats& worn =
+      character.equip_stats(character.SlotFor(PresetKind::kEquip, preset));
   // What the character wears and was granted, then whatever a percentage added
   // on top. Read off the unscaled sum rather than held as a stat, because the
   // split exists only for this row.
-  int flat_attack =
-      character.equip_stats().attack() + derived.skill_stats.attack();
-  int flat_magic = character.equip_stats().magic_attack() +
-                   derived.skill_stats.magic_attack();
+  int flat_attack = worn.attack() + derived.skill_stats.attack();
+  int flat_magic = worn.magic_attack() + derived.skill_stats.magic_attack();
   std::vector<StatLine> lines = {
       {"Attack", TotalWithBreakdown(flat_attack, e.attack() - flat_attack)},
       {"Magic Attack",
@@ -131,9 +132,10 @@ std::vector<StatLine> CombatStatLines(
   }
   lines.push_back(
       {"Attack Speed",
-       AttackSpeedText(character.proto().job(), character.equipped(),
-                       derived.attack_speed_bonus,
-                       derived.uncapped_attack_speed_bonus)});
+       AttackSpeedText(
+           character.proto().job(),
+           character.equipped(character.SlotFor(PresetKind::kEquip, preset)),
+           derived.attack_speed_bonus, derived.uncapped_attack_speed_bonus)});
   // Under a rule, because none of these is about the swing: the first three
   // buy the purse and the climb, and the last is the toll Arcane River takes
   // for letting a character hurt what lives there. Meso Drop Rate is the size
