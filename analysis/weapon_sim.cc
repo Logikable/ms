@@ -72,6 +72,11 @@ ABSL_FLAG(int, bonus_attack, 0,
           "whichever of the two its weapon uses.");
 ABSL_FLAG(int, bonus_boss_pct, 0,
           "The same for boss damage, as a percent. Only counts with --boss.");
+ABSL_FLAG(int, bonus_ied, 0,
+          "The same for ignored defence, as a percent. It combines with what "
+          "the build already holds the way every other source does, so it "
+          "asks what a shared pool -- the one GMS hands out on potential "
+          "lines nobody's class decides -- does to the field.");
 ABSL_FLAG(bool, upgraded, false,
           "Wear everything at its ceiling: every upgrade slot filled with the "
           "spell trace that swings hardest on it, and stars up to the item's "
@@ -140,7 +145,7 @@ const char* PrimaryStatName(Job job) {
 // the same numbers and see what is left between them.
 constexpr char kCharm[] = "__sim_charm";
 
-EquipPrototype Charm(Job job, int stat, int attack, int boss_pct) {
+EquipPrototype Charm(Job job, int stat, int attack, int boss_pct, int ied_pct) {
   EquipPrototype proto;
   proto.set_name("Sim Charm");
   proto.set_equip_slot(EQUIP_SLOT_HAT);
@@ -151,6 +156,7 @@ EquipPrototype Charm(Job job, int stat, int attack, int boss_pct) {
   stats->set_attack(attack);
   stats->set_magic_attack(attack);
   stats->set_boss_damage(boss_pct);
+  stats->set_ignore_enemy_defense(ied_pct);
   switch (PrimaryStatField(job)) {
     case STAT_FIELD_DEX:
       stats->set_dex(stat);
@@ -240,6 +246,8 @@ struct Result {
   double crit_rate = 0.0;
   double damage_pct = 0.0;
   double final_dmg_pct = 0.0;
+  double boss_pct = 0.0;
+  double ied = 0.0;
   double weapon_constant = 0.0;
   double skill_pct = 0.0;
   int lines = 0;
@@ -377,9 +385,10 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   int bonus_stat = absl::GetFlag(FLAGS_bonus_stat);
   int bonus_attack = absl::GetFlag(FLAGS_bonus_attack);
   int bonus_boss = absl::GetFlag(FLAGS_bonus_boss_pct);
-  if (bonus_stat > 0 || bonus_attack > 0 || bonus_boss > 0) {
+  int bonus_ied = absl::GetFlag(FLAGS_bonus_ied);
+  if (bonus_stat > 0 || bonus_attack > 0 || bonus_boss > 0 || bonus_ied > 0) {
     state.equips[kCharm] =
-        Charm(build.job, bonus_stat, bonus_attack, bonus_boss);
+        Charm(build.job, bonus_stat, bonus_attack, bonus_boss, bonus_ied);
     Wear(state, kCharm);
   }
 
@@ -415,6 +424,8 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   result.crit_rate = bare.crit_rate;
   result.damage_pct = bare.damage_pct;
   result.final_dmg_pct = bare.final_dmg_pct;
+  result.boss_pct = bare.boss_pct;
+  result.ied = bare.ied;
   result.weapon_constant = bare.weapon_constant;
   result.swing_damage = best->damage_per_hit[0];
   result.final_attack_damage =
@@ -444,13 +455,14 @@ void PrintDetail(const Build& build, const Result& result) {
   }
   std::printf(
       "            %s %d  ATT %d  wc %.2f  mastery %.0f%%  crit %.0f%%  "
-      "dmg %.0f%%  FD %.0f%%\n"
+      "dmg %.0f%%  FD %.0f%%  boss %.0f%%  IED %.0f%%\n"
       "            swing %.0f (%d lines @ %.0f%%%s)  final attack %.0f  "
       "unspent SP %d\n            ",
       PrimaryStatName(build.job), result.primary, result.attack,
       result.weapon_constant, 100.0 * result.mastery, 100.0 * result.crit_rate,
       100.0 * result.damage_pct, 100.0 * result.final_dmg_pct,
-      result.swing_damage, result.lines, 100.0 * result.skill_pct, shadow_buf,
+      100.0 * result.boss_pct, 100.0 * result.ied, result.swing_damage,
+      result.lines, 100.0 * result.skill_pct, shadow_buf,
       result.final_attack_damage, result.unspent_sp);
   for (const std::pair<std::string, int>& skill : result.skills) {
     std::printf("%s %d  ", skill.first.c_str(), skill.second);
