@@ -790,9 +790,9 @@ void GiveSymbols(GameState& state) {
 // rolls, since nothing here is paying for them.
 void SeedPotentials(GameState& state) {
   std::vector<EquipSlot> slots;
-  for (const std::pair<const EquipSlot, EquipInstance>& kv :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        state.character.equipped()) {
-    if (kv.second.CanCube()) {
+    if (kv.second->CanCube()) {
       slots.push_back(kv.first);
     }
   }
@@ -809,9 +809,9 @@ void SeedPotentials(GameState& state) {
       if (!state.character.CubeWorn(slots[i], CubeType::kRed)) {
         break;
       }
-      const std::map<EquipSlot, EquipInstance>::const_iterator it =
+      const WornGear::const_iterator it =
           state.character.equipped().find(slots[i]);
-      if (it->second.potential().rank() >= want) {
+      if (it->second->potential().rank() >= want) {
         break;
       }
     }
@@ -939,7 +939,7 @@ void WearMaxSymbols(GameState& state) {
 void DressMaxPotentials(GameState& state, const MaxGear& gear) {
   const StatField primary = PrimaryStatField(state.character.proto().job());
   std::vector<EquipSlot> slots;
-  for (const std::pair<const EquipSlot, EquipInstance>& worn :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
        state.character.equipped()) {
     slots.push_back(worn.first);
   }

@@ -294,7 +294,9 @@ GameState MakeEquipsState(GearSetup equips) {
 }
 
 const Equip& WornWeapon(const GameState& state) {
-  return state.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).equip_state();
+  return state.character.equipped()
+      .at(EQUIP_SLOT_PRIMARY_WEAPON)
+      ->equip_state();
 }
 
 // No flag at all: gear arrives as it drops, slots to spend and no stars.
@@ -409,7 +411,7 @@ TEST(GameStateTest, TheFlagsScrollGlovesWithTheAttackTrace) {
   test.equips = {/*hammered=*/true, /*scrolled=*/true, /*stars=*/30};
   GameState state(catalog, scrolls, {}, {}, {}, {}, GameMode::kTest, test);
   const Equip& worn =
-      state.character.equipped().at(EQUIP_SLOT_GLOVES).equip_state();
+      state.character.equipped().at(EQUIP_SLOT_GLOVES)->equip_state();
   EXPECT_EQ(worn.hammers(), kMaxHammers);
   EXPECT_EQ(worn.scroll_successes(), 7);
   EXPECT_EQ(worn.scroll_stats().attack(), 21);
@@ -578,12 +580,12 @@ TEST(GameStateTest, AChosenFirstJobKeepsItsWholeBook) {
 TEST(GameStateTest, ChosenJobWearsTheWeaponItsLevelTopsOutAt) {
   GameState archer = MakeChosenJobState(JOB_ADVANCEMENT_ARCHER);
   ASSERT_TRUE(archer.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
-  EXPECT_EQ(archer.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).name(),
+  EXPECT_EQ(archer.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->name(),
             "Ryden");
 
   GameState hunter = MakeChosenJobState(JOB_ADVANCEMENT_HUNTER);
   ASSERT_TRUE(hunter.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
-  EXPECT_EQ(hunter.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).name(),
+  EXPECT_EQ(hunter.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->name(),
             "Asianic Bow");
 }
 
@@ -642,7 +644,7 @@ TEST(GameStateTest, PlayModeStartsANewCharacter) {
 
   EXPECT_TRUE(state.character.inventory().empty());
   ASSERT_TRUE(state.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
-  EXPECT_EQ(state.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).name(),
+  EXPECT_EQ(state.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->name(),
             "Sword");
 }
 
@@ -708,12 +710,11 @@ TEST(GameStateTest, TestModeWearsTheWholeFrozenSet) {
   }
 
   GameState state(catalog, {}, {}, {}, {}, {}, GameMode::kTest);
-  const std::map<EquipSlot, EquipInstance>& worn = state.character.equipped();
+  const WornGear& worn = state.character.equipped();
   for (const Piece& piece : kPieces) {
-    std::map<EquipSlot, EquipInstance>::const_iterator it =
-        worn.find(piece.slot);
+    WornGear::const_iterator it = worn.find(piece.slot);
     ASSERT_NE(it, worn.end()) << "the workbench has no " << piece.name;
-    EXPECT_EQ(it->second.prototype().name(), piece.name);
+    EXPECT_EQ(it->second->prototype().name(), piece.name);
   }
   // And no second copy in the bag. Four pieces nobody can wear twice were
   // four rows of clutter in front of everything the workbench is for.
@@ -750,12 +751,12 @@ TEST(GameStateTest, TestModeCubesEveryPieceItCanAndSpreadsTheRanks) {
   GameState state(catalog, {}, {}, {}, {}, {}, GameMode::kTest);
   std::set<PotentialRank> ranks;
   int cubed = 0;
-  for (const std::pair<const EquipSlot, EquipInstance>& kv :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        state.character.equipped()) {
-    ASSERT_TRUE(kv.second.CanCube()) << kv.second.prototype().name();
-    const Potential& potential = kv.second.potential();
+    ASSERT_TRUE(kv.second->CanCube()) << kv.second->prototype().name();
+    const Potential& potential = kv.second->potential();
     EXPECT_EQ(potential.lines_size(), kPotentialLines)
-        << kv.second.prototype().name() << " was never cubed";
+        << kv.second->prototype().name() << " was never cubed";
     ranks.insert(potential.rank());
     ++cubed;
   }
@@ -768,9 +769,9 @@ TEST(GameStateTest, TestModeCubesEveryPieceItCanAndSpreadsTheRanks) {
 // Nothing is cubed for a player: potential is a thing they buy.
 TEST(GameStateTest, PlayModeStartsWithNoPotential) {
   GameState state = MakePlayModeState();
-  for (const std::pair<const EquipSlot, EquipInstance>& kv :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        state.character.equipped()) {
-    EXPECT_EQ(kv.second.potential().lines_size(), 0);
+    EXPECT_EQ(kv.second->potential().lines_size(), 0);
   }
 }
 
@@ -979,7 +980,7 @@ GameState MakeMaxState(int level, JobAdvancement job = JOB_ADVANCEMENT_HERO,
 }
 
 const EquipInstance& Worn(const GameState& state, EquipSlot slot) {
-  return state.character.equipped().at(slot);
+  return *state.character.equipped().at(slot);
 }
 
 // The ceiling at the cap: hammers driven in, every slot of the wider shelf
@@ -1031,17 +1032,17 @@ TEST(GameStateTest, MaxModeAtTheCapHasBoughtEveryBuff) {
 TEST(GameStateTest, MaxModeWearsTheSymbolsItsLevelOpened) {
   GameState state = MakeMaxState(kTrialLevelCap);
   int worn = 0;
-  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        state.character.equipped()) {
-    if (!IsArcaneSymbol(entry.second.prototype())) {
+    if (!IsArcaneSymbol(entry.second->prototype())) {
       continue;
     }
     ++worn;
-    EXPECT_LE(entry.second.prototype().arcane_symbol().area_level(),
+    EXPECT_LE(entry.second->prototype().arcane_symbol().area_level(),
               kTrialLevelCap)
-        << entry.second.prototype().name();
-    EXPECT_EQ(SymbolLevel(entry.second.equip_state()), 10)
-        << entry.second.prototype().name();
+        << entry.second->prototype().name();
+    EXPECT_EQ(SymbolLevel(entry.second->equip_state()), 10)
+        << entry.second->prototype().name();
   }
   // Vanishing Journey, Chu Chu Island, Lachelein, Arcana and Morass: every
   // area open at the cap, and Esfera's 235 is not.

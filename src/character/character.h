@@ -10,6 +10,7 @@
 #define MS_CHARACTER_H_
 
 #include <algorithm>
+#include <array>
 #include <climits>
 #include <cstdint>
 #include <map>
@@ -19,6 +20,7 @@
 #include <vector>
 
 #include "src/character/consumables.h"
+#include "src/character/equip_presets.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/skill_placement.h"
@@ -37,6 +39,11 @@ namespace ms {
 // What an AP stat reads with nothing spent on it, and the STR a fresh Beginner
 // carries instead of it. The nine between them is AP the game handed the
 // character at creation and spent on their behalf, so it counts as spent.
+// The gear one preset wears: its own item where it has one, and the first
+// preset's everywhere else. Points into the character's own worn items, so it
+// lasts only as long as nothing is equipped or taken off.
+using WornGear = std::map<EquipSlot, const EquipInstance*>;
+
 inline constexpr int kBaseStat = 4;
 inline constexpr int kBeginnerStr = 13;
 
@@ -355,7 +362,10 @@ class CharacterInstance {
   // If that slot was occupied, the displaced item takes the position the
   // equipped one leaves. Returns false if `inventory_index` is out of range or
   // the item has nowhere to go.
-  bool Equip(int inventory_index);
+  //
+  // `preset` is the setup the item goes into. Into a preset past the first it
+  // goes as that preset's own: what the others wear in that slot is untouched.
+  bool Equip(int inventory_index, StatPreset preset = StatPreset::kFirst);
   // The slot this item would be worn in: the first free slot of its family,
   // the first of them once they are all full, and EQUIP_SLOT_UNSPECIFIED when
   // the item cannot be worn at all.
@@ -364,13 +374,21 @@ class CharacterInstance {
   // equipment. A family that already holds this same item is GMS's rule that
   // no two of the four rings are the same ring -- a one-slot family is exempt,
   // because putting a second copy of a hat on is the swap it looks like.
-  EquipSlot SlotToFill(const EquipPrototype& proto) const;
-  // Moves the item in `slot` to inventory. Returns false if `slot` is
-  // unspecified or unoccupied.
-  bool Unequip(EquipSlot slot);
+  EquipSlot SlotToFill(const EquipPrototype& proto,
+                       StatPreset preset = StatPreset::kFirst) const;
+  // Moves the item `preset` wears in `slot` to inventory. Returns false if
+  // `slot` is unspecified or unoccupied -- and, for a preset past the first,
+  // if what it wears there is inherited: a preset may only take off its own.
+  bool Unequip(EquipSlot slot, StatPreset preset = StatPreset::kFirst);
   // Applies `scroll` to the item in `slot`. Returns kScrollFail if the slot
   // is empty; otherwise returns the result of the underlying Scroll() call.
-  ScrollOutcome ScrollEquipped(EquipSlot slot, const Scroll& scroll);
+  //
+  // Every worn-item upgrade below takes the preset whose gear is being
+  // looked at, and reaches the item that preset shows. An inherited item is
+  // the first preset's own, so upgrading one from the Boss tab upgrades what
+  // Farm wears too -- it is one item.
+  ScrollOutcome ScrollEquipped(EquipSlot slot, const Scroll& scroll,
+                               StatPreset preset = StatPreset::kFirst);
   // Applies `scroll` to the inventory item at `index`. Returns kScrollFail if
   // `index` is out of range; otherwise returns the result of Scroll().
   ScrollOutcome ScrollInventory(int index, const Scroll& scroll);
@@ -378,7 +396,8 @@ class CharacterInstance {
   // removes the item from equipped and recomputes equip stats. Spends
   // StarForceCost first, and returns kStarForceNoMeso without rolling if the
   // character cannot afford it.
-  StarForceOutcome StarForceEquipped(EquipSlot slot);
+  StarForceOutcome StarForceEquipped(EquipSlot slot,
+                                     StatPreset preset = StatPreset::kFirst);
   // Applies a star force attempt to the inventory item at `index`. On
   // kStarForceDestroy, removes the item from inventory. Priced as above.
   StarForceOutcome StarForceInventory(int index);
@@ -386,7 +405,7 @@ class CharacterInstance {
   // upgrade slot for kGoldenHammerCost. Returns false, spending nothing, when
   // the slot is empty, the item will take no more hammers, or the purse will
   // not cover it.
-  bool HammerEquipped(EquipSlot slot);
+  bool HammerEquipped(EquipSlot slot, StatPreset preset = StatPreset::kFirst);
   bool HammerInventory(int index);
 
   // Recovers the EquipTrace at `trace_index` using the EquipInstance at
@@ -418,9 +437,23 @@ class CharacterInstance {
     return inventory_;
   }
   std::vector<const EquipTrace*> traces() const;
-  const std::map<EquipSlot, EquipInstance>& equipped() const {
-    return equipped_;
+  // What `preset` wears, its own items and the ones it inherits together.
+  const WornGear& equipped(StatPreset preset = StatPreset::kFirst) const {
+    return resolved_[IndexOf(preset)];
   }
+  // The items `preset` holds of its own. The first preset holds the whole
+  // body, so for it this is everything; for the others it is what makes them
+  // different, which is what the Gear tab draws in white.
+  const std::map<EquipSlot, EquipInstance>& own_gear(StatPreset preset) const {
+    return worn_[IndexOf(preset)];
+  }
+  // The item `preset` wears in `slot`, its own or the one it inherits, or
+  // nullptr for a slot it leaves empty.
+  const EquipInstance* WornAt(StatPreset preset, EquipSlot slot) const;
+  // Whether what `preset` wears in `slot` belongs to the first preset rather
+  // than to it. What the Gear tab dims a row for; always false on the first
+  // preset, which inherits nothing.
+  bool InheritsSlot(StatPreset preset, EquipSlot slot) const;
   // The item stacks the bag's Etc tab lists, in pickup order. Every stackable
   // in the game is one: Use was dropped with the only item that was ever in it.
   const std::vector<StackableItem>& stackables() const {
@@ -642,41 +675,47 @@ class CharacterInstance {
   // expensive ones. Called on loading a save, beside ReconcileAp.
   int ReconcileHyperStats();
 
-  // Sum of stats from all currently equipped items. Updated automatically by
-  // Equip, Unequip, and ScrollEquipped.
-  const EquipStats& equip_stats() const {
-    return equip_stats_;
+  // Sum of stats from everything `preset` wears. Updated automatically by
+  // Equip, Unequip, and ScrollEquipped -- for every preset at once, since one
+  // item can be worn by all three.
+  const EquipStats& equip_stats(StatPreset preset = StatPreset::kFirst) const {
+    return equip_stats_[IndexOf(preset)];
   }
   // The share of that total the worn Arcane Symbols paid. Held apart because
   // a symbol grants final stat: no %stat may multiply it, so the fold that
   // applies one takes this back off first. See [[final-stats]].
-  const EquipStats& symbol_stats() const {
-    return symbol_stats_;
+  const EquipStats& symbol_stats(StatPreset preset = StatPreset::kFirst) const {
+    return symbol_stats_[IndexOf(preset)];
   }
   // What the potentials on everything worn come to. Rebuilt with the equip
   // stats, off the same pass over the worn map.
-  const PotentialTotals& potential_totals() const {
-    return potential_totals_;
+  const PotentialTotals& potential_totals(
+      StatPreset preset = StatPreset::kFirst) const {
+    return potential_totals_[IndexOf(preset)];
   }
   // One cube into the item worn in `slot`, which rerolls its lines and may
   // carry it a rank up. The mechanism, charging nothing: BuyCube below is the
   // purchase. False, changing nothing, when the slot is empty or the piece
   // takes no potential at all.
-  bool CubeWorn(EquipSlot slot, CubeType cube);
+  bool CubeWorn(EquipSlot slot, CubeType cube,
+                StatPreset preset = StatPreset::kFirst);
   // One cube into the item worn in `slot`, charged kCubeCost: rolls what the
   // piece would become and hands it back WITHOUT putting it on. Taking the
   // roll is TakePotential's business, since a player offered one worse than
   // what they have keeps what they have -- the cube is spent either way.
   // Empty, and nothing spent, for an empty slot, a piece that takes no
   // potential, or a purse short of the price.
-  std::optional<Potential> BuyCube(EquipSlot slot, CubeType cube);
+  std::optional<Potential> BuyCube(EquipSlot slot, CubeType cube,
+                                   StatPreset preset = StatPreset::kFirst);
   // Puts `potential` on the item worn in `slot`, which is a player accepting
   // a roll. False, changing nothing, for an empty slot.
-  bool TakePotential(EquipSlot slot, const Potential& potential);
+  bool TakePotential(EquipSlot slot, const Potential& potential,
+                     StatPreset preset = StatPreset::kFirst);
   // One cube into a worn or a bagged item, charged its price and taken
   // whatever it rolls: the pair the cubing screen presses. False, and nothing
   // spent, when the item takes no potential or the purse is short.
-  bool CubeEquipped(EquipSlot slot, CubeType cube);
+  bool CubeEquipped(EquipSlot slot, CubeType cube,
+                    StatPreset preset = StatPreset::kFirst);
   bool CubeInventory(int index, CubeType cube);
   // Spare copies of the Arcane Symbol for `slot` sitting in the equip bag.
   // Traces do not count, as they never do -- see CountOwned.
@@ -687,12 +726,13 @@ class CharacterInstance {
   //
   // What the EXP buys is not bought here: raising the level is a step of its
   // own, and it is paid for in meso -- see LevelUpSymbol.
-  int CombineSymbols(EquipSlot slot, int count);
+  int CombineSymbols(EquipSlot slot, int count,
+                     StatPreset preset = StatPreset::kFirst);
   // Raises the Arcane Symbol worn in `slot` one level, charging the meso the
   // rung costs and carrying any excess EXP into the next one. Returns false
   // and takes nothing unless the slot holds a symbol that has taken its
   // duplicates and the purse covers the price.
-  bool LevelUpSymbol(EquipSlot slot);
+  bool LevelUpSymbol(EquipSlot slot, StatPreset preset = StatPreset::kFirst);
   // Arcane Force the character carries: what the worn Arcane Symbols come to,
   // plus what the Hyper Stat adds. What every Arcane River map measures them
   // against -- see ArcaneFactorsFor. Zero for anyone wearing no symbol and
@@ -703,14 +743,15 @@ class CharacterInstance {
   // other item always counts. equip_stats() applies this itself -- it is
   // public so the display can show an inert attack as inert rather than
   // quietly disagreeing with the total.
-  bool AttackCounts(const EquipPrototype& proto) const;
+  bool AttackCounts(const EquipPrototype& proto,
+                    StatPreset preset = StatPreset::kFirst) const;
   // The type of weapon in hand, or EQUIP_TYPE_UNSPECIFIED with the slot empty.
   // What the skills that demand a particular weapon are asked against.
-  EquipType weapon_type() const;
+  EquipType weapon_type(StatPreset preset = StatPreset::kFirst) const;
   // Whether anything is worn in the secondary slot. Nothing in the catalog
   // goes there yet, so this is false for every shipped character -- see
   // Skill.requires_secondary, which waits on it.
-  bool has_secondary() const;
+  bool has_secondary(StatPreset preset = StatPreset::kFirst) const;
 
   // Teaches the character which sets their gear belongs to. Data rather than
   // state: what is earned comes from what is worn, so this is handed over once
@@ -721,26 +762,31 @@ class CharacterInstance {
   // are cumulative, so four pieces of a set answer with both its three and its
   // four. Read by DerivedStatsFor, which folds them in beside the passives --
   // a set bonus grants what a passive grants.
-  const std::vector<SkillEffect>& set_bonuses() const {
-    return set_bonuses_;
+  const std::vector<SkillEffect>& set_bonuses(
+      StatPreset preset = StatPreset::kFirst) const {
+    return set_bonuses_[IndexOf(preset)];
   }
   // The sets the character knows about, keyed as their data files were loaded.
   const std::map<std::string, EquipSet>& equip_sets() const {
     return equip_sets_;
   }
   // Whether the item named is worn right now, by display name.
-  bool IsWearing(const std::string& item_name) const;
+  bool IsWearing(const std::string& item_name,
+                 StatPreset preset = StatPreset::kFirst) const;
   // The item of `family` being worn, by display name, or "" for none. A set
   // slot that no single item can fill -- a weapon belongs to one class -- names
   // a family instead, and this is what answers it.
-  std::string WornOfFamily(const std::string& family) const;
+  std::string WornOfFamily(const std::string& family,
+                           StatPreset preset = StatPreset::kFirst) const;
   // The piece of this member that is on, or "" for none. A slot naming several
   // alternates is filled by any one of them, and counts once however many of
   // them are on.
-  std::string WornOfMember(const EquipSetMember& member) const;
+  std::string WornOfMember(const EquipSetMember& member,
+                           StatPreset preset = StatPreset::kFirst) const;
   // How many pieces of `set` are worn right now. What every tier is measured
   // against, and what the inspect screen greys its unearned tiers by.
-  int PiecesWornOf(const EquipSet& set) const;
+  int PiecesWornOf(const EquipSet& set,
+                   StatPreset preset = StatPreset::kFirst) const;
 
  private:
   // Buys `amount` levels of a V Matrix node out of the V Point pool, at what
@@ -780,25 +826,41 @@ class CharacterInstance {
   // Recomputes equip_stats_, arcane_force_ and set_bonuses_ from the current
   // equipped map.
   void RecomputeEquipStats();
+  // One preset's half of it: the resolved gear, then the totals off it.
+  void RecomputePreset(StatPreset preset);
+  // WornAt's mutable twin: how every upgrade reaches the item the preset it
+  // is being asked from is showing.
+  EquipInstance* WornIn(StatPreset preset, EquipSlot slot);
+  // Takes what `preset` wears in `slot` off and hands it back, or an empty
+  // one if it wears nothing of its own there. What Unequip and a star force
+  // that shattered the item both go through.
+  std::optional<EquipInstance> TakeWorn(StatPreset preset, EquipSlot slot);
   // Rebuilds set_bonuses_: every tier of every known set that the worn pieces
   // reach. Cumulative, so a four-piece set contributes both its tiers.
-  void RecomputeSetBonuses();
+  void RecomputeSetBonuses(StatPreset preset);
   std::mt19937& rng_;
   Character character_;
   InventoryInstance inventory_;
-  std::map<EquipSlot, EquipInstance> equipped_;
+  // The worn items themselves, one map per preset. The first holds the whole
+  // body; the others hold only the slots they wear something of their own in
+  // -- see EquipPreset in character.proto for why they cannot each hold a
+  // copy.
+  std::array<std::map<EquipSlot, EquipInstance>, kNumStatPresets> worn_;
+  // Each preset's gear resolved against the first, and the totals that come
+  // off it. Rebuilt together by RecomputeEquipStats.
+  std::array<WornGear, kNumStatPresets> resolved_;
   std::vector<StackableItem> etc_items_;
-  EquipStats equip_stats_;
-  EquipStats symbol_stats_;
-  PotentialTotals potential_totals_;
-  int arcane_force_ = 0;
+  std::array<EquipStats, kNumStatPresets> equip_stats_;
+  std::array<EquipStats, kNumStatPresets> symbol_stats_;
+  std::array<PotentialTotals, kNumStatPresets> potential_totals_;
+  std::array<int, kNumStatPresets> arcane_force_ = {};
   // Meso the buffs have run up and not yet been charged for, always under 1.
   // The live tick charges three times a second, so without this a potion at
   // 1,000 a second would quietly cost 999. Not saved: it is worth less than
   // the smallest coin.
   double consumable_debt_ = 0.0;
   std::map<std::string, EquipSet> equip_sets_;
-  std::vector<SkillEffect> set_bonuses_;
+  std::array<std::vector<SkillEffect>, kNumStatPresets> set_bonuses_;
 };
 
 }  // namespace ms

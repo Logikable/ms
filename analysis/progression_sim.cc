@@ -494,13 +494,13 @@ int SetSize(const GameState& state, const std::string& key) {
 // The weapon's stars, and the upgrade slots still open in it. -1 apiece for
 // bare hands, which reads as a row with nothing in it rather than as zero.
 std::pair<int, int> WeaponUpgrades(const GameState& state) {
-  std::map<EquipSlot, EquipInstance>::const_iterator it =
+  WornGear::const_iterator it =
       state.character.equipped().find(EQUIP_SLOT_PRIMARY_WEAPON);
   if (it == state.character.equipped().end()) {
     return {-1, -1};
   }
-  return {it->second.stars(),
-          it->second.equip_state().remaining_upgrade_slots()};
+  return {it->second->stars(),
+          it->second->equip_state().remaining_upgrade_slots()};
 }
 
 // Sells the Etc tab, keeping what the counter pays nothing for. Everything can
@@ -1318,12 +1318,12 @@ std::string LineText(const PotentialLine& line, int item_level) {
 // What every cubed piece the character is standing in came to.
 std::vector<PotentialRow> PotentialsWorn(const GameState& state) {
   std::vector<PotentialRow> rows;
-  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        state.character.equipped()) {
-    if (!entry.second.CanCube()) {
+    if (!entry.second->CanCube()) {
       continue;
     }
-    const EquipInstance& item = entry.second;
+    const EquipInstance& item = *entry.second;
     int level = item.prototype().required_level();
     PotentialRow row;
     row.slot = WithoutPrefix(EquipSlot_Name(entry.first), "EQUIP_SLOT_");
@@ -1340,9 +1340,9 @@ std::vector<PotentialRow> PotentialsWorn(const GameState& state) {
 
 GearReached ReachedOnGear(const GameState& state) {
   GearReached reached;
-  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        state.character.equipped()) {
-    const EquipInstance& item = entry.second;
+    const EquipInstance& item = *entry.second;
     bool takes_star =
         Supports(item.prototype(), UPGRADE_STAR_FORCE) && item.max_stars() > 0;
     bool takes_scroll = Supports(item.prototype(), UPGRADE_SCROLL) &&
@@ -1389,9 +1389,9 @@ constexpr double kRemeasureGrowth = 1.5;
 // look, and re-measuring that often costs more than the allocation it moves.
 bool GearChanged(Session& run) {
   std::string worn;
-  for (const std::pair<const EquipSlot, EquipInstance>& item :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& item :
        run.state.character.equipped()) {
-    worn += item.second.name();
+    worn += item.second->name();
     worn += '\n';
   }
   if (worn == run.worn_gear) {
@@ -3000,9 +3000,9 @@ void PrintCharacterSheet(const Catalogs& catalogs, Job branch,
       100.0 * derived.damage_pct);
 
   std::printf("\n  Worn\n");
-  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        state.character.equipped()) {
-    PrintWornRow(entry.second);
+    PrintWornRow(*entry.second);
   }
 
   std::printf("\n  Hyper Stats (%d points paid, by preset)\n",

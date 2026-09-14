@@ -17,6 +17,7 @@
 #include "absl/types/span.h"
 #include "src/character/arcane_force.h"
 #include "src/character/consumables.h"
+#include "src/character/equip_presets.h"
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/job_branch.h"
@@ -1288,9 +1289,10 @@ StatPreset CharacterInstance::SlotFor(PresetKind kind,
 }
 
 int CharacterInstance::arcane_force(Activity activity) const {
-  return arcane_force_ + static_cast<int>(hyper_stat_bonus(
-                             HYPER_STAT_FIELD_ARCANE_FORCE,
-                             SlotFor(PresetKind::kHyperStats, activity)));
+  return arcane_force_[IndexOf(SlotFor(PresetKind::kEquip, activity))] +
+         static_cast<int>(
+             hyper_stat_bonus(HYPER_STAT_FIELD_ARCANE_FORCE,
+                              SlotFor(PresetKind::kHyperStats, activity)));
 }
 
 int CharacterInstance::hyper_stat_points() const {
@@ -1598,124 +1600,191 @@ bool CharacterInstance::LearnVNode(const Skill& skill, int amount) {
   return true;
 }
 
-EquipType CharacterInstance::weapon_type() const {
-  std::map<EquipSlot, EquipInstance>::const_iterator weapon =
-      equipped_.find(EQUIP_SLOT_PRIMARY_WEAPON);
-  return weapon != equipped_.end() ? weapon->second.prototype().equip_type()
-                                   : EQUIP_TYPE_UNSPECIFIED;
+EquipType CharacterInstance::weapon_type(StatPreset preset) const {
+  const EquipInstance* weapon = WornAt(preset, EQUIP_SLOT_PRIMARY_WEAPON);
+  return weapon != nullptr ? weapon->prototype().equip_type()
+                           : EQUIP_TYPE_UNSPECIFIED;
 }
 
-bool CharacterInstance::has_secondary() const {
-  return equipped_.find(EQUIP_SLOT_SECONDARY) != equipped_.end();
+bool CharacterInstance::has_secondary(StatPreset preset) const {
+  return WornAt(preset, EQUIP_SLOT_SECONDARY) != nullptr;
 }
 
-bool CharacterInstance::AttackCounts(const EquipPrototype& proto) const {
+bool CharacterInstance::AttackCounts(const EquipPrototype& proto,
+                                     StatPreset preset) const {
   EquipType drawn_by = WeaponDrawing(proto.equip_type());
   if (drawn_by == EQUIP_TYPE_UNSPECIFIED) {
     return true;  // not ammunition, so nothing has to draw it
   }
-  return weapon_type() == drawn_by;
+  return weapon_type(preset) == drawn_by;
 }
 
 void CharacterInstance::UseEquipSets(std::map<std::string, EquipSet> sets) {
   equip_sets_ = std::move(sets);
-  RecomputeSetBonuses();
+  for (int i = 0; i < kNumStatPresets; ++i) {
+    RecomputeSetBonuses(StatPresetAt(i));
+  }
 }
 
-bool CharacterInstance::IsWearing(const std::string& item_name) const {
+bool CharacterInstance::IsWearing(const std::string& item_name,
+                                  StatPreset preset) const {
   // By display name, the way a save names what it holds: the character carries
   // prototypes, not the catalog keys they were loaded under.
-  for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
-    if (kv.second.prototype().name() == item_name) {
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
+       equipped(preset)) {
+    if (kv.second->prototype().name() == item_name) {
       return true;
     }
   }
   return false;
 }
 
-std::string CharacterInstance::WornOfFamily(const std::string& family) const {
+std::string CharacterInstance::WornOfFamily(const std::string& family,
+                                            StatPreset preset) const {
   if (family.empty()) {
     return "";  // an ordinary item names no family, and would match every one
   }
-  for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
-    if (kv.second.prototype().set_family() == family) {
-      return kv.second.prototype().name();
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
+       equipped(preset)) {
+    if (kv.second->prototype().set_family() == family) {
+      return kv.second->prototype().name();
     }
   }
   return "";
 }
 
-std::string CharacterInstance::WornOfMember(
-    const EquipSetMember& member) const {
+std::string CharacterInstance::WornOfMember(const EquipSetMember& member,
+                                            StatPreset preset) const {
   // A member names the items that fill its slot, the family any of several
   // fill, or both. One slot counts once however many of them are on, so the
   // first answer is the answer.
   for (const std::string& name : member.items().name()) {
-    if (IsWearing(name)) {
+    if (IsWearing(name, preset)) {
       return name;
     }
   }
-  return member.has_family() ? WornOfFamily(member.family()) : "";
+  return member.has_family() ? WornOfFamily(member.family(), preset) : "";
 }
 
-int CharacterInstance::PiecesWornOf(const EquipSet& set) const {
+int CharacterInstance::PiecesWornOf(const EquipSet& set,
+                                    StatPreset preset) const {
   int worn = 0;
   for (const EquipSetMember& member : set.members()) {
-    if (!WornOfMember(member).empty()) {
+    if (!WornOfMember(member, preset).empty()) {
       ++worn;
     }
   }
   return worn;
 }
 
-void CharacterInstance::RecomputeSetBonuses() {
-  set_bonuses_.clear();
+void CharacterInstance::RecomputeSetBonuses(StatPreset preset) {
+  std::vector<SkillEffect>& bonuses = set_bonuses_[IndexOf(preset)];
+  bonuses.clear();
   for (const std::pair<const std::string, EquipSet>& entry : equip_sets_) {
     const EquipSet& set = entry.second;
-    int worn = PiecesWornOf(set);
+    int worn = PiecesWornOf(set, preset);
     for (const EquipSetTier& tier : set.tiers()) {
       if (worn >= tier.pieces()) {
-        set_bonuses_.push_back(tier.effect());
+        bonuses.push_back(tier.effect());
       }
     }
   }
 }
 
-void CharacterInstance::RecomputeEquipStats() {
-  // The set bonus is worked out from the same map and changes with it, so the
-  // two are recomputed together and nothing can update one without the other.
-  RecomputeSetBonuses();
-  // An attack that doesn't count is dropped here -- once, at the one place
-  // equipment becomes stats, so that the damage chain, combat power and the
-  // stat panel cannot come to different conclusions about the same stars.
+const EquipInstance* CharacterInstance::WornAt(StatPreset preset,
+                                               EquipSlot slot) const {
+  const WornGear& gear = resolved_[IndexOf(preset)];
+  WornGear::const_iterator it = gear.find(slot);
+  return it == gear.end() ? nullptr : it->second;
+}
+
+EquipInstance* CharacterInstance::WornIn(StatPreset preset, EquipSlot slot) {
+  std::map<EquipSlot, EquipInstance>& own = worn_[IndexOf(preset)];
+  std::map<EquipSlot, EquipInstance>::iterator it = own.find(slot);
+  if (it != own.end()) {
+    return &it->second;
+  }
+  if (preset == StatPreset::kFirst) {
+    return nullptr;  // nothing behind the first preset to inherit from
+  }
+  std::map<EquipSlot, EquipInstance>& base = worn_[IndexOf(StatPreset::kFirst)];
+  it = base.find(slot);
+  return it == base.end() ? nullptr : &it->second;
+}
+
+bool CharacterInstance::InheritsSlot(StatPreset preset, EquipSlot slot) const {
+  return preset != StatPreset::kFirst &&
+         worn_[IndexOf(preset)].count(slot) == 0 &&
+         WornAt(preset, slot) != nullptr;
+}
+
+std::optional<EquipInstance> CharacterInstance::TakeWorn(StatPreset preset,
+                                                         EquipSlot slot) {
+  std::map<EquipSlot, EquipInstance>& own = worn_[IndexOf(preset)];
+  std::map<EquipSlot, EquipInstance>::iterator it = own.find(slot);
+  if (it == own.end()) {
+    return std::nullopt;  // nothing of its own there, inherited or empty
+  }
+  EquipInstance taken = std::move(it->second);
+  own.erase(it);
+  return taken;
+}
+
+// One preset's worn totals. An attack that doesn't count is dropped here --
+// once, at the one place equipment becomes stats, so that the damage chain,
+// combat power and the stat panel cannot come to different conclusions about
+// the same stars.
+void CharacterInstance::RecomputePreset(StatPreset preset) {
+  const int index = IndexOf(preset);
   std::vector<EquipStats> list;
   std::vector<EquipStats> symbols;
-  arcane_force_ = 0;
-  potential_totals_ = PotentialTotals();
-  for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
-    AddPotential(kv.second.potential(), kv.second.prototype().required_level(),
-                 potential_totals_);
+  arcane_force_[index] = 0;
+  potential_totals_[index] = PotentialTotals();
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
+       resolved_[index]) {
+    const EquipInstance& item = *kv.second;
+    AddPotential(item.potential(), item.prototype().required_level(),
+                 potential_totals_[index]);
     // A symbol's stats are not on its prototype: what it grants is its level
     // in the wearer's own primary stat, so it is worked out here rather than
     // read. Its Arcane Force is totalled in the same pass, since both come
     // off the same worn symbol.
-    if (IsArcaneSymbol(kv.second.prototype())) {
-      int level = SymbolLevel(kv.second.equip_state());
-      arcane_force_ += SymbolArcaneForce(level);
+    if (IsArcaneSymbol(item.prototype())) {
+      int level = SymbolLevel(item.equip_state());
+      arcane_force_[index] += SymbolArcaneForce(level);
       EquipStats granted =
           SymbolStatsFor(PrimaryStatField(character_.job()), level);
       symbols.push_back(granted);
       list.push_back(std::move(granted));
       continue;
     }
-    EquipStats stats = kv.second.stats();
-    if (!AttackCounts(kv.second.prototype())) {
+    EquipStats stats = item.stats();
+    if (!AttackCounts(item.prototype(), preset)) {
       stats.set_attack(0);
     }
     list.push_back(std::move(stats));
   }
-  equip_stats_ = SumEquipStats(absl::MakeSpan(list));
-  symbol_stats_ = SumEquipStats(absl::MakeSpan(symbols));
+  equip_stats_[index] = SumEquipStats(absl::MakeSpan(list));
+  symbol_stats_[index] = SumEquipStats(absl::MakeSpan(symbols));
+  // The set bonus is worked out from the same gear and changes with it, so the
+  // two are recomputed together and nothing can update one without the other.
+  RecomputeSetBonuses(preset);
+}
+
+void CharacterInstance::RecomputeEquipStats() {
+  const std::map<EquipSlot, EquipInstance>& base =
+      worn_[IndexOf(StatPreset::kFirst)];
+  for (int i = 0; i < kNumStatPresets; ++i) {
+    WornGear& gear = resolved_[i];
+    gear.clear();
+    for (const std::pair<const EquipSlot, EquipInstance>& kv : base) {
+      gear[kv.first] = &kv.second;
+    }
+    for (const std::pair<const EquipSlot, EquipInstance>& kv : worn_[i]) {
+      gear[kv.first] = &kv.second;
+    }
+    RecomputePreset(StatPresetAt(i));
+  }
 }
 
 int CharacterInstance::SpareSymbols(EquipSlot slot) const {
@@ -1730,13 +1799,13 @@ int CharacterInstance::SpareSymbols(EquipSlot slot) const {
   return count;
 }
 
-int CharacterInstance::CombineSymbols(EquipSlot slot, int count) {
-  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
-  if (count <= 0 || it == equipped_.end() ||
-      !IsArcaneSymbol(it->second.prototype())) {
+int CharacterInstance::CombineSymbols(EquipSlot slot, int count,
+                                      StatPreset preset) {
+  EquipInstance* symbol = WornIn(preset, slot);
+  if (count <= 0 || symbol == nullptr || !IsArcaneSymbol(symbol->prototype())) {
     return 0;
   }
-  ms::Equip state = it->second.equip_state();
+  ms::Equip state = symbol->equip_state();
   int taken = 0;
   // Backwards, so removing one does not slide the ones still to be looked at.
   for (int i = inventory_.size() - 1; i >= 0 && taken < count; --i) {
@@ -1754,14 +1823,15 @@ int CharacterInstance::CombineSymbols(EquipSlot slot, int count) {
     ++taken;
   }
   if (taken > 0) {
-    it->second = EquipInstance(it->second.prototype(), state);
+    *symbol = EquipInstance(symbol->prototype(), state);
   }
   return taken;
 }
 
-bool CharacterInstance::CubeWorn(EquipSlot slot, CubeType cube) {
-  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
-  if (it == equipped_.end() || !it->second.Cube(cube, rng_)) {
+bool CharacterInstance::CubeWorn(EquipSlot slot, CubeType cube,
+                                 StatPreset preset) {
+  EquipInstance* item = WornIn(preset, slot);
+  if (item == nullptr || !item->Cube(cube, rng_)) {
     return false;
   }
   // The lines are worn stats, so the totals have just moved.
@@ -1779,12 +1849,13 @@ bool CharacterInstance::PayForCube(const EquipInstance& item) {
   return true;
 }
 
-bool CharacterInstance::CubeEquipped(EquipSlot slot, CubeType cube) {
-  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
-  if (it == equipped_.end() || !PayForCube(it->second)) {
+bool CharacterInstance::CubeEquipped(EquipSlot slot, CubeType cube,
+                                     StatPreset preset) {
+  EquipInstance* item = WornIn(preset, slot);
+  if (item == nullptr || !PayForCube(*item)) {
     return false;
   }
-  return CubeWorn(slot, cube);
+  return CubeWorn(slot, cube, preset);
 }
 
 bool CharacterInstance::CubeInventory(int index, CubeType cube) {
@@ -1793,40 +1864,40 @@ bool CharacterInstance::CubeInventory(int index, CubeType cube) {
 }
 
 std::optional<Potential> CharacterInstance::BuyCube(EquipSlot slot,
-                                                    CubeType cube) {
-  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
-  if (it == equipped_.end() || !it->second.CanCube() ||
-      character_.meso() < kCubeCost) {
+                                                    CubeType cube,
+                                                    StatPreset preset) {
+  const EquipInstance* item = WornAt(preset, slot);
+  if (item == nullptr || !item->CanCube() || character_.meso() < kCubeCost) {
     return std::nullopt;
   }
   character_.set_meso(character_.meso() - kCubeCost);
-  return CubePotential(it->second.equip_state().main_potential(), cube,
-                       PotentialGroupOf(it->second.prototype().equip_slot()),
-                       rng_);
+  return CubePotential(item->equip_state().main_potential(), cube,
+                       PotentialGroupOf(item->prototype().equip_slot()), rng_);
 }
 
 bool CharacterInstance::TakePotential(EquipSlot slot,
-                                      const Potential& potential) {
-  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
-  if (it == equipped_.end()) {
+                                      const Potential& potential,
+                                      StatPreset preset) {
+  EquipInstance* item = WornIn(preset, slot);
+  if (item == nullptr) {
     return false;
   }
-  it->second.SetPotential(potential);
+  item->SetPotential(potential);
   // The lines are worn stats, so the totals have just moved.
   RecomputeEquipStats();
   return true;
 }
 
-bool CharacterInstance::LevelUpSymbol(EquipSlot slot) {
-  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
-  if (it == equipped_.end() || !IsArcaneSymbol(it->second.prototype())) {
+bool CharacterInstance::LevelUpSymbol(EquipSlot slot, StatPreset preset) {
+  EquipInstance* symbol = WornIn(preset, slot);
+  if (symbol == nullptr || !IsArcaneSymbol(symbol->prototype())) {
     return false;
   }
-  ms::Equip state = it->second.equip_state();
+  ms::Equip state = symbol->equip_state();
   if (!SymbolCanLevelUp(state)) {
     return false;
   }
-  int64_t cost = SymbolLevelUpCost(it->second.prototype(), SymbolLevel(state));
+  int64_t cost = SymbolLevelUpCost(symbol->prototype(), SymbolLevel(state));
   if (character_.meso() < cost) {
     return false;
   }
@@ -1834,7 +1905,7 @@ bool CharacterInstance::LevelUpSymbol(EquipSlot slot) {
   ms::LevelUpSymbol(state);
   // Rebuilt rather than written through: an item's state is its own, and a
   // symbol's ladder is the one thing outside it that moves.
-  it->second = EquipInstance(it->second.prototype(), state);
+  *symbol = EquipInstance(symbol->prototype(), state);
   // The level is what a symbol's force and stats are read off, so both have
   // just moved.
   RecomputeEquipStats();
@@ -1901,10 +1972,14 @@ int CharacterInstance::CountOwned(const EquipPrototype& proto) const {
   // Matched on name, which is what identifies an equip everywhere else it
   // crosses a boundary -- the save writes items by display name, and the shop
   // looks its own selection back up the same way.
+  // Every preset's own items, since all of them are the character's: a copy
+  // set aside for bossing is one they own as much as the one they farm in.
   int owned = 0;
-  for (const std::pair<const EquipSlot, EquipInstance>& worn : equipped_) {
-    if (worn.second.name() == proto.name()) {
-      ++owned;
+  for (const std::map<EquipSlot, EquipInstance>& gear : worn_) {
+    for (const std::pair<const EquipSlot, EquipInstance>& item : gear) {
+      if (item.second.name() == proto.name()) {
+        ++owned;
+      }
     }
   }
   for (int i = 0; i < inventory_.size(); ++i) {
@@ -2261,7 +2336,8 @@ std::vector<const EquipTrace*> CharacterInstance::traces() const {
   return inventory_.traces();
 }
 
-EquipSlot CharacterInstance::SlotToFill(const EquipPrototype& proto) const {
+EquipSlot CharacterInstance::SlotToFill(const EquipPrototype& proto,
+                                        StatPreset preset) const {
   if (proto.equip_slot() == EQUIP_SLOT_UNSPECIFIED) {
     return EQUIP_SLOT_UNSPECIFIED;
   }
@@ -2269,16 +2345,16 @@ EquipSlot CharacterInstance::SlotToFill(const EquipPrototype& proto) const {
   if (family.size() == 1) {
     return family.front();
   }
+  // Against what the preset shows rather than what it owns: a ring it
+  // inherits is on the character just as much as one of its own.
   for (EquipSlot slot : family) {
-    std::map<EquipSlot, EquipInstance>::const_iterator it =
-        equipped_.find(slot);
-    if (it != equipped_.end() &&
-        it->second.prototype().name() == proto.name()) {
+    const EquipInstance* worn = WornAt(preset, slot);
+    if (worn != nullptr && worn->prototype().name() == proto.name()) {
       return EQUIP_SLOT_UNSPECIFIED;
     }
   }
   for (EquipSlot slot : family) {
-    if (equipped_.count(slot) == 0) {
+    if (WornAt(preset, slot) == nullptr) {
       return slot;
     }
   }
@@ -2287,12 +2363,12 @@ EquipSlot CharacterInstance::SlotToFill(const EquipPrototype& proto) const {
   return family.front();
 }
 
-bool CharacterInstance::Equip(int inventory_index) {
+bool CharacterInstance::Equip(int inventory_index, StatPreset preset) {
   EquipInstance* raw = inventory_.equip_instance(inventory_index);
   if (raw == nullptr) {
     return false;
   }
-  EquipSlot slot = SlotToFill(raw->prototype());
+  EquipSlot slot = SlotToFill(raw->prototype(), preset);
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return false;
   }
@@ -2300,41 +2376,41 @@ bool CharacterInstance::Equip(int inventory_index) {
   std::unique_ptr<EquipTabItem> ptr = inventory_.remove_equip(inventory_index);
   EquipInstance item = std::move(static_cast<EquipInstance&>(*ptr));
 
-  // If the slot was occupied, put the displaced item in the vacated position.
-  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
-  if (it != equipped_.end()) {
-    inventory_.add(std::make_unique<EquipInstance>(std::move(it->second)),
+  // If the preset had an item of its own there, put it in the vacated
+  // position. An inherited one is not displaced: it belongs to another preset,
+  // which goes on wearing it.
+  std::optional<EquipInstance> displaced = TakeWorn(preset, slot);
+  if (displaced.has_value()) {
+    inventory_.add(std::make_unique<EquipInstance>(*std::move(displaced)),
                    inventory_index);
-    equipped_.erase(it);
   }
 
-  // Equip the item.
-  equipped_.emplace(slot, std::move(item));
+  worn_[IndexOf(preset)].emplace(slot, std::move(item));
   RecomputeEquipStats();
   return true;
 }
 
-bool CharacterInstance::Unequip(EquipSlot slot) {
+bool CharacterInstance::Unequip(EquipSlot slot, StatPreset preset) {
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return false;
   }
-  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
-  if (it == equipped_.end()) {
+  std::optional<EquipInstance> taken = TakeWorn(preset, slot);
+  if (!taken.has_value()) {
     return false;
   }
-  inventory_.add(std::make_unique<EquipInstance>(std::move(it->second)));
-  equipped_.erase(it);
+  inventory_.add(std::make_unique<EquipInstance>(*std::move(taken)));
   RecomputeEquipStats();
   return true;
 }
 
 ScrollOutcome CharacterInstance::ScrollEquipped(EquipSlot slot,
-                                                const Scroll& scroll) {
-  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
-  if (it == equipped_.end()) {
+                                                const Scroll& scroll,
+                                                StatPreset preset) {
+  EquipInstance* item = WornIn(preset, slot);
+  if (item == nullptr) {
     return kScrollFail;
   }
-  ScrollOutcome result = it->second.Scroll(scroll, rng_);
+  ScrollOutcome result = item->Scroll(scroll, rng_);
   if (result == kScrollSuccess) {
     RecomputeEquipStats();
   }
@@ -2362,21 +2438,26 @@ bool CharacterInstance::PayForStarForce(const EquipInstance& item) {
   return true;
 }
 
-StarForceOutcome CharacterInstance::StarForceEquipped(EquipSlot slot) {
-  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
-  if (it == equipped_.end()) {
+StarForceOutcome CharacterInstance::StarForceEquipped(EquipSlot slot,
+                                                      StatPreset preset) {
+  EquipInstance* item = WornIn(preset, slot);
+  if (item == nullptr) {
     return kStarForceFail;
   }
-  if (!PayForStarForce(it->second)) {
+  if (!PayForStarForce(*item)) {
     return kStarForceNoMeso;
   }
-  StarForceOutcome outcome = it->second.StarForce(rng_);
+  StarForceOutcome outcome = item->StarForce(rng_);
   if (outcome == kStarForceDestroy) {
     // equip_state() captures the item's state before the destroy attempt
-    // (stars at the doomed level, not stars+1).
-    inventory_.add(std::make_unique<EquipTrace>(it->second.prototype(),
-                                                it->second.equip_state()));
-    equipped_.erase(it);
+    // (stars at the doomed level, not stars+1). The trace is left where the
+    // item was worn: a preset shattering one it inherited takes it off every
+    // preset that was wearing it, because there was only ever the one.
+    inventory_.add(
+        std::make_unique<EquipTrace>(item->prototype(), item->equip_state()));
+    if (!TakeWorn(preset, slot).has_value()) {
+      TakeWorn(StatPreset::kFirst, slot);
+    }
   }
   RecomputeEquipStats();
   return outcome;
@@ -2410,10 +2491,9 @@ bool CharacterInstance::PayForHammer(const EquipInstance& item) {
   return true;
 }
 
-bool CharacterInstance::HammerEquipped(EquipSlot slot) {
-  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
-  if (it == equipped_.end() || !PayForHammer(it->second) ||
-      !it->second.Hammer()) {
+bool CharacterInstance::HammerEquipped(EquipSlot slot, StatPreset preset) {
+  EquipInstance* item = WornIn(preset, slot);
+  if (item == nullptr || !PayForHammer(*item) || !item->Hammer()) {
     return false;
   }
   // Nothing a hammer opens is worn yet, but the worn totals are rebuilt after
@@ -2504,14 +2584,18 @@ Character CharacterInstance::ToProto() const {
   // are written here and nowhere else, so there is one place for them to be
   // wrong rather than a dozen.
   saved.clear_inventory();
-  saved.clear_equipped();
+  saved.clear_legacy_equipped();
+  saved.mutable_equip_presets()->clear_presets();
   saved.clear_stacks();
   for (int i = 0; i < inventory_.size(); ++i) {
     *saved.mutable_inventory()->add_equip_tab() = inventory_[i].SavedState();
   }
-  for (const std::pair<const EquipSlot, EquipInstance>& worn : equipped_) {
-    (*saved.mutable_equipped())[static_cast<int>(worn.first)] =
-        worn.second.equip_state();
+  for (const std::map<EquipSlot, EquipInstance>& gear : worn_) {
+    EquipPreset& preset = *saved.mutable_equip_presets()->add_presets();
+    for (const std::pair<const EquipSlot, EquipInstance>& worn : gear) {
+      (*preset.mutable_equipped())[static_cast<int>(worn.first)] =
+          worn.second.equip_state();
+    }
   }
   AppendStacks(etc_items_, &saved);
   return saved;
@@ -2536,7 +2620,7 @@ void CharacterInstance::RestoreFrom(
   // The item fields are the live containers' business from here; leaving
   // copies behind would let the two drift and ToProto pick the stale one.
   character_.clear_inventory();
-  character_.clear_equipped();
+  character_.clear_legacy_equipped();
   character_.clear_stacks();
 
   std::map<std::string, const EquipPrototype*> equips_by_name =
@@ -2553,16 +2637,24 @@ void CharacterInstance::RestoreFrom(
     }
   }
 
-  equipped_.clear();
-  for (const std::pair<const int, ms::Equip>& worn : saved.equipped()) {
-    std::map<std::string, const EquipPrototype*>::const_iterator proto =
-        equips_by_name.find(worn.second.equip_name());
-    if (proto == equips_by_name.end()) {
-      continue;
+  Character migrated = saved;
+  MigrateEquipPresets(migrated);
+  for (int i = 0; i < kNumStatPresets; ++i) {
+    std::map<EquipSlot, EquipInstance>& gear = worn_[i];
+    gear.clear();
+    const EquipPreset& preset =
+        PresetOf(migrated.equip_presets(), StatPresetAt(i));
+    for (const std::pair<const int, ms::Equip>& worn : preset.equipped()) {
+      std::map<std::string, const EquipPrototype*>::const_iterator proto =
+          equips_by_name.find(worn.second.equip_name());
+      if (proto == equips_by_name.end()) {
+        continue;
+      }
+      gear.emplace(static_cast<EquipSlot>(worn.first),
+                   EquipInstance(*proto->second, worn.second));
     }
-    equipped_.emplace(static_cast<EquipSlot>(worn.first),
-                      EquipInstance(*proto->second, worn.second));
   }
+  character_.mutable_equip_presets()->clear_presets();
 
   etc_items_.clear();
   for (const StackableStack& stack : saved.stacks()) {

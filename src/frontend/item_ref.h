@@ -11,6 +11,7 @@
 #define MS_SRC_FRONTEND_ITEM_REF_H_
 
 #include "src/character/character.h"
+#include "src/character/stat_preset.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
@@ -23,7 +24,10 @@ class ItemRef {
  public:
   // A ref naming nothing. Get() and GetInstance() return nullptr for it.
   ItemRef() = default;
-  static ItemRef Equipped(EquipSlot slot);
+  // `preset` is the gear preset the item was picked from, which is what says
+  // which item a slot holds once the presets differ.
+  static ItemRef Equipped(EquipSlot slot,
+                          StatPreset preset = StatPreset::kFirst);
   static ItemRef InBag(int index);
 
   bool equipped() const {
@@ -31,6 +35,9 @@ class ItemRef {
   }
   EquipSlot slot() const {
     return slot_;
+  }
+  StatPreset preset() const {
+    return preset_;
   }
   int index() const {
     return index_;
@@ -47,6 +54,7 @@ class ItemRef {
  private:
   bool equipped_ = false;
   EquipSlot slot_ = EQUIP_SLOT_UNSPECIFIED;
+  StatPreset preset_ = StatPreset::kFirst;
   int index_ = 0;
 };
 

@@ -108,7 +108,7 @@ TEST_F(ItemRefTest, ScrollResolvesTheWornItem) {
 
   EXPECT_EQ(warrior.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                .equip_state()
+                ->equip_state()
                 .scroll_successes(),
             1);
   EXPECT_EQ(warrior.inventory()[0].equip_state().scroll_successes(), 0);
@@ -128,7 +128,7 @@ TEST_F(ItemRefTest, ScrollResolvesTheBagItem) {
   EXPECT_EQ(warrior.inventory()[0].equip_state().scroll_successes(), 1);
   EXPECT_EQ(warrior.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                .equip_state()
+                ->equip_state()
                 .scroll_successes(),
             0);
 }
@@ -163,7 +163,7 @@ TEST_F(ItemRefTest, HammerItemResolvesEitherHalf) {
   EXPECT_TRUE(
       HammerItem(warrior, ItemRef::Equipped(EQUIP_SLOT_PRIMARY_WEAPON)));
   EXPECT_EQ(
-      warrior.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).equip_state().hammers(),
+      warrior.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->equip_state().hammers(),
       1);
   EXPECT_EQ(warrior.inventory()[0].equip_state().hammers(), 0);
 
@@ -182,8 +182,9 @@ TEST_F(ItemRefTest, CubeItemResolvesEitherHalfAndCharges) {
 
   EXPECT_TRUE(CubeItem(warrior, ItemRef::Equipped(EQUIP_SLOT_PRIMARY_WEAPON),
                        CubeType::kRed));
-  EXPECT_EQ(warrior.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).potential().rank(),
-            POTENTIAL_RANK_RARE);
+  EXPECT_EQ(
+      warrior.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->potential().rank(),
+      POTENTIAL_RANK_RARE);
   EXPECT_EQ(warrior.inventory()[0].potential().rank(),
             POTENTIAL_RANK_UNSPECIFIED);
 
@@ -201,8 +202,9 @@ TEST_F(ItemRefTest, CubeItemRefusesWhatThePurseCannotCover) {
 
   EXPECT_FALSE(CubeItem(warrior, ItemRef::Equipped(EQUIP_SLOT_PRIMARY_WEAPON),
                         CubeType::kRed));
-  EXPECT_EQ(warrior.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).potential().rank(),
-            POTENTIAL_RANK_UNSPECIFIED);
+  EXPECT_EQ(
+      warrior.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->potential().rank(),
+      POTENTIAL_RANK_UNSPECIFIED);
   EXPECT_EQ(warrior.proto().meso(), kCubeCost - 1);
 }
 

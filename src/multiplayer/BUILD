@@ -97,6 +97,7 @@ cc_test(
         ":session",
         "//server:test_server",
         "//src:game_state",
+        "//src/character:equip_presets",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
         "//src/protos:multiplayer_proto_cc",

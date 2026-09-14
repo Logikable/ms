@@ -2157,11 +2157,9 @@ double RespawnIntervalFor(const CharacterInstance& character) {
 }  // namespace
 
 const EquipPrototype* EquippedWeapon(const GameState& state) {
-  const std::map<EquipSlot, EquipInstance>& equipped =
-      state.character.equipped();
-  std::map<EquipSlot, EquipInstance>::const_iterator it =
-      equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
-  return it == equipped.end() ? nullptr : &it->second.prototype();
+  const WornGear& equipped = state.character.equipped();
+  WornGear::const_iterator it = equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
+  return it == equipped.end() ? nullptr : &it->second->prototype();
 }
 
 std::string BossEncounterKey(const std::string& boss,

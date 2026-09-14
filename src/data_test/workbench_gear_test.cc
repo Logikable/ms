@@ -151,9 +151,9 @@ TEST_F(WorkbenchGearTest, EveryJobWearsTheTopTierItsLevelReaches) {
     // it, so the rings meet each other and nothing else.
     std::map<std::pair<EquipSlot, EquipType>, std::vector<int>> worn_levels;
     std::map<std::pair<EquipSlot, EquipType>, const EquipPrototype*> example;
-    for (const std::pair<const EquipSlot, EquipInstance>& worn :
+    for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
          character.equipped()) {
-      const EquipPrototype& proto = worn.second.prototype();
+      const EquipPrototype& proto = worn.second->prototype();
       std::pair<EquipSlot, EquipType> ladder{BaseSlot(proto.equip_slot()),
                                              proto.equip_type()};
       worn_levels[ladder].push_back(proto.required_level());
@@ -201,9 +201,9 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
     GameState state = Workbench(advancement);
     SCOPED_TRACE(JobAdvancement_Name(advancement));
     int frozen = 0;
-    for (const std::pair<const EquipSlot, EquipInstance>& worn :
+    for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
          state.character.equipped()) {
-      frozen += IsFrozen(worn.second.prototype()) ? 1 : 0;
+      frozen += IsFrozen(worn.second->prototype()) ? 1 : 0;
     }
     int stage = StageForAdvancement(advancement);
     EXPECT_EQ(frozen, stage == 3 ? 4 : stage == 4 ? 3 : 0);
@@ -225,12 +225,11 @@ TEST_F(WorkbenchGearTest, EachAdvancementWearsTheTokenTierItPaysFor) {
     SCOPED_TRACE(JobAdvancement_Name(advancement));
     int level = state.character.proto().level();
     for (EquipSlot slot : kSlots) {
-      std::map<EquipSlot, EquipInstance>::const_iterator worn =
-          state.character.equipped().find(slot);
+      WornGear::const_iterator worn = state.character.equipped().find(slot);
       ASSERT_NE(worn, state.character.equipped().end())
           << EquipSlot_Name(slot) << " is empty";
-      int tier = worn->second.prototype().required_level();
-      SCOPED_TRACE(EquipSlot_Name(slot) + (" holds " + worn->second.name()));
+      int tier = worn->second->prototype().required_level();
+      SCOPED_TRACE(EquipSlot_Name(slot) + (" holds " + worn->second->name()));
       if (level >= kAbsoLabOpens) {
         EXPECT_EQ(tier, 160);
       } else if (level >= kRootAbyssOpens) {
@@ -260,7 +259,7 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
   // one is worn. The second pendant slot takes the one the first does not, and
   // the shoulder is the one of the four Cygnus sells that names this branch.
   GameState fourth = Workbench(JOB_ADVANCEMENT_DARK_KNIGHT);
-  const std::map<EquipSlot, EquipInstance>& worn = fourth.character.equipped();
+  const WornGear& worn = fourth.character.equipped();
   const std::map<EquipSlot, std::string> kExpected = {
       {EQUIP_SLOT_EYE_ACCESSORY, "Papulatus Mark"},
       {EQUIP_SLOT_FACE_ACCESSORY, "Condensed Power Crystal"},
@@ -274,7 +273,7 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
       {EQUIP_SLOT_BADGE, "Crystal Ventus Badge"}};
   for (const std::pair<const EquipSlot, std::string>& want : kExpected) {
     ASSERT_EQ(worn.count(want.first), 1u) << EquipSlot_Name(want.first);
-    EXPECT_EQ(worn.at(want.first).prototype().name(), want.second);
+    EXPECT_EQ(worn.at(want.first)->prototype().name(), want.second);
   }
 }
 

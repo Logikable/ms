@@ -1,13 +1,12 @@
 #include "src/frontend/item_ref.h"
 
-#include <map>
-
 namespace ms {
 
-ItemRef ItemRef::Equipped(EquipSlot slot) {
+ItemRef ItemRef::Equipped(EquipSlot slot, StatPreset preset) {
   ItemRef ref;
   ref.equipped_ = true;
   ref.slot_ = slot;
+  ref.preset_ = preset;
   return ref;
 }
 
@@ -20,9 +19,7 @@ ItemRef ItemRef::InBag(int index) {
 
 const EquipTabItem* ItemRef::Get(const CharacterInstance& character) const {
   if (equipped_) {
-    std::map<EquipSlot, EquipInstance>::const_iterator it =
-        character.equipped().find(slot_);
-    return it == character.equipped().end() ? nullptr : &it->second;
+    return character.WornAt(preset_, slot_);
   }
   if (index_ < 0 || index_ >= character.inventory().size()) {
     return nullptr;
@@ -33,9 +30,7 @@ const EquipTabItem* ItemRef::Get(const CharacterInstance& character) const {
 const EquipInstance* ItemRef::GetInstance(
     const CharacterInstance& character) const {
   if (equipped_) {
-    std::map<EquipSlot, EquipInstance>::const_iterator it =
-        character.equipped().find(slot_);
-    return it == character.equipped().end() ? nullptr : &it->second;
+    return character.WornAt(preset_, slot_);
   }
   return character.inventory().equip_instance(index_);
 }
@@ -43,28 +38,28 @@ const EquipInstance* ItemRef::GetInstance(
 ScrollOutcome ScrollItem(CharacterInstance& character, ItemRef ref,
                          const Scroll& scroll) {
   if (ref.equipped()) {
-    return character.ScrollEquipped(ref.slot(), scroll);
+    return character.ScrollEquipped(ref.slot(), scroll, ref.preset());
   }
   return character.ScrollInventory(ref.index(), scroll);
 }
 
 StarForceOutcome StarForceItem(CharacterInstance& character, ItemRef ref) {
   if (ref.equipped()) {
-    return character.StarForceEquipped(ref.slot());
+    return character.StarForceEquipped(ref.slot(), ref.preset());
   }
   return character.StarForceInventory(ref.index());
 }
 
 bool HammerItem(CharacterInstance& character, ItemRef ref) {
   if (ref.equipped()) {
-    return character.HammerEquipped(ref.slot());
+    return character.HammerEquipped(ref.slot(), ref.preset());
   }
   return character.HammerInventory(ref.index());
 }
 
 bool CubeItem(CharacterInstance& character, ItemRef ref, CubeType cube) {
   if (ref.equipped()) {
-    return character.CubeEquipped(ref.slot(), cube);
+    return character.CubeEquipped(ref.slot(), cube, ref.preset());
   }
   return character.CubeInventory(ref.index(), cube);
 }

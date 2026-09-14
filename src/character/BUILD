@@ -29,6 +29,7 @@ cc_library(
     deps = [
         ":arcane_force",
         ":consumables",
+        ":equip_presets",
         ":exp_table",
         ":hyper_stats",
         ":inner_ability",
@@ -134,6 +135,27 @@ cc_test(
 cc_library(
     name = "stat_preset",
     hdrs = ["stat_preset.h"],
+)
+
+cc_library(
+    name = "equip_presets",
+    srcs = ["equip_presets.cc"],
+    hdrs = ["equip_presets.h"],
+    deps = [
+        ":stat_preset",
+        "//src/protos:character_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "equip_presets_test",
+    size = "small",
+    srcs = ["equip_presets_test.cc"],
+    deps = [
+        ":equip_presets",
+        "//src/protos:character_proto_cc",
+        "@googletest//:gtest_main",
+    ],
 )
 
 cc_library(
@@ -314,6 +336,7 @@ cc_test(
     srcs = ["character_test.cc"],
     deps = [
         ":character",
+        ":equip_presets",
         ":exp_table",
         ":inner_ability",
         ":v_matrix",

@@ -13,6 +13,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "server/test_server.h"
+#include "src/character/equip_presets.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
 #include "src/combat/boss_run.h"
@@ -428,11 +429,14 @@ TEST_F(PartyControllerTest, AMemberInspectsAnother) {
   leader->state->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
   leader->state->character.Equip(0);
   ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
-    return guest->party_panel.in_party() && guest->session.Snapshot()
-                                                    .party.members(0)
-                                                    .player()
-                                                    .sheet()
-                                                    .equipped_size() == 1;
+    return guest->party_panel.in_party() && PresetOf(guest->session.Snapshot()
+                                                         .party.members(0)
+                                                         .player()
+                                                         .sheet()
+                                                         .equip_presets(),
+                                                     StatPreset::kFirst)
+                                                    .equipped()
+                                                    .size() == 1;
   }));
 
   // The guest, who leads nothing, on the leader's row: Inspect is the entry

@@ -195,7 +195,7 @@ TEST_F(JobAdvancementTest, StarterGearLandsInTheBag) {
   ASSERT_TRUE(state_.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
   EXPECT_EQ(state_.character.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                .prototype()
+                ->prototype()
                 .name(),
             state_.equips.at("sword").name());
 }

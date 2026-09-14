@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "src/character/arcane_force.h"
+#include "src/character/equip_presets.h"
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
@@ -2160,7 +2161,7 @@ TEST_F(EquipTest, EquipsItemIntoEmptySlot) {
   EXPECT_TRUE(c_.Equip(0));
   EXPECT_EQ(c_.inventory().size(), 0);
   ASSERT_TRUE(c_.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
-  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->prototype().name(),
             "Sword");
 }
 
@@ -2190,7 +2191,7 @@ TEST_F(EquipTest, DisplacesExistingItemToInventory) {
   c_.Equip(0);
   c_.PickUp(std::make_unique<EquipInstance>(axe));
   EXPECT_TRUE(c_.Equip(0));
-  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->prototype().name(),
             "Axe");
   ASSERT_EQ(c_.inventory().size(), 1);
   EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
@@ -2227,8 +2228,8 @@ TEST_F(EquipTest, FourRingsWearAtOnce) {
   }
   EXPECT_EQ(c_.equipped().size(), 4);
   EXPECT_EQ(c_.equip_stats().str(), 40) << "every ring counts";
-  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING).prototype().name(), "Ring A");
-  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING_4).prototype().name(), "Ring D");
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING)->prototype().name(), "Ring A");
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING_4)->prototype().name(), "Ring D");
 }
 
 // Two pendant slots, filled the same way and no more than that: the fourth
@@ -2243,9 +2244,9 @@ TEST_F(EquipTest, TwoPendantsWearAtOnce) {
   c_.PickUp(std::make_unique<EquipInstance>(second));
   ASSERT_TRUE(c_.Equip(0));
   ASSERT_TRUE(c_.Equip(0));
-  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PENDANT).prototype().name(),
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PENDANT)->prototype().name(),
             "Pendant A");
-  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PENDANT_2).prototype().name(),
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PENDANT_2)->prototype().name(),
             "Pendant B");
 }
 
@@ -2295,8 +2296,8 @@ TEST_F(EquipTest, AFifthRingDisplacesTheFirst) {
     ASSERT_TRUE(c_.Equip(0)) << "ring " << i;
   }
   EXPECT_EQ(c_.equipped().size(), 4);
-  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING).prototype().name(), "Ring 4");
-  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING_2).prototype().name(), "Ring 1");
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING)->prototype().name(), "Ring 4");
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING_2)->prototype().name(), "Ring 1");
   ASSERT_EQ(c_.inventory().size(), 1);
   EXPECT_EQ(c_.inventory()[0].prototype().name(), "Ring 0");
 }
@@ -2367,13 +2368,13 @@ TEST_F(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
             kScrollSuccess);
   EXPECT_EQ(c_.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                .equip_state()
+                ->equip_state()
                 .scroll_stats()
                 .attack(),
             5);
   EXPECT_EQ(c_.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                .equip_state()
+                ->equip_state()
                 .remaining_upgrade_slots(),
             2);
 }
@@ -2399,6 +2400,92 @@ TEST_F(ScrollInventoryTest, UpdatesInventoryItemOnSuccess) {
   ASSERT_NE(item, nullptr);
   EXPECT_EQ(item->equip_state().scroll_stats().attack(), 5);
   EXPECT_EQ(item->equip_state().remaining_upgrade_slots(), 2);
+}
+
+// --- Equip presets ---
+
+// A preset past the first wears what the first does until it is handed
+// something of its own, and what it is handed is its alone.
+class EquipPresetTest : public CharacterEquipFixture {
+ protected:
+  EquipPrototype Blade(const std::string& name, int attack) {
+    EquipPrototype proto;
+    proto.set_name(name);
+    proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    proto.mutable_base_stats()->set_attack(attack);
+    return proto;
+  }
+  std::string WeaponIn(StatPreset preset) {
+    const EquipInstance* worn = c_.WornAt(preset, EQUIP_SLOT_PRIMARY_WEAPON);
+    return worn == nullptr ? "" : worn->prototype().name();
+  }
+};
+
+TEST_F(EquipPresetTest, EveryPresetWearsWhatTheFirstOneDoes) {
+  c_.PickUp(std::make_unique<EquipInstance>(Blade("Farm Sword", 15)));
+  ASSERT_TRUE(c_.Equip(0));
+
+  EXPECT_EQ(WeaponIn(StatPreset::kSecond), "Farm Sword");
+  EXPECT_EQ(WeaponIn(StatPreset::kThird), "Farm Sword");
+  EXPECT_EQ(c_.equip_stats(StatPreset::kThird).attack(), 15);
+  EXPECT_TRUE(c_.InheritsSlot(StatPreset::kSecond, EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_FALSE(c_.InheritsSlot(StatPreset::kFirst, EQUIP_SLOT_PRIMARY_WEAPON));
+}
+
+TEST_F(EquipPresetTest, EquippingIntoOnePresetLeavesTheOthersAlone) {
+  c_.PickUp(std::make_unique<EquipInstance>(Blade("Farm Sword", 15)));
+  ASSERT_TRUE(c_.Equip(0));
+  c_.PickUp(std::make_unique<EquipInstance>(Blade("Boss Sword", 40)));
+  ASSERT_TRUE(c_.Equip(0, StatPreset::kSecond));
+
+  EXPECT_EQ(WeaponIn(StatPreset::kFirst), "Farm Sword");
+  EXPECT_EQ(WeaponIn(StatPreset::kSecond), "Boss Sword");
+  EXPECT_EQ(WeaponIn(StatPreset::kThird), "Farm Sword")
+      << "the third inherits the first, not the second";
+  EXPECT_EQ(c_.equip_stats(StatPreset::kFirst).attack(), 15);
+  EXPECT_EQ(c_.equip_stats(StatPreset::kSecond).attack(), 40);
+  EXPECT_TRUE(c_.inventory().empty()) << "nothing was displaced";
+}
+
+TEST_F(EquipPresetTest, APresetOnlyTakesOffWhatIsItsOwn) {
+  c_.PickUp(std::make_unique<EquipInstance>(Blade("Farm Sword", 15)));
+  ASSERT_TRUE(c_.Equip(0));
+  c_.PickUp(std::make_unique<EquipInstance>(Blade("Boss Sword", 40)));
+  ASSERT_TRUE(c_.Equip(0, StatPreset::kSecond));
+
+  EXPECT_FALSE(c_.Unequip(EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kThird))
+      << "it wears nothing of its own there";
+  ASSERT_TRUE(c_.Unequip(EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kSecond));
+  EXPECT_EQ(WeaponIn(StatPreset::kSecond), "Farm Sword")
+      << "back to inheriting";
+  EXPECT_EQ(c_.inventory().size(), 1);
+}
+
+// One item, whatever preset it is upgraded from: a piece the second preset
+// inherits belongs to the first, and scrolling it there moves both.
+TEST_F(EquipPresetTest, UpgradingAnInheritedItemMovesEveryPresetWearingIt) {
+  sword_.set_upgrade_slots(3);
+  sword_.mutable_base_stats()->set_attack(15);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  ASSERT_TRUE(c_.Equip(0));
+
+  Scroll scroll;
+  scroll.set_success_rate(100);
+  scroll.mutable_stats()->set_attack(7);
+  EXPECT_EQ(
+      c_.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll, StatPreset::kSecond),
+      kScrollSuccess);
+
+  EXPECT_EQ(c_.equip_stats(StatPreset::kFirst).attack(), 22);
+  EXPECT_EQ(c_.equip_stats(StatPreset::kSecond).attack(), 22);
+}
+
+// A copy set aside for another preset is one the character owns, which is what
+// the shop asks before it sells a second.
+TEST_F(EquipPresetTest, WhatAnotherPresetWearsCountsAsOwned) {
+  c_.PickUp(std::make_unique<EquipInstance>(Blade("Boss Sword", 40)));
+  ASSERT_TRUE(c_.Equip(0, StatPreset::kSecond));
+  EXPECT_EQ(c_.CountOwned(Blade("Boss Sword", 40)), 1);
 }
 
 // --- equip_stats cache ---
@@ -2482,7 +2569,7 @@ TEST_F(HammerTest, AHammerBuysASlotWhereverTheItemIs) {
 
   ASSERT_TRUE(c_.Equip(0));
   ASSERT_TRUE(c_.HammerEquipped(EQUIP_SLOT_PRIMARY_WEAPON));
-  const EquipInstance& worn = c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
+  const EquipInstance& worn = *c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
   EXPECT_EQ(worn.equip_state().hammers(), 2);
   EXPECT_EQ(worn.equip_state().remaining_upgrade_slots(), 9);
   EXPECT_EQ(c_.meso(), kGoldenHammerCost);
@@ -2910,6 +2997,13 @@ class SaveRoundTripTest : public CharacterTest {
   }
 
   // A character rebuilt from `saved`, as a fresh launch would do it.
+  // Items the first preset wears, as the save holds them.
+  static int WornInSave(const Character& saved) {
+    return PresetOf(saved.equip_presets(), StatPreset::kFirst)
+        .equipped()
+        .size();
+  }
+
   CharacterInstance Reload(const Character& saved) {
     CharacterInstance loaded(rng_, Character{});
     loaded.RestoreFrom(saved, equips_, items_);
@@ -3047,6 +3141,53 @@ TEST_F(SaveRoundTripTest, CarriesTheBuyBackShelfAcross) {
   EXPECT_EQ(loaded.buy_backs().Get(1).equip().stars(), 9);
 }
 
+// Each preset's own items are saved apart, so what one wears and what another
+// inherits comes back the way it went in.
+TEST_F(SaveRoundTripTest, CarriesEveryPresetsOwnGear) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(std::make_unique<EquipInstance>(sword_));
+  c.Equip(0);
+  EquipPrototype spare = sword_;
+  spare.set_name("Spare Sword");
+  c.PickUp(std::make_unique<EquipInstance>(spare));
+  ASSERT_TRUE(c.Equip(0, StatPreset::kThird));
+  equips_["spare_sword"] = spare;
+
+  CharacterInstance loaded = Reload(c.ToProto());
+  EXPECT_EQ(loaded.WornAt(StatPreset::kFirst, EQUIP_SLOT_PRIMARY_WEAPON)
+                ->prototype()
+                .name(),
+            "Sword");
+  EXPECT_EQ(loaded.WornAt(StatPreset::kSecond, EQUIP_SLOT_PRIMARY_WEAPON)
+                ->prototype()
+                .name(),
+            "Sword")
+      << "still inheriting";
+  EXPECT_EQ(loaded.WornAt(StatPreset::kThird, EQUIP_SLOT_PRIMARY_WEAPON)
+                ->prototype()
+                .name(),
+            "Spare Sword");
+}
+
+// A save written before presets existed holds one worn map, which is the first
+// preset and nothing else.
+TEST_F(SaveRoundTripTest, ReadsAPrePresetSaveIntoTheFirstPreset) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(std::make_unique<EquipInstance>(sword_));
+  c.Equip(0);
+  Character old = c.ToProto();
+  *old.mutable_legacy_equipped() =
+      PresetOf(old.equip_presets(), StatPreset::kFirst).equipped();
+  old.clear_equip_presets();
+
+  CharacterInstance loaded = Reload(old);
+  EXPECT_EQ(loaded.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON), 1u);
+  EXPECT_EQ(loaded.WornAt(StatPreset::kThird, EQUIP_SLOT_PRIMARY_WEAPON)
+                ->prototype()
+                .name(),
+            "Sword");
+}
+
 TEST_F(SaveRoundTripTest, CarriesWornItemsInTheirOwnSlots) {
   CharacterInstance c = MakeCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -3055,7 +3196,7 @@ TEST_F(SaveRoundTripTest, CarriesWornItemsInTheirOwnSlots) {
 
   CharacterInstance loaded = Reload(c.ToProto());
   ASSERT_TRUE(loaded.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
-  EXPECT_EQ(loaded.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
+  EXPECT_EQ(loaded.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->prototype().name(),
             "Sword");
   EXPECT_TRUE(loaded.inventory().empty()) << "worn, not in the bag";
   // Rebuilt from what came back, not carried over: a loaded character has to
@@ -3128,10 +3269,10 @@ TEST_F(SaveRoundTripTest, AnEmptiedSlotIsNotSaved) {
   c.PickUp(std::make_unique<EquipInstance>(sword_));
   c.Equip(0);
   CharacterInstance loaded = Reload(c.ToProto());
-  ASSERT_EQ(loaded.ToProto().equipped_size(), 1);
+  ASSERT_EQ(WornInSave(loaded.ToProto()), 1);
 
   ASSERT_TRUE(loaded.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
-  EXPECT_EQ(loaded.ToProto().equipped_size(), 0);
+  EXPECT_EQ(WornInSave(loaded.ToProto()), 0);
   EXPECT_EQ(loaded.ToProto().inventory().equip_tab_size(), 1)
       << "back in the bag";
 }
@@ -3152,7 +3293,7 @@ TEST_F(SaveRoundTripTest, ReSavingALoadedCharacterGivesTheSameSave) {
   Character second = Reload(first).ToProto();
   EXPECT_EQ(second.inventory().equip_tab_size(),
             first.inventory().equip_tab_size());
-  EXPECT_EQ(second.equipped_size(), first.equipped_size());
+  EXPECT_EQ(WornInSave(second), WornInSave(first));
   EXPECT_EQ(second.stacks_size(), first.stacks_size());
   EXPECT_EQ(second.meso(), first.meso());
   EXPECT_EQ(second.level(), first.level());
@@ -3341,7 +3482,7 @@ TEST_F(SymbolTest, CombiningSpendsSparesIntoTheWornSymbol) {
   EXPECT_EQ(c_.CombineSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 3), 3);
   EXPECT_EQ(c_.equipped()
                 .at(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY)
-                .equip_state()
+                ->equip_state()
                 .symbol_exp(),
             3);
   EXPECT_EQ(c_.SpareSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 2);
@@ -3366,7 +3507,7 @@ TEST_F(SymbolTest, ASpareCarriesItsOwnExpAcross) {
   ASSERT_EQ(c_.CombineSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 1), 1);
   EXPECT_EQ(c_.equipped()
                 .at(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY)
-                .equip_state()
+                ->equip_state()
                 .symbol_exp(),
             5);
 }
@@ -3395,7 +3536,7 @@ TEST_F(SymbolTest, LevellingChargesTheMesoAndMovesTheForce) {
   EXPECT_EQ(c_.arcane_force(), 40);
   EXPECT_EQ(c_.equip_stats().str(), 400);
   const Equip& after =
-      c_.equipped().at(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY).equip_state();
+      c_.equipped().at(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY)->equip_state();
   EXPECT_EQ(after.symbol_level(), 2);
   EXPECT_EQ(after.symbol_exp(), 8);
 }
@@ -3462,7 +3603,7 @@ TEST_F(CharacterTest, CubingWornGearRollsItsLinesAndMovesTheTotals) {
 
   ASSERT_TRUE(c.CubeWorn(EQUIP_SLOT_PRIMARY_WEAPON, CubeType::kRed));
   const Potential& potential =
-      c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).potential();
+      c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->potential();
   EXPECT_EQ(potential.rank(), POTENTIAL_RANK_RARE) << "the first cube is Rare";
   EXPECT_EQ(potential.lines_size(), kPotentialLines);
   // Everything a weapon rolls at Rare is a share of something, so one of
@@ -3488,13 +3629,14 @@ TEST_F(CharacterTest, BuyingACubeChargesForARollAndPutsNothingOn) {
   ASSERT_TRUE(rolled.has_value());
   EXPECT_EQ(rolled->lines_size(), kPotentialLines);
   EXPECT_EQ(c.meso(), 0);
-  EXPECT_EQ(c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).potential().lines_size(),
-            0)
+  EXPECT_EQ(
+      c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->potential().lines_size(), 0)
       << "declining a roll leaves the piece as it was";
 
   ASSERT_TRUE(c.TakePotential(EQUIP_SLOT_PRIMARY_WEAPON, *rolled));
-  EXPECT_EQ(c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).potential().lines_size(),
-            kPotentialLines);
+  EXPECT_EQ(
+      c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->potential().lines_size(),
+      kPotentialLines);
 }
 
 TEST_F(CharacterTest, BuyingACubeTakesNothingFromAPurseThatCannotCoverIt) {
@@ -3522,7 +3664,7 @@ TEST_F(CharacterTest, CubingRefusesAnEmptySlotAndAPieceThatTakesNoPotential) {
   c.PickUp(std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_MEDAL)));
   ASSERT_TRUE(c.Equip(0));
   EXPECT_FALSE(c.CubeWorn(EQUIP_SLOT_MEDAL, CubeType::kRed));
-  EXPECT_EQ(c.equipped().at(EQUIP_SLOT_MEDAL).potential().lines_size(), 0);
+  EXPECT_EQ(c.equipped().at(EQUIP_SLOT_MEDAL)->potential().lines_size(), 0);
 }
 
 // --- ReconcileSkills ---

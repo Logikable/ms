@@ -66,10 +66,10 @@ bool PartyInspectPanel::OnEvent(const ftxui::Event& event) {
 
 const EquipInstance* PartyInspectPanel::selected_item() const {
   int at = 0;
-  for (const std::pair<const EquipSlot, EquipInstance>& kv :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        character_.equipped()) {
     if (at++ == cursor_) {
-      return &kv.second;
+      return kv.second;
     }
   }
   return nullptr;

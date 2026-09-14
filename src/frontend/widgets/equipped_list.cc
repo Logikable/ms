@@ -48,9 +48,9 @@ std::vector<EquippedRow> EquippedRows(
     const CharacterInstance& character, int selected,
     std::chrono::steady_clock::duration elapsed, const ItemColumns& columns) {
   std::vector<EquipSlot> slots;
-  for (const std::pair<const EquipSlot, EquipInstance>& kv :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        character.equipped()) {
-    if (!IsArcaneSymbol(kv.second.prototype())) {
+    if (!IsArcaneSymbol(kv.second->prototype())) {
       slots.push_back(kv.first);
     }
   }
@@ -59,7 +59,7 @@ std::vector<EquippedRow> EquippedRows(
   });
   std::vector<EquippedRow> rows;
   for (EquipSlot slot : slots) {
-    const EquipInstance& item = character.equipped().at(slot);
+    const EquipInstance& item = *character.equipped().at(slot);
     // Only the selected row's name slides; the rest sit at their heads.
     std::chrono::steady_clock::duration slide =
         static_cast<int>(rows.size()) == selected
@@ -85,9 +85,9 @@ std::vector<EquippedRow> SymbolRows(
   std::vector<EquippedRow> rows;
   // The worn map is keyed by slot, and the symbol slots are numbered in the
   // order their areas open -- so walking it is already the order to list them.
-  for (const std::pair<const EquipSlot, EquipInstance>& kv :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
        character.equipped()) {
-    const EquipInstance& item = kv.second;
+    const EquipInstance& item = *kv.second;
     if (!IsArcaneSymbol(item.prototype())) {
       continue;
     }

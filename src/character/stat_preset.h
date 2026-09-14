@@ -41,11 +41,18 @@ inline StatPreset StatPresetAt(int index) {
 
 // Which of the things a character keeps a preset of is being asked about.
 // Each kind holds its own presets and its own choice of which is in use, so a
-// character can have Hyper 1 and Ability 3 in play at once.
-enum class PresetKind { kHyperStats, kInnerAbility };
+// character can have Hyper 1, Ability 3 and Gear 2 in play at once.
+enum class PresetKind { kHyperStats, kInnerAbility, kEquip };
+
+// The gear preset the boss drop roll reads, whatever the autoswap switch says
+// and whatever the character is wearing: the player is given no moment to
+// change into drop gear before the drops fall, so the third preset is the one
+// they set aside for it.
+inline constexpr StatPreset kDropPreset = StatPreset::kThird;
 
 // The slot Autoswap Presets reads for `activity`: farming takes the first,
-// bossing the second. The third is storage the autoswap never names --
+// bossing the second. The third is storage no activity names -- for gear it is
+// the Drop preset above, asked for by name rather than by activity.
 // CharacterInstance::SlotFor is what asks this, and only while the switch is
 // on.
 inline StatPreset AutoswapSlotFor(Activity activity) {

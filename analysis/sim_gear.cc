@@ -42,11 +42,10 @@ constexpr double kTryoutSeconds = 60.0;
 // The required level of what is worn in `slot`, which is how one rung is
 // ranked against another: the shop's ladder is ordered by it.
 int HeldTier(const CharacterInstance& character, EquipSlot slot) {
-  std::map<EquipSlot, EquipInstance>::const_iterator it =
-      character.equipped().find(slot);
+  WornGear::const_iterator it = character.equipped().find(slot);
   return it == character.equipped().end()
              ? 0
-             : it->second.prototype().required_level();
+             : it->second->prototype().required_level();
 }
 
 // Puts `proto` on without charging for it, which is what trying a weapon out
@@ -223,9 +222,9 @@ bool EquipByName(CharacterInstance& character, const std::string& name) {
 }
 
 std::string HeldWeaponName(const CharacterInstance& character) {
-  std::map<EquipSlot, EquipInstance>::const_iterator it =
+  WornGear::const_iterator it =
       character.equipped().find(EQUIP_SLOT_PRIMARY_WEAPON);
-  return it == character.equipped().end() ? "-" : it->second.name();
+  return it == character.equipped().end() ? "-" : it->second->name();
 }
 
 namespace {
@@ -255,10 +254,10 @@ EquipType MeasureBestType(GameState& state, bool budget) {
   // better than anything on it -- a Frozen weapon has no second token behind
   // it, and a purse just spent leaves only the cheap rungs on offer.
   EquipPrototype worn;
-  std::map<EquipSlot, EquipInstance>::const_iterator it =
+  WornGear::const_iterator it =
       state.character.equipped().find(EQUIP_SLOT_PRIMARY_WEAPON);
   if (it != state.character.equipped().end()) {
-    worn = it->second.prototype();
+    worn = it->second->prototype();
     ladders.insert(ladders.begin(), &worn);
   }
 
@@ -304,12 +303,12 @@ void ClimbLadder(GameState& state, EquipType type, bool budget) {
   if (best == nullptr) {
     return;
   }
-  std::map<EquipSlot, EquipInstance>::const_iterator held =
+  WornGear::const_iterator held =
       state.character.equipped().find(best->equip_slot());
   bool right_ladder = held != state.character.equipped().end() &&
-                      held->second.prototype().equip_type() == type;
+                      held->second->prototype().equip_type() == type;
   if (right_ladder &&
-      best->required_level() <= held->second.prototype().required_level()) {
+      best->required_level() <= held->second->prototype().required_level()) {
     return;
   }
   if (budget && !BuyOne(state, *best)) {
@@ -439,12 +438,11 @@ bool WearMade(CharacterInstance& character, EquipSlot slot,
 // try-ons. The caller puts both back.
 const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot,
                                 int success_rate) {
-  std::map<EquipSlot, EquipInstance>::const_iterator it =
-      state.character.equipped().find(slot);
+  WornGear::const_iterator it = state.character.equipped().find(slot);
   if (it == state.character.equipped().end()) {
     return nullptr;
   }
-  EquipPrototype proto = it->second.prototype();
+  EquipPrototype proto = it->second->prototype();
   std::vector<const Scroll*> candidates;
   for (const Scroll* scroll : ScrollsFor(state, proto)) {
     if (success_rate == 0 || scroll->success_rate() == success_rate) {
@@ -547,9 +545,9 @@ void BuyAccessories(GameState& state, bool budget) {
 
 void FullyUpgrade(GameState& state, int star_cap) {
   std::map<EquipSlot, EquipPrototype> worn;
-  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        state.character.equipped()) {
-    worn[entry.first] = entry.second.prototype();
+    worn[entry.first] = entry.second->prototype();
   }
   std::string farming = OpenTryout(state);
   // The character as they arrived, which is what the ceilings are written
@@ -561,7 +559,9 @@ void FullyUpgrade(GameState& state, int star_cap) {
   for (const std::pair<const EquipSlot, EquipPrototype>& entry : worn) {
     const Scroll* scroll =
         BestScrollForSlot(state, entry.first, /*success_rate=*/0);
-    (*before.mutable_equipped())[entry.first] =
+    (*before.mutable_equip_presets()
+          ->mutable_presets(IndexOf(StatPreset::kFirst))
+          ->mutable_equipped())[entry.first] =
         AtCeiling(entry.second, scroll, star_cap, hammers);
   }
   state.character.RestoreFrom(before, state.equips, state.items);
@@ -571,7 +571,7 @@ void FullyUpgrade(GameState& state, int star_cap) {
 std::map<EquipSlot, const Scroll*> ChooseScrolls(GameState& state,
                                                  int success_rate) {
   std::vector<EquipSlot> worn;
-  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        state.character.equipped()) {
     worn.push_back(entry.first);
   }
@@ -626,10 +626,11 @@ void WearBestFromBag(CharacterInstance& character) {
           !ReachedSymbolArea(character, proto) || !character.CanEquip(proto)) {
         continue;
       }
-      std::map<EquipSlot, EquipInstance>::const_iterator worn =
+      WornGear::const_iterator worn =
           character.equipped().find(proto.equip_slot());
       if (worn != character.equipped().end() &&
-          worn->second.prototype().required_level() >= proto.required_level()) {
+          worn->second->prototype().required_level() >=
+              proto.required_level()) {
         continue;
       }
       if (character.Equip(i)) {

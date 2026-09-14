@@ -140,7 +140,7 @@ void EquippedPanel::HideRefusedEntries(EquipSlot slot) {
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return;
   }
-  const EquipInstance& item = character_.equipped().at(slot);
+  const EquipInstance& item = *character_.equipped().at(slot);
   if (!Supports(item.prototype(), UPGRADE_SCROLL)) {
     menu_.Hide(kGearMenuScroll);
   }
@@ -191,7 +191,7 @@ void EquippedPanel::OpenMenu() {
     // Greyed until the duplicates are in: the entry standing there dim is how
     // the player learns that combining comes first.
     if (slot == EQUIP_SLOT_UNSPECIFIED ||
-        !SymbolCanLevelUp(character_.equipped().at(slot).equip_state())) {
+        !SymbolCanLevelUp(character_.equipped().at(slot)->equip_state())) {
       symbol_menu_.Disable(kSymbolMenuLevelUp);
     }
     return;
@@ -241,7 +241,7 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
     // entry, which is what the gold was asking them to do.
     FollowedToAction(Feature::kScrolling, account_);
     if (scroll_panel.SetFilterForPrototype(
-            character_.equipped().at(selected_slot()).prototype())) {
+            character_.equipped().at(selected_slot())->prototype())) {
       return kScrollSelect;
     }
   }

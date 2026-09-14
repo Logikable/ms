@@ -18,9 +18,8 @@ namespace ms {
 namespace {
 
 const EquipInstance* Worn(const GameState& state, EquipSlot slot) {
-  std::map<EquipSlot, EquipInstance>::const_iterator it =
-      state.character.equipped().find(slot);
-  return it == state.character.equipped().end() ? nullptr : &it->second;
+  WornGear::const_iterator it = state.character.equipped().find(slot);
+  return it == state.character.equipped().end() ? nullptr : it->second;
 }
 
 // TotalEquipStats' own fold, redone here because the percentage is what moves
@@ -46,13 +45,13 @@ double WithoutIgnoredDefense(double combined, double part) {
 PotentialTotals PotentialsBut(const CharacterInstance& character,
                               EquipSlot slot) {
   PotentialTotals totals;
-  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        character.equipped()) {
     if (entry.first == slot) {
       continue;
     }
-    AddPotential(entry.second.equip_state().main_potential(),
-                 entry.second.prototype().required_level(), totals);
+    AddPotential(entry.second->equip_state().main_potential(),
+                 entry.second->prototype().required_level(), totals);
   }
   return totals;
 }

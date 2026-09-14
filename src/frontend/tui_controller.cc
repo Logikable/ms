@@ -699,7 +699,7 @@ Screen TuiController::SeedSaleScreen(Screen next) {
 Screen TuiController::SeedSymbolScreen(Screen next) {
   if (next == kSymbolLevel) {
     symbol_slot_ = equip_panel_.selected_slot();
-    const EquipInstance& symbol = state_.character.equipped().at(symbol_slot_);
+    const EquipInstance& symbol = *state_.character.equipped().at(symbol_slot_);
     int level = SymbolLevel(symbol.equip_state());
     symbol_level_panel_.Reset(symbol.prototype().name(), level,
                               SymbolLevelUpCost(symbol.prototype(), level),
@@ -711,7 +711,7 @@ Screen TuiController::SeedSymbolScreen(Screen next) {
     symbol_slot_ = state_.character.inventory()[inventory_panel_.selected()]
                        .prototype()
                        .equip_slot();
-    const EquipInstance& worn = state_.character.equipped().at(symbol_slot_);
+    const EquipInstance& worn = *state_.character.equipped().at(symbol_slot_);
     int level = SymbolLevel(worn.equip_state());
     symbol_combine_panel_.Reset(worn.prototype().name(), level,
                                 worn.equip_state().symbol_exp(),

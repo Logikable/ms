@@ -11,6 +11,7 @@
 
 #include "google/protobuf/util/message_differencer.h"
 #include "server/test_server.h"
+#include "src/character/equip_presets.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
@@ -19,6 +20,11 @@
 
 namespace ms {
 namespace {
+
+// Items the sheet's first gear preset carries.
+int WornInSheet(const Character& sheet) {
+  return PresetOf(sheet.equip_presets(), StatPreset::kFirst).equipped().size();
+}
 
 constexpr std::chrono::milliseconds kPatience(4000);
 
@@ -153,7 +159,7 @@ TEST_F(SessionTest, TheSheetCarriesTheCharacterAndNotTheirBelongings) {
   Character sheet = PublicSheet(state_->character);
   EXPECT_EQ(sheet.name(), "Dagger");
   EXPECT_EQ(sheet.level(), state_->character.proto().level());
-  EXPECT_EQ(sheet.equipped_size(), 1);
+  EXPECT_EQ(WornInSheet(sheet), 1);
   EXPECT_EQ(sheet.inventory().equip_tab_size(), 0);
   EXPECT_EQ(sheet.meso(), 0);
   EXPECT_EQ(sheet.exp(), 0);
@@ -188,7 +194,7 @@ TEST_F(SessionTest, TellsTheLobbyAboutNewGear) {
   state_->character.Equip(0);
   EXPECT_TRUE(WaitFor(session, [](const MultiplayerSnapshot& snapshot) {
     return snapshot.party.members_size() == 1 &&
-           snapshot.party.members(0).player().sheet().equipped_size() == 1;
+           WornInSheet(snapshot.party.members(0).player().sheet()) == 1;
   }));
 }
 

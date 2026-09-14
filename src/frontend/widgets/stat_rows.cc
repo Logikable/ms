@@ -47,17 +47,15 @@ std::string CritRateText(const CharacterInstance& character, double rate) {
 // there is no swing to name -- nothing in hand, or a weapon that names no
 // stage. A magician reads Average whatever staff they hold, which is the row
 // saying what BaseAttackSpeedStage does.
-std::string AttackSpeedText(Job job,
-                            const std::map<EquipSlot, EquipInstance>& equipped,
-                            int bonus, int uncapped) {
-  std::map<EquipSlot, EquipInstance>::const_iterator it =
-      equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
+std::string AttackSpeedText(Job job, const WornGear& equipped, int bonus,
+                            int uncapped) {
+  WornGear::const_iterator it = equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
   if (it == equipped.end() ||
-      it->second.prototype().attack_speed() == ATTACK_SPEED_UNSPECIFIED) {
+      it->second->prototype().attack_speed() == ATTACK_SPEED_UNSPECIFIED) {
     return "-";
   }
   int stage = AttackSpeedStage(
-      BaseAttackSpeedStage(job, it->second.prototype().attack_speed()), bonus,
+      BaseAttackSpeedStage(job, it->second->prototype().attack_speed()), bonus,
       uncapped);
   return AttackSpeedName(static_cast<AttackSpeed>(stage));
 }

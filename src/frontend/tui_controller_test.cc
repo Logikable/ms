@@ -1367,7 +1367,7 @@ TEST_F(TuiControllerTest, ScrollSelectAppliesAndShowsTheResult) {
   EXPECT_EQ(controller_->screen(), kScrollResult);
   EXPECT_EQ(state_->character.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                .equip_state()
+                ->equip_state()
                 .scroll_stats()
                 .attack(),
             5);
@@ -1606,7 +1606,7 @@ TEST_F(TuiControllerTest, ScrollingWithoutTheTracesIsRefused) {
   EXPECT_EQ(state_->character.CountStackable(kSpellTraceName), 4);
   EXPECT_EQ(state_->character.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                .equip_state()
+                ->equip_state()
                 .scroll_stats()
                 .attack(),
             0);
@@ -1722,7 +1722,7 @@ TEST_F(TuiControllerTest, HammerBuysASlotOffTheEquipMenu) {
   controller_->OnEvent(ftxui::Event::Return);  // [Confirm]
   EXPECT_EQ(controller_->screen(), kMain);
   const EquipInstance& worn =
-      state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
+      *state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
   EXPECT_EQ(worn.equip_state().hammers(), 1);
   EXPECT_EQ(worn.equip_state().remaining_upgrade_slots(),
             sword_.upgrade_slots() + 1);
@@ -1747,7 +1747,7 @@ TEST_F(TuiControllerTest, AnUnaffordableHammerChangesNothing) {
   EXPECT_EQ(controller_->screen(), kHammer) << "it closed on a refusal";
   EXPECT_EQ(state_->character.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                .equip_state()
+                ->equip_state()
                 .hammers(),
             0);
 }
@@ -1783,7 +1783,7 @@ TEST_F(TuiControllerTest, AHammerHoldsTheStarsUntilItsSlotIsSpent) {
   state_->character.Equip(0);
   RenderEquipPanel();
   const EquipInstance& worn =
-      state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
+      *state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
   ASSERT_TRUE(worn.CanStarForce());
 
   controller_->OpenEquipMenu();
@@ -1795,7 +1795,7 @@ TEST_F(TuiControllerTest, AHammerHoldsTheStarsUntilItsSlotIsSpent) {
 
   EXPECT_FALSE(state_->character.equipped()
                    .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                   .CanStarForce());
+                   ->CanStarForce());
 }
 
 // --- Star Force via equip panel ---
@@ -1967,7 +1967,7 @@ TEST_F(TuiControllerTest, CubingActionGoesToTheCubingScreen) {
 
   EXPECT_EQ(controller_->screen(), kCubing);
   EXPECT_EQ(controller_->cube_item(),
-            &state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
+            state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
 }
@@ -1991,7 +1991,7 @@ TEST_F(TuiControllerTest, ConfirmRerollsWithoutLeavingTheScreen) {
   EXPECT_EQ(state_->character.proto().meso(), kCubeCost);
   EXPECT_EQ(state_->character.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                .potential()
+                ->potential()
                 .rank(),
             POTENTIAL_RANK_RARE);
 }
@@ -2014,7 +2014,7 @@ TEST_F(TuiControllerTest, ARankUpLightsTheCubeQuestionUntilTheNextKey) {
   EXPECT_EQ(CubeQuestionColor(), kTheme) << "a grant is not a rank up";
 
   const EquipInstance& worn =
-      state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
+      *state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
   for (int i = 0; i < 200 && worn.potential().rank() == POTENTIAL_RANK_RARE;
        ++i) {
     controller_->OnEvent(ftxui::Event::Return);
@@ -2081,7 +2081,7 @@ TEST_F(TuiControllerTest, EquipInspectGoesToInspectOnTheWornItem) {
   EXPECT_EQ(controller_->screen(), kInspect);
   ASSERT_NE(controller_->inspect_item(), nullptr);
   EXPECT_EQ(controller_->inspect_item(),
-            &state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
+            state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
 }
 
 TEST_F(TuiControllerTest, BagInspectGoesToInspectOnTheBagItem) {
@@ -2105,7 +2105,7 @@ TEST_F(TuiControllerTest, EquipScrollResolvesTheWornItem) {
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_EQ(controller_->scroll_item(),
-            &state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
+            state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
 }
 
 // Taking focus elsewhere after opening the modal must not change which item it
@@ -2120,7 +2120,7 @@ TEST_F(TuiControllerTest, MovingFocusDoesNotRepointAnOpenModal) {
   panel_focus_ = kInventoryPanel;
 
   EXPECT_EQ(controller_->inspect_item(),
-            &state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
+            state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
 }
 
 // --- Sell via Etc tab ---

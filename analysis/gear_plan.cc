@@ -33,9 +33,8 @@ const ItemPrototype* TraceItem(const GameState& state) {
 }
 
 const EquipInstance* Worn(const GameState& state, EquipSlot slot) {
-  std::map<EquipSlot, EquipInstance>::const_iterator it =
-      state.character.equipped().find(slot);
-  return it == state.character.equipped().end() ? nullptr : &it->second;
+  WornGear::const_iterator it = state.character.equipped().find(slot);
+  return it == state.character.equipped().end() ? nullptr : it->second;
 }
 
 // What the character wears and what their passives grant, summed. The
@@ -178,10 +177,10 @@ int SparesWorthKeeping(const GameState& state, const EquipPrototype& proto,
 
 // The stars on the worn copy of `name`, or -1 where none is worn.
 int WornStars(const CharacterInstance& character, const std::string& name) {
-  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        character.equipped()) {
-    if (entry.second.prototype().name() == name) {
-      return entry.second.stars();
+    if (entry.second->prototype().name() == name) {
+      return entry.second->stars();
     }
   }
   return -1;
@@ -206,11 +205,11 @@ const Scroll* GearShopper::ScrollFor(GameState& state, EquipSlot slot) {
   // candidate either way, and the character has to be put back afterwards.
   std::map<EquipSlot, const Scroll*> picked =
       ChooseScrolls(state, plan_.scroll_rate);
-  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        state.character.equipped()) {
     std::map<EquipSlot, const Scroll*>::const_iterator found =
         picked.find(entry.first);
-    chosen_[entry.second.prototype().name()] =
+    chosen_[entry.second->prototype().name()] =
         found == picked.end() ? nullptr : found->second;
   }
   return chosen_[name];
@@ -311,7 +310,7 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   bool hammers_open =
       state.character.proto().level() >= UnlockLevel(Feature::kHammer);
   std::vector<EquipSlot> slots;
-  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        state.character.equipped()) {
     slots.push_back(entry.first);
   }
@@ -369,9 +368,9 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
   // that test needs no rate. Kept so the accept decision uses the same one.
   income_.power_per_meso = best;
   CubeBasis basis = CubeBasisFor(state);
-  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        state.character.equipped()) {
-    if (!entry.second.CanCube()) {
+    if (!entry.second->CanCube()) {
       continue;
     }
     Candidate offer;

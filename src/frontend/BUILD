@@ -128,6 +128,7 @@ cc_test(
         ":types",
         "//server:test_server",
         "//src:game_state",
+        "//src/character:equip_presets",
         "//src/character:hyper_stats",
         "//src/character:progression",
         "//src/combat:boss_run",
