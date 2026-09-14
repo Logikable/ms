@@ -613,6 +613,26 @@ bool ReachedSymbolArea(const CharacterInstance& character,
          character.proto().level() >= proto.arcane_symbol().area_level();
 }
 
+int CollectSymbols(CharacterInstance& character) {
+  // The slots first, then the absorbing: taking a spare rebuilds the symbol it
+  // went into, and nothing should be walking the worn map while that happens.
+  std::vector<EquipSlot> slots;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
+       character.equipped()) {
+    if (IsArcaneSymbol(entry.second->prototype())) {
+      slots.push_back(entry.first);
+    }
+  }
+  int taken = 0;
+  for (EquipSlot slot : slots) {
+    int spares = character.SpareSymbols(slot);
+    if (spares > 0) {
+      taken += character.CombineSymbols(slot, spares);
+    }
+  }
+  return taken;
+}
+
 void WearBestFromBag(CharacterInstance& character) {
   // Restarted after every change: equipping shuffles the bag, since whatever
   // is displaced goes back into it.

@@ -112,6 +112,7 @@
 #include "analysis/sim_jobs.h"
 #include "analysis/sim_world.h"
 #include "analysis/skill_plan.h"
+#include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
@@ -722,8 +723,12 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   ledger.etc_sales += SellDrops(state.character);
   purse.Note(state.character);
   // What fell goes on before what is bought, so the weapon measurement is
-  // taken with the rest of the outfit already in place.
+  // taken with the rest of the outfit already in place. The spare symbols go
+  // into the worn ones in the same breath: a duplicate is a bag row until
+  // something takes it, and what it banks is what the shopper then pays to
+  // cash in.
   WearBestFromBag(state.character);
+  CollectSymbols(state.character);
   int level = state.character.proto().level();
   if (scout.settled == EQUIP_TYPE_UNSPECIFIED ||
       level - scout.settled_at >= kScoutEveryLevels) {
@@ -2855,9 +2860,10 @@ void PrintMesoLedger(const std::vector<Job>& branches,
       "\nWhere the meso came from and where it went, over the whole run. Mobs "
       "is the remainder --\neverything the purse was paid that no named "
       "source claims.\n\n");
-  const char* kHeads[] = {"mobs",  "Etc sold", "gear sold", "bosses",
-                          "shelf", "scrolls",  "stars",     "hammers",
-                          "cubes", "copies",   "buffs",     "buffs own"};
+  const char* kHeads[] = {"mobs",     "Etc sold", "gear sold", "bosses",
+                          "shelf",    "scrolls",  "stars",     "hammers",
+                          "cubes",    "symbols",  "copies",    "buffs",
+                          "buffs own"};
   std::printf("%-13s", "branch");
   for (const char* head : kHeads) {
     std::printf(" %9s", head);
@@ -2875,6 +2881,7 @@ void PrintMesoLedger(const std::vector<Job>& branches,
                       ledger.gear.stars,
                       ledger.gear.hammers,
                       ledger.gear.cubes,
+                      ledger.gear.symbols,
                       ledger.gear.replacements,
                       ledger.buffs.drained,
                       ledger.buffs.bought};
@@ -2981,6 +2988,21 @@ void PrintBag(const GameState& state) {
 // slots it has spent, its stars and any hammers driven into it.
 void PrintWornRow(const EquipInstance& item) {
   const EquipPrototype& proto = item.prototype();
+  // A symbol takes neither scroll nor star: what it has is a level and the
+  // duplicates banked toward the next one, so the two columns say that
+  // instead.
+  if (IsArcaneSymbol(proto)) {
+    const ms::Equip& worn = item.equip_state();
+    int level = SymbolLevel(worn);
+    char rung[16];
+    std::snprintf(rung, sizeof(rung), "Lv%d", level);
+    char banked[16];
+    std::snprintf(banked, sizeof(banked), "%d/%d", worn.symbol_exp(),
+                  SymbolExpToNextLevel(level));
+    std::printf("    %-30s Lv%-4d %-8s %-6s %s\n", proto.name().c_str(),
+                proto.required_level(), banked, rung, "");
+    return;
+  }
   int slots = proto.upgrade_slots() + item.equip_state().hammers();
   char stars[16];
   std::snprintf(stars, sizeof(stars), "%d*", item.stars());

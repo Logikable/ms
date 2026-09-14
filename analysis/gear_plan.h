@@ -57,9 +57,11 @@ struct GearSpend {
   int64_t stars = 0;         // every attempt, the failures included
   int64_t hammers = 0;       // golden hammers, for the slots they open
   int64_t cubes = 0;         // every cube, whatever it rolled
+  int64_t symbols = 0;       // rungs of an Arcane Symbol's own ladder
   int64_t replacements = 0;  // copies bought to put a destroyed piece back
   int slots_filled = 0;
   int stars_gained = 0;
+  int symbol_levels = 0;
   int hammers_driven = 0;
   // Cubes bought, and the ones whose roll the character kept. The two apart
   // because a cube is a chance rather than a purchase: the gap is the meso
@@ -72,7 +74,7 @@ struct GearSpend {
   int64_t sold = 0;
 
   int64_t meso() const {
-    return scrolls + stars + hammers + replacements + cubes;
+    return scrolls + stars + hammers + replacements + cubes + symbols;
   }
 
   void Add(const GearSpend& other) {
@@ -80,9 +82,11 @@ struct GearSpend {
     stars += other.stars;
     hammers += other.hammers;
     cubes += other.cubes;
+    symbols += other.symbols;
     replacements += other.replacements;
     slots_filled += other.slots_filled;
     stars_gained += other.stars_gained;
+    symbol_levels += other.symbol_levels;
     hammers_driven += other.hammers_driven;
     cubes_bought += other.cubes_bought;
     cubes_kept += other.cubes_kept;
@@ -130,6 +134,10 @@ class GearShopper {
     // and valued as one thing. On its own a hammer is worth nothing -- what
     // the purse is buying is the scroll it makes room for.
     bool hammer = false;
+    // One rung of an Arcane Symbol's own ladder, priced at what the rung asks
+    // and valued at the stat it pays. The duplicates it eats are not bought:
+    // they fall, and CollectSymbols has already banked them.
+    bool symbol = false;
     // A cube into the slot's potential, priced at kCubeCost and valued at what
     // one reroll is expected to beat the item's own lines by.
     bool cube = false;
@@ -159,6 +167,11 @@ class GearShopper {
                                        int open_slots, bool can_hammer);
   std::optional<Candidate> StarOffer(GameState& state, const Basis& basis,
                                      EquipSlot slot, int level, int stars);
+  // The offer for one rung of the Arcane Symbol worn in `slot`. Nothing where
+  // the slot holds no symbol, or where it has not taken the duplicates the
+  // next rung asks for -- meso alone does not raise one.
+  std::optional<Candidate> SymbolOffer(GameState& state, const Basis& basis,
+                                       EquipSlot slot);
   // The cube offer for every slot that takes one, priced against `best`: what
   // a meso buys in combat power on the rest of the shelf, which is the rate an
   // income line has to be converted at to be ranked beside a damage one. A
@@ -177,13 +190,14 @@ class GearShopper {
   bool BuyBest(GameState& state, GearSpend& spend);
   // Pays for one offer and puts it on. False for one that was refused.
   bool BuyOffer(GameState& state, const Candidate& candidate, GearSpend& spend);
-  // The four purchases an offer can be, one apiece. False from any of them is
+  // The five purchases an offer can be, one apiece. False from any of them is
   // a bag or a purse that refused, which is BuyBest's cue to try the next.
   bool BuyCube(GameState& state, EquipSlot slot, GearSpend& spend);
   bool BuyHammer(GameState& state, EquipSlot slot, GearSpend& spend);
   bool BuyScroll(GameState& state, const Candidate& candidate,
                  GearSpend& spend);
   bool BuyStar(GameState& state, EquipSlot slot, GearSpend& spend);
+  bool BuySymbol(GameState& state, EquipSlot slot, GearSpend& spend);
   // Sells the copies the bag is holding for nothing: a piece the character
   // cannot wear at all, and spares past what a boom could ever use.
   void SellSpares(GameState& state, GearSpend& spend);

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -10,6 +11,7 @@
 #include "analysis/cube_plan.h"
 #include "analysis/sim_gear.h"
 #include "analysis/star_force_curve.h"
+#include "src/character/arcane_force.h"
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
 #include "src/combat/damage.h"
@@ -300,6 +302,39 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   return offer;
 }
 
+std::optional<GearShopper::Candidate> GearShopper::SymbolOffer(
+    GameState& state, const Basis& basis, EquipSlot slot) {
+  const EquipInstance* item = Worn(state, slot);
+  if (item == nullptr || !IsArcaneSymbol(item->prototype())) {
+    return std::nullopt;
+  }
+  // Meso alone does not raise a symbol: the rung is paid for in duplicates the
+  // map has to have dropped, and the purse only settles the rest. So a slot
+  // short of them offers nothing, however full the purse is.
+  const ms::Equip& worn = item->equip_state();
+  if (!SymbolCanLevelUp(worn)) {
+    return std::nullopt;
+  }
+  int level = SymbolLevel(worn);
+  Candidate offer;
+  offer.slot = slot;
+  offer.symbol = true;
+  offer.cost = SymbolLevelUpCost(item->prototype(), level);
+  if (offer.cost <= 0) {
+    return std::nullopt;
+  }
+  // What the rung pays is the primary stat the next level grants over this
+  // one. The Arcane Force it also carries is left out: that is a fact about
+  // the maps the character may then stand on rather than about the character,
+  // the way ignored defence is -- see CubePlan's kBossPdr.
+  StatField primary = PrimaryStatField(state.character.proto().job());
+  EquipStats added =
+      Minus(SymbolStatsFor(primary, level + 1), SymbolStatsFor(primary, level));
+  offer.gain =
+      PowerWith(state, basis.derived, Plus(basis.worn, added)) - basis.power;
+  return offer;
+}
+
 std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   Basis basis;
   basis.trace = TraceItem(state);
@@ -319,6 +354,11 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
     const EquipInstance* item = Worn(state, slot);
     if (item == nullptr) {
       continue;
+    }
+    std::optional<Candidate> symbol = SymbolOffer(state, basis, slot);
+    if (symbol.has_value()) {
+      offers.push_back(*symbol);
+      continue;  // a symbol takes neither a scroll nor a star
     }
     // Read out before either offer, which measure: putting a scroll on to try
     // it rebuilds the character, and every EquipInstance in the map goes too.
@@ -500,6 +540,22 @@ bool GearShopper::BuyStar(GameState& state, EquipSlot slot, GearSpend& spend) {
 
 // Pays for one offer and puts it on. False for one the bag or the purse
 // refused, which is the caller's cue to try the next.
+bool GearShopper::BuySymbol(GameState& state, EquipSlot slot,
+                            GearSpend& spend) {
+  const EquipInstance* item = Worn(state, slot);
+  if (item == nullptr) {
+    return false;
+  }
+  int64_t cost =
+      SymbolLevelUpCost(item->prototype(), SymbolLevel(item->equip_state()));
+  if (!state.character.LevelUpSymbol(slot)) {
+    return false;
+  }
+  spend.symbols += cost;
+  ++spend.symbol_levels;
+  return true;
+}
+
 bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
                            GearSpend& spend) {
   if (candidate.cube) {
@@ -507,6 +563,9 @@ bool GearShopper::BuyOffer(GameState& state, const Candidate& candidate,
   }
   if (candidate.hammer) {
     return BuyHammer(state, candidate.slot, spend);
+  }
+  if (candidate.symbol) {
+    return BuySymbol(state, candidate.slot, spend);
   }
   if (!candidate.star) {
     return BuyScroll(state, candidate, spend);
@@ -559,6 +618,14 @@ void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
       continue;
     }
     const EquipPrototype& proto = item->prototype();
+    // Never a symbol. The counter pays nothing for one, and what a spare is
+    // really worth is the rung it is combined into -- so selling one is a
+    // duplicate thrown away for no meso. CollectSymbols banks them at the
+    // look; this is what stops the two getting out of order.
+    if (IsArcaneSymbol(proto)) {
+      ++i;
+      continue;
+    }
     std::map<std::string, int>::iterator kept = allowance.find(proto.name());
     if (kept == allowance.end()) {
       int worn = WornStars(state.character, proto.name());

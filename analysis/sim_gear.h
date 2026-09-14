@@ -66,6 +66,16 @@ EquipType SettledWeaponType(GameState& state, bool budget);
 // weapon has to be in hand.
 void OutfitWeapon(GameState& state, EquipType type);
 
+// Feeds every worn Arcane Symbol the spare copies of itself the bag is
+// holding, and says how many it absorbed. A symbol is the one ladder climbed
+// with duplicates rather than with either upgrade path, and a spare nothing
+// takes sits in the bag for good -- so this runs at every look, for the room
+// as much as for the rung.
+//
+// What the duplicates buy is not bought here. Raising the level is paid for in
+// meso, and GearShopper ranks that rung against a star like anything else.
+int CollectSymbols(CharacterInstance& character);
+
 // Wears the best of every slot the shop does not stock: the armour, the boss
 // accessories and the pocket, which in this game drop rather than sell. What a
 // player who had cleared everything would be standing in. A family of slots
