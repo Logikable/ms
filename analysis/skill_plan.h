@@ -46,6 +46,12 @@ int BuySkill(GameState& state, const Skill& skill,
 // nothing left to buy raises the rate. Points the book cannot use are left
 // unspent rather than dumped into a skill that pays nothing.
 //
+// Searched LAZILY, the way the matrix below is: pricing one skill plays a
+// fight and a book holds hundreds, so a stale score is kept as an upper bound
+// and only the leader is priced again after a purchase. Where a purchase makes
+// another skill worth MORE the bound can seat the order wrongly -- the trade
+// is made on purpose, and the note on it is in SpendGreedily.
+//
 // The SP book alone. A V Matrix node is bought with V Points, on a ladder
 // where one level costs anything from 1 to 9, and ranking it beside an SP
 // skill at a point a level prices most of the matrix wrong -- see
@@ -70,6 +76,8 @@ void SpendBookWithToggles(GameState& state, const SkillRate& rate);
 // again once the gear has lifted them over, it re-decides from nothing rather
 // than adding to a ranking taken against somebody who could not scratch the
 // boss. GMS charges nothing to reset one.
+//
+// Searched lazily -- see SpendBook, which shares the search.
 //
 // Priced per point rather than per level because a node's ladder is not flat:
 // a boost node costs one a level and a common's first costs seven, so the same

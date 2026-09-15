@@ -1,6 +1,7 @@
 #include "analysis/skill_plan.h"
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <map>
 #include <string>
@@ -46,28 +47,77 @@ std::vector<int> NodeRungs(const CharacterInstance& character,
   return rungs;
 }
 
-// One node's best climb, as it was last priced. `score` on an unpriced offer
+// One skill's best climb, as it was last priced. `score` on an unpriced offer
 // is what it was worth before the last purchase -- an upper bound on what it
-// is worth now, since a node's next level never pays more than its last, which
-// is what lets the search skip pricing the ones that are plainly behind.
-struct NodeOffer {
-  const Skill* node = nullptr;
+// is worth now, since a next level never pays more than the last did, which is
+// what lets the search skip pricing everything plainly behind.
+struct Offer {
+  const Skill* skill = nullptr;
   int levels = 0;
   double score = std::numeric_limits<double>::max();
   double rate = 0.0;  // what the character would be taking off the fight
   bool measured = false;
 };
 
-// Prices every climb `offer` could make and keeps the best per point.
+// Prices every climb `offer` could make and keeps the best per point. Pricing
+// is where the whole cost of an allocation is: one call plays a fight.
+using PriceOffer = std::function<void(GameState&, double held, Offer*)>;
+
+// Makes the purchase an offer names, once the search has settled on it.
+using TakeOffer = std::function<void(GameState&, const Offer&)>;
+
+// The greedy both pools share: take the best value per point, over and over,
+// and stop when nothing left to buy pays anything.
+//
+// LAZY, which is the only reason either allocation is affordable. Pricing an
+// offer plays a fight, and a book holds five hundred skills -- pricing them all
+// again after every purchase is most of what a sim's runtime used to be. So a
+// stale score is kept as an upper bound and only the leader is re-priced: what
+// it drops behind is already fresh, and what it stays ahead of cannot overtake
+// it.
+//
+// The bound holds while a purchase only ever makes the rest worth LESS, which
+// is the usual shape -- the points that remain buy smaller and smaller lifts.
+// Where a purchase makes another worth MORE, which is real enough in a book
+// full of skills that boost each other, the bound can seat the order wrongly
+// and the plan comes out a little different. That is the trade this makes on
+// purpose: an exact sweep is an order of magnitude dearer and no sim here is
+// deciding anything to the precision the difference lives at.
+void SpendGreedily(GameState& state, const SkillRate& rate,
+                   std::vector<Offer>& offers, const PriceOffer& price,
+                   const TakeOffer& take) {
+  double held = rate(state);
+  while (true) {
+    std::vector<Offer>::iterator best = std::max_element(
+        offers.begin(), offers.end(),
+        [](const Offer& a, const Offer& b) { return a.score < b.score; });
+    if (best == offers.end() || (best->measured && best->score <= 0.0)) {
+      return;
+    }
+    // The leader has not been priced since the last purchase, so its score is
+    // only the bound. Price it and look again.
+    if (!best->measured) {
+      price(state, held, &*best);
+      continue;
+    }
+    take(state, *best);
+    held = best->rate;
+    for (Offer& offer : offers) {
+      offer.measured = false;
+    }
+  }
+}
+
+// Prices every climb a node could make, per V Point.
 void PriceNode(GameState& state, double held, const SkillRate& rate,
-               NodeOffer* offer) {
+               Offer* offer) {
   Character before = state.character.ToProto();
   offer->measured = true;
   offer->score = 0.0;
   offer->levels = 0;
-  for (int levels : NodeRungs(state.character, *offer->node)) {
-    int cost = state.character.VNodeCostFor(*offer->node, levels);
-    if (cost <= 0 || !state.character.LearnSkill(*offer->node, levels)) {
+  for (int levels : NodeRungs(state.character, *offer->skill)) {
+    int cost = state.character.VNodeCostFor(*offer->skill, levels);
+    if (cost <= 0 || !state.character.LearnSkill(*offer->skill, levels)) {
       continue;
     }
     double measured = rate(state);
@@ -78,6 +128,38 @@ void PriceNode(GameState& state, double held, const SkillRate& rate,
       offer->levels = levels;
     }
     state.character.RestoreFrom(before, state.equips, state.items);
+  }
+}
+
+// Prices a book skill, per SP. One level and the whole skill: a skill meant to
+// replace the one being swung is worth nothing at its first level and
+// everything at its last, and a chooser offered only the first would never buy
+// it.
+void PriceSkill(GameState& state,
+                const std::map<std::string, const Skill*>& named, double held,
+                const SkillRate& rate, Offer* offer) {
+  Character before = state.character.ToProto();
+  offer->measured = true;
+  offer->score = 0.0;
+  offer->levels = 0;
+  for (int levels : {1, offer->skill->max_level()}) {
+    int points = BuySkill(state, *offer->skill, named, levels);
+    if (points > 0) {
+      double measured = rate(state);
+      double score = (measured - held) / points;
+      if (score > offer->score) {
+        offer->score = score;
+        offer->rate = measured;
+        offer->levels = levels;
+      }
+      // Only what was bought needs putting back. A skill the book cannot sell
+      // -- maxed, unaffordable, its requirement out of reach -- left the
+      // character untouched.
+      state.character.RestoreFrom(before, state.equips, state.items);
+    }
+    if (offer->skill->max_level() <= 1) {
+      break;  // both tries are the same one
+    }
   }
 }
 
@@ -123,48 +205,21 @@ int BuySkill(GameState& state, const Skill& skill,
 
 void SpendBook(GameState& state, const SkillRate& rate) {
   std::map<std::string, const Skill*> named = SkillsByName(state);
-  double held = rate(state);
-  while (true) {
-    Character before = state.character.ToProto();
-    const Skill* best = nullptr;
-    int best_levels = 0;
-    double best_score = 0.0;
-    double best_rate = held;
-    for (const std::pair<const std::string, Skill>& entry : state.skills) {
-      if (IsNode(entry.second)) {
-        continue;  // the matrix has its own pool and its own allocator
-      }
-      // One level, and the whole skill. A skill meant to replace the one being
-      // swung is worth nothing at its first level and everything at its last,
-      // and a chooser offered only the first would never buy it.
-      for (int levels : {1, entry.second.max_level()}) {
-        int points = BuySkill(state, entry.second, named, levels);
-        if (points > 0) {
-          double measured = rate(state);
-          double score = (measured - held) / points;
-          if (score > best_score) {
-            best_score = score;
-            best_rate = measured;
-            best_levels = levels;
-            best = &entry.second;
-          }
-          // Only what was bought needs putting back. A skill the book cannot
-          // sell -- maxed, unaffordable, its requirement out of reach -- left
-          // the character untouched, and rebuilding them from the proto to
-          // undo nothing is most of what this loop used to cost.
-          state.character.RestoreFrom(before, state.equips, state.items);
-        }
-        if (entry.second.max_level() <= 1) {
-          break;  // both tries are the same one
-        }
-      }
+  std::vector<Offer> offers;
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    // The matrix has its own pool and its own allocator.
+    if (!IsNode(entry.second)) {
+      offers.push_back({&entry.second});
     }
-    if (best == nullptr) {
-      return;
-    }
-    BuySkill(state, *best, named, best_levels);
-    held = best_rate;
   }
+  SpendGreedily(
+      state, rate, offers,
+      [&named, &rate](GameState& inner, double held, Offer* offer) {
+        PriceSkill(inner, named, held, rate, offer);
+      },
+      [&named](GameState& inner, const Offer& offer) {
+        BuySkill(inner, *offer.skill, named, offer.levels);
+      });
 }
 
 void SpendBookWithToggles(GameState& state, const SkillRate& rate) {
@@ -223,35 +278,20 @@ void SpendVMatrix(GameState& state, const SkillRate& rate) {
     return;
   }
   RefundMatrix(state);
-  std::vector<NodeOffer> offers;
+  std::vector<Offer> offers;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     if (IsNode(entry.second)) {
       offers.push_back({&entry.second});
     }
   }
-  double held = rate(state);
-  while (true) {
-    std::vector<NodeOffer>::iterator best =
-        std::max_element(offers.begin(), offers.end(),
-                         [](const NodeOffer& a, const NodeOffer& b) {
-                           return a.score < b.score;
-                         });
-    if (best == offers.end() || (best->measured && best->score <= 0.0)) {
-      return;
-    }
-    // The leader has not been priced since the last purchase, so its score is
-    // only the bound. Price it and look again -- what it drops behind is
-    // already fresh, and what it stays ahead of cannot overtake it.
-    if (!best->measured) {
-      PriceNode(state, held, rate, &*best);
-      continue;
-    }
-    state.character.LearnSkill(*best->node, best->levels);
-    held = best->rate;
-    for (NodeOffer& offer : offers) {
-      offer.measured = false;
-    }
-  }
+  SpendGreedily(
+      state, rate, offers,
+      [&rate](GameState& inner, double held, Offer* offer) {
+        PriceNode(inner, held, rate, offer);
+      },
+      [](GameState& inner, const Offer& offer) {
+        inner.character.LearnSkill(*offer.skill, offer.levels);
+      });
 }
 
 }  // namespace ms
