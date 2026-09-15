@@ -188,6 +188,20 @@ int BuyDeep(GameState& state, const Skill& skill,
   return spent;
 }
 
+// The switches this character could throw, by name. What decides whether the
+// last answer still stands: a roster that has not moved cannot have changed
+// which way the answer falls.
+std::string ToggleRoster(const GameState& state) {
+  std::string roster;
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    if (entry.second.toggle() && state.character.HasBookFor(entry.second)) {
+      roster += entry.first;
+      roster += '\n';
+    }
+  }
+  return roster;
+}
+
 }  // namespace
 
 std::map<std::string, const Skill*> SkillsByName(const GameState& state) {
@@ -222,7 +236,20 @@ void SpendBook(GameState& state, const SkillRate& rate) {
       });
 }
 
-void SpendBookWithToggles(GameState& state, const SkillRate& rate) {
+void SpendBookWithToggles(GameState& state, const SkillRate& rate,
+                          ToggleChoice* choice) {
+  std::string roster = ToggleRoster(state);
+  if (choice != nullptr && choice->roster == roster) {
+    // The switches they settled on are still thrown -- the character carries
+    // them -- so this is the same allocation, once instead of twice. A
+    // character with no switches at all lands here on the first look, which is
+    // right: there is nothing to try both ways round.
+    SpendBook(state, rate);
+    return;
+  }
+  if (choice != nullptr) {
+    choice->roster = roster;
+  }
   Character start = state.character.ToProto();
   SpendBook(state, rate);
   double off_rate = rate(state);

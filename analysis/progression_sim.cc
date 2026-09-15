@@ -223,27 +223,6 @@ ABSL_FLAG(std::string, branch, "",
           "sweep, which waits on the slowest of them however many cores are "
           "free -- so name one when one is the question.");
 
-
-// TEMPORARY instrumentation -- not for commit.
-#include <atomic>
-#include <chrono>
-namespace ms {
-std::atomic<long long> g_us[8];
-std::atomic<long long> g_n[8];
-const char* g_name[8] = {"ProbeMap", "MeasureYield", "BookSweep", "MatrixSweep",
-                         "ShopperSpend", "Yardstick", "WeaponScout", "HyperAbility"};
-struct Tick {
-  int slot;
-  std::chrono::steady_clock::time_point t0;
-  explicit Tick(int s) : slot(s), t0(std::chrono::steady_clock::now()) {}
-  ~Tick() {
-    g_us[slot] += std::chrono::duration_cast<std::chrono::microseconds>(
-                      std::chrono::steady_clock::now() - t0).count();
-    ++g_n[slot];
-  }
-};
-}  // namespace ms
-
 namespace ms {
 namespace {
 
@@ -306,6 +285,13 @@ void LearnTheRest(GameState& state) {
 // taken again at every level of every climb.
 constexpr double kBookSeconds = 10.0;
 
+// How many of the slowest cycle a ranking window holds. ONE, which is all it
+// takes to see a buff go up and come down again and so to price a lever that
+// lengthens it. It held two until 2026-09-15, which bought nothing the second
+// cycle did not already show and cost the whole of it -- and the ranking
+// window is half of a progression run.
+constexpr double kBookCycles = 1.0;
+
 // Seconds in a day, which is what a daily reset waits out. The game is idle,
 // so a day of playtime is a day.
 constexpr double kDaySeconds = 24.0 * 60.0 * 60.0;
@@ -314,7 +300,7 @@ constexpr double kDaySeconds = 24.0 * 60.0 * 60.0;
 // than a buff's own cycle cannot see the buff go up or come down: everything
 // that is standing stays standing, and a lever that lengthens a buff reads
 // EXACTLY nothing. So a question about a buff buys itself a window wide enough
-// to hold the slowest cycle twice over.
+// to hold the slowest cycle -- see kBookCycles.
 //
 // Off the character's BOOK, not off the buffs they have learned. The book does
 // not move while a decision is being taken and the learned list does, so a
@@ -335,7 +321,7 @@ double WindowFor(const GameState& state, double seconds) {
       cycle = std::max(cycle, skill.cooldown_seconds());
     }
   }
-  return std::max(seconds, 2.0 * cycle) *
+  return std::max(seconds, kBookCycles * cycle) *
          GameSpeedFactor(state.character.proto().level());
 }
 
@@ -600,7 +586,6 @@ struct Probe {
 // costs the character neither EXP nor meso nor HP.
 Probe ProbeMap(GameState& state, const DropBasis& basis, const std::string& map,
                int beats, double step) {
-  Tick tick_(0);
   std::string held = state.current_map;
   state.current_map = map;
   CombatParams params = ComputeCombatParams(state);
@@ -694,6 +679,36 @@ struct WeaponScout {
 // where it actually moves.
 constexpr int kScoutEveryLevels = 5;
 
+// What the last map choice was taken at: the level, and what was worn at the
+// time. Picking a map probes EVERY hunting ground with a played fight, which
+// is the second most expensive thing a look does, and the answer only moves
+// when the character can reach further up the ladder than they could. Both of
+// the things that carry them there are here.
+//
+// A star or a scroll is not, on the same argument the plan key makes: they
+// land on nearly every look, and the levelling that follows re-asks anyway.
+struct MapChoice {
+  int level = 0;
+  std::string worn;
+  // What they were hitting for when the money map was last picked. The cap is
+  // where the level stops moving and the stars and cubes do not, so the
+  // endgame's hourly look re-asks on growth instead -- the same rule the Hyper
+  // Stat table is re-measured on.
+  int power = 0;
+};
+
+// One line per slot, the item's name and nothing else. What both of the
+// decisions below re-ask on: a piece with a different name is a different
+// character to them, and a star on the same piece is not.
+std::string WornNames(const GameState& state) {
+  std::string worn;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& item :
+       state.character.equipped()) {
+    absl::StrAppend(&worn, item.second->name(), "\n");
+  }
+  return worn;
+}
+
 // What the book and the matrix were last planned against. Both are swept the
 // same way -- every purchase priced against a played fight, over and over
 // until nothing left is worth buying -- which makes a sweep the most expensive
@@ -718,10 +733,7 @@ struct PlanKey {
 PlanKey PlanKeyFor(const GameState& state) {
   PlanKey key;
   const Character& proto = state.character.proto();
-  for (const std::pair<const EquipSlot, const EquipInstance*>& item :
-       state.character.equipped()) {
-    absl::StrAppend(&key.worn, item.second->name(), "\n");
-  }
+  key.worn = WornNames(state);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     if (entry.second.v_node() != V_NODE_KIND_UNSPECIFIED) {
       continue;
@@ -747,7 +759,8 @@ PlanKey PlanKeyFor(const GameState& state) {
 void Retool(GameState& state, const std::vector<Job>& path, int* taken,
             const std::vector<std::string>& maps, int beats, double step,
             Purse& purse, GearShopper& shopper, WeaponScout& scout,
-            PlanKey& planned, Ledger& ledger) {
+            PlanKey& planned, ToggleChoice& toggles, MapChoice& mapped,
+            Ledger& ledger) {
   if (state.character.CanAdvanceJob() &&
       *taken < static_cast<int>(path.size())) {
     Job job = path[(*taken)++];
@@ -774,7 +787,6 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   int level = state.character.proto().level();
   if (scout.settled == EQUIP_TYPE_UNSPECIFIED ||
       level - scout.settled_at >= kScoutEveryLevels) {
-    Tick tick_(6);
     scout.settled = SettledWeaponType(state, /*budget=*/true);
     scout.settled_at = level;
   }
@@ -794,11 +806,11 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   // sweep against a character nothing has changed re-derives the plan it
   // already holds. See PlanKey.
   if (!(PlanKeyFor(state) == planned)) {
-    Tick tick_(2);
     DropBasis basis =
         DropBasisFor(state, shopper.power_per_meso(), shopper.yardstick());
     SpendBookWithToggles(
-        state, [&basis](GameState& inner) { return BookRate(inner, basis); });
+        state, [&basis](GameState& inner) { return BookRate(inner, basis); },
+        &toggles);
     // The matrix after the book and on the same rate: its own pool, its own
     // ladder, and nothing in it is worth anything until the skills it lifts
     // have been bought.
@@ -812,13 +824,15 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   planned = PlanKeyFor(state);
   // After the weapon, because a scroll on last tier's weapon is meso that
   // buys nothing: the next one displaces it slots and stars and all.
-  {
-    Tick tick_(4);
-    shopper.Spend(state);
-  }
+  shopper.Spend(state);
   purse.Note(state.character);
-  PickMap(state, maps, beats, step, shopper.power_per_meso(),
-          shopper.yardstick());
+  std::string worn = WornNames(state);
+  if (mapped.level != state.character.proto().level() || mapped.worn != worn) {
+    mapped.level = state.character.proto().level();
+    mapped.worn = std::move(worn);
+    PickMap(state, maps, beats, step, shopper.power_per_meso(),
+            shopper.yardstick());
+  }
 }
 
 // What one fight -- one boss at one difficulty -- came to over a run. Kept
@@ -1035,7 +1049,6 @@ struct Yield {
 // sixty times the speed.
 Yield MeasureYield(GameState& state, const CombatParams& params, int beats,
                    double step) {
-  Tick tick_(1);
   Yield yield;
   yield.kills_per_second.assign(params.types.size(), 0.0);
   if (!params.active || params.types.empty()) {
@@ -1274,6 +1287,11 @@ struct Session {
   WeaponScout scout;
   // What the book and the matrix were last swept against -- see PlanKey.
   PlanKey planned;
+  // Which switches they settled on, so the book is not spent both ways round
+  // at every look -- see SpendBookWithToggles.
+  ToggleChoice toggles;
+  // What the map they are standing on was chosen at -- see MapChoice.
+  MapChoice mapped;
   Climb& climb;
   double step = 0.5;
   int beats = 4;
@@ -1618,10 +1636,7 @@ void SpendHonor(Session& run) {
 void AfterFighting(Session& run) {
   WearBestFromBag(run.state.character);
   run.purse.Note(run.state.character);
-  {
-    Tick tick_(4);
-    run.shopper.Spend(run.state);
-  }
+  run.shopper.Spend(run.state);
   run.purse.Note(run.state.character);
 }
 
@@ -2023,7 +2038,8 @@ double GiveUpAt() {
 // the purse can now afford, then spend the points that were waiting.
 void Restock(Session& run) {
   Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
-         run.purse, run.shopper, run.scout, run.planned, run.climb.ledger);
+         run.purse, run.shopper, run.scout, run.planned, run.toggles,
+         run.mapped, run.climb.ledger);
   SpendHyperPoints(run, GearChanged(run));
   SpendHonor(run);
 }
@@ -2162,15 +2178,19 @@ void RestockAtCap(Session& run, const CombatParams& params,
   Outfit(run.state, /*budget=*/true);
   run.climb.ledger.gear_bought +=
       std::max<int64_t>(0, before_shelf - run.state.character.meso());
-  {
-    Tick tick_(4);
-    run.shopper.Spend(run.state);
-  }
+  run.shopper.Spend(run.state);
   run.purse.Note(run.state.character);
   SpendHyperPoints(run, GearChanged(run));
   SpendHonor(run);
-  PickMoneyMap(run.state, run.maps, run.beats, run.step,
-               run.shopper.power_per_meso(), run.shopper.yardstick());
+  // Hourly, but only re-asked once they have outgrown the answer: probing the
+  // shelf of maps plays a fight on every one of them, and twenty endgame days
+  // of hourly looks is most of the section.
+  int power = PowerNow(run.state);
+  if (power >= run.mapped.power * kRemeasureGrowth) {
+    run.mapped.power = power;
+    PickMoneyMap(run.state, run.maps, run.beats, run.step,
+                 run.shopper.power_per_meso(), run.shopper.yardstick());
+  }
   run.climb.money_map = run.state.current_map;
 }
 
@@ -2293,9 +2313,12 @@ Climb Play(const Catalogs& catalogs, Job branch,
   plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
   plan.cubes = absl::GetFlag(FLAGS_cubes);
 
-  Session run = {
-      state,         maps,      PathTo(branch), 0, Purse(), GearShopper(plan),
-      WeaponScout(), PlanKey(), climb};
+  Session run = {state,          maps,
+                 PathTo(branch), 0,
+                 Purse(),        GearShopper(plan),
+                 WeaponScout(),  PlanKey(),
+                 ToggleChoice(), MapChoice(),
+                 climb};
   run.step = absl::GetFlag(FLAGS_step);
   run.beats = absl::GetFlag(FLAGS_probe_beats);
   run.rng.seed(seed);
@@ -3442,14 +3465,6 @@ Checkpointing PrepareCheckpoints() {
 void Run() {
   Catalogs catalogs = LoadCatalogs();
   std::vector<std::string> maps = HuntingGrounds(catalogs);
-  atexit([] {
-    for (int i = 0; i < 8; ++i) {
-      if (g_n[i] > 0) {
-        fprintf(stderr, "%-14s %8.1fs  n=%lld\n", g_name[i],
-                g_us[i] / 1e6, (long long)g_n[i]);
-      }
-    }
-  });
   std::vector<Job> branches = BranchesToClimb();
   int per_branch = std::max(1, absl::GetFlag(FLAGS_runs));
 

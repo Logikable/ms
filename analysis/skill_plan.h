@@ -58,12 +58,29 @@ int BuySkill(GameState& state, const Skill& skill,
 // SpendVMatrix, which is the pool's own allocator.
 void SpendBook(GameState& state, const SkillRate& rate);
 
+// The switches a character has settled on, and the roster they settled them
+// against. Held by a caller that asks more than once -- see
+// SpendBookWithToggles, which costs twice what SpendBook does every time it
+// has to decide afresh.
+struct ToggleChoice {
+  std::string roster;
+};
+
 // The book spent both ways round: every switch off, and every switch thrown
 // first. A switch costs no points and so is never one of the purchases above,
 // but it changes what the points are WORTH -- with Righteously Indignant
 // thrown, the levels in Heal are a six-enemy swing rather than a heal, and a
 // chooser that never threw it would never buy them.
-void SpendBookWithToggles(GameState& state, const SkillRate& rate);
+//
+// Both ways round means the allocation runs TWICE, which is the dearest thing
+// a climb does. So a caller may hand in a `choice` to remember what was
+// settled: while the roster of switches the character could throw has not
+// moved, the throw they are already standing in is kept and the book is spent
+// once. Which way a switch falls is a shape-of-build decision that a star or a
+// scroll does not flip -- and where it would, the next skill learned re-asks.
+// Pass null to decide afresh every time.
+void SpendBookWithToggles(GameState& state, const SkillRate& rate,
+                          ToggleChoice* choice = nullptr);
 
 // Spends the V Point pool on the matrix, best value per POINT first, and stops
 // when nothing left to buy raises the rate. Nothing at all below the 5th job,
