@@ -22,6 +22,7 @@
 #ifndef MS_ANALYSIS_CUBE_PLAN_H_
 #define MS_ANALYSIS_CUBE_PLAN_H_
 
+#include <cstdint>
 #include <functional>
 #include <random>
 
@@ -81,14 +82,37 @@ struct CubeBasis {
 
 CubeBasis CubeBasisFor(const GameState& state);
 
-// What one cube into `slot` is expected to add, in the combat power the rest
-// of the shelf is priced in. Zero where the slot is empty, takes no potential,
-// or holds nothing a cube could improve.
-int CubeGain(const GameState& state, const CubeBasis& basis, EquipSlot slot,
-             const CubeIncome& income, std::mt19937& rng);
+// A run of cubes into one slot, and what the run is expected to leave behind.
+//
+// A PROGRAM rather than a single cube, because what one cube is worth is not
+// what cubing a slot is worth. A character short of a boss's defence wall
+// gains exactly nothing from any one roll -- both sides of it are on the
+// 1-damage floor -- while sixty rolls have a real chance at the line that
+// clears the wall. Priced one at a time, the slot that most needs cubing is
+// the one that never gets a cube.
+struct CubeProgram {
+  int cubes = 0;      // how many the run buys
+  double gain = 0.0;  // what the best roll of the run is expected to add
+  int64_t cost = 0;   // what the run costs altogether
+
+  bool worth() const {
+    return cubes > 0 && gain > 0.0 && cost > 0;
+  }
+};
+
+// The run into `slot` that pays best per meso, out of a ladder of lengths.
+// Empty where the slot takes no potential or holds nothing a cube improves.
+//
+// The whole ladder comes off ONE sample of rolls: what a run of N leaves is
+// the best of N draws, and the chance that the best of N is the i-th of a
+// sorted sample is (i/m)^N - ((i-1)/m)^N. So a sixty-cube program costs no
+// more to price than a one-cube one.
+CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
+                            EquipSlot slot, const CubeIncome& income,
+                            std::mt19937& rng);
 
 // Whether `rolled` beats what `slot` already holds -- the same comparison
-// CubeGain averages over, asked once of a roll in hand. A cube is paid for
+// BestCubeProgram averages over, asked once of a roll in hand. A cube is paid
 // either way, so this decides only what the item ends up wearing.
 bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
                  const Potential& rolled, const CubeIncome& income);

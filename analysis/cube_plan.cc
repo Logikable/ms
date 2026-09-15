@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/types/span.h"
 #include "analysis/sim_boss.h"
@@ -185,13 +186,28 @@ double GainOf(const GameState& state, const CubeBasis& basis, int level,
          IncomeGain(basis, now, totals, income);
 }
 
+// How long a run of cubes the shopper will consider. One is what it always
+// offered; the rest are there so a line that needs a rank the item has not
+// reached is priced at what reaching it costs rather than written off on the
+// first roll.
+constexpr int kCubeProgramLengths[] = {1, 4, 16, 64};
+
+// Runs played out per slot. Few, because a run is the dear part of this file:
+// every cube in one has to be valued to decide whether it is kept.
+constexpr int kCubeRuns = 4;
+
+constexpr int kCubeProgramLengthCount =
+    sizeof(kCubeProgramLengths) / sizeof(kCubeProgramLengths[0]);
+
 }  // namespace
 
-int CubeGain(const GameState& state, const CubeBasis& basis, EquipSlot slot,
-             const CubeIncome& income, std::mt19937& rng) {
+CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
+                            EquipSlot slot, const CubeIncome& income,
+                            std::mt19937& rng) {
+  CubeProgram best;
   const EquipInstance* item = Worn(state, slot);
   if (item == nullptr || !item->CanCube()) {
-    return 0;
+    return best;
   }
   int level = item->prototype().required_level();
   PotentialGroup group = PotentialGroupOf(slot);
@@ -201,21 +217,63 @@ int CubeGain(const GameState& state, const CubeBasis& basis, EquipSlot slot,
   AddPotential(current, level, now);
   double standing = PowerOf(state, basis, now);
 
-  double total = 0.0;
-  for (int draw = 0; draw < kCubeSamples; ++draw) {
-    // Keep-better, which is the offer GMS makes: a roll worse than what the
-    // item holds is declined, and the cube bought the chance rather than the
-    // result.
-    total +=
-        std::max(0.0, GainOf(state, basis, level, others, now, standing,
-                             CubePotential(current, CubeType::kRed, group, rng),
-                             income));
+  // Runs played out rather than rolls counted, because a cube rolls against
+  // what the LAST one left: keeping a better roll can carry the item up a rank,
+  // and the line that clears a defence wall is one only a higher rank offers.
+  // A run of sixty priced as sixty independent rolls never sees that, which is
+  // why it is worth the cost of playing them.
+  int longest = kCubeProgramLengths[kCubeProgramLengthCount - 1];
+  std::vector<double> reached(kCubeProgramLengthCount, 0.0);
+  for (int run = 0; run < kCubeRuns; ++run) {
+    Potential held = current;
+    double best_gain = 0.0;
+    int rung = 0;
+    for (int cube = 1; cube <= longest; ++cube) {
+      Potential rolled = CubePotential(held, CubeType::kRed, group, rng);
+      double gain =
+          GainOf(state, basis, level, others, now, standing, rolled, income);
+      // Keep-better, which is the offer GMS makes: a roll worse than what the
+      // item holds is declined, and the cube bought the chance rather than the
+      // result.
+      //
+      // A RANK is taken even when the damage does not move. Under a defence
+      // wall every roll is worth exactly nothing -- both sides of it are on the
+      // 1-damage floor -- so a run judged on damage alone keeps nothing, never
+      // climbs a rank, and never reaches the line that clears the wall. A
+      // player takes the rank up and keeps rolling, which is the whole reason
+      // a run is priced rather than a cube.
+      if (gain > best_gain ||
+          (gain >= best_gain && rolled.rank() > held.rank())) {
+        best_gain = gain;
+        held = rolled;
+      }
+      if (cube == kCubeProgramLengths[rung]) {
+        reached[rung++] += best_gain;
+      }
+    }
   }
-  double mean = total / kCubeSamples;
-  if (Replaceable(state, slot)) {
-    mean = mean * kReplaceableNumerator / kReplaceableDenominator;
+
+  double share =
+      Replaceable(state, slot)
+          ? static_cast<double>(kReplaceableNumerator) / kReplaceableDenominator
+          : 1.0;
+  for (int rung = 0; rung < kCubeProgramLengthCount; ++rung) {
+    double expected = reached[rung] / kCubeRuns * share;
+    int64_t cost = static_cast<int64_t>(kCubeProgramLengths[rung]) * kCubeCost;
+    if (expected <= 0.0) {
+      continue;
+    }
+    // Cross-multiplied rather than divided, and the empty run loses to
+    // anything: with a cost of zero it would otherwise tie every length and
+    // keep them all out.
+    if (best.cubes > 0 && expected * best.cost <= best.gain * cost) {
+      continue;  // no better per meso than the run already chosen
+    }
+    best.cubes = kCubeProgramLengths[rung];
+    best.gain = expected;
+    best.cost = cost;
   }
-  return static_cast<int>(mean);
+  return best;
 }
 
 bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
@@ -229,8 +287,18 @@ bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
   PotentialTotals now = others;
   AddPotential(item->equip_state().main_potential(), level, now);
   double standing = PowerOf(state, basis, now);
-  return GainOf(state, basis, level, others, now, standing, rolled, income) >
-         0.0;
+  double gain =
+      GainOf(state, basis, level, others, now, standing, rolled, income);
+  if (gain > 0.0) {
+    return true;
+  }
+  // A rank where the damage did not move, on the same terms BestCubeProgram
+  // priced the run: under a defence wall every roll is worth nothing, and an
+  // accept rule reading damage alone would throw away the rank-up the run was
+  // bought for. The two have to agree or the shopper pays for a program it
+  // then declines -- which it did, 2,484 cubes and none kept.
+  return gain >= 0.0 &&
+         rolled.rank() > item->equip_state().main_potential().rank();
 }
 
 // Whether the character could ever pay for `proto`, as against whether the

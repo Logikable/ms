@@ -413,11 +413,19 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
     if (!entry.second->CanCube()) {
       continue;
     }
+    CubeProgram run = BestCubeProgram(state, basis, entry.first, income_, rng_);
+    if (!run.worth()) {
+      continue;
+    }
     Candidate offer;
     offer.slot = entry.first;
     offer.cube = true;
-    offer.cost = kCubeCost;
-    offer.gain = CubeGain(state, basis, entry.first, income_, rng_);
+    // The RUN's price and the run's worth, so a slot needing a dozen rolls to
+    // show a line is ranked on what the dozen costs. One cube is bought out of
+    // it at a time -- the next pass prices the rest of the run afresh, against
+    // whatever the last roll left behind.
+    offer.cost = run.cost;
+    offer.gain = static_cast<int>(run.gain);
     if (offer.gain > 0) {
       offers.push_back(offer);
     }
