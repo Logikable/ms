@@ -71,6 +71,13 @@ double DefenceFactor(double boss_pdr, double ied) {
   return std::max(0.0, 1.0 - boss_pdr * (1.0 - ied));
 }
 
+// The smallest share the character's own defence factor is normalised by. A
+// character whose ignored defence does not reach the fight's is on the
+// 1-damage floor and DefenceFactor reads exactly zero -- which divided every
+// cube's worth by nothing and valued all of them at NaN, so the one character
+// who needs an ignored-defence line was the one who would never buy one.
+constexpr double kLeastDefence = 0.01;
+
 // The character's damage chain with `totals` in place of the potentials they
 // wear. Everything a potential moves, and nothing else.
 OffenseStats OffenseWith(const GameState& state, const CubeBasis& basis,
@@ -115,7 +122,8 @@ double PowerOf(const GameState& state, const CubeBasis& basis,
                const PotentialTotals& totals) {
   OffenseStats offense = OffenseWith(state, basis, totals);
   return CombatPower(offense, /*vs_boss=*/true) *
-         DefenceFactor(basis.boss_pdr, offense.ied) / basis.defence;
+         DefenceFactor(basis.boss_pdr, offense.ied) /
+         std::max(kLeastDefence, basis.defence);
 }
 
 // What swapping the worn potentials for `totals` is worth in income, priced in
