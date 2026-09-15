@@ -217,6 +217,30 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
   AddPotential(current, level, now);
   double standing = PowerOf(state, basis, now);
 
+  double share =
+      Replaceable(state, slot)
+          ? static_cast<double>(kReplaceableNumerator) / kReplaceableDenominator
+          : 1.0;
+
+  // One cube first, and usually last. A longer run only ever beats a single
+  // cube per meso when the single cube is worth NOTHING -- which is what a
+  // defence wall does and nothing else does -- so the expensive part below is
+  // skipped wherever the marginal roll already pays.
+  double marginal = 0.0;
+  for (int draw = 0; draw < kCubeSamples; ++draw) {
+    marginal +=
+        std::max(0.0, GainOf(state, basis, level, others, now, standing,
+                             CubePotential(current, CubeType::kRed, group, rng),
+                             income));
+  }
+  marginal = marginal / kCubeSamples * share;
+  if (marginal > 0.0) {
+    best.cubes = 1;
+    best.gain = marginal;
+    best.cost = kCubeCost;
+    return best;
+  }
+
   // Runs played out rather than rolls counted, because a cube rolls against
   // what the LAST one left: keeping a better roll can carry the item up a rank,
   // and the line that clears a defence wall is one only a higher rank offers.
@@ -253,10 +277,6 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
     }
   }
 
-  double share =
-      Replaceable(state, slot)
-          ? static_cast<double>(kReplaceableNumerator) / kReplaceableDenominator
-          : 1.0;
   for (int rung = 0; rung < kCubeProgramLengthCount; ++rung) {
     double expected = reached[rung] / kCubeRuns * share;
     int64_t cost = static_cast<int64_t>(kCubeProgramLengths[rung]) * kCubeCost;
