@@ -669,6 +669,52 @@ struct WeaponScout {
 // where it actually moves.
 constexpr int kScoutEveryLevels = 5;
 
+// What the book and the matrix were last planned against. Both are swept the
+// same way -- every purchase priced against a played fight, over and over
+// until nothing left is worth buying -- which makes a sweep the most expensive
+// thing a look does. Two looks agreeing on every field below would rank every
+// purchase alike and buy nothing, so the second sweep is pure cost.
+//
+// The node levels are deliberately not in `skills`: the matrix plan is half of
+// what this gates, and a gate its own output re-triggers gates nothing.
+struct PlanKey {
+  std::string worn;    // one line per slot, the item's name
+  std::string skills;  // the levels the book holds, the nodes left out
+  std::string map;
+  std::pair<std::string, int> fight;
+  int64_t points = 0;  // unspent SP, Hyper SP and V Points, summed
+
+  bool operator==(const PlanKey& other) const {
+    return points == other.points && worn == other.worn &&
+           skills == other.skills && map == other.map && fight == other.fight;
+  }
+};
+
+PlanKey PlanKeyFor(const GameState& state) {
+  PlanKey key;
+  const Character& proto = state.character.proto();
+  for (const std::pair<const EquipSlot, const EquipInstance*>& item :
+       state.character.equipped()) {
+    absl::StrAppend(&key.worn, item.second->name(), "\n");
+  }
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    if (entry.second.v_node() != V_NODE_KIND_UNSPECIFIED) {
+      continue;
+    }
+    int level = state.character.skill_level(entry.second);
+    if (level > 0) {
+      absl::StrAppend(&key.skills, entry.first, "=", level, "\n");
+    }
+  }
+  key.map = state.current_map;
+  AimedFight(state, &key.fight);
+  key.points = proto.hyper_sp() + proto.v_points();
+  for (const std::pair<const int32_t, int32_t>& pool : proto.sp_by_stage()) {
+    key.points += pool.second;
+  }
+  return key;
+}
+
 // Everything the player does on levelling up, in the order that makes each
 // step pay for the next: the advancement first, then the points it hands over,
 // then the drops turned into meso, then the weapon that meso buys, and only
@@ -676,7 +722,7 @@ constexpr int kScoutEveryLevels = 5;
 void Retool(GameState& state, const std::vector<Job>& path, int* taken,
             const std::vector<std::string>& maps, int beats, double step,
             Purse& purse, GearShopper& shopper, WeaponScout& scout,
-            Ledger& ledger) {
+            PlanKey& planned, Ledger& ledger) {
   if (state.character.CanAdvanceJob() &&
       *taken < static_cast<int>(path.size())) {
     Job job = path[(*taken)++];
@@ -717,15 +763,25 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   // hands can swing -- and the weapon is settled on what the branch is for,
   // which is the only thing that keeps the two from talking each other into a
   // corner. See SettledWeaponType.
-  DropBasis basis = DropBasisFor(state, shopper.power_per_meso());
-  SpendBookWithToggles(
-      state, [&basis](GameState& inner) { return BookRate(inner, basis); });
-  // The matrix after the book and on the same rate: its own pool, its own
-  // ladder, and nothing in it is worth anything until the skills it lifts have
-  // been bought.
-  SpendVMatrix(state,
-               [&basis](GameState& inner) { return BookRate(inner, basis); });
+  // Only where something has moved that could reorder them. The pair is swept
+  // several times a day where a level takes longer than that to reach, and a
+  // sweep against a character nothing has changed re-derives the plan it
+  // already holds. See PlanKey.
+  if (!(PlanKeyFor(state) == planned)) {
+    DropBasis basis = DropBasisFor(state, shopper.power_per_meso());
+    SpendBookWithToggles(
+        state, [&basis](GameState& inner) { return BookRate(inner, basis); });
+    // The matrix after the book and on the same rate: its own pool, its own
+    // ladder, and nothing in it is worth anything until the skills it lifts
+    // have been bought.
+    SpendVMatrix(state,
+                 [&basis](GameState& inner) { return BookRate(inner, basis); });
+  }
   LearnTheRest(state);
+  // After the free skills rather than before them, since they are levels the
+  // key reads: taken first, every look would find a key the last look could
+  // not have stored and sweep again regardless.
+  planned = PlanKeyFor(state);
   // After the weapon, because a scroll on last tier's weapon is meso that
   // buys nothing: the next one displaces it slots and stars and all.
   shopper.Spend(state);
@@ -1183,6 +1239,8 @@ struct Session {
   Purse purse;
   GearShopper shopper;
   WeaponScout scout;
+  // What the book and the matrix were last swept against -- see PlanKey.
+  PlanKey planned;
   Climb& climb;
   double step = 0.5;
   int beats = 4;
@@ -1272,9 +1330,9 @@ BuffPolicy BuffPolicyFor(const Session& run) {
 void PlanBuffsFor(Session& run, const CombatParams& params,
                   const Yield& yield) {
   BuffYield rates;
-  rates.crowd =
-      CrowdFor(run.state, DropBasisFor(run.state, run.shopper.power_per_meso()),
-               params, yield.kills_per_second);
+  rates.crowd = CrowdFor(run.state,
+                         DropBasisFor(run.state, run.shopper.power_per_meso()),
+                         params, yield.kills_per_second);
   // The yield already covers one side of the totem's question -- whichever
   // beat the character is standing on -- so only the other side is played out.
   Yield counter;
@@ -1304,9 +1362,9 @@ void PlanBuffsFor(Session& run, const CombatParams& params,
 // this between looks, and the fight it came from does not.
 void SetShopperIncome(Session& run, const CombatParams& params,
                       const Yield& yield) {
-  Crowd crowd =
-      CrowdFor(run.state, DropBasisFor(run.state, run.shopper.power_per_meso()),
-               params, yield.kills_per_second);
+  Crowd crowd = CrowdFor(run.state,
+                         DropBasisFor(run.state, run.shopper.power_per_meso()),
+                         params, yield.kills_per_second);
   double mult =
       DerivedStatsFor(run.state.character, run.state.skills).meso_final_mult;
   CubeIncome income;
@@ -1925,7 +1983,7 @@ double GiveUpAt() {
 // the purse can now afford, then spend the points that were waiting.
 void Restock(Session& run) {
   Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
-         run.purse, run.shopper, run.scout, run.climb.ledger);
+         run.purse, run.shopper, run.scout, run.planned, run.climb.ledger);
   SpendHyperPoints(run, GearChanged(run));
   SpendHonor(run);
 }
@@ -2193,8 +2251,8 @@ Climb Play(const Catalogs& catalogs, Job branch,
   plan.cubes = absl::GetFlag(FLAGS_cubes);
 
   Session run = {
-      state,         maps, PathTo(branch), 0, Purse(), GearShopper(plan),
-      WeaponScout(), climb};
+      state,         maps,      PathTo(branch), 0, Purse(), GearShopper(plan),
+      WeaponScout(), PlanKey(), climb};
   run.step = absl::GetFlag(FLAGS_step);
   run.beats = absl::GetFlag(FLAGS_probe_beats);
   run.rng.seed(seed);
