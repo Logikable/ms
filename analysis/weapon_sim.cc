@@ -156,6 +156,9 @@ ABSL_FLAG(double, plan_seconds, 180.0,
           "book's own ranking wants: a V node on a two-minute cooldown reads "
           "as free damage inside any window it never comes back in. Widened "
           "on its own to twice the slowest cooldown the character holds.");
+ABSL_FLAG(std::string, branch, "",
+          "Measure this branch alone, as --job spells it (\"bishop\"). Every "
+          "branch by default.");
 ABSL_FLAG(int, rounds, 2,
           "How many times --endowed goes round the spending. One pass cannot "
           "settle it: a V node changes what a Hyper Stat point is worth and a "
@@ -924,7 +927,11 @@ void Run(int level) {
               per_minute ? "DPM" : "DPS", "swing", "sec",
               fight.real ? "  fight" : "");
   std::printf("%s\n", std::string(fight.real ? 98 : 85, '-').c_str());
+  const std::string& only = absl::GetFlag(FLAGS_branch);
   for (const Build& build : kBuilds) {
+    if (!only.empty() && build.job != ParseBranch(only)) {
+      continue;
+    }
     Result result = Measure(catalogs, level, build, fight);
     // A ceiling character the row does not match measured nothing: the branch
     // holds its other weapon, and that row prints instead.

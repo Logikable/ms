@@ -152,7 +152,13 @@ double IncomeGain(const CubeBasis& basis, const PotentialTotals& worn,
 
 CubeBasis CubeBasisFor(const GameState& state) {
   CubeBasis basis;
-  basis.derived = DerivedStatsFor(state.character, state.skills);
+  // The BOSSING preset, because that is the fight this whole valuation is
+  // aimed at: AimedDefence names a boss and CombatPower is asked vs_boss. Read
+  // in the farming preset the hyper stats and Inner Ability behind the
+  // character's ignored defence were somebody else's, and a character over the
+  // defence wall priced their cubes as one standing under it.
+  basis.derived = DerivedStatsFor(state.character, state.skills, {}, {},
+                                  Activity::kBossing);
   const EquipStats sources[] = {state.character.equip_stats(),
                                 basis.derived.skill_stats};
   basis.raw = SumEquipStats(absl::MakeConstSpan(sources));
