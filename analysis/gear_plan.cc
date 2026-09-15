@@ -11,6 +11,7 @@
 #include "analysis/cube_plan.h"
 #include "analysis/sim_gear.h"
 #include "analysis/star_force_curve.h"
+#include "analysis/yardstick.h"
 #include "src/character/arcane_force.h"
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
@@ -55,17 +56,9 @@ EquipStats WornAndGranted(const GameState& state, DerivedStats& derived) {
 // candidate per round. What it leaves out is the Max HP a star pays, which
 // buys survival rather than damage -- a shopper valuing both would need a rate
 // of exchange between them that nothing in the game states.
-int PowerWith(const GameState& state, const DerivedStats& derived,
-              const EquipStats& stats) {
-  const Character& proto = state.character.proto();
-  // Ranked against bosses, which is what the gear is bought for -- see
-  // weapon_sim for the reason every sim asks the same way.
-  return CombatPower(
-      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                      stats, state.character.weapon_type(),
-                      /*attack_skill=*/nullptr, /*attack_level=*/0,
-                      PassiveOffenseFor(derived)),
-      /*vs_boss=*/true);
+double PowerWith(const GameState& state, const Yardstick& yard,
+                 const DerivedStats& derived, const EquipStats& stats) {
+  return WorthOf(state, yard, stats, PassiveOffenseFor(derived));
 }
 
 EquipStats Plus(const EquipStats& a, const EquipStats& b) {
@@ -243,10 +236,10 @@ std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
   // What the slot is worth is what it lands times how often it lands: a scroll
   // that fails has still spent the slot, and on a piece nothing sells that slot
   // does not come back.
-  offer.gain =
-      (PowerWith(state, basis.derived, Plus(basis.worn, scroll->stats())) -
-       basis.power) *
-      plan_.scroll_rate / 100;
+  offer.gain = (PowerWith(state, basis.yard, basis.derived,
+                          Plus(basis.worn, scroll->stats())) -
+                basis.power) *
+               plan_.scroll_rate / 100.0;
   if (open_slots <= 0) {
     offer.hammer = true;
     offer.cost += kGoldenHammerCost;
@@ -298,7 +291,8 @@ std::optional<GearShopper::Candidate> GearShopper::StarOffer(GameState& state,
   EquipStats added = Minus(item->StarForceStatGains(stars + 1),
                            item->StarForceStatGains(stars));
   offer.gain =
-      PowerWith(state, basis.derived, Plus(basis.worn, added)) - basis.power;
+      PowerWith(state, basis.yard, basis.derived, Plus(basis.worn, added)) -
+      basis.power;
   return offer;
 }
 
@@ -331,7 +325,8 @@ std::optional<GearShopper::Candidate> GearShopper::SymbolOffer(
   EquipStats added =
       Minus(SymbolStatsFor(primary, level + 1), SymbolStatsFor(primary, level));
   offer.gain =
-      PowerWith(state, basis.derived, Plus(basis.worn, added)) - basis.power;
+      PowerWith(state, basis.yard, basis.derived, Plus(basis.worn, added)) -
+      basis.power;
   return offer;
 }
 
@@ -339,7 +334,8 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   Basis basis;
   basis.trace = TraceItem(state);
   basis.worn = WornAndGranted(state, basis.derived);
-  basis.power = PowerWith(state, basis.derived, basis.worn);
+  basis.yard = YardstickFor(state);
+  basis.power = PowerWith(state, basis.yard, basis.derived, basis.worn);
   // The hammer's own gate. The shopper buys what a player at this level could,
   // so below it there is nothing to offer.
   bool hammers_open =
@@ -439,15 +435,14 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
   // are still ordered by what they are worth.
   std::sort(offers.begin(), offers.end(),
             [](const Candidate& a, const Candidate& b) {
-              return static_cast<int64_t>(a.gain) * b.cost >
-                     static_cast<int64_t>(b.gain) * a.cost;
+              return a.gain * b.cost > b.gain * a.cost;
             });
   // Down the list wherever one is refused. A bag that cannot take the traces
   // for one piece is no reason to stop buying for every other piece -- and
   // stopping is what this did, so a full Etc tab quietly ended the shopping
   // for the rest of the run.
   for (const Candidate& offer : offers) {
-    if (offer.gain <= 0 || offer.cost <= 0 ||
+    if (offer.gain <= 0.0 || offer.cost <= 0 ||
         offer.cost > state.character.meso()) {
       continue;
     }

@@ -74,6 +74,7 @@ cc_library(
     hdrs = ["drop_value.h"],
     deps = [
         ":sim_gear",
+        ":yardstick",
         "//src:game_state",
         "//src/character:arcane_force",
         "//src/character:character_stats",
@@ -127,6 +128,7 @@ cc_library(
     hdrs = ["cube_plan.h"],
     deps = [
         ":sim_boss",
+        ":yardstick",
         "//src:game_state",
         "//src/character",
         "//src/character:character_stats",
@@ -148,6 +150,7 @@ cc_library(
         ":cube_plan",
         ":sim_gear",
         ":star_force_curve",
+        ":yardstick",
         "//src:game_state",
         "//src/character:arcane_force",
         "//src/character:character_stats",
@@ -173,6 +176,23 @@ cc_library(
         "//src/character",
         "//src/character:v_matrix",
         "//src/protos:character_proto_cc",
+        "//src/protos:skill_proto_cc",
+    ],
+)
+
+cc_library(
+    name = "yardstick",
+    srcs = ["yardstick.cc"],
+    hdrs = ["yardstick.h"],
+    deps = [
+        ":sim_boss",
+        "//src:game_state",
+        "//src/character:character_stats",
+        "//src/combat:damage",
+        "//src/combat:encounter",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:character_proto_cc",
+        "//src/protos:mob_proto_cc",
         "//src/protos:skill_proto_cc",
     ],
 )

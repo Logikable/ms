@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "analysis/sim_gear.h"
+#include "analysis/yardstick.h"
 #include "src/character/arcane_force.h"
 #include "src/character/character_stats.h"
 #include "src/combat/damage.h"
@@ -40,22 +41,16 @@ EquipStats Minus(const EquipStats& a, const EquipStats& b) {
 // The character's combat power with `stats` in place of what they wear. The
 // closed form, as GearShopper uses it: ranking a drop is a question about the
 // stat block, and a played swing would cost one per drop per look.
-int PowerWith(const GameState& state, const DerivedStats& derived,
-              const EquipStats& stats) {
-  const Character& proto = state.character.proto();
-  return CombatPower(
-      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                      stats, state.character.weapon_type(),
-                      /*attack_skill=*/nullptr, /*attack_level=*/0,
-                      PassiveOffenseFor(derived)),
-      /*vs_boss=*/true);
+double PowerWith(const GameState& state, const DropBasis& basis,
+                 const EquipStats& stats) {
+  return WorthOf(state, basis.yard, stats, PassiveOffenseFor(basis.derived));
 }
 
-// Combat power turned into the meso it would otherwise cost. Nothing at all
-// when no rate has been handed over, which keeps a caller without a shopper
-// exactly where it was before any of this existed.
-double AsMeso(const DropBasis& basis, int gain) {
-  if (gain <= 0 || basis.power_per_meso <= 0.0) {
+// Damage turned into the meso it would otherwise cost. Nothing at all when no
+// rate has been handed over, which keeps a caller without a shopper exactly
+// where it was before any of this existed.
+double AsMeso(const DropBasis& basis, double gain) {
+  if (gain <= 0.0 || basis.power_per_meso <= 0.0) {
     return 0.0;
   }
   return gain / basis.power_per_meso;
@@ -86,8 +81,7 @@ double SymbolDuplicateValue(const GameState& state, const DropBasis& basis,
   StatField primary = PrimaryStatField(state.character.proto().job());
   EquipStats added =
       Minus(SymbolStatsFor(primary, level + 1), SymbolStatsFor(primary, level));
-  int gain =
-      PowerWith(state, basis.derived, Plus(basis.worn, added)) - basis.power;
+  double gain = PowerWith(state, basis, Plus(basis.worn, added)) - basis.power;
   double paid = AsMeso(basis, gain) -
                 static_cast<double>(SymbolLevelUpCost(worn.prototype(), level));
   return std::max(0.0, paid / needed);
@@ -99,7 +93,8 @@ DropBasis DropBasisFor(const GameState& state, double power_per_meso) {
   DropBasis basis;
   basis.derived = DerivedStatsFor(state.character, state.skills);
   basis.worn = TotalEquipStats(state.character, basis.derived);
-  basis.power = PowerWith(state, basis.derived, basis.worn);
+  basis.yard = YardstickFor(state);
+  basis.power = PowerWith(state, basis, basis.worn);
   basis.power_per_meso = power_per_meso;
   // One pass over the shelf rather than one per token asked about: what a
   // token buys does not move while a rate is being read. Priced off the basis
@@ -139,8 +134,7 @@ double EquipDropValue(const GameState& state, const DropBasis& basis,
   // only thing a drop is for.
   EquipStats added =
       Minus(EquipInstance(proto).stats(), WornIn(state, proto.equip_slot()));
-  int gain =
-      PowerWith(state, basis.derived, Plus(basis.worn, added)) - basis.power;
+  double gain = PowerWith(state, basis, Plus(basis.worn, added)) - basis.power;
   return AsMeso(basis, gain);
 }
 

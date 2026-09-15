@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "analysis/cube_plan.h"
+#include "analysis/yardstick.h"
 #include "src/character/character_stats.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -124,7 +125,7 @@ class GearShopper {
     return life_;
   }
 
-  // Combat power a meso buys on this shelf, off the best offer of the last
+  // Damage a meso buys on this shelf, off the best offer of the last
   // pass. The rate that turns a drop nothing sells into meso -- see
   // //analysis:drop_value. Zero until the shopper has priced a round, which
   // reads as a drop being worth nothing rather than as a guess.
@@ -153,9 +154,11 @@ class GearShopper {
     const Scroll* scroll = nullptr;
     // Meso this is expected to take, the attempts that land nothing included.
     int64_t cost = 0;
-    // Combat power it would add. Both halves of the ratio, so the pick is a
-    // comparison rather than a rule.
-    int gain = 0;
+    // Damage against the aimed fight it would add -- see //analysis:yardstick.
+    // Both halves of the ratio, so the pick is a comparison rather than a
+    // rule. A double because a swing at the cap runs to billions, which is
+    // past what the int this once was could hold.
+    double gain = 0.0;
   };
 
   // What every offer is measured against: the character as they stand. Held
@@ -165,7 +168,10 @@ class GearShopper {
     const ItemPrototype* trace = nullptr;
     DerivedStats derived;
     EquipStats worn;
-    int power = 0;
+    // The fight every offer is judged against, and what the character takes
+    // off it as they stand.
+    Yardstick yard;
+    double power = 0.0;
   };
 
   // The two things one worn piece could be sold next. Each returns nothing

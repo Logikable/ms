@@ -23,6 +23,7 @@
 #include <map>
 #include <string>
 
+#include "analysis/yardstick.h"
 #include "src/character/character_stats.h"
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"
@@ -39,8 +40,11 @@ struct DropBasis {
   // Everything worn plus everything granted, before any percentage is folded
   // in -- what TotalEquipStats sums, not what it answers.
   EquipStats worn;
-  int power = 0;
-  // Combat power a meso buys elsewhere, off GearShopper's best offer. Zero
+  // The fight a drop is judged against, and what the character takes off it as
+  // they stand. See //analysis:yardstick.
+  Yardstick yard;
+  double power = 0.0;
+  // Damage a meso buys elsewhere, off GearShopper's best offer. Zero
   // prices every drop that does not sell at nothing, which is what a caller
   // with no shopper in hand gets.
   double power_per_meso = 0.0;

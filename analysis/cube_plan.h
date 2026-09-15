@@ -26,6 +26,7 @@
 #include <functional>
 #include <random>
 
+#include "analysis/yardstick.h"
 #include "src/character/character_stats.h"
 #include "src/game_state.h"
 #include "src/item/potential.h"
@@ -68,16 +69,12 @@ struct CubeBasis {
   // %ATT, so the fold has to be redone per candidate.
   EquipStats raw;
   // The defence of the fight the character is aimed at, as a fraction --
-  // AimedDefence's answer. What an ignored-defence line is worth is a fact
-  // about that fight and not about the character, and it moves by a factor of
-  // three between Cygnus and Lotus, so a constant here would price the one
-  // line that breaks a defence wall as though the wall were always the same
-  // height.
-  double boss_pdr = 0.0;
-  // What that defence leaves of the character as they stand. Every candidate
-  // is measured against this, so what a cube is worth reads in the same combat
-  // power a star is worth rather than in a scaled currency of its own.
-  double defence = 1.0;
+  // The fight the lines are judged against. What an ignored-defence line is
+  // worth is a fact about that fight and not about the character, and it moves
+  // by a factor of three between Cygnus and Lotus -- so the monster itself is
+  // carried rather than a number standing for it. See //analysis:yardstick,
+  // which replaced a hand-folded defence factor here.
+  Yardstick yard;
 };
 
 CubeBasis CubeBasisFor(const GameState& state);
