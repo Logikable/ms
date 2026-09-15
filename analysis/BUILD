@@ -258,6 +258,7 @@ sim_binary(
         "//src/character:hyper_stats",
         "//src/character:progression",
         "//src/character:stat_preset",
+        "//src/character:v_matrix",
         "//src/combat:damage",
         "//src/combat:encounter",
         "//src/combat:measure",

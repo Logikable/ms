@@ -58,6 +58,7 @@
 #include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
 #include "src/character/stat_preset.h"
+#include "src/character/v_matrix.h"
 #include "src/combat/damage.h"
 #include "src/combat/encounter.h"
 #include "src/combat/measure.h"
@@ -452,6 +453,14 @@ struct Result {
   int64_t meso_left = 0;
   int64_t v_points_left = 0;
   std::vector<std::pair<std::string, int>> skills;
+  // The matrix: each node held, its level and what it cost. Apart from the
+  // book because the two are bought out of different pools.
+  struct NodeHeld {
+    std::string name;
+    int level = 0;
+    int points = 0;
+  };
+  std::vector<NodeHeld> nodes;
   // Share of the run's damage each attack took, largest first, with everything
   // on a clock of its own gathered into one row. What it is for is deciding
   // whether a skill in the book is earning its points.
@@ -488,7 +497,20 @@ void RecordBook(const GameState& state, const DerivedStats& derived,
   }
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     int learned = state.character.skill_level(entry.second);
-    if (learned <= 0 || !state.character.HasBookFor(entry.second)) {
+    if (learned <= 0) {
+      continue;
+    }
+    // A node is held through the matrix rather than through a book, so the two
+    // lists are gathered on their own terms -- and kept apart, because what a
+    // node cost is the question the V pool's allocation is read by.
+    if (entry.second.v_node() != V_NODE_KIND_UNSPECIFIED) {
+      if (state.character.HoldsSkillFrom(entry.second)) {
+        result->nodes.push_back({entry.second.name(), learned,
+                                 VNodeCost(entry.second.v_node(), 0, learned)});
+      }
+      continue;
+    }
+    if (!state.character.HasBookFor(entry.second)) {
       continue;
     }
     result->skills.push_back({entry.second.name(), learned});
@@ -602,6 +624,12 @@ GearSpend SpendEverything(GameState& state, const Fight& fight) {
   };
   GearShopper shopper{GearPlan()};
   for (int round = 0; round < absl::GetFlag(FLAGS_rounds); ++round) {
+    // The shelf first, because everything after it is ranked on what the
+    // character takes off the fight -- and one still short of the fight's
+    // defence wall takes nothing off it whatever they buy. Gear is what
+    // carries them over, so it is what the rest gets to plan against.
+    shopper.Spend(state);
+    WearBestFromBag(state.character);
     SpendVMatrix(state, rate);
     if (state.character.proto().level() >= kHyperStatUnlockLevel) {
       SpendHyperStats(
@@ -615,8 +643,6 @@ GearSpend SpendEverything(GameState& state, const Fight& fight) {
           MeasureAbilityWorth(state, StatPreset::kSecond,
                               [&rate](GameState& in) { return rate(in); }));
     }
-    shopper.Spend(state);
-    WearBestFromBag(state.character);
   }
   return shopper.life();
 }
@@ -799,6 +825,20 @@ void PrintDetail(const Build& build, const Result& result) {
       result.final_attack_damage, result.unspent_sp);
   for (const std::pair<std::string, int>& skill : result.skills) {
     std::printf("%s %d  ", skill.first.c_str(), skill.second);
+  }
+  if (!result.nodes.empty()) {
+    std::vector<Result::NodeHeld> nodes = result.nodes;
+    std::sort(nodes.begin(), nodes.end(),
+              [](const Result::NodeHeld& a, const Result::NodeHeld& b) {
+                return a.points > b.points;
+              });
+    int spent = 0;
+    std::printf("\n            matrix: ");
+    for (const Result::NodeHeld& node : nodes) {
+      std::printf("%s %d (%dvp)  ", node.name.c_str(), node.level, node.points);
+      spent += node.points;
+    }
+    std::printf("= %d VP", spent);
   }
   std::printf("\n            ");
   for (const std::pair<std::string, double>& share : result.shares) {

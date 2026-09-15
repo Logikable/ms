@@ -192,10 +192,37 @@ void SpendBookWithToggles(GameState& state, const SkillRate& rate) {
   state.character.RestoreFrom(off_book, state.equips, state.items);
 }
 
+// Empties the matrix back into the pool. GMS charges nothing to reset one and
+// refunds every point, which is what lets this be a PLAN rather than a running
+// total: called again on a character the gear has since changed, it re-decides
+// from nothing instead of adding to a ranking taken against somebody weaker.
+void RefundMatrix(GameState& state) {
+  Character proto = state.character.ToProto();
+  int64_t refund = 0;
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    if (!IsNode(entry.second)) {
+      continue;
+    }
+    google::protobuf::Map<std::string, int32_t>::const_iterator held =
+        proto.skill_levels().find(entry.second.name());
+    if (held == proto.skill_levels().end() || held->second <= 0) {
+      continue;
+    }
+    refund += VNodeCost(entry.second.v_node(), 0, held->second);
+    proto.mutable_skill_levels()->erase(entry.second.name());
+  }
+  if (refund <= 0) {
+    return;
+  }
+  proto.set_v_points(proto.v_points() + refund);
+  state.character.RestoreFrom(proto, state.equips, state.items);
+}
+
 void SpendVMatrix(GameState& state, const SkillRate& rate) {
   if (!state.character.v_matrix_unlocked()) {
     return;
   }
+  RefundMatrix(state);
   std::vector<NodeOffer> offers;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     if (IsNode(entry.second)) {

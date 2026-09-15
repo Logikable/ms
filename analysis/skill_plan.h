@@ -63,6 +63,14 @@ void SpendBookWithToggles(GameState& state, const SkillRate& rate);
 // when nothing left to buy raises the rate. Nothing at all below the 5th job,
 // which has no matrix to spend on.
 //
+// The matrix is emptied back into the pool first, so this is a PLAN and not a
+// running total. It has to be: a character ranks nodes by what they take off
+// the fight, and one still short of a boss's defence wall measures every
+// damage lever at zero and buys whatever happens to add a HIT instead. Called
+// again once the gear has lifted them over, it re-decides from nothing rather
+// than adding to a ranking taken against somebody who could not scratch the
+// boss. GMS charges nothing to reset one.
+//
 // Priced per point rather than per level because a node's ladder is not flat:
 // a boost node costs one a level and a common's first costs seven, so the same
 // pool buys forty levels of one or one of the other. Which levels are offered
