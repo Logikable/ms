@@ -263,8 +263,8 @@ sim_binary(
 )
 
 sim_binary(
-    name = "weapon_sim",
-    srcs = ["weapon_sim.cc"],
+    name = "bench_sim",
+    srcs = ["bench_sim.cc"],
     deps = [
         ":ability_plan",
         ":gear_plan",

@@ -26,9 +26,9 @@
  * Not a test. Tests pin behaviour that must not change; this prints numbers to
  * look at while deciding what the behaviour should be.
  *
- *   bazelisk run //analysis:weapon_sim -- --level=140 --enemies=8
- *   bazelisk run //analysis:weapon_sim -- --level=230 --max --boss
- * --boss_pdr=300 bazelisk run //analysis:weapon_sim -- --level=230 --max --boss
+ *   bazelisk run //analysis:bench_sim -- --level=140 --enemies=8
+ *   bazelisk run //analysis:bench_sim -- --level=230 --max --boss
+ * --boss_pdr=300 bazelisk run //analysis:bench_sim -- --level=230 --max --boss
  * --bonus_ied=60
  */
 #include <algorithm>

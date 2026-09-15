@@ -57,7 +57,7 @@ Character MakeBaseBeginnerProto() {
 // happens at, and the workbench starts at the TOP of an advancement, so a level
 // 60 Fighter would otherwise swing the axe they were given at 30.
 //
-// Two weapons means the better one by //analysis:weapon_sim, but a Rogue gets
+// Two weapons means the better one by //analysis:bench_sim, but a Rogue gets
 // all three: which of the dagger and the claw is held decides what they swing.
 //
 // Long, and stays long: one row per job. The static_assert is the tripwire --
@@ -101,7 +101,7 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"deadly_fin", "vanishing_shadow"};
     // The 3rd jobs, at level 100: the best gear meso alone reaches, since the
     // Frozen tier below is bought with tokens. Each takes the better of its
-    // line's two weapons on //analysis:weapon_sim, and keeps its 2nd job's
+    // line's two weapons on //analysis:bench_sim, and keeps its 2nd job's
     // off-hand -- a 3rd job opens no new slot. The Crusader's axe beats the
     // sword of the same tier on Weapon Mastery's axe bonus alone.
     case JOB_BERSERKER:

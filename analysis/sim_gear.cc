@@ -35,7 +35,7 @@ constexpr char kTryoutMob[] = "__sim_gear_tryout_mob";
 
 // How long each candidate is swung for, in the game's own seconds. Long enough
 // that a four-second cooldown lands a dozen times, which is all the settling
-// the comparison needs -- weapon_sim's own horizon is ten times this because
+// the comparison needs -- bench_sim's own horizon is ten times this because
 // it prints the number, where this only ranks with it.
 constexpr double kTryoutSeconds = 60.0;
 

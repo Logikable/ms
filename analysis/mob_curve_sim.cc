@@ -197,7 +197,7 @@ void PrintMaps(const std::map<std::string, MapData>& maps,
 
   printf("\nwhat a player meets, weighted by spawn count\n");
   printf("dps to cap is the damage per second that holds the spawn cap; ");
-  printf("compare //analysis:weapon_sim\n\n");
+  printf("compare //analysis:bench_sim\n\n");
   printf("%-32s %5s %6s %11s %9s %7s %8s %8s %10s %12s\n", "map", "lv", "spawn",
          "avg hp", "avg exp", "avg att", "exp/hp", "kills/s", "exp/s",
          "dps to cap");

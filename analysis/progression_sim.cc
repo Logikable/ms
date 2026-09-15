@@ -223,6 +223,27 @@ ABSL_FLAG(std::string, branch, "",
           "sweep, which waits on the slowest of them however many cores are "
           "free -- so name one when one is the question.");
 
+
+// TEMPORARY instrumentation -- not for commit.
+#include <atomic>
+#include <chrono>
+namespace ms {
+std::atomic<long long> g_us[8];
+std::atomic<long long> g_n[8];
+const char* g_name[8] = {"ProbeMap", "MeasureYield", "BookSweep", "MatrixSweep",
+                         "ShopperSpend", "Yardstick", "WeaponScout", "HyperAbility"};
+struct Tick {
+  int slot;
+  std::chrono::steady_clock::time_point t0;
+  explicit Tick(int s) : slot(s), t0(std::chrono::steady_clock::now()) {}
+  ~Tick() {
+    g_us[slot] += std::chrono::duration_cast<std::chrono::microseconds>(
+                      std::chrono::steady_clock::now() - t0).count();
+    ++g_n[slot];
+  }
+};
+}  // namespace ms
+
 namespace ms {
 namespace {
 
@@ -579,6 +600,7 @@ struct Probe {
 // costs the character neither EXP nor meso nor HP.
 Probe ProbeMap(GameState& state, const DropBasis& basis, const std::string& map,
                int beats, double step) {
+  Tick tick_(0);
   std::string held = state.current_map;
   state.current_map = map;
   CombatParams params = ComputeCombatParams(state);
@@ -752,6 +774,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   int level = state.character.proto().level();
   if (scout.settled == EQUIP_TYPE_UNSPECIFIED ||
       level - scout.settled_at >= kScoutEveryLevels) {
+    Tick tick_(6);
     scout.settled = SettledWeaponType(state, /*budget=*/true);
     scout.settled_at = level;
   }
@@ -771,6 +794,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   // sweep against a character nothing has changed re-derives the plan it
   // already holds. See PlanKey.
   if (!(PlanKeyFor(state) == planned)) {
+    Tick tick_(2);
     DropBasis basis =
         DropBasisFor(state, shopper.power_per_meso(), shopper.yardstick());
     SpendBookWithToggles(
@@ -788,7 +812,10 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   planned = PlanKeyFor(state);
   // After the weapon, because a scroll on last tier's weapon is meso that
   // buys nothing: the next one displaces it slots and stars and all.
-  shopper.Spend(state);
+  {
+    Tick tick_(4);
+    shopper.Spend(state);
+  }
   purse.Note(state.character);
   PickMap(state, maps, beats, step, shopper.power_per_meso(),
           shopper.yardstick());
@@ -1008,6 +1035,7 @@ struct Yield {
 // sixty times the speed.
 Yield MeasureYield(GameState& state, const CombatParams& params, int beats,
                    double step) {
+  Tick tick_(1);
   Yield yield;
   yield.kills_per_second.assign(params.types.size(), 0.0);
   if (!params.active || params.types.empty()) {
@@ -1590,7 +1618,10 @@ void SpendHonor(Session& run) {
 void AfterFighting(Session& run) {
   WearBestFromBag(run.state.character);
   run.purse.Note(run.state.character);
-  run.shopper.Spend(run.state);
+  {
+    Tick tick_(4);
+    run.shopper.Spend(run.state);
+  }
   run.purse.Note(run.state.character);
 }
 
@@ -2131,7 +2162,10 @@ void RestockAtCap(Session& run, const CombatParams& params,
   Outfit(run.state, /*budget=*/true);
   run.climb.ledger.gear_bought +=
       std::max<int64_t>(0, before_shelf - run.state.character.meso());
-  run.shopper.Spend(run.state);
+  {
+    Tick tick_(4);
+    run.shopper.Spend(run.state);
+  }
   run.purse.Note(run.state.character);
   SpendHyperPoints(run, GearChanged(run));
   SpendHonor(run);
@@ -3408,6 +3442,14 @@ Checkpointing PrepareCheckpoints() {
 void Run() {
   Catalogs catalogs = LoadCatalogs();
   std::vector<std::string> maps = HuntingGrounds(catalogs);
+  atexit([] {
+    for (int i = 0; i < 8; ++i) {
+      if (g_n[i] > 0) {
+        fprintf(stderr, "%-14s %8.1fs  n=%lld\n", g_name[i],
+                g_us[i] / 1e6, (long long)g_n[i]);
+      }
+    }
+  });
   std::vector<Job> branches = BranchesToClimb();
   int per_branch = std::max(1, absl::GetFlag(FLAGS_runs));
 
