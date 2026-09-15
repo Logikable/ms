@@ -720,6 +720,11 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   DropBasis basis = DropBasisFor(state, shopper.power_per_meso());
   SpendBookWithToggles(
       state, [&basis](GameState& inner) { return BookRate(inner, basis); });
+  // The matrix after the book and on the same rate: its own pool, its own
+  // ladder, and nothing in it is worth anything until the skills it lifts have
+  // been bought.
+  SpendVMatrix(state,
+               [&basis](GameState& inner) { return BookRate(inner, basis); });
   LearnTheRest(state);
   // After the weapon, because a scroll on last tier's weapon is meso that
   // buys nothing: the next one displaces it slots and stars and all.

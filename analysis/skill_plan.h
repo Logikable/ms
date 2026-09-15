@@ -45,6 +45,11 @@ int BuySkill(GameState& state, const Skill& skill,
 // Spends the pool where it measures best, a point at a time, and stops when
 // nothing left to buy raises the rate. Points the book cannot use are left
 // unspent rather than dumped into a skill that pays nothing.
+//
+// The SP book alone. A V Matrix node is bought with V Points, on a ladder
+// where one level costs anything from 1 to 9, and ranking it beside an SP
+// skill at a point a level prices most of the matrix wrong -- see
+// SpendVMatrix, which is the pool's own allocator.
 void SpendBook(GameState& state, const SkillRate& rate);
 
 // The book spent both ways round: every switch off, and every switch thrown
@@ -53,6 +58,19 @@ void SpendBook(GameState& state, const SkillRate& rate);
 // thrown, the levels in Heal are a six-enemy swing rather than a heal, and a
 // chooser that never threw it would never buy them.
 void SpendBookWithToggles(GameState& state, const SkillRate& rate);
+
+// Spends the V Point pool on the matrix, best value per POINT first, and stops
+// when nothing left to buy raises the rate. Nothing at all below the 5th job,
+// which has no matrix to spend on.
+//
+// Priced per point rather than per level because a node's ladder is not flat:
+// a boost node costs one a level and a common's first costs seven, so the same
+// pool buys forty levels of one or one of the other. Which levels are offered
+// is the ladder's own bands -- where the price changes is where a node's own
+// perks sit -- plus whatever the pool could pay for outright, so a perk waiting
+// at level 20 is reachable in one purchase rather than through nineteen that
+// each pay nothing.
+void SpendVMatrix(GameState& state, const SkillRate& rate);
 
 }  // namespace ms
 
