@@ -36,18 +36,28 @@
 #include <cstdio>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "absl/log/log.h"
+#include "absl/strings/ascii.h"
+#include "analysis/ability_plan.h"
+#include "analysis/gear_plan.h"
+#include "analysis/hyper_plan.h"
+#include "analysis/sim_boss.h"
 #include "analysis/sim_gear.h"
 #include "analysis/sim_jobs.h"
 #include "analysis/sim_world.h"
+#include "analysis/skill_plan.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
+#include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
+#include "src/character/stat_preset.h"
 #include "src/combat/damage.h"
 #include "src/combat/encounter.h"
 #include "src/combat/measure.h"
@@ -114,7 +124,42 @@ ABSL_FLAG(double, seconds, 600.0,
 ABSL_FLAG(int, boss_pdr, 0,
           "Percent of the mob's physical defence, which every Ignore DEF "
           "lever in the game is measured against. 0 is the shipped catalog, "
-          "where all of them cancel nothing.");
+          "where all of them cancel nothing. Ignored once --fight names a real "
+          "boss, which carries its own.");
+ABSL_FLAG(bool, endowed, false,
+          "Hand every branch the same purse, honor and V Points and let them "
+          "spend it: the shopper buys the gear, the Hyper Stats, the Inner "
+          "Ability and the V Matrix, each ranked against the fight the row is "
+          "measured on. The third way to seed a row, beside a grown path and "
+          "--max's fiat ceiling -- and the one that asks what a branch DOES "
+          "with a budget rather than what it does holding one it was given. "
+          "Everything that drops below AbsoLab is worn; AbsoLab itself is "
+          "not, since Lotus and Damien are what pay for it.");
+ABSL_FLAG(int64_t, meso, 30'000'000'000,
+          "The purse --endowed hands every branch.");
+ABSL_FLAG(int64_t, honor, 1'000'000,
+          "The honor --endowed hands every branch, for the Inner Ability.");
+ABSL_FLAG(int64_t, v_points, 1'500,
+          "The V Points --endowed hands every branch. A whole explorer matrix "
+          "is 4,505, so this is a choice rather than a buy-out -- which is "
+          "the point of handing it over.");
+ABSL_FLAG(std::string, ability_rank, "legendary",
+          "The Inner Ability rank --endowed rolls towards.");
+ABSL_FLAG(std::string, fight, "",
+          "Measure against a boss out of the catalog -- 'lotus', 'damien' -- "
+          "rather than the invented dummy, and report whether the fight was "
+          "actually won. Implies --boss.");
+ABSL_FLAG(std::string, difficulty, "Normal",
+          "Which of --fight's difficulties to meet.");
+ABSL_FLAG(double, plan_seconds, 180.0,
+          "How long one spending decision is played out for. Longer than the "
+          "book's own ranking wants: a V node on a two-minute cooldown reads "
+          "as free damage inside any window it never comes back in. Widened "
+          "on its own to twice the slowest cooldown the character holds.");
+ABSL_FLAG(int, rounds, 2,
+          "How many times --endowed goes round the spending. One pass cannot "
+          "settle it: a V node changes what a Hyper Stat point is worth and a "
+          "weapon changes what every cube is.");
 
 namespace ms {
 namespace {
@@ -214,6 +259,12 @@ Catalogs LoadCatalogsWithDummy(int level) {
   return c;
 }
 
+// Whether the row is measured against a boss: the invented one --boss stands
+// up, or whichever of the catalog's --fight names.
+bool Bossing() {
+  return absl::GetFlag(FLAGS_boss) || !absl::GetFlag(FLAGS_fight).empty();
+}
+
 // The fight --boss asks about: one phase holding the dummy alone.
 //
 // Built rather than taken from the catalog because the dummy is what makes a
@@ -235,20 +286,107 @@ BossDifficulty DummyFight() {
   return difficulty;
 }
 
+// What every row of the table is measured against, and what the planning
+// decisions are ranked on. The invented dummy and a catalog boss are the same
+// thing here -- a difficulty and a phase -- so nothing downstream has to ask
+// which it got.
+struct Fight {
+  std::string boss;  // the catalog key, or the dummy's stand-in name
+  int difficulty = 0;
+  BossDifficulty data;
+  // Whether it is a fight that can be WON. The dummy never falls, so only a
+  // catalog boss is played out to an end.
+  bool real = false;
+};
+
+Fight ChosenFight(const Catalogs& catalogs) {
+  Fight fight;
+  const std::string& named = absl::GetFlag(FLAGS_fight);
+  if (named.empty()) {
+    fight.boss = kDummyBoss;
+    fight.data = DummyFight();
+    return fight;
+  }
+  std::map<std::string, Boss>::const_iterator it = catalogs.bosses.find(named);
+  if (it == catalogs.bosses.end()) {
+    LOG(FATAL) << "Unknown --fight '" << named << "'";
+  }
+  int index = BossDifficultyIndex(it->second, absl::GetFlag(FLAGS_difficulty));
+  if (index < 0) {
+    LOG(FATAL) << "Boss '" << named << "' has no difficulty '"
+               << absl::GetFlag(FLAGS_difficulty) << "'";
+  }
+  fight.boss = named;
+  fight.difficulty = index;
+  fight.data = it->second.difficulties(index);
+  fight.real = true;
+  return fight;
+}
+
+// The fight's own combat params. One builder for the measurement and for every
+// spending decision alike, so a point bought to raise a number was ranked
+// against the fight the row actually reports.
+CombatParams ParamsFor(GameState& state, const Fight& fight) {
+  if (!Bossing()) {
+    return ComputeCombatParams(state);
+  }
+  return ComputeBossParams(state, fight.boss, fight.data,
+                           BossObjectivePhase(state.mobs, fight.data));
+}
+
+// How long one spending decision is played out for. Twice the slowest cooldown
+// the character holds when that is longer than the flag: a node on a
+// two-minute clock reads as free damage inside any window it never comes back
+// in, and a shopper ranking against that window buys the wrong thing.
+double PlanWindow(const GameState& state) {
+  double cycle = 0.0;
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    if (state.character.HoldsSkillFrom(entry.second)) {
+      cycle = std::max(cycle, entry.second.cooldown_seconds());
+    }
+  }
+  return std::max(absl::GetFlag(FLAGS_plan_seconds), 2.0 * cycle);
+}
+
+// What the character takes off the fight, per second at 1x. The one rate every
+// --endowed decision is ranked on -- the gear, the Hyper Stats, the Ability
+// and the matrix alike -- so the whole purse is spent towards one answer.
+double PlanRate(GameState& state, const Fight& fight) {
+  CombatParams params = ParamsFor(state, fight);
+  if (!params.active) {
+    return 0.0;
+  }
+  // A boss fight is pinned at 1x; a map stretches, and MeasureFight counts in
+  // the stretched clock either way. See GameSpeedFactor.
+  double speed =
+      Bossing() ? 1.0 : GameSpeedFactor(state.character.proto().level());
+  Sequence played = MeasureFight(params, PlanWindow(state) * speed,
+                                 absl::GetFlag(FLAGS_enemies));
+  return played.seconds > 0.0 ? played.damage * speed / played.seconds : 0.0;
+}
+
 // Puts `key` on the character, in whichever slot its prototype names, dropping
 // whatever was already there. Returns false if the catalog has no such item.
+// The token AbsoLab's shelf is priced in, and the one thing the endowed
+// character is not handed: Lotus and Damien drop it, so a character walking IN
+// to those fights has none.
+constexpr char kAbsoLabToken[] = "absolab_coin";
+
 // The best weapon of `type` a character at `level` can wear. Named by type
 // rather than by catalog key so the table below never has to be edited when a
 // tier is added -- which is the whole reason a build says "claw" and not
-// "dark_gigantic".
-std::string BestOfType(const Catalogs& catalogs, EquipType type, int level) {
+// "dark_gigantic". `below_absolab` stops at the tier under the one Lotus and
+// Damien pay for.
+std::string BestOfType(const Catalogs& catalogs, EquipType type, int level,
+                       bool below_absolab) {
   std::string best;
   int best_level = -1;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        catalogs.equips) {
     const EquipPrototype& proto = entry.second;
     if (proto.equip_type() != type || proto.required_level() > level ||
-        proto.required_level() <= best_level) {
+        proto.required_level() <= best_level ||
+        (below_absolab && proto.token_item() == kAbsoLabToken)) {
       continue;
     }
     best_level = proto.required_level();
@@ -276,6 +414,10 @@ struct Result {
   std::string swing;  // the attack the fight chose against a lone mob
   double swing_seconds = 0.0;
   // Everything behind the two headline numbers, for --detail.
+  // What they ended up holding. Off the character rather than off the ladder:
+  // --endowed BUYS its weapon, and a shelf the purse could not reach is part
+  // of the answer.
+  std::string weapon;
   int primary = 0;
   int attack = 0;
   double mastery = 0.0;
@@ -294,6 +436,18 @@ struct Result {
   double swing_damage = 0.0;
   double final_attack_damage = 0.0;
   int unspent_sp = 0;
+  // What playing the fight out actually came to, for a --fight the catalog
+  // holds. The rate above says what the character takes off it; this says
+  // whether the fight ends before the character's patience does.
+  bool cleared = false;
+  double clear_seconds = 0.0;
+  double left = 0.0;
+  // What --endowed did with what it was handed, for the detail line. A bench
+  // that hands out a purse has to show what the purse turned into, or a row
+  // that reads low cannot be told from a shopper that never spent.
+  GearSpend spend;
+  int64_t meso_left = 0;
+  int64_t v_points_left = 0;
   std::vector<std::pair<std::string, int>> skills;
   // Share of the run's damage each attack took, largest first, with everything
   // on a clock of its own gathered into one row. What it is for is deciding
@@ -392,12 +546,131 @@ GameState MaxState(const Catalogs& catalogs, int level, Job branch) {
                      level, kSimSeed);
 }
 
-Result Measure(const Catalogs& catalogs, int level, const Build& build) {
+// How many of every other token the bag is given. Past what any shelf asks
+// for, so what the character ends up in is the tier rather than the count.
+constexpr int kTokensGiven = 999;
+
+// Every token shelf below AbsoLab's, paid for. The Frozen weapons, Princess
+// No's secondaries and the boss shoulders are gear a player has by the time
+// they meet Lotus, and a bench that left them off would measure the wrong
+// character.
+//
+// Only what some shelf is actually priced in: the bag holds 128 rows a tab,
+// and a character handed one of everything has no room left for the gear the
+// shopper is about to buy.
+void GiveTokens(GameState& state) {
+  std::set<std::string> shelves;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       state.equips) {
+    if (entry.second.token_price() > 0 &&
+        entry.second.token_item() != kAbsoLabToken) {
+      shelves.insert(entry.second.token_item());
+    }
+  }
+  for (const std::string& key : shelves) {
+    std::map<std::string, ItemPrototype>::const_iterator it =
+        state.items.find(key);
+    if (it != state.items.end()) {
+      state.character.AddStackable(it->second, kTokensGiven);
+    }
+  }
+}
+
+// The rank --endowed rolls the Inner Ability towards.
+AbilityRank AbilityRankWanted() {
+  const std::string& named = absl::GetFlag(FLAGS_ability_rank);
+  AbilityRank rank = ABILITY_RANK_UNSPECIFIED;
+  if (!AbilityRank_Parse("ABILITY_RANK_" + absl::AsciiStrToUpper(named),
+                         &rank) ||
+      rank == ABILITY_RANK_UNSPECIFIED) {
+    LOG(FATAL) << "Unknown --ability_rank '" << named << "'";
+  }
+  return rank;
+}
+
+// Spends what the endowed character was handed, in the order that makes each
+// step worth taking: the matrix first, since a node is what the Hyper Stats
+// and the cubes are then bought around, then the two allocations off it, then
+// the shelf. Gone round --rounds times -- one pass cannot settle it, because
+// each of the four changes what the other three are worth.
+GearSpend SpendEverything(GameState& state, const Fight& fight) {
+  SkillRate rate = [&fight](GameState& inner) {
+    return PlanRate(inner, fight);
+  };
+  GearShopper shopper{GearPlan()};
+  for (int round = 0; round < absl::GetFlag(FLAGS_rounds); ++round) {
+    SpendVMatrix(state, rate);
+    if (state.character.proto().level() >= kHyperStatUnlockLevel) {
+      SpendHyperStats(
+          state, StatPreset::kSecond,
+          MeasureHyperWorth(state, StatPreset::kSecond,
+                            [&rate](GameState& in) { return rate(in); }));
+    }
+    if (state.character.inner_ability_unlocked()) {
+      SpendHonorOnAbility(
+          state, AbilityRankWanted(), StatPreset::kSecond,
+          MeasureAbilityWorth(state, StatPreset::kSecond,
+                              [&rate](GameState& in) { return rate(in); }));
+    }
+    shopper.Spend(state);
+    WearBestFromBag(state.character);
+  }
+  return shopper.life();
+}
+
+// The endowed character: the same purse, honor and V Points to every branch,
+// wearing everything that drops or sells below AbsoLab, and left to spend the
+// lot however it likes. What --max writes by fiat this one has to buy, so a
+// branch that cannot turn meso into damage reads lower here than it does
+// there -- which is the question this mode is for.
+GearSpend Endow(GameState& state, const Catalogs& catalogs, int level,
+                const Build& build, const Fight& fight) {
+  state.current_map = kDummyMap;
+  GrowTo(state, level, PathTo(build.job));
+  // After the climb, so nothing is spent on the way up: the pools are what the
+  // bench is handing over, and a level that spent one would hand a different
+  // amount to a branch that reached it sooner.
+  state.character.AddMeso(absl::GetFlag(FLAGS_meso));
+  state.character.AddHonor(absl::GetFlag(FLAGS_honor));
+  state.character.AddVPoints(absl::GetFlag(FLAGS_v_points));
+  GiveTokens(state);
+  // The weapon first, and handed over rather than bought: the tier above the
+  // shop's is a Chaos Root Abyss drop, and no shelf sells it at any price. A
+  // bench that made the character shop for one would stand every branch in a
+  // weapon four tiers off what they would really be holding. Before the rest
+  // because it needs a bag with room in it, and because Outfit then measures
+  // the shelf against the weapon that is really in hand.
+  Wear(state, BestOfType(catalogs, build.weapon, level,
+                         /*below_absolab=*/true));
+  EquipType ammo = AmmoFor(build.weapon);
+  if (ammo != EQUIP_TYPE_UNSPECIFIED) {
+    Wear(state, BestOfType(catalogs, ammo, level, /*below_absolab=*/true));
+  }
+  // The drops before the shelf, so the shop is asked to fill what is still
+  // empty rather than to buy over what fell.
+  OutfitDrops(state);
+  Outfit(state, /*budget=*/true, build.weapon);
+  WearBestFromBag(state.character);
+  CollectSymbols(state.character);
+  return SpendEverything(state, fight);
+}
+
+Result Measure(const Catalogs& catalogs, int level, const Build& build,
+               const Fight& fight) {
   bool max = absl::GetFlag(FLAGS_max);
+  bool endowed = absl::GetFlag(FLAGS_endowed);
+  Result result;
+  // The ceiling is seeded whole; the other two start from a fresh character and
+  // are built up below. A GameState cannot be assigned, so which one it is has
+  // to be settled here.
   GameState state =
       max ? MaxState(catalogs, level, build.job) : NewState(catalogs, kSimSeed);
-  Result result;
-  if (max) {
+  state.bosses = catalogs.bosses;
+  if (endowed) {
+    result.spend = Endow(state, catalogs, level, build, fight);
+    result.meso_left = state.character.meso();
+    result.v_points_left = state.character.v_points();
+  } else if (max) {
     // The ceiling armed them already; the row this build asks about is
     // whichever of the branch's weapons it chose.
     if (state.character.weapon_type() != build.weapon) {
@@ -405,17 +678,19 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
     }
   } else {
     GrowTo(state, level, PathTo(build.job));
-    if (!Wear(state, BestOfType(catalogs, build.weapon, level))) {
+    if (!Wear(state, BestOfType(catalogs, build.weapon, level,
+                                /*below_absolab=*/false))) {
       return result;
     }
     EquipType ammo = AmmoFor(build.weapon);
     if (ammo != EQUIP_TYPE_UNSPECIFIED &&
-        !Wear(state, BestOfType(catalogs, ammo, level))) {
+        !Wear(state, BestOfType(catalogs, ammo, level,
+                                /*below_absolab=*/false))) {
       return result;
     }
   }
   state.current_map = kDummyMap;
-  if (!max && absl::GetFlag(FLAGS_upgraded)) {
+  if (!max && !endowed && absl::GetFlag(FLAGS_upgraded)) {
     FullyUpgrade(state);
   }
   int bonus_stat = absl::GetFlag(FLAGS_bonus_stat);
@@ -432,7 +707,7 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   // Inner Ability and its gear -- and it is the only preset the Extreme Green
   // Potion's attack speed lands under. Farming here dressed every branch for
   // the wrong fight.
-  bool boss = absl::GetFlag(FLAGS_boss);
+  bool boss = Bossing();
   Activity activity = boss ? Activity::kBossing : Activity::kFarming;
 
   const Character& proto = state.character.proto();
@@ -446,9 +721,7 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   // sim: normal %dmg buys nothing a player of this game is short of.
   result.combat_power = CombatPower(bare, /*vs_boss=*/true);
 
-  BossDifficulty fight = DummyFight();
-  CombatParams params = boss ? ComputeBossParams(state, kDummyBoss, fight, 0)
-                             : ComputeCombatParams(state);
+  CombatParams params = ParamsFor(state, fight);
   int enemies = absl::GetFlag(FLAGS_enemies);
   // Back out the pacing the game stretches a map by, so the figure is the 1x
   // one and two levels can be compared without dividing by hand. A boss fight
@@ -466,6 +739,7 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   }
   const AttackOption* best = &params.attacks[played.main_attack];
   result.swing = best->name;
+  result.weapon = HeldWeaponName(state.character);
   result.primary = bare.primary;
   result.attack = bare.attack;
   result.mastery = bare.mastery;
@@ -486,6 +760,14 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   // be compared without dividing by hand.
   result.dps = played.damage * speed / played.seconds;
   RecordShares(params, played, &result);
+  // Last of all: a clear pays the character, and every figure above is what
+  // walked IN to the fight.
+  if (fight.real) {
+    BossOutcome outcome = FightBoss(state, fight.boss, fight.difficulty);
+    result.cleared = outcome.won;
+    result.clear_seconds = outcome.seconds;
+    result.left = outcome.left;
+  }
   return result;
 }
 
@@ -518,6 +800,18 @@ void PrintDetail(const Build& build, const Result& result) {
   std::printf("\n            ");
   for (const std::pair<std::string, double>& share : result.shares) {
     std::printf("%s %.1f%%  ", share.first.c_str(), 100.0 * share.second);
+  }
+  if (absl::GetFlag(FLAGS_endowed)) {
+    const GearSpend& spend = result.spend;
+    std::printf(
+        "\n            spent %.2fB: scrolls %.2fB (%d slots)  stars %.2fB "
+        "(%d)  hammers %.2fB (%d)  cubes %.2fB (%d kept of %d)  symbols "
+        "%.2fB (%d)\n            %.2fB meso and %lld V Points left over",
+        spend.meso() / 1e9, spend.scrolls / 1e9, spend.slots_filled,
+        spend.stars / 1e9, spend.stars_gained, spend.hammers / 1e9,
+        spend.hammers_driven, spend.cubes / 1e9, spend.cubes_kept,
+        spend.cubes_bought, spend.symbols / 1e9, spend.symbol_levels,
+        result.meso_left / 1e9, static_cast<long long>(result.v_points_left));
   }
   std::printf("\n\n");
 }
@@ -567,11 +861,12 @@ const Build kBuilds[] = {
     {JOB_SHADOWER, EQUIP_TYPE_DAGGER},
 };
 
-void Run(int level) {
-  Catalogs catalogs = LoadCatalogsWithDummy(level);
-
-  // The header names the fight the flags asked for. A table read a week later
-  // is worth nothing if it does not say what was being hit.
+// What the table says it was hitting. A table read a week later is worth
+// nothing if it does not say what was in front of the character.
+std::string CrowdLine(const Fight& fight) {
+  if (fight.real) {
+    return fight.data.name() + " " + absl::GetFlag(FLAGS_fight);
+  }
   char crowd[64];
   if (absl::GetFlag(FLAGS_boss)) {
     std::snprintf(crowd, sizeof(crowd), "a boss holding %d%% PDR",
@@ -581,34 +876,78 @@ void Run(int level) {
     std::snprintf(crowd, sizeof(crowd), "%d mob%s of the same level", enemies,
                   enemies == 1 ? "" : "s");
   }
-  std::printf(
-      "Level %d, %s. DPS is against %s over %.0fs, at 1x speed.\n\n", level,
-      absl::GetFlag(FLAGS_max)
-          ? "the ceiling character: max gear, hyper stats, ability and V matrix"
-          : "all AP in the job's primary stat, every skill maxed",
-      crowd, absl::GetFlag(FLAGS_seconds));
-  std::printf("%-13s  %-22s  %7s  %12s  %-18s  %5s\n", "job", "weapon", "CP",
-              "DPS", "swing", "sec");
-  std::printf("%s\n", std::string(85, '-').c_str());
+  return crowd;
+}
+
+// How the row was seeded, which is most of what the table means.
+std::string SeedLine() {
+  if (absl::GetFlag(FLAGS_endowed)) {
+    char line[192];
+    std::snprintf(
+        line, sizeof(line),
+        "the endowed character: %.1fB meso, %lld honor and %lld V Points, "
+        "spent by the shopper",
+        absl::GetFlag(FLAGS_meso) / 1e9,
+        static_cast<long long>(absl::GetFlag(FLAGS_honor)),
+        static_cast<long long>(absl::GetFlag(FLAGS_v_points)));
+    return line;
+  }
+  if (absl::GetFlag(FLAGS_max)) {
+    return "the ceiling character: max gear, hyper stats, ability and V matrix";
+  }
+  return "all AP in the job's primary stat, every skill maxed";
+}
+
+// What one attempt at a real fight came to: the clear time, or how much of the
+// body was still standing when the loser walked out.
+std::string ClearCell(const Result& result) {
+  char cell[24];
+  if (result.cleared) {
+    std::snprintf(cell, sizeof(cell), "%.0fs", result.clear_seconds);
+  } else {
+    std::snprintf(cell, sizeof(cell), "%.0f%% left", 100.0 * result.left);
+  }
+  return cell;
+}
+
+void Run(int level) {
+  Catalogs catalogs = LoadCatalogsWithDummy(level);
+  Fight fight = ChosenFight(catalogs);
+
+  // A real fight is reported in the unit boss work is decided in; the dummy
+  // stays in the per-second one the weapon table has always used.
+  bool per_minute = fight.real;
+  std::printf("Level %d, %s. %s is against %s over %.0fs, at 1x speed.\n\n",
+              level, SeedLine().c_str(), per_minute ? "DPM" : "DPS",
+              CrowdLine(fight).c_str(), absl::GetFlag(FLAGS_seconds));
+  std::printf("%-13s  %-22s  %7s  %12s  %-18s  %5s%s\n", "job", "weapon", "CP",
+              per_minute ? "DPM" : "DPS", "swing", "sec",
+              fight.real ? "  fight" : "");
+  std::printf("%s\n", std::string(fight.real ? 98 : 85, '-').c_str());
   for (const Build& build : kBuilds) {
-    Result result = Measure(catalogs, level, build);
+    Result result = Measure(catalogs, level, build, fight);
     // A ceiling character the row does not match measured nothing: the branch
     // holds its other weapon, and that row prints instead.
     if (absl::GetFlag(FLAGS_max) && result.combat_power == 0) {
       continue;
     }
-    std::string key = BestOfType(catalogs, build.weapon, level);
-    std::string weapon = catalogs.equips.count(key) > 0
-                             ? catalogs.equips.at(key).name()
-                             : "(none this level can wear)";
+    std::string key =
+        BestOfType(catalogs, build.weapon, level, /*below_absolab=*/false);
+    std::string weapon = result.weapon;
+    if (weapon.empty() || weapon == "-") {
+      weapon = catalogs.equips.count(key) > 0 ? catalogs.equips.at(key).name()
+                                              : "(none this level can wear)";
+    }
     // A charm big enough to hold two jobs level carries the character's CP
     // past what an int holds. The figure is the game's own, so it is dropped
     // here rather than widened there.
     std::string power =
         result.combat_power > 0 ? std::to_string(result.combat_power) : "-";
-    std::printf("%-13s  %-22s  %7s  %12.1f  %-18s  %5.2f\n",
+    std::printf("%-13s  %-22s  %7s  %12.1f  %-18s  %5.2f%s%s\n",
                 BranchName(build.job).c_str(), weapon.c_str(), power.c_str(),
-                result.dps, result.swing.c_str(), result.swing_seconds);
+                result.dps * (per_minute ? 60.0 : 1.0), result.swing.c_str(),
+                result.swing_seconds, fight.real ? "  " : "",
+                fight.real ? ClearCell(result).c_str() : "");
     if (absl::GetFlag(FLAGS_detail)) {
       PrintDetail(build, result);
     }
