@@ -125,6 +125,13 @@ class GearShopper {
     return life_;
   }
 
+  // The fight this shopper judges against, held. Shared out so every other
+  // plan priced beside the shelf is priced against the same one -- and so the
+  // fight behind them all is played once a kit rather than once a plan.
+  HeldYardstick& yardstick() {
+    return yard_;
+  }
+
   // Damage a meso buys on this shelf, off the best offer of the last
   // pass. The rate that turns a drop nothing sells into meso -- see
   // //analysis:drop_value. Zero until the shopper has priced a round, which
@@ -223,6 +230,11 @@ class GearShopper {
   GearPlan plan_;
   GearSpend life_;
   CubeIncome income_;
+  // The fight every offer of this pass is judged against. Held rather than
+  // taken per offer: working one out plays a fight, and nothing a pass buys --
+  // a star, a scroll, a cube, a symbol rung -- changes which swings the
+  // character leans on. See HeldYardstick.
+  HeldYardstick yard_;
   // The draws the cube valuations come off. Its own stream rather than the
   // character's, so measuring what a cube might roll never moves what the
   // game rolls.

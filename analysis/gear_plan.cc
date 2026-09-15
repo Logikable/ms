@@ -334,7 +334,7 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   Basis basis;
   basis.trace = TraceItem(state);
   basis.worn = WornAndGranted(state, basis.derived);
-  basis.yard = YardstickFor(state);
+  basis.yard = yard_.For(state);
   basis.power = PowerWith(state, basis.yard, basis.derived, basis.worn);
   // The hammer's own gate. The shopper buys what a player at this level could,
   // so below it there is nothing to offer.
@@ -403,7 +403,7 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
   // pays for itself when what it earns over the horizon beats the cube, and
   // that test needs no rate. Kept so the accept decision uses the same one.
   income_.power_per_meso = best;
-  CubeBasis basis = CubeBasisFor(state);
+  CubeBasis basis = CubeBasisFor(state, yard_.For(state));
   for (const std::pair<const EquipSlot, const EquipInstance*>& entry :
        state.character.equipped()) {
     if (!entry.second->CanCube()) {
@@ -421,7 +421,7 @@ std::vector<GearShopper::Candidate> GearShopper::CubeOffers(GameState& state,
     // it at a time -- the next pass prices the rest of the run afresh, against
     // whatever the last roll left behind.
     offer.cost = run.cost;
-    offer.gain = static_cast<int>(run.gain);
+    offer.gain = run.gain;
     if (offer.gain > 0) {
       offers.push_back(offer);
     }
@@ -458,7 +458,7 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
 bool GearShopper::BuyCube(GameState& state, EquipSlot slot, GearSpend& spend) {
   // Taken before the cube is bought: the comparison is against the character
   // as they stand, and buying moves them.
-  CubeBasis basis = CubeBasisFor(state);
+  CubeBasis basis = CubeBasisFor(state, yard_.For(state));
   std::optional<Potential> rolled =
       state.character.BuyCube(slot, CubeType::kRed);
   if (!rolled.has_value()) {

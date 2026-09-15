@@ -77,7 +77,7 @@ struct CubeBasis {
   Yardstick yard;
 };
 
-CubeBasis CubeBasisFor(const GameState& state);
+CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard);
 
 // A run of cubes into one slot, and what the run is expected to leave behind.
 //

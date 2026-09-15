@@ -89,11 +89,12 @@ double SymbolDuplicateValue(const GameState& state, const DropBasis& basis,
 
 }  // namespace
 
-DropBasis DropBasisFor(const GameState& state, double power_per_meso) {
+DropBasis DropBasisFor(const GameState& state, double power_per_meso,
+                       HeldYardstick& held) {
   DropBasis basis;
   basis.derived = DerivedStatsFor(state.character, state.skills);
   basis.worn = TotalEquipStats(state.character, basis.derived);
-  basis.yard = YardstickFor(state);
+  basis.yard = held.For(state);
   basis.power = PowerWith(state, basis, basis.worn);
   basis.power_per_meso = power_per_meso;
   // One pass over the shelf rather than one per token asked about: what a

@@ -622,10 +622,11 @@ Probe ProbeMap(GameState& state, const DropBasis& basis, const std::string& map,
 // for, of the ones they survive. Leaves them where they are if every map kills
 // them, which the give-up clock then catches.
 void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
-                int beats, double step, double power_per_meso, bool for_meso) {
+                int beats, double step, double power_per_meso,
+                HeldYardstick& held, bool for_meso) {
   // One basis for the whole shelf of maps: what a drop is worth depends on the
   // character, not on which map dropped it.
-  DropBasis basis = DropBasisFor(state, power_per_meso);
+  DropBasis basis = DropBasisFor(state, power_per_meso, held);
   std::string best;
   double best_rate = 0.0;
   for (const std::string& map : candidates) {
@@ -644,15 +645,17 @@ void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
 
 // Climbing: the most EXP a second.
 void PickMap(GameState& state, const std::vector<std::string>& candidates,
-             int beats, double step, double power_per_meso) {
-  PickMapFor(state, candidates, beats, step, power_per_meso,
+             int beats, double step, double power_per_meso,
+             HeldYardstick& held) {
+  PickMapFor(state, candidates, beats, step, power_per_meso, held,
              /*for_meso=*/false);
 }
 
 // At the cap, where there is no EXP left to earn: the most meso a second.
 void PickMoneyMap(GameState& state, const std::vector<std::string>& candidates,
-                  int beats, double step, double power_per_meso) {
-  PickMapFor(state, candidates, beats, step, power_per_meso,
+                  int beats, double step, double power_per_meso,
+                  HeldYardstick& held) {
+  PickMapFor(state, candidates, beats, step, power_per_meso, held,
              /*for_meso=*/true);
 }
 
@@ -768,7 +771,8 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   // sweep against a character nothing has changed re-derives the plan it
   // already holds. See PlanKey.
   if (!(PlanKeyFor(state) == planned)) {
-    DropBasis basis = DropBasisFor(state, shopper.power_per_meso());
+    DropBasis basis =
+        DropBasisFor(state, shopper.power_per_meso(), shopper.yardstick());
     SpendBookWithToggles(
         state, [&basis](GameState& inner) { return BookRate(inner, basis); });
     // The matrix after the book and on the same rate: its own pool, its own
@@ -786,7 +790,8 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   // buys nothing: the next one displaces it slots and stars and all.
   shopper.Spend(state);
   purse.Note(state.character);
-  PickMap(state, maps, beats, step, shopper.power_per_meso());
+  PickMap(state, maps, beats, step, shopper.power_per_meso(),
+          shopper.yardstick());
 }
 
 // What one fight -- one boss at one difficulty -- came to over a run. Kept
@@ -1331,7 +1336,8 @@ void PlanBuffsFor(Session& run, const CombatParams& params,
                   const Yield& yield) {
   BuffYield rates;
   rates.crowd = CrowdFor(run.state,
-                         DropBasisFor(run.state, run.shopper.power_per_meso()),
+                         DropBasisFor(run.state, run.shopper.power_per_meso(),
+                                      run.shopper.yardstick()),
                          params, yield.kills_per_second);
   // The yield already covers one side of the totem's question -- whichever
   // beat the character is standing on -- so only the other side is played out.
@@ -1363,7 +1369,8 @@ void PlanBuffsFor(Session& run, const CombatParams& params,
 void SetShopperIncome(Session& run, const CombatParams& params,
                       const Yield& yield) {
   Crowd crowd = CrowdFor(run.state,
-                         DropBasisFor(run.state, run.shopper.power_per_meso()),
+                         DropBasisFor(run.state, run.shopper.power_per_meso(),
+                                      run.shopper.yardstick()),
                          params, yield.kills_per_second);
   double mult =
       DerivedStatsFor(run.state.character, run.state.skills).meso_final_mult;
@@ -1514,7 +1521,8 @@ void SpendHyperPoints(Session& run, bool regeared) {
       power >= run.hyper_power * kRemeasureGrowth) {
     // One basis for the whole table: a Hyper Stat point moves what the
     // character hits for, not what the catalogs hand over for a kill.
-    DropBasis basis = DropBasisFor(run.state, run.shopper.power_per_meso());
+    DropBasis basis = DropBasisFor(run.state, run.shopper.power_per_meso(),
+                                   run.shopper.yardstick());
     run.hyper_farming = MeasureHyperWorth(
         run.state, StatPreset::kFirst, [&basis](GameState& state) {
           return CrowdRateOver(state, basis, kBookSeconds);
@@ -1555,7 +1563,8 @@ void SpendHonor(Session& run) {
   AimedFight(run.state, &aim);
   if (!run.ability_measured || aim != run.ability_aim ||
       power >= run.ability_power * kRemeasureGrowth) {
-    DropBasis basis = DropBasisFor(run.state, run.shopper.power_per_meso());
+    DropBasis basis = DropBasisFor(run.state, run.shopper.power_per_meso(),
+                                   run.shopper.yardstick());
     // Over a buff cycle rather than the ten seconds the book is ranked on:
     // Buff Duration is one of the lines being priced, and it is invisible to
     // any window a buff does not lapse inside. See WindowFor.
@@ -2051,7 +2060,7 @@ void ClimbToCap(Session& run) {
       // for a map again and, if there is still none, let the give-up clock
       // have it rather than spinning.
       PickMap(run.state, run.maps, run.beats, run.step,
-              run.shopper.power_per_meso());
+              run.shopper.power_per_meso(), run.shopper.yardstick());
       CombatParams again = ComputeCombatParams(run.state);
       if (again.encounter == params.encounter) {
         run.seconds = give_up;
@@ -2092,7 +2101,7 @@ void ClimbToCap(Session& run) {
     // rather than in what the last one left.
     if (looked && TakeOnBosses(run, reached, levelled)) {
       PickMap(run.state, run.maps, run.beats, run.step,
-              run.shopper.power_per_meso());
+              run.shopper.power_per_meso(), run.shopper.yardstick());
     }
     if (looked) {
       params = ComputeCombatParams(run.state);
@@ -2127,7 +2136,7 @@ void RestockAtCap(Session& run, const CombatParams& params,
   SpendHyperPoints(run, GearChanged(run));
   SpendHonor(run);
   PickMoneyMap(run.state, run.maps, run.beats, run.step,
-               run.shopper.power_per_meso());
+               run.shopper.power_per_meso(), run.shopper.yardstick());
   run.climb.money_map = run.state.current_map;
 }
 
@@ -2165,7 +2174,7 @@ void FarmAtCap(Session& run) {
   int64_t spent_at_cap = run.purse.spent;
 
   PickMoneyMap(run.state, run.maps, run.beats, run.step,
-               run.shopper.power_per_meso());
+               run.shopper.power_per_meso(), run.shopper.yardstick());
   run.climb.money_map = run.state.current_map;
   CombatParams params = ComputeCombatParams(run.state);
   // Retooled on the clock rather than on levelling up, since nothing levels
@@ -2177,7 +2186,7 @@ void FarmAtCap(Session& run) {
     Yield yield = MeasureYield(run.state, params, run.beats, run.step);
     if (yield.died) {
       PickMoneyMap(run.state, run.maps, run.beats, run.step,
-                   run.shopper.power_per_meso());
+                   run.shopper.power_per_meso(), run.shopper.yardstick());
       CombatParams again = ComputeCombatParams(run.state);
       if (again.encounter == params.encounter) {
         break;  // nowhere left they can stand

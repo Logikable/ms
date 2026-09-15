@@ -188,12 +188,16 @@ cc_library(
         ":sim_boss",
         "//src:game_state",
         "//src/character:character_stats",
+        "//src/character:progression",
         "//src/combat:damage",
         "//src/combat:encounter",
+        "//src/combat:measure",
+        "//src/item:equip_instance",
         "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:skill_proto_cc",
+        "@abseil-cpp//absl/strings",
     ],
 )
 

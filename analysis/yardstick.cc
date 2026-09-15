@@ -4,10 +4,14 @@
 #include <map>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include "absl/strings/str_cat.h"
 #include "analysis/sim_boss.h"
 #include "src/character/character_stats.h"
+#include "src/character/progression.h"
 #include "src/combat/encounter.h"
+#include "src/combat/measure.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 
@@ -43,19 +47,16 @@ Mob ObjectiveBody(const GameState& state, const BossDifficulty& difficulty) {
                              : *toughest;
 }
 
-// The attack the character would settle on: the one landing the most damage a
-// second. Off the fight's own params rather than a measured run, because this
-// is asked once a shopping pass and a run is asked of every candidate.
-//
-// The BOSS's params where there is a fight to aim at, not the map's. A boss
-// fight reads the bossing preset and halves reach, and a character picks a
-// different swing against one lone body than against a crowd -- ranking the
-// gear bought for a boss on the swing they use while farming is the same
-// mistake in a different place.
-const Skill* SettledSwing(const GameState& state, const Yardstick& yard,
-                          int* level) {
+// The params of the fight the plan is aimed at, and how many bodies stand in
+// it. The BOSS's where there is a fight to aim at, not the map's: a boss fight
+// reads the bossing preset and halves reach, and a character picks a different
+// swing against one lone body than against a crowd -- ranking the gear bought
+// for a boss on the swing they use while farming is the same mistake in a
+// different place.
+CombatParams AimedParams(const GameState& state, int* enemies) {
   std::pair<std::string, int> fight;
   CombatParams params;
+  *enemies = 1;
   if (AimedFight(state, &fight) &&
       state.bosses.find(fight.first) != state.bosses.end()) {
     const BossDifficulty& difficulty =
@@ -63,37 +64,136 @@ const Skill* SettledSwing(const GameState& state, const Yardstick& yard,
     params = ComputeBossParams(state, fight.first, difficulty,
                                BossObjectivePhase(state.mobs, difficulty));
   }
-  if (!params.active) {
-    params = ComputeCombatParams(state);
+  if (params.active) {
+    return params;
   }
-  const AttackOption* best = nullptr;
-  double best_rate = 0.0;
-  for (const AttackOption& attack : params.attacks) {
-    if (attack.swing_seconds <= 0.0) {
-      continue;
-    }
-    double landed = 0.0;
-    for (double hit : attack.damage_per_hit) {
-      landed += hit;
-    }
-    double rate = landed / attack.swing_seconds;
-    if (rate > best_rate) {
-      best_rate = rate;
-      best = &attack;
-    }
+  params = ComputeCombatParams(state);
+  int crowd = 0;
+  for (const CombatType& type : params.types) {
+    crowd += type.simultaneous;
   }
-  if (best == nullptr) {
-    return nullptr;
-  }
-  // Back to the catalog by the name the option carries: what the damage chain
-  // wants is the skill's own data, which the option has already spent.
+  *enemies = std::max(1, crowd);
+  return params;
+}
+
+// How long the fight is played out for, in the stretched clock MeasureFight
+// counts in. Wide enough to hold the slowest cycle in the character's book
+// twice over: a window shorter than a cooldown sees the skill either always up
+// or never, and the whole point of playing the fight is to find out which
+// share of it each swing really had.
+double ProfileWindow(const GameState& state) {
+  constexpr double kFloorSeconds = 30.0;
+  double cycle = 0.0;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    if (entry.second.name() == best->name) {
-      *level = state.character.skill_level(entry.second);
+    if (state.character.HasBookFor(entry.second)) {
+      cycle = std::max(cycle, entry.second.cooldown_seconds());
+    }
+  }
+  return std::max(kFloorSeconds, 2.0 * cycle) *
+         GameSpeedFactor(state.character.proto().level());
+}
+
+// The catalog entry an AttackOption came from, by the name it carries: what
+// the damage chain wants is the skill's own data, which the option has spent.
+const Skill* SkillNamed(const GameState& state, const std::string& name) {
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    if (entry.second.name() == name) {
       return &entry.second;
     }
   }
   return nullptr;
+}
+
+// Everything the character really does to `target`, and how often.
+//
+// The rate of each strand is SOLVED, not counted: what the played fight saw
+// the swing land, over what the closed form says one of them lands. That is
+// what carries the clock across into a form a candidate can be re-scored
+// through -- a swing held back by a two-minute cooldown solves to a small
+// rate, and one leaned on all fight solves to a large one, with no rule here
+// having to know which.
+//
+// What runs on a clock of its own -- summons, burns, releases, a reflection --
+// is credited across the strands in proportion. It scales with the character
+// rather than with any one swing, so crediting it to the main attack would
+// make that attack look better than it is; spread, it assumes a summon grows
+// like the average of what they swing, which is the closest a closed form gets.
+// The least of the fight a swing has to account for to be carried as a strand
+// of its own. Every candidate on the shelf is scored through every strand, so
+// the count is a cost paid thousands of times a pass -- and a swing worth a
+// hundredth of the fight cannot reorder anything. What is dropped is not lost:
+// it falls into the same proportional credit the own-clock damage takes.
+constexpr double kStrandFloor = 0.01;
+
+std::vector<Strand> StrandsFor(const GameState& state, const Mob& target) {
+  int enemies = 1;
+  CombatParams params = AimedParams(state, &enemies);
+  std::vector<Strand> strands;
+  if (!params.active || params.attacks.empty()) {
+    return strands;
+  }
+  Sequence played = MeasureFight(params, ProfileWindow(state), enemies);
+  if (played.seconds <= 0.0 || played.damage <= 0.0) {
+    return strands;
+  }
+  const Character& proto = state.character.proto();
+  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+  EquipStats worn = TotalEquipStats(state.character, derived);
+  PassiveOffense passives = PassiveOffenseFor(derived);
+  double swung = 0.0;
+  for (int i = 0; i < static_cast<int>(played.damage_by_attack.size()); ++i) {
+    if (played.damage_by_attack[i] < kStrandFloor * played.damage ||
+        i >= static_cast<int>(params.attacks.size())) {
+      continue;
+    }
+    const Skill* skill = SkillNamed(state, params.attacks[i].name);
+    if (skill == nullptr) {
+      continue;
+    }
+    Strand strand;
+    strand.swing = skill;
+    strand.level = state.character.skill_level(*skill);
+    double each = ExpectedAttackDamage(
+        OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                        worn, state.character.weapon_type(), skill,
+                        strand.level, passives),
+        target);
+    if (each <= 0.0) {
+      continue;
+    }
+    strand.per_second = played.damage_by_attack[i] / (played.seconds * each);
+    swung += played.damage_by_attack[i];
+    strands.push_back(strand);
+  }
+  if (swung <= 0.0) {
+    return strands;
+  }
+  // The own-clock share, spread over what was swung.
+  double all = played.damage / swung;
+  for (Strand& strand : strands) {
+    strand.per_second *= all;
+  }
+  return strands;
+}
+
+// What a held yardstick is re-taken on: the kit, and what it is aimed at.
+std::string KitKey(const GameState& state) {
+  std::string key;
+  const Character& proto = state.character.proto();
+  absl::StrAppend(&key, proto.job(), "/", proto.level(), "/", state.current_map,
+                  "\n");
+  std::pair<std::string, int> fight;
+  AimedFight(state, &fight);
+  absl::StrAppend(&key, fight.first, "/", fight.second, "\n");
+  for (const std::pair<const EquipSlot, const EquipInstance*>& item :
+       state.character.equipped()) {
+    absl::StrAppend(&key, item.second->name(), "\n");
+  }
+  for (const std::pair<const std::string, int32_t>& learned :
+       proto.skill_levels()) {
+    absl::StrAppend(&key, learned.first, "=", learned.second, "\n");
+  }
+  return key;
 }
 
 }  // namespace
@@ -112,21 +212,34 @@ Yardstick YardstickFor(const GameState& state) {
   if (yard.target.name().empty()) {
     yard.target = StandIn(state.character.proto().level());
   }
-  yard.swing = SettledSwing(state, yard, &yard.swing_level);
+  yard.strands = StrandsFor(state, yard.target);
   return yard;
-}
-
-double Worth(const Yardstick& yard, const OffenseStats& offense) {
-  return ExpectedAttackDamage(offense, yard.target);
 }
 
 double WorthOf(const GameState& state, const Yardstick& yard,
                const EquipStats& stats, const PassiveOffense& passives) {
   const Character& proto = state.character.proto();
-  return Worth(
-      yard, OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                            stats, state.character.weapon_type(), yard.swing,
-                            yard.swing_level, passives));
+  double rate = 0.0;
+  for (const Strand& strand : yard.strands) {
+    rate +=
+        strand.per_second *
+        ExpectedAttackDamage(
+            OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                            stats, state.character.weapon_type(), strand.swing,
+                            strand.level, passives),
+            yard.target);
+  }
+  return rate;
+}
+
+const Yardstick& HeldYardstick::For(const GameState& state) {
+  std::string key = KitKey(state);
+  if (!taken_ || key != key_) {
+    held_ = YardstickFor(state);
+    key_ = std::move(key);
+    taken_ = true;
+  }
+  return held_;
 }
 
 }  // namespace ms

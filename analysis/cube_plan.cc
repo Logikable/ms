@@ -60,12 +60,17 @@ PotentialTotals PotentialsBut(const CharacterInstance& character,
   return totals;
 }
 
-// The character's damage chain with `totals` in place of the potentials they
-// wear. Everything a potential moves, and nothing else.
-OffenseStats OffenseWith(const GameState& state, const CubeBasis& basis,
-                         const PotentialTotals& totals) {
+// What the character wears and grants with `totals` in place of the potentials
+// they wear. Everything a potential moves, and nothing else.
+//
+// The two halves the yardstick's door asks for, rather than a folded
+// OffenseStats: folding one here is how a cube's worth came to be measured
+// without the swing while a star's was measured with it, which put the two in
+// different units though BuyBest sorts them against each other.
+void StatsWith(const GameState& state, const CubeBasis& basis,
+               const PotentialTotals& totals, EquipStats* out,
+               PassiveOffense* out_passives) {
   const CharacterInstance& character = state.character;
-  const Character& proto = character.proto();
   const PotentialTotals& worn = character.potential_totals();
   const EquipStats paid = PotentialStatGrant(character, basis.derived, totals);
   const EquipStats& held = basis.derived.potential_stats;
@@ -90,10 +95,8 @@ OffenseStats OffenseWith(const GameState& state, const CubeBasis& basis,
   passives.ied = CombineIgnoredDefense(
       WithoutIgnoredDefense(basis.derived.ied, worn.ied), totals.ied);
 
-  return OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                         stats, character.weapon_type(),
-                         /*attack_skill=*/nullptr, /*attack_level=*/0,
-                         passives);
+  *out = stats;
+  *out_passives = passives;
 }
 
 // What a character carrying `totals` hits a boss for, in the units the scroll
@@ -102,7 +105,10 @@ OffenseStats OffenseWith(const GameState& state, const CubeBasis& basis,
 // a star are compared in one currency.
 double PowerOf(const GameState& state, const CubeBasis& basis,
                const PotentialTotals& totals) {
-  return Worth(basis.yard, OffenseWith(state, basis, totals));
+  EquipStats stats;
+  PassiveOffense passives;
+  StatsWith(state, basis, totals, &stats, &passives);
+  return WorthOf(state, basis.yard, stats, passives);
 }
 
 // What swapping the worn potentials for `totals` is worth in income, priced in
@@ -129,7 +135,7 @@ double IncomeGain(const CubeBasis& basis, const PotentialTotals& worn,
 
 }  // namespace
 
-CubeBasis CubeBasisFor(const GameState& state) {
+CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard) {
   CubeBasis basis;
   // The BOSSING preset, because that is the fight this whole valuation is
   // aimed at. Read in the farming preset -- DerivedStatsFor's silent default --
@@ -141,7 +147,7 @@ CubeBasis CubeBasisFor(const GameState& state) {
   const EquipStats sources[] = {state.character.equip_stats(),
                                 basis.derived.skill_stats};
   basis.raw = SumEquipStats(absl::MakeConstSpan(sources));
-  basis.yard = YardstickFor(state);
+  basis.yard = yard;
   return basis;
 }
 

@@ -54,7 +54,8 @@ struct DropBasis {
   std::map<std::string, double> tokens;
 };
 
-DropBasis DropBasisFor(const GameState& state, double power_per_meso);
+DropBasis DropBasisFor(const GameState& state, double power_per_meso,
+                       HeldYardstick& held);
 
 // What one copy of `proto` is worth. A piece the character would not wear --
 // one their job or level shuts them out of, or one no better than what is
