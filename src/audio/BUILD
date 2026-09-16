@@ -24,6 +24,23 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "jukebox",
+    srcs = ["jukebox.cc"],
+    hdrs = ["jukebox.h"],
+    deps = [":tracks"],
+)
+
+cc_test(
+    name = "jukebox_test",
+    srcs = ["jukebox_test.cc"],
+    deps = [
+        ":jukebox",
+        ":tracks",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "music_player_test",
     srcs = ["music_player_test.cc"],
