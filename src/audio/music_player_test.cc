@@ -75,8 +75,23 @@ TEST(MusicPlayerTest, ALoopingTrackIsNeverEnding) {
   // Taking the loop off is what the Jukebox option does to a track already
   // playing. The track keeps playing; it just has an end now.
   player.StopLooping();
+  EXPECT_FALSE(player.looping());
   EXPECT_FALSE(player.ending()) << "a track just started is not near its end";
   EXPECT_EQ(player.playing(), AnyTrack());
+}
+
+// The shuffle ending on the very track the map names: Play has to put it back
+// on its loop rather than take it for the one already on.
+TEST(MusicPlayerTest, PlayLoopsATrackThatWasPlayingThrough) {
+  if (AnyTrack().empty()) {
+    GTEST_SKIP() << "built with --define=audio=off";
+  }
+  MusicPlayer player = MakePlayer();
+  player.PlayOnce(AnyTrack());
+  EXPECT_FALSE(player.looping());
+  player.Play(AnyTrack());
+  EXPECT_EQ(player.playing(), AnyTrack());
+  EXPECT_TRUE(player.looping());
 }
 
 TEST(MusicPlayerTest, PlayOnceRestartsTheSameTrack) {

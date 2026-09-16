@@ -35,8 +35,9 @@ class MusicPlayer {
     return ready_;
   }
 
-  // Crossfades to `track`, looping it. Does nothing if it is already playing,
-  // and stops if this build has no such track.
+  // Crossfades to `track`, looping it, and stops if this build has no such
+  // track. Asking for the track already looping costs nothing; asking for the
+  // one playing through once puts it back on its loop.
   void Play(std::string_view track);
   // The same, but plays `track` through once rather than looping it. Always
   // starts it over, so the track that is ending can be asked for again --
@@ -63,6 +64,10 @@ class MusicPlayer {
   const std::string& playing() const {
     return playing_;
   }
+  // Whether it comes round again at its end rather than stopping there.
+  bool looping() const {
+    return looping_;
+  }
 
  private:
   // How long a track takes to fade out, and the next to come up under it.
@@ -86,6 +91,7 @@ class MusicPlayer {
   bool loaded_[2] = {false, false};
   int live_ = 0;
   std::string playing_;
+  bool looping_ = false;
   // How long the live track runs, or 0 where the decoder could not say.
   float length_seconds_ = 0.0f;
   int volume_ = 10;

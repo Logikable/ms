@@ -72,7 +72,7 @@ void MusicPlayer::FadeOutLive() {
 }
 
 void MusicPlayer::Play(std::string_view track) {
-  if (!ready_ || track == playing_) {
+  if (!ready_ || (track == playing_ && looping_)) {
     return;
   }
   Start(track, /*looping=*/true);
@@ -88,6 +88,7 @@ void MusicPlayer::PlayOnce(std::string_view track) {
 void MusicPlayer::StopLooping() {
   if (ready_ && loaded_[live_]) {
     ma_sound_set_looping(&sounds_[live_], MA_FALSE);
+    looping_ = false;
   }
 }
 
@@ -95,10 +96,10 @@ bool MusicPlayer::ending() {
   if (!ready_ || !loaded_[live_] || playing_.empty()) {
     return true;
   }
-  ma_sound& sound = sounds_[live_];
-  if (ma_sound_is_looping(&sound)) {
+  if (looping_) {
     return false;
   }
+  ma_sound& sound = sounds_[live_];
   if (ma_sound_at_end(&sound)) {
     return true;
   }
@@ -141,6 +142,7 @@ void MusicPlayer::Start(std::string_view track, bool looping) {
     length_seconds_ = 0.0f;
   }
   ma_sound_set_looping(&sounds_[live_], looping ? MA_TRUE : MA_FALSE);
+  looping_ = looping;
   ma_sound_set_fade_in_milliseconds(&sounds_[live_], 0.0f, 1.0f, kFadeMs);
   ma_sound_start(&sounds_[live_]);
   playing_ = std::string(track);
@@ -153,6 +155,7 @@ void MusicPlayer::Stop() {
   DropFading();
   FadeOutLive();
   playing_.clear();
+  looping_ = false;
 }
 
 void MusicPlayer::SetVolume(int volume) {
