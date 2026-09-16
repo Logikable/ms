@@ -66,13 +66,10 @@ enum EquipType {
   EQUIP_TYPE_ARROW_FOR_CROSSBOW = 26;
 }
 
-// The equipment window slot this item occupies when worn. Determines where the
-// item appears on the character and enforces one-item-per-slot.
-//
-// These numbers are what a save names a worn item by, so a slot can be added
-// but never moved -- they are the order the slots arrived in, not an order
-// anybody reads. The order the equipment window lists them in is kSlotOrder,
-// in src/frontend/widgets/equipped_list.cc.
+// The equipment window slot this item occupies when worn, one item apiece.
+// These numbers are what a save names a worn item by, so a slot can be ADDED
+// but never moved: they are the order the slots arrived in. The order the
+// window lists them in is kSlotOrder.
 enum EquipSlot {
   EQUIP_SLOT_UNSPECIFIED = 0;
   EQUIP_SLOT_PRIMARY_WEAPON = 1;
@@ -129,12 +126,9 @@ enum EquipSlot {
   EQUIP_SLOT_SYMBOL_ESFERA = 21;
 
   // A character wears four rings and two pendants, and any ring fits any of
-  // the four -- so an item names EQUIP_SLOT_RING above and is worn in the
-  // first of these that is free; see SlotFamily in src/item/item.h. The rule
-  // that keeps them apart is that no family holds the same item twice.
-  //
-  // Numbered here rather than beside the first ring for the same reason:
-  // a slot can be added but never moved.
+  // the four: an item names EQUIP_SLOT_RING and is worn in the first free one.
+  // No family holds the same item twice. Numbered here rather than beside the
+  // first ring because a slot can be added but never moved.
   EQUIP_SLOT_RING_2 = 22;
   EQUIP_SLOT_RING_3 = 23;
   EQUIP_SLOT_RING_4 = 24;
@@ -166,14 +160,10 @@ enum PotentialRank {
   POTENTIAL_RANK_LEGENDARY = 4;
 }
 
-// What one potential line can grant. A cut of GMS's list, keeping what a lever
-// in this game reads: no MP, no DEF, no on-hit statuses, no recovery, and none
-// of the Decent skills -- those arrive with 5th job instead.
-//
-// Where GMS states one effect at several fixed sizes, each size is its own
-// type here: a Legendary weapon can roll 35% ignored defence or 40%, and they
-// are two entries in one pool rather than one entry with two values. That
-// keeps what a line is worth a function of its type and its rank alone.
+// What one potential line can grant: a cut of GMS's list, keeping what a lever
+// here reads. Where GMS states one effect at several fixed SIZES, each size is
+// its own type -- two entries in one pool rather than one entry with two
+// values -- which keeps a line's worth a function of its type and rank.
 enum PotentialLineType {
   POTENTIAL_LINE_TYPE_UNSPECIFIED = 0;
   // Flat stats. Rare alone, as in GMS -- Epic and up have dropped them, which
@@ -321,23 +311,15 @@ message EquipPrototype {
   // all. Read it per item, never per equip_type: two throwing stars are not
   // obliged to agree with each other.
   repeated Upgrade unsupported_upgrades = 9;
-  // What the shop charges for one of these, in meso. An item joins the shop by
-  // naming a price here, so there is no second list to keep in step with this
-  // one.
-  //
-  // Optional because zero is a price rather than a refusal: the Master
-  // Adventurer medal is handed out free to anyone who walks up to the counter,
-  // and an item that says nothing at all is the one the shop does not stock.
+  // What the shop charges, in meso. An item JOINS the shop by naming a price,
+  // so there is no second list to keep in step. Optional because zero is a
+  // price rather than a refusal: saying nothing is what keeps it off the
+  // shelf.
   optional int32 shop_price = 10;
-  // What the shop pays for one of these, in meso, when that is not a tenth of
-  // shop_price -- the rate GMS itself buys equipment back at, and what a
-  // stocked item is worth without saying so. Set only on a piece no shop
-  // sells, which names its own price or goes unset and is worth nothing. Ask
-  // SellPrice in src/item/item.h rather than this field.
-  //
-  // Zero is a price rather than a refusal, here as on a stackable: every item
-  // can be sold, and one worth nothing is simply thrown away. That is what
-  // clears a starter sword out of the bag.
+  // What the shop pays, where that is not a tenth of shop_price -- GMS's own
+  // buy-back rate, and what a stocked item is worth without saying so. Set
+  // only on a piece no shop sells. ASK SellPrice rather than this field. Zero
+  // is a price rather than a refusal: an item worth nothing is thrown away.
   optional int32 sell_price = 11;
   // The token this is bought with, by data file stem, and how many of it. Both
   // unset for an item the shop sells for meso, which is most of them. An item

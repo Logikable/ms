@@ -232,14 +232,10 @@ enum AbilityRank {
   ABILITY_RANK_LEGENDARY = 4;
 }
 
-// What one Inner Ability line can grant. A cut of GMS's 45, keeping only what
-// a lever in this game reads: no MP, no DEF, no jump or speed, and none of
-// GMS's cross-stat conversions. The weights the survivors roll at keep their
-// relative sizes, so thinning the list only makes the wanted lines likelier.
-//
-// Attack and Magic Attack are two types rather than one, as GMS has them, so
-// every character carries one line in the pool that is dead to them. Hyper
-// Stats take the opposite bargain -- one Attack row pays both.
+// What one Inner Ability line can grant: a cut of GMS's 45, keeping what a
+// lever here reads. The survivors keep their relative weights, so thinning the
+// list only makes the wanted lines likelier. Attack and Magic Attack are TWO
+// types as GMS has them, so every character carries a dead line.
 enum AbilityLineType {
   ABILITY_LINE_TYPE_UNSPECIFIED = 0;
   ABILITY_LINE_TYPE_STR = 1;
@@ -329,14 +325,10 @@ message BuyBackEntry {
   int64 unit_price = 3;
 }
 
-// One preset's worn items, keyed by EquipSlot enum value (stored as int32,
-// proto3 map limitation). At most one item per slot.
-//
-// The first preset a character holds is the whole worn body. The second and
-// third hold only the slots that differ from it and inherit the rest, which is
-// what lets one item be worn by all three at once -- an equip is stored by
-// value, so three maps holding a copy each would be three items that drift
-// apart the moment one is cubed.
+// One preset's worn items, keyed by EquipSlot (as int32, a proto3 map limit).
+// The FIRST preset is the whole worn body; the others hold only the slots that
+// differ and inherit the rest, which is what lets one item be worn by all
+// three -- three copies would drift apart the moment one is cubed.
 message EquipPreset {
   map<int32, Equip> equipped = 1;
 }

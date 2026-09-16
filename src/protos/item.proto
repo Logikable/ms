@@ -69,15 +69,13 @@ message ItemPrototype {
   CurrencyColor currency_color = 9;
   // See ItemKind.
   ItemKind kind = 10;
-  // For a token, the level of the equipment it buys and the slot that
-  // equipment goes in -- 150 and the weapon slot for a Piece of Destruction.
+  // For a token, the level of the equipment it buys and the slot that goes in.
   // Together they are the order the bag files the token shelf in: the best
-  // gear first, and the weapon ahead of the rest of a set. A token that buys a
-  // whole set names no slot, and leads its level.
+  // gear first, the weapon ahead of the rest of a set, and a token that buys a
+  // whole set naming no slot and leading its level.
   //
-  // This is not what currency_mark says. The mark is the STAGE of the game the
-  // token belongs to, and one stage covers two levels: Cygnus and Princess No
-  // are Lv140 and Root Abyss Lv150, all of them a triangle.
+  // NOT what currency_mark says: the mark is the STAGE of the game the token
+  // belongs to, and one stage can cover two levels.
   int32 currency_level = 12;
   EquipSlot currency_slot = 13;
   // What a list calls the item where its own column already says the rest:

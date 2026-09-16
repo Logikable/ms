@@ -57,13 +57,9 @@ message BossDifficulty {
   // bodies, and says outright that no EXP boost touches it -- so this is flat,
   // as the meso beside it is.
   int64 exp = 7;
-  // The level a character has to reach before this difficulty can be entered.
-  // Unset means the boss screen's own gate is the only one, which is what a
-  // fight a player meets on the day the screen opens wants.
-  //
-  // Per difficulty rather than per boss: a ladder's rungs open at different
-  // levels, and the hard mode of a fight already beaten is the usual next
-  // thing a player is waiting for.
+  // The level needed before this difficulty can be entered; unset leaves the
+  // boss screen's own gate as the only one. PER DIFFICULTY: a ladder's rungs
+  // open at different levels.
   int32 unlock_level = 8;
   // A fight that is written down but not built yet. The screen lists it, dims
   // it, and shows nothing but the HP of each phase -- there is no clock, no

@@ -60,23 +60,16 @@ enum SkillTag {
   SKILL_TAG_HOLY = 9;
 }
 
-// A skill's per-level contribution to the character's stats. Only the levers we
-// currently model are here; a skill whose real effect is something we don't
-// track (speed, jump, ...) simply carries no levers and does nothing. Percents
-// are fractions (0.10 == +10%).
+// A skill's per-level contribution to the character's stats. Only the levers
+// we model are here; percents are fractions (0.10 == +10%).
 //
-// Numbered in two blocks. Everything up to 99 is a lever any job could want;
-// from 100 up is one that exactly one job line's book grants, parked out of the
-// way so a new class does not thread its one-off through the middle of the
-// general ones.
+// Numbered in TWO blocks: up to 99 is a lever any job could want, from 100 up
+// is one job line's own. The test is the MECHANISM, not whose book states it
+// today -- boss damage belongs above because gear already pays it, a Combo Orb
+// below because nothing but a warrior counts them.
 //
-// The test is the MECHANISM, not whose book happens to state it today. Boss
-// damage belongs above because any book could pay it and gear already does; a
-// Combo Orb belongs below because nothing but a warrior counts them.
-//
-// Nothing here is ever serialized -- the catalog loads from textproto by field
-// NAME and the save refers to skills by display name -- so these numbers are
-// free to move, unlike character.proto's.
+// Nothing here is ever serialized, so these numbers are FREE to move, unlike
+// character.proto's.
 message SkillEffect {
   // Primary stats, exactly as a worn item grants them.
   double str = 1;
@@ -157,20 +150,14 @@ message SkillEffect {
   // not, and a second status over the first says nothing.
   double final_dmg_pct_when_afflicted = 52;
 
-  // Final Attack: a chance for the character's swing to be followed by one
-  // extra hit on each enemy that swing reached, worth final_attack_pct of a
-  // plain swing on each of final_attack_lines strikes. The lines are told
-  // apart rather than folded into one percent because each rolls its own crit
-  // and its own mastery, which two stars of 150% and one of 300% do not come
-  // to the same thing under. 0 lines is one strike.
+  // Final Attack: a chance the swing is followed by one extra hit on each
+  // enemy it reached, worth final_attack_pct on each of final_attack_lines
+  // strikes. The lines are apart rather than folded into one percent because
+  // each rolls its own crit and mastery; 0 lines is one strike.
   //
-  // Only the character's own swings carry it. A skill firing on its own clock
-  // does not, which is why the two are separate fields rather than one
-  // expected value: the chance and the damage are what the player is shown.
-  //
-  // It rolls separately for every enemy the swing reached, so what it is worth
-  // is this against each of them. Which swings set it off belongs to the skill
-  // rather than to the level -- see Skill.follows_skill_tag.
+  // Only the character's OWN swings carry it, and it rolls separately for
+  // every enemy reached. Which swings set it off is the skill's to say -- see
+  // Skill.follows_skill_tag.
   double final_attack_chance = 18;
   double final_attack_pct = 19;
   double final_attack_lines = 32;
@@ -187,18 +174,13 @@ message SkillEffect {
 
   double def = 20;                // flat weapon DEF
   double damage_taken_pct = 21;  // share of incoming damage cancelled
-  // Chance an incoming hit misses outright (0.30 == 30%). Not reduction: what
-  // it cancels is the whole hit rather than a share of one. The two are still
-  // worth the same to an expected-value fight, which is why this multiplies
-  // into the damage taken beside them -- what it buys the player that reduction
-  // does not is a hit they never took at all, and nothing here can tell.
+  // Chance an incoming hit misses outright. NOT reduction -- it cancels the
+  // whole hit -- though the two are worth the same to an expected-value fight,
+  // which is why it multiplies in beside them.
   //
-  // GMS calls two different things avoidability and this is only one of them.
-  // What lands here is the flat roll -- Evasion Boost's, and the "Bonus
-  // Avoidability Chance" Illusion Step grants. The other is the AVOID STAT,
-  // which loses an accuracy check against the monster's, and which this game
-  // has no notion of: a skill granting a share of THAT grants nothing here.
-  // Two rolls meet as rolls do, so no pile of them ever reaches certainty.
+  // The flat roll only. GMS's other avoidability is the AVOID STAT, which
+  // loses an accuracy check this game has no notion of, so a skill granting a
+  // share of that grants nothing here. Two rolls meet as rolls do.
   double dodge_chance = 22;
   // Share taken off the ATTACK of whatever is hitting the character (0.30 ==
   // 30% less). Not reduction: it weakens the monster before its hit is rolled,
@@ -292,19 +274,11 @@ message SkillEffect {
   // character without Maple Warrior multiplies nothing and gets nothing, which
   // is the whole of GMS's "can only be used when you have Maple Warrior".
   double ap_stat_bonus_pct = 54;
-  // Strikes added to every multi-line swing the character makes -- Bolt
-  // Surplus's "+1 attack to all multi-hit skills". Summed across its sources,
-  // of which there is one.
-  //
-  // GMS says it skips summons, 5th job common skills and "certain skills", and
-  // every one of those falls out of what a swing is here: a summon fires on its
-  // own clock rather than being swung, and a Final Attack is a lever with no
-  // line count to add to. What is left is exactly the attacks the character
-  // chooses between, an empowered form among them.
-  //
-  // A swing that lands once is left alone. GMS grants this to multi-hit
-  // skills, where an added line is a share of the swing; on a single strike it
-  // would double the whole.
+  // Strikes added to every MULTI-LINE swing the character makes, summed across
+  // its sources. GMS's exceptions all fall out of what a swing is here: a
+  // summon fires on its own clock, and a Final Attack has no line count to add
+  // to. A swing that lands ONCE is left alone -- an added line is a share of
+  // the swing, and on a single strike it would double the whole.
   double bonus_attack_lines = 33;
   // Expected share of the HP pool a landed swing puts back (0.02 == 2%). GMS
   // states it as a chance of a fixed amount; the expectation is what an
@@ -614,22 +588,14 @@ message AutoMode {
   bool silent_while_buff_stands = 9;
 }
 
-// The damage a buff itself ticks: a wound, bleeding for as long as the buff
-// stands and only then. Puncture is the case it exists for -- GMS's "attacked
-// enemies take #dot% damage every #dotInterval sec., for #dotTime sec.", where
-// the seconds are the buff's own and the enemies are the ones the swing
-// reached.
+// The damage a buff itself ticks: a wound bleeding for as long as the buff
+// stands and only then.
 //
-// Not an AutoMode, which is a turret: that fires whether or not anything was
-// struck and picks its own targets. This has no reach of its own -- it takes
-// the swing's, being the mark that swing left -- and no clock beyond the
-// buff's.
-//
-// GMS words the tick as a chance of a damage: "a 100% chance to take 165%".
-// Both fold into skill_pct here, the way a Final Attack's chance and damage
-// do, because neither half says anything on its own.
-//
-// Read at the same learned level as the skill carrying it.
+// NOT an AutoMode, which is a turret firing whether or not anything was struck
+// and picking its own targets. This has no reach of its own -- it takes the
+// swing's, being the mark that swing left -- and no clock beyond the buff's.
+// GMS's chance and damage both fold into skill_pct, neither saying anything
+// alone. Read at the skill's learned level.
 message BuffPulse {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
@@ -703,53 +669,23 @@ message BuffPulse {
   // other one.
   Scatter fixed_strikes = 16;
   // The strike this clock goes out on, of a shape all its own, the moment
-  // `max_pulses` runs out. Dark Lord's Omen is what it exists for: GMS's
-  // scroll bursts when the duration ends, for damage and a reach neither of
-  // which is the volley's.
+  // `max_pulses` runs out. Apart from final_repeat_strike, which lands the
+  // PULSE once more at the top of its ramp; both land WITH the last tick, a
+  // strike timed at the end of the window falling after the buff came down.
   //
-  // Apart from final_repeat_strike above, which lands the PULSE once more at
-  // the top of its ramp. Both land WITH the last tick rather than an interval
-  // after it, and for the same reason: a strike timed at the end of the window
-  // falls after the buff has already come down.
-  //
-  // It keeps whatever levers the pulse states and states only what is its own:
-  // one turret, and GMS writes its boss damage once for everything it does.
-  //
-  // Its `casts` are strikes of the burst landed together, as everywhere else.
-  // Its `skips_mirror` says nothing here -- no shadow copies a clock of its
-  // own. Unset for every pulse that simply stops, which is every other one.
+  // It keeps the pulse's levers and states only what is its own -- one turret,
+  // whose boss damage GMS writes once. Unset for a pulse that simply stops.
   SwingHit final_strike = 17;
 }
 
-// A buff a skill puts up for a while, on a cooldown of its own: what it grants
-// while it is up, how long that is, and what shortens the wait for the next
-// one. The skill's own cooldown_seconds is that wait.
+// A shell that cancels WHOLE hits rather than taking a share off each, and
+// stands until either its count or its clock runs out.
 //
-// Dark Resonance is the case it exists for, and what makes it a mechanism
-// rather than another passive is that its duration is SHORTER than its
-// cooldown. Cross Surge and Hyper Body are up for as long as a player keeps
-// pressing them, so this game simply folds them in as permanent; a buff that
-// cannot be permanent has to be modelled, or the game would be handing out
-// something GMS never does.
-//
-// What it grants goes through the same fold every passive does, so its levers
-// meet the character's the way two skills' do -- two sources of ignored
-// defence combine rather than sum, which is the whole reason a buff cannot be
-// a multiplier applied to a damage number after the fact.
-//
-// Read at the same learned level as the skill carrying it.
-// A shell that stands over a character and cancels whole hits, rather than
-// taking a share off each of them. Holy Magic Shell is what it exists for:
-// GMS blocks a set number of attacks outright and leaves the shell standing
-// until either the count or the clock runs out.
-//
-// GMS exempts attacks that cost a share of the target's Max HP -- almost
+// GMS exempts the attacks costing a share of the target's Max HP -- almost
 // everything a boss throws -- and blunts them instead. Nothing here deals
-// damage as a share of the pool, so `Mob.boss` is what says which hits those
-// are: a boss's hit is never blocked and costs
-// `boss_damage_taken_pct` less, and every other hit is blocked whole.
-//
-// Read at the same learned level as the skill carrying it.
+// damage that way, so `Mob.boss` says which hits those are: a boss's hit is
+// never blocked and costs `boss_damage_taken_pct` less. Read at the skill's
+// learned level.
 message Shield {
   // Hits one raising cancels before the shell falls. A double for the reason
   // Dot.max_stacks is one: GMS climbs it faster than a level at a time, and
@@ -786,17 +722,10 @@ message Stance {
 }
 
 // An attack a buff loads and hands the player a fixed number of, one spent per
-// swing while the buff stands. Repeating Crossbow Cartridge is what it exists
-// for: GMS loads eight cartridges for sixty seconds, and each Full Burst Shot
-// spends one.
-//
-// A swing in its own right -- it costs the time it takes, unlike a pulse on
-// its own clock -- so it states the whole of one. Nested rather than written
-// as a skill of its own because GMS states it inside its buff's tooltip and
-// nothing learns it separately, which is the same bargain EmpoweredForm and
-// Stance already take.
-//
-// Read at the same learned level as the skill carrying it.
+// swing while the buff stands. A SWING in its own right -- it costs the time
+// it takes, unlike a pulse on its own clock -- so it states the whole of one.
+// Nested because GMS states it inside its buff's tooltip and nothing learns it
+// separately. Read at the skill's learned level.
 message Magazine {
   // What the skill page calls it, and the name its damage goes out under. The
   // fight finds the swing by it, so two magazines must not share one.
@@ -838,19 +767,12 @@ message Magazine {
   // Not `casts` above, which is strikes out of ONE charge: Full Burst Shot
   // fires four arrows and spends a single cartridge doing it.
   int32 charges_per_swing = 12;
-  // The clock a charge comes back on with no buff raised at all, and how many
-  // the bank holds that way. Throw Blasting is what the pair exists for: GMS
-  // prepares one explosive charm every ten seconds for nothing, and the active
-  // half drops forty-six into the same bank.
-  //
-  // The clock runs only while the bank is BELOW recharge_max, so a load in
-  // hand is never topped up. That is the whole of GMS's "the active and
-  // passive effects cannot trigger simultaneously" -- and it makes the buff's
-  // duration a ceiling rather than a silence, the passive coming back the
-  // moment the burst's charges are gone rather than when the icon does.
-  //
-  // Both or neither. 0 for a load only a raising of the buff fills, which is
-  // both of the others.
+  // The clock a charge comes back on with NO buff raised, and how many the
+  // bank holds that way. The clock runs only while the bank is BELOW
+  // recharge_max, so a load in hand is never topped up -- which is the whole
+  // of GMS's "the active and passive effects cannot trigger simultaneously",
+  // and makes the buff's duration a ceiling rather than a silence. Both or
+  // neither.
   double recharge_seconds = 13;
   int32 recharge_max = 14;
 }
@@ -900,18 +822,12 @@ message Buff {
   // What the buff bleeds while it stands. Unset for every buff that only
   // grants levers, which is all of them but Puncture's wound.
   BuffPulse pulse = 6;
-  // Whether one of these stands over the whole party however many raise it.
-  // Epic Adventure is what it exists for: every Explorer has it, it does not
-  // stack with itself, and a party casts it in turn rather than all at once.
+  // Whether one of these stands over the whole party however many raise it:
+  // it does not stack with itself, and a party casts it in TURN.
   //
-  // The caster's own wait is untouched -- the page still states it. What
-  // changes is how often the buff comes ROUND on them, since a partner's cast
-  // covers them too: a party of N takes N turns to come back to the same
-  // player, so the buff is up N times as often as one caster could manage.
-  //
-  // Only a party member holding the skill is covered. That is the whole of the
-  // faction rule GMS states -- a Cygnus Knight will never learn an Explorer's
-  // Epic Adventure, so nothing has to ask what class anybody is.
+  // The caster's own wait is untouched -- what changes is how often the buff
+  // comes ROUND on them, a party of N taking N turns. Only a member holding
+  // the skill is covered, which is the whole of GMS's faction rule.
   bool party_shared = 8;
   // Lines the character has to land before this goes up, instead of a wait in
   // seconds. Mortal Blow is what it exists for: GMS counts the hits a Ranger
@@ -1018,51 +934,28 @@ message Buff {
   // it comes back at the same beat it was dismissed on. Empty for every buff
   // that puts nothing out, which is every other one.
   string silences_skill_name = 23;
-  // Milliseconds a press of this buff's OWN costs, for a buff on an attack
-  // that GMS raises with a press rather than laying with the swing. Arrow
-  // Blaster is what it exists for: the turret is installed with the Interact
-  // key mid-cast, stands for its own duration and has to be put back up, so
-  // the volley that happens to be firing does not pay for it.
-  //
-  // What it buys is the CLOCK -- the buff is raised and re-raised like any
-  // other rather than waiting for its skill to be swung, which a swing the
-  // fight never picks would never do. Charged unscaled by the weapon's
-  // attack-speed stage, as every buff cast is; `shoot1`'s frames are all
-  // positive, so GMS really would shorten this one on a faster bow.
-  //
-  // 0 for a buff a swing lays, which is every other one.
+  // Milliseconds a press of this buff's OWN costs, for one GMS raises with a
+  // press rather than laying with the swing. What it buys is the CLOCK: the
+  // buff is raised and re-raised like any other rather than waiting for a
+  // swing the fight may never pick. Charged unscaled by attack speed, as every
+  // buff cast is. 0 for a buff a swing lays.
   int32 own_cast_delay_ms = 25;
-  // What the buff grants the CASTER on top of `base` above, and only while
-  // somebody else is in the party. Divine Echo alone: GMS pays the Paladin a
-  // share for the blessing standing on whoever is carrying their echo, and
-  // there is nobody to carry it alone.
-  //
-  // Apart from Skill.requires_party, which withholds the whole skill, and from
-  // ally_base, which is what the OTHERS get. Read at the same learned level as
-  // the rest of the buff, and folded as a source of its own -- so a share of
-  // final damage here multiplies with the one above rather than summing.
-  //
-  // Unset for every buff worth the same alone as in company, which is every
-  // other one.
+  // What the buff grants the CASTER on top of `base`, and only while somebody
+  // else is in the party. Apart from Skill.requires_party, which withholds the
+  // whole skill, and from ally_base, which is what the OTHERS get. Folded as a
+  // source of its own, so final damage here multiplies rather than sums.
   SkillEffect with_party_base = 26;
   SkillEffect with_party_per_level = 27;
 }
 
 // A chance a swing has to land harder on one of the enemies it reached, and
-// what firing it hands the character back. Mortal Blow is what it exists for:
-// GMS's "a 10% chance when attacking to deal 20% increased damage to an enemy,
-// recovering 1% of Max HP".
+// what firing it hands the character back.
 //
-// Rolled ONCE for the whole swing rather than once per line, because GMS words
-// it "when attacking" -- and per line the recovery would be worth a swing's
-// line count of times as much.
-//
-// The damage is a share of what that one enemy was already taking, unlike a
-// Final Attack, which is an extra hit worth its own percent whatever set it
-// off. So a harder swing carries a harder proc, which is what "increased
-// damage" means.
-//
-// Read at the same learned level as the skill carrying it.
+// Rolled ONCE for the whole swing, GMS wording it "when attacking" -- per line
+// the recovery would be worth a swing's line count of times as much. The
+// damage is a SHARE of what that enemy was already taking, unlike a Final
+// Attack, so a harder swing carries a harder proc. Read at the skill's learned
+// level.
 message Proc {
   // damage_pct is the share added to that enemy's damage; hp_recover_pct is
   // the share of the pool put back. Nothing else here is read.
@@ -1077,18 +970,15 @@ message Proc {
 // for -- GMS's "enemies struck by the flame are burned and take continuous
 // damage".
 //
-// A second cast writes the mark again, so the duration starts over and the
-// damage is taken fresh from the character as they stand at that moment -- a
-// burn lit under a buff keeps the buffed number for the whole of its life, and
-// one lit without it never gains. Where max_stacks allows it the second cast
-// also piles another helping on, and the monster burns for both.
+// A second cast writes the mark again: the duration starts over and the damage
+// is taken FRESH, so a burn lit under a buff keeps the buffed number for its
+// whole life. Where max_stacks allows, the second cast piles another helping
+// on and the monster burns for both.
 //
-// Not an AutoMode, which is a turret with a reach of its own, and not a
-// BuffPulse, which bleeds for as long as a buff on the CHARACTER stands. This
-// rides the monster: it lives and dies with the one it was left on, and one
-// that dies burning takes the rest of the burn with it.
-//
-// Read at the same learned level as the skill carrying it.
+// Not an AutoMode, which has a reach of its own, and not a BuffPulse, which
+// bleeds while a buff on the CHARACTER stands. This rides the MONSTER, and one
+// that dies burning takes the rest of the burn with it. Read at the skill's
+// learned level.
 message Dot {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
@@ -1115,40 +1005,23 @@ message Dot {
   double max_stacks_per_level = 10;
 }
 
-// A second hit the same swing lands at the same moment. Divine Mark is the
-// case it exists for: the hammer falls and the brand it leaves explodes, and
-// GMS prices the two differently -- 420% seven times and 290% five times, with
-// only the explosion hitting an ordinary monster harder.
+// A second hit the same swing lands at the same moment, folded into ONE swing
+// rather than told apart in time. What it buys over adding the strikes
+// together is that each half keeps its own multiplier and its own bonus
+// against ordinary monsters, both per line.
 //
-// Folded into ONE swing rather than told apart in time, because nothing here
-// would do anything with the gap between them. What it buys over simply adding
-// the strikes together is that each half keeps its own multiplier and its own
-// bonus against ordinary monsters, both of which are per line.
+// It reaches whatever the swing reached, being the same swing, and carries
+// none of the swing's riders: a Final Attack rolls once for the swing, and a
+// shadow copies the swing it was already copying.
 //
-// It reaches whatever the swing reached: it is the same swing. It carries none
-// of the swing's riders either -- a Final Attack rolls once for the swing, not
-// once per hit in it, and a shadow copies the swing it was already copying.
+// A hit may also carry what the rest of the swing does not. `final_dmg_pct`
+// multiplies into what the character and swing bring, as two final damage
+// sources always meet; `crit_rate` is ADDED to the character's for this hit
+// alone, GMS only ever stating it as certainty, and their critical DAMAGE is
+// untouched. `hp_recover_pct` is paid PER LINE of every strike, where the
+// swing's own is stated against the cast.
 //
-// Beside its own multiplier, a hit may carry final damage the rest of the
-// swing does not: `final_dmg_pct` here is multiplied into what the character
-// and the swing already bring, the way two final damage sources always meet.
-// Assassinate is what it exists for -- GMS's Murderous Intent lifts the
-// finishing blow and says nothing of the six strikes before it.
-//
-// Beside its own multiplier, a hit may crit more often than the rest of the
-// swing: `crit_rate` here is ADDED to the character's own for this hit alone.
-// GMS only ever states it as certainty -- Raging Blow's "the final two attacks
-// are criticals" -- which is a rate of 1.00, and the damage chain already
-// holds the total at 1.00 so nothing special has to happen for it. The
-// character's critical DAMAGE is untouched: a certain crit is still worth what
-// their crits are worth.
-//
-// `hp_recover_pct` here is paid PER LINE of every strike, which is GMS's "for
-// every final attack that lands". The swing's own is stated against the cast
-// instead -- Angel Ray heals once however many times it strikes -- because
-// that is where GMS states each of them.
-//
-// Read at the same learned level as the skill carrying it.
+// Read at the skill's learned level.
 message SwingHit {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
@@ -1172,33 +1045,11 @@ message SwingHit {
   bool skips_mirror = 7;
 }
 
-// A swing the player HOLDS rather than presses: it pulses while the key is
-// down and ends on one bigger strike when they let go. Lightning Orb is what
-// it exists for -- an orb that zaps eight enemies every 150ms for up to two
-// seconds and then bursts.
-//
-// The pulse is the skill's own: its damage, its lines, its reach. What is here
-// is the clock the pulses fall on, how long the hold can run and what it ends
-// with. Skill.base_delay_ms is the SHORTEST hold rather than the whole swing,
-// and it alone is scaled by attack speed -- the pulse clock is the skill's own
-// rate, exactly as fixed_delay says of a key-down swing.
-//
-// The enemies are picked when the hold opens and never again. An orb that has
-// emptied its targets goes on zapping the space where they stood, so the fight
-// lets go the moment another pulse would buy nothing -- which is the whole
-// reason the hold has a length to decide at all.
-//
-// Everything the SKILL states is one pulse's, its `hp_recover_pct` among them:
-// a hold let go early recovers as much of the pool as it landed pulses.
-// A swing thrown as single-target strikes scattered over the enemies in reach,
+// A swing thrown as single-target strikes SCATTERED over the enemies in reach,
 // rather than one strike landing on all of them. It spreads before it doubles
-// up, so it is the enemy count that decides how hard any one of them is hit.
-//
-// Megiddo Flame is what it exists for: GMS throws eleven blue flames, each
-// burning one enemy, and a flame landing on an enemy another already reached
-// keeps less of its damage. Against a lone boss all eleven land on it, which
-// is the whole point of the skill -- read as an ordinary eleven-enemy swing it
-// would be worth a fifth of what GMS pays there.
+// up, so the enemy count decides how hard any one is hit -- against a lone
+// boss every strike lands on it, and read as an ordinary N-enemy swing the
+// skill would be worth a fraction of what GMS pays there.
 message Scatter {
   // Strikes the cast throws. Each is the skill's own swing landed on one
   // enemy: same multiplier, same lines, same everything but the target count.
@@ -1251,18 +1102,13 @@ message FreezeBuild {
   int32 crowd = 2;
 }
 
-// The stun a strike leaves on what it reaches: the third status this game keeps
-// on a monster, beside the ice a swing leaves and a burn. An enemy under it is
-// AFFLICTED, which is what Storm Magic and Burning Magic were already asking
-// about -- see SkillEffect::final_dmg_pct_when_afflicted, which said in so many
-// words that a status the game learns to inflict later joins the test and
-// nothing else moves. Nothing here models a monster acting on a schedule it
-// could be knocked off, so the stun costs the enemy nothing beyond that.
+// The stun a strike leaves: the third status this game keeps on a monster,
+// beside ice and a burn. An enemy under it is AFFLICTED, which is what
+// final_dmg_pct_when_afflicted already asks about. Nothing here models a
+// monster acting on a schedule, so it costs the enemy nothing else.
 //
-// It also lifts what OTHER swings do to the enemy carrying it. Jupiter Thunder
-// is what that exists for: GMS's shock makes the enemy take 12% more final
-// damage from lightning, and names the shock itself among the swings that do
-// NOT collect -- so the skill leaving a stun never takes its own lift.
+// It also LIFTS what other swings do to the enemy carrying it -- and the skill
+// leaving a stun never takes its own lift, as GMS names it out.
 message Stun {
   double duration_seconds = 1;
   // Final damage a swing carrying `lifted_tag` takes against a stunned enemy,
@@ -1274,19 +1120,13 @@ message Stun {
   SkillTag lifted_tag = 3;
 }
 
-// The mark a strike leaves on what it reaches, and what SPENDING it is worth.
-// Angel of Balance is what it exists for: GMS's angel brands every enemy it
-// touches for a minute, and the first holy hit anybody lands on a marked
-// enemy takes the mark off it and hits 10% harder for it.
+// The mark a strike leaves, and what SPENDING it is worth. The same shape as a
+// Stun, differing in the one thing that is the whole distinction: a stun lifts
+// every swing that collects for as long as it stands, where a mark pays ONE
+// LINE and is gone -- a swing of ten lines is worth a tenth of the lift.
 //
-// The same shape as a Stun above, differing in one thing and that one thing is
-// the whole of the distinction: a stun lifts every swing that collects, for as
-// long as it stands, while a mark pays ONE LINE and is gone. A swing of ten
-// lines that finds a mark is worth a tenth of the lift, not the whole of it --
-// which is GMS's own reading, its footnotes counting the spend in 타.
-//
-// Nothing excludes the skill leaving one, unlike a stun: the angel carries no
-// element, so it cannot collect what only a holy hit collects.
+// Nothing excludes the skill leaving one, unlike a stun: it carries no element
+// to collect with.
 message Mark {
   double duration_seconds = 1;
   // Final damage the line that spends the mark takes, over everything it
@@ -1319,20 +1159,11 @@ message Channel {
   SwingHit grown = 6;
   int32 small_pulses = 7;
 
-  // A hold bought with charges that accrue on a clock rather than with a
-  // cooldown. Divine Punishment is what the three exist for: GMS prepares one
-  // holy light every eleven seconds, lets the Bishop bank five, and spends one
-  // for every second the key is held -- so the skill is limited by what has
-  // accrued rather than by a wait since the last press.
-  //
-  // What this buys the fight is a length that answers the map. On a crowd a
-  // press spends the one light standing and lets go; against a boss the lights
-  // pile up while the player swings and go out together. Neither needed
-  // teaching: a hold's rate is its pulse damage over its pulse clock whatever
-  // its length, so the chooser takes it whenever a light is in hand.
-  //
-  // All three or none. 0 for every hold paced by `Skill.cooldown_seconds`,
-  // which is both of the others.
+  // A hold bought with charges that ACCRUE on a clock rather than with a
+  // cooldown, so it is limited by what has banked rather than by a wait since
+  // the last press. What it buys the fight is a length that answers the map:
+  // on a crowd a press spends the one charge standing, against a boss they
+  // pile up and go out together. All three or none.
   double charge_seconds = 8;
   int32 max_charges = 9;
   // Pulses one charge buys. GMS states the spend in seconds -- a light a
@@ -1341,20 +1172,15 @@ message Channel {
   int32 pulses_per_charge = 10;
 }
 
-// A second attack the same swing sets off, on a wait of its own. Showdown's
-// shuriken is the case it exists for: the talisman lands, and once every five
-// seconds a dark shuriken goes with it and hunts down its own six enemies.
+// A second attack the same swing sets off, on a wait of its own. NOT an
+// AutoMode, which fires whatever the character is swinging: this goes only
+// with the swing that sets it off. The wait is real time, so a faster swing
+// does not buy more of them.
 //
-// Not an AutoMode, which fires on its own clock whatever the character is
-// swinging -- what makes this different is that a Night Lord holding Quad Star
-// never sets it off. The wait is real time, so a faster swing does not buy
-// more of them; what a swing is worth counts it at the rate it can sustain.
-//
-// It reaches its own enemies and lands its own strikes, and it is not the
+// It reaches its own enemies and lands its own strikes, and it is NOT the
 // character's swing: no Final Attack follows it, no burn rides it, and nothing
-// the book aimed at the skill BY NAME reaches it -- GMS's Showdown - Reinforce
-// and - Spread both say in so many words that they leave the shuriken alone.
-// What the skill itself states is still the strike's, the two being one skill.
+// the book aimed at the skill by name reaches it. What the skill itself states
+// is still the strike's, the two being one skill.
 message SideStrike {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
@@ -1376,24 +1202,15 @@ message SideStrike {
 }
 
 // A stronger version of a skill's attack, landed in place of every Nth
-// ordinary one. Empowered Arrows is the case it exists for: the Sniper's
-// Piercing Arrow is upgraded to an Empowered Piercing Arrow every fourth shot.
+// ordinary one. `skill_name` says which attack; EMPTY upgrades the skill's
+// own. Either clock carries it -- a form on a summon takes a pulse's place in
+// the interval rather than getting one of its own.
 //
-// Which attack it takes the place of is `skill_name` below. Leaving it EMPTY
-// means the skill upgrades its own attack instead, which is how the F/P Mage's
-// Creeping Toxin detonates the pool it is already spreading.
-//
-// Either clock will carry it. A form on a swing is landed in place of a swing;
-// a form on a summon is landed in place of a pulse, and takes that pulse's
-// place in the summon's interval rather than getting one of its own.
-//
-// It replaces the attack rather than adding to it, so four landings are three
-// ordinary ones and one of these, never four and a fifth. Read at the same
-// learned level as the skill carrying it.
-//
-// What is counted is ordinarily the swing, so the whole of the fourth one is
-// this instead. brands_each_enemy below is the other shape entirely -- a mark
-// riding each enemy that goes off ON TOP of the strike that completes it.
+// It REPLACES the attack rather than adding to it, so four landings are three
+// ordinary ones and one of these. What is counted is ordinarily the swing;
+// brands_each_enemy is the other shape entirely, a mark riding each enemy that
+// goes off ON TOP of the strike completing it. Read at the skill's learned
+// level.
 message EmpoweredForm {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
@@ -1548,34 +1365,26 @@ message SkillBoost {
   // hit costs under its shell.
   double shield_hits = 16;
   double shield_boss_damage_taken_pct = 17;
-  // Levers the named skill alone carries, on top of its own. Seven are read --
+  // Levers the named skill alone carries, on top of its own. SEVEN are read --
   // skill_pct, damage_pct, boss_pct, ied_pct, crit_rate, final_dmg_pct and
-  // final_attack_chance -- and each meets the target's own the way two sources
-  // of it always meet: damage and boss damage sum, ignored defence combines in
-  // reverse, final damage multiplies. A lever outside those seven is silently
-  // dropped, which //src/data_test:skill_test refuses.
+  // final_attack_chance -- each meeting the target's own the way two sources
+  // always meet. A lever outside those seven is silently dropped, which
+  // //src/data_test:skill_test refuses.
   //
-  // The two damages are not the same bargain. skill_pct is percentage POINTS
-  // on the target's own multiplier, worth its value once per line; damage_pct
-  // is a share of the character's damage that only this swing collects, and
-  // sums with what their gear and passives already pay. A Hyper Skill's
-  // Reinforce is the second -- GMS writes it "Damage: +20%".
+  // The two damages are NOT the same bargain: skill_pct is percentage POINTS
+  // on the target's own multiplier, worth its value once per line, where
+  // damage_pct is a share of the character's damage only this swing
+  // collects.
   //
-  // Not folded into the copy above, because these are not the target's own:
-  // ignored defence would sum where it must combine, and the fold happens
-  // before the damage chain knows what it is hitting. They ride the SWING --
-  // a boost aimed at a passive grants nothing, so a lever meant for the
-  // character belongs in the granting skill's own `base`.
+  // NOT folded into the copy above: ignored defence would sum where it must
+  // combine, and the fold happens before the chain knows what it is hitting.
+  // They ride the SWING, so a lever meant for the character belongs in the
+  // granting skill's own `base`.
   //
   // The exception is a passive carrying a Final Attack, which has something to
-  // strengthen without ever swinging: final_attack_chance, damage_pct and
-  // skill_pct are folded onto that extra hit instead -- the last as points on
-  // the strike's own multiplier, which is what GMS's "Night Lord's Mark
-  // Damage: +100% points" is. The Hero's Advanced Final Attack hypers and the
-  // Night Lord's Death Star are what it exists for -- see FinalAttackSource.
-  //
-  // Read at the granting skill's learned level, as `base` and `per_level` are:
-  // see effect_per_level.
+  // strengthen without swinging: three of the levers fold onto that extra hit
+  // instead, skill_pct as points on the strike's own multiplier. Read at the
+  // granting skill's learned level.
   SkillEffect effect = 6;
   SkillEffect effect_per_level = 7;
   // The level the GRANTING skill has to reach before any of this is handed
@@ -1635,19 +1444,14 @@ message WoundForm {
 }
 
 // The wound one swing leaves on one enemy, and what the skill stating it lands
-// while a wound stands at full depth. The sixth status this game keeps on a
-// monster, beside the ice, the burn, the scar, the stun and the mark -- and
-// the only one that ONE monster carries at a time: a fresh wound takes it off
-// whoever had it, which is GMS's own rule rather than a simplification.
+// while a wound stands at full depth. The sixth status this game keeps, and
+// the ONLY one a single monster carries at a time: a fresh wound takes it off
+// whoever had it, which is GMS's rule rather than a simplification.
 //
-// It is stated by the skill that READS it rather than by the swings that leave
-// it, because that is where GMS hangs the whole mechanism: the wound belongs
-// to Trickblade's passive half and does not exist until that node is bought.
-// So the sources are named here, by display name, the way a SkillBoost names
-// what it strengthens.
-//
-// The wound itself is worth nothing to a swing that finds one. It is a key,
-// not a lift -- what it opens is `form` below.
+// Stated by the skill that READS it rather than the swings that leave it,
+// because that is where GMS hangs the mechanism -- so the sources are named
+// here, as a SkillBoost names what it strengthens. The wound is worth nothing
+// to a swing that finds one: it is a KEY, not a lift.
 message Wound {
   double duration_seconds = 1;
   int32 max_stacks = 2;
@@ -1731,19 +1535,14 @@ message Skill {
   // Groups this skill belongs to. Recorded so a group survives until something
   // needs it; see SkillTag.
   repeated SkillTag tags = 4;
-  // The books that list this skill, and where it sits on each. Almost every
-  // skill names one, and lives in that book's own folder; a skill more than
-  // one job holds names one per book and lives in a shared folder, so there is
-  // one file to keep right rather than ten copies to keep in step.
-  //
-  // Which shared folder is the one that covers every book naming it:
-  // data/skills/<line>/shared for a skill one job line shares, and
-  // data/skills/shared/<stage> -- second, third, fourth, fifth, hyper -- for
-  // one that crosses lines.
+  // The books that list this skill, and where it sits on each. One placement
+  // and the file lives in that book's folder; more than one and it lives in
+  // the shared folder covering every book naming it --
+  // data/skills/<line>/shared, or data/skills/shared/<stage>.
   //
   // BEFORE WRITING A NEW SKILL, look through those folders and the other jobs
-  // of its line. If a job already has it, add a placement to that file rather
-  // than copying it.
+  // of its line: if a job already has it, add a placement rather than a
+  // copy.
   repeated SkillPlacement placement = 5;
   reserved 6;
   int32 max_level = 7;
@@ -1787,42 +1586,28 @@ message Skill {
   // What the skill grants on top of `base` with particular weapons in hand.
   repeated WeaponBonus weapon_bonus = 13;
 
-  // How many enemies one swing of this attack hits (attack skills). Unset/0 is
-  // treated as 1 (single target); the bare poke is likewise 1.
+  // How many enemies one swing hits; 0 is single target, as the bare poke is.
   //
-  // GMS's `mobCount` is a CAP, reached only when that many monsters happen to
-  // stand inside the attack's hitbox. This fight has no positions, so a swing
-  // always hits its cap -- which quietly overpays a skill whose box is small
-  // and whose cap is generous. So a cap GMS could not realistically fill is
-  // cut to what its own hitbox holds:
+  // GMS's `mobCount` is a CAP reached only when that many monsters stand
+  // inside the hitbox. This fight has no positions, so a swing always hits its
+  // cap -- which overpays a skill whose box is small. So a cap GMS could not
+  // fill is cut to what its own hitbox holds:
   //
   //     reach = floor(box width / 70) * (1 + floor(box height / 250))
   //
-  // 70 pixels is about one monster's footprint and 250 is about one storey of
-  // a map, so the two factors are "how many stand side by side" and "how many
-  // platforms the swing covers". The cut is a floor under GMS's own number,
-  // never a lift: a box that holds more than the cap leaves the cap standing.
+  // 70 pixels is a monster's footprint and 250 a storey of a map, so the
+  // factors are "how many stand side by side" and "how many platforms the
+  // swing covers". A FLOOR under GMS's number, never a lift.
   //
-  // Boxes are `lt`/`rb` in the client's Skill.wz, and the rule reads a box
-  // that IS THE WHOLE GROUND the swing covers. Three kinds are not, and keep
-  // their cap:
-  //
-  //   - a projectile carrying no box at all (Flash Blade, Beam Blade);
-  //   - a box that travels with its shot -- Arrow Blaster's 120x120 is one
-  //     arrow's burst, aimed and swept down a platform, and Energy Bolt's
-  //     240x150 goes where the bolt does;
-  //   - one tile of a laid area, which the client marks with `areaDotCount`.
-  //     Ignite's wall of fire is 80x40 and Creeping Toxin's pool 200x200, both
-  //     with twenty of that box laid down.
+  // The boxes are `lt`/`rb` in Skill.wz, and the rule reads a box that IS the
+  // whole ground covered. Three kinds are not and keep their cap: a projectile
+  // with no box, a box that travels with its shot, and one tile of a laid area
+  // (the client's `areaDotCount`).
   //
   // The rule floors what a skill states FOR ITSELF. A SkillBoost's reach is
-  // added on top and is not held to the box, so a book can carry a swing past
-  // the ground it covers: Cruel Stab's 6 becomes 8 under its hyper, and Divine
-  // Charge's 5 becomes 7. Both are deliberate -- the alternative is a hyper
-  // point that buys nothing at all. See SkillBoost.max_enemies.
-  //
-  // Applied to every branch on 2026-08-28 and swept again on 2026-09-05, which
-  // found nothing left to cut. A file whose reach was cut says so at the top.
+  // added on top and is NOT held to the box, so a hyper can carry a swing past
+  // the ground it covers -- deliberate, the alternative being a hyper point
+  // that buys nothing. A file whose reach was cut says so at the top.
   int32 max_enemies = 14;
   // How many times one swing strikes each enemy it reaches. Damage is
   // skill_pct per line, so a 90% 2-line skill deals 180% to every target.
@@ -1844,20 +1629,14 @@ message Skill {
   // of L lines is the expectation of N*L. Read through SkillCasts, and 0
   // reads as one, which is every other swing.
   int32 casts = 56;
-  // Milliseconds between those strikes, where they do not fall together. Bolt
-  // Barrage is what it exists for: GMS conjures a wall of eight lightning
-  // bolts that pulses forward on a 210ms beat, and each bolt falls on the
-  // crowd the one before it left rather than on the crowd the swing opened
-  // against. A wall that clears the twelve in front of it moves onto the next
-  // twelve, which is what marching across the screen comes to here.
+  // Milliseconds between those strikes where they do NOT fall together: each
+  // falls on the crowd the one before it left, so a wall that clears the
+  // twelve in front of it moves onto the next twelve.
   //
-  // The swing is still charged its cast alone. The wall marches on its own
-  // once conjured and GMS frees the player the moment it does, so the beat
-  // orders the strikes without costing the time they take.
-  //
-  // 0 is every other swing, whose strikes are one moment however GMS spaces
-  // them -- Sword Illusion's twelve at 60ms apart are not worth telling apart,
-  // and folding them is what makes them one landing to price.
+  // The swing is still charged its cast alone -- GMS frees the player the
+  // moment the wall is conjured -- so the beat orders the strikes without
+  // costing the time they take. 0 is every other swing, whose strikes are one
+  // moment however GMS spaces them.
   int32 cast_interval_ms = 59;
   // What an arrow gains for every enemy it has already gone through, as a
   // fraction. It COMPOUNDS: at 0.15 the second enemy the swing reaches takes
@@ -1965,37 +1744,27 @@ message Skill {
   // one skill alone carries. Repeated because Greater Vessel of Light
   // strengthens two of them and grants each a different thing. See SkillBoost.
   repeated SkillBoost boost = 34;
-  // A skill this one takes the place of, by display name: once both are learned
-  // the named skill grants nothing at all. GMS says "boosted to" rather than
-  // "increased by" when it means this -- Advanced Combo's final damage per orb
-  // replaces Combo Synergy's, and Advanced Final Attack states the whole of the
-  // Final Attack it supersedes rather than a delta.
+  // A skill this one takes the place of, by display name: once both are
+  // learned the named skill grants nothing. GMS says "boosted to" rather than
+  // "increased by" when it means this.
   //
-  // Only for a skill whose whole grant is the one being replaced. Where two
-  // skills merely overlap, the lever settles it on its own: two masteries are
-  // already the better of the two, so a 4th job mastery skill outbids Weapon
-  // Mastery without superseding it -- and must not, since Weapon Mastery pays
-  // attack speed and critical rate beside it.
-  //
-  // The superseded skill stays learned and keeps its page. What it stops doing
-  // is paying.
+  // ONLY for a skill whose whole grant is the one replaced. Where two merely
+  // overlap the lever settles it -- two masteries are already the better of
+  // the two. The superseded skill stays learned and keeps its page; what it
+  // stops doing is paying.
   string supersedes_skill_name = 36;
-  // A group of skills that do not stack, named by the group rather than by a
+  // A group of skills that do not stack, named by the GROUP rather than a
   // member: within one, every lever pays its best single source instead of the
-  // sum. GMS says "Does not stack with X", or "only the highest effect will be
-  // applied", and means this.
+  // sum.
   //
-  // Settled lever by lever, and at the levels the character actually has, so
-  // neither member has to beat the other everywhere: a Decent Sharp Eyes
-  // outbids a Sharp Eyes three points have been spent on and loses to a maxed
-  // one, and the All Stats it pays beside them stands either way, no member of
-  // the group paying any. That is the whole difference from
-  // supersedes_skill_name above, which is one skill stating the whole of
-  // another and settles at level 1 and forever.
+  // Settled LEVER BY LEVER and at the levels the character has, so neither
+  // member has to beat the other everywhere -- a Decent outbids a skill three
+  // points have been spent on and loses to a maxed one, and a lever only one
+  // of them pays stands either way. That is the whole difference from
+  // supersedes_skill_name, which settles at level 1 and forever.
   //
-  // A group may hold three: Bless, Advanced Blessing and the Decent between
-  // them. Two paying the same lever the same amount is one payment, the source
-  // named first taking it.
+  // A group may hold three. Two paying the same lever the same amount is one
+  // payment, the source named first taking it.
   string exclusive_group = 55;
   // How many times the opening hit strikes, on the enemies it picks. Damage is
   // SkillEffect.lead_pct per line, exactly as `lines` reads skill_pct. Unset/0
@@ -2010,33 +1779,22 @@ message Skill {
   // bounces off the first enemy onto two of the eight the arrow went through.
   // The same field either way, because the fight does the same thing with it.
   int32 lead_enemies = 38;
-  // How many enemies this skill's Final Attack lands on, and so which of two
-  // shapes it takes. 0 -- the default -- follows the character's swing onto
-  // each enemy it reached, rolling separately against every one of them.
+  // How many enemies this Final Attack lands on, and so which of two shapes it
+  // takes. 0 follows the swing onto each enemy it reached, rolling separately
+  // against every one.
   //
-  // Any other number rolls ONCE for the whole swing and lands on that many,
-  // whatever the swing itself reached. Every Final Attack GMS ships is the
-  // second shape at 1: the client gives none of them a mobCount or a hitbox,
-  // and their readouts name the target they pick -- "attacks the boss with the
-  // highest HP first". Read the other way a Final Attack pays once per mob in
-  // front of the player, which on a six-enemy swing is six times over.
-  //
-  // Split Shot is why the count is a number rather than a flag: GMS gives its
-  // split a mobCount of its own, so off Snipe -- a swing that reaches one --
-  // it still reaches ten.
+  // Any other number rolls ONCE for the whole swing and lands on that many
+  // whatever the swing reached. Every Final Attack GMS ships is the second
+  // shape at 1 -- the client gives none a mobCount, and their readouts name
+  // the target they pick. A NUMBER rather than a flag because a split with a
+  // mobCount of its own still reaches ten off a swing that reaches one.
   int32 final_attack_max_enemies = 39;
   // What the card calls the Final Attack this skill states, where GMS gives
-  // the extra hit a name of its own: Assassin's Mark leaves a Mark, Enchanted
-  // Quiver fires a Magic Arrow, Meteor Shower drops a Meteorite. Empty takes
-  // "Final Attack", which is what the seven skills literally called that leave
-  // it -- a row saying Final Attack on a card titled Final Attack: Bow needs
-  // no help.
+  // the extra hit a name of its own. Empty takes "Final Attack".
   //
-  // Display only. The lever is the same Final Attack wherever it comes from,
-  // and this changes no arithmetic. A skill that CUTS somebody else's names
-  // the skill rather than the hit -- Shurrikane states "Assassin's Mark",
-  // which is what GMS's own readout names -- because the card has no way to
-  // ask which skill the character is really holding.
+  // DISPLAY ONLY -- the lever is the same wherever it comes from. A skill that
+  // CUTS somebody else's names the skill rather than the hit, the card having
+  // no way to ask which skill the character is really holding.
   string final_attack_label = 63;
   // Whether the shadow leaves this swing alone. Slash Shadow Formation is what
   // it exists for: GMS's "Also unaffected by the effects of Shadow Partner",

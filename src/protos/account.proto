@@ -5,35 +5,26 @@ package ms;
 import "src/protos/keybinds.proto";
 
 // What the player owns rather than what one character does: the settings and
-// the openings that every character on the save shares. A second character
-// starts at level 1 with the whole game already open, because the account
-// opened it once.
+// openings every character shares, so a second one starts at level 1 with the
+// game already open.
 //
-// The rule for a new field: does a second character start over with it, or
-// inherit it? Progress a character earns -- their level, their gear, their
-// meso, their boss clears -- belongs to the character. What the player learned
-// or set up belongs here.
+// THE RULE for a new field: does a second character start over with it, or
+// inherit it? Progress a character earns is theirs; what the player learned or
+// set up belongs here.
 message Account {
   // What the player has bound their keys to.
   Keybinds keybinds = 1;
 
-  // The highest level and job stage any character on the account has reached.
-  // What every level-gated feature is measured against, so a second character
-  // meets the game with the panels, tabs and upgrades the first one opened.
-  //
-  // Written from the characters in the file, so it records what the others
-  // have reached; the character being played always speaks for their own
-  // level. See Unlocked in //src/character:progression.
+  // The highest level and job stage any character has reached, which every
+  // level-gated feature is measured against. Written from the characters in
+  // the file; the one being played speaks for their own level.
   int32 max_level = 2;
   int32 max_job_stage = 3;
 
-  // What the multiplayer server calls this player, and the token that proves
-  // the account is theirs. Both are the server's to issue: it hands them out
-  // on the first connection and they are sent back on every one after.
-  //
-  // Account-wide rather than per character, because it is the player the
-  // server knows. Which character they bring to a party is a different
-  // question, answered every time they connect.
+  // What the multiplayer server calls this player, and the token proving the
+  // account is theirs. Both are the SERVER's to issue. Account-wide, because
+  // it is the player the server knows -- which character they bring is
+  // answered every time they connect.
   string multiplayer_account_id = 5;
   string multiplayer_token = 6;
 

@@ -27,15 +27,10 @@ message ArenaSpot {
   int32 y = 2;
 }
 
-// How a monster moves around a boss arena. Where each step lands is drawn off
-// the run's own clock rather than rolled, so every client of a shared fight
-// draws it in the same place with nothing sent between them. Scenery: an
-// arena cell gates nothing, and a fight is the same fight whichever cell it is
-// fought in.
-//
-// A step never lands on a cell the phase lets a player stand on. The arena
-// draws one bar per cell, and a monster sharing one with the player would
-// stand on top of them.
+// How a monster moves around a boss arena. Each step is drawn off the run's
+// own CLOCK rather than rolled, so every client draws it in the same place
+// with nothing sent between them. Scenery: a cell gates nothing. A step never
+// lands where a player may stand, the arena drawing one bar per cell.
 message ArenaWalk {
   // Milliseconds between steps. 0 stands still, as an unset walk does.
   int32 interval_ms = 1;

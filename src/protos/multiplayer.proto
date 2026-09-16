@@ -31,17 +31,13 @@ message PlayerInfo {
   int32 level = 3;
   JobAdvancement job = 4;
 
-  // The character as the Inspect screen draws them: their stats, what they are
-  // wearing, and the passives behind both. Built by PublicSheet in
-  // //src/multiplayer:session, which clears everything a party has no business
-  // with -- the bag, the purse, the buy-back shelf.
+  // The character as the Inspect screen draws them, built by PublicSheet,
+  // which clears everything a party has no business with.
   //
-  // Sent whole rather than as a table of figures so that the screen showing it
-  // runs the same stat code the owner's own panels do, and the two cannot
-  // drift. Its items are named rather than described, so it only means
-  // anything to a client holding the same catalogs -- which is what the
-  // protocol version covers. The lobby listing strips it: it rides the party
-  // state, where the party is three people, not every open party.
+  // Sent WHOLE rather than as a table of figures, so the screen showing it
+  // runs the same stat code the owner's panels do. Its items are NAMED, so it
+  // means anything only to a client holding the same catalogs -- which is what
+  // the protocol version covers. The lobby listing strips it.
   Character sheet = 5;
 
   // The boss clears this character is holding against the reset clock. Sent
@@ -122,14 +118,10 @@ message PromoteMember {
   string account_id = 1;
 }
 
-// One line of damage as it landed, named by the monster it fell on rather
-// than by anything the client made up: `slot` is a place in the phase's
-// roster, counted in the order the phase spawns its monsters, so both ends
-// mean the same monster by the same number.
-//
-// The damage is the whole number the player watched fly off, which is also
-// what comes off the shared roster. What is drawn and what the boss loses
-// cannot drift apart if they are the same figure.
+// One line of damage as it landed. `slot` is a place in the phase's ROSTER,
+// counted in spawn order, so both ends mean the same monster by the same
+// number. The damage is the whole number the player watched fly off, which is
+// also what comes off the shared roster -- the two cannot drift.
 message FightDamage {
   int32 slot = 1;
   // Shared by every line one attack put on one monster, so a swing of eight
