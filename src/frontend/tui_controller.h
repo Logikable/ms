@@ -154,6 +154,14 @@ class TuiController {
   // The one question left on the tab: emptying an allocation whole.
   void OpenHyperReset(StatPreset preset);
 
+  // The same question for the V Matrix, from the [Reset] at the foot of the
+  // Skills tab's V page: every node back to nothing, every point back in the
+  // pool.
+  void OpenVMatrixReset();
+  const ConfirmPrompt& v_matrix_reset_prompt() const {
+    return v_matrix_reset_prompt_;
+  }
+
   // Holds or frees the Inner Ability line at `index` of `preset`, whichever it
   // is not now. No screen: the row's own lock says what happened.
   void ToggleAbilityLock(int index, StatPreset preset);
@@ -535,6 +543,7 @@ class TuiController {
   bool OnSellEquipEvent(ftxui::Event event);
   bool OnSymbolLevelEvent(ftxui::Event event);
   bool OnHyperResetEvent(ftxui::Event event);
+  bool OnVMatrixResetEvent(ftxui::Event event);
   bool OnAbilityRerollEvent(ftxui::Event event);
   bool OnSymbolCombineEvent(ftxui::Event event);
   bool OnMultiSellEvent(ftxui::Event event);
@@ -711,6 +720,7 @@ class TuiController {
   ConfirmPrompt buff_buy_prompt_;
   SymbolLevelPanel symbol_level_panel_;
   ConfirmPrompt hyper_reset_prompt_;
+  ConfirmPrompt v_matrix_reset_prompt_;
   // What the open Hyper Stat question is about. Held rather than read back off
   // the panel, so the answer lands on the stat the question named.
   HyperStatField hyper_field_ = HYPER_STAT_FIELD_UNSPECIFIED;

@@ -1027,13 +1027,15 @@ Skill MakeCommonNode() {
   return skill;
 }
 
-// A 5th job holding `v_points` and no SP of any kind.
-CharacterInstance MakeFifthJob(std::mt19937& rng, int64_t v_points) {
+// A 5th job holding `v_points` and `hyper_sp`, and no stage SP at all.
+CharacterInstance MakeFifthJob(std::mt19937& rng, int64_t v_points,
+                               int hyper_sp = 0) {
   Character proto;
   proto.set_level(200);
   proto.set_job(JOB_DARK_KNIGHT);
   proto.set_job_stage(5);
   proto.set_v_points(v_points);
+  proto.set_hyper_sp(hyper_sp);
   return CharacterInstance(rng, std::move(proto));
 }
 
@@ -1097,6 +1099,36 @@ TEST_F(LearnSkillTest, ANodeNeedsAMatrixAndTheRightMatrix) {
   PlaceIn(job_node, JOB_ADVANCEMENT_DARK_KNIGHT_V);
   EXPECT_TRUE(knight.LearnSkill(job_node));
   EXPECT_EQ(knight.v_points(), 1000) << "a job node's first level is free";
+}
+
+// The reset empties the matrix and hands back every point it cost, leaving
+// the SP books and their skills where they were.
+TEST_F(LearnSkillTest, ResetVMatrixRefundsEveryNode) {
+  CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/1000, /*hyper_sp=*/1);
+  const Skill common = MakeCommonNode();
+  Skill job_node = MakeCommonNode();
+  job_node.set_name("Radiant Evil");
+  job_node.set_v_node(V_NODE_KIND_JOB);
+  job_node.clear_placement();
+  PlaceIn(job_node, JOB_ADVANCEMENT_DARK_KNIGHT_V);
+  const Skill hyper = MakeHyperSkill();
+  ASSERT_TRUE(c.LearnSkill(common, 5));
+  ASSERT_TRUE(c.LearnSkill(job_node, 5));
+  ASSERT_LT(c.v_points(), 1000);
+  // A Hyper Skill over the same character, to show the reset passes it by.
+  ASSERT_TRUE(c.LearnSkill(hyper));
+
+  std::map<std::string, Skill> catalog = {
+      {"rope_lift", common}, {"radiant_evil", job_node}, {"hyper", hyper}};
+  c.ResetVMatrix(catalog);
+  EXPECT_EQ(c.v_points(), 1000) << "every point back in the pool";
+  EXPECT_EQ(c.skill_level(common), 0);
+  EXPECT_EQ(c.skill_level(job_node), 0);
+  EXPECT_EQ(c.skill_level(hyper), 1) << "a hyper is not a node";
+  EXPECT_EQ(c.hyper_sp(), 0) << "and its pool is not what was handed back";
+  // And again on an empty matrix, which takes nothing and grants nothing.
+  c.ResetVMatrix(catalog);
+  EXPECT_EQ(c.v_points(), 1000);
 }
 
 TEST_F(LearnSkillTest, AHyperSkillSpendsTheHyperPool) {

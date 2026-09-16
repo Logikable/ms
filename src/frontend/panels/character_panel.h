@@ -52,6 +52,8 @@ struct CharacterPanelActions {
   // The Skills tab.
   std::function<void(const Skill&)> learn;
   std::function<void(const Skill&)> menu;
+  // The V page's [Reset], which empties the whole matrix.
+  std::function<void()> v_reset;
   // The Advance tab.
   std::function<void(Job)> advance;
   // The Hyper tab. `hyper_allocate` buys the stat's next level and
@@ -187,8 +189,12 @@ class CharacterPanel {
   // The same for the Skills tab: the two borders, the three heading rows, the
   // rule under them, the tab bar, the advancement bar and the rule under that.
   // Everything else on the tab is a skill row. No rule between the two tab
-  // rows -- see ShowsSecondTabRow.
+  // rows -- see ShowsSecondTabRow. The V page's rule and [Reset] are two more,
+  // and are never given up -- SkillsTabFixedRows.
   static constexpr int kSkillsTabFixedRows = 9;
+
+  // The Skills tab's own count, which the V page's foot adds to.
+  int SkillsTabFixedRows() const;
 
   // The Stats tab's own count, which the Farm/Boss row adds to.
   int StatsTabFixedRows() const;
@@ -244,6 +250,8 @@ class CharacterPanel {
     kZoneStatRows,
     kZoneAdvTabs,
     kZoneSkillRows,
+    // The [Reset] under the V page's nodes. Only that page has one.
+    kZoneVReset,
     kZoneJobRows,
     // The Hyper tab's fourteen stat rows, and the [Reset] button under them.
     kZoneHyperRows,
@@ -415,10 +423,15 @@ class CharacterPanel {
   // selection in the middle of it.
   int FirstHyperRow(int visible) const;
   // Renders the Skills tab: the page bar (I/II/... for unlocked stages, then H
-  // for the Hyper Skills) with that page's SP right-aligned, then its skill
-  // rows. bar_focused draws the active page white; rows_focused highlights the
-  // selected skill's [+]. A stage-0 Beginner has neither.
-  ftxui::Element RenderSkillsTab(bool bar_focused, bool rows_focused) const;
+  // for the Hyper Skills and V for the matrix) with that page's points
+  // right-aligned, then its skill rows, and on the V page a rule and the
+  // [Reset] under them. bar_focused draws the active page white; rows_focused
+  // highlights the selected skill's [+]. A stage-0 Beginner has none of it.
+  ftxui::Element RenderSkillsTab(bool bar_focused, bool rows_focused,
+                                 bool reset_focused) const;
+  // Whether the page under the cursor carries the [Reset] at its foot, which
+  // only the V page does: the SP books are spent for good.
+  bool ShowsVReset() const;
   // Renders the Advance tab: the jobs on offer, one per row, the selected one
   // marked with a caret while the list holds focus.
   ftxui::Element RenderAdvanceTab(bool content_focused) const;

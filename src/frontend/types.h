@@ -22,6 +22,9 @@ enum Screen : int {
   // on or off where it is a toggle, or walk away.
   kSkillMenu,
   kSkillInspect,
+  // [Reset] at the foot of the Skills tab's V page: the free way back to an
+  // unspent matrix.
+  kVMatrixReset,
   // Every stat on one screen, from the Character panel's last stats row.
   kAllStats,
   // The Hyper tab's two questions: one rung of one stat, and the free reset

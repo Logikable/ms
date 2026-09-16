@@ -191,6 +191,13 @@ void TuiController::OpenHyperReset(StatPreset preset) {
   screen_ = kHyperReset;
 }
 
+void TuiController::OpenVMatrixReset() {
+  // Opens on Cancel, as the Hyper question does: the points come back, but the
+  // matrix they were spent on is a great deal more work than fourteen rows.
+  v_matrix_reset_prompt_.Open(/*cancel_selected=*/true);
+  screen_ = kVMatrixReset;
+}
+
 std::string TuiController::hyper_reset_question() const {
   // The chip's own name, so the question names what the row does. No mark:
   // which preset is in use is not what is being reset.
@@ -555,6 +562,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSymbolLevelEvent(event);
     case kHyperReset:
       return OnHyperResetEvent(event);
+    case kVMatrixReset:
+      return OnVMatrixResetEvent(event);
     case kAbilityReroll:
       return OnAbilityRerollEvent(event);
     case kSymbolCombine:
@@ -2233,6 +2242,18 @@ bool TuiController::OnHyperResetEvent(ftxui::Event event) {
   }
   if (choice == ConfirmChoice::kConfirmed) {
     state_.character.ResetHyperStats(hyper_preset_);
+  }
+  screen_ = kMain;
+  return true;
+}
+
+bool TuiController::OnVMatrixResetEvent(ftxui::Event event) {
+  ConfirmChoice choice = v_matrix_reset_prompt_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    state_.character.ResetVMatrix(state_.skills);
   }
   screen_ = kMain;
   return true;

@@ -305,6 +305,10 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
     case kZoneAdvTabs:
     case kZoneSkillRows:
       return ActiveTab() == kTabSkills ? zone_ : kZoneTabs;
+    case kZoneVReset:
+      // Stranded by a page change as much as by a tab change: only the V page
+      // has a button under its rows.
+      return ActiveTab() == kTabSkills && ShowsVReset() ? zone_ : kZoneTabs;
     case kZoneJobRows:
       return ActiveTab() == kTabAdvance ? zone_ : kZoneTabs;
   }
@@ -353,7 +357,10 @@ int CharacterPanel::RingStops() const {
     // skills under it. The name and the bar, and nothing below them.
     return 2;
   }
-  return 3 + static_cast<int>(SkillsForPage(skill_tab_).size());
+  // The name, the tab bar, the advancement bar, a stop per skill -- and the
+  // [Reset] under the V page's nodes.
+  return 3 + static_cast<int>(SkillsForPage(skill_tab_).size()) +
+         (ShowsVReset() ? 1 : 0);
 }
 
 int CharacterPanel::CursorStop() const {
@@ -372,6 +379,8 @@ int CharacterPanel::CursorStop() const {
       return 2;
     case kZoneSkillRows:
       return skill_sel_ + 3;
+    case kZoneVReset:
+      return static_cast<int>(SkillsForPage(skill_tab_).size()) + 3;
     case kZoneHyperRows:
       return hyper_sel_ + 3;
     case kZoneHyperReset:
@@ -442,6 +451,11 @@ void CharacterPanel::SetCursorStop(int stop) {
   }
   if (stop == 2) {
     zone_ = kZoneAdvTabs;
+    return;
+  }
+  if (ShowsVReset() &&
+      stop == static_cast<int>(SkillsForPage(skill_tab_).size()) + 3) {
+    zone_ = kZoneVReset;
     return;
   }
   if (zone_ != kZoneSkillRows) {
@@ -540,6 +554,10 @@ bool CharacterPanel::ShowsSecondTabRow() const {
 
 int CharacterPanel::StatsTabFixedRows() const {
   return kStatsTabFixedRows + (ShowsPresetBar() ? 1 : 0);
+}
+
+int CharacterPanel::SkillsTabFixedRows() const {
+  return kSkillsTabFixedRows + (ShowsVReset() ? 2 : 0);
 }
 
 Activity CharacterPanel::SelectedActivity() const {
@@ -813,6 +831,13 @@ bool CharacterPanel::IsVPage(int page) const {
   return HasVPage() && page == SkillPages() - 1;
 }
 
+bool CharacterPanel::ShowsVReset() const {
+  // The SP books have no [Reset]: their points are spent for good, and the V
+  // page is the one that hands them back.
+  return ActiveTab() == kTabSkills && character_.proto().job_stage() > 0 &&
+         IsVPage(skill_tab_) && !SkillsForPage(skill_tab_).empty();
+}
+
 std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
   // A page shows exactly the skills of the advancement this character's job is
   // at -- so a Swordman never sees an Archer's skills, and vice versa. An
@@ -919,7 +944,7 @@ int CharacterPanel::SkillRowsShown(int total) const {
   }
   // At least one row however small the budget: a page cut to nothing says
   // less than a page cut short, and the cursor has to have somewhere to be.
-  return std::max(1, std::min(total, max_rows_ - kSkillsTabFixedRows));
+  return std::max(1, std::min(total, max_rows_ - SkillsTabFixedRows()));
 }
 
 int CharacterPanel::FirstSkillRow(int total, int selected, int visible) const {
@@ -943,7 +968,8 @@ std::vector<int> CharacterPanel::SkillLines(
 }
 
 ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
-                                               bool rows_focused) const {
+                                               bool rows_focused,
+                                               bool reset_focused) const {
   if (character_.proto().job_stage() == 0) {
     return ftxui::text(PadRight(" No advancements yet.", ContentWidth())) |
            ftxui::dim;
@@ -990,6 +1016,15 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
         std::move(row) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, row_width),
         std::move(cells[i]) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 1),
     }));
+  }
+  // The way back to an unspent matrix, under a rule of its own rather than
+  // among the nodes it undoes -- the Hyper tab's foot exactly. Both are drawn
+  // whatever the budget: the nodes are what a short terminal takes from.
+  if (ShowsVReset()) {
+    rows.push_back(PanelSeparator(highlighted_));
+    rows.push_back(CenteredCell(
+        "[Reset]", reset_focused ? ftxui::inverted : ftxui::nothing,
+        ContentWidth()));
   }
   return ftxui::vbox(std::move(rows));
 }
@@ -1327,7 +1362,8 @@ ftxui::Element CharacterPanel::Render() const {
   ftxui::Element content;
   if (ActiveTab() == kTabSkills) {
     content = RenderSkillsTab(focused && zone == kZoneAdvTabs,
-                              focused && zone == kZoneSkillRows);
+                              focused && zone == kZoneSkillRows,
+                              focused && zone == kZoneVReset);
   } else if (ActiveTab() == kTabHyper) {
     content = RenderHyperTab(focused && zone == kZonePresets,
                              focused && zone == kZoneHyperRows,
@@ -1617,6 +1653,21 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
       return true;
     }
     return false;
+  }
+  // The V page's [Reset]: Up/Down walk off it, and it hears no Left or Right --
+  // it is one button wide, as the Hyper tab's is.
+  if (zone_ == kZoneVReset) {
+    if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+      MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+      return true;
+    }
+    if (!IsForward(event)) {
+      return false;
+    }
+    if (actions.v_reset) {
+      actions.v_reset();
+    }
+    return true;
   }
   // Skill rows: Up/Down walk them, Up off the top returns to the advancement
   // bar and Down off the bottom carries on round to the outer tab bar.

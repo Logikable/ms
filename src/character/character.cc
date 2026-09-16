@@ -1398,6 +1398,27 @@ void CharacterInstance::ResetHyperStats(StatPreset preset) {
   PresetOf(*character_.mutable_hyper_stats(), preset).clear_levels();
 }
 
+void CharacterInstance::ResetVMatrix(
+    const std::map<std::string, Skill>& skills) {
+  google::protobuf::Map<std::string, int32_t>& levels =
+      *character_.mutable_skill_levels();
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (skill.v_node() == V_NODE_KIND_UNSPECIFIED) {
+      continue;
+    }
+    int level = skill_level(skill);
+    if (level <= 0) {
+      continue;
+    }
+    // Priced from the ground up, which is what the climb to that level cost:
+    // the ladder is the same whichever order the points went in.
+    character_.set_v_points(character_.v_points() +
+                            VNodeCost(skill.v_node(), 0, level));
+    levels.erase(skill.name());
+  }
+}
+
 int CharacterInstance::ReconcileHyperPreset(StatPreset preset) {
   HyperStatPreset& allocation =
       PresetOf(*character_.mutable_hyper_stats(), preset);

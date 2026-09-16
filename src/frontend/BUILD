@@ -158,6 +158,7 @@ cc_test(
         "//src/character:consumables",
         "//src/character:job_advancement",
         "//src/character:progression",
+        "//src/character:v_matrix",
         "//src/combat:boss_run",
         "//src/combat:offline",
         "//src/frontend/panels:character_panel",

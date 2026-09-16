@@ -14,6 +14,7 @@
 #include "src/character/consumables.h"
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
+#include "src/character/v_matrix.h"
 #include "src/combat/boss_run.h"
 #include "src/combat/offline.h"
 #include "src/frontend/panels/character_panel.h"
@@ -3789,6 +3790,38 @@ TEST_F(TuiControllerTest, TheResetEmptiesTheAllocationItNamed) {
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR,
                                                StatPreset::kFirst),
             1);
+}
+
+// The V page's question: it opens on Cancel, and Confirm empties the matrix
+// back into the pool.
+TEST_F(TuiControllerTest, TheVMatrixResetHandsTheNodesBack) {
+  Skill node;
+  node.set_name("Rope Lift");
+  PlaceIn(node, JOB_ADVANCEMENT_COMMON);
+  node.set_v_node(V_NODE_KIND_COMMON);
+  node.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
+  state_->skills["rope_lift"] = node;
+  LevelTo(200);
+  state_->character.AdvanceJob(JOB_SPEARMAN);
+  state_->character.AdvanceJob(JOB_BERSERKER);
+  state_->character.AdvanceJob(JOB_DARK_KNIGHT);
+  state_->character.AdvanceJob(JOB_DARK_KNIGHT);  // the 5th
+  state_->character.AddVPoints(20);
+  ASSERT_TRUE(state_->character.LearnSkill(node));
+
+  controller_->OpenVMatrixReset();
+  EXPECT_EQ(controller_->screen(), kVMatrixReset);
+  // It opens on Cancel, so the first Enter walks away and the matrix stands.
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.skill_level(node), 1);
+
+  controller_->OpenVMatrixReset();
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.skill_level(node), 0);
+  EXPECT_EQ(state_->character.v_points(), 20) << "the seven came back";
 }
 
 // The card reads the allocation it was opened on, and the level live off the

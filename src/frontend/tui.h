@@ -110,6 +110,8 @@ class Tui {
   ftxui::Element QuitDialog();
   // "Reset Farm Hyper Stats?" -- the free way back to nothing spent.
   ftxui::Element HyperResetDialog();
+  // "Reset V Matrix?" -- the same way back off the V page.
+  ftxui::Element VMatrixResetDialog();
   // The presets to swap the one the menu named with, in a column, over the
   // screen the row is on. Cancel sits under them, where every dialog's buttons
   // are.

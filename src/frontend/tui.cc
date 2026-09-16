@@ -203,6 +203,7 @@ void Tui::BuildComponents() {
   char_actions.menu = [this](const Skill& skill) {
     controller_.OpenSkillMenu(skill);
   };
+  char_actions.v_reset = [this]() { controller_.OpenVMatrixReset(); };
   char_actions.advance = [this](Job job) { controller_.OpenJobMenu(job); };
   char_actions.hyper_allocate = [this](HyperStatField field) {
     controller_.RaiseHyperStat(field, char_panel_.hyper_preset());
@@ -416,6 +417,13 @@ ftxui::Element Tui::HyperResetDialog() {
   // Titleless, like the quit dialog: the question is the whole dialog.
   return DialogWindow("", {CenteredRow(controller_.hyper_reset_question())},
                       controller_.hyper_reset_prompt().Render());
+}
+
+ftxui::Element Tui::VMatrixResetDialog() {
+  // Titleless, like the Hyper question it stands beside. The matrix is one
+  // thing rather than an allocation apiece, so the question names no preset.
+  return DialogWindow("", {CenteredRow("Reset V Matrix?")},
+                      controller_.v_matrix_reset_prompt().Render());
 }
 
 ftxui::Element Tui::PresetMoveDialog() {
@@ -926,6 +934,8 @@ ftxui::Element Tui::RenderScreen() {
       return Standalone(all_stats_panel_.Render());
     case kHyperReset:
       return OverMain(HyperResetDialog());
+    case kVMatrixReset:
+      return OverMain(VMatrixResetDialog());
     case kPresetMove:
       return OverMain(PresetMoveDialog());
     case kAbilityReroll:

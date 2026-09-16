@@ -933,8 +933,9 @@ TEST_F(CharacterPanelTest, TheVPageDrawsARuleBetweenItsBlocks) {
   std::string matrix = RenderComponentText(page);
   ASSERT_NE(matrix.find("Radiant Evil"), std::string::npos);
   ASSERT_NE(matrix.find("Rope Lift"), std::string::npos);
-  // One rule more than the book had: the job's own node, then the commons.
-  EXPECT_EQ(RuleRows(matrix), book + 1);
+  // Two rules more than the book had: one between the job's own nodes and the
+  // commons, and one over the [Reset] at the foot.
+  EXPECT_EQ(RuleRows(matrix), book + 2);
 }
 
 // A node\'s [+] is live only while the pool covers its next level, which is a
@@ -964,6 +965,34 @@ TEST_F(CharacterPanelTest, ANodeIsBoughtAtItsLadderPrice) {
   c.AddVPoints(1);
   page->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(bought, "Rope Lift");
+}
+
+// The matrix is the one book that hands its points back, so the V page is the
+// one page ending in a [Reset] -- under a rule of its own, as the Hyper tab's
+// is, and the last stop in the ring.
+TEST_F(CharacterPanelTest, TheVPageEndsInAReset) {
+  CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/11);
+  CharacterPanel panel(c, account_, panel_focus_, NodeCatalog());
+  bool reset = false;
+  CharacterPanelActions actions;
+  actions.v_reset = [&]() { reset = true; };
+  ftxui::Component page = panel.MakeComponent(actions);
+  page->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  page->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> page bar
+  for (int i = 0; i < 4; ++i) {
+    page->OnEvent(ftxui::Event::ArrowRight);  // page I -> H
+  }
+  EXPECT_EQ(RenderComponent(page).find("[Reset]"), std::string::npos)
+      << "an SP book spends its points for good";
+
+  page->OnEvent(ftxui::Event::ArrowRight);  // H -> V
+  EXPECT_NE(RenderComponent(page).find("[Reset]"), std::string::npos);
+  // Down past both nodes and onto the button under them.
+  for (int i = 0; i < 3; ++i) {
+    page->OnEvent(ftxui::Event::ArrowDown);
+  }
+  page->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(reset);
 }
 
 // A hyper above the character's level is on the page but shut: the [+] does
@@ -1880,6 +1909,27 @@ TEST_F(CharacterPanelTest, TheSkillsTabFitsInsideItsRowBudget) {
   for (int budget = 10; budget <= natural + 2; ++budget) {
     panel.SetMaxRows(budget);
     EXPECT_EQ(PanelHeight(panel.Render()), std::min(budget, natural))
+        << "at a budget of " << budget;
+  }
+}
+
+// The V page's rule and [Reset] are never what a short terminal gives up: the
+// nodes above them are, and the way out of a matrix stays on the screen.
+TEST_F(CharacterPanelTest, TheVPageKeepsItsResetAtEveryBudget) {
+  CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/11);
+  CharacterPanel panel(c, account_, panel_focus_, NodeCatalog());
+  ftxui::Component page = panel.MakeComponent();
+  page->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  page->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> page bar
+  for (int i = 0; i < 5; ++i) {
+    page->OnEvent(ftxui::Event::ArrowRight);  // page I -> V
+  }
+  int natural = PanelHeight(panel.Render());
+  for (int budget = 12; budget <= natural + 2; ++budget) {
+    panel.SetMaxRows(budget);
+    EXPECT_EQ(PanelHeight(panel.Render()), std::min(budget, natural))
+        << "at a budget of " << budget;
+    EXPECT_NE(RenderComponent(page).find("[Reset]"), std::string::npos)
         << "at a budget of " << budget;
   }
 }

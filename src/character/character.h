@@ -211,6 +211,11 @@ class CharacterInstance {
   // Puts every point in `preset` back in the pool. Free, and the only way out
   // of an allocation.
   void ResetHyperStats(StatPreset preset);
+  // The same for the V Matrix: every node the character has levelled goes back
+  // to nothing and its V Points return to the pool. Free, and the only way out
+  // of a matrix. Takes the catalog because the levels are keyed by name, and a
+  // name alone does not say which of them is a node.
+  void ResetVMatrix(const std::map<std::string, Skill>& skills);
   // Returns true if the character meets the level and job requirements to
   // equip the item described by `proto`. Asked of the catalog as much as of
   // the bag, so it says nothing about whether a slot is free for it -- that
