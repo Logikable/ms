@@ -16,9 +16,11 @@
 namespace ms {
 namespace {
 
-// The level the Boss entry arrives at. Written out rather than read off the
-// progression table, so moving the gate is a decision the test notices.
+// The levels the Boss and Dailies entries arrive at. Written out rather than
+// read off the progression table, so moving a gate is a decision the test
+// notices.
 constexpr int kBossLevel = 110;
+constexpr int kDailiesLevel = 200;
 
 GameState EmptyState() {
   return GameState({}, {}, {}, {}, {});
@@ -53,7 +55,9 @@ void OpenBoxOn(MenuPanel& panel, MenuEntry entry) {
   panel.OpenBox(entry);
 }
 
-TEST(MenuPanelTest, BossArrivesLeftOfTheEntriesThatWereAlreadyThere) {
+// Analysis holds the left end from the start, and everything else arrives
+// between it and Settings, in the order the gates open.
+TEST(MenuPanelTest, EntriesArriveBetweenAnalysisAndSettings) {
   GameState state = EmptyState();
   BattleAnalysis analysis;
   int focus = kMenuPanel;
@@ -62,26 +66,36 @@ TEST(MenuPanelTest, BossArrivesLeftOfTheEntriesThatWereAlreadyThere) {
   EXPECT_NE(early.find("Analysis"), std::string::npos);
   EXPECT_NE(early.find("Settings"), std::string::npos);
   EXPECT_EQ(early.find("Boss"), std::string::npos);
+  EXPECT_EQ(early.find("Dailies"), std::string::npos);
 
   LevelTo(state, kBossLevel);
   std::string later = Render(panel);
-  EXPECT_LT(later.find("Boss"), later.find("Analysis"));
-  EXPECT_LT(later.find("Analysis"), later.find("Settings"));
+  EXPECT_LT(later.find("Analysis"), later.find("Boss"));
+  EXPECT_LT(later.find("Boss"), later.find("Settings"));
+  EXPECT_EQ(later.find("Dailies"), std::string::npos);
+
+  // The dailies are the symbols, so the entry waits for them and lands left
+  // of Boss.
+  LevelTo(state, kDailiesLevel);
+  std::string last = Render(panel);
+  EXPECT_LT(last.find("Analysis"), last.find("Dailies"));
+  EXPECT_LT(last.find("Dailies"), last.find("Boss"));
 }
 
 // The row is the entries and nothing else: no brackets, two columns between
 // them, and a column of clearance inside each border.
 TEST(MenuPanelTest, TheEntriesSitTwoColumnsApart) {
   GameState state = EmptyState();
-  LevelTo(state, kBossLevel);
+  LevelTo(state, kDailiesLevel);
   BattleAnalysis analysis;
   int focus = kMenuPanel;
   MenuPanel panel(state, analysis, focus);
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(48),
                                                ftxui::Dimension::Fixed(3));
   ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
-  EXPECT_NE(ScreenRow(screen, 1).find("│ Boss  Party  Analysis  Settings │"),
-            std::string::npos);
+  EXPECT_NE(
+      ScreenRow(screen, 1).find("│ Analysis  Dailies  Boss  Party  Settings │"),
+      std::string::npos);
 }
 
 TEST(MenuPanelTest, TheCursorWrapsAndPicksAnEntry) {
@@ -90,31 +104,30 @@ TEST(MenuPanelTest, TheCursorWrapsAndPicksAnEntry) {
   BattleAnalysis analysis;
   int focus = kMenuPanel;
   MenuPanel panel(state, analysis, focus);
+  EXPECT_EQ(panel.selected(), MenuEntry::kAnalysis);
+  panel.MoveCursor(1);
   EXPECT_EQ(panel.selected(), MenuEntry::kBoss);
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected(), MenuEntry::kParty);
   panel.MoveCursor(1);
-  EXPECT_EQ(panel.selected(), MenuEntry::kAnalysis);
-  panel.MoveCursor(1);
   EXPECT_EQ(panel.selected(), MenuEntry::kSettings);
   // Off the end and back to the start.
   panel.MoveCursor(1);
-  EXPECT_EQ(panel.selected(), MenuEntry::kBoss);
+  EXPECT_EQ(panel.selected(), MenuEntry::kAnalysis);
   panel.MoveCursor(-1);
   EXPECT_EQ(panel.selected(), MenuEntry::kSettings);
 }
 
-// The cursor is a row rather than an entry, so an arrival to its left slides
-// it onto the new one -- which is the gold one, and the reason the corner is
-// worth a look that minute.
-TEST(MenuPanelTest, AnArrivingEntrySlidesTheCursorOntoIt) {
+// The cursor is a row rather than an entry, and everything arrives to the
+// right of Analysis, so it stays on the entry the player left it on.
+TEST(MenuPanelTest, AnArrivingEntryLeavesTheCursorWhereItWas) {
   GameState state = EmptyState();
   BattleAnalysis analysis;
   int focus = kMenuPanel;
   MenuPanel panel(state, analysis, focus);
   EXPECT_EQ(panel.selected(), MenuEntry::kAnalysis);
   LevelTo(state, kBossLevel);
-  EXPECT_EQ(panel.selected(), MenuEntry::kBoss);
+  EXPECT_EQ(panel.selected(), MenuEntry::kAnalysis);
 }
 
 // Boss is gold until the player has opened the screen behind it, the same way
@@ -126,16 +139,19 @@ TEST(MenuPanelTest, BossIsGoldUntilItHasBeenOpened) {
   int focus = kCharPanel;  // unfocused, so nothing is inverted
   MenuPanel panel(state, analysis, focus);
 
+  // Past the border, the column of clearance, Analysis and the gap after it.
+  constexpr int kBossColumn = 12;
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
                                                ftxui::Dimension::Fixed(3));
   ftxui::Render(screen, panel.Render());
-  ftxui::Color gold = screen.PixelAt(2, 1).foreground_color;
+  ASSERT_EQ(screen.PixelAt(kBossColumn, 1).character, "B");
+  ftxui::Color gold = screen.PixelAt(kBossColumn, 1).foreground_color;
 
   state.account.MarkSeen(MenuPanel::boss_seen_key());
   ftxui::Screen after = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
                                               ftxui::Dimension::Fixed(3));
   ftxui::Render(after, panel.Render());
-  EXPECT_NE(gold, after.PixelAt(2, 1).foreground_color);
+  EXPECT_NE(gold, after.PixelAt(kBossColumn, 1).foreground_color);
 }
 
 // The box takes the name of the entry it hangs from, and lists what that entry

@@ -20,12 +20,14 @@ namespace {
 
 std::string EntryLabel(MenuEntry entry) {
   switch (entry) {
+    case MenuEntry::kAnalysis:
+      return "Analysis";
+    case MenuEntry::kDailies:
+      return "Dailies";
     case MenuEntry::kBoss:
       return "Boss";
     case MenuEntry::kParty:
       return "Party";
-    case MenuEntry::kAnalysis:
-      return "Analysis";
     case MenuEntry::kSettings:
       return "Settings";
   }
@@ -44,6 +46,12 @@ MenuPanel::MenuPanel(const GameState& state, const BattleAnalysis& analysis,
 
 std::vector<MenuEntry> MenuPanel::Entries() const {
   std::vector<MenuEntry> entries;
+  entries.push_back(MenuEntry::kAnalysis);
+  // The dailies are the symbols, so the entry arrives with them: below that
+  // level there is nothing to claim.
+  if (Unlocked(Feature::kSymbols, state_.character, state_.account)) {
+    entries.push_back(MenuEntry::kDailies);
+  }
   if (Unlocked(Feature::kBoss, state_.character, state_.account)) {
     entries.push_back(MenuEntry::kBoss);
     // Bossing is what a party is for so far, and a build that plays alone has
@@ -52,7 +60,6 @@ std::vector<MenuEntry> MenuPanel::Entries() const {
       entries.push_back(MenuEntry::kParty);
     }
   }
-  entries.push_back(MenuEntry::kAnalysis);
   entries.push_back(MenuEntry::kSettings);
   return entries;
 }
@@ -69,12 +76,14 @@ void MenuPanel::MoveCursor(int delta) {
 
 std::vector<std::string> MenuPanel::BoxEntries(MenuEntry entry) const {
   switch (entry) {
-    // Both open a screen rather than a box.
+    // These open a screen or a dialog rather than a box.
     case MenuEntry::kBoss:
     case MenuEntry::kParty:
       return {};
     case MenuEntry::kAnalysis:
       return {analysis_.stops_on_press() ? "Stop" : "Start", "View"};
+    case MenuEntry::kDailies:
+      return {};
     case MenuEntry::kSettings:
       return {"Keybinds", "Options"};
   }

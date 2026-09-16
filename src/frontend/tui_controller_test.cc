@@ -3227,15 +3227,14 @@ TEST_F(TuiControllerTest, SettingsOpensItsBoxOverTheCorner) {
 // the box away too.
 TEST_F(TuiControllerTest, WalkingOffSettingsClosesItsBox) {
   LevelTo(UnlockLevel(Feature::kBoss));
-  // Boss and Party arrive to the left of the rest and take the cursor with
-  // them.
+  // Analysis, Boss, Party, Settings: the cursor starts on the first.
   menu_panel_->MoveCursor(3);
   ASSERT_EQ(menu_panel_->selected(), MenuEntry::kSettings);
   controller_->OpenMenuEntry(MenuEntry::kSettings);
   controller_->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_FALSE(menu_panel_->box_open());
   EXPECT_EQ(controller_->screen(), kMain);
-  EXPECT_EQ(menu_panel_->selected(), MenuEntry::kAnalysis);
+  EXPECT_EQ(menu_panel_->selected(), MenuEntry::kParty);
 }
 
 // Inside the box the row below is not what the keys are moving on.

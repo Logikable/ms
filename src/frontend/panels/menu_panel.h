@@ -7,8 +7,9 @@
  *
  * Entries arrive as the character reaches them, and the row is laid out from
  * the right: Settings holds the corner from the start so the panel is never an
- * empty box, Analysis sits to its left, and Boss and Party arrive left of both
- * at 110. A build with no multiplayer in it has no Party entry at all.
+ * empty box, Boss and Party arrive left of it at 110, and Dailies left of them
+ * at the level the first Arcane Symbol can be had. Analysis holds the left
+ * end throughout. A build with no multiplayer in it has no Party entry at all.
  *
  * An entry either opens a screen -- Boss does -- or opens a box that stands on
  * the corner and lists what it leads to. There is one box, whichever entry
@@ -30,9 +31,10 @@ namespace ms {
 
 // What the menu can open. Ordered as they are drawn, left to right.
 enum class MenuEntry {
+  kAnalysis,
+  kDailies,
   kBoss,
   kParty,
-  kAnalysis,
   kSettings,
 };
 
@@ -60,8 +62,8 @@ class MenuPanel {
   // Moves the cursor `delta` entries, coming out the other end.
   void MoveCursor(int delta);
   ftxui::Element Render() const;
-  // The entry under the cursor. Settings for a character with nothing else
-  // yet, which is the one entry that is always there.
+  // The entry under the cursor. Analysis for a character with nothing else
+  // yet: it is the one entry every character has.
   MenuEntry selected() const;
   // on_open fires when the player presses Enter with the panel focused.
   ftxui::Component MakeComponent(std::function<void(MenuEntry)> on_open);
@@ -121,9 +123,8 @@ class MenuPanel {
   // Which entry of the box the cursor is on, or -1 for the menu row below it.
   int box_cursor_ = -1;
   // Which entry the cursor is on, as an index into Entries(). An index rather
-  // than a MenuEntry, so the cursor follows the row as entries arrive to its
-  // left: reaching 110 slides it onto Boss, which is the gold one and the
-  // reason the panel is worth looking at that minute.
+  // than a MenuEntry: entries arrive to the right of Analysis, so the cursor
+  // stays on the end of the row the player left it on.
   int cursor_ = 0;
 };
 
