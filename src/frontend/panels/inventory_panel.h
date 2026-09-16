@@ -49,20 +49,14 @@ class InventoryPanel {
  public:
   InventoryPanel(CharacterInstance& character, AccountInstance& account,
                  int& panel_focus);
-  // `on_enter` is Enter on a row, and Enter on a tab -- the item context menu,
-  // the tab's own menu, or the shop from the Shop tab. `on_expand` is Enter on
-  // the Expand tab, which opens the bag up to the whole screen and closes it
-  // again.
+  // `on_enter` is Enter on a row or a tab -- the item menu, the tab's own, or
+  // the shop. `on_expand` opens the bag to the whole screen and back.
   ftxui::Component MakeComponent(std::function<void()> on_enter,
                                  std::function<void()> on_expand = nullptr);
   void OpenMenu();
-  // Handles Up/Down/Escape/Return for the item context menu and executes the
-  // selected action. Returns the next screen state. On the Equip tab this
-  // drives the equip menu; on Etc it drives the {Sell, Close} menu.
-  //
-  // `gear` is the preset the Equipped panel is showing, which is the one an
-  // Equip puts the item into: what the player is looking at is what they are
-  // dressing.
+  // Drives the item context menu and runs the chosen action, returning the
+  // next screen. `gear` is the preset the Equipped panel is SHOWING, which is
+  // where an Equip puts the item: what is looked at is what is dressed.
   Screen OnMenuEvent(ftxui::Event event, ScrollPanel& scroll_panel,
                      StatPreset gear = StatPreset::kFirst);
 
@@ -80,18 +74,15 @@ class InventoryPanel {
   // Handles Up/Down/Escape/Return for it and runs the chosen action.
   Screen OnTabMenuEvent(ftxui::Event event);
   // The screen row the open menu anchors under: the highlighted item's, or the
-  // first row below the tab bar while the cursor is up there -- a tab menu
-  // hangs under its bar rather than over the panel's top border. Read from the
-  // render, not from selected(), which is a position in the data and stops
-  // agreeing once the list scrolls. One frame behind, which is right: opening
-  // the menu does not move the list.
+  // row below the tab bar while the cursor is up there. Read from the RENDER,
+  // not selected(), which is a position in the data and stops agreeing once
+  // the list scrolls.
   int cursor_row() const {
     return on_tab_bar() ? bar_box_.y_min + 2 : cursor_box_.y_min;
   }
-  // The columns the panel may take, borders included -- its column's width,
-  // which the layout works out from the terminal's. What a wide terminal
-  // brings goes to the Equip tab's name column; the stack tabs, whose rows
-  // are a name and a count, keep theirs.
+  // The columns the panel may take, which the layout works out from the
+  // terminal's. What a wide terminal brings goes to the Equip tab's name
+  // column; the stack tabs keep theirs.
   void SetWidth(int width) {
     width_ = width;
   }
@@ -120,22 +111,19 @@ class InventoryPanel {
   // stacks -- Etc lists only part of them, so the row is not the index. -1
   // when the tab has no row to stand on.
   int selected_stack() const;
-  // The column the item menu hangs at, measured from the panel's left border:
-  // past the cursor and the name and slot cells, so the menu covers an item's
-  // stats rather than its name. Asked of the panel because the name column
-  // follows the panel's own width.
+  // The column the item menu hangs at, from the panel's left border: past the
+  // cursor, name and slot cells, so it covers stats rather than a name. Asked
+  // of the panel, whose width the name column follows.
   int menu_column() const;
 
-  // Records the active tab as opened, which is what puts its gold out. Called
-  // by the panel when the player steps onto a tab, and by the controller when
-  // focus arrives on the panel -- a tab already open under the cursor has been
-  // seen just as surely as one stepped onto.
+  // Records the active tab as opened, which puts its gold out. Called when the
+  // player steps onto a tab and when focus arrives on the panel: a tab already
+  // under the cursor has been seen as surely as one stepped onto.
   void MarkActiveTabSeen();
 
-  // Lights the panel's border gold, to send the player's eye to it while a
-  // level-up is being celebrated -- the bag arrives at level 4, and a card in
-  // the middle of the screen does not say where to look. The panel keeps no
-  // clock of its own: whoever lit it turns it off again.
+  // Lights the border gold while a level-up is celebrated: the bag arrives at
+  // level 4, and a card in the middle of the screen does not say where to
+  // look. No clock of its own -- whoever lit it turns it off.
   void SetHighlighted(bool highlighted) {
     highlighted_ = highlighted;
   }
@@ -197,10 +185,9 @@ class InventoryPanel {
   // What OpenMenu opens, by tab.
   void OpenStackMenu();
   void OpenEquipMenu();
-  // OpenEquipMenu's three passes, in the order it makes them. What the player
-  // has not reached is hidden before what the item refuses, because the first
-  // is what they cannot do to anything and the second is about this item; the
-  // gold lands last, on the entries as they finally stand.
+  // OpenEquipMenu's three passes, in order. What the player has not REACHED is
+  // hidden before what the item refuses -- the first is about them, the second
+  // about this item -- and the gold lands last, on what is left.
   void HideLockedFeatures();
   void HideRefusedUpgrades(const EquipInstance& equip);
   void HighlightUnusedUpgrades();

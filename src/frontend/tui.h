@@ -67,14 +67,10 @@ namespace ms {
 
 class Tui {
  public:
-  // `save_path` is where the game is written; empty turns saving off, which
-  // is how the workbench avoids ever touching a player's file.
-  //
-  // `server` is the multiplayer server as host:port; empty plays alone. The
-  // connection is opened for the whole session and closed on the way out.
-  //
-  // `bgm` false opens the null sound device instead of the machine's, which
-  // is silence the game cannot tell from a box with no sound card.
+  // `save_path` is where the game is written, and empty turns saving off --
+  // how the workbench avoids touching a player's file. `server` is host:port,
+  // empty plays alone. `bgm` false opens the null sound device, which the game
+  // cannot tell from a box with no sound card.
   Tui(GameState& state, std::string save_path = "", std::string server = "",
       bool bgm = true);
   // Raises the card showing what the character earned while the game was
@@ -176,18 +172,15 @@ class Tui {
   // an advancement happens during an event.
   void NoticeProgress();
   // Puts the music where the player is: the fight's track while a boss owns
-  // the screen, the map's otherwise, each at its own volume. Called at the
-  // end of every tick, and asking for the track already playing costs
-  // nothing.
+  // the screen, the map's otherwise. Asking for the track already playing
+  // costs nothing.
   void UpdateMusic();
   // The track the map or the boss names, empty where neither names one.
   std::string NormalTrack() const;
   // Keeps a random track going, one blending into the next as each ends.
   void PlayShuffled();
-  // The panel the player is looking at, or kNoPanel when the main screen is
-  // not what is in front of them. panel_focus_ still names a panel while the
-  // shop is open, but it is not one they can see, so nothing there counts as
-  // visited.
+  // The panel the player is looking at, or kNoPanel. panel_focus_ still names
+  // one while the shop is open, but not one they can see.
   Panel FocusedPanel() const;
   bool OnEvent(ftxui::Event event);
 
@@ -218,10 +211,8 @@ class Tui {
   // while the map is the fight in front of the player.
   BattleAnalysis analysis_;
   std::chrono::steady_clock::time_point last_combat_update_;
-  // Whether the ticker should keep a fight's faster beat. Written by the loop
-  // thread at the end of every tick and read by the ticker thread, which is
-  // the one thing the two share -- everything else about the fight is the
-  // loop thread's alone.
+  // Whether the ticker keeps a fight's faster beat. The ONE thing the loop and
+  // ticker threads share; everything else about the fight is the loop's.
   std::atomic<bool> in_boss_fight_ = false;
   // Shared with equip_panel_, inventory_panel_, and Container::Tab; mutated by
   // controller_ (Tab) and panels (Equip/Unequip actions).

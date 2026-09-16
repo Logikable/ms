@@ -24,11 +24,9 @@
 namespace ms {
 namespace {
 
-// Column widths. Name and level match the bag's equip tab, so the two lists
-// line up and the same item reads the same way in both. The type column takes
-// the longest name a weapon has ("Two-Handed Sword"). The cost column holds the
-// dearest thing on the shelf, the Meister Ring's eight figures and its coin,
-// with nothing to spare: a wider price would slide the whole window.
+// Column widths. Name and level match the bag's equip tab, so the same item
+// reads alike in both. Type takes the longest weapon name, and cost holds the
+// dearest thing on the shelf with nothing to spare.
 constexpr int kNameWidth = 26;
 constexpr int kTypeWidth = 16;
 constexpr int kLevelWidth = 7;
@@ -390,13 +388,10 @@ ftxui::Element ShopPanel::RenderTabBar() const {
   std::vector<ftxui::Element> chips;
   // No width limit: four fixed labels, and the shop's rows are far wider.
   chips.push_back(TabBar(kTabs, tab_, focused, /*width=*/0));
-  // The counter sits in what the chips leave rather than over the whole row: a
-  // third chip took the bar out to where a centred counter was drawn on top of
-  // it, and a fourth would reach further still.
-  //
-  // Every currency the shelf deals in stands there, not just the first: the
-  // Equips shelf is paid for in two, and a balance the bar does not show is
-  // one the player has no way to shop against.
+  // The counter sits in what the chips LEAVE rather than over the whole row: a
+  // third chip reached where a centred counter was drawn. Every currency the
+  // shelf deals in stands there -- a balance the bar does not show is one the
+  // player cannot shop against.
   std::vector<const ItemPrototype*> tokens = TabTokens();
   ftxui::Element counter;
   if (tokens.empty()) {
@@ -568,11 +563,9 @@ ftxui::Element ShopPanel::Render() const {
   if (!menu_open_) {
     return window;
   }
-  // Anchored inside the panel rather than on the terminal, because the shop is
-  // centred and so has no fixed place on screen to measure from.
-  //
-  // kMenuCol clears the border and the name column, so the menu covers what the
-  // item asks for rather than what it is called.
+  // Anchored inside the PANEL rather than the terminal: the shop is centred
+  // and has no fixed place to measure from. kMenuCol clears the border and the
+  // name column, so the menu covers what the item asks rather than its name.
   constexpr int kMenuCol = 1 + 2 + kNameWidth;
   // Floated, so a menu opened on one of the last few items hangs out past the
   // bottom border instead of stretching the window down to hold it. Sliding it

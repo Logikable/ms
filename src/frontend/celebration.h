@@ -35,18 +35,13 @@ class Celebration {
  public:
   enum class Kind { kNone, kLevelUp, kAdvancement, kDeath };
 
-  // Starts the level-up card for a climb from `from_level` to `to_level`,
-  // paying `ap`, `sp` and `hyper_sp` in total. `focused` is the panel the
-  // player is on, or kNoPanel if they are off the main screen.
+  // Starts the level-up card for a climb from `from_level` to `to_level`. A
+  // SPAN, since one tick can cross several thresholds, and the span is what
+  // decides which panels are lit.
   //
-  // A span rather than one level: a single tick can carry a character past
-  // several thresholds, and the span is what decides which panels are lit.
-  //
-  // `account_level` is the furthest any character on the account has reached.
-  // A climb over ground it has covered still pays AP, but it opens nothing:
-  // those panels have been on screen since this character was made. It also
-  // decides whether the honor the climb paid is named at all -- see
-  // HonorVisible.
+  // `account_level` is the furthest any character has reached: a climb over
+  // covered ground still pays AP but opens nothing, and it also decides
+  // whether the honor is named at all -- see HonorVisible.
   void BeginLevelUp(int from_level, int to_level, int ap, int sp, int hyper_sp,
                     int account_level, Panel focused);
 
@@ -64,12 +59,9 @@ class Celebration {
   // is up.
   void Advance(double elapsed_seconds);
 
-  // Records that the player is now looking at `focused`, putting out its gold
-  // if it was waiting to be visited. kNoPanel for a screen with no panel on
-  // it, which visits nothing.
-  //
-  // Latches: leaving again does not bring the gold back, because the point of
-  // it was to be seen once and it has been.
+  // Records that the player is looking at `focused`, putting out its gold if
+  // it was waiting to be visited. LATCHES: leaving does not bring the gold
+  // back, the point of it having been to be seen once.
   void Visit(Panel focused);
 
   // Takes the card down, for a player who has already read it. Leaves the

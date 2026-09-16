@@ -37,15 +37,12 @@ struct EquippedRow {
   bool inherited = false;
 };
 
-// The rows for the gear `character` is wearing. Arcane Symbols are left out:
-// they wear in slots of their own and have nothing to say in these columns --
-// see SymbolRows.
+// The rows for the gear `character` is wearing. Arcane Symbols are left out,
+// wearing in slots of their own -- see SymbolRows.
 //
-// Only the row at `selected` slides a name too long for its column, and
-// `elapsed` is how long it has been the selected one; pass -1 and zero for a
-// list whose names all sit at their heads. `columns` is what the panel fitted
-// into its width -- see FitItemColumns. `preset` is which of the character's
-// three gear setups is being listed.
+// Only the row at `selected` slides a too-long name, `elapsed` being how long
+// it has been selected; pass -1 and zero for a list whose names sit at their
+// heads. `columns` is what the panel fitted into its width.
 std::vector<EquippedRow> EquippedRows(
     const CharacterInstance& character, int selected,
     std::chrono::steady_clock::duration elapsed, const ItemColumns& columns,

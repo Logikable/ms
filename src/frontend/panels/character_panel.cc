@@ -43,11 +43,9 @@ std::string Centered(const std::string& s, int width) {
   return PadRight(std::string(pad, ' ') + s, width);
 }
 
-// A centred row whose text alone carries the decorator, for a row the cursor
-// can land on. Not CenteredRow: every row of this panel is padded to
-// its width, and a flexed row would centre itself in whatever width the
-// window came out at instead. The padding is separate text so that inverting
-// the label does not invert the whole row with it.
+// A centred row whose TEXT alone carries the decorator, for a row the cursor
+// can land on. Not CenteredRow: this panel pads every row to its own width,
+// and a flexed row would centre itself in the window's instead.
 ftxui::Element CenteredCell(const std::string& label,
                             const ftxui::Decorator& decorator, int width) {
   int pad = std::max(0, (width - static_cast<int>(label.size())) / 2);
@@ -88,10 +86,9 @@ constexpr int kHyperButtonWidth = 3;
 constexpr int kHyperFixedWidth =
     1 + kHyperButtonWidth + 1 + kHyperLevelWidth + 1 + kHyperButtonWidth + 1;
 
-// The tag a buff row opens with, in the shape the skill rows use: what the buff
-// costs this character from here, said at the front of the row rather than in
-// a column of its own. Green for a fact that is settled, the way the passive
-// tag is; the coin's own yellow for a price still being charged.
+// The tag a buff row opens with, in the skill rows' shape: what the buff costs
+// from here. Green for a settled fact as the passive tag is, and the coin's
+// yellow for a price still being charged.
 constexpr char kBuffOwnedTag[] = "O: ";
 constexpr char kBuffRentTag[] = "R: ";
 constexpr int kBuffTagWidth = 3;
@@ -127,15 +124,10 @@ constexpr AllocStat kAllocStats[] = {
 };
 constexpr int kNumAllocStats = sizeof(kAllocStats) / sizeof(kAllocStats[0]);
 
-// One of the extra stats: a label column and a number column hard against the
-// right edge, one gutter shy of the border. The main stats above them keep
-// their own "LABEL: value" shape, since their [+] and their AP counter already
-// own that edge.
-//
-// The value's RIGHT edge is fixed and the gap before it gives way. Padding the
-// label instead leaves a long value nothing to take from, and Defense -- the
-// one stat written "(base+bonus) total" -- then runs a column past every other
-// value in the panel.
+// One of the extra stats: a label column and a number column against the right
+// edge, a gutter shy of the border. The value's RIGHT edge is fixed and the
+// gap before it gives way -- padding the label instead leaves a long value
+// nothing to take from, and Defense then runs a column past the rest.
 ftxui::Element StatRow(const std::string& label, const std::string& value) {
   int gap = kStatsWidth - 2 - static_cast<int>(value.size());
   return ftxui::text(" " + PadRight(label, std::max(0, gap)) + value + " ");
@@ -150,10 +142,8 @@ std::string StatText(const std::string& label, int base, int bonus) {
   return s;
 }
 
-// The skill row's columns. Every one is a fixed width, so the row comes to
-// exactly the row's width and a long name slides inside its column instead of
-// pushing the panel wider -- which is what a name like "Final Attack:
-// Crossbow" used to do to the whole Character panel.
+// The skill row's columns, every one a FIXED width, so a long name slides
+// inside its column instead of pushing the panel wider:
 //
 //   " " + tag(4) + name + level + filler + "[+]" + " "
 constexpr int kSkillPlusWidth = 3;
@@ -256,10 +246,9 @@ std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
   if (Unlocked(Feature::kHyperStats, character_, account_)) {
     tabs.push_back(kTabHyper);
   }
-  // Ability is the one tab gated on this character alone. The Feature table is
-  // account-wide by construction, and here that would be a lie: an ability
-  // below the unlock level grants nothing and cannot be rerolled, whoever else
-  // on the account has been there.
+  // Ability is the one tab gated on this CHARACTER alone: the Feature table is
+  // account-wide, and an ability below the unlock level grants nothing whoever
+  // else has been there.
   if (character_.inner_ability_unlocked()) {
     tabs.push_back(kTabAbility);
   }
@@ -469,10 +458,9 @@ void CharacterPanel::SetCursorStop(int stop) {
 }
 
 void CharacterPanel::MoveCursor(int delta) {
-  // The advancement bar keeps whichever page the player left it on. Entering
-  // the Skills tab used to snap it to the newest stage, which meant a
-  // second-job character could not get back down onto their first book: every
-  // Down from the tab bar put them on page II again.
+  // The advancement bar KEEPS the page the player left it on. Snapping to the
+  // newest stage meant a second-job character could never get back down onto
+  // their first book.
   SetCursorStop(StepCursor(CursorStop(), delta, RingStops()));
 }
 
@@ -605,13 +593,10 @@ ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
   std::vector<TabSpec> specs;
   int active = 0;
   for (int i = 0; i < static_cast<int>(tabs.size()); ++i) {
-    // A tab with no key never announces itself. Asking Seen("") instead would
-    // answer no and leave those tabs permanently gold.
-    //
-    // Skills is one of them, and not for want of being new. It takes the exact
-    // index the Advance tab vacates, so an advancement leaves the player
-    // standing on it -- gold on a tab they are already reading says nothing,
-    // and would sit there until they arrowed away and back to clear it.
+    // A tab with no key never announces itself; asking Seen("") would answer
+    // no and leave it permanently gold. Skills is one: it takes the index the
+    // Advance tab vacates, so an advancement leaves the player standing on
+    // it, and gold on a tab already being read says nothing.
     std::string key = TabKey(tabs[i]);
     if (tabs[i] == ActiveTab()) {
       active = i;
@@ -635,18 +620,13 @@ ftxui::Element CharacterPanel::MpRow(int mp, int ap) const {
 }
 
 ftxui::Element CharacterPanel::StatsAligned(ftxui::Element row) const {
-  // Centred in the panel: the block does not spread with the terminal -- a
-  // value chasing the border would leave its label at the other end of the
-  // row -- so the room a wide panel brings is blank either side of it.
+  // Centred: the block does not spread with the terminal, since a value
+  // chasing the border would strand its label. An odd column goes to the
+  // labels' side, which lines the right-hand column up with the Skills tab's
+  // [+] where the slack is a column or none.
   //
-  // An odd column goes to the side the labels are on, which puts the block's
-  // right-hand column in the Skills tab's [+] column on the widths where the
-  // slack is a column or none. Wider than that the two part company, which is
-  // what centring costs.
-  //
-  // The padding is text rather than filler(): a row that right-aligns
-  // something ends in a filler of its own, and two of them would share the
-  // slack between them and drag the column off its neighbours'.
+  // The padding is TEXT rather than filler(): a row that right-aligns
+  // something ends in a filler of its own, and two would share the slack.
   int slack = std::max(0, ContentWidth() - kStatsWidth);
   return ftxui::hbox({
       ftxui::text(std::string((slack + 1) / 2, ' ')),
@@ -721,9 +701,9 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool bar_focused,
     }
     rows.push_back(StatsAligned(StatRow(extras[i].label, extras[i].value)));
   }
-  // Closes the block, because whatever did not fit above it is on the screen
-  // it opens -- and the cursor reaches it by walking off the foot of the
-  // stats. It is the last row to go, not the first.
+  // Closes the block: whatever did not fit above is on the screen it opens,
+  // and the cursor reaches it by walking off the foot of the stats. The LAST
+  // row to go, not the first.
   //
   bool selected = content_focused && stat_sel_ == kNumAllocStats;
   rows.push_back(CenteredCell("View All Stats",
@@ -745,10 +725,8 @@ std::string CharacterPanel::PoolText() const {
 }
 
 ftxui::Element CharacterPanel::RenderAdvTabBar(bool bar_focused) const {
-  // One chip per page, in the shared tab style: the stages by their numeral,
-  // and the Hyper page by an H, which is what GMS calls it. The selected
-  // page's points are right-aligned on the same row, reading like the AP
-  // counter.
+  // One chip per page in the shared tab style: the stages by numeral, the
+  // Hyper page by H. That page's points are right-aligned on the same row.
   std::vector<TabSpec> specs;
   for (int page = 0; page < SkillPages(); ++page) {
     if (IsVPage(page)) {
@@ -840,9 +818,8 @@ bool CharacterPanel::ShowsVReset() const {
 
 std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
   // A page shows exactly the skills of the advancement this character's job is
-  // at -- so a Swordman never sees an Archer's skills, and vice versa. An
-  // unreached or undefined advancement has none. The Hyper page hangs off the
-  // advancement the character is at now, which is the book its skills upgrade.
+  // at, so a Swordman never sees an Archer's. The Hyper page hangs off the
+  // advancement they are at now, which is the book its skills upgrade.
   std::set<std::string> toggles_on(character_.proto().active_skill().begin(),
                                    character_.proto().active_skill().end());
   if (IsVPage(page)) {
@@ -870,10 +847,9 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   bool selected = rows_focused && skill_sel_ == index;
   bool maxed = learned >= skill.max_level();
   bool has_sp = character_.LevelsAffordable(skill) > 0;
-  // A skill still waiting on another one, or on a level, is not a skill this
-  // character has yet, so the whole row dims -- name included. Running out of
-  // SP dims the [+] alone, because that is a thing about the moment rather
-  // than about the skill.
+  // A skill waiting on another, or on a level, is not one the character has,
+  // so the WHOLE row dims. Running out of SP dims the [+] alone, being a fact
+  // about the moment rather than the skill.
   bool locked = SkillLocked(skill);
 
   KindTag tag = TagFor(skill);
@@ -882,14 +858,12 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
     tag_text = tag_text | ftxui::dim;
   }
 
-  // Only the name inverts -- the tag beside it is not part of what Enter
-  // opens. Enter opens the skill, so the highlight covers the skill and
-  // nothing else; the level beside it is a fact about the row, not a second
-  // thing to press. A locked skill still opens -- the screen behind it is
-  // where the player finds out what is holding it up.
-  // A name too long for the column slides under it while the row is selected,
-  // and sits cut when it is not. The column is a fixed width either way, which
-  // is what keeps a long name from widening the whole panel.
+  // Only the NAME inverts: Enter opens the skill, so the highlight covers the
+  // skill and nothing else. A locked skill still opens -- the screen behind it
+  // is where the player learns what is holding it up.
+  //
+  // A name too long for the column slides under it while the row is selected
+  // and sits cut otherwise. The column is a fixed width either way.
   int name_width = SkillNameWidth(column.width, row_width);
   std::string window =
       ScrollingWindow(skill.name(), name_width,
@@ -1441,10 +1415,9 @@ bool CharacterPanel::OnTabsEvent(const ftxui::Event& event) {
     return true;
   }
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
-    // Down enters the tab's content at its first row; Up enters it at its
-    // last, the bar being a stop in the same ring. Where "first row" is
-    // depends on the tab -- the Skills tab's content starts at the
-    // advancement bar rather than at a skill.
+    // Down enters the tab's content at its first row and Up at its last, the
+    // bar being a stop in the same ring. Where "first row" is depends on the
+    // tab.
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
@@ -1669,10 +1642,8 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
     }
     return true;
   }
-  // Skill rows: Up/Down walk them, Up off the top returns to the advancement
-  // bar and Down off the bottom carries on round to the outer tab bar.
-  // Left/Right pick the column, which is what the Enter below acts on --
-  // switching advancement tabs belongs to the bar above.
+  // Skill rows: Up/Down walk them and wrap out to the bars above and below.
+  // Left/Right pick the column Enter acts on.
   std::vector<const Skill*> skills = SkillsForPage(skill_tab_);
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);

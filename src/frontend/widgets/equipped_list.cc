@@ -17,11 +17,9 @@
 namespace ms {
 namespace {
 
-// A symbol list's columns. The name gets more room than an item list's 26
-// because every symbol is called "Arcane Symbol: <area>", and 26 cuts the
-// longest of them mid-word -- there are only three columns after it to pay
-// for the room. The other two are sized to the widest they hold: level 20,
-// and the 372/372 the last rung asks for.
+// A symbol list's columns. The name gets more room than an item list's 26:
+// every symbol is called "Arcane Symbol: <area>", and only three columns
+// follow it to pay for the room.
 constexpr int kSymbolNameWidth = 32;
 constexpr int kSymbolLevelWidth = 3;
 constexpr int kSymbolExpWidth = 7;

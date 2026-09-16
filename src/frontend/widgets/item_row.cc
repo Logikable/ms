@@ -33,13 +33,10 @@ std::string ItemStatsCell(Job job, const EquipStats& stats) {
   if (main != nullptr && main->GetFrom(stats) > 0) {
     main_str = "+" + std::to_string(main->GetFrom(stats)) + " " + main->label;
   }
-  // Room for one attack figure, so show the one this job swings with. A wand
-  // carries both, and a magician's weapon attack never reaches the damage
-  // chain.
-  //
-  // Asked of the stat this job builds on rather than listed job by job: every
-  // INT job is a magician, so a new magician branch reads right the day it is
-  // added instead of the day someone remembers this list.
+  // Room for one attack figure, so show the one this job swings with: a wand
+  // carries both, and a magician's weapon attack never reaches the chain.
+  // Asked of the STAT the job builds on rather than listed job by job, so a
+  // new magician branch reads right the day it is added.
   std::string atk_str;
   bool magic = primary == STAT_FIELD_INT;
   if (!magic && stats.attack() > 0) {

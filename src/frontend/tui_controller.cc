@@ -153,10 +153,9 @@ void TuiController::OpenSkillInspect(const Skill& skill) {
   screen_ = kSkillInspect;
 }
 
-// Both read live rather than captured, so a point spent on the skill and then
-// inspected again shows the level it is actually at. The learned level: what
-// the card makes of the lent ones is the card's business, since it also has
-// to say what one more point would buy.
+// Read LIVE rather than captured, so a point spent and then inspected again
+// shows the level it is at. The learned level: what the card makes of the lent
+// ones is its own business.
 int TuiController::skill_inspect_level() const {
   return state_.character.skill_level(skill_inspect_);
 }
@@ -450,10 +449,9 @@ const EquipInstance* TuiController::scroll_item() const {
 // Keys on the main view, once every screen above it has had its say. A back
 // key here means leaving the game, there being nothing left to back out of.
 bool TuiController::OnMainViewEvent(ftxui::Event event) {
-  // An open name field is the one thing on the main view that owns every key
-  // it can be handed: Escape leaves the field rather than the game, and Tab
-  // must not carry focus off a panel that is mid-edit. The panel swallows the
-  // lot -- this only declines them so they reach it.
+  // An open name field owns every key it can be handed: Escape leaves the
+  // field rather than the game, and Tab must not carry focus off a panel
+  // mid-edit. This only declines them so the panel gets them.
   if (char_panel_.editing_username()) {
     return false;
   }
@@ -477,10 +475,9 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
     // Nothing to walk to: the other panels are not drawn.
     return true;
   }
-  // Round the panels until the next one actually on screen. The character
-  // panel always is, so this always lands somewhere. Backwards is a step of
-  // kNumPanels - 1 rather than -1, so the modulo is never handed a negative
-  // and the two directions are one piece of code.
+  // Round the panels to the next one on screen; the character panel always is,
+  // so this always lands. Backwards steps kNumPanels - 1 rather than -1, so
+  // the modulo never sees a negative and both directions are one path.
   int step = event == ftxui::Event::Tab ? 1 : kNumPanels - 1;
   do {
     panel_focus_ = (panel_focus_ + step) % kNumPanels;
@@ -502,10 +499,9 @@ bool TuiController::OnEvent(ftxui::Event event) {
   // equipped panel, which a level 1 character has not unlocked. Settled before
   // dispatch so a key never reaches a panel that is not drawn.
   EnsureFocusIsVisible();
-  // A rank up is gold until the next thing the player does, and this is where
-  // the doing is counted. Cleared before dispatch, so the keypress that rolls
-  // the rank sets it back on its way through. Custom is the ticker's own
-  // redraw and is nobody doing anything.
+  // A rank up is gold until the player's next act, counted here. Cleared
+  // BEFORE dispatch, so the keypress that rolls the rank sets it back on its
+  // way through. Custom is the ticker's redraw and is nobody acting.
   if (event != ftxui::Event::Custom) {
     ability_rank_up_ = false;
     cube_panel_.SetRankUp(false);
@@ -1653,12 +1649,9 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
     bool led_by_somebody_else =
         !lobby.party.id().empty() &&
         lobby.party.leader_account_id() != lobby.account_id;
-    // Five ways a fight is not offered, and each says why rather than doing
-    // nothing: a party somebody else leads, a fight that is not built yet, a
-    // character with nothing to swing, a fight they have not levelled up to,
-    // and one still on its reset. Whose party it is leads, because it is about
-    // the player rather than the fight they picked. Only what is left is worth
-    // asking a question about.
+    // Five ways a fight is not offered, each saying WHY rather than doing
+    // nothing. Whose party it is leads, being about the player rather than the
+    // fight they picked.
     if (led_by_somebody_else) {
       OpenNotice(kBossNotice, {"You are not the leader."}, /*refusal=*/true,
                  "Close");
@@ -2226,9 +2219,8 @@ void TuiController::OpenBuyBackDialog(const BuyBackEntry& entry) {
 }
 
 // Everything the confirmed dialog buys, whichever shelf it was opened on. The
-// selection is re-read rather than remembered, and what it names checked
-// against what the dialog was opened on, so a cursor that moved under the
-// dialog cannot buy something the player never chose.
+// selection is RE-READ and checked against what the dialog was opened on, so a
+// cursor that moved underneath cannot buy something never chosen.
 void TuiController::BuyWhatTheDialogAgreedTo() {
   const BuyBackEntry* entry = shop_panel_.selected_buy_back();
   if (entry != nullptr) {

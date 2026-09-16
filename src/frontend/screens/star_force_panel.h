@@ -30,13 +30,9 @@ class StarForcePanel {
   void SetItem(const EquipInstance* item, int64_t meso);
   ftxui::Element Render() const;
   ftxui::Element RenderResult(const StarForceResult& r) const;
-  // Handles Enter (press the button under the cursor, or advance the confirm
-  // bar), Esc (cancel confirm), Left/Right (switch buttons).
-  //
-  // kCancelled is [Cancel], which the caller closes the screen on; the
-  // prompt's own Cancel backs out of the question and answers kPending. Esc
-  // outside the prompt is the caller's, so it is checked before this is
-  // called.
+  // Enter presses the button or advances the confirm bar, Esc cancels the
+  // confirm, Left/Right switch buttons. kCancelled is [Cancel], which the
+  // caller closes the screen on; the prompt's own Cancel answers kPending.
   ConfirmChoice OnEvent(ftxui::Event event);
   void ResetConfirm();
   bool IsConfirming() const {

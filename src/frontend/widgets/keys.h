@@ -34,31 +34,24 @@ inline bool IsSwitchPanel(const ftxui::Event& e) {
 }
 
 // Wraps `child` so it always reports itself focusable, forwarding rendering
-// and events untouched.
-//
-// Container::Tab drops every key when its active child says it is not
-// focusable, and an ftxui::Menu says that whenever its list is empty -- taking
-// the tab bar above the list deaf with it.
+// and events untouched. Container::Tab drops every key when its active child
+// says it is not, and an ftxui::Menu says that on an empty list -- taking the
+// tab bar above it deaf as well.
 ftxui::Component AlwaysFocusable(ftxui::Component child);
 
-// Wraps a list so its cursor comes out the other end: Up on the first row
-// lands on the last, and back. Only the two edges are taken -- the steps
-// between them are the one thing ftxui::Menu gets right. `selected` must
-// outlive the component, and `count` is asked per keypress because these lists
-// gain and lose rows under the cursor.
+// Wraps a list so its cursor WRAPS: Up on the first row lands on the last.
+// Only the two edges are taken. `selected` must outlive the component, and
+// `count` is asked per keypress, these lists gaining rows under the cursor.
 //
 // Wrong tool for a list under a tab bar: there the bar is a stop in the same
 // ring, so those panels count it as stop 0 and call StepCursor.
 ftxui::Component WrappingList(ftxui::Component list, int& selected,
                               std::function<int()> count);
 
-// Where a cursor lands after stepping `delta` places in a ring of `stops`,
-// coming out the other end rather than stopping. Every list walks with this --
-// if you are writing `std::max(0, sel - 1)`, write this instead.
-//
-// A list under a tab bar counts the bar as stop 0, which makes "Up off the top
-// row goes to the bar" and "Up off the bar goes to the last row" one rule. No
-// stops answers 0; a `current` outside the ring is folded back into it.
+// Where a cursor lands after stepping `delta` in a ring of `stops`, coming out
+// the other end rather than stopping. EVERY list walks with this -- if you are
+// writing `std::max(0, sel - 1)`, write this instead. A list under a tab bar
+// counts the bar as stop 0, which makes both its edges one rule.
 int StepCursor(int current, int delta, int stops);
 
 // Where the cursor stands on a tab bar that ends in a door -- Expand -- rather
@@ -68,13 +61,10 @@ struct TabStop {
   bool on_door;
 };
 
-// The stop `from` becomes after stepping `delta` along a bar showing exactly
-// `tabs`, in that order, with the door past their right end. The bar is a
-// ring: Right off the door comes round to the first tab, and Left off the
-// first tab goes to the door. The door shows no list of its own, so stepping
-// onto it leaves the tab where it was. A tab that is not on the bar at all
-// answers the first one: nothing locks a tab away today -- levels only go up
-// -- but landing on the first beats landing on a tab the player cannot see.
+// The stop `from` becomes after stepping `delta` along a bar of `tabs` with
+// the door past their right end. A RING: Right off the door comes round to the
+// first tab. The door shows no list, so stepping onto it leaves the tab where
+// it was, and a tab not on the bar answers the first.
 TabStop StepTabRing(const std::vector<int>& tabs, TabStop from, int delta);
 
 }  // namespace ms

@@ -48,13 +48,10 @@ int64_t RowSellValue(const CharacterInstance& character, int tab, int item);
 int64_t BasketTotal(const CharacterInstance& character,
                     const SaleBasket& basket);
 
-// Sells everything in `basket` and returns the meso it paid.
-//
-// The rows go out back to front -- Etc, then Equip, each descending -- for two
-// reasons. Removing a row shifts every row after it, so a sale that walked
-// forwards would sell the wrong items; and the buy-back shelf lists the newest
-// sale first, so selling in reverse leaves the shelf reading Equip then Etc,
-// each in bag order, from the top.
+// Sells everything in `basket` and returns the meso it paid. The rows go out
+// BACK TO FRONT for two reasons: removing a row shifts every row after it, so
+// walking forwards would sell the wrong items, and the buy-back shelf lists
+// the newest first, so reverse order leaves it reading in bag order.
 int64_t SellBasket(CharacterInstance& character, const SaleBasket& basket);
 
 class MultiSellPanel {

@@ -29,13 +29,10 @@ constexpr int kSlotWidth = 10;
 constexpr int kInfoWidth = 20;
 constexpr int kScrollWidth = 6;
 
-// Fills a row with background color rather than block glyphs, so the label can
-// sit on top of it without the two fighting over the same characters. The
-// label takes one color over the fill and another past it; pass the same color
-// twice to hold it steady as the bar moves.
-//
-// One row per label line, every row filled the same: a bar of two lines is one
-// bar, not two stacked.
+// Fills a row with BACKGROUND colour rather than block glyphs, so the label can
+// sit on top without the two fighting over the same characters. The label
+// takes one colour over the fill and another past it. One row per label line,
+// every row filled alike: a bar of two lines is one bar.
 class ProgressBarNode : public ftxui::Node {
  public:
   ProgressBarNode(float frac, ftxui::Color fill,
@@ -137,14 +134,9 @@ class FloatingNode : public ftxui::Node {
     return box;
   }
 
-  // Slides a box back until its bottom-right corner is on the screen -- a
-  // float that leaves the terminal is not drawn at all, which is worse than
-  // one sitting a little higher than it asked to.
-  //
-  // A float that fits then sits on the screen whole, since it can never hang
-  // off both ends at once. One too big to fit has to be clipped somewhere, and
-  // this gives up its top-left: an overlay is positioned by empty space above
-  // and to the left of what it draws, so that is the end with nothing on it.
+  // Slides a box back until its bottom-right corner is on screen: a float that
+  // leaves the terminal is not drawn at all. One too big to fit gives up its
+  // TOP-LEFT, an overlay being positioned by the empty space there.
   static ftxui::Box FitToScreen(ftxui::Box box, const ftxui::Screen& screen) {
     int over_x = std::max(0, box.x_max - (screen.dimx() - 1));
     box.x_min -= over_x;
@@ -333,12 +325,10 @@ ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
   return chip;
 }
 
-// The mark standing where a bar runs off its edge. The right one's column is
-// reserved whether or not there is a mark to put there, so the chips hold
-// still as the bar scrolls under them. The left one's is taken only once
-// there is something off that edge: a bar showing its first chip starts where
-// a bar that fits starts, which is what lets two bars stacked in a panel line
-// up.
+// The mark standing where a bar runs off its edge. The RIGHT one's column is
+// reserved either way, so the chips hold still as the bar scrolls; the left
+// one's is taken only once something is off that edge, so two bars stacked in
+// a panel line up.
 namespace {
 
 constexpr char kMoreLeft[] = "‹";   // a single left angle

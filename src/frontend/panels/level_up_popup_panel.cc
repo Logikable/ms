@@ -76,12 +76,9 @@ ftxui::Element LevelUpPopupPanel(int from_level, int to_level, int ap, int sp,
   while (static_cast<int>(rows.size()) < kBodyRows + 2) {
     rows.push_back(ftxui::text(""));
   }
-  // The width is a floor rather than a fit: an ftxui window fills the box its
-  // parent hands it, and this one is meant to be a card in the middle of the
-  // screen, so Tui::RenderFrame centres it -- which shrinks it back to its
-  // content. Left at that it would be the width of "12  →  13" and nothing
-  // more, which is not enough of a card to catch anyone who is looking at a
-  // different window.
+  // A FLOOR rather than a fit: Tui::RenderFrame centres the card, which
+  // shrinks it to its content, and left at that it would be the width of
+  // "12 → 13" -- not enough of a card to catch an eye elsewhere.
   return AccentWindow(" Level Up ",
                       ftxui::vbox(std::move(rows)) |
                           ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN,

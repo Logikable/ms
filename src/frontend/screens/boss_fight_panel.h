@@ -19,14 +19,10 @@
 
 namespace ms {
 
-// How wide every panel in the arena is drawn: the monsters' bars and the
-// player's alike, so the arena is a grid whatever is standing in it.
-//
-// Narrow, because a phase can hold ten of them across four rows and the whole
-// arena has to fit one screen. Names wrap over the bar's rows rather than
-// setting the width, so what a row must hold is the longest WORD in a name --
-// "Assassinate", and "Horntail's". A name that outgrows the pair of rows is
-// caught by a data test rather than by a player watching half of it.
+// How wide every panel in the arena is drawn, monsters and player alike, so
+// the arena is a grid whatever stands in it. NARROW: a phase can hold ten
+// across four rows on one screen. Names wrap over the bar's rows rather than
+// setting the width, so a row must hold the longest WORD in a name.
 inline constexpr int kBossPanelWidth = 16;
 
 // How many rows the player's bar is drawn over. Fixed, unlike the monsters':
@@ -43,14 +39,11 @@ inline constexpr int kMaxMobBarRows = 2;
 inline constexpr int kMinTerminalColumns = 120;
 inline constexpr int kMinTerminalRows = 30;
 
-// The grid every fight stands on -- one shape for all of them, so a player
-// walking into a new boss already knows where the room's corners are.
-//
-// What the smallest terminal holds is seven panels across a row and six rows
-// of them; the arena spends the rest on the fight's HP bar and the clock.
-// Nine columns rather than the thirteen that would fit, because things stand
-// on alternate cells: five spots to a row leaves a damage stack the width it
-// needs beside a bar.
+// The grid every fight stands on -- one shape for all of them, so a new boss's
+// room already has its corners where the player expects. The smallest terminal
+// holds seven panels across and six rows; nine columns rather than the
+// thirteen that fit, because things stand on ALTERNATE cells, which leaves a
+// damage stack the width it needs beside a bar.
 inline constexpr int kArenaColumns = 9;
 inline constexpr int kArenaRows = 6;
 

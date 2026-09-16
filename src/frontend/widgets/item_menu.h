@@ -26,37 +26,24 @@ class ItemMenu {
   void Up();
   void Down();
   void Reset();
-  // Marks the entry at `index` as disabled: rendered dim and skipped during
-  // Up/Down navigation. Must be called after Reset().
+  // Dims the entry at `index` and skips it in Up/Down. After Reset().
   //
-  // For an action the item could take but for the state it is in -- a trace
-  // that cannot be worn, a potion with nothing to drink. The entry stays
-  // visible because its absence would be the surprise.
-  //
-  // Not for an upgrade the item refuses outright: those are hidden, so the
-  // menu offers only what this item can actually be put through.
+  // For an action the item could take but for the STATE it is in -- a trace
+  // that cannot be worn. It stays visible because its absence would be the
+  // surprise. An upgrade the item refuses outright is Hide's, not this.
   void Disable(int index);
-  // Marks the entry at `index` as hidden: not rendered at all, and skipped
-  // like a disabled one. Must be called after Reset().
+  // Hides the entry at `index` entirely. After Reset().
   //
-  // For an action the player has not unlocked yet, where a greyed row would
-  // advertise something they cannot ask about. Callers must leave at least
-  // one entry standing; Close is never hidden.
+  // For an action the player has NOT UNLOCKED, where a greyed row would
+  // advertise something they cannot ask about. Leave one entry standing.
   void Hide(int index);
-  // Marks the entry at `index` as new: drawn gold, but reachable and usable
-  // like any other. Must be called after Reset(), and after any Disable() --
-  // a disabled entry refuses the gold, so the order matters.
-  //
-  // For an action the player has just been handed and has never used. It is
-  // the far end of the trail that starts on the level-up card -- see
-  // progression.h.
+  // Draws the entry at `index` gold, reachable as any other. After Reset() AND
+  // after any Disable(), a disabled entry refusing the gold. For an action just
+  // handed over: the far end of the trail the level-up card starts.
   void Highlight(int index);
-  // Renames the entry at `index`. Must be called after Reset(), and before
-  // Width() -- the new label is one the box has to be wide enough for.
-  //
-  // For an action whose name is the state it would leave the item in, where
-  // two entries would only ever offer one of themselves: a buff's Enable and
-  // Disable are the same door.
+  // Renames the entry at `index`. After Reset() and BEFORE Width(), the box
+  // having to be wide enough for the new label. For an action named by the
+  // state it would leave behind: a buff's Enable and Disable are one door.
   void SetLabel(int index, std::string label);
   // The columns the rendered box takes, borders included. What a caller
   // anchoring the menu needs to keep it inside the panel it belongs to. Read

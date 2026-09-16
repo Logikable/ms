@@ -50,14 +50,12 @@ constexpr int kCountWidth = 6;
 // as the cursor moves. Wide enough for the longest map name and one space.
 constexpr int kMobTableWidth = 1 + kMobNameWidth + kLevelWidth + kCountWidth;
 
-// The level bands the list pages through, low to high. One band holds more of
-// the ladder than the one below it, since a level buys less the further along
-// the player is.
+// The level bands the list pages through, low to high; each holds more of the
+// ladder than the one below, a level buying less further along.
 //
-// Aim to keep the bands holding similar numbers of MAPS, not similar spans of
-// levels, and resplit them as content lands. The list pads every band out to
-// the tallest one (see RenderMapList), so a band much smaller than its
-// neighbor spends the difference on blank rows.
+// KEEP THE BANDS HOLDING SIMILAR NUMBERS OF MAPS, not similar spans of levels,
+// and resplit as content lands: the list pads every band to the tallest, so a
+// small band spends the difference on blank rows.
 struct LevelBand {
   int min;
   int max;

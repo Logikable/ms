@@ -94,11 +94,10 @@ ftxui::Element CombatPanel::Render() const {
   if (sim_.respawning()) {
     rows.push_back(ftxui::text(" Respawning..."));
   } else {
-    // One HP bar per engaged type. White the whole way across, rather than the
-    // default dark-on-fill: kRed takes white well, and the name shouldn't turn
-    // over a letter at a time as health drains. The level leads the name so
-    // mixed-level maps read at a glance; a "xN" trails when several of the type
-    // are in the window, their HP merged into this one bar's average.
+    // One HP bar per engaged type, white the whole way across rather than
+    // dark-on-fill: kRed takes white well, and the name should not turn over a
+    // letter at a time as health drains. The level leads the name, and a "xN"
+    // trails where several of the type share the bar's average.
     for (const EngagedGroup& group : sim_.view().engaged_groups) {
       std::string label =
           "Lv." + std::to_string(group.level) + " " + group.name;

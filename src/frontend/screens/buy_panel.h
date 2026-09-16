@@ -40,14 +40,11 @@ class BuyPanel {
   // ceiling has to clear a full one.
   static constexpr int kMaxQuantity = 30000;
 
-  // Seeds the panel for buying `item_name` at `unit_price` each, against a
-  // balance of `balance`, with `room` copies' worth of space left in the bag
-  // and `owned` copies already to the player's name. `token` is the currency
-  // the price is asked in, or nullptr for meso.
-  //
-  // Quantity opens at one and is capped by whichever of the three ceilings
-  // bites first: the balance, the room, and kMaxQuantity. The field will not
-  // go past the cap, so the shop is never offered a number it would refuse.
+  // Seeds the panel for buying `item_name` at `unit_price` each against
+  // `balance`, with `room` in the bag and `owned` already held. `token` is the
+  // currency, or nullptr for meso. Quantity opens at one and is capped by
+  // whichever ceiling bites first, so the shop is never offered a number it
+  // would refuse.
   void Reset(const std::string& item_name, int unit_price, int64_t balance,
              int room, int owned, const ItemPrototype* token = nullptr);
   ftxui::Element Render() const;

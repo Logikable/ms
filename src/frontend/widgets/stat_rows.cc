@@ -29,11 +29,10 @@ std::string Percent(double fraction) {
   return buf;
 }
 
-// What the Critical Rate row says, which is not always what the character has
-// bought. Every swing in the game rolls against a rate held to 100%, so a
-// bigger number would promise damage no attack can land. The exception is the
-// archer's 5th job, whose skill spends the overflow -- it is the one build the
-// excess is worth showing, and even there the fight still rolls against 100%.
+// What the Critical Rate row says, which is not always what was bought: every
+// swing rolls against a rate held to 100%, so a bigger number would promise
+// damage no attack can land. The archer's 5th job spends the overflow, which
+// is the one build worth showing it to.
 std::string CritRateText(const CharacterInstance& character, double rate) {
   bool spends_excess =
       BranchOf(character.proto().job()) == JobBranch::kArcher &&
@@ -41,12 +40,10 @@ std::string CritRateText(const CharacterInstance& character, double rate) {
   return Percent(spends_excess ? rate : std::min(1.0, rate));
 }
 
-// The stage the character swings at: the stage their job starts from plus
-// whatever the passives add, held to the soft cap, and then whatever is
-// allowed past it -- the Boss tab reads a potion's stage there. A dash where
-// there is no swing to name -- nothing in hand, or a weapon that names no
-// stage. A magician reads Average whatever staff they hold, which is the row
-// saying what BaseAttackSpeedStage does.
+// The stage the character swings at: their job's, plus what the passives add,
+// held to the soft cap and then past it where allowed. A dash where there is
+// no swing to name. A magician reads Average whatever staff they hold, which
+// is the row saying what BaseAttackSpeedStage does.
 std::string AttackSpeedText(Job job, const WornGear& equipped, int bonus,
                             int uncapped) {
   WornGear::const_iterator it = equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
@@ -140,11 +137,9 @@ std::vector<StatLine> CombatStatLines(
            character.proto().job(),
            character.equipped(character.SlotFor(PresetKind::kEquip, preset)),
            derived.attack_speed_bonus, derived.uncapped_attack_speed_bonus)});
-  // Under a rule, because none of these is about the swing: the first three
-  // buy the purse and the climb, and the last is the toll Arcane River takes
-  // for letting a character hurt what lives there. Meso Drop Rate is the size
-  // of a drop and Item Drop Rate the odds of one, so they read as a pair and
-  // sit together.
+  // Under a rule, none of these being about the swing: three buy the purse and
+  // the climb, and the last is Arcane River's toll. Meso Drop Rate is the SIZE
+  // of a drop and Item Drop Rate the ODDS of one, so they sit together.
   if (with_advanced) {
     lines.push_back(StatRule());
     // What a kill actually pays over what it would pay bare, so a potion that

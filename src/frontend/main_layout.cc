@@ -13,12 +13,10 @@
 namespace ms {
 namespace {
 
-// Two panels, one over the other, where the top one may never take more than
-// half the height they share -- rounded down, so the odd row falls to the
-// bottom panel. Neither is stretched past the height it asked for.
-//
-// It also grows to fill its column, which is what leaves the slack between the
-// bottom panel and whatever is pinned under it blank.
+// Two panels, the top one never taking more than half the height they share --
+// rounded down, so the odd row falls to the bottom. Neither is stretched past
+// the height it asked for, and the node fills its column, which leaves the
+// slack under the bottom panel blank.
 class HalfAndRestNode : public ftxui::Node {
  public:
   HalfAndRestNode(ftxui::Element top, ftxui::Element bottom)

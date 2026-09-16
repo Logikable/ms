@@ -14,31 +14,24 @@ struct MainWidths {
 };
 
 // The columns a terminal `terminal_width` wide splits into.
-// `has_right_column` is whether the equipped panel or the bag is on screen --
-// the corner panel alone does not reserve a column, since it sizes itself.
+// `has_right_column` is whether the equipped panel or the bag is on screen;
+// the corner panel sizes itself and reserves nothing.
 //
-// The left column grows to its maximum before the right column gets anything
-// past its own minimum, and on a terminal too narrow for both minimums the
-// left column keeps its own and the right column takes what is left -- its
-// rightmost columns run off the edge, which beats cutting the stats the player
-// is spending AP on.
-//
-// The left column is the same width either way: the right column's room is
-// held for it before it is unlocked, so the character panel does not resize
-// the moment the equipped panel arrives.
+// The LEFT column grows to its maximum first, and on a terminal too narrow for
+// both minimums it keeps its own while the right column runs off the edge --
+// which beats cutting the stats the player is spending AP on. Its width is the
+// same either way, the right column's room being held before it is
+// unlocked.
 MainWidths ComputeMainWidths(int terminal_width, bool has_right_column);
 
-// Arranges the main view: the character panel over combat on the left, the
-// equipped panel over the bag over the corner panel on the right, and the exp
-// bar across the foot. Split out of Tui::RenderMain so a test can measure it.
+// The main view: the character panel over combat on the left, the equipped
+// panel over the bag over the corner panel on the right, the exp bar across
+// the foot. Split out of Tui::RenderMain so a test can measure it.
 //
-// `equipped`, `inventory` and `corner` may each be null, for a character who
-// has not unlocked them. The layout closes up around a null rather than
-// leaving a gap, and with all three null there is no right column at all.
-//
-// `corner` is the hotkeys tip early on and the menu panel from level 5 --
-// never both. Either way it sizes itself to its own contents and sits against
-// the bottom-right corner.
+// The right column's three may each be null, for a character who has not
+// unlocked them; the layout CLOSES UP around a null, and with all three there
+// is no right column. `corner` is the hotkeys tip early and the menu panel
+// from level 5, never both.
 ftxui::Element MainLayout(MainWidths widths, ftxui::Element character,
                           ftxui::Element combat, ftxui::Element equipped,
                           ftxui::Element inventory, ftxui::Element corner,

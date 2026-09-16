@@ -22,10 +22,8 @@ inline constexpr int kLeftColumnMin = 35;
 inline constexpr int kLeftColumnMax = 51;
 
 // The equipped panel and the bag, whose lists carry the same columns and so
-// the same minimum: an 82-column header, the blank column the rows keep
-// inside the right border, and the two borders. A test holds it there -- see
-// TheHeadersFitTheRightColumnMinimum. Nothing caps them: whatever the left
-// column does not take is theirs.
+// the same minimum: an 82-column header, the blank column inside the right
+// border, and the two borders. Nothing caps them.
 inline constexpr int kRightColumnMin = 85;
 
 }  // namespace ms

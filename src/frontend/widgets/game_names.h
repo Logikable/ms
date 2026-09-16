@@ -53,16 +53,13 @@ inline const DisplayStat kDisplayPercentStats[] = {
     {"Item Drop Rate", &EquipStats::item_drop_rate},
 };
 
-// The kDisplayStats entry a StatField names, or nullptr for a field with no
-// equip stat behind it. Lets a caller that knows a stat by its proto field --
-// a job's primary stat, say -- read it off an EquipStats without writing its
-// own switch over the four stats.
+// The kDisplayStats entry a StatField names, so a caller holding a proto field
+// -- a job's primary stat -- can read it off an EquipStats without a switch of
+// its own.
 const DisplayStat* DisplayStatFor(StatField field);
 
-// Returns the display name for an equip slot (e.g. "Weapon"). A ring reads
-// "Ring" whichever of the four slots it names, because this is the question a
-// bag row and a set's piece list ask: what kind of thing is this. Returns ""
-// for slot types not yet implemented.
+// The display name for an equip slot. A ring reads "Ring" whichever of the
+// four it names: what a bag row asks is what KIND of thing this is.
 std::string FormatSlot(EquipSlot slot);
 
 // The same name, saying which slot of its family this is: "Ring 3",
@@ -74,9 +71,8 @@ std::string FormatWornSlot(EquipSlot slot);
 std::string FormatEquipType(EquipType type);
 
 // A list of weapon types as the player reads it: "Dagger", or "Sword / Axe".
-// Both hands' versions of one weapon collapse to the bare name, which is how
-// the data says "any sword" and not how it should be shown. A pair lands where
-// its first half was listed. Empty in, empty out.
+// Both hands' versions of one weapon COLLAPSE to the bare name -- that is how
+// the data says "any sword", not how it should be shown.
 std::string FormatWeaponList(const std::vector<EquipType>& types);
 
 // Returns the display name for a set of equipment (e.g. "Frozen Set"), or ""
@@ -114,27 +110,21 @@ std::string PotentialLineName(PotentialLineType type);
 std::string PotentialLineValueText(const PotentialLine& line, int item_level);
 
 // The name a potential line goes by where there is only a column for it:
-// "Crit DMG", "IED", "CD". Longer than a list column can hold is what the
-// abbreviation is for -- a card with room for the whole name asks
-// PotentialLineName instead.
+// "Crit DMG", "IED", "CD". A card with room asks PotentialLineName.
 std::string PotentialLineShortName(PotentialLineType type);
 
-// What a list column says about `potential`, for a character whose damage is
-// built on `primary`: the one effect on the item worth the most to that
-// character, with every other line granting it folded in, so two %INT lines
-// read as one total. See kSummaryOrder for the order of preference; an item
-// granting none of them reads "-". Value first and no "+" -- a column of rows
-// has no room to spend on a sign every row carries. Held to
-// kPotentialCellWidth columns, which the widest total the game rolls fills
-// exactly.
+// What a list column says about `potential` for a character built on
+// `primary`: the one effect worth the most to them, with every other line
+// granting it folded in, so two %INT lines read as one total. An item granting
+// none reads "-". Value first and no "+" -- a column has no room for a sign
+// every row carries -- and held to kPotentialCellWidth.
 std::string PotentialCell(const Potential& potential, int item_level,
                           StatField primary);
 inline constexpr int kPotentialCellWidth = 12;
 
-// The tag a skill row opens with: what the player does with the skill, said
-// once at the front of the row instead of being worked out from the name.
-// Four columns wide whichever tag it is, so every name after it starts at the
-// same place. A kind-less skill gets the blanks rather than a wrong tag.
+// The tag a skill row opens with: what the player does with the skill, said at
+// the front rather than worked out from the name. FOUR columns whichever tag
+// it is, so every name starts in the same place.
 struct KindTag {
   const char* text;
   ftxui::Color color;
@@ -142,46 +132,30 @@ struct KindTag {
 constexpr int kSkillTagWidth = 4;
 KindTag TagFor(const Skill& skill);
 
-// One page of an advancement's skills out of `catalog`, in the order every
-// page lists them: GMS's own skill_order, then settled so nothing waits on a
-// skill listed below it. What a skill does has no say -- the wiki does not
-// gather the attacks above the passives, and a second rule would only fight
-// skill_order.
+// One page of an advancement's skills, in GMS's own skill_order, then settled
+// so nothing waits on a skill listed below it. What a skill DOES has no say: a
+// second rule would only fight skill_order.
 //
-// `hyper` picks which of the advancement's two pages: its book, or the Hyper
-// Skills that name the same advancement. They are two lists rather than one,
-// so skill_order is distinct within the PAIR.
+// `hyper` picks the book or the Hyper Skills naming the same advancement --
+// two lists, so skill_order is distinct within the PAIR. `toggles_on` is the
+// toggles the reader has switched on: a Vengeance form among them stands in
+// its Benevolence skill's row, and every other form is left out.
 //
-// `toggles_on` is the display names of the toggle skills the reader has
-// switched on -- Character.active_skill. A Vengeance form whose toggle is
-// among them stands in the row of the Benevolence skill it replaces; every
-// other form is left out entirely, the two being one row of the book. An
-// empty set is the book as it is written, which is what a page with no reader
-// wants.
-//
-// The pointers are into `catalog`, which has to outlive them. Empty for an
-// unspecified advancement, so a caller may pass one straight through.
+// The pointers are into `catalog`, which must outlive them.
 std::vector<const Skill*> SkillsForAdvancement(
     const std::map<std::string, Skill>& catalog, JobAdvancement advancement,
     bool hyper = false, const std::set<std::string>& toggles_on = {});
 
-// Every V Matrix node a character standing at `advancement` -- their 5th, if
-// they have taken one -- holds. One list, because the matrix is one page, in
-// four blocks: the job's own actives, the boosts that lift its book, the
-// archetype nodes only its line has, then the commons every job shares. What
-// is the character's own leads; what every character has is at the foot. See
-// VNodeSectionBreaks for where one block ends and the next begins.
+// Every V Matrix node a character at `advancement` holds. ONE list, the matrix
+// being one page, in four blocks: the job's own actives, the boosts lifting
+// its book, its line's archetype nodes, then the commons. What is the
+// character's own leads. See VNodeSectionBreaks for the divisions.
 std::vector<const Skill*> VNodesFor(const std::map<std::string, Skill>& catalog,
                                     JobAdvancement advancement);
 
-// Where a V page's list breaks into sections: the index of the FIRST node of
-// each block after the head one, in order. The page reads in four -- the job's
-// own actives, the boosts that lift its book, the archetype nodes only its
-// line has, and the commons every character shares -- and a page missing one
-// of them simply reports no break there.
-//
-// Indices into the list VNodesFor returned, so the caller draws a rule above
-// each of them and nothing has to be re-sorted.
+// Where a V page breaks into sections: the index of the FIRST node of each
+// block after the head one. A page missing a block reports no break there.
+// Indices into VNodesFor's list, so the caller draws a rule above each.
 std::vector<int> VNodeSectionBreaks(const std::vector<const Skill*>& nodes);
 
 // The name of an attack-speed stage, "Slower" through "Fastest 3", or "" for
@@ -211,10 +185,9 @@ extern const int kNumHyperStats;
 // What a Hyper Stat is called on screen, or "" for one with no name.
 std::string HyperStatName(HyperStatField field);
 
-// What a preset slot is called. With the autoswap on the slots something
-// names are named for what they are for; with it off they are numbered.
-// `kind` is asked because gear's third slot is the Drop preset, where the
-// other kinds' third is storage nothing names.
+// What a preset slot is called: named for what it is for with the autoswap on,
+// numbered with it off. `kind` is asked because gear's third slot is the Drop
+// preset where the other kinds' third is unnamed storage.
 std::string PresetSlotName(StatPreset slot, bool autoswap,
                            PresetKind kind = PresetKind::kHyperStats);
 

@@ -40,11 +40,9 @@ class PartyInspectPanel {
   // is. With a height to work from the list takes what the sheet leaves --
   // see VisibleRows -- and this is only the fallback.
   static constexpr int kListRows = 8;
-  // The rows everything but the item list takes: both windows' borders, the
-  // three heading rows, the two rules between the stat blocks, the three
-  // rows of main stats, the nine of extras, and the Equipped column header
-  // with its rule. A member with Hyper Stats adds their Farm/Boss row and its
-  // rule on top -- see FixedRows.
+  // The rows everything but the item list takes: both borders, three heading
+  // rows, two rules, three rows of main stats, nine of extras, and the Equipped
+  // header with its rule. Hyper Stats add a row and a rule -- see FixedRows.
   static constexpr int kFixedRows = 23;
   // The shortest the item list is ever squeezed to. Past this the screen is
   // clipped instead: a list of one row says less than the terminal is small.
@@ -52,13 +50,10 @@ class PartyInspectPanel {
 
   explicit PartyInspectPanel(GameState& state);
 
-  // Points the panel at a party member. An item their build has and this one
-  // does not is dropped, the way a save loaded against changed catalogs is.
-  //
-  // Called every tick with whatever the lobby last said, so a member levelling
-  // or re-gearing under the reader shows it. A player who has not changed is
-  // not rebuilt, and the cursor only goes back to the top when the panel is
-  // pointed at somebody else.
+  // Points the panel at a party member; an item this build does not have is
+  // dropped, as a save loaded against changed catalogs is. Called every tick,
+  // so a member levelling under the reader shows it, but an unchanged player
+  // is not rebuilt and the cursor only resets on a different member.
   void SetPlayer(const PlayerInfo& player);
   // Puts the cursor on the first worn item. Call when the screen opens.
   void Reset();

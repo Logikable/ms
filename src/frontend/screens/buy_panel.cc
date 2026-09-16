@@ -22,14 +22,10 @@ void BuyPanel::Reset(const std::string& item_name, int unit_price,
   balance_ = balance;
   owned_ = owned;
   token_ = token;
-  // Capped so the field cannot be typed up to an amount the shop would only
-  // refuse: at what the balance covers, at what the bag has left, and at the
-  // four digits the field is meant to take. A player who cannot afford one, or
-  // has nowhere to put it, gets a cap of zero and a field that will not leave
-  // it.
-  // A price of zero puts no ceiling on the balance. The shop never stocks a
-  // free item, but the buy-back shelf carries them: a trace, and anything the
-  // shop does not sell, went for nothing and comes back for nothing.
+  // Capped so the field cannot be typed to an amount the shop would refuse:
+  // the balance, the bag's room, and the four digits the field takes. A price
+  // of zero puts no ceiling on the balance -- the shop stocks no free item,
+  // but the buy-back shelf carries what went for nothing.
   int64_t affordable = kMaxQuantity;
   if (unit_price > 0) {
     affordable = balance / unit_price;

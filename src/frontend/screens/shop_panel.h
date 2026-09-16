@@ -79,10 +79,8 @@ class ShopPanel {
             const std::map<std::string, ItemPrototype>& items);
 
   // Restocks and puts the cursor back on the first item. Call when the screen
-  // opens: the stock depends on the character's class, so a job advancement
-  // between two visits changes it. The cursor lands in the list rather than on
-  // the tab bar -- the shop is a screen the player came to in order to buy
-  // something, and the bar is one key away.
+  // opens: the stock follows the character's class. The cursor lands in the
+  // LIST -- the player came to buy something, and the bar is one key away.
   void Reset();
   ftxui::Element Render() const;
   // Handles Up/Down along the list. Enter and Escape are left to the caller,

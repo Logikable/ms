@@ -48,16 +48,13 @@ class TextField {
     return text_;
   }
 
-  // Handles one key. Only letters, digits and spaces are taken -- a name is
-  // shown in fixed-width rows and read back by other players, so punctuation
-  // that could disguise one is not on offer. A space needs a character before
-  // it, and the spaces on the end of a commit are dropped. Backspace and
-  // Delete both erase, since a player who has bound Backspace to Cancel would
-  // otherwise have no way to.
+  // Handles one key. Only letters, digits and spaces are taken: a name is shown
+  // in fixed-width rows and read by other players, so punctuation that could
+  // disguise one is not on offer. Backspace and Delete both erase, a player
+  // having possibly bound Backspace to Cancel.
   //
   // Ends the edit on kCommitted and kCancelled. Up and Down cancel and are
-  // then left to the caller, which still holds the event and decides whether
-  // an arrow also steps its cursor off the row.
+  // then left to the caller, which decides whether the arrow also moves.
   TextEntry OnEvent(const ftxui::Event& event);
 
  private:

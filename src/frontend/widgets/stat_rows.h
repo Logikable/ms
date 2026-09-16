@@ -18,13 +18,10 @@
 
 namespace ms {
 
-// One stat as it is shown: what it is called, and its value already written
-// out. The value is a string because these columns hold percentages, stage
-// names and plain counts side by side.
-//
-// A line with `rule` set is not a stat at all but the break between two groups
-// of them. Held in the list rather than left to each screen so that both draw
-// it in the same place; what it looks like is theirs to decide.
+// One stat as it is shown: its name and its value already written out, the
+// value being a string because these columns hold percentages, stage names and
+// counts side by side. A line with `rule` set is the BREAK between two groups,
+// held in the list so both screens draw it in the same place.
 struct StatLine {
   std::string label;
   std::string value;
@@ -38,34 +35,25 @@ inline StatLine StatRule() {
   return line;
 }
 
-// The combat stats, **most important first**. Every one the character has, so
-// this is the All Stats screen's list. A new stat goes where it belongs in
-// that order rather than on the end -- both callers drop the tail.
-//
-// `preset` picks which of the character's two Hyper Stat allocations is read,
-// which is what the Farm/Boss tabs choose between. Every list below takes it,
-// and farming is what a caller with no tab of its own wants.
+// The combat stats, **most important first** -- the All Stats screen's list. A
+// NEW STAT GOES WHERE IT BELONGS in that order rather than on the end: both
+// callers drop the tail. `preset` picks which Hyper Stat allocation is read.
 std::vector<StatLine> ExtraStatLines(const CharacterInstance& character,
                                      const std::map<std::string, Skill>& skills,
                                      Activity preset = Activity::kFarming);
 
 // The same list as the Character panel shows it, which is less of it early on:
-// empty until a first job advancement, and without the four percent rows until
-// a second. The panel is one column on a busy screen, so it earns its numbers;
-// the All Stats screen is where all of them always are.
-//
-// The advancement can be any character's on `account`, which is what opens the
-// rows for a second character from level 1.
+// empty until a first advancement and without the percent rows until a second.
+// The panel earns its numbers; the All Stats screen has them all. The
+// advancement can be any character's on `account`.
 std::vector<StatLine> PanelExtraStatLines(
     const CharacterInstance& character, const AccountInstance& account,
     const std::map<std::string, Skill>& skills,
     Activity preset = Activity::kFarming);
 
-// The four AP stats: STR, DEX, INT, LUK. The order fills the All Stats
-// screen's left column and then its right, so the two rows read STR/INT and
-// DEX/LUK. An AP stat gear or a skill has added to reads "(base+bonus)
-// total". HP and MP are not here: the panel draws them as gauges, and a
-// number beside them says nothing the bar does not.
+// The four AP stats. The order fills the All Stats screen's left column and
+// then its right, so the rows read STR/INT and DEX/LUK. One gear or a skill
+// has added to reads "(base+bonus) total". HP and MP are drawn as gauges.
 std::vector<StatLine> MainStatLines(const CharacterInstance& character,
                                     const std::map<std::string, Skill>& skills,
                                     Activity preset = Activity::kFarming);

@@ -20,133 +20,104 @@
 
 namespace ms {
 
-// The colour a currency's mark is drawn in. The mark's shape says which tier of
-// gear its token belongs to and this says which piece it buys, so the two read
-// together without a legend.
+// The colour a currency's mark is drawn in. The SHAPE says which tier its
+// token belongs to and the colour which piece it buys.
 ftxui::Color MarkColor(CurrencyColor color);
 
 // The colour an Inner Ability line of `rank` is written in. The rank reaches
-// the text rather than a background, so a row is its rank's colour and the
-// lock beside it stays plain.
+// the TEXT, so the lock beside it stays plain.
 ftxui::Color RarityColor(AbilityRank rank);
 // The same four colours for a potential's rank, which shares the ladder.
 ftxui::Color RarityColor(PotentialRank rank);
 
-// A one-row bar filled to frac (clamped to [0, 1]) in `fill`, `label` centred
-// over it dark-on-filled and light-on-empty. Pass "" for no label.
-//
-// Draws pixels rather than using ftxui::gauge, which ignores colour decorators
-// and cannot carry a label.
+// A one-row bar filled to `frac` in `fill`, `label` centred over it
+// dark-on-filled and light-on-empty. Draws pixels rather than ftxui::gauge,
+// which ignores colour decorators and cannot carry a label.
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label);
 // One label colour the whole way across, so it does not turn over a character
 // at a time as the bar moves. Only for a fill dark enough to read against.
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label, ftxui::Color label_color);
-// The same bar drawn one row per label line, for a label too long to sit on
-// one: filled to the same fraction the whole way down, so it reads as one bar
-// with a wrapped name on it rather than as a stack of them.
+// The same bar one row per label line, filled to the same fraction all the way
+// down so it reads as one bar with a wrapped name.
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::vector<std::string>& labels);
 
-// Takes `element` out of the layout: it asks for no room, then draws itself at
-// its own size from the parent box's top-left corner. Put it last in a dbox to
-// overlay something -- otherwise the dbox stretches to hold the overlay and
-// pushes the covered panel's borders out.
-//
-// The screen is the only bound: an overlay running off the bottom or right
-// slides back onto it, and one too big for the screen loses its top-left.
+// Takes `element` out of the layout: it asks for no room and draws at its own
+// size from the parent box's top-left. Put it LAST in a dbox, or the dbox
+// stretches to hold it and pushes the covered borders out. The screen is the
+// only bound -- an overlay running off it slides back on.
 ftxui::Element Floating(ftxui::Element element);
 
-// ftxui's clear_under, and the half glyph it leaves standing beside itself.
+// ftxui's clear_under, and the half glyph it leaves standing beside itself: a
+// two-column glyph whose left half sits outside the overlay keeps both columns
+// when printed, and the border beside it is never drawn. The leftover half is
+// blanked.
 //
-// A two-column glyph -- the meso mark, an emoji -- whose left half sits just
-// outside the overlay keeps both of its columns when the screen is printed,
-// and the overlay's border in the cell beside it is never drawn at all. There
-// is no drawing half a glyph, so the half left over is blanked.
-//
-// Every overlay in the game is wrapped in this rather than in bare
-// clear_under: which row a floating window lands beside is not something its
-// author gets to know.
+// WRAP EVERY OVERLAY in this rather than bare clear_under: which row a
+// floating window lands beside is not something its author knows.
 ftxui::Element ClearUnder(ftxui::Element element);
 
 // A modal result screen: the subject over a rule, `body`, a rule, [Continue].
-// Scrolling, star forcing and recovering all end on one of these, so the rules
-// and the button land in the same place on each.
-//
-// `accent` colours the border and the rules, so the window says how it went
-// before the player reads a word of it: gold for a success worth having, red
-// for a destroyed item, steel blue for everything in between.
+// Every upgrade ends on one, so the rules and the button land alike. `accent`
+// colours the border and rules, saying how it went before a word is read:
+// gold for a success, red for a destroyed item, steel blue between.
 ftxui::Element ResultWindow(const std::string& title,
                             const std::string& subject,
                             std::vector<ftxui::Element> body,
                             ftxui::Color accent = kTheme);
 
 // A modal question: `body` over a rule, then `buttons`. The counterpart of
-// ResultWindow -- every dialog that asks something is built from this, so no
-// one of them can be written without the rule over its answer.
-//
-// `accent` colours the border and the rule, for a question the player should
-// read before answering.
+// ResultWindow, and what every asking dialog is built from, so none can be
+// written without the rule over its answer. `accent` colours both.
 ftxui::Element DialogWindow(const std::string& title,
                             std::vector<ftxui::Element> body,
                             ftxui::Element buttons,
                             ftxui::Color accent = kTheme);
 
-// `row` with the cursor's band behind it when `on_cursor`, and untouched
-// otherwise. Every list of items draws its selection this way: the caret says
-// where the cursor is, and the band says how far the row reaches, so a stat
-// eight columns out reads back to its own name.
+// `row` with the cursor's band behind it when `on_cursor`. EVERY list draws
+// its selection this way: the caret says where the cursor is and the band how
+// far the row reaches, so a stat eight columns out reads back to its name.
 //
-// Pass the whole row, affixes and all -- a band that stops short of a column
-// reads as a column that is not part of the row. Gate it on the same test the
-// caret uses: a band on a list that does not hold focus claims a selection the
-// arrows would not move.
+// Pass the WHOLE row, affixes and all, or a column reads as not part of it.
+// Gate it on the test the caret uses: a band on an unfocused list claims a
+// selection the arrows would not move.
 ftxui::Element HighlightRow(ftxui::Element row, bool on_cursor);
 
-// The one way a panel says it has nothing to show: " (empty)". Use a specific
-// reason ("no matching items") only where it tells the player something they
-// could not already see. `gutter` lines the row up with the list's cursor
-// column.
+// The one way a panel says it has nothing to show: " (empty)". A specific
+// reason only where it tells the player something they cannot see.
 ftxui::Element EmptyState(const std::string& what, int gutter = 1);
 
-// The key a tab is recorded under once the player has opened it. Written into
-// the save: changing it forgets that anybody ever opened that tab, and it
-// would go gold again for every player.
+// The key a tab is recorded under once opened. WRITTEN INTO THE SAVE: change
+// it and every player's tab goes gold again.
 inline constexpr char kShopTabKey[] = "shop";
 
 // And the Hyper tab's, which goes gold the level it arrives and stays that
 // way until the player opens it.
 inline constexpr char kHyperTabKey[] = "hyper";
 
-// And the Ability tab's. One key for the account, not one per character: a
-// player is told what Inner Ability is the first time one of theirs reaches
-// it.
+// And the Ability tab's. One key for the ACCOUNT: a player is told what Inner
+// Ability is the first time one of theirs reaches it.
 inline constexpr char kAbilityTabKey[] = "ability";
 
-// And the Buffs tab's, for the same reason and on the same terms: what a buff
-// is arrives once, and the account is told about it once. The key still reads
-// "pots" because the saves do: renaming the tab must not forget who has seen
-// it.
+// And the Buffs tab's, on the same terms. The key still reads "pots" because
+// the saves do: renaming the tab must not forget who has seen it.
 inline constexpr char kBuffsTabKey[] = "pots";
 
-// The advancement tab's key for `stage` (1 = 1st job). One key per stage
-// rather than one for the tab: the tab arrives again at every advancement
-// threshold, and having seen the first is not having seen the second.
+// The advancement tab's key for `stage`. One per STAGE: the tab arrives again
+// at every threshold, and having seen the first is not having seen the
+// second.
 std::string AdvanceTabKey(int stage);
 
 // The equip tab's key for the gear an advancement into `stage` handed over.
-// Per stage for the same reason: the 2nd advancement puts an off-hand in the
-// bag, and having gone to look at the 1st job's weapon is not having seen it.
+// Per stage for the same reason.
 std::string EquipGiftTabKey(int stage);
 
 // One chip of a tab bar in the game's one tab style. The active chip goes
-// white while its row holds focus and keeps the theme-blue invert otherwise,
-// which is how the player tells which bar the arrows are reaching; pass
-// row_focused=true for a bar that is the only thing on its screen.
-//
-// `unseen` draws the label gold: a tab handed over but never opened. It is the
-// quiet half of the level-up celebration, and it waits there until it is.
+// white while its row holds focus and keeps the theme invert otherwise, which
+// is how the player tells which bar the arrows reach. `unseen` draws the label
+// gold: a tab handed over but never opened.
 ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
                        bool unseen = false);
 
@@ -156,25 +127,17 @@ struct TabSpec {
   bool unseen = false;  // see TabChip
 };
 
-// A whole tab bar, cut to `width` columns. Chips past the edge are held back
-// behind a mark, shown only while there is something that way. The window
-// follows `active`, which is therefore always drawn. Pass -1 for a bar with no
-// active chip -- one whose cursor has stepped off it onto something drawn
-// beside it, where a second highlight would say the selection is in two
-// places.
+// A whole tab bar, cut to `width` columns. Chips past the edge are held behind
+// a mark shown only while there is something that way, and the window follows
+// `active`. Pass -1 for a bar whose cursor has stepped off it, where a second
+// highlight would put the selection in two places.
 //
-// The right mark keeps a column of its own, reserved either way so the chips
-// do not shuffle as it comes and goes; the left one stands in the leading
-// chip's own pad, so a bar that scrolls begins in the same column as one that
-// fits and two bars stacked in a panel line up.
+// The right mark keeps a column either way so the chips do not shuffle; the
+// left stands in the leading chip's pad, so two stacked bars line up.
 //
-// Prefer this to building a row of TabChip calls: a bar wide enough to overflow
-// is a bar that would otherwise widen the window around it, and which bar that
-// will be is not something the widget's author gets to know.
-//
-// `width` is the columns the bar may use, and should be the width of the rows
-// under it -- the content is what a window should be sized by, not its tabs.
-// Pass 0 for no limit.
+// PREFER THIS to a row of TabChip calls: a bar wide enough to overflow would
+// otherwise widen the window, and which bar that is is not the author's to
+// know. `width` should be the width of the ROWS under it.
 ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
                       bool row_focused, int width);
 
@@ -183,43 +146,33 @@ ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
 ftxui::Element ActionButton(const std::string& label, bool focused);
 
 // The one-button dialog's button, lit because it is the only thing to press.
-// Every such dialog draws this rather than its own. `label` names it for a
-// dialog the player is closing rather than reading on through.
+// Every such dialog draws this rather than its own.
 ftxui::Element ContinueButton(const std::string& label = "Continue");
 
-// A row of two buttons, the doing one and the leaving one, spaced the way the
-// game spaces them everywhere it asks a question. `go_enabled` false dims the
-// left button, for an answer that cannot be given from where the player
-// stands; the right one is never dimmed, since leaving always can.
-//
-// Both focus flags are asked rather than one: a dialog whose cursor is
-// somewhere else entirely -- the amount selector's textbox -- inverts neither.
+// The doing button and the leaving one, spaced as the game spaces them
+// everywhere. `go_enabled` false dims the left; the right never dims, leaving
+// always being possible. BOTH focus flags are asked: a dialog whose cursor is
+// elsewhere -- in a textbox -- inverts neither.
 ftxui::Element ButtonRow(const std::string& go, const std::string& leave,
                          bool go_focused, bool leave_focused, bool go_enabled);
 
-// The first row on screen for a list of `total` rows showing `visible` of
-// them with `selected` under the cursor. The one scroll rule in the game: the
-// selection sits in the middle of the window, clamped at both ends, so the
-// head and the foot of a list are shown whole.
-//
-// This is the arithmetic ftxui's yframe does, written out for the lists that
-// keep their own offset. A list handing its scrolling to yframe already
-// follows it; anything else calls this rather than inventing a second rule.
+// The first row on screen for a list of `total` showing `visible` with
+// `selected` under the cursor. THE scroll rule: the selection sits in the
+// middle of the window, clamped at both ends, so the head and foot of a list
+// are shown whole. The arithmetic yframe does, for lists that keep their own
+// offset -- anything else calls this rather than inventing a second rule.
 int ScrollWindowStart(int total, int selected, int visible);
 
-// A one-column scroll bar for a list showing `visible` of its `total` rows,
-// starting at row `first_visible`. Drawn with the same half-height glyphs as
-// ftxui's own vscroll_indicator, which the bag scrolls with, so the two bars
-// look alike. Empty when the whole list fits: there is nothing to indicate.
+// A one-column scroll bar for a list showing `visible` of `total` from row
+// `first_visible`, in the same half-height glyphs as ftxui's own
+// vscroll_indicator so the two look alike. Empty when the list fits.
 //
-// For a list that keeps its own scroll offset rather than handing one to
-// ftxui's yframe. Reach for vscroll_indicator first; this is for the case
-// where something else has to know which row is on screen.
+// REACH FOR vscroll_indicator FIRST; this is for a list that must know which
+// row is on screen.
 ftxui::Element ScrollBar(int total, int first_visible, int visible);
 
-// The same bar a row at a time, for a panel that has to lay each row out
-// itself -- one whose full-width separators would otherwise stop short of the
-// bar's column. Empty when the whole list fits, exactly as ScrollBar is.
+// The same bar a row at a time, for a panel laying each row out itself --
+// one whose full-width separators would stop short of the bar's column.
 std::vector<ftxui::Element> ScrollBarCells(int total, int first_visible,
                                            int visible);
 
@@ -227,52 +180,40 @@ std::vector<ftxui::Element> ScrollBarCells(int total, int first_visible,
 // noticed, theme blue every other moment.
 ftxui::Color PanelAccent(bool highlighted);
 
-// The content width both celebration cards are held to (the border adds two).
-// One constant for both: they land seconds apart at level 10, and a pair that
-// differed in size would read as two things rather than one moment. A minimum
-// rather than padding, so a card does not breathe as a level gains a digit.
+// The content width both celebration cards are held to. ONE constant: they
+// land seconds apart at level 10, and two sizes would read as two moments. A
+// minimum rather than padding, so a card does not breathe.
 inline constexpr int kCelebrationContentWidth = 21;
 
-// How long the focused panel's title chip is held lit, and then dark. The
-// blink is what says where the keys are going, so it is slow enough to read
-// as a heartbeat rather than as a flicker.
+// How long the focused title chip is held lit, and then dark. It says where
+// the keys are going, so it reads as a heartbeat rather than a flicker.
 constexpr std::chrono::milliseconds kTitleBlinkHalf(600);
 
 // Whether a focused title's chip is lit at `now`. The phase comes off the
-// clock itself rather than off the moment focus arrived, so every window on
-// screen blinks on one beat and Tab does not restart it.
+// CLOCK, so every window blinks on one beat and Tab does not restart it.
 bool TitleChipLit(std::chrono::steady_clock::time_point now);
 
 // ThemedWindow in a colour of your choosing, for the few things that step out
-// of the steel blue to be noticed. Every window is built from this, so a lit
-// one differs from an ordinary one in colour and nothing else.
-//
-// `blink` is the player's Options setting, which only the five main-screen
-// panels have any reason to pass: a focused title pulses with it and is held
-// solid without it. It defaults to off, so a window blinks only where someone
-// hands it the preference.
-//
-// `now` is the blink's clock, which only a test has any reason to hand in.
+// of the steel blue. Every window is built from this, so a lit one differs in
+// colour and nothing else. `blink` is the player's Options setting, which only
+// the five main-screen panels pass; `now` is its clock, for tests.
 ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
                             ftxui::Color accent, bool focused = false,
                             bool blink = false,
                             std::chrono::steady_clock::time_point now =
                                 std::chrono::steady_clock::now());
 
-// Wraps content in a bordered window with the game's steel-blue theme color on
-// the border and title. Content foreground is set to white; explicitly colored
-// elements (gold stars, gold SF, and so on) and ThemedSeparator override it.
-// Pass focused=true to light the title into a solid chip, marking the panel
-// that currently holds focus, and blink=true to pulse that chip instead.
+// Content in a bordered window in the game's steel blue, foreground white --
+// explicitly coloured elements and ThemedSeparator override it. `focused`
+// lights the title into a solid chip; `blink` pulses that chip instead.
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
                             bool focused = false, bool blink = false,
                             std::chrono::steady_clock::time_point now =
                                 std::chrono::steady_clock::now());
 
-// Centres a row in its window with a column of clearance on each side. Every
-// centred row in the game goes through this rather than bare hcenter, so that
-// the longest line on a screen -- whichever it turns out to be -- keeps its
-// distance from the border.
+// Centres a row with a column of clearance each side. EVERY centred row goes
+// through this rather than bare hcenter, so the longest line on a screen --
+// whichever it turns out to be -- keeps its distance from the border.
 ftxui::Element CenteredRow(ftxui::Element row);
 ftxui::Element CenteredRow(const std::string& text);
 
@@ -280,34 +221,23 @@ ftxui::Element CenteredRow(const std::string& text);
 // AccentWindow: a steel-blue rule across a gold card reads as a seam.
 ftxui::Element AccentSeparator(ftxui::Color accent);
 
-// The rule to draw inside a main-screen panel: the counterpart of
-// PanelAccent(), so that a lit panel goes gold all the way through rather than
-// gold around the edge with steel-blue seams across the middle of it.
+// The rule inside a main-screen panel, the counterpart of PanelAccent(): a lit
+// panel goes gold all the way through rather than only at its edge.
 ftxui::Element PanelSeparator(bool highlighted);
 
-// `cell` in red unless `ok`, for the one value the player falls short of: a
-// price out of reach, a level not met, an Arcane Force short of the map's.
-//
-// The rule the colour follows is in colors.h -- red is the REASON, and it goes
-// on the cell that carries it rather than on the row around it. This is how it
-// is written: `RedUnless(text(price), Affordable())`.
+// `cell` in red unless `ok`, for the one value the player falls short of. Red
+// is the REASON (see colors.h), so it goes on the cell carrying it rather than
+// the row: `RedUnless(text(price), Affordable())`.
 ftxui::Element RedUnless(ftxui::Element cell, bool ok);
 
-// The purse over the price, labelled and right-aligned in one column: what
-// the player holds, and then what they are about to spend it on. Every
-// screen that charges for something draws this, so the pair reads the same
-// wherever it is asked, and `affordable` reddens the price on the one that
-// cannot be met.
-//
-// The column is never narrower than a hundred billion meso, so a window does
-// not shrink around the player as they spend. A purse past a trillion widens
-// it, there being nothing else to do with a number that long.
+// The purse over the price, right-aligned in one column. EVERY screen that
+// charges draws this, so the pair reads alike wherever it is asked, and
+// `affordable` reddens a price that cannot be met. The column is never
+// narrower than a hundred billion meso, so it does not shrink as they spend.
 ftxui::Element PriceBlock(int64_t held, int64_t cost, bool affordable);
 
-// The same pair over a currency that is not meso: both numbers already
-// written out, units and all. `min_width` is the column the two are
-// right-aligned in, for a purse that should not shrink as it is spent; the
-// numbers themselves widen it when they have to.
+// The same pair over a currency that is not meso, both numbers already written
+// out. `min_width` keeps the column from shrinking as it is spent.
 ftxui::Element PriceBlock(const std::string& held, const std::string& cost,
                           bool affordable, int min_width = 0);
 

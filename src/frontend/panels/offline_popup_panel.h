@@ -14,14 +14,10 @@
 
 namespace ms {
 
-// The card for `report`, with `prompt` -- the [Continue] that dismisses it --
-// inside the border, so the whole of what the player is reading is one box.
-// What the absence earned reads first and the loot under a rule of its own:
-// the numbers are the same four every time, and a long list of drops should
-// not be scanned for them.
-//
-// `show_honor` is HonorVisible: the farming pays honor either way, but a
-// player with nothing to spend it on is not told about a currency yet.
+// The card for `report`, its [Continue] inside the border so the whole of what
+// is read is one box. What the absence earned reads first and the loot under a
+// rule of its own: the numbers are the same four every time. `show_honor` is
+// HonorVisible -- the farming pays honor either way.
 ftxui::Element OfflinePopupPanel(const OfflineReport& report,
                                  ftxui::Element prompt, bool show_honor);
 

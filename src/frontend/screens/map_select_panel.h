@@ -56,11 +56,9 @@ class MapSelectPanel {
   // cursor is on the band bar, which stands on no map.
   void OpenMenu();
   bool menu_open() const;
-  // Drives the context menu and says what should be on screen afterwards:
-  // kMapMenu while it stays up, kMobInspect for Inspect, kMapSelect once it
-  // closes, and kMain for Move -- the caller is what actually changes the map,
-  // since the panel never writes to the game state. The menu closes itself on
-  // the way out, so the screen it opens is not drawn with it still standing.
+  // Drives the context menu and says what should be on screen afterwards. The
+  // CALLER changes the map, the panel never writing to the game state, and the
+  // menu closes itself on the way out.
   Screen OnMenuEvent(ftxui::Event event);
 
  private:

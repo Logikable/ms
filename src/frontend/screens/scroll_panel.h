@@ -44,11 +44,9 @@ class ScrollPanel {
  public:
   ScrollPanel(const CharacterInstance& character,
               const std::map<std::string, Scroll>& scrolls);
-  // Replaces the displayed scroll list and resets selection to 0. Call before
-  // entering kScrollSelect to show only scrolls applicable to the target item.
-  // `required_level` is the target item's, which is what prices every row, and
-  // `target` is what kind of equipment it is, which is what its pins are
-  // filed under.
+  // Replaces the scroll list and resets the selection. Call before entering
+  // kScrollSelect. `required_level` is the target item's, which prices every
+  // row, and `target` is the kind of equipment its pins are filed under.
   void SetFilter(std::vector<const Scroll*> filtered, int required_level,
                  ScrollTarget target);
   // Filters to scrolls applicable to proto by tier and job category, then

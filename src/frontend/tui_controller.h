@@ -70,12 +70,9 @@ enum class PartyAsk { kNone, kKick, kPromote, kLeave };
 // a minute after closing it does not need to be told what that minute paid.
 inline constexpr double kOfflineNoticeSeconds = 60.0;
 
-// Every panel the controller drives, handed over in one piece.
-//
-// A struct of references rather than 25 constructor parameters: the list used
-// to be written out three times -- here, in the definition, and at the call
-// site -- and adding a screen meant editing all three in the same order.
-// `Tui` owns the panels; this only points at them, so it must not outlive it.
+// Every panel the controller drives, in one piece. A struct of references
+// rather than 25 constructor parameters, which had to be written out three
+// times in the same order. `Tui` owns the panels; this must not outlive it.
 struct Screens {
   CharacterPanel& char_panel;
   EquippedPanel& equip_panel;
@@ -114,12 +111,9 @@ class TuiController {
                 KeyMap& keys, int& panel_focus,
                 MultiplayerSession* multiplayer = nullptr);
 
-  // The [Expand]/[Close] button on `panel`, which opens it up over the whole
-  // screen and closes it again. An expanded panel is the main view rather than
-  // a screen of its own, so the item menu and every dialog the panel raises
-  // float over it unchanged and Escape closes it the way it closes any other
-  // view. Pressing it on a panel already expanded closes it; on any other it
-  // moves the expansion there.
+  // The [Expand]/[Close] button on `panel`. An expanded panel is the MAIN
+  // VIEW rather than a screen of its own, so menus and dialogs float over it
+  // unchanged. Pressing it elsewhere moves the expansion there.
   void ToggleExpanded(int panel);
   // The panel opened up over the whole screen, or kNoPanel.
   int expanded_panel() const {
@@ -134,13 +128,11 @@ class TuiController {
   // Float the AP-allocation amount entry over the main view, seeded to spend up
   // to all available AP on `field` (defaulting to the max).
   void OpenApAllocate(StatField field);
-  // Float the skill-learning amount entry over the main view, seeded to spend
-  // up to the most points `skill` can still take (its stage SP, capped at how
-  // far it is below max level).
+  // Floats the skill-learning amount entry, seeded to the most points `skill`
+  // can still take.
   void OpenSkillLearn(const Skill& skill);
-  // Open the menu Enter on a skill's name raises: read it, switch it on or
-  // off, or walk away. The middle entry is offered only by a toggle skill, and
-  // is dim until the player has bought it.
+  // The menu Enter on a skill's name raises. The middle entry is offered only
+  // by a toggle skill, and dims until it is bought.
   void OpenSkillMenu(const Skill& skill);
   // Open the skill's inspect screen. Copies the skill, as the learn dialog
   // does, so nothing downstream depends on the catalog outliving the screen.
@@ -148,16 +140,14 @@ class TuiController {
   // Every stat the character has, on a screen of its own.
   void OpenAllStats();
   // Spends a point on `field` and gives the last one back. No dialog on
-  // either: the row's own [-] is the way out of a [+]. `preset` is the
-  // allocation the panel's Farm/Boss row is on, since the panel knows that.
+  // either: the row's [-] is the way out of a [+].
   void RaiseHyperStat(HyperStatField field, StatPreset preset);
   void LowerHyperStat(HyperStatField field, StatPreset preset);
   // The one question left on the tab: emptying an allocation whole.
   void OpenHyperReset(StatPreset preset);
 
-  // The same question for the V Matrix, from the [Reset] at the foot of the
-  // Skills tab's V page: every node back to nothing, every point back in the
-  // pool.
+  // The same question for the V Matrix: every node back to nothing, every
+  // point back in the pool.
   void OpenVMatrixReset();
   const ConfirmPrompt& v_matrix_reset_prompt() const {
     return v_matrix_reset_prompt_;
@@ -169,17 +159,15 @@ class TuiController {
   // Asks before rerolling `preset`, which is where the honor is spent.
   void OpenAbilityReroll(StatPreset preset);
 
-  // Switches `type` on if it is off and off if it is on. No screen and no
-  // question: the row's own switch says what happened, and nothing is spent
-  // until the buff procs.
+  // Flips `type`. No screen and no question: the row's switch says what
+  // happened, and nothing is spent until the buff procs.
   void ToggleConsumable(ConsumableType type);
   // Float the buff's context menu over the main view: read it, buy it outright,
   // or walk away.
   void OpenBuffMenu(ConsumableType type);
-  // Ask before buying `type` outright. Opens on Cancel: it costs hundreds of
-  // millions. A purse that cannot cover it still opens the
-  // question -- with the price in red and [Confirm] greyed -- rather than
-  // refusing at the menu, which would leave the player guessing at the price.
+  // Asks before buying `type` outright, opening on Cancel: it costs hundreds
+  // of millions. A short purse still opens the question, price in red and
+  // [Confirm] greyed, rather than leaving the player guessing at it.
   void OpenBuffBuy(ConsumableType type);
   // The buff every one of the three is about.
   ConsumableType buff_type() const {
@@ -218,23 +206,19 @@ class TuiController {
     return ability_reroll_prompt_;
   }
   // The lines the open question would throw away: everything the allocation is
-  // not holding. What the player is being asked about, and the only lines the
-  // dialog lists.
+  // not holding, which is all the dialog lists.
   std::vector<AbilityLine> ability_reroll_lines() const;
   // Whether the last reroll carried the ability up a rank, which lights the
-  // character panel gold. True only until the player's next key: the news is
-  // worth a moment, and the moment ends when they do something with it.
+  // panel gold. True until the player's next key.
   bool ability_rank_up() const {
     return ability_rank_up_;
   }
-  // Float the job's context menu over the main view: read the job, take it, or
-  // walk away. Enter in the Advance tab lands here rather than on the
-  // confirmation -- what a job is should be readable before it is chosen.
+  // Floats the job's context menu. Enter in the Advance tab lands HERE rather
+  // than on the confirmation: a job should be readable before it is chosen.
   void OpenJobMenu(Job job);
 
   // Enter on the preset row: the menu that puts a preset in use or moves one.
-  // `kind` is which set of presets the row belongs to, and `slot` the chip the
-  // cursor was on -- the one every entry acts on.
+  // `slot` is the chip the cursor was on, which every entry acts on.
   void OpenPresetMenu(PresetKind kind, StatPreset slot);
   // Float the job-advancement confirmation over the main view. The prompt opens
   // on Cancel: the choice cannot be taken back.
@@ -245,16 +229,14 @@ class TuiController {
   // clears the entry's gold; Settings opens its box over the corner.
   void OpenMenuEntry(MenuEntry entry);
 
-  // Keeps the party screen and the party's fight in step with the connection:
-  // hands the panel the lobby as it stands, raises whatever the server has
-  // said since the last call, opens the fight screen the moment the party is
-  // let into one, and turns the player out of both if the connection goes.
-  // Called every tick, before the fight is stepped.
+  // Keeps the party screen and its fight in step with the connection: the
+  // lobby as it stands, whatever the server has said, the fight screen the
+  // moment the party is let in, and the way out if the connection goes. Every
+  // tick, before the fight is stepped.
   void AdvanceParty();
 
-  // The word from the server floated over whatever the player is looking at:
-  // an action it would not take, something that happened to their party, or
-  // the connection going away. A refusal is drawn in red.
+  // The word from the server, floated over whatever is on screen: a refusal
+  // (drawn red), news of the party, or the connection going away.
   const ContinuePrompt& party_notice_prompt() const {
     return party_notice_prompt_;
   }
@@ -272,10 +254,9 @@ class TuiController {
     return party_prompt_question_;
   }
 
-  // True while a key must reach the game as the player pressed it rather than
-  // as the action it is bound to: a keybind slot waiting for the key it will
-  // take, or a text field waiting for a letter. Every action's first key is
-  // locked, so Enter, Escape and the arrows still work while it is true.
+  // True while a key must reach the game AS PRESSED rather than as the action
+  // it is bound to -- a keybind slot or a text field waiting. Every action's
+  // first key is locked, so Enter, Escape and the arrows still work.
   bool capturing_key() const;
 
   // The stat the pending AP allocation targets, and its amount selector, for
@@ -304,19 +285,16 @@ class TuiController {
     return skill_menu_skill_;
   }
 
-  // The skill being inspected while in kSkillInspect, the level the character
-  // has spent points to, and the levels their book lends every skill, for the
-  // screen Tui draws.
+  // What kSkillInspect draws: the skill, the level points were spent to, and
+  // the levels the book lends.
   const Skill& skill_inspect_skill() const {
     return skill_inspect_;
   }
   int skill_inspect_level() const;
   int skill_inspect_bonus() const;
 
-  // The job the pending advancement would take, the stage it would take it
-  // at, and its prompt, for the dialog Tui floats over the main view. The
-  // stage is the one above where the character stands: an advancement is only
-  // ever offered from the stage below it.
+  // What the pending advancement's dialog draws. The stage is the one ABOVE
+  // where the character stands, an advancement being offered from below.
   Job job_advance_job() const {
     return job_advance_;
   }
@@ -332,9 +310,8 @@ class TuiController {
     return job_menu_;
   }
 
-  // The preset menu, floated beside the preset row the same way, and what the
-  // Move popup behind it needs: which presets it is listing, and which row of
-  // it the cursor is on. kNumStatPresets is the Cancel button under them.
+  // The preset menu, floated beside its row, and what the Move popup behind it
+  // needs. kNumStatPresets is the Cancel button under them.
   const ItemMenu& preset_menu() const {
     return preset_menu_;
   }
@@ -348,9 +325,8 @@ class TuiController {
     return preset_move_row_;
   }
 
-  // The Level Up dialog for an Arcane Symbol, and the Combine one. Owned
-  // rather than handed in: neither carries any game state, only what Reset was
-  // told to say.
+  // The Level Up and Combine dialogs for an Arcane Symbol. Owned rather than
+  // handed in: neither carries game state, only what Reset was told.
   const DailiesPanel& dailies_panel() const {
     return dailies_panel_;
   }
@@ -404,9 +380,8 @@ class TuiController {
   const ConfirmPrompt& boss_abort_prompt() const {
     return boss_abort_prompt_;
   }
-  // The clear card: what was beaten, what it paid, and the button that
-  // dismisses it. Held on the controller rather than read off the run, which
-  // is gone by the time the card is up.
+  // The clear card: what was beaten, what it paid, and the button. Held here
+  // rather than read off the run, which is gone by the time it is up.
   const std::string& boss_clear_title() const {
     return boss_clear_title_;
   }
@@ -427,16 +402,14 @@ class TuiController {
   const ContinuePrompt& offline_prompt() const {
     return offline_prompt_;
   }
-  // Raises that card over the main view. Called once at launch, before the
-  // player has touched anything: they should see what they were paid before
-  // they see the game. A report not worth a card -- too short an absence, or a
-  // player who logged off in town -- raises nothing.
+  // Raises that card at launch, before the player has touched anything: they
+  // should see what they were paid before they see the game. A report not
+  // worth a card raises nothing.
   void OpenOfflineReport(OfflineReport report);
 
-  // Steps the fight in progress by elapsed_seconds, records the clear if it
-  // ended in one, and takes the screen back to the fight list once the closing
-  // beat is up. Does nothing without a fight, and nothing while the leave
-  // prompt is up -- the clock must not run out while the player is deciding.
+  // Steps the fight, records a clear, and takes the screen back once the
+  // closing beat is up. Nothing while the leave prompt is up: the clock must
+  // not run out while the player is deciding.
   void AdvanceBossRun(double elapsed_seconds);
   // Takes what walking into a fight costs in potions. Called by both doors
   // into a boss run -- the solo one and the party's.
@@ -447,16 +420,14 @@ class TuiController {
     return boss_run_ != nullptr;
   }
 
-  // True once the player has confirmed the quit dialog. The controller cannot
-  // close the terminal itself -- it does not own the ftxui screen -- so it
-  // raises this and leaves the leaving to Tui.
+  // True once the quit dialog is confirmed. The controller does not own the
+  // ftxui screen, so it raises this and leaves the leaving to Tui.
   bool quit_requested() const {
     return quit_requested_;
   }
 
-  // On a screen that puts an inspect card beside something else, which of the
-  // two the arrows reach. Tab moves between them, and the one holding them
-  // lights its title.
+  // On a screen with a card beside something else, which the arrows reach. Tab
+  // moves between them and the holder lights its title.
   bool right_card_focused() const {
     return right_card_focused_;
   }
@@ -487,9 +458,8 @@ class TuiController {
   // Returns the item being inspected while in kInspect, or nullptr otherwise.
   // May be an EquipTrace if the selected bag item was destroyed.
   const EquipTabItem* inspect_item() const;
-  // Returns the stack being inspected while in kItemInspect, or nullptr. The
-  // prototype rather than the stack, because what is on screen is what the
-  // item is, not how many of it the player is holding.
+  // The stack being inspected in kItemInspect, as a PROTOTYPE: what is on
+  // screen is what the item is, not how many are held.
   const ItemPrototype* item_inspect_item() const;
   // Returns the item being star forced while in kStarForce, or nullptr
   // otherwise. Do not call in kStarForceResult (item may be destroyed).
@@ -500,12 +470,9 @@ class TuiController {
   // Returns the trace being recovered while in kTraceRecover, or nullptr.
   const EquipTabItem* trace_recover_item() const;
 
-  // Whether `panel` is on screen for this character. The equipped panel and
-  // the bag are handed over as the player levels; the character and combat
-  // panels are there from the first frame.
-  //
-  // Asked by the layout to decide what to draw and by Tab to decide what to
-  // skip, so the two cannot disagree about which panels exist.
+  // Whether `panel` is on screen for this character: the equipped panel and
+  // the bag are handed over as they level, the other two are there from the
+  // first frame. Asked by the layout AND by Tab, so the two cannot disagree.
   bool PanelVisible(int panel) const;
 
  private:
@@ -521,8 +488,8 @@ class TuiController {
   bool OnItemMenuEvent(ftxui::Event event);
 
   // The three families of screen an item menu opens, each seeding the panel it
-  // is about to hand the screen to. `next` is what the menu chose; a seed that
-  // finds the item cannot take the screen returns the one it opened instead.
+  // hands the screen to. A seed that finds the item cannot take the screen
+  // returns the one it opened instead.
   Screen SeedUpgradeScreen(Screen next);
   Screen SeedSaleScreen(Screen next);
   Screen SeedSymbolScreen(Screen next);
@@ -585,9 +552,8 @@ class TuiController {
   // Opens the fight screen on the fight the party has been let into. Whatever
   // the player was doing, they are in it now.
   void OpenPartyFight(const MultiplayerSnapshot& lobby);
-  // Rebuilds the rest of the party into the GameState, so that what their
-  // skills hold over this character is folded into its stats for the fight.
-  // See GameState::party.
+  // Rebuilds the party into the GameState, so what their skills hold over this
+  // character is folded into its stats. See GameState::party.
   void SeatParty(const MultiplayerSnapshot& lobby);
   // Whether the fight on screen is the party's rather than one taken alone.
   bool in_party_fight() const;
@@ -605,9 +571,8 @@ class TuiController {
   // says, a refusal is drawn in red, and `button` is what the one button says.
   void OpenNotice(Screen screen, std::vector<std::string> lines, bool refusal,
                   const std::string& button);
-  // A notice of one sentence, split across as many lines as it takes to read
-  // evenly. What every notice naming something should use: a short name and a
-  // long remainder read as one lopsided pair otherwise.
+  // A one-sentence notice split to read evenly. USE THIS for any notice naming
+  // something: a short name and a long remainder read lopsided otherwise.
   void OpenSentenceNotice(Screen screen, const std::string& sentence,
                           bool refusal, const std::string& button);
   // Enter on the menu's Dailies entry: the claim, or the notice that today's
@@ -630,9 +595,8 @@ class TuiController {
   bool OnAnalysisEvent(ftxui::Event event);
   bool OnKeybindsEvent(ftxui::Event event);
   bool OnOptionsEvent(ftxui::Event event);
-  // Puts the captured key in the waiting slot, or says why it could not go
-  // there. Ignores what is not a key at all -- the ticker's own redraw among
-  // them -- so the slot goes on waiting for one.
+  // Puts the captured key in the waiting slot, or says why it could not.
+  // Ignores what is not a key, so the slot goes on waiting.
   void TakeCapturedKey(const ftxui::Event& key);
   // Leaves the Keybinds screen for the box it was opened from.
   void LeaveKeybinds();
@@ -658,9 +622,8 @@ class TuiController {
   EquippedPanel& equip_panel_;
   InventoryPanel& inventory_panel_;
   ScrollPanel& scroll_panel_;
-  // The item card, and the preview card beside it on kTraceRecover and
-  // kStarForce. Held so the arrows can scroll whichever of them the player is
-  // reading.
+  // The item card, and the preview beside it on kTraceRecover and kStarForce.
+  // Held so the arrows can scroll whichever is being read.
   InspectPanel& inspect_panel_;
   InspectPanel& preview_inspect_panel_;
   StarForcePanel& star_force_panel_;
@@ -697,14 +660,12 @@ class TuiController {
   int buy_back_row_ = 0;
   int& panel_focus_;
   Screen screen_ = kMain;
-  // The item the open modal was opened on. Where it lives is settled once,
-  // when the player picks it, so nothing downstream has to ask which panel had
-  // focus at the time. One ref for every modal, because one modal is open at a
-  // time: each accessor below gates on screen_, which is what says whose it is.
+  // The item the open modal was opened on, settled once when the player picks
+  // it. ONE ref for every modal, one being open at a time; each accessor below
+  // gates on screen_, which says whose it is.
   ItemRef subject_;
-  // The bag row the open modal is about -- recovery and the equip sale are
-  // both bag-only affairs, a trace cannot be worn and an item has to come off
-  // before it is sold. One row, for the reason subject_ is one ref.
+  // The bag row the open modal is about: recovery and the equip sale are
+  // bag-only. One row, for the reason subject_ is one ref.
   int bag_row_ = 0;
   // See right_card_focused(). False on every screen that opens, so the arrows
   // start on the list or the card the player came in reading.
@@ -725,9 +686,8 @@ class TuiController {
   ItemMenu skill_menu_{{"Inspect", "Activate", "Close"}};
   Job job_advance_ = JOB_UNSPECIFIED;
   ItemMenu job_menu_{{"Inspect", "Advance", "Close"}};
-  // What the preset menu and the Move popup behind it are about: the row's own
-  // kind, and the chip the menu was raised on. Held rather than read back off
-  // the panel, so a swap lands on the preset the menu named.
+  // What the preset menu and its Move popup are about. Held rather than read
+  // back off the panel, so a swap lands on the preset the menu named.
   PresetKind preset_kind_ = PresetKind::kHyperStats;
   StatPreset preset_slot_ = StatPreset::kFirst;
   ItemMenu preset_menu_{{"Use", "Move", "Close"}};
@@ -760,9 +720,8 @@ class TuiController {
   EquipSlot symbol_slot_ = EQUIP_SLOT_UNSPECIFIED;
   ConfirmPrompt job_advance_prompt_;
   ConfirmPrompt quit_prompt_;
-  // The boss confirmation, and the fight it is asking about. The title is
-  // held rather than re-read, so the dialog cannot change what it is asking
-  // under the player.
+  // The boss confirmation and the fight it asks about. The title is held, so
+  // the dialog cannot change its question under the player.
   ConfirmPrompt boss_prompt_;
   std::string boss_prompt_title_;
   ContinuePrompt notice_prompt_;
@@ -790,9 +749,8 @@ class TuiController {
   BossReward boss_clear_reward_;
   double boss_clear_seconds_ = 0.0;
   ContinuePrompt boss_clear_prompt_;
-  // The fight in progress, and which catalog entry it is being fought
-  // against, so the clear can be recorded under the same names the reset
-  // clock reads.
+  // The fight in progress and the catalog entry it is against, so a clear is
+  // recorded under the names the reset clock reads.
   std::unique_ptr<BossRun> boss_run_;
   std::string boss_run_key_;
   std::string boss_run_difficulty_;

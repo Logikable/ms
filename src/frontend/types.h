@@ -128,13 +128,11 @@ enum Screen : int {
   kQuit,
 };
 // Focusable panels of the main screen, in Tab order: clockwise from the
-// top-left corner of the layout (Character, Equipped, Inventory, Menu,
-// Combat). The values index Container::Tab's component list, so the two must
-// stay in the same order.
+// top-left corner. The values INDEX Container::Tab's component list, so the
+// two must stay in the same order.
 enum Panel : int {
-  // Not one of them: nobody is looking at a panel at all, because the screen
-  // in front of the player is the shop, or map select, or a dialog over the
-  // top of everything. Sorts before the real panels so a range check on them
+  // Nobody is looking at a panel at all: the screen in front of the player is
+  // a shop, a list or a dialog. Sorts before the real panels, so a range check
   // rejects it.
   kNoPanel = -1,
   kCharPanel = 0,
@@ -186,9 +184,6 @@ enum SymbolMenuItem : int {
   kSymbolMenuLevelUp = 2,
   kSymbolMenuClose = 3,
 };
-// Entries of the job context menu, on Enter in the Advance tab. Advance sits
-// under Inspect for the same reason Sell sits low on the item menu: it is the
-// entry there is no coming back from, so it is not where the cursor lands.
 // Entries of the map context menu, on Enter in the map list. Move leads: it is
 // what the list is for, and Inspect is the detour.
 enum MapMenuItem : int {
@@ -212,6 +207,9 @@ enum SkillMenuItem : int {
   kSkillMenuToggle = 1,
   kSkillMenuClose = 2,
 };
+// Entries of the job context menu, on Enter in the Advance tab. Advance sits
+// under Inspect for the reason Sell sits low on the item menu: it is the entry
+// there is no coming back from, so the cursor does not land on it.
 enum JobMenuItem : int {
   kJobMenuInspect = 0,
   kJobMenuAdvance = 1,

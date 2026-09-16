@@ -28,10 +28,8 @@
 namespace ms {
 namespace {
 
-// The seen-key `tab` announces itself under, or "" for a tab with nothing to
-// announce. Etc has been there since the first frame of the game.
-// Equip has one key per advancement that hands something over -- a weapon at
-// the 1st, an off-hand at the 2nd -- and none for the ones that do not, so the
+// The seen-key `tab` announces itself under, or "" for one with nothing to
+// announce. Equip has a key per advancement that HANDS SOMETHING OVER, so the
 // tab stays quiet at the 3rd and 4th rather than sending the player to look at
 // a bag nothing arrived in.
 std::string TabKey(int tab, const CharacterInstance& character) {
@@ -66,13 +64,10 @@ ftxui::Element RenderBalances(int64_t meso, const CharacterInstance& character,
 // the tab beside it.
 constexpr int kBalanceGutter = 8;
 
-// Renders the left-aligned chip row in the shared tab style, with the balances
-// centred in what the chips leave and the right-aligned `expand` tab past
-// them, over a separator. `tabs` is what the character has unlocked, so a
-// locked tab leaves no gap behind it. `active_tab` is -1 while the cursor is
-// out on Expand, so the highlight is in one place rather than two. `width` is
-// the columns inside the panel's borders, which is what the balances centre
-// in.
+// The chip row in the shared tab style, the balances centred in what the chips
+// leave and `expand` right-aligned past them. `tabs` is what the character has
+// unlocked, so a locked tab leaves no gap; `active_tab` is -1 while the cursor
+// is out on Expand, so the highlight is in one place.
 ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
                             int64_t meso, bool row_selected,
                             const CharacterInstance& character,
@@ -92,18 +87,13 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
     specs.push_back(
         {kInventoryTabLabels[tab], !key.empty() && !account.Seen(key)});
   }
-  // One row, left to right: the chips, the balances, Expand on the far right.
-  // The balances sit centred in the row, except where that would stand them
-  // against the last chip -- a fourth tab took the bar out to where a centred
-  // counter was drawn on top of it, and a fifth would reach further still --
-  // and there they are pushed right to keep kBalanceGutter clear. Measured
-  // rather than left to a pair of fillers, so the gutter is a promise rather
-  // than a ratio.
+  // Left to right: the chips, the balances, Expand. The balances are centred
+  // except where that would stand them against the last chip, and are then
+  // pushed right to keep kBalanceGutter clear. MEASURED rather than left to a
+  // pair of fillers, so the gutter is a promise rather than a ratio.
   //
-  // Reflected so a tab menu knows the row to open under.
-  //
-  // No width limit on the chips: the bag's tabs are a fixed set, and every one
-  // of them fits several times over in a row 71 columns wide.
+  // Reflected so a tab menu knows the row to open under. No width limit on the
+  // chips: the bag's tabs are a fixed set and all of them fit.
   ftxui::Element chips = TabBar(specs, active, row_selected, /*width=*/0);
   ftxui::Element balances = RenderBalances(meso, character, account);
   int chips_width = ftxui::Dimension::Fit(chips).dimx;
@@ -134,11 +124,9 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
 // one key cannot make two different selections collide.
 constexpr int kNameClockTabStride = 4096;
 
-// Renders a Name/Quantity list of the stacks `rows` names, one row each, with
-// a "> " cursor on the `selected`-th of them. An empty tab is just "(empty)",
-// with no column header over it. The cursor is drawn only when `focused`,
-// matching the Equip tab, whose menu takes its cursor from ftxui's own focus
-// state.
+// A Name/Quantity list of `rows`, a "> " cursor on the `selected`-th. An empty
+// tab is "(empty)" with no header. The cursor is drawn only when `focused`,
+// matching the Equip tab.
 ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
                                const std::vector<int>& rows, int selected,
                                bool focused, ftxui::Box& cursor_box,
@@ -158,11 +146,9 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
         i == selected ? elapsed : std::chrono::steady_clock::duration::zero());
     if (i == selected) {
       // What the frame scrolls to. These rows are plain text rather than an
-      // ftxui::Menu, so nothing else marks the cursor and the list would
-      // happily scroll away from it. Marked whether or not the panel holds
-      // focus, so the view does not jump when focus comes back.
-      //
-      // Reflected as well, so the item menu knows the row to open beside.
+      // ftxui::Menu, so nothing else marks the cursor. Marked whether or not
+      // the panel holds focus, so the view does not jump on the way back, and
+      // reflected so the item menu knows the row to open beside.
       row = std::move(row) | ftxui::focus | ftxui::reflect(cursor_box);
     }
     drawn.push_back(std::move(row));
@@ -375,13 +361,8 @@ void InventoryPanel::HideLockedFeatures() {
     menu_.Hide(kMenuCube);
   }
   // Recovery has no level of its own: owning a trace already means an item
-  // exploded, which takes the 16th star. The item is the gate, so the entry
-  // stands on every trace and on nothing else.
-  //
-  // Selling arrives with the shop, which is the counter it happens at. No
-  // gold on it when it does: the gold trail is for an upgrade the player is
-  // being sent to find, and the Shop tab lighting up already says this one
-  // opened.
+  // exploded at the 16th star, so the ITEM is the gate. Selling arrives with
+  // the shop, and takes no gold -- the Shop tab lighting up says it.
   if (!Unlocked(Feature::kShop, character_, account_)) {
     menu_.Hide(kMenuSell);
     menu_.Hide(kMenuMultiSell);
@@ -671,9 +652,8 @@ ftxui::Element InventoryPanel::RenderCurrencySheet() {
     part.push_back(std::move(row));
   }
   // A frame scrolls to what is focused and centres it, so the rows that should
-  // be on screen are handed to it as one block: a block the height of the
-  // window centres on the window. Nothing here draws a cursor -- the focus is
-  // the scroll position, not a selection.
+  // be on screen are handed over as one block. The focus is the SCROLL
+  // POSITION here, not a selection.
   ftxui::Element body = ftxui::vbox({
       ftxui::vbox(std::move(above)),
       ftxui::vbox(std::move(window)) | ftxui::focus,
@@ -689,10 +669,9 @@ ftxui::Element InventoryPanel::RenderCurrencySheet() {
 }
 
 ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
-  // A list that emptied under the cursor -- the last equip worn, the last
-  // stack sold -- has no row left to stand on, so the cursor comes back up to
-  // the tab bar. Left where it was it would be in a zone that cannot draw it,
-  // with no highlight anywhere on the panel to say which keys go where.
+  // A list that emptied under the cursor has no row left to stand on, so the
+  // cursor returns to the tab bar. Left where it was, no highlight anywhere
+  // would say where the keys go.
   if (zone_ == kZoneList && ActiveTabEmpty()) {
     zone_ = kZoneTabs;
   }
@@ -746,14 +725,10 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
 
 ftxui::Element InventoryPanel::RenderRow(const ftxui::EntryState& state) {
   int idx = state.index;
-  // Drawn from the panel's own cursor rather than ftxui's focused entry, which
-  // moves only when the Menu handles the key itself. The two jumps the panel
-  // takes for it -- the tab bar to the last row, and back round to the first
-  // -- are exactly the two the Menu never sees, so the caret went missing on
-  // arrival from the bar. It agreed by luck on a list too short to scroll,
-  // where both indices sat at 0. The two conditions after it are the same
-  // pair the Etc list asks: not while another panel has focus, and
-  // not while the cursor is up on the tab bar.
+  // Drawn from the panel's OWN cursor rather than ftxui's focused entry, which
+  // moves only when the Menu handles the key: the two jumps the panel makes
+  // for it are exactly the two the Menu never sees, so the caret went missing
+  // on arrival from the bar. The conditions after it are the Etc list's.
   bool on_cursor =
       idx == selected_ && zone_ == kZoneList && panel_focus_ == kInventoryPanel;
   if (idx < 0 || idx >= static_cast<int>(rows_.size())) {
@@ -856,18 +831,16 @@ ftxui::Component InventoryPanel::MakeComponent(
     std::function<void()> on_enter, std::function<void()> on_expand) {
   ftxui::MenuOption opt;
   opt.on_enter = [on_enter]() { on_enter(); };
-  // Drawn here rather than at entry-generation time because ftxui::Menu only
-  // accepts std::string* entries, and this is the only hook that can produce a
-  // coloured Element. It also suppresses the default inversion, so the caret
-  // looks the same whether or not the item menu is open.
+  // Here rather than at entry-generation time: ftxui::Menu takes only
+  // std::string* entries, and this is the one hook that can return a coloured
+  // Element. It also suppresses the default inversion.
   opt.entries_option.transform = [this](ftxui::EntryState state) {
     return RenderRow(state);
   };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
-  // Focusable whether or not the equip list has rows. Container::Tab asks its
-  // active panel whether it is focusable and drops every key when the answer
-  // is no, and an ftxui::Menu says no on an empty list -- which would take the
-  // tab bar down with a list it has nothing to do with.
+  // Focusable whether or not the list has rows: Container::Tab drops every key
+  // when its active panel says it is not, and an ftxui::Menu says no on an
+  // empty list -- which would take the tab bar down with it.
   ftxui::Component renderer = AlwaysFocusable(ftxui::Renderer(
       menu, [this, menu]() -> ftxui::Element { return RenderContent(menu); }));
   return ftxui::CatchEvent(renderer,

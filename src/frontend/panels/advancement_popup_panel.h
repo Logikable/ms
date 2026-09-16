@@ -14,13 +14,9 @@
 namespace ms {
 
 // The card as a bordered window: the job left behind, an arrow down, and the
-// advancement taken. Read top to bottom, so the change is the shape of the
-// card rather than something to be worked out from two names side by side.
-// The same size as the level-up card, which arrives seconds before it at
-// level 10.
-//
-// `to_stage` is the stage advanced into, which names the 5th: without it the
-// card would read "Night Lord" over "Night Lord".
+// advancement taken -- read top to bottom, so the change is the shape of the
+// card. The same size as the level-up card, which arrives seconds before it.
+// `to_stage` names the 5th, which would otherwise read "Night Lord" twice.
 ftxui::Element AdvancementPopupPanel(Job from_job, Job to_job, int to_stage);
 
 }  // namespace ms

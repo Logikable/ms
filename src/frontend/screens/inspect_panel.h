@@ -70,14 +70,10 @@ class InspectPanel {
     return focus_;
   }
   ftxui::Element Render() const;
-  // The item's card alone, with no set card beside it. What a screen that
-  // already has a panel of its own next to the item asks for: three windows
-  // in a row leaves none of them the width they need. `focused` lights the
-  // title, for a screen where the card takes turns holding the arrows.
-  //
-  // `title` names the window. A screen showing one item leaves it alone; a
-  // screen showing the same item twice says which is which -- Star Force
-  // titles its two cards Before and After.
+  // The item's card alone, for a screen that already has a panel beside it:
+  // three windows in a row leaves none of them the width they need. `title`
+  // names the window -- a screen showing the same item twice says which is
+  // which, as Star Force titles its cards Before and After.
   ftxui::Element RenderItemOnly(bool focused = false,
                                 const std::string& title = " Inspect ") const;
 
@@ -92,11 +88,9 @@ class InspectPanel {
   CardRows SymbolRows() const;
   // The symbol's four figures: where it stands, and what that level pays.
   std::vector<CardRow> SymbolStatRows(int level) const;
-  // The equip body in parts, head to foot. The rows an item cannot fold are
-  // built first and measured; the two that can -- the star bar and the job
-  // categories -- are then folded onto two lines each if leaving them on one
-  // is what would make the panel wide. `fixed` is the width the rest of the
-  // card already needs.
+  // The equip body in parts, head to foot. The rows that cannot FOLD are built
+  // and measured first; the star bar and the job categories are then folded
+  // onto two lines each if leaving them on one would widen the panel.
   std::vector<CardRow> HeadRows() const;
   std::vector<CardRow> JobRows(int fixed) const;
   std::vector<CardRow> StarRows(int fixed) const;

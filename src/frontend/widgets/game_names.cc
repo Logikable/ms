@@ -111,14 +111,9 @@ void EmitAfterRequirement(const Skill& skill,
   out.push_back(&skill);
 }
 
-// Which block of the V page a kind of node sits in: the job's own four first,
-// the boosts under them, then the line's own, and the commons every character
-// has at the foot. Spelled out rather than taken off the enum's own order, so
-// renumbering VNodeKind cannot quietly rearrange the page.
-//
-// The blocks run from the most exclusive node to the least, which is what puts
-// an archetype node above the commons: every warrior has Weapon Aura and
-// nobody else does, where Erda Fountain is everybody's.
+// Which block of the V page a kind of node sits in. SPELLED OUT rather than
+// taken off the enum's order, so renumbering VNodeKind cannot rearrange the
+// page. The blocks run from the most exclusive node to the least.
 int VNodeRank(VNodeKind kind) {
   switch (kind) {
     case V_NODE_KIND_JOB:
@@ -715,12 +710,10 @@ PotentialLineType PrimaryAttackPercent(StatField primary) {
                                    : POTENTIAL_LINE_TYPE_ATTACK_PCT;
 }
 
-// The type the column counts `type` under, or UNSPECIFIED for a line it never
-// reports. Two jobs of work: GMS states ignored defence, boss damage and
-// cooldown at several fixed sizes, each its own type here, so adding two of
-// them up asks for the effect rather than the size; and All Stat% grants the
-// stat the character builds on, which is the only thing about it the column
-// has room to say.
+// The type the column counts `type` under. Two jobs: GMS states ignored
+// defence, boss damage and cooldown at several fixed sizes, each its own type,
+// so adding two asks for the EFFECT rather than the size; and All Stat% grants
+// the stat the character builds on.
 PotentialLineType SummaryFamily(PotentialLineType type, StatField primary) {
   static_assert(PotentialLineType_ARRAYSIZE == 28,
                 "a new potential line needs a family");
@@ -767,11 +760,10 @@ PotentialLineType SummaryFamily(PotentialLineType type, StatField primary) {
 // The rank of an effect the column never reports.
 constexpr int kUnreported = -1;
 
-// Where `family` sits in the order the column prefers to report, best first:
-// crit damage, cooldown, %attack, boss damage and ignored defence, %damage,
-// the two rates, then the stat the character builds on. A rank two effects
-// share is a tie the item settles -- whichever of them it rolled more of is
-// the one shown.
+// Where `family` sits in the order the column prefers, best first: crit
+// damage, cooldown, %attack, boss damage and ignored defence, %damage, the two
+// rates, then the character's own stat. A shared rank is settled by whichever
+// the item rolled more of.
 int SummaryRank(PotentialLineType family) {
   switch (family) {
     case POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT:

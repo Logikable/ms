@@ -23,15 +23,11 @@ std::string PadRight(const std::string& s, int width);
 // one.
 std::string PadLeft(const std::string& s, int width);
 
-// Breaks `text` into as few lines as fit `width` columns, balanced so the
-// lines come out near enough the same length: "Aquatic Letter" over "Eye
-// Accessory" rather than as much as fits and one word left over.
-//
-// `tail` is what the LAST line leaves free, for a value that sits beside it --
-// a rate, a price. `indent` is the margin every line after the first is
-// returned with, which is what makes a wrapped name read as one name rather
-// than as two rows. A word too long for the line gets one to itself and runs
-// over rather than being cut: half a name names nothing.
+// Breaks `text` into as few lines as fit `width`, BALANCED so they come out
+// near enough the same length rather than as much as fits and a word left
+// over. `tail` is what the last line leaves free for a value beside it;
+// `indent` is the margin later lines carry, which makes a wrapped name read as
+// one name. A word too long for the line runs over rather than being cut.
 std::vector<std::string> WrapBalanced(const std::string& text, int width,
                                       int tail = 0, int indent = 0);
 
@@ -45,11 +41,9 @@ std::string DropChance(double per_kill);
 // "1,234,567"). Handles negatives.
 std::string FormatWithCommas(int64_t n);
 
-// Formats a big number short: "5.6M", "500M", "1570M", "2.34B". A unit is
-// only taken up once the value reaches two thousand of the one below it, so a
-// number keeps the unit a reader can still weigh it in -- 1570M rather than
-// 1.57B. The units are M, B, T and Q; anything under two million is written
-// out with commas.
+// A big number short: "5.6M", "500M", "1570M", "2.34B". A unit is taken up
+// only at two thousand of the one below, so a number keeps the unit a reader
+// can weigh it in. Under two million is written out with commas.
 std::string FormatCompact(int64_t n);
 
 // A stretch of seconds as m:ss: "0:04", "2:47", "10:00". Rounded up, so the

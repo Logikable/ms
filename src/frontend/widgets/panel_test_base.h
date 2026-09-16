@@ -27,17 +27,11 @@ namespace ms {
 constexpr int kTestScreenWidth = 100;
 
 // The rows of `element` that put text hard against its RIGHT border with no
-// column of clearance, drawn at the width the element asks for rather than at
-// the test screen's. Empty is the passing answer.
+// clearance, drawn at the width the element asks for. Empty passes.
 //
-// The mistake this catches is a card that measures its own width from its
-// widest row and then forgets to ask for a margin, so the value comes out
-// welded to the border. The LEFT is not asked about: the column inside the
-// left border belongs to the cursor, and every list in the game draws its
-// caret there.
-//
-// Rules are skipped -- a rule is drawn border to border on purpose -- and so
-// is a card whose right column is a scroll bar, where the bar is the margin.
+// It catches a card that measures its width from its widest row and forgets
+// the margin. The LEFT is not asked about: that column belongs to the cursor.
+// Rules are skipped, as is a card whose right column is a scroll bar.
 inline std::vector<std::string> RowsTouchingTheRightBorder(
     ftxui::Element element) {
   element->ComputeRequirement();
@@ -60,12 +54,9 @@ inline std::vector<std::string> RowsTouchingTheRightBorder(
   return touching;
 }
 
-// Where a band of background colour landed: the row, and the first and last
-// columns it covers. One entry per row that has any cell painted `color`.
-//
-// A list's selection band is asserted on the span rather than the row alone: a
-// band that stops short of the panel's borders reads as a column that is not
-// part of the row, which is the whole thing it exists to say.
+// Where a band of background colour landed: the row, and the columns it
+// covers. Asserted on the SPAN rather than the row alone -- a band stopping
+// short of the borders reads as a column that is not part of the row.
 struct BandSpan {
   int y = 0;
   int first = 0;
@@ -121,11 +112,9 @@ class PanelTest : public testing::Test {
     return screen.PixelAt(0, 0).foreground_color;
   }
 
-  // The colors of every divider rule inside a panel, top to bottom: the rows
-  // drawn as a box-drawing horizontal line, minus the window's own top and
-  // bottom borders. A lit panel has to go gold all the way through, and a rule
-  // left steel-blue across the middle of a gold window reads as a seam, which
-  // BorderColor cannot see.
+  // The colours of every divider rule inside a panel, top to bottom. A lit
+  // panel goes gold all the way through, and a steel-blue rule across a gold
+  // window reads as a seam -- which BorderColor cannot see.
   static std::vector<ftxui::Color> InnerRuleColors(ftxui::Element element) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                  ftxui::Dimension::Fixed(20));
@@ -179,10 +168,8 @@ class PanelTest : public testing::Test {
   }
 
   // Levels `c_` to `level`. The item menu's entries are level-gated, so a test
-  // that means to exercise one has to have reached it -- and, just as easily
-  // missed, a test asserting an entry is ABSENT proves nothing at level 1,
-  // where every gated entry is absent anyway. Ask UnlockLevel(Feature::...)
-  // for the level rather than writing a number: they have moved before.
+  // asserting one is ABSENT proves nothing at level 1, where they all are. ASK
+  // UnlockLevel(Feature::...) rather than writing a number.
   void LevelTo(int level) {
     while (c_.proto().level() < level) {
       c_.LevelUp();

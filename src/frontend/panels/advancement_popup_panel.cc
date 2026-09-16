@@ -9,12 +9,9 @@
 namespace ms {
 
 ftxui::Element AdvancementPopupPanel(Job from_job, Job to_job, int to_stage) {
-  // The level-up card's shape: five rows inside the border, same width floor.
-  // No rule across it -- that card has one because it has two things to say.
-  //
-  // Short job names, because the card is one size and a full name would stretch
-  // it. Nothing is lost: the full name was shown in the picker and again in the
-  // dialog confirming it.
+  // The level-up card's shape: five rows inside the border, same width floor,
+  // and no rule -- that card has one because it says two things. SHORT job
+  // names, the card being one size; the full name was shown twice already.
   return AccentWindow(" Advancement ",
                       ftxui::vbox({
                           ftxui::text(""),

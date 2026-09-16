@@ -31,11 +31,9 @@ constexpr int kMobNameWidth = 22;
 constexpr int kLevelWidth = 4;
 constexpr int kCountWidth = 6;
 
-// The stats column. Both halves are a label and a right-aligned value, so the
-// panel does not breathe as a number gains a digit. "Attack" is the longest
-// label the game has, and the widest value is a number just under the compact
-// form's threshold ("1,999,999"), so each column carries what it needs and a
-// space over.
+// The stats column: a label and a right-aligned value, so the panel does not
+// breathe as a number gains a digit. Sized for the longest label and for a
+// number just under the compact form's threshold, plus a space.
 constexpr int kLabelWidth = 7;
 constexpr int kValueWidth = 10;
 

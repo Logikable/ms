@@ -52,10 +52,8 @@ ftxui::Element BossClearPanel(const std::string& title, double seconds,
     rows.push_back(CenteredRow(FormatWithCommas(reward.honor) + " Honor"));
   }
   // The prizes go under a rule of their own, below what every clear pays: a
-  // drop the player waited on should not have to be picked out of the numbers.
-  // Each group leads with its rarest, which is the line the player is looking
-  // for -- the reverse of the Fight panel's list, which is a table of what
-  // might fall rather than a record of what did.
+  // drop the player waited on should not be picked out of the numbers. Each
+  // group leads with its RAREST, the reverse of the Fight panel's list.
   std::vector<const BossRewardItem*> paid;
   std::vector<const BossRewardItem*> prizes;
   for (const BossRewardItem& item : reward.items) {

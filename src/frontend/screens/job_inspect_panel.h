@@ -70,14 +70,10 @@ class JobInspectPanel {
   mutable SelectionClock name_clock_;
 };
 
-// The job inspect screen: the book on the left, the card of whichever skill
-// the cursor is on to its right, the pair held to at least `rows` tall. Split
-// out of Tui so a test can measure it.
-//
-// `rows` is the tallest card in the book, which is what keeps the screen still
-// as the cursor walks it -- a short card leaves room below itself rather than
-// pulling the whole screen up. A book taller than its cards still gets its
-// full height.
+// The job inspect screen: the book on the left, the selected skill's card to
+// its right, the pair held to at least `rows` tall. `rows` is the TALLEST card
+// in the book, which keeps the screen still as the cursor walks it -- a short
+// card leaves room below rather than pulling the screen up.
 ftxui::Element JobInspectScreen(ftxui::Element book, ftxui::Element card,
                                 int rows);
 

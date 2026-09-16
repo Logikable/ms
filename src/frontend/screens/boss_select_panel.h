@@ -105,11 +105,9 @@ class BossSelectPanel {
   bool Unlocked(const BossDifficulty& difficulty) const;
 
   const GameState& state_;
-  // Boss keys in display order: by the level they open at, then by the level
-  // they are fought at, then by name so equal fights hold a stable order. The
-  // unlock leads because that is the order a player meets them in, and two
-  // fights of the same level can open decades apart. Fixed at construction,
-  // since the catalog is static data.
+  // Boss keys in display order: the level they open at, then the level they
+  // are fought at, then name. The UNLOCK leads, being the order a player meets
+  // them in -- two fights of the same level can open decades apart.
   std::vector<std::string> bosses_;
   // The column the cursor is in, held across the whole grid so that moving up
   // and down stays on the difficulty the player chose.

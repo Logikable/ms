@@ -14,15 +14,10 @@
 
 namespace ms {
 
-// The card for `title` paying `reward`, with `prompt` -- the [Continue] that
-// dismisses it -- inside the border rather than under the card, so the whole
-// of what the player is reading sits in one box.
-//
-// `seconds` is how long the clear took, which the title row carries: "Normal
-// Zakum in 2:47".
-//
-// `show_honor` is HonorVisible: the clear pays honor either way, but a player
-// with nothing to spend it on is not told about a currency yet.
+// The card for `title` paying `reward`, its [Continue] inside the border so
+// the whole of what is read sits in one box. `seconds` is how long the clear
+// took, carried by the title row: "Normal Zakum in 2:47". `show_honor` is
+// HonorVisible -- the clear pays honor either way.
 ftxui::Element BossClearPanel(const std::string& title, double seconds,
                               const BossReward& reward, ftxui::Element prompt,
                               bool show_honor);

@@ -16,14 +16,10 @@
 namespace ms {
 namespace {
 
-// One stat in one column. A blank line renders as blank space, which is what
-// squares off a row with an odd number of stats in it.
-//
-// The value's RIGHT edge is what is fixed, and the gap before it gives way --
-// not the label's width. Attack is written "(base+bonus) total", so it can
-// outgrow a value column, and padding the label to a fixed 16 left it nothing
-// to give: the value ran into the gutter and out past every other value on the
-// screen.
+// One stat in one column; a blank line is blank space, which squares off a row
+// with an odd number of stats. The value's RIGHT edge is fixed and the gap
+// before it gives way -- Attack is written "(base+bonus) total", so a padded
+// label leaves it nothing to give and it runs into the gutter.
 std::string ColumnText(const StatLine& line) {
   if (line.label.empty()) {
     return std::string(AllStatsPanel::kColumnWidth, ' ');

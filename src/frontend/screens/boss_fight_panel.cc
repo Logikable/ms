@@ -91,10 +91,9 @@ ftxui::Element MemberPanel(const BossRun& run, const FightMember& member,
   ftxui::Color accent = self ? kTheme : kFaintTheme;
   ftxui::Element bar = ProgressBar(static_cast<float>(member.attack_fraction),
                                    accent, BarLines(label, kPlayerBarRows));
-  // Their name in what the frame holds. Everybody else is named; the player
-  // themselves is not, since they know. A name longer than the plate slides
-  // under it on the run's own clock -- there is no cursor here to start it,
-  // and nobody is waiting on the answer, so it goes back and forth all fight.
+  // Everybody else is named; the player is not, since they know. A name longer
+  // than the plate slides under it on the run's own clock -- there is no
+  // cursor here to start one, so it slides all fight.
   std::string title =
       self ? "You"
            : ScrollingWindow(member.name, kBossPanelWidth - kPanelClearance,
@@ -133,14 +132,13 @@ struct ArenaCell {
   int y = 0;
 };
 
-// Numbers drawn straight onto the screen rather than built out of rows: which
-// of them there is room for is not known until the arena has placed everything
+// Numbers drawn straight onto the screen rather than built out of rows: how
+// many there is room for is not known until the arena has placed everything
 // else, and SetBox runs after the rows would have been built.
 //
-// The box is every row the numbers could take and the arena says which of them
-// to draw, so a row with a bar in it costs that one number and leaves the rest
-// where they were. They are stacked upwards from the last row: what landed
-// first sits at the bottom, each one after it above.
+// The box is every row they could take and the arena says which to draw, so a
+// row holding a bar costs that one number. Stacked UPWARDS from the last row:
+// what landed first sits at the bottom.
 class DamageNumbersNode : public ftxui::Node {
  public:
   // A party member's stack: one attack of theirs on one monster, flashing a
@@ -261,17 +259,13 @@ bool Overlaps(const ftxui::Box& a, const ftxui::Box& b) {
          b.y_min <= a.y_max;
 }
 
-// The arena's own layout: the panels handed to it are spread over whatever box
-// it is given, each one centred in its cell of an `columns` x `rows` grid.
+// The arena's layout: each panel centred in its cell of a `columns` x `rows`
+// grid. A GRID rather than stretched gaps, because the cells must line up DOWN
+// the screen as well as across: a row of two would otherwise share its spare
+// room differently from a row of three.
 //
-// A grid rather than a row of stretched gaps, because the cells have to line
-// up DOWN the screen as well as across it: Zakum's arms stand four to a side
-// with the player between them, and a row of two would otherwise share out its
-// spare room differently from a row of three.
-//
-// Panels keep the size they asked for. Where the cells are too narrow to hold
-// them apart the panels are pushed right, in order, so they touch rather than
-// overlap -- a bar half-drawn over another one names neither.
+// Panels keep the size they asked for, and where the cells are too narrow they
+// are pushed right in order so they touch rather than overlap.
 class ArenaNode : public ftxui::Node {
  public:
   ArenaNode(ftxui::Elements panels, std::vector<ArenaCell> cells, int columns,
@@ -401,10 +395,9 @@ class ArenaNode : public ftxui::Node {
     for (const ArenaColumn& column : numbers_) {
       PlaceColumn(box, column, taken);
     }
-    // The rows over a monster's bar are this player's, whether or not any of
-    // them hold a number just now. Kept clear rather than merely given up
-    // first, so a party member's stack does not jump aside the moment the
-    // player lands a swing.
+    // The rows over a monster's bar are THIS player's whether or not they hold
+    // a number now, so a party member's stack does not jump aside the moment
+    // the player lands a swing.
     std::vector<ftxui::Box> reserved = taken;
     for (std::size_t i = 0; i < mobs_; ++i) {
       reserved.push_back({panel_box_[i].x_min, panel_box_[i].x_max, box.y_min,
@@ -415,11 +408,9 @@ class ArenaNode : public ftxui::Node {
     }
   }
 
-  // Stands the player's column over the monster it was dealt to, centred, its
-  // bottom row against the bar -- where the line that landed first sits. A row
-  // that falls outside the arena or onto something else is simply not drawn:
-  // the column does not slide out of the way, because these numbers belong
-  // over the thing they were dealt to.
+  // Stands the player's column over the monster it was dealt to, bottom row
+  // against the bar. A row falling outside the arena or onto something else is
+  // simply NOT DRAWN: these numbers belong over what they were dealt to.
   void PlaceColumn(ftxui::Box arena, const ArenaColumn& column,
                    std::vector<ftxui::Box>& taken) {
     ftxui::Box owner = panel_box_[column.owner];
@@ -489,10 +480,9 @@ class ArenaNode : public ftxui::Node {
     return false;
   }
 
-  // The room `side` of `owner` offers a stack of the size `want` asks for,
-  // inside `arena` and clear of everything in `blocked`. Rows are dropped from
-  // the far end until what is left fits, so a cramped side shows part of the
-  // stack rather than nothing.
+  // The room `side` of `owner` offers a stack of `want`, inside `arena` and
+  // clear of `blocked`. Rows are dropped from the far end until it fits, so a
+  // cramped side shows part of the stack rather than nothing.
   static Spot SpotOn(Side side, ftxui::Box owner, ftxui::Requirement want,
                      ftxui::Box arena, const std::vector<ftxui::Box>& blocked) {
     Spot spot;

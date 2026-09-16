@@ -19,13 +19,9 @@
 
 namespace ms {
 
-// How long each character of the slide is held.
-//
-// This is also what the game repaints at -- Tui's ticker sleeps for exactly
-// this -- because a step finer than the redraw cannot be seen: the window
-// would jump two characters at once instead of sliding. Shortening it here
-// speeds the redraw with it; the tick that rides on the redraw is driven by
-// elapsed time, so it does not care how often it is asked.
+// How long each character of the slide is held, and what the game repaints at:
+// a step finer than the redraw cannot be seen, the window jumping two
+// characters instead of sliding. Shortening it speeds the redraw with it.
 constexpr std::chrono::milliseconds kMarqueeStep(150);
 
 // How long the name is held still at each end of the slide -- long enough to
@@ -34,28 +30,21 @@ constexpr std::chrono::milliseconds kMarqueeStep(150);
 // row being selected.
 constexpr std::chrono::milliseconds kMarqueePause(1000);
 
-// `text` cut to `width` columns, padded out if it is short of them. `elapsed`
-// is how long the row has been selected; pass zero for a row that is not, and
-// the head of the name comes back.
-//
-// A name that fits is returned padded and never moves, so a column of them
-// stays a column.
+// `text` cut to `width` columns and padded if short. `elapsed` is how long the
+// row has been selected; zero returns the head of the name. A name that fits
+// never moves, so a column of them stays a column.
 std::string ScrollingWindow(const std::string& text, int width,
                             std::chrono::steady_clock::duration elapsed);
 
-// How long the selection has sat where it is, for feeding ScrollingWindow.
-//
-// A panel that rebuilds its rows every render cannot hook the keypress that
-// moved the cursor -- an ftxui::Menu writes the index behind its back -- so
-// the move is noticed by watching the index instead.
+// How long the selection has sat where it is, for ScrollingWindow. A panel
+// rebuilding its rows every render cannot hook the keypress that moved the
+// cursor, so the move is noticed by WATCHING the index.
 class SelectionClock {
  public:
-  // Call once per render with whatever identifies the selected row -- its
-  // index, or the index folded together with the page it is on, so that the
-  // same row of another page counts as a different row -- and whether that row
-  // is drawn as selected at all. A panel the cursor has left is not being
-  // read, so its clock holds at zero; focus coming back starts the name over
-  // from its head, as stepping onto a row does.
+  // Once per render, with whatever identifies the selected row -- the index,
+  // or the index folded with its page so the same row elsewhere counts as a
+  // different one -- and whether it is drawn selected. An unfocused panel
+  // holds its clock at zero, so focus coming back starts the name over.
   void Follow(int key, bool focused = true);
 
   // Zero at the moment the selection arrived, growing from there, and zero

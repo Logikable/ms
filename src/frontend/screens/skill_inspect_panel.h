@@ -36,20 +36,15 @@ class SkillInspectPanel {
     kPreview,
   };
 
-  // `learned` is the level the character has spent points to, 0 for one they
-  // have not opened. `bonus` is the levels their book lends every skill --
-  // Combat Orders' -- which the card counts into the level it heads its
-  // blocks with. Both are ignored under kPreview, which is about a skill
-  // rather than about a character.
+  // `learned` is the level points were spent to and `bonus` the levels the
+  // book lends, which the card counts into the level it heads its blocks with.
+  // Both are ignored under kPreview, which is about a SKILL.
   void SetSkill(const Skill* skill, int learned, int bonus,
                 Levels levels = kLearned);
 
-  // The rows the card may take, borders included. Past this it scrolls, with
-  // a bar down its right edge saying how much is off screen. Zero means no
-  // limit, which is what a card laid out beside something else wants.
-  //
-  // Not read from the terminal here, for the reason CharacterPanel gives:
-  // tests draw the card at whatever size they choose.
+  // The rows the card may take; past this it scrolls, with a bar down its
+  // right edge. Zero is no limit, which a card beside something else wants.
+  // Not read from the terminal, for CharacterPanel's reason.
   void SetMaxRows(int rows) {
     max_rows_ = rows;
   }
@@ -95,10 +90,9 @@ struct PreviewCardSize {
 };
 
 // What a screen holding a card beside a list of skills asks before drawing
-// any one of them, so the screen stands still while the cursor walks cards of
-// different shapes. Measured rather than guessed: a card is as wide as its
-// widest label and value and as tall as whichever levers its skill carries.
-// `max_columns` is the room the screen has for the card.
+// any of them, so it stands still as the cursor walks cards of different
+// shapes. MEASURED rather than guessed: a card is as wide as its widest row
+// and as tall as whichever levers its skill carries.
 PreviewCardSize LargestPreviewCard(const std::vector<const Skill*>& skills,
                                    int max_columns);
 

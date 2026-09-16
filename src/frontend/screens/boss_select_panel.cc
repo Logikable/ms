@@ -129,12 +129,10 @@ int BossPdr(const GameState& state, const BossDifficulty& difficulty) {
 }  // namespace
 
 BossSelectPanel::BossSelectPanel(const GameState& state) : state_(state) {
-  // The level the fight opens at, on the easiest difficulty -- the one the
-  // cursor starts on and the one a player meets the fight through. The gate is
-  // what says where a fight sits in a character's life; HP only stands in for
-  // it, and stands in badly where one body holds what another spreads over six
-  // parts. A fight with no gate stated is not built yet and sorts last, on the
-  // HP that is the only thing it does state.
+  // The level the fight opens at, on the easiest difficulty. The GATE says
+  // where a fight sits in a character's life; HP stands in badly, one body
+  // holding what another spreads over six parts. A fight with no gate is not
+  // built yet and sorts last, on the HP it does state.
   std::vector<std::tuple<int, int64_t, std::string, std::string>> sorted;
   for (const std::pair<const std::string, Boss>& entry : state_.bosses) {
     int64_t hp = 0;

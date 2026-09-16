@@ -48,15 +48,12 @@ class ConfirmPrompt {
   bool open() const {
     return open_;
   }
-  // Consumes every event while open, so a keystroke meant for the prompt can
-  // never reach the panel behind it. Returns which way the answer went and
-  // closes the prompt on kConfirmed or kCancelled.
+  // Consumes EVERY event while open, so a keystroke meant for the prompt never
+  // reaches the panel behind it, and closes on kConfirmed or kCancelled.
   //
-  // confirm_enabled false is the answer the player cannot give -- a price the
-  // purse cannot cover, points the allocation does not have. Confirm then
-  // answers kPending and the prompt stays up, so the player sees the red row
-  // again rather than the dialog vanishing as though something happened. Pass
-  // the same flag ConfirmButtons is greying the button with.
+  // `confirm_enabled` false is the answer the player cannot give. Confirm then
+  // answers kPending and the prompt STAYS UP, so they see the red row again
+  // rather than the dialog vanishing as though something happened.
   ConfirmChoice OnEvent(ftxui::Event event, bool confirm_enabled = true);
   // Moves the cursor to [Cancel] on a prompt that is already up, for the
   // answer that stopped being available while the player was looking at it:
