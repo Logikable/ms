@@ -7,10 +7,12 @@
 # is dropped: this game's swing clock never idles while a monster stands, so
 # "when you attack with your own skills" is every five seconds.
 #
-# Four rains a cycle, not one. A 40-second battle analysis counts 29 uses and
-# 203 hits -- seven lines a rain exactly, and 32 rains is what eight cycles of
-# four come to. The four fall 0.83 seconds apart inside GMS's 2.5, which is
-# one moment here: a whole respawn beat is wider than the window they fall in.
+# One rain a cycle. GMS states the zone's arrows once -- "#q% damage to up to
+# #z enemies, #w times" -- and nothing anywhere says how many volleys fall in
+# the 2.5 seconds it rains for, so the count is what the tooltip prints and no
+# more. A 40-second battle analysis reading 29 uses against eight cycles was
+# once taken for four rains apiece; it is the only evidence for a multiplier
+# and it is not enough to invent one.
 #
 # The rain grows with the crowd the SWING is on, never with its own reach.
 # GMS says "if currently attacking more than one enemy", and a Bow Master
@@ -44,7 +46,6 @@ buff {
   pulse {
     label: "Arrow Rain"
     cast_interval_seconds: 5.0
-    casts: 4
     max_enemies: 10
     lines: 7
     lines_per_extra_enemy: 2
