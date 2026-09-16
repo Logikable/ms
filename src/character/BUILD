@@ -56,6 +56,34 @@ cc_library(
 )
 
 cc_library(
+    name = "dailies",
+    srcs = ["dailies.cc"],
+    hdrs = ["dailies.h"],
+    deps = [
+        ":arcane_force",
+        ":boss_reset",
+        ":character",
+        "//src/item:equip_instance",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:equip_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "dailies_test",
+    size = "small",
+    srcs = ["dailies_test.cc"],
+    deps = [
+        ":character",
+        ":dailies",
+        "//src/item:equip_instance",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "consumables",
     srcs = ["consumables.cc"],
     hdrs = ["consumables.h"],

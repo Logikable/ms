@@ -166,6 +166,14 @@ class CharacterInstance {
   // Records a clear at `now`, replacing any earlier one for the same pair.
   void RecordBossClear(const std::string& boss, const std::string& difficulty,
                        int64_t now);
+  // When this character last claimed the dailies, or 0 for never. On the same
+  // reset clock a daily boss is -- see dailies.h.
+  int64_t DailiesClaimedAt() const {
+    return character_.dailies_claimed_unix_seconds();
+  }
+  void RecordDailiesClaim(int64_t now) {
+    character_.set_dailies_claimed_unix_seconds(now);
+  }
   // Whether the scroll recorded under `key` is pinned to the top of the scroll
   // list. The keys are the frontend's; the character keeps the record because
   // which stats are worth chasing is this character's business, not the

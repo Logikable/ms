@@ -447,6 +447,10 @@ message Character {
   // 5th advancement earns any -- see v_matrix.h.
   int64 v_points = 24;
 
+  // When this character last claimed the dailies, as a Unix time, or 0 for
+  // never. On the boss reset clock -- see boss_reset.h.
+  int64 dailies_claimed_unix_seconds = 26;
+
   // The potions, which open at level 170. Per character because meso is: a
   // permanent unlock is bought out of one character's purse.
   Consumables consumables = 23;
