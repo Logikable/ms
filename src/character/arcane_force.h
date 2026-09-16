@@ -46,6 +46,11 @@ int64_t SymbolLevelUpCost(const EquipPrototype& proto, int level);
 // one at all. So a fresh symbol is 30 and a maxed one 220.
 int SymbolArcaneForce(int level);
 
+// What `item` is worth fed to another symbol: itself, plus every duplicate
+// banked in the levels it has already taken and the EXP it has over them. So
+// a fresh symbol is 1 and one packed to level 2 with 7 EXP is 20.
+int SymbolWorth(const Equip& item);
+
 // Whether `item` has taken the duplicates its next level asks for. What is
 // left is the meso, which is the player's to pay -- see SymbolLevelUpCost.
 bool SymbolCanLevelUp(const Equip& item);

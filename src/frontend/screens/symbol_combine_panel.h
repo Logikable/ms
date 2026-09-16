@@ -4,6 +4,11 @@
  * at every spare held: the last rung asks for 372 duplicates, and one keypress
  * each is not a thing to ask of anybody.
  *
+ * The amount counts spare items, which are not worth one apiece: a claimed
+ * stack carries twenty. The EXP row is what says so, and it runs past the rung
+ * it is measured against rather than stopping there -- the overflow is what
+ * pays for the level after.
+ *
  * The panel owns no game state: Reset() seeds it, quantity() reports the
  * choice, and OnEvent answers with the ConfirmChoice every dialog answers
  * with.
@@ -12,6 +17,7 @@
 #define MS_SRC_FRONTEND_SCREENS_SYMBOL_COMBINE_PANEL_H_
 
 #include <string>
+#include <vector>
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
@@ -21,10 +27,11 @@ namespace ms {
 
 class SymbolCombinePanel {
  public:
-  // Seeds the panel for feeding `spares` copies into a symbol at `level` that
-  // has taken `exp` of the `needed` its next level asks for.
+  // Seeds the panel for feeding spares into a symbol at `level` that has taken
+  // `exp` of the `needed` its next level asks for. `spare_worths` is what each
+  // spare is worth, in the order they would be taken.
   void Reset(const std::string& symbol_name, int level, int exp, int needed,
-             int spares);
+             std::vector<int> spare_worths);
   ftxui::Element Render() const;
   ConfirmChoice OnEvent(ftxui::Event event);
   int quantity() const {
@@ -36,6 +43,7 @@ class SymbolCombinePanel {
   int level_ = 1;
   int exp_ = 0;
   int needed_ = 0;
+  std::vector<int> spare_worths_;
   AmountSelector selector_;
 };
 

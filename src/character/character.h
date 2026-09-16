@@ -726,9 +726,13 @@ class CharacterInstance {
   // Spare copies of the Arcane Symbol for `slot` sitting in the equip bag.
   // Traces do not count, as they never do -- see CountOwned.
   int SpareSymbols(EquipSlot slot) const;
+  // What each of those spares is worth in duplicates, in the order
+  // CombineSymbols would eat them. A dialog asking how many to feed reads the
+  // total off this -- see SymbolWorth.
+  std::vector<int> SpareSymbolWorths(EquipSlot slot) const;
   // Absorbs up to `count` of those spares into the symbol worn in `slot`, each
-  // worth one EXP plus whatever it had banked itself, and throws them away.
-  // Returns how many it took, which is 0 if that slot holds no symbol.
+  // worth what SymbolWorth makes it, and throws them away. Returns how many it
+  // took, which is 0 if that slot holds no symbol.
   //
   // What the EXP buys is not bought here: raising the level is a step of its
   // own, and it is paid for in meso -- see LevelUpSymbol.

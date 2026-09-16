@@ -85,6 +85,14 @@ int SymbolArcaneForce(int level) {
   return 10 * level + 20;
 }
 
+int SymbolWorth(const Equip& item) {
+  int worth = 1 + item.symbol_exp();
+  for (int level = 1; level < SymbolLevel(item); ++level) {
+    worth += SymbolExpToNextLevel(level);
+  }
+  return worth;
+}
+
 bool SymbolCanLevelUp(const Equip& item) {
   int needed = SymbolExpToNextLevel(SymbolLevel(item));
   return needed > 0 && item.symbol_exp() >= needed;

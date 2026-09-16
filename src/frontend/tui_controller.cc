@@ -723,10 +723,10 @@ Screen TuiController::SeedSymbolScreen(Screen next) {
                        .equip_slot();
     const EquipInstance& worn = *state_.character.equipped().at(symbol_slot_);
     int level = SymbolLevel(worn.equip_state());
-    symbol_combine_panel_.Reset(worn.prototype().name(), level,
-                                worn.equip_state().symbol_exp(),
-                                SymbolExpToNextLevel(level),
-                                state_.character.SpareSymbols(symbol_slot_));
+    symbol_combine_panel_.Reset(
+        worn.prototype().name(), level, worn.equip_state().symbol_exp(),
+        SymbolExpToNextLevel(level),
+        state_.character.SpareSymbolWorths(symbol_slot_));
   }
   return next;
 }

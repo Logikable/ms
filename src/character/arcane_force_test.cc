@@ -64,6 +64,27 @@ TEST(ArcaneForceTest, LevellingCarriesTheExcess) {
   EXPECT_FALSE(SymbolCanLevelUp(item));
 }
 
+// What a spare is worth fed to another symbol: itself, its levels, and the
+// EXP over them. The packing a daily claim does has to come back out at what
+// went in -- twenty copies is a level 2 carrying 7.
+TEST(ArcaneForceTest, AWorthCountsTheLevelsBankedInIt) {
+  Equip fresh;
+  EXPECT_EQ(SymbolWorth(fresh), 1);
+
+  Equip banked;
+  banked.set_symbol_exp(4);
+  EXPECT_EQ(SymbolWorth(banked), 5);
+
+  Equip packed;
+  packed.set_symbol_level(2);
+  packed.set_symbol_exp(7);
+  EXPECT_EQ(SymbolWorth(packed), 20) << "1 + 12 + 7";
+
+  Equip maxed;
+  maxed.set_symbol_level(kMaxSymbolLevel);
+  EXPECT_EQ(SymbolWorth(maxed), 2680) << "the whole ladder, plus itself";
+}
+
 TEST(ArcaneForceTest, TheCapRefusesAnotherLevel) {
   Equip item;
   item.set_symbol_level(kMaxSymbolLevel);

@@ -3525,23 +3525,30 @@ TEST_F(SymbolTest, CombiningSpendsSparesIntoTheWornSymbol) {
   EXPECT_EQ(c_.SpareSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 0);
 }
 
-// A sacrificed symbol is worth one plus whatever it had banked, so nothing is
-// lost. Nothing can level a symbol in the bag today, which is what makes this
-// the rule rather than the behaviour.
-TEST_F(SymbolTest, ASpareCarriesItsOwnExpAcross) {
+// A sacrificed symbol is worth itself plus everything banked in it, levels
+// included: a claimed stack packed to level 2 comes back out as the twenty
+// copies it was packed from.
+TEST_F(SymbolTest, ASpareCarriesEverythingBankedInItAcross) {
   CharacterInstance c_ = MakeHero(rng_);
   EquipPrototype proto = Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
   Wear(c_, proto, /*level=*/1);
   Equip banked;
   banked.set_symbol_exp(4);
   c_.PickUp(std::make_unique<EquipInstance>(proto, banked));
+  Equip packed;
+  packed.set_symbol_level(2);
+  packed.set_symbol_exp(7);
+  c_.PickUp(std::make_unique<EquipInstance>(proto, packed));
 
-  ASSERT_EQ(c_.CombineSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 1), 1);
+  // Taken from the back of the bag, so the packed one goes first.
+  EXPECT_EQ(c_.SpareSymbolWorths(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY),
+            (std::vector<int>{20, 5}));
+  ASSERT_EQ(c_.CombineSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 2), 2);
   EXPECT_EQ(c_.equipped()
                 .at(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY)
                 ->equip_state()
                 .symbol_exp(),
-            5);
+            25);
 }
 
 TEST_F(SymbolTest, CombiningIntoAnEmptySlotTakesNothing) {

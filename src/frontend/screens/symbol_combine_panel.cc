@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
@@ -11,19 +12,25 @@
 namespace ms {
 
 void SymbolCombinePanel::Reset(const std::string& symbol_name, int level,
-                               int exp, int needed, int spares) {
+                               int exp, int needed,
+                               std::vector<int> spare_worths) {
   symbol_name_ = symbol_name;
   level_ = level;
   exp_ = exp;
   needed_ = needed;
-  selector_.Reset(spares);
+  spare_worths_ = std::move(spare_worths);
+  selector_.Reset(static_cast<int>(spare_worths_.size()));
 }
 
 ftxui::Element SymbolCombinePanel::Render() const {
-  // Where the EXP lands if the player confirms, held to the rung: the row
-  // reads as a bar filling rather than as a total that can overshoot it. What
-  // spills over is not lost -- it carries into the next level.
-  int after = std::min(needed_, exp_ + selector_.value());
+  // Where the EXP lands if the player confirms. Allowed past the rung, since
+  // what spills over is not lost: it is what the level after that is paid in.
+  int after = exp_;
+  int taken =
+      std::min(selector_.value(), static_cast<int>(spare_worths_.size()));
+  for (int i = 0; i < taken; ++i) {
+    after += spare_worths_[i];
+  }
   ftxui::Element content = ftxui::vbox({
       CenteredRow(symbol_name_),
       ThemedSeparator(),

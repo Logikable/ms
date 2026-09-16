@@ -1827,15 +1827,20 @@ void CharacterInstance::RecomputeEquipStats() {
 }
 
 int CharacterInstance::SpareSymbols(EquipSlot slot) const {
-  int count = 0;
-  for (int i = 0; i < inventory_.size(); ++i) {
+  return static_cast<int>(SpareSymbolWorths(slot).size());
+}
+
+std::vector<int> CharacterInstance::SpareSymbolWorths(EquipSlot slot) const {
+  std::vector<int> worths;
+  // Backwards, which is the order CombineSymbols takes them in.
+  for (int i = inventory_.size() - 1; i >= 0; --i) {
     const EquipInstance* spare = inventory_.equip_instance(i);
     if (spare != nullptr && IsArcaneSymbol(spare->prototype()) &&
         spare->prototype().equip_slot() == slot) {
-      ++count;
+      worths.push_back(SymbolWorth(spare->equip_state()));
     }
   }
-  return count;
+  return worths;
 }
 
 int CharacterInstance::CombineSymbols(EquipSlot slot, int count,
@@ -1853,11 +1858,10 @@ int CharacterInstance::CombineSymbols(EquipSlot slot, int count,
         spare->prototype().equip_slot() != slot) {
       continue;
     }
-    // A copy is worth one, plus whatever it had banked itself: what a
-    // sacrificed symbol carries is added rather than lost. Nothing can level a
-    // symbol sitting in the bag, so today that second term is always zero.
-    state.set_symbol_exp(state.symbol_exp() + 1 +
-                         spare->equip_state().symbol_exp());
+    // What a sacrificed symbol carries is added rather than lost: a claimed
+    // stack is packed into levels, and every duplicate under them counts.
+    state.set_symbol_exp(state.symbol_exp() +
+                         SymbolWorth(spare->equip_state()));
     inventory_.remove_equip(i);
     ++taken;
   }
