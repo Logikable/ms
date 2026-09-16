@@ -48,11 +48,9 @@ Mob ObjectiveBody(const GameState& state, const BossDifficulty& difficulty) {
 }
 
 // The params of the fight the plan is aimed at, and how many bodies stand in
-// it. The BOSS's where there is a fight to aim at, not the map's: a boss fight
-// reads the bossing preset and halves reach, and a character picks a different
-// swing against one lone body than against a crowd -- ranking the gear bought
-// for a boss on the swing they use while farming is the same mistake in a
-// different place.
+// it. The BOSS's where there is a fight to aim at, not the map's: a boss reads
+// the bossing preset, halves reach, and is picked a different swing than a
+// crowd.
 CombatParams AimedParams(const GameState& state, int* enemies) {
   std::pair<std::string, int> fight;
   CombatParams params;
@@ -104,27 +102,21 @@ const Skill* SkillNamed(const GameState& state, const std::string& name) {
   return nullptr;
 }
 
-// Everything the character really does to `target`, and how often.
-//
-// The rate of each strand is SOLVED, not counted: what the played fight saw
-// the swing land, over what the closed form says one of them lands. That is
-// what carries the clock across into a form a candidate can be re-scored
-// through -- a swing held back by a two-minute cooldown solves to a small
-// rate, and one leaned on all fight solves to a large one, with no rule here
-// having to know which.
-//
-// What runs on a clock of its own -- summons, burns, releases, a reflection --
-// is credited across the strands in proportion. It scales with the character
-// rather than with any one swing, so crediting it to the main attack would
-// make that attack look better than it is; spread, it assumes a summon grows
-// like the average of what they swing, which is the closest a closed form gets.
-// The least of the fight a swing has to account for to be carried as a strand
-// of its own. Every candidate on the shelf is scored through every strand, so
-// the count is a cost paid thousands of times a pass -- and a swing worth a
-// hundredth of the fight cannot reorder anything. What is dropped is not lost:
-// it falls into the same proportional credit the own-clock damage takes.
+// The least of the fight a swing must account for to be carried as a strand of
+// its own. Every candidate is scored through every strand, a cost paid
+// thousands of times a pass, and a swing worth a hundredth of the fight cannot
+// reorder anything. What is dropped falls into the proportional credit the
+// own-clock damage takes.
 constexpr double kStrandFloor = 0.01;
 
+// Everything the character really does to `target`, and how often. Each
+// strand's rate is SOLVED rather than counted -- what the played fight saw the
+// swing land, over what the closed form says one landing is worth -- which is
+// what carries the clock into a form a candidate can be re-scored through.
+//
+// What runs on a clock of its own is credited across the strands in
+// proportion: it scales with the character rather than any one swing, so
+// crediting it to the main attack would flatter that attack.
 std::vector<Strand> StrandsFor(const GameState& state, const Mob& target) {
   int enemies = 1;
   CombatParams params = AimedParams(state, &enemies);

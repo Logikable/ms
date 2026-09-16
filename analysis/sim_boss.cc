@@ -39,10 +39,9 @@ int64_t PhaseHp(const std::map<std::string, Mob>& mobs,
 
 // How long a loser stays. Nobody watches a boss they have taken three percent
 // off run its clock out, and a sim that sits through it spends most of its
-// time there: once what is left standing says the fight cannot be finished
-// inside the limit -- by kGiveUpFactor over it -- they walk out. Not asked
-// before kFirstLook, so an opening phase spent walking between spots is not
-// mistaken for a rout.
+// time there -- so once what stands says the fight cannot be finished inside
+// the limit they walk out. Not asked before kFirstLook, so an opening phase
+// spent walking between spots is not mistaken for a rout.
 constexpr double kGiveUpFactor = 1.5;
 constexpr double kFirstLook = 120.0;
 

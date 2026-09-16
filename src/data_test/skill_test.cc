@@ -317,14 +317,10 @@ TEST(SkillDataTest, EverySwingsNameFitsTheBossFightPanel) {
 }
 
 // The character panel's widest column is chosen for the longest name the game
-// ships, so a longer one arriving has to move that number rather than sit cut
-// on every terminal -- this is where it says so.
-//
-// A Hyper Skill is the exception. GMS names one for the skill it strengthens
-// and then for what it does -- "Advanced Final Attack - Opportunity" -- and
-// there is no shortening of that which is still GMS's name, so the row slides
-// the name under the cursor instead. What it may not do is sit cut down to
-// something another skill also cuts down to.
+// ships, so a longer one has to MOVE that number rather than sit cut. A Hyper
+// Skill is the exception -- there is no shortening of "Advanced Final Attack -
+// Opportunity" that is still GMS's name, so the row slides it instead. What it
+// may not do is cut down to something another skill also cuts down to.
 TEST(SkillDataTest, EverySkillNameFitsTheWidestCharacterPanel) {
   std::map<std::string, Skill> skills = LoadSkills();
   // The level column is measured over a whole book, so the widest level in
@@ -431,12 +427,9 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   }
 }
 
-// A skill more than one book lists is one file with a placement per book, so
-// there is one ladder to keep right rather than ten copies to keep in step.
-// What holds that together is the stage: sharing only ever comes of two jobs
-// standing on one rung, so every book listing a skill charges it to the same
-// pool. A placement at another stage would mean one file whose levels cost a
-// 2nd job's points and a 3rd job's alike.
+// A shared skill is ONE file with a placement per book, so there is one ladder
+// to keep right rather than ten copies. The STAGE holds it together: sharing
+// comes of two jobs on one rung, so every book charges it to the same pool.
 TEST(SkillDataTest, EveryBookListingASkillChargesItToTheSamePool) {
   int shared = 0;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
@@ -454,8 +447,6 @@ TEST(SkillDataTest, EveryBookListingASkillChargesItToTheSamePool) {
   EXPECT_GT(shared, 0) << "the shared skill folders stopped being read";
 }
 
-// A node is held to its kind: how far it goes is the kind's to say, and where
-// it lives follows from whose matrix holds it.
 // The Job Inspect screen is what a player reads before an advancement, so an
 // advancement it can be opened on with nothing to show is content that shipped
 // half-written. Walks what the Advance tab can offer rather than the whole
@@ -482,13 +473,10 @@ TEST(SkillDataTest, EveryAdvancementAPlayerIsOfferedHasSomethingToRead) {
   EXPECT_GT(offered, 0) << "nothing is offered at all";
 }
 
-// The engine models one damage table per combination of timed buffs, so a
-// character holding more than kMaxBuffWindows of them keeps that many and
-// silently loses the rest -- a buff that costs a point and does nothing.
-//
-// Counted off the books rather than off a built character: what a job can
-// raise is a fact about its data, and this has to fail while the buff is being
-// written rather than the day somebody profiles a fight and finds it missing.
+// One damage table per combination of timed buffs, so a character over
+// kMaxBuffWindows silently loses the rest -- a buff that costs a point and
+// does nothing. Counted off the BOOKS, so it fails while the buff is being
+// written rather than the day somebody profiles a fight.
 TEST(SkillDataTest, NoBookHandsOutMoreBuffsThanTheFightModels) {
   std::map<std::string, Skill> skills = LoadSkills();
   for (Job job : EveryValueOf<Job>(Job_descriptor())) {
@@ -610,6 +598,8 @@ bool AnyAutoModeHasBase(const Skill& skill) {
   return false;
 }
 
+// A node is held to its kind: how far it goes is the kind's to say, and where
+// it lives follows from whose matrix holds it.
 TEST(SkillDataTest, EveryVNodeMatchesItsKind) {
   int commons = 0;
   int archetypes = 0;
@@ -899,13 +889,10 @@ TEST(SkillDataTest, EveryAutoAttackSaysWhenItFires) {
   }
 }
 
-// A skill's own-clock half is a second attack out of one skill, so it needs
-// both halves of what makes an attack: something to fire, and when. And a
-// name, since the page has to tell one from another.
-//
-// Its when is one clock or the other -- seconds of its own, or a count of the
-// character's attacks. Naming both would leave the fight to pick, and naming
-// neither is a half that never fires.
+// An own-clock half is a second attack out of one skill, so it needs both
+// halves of what makes one -- something to fire and when -- and a name. Its
+// WHEN is one clock or the other: naming both leaves the fight to pick, and
+// naming neither is a half that never fires.
 TEST(SkillDataTest, EveryAutoModeSaysWhenItFiresAndForHowMuch) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     for (const AutoMode& mode : entry.second.auto_mode()) {
@@ -940,12 +927,10 @@ TEST(SkillDataTest, EverySideStrikeSaysWhenItFiresAndForHowMuch) {
   }
 }
 
-// A held swing needs everything the hold is made of: a rate to pulse at, a
-// count to stop at, and a floor to be let go after. The strike it ends on is
-// optional -- Grand Guardian ends by letting go -- but one that is written
-// needs a row to sit on. Its extra hits have to be that strike alone, since
-// the fight reads everything past the first block of lines as what the hold
-// ended with.
+// A held swing needs everything a hold is made of: a rate to pulse at, a count
+// to stop at, a floor to let go after. The closing strike is optional, but one
+// that is written needs a row -- and its extra hits must be that strike alone,
+// the fight reading everything past the first block as the finish.
 TEST(SkillDataTest, EveryHeldSwingSaysHowItPulsesAndWhatItEndsOn) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
@@ -1347,12 +1332,9 @@ TEST(SkillDataTest, EveryWeaponASkillDemandsHasAName) {
   }
 }
 
-// A bonus for a weapon the skill itself will not work with can never be read:
-// the skill lapses whole before the bonus is ever reached.
 // Every attack names the weapons it is swung with. The starter Sword and Long
 // Sword are holdable by every class, so an ungated attack is a magician
-// casting Energy Bolt with a longsword -- and, within a class, a Fighter
-// swinging Brandish off a spear.
+// casting Energy Bolt with a longsword.
 TEST(SkillDataTest, EveryAttackNamesTheWeaponsItNeeds) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     if (entry.second.kind() != SKILL_KIND_ATTACK) {
@@ -1363,12 +1345,10 @@ TEST(SkillDataTest, EveryAttackNamesTheWeaponsItNeeds) {
   }
 }
 
-// What each book's attacks are swung with. Written out rather than derived:
+// What each book's attacks are swung with. WRITTEN OUT rather than derived:
 // which weapons a line masters is a decision, and a book added without one
-// fails here until somebody makes it. A book naming two lists holds two kinds
-// of attack: the rogue's first splits -- Double Stab is a dagger and Lucky
-// Seven a claw, which is the whole reason the branch exists -- and a V book
-// pairs its job's own node with an archetype node every warrior swings.
+// fails here until somebody makes it. Two lists means two kinds of attack --
+// the rogue's dagger and claw, or a V book's job node and archetype node.
 struct BookWeapons {
   JobAdvancement book;
   std::vector<std::set<EquipType>> lists;
@@ -1493,6 +1473,8 @@ TEST(SkillDataTest, EveryFinalAttackIsNamedUnlessItsSkillAlreadyIs) {
   }
 }
 
+// A bonus for a weapon the skill itself will not work with can never be read:
+// the skill lapses whole before the bonus is reached.
 TEST(SkillDataTest, EveryWeaponBonusIsForAWeaponTheSkillAccepts) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
@@ -1517,16 +1499,9 @@ TEST(SkillDataTest, EveryWeaponBonusIsForAWeaponTheSkillAccepts) {
   }
 }
 
-// A skill that wants a sword wants a sword in either hand, and the same goes
-// for an axe -- naming only the half with items today is a skill that quietly
-// stops working the day the other half gets one.
-//
-// The DEMAND only. A weapon bonus is the opposite thing: it exists to pay one
-// weapon and not another, which is why High Paladin's ignored defence is on
-// the blunt weapon alone.
 // The job inspect screen sets a skill card beside the 35-wide book, and the
-// card is now as wide as its widest label and value. No shipped skill may
-// widen it past what the narrowest terminal the game lays out at leaves.
+// card is as wide as its widest label and value. No shipped skill may widen it
+// past what the narrowest terminal leaves.
 TEST(SkillDataTest, NoShippedCardOutgrowsTheJobInspectScreen) {
   std::map<std::string, Skill> skills = LoadSkills();
   const int kRoom = kLeftColumnMin + kRightColumnMin - kJobInspectBookWidth;
@@ -1546,6 +1521,10 @@ TEST(SkillDataTest, NoShippedCardOutgrowsTheJobInspectScreen) {
                            << " columns beside the book";
 }
 
+// A skill that wants a sword wants a sword in EITHER hand: naming only the
+// half with items today is a skill that stops working the day the other half
+// gets one. The DEMAND only -- a weapon bonus exists to pay one and not the
+// other, which is why High Paladin's ignored defence is on the blunt alone.
 TEST(SkillDataTest, AWeaponDemandCoversBothHands) {
   const std::pair<EquipType, EquipType> kPairs[] = {
       {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD},
@@ -1894,14 +1873,9 @@ TEST(SkillDataTest, EveryPerOrbBargainHasOrbsToBePaidAgainst) {
 }
 
 // A ladder counted in whole levels has to land on one. Its per-level step is a
-// fraction that cannot be written exactly, so the top of the ladder sits a hair
-// under the level it climbs to and is only carried over by the epsilon the
-// floor adds -- shorten the literal in the data and the last level buys
-// nothing. This is the test that says so.
-//
-// A grant with no step at all is not a ladder and answers to neither rule:
-// Decent Combat Orders lends one level at every one of its thirty, and what
-// its levels buy is the other half of the node.
+// fraction that cannot be written exactly, so the top sits a hair under and is
+// carried only by the floor's epsilon -- SHORTEN THE LITERAL and the last
+// level buys nothing. A grant with no step is not a ladder and is exempt.
 TEST(SkillDataTest, ABonusLevelLadderEndsOnAWholeLevel) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
@@ -1922,18 +1896,11 @@ TEST(SkillDataTest, ABonusLevelLadderEndsOnAWholeLevel) {
 // simply stops, however many levels are on offer.
 constexpr int kSmallestMasterLevelPastIt = 10;
 
-// The 4th job skills Combat Orders does NOT carry, by file stem. It is GMS's
-// mechanic and GMS names the skills it reaches, so a book holding one of these
-// is not a mistake -- and naming them here keeps the check strict for the rest
-// rather than weakening it to a direction that catches nothing.
-//
-// Infinity is ours rather than GMS's: it is the largest single lever any book
-// grants, and two free levels of it were not worth handing over. Blood Money
-// is GMS's own -- it says so on the skill.
-//
-// The last three are GMS master-level-1 passives, stretched to ten rungs here
-// so the book has something to climb. GMS states one number for each and does
-// not mark them, so there is no level above the top for a grant to reach.
+// The 4th job skills Combat Orders does NOT carry, by file stem. GMS names the
+// skills its own mechanic reaches, so naming the exceptions here keeps the
+// check strict for the rest. Infinity is OURS -- the largest single lever any
+// book grants -- and the last three are GMS master-level-1 passives stretched
+// to ten rungs, with no level above the top for a grant to reach.
 const char* const kHeldToTheirMasterLevel[] = {
     "enchanted_quiver", "infinity",    "fire_poison_infinity",
     "bishop_infinity",  "blood_money", "blessed_harmony",
@@ -1988,13 +1955,9 @@ TEST(SkillDataTest, ALineLadderBuysAStrikeBeforeTheMasterLevel) {
 }
 
 // Damage belongs to the things that swing. The reverse no longer holds -- an
-// active can carry a permanent grant, which is how GMS writes Phoenix and how
-// LearnedPassives now reads it -- but a passive carrying a swing's damage is
-// still data nothing will ever read.
-//
-// Meso Explosion is the one exception and states why it is one: a passive that
-// throws a coin has a multiplier of its own, so the points GMS pays that coin
-// against an ordinary monster ride it. See AddMesoStrike.
+// active can carry a permanent grant -- but a passive carrying a swing's
+// damage is data nothing will read. Meso Explosion is the exception and says
+// why: a passive that throws a coin has a multiplier of its own.
 TEST(SkillDataTest, APassiveCarriesNoSwingsDamage) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
@@ -2204,10 +2167,6 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
   EXPECT_GT(checked, 0) << "no skill in the catalog grants strikes or reach";
 }
 
-// Superseding is the bluntest thing one skill can do to another -- the named
-// skill stops paying at all -- so it may only name a skill the same character
-// can hold, and never itself. A self-reference would leave a book that
-// silently teaches nothing.
 // A group of one is a typo: the label is what ties two skills together, and a
 // skill alone in one competes with nothing and reads as though it did. Every
 // member states the same string, so this is where a slip shows up.
@@ -2225,6 +2184,9 @@ TEST(SkillDataTest, EveryExclusiveGroupHoldsMoreThanOneSkill) {
   }
 }
 
+// Superseding is the bluntest thing one skill can do to another -- the named
+// skill stops paying at all -- so it may only name a skill the same character
+// can hold, and never itself.
 TEST(SkillDataTest, EverySupersededSkillIsHoldable) {
   std::map<std::string, Skill> skills = LoadSkills();
   int checked = 0;
@@ -2312,11 +2274,9 @@ TEST(SkillDataTest, ASupersedingSkillIsNeverWorseAtLevelOne) {
 }
 
 // The catalog keys on file stem but learned levels key on DISPLAY name, so two
-// skills one character can reach under one name share a level: buying either
-// buys both. Exclusive branches are the only thing preventing it -- each
-// 2nd-job warrior has their own Weapon Mastery and no character sees two. The
-// trap this guards is a later stage repeating an earlier stage's name, where
-// both books do belong to one character.
+// skills one character can reach under one name SHARE a level. Exclusive
+// branches are all that prevents it; the trap this guards is a later stage
+// repeating an earlier one's name, where both books are one character's.
 TEST(SkillDataTest, OneSkillPerNamePerCharacter) {
   std::map<std::string, Skill> skills = LoadSkills();
   for (Job job : EveryValueOf<Job>(Job_descriptor())) {
@@ -2359,17 +2319,13 @@ TEST(SkillDataTest, EveryFourthJobMasteryClimbsTheSameLadder) {
   EXPECT_GT(checked, 0) << "no 4th job mastery skill in the catalog";
 }
 
-// The skills GMS gives to a party, by display name, with the two Meditations
-// and the two Sharp Eyes counted once. Written out rather than derived,
-// because what this is checking is the audit itself: a skill dropped from the
-// data keeps its ally half only if somebody notices, and the wiki is the only
-// thing that says it ever had one.
+// The skills GMS gives to a party, by display name. WRITTEN OUT rather than
+// derived, because what is checked is the audit itself: a skill dropped from
+// the data keeps its ally half only if somebody notices.
 //
-// The two GMS party skills NOT here are casts -- Heal is raised on somebody,
-// and Angel Ray's healing rides each hit -- and nothing carries a caster's
-// actions to an ally's fight yet. Dispel is out for a duller reason: what it
-// cures is a display-only lever, so an ally half of it would grant a row and
-// nothing else.
+// The two party skills NOT here are casts, and nothing carries a caster's
+// actions to an ally's fight yet. Dispel is out because what it cures is a
+// display-only lever.
 const char* const kPartySkills[] = {
     "Absolute Zero Aura",
     "Advanced Blessing",
@@ -2432,14 +2388,10 @@ TEST(SkillDataTest, EveryPartySkillReachesTheParty) {
 }
 
 // A description has to match the grant: a skill the party feels says so, and
-// one that says so grants it. Four ways of reaching them count -- a half held
-// for allies, the same again inside a buff, a demand for company, and a buff
-// that stands over the whole party however many raise it. Two skills are
-// excused, and GMS excuses both. Puncture's party clause lives in its readout
-// rather than its flavour text. Blessed Harmony hands out nothing of its own --
-// it restates the Ensemble it replaces, and names it, and the Ensemble's own
-// page says what that is worth. Either way the card's Your Party row still
-// carries the number.
+// one that says so grants it. Four ways of reaching them count. Two skills are
+// excused and GMS excuses both -- one keeps its party clause in its readout,
+// the other restates the skill it replaces. The card's Your Party row carries
+// the number either way.
 TEST(SkillDataTest, ADescriptionSaysWhetherThePartyIsReached) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
@@ -2486,12 +2438,10 @@ TEST(SkillDataTest, OnlyTheClericsLineStacksAcrossAParty) {
             (std::set<std::string>{"Blessed Ensemble", "Blessed Harmony"}));
 }
 
-// The Evil Eye shouts once, however far the book is taught. GMS gives Evil Eye
-// Shock II no attack of its own -- it restates the base skill's whole readout
-// and raises its damage -- and Revenge of the Evil Eye does the same again as
-// Evil Eye Shock III, shortening the clock from 12 seconds to 10. Three
-// stacking volleys is the reading this data was first written under, and this
-// pins the correction.
+// The Evil Eye shouts ONCE, however far the book is taught: GMS gives Shock II
+// no attack of its own, restating the base skill and raising its damage, and
+// Revenge does the same again. Three stacking volleys is the reading this data
+// was first written under, and this pins the correction.
 TEST(SkillDataTest, TheEvilEyeShoutsOnce) {
   std::map<std::string, Skill> skills = LoadSkills();
   EXPECT_EQ(skills.at("evil_eye_shock_ii").supersedes_skill_name(),

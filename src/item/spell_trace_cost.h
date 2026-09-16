@@ -21,22 +21,16 @@ namespace ms {
 // column: its shelf is its own, its price is not.
 enum class TraceCategory { kArmor, kGloves, kWeapon, kAccessory };
 
-// Traces one scroll costs for an item of this required level. `success_rate`
-// is a whole percent.
-//
-// Returns 0 where GMS sells no such scroll: 15% is weapon-only below level
-// 200, above 250 only armor is priced, and GMS sells no rate but 100, 70, 30
-// and 15.
+// Traces one scroll costs for an item of this required level, `success_rate` a
+// whole percent. 0 where GMS sells no such scroll: 15% is weapon-only below
+// 200, above 250 only armour is priced, and the rates are 100, 70, 30, 15.
 int SpellTraceCost(int required_level, TraceCategory category,
                    int success_rate);
 
-// What `scroll` costs on an item of this level. The one call the game makes.
-//
-// Where GMS prices the scroll, that price wins and the scroll file's own
-// `trace_cost` is ignored. Where GMS sells no such scroll -- the clean slate,
-// which was never a spell trace purchase at all -- the file's price stands.
-// A scroll that ends up costing nothing is a scroll given away, so a data test
-// refuses one.
+// What `scroll` costs on an item of this level -- THE call the game makes.
+// Where GMS prices the scroll that price wins and the file's `trace_cost` is
+// ignored; where it sells no such scroll, the file's price stands. A scroll
+// costing nothing is one given away, and a data test refuses it.
 int TraceCost(const Scroll& scroll, int required_level);
 
 }  // namespace ms

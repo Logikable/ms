@@ -112,15 +112,11 @@ class EquipInstance : public EquipTabItem {
     return TakesUpgradeSlots(prototype_) && state_.hammers() < kMaxHammers;
   }
 
-  // Returns false if the item does not take star force at all, if upgrade
-  // slots remain (scrolling must be completed first), or if already at max
-  // stars. The first of those is why this is not just a slot count: an item
-  // with no slots has nothing left to scroll, which would otherwise read as
-  // ready for stars.
-  //
-  // A hammer opens a slot, so one driven into a starred item stops its stars
-  // until the new slot is spent. That is the same rule, not an exception to
-  // it: an item with an open slot is not finished being scrolled.
+  // False for an item that takes no star force, one with upgrade slots left
+  // (scrolling comes first), or one already at max stars. The first is why
+  // this is not a slot count: an item with NO slots has nothing to scroll,
+  // which would read as ready. A hammer opens a slot, so one driven into a
+  // starred item stops its stars -- the same rule, not an exception.
   bool CanStarForce() const {
     return Supports(prototype_, UPGRADE_STAR_FORCE) &&
            state_.remaining_upgrade_slots() == 0 &&

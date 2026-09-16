@@ -30,33 +30,25 @@ std::string HeldWeaponName(const CharacterInstance& character);
 // displaced goes back into it.
 bool EquipByName(CharacterInstance& character, const std::string& name);
 
-// Buys and wears the best gear the character can hold: the weapon, the
-// ammunition it draws from, their branch's off-hand, and the rings, emblem and
-// medal on the shop's equipment shelf. Both shelves are shopped, the Frozen
-// tier included.
+// Buys and wears the best gear the character can hold: the weapon, its
+// ammunition, their branch's off-hand and the shop's accessories, both shelves
+// included.
 //
-// Which weapon comes out of a measurement rather than a list -- the top rung
-// of every ladder they can hold is swung at a mob of their own level, and the
-// hardest hitter is bought. Asked afresh every time, because the answer moves
-// as the book behind the weapon fills.
-//
-// `budget` weighs the price against the purse: a sim measuring the climb wants
-// it, since affording the weapon is part of what it measures; one asking
-// whether a build can hold a map does not.
+// Which weapon comes out of a MEASUREMENT rather than a list, and is asked
+// afresh every time because the answer moves as the book fills. `budget`
+// weighs the price against the purse: a sim measuring the climb wants it,
+// since affording the weapon is part of what it measures.
 void Outfit(GameState& state, bool budget,
             EquipType settled = EQUIP_TYPE_UNSPECIFIED);
 
 // The weapon type the character would settle on with their whole book behind
-// them. Measured on a copy, so it leaves them exactly as it found them.
+// them, measured on a copy.
 //
-// The weapon and the book are each worth what the other is: a weapon is worth
-// what the skills gated to it can do, and those skills are worth nothing
-// without one that can swing them. One of the two has to be settled first, and
-// a book spent point by point cannot do it -- every point goes to what the
-// weapon in hand can already swing, so a Paladin who happens to pick up a
-// polearm never buys Blast, and never measures a mace as worth holding. This
-// asks what the branch is FOR instead, which is what a player knows before
-// they spend anything.
+// The weapon and the book are each worth what the other is, so one has to be
+// settled first -- and a book spent point by point cannot do it: every point
+// goes to what is already in hand, so a Paladin who picks up a polearm never
+// buys Blast. This asks what the branch is FOR, which a player knows before
+// spending anything.
 EquipType SettledWeaponType(GameState& state, bool budget);
 
 // Outfit with the choice already made: the top rung of `type` the character
@@ -73,58 +65,37 @@ void OutfitWeapon(GameState& state, EquipType type);
 bool ReachedSymbolArea(const CharacterInstance& character,
                        const EquipPrototype& proto);
 
-// Feeds every worn Arcane Symbol the spare copies of itself the bag is
-// holding, and says how many it absorbed. A symbol is the one ladder climbed
-// with duplicates rather than with either upgrade path, and a spare nothing
-// takes sits in the bag for good -- so this runs at every look, for the room
-// as much as for the rung.
-//
-// What the duplicates buy is not bought here. Raising the level is paid for in
-// meso, and GearShopper ranks that rung against a star like anything else.
+// Feeds every worn Arcane Symbol the spares the bag holds, and says how many
+// it absorbed. A spare nothing takes sits there for good, so this runs at
+// every look for the ROOM as much as the rung. Raising the level is paid in
+// meso, which GearShopper ranks against a star.
 int CollectSymbols(CharacterInstance& character);
 
-// Wears the best of every slot the shop does not stock: the armour, the boss
-// accessories and the pocket, which in this game drop rather than sell. What a
-// player who had cleared everything would be standing in. A family of slots
-// takes as many distinct pieces as it holds, so a character wearing rings
-// wears four of them.
-//
-// `skip` names catalog keys to leave off, for a sim asking whether a fight can
-// be won without what only that fight pays -- a boss cannot be beaten in its
-// own drop. Within a slot the highest rung wins, the way a shop ladder is
-// climbed: there is nothing to measure while each slot holds one item.
+// Wears the best of every slot the shop does not stock -- what a player who
+// had cleared everything would stand in. A family takes as many distinct
+// pieces as it holds. `skip` names catalog keys to leave off, for a sim asking
+// whether a fight can be won without what only that fight pays.
 void OutfitDrops(GameState& state, const std::set<std::string>& skip = {});
 
-// Wears the best of what the bag is already holding, in the slots the shop
-// does not stock -- the armour, the accessories and the pocket, which drop
-// rather than sell. A piece is put on when its slot is empty or when it
-// outranks what is in it, so a second copy of what is worn never displaces the
-// scrolls and stars on the first.
-//
-// The drop half of Outfit: that one shops, this one opens the bag. A sim
-// playing a climb forward needs both, since a player wears what falls.
+// Wears the best of what the BAG holds, in the slots the shop does not stock.
+// A piece goes on when its slot is empty or it outranks what is in it, so a
+// second copy never displaces the scrolls and stars on the first. The drop
+// half of Outfit: that one shops, this one opens the bag.
 void WearBestFromBag(CharacterInstance& character);
 
-// Puts everything worn at its ceiling: every upgrade slot filled with the
-// scroll that measures best on the item, and stars up to the item's own
-// maximum. Nothing is rolled and nothing is paid for -- a sim asking what a
-// build can reach wants the ceiling, not one draw from it.
-//
-// Which scroll is best is measured rather than listed, for the reason Outfit
-// measures the weapon: a thief's weapon takes three 15% traces that differ
-// only in which stat rides the attack, and only a swing says which.
+// Puts everything worn at its ceiling: every slot filled with the scroll that
+// MEASURES best, and stars to the item's maximum. Nothing is rolled and
+// nothing is paid for -- a sim asking what a build can reach wants the
+// ceiling, not one draw from it.
 //
 // `star_cap` holds every item below its own maximum, for a ceiling a player
-// would actually stop at -- past 15 an attempt can destroy the item, and a
-// piece only one boss drops has no second copy to reach for.
+// would stop at: past 15 an attempt can destroy the item, and a piece one boss
+// drops has no second copy.
 void FullyUpgrade(GameState& state, int star_cap = kMaxStarForce);
 
 // Which scroll each worn slot wants: the one the character measures best in
-// when it fills every slot of the item, chosen from those the item takes that
-// succeed `success_rate` of the time. A slot no scroll helps is absent.
-//
-// Restores the character afterwards, so asking wears nothing and buys
-// nothing.
+// when it fills every slot, out of those succeeding `success_rate` of the
+// time. Restores the character, so asking wears and buys nothing.
 std::map<EquipSlot, const Scroll*> ChooseScrolls(GameState& state,
                                                  int success_rate);
 

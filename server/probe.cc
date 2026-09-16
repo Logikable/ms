@@ -2,9 +2,8 @@
 //
 //   bazelisk run //server:probe -- --action=create --boss=zakum
 //
-// It connects, does the one thing it was asked to, and prints the lobby every
-// time it changes until its time is up. What the game's screens will show,
-// before there are any screens.
+// It connects, does the one thing asked, and prints the lobby every time it
+// changes until its time is up.
 
 #include <chrono>
 #include <cstdio>
@@ -137,11 +136,9 @@ bool Act(ms::MultiplayerClient& client, const std::string& action) {
 }
 
 // Waits for the connection to settle and says whether this build can play
-// against the server as it is now. The version the two disagree on is the
-// whole point: a server left behind by a deploy turns every client away, and
-// nothing else in the game says so out loud.
-//
-// Returns a process exit code: 0 only once the server has welcomed us.
+// against the server as it stands. The VERSION is the point: a server left
+// behind by a deploy turns every client away and says so nowhere else.
+// Returns a process exit code, 0 only once the server has welcomed us.
 int CheckServer(ms::MultiplayerClient& client, int seconds) {
   std::chrono::steady_clock::time_point deadline =
       std::chrono::steady_clock::now() + std::chrono::seconds(seconds);

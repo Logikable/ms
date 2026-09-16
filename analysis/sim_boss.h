@@ -35,12 +35,10 @@ struct BossOutcome {
   double left = 0.0;
 };
 
-// Fights `difficulty_index` of `boss_key` and reports it, paying the character
-// whatever the clear was worth. The same BossRun the screen steps, on the
-// fight's own clock -- and left, like a player leaves it, once the fight is
-// plainly lost.
-//
-// Reads the boss out of `state`, so the caller must have filled state.bosses.
+// Fights `difficulty_index` of `boss_key` and reports it, paying whatever the
+// clear was worth. The same BossRun the screen steps, on the fight's own
+// clock, and left once the fight is plainly lost. Reads the boss out of
+// `state`, so the caller must have filled state.bosses.
 BossOutcome FightBoss(GameState& state, const std::string& boss_key,
                       int difficulty_index);
 
@@ -78,13 +76,10 @@ std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
 // month. False when the catalog holds no fight they could ever reach.
 bool AimedFight(const GameState& state, std::pair<std::string, int>* fight);
 
-// The defence that fight stands behind, as a fraction. 0 where there is no
-// fight to aim at, which prices an ignored-defence lever at what it is worth
-// to a character with nothing in front of them: nothing.
-//
-// This is what makes the requirement a function of the ladder rather than a
-// number somebody keeps. Lotus's 300% asks three times what Cygnus's 100%
-// does of the same character.
+// The defence that fight stands behind, as a fraction; 0 with no fight to aim
+// at, which prices an ignored-defence lever at nothing. It makes the
+// requirement a function of the LADDER rather than a number somebody keeps --
+// Lotus's 300% asks three times what Cygnus's 100% does.
 double AimedDefence(const GameState& state);
 
 }  // namespace ms

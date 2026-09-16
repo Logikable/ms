@@ -68,25 +68,19 @@ struct CubeBasis {
   // in -- the sum TotalEquipStats folds, not its answer. A potential moves
   // %ATT, so the fold has to be redone per candidate.
   EquipStats raw;
-  // The defence of the fight the character is aimed at, as a fraction --
   // The fight the lines are judged against. What an ignored-defence line is
-  // worth is a fact about that fight and not about the character, and it moves
-  // by a factor of three between Cygnus and Lotus -- so the monster itself is
-  // carried rather than a number standing for it. See //analysis:yardstick,
-  // which replaced a hand-folded defence factor here.
+  // worth is a fact about that FIGHT, not the character, and it moves by a
+  // factor of three between Cygnus and Lotus -- so the monster is carried
+  // rather than a number standing for it. See //analysis:yardstick.
   Yardstick yard;
 };
 
 CubeBasis CubeBasisFor(const GameState& state, const Yardstick& yard);
 
-// A run of cubes into one slot, and what the run is expected to leave behind.
-//
-// A PROGRAM rather than a single cube, because what one cube is worth is not
-// what cubing a slot is worth. A character short of a boss's defence wall
-// gains exactly nothing from any one roll -- both sides of it are on the
-// 1-damage floor -- while sixty rolls have a real chance at the line that
-// clears the wall. Priced one at a time, the slot that most needs cubing is
-// the one that never gets a cube.
+// A run of cubes into one slot, and what it is expected to leave behind. A
+// PROGRAM rather than a single cube: a character short of a boss's defence
+// wall gains nothing from any one roll but has a real chance over sixty, so
+// priced one at a time the slot that most needs cubing never gets one.
 struct CubeProgram {
   int cubes = 0;      // how many the run buys
   double gain = 0.0;  // what the best roll of the run is expected to add
@@ -97,13 +91,10 @@ struct CubeProgram {
   }
 };
 
-// The run into `slot` that pays best per meso, out of a ladder of lengths.
-// Empty where the slot takes no potential or holds nothing a cube improves.
-//
-// The whole ladder comes off ONE sample of rolls: what a run of N leaves is
-// the best of N draws, and the chance that the best of N is the i-th of a
-// sorted sample is (i/m)^N - ((i-1)/m)^N. So a sixty-cube program costs no
-// more to price than a one-cube one.
+// The run into `slot` that pays best per meso, out of a ladder of lengths. The
+// whole ladder comes off ONE sample: what a run of N leaves is the best of N
+// draws, and the chance the best of N is the i-th of a sorted sample is
+// (i/m)^N - ((i-1)/m)^N -- so sixty cubes cost no more to price than one.
 CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
                             EquipSlot slot, const CubeIncome& income,
                             std::mt19937& rng);
@@ -114,19 +105,14 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
 bool WorthTaking(const GameState& state, const CubeBasis& basis, EquipSlot slot,
                  const Potential& rolled, const CubeIncome& income);
 
-// Whether the shopper is likely to replace what `slot` holds: the catalog
-// offers a piece for that slot at a higher level which the character can
-// already wear AND could pay for. A weapon has to match the type in hand as
-// well -- a Lv140 sword is not a replacement for a Lv120 axe a Hero measured
-// their way into, and counting it as one discounts the piece a weapon's %ATT
-// lines are worth the most on.
+// Whether the shopper is likely to replace what `slot` holds: a higher-level
+// piece the character can already wear AND pay for. A weapon must match the
+// type in hand, a Lv140 sword being no replacement for a Lv120 axe.
 //
-// Listed is not the same as reachable. A tier priced in a token counts only
-// once one of that token is in the bag, so a character locked out of the fight
-// that drops it cubes what they are holding rather than saving for scenery.
-//
-// Meso spent cubing one of these still buys the climb toward its replacement,
-// so the gain is discounted rather than refused.
+// LISTED is not REACHABLE: a tier priced in a token counts only once one is in
+// the bag, so a character locked out of the fight that drops it cubes what
+// they hold. The gain is discounted rather than refused, meso spent cubing
+// still buying the climb toward the replacement.
 bool Replaceable(const GameState& state, EquipSlot slot);
 
 }  // namespace ms

@@ -15,11 +15,9 @@ struct Band {
 };
 
 // Two calls on cells the wiki leaves as "?": level 20-29 accessories read
-// 2/3/3, the only value that keeps the column climbing by one between the rows
-// either side; level 250+ is left at 0, since nothing here reaches it.
-//
-// The wiki has no rows for 170-199 or 210-249, so those fall back to the band
-// below, as GMS itself does.
+// 2/3/3, the only value that keeps the column climbing between the rows either
+// side, and 250+ is left at 0. The bands the wiki skips fall back to the one
+// below, as GMS does.
 const Band kBands[] = {
     {0, {{1, 1, 1, 1}, {2, 1, 2, 2}, {2, 2, 3, 2}, {0, 0, 4, 0}}},
     {20, {{2, 1, 2, 2}, {2, 2, 3, 3}, {3, 2, 4, 3}, {0, 0, 5, 0}}},

@@ -49,13 +49,10 @@ EquipStats WornAndGranted(const GameState& state, DerivedStats& derived) {
 }
 
 // The character's combat power with `stats` in place of what they wear.
-//
-// Combat power rather than a played swing, because ranking one star against
-// another is a question about the stat block and nothing else: the closed form
-// answers it for no simulation at all, where a swing would cost one per
-// candidate per round. What it leaves out is the Max HP a star pays, which
-// buys survival rather than damage -- a shopper valuing both would need a rate
-// of exchange between them that nothing in the game states.
+// COMBAT POWER rather than a played swing: ranking one star against another is
+// a question about the stat block, which the closed form answers for no
+// simulation. What it leaves out is the Max HP a star pays, which would need a
+// rate of exchange against damage that nothing states.
 double PowerWith(const GameState& state, const Yardstick& yard,
                  const DerivedStats& derived, const EquipStats& stats) {
   return WorthOf(state, yard, stats, PassiveOffenseFor(derived));
@@ -137,14 +134,10 @@ bool CanCoverBoom(const CharacterInstance& character,
   return proto.shop_price() > 0 || SparesInBag(character, proto.name()) > 0;
 }
 
-// How many spares of a piece are worth keeping: the booms expected on the
-// longest star run the purse could pay for as it stands.
-//
-// Income decides it, not a constant. A piece that drops faster than the meso
-// to boom it with is a piece to sell, and the same piece is worth hoarding
-// once the purse can afford the run that destroys it. One is the floor while
-// it can boom at all, since the shopper will not walk into a destroying
-// attempt with nothing to put back.
+// Spares of a piece worth keeping: the booms expected on the longest star run
+// the purse could pay for. INCOME decides it, not a constant -- a piece that
+// drops faster than the meso to boom it with is one to sell. One is the floor
+// while it can boom at all.
 int SparesWorthKeeping(const GameState& state, const EquipPrototype& proto,
                        int stars) {
   if (!CanEverDestroy(proto) || proto.shop_price() > 0) {
@@ -210,14 +203,10 @@ const Scroll* GearShopper::ScrollFor(GameState& state, EquipSlot slot) {
   return chosen_[name];
 }
 
-// The upgrade slot `slot`'s item could fill next, and the hammer that would
-// open one where none is left. Nothing where the item has neither, where the
-// character cannot buy a trace, or where no scroll suits the piece.
-//
-// The hammer is offered only where there is NO open slot already: it opens one
-// more of what the item still has, so it is the wrong thing to buy while the
-// last one is unspent. Priced with the scroll that fills it, since a hammer
-// alone lands nothing.
+// The upgrade slot `slot`'s item could fill next, and the hammer that opens one
+// where none is left. The hammer is offered only where there is NO open slot,
+// being the wrong thing to buy while the last is unspent, and is priced with
+// the scroll that fills it.
 std::optional<GearShopper::Candidate> GearShopper::ScrollOffer(
     GameState& state, const Basis& basis, EquipSlot slot, int level,
     int open_slots, bool can_hammer) {
@@ -621,14 +610,10 @@ void GearShopper::SellSpares(GameState& state, GearSpend& spend) {
       continue;
     }
     const EquipPrototype& proto = item->prototype();
-    // Never a spare of a symbol the character is wearing: what it is worth is
-    // the rung it is combined into, so selling one throws a duplicate away for
-    // no meso. CollectSymbols banks them at the look; this is what stops the
-    // two getting out of order.
-    //
-    // A symbol they are NOT wearing falls through to the allowance below and
-    // keeps one copy, like any other piece waiting for its slot -- otherwise
-    // the Esfera an unreachable area drops piles up a bag row at a time.
+    // NEVER a spare of a worn symbol: what it is worth is the rung it combines
+    // into, so selling one throws a duplicate away for nothing. One they are
+    // not wearing falls through to the allowance and keeps a copy, or an
+    // unreachable area's symbol piles up a bag row at a time.
     if (IsArcaneSymbol(proto) &&
         WornStars(state.character, proto.name()) >= 0) {
       ++i;

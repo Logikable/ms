@@ -229,13 +229,10 @@ std::string HeldWeaponName(const CharacterInstance& character) {
 
 namespace {
 
-// Which weapon type the character hits hardest with as they now stand. Every
-// ladder's top rung is tried on and swung at a mob of their own level, along
-// with the weapon they already hold, and only those: within a type the tiers
-// climb, so which rung is not in question.
-//
-// Unspecified when the shelf holds nothing they can wear or the bag is too
-// full to try anything on -- in either case they keep what they hold.
+// Which weapon type the character hits hardest with as they stand. Every
+// ladder's TOP rung is tried on and swung at a mob of their own level, plus
+// the weapon in hand: within a type the tiers climb, so the rung is not in
+// question. Unspecified where nothing can be worn or tried on.
 EquipType MeasureBestType(GameState& state, bool budget) {
   std::vector<const EquipPrototype*> ladders = Ladders(state, budget);
   if (ladders.empty() ||
@@ -410,14 +407,10 @@ Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll, int star_cap,
   return state;
 }
 
-// Wears a fresh `proto` carrying `made` in `slot`, in place of whatever that
-// slot holds. The displaced copy stays in the bag, which is where a try-on
-// goes.
-//
-// `slot` is where the item is WORN, which for a family is not the slot its
-// prototype names: every ring's prototype says EQUIP_SLOT_RING, and stripping
-// that one to try on the ring worn in RING_3 takes off the wrong ring and
-// leaves the copy refused for a duplicate of one still on.
+// Wears a fresh `proto` carrying `made` in `slot`, the displaced copy staying
+// in the bag. `slot` is where the item is WORN, which for a family is not the
+// slot its prototype names: every ring says EQUIP_SLOT_RING, and stripping
+// that takes off the wrong ring.
 bool WearMade(CharacterInstance& character, EquipSlot slot,
               const EquipPrototype& proto, const Equip& made) {
   character.Unequip(slot);
@@ -428,14 +421,10 @@ bool WearMade(CharacterInstance& character, EquipSlot slot,
 }
 
 // Which scroll `slot` wants: the one the character measures best in, wearing
-// none included and first, so an item no scroll helps keeps its slots.
-//
-// `success_rate` narrows the field to the scrolls that land that often; 0
-// takes them all. A budgeted player picks a rate before they pick a stat --
-// a 30% trace wastes seven slots out of ten on a piece one boss drops.
-//
-// Leaves the character wearing the last thing tried and the bag holding the
-// try-ons. The caller puts both back.
+// NONE included and first, so an item no scroll helps keeps its slots.
+// `success_rate` narrows the field; a budgeted player picks a rate before a
+// stat, a 30% trace wasting seven slots in ten. Leaves the character wearing
+// the last try-on for the caller to put back.
 const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot,
                                 int success_rate) {
   WornGear::const_iterator it = state.character.equipped().find(slot);
@@ -477,12 +466,10 @@ const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot,
 
 namespace {
 
-// True for something Outfit already shopped for. Two questions rather than
-// one: the three slots it climbs a ladder in, and any item that names a price,
-// since the shop's equipment shelf reaches slots the drops reach too -- a ring
-// is bought and the Frozen gloves fall. Asking only the slot would hand a
-// bought ring over free; asking only the price would hand over the Fafnir,
-// which is priced at nothing because nothing sells it.
+// True for something Outfit already shopped for. TWO questions: the slots it
+// climbs a ladder in, and any item naming a price. Asking only the slot would
+// hand a bought ring over free; asking only the price would hand over the
+// Fafnir, priced at nothing because nothing sells it.
 bool Shopped(const EquipPrototype& proto) {
   EquipSlot slot = proto.equip_slot();
   return slot == EQUIP_SLOT_PRIMARY_WEAPON || slot == EQUIP_SLOT_SECONDARY ||

@@ -40,13 +40,9 @@ std::map<std::string, ItemPrototype> LoadItems() {
   return LoadTestData<ItemPrototype>("items");
 }
 
-// A projectile is ammunition, not a weapon a player invests in. Asserted over
-// the whole catalog because the refusal has to be written on each one: nothing
-// derives it from the slot, deliberately, since a later one may well differ.
 // The name column an item list grows to on a wide terminal is chosen for the
-// longest name the game ships -- a trace's " Trace" included, since a trace
-// is drawn in the same lists. A longer one arriving has to move that number
-// rather than sit cut on every screen.
+// longest name the game ships, a trace's " Trace" included. A longer one
+// arriving has to MOVE that number rather than sit cut on every screen.
 TEST(EquipDataTest, EveryItemNameFitsTheWidestNameColumn) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
@@ -58,6 +54,9 @@ TEST(EquipDataTest, EveryItemNameFitsTheWidestNameColumn) {
   }
 }
 
+// A projectile is ammunition, not a weapon a player invests in. Asserted over
+// the whole catalog because the refusal is written on each one: nothing
+// derives it from the slot, deliberately, a later one possibly differing.
 TEST(EquipDataTest, ProjectilesTakeNoUpgrades) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -139,12 +138,10 @@ std::vector<Job> EveryOfferedJob() {
   return jobs;
 }
 
-// The job inspect screen tells a player what to go and buy, so no job may name
-// a weapon of somebody else's branch, and every job's row must point at
-// something buyable. A named type nothing ships yet -- the one-handed axe and
-// blunt, which both warrior books name and no item is -- proves neither, and
-// is skipped rather than failed. Levelled past every requirement, since what is
-// under test is the job and not the tier.
+// The job inspect screen tells a player what to buy, so no job may name a
+// weapon of another branch and every row must point at something buyable. A
+// type nothing ships yet proves neither and is SKIPPED. Levelled past every
+// requirement: what is under test is the job, not the tier.
 TEST(EquipDataTest, EveryJobOnOfferNamesWeaponsOfItsOwnBranch) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::vector<Job> offered = EveryOfferedJob();
@@ -298,13 +295,10 @@ TEST(EquipDataTest, EveryWeaponTypeClimbsInTens) {
   }
 }
 
-// Every ladder reaches the top of the shelf, so no branch is left a tier short
-// of what the others can buy. Asked against the highest tier there is rather
-// than against a level written here: the Frozen tier a token buys sits above
-// all of these, and the meso ladders stopping short of it is the content gap,
-// not a fault in one of them. The one-handed sword is the exception by design:
-// the warrior takes two hands at their 2nd job, so it stops where the
-// two-handed tiers start.
+// Every ladder reaches the top of the shelf, so no branch is a tier short of
+// what the others can buy. Asked against the HIGHEST tier there is: the meso
+// ladders stopping below the Frozen tier is the content gap, not a fault. The
+// one-handed sword stops where the two-handed tiers start, by design.
 TEST(EquipDataTest, EveryWeaponTypeReachesTheTopMesoTier) {
   std::map<EquipType, std::vector<int>> ladders = WeaponLadders();
   ASSERT_FALSE(ladders.empty());
@@ -913,12 +907,10 @@ TEST(EquipDataTest, EverySetTierLeverHasARowOnTheInspectScreen) {
   EXPECT_GT(checked, 0) << "no set tiers in the catalog to check";
 }
 
-// The accessories are boss rewards, and a boss is fought by everybody. One
-// written for a branch would be a piece of the set that a whole class can
-// never wear. The shoulderpad counts here too: GMS scrolls it with the armour,
-// but it comes off a boss and belongs to the same set. The Cygnus shoulders
-// are the one exception, and they are one apiece rather than a gap: the shelf
-// they sit on is checked branch by branch above.
+// The accessories are boss rewards and a boss is fought by everybody, so one
+// written for a branch would be a set piece a whole class can never wear. The
+// shoulderpad counts: it comes off a boss and belongs to the same set. The
+// Cygnus shoulders are one apiece rather than a gap.
 TEST(EquipDataTest, AccessoriesAreUniversalAndUpgradeable) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :

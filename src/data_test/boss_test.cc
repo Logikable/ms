@@ -721,13 +721,10 @@ TEST_F(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
   }
 }
 
-// How much room each fight gives the player is a design decision, so the
-// count per phase is pinned: five on the floor of every fight, plus the two
-// ledges over the ends of Zakum's first phase, six around each of Horntail's
-// heads and six around the dragon, and the three-ledge gallery Lotus leaves
-// behind when he comes down off it. Every difficulty of a boss is
-// laid out alike, and every phase holds more than a full party, so a party of
-// three always has somewhere left to walk.
+// How much room each fight gives the player is a design decision, so the count
+// per phase is PINNED: five on the floor of every fight, plus whatever ledges
+// a phase draws. Every difficulty is laid out alike and every phase holds more
+// than a full party, so three players always have somewhere to walk.
 TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   std::map<std::string, std::vector<int>> expected = {
       {"zakum", {7, 5}},      {"hilla", {5}},       {"horntail", {6, 6, 6}},

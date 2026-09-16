@@ -30,13 +30,10 @@ enum Payment { kPaidInMeso, kPaidInTokens };
 std::vector<std::string> ShopWeaponStock(
     const std::map<std::string, EquipPrototype>& equips, Payment payment);
 
-// Catalog keys of everything else the shop sells, in the same order: the
-// off-hands, and the rings, emblems and medals worn beside them. Everything a
-// character wears that is not a weapon and not what one throws, which is what
-// leaves the two shelves with nothing in common and nothing between them.
-//
-// Class filtering is left to the caller, as it is for the weapons -- this says
-// what is on the shelf, not who may buy it.
+// Catalog keys of everything else the shop sells: the off-hands, and the
+// rings, emblems and medals beside them -- everything worn that is not a
+// weapon and not thrown, so the two shelves share nothing. Class filtering is
+// the CALLER's: this says what is on the shelf, not who may buy it.
 std::vector<std::string> ShopEquipStock(
     const std::map<std::string, EquipPrototype>& equips, Payment payment);
 

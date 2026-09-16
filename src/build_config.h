@@ -6,12 +6,9 @@
 
 namespace ms {
 
-// Whether the game shows anything about multiplayer at all. A build with this
-// off never opens a connection and shows no party screens: it is the
-// single-player game, and there is nothing in it to say a server exists.
-//
-// Turned off by `--define=multiplayer=off`, which is how a single-player
-// build is made. See //src:build_config.
+// Whether the game shows anything about multiplayer. With it off there is no
+// connection and no party screens -- nothing to say a server exists. Turned
+// off by `--define=multiplayer=off`.
 #ifdef MS_MULTIPLAYER_OFF
 inline constexpr bool kMultiplayerEnabled = false;
 #else

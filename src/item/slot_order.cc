@@ -6,13 +6,10 @@
 namespace ms {
 namespace {
 
-// A table rather than the enum's own order, because a slot number is what a
-// save names a worn item by and so can never move -- the rings and the second
-// pendant are numbered at the bottom of the enum, and would trail the list
-// instead of standing with their families.
-//
-// Only the head of each family is named. The symbols are here so that every
-// slot has a place; they are listed on a tab of their own, which sorts itself.
+// A TABLE rather than the enum's order: a slot number is what a save names a
+// worn item by and can never move, so the rings and the second pendant would
+// trail the list instead of standing with their families. Only the head of
+// each family is named.
 constexpr EquipSlot kSlotOrder[] = {
     EQUIP_SLOT_PRIMARY_WEAPON,
     EQUIP_SLOT_HAT,

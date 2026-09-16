@@ -1,10 +1,7 @@
-// Checks the workbench against the shipped catalogs rather than any one
-// function: --job starts its character at the top of an advancement, and what
-// it puts in their hand has to be the top of the ladder that level reaches.
-//
-// Named weapons in a switch rot the moment a tier or a branch is added -- the
-// thief branches arrived holding level 30 gear at level 60 and nothing said
-// so. This is what says so.
+// Checks the workbench against the shipped catalogs: --job starts at the top
+// of an advancement, and what it puts in hand has to be the top of the ladder
+// that level reaches. Named weapons in a switch ROT the moment a tier or a
+// branch is added, and this is what says so.
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -34,13 +31,10 @@ namespace {
 
 using bazel::tools::cpp::runfiles::Runfiles;
 
-// Every advancement --job accepts, which is every one a character can stand at
-// the top of.
-// Every advancement in the enum, taken from the descriptor rather than listed:
-// a hardcoded list is one a new job joins only when somebody remembers to add
-// it, which is exactly how a new job comes to stand there unarmed.
-// Every advancement a character can stand at. JOB_ADVANCEMENT_COMMON is not
-// one: it is where the V Matrix's common nodes live, and no job takes it.
+// Every advancement a character can stand at the top of, taken from the
+// DESCRIPTOR rather than listed: a hardcoded list is one a new job joins only
+// when somebody remembers, which is how a new job comes to stand unarmed.
+// JOB_ADVANCEMENT_COMMON is not one -- no job takes it.
 std::vector<JobAdvancement> EveryAdvancement() {
   std::vector<JobAdvancement> all;
   for (int i = 1; i <= JobAdvancement_MAX; ++i) {
@@ -95,17 +89,13 @@ class WorkbenchGearTest : public ::testing::Test {
                      GameMode::kTest, options);
   }
 
-  // The required levels the catalog offers on `worn`'s own ladder among the
-  // items this character could put on, highest first -- CanEquip asks about
-  // their level and their job together, which is the same question the shop
-  // asks, and OwnedFromLevel asks the one it cannot: a token tier waits on the
-  // fight that pays for it, not on the level it is worn at.
+  // The required levels on `worn`'s own ladder among the items this character
+  // could put on, highest first. OwnedFromLevel asks what CanEquip cannot: a
+  // token tier waits on the FIGHT that pays for it.
   //
-  // A ladder is a slot family and a type together. The type alone would put a
-  // Fighter's swords and axes on one, which is the choice the workbench makes;
-  // the slot alone would put all four pieces of armour on one, and armour
-  // names no type at all. The family rather than the slot, because a character
-  // wears four rings and the four are one ladder, not four.
+  // A ladder is a slot FAMILY and a type together. The type alone would put a
+  // Fighter's swords and axes on one; the slot alone would put all four pieces
+  // of armour on one, and armour names no type at all.
   std::vector<int> TiersOnLadder(const CharacterInstance& character,
                                  const EquipPrototype& worn) {
     std::vector<int> levels;
@@ -133,13 +123,8 @@ class WorkbenchGearTest : public ::testing::Test {
 
 // The whole claim, one advancement at a time: the workbench arms its character
 // with the best of each thing they carry that their level can wear. Anything
-// less and the tester is looking at a weaker character than the game has --
-// which is exactly what a stale entry in the switch produces.
-//
-// Asked a ladder at a time rather than an item at a time, because a family of
-// slots holds several at once: a character wearing three of the four rings the
-// catalog offers should be wearing the best three, and only one of those can
-// be the best one.
+// less and the tester is looking at a weaker character than the game has.
+// Asked a LADDER at a time, a family of slots holding several at once.
 TEST_F(WorkbenchGearTest, EveryJobWearsTheTopTierItsLevelReaches) {
   for (JobAdvancement advancement : EveryAdvancement()) {
     GameState state = Workbench(advancement);
@@ -190,12 +175,9 @@ TEST_F(WorkbenchGearTest, EveryJobPastTheFirstWearsAnOffHand) {
 }
 
 // The Frozen set drops rather than sells, so the workbench is the only place
-// so much of it is ever seen. A 3rd job at 100 reaches the four armour pieces
-// inside its level and keeps its meso weapon and off-hand. A 4th job at 200
-// adds the two that ask for 140 but hands the hat, top, bottom and weapon over
-// to the Root Abyss set and the off-hand to Princess No -- three left, the
-// cape, the gloves and the boots. A 5th job at the cap wears none of it:
-// AbsoLab takes those three as well. Under the 3rd job, none either.
+// so much of it is seen. A 3rd job at 100 wears the four armour pieces inside
+// its level; a 4th at 200 hands most of it to Root Abyss and Princess No and
+// keeps three; a 5th at the cap wears none, AbsoLab taking those too.
 TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
   for (JobAdvancement advancement : EveryAdvancement()) {
     GameState state = Workbench(advancement);

@@ -68,12 +68,10 @@ struct BuffSpend {
 // are weighed against -- see //analysis:meso_rate for the currency.
 struct BuffYield {
   Crowd crowd;
-  // The same crowd's kill rate measured twice more, with the beat at its full
-  // length and with the Wild Totem's halved one. No arithmetic over `crowd`
-  // can stand in for the pair: the totem doubles how often the map puts a
-  // monster up, and a character who was never waiting on that kills exactly as
-  // much as before. Both empty when the caller did not measure them, which
-  // reads as the totem being worth nothing.
+  // The same crowd's kill rate measured twice more, at the beat's full length
+  // and at the Wild Totem's halved one. NO arithmetic over `crowd` stands in
+  // for the pair: the totem doubles how often the map puts a monster up, and a
+  // character who was never waiting on that kills as much as before.
   absl::Span<const double> kills_without_totem;
   absl::Span<const double> kills_with_totem;
 };

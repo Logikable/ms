@@ -55,15 +55,13 @@ std::vector<Job> BranchesAt(int level);
 Job ParseBranch(const std::string& name, int min_stage = 1);
 
 // Brings the character up to `level` the way a player gets there: each
-// advancement of `path` as it is offered, every AP on the primary stat, every
-// SP on whatever it will buy. Which skill goes first is the catalog's
-// arbitrary order, but a book costs exactly what its levels pay out, so the
-// end of a stage looks the same either way.
+// advancement as offered, every AP on the primary stat, every SP on whatever
+// it will buy. Which skill goes first is arbitrary, but a book costs what its
+// levels pay out, so the end of a stage looks the same either way.
 //
-// `spend_sp` false leaves every point in the pool, for a caller that means to
-// place them itself. That matters from the 4th job up, where the book costs
-// more than the levels below the cap pay out and which points get spent is
-// most of what the character is.
+// `spend_sp` false leaves the points in the pool for a caller placing them
+// itself -- which matters from the 4th job up, where the book costs more than
+// the levels pay and which points are spent is most of the character.
 void GrowTo(GameState& state, int level, const std::vector<Job>& path,
             bool spend_sp = true);
 

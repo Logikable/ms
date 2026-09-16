@@ -112,12 +112,8 @@ std::vector<std::string> JobFlagNames() {
   return names;
 }
 
-// The advancement --job names, or UNSPECIFIED for the empty flag. Dies on
-// anything else rather than falling back on the default: a typo that started
-// the wrong job silently would cost more than it saved.
 // Dies on a workbench flag passed to a real game, so a tester who meant
-// --mode=test hears about it rather than playing on without what they asked
-// for.
+// --mode=test hears about it rather than playing on without it.
 void RefuseOutsideTheWorkbench(const char* flag, ms::GameMode mode) {
   if (mode != ms::GameMode::kTest) {
     LOG(FATAL) << flag << " is for the workbench; pass --mode=test with it";

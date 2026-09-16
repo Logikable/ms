@@ -61,12 +61,10 @@ PotentialTotals PotentialsBut(const CharacterInstance& character,
 }
 
 // What the character wears and grants with `totals` in place of the potentials
-// they wear. Everything a potential moves, and nothing else.
-//
-// The two halves the yardstick's door asks for, rather than a folded
-// OffenseStats: folding one here is how a cube's worth came to be measured
-// without the swing while a star's was measured with it, which put the two in
-// different units though BuyBest sorts them against each other.
+// worn. The two halves the yardstick's door asks for rather than a folded
+// OffenseStats: folding one here is how a cube came to be measured WITHOUT the
+// swing while a star was measured with it, though BuyBest sorts them
+// together.
 void StatsWith(const GameState& state, const CubeBasis& basis,
                const PotentialTotals& totals, EquipStats* out,
                PassiveOffense* out_passives) {
@@ -237,16 +235,13 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
       Potential rolled = CubePotential(held, CubeType::kRed, group, rng);
       double gain =
           GainOf(state, basis, level, others, now, standing, rolled, income);
-      // Keep-better, which is the offer GMS makes: a roll worse than what the
-      // item holds is declined, and the cube bought the chance rather than the
-      // result.
+      // Keep-better, GMS's own offer: a roll worse than what the item holds is
+      // declined, and the cube bought the chance.
       //
-      // A RANK is taken even when the damage does not move. Under a defence
-      // wall every roll is worth exactly nothing -- both sides of it are on the
-      // 1-damage floor -- so a run judged on damage alone keeps nothing, never
-      // climbs a rank, and never reaches the line that clears the wall. A
-      // player takes the rank up and keeps rolling, which is the whole reason
-      // a run is priced rather than a cube.
+      // A RANK is taken even where the damage does not move. Under a defence
+      // wall every roll is worth nothing, both sides being on the 1-damage
+      // floor, so a run judged on damage alone never climbs a rank and never
+      // reaches the line that clears the wall.
       if (gain > best_gain ||
           (gain >= best_gain && rolled.rank() > held.rank())) {
         best_gain = gain;

@@ -212,12 +212,9 @@ TEST(GameStateTest, TestModeStartsAtTheTopOfTheWrittenLine) {
   EXPECT_EQ(test.character.proto().ap(), 0);
 }
 
-// --skills decides what becomes of the book the character is standing in. The
-// books behind it are bought either way: they are not what the tester picked
-// the job for.
 // Both switches are on for the workbench: it holds two stat allocations at
-// once, and the music is what a tester sitting in front of it hears. Play mode
-// leaves both to the player.
+// once, and the music is what a tester in front of it hears. Play mode leaves
+// both to the player.
 TEST(GameStateTest, TestModeThrowsTheWorkbenchSwitches) {
   GameState state = MakeTestModeState();
   EXPECT_TRUE(state.account.autoswap_presets());

@@ -59,14 +59,10 @@ std::vector<int> BestSlots(const AbilityPreset& preset,
   return slots;
 }
 
-// Whether this preset is done being rolled: the rank is climbed, the line it
-// was chasing is on top, and nothing under it is dead weight.
-//
-// The last clause is what stops a finished preset being rolled to pieces. Two
-// lines can be held and three are rolled, so one is always live -- and a pool
-// spent to the last honor leaves whatever that final roll gave. A sheet with
-// no dead line on it is where a player stops and puts the honor into the other
-// preset.
+// Whether this preset is done: the rank climbed, the chased line on top, and
+// nothing under it dead weight. The last clause is what stops a finished
+// preset being rolled to pieces -- two lines can be held and three rolled, so
+// one is always live, and the last roll leaves whatever it gave.
 bool Settled(const AbilityPreset& preset, AbilityRank climb_to,
              const AbilityWorth& worth) {
   if (preset.rank() < climb_to || !GoalLanded(preset, worth)) {
@@ -80,17 +76,14 @@ bool Settled(const AbilityPreset& preset, AbilityRank climb_to,
   return true;
 }
 
-// What to hold through the next reset. Frees every line first: a third lock is
-// refused, so a swap made the other way round would keep the line it meant to
-// drop.
+// What to hold through the next reset. FREES every line first: a third lock is
+// refused, so a swap the other way round would keep the line it meant to drop.
 //
-// Nothing at all while the rank is still being climbed -- a lock buys nothing
-// when what the character is short of is a rank, and it makes every roll of
-// the ladder dearer. Nothing after that either, while the line being chased is
-// not yet on top: a held top line is never rerolled, so holding the wrong one
-// there strands the chase for good, and holding the fillers under it only
-// raises the price of the roll that matters. Once it lands, it is held and the
-// best filler with it.
+// Nothing while the rank is being climbed -- a lock buys nothing against a
+// rank and makes every roll dearer -- and nothing while the chased line is not
+// yet on top, since a held top line is never rerolled and holding the wrong
+// one there strands the chase. Once it lands it is held, best filler with
+// it.
 void HoldForChase(CharacterInstance& character, StatPreset preset,
                   AbilityRank climb_to, const AbilityWorth& worth) {
   const AbilityPreset lines = character.ability(preset);

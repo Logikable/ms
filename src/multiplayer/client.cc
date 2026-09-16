@@ -26,14 +26,10 @@ constexpr std::chrono::milliseconds kPumpTimeout(50);
 constexpr char kUnreachableMessage[] = "Cannot reach the server.";
 constexpr char kLostMessage[] = "Lost connection.";
 
-// What to show for a rejection. A version mismatch is worded here rather than
-// taken from the server, because the client is the end that knows both
-// numbers, and which of them is behind decides what the player can do about
-// it. Every other reason is the server's own to explain.
-//
-// The two numbers go on a second line. Which build is where is the first
-// thing anyone asks when nobody can get in, and the player reading it is the
-// only one who can see both ends.
+// What to show for a rejection. A version mismatch is worded HERE rather than
+// taken from the server: the client is the end that knows both numbers, and
+// which is behind decides what the player can do. The two numbers go on a
+// second line -- which build is where is the first thing anyone asks.
 std::string RejectionMessage(const Rejected& rejected, int our_version) {
   if (rejected.reason() != Rejected::REASON_UPDATE_REQUIRED) {
     return rejected.message();

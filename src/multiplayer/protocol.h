@@ -14,23 +14,17 @@
 
 namespace ms {
 
-// What the client and the server must both be built from. It covers the
-// messages and the game data behind them -- a party fights one boss, and the
-// two ends disagreeing about what that boss is would be worse than not
-// connecting. Bump it when either changes; a client that does not match is
-// turned away and told to update.
+// What the client and the server must both be built from: the messages AND the
+// game data behind them. BUMP IT when either changes; a client that does not
+// match is turned away.
 //
-// The data half is the easy one to forget, and forgetting it is silent: a
-// release once played for days against a server whose boss table gave Cygnus
-// a fifteen-minute clock where the clients' gave her ten. What needs the bump
-// is a fight the two ends can BOTH name and disagree about -- a changed clock,
-// phase, drop or mob.
+// The data half is the easy one to forget and forgetting it is silent -- a
+// release once played for days against a server giving Cygnus a fifteen-minute
+// clock where the clients gave her ten. What needs the bump is a fight both
+// ends can NAME and disagree about: a changed clock, phase, drop or mob.
 //
-// Adding a fight does not, and neither does adding a mob only a new fight
-// spawns. Only the key crosses the wire, so a client asking for one the server
-// has never heard of is refused by name (REASON_UNKNOWN_BOSS) and a server
-// holding one no client knows is never asked. Both ends fail out loud, which
-// is the case this guard is not for.
+// Adding a fight does not, nor a mob only a new fight spawns: only the key
+// crosses the wire, so either end fails out loud by name instead.
 inline constexpr int kMultiplayerVersion = 3;
 
 // Where the server runs. The client's --server flag overrides both. A build

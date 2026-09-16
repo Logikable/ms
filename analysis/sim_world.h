@@ -44,21 +44,15 @@ struct Catalogs {
 
 Catalogs LoadCatalogs();
 
-// A fresh level 1 character in a world built from `catalogs`. `seed` fixes the
-// random stream: rewards are rolled, so an unseeded sweep would print a table
-// that moved a little each run and hide a real change under the noise.
-//
-// Carries the sets as well, so a sim measures the same character the game
-// draws: what a set pays is most of what the last tier of gear is worth. The
-// bosses are a plain field, and a sim that fights one assigns them itself.
+// A fresh level 1 character in a world built from `catalogs`. `seed` FIXES the
+// random stream: rewards are rolled, so an unseeded sweep would hide a real
+// change under the noise. Carries the sets too, a set being most of what the
+// last tier of gear is worth; the bosses a sim fights it assigns itself.
 GameState NewState(const Catalogs& catalogs, unsigned int seed);
 
-// The ceiling at `level`, in the branch `advancement` ends: the character
-// --mode=max seeds, a player who spent well standing there. A fight measured
-// against one is measured against the game's own answer rather than a sim's.
-//
-// The bosses are a plain field here as in NewState, so a sim that fights one
-// assigns them itself.
+// The ceiling at `level` in the branch `advancement` ends: the character
+// --mode=max seeds. A fight measured against one is measured against the
+// GAME's answer rather than a sim's.
 GameState NewMaxState(const Catalogs& catalogs, JobAdvancement advancement,
                       int level, unsigned int seed);
 

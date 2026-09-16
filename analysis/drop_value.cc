@@ -64,12 +64,9 @@ EquipStats WornIn(const GameState& state, EquipSlot slot) {
                                                 : it->second->stats();
 }
 
-// What one duplicate of a symbol the character is already wearing is worth.
-//
-// A duplicate is one EXP of the rung, and the rung is not free: it charges
-// meso on top. So what one is worth is the rung's own gain less its price,
-// spread over the duplicates it takes -- and nothing at all where the rung
-// costs more than it pays.
+// What one duplicate of a worn symbol is worth. A duplicate is one EXP of the
+// rung and the rung charges meso on top, so it is worth the rung's gain LESS
+// its price, spread over the duplicates it takes.
 double SymbolDuplicateValue(const GameState& state, const DropBasis& basis,
                             const EquipInstance& worn) {
   const ms::Equip& state_of = worn.equip_state();

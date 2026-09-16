@@ -13,12 +13,10 @@ namespace {
 
 typedef std::vector<std::vector<double>> Matrix;
 
-// Solves `a` x = `b` by Gaussian elimination with partial pivoting, taking
-// both by value because the elimination consumes them. The system is one row
-// per star and never larger than thirty, so nothing here needs to be clever.
-//
-// Returns an empty vector for a singular system, which would mean a star with
-// no way out of it -- the rate table has none.
+// Solves `a` x = `b` by Gaussian elimination with partial pivoting, both by
+// value because the elimination consumes them. One row per star and never
+// larger than thirty. Empty for a singular system, which would be a star with
+// no way out of it.
 std::vector<double> Solve(Matrix a, std::vector<double> b) {
   int n = static_cast<int>(b.size());
   for (int column = 0; column < n; ++column) {
@@ -55,10 +53,9 @@ std::vector<double> Solve(Matrix a, std::vector<double> b) {
   return x;
 }
 
-// The cost of reaching the target from each star below it, given what one
-// attempt at each star is worth. Reading the system: standing at s, an
-// attempt is paid for, and then the player is either at s + 1, back at
-// whatever a recovery hands out, or still at s -- so
+// The cost of reaching the target from each star below it. Standing at s, an
+// attempt is paid for and the player is then at s + 1, back at whatever a
+// recovery hands out, or still at s:
 //
 //   E[s] = cost(s) + p_success E[s+1] + p_destroy E[recovery] + p_fail E[s]
 //

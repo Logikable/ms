@@ -97,23 +97,15 @@ TEST(MapDataTest, EveryDropNamesAnItem) {
   }
 }
 
-// The Frozen set's whole drop table, checked as the rule it is rather than as
-// a copy of itself: a piece drops from the twenty mob levels that open at the
-// level it can be worn at, and thinly from the twenty above those. A mob
-// added inside a piece's reach without its share is a piece the player can no
-// longer expect to find.
+// The Frozen set's drop table, checked as the RULE it is: a piece drops from
+// the twenty mob levels that open where it can be worn, and thinly from the
+// twenty above. A mob added inside a piece's reach without its share is a
+// piece the player can no longer expect to find.
 //
-// One rule for all six, the tokens included: 1/4,000 through the wear band,
-// 1/10,000 the rest of the way up. A piece is found at the level it is worn
-// at rather than ahead of it, and the later a piece is worn the later its
-// window, so the tokens are still turning up fifty levels past where the top
-// has stopped.
-//
-// The rate is set by the fastest character rather than the average one: a
-// band is a window, and whoever crosses it quickest buys the fewest chances.
-// //analysis:progression_sim counts those kills -- 17k for a Dark Knight
-// against 120k for a Crusader -- and at 1/4,000 even the shortest crossing
-// comes away empty about one climb in eighty.
+// One rule for all six, tokens included: 1/4,000 through the wear band,
+// 1/10,000 the rest of the way. The rate is set by the FASTEST character, a
+// band being a window and the quickest crossing buying the fewest chances --
+// at 1/4,000 even that comes away empty about one climb in eighty.
 TEST(MapDataTest, EveryMobInAPiecesReachDropsIt) {
   struct Piece {
     const char* stem;
@@ -167,13 +159,11 @@ TEST(MapDataTest, EveryMobInAPiecesReachDropsIt) {
 }
 
 // An Etc drop is worth picking up only for what it sells for, and a price of
-// zero also disables the Sell menu entry -- so the drop would be litter.
+// zero disables the Sell entry as well -- so the drop would be litter.
 //
-// Deliberately NOT checked: that the price is twice the mob's level. That is
-// the wiki's {{Leftover Price|N}} template, but N is the ITEM's level, not the
-// dropping mob's -- Firewood is priced at 21 off Axe Stump and also drops from
-// the level-22 Dark Axe Stump. The two agree often enough to look like a rule
-// and are not one.
+// NOT checked, deliberately: that the price is twice the mob's level. The
+// wiki's template is keyed on the ITEM's level, not the dropping mob's, and
+// the two agree often enough to look like a rule they are not.
 TEST(MapDataTest, EveryEtcDropIsWorthSomething) {
   std::map<std::string, ItemPrototype> items = LoadItems();
   for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
@@ -226,17 +216,12 @@ TEST(MapDataTest, EveryMobCanBeFoughtAndIsWorthFighting) {
   }
 }
 
-// Every mob a map spawns is inspectable, and the inspect screen leads with its
-// bestiary blurb. Two things are exempt, and the panel shows an empty block
-// for both rather than a made-up one:
-//
-// Arcane River. The wiki writes those monsters no archive entry and gives them
-// no named Etc drop either -- their leftovers are one shared pool -- so the
-// whole era arrives blurbless and empty-handed rather than a mob at a time.
-//
-// Onyx Stonegar, the one straggler the wiki also says nothing about.
-// Inventing text for either would put words in the game's mouth that no source
-// stands behind.
+// Every mob a map spawns is inspectable, and the screen leads with its
+// bestiary blurb. Two exemptions, both drawn as an empty block rather than a
+// made-up one: Arcane River, which the wiki writes no archive entry for at
+// all, and Onyx Stonegar, the one straggler it also says nothing about.
+// Inventing text would put words in the game's mouth no source stands
+// behind.
 TEST(MapDataTest, EveryMapMobIsDescribed) {
   std::map<std::string, Mob> mobs = LoadMobs();
   std::map<std::string, EquipPrototype> equips = LoadEquips();

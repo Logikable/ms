@@ -44,11 +44,10 @@ namespace ms {
 // One thread of what a character really does over a fight: a swing, and how
 // often it landed per second of one.
 //
-// `per_second` is solved rather than counted -- the measured damage the swing
-// came to, over what the closed form says one of them lands. So it carries
-// everything the closed form cannot: the share of the fight the swing's
-// cooldown left it, the crowd it reached, and the buffs that were standing
-// while it went out.
+// `per_second` is SOLVED rather than counted -- the measured damage the swing
+// came to, over what the closed form says one landing is worth -- so it
+// carries what the closed form cannot: the share of the fight its cooldown
+// left it, the crowd it reached, and the buffs that were standing.
 struct Strand {
   const Skill* swing = nullptr;
   int level = 0;
@@ -74,27 +73,19 @@ struct Yardstick {
 Yardstick YardstickFor(const GameState& state);
 
 // `stats` and `passives` read as a whole fight against the yardstick: every
-// strand's own damage chain, at the rate the strand is swung. The number every
-// candidate on the shelf is ranked by, and the one a drop that sells for
-// nothing is priced in.
+// strand's damage chain at the rate it is swung. What every candidate on the
+// shelf is ranked by, and what a drop that sells for nothing is priced in.
 //
-// The ONE door. A caller folding its own attack is a caller whose numbers no
-// longer compare with the rest of the shelf's -- cube offers and star offers
-// are sorted against each other, and for a while they were in different units
-// because one of them folded the swing and the other did not.
+// THE ONE DOOR. A caller folding its own attack is one whose numbers no longer
+// compare with the shelf's -- cube and star offers are sorted against each
+// other, and were once in different units for exactly that reason.
 double WorthOf(const GameState& state, const Yardstick& yard,
                const EquipStats& stats, const PassiveOffense& passives);
 
-// The yardstick held across the purchases of one shopping pass.
-//
-// Taking one plays a fight, which is far too dear to do once a purchase, and
-// the answer only moves when the character's KIT does: what they wear, what
-// they have learned, and what they are aimed at. Stars, scrolls and cubes move
-// the numbers without moving the plan, so they do not re-take it -- the same
-// argument the Hyper Stat allocator makes about when to measure again.
-//
-// One of these per character, never one shared: a sweep runs a branch per
-// thread.
+// The yardstick held across one shopping pass. Taking one plays a fight, far
+// too dear to do per purchase, and the answer only moves when the KIT does:
+// what is worn, what is learned, what it is aimed at. Stars, scrolls and cubes
+// move the numbers without moving the plan. ONE per character, never shared.
 class HeldYardstick {
  public:
   const Yardstick& For(const GameState& state);

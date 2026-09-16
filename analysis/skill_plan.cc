@@ -66,23 +66,18 @@ using PriceOffer = std::function<void(GameState&, double held, Offer*)>;
 // Makes the purchase an offer names, once the search has settled on it.
 using TakeOffer = std::function<void(GameState&, const Offer&)>;
 
-// The greedy both pools share: take the best value per point, over and over,
-// and stop when nothing left to buy pays anything.
+// The greedy both pools share: the best value per point, over and over, until
+// nothing left to buy pays.
 //
-// LAZY, which is the only reason either allocation is affordable. Pricing an
-// offer plays a fight, and a book holds five hundred skills -- pricing them all
-// again after every purchase is most of what a sim's runtime used to be. So a
-// stale score is kept as an upper bound and only the leader is re-priced: what
-// it drops behind is already fresh, and what it stays ahead of cannot overtake
-// it.
+// LAZY, which is the only reason either allocation is affordable -- pricing an
+// offer plays a fight and a book holds five hundred skills. A stale score is
+// kept as an upper bound and only the leader re-priced: what it drops behind
+// is already fresh, and what it stays ahead of cannot overtake it.
 //
-// The bound holds while a purchase only ever makes the rest worth LESS, which
-// is the usual shape -- the points that remain buy smaller and smaller lifts.
-// Where a purchase makes another worth MORE, which is real enough in a book
-// full of skills that boost each other, the bound can seat the order wrongly
-// and the plan comes out a little different. That is the trade this makes on
-// purpose: an exact sweep is an order of magnitude dearer and no sim here is
-// deciding anything to the precision the difference lives at.
+// The bound holds while a purchase makes the rest worth LESS, the usual shape.
+// Where one makes another worth MORE the order can be seated wrongly -- the
+// trade made on purpose, an exact sweep being an order of magnitude dearer
+// than the precision anything here decides at.
 void SpendGreedily(GameState& state, const SkillRate& rate,
                    std::vector<Offer>& offers, const PriceOffer& price,
                    const TakeOffer& take) {

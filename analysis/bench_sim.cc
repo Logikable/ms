@@ -238,12 +238,10 @@ EquipPrototype Charm(Job job, int stat, int attack, int boss_pct, int ied_pct) {
   return proto;
 }
 
-// The catalogs with the mob this sim measures against added: one of the
-// character's own level, so the level multiplier lands where a player fighting
-// their own tier would put it. No PDR and no boss flag unless the flags asked
-// -- the whole shipped catalog is built that way, and both would scale every
-// row alike anyway. Its HP is the measurement's own: the dummy never falls, so
-// a held swing has to see something no hold can finish.
+// The catalogs with this sim's dummy added, at the character's own level so
+// the level multiplier lands where a player fighting their tier would put it.
+// No PDR and no boss flag unless the flags ask; its HP is the measurement's
+// own, the dummy having to look unkillable to a held swing.
 Catalogs LoadCatalogsWithDummy(int level) {
   Catalogs c = LoadCatalogs();
   Mob dummy;
@@ -271,16 +269,11 @@ bool Bossing() {
 
 // The fight --boss asks about: one phase holding the dummy alone.
 //
-// Built rather than taken from the catalog because the dummy is what makes a
-// measurement a measurement -- it never falls and it is the character's own
-// level. Handing it to ComputeBossParams instead of building the encounter
-// here is the point: a boss fight paces at 1x where a map stretches, halves
-// reach, takes the healthiest part first and reads the character's BOSSING
-// preset. Approximating that with a boss-flagged mob on a farming character
-// is what this sim did until 2026-09-14, and it measured a different
-// character than progression_sim did -- by 49% on a Bishop, whose damage is
-// one attack-speed-bound cast, and by nothing at all on a Bow Master, whose
-// damage is mostly summons.
+// Handed to ComputeBossParams rather than built here, which is the point: a
+// boss fight paces at 1x where a map stretches, halves reach, takes the
+// healthiest part first and reads the BOSSING preset. Approximating it with a
+// boss-flagged mob on a farming character measured a different character than
+// progression_sim did -- by 49% on a Bishop.
 BossDifficulty DummyFight() {
   BossDifficulty difficulty;
   difficulty.set_name("Dummy");
@@ -594,13 +587,9 @@ GameState MaxState(const Catalogs& catalogs, int level, Job branch) {
 // for, so what the character ends up in is the tier rather than the count.
 constexpr int kTokensGiven = 999;
 
-// Every token shelf below AbsoLab's, paid for. The Frozen weapons, Princess
-// No's secondaries and the boss shoulders are gear a player has by the time
-// they meet Lotus, and a bench that left them off would measure the wrong
-// character.
-//
-// Only what some shelf is actually priced in: the bag holds 128 rows a tab,
-// and a character handed one of everything has no room left for the gear the
+// Every token shelf below AbsoLab's, paid for: that gear is what a player has
+// by the time they meet Lotus. ONLY what some shelf is priced in -- the bag
+// holds 128 rows a tab, and one of everything leaves no room for the gear the
 // shopper is about to buy.
 void GiveTokens(GameState& state) {
   std::set<std::string> shelves;
@@ -682,12 +671,10 @@ GearSpend Endow(GameState& state, const Catalogs& catalogs, int level,
   state.character.AddHonor(absl::GetFlag(FLAGS_honor));
   state.character.AddVPoints(absl::GetFlag(FLAGS_v_points));
   GiveTokens(state);
-  // The weapon first, and handed over rather than bought: the tier above the
-  // shop's is a Chaos Root Abyss drop, and no shelf sells it at any price. A
-  // bench that made the character shop for one would stand every branch in a
-  // weapon four tiers off what they would really be holding. Before the rest
-  // because it needs a bag with room in it, and because Outfit then measures
-  // the shelf against the weapon that is really in hand.
+  // The weapon FIRST, and handed over rather than bought: the tier above the
+  // shop's is a drop no shelf sells, so shopping for one would stand every
+  // branch four tiers off. First also because it needs room in the bag, and
+  // because Outfit then measures the shelf against the weapon in hand.
   Wear(state, BestOfType(catalogs, build.weapon, level,
                          /*below_absolab=*/true));
   EquipType ammo = AmmoFor(build.weapon);

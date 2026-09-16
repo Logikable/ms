@@ -15,12 +15,10 @@
 
 namespace ms {
 
-// Meso one attempt costs on an item of `required_level` holding `stars` now.
-// Paid whether the attempt succeeds, fails or destroys the item.
-//
-// Returns 0 for a level or a star count outside what the game can produce,
-// which is a price nothing should ever be charged rather than a free upgrade
-// -- the caller reaches this only through CanStarForce.
+// Meso one attempt costs on an item of `required_level` holding `stars`, paid
+// whether it succeeds, fails or destroys the item. 0 for a level or star count
+// the game cannot produce -- a price nothing is charged rather than a free
+// upgrade, this being reached only through CanStarForce.
 int64_t StarForceCost(int required_level, int stars);
 
 }  // namespace ms

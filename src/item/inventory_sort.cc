@@ -29,14 +29,10 @@ int KindRank(ItemKind kind) {
   }
 }
 
-// Where a token sits among the tokens: the best gear first, and within one
-// level the weapon ahead of the rest of the set. A token that buys a whole set
-// -- the AbsoLab coin -- names no slot and leads its level, being the broadest
-// thing on it.
-//
-// Only the first two ranks are the shelf's own. Past them it is the order the
-// Equipped panel lists armour in, so the bag and the panel do not each have
-// their own idea of what comes after a weapon.
+// Where a token sits among the tokens: the best gear first, and within a level
+// the weapon ahead of the set. One that buys a whole set names no slot and
+// leads its level. Only the first two ranks are the shelf's own -- past them
+// it is the Equipped panel's order, so the two agree.
 int TokenSlotRank(EquipSlot slot) {
   switch (slot) {
     case EQUIP_SLOT_UNSPECIFIED:

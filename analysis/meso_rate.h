@@ -26,23 +26,17 @@
 
 namespace ms {
 
-// What one kill pays, with its drops already valued: the meso drop, whose
-// chance caps at certain, plus everything else that falls, whose rate does
-// not. `drops` is //analysis:drop_value's answer -- the Etc at the counter's
-// price, and a token, a symbol duplicate or a piece of gear at what the purse
-// would otherwise spend for the same combat power.
-//
-// The character's %meso is left out: it multiplies every mob alike, so a
-// caller ranking maps needs only this.
+// What one kill pays, drops already valued: the meso drop, whose chance caps
+// at certain, plus everything else, whose rate does not. `drops` is
+// //analysis:drop_value's answer. The character's %meso is LEFT OUT, it
+// multiplying every mob alike.
 double MesoPerKill(const Mob& mob, double drops, double item_drop_pct);
 
-// The monsters in front of the character and how fast they are falling, with
+// The monsters in front of the character and how fast they fall, with
 // everything the catalogs had to answer already resolved -- so a plan can keep
-// a rate between looks without keeping the catalogs with it.
-//
-// Parallel to CombatParams::types, a boss body included, so a caller handing
-// over a kill rate measured against those types needs no reindexing. A boss
-// pays nothing here: it pays out of its own table, which no %meso reaches.
+// a rate between looks. Parallel to CombatParams::types, a boss body included,
+// so a kill rate measured against those needs no reindexing. A boss pays
+// nothing here, paying out of its own table.
 struct Crowd {
   std::vector<Mob> mobs;
   // Parallel to `mobs`: what one kill's drops are worth, and how many fall a

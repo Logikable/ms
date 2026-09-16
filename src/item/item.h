@@ -55,11 +55,8 @@ int TotalUpgradeSlots(const EquipPrototype& proto, const Equip& state);
 int SellPrice(const EquipPrototype& proto);
 
 // The slots an item of this family may be worn in, in the order they fill.
-// Pass any slot of the family: a ring answers with its four, a pendant with
-// its two, and everything else with the one slot it is.
-//
-// A prototype names the first of its family -- EQUIP_SLOT_RING for every ring
-// -- so the family is what turns what an item says it is into where it goes.
+// Pass ANY slot of the family. A prototype names the first of its family, so
+// this is what turns what an item says it is into where it goes.
 std::vector<EquipSlot> SlotFamily(EquipSlot slot);
 // The slot a prototype of this family names, which is the first of them.
 EquipSlot BaseSlot(EquipSlot slot);
@@ -115,13 +112,9 @@ class StackableItem : public Item {
 // Holds the shared prototype and per-instance state.
 class EquipTabItem : public Item {
  public:
-  // What the stars alone add, the drop's own stats and its scrolls left out.
-  // Pass stars >= 0 to ask about a level the item has not reached; -1, the
-  // default, asks about the stars it has.
-  //
-  // What a star gives depends on where the item is worn: a weapon's attack and
-  // MP climb, everything else's defense does, and Max HP goes to the slots on
-  // GMS's Category A list.
+  // What the STARS alone add, the drop's own stats and its scrolls left out.
+  // Pass stars >= 0 to ask about a level not reached; -1 asks about what it
+  // has. What a star gives depends on where the item is worn.
   EquipStats StarForceStatGains(int stars = -1) const;
   // Sum of prototype base stats, scroll stats, and star force stat gains.
   EquipStats stats() const;

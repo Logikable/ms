@@ -296,23 +296,17 @@ constexpr double kBookCycles = 1.0;
 // so a day of playtime is a day.
 constexpr double kDaySeconds = 24.0 * 60.0 * 60.0;
 
-// How long to play a character out for, given what is asked. A window shorter
-// than a buff's own cycle cannot see the buff go up or come down: everything
-// that is standing stays standing, and a lever that lengthens a buff reads
-// EXACTLY nothing. So a question about a buff buys itself a window wide enough
-// to hold the slowest cycle -- see kBookCycles.
+// How long to play a character out for. A window shorter than a buff's cycle
+// cannot see it go up or come down, so a lever that lengthens a buff reads
+// EXACTLY nothing -- a question about a buff buys a window wide enough for the
+// slowest cycle.
 //
-// Off the character's BOOK, not off the buffs they have learned. The book does
-// not move while a decision is being taken and the learned list does, so a
-// window off the latter would measure the character before a buff skill and
-// the character after it over two different horizons -- and SpendBook's whole
-// job is comparing exactly those two.
+// Off the character's BOOK, not the buffs they have learned: the book does not
+// move while a decision is taken and the learned list does, so SpendBook would
+// otherwise compare its two candidates over different horizons.
 //
-// `seconds` and a cooldown off the proto are both the game's own seconds;
-// MeasureFight counts in the stretched clock, so the window is scaled on the
-// way out. Without that a two-minute cycle asked for a window worth twenty-four
-// game seconds at level 200 and the buff never came down inside it -- the very
-// thing this exists to prevent.
+// `seconds` is in game seconds where MeasureFight counts in the stretched
+// clock, so the window is scaled on the way out.
 double WindowFor(const GameState& state, double seconds) {
   double cycle = 0.0;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
@@ -325,15 +319,11 @@ double WindowFor(const GameState& state, double seconds) {
          GameSpeedFactor(state.character.proto().level());
 }
 
-// What a point of damage into the map in front of the character is worth, in
-// meso: what the crowd pays for falling over, against what felling it costs.
-// Each type weighted by how many of it stand there at once, which is the mix
-// the map really holds.
-//
-// This is the whole of the conversion the rate below needs. A measured fight
-// cannot count kills -- CombatParams::measuring holds every monster's HP still
-// on purpose, so the rate is the swings and not the dice -- so the kills are
-// read off the damage instead, at what one of them costs.
+// What a point of damage into the map is worth, in meso: what the crowd pays
+// for falling over against what felling it costs, each type weighted by how
+// many stand there at once. A measured fight CANNOT count kills -- measuring
+// holds every monster's HP still on purpose -- so the kills are read off the
+// damage at what one costs.
 double MesoPerDamage(const GameState& state, const DropBasis& basis,
                      const CombatParams& params, double item_drop_pct) {
   double paid = 0.0;
@@ -351,16 +341,13 @@ double MesoPerDamage(const GameState& state, const DropBasis& basis,
   return body > 0.0 ? paid / body : 0.0;
 }
 
-// What the character takes off the map they are standing on a second, in meso.
-// Damage is in it: the kills are what the swings buy, so a point that hits
-// harder shows up here as more of them. What a damage rate could not see is
-// the rest of it -- the drop and meso levers, which fill the purse without
-// moving a swing, and which every farming decision has to be able to weigh.
+// What the character takes off the map a second, in meso. Damage is in it, the
+// kills being what the swings buy, and so are the drop and meso levers, which
+// fill the purse without moving a swing.
 //
-// What it does not carry is the respawn cap: a character already killing the
-// map as fast as it stands back up buys nothing with more damage, and this
-// still reads the swing. The buff plan is where that question is asked, and it
-// asks it of a fight played out rather than of a rate -- see BuffYield.
+// It does NOT carry the respawn cap: a character already killing the map as
+// fast as it stands back up buys nothing with more damage, and this still
+// reads the swing. BuffYield asks that of a fight played out.
 double CrowdRateOver(GameState& state, const DropBasis& basis, double seconds) {
   CombatParams params = ComputeCombatParams(state);
   if (!params.active || params.types.empty()) {
@@ -385,13 +372,10 @@ double CrowdRate(GameState& state, const DropBasis& basis) {
   return CrowdRateOver(state, basis, kBookSeconds);
 }
 
-// What one clear of `difficulty` pays. The meso a boss hands over is flat --
-// no %meso reaches it -- and its drops take the rate, each of them worth what
-// the counter would give for it.
-//
-// Most of a boss's table sells for nothing -- the gear, the tokens, the soul
-// shards -- so what each is worth is what the purse would otherwise spend for
-// the same combat power. See //analysis:drop_value.
+// What one clear of `difficulty` pays. The meso is FLAT, no %meso reaching it,
+// and the drops take the rate. Most of a boss's table sells for nothing, so
+// each is worth what the purse would otherwise spend for the same combat
+// power. See //analysis:drop_value.
 double BossPayout(const GameState& state, const DropBasis& basis,
                   const BossDifficulty& difficulty, double item_drop_pct) {
   double paid = difficulty.meso();
@@ -420,15 +404,10 @@ double BossPayout(const GameState& state, const DropBasis& basis,
   return paid;
 }
 
-// What the fight the book is aimed at pays the character a second of it: the
-// purse a clear hands over, divided by how long they would take to get there.
-// One enemy standing behind its own defence, which is a different question
-// from the crowd above -- the swing that clears twelve is rarely the one that
-// kills the one that matters.
-//
-// In meso, like the crowd rate, so the two are the same currency and the book
-// can weigh one against the other. Damage is the whole of what moves the
-// divisor: a faster clear is the same purse sooner.
+// What the aimed-at fight pays a second: the purse a clear hands over, divided
+// by how long it takes. ONE enemy behind its own defence, a different question
+// from the crowd -- the swing that clears twelve rarely kills the one that
+// matters. In meso, like the crowd rate, so the book can weigh the two.
 double BossRateOver(GameState& state, const DropBasis& basis, double seconds) {
   std::pair<std::string, int> fight;
   if (!AimedFight(state, &fight)) {
@@ -458,17 +437,14 @@ double BossRate(GameState& state, const DropBasis& basis) {
   return BossRateOver(state, basis, kBookSeconds);
 }
 
-// The book ranked on both at once, weighted alike. A climb clears crowds and a
-// boss is one enemy, and a book that answers only one of them is not a build
+// The book ranked on both at once. A book answering only one is not a build
 // anybody plays: ranked on the map alone the Hero reaches Hilla holding
 // nothing that kills her.
 //
-// Both legs are meso a second, so the two are commensurate and a point can be
-// weighed on either. The geometric mean rather than the sum they would now
-// admit: a sum lets a build that cannot touch a boss score well on the map
-// alone, and scoring that at nothing at all is the whole point of asking for
-// both. Either leg stands in alone when the other has nothing to measure --
-// before the first fight exists, and on the walk home where there is no map.
+// Both legs are meso a second, so a point can be weighed on either. The
+// GEOMETRIC mean rather than a sum: a sum lets a build that cannot touch a
+// boss score well on the map alone. Either leg stands in alone where the other
+// has nothing to measure.
 double BookRate(GameState& state, const DropBasis& basis) {
   double crowd = CrowdRate(state, basis);
   double boss = BossRate(state, basis);
@@ -481,13 +457,10 @@ double BookRate(GameState& state, const DropBasis& basis) {
   return std::sqrt(crowd * boss);
 }
 
-// Where a run's meso came from and where it went. The purse below says how
-// much moved; this says what moved it, which is the only version of the
-// question a tuning pass can act on.
-//
-// Everything combat pays that no named source claims is a mob's drop, so the
-// rows always add up to the purse even when a source is added and nobody
-// writes a line here for it.
+// Where a run's meso came from and went. The purse says how much moved; this
+// says WHAT moved it. Everything combat pays that no named source claims is a
+// mob's drop, so the rows add up to the purse even when a source is added and
+// nobody writes a line for it.
 struct Ledger {
   int64_t etc_sales = 0;
   int64_t boss_clears = 0;
@@ -679,14 +652,10 @@ struct WeaponScout {
 // where it actually moves.
 constexpr int kScoutEveryLevels = 5;
 
-// What the last map choice was taken at: the level, and what was worn at the
-// time. Picking a map probes EVERY hunting ground with a played fight, which
-// is the second most expensive thing a look does, and the answer only moves
-// when the character can reach further up the ladder than they could. Both of
-// the things that carry them there are here.
-//
-// A star or a scroll is not, on the same argument the plan key makes: they
-// land on nearly every look, and the levelling that follows re-asks anyway.
+// What the last map choice was taken at: the level, and what was worn. Picking
+// a map probes EVERY hunting ground with a played fight, and the answer only
+// moves when the character can reach further up the ladder. A star or a scroll
+// is not here: they land on nearly every look, and the levelling re-asks.
 struct MapChoice {
   int level = 0;
   std::string worn;
@@ -797,14 +766,13 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   Outfit(state, /*budget=*/true, scout.settled);
   ledger.gear_bought +=
       std::max<int64_t>(0, before_shelf - state.character.meso());
-  // The book after the weapon, since a point is worth what the thing in their
-  // hands can swing -- and the weapon is settled on what the branch is for,
-  // which is the only thing that keeps the two from talking each other into a
-  // corner. See SettledWeaponType.
-  // Only where something has moved that could reorder them. The pair is swept
-  // several times a day where a level takes longer than that to reach, and a
-  // sweep against a character nothing has changed re-derives the plan it
-  // already holds. See PlanKey.
+  // The book after the weapon, a point being worth what the thing in their
+  // hands can swing; the weapon is settled on what the branch is FOR, which is
+  // what keeps the two from talking each other into a corner.
+  //
+  // Only where something has moved that could reorder them: the pair is swept
+  // several times a day, and a sweep against an unchanged character re-derives
+  // the plan it already holds. See PlanKey.
   if (!(PlanKeyFor(state) == planned)) {
     DropBasis basis =
         DropBasisFor(state, shopper.power_per_meso(), shopper.yardstick());
@@ -1033,20 +1001,16 @@ struct Yield {
   bool died = false;
 };
 
-// Plays the current encounter out for a few respawn beats and banks none of
-// it, then reports the rate it settled at.
+// Plays the encounter out for a few respawn beats, banking none of it, and
+// reports the rate it settled at.
 //
 // Nothing that decides that rate moves between two steps of the same level on
-// the same map -- not the gear, not the book, not the roster -- so the rate
-// holds until one of those does. That is what lets the climb be JUMPED rather
-// than stepped: measure once, then hand the kills of a whole stretch to
-// AwardCombatRewards in one go, which rolls each of them for drops exactly as
-// a step would have.
+// the same map, so it holds until one of them does. That is what lets the
+// climb be JUMPED rather than stepped: measure once, then hand a whole
+// stretch's kills to AwardCombatRewards in one go.
 //
-// What it gives up is the drift inside a stretch: the character's HP wanders
-// over an evening and this cannot see them die of it. The map they are on is
-// one PickMap watched them survive, so it is a small thing to give up for
-// sixty times the speed.
+// It gives up the drift inside a stretch -- the HP wanders over an evening and
+// this cannot see them die of it -- against sixty times the speed.
 Yield MeasureYield(GameState& state, const CombatParams& params, int beats,
                    double step) {
   Yield yield;
@@ -1199,16 +1163,12 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
   return outcome.seconds;
 }
 
-// How often the player opens the game, and when.
-//
-// Not a metronome. A day is a handful of SESSIONS -- a look before work, a
-// long gap, an evening spent checking every half hour -- and both the number
-// of looks and where they fall thin out as the climb slows. An hour between
-// looks at Lv30 is a level and a half; at Lv150 it is nothing.
+// How often the player opens the game, and when. NOT a metronome: a day is a
+// handful of SESSIONS -- a look before work, a long gap, an evening checking
+// every half hour -- and both thin out as the climb slows.
 //
 // The character farms throughout either way. This decides only when the PLAYER
-// is there to sell what dropped, spend the purse, move map, take the
-// advancement and walk up to a boss.
+// is there to sell, spend, move map, advance and walk up to a boss.
 constexpr double kLookGap = 30.0 * 60.0;  // between looks inside one session
 
 // Looks a day, by level, interpolated between. A new character is watched; one
@@ -1239,11 +1199,8 @@ double LooksPerDay(int level) {
 }
 
 // When they next open it. One look starts the day and the rest come together
-// in an evening, half an hour apart -- twelve looks a day is not one every two
-// hours, it is one at breakfast and eleven after work.
-//
-// `left` counts what the evening still owes, so a run of looks is a burst
-// followed by a gap rather than an even spread.
+// in an evening half an hour apart: twelve looks a day is one at breakfast and
+// eleven after work. `left` is what the evening still owes.
 double NextLook(double now, int level, int* left, std::mt19937& rng) {
   if (*left > 0) {
     --*left;
@@ -1369,15 +1326,13 @@ BuffPolicy BuffPolicyFor(const Session& run) {
   return policy;
 }
 
-// Takes the buff decisions on the encounter the character is standing in. The
-// rates come off the yield already measured for the stretch ahead, so the
-// potions cost no fight of their own.
+// Takes the buff decisions on the standing encounter. The rates come off the
+// yield already measured, so the potions cost no fight of their own.
 //
-// The totem is the exception: what it is worth is the kills a halved beat
-// buys, and the only thing that knows those is the fight. So once the level
-// has opened it, the encounter is played out a second time with the shorter
-// beat -- a character who was never waiting on the respawn comes back with
-// the same rate and the totem stays in the bag.
+// The TOTEM is the exception: what it is worth is the kills a halved beat
+// buys, which only the fight knows, so the encounter is played a second time
+// with the shorter beat. A character who was never waiting on the respawn
+// comes back with the same rate and leaves it in the bag.
 void PlanBuffsFor(Session& run, const CombatParams& params,
                   const Yield& yield) {
   BuffYield rates;
@@ -1528,14 +1483,10 @@ int PowerNow(const GameState& state) {
 // one who spent the first.
 constexpr double kRemeasureGrowth = 1.5;
 
-// Whether a slot is holding a different ITEM than it was the last time
-// anything was allocated. A new piece is a reason to allocate again whatever
-// the power reading says: a weapon two tiers up reorders what every stat is
-// worth to the swing, and a character who bought one and left their Hyper
-// Stats where they were is not a player.
-//
-// Names alone, so stars and scrolls do not count. Those land on nearly every
-// look, and re-measuring that often costs more than the allocation it moves.
+// Whether a slot holds a different ITEM than at the last allocation. A new
+// piece is reason to allocate again whatever the power reading says: a weapon
+// two tiers up reorders what every stat is worth. NAMES alone, so stars and
+// scrolls do not count -- they land on nearly every look.
 bool GearChanged(Session& run) {
   std::string worn;
   for (const std::pair<const EquipSlot, const EquipInstance*>& item :
@@ -1550,12 +1501,9 @@ bool GearChanged(Session& run) {
   return true;
 }
 
-// The Hyper Stat points the levels have paid out, spent on both presets.
-// Nothing happens before level 140, where the pool opens.
-//
-// Both, unlike the Ability below: the points are paid per level and cost
-// nothing to move, so there is no pool to split and no reason the farming
-// allocation should wait on the bossing one.
+// The Hyper Stat points the levels have paid out, spent on BOTH presets --
+// unlike the Ability below, since the points are paid per level and cost
+// nothing to move, so there is no pool to split.
 void SpendHyperPoints(Session& run, bool regeared) {
   if (run.state.character.proto().level() < kHyperStatUnlockLevel) {
     return;
@@ -1587,19 +1535,14 @@ void SpendHyperPoints(Session& run, bool regeared) {
   SpendHyperStats(run.state, StatPreset::kSecond, run.hyper_bossing);
 }
 
-// The honor the pool has collected, spent on the BOSSING Inner Ability alone.
+// The honor collected, spent on the BOSSING Inner Ability alone: one pool, and
+// a character this early cannot finish both. The farming table is measured
+// anyway, being one more pass and what says whether that is still right.
 //
-// One preset, because one pool: a character this early cannot finish both, and
-// the fights are what the climb is short of. The farming table is measured
-// anyway -- it is one more pass, and it is what says whether that is still the
-// right call.
-//
-// A new piece of gear does NOT force the table here, though it forces the
-// Hyper Stats above. A fresh table can name a different goal line, and Settled
-// then unlocks the top slot and starts the chase over -- which a pool that
-// runs dry leaves half done, on a worse sheet than the one it gave up. Both
-// sweeps measured: forcing this too cost a Cygnus clear (7/10 to 6/10) and
-// bought nothing Pierre or Von Bon did not already get from the Hyper Stats.
+// New gear does NOT force the table here, though it forces the Hyper Stats: a
+// fresh table can name a different goal line, restarting a chase that a dry
+// pool then leaves half done. Measured both ways -- forcing it cost a Cygnus
+// clear and bought nothing the Hyper Stats did not.
 void SpendHonor(Session& run) {
   if (!run.state.character.inner_ability_unlocked()) {
     return;
@@ -1703,14 +1646,10 @@ void CloseForToday(Session& run,
   }
 }
 
-// Takes on every fight that is open and worth a try, and puts what they
-// dropped on. Returns whether any of them was fought.
-//
-// A loss costs the clock and nothing else: the day is spent by BEATING a
-// boss, not by walking into it, so a player who misses goes again rather than
-// waiting for the reset. That is what a player does, and waiting for the reset
-// is what used to put every first clear far above the level the fight opened
-// at.
+// Takes on every fight that is open and worth a try, wears what dropped, and
+// says whether any was fought. A loss costs the CLOCK and nothing else: the
+// day is spent by beating a boss, not by walking into one, so a player who
+// misses goes again rather than waiting out the reset.
 bool TakeOnBosses(Session& run, int level, bool levelled) {
   if (!absl::GetFlag(FLAGS_dailies)) {
     return false;
@@ -2158,13 +2097,10 @@ void ClimbToCap(Session& run) {
   }
 }
 
-// Plays the days after the cap: the map that pays the most meso a second
-// rather than the most EXP, the dailies as they fall due, and the purse still
-// spending on whatever it can now afford.
 // The hourly look the endgame takes, in place of the climb's look on levelling
-// up. The Etc tab is cleared first, as the climb's own retool does it: the tab
-// holds 128 stacks and twenty days of drops fill it, and a full one refuses
-// the spell traces every scroll is bought with.
+// up. The Etc tab is CLEARED first, as the climb's retool does: the tab holds
+// 128 stacks, twenty days of drops fill it, and a full one refuses the spell
+// traces every scroll is bought with.
 void RestockAtCap(Session& run, const CombatParams& params,
                   const Yield& yield) {
   run.climb.ledger.etc_sales += SellDrops(run.state.character);
@@ -2214,6 +2150,9 @@ void NoteEndgame(Session& run, double began, int64_t earned_at_cap,
   run.climb.potentials = PotentialsWorn(run.state);
 }
 
+// Plays the days after the cap: the map that pays the most meso a second
+// rather than the most EXP, the dailies as they fall due, and the purse still
+// spending on whatever it can afford.
 void FarmAtCap(Session& run) {
   double began = run.seconds;
   double total = absl::GetFlag(FLAGS_total_days);
@@ -2717,14 +2656,10 @@ void PrintReadinessRow(const Catalogs& catalogs, const BossLog& log) {
               100.0 * log.best_seconds / clock, rate, log.best_power);
 }
 
-// How much of each fight's clock the branch needed once it could take it at
-// all. A boss is beaten inside its limit or not beaten, so the margin is the
-// reading -- a clear at nine tenths of the clock is a fight the next patch
-// takes away.
-//
-// Read off the climb rather than off a character built for the question: what
-// walks up to a boss here has the AP, the book and the gear a player actually
-// had when the fight opened.
+// How much of each fight's clock the branch needed. A boss is beaten inside
+// its limit or not beaten, so the MARGIN is the reading -- a clear at nine
+// tenths is a fight the next patch takes away. Read off the climb, so what
+// walks up to the boss has the AP, book and gear a player really had.
 void PrintBossReadiness(const Catalogs& catalogs,
                         const std::vector<Job>& branches,
                         const std::vector<Climb>& climbs) {
@@ -2945,14 +2880,10 @@ double FinalDpm(const Catalogs& catalogs, const FightRow& fight,
   return played.seconds > 0.0 ? played.damage / played.seconds * 60.0 : 0.0;
 }
 
-// What every branch's final build does to the hardest fight in the game,
-// measured rather than fought: its parts stood up for the whole clock and
-// never falling, so a branch that never won it still reads a throughput and
-// the table above says "nowhere near" rather than only "no".
-//
-// Played out over kDpmSeconds. A boss runs in real seconds at any level --
-// ComputeBossParams pins the pacing at 1.0 -- so this horizon is not put
-// through WindowFor, whose stretch belongs to a map.
+// What every branch's final build does to the hardest fight, MEASURED rather
+// than fought: its parts stand the whole clock and never fall, so a branch
+// that never won still reads a throughput. Played over kDpmSeconds, not put
+// through WindowFor: a boss runs in real seconds at any level.
 void PrintFinalDpm(const Catalogs& catalogs,
                    const std::vector<FightRow>& fights,
                    const std::vector<Job>& branches,
@@ -2987,13 +2918,10 @@ void PrintFinalDpm(const Catalogs& catalogs,
   }
 }
 
-// When each fight falls in a character's life, across the branches: the level
-// the first clear came at, and -- for the fights that only open at the cap,
-// where every level column would read the cap -- the clock instead.
-//
-// The whole point of a run under --total_days: a fight nobody beats inside
-// the month is not a fight that is merely late, and how much of it they could
-// take down says whether it is a tuning matter or a wall.
+// When each fight falls in a character's life: the level of the first clear,
+// or -- for the fights that only open at the cap -- the clock. The point of a
+// run under --total_days: a fight nobody beats inside the month is not merely
+// late, and how far they got says whether it is tuning or a wall.
 void PrintBossTimeline(const Catalogs& catalogs,
                        const std::vector<Job>& branches,
                        const std::vector<Climb>& climbs) {
@@ -3011,22 +2939,16 @@ void PrintBossTimeline(const Catalogs& catalogs,
   }
 }
 
-// What the cubing came to: what each branch paid, how much of it landed a
-// roll worth keeping, and -- for the branch printed in full -- the lines every
-// cubed piece ended up wearing.
-//
-// Bought against kept is the reading that matters. A cube is a chance rather
 // What each branch's ignored defence leaves of the fight they are aimed at.
 //
-// Defence multiplies the whole swing, and past the point a branch's ignored
-// defence stops cancelling it the factor clamps at zero and every line floors
-// at 1 damage. So this is not a column where a small number means a little
-// behind: a branch reading 0% is not fighting the boss at all, whatever else
-// it carries. The bossing preset, since that is what the fight reads.
+// Defence multiplies the whole swing, and past the point ignored defence stops
+// cancelling it the factor clamps at zero and every line floors at 1 damage.
+// So a small number here is not a little behind: a branch reading 0% is not
+// fighting the boss at all.
 //
-// The character's own ignored defence, not a swing's. A skill carrying its
-// own -- the Shadower's four V nodes ignore defence outright -- meets a
-// different number, and the branch clears fights this table says it cannot.
+// The CHARACTER's ignored defence, not a swing's. A skill carrying its own
+// meets a different number, and its branch clears fights this says it
+// cannot.
 void PrintDefence(const Catalogs& catalogs, const std::vector<Job>& branches,
                   const std::vector<Climb>& climbs) {
   std::printf(
@@ -3060,8 +2982,10 @@ void PrintDefence(const Catalogs& catalogs, const std::vector<Job>& branches,
   }
 }
 
-// than a purchase, so the gap between them is the meso that bought nothing,
-// which is the trap a keep-better rule invites.
+// What the cubing came to: what each branch paid, how much landed a roll worth
+// keeping, and -- for the branch printed in full -- the lines every cubed piece
+// ended up wearing. BOUGHT against KEPT is the reading that matters: a cube is
+// a chance rather than a purchase, so the gap is the meso that bought nothing.
 void PrintCubing(const std::vector<Job>& branches,
                  const std::vector<Climb>& climbs) {
   std::printf(
@@ -3496,11 +3420,9 @@ void Run() {
     PrintLedger(branches, typical);
   }
 
-  // Third jobs only. A branch that stops at its 2nd job is scaffolding for the
-  // playtime table above, not a player: the advancement is there at 60 and
-  // nobody climbs to 100 without it. It matters here because the two answer
-  // differently -- a 2nd job finds the top two maps a coin flip against Sand
-  // Dwarf and stays put, where a 3rd job is paid a third more for moving up,
+  // Third jobs only. A branch stopping at its 2nd is scaffolding, not a
+  // player, and the two answer differently: a 2nd job finds the top maps a
+  // coin flip and stays put where a 3rd is paid a third more for moving up --
   // and the cape only falls off the mobs up there.
   PrintFrozenDrops(branches, typical);
   PrintTokenOdds(branches.data(), typical, count);

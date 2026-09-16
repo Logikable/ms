@@ -38,12 +38,10 @@ inline constexpr int kMaxSessions = 64;
 
 class Server {
  public:
-  // `listener` must be an open listening socket. `bosses` and `mobs` are the
-  // catalogs, owned by the caller and outliving the server: the fights a party
-  // may ask for, and the monsters those fights stand up. `seed` fixes the
-  // stream ids are drawn from, so a test can say what it will be handed.
-  // `protocol_version` is what the server holds a client to. It is an
-  // argument only so that a test can be an out-of-date server.
+  // `listener` must be open and listening. `bosses` and `mobs` are the
+  // catalogs, owned by the caller and outliving the server. `seed` fixes the
+  // stream ids are drawn from, so a test can say what it will be handed, and
+  // `protocol_version` is an argument only so a test can be an old server.
   Server(Socket listener, const std::map<std::string, Boss>& bosses,
          const std::map<std::string, Mob>& mobs,
          unsigned int seed = std::random_device()(),

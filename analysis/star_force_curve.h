@@ -25,15 +25,10 @@ struct StarForceRun {
 };
 
 // The expected cost of taking one item of `required_level` from `from` stars
-// to `to`, recovering the item every time it booms and carrying on from
-// whatever star the trace hands back.
-//
-// `booms` is left as a count rather than priced: what a replacement copy costs
-// depends on where the item came from, and a drop-only item has no price at
-// all. Multiply it by whatever one copy is worth.
-//
-// Zero for a run that goes nowhere or past the game's last star. `to` above
-// what the item's level can hold is the caller's to check.
+// to `to`, recovering it every boom and carrying on from whatever star the
+// trace hands back. `booms` is left as a COUNT rather than priced -- what a
+// replacement costs depends on where the item came from, and a drop-only item
+// has no price. Zero for a run that goes nowhere.
 StarForceRun StarForceRunTo(int required_level, int from, int to);
 
 }  // namespace ms

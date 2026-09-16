@@ -15,16 +15,14 @@ Character PublicSheet(const CharacterInstance& character) {
   // ToProto rather than proto(): what is worn lives in a C++ container and is
   // only folded into the message when someone asks for the lot.
   Character sheet = character.ToProto();
-  // What a party member is shown is what they could work out by watching:
-  // the stats, what is worn, and the passives behind both. The bag, the
-  // purse and the shelf of what was sold are nobody else's business, and
-  // sending them would put a save's worth of message on every update.
+  // What a party member is shown is what they could work out by WATCHING: the
+  // stats, what is worn, and the passives behind both. The bag and the purse
+  // are nobody else's business and would put a save's worth of message on
+  // every update.
   //
-  // Every unspent balance goes with them. What a balance was spent on shows
-  // -- the skill levels, the ability lines -- and the balance itself is both
-  // private and the fastest-moving number on the sheet: honor climbs with
-  // every kill, so leaving it in sent a whole sheet per kill to a server
-  // that had no use for it.
+  // Every unspent balance goes with them: what it was SPENT on shows, and the
+  // balance itself is the fastest-moving number on the sheet -- honor climbs
+  // with every kill, so leaving it in sent a whole sheet per kill.
   sheet.clear_inventory();
   sheet.clear_stacks();
   sheet.clear_buy_backs();
@@ -85,13 +83,10 @@ void MultiplayerSession::Advance(GameState& state) {
     state.account.SetMultiplayerAccount(snapshot.account_id, snapshot.token);
   }
 
-  // Compared whole rather than field by field: a re-scrolled weapon or a
-  // spent skill point changes what the Inspect screen draws, and a check that
-  // knew only about the name, the level and the job would never send it.
-  //
-  // Through MessageDifferencer rather than the serialized bytes, because the
-  // sheet holds maps -- what is worn, and what is learned -- and two encodings
-  // of one map need not put its entries in the same order.
+  // Compared WHOLE rather than field by field: a re-scrolled weapon changes
+  // what the Inspect screen draws, and a check knowing only the name, level
+  // and job would never send it. Through MessageDifferencer rather than the
+  // bytes, the sheet holding maps, whose entries need not encode in order.
   PlayerInfo player = PlayerFor(state);
   // The account is identity rather than anything the lobby draws, and the
   // server takes it from the session instead of from what arrives. Learning

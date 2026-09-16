@@ -33,14 +33,11 @@ namespace ms {
 // other one is the player's choice.
 inline constexpr char kHomeMap[] = "maple_island";
 
-// The three states the game can be started in.
-//
-// kPlay is the game as a player meets it: a level 1 Beginner on Maple Island
-// with a Sword and nothing else. kTest is the workbench -- a level 1 Beginner
-// with the meso and the spread of items the upgrade and shop screens need to
-// be exercised without playing up to them. kMax is the ceiling: the character
-// a player who spent well is standing in at the level asked for, which is
-// what a boss is measured against.
+// The three states the game can be started in. kPlay is the game as a player
+// meets it. kTest is the workbench -- the meso and the spread of items the
+// upgrade and shop screens need without playing up to them. kMax is the
+// ceiling a player who spent well stands in, which a boss is measured
+// against.
 enum class GameMode {
   kPlay,
   kTest,
@@ -85,19 +82,13 @@ enum class TestSkills {
 // before they can look at anything.
 inline constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_HERO_V;
 
-// The workbench's own settings, one per flag. kPlay ignores every one of them.
+// The workbench's own settings, one per flag; kPlay ignores them. `job` is the
+// advancement to start at the top of and `level` the level to arrive at, 0
+// leaving it to the job. kMax reads both and fills the rest itself.
 //
-// `job` is --job: the advancement to start at the top of. Unset takes the
-// workbench's own job.
-//
-// `level` is --level: the level to arrive at. 0 leaves it to the job, which is
-// the top of that job's own band.
-//
-// kMax reads `job` and `level` too, and fills `equips` and `skills` itself.
-// `autoswap_presets` is read by every mode: the switch the state starts with,
-// which the constructor is the only place to throw -- a GameState cannot be
-// named before it is returned. The game ships it off and every sim turns it
-// on; see //analysis:sim_world.
+// `autoswap_presets` is read by EVERY mode: the constructor is the only place
+// to throw it, a GameState not being nameable before it is returned. The game
+// ships it off and every sim turns it on.
 struct TestOptions {
   JobAdvancement job = JOB_ADVANCEMENT_UNSPECIFIED;
   int level = 0;
@@ -107,22 +98,14 @@ struct TestOptions {
 };
 
 struct GameState {
-  // Constructs the catalogs and puts the character, bag and map into the
-  // state `mode` begins from. Anything the catalogs do not name is skipped, so
-  // a state built for a test need not carry the game's data files.
+  // Puts the character, bag and map into the state `mode` begins from.
+  // Anything the catalogs do not name is skipped, so a test's state need not
+  // carry the game's data files. `test` applies to kTest alone.
   //
-  // `test` is the workbench's flags, and applies to kTest alone.
-  //
-  // `seed` fixes the random stream. The game leaves it unset and gets a
-  // different one every time; a sim or a test passes one so that a run it
-  // repeats pays what it paid last time -- rewards are rolled, and two runs of
-  // the same fight otherwise disagree.
-  //
-  // `sets` is handed to the character once the seeding has dressed them, since
-  // what a set pays is worked out from what is worn. It is a constructor
-  // argument and not something the caller does afterwards because the state
-  // cannot be named before it is returned -- a caller who forgot would get a
-  // character standing in a full set and paid nothing for it.
+  // `seed` FIXES the random stream, so a repeated run pays what it paid last
+  // time; the game leaves it unset. `sets` is a constructor argument because
+  // the state cannot be named before it is returned, and a caller who forgot
+  // would get a character in a full set paid nothing for it.
   GameState(std::map<std::string, EquipPrototype> equips,
             std::map<std::string, Scroll> scrolls,
             std::map<std::string, ItemPrototype> items,
@@ -199,26 +182,16 @@ struct GameState {
   double playtime_seconds = 0.0;
 
   // Everybody else in the party, rebuilt from the sheets they sent, for the
-  // skills of theirs that reach this character -- see DerivedStatsFor.
-  //
-  // Filled only while a party fight is on, and emptied when it ends: a party
-  // stands in the lobby while its members farm alone, and nothing farmed is
-  // shared yet. Whatever reads it need not ask which it is.
+  // skills of theirs that reach this character. Filled only while a party
+  // FIGHT is on and emptied when it ends, so nothing reading it has to ask.
   std::vector<CharacterInstance> party;
 };
 
-// Hands over whatever climbing from `from_level` to `to_level` grants: the
-// honor every level pays, and whatever the catalogs owe. Reaching 200 is
-// handed a Vanishing Journey Arcane Symbol, which is the reason this takes the
-// whole state -- the character cannot give themselves an item they have never
-// heard of.
-//
-// Every site that can gain a level calls this, which is what keeps the honor
-// on the level rather than on the fight that happened to pay for it.
-//
-// A span rather than a level, because one idle stretch can carry a character
-// past several -- the same shape UpgradesUnlockedBetween has, and for the same
-// reason.
+// Whatever climbing from `from_level` to `to_level` grants: the honor every
+// level pays, and whatever the catalogs owe -- reaching 200 is handed a
+// symbol, which is why this takes the whole state. EVERY site that can gain a
+// level calls it, which keeps the honor on the level rather than on the fight.
+// A span, since one idle stretch can carry a character past several.
 void GrantLevelRewards(GameState& state, int from_level, int to_level);
 
 // The level a piece of gear can first be OWNED at, which is not always the

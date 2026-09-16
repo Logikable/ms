@@ -36,14 +36,10 @@ constexpr int kAttackPercent = 2;
 constexpr int kDefensePercent = 5;
 
 // Stat and attack gained on reaching a given star (16-30★), by the item's
-// required level. Index i = the gain for (i+15)★→(i+16)★.
-//
-// A weapon and everything else read different attack columns: at 20★ a Lv150
-// weapon takes +11 and a Lv150 hat +13. The stat column is shared, and runs
-// out at 23★ -- past there only attack climbs.
-//
-// GMS's own table stops at 25★. The rows past it continue the step the last
-// rows take: +1 an attempt on a weapon, +2 on everything else.
+// required level; index i is the gain for (i+15)★→(i+16)★. A weapon and
+// everything else read different ATTACK columns, and the shared stat column
+// runs out at 23★. GMS's table stops at 25★, and the rows past it continue the
+// last step.
 struct HighStarEntry {
   int stat;
   int weapon_att;
