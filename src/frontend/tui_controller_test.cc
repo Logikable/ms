@@ -12,6 +12,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/consumables.h"
+#include "src/character/dailies.h"
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
 #include "src/character/v_matrix.h"
@@ -54,6 +55,16 @@
 
 namespace ms {
 namespace {
+
+// A notice is one sentence split across lines to read evenly, so a test that
+// only cares what it says reads it back as the sentence.
+std::string NoticeText(const std::vector<std::string>& lines) {
+  std::string sentence;
+  for (const std::string& line : lines) {
+    sentence += sentence.empty() ? line : " " + line;
+  }
+  return sentence;
+}
 
 class TuiControllerTest : public testing::Test {
  protected:
@@ -105,6 +116,19 @@ class TuiControllerTest : public testing::Test {
     frozen.set_token_item("weapon_token");
     frozen.set_token_price(1);
     equips["frozen_sword"] = frozen;
+    // Two of the six symbols, which is enough for a claim to have a ladder to
+    // walk up.
+    symbol_.set_name("Arcane Symbol: Vanishing Journey");
+    symbol_.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+    symbol_.set_required_level(200);
+    symbol_.mutable_arcane_symbol()->set_meso_cost_base(8);
+    equips[symbol_.name()] = symbol_;
+    EquipPrototype chu_chu;
+    chu_chu.set_name("Arcane Symbol: Chu Chu Island");
+    chu_chu.set_equip_slot(EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND);
+    chu_chu.set_required_level(200);
+    chu_chu.mutable_arcane_symbol()->set_meso_cost_base(10);
+    equips[chu_chu.name()] = chu_chu;
     token_.set_name("Weapon Token");
     token_.set_category(ITEM_CATEGORY_ETC);
     token_.set_currency_mark("●");
@@ -562,6 +586,7 @@ class TuiControllerTest : public testing::Test {
   }
 
   EquipPrototype sword_;
+  EquipPrototype symbol_;
   ItemPrototype token_;
   ItemPrototype shard_;
   std::unique_ptr<GameState> state_;
@@ -3436,6 +3461,70 @@ TEST_F(TuiControllerTest, TheAnalysisEntryTakesBackAPendingStop) {
   EXPECT_EQ(analysis_.state(), AnalysisState::kRunning);
 }
 
+// --- Dailies ---
+
+// The claim lists every symbol at or below the one held, and Confirm puts a
+// day's worth of each into the bag.
+TEST_F(TuiControllerTest, TheDailiesClaimPaysEverySymbolListed) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(
+      state_->equips.at("Arcane Symbol: Chu Chu Island")));
+  controller_->OpenMenuEntry(MenuEntry::kDailies);
+  ASSERT_EQ(controller_->screen(), kDailies);
+
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.inventory().size(), 3)
+      << "the one held, plus a packed stack for each of the two areas";
+  EXPECT_EQ(
+      state_->character.SpareSymbolWorths(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY),
+      (std::vector<int>{kSymbolsPerDay}));
+  EXPECT_GT(state_->character.DailiesClaimedAt(), 0);
+}
+
+TEST_F(TuiControllerTest, CancellingTheClaimTakesNothing) {
+  state_->character.PickUp(
+      std::make_unique<EquipInstance>(state_->equips.at(symbol_.name())));
+  controller_->OpenMenuEntry(MenuEntry::kDailies);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.inventory().size(), 1);
+  EXPECT_EQ(state_->character.DailiesClaimedAt(), 0)
+      << "the day is still there";
+}
+
+// The day's claim is gone once it is taken, and says so rather than asking a
+// question whose answer is no.
+TEST_F(TuiControllerTest, AClaimedDaySaysSo) {
+  state_->character.PickUp(
+      std::make_unique<EquipInstance>(state_->equips.at(symbol_.name())));
+  state_->character.RecordDailiesClaim(
+      static_cast<int64_t>(std::time(nullptr)));
+  controller_->OpenMenuEntry(MenuEntry::kDailies);
+  EXPECT_EQ(controller_->screen(), kDailiesNotice);
+  EXPECT_FALSE(controller_->notice_is_refusal()) << "the clock, not the player";
+  EXPECT_EQ(NoticeText(controller_->notice_lines()), "Already claimed today.");
+  EXPECT_EQ(controller_->notice_button(), "Close");
+
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// Half a claim would cost the player the rest of it until tomorrow, so a full
+// bag takes none of it and the day stays open.
+TEST_F(TuiControllerTest, AFullBagRefusesTheWholeClaim) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(
+      state_->equips.at("Arcane Symbol: Chu Chu Island")));
+  while (!state_->character.inventory().full()) {
+    state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  }
+  controller_->OpenMenuEntry(MenuEntry::kDailies);
+  ASSERT_EQ(controller_->screen(), kDailies);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kDailiesNotice);
+  EXPECT_TRUE(controller_->notice_is_refusal());
+  EXPECT_EQ(state_->character.DailiesClaimedAt(), 0);
+}
+
 TEST_F(TuiControllerTest, ViewOpensTheAnalysisOverlayAndBackClosesIt) {
   controller_->OpenMenuEntry(MenuEntry::kAnalysis);
   controller_->OnEvent(ftxui::Event::ArrowUp);
@@ -3472,8 +3561,11 @@ TEST_F(TuiControllerTest, AClearedFightSaysWhenItComesBack) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossNotice);
   EXPECT_FALSE(controller_->notice_is_refusal()) << "the reset, not the player";
-  EXPECT_EQ(controller_->notice_lines()[0], "Zakum");
-  EXPECT_EQ(controller_->notice_lines()[1], "has already been killed today.");
+  // Split evenly rather than at the name: a short name over a long remainder
+  // reads as two rows that have nothing to do with each other.
+  EXPECT_EQ(
+      controller_->notice_lines(),
+      (std::vector<std::string>{"Zakum has already", "been killed today."}));
   EXPECT_TRUE(controller_->notice_prompt().open());
 
   // The notice holds the screen until it is dismissed.
@@ -3499,8 +3591,8 @@ TEST_F(TuiControllerTest, AClearOfOneDifficultyClosesTheOthers) {
   controller_->OnEvent(ftxui::Event::ArrowRight);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossNotice);
-  EXPECT_EQ(controller_->notice_lines()[0], "Zakum");
-  EXPECT_EQ(controller_->notice_lines()[1], "has already been killed today.");
+  EXPECT_EQ(NoticeText(controller_->notice_lines()),
+            "Zakum has already been killed today.");
   EXPECT_EQ(controller_->boss_run(), nullptr) << "nothing was started";
 }
 
@@ -3513,8 +3605,8 @@ TEST_F(TuiControllerTest, ALockedFightNamesTheLevelItOpensAt) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossNotice);
   EXPECT_TRUE(controller_->notice_is_refusal()) << "drawn in red";
-  EXPECT_EQ(controller_->notice_lines()[0], "Normal Zakum");
-  EXPECT_EQ(controller_->notice_lines()[1], "unlocks at level 130.");
+  EXPECT_EQ(NoticeText(controller_->notice_lines()),
+            "Normal Zakum unlocks at level 130.");
   EXPECT_EQ(controller_->boss_run(), nullptr) << "nothing was started";
 }
 
@@ -3532,8 +3624,8 @@ TEST_F(TuiControllerTest, AComingSoonFightSaysSoAndStartsNothing) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossNotice);
   EXPECT_TRUE(controller_->notice_is_refusal()) << "drawn in red";
-  EXPECT_EQ(controller_->notice_lines()[0], "Chaos Zakum");
-  EXPECT_EQ(controller_->notice_lines()[1], "is coming soon!");
+  EXPECT_EQ(NoticeText(controller_->notice_lines()),
+            "Chaos Zakum is coming soon!");
   EXPECT_EQ(controller_->boss_run(), nullptr) << "nothing was started";
 }
 

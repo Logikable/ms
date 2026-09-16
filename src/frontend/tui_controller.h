@@ -27,6 +27,7 @@
 #include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/cube_panel.h"
+#include "src/frontend/screens/dailies_panel.h"
 #include "src/frontend/screens/hammer_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
@@ -350,6 +351,9 @@ class TuiController {
   // The Level Up dialog for an Arcane Symbol, and the Combine one. Owned
   // rather than handed in: neither carries any game state, only what Reset was
   // told to say.
+  const DailiesPanel& dailies_panel() const {
+    return dailies_panel_;
+  }
   const SymbolLevelPanel& symbol_level_panel() const {
     return symbol_level_panel_;
   }
@@ -374,10 +378,15 @@ class TuiController {
   const std::string& boss_prompt_title() const {
     return boss_prompt_title_;
   }
-  // The [Continue] every one-button screen is dismissed by -- a scroll or star
+  // The one button every one-button screen is dismissed by -- a scroll or star
   // force result, and the notice that a fight is still on its reset.
   const ContinuePrompt& notice_prompt() const {
     return notice_prompt_;
+  }
+  // What that button says: "Continue" for a result the player reads on
+  // through, "Close" for a notice that is the end of it.
+  const std::string& notice_button() const {
+    return notice_button_;
   }
   // What the notice says, a line at a time, and whether it is a refusal --
   // which is drawn in red, the colour of a reason the player fell short of.
@@ -593,8 +602,19 @@ class TuiController {
   // by [Continue] is opened the one way.
   void OpenNotice(Screen screen);
   // The same for a screen that is nothing but a message: `lines` is what it
-  // says, and a refusal is drawn in red.
-  void OpenNotice(Screen screen, std::vector<std::string> lines, bool refusal);
+  // says, a refusal is drawn in red, and `button` is what the one button says.
+  void OpenNotice(Screen screen, std::vector<std::string> lines, bool refusal,
+                  const std::string& button);
+  // A notice of one sentence, split across as many lines as it takes to read
+  // evenly. What every notice naming something should use: a short name and a
+  // long remainder read as one lopsided pair otherwise.
+  void OpenSentenceNotice(Screen screen, const std::string& sentence,
+                          bool refusal, const std::string& button);
+  // Enter on the menu's Dailies entry: the claim, or the notice that today's
+  // has been taken already.
+  void OpenDailies();
+  bool OnDailiesEvent(ftxui::Event event);
+  bool OnDailiesNoticeEvent(ftxui::Event event);
   bool OnBossFightEvent(ftxui::Event event);
   bool OnBossAbortEvent(ftxui::Event event);
   bool OnBossClearEvent(ftxui::Event event);
@@ -718,6 +738,7 @@ class TuiController {
   ConsumableType buff_type_ = CONSUMABLE_TYPE_UNSPECIFIED;
   ItemMenu buff_menu_{{"Disable", "Inspect", "Buy Perm", "Close"}};
   ConfirmPrompt buff_buy_prompt_;
+  DailiesPanel dailies_panel_;
   SymbolLevelPanel symbol_level_panel_;
   ConfirmPrompt hyper_reset_prompt_;
   ConfirmPrompt v_matrix_reset_prompt_;
@@ -747,6 +768,7 @@ class TuiController {
   ContinuePrompt notice_prompt_;
   std::vector<std::string> notice_lines_;
   bool notice_is_refusal_ = false;
+  std::string notice_button_;
   ConfirmPrompt boss_abort_prompt_;
   // The connection, or null for a game played alone.
   MultiplayerSession* multiplayer_ = nullptr;

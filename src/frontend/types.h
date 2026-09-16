@@ -92,6 +92,10 @@ enum Screen : int {
   kPartyItemInspect,
   // The question one of those asks, and the one leaving a party asks.
   kPartyConfirm,
+  // Enter on the menu panel's Dailies entry: what today's claim pays, over
+  // whatever screen raised it. The notice is the day already spent.
+  kDailies,
+  kDailiesNotice,
   // Enter on the menu panel's Boss entry: pick a fight, then fight it.
   kBossSelect,
   kBossConfirm,

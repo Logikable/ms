@@ -559,8 +559,8 @@ ftxui::Element Tui::BossConfirmDialog() {
 
 ftxui::Element Tui::NoticeDialog() {
   // Red when the player is the reason -- nothing to swing with, an item that
-  // will take no more hammers -- and theme blue when it is only a clock. A
-  // refusal is a dead end, so its button closes rather than continuing.
+  // will take no more hammers -- and theme blue when it is only a clock. The
+  // button is the caller's word: a result reads on, a notice closes.
   bool refused = controller_.notice_is_refusal();
   ftxui::Elements rows;
   for (const std::string& line : controller_.notice_lines()) {
@@ -568,7 +568,7 @@ ftxui::Element Tui::NoticeDialog() {
   }
   return DialogWindow(
       "", std::move(rows),
-      controller_.notice_prompt().Render(refused ? "Close" : "Continue"),
+      controller_.notice_prompt().Render(controller_.notice_button()),
       refused ? kRed : kTheme);
 }
 
@@ -884,6 +884,10 @@ ftxui::Element Tui::RenderScreen() {
       return ftxui::center(mob_inspect_panel_.Render());
     case kMenuBox:
       return RenderMenuBox();
+    case kDailies:
+      return OverMain(controller_.dailies_panel().Render());
+    case kDailiesNotice:
+      return OverMain(NoticeDialog());
     case kAnalysis:
       return OverMain(analysis_panel_.Render());
     case kKeybinds:

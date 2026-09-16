@@ -465,6 +465,34 @@ cc_test(
 )
 
 cc_library(
+    name = "dailies_panel",
+    srcs = ["dailies_panel.cc"],
+    hdrs = ["dailies_panel.h"],
+    deps = [
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:text_columns",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "dailies_panel_test",
+    size = "small",
+    srcs = ["dailies_panel_test.cc"],
+    deps = [
+        ":dailies_panel",
+        "//src/frontend/widgets:screen_text",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "symbol_combine_panel",
     srcs = ["symbol_combine_panel.cc"],
     hdrs = ["symbol_combine_panel.h"],

@@ -14,6 +14,7 @@
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/consumables.h"
+#include "src/character/dailies.h"
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
 #include "src/combat/encounter.h"
@@ -25,6 +26,7 @@
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/keys.h"
 #include "src/game_state.h"
@@ -36,6 +38,13 @@
 #include "src/protos/skill.pb.h"
 
 namespace ms {
+namespace {
+
+// Columns a notice's sentence is wrapped to. Wide enough that the longest of
+// them takes two lines, narrow enough that neither line is a stub.
+constexpr int kNoticeWidth = 34;
+
+}  // namespace
 
 TuiController::TuiController(GameState& state, Screens screens,
                              BattleAnalysis& analysis, KeyMap& keys,
@@ -387,6 +396,10 @@ void TuiController::OpenMenuEntry(MenuEntry entry) {
     screen_ = kPartySelect;
     return;
   }
+  if (entry == MenuEntry::kDailies) {
+    OpenDailies();
+    return;
+  }
   if (entry != MenuEntry::kBoss) {
     // The box opens with the cursor still on the entry below it, which is what
     // the player presses Up to leave.
@@ -606,6 +619,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnShopInspectEvent(event);
     case kShopBuy:
       return OnShopBuyEvent(event);
+    case kDailies:
+      return OnDailiesEvent(event);
+    case kDailiesNotice:
+      return OnDailiesNoticeEvent(event);
     case kMenuBox:
       return OnMenuBoxEvent(event);
     case kAnalysis:
@@ -1643,21 +1660,20 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
     // the player rather than the fight they picked. Only what is left is worth
     // asking a question about.
     if (led_by_somebody_else) {
-      OpenNotice(kBossNotice, {"You are not the leader."}, /*refusal=*/true);
+      OpenNotice(kBossNotice, {"You are not the leader."}, /*refusal=*/true,
+                 "Close");
     } else if (boss_select_panel_.selected_coming_soon()) {
-      OpenNotice(kBossNotice, {boss_prompt_title_, "is coming soon!"},
-                 /*refusal=*/true);
+      OpenSentenceNotice(kBossNotice, boss_prompt_title_ + " is coming soon!",
+                         /*refusal=*/true, "Close");
     } else if (EquippedWeapon(state_) == nullptr) {
       OpenNotice(kBossNotice, {"You have no weapon equipped!"},
-                 /*refusal=*/true);
+                 /*refusal=*/true, "Close");
     } else if (!boss_select_panel_.selected_unlocked()) {
-      OpenNotice(
+      OpenSentenceNotice(
           kBossNotice,
-          {boss_prompt_title_,
-           "unlocks at level " +
-               std::to_string(boss_select_panel_.selected_unlock_level()) +
-               "."},
-          /*refusal=*/true);
+          boss_prompt_title_ + " unlocks at level " +
+              std::to_string(boss_select_panel_.selected_unlock_level()) + ".",
+          /*refusal=*/true, "Close");
     } else if (!boss_select_panel_.selected_available()) {
       std::string when =
           boss_select_panel_.selected_reset() == RESET_PERIOD_WEEKLY
@@ -1665,10 +1681,11 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
               : "today";
       // Named without the difficulty: a clear of any rung closes them all, so
       // the rung on the cursor may not be the one that was taken.
-      OpenNotice(kBossNotice,
-                 {state_.bosses.at(boss_select_panel_.selected_boss()).name(),
-                  "has already been killed " + when + "."},
-                 /*refusal=*/false);
+      OpenSentenceNotice(
+          kBossNotice,
+          state_.bosses.at(boss_select_panel_.selected_boss()).name() +
+              " has already been killed " + when + ".",
+          /*refusal=*/false, "Close");
     } else {
       boss_prompt_.Open();
       screen_ = kBossConfirm;
@@ -1735,15 +1752,67 @@ bool TuiController::OnBossNoticeEvent(ftxui::Event event) {
 }
 
 void TuiController::OpenNotice(Screen screen) {
+  // The word a one-button result is dismissed by. A notice that is the end of
+  // it says so instead -- see the overload below.
+  notice_button_ = "Continue";
   notice_prompt_.Open();
   screen_ = screen;
 }
 
 void TuiController::OpenNotice(Screen screen, std::vector<std::string> lines,
-                               bool refusal) {
+                               bool refusal, const std::string& button) {
+  OpenNotice(screen);
   notice_lines_ = std::move(lines);
   notice_is_refusal_ = refusal;
-  OpenNotice(screen);
+  notice_button_ = button;
+}
+
+void TuiController::OpenSentenceNotice(Screen screen,
+                                       const std::string& sentence,
+                                       bool refusal,
+                                       const std::string& button) {
+  OpenNotice(screen, WrapBalanced(sentence, kNoticeWidth), refusal, button);
+}
+
+void TuiController::OpenDailies() {
+  int64_t now = static_cast<int64_t>(std::time(nullptr));
+  if (!DailiesAvailable(state_.character.DailiesClaimedAt(), now)) {
+    OpenNotice(kDailiesNotice, {"Already claimed today."}, /*refusal=*/false,
+               "Close");
+    return;
+  }
+  std::vector<DailiesPanel::Reward> rewards;
+  for (const EquipPrototype* proto :
+       ClaimableSymbols(state_.character, state_.equips)) {
+    rewards.push_back({proto->name(), kSymbolsPerDay});
+  }
+  dailies_panel_.Reset(std::move(rewards));
+  screen_ = kDailies;
+}
+
+bool TuiController::OnDailiesEvent(ftxui::Event event) {
+  ConfirmChoice choice = dailies_panel_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed &&
+      !ClaimDailies(state_.character, state_.equips,
+                    static_cast<int64_t>(std::time(nullptr)))) {
+    // The one way a claim the player was offered does not happen: the bag
+    // filled up. Taking half of it would cost them the rest until tomorrow.
+    OpenNotice(kDailiesNotice, {"Not enough room in your bag."},
+               /*refusal=*/true, "Close");
+    return true;
+  }
+  screen_ = kMain;
+  return true;
+}
+
+bool TuiController::OnDailiesNoticeEvent(ftxui::Event event) {
+  if (notice_prompt_.OnEvent(event)) {
+    screen_ = kMain;
+  }
+  return true;
 }
 
 bool TuiController::OnBossFightEvent(ftxui::Event event) {
@@ -1815,7 +1884,7 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
     return;
   }
   if (boss_run_->state() == BossRunState::kTimedOut) {
-    OpenNotice(kBossNotice, {"Out of time!"}, /*refusal=*/false);
+    OpenNotice(kBossNotice, {"Out of time!"}, /*refusal=*/false, "Continue");
     return;
   }
   // Nothing to dismiss on the way out of an abort: the player asked to leave,
