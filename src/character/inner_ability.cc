@@ -19,11 +19,10 @@ struct AbilityRow {
   int weight[4];
 };
 
-// GMS states its weights as percentages of a 45-line pool, to four decimal
-// places. Within one rank they are all multiples of one another -- All Stats
-// at Epic is 2.7804% and STR exactly one and a half of it -- so the table is
-// written in those multiples. A roll normalises over the types still
-// available, which makes the scale free and the ratios everything.
+// GMS states its weights as percentages of a 45-line pool. Within a rank they
+// are all multiples of one another, so the table is written in those
+// multiples: a roll normalises over what is still available, which makes the
+// scale free and the ratios everything.
 constexpr AbilityRow kRows[] = {
     {ABILITY_LINE_TYPE_STR, {10, 20, 30, 40}, {45, 45, 45, 45}},
     {ABILITY_LINE_TYPE_DEX, {10, 20, 30, 40}, {45, 45, 45, 45}},
@@ -44,9 +43,9 @@ constexpr AbilityRow kRows[] = {
 };
 
 // Honor a reset costs, by rank and then by lines held. The Unique and
-// Legendary rows are GMS's own, and what a lock adds doubles from one to the
-// next: +1500/+2500 becomes +3000/+5000. GMS prices no lock below Unique,
-// where it allows none; halving that ladder twice gives the two rows here.
+// Legendary rows are GMS's, and what a lock adds doubles between them. GMS
+// prices no lock below Unique; halving that ladder twice gives the lower
+// rows.
 constexpr int64_t kResetCost[4][kMaxLockedAbilityLines + 1] = {
     {100, 500, 1100},
     {200, 1000, 2200},

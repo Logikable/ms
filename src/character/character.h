@@ -36,42 +36,38 @@
 
 namespace ms {
 
-// What an AP stat reads with nothing spent on it, and the STR a fresh Beginner
-// carries instead of it. The nine between them is AP the game handed the
-// character at creation and spent on their behalf, so it counts as spent.
 // The gear one preset wears: its own item where it has one, and the first
-// preset's everywhere else. Points into the character's own worn items, so it
+// preset's everywhere else. Points into the character's worn items, so it
 // lasts only as long as nothing is equipped or taken off.
 using WornGear = std::map<EquipSlot, const EquipInstance*>;
 
+// What an AP stat reads with nothing spent on it, and the STR a fresh Beginner
+// carries instead. The nine between them is AP the game spent on the
+// character's behalf, so it counts as spent.
 inline constexpr int kBaseStat = 4;
 inline constexpr int kBeginnerStr = 13;
 
 // What a character is called before the player names one, which doubles as the
-// invitation to. Every character carries it: a save from before the field was
-// written comes forward with it rather than with a blank row.
+// invitation to. A save from before the field comes forward with it.
 inline constexpr char kDefaultUsername[] = "Set Username";
 
-// The longest name the player may set. Every column that shows one is sized
-// from this, and the one place a name outgrows -- the boss arena's nameplate,
-// twelve columns wide -- slides it under the panel instead.
+// The longest name the player may set. Every column showing one is sized from
+// this; the boss arena's twelve-wide nameplate slides it instead.
 inline constexpr int kMaxUsernameLength = 20;
 
-// Every AP the game has ever handed a character at `level` holding
-// `job_stage` advancements, spent and unspent together. AP is only ever moved
-// between the pool and the stats, never destroyed, so a save whose books do
-// not come to this has drifted -- see CharacterInstance::ReconcileAp.
+// Every AP the game has handed a character at `level` and `job_stage`, spent
+// and unspent. AP is only ever moved, never destroyed, so a save that does not
+// come to this has drifted -- see CharacterInstance::ReconcileAp.
 int ExpectedTotalAp(int level, int job_stage);
 
 // The highest job stage the game has an advancement level for. A stage with no
-// branches written yet still counts -- AdvancementForJobStage simply answers
-// JOB_ADVANCEMENT_UNSPECIFIED for it -- so anything walking every stage a job
-// could be at walks to here and keeps working when the next one lands.
+// branches still counts, so anything walking every stage walks to here and
+// keeps working when the next one lands.
 inline constexpr int kMaxJobStage = 6;
 
-// The last job stage this game has branches for. GMS goes on to a 6th;
-// kAdvancementLevels names the level it opens at and nothing here grants it --
-// so a 5th job has no band above it and climbs to the cap.
+// The last job stage this game has branches for. GMS goes on to a 6th, which
+// kAdvancementLevels names and nothing grants, so a 5th job climbs to the
+// cap.
 inline constexpr int kLastJobStage = 5;
 
 // The last job stage whose book SP buys. The 5th job's is bought with V Points
@@ -86,10 +82,9 @@ JobAdvancement AdvancementForJobStage(Job job, int stage);
 // Returns 0 for JOB_ADVANCEMENT_UNSPECIFIED.
 int StageForAdvancement(JobAdvancement advancement);
 
-// The job an advancement makes a character -- the inverse of
+// The job an advancement makes a character: the inverse of
 // AdvancementForJobStage, which several jobs answer alike at stage 1 but only
-// one does at the stage the advancement belongs to. JOB_UNSPECIFIED for an
-// advancement no job takes.
+// one does at the advancement's own stage.
 Job JobForAdvancement(JobAdvancement advancement);
 
 // The level at which a character at `stage` is offered their next
@@ -97,26 +92,20 @@ Job JobForAdvancement(JobAdvancement advancement);
 // advancement the game defines.
 int NextAdvancementLevel(int stage);
 
-// The equip catalog keys a character is handed on advancing into `job`, or an
-// empty list for a job with no starting gear defined. Here rather than beside
-// PerformJobAdvancement so that the workbench, which is underneath it, can ask
-// the same question -- one table, not two that drift.
+// The equip catalog keys handed over on advancing into `job`. Here rather than
+// beside PerformJobAdvancement so the workbench underneath can ask too: one
+// table, not two that drift.
 std::vector<std::string> StarterEquipsFor(Job job);
 
 // The weapons `job` is built around, in the order to name them. Not what it
-// may legally hold -- a Swordman may hold any warrior weapon -- but what its
-// skills and its damage assume, which is what a player choosing a job needs
-// told. Empty for a job with no weapons defined.
-//
-// A 1st job names the one weapon it is handed on advancing, since the fork is
-// not real until the 2nd. A 3rd job names its 2nd job's pair: nothing about
-// the weapon changes on the way up.
+// may legally hold but what its skills and damage assume, which is what a
+// player choosing a job needs told. A 1st job names the one weapon it is
+// handed, the fork not being real until the 2nd.
 std::vector<EquipType> ExpectedWeapons(Job job);
 
-// The advancement whose off hand `type` is, or JOB_ADVANCEMENT_UNSPECIFIED for
-// a type that is not a secondary at all. The stats of two secondaries in one
-// branch are identical, so this is the only thing standing between a Fighter
-// and a Page's rosary.
+// The advancement whose off hand `type` is. Two secondaries in one branch have
+// identical stats, so this is all that stands between a Fighter and a Page's
+// rosary.
 JobAdvancement AdvancementForSecondary(EquipType type);
 
 // The stat a job's damage is built on. STAT_FIELD_UNSPECIFIED for a job with
@@ -124,10 +113,9 @@ JobAdvancement AdvancementForSecondary(EquipType type);
 // TODO: Demon Avenger's primary stat is HP; Xenon's is STR+DEX+LUK combined.
 StatField PrimaryStatField(Job job);
 
-// The jobs a character holding `job` may advance into at `stage` (1 = 1st
-// job), in the order to offer them. Empty for a stage whose choices do not
-// exist yet, which keeps the UI from offering an advancement with nothing
-// behind it. `job` is ignored at stage 1, where every character is a Beginner.
+// The jobs `job` may advance into at `stage`, in the order to offer them.
+// Empty for a stage whose choices do not exist yet, which keeps the UI from
+// offering an advancement with nothing behind it.
 std::vector<Job> JobChoicesForStage(Job job, int stage);
 
 // What a run of levels hands over, totalled.
@@ -139,10 +127,9 @@ struct LevelGains {
   int hyper_sp = 0;
 };
 
-// What climbing from `from_level` to `to_level` hands over. A span rather than
-// one level, because a single combat tick can carry a character past several
-// thresholds. SP is totalled across job stages: this answers "what did that
-// just earn", which is a count, not a place to spend from.
+// What climbing from `from_level` to `to_level` hands over. A SPAN, since one
+// combat tick can carry a character past several thresholds. The SP totals
+// across job stages: this is what was earned, not a pool to spend from.
 LevelGains GainsForLevels(int from_level, int to_level);
 
 // Rows on the shop's buy-back shelf. One per sale, so a player who sold 300 of
@@ -153,14 +140,11 @@ class CharacterInstance {
  public:
   CharacterInstance(std::mt19937& rng, Character character);
 
-  // Increments level and grants 5 AP, plus 3 SP into the job stage whose level
-  // band the new level falls in (levels 11-30 -> 1st job, 31-60 -> 2nd, ...).
-  // Not bounded by kTrialLevelCap: the cap is on what can be earned, and this
-  // is how a level is granted outright.
+  // Grants 5 AP and 3 SP into the job stage the new level's band belongs to.
+  // NOT bounded by kTrialLevelCap: the cap is on what can be earned.
   void LevelUp();
-  // When this character last cleared `boss` at `difficulty`, as a Unix time,
-  // or 0 for never. Whether that clear has expired is the reset clock's
-  // question -- see boss_reset.h.
+  // When this character last cleared `boss` at `difficulty`, or 0 for never.
+  // Whether it has expired is boss_reset.h's question.
   int64_t BossClearedAt(const std::string& boss,
                         const std::string& difficulty) const;
   // Records a clear at `now`, replacing any earlier one for the same pair.
@@ -174,104 +158,79 @@ class CharacterInstance {
   void RecordDailiesClaim(int64_t now) {
     character_.set_dailies_claimed_unix_seconds(now);
   }
-  // Whether the scroll recorded under `key` is pinned to the top of the scroll
-  // list. The keys are the frontend's; the character keeps the record because
-  // which stats are worth chasing is this character's business, not the
-  // account's.
+  // Whether the scroll under `key` is pinned to the top of the list. The keys
+  // are the frontend's; the CHARACTER keeps the record, which stats are worth
+  // chasing being theirs rather than the account's.
   bool ScrollPinned(const std::string& key) const;
   // Pins it if it is loose, loosens it if it is pinned.
   void ToggleScrollPin(const std::string& key);
   // Adds amount to the character's accumulated EXP, leveling up as many times
   // as the new total allows. No-op once kTrialLevelCap is reached.
   void AddExp(int64_t amount);
-  // Increments job_stage, sets job to `next_job`, grants 5 bonus AP at stages
-  // 3 and 4 (3rd and 4th job advancement), and grants a batch of SP for the
-  // newly opened skill set.
+  // Advances into `next_job`: 5 bonus AP at stages 3 and 4, and a batch of SP
+  // for the newly opened skill set.
   void AdvanceJob(Job next_job);
-  // Puts every AP-allocated stat back in the pool and re-spends it for `job`:
-  // the four stats drop to their base, the job's primary rises to the value a
-  // fresh character of that job would carry, and what is left over becomes
-  // unspent AP for the player to place. Allocated HP and MP are untouched --
-  // those are level-up grants, not AP. Called on a job advancement, so a
-  // Beginner's STR does not strand a Magician.
+  // Puts every AP stat back in the pool and re-spends it for `job`: the four
+  // drop to base, the primary rises to a fresh character's, and the rest is
+  // unspent. HP and MP are level-up grants, not AP, and are untouched. Called
+  // on advancement, so a Beginner's STR does not strand a Magician.
   void ResetStatsForJob(Job job);
-  // Whether the character has reached an advancement it hasn't taken yet. The
-  // UI offers the choice while this holds; JobChoicesForStage says what to
-  // offer and AdvanceJob takes the answer.
+  // Whether an advancement is reached but not taken. JobChoicesForStage says
+  // what to offer and AdvanceJob takes the answer.
   bool CanAdvanceJob() const;
   // Returns false if `field` is unspecified or `amount` exceeds available AP.
   bool AllocateStat(StatField field, int amount = 1);
-  // Spends `amount` SP to raise the skill's learned level by that much -- the
-  // Hyper SP pool for a Hyper Skill, and the skill's job-stage SP for every
-  // other. Returns false if `amount` <= 0, the pool has less than `amount`,
-  // the character is below skill.required_level(), or it would raise the level
-  // past skill.max_level().
+  // Spends `amount` SP to raise the learned level: the Hyper pool for a Hyper
+  // Skill, the skill's job-stage pool otherwise. False when the pool is short,
+  // the character is under required_level, or it would pass max_level.
   bool LearnSkill(const Skill& skill, int amount = 1);
-  // Raises `field` by `amount` levels in `preset`, spending the points every
-  // one of them costs. All or nothing: returns false and spends nothing when
-  // the stat is locked, the levels would pass the cap, or the pool is short.
+  // Raises `field` by `amount` levels in `preset`. All or nothing: false and
+  // nothing spent when locked, over the cap, or short of points.
   bool AllocateHyperStat(HyperStatField field, StatPreset preset,
                          int amount = 1);
-  // Takes `amount` levels back off `field` in `preset`, returning what every
-  // one of them cost to the pool. All or nothing: returns false and refunds
-  // nothing when the stat is not that many levels up.
+  // Takes `amount` levels back off `field`, refunding what they cost. All or
+  // nothing.
   bool RefundHyperStat(HyperStatField field, StatPreset preset, int amount = 1);
   // Puts every point in `preset` back in the pool. Free, and the only way out
   // of an allocation.
   void ResetHyperStats(StatPreset preset);
-  // The same for the V Matrix: every node the character has levelled goes back
-  // to nothing and its V Points return to the pool. Free, and the only way out
-  // of a matrix. Takes the catalog because the levels are keyed by name, and a
-  // name alone does not say which of them is a node.
+  // The same for the V Matrix: every levelled node goes back to nothing and
+  // its points return. Free, and the only way out of a matrix. Takes the
+  // catalog because a name alone does not say which levels are nodes.
   void ResetVMatrix(const std::map<std::string, Skill>& skills);
-  // Returns true if the character meets the level and job requirements to
-  // equip the item described by `proto`. Asked of the catalog as much as of
-  // the bag, so it says nothing about whether a slot is free for it -- that
-  // is SlotToFill.
+  // Whether the level and job requirements for `proto` are met. Asked of the
+  // catalog as much as the bag, so it says nothing about a free slot.
   bool CanEquip(const EquipPrototype& proto) const;
   // Returns true if the character's level meets proto's required level.
   bool MeetsLevel(const EquipPrototype& proto) const;
   // Returns true if the character's job category matches proto's job filter.
   bool MeetsJob(const EquipPrototype& proto) const;
-  // Appends item to inventory. Accepts any EquipTabItem subclass (EquipInstance
-  // or EquipTrace); the caller is responsible for constructing the item.
-  // Returns false and drops the item on the floor when the equip tab is full.
+  // Appends `item` to the equip tab. False, and the item is dropped, when the
+  // tab is full.
   bool PickUp(std::unique_ptr<EquipTabItem> item);
   // Throws away everything on the equip tab, worn gear untouched. The
-  // workbench's, so a tester opens a bag holding only what they put there --
-  // nothing in the game empties one.
+  // workbench's: nothing in the game empties one.
   void ClearEquipInventory();
-  // Adds `count` of the item described by `proto` to the Etc stacks. Tops
-  // up existing stacks of the same item first, then opens new stacks for any
-  // overflow, each capped at the item's max_stack(). No-op if count <= 0.
-  //
-  // Takes what fits and loses the rest: topping up an existing stack costs no
-  // slot, so a tab with none left can still absorb some of a drop. Returns the
-  // number actually added.
+  // Adds `count` of `proto` to the Etc stacks, topping up open stacks before
+  // opening new ones. Takes what fits and loses the rest -- topping up costs
+  // no slot, so a full tab can still absorb part of a drop -- and returns how
+  // many went in.
   int AddStackable(const ItemPrototype& proto, int count);
 
-  // How many more copies of `proto` the bag could take.
-  //
-  // For an equip that is simply the free slots, one copy apiece. For a
-  // stackable it is the room in every stack of that item already open plus a
-  // full stack for each free slot -- ten free slots, stacks of 200 and a stack
-  // of 100 already open comes to 2100.
+  // How many more copies of `proto` the bag could take: one per free slot for
+  // an equip, and for a stackable the room in every open stack plus a full one
+  // per free slot.
   int RoomFor(const EquipPrototype& proto) const;
   int RoomFor(const ItemPrototype& proto) const;
 
-  // How many copies of `proto` the character has: worn plus carried.
-  //
-  // Traces do not count. A trace is the record of an item that was destroyed,
-  // not a copy of it -- somebody deciding whether to buy another has none of
-  // the thing itself.
+  // Copies of `proto` worn plus carried. Traces do NOT count: a trace is the
+  // record of a destroyed item, not a copy of it.
   int CountOwned(const EquipPrototype& proto) const;
   // How many copies of a stackable the character is carrying, summed across
   // every stack of it. Matched on name, as CountOwned is.
   int CountStackable(const ItemPrototype& proto) const;
   int CountStackable(const std::string& name) const;
-  // Spends `count` copies of a named stackable, emptying stacks as it goes.
-  // All or nothing: returns false and takes nothing if the character is not
-  // holding that many.
+  // Spends `count` copies of a named stackable. All or nothing.
   bool ConsumeStackable(const std::string& name, int count);
   // Adds `amount` meso to the character's balance. No-op if amount <= 0.
   void AddMeso(int64_t amount);
@@ -297,140 +256,100 @@ class CharacterInstance {
   // Whether the player has it switched on. Says nothing about their level: an
   // owned buff stays switched on through a character who cannot yet use it.
   bool ConsumableActive(ConsumableType type) const;
-  // Whether it is actually doing anything -- switched on, and at the level it
-  // opens at. Everything reading a buff's effect asks this rather than the two
-  // above.
+  // Whether it is doing anything: switched on and past its level. Everything
+  // reading a buff's effect asks this rather than the two above.
   bool ConsumableInEffect(ConsumableType type) const;
   // Switches it on if it is off and off if it is on, and says which it now
   // is. Refuses a buff this character's level has not opened, leaving it off.
   bool ToggleConsumable(ConsumableType type);
-  // Buys `type` outright at its permanent price. All or nothing: takes no
-  // meso and buys nothing when the purse is short, when it is already owned,
-  // or when the level has not opened it.
+  // Buys `type` outright. All or nothing: nothing happens when the purse is
+  // short, it is already owned, or the level has not opened it.
   bool BuyConsumable(ConsumableType type);
-  // Charges `procs` procs of `type` -- seconds of farming for one buff, boss
-  // entries for the other -- and returns the meso actually taken. A purse that
-  // cannot cover it pays what it has and stops at 0; the buff works either way.
-  // Nothing at all for a buff that is owned, off, or not yet open.
+  // Charges `procs` procs of `type` -- farmed seconds for one buff, boss
+  // entries for the other -- and returns what was taken. A short purse pays
+  // what it has and stops at 0; the buff works either way.
   int64_t ChargeConsumable(ConsumableType type, double procs);
 
-  // Charges every buff paid for by the second over `seconds` of farming, and
-  // reports what they took together. The ones charged per boss entry are left
-  // alone: this is the farming clock, not the door of a fight.
+  // Charges every buff paid for by the second over `seconds` of farming. The
+  // ones charged per boss entry are left alone.
   int64_t ChargeFarmingConsumables(double seconds);
-  // Sells up to `count` copies from the `index`-th stack, crediting
-  // count * sell_price meso and removing the sold copies; erases the stack
-  // entirely once it empties. No-op returning 0 if the index is out of range or
-  // count <= 0. Returns the meso earned, which is 0 for an item worth nothing
-  // -- that is a sale, not a refusal, and it is how a stack of currency is
-  // thrown away.
+  // Sells up to `count` copies from the `index`-th stack, erasing it once it
+  // empties. Returns the meso earned, which is 0 for an item worth nothing --
+  // a sale, not a refusal, and how a stack of currency is thrown away.
   int64_t SellStackable(int index, int count);
   // The shop's buy-back shelf, newest sale first. Reading it is the panel's
   // business; BuyBack is the only thing that takes one off.
   const google::protobuf::RepeatedPtrField<BuyBackEntry>& buy_backs() const {
     return character_.buy_backs();
   }
-  // Buys back `count` copies from buy-back entry `index`, at the price the
-  // sale paid. `count` is ignored for an equip, which is always one item.
-  // Prototypes are resolved by name against the catalogs, as RestoreFrom does,
-  // so an item dropped from data/ cannot be bought back.
-  //
-  // All or nothing, on the same terms as Buy: returns false and changes
-  // nothing unless the character can pay for every copy and the bag can hold
-  // them. Buying part of a stackable row leaves the rest of it on the shelf.
+  // Buys back `count` copies from entry `index` at the price the sale paid.
+  // Prototypes resolve by name, so an item dropped from data/ cannot be bought
+  // back. All or nothing, on Buy's terms; buying part of a stackable row
+  // leaves the rest on the shelf.
   bool BuyBack(int index, int count,
                const std::map<std::string, EquipPrototype>& equips,
                const std::map<std::string, ItemPrototype>& items);
 
-  // Sells the equip-tab item at `index`, crediting its prototype's sell_price
-  // and removing it from the bag. Returns the meso earned, or 0 if the index
-  // is out of range.
-  //
-  // Zero is not a refusal: an item worth nothing still goes. What the copy
-  // carries is worth nothing either -- scrolls and stars pay out at the base
-  // item's price, and a trace pays out at none.
+  // Sells the equip-tab item at `index` and returns the meso earned. Zero is
+  // not a refusal: scrolls and stars pay out at the base item's price and a
+  // trace pays out at none, and all of them still go.
   int64_t SellEquip(int index);
-  // Buys `count` copies of `proto` at its shop_price each, deducting the meso
-  // and putting the copies in the bag. All or nothing: returns false and
-  // changes nothing if `count` is not positive, the item is not for sale, or
-  // the character cannot pay for every copy. Each copy is a fresh item, so
-  // buying two puts two separate rows in the bag.
-  //
-  // An item priced at zero is for sale and costs nothing. Not naming a price
-  // at all is what puts an item outside the shop.
+  // Buys `count` copies of `proto` at shop_price each. All or nothing, and
+  // each copy is a fresh item, so buying two puts two rows in the bag. A price
+  // of zero is for sale and free; naming NO price is what puts an item outside
+  // the shop.
   bool Buy(const EquipPrototype& proto, int count);
-  // Buys `count` copies of `proto` with the token it names, spending
-  // `count * token_price` of them out of the Etc tab. The caller resolves
-  // `token` from the prototype's token_item, since only it holds the catalog.
-  //
-  // All or nothing on the same terms as Buy. An item with no token price, or
-  // an item passed as a token that is not one, buys nothing.
+  // Buys `count` copies of `proto` with the token it names, out of the Etc
+  // tab. The caller resolves `token`, holding the catalog. All or nothing on
+  // Buy's terms.
   bool BuyWithToken(const EquipPrototype& proto, const ItemPrototype& token,
                     int count);
-  // As above for a stackable. All or nothing on the same terms: the price is
-  // checked in one go and the bag's room up front, so a purchase the character
-  // cannot finish never takes the meso for the part of it that would fit.
+  // As above for a stackable. The price and the bag's room are both checked
+  // up front, so a purchase that cannot finish takes nothing.
   bool Buy(const ItemPrototype& proto, int count);
-  // Moves the item at `inventory_index` into the slot SlotToFill picks for it.
-  // If that slot was occupied, the displaced item takes the position the
-  // equipped one leaves. Returns false if `inventory_index` is out of range or
-  // the item has nowhere to go.
-  //
-  // `preset` is the setup the item goes into. Into a preset past the first it
-  // goes as that preset's own: what the others wear in that slot is untouched.
+  // Moves the item at `inventory_index` into the slot SlotToFill picks, the
+  // displaced item taking its place in the bag. `preset` is the setup it goes
+  // into; past the first it goes as that preset's OWN, leaving the others.
   bool Equip(int inventory_index, StatPreset preset = StatPreset::kFirst);
-  // The slot this item would be worn in: the first free slot of its family,
-  // the first of them once they are all full, and EQUIP_SLOT_UNSPECIFIED when
-  // the item cannot be worn at all.
-  //
-  // Nowhere to go means one of two things. An item that names no slot is not
-  // equipment. A family that already holds this same item is GMS's rule that
-  // no two of the four rings are the same ring -- a one-slot family is exempt,
-  // because putting a second copy of a hat on is the swap it looks like.
+  // The slot this item would be worn in: the first free one of its family, or
+  // the first of them once full. Nowhere to go means the item names no slot,
+  // or its family already holds this same item -- GMS's rule that no two of
+  // the four rings are the same ring. A one-slot family is exempt, a second
+  // hat being the swap it looks like.
   EquipSlot SlotToFill(const EquipPrototype& proto,
                        StatPreset preset = StatPreset::kFirst) const;
-  // Moves the item `preset` wears in `slot` to inventory. Returns false if
-  // `slot` is unspecified or unoccupied -- and, for a preset past the first,
-  // if what it wears there is inherited: a preset may only take off its own.
+  // Moves what `preset` wears in `slot` to the bag. False for an empty slot,
+  // and for an INHERITED one: a preset may only take off its own.
   bool Unequip(EquipSlot slot, StatPreset preset = StatPreset::kFirst);
-  // Applies `scroll` to the item in `slot`. Returns kScrollFail if the slot
-  // is empty; otherwise returns the result of the underlying Scroll() call.
+  // Applies `scroll` to the item in `slot`; kScrollFail for an empty one.
   //
-  // Every worn-item upgrade below takes the preset whose gear is being
-  // looked at, and reaches the item that preset shows. An inherited item is
-  // the first preset's own, so upgrading one from the Boss tab upgrades what
-  // Farm wears too -- it is one item.
+  // Every worn-item upgrade below reaches the item `preset` SHOWS. An
+  // inherited item is the first preset's own, so upgrading one from the Boss
+  // tab upgrades what Farm wears: it is one item.
   ScrollOutcome ScrollEquipped(EquipSlot slot, const Scroll& scroll,
                                StatPreset preset = StatPreset::kFirst);
   // Applies `scroll` to the inventory item at `index`. Returns kScrollFail if
   // `index` is out of range; otherwise returns the result of Scroll().
   ScrollOutcome ScrollInventory(int index, const Scroll& scroll);
-  // Applies a star force attempt to the item in `slot`. On kStarForceDestroy,
-  // removes the item from equipped and recomputes equip stats. Spends
-  // StarForceCost first, and returns kStarForceNoMeso without rolling if the
-  // character cannot afford it.
+  // One star force attempt on the item in `slot`, which kStarForceDestroy
+  // takes off. Spends StarForceCost first, and does not roll without it.
   StarForceOutcome StarForceEquipped(EquipSlot slot,
                                      StatPreset preset = StatPreset::kFirst);
   // Applies a star force attempt to the inventory item at `index`. On
   // kStarForceDestroy, removes the item from inventory. Priced as above.
   StarForceOutcome StarForceInventory(int index);
-  // Drives a golden hammer into the item in `slot` / at `index`: one more
-  // upgrade slot for kGoldenHammerCost. Returns false, spending nothing, when
-  // the slot is empty, the item will take no more hammers, or the purse will
-  // not cover it.
+  // Drives a golden hammer into the item: one more upgrade slot for
+  // kGoldenHammerCost. False, and nothing spent, when it cannot be done.
   bool HammerEquipped(EquipSlot slot, StatPreset preset = StatPreset::kFirst);
   bool HammerInventory(int index);
 
-  // Recovers the EquipTrace at `trace_index` using the EquipInstance at
-  // `base_item_index` as the replacement body. Both items are removed from
-  // inventory and replaced with a new EquipInstance carrying the trace's scroll
-  // stats and the star count from RecoveryStars(). The indices must refer to
-  // valid, compatible inventory slots. Returns the recovery star count.
+  // Recovers the trace at `trace_index` onto the body at `base_item_index`:
+  // both leave the bag and a new item carries the trace's scroll stats and
+  // RecoveryStars() stars. Returns that star count.
   int RecoverTrace(int trace_index, int base_item_index);
 
-  // Files a bag tab into the order the Sort button puts it -- see
-  // inventory_sort.h. Every row moves, so nothing may hold a row index across
-  // one of these.
+  // Files a bag tab into the Sort button's order. Every row moves, so no row
+  // index survives one of these.
   void SortEquipTab();
   void SortStackTab();
 
@@ -454,18 +373,17 @@ class CharacterInstance {
   const WornGear& equipped(StatPreset preset = StatPreset::kFirst) const {
     return resolved_[IndexOf(preset)];
   }
-  // The items `preset` holds of its own. The first preset holds the whole
-  // body, so for it this is everything; for the others it is what makes them
-  // different, which is what the Gear tab draws in white.
+  // The items `preset` holds of its OWN: everything for the first preset,
+  // which holds the whole body, and what the Gear tab draws in white for the
+  // others.
   const std::map<EquipSlot, EquipInstance>& own_gear(StatPreset preset) const {
     return worn_[IndexOf(preset)];
   }
   // The item `preset` wears in `slot`, its own or the one it inherits, or
   // nullptr for a slot it leaves empty.
   const EquipInstance* WornAt(StatPreset preset, EquipSlot slot) const;
-  // Whether what `preset` wears in `slot` belongs to the first preset rather
-  // than to it. What the Gear tab dims a row for; always false on the first
-  // preset, which inherits nothing.
+  // Whether what `preset` wears in `slot` is the first preset's. What the Gear
+  // tab dims a row for.
   bool InheritsSlot(StatPreset preset, EquipSlot slot) const;
   // The item stacks the bag's Etc tab lists, in pickup order. Every stackable
   // in the game is one: Use was dropped with the only item that was ever in it.
@@ -488,8 +406,7 @@ class CharacterInstance {
   }
 
   // The account's Autoswap Presets switch, mirrored here because every stat
-  // read has the character in hand and none of them has the account. GameState
-  // pushes it -- see GameState::ApplyPresetOptions.
+  // read holds the character and none holds the account.
   bool autoswap_presets() const {
     return autoswap_presets_;
   }
@@ -500,14 +417,11 @@ class CharacterInstance {
   // it. Read only while the autoswap is off; each kind keeps its own.
   StatPreset SlotInUse(PresetKind kind) const;
   void SetSlotInUse(PresetKind kind, StatPreset slot);
-  // Swaps what two slots of `kind` hold, and moves the choice of which is in
-  // use with the contents: a player reordering their presets is not asking to
-  // change the one they are playing with. Does nothing for gear, which is not
-  // moved -- see the definition.
+  // Swaps what two slots of `kind` hold, moving the choice of which is in use
+  // with them: reordering presets is not asking to change the one in play.
   void SwapPresets(PresetKind kind, StatPreset a, StatPreset b);
   // Which preset of `kind` answers while the character is doing `activity`:
-  // the slot the autoswap names, or the one in use with the switch off. What
-  // every stat read asks before it reaches an allocation.
+  // the autoswap's slot, or the one in use with the switch off.
   StatPreset SlotFor(PresetKind kind, Activity activity) const;
   // Every Hyper Stat point the character's level has ever paid out.
   int hyper_stat_points() const;
@@ -551,21 +465,17 @@ class CharacterInstance {
   // states. Returns whether anything changed.
   bool LockAbilityLine(int index, bool locked,
                        StatPreset preset = StatPreset::kFirst);
-  // Pays the reset out of the honor pool and rerolls `preset`. All or nothing:
-  // takes no honor and rolls nothing if the pool is short or the panel is not
-  // open to this character yet.
+  // Pays a reset out of the honor pool and rerolls `preset`. All or nothing.
   bool ResetAbility(StatPreset preset = StatPreset::kFirst);
   // Writes `lines` into `preset` outright, paying no honor. For seeding a
-  // character who is meant to arrive already holding them -- a reset chase
-  // that lands on a named sheet takes hundreds of rolls, and a mode that
-  // rolled for it would hand back a different character every run.
+  // character meant to arrive holding them: rolling for a named sheet takes
+  // hundreds of tries and would hand back a different character every run.
   void SetAbility(const AbilityPreset& lines,
                   StatPreset preset = StatPreset::kFirst);
 
-  // The points `skill` is bought with: the Hyper pool for a Hyper Skill, and
-  // its job stage's for every other. Asked here so the panel offering the
-  // skill, the screen counting out the points and LearnSkill itself cannot
-  // disagree about which pool is being spent.
+  // The points `skill` is bought with: the Hyper pool for a Hyper Skill, its
+  // job stage's otherwise. Asked here so the panel, the screen and LearnSkill
+  // cannot disagree.
   int SpFor(const Skill& skill) const {
     if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
       // Counted in V Points rather than in levels: a node's levels are not
@@ -574,22 +484,15 @@ class CharacterInstance {
     }
     return skill.hyper() ? hyper_sp() : sp(StageForAdvancement(BookOf(skill)));
   }
-  // What raising `skill` by `amount` levels costs in V Points. Zero for
-  // anything that is not a node. Asked here so the panel offering the node and
-  // LearnSkill cannot disagree about the price.
+  // What raising `skill` by `amount` levels costs in V Points, and 0 for
+  // anything that is not a node.
   int VNodeCostFor(const Skill& skill, int amount) const;
-  // How many more levels of `skill` the character can buy right now, held to
-  // what the skill has left. A point a level for an ordinary skill; for a node
-  // it is as far up the ladder as the V Points reach, which is not the same as
-  // how many points are in the pool. The panel dims its [+] on this and the
-  // learn dialog counts up to it, so neither can offer what LearnSkill would
-  // refuse.
+  // How many more levels of `skill` can be bought now. A point a level for an
+  // ordinary skill; for a node, as far up the ladder as the V Points reach,
+  // which is not the same as how many are in the pool.
   int LevelsAffordable(const Skill& skill) const;
-  // The character's learned level in `skill` (0 = unlearned).
-  //
-  // A Vengeance form is learned to whatever its Benevolence skill was bought
-  // to: it is the same row of the same book, so it reads that skill's level
-  // rather than one of its own. See Skill.replaces_skill_name.
+  // The learned level in `skill`, 0 for unlearned. A Vengeance form reads its
+  // Benevolence skill's level, being the same row of the same book.
   int skill_level(const Skill& skill) const {
     const std::string& key = skill.replaces_skill_name().empty()
                                  ? skill.name()
@@ -601,103 +504,78 @@ class CharacterInstance {
   // Whether the player has `name` switched on. False for a skill that is not
   // a toggle, which never appears in the list. See Skill.toggle.
   bool SkillToggledOn(const std::string& name) const;
-  // Switches `skill` on if it is off and off if it is on, and says which it
-  // now is. Refuses a skill that is not a toggle or is not learned, leaving it
-  // off: nothing the player has not bought can be switched on.
+  // Flips `skill` and says which it now is. Refuses one that is not a toggle
+  // or is not learned.
   bool ToggleSkill(const Skill& skill);
-  // Whether `advancement` is one this character has actually taken. Every
-  // first job's skills draw on the same stage-1 SP pool, so the stage alone
-  // does not say whose book a skill is from -- without this a Swordman could
-  // spend their points on an Archer's.
+  // Whether `advancement` is one this character has taken. Every first job
+  // draws on the same stage-1 SP pool, so the stage alone does not say whose
+  // book a skill is from.
   bool HasAdvancement(JobAdvancement advancement) const;
-  // The book this character holds that lists `skill`, or
-  // JOB_ADVANCEMENT_UNSPECIFIED if they hold none of them. A shared skill sits
-  // in several books at once, and which one the character has taken is what
-  // says whose SP pool its levels came out of.
+  // The book this character holds that lists `skill`. A shared skill sits in
+  // several at once, and which one they took says whose SP paid for it.
   JobAdvancement BookHeldFor(const Skill& skill) const;
   // Whether any book this character holds lists `skill`.
   bool HasBookFor(const Skill& skill) const {
     return BookHeldFor(skill) != JOB_ADVANCEMENT_UNSPECIFIED;
   }
-  // Whether the character has learned whatever `skill` demands be learned
-  // first. True for a skill that demands nothing, which is most of them.
-  // LearnSkill refuses when this is false; the skills tab asks it directly so
-  // it can dim a row rather than let the player press an unspendable [+].
+  // Whether whatever `skill` demands be learned first has been. LearnSkill
+  // refuses when this is false; the skills tab asks so it can dim the row.
   bool MeetsSkillRequirement(const Skill& skill) const;
-  // Whether `skill` comes from a book this character holds -- their matrix for
-  // a node, and the advancement it names for everything else. Learned levels
-  // are keyed by display name and the branches share several, so this is what
-  // stops another branch's copy of a name from folding in beside their own.
+  // Whether `skill` comes from a book this character holds: their matrix for a
+  // node, the advancement it names otherwise. Levels are keyed by display name
+  // and branches share several, so this is what keeps another branch's copy
+  // from folding in beside their own.
   bool HoldsSkillFrom(const Skill& skill) const;
-  // Whether `skill`, a V Matrix node, is one this character's matrix holds:
-  // a common node reaches every job, and every other names the 5th
-  // advancement whose job may buy it. False for a character with no matrix.
+  // Whether this character's matrix holds the node `skill`: a common node
+  // reaches every job, every other names the 5th advancement that may buy
+  // it.
   bool ReachesVNode(const Skill& skill) const;
-  // The whole character as one proto, with the live containers -- the equip
-  // tab, the worn items and the Etc stacks -- folded back into the fields
-  // held for them. proto() alone does not carry those: they live in C++
-  // containers and are only written here when someone asks for the lot.
+  // The whole character as one proto, the live containers folded back in.
+  // proto() alone does not carry those: they live in C++ containers and are
+  // written here only when someone asks for the lot.
   Character ToProto() const;
 
-  // The inverse: replaces everything with what `saved` describes, resolving
-  // each item's prototype by name against the catalogs.
-  //
-  // An item whose name is no longer in the catalogs is dropped rather than
-  // guessed at, so removing something from data/ costs the player that item
-  // and not their character. Bypasses the equip rules on purpose -- what was
-  // worn stays worn, even if a later change to the data would refuse it now.
+  // The inverse, resolving each item's prototype by name. An item the
+  // catalogs no longer hold is DROPPED rather than guessed at, so removing
+  // something from data/ costs that item and not the character. Bypasses the
+  // equip rules on purpose: what was worn stays worn.
   void RestoreFrom(const Character& saved,
                    const std::map<std::string, EquipPrototype>& equips,
                    const std::map<std::string, ItemPrototype>& items);
 
-  // Puts the character's AP back on its books and returns what it was off by,
-  // zero when it already balanced. Short, and the difference arrives as
-  // unspent AP; long, and it comes out of the pool first and off the stats
-  // after, the primary last. Called on loading a save, where a character grown
-  // under an older set of rules is the thing that can be off.
+  // Puts the AP back on its books and returns what it was off by. Short, and
+  // the difference arrives unspent; long, and it comes out of the pool first
+  // and the stats after, the primary last. Called on loading a save.
   int ReconcileAp();
 
-  // Puts the character's learned skills back inside their books and returns
-  // how many points had to move. A skill taught past a max_level the data has
-  // since lowered is cut to that max, and every point it gives up is spent
-  // again on a random skill of the SAME book that can still take one -- below
-  // its own max, its requirement met, its level reached.
-  //
-  // Same book because that is what keeps the SP ledger straight: those points
-  // came out of one stage's pool, which never moves. A book whose total is the
-  // SP its levels pay always has somewhere to put them, so the pool is only
-  // the last resort. Called on loading a save, beside ReconcileAp.
+  // Puts learned skills back inside their books and returns how many points
+  // moved. A skill past a max_level the data has since lowered is cut, and its
+  // points are respent at random on the SAME book -- which is what keeps the
+  // SP ledger straight, those points having come out of one stage's pool. The
+  // pool is only the last resort. Called on loading a save.
   int ReconcileSkills(const std::map<std::string, Skill>& skills);
 
-  // Puts every SP pool back on its books and returns how many points had to
-  // move. A pool short of what the levels have paid is handed the difference:
-  // that is what a character who was already past a rung when the ladder
-  // shipped is missing, and nothing else would ever grant it. A pool holding
-  // more gives it up, down to empty and no further -- learned skills are left
-  // alone, because ReconcileSkills has already cut back whatever the data no
-  // longer allows.
-  //
-  // Every stage's pool and the Hyper pool, all read off the level: an
-  // advancement hands over no SP. Called on loading a save, after
-  // ReconcileSkills -- which moves points between a book and its pool.
+  // Puts every SP pool back on its books and returns how many points moved. A
+  // short pool is handed the difference -- what a character already past a
+  // rung when the ladder shipped is missing -- and a long one gives it up,
+  // down to empty and no further. Every stage's pool and the Hyper pool, all
+  // read off the LEVEL: an advancement hands over no SP. Called after
+  // ReconcileSkills, which moves points between a book and its pool.
   int ReconcileSp(const std::map<std::string, Skill>& skills);
 
-  // Puts both Hyper Stat allocations back inside what the character's level
-  // has paid for, and returns how many points had to move. A stat past the
-  // level cap is cut to it, a locked one is emptied, and an allocation that
-  // outspends the pool gives up its highest levels first -- they are the
-  // expensive ones. Called on loading a save, beside ReconcileAp.
+  // Puts both Hyper Stat allocations back inside what the level has paid for.
+  // A stat past the cap is cut, a locked one emptied, and one that outspends
+  // the pool gives up its HIGHEST levels first, those being the dear ones.
   int ReconcileHyperStats();
 
-  // Sum of stats from everything `preset` wears. Updated automatically by
-  // Equip, Unequip, and ScrollEquipped -- for every preset at once, since one
-  // item can be worn by all three.
+  // Sum of stats from everything `preset` wears. Updated for every preset at
+  // once, since one item can be worn by all three.
   const EquipStats& equip_stats(StatPreset preset = StatPreset::kFirst) const {
     return equip_stats_[IndexOf(preset)];
   }
   // The share of that total the worn Arcane Symbols paid. Held apart because
-  // a symbol grants final stat: no %stat may multiply it, so the fold that
-  // applies one takes this back off first. See [[final-stats]].
+  // a symbol grants FINAL stat: no %stat may multiply it, so the fold that
+  // applies one takes this back off first.
   const EquipStats& symbol_stats(StatPreset preset = StatPreset::kFirst) const {
     return symbol_stats_[IndexOf(preset)];
   }
@@ -707,79 +585,63 @@ class CharacterInstance {
       StatPreset preset = StatPreset::kFirst) const {
     return potential_totals_[IndexOf(preset)];
   }
-  // One cube into the item worn in `slot`, which rerolls its lines and may
-  // carry it a rank up. The mechanism, charging nothing: BuyCube below is the
-  // purchase. False, changing nothing, when the slot is empty or the piece
-  // takes no potential at all.
+  // One cube into the item worn in `slot`, rerolling its lines and perhaps
+  // ranking it up. The mechanism, charging NOTHING: BuyCube is the purchase.
   bool CubeWorn(EquipSlot slot, CubeType cube,
                 StatPreset preset = StatPreset::kFirst);
   // One cube into the item worn in `slot`, charged kCubeCost: rolls what the
   // piece would become and hands it back WITHOUT putting it on. Taking the
-  // roll is TakePotential's business, since a player offered one worse than
-  // what they have keeps what they have -- the cube is spent either way.
-  // Empty, and nothing spent, for an empty slot, a piece that takes no
-  // potential, or a purse short of the price.
+  // roll is TakePotential's business -- a player offered worse keeps what they
+  // have, and the cube is spent either way.
   std::optional<Potential> BuyCube(EquipSlot slot, CubeType cube,
                                    StatPreset preset = StatPreset::kFirst);
   // Puts `potential` on the item worn in `slot`, which is a player accepting
   // a roll. False, changing nothing, for an empty slot.
   bool TakePotential(EquipSlot slot, const Potential& potential,
                      StatPreset preset = StatPreset::kFirst);
-  // One cube into a worn or a bagged item, charged its price and taken
-  // whatever it rolls: the pair the cubing screen presses. False, and nothing
-  // spent, when the item takes no potential or the purse is short.
+  // One cube into a worn or bagged item, charged and taken whatever it rolls:
+  // the pair the cubing screen presses.
   bool CubeEquipped(EquipSlot slot, CubeType cube,
                     StatPreset preset = StatPreset::kFirst);
   bool CubeInventory(int index, CubeType cube);
   // Spare copies of the Arcane Symbol for `slot` sitting in the equip bag.
   // Traces do not count, as they never do -- see CountOwned.
   int SpareSymbols(EquipSlot slot) const;
-  // What each of those spares is worth in duplicates, in the order
-  // CombineSymbols would eat them. A dialog asking how many to feed reads the
-  // total off this -- see SymbolWorth.
+  // What each spare is worth in duplicates, in the order CombineSymbols would
+  // eat them. See SymbolWorth.
   std::vector<int> SpareSymbolWorths(EquipSlot slot) const;
-  // Absorbs up to `count` of those spares into the symbol worn in `slot`, each
-  // worth what SymbolWorth makes it, and throws them away. Returns how many it
-  // took, which is 0 if that slot holds no symbol.
-  //
-  // What the EXP buys is not bought here: raising the level is a step of its
-  // own, and it is paid for in meso -- see LevelUpSymbol.
+  // Absorbs up to `count` spares into the symbol worn in `slot` and throws
+  // them away, returning how many it took. Raising the LEVEL is a step of its
+  // own, paid for in meso -- see LevelUpSymbol.
   int CombineSymbols(EquipSlot slot, int count,
                      StatPreset preset = StatPreset::kFirst);
-  // Raises the Arcane Symbol worn in `slot` one level, charging the meso the
-  // rung costs and carrying any excess EXP into the next one. Returns false
-  // and takes nothing unless the slot holds a symbol that has taken its
-  // duplicates and the purse covers the price.
+  // Raises the symbol worn in `slot` one level, charging the rung's meso and
+  // carrying excess EXP into the next. Needs a symbol that has taken its
+  // duplicates and a purse that covers it.
   bool LevelUpSymbol(EquipSlot slot, StatPreset preset = StatPreset::kFirst);
-  // Arcane Force the character carries: what the worn Arcane Symbols come to,
-  // plus what the Hyper Stat adds. What every Arcane River map measures them
-  // against -- see ArcaneFactorsFor. Zero for anyone wearing no symbol and
-  // holding no points there, which is everyone below level 200.
+  // Arcane Force carried: the worn symbols plus what the Hyper Stat adds.
+  // What every Arcane River map measures them against -- see
+  // ArcaneFactorsFor.
   int arcane_force(Activity activity = Activity::kFarming) const;
-  // Whether an item of this type contributes its attack, given what is
-  // equipped right now. Throwing stars arm a claw and nothing else; every
-  // other item always counts. equip_stats() applies this itself -- it is
-  // public so the display can show an inert attack as inert rather than
-  // quietly disagreeing with the total.
+  // Whether an item of this type contributes its attack as things stand:
+  // throwing stars arm a claw and nothing else. equip_stats() applies it
+  // already; it is public so the display can show an inert attack as inert.
   bool AttackCounts(const EquipPrototype& proto,
                     StatPreset preset = StatPreset::kFirst) const;
   // The type of weapon in hand, or EQUIP_TYPE_UNSPECIFIED with the slot empty.
   // What the skills that demand a particular weapon are asked against.
   EquipType weapon_type(StatPreset preset = StatPreset::kFirst) const;
-  // Whether anything is worn in the secondary slot. Nothing in the catalog
-  // goes there yet, so this is false for every shipped character -- see
+  // Whether anything is worn in the secondary slot. See
   // Skill.requires_secondary, which waits on it.
   bool has_secondary(StatPreset preset = StatPreset::kFirst) const;
 
-  // Teaches the character which sets their gear belongs to. Data rather than
-  // state: what is earned comes from what is worn, so this is handed over once
-  // at startup and never saved. A caller with no sets in play need never call
-  // it, and the character then earns nothing from any of them.
+  // Teaches the character which sets their gear belongs to. DATA rather than
+  // state -- what is earned comes from what is worn -- so it is handed over at
+  // startup and never saved.
   void UseEquipSets(std::map<std::string, EquipSet> sets);
-  // Every set tier the worn pieces have earned, in no particular order. Tiers
-  // are cumulative, so four pieces of a set answer with both its three and its
-  // four. Read by DerivedStatsFor, which folds them in beside the passives --
-  // a set bonus grants what a passive grants.
+  // Every set tier the worn pieces have earned, cumulative: four pieces answer
+  // with both the three and the four. Folded in beside the passives, a set
+  // bonus granting what a passive grants.
   const std::vector<SkillEffect>& set_bonuses(
       StatPreset preset = StatPreset::kFirst) const {
     return set_bonuses_[IndexOf(preset)];
@@ -791,14 +653,12 @@ class CharacterInstance {
   // Whether the item named is worn right now, by display name.
   bool IsWearing(const std::string& item_name,
                  StatPreset preset = StatPreset::kFirst) const;
-  // The item of `family` being worn, by display name, or "" for none. A set
-  // slot that no single item can fill -- a weapon belongs to one class -- names
-  // a family instead, and this is what answers it.
+  // The item of `family` being worn, or "" for none. A set slot no single item
+  // can fill -- a weapon belongs to one class -- names a family instead.
   std::string WornOfFamily(const std::string& family,
                            StatPreset preset = StatPreset::kFirst) const;
   // The piece of this member that is on, or "" for none. A slot naming several
-  // alternates is filled by any one of them, and counts once however many of
-  // them are on.
+  // alternates takes any one, and counts once however many are on.
   std::string WornOfMember(const EquipSetMember& member,
                            StatPreset preset = StatPreset::kFirst) const;
   // How many pieces of `set` are worn right now. What every tier is measured
@@ -810,17 +670,16 @@ class CharacterInstance {
   // Buys `amount` levels of a V Matrix node out of the V Point pool, at what
   // its kind's ladder charges for the levels being crossed. All or nothing.
   bool LearnVNode(const Skill& skill, int amount);
-  // Gives a nameless character kDefaultUsername. Both doors a Character comes
-  // in through call it, which is what makes username() never empty.
   // Mirrors the account's switch -- see autoswap_presets(). Off is what the
-  // game ships with, so a character with no account behind them is left to
+  // game ships with, so a character with no account behind them keeps
   // whichever preset is in use.
   bool autoswap_presets_ = false;
 
+  // Gives a nameless character kDefaultUsername. Both doors a Character comes
+  // in through call it, which is what makes username() never empty.
   void EnsureUsername();
   // Seeds both Inner Ability presets with the three lines every character is
-  // handed. Both doors a Character comes in through call it, so a save written
-  // before Inner Ability existed comes back holding them.
+  // handed, so a save written before it existed comes back holding them.
   void EnsureInnerAbility();
   // Spends one star force attempt's price, or returns false and spends
   // nothing. Both StarForce entry points call it before they roll.
@@ -830,9 +689,8 @@ class CharacterInstance {
   // Puts a sale on the buy-back shelf, newest first, and drops the oldest row
   // once the shelf is full.
   void RecordSale(BuyBackEntry entry);
-  // The two halves of BuyBack, which shares only the lookup of the row. Each
-  // owns its own affordability and room checks, because what "room" means is
-  // a slot for one and a share of every open stack for the other.
+  // The two halves of BuyBack, which shares only the row lookup: "room" is a
+  // slot for one and a share of every open stack for the other.
   bool BuyBackEquip(int index, const BuyBackEntry& entry,
                     const std::map<std::string, EquipPrototype>& equips);
   bool BuyBackStack(int index, const BuyBackEntry& entry, int count,
@@ -849,9 +707,8 @@ class CharacterInstance {
   // WornAt's mutable twin: how every upgrade reaches the item the preset it
   // is being asked from is showing.
   EquipInstance* WornIn(StatPreset preset, EquipSlot slot);
-  // Takes what `preset` wears in `slot` off and hands it back, or an empty
-  // one if it wears nothing of its own there. What Unequip and a star force
-  // that shattered the item both go through.
+  // Takes what `preset` wears in `slot` off and hands it back. What Unequip
+  // and a shattering star force both go through.
   std::optional<EquipInstance> TakeWorn(StatPreset preset, EquipSlot slot);
   // Rebuilds set_bonuses_: every tier of every known set that the worn pieces
   // reach. Cumulative, so a four-piece set contributes both its tiers.
@@ -859,10 +716,9 @@ class CharacterInstance {
   std::mt19937& rng_;
   Character character_;
   InventoryInstance inventory_;
-  // The worn items themselves, one map per preset. The first holds the whole
-  // body; the others hold only the slots they wear something of their own in
-  // -- see EquipPreset in character.proto for why they cannot each hold a
-  // copy.
+  // The worn items, one map per preset. The first holds the whole body; the
+  // others hold only the slots they fill themselves -- see EquipPreset in
+  // character.proto for why they cannot each hold a copy.
   std::array<std::map<EquipSlot, EquipInstance>, kNumStatPresets> worn_;
   // Each preset's gear resolved against the first, and the totals that come
   // off it. Rebuilt together by RecomputeEquipStats.
@@ -872,10 +728,9 @@ class CharacterInstance {
   std::array<EquipStats, kNumStatPresets> symbol_stats_;
   std::array<PotentialTotals, kNumStatPresets> potential_totals_;
   std::array<int, kNumStatPresets> arcane_force_ = {};
-  // Meso the buffs have run up and not yet been charged for, always under 1.
-  // The live tick charges three times a second, so without this a potion at
-  // 1,000 a second would quietly cost 999. Not saved: it is worth less than
-  // the smallest coin.
+  // Meso the buffs have run up and not been charged for, always under 1. The
+  // live tick charges three times a second, so without this a potion at 1,000
+  // a second would quietly cost 999. Not saved.
   double consumable_debt_ = 0.0;
   std::map<std::string, EquipSet> equip_sets_;
   std::array<std::vector<SkillEffect>, kNumStatPresets> set_bonuses_;

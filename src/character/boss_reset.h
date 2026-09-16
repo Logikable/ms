@@ -40,11 +40,9 @@ int64_t NextBossReset(ResetPeriod period, int64_t now);
 // state -- a boss with no reset is one there is nothing to hold back.
 bool BossAvailable(int64_t cleared, ResetPeriod period, int64_t now);
 
-// Whether `boss` -- the fight named `key` in the catalog -- may be entered at
-// all at `now`, given everything `clears` holds. A clear of one difficulty
-// holds every other one back: what the reset gates is the boss, not the rung
-// the player chose to take him at. Each clear is measured against the reset
-// period of the difficulty it was taken at, since that is the clock that ran.
+// Whether `boss` may be entered at `now`. A clear of ONE difficulty holds
+// every other back -- the reset gates the boss, not the rung -- and each clear
+// is measured against the period of the difficulty it was taken at.
 bool BossAvailable(const std::string& key, const Boss& boss,
                    const google::protobuf::RepeatedPtrField<BossClear>& clears,
                    int64_t now);

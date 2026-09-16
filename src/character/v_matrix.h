@@ -39,10 +39,9 @@ int64_t RollMobVPoints(int64_t kills, double item_drop_pct, std::mt19937& rng);
 // a boost. Zero for a skill that is not a node.
 int MaxVNodeLevel(VNodeKind kind);
 
-// What the step up to `level` costs. GMS's own ladders, which climb by bands
-// of ten rather than per level: a job node's first level is free and a
-// common's is 7, and both then cost 4, 6 and 9 through their three bands. A
-// boost costs one a level to forty and two past it.
+// What the step up to `level` costs. GMS's ladders climb by bands of ten: a
+// job node's first level is free and a common's is 7, then both cost 4, 6 and
+// 9. A boost costs one a level to forty and two past it.
 int VNodeStepCost(VNodeKind kind, int level);
 
 // What raising a node of `kind` from `from` to `to` costs altogether. Zero for

@@ -16,12 +16,10 @@
 
 namespace ms {
 
-// The four lines, plus the beginner every character starts as. kNone is only
-// JOB_UNSPECIFIED: every job the game ships answers one of the others.
-//
-// The beginner is its own branch rather than a warrior, because the callers
-// disagree about it: they swing on STR like a warrior, level like nobody, and
-// wear what only a beginner can.
+// The four lines, plus the beginner every character starts as; kNone is only
+// JOB_UNSPECIFIED. The beginner is its own branch because the callers disagree
+// about it: they swing on STR like a warrior, level like nobody, and wear what
+// only a beginner can.
 enum class JobBranch { kNone, kBeginner, kWarrior, kMagician, kArcher, kRogue };
 
 // The branch `job` belongs to, however far along its line it is.

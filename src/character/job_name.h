@@ -18,19 +18,14 @@ namespace ms {
 // confirmed, and ShortJobName everywhere else.
 std::string JobName(Job job);
 
-// The same name shortened where the full one is too wide to live in a column
-// -- "I/L Wizard" for the Ice/Lightning Wizard. Every other job is already as
-// short as it gets and answers its own name.
-//
-// This is the default for showing a job. The two places that spell it out in
-// full are the advancement picker and the dialog confirming the choice: what
-// the player is picking between deserves its whole name, once.
+// The name shortened where the full one is too wide for a column -- "I/L
+// Wizard" for the Ice/Lightning Wizard. THE DEFAULT for showing a job: the
+// only places spelling it out are the advancement picker and its dialog.
 std::string ShortJobName(Job job);
 
-// What the advancement into `job` at `stage` is called. Every stage but the
-// 5th is the job's own name; the 5th takes a " V", because it is the one that
-// does not change the job, and "Advance to Night Lord?" asked of a Night Lord
-// says nothing.
+// What the advancement into `job` at `stage` is called: the job's own name,
+// except the 5th, which takes a " V" -- it does not change the job, and
+// "Advance to Night Lord?" asked of a Night Lord says nothing.
 std::string AdvancementName(Job job, int stage);
 
 // The same, shortened the way ShortJobName shortens a job.

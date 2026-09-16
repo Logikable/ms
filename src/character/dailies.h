@@ -36,10 +36,9 @@ std::vector<const EquipPrototype*> ClaimableSymbols(
 // Whether a claim last taken at `claimed` may be taken again at `now`.
 bool DailiesAvailable(int64_t claimed, int64_t now);
 
-// One packed symbol per claimable area into the bag, and banks the claim at
-// `now`. Takes nothing and returns false unless there is something to claim,
-// the day is open, and the whole lot fits: half a claim would cost the player
-// the rest of it until tomorrow.
+// One packed symbol per claimable area into the bag, banking the claim at
+// `now`. All or nothing: half a claim would cost the player the rest of it
+// until tomorrow.
 bool ClaimDailies(CharacterInstance& character,
                   const std::map<std::string, EquipPrototype>& equips,
                   int64_t now);

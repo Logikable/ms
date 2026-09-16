@@ -73,10 +73,8 @@ struct ArcaneFactors {
   double damage_taken = 1.0;  // 2.8 at nothing met, 0 at half again
 };
 
-// The factors for a character carrying `owned` against a map asking
-// `required`. GMS's table, stepped by the whole percentage met and rounded
-// down, so the last point of Arcane Force before a step buys nothing and the
-// one after it buys the whole step.
+// The factors for `owned` Arcane Force against a map asking `required`. GMS's
+// table, stepped by the whole percentage met and rounded down.
 ArcaneFactors ArcaneFactorsFor(int owned, int required);
 
 }  // namespace ms

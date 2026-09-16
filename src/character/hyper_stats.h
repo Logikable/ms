@@ -68,12 +68,10 @@ int MaxHyperStatLevel(int job_stage);
 // all. Only Arcane Force is ever held back.
 bool HyperStatUnlocked(HyperStatField field, int character_level);
 
-// What `field` at `level` is worth, in the units the stat is stated in:
-// flat for the four stats, ATT and Arcane Force, and whole percents for
-// everything else. Zero at level 0.
-//
-// GMS states several of these with a step that widens partway up, which is
-// why they are formulas rather than a table -- see the .cc.
+// What `field` at `level` is worth, in the units the stat is stated in: flat
+// for the four stats, ATT and Arcane Force, whole percents otherwise. GMS
+// widens several of the steps partway up, hence formulas rather than a
+// table.
 double HyperStatBonus(HyperStatField field, int level);
 
 // The level `field` is raised to in `preset`, 0 for a stat with nothing spent

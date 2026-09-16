@@ -43,10 +43,9 @@ constexpr Unlock kUnlocks[] = {
     // opening it any earlier would only show the player a fight they cannot
     // take.
     {Feature::kBoss, 110},
-    // Held to the level of the gear it is for. The tiers below carry 5 and 8
-    // star caps; the Frozen weapons a token buys at 120 are the first that
-    // take 15, and now that an attempt is priced, opening the screen earlier
-    // only offers the player a bill for a star that is barely worth having.
+    // Held to the level of the gear it is for: the Frozen weapons at 120 are
+    // the first that take 15 stars, and opening the screen earlier only offers
+    // a bill for a star barely worth having.
     {Feature::kStarForce, 120},
     // Past the level cap of the trial, and well past the gear a player scrolls
     // on the way there: a hammer is 10 million meso for one slot, which is
@@ -71,21 +70,18 @@ constexpr Unlock kUnlocks[] = {
     {Feature::kEquipPresets, kPotentialUnlockLevel},
 };
 
-// What an advancement opens rather than a level, and which one opens it: 1 is
-// the first advancement, 2 the second. A separate table because the level is
-// not the gate here -- a Beginner who never advances stays at the bottom of it
-// however high they climb.
+// What an ADVANCEMENT opens rather than a level, and which one opens it. A
+// separate table because the level is not the gate: a Beginner who never
+// advances stays at the bottom however high they climb.
 struct StageUnlock {
   Feature feature;
   int stage;
 };
 
 // Attack, Magic Attack, Attack Speed and Defense arrive with the first job,
-// which is the first thing the player has that moves them. The percent rows
-// wait for the second, whose passives are where crit and damage rate first
-// come from. The last three wait for the third, which is where the levers that
-// write them are -- and two of the three pay out on nothing the player has met
-// by then anyway.
+// the first thing that moves them. The percent rows wait for the second, whose
+// passives are where crit and damage rate come from, and the last three for
+// the third, where the levers that write them are.
 constexpr StageUnlock kStageUnlocks[] = {
     {Feature::kCombatStats, 1},
     {Feature::kDamageStats, 2},
@@ -109,10 +105,8 @@ struct Led {
   Feature feature;
   const char* slug;
   // Whether the trail starts at the worn weapon's name. Scrolling arrives
-  // while the item menu is still a place the player may never have opened, so
-  // it needs the first signpost. Star force arrives at 120, by which time they
-  // have opened it a hundred times, and a second gold thing on screen only
-  // takes the eye off the entry.
+  // while the item menu may never have been opened, so it needs the signpost;
+  // star force arrives at 120, by which time it would only distract.
   bool from_weapon;
 };
 
@@ -177,10 +171,9 @@ bool Unlocked(Feature feature, const CharacterInstance& character,
     return false;
   }
   if (feature == Feature::kSkills) {
-    // The one condition the account cannot answer for: a Beginner reaching
-    // level 10 is being offered an advancement, not skills. The skill sets
-    // belong to the jobs, so the tab has nothing to show until this character
-    // chooses one.
+    // The one condition the account cannot answer for: the skill sets belong
+    // to the JOBS, so the tab has nothing to show until this character picks
+    // one.
     return character.proto().job() != JOB_BEGINNER;
   }
   return true;

@@ -56,16 +56,13 @@ AbilityPreset& PresetOf(InnerAbility& ability, StatPreset slot);
 AbilityPreset DefaultAbilityPreset();
 
 // What `type` at `rank` is worth, in the units the line is stated in: flat for
-// the stats, Max HP and the two attacks, whole percents for the rest, and a
-// single faster-swing stage for Attack Speed. Zero for a pairing GMS does not
-// offer, which is the same set AbilityTypeWeight gives no weight.
+// the stats and attacks, whole percents for the rest, one stage for Attack
+// Speed. Zero for a pairing GMS does not offer.
 int AbilityLineValue(AbilityLineType type, AbilityRank rank);
 
-// How heavily `type` is favoured in a roll at `rank`, against the other types
-// rolling there. Zero says the type does not roll at that rank at all, which
-// is how GMS's gating is stated -- Boss Damage below Unique, Attack Speed
-// below Legendary. Relative sizes are GMS's; the scale is not, since a roll
-// normalises over whatever types are still available.
+// How heavily `type` is favoured in a roll at `rank`. Zero does not roll
+// there at all, which is how GMS states its gating. The relative sizes are
+// GMS's; the scale is not, a roll normalising over what is available.
 int AbilityTypeWeight(AbilityLineType type, AbilityRank rank);
 
 // Honor a reset costs for an ability at `rank` holding `locked` lines. The
@@ -85,14 +82,12 @@ int LockedAbilityLines(const AbilityPreset& preset);
 // whether the preset changed.
 bool SetAbilityLineLocked(AbilityPreset& preset, int index, bool locked);
 
-// Rerolls `preset` in place, paying nothing -- the honor is the caller's to
-// take. In order: the ability rolls for its rank up, every unheld line is
-// thrown away, and what is left is rolled back to three.
+// Rerolls `preset` in place, paying nothing: the ability rolls for its rank
+// up, unheld lines are thrown away, and what is left is rolled back to three.
 //
-// The top line always ends at the ability's rank. A held line already sitting
-// there satisfies that; otherwise a fresh line is rolled at the rank and put
-// on top, and the held lines slide down a slot to make room. No two lines
-// ever share a type.
+// The TOP line always ends at the ability's rank -- a held one there satisfies
+// it, otherwise a fresh line is rolled at the rank and the held lines slide
+// down. No two lines share a type.
 void RerollAbility(AbilityPreset& preset, std::mt19937& rng);
 
 }  // namespace ms

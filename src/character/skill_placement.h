@@ -26,10 +26,8 @@ bool ListedIn(const Skill& skill, JobAdvancement book);
 int SkillOrderIn(const Skill& skill, JobAdvancement book);
 
 // The book to charge a skill's levels to. Every placement of one skill is at
-// the same job stage -- skill_test holds it, since a skill is only ever shared
-// between jobs standing on one rung of the ladder -- so any of them answers
-// and this is the first. JOB_ADVANCEMENT_UNSPECIFIED for a skill no book
-// lists.
+// the same job stage -- skill_test holds it -- so any of them answers, and
+// this is the first.
 JobAdvancement BookOf(const Skill& skill);
 
 }  // namespace ms

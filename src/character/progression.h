@@ -68,12 +68,9 @@ enum class Feature {
   // belongs to, which is what a cube makes true.
   kEquipPresets,
   // The combat stat block on the Character panel, in two halves. Gated on the
-  // advancement rather than the level: what fills those rows is a job's
-  // passives and the gear a job can wear, so a Beginner has nothing to read
-  // there however high they climb -- unless another character on the account
-  // advanced, which opens the rows for all of them. Only the panel is held
-  // back: the All Stats screen behind it lists everything, and the first half
-  // is what opens the way to it.
+  // ADVANCEMENT: what fills those rows is a job's passives and gear, so a
+  // Beginner has nothing to read there. Only the panel is held back -- the All
+  // Stats screen behind it lists everything.
   kCombatStats,
   kDamageStats,
   kAdvancedStats,
@@ -85,25 +82,20 @@ bool Unlocked(Feature feature, const CharacterInstance& character,
               const AccountInstance& account);
 
 // The earliest level `feature` can open at. Several carry a second condition
-// on top of it -- Skills wants a job, and the stat block wants an advancement,
-// which a player can always put off -- so ask Unlocked rather than comparing
-// against this yourself.
+// on top, so ASK Unlocked rather than comparing against this.
 int UnlockLevel(Feature feature);
 
 // What a feature is called on screen: "Scrolling", "Star Force".
 std::string FeatureName(Feature feature);
 
-// The upgrades a climb from `from_level` to `to_level` opened, in the order
-// they arrive. Asked of the span rather than of the level landed on, because
-// one idle stretch can carry a character past several thresholds.
+// The upgrades a climb from `from_level` to `to_level` opened, in arrival
+// order. A SPAN, since one idle stretch can cross several thresholds.
+// `account_level` is the furthest any character has reached, and ground
+// already covered opens nothing.
 //
-// `account_level` is the furthest any character on the account has reached.
-// Ground it has already covered opens nothing: the upgrade is not news to the
-// player a second time, and it was never locked for this character.
-//
-// Only the item-menu upgrades. A panel or a tab lights itself gold when it
-// arrives; these are actions two keypresses deep in a menu with nothing of
-// their own to light, so the level-up card says their names instead.
+// Only the item-menu upgrades: a panel or tab lights itself gold, where these
+// are two keypresses deep with nothing to light, so the level-up card says
+// their names instead.
 std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level,
                                              int account_level);
 
@@ -149,19 +141,15 @@ void FollowedToAction(Feature feature, AccountInstance& account);
 int HotkeysTipRetireLevel();
 
 // Whether the hotkeys tip still has a place on screen. It teaches the controls
-// while the game is small enough that there is nothing else to learn, so a
-// returning player's next character never sees it: the menu has already taken
-// the corner.
+// while there is nothing else to learn, so a returning player's next character
+// never sees it -- the menu has taken the corner.
 bool HotkeysTipVisible(const CharacterInstance& character,
                        const AccountInstance& account);
 
-// How many times slower than GMS the game runs at `level`. The one global
-// pacing knob, and the reason it lives here: it is not a constant. The game
-// stretches out as the player climbs, from twice GMS's clock at the start to
-// five times that by level 140.
-//
-// Everything with a duration is multiplied by it -- swing intervals, the
-// respawn beat, and so the kill rate and everything paid out per kill.
+// How many times slower than GMS the game runs at `level`: the one global
+// pacing knob, and NOT a constant -- it stretches from twice GMS's clock to
+// five times that by level 140. Everything with a duration is multiplied by
+// it, so the kill rate and every payout ride on it.
 double GameSpeedFactor(int level);
 
 }  // namespace ms

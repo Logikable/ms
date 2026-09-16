@@ -44,17 +44,14 @@ inline StatPreset StatPresetAt(int index) {
 // character can have Hyper 1, Ability 3 and Gear 2 in play at once.
 enum class PresetKind { kHyperStats, kInnerAbility, kEquip };
 
-// The gear preset the boss drop roll reads, whatever the autoswap switch says
-// and whatever the character is wearing: the player is given no moment to
-// change into drop gear before the drops fall, so the third preset is the one
-// they set aside for it.
+// The gear preset the boss drop roll reads, whatever the switch says and
+// whatever is worn: there is no moment to change into drop gear before the
+// drops fall, so the third preset is the one set aside for it.
 inline constexpr StatPreset kDropPreset = StatPreset::kThird;
 
-// The slot Autoswap Presets reads for `activity`: farming takes the first,
-// bossing the second. The third is storage no activity names -- for gear it is
-// the Drop preset above, asked for by name rather than by activity.
-// CharacterInstance::SlotFor is what asks this, and only while the switch is
-// on.
+// The slot Autoswap Presets reads for `activity`: farming the first, bossing
+// the second. The third is storage no activity names -- for gear, the Drop
+// preset above, asked for by name.
 inline StatPreset AutoswapSlotFor(Activity activity) {
   return activity == Activity::kBossing ? StatPreset::kSecond
                                         : StatPreset::kFirst;
