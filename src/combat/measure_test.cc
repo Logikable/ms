@@ -97,6 +97,34 @@ TEST(MeasureFightTest, AnOwnClockCastIsCountedApart) {
   EXPECT_NEAR(played.damage, played.damage_by_attack[0] + 50 * 30.0, 1e-6);
 }
 
+// Two summons on one clock are two rows, named and heaviest first: one bucket
+// says only that the swings are not where the damage went.
+TEST(MeasureFightTest, EveryOwnClockSourceIsNamedApart) {
+  Mob mob = MakeMob("Snail", 10);
+  CombatParams params = MakeParams(&mob, 1.0, 10.0);
+  AttackOption phoenix;
+  phoenix.name = "Phoenix";
+  phoenix.max_enemies = 1;
+  phoenix.interval_seconds = 2.0;
+  phoenix.damage_per_hit = {30.0};
+  params.auto_attacks.push_back(phoenix);
+  AttackOption blaster = phoenix;
+  blaster.name = "Arrow Blaster";
+  blaster.interval_seconds = 5.0;
+  blaster.damage_per_hit = {80.0};
+  params.auto_attacks.push_back(blaster);
+
+  Sequence played = MeasureFight(params, 100.0);
+  ASSERT_EQ(played.own_clock_by_source.size(), 2u);
+  EXPECT_EQ(played.own_clock_by_source[0].first, "Arrow Blaster");
+  EXPECT_NEAR(played.own_clock_by_source[0].second, 20 * 80.0, 1e-6);
+  EXPECT_EQ(played.own_clock_by_source[1].first, "Phoenix");
+  EXPECT_NEAR(played.own_clock_by_source[1].second, 50 * 30.0, 1e-6);
+  EXPECT_NEAR(played.own_clock_by_source[0].second +
+                  played.own_clock_by_source[1].second,
+              played.own_clock_damage, 1e-6);
+}
+
 // A buff that stands for two seconds in every ten reads as a fifth of the run,
 // which is what a pulse gated on it is worth.
 TEST(MeasureFightTest, ABuffReportsTheShareItStood) {

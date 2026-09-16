@@ -3,8 +3,11 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <string>
+#include <utility>
 #include <vector>
 
+#include "src/combat/damage_ledger.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 
@@ -31,6 +34,39 @@ CombatParams AsMeasurement(const CombatParams& params, int enemies) {
   measured.types.resize(1);
   measured.types[0].simultaneous = std::max(1, enemies);
   return measured;
+}
+
+// What a source on its own clock is called, out of the list its origin indexes
+// into. A side strike and a load are the swing's own skill striking again, so
+// they are named for it and said to be what they are.
+std::string SourceName(const CombatParams& params, const DamageSource& source) {
+  auto named = [&](const std::vector<AttackOption>& list,
+                   const char* suffix) -> std::string {
+    if (source.index < 0 || source.index >= static_cast<int>(list.size())) {
+      return "(unnamed)";
+    }
+    return list[source.index].name + suffix;
+  };
+  switch (source.origin) {
+    case DamageOrigin::kOwnClock:
+      // Index -1 is the reflection, which no cast stands behind.
+      return source.index < 0 ? "(reflected)" : named(params.auto_attacks, "");
+    case DamageOrigin::kSwingClock:
+      return named(params.triggered_attacks, "");
+    case DamageOrigin::kKillClock:
+      return named(params.triggered_attacks, "");
+    case DamageOrigin::kSideStrike:
+      return named(params.attacks, " (side strike)");
+    case DamageOrigin::kLoad:
+      return named(params.attacks, " (load)");
+    case DamageOrigin::kBurn:
+      // A burn is credited to the swing that lit it wherever one lit it, so
+      // only the ones an own clock left ever reach here.
+      return "(burn)";
+    case DamageOrigin::kSwing:
+      break;
+  }
+  return "(unnamed)";
 }
 
 }  // namespace
@@ -87,6 +123,17 @@ Sequence MeasureFight(const CombatParams& params, double horizon, int enemies) {
   }
   played.own_clock_damage = sim.own_clock_damage();
   played.damage += played.own_clock_damage;
+  for (const std::pair<const DamageSource, double>& source :
+       sim.own_clock_by_source()) {
+    played.own_clock_by_source.push_back(
+        {SourceName(measured, source.first), source.second});
+  }
+  std::sort(played.own_clock_by_source.begin(),
+            played.own_clock_by_source.end(),
+            [](const std::pair<std::string, double>& a,
+               const std::pair<std::string, double>& b) {
+              return a.second > b.second;
+            });
   for (int i = 0; i < static_cast<int>(swings.size()); ++i) {
     if (swings[i] > 0 &&
         (played.main_attack < 0 || swings[i] > swings[played.main_attack])) {

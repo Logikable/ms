@@ -106,6 +106,13 @@ class CombatSim {
   double own_clock_damage() const {
     return own_clock_damage_;
   }
+  // The same total, told apart by what dealt it. A caller names a source by
+  // looking its index up in the list its origin belongs to -- kOwnClock in
+  // params.auto_attacks, kSwingClock and kKillClock in
+  // params.triggered_attacks, kSideStrike and kLoad in params.attacks.
+  const std::map<DamageSource, double>& own_clock_by_source() const {
+    return own_clock_by_source_;
+  }
   // Swings of each attack the character has landed, parallel to the same list.
   const std::vector<int>& swings_by_attack() const {
     return swings_by_attack_;
@@ -741,10 +748,15 @@ class CombatSim {
   std::vector<double> damage_by_attack_;
   std::vector<int> swings_by_attack_;
   double own_clock_damage_ = 0.0;
+  std::map<DamageSource, double> own_clock_by_source_;
   // Which attack the damage now landing belongs to, or -1 for damage on a
   // clock of its own. Set around each strike, which is the only place that
   // knows.
   int attributing_ = -1;
+  // What is striking right now, read only where attributing_ says the swing
+  // does not own what landed. Set beside it and for the same reason: the
+  // strike is the only place that knows.
+  DamageSource striking_;
   // Seconds left before a passive will revive the player again. Counts down
   // wherever the character is, since what it measures is the pact rather than
   // the fight, and stays at 0 for everyone who holds no such skill.

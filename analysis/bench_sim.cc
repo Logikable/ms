@@ -461,9 +461,9 @@ struct Result {
     int points = 0;
   };
   std::vector<NodeHeld> nodes;
-  // Share of the run's damage each attack took, largest first, with everything
-  // on a clock of its own gathered into one row. What it is for is deciding
-  // whether a skill in the book is earning its points.
+  // Share of the run's damage each source took, largest first -- a row per
+  // swing and a row per clock of its own. What it is for is deciding whether a
+  // skill in the book is earning its points.
   std::vector<std::pair<std::string, double>> shares;
 };
 
@@ -537,9 +537,9 @@ void RecordBook(const GameState& state, const DerivedStats& derived,
   }
 }
 
-// Where the run's damage went, as a share apiece. The swings are counted over
-// the run and everything on its own clock is one row, since a summon competes
-// with nothing for the clock and its share is simply what it added.
+// Where the run's damage went, as a share apiece: a row per swing, and a row
+// per source on a clock of its own. A summon competes with nothing for the
+// clock, so its share is simply what it added.
 void RecordShares(const CombatParams& params, const Sequence& played,
                   Result* result) {
   double total = played.damage;
@@ -553,8 +553,14 @@ void RecordShares(const CombatParams& params, const Sequence& played,
     result->shares.push_back(
         {params.attacks[i].name, played.damage_by_attack[i] / total});
   }
-  if (played.own_clock_damage > 0.0) {
-    result->shares.push_back({"(own clock)", played.own_clock_damage / total});
+  // Split by what dealt it rather than heaped into one row: on a branch whose
+  // summons outweigh its swings, "(own clock) 61%" names no skill to tune.
+  for (const std::pair<std::string, double>& source :
+       played.own_clock_by_source) {
+    if (source.second <= 0.0) {
+      continue;
+    }
+    result->shares.push_back({source.first, source.second / total});
   }
   std::sort(result->shares.begin(), result->shares.end(),
             [](const std::pair<std::string, double>& a,

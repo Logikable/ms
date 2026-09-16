@@ -764,6 +764,7 @@ void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
 
 double CombatSim::Strike(const AttackOption& attack, DamageSource source,
                          int pulses) {
+  striking_ = source;
   // One strike hits the front mobs at once; each takes its own type's damage.
   // Overkill on any of them is wasted. Dead mobs leave the queue and the ones
   // behind slide into the window next time.
@@ -1376,6 +1377,7 @@ void CombatSim::Hurt(QueuedMob& mob, double damage) {
     damage_by_attack_[attributing_] += damage;
   } else {
     own_clock_damage_ += damage;
+    own_clock_by_source_[striking_] += damage;
   }
 }
 
@@ -1606,6 +1608,7 @@ void CombatSim::RunDots(double dt) {
       dot.left_seconds -= spent;
       dot.phase += spent;
       attributing_ = dot.lit_by;
+      striking_ = {DamageOrigin::kBurn, slot};
       while (dot.phase >= dot.interval_seconds) {
         dot.phase -= dot.interval_seconds;
         // Every helping ticks for the whole damage, and each rolls its own.
@@ -1968,6 +1971,9 @@ void CombatSim::Reflect(const CombatParams& params, double damage_taken) {
     return;
   }
   QueuedMob& front = queue_.front();
+  // Nothing struck to earn it, so it is filed under a clock of its own with no
+  // cast behind it -- index -1, which names no entry in any attack list.
+  striking_ = {DamageOrigin::kOwnClock, -1};
   Hurt(front, params.damage_reflect_pct * damage_taken);
   if (front.hp > 0.0) {
     return;

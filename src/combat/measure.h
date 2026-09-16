@@ -12,6 +12,8 @@
 #define MS_SRC_COMBAT_MEASURE_H_
 
 #include <cstdint>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "src/combat/encounter.h"
@@ -40,6 +42,10 @@ struct Sequence {
   // What everything on a clock of its own came to: the summons, the releases
   // clocked by swings or by defeats, and what a reflection put back.
   double own_clock_damage = 0.0;
+  // The same total told apart by what dealt it, named and heaviest first. A
+  // summon's own clock is what makes a branch's damage hard to read off its
+  // swings, so the bucket is split here rather than left to the caller.
+  std::vector<std::pair<std::string, double>> own_clock_by_source;
   // Share of the run each of the character's buffs spent standing, parallel to
   // CombatParams::buffs.
   std::vector<double> buff_uptime;

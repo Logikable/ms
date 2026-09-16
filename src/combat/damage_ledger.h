@@ -43,6 +43,15 @@ inline bool operator==(const DamageSource& a, const DamageSource& b) {
   return a.origin == b.origin && a.index == b.index;
 }
 
+// So a tally can be kept by source. The order means nothing to a reader; what
+// it is for is a map key.
+inline bool operator<(const DamageSource& a, const DamageSource& b) {
+  if (a.origin != b.origin) {
+    return a.origin < b.origin;
+  }
+  return a.index < b.index;
+}
+
 // One line of damage as it landed on one monster, for a caller drawing the
 // fight rather than only stepping it. `event` is shared by every line one
 // attack put on that monster, so an eight-line swing reads as one stack of
