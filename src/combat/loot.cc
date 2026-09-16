@@ -13,20 +13,16 @@ namespace {
 constexpr double kBaseMesoDropChance = 0.60;
 
 // How far either side of the mean the multiplier is drawn. Every GMS band is
-// its mean plus or minus a fifth -- 2-20 runs 1.6 to 2.4, 91+ runs 6 to 9 --
-// so one spread covers the table.
+// its mean plus or minus a fifth, so one spread covers the table.
 constexpr double kMesoSpread = 0.2;
 
-// What a Heroic world multiplies every meso drop by. GMS hands one out as a
-// Novice passive: a world with no trading has to buy with meso what an
-// Interactive world buys for cash, so the drops are worth six times as much.
-// We have no trading either, which makes Heroic the world we already are.
+// What a Heroic world multiplies every meso drop by. GMS hands it out as a
+// Novice passive: a world with no trading buys with meso what an Interactive
+// world buys for cash. We have no trading either.
 constexpr double kHeroicMesoMultiplier = 6.0;
 
-// Mean of the mob's randomized meso multiplier k, chosen by the level band the
-// mob falls in; the dropped amount is mob_level * k. Bounds are the midpoints
-// of the GMS per-band k ranges. Level 1 is a flat 1 meso, handled by the
-// caller.
+// Mean of the meso multiplier k for the mob's level band; the drop is
+// mob_level * k. Bounds are the midpoints of the GMS per-band ranges.
 double MeanMesoMultiplier(int mob_level) {
   if (mob_level <= 20) {
     return 2.0;

@@ -28,11 +28,9 @@
 
 namespace ms {
 
-// The stretch of fighting actually stepped before the rest of an absence is
-// scaled from it. Long enough to hold dozens of respawn beats even at the
-// slowest pacing band, so a kill pattern that repeats over several beats is
-// inside it many times over -- one beat is not a sample, it is the best beat
-// the character ever has.
+// The stretch actually stepped before the rest of an absence is scaled from
+// it. Long enough for dozens of respawn beats at the slowest pacing band: one
+// beat is not a sample, it is the best beat the character ever has.
 constexpr double kOfflineSampleSeconds = 600.0;
 
 // How finely that sample is stepped: the live tick, so the fight meets the
@@ -44,9 +42,8 @@ constexpr double kOfflineStepSeconds = 0.1;
 // failure, just a player who left standing in town.
 struct OfflineReport {
   bool farmed = false;
-  // How long the game was closed, and how much of that was actually farmed.
-  // The two differ only when the character fell partway through: what they
-  // were paid stops there, but they were still away the whole time.
+  // How long the game was closed, and how much of it was farmed. The two
+  // differ only where the character fell partway through.
   double absence = 0.0;
   double seconds = 0.0;
   int64_t kills = 0;
@@ -59,19 +56,17 @@ struct OfflineReport {
   std::string map_name;
 };
 
-// Seconds a player was away, from a save's stamp to now. Zero for a save
-// written before the stamp existed, and for a clock that has gone backwards --
-// neither is an absence anyone should be paid for.
+// Seconds away, from a save's stamp to now. Zero for a save written before the
+// stamp existed and for a clock that has gone backwards.
 double AbsenceSeconds(int64_t last_seen_unix_seconds, int64_t now_unix_seconds);
 
-// Farms `state`'s current map for `seconds` of absence and pays the character
-// for it, returning what they earned.
+// Farms `state`'s map for `seconds` of absence and pays for it.
 //
-// The absence is stepped in full when it is shorter than the sample; past
-// that, the sample's kills are scaled to what is left. Three samples are
-// credited only up to the fall and leave the player on Maple Island: one that
-// dies, one whose pool is draining fast enough to run out before the player
-// returns, and one that held but came within a twentieth of empty doing it.
+// An absence shorter than the sample is stepped in full; past that the
+// sample's kills are scaled to what is left. Three samples are credited only
+// up to the fall and leave the player on Maple Island: one that dies, one
+// draining fast enough to run out before they return, and one that held but
+// came within a twentieth of empty.
 OfflineReport ApplyOfflineProgress(GameState& state, double seconds);
 
 }  // namespace ms

@@ -61,18 +61,13 @@ CombatParams MakeParams(double swing, double respawn,
   return params;
 }
 
-// A swing that rolls: every line lands somewhere between the mastery floor and
-// full, and crits on top of that. Wide open or barely at all, it has to kill
-// at the rate the unrolled swing did -- the only thing rolling costs is
-// overkill on the killing blow, and against a mob eighty swings deep that is a
-// fraction of one kill.
+// Wide open or barely at all, a rolling swing has to kill at the rate its
+// average would: the only thing rolling costs is overkill on the killing blow,
+// which against a mob eighty swings deep is a fraction of one kill.
 TEST(CombatSimTest, ARollingSwingKillsAtTheRateItsAverageWould) {
-  // A deep roster and a respawn that never comes: what limits the kills has to
-  // be the damage, or every run simply empties the map and agrees about
-  // nothing.
-  // The HP is many swings deep and no multiple of one: a mob that dies on an
-  // exact swing count would lose a whole swing to the smallest jitter, which
-  // is granularity rather than anything the roll did.
+  // A deep roster and no respawn, so the damage is what limits the kills. The
+  // HP is many swings deep and no multiple of one: a mob dying on an exact
+  // swing count would lose a whole swing to the smallest jitter.
   Mob mob = MakeMob("Snail", 2013);
   double kills[3] = {0.0, 0.0, 0.0};
   for (int run = 0; run < 3; ++run) {
@@ -554,11 +549,9 @@ TEST(CombatSimTest, APiercingSwingIsChosenForWhatItsGainIsWorth) {
   EXPECT_EQ(without.view().attack_name, "Bolt Burst");
 }
 
-// A boss's parts differ in HP and none of them respawns, so a swing too narrow
-// for the whole roster has to spend itself on the parts that will outlast it:
-// kill the small ones first and the reach idles for the rest of the fight.
-// Four parts with three of them reachable clear in six swings picking the
-// healthiest, where taking the front of the queue takes eight.
+// A boss's parts differ in HP and none respawns, so a narrow swing must spend
+// itself on what will outlast it: four parts with three reachable clear in six
+// swings picking the healthiest, and eight taking the front of the queue.
 TEST(CombatSimTest, ABossSwingPicksTheHealthiestOfTheRoster) {
   std::vector<Mob> mobs;
   for (int i = 0; i < 4; ++i) {
@@ -3694,11 +3687,9 @@ void GiveWound(CombatParams& params, double duration, double factor) {
   params.buffed.push_back(std::move(set));
 }
 
-// The whole of the mechanism: the fight spends a swing laying the wound, then
-// goes back to the swing that hits hardest, and comes back when it lapses.
-//
-// Read off the damage rather than attack_name(), which names the swing being
-// charged NEXT -- the strike re-aims before the step ends.
+// The fight spends a swing laying the wound, goes back to the hardest swing,
+// and comes back when it lapses. Read off the damage rather than
+// attack_name(), which names the swing being charged NEXT.
 TEST(CombatSimTest, TheFightSpendsASwingToLayALapsedBuff) {
   Mob snail = MakeMob("Snail", 10000);
   CombatSim sim;
@@ -4193,15 +4184,10 @@ TEST(CombatSimTest, ABuffCanWaitOnLandedHitsRatherThanOnAClock) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.64, 1e-9);
 }
 
-// Freezing Crush's shape: an ice swing leaves a stack per line AND four
-// seconds of ice on what it hit, and a lightning swing spends one stack per
-// line and hits harder for every stack it went in holding. The lightning swing
-// is the harder of the two on its own, so the chooser would take it every time
-// and neither the pile nor the ice would exist -- what makes it build is the
-// credit an ice swing gets for what it leaves behind.
-//
-// The two are separate questions: the pile says how much a stack is worth, the
-// ice says whether it is collected at all.
+// Freezing Crush's shape: ice leaves a stack per line and four seconds of ice,
+// lightning spends a stack per line and hits harder for each it went in
+// holding. Lightning is the harder swing on its own, so what makes the pile
+// get built is the CREDIT ice takes for what it leaves behind.
 void GiveFreezeStacks(CombatParams& params, int cap) {
   params.freeze_cap = cap;
   AttackOption ice = MakeSkill("Cold Beam", 10.0, /*cooldown=*/0.0);

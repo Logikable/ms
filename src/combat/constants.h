@@ -19,35 +19,26 @@ constexpr double kRespawnIntervalSeconds = 7.56;
 // units of this. Not a simulation tick -- nothing here is stepped by it.
 constexpr int kTickMs = 30;
 
-// What every character crits at before a single skill is bought: GMS gives
-// them a 5% chance and a 35% bonus when it lands. Both are shown on the stats
-// page rather than folded away, so a skill adding to either reads as adding to
-// a number the player can already see.
+// What every character crits at before a skill is bought: GMS's 5% chance and
+// 35% bonus. Both are SHOWN on the stats page rather than folded away, so a
+// skill adding to either adds to a number the player can see.
 constexpr double kBaseCritRate = 0.05;
 constexpr double kBaseCritDamage = 0.35;
 
-// The three traits, at the caps every endgame character fills them to. GMS
-// pays Insight in ignored elemental resistance, Ambition in ignored defence
-// and Empathy in buff duration, each climbing with a trait level nobody
-// endgame is short of. This game has no traits and no screen for them, so
-// what they come to is carried as a base -- the call the crit pair above
-// made, for the same reason: a number every character has is not a number
-// worth making them find.
+// The three traits at the caps every endgame character fills them to: GMS pays
+// Insight in ignored elemental resistance, Ambition in ignored defence and
+// Empathy in buff duration. This game has no traits, so what they come to is
+// carried as a base, as the crit pair above is.
 constexpr double kBaseIgnoreElementalResistance = 0.05;  // Insight
 constexpr double kBaseIgnoreDefense = 0.10;              // Ambition
 constexpr double kBaseBuffDuration = 0.10;               // Empathy
 
-// How many timed buffs are modelled at once. Every combination of them needs a
-// damage table of its own, and the count of combinations doubles with each
-// one -- but a table is built the first time the fight asks for it, so what a
-// raise really costs is the combinations a fight stands in rather than every
-// one it could. A character holding more than this keeps the first of them and
-// silently loses the rest, so //src/data_test:skill_test refuses a book that
-// hands out more.
-//
-// This bounds the PARTY'S buffs too, which take the bits above the
-// character's own: a book at the cap standing beside two allies casting one
-// each is what the last two are for. See BuffedSetSource::ally_buffs.
+// How many timed buffs are modelled at once. Every combination needs a damage
+// table of its own and the count doubles with each buff, but a table is built
+// on first ask, so a raise costs the combinations a fight STANDS in. A book
+// over the cap silently loses the rest, so //src/data_test:skill_test refuses
+// one. This bounds the PARTY's buffs too, which take the bits above the
+// character's own.
 constexpr int kMaxBuffWindows = 11;
 
 }  // namespace ms

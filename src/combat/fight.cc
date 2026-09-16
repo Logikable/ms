@@ -11,27 +11,24 @@
 namespace ms {
 namespace {
 
-// How low the player has to fall before they will spend a swing healing
-// instead of attacking. The whole of the decision: a cast that cost a swing
-// every time it was merely useful would never let the character attack, and
-// one saved for the last sliver would come too late to matter.
+// How low the player falls before spending a swing on healing. A cast made
+// whenever it was merely useful would never let the character attack; one
+// saved for the last sliver would come too late.
 constexpr double kHealBelowFraction = 0.25;
 
-// Slack for the swing counter below, far smaller than any weight a swing
-// carries. A weight of a seventh cannot be written exactly.
+// Slack for the swing counter: a weight of a seventh has no exact double.
 constexpr double kCountEpsilon = 1e-9;
 
-// Whether there is a fight to advance at all. The bare poke is always the
-// first attack, so its interval is the one to ask about: every character has
-// it, whatever they have learned or are holding.
+// Whether there is a fight to advance. The bare poke is always the first
+// attack, so its interval is the one to ask about.
 bool CanFight(const CombatParams& params) {
   return params.active && !params.types.empty() && !params.attacks.empty() &&
          params.attacks.front().swing_seconds > 0.0;
 }
 
-// What one swing of an attack gaining `gain` a step is worth per enemy, over
-// `hit` of them: the escalation averaged, since the order is drawn fresh. A
-// sixth of (1 + 1.15 + ... + 1.15^5) is 1.46, at Piercing Arrow's own numbers.
+// What a swing gaining `gain` a step is worth per enemy over `hit` of them:
+// the escalation averaged, the order being drawn fresh. A sixth of
+// (1 + 1.15 + ... + 1.15^5) is 1.46, at Piercing Arrow's numbers.
 double PierceMean(double gain, int hit) {
   if (gain <= 0.0 || hit <= 1) {
     return 1.0;
@@ -57,10 +54,8 @@ void CombatSim::TopUp(const CombatParams& params) {
       queue_.push_back(std::move(arrival));
     }
   }
-  // Interleave the newcomers so a swing does not face one whole type at a
-  // time. Only they are shuffled: the mobs already in the queue are being
-  // fought, and moving a wounded one out of the front window would hand back
-  // the damage done to it.
+  // Interleave the newcomers only: moving a wounded mob out of the front
+  // window would hand back the damage done to it.
   std::shuffle(queue_.begin() + first_new, queue_.end(), rng_);
 }
 
@@ -75,9 +70,6 @@ void CombatSim::AimAtHealthiest(const CombatParams& params) {
       [](const QueuedMob& a, const QueuedMob& b) { return a.hp > b.hp; });
 }
 
-// How many of the queue one swing of `attack` lands on. A scattered swing is
-// held to the strikes it throws as well as to its reach: eleven flames cannot
-// burn a twelfth enemy, and one that took no strike takes no mark either.
 int CombatSim::PerSwingFinalAttackTargets(const AttackOption& attack,
                                           int hit) const {
   if (hit <= 0 || attack.per_swing_final_attack_damage.empty()) {
@@ -87,8 +79,6 @@ int CombatSim::PerSwingFinalAttackTargets(const AttackOption& attack,
                   static_cast<int>(queue_.size()));
 }
 
-// Enemies the wide half of a swing finds. Held to the swing landing at all and
-// to what is actually standing, exactly as the Final Attack bank is.
 int CombatSim::WideHitTargets(const AttackOption& attack, int hit) const {
   if (hit <= 0 || attack.wide_hit_damage.empty()) {
     return 0;
@@ -97,13 +87,9 @@ int CombatSim::WideHitTargets(const AttackOption& attack, int hit) const {
                   static_cast<int>(queue_.size()));
 }
 
-// Strikes a scattered swing throws. Fixed for every one of them but DoT
-// Punisher, which summons an orb apiece for the burn stacks already standing
-// on the group -- so a swing laid on top of the book's poisons is half again
-// as wide as one opening a fight.
-//
-// Read before anything of this cast lands, which is what freezes the count:
-// ApplyDots runs at the end of Strike, so the orbs never widen themselves.
+// Widened only for DoT Punisher, which summons an orb per burn stack already
+// standing. Read before anything of this cast lands -- ApplyDots runs at the
+// end of Strike -- so the orbs never widen themselves.
 int CombatSim::ScatterHits(const AttackOption& attack) const {
   if (attack.scatter_hits <= 0 || attack.scatter_hits_per_dot <= 0.0) {
     return attack.scatter_hits;
@@ -132,18 +118,11 @@ int CombatSim::ExtraLines(const AttackOption& attack) const {
                                               std::max(0, swing_enemies_ - 1));
 }
 
-// What each of the `hit` enemies takes of one scattered swing, indexed by their
-// place in the queue. The strikes spread before they double up, so on eleven
-// enemies every one of them takes a whole flame and on a lone boss all eleven
-// land -- the second and every later one worth what the -55% leaves it.
-//
-// The leftovers go to the healthiest, which is GMS's rule read through what
-// this game has: the flames go for the boss first, and a boss is the monster
-// with the HP.
-//
-// Where the skill caps how deep the pile may go, the strikes past it are lost
-// rather than moved along: fifteen of Poison Nova's clouds bursting on a lone
-// boss land the three GMS allows and no more.
+// The strikes spread before they double up: on eleven enemies each takes one
+// flame, on a lone boss all eleven land and every repeat is worth what the
+// -55% leaves it. Leftovers go to the healthiest, GMS's rule read through
+// what this game has. Strikes past scatter_max_hits_per_enemy are LOST rather
+// than moved along.
 std::vector<double> CombatSim::ScatterShares(const AttackOption& attack,
                                              int hit) const {
   int hits = ScatterHits(attack);
@@ -191,7 +170,7 @@ std::vector<int> CombatSim::LeadTargets(const AttackOption& attack,
     reached[j] = j;
   }
   int want = std::min(std::max(1, attack.lead_enemies), hit);
-  // Only the front `want` need be in order, and the queue is short either way.
+  // Only the front `want` need be in order.
   std::partial_sort(
       reached.begin(), reached.begin() + want, reached.end(),
       [this](int a, int b) { return queue_[a].hp > queue_[b].hp; });
@@ -199,24 +178,18 @@ std::vector<int> CombatSim::LeadTargets(const AttackOption& attack,
   return reached;
 }
 
-// What one swing of `attack` would land on the queue as it stands: its own
-// damage to each mob it reaches, the opening hit on one of them, and the Final
-// Attack that follows it onto every one of them.
 double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
   double total = 0.0;
-  // A hold is worth its pulses and its finish, and the pulses are only as many
-  // as the fight means to hold for -- weighing it at a full hold would price
-  // pulses that will land on nothing.
+  // Only as many pulses as the fight means to hold for: a full hold would
+  // price pulses that land on nothing.
   int pulses = ChannelPulses(attack, hit);
   int extras = ExtraLines(attack);
   std::vector<double> shares = ScatterShares(attack, hit);
   for (int j = 0; j < hit; ++j) {
     int type = queue_[j].type;
     if (type < static_cast<int>(attack.damage_per_hit.size())) {
-      // What the hold gives up by being let go early. Taken as the difference
-      // between a full hold and the one it means to run, since the pulses it
-      // drops are the LAST of them -- and on a hold that grows those are worth
-      // more than the ones it keeps.
+      // What letting go early gives up. The pulses dropped are the LAST of
+      // them, worth more than the rest on a hold that grows.
       double dropped =
           pulses > 0 ? HeldPulseDamage(attack, type, attack.channel.pulses) -
                            HeldPulseDamage(attack, type, pulses)
@@ -242,26 +215,24 @@ double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
       total += attack.final_attack_damage[type];
     }
   }
-  // Rolled once for the whole swing rather than once per enemy the swing
-  // reached -- that is the whole difference between the two banks -- but it
-  // lands on a crowd of its own, which may be wider than the swing.
+  // Rolled once for the whole swing, not per enemy -- the difference between
+  // the two banks -- but landing on a crowd of its own.
   for (int j = 0; j < PerSwingFinalAttackTargets(attack, hit); ++j) {
     int type = queue_[j].type;
     if (type < static_cast<int>(attack.per_swing_final_attack_damage.size())) {
       total += attack.per_swing_final_attack_damage[type];
     }
   }
-  // The half of the swing with a crowd of its own, on the same footing: the
-  // chooser has to see it or a swing whose current is most of its worth reads
-  // as the orb alone.
+  // The chooser has to see the wide half, or a swing whose current is most
+  // of its worth reads as the orb alone.
   for (int j = 0; j < WideHitTargets(attack, hit); ++j) {
     int type = queue_[j].type;
     if (type < static_cast<int>(attack.wide_hit_damage.size())) {
       total += attack.wide_hit_damage[type];
     }
   }
-  // A chance that lands on one enemy, so it is charged once however many the
-  // swing reached -- and it is a share of what that one was taking anyway.
+  // A proc lands on one enemy, so it is charged once however wide the swing,
+  // as a share of what that enemy was taking anyway.
   if (hit > 0 &&
       queue_[0].type < static_cast<int>(attack.damage_per_hit.size())) {
     for (const ProcRoll& proc : attack.procs) {
@@ -272,11 +243,9 @@ double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
   return total;
 }
 
-// What relighting a burn on one monster buys, over the seconds before the
-// swing carrying it could come round again: the burning it gains on top of
-// what the monster had coming anyway, plus a helping where the pile has room
-// for another. Nothing at all on a monster already carrying a full, fresh
-// pile, which is what sends the chooser elsewhere until the burn nears its end.
+// The burning gained over what the monster had coming anyway, plus a helping
+// where the pile has room. Nothing on a full, fresh pile, which is what sends
+// the chooser elsewhere until the burn nears its end.
 double CombatSim::BurnCredit(const DotApplication& burn, const QueuedMob& mob,
                              double cadence) const {
   if (mob.type >= static_cast<int>(burn.damage.size())) {
@@ -294,10 +263,8 @@ double CombatSim::BurnCredit(const DotApplication& burn, const QueuedMob& mob,
   return burn.damage[mob.type] * burn.chance * gained / burn.interval_seconds;
 }
 
-// A burn is charged at what relighting it actually buys rather than in full,
-// and on a monster already burning that is little or nothing. How long the
-// monster lives thins it further, and the chooser cannot know that before it
-// swings.
+// Charged at what relighting buys, which on a monster already burning is
+// little or nothing.
 double CombatSim::BurnDamage(const AttackOption& attack, int hit) const {
   double total = 0.0;
   double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
@@ -313,8 +280,8 @@ double CombatSim::BurnDamage(const AttackOption& attack, int hit) const {
 }
 
 // At a wait of five seconds and a swing of one, a fifth of the strike rides
-// each swing. The chooser has to say so, or a swing would be weighed as though
-// it set the strike off every time.
+// each swing -- or the swing would be weighed as though it set the strike off
+// every time.
 double CombatSim::SideStrikeDamage(const AttackOption& attack) const {
   if (attack.side == nullptr) {
     return 0.0;
@@ -341,11 +308,10 @@ double CombatSim::LoadedDamage(const AttackOption& attack) const {
   int hit = Reached(load);
   double worth = (StrikeDamage(load, hit) + BurnDamage(load, hit)) *
                  std::min(load.charges_per_swing, left);
-  // A charge the load prepared for itself will not be there for the next
-  // press, so it is worth its share of the wait for the one after -- the same
-  // bargain a side strike on a cooldown is weighed by. A raising of the buff
-  // is the other case and is left whole: those go out as fast as the player
-  // can press, which is what the chooser should reach for them for.
+  // A charge the load prepared for itself is worth its share of the wait for
+  // the next press, as a side strike on a cooldown is. Charges a raising of
+  // the buff hands over are left whole -- those go out as fast as the player
+  // can press.
   if (load.recharge_seconds > 0.0 && left <= load.recharge_max &&
       attack.swing_seconds > 0.0) {
     worth *= attack.swing_seconds /
@@ -354,10 +320,9 @@ double CombatSim::LoadedDamage(const AttackOption& attack) const {
   return worth;
 }
 
-// Strikes of a told-apart swing the press is credited with. The wall lands on
-// its own beat while the player goes on swinging, so what cuts it short is the
-// next cast of the same skill -- a cooldown away where it has one, a press away
-// where it does not. 1 for every swing that falls together.
+// The wall lands on its own beat while the player goes on swinging, so what
+// cuts it short is the next cast of the same skill: a cooldown away where it
+// has one, a press away where it does not.
 double CombatSim::BarrageStrikes(const AttackOption& attack) const {
   int strikes = std::max(1, attack.strikes_in_sequence);
   if (strikes == 1 || attack.cast_interval_seconds <= 0.0) {
@@ -368,34 +333,28 @@ double CombatSim::BarrageStrikes(const AttackOption& attack) const {
 }
 
 double CombatSim::SwingDamage(const AttackOption& attack) const {
-  // A wound's form is not averaged the way an empowered one is: it is not
-  // landed once in every N, it is what this press lands if a wound is standing
-  // and is not if none is. So the rate reads the queue as it stands.
+  // A wound's form is not averaged as an empowered one is: it is what this
+  // press lands if a wound stands, so the rate reads the queue as it is.
   if (WoundFull(attack)) {
     return SwingDamage(*attack.wound_form);
   }
   int hit = Reached(attack);
   double total = StrikeDamage(attack, hit) * BarrageStrikes(attack) +
                  BurnDamage(attack, hit);
-  // The side strike is held aside rather than added, because it rides the
-  // swing whichever form that swing took -- the averaging below is between the
-  // two forms, and this is outside it. A load rides the press the same way.
+  // Held aside because these ride the swing whichever form it took, and the
+  // averaging below is between the two forms.
   double side = SideStrikeDamage(attack) + LoadedDamage(attack);
-  // A swing with an empowered form lands it once in every N, so what the
-  // attack is worth per swing is the average of the two. The rate has to say
-  // so, or the attack would be weighed on the weaker of the two things it
-  // does. The form has no form of its own, so this recurs exactly once.
+  // An empowered form lands once in every N, so the attack is worth the
+  // average of the two. The form has none of its own, so this recurs once.
   if (attack.empowered != nullptr && attack.empowered_every > 0) {
     if (!attack.brands_enemies) {
       total +=
           (SwingDamage(*attack.empowered) - total) / attack.empowered_every;
       return total + side;
     }
-    // Marking instead, every mob the swing reaches comes due once in every N
-    // rather than the swing doing so, and takes the whole form on top of its
-    // ordinary strike. Averaged over the cycle like the case above, and for
-    // the same reason: what an attack is worth is what it does over the run of
-    // swings, not what this one swing happens to land on.
+    // Marking instead: each mob reached comes due once in every N rather
+    // than the swing doing so, and takes the whole form on top. Averaged over
+    // the cycle for the same reason as above.
     for (int j = 0; j < hit; ++j) {
       int type = queue_[j].type;
       if (type < static_cast<int>(attack.empowered->damage_per_hit.size())) {
@@ -407,12 +366,10 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
   return total + side;
 }
 
-// Per second, not per swing: a skill that hits half again as hard but takes
-// twice as long is worse, and only the rate says so.
-//
-// An ice swing is also paid for the pile it leaves and for the freeze it lays,
-// or the chooser would take the harder lightning swing every time and neither
-// would ever exist -- see FreezeCredit and FrozenCredit.
+// Per second, not per swing: a skill hitting half again as hard but taking
+// twice as long is worse. An ice swing is also paid for the pile it leaves
+// and the freeze it lays, or the chooser would take the lightning swing every
+// time -- see FreezeCredit and FrozenCredit.
 double CombatSim::SwingRate(const CombatParams& params,
                             const AttackOption& attack) const {
   return (SwingDamage(attack) * StateBoost(attack, FrontMob()) +
@@ -421,10 +378,8 @@ double CombatSim::SwingRate(const CombatParams& params,
          SwingSecondsAgainst(attack);
 }
 
-// Whether the swing at `index` could go out on this press. What the chooser
-// picks between, and the only thing a lookahead may reach for: a skill two
-// minutes from its next cast is not what the fight will spend a pile of freeze
-// stacks on.
+// The only thing a lookahead may reach for: a skill two minutes from its next
+// cast is not what the fight will spend a pile of freeze stacks on.
 bool CombatSim::OnOffer(const CombatParams& params, int index) const {
   const std::vector<AttackOption>& options = Attacks(params);
   if (index < 0 || index >= static_cast<int>(options.size())) {
@@ -443,10 +398,9 @@ bool CombatSim::OnOffer(const CombatParams& params, int index) const {
   if (attack.spent_by_attack >= 0) {
     return false;
   }
-  // Still recharging, nothing loaded to fire, or a hold whose bank has not
-  // filled. The rate a hold is judged on is its pulse over its pulse clock
-  // whatever its length, so a bank with one charge in it prices the same as a
-  // full one and the chooser takes the hold the moment a charge lands.
+  // A hold is judged on its pulse over its pulse clock whatever its length,
+  // so one charge prices the same as a full bank and the chooser takes the
+  // hold the moment a charge lands.
   return !Recharging(index) && Loaded(params, index) && Charged(params, index);
 }
 
@@ -457,8 +411,7 @@ int CombatSim::TopAttack(const CombatParams& params,
   const std::vector<AttackOption>& options = Attacks(params);
   for (int i = 0; i < static_cast<int>(options.size()); ++i) {
     const AttackOption& attack = options[i];
-    // Set aside by the caller: it is being saved for a window, so what goes
-    // out now is chosen from the rest.
+    // Saved for a window, so what goes out now comes from the rest.
     if (i < static_cast<int>(held.size()) && held[i]) {
       continue;
     }
@@ -483,9 +436,8 @@ CombatSim::ComingWindow CombatSim::NextWindow(
                        static_cast<int>(params.buffs.size()));
   for (int i = 0; i < count; ++i) {
     const BuffOption& buff = params.buffs[i];
-    // A shell is raised by need rather than by its clock -- see
-    // ShieldWanted -- so a cooldown run out on one promises nothing, and
-    // waiting for a window that may never open would stall the fight.
+    // A shell is raised by need, not by its clock (see ShieldWanted), so
+    // waiting for one would stall the fight on a window that may never open.
     if (buffs_[i].left > 0.0 || buff.laid_by_attack >= 0 ||
         buff.charge_lines > 0 || buff.shield_hits > 0 ||
         buff.duration_seconds <= 0.0) {
@@ -496,8 +448,7 @@ CombatSim::ComingWindow CombatSim::NextWindow(
   if (!std::isfinite(window.seconds)) {
     return window;
   }
-  // The mask as it would stand then: everything coming up at that moment set,
-  // and everything standing now that has lapsed by it cleared.
+  // The mask as it would stand then: what comes up set, what lapses cleared.
   for (int i = 0; i < count; ++i) {
     const BuffOption& buff = params.buffs[i];
     const BuffClock& clock = buffs_[i];
@@ -523,33 +474,25 @@ bool CombatSim::HoldSaves(const CombatParams& params, int index,
     return false;
   }
   const AttackOption& attack = options[index];
-  // A swing that would land inside the window anyway saves nothing by waiting:
-  // what is aimed now lands at the end of its animation, under whatever is
-  // standing then. What is LEFT of that animation, since the swing being
-  // charged carries its phase over to whatever replaces it.
-  //
-  // Less this step, which the buff clocks have already taken and the swing has
-  // not -- the raise is wound down at the top of the step and the phase at the
-  // bottom. Without it the two are a step out of true, and a hold would let go
-  // one step before the window every time.
+  // A swing landing inside the window anyway saves nothing: it lands at the
+  // end of what is LEFT of its animation, the phase carrying over to whatever
+  // replaces it. Less this step, which the buff clocks have taken and the
+  // swing has not -- without it a hold lets go one step early every time.
   if (window.seconds <
       SwingSecondsAgainst(attack) - attack_phase_ - step_seconds_) {
     return false;
   }
   const ChannelHold& hold = attack.channel;
   if (hold.charge_seconds > 0.0) {
-    // A bank costs nothing to sit on: dribbling it and dumping it take the
-    // same seconds either way. The only thing waiting can throw away is a
-    // charge that fills past the top of the bank.
+    // A bank costs nothing to sit on. The only thing waiting throws away is
+    // a charge that fills past the top of it.
     double banked = index < static_cast<int>(attack_clocks_.size())
                         ? attack_clocks_[index].hold_charges
                         : 0.0;
     return banked + window.seconds / hold.charge_seconds <= hold.max_charges;
   }
-  // A cooldown that comes back before the window opens is free to spend now --
-  // this press and the one inside the window are both had. Only one that
-  // outlasts the wait is a press being placed rather than a press being had
-  // twice.
+  // A cooldown back before the window opens is free to spend now: both
+  // presses are had. Only one outlasting the wait is a press being placed.
   return attack.cooldown_seconds > window.seconds;
 }
 
@@ -558,10 +501,8 @@ bool CombatSim::HoldPays(const CombatParams& params, int index, int filler,
   if (filler < 0) {
     return false;  // nothing else to swing, and the fight never idles
   }
-  // Both sides priced off the STANDING masks rather than the granting ones. A
-  // buff that grants in bursts flickers inside its own window, and that
-  // flicker is shared by the two readings being compared -- what is being
-  // weighed here is which buffs stand, not which instant of one it is.
+  // Both sides priced off the STANDING masks, not the granting ones: what is
+  // weighed is which buffs stand, not which instant of a bursting one it is.
   const std::vector<AttackOption>& now = params.Attacks(buff_mask_);
   const std::vector<AttackOption>& then = params.Attacks(window.mask);
   if (index >= static_cast<int>(now.size()) ||
@@ -571,8 +512,7 @@ bool CombatSim::HoldPays(const CombatParams& params, int index, int filler,
     return false;
   }
   // What one slot of this attack buys over the filler holding the same
-  // seconds. The difference of two rates, so everything the pair share falls
-  // out and what is left is the reason to reach for one over the other.
+  // seconds. A difference of rates, so what the pair share falls out.
   double seconds = SwingSecondsAgainst(now[index]);
   double press_now =
       (SwingRate(params, now[index]) - SwingRate(params, now[filler])) *
@@ -589,21 +529,15 @@ bool CombatSim::HoldPays(const CombatParams& params, int index, int filler,
     return true;  // a banked hold loses nothing by waiting; HoldSaves already
                   // kept it from overflowing
   }
-  // Waiting pushes the whole train of presses back, so over one cooldown a
-  // wait/cooldown share of a press goes missing. Priced at what a press is
-  // worth today, which is the conservative side of the comparison.
+  // Waiting pushes the train of presses back, losing a wait/cooldown share
+  // of a press. Priced at today's press, the conservative side.
   return gain > press_now * window.seconds / now[index].cooldown_seconds;
 }
 
 // The hardest swing on offer, except that a big move ready just before a buff
-// window is saved for it. What that is worth is the press landing inside the
-// window rather than outside it; what it costs is every later press of the
-// same skill pushed back by the wait. HoldPays weighs the two.
-//
-// The swing a hold is judged against is the one that would really go out in
-// its place, so a move set aside sends the question to the runner-up: holding
-// the best is only worth anything if what replaces it is worse now than it
-// would be in the window.
+// window is saved for it: HoldPays weighs the press landing inside the window
+// against every later press pushed back by the wait. A move set aside sends
+// the question to the runner-up, which is what would really go out instead.
 int CombatSim::BestAttack(const CombatParams& params) const {
   if (queue_.empty()) {
     return -1;  // nothing to hit, so nothing to choose between
@@ -611,8 +545,7 @@ int CombatSim::BestAttack(const CombatParams& params) const {
   std::vector<bool> held;
   int best = TopAttack(params, held);
   ComingWindow window = NextWindow(params);
-  // Nothing on its way, nothing new in it, or a fight that will be over before
-  // it opens. The common case, and it costs one look at the buff clocks.
+  // Nothing on its way, nothing new in it, or a fight over before it opens.
   if (best < 0 || window.seconds <= 0.0 || window.mask == buff_mask_ ||
       window.seconds >= SecondsLeft(params)) {
     return best;
@@ -629,17 +562,16 @@ int CombatSim::BestAttack(const CombatParams& params) const {
   return best;
 }
 
-// Whether the attack at `index` is still winding back up. Guarded on size
-// because the clocks are grown to fit the params, and a swing asked about
+// Guarded on size: the clocks grow to fit the params, and a swing asked about
 // before the first Advance has none yet.
 bool CombatSim::Recharging(int index) const {
   return index < static_cast<int>(attack_clocks_.size()) &&
          attack_clocks_[index].cooldown_left > 0.0;
 }
 
-// A magazine's swing is off the list until its buff loads it: the charges are
-// handed back whole at each raising and are gone with it, so an empty count
-// stands for both "the buff is down" and "the cartridges are spent".
+// A magazine's swing is off the list until its buff loads it. The charges are
+// handed back whole at each raising and gone with it, so an empty count means
+// both "the buff is down" and "the cartridges are spent".
 bool CombatSim::Loaded(const CombatParams& params, int index) const {
   const std::vector<AttackOption>& options = Attacks(params);
   if (index >= static_cast<int>(options.size()) ||
@@ -679,8 +611,7 @@ int CombatSim::ChargedPulses(const CombatParams& params, int index) const {
 }
 
 int CombatSim::HealToCast(const CombatParams& params) const {
-  // Only mid-fight. With the map cleared the beat hands HP back for free, so
-  // spending a swing on it would buy nothing.
+  // Only mid-fight: a cleared map hands HP back free on the beat.
   if (queue_.empty() || params.max_player_hp <= 0) {
     return -1;
   }
@@ -707,14 +638,14 @@ int CombatSim::ChooseAttack(const CombatParams& params) const {
       Attacks(params)[aimed_].swing_seconds > 0.0 && !queue_.empty()) {
     return aimed_;
   }
-  // Checked after the commitment, so a swing already winding up lands first:
-  // the cast replaces the NEXT attack, it does not interrupt this one.
+  // After the commitment: the cast replaces the NEXT attack rather than
+  // interrupting this one.
   int heal = HealToCast(params);
   if (heal >= 0) {
     return heal;
   }
-  // Below the heal, since staying alive comes before hitting harder, and above
-  // the damage: a lapsed wound is worth more than one more of the best swing.
+  // Below the heal and above the damage: a lapsed buff is worth more than
+  // one more of the best swing.
   int lay = BuffToLay(params);
   if (lay >= 0) {
     return lay;
@@ -723,9 +654,8 @@ int CombatSim::ChooseAttack(const CombatParams& params) const {
 }
 
 void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
-  // Unlike an auto-cast's clock, this runs on an empty map too: a player
-  // waiting out a respawn really does have their cooldown back when the mobs
-  // land, where a summon with nothing to hit has simply not fired.
+  // Runs on an empty map, unlike an auto-cast's clock: a player waiting out
+  // a respawn really does have their cooldown back when the mobs land.
   const std::vector<AttackOption>& options = Attacks(params);
   for (std::size_t i = 0; i < attack_clocks_.size(); ++i) {
     AttackClock& clock = attack_clocks_[i];
@@ -734,19 +664,16 @@ void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
     if (i >= options.size()) {
       continue;
     }
-    // The bank fills on the same empty map the cooldowns run down on, and for
-    // the same reason: a player waiting out a respawn really does have their
-    // lights when the mobs land.
+    // The bank fills on an empty map too, for the same reason.
     const ChannelHold& hold = options[i].channel;
     if (hold.charge_seconds > 0.0) {
       clock.hold_charges =
           std::min(static_cast<double>(hold.max_charges),
                    clock.hold_charges + dt / hold.charge_seconds);
     }
-    // The charge a load prepares for itself fills here too, and the clock is
-    // held while the bank is already at its own cap -- so a raising of the
-    // buff is never topped up, and the passive half comes back the moment the
-    // burst's charges are gone rather than when the buff lapses.
+    // The clock is held while the bank is at its cap, so a raising of the
+    // buff is never topped up and the passive half comes back as soon as the
+    // burst's charges are gone.
     const AttackOption& option = options[i];
     if (option.recharge_seconds <= 0.0 ||
         clock.charges_left >= option.recharge_max) {
@@ -765,45 +692,34 @@ void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
 double CombatSim::Strike(const AttackOption& attack, DamageSource source,
                          int pulses) {
   striking_ = source;
-  // One strike hits the front mobs at once; each takes its own type's damage.
-  // Overkill on any of them is wasted. Dead mobs leave the queue and the ones
-  // behind slide into the window next time.
+  // One strike hits the front mobs at once, each taking its own type's
+  // damage; overkill is wasted.
   int hit = Reached(attack);
-  // The pile does not move until the swing is over -- CreditFreeze runs after
-  // Strike -- so what a stack is worth can be read enemy by enemy below, which
-  // is what Shatter's share of the defence needs.
-  //
   // Picked before anything lands, so the opening hit chooses by the HP the
   // mobs went into the swing with rather than what the spread left them on.
   std::vector<int> lead = LeadTargets(attack, hit);
-  // An arrow that gains as it travels needs an order to travel along, and
-  // nothing here has a position -- so the swing draws one. Every other swing
-  // hits the queue as it stands, which is the same thing for damage that does
-  // not escalate.
+  // An arrow that gains as it travels needs an order, and nothing here has a
+  // position, so the swing draws one.
   std::vector<int> order = PierceOrder(attack, hit);
-  // Picked with the opening hit's targets and for the same reason: what the
-  // flames doubled up on is decided by the HP the monsters went in with.
+  // Picked for the same reason: what the flames double up on is decided by
+  // the HP the monsters went in with.
   std::vector<double> shares = ScatterShares(attack, hit);
   // Before anything lands, so every way this swing reaches one monster files
-  // its lines under the one event -- the strike, the opening hit and whatever
-  // follows them are one landing to the player watching.
+  // under the one event: that is one landing to the player watching.
   ledger_.OpenLandings(queue_.size(), hit, source);
-  // A hold that was not timed by the swing clock decides here instead, which
-  // is what an attack on a clock of its own would want.
+  // A hold not timed by the swing clock decides here instead.
   int held = attack.channel.pulses > 0
                  ? (pulses >= 0 ? pulses : ChannelPulses(attack, hit))
                  : 0;
-  // Settled once for the whole strike, so every enemy takes the same rain --
-  // the crowd is a property of the swing that called it down, not of who is
-  // standing under each arrow.
+  // Settled once for the whole strike: the crowd belongs to the swing that
+  // called the rain down, not to who stands under each arrow.
   int extra = ExtraLines(attack);
   for (int step = 0; step < hit; ++step) {
     int j = order.empty() ? step : order[step];
     double gain =
         order.empty() ? 1.0 : std::pow(1.0 + attack.pierce_gain_pct, step);
-    // The mark is spent here and nowhere else: the strike proper is the first
-    // of this swing's landings to reach the monster, so it is the one that
-    // takes the lift. Every later bank finds the mark already gone.
+    // The strike proper is the first landing to reach the monster, so it
+    // takes the lift; every later bank finds the mark gone.
     double freeze =
         StateBoost(attack, queue_[j]) * SpendMark(attack, queue_[j]);
     double share = shares.empty() ? 1.0 : shares[j];
@@ -812,8 +728,8 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
             ? ChannelDamage(attack, queue_[j].type, held, LandingAt(j, freeze))
             : DamageToMob(attack, j, LandingAt(j, gain * freeze * share)) *
                   gain;
-    // Each of them rolls on its own, being a line: they are the same arrow
-    // falling more times, not one arrow worth more.
+    // Each rolls on its own: the same arrow falling more times, not one
+    // arrow worth more.
     for (int line = 0; line < extra; ++line) {
       damage += RolledDamage(*attack.extra_line, queue_[j].type,
                              LandingAt(j, gain * freeze * share)) *
@@ -829,8 +745,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
                         attack.lead_damage[queue_[j].type] * freeze);
     Hurt(queue_[j], damage * freeze);
   }
-  // A Final Attack rolls separately against every enemy the swing reached, so
-  // in expectation each of them takes it.
+  // Rolled against every enemy the swing reached.
   riding_ = Rider::kFinalAttack;
   if (!attack.final_attack_damage.empty()) {
     for (int j = 0; j < hit; ++j) {
@@ -841,10 +756,8 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
                           freeze);
     }
   }
-  // Rolled once for the swing rather than against each enemy it reached, and
-  // falling on its own crowd: Blizzard's one, Split Shot's ten. The front of
-  // the queue is as good a crowd as any -- nothing here has a position, so no
-  // enemy is nearer than another.
+  // Rolled once for the swing and falling on its own crowd: Blizzard's one,
+  // Split Shot's ten. The front of the queue is as good a crowd as any.
   for (int j = 0; j < PerSwingFinalAttackTargets(attack, hit); ++j) {
     double freeze = StateBoost(attack, queue_[j]);
     Hurt(queue_[j], RolledFinalAttack(attack.per_swing_final_attack_rolls,
@@ -853,9 +766,8 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
                         freeze);
   }
   riding_ = Rider::kItself;
-  // The half of the swing that finds its own crowd: Jupiter Thunder's current
-  // arcs onto two where the orb rides one. Held to the swing landing at all,
-  // as the bank above is -- a current arcs off a shock, not off nothing.
+  // Jupiter Thunder's current arcs onto two where the orb rides one. Held to
+  // the swing landing at all: a current arcs off a shock, not off nothing.
   for (int j = 0; j < WideHitTargets(attack, hit); ++j) {
     double freeze = StateBoost(attack, queue_[j]);
     Hurt(queue_[j], RolledGroups(attack.wide_hit_groups, attack.wide_hit_damage,
@@ -863,8 +775,8 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
                         freeze);
   }
   double recovered = RollProcs(attack, hit);
-  // Marked before the dead are cleared, so the indices the swing reached are
-  // still the ones the mark is written to.
+  // Before the dead are cleared, so the indices reached are still the ones
+  // the marks are written to.
   ApplyDots(attack, hit);
   ApplyFreeze(attack, hit);
   ApplyStun(attack, hit);
@@ -875,13 +787,9 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   return recovered;
 }
 
-// A chance rolled once for the whole swing, as GMS rolls it once per attack.
-// What it adds is a share of what one enemy was already taking, so it is a
-// second helping of the swing rather than a hit of its own -- and it rolls its
-// own crit and mastery, being a separate landing.
-//
-// It falls on the front of the queue. Nothing here has a position, so no enemy
-// is nearer than another; the same reason Blizzard's single strike picks it.
+// Rolled once for the whole swing, as GMS rolls it per attack: a second
+// helping of the swing on one enemy rather than a hit of its own, rolling its
+// own crit and mastery. It falls on the front of the queue.
 double CombatSim::RollProcs(const AttackOption& attack, int hit) {
   double recovered = 0.0;
   if (hit <= 0) {
@@ -901,29 +809,25 @@ double CombatSim::RollProcs(const AttackOption& attack, int hit) {
   return recovered;
 }
 
-// What a pile that deep multiplies this swing by against a mob of `type` in
-// the state `frozen` says. Taken as a count and a flag rather than off the
-// character and the monster, so the chooser can ask what a DEEPER pile or a
-// FROZEN enemy would be worth -- see FreezeCredit and FrozenCredit.
+// Taken as a count and a flag rather than read off the character and the
+// monster, so the chooser can ask what a DEEPER pile or a FROZEN enemy would
+// be worth -- see FreezeCredit and FrozenCredit.
 double CombatSim::BoostForStacks(const AttackOption& attack, int stacks,
                                  int type, bool frozen) const {
   if (stacks <= 0) {
     return 1.0;
   }
-  // The two multiply rather than sum: critical damage is folded into the swing
-  // and final damage is the last thing applied to it, which is where every
-  // other pair of the two meets.
+  // These multiply rather than sum, as every other pair of critical and final
+  // damage does.
   double crit = frozen ? 1.0 + attack.freeze_crit_gain * stacks : 1.0;
-  // The stacks are spent whichever state the enemy ends in, so this one is the
-  // pile's alone -- GMS gates the critical damage on a frozen enemy and says
-  // nothing of the kind about the final damage the lightning swing takes.
+  // The pile's alone: GMS gates the critical damage on a frozen enemy and
+  // says nothing of the kind about the lightning swing's final damage.
   double spent =
       attack.freeze_spends ? 1.0 + attack.freeze_fd_per_stack * stacks : 1.0;
-  // Glacial Fury's magic attack is another factor again: it is attack rather
-  // than damage, and lands under everything the swing already multiplies.
+  // Glacial Fury's is attack rather than damage, so it lands under
+  // everything the swing already multiplies.
   double matt = 1.0 + attack.freeze_matt_gain * stacks;
-  // Shatter's is the one factor that differs mob by mob: what ignoring a
-  // little more defence buys is that monster's own.
+  // Shatter's differs mob by mob: the defence ignored is that monster's.
   double shattered =
       frozen && type < static_cast<int>(attack.freeze_ied_gain.size())
           ? 1.0 + attack.freeze_ied_gain[type] * stacks
@@ -931,10 +835,9 @@ double CombatSim::BoostForStacks(const AttackOption& attack, int stacks,
   return crit * spent * matt * shattered;
 }
 
-// Whether the monster is under any status the fight keeps on it. Three are: the
-// ice a swing left, a burn, and a stun. GMS asks for a list of five, and the
-// other two are inflicted by nothing here -- when one of them arrives it joins
-// the test and no lever moves. See SkillEffect::final_dmg_pct_when_afflicted.
+// Three statuses count: ice, a burn and a stun. GMS lists five, and the other
+// two are inflicted by nothing here -- when one arrives it joins the test and
+// no lever moves. See SkillEffect::final_dmg_pct_when_afflicted.
 bool CombatSim::Afflicted(const QueuedMob& mob) const {
   if (mob.frozen_left_seconds > 0.0 || mob.stunned_left_seconds > 0.0) {
     return true;
@@ -953,14 +856,10 @@ double CombatSim::FreezeBoost(const AttackOption& attack,
                         mob.frozen_left_seconds > 0.0);
 }
 
-// A scar is left by a LINE, so a swing that lands four of them scars partway
-// through itself: the line that cuts collects nothing and the ones after it
-// collect everything. What share of the swing that is, is the odds the scar
-// was already there as each line landed, averaged over the lines -- which
-// comes to 1 - (1 - odds) * (1 - (1 - chance)^n) / (chance * n).
-//
-// A monster carrying the scar already pays the whole of it, which is what the
-// odds standing at 1 says.
+// A scar is left by a LINE, so a swing scars partway through itself: the line
+// that cuts collects nothing, the ones after it collect everything. Averaged
+// over the lines that is 1 - (1 - odds) * (1 - (1 - chance)^n) / (chance * n),
+// which pays the whole scar on a monster already carrying one.
 double CombatSim::ScarBoost(const AttackOption& attack,
                             const QueuedMob& mob) const {
   if (attack.scar_fd <= 0.0) {
@@ -976,8 +875,8 @@ double CombatSim::ScarBoost(const AttackOption& attack,
   return 1.0 + attack.scar_fd * share;
 }
 
-// Burns standing across the whole group: a monster carrying two of them is
-// two, and eight carrying one apiece are eight.
+// A monster carrying two burns is two, and eight carrying one apiece are
+// eight.
 int CombatSim::BurnsAlight() const {
   int alight = 0;
   for (const QueuedMob& mob : queue_) {
@@ -990,10 +889,9 @@ int CombatSim::BurnsAlight() const {
   return alight;
 }
 
-// How long one raising of this buff stands: its own length, plus what the
-// burns already alight add to it. Read at the raise rather than baked onto the
-// option, because the count moves with the fight -- Elemental Fury's spirit
-// stays twice as long over a group the rotation has kept poisoned.
+// Its own length plus what the burns alight add. Read at the raise rather
+// than baked onto the option, the count moving with the fight: Elemental
+// Fury's spirit stays twice as long over a group kept poisoned.
 double CombatSim::BuffWindowSeconds(const BuffOption& buff) const {
   if (buff.duration_seconds_per_dot <= 0.0 || buff.dot_count_cap <= 0) {
     return buff.duration_seconds;
@@ -1003,16 +901,15 @@ double CombatSim::BuffWindowSeconds(const BuffOption& buff) const {
              std::min(BurnsAlight(), buff.dot_count_cap);
 }
 
-// The same count taken in STACKS, which is what GMS means by a damage over
-// time stack where it says so: a burn piled three deep is three. The two part
-// only over a burn that stacks -- Toxic Venom's does.
+// The same count in STACKS, which is what GMS means by a damage-over-time
+// stack: a burn piled three deep is three. The two part only over Toxic
+// Venom's, the one burn that stacks.
 int CombatSim::BurnStacksAlight() const {
   int alight = 0;
   for (const QueuedMob& mob : queue_) {
     for (const MobDot& burn : mob.dots) {
       if (burn.left_seconds > 0.0) {
-        // A measurement carries part of a helping; GMS counts them whole,
-        // so the nearest whole one is what a swing reading the count sees.
+        // A measurement carries part of a helping; GMS counts whole ones.
         alight += static_cast<int>(std::lround(std::max(0.0, burn.stacks)));
       }
     }
@@ -1020,18 +917,10 @@ int CombatSim::BurnStacksAlight() const {
   return alight;
 }
 
-// What the state the enemies are already in multiplies this swing by. The two
-// readings answer different questions: whether THIS monster is afflicted, and
-// how many burns stand on the WHOLE group.
-//
-// The count is the group's because that is what GMS means by "within a certain
-// range", so a drain is worth its cap on a map and only what the rotation
-// keeps alight on a boss.
-//
-// No credit goes with either: a swing that lights a burn already earns the
-// burn, and the drains ride the F/P's DoT swings the chooser was picking
-// anyway -- unlike the freeze, which nothing but the ice would have bought.
-// See FrozenCredit.
+// Two questions: whether THIS monster is afflicted, and how many burns stand
+// on the WHOLE group. The count is the group's because that is what GMS means
+// by "within a certain range", so a drain is worth its cap on a map and only
+// what the rotation keeps alight on a boss.
 double CombatSim::ConditionBoostFor(const AttackOption& attack, bool afflicted,
                                     int alight) const {
   double gate = afflicted ? 1.0 + attack.fd_when_afflicted : 1.0;
@@ -1047,8 +936,8 @@ double CombatSim::ConditionBoost(const AttackOption& attack,
   return ConditionBoostFor(attack, Afflicted(mob), BurnsAlight());
 }
 
-// What a stun somebody left on this monster is worth to this swing. Only a
-// swing that collects takes it, which is never the swing that left it.
+// Only a swing that collects takes the lift, which is never the one that left
+// the stun.
 double CombatSim::StunBoost(const AttackOption& attack,
                             const QueuedMob& mob) const {
   if (!attack.collects_stun_lift || mob.stunned_left_seconds <= 0.0) {
@@ -1063,9 +952,8 @@ double CombatSim::StateBoost(const AttackOption& attack,
          StunBoost(attack, mob) * ConditionBoost(attack, mob);
 }
 
-// The monster a reader with no particular enemy in mind takes -- nothing here
-// has a position, so none is nearer than another. A bare one where nothing is
-// standing, which reads as an unfrozen mob of the first type.
+// Nothing here has a position, so no monster is nearer than another. A bare
+// one where nothing stands, which reads as an unfrozen mob of type 0.
 const CombatSim::QueuedMob& CombatSim::FrontMob() const {
   static const QueuedMob kNone;
   return queue_.empty() ? kNone : queue_.front();
@@ -1079,9 +967,7 @@ double CombatSim::PulseDamage(const AttackOption& attack, int type) const {
   return attack.groups.front().damage[type];
 }
 
-// What the first `pulses` of a hold come to against one target type. A hold
-// that grows beats at two strengths, so this is a sum of two runs rather than
-// a multiplication.
+// A hold that grows beats at two strengths, so this is a sum of two runs.
 double CombatSim::HeldPulseDamage(const AttackOption& attack, int type,
                                   int pulses) const {
   const ChannelHold& hold = attack.channel;
@@ -1109,15 +995,14 @@ int CombatSim::ChannelPulses(const AttackOption& attack, int hit) const {
   if (hold.pulses <= 0) {
     return 0;
   }
-  // Pulses to take `left` off at `per_pulse` each, capped at what the hold
-  // has. Capped before the cast, not after: a monster standing in for one
-  // that never falls asks for more pulses than fit in an int.
+  // Capped before the cast, not after: a monster that never falls asks for
+  // more pulses than fit in an int.
   auto pulses_for = [&hold](double left, double per_pulse) {
     double need = std::ceil(left / per_pulse);
     return need >= hold.pulses ? hold.pulses : static_cast<int>(need);
   };
-  // What the strike at the end will land anyway. The hold only has to bring
-  // them within its reach: pulses past that fall on something already dead.
+  // The hold only has to bring them within the closing strike's reach:
+  // pulses past that fall on something already dead.
   int wanted = hold.min_pulses;
   for (int j = 0; j < hit && j < static_cast<int>(queue_.size()); ++j) {
     int type = queue_[j].type;
@@ -1130,8 +1015,8 @@ int CombatSim::ChannelPulses(const AttackOption& attack, int hit) const {
     if (left <= 0.0) {
       continue;
     }
-    // A hold that grows is not a division: the opening run is spent first, and
-    // only what is still standing after it comes off the stronger pulses.
+    // Not a division: the opening run is spent first, and only what still
+    // stands comes off the stronger pulses.
     double opening = HeldPulseDamage(attack, type, hold.small_pulses) * freeze;
     int need;
     if (hold.grown.damage.empty() || left <= opening) {
@@ -1179,8 +1064,8 @@ double CombatSim::ChannelDamage(const AttackOption& attack, int type,
     total += pulse * Roll(rolls);
     ledger_.RecordRolls(landing, pulse * landing.scale);
   }
-  // Everything past the first group is the strike the hold ends on, landed
-  // once however long the hold ran.
+  // Past the first group is the closing strike, landed once however long the
+  // hold ran.
   for (std::size_t i = 1; i < attack.groups.size(); ++i) {
     const HitGroup& group = attack.groups[i];
     if (type >= static_cast<int>(group.damage.size())) {
@@ -1198,14 +1083,11 @@ double CombatSim::FreezeCredit(const CombatParams& params,
   if (room <= 0) {
     return 0.0;
   }
-  // What the deeper pile is worth to the swing that comes next -- the whole of
-  // what a stack buys, not only the final damage a lightning swing spends it
-  // for. The best swing REALLY on offer, whichever element it carries: reading
-  // a skill still on its cooldown makes an ice swing look worth laying for a
-  // payout two minutes out that the chooser cannot take.
-  //
-  // One swing of lookahead, which is as far as a greedy chooser sees. A deep
-  // pile pays out over several swings and this credits it once.
+  // What the deeper pile buys the swing that comes next -- all of it, not
+  // only the final damage a lightning swing spends it for. The best swing
+  // REALLY on offer: reading one still on its cooldown makes an ice swing
+  // look worth laying for a payout the chooser cannot take. One swing of
+  // lookahead, which is as far as a greedy chooser sees.
   double best = 0.0;
   int deeper = freeze_stacks_ + room;
   const std::vector<AttackOption>& options = Attacks(params);
@@ -1224,17 +1106,15 @@ double CombatSim::FreezeCredit(const CombatParams& params,
   return best;
 }
 
-// Freezing moves two things at once: the pile's own factors, which only pay on
-// a frozen monster, and the affliction gate. The credit has to ask for the
-// pair -- priced on the pile alone, an ice swing looks worth nothing at all to
-// a character whose only reader is Storm Magic, and the chooser never casts
-// it.
+// Freezing moves the pile's own factors and the affliction gate at once, and
+// the credit must ask for the pair: priced on the pile alone, an ice swing is
+// worth nothing to a character whose only reader is Storm Magic.
 //
-// Every swing is read, a recharging one included, and DELIBERATELY -- unlike
-// FreezeCredit, which asks OnOffer. What this prices is a condition standing on
-// a monster for seconds, not a pile the very next press spends: a reader on a
-// cooldown finds the ice still there when it comes up. Limiting it to what is
-// on offer was measured and is a loss.
+// Every swing is read, a recharging one included, DELIBERATELY -- unlike
+// FreezeCredit, which asks OnOffer. This prices a condition standing on a
+// monster for seconds, not a pile the next press spends, and a reader on a
+// cooldown finds the ice still there. Limiting it to what is on offer was
+// measured and is a loss.
 double CombatSim::FrozenRate(const CombatParams& params,
                              const QueuedMob& mob) const {
   double best = 0.0;
@@ -1260,8 +1140,8 @@ double CombatSim::FrozenCredit(const CombatParams& params,
   if (attack.freeze_seconds <= 0.0) {
     return 0.0;
   }
-  // Only the seconds before this swing could come round again are worth
-  // anything: freeze past that will have been laid down a second time.
+  // Only the seconds before this swing comes round again: freeze past that
+  // would be laid down a second time.
   double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
   double lays = std::min(attack.freeze_seconds, cadence);
   int hit = Reached(attack);
@@ -1275,8 +1155,7 @@ double CombatSim::FrozenCredit(const CombatParams& params,
   return credit;
 }
 
-// Seconds the burn in `slot` still has on this monster, 0 for one carrying
-// none.
+// Seconds the burn in `slot` has left on this monster.
 double CombatSim::BurnLeftOn(const QueuedMob& mob, int slot) const {
   if (slot < 0 || slot >= static_cast<int>(mob.dots.size())) {
     return 0.0;
@@ -1284,13 +1163,11 @@ double CombatSim::BurnLeftOn(const QueuedMob& mob, int slot) const {
   return mob.dots[slot].stacks > 0.0 ? mob.dots[slot].left_seconds : 0.0;
 }
 
-// What one more burning monster is worth per second to whatever is swung next,
-// through the gate and through the count. The mirror of FrozenRate, including
-// that it reads every swing rather than only the ones on offer. F/P's mist
-// stands 15.5 seconds and DoT Punisher reads it on a 25 second cooldown: the
-// mist is laid to be standing when the reader comes up, and a chooser that
-// credits it only while the reader is ready stops laying it at all. Measured
-// at -0.9% for the branch.
+// What one more burning monster is worth per second to whatever is swung
+// next. The mirror of FrozenRate, including that it reads EVERY swing rather
+// than the ones on offer: the mist is laid to be standing when its reader
+// comes up 25 seconds later, and crediting it only while that reader is ready
+// stops it being laid at all. Measured at -0.9% for the branch.
 double CombatSim::BurningRate(const CombatParams& params, const QueuedMob& mob,
                               int alight) const {
   double best = 0.0;
@@ -1308,12 +1185,10 @@ double CombatSim::BurningRate(const CombatParams& params, const QueuedMob& mob,
   return best;
 }
 
-// What lighting this swing's burns is worth to everything swung AFTER it. A
-// burn afflicts the monster it lands on and deepens the count the drains read,
-// and neither is paid for by the burn's own ticks -- BurnCredit prices those
-// alone. The mirror of FrozenCredit, and needed for the same reason: Ignite
-// makes Explosion the F/P Mage's best swing and Explosion burns nothing, so a
-// chooser blind to this never lays the mist that turns the drains on.
+// What lighting this swing's burns is worth to everything swung AFTER it: the
+// affliction and the count the drains read, neither paid for by the burn's own
+// ticks. Ignite makes Explosion the F/P Mage's best swing and Explosion burns
+// nothing, so a chooser blind to this never lays the mist at all.
 double CombatSim::BurnStateCredit(const CombatParams& params,
                                   const AttackOption& attack) const {
   if (attack.dots.empty()) {
@@ -1339,9 +1214,8 @@ double CombatSim::BurnStateCredit(const CombatParams& params,
 }
 
 int CombatSim::FreezeBuilt(const AttackOption& attack) const {
-  // A blizzard falling on one enemy is worth more of the pile than the same
-  // blizzard spread over ten, where the skill says so. Read off what the
-  // strike actually reaches rather than off what it could.
+  // Read off what the strike reaches, not what it could: a blizzard falling
+  // on one enemy builds more than the same one spread over ten.
   if (attack.freeze_build_alone > 0 && Reached(attack) == 1) {
     return attack.freeze_build_alone;
   }
@@ -1357,9 +1231,8 @@ void CombatSim::CreditFreeze(const CombatParams& params,
   if (attack.freeze_build > 0) {
     freeze_stacks_ = std::min(cap, freeze_stacks_ + FreezeBuilt(attack));
   } else if (attack.freeze_spends) {
-    // A stack per line is what the element spends. A skill stating a rate pays
-    // that instead, floored at one: a strike that spends nothing at all would
-    // take the pile's final damage for free every time it landed.
+    // A stack per line, or a stated rate floored at one: a strike spending
+    // nothing would take the pile's final damage free every time.
     int lines = std::max(1, attack.lines);
     int spent = std::max(1, lines / std::max(1, attack.freeze_lines_per_spend));
     freeze_stacks_ = std::max(0, freeze_stacks_ - spent);
@@ -1367,8 +1240,8 @@ void CombatSim::CreditFreeze(const CombatParams& params,
 }
 
 void CombatSim::Hurt(QueuedMob& mob, double damage) {
-  // A measurement's monsters never fall. What it asks is the rate, and a
-  // roster that emptied would measure the respawn beat instead.
+  // A measurement's monsters never fall: it asks the rate, and an emptied
+  // roster would measure the respawn beat instead.
   if (!measuring_) {
     mob.hp -= damage;
   }
@@ -1377,8 +1250,8 @@ void CombatSim::Hurt(QueuedMob& mob, double damage) {
   if (attributing_ >= 0 &&
       attributing_ < static_cast<int>(damage_by_attack_.size())) {
     damage_by_attack_[attributing_] += damage;
-    // Told apart within that total rather than out of it: what the reader
-    // wants is the swing's figure split, not the swing's figure short.
+    // Within that total, not out of it: the reader wants the swing's figure
+    // split, not short.
     if (riding_ == Rider::kFinalAttack) {
       final_attack_damage_by_attack_[attributing_] += damage;
     } else if (riding_ == Rider::kBurn) {
@@ -1402,8 +1275,8 @@ void CombatSim::ClampRoster(const CombatParams& params,
         std::min(mob.hp, said->second * params.types[mob.type].mob->max_hp());
   }
   Reap();
-  // The roster a caller reads is a copy, taken when the step ended. Nothing
-  // here went through a step, so it is taken again.
+  // The roster a caller reads is a copy taken when the step ended, and
+  // nothing here went through a step.
   PublishRoster(params);
 }
 
@@ -1434,17 +1307,15 @@ void CombatSim::ApplyDots(const AttackOption& attack, int hit) {
       if (mob.type >= static_cast<int>(burn.damage.size())) {
         continue;
       }
-      // Rolled per enemy, so a poison takes hold on some of what the swing
-      // reached and not the rest. A measurement takes the share instead: half
-      // a helping, and a clock carried half the way to a full duration.
+      // Rolled per enemy, so a poison takes on some of what the swing
+      // reached. A measurement takes the share instead.
       double took = burn.chance < 1.0 ? Chance(burn.chance) : 1.0;
       if (took <= 0.0) {
         continue;
       }
-      // The damage is written over rather than added to, and only the duration
-      // starts again -- the tick clock is left where it is, or a swing faster
-      // than the interval would refresh the burn out of ever ticking at all.
-      // What piles up is the helpings, up to what the burn allows.
+      // Only the duration starts again; the tick clock stays where it is, or
+      // a swing faster than the interval would refresh the burn out of ever
+      // ticking. What piles up is the helpings.
       MobDot& dot = mob.dots[burn.slot];
       if (dot.left_seconds <= 0.0) {
         dot.phase = 0.0;
@@ -1466,8 +1337,8 @@ void CombatSim::ApplyFreeze(const AttackOption& attack, int hit) {
     return;
   }
   for (int j = 0; j < hit; ++j) {
-    // Written over rather than added to: a monster frozen again is frozen for
-    // the full time from now, not for what was left plus the whole of it.
+    // Written over, not added to: a monster frozen again is frozen for the
+    // full time from now.
     queue_[j].frozen_left_seconds =
         std::max(queue_[j].frozen_left_seconds, attack.freeze_seconds);
   }
@@ -1478,8 +1349,7 @@ void CombatSim::ApplyStun(const AttackOption& attack, int hit) {
     return;
   }
   for (int j = 0; j < hit; ++j) {
-    // Written over rather than added to, exactly as the ice is: a monster
-    // stunned again is stunned for the full time from now.
+    // Written over, as the ice is.
     queue_[j].stunned_left_seconds =
         std::max(queue_[j].stunned_left_seconds, attack.stun_seconds);
     queue_[j].stun_lift_pct = attack.stun_lift_pct;
@@ -1497,8 +1367,8 @@ void CombatSim::ApplyMark(const AttackOption& attack, int hit) {
     return;
   }
   for (int j = 0; j < hit; ++j) {
-    // Written over rather than added to, exactly as the stun is: a monster
-    // marked again carries one mark, for the full time from now.
+    // Written over, as the stun is: a monster marked again carries one
+    // mark.
     queue_[j].marked_left_seconds =
         std::max(queue_[j].marked_left_seconds, attack.mark_seconds);
     queue_[j].mark_lift_pct = attack.mark_lift_pct;
@@ -1515,18 +1385,16 @@ void CombatSim::ApplyWound(const AttackOption& attack, int hit) {
   if (attack.wound_stacks <= 0 || hit <= 0 || queue_.empty()) {
     return;
   }
-  // GMS names the target by MAX HP rather than by what is left of it, so a
-  // boss part worn down is still the one wounded. The queue is aimed by what
-  // is standing, which is a different question.
+  // GMS names the target by MAX HP, not by what is left, so a boss part worn
+  // down is still the one wounded.
   int want = 0;
   for (int j = 1; j < hit && j < static_cast<int>(queue_.size()); ++j) {
     if (queue_[j].max_hp > queue_[want].max_hp) {
       want = j;
     }
   }
-  // A wound landing on somebody else takes the old one off whoever had it,
-  // which is what "only 1 enemy can receive the wound debuff" comes to. On the
-  // same monster it deepens instead, up to what the skill allows.
+  // A wound landing elsewhere takes the old one off -- "only 1 enemy can
+  // receive the wound debuff" -- and on the same monster it deepens.
   if (queue_[want].id != wound_.mob_id) {
     wound_.mob_id = queue_[want].id;
     wound_.stacks = 0;
@@ -1541,8 +1409,7 @@ void CombatSim::RunWound(double dt) {
     return;
   }
   wound_.left_seconds -= dt;
-  // Gone when it lapses, and gone with the monster: a wound is the monster's,
-  // and whatever respawns in its place is a fresh one.
+  // Gone when it lapses and gone with the monster.
   bool standing = false;
   for (const QueuedMob& mob : queue_) {
     if (mob.id == wound_.mob_id) {
@@ -1560,11 +1427,9 @@ bool CombatSim::WoundFull(const AttackOption& attack) const {
          wound_.mob_id >= 0 && wound_.stacks >= attack.wound_max_stacks;
 }
 
-// One line of the swing spends the mark and lands that much harder. Taken as a
-// share of the whole swing rather than as a line of its own, so what the
-// ledger prints and what the monster loses stay the same number -- and the
-// share IS the line, every line of a swing being worth the same in
-// expectation.
+// One line spends the mark and lands that much harder, taken as a share of
+// the whole swing so the ledger and the monster agree. The share IS the line:
+// every line is worth the same in expectation.
 double CombatSim::SpendMark(const AttackOption& attack, QueuedMob& mob) {
   if (!attack.collects_mark_lift || mob.marked_left_seconds <= 0.0) {
     return 1.0;
@@ -1586,8 +1451,8 @@ void CombatSim::ApplyScar(const AttackOption& attack, int hit) {
   double unscarred =
       std::pow(1.0 - attack.scar_chance, std::max(1, attack.lines));
   for (int j = 0; j < hit; ++j) {
-    // The odds a scar stands are the odds one was already there or this swing
-    // left one; the clock starts again either way, as the freeze's does.
+    // The odds one was already there or this swing left one. The clock
+    // starts again either way, as the freeze's does.
     queue_[j].scar_odds = 1.0 - (1.0 - queue_[j].scar_odds) * unscarred;
     queue_[j].scarred_left_seconds =
         std::max(queue_[j].scarred_left_seconds, attack.scar_seconds);
@@ -1611,8 +1476,8 @@ void CombatSim::RunDots(double dt) {
       if (dot.left_seconds <= 0.0 || dot.interval_seconds <= 0.0) {
         continue;
       }
-      // Only the seconds the burn still had are spent, so one running out
-      // partway through a step lands the ticks it was owed and no more.
+      // Only the seconds the burn had left, so one running out partway
+      // through a step lands the ticks it was owed and no more.
       double spent = std::min(dt, dot.left_seconds);
       dot.left_seconds -= spent;
       dot.phase += spent;
@@ -1621,14 +1486,13 @@ void CombatSim::RunDots(double dt) {
       riding_ = Rider::kBurn;
       while (dot.phase >= dot.interval_seconds) {
         dot.phase -= dot.interval_seconds;
-        // Every helping ticks for the whole damage, and each rolls its own.
-        // Part of one ticks for part of it, which only a measurement carries.
+        // Every helping ticks for the whole damage and rolls its own. Part
+        // of one ticks for part, which only a measurement carries.
         for (double left = dot.stacks; left > 0.0;) {
           double helping = std::min(1.0, left);
           left -= helping;
           Hurt(mob, dot.damage * helping * Roll(dot.rolls));
-          // A tick is its own landing: it falls on its own clock, between the
-          // swings rather than with one.
+          // A tick is its own landing, falling between the swings.
           ledger_.RecordRolls(
               {mob.id, ledger_.NextEvent(), {DamageOrigin::kBurn, slot}, 1.0},
               dot.damage * helping);
@@ -1637,9 +1501,8 @@ void CombatSim::RunDots(double dt) {
       }
     }
   }
-  // A burn kills the same way a swing does, and the kill is counted the same
-  // way. Skipped where nothing ticked, since walking the queue costs more than
-  // the burn did.
+  // A burn kills as a swing does. Skipped where nothing ticked: walking the
+  // queue costs more than the burn did.
   if (burned) {
     Reap();
   }
@@ -1655,8 +1518,7 @@ void CombatSim::RunRegen(const CombatParams& params, double dt) {
       continue;
     }
     regen_phase_[i] += dt;
-    // A while rather than an if: a step wider than the interval owes every
-    // pulse it covered, the way a burn ticks for each one it outlasted.
+    // A step wider than the interval owes every pulse it covered.
     while (regen_phase_[i] >= pulse.interval_seconds) {
       regen_phase_[i] -= pulse.interval_seconds;
       player_hp_ =
@@ -1694,10 +1556,8 @@ double CombatSim::RolledDamage(const AttackOption& attack, int type,
   return total;
 }
 
-// One bank of groups rolled against a mob, as RolledDamage rolls the swing's
-// own: every group rolls its mastery and criticals for itself. `expected` is
-// what to land where nothing rolls, which is what a caller building an attack
-// by hand leaves behind.
+// Every group rolls its own mastery and criticals. `expected` is landed where
+// nothing rolls, which is what an attack built by hand leaves behind.
 double CombatSim::RolledGroups(const std::vector<HitGroup>& groups,
                                const std::vector<double>& expected, int type,
                                const Landing& landing) {
@@ -1727,10 +1587,8 @@ double CombatSim::RolledFinalAttack(const std::vector<FinalAttackRoll>& sources,
     if (type >= static_cast<int>(source.damage.size())) {
       continue;
     }
-    // A chance past certainty is that many hits guaranteed and a roll for
-    // what is left over. Nothing grants one yet, but summing two sources into
-    // one entry is exactly what this design stopped doing, so the shape has
-    // to hold if one ever does.
+    // A chance past certainty is that many hits guaranteed plus a roll for
+    // the remainder. Nothing grants one yet.
     int certain = static_cast<int>(source.chance);
     for (int roll = 0; roll < source.count; ++roll) {
       double hits = certain + Chance(source.chance - certain);
@@ -1752,33 +1610,32 @@ double CombatSim::DamageToMob(const AttackOption& attack, int index,
       attack.empowered_every <= 0) {
     return ordinary;
   }
-  // Counted before the test, exactly as FormToLand counts swings: a mark of
-  // five goes off on the fifth strike, not the sixth.
+  // Counted before the test, as FormToLand counts swings: a mark of five
+  // goes off on the fifth strike.
   if (++queue_[index].brand < attack.empowered_every) {
     return ordinary;
   }
   queue_[index].brand = 0;
-  // On top of the strike that set it off, not instead of it: a mark going off
-  // is its own event, where an empowered swing IS the swing.
+  // On top of the strike, not instead of it: a mark going off is its own
+  // event, where an empowered swing IS the swing.
   return ordinary + RolledDamage(*attack.empowered, type, landing);
 }
 
 const AttackOption& CombatSim::FormToLand(int& count,
                                           const AttackOption& attack) {
-  // A wound's form stands in for the whole press, and is not counted: what
-  // decides it is the wound rather than a run of swings. Before the empowered
-  // count, so a skill that somehow had both would not spend one on the other.
+  // A wound's form stands in for the press and is not counted: the wound
+  // decides it, not a run of swings.
   if (WoundFull(attack)) {
     return *attack.wound_form;
   }
-  // A form that marks enemies never stands in for the swing: the swing lands
-  // as itself, and DamageToMob decides mob by mob what goes off on top.
+  // A marking form never stands in for the swing: DamageToMob decides mob by
+  // mob what goes off on top.
   if (attack.empowered == nullptr || attack.empowered_every <= 0 ||
       attack.brands_enemies) {
     return attack;
   }
-  // Counted before the test, so a period of four is three ordinary landings
-  // and then this one -- not this one first and three after.
+  // Counted before the test: a period of four is three ordinary landings and
+  // then this one.
   if (++count < attack.empowered_every) {
     return attack;
   }
@@ -1805,9 +1662,8 @@ void CombatSim::GoIdle() {
 }
 
 void CombatSim::BeginMapIfChanged(const CombatParams& params) {
-  // The queue holds indices into the map's types, and its HP values are that
-  // map's mobs'. Carried to another map, both would describe the wrong
-  // monsters.
+  // The queue's type indices and HP belong to one map; carried to another,
+  // both describe the wrong monsters.
   if (initialized_ && encounter_ == params.encounter) {
     return;
   }
@@ -1817,25 +1673,20 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   attack_phase_ = 0.0;
   owed_casts_.clear();
   hit_phase_ = 0.0;
-  // A barrage belongs to the fight it was loosed in: bolts still in the air do
-  // not follow the player to the next map. Every other clock an attack holds
-  // belongs to the character and is left alone.
+  // A barrage belongs to the fight it was loosed in; bolts in the air do not
+  // follow the player.
   for (AttackClock& clock : attack_clocks_) {
     clock.strikes_left = 0;
     clock.next_strike_seconds = 0.0;
   }
   next_mob_id_ = 0;
-  // The rate belongs to the encounter, not to the character: what was dealt to
-  // the last map's monsters says nothing about how long this fight has left.
+  // The rate belongs to the encounter: the last map's damage says nothing
+  // about how long this fight has left.
   damage_dealt_ = 0.0;
   fight_seconds_ = 0.0;
-  // Every clock the character carries is left alone -- cooldowns, casts,
-  // buffs, fountains. They belong to the character rather than to the mobs in
-  // front of them, so arriving somewhere new neither takes a buff away nor
-  // hands back a cooldown early. A boss phase is a new encounter too, and a
-  // fight is not meant to reopen with every skill off cooldown.
-  //
-  // Nothing here is part-way through a swing at the last encounter any more.
+  // Every clock the character carries -- cooldowns, casts, buffs, fountains
+  // -- is left alone: they belong to the character, not to the mobs. A boss
+  // phase is a new encounter too, and must not reopen with everything ready.
   aimed_ = -1;
   player_hp_ = params.max_player_hp;
   queue_.clear();
@@ -1852,22 +1703,20 @@ void CombatSim::RespawnBeat(const CombatParams& params, double dt) {
     return;
   }
   respawn_phase_ -= respawn_interval_;
-  // The wait that just ended ran at the interval it began under, and the next
-  // one takes whatever the params say now: a totem planted mid-cycle shortens
-  // the beat after this one, never the one already ticking.
+  // The next wait takes whatever the params say now: a totem planted
+  // mid-cycle shortens the beat after this one, not the one already ticking.
   respawn_interval_ = params.respawn_seconds;
   view_.respawned_this_step = true;
   bool was_idle = queue_.empty();
   TopUp(params);
   // Every beat hands back a slice of the pool, cleared map or not. It is the
-  // only healing there is: hold out for a beat taking less than the slice and
-  // the fight can be won by outlasting it.
+  // only healing there is.
   player_hp_ =
       std::min(static_cast<double>(params.max_player_hp),
                player_hp_ + params.beat_heal_fraction * params.max_player_hp);
   if (!was_idle) {
-    // Mobs arriving mid-fight leave a wound-up swing wound up: restarting it
-    // would throw away real progress, not just the bar being watched.
+    // Mobs arriving mid-fight leave a wound-up swing alone: restarting it
+    // throws away real progress, not just the bar.
     return;
   }
   // Clearing the map is the bigger breather, and worth the whole pool.
@@ -1877,15 +1726,12 @@ void CombatSim::RespawnBeat(const CombatParams& params, double dt) {
   hit_phase_ = 0.0;
 }
 
-// What is left of an incoming hit once the buffs standing have taken their
-// share. They multiply rather than sum, the way every other reduction in the
-// game does: two halves leave a quarter of the hit, not none of it.
-//
-// The buffs standing are the ones the step opened with: a smokescreen dropped
-// after the blow landed does not take that blow back. See Advance.
+// Reductions multiply rather than sum, as every other one in the game does:
+// two halves leave a quarter. The buffs read are the ones the step opened
+// with, so a smokescreen dropped after the blow does not take it back.
 double CombatSim::BuffDamageTakenFactor(const CombatParams& params) const {
-  // A shell blocks whole hits, so what it takes off a hit is only ever the
-  // share it hands a boss instead -- see BlockHit.
+  // A shell blocks whole hits, so all it takes off here is the share it
+  // hands a boss instead -- see BlockHit.
   bool boss = !queue_.empty() && params.types[queue_.front().type].mob->boss();
   double factor = 1.0;
   for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
@@ -1896,8 +1742,7 @@ double CombatSim::BuffDamageTakenFactor(const CombatParams& params) const {
       }
     }
   }
-  // The shelter a HOLD is, which lasts exactly as long as the hold: the swing
-  // being charged is the key being held down.
+  // A hold's shelter lasts exactly as long as the hold.
   const std::vector<AttackOption>& options = Attacks(params);
   if (aimed_ >= 0 && aimed_ < static_cast<int>(options.size())) {
     factor *= 1.0 - options[aimed_].channel.damage_taken_pct;
@@ -1905,13 +1750,10 @@ double CombatSim::BuffDamageTakenFactor(const CombatParams& params) const {
   return std::max(0.0, factor);
 }
 
-// A hit a shell swallows whole. Only one shell pays for it however many are
-// standing: two would spend two blocks on one hit and the player would be no
-// better off for it.
-//
-// A boss's hit is never blocked -- GMS exempts the attacks that cost a share
-// of the pool, and `Mob.boss` is what says which those are here. What a shell
-// does about one of those is take its share off, in BuffDamageTakenFactor.
+// Only one shell pays for a hit however many stand, or two blocks go on one
+// hit for nothing. A boss's hit is never blocked -- GMS exempts the attacks
+// costing a share of the pool -- and a shell takes its share off instead, in
+// BuffDamageTakenFactor.
 bool CombatSim::BlockHit(const CombatParams& params) {
   if (queue_.empty() || params.types[queue_.front().type].mob->boss()) {
     return false;
@@ -1930,9 +1772,8 @@ bool CombatSim::BlockHit(const CombatParams& params) {
 }
 
 void CombatSim::TakeMobHit(const CombatParams& params, double dt) {
-  // Only the mob at the front hits back, however many are on the map -- see
-  // fight.h. It swings first, so the last one standing still lands its hit on
-  // the way out. An empty map has nothing to be hit by, and its clock waits
+  // Only the front mob hits back, and it swings first, so the last one
+  // standing still lands its hit on the way out. An empty map's clock waits
   // rather than banking a free hit for whatever arrives next.
   if (queue_.empty() || params.hit_seconds <= 0.0) {
     hit_phase_ = 0.0;
@@ -1943,17 +1784,16 @@ void CombatSim::TakeMobHit(const CombatParams& params, double dt) {
     return;
   }
   hit_phase_ -= params.hit_seconds;
-  // A frozen monster is stopped where it stands and never gets its swing off.
-  // The clock runs on regardless, so a long freeze eats several beats instead
-  // of banking them for the thaw.
+  // A frozen monster never gets its swing off. The clock runs on regardless,
+  // so a long freeze eats several beats rather than banking them.
   if (queue_.front().frozen_left_seconds > 0.0) {
     return;
   }
   if (BlockHit(params)) {
     return;  // cancelled whole: nothing to lose, and nothing to reflect
   }
-  // A scarred monster swings weaker, and the scar is odds rather than a flag
-  // -- so what it lands is the two damages weighed by how likely the scar is.
+  // The scar is odds rather than a flag, so the hit is the two damages
+  // weighed by how likely it is.
   const CombatType& type = params.types[queue_.front().type];
   double odds = queue_.front().scar_odds;
   double taken = (type.damage_to_player * (1.0 - odds) +
@@ -1968,22 +1808,21 @@ bool CombatSim::Revive(const CombatParams& params) {
   if (params.revive_cooldown_seconds <= 0.0 || revive_left_ > 0.0) {
     return false;
   }
-  // The whole pool back, standing where they fell: what the pact buys is the
-  // trip home, and the mob that landed the hit is still in front of them.
+  // The whole pool back, standing where they fell: the mob that landed the
+  // hit is still in front of them.
   player_hp_ = params.max_player_hp;
   revive_left_ = params.revive_cooldown_seconds;
   return true;
 }
 
 void CombatSim::Reflect(const CombatParams& params, double damage_taken) {
-  // Off the whole hit, not the sliver of it a dying player had left to lose:
-  // what comes back is a share of what was thrown, not of what it emptied.
+  // Off the whole hit, not the sliver a dying player had left to lose.
   if (params.damage_reflect_pct <= 0.0 || queue_.empty()) {
     return;
   }
   QueuedMob& front = queue_.front();
-  // Nothing struck to earn it, so it is filed under a clock of its own with no
-  // cast behind it -- index -1, which names no entry in any attack list.
+  // Nothing struck to earn it, so it files under index -1, which names no
+  // entry in any attack list.
   striking_ = {DamageOrigin::kOwnClock, -1};
   Hurt(front, params.damage_reflect_pct * damage_taken);
   if (front.hp > 0.0) {
@@ -1994,9 +1833,8 @@ void CombatSim::Reflect(const CombatParams& params, double damage_taken) {
   queue_.erase(queue_.begin());
 }
 
-// The four damage tables, all picked with the LEVER mask: what is being
-// granted this instant, which is what a strike landing now is worth. Whether a
-// buff is standing is a different question, and the gates below ask it of
+// The damage tables are picked with the LEVER mask -- what is granted this
+// instant. Whether a buff STANDS is a different question, asked of
 // buff_mask_.
 const std::vector<AttackOption>& CombatSim::Attacks(
     const CombatParams& params) const {
@@ -2017,22 +1855,14 @@ const std::vector<AttackOption>& CombatSim::TriggeredAttacks(
   return params.TriggeredAttacks(lever_mask_);
 }
 
-// Whether a shell is worth raising now. It is the one buff held back rather
-// than raised the moment it comes round, because it is a heal and a shelter
-// at once and the two want opposite timing: the heal is wasted on a full pool,
-// and a shelter raised after the blow has landed shelters nothing.
-//
-// On a map the blows are small and steady, so it waits for the pool to be low
-// enough to be worth filling -- the same line a cast heal is chosen on. On a
-// boss one blow is the whole fight, so it goes up as soon as it comes round.
-//
-// Every other buff is raised on its clock as it always has been: one granting
-// damage is worth having up whatever the pool is at.
+// The one buff held back rather than raised the moment it comes round: it is
+// a heal and a shelter at once, and the two want opposite timing. On a map it
+// waits for a pool low enough to be worth filling; on a boss one blow is the
+// whole fight, so it goes up at once.
 bool CombatSim::ShieldWanted(const CombatParams& params,
                              const BuffOption& buff) const {
-  // Nothing hits the player in a measurement, so a shell held back for a low
-  // pool would be held back forever -- and its levers would go missing from
-  // every reading. Raised on its clock there, as every other buff is.
+  // Nothing hits the player in a measurement, so one held back for a low
+  // pool would be held back forever and its levers would go missing.
   if (buff.shield_hits <= 0 || params.measuring) {
     return true;
   }
@@ -2044,10 +1874,8 @@ bool CombatSim::ShieldWanted(const CombatParams& params,
 
 namespace {
 
-// Whether a standing buff is granting its levers this instant. True for the
-// whole window of every buff that grants steadily; true four seconds in five
-// for the angel, which re-grants rather than standing. See
-// BuffOption::duty_seconds.
+// Whether a standing buff is granting this instant: always, for one granting
+// steadily; four seconds in five for the angel. See duty_seconds.
 bool Granting(const BuffOption& buff, double duty_phase) {
   if (buff.duty_seconds <= 0.0 || buff.duty_interval_seconds <= 0.0) {
     return true;
@@ -2055,8 +1883,7 @@ bool Granting(const BuffOption& buff, double duty_phase) {
   return std::fmod(duty_phase, buff.duty_interval_seconds) < buff.duty_seconds;
 }
 
-// Seconds until a buff granting in bursts next starts or stops granting.
-// Infinite for one that grants steadily, which never changes on its own.
+// Seconds until a bursting buff next starts or stops granting.
 double NextDutyEdge(const BuffOption& buff, double duty_phase) {
   if (buff.duty_seconds <= 0.0 || buff.duty_interval_seconds <= 0.0) {
     return std::numeric_limits<double>::infinity();
@@ -2070,8 +1897,8 @@ double NextDutyEdge(const BuffOption& buff, double duty_phase) {
 
 void CombatSim::RunBuffs(const CombatParams& params, double dt) {
   int count = static_cast<int>(params.buffs.size());
-  // Seeded with each buff's full charge rather than with nothing, or one
-  // charged by hits would go up before a single hit had landed.
+  // Seeded with each buff's full charge, or one charged by hits would go up
+  // before a hit had landed.
   if (static_cast<int>(buffs_.size()) != count) {
     buffs_.resize(count);
     for (int i = 0; i < count; ++i) {
@@ -2086,21 +1913,19 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     clock.left = std::max(0.0, clock.left - dt);
     clock.cooldown_left = std::max(0.0, clock.cooldown_left - dt);
     clock.duty_phase += dt;
-    // Put up the moment it comes round, and only with something to fight: one
-    // spent on an empty map is one the player does not have when the mobs
-    // land. Nothing is recast while it is still standing -- a player timing
-    // these would not throw the tail of one away.
+    // Raised the moment it comes round, and only with something to fight:
+    // one spent on an empty map is one the player lacks when the mobs land.
+    // Never recast over itself. A buff its own swing lays waits for that
+    // swing -- see LayBuffs.
     //
-    // A buff its own swing lays is not raised here at all: it waits for that
-    // swing to land. See LayBuffs.
-    // What it is waiting on: a wait in seconds, or a count of landed hits.
+    // What it waits on: seconds, or a count of landed hits.
     bool ready = buff.charge_lines > 0 ? clock.charge_left <= 0.0
                                        : clock.cooldown_left <= 0.0;
     if (buff.laid_by_attack < 0 && clock.left <= 0.0 && ready &&
         !queue_.empty() && buff.duration_seconds > 0.0 &&
         ShieldWanted(params, buff)) {
-      // Which form goes up is settled here and never revisited: a sword
-      // planted for two minutes stays planted, however the fight turns.
+      // Settled here and never revisited: a sword planted for two minutes
+      // stays planted, however the fight turns.
       clock.stance = StanceToRaise(params, buff);
       clock.left = clock.stance < 0
                        ? BuffWindowSeconds(buff)
@@ -2115,10 +1940,9 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
         attack_clocks_[buff.magazine_attack].charges_left =
             Attacks(params)[buff.magazine_attack].charges;
       }
-      // Raising it costs the character its animation, taken off the swing they
-      // were charging: a buff is cast instead of attacking, not alongside it.
-      // The clock it leaves in debt is what the charge bar draws the cast
-      // over, so the plate names the buff rather than sitting empty.
+      // Raising it costs its animation, taken off the swing being charged: a
+      // buff is cast instead of attacking, not alongside it. The clock left
+      // in debt is what the charge bar draws the cast over.
       if (buff.cast_seconds > 0.0) {
         owed_casts_.push_back({buff.name, attack_phase_, buff.cast_seconds});
       }
@@ -2143,11 +1967,9 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
 }
 
 double CombatSim::SecondsLeft(const CombatParams& params) const {
-  // A map refills on the beat, so there is no end to measure the fight
-  // against. Everything a summon does there is worth its rate, never its
-  // total, which is what an infinite horizon says. A measurement is the same
-  // question asked on purpose: its monsters never fall, so what it wants of a
-  // buff with two forms is the one worth more per second.
+  // A map refills on the beat, so there is no end to measure against and a
+  // summon is worth its rate rather than its total. A measurement asks the
+  // same question on purpose: its monsters never fall.
   if (params.respawn_seconds > 0.0 || params.measuring) {
     return std::numeric_limits<double>::infinity();
   }
@@ -2155,9 +1977,8 @@ double CombatSim::SecondsLeft(const CombatParams& params) const {
   for (const QueuedMob& mob : queue_) {
     standing += mob.hp;
   }
-  // Measured once there is enough fight to measure, and the params' own
-  // estimate before that -- a buff raised on the opening step still needs a
-  // horizon to be priced against.
+  // Measured once there is enough fight to measure, the params' estimate
+  // before that: a buff raised on the opening step still needs a horizon.
   double rate = fight_seconds_ >= 1.0 && damage_dealt_ > 0.0
                     ? damage_dealt_ / fight_seconds_
                     : params.reference_dps;
@@ -2173,11 +1994,9 @@ int CombatSim::StanceToRaise(const CombatParams& params,
     return -1;
   }
   double left = SecondsLeft(params);
-  // Priced off the unbuffed table on purpose. What is being compared is two
-  // forms of one skill on one character, so every multiplier they share
-  // cancels; what does not cancel is how long each stands and how often it
-  // lands. Reading a buffed table here would also mean reading a mask that is
-  // still being built, this being called from the middle of that loop.
+  // Priced off the unbuffed table on purpose: comparing two forms of one
+  // skill, every multiplier they share cancels. A buffed table would also
+  // mean reading a mask still being built, this running inside that loop.
   const std::vector<AttackOption>& casts = params.auto_attacks;
   int best = 0;
   double best_damage = -1.0;
@@ -2192,11 +2011,9 @@ int CombatSim::StanceToRaise(const CombatParams& params,
     if (pulse.damage_per_hit.empty()) {
       continue;
     }
-    // What this form delivers before the fight ends: its own rate over
-    // whichever runs out first, its clock or the encounter. That single
-    // comparison is the whole of the choice -- a short, dense form wins every
-    // fight that ends before a long, thin one has finished paying out, and
-    // loses every fight that does not.
+    // What the form delivers before the fight ends: its rate over whichever
+    // runs out first, its clock or the encounter. A short, dense form wins
+    // every fight that ends before a long, thin one has finished paying.
     double seconds = std::min(form.duration_seconds, left);
     double damage = pulse.damage_per_hit[0] * pulse.strikes_per_pulse /
                     form.pulse_interval_seconds * seconds;
@@ -2215,24 +2032,21 @@ bool CombatSim::LayBuffs(const CombatParams& params, int swung, bool on_cast) {
     if (buff.laid_by_attack != swung || buff.raised_on_cast != on_cast) {
       continue;
     }
-    // Trickblade's invulnerability is the heavier press's alone, and the
-    // ordinary spread raises nothing.
+    // Trickblade's invulnerability is the heavier press's alone.
     if (buff.needs_wound_form && !WoundFull(Attacks(params)[swung])) {
       continue;
     }
-    // Refreshed rather than stacked, and its wait started from the swing that
-    // laid it: what a second puncture leaves is one wound, not two.
+    // Refreshed rather than stacked: a second puncture leaves one wound.
     buffs_[i].left = BuffWindowSeconds(buff);
     buffs_[i].cooldown_left = buff.cooldown_seconds;
-    // A fresh load, whole, exactly as RunBuffs hands one to a buff on its own
-    // clock: what was left of the last one is not carried.
+    // A fresh load, whole, as RunBuffs hands one out.
     if (buff.magazine_attack >= 0 &&
         buff.magazine_attack < static_cast<int>(attack_clocks_.size())) {
       attack_clocks_[buff.magazine_attack].charges_left =
           Attacks(params)[buff.magazine_attack].charges;
     }
-    // The mask is built once a step, before anything swings, so one raised
-    // mid-swing has to say so itself or the strike would be priced without it.
+    // The mask is built before anything swings, so one raised mid-swing must
+    // say so itself or the strike is priced without it.
     buffs_[i].duty_phase = 0.0;
     buff_mask_ |= 1 << i;
     lever_mask_ |= 1 << i;
@@ -2241,16 +2055,11 @@ bool CombatSim::LayBuffs(const CombatParams& params, int swung, bool on_cast) {
   return laid;
 }
 
-// The swing that lays a buff nobody is holding, chosen ahead of the hardest
-// swing on offer. Deliberately not a comparison: a wound that has lapsed lifts
-// every swing after it for as long as it stands, and the one swing it costs is
-// one in a hundred, so asking whether it pays would be arithmetic with only
-// one answer.
-//
-// It is a rule about every swing-laid buff, not just this one. A buff worth
-// less than the swing it displaces would be over-cast here -- the guard for
-// that is a rate check, and it belongs with the first skill that needs one
-// rather than with an imagined one.
+// Chosen ahead of the hardest swing on offer, and DELIBERATELY not a
+// comparison: a lapsed wound lifts every swing after it for as long as it
+// stands, against one swing in a hundred. A buff worth less than the swing it
+// displaces would be over-cast here; the rate check that would guard it
+// belongs with the first skill that needs one.
 int CombatSim::BuffToLay(const CombatParams& params) const {
   if (queue_.empty()) {
     return -1;
@@ -2263,14 +2072,12 @@ int CombatSim::BuffToLay(const CombatParams& params) const {
     if (i < static_cast<int>(buffs_.size()) && buffs_[i].left > 0.0) {
       continue;  // still standing, so there is nothing to go and do
     }
-    // A buff only the wound form raises is never chased: it rides a press the
-    // fight would make for damage anyway, and going and getting it would put
-    // Trickblade out for 1.8 seconds of shelter instead of for what it hits.
+    // Never chased: it rides a press the fight would make for damage anyway,
+    // and chasing it would spend Trickblade on 1.8 seconds of shelter.
     if (buff.needs_wound_form) {
       continue;
     }
-    // The swing itself may be recharging, in which case there is no laying it
-    // this time and the fight swings for damage instead.
+    // Recharging, so there is no laying it this time.
     if (buff.laid_by_attack < static_cast<int>(attack_clocks_.size()) &&
         attack_clocks_[buff.laid_by_attack].cooldown_left > 0.0) {
       continue;
@@ -2284,9 +2091,8 @@ void CombatSim::CreditBuffs(const CombatParams& params, double weight,
                             int lines) {
   for (int i = 0; i < static_cast<int>(buffs_.size()); ++i) {
     BuffClock& clock = buffs_[i];
-    // A buff counting hits is charged by what the swing landed, and only while
-    // it is down: GMS stops counting for as long as the window stands, so what
-    // its uptime is worth is bounded however fast the character fires.
+    // A buff counting hits charges only while it is DOWN, as GMS does: its
+    // uptime is bounded however fast the character fires.
     if (params.buffs[i].charge_lines > 0) {
       if (clock.left <= 0.0) {
         clock.charge_left = std::max(0.0, clock.charge_left - lines);
@@ -2309,8 +2115,8 @@ void CombatSim::RecoverHp(const CombatParams& params, double share) {
 }
 
 void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
-  // Their clocks run only while there is something to hit: a summon has
-  // nothing to do on an empty map, and waiting there earns it no free cast.
+  // These clocks run only with something to hit: waiting on an empty map
+  // earns a summon no free cast.
   const std::vector<AttackOption>& casts = AutoAttacks(params);
   auto_clocks_.resize(casts.size());
   for (int i = 0; i < static_cast<int>(casts.size()); ++i) {
@@ -2319,61 +2125,57 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
     if (queue_.empty() || cast.interval_seconds <= 0.0) {
       continue;
     }
-    // A pulse that is really a wound waits for one to have been left. Its
-    // phase is left alone rather than wound on, so it does not come due the
-    // instant the wound lands and then again a moment later. What it has
-    // already spent of the window goes back with it: the count is per raising.
+    // The phase is left alone rather than wound on, so the pulse does not
+    // come due the instant its buff lands and again a moment later. The spent
+    // count goes back with it: it is per raising.
     if (cast.needs_buff >= 0 && (buff_mask_ & (1 << cast.needs_buff)) == 0) {
       clock.pulses = 0;
       continue;
     }
-    // Dismissed to make room for another skill's summon. Its phase is left
-    // where it was, not wound on: it comes back at the beat it went out on.
+    // Dismissed for another skill's summon: it comes back at the beat it
+    // went out on.
     if (cast.silenced_by_buff >= 0 &&
         (buff_mask_ & (1 << cast.silenced_by_buff)) != 0) {
       continue;
     }
-    // A buff with forms bleeds through whichever one went up, and the other
-    // form's pulse waits out the window in silence.
+    // Only the form that went up pulses; the other waits out the window.
     if (cast.needs_buff_stance >= 0 &&
         buffs_[cast.needs_buff].stance != cast.needs_buff_stance) {
       clock.pulses = 0;
       continue;
     }
-    // One that has spent its window falls silent for the rest of it, phase and
-    // all -- lengthening the buff behind it buys nothing.
+    // One that has spent its window falls silent for the rest of it, so
+    // lengthening the buff behind it buys nothing.
     if (cast.max_pulses > 0 && clock.pulses >= cast.max_pulses) {
       continue;
     }
     clock.phase += dt;
-    // As in RunSwing and RunDots: a step wider than the interval owes every
-    // cast it covered.
+    // A step wider than the interval owes every cast it covered.
     while (clock.phase >= cast.interval_seconds) {
       clock.phase -= cast.interval_seconds;
       ++clock.pulses;
       const AttackOption& landed =
           RepeatForm(FormToLand(clock.empowered_count, cast), clock.pulses);
-      // Every strike of the tick lands in full: three sword strikes 60ms apart
-      // are one moment here, and each is its own attack on its own enemies.
+      // Every strike lands in full: three sword strikes 60ms apart are one
+      // moment here, each its own attack on its own enemies.
       for (int strike = 0; strike < cast.strikes_per_pulse; ++strike) {
         Strike(landed, {DamageOrigin::kOwnClock, i});
-        // Paid per strike, as the pulse's damage is: Darkness Aura recovers
-        // for every attack the aura makes, and each strike is one.
+        // Per strike, as the damage is: Darkness Aura recovers for every
+        // attack the aura makes.
         RecoverHp(params, landed.hp_recover_pct);
       }
-      // A summon leaves the ice it makes: Elquines freezes what it touches. It
-      // never spends the pile -- ClearSwingRiders sees to that.
+      // Elquines freezes what it touches. It never SPENDS the pile --
+      // ClearSwingRiders sees to that.
       CreditFreeze(params, landed);
       if (cast.max_pulses > 0 && clock.pulses >= cast.max_pulses) {
-        // The poison coming off everything it was on goes off as it leaves:
-        // one more explosion, at the top of the ramp, landing with the last
-        // tick rather than an interval after it.
+        // The poison goes off as it leaves: one more explosion at the top of
+        // the ramp, landing with the last tick.
         if (cast.final_repeat_strike) {
           Strike(RepeatForm(cast, cast.max_pulses),
                  {DamageOrigin::kOwnClock, i});
         }
-        // The scroll bursting as it leaves: a strike of its own shape, landing
-        // with the last tick for the same reason the explosion above does.
+        // The scroll bursting as it leaves, landing with the last tick for
+        // the same reason.
         if (cast.final_strike != nullptr) {
           for (int strike = 0; strike < cast.final_strike->strikes_per_pulse;
                ++strike) {
@@ -2394,24 +2196,20 @@ void CombatSim::CreditSwing(const CombatParams& params, double weight) {
     if (cast.attacks_per_cast <= 0) {
       continue;
     }
-    // A half that runs only while its own buff is down counts nothing while it
-    // stands. The tally is left where it was rather than cleared: what the
-    // character swung before the buff went up is still swung.
+    // A half that runs only while its buff is down counts nothing while it
+    // stands. The tally is kept: what was swung before is still swung.
     if (cast.silent_while_buff && cast.needs_buff >= 0 &&
         (buff_mask_ & (1 << cast.needs_buff)) != 0) {
       continue;
     }
     trigger_count_[i] += weight;
-    // A while rather than an if: nothing stops a swing being worth more than
-    // the whole count, and one that is should fire the skill for each of them.
-    // Nudged, because a weight of a seventh cannot be written exactly: 28 of
-    // them land a hair under the 4 they are meant to come to, and the volley
-    // would fire one swing late every time.
+    // A swing worth more than the whole count fires the skill for each of
+    // them. Nudged because a weight of a seventh has no exact double: 28 of
+    // them land under the 4 they mean, firing one swing late every time.
     while (trigger_count_[i] + kCountEpsilon >= cast.attacks_per_cast) {
       trigger_count_[i] -= cast.attacks_per_cast;
-      // Every strike of the firing lands in full, as a pulse's do: Inhuman
-      // Speed's afterimage stands for a second and shoots five times in it,
-      // which is one moment here.
+      // Every strike lands in full, as a pulse's do: the afterimage's second
+      // of shooting is one moment here.
       for (int strike = 0; strike < cast.strikes_per_pulse; ++strike) {
         Strike(cast, {DamageOrigin::kSwingClock, i});
       }
@@ -2420,8 +2218,8 @@ void CombatSim::CreditSwing(const CombatParams& params, double weight) {
 }
 
 void CombatSim::CreditKills(const CombatParams& params) {
-  // Taken before anything strikes: what these casts kill is credited to the
-  // next release, not to this one.
+  // Taken before anything strikes: what these casts kill charges the NEXT
+  // release.
   int defeated = kills_pending_;
   kills_pending_ = 0;
   const std::vector<AttackOption>& casts = TriggeredAttacks(params);
@@ -2432,9 +2230,8 @@ void CombatSim::CreditKills(const CombatParams& params) {
       continue;
     }
     kill_count_[i] += defeated;
-    // A while rather than an if, as in CreditSwing: a wide swing can bring
-    // down more than the whole count in one step, and each of them owes a
-    // release. The remainder carries, so nothing counted is thrown away.
+    // A wide swing can bring down more than the whole count in one step, and
+    // each owes a release. The remainder carries.
     while (kill_count_[i] >= cast.kills_per_cast) {
       kill_count_[i] -= cast.kills_per_cast;
       Strike(cast, {DamageOrigin::kKillClock, i});
@@ -2446,37 +2243,34 @@ const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
   int previous = aimed_;
   aimed_ = ChooseAttack(params);
   const AttackOption* attack = aimed_ >= 0 ? &Attacks(params)[aimed_] : nullptr;
-  // The plate names the form really being charged: the wound is answered when
-  // the swing is aimed, and the hold above is already timed at the form's own
-  // animation -- a plate saying otherwise would count down the wrong clock.
+  // The plate names the form really being charged, or it would count down
+  // the wrong clock.
   view_.attack_name =
       attack != nullptr
           ? (WoundFull(*attack) ? attack->wound_form->name : attack->name)
           : "";
   if (attack != nullptr) {
-    // How long to hold is settled once, when the swing is first aimed. A hold
-    // already running is the player's key held down: the queue moving under it
-    // does not re-time it, and re-deciding every step would let it flicker.
+    // Settled once, when the swing is first aimed: a hold already running is
+    // the player's key held down, and re-deciding it every step would
+    // flicker.
     if (aimed_ != previous) {
       held_pulses_ =
           ChannelPulses(*attack, std::min(std::max(1, attack->max_enemies),
                                           static_cast<int>(queue_.size())));
-      // Held to what is in the bank, where the hold is bought out of one. This
-      // is the only place the bank shortens a hold: the chooser judges a hold
-      // on its rate, which its length does not move.
+      // The only place the bank shortens a hold: the chooser judges one on
+      // its rate, which its length does not move.
       if (attack->channel.charge_seconds > 0.0) {
         held_pulses_ = std::min(held_pulses_, ChargedPulses(params, aimed_));
       }
     }
-    // A cast reaches nobody, so it leaves the window on whatever the last
-    // swing set: the mob bars must not collapse for the length of the cast.
+    // A cast reaches nobody, so the window keeps what the last swing set:
+    // the mob bars must not collapse for the length of a cast.
     if (attack->heal_fraction <= 0.0) {
       reach_ = std::max(1, attack->max_enemies);
     }
-    // Cached because the charge bar is drawn after the swing is aimed and has
-    // no attack of its own to ask. A pick that changes mid-charge changes the
-    // clock under it, which is the honest reading: the swing being charged is
-    // the one that will land.
+    // Cached because the charge bar is drawn after the aim and has no attack
+    // to ask. A pick changing mid-charge changes the clock under it, which is
+    // the honest reading.
     swing_seconds_ = HeldSeconds(*attack);
   }
   return attack;
@@ -2493,20 +2287,17 @@ void CombatSim::RunBarrage(const CombatParams& params, double dt) {
 }
 
 void CombatSim::RunBarrageOf(const CombatParams& params, int index, double dt) {
-  // Read by index rather than held by pointer: a buff going up between two
-  // bolts moves the fight into another attack table, and an attack keeps its
-  // index in every one of them.
+  // By index, not by pointer: a buff going up between two bolts moves the
+  // fight into another attack table, where the index still holds.
   const AttackOption& attack = Attacks(params)[index];
   AttackClock& clock = attack_clocks_[index];
   clock.next_strike_seconds -= dt;
-  // A while rather than an if, as the swing clock takes it: a step wider than
-  // the beat owes every strike it covered.
+  // A step wider than the beat owes every strike it covered.
   while (clock.strikes_left > 0 && clock.next_strike_seconds <= 0.0) {
     clock.next_strike_seconds += attack.cast_interval_seconds;
     --clock.strikes_left;
-    // A shock that finds nothing standing is one the orb never spent, and GMS
-    // hands its wait back. Against a boss this never happens; on a map the
-    // barrage outlives the crowd and most of it does.
+    // A shock finding nothing standing is one the orb never spent, and GMS
+    // hands its wait back.
     if (Reached(attack) <= 0) {
       clock.cooldown_left =
           std::max(0.0, clock.cooldown_left - attack.cooldown_refund_seconds);
@@ -2516,33 +2307,28 @@ void CombatSim::RunBarrageOf(const CombatParams& params, int index, double dt) {
     RecoverHp(params, Strike(attack, {DamageOrigin::kSwing, 0}));
     attributing_ = -1;
     CreditFreeze(params, attack);
-    // What this strike landed, for the buffs charged by hits. No weight: the
-    // wait a landed SWING takes off a buff was paid at the cast, and a bolt of
-    // it is not another swing.
+    // For the buffs charged by hits. No weight: the wait a landed SWING
+    // takes off was paid at the cast, and a bolt is not another swing.
     CreditBuffs(params, 0.0, attack.lines);
   }
 }
 
 void CombatSim::RunSwing(const CombatParams& params, double dt) {
-  // Aimed against the queue as it stands, so the charge bar names the swing
-  // that is really coming. Only the poke is re-aimed as mobs die out from
-  // under it; a skill winding up is committed to.
+  // Aimed against the queue as it stands, so the bar names the swing really
+  // coming. Only the poke is re-aimed under a dying crowd.
   const AttackOption* attack = AimSwing(params);
   if (attack == nullptr) {
     return;
   }
   attack_phase_ += dt;
-  // A while rather than an if: a step wider than the swing owes every swing it
-  // covered, the way a burn ticks for each interval it outlasted. A 120ms
-  // key-down skill under a 150ms frame otherwise loses one swing in five and
-  // leaves the charge bar pinned full, since the phase never falls back under
-  // one swing.
+  // A step wider than the swing owes every swing it covered. Without this a
+  // 120ms skill under a 150ms frame loses one swing in five and pins the
+  // charge bar full, the phase never falling back under one swing.
   while (attack != nullptr && attack->swing_seconds > 0.0 &&
          attack_phase_ >= HeldSeconds(*attack)) {
     attack_phase_ -= HeldSeconds(*attack);
     LandSwing(params, *attack);
-    // Aimed afresh by the landing, because the queue just moved and the
-    // commitment is discharged.
+    // Re-aimed by the landing: the queue moved and the commitment is spent.
     attack = aimed_ >= 0 ? &Attacks(params)[aimed_] : nullptr;
   }
 }
@@ -2551,8 +2337,8 @@ void CombatSim::LandSwing(const CombatParams& params,
                           const AttackOption& attack) {
   // Read before the strike, because aiming again below moves it.
   int swung = aimed_;
-  // Everything this swing lands is the swing's, the strike it sets off and the
-  // load it spends included -- they ride it rather than happening beside it.
+  // Everything this swing lands is the swing's, its side strike and its load
+  // included: they ride it rather than happening beside it.
   attributing_ = swung;
   if (swung >= 0 && swung < static_cast<int>(swings_by_attack_.size())) {
     ++swings_by_attack_[swung];
@@ -2562,49 +2348,43 @@ void CombatSim::LandSwing(const CombatParams& params,
         std::min(static_cast<double>(params.max_player_hp),
                  player_hp_ + attack.heal_fraction * params.max_player_hp);
   } else {
-    // A buff GMS grants "upon use" goes up before its own swing lands, so the
-    // strike is priced under it -- and the swing is re-read out of the set the
-    // raising just moved the fight into, the attacks being the same in the same
-    // order in every one. Every other swing-laid buff waits for the landing.
+    // A buff GMS grants "upon use" goes up before its own swing lands, so
+    // the strike is priced under it and the swing is re-read out of the set
+    // the raising moved the fight into. Every other one waits for the
+    // landing.
     const AttackOption* cast = &attack;
     if (LayBuffs(params, swung, /*on_cast=*/true)) {
       cast = &Attacks(params)[swung];
     }
     const AttackOption& landed =
         FormToLand(attack_clocks_[swung].empowered_count, *cast);
-    // A wall of bolts is struck once per bolt rather than all at once, so the
-    // dead are cleared between them and a bolt whose twelve are already down
-    // falls on the next twelve. One strike for every other swing.
+    // A wall of bolts strikes once per bolt, so the dead are cleared between
+    // them and a bolt whose twelve are down falls on the next twelve.
     double proc_recovered =
         Strike(landed, {DamageOrigin::kSwing, 0}, held_pulses_);
-    // Per strike, not per swing: each shock of the orb spends its own share of
-    // the pile, so the stacks drain across the barrage rather than all at its
-    // opening -- which is the whole point of a rate.
+    // Per strike, not per swing: each shock spends its own share, so the
+    // pile drains across the barrage rather than all at its opening.
     CreditFreeze(params, landed);
     // The rest of a told-apart swing lands on its own beat while the player
-    // goes on swinging, so the map has time to fill under it and each strike
-    // finds the crowd as it then stands. See RunBarrage.
+    // swings on, each strike finding the crowd as it then stands.
     if (landed.strikes_in_sequence > 1 && landed.cast_interval_seconds > 0.0) {
       attack_clocks_[swung].strikes_left = landed.strikes_in_sequence - 1;
       attack_clocks_[swung].next_strike_seconds = landed.cast_interval_seconds;
     }
-    // The strike this swing sets off beside itself, where its own wait has
-    // run out. Read off the aimed attack rather than off what landed: the
-    // strike belongs to the skill, not to the form standing in for it this
-    // time. It goes out after the swing, so it lands on what the swing left.
+    // Read off the aimed attack, not off what landed: the strike belongs to
+    // the skill, not to the form standing in for it. After the swing, so it
+    // lands on what the swing left.
     if (cast->side != nullptr &&
         attack_clocks_[swung].side_cooldown_left <= 0.0) {
       Strike(*cast->side, {DamageOrigin::kSideStrike, swung});
       attack_clocks_[swung].side_cooldown_left = cast->side->cooldown_seconds;
     }
-    // The load this press sets off, where one is still standing. Read off the
-    // aimed attack for the reason the side strike is, and spent here rather
-    // than below: what is charged is the press, not the load's own clock.
+    // Read off the aimed attack for the same reason, and spent here: what is
+    // charged is the press, not the load's own clock.
     if (cast->loaded != nullptr && cast->loaded_attack >= 0 &&
         attack_clocks_[cast->loaded_attack].charges_left > 0) {
-      // A press that finds fewer left than it would take spends what is
-      // there, and lands the strike once for each: GMS's charms go out in
-      // twos to fours and the last of a bank is whatever it is.
+      // A press finding fewer left than it would take spends what is there:
+      // GMS's charms go out in twos to fours.
       int spent = std::min(cast->loaded->charges_per_swing,
                            attack_clocks_[cast->loaded_attack].charges_left);
       for (int i = 0; i < spent; ++i) {
@@ -2612,37 +2392,28 @@ void CombatSim::LandSwing(const CombatParams& params,
       }
       attack_clocks_[cast->loaded_attack].charges_left -= spent;
     }
-    // Recovery rides the hit, so a cast does not earn it and neither does a
-    // swing at nothing. What landed pays it rather than what was aimed, and
-    // the swing's own is added to the character's: Angel Ray heals as it
-    // lands, on top of whatever any passive recovers.
+    // Recovery rides the hit, so a cast earns none. What LANDED pays it, and
+    // the swing's own adds to the character's.
     double recovered =
         params.hp_recover_pct + landed.hp_recover_pct + proc_recovered;
-    // A hold pays per pulse, so a cast let go early is worth less of the pool:
-    // what the swing states is one pulse's, and the strike it ends on is
-    // already in the swing's own above.
+    // A hold pays per pulse, so letting go early is worth less of the pool.
+    // What the swing states is one pulse's.
     if (landed.channel.pulses > 0) {
       recovered += landed.channel.hp_recover_pct * held_pulses_;
     }
     RecoverHp(params, recovered);
     // The swing is over; a volley it sets off runs on a clock of its own.
     attributing_ = -1;
-    // Credited after the strike, so the volley lands on what the swing left
-    // standing rather than on mobs it was about to kill anyway. A healing cast
-    // credits nothing: it is not an attack.
+    // After the strike, so the volley lands on what the swing left standing.
     CreditSwing(params, cast->count_weight);
-    // Attacking is what brings a buff round sooner, so the same swing that
-    // credits the volleys credits the buffs. A cast credits neither.
-    // The opening strike's lines alone: the rest of a barrage credits its own
-    // as it lands, so a buff counting hits is never paid for shocks that go on
-    // to find an empty map. The swing's WEIGHT is the cast's and is credited
-    // once here -- thirty bolts are one press of the key.
+    // The opening strike's lines alone -- the rest of a barrage credits its
+    // own as it lands -- but the whole press's WEIGHT, thirty bolts being one
+    // press of the key.
     CreditBuffs(params, cast->count_weight, landed.lines);
     LayBuffs(params, swung, /*on_cast=*/false);
   }
-  // GMS charges Trickblade 14 seconds pressed cold and 20 landed on a wound,
-  // so the wait is the FORM's where one stood in. Every other form leaves the
-  // skill's own, having no wait of its own to state.
+  // GMS charges Trickblade 14 seconds cold and 20 on a wound, so the wait is
+  // the FORM's where one stood in.
   double wait = WoundFull(attack) ? attack.wound_form->cooldown_seconds
                                   : attack.cooldown_seconds;
   if (wait > 0.0) {
@@ -2651,9 +2422,9 @@ void CombatSim::LandSwing(const CombatParams& params,
   if (attack.charges > 0 && attack_clocks_[swung].charges_left > 0) {
     --attack_clocks_[swung].charges_left;
   }
-  // A whole charge for a part of one, as GMS spends a light for every second
-  // the key is held. What the bank has already filled toward the next is kept,
-  // so the lights arrive on their own clock rather than on the presses.
+  // A whole charge for part of one, as GMS spends a light per second held.
+  // What is filled toward the next is kept, so the lights arrive on their own
+  // clock rather than on the presses.
   const ChannelHold& hold = attack.channel;
   if (hold.charge_seconds > 0.0 && hold.pulses_per_charge > 0) {
     double spent =
@@ -2667,8 +2438,8 @@ void CombatSim::LandSwing(const CombatParams& params,
 }
 
 void CombatSim::MergeEngagedWindow(const CombatParams& params) {
-  // One HP bar per type in the front window (the mobs the next swing hits),
-  // in queue order, each bar averaging its members' remaining HP.
+  // One HP bar per type in the front window, in queue order, each averaging
+  // its members' remaining HP.
   int window = std::min(reach_, static_cast<int>(queue_.size()));
   for (int j = 0; j < window; ++j) {
     const Mob& mob = *params.types[queue_[j].type].mob;
@@ -2698,7 +2469,7 @@ void CombatSim::PublishRoster(const CombatParams& params) {
 }
 
 void CombatSim::PublishPlayer(const CombatParams& params) {
-  // Rounded up so a sliver of a pool still reads as 1 rather than as death.
+  // Rounded up so a sliver still reads as 1 rather than as death.
   view_.player_hp = static_cast<int>(std::ceil(player_hp_));
   view_.player_max_hp = params.max_player_hp;
   view_.player_hp_fraction =
@@ -2706,8 +2477,8 @@ void CombatSim::PublishPlayer(const CombatParams& params) {
           ? std::clamp(player_hp_ / params.max_player_hp, 0.0, 1.0)
           : 0.0;
   view_.respawns = params.respawn_seconds > 0.0;
-  // Against the interval this wait began under, so the bar does not jump when
-  // the totem goes up or comes down mid-cycle.
+  // Against the interval this wait began under, so the bar does not jump
+  // when the totem goes up mid-cycle.
   view_.respawn_fraction =
       view_.respawns && respawn_interval_ > 0.0
           ? std::clamp(respawn_phase_ / respawn_interval_, 0.0, 1.0)
@@ -2741,9 +2512,8 @@ void CombatSim::PublishTarget(const CombatParams& params) {
 }
 
 bool CombatSim::PublishCast() {
-  // Worked through newest first: a cast is finished when the swing clock has
-  // climbed back to the mark it was raised at, and the one raised last is the
-  // one that mark comes round for soonest.
+  // Newest first: a cast ends when the swing clock climbs back to the mark
+  // it was raised at, and the last raised reaches its mark first.
   while (!owed_casts_.empty() && owed_casts_.back().done_at <= attack_phase_) {
     owed_casts_.pop_back();
   }
@@ -2772,42 +2542,37 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     GoIdle();
     return;
   }
-  // Clamp a large real-time gap (a pause, say) to one swing, so the fight
-  // resumes rather than jumping. Measured against the bare poke, which every
-  // character has: which skill is coming is not known until the swing is aimed,
-  // several steps below this. A measurement asks for the step it wants and
-  // gets it: there is no player there to have stalled.
+  // A large real-time gap is clamped to one swing, so the fight resumes
+  // rather than jumping. Against the bare poke, which every character has --
+  // the coming skill is not known until the swing is aimed, below. A
+  // measurement gets the step it asks for: no player stalled there.
   double dt = measuring_ ? elapsed_seconds
                          : std::min(elapsed_seconds,
                                     params.attacks.front().swing_seconds);
   step_seconds_ = dt;
 
   BeginMapIfChanged(params);
-  // A level-up widens the pool and fills it, as GMS does. player_level_ is
-  // still last step's, so this catches the moment it moves. It watches the
-  // level and not the pool because everything else that widens the pool -- a
-  // skill point, a scroll, a swapped hat -- is not a reason to be healed.
+  // A level-up widens the pool and fills it, as GMS does. The LEVEL is
+  // watched, not the pool: a skill point, a scroll or a swapped hat widens it
+  // too and none of those is a reason to be healed.
   if (params.player_level != player_level_) {
     player_hp_ = params.max_player_hp;
   }
-  // A pool that shrank -- an unequipped hat -- takes the player down with it,
-  // rather than leaving them holding HP their stats do not give them.
+  // A pool that shrank takes the player down with it.
   player_hp_ = std::min(player_hp_, static_cast<double>(params.max_player_hp));
 
-  // Counted before anything swings, so the rate this step's casts are priced
-  // against covers the fight up to here.
+  // Before anything swings, so the rate this step's casts are priced against
+  // covers the fight up to here.
   fight_seconds_ += dt;
-  // Before the hit that may need it, so a wait that runs out this step is one
-  // the player has the benefit of.
+  // Before the hit that may need it.
   revive_left_ = std::max(0.0, revive_left_ - dt);
   RespawnBeat(params, dt);
   TakeMobHit(params, dt);
-  // Grown to fit before the buffs run, since a buff going up now hands its
-  // magazine's swing a fresh load and needs that swing's clock to exist.
+  // Grown before the buffs run: one going up now loads its magazine's swing
+  // and needs that clock to exist.
   int had_clocks = static_cast<int>(attack_clocks_.size());
   attack_clocks_.resize(Attacks(params).size());
-  // A bank starts FULL, the way a cooldown starts ready: the character walks
-  // in with what the seconds before the fight prepared.
+  // A bank starts FULL, as a cooldown starts ready.
   const std::vector<AttackOption>& fresh = Attacks(params);
   for (int i = had_clocks; i < static_cast<int>(attack_clocks_.size()); ++i) {
     attack_clocks_[i].hold_charges = fresh[i].channel.max_charges;
@@ -2817,31 +2582,27 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   swings_by_attack_.resize(Attacks(params).size(), 0);
   final_attack_damage_by_attack_.resize(Attacks(params).size(), 0.0);
   burn_damage_by_attack_.resize(Attacks(params).size(), 0.0);
-  // After the hit, so a buff going up now answers it with its heal, and
-  // before everything that attacks, so this step swings with it.
+  // After the hit, so a buff raised now answers it with its heal, and before
+  // anything attacks, so this step swings with it.
   RunBuffs(params, dt);
-  // After the hit and before the swing, so a fountain is worth something on
-  // the step it was needed rather than only on the next one.
+  // After the hit and before the swing, so a fountain pays on the step it
+  // was needed.
   RunRegen(params, dt);
-  // Before anything swings, so the summons and the character's own attack
-  // both pick their targets off one order -- and so the swing is CHOSEN
-  // against the monsters it is about to hit.
+  // Before anything swings, so summons and the character pick targets off
+  // one order, and the swing is CHOSEN against what it will hit.
   AimAtHealthiest(params);
-  // Before anything on its own clock fires: a rain that grows with the crowd
-  // reads the swing that called it down, and that aim was settled last step.
+  // Before any own clock fires: a rain that grows with the crowd reads the
+  // swing that called it down, aimed last step.
   const std::vector<AttackOption>& options = Attacks(params);
   swing_enemies_ = aimed_ >= 0 && aimed_ < static_cast<int>(options.size())
                        ? Reached(options[aimed_])
                        : 0;
   RunAutoCasts(params, dt);
-  // With them, and after the respawn beat has topped the roster up, so a
-  // release charged by the swing that emptied the map still finds something
-  // to fall on.
+  // After the beat has topped the roster up, so a release charged by the
+  // swing that emptied the map still finds something to fall on.
   CreditKills(params);
-  // After the summons and before the swing, so a burn lit last step has landed
-  // its ticks before this step's swing decides what is worth hitting. The
-  // thaw runs with them, and for the same reason: a monster that came out of
-  // the ice this step is one this step's swing must see out of it.
+  // Before the swing, so a burn lit last step has ticked and a monster that
+  // thawed this step is one this step's swing sees thawed.
   RunDots(dt);
   RunFreeze(dt);
   RunStun(dt);
@@ -2849,14 +2610,14 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   RunWound(dt);
   RunScar(dt);
   RunCooldowns(params, dt);
-  // Before the swing, so a bolt still in the air lands on the crowd this step
-  // opened with rather than on what the next swing leaves.
+  // Before the swing, so a bolt in the air lands on the crowd this step
+  // opened with.
   RunBarrage(params, dt);
   RunSwing(params, dt);
 
   player_level_ = params.player_level;
   // A measurement draws nothing, and the picture costs a string per monster
-  // per step to build.
+  // per step.
   if (measuring_) {
     respawning_ = queue_.empty();
     return;
@@ -2880,8 +2641,7 @@ double CombatSim::SecondsToNextEvent(const CombatParams& params) const {
           std::min({soonest, clock.left, NextDutyEdge(buff, clock.duty_phase)});
       continue;
     }
-    // One waiting on a swing to lay it, or on lines to charge it, moves at a
-    // swing boundary and needs no boundary of its own.
+    // One waiting on a swing or on lines moves at a swing boundary.
     if (buff.laid_by_attack < 0 && buff.charge_lines <= 0 &&
         buff.duration_seconds > 0.0) {
       soonest = std::min(soonest, clock.cooldown_left);

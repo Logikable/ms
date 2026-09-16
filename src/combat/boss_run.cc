@@ -72,9 +72,8 @@ bool MayEnter(const BossPhase& phase, int x, int y, int width, int height) {
   return !PlayerMayStand(phase, x, y);
 }
 
-// Everywhere one step of `walk` could carry a monster standing on (x, y),
-// inside an arena `width` by `height`. Never the cell it is already on, so a
-// step always moves it, and never one the player may stand on, since the arena
+// Everywhere one step of `walk` could carry a monster on (x, y). Never the
+// cell it is on, so a step always moves it, and never a player's: the arena
 // draws one bar per cell.
 std::vector<ArenaSpot> WalkTargets(const BossPhase& phase,
                                    const ArenaWalk& walk, int x, int y,
@@ -137,9 +136,8 @@ int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy,
     // line. Only one of dx and dy is ever set, so each is one term.
     int along = step_x * dx + step_y * dy;
     int across = std::abs(step_x * dy) + std::abs(step_y * dx);
-    // Further across the arrow than along it is not that way at all: without
-    // this, Right in Horntail's top corner would fetch the spot under his
-    // tail, which is nearer along the arrow than the far corner is.
+    // Further across the arrow than along it is not that way at all, or
+    // Right in Horntail's top corner would fetch the spot under his tail.
     if (along <= 0 || across > along) {
       continue;
     }
@@ -331,9 +329,8 @@ void BossRun::AgeDamageNumbers(double dt) {
 }
 
 void BossRun::Replace(DamageStack stack) {
-  // What this source last left on this monster goes, whatever life it had:
-  // two lots of numbers from one source read as one stack that cannot make up
-  // its mind.
+  // What this source last left goes, whatever life it had: two lots from one
+  // source read as one stack that cannot make up its mind.
   damage_stacks_.erase(
       std::remove_if(damage_stacks_.begin(), damage_stacks_.end(),
                      [&stack](const DamageStack& old) {
@@ -395,9 +392,8 @@ std::vector<DamageRow> DamageColumn(const std::vector<DamageWrite>& writes,
 
 void BossRun::CollectDamageWrites() {
   const std::vector<DamageLine>& lines = sim_.damage_lines_this_step();
-  // The lines of one landing arrive together, and a run of them under one
-  // strike is one write. Nothing here sorts: the order they landed in is the
-  // order they are read up the screen.
+  // The lines of one landing arrive together, and a run under one strike is
+  // one write. Nothing sorts: they are read up the screen in landing order.
   for (std::size_t i = 0; i < lines.size();) {
     int event = lines[i].event;
     std::map<int, int>::const_iterator slot =
@@ -436,14 +432,12 @@ void BossRun::CollectDamageWrites() {
 }
 
 void BossRun::FillSlots(const CombatParams& params) {
-  // A type's spots are handed out in the order its monsters come off the
-  // roster. They are all the same monster, so which one takes which is only
-  // ever a question about identical bars. A type with no spots stands at the
-  // origin, which is a fight nobody drew an arena for.
+  // A type's spots are handed out in roster order. They are the same monster,
+  // so which takes which is a question about identical bars. A type with no
+  // spots stands at the origin.
   std::vector<int> placed(params.types.size(), 0);
-  // Where each type's monsters begin in the phase's roster. A slot is that
-  // number, and it is the same on every client -- the queue the monsters come
-  // off is shuffled per client and is not.
+  // Where each type begins in the phase's roster. A slot is that number and
+  // is the same on every client; the queue it comes off is shuffled.
   std::vector<int> first(params.types.size(), 0);
   int counted = 0;
   for (std::size_t i = 0; i < params.types.size(); ++i) {
@@ -664,9 +658,8 @@ void BossRun::PayReward(GameState& state,
   if (reward_.meso > 0) {
     state.character.AddMeso(reward_.meso);
   }
-  // The honor, like the EXP, is not divided: what a party splits is the
-  // purse, and everyone who beat the boss beat him. Held to the fights the
-  // reset gates, so a boss with no lockout cannot be run for it all day.
+  // Honor, like EXP, is not divided: a party splits the purse, and everyone
+  // who beat the boss beat him. Held to the fights the reset gates.
   if (chosen->reset() != RESET_PERIOD_UNSPECIFIED) {
     reward_.honor = kBossClearHonor;
     state.character.AddHonor(reward_.honor);
@@ -724,9 +717,8 @@ void BossRun::TakeShared(const SharedFight& shared) {
   if (shared.phase != phase_) {
     phase_ = shared.phase;
     slots_.clear();
-    // A monster id means nothing outside the encounter that handed it out, and
-    // the arena is a different one anyway. Lines waiting on the next report go
-    // with them: they name slots of a phase that is over.
+    // An id means nothing outside the encounter that handed it out, and
+    // lines waiting on a report name slots of a phase that is over.
     damage_stacks_.clear();
     landed_.clear();
     report_due_ = 0.0;
@@ -756,20 +748,17 @@ void BossRun::TakeShared(const SharedFight& shared) {
       continue;
     }
     if (!player.present) {
-      // Their client has gone. The arena loses their panel and their spot is
-      // somewhere to walk to again; they are still on the reward split. What
-      // they landed before they went is left at member 0, which is where a
-      // stack is dropped rather than drawn.
+      // Their client has gone: the arena loses their panel and their spot is
+      // walkable again, but they stay on the reward split.
       continue;
     }
     member_of_player_[i] = static_cast<int>(members_.size());
     members_.push_back(
         {player.name, player.spot, player.attack_name, player.attack_fraction});
   }
-  // Where this player stands is theirs to say: they walked there without
-  // waiting to be told. The server's answer is taken for a phase they have not
-  // stood in yet, and when somebody else turns out to be standing where they
-  // think they are.
+  // Where this player stands is theirs to say -- they walked there without
+  // waiting. The server's answer is taken for a phase they have not stood in,
+  // and where somebody else turns out to be on their cell.
   const std::vector<int> taken = TakenSpots();
   if (player_at_ < 0 ||
       std::find(taken.begin(), taken.end(), player_at_) != taken.end()) {
@@ -779,9 +768,8 @@ void BossRun::TakeShared(const SharedFight& shared) {
 
 void BossRun::RunSharedPhase(GameState& state, double dt,
                              const SharedFight& shared) {
-  // Built every step rather than held the way RunPhase holds it: a party's
-  // own membership is one of the things the table is built from, and it moves
-  // inside a phase.
+  // Built every step rather than held as RunPhase holds it: the table is
+  // built partly from the party's membership, which moves inside a phase.
   CombatParams params =
       ComputeBossParams(state, boss_key_, *difficulty(), phase_);
   if (!params.active) {
@@ -812,9 +800,8 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
 }
 
 // The screen runs at kBossFightStep and the wire at kFightPublishInterval, so
-// a report carries every line landed since the last one rather than one step's
-// worth. Told faster than this, the server would only sit on it: it does not
-// tell the party again until its own beat.
+// a report carries every line since the last rather than one step's. Told
+// faster, the server would only sit on it until its own beat.
 void BossRun::ReportToParty(double dt) {
   report_due_ -= dt;
   if (report_due_ > 0.0) {
@@ -881,9 +868,8 @@ void BossRun::Advance(GameState& state, double elapsed_seconds) {
 }
 
 void BossRun::RunAlone(GameState& state, double dt) {
-  // Ahead of everything, and whatever the run is doing: the numbers left by
-  // the swing that ended a phase should fade out over the gap rather than
-  // hang there until the next phase lands one.
+  // Ahead of everything and whatever the run is doing, so the numbers left by
+  // a phase-ending swing fade over the gap rather than hanging.
   AgeDamageNumbers(dt);
   if (state_ == BossRunState::kCountdown) {
     // The monsters are on screen before the count-in starts: what the player

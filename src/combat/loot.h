@@ -23,52 +23,39 @@
 
 namespace ms {
 
-// Share of kills that drop meso at all, for a character carrying
-// `item_drop_pct` extra drop rate. The base is 60%, raised by the rate and
-// capped at every kill: a drop that is already certain cannot be made more so.
+// Share of kills that drop meso at all. The base is 60%, raised by the rate
+// and capped at certain.
 double MesoDropChance(double item_drop_pct);
 
-// What one meso drop off `mob` is worth on average: its level times the band's
-// mean multiplier, at the Heroic world's 6x rate. This is the amount, not the
-// per-kill expectation -- the 60% chance of a drop at all is MesoDropChance,
-// and a panel showing both would count it twice.
+// What one meso drop off `mob` averages: its level times the band's mean
+// multiplier, at the Heroic 6x. The AMOUNT, not the per-kill expectation --
+// MesoDropChance is the chance, and showing both would count it twice.
 double MeanMesoPerDrop(const Mob& mob);
 
-// Expected meso one kill of `mob` yields: the drop chance above times the
-// mob's level-banded amount, at the Heroic world's 6x rate. The character's own
-// meso bonus is applied by the caller, which is where the passives are already
-// resolved.
+// Expected meso per kill: the drop chance times the level-banded amount, at
+// the Heroic 6x. The character's own bonus is the caller's to apply.
 //
-// The world rate belongs here and not in AddMeso, which pays out sales as
-// well: GMS multiplies what a monster drops, never what an NPC pays.
-//
-// What RollMeso averages, and the number the meso curve is drawn from. A sim
-// measuring the economy wants the mean rather than one sample of it.
+// The world rate belongs here rather than in AddMeso, which pays sales too:
+// GMS multiplies what a MONSTER drops, never what an NPC pays. This is what
+// RollMeso averages, and what the meso curve is drawn from.
 double ExpectedMesoPerKill(const Mob& mob, double item_drop_pct);
 
-// Meso `kills` of `mob` actually paid. Each kill takes the drop chance, and
-// each drop is worth the mob's level times a multiplier drawn uniformly across
-// the band's range -- GMS gives every band its mean plus or minus a fifth. The
-// character's own meso bonus is applied by the caller, as above.
+// Meso `kills` of `mob` actually paid: each kill takes the drop chance, and
+// each drop is the mob's level times a multiplier drawn across the band --
+// GMS gives every band its mean plus or minus a fifth.
 int64_t RollMeso(const Mob& mob, int64_t kills, double item_drop_pct,
                  std::mt19937& rng);
 
-// Items `kills` of a drop at `per_kill` each yielded. A rate below one is the
-// chance each kill takes; a rate above one pays its whole part every time and
-// rolls the rest. A non-finite or non-positive rate yields no drops.
+// Items `kills` of a drop at `per_kill` yielded. Below one is a chance per
+// kill; above one pays its whole part every time and rolls the rest.
 int64_t RollDrops(double per_kill, int64_t kills, std::mt19937& rng);
 
-// The rate one line of a boss's table is rolled at, for a character carrying
-// `item_drop_pct` extra drop rate. What the rate buys depends on what falls.
-//
-// A stackable -- every token and every soul shard -- takes the plain multiply
-// a map's per-kill rolls take, so the rate pays extra copies: a certain drop
-// at 250% rate is two outright and a coin flip for a third.
-//
-// A piece of gear takes a better chance and nothing more: the whole part of
-// the rate stands as the table wrote it, and only the fraction over it is
-// lifted, capped at certain as MesoDropChance is. A boss pays its table once,
-// and one necklace is what the fight is worth.
+// The rate one line of a boss's table rolls at. What the rate buys depends on
+// what falls: a STACKABLE takes the plain multiply, so 250% on a certain drop
+// is two outright and a coin flip for a third, where GEAR takes a better
+// chance and nothing more -- the whole part stands as the table wrote it and
+// only the fraction is lifted. A boss pays its table once, and one necklace is
+// what the fight is worth.
 double BossDropRate(const MobDrop& drop, double item_drop_pct);
 
 }  // namespace ms

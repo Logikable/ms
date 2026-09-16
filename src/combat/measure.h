@@ -20,36 +20,31 @@
 
 namespace ms {
 
-// The HP to stand a monster up with for a measurement. Its monsters never
-// fall, so the one thing its HP still decides is how long a held swing is
-// worth holding -- and a monster that cannot be killed has to look it. Stood
-// up with its real HP instead, a hold is let go the moment the dummy would
-// have died and the sim reads a fraction of what the skill is worth.
+// The HP to stand a measurement's monster up with. Its monsters never fall, so
+// all its HP decides is how long a hold is worth holding -- and one stood up
+// with its real HP is let go the moment it would have died, reading a fraction
+// of what the skill is worth.
 inline constexpr int64_t kMeasuredMobHp = 1'000'000'000'000'000;
 
 // What a measured run came to.
 struct Sequence {
-  // Everything that landed over the run, and how long it ran for. The rate is
-  // one over the other -- summons, burns and triggered releases included, so
-  // nothing has to be added to it afterwards.
+  // Everything that landed and how long it ran for. The rate is one over the
+  // other, summons and burns included, so nothing is added afterwards.
   double damage = 0.0;
   double seconds = 0.0;
   int main_attack = -1;  // index of the one swung most often, -1 for none
-  // What each swing came to, parallel to CombatParams::attacks, with a burn
-  // credited to the swing that lit it. Sums with own_clock_damage to `damage`,
-  // so a share is one entry over that.
+  // What each swing came to, a burn credited to the swing that lit it. Sums
+  // with own_clock_damage to `damage`.
   std::vector<double> damage_by_attack;
-  // The two halves of each of those figures that the swing did not strike for
-  // itself, parallel to the same list and already inside it: what its Final
-  // Attacks landed, and what the burns it lit ticked for.
+  // The halves of those figures the swing did not strike for itself, already
+  // inside them: its Final Attacks, and the burns it lit.
   std::vector<double> final_attack_by_attack;
   std::vector<double> burn_by_attack;
   // What everything on a clock of its own came to: the summons, the releases
   // clocked by swings or by defeats, and what a reflection put back.
   double own_clock_damage = 0.0;
-  // The same total told apart by what dealt it, named and heaviest first. A
-  // summon's own clock is what makes a branch's damage hard to read off its
-  // swings, so the bucket is split here rather than left to the caller.
+  // The same total by source, named and heaviest first. A summon's clock is
+  // what makes a branch's damage hard to read off its swings.
   std::vector<std::pair<std::string, double>> own_clock_by_source;
   // Share of the run each of the character's buffs spent standing, parallel to
   // CombatParams::buffs.
@@ -59,18 +54,16 @@ struct Sequence {
 // Plays `params` out for `horizon` seconds against `enemies` monsters of its
 // first type, and reports what landed.
 //
-// `horizon` is in the STRETCHED clock -- the one every duration inside
-// CombatParams is written in, GameSpeedFactor times the game's own. At level
-// 200 that factor is 10, so a two-minute cooldown reads 1200 here and a
-// horizon under it is a burst window with every timed buff up for the whole of
-// it. A caller working in game seconds must multiply by GameSpeedFactor first,
-// or its window means a different length at every level.
+// `horizon` is in the STRETCHED clock every duration in CombatParams is
+// written in -- GameSpeedFactor times the game's own. At level 200 that factor
+// is 10, so a two-minute cooldown reads 1200 and a shorter horizon is a burst
+// window with every buff up throughout. A caller working in game seconds must
+// multiply by GameSpeedFactor first.
 //
-// A closed form cannot answer this once a cooldown exists -- what a skill is
-// worth depends on what gets swung while it recharges, and on how much of a
-// charge is already wound up when it returns. The buffs are the same problem
-// again: a buff worth 25% that stands for half the run is not worth 12.5% of
-// every swing, it is worth all of it to half of them.
+// No closed form can answer this once a cooldown exists: what a skill is worth
+// depends on what is swung while it recharges. A buff worth 25% standing for
+// half the run is not worth 12.5% of every swing, it is worth all of it to
+// half of them.
 Sequence MeasureFight(const CombatParams& params, double horizon,
                       int enemies = 1);
 

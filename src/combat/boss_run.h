@@ -38,16 +38,13 @@ inline constexpr double kBossDeathHoldSeconds = 1.0;
 // How long a stack of damage numbers stays on screen.
 inline constexpr double kDamageStackSeconds = 0.9;
 // How long one strike of a stack shows before the next replaces it. One frame
-// of a boss fight (kBossFightStep), so a swing that slashes twelve times
-// flashes through all twelve as fast as the screen can draw them.
+// of a boss fight, so a twelve-slash swing flashes through all twelve.
 inline constexpr double kDamageStrikeSeconds = 0.03;
-// The most stacks held at once. A generous ceiling on a phase of ten bars,
-// there so a fight cannot grow the list without bound if one is ever drawn
-// slower than the swings arrive. The oldest go first.
+// The most stacks held at once, so the list cannot grow without bound if one
+// is drawn slower than the swings arrive. The oldest go first.
 inline constexpr int kMaxDamageStacks = 64;
-// The same ceiling for this player's own writes, which are filed a strike
-// apiece rather than an attack apiece: one swing across ten bars files a
-// write per slash per bar.
+// The same for this player's own writes, filed a strike apiece: one swing
+// across ten bars files a write per slash per bar.
 inline constexpr int kMaxDamageWrites = 512;
 
 // One number a landing left behind.
@@ -56,62 +53,49 @@ struct DamageNumber {
   bool crit = false;
 };
 
-// One party member's stack of numbers: what one attack of theirs landed on one
-// monster, in the order the lines landed. It is read upwards, the first line
-// at the bottom, so what a cramped corner costs is the tail of the stack
-// rather than the stack.
-//
-// The player at this screen has no stacks. Their numbers are written row by
-// row into the column above the monster instead -- see DamageWrite.
+// What one attack of one party member landed on one monster, in order. Read
+// upwards, so a cramped corner costs the tail rather than the stack. The
+// player at this screen has none: their numbers go row by row into the column
+// above the monster -- see DamageWrite.
 struct DamageStack {
   // The slot that took it, by the id a slot keeps for its whole life.
   int mob_id = 0;
   // Who landed it, as an index into the run's members. Never 0, which is the
   // player at this screen; everybody else's numbers are drawn dim.
   int owner = 0;
-  // What did it. One monster holds at most one stack per player per source: a
-  // landing takes the place of whatever that source last left there, however
-  // much life it had. So the character's swing is one stack that keeps being
-  // rewritten, and a skill they switch to rewrites it too.
+  // What did it. One monster holds at most one stack per player per source, a
+  // landing replacing whatever that source last left there.
   DamageSource source;
   std::vector<DamageNumber> lines;
-  // Where each strike of the attack begins in `lines`. One entry for a swing
-  // that landed once; twelve for one that slashed twelve times, each of them
-  // rolled apart. Always starts at zero and is never empty while `lines` is
-  // not -- see StrikeAt, which is what a drawer asks.
+  // Where each strike begins in `lines`: one entry for a swing that landed
+  // once, twelve for one that slashed twelve times. Never empty while `lines`
+  // is not -- see StrikeAt, which is what a drawer asks.
   std::vector<int> strike_starts;
   // Seconds it has been on screen. Real ones: it is an animation, and the
   // game's pacing band has no business stretching it.
   double age = 0.0;
-  // The half-open range of `lines` showing at `age`: one strike replacing the
-  // last every kDamageStrikeSeconds, and the last of them held for whatever
-  // is left of the stack's life.
+  // The half-open range of `lines` showing at `age`, one strike replacing the
+  // last every kDamageStrikeSeconds and the last held to the end.
   std::pair<int, int> StrikeAt(double age) const;
   // The most lines any one strike landed. What the drawer reserves, so a
   // stack that flashes does not change shape under the reader.
   int TallestStrike() const;
 
-  // Which side of the bar the arena should try first, drawn when the stack was
-  // made. Drawn once rather than per frame, or a stack that has not changed
-  // would move every time it was redrawn.
+  // Which side of the bar to try first, drawn once when the stack was made:
+  // per frame, an unchanged stack would move every redraw.
   int preference = 0;
 };
 
-// One strike of the player's own damage, written into the rows standing above
-// the monster it fell on: line i goes to row i, counting up from the bar.
-//
-// A write owns rows rather than a block. It leaves the rows above its own
-// height alone, so a one-line attack landing after a fifteen-line one takes
-// the bottom row and the other fourteen numbers stay where they are until
-// their own time is up.
+// One strike of the player's own damage, written into the rows above the
+// monster: line i goes to row i, counting up from the bar. A write owns ROWS
+// rather than a block, so a one-line attack after a fifteen-line one takes the
+// bottom row and leaves the other fourteen standing.
 struct DamageWrite {
   // The slot that took it, by the id a slot keeps for its whole life.
   int mob_id = 0;
   std::vector<DamageNumber> lines;
-  // How long after the attack landed this strike shows. A swing that slashes
-  // twelve times files twelve writes at once, each kDamageStrikeSeconds
-  // behind the last, so they flash through the rows as fast as the screen can
-  // draw them.
+  // How long after the attack landed this strike shows: twelve slashes file
+  // twelve writes at once, each kDamageStrikeSeconds behind the last.
   double delay = 0.0;
   // Seconds since the attack landed. Real ones: it is an animation, and the
   // game's pacing band has no business stretching it.
@@ -134,11 +118,10 @@ struct DamageRow {
   DamageNumber number;
 };
 
-// The numbers standing above `mob_id` now, row 0 against the bar. Each row
-// takes the newest live write that reached it, so a tall attack keeps its
-// upper rows while shorter ones come and go beneath them. The column is as
-// tall as the tallest live write; a caller with less room than that draws
-// what fits.
+// The numbers standing above `mob_id`, row 0 against the bar. Each row takes
+// the newest live write that reached it, so a tall attack keeps its upper rows
+// while shorter ones come and go beneath. As tall as the tallest live write; a
+// caller with less room draws what fits.
 std::vector<DamageRow> DamageColumn(const std::vector<DamageWrite>& writes,
                                     int mob_id);
 
@@ -148,17 +131,15 @@ struct BossRewardItem {
   std::string name;
   int64_t count = 0;
   // DropIsPrize: the gear, or the token that buys a piece of it. The card
-  // reads it, and lists what the player came for apart from what every clear
-  // pays.
+  // lists what the player came for apart from what every clear pays.
   bool prize = false;
   // The rate the table dropped it at, before any drop rate. The card sorts on
   // it, so the rarest thing a clear paid is the top line of its group.
   double chance = 0.0;
 };
 
-// What a cleared fight paid. What actually landed, not what the table offers:
-// a drop can miss its roll, and a full bag loses one that hit, and the card
-// the player reads should not claim either of them.
+// What a cleared fight paid: what LANDED, not what the table offers. A drop
+// can miss its roll and a full bag can lose one that hit.
 struct BossReward {
   int64_t meso = 0;
   int64_t exp = 0;
@@ -168,9 +149,8 @@ struct BossReward {
   std::vector<BossRewardItem> items;
 };
 
-// One monster's bar. A slot is made when the phase starts and never reused:
-// once its monster is dead it fades and then leaves the space empty, so the
-// bars beside it never move.
+// One monster's bar. Made when the phase starts and never reused: a dead
+// monster's slot fades and then empties, so the bars beside it never move.
 struct BossSlot {
   int id = 0;
   std::string name;
@@ -181,15 +161,12 @@ struct BossSlot {
   // How it wanders. An unset walk stands still, which is all of them but
   // Vellum, Papulatus and Damien.
   ArenaWalk walk;
-  // How many moves of that walk are behind it, which is what each one is drawn
-  // off. The count is kept so a move costs one move's work: a boss that moves
-  // twice a second has thousands of them behind him by the end of a long
-  // clock, and every one would be walked again on every frame otherwise.
+  // Moves of that walk already behind it, which each new one is drawn off.
+  // Kept so a move costs one move's work rather than a replay of thousands.
   int steps_taken = 0;
-  // When the next move and the next dash fall due, in the seconds the run
-  // counts. Both are set from the walk when the slot is made, so a monster
-  // that comes out in a later phase walks the clock the fight has already
-  // spent -- the same replay a client joining late does.
+  // When the next move and dash fall due, in the run's seconds. Set from the
+  // walk when the slot is made, so a monster arriving in a later phase walks
+  // the clock the fight has already spent.
   double next_move_at = 0.0;
   double next_dash_at = 0.0;
   // Cells of a dash still to run, and which way it is going.
@@ -204,10 +181,8 @@ struct BossSlot {
   double dead_for = 0.0;
 };
 
-// One player of a fight, as the arena draws them: where they stand and what
-// they are winding up. A fight taken alone has one of these. Somebody whose
-// client has gone is not one: the fight goes on without them, and so does the
-// arena.
+// One player of a fight as the arena draws them: where they stand and what
+// they are winding up. Somebody whose client has gone is not one.
 struct FightMember {
   // Empty for the player at this screen, who is always the first of them.
   std::string name;
@@ -218,30 +193,22 @@ struct FightMember {
   double attack_fraction = 0.0;
 };
 
-// Which of `phase`'s player spots a press moves to, as an index into
-// `player_spots`. The nearest spot strictly that way wins, measured along the
-// direction pressed; two the same distance along it are settled by whichever
-// is nearer across it. A spot further across the arrow than along it is not
-// that way at all and is passed over. `from` is returned when nothing lies
-// that way, or when two spots are as good as each other -- a press with no one
-// answer moves nobody.
-//
-// Spots in `taken` are passed over as though they were not there at all: a
-// party member standing on one is not somewhere to walk to, and the walk goes
-// on to whatever is behind them.
+// Which of `phase`'s player spots a press moves to. The nearest spot strictly
+// that way wins, measured along the direction pressed and settled across it;
+// one further across the arrow than along it is not that way at all. `from` is
+// returned when nothing lies that way or two spots tie -- a press with no one
+// answer moves nobody. Spots in `taken` are passed over entirely, the walk
+// going on to whatever stands behind them.
 int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy,
                    const std::vector<int>& taken);
 int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy);
 
 class BossRun {
  public:
-  // `boss` is owned by the GameState and must outlive the run. `difficulty` is
-  // an index into its difficulties; an invalid one makes a run that is over
-  // before it starts.
-  //
-  // `authority` is the party's shared fight, and must outlive the run too.
-  // Null fights the boss alone, which is every run that decides its own
-  // phases, its own clock and what its monsters have left.
+  // `boss` and `authority` are owned elsewhere and must outlive the run. An
+  // invalid `difficulty_index` makes a run that is over before it starts, and
+  // a null `authority` fights the boss alone -- deciding its own phases, its
+  // own clock and what its monsters have left.
   BossRun(std::string boss_key, const Boss& boss, int difficulty_index,
           FightAuthority* authority = nullptr);
 
@@ -251,9 +218,8 @@ class BossRun {
   // Gives up the run. The screen goes straight back rather than holding a
   // beat: the player asked to leave.
   void Abort();
-  // Walks the player one spot in the direction pressed, which is one of the
-  // four unit vectors. Does nothing once the fight is over, or in a phase that
-  // named nowhere else to stand.
+  // Walks the player one spot in the direction pressed. Nothing once the
+  // fight is over, or in a phase naming nowhere else to stand.
   void MovePlayer(int dx, int dy);
 
   BossRunState state() const {
@@ -270,9 +236,8 @@ class BossRun {
   const std::string& title() const {
     return title_;
   }
-  // The boss alone, without its difficulty. What the player is asked about on
-  // the way out: they are leaving Zakum, and which Zakum it was is not the
-  // question.
+  // The boss without its difficulty: what the player is asked about on the
+  // way out.
   const std::string& boss_name() const {
     return boss_name_;
   }
@@ -280,9 +245,8 @@ class BossRun {
   int phase() const {
     return phase_ + 1;
   }
-  // The music this fight plays: the track the phase being fought names, or
-  // the last one a phase named, since a phase saying nothing keeps playing
-  // what the one before it started. Empty for a fight that names none.
+  // The track this phase names, or the last one a phase named: saying nothing
+  // keeps playing what the one before started.
   std::string_view bgm() const;
   int phase_count() const {
     return phases_;
@@ -310,9 +274,8 @@ class BossRun {
   double countdown_left() const {
     return countdown_left_;
   }
-  // How long the run has been on screen, count-in included. A clock for
-  // anything the arena animates on its own rather than off the fight -- a
-  // name too long for its nameplate, sliding under it.
+  // How long the run has been on screen, count-in included. For anything the
+  // arena animates on its own rather than off the fight.
   double elapsed_seconds() const {
     return elapsed_seconds_;
   }
@@ -340,10 +303,9 @@ class BossRun {
   int share_count() const {
     return share_count_;
   }
-  // Where the player stands in the current phase -- where they have walked
-  // to, not where the phase started them -- and how many cells the arena
-  // holds around everyone. The size is measured off the spots when the phase
-  // names neither, which leaves the arena no margin.
+  // Where the player has WALKED to in this phase, and how many cells the
+  // arena holds. The size is measured off the spots when the phase names
+  // neither, which leaves no margin.
   ArenaSpot player_spot() const;
   // Everywhere the player may stand this phase, the spot they are on
   // included. Empty for a phase that named none.
@@ -402,14 +364,13 @@ class BossRun {
   void ComputePhaseHp(const CombatParams& params);
   // Steps one phase of the fight forward, moving on when it empties.
   void RunPhase(GameState& state, double dt);
-  // Pays the difficulty's reward table, once, for a fight that was cleared,
-  // and records what landed. The meso is divided by share_count_ and the EXP
-  // is flat and whole for everyone; `awards` is what the drops came to.
+  // Pays the difficulty's table once for a cleared fight and records what
+  // landed. The meso divides by share_count_ and the EXP is whole for
+  // everyone; `awards` is what the drops came to.
   void PayReward(GameState& state, const std::vector<SharedAward>& awards);
-  // The drops a fight taken alone pays: one roll each, against this
-  // character's own Item Drop Rate the way a monster's are. A party's are
-  // dealt by the authority instead, so that a certain drop is certain and a
-  // one-off falls to exactly one person.
+  // The drops a fight taken alone pays: one roll each against this
+  // character's own Item Drop Rate. A party's are dealt by the authority, so a
+  // certain drop is certain and a one-off falls to exactly one person.
   std::vector<SharedAward> RollAwards(GameState& state,
                                       double item_drop_pct) const;
   // One step of a fight the party shares: take what the server has, swing
@@ -417,9 +378,8 @@ class BossRun {
   void AdvanceShared(GameState& state, double dt);
   // Takes the phase, the clock and where everyone is standing.
   void TakeShared(const SharedFight& shared);
-  // Steps the local fight against the shared roster: this player's own swings
-  // land, the roster is brought down to what the server says is left, and
-  // what was landed is reported back.
+  // Steps the local fight against the shared roster: this player's swings
+  // land, the roster is clamped to the server's, and the rest is reported.
   void RunSharedPhase(GameState& state, double dt, const SharedFight& shared);
   // Tells the party what this run has landed, on the wire's own beat rather
   // than the screen's, which is the faster of the two.
@@ -459,13 +419,10 @@ class BossRun {
   // the pause at the end before the screen goes back.
   double hold_left_ = 0.0;
   double phase_hp_fraction_ = 0.0;
-  // The phase's damage table, and what it was built for. Nothing that goes
-  // into it -- the character, their book, the monsters of the phase -- moves
-  // inside a phase of a fight taken alone, and building it again every frame
-  // was almost the whole cost of a fight: it is 94% of what a sim playing the
-  // dailies out spends its time on, and sixty of them a second on the boss
-  // screen. The level is watched as well as the phase, since a clear pays EXP
-  // and the last phase is still being stepped when it lands.
+  // The phase's damage table, and what it was built for. Nothing going into
+  // it moves inside a phase, and rebuilding it every frame was 94% of what a
+  // sim playing the dailies spends its time on. The LEVEL is watched as well
+  // as the phase: a clear pays EXP while the last phase is still stepping.
   CombatParams params_;
   int params_phase_ = -1;
   int params_level_ = 0;
@@ -479,24 +436,22 @@ class BossRun {
   FightAuthority* authority_ = nullptr;
   std::vector<FightMember> members_;
   int share_count_ = 1;
-  // Which slot of the phase each monster stands in, and the monster in each
-  // slot. A monster's id is this client's own; a slot is the same number on
-  // every client, which is what damage is reported and read against.
+  // Which slot each monster stands in, and the monster in each slot. An id is
+  // this client's own; a SLOT is the same number on every client.
   std::map<int, int> slot_of_mob_;
   std::vector<int> mob_of_slot_;
   // Which member each of the shared fight's players is, since this player is
   // held first and the server holds them in party order.
   std::vector<int> member_of_player_;
-  // What this run has landed since its last report, in the shape the report
-  // takes. Rounded as the numbers on screen are, so what the party's roster
-  // loses is what its players watched.
+  // What this run has landed since its last report. Rounded as the numbers on
+  // screen are, so the roster loses what its players watched.
   std::vector<SharedLine> landed_;
   // Seconds until the next report goes out. 0 sends on the coming step, which
   // is what a fight and a new phase both open on.
   double report_due_ = 0.0;
-  // What the last step's params said the drop roll's rate was -- the Drop
-  // preset's, which is what the party's best-rate rule is told. Held for a
-  // clear that is declared on a step this run computed nothing.
+  // The Drop preset's rate from the last step, which is what the party's
+  // best-rate rule is told. Held for a clear declared on a step that computed
+  // nothing.
   double item_drop_pct_ = 0.0;
   // Picks which side of a bar each stack asks for. Default-seeded, so a run
   // plays out the same way twice and a test can say where a stack went.

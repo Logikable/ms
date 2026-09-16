@@ -182,13 +182,9 @@ TEST(ComputeCombatParamsTest, ReportsTypesSimultaneousAndDurations) {
 }
 
 // Levels the character up until its first-job SP pool can pay for `points`.
-// These tests are about combat, not about whatever job or level the starting
-// character happens to carry, so they buy their own SP.
-//
-// Levelling is not free of side effects: the pace of the whole game stretches
-// with the character's level (see GameSpeedFactor). Any test comparing two
-// swing intervals has to buy its SP before measuring either of them, or it
-// measures the pacing band rather than the thing it meant to.
+// Levelling has a side effect: the pace of the whole game stretches with the
+// level, so a test comparing two swing intervals must buy its SP BEFORE
+// measuring either, or it measures the pacing band instead.
 void GrantFirstJobSp(GameState& state, int points, Job job = JOB_SWORDMAN) {
   // A skill belongs to one job's book and only that job can spend on it, so
   // the character takes the advancement the skill under test belongs to before
@@ -3523,11 +3519,9 @@ TEST(ComputeCombatParamsTest, APulseRidesTheSwingItNames) {
 }
 
 // Burning Soul Blade's shape: one buff, two forms, one pulse apiece. Both
-// pulses sit in the table tagged with the form that fires them, and each form
-// knows where its own pulse is, so the fight can price them without hunting.
-//
-// Stood up in the first job's book so one skill point buys it. What is under
-// test is the buff, and nothing about it asks which book it came from.
+// pulses sit in the table tagged with the form that fires them, so the fight
+// can price them without hunting. Stood up in the first job's book so one
+// skill point buys it.
 TEST(ComputeCombatParamsTest, ABuffWithFormsBuildsAPulseForEach) {
   Skill sword;
   sword.set_name("Burning Soul Blade");

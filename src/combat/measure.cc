@@ -18,13 +18,10 @@ namespace {
 // here so a clock reading zero cannot stall the loop.
 constexpr double kLeastStep = 1e-6;
 
-// The params as a measurement wants them: one kind of monster, as many of them
-// as the question asks for, and nothing hitting back.
-//
-// One kind because every damage table is read off the type a swing lands on,
-// and a crowd standing in for a map is one number rather than a roster. Type 0
-// is what the caller's own first type is, so a boss is measured against the
-// part the fight opens on.
+// The params a measurement wants: one kind of monster, as many as the question
+// asks, and nothing hitting back. One kind because every damage table is read
+// off the type a swing lands on; type 0 is the caller's own first, so a boss
+// is measured against the part the fight opens on.
 CombatParams AsMeasurement(const CombatParams& params, int enemies) {
   CombatParams measured = params;
   measured.measuring = true;
@@ -36,9 +33,8 @@ CombatParams AsMeasurement(const CombatParams& params, int enemies) {
   return measured;
 }
 
-// What a source on its own clock is called, out of the list its origin indexes
-// into. A side strike and a load are the swing's own skill striking again, so
-// they are named for it and said to be what they are.
+// What an own-clock source is called, out of the list its origin indexes into.
+// A side strike and a load are the swing's skill striking again.
 std::string SourceName(const CombatParams& params, const DamageSource& source) {
   auto named = [&](const std::vector<AttackOption>& list,
                    const char* suffix) -> std::string {
@@ -84,9 +80,8 @@ Sequence MeasureFight(const CombatParams& params, double horizon, int enemies) {
   CombatParams measured = AsMeasurement(params, enemies);
 
   CombatSim sim;
-  // Fills the queue, aims the first swing and raises whatever stands from the
-  // off, before anything reads them -- the step below is sized to the swing
-  // being wound up, and there is none until this has run.
+  // Fills the queue, aims the first swing and raises what stands from the
+  // off: the step below is sized to a swing that does not exist until now.
   sim.Advance(measured, 0.0);
   for (double elapsed = 0.0; elapsed < horizon;) {
     // Straight to the next thing that can change what a swing is worth, rather

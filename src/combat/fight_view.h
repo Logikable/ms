@@ -15,10 +15,9 @@
 
 namespace ms {
 
-// One mob still standing, for a caller that draws them one bar apiece rather
-// than merged -- the boss screen, which pins each of Zakum's arms to its own
-// panel. `id` is handed out when the mob arrives and never reused, so a slot
-// keeps the same monster while the ones beside it die.
+// One mob still standing, for a caller drawing them one bar apiece rather than
+// merged. `id` is handed out on arrival and never reused, so a slot keeps its
+// monster while the ones beside it die.
 struct MobStatus {
   int id = 0;
   int type = 0;  // index into CombatParams::types
@@ -26,9 +25,8 @@ struct MobStatus {
   double hp_fraction = 0.0;
 };
 
-// One HP bar for the combat panel: a mob type in the engaged window (the front
-// mobs the next swing hits), with its members merged into an average HP
-// fraction and a count.
+// One HP bar for the combat panel: a mob type in the engaged window, its
+// members merged into an average HP fraction and a count.
 struct EngagedGroup {
   std::string name;
   int level = 0;
@@ -36,41 +34,32 @@ struct EngagedGroup {
   double hp_fraction = 0.0;
 };
 
-// Everything one step of a fight publishes. The lines that landed are the one
-// thing not here: they stay in the ledger they were filed in -- see
-// CombatSim::damage_lines_this_step().
+// Everything one step of a fight publishes. The lines that landed stay in the
+// ledger -- see CombatSim::damage_lines_this_step().
 struct FightView {
-  // What the step did. Cleared as the step opens, so these describe that step
-  // alone and not the fight so far.
-  //
-  // Kills recorded during the step, indexed to match the params.types passed
-  // to it.
+  // What the step did, cleared as the step opens. Kills are indexed to match
+  // the params.types passed in.
   std::vector<int64_t> kills_this_step;
-  // Damage the character dealt. Every point a line rolled counts, overkill
-  // included: this is what the player would have watched fly off the
+  // Damage dealt, overkill included: what the player watched fly off the
   // monsters, not what the monsters had left to give.
   double damage_this_step = 0.0;
-  // True on the one step a hit took the player to 0. Reported rather than
-  // acted on, exactly as kills are: what dying costs is the reward layer's
-  // business, not the fight's.
+  // True on the step a hit took the player to 0. Reported rather than acted
+  // on, as kills are: what dying costs is the reward layer's business.
   bool died_this_step = false;
   // True on the step a respawn beat came round, whether or not it had anything
   // to put on the map. The one clock in the fight a watcher can align to.
   bool respawned_this_step = false;
 
-  // What the fight looks like now. Everything below is cleared by
-  // ClearPicture when there is no encounter to advance.
-  //
-  // The current target's name and level, empty and 0 while respawning.
+  // What the fight looks like now; ClearPicture empties all of it. The
+  // target's name and level are empty and 0 while respawning.
   std::string target_name;
   int target_level = 0;
   // Its remaining HP as a fraction in [0, 1].
   double target_hp_fraction = 0.0;
   // Progress toward the next auto-attack as a fraction in [0, 1].
   double attack_fraction = 0.0;
-  // The name of the swing being charged (the attack skill's, or "Attack" for
-  // the bare poke). Empty while respawning -- with nothing up, there is no
-  // swing coming to name.
+  // The swing being charged, or "Attack" for the bare poke. Empty while
+  // respawning, there being no swing coming to name.
   std::string attack_name;
   // The player's remaining HP, rounded up so a sliver still reads as 1 rather
   // than as death, and what it tops out at under the params the step ran on.
@@ -89,10 +78,9 @@ struct FightView {
   // the engaged window.
   std::vector<MobStatus> roster;
 
-  // Clears what the fight looks like, for a step with no encounter to
-  // advance. The step's own tallies are left alone: they were cleared as the
-  // step opened, and kills_this_step keeps the slot per mob type that a
-  // caller reads back by index.
+  // Clears the picture for a step with no encounter. The step's tallies are
+  // left alone: they were cleared as it opened, and kills_this_step keeps the
+  // slot per mob type a caller reads back by index.
   void ClearPicture() {
     target_name.clear();
     target_level = 0;

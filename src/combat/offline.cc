@@ -19,38 +19,32 @@
 namespace ms {
 namespace {
 
-// The opening of a sample, as a share of it, that is thrown away before the
-// pool is read at all. A character logs off full and slides into whatever band
-// the map holds them in, and a reading taken across that slide describes the
-// slide rather than the map.
+// The share of a sample thrown away before the pool is read. A character logs
+// off full and slides into whatever band the map holds them in; a reading
+// across that slide describes the slide, not the map.
 constexpr double kOfflineWarmupFraction = 0.25;
 
-// Close enough to a full pool to count as one. A character whose pool comes
-// back to the top after the warm-up is not draining, whatever the dips between
-// do -- so this is asked before any trend is fitted.
+// Close enough to a full pool to count as one: a pool back at the top after
+// the warm-up is not draining, whatever the dips between do.
 constexpr double kOfflineFullPool = 0.999;
 
-// How far a fitted fall must stand clear of the pool's own scatter to be
-// believed, as a multiple of it. The pool swings on every map -- it drops to
-// the mobs' hits and comes back on the respawn -- so a line through it always
-// has some slope, and below this the line is describing that swing.
+// How far a fitted fall must stand clear of the pool's own scatter, as a
+// multiple of it. The pool swings on every map, so a line through it always
+// has some slope; below this the line is describing that swing.
 constexpr double kOfflineTrendNoiseMultiple = 2.0;
 
-// The share of the pool a character has to hold to be credited past the
-// sample. One that came this close to empty in ten minutes is not holding the
-// map: over an absence of hours the same dip comes round many times, and one
-// of them lands on a beat that finishes them.
+// The share of the pool to hold to be credited past the sample. One coming
+// this close to empty in ten minutes is not holding the map: over hours the
+// same dip comes round many times.
 constexpr double kOfflineTroughFloor = 0.10;
 
-// The player's pool over a sample, and what it says about whether the map can
-// be held. Readings go in as the fight is stepped; the question is asked once
-// at the end.
+// The player's pool over a sample, and whether the map can be held. Readings
+// go in as the fight is stepped and the question is asked at the end.
 //
-// The pool swings on every map, so the question is never whether one reading
-// sits below another but whether there is a fall here bigger than the swing.
-// That is a line fitted to the whole sample, weighed against its own scatter
-// -- two readings a few minutes apart cannot tell the two apart, and a
-// minimum, which is what a trough is, is the noisiest reading there is.
+// The pool swings on every map, so the question is whether the fall is bigger
+// than the swing: a line fitted to the whole sample, weighed against its own
+// scatter. Two readings minutes apart cannot tell the two apart, and a trough
+// is the noisiest reading there is.
 class PoolTrend {
  public:
   explicit PoolTrend(double fit_from_seconds) : fit_from_(fit_from_seconds) {
@@ -73,9 +67,8 @@ class PoolTrend {
     last_seconds_ = seconds;
   }
 
-  // Seconds the character has left before the pool runs out, from the end of
-  // the sample. Infinite for a pool the sample cannot show draining, which is
-  // every map they can farm indefinitely; zero for one they only just held.
+  // Seconds before the pool runs out, from the end of the sample. Infinite
+  // for one the sample cannot show draining, zero for one only just held.
   double SecondsUntilDry() const {
     if (trough_ <= kOfflineTroughFloor) {
       return 0.0;
@@ -188,9 +181,9 @@ OfflineReport ApplyOfflineProgress(GameState& state, double seconds) {
   if (sample.died) {
     report.died = true;
   } else if (seconds > sample.seconds && sample.seconds > 0.0) {
-    // Past the sample the rest of the absence is scaled from it -- but only as
-    // far as the pool lasts. A character who is slowly losing the map farms
-    // until it runs out and then falls, whatever is left of the absence.
+    // The rest of the absence is scaled from the sample, but only as far as
+    // the pool lasts: a character slowly losing the map farms until it runs
+    // out and then falls.
     double left =
         std::min(seconds - sample.seconds, sample.pool.SecondsUntilDry());
     if (left < seconds - sample.seconds) {
@@ -207,9 +200,8 @@ OfflineReport ApplyOfflineProgress(GameState& state, double seconds) {
     report.kills += killed;
   }
   report.rewards = AwardCombatRewards(state, params, kills);
-  // The buffs ran through the absence exactly as they run through a watched
-  // evening: the character was farming the whole of report.seconds, which
-  // stops early only where they fell.
+  // The buffs ran through the absence as they run through a watched evening:
+  // report.seconds is the whole of the farming, cut short only by a fall.
   report.rewards.consumable_cost =
       state.character.ChargeFarmingConsumables(report.seconds);
   report.end_level = state.character.proto().level();

@@ -36,15 +36,13 @@ enum class BossRunState {
 struct SharedLine {
   // Which player of the shared fight landed it, as an index into its players.
   int owner = 0;
-  // Which monster of the phase it fell on, counted in the order the phase
-  // spawns them. A monster's id is handed out per client and means nothing
-  // across one.
+  // Which monster of the phase it fell on, in spawn order. An id is handed
+  // out per client and means nothing across one.
   int slot = 0;
   // Shared by every line one attack put on one monster.
   int event = 0;
-  // Which landing of that event it belongs to: a swing that slashes twelve
-  // times files twelve, and the reader flashes through them. See
-  // DamageLine::strike.
+  // Which landing of that event it belongs to; the reader flashes through
+  // them. See DamageLine::strike.
   int strike = 0;
   DamageSource source;
   int64_t damage = 0;
@@ -86,10 +84,8 @@ struct SharedFight {
   // What everybody else has landed since the last read. The player's own
   // lines are not in here: they drew those as they landed them.
   std::vector<SharedLine> lines;
-  // What a clear paid this player. The authority deals the drops rather than
-  // each run rolling its own share of them, which is what makes a certain
-  // drop certain and a one-off fall to exactly one person. Empty until the
-  // fight is won.
+  // What a clear paid this player. The AUTHORITY deals the drops, which is
+  // what makes a certain drop certain and a one-off fall to one person.
   std::vector<SharedAward> awards;
 };
 

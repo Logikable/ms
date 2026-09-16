@@ -17,9 +17,8 @@
 namespace ms {
 
 // What did the damage, for a caller drawing it. The character's own SWING is
-// one source however many skills they swing, so a new swing takes the place of
-// the last whatever it was. Everything else is a source apiece, held apart so
-// a summon's numbers never take the place of a burn's.
+// ONE source however many skills they swing; everything else is a source
+// apiece, so a summon's numbers never displace a burn's.
 enum class DamageOrigin {
   kSwing,
   kOwnClock,    // a summon, or a skill on a clock of its own
@@ -52,29 +51,24 @@ inline bool operator<(const DamageSource& a, const DamageSource& b) {
   return a.index < b.index;
 }
 
-// One line of damage as it landed on one monster, for a caller drawing the
-// fight rather than only stepping it. `event` is shared by every line one
-// attack put on that monster, so an eight-line swing reads as one stack of
-// eight rather than eight stacks of one.
+// One landed line, for a caller drawing the fight rather than only stepping
+// it. `event` is shared by every line one attack put on that monster, so an
+// eight-line swing reads as one stack of eight.
 struct DamageLine {
   int mob_id = 0;
   int event = 0;
-  // Which landing of the event this line belongs to, counted from zero. One
-  // roll is one strike: a swing that slashes twelve times files twelve of
-  // them under the one event, and so do a Final Attack and a lead hit that
-  // followed the strike onto the same monster. A caller drawing the fight
-  // shows one strike at a time -- see DamageStack.
+  // Which landing of the event this line belongs to. One roll is one strike,
+  // so twelve slashes file twelve under the one event -- as do a Final Attack
+  // and a lead hit onto the same monster. See DamageStack.
   int strike = 0;
   DamageSource source;
   double damage = 0.0;
   bool crit = false;
 };
 
-// Where a landing is being filed and what scales it, for that record: the
-// monster it fell on, the event it belongs to, what did it, and whatever
-// multiplies it after the roll -- the Freeze Stacks the swing spent, what an
-// arrow gained as it travelled. Passed even by a fight that is not recording,
-// which files nothing whatever it is handed.
+// Where a landing is filed and what scales it: the monster, the event, what
+// did it, and whatever multiplies it after the roll. Passed even by a fight
+// that is not recording, which files nothing whatever it is handed.
 struct Landing {
   int mob_id = 0;
   int event = 0;
@@ -82,9 +76,8 @@ struct Landing {
   double scale = 1.0;
 };
 
-// The record itself. A ledger that is not recording accepts everything and
-// files nothing, so the fight never has to ask whether anybody is reading --
-// the sims step millions of times and draw none of it.
+// A ledger that is not recording accepts everything and files nothing, so the
+// fight never has to ask whether anybody is reading.
 class DamageLedger {
  public:
   // Opens the step: the lines a caller reads are the ones filed since this.
@@ -97,19 +90,15 @@ class DamageLedger {
     return lines_this_step_;
   }
 
-  // Opens the landing about to happen: gives each of the front `hit` of `mobs`
-  // its own event, so the lines one attack puts on one monster group together
-  // however many ways the swing reaches it, and remembers what is doing the
-  // damage.
+  // Gives each of the front `hit` of `mobs` its own event, so the lines one
+  // attack puts on one monster group together however many ways it reaches
+  // them, and remembers what is doing the damage.
   void OpenLandings(int mobs, int hit, DamageSource source);
-  // Where the landing on the monster standing at `index`, whose id is
-  // `mob_id`, is filed -- scaled by `scale`. The event is the one OpenLandings
-  // gave that monster.
+  // Where the landing on the monster at `index` is filed, scaled by `scale`.
+  // The event is the one OpenLandings gave it.
   Landing LandingAt(int mob_id, int index, double scale) const;
-  // An event nothing else shares, for a landing that stands alone: a burn's
-  // tick falls on its own clock, between the swings rather than with one.
-  // Counted whether or not anybody is recording, so an event number means the
-  // same thing either way.
+  // An event nothing else shares, for a landing that stands alone. Counted
+  // whether or not anybody is recording, so the numbers mean the same.
   int NextEvent() {
     return ++next_event_;
   }
@@ -117,9 +106,8 @@ class DamageLedger {
   // Files one line of `damage`, already scaled, against `landing`. One call
   // is one strike of the landing's event.
   void RecordLine(const Landing& landing, double damage, bool crit);
-  // Files what the last RollFactor put in the sink as a landing of `damage`,
-  // each line taking its own share of it. One call is one strike, however
-  // many lines came out of the roll.
+  // Files what the last RollFactor left in the sink as a landing of `damage`,
+  // each line taking its share. One call is one strike.
   void RecordRolls(const Landing& landing, double damage);
   // Where a roll should write its per-line shares: the scratch buffer, or
   // nowhere at all when nobody is reading the record.
@@ -135,10 +123,9 @@ class DamageLedger {
   // worked out, parallel to the queue, and what is doing the damage.
   std::vector<int> landing_event_;
   DamageSource landing_source_;
-  // How many strikes each event has taken so far, so the several rolls one
-  // attack lands on one monster are told apart. Keyed rather than counted
-  // straight through: an event is come back to after every other monster of
-  // the swing has been hit, and a Final Attack lands on it then.
+  // Strikes each event has taken, so the rolls one attack lands on one
+  // monster are told apart. Keyed rather than counted through: an event is
+  // come back to once every other monster is hit.
   std::map<int, int> strikes_of_event_;
   std::vector<DamageLine> lines_this_step_;
   // Where RollFactor writes its per-line shares, reused every roll so a

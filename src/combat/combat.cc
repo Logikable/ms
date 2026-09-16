@@ -25,9 +25,8 @@
 namespace ms {
 namespace {
 
-// The most units handed to the bag in one call. GrantDrop's count is an int64
-// because an offline stretch can drop more of something than an int holds; the
-// bag counts one addition in an int, so a big yield goes in in pieces.
+// The most units handed to the bag in one call. GrantDrop counts in int64
+// because an offline stretch can outgrow an int; the bag cannot.
 constexpr int64_t kStackChunk = 1000000;
 
 // Adds `count` of `name` to the tally, of which `discarded` were thrown away.
@@ -91,15 +90,12 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
       continue;
     }
     const Mob& mob = *params.types[i].mob;
-    // A boss pays out of its own table and not out of its level band: what
-    // Zakum's eight arms are worth is a design decision, not a side effect of
-    // being level 110 monsters. Its EXP and meso are the fight's, paid once
-    // for the clear, so a body killed here is worth neither.
+    // A boss pays out of its own table, not its level band: its EXP and meso
+    // are the fight's, paid once for the clear, so a body is worth neither.
     if (!mob.boss()) {
       exp_gained += kills[i] * mob.exp();
-      // The bonus multiplies the purse rather than each drop in it: a share of
-      // a sum is the share of its parts, and the passives are already resolved
-      // here.
+      // The bonus multiplies the purse rather than each drop: a share of a
+      // sum is the share of its parts.
       int64_t meso = static_cast<int64_t>(
           RollMeso(mob, kills[i], params.item_drop_pct, state.rng) *
           (1.0 + params.meso_pct) * params.meso_final_mult);
@@ -126,9 +122,8 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
       }
     }
     for (const MobDrop& drop : mob.drops()) {
-      // Drop rate raises the rate itself. A rate past one is not capped the
-      // way the meso chance is: RollDrops already reads it as one drop every
-      // kill plus a chance at another.
+      // Drop rate raises the rate itself, uncapped unlike the meso chance:
+      // RollDrops reads a rate past one as a drop plus a chance at another.
       int64_t dropped = RollDrops(
           drop.per_kill() * (1.0 + params.item_drop_pct), kills[i], state.rng);
       if (dropped <= 0) {
@@ -143,8 +138,7 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
   }
   if (exp_gained > 0) {
     // The EXP passives land here rather than in the fight: what they buy is
-    // the climb, not the swing. Truncated, so a kill worth 1 EXP with a 50%
-    // bonus is still worth 1 -- the same rounding every other reward takes.
+    // the climb, not the swing. Truncated, as every other reward is.
     tally.exp = static_cast<int64_t>(exp_gained * (1.0 + params.exp_pct)) *
                 state.exp_multiplier;
     int before = character.proto().level();
@@ -164,18 +158,16 @@ RewardTally AdvanceCombat(GameState& state, CombatSim& sim,
   sim.Advance(params, elapsed_seconds);
   RewardTally tally =
       AwardCombatRewards(state, params, sim.view().kills_this_step);
-  // Charged for the seconds farmed, and for those alone: a player standing in
-  // town or watching a boss is paying for neither. Taken after the kills are
-  // paid, so a second's farming can cover a second's rent.
+  // Charged for the seconds FARMED alone, after the kills are paid, so a
+  // second's farming can cover a second's rent.
   if (params.active) {
     tally.consumable_cost =
         state.character.ChargeFarmingConsumables(elapsed_seconds);
   }
   if (sim.view().died_this_step) {
-    // Dying costs the trip home and nothing else -- no EXP, no meso. The
-    // kills already banked above stand: they happened. Moving the map is all
-    // it takes to be whole again, since the fight heals whoever arrives
-    // somewhere new (see fight.h).
+    // Dying costs the trip home and nothing else; the kills banked above
+    // happened. Moving the map is all it takes to be whole, the fight healing
+    // whoever arrives somewhere new.
     state.current_map = kHomeMap;
   }
   return tally;
