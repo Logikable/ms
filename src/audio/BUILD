@@ -14,9 +14,9 @@ embedded_audio(
 )
 
 cc_library(
-    name = "jukebox",
-    srcs = ["jukebox.cc"],
-    hdrs = ["jukebox.h"],
+    name = "music_player",
+    srcs = ["music_player.cc"],
+    hdrs = ["music_player.h"],
     deps = [
         ":tracks",
         "//src:build_config",
@@ -25,10 +25,10 @@ cc_library(
 )
 
 cc_test(
-    name = "jukebox_test",
-    srcs = ["jukebox_test.cc"],
+    name = "music_player_test",
+    srcs = ["music_player_test.cc"],
     deps = [
-        ":jukebox",
+        ":music_player",
         ":tracks",
         "//src:account",
         "//src:build_config",

@@ -1,7 +1,7 @@
 // Checks that every map and boss phase names music the build actually
 // carries. A track name is a filename stem, so a typo or a renamed file
-// fails silently at run time -- the jukebox finds nothing and plays nothing,
-// and the only symptom is a quiet map.
+// fails silently at run time -- the music player finds nothing and plays
+// nothing, and the only symptom is a quiet map.
 #include <gtest/gtest.h>
 
 #include <map>

@@ -9,8 +9,8 @@
  * A build with no audio, or a machine with no sound device, leaves `ready()`
  * false and every call below a no-op: silence is never an error.
  */
-#ifndef MS_SRC_AUDIO_JUKEBOX_H_
-#define MS_SRC_AUDIO_JUKEBOX_H_
+#ifndef MS_SRC_AUDIO_MUSIC_PLAYER_H_
+#define MS_SRC_AUDIO_MUSIC_PLAYER_H_
 
 #include <string>
 #include <string_view>
@@ -19,16 +19,16 @@
 
 namespace ms {
 
-class Jukebox {
+class MusicPlayer {
  public:
   // Which device to open. Tests take kNull, which runs miniaudio's own clock
   // and needs no sound card -- this box has no ALSA card at all.
   enum class Backend { kDevice, kNull };
 
-  explicit Jukebox(Backend backend = Backend::kDevice);
-  ~Jukebox();
-  Jukebox(const Jukebox&) = delete;
-  Jukebox& operator=(const Jukebox&) = delete;
+  explicit MusicPlayer(Backend backend = Backend::kDevice);
+  ~MusicPlayer();
+  MusicPlayer(const MusicPlayer&) = delete;
+  MusicPlayer& operator=(const MusicPlayer&) = delete;
 
   // Whether an engine came up. False leaves every call below doing nothing.
   bool ready() const {
@@ -76,4 +76,4 @@ class Jukebox {
 
 }  // namespace ms
 
-#endif  // MS_SRC_AUDIO_JUKEBOX_H_
+#endif  // MS_SRC_AUDIO_MUSIC_PLAYER_H_

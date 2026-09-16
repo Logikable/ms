@@ -6,7 +6,7 @@ licenses(["unencumbered"])
 
 exports_files(["LICENSE"])
 
-# Audio playback for the jukebox. Vendored rather than fetched so a build
+# Audio playback for the music player. Vendored rather than fetched so a build
 # needs no network, and chosen over SDL/OpenAL because it asks nothing of the
 # build: it decodes MP3 itself and dlopens libpulse/libasound on Linux, so
 # there is no system library for the hermetic toolchain to find and no mingw

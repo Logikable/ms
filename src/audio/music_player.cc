@@ -1,4 +1,4 @@
-#include "src/audio/jukebox.h"
+#include "src/audio/music_player.h"
 
 #include <algorithm>
 #include <optional>
@@ -11,7 +11,7 @@
 
 namespace ms {
 
-Jukebox::Jukebox(Backend backend) {
+MusicPlayer::MusicPlayer(Backend backend) {
   if (!kAudioEnabled) {
     // No tracks to play, so open no device: a silent build makes no sound
     // thread and touches no sound card.
@@ -35,7 +35,7 @@ Jukebox::Jukebox(Backend backend) {
   SetVolume(volume_);
 }
 
-Jukebox::~Jukebox() {
+MusicPlayer::~MusicPlayer() {
   if (!ready_) {
     return;
   }
@@ -49,7 +49,7 @@ Jukebox::~Jukebox() {
   ma_context_uninit(&context_);
 }
 
-void Jukebox::DropFading() {
+void MusicPlayer::DropFading() {
   int fading = 1 - live_;
   if (!loaded_[fading]) {
     return;
@@ -59,7 +59,7 @@ void Jukebox::DropFading() {
   loaded_[fading] = false;
 }
 
-void Jukebox::FadeOutLive() {
+void MusicPlayer::FadeOutLive() {
   if (!loaded_[live_]) {
     return;
   }
@@ -71,7 +71,7 @@ void Jukebox::FadeOutLive() {
   live_ = 1 - live_;
 }
 
-void Jukebox::Play(std::string_view track) {
+void MusicPlayer::Play(std::string_view track) {
   if (!ready_ || track == playing_) {
     return;
   }
@@ -102,7 +102,7 @@ void Jukebox::Play(std::string_view track) {
   playing_ = std::string(track);
 }
 
-void Jukebox::Stop() {
+void MusicPlayer::Stop() {
   if (!ready_ || playing_.empty()) {
     return;
   }
@@ -111,7 +111,7 @@ void Jukebox::Stop() {
   playing_.clear();
 }
 
-void Jukebox::SetVolume(int volume) {
+void MusicPlayer::SetVolume(int volume) {
   volume_ = std::clamp(volume, 0, 100);
   if (ready_) {
     ma_engine_set_volume(&engine_, static_cast<float>(volume_) / 100.0f);

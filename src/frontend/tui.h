@@ -19,7 +19,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/screen_interactive.hpp"
-#include "src/audio/jukebox.h"
+#include "src/audio/music_player.h"
 #include "src/combat/battle_analysis.h"
 #include "src/combat/fight.h"
 #include "src/combat/offline.h"
@@ -196,7 +196,7 @@ class Tui {
   CombatSim combat_sim_;
   // The music. Silent in a build made with --define=audio=off, on a machine
   // with no sound device, and under --nobgm.
-  Jukebox jukebox_;
+  MusicPlayer music_player_;
   // What the Battle Analysis tool has measured. Fed by the ticker, and only
   // while the map is the fight in front of the player.
   BattleAnalysis analysis_;

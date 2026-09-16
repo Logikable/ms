@@ -137,7 +137,8 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
       save_policy_(std::move(save_path), std::chrono::steady_clock::now()),
       multiplayer_(MakeSession(server)),
       progress_watcher_(state.character.proto()),
-      jukebox_(bgm ? Jukebox::Backend::kDevice : Jukebox::Backend::kNull),
+      music_player_(bgm ? MusicPlayer::Backend::kDevice
+                        : MusicPlayer::Backend::kNull),
       last_combat_update_(std::chrono::steady_clock::now()),
       keys_(state.account.mutable_keybinds()),
       char_panel_(state.character, state.account, panel_focus_, state.skills),
@@ -1201,19 +1202,19 @@ void Tui::Tick() {
 }
 
 void Tui::UpdateMusic() {
-  if (!jukebox_.ready()) {
+  if (!music_player_.ready()) {
     return;
   }
   // A boss owns the screen and the volume with it; the map underneath is not
   // where the player is.
   if (const BossRun* run = controller_.boss_run(); run != nullptr) {
-    jukebox_.SetVolume(state_.account.boss_bgm_volume());
-    jukebox_.Play(run->bgm());
+    music_player_.SetVolume(state_.account.boss_bgm_volume());
+    music_player_.Play(run->bgm());
     return;
   }
-  jukebox_.SetVolume(state_.account.map_bgm_volume());
+  music_player_.SetVolume(state_.account.map_bgm_volume());
   auto map = state_.maps.find(state_.current_map);
-  jukebox_.Play(map == state_.maps.end() ? "" : map->second.bgm());
+  music_player_.Play(map == state_.maps.end() ? "" : map->second.bgm());
 }
 
 Panel Tui::FocusedPanel() const {
