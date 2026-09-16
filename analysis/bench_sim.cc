@@ -426,6 +426,7 @@ struct Result {
   int attack = 0;
   double mastery = 0.0;
   double crit_rate = 0.0;
+  double crit_dmg = 0.0;
   double damage_pct = 0.0;
   double final_dmg_pct = 0.0;
   double boss_pct = 0.0;
@@ -779,6 +780,7 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build,
   result.attack = bare.attack;
   result.mastery = bare.mastery;
   result.crit_rate = bare.crit_rate;
+  result.crit_dmg = bare.crit_dmg;
   result.damage_pct = bare.damage_pct;
   result.final_dmg_pct = bare.final_dmg_pct;
   result.boss_pct = bare.boss_pct;
@@ -819,15 +821,15 @@ void PrintDetail(const Build& build, const Result& result) {
                   result.lines, 100.0 * result.mirror_pct * result.skill_pct);
   }
   std::printf(
-      "            %s %d  ATT %d  wc %.2f  mastery %.0f%%  crit %.0f%%  "
+      "            %s %d  ATT %d  wc %.2f  mastery %.0f%%  crit %.0f%%/%.0f%%  "
       "dmg %.0f%%  FD %.0f%%  boss %.0f%%  IED %.0f%%\n"
       "            swing %.0f (%d lines @ %.0f%%%s)  final attack %.0f  "
       "unspent SP %d\n            ",
       PrimaryStatName(build.job), result.primary, result.attack,
       result.weapon_constant, 100.0 * result.mastery, 100.0 * result.crit_rate,
-      100.0 * result.damage_pct, 100.0 * result.final_dmg_pct,
-      100.0 * result.boss_pct, 100.0 * result.ied, result.swing_damage,
-      result.lines, 100.0 * result.skill_pct, shadow_buf,
+      100.0 * result.crit_dmg, 100.0 * result.damage_pct,
+      100.0 * result.final_dmg_pct, 100.0 * result.boss_pct, 100.0 * result.ied,
+      result.swing_damage, result.lines, 100.0 * result.skill_pct, shadow_buf,
       result.final_attack_damage, result.unspent_sp);
   for (const std::pair<std::string, int>& skill : result.skills) {
     std::printf("%s %d  ", skill.first.c_str(), skill.second);
