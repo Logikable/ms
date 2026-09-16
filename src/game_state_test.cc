@@ -215,6 +215,20 @@ TEST(GameStateTest, TestModeStartsAtTheTopOfTheWrittenLine) {
 // --skills decides what becomes of the book the character is standing in. The
 // books behind it are bought either way: they are not what the tester picked
 // the job for.
+// Both switches are on for the workbench: it holds two stat allocations at
+// once, and the music is what a tester sitting in front of it hears. Play mode
+// leaves both to the player.
+TEST(GameStateTest, TestModeThrowsTheWorkbenchSwitches) {
+  GameState state = MakeTestModeState();
+  EXPECT_TRUE(state.account.autoswap_presets());
+  EXPECT_TRUE(state.character.autoswap_presets());
+  EXPECT_TRUE(state.account.jukebox());
+
+  GameState played = MakePlayModeState();
+  EXPECT_FALSE(played.account.autoswap_presets());
+  EXPECT_FALSE(played.account.jukebox());
+}
+
 TEST(GameStateTest, SkillsZeroLeavesTheJobsOwnBookUnbought) {
   GameState state = MakeTestModeStateWithSkills();
   int top = state.character.proto().job_stage();
@@ -977,6 +991,15 @@ GameState MakeMaxState(int level, JobAdvancement job = JOB_ADVANCEMENT_HERO,
   return GameState(MaxCatalog(), MaxTraces(), {}, std::move(mobs), {},
                    EveryStageBook(), GameMode::kMax, options, std::nullopt, {},
                    std::move(bosses));
+}
+
+// The ceiling holds both allocations at once, and plays the music the same
+// way the workbench does.
+TEST(GameStateTest, MaxModeThrowsTheSameSwitches) {
+  GameState state = MakeMaxState(230);
+  EXPECT_TRUE(state.account.autoswap_presets());
+  EXPECT_TRUE(state.character.autoswap_presets());
+  EXPECT_TRUE(state.account.jukebox());
 }
 
 const EquipInstance& Worn(const GameState& state, EquipSlot slot) {

@@ -823,6 +823,11 @@ void SeedPotentials(GameState& state) {
 // book, so the default workbench is finished rather than half-built.
 void SeedTest(GameState& state, const TestOptions& test) {
   state.exp_multiplier = kTestExpMultiplier;
+  // Both switches on: the workbench holds two allocations at once, which is
+  // what the autoswap is for, and the music is what a tester sitting in front
+  // of it hears for an hour.
+  state.account.SetAutoswapPresets(true);
+  state.account.SetJukebox(true);
 
   // Enough to buy anything the shop stocks, several times over, so the buying
   // screens can be exercised without grinding for the meso first. A hundred
@@ -983,6 +988,7 @@ void SeedMax(GameState& state, const TestOptions& options) {
   // A ceiling holds both allocations at once, which is what the autoswap is
   // for, whatever the state was asked for.
   state.account.SetAutoswapPresets(true);
+  state.account.SetJukebox(true);
   state.ApplyPresetOptions();
   // The same default the workbench takes: the top of the line as far as the
   // game is written, which is where a boss roster is measured from.
