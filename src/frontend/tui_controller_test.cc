@@ -3388,8 +3388,9 @@ TEST_F(TuiControllerTest, ArrowsMoveTheVolumeUnderTheCursor) {
   controller_->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_FALSE(state_->account.panel_title_blink());
 
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
+  for (int i = 0; i < static_cast<int>(Option::kMapBgmVolume); ++i) {
+    controller_->OnEvent(ftxui::Event::ArrowDown);
+  }
   ASSERT_EQ(options_panel_->selected_option(), Option::kMapBgmVolume);
   controller_->OnEvent(ftxui::Event::ArrowRight);
   controller_->OnEvent(ftxui::Event::ArrowRight);

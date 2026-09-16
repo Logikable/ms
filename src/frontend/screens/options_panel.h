@@ -23,15 +23,16 @@
 
 namespace ms {
 
-// The settings the screen holds, top to bottom. The two volumes are only
+// The settings the screen holds, top to bottom. The last three are only
 // there in a build that has music; see kAudioEnabled.
 enum class Option {
   kPanelTitleBlink,
   kAutoswapPresets,
+  kJukebox,
   kMapBgmVolume,
   kBossBgmVolume,
 };
-inline constexpr int kOptionCount = kAudioEnabled ? 4 : 2;
+inline constexpr int kOptionCount = kAudioEnabled ? 5 : 2;
 
 class OptionsPanel {
  public:
@@ -56,7 +57,7 @@ class OptionsPanel {
  private:
   // Rows the list is drawn to, so the panel keeps its size as settings are
   // added. The blank rows below the last one are the room they will take.
-  static constexpr int kListRows = 5;
+  static constexpr int kListRows = 6;
   // The name column, wide enough for the longest name and a gutter.
   static constexpr int kNameWidth = 22;
   // The bar a volume is drawn as, and the number standing after it.

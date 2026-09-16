@@ -82,6 +82,13 @@ class AccountInstance {
     account_.mutable_options()->set_autoswap_presets(on);
   }
 
+  bool jukebox() const {
+    return account_.options().jukebox();
+  }
+  void SetJukebox(bool on) {
+    account_.mutable_options()->set_jukebox(on);
+  }
+
   bool panel_title_blink() const {
     return account_.options().panel_title_blink();
   }

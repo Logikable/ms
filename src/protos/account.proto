@@ -69,4 +69,9 @@ message Options {
   // player to put one in use by hand. Off, which is the default, names the
   // presets by number and hands the choice over: see stat_preset.h.
   bool autoswap_presets = 4;
+
+  // Whether the music plays on shuffle -- a track at random from everything
+  // the build carries, rather than the one the map or the boss names. Off,
+  // which is the default, leaves the music where the data puts it.
+  bool jukebox = 5;
 }

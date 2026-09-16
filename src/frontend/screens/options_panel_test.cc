@@ -98,11 +98,11 @@ TEST_F(OptionsPanelTest, LeavesRoomForSettingsStillToCome) {
   ftxui::Element card = panel_.Render();
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
   ftxui::Render(screen, card);
-  // Two borders, five list rows, the rule above the foot and Close.
-  EXPECT_EQ(screen.dimy(), 9);
+  // Two borders, six list rows, the rule above the foot and Close.
+  EXPECT_EQ(screen.dimy(), 10);
 }
 
-class OptionsVolumeTest : public OptionsPanelTest {
+class OptionsAudioTest : public OptionsPanelTest {
  protected:
   void SetUp() override {
     if (!kAudioEnabled) {
@@ -111,7 +111,18 @@ class OptionsVolumeTest : public OptionsPanelTest {
   }
 };
 
-TEST_F(OptionsVolumeTest, BothVolumesShowAtTen) {
+// The switch sits above the two sliders, the music being one subject.
+TEST_F(OptionsAudioTest, JukeboxShipsOffAndEnterThrowsIt) {
+  SelectOption(Option::kJukebox);
+  EXPECT_NE(Render().find("Jukebox"), std::string::npos);
+  EXPECT_FALSE(account_.jukebox());
+  panel_.Toggle();
+  EXPECT_TRUE(account_.jukebox());
+  panel_.Toggle();
+  EXPECT_FALSE(account_.jukebox());
+}
+
+TEST_F(OptionsAudioTest, BothVolumesShowAtTen) {
   std::string out = Render();
   EXPECT_NE(out.find("Map BGM Volume"), std::string::npos);
   EXPECT_NE(out.find("Boss BGM Volume"), std::string::npos);
@@ -119,7 +130,7 @@ TEST_F(OptionsVolumeTest, BothVolumesShowAtTen) {
   EXPECT_EQ(account_.boss_bgm_volume(), kDefaultBgmVolume);
 }
 
-TEST_F(OptionsVolumeTest, ArrowsMoveOnlyTheVolumeSelected) {
+TEST_F(OptionsAudioTest, ArrowsMoveOnlyTheVolumeSelected) {
   SelectOption(Option::kMapBgmVolume);
   panel_.Adjust(5);
   EXPECT_EQ(account_.map_bgm_volume(), kDefaultBgmVolume + 5);
@@ -132,7 +143,7 @@ TEST_F(OptionsVolumeTest, ArrowsMoveOnlyTheVolumeSelected) {
 }
 
 // A held key runs into the end of the scale and stays there.
-TEST_F(OptionsVolumeTest, VolumeStopsAtBothEnds) {
+TEST_F(OptionsAudioTest, VolumeStopsAtBothEnds) {
   SelectOption(Option::kMapBgmVolume);
   for (int i = 0; i < kMaxBgmVolume + 20; ++i) {
     panel_.Adjust(1);
@@ -145,7 +156,7 @@ TEST_F(OptionsVolumeTest, VolumeStopsAtBothEnds) {
   EXPECT_EQ(account_.map_bgm_volume(), 0);
 }
 
-TEST_F(OptionsVolumeTest, EnterOnAVolumeThrowsNoSwitch) {
+TEST_F(OptionsAudioTest, EnterOnAVolumeThrowsNoSwitch) {
   SelectOption(Option::kMapBgmVolume);
   panel_.Toggle();
   EXPECT_FALSE(account_.panel_title_blink());
