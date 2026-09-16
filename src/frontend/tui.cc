@@ -392,12 +392,23 @@ ftxui::Element Tui::ApAllocDialog() {
 }
 
 ftxui::Element Tui::SkillLearnDialog() {
-  return ThemedWindow(" Learn Skill ",
-                      ftxui::vbox({
-                          CenteredRow(controller_.skill_learn_skill().name()),
-                          ThemedSeparator(),
-                          controller_.sp_selector().Render(),
-                      }));
+  const Skill& skill = controller_.skill_learn_skill();
+  std::vector<ftxui::Element> rows = {CenteredRow(skill.name()),
+                                      ThemedSeparator()};
+  // A node is the one thing here bought with a price rather than a point
+  // apiece, so it says what the levels on the selector below come to and what
+  // the pool holds against them. An SP skill needs neither: the page it was
+  // pressed on carries its pool, and the cost is the amount.
+  if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
+    const int64_t held = state_.character.v_points();
+    const int64_t cost =
+        state_.character.VNodeCostFor(skill, controller_.sp_selector().value());
+    rows.push_back(PriceBlock(FormatWithCommas(held) + " VP",
+                              FormatWithCommas(cost) + " VP", cost <= held));
+    rows.push_back(ThemedSeparator());
+  }
+  rows.push_back(controller_.sp_selector().Render());
+  return ThemedWindow(" Learn Skill ", ftxui::vbox(std::move(rows)));
 }
 
 ftxui::Element Tui::JobAdvanceDialog() {

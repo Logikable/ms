@@ -12,6 +12,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "google/protobuf/repeated_ptr_field.h"
 #include "src/character/character_stats.h"
+#include "src/character/v_matrix.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/format.h"
@@ -2035,10 +2036,17 @@ std::vector<Row> EffectRows(const Skill& skill, int level) {
   return Speaking(std::move(rows));
 }
 
-// One "Level N" heading and the effects under it.
-std::vector<Row> LevelBlock(const Skill& skill, int level) {
+// One "Level N" heading and the effects under it. `cost` is what the step up
+// to this level is charged in V Points, 0 for a level nobody is being quoted
+// a price for -- the one already paid for, and every level of a skill bought
+// with SP, where a level is a point and saying so says nothing.
+std::vector<Row> LevelBlock(const Skill& skill, int level, int cost = 0) {
   std::vector<Row> rows;
-  rows.push_back(TextRow(ftxui::text(" Level " + std::to_string(level))));
+  std::string heading = " Level " + std::to_string(level);
+  if (cost > 0) {
+    heading += " - " + std::to_string(cost) + " VP";
+  }
+  rows.push_back(TextRow(ftxui::text(heading)));
   std::vector<Row> effects = EffectRows(skill, level);
   if (effects.empty()) {
     // A skill whose whole effect is unmodelled still has levels to spend on,
@@ -2104,7 +2112,15 @@ std::vector<Row> CardRows(const Skill& skill, int level, int bonus,
   }
   if (has_second) {
     rule();
-    Append(LevelBlock(skill, second), rows);
+    // A node's next level wears its price, the way the Hyper Stat card's
+    // does: a node's levels are not one point each, so what one more costs is
+    // the thing a player weighing it wants to know. Priced off the LEARNED
+    // level -- the ladder charges for the step being bought, whatever the
+    // heading above it reads.
+    int cost = levels == SkillInspectPanel::kLearned
+                   ? VNodeStepCost(skill.v_node(), level + 1)
+                   : 0;
+    Append(LevelBlock(skill, second, cost), rows);
   }
   return rows;
 }

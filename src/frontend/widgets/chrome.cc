@@ -547,17 +547,19 @@ ftxui::Element RedUnless(ftxui::Element cell, bool ok) {
 ftxui::Element PriceBlock(int64_t held, int64_t cost, bool affordable) {
   // The width the column is held to whatever is in the purse today.
   constexpr int64_t kWidestQuietPurse = 100'000'000'000;
-  const std::string held_text = FormatMeso(held);
-  const std::string cost_text = FormatMeso(cost);
-  const int width = std::max({TextColumns(FormatMeso(kWidestQuietPurse)),
-                              TextColumns(held_text), TextColumns(cost_text)});
+  return PriceBlock(FormatMeso(held), FormatMeso(cost), affordable,
+                    TextColumns(FormatMeso(kWidestQuietPurse)));
+}
+
+ftxui::Element PriceBlock(const std::string& held, const std::string& cost,
+                          bool affordable, int min_width) {
+  const int width = std::max({min_width, TextColumns(held), TextColumns(cost)});
   constexpr int kLabelWidth = 4;  // "Held", "Cost"
   return ftxui::vbox({
-      CenteredRow(PadRight("Held", kLabelWidth) + "  " +
-                  PadLeft(held_text, width)),
+      CenteredRow(PadRight("Held", kLabelWidth) + "  " + PadLeft(held, width)),
       CenteredRow(ftxui::hbox({
           ftxui::text(PadRight("Cost", kLabelWidth) + "  "),
-          RedUnless(ftxui::text(PadLeft(cost_text, width)), affordable),
+          RedUnless(ftxui::text(PadLeft(cost, width)), affordable),
       })),
   });
 }

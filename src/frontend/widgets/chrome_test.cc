@@ -778,5 +778,28 @@ TEST(PriceBlockTest, NamesBothAndReddensOnlyThePrice) {
   EXPECT_NE(ColorOf(screen, "500"), kRed);
 }
 
+// A currency that is not meso brings its own numbers, units and all, and the
+// pair reads the same: the purse over the price, red on one that cannot be
+// met.
+TEST(PriceBlockTest, TakesACurrencyOfItsOwn) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
+                                               ftxui::Dimension::Fixed(4));
+  ftxui::Render(screen, PriceBlock("12 VP", "186 VP", /*affordable=*/false));
+  std::string rendered = screen.ToString();
+  EXPECT_LT(rendered.find("Held"), rendered.find("Cost"));
+  EXPECT_EQ(ColorOf(screen, "186 VP"), kRed);
+  EXPECT_NE(ColorOf(screen, "12 VP"), kRed);
+  // And the two numbers stand in one column, which is what min_width buys a
+  // purse that should not shrink as it is spent.
+  auto width = [](const std::string& held, int min_width) {
+    ftxui::Element block =
+        PriceBlock(held, "186 VP", /*affordable=*/true, min_width);
+    block->ComputeRequirement();
+    return block->requirement().min_x;
+  };
+  EXPECT_EQ(width("12 VP", 9), width("5,000 VP", 9));
+  EXPECT_GT(width("100,000 VP", 9), width("12 VP", 9));
+}
+
 }  // namespace
 }  // namespace ms

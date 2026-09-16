@@ -304,6 +304,13 @@ ftxui::Element RedUnless(ftxui::Element cell, bool ok);
 // it, there being nothing else to do with a number that long.
 ftxui::Element PriceBlock(int64_t held, int64_t cost, bool affordable);
 
+// The same pair over a currency that is not meso: both numbers already
+// written out, units and all. `min_width` is the column the two are
+// right-aligned in, for a purse that should not shrink as it is spent; the
+// numbers themselves widen it when they have to.
+ftxui::Element PriceBlock(const std::string& held, const std::string& cost,
+                          bool affordable, int min_width = 0);
+
 // Returns a horizontal separator rule in the theme border color.
 ftxui::Element ThemedSeparator();
 

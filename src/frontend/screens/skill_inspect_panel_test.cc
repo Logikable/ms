@@ -8,6 +8,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/skill_placement.h"
+#include "src/character/v_matrix.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/protos/equip.pb.h"
@@ -145,6 +146,28 @@ TEST_F(SkillInspectPanelTest, ShowsWhatTheNextPointBuys) {
   std::string rendered = RenderAt(skill, 5);
   EXPECT_NE(rendered.find("Level 6"), std::string::npos);
   EXPECT_NE(rendered.find("+60"), std::string::npos);  // DEF one point on
+}
+
+// A node's levels are not a point apiece, so the block for the next one wears
+// what the step costs -- the Hyper Stat card's rule. The level already paid
+// for is stated bare, and an SP skill is priced nowhere: a level is a point.
+TEST_F(SkillInspectPanelTest, ANodesNextLevelWearsItsPrice) {
+  Skill node = IronBody();
+  node.set_v_node(V_NODE_KIND_COMMON);
+  node.set_max_level(MaxVNodeLevel(V_NODE_KIND_COMMON));
+  EXPECT_NE(RenderAt(node, 0).find("Level 1 - 7 VP"), std::string::npos)
+      << "a common node's first level costs seven";
+  std::string climbing = RenderAt(node, 5);
+  EXPECT_NE(climbing.find("Level 6 - 4 VP"), std::string::npos);
+  EXPECT_EQ(climbing.find("Level 5 - "), std::string::npos)
+      << "the level already paid for is stated bare";
+  // At the ceiling there is no next block to price.
+  EXPECT_EQ(RenderAt(node, node.max_level()).find(" VP"), std::string::npos);
+  // And the preview quotes nobody a price: it is about the skill, not about a
+  // player standing in front of it.
+  EXPECT_EQ(RenderPreview(node).find(" VP"), std::string::npos);
+  EXPECT_EQ(RenderAt(IronBody(), 5).find(" VP"), std::string::npos)
+      << "an SP skill's level is a point";
 }
 
 // Nothing has been spent yet, so there is no current level to show -- only
