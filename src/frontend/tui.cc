@@ -1201,20 +1201,54 @@ void Tui::Tick() {
   in_boss_fight_ = controller_.in_boss_fight();
 }
 
+std::string Tui::NormalTrack() const {
+  if (const BossRun* run = controller_.boss_run(); run != nullptr) {
+    return std::string(run->bgm());
+  }
+  auto map = state_.maps.find(state_.current_map);
+  return map == state_.maps.end() ? "" : std::string(map->second.bgm());
+}
+
+void Tui::PlayShuffled() {
+  if (!shuffling_) {
+    // What is playing is not cut off. Taking the loop off it is what lets it
+    // reach an end for the first random track to blend in over.
+    music_player_.StopLooping();
+    shuffling_ = true;
+  }
+  // Kept up to date, so that switching the option off knows where the player
+  // was standing when they did it.
+  resuming_from_ = NormalTrack();
+  if (music_player_.ending()) {
+    music_player_.PlayOnce(jukebox_.Next());
+  }
+}
+
 void Tui::UpdateMusic() {
   if (!music_player_.ready()) {
     return;
   }
   // A boss owns the screen and the volume with it; the map underneath is not
-  // where the player is.
-  if (const BossRun* run = controller_.boss_run(); run != nullptr) {
-    music_player_.SetVolume(state_.account.boss_bgm_volume());
-    music_player_.Play(run->bgm());
+  // where the player is. The jukebox takes the track but not the volume: a
+  // fight is still a fight, whatever is playing over it.
+  music_player_.SetVolume(controller_.boss_run() != nullptr
+                              ? state_.account.boss_bgm_volume()
+                              : state_.account.map_bgm_volume());
+  if (state_.account.jukebox()) {
+    PlayShuffled();
     return;
   }
-  music_player_.SetVolume(state_.account.map_bgm_volume());
-  auto map = state_.maps.find(state_.current_map);
-  music_player_.Play(map == state_.maps.end() ? "" : map->second.bgm());
+  std::string track = NormalTrack();
+  // Switching the option off does not cut a track short either: the random
+  // one plays out, unless the player has since walked somewhere the map's own
+  // music answers for.
+  if (shuffling_) {
+    if (track == resuming_from_ && !music_player_.ending()) {
+      return;
+    }
+    shuffling_ = false;
+  }
+  music_player_.Play(track);
 }
 
 Panel Tui::FocusedPanel() const {

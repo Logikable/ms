@@ -15,10 +15,12 @@
 #include <chrono>
 #include <memory>
 #include <optional>
+#include <random>
 #include <string>
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/screen_interactive.hpp"
+#include "src/audio/jukebox.h"
 #include "src/audio/music_player.h"
 #include "src/combat/battle_analysis.h"
 #include "src/combat/fight.h"
@@ -178,6 +180,10 @@ class Tui {
   // end of every tick, and asking for the track already playing costs
   // nothing.
   void UpdateMusic();
+  // The track the map or the boss names, empty where neither names one.
+  std::string NormalTrack() const;
+  // Keeps a random track going, one blending into the next as each ends.
+  void PlayShuffled();
   // The panel the player is looking at, or kNoPanel when the main screen is
   // not what is in front of them. panel_focus_ still names a panel while the
   // shop is open, but it is not one they can see, so nothing there counts as
@@ -197,6 +203,17 @@ class Tui {
   // The music. Silent in a build made with --define=audio=off, on a machine
   // with no sound device, and under --nobgm.
   MusicPlayer music_player_;
+  // Its own stream rather than the game's, so which track comes up next does
+  // not move the rolls a seeded run is meant to repeat.
+  std::mt19937 music_rng_{std::random_device{}()};
+  Jukebox jukebox_{music_rng_};
+  // Whether the music is the jukebox's rather than the map's. It outlasts the
+  // option being switched off: a track that is playing is played out first.
+  bool shuffling_ = false;
+  // What the map or the boss wanted at the moment the option went off. The
+  // player walking somewhere else while the last random track plays out is
+  // what ends the wait early.
+  std::string resuming_from_;
   // What the Battle Analysis tool has measured. Fed by the ticker, and only
   // while the map is the fight in front of the player.
   BattleAnalysis analysis_;

@@ -63,6 +63,37 @@ TEST(MusicPlayerTest, UnknownTrackPlaysNothing) {
   EXPECT_EQ(player.playing(), "");
 }
 
+// A looping track is the map's: it never ends, so it never asks for another.
+TEST(MusicPlayerTest, ALoopingTrackIsNeverEnding) {
+  if (AnyTrack().empty()) {
+    GTEST_SKIP() << "built with --define=audio=off";
+  }
+  MusicPlayer player = MakePlayer();
+  EXPECT_TRUE(player.ending()) << "nothing playing";
+  player.Play(AnyTrack());
+  EXPECT_FALSE(player.ending());
+  // Taking the loop off is what the Jukebox option does to a track already
+  // playing. The track keeps playing; it just has an end now.
+  player.StopLooping();
+  EXPECT_FALSE(player.ending()) << "a track just started is not near its end";
+  EXPECT_EQ(player.playing(), AnyTrack());
+}
+
+TEST(MusicPlayerTest, PlayOnceRestartsTheSameTrack) {
+  if (AnyTrack().empty()) {
+    GTEST_SKIP() << "built with --define=audio=off";
+  }
+  MusicPlayer player = MakePlayer();
+  player.PlayOnce(AnyTrack());
+  EXPECT_EQ(player.playing(), AnyTrack());
+  EXPECT_FALSE(player.ending());
+  // Play would take this for the track already on and do nothing. A library
+  // of one comes to exactly this.
+  player.PlayOnce(AnyTrack());
+  EXPECT_EQ(player.playing(), AnyTrack());
+  EXPECT_FALSE(player.ending());
+}
+
 TEST(MusicPlayerTest, VolumeClamps) {
   MusicPlayer player = MakePlayer();
   player.SetVolume(55);

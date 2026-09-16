@@ -38,6 +38,18 @@ class MusicPlayer {
   // Crossfades to `track`, looping it. Does nothing if it is already playing,
   // and stops if this build has no such track.
   void Play(std::string_view track);
+  // The same, but plays `track` through once rather than looping it. Always
+  // starts it over, so the track that is ending can be asked for again --
+  // which is what a library of one comes to.
+  void PlayOnce(std::string_view track);
+  // Takes the loop off whatever is playing, so it ends where it is rather
+  // than coming round again. What is playing is not interrupted.
+  void StopLooping();
+  // Whether what is playing is within a crossfade of its end, nothing is
+  // playing at all, or the track's length cannot be told. Only ever true of a
+  // track that is not looping. Not const: miniaudio's cursor is a query on
+  // the live sound.
+  bool ending();
   // Fades out whatever is playing.
   void Stop();
 
@@ -56,6 +68,9 @@ class MusicPlayer {
   // How long a track takes to fade out, and the next to come up under it.
   static constexpr int kFadeMs = 400;
 
+  // Crossfades to `track`, looping it or not. The shared half of Play and
+  // PlayOnce.
+  void Start(std::string_view track, bool looping);
   // Frees the slot that was fading out, whether or not it has finished.
   void DropFading();
   // Moves the live slot to fading and starts it on its way out.
@@ -71,6 +86,8 @@ class MusicPlayer {
   bool loaded_[2] = {false, false};
   int live_ = 0;
   std::string playing_;
+  // How long the live track runs, or 0 where the decoder could not say.
+  float length_seconds_ = 0.0f;
   int volume_ = 10;
 };
 

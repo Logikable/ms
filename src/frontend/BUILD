@@ -300,6 +300,7 @@ cc_library(
         ":tui_controller",
         "//src:game_state",
         "//src:save",
+        "//src/audio:jukebox",
         "//src/audio:music_player",
         "//src/character",
         "//src/character:consumables",

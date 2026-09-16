@@ -75,6 +75,44 @@ void MusicPlayer::Play(std::string_view track) {
   if (!ready_ || track == playing_) {
     return;
   }
+  Start(track, /*looping=*/true);
+}
+
+void MusicPlayer::PlayOnce(std::string_view track) {
+  if (!ready_) {
+    return;
+  }
+  Start(track, /*looping=*/false);
+}
+
+void MusicPlayer::StopLooping() {
+  if (ready_ && loaded_[live_]) {
+    ma_sound_set_looping(&sounds_[live_], MA_FALSE);
+  }
+}
+
+bool MusicPlayer::ending() {
+  if (!ready_ || !loaded_[live_] || playing_.empty()) {
+    return true;
+  }
+  ma_sound& sound = sounds_[live_];
+  if (ma_sound_is_looping(&sound)) {
+    return false;
+  }
+  if (ma_sound_at_end(&sound)) {
+    return true;
+  }
+  // A track whose length the decoder could not tell is left to run out, and
+  // ma_sound_at_end above is what catches it -- late, but never early.
+  float cursor = 0.0f;
+  if (length_seconds_ <= 0.0f ||
+      ma_sound_get_cursor_in_seconds(&sound, &cursor) != MA_SUCCESS) {
+    return false;
+  }
+  return length_seconds_ - cursor <= static_cast<float>(kFadeMs) / 1000.0f;
+}
+
+void MusicPlayer::Start(std::string_view track, bool looping) {
   std::optional<TrackData> data = BgmTrack(track);
   if (!data.has_value()) {
     // Nothing to play under that name: silence rather than the wrong track.
@@ -96,7 +134,13 @@ void MusicPlayer::Play(std::string_view track) {
     return;
   }
   loaded_[live_] = true;
-  ma_sound_set_looping(&sounds_[live_], MA_TRUE);
+  // Asked once, here: an MP3's length costs a scan of the file, which is not
+  // a price to pay every tick.
+  if (ma_sound_get_length_in_seconds(&sounds_[live_], &length_seconds_) !=
+      MA_SUCCESS) {
+    length_seconds_ = 0.0f;
+  }
+  ma_sound_set_looping(&sounds_[live_], looping ? MA_TRUE : MA_FALSE);
   ma_sound_set_fade_in_milliseconds(&sounds_[live_], 0.0f, 1.0f, kFadeMs);
   ma_sound_start(&sounds_[live_]);
   playing_ = std::string(track);
