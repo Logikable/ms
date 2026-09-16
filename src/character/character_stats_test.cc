@@ -3658,6 +3658,30 @@ TEST_F(DerivedStatsTest, RequiresPartyGrantsNothingAlone) {
             15);
 }
 
+// Divine Echo's other half: the blessing's share is paid for the echo standing
+// on somebody, so alone the buff is worth only the two unconditional shares --
+// and the two multiply rather than sum.
+TEST_F(DerivedStatsTest, ABuffsPartyShareWaitsForCompany) {
+  Skill echo = Bless();
+  echo.set_name("Divine Echo");
+  echo.mutable_buff()->set_duration_seconds(30.0);
+  echo.mutable_buff()->mutable_base()->set_final_dmg_pct(1.45);
+  echo.mutable_buff()->mutable_with_party_base()->set_final_dmg_pct(0.15);
+  std::map<std::string, Skill> skills = {{"echo", echo}};
+  CharacterInstance caster = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(caster.LearnSkill(echo, 10));
+  const BuffUp up[] = {{&echo}};
+
+  EXPECT_DOUBLE_EQ(
+      DerivedStatsFor(caster, skills, absl::MakeConstSpan(up)).final_dmg_pct,
+      1.45);
+  std::vector<CharacterInstance> party = PartyOf(MakeCharacter(rng_, 100, 0));
+  EXPECT_DOUBLE_EQ(
+      DerivedStatsFor(caster, skills, absl::MakeConstSpan(up), party)
+          .final_dmg_pct,
+      2.45 * 1.15 - 1.0);
+}
+
 // Divine Echo's shape: the grant falls on ONE other member, and every reader
 // settles on the same one off the roster's names -- the caster's own excluded,
 // or a Paladin sorting first would echo nobody.

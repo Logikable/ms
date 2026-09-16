@@ -900,6 +900,15 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
     SkillEffect held =
         EffectAt(skill.buff().base(), skill.buff().per_level(), level);
     AddEffect(held, totals);
+    // The share the buff pays only for company. Its own AddEffect rather than
+    // a sum into the one above: a source apiece is what makes two shares of
+    // final damage multiply. See Buff.with_party_base.
+    if (!allies.empty() && (skill.buff().has_with_party_base() ||
+                            skill.buff().has_with_party_per_level())) {
+      AddEffect(EffectAt(skill.buff().with_party_base(),
+                         skill.buff().with_party_per_level(), level),
+                totals);
+    }
     // A buff can hand over a Final Attack for as long as it stands -- Split
     // Shot's arrow splits only under it -- and what sets one off belongs to
     // the skill, so the buff's grant goes through the same door a passive's

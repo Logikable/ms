@@ -1906,6 +1906,12 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
                        FormatNumber(buff.duty_interval_seconds()) + "s"));
   }
   Append(LeverRows(base, per, level, per_stage), rows);
+  // The share paid only for company, named in the row rather than headed:
+  // one line of a buff the rest of which stands alone. See
+  // Buff.with_party_base.
+  Append(LeverRows(buff.with_party_base(), buff.with_party_per_level(), level,
+                   " in a party"),
+         rows);
   // A Final Attack the buff hands over for as long as it stands. Under the
   // buff's own heading, which has already said how long that is.
   Append(FinalAttackRows(base, per, level, skill.final_attack_max_enemies(),

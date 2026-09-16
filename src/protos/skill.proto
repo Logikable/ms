@@ -1032,6 +1032,20 @@ message Buff {
   //
   // 0 for a buff a swing lays, which is every other one.
   int32 own_cast_delay_ms = 25;
+  // What the buff grants the CASTER on top of `base` above, and only while
+  // somebody else is in the party. Divine Echo alone: GMS pays the Paladin a
+  // share for the blessing standing on whoever is carrying their echo, and
+  // there is nobody to carry it alone.
+  //
+  // Apart from Skill.requires_party, which withholds the whole skill, and from
+  // ally_base, which is what the OTHERS get. Read at the same learned level as
+  // the rest of the buff, and folded as a source of its own -- so a share of
+  // final damage here multiplies with the one above rather than summing.
+  //
+  // Unset for every buff worth the same alone as in company, which is every
+  // other one.
+  SkillEffect with_party_base = 26;
+  SkillEffect with_party_per_level = 27;
 }
 
 // A chance a swing has to land harder on one of the enemies it reached, and

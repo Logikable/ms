@@ -5,13 +5,15 @@
 # whoever is carrying it. Final damage sources multiply here as they do there,
 # so 1.75 x 1.40 x 1.15 is one buff of 181.75% and says the same thing.
 #
-# The blessing's share is folded in unconditionally because this game's Divine
-# Blessing already is: it ships as a permanent passive with no cast to aim, so
-# there is no moment at which the echo is standing without it.
+# The blessing's share is the one piece that waits on company: it is paid for
+# the blessing standing on whoever is CARRYING the echo, and alone there is
+# nobody to carry it. The other two are kept unconditional -- this game's
+# Divine Blessing is a permanent passive with no cast to aim, so the share is
+# never the thing that is missing.
 #
-# The step is 2.5 points a level rather than the 2.474 an exact ladder between
-# GMS's ends would want. Master is GMS's to the hundredth; level 1 lands 0.75
-# under.
+# Both steps are round rather than the exact ladder between GMS's ends, which
+# wants 1.5517 and 0.3448 points a level. Master is GMS's to the hundredth in
+# both; level 1 lands 1.5 over on the first and 0.15 under on the second.
 #
 # The echo itself is worth 100% Buff Duration to one other member, granted for
 # good rather than on this skill's clock -- a 30-second buff behind a 60-second
@@ -38,6 +40,8 @@ ally_grant_reaches_one: true
 buff {
   duration_seconds: 15.5
   duration_seconds_per_level: 0.5
-  base { final_dmg_pct: 1.0925 }
-  per_level { final_dmg_pct: 0.025 }
+  base { final_dmg_pct: 1.015 }
+  per_level { final_dmg_pct: 0.015 }
+  with_party_base { final_dmg_pct: 0.0485 }
+  with_party_per_level { final_dmg_pct: 0.0035 }
 }
