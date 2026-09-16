@@ -39,6 +39,11 @@ struct Sequence {
   // credited to the swing that lit it. Sums with own_clock_damage to `damage`,
   // so a share is one entry over that.
   std::vector<double> damage_by_attack;
+  // The two halves of each of those figures that the swing did not strike for
+  // itself, parallel to the same list and already inside it: what its Final
+  // Attacks landed, and what the burns it lit ticked for.
+  std::vector<double> final_attack_by_attack;
+  std::vector<double> burn_by_attack;
   // What everything on a clock of its own came to: the summons, the releases
   // clocked by swings or by defeats, and what a reflection put back.
   double own_clock_damage = 0.0;

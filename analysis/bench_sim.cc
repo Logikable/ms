@@ -551,8 +551,20 @@ void RecordShares(const CombatParams& params, const Sequence& played,
     if (played.damage_by_attack[i] <= 0.0) {
       continue;
     }
+    // What rode the swing, named apart and taken out of it: a Meso Explosion
+    // and a poison land under the swing's own figure, and a reader tuning the
+    // swing means the strike rather than what it set off.
+    double rode = played.final_attack_by_attack[i] + played.burn_by_attack[i];
     result->shares.push_back(
-        {params.attacks[i].name, played.damage_by_attack[i] / total});
+        {params.attacks[i].name, (played.damage_by_attack[i] - rode) / total});
+    if (played.final_attack_by_attack[i] > 0.0) {
+      result->shares.push_back({params.attacks[i].name + " (final attack)",
+                                played.final_attack_by_attack[i] / total});
+    }
+    if (played.burn_by_attack[i] > 0.0) {
+      result->shares.push_back({params.attacks[i].name + " (burn)",
+                                played.burn_by_attack[i] / total});
+    }
   }
   // Split by what dealt it rather than heaped into one row: on a branch whose
   // summons outweigh its swings, "(own clock) 61%" names no skill to tune.

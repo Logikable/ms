@@ -106,6 +106,17 @@ class CombatSim {
   double own_clock_damage() const {
     return own_clock_damage_;
   }
+  // The two halves of that total a swing does not strike for itself, both
+  // parallel to params.attacks and both ALREADY counted in damage_by_attack().
+  // What they are for is splitting a swing's figure: a Meso Explosion and a
+  // poison are the swing's damage in the sense that nothing else set them off,
+  // and are not the swing in the sense a reader tuning it means.
+  const std::vector<double>& final_attack_damage_by_attack() const {
+    return final_attack_damage_by_attack_;
+  }
+  const std::vector<double>& burn_damage_by_attack() const {
+    return burn_damage_by_attack_;
+  }
   // The same total, told apart by what dealt it. A caller names a source by
   // looking its index up in the list its origin belongs to -- kOwnClock in
   // params.auto_attacks, kSwingClock and kKillClock in
@@ -747,6 +758,12 @@ class CombatSim {
   // is a measurement, which fights one. See damage_by_attack().
   std::vector<double> damage_by_attack_;
   std::vector<int> swings_by_attack_;
+  std::vector<double> final_attack_damage_by_attack_;
+  std::vector<double> burn_damage_by_attack_;
+  // What is riding the attack the damage is credited to. Set around the Hurt
+  // calls that are not the swing striking for itself, and put back after.
+  enum class Rider { kItself, kFinalAttack, kBurn };
+  Rider riding_ = Rider::kItself;
   double own_clock_damage_ = 0.0;
   std::map<DamageSource, double> own_clock_by_source_;
   // Which attack the damage now landing belongs to, or -1 for damage on a

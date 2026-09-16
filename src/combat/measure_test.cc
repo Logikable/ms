@@ -125,6 +125,35 @@ TEST(MeasureFightTest, EveryOwnClockSourceIsNamedApart) {
               played.own_clock_damage, 1e-6);
 }
 
+// What rides a swing is inside the swing's own figure and told apart within
+// it: a Final Attack and the burn the swing left are the swing's damage in
+// the sense that nothing else set them off, and not in the sense a reader
+// tuning the swing means.
+TEST(MeasureFightTest, WhatRidesASwingIsSplitOutOfIt) {
+  Mob mob = MakeMob("Snail", 10);
+  CombatParams params = MakeParams(&mob, 1.0, 10.0);
+  FinalAttackRoll follow;
+  follow.chance = 1.0;
+  follow.damage = {4.0};
+  params.attacks[0].final_attack_rolls.push_back(follow);
+  params.attacks[0].final_attack_damage = {4.0};
+  DotApplication burn;
+  burn.damage = {1.0};
+  burn.interval_seconds = 1.0;
+  burn.duration_seconds = 100.0;
+  burn.slot = 0;
+  params.attacks[0].dots.push_back(burn);
+
+  Sequence played = MeasureFight(params, 100.0, 1);
+  EXPECT_NEAR(played.final_attack_by_attack[0], 100 * 4.0, 1e-6);
+  EXPECT_NEAR(played.burn_by_attack[0], 99 * 1.0, 1e-6);
+  // Both are already inside the swing's own figure, which is the whole point.
+  EXPECT_NEAR(
+      played.damage_by_attack[0],
+      100 * 10.0 + played.final_attack_by_attack[0] + played.burn_by_attack[0],
+      1e-6);
+}
+
 // A buff that stands for two seconds in every ten reads as a fifth of the run,
 // which is what a pulse gated on it is worth.
 TEST(MeasureFightTest, ABuffReportsTheShareItStood) {

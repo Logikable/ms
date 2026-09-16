@@ -74,6 +74,8 @@ std::string SourceName(const CombatParams& params, const DamageSource& source) {
 Sequence MeasureFight(const CombatParams& params, double horizon, int enemies) {
   Sequence played;
   played.damage_by_attack.assign(params.attacks.size(), 0.0);
+  played.final_attack_by_attack.assign(params.attacks.size(), 0.0);
+  played.burn_by_attack.assign(params.attacks.size(), 0.0);
   played.buff_uptime.assign(params.buffs.size(), 0.0);
   if (!params.active || params.types.empty() || params.attacks.empty() ||
       horizon <= 0.0) {
@@ -111,6 +113,8 @@ Sequence MeasureFight(const CombatParams& params, double horizon, int enemies) {
                   i < static_cast<int>(dealt.size());
        ++i) {
     played.damage_by_attack[i] = dealt[i];
+    played.final_attack_by_attack[i] = sim.final_attack_damage_by_attack()[i];
+    played.burn_by_attack[i] = sim.burn_damage_by_attack()[i];
     played.damage += dealt[i];
   }
   if (getenv("MS_DUMP") != nullptr) {

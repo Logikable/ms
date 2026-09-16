@@ -831,6 +831,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   }
   // A Final Attack rolls separately against every enemy the swing reached, so
   // in expectation each of them takes it.
+  riding_ = Rider::kFinalAttack;
   if (!attack.final_attack_damage.empty()) {
     for (int j = 0; j < hit; ++j) {
       double freeze = StateBoost(attack, queue_[j]);
@@ -851,6 +852,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
                                       queue_[j].type, LandingAt(j, freeze)) *
                         freeze);
   }
+  riding_ = Rider::kItself;
   // The half of the swing that finds its own crowd: Jupiter Thunder's current
   // arcs onto two where the orb rides one. Held to the swing landing at all,
   // as the bank above is -- a current arcs off a shock, not off nothing.
@@ -1375,6 +1377,13 @@ void CombatSim::Hurt(QueuedMob& mob, double damage) {
   if (attributing_ >= 0 &&
       attributing_ < static_cast<int>(damage_by_attack_.size())) {
     damage_by_attack_[attributing_] += damage;
+    // Told apart within that total rather than out of it: what the reader
+    // wants is the swing's figure split, not the swing's figure short.
+    if (riding_ == Rider::kFinalAttack) {
+      final_attack_damage_by_attack_[attributing_] += damage;
+    } else if (riding_ == Rider::kBurn) {
+      burn_damage_by_attack_[attributing_] += damage;
+    }
   } else {
     own_clock_damage_ += damage;
     own_clock_by_source_[striking_] += damage;
@@ -1609,6 +1618,7 @@ void CombatSim::RunDots(double dt) {
       dot.phase += spent;
       attributing_ = dot.lit_by;
       striking_ = {DamageOrigin::kBurn, slot};
+      riding_ = Rider::kBurn;
       while (dot.phase >= dot.interval_seconds) {
         dot.phase -= dot.interval_seconds;
         // Every helping ticks for the whole damage, and each rolls its own.
@@ -1634,6 +1644,7 @@ void CombatSim::RunDots(double dt) {
     Reap();
   }
   attributing_ = -1;
+  riding_ = Rider::kItself;
 }
 
 void CombatSim::RunRegen(const CombatParams& params, double dt) {
@@ -2804,6 +2815,8 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   }
   damage_by_attack_.resize(Attacks(params).size(), 0.0);
   swings_by_attack_.resize(Attacks(params).size(), 0);
+  final_attack_damage_by_attack_.resize(Attacks(params).size(), 0.0);
+  burn_damage_by_attack_.resize(Attacks(params).size(), 0.0);
   // After the hit, so a buff going up now answers it with its heal, and
   // before everything that attacks, so this step swings with it.
   RunBuffs(params, dt);
