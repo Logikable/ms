@@ -1264,6 +1264,26 @@ TEST(SkillDataTest, AWaivedCastStillRecordsTheAnimationItSkips) {
   }
 }
 
+// A buff with a press of its own is charged that press, so the figure has to
+// be an animation rather than a sequence's flat pace. Only a buff on an attack
+// needs it: everything else is already raised on its own wait.
+TEST(SkillDataTest, ABuffWithItsOwnPressStatesTheAnimation) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (skill.buff().own_cast_delay_ms() <= 0) {
+      continue;
+    }
+    EXPECT_EQ(skill.kind(), SKILL_KIND_ATTACK)
+        << entry.first << " is raised on its own wait already, so a press of "
+        << "its own says nothing";
+    EXPECT_GE(skill.buff().own_cast_delay_ms(), 300)
+        << entry.first << " presses faster than any animation GMS plays";
+    EXPECT_LE(skill.buff().own_cast_delay_ms(), 2000) << entry.first;
+    EXPECT_GT(skill.buff().duration_seconds(), 0.0)
+        << entry.first << " pays for a press that puts up nothing that lapses";
+  }
+}
+
 // The opening hit is a pair: a multiplier and how many times it strikes. One
 // without the other is a figure nothing will read.
 TEST(SkillDataTest, AnOpeningHitStatesBothOfItsHalves) {

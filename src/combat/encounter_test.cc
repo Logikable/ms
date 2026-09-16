@@ -4612,6 +4612,66 @@ TEST(ComputeCombatParamsTest, ARapidSwingCountsForLessThanAWholeAttack) {
   EXPECT_DOUBLE_EQ(params.attacks[1].count_weight, 1.0 / 7.0);
 }
 
+// A buff on an attack is normally laid by that swing and charged nothing. One
+// stating a press of its own is neither: the character puts it up on the
+// buff's own wait and pays the animation to do it.
+TEST(ComputeCombatParamsTest, ABuffWithItsOwnPressIsRaisedRatherThanLaid) {
+  Skill blaster;
+  blaster.set_name("Arrow Blaster");
+  blaster.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(blaster, JOB_ADVANCEMENT_SWORDMAN);
+  blaster.set_max_level(20);
+  blaster.mutable_base()->set_skill_pct(1.24);
+  Buff* turret = blaster.mutable_buff();
+  turret->set_duration_seconds(60.0);
+  turret->set_own_cast_delay_ms(800);
+  BuffPulse* firing = turret->mutable_pulse();
+  firing->set_label("Turret");
+  firing->set_cast_interval_seconds(0.21);
+  firing->set_max_enemies(4);
+  firing->mutable_base()->set_skill_pct(0.85);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"arrow_blaster", blaster}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(blaster, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_EQ(params.buffs[0].laid_by_attack, -1);
+  EXPECT_DOUBLE_EQ(params.buffs[0].cast_seconds,
+                   0.8 * GameSpeedFactor(state.character.proto().level()));
+  // And the turret fires only while it stands.
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  EXPECT_EQ(params.auto_attacks[0].needs_buff, 0);
+}
+
+// Every other buff hanging off an attack still rides the swing that lays it,
+// free of charge.
+TEST(ComputeCombatParamsTest, ABuffWithoutItsOwnPressStillRidesTheSwing) {
+  Skill puncture;
+  puncture.set_name("Puncture");
+  puncture.set_kind(SKILL_KIND_ATTACK);
+  PlaceIn(puncture, JOB_ADVANCEMENT_SWORDMAN);
+  puncture.set_max_level(20);
+  puncture.set_base_delay_ms(660);
+  puncture.mutable_base()->set_skill_pct(1.24);
+  puncture.mutable_buff()->set_duration_seconds(30.0);
+  puncture.mutable_buff()->mutable_base()->set_damage_pct(0.1);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"puncture", puncture}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(puncture, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_GE(params.buffs[0].laid_by_attack, 0);
+  EXPECT_DOUBLE_EQ(params.buffs[0].cast_seconds, 0.0);
+}
+
 // Final Attack follows the character's swing. A summon firing on its own clock
 // is not that, so the option the fight gets for it carries none.
 TEST(ComputeCombatParamsTest, OnlyOwnSwingsCarryFinalAttack) {

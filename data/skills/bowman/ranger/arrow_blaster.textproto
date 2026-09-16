@@ -5,7 +5,13 @@
 #
 # Two attacks out of one skill: the volley the player holds the key for, and
 # the turret they leave behind firing by itself. One row in the book and one SP
-# ladder, because it is one skill -- see Skill.auto_mode.
+# ladder, because it is one skill.
+#
+# The turret is a BUFF, not an auto mode. GMS installs it with the Interact
+# key mid-cast and gives it u = 20+2x seconds, so it is something the player
+# puts up, loses and puts up again -- and the 800ms install is theirs to pay.
+# An auto mode has no clock of that shape: it would fire for the whole fight
+# for nothing. See Buff.own_cast_delay_ms.
 #
 # Neither half answers to attack speed. The volley is a key-down skill, which
 # GMS paces itself, and the turret is a summon, which nothing has ever hurried.
@@ -24,10 +30,16 @@ max_enemies: 4
 hits_per_attack_count: 7
 base { skill_pct: 1.24 }
 per_level { skill_pct: 0.03 }
-auto_mode {
-  label: "Turret"
-  cast_interval_seconds: 0.21
-  max_enemies: 4
-  base { skill_pct: 0.66 }
-  per_level { skill_pct: 0.01 }
+buff {
+  # GMS u = 20+2x with x the level, so 22 at 1 and 60 at 20.
+  duration_seconds: 22.0
+  duration_seconds_per_level: 2.0
+  own_cast_delay_ms: 800
+  pulse {
+    label: "Turret"
+    cast_interval_seconds: 0.21
+    max_enemies: 4
+    base { skill_pct: 0.66 }
+    per_level { skill_pct: 0.01 }
+  }
 }

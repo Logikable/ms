@@ -1762,20 +1762,24 @@ void AddBuffs(const GameState& state,
     if (stage > 0) {
       option.cast_seconds = 0.0;
     }
-    // A buff hanging off an ATTACK is laid by that swing rather than raised on
-    // a wait: what leaves the wound is puncturing something. See
-    // BuffOption::laid_by_attack.
     // The swing this buff loads, found by the magazine's own label -- the name
     // AddMagazines built it under.
     if (buff.magazine().charges() > 0) {
       option.magazine_attack =
           AttackNamed(params.attacks, buff.magazine().label());
     }
+    // A buff hanging off an ATTACK is laid by that swing rather than raised on
+    // a wait -- what leaves the wound is puncturing something -- unless the
+    // buff states a press of its own, which is the installed turret.
     if (skill->kind() == SKILL_KIND_ATTACK) {
-      option.laid_by_attack = AttackNamed(params.attacks, skill->name());
-      option.raised_on_cast = buff.raised_on_cast();
-      option.needs_wound_form = buff.needs_wound_form();
-      option.cast_seconds = 0.0;
+      if (buff.own_cast_delay_ms() > 0) {
+        option.cast_seconds = buff.own_cast_delay_ms() / 1000.0 * speed_factor;
+      } else {
+        option.laid_by_attack = AttackNamed(params.attacks, skill->name());
+        option.raised_on_cast = buff.raised_on_cast();
+        option.needs_wound_form = buff.needs_wound_form();
+        option.cast_seconds = 0.0;
+      }
     }
     params.buffs.push_back(std::move(option));
   }

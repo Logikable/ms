@@ -1018,6 +1018,20 @@ message Buff {
   // it comes back at the same beat it was dismissed on. Empty for every buff
   // that puts nothing out, which is every other one.
   string silences_skill_name = 23;
+  // Milliseconds a press of this buff's OWN costs, for a buff on an attack
+  // that GMS raises with a press rather than laying with the swing. Arrow
+  // Blaster is what it exists for: the turret is installed with the Interact
+  // key mid-cast, stands for its own duration and has to be put back up, so
+  // the volley that happens to be firing does not pay for it.
+  //
+  // What it buys is the CLOCK -- the buff is raised and re-raised like any
+  // other rather than waiting for its skill to be swung, which a swing the
+  // fight never picks would never do. Charged unscaled by the weapon's
+  // attack-speed stage, as every buff cast is; `shoot1`'s frames are all
+  // positive, so GMS really would shorten this one on a faster bow.
+  //
+  // 0 for a buff a swing lays, which is every other one.
+  int32 own_cast_delay_ms = 25;
 }
 
 // A chance a swing has to land harder on one of the enemies it reached, and
