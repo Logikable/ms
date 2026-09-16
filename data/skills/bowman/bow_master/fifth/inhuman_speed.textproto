@@ -1,14 +1,15 @@
 # The afterimage's rate is the one number GMS never prints. Every language
-# says only "fires at set intervals", so it comes out of the client: both of
-# the skill's nodes carry subTime 180, and subTime is what this pack writes a
-# tick interval in -- Storm of Arrows' rain zone carries 1000 against a rate
-# measured at one a second, and Obsidian Barrier's 500 against a measured 510.
+# says only "fires at set intervals", and the client does NOT hold it: neither
+# 400031020 nor 400031021 has a `summon` node, which is the mark of a pulse
+# clocked server-side -- see periodic_intervals. So the rate is the user's own
+# observation, one attack a second, and `subTime 180` is not it. An earlier
+# reading took that 180 for the tick and had the afterimage firing five times
+# as fast.
 #
 # GMS gives the buff 30 seconds and the afterimages 3, then hands them 3 more
 # for every second their attacks land, up to the buff. A Bow Master never
 # stops attacking, so the window is the buff: the ramp is dropped and the
-# afterimages fire for the whole 30. Kept literally it would be 370%/s over
-# the cooldown, an order of magnitude under the job-node band.
+# afterimages fire for the whole 30.
 #
 # One enemy a volley. GMS states no mobCount for this skill, and while the box
 # is wide enough for 24 by the reach rule, that rule floors a stated cap
@@ -17,8 +18,9 @@
 # The passive half counts ten of the character's own attacks, and nothing here
 # says what one is worth: Hurricane's own hits_per_attack_count divides it, so
 # a rate written in swings holds whatever they are swinging and moves on its
-# own if Hurricane ever changes. Five shots to a spawn, not six -- the
-# afterimage stands for a second, and the first shot costs its interval.
+# own if Hurricane ever changes. Its afterimage stands `q` = 1 second and
+# strikes once a second, so it gets ONE attack of 3 lines -- GMS states a
+# lifetime and an attackCount and never a repeat count.
 name: "Inhuman Speed"
 description:
   "Causes you to attack so quickly you produce afterimages. Unaffected by "
@@ -35,7 +37,7 @@ buff {
   duration_seconds: 30.0
   pulse {
     label: "Afterimage"
-    cast_interval_seconds: 0.18
+    cast_interval_seconds: 1.0
     max_enemies: 1
     lines: 3
     base { skill_pct: 4.16 }
@@ -45,7 +47,6 @@ buff {
 auto_mode {
   label: "Passive Afterimage"
   attacks_per_cast: 10
-  casts: 5
   max_enemies: 1
   lines: 3
   silent_while_buff_stands: true
