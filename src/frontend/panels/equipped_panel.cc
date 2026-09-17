@@ -38,6 +38,12 @@ EquippedPanel::EquippedPanel(CharacterInstance& character,
       menu_({"Unequip", "Inspect", "Scroll", "Hammer", "Star Force", "Cube",
              "Close"}),
       symbol_menu_({"Unequip", "Inspect", "Level Up", "Close"}) {
+  // Opened on the preset the character has on, so the tab a player finds is
+  // the gear they are wearing -- and so an item's comparison card describes
+  // it. The autoswap names no one preset, and its first tab is Farm.
+  if (!character_.autoswap_presets()) {
+    gear_preset_ = character_.SlotInUse(PresetKind::kEquip);
+  }
 }
 
 ItemMenu& EquippedPanel::menu() {

@@ -66,9 +66,10 @@ class EquippedPanel {
   int selected() const {
     return selected_;
   }
-  // The gear preset the Gear tab is showing, which is what the item menu and
-  // the bag's Equip act on. The first until the player steps along the preset
-  // row.
+  // The gear preset the Gear tab is showing, which is what the item menu, the
+  // bag's Equip and every card comparing an item act on. Opens on the preset
+  // in use, or on Farm with the autoswap on, until the player steps along the
+  // preset row.
   StatPreset gear_preset() const {
     return gear_preset_;
   }

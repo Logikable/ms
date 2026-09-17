@@ -1091,6 +1091,24 @@ TEST_F(GearPresetTest, TheRowPicksWhichPresetIsListed) {
       << "inherited, so it is dimmed";
 }
 
+// The tab a player finds is the gear they have on, so the list, the item menu
+// and every card comparing an item against it all speak about what is worn.
+// The autoswap names no one preset, and its first chip is Farm.
+TEST_F(GearPresetTest, OpensOnThePresetInUse) {
+  CharacterInstance& c = Cuber();
+  c.SetSlotInUse(PresetKind::kEquip, StatPreset::kSecond);
+  Wear(c, "Boss Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kSecond);
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(c, account_, panel_focus_);
+  EXPECT_EQ(panel.gear_preset(), StatPreset::kSecond);
+  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Boss Sword"),
+            std::string::npos);
+
+  c.set_autoswap_presets(true);
+  EquippedPanel swapping(c, account_, panel_focus_);
+  EXPECT_EQ(swapping.gear_preset(), StatPreset::kFirst);
+}
+
 // The row is three chips and not a ring: Left off the first stays on it, and
 // Right off the last stays there.
 TEST_F(GearPresetTest, TheRowDoesNotWrap) {
