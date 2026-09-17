@@ -180,51 +180,42 @@ constexpr int kCubeProgramLengthCount =
 
 }  // namespace
 
-CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
-                            EquipSlot slot, const CubeIncome& income,
-                            std::mt19937& rng) {
-  CubeProgram best;
-  const EquipInstance* item = Worn(state, slot);
-  if (item == nullptr || !item->CanCube()) {
-    return best;
-  }
-  int level = item->prototype().required_level();
-  PotentialGroup group = PotentialGroupOf(slot);
-  const Potential& current = item->equip_state().main_potential();
-  PotentialTotals others = PotentialsBut(state.character, slot);
-  PotentialTotals now = others;
-  AddPotential(current, level, now);
-  double standing = PowerOf(state, basis, now);
+namespace {
 
-  double share =
-      Replaceable(state, slot)
-          ? static_cast<double>(kReplaceableNumerator) / kReplaceableDenominator
-          : 1.0;
+// Everything a cube into one slot is priced against, settled once for the
+// slot rather than re-read per draw.
+struct CubePricing {
+  int level = 0;
+  PotentialGroup group{};
+  PotentialTotals others;
+  PotentialTotals now;
+  double standing = 0.0;
+};
 
-  // One cube first, and usually last. A longer run only ever beats a single
-  // cube per meso when the single cube is worth NOTHING -- which is what a
-  // defence wall does and nothing else does -- so the expensive part below is
-  // skipped wherever the marginal roll already pays.
-  double marginal = 0.0;
+// What one cube into the slot is expected to add, averaged over draws and
+// never less than nothing.
+double MarginalGain(const GameState& state, const CubeBasis& basis,
+                    const CubePricing& pricing, const Potential& current,
+                    const CubeIncome& income, std::mt19937& rng) {
+  double total = 0.0;
   for (int draw = 0; draw < kCubeSamples; ++draw) {
-    marginal +=
-        std::max(0.0, GainOf(state, basis, level, others, now, standing,
-                             CubePotential(current, CubeType::kRed, group, rng),
-                             income));
+    total += std::max(
+        0.0, GainOf(state, basis, pricing.level, pricing.others, pricing.now,
+                    pricing.standing,
+                    CubePotential(current, CubeType::kRed, pricing.group, rng),
+                    income));
   }
-  marginal = marginal / kCubeSamples * share;
-  if (marginal > 0.0) {
-    best.cubes = 1;
-    best.gain = marginal;
-    best.cost = kCubeCost;
-    return best;
-  }
+  return total / kCubeSamples;
+}
 
-  // Runs played out rather than rolls counted, because a cube rolls against
-  // what the LAST one left: keeping a better roll can carry the item up a rank,
-  // and the line that clears a defence wall is one only a higher rank offers.
-  // A run of sixty priced as sixty independent rolls never sees that, which is
-  // why it is worth the cost of playing them.
+// What runs of each length leave behind, summed over kCubeRuns. Runs are
+// PLAYED OUT rather than rolls counted, because a cube rolls against what the
+// last one left: keeping a better roll can carry the item up a rank, and the
+// line that clears a defence wall is one only a higher rank offers.
+std::vector<double> PlayCubeRuns(const GameState& state, const CubeBasis& basis,
+                                 const CubePricing& pricing,
+                                 const Potential& current,
+                                 const CubeIncome& income, std::mt19937& rng) {
   int longest = kCubeProgramLengths[kCubeProgramLengthCount - 1];
   std::vector<double> reached(kCubeProgramLengthCount, 0.0);
   for (int run = 0; run < kCubeRuns; ++run) {
@@ -232,9 +223,10 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
     double best_gain = 0.0;
     int rung = 0;
     for (int cube = 1; cube <= longest; ++cube) {
-      Potential rolled = CubePotential(held, CubeType::kRed, group, rng);
-      double gain =
-          GainOf(state, basis, level, others, now, standing, rolled, income);
+      Potential rolled =
+          CubePotential(held, CubeType::kRed, pricing.group, rng);
+      double gain = GainOf(state, basis, pricing.level, pricing.others,
+                           pricing.now, pricing.standing, rolled, income);
       // Keep-better, GMS's own offer: a roll worse than what the item holds is
       // declined, and the cube bought the chance.
       //
@@ -252,6 +244,53 @@ CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
       }
     }
   }
+  return reached;
+}
+
+}  // namespace
+
+CubeProgram BestCubeProgram(const GameState& state, const CubeBasis& basis,
+                            EquipSlot slot, const CubeIncome& income,
+                            std::mt19937& rng) {
+  CubeProgram best;
+  const EquipInstance* item = Worn(state, slot);
+  if (item == nullptr || !item->CanCube()) {
+    return best;
+  }
+  const Potential& current = item->equip_state().main_potential();
+  CubePricing pricing;
+  pricing.level = item->prototype().required_level();
+  pricing.group = PotentialGroupOf(slot);
+  pricing.others = PotentialsBut(state.character, slot);
+  pricing.now = pricing.others;
+  AddPotential(current, pricing.level, pricing.now);
+  pricing.standing = PowerOf(state, basis, pricing.now);
+
+  double share =
+      Replaceable(state, slot)
+          ? static_cast<double>(kReplaceableNumerator) / kReplaceableDenominator
+          : 1.0;
+
+  // One cube first, and usually last. A longer run only ever beats a single
+  // cube per meso when the single cube is worth NOTHING -- which is what a
+  // defence wall does and nothing else does -- so the expensive part below is
+  // skipped wherever the marginal roll already pays.
+  double marginal =
+      MarginalGain(state, basis, pricing, current, income, rng) * share;
+  if (marginal > 0.0) {
+    best.cubes = 1;
+    best.gain = marginal;
+    best.cost = kCubeCost;
+    return best;
+  }
+
+  // Runs played out rather than rolls counted, because a cube rolls against
+  // what the LAST one left: keeping a better roll can carry the item up a rank,
+  // and the line that clears a defence wall is one only a higher rank offers.
+  // A run of sixty priced as sixty independent rolls never sees that, which is
+  // why it is worth the cost of playing them.
+  std::vector<double> reached =
+      PlayCubeRuns(state, basis, pricing, current, income, rng);
 
   for (int rung = 0; rung < kCubeProgramLengthCount; ++rung) {
     double expected = reached[rung] / kCubeRuns * share;

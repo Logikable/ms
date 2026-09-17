@@ -690,16 +690,13 @@ GearSpend Endow(GameState& state, const Catalogs& catalogs, int level,
   return SpendEverything(state, fight);
 }
 
-Result Measure(const Catalogs& catalogs, int level, const Build& build,
-               const Fight& fight) {
+// Dresses the character the row is measured on: the ceiling seeded whole, an
+// endowed purse spent, or a fresh character grown and armed. False where the
+// build asks for a weapon this character never ends up holding.
+bool Outfit(const Catalogs& catalogs, int level, const Build& build,
+            const Fight& fight, GameState& state, Result& result) {
   bool max = absl::GetFlag(FLAGS_max);
   bool endowed = absl::GetFlag(FLAGS_endowed);
-  Result result;
-  // The ceiling is seeded whole; the other two start from a fresh character and
-  // are built up below. A GameState cannot be assigned, so which one it is has
-  // to be settled here.
-  GameState state =
-      max ? MaxState(catalogs, level, build.job) : NewState(catalogs, kSimSeed);
   state.bosses = catalogs.bosses;
   if (endowed) {
     result.spend = Endow(state, catalogs, level, build, fight);
@@ -709,19 +706,19 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build,
     // The ceiling armed them already; the row this build asks about is
     // whichever of the branch's weapons it chose.
     if (state.character.weapon_type() != build.weapon) {
-      return result;
+      return false;
     }
   } else {
     GrowTo(state, level, PathTo(build.job));
     if (!Wear(state, BestOfType(catalogs, build.weapon, level,
                                 /*below_absolab=*/false))) {
-      return result;
+      return false;
     }
     EquipType ammo = AmmoFor(build.weapon);
     if (ammo != EQUIP_TYPE_UNSPECIFIED &&
         !Wear(state, BestOfType(catalogs, ammo, level,
                                 /*below_absolab=*/false))) {
-      return result;
+      return false;
     }
   }
   state.current_map = kDummyMap;
@@ -736,6 +733,40 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build,
     state.equips[kCharm] =
         Charm(build.job, bonus_stat, bonus_attack, bonus_boss, bonus_ied);
     Wear(state, kCharm);
+  }
+  return true;
+}
+
+// The stat line the row prints: everything the damage chain read, so a figure
+// that looks wrong can be traced to the factor that made it.
+void RecordStatLine(const OffenseStats& bare, const AttackOption& best,
+                    Result& result) {
+  result.swing = best.name;
+  result.primary = bare.primary;
+  result.attack = bare.attack;
+  result.mastery = bare.mastery;
+  result.crit_rate = bare.crit_rate;
+  result.crit_dmg = bare.crit_dmg;
+  result.damage_pct = bare.damage_pct;
+  result.final_dmg_pct = bare.final_dmg_pct;
+  result.boss_pct = bare.boss_pct;
+  result.ied = bare.ied;
+  result.weapon_constant = bare.weapon_constant;
+  result.swing_damage = best.damage_per_hit[0];
+  result.final_attack_damage =
+      best.final_attack_damage.empty() ? 0.0 : best.final_attack_damage[0];
+}
+
+Result Measure(const Catalogs& catalogs, int level, const Build& build,
+               const Fight& fight) {
+  Result result;
+  // The ceiling is seeded whole; the other two start from a fresh character.
+  // A GameState cannot be assigned, so which one it is has to be settled here.
+  GameState state = absl::GetFlag(FLAGS_max)
+                        ? MaxState(catalogs, level, build.job)
+                        : NewState(catalogs, kSimSeed);
+  if (!Outfit(catalogs, level, build, fight, state, result)) {
+    return result;
   }
 
   // A boss fight reads the character's bossing preset -- its hyper stats, its
@@ -773,21 +804,8 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build,
     return result;
   }
   const AttackOption* best = &params.attacks[played.main_attack];
-  result.swing = best->name;
+  RecordStatLine(bare, *best, result);
   result.weapon = HeldWeaponName(state.character);
-  result.primary = bare.primary;
-  result.attack = bare.attack;
-  result.mastery = bare.mastery;
-  result.crit_rate = bare.crit_rate;
-  result.crit_dmg = bare.crit_dmg;
-  result.damage_pct = bare.damage_pct;
-  result.final_dmg_pct = bare.final_dmg_pct;
-  result.boss_pct = bare.boss_pct;
-  result.ied = bare.ied;
-  result.weapon_constant = bare.weapon_constant;
-  result.swing_damage = best->damage_per_hit[0];
-  result.final_attack_damage =
-      best->final_attack_damage.empty() ? 0.0 : best->final_attack_damage[0];
   RecordBook(state, derived, best->name, &result);
   result.mirror_pct = derived.mirror_line_pct;
   result.swing_seconds = best->swing_seconds / speed;
