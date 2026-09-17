@@ -100,19 +100,20 @@ void ScrollCard::ScrollXBy(int delta) {
 
 ftxui::Element ScrollCard::Render(const std::string& title,
                                   std::vector<CardRow> rows, int content_width,
-                                  bool focused) const {
+                                  bool focused, int view_width) const {
   CardRows one;
   one.body = std::move(rows);
-  return Render(title, std::move(one), content_width, focused);
+  return Render(title, std::move(one), content_width, focused, view_width);
 }
 
 ftxui::Element ScrollCard::Render(const std::string& title, CardRows rows,
-                                  int content_width, bool focused) const {
+                                  int content_width, bool focused,
+                                  int view_width) const {
   int width = content_width > 0 ? content_width : NaturalWidth(rows);
   // Measured before the rows are fitted, which only moves them between the
   // groups: the horizontal bar takes a row of the budget, so whether the card
   // squeezes has to be settled before the rows are cut to it.
-  bool squeeze = view_width_ > 0 && view_width_ < width;
+  bool squeeze = view_width > 0 && view_width < width;
   int reserved = squeeze ? 1 : 0;
   rows = Fitted(std::move(rows), reserved);
   total_ = static_cast<int>(rows.body.size());
@@ -146,15 +147,16 @@ ftxui::Element ScrollCard::Render(const std::string& title, CardRows rows,
     x_max_ = 0;
     return ThemedWindow(title, std::move(card), focused);
   }
-  return ThemedWindow(title, Squeezed(std::move(card), width, bar), focused);
+  return ThemedWindow(title, Squeezed(std::move(card), width, view_width, bar),
+                      focused);
 }
 
 ftxui::Element ScrollCard::Squeezed(ftxui::Element card, int width,
-                                    bool bar) const {
+                                    int view_width, bool bar) const {
   // The vertical bar's column rides with the rows, so it counts on both sides
   // of the squeeze: what the card asks for, and what it is drawn in.
   int full = width + (bar ? 1 : 0);
-  int shown = view_width_ + (bar ? 1 : 0);
+  int shown = view_width + (bar ? 1 : 0);
   x_max_ = full - shown;
   x_offset_ = std::max(0, std::min(x_offset_, x_max_));
   // A frame scrolls to CENTRE the point it is told to focus, so the point that

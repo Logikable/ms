@@ -830,7 +830,7 @@ TEST_F(InspectPanelTest, ScrollsTheSetCardWithoutMovingTheItemCard) {
   panel.SetItem(&hat_);
   ASSERT_NE(RenderWide(panel).find("3 Set Effect"), std::string::npos);
 
-  ASSERT_TRUE(panel.SwapCard());
+  ASSERT_TRUE(panel.SwapCard(1));
   EXPECT_EQ(panel.focused_card(), InspectPanel::kSetCard);
   panel.ScrollBy(3);
   std::string rendered = RenderWide(panel);
@@ -876,7 +876,7 @@ TEST_F(InspectPanelTest, ResetPutsBothCardsBackAtTheTop) {
   InspectPanel panel = TallPanel(c_, 12);
   panel.SetItem(&hat_);
   RenderWide(panel);
-  ASSERT_TRUE(panel.SwapCard());
+  ASSERT_TRUE(panel.SwapCard(1));
   panel.ScrollBy(5);
   RenderWide(panel);
 
@@ -892,9 +892,9 @@ TEST_F(InspectPanelTest, TabCyclesBackToTheItemCard) {
   panel.SetItem(&hat_);
   RenderWide(panel);
 
-  ASSERT_TRUE(panel.SwapCard());
+  ASSERT_TRUE(panel.SwapCard(1));
   ASSERT_EQ(panel.focused_card(), InspectPanel::kSetCard);
-  EXPECT_TRUE(panel.SwapCard());
+  EXPECT_TRUE(panel.SwapCard(1));
   EXPECT_EQ(panel.focused_card(), InspectPanel::kItemCard);
 }
 
@@ -907,7 +907,7 @@ TEST_F(InspectPanelTest, TabReachesACardWithNothingToScroll) {
   panel.SetMaxRows(34);
   panel.SetItem(&hat_);
   RenderWide(panel);
-  EXPECT_TRUE(panel.SwapCard()) << "the whole set fits, and is still a stop";
+  EXPECT_TRUE(panel.SwapCard(1)) << "the whole set fits, and is still a stop";
   EXPECT_EQ(panel.focused_card(), InspectPanel::kSetCard);
 }
 
@@ -920,7 +920,119 @@ TEST_F(InspectPanelTest, NoTabWithoutASetCard) {
   panel.SetItem(&sword);
   RenderWide(panel);
   EXPECT_FALSE(panel.HasSetCard());
-  EXPECT_FALSE(panel.SwapCard());
+  EXPECT_FALSE(panel.SwapCard(1));
+}
+
+// --- the equipped card ---
+
+// A second hat to stand beside the inspected one. Named apart so a rendered
+// screen says which card is which.
+EquipInstance WornHat() {
+  return EquipInstance(FrozenPiece("Old Hat", EQUIP_SLOT_HAT));
+}
+
+TEST_F(InspectPanelTest, DrawsTheEquippedItemToTheLeftOfTheInspectedOne) {
+  EquipInstance worn = WornHat();
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&hat_);
+  panel.SetComparison(&worn);
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Equipped"), std::string::npos);
+  EXPECT_LT(rendered.find("Old Hat"), rendered.find("Frozen Hat"))
+      << "the worn item first, the inspected one beside it";
+}
+
+// The set is the inspected item's, counted off the character. A second copy
+// beside the equipped card would say the same thing twice.
+TEST_F(InspectPanelTest, TheEquippedCardCarriesNoSetCard) {
+  EquipInstance worn = WornHat();
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&hat_);
+  panel.SetComparison(&worn);
+  std::string rendered = RenderWide(panel);
+  size_t first = rendered.find("Frozen Set");
+  EXPECT_NE(first, std::string::npos);
+  EXPECT_EQ(rendered.find("Frozen Set", first + 1), std::string::npos)
+      << "one set card on the screen, not one per item";
+}
+
+TEST_F(InspectPanelTest, SettingAnItemForgetsTheComparison) {
+  EquipInstance worn = WornHat();
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&hat_);
+  panel.SetComparison(&worn);
+  ASSERT_NE(RenderWide(panel).find("Equipped"), std::string::npos);
+
+  panel.SetItem(&hat_);
+  EXPECT_EQ(RenderWide(panel).find("Equipped"), std::string::npos);
+}
+
+// The ring runs in the order the cards are drawn, and it opens on the middle
+// one: the item the player asked about, not the one they already own.
+TEST_F(InspectPanelTest, TabWalksTheThreeCardsInTheOrderTheyAreDrawn) {
+  EquipInstance worn = WornHat();
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&hat_);
+  panel.SetComparison(&worn);
+  RenderWide(panel);
+
+  EXPECT_EQ(panel.focused_card(), InspectPanel::kItemCard);
+  ASSERT_TRUE(panel.SwapCard(1));
+  EXPECT_EQ(panel.focused_card(), InspectPanel::kSetCard);
+  panel.SwapCard(1);
+  EXPECT_EQ(panel.focused_card(), InspectPanel::kEquippedCard);
+  panel.SwapCard(1);
+  EXPECT_EQ(panel.focused_card(), InspectPanel::kItemCard);
+  panel.SwapCard(-1);
+  EXPECT_EQ(panel.focused_card(), InspectPanel::kEquippedCard);
+}
+
+// The two items are the point of the screen, so the set card is the one that
+// gives: squeezed to what they leave, and dropped once that is too little.
+TEST_F(InspectPanelTest, SqueezesTheSetCardIntoWhatIsLeft) {
+  EquipInstance worn = WornHat();
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&hat_);
+  panel.SetComparison(&worn);
+  int full = NaturalWidth(panel);
+
+  panel.SetMaxColumns(full - 5);
+  EXPECT_EQ(NaturalWidth(panel), full - 5);
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Frozen Set"), std::string::npos);
+  EXPECT_NE(rendered.find("Frozen Hat"), std::string::npos)
+      << "neither item card was cut";
+}
+
+TEST_F(InspectPanelTest, DropsTheSetCardWhenThereIsNoRoomToReadIt) {
+  EquipInstance worn = WornHat();
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&hat_);
+  panel.SetComparison(&worn);
+  panel.SetMaxColumns(NaturalWidth(panel) - 40);
+  std::string rendered = RenderWide(panel);
+  EXPECT_EQ(rendered.find("Frozen Set"), std::string::npos);
+  EXPECT_NE(rendered.find("Frozen Hat"), std::string::npos);
+
+  panel.SwapCard(1);
+  EXPECT_EQ(panel.focused_card(), InspectPanel::kEquippedCard)
+      << "the ring walks what is on screen";
+}
+
+// The focus can be standing on the set card when the terminal narrows under
+// it. The next render moves it rather than leaving the arrows nowhere.
+TEST_F(InspectPanelTest, TakingTheSetCardMovesTheFocusOffIt) {
+  EquipInstance worn = WornHat();
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&hat_);
+  panel.SetComparison(&worn);
+  RenderWide(panel);
+  ASSERT_TRUE(panel.SwapCard(1));
+  ASSERT_EQ(panel.focused_card(), InspectPanel::kSetCard);
+
+  panel.SetMaxColumns(NaturalWidth(panel) - 40);
+  RenderWide(panel);
+  EXPECT_EQ(panel.focused_card(), InspectPanel::kItemCard);
 }
 
 // --- Arcane Symbols ---

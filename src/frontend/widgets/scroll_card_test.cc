@@ -23,8 +23,9 @@ std::vector<CardRow> NumberedRows(int count) {
 
 // The columns the card asks for, borders and bar included.
 int CardWidth(const ScrollCard& card, std::vector<CardRow> rows,
-              int content_width) {
-  ftxui::Element element = card.Render(" T ", std::move(rows), content_width);
+              int content_width, int view_width = 0) {
+  ftxui::Element element =
+      card.Render(" T ", std::move(rows), content_width, false, view_width);
   element->ComputeRequirement();
   return element->requirement().min_x;
 }
@@ -38,8 +39,9 @@ CardRows Body(std::vector<CardRow> rows) {
 
 // The card drawn onto a screen of its own, one string per line.
 std::vector<std::string> Draw(const ScrollCard& card, CardRows rows,
-                              int content_width) {
-  ftxui::Element element = card.Render(" T ", std::move(rows), content_width);
+                              int content_width, int view_width = 0) {
+  ftxui::Element element =
+      card.Render(" T ", std::move(rows), content_width, false, view_width);
   element->ComputeRequirement();
   ftxui::Screen screen = ftxui::Screen::Create(
       ftxui::Dimension::Fixed(element->requirement().min_x),
@@ -270,9 +272,9 @@ TEST(ScrollCardTest, AtLeastOneRowHoweverSmallTheBudget) {
 // them, with a bar along its foot.
 TEST(ScrollCardTest, SqueezesToTheViewWidthAndDrawsABar) {
   ScrollCard card;
-  card.SetViewWidth(8);
-  std::vector<std::string> lines = Draw(card, Body(LetterRows(3, 20)), 20);
-  EXPECT_EQ(CardWidth(card, LetterRows(3, 20), 20), 10) << "eight and borders";
+  std::vector<std::string> lines = Draw(card, Body(LetterRows(3, 20)), 20, 8);
+  EXPECT_EQ(CardWidth(card, LetterRows(3, 20), 20, 8), 10)
+      << "eight and borders";
   EXPECT_NE(lines[1].find("abcdefgh"), std::string::npos);
   EXPECT_EQ(lines[1].find("ijk"), std::string::npos) << "past the window";
   EXPECT_TRUE(card.OverflowsX());
@@ -281,16 +283,15 @@ TEST(ScrollCardTest, SqueezesToTheViewWidthAndDrawsABar) {
 
 TEST(ScrollCardTest, SlidesSidewaysAndHoldsToBothEnds) {
   ScrollCard card;
-  card.SetViewWidth(8);
-  Draw(card, Body(LetterRows(3, 20)), 20);  // Teaches it what it is showing.
+  Draw(card, Body(LetterRows(3, 20)), 20, 8);  // Teaches it what it is showing.
   card.ScrollXBy(4);
-  EXPECT_NE(Draw(card, Body(LetterRows(3, 20)), 20)[1].find("efghijkl"),
+  EXPECT_NE(Draw(card, Body(LetterRows(3, 20)), 20, 8)[1].find("efghijkl"),
             std::string::npos);
   card.ScrollXBy(-99);
-  EXPECT_NE(Draw(card, Body(LetterRows(3, 20)), 20)[1].find("abcdefgh"),
+  EXPECT_NE(Draw(card, Body(LetterRows(3, 20)), 20, 8)[1].find("abcdefgh"),
             std::string::npos);
   card.ScrollXBy(99);
-  EXPECT_NE(Draw(card, Body(LetterRows(3, 20)), 20)[1].find("mnopqrst"),
+  EXPECT_NE(Draw(card, Body(LetterRows(3, 20)), 20, 8)[1].find("mnopqrst"),
             std::string::npos)
       << "the last of the row, and no further";
 }
@@ -299,27 +300,25 @@ TEST(ScrollCardTest, SlidesSidewaysAndHoldsToBothEnds) {
 // looks at the far end of a row says nothing.
 TEST(ScrollCardTest, SlidesTheHeadWithTheBody) {
   ScrollCard card;
-  card.SetViewWidth(8);
   CardRows rows;
   rows.head = {TextRow(ftxui::text("HEADHEADHEAD"))};
   rows.body = LetterRows(2, 20);
-  Draw(card, rows, 20);
+  Draw(card, rows, 20, 8);
   card.ScrollXBy(4);
   CardRows again;
   again.head = {TextRow(ftxui::text("HEADHEADHEAD"))};
   again.body = LetterRows(2, 20);
-  EXPECT_NE(Draw(card, again, 20)[1].find("HEADHEAD"), std::string::npos);
+  EXPECT_NE(Draw(card, again, 20, 8)[1].find("HEADHEAD"), std::string::npos);
 }
 
 TEST(ScrollCardTest, DrawsWholeWhenTheViewHoldsIt) {
   ScrollCard card;
-  card.SetViewWidth(20);
-  std::vector<std::string> lines = Draw(card, Body(LetterRows(3, 20)), 20);
+  std::vector<std::string> lines = Draw(card, Body(LetterRows(3, 20)), 20, 20);
   EXPECT_NE(lines[1].find("abcdefghijklmnopqrst"), std::string::npos);
   EXPECT_FALSE(card.OverflowsX());
   EXPECT_FALSE(HasXBar(lines));
   card.ScrollXBy(5);
-  EXPECT_NE(Draw(card, Body(LetterRows(3, 20)), 20)[1].find("abcdefgh"),
+  EXPECT_NE(Draw(card, Body(LetterRows(3, 20)), 20, 20)[1].find("abcdefghij"),
             std::string::npos)
       << "nothing off either edge to reach";
 }
@@ -328,8 +327,7 @@ TEST(ScrollCardTest, DrawsWholeWhenTheViewHoldsIt) {
 TEST(ScrollCardTest, TheHorizontalBarCostsARow) {
   ScrollCard card;
   card.SetMaxRows(6);
-  card.SetViewWidth(8);
-  std::vector<std::string> lines = Draw(card, Body(LetterRows(10, 20)), 20);
+  std::vector<std::string> lines = Draw(card, Body(LetterRows(10, 20)), 20, 8);
   ASSERT_EQ(lines.size(), 6u);
   EXPECT_TRUE(HasXBar(lines));
   EXPECT_TRUE(card.Overflows());

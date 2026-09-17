@@ -68,6 +68,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       party_select_panel_(screens.party_select_panel),
       player_list_panel_(screens.player_list_panel),
       player_inspect_panel_(screens.player_inspect_panel),
+      player_item_panel_(screens.player_item_panel),
       job_inspect_panel_(screens.job_inspect_panel),
       skill_inspect_panel_(screens.skill_inspect_panel),
       buff_info_panel_(screens.buff_info_panel),
@@ -498,6 +499,45 @@ const EquipInstance* TuiController::scroll_item() const {
   return subject_.GetInstance(state_.character);
 }
 
+// What the reader's own gear has in the slot `proto` would fill, or nullptr
+// when the slot is empty -- and when the item is itself the one worn, which
+// would be a card compared against a copy of itself. Against the preset the
+// Equipped panel is showing: that is the gear the player is looking at, and
+// the one Equip would displace.
+const EquipInstance* TuiController::WornForComparison(
+    const EquipPrototype& proto) const {
+  EquipSlot slot =
+      state_.character.SlotToFill(proto, equip_panel_.gear_preset());
+  if (slot == EQUIP_SLOT_UNSPECIFIED) {
+    return nullptr;
+  }
+  return state_.character.WornAt(equip_panel_.gear_preset(), slot);
+}
+
+const EquipTabItem* TuiController::inspect_comparison() const {
+  // An item already on the character is the comparison, so there is nothing
+  // to compare it with.
+  if (subject_.equipped()) {
+    return nullptr;
+  }
+  const EquipTabItem* item = inspect_item();
+  if (item == nullptr) {
+    return nullptr;
+  }
+  return WornForComparison(item->prototype());
+}
+
+// The reader's own item in the slot the member's cursor is on. By slot rather
+// than by what it would displace: their gear is not going anywhere, and the
+// question a reader is asking of it is what they wear in the same place.
+const EquipTabItem* TuiController::player_item_comparison() const {
+  EquipSlot slot = player_inspect_panel_.selected_slot();
+  if (slot == EQUIP_SLOT_UNSPECIFIED) {
+    return nullptr;
+  }
+  return state_.character.WornAt(equip_panel_.gear_preset(), slot);
+}
+
 // Keys on the main view, once every screen above it has had its say. A back
 // key here means leaving the game, there being nothing left to back out of.
 bool TuiController::OnMainViewEvent(ftxui::Event event) {
@@ -823,26 +863,41 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   return true;
 }
 
-// Reading is all there is to do here, so either of Confirm and Cancel leaves.
-// The arrows move whichever card holds them, and Tab hands them to the set
-// card beside it and back, whenever there is one.
-bool TuiController::OnInspectEvent(ftxui::Event event) {
+// Reading is all there is to do on any of the inspect screens, so either of
+// Confirm and Cancel leaves for `back`. The arrows move whichever card holds
+// them -- sideways too, for a card squeezed narrower than its rows -- and Tab
+// hands them to the next card along, whenever there is one. Everything else
+// is swallowed: these are modal screens.
+bool TuiController::OnCardEvent(ftxui::Event event, InspectPanel& panel,
+                                Screen back) {
   if (event == ftxui::Event::ArrowUp) {
-    inspect_panel_.ScrollBy(-1);
+    panel.ScrollBy(-1);
     return true;
   }
   if (event == ftxui::Event::ArrowDown) {
-    inspect_panel_.ScrollBy(1);
+    panel.ScrollBy(1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowLeft) {
+    panel.ScrollXBy(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    panel.ScrollXBy(1);
     return true;
   }
   if (IsSwitchPanel(event)) {
-    inspect_panel_.SwapCard();
+    panel.SwapCard(event == ftxui::Event::Tab ? 1 : -1);
     return true;
   }
   if (IsBack(event) || IsForward(event)) {
-    screen_ = kMain;
+    screen_ = back;
   }
   return true;
+}
+
+bool TuiController::OnInspectEvent(ftxui::Event event) {
+  return OnCardEvent(event, inspect_panel_, kMain);
 }
 
 bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
@@ -1792,10 +1847,7 @@ bool TuiController::OnPlayerAllStatsEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnPlayerItemInspectEvent(ftxui::Event event) {
-  if (IsBack(event) || IsForward(event)) {
-    screen_ = kPlayerInspect;
-  }
-  return true;
+  return OnCardEvent(event, player_item_panel_, kPlayerInspect);
 }
 
 bool TuiController::OnPartyConfirmEvent(ftxui::Event event) {
@@ -2369,26 +2421,10 @@ bool TuiController::OnShopMenuEvent(ftxui::Event event) {
   return true;
 }
 
+// Back to the shop rather than the bag: inspecting is how a player decides
+// whether to buy, so the list is where they were going next either way.
 bool TuiController::OnShopInspectEvent(ftxui::Event event) {
-  if (event == ftxui::Event::ArrowUp) {
-    inspect_panel_.ScrollBy(-1);
-    return true;
-  }
-  if (event == ftxui::Event::ArrowDown) {
-    inspect_panel_.ScrollBy(1);
-    return true;
-  }
-  if (IsSwitchPanel(event)) {
-    inspect_panel_.SwapCard();
-    return true;
-  }
-  if (IsBack(event) || IsForward(event)) {
-    // Back to the shop rather than the bag: inspecting is how a player decides
-    // whether to buy, so the list is where they were going next either way.
-    screen_ = kShop;
-  }
-  // Swallow everything else: this is a modal screen.
-  return true;
+  return OnCardEvent(event, inspect_panel_, kShop);
 }
 
 // The shelf holds one row per sale, so the amount a row offers is the whole

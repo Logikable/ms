@@ -102,15 +102,15 @@ struct Client {
     options_panel = std::make_unique<OptionsPanel>(state->account);
     controller = std::make_unique<TuiController>(
         *state,
-        Screens{*char_panel,         *equip_panel,       *inventory_panel,
-                *scroll_panel,       inspect_panel,      preview_inspect_panel,
-                star_force_panel,    cube_panel,         *trace_recover_panel,
-                sell_panel,          sell_equip_panel,   *multi_sell_panel,
-                *map_select_panel,   *mob_inspect_panel, *boss_select_panel,
-                party_panel,         player_list_panel,  *player_inspect_panel,
-                *shop_panel,         buy_panel,          *job_inspect_panel,
-                skill_inspect_panel, buff_info_panel,    *menu_panel,
-                *keybinds_panel,     *options_panel},
+        Screens{*char_panel,        *equip_panel,        *inventory_panel,
+                *scroll_panel,      inspect_panel,       preview_inspect_panel,
+                star_force_panel,   cube_panel,          *trace_recover_panel,
+                sell_panel,         sell_equip_panel,    *multi_sell_panel,
+                *map_select_panel,  *mob_inspect_panel,  *boss_select_panel,
+                party_panel,        player_list_panel,   *player_inspect_panel,
+                player_item_panel,  *shop_panel,         buy_panel,
+                *job_inspect_panel, skill_inspect_panel, buff_info_panel,
+                *menu_panel,        *keybinds_panel,     *options_panel},
         analysis, *keys, focus, &session);
   }
 
@@ -144,6 +144,7 @@ struct Client {
   BuffInfoPanel buff_info_panel;
   InspectPanel inspect_panel;
   InspectPanel preview_inspect_panel;
+  InspectPanel player_item_panel;
   std::unique_ptr<CharacterPanel> char_panel;
   std::unique_ptr<EquippedPanel> equip_panel;
   std::unique_ptr<InventoryPanel> inventory_panel;
@@ -583,8 +584,15 @@ TEST_F(PartyControllerTest, AMemberInspectsAnother) {
   ASSERT_NE(guest->player_inspect_panel->selected_item(), nullptr);
   EXPECT_EQ(guest->player_inspect_panel->selected_item()->prototype().name(),
             "Iron Sword");
+  // The reader's own weapon is what the card stands their item beside, taken
+  // from the reader's sheet rather than the member's.
+  guest->state->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
+  guest->state->character.Equip(guest->state->character.inventory().size() - 1);
   guest->controller->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(guest->controller->screen(), kPlayerItemInspect);
+  EXPECT_EQ(guest->controller->player_item_comparison(),
+            guest->state->character.WornAt(StatPreset::kFirst,
+                                           EQUIP_SLOT_PRIMARY_WEAPON));
   guest->Tick();
   EXPECT_EQ(guest->controller->screen(), kPlayerItemInspect);
   guest->controller->OnEvent(ftxui::Event::Escape);

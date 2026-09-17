@@ -146,15 +146,15 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
       controller_(
           state,
           Screens{
-              char_panel_,          equip_panel_,       inventory_panel_,
-              scroll_panel_,        inspect_panel_,     preview_inspect_panel_,
-              star_force_panel_,    cube_panel_,        trace_recover_panel_,
-              sell_panel_,          sell_equip_panel_,  multi_sell_panel_,
-              map_select_panel_,    mob_inspect_panel_, boss_select_panel_,
-              party_select_panel_,  player_list_panel_, player_inspect_panel_,
-              shop_panel_,          buy_panel_,         job_inspect_panel_,
-              skill_inspect_panel_, buff_info_panel_,   menu_panel_,
-              keybinds_panel_,      options_panel_},
+              char_panel_,         equip_panel_,         inventory_panel_,
+              scroll_panel_,       inspect_panel_,       preview_inspect_panel_,
+              star_force_panel_,   cube_panel_,          trace_recover_panel_,
+              sell_panel_,         sell_equip_panel_,    multi_sell_panel_,
+              map_select_panel_,   mob_inspect_panel_,   boss_select_panel_,
+              party_select_panel_, player_list_panel_,   player_inspect_panel_,
+              player_item_panel_,  shop_panel_,          buy_panel_,
+              job_inspect_panel_,  skill_inspect_panel_, buff_info_panel_,
+              menu_panel_,         keybinds_panel_,      options_panel_},
           analysis_, keys_, panel_focus_, multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
@@ -519,6 +519,9 @@ ftxui::Element Tui::RenderPlayerInspect() {
   // to read at once.
   if (controller_.screen() == kPlayerItemInspect) {
     player_item_panel_.SetItem(player_inspect_panel_.selected_item());
+    player_item_panel_.SetComparison(controller_.player_item_comparison());
+    player_item_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
+    player_item_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
     return Standalone(player_item_panel_.Render());
   }
   if (controller_.screen() == kPlayerAllStats) {
@@ -623,15 +626,18 @@ ftxui::Element Tui::RenderBuyBackInspect(const BuyBackEntry& entry) {
   if (entry.equip().trace()) {
     EquipTrace trace(*proto, entry.equip());
     inspect_panel_.SetItem(&trace);
+    inspect_panel_.SetComparison(controller_.WornForComparison(*proto));
     return Standalone(inspect_panel_.Render());
   }
   EquipInstance item(*proto, entry.equip());
   inspect_panel_.SetItem(&item);
+  inspect_panel_.SetComparison(controller_.WornForComparison(*proto));
   return Standalone(inspect_panel_.Render());
 }
 
 ftxui::Element Tui::RenderShopInspect() {
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
+  inspect_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
   // A buy-back row is an item the player owned, so what it inspects is that
   // item -- stars, scrolls and all -- and not a fresh one off the shelf.
   const BuyBackEntry* entry = shop_panel_.selected_buy_back();
@@ -653,6 +659,7 @@ ftxui::Element Tui::RenderShopInspect() {
   // stars. Built here because nothing owns a shop item until it is bought.
   EquipInstance preview(*proto);
   inspect_panel_.SetItem(&preview);
+  inspect_panel_.SetComparison(controller_.WornForComparison(*proto));
   return Standalone(inspect_panel_.Render());
 }
 
@@ -790,8 +797,12 @@ ftxui::Element Tui::RenderInspect() {
     inspect_panel_.SetItem(controller_.item_inspect_item());
   } else {
     inspect_panel_.SetItem(controller_.inspect_item());
+    // Nothing stackable is worn, so only an equip is ever weighed against
+    // what the player has on.
+    inspect_panel_.SetComparison(controller_.inspect_comparison());
   }
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
+  inspect_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
   return Standalone(inspect_panel_.Render());
 }
 

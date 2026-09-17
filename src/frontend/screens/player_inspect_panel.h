@@ -99,6 +99,9 @@ class PlayerInspectPanel {
   // The item the cursor is on, or null with nothing worn or the cursor on a
   // bar.
   const EquipInstance* selected_item() const;
+  // The slot it sits in, which is what the reader's own gear is compared
+  // against. Unspecified with the cursor on a bar.
+  EquipSlot selected_slot() const;
   // Which of the member's two allocations is being read.
   Activity preset() const;
 

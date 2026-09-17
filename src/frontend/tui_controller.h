@@ -95,6 +95,9 @@ struct Screens {
   PartySelectPanel& party_select_panel;
   PlayerListPanel& player_list_panel;
   PlayerInspectPanel& player_inspect_panel;
+  // The card for an item another player is wearing, which takes the same keys
+  // as the player's own.
+  InspectPanel& player_item_panel;
   ShopPanel& shop_panel;
   BuyPanel& buy_panel;
   JobInspectPanel& job_inspect_panel;
@@ -465,6 +468,11 @@ class TuiController {
   // Returns the item being scrolled while in kScrollSelect or kScrollResult,
   // or nullptr otherwise.
   const EquipInstance* scroll_item() const;
+  // What the player already wears in the slot the inspected item would fill,
+  // for the card drawn beside it. nullptr when there is nothing to compare.
+  const EquipTabItem* inspect_comparison() const;
+  const EquipTabItem* player_item_comparison() const;
+  const EquipInstance* WornForComparison(const EquipPrototype& proto) const;
   // Returns the item being inspected while in kInspect, or nullptr otherwise.
   // May be an EquipTrace if the selected bag item was destroyed.
   const EquipTabItem* inspect_item() const;
@@ -503,6 +511,10 @@ class TuiController {
   Screen SeedUpgradeScreen(Screen next);
   Screen SeedSaleScreen(Screen next);
   Screen SeedSymbolScreen(Screen next);
+  // The keys every screen made of inspect cards takes, `back` being where it
+  // leaves for. One handler because they are one screen to the player, reached
+  // from the bag, the shelf or another player's sheet.
+  bool OnCardEvent(ftxui::Event event, InspectPanel& panel, Screen back);
   bool OnInspectEvent(ftxui::Event event);
   bool OnScrollSelectEvent(ftxui::Event event);
   bool OnScrollResultEvent(ftxui::Event event);
@@ -674,6 +686,7 @@ class TuiController {
   PartySelectPanel& party_select_panel_;
   PlayerListPanel& player_list_panel_;
   PlayerInspectPanel& player_inspect_panel_;
+  InspectPanel& player_item_panel_;
   // The member the inspect screen is reading, so the lobby's next word about
   // them lands on it.
   std::string inspect_account_;

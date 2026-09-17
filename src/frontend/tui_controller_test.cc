@@ -268,15 +268,15 @@ class TuiControllerTest : public testing::Test {
     controller_ = std::make_unique<TuiController>(
         *state_,
         Screens{
-            *char_panel_,         *equip_panel_,       *inventory_panel_,
-            *scroll_panel_,       inspect_panel_,      preview_inspect_panel_,
-            *star_force_panel_,   cube_panel_,         *trace_recover_panel_,
-            *sell_panel_,         *sell_equip_panel_,  *multi_sell_panel_,
-            *map_select_panel_,   *mob_inspect_panel_, *boss_select_panel_,
-            party_select_panel_,  player_list_panel_,  *player_inspect_panel_,
-            *shop_panel_,         *buy_panel_,         *job_inspect_panel_,
-            skill_inspect_panel_, buff_info_panel_,    *menu_panel_,
-            *keybinds_panel_,     *options_panel_},
+            *char_panel_,        *equip_panel_,        *inventory_panel_,
+            *scroll_panel_,      inspect_panel_,       preview_inspect_panel_,
+            *star_force_panel_,  cube_panel_,          *trace_recover_panel_,
+            *sell_panel_,        *sell_equip_panel_,   *multi_sell_panel_,
+            *map_select_panel_,  *mob_inspect_panel_,  *boss_select_panel_,
+            party_select_panel_, player_list_panel_,   *player_inspect_panel_,
+            player_item_panel_,  *shop_panel_,         *buy_panel_,
+            *job_inspect_panel_, skill_inspect_panel_, buff_info_panel_,
+            *menu_panel_,        *keybinds_panel_,     *options_panel_},
         analysis_, *keys_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
@@ -425,15 +425,15 @@ class TuiControllerTest : public testing::Test {
     controller_ = std::make_unique<TuiController>(
         *state_,
         Screens{
-            *char_panel_,         *equip_panel_,       *inventory_panel_,
-            *scroll_panel_,       inspect_panel_,      preview_inspect_panel_,
-            *star_force_panel_,   cube_panel_,         *trace_recover_panel_,
-            *sell_panel_,         *sell_equip_panel_,  *multi_sell_panel_,
-            *map_select_panel_,   *mob_inspect_panel_, *boss_select_panel_,
-            party_select_panel_,  player_list_panel_,  *player_inspect_panel_,
-            *shop_panel_,         *buy_panel_,         *job_inspect_panel_,
-            skill_inspect_panel_, buff_info_panel_,    *menu_panel_,
-            *keybinds_panel_,     *options_panel_},
+            *char_panel_,        *equip_panel_,        *inventory_panel_,
+            *scroll_panel_,      inspect_panel_,       preview_inspect_panel_,
+            *star_force_panel_,  cube_panel_,          *trace_recover_panel_,
+            *sell_panel_,        *sell_equip_panel_,   *multi_sell_panel_,
+            *map_select_panel_,  *mob_inspect_panel_,  *boss_select_panel_,
+            party_select_panel_, player_list_panel_,   *player_inspect_panel_,
+            player_item_panel_,  *shop_panel_,         *buy_panel_,
+            *job_inspect_panel_, skill_inspect_panel_, buff_info_panel_,
+            *menu_panel_,        *keybinds_panel_,     *options_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -562,15 +562,15 @@ class TuiControllerTest : public testing::Test {
     controller_ = std::make_unique<TuiController>(
         *state_,
         Screens{
-            *char_panel_,         *equip_panel_,       *inventory_panel_,
-            *scroll_panel_,       inspect_panel_,      preview_inspect_panel_,
-            *star_force_panel_,   cube_panel_,         *trace_recover_panel_,
-            *sell_panel_,         *sell_equip_panel_,  *multi_sell_panel_,
-            *map_select_panel_,   *mob_inspect_panel_, *boss_select_panel_,
-            party_select_panel_,  player_list_panel_,  *player_inspect_panel_,
-            *shop_panel_,         *buy_panel_,         *job_inspect_panel_,
-            skill_inspect_panel_, buff_info_panel_,    *menu_panel_,
-            *keybinds_panel_,     *options_panel_},
+            *char_panel_,        *equip_panel_,        *inventory_panel_,
+            *scroll_panel_,      inspect_panel_,       preview_inspect_panel_,
+            *star_force_panel_,  cube_panel_,          *trace_recover_panel_,
+            *sell_panel_,        *sell_equip_panel_,   *multi_sell_panel_,
+            *map_select_panel_,  *mob_inspect_panel_,  *boss_select_panel_,
+            party_select_panel_, player_list_panel_,   *player_inspect_panel_,
+            player_item_panel_,  *shop_panel_,         *buy_panel_,
+            *job_inspect_panel_, skill_inspect_panel_, buff_info_panel_,
+            *menu_panel_,        *keybinds_panel_,     *options_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -616,6 +616,7 @@ class TuiControllerTest : public testing::Test {
   BuffInfoPanel buff_info_panel_;
   InspectPanel inspect_panel_;
   InspectPanel preview_inspect_panel_;
+  InspectPanel player_item_panel_;
   BattleAnalysis analysis_;
   std::unique_ptr<MenuPanel> menu_panel_;
   std::unique_ptr<KeyMap> keys_;
@@ -1265,6 +1266,59 @@ TEST_F(TuiControllerTest, ArrowsInInspectScrollRatherThanLeave) {
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowUp);
   controller_->OnEvent(ftxui::Event::Tab);
+
+  EXPECT_EQ(controller_->screen(), kInspect);
+}
+
+// A bag item is read against what the player already wears where it would go.
+TEST_F(TuiControllerTest, ABagItemIsComparedWithTheOneItWouldReplace) {
+  HoldASword();
+  BagASword();
+
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kInspect);
+
+  const EquipTabItem* worn = controller_->inspect_comparison();
+  ASSERT_NE(worn, nullptr);
+  EXPECT_EQ(worn, state_->character.WornAt(StatPreset::kFirst,
+                                           EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_NE(worn, controller_->inspect_item()) << "not the item itself";
+}
+
+// Nothing in the slot, nothing to compare: the card would be drawn empty.
+TEST_F(TuiControllerTest, ABagItemWithAnEmptySlotIsComparedWithNothing) {
+  BagASword();
+
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kInspect);
+  EXPECT_EQ(controller_->inspect_comparison(), nullptr);
+}
+
+// An item inspected off the character IS what the comparison would be.
+TEST_F(TuiControllerTest, AWornItemIsComparedWithNothing) {
+  WearASwordAndDraw();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kInspect);
+  EXPECT_EQ(controller_->inspect_comparison(), nullptr);
+}
+
+// The sideways arrows belong to a squeezed card, and like the others they
+// read the screen rather than closing it.
+TEST_F(TuiControllerTest, SidewaysArrowsInInspectDoNotLeave) {
+  WearASwordAndDraw();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
+  controller_->OnEvent(ftxui::Event::ArrowRight);
 
   EXPECT_EQ(controller_->screen(), kInspect);
 }
@@ -2892,6 +2946,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   BuffInfoPanel buffs;
   InspectPanel item_card;
   InspectPanel trace_card;
+  InspectPanel worn_card;
   CubePanel cube;
   int focus = kCharPanel;
   BattleAnalysis analysis;
@@ -2901,11 +2956,11 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   OptionsPanel options(fresh.account);
   TuiController controller(
       fresh,
-      Screens{chars,    equip,  bag,    scroll,     item_card,  trace_card,
-              star,     cube,   trace,  sell,       sell_equip, multi_sell,
-              maps,     mobs,   bosses, party,      players,    player_inspect,
-              shop,     buy,    jobs,   skill_card, buffs,      menu,
-              keybinds, options},
+      Screens{chars,     equip,    bag,    scroll, item_card,  trace_card,
+              star,      cube,     trace,  sell,   sell_equip, multi_sell,
+              maps,      mobs,     bosses, party,  players,    player_inspect,
+              worn_card, shop,     buy,    jobs,   skill_card, buffs,
+              menu,      keybinds, options},
       analysis, keys, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
@@ -2959,6 +3014,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   BuffInfoPanel buffs;
   InspectPanel item_card;
   InspectPanel trace_card;
+  InspectPanel worn_card;
   CubePanel cube;
   int focus = kCharPanel;
   BattleAnalysis analysis;
@@ -2968,11 +3024,11 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   OptionsPanel options(fresh.account);
   TuiController controller(
       fresh,
-      Screens{chars,    equip,  bag,    scroll,     item_card,  trace_card,
-              star,     cube,   trace,  sell,       sell_equip, multi_sell,
-              maps,     mobs,   bosses, party,      players,    player_inspect,
-              shop,     buy,    jobs,   skill_card, buffs,      menu,
-              keybinds, options},
+      Screens{chars,     equip,    bag,    scroll, item_card,  trace_card,
+              star,      cube,     trace,  sell,   sell_equip, multi_sell,
+              maps,      mobs,     bosses, party,  players,    player_inspect,
+              worn_card, shop,     buy,    jobs,   skill_card, buffs,
+              menu,      keybinds, options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
@@ -3009,6 +3065,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   BuffInfoPanel buffs;
   InspectPanel item_card;
   InspectPanel trace_card;
+  InspectPanel worn_card;
   CubePanel cube;
   int focus = kCharPanel;
   BattleAnalysis analysis;
@@ -3018,11 +3075,11 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   OptionsPanel options(fresh.account);
   TuiController controller(
       fresh,
-      Screens{chars,    equip,  bag,    scroll,     item_card,  trace_card,
-              star,     cube,   trace,  sell,       sell_equip, multi_sell,
-              maps,     mobs,   bosses, party,      players,    player_inspect,
-              shop,     buy,    jobs,   skill_card, buffs,      menu,
-              keybinds, options},
+      Screens{chars,     equip,    bag,    scroll, item_card,  trace_card,
+              star,      cube,     trace,  sell,   sell_equip, multi_sell,
+              maps,      mobs,     bosses, party,  players,    player_inspect,
+              worn_card, shop,     buy,    jobs,   skill_card, buffs,
+              menu,      keybinds, options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
@@ -3059,6 +3116,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   BuffInfoPanel buffs;
   InspectPanel item_card;
   InspectPanel trace_card;
+  InspectPanel worn_card;
   CubePanel cube;
   int focus = kEquipPanel;  // where the game starts
   BattleAnalysis analysis;
@@ -3068,11 +3126,11 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   OptionsPanel options(fresh.account);
   TuiController controller(
       fresh,
-      Screens{chars,    equip,  bag,    scroll,     item_card,  trace_card,
-              star,     cube,   trace,  sell,       sell_equip, multi_sell,
-              maps,     mobs,   bosses, party,      players,    player_inspect,
-              shop,     buy,    jobs,   skill_card, buffs,      menu,
-              keybinds, options},
+      Screens{chars,     equip,    bag,    scroll, item_card,  trace_card,
+              star,      cube,     trace,  sell,   sell_equip, multi_sell,
+              maps,      mobs,     bosses, party,  players,    player_inspect,
+              worn_card, shop,     buy,    jobs,   skill_card, buffs,
+              menu,      keybinds, options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all

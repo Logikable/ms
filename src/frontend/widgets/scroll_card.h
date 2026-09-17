@@ -71,13 +71,6 @@ class ScrollCard {
     max_rows_ = rows;
   }
 
-  // The columns the card is DRAWN in, borders and bar excluded. Narrower than
-  // the rows ask for and the card squeezes; zero, the default, and it takes
-  // the width they ask for and never squeezes.
-  void SetViewWidth(int columns) {
-    view_width_ = columns;
-  }
-
   // Moves the view `delta` rows, held to the card at both ends. It does not
   // wrap: coming out of the foot at the head is disorienting with no cursor
   // to follow.
@@ -107,12 +100,16 @@ class ScrollCard {
   // The card, framed and titled. `content_width` is the columns the rows get,
   // counting neither the borders nor the bar; zero measures the rows and
   // gives them what they ask for. `focused` inverts the title, for a screen
-  // where two cards take turns holding the arrows.
+  // where two cards take turns holding the arrows. `view_width` is the columns
+  // the card is DRAWN in: narrower than the rows, and it squeezes; zero, and
+  // it takes the width they ask for.
   ftxui::Element Render(const std::string& title, CardRows rows,
-                        int content_width = 0, bool focused = false) const;
+                        int content_width = 0, bool focused = false,
+                        int view_width = 0) const;
   // A card of one section, which scrolls entire.
   ftxui::Element Render(const std::string& title, std::vector<CardRow> rows,
-                        int content_width = 0, bool focused = false) const;
+                        int content_width = 0, bool focused = false,
+                        int view_width = 0) const;
 
  private:
   // The rows as they will be drawn: the fixed groups folded into the body of
@@ -126,14 +123,14 @@ class ScrollCard {
   int VisibleRows(const CardRows& rows, int reserved) const;
   // The card held to the width it is drawn in, sliding under a bar along its
   // foot. Returned whole when nothing squeezes it.
-  ftxui::Element Squeezed(ftxui::Element card, int width, bool bar) const;
+  ftxui::Element Squeezed(ftxui::Element card, int width, int view_width,
+                          bool bar) const;
 
   // Held with the four below: Render clamps the offsets to the layout it is
   // drawing, and every panel's Render is const.
   mutable int offset_ = 0;
   mutable int x_offset_ = 0;
   int max_rows_ = 0;
-  int view_width_ = 0;
   // What the last render drew of the body, which is what ScrollBy is held to.
   mutable int total_ = 0;
   mutable int visible_ = 0;

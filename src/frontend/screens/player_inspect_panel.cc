@@ -79,11 +79,15 @@ Activity PlayerInspectPanel::preset() const {
 }
 
 const EquipInstance* PlayerInspectPanel::selected_item() const {
-  EquipSlot slot = equip_panel_->selected_slot();
+  EquipSlot slot = selected_slot();
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return nullptr;
   }
   return character_.WornAt(equip_panel_->gear_preset(), slot);
+}
+
+EquipSlot PlayerInspectPanel::selected_slot() const {
+  return equip_panel_->selected_slot();
 }
 
 bool PlayerInspectPanel::OnEvent(const ftxui::Event& event) {
