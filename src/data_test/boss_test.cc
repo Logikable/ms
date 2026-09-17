@@ -742,13 +742,21 @@ TEST_F(BossDataTest, EveryJumpLandsInsideItsArenaBeforeTheNextIsDue) {
   EXPECT_EQ(jumps, 1) << "the Guardian Angel Slime is the only one that jumps";
 }
 
-// A name wider than the grid's name column is not cut -- it runs straight into
-// the Difficulty beside it, which is how "Guardian Angel Slime" first read as
-// "Guardian Angel SNormal".
-TEST_F(BossDataTest, EveryNameFitsTheColumnTheGridDrawsItIn) {
+// Nothing on the boss screen is cut to fit: a name wider than the grid's name
+// column runs straight into the Difficulty beside it, which is how "Guardian
+// Angel Slime" first read as "Guardian Angel SNormal", and a title wider than
+// the card it heads stands against the border with no clearance.
+TEST_F(BossDataTest, EveryNameFitsWhereTheBossScreenDrawsIt) {
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
     EXPECT_LT(static_cast<int>(entry.second.name().size()), kBossNameWidth)
         << entry.second.name() << " runs into the Difficulty column";
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      // The card is headed "<difficulty> <boss>", with a column of clearance
+      // on each side as every row under it has.
+      std::string title = difficulty.name() + " " + entry.second.name();
+      EXPECT_LE(static_cast<int>(title.size()), kDetailWidth - 2)
+          << title << " fills the card it heads";
+    }
   }
 }
 

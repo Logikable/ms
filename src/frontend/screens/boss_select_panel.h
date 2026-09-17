@@ -29,6 +29,12 @@ namespace ms {
 // The name column of the grid, in cells. A name over it is not cut -- it runs
 // into the Difficulty column beside it -- so the catalog is tested against it.
 inline constexpr int kBossNameWidth = 21;
+// The detail card beside it. Wide enough for a label and a right-aligned
+// value, and for the longest title the card is headed with -- each with the
+// column of clearance on either side that every row here has. The catalog is
+// tested against this one too: a title over it is not cut either, it just
+// stands against the border.
+inline constexpr int kDetailWidth = 29;
 
 // What one phase is holding, for the detail panel and for anything else that
 // wants to price a fight without walking the spawn list itself.

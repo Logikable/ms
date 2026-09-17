@@ -168,9 +168,9 @@ TEST(BossSelectPanelTest, TheDetailPanelDescribesTheFight) {
 TEST(BossSelectPanelTest, TheRewardsListNamesWhatAClearPays) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
-  EquipPrototype crystal;
-  crystal.set_name("Condensed Power Crystal");
-  state.equips["condensed_power_crystal"] = crystal;
+  EquipPrototype shoulder;
+  shoulder.set_name("Royal Black Metal Shoulder");
+  state.equips["royal_black_metal_shoulder"] = shoulder;
   ItemPrototype shard;
   shard.set_name("Zakum's Soul Shard");
   state.items["zakums_soul_shard"] = shard;
@@ -178,7 +178,7 @@ TEST(BossSelectPanelTest, TheRewardsListNamesWhatAClearPays) {
   normal->set_meso(3062500);
   normal->set_exp(4750740);
   MobDrop* equip_drop = normal->add_drops();
-  equip_drop->set_equip("condensed_power_crystal");
+  equip_drop->set_equip("royal_black_metal_shoulder");
   equip_drop->set_per_kill(0.5);
   MobDrop* item_drop = normal->add_drops();
   item_drop->set_item("zakums_soul_shard");
@@ -192,9 +192,9 @@ TEST(BossSelectPanelTest, TheRewardsListNamesWhatAClearPays) {
   EXPECT_NE(out.find("50%"), std::string::npos);
   // A name too long for the panel wraps rather than being cut, and the chance
   // rides the last line of it. One that fits keeps its own row whole.
-  EXPECT_NE(out.find("Condensed"), std::string::npos);
-  EXPECT_NE(out.find("Power Crystal"), std::string::npos);
-  EXPECT_EQ(out.find("Condensed Power Crystal"), std::string::npos);
+  EXPECT_NE(out.find("Royal"), std::string::npos);
+  EXPECT_NE(out.find("Shoulder"), std::string::npos);
+  EXPECT_EQ(out.find("Royal Black Metal Shoulder"), std::string::npos);
   EXPECT_NE(out.find("Zakum's Soul Shard"), std::string::npos);
   EXPECT_NE(out.find("100%"), std::string::npos);
   EXPECT_EQ(out.find("(empty)"), std::string::npos);

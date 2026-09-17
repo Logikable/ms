@@ -29,14 +29,14 @@ namespace {
 
 constexpr int kDifficultyWidth = 10;
 // The detail rows are a label and a right-aligned value, so the panel does not
-// breathe as a number gains a digit.
+// breathe as a number gains a digit. The value takes whatever the card has
+// left over after the label and a column of clearance on each side -- the card
+// is sized by its TITLE, which is the longest thing on it.
 constexpr int kLabelWidth = 12;
-constexpr int kValueWidth = 14;
+constexpr int kValueWidth = kDetailWidth - kLabelWidth - 2;
 // What the rest of a wrapped name is set in from its first line, so the two
 // rows read as one name.
 constexpr int kNameIndent = 2;
-// A column of clearance on each side, the way every panel here is padded.
-constexpr int kDetailWidth = kLabelWidth + kValueWidth + 2;
 // The rows the screen always takes, whichever fight the cursor is on. Tall
 // enough for the tallest detail panel -- a test holds it there -- so the top
 // of the screen never moves.
