@@ -569,6 +569,74 @@ TEST(BossRunTest, ADashStopsAtTheWallAndStaysThere) {
   EXPECT_EQ(run.slots()[0].x, 2) << "the wall did not stop the dash";
 }
 
+// The Guardian Angel Slime's jump: she leaves the row she paces, hangs there
+// for the whole of the hang, comes back down onto the cell she left, and a run
+// stepped in one go lands where one stepped beat by beat does.
+TEST(BossRunTest, AJumpLeavesTheRowAndLandsOnTheCellItLeft) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  std::unique_ptr<GameState> leap_state = MakeState(1000000000, 1);
+  Boss boss = TwoPhaseBoss();
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  phase->set_arena_width(9);
+  phase->set_arena_height(6);
+  ArenaWalk* walk = phase->mutable_spawns(0)->mutable_walk();
+  walk->set_interval_ms(10000);
+  walk->set_range(ArenaWalk::RANGE_ROW_STEP);
+  walk->mutable_jump()->set_interval_ms(30000);
+  walk->mutable_jump()->set_y(3);
+  walk->mutable_jump()->set_hang_ms(660);
+  BossRun run("zakum", boss, 0);
+  BossRun leap("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  leap.Advance(*leap_state, kBossCountdownSeconds);
+
+  run.Advance(*state, 29.9);
+  ASSERT_EQ(run.slots()[0].y, 0) << "she left the row before the jump was due";
+  int column = run.slots()[0].x;
+  run.Advance(*state, 0.2);
+  EXPECT_EQ(run.slots()[0].y, 3) << "the jump did not reach its row";
+  EXPECT_EQ(run.slots()[0].x, column) << "she walked while in the air";
+  run.Advance(*state, 0.5);
+  EXPECT_EQ(run.slots()[0].y, 3) << "she came down inside the hang";
+  run.Advance(*state, 0.2);
+  EXPECT_EQ(run.slots()[0].y, 0) << "she stayed up past the hang";
+  EXPECT_EQ(run.slots()[0].x, column) << "she landed off the cell she left";
+  // The step she owed at 30s went with the jump rather than falling due the
+  // moment she landed.
+  run.Advance(*state, 5.0);
+  EXPECT_EQ(run.slots()[0].x, column) << "the walk did not give up its beat";
+
+  leap.Advance(*leap_state, 35.8);
+  EXPECT_EQ(leap.slots()[0].y, run.slots()[0].y);
+  EXPECT_EQ(leap.slots()[0].x, run.slots()[0].x);
+}
+
+// A jump is a clock of its own: a monster that only jumps still does, where a
+// walk interval is what the drift loop used to be entered on.
+TEST(BossRunTest, AMonsterThatOnlyJumpsStillJumps) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = TwoPhaseBoss();
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  phase->set_arena_width(9);
+  phase->set_arena_height(6);
+  ArenaJump* jump = phase->mutable_spawns(0)->mutable_walk()->mutable_jump();
+  jump->set_interval_ms(5000);
+  jump->set_y(3);
+  jump->set_hang_ms(660);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  int column = run.slots()[0].x;
+
+  run.Advance(*state, 5.1);
+  EXPECT_EQ(run.slots()[0].y, 3);
+  run.Advance(*state, 0.6);
+  EXPECT_EQ(run.slots()[0].y, 0);
+  EXPECT_EQ(run.slots()[0].x, column) << "a monster with no walk moved";
+  // And the next one falls due on its own interval, not on the landing.
+  run.Advance(*state, 4.5);
+  EXPECT_EQ(run.slots()[0].y, 3);
+}
+
 // A dead bar holds its slot for a beat and then leaves it empty: the arms
 // beside it never move.
 TEST(BossRunTest, ADeadBarFadesAndItsSlotStaysEmpty) {

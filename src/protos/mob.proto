@@ -50,6 +50,25 @@ message ArenaWalk {
   // A rush across the arena now and then, in place of one ordinary step.
   // Unset never dashes, which is every walker but Damien.
   ArenaDash dash = 3;
+  // A leap off its row and back. Unset never jumps, which is every walker but
+  // the Guardian Angel Slime.
+  ArenaJump jump = 4;
+}
+
+// A jump: off the row the monster walks and back down to the cell it left. It
+// hangs where it landed for the whole of `hang_ms` and does not walk up there,
+// so it can always come back down -- a jump never has to ask whether the cell
+// below it is still free. The walk resumes a full interval after the landing.
+message ArenaJump {
+  // Milliseconds between jumps. 0 never jumps, as an unset jump does. Must be
+  // longer than `hang_ms`, or the next one falls due before this one lands.
+  int32 interval_ms = 1;
+  // The row it jumps to. Above the row it walks, since the arena's rows count
+  // downwards -- but nothing here requires that, and a monster that drops into
+  // a pit is written the same way.
+  int32 y = 2;
+  // Milliseconds it stays up there.
+  int32 hang_ms = 3;
 }
 
 // A dash: several cells in a row, one way, far quicker than the walk it

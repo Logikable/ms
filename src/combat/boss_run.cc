@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <map>
 #include <string>
 #include <string_view>
@@ -25,6 +26,9 @@ namespace {
 
 // The beat between reports, in the seconds the run counts in.
 constexpr double kReportSeconds = kFightPublishInterval.count() / 1000.0;
+
+// A clock a slot does not keep, later than any fight is long.
+constexpr double kNeverMoves = std::numeric_limits<double>::infinity();
 
 // How far out anyone stands on each axis, counted in cells: the size an arena
 // that names none is measured to.
@@ -464,10 +468,12 @@ void BossRun::FillSlots(const CombatParams& params) {
     bar.x = spot.x();
     bar.y = spot.y();
     bar.walk = params.types[mob.type].walk;
-    // Both clocks run from the start of the fight rather than the start of
+    // Every clock runs from the start of the fight rather than the start of
     // the phase, so a body that comes out late walks the time already spent.
     bar.next_move_at = bar.walk.interval_ms() / 1000.0;
     bar.next_dash_at = bar.walk.dash().interval_ms() / 1000.0;
+    bar.next_jump_at = bar.walk.jump().interval_ms() / 1000.0;
+    bar.ground_y = bar.y;
     bar.hp_fraction = mob.hp_fraction;
     slots_.push_back(std::move(bar));
   }
@@ -493,6 +499,30 @@ bool BossRun::DashSlot(const BossPhase& phase, BossSlot& slot) {
   }
   slot.x = to;
   return true;
+}
+
+double BossRun::NextJumpAt(const BossSlot& slot) {
+  if (slot.walk.jump().interval_ms() <= 0) {
+    return kNeverMoves;
+  }
+  return slot.airborne ? slot.land_at : slot.next_jump_at;
+}
+
+void BossRun::JumpSlot(BossSlot& slot) {
+  const ArenaJump& jump = slot.walk.jump();
+  if (slot.airborne) {
+    slot.y = slot.ground_y;
+    slot.airborne = false;
+    // A fresh interval from the landing: she does not owe the step she was
+    // in the air for.
+    slot.next_move_at = slot.land_at + slot.walk.interval_ms() / 1000.0;
+    return;
+  }
+  slot.ground_y = slot.y;
+  slot.y = jump.y();
+  slot.airborne = true;
+  slot.land_at = slot.next_jump_at + jump.hang_ms() / 1000.0;
+  slot.next_jump_at += jump.interval_ms() / 1000.0;
 }
 
 double BossRun::NextMoveAt(const BossSlot& slot) {
@@ -534,8 +564,21 @@ void BossRun::MoveSlot(const BossPhase& phase, BossSlot& slot) {
 
 void BossRun::DriftSlot(const BossPhase& phase, BossSlot& slot,
                         double elapsed) {
-  while (NextMoveAt(slot) <= elapsed) {
-    MoveSlot(phase, slot);
+  while (true) {
+    // Nothing walks while it is in the air, and a slot with no walk at all is
+    // here for its jump alone.
+    double move = slot.airborne || slot.walk.interval_ms() <= 0
+                      ? kNeverMoves
+                      : NextMoveAt(slot);
+    double jump = NextJumpAt(slot);
+    if (std::min(move, jump) > elapsed) {
+      return;
+    }
+    if (jump <= move) {
+      JumpSlot(slot);
+    } else {
+      MoveSlot(phase, slot);
+    }
   }
 }
 
@@ -549,7 +592,7 @@ void BossRun::DriftSlots() {
                      : static_cast<double>(difficulty()->time_limit_seconds());
   double elapsed = std::max(0.0, limit - seconds_left_);
   for (BossSlot& slot : slots_) {
-    if (slot.walk.interval_ms() <= 0) {
+    if (slot.walk.interval_ms() <= 0 && slot.walk.jump().interval_ms() <= 0) {
       continue;
     }
     DriftSlot(*phase, slot, elapsed);

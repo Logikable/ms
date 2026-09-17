@@ -159,7 +159,7 @@ struct BossSlot {
   int x = 0;
   int y = 0;
   // How it wanders. An unset walk stands still, which is all of them but
-  // Vellum, Papulatus and Damien.
+  // Vellum, Papulatus, Damien and the Guardian Angel Slime.
   ArenaWalk walk;
   // Moves of that walk already behind it, which each new one is drawn off.
   // Kept so a move costs one move's work rather than a replay of thousands.
@@ -172,6 +172,12 @@ struct BossSlot {
   // Cells of a dash still to run, and which way it is going.
   int dash_left = 0;
   int dash_dx = 0;
+  // A jump in the air: the row it left, and when it comes back down. The walk
+  // is suspended until it does, so it always lands on the cell it left.
+  bool airborne = false;
+  int ground_y = 0;
+  double next_jump_at = 0.0;
+  double land_at = 0.0;
   double hp_fraction = 0.0;
   bool alive = true;
   // False once the dead bar's hold has run out. The slot stays in the list --
@@ -345,8 +351,8 @@ class BossRun {
   // Walks whatever walks to where the run's clock says it stands. Called after
   // the slots are in step with the roster, alone and in a shared fight both.
   void DriftSlots();
-  // Walks and dashes `slot` up to `elapsed` seconds into the run, one move at
-  // a time.
+  // Walks, dashes and jumps `slot` up to `elapsed` seconds into the run, one
+  // move at a time.
   void DriftSlot(const BossPhase& phase, BossSlot& slot, double elapsed);
   // When `slot`'s next move falls due: the next cell of a dash it is running,
   // or the sooner of its next step and its next dash.
@@ -360,6 +366,11 @@ class BossRun {
   // Takes `slot` one cell along the dash it is running. Returns false when
   // the cell is not one it may enter, which ends the dash where it stands.
   bool DashSlot(const BossPhase& phase, BossSlot& slot);
+  // When `slot`'s next jump event falls due -- its landing while it is up,
+  // its next leap while it is down. kNeverMoves for a slot that never jumps.
+  static double NextJumpAt(const BossSlot& slot);
+  // Takes `slot` off its row or puts it back, and schedules the other half.
+  static void JumpSlot(BossSlot& slot);
   // What is left of the phase, over what it holds when full.
   void ComputePhaseHp(const CombatParams& params);
   // Steps one phase of the fight forward, moving on when it empties.
