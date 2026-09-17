@@ -12,6 +12,11 @@
  * open from the moment the card has a row budget at all, so a card does not
  * change width the moment it outgrows one.
  *
+ * A card given less width than its rows ask for squeezes instead: the rows
+ * keep the width they were built at and slide sideways under a bar along the
+ * card's foot. The whole card moves together -- what names it would otherwise
+ * stay clipped while the reader looks at the far end of a row.
+ *
  * Rows must each be exactly one line tall. A row that wraps -- a paragraph --
  * cannot be sliced, and would draw past the budget the card was given.
  */
@@ -66,14 +71,25 @@ class ScrollCard {
     max_rows_ = rows;
   }
 
+  // The columns the card is DRAWN in, borders and bar excluded. Narrower than
+  // the rows ask for and the card squeezes; zero, the default, and it takes
+  // the width they ask for and never squeezes.
+  void SetViewWidth(int columns) {
+    view_width_ = columns;
+  }
+
   // Moves the view `delta` rows, held to the card at both ends. It does not
   // wrap: coming out of the foot at the head is disorienting with no cursor
   // to follow.
   void ScrollBy(int delta);
+  // Moves it `delta` columns, held the same way. Nothing at all for a card
+  // that is not squeezed: there is nothing off either edge to reach.
+  void ScrollXBy(int delta);
 
-  // Back to the top, for a card the player has just opened.
+  // Back to the top and the left, for a card the player has just opened.
   void Reset() {
     offset_ = 0;
+    x_offset_ = 0;
   }
 
   // True while the body has more rows than it can draw, which is what a
@@ -81,6 +97,11 @@ class ScrollCard {
   // so it is false until the card has been drawn once.
   bool Overflows() const {
     return total_ > visible_;
+  }
+  // The same question sideways: true while the card is squeezed and there are
+  // columns off its edges.
+  bool OverflowsX() const {
+    return x_max_ > 0;
   }
 
   // The card, framed and titled. `content_width` is the columns the rows get,
@@ -96,20 +117,29 @@ class ScrollCard {
  private:
   // The rows as they will be drawn: the fixed groups folded into the body of
   // a card too short to hold them and a line between them, which scrolls
-  // entire rather than losing the top of its head.
-  CardRows Fitted(CardRows rows) const;
-  // How many body rows fit, with the borders and the fixed groups paid for.
-  // At least one however small the budget: a card cut to nothing says less
-  // than a card cut short.
-  int VisibleRows(const CardRows& rows) const;
+  // entire rather than losing the top of its head. `reserved` is the rows the
+  // card owes something else -- the horizontal bar, when it is squeezed.
+  CardRows Fitted(CardRows rows, int reserved) const;
+  // How many body rows fit, with the borders, the fixed groups and `reserved`
+  // paid for. At least one however small the budget: a card cut to nothing
+  // says less than a card cut short.
+  int VisibleRows(const CardRows& rows, int reserved) const;
+  // The card held to the width it is drawn in, sliding under a bar along its
+  // foot. Returned whole when nothing squeezes it.
+  ftxui::Element Squeezed(ftxui::Element card, int width, bool bar) const;
 
-  // Held with the two below: Render clamps the offset to the layout it is
+  // Held with the four below: Render clamps the offsets to the layout it is
   // drawing, and every panel's Render is const.
   mutable int offset_ = 0;
+  mutable int x_offset_ = 0;
   int max_rows_ = 0;
+  int view_width_ = 0;
   // What the last render drew of the body, which is what ScrollBy is held to.
   mutable int total_ = 0;
   mutable int visible_ = 0;
+  // The columns the last render left off the card's edges, and what ScrollXBy
+  // is held to. Zero for a card drawn whole.
+  mutable int x_max_ = 0;
 };
 
 }  // namespace ms

@@ -67,8 +67,8 @@ int NaturalWidth(const CardRows& rows) {
                    NaturalWidth(rows.foot)});
 }
 
-CardRows ScrollCard::Fitted(CardRows rows) const {
-  int fixed = static_cast<int>(rows.head.size() + rows.foot.size());
+CardRows ScrollCard::Fitted(CardRows rows, int reserved) const {
+  int fixed = static_cast<int>(rows.head.size() + rows.foot.size()) + reserved;
   if (max_rows_ <= 0 || max_rows_ - kBorderRows - fixed >= 1) {
     return rows;
   }
@@ -81,17 +81,21 @@ CardRows ScrollCard::Fitted(CardRows rows) const {
   return all;
 }
 
-int ScrollCard::VisibleRows(const CardRows& rows) const {
+int ScrollCard::VisibleRows(const CardRows& rows, int reserved) const {
   int total = static_cast<int>(rows.body.size());
   if (max_rows_ <= 0) {
     return total;
   }
-  int fixed = static_cast<int>(rows.head.size() + rows.foot.size());
+  int fixed = static_cast<int>(rows.head.size() + rows.foot.size()) + reserved;
   return std::max(1, std::min(total, max_rows_ - kBorderRows - fixed));
 }
 
 void ScrollCard::ScrollBy(int delta) {
   offset_ = std::max(0, std::min(offset_ + delta, total_ - visible_));
+}
+
+void ScrollCard::ScrollXBy(int delta) {
+  x_offset_ = std::max(0, std::min(x_offset_ + delta, x_max_));
 }
 
 ftxui::Element ScrollCard::Render(const std::string& title,
@@ -104,14 +108,19 @@ ftxui::Element ScrollCard::Render(const std::string& title,
 
 ftxui::Element ScrollCard::Render(const std::string& title, CardRows rows,
                                   int content_width, bool focused) const {
-  rows = Fitted(std::move(rows));
+  int width = content_width > 0 ? content_width : NaturalWidth(rows);
+  // Measured before the rows are fitted, which only moves them between the
+  // groups: the horizontal bar takes a row of the budget, so whether the card
+  // squeezes has to be settled before the rows are cut to it.
+  bool squeeze = view_width_ > 0 && view_width_ < width;
+  int reserved = squeeze ? 1 : 0;
+  rows = Fitted(std::move(rows), reserved);
   total_ = static_cast<int>(rows.body.size());
-  visible_ = VisibleRows(rows);
+  visible_ = VisibleRows(rows, reserved);
   // Clamped here as well as in ScrollBy: the terminal can be made taller under
   // a card already scrolled to its foot, which leaves the old offset too far
   // down for the window it now has.
   offset_ = std::max(0, std::min(offset_, total_ - visible_));
-  int width = content_width > 0 ? content_width : NaturalWidth(rows);
   // The bar's column is held open from the moment the card has a budget to
   // outgrow, so the card does not widen the first time it does.
   bool bar = max_rows_ > 0;
@@ -132,7 +141,27 @@ ftxui::Element ScrollCard::Render(const std::string& title, CardRows rows,
   for (CardRow& row : rows.foot) {
     lines.push_back(Line(std::move(row), width, bar, ftxui::text(" ")));
   }
-  return ThemedWindow(title, ftxui::vbox(std::move(lines)), focused);
+  ftxui::Element card = ftxui::vbox(std::move(lines));
+  if (!squeeze) {
+    x_max_ = 0;
+    return ThemedWindow(title, std::move(card), focused);
+  }
+  return ThemedWindow(title, Squeezed(std::move(card), width, bar), focused);
+}
+
+ftxui::Element ScrollCard::Squeezed(ftxui::Element card, int width,
+                                    bool bar) const {
+  // The vertical bar's column rides with the rows, so it counts on both sides
+  // of the squeeze: what the card asks for, and what it is drawn in.
+  int full = width + (bar ? 1 : 0);
+  int shown = view_width_ + (bar ? 1 : 0);
+  x_max_ = full - shown;
+  x_offset_ = std::max(0, std::min(x_offset_, x_max_));
+  // A frame scrolls to CENTRE the point it is told to focus, so the point that
+  // puts the reader's column at the left edge is half a view to its right.
+  return card | ftxui::focusPosition(x_offset_ + (shown - 1) / 2, 0) |
+         ftxui::hscroll_indicator | ftxui::xframe |
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, shown);
 }
 
 }  // namespace ms

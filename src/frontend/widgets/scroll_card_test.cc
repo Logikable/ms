@@ -68,6 +68,30 @@ bool HasBar(const std::vector<std::string>& lines) {
   return false;
 }
 
+// One row of `width` letters, so a squeezed card says which columns it drew.
+std::vector<CardRow> LetterRows(int count, int width) {
+  std::vector<CardRow> rows;
+  for (int i = 0; i < count; ++i) {
+    std::string text;
+    for (int c = 0; c < width; ++c) {
+      text += static_cast<char>('a' + (c % 26));
+    }
+    rows.push_back(TextRow(ftxui::text(text)));
+  }
+  return rows;
+}
+
+// Whether the card's last line before the border carries a horizontal bar.
+bool HasXBar(const std::vector<std::string>& lines) {
+  if (lines.size() < 3) {
+    return false;
+  }
+  const std::string& foot = lines[lines.size() - 2];
+  return foot.find("─") != std::string::npos ||
+         foot.find("╴") != std::string::npos ||
+         foot.find("╶") != std::string::npos;
+}
+
 TEST(ScrollCardTest, DrawsEveryRowWithNoBudget) {
   ScrollCard card;
   std::vector<std::string> lines = Draw(card, Body(NumberedRows(4)), 8);
@@ -240,6 +264,75 @@ TEST(ScrollCardTest, AtLeastOneRowHoweverSmallTheBudget) {
   std::vector<std::string> lines = Draw(card, Body(NumberedRows(10)), 8);
   ASSERT_EQ(lines.size(), 3u);
   EXPECT_NE(lines[1].find("row0"), std::string::npos);
+}
+
+// The rows keep the width they were built at; the card draws a window onto
+// them, with a bar along its foot.
+TEST(ScrollCardTest, SqueezesToTheViewWidthAndDrawsABar) {
+  ScrollCard card;
+  card.SetViewWidth(8);
+  std::vector<std::string> lines = Draw(card, Body(LetterRows(3, 20)), 20);
+  EXPECT_EQ(CardWidth(card, LetterRows(3, 20), 20), 10) << "eight and borders";
+  EXPECT_NE(lines[1].find("abcdefgh"), std::string::npos);
+  EXPECT_EQ(lines[1].find("ijk"), std::string::npos) << "past the window";
+  EXPECT_TRUE(card.OverflowsX());
+  EXPECT_TRUE(HasXBar(lines));
+}
+
+TEST(ScrollCardTest, SlidesSidewaysAndHoldsToBothEnds) {
+  ScrollCard card;
+  card.SetViewWidth(8);
+  Draw(card, Body(LetterRows(3, 20)), 20);  // Teaches it what it is showing.
+  card.ScrollXBy(4);
+  EXPECT_NE(Draw(card, Body(LetterRows(3, 20)), 20)[1].find("efghijkl"),
+            std::string::npos);
+  card.ScrollXBy(-99);
+  EXPECT_NE(Draw(card, Body(LetterRows(3, 20)), 20)[1].find("abcdefgh"),
+            std::string::npos);
+  card.ScrollXBy(99);
+  EXPECT_NE(Draw(card, Body(LetterRows(3, 20)), 20)[1].find("mnopqrst"),
+            std::string::npos)
+      << "the last of the row, and no further";
+}
+
+// The whole card slides, head and all: a title left clipped while the reader
+// looks at the far end of a row says nothing.
+TEST(ScrollCardTest, SlidesTheHeadWithTheBody) {
+  ScrollCard card;
+  card.SetViewWidth(8);
+  CardRows rows;
+  rows.head = {TextRow(ftxui::text("HEADHEADHEAD"))};
+  rows.body = LetterRows(2, 20);
+  Draw(card, rows, 20);
+  card.ScrollXBy(4);
+  CardRows again;
+  again.head = {TextRow(ftxui::text("HEADHEADHEAD"))};
+  again.body = LetterRows(2, 20);
+  EXPECT_NE(Draw(card, again, 20)[1].find("HEADHEAD"), std::string::npos);
+}
+
+TEST(ScrollCardTest, DrawsWholeWhenTheViewHoldsIt) {
+  ScrollCard card;
+  card.SetViewWidth(20);
+  std::vector<std::string> lines = Draw(card, Body(LetterRows(3, 20)), 20);
+  EXPECT_NE(lines[1].find("abcdefghijklmnopqrst"), std::string::npos);
+  EXPECT_FALSE(card.OverflowsX());
+  EXPECT_FALSE(HasXBar(lines));
+  card.ScrollXBy(5);
+  EXPECT_NE(Draw(card, Body(LetterRows(3, 20)), 20)[1].find("abcdefgh"),
+            std::string::npos)
+      << "nothing off either edge to reach";
+}
+
+// The bar along the foot is a row of the budget like any other.
+TEST(ScrollCardTest, TheHorizontalBarCostsARow) {
+  ScrollCard card;
+  card.SetMaxRows(6);
+  card.SetViewWidth(8);
+  std::vector<std::string> lines = Draw(card, Body(LetterRows(10, 20)), 20);
+  ASSERT_EQ(lines.size(), 6u);
+  EXPECT_TRUE(HasXBar(lines));
+  EXPECT_TRUE(card.Overflows());
 }
 
 }  // namespace
