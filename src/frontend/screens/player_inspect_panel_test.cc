@@ -1,4 +1,4 @@
-#include "src/frontend/screens/party_inspect_panel.h"
+#include "src/frontend/screens/player_inspect_panel.h"
 
 #include <gtest/gtest.h>
 
@@ -94,9 +94,9 @@ std::map<std::string, Skill> SkillCatalog() {
   return {{"power_strike", strike}};
 }
 
-class PartyInspectPanelTest : public PanelTest {
+class PlayerInspectPanelTest : public PanelTest {
  protected:
-  PartyInspectPanelTest() : state_(Catalog(), {}, {}, {}, {}, SkillCatalog()) {
+  PlayerInspectPanelTest() : state_(Catalog(), {}, {}, {}, {}, SkillCatalog()) {
   }
 
   // Every item these tests wear, by the key a catalog holds them under.
@@ -162,7 +162,7 @@ class PartyInspectPanelTest : public PanelTest {
 
   // The screen at the terminal's size, the way Tui draws it: this one takes
   // the whole thing rather than standing in the middle of it.
-  static ftxui::Screen Draw(PartyInspectPanel& panel, int rows = 40,
+  static ftxui::Screen Draw(PlayerInspectPanel& panel, int rows = 40,
                             int columns = kTestScreenWidth) {
     ftxui::Screen screen = ftxui::Screen::Create(
         ftxui::Dimension::Fixed(columns), ftxui::Dimension::Fixed(rows));
@@ -170,7 +170,7 @@ class PartyInspectPanelTest : public PanelTest {
     return screen;
   }
 
-  static std::string Screen(PartyInspectPanel& panel) {
+  static std::string Screen(PlayerInspectPanel& panel) {
     return ScreenText(Draw(panel));
   }
 
@@ -195,13 +195,13 @@ class PartyInspectPanelTest : public PanelTest {
   // Sends a key the way the game does: after a frame. The Equipped list is an
   // ftxui::Menu, whose entries are filled by the render, and a key that
   // arrives before the first one finds it empty.
-  static bool Send(PartyInspectPanel& panel, const ftxui::Event& event) {
+  static bool Send(PlayerInspectPanel& panel, const ftxui::Event& event) {
     Draw(panel);
     return panel.OnEvent(event);
   }
 
   // Walks the cursor onto the member's Character panel.
-  static void FocusCharacterPanel(PartyInspectPanel& panel) {
+  static void FocusCharacterPanel(PlayerInspectPanel& panel) {
     Send(panel, ftxui::Event::Tab);
   }
 
@@ -210,9 +210,9 @@ class PartyInspectPanelTest : public PanelTest {
 
 // The sheet arrives naming its items; the panel resolves them against this
 // build's catalogs, and what it draws is the member's own main screen.
-TEST_F(PartyInspectPanelTest, DrawsTheMembersOwnScreen) {
+TEST_F(PlayerInspectPanelTest, DrawsTheMembersOwnScreen) {
   int theirs = 0;
-  PartyInspectPanel panel(state_);
+  PlayerInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", {Sword(), Hat()}, &theirs));
 
   std::string screen = Screen(panel);
@@ -234,8 +234,8 @@ TEST_F(PartyInspectPanelTest, DrawsTheMembersOwnScreen) {
 
 // Nothing here spends, so nothing here has a button -- and a member's name is
 // not the reader's to take.
-TEST_F(PartyInspectPanelTest, BothPanelsAreReadOnly) {
-  PartyInspectPanel panel(state_);
+TEST_F(PlayerInspectPanelTest, BothPanelsAreReadOnly) {
+  PlayerInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
   EXPECT_EQ(Screen(panel).find("[+]"), std::string::npos);
 
@@ -247,8 +247,8 @@ TEST_F(PartyInspectPanelTest, BothPanelsAreReadOnly) {
 
 // The columns split the way the main screen's do, and both panels run down to
 // the exp bar rather than stopping where their contents do.
-TEST_F(PartyInspectPanelTest, TheColumnsAreTheMainScreensAndReachTheFoot) {
-  PartyInspectPanel panel(state_);
+TEST_F(PlayerInspectPanelTest, TheColumnsAreTheMainScreensAndReachTheFoot) {
+  PlayerInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", FullGear()));
   constexpr int kRows = 40;
   ftxui::Screen screen = Draw(panel, kRows);
@@ -267,8 +267,8 @@ TEST_F(PartyInspectPanelTest, TheColumnsAreTheMainScreensAndReachTheFoot) {
 
 // A short terminal is what the Character panel's extra stats give way to, and
 // the View All Stats row under them is the last thing it gives up.
-TEST_F(PartyInspectPanelTest, TheCharacterPanelFitsAShortTerminal) {
-  PartyInspectPanel panel(state_);
+TEST_F(PlayerInspectPanelTest, TheCharacterPanelFitsAShortTerminal) {
+  PlayerInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", FullGear()));
 
   ftxui::Screen tall = Draw(panel, /*rows=*/40);
@@ -280,8 +280,8 @@ TEST_F(PartyInspectPanelTest, TheCharacterPanelFitsAShortTerminal) {
 }
 
 // Tab walks between the two panels, the way it does on the main screen.
-TEST_F(PartyInspectPanelTest, TabMovesBetweenThePanels) {
-  PartyInspectPanel panel(state_);
+TEST_F(PlayerInspectPanelTest, TabMovesBetweenThePanels) {
+  PlayerInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
 
   // It opens on the Equipped list, so the cursor walks the gear.
@@ -306,10 +306,10 @@ TEST_F(PartyInspectPanelTest, TabMovesBetweenThePanels) {
 
 // Enter on a worn item raises its card, and Enter on the Expand tab opens the
 // gear over the whole screen -- the same door the player's own panel has.
-TEST_F(PartyInspectPanelTest, EnterRaisesTheCardsAndTheExpandTabOpensUp) {
-  PartyInspectPanel panel(state_);
+TEST_F(PlayerInspectPanelTest, EnterRaisesTheCardsAndTheExpandTabOpensUp) {
+  PlayerInspectPanel panel(state_);
   int items = 0;
-  PartyInspectActions actions;
+  PlayerInspectActions actions;
   actions.item = [&items]() { ++items; };
   panel.UseActions(actions);
   panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
@@ -333,10 +333,10 @@ TEST_F(PartyInspectPanelTest, EnterRaisesTheCardsAndTheExpandTabOpensUp) {
 }
 
 // The Character panel's own tabs, which is most of what the screen gained.
-TEST_F(PartyInspectPanelTest, TheCharacterPanelCarriesTheirTabs) {
-  PartyInspectPanel panel(state_);
+TEST_F(PlayerInspectPanelTest, TheCharacterPanelCarriesTheirTabs) {
+  PlayerInspectPanel panel(state_);
   std::vector<std::string> skills;
-  PartyInspectActions actions;
+  PlayerInspectActions actions;
   actions.skill = [&skills](const Skill& skill) {
     skills.push_back(skill.name());
   };
@@ -355,8 +355,8 @@ TEST_F(PartyInspectPanelTest, TheCharacterPanelCarriesTheirTabs) {
 
 // A member in nothing at all. The stats still read, and there is no item for
 // Enter to open.
-TEST_F(PartyInspectPanelTest, HoldsUpWithNothingWorn) {
-  PartyInspectPanel panel(state_);
+TEST_F(PlayerInspectPanelTest, HoldsUpWithNothingWorn) {
+  PlayerInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", {}));
 
   EXPECT_EQ(panel.selected_item(), nullptr);
@@ -367,8 +367,8 @@ TEST_F(PartyInspectPanelTest, HoldsUpWithNothingWorn) {
 
 // A second member replaces the first outright, both panels included -- the
 // screen is one reused, not a pile of them.
-TEST_F(PartyInspectPanelTest, ShowingAnotherMemberForgetsTheFirst) {
-  PartyInspectPanel panel(state_);
+TEST_F(PlayerInspectPanelTest, ShowingAnotherMemberForgetsTheFirst) {
+  PlayerInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
   Send(panel, ftxui::Event::ArrowDown);
   FocusCharacterPanel(panel);
@@ -389,13 +389,13 @@ TEST_F(PartyInspectPanelTest, ShowingAnotherMemberForgetsTheFirst) {
 
 // An item the sender has and this build does not is dropped the way a save
 // loaded against changed catalogs drops it. Everything else still reads.
-TEST_F(PartyInspectPanelTest, DropsAnItemThisBuildDoesNotHave) {
+TEST_F(PlayerInspectPanelTest, DropsAnItemThisBuildDoesNotHave) {
   EquipPrototype unknown;
   unknown.set_name("Fafnir Windwing Shooter");
   unknown.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   unknown.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
 
-  PartyInspectPanel panel(state_);
+  PlayerInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", {unknown, Hat()}));
 
   std::string screen = Screen(panel);
@@ -406,8 +406,8 @@ TEST_F(PartyInspectPanelTest, DropsAnItemThisBuildDoesNotHave) {
 
 // A member past level 140 carries the Farm/Boss row their own screen carries,
 // and Left/Right read between their two allocations.
-TEST_F(PartyInspectPanelTest, TheFarmBossRowReadsBothAllocations) {
-  PartyInspectPanel panel(state_);
+TEST_F(PlayerInspectPanelTest, TheFarmBossRowReadsBothAllocations) {
+  PlayerInspectPanel panel(state_);
   panel.SetPlayer(HyperMember("Bree"));
   FocusCharacterPanel(panel);
 
@@ -423,10 +423,10 @@ TEST_F(PartyInspectPanelTest, TheFarmBossRowReadsBothAllocations) {
 
 // The All Stats screen the View All Stats row opens is the member's, and it
 // opens on the allocation their Character panel is reading.
-TEST_F(PartyInspectPanelTest, TheirAllStatsScreenOpensOnTheirAllocation) {
-  PartyInspectPanel panel(state_);
+TEST_F(PlayerInspectPanelTest, TheirAllStatsScreenOpensOnTheirAllocation) {
+  PlayerInspectPanel panel(state_);
   int opened = 0;
-  PartyInspectActions actions;
+  PlayerInspectActions actions;
   actions.all_stats = [&opened]() { ++opened; };
   panel.UseActions(actions);
   panel.SetPlayer(HyperMember("Bree"));

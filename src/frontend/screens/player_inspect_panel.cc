@@ -1,4 +1,4 @@
-#include "src/frontend/screens/party_inspect_panel.h"
+#include "src/frontend/screens/player_inspect_panel.h"
 
 #include <memory>
 #include <utility>
@@ -11,7 +11,7 @@
 
 namespace ms {
 
-PartyInspectPanel::PartyInspectPanel(GameState& state)
+PlayerInspectPanel::PlayerInspectPanel(GameState& state)
     : state_(state),
       character_(state.rng, Character()),
       // No account: this is somebody else's sheet, so the Farm/Boss row is
@@ -20,12 +20,12 @@ PartyInspectPanel::PartyInspectPanel(GameState& state)
   BuildPanels();
 }
 
-void PartyInspectPanel::UseActions(PartyInspectActions actions) {
+void PlayerInspectPanel::UseActions(PlayerInspectActions actions) {
   actions_ = std::move(actions);
   BuildPanels();
 }
 
-void PartyInspectPanel::BuildPanels() {
+void PlayerInspectPanel::BuildPanels() {
   char_panel_ = std::make_unique<CharacterPanel>(character_, state_.account,
                                                  focus_, state_.skills);
   char_panel_->SetReadOnly(true);
@@ -48,7 +48,7 @@ void PartyInspectPanel::BuildPanels() {
       [this]() { expanded_ = !expanded_; });
 }
 
-void PartyInspectPanel::SetPlayer(const PlayerInfo& player) {
+void PlayerInspectPanel::SetPlayer(const PlayerInfo& player) {
   if (google::protobuf::util::MessageDifferencer::Equals(player, shown_)) {
     return;
   }
@@ -65,7 +65,7 @@ void PartyInspectPanel::SetPlayer(const PlayerInfo& player) {
   // panels hold where the cursor was and clamp it to what is left.
 }
 
-void PartyInspectPanel::Reset() {
+void PlayerInspectPanel::Reset() {
   expanded_ = false;
   // On the Equipped list, which is what the reader came for. The same panel
   // the main view opens focused.
@@ -74,11 +74,11 @@ void PartyInspectPanel::Reset() {
   BuildPanels();
 }
 
-Activity PartyInspectPanel::preset() const {
+Activity PlayerInspectPanel::preset() const {
   return char_panel_->SelectedActivity();
 }
 
-const EquipInstance* PartyInspectPanel::selected_item() const {
+const EquipInstance* PlayerInspectPanel::selected_item() const {
   EquipSlot slot = equip_panel_->selected_slot();
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return nullptr;
@@ -86,7 +86,7 @@ const EquipInstance* PartyInspectPanel::selected_item() const {
   return character_.WornAt(equip_panel_->gear_preset(), slot);
 }
 
-bool PartyInspectPanel::OnEvent(const ftxui::Event& event) {
+bool PlayerInspectPanel::OnEvent(const ftxui::Event& event) {
   if (IsSwitchPanel(event)) {
     // Nothing to walk to while one panel is the whole screen, as on the main
     // view.
@@ -104,20 +104,20 @@ bool PartyInspectPanel::OnEvent(const ftxui::Event& event) {
   return char_component_->OnEvent(event);
 }
 
-void PartyInspectPanel::SyncAllStats() {
+void PlayerInspectPanel::SyncAllStats() {
   stats_.SetPreset(preset());
 }
 
-ftxui::Element PartyInspectPanel::RenderAllStats() const {
+ftxui::Element PlayerInspectPanel::RenderAllStats() const {
   return stats_.Render() |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, AllStatsPanel::kTotalWidth);
 }
 
-bool PartyInspectPanel::OnAllStatsEvent(const ftxui::Event& event) {
+bool PlayerInspectPanel::OnAllStatsEvent(const ftxui::Event& event) {
   return stats_.OnEvent(event);
 }
 
-ftxui::Element PartyInspectPanel::Render(int rows, int columns) {
+ftxui::Element PlayerInspectPanel::Render(int rows, int columns) {
   equip_panel_->SetExpanded(expanded_);
   if (expanded_) {
     equip_panel_->SetWidth(columns);

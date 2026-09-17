@@ -79,20 +79,24 @@ enum Screen : int {
   // The bestiary, from that menu: the map's mobs and everything known about
   // whichever one the cursor is on.
   kMobInspect,
-  // Enter on the menu panel's Party entry: the parties open to be joined, or
-  // the one the player is in.
+  // Players on the menu panel's Multiplayer box: everyone connected, by name
+  // and level.
+  kPlayerList,
+  // Party on that box: the parties open to be joined, or the one the player
+  // is in.
   kPartySelect,
   // Enter on a member: read them, and for the leader kick them or hand the
   // party on.
   kPartyMenu,
-  // The member behind Inspect: their stats, and what they are wearing.
-  kPartyInspect,
+  // The player behind Inspect, reached from either list: their stats, and what
+  // they are wearing.
+  kPlayerInspect,
   // Enter on one of those worn items: its card, the same one the player's own
   // items get.
-  kPartyItemInspect,
+  kPlayerItemInspect,
   // The View All Stats row on the member's Character panel: every stat they
   // have, on the screen their own last stats row opens.
-  kPartyAllStats,
+  kPlayerAllStats,
   // The question one of those asks, and the one leaving a party asks.
   kPartyConfirm,
   // Enter on the menu panel's Dailies entry: what today's claim pays, over

@@ -33,7 +33,7 @@ void LevelTo(GameState& state, int level) {
 }
 
 std::string Render(const MenuPanel& panel) {
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(56),
                                                ftxui::Dimension::Fixed(3));
   ftxui::Render(screen, panel.Render());
   return screen.ToString();
@@ -90,12 +90,12 @@ TEST(MenuPanelTest, TheEntriesSitTwoColumnsApart) {
   BattleAnalysis analysis;
   int focus = kMenuPanel;
   MenuPanel panel(state, analysis, focus);
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(48),
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(56),
                                                ftxui::Dimension::Fixed(3));
   ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
-  EXPECT_NE(
-      ScreenRow(screen, 1).find("│ Analysis  Dailies  Boss  Party  Settings │"),
-      std::string::npos);
+  EXPECT_NE(ScreenRow(screen, 1).find(
+                "│ Analysis  Dailies  Boss  Multiplayer  Settings │"),
+            std::string::npos);
 }
 
 TEST(MenuPanelTest, TheCursorWrapsAndPicksAnEntry) {
@@ -108,7 +108,7 @@ TEST(MenuPanelTest, TheCursorWrapsAndPicksAnEntry) {
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected(), MenuEntry::kBoss);
   panel.MoveCursor(1);
-  EXPECT_EQ(panel.selected(), MenuEntry::kParty);
+  EXPECT_EQ(panel.selected(), MenuEntry::kMultiplayer);
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected(), MenuEntry::kSettings);
   // Off the end and back to the start.
@@ -222,6 +222,25 @@ TEST(MenuPanelTest, TheBoxAndTheMenuRowShareOneCursor) {
   EXPECT_EQ(panel.box_cursor(), 0);
   panel.CloseBox();
   EXPECT_FALSE(panel.box_open());
+  EXPECT_EQ(panel.box_cursor(), -1);
+}
+
+// The Multiplayer box lists Players over Party, so Up off the row meets Party
+// first.
+TEST(MenuPanelTest, TheMultiplayerBoxWalksBothOfItsRows) {
+  GameState state = EmptyState();
+  LevelTo(state, kBossLevel);
+  BattleAnalysis analysis;
+  int focus = kMenuPanel;
+  MenuPanel panel(state, analysis, focus);
+  OpenBoxOn(panel, MenuEntry::kMultiplayer);
+  panel.MoveBoxCursor(1);
+  EXPECT_EQ(panel.box_cursor(), 1);
+  EXPECT_EQ(panel.selected_multiplayer_entry(), MultiplayerEntry::kParty);
+  panel.MoveBoxCursor(1);
+  EXPECT_EQ(panel.box_cursor(), 0);
+  EXPECT_EQ(panel.selected_multiplayer_entry(), MultiplayerEntry::kPlayers);
+  panel.MoveBoxCursor(1);
   EXPECT_EQ(panel.box_cursor(), -1);
 }
 

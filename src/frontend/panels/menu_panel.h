@@ -7,9 +7,10 @@
  *
  * Entries arrive as the character reaches them, and the row is laid out from
  * the right: Settings holds the corner from the start so the panel is never an
- * empty box, Boss and Party arrive left of it at 110, and Dailies left of them
- * at the level the first Arcane Symbol can be had. Analysis holds the left
- * end throughout. A build with no multiplayer in it has no Party entry at all.
+ * empty box, Boss and Multiplayer arrive left of it at 110, and Dailies left
+ * of them at the level the first Arcane Symbol can be had. Analysis holds the
+ * left end throughout. A build with no multiplayer in it has no Multiplayer
+ * entry at all.
  *
  * An entry either opens a screen -- Boss does -- or opens a box that stands on
  * the corner and lists what it leads to. There is one box, whichever entry
@@ -34,7 +35,7 @@ enum class MenuEntry {
   kAnalysis,
   kDailies,
   kBoss,
-  kParty,
+  kMultiplayer,
   kSettings,
 };
 
@@ -42,6 +43,12 @@ enum class MenuEntry {
 enum class SettingsEntry {
   kKeybinds,
   kOptions,
+};
+
+// What the Multiplayer box holds, top to bottom.
+enum class MultiplayerEntry {
+  kPlayers,
+  kParty,
 };
 
 // What the Analysis box holds, top to bottom. The first entry starts the
@@ -92,6 +99,7 @@ class MenuPanel {
   // itself asks here.
   int BoxRightMargin() const;
   SettingsEntry selected_settings_entry() const;
+  MultiplayerEntry selected_multiplayer_entry() const;
   AnalysisEntry selected_analysis_entry() const;
   ftxui::Element RenderBox() const;
 

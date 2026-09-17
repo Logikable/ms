@@ -66,7 +66,8 @@ TuiController::TuiController(GameState& state, Screens screens,
       mob_inspect_panel_(screens.mob_inspect_panel),
       boss_select_panel_(screens.boss_select_panel),
       party_select_panel_(screens.party_select_panel),
-      party_inspect_panel_(screens.party_inspect_panel),
+      player_list_panel_(screens.player_list_panel),
+      player_inspect_panel_(screens.player_inspect_panel),
       job_inspect_panel_(screens.job_inspect_panel),
       skill_inspect_panel_(screens.skill_inspect_panel),
       buff_info_panel_(screens.buff_info_panel),
@@ -82,16 +83,16 @@ TuiController::TuiController(GameState& state, Screens screens,
   // The Inspect screen's own panels answer Enter with these. Wired here
   // rather than by whoever built the screens: every one of them is a screen
   // this controller opens.
-  PartyInspectActions party_actions;
-  party_actions.item = [this]() { OpenPartyItemInspect(); };
-  party_actions.skill = [this](const Skill& skill) {
-    OpenPartySkillInspect(skill);
+  PlayerInspectActions inspect_actions;
+  inspect_actions.item = [this]() { OpenPlayerItemInspect(); };
+  inspect_actions.skill = [this](const Skill& skill) {
+    OpenPlayerSkillInspect(skill);
   };
-  party_actions.hyper_stat = [this](HyperStatField field) {
-    OpenPartyHyperStatInspect(field);
+  inspect_actions.hyper_stat = [this](HyperStatField field) {
+    OpenPlayerHyperStatInspect(field);
   };
-  party_actions.all_stats = [this]() { OpenPartyAllStats(); };
-  party_inspect_panel_.UseActions(std::move(party_actions));
+  inspect_actions.all_stats = [this]() { OpenPlayerAllStats(); };
+  player_inspect_panel_.UseActions(std::move(inspect_actions));
 
   if (multiplayer_ != nullptr) {
     party_fight_ =
@@ -163,7 +164,7 @@ void TuiController::OpenSkillMenu(const Skill& skill) {
 
 void TuiController::OpenSkillInspect(const Skill& skill) {
   skill_inspect_ = skill;
-  card_from_party_ = false;
+  card_from_inspect_ = false;
   skill_inspect_panel_.ResetScroll();
   screen_ = kSkillInspect;
 }
@@ -171,7 +172,8 @@ void TuiController::OpenSkillInspect(const Skill& skill) {
 // Whoever the open card is about: the player, or the party member behind the
 // Inspect screen.
 const CharacterInstance& TuiController::card_character() const {
-  return card_from_party_ ? party_inspect_panel_.character() : state_.character;
+  return card_from_inspect_ ? player_inspect_panel_.character()
+                            : state_.character;
 }
 
 // Read LIVE rather than captured, so a point spent and then inspected again
@@ -201,7 +203,7 @@ void TuiController::OpenHyperStatInspect(HyperStatField field,
                                          StatPreset preset) {
   hyper_field_ = field;
   hyper_preset_ = preset;
-  card_from_party_ = false;
+  card_from_inspect_ = false;
   screen_ = kHyperStatInspect;
 }
 
@@ -398,25 +400,6 @@ bool TuiController::capturing_key() const {
 }
 
 void TuiController::OpenMenuEntry(MenuEntry entry) {
-  if (entry == MenuEntry::kParty) {
-    MultiplayerSnapshot lobby = Lobby();
-    if (lobby.state != ConnectionState::kConnected) {
-      // Ask for a fresh attempt on the way out. Whatever turned the connection
-      // away may be gone -- a server since deployed is the common one -- and
-      // finding out should not cost the player a restart.
-      if (multiplayer_ != nullptr) {
-        multiplayer_->client().Reconnect();
-      }
-      RaisePartyNotice(
-          lobby.message.empty() ? "Could not reach the server." : lobby.message,
-          /*refusal=*/true);
-      return;
-    }
-    party_select_panel_.SetSnapshot(lobby);
-    party_select_panel_.Reset();
-    screen_ = kPartySelect;
-    return;
-  }
   if (entry == MenuEntry::kDailies) {
     OpenDailies();
     return;
@@ -432,6 +415,45 @@ void TuiController::OpenMenuEntry(MenuEntry entry) {
   state_.account.MarkSeen(MenuPanel::boss_seen_key());
   screen_ = kBossSelect;
   boss_select_panel_.Reset();
+}
+
+bool TuiController::Connected() {
+  MultiplayerSnapshot lobby = Lobby();
+  if (lobby.state == ConnectionState::kConnected) {
+    return true;
+  }
+  // Ask for a fresh attempt on the way out. Whatever turned the connection
+  // away may be gone -- a server since deployed is the common one -- and
+  // finding out should not cost the player a restart.
+  if (multiplayer_ != nullptr) {
+    multiplayer_->client().Reconnect();
+  }
+  // The notice stands over the main view rather than over the box that raised
+  // it: closing it should land the player somewhere real.
+  menu_panel_.CloseBox();
+  screen_ = kMain;
+  RaisePartyNotice(
+      lobby.message.empty() ? "Could not reach the server." : lobby.message,
+      /*refusal=*/true);
+  return false;
+}
+
+void TuiController::OpenPartySelect() {
+  if (!Connected()) {
+    return;
+  }
+  party_select_panel_.SetSnapshot(Lobby());
+  party_select_panel_.Reset();
+  screen_ = kPartySelect;
+}
+
+void TuiController::OpenPlayerList() {
+  if (!Connected()) {
+    return;
+  }
+  player_list_panel_.SetSnapshot(Lobby());
+  player_list_panel_.Reset();
+  screen_ = kPlayerList;
 }
 
 ItemRef TuiController::SelectedItem() const {
@@ -607,16 +629,18 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnMapMenuEvent(event);
     case kMobInspect:
       return OnMobInspectEvent(event);
+    case kPlayerList:
+      return OnPlayerListEvent(event);
     case kPartySelect:
       return OnPartySelectEvent(event);
     case kPartyMenu:
       return OnPartyMenuEvent(event);
-    case kPartyInspect:
-      return OnPartyInspectEvent(event);
-    case kPartyItemInspect:
-      return OnPartyItemInspectEvent(event);
-    case kPartyAllStats:
-      return OnPartyAllStatsEvent(event);
+    case kPlayerInspect:
+      return OnPlayerInspectEvent(event);
+    case kPlayerItemInspect:
+      return OnPlayerItemInspectEvent(event);
+    case kPlayerAllStats:
+      return OnPlayerAllStatsEvent(event);
     case kPartyConfirm:
       return OnPartyConfirmEvent(event);
     case kBossSelect:
@@ -965,7 +989,7 @@ bool TuiController::OnSkillInspectEvent(ftxui::Event event) {
   if (IsBack(event) || IsForward(event)) {
     // Back onto whichever screen raised the card: the player's own panels, or
     // the Inspect screen, which raises the same two over a member's numbers.
-    screen_ = card_from_party_ ? kPartyInspect : kMain;
+    screen_ = card_from_inspect_ ? kPlayerInspect : kMain;
   }
   return true;
 }
@@ -1339,6 +1363,21 @@ bool TuiController::OnMobInspectEvent(ftxui::Event event) {
   return true;
 }
 
+namespace {
+
+// Whether `account_id` is still on the roster. A player who has gone leaves
+// nothing to read.
+bool IsOnline(const MultiplayerSnapshot& lobby, const std::string& account_id) {
+  for (const PlayerInfo& player : lobby.online.players()) {
+    if (player.account_id() == account_id) {
+      return true;
+    }
+  }
+  return false;
+}
+
+}  // namespace
+
 MultiplayerSnapshot TuiController::Lobby() const {
   return multiplayer_ == nullptr ? MultiplayerSnapshot()
                                  : multiplayer_->Snapshot();
@@ -1353,21 +1392,26 @@ void TuiController::RaisePartyNotice(const std::string& message, bool refusal) {
 void TuiController::AdvanceParty() {
   MultiplayerSnapshot lobby = Lobby();
   party_select_panel_.SetSnapshot(lobby);
-  // The connection going away turns the player out of the party screen: there
-  // is no lobby left to show them, and Close should land them somewhere real.
-  bool on_party_screen = screen_ == kPartySelect || screen_ == kPartyMenu ||
-                         screen_ == kPartyConfirm || screen_ == kPartyInspect ||
-                         screen_ == kPartyItemInspect;
-  if (on_party_screen && lobby.state != ConnectionState::kConnected) {
+  player_list_panel_.SetSnapshot(lobby);
+  // The connection going away turns the player out of the multiplayer
+  // screens: there is no lobby left to show them, and Close should land them
+  // somewhere real.
+  bool on_lobby_screen =
+      screen_ == kPartySelect || screen_ == kPartyMenu ||
+      screen_ == kPartyConfirm || screen_ == kPlayerInspect ||
+      screen_ == kPlayerItemInspect || screen_ == kPlayerList;
+  if (on_lobby_screen && lobby.state != ConnectionState::kConnected) {
     screen_ = kMain;
     party_select_panel_.CloseMenu();
     party_prompt_.Close();
+    inspect_pending_.clear();
     RaisePartyNotice(
         lobby.message.empty() ? "Lost the connection." : lobby.message,
         /*refusal=*/true);
     return;
   }
-  RefreshPartyInspect(lobby);
+  AdvanceWatch(lobby);
+  RefreshPlayerInspect(lobby);
   AdvancePartyFight(lobby);
   if (lobby.notice_serial == party_notice_seen_) {
     return;
@@ -1453,15 +1497,28 @@ void TuiController::DropBossRun() {
   }
 }
 
-void TuiController::RefreshPartyInspect(const MultiplayerSnapshot& lobby) {
-  if (screen_ != kPartyInspect && screen_ != kPartyItemInspect) {
+void TuiController::RefreshPlayerInspect(const MultiplayerSnapshot& lobby) {
+  if (screen_ != kPlayerInspect && screen_ != kPlayerItemInspect) {
+    return;
+  }
+  if (inspect_from_players_) {
+    // The roster first: the sheet they last sent is still on hand, so a
+    // screen that read it would go on drawing somebody who has gone.
+    if (!IsOnline(lobby, inspect_account_)) {
+      StopWatching();
+      screen_ = kPlayerList;
+      return;
+    }
+    if (lobby.watched.account_id() == inspect_account_) {
+      player_inspect_panel_.SetPlayer(lobby.watched);
+    }
     return;
   }
   for (const PartyMember& member : lobby.party.members()) {
-    if (member.player().account_id() == party_inspect_account_) {
+    if (member.player().account_id() == inspect_account_) {
       // Redrawn from what has just arrived, so a member levelling or
       // re-gearing while they are being read shows it.
-      party_inspect_panel_.SetPlayer(member.player());
+      player_inspect_panel_.SetPlayer(member.player());
       return;
     }
   }
@@ -1521,6 +1578,29 @@ void TuiController::PartyConfirmed() {
   party_ask_ = PartyAsk::kNone;
 }
 
+bool TuiController::OnPlayerListEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    player_list_panel_.MoveCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    player_list_panel_.MoveCursor(1);
+    return true;
+  }
+  if (IsBack(event)) {
+    screen_ = kMain;
+    return true;
+  }
+  if (IsForward(event)) {
+    if (player_list_panel_.on_close()) {
+      screen_ = kMain;
+      return true;
+    }
+    WatchForInspect(player_list_panel_.selected_account());
+  }
+  return true;
+}
+
 bool TuiController::OnPartySelectEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowUp) {
     party_select_panel_.MoveCursor(-1);
@@ -1572,7 +1652,7 @@ bool TuiController::OnPartyMenuEvent(ftxui::Event event) {
   party_select_panel_.CloseMenu();
   screen_ = kPartySelect;
   if (chosen == kPartyMenuInspect) {
-    OpenPartyInspect(account);
+    OpenPlayerInspect(account);
   } else if (chosen == kPartyMenuKick) {
     AskAboutParty(PartyAsk::kKick, "Kick " + name + " from the party?");
   } else if (chosen == kPartyMenuPromote) {
@@ -1581,7 +1661,42 @@ bool TuiController::OnPartyMenuEvent(ftxui::Event event) {
   return true;
 }
 
-void TuiController::OpenPartyInspect(const std::string& account_id) {
+void TuiController::WatchForInspect(const std::string& account_id) {
+  if (multiplayer_ == nullptr) {
+    return;
+  }
+  inspect_pending_ = account_id;
+  multiplayer_->client().WatchPlayer(account_id);
+}
+
+void TuiController::AdvanceWatch(const MultiplayerSnapshot& lobby) {
+  if (inspect_pending_.empty()) {
+    return;
+  }
+  if (lobby.watched.account_id() == inspect_pending_) {
+    inspect_account_ = inspect_pending_;
+    inspect_pending_.clear();
+    inspect_from_players_ = true;
+    player_inspect_panel_.SetPlayer(lobby.watched);
+    player_inspect_panel_.Reset();
+    screen_ = kPlayerInspect;
+    return;
+  }
+  // Gone before their sheet arrived. The player is left on the list rather
+  // than shown an empty sheet.
+  if (!IsOnline(lobby, inspect_pending_)) {
+    StopWatching();
+  }
+}
+
+void TuiController::StopWatching() {
+  inspect_pending_.clear();
+  if (multiplayer_ != nullptr) {
+    multiplayer_->client().WatchPlayer("");
+  }
+}
+
+void TuiController::OpenPlayerInspect(const std::string& account_id) {
   const PartyMember* member = nullptr;
   MultiplayerSnapshot lobby = Lobby();
   for (const PartyMember& in_party : lobby.party.members()) {
@@ -1594,76 +1709,82 @@ void TuiController::OpenPartyInspect(const std::string& account_id) {
   if (member == nullptr) {
     return;
   }
-  party_inspect_account_ = account_id;
-  party_inspect_panel_.SetPlayer(member->player());
-  party_inspect_panel_.Reset();
-  screen_ = kPartyInspect;
+  inspect_account_ = account_id;
+  inspect_from_players_ = false;
+  player_inspect_panel_.SetPlayer(member->player());
+  player_inspect_panel_.Reset();
+  screen_ = kPlayerInspect;
 }
 
-void TuiController::OpenPartySkillInspect(const Skill& skill) {
+void TuiController::OpenPlayerSkillInspect(const Skill& skill) {
   skill_inspect_ = skill;
-  card_from_party_ = true;
+  card_from_inspect_ = true;
   skill_inspect_panel_.ResetScroll();
   screen_ = kSkillInspect;
 }
 
-void TuiController::OpenPartyHyperStatInspect(HyperStatField field) {
+void TuiController::OpenPlayerHyperStatInspect(HyperStatField field) {
   hyper_field_ = field;
   // The allocation their Character panel is reading, so the card and the row
   // behind it never state different levels.
-  hyper_preset_ = party_inspect_panel_.preset() == Activity::kBossing
+  hyper_preset_ = player_inspect_panel_.preset() == Activity::kBossing
                       ? StatPreset::kSecond
                       : StatPreset::kFirst;
-  card_from_party_ = true;
+  card_from_inspect_ = true;
   screen_ = kHyperStatInspect;
 }
 
-void TuiController::OpenPartyAllStats() {
-  party_inspect_panel_.SyncAllStats();
-  screen_ = kPartyAllStats;
+void TuiController::OpenPlayerAllStats() {
+  player_inspect_panel_.SyncAllStats();
+  screen_ = kPlayerAllStats;
 }
 
-void TuiController::OpenPartyItemInspect() {
+void TuiController::OpenPlayerItemInspect() {
   // The card reads the item off the panel's cursor, so there is no pointer
   // held across a tick that may rebuild the member.
-  if (party_inspect_panel_.selected_item() != nullptr) {
-    screen_ = kPartyItemInspect;
+  if (player_inspect_panel_.selected_item() != nullptr) {
+    screen_ = kPlayerItemInspect;
   }
 }
 
-bool TuiController::OnPartyInspectEvent(ftxui::Event event) {
+bool TuiController::OnPlayerInspectEvent(ftxui::Event event) {
   if (IsBack(event)) {
     // An expanded panel is the whole screen, so Escape closes that first --
     // the same key [Close] is, one view at a time.
-    if (party_inspect_panel_.expanded()) {
-      party_inspect_panel_.CloseExpanded();
+    if (player_inspect_panel_.expanded()) {
+      player_inspect_panel_.CloseExpanded();
+      return true;
+    }
+    if (inspect_from_players_) {
+      StopWatching();
+      screen_ = kPlayerList;
       return true;
     }
     screen_ = kPartySelect;
     return true;
   }
-  party_inspect_panel_.OnEvent(event);
+  player_inspect_panel_.OnEvent(event);
   return true;
 }
 
-bool TuiController::OnPartyAllStatsEvent(ftxui::Event event) {
+bool TuiController::OnPlayerAllStatsEvent(ftxui::Event event) {
   // Left/Right belong to the member's Farm/Boss row, and only while they have
   // one; the panel says so.
-  if (party_inspect_panel_.OnAllStatsEvent(event)) {
+  if (player_inspect_panel_.OnAllStatsEvent(event)) {
     return true;
   }
   // Only a key that MEANS leaving closes it. Anything else is swallowed --
   // the ticker's redraw arrives as an event too, and a screen that closed on
   // whatever it did not recognise was gone by the next frame.
   if (IsBack(event) || IsForward(event)) {
-    screen_ = kPartyInspect;
+    screen_ = kPlayerInspect;
   }
   return true;
 }
 
-bool TuiController::OnPartyItemInspectEvent(ftxui::Event event) {
+bool TuiController::OnPlayerItemInspectEvent(ftxui::Event event) {
   if (IsBack(event) || IsForward(event)) {
-    screen_ = kPartyInspect;
+    screen_ = kPlayerInspect;
   }
   return true;
 }
@@ -2010,10 +2131,19 @@ bool TuiController::OnMenuBoxEvent(ftxui::Event event) {
 
 void TuiController::OpenBoxEntry() {
   switch (menu_panel_.box_entry()) {
-    // Neither raises a box: both open a screen straight from the menu, so
-    // there is nothing here to open.
+    // It opens a screen straight from the menu, so there is nothing here to
+    // open.
     case MenuEntry::kBoss:
-    case MenuEntry::kParty:
+      return;
+    case MenuEntry::kMultiplayer:
+      switch (menu_panel_.selected_multiplayer_entry()) {
+        case MultiplayerEntry::kPlayers:
+          OpenPlayerList();
+          return;
+        case MultiplayerEntry::kParty:
+          OpenPartySelect();
+          return;
+      }
       return;
     case MenuEntry::kAnalysis:
       OpenAnalysisEntry(menu_panel_.selected_analysis_entry());

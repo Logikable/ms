@@ -1,4 +1,4 @@
-/* PartyInspectPanel reads a party member: the sheet they sent, drawn the way
+/* PlayerInspectPanel reads a party member: the sheet they sent, drawn the way
  * they see it themselves.
  *
  * Their main screen, less everything that is not about them: their Character
@@ -17,8 +17,8 @@
  * A DIFFERENT member builds both panels again, so a screen is never half one
  * person and half another.
  */
-#ifndef MS_SRC_FRONTEND_SCREENS_PARTY_INSPECT_PANEL_H_
-#define MS_SRC_FRONTEND_SCREENS_PARTY_INSPECT_PANEL_H_
+#ifndef MS_SRC_FRONTEND_SCREENS_PLAYER_INSPECT_PANEL_H_
+#define MS_SRC_FRONTEND_SCREENS_PLAYER_INSPECT_PANEL_H_
 
 #include <functional>
 #include <memory>
@@ -41,7 +41,7 @@ namespace ms {
 
 // What Enter opens from the Inspect screen. Each is a screen of its own, the
 // way it is from the player's own panels -- nothing here changes anything.
-struct PartyInspectActions {
+struct PlayerInspectActions {
   // A worn item's card.
   std::function<void()> item;
   // The member's skill card and Hyper Stat card, from the panel's Skills and
@@ -53,13 +53,13 @@ struct PartyInspectActions {
   std::function<void()> all_stats;
 };
 
-class PartyInspectPanel {
+class PlayerInspectPanel {
  public:
-  explicit PartyInspectPanel(GameState& state);
+  explicit PlayerInspectPanel(GameState& state);
 
   // What Enter reaches. Call once, before the screen is first opened; the
   // panels are rebuilt with these whenever a new member arrives.
-  void UseActions(PartyInspectActions actions);
+  void UseActions(PlayerInspectActions actions);
 
   // Points the panel at a party member; an item this build does not have is
   // dropped, as a save loaded against changed catalogs is. Called every tick,
@@ -116,7 +116,7 @@ class PartyInspectPanel {
   // The member as the lobby last described them, so a tick that changed
   // nothing does not rebuild them.
   PlayerInfo shown_;
-  PartyInspectActions actions_;
+  PlayerInspectActions actions_;
   // Which panel has the cursor, in the main screen's own terms -- the panels
   // read it. This screen's alone: walking it must not move the cursor on the
   // main view behind it.
@@ -134,4 +134,4 @@ class PartyInspectPanel {
 
 }  // namespace ms
 
-#endif  // MS_SRC_FRONTEND_SCREENS_PARTY_INSPECT_PANEL_H_
+#endif  // MS_SRC_FRONTEND_SCREENS_PLAYER_INSPECT_PANEL_H_

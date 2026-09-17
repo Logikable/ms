@@ -48,8 +48,9 @@
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
 #include "src/frontend/screens/options_panel.h"
-#include "src/frontend/screens/party_inspect_panel.h"
 #include "src/frontend/screens/party_select_panel.h"
+#include "src/frontend/screens/player_inspect_panel.h"
+#include "src/frontend/screens/player_list_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
@@ -128,7 +129,7 @@ class Tui {
   ftxui::Element RenderParty();
   // The member behind Inspect, with their item's card over it when the player
   // has pressed Enter on a row.
-  ftxui::Element RenderPartyInspect();
+  ftxui::Element RenderPlayerInspect();
   // "Kick Bree from the party?", floated over the party screen.
   ftxui::Element PartyConfirmDialog();
   // What the server had to say, floated over whatever screen is up.
@@ -248,11 +249,14 @@ class Tui {
   MobInspectPanel mob_inspect_panel_;
   BossSelectPanel boss_select_panel_;
   PartySelectPanel party_select_panel_;
-  PartyInspectPanel party_inspect_panel_;
-  // The card for an item worn by a party member. Its own panel rather than
+  // Everyone connected, and the player behind whichever of the two lists
+  // Inspect was pressed on.
+  PlayerListPanel player_list_panel_;
+  PlayerInspectPanel player_inspect_panel_;
+  // The card for an item worn by another player. Its own panel rather than
   // inspect_panel_: a set card counts the pieces the wearer has on, and the
   // wearer here is somebody else.
-  InspectPanel party_item_panel_;
+  InspectPanel player_item_panel_;
   // The job's book, read before the advancement is taken.
   JobInspectPanel job_inspect_panel_;
   // The keys, on a screen of their own, reached from the Settings box.

@@ -24,8 +24,9 @@
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/panels/menu_panel.h"
 #include "src/frontend/screens/buff_info_panel.h"
-#include "src/frontend/screens/party_inspect_panel.h"
 #include "src/frontend/screens/party_select_panel.h"
+#include "src/frontend/screens/player_inspect_panel.h"
+#include "src/frontend/screens/player_list_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
@@ -91,7 +92,7 @@ struct Client {
     map_select_panel = std::make_unique<MapSelectPanel>(*state);
     mob_inspect_panel = std::make_unique<MobInspectPanel>(*state);
     boss_select_panel = std::make_unique<BossSelectPanel>(*state);
-    party_inspect_panel = std::make_unique<PartyInspectPanel>(*state);
+    player_inspect_panel = std::make_unique<PlayerInspectPanel>(*state);
     shop_panel = std::make_unique<ShopPanel>(state->character, state->equips,
                                              state->items);
     job_inspect_panel = std::make_unique<JobInspectPanel>(state->skills);
@@ -101,15 +102,15 @@ struct Client {
     options_panel = std::make_unique<OptionsPanel>(state->account);
     controller = std::make_unique<TuiController>(
         *state,
-        Screens{*char_panel,       *equip_panel,         *inventory_panel,
-                *scroll_panel,     inspect_panel,        preview_inspect_panel,
-                star_force_panel,  cube_panel,           *trace_recover_panel,
-                sell_panel,        sell_equip_panel,     *multi_sell_panel,
-                *map_select_panel, *mob_inspect_panel,   *boss_select_panel,
-                party_panel,       *party_inspect_panel, *shop_panel,
-                buy_panel,         *job_inspect_panel,   skill_inspect_panel,
-                buff_info_panel,   *menu_panel,          *keybinds_panel,
-                *options_panel},
+        Screens{*char_panel,         *equip_panel,       *inventory_panel,
+                *scroll_panel,       inspect_panel,      preview_inspect_panel,
+                star_force_panel,    cube_panel,         *trace_recover_panel,
+                sell_panel,          sell_equip_panel,   *multi_sell_panel,
+                *map_select_panel,   *mob_inspect_panel, *boss_select_panel,
+                party_panel,         player_list_panel,  *player_inspect_panel,
+                *shop_panel,         buy_panel,          *job_inspect_panel,
+                skill_inspect_panel, buff_info_panel,    *menu_panel,
+                *keybinds_panel,     *options_panel},
         analysis, *keys, focus, &session);
   }
 
@@ -133,6 +134,7 @@ struct Client {
   int focus = kCharPanel;
   BattleAnalysis analysis;
   PartySelectPanel party_panel;
+  PlayerListPanel player_list_panel;
   StarForcePanel star_force_panel;
   CubePanel cube_panel;
   SellPanel sell_panel;
@@ -151,7 +153,7 @@ struct Client {
   std::unique_ptr<MapSelectPanel> map_select_panel;
   std::unique_ptr<MobInspectPanel> mob_inspect_panel;
   std::unique_ptr<BossSelectPanel> boss_select_panel;
-  std::unique_ptr<PartyInspectPanel> party_inspect_panel;
+  std::unique_ptr<PlayerInspectPanel> player_inspect_panel;
   std::unique_ptr<ShopPanel> shop_panel;
   std::unique_ptr<JobInspectPanel> job_inspect_panel;
   std::unique_ptr<MenuPanel> menu_panel;
@@ -203,9 +205,21 @@ class PartyControllerTest : public ::testing::Test {
     return false;
   }
 
+  // Walks the Multiplayer box to `entry` and presses Enter, the way a player
+  // reaches either screen. Up off the menu row meets Party first, and Players
+  // is the row above it.
+  void OpenMultiplayer(Client& client, MultiplayerEntry entry) {
+    client.controller->OpenMenuEntry(MenuEntry::kMultiplayer);
+    client.controller->OnEvent(ftxui::Event::ArrowUp);
+    if (entry == MultiplayerEntry::kPlayers) {
+      client.controller->OnEvent(ftxui::Event::ArrowUp);
+    }
+    client.controller->OnEvent(ftxui::Event::Return);
+  }
+
   // Opens the party screen the way a player does.
   void OpenParty(Client& client) {
-    client.controller->OpenMenuEntry(MenuEntry::kParty);
+    OpenMultiplayer(client, MultiplayerEntry::kParty);
     ASSERT_EQ(client.controller->screen(), kPartySelect);
   }
 
@@ -423,6 +437,64 @@ TEST_F(PartyControllerTest, ANoticeTakesKeysWhereverThePlayerIs) {
   EXPECT_EQ(guest->controller->screen(), kMain);
 }
 
+// The Players list is everyone connected, party or no. A sheet is not on the
+// roster, so Enter asks for one and the screen opens when it lands.
+TEST_F(PartyControllerTest, APlayerInspectsSomebodyOutsideTheirParty) {
+  std::unique_ptr<Client> reader = Connect("Dagger");
+  std::unique_ptr<Client> read = Connect("Wand");
+  read->state->character.LevelUp();
+
+  ASSERT_TRUE(WaitFor({reader.get(), read.get()}, [&]() {
+    return reader->session.Snapshot().online.players_size() == 2;
+  }));
+  OpenMultiplayer(*reader, MultiplayerEntry::kPlayers);
+  ASSERT_EQ(reader->controller->screen(), kPlayerList);
+  // In the order they arrived, the reader included.
+  EXPECT_EQ(reader->player_list_panel.selected_name(), "Dagger");
+  reader->controller->OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_EQ(reader->player_list_panel.selected_name(), "Wand");
+
+  reader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(WaitFor({reader.get(), read.get()}, [&]() {
+    return reader->controller->screen() == kPlayerInspect;
+  }));
+  EXPECT_EQ(reader->player_inspect_panel->character().username(), "Wand");
+  EXPECT_EQ(reader->player_inspect_panel->character().proto().level(),
+            read->state->character.proto().level());
+
+  // The watch stands while the screen is open, so a level taken under the
+  // reader shows.
+  read->state->character.LevelUp();
+  EXPECT_TRUE(WaitFor({reader.get(), read.get()}, [&]() {
+    return reader->player_inspect_panel->character().proto().level() ==
+           read->state->character.proto().level();
+  }));
+
+  reader->controller->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(reader->controller->screen(), kPlayerList);
+}
+
+// There is nothing left to read once they have gone, so the screen closes
+// rather than holding the sheet they last sent.
+TEST_F(PartyControllerTest, TheInspectScreenClosesWhenThePlayerLeaves) {
+  std::unique_ptr<Client> reader = Connect("Dagger");
+  std::unique_ptr<Client> read = Connect("Wand");
+  ASSERT_TRUE(WaitFor({reader.get(), read.get()}, [&]() {
+    return reader->session.Snapshot().online.players_size() == 2;
+  }));
+  OpenMultiplayer(*reader, MultiplayerEntry::kPlayers);
+  reader->controller->OnEvent(ftxui::Event::ArrowDown);
+  reader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(WaitFor({reader.get(), read.get()}, [&]() {
+    return reader->controller->screen() == kPlayerInspect;
+  }));
+
+  read.reset();
+  EXPECT_TRUE(WaitFor({reader.get()}, [&]() {
+    return reader->controller->screen() == kPlayerList;
+  }));
+}
+
 // A member reads another member: their sheet arrives with the party state, so
 // the screen has everything it needs the moment it opens.
 TEST_F(PartyControllerTest, AMemberInspectsAnother) {
@@ -460,35 +532,35 @@ TEST_F(PartyControllerTest, AMemberInspectsAnother) {
   ASSERT_EQ(guest->controller->screen(), kPartyMenu);
   ASSERT_EQ(guest->party_panel.menu_selected(), kPartyMenuInspect);
   guest->controller->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(guest->controller->screen(), kPartyInspect);
+  ASSERT_EQ(guest->controller->screen(), kPlayerInspect);
 
   // The leader as they read themselves, rebuilt from the sheet they sent.
-  EXPECT_EQ(guest->party_inspect_panel->character().username(), "Dagger");
-  EXPECT_EQ(guest->party_inspect_panel->character().proto().level(),
+  EXPECT_EQ(guest->player_inspect_panel->character().username(), "Dagger");
+  EXPECT_EQ(guest->player_inspect_panel->character().proto().level(),
             leader->state->character.proto().level());
 
   // Tab moves to their Character panel, where the Farm/Boss row reads between
   // their two Hyper Stat allocations.
-  EXPECT_EQ(guest->party_inspect_panel->preset(), Activity::kFarming);
+  EXPECT_EQ(guest->player_inspect_panel->preset(), Activity::kFarming);
   guest->controller->OnEvent(ftxui::Event::Tab);
   guest->controller->OnEvent(ftxui::Event::ArrowDown);
   guest->controller->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_EQ(guest->party_inspect_panel->preset(), Activity::kBossing);
+  EXPECT_EQ(guest->player_inspect_panel->preset(), Activity::kBossing);
   guest->controller->OnEvent(ftxui::Event::ArrowLeft);
-  EXPECT_EQ(guest->party_inspect_panel->preset(), Activity::kFarming);
+  EXPECT_EQ(guest->player_inspect_panel->preset(), Activity::kFarming);
   guest->controller->OnEvent(ftxui::Event::Tab);
 
   // Enter on a worn item opens its card, off the panel's cursor rather than a
   // pointer held across a tick that may rebuild the member.
-  ASSERT_NE(guest->party_inspect_panel->selected_item(), nullptr);
-  EXPECT_EQ(guest->party_inspect_panel->selected_item()->prototype().name(),
+  ASSERT_NE(guest->player_inspect_panel->selected_item(), nullptr);
+  EXPECT_EQ(guest->player_inspect_panel->selected_item()->prototype().name(),
             "Iron Sword");
   guest->controller->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(guest->controller->screen(), kPartyItemInspect);
+  ASSERT_EQ(guest->controller->screen(), kPlayerItemInspect);
   guest->Tick();
-  EXPECT_EQ(guest->controller->screen(), kPartyItemInspect);
+  EXPECT_EQ(guest->controller->screen(), kPlayerItemInspect);
   guest->controller->OnEvent(ftxui::Event::Escape);
-  ASSERT_EQ(guest->controller->screen(), kPartyInspect);
+  ASSERT_EQ(guest->controller->screen(), kPlayerInspect);
 
   guest->controller->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(guest->controller->screen(), kPartySelect);
@@ -509,9 +581,9 @@ TEST_F(PartyControllerTest, TheInspectScreenRaisesTheMembersOwnCards) {
   // The guest opens the leader, then walks to their Character panel.
   guest->controller->OnEvent(ftxui::Event::Return);
   guest->controller->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(guest->controller->screen(), kPartyInspect);
+  ASSERT_EQ(guest->controller->screen(), kPlayerInspect);
   ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&guest]() {
-    return guest->party_inspect_panel->character().skill_level(
+    return guest->player_inspect_panel->character().skill_level(
                guest->state->skills.at("power_strike")) == 3;
   })) << "the leader's learned skill never reached the reader";
   guest->controller->OnEvent(ftxui::Event::Tab);
@@ -519,16 +591,16 @@ TEST_F(PartyControllerTest, TheInspectScreenRaisesTheMembersOwnCards) {
   // View All Stats: their sheet, on the screen their own last stats row opens.
   guest->controller->OnEvent(ftxui::Event::ArrowDown);
   guest->controller->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(guest->controller->screen(), kPartyAllStats);
+  EXPECT_EQ(guest->controller->screen(), kPlayerAllStats);
   // It stays there through the frames that follow. The ticker's redraw is an
   // event like any other, and a screen closing on anything it did not
   // recognise was gone before the player had read it.
   guest->controller->OnEvent(ftxui::Event::Custom);
   guest->Tick();
-  ASSERT_EQ(guest->controller->screen(), kPartyAllStats)
+  ASSERT_EQ(guest->controller->screen(), kPlayerAllStats)
       << "a repaint closed the screen";
   guest->controller->OnEvent(ftxui::Event::Escape);
-  ASSERT_EQ(guest->controller->screen(), kPartyInspect);
+  ASSERT_EQ(guest->controller->screen(), kPlayerInspect);
 
   // Their Skills tab, and the card a row opens: the LEADER's level in it, not
   // the reader's own.
@@ -543,7 +615,7 @@ TEST_F(PartyControllerTest, TheInspectScreenRaisesTheMembersOwnCards) {
   EXPECT_EQ(guest->state->character.skill_level(strike), 0)
       << "the reader has never learned it, so 3 is the member's";
   guest->controller->OnEvent(ftxui::Event::Escape);
-  EXPECT_EQ(guest->controller->screen(), kPartyInspect);
+  EXPECT_EQ(guest->controller->screen(), kPlayerInspect);
 }
 
 // The Equipped panel opens up the way the player's own does, and Escape
@@ -559,17 +631,17 @@ TEST_F(PartyControllerTest, TheInspectScreensEquippedPanelExpands) {
 
   guest->controller->OnEvent(ftxui::Event::Return);
   guest->controller->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(guest->controller->screen(), kPartyInspect);
+  ASSERT_EQ(guest->controller->screen(), kPlayerInspect);
 
   // Up off the list is the tab bar, and Left off the first tab is Expand.
   guest->controller->OnEvent(ftxui::Event::ArrowUp);
   guest->controller->OnEvent(ftxui::Event::ArrowLeft);
   guest->controller->OnEvent(ftxui::Event::Return);
-  ASSERT_TRUE(guest->party_inspect_panel->expanded());
+  ASSERT_TRUE(guest->player_inspect_panel->expanded());
 
   guest->controller->OnEvent(ftxui::Event::Escape);
-  EXPECT_FALSE(guest->party_inspect_panel->expanded());
-  EXPECT_EQ(guest->controller->screen(), kPartyInspect)
+  EXPECT_FALSE(guest->player_inspect_panel->expanded());
+  EXPECT_EQ(guest->controller->screen(), kPlayerInspect)
       << "Escape closed the screen rather than the panel";
   guest->controller->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(guest->controller->screen(), kPartySelect);
@@ -584,8 +656,8 @@ TEST_F(PartyControllerTest, TheMemberLeavingClosesTheInspectScreen) {
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
   leader->controller->OnEvent(ftxui::Event::Return);
-  ASSERT_EQ(leader->controller->screen(), kPartyInspect);
-  EXPECT_EQ(leader->party_inspect_panel->character().username(), "Wand");
+  ASSERT_EQ(leader->controller->screen(), kPlayerInspect);
+  EXPECT_EQ(leader->player_inspect_panel->character().username(), "Wand");
 
   // The guest walks out: down past both members onto Leave Party, then Yes.
   guest->controller->OnEvent(ftxui::Event::ArrowDown);
@@ -732,7 +804,7 @@ TEST_F(PartyControllerTest, LosingTheServerClosesThePartyScreen) {
 TEST_F(PartyControllerTest, TheEntrySaysSoWhenThereIsNoConnection) {
   Client client("Dagger", server_.port());
   // Never started, so there is no connection to open a lobby with.
-  client.controller->OpenMenuEntry(MenuEntry::kParty);
+  OpenMultiplayer(client, MultiplayerEntry::kParty);
 
   EXPECT_EQ(client.controller->screen(), kMain);
   EXPECT_TRUE(client.controller->party_notice_prompt().open());
@@ -751,7 +823,7 @@ TEST_F(PartyControllerTest, PartyOpensOnceTheServerCatchesUp) {
     return player.session.Snapshot().state == ConnectionState::kUnavailable;
   }));
 
-  player.controller->OpenMenuEntry(MenuEntry::kParty);
+  OpenMultiplayer(player, MultiplayerEntry::kParty);
   ASSERT_NE(player.controller->screen(), kPartySelect);
   EXPECT_EQ(player.controller->party_notice(),
             "The server is running an older version. Trying again.\nClient: v" +
@@ -762,7 +834,7 @@ TEST_F(PartyControllerTest, PartyOpensOnceTheServerCatchesUp) {
   // to try now rather than at the end of its backoff, so the player gets in
   // without restarting the game.
   ASSERT_TRUE(behind.RestartSpeaking(kMultiplayerVersion));
-  player.controller->OpenMenuEntry(MenuEntry::kParty);
+  OpenMultiplayer(player, MultiplayerEntry::kParty);
   ASSERT_TRUE(WaitFor({&player}, [&]() {
     return player.session.Snapshot().state == ConnectionState::kConnected;
   }));

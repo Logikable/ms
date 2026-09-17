@@ -36,8 +36,9 @@
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
 #include "src/frontend/screens/options_panel.h"
-#include "src/frontend/screens/party_inspect_panel.h"
 #include "src/frontend/screens/party_select_panel.h"
+#include "src/frontend/screens/player_inspect_panel.h"
+#include "src/frontend/screens/player_list_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
@@ -92,7 +93,8 @@ struct Screens {
   MobInspectPanel& mob_inspect_panel;
   BossSelectPanel& boss_select_panel;
   PartySelectPanel& party_select_panel;
-  PartyInspectPanel& party_inspect_panel;
+  PlayerListPanel& player_list_panel;
+  PlayerInspectPanel& player_inspect_panel;
   ShopPanel& shop_panel;
   BuyPanel& buy_panel;
   JobInspectPanel& job_inspect_panel;
@@ -143,10 +145,10 @@ class TuiController {
   // The four screens the Inspect panel raises. They are the player's own
   // cards over somebody else's numbers, so they read from the member being
   // inspected and close back onto the screen that raised them.
-  void OpenPartySkillInspect(const Skill& skill);
-  void OpenPartyHyperStatInspect(HyperStatField field);
-  void OpenPartyAllStats();
-  void OpenPartyItemInspect();
+  void OpenPlayerSkillInspect(const Skill& skill);
+  void OpenPlayerHyperStatInspect(HyperStatField field);
+  void OpenPlayerAllStats();
+  void OpenPlayerItemInspect();
   // Spends a point on `field` and gives the last one back. No dialog on
   // either: the row's [-] is the way out of a [+].
   void RaiseHyperStat(HyperStatField field, StatPreset preset);
@@ -534,21 +536,40 @@ class TuiController {
   bool OnMapSelectEvent(ftxui::Event event);
   bool OnMapMenuEvent(ftxui::Event event);
   bool OnMobInspectEvent(ftxui::Event event);
+  bool OnPlayerListEvent(ftxui::Event event);
   bool OnPartySelectEvent(ftxui::Event event);
   bool OnPartyMenuEvent(ftxui::Event event);
-  bool OnPartyInspectEvent(ftxui::Event event);
-  bool OnPartyAllStatsEvent(ftxui::Event event);
+  bool OnPlayerInspectEvent(ftxui::Event event);
+  bool OnPlayerAllStatsEvent(ftxui::Event event);
   // Whoever the open skill or Hyper Stat card is about -- see
-  // card_from_party_.
+  // card_from_inspect_.
   const CharacterInstance& card_character() const;
-  bool OnPartyItemInspectEvent(ftxui::Event event);
+  bool OnPlayerItemInspectEvent(ftxui::Event event);
   bool OnPartyConfirmEvent(ftxui::Event event);
   // Opens the inspect screen on the member playing under `account_id`. Does
   // nothing for a member who has gone since the menu was raised.
-  void OpenPartyInspect(const std::string& account_id);
+  // Opens the party screen and the Players screen, each after checking that
+  // there is a connection to draw.
+  void OpenPartySelect();
+  void OpenPlayerList();
+  // Whether the connection is up. Raises the notice, and asks for a fresh
+  // attempt, when it is not.
+  bool Connected();
+  // Opens the Inspect screen on a party member, whose sheet the party state
+  // already carries.
+  void OpenPlayerInspect(const std::string& account_id);
+  // Asks for `account_id`'s sheet and opens the Inspect screen once it lands.
+  // A player off the roster is not in any party, so their sheet has to be
+  // fetched before there is anything to draw.
+  void WatchForInspect(const std::string& account_id);
+  // Whether the player the Players list is waiting on has arrived, and the
+  // screen it opens. Nothing while no watch is pending.
+  void AdvanceWatch(const MultiplayerSnapshot& lobby);
+  // Stops the watch the Players list started, if there is one.
+  void StopWatching();
   // Keeps the inspect screen on what the lobby last said, and turns the
   // player out of it when the member they are reading leaves.
-  void RefreshPartyInspect(const MultiplayerSnapshot& lobby);
+  void RefreshPlayerInspect(const MultiplayerSnapshot& lobby);
   // Does what the cursor is on, which is either an ask sent straight to the
   // server or a question raised first.
   void TakePartyAction(PartyAction action);
@@ -648,14 +669,21 @@ class TuiController {
   MobInspectPanel& mob_inspect_panel_;
   BossSelectPanel& boss_select_panel_;
   PartySelectPanel& party_select_panel_;
-  PartyInspectPanel& party_inspect_panel_;
+  PlayerListPanel& player_list_panel_;
+  PlayerInspectPanel& player_inspect_panel_;
   // The member the inspect screen is reading, so the lobby's next word about
   // them lands on it.
-  std::string party_inspect_account_;
+  std::string inspect_account_;
+  // Which list the open Inspect screen was reached from, which is where
+  // Escape puts the player back.
+  bool inspect_from_players_ = false;
+  // The player the Players list has asked the server for and is waiting on.
+  // Empty once their sheet has landed, or once they have gone.
+  std::string inspect_pending_;
   // Whether the open skill or Hyper Stat card is reading a party member
   // rather than the player. The card is the same either way; whose levels it
   // states is not, and neither is the screen it closes onto.
-  bool card_from_party_ = false;
+  bool card_from_inspect_ = false;
   JobInspectPanel& job_inspect_panel_;
   SkillInspectPanel& skill_inspect_panel_;
   BuffInfoPanel& buff_info_panel_;

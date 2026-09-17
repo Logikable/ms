@@ -140,28 +140,28 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
       keybinds_panel_(keys_),
       options_panel_(state.account),
       all_stats_panel_(state.character, &state.account, state.skills),
-      party_inspect_panel_(state),
+      player_inspect_panel_(state),
       multi_sell_panel_(state.character, state.account),
       shop_panel_(state.character, state.equips, state.items),
       controller_(
           state,
           Screens{
-              char_panel_,         equip_panel_,         inventory_panel_,
-              scroll_panel_,       inspect_panel_,       preview_inspect_panel_,
-              star_force_panel_,   cube_panel_,          trace_recover_panel_,
-              sell_panel_,         sell_equip_panel_,    multi_sell_panel_,
-              map_select_panel_,   mob_inspect_panel_,   boss_select_panel_,
-              party_select_panel_, party_inspect_panel_, shop_panel_,
-              buy_panel_,          job_inspect_panel_,   skill_inspect_panel_,
-              buff_info_panel_,    menu_panel_,          keybinds_panel_,
-              options_panel_},
+              char_panel_,          equip_panel_,       inventory_panel_,
+              scroll_panel_,        inspect_panel_,     preview_inspect_panel_,
+              star_force_panel_,    cube_panel_,        trace_recover_panel_,
+              sell_panel_,          sell_equip_panel_,  multi_sell_panel_,
+              map_select_panel_,    mob_inspect_panel_, boss_select_panel_,
+              party_select_panel_,  player_list_panel_, player_inspect_panel_,
+              shop_panel_,          buy_panel_,         job_inspect_panel_,
+              skill_inspect_panel_, buff_info_panel_,   menu_panel_,
+              keybinds_panel_,      options_panel_},
           analysis_, keys_, panel_focus_, multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
   // being paid depends on what is worn.
   inspect_panel_.UseCharacter(state.character);
   preview_inspect_panel_.UseCharacter(state.character);
-  party_item_panel_.UseCharacter(party_inspect_panel_.character());
+  player_item_panel_.UseCharacter(player_inspect_panel_.character());
 }
 
 void Tui::BuildComponents() {
@@ -513,21 +513,21 @@ ftxui::Element Tui::RenderParty() {
   });
 }
 
-ftxui::Element Tui::RenderPartyInspect() {
+ftxui::Element Tui::RenderPlayerInspect() {
   // The item gets a screen of its own, the way the player's own items do: the
   // sheet it came off is a screen already, and a card over it was two screens
   // to read at once.
-  if (controller_.screen() == kPartyItemInspect) {
-    party_item_panel_.SetItem(party_inspect_panel_.selected_item());
-    return Standalone(party_item_panel_.Render());
+  if (controller_.screen() == kPlayerItemInspect) {
+    player_item_panel_.SetItem(player_inspect_panel_.selected_item());
+    return Standalone(player_item_panel_.Render());
   }
-  if (controller_.screen() == kPartyAllStats) {
-    return Standalone(party_inspect_panel_.RenderAllStats());
+  if (controller_.screen() == kPlayerAllStats) {
+    return Standalone(player_inspect_panel_.RenderAllStats());
   }
   // The whole terminal, the way the main view takes it: this screen is the
   // member's own panels, and they lay out at the widths the player's do.
-  return party_inspect_panel_.Render(ftxui::Terminal::Size().dimy,
-                                     ftxui::Terminal::Size().dimx);
+  return player_inspect_panel_.Render(ftxui::Terminal::Size().dimy,
+                                      ftxui::Terminal::Size().dimx);
 }
 
 ftxui::Element Tui::BossConfirmDialog() {
@@ -871,14 +871,16 @@ ftxui::Element Tui::RenderScreen() {
       return ftxui::center(keybinds_panel_.Render());
     case kOptions:
       return ftxui::center(options_panel_.Render());
+    case kPlayerList:
+      return ftxui::center(player_list_panel_.Render());
     case kPartySelect:
     case kPartyMenu:
     case kPartyConfirm:
       return RenderParty();
-    case kPartyAllStats:
-    case kPartyInspect:
-    case kPartyItemInspect:
-      return RenderPartyInspect();
+    case kPlayerAllStats:
+    case kPlayerInspect:
+    case kPlayerItemInspect:
+      return RenderPlayerInspect();
     case kBossSelect:
       return ftxui::center(boss_select_panel_.Render());
     case kBossFight:

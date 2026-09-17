@@ -26,8 +26,8 @@ std::string EntryLabel(MenuEntry entry) {
       return "Dailies";
     case MenuEntry::kBoss:
       return "Boss";
-    case MenuEntry::kParty:
-      return "Party";
+    case MenuEntry::kMultiplayer:
+      return "Multiplayer";
     case MenuEntry::kSettings:
       return "Settings";
   }
@@ -55,9 +55,9 @@ std::vector<MenuEntry> MenuPanel::Entries() const {
   if (Unlocked(Feature::kBoss, state_.character, state_.account)) {
     entries.push_back(MenuEntry::kBoss);
     // Bossing is what a party is for so far, and a build that plays alone has
-    // nobody to make one with.
+    // nobody to play it with.
     if (kMultiplayerEnabled) {
-      entries.push_back(MenuEntry::kParty);
+      entries.push_back(MenuEntry::kMultiplayer);
     }
   }
   entries.push_back(MenuEntry::kSettings);
@@ -78,8 +78,9 @@ std::vector<std::string> MenuPanel::BoxEntries(MenuEntry entry) const {
   switch (entry) {
     // These open a screen or a dialog rather than a box.
     case MenuEntry::kBoss:
-    case MenuEntry::kParty:
       return {};
+    case MenuEntry::kMultiplayer:
+      return {"Players", "Party"};
     case MenuEntry::kAnalysis:
       return {analysis_.stops_on_press() ? "Stop" : "Start", "View"};
     case MenuEntry::kDailies:
@@ -118,6 +119,11 @@ void MenuPanel::MoveBoxCursor(int delta) {
 
 SettingsEntry MenuPanel::selected_settings_entry() const {
   return box_cursor_ <= 0 ? SettingsEntry::kKeybinds : SettingsEntry::kOptions;
+}
+
+MultiplayerEntry MenuPanel::selected_multiplayer_entry() const {
+  return box_cursor_ <= 0 ? MultiplayerEntry::kPlayers
+                          : MultiplayerEntry::kParty;
 }
 
 AnalysisEntry MenuPanel::selected_analysis_entry() const {
