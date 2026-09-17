@@ -28,6 +28,7 @@
 #ifndef MS_SRC_FRONTEND_SCREENS_INSPECT_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_INSPECT_PANEL_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -57,6 +58,11 @@ class InspectPanel {
   // the default, is no comparison at all -- an empty slot, or an item that is
   // itself the one worn.
   void SetComparison(const EquipTabItem* equipped);
+  // What putting the inspected item on would do to the player's combat power,
+  // written over its required level. Empty, the default, draws neither row --
+  // which is what a screen showing an item the player is not weighing wants,
+  // and what the Equipped card beside it always gets.
+  void SetCombatPowerDelta(std::optional<int> delta);
   // Teaches the panel which sets exist and how many pieces of one are worn.
   // Left unset, an item is described on its own and no set card appears --
   // which is what a test with no sets in play wants.
@@ -125,6 +131,9 @@ class InspectPanel {
   // and measured first; the star bar and the job categories are then folded
   // onto two lines each if leaving them on one would widen the panel.
   std::vector<CardRow> HeadRows(const EquipTabItem& item) const;
+  // The combat power figure and its label, right-aligned. Empty for any card
+  // but the inspected item's, and for an item with no delta set.
+  std::vector<CardRow> DeltaRows(const EquipTabItem& item) const;
   std::vector<CardRow> JobRows(const EquipTabItem& item, int fixed) const;
   std::vector<CardRow> StarRows(const EquipTabItem& item, int fixed) const;
   std::vector<CardRow> StatRows(const EquipTabItem& item) const;
@@ -162,6 +171,7 @@ class InspectPanel {
 
   const EquipTabItem* item_ = nullptr;
   const EquipTabItem* compare_ = nullptr;
+  std::optional<int> delta_;
   const ItemPrototype* stackable_ = nullptr;
   const CharacterInstance* character_ = nullptr;
   int max_columns_ = 0;

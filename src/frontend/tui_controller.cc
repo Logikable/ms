@@ -504,14 +504,52 @@ const EquipInstance* TuiController::scroll_item() const {
 // would be a card compared against a copy of itself. Against the preset the
 // Equipped panel is showing: that is the gear the player is looking at, and
 // the one Equip would displace.
+StatPreset TuiController::ComparisonPreset() const {
+  return equip_panel_.gear_preset();
+}
+
 const EquipInstance* TuiController::WornForComparison(
     const EquipPrototype& proto) const {
-  EquipSlot slot =
-      state_.character.SlotToFill(proto, equip_panel_.gear_preset());
+  EquipSlot slot = state_.character.SlotToFill(proto, ComparisonPreset());
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return nullptr;
   }
-  return state_.character.WornAt(equip_panel_.gear_preset(), slot);
+  return state_.character.WornAt(ComparisonPreset(), slot);
+}
+
+std::optional<int> TuiController::CombatPowerDelta(
+    const EquipTabItem* item) const {
+  if (item == nullptr) {
+    return std::nullopt;
+  }
+  const StatPreset gear = ComparisonPreset();
+  if (state_.character.SlotToFill(item->prototype(), gear) ==
+      EQUIP_SLOT_UNSPECIFIED) {
+    return std::nullopt;
+  }
+  // The activity the preset stands for, so the Boss tab prices a piece by
+  // what it is worth against a boss. The third preset is nobody's activity
+  // and reads as the first does.
+  const Activity activity =
+      gear == StatPreset::kSecond ? Activity::kBossing : Activity::kFarming;
+  const int now =
+      CharacterCombatPower(state_.character, state_.skills, activity, gear);
+  const int worn = CharacterCombatPower(state_.character.Wearing(*item, gear),
+                                        state_.skills, activity, gear);
+  return worn - now;
+}
+
+std::optional<int> TuiController::inspect_delta() const {
+  // An item already on the character would replace itself, and a stackable is
+  // worn by nobody. Neither has a figure to give.
+  if (subject_.equipped()) {
+    return std::nullopt;
+  }
+  return CombatPowerDelta(inspect_item());
+}
+
+std::optional<int> TuiController::player_item_delta() const {
+  return CombatPowerDelta(player_inspect_panel_.selected_item());
 }
 
 const EquipTabItem* TuiController::inspect_comparison() const {
@@ -535,7 +573,7 @@ const EquipTabItem* TuiController::player_item_comparison() const {
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return nullptr;
   }
-  return state_.character.WornAt(equip_panel_.gear_preset(), slot);
+  return state_.character.WornAt(ComparisonPreset(), slot);
 }
 
 // Keys on the main view, once every screen above it has had its say. A back

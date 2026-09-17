@@ -1298,7 +1298,8 @@ TEST_F(TuiControllerTest, ABagItemWithAnEmptySlotIsComparedWithNothing) {
   EXPECT_EQ(controller_->inspect_comparison(), nullptr);
 }
 
-// An item inspected off the character IS what the comparison would be.
+// An item inspected off the character IS what the comparison would be, so
+// there is neither a card nor a figure: it would be measured against itself.
 TEST_F(TuiControllerTest, AWornItemIsComparedWithNothing) {
   WearASwordAndDraw();
 
@@ -1307,6 +1308,73 @@ TEST_F(TuiControllerTest, AWornItemIsComparedWithNothing) {
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kInspect);
   EXPECT_EQ(controller_->inspect_comparison(), nullptr);
+  EXPECT_FALSE(controller_->inspect_delta().has_value());
+}
+
+// The figure over a bag item is what wearing it would do: a gain over an empty
+// slot.
+TEST_F(TuiControllerTest, ABagItemCarriesWhatWearingItWouldDoToCombatPower) {
+  EquipPrototype better = sword_;
+  better.set_name("Better Sword");
+  better.mutable_base_stats()->set_attack(50);
+  state_->character.PickUp(std::make_unique<EquipInstance>(better));
+  DescendIntoBag();
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kInspect);
+  ASSERT_TRUE(controller_->inspect_delta().has_value());
+  EXPECT_GT(*controller_->inspect_delta(), 0);
+}
+
+// And a loss against something better, which is the half a player most needs
+// told before they put it on.
+TEST_F(TuiControllerTest, ABagItemWorseThanTheWornOneReadsNegative) {
+  EquipPrototype better = sword_;
+  better.set_name("Better Sword");
+  better.mutable_base_stats()->set_attack(50);
+  state_->character.PickUp(std::make_unique<EquipInstance>(better));
+  ASSERT_TRUE(state_->character.Equip(0));
+  BagASword();
+
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kInspect);
+  ASSERT_TRUE(controller_->inspect_delta().has_value());
+  EXPECT_LT(*controller_->inspect_delta(), 0);
+}
+
+// Both read the Gear tab the player is standing on, which is where Equip
+// would put the item: a card and a figure about gear the item would not touch
+// is worse than none.
+TEST_F(TuiControllerTest, TheComparisonAndTheFigureFollowTheGearTab) {
+  LevelTo(UnlockLevel(Feature::kEquipPresets));
+  EquipPrototype better = sword_;
+  better.set_name("Better Sword");
+  better.mutable_base_stats()->set_attack(50);
+  state_->character.PickUp(std::make_unique<EquipInstance>(better));
+  ASSERT_TRUE(state_->character.Equip(0, StatPreset::kFirst));
+
+  panel_focus_ = kEquipPanel;
+  RenderEquipPanel();
+  equip_component_->OnEvent(ftxui::Event::ArrowUp);  // onto the preset row
+  equip_component_->OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_EQ(controller_->ComparisonPreset(), StatPreset::kSecond);
+
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  DescendIntoBag();
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kInspect);
+  // The second preset inherits the first's sword, so that is what the bare one
+  // is weighed against -- and losing it is a loss.
+  EXPECT_EQ(
+      controller_->inspect_comparison(),
+      state_->character.WornAt(StatPreset::kSecond, EQUIP_SLOT_PRIMARY_WEAPON));
+  ASSERT_TRUE(controller_->inspect_delta().has_value());
+  EXPECT_LT(*controller_->inspect_delta(), 0);
 }
 
 // The sideways arrows belong to a squeezed card, and like the others they

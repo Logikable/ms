@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <map>
 #include <set>
 #include <string>
@@ -13,6 +14,7 @@
 #include "src/character/arcane_force.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/chrome.h"
+#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/scroll_card.h"
@@ -236,16 +238,22 @@ void InspectPanel::SetItem(const EquipTabItem* item) {
   item_ = item;
   stackable_ = nullptr;
   compare_ = nullptr;
+  delta_.reset();
 }
 
 void InspectPanel::SetItem(const ItemPrototype* item) {
   stackable_ = item;
   item_ = nullptr;
   compare_ = nullptr;
+  delta_.reset();
 }
 
 void InspectPanel::SetComparison(const EquipTabItem* equipped) {
   compare_ = equipped;
+}
+
+void InspectPanel::SetCombatPowerDelta(std::optional<int> delta) {
+  delta_ = delta;
 }
 
 void InspectPanel::UseCharacter(const CharacterInstance& character) {
@@ -577,17 +585,56 @@ ftxui::Element InspectPanel::RenderStackable() const {
   });
 }
 
-// The rows above the job categories: the item's name and the level it asks
-// for.
+// The rows above the job categories: the item's name, the level it asks for,
+// and what wearing it would do to the player's combat power.
 std::vector<CardRow> InspectPanel::HeadRows(const EquipTabItem& item) const {
   int level = item.prototype().required_level();
-  return {
+  std::vector<CardRow> delta = DeltaRows(item);
+  std::vector<CardRow> rows = {
       TextRow(CenteredRow(item.name())),
       RuleRow(ThemedSeparator()),
-      // Trailing space on each text row keeps the right border one column
-      // clear.
-      TextRow(ftxui::text(" Req Lev: " + std::to_string(level > 0 ? level : 1) +
-                          " ")),
+  };
+  // The label sits over the figure rather than beside it: "Combat Power Δ" is
+  // wider than anything else on the card, and on the level's own row it would
+  // set the width of the whole panel.
+  if (delta.size() == 2) {
+    rows.push_back(std::move(delta[0]));
+  }
+  // Trailing space on each text row keeps the right border one column clear.
+  ftxui::Element req =
+      ftxui::text(" Req Lev: " + std::to_string(level > 0 ? level : 1) + " ");
+  if (delta.empty()) {
+    rows.push_back(TextRow(std::move(req)));
+    return rows;
+  }
+  rows.push_back(TextRow(ftxui::hbox({
+      std::move(req),
+      ftxui::filler(),
+      std::move(delta[1].element),
+  })));
+  return rows;
+}
+
+// What the figure is painted in: green for a gain, red for a loss, and the
+// plain colour for an item that changes nothing.
+std::vector<CardRow> InspectPanel::DeltaRows(const EquipTabItem& item) const {
+  if (&item != item_ || !delta_.has_value()) {
+    return {};
+  }
+  const int delta = *delta_;
+  std::string figure =
+      delta == 0 ? "0"
+                 : (delta > 0 ? "+" : "-") + FormatWithCommas(std::abs(delta));
+  ftxui::Element value = ftxui::text(figure + " ");
+  if (delta > 0) {
+    value = std::move(value) | ftxui::color(kGreen);
+  } else if (delta < 0) {
+    value = std::move(value) | ftxui::color(kRed);
+  }
+  return {
+      TextRow(
+          ftxui::hbox({ftxui::filler(), ftxui::text("Combat Power \u0394 ")})),
+      TextRow(std::move(value)),
   };
 }
 

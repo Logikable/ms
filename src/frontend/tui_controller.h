@@ -10,6 +10,7 @@
 #define MS_SRC_FRONTEND_TUI_CONTROLLER_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -468,11 +469,23 @@ class TuiController {
   // Returns the item being scrolled while in kScrollSelect or kScrollResult,
   // or nullptr otherwise.
   const EquipInstance* scroll_item() const;
+  // The gear preset every comparison on an item's card reads: the open Gear
+  // tab, which is also where Equip would put the item. With the autoswap off
+  // that tab opens on the preset in use, so by default this is what the
+  // character has on.
+  StatPreset ComparisonPreset() const;
   // What the player already wears in the slot the inspected item would fill,
   // for the card drawn beside it. nullptr when there is nothing to compare.
   const EquipTabItem* inspect_comparison() const;
   const EquipTabItem* player_item_comparison() const;
   const EquipInstance* WornForComparison(const EquipPrototype& proto) const;
+  // What putting `item` on would do to the player's combat power, for the
+  // figure on its card. Empty when there is nothing to say: a slot this
+  // character cannot fill, or an item already worn in ComparisonPreset().
+  std::optional<int> CombatPowerDelta(const EquipTabItem* item) const;
+  // The same for whichever item each screen has on it.
+  std::optional<int> inspect_delta() const;
+  std::optional<int> player_item_delta() const;
   // Returns the item being inspected while in kInspect, or nullptr otherwise.
   // May be an EquipTrace if the selected bag item was destroyed.
   const EquipTabItem* inspect_item() const;

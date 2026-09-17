@@ -1035,18 +1035,6 @@ TEST_F(InspectPanelTest, TakingTheSetCardMovesTheFocusOffIt) {
   EXPECT_EQ(panel.focused_card(), InspectPanel::kItemCard);
 }
 
-// --- Arcane Symbols ---
-
-// How many times `glyph` appears, for counting the pips of a growth bar.
-int Count(const std::string& rendered, const std::string& glyph) {
-  int found = 0;
-  for (size_t at = rendered.find(glyph); at != std::string::npos;
-       at = rendered.find(glyph, at + glyph.size())) {
-    ++found;
-  }
-  return found;
-}
-
 // The row drawn under the one holding `text`, for checking a rule falls where
 // it should.
 std::string LineAfter(const std::string& rendered, const std::string& text) {
@@ -1059,6 +1047,88 @@ std::string LineAfter(const std::string& rendered, const std::string& text) {
     return "";
   }
   return rendered.substr(eol + 1, rendered.find('\n', eol + 1) - eol - 1);
+}
+
+// --- the combat power delta ---
+
+// The figure sits on the level's row and its label over it, so the widest
+// thing on the card is not two words nobody reads twice.
+TEST_F(InspectPanelTest, WritesTheCombatPowerDeltaOverTheRequiredLevel) {
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&hat_);
+  panel.SetCombatPowerDelta(123456);
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Combat Power \u0394"), std::string::npos)
+      << rendered;
+  EXPECT_NE(rendered.find("+123,456"), std::string::npos) << rendered;
+  EXPECT_NE(LineAfter(rendered, "Combat Power \u0394").find("Req Lev"),
+            std::string::npos)
+      << "the label sits directly over the level's row";
+  size_t row = rendered.find("Req Lev");
+  EXPECT_LT(row, rendered.find("+123,456"))
+      << "the figure is on the level's own row, right of it";
+}
+
+// Green for a gain, red for a loss, and nothing for an item that would change
+// nothing: a plain zero is not a warning.
+TEST_F(InspectPanelTest, PaintsTheDeltaBySign) {
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&hat_);
+
+  panel.SetCombatPowerDelta(4200);
+  ftxui::Screen gain = Draw(panel);
+  EXPECT_EQ(ColorOf(gain, "+4,200"), kGreen);
+
+  panel.SetCombatPowerDelta(-4200);
+  ftxui::Screen loss = Draw(panel);
+  EXPECT_EQ(ColorOf(loss, "-4,200"), kRed);
+
+  // No sign and neither colour: an item that changes nothing is not a warning.
+  panel.SetCombatPowerDelta(0);
+  ftxui::Screen even = Draw(panel);
+  EXPECT_NE(ColorOf(even, " 0 "), kGreen);
+  EXPECT_NE(ColorOf(even, " 0 "), kRed);
+}
+
+// Unset draws neither row, which is what every screen showing an item the
+// player is not weighing gets. Pointing the panel at an item forgets it, the
+// way it forgets the comparison.
+TEST_F(InspectPanelTest, NoDeltaRowsWithoutOne) {
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&hat_);
+  EXPECT_EQ(RenderWide(panel).find("Combat Power"), std::string::npos);
+
+  panel.SetCombatPowerDelta(7);
+  ASSERT_NE(RenderWide(panel).find("Combat Power"), std::string::npos);
+  panel.SetItem(&hat_);
+  EXPECT_EQ(RenderWide(panel).find("Combat Power"), std::string::npos);
+}
+
+// One figure on the screen. The Equipped card is what the delta is measured
+// against, so a delta on it would be measuring it against itself.
+TEST_F(InspectPanelTest, TheEquippedCardCarriesNoDelta) {
+  EquipInstance worn = WornHat();
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&hat_);
+  panel.SetComparison(&worn);
+  panel.SetCombatPowerDelta(500);
+  std::string rendered = RenderWide(panel);
+  size_t first = rendered.find("Combat Power");
+  ASSERT_NE(first, std::string::npos);
+  EXPECT_EQ(rendered.find("Combat Power", first + 1), std::string::npos)
+      << rendered;
+}
+
+// --- Arcane Symbols ---
+
+// How many times `glyph` appears, for counting the pips of a growth bar.
+int Count(const std::string& rendered, const std::string& glyph) {
+  int found = 0;
+  for (size_t at = rendered.find(glyph); at != std::string::npos;
+       at = rendered.find(glyph, at + glyph.size())) {
+    ++found;
+  }
+  return found;
 }
 
 // A symbol grants nothing an equip's rows could show, so it gets a card of its

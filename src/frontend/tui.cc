@@ -520,6 +520,7 @@ ftxui::Element Tui::RenderPlayerInspect() {
   if (controller_.screen() == kPlayerItemInspect) {
     player_item_panel_.SetItem(player_inspect_panel_.selected_item());
     player_item_panel_.SetComparison(controller_.player_item_comparison());
+    player_item_panel_.SetCombatPowerDelta(controller_.player_item_delta());
     player_item_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
     player_item_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
     return Standalone(player_item_panel_.Render());
@@ -627,11 +628,13 @@ ftxui::Element Tui::RenderBuyBackInspect(const BuyBackEntry& entry) {
     EquipTrace trace(*proto, entry.equip());
     inspect_panel_.SetItem(&trace);
     inspect_panel_.SetComparison(controller_.WornForComparison(*proto));
+    inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(&trace));
     return Standalone(inspect_panel_.Render());
   }
   EquipInstance item(*proto, entry.equip());
   inspect_panel_.SetItem(&item);
   inspect_panel_.SetComparison(controller_.WornForComparison(*proto));
+  inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(&item));
   return Standalone(inspect_panel_.Render());
 }
 
@@ -660,6 +663,7 @@ ftxui::Element Tui::RenderShopInspect() {
   EquipInstance preview(*proto);
   inspect_panel_.SetItem(&preview);
   inspect_panel_.SetComparison(controller_.WornForComparison(*proto));
+  inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(&preview));
   return Standalone(inspect_panel_.Render());
 }
 
@@ -800,6 +804,7 @@ ftxui::Element Tui::RenderInspect() {
     // Nothing stackable is worn, so only an equip is ever weighed against
     // what the player has on.
     inspect_panel_.SetComparison(controller_.inspect_comparison());
+    inspect_panel_.SetCombatPowerDelta(controller_.inspect_delta());
   }
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   inspect_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
