@@ -11,6 +11,7 @@
 #ifndef MS_SRC_MULTIPLAYER_SESSION_H_
 #define MS_SRC_MULTIPLAYER_SESSION_H_
 
+#include <chrono>
 #include <string>
 
 #include "src/character/character.h"
@@ -20,9 +21,15 @@
 
 namespace ms {
 
+// How often an update carrying nothing but fresh EXP goes out. Everything
+// else on the sheet is sent the moment it moves; EXP moves with every kill,
+// and the exp bar on somebody else's Inspect screen is worth no more than
+// this.
+inline constexpr std::chrono::seconds kExpUpdatePeriod{1};
+
 // The character as everyone else may see them: their stats, what they are
-// wearing, and the passives behind both, with the bag, the purse and the
-// buy-back shelf cleared.
+// wearing, the passives behind both and the points still to spend, with the
+// bag, the purse, the buy-back shelf and their honor cleared.
 Character PublicSheet(const CharacterInstance& character);
 
 // The character in `state` as the lobby should see them, sheet included, under
@@ -60,6 +67,9 @@ class MultiplayerSession {
   // What the lobby was last told, so that a tick changing nothing sends
   // nothing.
   PlayerInfo told_;
+  // When that went out, for the EXP floor. Epoch until the first send, which
+  // is well past kExpUpdatePeriod ago -- the first tick is never held back.
+  std::chrono::steady_clock::time_point sent_;
 };
 
 }  // namespace ms

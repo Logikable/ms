@@ -145,8 +145,8 @@ TEST_F(SessionTest, TellsTheLobbyAboutANewName) {
   }));
 }
 
-// The sheet is what the Inspect screen draws a party member from. What it
-// leaves behind is everything a party has no business with.
+// The sheet is what the Inspect screen draws a party member from: the
+// character, the points still to spend on them, and none of their belongings.
 TEST_F(SessionTest, TheSheetCarriesTheCharacterAndNotTheirBelongings) {
   state_->character.AddExp(50);
   state_->character.AddMeso(1'000'000);
@@ -162,9 +162,14 @@ TEST_F(SessionTest, TheSheetCarriesTheCharacterAndNotTheirBelongings) {
   EXPECT_EQ(WornInSheet(sheet), 1);
   EXPECT_EQ(sheet.inventory().equip_tab_size(), 0);
   EXPECT_EQ(sheet.meso(), 0);
-  EXPECT_EQ(sheet.exp(), 0);
+  // The Inspect screen draws these: the exp bar, and the pools its tabs
+  // count against. Not 50 -- the level that bought took most of it.
+  EXPECT_EQ(sheet.exp(), state_->character.proto().exp());
+  EXPECT_GT(sheet.exp(), 0);
+  EXPECT_EQ(sheet.v_points(), 30);
+  EXPECT_EQ(sheet.ap(), state_->character.proto().ap());
+  // Honor is the one balance held back. See HonorEarnedDoesNotMoveTheSheet.
   EXPECT_EQ(sheet.honor(), 0);
-  EXPECT_EQ(sheet.v_points(), 0);
 }
 
 // An update goes out whenever the sheet moves, so anything on the sheet that
@@ -173,10 +178,53 @@ TEST_F(SessionTest, TheSheetCarriesTheCharacterAndNotTheirBelongings) {
 TEST_F(SessionTest, HonorEarnedDoesNotMoveTheSheet) {
   Character before = PublicSheet(state_->character);
   state_->character.AddHonor(500);
-  state_->character.AddVPoints(30);
   EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(
       before, PublicSheet(state_->character)))
       << "a kill's honor must not be an update";
+}
+
+// EXP reaches the lobby -- the Inspect screen has a bar to fill -- but no
+// faster than kExpUpdatePeriod, however many kills land in between. Anything
+// else on the sheet still goes out the moment it moves.
+TEST_F(SessionTest, ExpReachesTheLobbyOnItsOwnClock) {
+  MultiplayerSession session = MakeSession();
+  session.Start(*state_);
+  ASSERT_TRUE(WaitUntilConnected(session));
+  session.client().CreateParty();
+  ASSERT_TRUE(WaitFor(session, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.party.members_size() == 1;
+  }));
+  auto exp = [&session]() {
+    const MultiplayerSnapshot snapshot = session.Snapshot();
+    return snapshot.party.members_size() == 1
+               ? snapshot.party.members(0).player().sheet().exp()
+               : -1;
+  };
+
+  // One EXP at a time: a level would move the sheet on its own, and then
+  // nothing here is measuring the EXP clock.
+  state_->character.AddExp(1);
+  ASSERT_TRUE(WaitFor(
+      session, [&exp](const MultiplayerSnapshot&) { return exp() == 1; }));
+
+  // The next kill lands inside the period, so the lobby keeps the figure it
+  // has. Well short of kExpUpdatePeriod, or this is measuring the clock.
+  state_->character.AddExp(1);
+  std::chrono::steady_clock::time_point until =
+      std::chrono::steady_clock::now() + kExpUpdatePeriod / 5;
+  while (std::chrono::steady_clock::now() < until) {
+    session.Advance(*state_);
+    ASSERT_EQ(exp(), 1) << "a kill's EXP went out on its own";
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  }
+
+  // A name is not EXP, so it does not wait behind it -- and it carries the
+  // held-back figure out with it.
+  state_->character.SetUsername("Wand");
+  EXPECT_TRUE(WaitFor(session, [&exp](const MultiplayerSnapshot& snapshot) {
+    return snapshot.party.members_size() == 1 &&
+           snapshot.party.members(0).player().name() == "Wand" && exp() == 2;
+  }));
 }
 
 // A re-scrolled weapon changes what the Inspect screen draws and nothing the

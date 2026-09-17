@@ -1,8 +1,10 @@
 #include "src/multiplayer/session.h"
 
+#include <chrono>
 #include <string>
 #include <utility>
 
+#include "google/protobuf/descriptor.h"
 #include "google/protobuf/util/message_differencer.h"
 #include "src/character/character.h"
 #include "src/game_state.h"
@@ -16,24 +18,22 @@ Character PublicSheet(const CharacterInstance& character) {
   // only folded into the message when someone asks for the lot.
   Character sheet = character.ToProto();
   // What a party member is shown is what they could work out by WATCHING: the
-  // stats, what is worn, and the passives behind both. The bag and the purse
-  // are nobody else's business and would put a save's worth of message on
-  // every update.
+  // stats, what is worn, the passives behind both, and the points still
+  // waiting to be spent on them. The bag and the purse are nobody else's
+  // business and would put a save's worth of message on every update.
   //
-  // Every unspent balance goes with them: what it was SPENT on shows, and the
-  // balance itself is the fastest-moving number on the sheet -- honor climbs
-  // with every kill, so leaving it in sent a whole sheet per kill.
+  // Honor stays behind with them. It climbs with every kill, and an update
+  // goes out whenever the sheet moves -- so leaving it in sent a whole sheet
+  // per kill, for a number the Ability tab reads without. EXP moves as fast
+  // and the exp bar needs it; see MultiplayerSession::Advance for what pays
+  // for it.
   sheet.clear_inventory();
   sheet.clear_stacks();
   sheet.clear_buy_backs();
   sheet.clear_pinned_scrolls();
   sheet.clear_boss_clears();
   sheet.clear_meso();
-  sheet.clear_exp();
-  sheet.clear_ap();
-  sheet.clear_sp_by_stage();
   sheet.clear_honor();
-  sheet.clear_v_points();
   return sheet;
 }
 
@@ -92,9 +92,21 @@ void MultiplayerSession::Advance(GameState& state) {
   // server takes it from the session instead of from what arrives. Learning
   // ours on the first tick is not news worth an update.
   told_.set_account_id(player.account_id());
-  if (google::protobuf::util::MessageDifferencer::Equals(player, told_)) {
+  google::protobuf::util::MessageDifferencer differencer;
+  differencer.IgnoreField(Character::descriptor()->FindFieldByName("exp"));
+  bool only_exp = differencer.Compare(player, told_);
+  if (only_exp && player.sheet().exp() == told_.sheet().exp()) {
     return;
   }
+  std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+  // EXP alone moves with every kill -- 312 in one second against the live
+  // server -- and every one of those would be a whole sheet. A bar in
+  // somebody else's lobby is worth a sheet a second and no more. Anything
+  // else on the sheet goes out the moment it moves.
+  if (only_exp && now - sent_ < kExpUpdatePeriod) {
+    return;
+  }
+  sent_ = now;
   told_ = player;
   client_.SetPlayer(player);
 }
