@@ -1465,6 +1465,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   // what is left below is only what the fold has to change.
   DerivedStats stats = passives;
   stats.activity = preset;
+  stats.gear = worn;
   AddPools(proto.level(), allocated, equipped, passives, stats);
   stats.skill_stats.set_def(passives.def_grant);
   stats.skill_stats.set_str(passives.str);
@@ -1517,7 +1518,7 @@ EquipStats PotentialStatGrant(const CharacterInstance& character,
                               const PotentialTotals& totals) {
   int pile[4];
   StatPileFor(character, derived.skill_stats, derived.potential_stats,
-              character.SlotFor(PresetKind::kEquip, derived.activity), pile);
+              derived.gear, pile);
   return PotentialFlatGrant(pile, totals);
 }
 
@@ -1530,8 +1531,7 @@ int TotalIntFor(const CharacterInstance& character,
 
 EquipStats TotalEquipStats(const CharacterInstance& character,
                            const DerivedStats& derived) {
-  const EquipStats sources[] = {character.equip_stats(character.SlotFor(
-                                    PresetKind::kEquip, derived.activity)),
+  const EquipStats sources[] = {character.equip_stats(derived.gear),
                                 derived.skill_stats};
   EquipStats total = SumEquipStats(absl::MakeConstSpan(sources));
   // Here rather than in skill_stats because what it scales is the weapon in
@@ -1544,22 +1544,21 @@ EquipStats TotalEquipStats(const CharacterInstance& character,
 
 OffenseStats CharacterOffense(const CharacterInstance& character,
                               const std::map<std::string, Skill>& skills,
-                              Activity preset) {
+                              Activity preset, std::optional<StatPreset> gear) {
   const Character& p = character.proto();
   DerivedStats derived = DerivedStatsFor(character, skills, /*buffs_up=*/{},
-                                         /*allies=*/{}, preset);
-  return OffenseStatsFor(
-      p.job(), p.level(), p.allocated_stats(),
-      TotalEquipStats(character, derived),
-      character.weapon_type(character.SlotFor(PresetKind::kEquip, preset)),
-      /*attack_skill=*/nullptr,
-      /*attack_level=*/0, PassiveOffenseFor(derived));
+                                         /*allies=*/{}, preset, gear);
+  return OffenseStatsFor(p.job(), p.level(), p.allocated_stats(),
+                         TotalEquipStats(character, derived),
+                         character.weapon_type(derived.gear),
+                         /*attack_skill=*/nullptr,
+                         /*attack_level=*/0, PassiveOffenseFor(derived));
 }
 
 int CharacterCombatPower(const CharacterInstance& character,
                          const std::map<std::string, Skill>& skills,
-                         Activity preset) {
-  return CombatPower(CharacterOffense(character, skills, preset),
+                         Activity preset, std::optional<StatPreset> gear) {
+  return CombatPower(CharacterOffense(character, skills, preset, gear),
                      preset == Activity::kBossing);
 }
 

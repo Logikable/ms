@@ -4190,5 +4190,36 @@ TEST(CharacterCombatPowerTest, CountsTheModesMonsterOnly) {
   EXPECT_EQ(CharacterCombatPower(boss_only, {}, Activity::kFarming), baseline);
 }
 
+// A caller may name the gear itself, which is what pricing a piece against a
+// preset no activity reads needs. The whole fold follows it -- the stats, the
+// potentials and the weapon in hand alike -- rather than half of it reading
+// the activity's preset instead.
+TEST(CharacterCombatPowerTest, ReadsTheGearPresetTheCallerNames) {
+  std::mt19937 rng(1);
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  proto.mutable_allocated_stats()->set_str(400);
+  CharacterInstance c(rng, std::move(proto));
+  c.set_autoswap_presets(true);
+  EquipAttackWeapon(c);
+
+  EquipPrototype hat;
+  hat.set_name("Drop Hat");
+  hat.set_equip_slot(EQUIP_SLOT_HAT);
+  hat.mutable_base_stats()->set_str(500);
+  c.PickUp(std::make_unique<EquipInstance>(hat));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1, kDropPreset));
+
+  const int farming = CharacterCombatPower(c, {}, Activity::kFarming);
+  EXPECT_EQ(CharacterCombatPower(c, {}, Activity::kFarming, StatPreset::kFirst),
+            farming)
+      << "naming the preset the activity already names changes nothing";
+  EXPECT_GT(CharacterCombatPower(c, {}, Activity::kFarming, kDropPreset),
+            farming)
+      << "the drop preset wears a hat no activity would have reached";
+}
+
 }  // namespace
 }  // namespace ms

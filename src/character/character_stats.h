@@ -153,9 +153,13 @@ struct RegenPulse {
 };
 
 struct DerivedStats {
-  // What the character was doing when these were read, which picked the gear
-  // preset. Carried so a later fold reads the same gear.
+  // What the character was doing when these were read. Carried so a later
+  // fold reads the same activity.
   Activity activity = Activity::kFarming;
+  // The gear preset these were read off. Its own field rather than something
+  // a later fold re-derives from the activity: a caller may name a preset the
+  // activity does not, and both halves have to land on the same one.
+  StatPreset gear = StatPreset::kFirst;
   int max_hp = 0;
   int max_mp = 0;
   // DEF from the stats alone: 1.5 per STR, 0.4 per DEX and LUK. Split out
@@ -452,7 +456,7 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived);
 // Everything worn plus everything the passives grant. READ THIS wherever the
 // game wants "the character's equipment stats": a skill granting LUK is worth
 // what a ring granting LUK is, and nothing downstream should know which. The
-// gear is the preset `derived.activity` names.
+// gear is `derived.gear`, the preset the stats were read off.
 EquipStats TotalEquipStats(const CharacterInstance& character,
                            const DerivedStats& derived);
 
@@ -466,16 +470,20 @@ EquipStats PotentialStatGrant(const CharacterInstance& character,
 
 // The character's offensive line with no attack skill behind it: what combat
 // power is read off, and where a caller finds the ied to price a stat with.
+// `gear` overrides the preset the activity would name, as DerivedStatsFor's
+// does.
 OffenseStats CharacterOffense(const CharacterInstance& character,
                               const std::map<std::string, Skill>& skills,
-                              Activity preset = Activity::kFarming);
+                              Activity preset = Activity::kFarming,
+                              std::optional<StatPreset> gear = std::nullopt);
 
 // The whole stat line as one number, with no attack skill and no target:
-// combat power stands for the CHARACTER, not a swing. The preset names the
+// combat power stands for the CHARACTER, not a swing. The activity names the
 // monster -- Boss counts boss %dmg, Farm counts normal.
 int CharacterCombatPower(const CharacterInstance& character,
                          const std::map<std::string, Skill>& skills,
-                         Activity preset = Activity::kFarming);
+                         Activity preset = Activity::kFarming,
+                         std::optional<StatPreset> gear = std::nullopt);
 
 }  // namespace ms
 
