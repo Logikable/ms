@@ -66,33 +66,20 @@ class CombatSim {
   // nothing will move on its own.
   double SecondsToNextEvent(const CombatParams& params) const;
 
-  // Damage since the fight began, parallel to params.attacks, a burn
-  // credited to the swing that lit it. Damage on a clock of its own is in
+  // What each of params.attacks came to since the fight began, a burn credited
+  // to the swing that lit it. Damage on a clock of its own is in
   // own_clock_damage() instead; the two together are everything that landed.
-  const std::vector<double>& damage_by_attack() const {
-    return damage_by_attack_;
+  const std::vector<AttackTally>& by_attack() const {
+    return by_attack_;
   }
   double own_clock_damage() const {
     return own_clock_damage_;
-  }
-  // The halves of that total a swing did not strike for itself, ALREADY
-  // counted in damage_by_attack(). For splitting a swing's figure: a reader
-  // tuning the swing does not mean its Meso Explosion or its poison.
-  const std::vector<double>& final_attack_damage_by_attack() const {
-    return final_attack_damage_by_attack_;
-  }
-  const std::vector<double>& burn_damage_by_attack() const {
-    return burn_damage_by_attack_;
   }
   // own_clock_damage() told apart by source. An index is looked up in the
   // list its origin belongs to: kOwnClock in params.auto_attacks, kSwingClock
   // and kKillClock in params.triggered_attacks, the rest in params.attacks.
   const std::map<DamageSource, double>& own_clock_by_source() const {
     return own_clock_by_source_;
-  }
-  // Swings of each attack the character has landed, parallel to the same list.
-  const std::vector<int>& swings_by_attack() const {
-    return swings_by_attack_;
   }
   // Which of params.buffs stand, as the mask CombatParams indexes its attack
   // tables by. Refreshed at the top of every step.
@@ -618,10 +605,7 @@ class CombatSim {
   double fight_seconds_ = 0.0;
   // Per-attack totals, parallel to params.attacks. These run for the life of
   // the FIGHT, not per encounter: what reads them is a measurement.
-  std::vector<double> damage_by_attack_;
-  std::vector<int> swings_by_attack_;
-  std::vector<double> final_attack_damage_by_attack_;
-  std::vector<double> burn_damage_by_attack_;
+  std::vector<AttackTally> by_attack_;
   // What is riding the credited attack. Set around the Hurt calls that are
   // not the swing striking for itself, and put back after.
   enum class Rider { kItself, kFinalAttack, kBurn };

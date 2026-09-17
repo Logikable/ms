@@ -354,6 +354,17 @@ struct AttackOption {
   ChannelHold channel;
 };
 
+// What one attack came to over a run, parallel to the list it was built from.
+// One tally rather than a vector apiece: the four move together, and the last
+// two are HALVES of the first rather than additions to it -- a Final Attack
+// and a burn are already inside `damage`.
+struct AttackTally {
+  double damage = 0.0;
+  int swings = 0;
+  double final_attack_damage = 0.0;
+  double burn_damage = 0.0;
+};
+
 // Seconds a hold of `pulses` takes, never shorter than min_seconds.
 double HoldSeconds(const ChannelHold& hold, int pulses);
 

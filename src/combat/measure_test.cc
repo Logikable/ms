@@ -48,8 +48,8 @@ TEST(MeasureFightTest, TheRateIsTheDamageOverTheHorizon) {
   EXPECT_NEAR(played.seconds, 100.0, 1e-6);
   EXPECT_NEAR(played.damage, 50 * 50.0, 1e-6);
   EXPECT_EQ(played.main_attack, 0);
-  ASSERT_EQ(played.damage_by_attack.size(), 1u);
-  EXPECT_NEAR(played.damage_by_attack[0], played.damage, 1e-6);
+  ASSERT_EQ(played.by_attack.size(), 1u);
+  EXPECT_NEAR(played.by_attack[0].damage, played.damage, 1e-6);
 }
 
 // The crowd is what the caller asks for, whatever the map it came from holds.
@@ -92,9 +92,9 @@ TEST(MeasureFightTest, AnOwnClockCastIsCountedApart) {
   params.auto_attacks.push_back(summon);
 
   Sequence played = MeasureFight(params, 100.0);
-  EXPECT_NEAR(played.damage_by_attack[0], 100 * 10.0, 1e-6);
+  EXPECT_NEAR(played.by_attack[0].damage, 100 * 10.0, 1e-6);
   EXPECT_NEAR(played.own_clock_damage, 50 * 30.0, 1e-6);
-  EXPECT_NEAR(played.damage, played.damage_by_attack[0] + 50 * 30.0, 1e-6);
+  EXPECT_NEAR(played.damage, played.by_attack[0].damage + 50 * 30.0, 1e-6);
 }
 
 // Two summons on one clock are two rows, named and heaviest first: one bucket
@@ -145,13 +145,13 @@ TEST(MeasureFightTest, WhatRidesASwingIsSplitOutOfIt) {
   params.attacks[0].dots.push_back(burn);
 
   Sequence played = MeasureFight(params, 100.0, 1);
-  EXPECT_NEAR(played.final_attack_by_attack[0], 100 * 4.0, 1e-6);
-  EXPECT_NEAR(played.burn_by_attack[0], 99 * 1.0, 1e-6);
+  EXPECT_NEAR(played.by_attack[0].final_attack_damage, 100 * 4.0, 1e-6);
+  EXPECT_NEAR(played.by_attack[0].burn_damage, 99 * 1.0, 1e-6);
   // Both are already inside the swing's own figure, which is the whole point.
-  EXPECT_NEAR(
-      played.damage_by_attack[0],
-      100 * 10.0 + played.final_attack_by_attack[0] + played.burn_by_attack[0],
-      1e-6);
+  EXPECT_NEAR(played.by_attack[0].damage,
+              100 * 10.0 + played.by_attack[0].final_attack_damage +
+                  played.by_attack[0].burn_damage,
+              1e-6);
 }
 
 // A buff that stands for two seconds in every ten reads as a fifth of the run,

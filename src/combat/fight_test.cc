@@ -4248,9 +4248,9 @@ TEST(CombatSimTest, FreezeIsNotLaidForASwingStillRecharging) {
   for (int step = 0; step < 6; ++step) {
     spent.Advance(params, 1.0);
   }
-  EXPECT_NEAR(spent.damage_by_attack()[1], 10.0, 1e-9);
-  EXPECT_NEAR(spent.damage_by_attack()[2], 200.0, 1e-9);
-  EXPECT_NEAR(spent.damage_by_attack()[0], 80.0, 1e-9);
+  EXPECT_NEAR(spent.by_attack()[1].damage, 10.0, 1e-9);
+  EXPECT_NEAR(spent.by_attack()[2].damage, 200.0, 1e-9);
+  EXPECT_NEAR(spent.by_attack()[0].damage, 80.0, 1e-9);
 
   // The same storm with no wait on it collects every pile it is laid, so the
   // ice goes on being worth the press and the plain swing never wins one.
@@ -4260,8 +4260,8 @@ TEST(CombatSimTest, FreezeIsNotLaidForASwingStillRecharging) {
   for (int step = 0; step < 6; ++step) {
     standing.Advance(ready, 1.0);
   }
-  EXPECT_GT(standing.damage_by_attack()[1], 10.0);
-  EXPECT_NEAR(standing.damage_by_attack()[0], 0.0, 1e-9);
+  EXPECT_GT(standing.by_attack()[1].damage, 10.0);
+  EXPECT_NEAR(standing.by_attack()[0].damage, 0.0, 1e-9);
 }
 
 // Spirit of Snow's shape: a blizzard worth three stacks to a lone enemy and
@@ -4388,8 +4388,8 @@ TEST(CombatSimTest, ASecondBarrageDoesNotCutTheFirstShort) {
   for (int step = 0; step < 6; ++step) {
     sim.Advance(params, 0.5);
   }
-  EXPECT_NEAR(sim.damage_by_attack()[1], 400.0, 1e-9);
-  EXPECT_NEAR(sim.damage_by_attack()[2], 100.0, 1e-9);
+  EXPECT_NEAR(sim.by_attack()[1].damage, 400.0, 1e-9);
+  EXPECT_NEAR(sim.by_attack()[2].damage, 100.0, 1e-9);
 }
 
 // The current arcs onto two where the orb rides one, so the wide half lands on
@@ -5173,10 +5173,10 @@ TEST(CombatSimTest, AMeasurementTellsTheSwingsApart) {
   for (int step = 0; step < 10; ++step) {
     sim.Advance(params, 1.0);
   }
-  ASSERT_EQ(sim.damage_by_attack().size(), 1u);
-  EXPECT_EQ(sim.swings_by_attack()[0], 10);
+  ASSERT_EQ(sim.by_attack().size(), 1u);
+  EXPECT_EQ(sim.by_attack()[0].swings, 10);
   // Ten swings at 10, and the burn ticking every second from the first swing.
-  EXPECT_NEAR(sim.damage_by_attack()[0], 10 * 10.0 + 9 * 5.0, 1e-6);
+  EXPECT_NEAR(sim.by_attack()[0].damage, 10 * 10.0 + 9 * 5.0, 1e-6);
   EXPECT_NEAR(sim.own_clock_damage(), 10 * 7.0, 1e-6);
 }
 
@@ -5223,8 +5223,9 @@ std::vector<double> SwingTimes(CombatSim& sim, const CombatParams& params,
   int landed = 0;
   for (int step = 1; step * 0.01 < seconds; ++step) {
     sim.Advance(params, 0.01);
-    const std::vector<int>& swings = sim.swings_by_attack();
-    int now = index < static_cast<int>(swings.size()) ? swings[index] : 0;
+    const std::vector<AttackTally>& tallies = sim.by_attack();
+    int now =
+        index < static_cast<int>(tallies.size()) ? tallies[index].swings : 0;
     if (now > landed) {
       landed = now;
       times.push_back(step * 0.01);
@@ -5246,7 +5247,7 @@ TEST(CombatSimTest, ABigMoveWaitsForTheWindowComing) {
   ASSERT_EQ(times.size(), 2u);
   EXPECT_NEAR(times[0], 1.0, 0.02);
   EXPECT_NEAR(times[1], 26.0, 0.02);
-  EXPECT_NEAR(sim.damage_by_attack()[1], 400.0, 1e-6);  // both doubled
+  EXPECT_NEAR(sim.by_attack()[1].damage, 400.0, 1e-6);  // both doubled
 }
 
 // The same fight against a boss with a sliver left: the window is further off
@@ -5261,7 +5262,7 @@ TEST(CombatSimTest, NothingIsHeldForAWindowTheFightWontReach) {
   std::vector<double> times = SwingTimes(sim, params, 1, 30.0);
   ASSERT_EQ(times.size(), 2u);
   EXPECT_NEAR(times[1], 21.0, 0.02);
-  EXPECT_NEAR(sim.damage_by_attack()[1], 300.0, 1e-6);  // the second bare
+  EXPECT_NEAR(sim.by_attack()[1].damage, 300.0, 1e-6);  // the second bare
 }
 
 // A cooldown back on its feet before the window opens is spent now and had

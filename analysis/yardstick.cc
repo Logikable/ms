@@ -133,8 +133,8 @@ std::vector<Strand> StrandsFor(const GameState& state, const Mob& target) {
   EquipStats worn = TotalEquipStats(state.character, derived);
   PassiveOffense passives = PassiveOffenseFor(derived);
   double swung = 0.0;
-  for (int i = 0; i < static_cast<int>(played.damage_by_attack.size()); ++i) {
-    if (played.damage_by_attack[i] < kStrandFloor * played.damage ||
+  for (int i = 0; i < static_cast<int>(played.by_attack.size()); ++i) {
+    if (played.by_attack[i].damage < kStrandFloor * played.damage ||
         i >= static_cast<int>(params.attacks.size())) {
       continue;
     }
@@ -153,8 +153,8 @@ std::vector<Strand> StrandsFor(const GameState& state, const Mob& target) {
     if (each <= 0.0) {
       continue;
     }
-    strand.per_second = played.damage_by_attack[i] / (played.seconds * each);
-    swung += played.damage_by_attack[i];
+    strand.per_second = played.by_attack[i].damage / (played.seconds * each);
+    swung += played.by_attack[i].damage;
     strands.push_back(strand);
   }
   if (swung <= 0.0) {

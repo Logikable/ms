@@ -33,13 +33,9 @@ struct Sequence {
   double damage = 0.0;
   double seconds = 0.0;
   int main_attack = -1;  // index of the one swung most often, -1 for none
-  // What each swing came to, a burn credited to the swing that lit it. Sums
-  // with own_clock_damage to `damage`.
-  std::vector<double> damage_by_attack;
-  // The halves of those figures the swing did not strike for itself, already
-  // inside them: its Final Attacks, and the burns it lit.
-  std::vector<double> final_attack_by_attack;
-  std::vector<double> burn_by_attack;
+  // What each of params.attacks came to, a burn credited to the swing that lit
+  // it. Sums with own_clock_damage to `damage`.
+  std::vector<AttackTally> by_attack;
   // What everything on a clock of its own came to: the summons, the releases
   // clocked by swings or by defeats, and what a reflection put back.
   double own_clock_damage = 0.0;

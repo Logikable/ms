@@ -69,9 +69,7 @@ std::string SourceName(const CombatParams& params, const DamageSource& source) {
 
 Sequence MeasureFight(const CombatParams& params, double horizon, int enemies) {
   Sequence played;
-  played.damage_by_attack.assign(params.attacks.size(), 0.0);
-  played.final_attack_by_attack.assign(params.attacks.size(), 0.0);
-  played.burn_by_attack.assign(params.attacks.size(), 0.0);
+  played.by_attack.assign(params.attacks.size(), AttackTally{});
   played.buff_uptime.assign(params.buffs.size(), 0.0);
   if (!params.active || params.types.empty() || params.attacks.empty() ||
       horizon <= 0.0) {
@@ -102,21 +100,19 @@ Sequence MeasureFight(const CombatParams& params, double horizon, int enemies) {
     }
   }
 
-  const std::vector<double>& dealt = sim.damage_by_attack();
-  const std::vector<int>& swings = sim.swings_by_attack();
-  for (int i = 0; i < static_cast<int>(played.damage_by_attack.size()) &&
-                  i < static_cast<int>(dealt.size());
+  const std::vector<AttackTally>& tallies = sim.by_attack();
+  for (int i = 0; i < static_cast<int>(played.by_attack.size()) &&
+                  i < static_cast<int>(tallies.size());
        ++i) {
-    played.damage_by_attack[i] = dealt[i];
-    played.final_attack_by_attack[i] = sim.final_attack_damage_by_attack()[i];
-    played.burn_by_attack[i] = sim.burn_damage_by_attack()[i];
-    played.damage += dealt[i];
+    played.by_attack[i] = tallies[i];
+    played.damage += tallies[i].damage;
   }
   if (getenv("MS_DUMP") != nullptr) {
-    for (int i = 0; i < static_cast<int>(dealt.size()); ++i) {
-      if (i < static_cast<int>(swings.size()) && swings[i] > 0) {
+    for (int i = 0; i < static_cast<int>(tallies.size()); ++i) {
+      if (tallies[i].swings > 0) {
         fprintf(stderr, "DUMP %-28s swings %6d  damage %14.0f\n",
-                measured.attacks[i].name.c_str(), swings[i], dealt[i]);
+                measured.attacks[i].name.c_str(), tallies[i].swings,
+                tallies[i].damage);
       }
     }
   }
@@ -133,9 +129,11 @@ Sequence MeasureFight(const CombatParams& params, double horizon, int enemies) {
                const std::pair<std::string, double>& b) {
               return a.second > b.second;
             });
-  for (int i = 0; i < static_cast<int>(swings.size()); ++i) {
-    if (swings[i] > 0 &&
-        (played.main_attack < 0 || swings[i] > swings[played.main_attack])) {
+  for (int i = 0; i < static_cast<int>(played.by_attack.size()); ++i) {
+    if (played.by_attack[i].swings > 0 &&
+        (played.main_attack < 0 ||
+         played.by_attack[i].swings >
+             played.by_attack[played.main_attack].swings)) {
       played.main_attack = i;
     }
   }

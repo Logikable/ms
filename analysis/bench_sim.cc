@@ -540,23 +540,24 @@ void RecordShares(const CombatParams& params, const Sequence& played,
   if (total <= 0.0) {
     return;
   }
-  for (int i = 0; i < static_cast<int>(played.damage_by_attack.size()); ++i) {
-    if (played.damage_by_attack[i] <= 0.0) {
+  for (int i = 0; i < static_cast<int>(played.by_attack.size()); ++i) {
+    if (played.by_attack[i].damage <= 0.0) {
       continue;
     }
     // What rode the swing, named apart and taken out of it: a Meso Explosion
     // and a poison land under the swing's own figure, and a reader tuning the
     // swing means the strike rather than what it set off.
-    double rode = played.final_attack_by_attack[i] + played.burn_by_attack[i];
+    const AttackTally& tally = played.by_attack[i];
+    double rode = tally.final_attack_damage + tally.burn_damage;
     result->shares.push_back(
-        {params.attacks[i].name, (played.damage_by_attack[i] - rode) / total});
-    if (played.final_attack_by_attack[i] > 0.0) {
+        {params.attacks[i].name, (tally.damage - rode) / total});
+    if (tally.final_attack_damage > 0.0) {
       result->shares.push_back({params.attacks[i].name + " (final attack)",
-                                played.final_attack_by_attack[i] / total});
+                                tally.final_attack_damage / total});
     }
-    if (played.burn_by_attack[i] > 0.0) {
-      result->shares.push_back({params.attacks[i].name + " (burn)",
-                                played.burn_by_attack[i] / total});
+    if (tally.burn_damage > 0.0) {
+      result->shares.push_back(
+          {params.attacks[i].name + " (burn)", tally.burn_damage / total});
     }
   }
   // Split by what dealt it rather than heaped into one row: on a branch whose

@@ -1254,15 +1254,15 @@ void CombatSim::Hurt(QueuedMob& mob, double damage) {
   }
   view_.damage_this_step += damage;
   damage_dealt_ += damage;
-  if (attributing_ >= 0 &&
-      attributing_ < static_cast<int>(damage_by_attack_.size())) {
-    damage_by_attack_[attributing_] += damage;
+  if (attributing_ >= 0 && attributing_ < static_cast<int>(by_attack_.size())) {
+    AttackTally& tally = by_attack_[attributing_];
+    tally.damage += damage;
     // Within that total, not out of it: the reader wants the swing's figure
     // split, not short.
     if (riding_ == Rider::kFinalAttack) {
-      final_attack_damage_by_attack_[attributing_] += damage;
+      tally.final_attack_damage += damage;
     } else if (riding_ == Rider::kBurn) {
-      burn_damage_by_attack_[attributing_] += damage;
+      tally.burn_damage += damage;
     }
   } else {
     own_clock_damage_ += damage;
@@ -2347,8 +2347,8 @@ void CombatSim::LandSwing(const CombatParams& params,
   // Everything this swing lands is the swing's, its side strike and its load
   // included: they ride it rather than happening beside it.
   attributing_ = swung;
-  if (swung >= 0 && swung < static_cast<int>(swings_by_attack_.size())) {
-    ++swings_by_attack_[swung];
+  if (swung >= 0 && swung < static_cast<int>(by_attack_.size())) {
+    ++by_attack_[swung].swings;
   }
   if (attack.heal_fraction > 0.0) {
     player_hp_ =
@@ -2563,10 +2563,7 @@ void CombatSim::GrowForAttacks(const CombatParams& params) {
     attack_clocks_[i].hold_charges = fresh[i].channel.max_charges;
     attack_clocks_[i].charges_left = fresh[i].recharge_max;
   }
-  damage_by_attack_.resize(fresh.size(), 0.0);
-  swings_by_attack_.resize(fresh.size(), 0);
-  final_attack_damage_by_attack_.resize(fresh.size(), 0.0);
-  burn_damage_by_attack_.resize(fresh.size(), 0.0);
+  by_attack_.resize(fresh.size());
 }
 
 void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
