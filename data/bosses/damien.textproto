@@ -1,6 +1,5 @@
 name: "Damien"
 difficulties {
-  # No Hard: GMS's is 6.7x this body, and Normal is already a party fight.
   name: "Normal"
   # He paces the row over the player's heads, a cell at a time, the whole
   # floor theirs.
@@ -62,5 +61,45 @@ difficulties {
   drops {
     item: "damiens_soul_shard"
     per_kill: 1.0
+  }
+}
+difficulties {
+  # Written down, not built: 36T over the same two bodies, which is thirty
+  # times what Normal asks. No clock, gate or reward until the fight is.
+  name: "Hard"
+  coming_soon: true
+  phases {
+    bgm: "Demian Spine"
+    spawns {
+      mob: "hard_damien_phase_1"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    bgm: "Demian True"
+    spawns {
+      mob: "hard_damien_phase_2"
+      spots { x: 4 y: 4 }
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        dash { interval_ms: 30000 cells: 4 step_ms: 120 }
+      }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
   }
 }

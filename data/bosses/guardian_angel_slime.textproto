@@ -1,7 +1,5 @@
 name: "Guardian Angel Slime"
 difficulties {
-  # No Chaos: GMS's is 18x this body, and this one is already past what a
-  # party of the gear this game reaches can bring down.
   name: "Normal"
   # She wanders the row over the player's heads like Damien and Lotus, and
   # every thirty seconds she leaves it: up to the gallery row and back down
@@ -49,5 +47,30 @@ difficulties {
   drops {
     item: "guardian_angel_slimes_soul_shard"
     per_kill: 1.0
+  }
+}
+difficulties {
+  # Written down, not built: 90T, eighteen times what Normal asks, on a body
+  # GMS fights at level 250. No clock, gate or reward until the fight is.
+  name: "Chaos"
+  coming_soon: true
+  phases {
+    bgm: "GuardianSlime-Battle"
+    spawns {
+      mob: "chaos_guardian_angel_slime"
+      spots { x: 4 y: 4 }
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        jump { interval_ms: 30000 y: 2 hang_ms: 660 }
+      }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
   }
 }

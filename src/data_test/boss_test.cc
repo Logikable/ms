@@ -129,18 +129,78 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
                          "pierre", "vellum", "von_bon", "zakum"}));
 }
 
-// Nothing is a shell any more -- Chaos Zakum, Hard Magnus and Chaos Pink Bean
-// were the last three, built 2026-09-11 -- so the lever itself is what is
-// pinned here. A difficulty carrying it is listed, dim and unenterable, and
-// one that also states a clock or a reward is a promise the screen never
-// shows.
-TEST_F(BossDataTest, NoFightIsStillAShell) {
+// The three fights written down and not built: Hard Damien, Hard Lotus and
+// the Chaos Guardian Angel Slime. A shell is listed, dim and unenterable, and
+// states nothing but the HP of each phase -- a clock, a gate or a reward on
+// one is a promise the screen never shows.
+TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
+  std::vector<std::string> shells;
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
-      EXPECT_FALSE(difficulty.coming_soon())
-          << entry.first << " " << difficulty.name();
+      if (!difficulty.coming_soon()) {
+        continue;
+      }
+      std::string where = entry.first + " " + difficulty.name();
+      shells.push_back(where);
+      EXPECT_EQ(difficulty.time_limit_seconds(), 0) << where;
+      EXPECT_EQ(difficulty.reset(), RESET_PERIOD_UNSPECIFIED) << where;
+      EXPECT_EQ(difficulty.unlock_level(), 0) << where;
+      EXPECT_EQ(difficulty.meso(), 0) << where;
+      EXPECT_EQ(difficulty.exp(), 0) << where;
+      EXPECT_EQ(difficulty.drops_size(), 0) << where;
     }
   }
+  EXPECT_EQ(shells,
+            std::vector<std::string>(
+                {"damien Hard", "guardian_angel_slime Chaos", "lotus Hard"}));
+}
+
+// Each shell is its Normal at GMS's own Hard or Chaos numbers, and the rung
+// is the only thing that differs: the same bodies in the same cells, so the
+// fight is built by filling in what is missing rather than laying it out.
+TEST_F(BossDataTest, EveryShellIsItsNormalShapeAtGmsNumbers) {
+  struct Want {
+    std::string boss;
+    std::string name;
+    std::vector<int64_t> hp;
+  };
+  const std::vector<Want> kShells = {
+      {"damien", "Hard", {25200000000000LL, 10800000000000LL}},
+      {"lotus", "Hard", {9985500000000LL, 9985500000000LL, 13314000000000LL}},
+      {"guardian_angel_slime", "Chaos", {90000000000000LL}}};
+  for (const Want& want : kShells) {
+    ASSERT_GT(bosses_.count(want.boss), 0u) << want.boss;
+    ASSERT_EQ(bosses_.at(want.boss).difficulties_size(), 2) << want.boss;
+    const BossDifficulty& normal = bosses_.at(want.boss).difficulties(0);
+    const BossDifficulty& shell = bosses_.at(want.boss).difficulties(1);
+    SCOPED_TRACE(want.boss);
+    EXPECT_EQ(shell.name(), want.name);
+    EXPECT_TRUE(shell.coming_soon());
+    ASSERT_EQ(shell.phases_size(), static_cast<int>(want.hp.size()));
+    ASSERT_EQ(shell.phases_size(), normal.phases_size());
+    for (int i = 0; i < shell.phases_size(); ++i) {
+      const BossPhase& shape = normal.phases(i);
+      const BossPhase& phase = shell.phases(i);
+      SCOPED_TRACE(i);
+      EXPECT_EQ(phase.bgm(), shape.bgm());
+      ASSERT_EQ(phase.spawns_size(), 1);
+      ASSERT_EQ(shape.spawns_size(), 1);
+      EXPECT_EQ(SpawnCount(phase.spawns(0)), 1);
+      EXPECT_EQ(phase.spawns(0).spots(0).x(), shape.spawns(0).spots(0).x());
+      EXPECT_EQ(phase.spawns(0).spots(0).y(), shape.spawns(0).spots(0).y());
+      EXPECT_EQ(phase.spawns(0).walk().SerializeAsString(),
+                shape.spawns(0).walk().SerializeAsString());
+      const Mob& mob = mobs_.at(phase.spawns(0).mob());
+      const Mob& before = mobs_.at(shape.spawns(0).mob());
+      EXPECT_EQ(mob.name(), before.name());
+      EXPECT_EQ(mob.attack(), before.attack());
+      EXPECT_EQ(mob.pdr(), before.pdr());
+      EXPECT_EQ(mob.max_hp(), want.hp[i]);
+    }
+  }
+  // The one body written past the level cap: GMS fights her at 250, and the
+  // card a shell draws does not state a level, so nothing reads it yet.
+  EXPECT_EQ(mobs_.at("chaos_guardian_angel_slime").level(), 250);
 }
 
 // A drop names one catalog or the other, and a name neither holds is granted
@@ -572,7 +632,7 @@ TEST_F(BossDataTest, PrincessNoIsOneBodyOverAClimbableRoom) {
 // numbers are.
 TEST_F(BossDataTest, LotusIsThreeBodiesOnTheLongestClock) {
   ASSERT_GT(bosses_.count("lotus"), 0u);
-  ASSERT_EQ(bosses_.at("lotus").difficulties_size(), 1);
+  ASSERT_EQ(bosses_.at("lotus").difficulties_size(), 2);
   const BossDifficulty& normal = bosses_.at("lotus").difficulties(0);
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
@@ -622,7 +682,7 @@ TEST_F(BossDataTest, LotusIsThreeBodiesOnTheLongestClock) {
 // own but the meso and the clock. Pinned for the reason Zakum's numbers are.
 TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
   ASSERT_GT(bosses_.count("damien"), 0u);
-  ASSERT_EQ(bosses_.at("damien").difficulties_size(), 1);
+  ASSERT_EQ(bosses_.at("damien").difficulties_size(), 2);
   const BossDifficulty& normal = bosses_.at("damien").difficulties(0);
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
@@ -671,7 +731,7 @@ TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
 TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   ASSERT_GT(bosses_.count("guardian_angel_slime"), 0u);
   const Boss& slime = bosses_.at("guardian_angel_slime");
-  ASSERT_EQ(slime.difficulties_size(), 1);
+  ASSERT_EQ(slime.difficulties_size(), 2);
   const BossDifficulty& normal = slime.difficulties(0);
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
@@ -739,7 +799,8 @@ TEST_F(BossDataTest, EveryJumpLandsInsideItsArenaBeforeTheNextIsDue) {
       }
     }
   }
-  EXPECT_EQ(jumps, 1) << "the Guardian Angel Slime is the only one that jumps";
+  EXPECT_EQ(jumps, 2) << "the Guardian Angel Slime, at both her rungs, is the "
+                         "only one that jumps";
 }
 
 // Nothing on the boss screen is cut to fit: a name wider than the grid's name

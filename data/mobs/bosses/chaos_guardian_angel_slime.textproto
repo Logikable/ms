@@ -1,0 +1,10 @@
+# Eighteen times the body Normal opens on, and the only thing in the catalog
+# written past the level cap: GMS fights her at 250.
+name: "Guardian Angel Slime"
+level: 250
+attack: 22000
+max_hp: 90000000000000
+exp: 0
+pdr: 300
+boss: true
+description: "A massive slime found in the lowest depths of the Ramuramu Hot Springs. The Slime God's angels are said to have descended long ago to carry the cutest of slimes to the world beyond, and by every account this is the one their god deemed most adorable of all."

@@ -1,6 +1,6 @@
 name: "Lotus"
 difficulties {
-  # No Easy or Hard: GMS's Hard is 6.3x this body and Easy does not exist.
+  # No Easy: GMS does not have one.
   name: "Normal"
   # He fights out of the machine first, hanging over the middle of the room
   # while the floor under him stays clear.
@@ -83,5 +83,62 @@ difficulties {
   drops {
     item: "lotuss_soul_shard"
     per_kill: 1.0
+  }
+}
+difficulties {
+  # Written down, not built: 33.3T over the same three bodies, which is
+  # twenty-one times what Normal asks. No clock, gate or reward until the
+  # fight is.
+  name: "Hard"
+  coming_soon: true
+  phases {
+    bgm: "Suu1phase"
+    spawns {
+      mob: "hard_lotus_phase_1"
+      spots { x: 4 y: 2 }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    bgm: "Suu2phase"
+    spawns {
+      mob: "hard_lotus_phase_2"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 2 y: 2 }
+    player_spots { x: 4 y: 2 }
+    player_spots { x: 6 y: 2 }
+    arena_width: 9
+    arena_height: 6
+  }
+  phases {
+    bgm: "Suu3phase"
+    spawns {
+      mob: "hard_lotus_phase_3"
+      spots { x: 4 y: 4 }
+      walk { interval_ms: 10000 range: RANGE_ROW_STEP }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    player_spots { x: 2 y: 2 }
+    player_spots { x: 4 y: 2 }
+    player_spots { x: 6 y: 2 }
+    arena_width: 9
+    arena_height: 6
   }
 }
