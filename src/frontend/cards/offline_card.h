@@ -1,11 +1,10 @@
 /* The card a returning player is met with: how long they were away, and what
  * their character earned while the game was closed.
  *
- * A view like the boss clear card beside it -- it holds nothing and decides
- * nothing. See //src/combat:offline for what fills the report.
+ * See //src/combat:offline for what fills the report.
  */
-#ifndef MS_SRC_FRONTEND_PANELS_OFFLINE_POPUP_PANEL_H_
-#define MS_SRC_FRONTEND_PANELS_OFFLINE_POPUP_PANEL_H_
+#ifndef MS_SRC_FRONTEND_CARDS_OFFLINE_CARD_H_
+#define MS_SRC_FRONTEND_CARDS_OFFLINE_CARD_H_
 
 #include <string>
 
@@ -18,8 +17,8 @@ namespace ms {
 // is read is one box. What the absence earned reads first and the loot under a
 // rule of its own: the numbers are the same four every time. `show_honor` is
 // HonorVisible -- the farming pays honor either way.
-ftxui::Element OfflinePopupPanel(const OfflineReport& report,
-                                 ftxui::Element prompt, bool show_honor);
+ftxui::Element OfflineCard(const OfflineReport& report, ftxui::Element prompt,
+                           bool show_honor);
 
 // How long an absence reads as: "3d 4h", "7h 12m", "45m", "38s". The two
 // largest units it has, since nobody coming back after a day cares about the
@@ -28,4 +27,4 @@ std::string FormatAbsence(double seconds);
 
 }  // namespace ms
 
-#endif  // MS_SRC_FRONTEND_PANELS_OFFLINE_POPUP_PANEL_H_
+#endif  // MS_SRC_FRONTEND_CARDS_OFFLINE_CARD_H_

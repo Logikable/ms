@@ -1,4 +1,4 @@
-#include "src/frontend/panels/offline_popup_panel.h"
+#include "src/frontend/cards/offline_card.h"
 
 #include <gtest/gtest.h>
 
@@ -30,7 +30,7 @@ int RuledRowsAfter(const std::string& out, const std::string& needle) {
   return rules;
 }
 
-class OfflinePopupPanelTest : public PanelTest {
+class OfflineCardTest : public PanelTest {
  protected:
   // An hour of farming with something to show for it.
   OfflineReport Report() {
@@ -50,11 +50,11 @@ class OfflinePopupPanelTest : public PanelTest {
 
   std::string Render(const OfflineReport& report, bool show_honor = true) {
     return RenderElement(
-        OfflinePopupPanel(report, ftxui::text("[Continue]"), show_honor));
+        OfflineCard(report, ftxui::text("[Continue]"), show_honor));
   }
 };
 
-TEST_F(OfflinePopupPanelTest, ShowsWhatTheAbsencePaid) {
+TEST_F(OfflineCardTest, ShowsWhatTheAbsencePaid) {
   std::string out = Render(Report());
 
   EXPECT_NE(out.find("Welcome Back"), std::string::npos);
@@ -68,7 +68,7 @@ TEST_F(OfflinePopupPanelTest, ShowsWhatTheAbsencePaid) {
 
 // What the absence earned reads first -- levels, EXP, meso, honor -- and the
 // loot is ruled off under it.
-TEST_F(OfflinePopupPanelTest, ARuleDividesWhatWasEarnedFromTheLoot) {
+TEST_F(OfflineCardTest, ARuleDividesWhatWasEarnedFromTheLoot) {
   OfflineReport report = Report();
   report.rewards.honor = 250;
 
@@ -89,7 +89,7 @@ TEST_F(OfflinePopupPanelTest, ARuleDividesWhatWasEarnedFromTheLoot) {
 
 // Nothing to rule off from: an absence that dropped nothing draws no rule
 // under its numbers.
-TEST_F(OfflinePopupPanelTest, NoLootDrawsNoRule) {
+TEST_F(OfflineCardTest, NoLootDrawsNoRule) {
   OfflineReport bare = Report();
   bare.rewards.items.clear();
 
@@ -99,7 +99,7 @@ TEST_F(OfflinePopupPanelTest, NoLootDrawsNoRule) {
 
 // The farming pays honor whatever the level, but a player who cannot spend it
 // yet is not told about a currency.
-TEST_F(OfflinePopupPanelTest, TheHonorWaitsForInnerAbility) {
+TEST_F(OfflineCardTest, TheHonorWaitsForInnerAbility) {
   OfflineReport report = Report();
   report.rewards.honor = 250;
 
@@ -111,7 +111,7 @@ TEST_F(OfflinePopupPanelTest, TheHonorWaitsForInnerAbility) {
 
 // Counted in units, not stacks, and what the bag could not hold is called out
 // rather than quietly missing from the total.
-TEST_F(OfflinePopupPanelTest, SaysWhatAFullBagLost) {
+TEST_F(OfflineCardTest, SaysWhatAFullBagLost) {
   OfflineReport report = Report();
   report.rewards.items = {{"Green Snail Shell", 10000, 2500}};
 
@@ -124,7 +124,7 @@ TEST_F(OfflinePopupPanelTest, SaysWhatAFullBagLost) {
 // The header is the whole absence; the death line is how far into it the
 // farming got. A card that showed only the shorter of the two would be
 // telling the player they were away less time than they were.
-TEST_F(OfflinePopupPanelTest, SaysHowFarIntoTheAbsenceThePlayerFell) {
+TEST_F(OfflineCardTest, SaysHowFarIntoTheAbsenceThePlayerFell) {
   OfflineReport report = Report();
   report.absence = 28800.0;
   report.seconds = 3600.0;
@@ -138,7 +138,7 @@ TEST_F(OfflinePopupPanelTest, SaysHowFarIntoTheAbsenceThePlayerFell) {
 }
 
 // A player who logged off in town is told that, not shown an empty ledger.
-TEST_F(OfflinePopupPanelTest, SaysWhenNothingWasFarmed) {
+TEST_F(OfflineCardTest, SaysWhenNothingWasFarmed) {
   OfflineReport report;
   report.absence = 3600.0;
 
@@ -148,7 +148,7 @@ TEST_F(OfflinePopupPanelTest, SaysWhenNothingWasFarmed) {
   EXPECT_EQ(out.find("kills on"), std::string::npos);
 }
 
-TEST_F(OfflinePopupPanelTest, ReadsAnAbsenceInItsTwoLargestUnits) {
+TEST_F(OfflineCardTest, ReadsAnAbsenceInItsTwoLargestUnits) {
   EXPECT_EQ(FormatAbsence(38.0), "38s");
   EXPECT_EQ(FormatAbsence(2700.0), "45m");
   EXPECT_EQ(FormatAbsence(25920.0), "7h 12m");

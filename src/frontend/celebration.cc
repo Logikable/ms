@@ -5,9 +5,9 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/honor.h"
 #include "src/character/progression.h"
-#include "src/frontend/panels/advancement_popup_panel.h"
-#include "src/frontend/panels/death_popup_panel.h"
-#include "src/frontend/panels/level_up_popup_panel.h"
+#include "src/frontend/cards/advancement_card.h"
+#include "src/frontend/cards/death_card.h"
+#include "src/frontend/cards/level_up_card.h"
 #include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
 
@@ -123,13 +123,13 @@ bool Celebration::Lights(Panel panel) const {
 
 ftxui::Element Celebration::Render() const {
   if (kind_ == Kind::kDeath) {
-    return DeathPopupPanel();
+    return DeathCard();
   }
   if (kind_ == Kind::kAdvancement) {
-    return AdvancementPopupPanel(from_job_, to_job_, to_stage_);
+    return AdvancementCard(from_job_, to_job_, to_stage_);
   }
-  return LevelUpPopupPanel(from_level_, to_level_, ap_, sp_, hyper_sp_, honor_,
-                           unlocks_);
+  return LevelUpCard(from_level_, to_level_, ap_, sp_, hyper_sp_, honor_,
+                     unlocks_);
 }
 
 }  // namespace ms

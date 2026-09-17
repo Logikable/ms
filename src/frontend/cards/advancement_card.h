@@ -5,8 +5,8 @@
  * reason -- an advancement is the largest thing that happens to a character,
  * and it should be visible from across the room.
  */
-#ifndef MS_SRC_FRONTEND_PANELS_ADVANCEMENT_POPUP_PANEL_H_
-#define MS_SRC_FRONTEND_PANELS_ADVANCEMENT_POPUP_PANEL_H_
+#ifndef MS_SRC_FRONTEND_CARDS_ADVANCEMENT_CARD_H_
+#define MS_SRC_FRONTEND_CARDS_ADVANCEMENT_CARD_H_
 
 #include "ftxui/dom/elements.hpp"
 #include "src/protos/character.pb.h"
@@ -17,8 +17,8 @@ namespace ms {
 // advancement taken -- read top to bottom, so the change is the shape of the
 // card. The same size as the level-up card, which arrives seconds before it.
 // `to_stage` names the 5th, which would otherwise read "Night Lord" twice.
-ftxui::Element AdvancementPopupPanel(Job from_job, Job to_job, int to_stage);
+ftxui::Element AdvancementCard(Job from_job, Job to_job, int to_stage);
 
 }  // namespace ms
 
-#endif  // MS_SRC_FRONTEND_PANELS_ADVANCEMENT_POPUP_PANEL_H_
+#endif  // MS_SRC_FRONTEND_CARDS_ADVANCEMENT_CARD_H_

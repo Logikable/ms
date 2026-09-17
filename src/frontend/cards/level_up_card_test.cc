@@ -1,4 +1,4 @@
-#include "src/frontend/panels/level_up_popup_panel.h"
+#include "src/frontend/cards/level_up_card.h"
 
 #include <gtest/gtest.h>
 
@@ -21,8 +21,7 @@ namespace {
 ftxui::Screen RenderCard(int from, int to, int ap, int sp, int hyper_sp = 0,
                          int64_t honor = 0,
                          const std::vector<std::string>& unlocks = {}) {
-  ftxui::Element card =
-      LevelUpPopupPanel(from, to, ap, sp, hyper_sp, honor, unlocks);
+  ftxui::Element card = LevelUpCard(from, to, ap, sp, hyper_sp, honor, unlocks);
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
   ftxui::Render(screen, card);
   return screen;
@@ -56,20 +55,20 @@ ftxui::Color ColorOf(const ftxui::Screen& screen, const std::string& needle) {
   return ftxui::Color::Default;
 }
 
-TEST(LevelUpPopupPanelTest, ShowsTheLevelClimbedAsAnArrow) {
+TEST(LevelUpCardTest, ShowsTheLevelClimbedAsAnArrow) {
   ftxui::Screen screen = RenderCard(12, 13, 5, 3);
   EXPECT_TRUE(AnyRowHas(screen, "12  →  13"));
 }
 
 // A climb of several levels reports where it started, not just where it
 // stopped: after an idle stretch that is the interesting half.
-TEST(LevelUpPopupPanelTest, ReportsTheWholeClimbNotJustTheLastLevel) {
+TEST(LevelUpCardTest, ReportsTheWholeClimbNotJustTheLastLevel) {
   ftxui::Screen screen = RenderCard(12, 15, 15, 9);
   EXPECT_TRUE(AnyRowHas(screen, "12  →  15"));
   EXPECT_TRUE(AnyRowHas(screen, "+15 AP"));
 }
 
-TEST(LevelUpPopupPanelTest, ShowsApAboveSpAboveHyperSp) {
+TEST(LevelUpCardTest, ShowsApAboveSpAboveHyperSp) {
   ftxui::Screen screen = RenderCard(139, 140, 5, 5, 1);
   int ap_row = RowIndexOf(screen, "+5 AP");
   int sp_row = RowIndexOf(screen, "+5 SP");
@@ -90,7 +89,7 @@ TEST(LevelUpPopupPanelTest, ShowsApAboveSpAboveHyperSp) {
 // standing there at "+0".
 // The honor goes under the points, and only once there is somewhere to spend
 // it: the caller passes zero until Inner Ability has been opened.
-TEST(LevelUpPopupPanelTest, ShowsTheHonorBelowThePoints) {
+TEST(LevelUpCardTest, ShowsTheHonorBelowThePoints) {
   ftxui::Screen screen = RenderCard(160, 161, 5, 0, 0, 1800);
   int ap_row = RowIndexOf(screen, "+5 AP");
   int honor_row = RowIndexOf(screen, "+1,800 Honor");
@@ -100,7 +99,7 @@ TEST(LevelUpPopupPanelTest, ShowsTheHonorBelowThePoints) {
   EXPECT_FALSE(AnyRowHas(RenderCard(20, 21, 5, 3), "Honor"));
 }
 
-TEST(LevelUpPopupPanelTest, LeavesOutSpEntirelyWhenNoneWasEarned) {
+TEST(LevelUpCardTest, LeavesOutSpEntirelyWhenNoneWasEarned) {
   ftxui::Screen screen = RenderCard(4, 5, 5, 0);
   EXPECT_TRUE(AnyRowHas(screen, "+5 AP"));
   EXPECT_FALSE(AnyRowHas(screen, "SP"));
@@ -109,7 +108,7 @@ TEST(LevelUpPopupPanelTest, LeavesOutSpEntirelyWhenNoneWasEarned) {
 // The row goes away, but the space it stood in does not: the card is one shape
 // whatever the level paid, so it is something the player recognises rather than
 // a box that grows and shrinks with the news.
-TEST(LevelUpPopupPanelTest, StandsTheSameHeightWhateverItHasToReport) {
+TEST(LevelUpCardTest, StandsTheSameHeightWhateverItHasToReport) {
   // Border, the level climbed, the rule, three rows of body, border.
   const int kRows = 7;
   EXPECT_EQ(RenderCard(12, 13, 5, 3).dimy(), kRows) << "AP and SP";
@@ -120,7 +119,7 @@ TEST(LevelUpPopupPanelTest, StandsTheSameHeightWhateverItHasToReport) {
 
 // A lone AP row sits in the middle of the three, rather than up against the
 // rule with two blank rows under it.
-TEST(LevelUpPopupPanelTest, CentresALoneGainInTheBody) {
+TEST(LevelUpCardTest, CentresALoneGainInTheBody) {
   ftxui::Screen screen = RenderCard(4, 5, 5, 0);
   int rule_row = RowIndexOf(screen, "├");
   ASSERT_GE(rule_row, 0);
@@ -130,7 +129,7 @@ TEST(LevelUpPopupPanelTest, CentresALoneGainInTheBody) {
 // A pair fills the body from the top, leaving the odd row over at the bottom.
 // Split around the middle instead, they would straddle it unevenly and land
 // somewhere different from where a lone row lands.
-TEST(LevelUpPopupPanelTest, StartsAPairOfGainsAtTheTopOfTheBody) {
+TEST(LevelUpCardTest, StartsAPairOfGainsAtTheTopOfTheBody) {
   ftxui::Screen screen = RenderCard(12, 13, 5, 3);
   int rule_row = RowIndexOf(screen, "├");
   ASSERT_GE(rule_row, 0);
@@ -138,7 +137,7 @@ TEST(LevelUpPopupPanelTest, StartsAPairOfGainsAtTheTopOfTheBody) {
   EXPECT_EQ(RowIndexOf(screen, "+3 SP"), rule_row + 2);
 }
 
-TEST(LevelUpPopupPanelTest, IsTitledAndBorderedInGold) {
+TEST(LevelUpCardTest, IsTitledAndBorderedInGold) {
   ftxui::Screen screen = RenderCard(12, 13, 5, 3);
   EXPECT_TRUE(AnyRowHas(screen, "Level Up"));
   // The top-left corner is border whatever the card holds. Gold is the whole
@@ -149,7 +148,7 @@ TEST(LevelUpPopupPanelTest, IsTitledAndBorderedInGold) {
 
 // A steel-blue rule across a gold card reads as a seam where two things were
 // joined, which is exactly what it would be.
-TEST(LevelUpPopupPanelTest, TheRuleInsideItIsGoldToo) {
+TEST(LevelUpCardTest, TheRuleInsideItIsGoldToo) {
   ftxui::Screen screen = RenderCard(12, 13, 5, 3);
   // Found by its left tee rather than by a run of line: the title row is
   // padded out with the same line character now that the card is wider than
@@ -164,7 +163,7 @@ TEST(LevelUpPopupPanelTest, TheRuleInsideItIsGoldToo) {
 
 // The one line on the card the player has never seen before, so it is the one
 // line drawn gold against the white.
-TEST(LevelUpPopupPanelTest, AnnouncesAnUnlockInGold) {
+TEST(LevelUpCardTest, AnnouncesAnUnlockInGold) {
   ftxui::Screen screen = RenderCard(39, 40, 5, 3, 0, 0, {"Scrolling"});
   EXPECT_TRUE(AnyRowHas(screen, "Unlocked Scrolling!"));
   EXPECT_EQ(ColorOf(screen, "Unlocked"), kYellow);
@@ -173,18 +172,18 @@ TEST(LevelUpPopupPanelTest, AnnouncesAnUnlockInGold) {
 
 // The announcement shares the body with the gains rather than being stacked
 // under it, so the card that opened something is the same size as every other.
-TEST(LevelUpPopupPanelTest, AnUnlockDoesNotGrowTheCard) {
+TEST(LevelUpCardTest, AnUnlockDoesNotGrowTheCard) {
   EXPECT_EQ(RenderCard(39, 40, 5, 3, 0, 0, {"Scrolling"}).dimy(),
             RenderCard(39, 40, 5, 3).dimy());
 }
 
-TEST(LevelUpPopupPanelTest, AnnouncesUnlocksBelowTheGains) {
+TEST(LevelUpCardTest, AnnouncesUnlocksBelowTheGains) {
   ftxui::Screen screen = RenderCard(39, 40, 5, 3, 0, 0, {"Scrolling"});
   EXPECT_GT(RowIndexOf(screen, "Unlocked"), RowIndexOf(screen, "+3 SP"));
 }
 
 // Every other level, which is nearly all of them.
-TEST(LevelUpPopupPanelTest, SaysNothingWhenALevelOpenedNothing) {
+TEST(LevelUpCardTest, SaysNothingWhenALevelOpenedNothing) {
   EXPECT_FALSE(AnyRowHas(RenderCard(12, 13, 5, 3), "Unlocked"));
 }
 
@@ -194,13 +193,13 @@ TEST(LevelUpPopupPanelTest, SaysNothingWhenALevelOpenedNothing) {
 // more, which is not enough of a card to catch someone looking at a different
 // window. Tui::RenderFrame centres it, and centring shrinks to content, so the
 // floor has to come from the card itself.
-TEST(LevelUpPopupPanelTest, IsWiderThanTheLineInsideItNeeds) {
+TEST(LevelUpCardTest, IsWiderThanTheLineInsideItNeeds) {
   EXPECT_EQ(RenderCard(12, 13, 5, 3).dimx(), kCelebrationContentWidth + 2);
 }
 
 // One width rather than a fixed padding either side of the numbers, so the card
 // does not breathe in and out between two levels that land back to back.
-TEST(LevelUpPopupPanelTest, HoldsOneWidthAsALevelCountGrowsADigit) {
+TEST(LevelUpCardTest, HoldsOneWidthAsALevelCountGrowsADigit) {
   EXPECT_EQ(RenderCard(9, 10, 5, 3).dimx(), RenderCard(99, 100, 5, 3).dimx());
 }
 

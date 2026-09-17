@@ -25,6 +25,7 @@
 #include "src/character/progression.h"
 #include "src/combat/boss_timing.h"
 #include "src/combat/combat.h"
+#include "src/frontend/cards/offline_card.h"
 #include "src/frontend/keybinds.h"
 #include "src/frontend/main_layout.h"
 #include "src/frontend/panels/character_panel.h"
@@ -32,7 +33,6 @@
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/hotkeys_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
-#include "src/frontend/panels/offline_popup_panel.h"
 #include "src/frontend/screens/boss_clear_panel.h"
 #include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
@@ -847,10 +847,10 @@ ftxui::Element Tui::RenderScreen() {
     case kQuit:
       return OverMain(QuitDialog());
     case kOffline:
-      return OverMain(OfflinePopupPanel(
-          controller_.offline_report(), controller_.offline_prompt().Render(),
-          HonorVisible(state_.character.proto().level(),
-                       state_.account.max_level())));
+      return OverMain(OfflineCard(controller_.offline_report(),
+                                  controller_.offline_prompt().Render(),
+                                  HonorVisible(state_.character.proto().level(),
+                                               state_.account.max_level())));
     case kSell:
       return OverMain(sell_panel_.Render());
     case kSellEquip:

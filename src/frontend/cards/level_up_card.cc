@@ -1,4 +1,4 @@
-#include "src/frontend/panels/level_up_popup_panel.h"
+#include "src/frontend/cards/level_up_card.h"
 
 #include <cstdint>
 #include <string>
@@ -31,9 +31,9 @@ ftxui::Element GainRow(int64_t amount, const std::string& label) {
 
 }  // namespace
 
-ftxui::Element LevelUpPopupPanel(int from_level, int to_level, int ap, int sp,
-                                 int hyper_sp, int64_t honor,
-                                 const std::vector<std::string>& unlocks) {
+ftxui::Element LevelUpCard(int from_level, int to_level, int ap, int sp,
+                           int hyper_sp, int64_t honor,
+                           const std::vector<std::string>& unlocks) {
   // AP above SP, in the order the character panel spends them, the Hyper SP
   // under the SP it is not a stage of, and the honor last: it is the one gain
   // here that is not spent on this card's own screen.

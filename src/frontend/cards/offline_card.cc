@@ -1,4 +1,4 @@
-#include "src/frontend/panels/offline_popup_panel.h"
+#include "src/frontend/cards/offline_card.h"
 
 #include <cmath>
 #include <string>
@@ -49,8 +49,8 @@ std::string FormatAbsence(double seconds) {
   return std::to_string(whole % 60) + "s";
 }
 
-ftxui::Element OfflinePopupPanel(const OfflineReport& report,
-                                 ftxui::Element prompt, bool show_honor) {
+ftxui::Element OfflineCard(const OfflineReport& report, ftxui::Element prompt,
+                           bool show_honor) {
   std::vector<ftxui::Element> rows;
   rows.push_back(CenteredRow("Away for " + FormatAbsence(report.absence)));
   rows.push_back(AccentSeparator(kTheme));

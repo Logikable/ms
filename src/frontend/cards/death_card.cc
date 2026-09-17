@@ -1,4 +1,4 @@
-#include "src/frontend/panels/death_popup_panel.h"
+#include "src/frontend/cards/death_card.h"
 
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/chrome.h"
@@ -6,7 +6,7 @@
 
 namespace ms {
 
-ftxui::Element DeathPopupPanel() {
+ftxui::Element DeathCard() {
   // Five rows inside the border and the same width floor as the other two
   // cards, so all three are one shape the player learns rather than three
   // boxes that each have to be read afresh. Only the colour tells them apart,
