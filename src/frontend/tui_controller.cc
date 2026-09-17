@@ -1648,11 +1648,16 @@ bool TuiController::OnPartyInspectEvent(ftxui::Event event) {
 
 bool TuiController::OnPartyAllStatsEvent(ftxui::Event event) {
   // Left/Right belong to the member's Farm/Boss row, and only while they have
-  // one; the panel says so. Everything else closes the screen.
+  // one; the panel says so.
   if (party_inspect_panel_.OnAllStatsEvent(event)) {
     return true;
   }
-  screen_ = kPartyInspect;
+  // Only a key that MEANS leaving closes it. Anything else is swallowed --
+  // the ticker's redraw arrives as an event too, and a screen that closed on
+  // whatever it did not recognise was gone by the next frame.
+  if (IsBack(event) || IsForward(event)) {
+    screen_ = kPartyInspect;
+  }
   return true;
 }
 

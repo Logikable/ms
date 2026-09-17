@@ -520,6 +520,13 @@ TEST_F(PartyControllerTest, TheInspectScreenRaisesTheMembersOwnCards) {
   guest->controller->OnEvent(ftxui::Event::ArrowDown);
   guest->controller->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(guest->controller->screen(), kPartyAllStats);
+  // It stays there through the frames that follow. The ticker's redraw is an
+  // event like any other, and a screen closing on anything it did not
+  // recognise was gone before the player had read it.
+  guest->controller->OnEvent(ftxui::Event::Custom);
+  guest->Tick();
+  ASSERT_EQ(guest->controller->screen(), kPartyAllStats)
+      << "a repaint closed the screen";
   guest->controller->OnEvent(ftxui::Event::Escape);
   ASSERT_EQ(guest->controller->screen(), kPartyInspect);
 
