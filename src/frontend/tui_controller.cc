@@ -79,6 +79,20 @@ TuiController::TuiController(GameState& state, Screens screens,
       buy_panel_(screens.buy_panel),
       panel_focus_(panel_focus),
       multiplayer_(multiplayer) {
+  // The Inspect screen's own panels answer Enter with these. Wired here
+  // rather than by whoever built the screens: every one of them is a screen
+  // this controller opens.
+  PartyInspectActions party_actions;
+  party_actions.item = [this]() { OpenPartyItemInspect(); };
+  party_actions.skill = [this](const Skill& skill) {
+    OpenPartySkillInspect(skill);
+  };
+  party_actions.hyper_stat = [this](HyperStatField field) {
+    OpenPartyHyperStatInspect(field);
+  };
+  party_actions.all_stats = [this]() { OpenPartyAllStats(); };
+  party_inspect_panel_.UseActions(std::move(party_actions));
+
   if (multiplayer_ != nullptr) {
     party_fight_ =
         std::make_unique<PartyFightAuthority>(multiplayer_->client());
@@ -149,19 +163,26 @@ void TuiController::OpenSkillMenu(const Skill& skill) {
 
 void TuiController::OpenSkillInspect(const Skill& skill) {
   skill_inspect_ = skill;
+  card_from_party_ = false;
   skill_inspect_panel_.ResetScroll();
   screen_ = kSkillInspect;
+}
+
+// Whoever the open card is about: the player, or the party member behind the
+// Inspect screen.
+const CharacterInstance& TuiController::card_character() const {
+  return card_from_party_ ? party_inspect_panel_.character() : state_.character;
 }
 
 // Read LIVE rather than captured, so a point spent and then inspected again
 // shows the level it is at. The learned level: what the card makes of the lent
 // ones is its own business.
 int TuiController::skill_inspect_level() const {
-  return state_.character.skill_level(skill_inspect_);
+  return card_character().skill_level(skill_inspect_);
 }
 
 int TuiController::skill_inspect_bonus() const {
-  return BonusSkillLevels(state_.character, state_.skills);
+  return BonusSkillLevels(card_character(), state_.skills);
 }
 
 void TuiController::OpenAllStats() {
@@ -180,15 +201,16 @@ void TuiController::OpenHyperStatInspect(HyperStatField field,
                                          StatPreset preset) {
   hyper_field_ = field;
   hyper_preset_ = preset;
+  card_from_party_ = false;
   screen_ = kHyperStatInspect;
 }
 
 int TuiController::hyper_inspect_level() const {
-  return state_.character.hyper_stat_level(hyper_field_, hyper_preset_);
+  return card_character().hyper_stat_level(hyper_field_, hyper_preset_);
 }
 
 int TuiController::hyper_inspect_max_level() const {
-  return state_.character.max_hyper_stat_level();
+  return card_character().max_hyper_stat_level();
 }
 
 void TuiController::OpenHyperReset(StatPreset preset) {
@@ -593,6 +615,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnPartyInspectEvent(event);
     case kPartyItemInspect:
       return OnPartyItemInspectEvent(event);
+    case kPartyAllStats:
+      return OnPartyAllStatsEvent(event);
     case kPartyConfirm:
       return OnPartyConfirmEvent(event);
     case kBossSelect:
@@ -939,7 +963,9 @@ bool TuiController::OnSkillInspectEvent(ftxui::Event event) {
     }
   }
   if (IsBack(event) || IsForward(event)) {
-    screen_ = kMain;
+    // Back onto whichever screen raised the card: the player's own panels, or
+    // the Inspect screen, which raises the same two over a member's numbers.
+    screen_ = card_from_party_ ? kPartyInspect : kMain;
   }
   return true;
 }
@@ -1574,32 +1600,59 @@ void TuiController::OpenPartyInspect(const std::string& account_id) {
   screen_ = kPartyInspect;
 }
 
+void TuiController::OpenPartySkillInspect(const Skill& skill) {
+  skill_inspect_ = skill;
+  card_from_party_ = true;
+  skill_inspect_panel_.ResetScroll();
+  screen_ = kSkillInspect;
+}
+
+void TuiController::OpenPartyHyperStatInspect(HyperStatField field) {
+  hyper_field_ = field;
+  // The allocation their Character panel is reading, so the card and the row
+  // behind it never state different levels.
+  hyper_preset_ = party_inspect_panel_.preset() == Activity::kBossing
+                      ? StatPreset::kSecond
+                      : StatPreset::kFirst;
+  card_from_party_ = true;
+  screen_ = kHyperStatInspect;
+}
+
+void TuiController::OpenPartyAllStats() {
+  party_inspect_panel_.SyncAllStats();
+  screen_ = kPartyAllStats;
+}
+
+void TuiController::OpenPartyItemInspect() {
+  // The card reads the item off the panel's cursor, so there is no pointer
+  // held across a tick that may rebuild the member.
+  if (party_inspect_panel_.selected_item() != nullptr) {
+    screen_ = kPartyItemInspect;
+  }
+}
+
 bool TuiController::OnPartyInspectEvent(ftxui::Event event) {
-  // Left/Right belong to the member's Farm/Boss row, and only while they have
-  // one; the panel says so.
-  if (party_inspect_panel_.OnEvent(event)) {
-    return true;
-  }
-  if (event == ftxui::Event::ArrowUp) {
-    party_inspect_panel_.MoveCursor(-1);
-    return true;
-  }
-  if (event == ftxui::Event::ArrowDown) {
-    party_inspect_panel_.MoveCursor(1);
-    return true;
-  }
-  if (IsForward(event)) {
-    // The card reads the item off the panel's cursor, so there is no pointer
-    // held across a tick that may rebuild the member.
-    if (party_inspect_panel_.selected_item() != nullptr) {
-      screen_ = kPartyItemInspect;
-    }
-    return true;
-  }
   if (IsBack(event)) {
+    // An expanded panel is the whole screen, so Escape closes that first --
+    // the same key [Close] is, one view at a time.
+    if (party_inspect_panel_.expanded()) {
+      party_inspect_panel_.CloseExpanded();
+      return true;
+    }
     screen_ = kPartySelect;
     return true;
   }
+  party_inspect_panel_.OnEvent(event);
+  return true;
+}
+
+bool TuiController::OnPartyAllStatsEvent(ftxui::Event event) {
+  // Left/Right belong to the member's Farm/Boss row, and only while they have
+  // one; the panel says so. Everything else closes the screen.
+  if (party_inspect_panel_.OnAllStatsEvent(event)) {
+    return true;
+  }
+  screen_ = kPartyInspect;
   return true;
 }
 

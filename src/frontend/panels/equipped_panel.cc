@@ -519,7 +519,10 @@ bool EquippedPanel::OnListEvent(const ftxui::Event& event,
     MoveCursor(up ? -1 : 1);
     return true;
   }
-  if (event == ftxui::Event::Character(' ')) {
+  // Enter and Space both, taken here rather than left to the Menu's own
+  // on_enter: the Menu answers only once a render has filled its entries, and
+  // a key can arrive before the first frame.
+  if (IsForward(event) || event == ftxui::Event::Character(' ')) {
     if (count > 0) {
       on_enter();
     }
@@ -531,7 +534,6 @@ bool EquippedPanel::OnListEvent(const ftxui::Event& event,
 ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter,
                                               std::function<void()> on_expand) {
   ftxui::MenuOption opt;
-  opt.on_enter = [on_enter]() { on_enter(); };
   // Also suppresses the default inversion, so the caret looks the same whether
   // or not the item menu is open.
   opt.entries_option.transform = [this](ftxui::EntryState state) {

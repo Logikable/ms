@@ -1,128 +1,135 @@
 /* PartyInspectPanel reads a party member: the sheet they sent, drawn the way
  * they see it themselves.
  *
- * Two windows, one over the other. The top is the All Stats screen itself, so
- * the numbers a member is shown and the numbers they see cannot come from two
- * places. The bottom is what they are wearing, with a cursor the player walks;
- * Enter on a row opens the item's card on a screen of its own.
+ * Their main screen, less everything that is not about them: their Character
+ * panel on the left, what they are wearing on the right, their exp bar across
+ * the foot. Both are the PLAYER'S OWN panels in read-only -- see
+ * CharacterPanel::SetReadOnly -- so the numbers a member is shown and the
+ * numbers they see cannot come from two places. The columns split the way the
+ * main screen's do, by ComputeMainWidths.
  *
- * A member with Hyper Stats carries the same Farm/Boss row their own screen
- * does, and Left/Right read between their two allocations.
+ * Tab moves between the two panels and everything else belongs to whichever
+ * has it. Enter reaches the cards the player's own panels reach: a worn item's,
+ * a skill's, a Hyper Stat's, and the member's All Stats screen.
  *
  * The panel rebuilds the member's character from their sheet against this
  * build's own catalogs -- a sheet names its items rather than describing them.
- * It is a view: the controller reads the cursor and decides what to open.
+ * A DIFFERENT member builds both panels again, so a screen is never half one
+ * person and half another.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_PARTY_INSPECT_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_PARTY_INSPECT_PANEL_H_
 
-#include <string>
+#include <functional>
+#include <memory>
 
+#include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
+#include "src/character/hyper_stats.h"
+#include "src/frontend/panels/character_panel.h"
+#include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/screens/all_stats_panel.h"
-#include "src/frontend/widgets/item_columns.h"
-#include "src/frontend/widgets/marquee.h"
+#include "src/frontend/types.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/multiplayer.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
+// What Enter opens from the Inspect screen. Each is a screen of its own, the
+// way it is from the player's own panels -- nothing here changes anything.
+struct PartyInspectActions {
+  // A worn item's card.
+  std::function<void()> item;
+  // The member's skill card and Hyper Stat card, from the panel's Skills and
+  // Hyper tabs.
+  std::function<void(const Skill&)> skill;
+  std::function<void(HyperStatField)> hyper_stat;
+  // The View All Stats row, which opens the member's own All Stats screen --
+  // RenderAllStats below.
+  std::function<void()> all_stats;
+};
+
 class PartyInspectPanel {
  public:
-  // The Equipped row is the widest thing on the screen, so it sets the width
-  // of the screen; the stat window keeps its own and is centred over it. This
-  // is the width with nothing said about the terminal -- see SetMaxColumns.
-  static constexpr int kContentWidth = 82;
-  // How many worn items show at once when nobody has said how tall the screen
-  // is. With a height to work from the list takes what the sheet leaves --
-  // see VisibleRows -- and this is only the fallback.
-  static constexpr int kListRows = 8;
-  // The rows everything but the item list takes: both borders, three heading
-  // rows, two rules, three rows of main stats, nine of extras, and the Equipped
-  // header with its rule. Hyper Stats add a row and a rule -- see FixedRows.
-  static constexpr int kFixedRows = 23;
-  // The shortest the item list is ever squeezed to. Past this the screen is
-  // clipped instead: a list of one row says less than the terminal is small.
-  static constexpr int kLeastListRows = 3;
-
   explicit PartyInspectPanel(GameState& state);
+
+  // What Enter reaches. Call once, before the screen is first opened; the
+  // panels are rebuilt with these whenever a new member arrives.
+  void UseActions(PartyInspectActions actions);
 
   // Points the panel at a party member; an item this build does not have is
   // dropped, as a save loaded against changed catalogs is. Called every tick,
-  // so a member levelling under the reader shows it, but an unchanged player
-  // is not rebuilt and the cursor only resets on a different member.
+  // so a member levelling under the reader shows it, and an unchanged player
+  // is not rebuilt.
   void SetPlayer(const PlayerInfo& player);
-  // Puts the cursor on the first worn item. Call when the screen opens.
+  // Back to a screen nobody has touched: both panels new, the cursor on the
+  // Equipped list. Called when the screen opens on somebody else.
   void Reset();
-  // Moves the cursor `delta` items, coming out the other end.
-  void MoveCursor(int delta);
-  // Left/Right on the member's Farm/Boss row, so their two Hyper Stat
-  // allocations can be read the way they read them themselves. Returns
-  // whether the event was taken; the caller keeps everything else.
+
+  // Tab moves between the panels; everything else goes to the focused one.
+  // Returns whether the event was taken. Escape is the caller's: only they
+  // know what is behind this screen.
   bool OnEvent(const ftxui::Event& event);
-  // The rows the screen may take. The item list gives way to what is left
-  // after the two stat blocks, which are the point of the screen. Zero means
-  // no limit.
-  void SetMaxRows(int rows) {
-    max_rows_ = rows;
+  // The screen at the terminal's size, borders and exp bar included.
+  ftxui::Element Render(int rows, int columns);
+
+  // Whether the Equipped panel is drawn over the whole screen. Escape closes
+  // that before it closes the screen, as it does on the main view.
+  bool expanded() const {
+    return expanded_;
   }
-  // The columns the screen may take. What is left over goes to the name
-  // column, which stops at the longest name the game ships -- so a wide
-  // terminal widens the window only until the list has what it wants. Zero
-  // means kContentWidth, the width the screen keeps when nobody has said.
-  void SetMaxColumns(int columns) {
-    max_columns_ = columns;
+  void CloseExpanded() {
+    expanded_ = false;
   }
-  ftxui::Element Render() const;
+
+  // The member's All Stats screen. SyncAllStats first, so it opens on the
+  // allocation their Character panel is reading.
+  void SyncAllStats();
+  ftxui::Element RenderAllStats() const;
+  bool OnAllStatsEvent(const ftxui::Event& event);
 
   // The member as this build reads them, for whoever needs their stats.
   const CharacterInstance& character() const {
     return character_;
   }
-  // The item the cursor is on, or null with nothing worn.
+  // The item the cursor is on, or null with nothing worn or the cursor on a
+  // bar.
   const EquipInstance* selected_item() const;
-  // Which of the member's two Hyper Stat allocations is being read.
-  Activity preset() const {
-    return stats_.preset();
-  }
+  // Which of the member's two allocations is being read.
+  Activity preset() const;
 
  private:
-  ftxui::Element RenderEquipped() const;
-  // The columns the member's gear is listed in, gated on the reader's own
-  // unlocks.
-  ItemColumns Columns() const;
-  // The content columns the list is fitted to, borders excluded.
-  int ContentWidth() const;
-  // How many item rows to draw at once, for the terminal and the list there
-  // are to fit.
-  int VisibleRows(int items) const;
-  // How many items are worn, which is how many stops the cursor has.
-  int ItemCount() const;
-  // kFixedRows, plus the Farm/Boss row and its rule when the member is high
-  // enough to have one.
-  int FixedRows() const;
+  // Builds both panels and their components over character_. Called again for
+  // a new member: the panels hold a cursor and an open tab, and neither
+  // belongs to anybody but the member it was opened on.
+  void BuildPanels();
 
   GameState& state_;
   // The member, rebuilt from their sheet. Held rather than rebuilt per frame:
-  // a sheet arrives when something about them changes, not every tick.
+  // a sheet arrives when something about them changes, not every tick. The
+  // panels hold a reference to it, so it outlives them by declaration order.
   CharacterInstance character_;
-  // The member's sheet, drawn by the screen they read their own stats on.
-  // Held rather than built per frame so the Farm/Boss row it carries keeps
-  // the tab the reader put it on.
-  AllStatsPanel stats_;
   // The member as the lobby last described them, so a tick that changed
   // nothing does not rebuild them.
   PlayerInfo shown_;
-  int cursor_ = 0;
-  // See SetMaxRows. Zero is "as many as it takes".
-  int max_rows_ = 0;
-  // See SetMaxColumns. Zero is "the width the screen has always kept".
-  int max_columns_ = 0;
-  // When the cursor last moved, for sliding a long name under its column.
-  SelectionClock name_clock_;
+  PartyInspectActions actions_;
+  // Which panel has the cursor, in the main screen's own terms -- the panels
+  // read it. This screen's alone: walking it must not move the cursor on the
+  // main view behind it.
+  int focus_ = kEquipPanel;
+  bool expanded_ = false;
+  // Rebuilt per member, so they are held by pointer; the components capture
+  // references into them and are replaced together.
+  std::unique_ptr<CharacterPanel> char_panel_;
+  std::unique_ptr<EquippedPanel> equip_panel_;
+  ftxui::Component char_component_;
+  ftxui::Component equip_component_;
+  // The member's own All Stats screen, over the same character.
+  AllStatsPanel stats_;
 };
 
 }  // namespace ms

@@ -139,6 +139,14 @@ class TuiController {
   void OpenSkillInspect(const Skill& skill);
   // Every stat the character has, on a screen of its own.
   void OpenAllStats();
+
+  // The four screens the Inspect panel raises. They are the player's own
+  // cards over somebody else's numbers, so they read from the member being
+  // inspected and close back onto the screen that raised them.
+  void OpenPartySkillInspect(const Skill& skill);
+  void OpenPartyHyperStatInspect(HyperStatField field);
+  void OpenPartyAllStats();
+  void OpenPartyItemInspect();
   // Spends a point on `field` and gives the last one back. No dialog on
   // either: the row's [-] is the way out of a [+].
   void RaiseHyperStat(HyperStatField field, StatPreset preset);
@@ -529,6 +537,10 @@ class TuiController {
   bool OnPartySelectEvent(ftxui::Event event);
   bool OnPartyMenuEvent(ftxui::Event event);
   bool OnPartyInspectEvent(ftxui::Event event);
+  bool OnPartyAllStatsEvent(ftxui::Event event);
+  // Whoever the open skill or Hyper Stat card is about -- see
+  // card_from_party_.
+  const CharacterInstance& card_character() const;
   bool OnPartyItemInspectEvent(ftxui::Event event);
   bool OnPartyConfirmEvent(ftxui::Event event);
   // Opens the inspect screen on the member playing under `account_id`. Does
@@ -640,6 +652,10 @@ class TuiController {
   // The member the inspect screen is reading, so the lobby's next word about
   // them lands on it.
   std::string party_inspect_account_;
+  // Whether the open skill or Hyper Stat card is reading a party member
+  // rather than the player. The card is the same either way; whose levels it
+  // states is not, and neither is the screen it closes onto.
+  bool card_from_party_ = false;
   JobInspectPanel& job_inspect_panel_;
   SkillInspectPanel& skill_inspect_panel_;
   BuffInfoPanel& buff_info_panel_;

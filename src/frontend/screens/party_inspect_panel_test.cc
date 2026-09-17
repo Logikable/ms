@@ -11,8 +11,11 @@
 #include "ftxui/component/event.hpp"
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
+#include "src/character/skill_placement.h"
+#include "src/frontend/main_layout.h"
 #include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/testing/panel_test_base.h"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/stat_rows.h"
 #include "src/item/equip_instance.h"
@@ -82,9 +85,18 @@ std::vector<EquipPrototype> FullGear() {
           Armour("Iron Earrings", EQUIP_SLOT_EARRINGS)};
 }
 
+// One skill in the book the members these tests build end up in.
+std::map<std::string, Skill> SkillCatalog() {
+  Skill strike;
+  strike.set_name("Power Strike");
+  PlaceIn(strike, JOB_ADVANCEMENT_SWORDMAN);
+  strike.set_max_level(20);
+  return {{"power_strike", strike}};
+}
+
 class PartyInspectPanelTest : public PanelTest {
  protected:
-  PartyInspectPanelTest() : state_(Catalog(), {}, {}, {}, {}) {
+  PartyInspectPanelTest() : state_(Catalog(), {}, {}, {}, {}, SkillCatalog()) {
   }
 
   // Every item these tests wear, by the key a catalog holds them under.
@@ -148,44 +160,57 @@ class PartyInspectPanelTest : public PanelTest {
     return player;
   }
 
-  // The whole screen, which is taller than the shared fixture's 20 rows.
-  // Wrapped in fillers the way Tui puts a standalone screen up, so the panel
-  // keeps the width and height it asks for instead of being stretched to the
-  // terminal's.
-  static ftxui::Screen Draw(const PartyInspectPanel& panel, int rows = 40) {
-    ftxui::Screen screen =
-        ftxui::Screen::Create(ftxui::Dimension::Fixed(kTestScreenWidth),
-                              ftxui::Dimension::Fixed(rows));
-    ftxui::Render(screen, ftxui::hbox({
-                              ftxui::filler(),
-                              ftxui::vbox({panel.Render(), ftxui::filler()}),
-                              ftxui::filler(),
-                          }));
+  // The screen at the terminal's size, the way Tui draws it: this one takes
+  // the whole thing rather than standing in the middle of it.
+  static ftxui::Screen Draw(PartyInspectPanel& panel, int rows = 40,
+                            int columns = kTestScreenWidth) {
+    ftxui::Screen screen = ftxui::Screen::Create(
+        ftxui::Dimension::Fixed(columns), ftxui::Dimension::Fixed(rows));
+    ftxui::Render(screen, panel.Render(rows, columns));
     return screen;
   }
 
-  static std::string Screen(const PartyInspectPanel& panel) {
-    return Draw(panel).ToString();
+  static std::string Screen(PartyInspectPanel& panel) {
+    return ScreenText(Draw(panel));
   }
 
-  // How many rows the screen actually takes, drawn with room to spare.
-  static int Height(const PartyInspectPanel& panel) {
-    ftxui::Screen screen = Draw(panel, /*rows=*/60);
-    int rows = 0;
+  // The rows a panel's window covers, found by the column its left border
+  // stands in -- every row of that column is border, corners included.
+  // {-1, -1} when nothing is drawn there at all.
+  static std::pair<int, int> PanelRows(const ftxui::Screen& screen, int x) {
+    std::pair<int, int> span = {-1, -1};
     for (int y = 0; y < screen.dimy(); ++y) {
-      if (RowSpan(screen, y).first >= 0) {
-        rows = y + 1;
+      const std::string& glyph = screen.PixelAt(x, y).character;
+      if (glyph.empty() || glyph == " ") {
+        continue;
       }
+      if (span.first < 0) {
+        span.first = y;
+      }
+      span.second = y;
     }
-    return rows;
+    return span;
+  }
+
+  // Sends a key the way the game does: after a frame. The Equipped list is an
+  // ftxui::Menu, whose entries are filled by the render, and a key that
+  // arrives before the first one finds it empty.
+  static bool Send(PartyInspectPanel& panel, const ftxui::Event& event) {
+    Draw(panel);
+    return panel.OnEvent(event);
+  }
+
+  // Walks the cursor onto the member's Character panel.
+  static void FocusCharacterPanel(PartyInspectPanel& panel) {
+    Send(panel, ftxui::Event::Tab);
   }
 
   GameState state_;
 };
 
 // The sheet arrives naming its items; the panel resolves them against this
-// build's catalogs, and what it draws is the member as they see themselves.
-TEST_F(PartyInspectPanelTest, DrawsTheMemberFromTheirSheet) {
+// build's catalogs, and what it draws is the member's own main screen.
+TEST_F(PartyInspectPanelTest, DrawsTheMembersOwnScreen) {
   int theirs = 0;
   PartyInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", {Sword(), Hat()}, &theirs));
@@ -193,8 +218,13 @@ TEST_F(PartyInspectPanelTest, DrawsTheMemberFromTheirSheet) {
   std::string screen = Screen(panel);
   EXPECT_NE(screen.find("Bree"), std::string::npos);
   EXPECT_NE(screen.find("Combat Power"), std::string::npos);
+  EXPECT_NE(screen.find("Character"), std::string::npos) << "no left panel";
+  EXPECT_NE(screen.find("Equipped"), std::string::npos) << "no right panel";
   EXPECT_NE(screen.find("Iron Sword"), std::string::npos);
   EXPECT_NE(screen.find("Iron Hat"), std::string::npos);
+  // Nothing of the reader's own view comes with them.
+  EXPECT_EQ(screen.find("Inventory"), std::string::npos);
+  EXPECT_EQ(screen.find("Mobs"), std::string::npos);
   // Rebuilt whole, not from the four figures a member's row carries: the
   // number here is the one they read on their own screen.
   EXPECT_GT(panel.character().proto().level(), 1);
@@ -202,97 +232,125 @@ TEST_F(PartyInspectPanelTest, DrawsTheMemberFromTheirSheet) {
   EXPECT_EQ(CharacterCombatPower(panel.character(), state_.skills), theirs);
 }
 
-// The stat window is the width it is everywhere else in the game, not the
-// width of the item list under it, and it sits centred over that list.
-TEST_F(PartyInspectPanelTest, TheStatWindowKeepsItsOwnWidth) {
+// Nothing here spends, so nothing here has a button -- and a member's name is
+// not the reader's to take.
+TEST_F(PartyInspectPanelTest, BothPanelsAreReadOnly) {
   PartyInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
+  EXPECT_EQ(Screen(panel).find("[+]"), std::string::npos);
 
-  ftxui::Screen screen = Draw(panel);
-  std::pair<int, int> stats = RowSpan(screen, 0);
-  EXPECT_EQ(stats.second - stats.first + 1, AllStatsPanel::kTotalWidth);
-
-  // The widest row on the screen is the item list's border, two columns out
-  // from the width its rows are held to.
-  std::pair<int, int> worn = {screen.dimx(), -1};
-  for (int y = 1; y < screen.dimy(); ++y) {
-    std::pair<int, int> row = RowSpan(screen, y);
-    if (row.first < 0) {
-      continue;
-    }
-    worn.first = std::min(worn.first, row.first);
-    worn.second = std::max(worn.second, row.second);
-  }
-  EXPECT_EQ(worn.second - worn.first + 1, PartyInspectPanel::kContentWidth + 2);
-  EXPECT_EQ(stats.first - worn.first, worn.second - stats.second);
+  FocusCharacterPanel(panel);
+  Send(panel, ftxui::Event::ArrowUp);  // -> the name row
+  Send(panel, ftxui::Event::Return);
+  EXPECT_NE(Screen(panel).find("Bree"), std::string::npos);
 }
 
-// A wide terminal goes into the name column, and stops there: past the longest
-// name the game ships the window has everything it wants.
-TEST_F(PartyInspectPanelTest, TheWindowWidensWithTheTerminalAndThenStops) {
-  // The reader's own unlocks are what say how many columns there are, and a
-  // list of two never wanted more room than it had.
-  while (state_.character.proto().level() < UnlockLevel(Feature::kPotential)) {
-    state_.character.LevelUp();
-  }
+// The columns split the way the main screen's do, and both panels run down to
+// the exp bar rather than stopping where their contents do.
+TEST_F(PartyInspectPanelTest, TheColumnsAreTheMainScreensAndReachTheFoot) {
   PartyInspectPanel panel(state_);
-  panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
+  panel.SetPlayer(Member("Bree", FullGear()));
+  constexpr int kRows = 40;
+  ftxui::Screen screen = Draw(panel, kRows);
 
-  auto width = [](const ftxui::Screen& screen) {
-    std::pair<int, int> span = {screen.dimx(), -1};
-    for (int y = 0; y < screen.dimy(); ++y) {
-      std::pair<int, int> row = RowSpan(screen, y);
-      if (row.first >= 0) {
-        span.first = std::min(span.first, row.first);
-        span.second = std::max(span.second, row.second);
-      }
-    }
-    return span.second - span.first + 1;
-  };
-
-  int narrow = width(Draw(panel));
-  panel.SetMaxColumns(kTestScreenWidth);
-  int wide = width(Draw(panel));
-  EXPECT_GT(wide, narrow) << "the room the terminal had went nowhere";
-
-  panel.SetMaxColumns(kTestScreenWidth * 4);
-  EXPECT_EQ(width(Draw(panel)), wide) << "it kept widening past the names";
+  MainWidths widths =
+      ComputeMainWidths(kTestScreenWidth, /*has_right_column=*/true);
+  std::pair<int, int> left = PanelRows(screen, 0);
+  std::pair<int, int> right = PanelRows(screen, widths.left);
+  EXPECT_EQ(left.first, 0) << "the Character panel is not at the top";
+  EXPECT_EQ(right.first, 0) << "the Equipped panel starts somewhere else";
+  // The Equipped list grows into everything the exp bar leaves.
+  EXPECT_EQ(right.second, kRows - 2);
+  // The exp bar has the last row to itself.
+  EXPECT_NE(ScreenRow(screen, kRows - 1).find("%"), std::string::npos);
 }
 
-TEST_F(PartyInspectPanelTest, TheCursorWalksTheWornItemsAndWraps) {
+// A short terminal is what the Character panel's extra stats give way to, and
+// the View All Stats row under them is the last thing it gives up.
+TEST_F(PartyInspectPanelTest, TheCharacterPanelFitsAShortTerminal) {
+  PartyInspectPanel panel(state_);
+  panel.SetPlayer(Member("Bree", FullGear()));
+
+  ftxui::Screen tall = Draw(panel, /*rows=*/40);
+  ftxui::Screen squat = Draw(panel, /*rows=*/24);
+  EXPECT_EQ(PanelRows(squat, 0).second, 22) << "the panel ran past the exp bar";
+  EXPECT_NE(ScreenText(tall).find("View All Stats"), std::string::npos);
+  EXPECT_NE(ScreenText(squat).find("View All Stats"), std::string::npos)
+      << "the row the rest of the stats are behind";
+}
+
+// Tab walks between the two panels, the way it does on the main screen.
+TEST_F(PartyInspectPanelTest, TabMovesBetweenThePanels) {
   PartyInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
 
+  // It opens on the Equipped list, so the cursor walks the gear.
   ASSERT_NE(panel.selected_item(), nullptr);
   std::string first = panel.selected_item()->prototype().name();
-  panel.MoveCursor(1);
+  Send(panel, ftxui::Event::ArrowDown);
   EXPECT_NE(panel.selected_item()->prototype().name(), first);
-  // Two items, so Down again comes back to the first.
-  panel.MoveCursor(1);
+
+  // Over on the Character panel the arrows belong to it, and the gear cursor
+  // stays where it was left -- through the walk and the way back.
+  FocusCharacterPanel(panel);
+  std::string on_gear = panel.selected_item()->prototype().name();
+  Send(panel, ftxui::Event::ArrowDown);
+  Send(panel, ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel.selected_item()->prototype().name(), on_gear);
+  EXPECT_NE(Screen(panel).find("Skills"), std::string::npos)
+      << "the keys never reached the Character panel";
+  Send(panel, ftxui::Event::Tab);
+  Send(panel, ftxui::Event::ArrowUp);
   EXPECT_EQ(panel.selected_item()->prototype().name(), first);
-  panel.MoveCursor(-1);
-  EXPECT_NE(panel.selected_item()->prototype().name(), first);
 }
 
-// The same band the player's own Equipped panel draws, for the same reason: a
-// stat eight columns out has to read back to its own piece.
-TEST_F(PartyInspectPanelTest, TheSelectedRowWearsABand) {
+// Enter on a worn item raises its card, and Enter on the Expand tab opens the
+// gear over the whole screen -- the same door the player's own panel has.
+TEST_F(PartyInspectPanelTest, EnterRaisesTheCardsAndTheExpandTabOpensUp) {
   PartyInspectPanel panel(state_);
+  int items = 0;
+  PartyInspectActions actions;
+  actions.item = [&items]() { ++items; };
+  panel.UseActions(actions);
   panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
-  ftxui::Screen screen = Draw(panel);
 
-  std::vector<BandSpan> bands = BandSpans(screen, kSelectedRow);
-  ASSERT_EQ(bands.size(), 1u) << "one row is selected, so one row is banded";
-  // The window's borders bracket every row, so the band is measured off them
-  // rather than off the text, which stops wherever the item name does.
-  std::pair<int, int> borders = RowSpan(screen, bands[0].y);
-  EXPECT_EQ(ScreenRow(screen, bands[0].y, borders.first + 1, borders.first + 2),
-            ">")
-      << "the band is under the caret";
-  EXPECT_EQ(bands[0].first, borders.first + 1) << "just inside the left border";
-  // Two columns short of the right border, not one: the list reserves the
-  // innermost for its scroll bar, and that column is not part of the row.
-  EXPECT_EQ(bands[0].last, borders.second - 2) << "and runs to the scroll bar";
+  Send(panel, ftxui::Event::Character(' '));
+  EXPECT_EQ(items, 1);
+
+  // Up off the list is the tab bar, and Left off the first tab is Expand.
+  Send(panel, ftxui::Event::ArrowUp);
+  Send(panel, ftxui::Event::ArrowLeft);
+  Send(panel, ftxui::Event::Return);
+  EXPECT_TRUE(panel.expanded());
+  ftxui::Screen wide = Draw(panel);
+  EXPECT_EQ(ScreenText(wide).find("Character"), std::string::npos)
+      << "the expanded panel is the whole screen";
+  EXPECT_NE(ScreenText(wide).find("Iron Sword"), std::string::npos);
+  EXPECT_EQ(PanelRows(wide, 0).second, 39) << "it did not fill the terminal";
+
+  panel.CloseExpanded();
+  EXPECT_NE(Screen(panel).find("Character"), std::string::npos);
+}
+
+// The Character panel's own tabs, which is most of what the screen gained.
+TEST_F(PartyInspectPanelTest, TheCharacterPanelCarriesTheirTabs) {
+  PartyInspectPanel panel(state_);
+  std::vector<std::string> skills;
+  PartyInspectActions actions;
+  actions.skill = [&skills](const Skill& skill) {
+    skills.push_back(skill.name());
+  };
+  panel.UseActions(actions);
+  panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
+
+  FocusCharacterPanel(panel);
+  Send(panel, ftxui::Event::ArrowRight);  // Stats -> Skills
+  EXPECT_NE(Screen(panel).find("Power Strike"), std::string::npos);
+
+  Send(panel, ftxui::Event::ArrowDown);  // -> the advancement bar
+  Send(panel, ftxui::Event::ArrowDown);  // -> the first skill
+  Send(panel, ftxui::Event::Return);
+  EXPECT_EQ(skills, std::vector<std::string>{"Power Strike"});
 }
 
 // A member in nothing at all. The stats still read, and there is no item for
@@ -302,25 +360,29 @@ TEST_F(PartyInspectPanelTest, HoldsUpWithNothingWorn) {
   panel.SetPlayer(Member("Bree", {}));
 
   EXPECT_EQ(panel.selected_item(), nullptr);
-  panel.MoveCursor(1);
-  EXPECT_EQ(panel.selected_item(), nullptr);
   std::string screen = Screen(panel);
   EXPECT_NE(screen.find("Bree"), std::string::npos);
   EXPECT_NE(screen.find("empty"), std::string::npos);
 }
 
-// A second member replaces the first outright, cursor included -- the panel
-// is one screen reused, not a pile of them.
+// A second member replaces the first outright, both panels included -- the
+// screen is one reused, not a pile of them.
 TEST_F(PartyInspectPanelTest, ShowingAnotherMemberForgetsTheFirst) {
   PartyInspectPanel panel(state_);
   panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
-  panel.MoveCursor(1);
+  Send(panel, ftxui::Event::ArrowDown);
+  FocusCharacterPanel(panel);
+  Send(panel, ftxui::Event::ArrowRight);  // onto their Skills tab
 
-  panel.SetPlayer(Member("Cass", {Hat()}));
+  PlayerInfo other = Member("Cass", {Hat()});
+  other.set_account_id("other");
+  panel.SetPlayer(other);
   std::string screen = Screen(panel);
   EXPECT_NE(screen.find("Cass"), std::string::npos);
   EXPECT_EQ(screen.find("Bree"), std::string::npos);
   EXPECT_EQ(screen.find("Iron Sword"), std::string::npos);
+  EXPECT_EQ(screen.find("Power Strike"), std::string::npos)
+      << "the last member's open tab came with them";
   ASSERT_NE(panel.selected_item(), nullptr);
   EXPECT_EQ(panel.selected_item()->prototype().name(), "Iron Hat");
 }
@@ -342,79 +404,50 @@ TEST_F(PartyInspectPanelTest, DropsAnItemThisBuildDoesNotHave) {
   EXPECT_NE(screen.find("Bree"), std::string::npos);
 }
 
-// The stat blocks are the point of the screen, so it is the item list that
-// gives way to a short terminal -- and it never gives way so far that it stops
-// being a list.
-TEST_F(PartyInspectPanelTest, TheItemListGivesWayToAShortTerminal) {
-  PartyInspectPanel panel(state_);
-  panel.SetPlayer(Member("Bree", FullGear()));
-
-  panel.SetMaxRows(0);
-  int roomy = Height(panel);
-  panel.SetMaxRows(PartyInspectPanel::kFixedRows +
-                   PartyInspectPanel::kLeastListRows);
-  int squeezed = Height(panel);
-  EXPECT_LT(squeezed, roomy);
-  EXPECT_LE(squeezed,
-            PartyInspectPanel::kFixedRows + PartyInspectPanel::kLeastListRows);
-
-  // Squeezed further, the screen is clipped rather than the list vanishing.
-  panel.SetMaxRows(PartyInspectPanel::kFixedRows);
-  EXPECT_EQ(Height(panel), squeezed);
-}
-
-// And it takes the room a tall terminal has, up to what the member is
-// actually wearing: nine pieces draw nine rows however much is left over.
-TEST_F(PartyInspectPanelTest, TheItemListGrowsIntoATallTerminal) {
-  PartyInspectPanel panel(state_);
-  panel.SetPlayer(Member("Bree", FullGear()));
-  int worn = static_cast<int>(FullGear().size());
-  ASSERT_GT(worn, PartyInspectPanel::kListRows) << "longer than the fallback";
-
-  panel.SetMaxRows(PartyInspectPanel::kFixedRows + worn);
-  int tall = Height(panel);
-  std::string screen = Screen(panel);
-  for (const EquipPrototype& item : FullGear()) {
-    EXPECT_NE(screen.find(item.name()), std::string::npos)
-        << item.name() << " was scrolled out of a terminal with room for it";
-  }
-
-  // Taller still buys nothing: the list stops at the gear it is listing.
-  panel.SetMaxRows(PartyInspectPanel::kFixedRows + worn + 20);
-  EXPECT_EQ(Height(panel), tall);
-}
-
 // A member past level 140 carries the Farm/Boss row their own screen carries,
 // and Left/Right read between their two allocations.
 TEST_F(PartyInspectPanelTest, TheFarmBossRowReadsBothAllocations) {
   PartyInspectPanel panel(state_);
   panel.SetPlayer(HyperMember("Bree"));
+  FocusCharacterPanel(panel);
 
   EXPECT_NE(Screen(panel).find("Farm"), std::string::npos);
-  EXPECT_NE(Screen(panel).find("(0+30) 30"), std::string::npos);
+  EXPECT_EQ(panel.preset(), Activity::kFarming);
 
-  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
-  EXPECT_NE(Screen(panel).find("(0+60) 60"), std::string::npos);
-  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowLeft));
-  EXPECT_NE(Screen(panel).find("(0+30) 30"), std::string::npos);
-
-  // Somebody else opened next is read from their farming allocation, not the
-  // tab the last member was left on.
-  EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
-  PlayerInfo other = HyperMember("Cass");
-  other.set_account_id("other");
-  panel.SetPlayer(other);
-  EXPECT_NE(Screen(panel).find("(0+30) 30"), std::string::npos);
+  Send(panel, ftxui::Event::ArrowDown);  // the tab bar -> the Farm/Boss row
+  Send(panel, ftxui::Event::ArrowRight);
+  EXPECT_EQ(panel.preset(), Activity::kBossing);
+  Send(panel, ftxui::Event::ArrowLeft);
+  EXPECT_EQ(panel.preset(), Activity::kFarming);
 }
 
-// A member below it has one allocation and no row, so the arrows are left to
-// the screen.
-TEST_F(PartyInspectPanelTest, NoFarmBossRowBeforeHyperStats) {
+// The All Stats screen the View All Stats row opens is the member's, and it
+// opens on the allocation their Character panel is reading.
+TEST_F(PartyInspectPanelTest, TheirAllStatsScreenOpensOnTheirAllocation) {
   PartyInspectPanel panel(state_);
-  panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
+  int opened = 0;
+  PartyInspectActions actions;
+  actions.all_stats = [&opened]() { ++opened; };
+  panel.UseActions(actions);
+  panel.SetPlayer(HyperMember("Bree"));
+  FocusCharacterPanel(panel);
 
-  EXPECT_EQ(Screen(panel).find("Farm"), std::string::npos);
-  EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
+  Send(panel, ftxui::Event::ArrowDown);  // -> the Farm/Boss row
+  Send(panel, ftxui::Event::ArrowRight);
+  Send(panel, ftxui::Event::ArrowDown);  // -> View All Stats
+  Send(panel, ftxui::Event::Return);
+  ASSERT_EQ(opened, 1);
+
+  panel.SyncAllStats();
+  ftxui::Screen screen = ftxui::Screen::Create(
+      ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(40));
+  ftxui::Render(screen, panel.RenderAllStats());
+  EXPECT_NE(ScreenText(screen).find("(0+60) 60"), std::string::npos)
+      << "the screen opened on the other allocation";
+  // And Left/Right read between them here too.
+  EXPECT_TRUE(panel.OnAllStatsEvent(ftxui::Event::ArrowLeft));
+  ftxui::Render(screen, panel.RenderAllStats());
+  EXPECT_NE(ScreenText(screen).find("(0+30) 30"), std::string::npos);
 }
 
 }  // namespace

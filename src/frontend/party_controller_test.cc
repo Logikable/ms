@@ -16,6 +16,7 @@
 #include "src/character/equip_presets.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
+#include "src/character/skill_placement.h"
 #include "src/combat/boss_run.h"
 #include "src/frontend/keybinds.h"
 #include "src/frontend/panels/character_panel.h"
@@ -37,6 +38,16 @@ namespace {
 
 constexpr std::chrono::milliseconds kPatience(4000);
 
+// One skill in the first Warrior book, so a member's Skills tab has a row to
+// open a card from.
+std::map<std::string, Skill> SkillCatalog() {
+  Skill strike;
+  strike.set_name("Power Strike");
+  PlaceIn(strike, JOB_ADVANCEMENT_SWORDMAN);
+  strike.set_max_level(20);
+  return {{"power_strike", strike}};
+}
+
 std::unique_ptr<GameState> MakeState() {
   std::unique_ptr<GameState> state = std::make_unique<GameState>(
       // One weapon in the catalog, so a member has something to be seen
@@ -46,7 +57,7 @@ std::unique_ptr<GameState> MakeState() {
       // character carrying nothing.
       std::map<std::string, EquipPrototype>{{"iron_sword", IronSword()}},
       std::map<std::string, Scroll>{}, std::map<std::string, ItemPrototype>{},
-      TestMobs(), std::map<std::string, MapData>{});
+      TestMobs(), std::map<std::string, MapData>{}, SkillCatalog());
   // The same fight the server holds, since both ends have to mean the same
   // thing by its name.
   state->bosses = TestBosses();
@@ -456,13 +467,16 @@ TEST_F(PartyControllerTest, AMemberInspectsAnother) {
   EXPECT_EQ(guest->party_inspect_panel->character().proto().level(),
             leader->state->character.proto().level());
 
-  // Left/Right read between the member's two Hyper Stat allocations; the
-  // screen keeps every other key.
+  // Tab moves to their Character panel, where the Farm/Boss row reads between
+  // their two Hyper Stat allocations.
   EXPECT_EQ(guest->party_inspect_panel->preset(), Activity::kFarming);
+  guest->controller->OnEvent(ftxui::Event::Tab);
+  guest->controller->OnEvent(ftxui::Event::ArrowDown);
   guest->controller->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_EQ(guest->party_inspect_panel->preset(), Activity::kBossing);
   guest->controller->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_EQ(guest->party_inspect_panel->preset(), Activity::kFarming);
+  guest->controller->OnEvent(ftxui::Event::Tab);
 
   // Enter on a worn item opens its card, off the panel's cursor rather than a
   // pointer held across a tick that may rebuild the member.
@@ -476,6 +490,80 @@ TEST_F(PartyControllerTest, AMemberInspectsAnother) {
   guest->controller->OnEvent(ftxui::Event::Escape);
   ASSERT_EQ(guest->controller->screen(), kPartyInspect);
 
+  guest->controller->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(guest->controller->screen(), kPartySelect);
+}
+
+// The cards the Inspect screen raises are the player's own over somebody
+// else's numbers, and each one closes back onto the screen that raised it.
+TEST_F(PartyControllerTest, TheInspectScreenRaisesTheMembersOwnCards) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  MakeParty(*leader, *guest);
+  leader->state->character.AdvanceJob(JOB_SWORDMAN);
+  const Skill& strike = leader->state->skills.at("power_strike");
+  ASSERT_TRUE(leader->state->character.LearnSkill(strike, 3));
+  ASSERT_TRUE(WaitFor({leader.get(), guest.get()},
+                      [&guest]() { return guest->party_panel.in_party(); }));
+
+  // The guest opens the leader, then walks to their Character panel.
+  guest->controller->OnEvent(ftxui::Event::Return);
+  guest->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(guest->controller->screen(), kPartyInspect);
+  ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&guest]() {
+    return guest->party_inspect_panel->character().skill_level(
+               guest->state->skills.at("power_strike")) == 3;
+  })) << "the leader's learned skill never reached the reader";
+  guest->controller->OnEvent(ftxui::Event::Tab);
+
+  // View All Stats: their sheet, on the screen their own last stats row opens.
+  guest->controller->OnEvent(ftxui::Event::ArrowDown);
+  guest->controller->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(guest->controller->screen(), kPartyAllStats);
+  guest->controller->OnEvent(ftxui::Event::Escape);
+  ASSERT_EQ(guest->controller->screen(), kPartyInspect);
+
+  // Their Skills tab, and the card a row opens: the LEADER's level in it, not
+  // the reader's own.
+  guest->controller->OnEvent(ftxui::Event::ArrowUp);  // -> the tab bar
+  guest->controller->OnEvent(ftxui::Event::ArrowRight);
+  guest->controller->OnEvent(ftxui::Event::ArrowDown);  // -> the page bar
+  guest->controller->OnEvent(ftxui::Event::ArrowDown);  // -> the first skill
+  guest->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(guest->controller->screen(), kSkillInspect);
+  EXPECT_EQ(guest->controller->skill_inspect_skill().name(), "Power Strike");
+  EXPECT_EQ(guest->controller->skill_inspect_level(), 3);
+  EXPECT_EQ(guest->state->character.skill_level(strike), 0)
+      << "the reader has never learned it, so 3 is the member's";
+  guest->controller->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(guest->controller->screen(), kPartyInspect);
+}
+
+// The Equipped panel opens up the way the player's own does, and Escape
+// closes that before it closes the screen.
+TEST_F(PartyControllerTest, TheInspectScreensEquippedPanelExpands) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  MakeParty(*leader, *guest);
+  leader->state->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
+  leader->state->character.Equip(0);
+  ASSERT_TRUE(WaitFor({leader.get(), guest.get()},
+                      [&guest]() { return guest->party_panel.in_party(); }));
+
+  guest->controller->OnEvent(ftxui::Event::Return);
+  guest->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(guest->controller->screen(), kPartyInspect);
+
+  // Up off the list is the tab bar, and Left off the first tab is Expand.
+  guest->controller->OnEvent(ftxui::Event::ArrowUp);
+  guest->controller->OnEvent(ftxui::Event::ArrowLeft);
+  guest->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(guest->party_inspect_panel->expanded());
+
+  guest->controller->OnEvent(ftxui::Event::Escape);
+  EXPECT_FALSE(guest->party_inspect_panel->expanded());
+  EXPECT_EQ(guest->controller->screen(), kPartyInspect)
+      << "Escape closed the screen rather than the panel";
   guest->controller->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(guest->controller->screen(), kPartySelect);
 }

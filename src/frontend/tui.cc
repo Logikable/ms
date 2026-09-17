@@ -521,9 +521,13 @@ ftxui::Element Tui::RenderPartyInspect() {
     party_item_panel_.SetItem(party_inspect_panel_.selected_item());
     return Standalone(party_item_panel_.Render());
   }
-  party_inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
-  party_inspect_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
-  return Standalone(party_inspect_panel_.Render());
+  if (controller_.screen() == kPartyAllStats) {
+    return Standalone(party_inspect_panel_.RenderAllStats());
+  }
+  // The whole terminal, the way the main view takes it: this screen is the
+  // member's own panels, and they lay out at the widths the player's do.
+  return party_inspect_panel_.Render(ftxui::Terminal::Size().dimy,
+                                     ftxui::Terminal::Size().dimx);
 }
 
 ftxui::Element Tui::BossConfirmDialog() {
@@ -871,6 +875,7 @@ ftxui::Element Tui::RenderScreen() {
     case kPartyMenu:
     case kPartyConfirm:
       return RenderParty();
+    case kPartyAllStats:
     case kPartyInspect:
     case kPartyItemInspect:
       return RenderPartyInspect();

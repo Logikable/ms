@@ -135,6 +135,7 @@ cc_test(
         "//src/character:equip_presets",
         "//src/character:hyper_stats",
         "//src/character:progression",
+        "//src/character:skill_placement",
         "//src/combat:boss_run",
         "//src/frontend/panels:character_panel",
         "//src/frontend/panels:equipped_panel",

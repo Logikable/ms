@@ -1,25 +1,15 @@
 #include "src/frontend/screens/party_inspect_panel.h"
 
-#include <algorithm>
-#include <string>
+#include <memory>
 #include <utility>
-#include <vector>
 
 #include "ftxui/dom/elements.hpp"
 #include "google/protobuf/util/message_differencer.h"
-#include "src/character/progression.h"
-#include "src/character/stat_preset.h"
-#include "src/frontend/widgets/chrome.h"
-#include "src/frontend/widgets/equipped_list.h"
+#include "src/frontend/main_layout.h"
+#include "src/frontend/widgets/exp_bar.h"
 #include "src/frontend/widgets/keys.h"
 
 namespace ms {
-namespace {
-
-constexpr char kCursorHere[] = "> ";
-constexpr char kCursorAway[] = "  ";
-
-}  // namespace
 
 PartyInspectPanel::PartyInspectPanel(GameState& state)
     : state_(state),
@@ -27,6 +17,35 @@ PartyInspectPanel::PartyInspectPanel(GameState& state)
       // No account: this is somebody else's sheet, so the Farm/Boss row is
       // gated on the level written on it.
       stats_(character_, /*account=*/nullptr, state.skills) {
+  BuildPanels();
+}
+
+void PartyInspectPanel::UseActions(PartyInspectActions actions) {
+  actions_ = std::move(actions);
+  BuildPanels();
+}
+
+void PartyInspectPanel::BuildPanels() {
+  char_panel_ = std::make_unique<CharacterPanel>(character_, state_.account,
+                                                 focus_, state_.skills);
+  char_panel_->SetReadOnly(true);
+  equip_panel_ =
+      std::make_unique<EquippedPanel>(character_, state_.account, focus_);
+  equip_panel_->SetReadOnly(true);
+
+  CharacterPanelActions char_actions;
+  char_actions.menu = actions_.skill;
+  char_actions.hyper_inspect = actions_.hyper_stat;
+  char_actions.all_stats = actions_.all_stats;
+  char_component_ = char_panel_->MakeComponent(std::move(char_actions));
+
+  equip_component_ = equip_panel_->MakeComponent(
+      [this]() {
+        if (actions_.item) {
+          actions_.item();
+        }
+      },
+      [this]() { expanded_ = !expanded_; });
 }
 
 void PartyInspectPanel::SetPlayer(const PlayerInfo& player) {
@@ -42,124 +61,87 @@ void PartyInspectPanel::SetPlayer(const PlayerInfo& player) {
     Reset();
     return;
   }
-  // They changed under the cursor -- took off a hat, or a whole set. Held
-  // where it was rather than thrown back to the top.
-  cursor_ = std::clamp(cursor_, 0, std::max(0, ItemCount() - 1));
+  // They changed under the cursor -- took off a hat, or a whole set. The
+  // panels hold where the cursor was and clamp it to what is left.
 }
 
 void PartyInspectPanel::Reset() {
-  cursor_ = 0;
+  expanded_ = false;
+  // On the Equipped list, which is what the reader came for. The same panel
+  // the main view opens focused.
+  focus_ = kEquipPanel;
   stats_.SetPreset(Activity::kFarming);
+  BuildPanels();
 }
 
-int PartyInspectPanel::ItemCount() const {
-  return static_cast<int>(character_.equipped().size());
-}
-
-void PartyInspectPanel::MoveCursor(int delta) {
-  cursor_ = StepCursor(cursor_, delta, ItemCount());
-}
-
-bool PartyInspectPanel::OnEvent(const ftxui::Event& event) {
-  return stats_.OnEvent(event);
+Activity PartyInspectPanel::preset() const {
+  return char_panel_->SelectedActivity();
 }
 
 const EquipInstance* PartyInspectPanel::selected_item() const {
-  int at = 0;
-  for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
-       character_.equipped()) {
-    if (at++ == cursor_) {
-      return kv.second;
-    }
+  EquipSlot slot = equip_panel_->selected_slot();
+  if (slot == EQUIP_SLOT_UNSPECIFIED) {
+    return nullptr;
   }
-  return nullptr;
+  return character_.WornAt(equip_panel_->gear_preset(), slot);
 }
 
-// The columns a member's gear is listed in. Gated on the reader's own
-// unlocks: a sheet says what somebody else is wearing, never which mechanics
-// they have met.
-ItemColumns PartyInspectPanel::Columns() const {
-  ItemListOptions options;
-  options.scrolling =
-      Unlocked(Feature::kScrolling, state_.character, state_.account);
-  options.star_force =
-      Unlocked(Feature::kStarForce, state_.character, state_.account);
-  options.potential =
-      Unlocked(Feature::kPotential, state_.character, state_.account);
-  return FitItemColumns(ContentWidth(), options);
-}
-
-// The content columns the list draws in: what the terminal has left, less the
-// window's own two borders, and never less than the width the screen keeps
-// when nobody has said.
-int PartyInspectPanel::ContentWidth() const {
-  return std::max(kContentWidth, max_columns_ - 2);
-}
-
-int PartyInspectPanel::FixedRows() const {
-  return kFixedRows + (stats_.ShowsPresetBar() ? 2 : 0);
-}
-
-// The list takes the rows the terminal has left over, and no more than it
-// needs: a member wearing six pieces draws six rows on any screen, and a
-// member wearing all of them grows until the terminal runs out.
-int PartyInspectPanel::VisibleRows(int items) const {
-  int room = max_rows_ > 0 ? max_rows_ - FixedRows() : kListRows;
-  return std::clamp(items, 1, std::max(kLeastListRows, room));
-}
-
-ftxui::Element PartyInspectPanel::RenderEquipped() const {
-  ItemColumns columns = Columns();
-  std::vector<EquippedRow> rows =
-      EquippedRows(character_, cursor_, name_clock_.Elapsed(), columns);
-  if (rows.empty()) {
-    return EmptyState("empty");
-  }
-  std::vector<ftxui::Element> drawn;
-  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
-    bool on_cursor = i == cursor_;
-    ftxui::Element row = ftxui::text((on_cursor ? kCursorHere : kCursorAway) +
-                                     rows[i].text.text);
-    if (rows[i].inactive) {
-      // Worn but contributing nothing, the same as on the player's own list.
-      row |= ftxui::dim;
+bool PartyInspectPanel::OnEvent(const ftxui::Event& event) {
+  if (IsSwitchPanel(event)) {
+    // Nothing to walk to while one panel is the whole screen, as on the main
+    // view.
+    if (!expanded_) {
+      focus_ = focus_ == kCharPanel ? kEquipPanel : kCharPanel;
     }
-    if (on_cursor) {
-      // The row the frame scrolls to, so the cursor cannot walk out of view.
-      row |= ftxui::focus;
-    }
-    row = HighlightRow(std::move(row), on_cursor);
-    drawn.push_back(std::move(row));
+    return true;
   }
+  // The components are driven by hand rather than through a container: two
+  // detached components both answer Focused(), so only the one holding the
+  // cursor is handed the key.
+  if (expanded_ || focus_ == kEquipPanel) {
+    return equip_component_->OnEvent(event);
+  }
+  return char_component_->OnEvent(event);
+}
+
+void PartyInspectPanel::SyncAllStats() {
+  stats_.SetPreset(preset());
+}
+
+ftxui::Element PartyInspectPanel::RenderAllStats() const {
+  return stats_.Render() |
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, AllStatsPanel::kTotalWidth);
+}
+
+bool PartyInspectPanel::OnAllStatsEvent(const ftxui::Event& event) {
+  return stats_.OnEvent(event);
+}
+
+ftxui::Element PartyInspectPanel::Render(int rows, int columns) {
+  equip_panel_->SetExpanded(expanded_);
+  if (expanded_) {
+    equip_panel_->SetWidth(columns);
+    return equip_component_->Render();
+  }
+  // The main screen's own split, so a member's panels stand where the
+  // reader's do. The right column is always there: this screen is the two
+  // panels and nothing else.
+  MainWidths widths = ComputeMainWidths(columns, /*has_right_column=*/true);
+  char_panel_->SetWidth(widths.left);
+  // One row goes to the exp bar. Nothing else shares the column, so the
+  // Character panel keeps every extra stat a tall terminal has room for.
+  char_panel_->SetMaxRows(rows - 1);
+  equip_panel_->SetWidth(widths.right);
   return ftxui::vbox({
-      ftxui::text(ItemListHeader(columns)),
-      ThemedSeparator(),
-      ftxui::vbox(std::move(drawn)) | ftxui::vscroll_indicator | ftxui::yframe |
-          ftxui::size(ftxui::HEIGHT, ftxui::EQUAL,
-                      VisibleRows(static_cast<int>(rows.size()))),
-  });
-}
-
-ftxui::Element PartyInspectPanel::Render() const {
-  // The sheet is drawn by the screen the member reads their own stats on, so
-  // the two cannot disagree about what a number is or what it is called --
-  // window and all, at the width it keeps everywhere else.
-  ftxui::Element sheet =
-      stats_.Render() |
-      ftxui::size(ftxui::WIDTH, ftxui::EQUAL, AllStatsPanel::kTotalWidth);
-  // At the columns' own width rather than the terminal's: past the longest
-  // name there is to show, more room buys the list nothing and a window
-  // stretched to the screen would only put its border further away. Never
-  // under kContentWidth, which is the width the screen has always kept.
-  ftxui::Element worn =
-      RenderEquipped() |
-      ftxui::size(ftxui::WIDTH, ftxui::EQUAL,
-                  std::max(kContentWidth, Columns().TotalWidth()));
-  // A vbox stretches its children, so the narrower window is held to its width
-  // and centred over the wider one by hand.
-  return ftxui::vbox({
-      ftxui::hbox({ftxui::filler(), std::move(sheet), ftxui::filler()}),
-      ThemedWindow(" Equipped ", std::move(worn)),
+      ftxui::hbox({
+          // Over a filler: an hbox hands its children the whole row, which
+          // would drag the Character panel's bottom border to the foot of the
+          // screen. The Equipped list grows into its column by itself.
+          ftxui::vbox({char_component_->Render(), ftxui::filler()}) |
+              ftxui::size(ftxui::WIDTH, ftxui::EQUAL, widths.left),
+          equip_component_->Render() | ftxui::flex,
+      }) | ftxui::flex,
+      ExpBar(character_.proto()),
   });
 }
 

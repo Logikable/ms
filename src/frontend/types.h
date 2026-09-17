@@ -90,6 +90,9 @@ enum Screen : int {
   // Enter on one of those worn items: its card, the same one the player's own
   // items get.
   kPartyItemInspect,
+  // The View All Stats row on the member's Character panel: every stat they
+  // have, on the screen their own last stats row opens.
+  kPartyAllStats,
   // The question one of those asks, and the one leaving a party asks.
   kPartyConfirm,
   // Enter on the menu panel's Dailies entry: what today's claim pays, over
