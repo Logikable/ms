@@ -1,6 +1,7 @@
 #include "src/frontend/screens/boss_select_panel.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <ctime>
 #include <limits>
@@ -18,6 +19,7 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/keys.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -34,13 +36,14 @@ constexpr int kDifficultyWidth = 10;
 // is sized by its TITLE, which is the longest thing on it.
 constexpr int kLabelWidth = 12;
 constexpr int kValueWidth = kDetailWidth - kLabelWidth - 2;
-// What the rest of a wrapped name is set in from its first line, so the two
-// rows read as one name.
-constexpr int kNameIndent = 2;
-// The rows the screen always takes, whichever fight the cursor is on. Tall
-// enough for the tallest detail panel -- a test holds it there -- so the top
-// of the screen never moves.
-constexpr int kScreenHeight = 24;
+// The fight card's own column plus the lane the scroll bar runs down. The lane
+// is held open whether or not the rewards overflow, so the card does not
+// change width as the cursor walks the list.
+constexpr int kDetailContentWidth = kDetailWidth + 1;
+// The rows inside a panel's border.
+constexpr int kPanelRows = kBossPanelHeight - 2;
+// Two borders and the row of options between them.
+constexpr int kOptionsHeight = 3;
 
 std::string ResetName(ResetPeriod period) {
   switch (period) {
@@ -153,10 +156,25 @@ BossSelectPanel::BossSelectPanel(const GameState& state) : state_(state) {
 void BossSelectPanel::Reset() {
   selected_ = 0;
   column_ = 0;
+  focus_ = BossPanel::kList;
+  scroll_ = 0;
+}
+
+void BossSelectPanel::SwitchPanel(int delta) {
+  focus_ = static_cast<BossPanel>(
+      StepCursor(static_cast<int>(focus_), delta, kBossPanelCount));
 }
 
 void BossSelectPanel::MoveCursor(int delta) {
+  if (focus_ == BossPanel::kFight) {
+    ScrollRewards(delta);
+    return;
+  }
+  if (focus_ != BossPanel::kList) {
+    return;
+  }
   selected_ = StepCursor(selected_, delta, static_cast<int>(bosses_.size()));
+  scroll_ = 0;
 }
 
 int BossSelectPanel::Columns() const {
@@ -168,7 +186,24 @@ int BossSelectPanel::Columns() const {
 }
 
 void BossSelectPanel::ChangeDifficulty(int delta) {
+  if (focus_ != BossPanel::kList) {
+    return;
+  }
   column_ = std::clamp(column_ + delta, 0, std::max(0, Columns() - 1));
+  scroll_ = 0;
+}
+
+void BossSelectPanel::ScrollRewards(int delta) {
+  const BossDifficulty* difficulty = selected();
+  if (difficulty == nullptr || difficulty->coming_soon()) {
+    scroll_ = 0;
+    return;
+  }
+  DetailRows detail =
+      BuildDetail(*difficulty, std::chrono::steady_clock::now());
+  int visible = std::max(0, kPanelRows - static_cast<int>(detail.head.size()));
+  int last = std::max(0, static_cast<int>(detail.rewards.size()) - visible);
+  scroll_ = std::clamp(scroll_ + delta, 0, last);
 }
 
 int BossSelectPanel::DifficultyAt(int boss) const {
@@ -265,7 +300,8 @@ ftxui::Element BossSelectPanel::RenderDifficultyCell(int boss, int at) const {
   return ftxui::hbox({std::move(name), ftxui::text(std::string(pad, ' '))});
 }
 
-ftxui::Element BossSelectPanel::RenderBossList() const {
+ftxui::Element BossSelectPanel::RenderBossList(
+    std::chrono::steady_clock::time_point now) const {
   int columns = Columns();
   std::vector<ftxui::Element> rows;
   rows.push_back(
@@ -278,54 +314,53 @@ ftxui::Element BossSelectPanel::RenderBossList() const {
   for (int i = 0; i < static_cast<int>(bosses_.size()); ++i) {
     std::vector<ftxui::Element> cells;
     cells.push_back(ftxui::text(
-        " " + PadRight(state_.bosses.at(bosses_[i]).name(), kBossNameWidth)));
+        " " + ScrollingWindow(state_.bosses.at(bosses_[i]).name(),
+                              kBossNameWidth, now.time_since_epoch())));
     for (int at = 0; at < columns; ++at) {
       cells.push_back(RenderDifficultyCell(i, at));
     }
     cells.push_back(ftxui::text(" "));
     rows.push_back(ftxui::hbox(std::move(cells)));
   }
-  return ThemedWindow(" Bosses ", ftxui::vbox(std::move(rows)));
+  return ThemedWindow(" Bosses ", ftxui::vbox(std::move(rows)),
+                      focus_ == BossPanel::kList) |
+         ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kBossPanelHeight);
 }
 
-ftxui::Element BossSelectPanel::RenderDetail() const {
-  const BossDifficulty* difficulty = selected();
-  std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(PadRight(" " + selected_title(), kDetailWidth)) |
-                 ftxui::color(kTheme));
+ftxui::Element BossSelectPanel::RenderDetailTitle(
+    std::chrono::steady_clock::time_point now) const {
+  return ftxui::text(" " +
+                     ScrollingWindow(selected_title(), kDetailWidth - 2,
+                                     now.time_since_epoch()) +
+                     " ") |
+         ftxui::color(kTheme);
+}
+
+BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
+    const BossDifficulty& difficulty,
+    std::chrono::steady_clock::time_point now) const {
+  DetailRows detail;
+  std::vector<ftxui::Element>& rows = detail.head;
+  rows.push_back(RenderDetailTitle(now));
   rows.push_back(ThemedSeparator());
-  if (difficulty == nullptr) {
-    rows.push_back(EmptyState("empty"));
-    return ThemedWindow(" Fight ", ftxui::vbox(std::move(rows)));
-  }
-  // A fight that is not built yet has none of the rest to state: no clock, no
-  // reset, no reward. What it can honestly show is how big it is, under a line
-  // saying why that is all there is.
-  if (difficulty->coming_soon()) {
-    rows.push_back(ftxui::text(PadRight(" Coming soon!", kDetailWidth)) |
-                   ftxui::color(kYellow));
-    rows.push_back(ftxui::text(std::string(kDetailWidth, ' ')));
-    RenderPhaseHp(rows, *difficulty);
-    return ThemedWindow(" Fight ", ftxui::vbox(std::move(rows)));
-  }
   rows.push_back(
-      DetailRow("Level", std::to_string(BossLevel(state_, *difficulty))));
+      DetailRow("Level", std::to_string(BossLevel(state_, difficulty))));
   // Under the fight's own level, because the two together are what the player
   // is: what they are up against, and what it takes to stand there. Everything
   // below is the fight's own.
-  if (difficulty->unlock_level() > 0) {
+  if (difficulty.unlock_level() > 0) {
     // Red is the reason: the one value the player falls short of.
     rows.push_back(RedUnless(
-        DetailRow("Unlock Level", std::to_string(difficulty->unlock_level())),
-        Unlocked(*difficulty)));
+        DetailRow("Unlock Level", std::to_string(difficulty.unlock_level())),
+        Unlocked(difficulty)));
   }
-  RenderPhaseHp(rows, *difficulty);
+  RenderPhaseHp(rows, difficulty);
   rows.push_back(
-      DetailRow("PDR", std::to_string(BossPdr(state_, *difficulty)) + "%"));
+      DetailRow("PDR", std::to_string(BossPdr(state_, difficulty)) + "%"));
   rows.push_back(
-      DetailRow("Time Limit", Clock(difficulty->time_limit_seconds())));
-  rows.push_back(DetailRow("Reset", ResetName(difficulty->reset())));
-  if (!Unlocked(*difficulty)) {
+      DetailRow("Time Limit", Clock(difficulty.time_limit_seconds())));
+  rows.push_back(DetailRow("Reset", ResetName(difficulty.reset())));
+  if (!Unlocked(difficulty)) {
     // Neither "Available" nor "Cleared" is true of a fight the character
     // cannot enter at all, and the level above says what it is short of.
     rows.push_back(DetailRow("Status", "Locked") | ftxui::color(kRed));
@@ -338,8 +373,71 @@ ftxui::Element BossSelectPanel::RenderDetail() const {
   }
   rows.push_back(ThemedSeparator());
   rows.push_back(ftxui::text(" Rewards ") | ftxui::color(kTheme));
-  RenderRewards(rows, *difficulty);
-  return ThemedWindow(" Fight ", ftxui::vbox(std::move(rows)));
+  RenderRewards(detail.rewards, difficulty, now);
+  return detail;
+}
+
+void BossSelectPanel::AppendRewardWindow(
+    std::vector<ftxui::Element>& rows, std::vector<RewardRow>& rewards) const {
+  int total = static_cast<int>(rewards.size());
+  int visible = std::max(0, kPanelRows - static_cast<int>(rows.size()));
+  // Clamped here as well as in ScrollRewards: the window shrinks as the fight
+  // above it grows, and a card scrolled to its foot then has too far to go.
+  int offset = std::clamp(scroll_, 0, std::max(0, total - visible));
+  std::vector<ftxui::Element> cells = ScrollBarCells(total, offset, visible);
+  for (int row = 0; row < visible && offset + row < total; ++row) {
+    RewardRow& reward = rewards[offset + row];
+    if (reward.separator) {
+      rows.push_back(std::move(reward.element));
+      continue;
+    }
+    ftxui::Element cell =
+        cells.empty() ? ftxui::text(" ") : std::move(cells[row]);
+    rows.push_back(ftxui::hbox({
+        std::move(reward.element) |
+            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kDetailWidth),
+        std::move(cell) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 1),
+    }));
+  }
+}
+
+ftxui::Element BossSelectPanel::RenderDetail(
+    std::chrono::steady_clock::time_point now) const {
+  const BossDifficulty* difficulty = selected();
+  std::vector<ftxui::Element> rows;
+  if (difficulty == nullptr) {
+    rows.push_back(RenderDetailTitle(now));
+    rows.push_back(ThemedSeparator());
+    rows.push_back(EmptyState("empty"));
+  } else if (difficulty->coming_soon()) {
+    // A fight that is not built yet has none of the rest to state: no clock,
+    // no reset, no reward. What it can honestly show is how big it is, under a
+    // line saying why that is all there is.
+    rows.push_back(RenderDetailTitle(now));
+    rows.push_back(ThemedSeparator());
+    rows.push_back(ftxui::text(PadRight(" Coming soon!", kDetailWidth)) |
+                   ftxui::color(kYellow));
+    rows.push_back(ftxui::text(std::string(kDetailWidth, ' ')));
+    RenderPhaseHp(rows, *difficulty);
+  } else {
+    DetailRows detail = BuildDetail(*difficulty, now);
+    rows = std::move(detail.head);
+    AppendRewardWindow(rows, detail.rewards);
+  }
+  return ThemedWindow(
+             " Fight ",
+             ftxui::vbox(std::move(rows)) |
+                 ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kDetailContentWidth),
+             focus_ == BossPanel::kFight) |
+         ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kBossPanelHeight);
+}
+
+ftxui::Element BossSelectPanel::RenderOptions() const {
+  // Nothing on it yet. The row is held open so that filling it does not move
+  // the two panels over it.
+  return ThemedWindow(" Options ", ftxui::text(" "),
+                      focus_ == BossPanel::kOptions) |
+         ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kOptionsHeight);
 }
 
 void BossSelectPanel::RenderPhaseHp(std::vector<ftxui::Element>& rows,
@@ -353,17 +451,18 @@ void BossSelectPanel::RenderPhaseHp(std::vector<ftxui::Element>& rows,
   }
 }
 
-void BossSelectPanel::RenderRewards(std::vector<ftxui::Element>& rows,
-                                    const BossDifficulty& difficulty) const {
+void BossSelectPanel::RenderRewards(
+    std::vector<RewardRow>& rows, const BossDifficulty& difficulty,
+    std::chrono::steady_clock::time_point now) const {
   // The meso first: it is the one thing a clear always pays, and everything
   // under it is a chance at something.
   int named = 0;
   if (difficulty.meso() > 0) {
-    rows.push_back(DetailRow("Meso", FormatWithCommas(difficulty.meso())));
+    rows.push_back({DetailRow("Meso", FormatWithCommas(difficulty.meso()))});
     ++named;
   }
   if (difficulty.exp() > 0) {
-    rows.push_back(DetailRow("EXP", FormatWithCommas(difficulty.exp())));
+    rows.push_back({DetailRow("EXP", FormatWithCommas(difficulty.exp()))});
     ++named;
   }
   // Honor is paid for a clear the calendar gates, as PayReward has it, and is
@@ -371,7 +470,7 @@ void BossSelectPanel::RenderRewards(std::vector<ftxui::Element>& rows,
   if (difficulty.reset() != RESET_PERIOD_UNSPECIFIED &&
       HonorVisible(state_.character.proto().level(),
                    state_.account.max_level())) {
-    rows.push_back(DetailRow("Honor", FormatWithCommas(kBossClearHonor)));
+    rows.push_back({DetailRow("Honor", FormatWithCommas(kBossClearHonor))});
     ++named;
   }
   // The prizes last and apart, commonest first: what a clear always pays reads
@@ -391,49 +490,41 @@ void BossSelectPanel::RenderRewards(std::vector<ftxui::Element>& rows,
                      return a->per_kill() > b->per_kill();
                    });
   for (const MobDrop* drop : paid) {
-    RenderDropRow(rows, *drop);
+    RenderDropRow(rows, *drop, now);
   }
   named += static_cast<int>(paid.size());
   if (!prizes.empty() && named > 0) {
-    rows.push_back(ThemedSeparator());
+    rows.push_back({ThemedSeparator(), /*separator=*/true});
   }
   for (const MobDrop* drop : prizes) {
-    RenderDropRow(rows, *drop);
+    RenderDropRow(rows, *drop, now);
   }
   named += static_cast<int>(prizes.size());
   if (named == 0) {
-    rows.push_back(EmptyState("empty"));
+    rows.push_back({EmptyState("empty")});
   }
 }
 
-void BossSelectPanel::RenderDropRow(std::vector<ftxui::Element>& rows,
-                                    const MobDrop& drop) const {
-  std::string name = DropName(state_, drop);
-  // Wrapped rather than cut, and rather than let the panel grow: drop names
-  // run long, and half of one names nothing. The chance sits
-  // on the last line of the name, where a one-line name puts it in the same
-  // column every other value on this panel stands in.
+void BossSelectPanel::RenderDropRow(
+    std::vector<RewardRow>& rows, const MobDrop& drop,
+    std::chrono::steady_clock::time_point now) const {
+  // Slid rather than wrapped: drop names run long, half of one names nothing,
+  // and a second row would push the drop under it out of the window. The
+  // chance keeps the column every other value on this panel stands in.
   std::string chance = DropChance(drop.per_kill());
-  int width = kDetailWidth - 2;
-  std::vector<std::string> lines = WrapBalanced(
-      name, width, static_cast<int>(chance.size()) + 1, kNameIndent);
-  for (int i = 0; i + 1 < static_cast<int>(lines.size()); ++i) {
-    rows.push_back(ftxui::text(" " + PadRight(lines[i], width) + " "));
-  }
-  rows.push_back(ftxui::text(
-      " " + PadRight(lines.back(), width - static_cast<int>(chance.size())) +
-      chance + " "));
+  int width = kDetailWidth - 3 - static_cast<int>(chance.size());
+  rows.push_back({ftxui::text(
+      " " +
+      ScrollingWindow(DropName(state_, drop), width, now.time_since_epoch()) +
+      " " + chance + " ")});
 }
 
-ftxui::Element BossSelectPanel::Render() const {
-  // Held to a fixed height with the panels at the top of it, so that walking
-  // the list -- where one fight has more drops than the next -- moves the
-  // bottom of the panel and leaves its top where the eye left it.
+ftxui::Element BossSelectPanel::Render(
+    std::chrono::steady_clock::time_point now) const {
   return ftxui::vbox({
-             ftxui::hbox({RenderBossList(), RenderDetail()}),
-             ftxui::filler(),
-         }) |
-         ftxui::size(ftxui::HEIGHT, ftxui::GREATER_THAN, kScreenHeight);
+      ftxui::hbox({RenderBossList(now), RenderDetail(now)}),
+      RenderOptions(),
+  });
 }
 
 }  // namespace ms

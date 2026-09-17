@@ -803,14 +803,17 @@ TEST_F(BossDataTest, EveryJumpLandsInsideItsArenaBeforeTheNextIsDue) {
                          "only one that jumps";
 }
 
-// Nothing on the boss screen is cut to fit: a name wider than the grid's name
-// column runs straight into the Difficulty beside it, which is how "Guardian
-// Angel Slime" first read as "Guardian Angel SNormal", and a title wider than
-// the card it heads stands against the border with no clearance.
+// The boss screen is a fixed size: a name over its column slides under it, and
+// a catalog over the grid's rows loses its tail off the bottom. The slide is
+// the safety net rather than the plan -- a grid where nothing moves is read at
+// a glance -- so the shipped names are held to their columns here.
 TEST_F(BossDataTest, EveryNameFitsWhereTheBossScreenDrawsIt) {
-  for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
+  std::map<std::string, Boss> bosses = LoadBosses();
+  EXPECT_LE(static_cast<int>(bosses.size()), kBossListCapacity)
+      << "the grid has no room for the whole catalog";
+  for (const std::pair<const std::string, Boss>& entry : bosses) {
     EXPECT_LT(static_cast<int>(entry.second.name().size()), kBossNameWidth)
-        << entry.second.name() << " runs into the Difficulty column";
+        << entry.second.name() << " slides under the Name column";
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       // The card is headed "<difficulty> <boss>", with a column of clearance
       // on each side as every row under it has.

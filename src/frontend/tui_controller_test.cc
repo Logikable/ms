@@ -3674,6 +3674,22 @@ TEST_F(TuiControllerTest, ViewOpensTheAnalysisOverlayAndBackClosesIt) {
   EXPECT_TRUE(menu_panel_->box_open());
 }
 
+// Tab walks the boss screen's three windows, and Enter takes the fight from
+// whichever of them holds the keys.
+TEST_F(TuiControllerTest, TabWalksTheBossScreensWindows) {
+  HoldASword();
+  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  EXPECT_EQ(boss_select_panel_->focus(), BossPanel::kList);
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(boss_select_panel_->focus(), BossPanel::kFight);
+  controller_->OnEvent(ftxui::Event::TabReverse);
+  EXPECT_EQ(boss_select_panel_->focus(), BossPanel::kList);
+  controller_->OnEvent(ftxui::Event::TabReverse);
+  EXPECT_EQ(boss_select_panel_->focus(), BossPanel::kOptions);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossConfirm);
+}
+
 TEST_F(TuiControllerTest, EnterOnAFightAsksBeforeTakingIt) {
   HoldASword();
   controller_->OpenMenuEntry(MenuEntry::kBoss);

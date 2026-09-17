@@ -2,12 +2,20 @@
  * grid: one row per fight, one column per difficulty, so every fight in the
  * game can be read at once. The right half describes whichever cell is
  * highlighted -- its level, what each phase is holding, the defence it stands
- * behind, the clock, and how often it comes back.
+ * behind, the clock, and how often it comes back. An options row runs under
+ * both.
  *
- * Up and Down move between fights, Left and Right between difficulties. The
- * column belongs to the grid rather than to a fight: leaving the cursor on
- * Chaos and moving down lands on the next fight's Chaos, and only a fight with
- * fewer difficulties than the widest pulls it back to its own last one.
+ * Every window is a fixed height, so nothing on the screen moves as the cursor
+ * walks the list. What does not fit slides: a name too long for its column
+ * runs under it, and the rewards scroll inside whatever the fight above them
+ * leaves.
+ *
+ * Tab walks the three windows. On the grid, Up and Down move between fights
+ * and Left and Right between difficulties; the column belongs to the grid
+ * rather than to a fight, so leaving the cursor on Chaos and moving down lands
+ * on the next fight's Chaos, and only a fight with fewer difficulties than the
+ * widest pulls it back to its own last one. On the fight card, Up and Down
+ * scroll the rewards.
  *
  * The panel is a view: it moves its own cursor and never writes to the game
  * state. The controller reads selected_boss() when the player confirms.
@@ -15,6 +23,7 @@
 #ifndef MS_SRC_FRONTEND_SCREENS_BOSS_SELECT_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_BOSS_SELECT_PANEL_H_
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -26,15 +35,25 @@
 
 namespace ms {
 
-// The name column of the grid, in cells. A name over it is not cut -- it runs
-// into the Difficulty column beside it -- so the catalog is tested against it.
+// The name column of the grid, in cells. A name over it slides under the
+// column rather than reaching the Difficulty column beside it.
 inline constexpr int kBossNameWidth = 21;
-// The detail card beside it. Wide enough for a label and a right-aligned
-// value, and for the longest title the card is headed with -- each with the
-// column of clearance on either side that every row here has. The catalog is
-// tested against this one too: a title over it is not cut either, it just
-// stands against the border.
+// The detail card beside it: a label, a right-aligned value, and the column of
+// clearance on either side that every row here has. The scroll bar's lane
+// stands outside it.
 inline constexpr int kDetailWidth = 29;
+
+// The rows each of the two panels takes, borders included. Fixed rather than
+// fitted, so that walking the list -- where one fight has more drops than the
+// next -- moves nothing on the screen.
+inline constexpr int kBossPanelHeight = 25;
+// The fights the grid has room for: its rows less the header and the rule
+// under it. A catalog over this loses its tail, so the data is tested here.
+inline constexpr int kBossListCapacity = kBossPanelHeight - 2 - 2;
+
+// Which of the screen's windows the arrows reach. Tab walks the ring.
+enum class BossPanel { kList, kFight, kOptions };
+inline constexpr int kBossPanelCount = 3;
 
 // What one phase is holding, for the detail panel and for anything else that
 // wants to price a fight without walking the spawn list itself.
@@ -47,16 +66,26 @@ class BossSelectPanel {
  public:
   explicit BossSelectPanel(const GameState& state);
 
-  // Puts the cursor back on the first fight's easiest difficulty. Call when
-  // the screen opens.
+  // Puts the cursor back on the first fight's easiest difficulty, on the grid.
+  // Call when the screen opens.
   void Reset();
-  // Moves the cursor `delta` fights, coming out the other end.
+  // Moves focus `delta` windows round the ring.
+  void SwitchPanel(int delta);
+  // Up and Down. On the grid they move `delta` fights, coming out the other
+  // end; on the fight card they scroll its rewards, which stop at both ends.
   void MoveCursor(int delta);
-  // Moves `delta` columns across the grid, clamped to its ends -- there is no
-  // wrapping here, because a difficulty ladder has a top and a bottom the
-  // player should feel.
+  // Left and Right: `delta` columns across the grid, clamped to its ends --
+  // there is no wrapping here, because a difficulty ladder has a top and a
+  // bottom the player should feel. Only the grid reads them.
   void ChangeDifficulty(int delta);
-  ftxui::Element Render() const;
+  // `now` drives the sliding names, whose phase comes off the clock so that
+  // every one of them slides on the same beat. Tests pass their own.
+  ftxui::Element Render(std::chrono::steady_clock::time_point now =
+                            std::chrono::steady_clock::now()) const;
+
+  BossPanel focus() const {
+    return focus_;
+  }
 
   // Key into GameState::bosses of the highlighted fight; empty when there are
   // none.
@@ -85,11 +114,40 @@ class BossSelectPanel {
   ResetPeriod selected_reset() const;
 
  private:
-  ftxui::Element RenderBossList() const;
+  ftxui::Element RenderBossList(
+      std::chrono::steady_clock::time_point now) const;
   // One cell of the difficulty grid, padded to its column. Blank for a fight
   // with fewer difficulties than the widest one has.
   ftxui::Element RenderDifficultyCell(int boss, int at) const;
-  ftxui::Element RenderDetail() const;
+  ftxui::Element RenderDetail(std::chrono::steady_clock::time_point now) const;
+  // The empty row under both panels, held open so that filling it later does
+  // not move the screen.
+  ftxui::Element RenderOptions() const;
+  // The fight's name across the head of its card, sliding when it is long.
+  ftxui::Element RenderDetailTitle(
+      std::chrono::steady_clock::time_point now) const;
+
+  // One row of the rewards. A separator spans the whole card, the scroll bar's
+  // lane included, so the rule meets the border on both sides.
+  struct RewardRow {
+    ftxui::Element element;
+    bool separator = false;
+  };
+  // The fight card cut where the scroll bar starts: everything about the fight
+  // above, the rewards that scroll under it below. Built by the render and by
+  // the scroll, which needs the count to clamp against.
+  struct DetailRows {
+    std::vector<ftxui::Element> head;
+    std::vector<RewardRow> rewards;
+  };
+  DetailRows BuildDetail(const BossDifficulty& difficulty,
+                         std::chrono::steady_clock::time_point now) const;
+  // Appends the rewards the window has room for, each with its cell of the
+  // scroll bar. `rows` is the head, whose height is what is left to them.
+  void AppendRewardWindow(std::vector<ftxui::Element>& rows,
+                          std::vector<RewardRow>& rewards) const;
+  // Scrolls the rewards `delta` rows, stopping at both ends.
+  void ScrollRewards(int delta);
   // Appends one HP row per phase. "HP" alone for a fight that is one monster
   // standing there; a fight with phases numbers them, because then which HP
   // it is matters.
@@ -98,12 +156,13 @@ class BossSelectPanel {
   // Appends the reward rows to the detail panel: what every clear pays, then
   // the drops -- the shard and its like, then the prizes under a rule of their
   // own, commonest first.
-  void RenderRewards(std::vector<ftxui::Element>& rows,
-                     const BossDifficulty& difficulty) const;
-  // Appends one drop's name and chance, wrapping a name too long for the
-  // panel.
-  void RenderDropRow(std::vector<ftxui::Element>& rows,
-                     const MobDrop& drop) const;
+  void RenderRewards(std::vector<RewardRow>& rows,
+                     const BossDifficulty& difficulty,
+                     std::chrono::steady_clock::time_point now) const;
+  // Appends one drop's name and chance, sliding a name too long for the
+  // column it stands in.
+  void RenderDropRow(std::vector<RewardRow>& rows, const MobDrop& drop,
+                     std::chrono::steady_clock::time_point now) const;
 
   // Columns in the grid: what the fight with the most difficulties has.
   int Columns() const;
@@ -123,6 +182,10 @@ class BossSelectPanel {
   // and down stays on the difficulty the player chose.
   int column_ = 0;
   int selected_ = 0;
+  BossPanel focus_ = BossPanel::kList;
+  // The first reward row drawn. Back to the top whenever the cursor moves: a
+  // fight with two drops has nothing to show at another fight's offset.
+  int scroll_ = 0;
 };
 
 }  // namespace ms

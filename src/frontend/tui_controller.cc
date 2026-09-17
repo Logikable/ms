@@ -1902,6 +1902,10 @@ bool TuiController::OnPartyConfirmEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnBossSelectEvent(ftxui::Event event) {
+  if (IsSwitchPanel(event)) {
+    boss_select_panel_.SwitchPanel(event == ftxui::Event::TabReverse ? -1 : 1);
+    return true;
+  }
   if (event == ftxui::Event::ArrowUp) {
     boss_select_panel_.MoveCursor(-1);
     return true;

@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <cstdint>
 #include <ctime>
 #include <map>
@@ -94,29 +95,37 @@ void LevelTo(GameState& state, int level) {
   }
 }
 
+// The clock the sliding names are read at. The epoch shows every name from
+// its head, which is where one sits for the first second it is up.
+constexpr std::chrono::steady_clock::time_point kHead;
+
 // The columns the panel actually takes, for asking whether a row inside it
 // pushed it wider.
 int Width(const BossSelectPanel& panel) {
-  ftxui::Element element = panel.Render();
-  return ftxui::Dimension::Fit(element).dimx;
-}
-
-std::string Render(const BossSelectPanel& panel, int height = 30) {
-  ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
-                                               ftxui::Dimension::Fixed(height));
-  ftxui::Render(screen, element);
-  return screen.ToString();
+  ftxui::Element element = panel.Render(kHead);
+  // Fit clamps to the terminal unless told not to, and this screen is wider
+  // than the 80 columns a test terminal claims.
+  return ftxui::Dimension::Fit(element, /*extend_beyond_screen=*/true).dimx;
 }
 
 // The panel's rows as text, for asking which of them comes before which.
-std::vector<std::string> RenderRows(const BossSelectPanel& panel,
-                                    int height = 30) {
-  ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
+std::vector<std::string> RenderRows(
+    const BossSelectPanel& panel, int height = 32,
+    std::chrono::steady_clock::time_point now = kHead) {
+  ftxui::Element element = ftxui::hbox({panel.Render(now), ftxui::filler()});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
                                                ftxui::Dimension::Fixed(height));
   ftxui::Render(screen, element);
   return ScreenRows(screen);
+}
+
+std::string Render(const BossSelectPanel& panel, int height = 32,
+                   std::chrono::steady_clock::time_point now = kHead) {
+  std::string out;
+  for (const std::string& row : RenderRows(panel, height, now)) {
+    out += row + "\n";
+  }
+  return out;
 }
 
 // Which row says `needle`, or -1 for a panel that does not.
@@ -133,9 +142,9 @@ int RowOf(const std::vector<std::string>& rows, const std::string& needle) {
 // Read off the pixel, because ToString() is where colour goes to die: a red
 // row and a white one produce the same string.
 ftxui::Color RowColor(const BossSelectPanel& panel, const std::string& needle) {
-  ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
+  ftxui::Element element = ftxui::hbox({panel.Render(kHead), ftxui::filler()});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
-                                               ftxui::Dimension::Fixed(24));
+                                               ftxui::Dimension::Fixed(32));
   ftxui::Render(screen, element);
   return ColorOf(screen, needle);
 }
@@ -190,10 +199,9 @@ TEST(BossSelectPanelTest, TheRewardsListNamesWhatAClearPays) {
   EXPECT_NE(out.find("EXP"), std::string::npos);
   EXPECT_NE(out.find("4,750,740"), std::string::npos);
   EXPECT_NE(out.find("50%"), std::string::npos);
-  // A name too long for the panel wraps rather than being cut, and the chance
-  // rides the last line of it. One that fits keeps its own row whole.
-  EXPECT_NE(out.find("Royal"), std::string::npos);
-  EXPECT_NE(out.find("Shoulder"), std::string::npos);
+  // A name too long for its column is cut to it -- it slides, and at the head
+  // of the slide the tail is not up yet. One that fits stands whole.
+  EXPECT_NE(out.find("Royal Black Metal"), std::string::npos);
   EXPECT_EQ(out.find("Royal Black Metal Shoulder"), std::string::npos);
   EXPECT_NE(out.find("Zakum's Soul Shard"), std::string::npos);
   EXPECT_NE(out.find("100%"), std::string::npos);
@@ -299,10 +307,11 @@ TEST(BossSelectPanelTest, ATokenIsRuledOffWithTheGear) {
   EXPECT_NE(rows[shard_row + 1].find("\u2500"), std::string::npos);
 }
 
-// The names are the longest strings on this screen, and a row that ran past
-// the label and value columns used to push the whole panel wider than the
-// detail rows it stands among.
-TEST(BossSelectPanelTest, ALongRewardNameDoesNotWidenThePanel) {
+// The names are the longest strings on this screen. A row that ran past the
+// label and value columns used to push the whole panel wider than the detail
+// rows it stands among; now it slides under its column instead, and the tail
+// arrives once the head has been up long enough to read.
+TEST(BossSelectPanelTest, ALongRewardNameSlidesRatherThanWidenThePanel) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
   EquipPrototype crystal;
@@ -317,6 +326,13 @@ TEST(BossSelectPanelTest, ALongRewardNameDoesNotWidenThePanel) {
   drop->set_per_kill(0.5);
   BossSelectPanel wide(state);
   EXPECT_EQ(Width(wide), narrow);
+  EXPECT_NE(Render(wide).find("Aquatic Letter"), std::string::npos);
+  EXPECT_EQ(Render(wide).find("Eye Accessory"), std::string::npos);
+  // Past the pause at the head and the 600ms slide, inside the pause the name
+  // spends at the far end with its tail up.
+  std::chrono::steady_clock::time_point slid =
+      kHead + std::chrono::milliseconds(2000);
+  EXPECT_NE(Render(wide, 32, slid).find("Eye Accessory"), std::string::npos);
 }
 
 // One monster is just "HP": there is no other phase for the number to be
@@ -330,10 +346,10 @@ TEST(BossSelectPanelTest, AOnePhaseFightLabelsItsHpPlainly) {
   EXPECT_EQ(out.find("P1 HP"), std::string::npos);
 }
 
-// Walking the list must not move the top of the screen, so the panel takes
-// the same rows whichever fight is under the cursor -- and the tallest fight
-// has to fit in them.
-TEST(BossSelectPanelTest, TheScreenIsTheSameHeightForEveryFight) {
+// Nothing on this screen moves as the cursor walks it: both panels are the
+// same 25 rows whichever fight is under the cursor, and the options row under
+// them makes 28.
+TEST(BossSelectPanelTest, TheScreenIsTheSameSizeForEveryFight) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
   GameState& state = *owner;
   BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
@@ -347,11 +363,13 @@ TEST(BossSelectPanelTest, TheScreenIsTheSameHeightForEveryFight) {
     drop->set_per_kill(1.0);
   }
   BossSelectPanel panel(state);
-  ftxui::Element zakum = panel.Render();
-  int first = ftxui::Dimension::Fit(zakum).dimy;
+  ftxui::Element zakum = panel.Render(kHead);
+  int width = Width(panel);
+  EXPECT_EQ(ftxui::Dimension::Fit(zakum, true).dimy, 28);
   panel.MoveCursor(1);
-  ftxui::Element balrog = panel.Render();
-  EXPECT_EQ(ftxui::Dimension::Fit(balrog).dimy, first);
+  ftxui::Element balrog = panel.Render(kHead);
+  EXPECT_EQ(ftxui::Dimension::Fit(balrog, true).dimy, 28);
+  EXPECT_EQ(Width(panel), width);
 }
 
 TEST(BossSelectPanelTest, PhaseHpAndLevelReadOffTheMobs) {
@@ -648,6 +666,120 @@ TEST(BossSelectPanelTest, AComingSoonFightIsDimAndNeverEnterable) {
   ftxui::Render(screen, panel.Render());
   EXPECT_NE(screen.ToString().find("\033[2m"), std::string::npos)
       << "the difficulty cell is dimmed";
+}
+
+// The three windows are one ring, and the screen opens on the grid.
+TEST(BossSelectPanelTest, TabWalksTheThreeWindows) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  BossSelectPanel panel(state);
+  EXPECT_EQ(panel.focus(), BossPanel::kList);
+  panel.SwitchPanel(1);
+  EXPECT_EQ(panel.focus(), BossPanel::kFight);
+  panel.SwitchPanel(1);
+  EXPECT_EQ(panel.focus(), BossPanel::kOptions);
+  panel.SwitchPanel(1);
+  EXPECT_EQ(panel.focus(), BossPanel::kList);
+  panel.SwitchPanel(-1);
+  EXPECT_EQ(panel.focus(), BossPanel::kOptions);
+  panel.Reset();
+  EXPECT_EQ(panel.focus(), BossPanel::kList);
+}
+
+// A fight card with more rewards than it has room for scrolls them under a
+// bar, and the arrows that scroll it leave the grid's cursor alone. They stop
+// at both ends: a list held at its foot has nowhere further to go.
+TEST(BossSelectPanelTest, TheFightCardScrollsItsRewards) {
+  std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
+  GameState& state = *owner;
+  ItemPrototype shard;
+  shard.set_name("Zakum's Soul Shard");
+  state.items["zakums_soul_shard"] = shard;
+  BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
+  for (int i = 0; i < 20; ++i) {
+    MobDrop* drop = normal->add_drops();
+    drop->set_item("zakums_soul_shard");
+    drop->set_per_kill(1.0 / (i + 1));
+  }
+  BossSelectPanel panel(state);
+  panel.MoveCursor(1);  // Balrog sorts first, being the smaller fight.
+  std::string top = Render(panel);
+  // The bar is only drawn once there is something under the window.
+  EXPECT_NE(top.find("\u2503"), std::string::npos);
+  EXPECT_NE(top.find("100%"), std::string::npos);
+
+  panel.SwitchPanel(1);
+  panel.MoveCursor(3);
+  EXPECT_EQ(panel.selected_boss(), "zakum");
+  std::string scrolled = Render(panel);
+  EXPECT_EQ(scrolled.find("100%"), std::string::npos);
+  // Left and Right belong to the grid, and a card holding the keys does not
+  // move its column.
+  panel.ChangeDifficulty(1);
+  EXPECT_EQ(panel.selected_difficulty(), 0);
+
+  panel.MoveCursor(-9);
+  EXPECT_EQ(Render(panel), top);
+  for (int i = 0; i < 30; ++i) {
+    panel.MoveCursor(1);
+  }
+  std::string foot = Render(panel);
+  panel.MoveCursor(1);
+  EXPECT_EQ(Render(panel), foot);
+}
+
+// The rewards go back to the top with the cursor: a fight with two drops has
+// nothing to show at another fight's offset.
+TEST(BossSelectPanelTest, MovingTheCursorPutsTheRewardsBackAtTheTop) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  ItemPrototype shard;
+  shard.set_name("Zakum's Soul Shard");
+  state.items["zakums_soul_shard"] = shard;
+  BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
+  for (int i = 0; i < 20; ++i) {
+    MobDrop* drop = normal->add_drops();
+    drop->set_item("zakums_soul_shard");
+    drop->set_per_kill(1.0 / (i + 1));
+  }
+  BossSelectPanel panel(state);
+  std::string top = Render(panel);
+  panel.SwitchPanel(1);
+  panel.MoveCursor(5);
+  panel.SwitchPanel(-1);
+  panel.MoveCursor(1);
+  panel.MoveCursor(-1);
+  EXPECT_EQ(Render(panel), top);
+}
+
+// The options row runs under both panels, and is held open while there is
+// nothing on it so that filling it does not move them.
+TEST(BossSelectPanelTest, AnOptionsRowRunsUnderBothPanels) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  BossSelectPanel panel(state);
+  std::vector<std::string> rows = RenderRows(panel);
+  int options = RowOf(rows, "Options");
+  EXPECT_GT(options, RowOf(rows, "Bosses"));
+  EXPECT_GT(options, RowOf(rows, "Rewards"));
+  EXPECT_EQ(options, 25);
+}
+
+// A fight's name slides under the grid's column rather than reaching the
+// Difficulty beside it, and does so whichever window holds the keys.
+TEST(BossSelectPanelTest, ALongFightNameSlidesUnderItsColumn) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  state.bosses["zakum"].set_name("Zakum The Everlasting Flame");
+  BossSelectPanel panel(state);
+  EXPECT_NE(Render(panel).find("Zakum The Everlasting"), std::string::npos);
+  EXPECT_EQ(Render(panel).find("Flame "), std::string::npos);
+  // Past the pause at the head and the 750ms slide.
+  std::chrono::steady_clock::time_point slid =
+      kHead + std::chrono::milliseconds(2200);
+  EXPECT_NE(Render(panel, 32, slid).find("Flame "), std::string::npos);
+  panel.SwitchPanel(2);
+  EXPECT_NE(Render(panel, 32, slid).find("Flame "), std::string::npos);
 }
 
 }  // namespace
