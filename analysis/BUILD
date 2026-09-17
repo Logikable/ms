@@ -1,5 +1,5 @@
 load("@protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load(":sim.bzl", "sim_binary")
 
@@ -198,6 +198,25 @@ cc_library(
         "//src/protos:mob_proto_cc",
         "//src/protos:skill_proto_cc",
         "@abseil-cpp//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "yardstick_test",
+    size = "small",
+    srcs = ["yardstick_test.cc"],
+    deps = [
+        ":yardstick",
+        "//src:game_state",
+        "//src/character:character_stats",
+        "//src/character:skill_placement",
+        "//src/item:equip_instance",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "//src/testing:prototypes",
+        "@googletest//:gtest_main",
     ],
 )
 
