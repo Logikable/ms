@@ -111,6 +111,16 @@ class EquippedPanel {
   void SetExpanded(bool expanded) {
     expanded_ = expanded;
   }
+
+  // Lists somebody else's gear rather than the player's: the Inspect screen.
+  // Enter on the preset row no longer puts one on -- a party member's presets
+  // are not the reader's to switch -- and the gold trail to their weapon is
+  // not drawn, that trail being about the reader's own upgrades. Enter on a
+  // row still raises whatever on_enter was given, which on that screen is the
+  // item's card rather than the menu.
+  void SetReadOnly(bool read_only) {
+    read_only_ = read_only;
+  }
   // The column the item menu hangs at, measured from the panel's left border:
   // past the cursor and the name and slot cells, so the menu covers an item's
   // stats rather than its name.
@@ -192,6 +202,8 @@ class EquippedPanel {
   bool highlighted_ = false;
   // See SetExpanded.
   bool expanded_ = false;
+  // See SetReadOnly.
+  bool read_only_ = false;
   std::vector<std::string> entries_;
   // Parallel to entries_: the byte length of each row's name cell, so a row
   // can be drawn with its name coloured apart from the columns after it.

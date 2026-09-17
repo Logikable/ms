@@ -86,6 +86,10 @@ constexpr int kHyperButtonWidth = 3;
 constexpr int kHyperFixedWidth =
     1 + kHyperButtonWidth + 1 + kHyperLevelWidth + 1 + kHyperButtonWidth + 1;
 
+// And the same row with the buttons gone: the two gutters and the level
+// between its own single gaps.
+constexpr int kHyperReadOnlyWidth = 1 + 1 + kHyperLevelWidth + 1 + 1;
+
 // The tag a buff row opens with, in the skill rows' shape: what the buff costs
 // from here. Green for a settled fact as the passive tag is, and the coin's
 // yellow for a price still being charged.
@@ -200,7 +204,7 @@ void CharacterPanel::NoteFocus() const {
   // An unnamed character has one thing waiting here, so tabbing in opens the
   // cursor on the name row rather than the tab bar. Only until the player
   // moves it: from then on the panel keeps the stop they left it on.
-  if (focused && !was_focused_ && !cursor_moved_ &&
+  if (focused && !was_focused_ && !cursor_moved_ && !read_only_ &&
       character_.username() == kDefaultUsername) {
     zone_ = kZoneUsername;
   }
@@ -216,6 +220,13 @@ int CharacterPanel::SkillNameWidth(int level_width, int row_width) {
 ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
                                         int bonus, int index,
                                         bool content_focused) const {
+  if (read_only_) {
+    // Nothing to press and nothing to stand on: the row is the number.
+    return StatsAligned(ftxui::hbox({
+        ftxui::text(" " + StatText(label, base, bonus)),
+        ftxui::filler(),
+    }));
+  }
   bool selected = content_focused && stat_sel_ == index;
   // The cursor outranks the unavailable cue, as on the skill rows: a selected
   // [+] inverts even with no AP to spend, so the cursor stays visible while
@@ -255,12 +266,15 @@ std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
   // Buffs is gated on this character too, and for the same reason: a buff below
   // its own level refuses to be switched on and refuses to be bought, whoever
   // else on the account has been there.
-  if (character_.consumables_unlocked()) {
+  // Neither of the last two is on a read-only panel: Buffs lists what is in a
+  // bag, which a sheet does not carry, and an advancement is not somebody
+  // else's to take.
+  if (character_.consumables_unlocked() && !read_only_) {
     tabs.push_back(kTabBuffs);
   }
   // The Advance tab exists only while there is an advancement to take, so it
   // arrives at level 10 and is gone the moment the player picks a job.
-  if (character_.CanAdvanceJob()) {
+  if (character_.CanAdvanceJob() && !read_only_) {
     tabs.push_back(kTabAdvance);
   }
   return tabs;
@@ -304,6 +318,10 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
   return kZoneTabs;
 }
 
+int CharacterPanel::StatStops() const {
+  return read_only_ ? 0 : kNumAllocStats;
+}
+
 int CharacterPanel::FirstStatStop() const {
   // The tab bar and the name are stops 0 and 1, and the Farm/Boss row takes
   // the next one when it is there.
@@ -318,17 +336,18 @@ int CharacterPanel::RingStops() const {
     // The two of them, the Farm/Boss row if it is there, the four AP stats,
     // and the View All Stats row under them -- which is not there while there
     // are no combat stats to lead to.
-    return 2 + (ShowsPresetBar() ? 1 : 0) + kNumAllocStats +
+    return 2 + (ShowsPresetBar() ? 1 : 0) + StatStops() +
            (ShowsCombatStats() ? 1 : 0);
   }
   if (ActiveTab() == kTabHyper) {
     // The two of them, the Farm/Boss row, a stop per stat, and [Reset].
-    return 3 + kNumHyperStats + 1;
+    return 3 + kNumHyperStats + (read_only_ ? 0 : 1);
   }
   if (ActiveTab() == kTabAbility) {
     // The same shape: the two of them, the Farm/Boss row, a stop per line, and
-    // [Reroll].
-    return 3 + AbilityRows() + 1;
+    // [Reroll]. Read-only keeps the row and nothing under it -- a line is
+    // locked or it is not, and neither is the reader's to change.
+    return read_only_ ? 3 : 3 + AbilityRows() + 1;
   }
   if (ActiveTab() == kTabBuffs) {
     // The name, the tab bar, and a stop per buff. No Farm/Boss row: a buff is
@@ -361,7 +380,9 @@ int CharacterPanel::CursorStop() const {
     case kZonePresets:
       return 2;
     case kZoneStatRows:
-      return stat_sel_ + FirstStatStop();
+      // Clamped to the stops there are: with the AP rows gone the zone holds
+      // the View All Stats row alone, whatever stat_sel_ says.
+      return std::min(stat_sel_, StatStops()) + FirstStatStop();
     case kZoneJobRows:
       return job_sel_ + 2;
     case kZoneAdvTabs:
@@ -399,7 +420,7 @@ void CharacterPanel::SetCursorStop(int stop) {
       return;
     }
     zone_ = kZoneStatRows;
-    stat_sel_ = stop - FirstStatStop();
+    stat_sel_ = read_only_ ? kNumAllocStats : stop - FirstStatStop();
     return;
   }
   if (ActiveTab() == kTabHyper) {
@@ -493,6 +514,9 @@ std::string CharacterPanel::TabKey(Tab tab) const {
 }
 
 void CharacterPanel::MarkActiveTabSeen() {
+  if (read_only_) {
+    return;
+  }
   std::string key = TabKey(ActiveTab());
   if (!key.empty()) {
     account_.MarkSeen(key);
@@ -601,7 +625,8 @@ ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
     if (tabs[i] == ActiveTab()) {
       active = i;
     }
-    specs.push_back({kTabLabels[tabs[i]], !key.empty() && !account_.Seen(key)});
+    specs.push_back({kTabLabels[tabs[i]],
+                     !read_only_ && !key.empty() && !account_.Seen(key)});
   }
   // The tabs are most of a narrow panel's width, so this is the bar most
   // likely to need the scroll.
@@ -812,8 +837,9 @@ bool CharacterPanel::IsVPage(int page) const {
 bool CharacterPanel::ShowsVReset() const {
   // The SP books have no [Reset]: their points are spent for good, and the V
   // page is the one that hands them back.
-  return ActiveTab() == kTabSkills && character_.proto().job_stage() > 0 &&
-         IsVPage(skill_tab_) && !SkillsForPage(skill_tab_).empty();
+  return !read_only_ && ActiveTab() == kTabSkills &&
+         character_.proto().job_stage() > 0 && IsVPage(skill_tab_) &&
+         !SkillsForPage(skill_tab_).empty();
 }
 
 std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
@@ -890,22 +916,20 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   if (locked) {
     level_text = level_text | ftxui::dim;
   }
-  ftxui::Element plus = ftxui::text("[+]");
-  if (selected && skill_col_ == kColPlus) {
-    plus = plus | ftxui::inverted;
-  } else if (maxed || !has_sp || locked) {
-    plus = plus | ftxui::dim;
+  std::vector<ftxui::Element> cells = {
+      ftxui::text(" "), tag_text, name, name_pad, level_text, ftxui::filler(),
+  };
+  if (!read_only_) {
+    ftxui::Element plus = ftxui::text("[+]");
+    if (selected && skill_col_ == kColPlus) {
+      plus = plus | ftxui::inverted;
+    } else if (maxed || !has_sp || locked) {
+      plus = plus | ftxui::dim;
+    }
+    cells.push_back(std::move(plus));
   }
-  ftxui::Element row = ftxui::hbox({
-      ftxui::text(" "),
-      tag_text,
-      name,
-      name_pad,
-      level_text,
-      ftxui::filler(),
-      plus,
-      ftxui::text(" "),
-  });
+  cells.push_back(ftxui::text(" "));
+  ftxui::Element row = ftxui::hbox(std::move(cells));
   if (selected) {
     row = std::move(row) | ftxui::reflect(skill_cursor_box_);
   }
@@ -1046,7 +1070,8 @@ ftxui::Element CharacterPanel::RenderHyperRow(HyperStatField field, int index,
   // highlight covers the stat and stops. The padding rides outside it, which
   // is what keeps the bar off the empty column after a short name.
   std::string text = HyperStatName(field);
-  int name_width = std::max(1, row_width - kHyperFixedWidth);
+  int name_width = std::max(
+      1, row_width - (read_only_ ? kHyperReadOnlyWidth : kHyperFixedWidth));
   int lit = std::min(static_cast<int>(text.size()), name_width);
   ftxui::Element name = ftxui::text(text.substr(0, lit));
   if (selected && hyper_col_ == kHyperColName) {
@@ -1064,27 +1089,32 @@ ftxui::Element CharacterPanel::RenderHyperRow(HyperStatField field, int index,
   // The cursor outranks the unavailable cue, as on the skill rows: a selected
   // button inverts with nothing to spend and nothing to give back, so the
   // cursor stays visible while the player reads down the list.
-  ftxui::Element minus = ftxui::text("[-]");
-  if (selected && hyper_col_ == kHyperColMinus) {
-    minus = std::move(minus) | ftxui::inverted;
-  } else if (!CanLowerHyperStat(field)) {
-    minus = std::move(minus) | ftxui::dim;
+  std::vector<ftxui::Element> cells = {
+      ftxui::text(" "),
+      std::move(name),
+      ftxui::text(std::string(name_width - lit, ' ')),
+  };
+  if (!read_only_) {
+    ftxui::Element minus = ftxui::text("[-]");
+    if (selected && hyper_col_ == kHyperColMinus) {
+      minus = std::move(minus) | ftxui::inverted;
+    } else if (!CanLowerHyperStat(field)) {
+      minus = std::move(minus) | ftxui::dim;
+    }
+    cells.push_back(std::move(minus));
   }
-  ftxui::Element plus = ftxui::text("[+]");
-  if (selected && hyper_col_ == kHyperColPlus) {
-    plus = std::move(plus) | ftxui::inverted;
-  } else if (!CanRaiseHyperStat(field)) {
-    plus = std::move(plus) | ftxui::dim;
+  cells.push_back(std::move(level_text));
+  if (!read_only_) {
+    ftxui::Element plus = ftxui::text("[+]");
+    if (selected && hyper_col_ == kHyperColPlus) {
+      plus = std::move(plus) | ftxui::inverted;
+    } else if (!CanRaiseHyperStat(field)) {
+      plus = std::move(plus) | ftxui::dim;
+    }
+    cells.push_back(std::move(plus));
   }
-  return ftxui::hbox({
-             ftxui::text(" "),
-             std::move(name),
-             ftxui::text(std::string(name_width - lit, ' ')),
-             std::move(minus),
-             std::move(level_text),
-             std::move(plus),
-             ftxui::text(" "),
-         }) |
+  cells.push_back(ftxui::text(" "));
+  return ftxui::hbox(std::move(cells)) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, row_width);
 }
 
@@ -1118,10 +1148,12 @@ ftxui::Element CharacterPanel::RenderHyperTab(bool bar_focused,
   // The way back to nothing spent, and it is free -- so it sits under a rule
   // of its own rather than among the rows it undoes. Both are drawn whatever
   // the budget: a screen with no way off it is worse than a shorter list.
-  rows.push_back(PanelSeparator(highlighted_));
-  rows.push_back(CenteredCell("[Reset]",
-                              reset_focused ? ftxui::inverted : ftxui::nothing,
-                              ContentWidth()));
+  if (!read_only_) {
+    rows.push_back(PanelSeparator(highlighted_));
+    rows.push_back(CenteredCell(
+        "[Reset]", reset_focused ? ftxui::inverted : ftxui::nothing,
+        ContentWidth()));
+  }
   return ftxui::vbox(std::move(rows));
 }
 
@@ -1167,8 +1199,11 @@ ftxui::Element CharacterPanel::RenderAbilityTab(bool bar_focused,
                                                 bool rows_focused,
                                                 bool reroll_focused) const {
   std::vector<ftxui::Element> rows;
+  // Honor is the one balance a sheet does not carry: it climbs with every
+  // kill, and sending it sent a whole sheet that often.
   rows.push_back(RenderPresetBar(
-      bar_focused, FormatWithCommas(character_.honor()) + " Honor"));
+      bar_focused,
+      read_only_ ? "" : FormatWithCommas(character_.honor()) + " Honor"));
   rows.push_back(PanelSeparator(highlighted_));
 
   const AbilityPreset& preset = character_.ability(hyper_preset_);
@@ -1188,6 +1223,9 @@ ftxui::Element CharacterPanel::RenderAbilityTab(bool bar_focused,
     rows.push_back(RenderAbilityRow(preset.lines(i), i, rows_focused));
   }
 
+  if (read_only_) {
+    return ftxui::vbox(std::move(rows));
+  }
   // What the reroll below asks, under a rule of its own. Written plain rather
   // than with commas: it is a price to weigh against the pool on the row
   // above, not a total to read off.
@@ -1393,7 +1431,7 @@ bool CharacterPanel::OnUsernameEvent(const ftxui::Event& event) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
-  if (IsForward(event)) {
+  if (IsForward(event) && !read_only_) {
     username_field_.BeginEdit();
     return true;
   }
@@ -1484,7 +1522,7 @@ bool CharacterPanel::OnStatsTabEvent(const ftxui::Event& event,
     }
     return true;
   }
-  if (character_.proto().ap() > 0) {
+  if (!read_only_ && character_.proto().ap() > 0) {
     if (actions.allocate) {
       actions.allocate(kAllocStats[stat_sel_].field);
     }
@@ -1513,13 +1551,18 @@ bool CharacterPanel::OnHyperTabEvent(const ftxui::Event& event,
   }
   // Left/Right walk the three columns and stop at the ends, the way the tab
   // bars clamp. The [Reset] button is one button wide, so it hears neither.
+  // Read-only has one column, the name: the two buttons are not drawn, so
+  // there is nowhere for Left and Right to go.
   if (event == ftxui::Event::ArrowLeft && zone_ == kZoneHyperRows) {
-    hyper_col_ = static_cast<HyperCol>(std::max(0, hyper_col_ - 1));
+    hyper_col_ = read_only_
+                     ? kHyperColName
+                     : static_cast<HyperCol>(std::max(0, hyper_col_ - 1));
     return true;
   }
   if (event == ftxui::Event::ArrowRight && zone_ == kZoneHyperRows) {
-    hyper_col_ =
-        static_cast<HyperCol>(std::min<int>(kHyperColPlus, hyper_col_ + 1));
+    hyper_col_ = read_only_ ? kHyperColName
+                            : static_cast<HyperCol>(
+                                  std::min<int>(kHyperColPlus, hyper_col_ + 1));
     return true;
   }
   if (!IsForward(event)) {
@@ -1654,7 +1697,8 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
     return true;
   }
   if (event == ftxui::Event::ArrowRight) {
-    skill_col_ = kColPlus;
+    // Read-only draws no [+], so there is no second column to step onto.
+    skill_col_ = read_only_ ? kColName : kColPlus;
     return true;
   }
   if (IsForward(event)) {

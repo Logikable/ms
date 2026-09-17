@@ -3275,5 +3275,269 @@ TEST_F(CharacterPanelTest, FiveTabsScrollOnTheNarrowestPanel) {
   EXPECT_GE(FindCell(wide, "Advance").first, 0);
 }
 
+// --- read-only, the panel the Inspect screen draws a party member with ---
+
+// A 4th-job Hero with something waiting on every tab: AP, SP, a Hyper point,
+// an ability and the level a buff opens at. Read-only has to take them all
+// off, so a fixture short of one proves nothing.
+CharacterInstance MakeInspectedHero(std::mt19937& rng) {
+  Character proto;
+  // Past every tab gate there is, the 5th job's included, so a tab missing
+  // from this panel is missing because it was taken off.
+  proto.set_level(200);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  proto.set_ap(5);
+  proto.set_hyper_sp(1);
+  proto.set_honor(12345);
+  (*proto.mutable_sp_by_stage())[1] = 3;
+  InnerAbility& ability = *proto.mutable_inner_ability();
+  for (AbilityPreset* preset : {&PresetOf(ability, StatPreset::kFirst),
+                                &PresetOf(ability, StatPreset::kSecond)}) {
+    preset->set_rank(ABILITY_RANK_LEGENDARY);
+    AbilityLine* line = preset->add_lines();
+    line->set_type(ABILITY_LINE_TYPE_BOSS_DAMAGE);
+    line->set_rank(ABILITY_RANK_LEGENDARY);
+  }
+  CharacterInstance c(rng, std::move(proto));
+  c.set_autoswap_presets(true);
+  return c;
+}
+
+// Everything that spends comes off, and what it was spent on stays: the AP
+// counter reads, the stats read, and there is nothing to press.
+TEST_F(CharacterPanelTest, ReadOnlyDropsEverythingThatSpends) {
+  CharacterInstance c = MakeInspectedHero(rng_);
+  UnlockEverything();
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
+  panel.SetReadOnly(true);
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp = panel.MakeComponent();
+
+  std::string stats = ScreenText(RenderToScreen(comp));
+  EXPECT_EQ(stats.find("[+]"), std::string::npos) << stats;
+  EXPECT_NE(stats.find("5 AP"), std::string::npos) << "what they have to spend";
+  EXPECT_NE(stats.find("STR:"), std::string::npos)
+      << "and what they spent it on";
+
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Skills
+  std::string skills = ScreenText(RenderToScreen(comp));
+  EXPECT_NE(skills.find("Slash Blast"), std::string::npos);
+  EXPECT_NE(skills.find("3 SP"), std::string::npos);
+  EXPECT_EQ(skills.find("[+]"), std::string::npos) << skills;
+
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Hyper
+  std::string hyper = ScreenText(RenderToScreen(comp));
+  EXPECT_NE(hyper.find("Critical Rate"), std::string::npos);
+  EXPECT_EQ(hyper.find("[+]"), std::string::npos) << hyper;
+  EXPECT_EQ(hyper.find("[-]"), std::string::npos) << hyper;
+  EXPECT_EQ(hyper.find("[Reset]"), std::string::npos) << hyper;
+
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Ability
+  std::string ability = ScreenText(RenderToScreen(comp));
+  EXPECT_NE(ability.find("Boss Damage"), std::string::npos);
+  EXPECT_EQ(ability.find("[Reroll]"), std::string::npos) << ability;
+  // Honor is the one balance a sheet does not carry, so neither the pool nor
+  // the price it sets can be drawn.
+  EXPECT_EQ(ability.find("Honor"), std::string::npos) << ability;
+
+  // And Ability is the end of the bar. A bag is not on the sheet, and an
+  // advancement is not the reader's to take -- asked by stepping past rather
+  // than by reading the bar, which scrolls a narrow panel's labels off.
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_NE(ScreenText(RenderToScreen(comp)).find("Boss Damage"),
+            std::string::npos)
+      << "the bar carried on past Ability";
+}
+
+// The same character on the player's own panel: the two tabs read-only drops
+// are there, so the test above is measuring the flag rather than the level.
+TEST_F(CharacterPanelTest, TheBuffsAndAdvanceTabsAreThereWhenItIsYourOwn) {
+  CharacterInstance c = MakeInspectedHero(rng_);
+  ASSERT_TRUE(c.consumables_unlocked());
+  ASSERT_TRUE(c.CanAdvanceJob());
+  UnlockEverything();
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp = panel.MakeComponent();
+
+  for (int i = 0; i < 4; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> ... -> Buffs
+  }
+  EXPECT_NE(ScreenText(RenderToScreen(comp)).find("R: "), std::string::npos)
+      << "no buff rows on the Buffs tab";
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Advance
+  EXPECT_NE(ScreenText(RenderToScreen(comp)).find("Hero"), std::string::npos)
+      << "no job rows on the Advance tab";
+}
+
+// Reading a party member must not spend the gold the player's own tabs are
+// waiting to show them.
+TEST_F(CharacterPanelTest, ReadOnlyLeavesTheReadersGoldAlone) {
+  CharacterInstance c = MakeInspectedHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetReadOnly(true);
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp = panel.MakeComponent();
+
+  // Off an unfocused bar: the chip under the cursor is lit either way, and
+  // gold is what is being asked about.
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(LabelColor(panel.Render(), "Hyper"), kTheme) << "never gold";
+  panel_focus_ = kCharPanel;
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  panel.MarkActiveTabSeen();
+  EXPECT_FALSE(account_.Seen(kHyperTabKey));
+  EXPECT_FALSE(account_.Seen(kAbilityTabKey));
+}
+
+// The four AP rows stop being stops: there is no [+] on them, and the row
+// they used to lead down to is the one worth walking to.
+TEST_F(CharacterPanelTest, ReadOnlyWalksTheStatsTabStraightToViewAllStats) {
+  CharacterInstance c = MakeInspectedHero(rng_);
+  UnlockEverything();
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetReadOnly(true);
+  panel_focus_ = kCharPanel;
+  int opened = 0;
+  CharacterPanelActions actions;
+  actions.all_stats = [&opened]() { ++opened; };
+  actions.allocate = [](StatField) { FAIL() << "a reader spent their AP"; };
+  ftxui::Component comp = panel.MakeComponent(actions);
+
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the Farm/Boss row
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> View All Stats, not STR
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(opened, 1);
+
+  // And that row is the foot of the ring: one more step comes round to the
+  // name, rather than through four rows there is nothing to press on.
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(opened, 1) << "the ring did not come round off View All Stats";
+  EXPECT_FALSE(panel.editing_username()) << "a reader renamed a party member";
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(opened, 2) << "View All Stats is not one step up from the name";
+}
+
+// The V page hands its points back, so it is the one page with a [Reset] --
+// and that is not the reader's to press either.
+TEST_F(CharacterPanelTest, ReadOnlyDropsTheVPagesReset) {
+  CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/11);
+  CharacterPanel panel(c, account_, panel_focus_, NodeCatalog());
+  panel.SetReadOnly(true);
+  panel_focus_ = kCharPanel;
+  CharacterPanelActions actions;
+  actions.v_reset = []() { FAIL() << "a reader emptied somebody's matrix"; };
+  ftxui::Component page = panel.MakeComponent(actions);
+
+  page->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  page->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> page bar
+  for (int i = 0; i < 5; ++i) {
+    page->OnEvent(ftxui::Event::ArrowRight);  // page I -> ... -> V
+  }
+  std::string rendered = ScreenText(RenderToScreen(page));
+  EXPECT_NE(rendered.find("Rope Lift"), std::string::npos) << "not the V page";
+  EXPECT_EQ(rendered.find("[Reset]"), std::string::npos) << rendered;
+  // Down past both nodes lands back on the outer bar, the button being gone.
+  for (int i = 0; i < 3; ++i) {
+    page->OnEvent(ftxui::Event::ArrowDown);
+  }
+  page->OnEvent(ftxui::Event::Return);
+}
+
+// What is left to press opens a card: a skill's, a Hyper Stat's. Both are
+// reading, and both are the only thing Enter does on their row.
+TEST_F(CharacterPanelTest, ReadOnlyKeepsTheCardsAndNothingElse) {
+  CharacterInstance c = MakeInspectedHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
+  panel.SetReadOnly(true);
+  panel_focus_ = kCharPanel;
+  std::vector<std::string> opened;
+  CharacterPanelActions actions;
+  actions.menu = [&opened](const Skill& skill) {
+    opened.push_back(skill.name());
+  };
+  actions.hyper_inspect = [&opened](HyperStatField field) {
+    opened.push_back(HyperStatName(field));
+  };
+  actions.learn = [](const Skill&) { FAIL() << "a reader spent their SP"; };
+  actions.hyper_allocate = [](HyperStatField) {
+    FAIL() << "spent their points";
+  };
+  actions.hyper_reset = []() { FAIL() << "reset somebody else's allocation"; };
+  ftxui::Component comp = panel.MakeComponent(actions);
+
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // -> the advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // -> the first skill
+  // Right would step onto the [+] column on the player's own panel. There is
+  // none here, so Enter still opens the card.
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(opened.size(), 1u) << "the skill card did not open";
+
+  comp->OnEvent(ftxui::Event::ArrowUp);     // -> the advancement bar
+  comp->OnEvent(ftxui::Event::ArrowUp);     // -> the outer bar
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Hyper
+  comp->OnEvent(ftxui::Event::ArrowDown);   // -> the Farm/Boss row
+  comp->OnEvent(ftxui::Event::ArrowDown);   // -> the first stat
+  comp->OnEvent(ftxui::Event::ArrowRight);  // no second column to reach
+  comp->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(opened.size(), 2u) << "the Hyper Stat card did not open";
+
+  // The ring is a stop shorter for the [Reset] that is gone, so four steps
+  // back off the first stat is the LAST stat rather than the button.
+  for (int i = 0; i < 4; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowUp);
+  }
+  comp->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(opened.size(), 3u);
+  EXPECT_EQ(opened[2], HyperStatName(kHyperStatOrder[kNumHyperStats - 1]));
+}
+
+// The Ability tab keeps its lines and gives up every stop under the
+// Farm/Boss row: a lock is not the reader's to turn, nor a reroll to buy.
+TEST_F(CharacterPanelTest, ReadOnlyLeavesNothingToStandOnUnderTheAbilityRow) {
+  CharacterInstance c = MakeInspectedHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetReadOnly(true);
+  panel_focus_ = kCharPanel;
+  CharacterPanelActions actions;
+  actions.ability_lock = [](int) { FAIL() << "a reader held somebody's line"; };
+  actions.ability_reroll = []() { FAIL() << "a reader rerolled it"; };
+  ftxui::Component comp = panel.MakeComponent(actions);
+
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> ... -> Ability
+  }
+  // The row, then off the foot of the ring and round every stop it has.
+  for (int i = 0; i < 4; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+    comp->OnEvent(ftxui::Event::Return);
+  }
+  EXPECT_NE(ScreenText(RenderToScreen(comp)).find("Boss Damage"),
+            std::string::npos)
+      << "the lines stopped being drawn";
+}
+
+// A name is not the reader's to change, so Enter on it opens no field.
+TEST_F(CharacterPanelTest, ReadOnlyLeavesTheNameAlone) {
+  CharacterInstance c = MakeInspectedHero(rng_);
+  c.SetUsername("Bree");
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetReadOnly(true);
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp = panel.MakeComponent();
+
+  comp->OnEvent(ftxui::Event::ArrowUp);  // -> the name row
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(panel.editing_username());
+  EXPECT_NE(ScreenText(RenderToScreen(comp)).find("Bree"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

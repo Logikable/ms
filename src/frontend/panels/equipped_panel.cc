@@ -355,8 +355,9 @@ void EquippedPanel::RebuildRows() {
   name_bytes_.clear();
   led_.clear();
   // Asked once for the whole list rather than per row: it is a fact about the
-  // character, and only the worn weapon's row acts on it.
-  bool lead = LeadToWeapon(character_, account_);
+  // character, and only the worn weapon's row acts on it. Never on somebody
+  // else's gear: the trail is about the reader's own upgrades.
+  bool lead = !read_only_ && LeadToWeapon(character_, account_);
   for (const EquippedRow& row : Rows(name_clock_.Elapsed())) {
     inactive_.push_back(row.inactive || row.inherited);
     name_bytes_.push_back(row.text.Span(ItemColumn::kName).bytes);
@@ -498,7 +499,7 @@ bool EquippedPanel::OnPresetBarEvent(const ftxui::Event& event) {
   // Enter on the Expand tab goes through the door rather than asking about it.
   // With the autoswap on there is nothing to pick: the activity is wearing
   // whichever preset it names.
-  if (IsForward(event) && !character_.autoswap_presets()) {
+  if (IsForward(event) && !character_.autoswap_presets() && !read_only_) {
     character_.SetSlotInUse(PresetKind::kEquip, gear_preset_);
     return true;
   }

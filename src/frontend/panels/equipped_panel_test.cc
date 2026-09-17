@@ -1393,5 +1393,48 @@ TEST_F(SymbolTabTest, LevelUpOpensTheDialog) {
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, scrolls), kSymbolLevel);
 }
 
+// --- read-only, the panel the Inspect screen lists a party member with ---
+
+// The trail is about the reader's own upgrades, so it is not drawn over
+// somebody else's weapon.
+TEST_F(EquippedPanelTest, ReadOnlyDrawsNoTrailToTheWeapon) {
+  LevelTo(UnlockLevel(Feature::kScrolling));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, account_, panel_focus_);
+  panel.SetReadOnly(true);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  EXPECT_NE(LabelColor(comp->Render(), "Sword"), kYellow);
+}
+
+// Enter still raises whatever the caller gave -- the item's card, on that
+// screen -- and the row is still walked. What it will not do is put a preset
+// on: a party member's gear is not the reader's to switch.
+TEST_F(GearPresetTest, ReadOnlyReadsThePresetsWithoutWearingOne) {
+  CharacterInstance& c = Cuber();
+  Wear(c, "Farm Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kFirst);
+  Wear(c, "Boss Sword", EQUIP_SLOT_PRIMARY_WEAPON, StatPreset::kSecond);
+  ASSERT_EQ(c.SlotInUse(PresetKind::kEquip), StatPreset::kFirst);
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(c, account_, panel_focus_);
+  panel.SetReadOnly(true);
+  int opened = 0;
+  ftxui::Component comp = panel.MakeComponent([&opened]() { ++opened; });
+  RenderComponent(comp);
+
+  comp->OnEvent(ftxui::Event::ArrowUp);     // the list -> the preset row
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> their second preset
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(panel.gear_preset(), StatPreset::kSecond)
+      << "the row is still read";
+  EXPECT_NE(RenderComponent(comp).find("Boss Sword"), std::string::npos);
+  EXPECT_EQ(c.SlotInUse(PresetKind::kEquip), StatPreset::kFirst)
+      << "a reader put a preset on somebody else";
+
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the list
+  comp->OnEvent(ftxui::Event::Character(' '));
+  EXPECT_EQ(opened, 1) << "Enter on a row raised nothing";
+}
+
 }  // namespace
 }  // namespace ms

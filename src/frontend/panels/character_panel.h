@@ -113,8 +113,21 @@ class CharacterPanel {
 
   // Records the active tab as opened, which puts its gold out. Called wherever
   // the bar moves, and when focus arrives: a tab already under the cursor has
-  // been seen as surely as one stepped onto.
+  // been seen as surely as one stepped onto. Does nothing on a read-only
+  // panel -- see SetReadOnly.
   void MarkActiveTabSeen();
+
+  // Draws somebody else's character rather than the player's: the Inspect
+  // screen. Everything that spends comes off -- the [+] and [Max] buttons,
+  // both [Reset]s, [Reroll], the Advance tab and the name field -- and with
+  // them the stops that only led to one. The Buffs tab goes too: it lists
+  // what is in a bag, and a bag is not on the sheet.
+  //
+  // No gold either way: a tab is news to the player about their own
+  // character, and reading a party member's must not spend that news.
+  void SetReadOnly(bool read_only) {
+    read_only_ = read_only;
+  }
 
   // The screen row the selected skill was drawn on, for anchoring its menu.
   int skill_cursor_row() const {
@@ -171,6 +184,11 @@ class CharacterPanel {
   // The Skills tab's own count, which the V page's foot adds to.
   int SkillsTabFixedRows() const;
 
+  // How many of the Stats tab's four AP rows the cursor stops on. None on a
+  // read-only panel: there is no [+] to press, and the View All Stats row
+  // under them is the whole reason the block is walked.
+  int StatStops() const;
+
   // The Stats tab's own count, which the Farm/Boss row adds to.
   int StatsTabFixedRows() const;
 
@@ -184,6 +202,8 @@ class CharacterPanel {
   // Whether the border is currently lit gold. Not part of the panel's own
   // state machine -- it is set from outside and read by Render.
   bool highlighted_ = false;
+  // See SetReadOnly.
+  bool read_only_ = false;
   // See SetMaxRows. Zero is "as many as it takes".
   int max_rows_ = 0;
   // See SetWidth, and panel_widths.h for where the number comes from.
