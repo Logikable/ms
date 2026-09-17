@@ -8,9 +8,9 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/testing/panel_test_base.h"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/colors.h"
-#include "src/frontend/widgets/panel_test_base.h"
-#include "src/frontend/widgets/screen_text.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
 

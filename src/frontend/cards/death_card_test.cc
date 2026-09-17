@@ -7,8 +7,8 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/cards/level_up_card.h"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/colors.h"
-#include "src/frontend/widgets/screen_text.h"
 
 namespace ms {
 namespace {

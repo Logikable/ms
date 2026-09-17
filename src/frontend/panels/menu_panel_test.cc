@@ -9,8 +9,8 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/combat/battle_analysis.h"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/types.h"
-#include "src/frontend/widgets/screen_text.h"
 #include "src/game_state.h"
 
 namespace ms {

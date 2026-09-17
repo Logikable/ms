@@ -7,7 +7,7 @@
 #include <utility>
 
 #include "ftxui/component/event.hpp"
-#include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/testing/panel_test_base.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {

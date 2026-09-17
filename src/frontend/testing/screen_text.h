@@ -5,8 +5,8 @@
  * breaks a search for "> Name" the moment the name is dimmed. Everything here
  * reads the pixel grid instead, and an unpainted cell reads as a space.
  */
-#ifndef MS_SRC_FRONTEND_WIDGETS_SCREEN_TEXT_H_
-#define MS_SRC_FRONTEND_WIDGETS_SCREEN_TEXT_H_
+#ifndef MS_SRC_FRONTEND_TESTING_SCREEN_TEXT_H_
+#define MS_SRC_FRONTEND_TESTING_SCREEN_TEXT_H_
 
 #include <string>
 #include <vector>
@@ -50,4 +50,4 @@ ftxui::Pixel PixelOf(const ftxui::Screen& screen, const std::string& needle);
 
 }  // namespace ms
 
-#endif  // MS_SRC_FRONTEND_WIDGETS_SCREEN_TEXT_H_
+#endif  // MS_SRC_FRONTEND_TESTING_SCREEN_TEXT_H_

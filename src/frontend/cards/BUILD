@@ -19,8 +19,8 @@ cc_test(
     srcs = ["level_up_card_test.cc"],
     deps = [
         ":level_up_card",
+        "//src/frontend/testing:screen_text",
         "//src/frontend/widgets:chrome",
-        "//src/frontend/widgets:screen_text",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",
@@ -48,7 +48,7 @@ cc_test(
     deps = [
         ":offline_card",
         "//src/combat:offline",
-        "//src/frontend/widgets:panel_test_base",
+        "//src/frontend/testing:panel_test_base",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",
@@ -74,8 +74,8 @@ cc_test(
     deps = [
         ":advancement_card",
         ":level_up_card",
+        "//src/frontend/testing:screen_text",
         "//src/frontend/widgets:chrome",
-        "//src/frontend/widgets:screen_text",
         "//src/protos:character_proto_cc",
         "@ftxui//:dom",
         "@ftxui//:screen",
@@ -100,8 +100,8 @@ cc_test(
     deps = [
         ":death_card",
         ":level_up_card",
+        "//src/frontend/testing:screen_text",
         "//src/frontend/widgets:chrome",
-        "//src/frontend/widgets:screen_text",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",

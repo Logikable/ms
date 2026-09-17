@@ -1,5 +1,5 @@
-#ifndef MS_SRC_FRONTEND_WIDGETS_PANEL_TEST_BASE_H_
-#define MS_SRC_FRONTEND_WIDGETS_PANEL_TEST_BASE_H_
+#ifndef MS_SRC_FRONTEND_TESTING_PANEL_TEST_BASE_H_
+#define MS_SRC_FRONTEND_TESTING_PANEL_TEST_BASE_H_
 
 #include <gtest/gtest.h>
 
@@ -15,7 +15,7 @@
 #include "src/account.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
-#include "src/frontend/widgets/screen_text.h"
+#include "src/frontend/testing/screen_text.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 
@@ -201,4 +201,4 @@ class PanelTest : public testing::Test {
 
 }  // namespace ms
 
-#endif  // MS_SRC_FRONTEND_WIDGETS_PANEL_TEST_BASE_H_
+#endif  // MS_SRC_FRONTEND_TESTING_PANEL_TEST_BASE_H_

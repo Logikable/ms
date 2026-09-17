@@ -10,8 +10,8 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/types.h"
-#include "src/frontend/widgets/screen_text.h"
 #include "src/multiplayer/client.h"
 #include "src/protos/multiplayer.pb.h"
 

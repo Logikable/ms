@@ -8,9 +8,9 @@
 #include <vector>
 
 #include "src/frontend/panel_widths.h"
+#include "src/frontend/testing/panel_test_base.h"
 #include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/item_row.h"
-#include "src/frontend/widgets/panel_test_base.h"
 #include "src/frontend/widgets/text_columns.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"

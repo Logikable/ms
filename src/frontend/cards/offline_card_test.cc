@@ -7,7 +7,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/combat/offline.h"
-#include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/testing/panel_test_base.h"
 
 namespace ms {
 namespace {

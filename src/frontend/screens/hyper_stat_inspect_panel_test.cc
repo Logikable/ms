@@ -7,8 +7,8 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/hyper_stats.h"
+#include "src/frontend/testing/panel_test_base.h"
 #include "src/frontend/widgets/game_names.h"
-#include "src/frontend/widgets/panel_test_base.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {

@@ -9,7 +9,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/skill_placement.h"
-#include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/testing/panel_test_base.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/skill.pb.h"
 

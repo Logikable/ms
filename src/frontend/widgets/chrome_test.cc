@@ -15,12 +15,12 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_row.h"
 #include "src/frontend/widgets/keys.h"
-#include "src/frontend/widgets/screen_text.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {

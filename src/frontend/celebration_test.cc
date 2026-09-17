@@ -9,8 +9,8 @@
 #include "src/character/honor.h"
 #include "src/character/inner_ability.h"
 #include "src/character/progression.h"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/types.h"
-#include "src/frontend/widgets/screen_text.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {

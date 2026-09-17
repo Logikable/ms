@@ -1,4 +1,4 @@
-#include "src/frontend/widgets/screen_text.h"
+#include "src/frontend/testing/screen_text.h"
 
 #include <gtest/gtest.h>
 

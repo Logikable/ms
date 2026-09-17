@@ -5,7 +5,7 @@
 #include <memory>
 #include <utility>
 
-#include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/testing/panel_test_base.h"
 
 namespace ms {
 namespace {

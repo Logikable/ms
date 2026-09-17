@@ -11,7 +11,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
-#include "src/frontend/widgets/screen_text.h"
+#include "src/frontend/testing/screen_text.h"
 
 namespace ms {
 namespace {
