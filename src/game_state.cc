@@ -294,6 +294,29 @@ void WearAll(GameState& state, const std::vector<std::string>& names,
   }
 }
 
+// Takes off the weakest thing worn on `proto`'s slot family, where every slot
+// of it is full and `proto` beats one of them. A piece arriving after the
+// family fills up otherwise displaces whatever sits in the FIRST slot, which
+// is the order it was dressed in rather than what it is worth.
+void MakeRoomFor(GameState& state, const EquipPrototype& proto) {
+  EquipSlot weakest = EQUIP_SLOT_UNSPECIFIED;
+  int lowest = proto.required_level();
+  for (EquipSlot slot : SlotFamily(proto.equip_slot())) {
+    const EquipInstance* worn =
+        state.character.WornAt(StatPreset::kFirst, slot);
+    if (worn == nullptr) {
+      return;  // Somewhere free to put it: nothing has to come off.
+    }
+    if (worn->prototype().required_level() < lowest) {
+      lowest = worn->prototype().required_level();
+      weakest = slot;
+    }
+  }
+  if (weakest != EQUIP_SLOT_UNSPECIFIED) {
+    state.character.Unequip(weakest);
+  }
+}
+
 // Every stage's gear, the job's own LAST, so a character below the top tier's
 // level is still armed off the tier under it. Only the slots the job's own
 // gear names are filled this way, and only where the level cannot reach what
@@ -447,6 +470,12 @@ std::vector<std::string> PrincessNoSecondary(Job job) {
 // their coins buy. The same rule the Root Abyss follows one tier down: the
 // gear is worn at 160 and nothing pays for a piece of it until 210.
 constexpr int kAbsoLabLevel = 210;
+
+// The level the Guardian Angel Slime opens at, and so the earliest anybody can
+// own the ring she drops. The same rule the token tiers follow, for a fight
+// that pays in the gear itself rather than in a coin: it is worn at 160 and
+// nothing hands one out until 220.
+constexpr int kGuardianAngelSlimeLevel = 220;
 
 // The AbsoLab weapon a 4th job swings, which is the same line's choice the two
 // tiers below it make. Empty for anybody below the 4th job, who reaches level
@@ -689,6 +718,14 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   }
   if (state.character.proto().level() >= kAbsoLabLevel) {
     WearAll(state, AbsoLabGear(state.character.proto().job()), equips);
+  }
+  if (state.character.proto().level() >= kGuardianAngelSlimeLevel) {
+    std::map<std::string, EquipPrototype>::const_iterator ring =
+        state.equips.find("guardian_angel_ring");
+    if (ring != state.equips.end()) {
+      MakeRoomFor(state, ring->second);
+      WearAll(state, {"guardian_angel_ring"}, equips);
+    }
   }
   WearStarterSymbol(state);
 }
@@ -1063,6 +1100,11 @@ int OwnedFromLevel(const EquipPrototype& proto) {
   if (proto.token_item().rfind("piece_of_", 0) == 0 ||
       proto.token_item() == "captivating_fragment") {
     return kRootAbyssLevel;
+  }
+  // The one piece of gear a fight pays out directly rather than through a
+  // token, and the only one whose fight opens above the level it is worn at.
+  if (proto.name() == "Guardian Angel Ring") {
+    return kGuardianAngelSlimeLevel;
   }
   return proto.required_level();
 }

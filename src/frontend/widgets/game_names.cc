@@ -262,6 +262,8 @@ std::string FormatEquipSet(EquipSetName set) {
       return "AbsoLab Set (Magician)";
     case EQUIP_SET_NAME_ABSOLAB_THIEF:
       return "AbsoLab Set (Thief)";
+    case EQUIP_SET_NAME_DAWN_BOSS:
+      return "Dawn Boss Set";
     default:
       return "";
   }

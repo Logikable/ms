@@ -121,11 +121,11 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
     }
   }
   // The four of Root Abyss, which open at the cap and pay in pieces instead;
-  // Chaos Zakum, for whom GMS states no EXP at all; and Lotus, who is the
-  // same case and is fought for the coin.
-  EXPECT_EQ(unpaid,
-            std::vector<std::string>({"crimson_queen", "lotus", "pierre",
-                                      "vellum", "von_bon", "zakum"}));
+  // Chaos Zakum, for whom GMS states no EXP at all; and Lotus and the Guardian
+  // Angel Slime, who are the same case and are fought for what they drop.
+  EXPECT_EQ(unpaid, std::vector<std::string>(
+                        {"crimson_queen", "guardian_angel_slime", "lotus",
+                         "pierre", "vellum", "von_bon", "zakum"}));
 }
 
 // Nothing is a shell any more -- Chaos Zakum, Hard Magnus and Chaos Pink Bean
@@ -203,10 +203,10 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).short_name(), entry.second.name()) << where;
     }
   }
-  EXPECT_EQ(fights, 20) << "Arkarium, Cygnus, Princess No, Papulatus, Lotus, "
-                           "Damien, the four of Root Abyss, and both "
-                           "difficulties of Zakum, Magnus, Pink Bean, Hilla "
-                           "and Horntail";
+  EXPECT_EQ(fights, 21) << "Arkarium, Cygnus, Princess No, Papulatus, Lotus, "
+                           "Damien, the Guardian Angel Slime, the four of Root "
+                           "Abyss, and both difficulties of Zakum, Magnus, "
+                           "Pink Bean, Hilla and Horntail";
 }
 
 // A boss pays in meso and in gear, and the gear is the reward: selling it back
@@ -663,6 +663,84 @@ TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
   EXPECT_EQ(normal.drops(1).item(), "damiens_soul_shard");
 }
 
+// 5T behind the same 300% PDR, three times the largest body before her, and
+// the first fight to move off its row: every thirty seconds she is up in the
+// gallery for two thirds of a second. Every number is GMS's own but the meso,
+// the clock and the gate. Pinned for the reason Zakum's numbers are.
+TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
+  ASSERT_GT(bosses_.count("guardian_angel_slime"), 0u);
+  const Boss& slime = bosses_.at("guardian_angel_slime");
+  ASSERT_EQ(slime.difficulties_size(), 1);
+  const BossDifficulty& normal = slime.difficulties(0);
+  EXPECT_EQ(normal.name(), "Normal");
+  EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
+  EXPECT_EQ(normal.time_limit_seconds(), 1500);
+  EXPECT_EQ(normal.unlock_level(), 220);
+  EXPECT_EQ(normal.meso(), 33100000);
+  EXPECT_EQ(normal.exp(), 0);
+  ASSERT_EQ(normal.phases_size(), 1);
+  const BossPhase& phase = normal.phases(0);
+  ASSERT_EQ(phase.spawns_size(), 1);
+  EXPECT_EQ(phase.bgm(), "BossGuardianSlime");
+  EXPECT_EQ(SpawnCount(phase.spawns(0)), 1);
+  EXPECT_EQ(phase.spawns(0).mob(), "guardian_angel_slime");
+  const Mob& mob = mobs_.at("guardian_angel_slime");
+  EXPECT_EQ(mob.name(), "Guardian Angel Slime");
+  EXPECT_EQ(mob.level(), 220);
+  EXPECT_EQ(mob.attack(), 22000);
+  EXPECT_EQ(mob.pdr(), 300);
+  EXPECT_EQ(mob.max_hp(), 5000000000000LL);
+  // She paces the row over the player's heads on Lotus's beat, and leaves it
+  // for the row Lotus hangs in.
+  const ArenaWalk& walk = phase.spawns(0).walk();
+  EXPECT_EQ(phase.spawns(0).spots(0).y(), 4);
+  EXPECT_EQ(walk.interval_ms(), 10000);
+  EXPECT_EQ(walk.range(), ArenaWalk::RANGE_ROW_STEP);
+  EXPECT_FALSE(walk.has_dash());
+  EXPECT_EQ(walk.jump().interval_ms(), 30000);
+  EXPECT_EQ(walk.jump().y(), 2);
+  EXPECT_EQ(walk.jump().hang_ms(), 660);
+  // Her ring at half the clears -- the one drop in the game that is not
+  // certain -- and her shard at all of them.
+  ASSERT_EQ(normal.drops_size(), 2);
+  EXPECT_EQ(normal.drops(0).equip(), "guardian_angel_ring");
+  EXPECT_DOUBLE_EQ(normal.drops(0).per_kill(), 0.5);
+  EXPECT_EQ(normal.drops(1).item(), "guardian_angel_slimes_soul_shard");
+  EXPECT_DOUBLE_EQ(normal.drops(1).per_kill(), 1.0);
+}
+
+// A jump has to land, so it must come back down before the next one is due,
+// and the row it leaves for has to be one the arena holds and nobody stands
+// on -- a jump onto a player spot would draw a bar over a player.
+TEST_F(BossDataTest, EveryJumpLandsInsideItsArenaBeforeTheNextIsDue) {
+  int jumps = 0;
+  for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      for (const BossPhase& phase : difficulty.phases()) {
+        for (const Spawn& spawn : phase.spawns()) {
+          if (!spawn.walk().has_jump()) {
+            continue;
+          }
+          ++jumps;
+          const ArenaJump& jump = spawn.walk().jump();
+          std::string where = entry.first + " " + spawn.mob();
+          EXPECT_GT(jump.hang_ms(), 0) << where << " jumps for no time at all";
+          EXPECT_GT(jump.interval_ms(), jump.hang_ms())
+              << where << " jumps again before it has landed";
+          EXPECT_GE(jump.y(), 0) << where;
+          EXPECT_LT(jump.y(), phase.arena_height())
+              << where << " jumps past the bottom of its arena";
+          for (const ArenaSpot& spot : phase.player_spots()) {
+            EXPECT_NE(spot.y(), jump.y())
+                << where << " jumps onto a row the player stands on";
+          }
+        }
+      }
+    }
+  }
+  EXPECT_EQ(jumps, 1) << "the Guardian Angel Slime is the only one that jumps";
+}
+
 // Where the parts stand is data, and two of them in one cell is a bar drawn on
 // top of another one.
 TEST_F(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
@@ -727,11 +805,14 @@ TEST_F(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
 // than a full party, so three players always have somewhere to walk.
 TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   std::map<std::string, std::vector<int>> expected = {
-      {"zakum", {7, 5}},      {"hilla", {5}},       {"horntail", {6, 6, 6}},
-      {"magnus", {5}},        {"arkarium", {5}},    {"cygnus", {5}},
-      {"pink_bean", {5, 5}},  {"pierre", {5}},      {"von_bon", {5}},
-      {"crimson_queen", {5}}, {"vellum", {5}},      {"princess_no", {9}},
-      {"papulatus", {7, 5}},  {"lotus", {5, 8, 8}}, {"damien", {5, 5}}};
+      {"zakum", {7, 5}},       {"hilla", {5}},
+      {"horntail", {6, 6, 6}}, {"magnus", {5}},
+      {"arkarium", {5}},       {"cygnus", {5}},
+      {"pink_bean", {5, 5}},   {"pierre", {5}},
+      {"von_bon", {5}},        {"crimson_queen", {5}},
+      {"vellum", {5}},         {"princess_no", {9}},
+      {"papulatus", {7, 5}},   {"lotus", {5, 8, 8}},
+      {"damien", {5, 5}},      {"guardian_angel_slime", {5}}};
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses_.count(want.first), 0u) << want.first;
     for (const BossDifficulty& difficulty :

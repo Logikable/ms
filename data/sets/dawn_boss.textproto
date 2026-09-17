@@ -1,0 +1,51 @@
+name: EQUIP_SET_NAME_DAWN_BOSS
+# Four slots in GMS -- pendant, face, earrings and ring -- of which the ring
+# is the one this game has. The tiers are read against the four, so the set
+# pays nothing yet and the inspect screen says how far off it is.
+complete_pieces: 4
+members {
+  slot: EQUIP_SLOT_RING
+  # GMS sells a scroll that converts the Boss Accessory ring into a Dawn one
+  # and makes the two mutually exclusive. There is no conversion lever here,
+  # so the one ring counts for both sets.
+  items { name: "Guardian Angel Ring" }
+}
+tiers {
+  pieces: 2
+  effect {
+    str: 10
+    dex: 10
+    int: 10
+    luk: 10
+    max_hp: 250
+    attack: 10
+    magic_attack: 10
+    boss_pct: 0.10
+  }
+}
+tiers {
+  pieces: 3
+  effect {
+    str: 10
+    dex: 10
+    int: 10
+    luk: 10
+    max_hp: 250
+    attack: 10
+    magic_attack: 10
+  }
+}
+tiers {
+  pieces: 4
+  effect {
+    str: 10
+    dex: 10
+    int: 10
+    luk: 10
+    max_hp: 250
+    attack: 10
+    magic_attack: 10
+    def: 100
+    ied_pct: 0.10
+  }
+}

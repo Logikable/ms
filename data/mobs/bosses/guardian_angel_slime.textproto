@@ -1,0 +1,11 @@
+# One body, one phase, and the largest anything in the game has ever had: 5T
+# behind 300% PDR. GMS also cuts every hit against her to 85% outside a groggy
+# window this game has no pattern to open, so what is here is the body alone.
+name: "Guardian Angel Slime"
+level: 220
+attack: 22000
+max_hp: 5000000000000
+exp: 0
+pdr: 300
+boss: true
+description: "A massive slime found in the lowest depths of the Ramuramu Hot Springs. The Slime God's angels are said to have descended long ago to carry the cutest of slimes to the world beyond, and by every account this is the one their god deemed most adorable of all."

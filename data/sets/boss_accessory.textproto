@@ -24,7 +24,10 @@ members {
 }
 members {
   slot: EQUIP_SLOT_RING
-  items { name: "Silver Blossom Ring" }
+  items {
+    name: "Silver Blossom Ring"
+    name: "Guardian Angel Ring"
+  }
 }
 members {
   slot: EQUIP_SLOT_PENDANT

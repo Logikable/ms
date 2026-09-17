@@ -1,0 +1,18 @@
+name: "Guardian Angel Ring"
+required_level: 160
+base_stats {
+  str: 5
+  dex: 5
+  int: 5
+  luk: 5
+  max_hp: 200
+  max_mp: 200
+  attack: 2
+  magic_attack: 2
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_RING
+upgrade_slots: 2
+# Dropped by the Guardian Angel Slime, never stocked, so no shop price sets
+# this -- and a boss's gear is the reward rather than a second purse.
+sell_price: 0

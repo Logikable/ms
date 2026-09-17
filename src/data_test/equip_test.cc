@@ -779,6 +779,72 @@ TEST(EquipDataTest, TheFrozenSetAddsUpToItsWikiTotals) {
   }
 }
 
+// The Dawn Boss Set's totals, pinned the same way and for the same reason. It
+// holds one of its four slots today, so nothing in it can be worn to a tier
+// yet -- which is exactly why the numbers need a test rather than a fitting.
+TEST(EquipDataTest, TheDawnBossSetAddsUpToItsWikiTotals) {
+  const EquipSet* set = nullptr;
+  std::map<std::string, EquipSet> sets = LoadSets();
+  for (const std::pair<const std::string, EquipSet>& entry : sets) {
+    if (entry.second.name() == EQUIP_SET_NAME_DAWN_BOSS) {
+      set = &entry.second;
+    }
+  }
+  ASSERT_NE(set, nullptr);
+  ASSERT_EQ(set->complete_pieces(), 4);
+  ASSERT_EQ(set->members_size(), 1);
+  ASSERT_EQ(set->tiers_size(), 3);
+  const int kStat[] = {10, 20, 30};
+  const int kAttack[] = {10, 20, 30};
+  const int kPool[] = {250, 500, 750};
+  int stat = 0;
+  int attack = 0;
+  int pool = 0;
+  for (int i = 0; i < set->tiers_size(); ++i) {
+    const SkillEffect& effect = set->tiers(i).effect();
+    EXPECT_EQ(set->tiers(i).pieces(), i + 2);
+    stat += effect.str();
+    attack += effect.attack();
+    pool += effect.max_hp();
+    EXPECT_EQ(stat, kStat[i]) << "at " << set->tiers(i).pieces() << " pieces";
+    EXPECT_EQ(attack, kAttack[i]) << "at " << set->tiers(i).pieces();
+    EXPECT_EQ(pool, kPool[i]) << "at " << set->tiers(i).pieces();
+    // All four stats climb together, and magic attack shadows attack.
+    EXPECT_EQ(effect.dex(), effect.str());
+    EXPECT_EQ(effect.int_(), effect.str());
+    EXPECT_EQ(effect.luk(), effect.str());
+    EXPECT_EQ(effect.magic_attack(), effect.attack());
+    // The MP pool is the one thing it does not pay, unlike its Boss Accessory
+    // neighbour.
+    EXPECT_EQ(effect.max_mp(), 0) << "at " << set->tiers(i).pieces();
+  }
+  // Boss damage arrives at two pieces and defence at four, each once.
+  EXPECT_DOUBLE_EQ(set->tiers(0).effect().boss_pct(), 0.10);
+  EXPECT_DOUBLE_EQ(set->tiers(1).effect().boss_pct(), 0.0);
+  EXPECT_EQ(set->tiers(2).effect().def(), 100);
+  EXPECT_DOUBLE_EQ(set->tiers(2).effect().ied_pct(), 0.10);
+}
+
+// The Guardian Angel Ring is in two sets at once, which nothing else is: GMS
+// sells a scroll that converts it from one to the other and this game has no
+// such lever, so it counts for both. Pinned because a set counting a piece
+// twice is the sort of thing a later edit does by accident.
+TEST(EquipDataTest, TheGuardianAngelRingFillsASlotOfTwoSets) {
+  std::set<EquipSetName> holding;
+  for (const std::pair<const std::string, EquipSet>& entry : LoadSets()) {
+    for (const EquipSetMember& member : entry.second.members()) {
+      for (const std::string& fills : member.items().name()) {
+        if (fills == "Guardian Angel Ring") {
+          EXPECT_EQ(member.slot(), EQUIP_SLOT_RING) << entry.first;
+          holding.insert(entry.second.name());
+        }
+      }
+    }
+  }
+  EXPECT_EQ(holding, std::set<EquipSetName>({EQUIP_SET_NAME_BOSS_ACCESSORY,
+                                             EQUIP_SET_NAME_DAWN_BOSS}));
+}
+
 // The four Root Abyss sets are one set written per branch, so what they pay
 // has to agree piece for piece: a class reading a weaker card than another
 // would be a typo nothing else catches. Totals rather than what each tier

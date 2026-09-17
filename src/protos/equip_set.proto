@@ -25,6 +25,7 @@ enum EquipSetName {
   EQUIP_SET_NAME_ABSOLAB_BOWMAN = 9;
   EQUIP_SET_NAME_ABSOLAB_MAGICIAN = 10;
   EQUIP_SET_NAME_ABSOLAB_THIEF = 11;
+  EQUIP_SET_NAME_DAWN_BOSS = 12;
 }
 
 // What wearing several pieces of one set is worth. Each tier is a SkillEffect

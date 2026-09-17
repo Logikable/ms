@@ -1,0 +1,53 @@
+name: "Guardian Angel Slime"
+difficulties {
+  # No Chaos: GMS's is 18x this body, and this one is already past what a
+  # party of the gear this game reaches can bring down.
+  name: "Normal"
+  # She wanders the row over the player's heads like Damien and Lotus, and
+  # every thirty seconds she leaves it: up to the gallery row and back down
+  # two thirds of a second later, onto the cell she left.
+  phases {
+    bgm: "BossGuardianSlime"
+    spawns {
+      mob: "guardian_angel_slime"
+      spots { x: 4 y: 4 }
+      walk {
+        interval_ms: 10000
+        range: RANGE_ROW_STEP
+        jump { interval_ms: 30000 y: 2 hang_ms: 660 }
+      }
+    }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  # Twenty-five minutes, what Lotus and Damien have. GMS allows thirty, and
+  # the body is three times Lotus's -- but the clock is not what this fight is
+  # meant to be lost to.
+  time_limit_seconds: 1500
+  # Her own level. GMS opens her at 210 beside the Black Heaven fights; ten
+  # levels further out is what says she is the rung above them.
+  unlock_level: 220
+  # Five Intense Power Crystals at what GMS prices this fight, divided by
+  # seven -- GMS clears her once a week and this game once a day -- and
+  # rounded to the nearest 50k.
+  meso: 33100000
+  # No EXP: GMS states none on her, as it does on Lotus.
+  exp: 0
+  # Half the clears, which is the only drop in the game that is not certain.
+  # GMS hands her ring out of a chest the party opens afterwards and rolls it
+  # there; the roll is what survives here, not the chest.
+  drops {
+    equip: "guardian_angel_ring"
+    per_kill: 0.5
+  }
+  drops {
+    item: "guardian_angel_slimes_soul_shard"
+    per_kill: 1.0
+  }
+}
