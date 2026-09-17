@@ -1058,6 +1058,37 @@ std::vector<Row> ChannelFinishRows(const Skill& skill, int level) {
 
 // What the skill itself does when it goes off: its damage, its healing, and
 // the shapes a plain lever row cannot state.
+// What a hold is worth and what it costs: where it grows, how many pulses one
+// press buys, and the bank it is bought out of rather than a cooldown.
+std::vector<Row> ChannelRows(const Skill& skill, int level) {
+  std::vector<Row> rows;
+  // Under the opening pulse: a count of pulses means nothing until the reader
+  // sees what arrives.
+  if (skill.channel().has_grown()) {
+    google::protobuf::RepeatedPtrField<SwingHit> grown;
+    *grown.Add() = skill.channel().grown();
+    Append(SwingHitRows(grown, level), rows);
+    rows.push_back(
+        EffectRow("Grows After",
+                  std::to_string(skill.channel().small_pulses()) + " Pulses"));
+  }
+  // A COUNT rather than a clock, and a ceiling rather than a promise -- the
+  // player lets go when it stops paying.
+  std::string pulses = "Up to " + std::to_string(skill.channel().max_pulses());
+  if (skill.channel().pulses_per_charge() > 0) {
+    pulses += ", " + std::to_string(skill.channel().pulses_per_charge()) +
+              " per Charge";
+  }
+  rows.push_back(EffectRow("Pulses", pulses));
+  if (skill.channel().charge_seconds() > 0.0) {
+    rows.push_back(EffectRow(
+        "Charges", "1 per " + FormatNumber(skill.channel().charge_seconds()) +
+                       "s, up to " +
+                       std::to_string(skill.channel().max_charges())));
+  }
+  return rows;
+}
+
 std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   bool held = skill.channel().max_pulses() > 0;
@@ -1067,35 +1098,8 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
     rows.push_back(EffectRow(held ? "Damage per Pulse" : "Damage",
                              DamageText(skill, level)));
   }
-  // What a growing hold grows into, and where. Under the opening pulse: a
-  // count of pulses means nothing until the reader sees what arrives.
-  if (held && skill.channel().has_grown()) {
-    google::protobuf::RepeatedPtrField<SwingHit> grown;
-    *grown.Add() = skill.channel().grown();
-    Append(SwingHitRows(grown, level), rows);
-    rows.push_back(
-        EffectRow("Grows After",
-                  std::to_string(skill.channel().small_pulses()) + " Pulses"));
-  }
-  // How many pulses one hold is worth: a COUNT rather than a clock, and a
-  // ceiling rather than a promise -- the player lets go when it stops
-  // paying.
   if (held) {
-    std::string pulses =
-        "Up to " + std::to_string(skill.channel().max_pulses());
-    if (skill.channel().pulses_per_charge() > 0) {
-      pulses += ", " + std::to_string(skill.channel().pulses_per_charge()) +
-                " per Charge";
-    }
-    rows.push_back(EffectRow("Pulses", pulses));
-  }
-  // The bank a hold is bought out of rather than a cooldown: the row a player
-  // reads to know when they can press it again.
-  if (held && skill.channel().charge_seconds() > 0.0) {
-    rows.push_back(EffectRow(
-        "Charges", "1 per " + FormatNumber(skill.channel().charge_seconds()) +
-                       "s, up to " +
-                       std::to_string(skill.channel().max_charges())));
+    Append(ChannelRows(skill, level), rows);
   }
   Append(RegenRows(skill, level), rows);
   // What one meso is worth thrown back, read as every other swing here is:
