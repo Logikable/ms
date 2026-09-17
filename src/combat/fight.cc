@@ -737,6 +737,15 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
     }
     Hurt(queue_[j], damage * freeze * share);
   }
+  StrikeRiders(attack, hit, lead);
+  double recovered = RollProcs(attack, hit);
+  ApplyStates(attack, hit);
+  Reap();
+  return recovered;
+}
+
+void CombatSim::StrikeRiders(const AttackOption& attack, int hit,
+                             const std::vector<int>& lead) {
   for (int j : lead) {
     double freeze = StateBoost(attack, queue_[j]);
     double damage =
@@ -774,17 +783,15 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
                                  queue_[j].type, LandingAt(j, freeze)) *
                         freeze);
   }
-  double recovered = RollProcs(attack, hit);
-  // Before the dead are cleared, so the indices reached are still the ones
-  // the marks are written to.
+}
+
+void CombatSim::ApplyStates(const AttackOption& attack, int hit) {
   ApplyDots(attack, hit);
   ApplyFreeze(attack, hit);
   ApplyStun(attack, hit);
   ApplyMark(attack, hit);
   ApplyWound(attack, hit);
   ApplyScar(attack, hit);
-  Reap();
-  return recovered;
 }
 
 // Rolled once for the whole swing, as GMS rolls it per attack: a second
@@ -2371,37 +2378,8 @@ void CombatSim::LandSwing(const CombatParams& params,
       attack_clocks_[swung].strikes_left = landed.strikes_in_sequence - 1;
       attack_clocks_[swung].next_strike_seconds = landed.cast_interval_seconds;
     }
-    // Read off the aimed attack, not off what landed: the strike belongs to
-    // the skill, not to the form standing in for it. After the swing, so it
-    // lands on what the swing left.
-    if (cast->side != nullptr &&
-        attack_clocks_[swung].side_cooldown_left <= 0.0) {
-      Strike(*cast->side, {DamageOrigin::kSideStrike, swung});
-      attack_clocks_[swung].side_cooldown_left = cast->side->cooldown_seconds;
-    }
-    // Read off the aimed attack for the same reason, and spent here: what is
-    // charged is the press, not the load's own clock.
-    if (cast->loaded != nullptr && cast->loaded_attack >= 0 &&
-        attack_clocks_[cast->loaded_attack].charges_left > 0) {
-      // A press finding fewer left than it would take spends what is there:
-      // GMS's charms go out in twos to fours.
-      int spent = std::min(cast->loaded->charges_per_swing,
-                           attack_clocks_[cast->loaded_attack].charges_left);
-      for (int i = 0; i < spent; ++i) {
-        Strike(*cast->loaded, {DamageOrigin::kLoad, cast->loaded_attack});
-      }
-      attack_clocks_[cast->loaded_attack].charges_left -= spent;
-    }
-    // Recovery rides the hit, so a cast earns none. What LANDED pays it, and
-    // the swing's own adds to the character's.
-    double recovered =
-        params.hp_recover_pct + landed.hp_recover_pct + proc_recovered;
-    // A hold pays per pulse, so letting go early is worth less of the pool.
-    // What the swing states is one pulse's.
-    if (landed.channel.pulses > 0) {
-      recovered += landed.channel.hp_recover_pct * held_pulses_;
-    }
-    RecoverHp(params, recovered);
+    StrikeExtras(*cast, swung);
+    RecoverHp(params, SwingRecovery(params, landed, proc_recovered));
     // The swing is over; a volley it sets off runs on a clock of its own.
     attributing_ = -1;
     // After the strike, so the volley lands on what the swing left standing.
@@ -2412,6 +2390,46 @@ void CombatSim::LandSwing(const CombatParams& params,
     CreditBuffs(params, cast->count_weight, landed.lines);
     LayBuffs(params, swung, /*on_cast=*/false);
   }
+  SpendSwingClocks(attack, swung);
+  attributing_ = -1;  // nothing is left to credit to this swing
+  aimed_ = -1;        // the swing landed, so the next one is chosen afresh
+  AimSwing(params);
+}
+
+void CombatSim::StrikeExtras(const AttackOption& cast, int swung) {
+  if (cast.side != nullptr && attack_clocks_[swung].side_cooldown_left <= 0.0) {
+    Strike(*cast.side, {DamageOrigin::kSideStrike, swung});
+    attack_clocks_[swung].side_cooldown_left = cast.side->cooldown_seconds;
+  }
+  // Spent here rather than on the load's own clock: what is charged is the
+  // press.
+  if (cast.loaded != nullptr && cast.loaded_attack >= 0 &&
+      attack_clocks_[cast.loaded_attack].charges_left > 0) {
+    // A press finding fewer left than it would take spends what is there:
+    // GMS's charms go out in twos to fours.
+    int spent = std::min(cast.loaded->charges_per_swing,
+                         attack_clocks_[cast.loaded_attack].charges_left);
+    for (int i = 0; i < spent; ++i) {
+      Strike(*cast.loaded, {DamageOrigin::kLoad, cast.loaded_attack});
+    }
+    attack_clocks_[cast.loaded_attack].charges_left -= spent;
+  }
+}
+
+double CombatSim::SwingRecovery(const CombatParams& params,
+                                const AttackOption& landed,
+                                double proc_recovered) const {
+  double recovered =
+      params.hp_recover_pct + landed.hp_recover_pct + proc_recovered;
+  // What the swing states is one pulse's, so letting go early is worth less
+  // of the pool.
+  if (landed.channel.pulses > 0) {
+    recovered += landed.channel.hp_recover_pct * held_pulses_;
+  }
+  return recovered;
+}
+
+void CombatSim::SpendSwingClocks(const AttackOption& attack, int swung) {
   // GMS charges Trickblade 14 seconds cold and 20 on a wound, so the wait is
   // the FORM's where one stood in.
   double wait = WoundFull(attack) ? attack.wound_form->cooldown_seconds
@@ -2432,9 +2450,6 @@ void CombatSim::LandSwing(const CombatParams& params,
     attack_clocks_[swung].hold_charges =
         std::max(0.0, attack_clocks_[swung].hold_charges - spent);
   }
-  attributing_ = -1;  // nothing is left to credit to this swing
-  aimed_ = -1;        // the swing landed, so the next one is chosen afresh
-  AimSwing(params);
 }
 
 void CombatSim::MergeEngagedWindow(const CombatParams& params) {
@@ -2530,7 +2545,7 @@ bool CombatSim::PublishCast() {
   return true;
 }
 
-void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
+void CombatSim::OpenStep(const CombatParams& params) {
   active_ = params.active;
   measuring_ = params.measuring;
   view_.kills_this_step.assign(params.types.size(), 0);
@@ -2538,6 +2553,24 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   view_.respawned_this_step = false;
   view_.died_this_step = false;
   ledger_.BeginStep(params.record_damage_lines);
+}
+
+void CombatSim::GrowForAttacks(const CombatParams& params) {
+  const std::vector<AttackOption>& fresh = Attacks(params);
+  int had_clocks = static_cast<int>(attack_clocks_.size());
+  attack_clocks_.resize(fresh.size());
+  for (int i = had_clocks; i < static_cast<int>(attack_clocks_.size()); ++i) {
+    attack_clocks_[i].hold_charges = fresh[i].channel.max_charges;
+    attack_clocks_[i].charges_left = fresh[i].recharge_max;
+  }
+  damage_by_attack_.resize(fresh.size(), 0.0);
+  swings_by_attack_.resize(fresh.size(), 0);
+  final_attack_damage_by_attack_.resize(fresh.size(), 0.0);
+  burn_damage_by_attack_.resize(fresh.size(), 0.0);
+}
+
+void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
+  OpenStep(params);
   if (!CanFight(params)) {
     GoIdle();
     return;
@@ -2568,20 +2601,8 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   revive_left_ = std::max(0.0, revive_left_ - dt);
   RespawnBeat(params, dt);
   TakeMobHit(params, dt);
-  // Grown before the buffs run: one going up now loads its magazine's swing
-  // and needs that clock to exist.
-  int had_clocks = static_cast<int>(attack_clocks_.size());
-  attack_clocks_.resize(Attacks(params).size());
-  // A bank starts FULL, as a cooldown starts ready.
-  const std::vector<AttackOption>& fresh = Attacks(params);
-  for (int i = had_clocks; i < static_cast<int>(attack_clocks_.size()); ++i) {
-    attack_clocks_[i].hold_charges = fresh[i].channel.max_charges;
-    attack_clocks_[i].charges_left = fresh[i].recharge_max;
-  }
-  damage_by_attack_.resize(Attacks(params).size(), 0.0);
-  swings_by_attack_.resize(Attacks(params).size(), 0);
-  final_attack_damage_by_attack_.resize(Attacks(params).size(), 0.0);
-  burn_damage_by_attack_.resize(Attacks(params).size(), 0.0);
+  // Before the buffs run, so one going up this step has its clock.
+  GrowForAttacks(params);
   // After the hit, so a buff raised now answers it with its heal, and before
   // anything attacks, so this step swings with it.
   RunBuffs(params, dt);

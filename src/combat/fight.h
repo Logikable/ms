@@ -264,6 +264,14 @@ class CombatSim {
   // Returns the share of the pool its rolled chances put back, reported
   // rather than paid as the kills are. `pulses` is how long a HELD swing was
   // held; -1 lets the strike decide against the queue in front of it.
+  // The banks that ride a strike rather than being it: the lead hit, both
+  // final-attack banks and the wide hit. Rolled after the strike proper, so
+  // they find the marks it spent.
+  void StrikeRiders(const AttackOption& attack, int hit,
+                    const std::vector<int>& lead);
+  // Writes every state the strike leaves on what it reached. Before the dead
+  // are cleared, so the indices are still the ones the marks are written to.
+  void ApplyStates(const AttackOption& attack, int hit);
   double Strike(const AttackOption& attack, DamageSource source,
                 int pulses = -1);
   // Pulses worth holding for: enough to bring every enemy it locked onto
@@ -509,6 +517,13 @@ class CombatSim {
   // dealt. The pending count is taken before anything strikes, so a wide cast
   // on a dying crowd cannot set itself off again and again in one step.
   void CreditKills(const CombatParams& params);
+  // Clears what the step reports and opens the ledger's own. Everything here
+  // describes THIS step, so none of it survives the last one.
+  void OpenStep(const CombatParams& params);
+  // Makes room for attacks that appeared since the last step -- a buff going
+  // up loads its magazine's swing and needs that clock to exist. A bank
+  // starts full, as a cooldown starts ready.
+  void GrowForAttacks(const CombatParams& params);
   // Winds the cooldowns down before the swing is aimed, so one coming back
   // this step is available to it.
   void RunCooldowns(const CombatParams& params, double dt);
@@ -520,6 +535,17 @@ class CombatSim {
   // One swing landing: the strike and everything riding on it. Leaves the
   // next swing aimed.
   void LandSwing(const CombatParams& params, const AttackOption& attack);
+  // The side strike and the load the press sets off, both read off the AIMED
+  // attack rather than the form that stood in for it: they belong to the
+  // skill. Lands on what the swing left standing.
+  void StrikeExtras(const AttackOption& cast, int swung);
+  // The share of the HP pool `landed` recovers. Recovery rides the hit, so a
+  // cast earns none, and a hold pays per pulse rather than per press.
+  double SwingRecovery(const CombatParams& params, const AttackOption& landed,
+                       double proc_recovered) const;
+  // What the swing costs its own clocks: the cooldown, a charge, and the
+  // lights a hold burned through.
+  void SpendSwingClocks(const AttackOption& attack, int swung);
   // Takes `damage` off `mob` and counts it. Every way the character does
   // damage goes through here.
   void Hurt(QueuedMob& mob, double damage);
