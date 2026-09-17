@@ -2401,6 +2401,36 @@ bool CharacterInstance::Equip(int inventory_index, StatPreset preset) {
   return true;
 }
 
+CharacterInstance::CharacterInstance(const CharacterInstance& other, WornOnly)
+    : autoswap_presets_(other.autoswap_presets_),
+      rng_(other.rng_),
+      character_(other.character_),
+      worn_(other.worn_),
+      resolved_(other.resolved_),
+      etc_items_(other.etc_items_),
+      equip_stats_(other.equip_stats_),
+      symbol_stats_(other.symbol_stats_),
+      potential_totals_(other.potential_totals_),
+      arcane_force_(other.arcane_force_),
+      equip_sets_(other.equip_sets_),
+      set_bonuses_(other.set_bonuses_) {
+}
+
+CharacterInstance CharacterInstance::Wearing(const EquipTabItem& item,
+                                             StatPreset preset) const {
+  CharacterInstance probe(*this, WornOnly{});
+  EquipSlot slot = SlotToFill(item.prototype(), preset);
+  if (slot == EQUIP_SLOT_UNSPECIFIED) {
+    return probe;
+  }
+  // Rebuilt from the state rather than copied, so a trace prices as the item
+  // it is a trace of.
+  probe.worn_[IndexOf(preset)].insert_or_assign(
+      slot, EquipInstance(item.prototype(), item.equip_state()));
+  probe.RecomputeEquipStats();
+  return probe;
+}
+
 bool CharacterInstance::Unequip(EquipSlot slot, StatPreset preset) {
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return false;

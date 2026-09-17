@@ -2363,6 +2363,65 @@ TEST_F(EquipTest, RefusesAnEmptyIndexOrAnItemWithNoSlot) {
   EXPECT_FALSE(c_.Equip(0));
 }
 
+// --- Wearing ---
+
+class WearingTest : public CharacterEquipFixture {};
+
+// The probe wears the piece and the character does not, which is the whole of
+// what pricing an item on a shop shelf needs. The bag is left behind with it:
+// no stat is read off one.
+TEST_F(WearingTest, PutsThePieceOnACopyAndLeavesTheCharacterAlone) {
+  sword_.mutable_base_stats()->set_str(50);
+  EquipInstance blade(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+
+  CharacterInstance probe = c_.Wearing(blade, StatPreset::kFirst);
+  EXPECT_EQ(probe.equip_stats(StatPreset::kFirst).str(), 50);
+  EXPECT_EQ(probe.inventory().size(), 0);
+  EXPECT_EQ(c_.equip_stats(StatPreset::kFirst).str(), 0)
+      << "nothing reached the character";
+  EXPECT_EQ(c_.inventory().size(), 1);
+}
+
+// It replaces rather than stacks: what the slot held is what the piece would
+// displace, so counting both would price the swap as a gain twice over.
+TEST_F(WearingTest, ReplacesWhatTheSlotHolds) {
+  sword_.mutable_base_stats()->set_str(10);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  ASSERT_TRUE(c_.Equip(0));
+
+  EquipPrototype axe = sword_;
+  axe.set_name("Axe");
+  axe.mutable_base_stats()->set_str(40);
+  EquipInstance better(axe);
+  EXPECT_EQ(c_.Wearing(better, StatPreset::kFirst)
+                .equip_stats(StatPreset::kFirst)
+                .str(),
+            40);
+}
+
+// A piece naming no slot this character can fill has nothing to price, and
+// the copy comes back as they are.
+TEST_F(WearingTest, APieceWithNowhereToGoChangesNothing) {
+  EquipPrototype nowhere;
+  nowhere.set_name("Nowhere");
+  EquipInstance item(nowhere);
+  EXPECT_EQ(c_.Wearing(item, StatPreset::kFirst)
+                .equip_stats(StatPreset::kFirst)
+                .str(),
+            c_.equip_stats(StatPreset::kFirst).str());
+}
+
+// Each preset is priced on its own: a piece put into the second leaves the
+// first wearing what it wore.
+TEST_F(WearingTest, PricesThePresetItIsAsked) {
+  sword_.mutable_base_stats()->set_str(50);
+  EquipInstance blade(sword_);
+  CharacterInstance probe = c_.Wearing(blade, StatPreset::kSecond);
+  EXPECT_EQ(probe.equip_stats(StatPreset::kSecond).str(), 50);
+  EXPECT_EQ(probe.equip_stats(StatPreset::kFirst).str(), 0);
+}
+
 // --- Unequip ---
 
 TEST_F(UnequipTest, MovesItemToInventory) {

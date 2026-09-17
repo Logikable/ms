@@ -665,8 +665,21 @@ class CharacterInstance {
   // against, and what the inspect screen greys its unearned tiers by.
   int PiecesWornOf(const EquipSet& set,
                    StatPreset preset = StatPreset::kFirst) const;
+  // A copy of this character with `item` worn in `preset`, for pricing a piece
+  // that is not theirs to wear yet -- the shop's shelf, another player's
+  // sheet. Nothing leaves the copy, and nothing else about it moves: the bag
+  // keeps whatever it held, the displaced item simply is not there. Handed
+  // back unchanged when the item names no slot this character can fill.
+  CharacterInstance Wearing(const EquipTabItem& item, StatPreset preset) const;
 
  private:
+  // A copy of `other` carrying everything a stat is read off and an empty bag.
+  // The bag is the one part of a character that cannot be copied at all -- it
+  // holds the items by pointer -- and no stat is read off it. What Wearing
+  // builds its probe on.
+  struct WornOnly {};
+  CharacterInstance(const CharacterInstance& other, WornOnly);
+
   // Buys `amount` levels of a V Matrix node out of the V Point pool, at what
   // its kind's ladder charges for the levels being crossed. All or nothing.
   bool LearnVNode(const Skill& skill, int amount);
