@@ -805,7 +805,7 @@ TEST(BossSelectPanelTest, TheOptionsRowDrawsThePracticeSwitch) {
   state.boss_options.set_practice(true);
   EXPECT_TRUE(panel.practice());
   rows = RenderRows(panel);
-  EXPECT_NE(rows[RowOf(rows, "Options") + 1].find("[X] Practice"),
+  EXPECT_NE(rows[RowOf(rows, "Options") + 1].find("[✓] Practice"),
             std::string::npos);
 
   panel.SwitchPanel(2);

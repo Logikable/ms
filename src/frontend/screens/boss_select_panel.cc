@@ -49,9 +49,9 @@ constexpr int kOptionCount = 1;
 // One switch: its box, and the name beside it. The box leads, so the row reads
 // as a column of states rather than a sentence to the end of.
 ftxui::Element OptionChip(const std::string& label, bool on, bool on_cursor) {
-  return HighlightRow(
-      ftxui::text(std::string("[") + (on ? "X" : " ") + "] " + label),
-      on_cursor);
+  return HighlightRow(ftxui::text((on ? kCheckedBox : kUncheckedBox) +
+                                  std::string(" ") + label),
+                      on_cursor);
 }
 
 std::string ResetName(ResetPeriod period) {

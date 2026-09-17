@@ -12,9 +12,6 @@
 namespace ms {
 namespace {
 
-// The box and what stands in it when the switch is thrown.
-constexpr char kChecked[] = "[✓]";
-constexpr char kUnchecked[] = "[ ]";
 std::string OptionName(Option option) {
   switch (option) {
     case Option::kPanelTitleBlink:
@@ -147,7 +144,8 @@ ftxui::Element OptionsPanel::RenderRow(Option option, int row) const {
   ftxui::Element value =
       IsVolume(option)
           ? RenderBar(VolumeOf(option))
-          : ftxui::text(IsOn(option) ? kChecked : kUnchecked) | ftxui::center;
+          : ftxui::text(IsOn(option) ? kCheckedBox : kUncheckedBox) |
+                ftxui::center;
   value =
       std::move(value) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kValueColumn);
   // A band rather than an inversion: inverting a bar swaps what is filled for

@@ -85,6 +85,11 @@ ftxui::Element DialogWindow(const std::string& title,
 // selection the arrows would not move.
 ftxui::Element HighlightRow(ftxui::Element row, bool on_cursor);
 
+// The box a switch is drawn as, thrown and not. Every screen with a switch on
+// it draws this one, so the mark never depends on which screen you are on.
+inline constexpr char kCheckedBox[] = "[✓]";
+inline constexpr char kUncheckedBox[] = "[ ]";
+
 // The one way a panel says it has nothing to show: " (empty)". A specific
 // reason only where it tells the player something they cannot see.
 ftxui::Element EmptyState(const std::string& what, int gutter = 1);
