@@ -27,7 +27,6 @@
 namespace ms {
 namespace {
 
-constexpr int kBossNameWidth = 16;
 constexpr int kDifficultyWidth = 10;
 // The detail rows are a label and a right-aligned value, so the panel does not
 // breathe as a number gains a digit.

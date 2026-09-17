@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "src/frontend/screens/boss_fight_panel.h"
+#include "src/frontend/screens/boss_select_panel.h"
 #include "src/item/item.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
@@ -739,6 +740,16 @@ TEST_F(BossDataTest, EveryJumpLandsInsideItsArenaBeforeTheNextIsDue) {
     }
   }
   EXPECT_EQ(jumps, 1) << "the Guardian Angel Slime is the only one that jumps";
+}
+
+// A name wider than the grid's name column is not cut -- it runs straight into
+// the Difficulty beside it, which is how "Guardian Angel Slime" first read as
+// "Guardian Angel SNormal".
+TEST_F(BossDataTest, EveryNameFitsTheColumnTheGridDrawsItIn) {
+  for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
+    EXPECT_LT(static_cast<int>(entry.second.name().size()), kBossNameWidth)
+        << entry.second.name() << " runs into the Difficulty column";
+  }
 }
 
 // Where the parts stand is data, and two of them in one cell is a bar drawn on

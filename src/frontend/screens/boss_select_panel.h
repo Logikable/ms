@@ -26,6 +26,10 @@
 
 namespace ms {
 
+// The name column of the grid, in cells. A name over it is not cut -- it runs
+// into the Difficulty column beside it -- so the catalog is tested against it.
+inline constexpr int kBossNameWidth = 21;
+
 // What one phase is holding, for the detail panel and for anything else that
 // wants to price a fight without walking the spawn list itself.
 int64_t PhaseHp(const GameState& state, const BossPhase& phase);
