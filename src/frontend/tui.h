@@ -162,7 +162,6 @@ class Tui {
   ftxui::Element RenderCubing();
   ftxui::Element RenderInspect();
   ftxui::Element RenderScroll();
-  ftxui::Element RenderExpBar();
   // Advances the world by the time since the previous call: combat, and the
   // playtime the session is accruing. Both come off one reading of a
   // monotonic clock, so they cannot disagree about how long a tick was.

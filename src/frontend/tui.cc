@@ -41,6 +41,7 @@
 #include "src/frontend/widgets/amount_selector.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/exp_bar.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_menu.h"
@@ -54,23 +55,6 @@
 
 namespace ms {
 namespace {
-
-// Returns decimal places for EXP percentage display, scaled by job tier.
-int ExpPctDecimals(int level) {
-  if (level < 60) {
-    return 0;
-  }
-  if (level < 100) {
-    return 1;
-  }
-  if (level < 200) {
-    return 2;
-  }
-  if (level < 260) {
-    return 3;
-  }
-  return 4;
-}
 
 // Every kill the step recorded, whatever stood on the map.
 int64_t TotalKills(const CombatSim& sim) {
@@ -1106,7 +1090,7 @@ ftxui::Element Tui::RenderMain() {
   ftxui::Element layout =
       MainLayout(widths, char_panel_.Render(), combat_component_->Render(),
                  std::move(equipped), std::move(inventory), std::move(corner),
-                 RenderExpBar());
+                 ExpBar(state_.character.proto()));
   // Floated so a menu opened near the foot of a panel hangs off it rather than
   // being cut off at the edge of the terminal.
   ftxui::Element menu = OpenMenu(widths);
@@ -1114,29 +1098,6 @@ ftxui::Element Tui::RenderMain() {
     return layout;
   }
   return ftxui::dbox({layout, std::move(menu)});
-}
-
-ftxui::Element Tui::RenderExpBar() {
-  const Character& p = state_.character.proto();
-  std::string label;
-  float frac;
-  if (p.level() >= kTrialLevelCap) {
-    // Full rather than empty. There is no next level to fill towards, and a
-    // bar sitting at 0% reads like the EXP was taken away.
-    label = "MAX";
-    frac = 1.0f;
-  } else {
-    int64_t exp = p.exp();
-    int64_t tnl = ExpToNextLevel(p.level());
-    frac = tnl > 0 ? static_cast<float>(exp) / static_cast<float>(tnl) : 0.0f;
-    double pct =
-        tnl > 0 ? static_cast<double>(exp) * 100.0 / static_cast<double>(tnl)
-                : 0.0;
-    char buf[16];
-    snprintf(buf, sizeof(buf), "%.*f%%", ExpPctDecimals(p.level()), pct);
-    label = FormatWithCommas(exp) + " (" + buf + ")";
-  }
-  return ProgressBar(frac, kTheme, label);
 }
 
 void Tui::Tick() {

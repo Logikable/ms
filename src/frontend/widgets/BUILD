@@ -47,6 +47,35 @@ cc_test(
 )
 
 cc_library(
+    name = "exp_bar",
+    srcs = ["exp_bar.cc"],
+    hdrs = ["exp_bar.h"],
+    deps = [
+        ":chrome",
+        ":colors",
+        ":format",
+        "//src/character:exp_table",
+        "//src/protos:character_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "exp_bar_test",
+    size = "small",
+    srcs = ["exp_bar_test.cc"],
+    deps = [
+        ":colors",
+        ":exp_bar",
+        "//src/character:exp_table",
+        "//src/protos:character_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "format",
     srcs = ["format.cc"],
     hdrs = ["format.h"],

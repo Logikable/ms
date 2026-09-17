@@ -355,6 +355,7 @@ cc_library(
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:confirm_prompt",
         "//src/frontend/widgets:continue_prompt",
+        "//src/frontend/widgets:exp_bar",
         "//src/frontend/widgets:format",
         "//src/frontend/widgets:game_names",
         "//src/frontend/widgets:item_menu",
