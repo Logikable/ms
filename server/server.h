@@ -87,6 +87,9 @@ class Server {
     bool closing = false;
     std::string account_id;
     PlayerInfo player;
+    // The player this client has open on its Inspect screen, whose sheet it
+    // is sent whenever they change. Empty while it is reading nobody.
+    std::string watching;
     std::chrono::steady_clock::time_point last_heard;
   };
 
@@ -100,6 +103,15 @@ class Server {
   // Sends everyone whatever the lobby changed: their own party to the players
   // it moved, and the open list to everybody once it has.
   void PublishLobby();
+  // Sends the roster to everybody, once somebody has arrived, gone, or
+  // changed in a way it shows.
+  void PublishOnline();
+  // Everyone connected, in the order they arrived and without their sheets.
+  OnlinePlayers Roster() const;
+  // Sends `account_id`'s sheet to whoever is reading them. Called whenever
+  // their character changes, which is what keeps an open Inspect screen in
+  // step with the player it is drawing.
+  void PublishWatched(const std::string& account_id);
 
   // Stands up the fight a party has just been let into.
   void OpenFight(const std::string& account_id, const StartFight& request);
@@ -138,6 +150,10 @@ class Server {
   // Takes the character a client sent, under the account and the name the
   // server allows rather than the ones it was handed.
   void SetPlayer(Session& session, const PlayerInfo& player);
+  // Points `session` at the player it is reading, and sends their sheet. An
+  // empty account is the screen closing, and a player who has gone is
+  // watched all the same: nothing is sent until they come back.
+  void HandleWatch(Session& session, const WatchPlayer& watch);
 
   // Queues `message` for `session`.
   void Send(Session& session, const ServerMessage& message);
@@ -148,8 +164,8 @@ class Server {
   void Reject(Session& session, Rejected::Reason reason,
               const std::string& message);
 
-  // Queues the open party list for `session` alone, which is what a player
-  // arriving needs before anything changes.
+  // Queues the open party list and the roster for `session` alone, which is
+  // what a player arriving needs before anything changes.
   void SendListing(Session& session);
 
   // The account `hello` claims, or a fresh one. Empty when the token does not
@@ -178,6 +194,8 @@ class Server {
   std::map<std::string, std::string> tokens_;
   std::mt19937 rng_;
   int protocol_version_ = kMultiplayerVersion;
+  // Whether the roster has changed since it was last sent.
+  bool online_changed_ = false;
   bool draining_ = false;
 };
 

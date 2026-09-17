@@ -105,6 +105,8 @@ void MultiplayerClient::Stop() {
   snapshot_.state = ConnectionState::kOffline;
   snapshot_.parties.Clear();
   snapshot_.party.Clear();
+  snapshot_.online.Clear();
+  snapshot_.watched.Clear();
 }
 
 void MultiplayerClient::Reconnect() {
@@ -161,6 +163,17 @@ void MultiplayerClient::Kick(const std::string& account_id) {
 void MultiplayerClient::Promote(const std::string& account_id) {
   ClientMessage message;
   message.mutable_promote_member()->set_account_id(account_id);
+  Ask(message);
+}
+
+void MultiplayerClient::WatchPlayer(const std::string& account_id) {
+  {
+    // The sheet on hand belongs to whoever was being read before.
+    std::lock_guard<std::mutex> lock(mutex_);
+    snapshot_.watched.Clear();
+  }
+  ClientMessage message;
+  message.mutable_watch_player()->set_account_id(account_id);
   Ask(message);
 }
 
@@ -328,6 +341,12 @@ void MultiplayerClient::Handle(const ServerMessage& message, bool& keep) {
     case ServerMessage::kPartyState:
       snapshot_.party = message.party_state().party();
       return;
+    case ServerMessage::kOnlinePlayers:
+      snapshot_.online = message.online_players();
+      return;
+    case ServerMessage::kPlayerSheet:
+      snapshot_.watched = message.player_sheet().player();
+      return;
     case ServerMessage::kRefused:
       snapshot_.notice = message.refused().message();
       snapshot_.notice_is_refusal = true;
@@ -402,6 +421,8 @@ void MultiplayerClient::ForgetLobby() {
   outcome_ = Attempt::kFailed;
   snapshot_.parties.Clear();
   snapshot_.party.Clear();
+  snapshot_.online.Clear();
+  snapshot_.watched.Clear();
   // A fight does not survive the connection that was watching it.
   fight_.clear();
 }

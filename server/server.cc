@@ -200,6 +200,7 @@ void Server::Step(std::chrono::steady_clock::time_point now,
   // same pass rather than a poll later.
   PublishFights(now);
   PublishLobby();
+  PublishOnline();
   for (const std::unique_ptr<Session>& session : sessions_) {
     if (session->socket.valid() && !session->outgoing.empty() &&
         !WriteSession(*session)) {
@@ -221,6 +222,7 @@ void Server::DropFinished(std::chrono::steady_clock::time_point now) {
     }
     if (!session->socket.valid() && !session->account_id.empty()) {
       LOG(INFO) << Describe(*session) << " disconnected";
+      online_changed_ = true;
       PartyFight* fight = FightOf(session->account_id);
       if (fight != nullptr) {
         fight->Disconnect(session->account_id);
@@ -237,6 +239,7 @@ void Server::DropFinished(std::chrono::steady_clock::time_point now) {
   // A player leaving changes what the others can see, and the sessions left
   // to tell are the ones still here.
   PublishLobby();
+  PublishOnline();
 }
 
 void Server::OpenFight(const std::string& account_id,
@@ -399,6 +402,52 @@ void Server::PublishLobby() {
   }
 }
 
+void Server::PublishOnline() {
+  if (!online_changed_) {
+    return;
+  }
+  online_changed_ = false;
+  ServerMessage message;
+  *message.mutable_online_players() = Roster();
+  for (const std::unique_ptr<Session>& session : sessions_) {
+    if (session->greeted && !session->closing && session->socket.valid()) {
+      Send(*session, message);
+    }
+  }
+}
+
+OnlinePlayers Server::Roster() const {
+  OnlinePlayers roster;
+  for (const std::unique_ptr<Session>& session : sessions_) {
+    if (!session->greeted || session->closing || !session->socket.valid()) {
+      continue;
+    }
+    PlayerInfo* player = roster.add_players();
+    *player = session->player;
+    // What the list draws is a name and a level. The sheet behind them is
+    // asked for one at a time; see WatchPlayer.
+    player->clear_sheet();
+    player->clear_boss_clears();
+  }
+  return roster;
+}
+
+void Server::PublishWatched(const std::string& account_id) {
+  Session* watched = FindSession(account_id);
+  if (watched == nullptr) {
+    return;
+  }
+  for (const std::unique_ptr<Session>& session : sessions_) {
+    if (session->watching != account_id || session->closing ||
+        !session->socket.valid()) {
+      continue;
+    }
+    ServerMessage message;
+    *message.mutable_player_sheet()->mutable_player() = watched->player;
+    Send(*session, message);
+  }
+}
+
 Server::Session* Server::FindSession(const std::string& account_id) {
   for (const std::unique_ptr<Session>& session : sessions_) {
     if (session->socket.valid() && !session->closing &&
@@ -518,6 +567,9 @@ void Server::Handle(Session& session, const ClientMessage& message) {
       }
       return;
     }
+    case ClientMessage::kWatchPlayer:
+      HandleWatch(session, message.watch_player());
+      return;
     case ClientMessage::KIND_NOT_SET:
       Reject(session, Rejected::REASON_MALFORMED, "Empty message.");
       return;
@@ -541,6 +593,13 @@ void Server::SetPlayer(Session& session, const PlayerInfo& player) {
   session.player.set_name(DisplayName(player.name()));
 }
 
+void Server::HandleWatch(Session& session, const WatchPlayer& watch) {
+  session.watching = watch.account_id();
+  if (!session.watching.empty()) {
+    PublishWatched(session.watching);
+  }
+}
+
 void Server::HandleLobby(Session& session, const ClientMessage& message) {
   if (message.kind_case() == ClientMessage::kUpdatePlayer) {
     // Read before the change lands, so a rename names both sides of it.
@@ -548,9 +607,13 @@ void Server::HandleLobby(Session& session, const ClientMessage& message) {
         Became(session.player, message.update_player().player());
     if (!became.empty()) {
       LOG(INFO) << Describe(session) << " " << became;
+      // The roster carries exactly what Became reads, so anything else on the
+      // sheet leaves the list alone.
+      online_changed_ = true;
     }
     SetPlayer(session, message.update_player().player());
     lobby_.UpdatePlayer(session.player);
+    PublishWatched(session.account_id);
     return;
   }
   std::string asked = AskedFor(message);
@@ -626,6 +689,9 @@ void Server::HandleHello(Session& session, const Hello& hello) {
   welcome.mutable_welcome()->set_token(token);
   Send(session, welcome);
   SendListing(session);
+  // The roster now has them in it, and the broadcast this pass is what sends
+  // it -- to the player who has just arrived along with everybody else.
+  online_changed_ = true;
   LOG(INFO) << Describe(session) << " arrived at level "
             << session.player.level();
 }

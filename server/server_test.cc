@@ -111,6 +111,24 @@ std::map<std::string, Mob> Mobs() {
   return mobs;
 }
 
+// A client saying its character has moved: a level, and a sheet to prove the
+// listing strips one.
+ClientMessage UpdateMessage(const std::string& name, int level) {
+  ClientMessage message;
+  PlayerInfo* player = message.mutable_update_player()->mutable_player();
+  player->set_name(name);
+  player->set_level(level);
+  player->mutable_sheet()->set_level(level);
+  return message;
+}
+
+// What a client sends when it opens the Inspect screen on somebody.
+ClientMessage WatchMessage(const std::string& account_id) {
+  ClientMessage message;
+  message.mutable_watch_player()->set_account_id(account_id);
+  return message;
+}
+
 // What a client asks for when it wants a party of its own.
 ClientMessage CreatePartyMessage() {
   ClientMessage message;
@@ -329,6 +347,80 @@ TEST_F(ServerTest, ShowsTheListToAPlayerArriving) {
   AwaitKind(client, ServerMessage::kWelcome);
   ServerMessage listing = AwaitKind(client, ServerMessage::kPartyList);
   EXPECT_EQ(listing.party_list().parties_size(), 0);
+}
+
+TEST_F(ServerTest, ListsEveryoneOnlineWithoutTheirSheets) {
+  Welcome first_welcome;
+  std::unique_ptr<TestClient> first = Greeted("Dagger", &first_welcome);
+  first->Send(UpdateMessage("Dagger", 150));
+  Welcome second_welcome;
+  std::unique_ptr<TestClient> second = Greeted("Wand", &second_welcome);
+
+  // The roster the second player's arrival sent everybody.
+  ServerMessage message = AwaitKind(*second, ServerMessage::kOnlinePlayers);
+  ASSERT_EQ(message.online_players().players_size(), 2);
+  const PlayerInfo& listed = message.online_players().players(0);
+  EXPECT_EQ(listed.account_id(), first_welcome.account_id());
+  EXPECT_EQ(listed.name(), "Dagger");
+  EXPECT_EQ(listed.level(), 150);
+  // A name and a level is all the list draws, and a sheet on every row would
+  // put a save's worth of message in front of everybody.
+  EXPECT_FALSE(listed.has_sheet());
+  EXPECT_EQ(message.online_players().players(1).name(), "Wand");
+}
+
+TEST_F(ServerTest, TakesAPlayerOffTheRosterWhenTheyGo) {
+  Welcome first_welcome;
+  std::unique_ptr<TestClient> first = Greeted("Dagger", &first_welcome);
+  Welcome second_welcome;
+  std::unique_ptr<TestClient> second = Greeted("Wand", &second_welcome);
+  second.reset();
+  // Past the rosters the two arrivals sent, to the one their leaving did.
+  ServerMessage message;
+  ASSERT_TRUE(StepUntil([&]() {
+    return first->Take(message) &&
+           message.kind_case() == ServerMessage::kOnlinePlayers &&
+           message.online_players().players_size() == 1;
+  }));
+  EXPECT_EQ(message.online_players().players(0).name(), "Dagger");
+}
+
+TEST_F(ServerTest, SendsAWatchedPlayersSheetAndKeepsItFresh) {
+  Welcome reader_welcome;
+  std::unique_ptr<TestClient> reader = Greeted("Dagger", &reader_welcome);
+  Welcome read_welcome;
+  std::unique_ptr<TestClient> read = Greeted("Wand", &read_welcome);
+  read->Send(UpdateMessage("Wand", 120));
+
+  reader->Send(WatchMessage(read_welcome.account_id()));
+  ServerMessage message = AwaitKind(*reader, ServerMessage::kPlayerSheet);
+  EXPECT_EQ(message.player_sheet().player().account_id(),
+            read_welcome.account_id());
+
+  // A sheet that moves under the reader is sent again, so the screen they are
+  // on is the character as they stand.
+  read->Send(UpdateMessage("Wand", 121));
+  EXPECT_TRUE(StepUntil([&]() {
+    return reader->Take(message) &&
+           message.kind_case() == ServerMessage::kPlayerSheet &&
+           message.player_sheet().player().sheet().level() == 121;
+  }));
+}
+
+TEST_F(ServerTest, SendsNoSheetOnceTheWatchIsOver) {
+  Welcome reader_welcome;
+  std::unique_ptr<TestClient> reader = Greeted("Dagger", &reader_welcome);
+  Welcome read_welcome;
+  std::unique_ptr<TestClient> read = Greeted("Wand", &read_welcome);
+  reader->Send(WatchMessage(read_welcome.account_id()));
+  AwaitKind(*reader, ServerMessage::kPlayerSheet);
+
+  reader->Send(WatchMessage(""));
+  // Something the roster carries, so there is a message to read past the one
+  // a live watch would have sent.
+  read->Send(UpdateMessage("Wand", 133));
+  ServerMessage message = AwaitKind(*reader, ServerMessage::kOnlinePlayers);
+  EXPECT_EQ(message.online_players().players(1).level(), 133);
 }
 
 TEST_F(ServerTest, PutsAPartyInFrontOfEverybody) {

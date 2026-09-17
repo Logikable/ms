@@ -236,6 +236,13 @@ message FightEnded {
 // nothing, and the fight goes on for whoever is left.
 message LeaveFight {}
 
+// Who this client has open on the Inspect screen, so the server sends their
+// sheet and keeps it fresh. An empty account says the screen has closed. One
+// at a time: the screen reads one player.
+message WatchPlayer {
+  string account_id = 1;
+}
+
 // The heartbeat. A session that goes quiet for kSessionTimeout is dropped.
 message Ping {}
 
@@ -253,6 +260,7 @@ message ClientMessage {
     PromoteMember promote_member = 10;
     FightUpdate fight_update = 11;
     LeaveFight leave_fight = 12;
+    WatchPlayer watch_player = 13;
   }
 }
 
@@ -316,6 +324,22 @@ message PartyList {
   repeated Party parties = 1;
 }
 
+// Everyone connected, as the Players list draws them. Pushed whenever the
+// roster changes, in the order the players arrived.
+//
+// Without their sheets, the way the party listing goes without them: a client
+// sends a fresh sheet whenever its character moves, and a roster carrying
+// every sheet would send all of them to everybody. WatchPlayer asks for one.
+message OnlinePlayers {
+  repeated PlayerInfo players = 1;
+}
+
+// The player this client is watching, whole. Sent when the watch starts and
+// again whenever their character changes under the reader.
+message PlayerSheet {
+  PlayerInfo player = 1;
+}
+
 // The party this client is in. An empty `party` means they are in none, which
 // is how leaving, being closed on, and never having joined all read alike.
 message PartyState {
@@ -349,5 +373,7 @@ message ServerMessage {
     PartyEvent party_event = 7;
     FightState fight_state = 8;
     FightEnded fight_ended = 9;
+    OnlinePlayers online_players = 10;
+    PlayerSheet player_sheet = 11;
   }
 }

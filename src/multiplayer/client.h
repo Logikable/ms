@@ -61,6 +61,12 @@ struct MultiplayerSnapshot {
   std::string token;
   // Every party open to be joined.
   PartyList parties;
+  // Everyone connected, name and level only. The Players list draws these.
+  OnlinePlayers online;
+  // The player being read on the Inspect screen, sheet and all. Empty until
+  // the server answers a watch, and cleared whenever the watch moves -- so a
+  // screen never draws the last player under this one's name.
+  PlayerInfo watched;
   // The party this player is in. No id means they are in none.
   Party party;
   // The last thing the server had to say to this player alone: an action it
@@ -122,6 +128,9 @@ class MultiplayerClient {
   void SetReady(bool ready);
   void Kick(const std::string& account_id);
   void Promote(const std::string& account_id);
+  // Asks for `account_id`'s sheet, and for a fresh one whenever they change.
+  // An empty account stops the watch, which is what closing the screen does.
+  void WatchPlayer(const std::string& account_id);
   void StartFight(const std::string& boss_key, int difficulty_index,
                   PartyMode mode);
   // What this client's fight has landed, where its player is standing, and
