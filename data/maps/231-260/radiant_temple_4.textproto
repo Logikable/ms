@@ -1,5 +1,5 @@
 name: "Radiant Temple 4"
 bgm: "TempleInTheMirror"
 spawns { mob: "dark_executor" count: 37 }
-# The temple below the Radiant Throne, and the most any map asks.
+# The temple below the Radiant Throne, at the far end of Esfera.
 arcane_force: 640

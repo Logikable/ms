@@ -38,12 +38,9 @@ std::map<std::string, EquipPrototype> LoadEquips() {
   return LoadTestData<EquipPrototype>("equip");
 }
 
-// Whether `mob` belongs to Arcane River. What says so is the Arcane Symbol it
-// drops: every monster in the river drops its area's, and nothing outside it
-// drops one. The level does not say so -- Black Heaven runs to 219 and asks
-// for no force at all.
-bool IsArcaneRiver(const Mob& mob,
-                   const std::map<std::string, EquipPrototype>& equips) {
+// Whether `mob` drops one of the six Arcane Symbols.
+bool DropsASymbol(const Mob& mob,
+                  const std::map<std::string, EquipPrototype>& equips) {
   for (const MobDrop& drop : mob.drops()) {
     std::map<std::string, EquipPrototype>::const_iterator it =
         equips.find(drop.equip());
@@ -53,6 +50,10 @@ bool IsArcaneRiver(const Mob& mob,
   }
   return false;
 }
+
+// The level Arcane River opens at. Nothing below it stands in the river, so a
+// map asking for Arcane Force under it has the number on the wrong file.
+constexpr int kArcaneRiverFloor = 200;
 
 // A spawn naming no mob file is dropped by the loader, so the map quietly
 // farms fewer monsters than its data says -- which has cost us a live bug
@@ -222,14 +223,20 @@ TEST(MapDataTest, EveryMobCanBeFoughtAndIsWorthFighting) {
 // all, and Onyx Stonegar, the one straggler it also says nothing about.
 // Inventing text would put words in the game's mouth no source stands
 // behind.
+//
+// The map is what says a mob is in the river: it is the map that asks for
+// Arcane Force. Nothing about the monster itself does -- Tenebris drops no
+// symbol, and the level does not say so either, Black Heaven running to 219
+// and asking for no force at all.
 TEST(MapDataTest, EveryMapMobIsDescribed) {
   std::map<std::string, Mob> mobs = LoadMobs();
-  std::map<std::string, EquipPrototype> equips = LoadEquips();
   for (const std::pair<const std::string, MapData>& entry : LoadMaps()) {
+    if (entry.second.arcane_force() > 0) {
+      continue;
+    }
     for (const Spawn& spawn : entry.second.spawns()) {
       std::map<std::string, Mob>::const_iterator it = mobs.find(spawn.mob());
-      if (it == mobs.end() || IsArcaneRiver(it->second, equips) ||
-          spawn.mob() == "onyx_stonegar") {
+      if (it == mobs.end() || spawn.mob() == "onyx_stonegar") {
         continue;
       }
       EXPECT_FALSE(it->second.description().empty())
@@ -243,29 +250,34 @@ TEST(MapDataTest, EveryMapMobIsDescribed) {
   }
 }
 
-// Arcane River is the one place a map asks for Arcane Force, and every map
-// there asks. A river map that named none would let a character with no
-// symbols farm it at full damage, which is the whole of what the stat is for.
-TEST(MapDataTest, EveryArcaneRiverMapNamesItsRequirement) {
+// Arcane Force and Arcane River go together, checked from both ends since
+// neither end can be derived from the other. A map that forgot its
+// requirement would let a character with no symbols farm the river at full
+// damage, which is the whole of what the stat is for; a number on an
+// overworld map would tax a fight that GMS asks nothing of. The second half
+// reaches as far as the level floor: Black Heaven runs to 219 outside the
+// river, so a stray number there reads as river and is not caught.
+TEST(MapDataTest, ArcaneForceGoesWithArcaneRiver) {
   std::map<std::string, Mob> mobs = LoadMobs();
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   int checked = 0;
   for (const std::pair<const std::string, MapData>& entry : LoadMaps()) {
-    bool arcane_river = false;
     for (const Spawn& spawn : entry.second.spawns()) {
       std::map<std::string, Mob>::const_iterator mob = mobs.find(spawn.mob());
-      if (mob != mobs.end() && IsArcaneRiver(mob->second, equips)) {
-        arcane_river = true;
+      if (mob == mobs.end()) {
+        continue;  // covered above
+      }
+      if (DropsASymbol(mob->second, equips)) {
+        ++checked;
+        EXPECT_GT(entry.second.arcane_force(), 0)
+            << entry.first << " drops an Arcane Symbol and asks for no force";
+      }
+      if (entry.second.arcane_force() > 0) {
+        EXPECT_GE(mob->second.level(), kArcaneRiverFloor)
+            << entry.first << " asks for Arcane Force and spawns "
+            << spawn.mob() << ", which is below the river";
       }
     }
-    if (!arcane_river) {
-      EXPECT_EQ(entry.second.arcane_force(), 0)
-          << entry.first << " asks for Arcane Force outside Arcane River";
-      continue;
-    }
-    ++checked;
-    EXPECT_GT(entry.second.arcane_force(), 0)
-        << entry.first << " is in Arcane River and asks for no force";
   }
   EXPECT_GT(checked, 0) << "no Arcane River maps in the catalog to check";
 }

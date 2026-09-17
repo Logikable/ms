@@ -1,0 +1,5 @@
+name: "Labyrinth of Suffering Deep Core 6"
+bgm: "HeartofSuffering"
+spawns { mob: "silent_assassin" count: 38 }
+# The far room of the labyrinth's deep core, and the most any map asks.
+arcane_force: 820

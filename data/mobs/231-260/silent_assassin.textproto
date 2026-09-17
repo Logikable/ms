@@ -1,0 +1,8 @@
+name: "Silent Assassin"
+level: 259
+attack: 19463
+max_hp: 622956400
+exp: 670940
+pdr: 10
+# Tenebris hands out no Arcane Symbol of its own, so nothing here drops one --
+# the force these maps ask for is carried in from the six areas below.

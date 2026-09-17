@@ -1,0 +1,8 @@
+name: "Burst Glare"
+level: 254
+attack: 18900
+max_hp: 570438000
+exp: 622041
+pdr: 10
+# Tenebris hands out no Arcane Symbol of its own, so nothing here drops one --
+# the force these maps ask for is carried in from the six areas below.

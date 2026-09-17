@@ -398,14 +398,15 @@ TEST(MapSelectPanelTest, TheTwoTablesShareAHeaderLine) {
 }
 
 // There are more bands than fit beside the maps, so the bar is held to the
-// rows' width and scrolls under them. Left to itself it would take the window
-// out past 48 columns and the maps would sit in a window sized by its tabs.
+// rows' width and scrolls under them: the window comes to 48 columns and its
+// corner lands on 47. Left to itself the bar would take it out past that and
+// the maps would sit in a window sized by its tabs.
 TEST(MapSelectPanelTest, TheBandBarDoesNotWidenTheMapList) {
   GameState state = EveryBand();
   MapSelectPanel panel(state);
   panel.Reset();
 
-  EXPECT_LT(MapListRightEdge(panel), 47);
+  EXPECT_LT(MapListRightEdge(panel), 48);
   // And it says so, rather than just dropping the bands it cannot draw.
   EXPECT_NE(Render(panel).find("›"), std::string::npos);
 }

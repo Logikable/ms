@@ -27,7 +27,7 @@ namespace {
 // Column widths of the map list. PadRight truncates rather than overflows, so
 // a name past the column quietly loses its last letters. The chip bar above
 // the rows is wider than they are, so this column is free up to that.
-constexpr int kMapNameWidth = 34;
+constexpr int kMapNameWidth = 36;
 constexpr int kLevelWidth = 4;
 // The Arcane Force a map asks for. Blank on every map outside Arcane River,
 // which asks for none -- an empty cell says nothing is wanted, where a "-"
@@ -41,7 +41,7 @@ constexpr int kMapRowWidth = 2 + kMapNameWidth + kLevelWidth + kArcaneWidth;
 // Column widths of the mob table. Mob names top out at 21 ("Modded Broken
 // Android"); the column is wider than that because the map's name stands over
 // it, and PadRight truncates rather than overflows.
-constexpr int kMobNameWidth = 22;
+constexpr int kMobNameWidth = 24;
 constexpr int kCountWidth = 6;
 
 // What every line of the mob table comes to. The map's name stands over the

@@ -29,16 +29,15 @@
 #include <cmath>
 #include <cstdio>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
-#include "src/character/arcane_force.h"
 #include "src/combat/constants.h"
 #include "src/embedded_data.h"
 #include "src/proto_loader.h"
-#include "src/protos/equip.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/spawn.h"
@@ -80,25 +79,22 @@ std::vector<Mob> MobsByLevel(const std::map<std::string, Mob>& mobs) {
   return ladder;
 }
 
-// Which ladder a mob stands on. What marks an Arcane River monster is the
-// symbol it drops -- every one of them drops its area's and nothing outside
-// the river drops one. The level does not say so: Black Heaven runs to 219
-// and asks for no Arcane Force at all.
-enum class Ladder { kOverworld, kArcaneRiver, kBoss };
-
-Ladder LadderOf(const Mob& mob,
-                const std::map<std::string, EquipPrototype>& equips) {
-  if (mob.boss()) {
-    return Ladder::kBoss;
-  }
-  for (const MobDrop& drop : mob.drops()) {
-    std::map<std::string, EquipPrototype>::const_iterator it =
-        equips.find(drop.equip());
-    if (it != equips.end() && IsArcaneSymbol(it->second)) {
-      return Ladder::kArcaneRiver;
+// The mobs standing in Arcane River, by data file stem. What says so is the
+// map they stand on asking for Arcane Force: Tenebris drops no symbol of its
+// own, and the level does not say so either -- Black Heaven runs to 219 and
+// asks for no force at all.
+std::set<std::string> ArcaneRiverMobs(
+    const std::map<std::string, MapData>& maps) {
+  std::set<std::string> river;
+  for (const std::pair<const std::string, MapData>& entry : maps) {
+    if (entry.second.arcane_force() == 0) {
+      continue;
+    }
+    for (const Spawn& spawn : entry.second.spawns()) {
+      river.insert(spawn.mob());
     }
   }
-  return Ladder::kOverworld;
+  return river;
 }
 
 void PrintLadder(const char* title, const std::vector<Mob>& ladder) {
@@ -131,29 +127,23 @@ void PrintLadder(const char* title, const std::vector<Mob>& ladder) {
 }
 
 void PrintMobs(const std::map<std::string, Mob>& mobs,
-               const std::map<std::string, EquipPrototype>& equips) {
-  std::vector<Mob> overworld;
-  std::vector<Mob> river;
-  std::vector<Mob> bosses;
-  for (const Mob& mob : MobsByLevel(mobs)) {
-    switch (LadderOf(mob, equips)) {
-      case Ladder::kOverworld:
-        overworld.push_back(mob);
-        break;
-      case Ladder::kArcaneRiver:
-        river.push_back(mob);
-        break;
-      case Ladder::kBoss:
-        bosses.push_back(mob);
-        break;
-    }
+               const std::set<std::string>& river_mobs) {
+  std::map<std::string, Mob> overworld;
+  std::map<std::string, Mob> river;
+  std::map<std::string, Mob> bosses;
+  for (const std::pair<const std::string, Mob>& entry : mobs) {
+    std::map<std::string, Mob>& ladder = entry.second.boss() ? bosses
+                                         : river_mobs.count(entry.first) > 0
+                                             ? river
+                                             : overworld;
+    ladder.insert(entry);
   }
-  PrintLadder("the overworld ladder", overworld);
-  PrintLadder("Arcane River", river);
+  PrintLadder("the overworld ladder", MobsByLevel(overworld));
+  PrintLadder("Arcane River", MobsByLevel(river));
   // The bosses share no curve with each other either -- each is its own fight
   // at its own gate -- so their growth columns say nothing. They are here for
   // the HP and attack a boss carries at its level.
-  PrintLadder("the bosses", bosses);
+  PrintLadder("the bosses", MobsByLevel(bosses));
 }
 
 // A map's mobs averaged by spawn count: two of a thing and four of another is
@@ -220,8 +210,7 @@ int main(int argc, char** argv) {
   std::map<std::string, ms::MapData> maps =
       ms::LoadTextProtoMap<ms::MapData>(ms::EmbeddedMaps());
   if (absl::GetFlag(FLAGS_mobs)) {
-    ms::PrintMobs(
-        mobs, ms::LoadTextProtoMap<ms::EquipPrototype>(ms::EmbeddedEquips()));
+    ms::PrintMobs(mobs, ms::ArcaneRiverMobs(maps));
   }
   if (absl::GetFlag(FLAGS_maps)) {
     ms::PrintMaps(maps, mobs);
