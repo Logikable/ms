@@ -202,6 +202,26 @@ cc_library(
 )
 
 cc_test(
+    name = "cube_plan_test",
+    size = "small",
+    srcs = ["cube_plan_test.cc"],
+    deps = [
+        ":cube_plan",
+        ":yardstick",
+        "//src:game_state",
+        "//src/character:character_stats",
+        "//src/character:skill_placement",
+        "//src/item:equip_instance",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "//src/testing:prototypes",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "yardstick_test",
     size = "small",
     srcs = ["yardstick_test.cc"],

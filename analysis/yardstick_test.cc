@@ -60,7 +60,8 @@ std::unique_ptr<GameState> ArmedOnAField(
       std::map<std::string, MapData>{{"field", SnailMap()}},
       std::map<std::string, Skill>{{"slash_blast", slash}});
   state->current_map = "field";
-  state->character.PickUp(std::make_unique<EquipInstance>(Sword(speed, attack)));
+  state->character.PickUp(
+      std::make_unique<EquipInstance>(Sword(speed, attack)));
   state->character.Equip(0);
   while (state->character.proto().job_stage() < 1) {
     if (state->character.CanAdvanceJob()) {
