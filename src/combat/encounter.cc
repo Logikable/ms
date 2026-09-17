@@ -475,6 +475,31 @@ void AddBurns(const Skill* skill, const DerivedStats& derived,
 //
 // A source rolling per line rolls `swing_lines` times -- four lines knock four
 // mesos loose. The shadow's copies are not the character's lines.
+// The follow-on line aimed at one source. Taken from `carried` each time
+// round, or the last source carrying any of it would hand it to the next.
+OffenseStats FollowFor(const OffenseStats& carried,
+                       const FinalAttackSource& source) {
+  OffenseStats follow = carried;
+  // Boss damage of its own, on top of the character's: Blood Money brands the
+  // coins, not the Shadower.
+  follow.boss_pct = carried.boss_pct + source.boss_pct;
+  follow.damage_pct = carried.damage_pct + source.damage_bonus_pct;
+  // Ignored defence MEETS the character's rather than adding, as two sources
+  // of it always do.
+  follow.ied = CombineIgnoredDefense(carried.ied, source.ied);
+  follow.crit_rate = carried.crit_rate + source.crit_rate;
+  follow.final_dmg_pct =
+      (1.0 + carried.final_dmg_pct) * (1.0 + source.final_dmg_pct) - 1.0;
+  follow.skill_pct = source.damage_pct;
+  // Points against anything that is not a boss, on the source's own
+  // multiplier.
+  follow.normal_skill_pct = source.normal_skill_pct;
+  // Its own strikes, not the swing's: a Night Lord's mark throws three stars
+  // behind a four-star swing, and each of the three rolls on its own.
+  follow.lines = source.lines;
+  return follow;
+}
+
 void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
                      OffenseStats follow, int level, int swing_lines,
                      const std::vector<CombatType>& types,
@@ -494,13 +519,8 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
                    skill->per_level().final_attack_chance_cut() * (level - 1);
     follow_kept = std::max(0.0, follow_kept);
   }
-  // What the character's own boss damage, plain damage and ignored defence are,
-  // before a source adds to any of them.
-  const double carried_boss_pct = follow.boss_pct;
-  const double carried_damage_pct = follow.damage_pct;
-  const double carried_ied = follow.ied;
-  const double carried_crit_rate = follow.crit_rate;
-  const double carried_final_dmg_pct = follow.final_dmg_pct;
+  // The character's own line, before a source adds to any of it.
+  const OffenseStats carried = follow;
   for (const FinalAttackSource& source : derived.final_attacks) {
     if (source.required_tag != SKILL_TAG_UNSPECIFIED &&
         !HasTag(skill, source.required_tag)) {
@@ -513,27 +533,10 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
     if (source.per_line) {
       roll.chance *= meso_kept;
     }
-    // Boss damage of its own, on top of the character's: Blood Money brands
-    // the coins, not the Shadower. SET each time round, or the last source
-    // carrying any would hand it to the next.
-    follow.boss_pct = carried_boss_pct + source.boss_pct;
-    follow.damage_pct = carried_damage_pct + source.damage_bonus_pct;
-    // Ignored defence MEETS the character's rather than adding, as two
-    // sources of it always do.
-    follow.ied = CombineIgnoredDefense(carried_ied, source.ied);
-    follow.crit_rate = carried_crit_rate + source.crit_rate;
-    follow.final_dmg_pct =
-        (1.0 + carried_final_dmg_pct) * (1.0 + source.final_dmg_pct) - 1.0;
+    follow = FollowFor(carried, source);
     roll.count = source.per_line ? swing_lines : 1;
     roll.follows_own_clock = source.follows_own_clock;
     roll.max_enemies = source.max_enemies;
-    follow.skill_pct = source.damage_pct;
-    // Points against anything that is not a boss, on the source's own
-    // multiplier. Set each time round, as the boss damage above is.
-    follow.normal_skill_pct = source.normal_skill_pct;
-    // Its own strikes, not the swing's: a Night Lord's mark throws three stars
-    // behind a four-star swing, and each of the three rolls on its own.
-    follow.lines = source.lines;
     roll.rolls = RollsFor(follow);
     // A source with a reach of its own is banked apart: what the swing is
     // worth has to add it over that reach rather than over the swing's.
@@ -616,19 +619,11 @@ void AddSideStrike(const Character& proto, const EquipStats& equipped,
 // One attack's damage against every mob type. `skill` is null for the bare
 // poke, a plain 100% swing on one target. `equipped` is what the character
 // wears plus what their passives grant: the chain cannot tell the two apart.
-AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
-                       EquipType weapon, const Skill* skill, int level,
-                       const std::vector<CombatType>& types,
-                       const DerivedStats& derived, int attack_speed,
-                       double speed_factor) {
-  AttackOption attack;
-  AddSwingClocks(skill, level, derived, attack_speed, speed_factor, attack);
-  OffenseStats offense = OffenseStatsFor(
-      proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
-      skill, level, PassiveOffenseFor(derived));
-  for (const CombatType& type : types) {
-    attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
-  }
+// Turns the one priced strike into the swing the skill actually throws: the
+// pool damage every line pays, how many times it lands, and how it scatters.
+void AddCastShape(const Skill* skill, int level, const DerivedStats& derived,
+                  const OffenseStats& offense, double speed_factor,
+                  AttackOption& attack) {
   if (skill != nullptr) {
     // Damage off the character's own pool lands AFTER the chain, so no
     // multiplier reaches it. Every line pays it, as GMS pays it per attack.
@@ -654,22 +649,39 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
       damage *= casts;
     }
   }
-  if (skill != nullptr) {
-    attack.strikes_in_sequence = in_sequence ? std::max(1, casts) : 1;
-    // Game-scaled like every other clock: the pacing band stretches the beat
-    // between the bolts exactly as far as it stretches the swing behind them.
-    attack.cast_interval_seconds =
-        in_sequence ? skill->cast_interval_ms() / 1000.0 * speed_factor : 0.0;
-    attack.pierce_gain_pct = skill->pierce_gain_pct();
-    attack.lines = SkillLinesAt(*skill, level) * (in_sequence ? 1 : casts);
-    // The same swing throughout; how many land where is the fight's
-    // business, as the opening hit's target count is.
-    attack.scatter_hits = skill->scatter().hits();
-    attack.scatter_repeat_kept = 1.0 + skill->scatter().repeat_final_dmg_pct();
-    attack.scatter_hits_per_dot = skill->scatter().hits_per_dot();
-    attack.scatter_max_hits = skill->scatter().max_hits();
-    attack.scatter_max_hits_per_enemy = skill->scatter().max_hits_per_enemy();
+  if (skill == nullptr) {
+    return;
   }
+  attack.strikes_in_sequence = in_sequence ? std::max(1, casts) : 1;
+  // Game-scaled like every other clock: the pacing band stretches the beat
+  // between the bolts exactly as far as it stretches the swing behind them.
+  attack.cast_interval_seconds =
+      in_sequence ? skill->cast_interval_ms() / 1000.0 * speed_factor : 0.0;
+  attack.pierce_gain_pct = skill->pierce_gain_pct();
+  attack.lines = SkillLinesAt(*skill, level) * (in_sequence ? 1 : casts);
+  // The same swing throughout; how many land where is the fight's business,
+  // as the opening hit's target count is.
+  attack.scatter_hits = skill->scatter().hits();
+  attack.scatter_repeat_kept = 1.0 + skill->scatter().repeat_final_dmg_pct();
+  attack.scatter_hits_per_dot = skill->scatter().hits_per_dot();
+  attack.scatter_max_hits = skill->scatter().max_hits();
+  attack.scatter_max_hits_per_enemy = skill->scatter().max_hits_per_enemy();
+}
+
+AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
+                       EquipType weapon, const Skill* skill, int level,
+                       const std::vector<CombatType>& types,
+                       const DerivedStats& derived, int attack_speed,
+                       double speed_factor) {
+  AttackOption attack;
+  AddSwingClocks(skill, level, derived, attack_speed, speed_factor, attack);
+  OffenseStats offense = OffenseStatsFor(
+      proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
+      skill, level, PassiveOffenseFor(derived));
+  for (const CombatType& type : types) {
+    attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
+  }
+  AddCastShape(skill, level, derived, offense, speed_factor, attack);
   for (const SwingProc& proc : derived.procs) {
     attack.procs.push_back({proc.chance, proc.damage_pct, proc.hp_recover_pct});
   }
@@ -841,6 +853,23 @@ double PulseIntervalSeconds(const BuffPulse& pulse,
 
 // The bleeding half of one buff or of one form of it: an attack on the buff's
 // clock, gated on that buff -- and that form -- standing.
+// The turret's parting shot as a skill of its own. It keeps the pulse's
+// levers and swaps in its own damage, being the same turret: GMS writes the
+// scroll's boss damage once. What the burst states for itself wins, as
+// merging one proto3 message over another does.
+Skill FinalStrikeSkill(const Skill& bleed, const SwingHit& burst) {
+  Skill goes_out = bleed;
+  goes_out.mutable_base()->clear_skill_pct();
+  goes_out.mutable_per_level()->clear_skill_pct();
+  goes_out.mutable_base()->MergeFrom(burst.base());
+  goes_out.mutable_per_level()->MergeFrom(burst.per_level());
+  goes_out.set_lines(burst.lines());
+  if (burst.max_enemies() > 0) {
+    goes_out.set_max_enemies(burst.max_enemies());
+  }
+  return goes_out;
+}
+
 void AddBuffPulse(const Character& proto, const EquipStats& equipped,
                   EquipType weapon_type, const Skill& skill,
                   const BuffPulse& pulse, int stance, int level,
@@ -898,20 +927,7 @@ void AddBuffPulse(const Character& proto, const EquipStats& equipped,
   // the last tick, not an interval after -- by then its window is down.
   if (pulse.has_final_strike()) {
     const SwingHit& burst = pulse.final_strike();
-    // It keeps the pulse's levers and swaps in its own damage, being the
-    // same turret: GMS writes the scroll's boss damage once. What the burst
-    // states for itself wins, as merging one proto3 message over another
-    // does.
-    Skill goes_out = bleed;
-    goes_out.mutable_base()->clear_skill_pct();
-    goes_out.mutable_per_level()->clear_skill_pct();
-    goes_out.mutable_base()->MergeFrom(burst.base());
-    goes_out.mutable_per_level()->MergeFrom(burst.per_level());
-    goes_out.set_lines(burst.lines());
-    if (burst.max_enemies() > 0) {
-      goes_out.set_max_enemies(burst.max_enemies());
-    }
-    AttackOption last = own_clock(goes_out);
+    AttackOption last = own_clock(FinalStrikeSkill(bleed, burst));
     last.strikes_per_pulse = SwingHitCasts(burst);
     wound.final_strike = std::make_shared<const AttackOption>(std::move(last));
   }
@@ -1314,6 +1330,38 @@ void AddMagazines(const GameState& state, const DerivedStats& derived,
 // Every attack the character could swing, the bare poke first. Skills firing
 // on their own clock go to auto_attacks instead. Passives apply to whichever
 // attack is chosen, so the resolved `derived` is handed to each.
+// Strips the damage off a cast. With no multiplier to apply the chain built
+// the bare poke's, which a cast must not land -- and a cast that deals no
+// damage strikes nothing, so nothing follows it however it is clocked.
+void MakeCastHarmless(AttackOption& attack) {
+  std::fill(attack.damage_per_hit.begin(), attack.damage_per_hit.end(), 0.0);
+  attack.groups.clear();
+  attack.lead_damage.clear();
+  ClearSwingRiders(attack);
+  ClearFinalAttacks(attack);
+}
+
+// Files a skill that runs on a clock of its own, under whatever that clock
+// counts: swings landed, enemies defeated, or seconds passed.
+void FileAutoAttack(const Skill& swung, double speed_factor,
+                    AttackOption& attack, AttackSet& set) {
+  attack.swing_seconds = 0.0;  // not swung, so never charged
+  ClearSwingRiders(attack);    // what rides a swing needs one
+  if (swung.attacks_per_cast() > 0 || swung.kills_per_cast() > 0) {
+    attack.attacks_per_cast = swung.attacks_per_cast();
+    attack.kills_per_cast = swung.kills_per_cast();
+    set.triggered_attacks.push_back(std::move(attack));
+    return;
+  }
+  // A skill with no clock at all would fire every step, so naming neither is
+  // taken as "does not fire" rather than "fires constantly".
+  if (swung.cast_interval_seconds() <= 0.0) {
+    return;
+  }
+  attack.interval_seconds = swung.cast_interval_seconds() * speed_factor;
+  set.auto_attacks.push_back(std::move(attack));
+}
+
 void AddAttacks(const GameState& state, const DerivedStats& derived,
                 EquipType weapon_type, int attack_speed, double speed_factor,
                 const std::vector<CombatType>& types, AttackSet& set) {
@@ -1355,17 +1403,8 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
         AttackFor(proto, total_stats, weapon_type, &swung, learned, types,
                   swung.kind() == SKILL_KIND_AUTO_ATTACK ? off_clock : derived,
                   attack_speed, speed_factor);
-    // A cast is not a hit: with no multiplier to apply, the chain built the
-    // bare poke's damage, which a cast must not land.
     if (attack.heal_fraction > 0.0) {
-      std::fill(attack.damage_per_hit.begin(), attack.damage_per_hit.end(),
-                0.0);
-      attack.groups.clear();
-      attack.lead_damage.clear();
-      ClearSwingRiders(attack);
-      // Every one of them, not only the swing's: a cast that deals no damage
-      // strikes nothing, so nothing follows it however it is clocked.
-      ClearFinalAttacks(attack);
+      MakeCastHarmless(attack);
     }
     if (swung.kind() != SKILL_KIND_AUTO_ATTACK) {
       // What this swing counts toward the skills clocked by swings landed.
@@ -1378,23 +1417,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       set.attacks.push_back(std::move(attack));
       continue;
     }
-    attack.swing_seconds = 0.0;  // not swung, so never charged
-    ClearSwingRiders(attack);    // what rides a swing needs one
-    // Clocked by something counted rather than by seconds passed: swings
-    // landed, or enemies defeated.
-    if (swung.attacks_per_cast() > 0 || swung.kills_per_cast() > 0) {
-      attack.attacks_per_cast = swung.attacks_per_cast();
-      attack.kills_per_cast = swung.kills_per_cast();
-      set.triggered_attacks.push_back(std::move(attack));
-      continue;
-    }
-    // A skill with no clock at all would fire every step, so naming neither is
-    // taken as "does not fire" rather than "fires constantly".
-    if (swung.cast_interval_seconds() <= 0.0) {
-      continue;
-    }
-    attack.interval_seconds = swung.cast_interval_seconds() * speed_factor;
-    set.auto_attacks.push_back(std::move(attack));
+    FileAutoAttack(swung, speed_factor, attack, set);
   }
 }
 
