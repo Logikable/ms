@@ -21,6 +21,15 @@ enum PartyMode {
   PARTY_MODE_SOLO_TOGETHER = 2;
 }
 
+// What a player has switched on for a boss fight, on the boss screen's own
+// options row. Every member of a party must have the same ones set, or the
+// leader is refused -- a fight cannot pay one player and not the next.
+message BossOptions {
+  // Practice: the fight ignores the reset clock and spends no clear, and in
+  // return pays nothing at all.
+  bool practice = 1;
+}
+
 // One player as everyone else sees them: the character they bring, and the
 // account that identifies them across connections.
 message PlayerInfo {
@@ -50,6 +59,10 @@ message PlayerInfo {
   // in it, because it is the account's switch and not the character's -- but
   // it travels with them, so their sheet is read the way they read it.
   bool autoswap_presets = 7;
+
+  // What they have set on the boss screen's options row, which the server
+  // holds every member of a party to.
+  BossOptions boss_options = 8;
 }
 
 // One player's place in a party.
@@ -103,6 +116,8 @@ message StartFight {
   string boss_key = 1;
   int32 difficulty_index = 2;
   PartyMode mode = 3;
+  // The leader's own options, which every member's must match.
+  BossOptions options = 4;
 }
 
 message SetReady {
@@ -197,6 +212,10 @@ message FightState {
   // What every monster of the phase has left, one per slot.
   repeated double hp_fractions = 7;
   repeated FightPlayerState players = 8;
+  // The terms the fight was started on. Sent with the fight rather than read
+  // off each client's own switch, so a toggle mid-fight cannot change what
+  // this one pays.
+  BossOptions options = 10;
 }
 
 // One item a clear paid this player.
@@ -313,6 +332,8 @@ message Refused {
     REASON_ALREADY_CLEARED = 11;
     // Somebody in the party has not said they are ready.
     REASON_NOT_READY = 12;
+    // The party does not agree on the options the fight is taken under.
+    REASON_OPTIONS_DIFFER = 13;
   }
   Reason reason = 1;
   string message = 2;

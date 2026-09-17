@@ -614,19 +614,23 @@ ftxui::Element Arena(const BossRun& run) {
 }  // namespace
 
 std::string FightHeading(const BossRun& run) {
+  // Practice leads the heading rather than trailing it: the tail is the phase
+  // and the percent, which move, and what this run is worth should not have to
+  // be found among them.
+  std::string practice = run.practice() ? "Practice - " : "";
   switch (run.state()) {
     case BossRunState::kWon:
-      return run.title() + " - Cleared";
+      return practice + run.title() + " - Cleared";
     case BossRunState::kTimedOut:
-      return run.title() + " - Out of Time";
+      return practice + run.title() + " - Out of Time";
     case BossRunState::kAborted:
-      return run.title() + " - Left";
+      return practice + run.title() + " - Left";
     default: {
       // The phase is named only by a fight that has more than one: "P1" on a
       // boss fought in one room says nothing the player could not see.
       std::string phase =
           run.phase_count() > 1 ? " - P" + std::to_string(run.phase()) : "";
-      return run.title() + phase + " - " +
+      return practice + run.title() + phase + " - " +
              std::to_string(Percent(run.phase_hp_fraction())) + "%";
     }
   }

@@ -178,11 +178,13 @@ void MultiplayerClient::WatchPlayer(const std::string& account_id) {
 }
 
 void MultiplayerClient::StartFight(const std::string& boss_key,
-                                   int difficulty_index, PartyMode mode) {
+                                   int difficulty_index, PartyMode mode,
+                                   const BossOptions& options) {
   ClientMessage message;
   message.mutable_start_fight()->set_boss_key(boss_key);
   message.mutable_start_fight()->set_difficulty_index(difficulty_index);
   message.mutable_start_fight()->set_mode(mode);
+  *message.mutable_start_fight()->mutable_options() = options;
   Ask(message);
 }
 

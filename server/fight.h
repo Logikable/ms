@@ -70,7 +70,7 @@ class PartyFight {
   // invalid one makes a fight that is over before it starts.
   PartyFight(std::string id, std::string boss_key, const Boss& boss,
              int difficulty_index, const std::map<std::string, Mob>& mobs,
-             const Party& party);
+             const Party& party, const BossOptions& options = BossOptions());
 
   // What this fight is called, which is the party's id and a number. A client
   // that walked out of one tells it from the party's next fight by this.
@@ -141,6 +141,11 @@ class PartyFight {
   const std::string& boss_key() const {
     return boss_key_;
   }
+  // The terms the fight was opened on, sent out with every state so that no
+  // client has to trust its own switch.
+  const BossOptions& options() const {
+    return options_;
+  }
   int difficulty_index() const {
     return difficulty_index_;
   }
@@ -174,6 +179,7 @@ class PartyFight {
   const Boss* boss_ = nullptr;
   int difficulty_index_ = 0;
   const std::map<std::string, Mob>* mobs_ = nullptr;
+  BossOptions options_;
   int phases_ = 0;
   int share_count_ = 0;
 

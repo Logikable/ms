@@ -1485,7 +1485,26 @@ MultiplayerSnapshot TuiController::Lobby() const {
 }
 
 void TuiController::RaisePartyNotice(const std::string& message, bool refusal) {
-  party_notice_ = message;
+  // Wrapped here rather than by the server: how wide a dialog is is the
+  // client's business, and a sentence the server writes plainly used to
+  // stretch one as far as it ran.
+  // Wrapped here rather than by the server: how wide a dialog is is the
+  // client's business, and a sentence written plainly used to stretch one as
+  // far as it ran. A break the message made itself is kept, each side of it
+  // wrapped on its own.
+  party_notice_.clear();
+  for (std::size_t at = 0; at <= message.size();) {
+    std::size_t end = message.find('\n', at);
+    std::size_t stop = end == std::string::npos ? message.size() : end;
+    for (const std::string& line :
+         WrapBalanced(message.substr(at, stop - at), kNoticeWidth)) {
+      if (!party_notice_.empty()) {
+        party_notice_ += "\n";
+      }
+      party_notice_ += line;
+    }
+    at = stop + 1;
+  }
   party_notice_is_refusal_ = refusal;
   party_notice_prompt_.Open();
 }
@@ -1577,8 +1596,9 @@ void TuiController::OpenPartyFight(const MultiplayerSnapshot& lobby) {
   // is part of what the character is worth for as long as the fight lasts.
   SeatParty(lobby);
   ChargeBossEntry();
-  boss_run_ = std::make_unique<BossRun>(boss_run_key_, it->second, index,
-                                        party_fight_.get());
+  boss_run_ =
+      std::make_unique<BossRun>(boss_run_key_, it->second, index,
+                                party_fight_.get(), party_fight_->practice());
   // Whatever they were doing, they are in a fight now.
   party_select_panel_.CloseMenu();
   party_prompt_.Close();
@@ -1923,10 +1943,15 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
     return true;
   }
   if (IsForward(event)) {
+    if (boss_select_panel_.focus() == BossPanel::kOptions) {
+      ToggleBossOption(boss_select_panel_.selected_option());
+      return true;
+    }
     if (boss_select_panel_.selected() == nullptr) {
       return true;
     }
     boss_prompt_title_ = boss_select_panel_.selected_title();
+    boss_prompt_practice_ = boss_select_panel_.practice();
     MultiplayerSnapshot lobby = Lobby();
     bool led_by_somebody_else =
         !lobby.party.id().empty() &&
@@ -1949,7 +1974,8 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
           boss_prompt_title_ + " unlocks at level " +
               std::to_string(boss_select_panel_.selected_unlock_level()) + ".",
           /*refusal=*/true, "Close");
-    } else if (!boss_select_panel_.selected_available()) {
+    } else if (!boss_select_panel_.selected_available() &&
+               !boss_select_panel_.practice()) {
       std::string when =
           boss_select_panel_.selected_reset() == RESET_PERIOD_WEEKLY
               ? "this week"
@@ -1998,15 +2024,24 @@ bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
     // a party of one, it is the run below and no network at all.
     multiplayer_->client().StartFight(boss_run_key_,
                                       boss_select_panel_.selected_difficulty(),
-                                      PARTY_MODE_SHARED);
+                                      PARTY_MODE_SHARED, state_.boss_options);
     screen_ = kBossSelect;
     return true;
   }
   ChargeBossEntry();
   boss_run_ = std::make_unique<BossRun>(
-      boss_run_key_, it->second, boss_select_panel_.selected_difficulty());
+      boss_run_key_, it->second, boss_select_panel_.selected_difficulty(),
+      /*authority=*/nullptr, state_.boss_options.practice());
   screen_ = kBossFight;
   return true;
+}
+
+void TuiController::ToggleBossOption(int option) {
+  // One switch on the row today. The index is taken rather than assumed, so a
+  // second lands here and nowhere else.
+  if (option == 0) {
+    state_.boss_options.set_practice(!state_.boss_options.practice());
+  }
 }
 
 void TuiController::ChargeBossEntry() {
@@ -2147,8 +2182,13 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
     return;
   }
   if (boss_run_->won()) {
-    state_.character.RecordBossClear(boss_run_key_, boss_run_difficulty_,
-                                     static_cast<int64_t>(std::time(nullptr)));
+    // A practice clear spends nothing: the fight is not written down, so the
+    // reset clock never hears about it.
+    if (!boss_run_->practice()) {
+      state_.character.RecordBossClear(
+          boss_run_key_, boss_run_difficulty_,
+          static_cast<int64_t>(std::time(nullptr)));
+    }
     // Copied off the run rather than read back through it: the card is still
     // up when the run goes.
     boss_clear_title_ = boss_run_->title();

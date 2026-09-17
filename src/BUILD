@@ -210,6 +210,7 @@ cc_library(
         "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
+        "//src/protos:multiplayer_proto_cc",
         "//src/protos:save_proto_cc",
         "//src/protos:scroll_proto_cc",
         "//src/protos:skill_proto_cc",

@@ -18,12 +18,13 @@ namespace ms {
 PartyFight::PartyFight(std::string id, std::string boss_key, const Boss& boss,
                        int difficulty_index,
                        const std::map<std::string, Mob>& mobs,
-                       const Party& party)
+                       const Party& party, const BossOptions& options)
     : id_(std::move(id)),
       boss_key_(std::move(boss_key)),
       boss_(&boss),
       difficulty_index_(difficulty_index),
-      mobs_(&mobs) {
+      mobs_(&mobs),
+      options_(options) {
   for (const PartyMember& member : party.members()) {
     FightPlayer player;
     player.account_id = member.player().account_id();
@@ -139,6 +140,12 @@ void PartyFight::Finish(PartyFightState outcome) {
 }
 
 void PartyFight::DealDrops() {
+  // A practice clear pays nothing, so there is nothing to deal. Rolled here
+  // rather than thrown away by each client: the roll is the server's, and one
+  // it never makes cannot be seen.
+  if (options_.practice()) {
+    return;
+  }
   const BossDifficulty* chosen = difficulty();
   std::vector<FightPlayer*> paid;
   double best_drop_pct = 0.0;

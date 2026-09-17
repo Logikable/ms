@@ -45,6 +45,7 @@ cc_library(
         "//src/protos:boss_proto_cc",
         "//src/protos:multiplayer_proto_cc",
         "@abseil-cpp//absl/strings",
+        "@protobuf",
     ],
 )
 

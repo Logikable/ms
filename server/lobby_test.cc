@@ -30,11 +30,19 @@ PlayerInfo Cleared(PlayerInfo player, const std::string& boss_key,
   return player;
 }
 
-StartFight Fight(const std::string& boss_key, int difficulty_index = 0) {
+StartFight Fight(const std::string& boss_key, int difficulty_index = 0,
+                 bool practice = false) {
   StartFight request;
   request.set_boss_key(boss_key);
   request.set_difficulty_index(difficulty_index);
+  request.mutable_options()->set_practice(practice);
   return request;
+}
+
+// `player` with Practice thrown, as their client would send them.
+PlayerInfo Practising(PlayerInfo player) {
+  player.mutable_boss_options()->set_practice(true);
+  return player;
 }
 
 // Two fights to try the rules against: Zakum, whose second difficulty is
@@ -324,6 +332,49 @@ TEST_F(LobbyTest, NobodyMayTakeAFightTwiceInAReset) {
   lobby_.UpdatePlayer(
       Cleared(Player("two", 140), "zakum", "Normal", kNow - 6 * 60 * 60));
   EXPECT_TRUE(Start("one", Fight("hilla")).ok);
+}
+
+// A fight cannot pay one player and not the next, so the party has to agree on
+// the terms before anything is checked against them.
+TEST_F(LobbyTest, EveryMemberHasToHaveTheSameOptionsSet) {
+  PartyOf(2);
+  lobby_.UpdatePlayer(Practising(Player("two", 140)));
+
+  LobbyResult refused = Start("one", Fight("zakum"));
+  EXPECT_FALSE(refused.ok);
+  EXPECT_EQ(refused.reason, Refused::REASON_OPTIONS_DIFFER);
+  EXPECT_EQ(refused.message, "Players selected different bossing options.");
+  // And the other way about: the leader alone is no more agreement than the
+  // member alone.
+  EXPECT_EQ(Start("one", Fight("zakum", 0, /*practice=*/true)).reason,
+            Refused::REASON_OPTIONS_DIFFER);
+
+  lobby_.UpdatePlayer(Practising(Player("one", 140)));
+  EXPECT_TRUE(Start("one", Fight("zakum", 0, /*practice=*/true)).ok);
+}
+
+// Practice spends no clear, so a clear already taken is not in its way.
+TEST_F(LobbyTest, PracticeWalksPastTheReset) {
+  PartyOf(2);
+  lobby_.UpdatePlayer(
+      Cleared(Player("two", 140), "hilla", "Normal", kNow - 6 * 60 * 60));
+  ASSERT_EQ(Start("one", Fight("hilla")).reason,
+            Refused::REASON_ALREADY_CLEARED);
+
+  lobby_.UpdatePlayer(Practising(
+      Cleared(Player("two", 140), "hilla", "Normal", kNow - 6 * 60 * 60)));
+  lobby_.UpdatePlayer(Practising(Player("one", 140)));
+  EXPECT_TRUE(Start("one", Fight("hilla", 0, /*practice=*/true)).ok);
+}
+
+// The level gate is not the reset clock: practice opens the door on a fight
+// the reset closed, not one the character is too low for.
+TEST_F(LobbyTest, PracticeDoesNotWalkPastTheLevelGate) {
+  PartyOf(2);
+  lobby_.UpdatePlayer(Practising(Player("one", 140)));
+  lobby_.UpdatePlayer(Practising(Player("two", 119)));
+  EXPECT_EQ(Start("one", Fight("hilla", 0, /*practice=*/true)).reason,
+            Refused::REASON_LEVEL_TOO_LOW);
 }
 
 TEST_F(LobbyTest, WantsAPartyToActOn) {

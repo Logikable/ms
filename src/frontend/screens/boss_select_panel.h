@@ -10,6 +10,9 @@
  * runs under it, and the rewards scroll inside whatever the fight above them
  * leaves.
  *
+ * The options row holds the switches a fight is taken under -- Practice today
+ * -- which the player throws with Enter and the server holds a whole party to.
+ *
  * Tab walks the three windows. On the grid, Up and Down move between fights
  * and Left and Right between difficulties; the column belongs to the grid
  * rather than to a fight, so leaving the cursor on Chaos and moving down lands
@@ -86,6 +89,13 @@ class BossSelectPanel {
   BossPanel focus() const {
     return focus_;
   }
+  // Which option the cursor is on, as an index into the row.
+  int selected_option() const {
+    return option_;
+  }
+  // Whether the fight would be taken as practice: no clear spent, and no
+  // reward paid. Read off the game state, which is what the server is told.
+  bool practice() const;
 
   // Key into GameState::bosses of the highlighted fight; empty when there are
   // none.
@@ -120,8 +130,7 @@ class BossSelectPanel {
   // with fewer difficulties than the widest one has.
   ftxui::Element RenderDifficultyCell(int boss, int at) const;
   ftxui::Element RenderDetail(std::chrono::steady_clock::time_point now) const;
-  // The empty row under both panels, held open so that filling it later does
-  // not move the screen.
+  // The switches under both panels, each a box and its name.
   ftxui::Element RenderOptions() const;
   // The fight's name across the head of its card, sliding when it is long.
   ftxui::Element RenderDetailTitle(
@@ -183,6 +192,8 @@ class BossSelectPanel {
   int column_ = 0;
   int selected_ = 0;
   BossPanel focus_ = BossPanel::kList;
+  // Which switch on the options row the cursor is on.
+  int option_ = 0;
   // The first reward row drawn. Back to the top whenever the cursor moves: a
   // fight with two drops has nothing to show at another fight's offset.
   int scroll_ = 0;

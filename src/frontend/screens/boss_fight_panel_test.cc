@@ -384,6 +384,19 @@ TEST(BossFightPanelTest, TheHeadingNamesThePhaseAndWhatIsLeftOfIt) {
   EXPECT_EQ(FightHeading(run), "Normal Zakum - Left");
 }
 
+// Practice leads the heading: the tail is the phase and the percent, which
+// move, and what the run is worth should not have to be found among them.
+TEST(BossFightPanelTest, APracticeRunSaysSoBeforeAnythingElse) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = Zakum();
+  BossRun run("zakum", boss, 0, /*authority=*/nullptr, /*practice=*/true);
+  run.Advance(*state, kBossCountdownSeconds);
+  EXPECT_EQ(FightHeading(run), "Practice - Normal Zakum - P1 - 100%");
+
+  run.Abort();
+  EXPECT_EQ(FightHeading(run), "Practice - Normal Zakum - Left");
+}
+
 // A fight of one room has no phase to name: "P1" would only ask the player
 // which other phase there was.
 TEST(BossFightPanelTest, AOnePhaseFightNamesNoPhase) {

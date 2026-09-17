@@ -741,6 +741,28 @@ TEST(BossRunTest, AClearPaysTheMesoAndTheCertainDrop) {
   EXPECT_EQ(state->character.CountStackable(DropItems().at("shard")), 1);
 }
 
+// A practice run is the fight and nothing else. The clock still stands, being
+// what the player came to beat.
+TEST(BossRunTest, APracticeClearPaysNothingAndStillTimesItself) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = RewardingBoss(/*mark_chance=*/1.0);
+  int64_t exp = state->character.proto().exp();
+  BossRun run("zakum", boss, 0, /*authority=*/nullptr, /*practice=*/true);
+  RunToEnd(run, *state);
+
+  ASSERT_TRUE(run.won());
+  EXPECT_TRUE(run.practice());
+  EXPECT_GT(run.clear_seconds(), 0.0);
+  EXPECT_EQ(run.reward().meso, 0);
+  EXPECT_EQ(run.reward().exp, 0);
+  EXPECT_EQ(run.reward().honor, 0);
+  EXPECT_TRUE(run.reward().items.empty());
+  EXPECT_EQ(state->character.proto().meso(), 0);
+  EXPECT_EQ(state->character.proto().exp(), exp);
+  EXPECT_EQ(state->character.honor(), 0);
+  EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 0);
+}
+
 // Once, not once per phase and not once per beat held afterwards.
 TEST(BossRunTest, TheRewardIsPaidOnlyOnce) {
   std::unique_ptr<GameState> state = MakeState();

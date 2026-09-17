@@ -131,8 +131,10 @@ class MultiplayerClient {
   // Asks for `account_id`'s sheet, and for a fresh one whenever they change.
   // An empty account stops the watch, which is what closing the screen does.
   void WatchPlayer(const std::string& account_id);
+  // `options` are the leader's own switches, which the server holds every
+  // member to before it opens the fight.
   void StartFight(const std::string& boss_key, int difficulty_index,
-                  PartyMode mode);
+                  PartyMode mode, const BossOptions& options = BossOptions());
   // What this client's fight has landed, where its player is standing, and
   // what they are winding up. Sent every step of a fight rather than queued
   // as an ask: a report that waited would land on a roster that had moved on.

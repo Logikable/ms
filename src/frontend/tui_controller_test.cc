@@ -3674,20 +3674,26 @@ TEST_F(TuiControllerTest, ViewOpensTheAnalysisOverlayAndBackClosesIt) {
   EXPECT_TRUE(menu_panel_->box_open());
 }
 
-// Tab walks the boss screen's three windows, and Enter takes the fight from
-// whichever of them holds the keys.
+// Tab walks the boss screen's three windows. Enter asks for the fight from
+// the two that describe it, and throws a switch on the row that holds them.
 TEST_F(TuiControllerTest, TabWalksTheBossScreensWindows) {
   HoldASword();
   controller_->OpenMenuEntry(MenuEntry::kBoss);
   EXPECT_EQ(boss_select_panel_->focus(), BossPanel::kList);
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(boss_select_panel_->focus(), BossPanel::kFight);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossConfirm);
+  controller_->OnEvent(ftxui::Event::Escape);
+
   controller_->OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(boss_select_panel_->focus(), BossPanel::kList);
   controller_->OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(boss_select_panel_->focus(), BossPanel::kOptions);
   controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kBossConfirm);
+  EXPECT_EQ(controller_->screen(), kBossSelect)
+      << "the row takes its own Enter";
+  EXPECT_TRUE(boss_select_panel_->practice());
 }
 
 TEST_F(TuiControllerTest, EnterOnAFightAsksBeforeTakingIt) {
@@ -3796,6 +3802,44 @@ TEST_F(TuiControllerTest, AFightRefusesACharacterWithNoWeapon) {
   EXPECT_EQ(controller_->screen(), kBossSelect);
   EXPECT_EQ(controller_->boss_run(), nullptr);
   EXPECT_FALSE(controller_->in_boss_fight());
+}
+
+// Practice walks past the reset and spends nothing: a boss already taken
+// today is still enterable, and beating him again writes no clear down.
+TEST_F(TuiControllerTest, PracticeBypassesTheResetAndSpendsNoClear) {
+  HoldASword();
+  state_->character.RecordBossClear("zakum", "Normal",
+                                    static_cast<int64_t>(std::time(nullptr)));
+  int64_t cleared = state_->character.BossClearedAt("zakum", "Normal");
+  ASSERT_GT(cleared, 0);
+
+  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBossNotice) << "cleared today";
+  controller_->OnEvent(ftxui::Event::Return);
+
+  // Onto the options row and throw the switch.
+  controller_->OnEvent(ftxui::Event::TabReverse);
+  ASSERT_EQ(boss_select_panel_->focus(), BossPanel::kOptions);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(state_->boss_options.practice());
+
+  // Back onto the grid, the row having taken the Enter before it.
+  controller_->OnEvent(ftxui::Event::Tab);
+  ASSERT_EQ(boss_select_panel_->focus(), BossPanel::kList);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBossConfirm) << "the reset is walked past";
+  EXPECT_TRUE(controller_->boss_prompt_practice());
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBossFight);
+  ASSERT_NE(controller_->boss_run(), nullptr);
+  EXPECT_TRUE(controller_->boss_run()->practice());
+
+  RunFightToEnd();
+  ASSERT_EQ(controller_->screen(), kBossClear);
+  EXPECT_EQ(state_->character.BossClearedAt("zakum", "Normal"), cleared)
+      << "the clock never heard about it";
+  EXPECT_EQ(controller_->boss_clear_reward().meso, 0);
 }
 
 TEST_F(TuiControllerTest, EscapeLeavesTheBossScreen) {

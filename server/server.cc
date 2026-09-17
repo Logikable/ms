@@ -255,7 +255,7 @@ void Server::OpenFight(const std::string& account_id,
   std::string id = absl::StrCat(party.id(), "-", next_fight_id_++);
   fights_[party.id()] = std::make_unique<PartyFight>(
       std::move(id), request.boss_key(), boss->second,
-      request.difficulty_index(), *mobs_, party);
+      request.difficulty_index(), *mobs_, party, request.options());
   // The first state a client sees is how it learns the fight has begun, so it
   // goes out now rather than on the next broadcast beat.
   PublishFight(*fights_[party.id()]);
@@ -318,6 +318,7 @@ void Server::PublishFight(PartyFight& fight) {
   state->set_fight_id(fight.id());
   state->set_boss_key(fight.boss_key());
   state->set_difficulty_index(fight.difficulty_index());
+  *state->mutable_options() = fight.options();
   state->set_stage(StageOf(fight.state()));
   state->set_phase(fight.phase());
   state->set_seconds_left(fight.seconds_left());

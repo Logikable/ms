@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "absl/strings/str_cat.h"
+#include "google/protobuf/util/message_differencer.h"
 #include "server/ids.h"
 #include "src/character/boss_reset.h"
 #include "src/protos/boss.pb.h"
@@ -14,6 +15,8 @@
 
 namespace ms {
 namespace {
+
+using ::google::protobuf::util::MessageDifferencer;
 
 // Characters in a party id. Short: it is passed around in one message and
 // read in log lines, and a handful of parties are ever open at once.
@@ -339,8 +342,23 @@ LobbyResult Lobby::CheckFight(const Party& party, const StartFight& request,
                      "Someone doesn't meet the level requirement.");
     }
   }
+  // Before the reset clock, because it is what decides whether the clock is
+  // asked at all: a fight cannot pay one player and not the next, so the party
+  // has to agree on the terms before anything is checked against them.
+  for (const PartyMember& member : party.members()) {
+    if (!MessageDifferencer::Equals(member.player().boss_options(),
+                                    request.options())) {
+      return Refusal(Refused::REASON_OPTIONS_DIFFER,
+                     "Players selected different bossing options.");
+    }
+  }
   const Boss& boss = bosses_.at(request.boss_key());
   for (const PartyMember& member : party.members()) {
+    // Practice walks past the reset -- it spends no clear, so a clear already
+    // taken is not in its way.
+    if (request.options().practice()) {
+      break;
+    }
     // Asked of the boss rather than of the rung: a clear of any difficulty
     // holds the whole ladder back.
     if (BossAvailable(request.boss_key(), boss, member.player().boss_clears(),

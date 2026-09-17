@@ -536,8 +536,12 @@ ftxui::Element Tui::RenderPlayerInspect() {
 
 ftxui::Element Tui::BossConfirmDialog() {
   // Titleless, like the quit dialog: the question is the whole dialog.
+  // "Practice" rather than "Fight" is the last place to catch a switch left
+  // on: this run would pay nothing.
+  std::string verb =
+      controller_.boss_prompt_practice() ? "Practice " : "Fight ";
   return DialogWindow(
-      "", {CenteredRow("Fight " + controller_.boss_prompt_title() + "?")},
+      "", {CenteredRow(verb + controller_.boss_prompt_title() + "?")},
       controller_.boss_prompt().Render());
 }
 

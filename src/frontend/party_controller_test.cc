@@ -861,10 +861,13 @@ TEST_F(PartyControllerTest, PartyOpensOnceTheServerCatchesUp) {
 
   OpenMultiplayer(player, MultiplayerEntry::kParty);
   ASSERT_NE(player.controller->screen(), kPartySelect);
-  EXPECT_EQ(player.controller->party_notice(),
-            "The server is running an older version. Trying again.\nClient: v" +
-                std::to_string(kMultiplayerVersion) + ", Server: v" +
-                std::to_string(kMultiplayerVersion - 1));
+  // Wrapped to the dialog on the way in, and the break the message makes
+  // itself is kept: the two versions stay on a line of their own.
+  EXPECT_EQ(
+      player.controller->party_notice(),
+      "The server is running an\nolder version. Trying again.\nClient: v" +
+          std::to_string(kMultiplayerVersion) + ", Server: v" +
+          std::to_string(kMultiplayerVersion - 1));
 
   // The server is deployed. Pressing Party again is what asks the connection
   // to try now rather than at the end of its backoff, so the player gets in

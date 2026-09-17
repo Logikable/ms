@@ -368,6 +368,11 @@ class TuiController {
   const std::string& boss_prompt_title() const {
     return boss_prompt_title_;
   }
+  // Whether the fight being asked about would be taken as practice. Snapshot
+  // with the title, so the question cannot change under the player.
+  bool boss_prompt_practice() const {
+    return boss_prompt_practice_;
+  }
   // The one button every one-button screen is dismissed by -- a scroll or star
   // force result, and the notice that a fight is still on its reset.
   const ContinuePrompt& notice_prompt() const {
@@ -427,6 +432,8 @@ class TuiController {
   void AdvanceBossRun(double elapsed_seconds);
   // Takes what walking into a fight costs in potions. Called by both doors
   // into a boss run -- the solo one and the party's.
+  // Throws the switch at `option` on the boss screen's options row.
+  void ToggleBossOption(int option);
   void ChargeBossEntry();
   // True while a fight owns the screen, which is when the map should not be
   // farmed: the player is somewhere else.
@@ -797,6 +804,7 @@ class TuiController {
   // the dialog cannot change its question under the player.
   ConfirmPrompt boss_prompt_;
   std::string boss_prompt_title_;
+  bool boss_prompt_practice_ = false;
   ContinuePrompt notice_prompt_;
   std::vector<std::string> notice_lines_;
   bool notice_is_refusal_ = false;

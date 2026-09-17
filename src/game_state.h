@@ -22,6 +22,7 @@
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/protos/multiplayer.pb.h"
 #include "src/protos/save.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
@@ -162,6 +163,12 @@ struct GameState {
 
   // Name of the map being farmed (key into `maps`); empty means none.
   std::string current_map;
+
+  // What the player has switched on for a boss fight -- see the boss screen's
+  // options row. NOT saved: practice pays nothing, and a switch remembered
+  // across a restart would quietly cost somebody a real clear. It rides in
+  // PlayerInfo so the server can hold a whole party to one set of them.
+  BossOptions boss_options;
 
   // When this character was started, as seconds since the Unix epoch. Stamped
   // here rather than at save time so that both of the ways it can go

@@ -42,8 +42,17 @@ constexpr int kValueWidth = kDetailWidth - kLabelWidth - 2;
 constexpr int kDetailContentWidth = kDetailWidth + 1;
 // The rows inside a panel's border.
 constexpr int kPanelRows = kBossPanelHeight - 2;
-// Two borders and the row of options between them.
+// Two borders and the row of switches between them.
 constexpr int kOptionsHeight = 3;
+// The switches the row holds, left to right.
+constexpr int kOptionCount = 1;
+// One switch: its box, and the name beside it. The box leads, so the row reads
+// as a column of states rather than a sentence to the end of.
+ftxui::Element OptionChip(const std::string& label, bool on, bool on_cursor) {
+  return HighlightRow(
+      ftxui::text(std::string("[") + (on ? "X" : " ") + "] " + label),
+      on_cursor);
+}
 
 std::string ResetName(ResetPeriod period) {
   switch (period) {
@@ -157,7 +166,12 @@ void BossSelectPanel::Reset() {
   selected_ = 0;
   column_ = 0;
   focus_ = BossPanel::kList;
+  option_ = 0;
   scroll_ = 0;
+}
+
+bool BossSelectPanel::practice() const {
+  return state_.boss_options.practice();
 }
 
 void BossSelectPanel::SwitchPanel(int delta) {
@@ -186,6 +200,10 @@ int BossSelectPanel::Columns() const {
 }
 
 void BossSelectPanel::ChangeDifficulty(int delta) {
+  if (focus_ == BossPanel::kOptions) {
+    option_ = std::clamp(option_ + delta, 0, kOptionCount - 1);
+    return;
+  }
   if (focus_ != BossPanel::kList) {
     return;
   }
@@ -364,6 +382,11 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
     // Neither "Available" nor "Cleared" is true of a fight the character
     // cannot enter at all, and the level above says what it is short of.
     rows.push_back(DetailRow("Status", "Locked") | ftxui::color(kRed));
+  } else if (practice()) {
+    // Practice walks past the reset, so "Cleared" is no longer what stands
+    // between the player and the fight. Yellow rather than green: it opens the
+    // door and empties the purse behind it.
+    rows.push_back(DetailRow("Status", "Practice") | ftxui::color(kYellow));
   } else if (!selected_available()) {
     // Red is the reason: the one value the player falls short of. What they
     // are short of here is a reset, so it goes on the status and nowhere else.
@@ -372,8 +395,17 @@ BossSelectPanel::DetailRows BossSelectPanel::BuildDetail(
     rows.push_back(DetailRow("Status", "Available") | ftxui::color(kGreen));
   }
   rows.push_back(ThemedSeparator());
-  rows.push_back(ftxui::text(" Rewards ") | ftxui::color(kTheme));
+  ftxui::Element heading = ftxui::text(" Rewards ") | ftxui::color(kTheme);
   RenderRewards(detail.rewards, difficulty, now);
+  // Dimmed whole rather than cut: a practice run pays none of it, and the
+  // player is still reading the card to decide what a real clear is worth.
+  if (practice()) {
+    heading = std::move(heading) | ftxui::dim;
+    for (RewardRow& row : detail.rewards) {
+      row.element = std::move(row.element) | ftxui::dim;
+    }
+  }
+  rows.push_back(std::move(heading));
   return detail;
 }
 
@@ -433,10 +465,16 @@ ftxui::Element BossSelectPanel::RenderDetail(
 }
 
 ftxui::Element BossSelectPanel::RenderOptions() const {
-  // Nothing on it yet. The row is held open so that filling it does not move
-  // the two panels over it.
-  return ThemedWindow(" Options ", ftxui::text(" "),
-                      focus_ == BossPanel::kOptions) |
+  // The band marks the cursor only while the row holds the keys, a band on an
+  // unfocused row claiming a selection Enter would not throw.
+  bool focused = focus_ == BossPanel::kOptions;
+  return ThemedWindow(
+             " Options ",
+             ftxui::hbox({
+                 ftxui::text("  "),
+                 OptionChip("Practice", practice(), focused && option_ == 0),
+             }),
+             focused) |
          ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kOptionsHeight);
 }
 

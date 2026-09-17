@@ -51,6 +51,9 @@ PlayerInfo PlayerFor(const GameState& state) {
   // Their switch, not the reader's: whose allocation a sheet shows is the
   // question its owner has already answered.
   player.set_autoswap_presets(state.account.autoswap_presets());
+  // What they have set on the boss screen. The server holds a whole party to
+  // one set of these before it opens a fight.
+  *player.mutable_boss_options() = state.boss_options;
   return player;
 }
 

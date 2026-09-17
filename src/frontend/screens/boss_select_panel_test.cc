@@ -138,6 +138,16 @@ int RowOf(const std::vector<std::string>& rows, const std::string& needle) {
   return -1;
 }
 
+// The rendered screen itself, for a question ToString() cannot answer -- the
+// dim bit, which is not in the text.
+ftxui::Screen RenderScreen(const BossSelectPanel& panel) {
+  ftxui::Element element = ftxui::hbox({panel.Render(kHead), ftxui::filler()});
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+                                               ftxui::Dimension::Fixed(32));
+  ftxui::Render(screen, element);
+  return screen;
+}
+
 // The colour the first character of the row holding `needle` is drawn in.
 // Read off the pixel, because ToString() is where colour goes to die: a red
 // row and a white one produce the same string.
@@ -780,6 +790,57 @@ TEST(BossSelectPanelTest, ALongFightNameSlidesUnderItsColumn) {
   EXPECT_NE(Render(panel, 32, slid).find("Flame "), std::string::npos);
   panel.SwitchPanel(2);
   EXPECT_NE(Render(panel, 32, slid).find("Flame "), std::string::npos);
+}
+
+// The row draws the switch as its state, and Left and Right stay on the one
+// switch there is.
+TEST(BossSelectPanelTest, TheOptionsRowDrawsThePracticeSwitch) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  BossSelectPanel panel(state);
+  std::vector<std::string> rows = RenderRows(panel);
+  EXPECT_NE(rows[RowOf(rows, "Options") + 1].find("[ ] Practice"),
+            std::string::npos);
+
+  state.boss_options.set_practice(true);
+  EXPECT_TRUE(panel.practice());
+  rows = RenderRows(panel);
+  EXPECT_NE(rows[RowOf(rows, "Options") + 1].find("[X] Practice"),
+            std::string::npos);
+
+  panel.SwitchPanel(2);
+  ASSERT_EQ(panel.focus(), BossPanel::kOptions);
+  panel.ChangeDifficulty(1);
+  EXPECT_EQ(panel.selected_option(), 0);
+  panel.ChangeDifficulty(-1);
+  EXPECT_EQ(panel.selected_option(), 0);
+  // The grid's own cursor is not what Left and Right moved.
+  EXPECT_EQ(panel.selected_difficulty(), 0);
+}
+
+// Practice walks past the reset, so "Cleared" is no longer what stands between
+// the player and the fight -- and the rewards it will not pay go dim.
+TEST(BossSelectPanelTest, PracticeRestatesTheStatusAndDimsTheRewards) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  state.bosses["zakum"].mutable_difficulties(0)->set_meso(3062500);
+  state.character.RecordBossClear("zakum", "Normal", std::time(nullptr));
+  BossSelectPanel panel(state);
+  EXPECT_NE(Render(panel).find("Cleared"), std::string::npos);
+  EXPECT_FALSE(PixelOf(RenderScreen(panel), "Meso").dim);
+
+  state.boss_options.set_practice(true);
+  std::string out = Render(panel);
+  EXPECT_NE(out.find("Practice"), std::string::npos);
+  EXPECT_EQ(out.find("Cleared"), std::string::npos);
+  EXPECT_EQ(RowColor(panel, "Status"), kYellow);
+  // capture-pane drops the dim bit, so it is only ever checked here.
+  EXPECT_TRUE(PixelOf(RenderScreen(panel), "Meso").dim);
+  EXPECT_TRUE(PixelOf(RenderScreen(panel), "Rewards").dim);
+  // A fight the character is too low for is still locked: practice opens the
+  // door the reset closed, not the one the level does.
+  state.bosses["zakum"].mutable_difficulties(0)->set_unlock_level(300);
+  EXPECT_NE(Render(panel).find("Locked"), std::string::npos);
 }
 
 }  // namespace

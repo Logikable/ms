@@ -214,9 +214,10 @@ class BossRun {
   // `boss` and `authority` are owned elsewhere and must outlive the run. An
   // invalid `difficulty_index` makes a run that is over before it starts, and
   // a null `authority` fights the boss alone -- deciding its own phases, its
-  // own clock and what its monsters have left.
+  // own clock and what its monsters have left. `practice` is the fight taken
+  // for nothing: it pays nothing, and the caller records no clear for it.
   BossRun(std::string boss_key, const Boss& boss, int difficulty_index,
-          FightAuthority* authority = nullptr);
+          FightAuthority* authority = nullptr, bool practice = false);
 
   // Steps the run by elapsed_seconds of real time, paying the character for
   // whatever died. Does nothing once the run is finished.
@@ -241,6 +242,11 @@ class BossRun {
   // What the fight is called: "Normal Zakum".
   const std::string& title() const {
     return title_;
+  }
+  // Whether this run is a practice run, which pays nothing and spends no
+  // clear. The caller asks before writing one down.
+  bool practice() const {
+    return practice_;
   }
   // The boss without its difficulty: what the player is asked about on the
   // way out.
@@ -417,6 +423,7 @@ class BossRun {
   const Boss* boss_ = nullptr;
   int difficulty_index_ = 0;
   std::string title_;
+  bool practice_ = false;
   std::string boss_name_;
   int phases_ = 0;
 

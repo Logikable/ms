@@ -159,11 +159,12 @@ int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy,
 }
 
 BossRun::BossRun(std::string boss_key, const Boss& boss, int difficulty_index,
-                 FightAuthority* authority)
+                 FightAuthority* authority, bool practice)
     : boss_key_(std::move(boss_key)),
       boss_(&boss),
       difficulty_index_(difficulty_index),
-      authority_(authority) {
+      authority_(authority),
+      practice_(practice) {
   const BossDifficulty* chosen = difficulty();
   if (chosen == nullptr) {
     state_ = BossRunState::kAborted;
@@ -694,6 +695,12 @@ void BossRun::PayReward(GameState& state,
                         const std::vector<SharedAward>& awards) {
   const BossDifficulty* chosen = difficulty();
   clear_seconds_ = std::max(0.0, chosen->time_limit_seconds() - seconds_left_);
+  // A practice run is the fight and nothing else: no meso, no EXP, no honor
+  // and no drops. The clock above still stands, being what the player came to
+  // beat.
+  if (practice_) {
+    return;
+  }
   // A party splits the purse and nothing else. The EXP is what the fight is
   // worth to a character, and three people beating a boss have each beaten it.
   double share = 1.0 / std::max(1, share_count_);
