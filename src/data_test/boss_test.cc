@@ -682,7 +682,7 @@ TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   ASSERT_EQ(normal.phases_size(), 1);
   const BossPhase& phase = normal.phases(0);
   ASSERT_EQ(phase.spawns_size(), 1);
-  EXPECT_EQ(phase.bgm(), "BossGuardianSlime");
+  EXPECT_EQ(phase.bgm(), "GuardianSlime-Battle");
   EXPECT_EQ(SpawnCount(phase.spawns(0)), 1);
   EXPECT_EQ(phase.spawns(0).mob(), "guardian_angel_slime");
   const Mob& mob = mobs_.at("guardian_angel_slime");

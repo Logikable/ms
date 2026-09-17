@@ -67,13 +67,19 @@ def containers(pattern):
 
 
 def tracks_in(pack, img):
-    """{track name: (start, end)} for one img already found in `pack`."""
+    """{track name: (start, end)} for one img already found in `pack`.
+
+    A name keeps its whole path, because BgmMultiTrack hangs several tracks
+    off one boss -- `BossGuardianSlime/GuardianSlime:Battle` beside
+    `.../Wave`. Keyed on the top level alone they overwrite each other and the
+    last one silently wins.
+    """
     _, _, off = pack.entries[img]
     r = SoundReader(pack.d, off, None, off)
     r.p = off
     r.string_block()
     r.prop_list()
-    return {k.split('/')[0]: v for k, v in r.blobs.items()}
+    return dict(r.blobs)
 
 
 def read_sound(img):
@@ -160,7 +166,8 @@ def main():
     p = sub.add_parser('find')
     p.add_argument('pattern')
     p = sub.add_parser('get')
-    p.add_argument('track', help='Bgm02/AboveTheTreetops')
+    p.add_argument('track', help='Bgm02/AboveTheTreetops, or '
+                   'BgmMultiTrack/BossGuardianSlime/GuardianSlime:Battle')
     p.add_argument('out')
     p = sub.add_parser('map')
     p.add_argument('name')

@@ -7,7 +7,7 @@ difficulties {
   # every thirty seconds she leaves it: up to the gallery row and back down
   # two thirds of a second later, onto the cell she left.
   phases {
-    bgm: "BossGuardianSlime"
+    bgm: "GuardianSlime-Battle"
     spawns {
       mob: "guardian_angel_slime"
       spots { x: 4 y: 4 }
