@@ -415,7 +415,9 @@ TEST_F(PartyControllerTest, ANoticeTakesKeysWhereverThePlayerIs) {
   std::unique_ptr<Client> guest = Connect("Wand");
   MakeParty(*leader, *guest);
 
-  // The one being removed is looking at the shop, not the party screen.
+  // The one being removed is looking at the main view, not the party screen:
+  // once out of the screen, once out of the box that opened it.
+  guest->controller->OnEvent(ftxui::Event::Escape);
   guest->controller->OnEvent(ftxui::Event::Escape);
   ASSERT_EQ(guest->controller->screen(), kMain);
 
@@ -435,6 +437,32 @@ TEST_F(PartyControllerTest, ANoticeTakesKeysWhereverThePlayerIs) {
   guest->controller->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(guest->controller->party_notice_prompt().open());
   EXPECT_EQ(guest->controller->screen(), kMain);
+}
+
+// Both screens close back to the box that opened them, the way Keybinds and
+// Options do. Landing on the main view instead left the box open with the
+// cursor inside it, and the menu row drew no cursor while that held.
+TEST_F(PartyControllerTest, ClosingEitherScreenGoesBackToTheBox) {
+  std::unique_ptr<Client> player = Connect("Dagger");
+  OpenMultiplayer(*player, MultiplayerEntry::kPlayers);
+  ASSERT_EQ(player->controller->screen(), kPlayerList);
+
+  player->controller->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(player->controller->screen(), kMenuBox);
+  EXPECT_TRUE(player->menu_panel->box_open());
+  // Out of the box, which is what hands the cursor back to the menu row.
+  player->controller->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(player->controller->screen(), kMain);
+  EXPECT_FALSE(player->menu_panel->box_open());
+  EXPECT_LT(player->menu_panel->box_cursor(), 0);
+
+  // The party screen closes the same way, by its Close button.
+  OpenMultiplayer(*player, MultiplayerEntry::kParty);
+  ASSERT_EQ(player->controller->screen(), kPartySelect);
+  player->controller->OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_EQ(player->party_panel.Chosen(), PartyAction::kClose);
+  player->controller->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(player->controller->screen(), kMenuBox);
 }
 
 // The Players list is everyone connected, party or no. A sheet is not on the

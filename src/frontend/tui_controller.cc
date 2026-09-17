@@ -438,6 +438,14 @@ bool TuiController::Connected() {
   return false;
 }
 
+void TuiController::LeaveMultiplayerScreen() {
+  // Back to the box it was opened from, which is still standing where the
+  // player left it -- the way Keybinds and Options close. Landing on the main
+  // view instead leaves the box open with the cursor inside it, and the menu
+  // row draws no cursor while that holds.
+  screen_ = kMenuBox;
+}
+
 void TuiController::OpenPartySelect() {
   if (!Connected()) {
     return;
@@ -1402,6 +1410,7 @@ void TuiController::AdvanceParty() {
       screen_ == kPlayerItemInspect || screen_ == kPlayerList;
   if (on_lobby_screen && lobby.state != ConnectionState::kConnected) {
     screen_ = kMain;
+    menu_panel_.CloseBox();
     party_select_panel_.CloseMenu();
     party_prompt_.Close();
     inspect_pending_.clear();
@@ -1537,7 +1546,7 @@ void TuiController::AskAboutParty(PartyAsk ask, const std::string& question) {
 void TuiController::TakePartyAction(PartyAction action) {
   switch (action) {
     case PartyAction::kClose:
-      screen_ = kMain;
+      LeaveMultiplayerScreen();
       return;
     case PartyAction::kMemberMenu:
       party_select_panel_.OpenMenu();
@@ -1588,12 +1597,12 @@ bool TuiController::OnPlayerListEvent(ftxui::Event event) {
     return true;
   }
   if (IsBack(event)) {
-    screen_ = kMain;
+    LeaveMultiplayerScreen();
     return true;
   }
   if (IsForward(event)) {
     if (player_list_panel_.on_close()) {
-      screen_ = kMain;
+      LeaveMultiplayerScreen();
       return true;
     }
     WatchForInspect(player_list_panel_.selected_account());
@@ -1623,7 +1632,7 @@ bool TuiController::OnPartySelectEvent(ftxui::Event event) {
     return true;
   }
   if (IsBack(event)) {
-    screen_ = kMain;
+    LeaveMultiplayerScreen();
     return true;
   }
   return true;

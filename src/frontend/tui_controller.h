@@ -550,6 +550,9 @@ class TuiController {
   // nothing for a member who has gone since the menu was raised.
   // Opens the party screen and the Players screen, each after checking that
   // there is a connection to draw.
+  // Closes whichever of the two the player is on, back to the box that
+  // opened it.
+  void LeaveMultiplayerScreen();
   void OpenPartySelect();
   void OpenPlayerList();
   // Whether the connection is up. Raises the notice, and asks for a fresh
