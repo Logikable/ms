@@ -171,7 +171,8 @@ struct PassiveTotals : DerivedStats {
 // Folds one skill's levers in on top of what is there, handed the grant
 // already read up to its level. Split out from AddPassive because a weapon
 // bonus is a second helping of the same levers, gated on the weapon.
-void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
+// Every lever that is simply a sum, which is most of them.
+void AddSummedLevers(const SkillEffect& granted, PassiveTotals& totals) {
   totals.hp_grant += WholeValue(granted.max_hp());
   totals.mp_grant += WholeValue(granted.max_mp());
   totals.hp_per_level += WholeValue(granted.max_hp_per_level());
@@ -179,47 +180,18 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   totals.mp_per_level += WholeValue(granted.max_mp_per_level());
   totals.max_mp_pct += granted.max_mp_pct();
   totals.def_grant += WholeValue(granted.def());
-  totals.def_factor *= 1.0 + granted.def_pct();
   totals.str += WholeValue(granted.str());
   totals.dex += WholeValue(granted.dex());
   totals.int_ += WholeValue(granted.int_());
   totals.luk += WholeValue(granted.luk());
   totals.attack += WholeValue(granted.attack());
-  // One lever on a skill pays both attacks; only a potential tells them apart.
-  totals.attack_pct += granted.attack_pct();
-  totals.magic_attack_pct += granted.attack_pct();
   totals.magic_attack += WholeValue(granted.magic_attack());
-  // Damage sent to MP is damage the HP pool never sees and nothing tracks MP,
-  // so Magic Guard reads as reduction. Reduction MULTIPLIES: two halves leave
-  // a quarter, where summing would leave none and then heal the character.
-  totals.damage_taken_pct = 1.0 - (1.0 - totals.damage_taken_pct) *
-                                      (1.0 - granted.damage_taken_pct()) *
-                                      (1.0 - granted.damage_to_mp_pct());
-  // Dodging combines the same way and for the same reason: what two sources
-  // leave standing is the product of what each leaves standing.
-  totals.dodge_chance =
-      1.0 - (1.0 - totals.dodge_chance) * (1.0 - granted.dodge_chance());
-  // The barrier sums rather than combining, unlike the two above: what it takes
-  // off is the monster's own attack, and GMS states every source of it as
-  // points on that one number.
-  totals.enemy_attack_pct += granted.enemy_attack_pct();
-  totals.enemy_attack_reaches_boss |= granted.enemy_attack_reaches_boss();
   totals.damage_reflect_pct += granted.damage_reflect_pct();
   totals.crit_rate += granted.crit_rate();
   totals.crit_dmg_per_crit_rate += granted.crit_dmg_per_crit_rate();
   totals.crit_dmg += granted.crit_dmg();
   totals.hp_recover_pct += granted.hp_recover_pct();
   totals.exp_pct += granted.exp_pct();
-  // The pulse and its interval stay apart all the way to the fight, which
-  // pours on the clock rather than smearing it over the seconds between.
-  if (granted.regen_interval_seconds() > 0.0 &&
-      (granted.regen_pct() > 0.0 || granted.regen_hp() > 0.0)) {
-    totals.regen.push_back(
-        RawRegen{{granted.regen_pct(), WholeValue(granted.regen_hp()),
-                  granted.regen_interval_seconds()},
-                 granted.regen_int_step()});
-  }
-  totals.status_resistance += granted.status_resistance();
   totals.elemental_resistance += granted.elemental_resistance();
   totals.damage_pct += granted.damage_pct();
   totals.boss_pct += granted.boss_pct();
@@ -238,11 +210,50 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   totals.final_dmg_combo_orbs += granted.final_dmg_combo_orbs();
   totals.ap_stat_pct += granted.ap_stat_pct();
   totals.ap_stat_bonus_pct += granted.ap_stat_bonus_pct();
+  totals.freeze.matt_per_stack +=
+      WholeValue(granted.magic_attack_per_freeze_stack());
+  totals.attack_speed_bonus += WholeValue(granted.attack_speed());
+  totals.uncapped_attack_speed_bonus +=
+      WholeValue(granted.uncapped_attack_speed());
+}
+
+// Folds one level's levers into the running totals. The sums are next door;
+// what is here is every lever that combines some OTHER way, and the comment
+// on each says which.
+void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
+  AddSummedLevers(granted, totals);
+  totals.def_factor *= 1.0 + granted.def_pct();
+  // One lever on a skill pays both attacks; only a potential tells them apart.
+  totals.attack_pct += granted.attack_pct();
+  totals.magic_attack_pct += granted.attack_pct();
+  // Damage sent to MP is damage the HP pool never sees and nothing tracks MP,
+  // so Magic Guard reads as reduction. Reduction MULTIPLIES: two halves leave
+  // a quarter, where summing would leave none and then heal the character.
+  totals.damage_taken_pct = 1.0 - (1.0 - totals.damage_taken_pct) *
+                                      (1.0 - granted.damage_taken_pct()) *
+                                      (1.0 - granted.damage_to_mp_pct());
+  // Dodging combines the same way and for the same reason: what two sources
+  // leave standing is the product of what each leaves standing.
+  totals.dodge_chance =
+      1.0 - (1.0 - totals.dodge_chance) * (1.0 - granted.dodge_chance());
+  // The barrier sums rather than combining, unlike the two above: what it takes
+  // off is the monster's own attack, and GMS states every source of it as
+  // points on that one number.
+  totals.enemy_attack_pct += granted.enemy_attack_pct();
+  totals.enemy_attack_reaches_boss |= granted.enemy_attack_reaches_boss();
+  // The pulse and its interval stay apart all the way to the fight, which
+  // pours on the clock rather than smearing it over the seconds between.
+  if (granted.regen_interval_seconds() > 0.0 &&
+      (granted.regen_pct() > 0.0 || granted.regen_hp() > 0.0)) {
+    totals.regen.push_back(
+        RawRegen{{granted.regen_pct(), WholeValue(granted.regen_hp()),
+                  granted.regen_interval_seconds()},
+                 granted.regen_int_step()});
+  }
+  totals.status_resistance += granted.status_resistance();
   // Read here rather than beside the cap itself, so that a BUFF granting
   // either lands them: a buff folds in through this door alone.
   totals.freeze_cap_bonus += WholeValue(granted.freeze_stack_cap_bonus());
-  totals.freeze.matt_per_stack +=
-      WholeValue(granted.magic_attack_per_freeze_stack());
   // The shortest wait rather than the sum: two pacts are not one long one,
   // and what a character wants to know is how soon the next one comes.
   double revive = granted.revive_cooldown_seconds();
@@ -254,9 +265,6 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   // seconds rather than a choice between clocks. Cashed in once every passive
   // is read -- see DerivedStatsFor.
   totals.revive_cooldown_cut += granted.revive_cooldown_cut_seconds();
-  totals.attack_speed_bonus += WholeValue(granted.attack_speed());
-  totals.uncapped_attack_speed_bonus +=
-      WholeValue(granted.uncapped_attack_speed());
   totals.ied = CombineIgnoredDefense(totals.ied, granted.ied_pct());
   // Its elemental twin, which sums rather than combining in reverse: GMS
   // applies it to the resistance itself, not to what the last source left.
@@ -798,6 +806,41 @@ SkillEffect AllyBuffEffect(const Buff& buff, const BuffUp& up) {
 
 // Sums every passive the character has learned. HP has to know its whole flat
 // total before any percentage lands on it, so nothing is folded here.
+// Folds one standing buff in. A buff grants what a passive grants while it is
+// up, through the same door and as a source of its OWN -- so its ignored
+// defence combines with the character's rather than summing.
+void AddStandingBuff(const CharacterInstance& character, const BuffUp& up,
+                     int bonus, bool in_company, PassiveTotals& totals) {
+  const Skill& skill = *up.skill;
+  // An ally's, read off the party half at THEIR level. Levers and nothing
+  // else: a Final Attack and a boost follow the caster's own swings.
+  if (up.caster != nullptr) {
+    AddEffect(AllyBuffEffect(skill.buff(), up), totals);
+    return;
+  }
+  int level = EffectiveSkillLevel(character, skill, bonus);
+  SkillEffect held =
+      EffectAt(skill.buff().base(), skill.buff().per_level(), level);
+  AddEffect(held, totals);
+  // The share the buff pays only for company. Its own AddEffect rather than a
+  // sum into the one above: a source apiece is what makes two shares of final
+  // damage multiply. See Buff.with_party_base.
+  if (in_company && (skill.buff().has_with_party_base() ||
+                     skill.buff().has_with_party_per_level())) {
+    AddEffect(EffectAt(skill.buff().with_party_base(),
+                       skill.buff().with_party_per_level(), level),
+              totals);
+  }
+  // A buff can hand over a Final Attack while it stands, and what sets one off
+  // belongs to the skill -- so it goes through a passive's door rather than
+  // AddEffect alone.
+  AddFinalAttack(skill, held, totals);
+  // What the buff hands a named skill, through the same door a permanent boost
+  // takes -- it is only this fold that makes it a window rather than a gift
+  // for good.
+  AddSkillBonuses(skill.buff().boost(), level, totals);
+}
+
 PassiveTotals LearnedPassives(const CharacterInstance& character,
                               const std::map<std::string, Skill>& skills,
                               absl::Span<const BuffUp> buffs_up,
@@ -835,38 +878,8 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   for (const SkillEffect& bonus : character.set_bonuses(gear)) {
     AddEffect(bonus, totals);
   }
-  // A standing buff grants what a passive grants while it is up, and folds in
-  // through the same door as a source of its OWN -- so its ignored defence
-  // combines with the character's rather than summing.
   for (const BuffUp& up : buffs_up) {
-    const Skill& skill = *up.skill;
-    // An ally's, read off the party half at THEIR level. Levers and nothing
-    // else: a Final Attack and a boost follow the caster's own swings.
-    if (up.caster != nullptr) {
-      AddEffect(AllyBuffEffect(skill.buff(), up), totals);
-      continue;
-    }
-    int level = EffectiveSkillLevel(character, skill, bonus);
-    SkillEffect held =
-        EffectAt(skill.buff().base(), skill.buff().per_level(), level);
-    AddEffect(held, totals);
-    // The share the buff pays only for company. Its own AddEffect rather than
-    // a sum into the one above: a source apiece is what makes two shares of
-    // final damage multiply. See Buff.with_party_base.
-    if (!allies.empty() && (skill.buff().has_with_party_base() ||
-                            skill.buff().has_with_party_per_level())) {
-      AddEffect(EffectAt(skill.buff().with_party_base(),
-                         skill.buff().with_party_per_level(), level),
-                totals);
-    }
-    // A buff can hand over a Final Attack while it stands, and what sets one
-    // off belongs to the skill -- so it goes through a passive's door rather
-    // than AddEffect alone.
-    AddFinalAttack(skill, held, totals);
-    // What the buff hands a named skill, through the same door a permanent
-    // boost takes -- it is only this fold that makes it a window rather than
-    // a gift for good.
-    AddSkillBonuses(skill.buff().boost(), level, totals);
+    AddStandingBuff(character, up, bonus, !allies.empty(), totals);
   }
   // What the party is holding over them, at the level its caster has it. The
   // same door again, and for the same reason.
