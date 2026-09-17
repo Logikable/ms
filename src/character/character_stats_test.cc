@@ -2976,6 +2976,46 @@ TEST_F(DerivedStatsTest, TheDefaultLinesPayFromLevel160) {
   EXPECT_EQ(stats.skill_stats.luk(), 30);
 }
 
+// The switch that lands an ability line has one arm per type and a
+// static_assert to force a look when a type is added -- but an arm that falls
+// through silently pays nothing, and the line still reads correctly on the
+// panel. Every type has to MOVE something.
+TEST_F(DerivedStatsTest, EveryAbilityLineTypePaysSomething) {
+  auto fingerprint = [this](AbilityLineType type) {
+    std::vector<AbilityLine> lines;
+    if (type != ABILITY_LINE_TYPE_UNSPECIFIED) {
+      lines.push_back(Line(type, ABILITY_RANK_LEGENDARY));
+    }
+    CharacterInstance c = AbilityCharacter(rng_, ABILITY_RANK_LEGENDARY, lines);
+    DerivedStats d = DerivedStatsFor(c, {});
+    return std::vector<double>{
+        static_cast<double>(d.skill_stats.str()),
+        static_cast<double>(d.skill_stats.dex()),
+        static_cast<double>(d.skill_stats.int_()),
+        static_cast<double>(d.skill_stats.luk()),
+        static_cast<double>(d.skill_stats.attack()),
+        static_cast<double>(d.skill_stats.magic_attack()),
+        static_cast<double>(d.max_hp),
+        static_cast<double>(d.attack_speed_bonus),
+        d.crit_rate,
+        d.boss_pct,
+        d.normal_pct,
+        d.meso_pct,
+        d.item_drop_pct,
+        d.buff_duration_pct,
+    };
+  };
+
+  const std::vector<double> bare = fingerprint(ABILITY_LINE_TYPE_UNSPECIFIED);
+  for (int i = AbilityLineType_MIN; i <= AbilityLineType_MAX; ++i) {
+    if (!AbilityLineType_IsValid(i) || i == ABILITY_LINE_TYPE_UNSPECIFIED) {
+      continue;
+    }
+    EXPECT_NE(fingerprint(static_cast<AbilityLineType>(i)), bare)
+        << AbilityLineType_Name(i) << " pays nothing";
+  }
+}
+
 TEST_F(DerivedStatsTest, AbilityLinesReachEveryLeverTheyName) {
   CharacterInstance c = AbilityCharacter(
       rng_, ABILITY_RANK_LEGENDARY,

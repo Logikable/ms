@@ -355,7 +355,10 @@ TEST_F(PartyControllerTest, TheLeaderHandsThePartyOn) {
 
   ASSERT_TRUE(WaitFor({leader.get(), guest.get()},
                       [&]() { return guest->party_panel.is_leader(); }));
-  EXPECT_FALSE(leader->party_panel.is_leader());
+  // Its own wait: the two are told separately, so the guest having heard says
+  // nothing about the leader having heard.
+  EXPECT_TRUE(WaitFor({leader.get(), guest.get()},
+                      [&]() { return !leader->party_panel.is_leader(); }));
   EXPECT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
     return guest->controller->party_notice_prompt().open();
   }));

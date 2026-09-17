@@ -240,6 +240,98 @@ TEST(FormatEquipSetTest, NamesEverySet) {
   EXPECT_EQ(FormatEquipSet(EQUIP_SET_NAME_UNSPECIFIED), "");
 }
 
+// --- Every enum value has a name ---
+//
+// Each of these name functions carries a static_assert on its enum's
+// ARRAYSIZE, which makes ADDING a value a compile error until someone looks.
+// It does not prove the value they added came away with a name, and an unnamed
+// one reads as a blank cell rather than as anything wrong. These do.
+
+TEST(GameNamesTest, EveryAbilityLineHasAName) {
+  for (int i = AbilityLineType_MIN; i <= AbilityLineType_MAX; ++i) {
+    if (!AbilityLineType_IsValid(i) || i == ABILITY_LINE_TYPE_UNSPECIFIED) {
+      continue;
+    }
+    EXPECT_FALSE(AbilityLineName(static_cast<AbilityLineType>(i)).empty())
+        << AbilityLineType_Name(i);
+  }
+}
+
+TEST(GameNamesTest, EveryPotentialLineHasBothNames) {
+  for (int i = PotentialLineType_MIN; i <= PotentialLineType_MAX; ++i) {
+    if (!PotentialLineType_IsValid(i) || i == POTENTIAL_LINE_TYPE_UNSPECIFIED) {
+      continue;
+    }
+    PotentialLineType type = static_cast<PotentialLineType>(i);
+    EXPECT_FALSE(PotentialLineName(type).empty()) << PotentialLineType_Name(i);
+    // The short name is what a column cell holds, so a blank one is a blank
+    // cell in a list that otherwise lines up.
+    EXPECT_FALSE(PotentialLineShortName(type).empty())
+        << PotentialLineType_Name(i);
+  }
+}
+
+TEST(GameNamesTest, EveryRankHasAName) {
+  for (int i = PotentialRank_MIN; i <= PotentialRank_MAX; ++i) {
+    if (!PotentialRank_IsValid(i) || i == POTENTIAL_RANK_UNSPECIFIED) {
+      continue;
+    }
+    EXPECT_FALSE(PotentialRankName(static_cast<PotentialRank>(i)).empty())
+        << PotentialRank_Name(i);
+  }
+  for (int i = AbilityRank_MIN; i <= AbilityRank_MAX; ++i) {
+    if (!AbilityRank_IsValid(i) || i == ABILITY_RANK_UNSPECIFIED) {
+      continue;
+    }
+    EXPECT_FALSE(AbilityRankName(static_cast<AbilityRank>(i)).empty())
+        << AbilityRank_Name(i);
+  }
+}
+
+TEST(GameNamesTest, EveryHyperStatHasAName) {
+  for (int i = HyperStatField_MIN; i <= HyperStatField_MAX; ++i) {
+    if (!HyperStatField_IsValid(i) || i == HYPER_STAT_FIELD_UNSPECIFIED) {
+      continue;
+    }
+    EXPECT_FALSE(HyperStatName(static_cast<HyperStatField>(i)).empty())
+        << HyperStatField_Name(i);
+  }
+}
+
+TEST(GameNamesTest, EveryEquipSetHasAName) {
+  for (int i = EquipSetName_MIN; i <= EquipSetName_MAX; ++i) {
+    if (!EquipSetName_IsValid(i) || i == EQUIP_SET_NAME_UNSPECIFIED) {
+      continue;
+    }
+    EXPECT_FALSE(FormatEquipSet(static_cast<EquipSetName>(i)).empty())
+        << EquipSetName_Name(i);
+  }
+}
+
+TEST(GameNamesTest, EveryEquipTypeAndSlotHasAName) {
+  for (int i = EquipType_MIN; i <= EquipType_MAX; ++i) {
+    if (!EquipType_IsValid(i) || i == EQUIP_TYPE_UNSPECIFIED) {
+      continue;
+    }
+    EXPECT_FALSE(FormatEquipType(static_cast<EquipType>(i)).empty())
+        << EquipType_Name(i);
+  }
+  for (int i = EquipSlot_MIN; i <= EquipSlot_MAX; ++i) {
+    if (!EquipSlot_IsValid(i) || i == EQUIP_SLOT_UNSPECIFIED) {
+      continue;
+    }
+    EquipSlot slot = static_cast<EquipSlot>(i);
+    EXPECT_FALSE(FormatSlot(slot).empty()) << EquipSlot_Name(i);
+    EXPECT_FALSE(FormatWornSlot(slot).empty()) << EquipSlot_Name(i);
+  }
+}
+
+TEST(GameNamesTest, EveryCubeAndTrackHasAName) {
+  EXPECT_FALSE(CubeName(CubeType::kRed).empty());
+  EXPECT_FALSE(CubeTrackName(PotentialTrack::kMain).empty());
+  EXPECT_FALSE(CubeTrackName(PotentialTrack::kBonus).empty());
+}
+
 // --- Inner Ability lines ---
 
 // Flat for a flat line, a percent sign for a percentage, and the two Max HP
