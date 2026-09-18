@@ -17,13 +17,21 @@ namespace ms {
 namespace {
 
 // Focusable controls, in the order the layout presents them.
-enum Focus { kQty = 0, kOne, kMax, kConfirm, kCancel };
+enum Focus { kQty = 0, kLow, kMax, kConfirm, kCancel };
 
 // Fills behind the value when the textbox is not selected.
 const ftxui::Color kFieldBg = ftxui::Color::RGB(45, 55, 75);
 
-// Total field width of the value textbox.
-constexpr int kFieldWidth = 8;
+// The narrowest the value textbox is drawn. A larger cap widens it, a digit
+// at a time, so a number never outgrows its box.
+constexpr int kMinFieldWidth = 8;
+
+// The columns a textbox holding up to `max` needs: its digits, a space each
+// side and a column for the caret.
+int FieldWidth(int64_t max) {
+  int digits = static_cast<int>(std::to_string(max).size());
+  return std::max(kMinFieldWidth, digits + 3);
+}
 
 // Length of one blink phase; the caret shows for one and hides the next.
 constexpr int kBlinkMs = 500;
@@ -39,18 +47,18 @@ bool CaretVisible() {
 
 // Renders the value textbox. When selected it turns white and carries a
 // blinking bar caret after the number; otherwise it is a dark filled box.
-ftxui::Element ValueField(int value, bool selected) {
+ftxui::Element ValueField(int64_t value, int width, bool selected) {
   std::string num = std::to_string(value);
   if (!selected) {
     std::string body = " " + num + " ";
-    if (static_cast<int>(body.size()) < kFieldWidth) {
-      body += std::string(kFieldWidth - static_cast<int>(body.size()), ' ');
+    if (static_cast<int>(body.size()) < width) {
+      body += std::string(width - static_cast<int>(body.size()), ' ');
     }
     return ftxui::text(body) | ftxui::bgcolor(kFieldBg) |
            ftxui::color(ftxui::Color::White);
   }
   std::string lead = " " + num;
-  int pad = kFieldWidth - static_cast<int>(lead.size()) - 1;  // -1 for caret
+  int pad = width - static_cast<int>(lead.size()) - 1;  // -1 for caret
   if (pad < 0) {
     pad = 0;
   }
@@ -65,15 +73,20 @@ ftxui::Element ValueField(int value, bool selected) {
 
 }  // namespace
 
-void AmountSelector::Reset(int max) {
+void AmountSelector::Reset(int64_t max) {
   Reset(max, /*initial=*/max);
 }
 
-void AmountSelector::Reset(int max, int initial) {
+void AmountSelector::Reset(int64_t max, int64_t initial) {
   max_ = max;
-  value_ = std::clamp(initial, 0, max);
+  value_ = std::clamp(initial, static_cast<int64_t>(0), max);
   focus_ = kQty;  // Start in the textbox.
   confirm_enabled_ = true;
+  low_ = 1;
+}
+
+void AmountSelector::set_low(int64_t low) {
+  low_ = low;
 }
 
 void AmountSelector::set_confirm_enabled(bool enabled) {
@@ -83,9 +96,9 @@ void AmountSelector::set_confirm_enabled(bool enabled) {
 ftxui::Element AmountSelector::Render() const {
   std::vector<ftxui::Element> value_cells;
   value_cells.push_back(ftxui::text(" "));
-  value_cells.push_back(ActionButton("1", focus_ == kOne));
+  value_cells.push_back(ActionButton(std::to_string(low_), focus_ == kLow));
   value_cells.push_back(ftxui::text("  "));
-  value_cells.push_back(ValueField(value_, focus_ == kQty));
+  value_cells.push_back(ValueField(value_, FieldWidth(max_), focus_ == kQty));
   value_cells.push_back(ftxui::text("  "));
   value_cells.push_back(ActionButton("MAX", focus_ == kMax));
   value_cells.push_back(ftxui::text(" "));
@@ -107,11 +120,11 @@ ftxui::Element AmountSelector::Render() const {
 }
 
 ConfirmChoice AmountSelector::Activate() {
-  if (focus_ == kOne) {
+  if (focus_ == kLow) {
     // Clamped like every other way in: a cap of zero means the caller cannot
     // honour one either, and a button that sets one anyway hands Confirm an
     // amount that would only be refused.
-    value_ = std::min(1, max_);
+    value_ = std::min(low_, max_);
   } else if (focus_ == kMax) {
     value_ = max_;
   } else if (focus_ == kConfirm) {
@@ -134,14 +147,14 @@ ConfirmChoice AmountSelector::OnEvent(ftxui::Event event) {
     if (focus_ == kMax) {
       focus_ = kQty;
     } else if (focus_ == kQty) {
-      focus_ = kOne;
+      focus_ = kLow;
     } else if (focus_ == kCancel) {
       focus_ = kConfirm;
     }
     return ConfirmChoice::kPending;
   }
   if (event == ftxui::Event::ArrowRight) {
-    if (focus_ == kOne) {
+    if (focus_ == kLow) {
       focus_ = kQty;
     } else if (focus_ == kQty) {
       focus_ = kMax;
@@ -157,7 +170,7 @@ ConfirmChoice AmountSelector::OnEvent(ftxui::Event event) {
     return ConfirmChoice::kPending;
   }
   if (event == ftxui::Event::ArrowDown) {
-    if (focus_ == kQty || focus_ == kOne) {
+    if (focus_ == kQty || focus_ == kLow) {
       focus_ = kConfirm;
     } else if (focus_ == kMax) {
       focus_ = kCancel;
@@ -178,8 +191,10 @@ ConfirmChoice AmountSelector::OnEvent(ftxui::Event event) {
     if (event.is_character() && event.character().size() == 1) {
       char c = event.character()[0];
       if (c >= '0' && c <= '9') {
-        int64_t next = static_cast<int64_t>(value_) * 10 + (c - '0');
-        value_ = static_cast<int>(std::min<int64_t>(next, max_));
+        // Grown a digit at a time and capped, so a long number typed into a
+        // small cap stops at the cap rather than wrapping past it.
+        int64_t next = value_ > max_ / 10 ? max_ : value_ * 10 + (c - '0');
+        value_ = std::min(next, max_);
         return ConfirmChoice::kPending;
       }
     }

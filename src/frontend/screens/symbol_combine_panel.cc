@@ -1,6 +1,7 @@
 #include "src/frontend/screens/symbol_combine_panel.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -26,8 +27,8 @@ ftxui::Element SymbolCombinePanel::Render() const {
   // Where the EXP lands if the player confirms. Allowed past the rung, since
   // what spills over is not lost: it is what the level after that is paid in.
   int after = exp_;
-  int taken =
-      std::min(selector_.value(), static_cast<int>(spare_worths_.size()));
+  int taken = static_cast<int>(std::min<int64_t>(
+      selector_.value(), static_cast<int64_t>(spare_worths_.size())));
   for (int i = 0; i < taken; ++i) {
     after += spare_worths_[i];
   }

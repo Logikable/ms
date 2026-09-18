@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <string>
 
 #include "ftxui/component/event.hpp"
@@ -32,6 +33,51 @@ TEST(AmountSelectorTest, DrawsTheSharedConfirmRow) {
   EXPECT_NE(rendered.find("[Cancel]"), std::string::npos);
   EXPECT_NE(rendered.find("[1]"), std::string::npos);
   EXPECT_NE(rendered.find("[MAX]"), std::string::npos);
+}
+
+// A trade puts up nothing as readily as everything, so the button left of the
+// field is the caller's to name.
+TEST(AmountSelectorTest, TheLowButtonIsTheCallersToSet) {
+  AmountSelector sel;
+  sel.Reset(10);
+  sel.set_low(0);
+  ftxui::Element element = sel.Render();
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(element),
+                                               ftxui::Dimension::Fixed(3));
+  ftxui::Render(screen, element);
+  EXPECT_NE(screen.ToString().find("[0]"), std::string::npos);
+
+  // Left onto it, then Enter: the value goes to nothing rather than to one.
+  sel.OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_EQ(sel.OnEvent(ftxui::Event::Return), ConfirmChoice::kPending);
+  EXPECT_EQ(sel.value(), 0);
+
+  // Reset puts it back, so no caller inherits another's button.
+  sel.Reset(10);
+  sel.OnEvent(ftxui::Event::ArrowLeft);
+  sel.OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(sel.value(), 1);
+}
+
+// A purse of meso is past what an int holds, and the field grows to show it.
+TEST(AmountSelectorTest, CarriesAnAmountPastAnInt) {
+  constexpr int64_t kPurse = 100000000000;
+  AmountSelector sel;
+  sel.Reset(kPurse, /*initial=*/0);
+  for (int i = 0; i < 11; ++i) {
+    sel.OnEvent(ftxui::Event::Character('9'));
+  }
+  EXPECT_EQ(sel.value(), 99999999999);
+
+  // One digit more is held at the cap rather than wrapping past it.
+  sel.OnEvent(ftxui::Event::Character('9'));
+  EXPECT_EQ(sel.value(), kPurse);
+
+  ftxui::Element element = sel.Render();
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(element),
+                                               ftxui::Dimension::Fixed(3));
+  ftxui::Render(screen, element);
+  EXPECT_NE(screen.ToString().find("100000000000"), std::string::npos);
 }
 
 // Opens on the whole amount, so a player who wants all of it presses Enter and
