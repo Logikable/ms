@@ -32,6 +32,7 @@
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
+#include "src/multiplayer/trade_exchange.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -43,6 +44,11 @@ namespace {
 // What Offer answers once the table holds its eight. Split across lines by
 // the notice's own wrapping.
 constexpr char kTradeFullMessage[] = "You can only trade 8 items.";
+
+// And what Accept answers when the bag could not hold their side. Wrapped by
+// the notice itself, which is what puts it over several lines.
+constexpr char kBagTooFullMessage[] =
+    "Your inventory is too full to accept this trade.";
 
 }  // namespace
 
@@ -1995,11 +2001,14 @@ bool TuiController::OnTradeEvent(ftxui::Event event) {
     return true;
   }
   if (IsForward(event)) {
-    if (trade_panel_.cursor().kind == TradeCursor::Kind::kCurrency) {
+    TradeCursor::Kind kind = trade_panel_.cursor().kind;
+    if (kind == TradeCursor::Kind::kCurrency) {
       OpenTradeAmount();
-      return true;
+    } else if (kind == TradeCursor::Kind::kAccept) {
+      ToggleTradeAccept();
+    } else {
+      OpenTradeMenu();
     }
-    OpenTradeMenu();
     return true;
   }
   if (IsBack(event)) {
@@ -2008,6 +2017,21 @@ bool TuiController::OnTradeEvent(ftxui::Event event) {
   // Everything else is swallowed: this is a modal screen, and the ticker's
   // redraw arrives as an event too.
   return true;
+}
+
+void TuiController::ToggleTradeAccept() {
+  if (multiplayer_ == nullptr) {
+    return;
+  }
+  MultiplayerSnapshot lobby = Lobby();
+  if (!lobby.trade.mine_accepted() &&
+      !HasRoomForTrade(state_.character, state_.items,
+                       trade_panel_.own().ToWire(state_.character),
+                       lobby.trade.theirs())) {
+    RaisePartyNotice(kBagTooFullMessage, /*refusal=*/true);
+    return;
+  }
+  multiplayer_->client().AcceptTrade(!lobby.trade.mine_accepted());
 }
 
 void TuiController::OpenTradeMenu() {

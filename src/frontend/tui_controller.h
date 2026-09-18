@@ -648,6 +648,11 @@ class TuiController {
   bool OnTradeScreen() const;
   // Enter on a row of any of the three windows.
   void OpenTradeMenu();
+  // Enter on the Accept button, which is a toggle. Accepting is refused with
+  // a notice when the bag could not hold what is on their side of the table:
+  // the one moment the question can be asked, since a table that changes
+  // under an acceptance takes it back with it.
+  void ToggleTradeAccept();
   // Offer on a bag row: an equip goes up as it stands, a stack through the
   // amount overlay. Refused with a notice once the table holds its eight.
   void OfferFromBag();

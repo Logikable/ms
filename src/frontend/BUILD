@@ -115,6 +115,7 @@ cc_library(
         "//src/item:equip_instance",
         "//src/multiplayer:party_fight",
         "//src/multiplayer:session",
+        "//src/multiplayer:trade_exchange",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",

@@ -241,6 +241,31 @@ class PartyControllerTest : public ::testing::Test {
     }));
   }
 
+  // Back to your own window, right along its top row to the Accept button,
+  // and press it.
+  void PressAccept(Client& client) {
+    ASSERT_EQ(client.controller->screen(), kTrade);
+    while (client.trade_panel->zone() != TradeZone::kMine) {
+      client.controller->OnEvent(ftxui::Event::Tab);
+    }
+    while (client.trade_panel->cursor().kind != TradeCursor::Kind::kAccept) {
+      client.controller->OnEvent(ftxui::Event::ArrowRight);
+    }
+    client.controller->OnEvent(ftxui::Event::Return);
+  }
+
+  // Tab to the bag and put its first equip on the table.
+  void OfferFirstBagItem(Client& client) {
+    while (client.trade_panel->zone() != TradeZone::kBag) {
+      client.controller->OnEvent(ftxui::Event::Tab);
+    }
+    client.controller->OnEvent(ftxui::Event::Return);
+    ASSERT_EQ(client.controller->screen(), kTradeMenu);
+    client.controller->OnEvent(ftxui::Event::ArrowDown);
+    ASSERT_EQ(client.trade_panel->menu_selected(), kTradeMenuOffer);
+    client.controller->OnEvent(ftxui::Event::Return);
+  }
+
   void AskToTrade(Client& client, const std::string& name) {
     OpenMultiplayer(client, MultiplayerEntry::kPlayers);
     for (int step = 0; step < 4; ++step) {
@@ -668,6 +693,74 @@ TEST_F(PartyControllerTest, AnItemGoesUpFromTheBag) {
   EXPECT_EQ(asker->trade_panel->own().items(), 0);
   EXPECT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
     return asked->session.Snapshot().trade.theirs().equips_size() == 0;
+  }));
+}
+
+// Accept is a toggle, and an acceptance means the table as it stood: changing
+// what is on it takes both of them back.
+TEST_F(PartyControllerTest, AcceptingAndThenChangingTheTable) {
+  std::unique_ptr<Client> asker = Connect("Dagger");
+  std::unique_ptr<Client> asked = Connect("Wand");
+  asker->state->character.AddMeso(5000);
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->session.Snapshot().online.players_size() == 2;
+  }));
+  OpenTrade(*asker, *asked);
+
+  PressAccept(*asker);
+  PressAccept(*asked);
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->session.Snapshot().trade.mine_accepted() &&
+           asker->session.Snapshot().trade.theirs_accepted();
+  }));
+
+  // A meso put up after the fact clears both.
+  asker->controller->OnEvent(ftxui::Event::ArrowLeft);
+  asker->controller->OnEvent(ftxui::Event::ArrowLeft);
+  asker->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(asker->controller->screen(), kTradeAmount);
+  asker->controller->OnEvent(ftxui::Event::Character('5'));
+  asker->controller->OnEvent(ftxui::Event::ArrowDown);
+  asker->controller->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return !asked->session.Snapshot().trade.mine_accepted() &&
+           !asked->session.Snapshot().trade.theirs_accepted();
+  }));
+}
+
+// The one moment the bag can be asked: a table that changes under an
+// acceptance takes the acceptance with it.
+TEST_F(PartyControllerTest, AFullBagCannotAccept) {
+  std::unique_ptr<Client> asker = Connect("Dagger");
+  std::unique_ptr<Client> asked = Connect("Wand");
+  asked->state->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
+  while (asker->state->character.inventory().room() > 0) {
+    asker->state->character.PickUp(
+        std::make_unique<EquipInstance>(IronSword()));
+  }
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->session.Snapshot().online.players_size() == 2;
+  }));
+  OpenTrade(*asker, *asked);
+  OfferFirstBagItem(*asked);
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->session.Snapshot().trade.theirs().equips_size() == 1;
+  }));
+
+  PressAccept(*asker);
+  ASSERT_TRUE(asker->controller->party_notice_prompt().open());
+  // One word: the notice wraps, and a phrase may come back with a line break
+  // through the middle of it.
+  EXPECT_NE(asker->controller->party_notice().find("inventory"),
+            std::string::npos);
+  EXPECT_FALSE(asker->session.Snapshot().trade.mine_accepted());
+
+  // Putting one of their own up makes the room, and then it goes through.
+  asker->controller->OnEvent(ftxui::Event::Return);  // closes the notice
+  OfferFirstBagItem(*asker);
+  PressAccept(*asker);
+  EXPECT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->session.Snapshot().trade.mine_accepted();
   }));
 }
 

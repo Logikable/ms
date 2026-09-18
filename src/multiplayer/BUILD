@@ -51,6 +51,34 @@ cc_test(
 )
 
 cc_library(
+    name = "trade_exchange",
+    srcs = ["trade_exchange.cc"],
+    hdrs = ["trade_exchange.h"],
+    deps = [
+        "//src/character",
+        "//src/item",
+        "//src/item:inventory",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:multiplayer_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "trade_exchange_test",
+    size = "small",
+    srcs = ["trade_exchange_test.cc"],
+    deps = [
+        ":trade_exchange",
+        "//src/character",
+        "//src/item",
+        "//src/item:equip_instance",
+        "//src/protos:multiplayer_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "party_fight",
     srcs = ["party_fight.cc"],
     hdrs = ["party_fight.h"],
