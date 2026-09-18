@@ -856,6 +856,9 @@ ftxui::Element Tui::RenderScreen() {
     case kOptions:
       return Centred(options_panel_.Render());
     case kPlayerList:
+    case kPlayerMenu:
+      // The menu is anchored to a row of the list, so the panel puts it up
+      // itself.
       return Centred(player_list_panel_.Render());
     case kPartySelect:
     case kPartyMenu:

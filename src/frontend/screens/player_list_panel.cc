@@ -7,6 +7,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
+#include "src/frontend/types.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/keys.h"
@@ -29,12 +30,48 @@ constexpr char kCursorAway[] = "  ";
 
 }  // namespace
 
+PlayerListPanel::PlayerListPanel() : menu_({"Inspect", "Trade", "Close"}) {
+}
+
 void PlayerListPanel::SetSnapshot(const MultiplayerSnapshot& snapshot) {
   snapshot_ = snapshot;
 }
 
 void PlayerListPanel::Reset() {
   cursor_ = 0;
+  CloseMenu();
+}
+
+void PlayerListPanel::OpenMenu() {
+  menu_open_ = true;
+  menu_.Reset();
+  if (selected_account() == snapshot_.account_id) {
+    menu_.Hide(kPlayerMenuTrade);
+  }
+}
+
+void PlayerListPanel::CloseMenu() {
+  menu_open_ = false;
+}
+
+void PlayerListPanel::MoveMenuCursor(int delta) {
+  if (delta < 0) {
+    menu_.Up();
+  } else {
+    menu_.Down();
+  }
+}
+
+int PlayerListPanel::menu_selected() const {
+  return menu_.selected();
+}
+
+int PlayerListPanel::MenuRow() const {
+  // +3 rows: the window's top border, the column header and its separator.
+  // One row back from there, so the entry standing highlighted lands beside
+  // the player rather than below them.
+  constexpr int kFirstPlayerRow = 3;
+  return kFirstPlayerRow + Cursor() - 1;
 }
 
 int PlayerListPanel::Cursor() const {
@@ -94,7 +131,19 @@ ftxui::Element PlayerListPanel::Render() const {
           }) | ftxui::hcenter,
       }) |
       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth);
-  return ThemedWindow(" Online Players ", std::move(body));
+  ftxui::Element window = ThemedWindow(" Online Players ", std::move(body));
+  if (!menu_open_) {
+    return window;
+  }
+  // Anchored inside the panel rather than on the terminal, because the screen
+  // is centred and so has no fixed place to measure from. The column clears
+  // the border and the name, so the menu covers the level rather than who it
+  // is about.
+  constexpr int kMenuCol = 2 + kNameWidth;
+  return ftxui::dbox({
+      std::move(window),
+      Floating(menu_.Render(MenuRow(), kMenuCol)),
+  });
 }
 
 }  // namespace ms

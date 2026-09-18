@@ -218,6 +218,18 @@ class PartyControllerTest : public ::testing::Test {
     client.controller->OnEvent(ftxui::Event::Return);
   }
 
+  // Presses Trade on the second player in the list, the way a player does:
+  // the Players list, Down onto them, Enter for the menu, Down onto Trade.
+  void AskToTrade(Client& client) {
+    OpenMultiplayer(client, MultiplayerEntry::kPlayers);
+    client.controller->OnEvent(ftxui::Event::ArrowDown);
+    client.controller->OnEvent(ftxui::Event::Return);
+    ASSERT_EQ(client.controller->screen(), kPlayerMenu);
+    client.controller->OnEvent(ftxui::Event::ArrowDown);
+    ASSERT_EQ(client.player_list_panel.menu_selected(), kPlayerMenuTrade);
+    client.controller->OnEvent(ftxui::Event::Return);
+  }
+
   // Opens the party screen the way a player does.
   void OpenParty(Client& client) {
     OpenMultiplayer(client, MultiplayerEntry::kParty);
@@ -317,10 +329,11 @@ TEST_F(PartyControllerTest, TheLeaderKicksAMember) {
   MakeParty(*leader, *guest);
 
   // Enter on the second member raises the menu, which opens on Inspect; Kick
-  // is the entry under it.
+  // is two entries under it, past Trade.
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(leader->controller->screen(), kPartyMenu);
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(leader->controller->screen(), kPartyConfirm);
@@ -351,6 +364,7 @@ TEST_F(PartyControllerTest, CancellingAKickLeavesThePartyAlone) {
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(leader->controller->screen(), kPartyConfirm);
   // The cursor is on Cancel, so Enter is the answer that changes nothing.
@@ -369,7 +383,9 @@ TEST_F(PartyControllerTest, TheLeaderHandsThePartyOn) {
 
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
-  // Down two entries of the menu, from Inspect past Kick to Promote.
+  // Down three entries of the menu, from Inspect past Trade and Kick to
+  // Promote.
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
@@ -424,6 +440,7 @@ TEST_F(PartyControllerTest, ANoticeTakesKeysWhereverThePlayerIs) {
 
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
   leader->controller->OnEvent(ftxui::Event::ArrowLeft);
@@ -483,6 +500,9 @@ TEST_F(PartyControllerTest, APlayerInspectsSomebodyOutsideTheirParty) {
   reader->controller->OnEvent(ftxui::Event::ArrowDown);
   ASSERT_EQ(reader->player_list_panel.selected_name(), "Wand");
 
+  // Enter raises the menu on them, and Inspect is the entry it opens on.
+  reader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(reader->controller->screen(), kPlayerMenu);
   reader->controller->OnEvent(ftxui::Event::Return);
   ASSERT_TRUE(WaitFor({reader.get(), read.get()}, [&]() {
     return reader->controller->screen() == kPlayerInspect;
@@ -503,6 +523,49 @@ TEST_F(PartyControllerTest, APlayerInspectsSomebodyOutsideTheirParty) {
   EXPECT_EQ(reader->controller->screen(), kPlayerList);
 }
 
+// Trade is on both menus, and what it does is ask: the screen the asker lands
+// on is the server's to open.
+TEST_F(PartyControllerTest, TradeAsksTheOtherPlayer) {
+  std::unique_ptr<Client> asker = Connect("Dagger");
+  std::unique_ptr<Client> asked = Connect("Wand");
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->session.Snapshot().online.players_size() == 2;
+  }));
+  AskToTrade(*asker);
+  EXPECT_EQ(asker->controller->screen(), kPlayerList);
+
+  // The asker holds a trade; the one asked holds a gold box, wherever they
+  // are standing.
+  EXPECT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return !asker->session.Snapshot().trade.id().empty();
+  }));
+  EXPECT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asked->controller->notification().visible();
+  }));
+}
+
+TEST_F(PartyControllerTest, TradingABusyPlayerIsRefused) {
+  std::unique_ptr<Client> asker = Connect("Dagger");
+  std::unique_ptr<Client> asked = Connect("Wand");
+  std::unique_ptr<Client> latecomer = Connect("Bow");
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get(), latecomer.get()}, [&]() {
+    return latecomer->session.Snapshot().online.players_size() == 3;
+  }));
+  AskToTrade(*asker);
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get(), latecomer.get()}, [&]() {
+    return !asker->session.Snapshot().trade.id().empty();
+  }));
+
+  AskToTrade(*latecomer);
+
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get(), latecomer.get()}, [&]() {
+    return latecomer->controller->party_notice_prompt().open();
+  }));
+  EXPECT_NE(latecomer->controller->party_notice().find("busy"),
+            std::string::npos);
+  EXPECT_TRUE(latecomer->controller->party_notice_is_refusal());
+}
+
 // There is nothing left to read once they have gone, so the screen closes
 // rather than holding the sheet they last sent.
 TEST_F(PartyControllerTest, TheInspectScreenClosesWhenThePlayerLeaves) {
@@ -513,6 +576,7 @@ TEST_F(PartyControllerTest, TheInspectScreenClosesWhenThePlayerLeaves) {
   }));
   OpenMultiplayer(*reader, MultiplayerEntry::kPlayers);
   reader->controller->OnEvent(ftxui::Event::ArrowDown);
+  reader->controller->OnEvent(ftxui::Event::Return);
   reader->controller->OnEvent(ftxui::Event::Return);
   ASSERT_TRUE(WaitFor({reader.get(), read.get()}, [&]() {
     return reader->controller->screen() == kPlayerInspect;

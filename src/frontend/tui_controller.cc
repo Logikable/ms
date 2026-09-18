@@ -717,6 +717,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnMobInspectEvent(event);
     case kPlayerList:
       return OnPlayerListEvent(event);
+    case kPlayerMenu:
+      return OnPlayerMenuEvent(event);
     case kPartySelect:
       return OnPartySelectEvent(event);
     case kPartyMenu:
@@ -1513,14 +1515,16 @@ void TuiController::AdvanceParty() {
   // The connection going away turns the player out of the multiplayer
   // screens: there is no lobby left to show them, and Close should land them
   // somewhere real.
-  bool on_lobby_screen =
-      screen_ == kPartySelect || screen_ == kPartyMenu ||
-      screen_ == kPartyConfirm || screen_ == kPlayerInspect ||
-      screen_ == kPlayerItemInspect || screen_ == kPlayerList;
+  bool on_lobby_screen = screen_ == kPartySelect || screen_ == kPartyMenu ||
+                         screen_ == kPartyConfirm ||
+                         screen_ == kPlayerInspect ||
+                         screen_ == kPlayerItemInspect ||
+                         screen_ == kPlayerList || screen_ == kPlayerMenu;
   if (on_lobby_screen && lobby.state != ConnectionState::kConnected) {
     screen_ = kMain;
     menu_panel_.CloseBox();
     party_select_panel_.CloseMenu();
+    player_list_panel_.CloseMenu();
     party_prompt_.Close();
     inspect_pending_.clear();
     RaisePartyNotice(
@@ -1727,7 +1731,37 @@ bool TuiController::OnPlayerListEvent(ftxui::Event event) {
       LeaveMultiplayerScreen();
       return true;
     }
-    WatchForInspect(player_list_panel_.selected_account());
+    player_list_panel_.OpenMenu();
+    screen_ = kPlayerMenu;
+  }
+  return true;
+}
+
+bool TuiController::OnPlayerMenuEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    player_list_panel_.MoveMenuCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    player_list_panel_.MoveMenuCursor(1);
+    return true;
+  }
+  if (IsBack(event)) {
+    player_list_panel_.CloseMenu();
+    screen_ = kPlayerList;
+    return true;
+  }
+  if (!IsForward(event)) {
+    return true;
+  }
+  int chosen = player_list_panel_.menu_selected();
+  std::string account = player_list_panel_.selected_account();
+  player_list_panel_.CloseMenu();
+  screen_ = kPlayerList;
+  if (chosen == kPlayerMenuInspect) {
+    WatchForInspect(account);
+  } else if (chosen == kPlayerMenuTrade) {
+    AskToTrade(account);
   }
   return true;
 }
@@ -1784,6 +1818,8 @@ bool TuiController::OnPartyMenuEvent(ftxui::Event event) {
   screen_ = kPartySelect;
   if (chosen == kPartyMenuInspect) {
     OpenPlayerInspect(account);
+  } else if (chosen == kPartyMenuTrade) {
+    AskToTrade(account);
   } else if (chosen == kPartyMenuKick) {
     AskAboutParty(PartyAsk::kKick, "Kick " + name + " from the party?");
   } else if (chosen == kPartyMenuPromote) {
@@ -1845,6 +1881,13 @@ void TuiController::OpenPlayerInspect(const std::string& account_id) {
   player_inspect_panel_.SetPlayer(member->player());
   player_inspect_panel_.Reset();
   screen_ = kPlayerInspect;
+}
+
+void TuiController::AskToTrade(const std::string& account_id) {
+  if (multiplayer_ == nullptr || account_id.empty()) {
+    return;
+  }
+  multiplayer_->client().RequestTrade(account_id);
 }
 
 void TuiController::OpenPlayerSkillInspect(const Skill& skill) {

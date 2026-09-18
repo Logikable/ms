@@ -919,8 +919,10 @@ cc_library(
     hdrs = ["player_list_panel.h"],
     deps = [
         "//src/character",
+        "//src/frontend:types",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:format",
+        "//src/frontend/widgets:item_menu",
         "//src/frontend/widgets:keys",
         "//src/multiplayer:client",
         "@ftxui//:dom",
@@ -933,6 +935,7 @@ cc_test(
     srcs = ["player_list_panel_test.cc"],
     deps = [
         ":player_list_panel",
+        "//src/frontend:types",
         "//src/frontend/testing:screen_text",
         "//src/multiplayer:client",
         "//src/protos:multiplayer_proto_cc",

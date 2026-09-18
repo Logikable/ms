@@ -8,6 +8,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/testing/screen_text.h"
+#include "src/frontend/types.h"
 #include "src/multiplayer/client.h"
 #include "src/protos/multiplayer.pb.h"
 
@@ -48,6 +49,45 @@ class PlayerListPanelTest : public ::testing::Test {
 
   PlayerListPanel panel_;
 };
+
+TEST_F(PlayerListPanelTest, RaisesAMenuOnAPlayer) {
+  Show(Online(3));
+  panel_.MoveCursor(1);
+  ASSERT_EQ(panel_.selected_name(), "Bree");
+
+  panel_.OpenMenu();
+  EXPECT_TRUE(panel_.menu_open());
+  EXPECT_EQ(panel_.menu_selected(), kPlayerMenuInspect);
+  std::string screen = Render(panel_);
+  EXPECT_NE(screen.find("Inspect"), std::string::npos);
+  EXPECT_NE(screen.find("Trade"), std::string::npos);
+
+  // Three entries, so Down reaches Close and Down again comes back.
+  panel_.MoveMenuCursor(1);
+  EXPECT_EQ(panel_.menu_selected(), kPlayerMenuTrade);
+  panel_.MoveMenuCursor(1);
+  EXPECT_EQ(panel_.menu_selected(), kPlayerMenuClose);
+  panel_.MoveMenuCursor(1);
+  EXPECT_EQ(panel_.menu_selected(), kPlayerMenuInspect);
+
+  panel_.CloseMenu();
+  EXPECT_FALSE(panel_.menu_open());
+  EXPECT_EQ(Render(panel_).find("Inspect"), std::string::npos);
+}
+
+TEST_F(PlayerListPanelTest, YourOwnRowDoesNotOfferTrade) {
+  Show(Online(3));
+  ASSERT_EQ(panel_.selected_account(), "me");
+
+  panel_.OpenMenu();
+  std::string screen = Render(panel_);
+  // Reading yourself is fair enough; trading yourself is not a thing, so the
+  // entry is not there at all.
+  EXPECT_NE(screen.find("Inspect"), std::string::npos);
+  EXPECT_EQ(screen.find("Trade"), std::string::npos);
+  panel_.MoveMenuCursor(1);
+  EXPECT_EQ(panel_.menu_selected(), kPlayerMenuClose);
+}
 
 TEST_F(PlayerListPanelTest, ListsEveryoneOnline) {
   Show(Online(3));

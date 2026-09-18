@@ -239,11 +239,14 @@ TEST_F(PartySelectPanelTest, AMemberIsOfferedInspectAndNothingElse) {
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuInspect);
   std::string screen = Render(panel_);
   EXPECT_NE(screen.find("Inspect"), std::string::npos);
+  EXPECT_NE(screen.find("Trade"), std::string::npos);
   // Hidden rather than dimmed: they are not this player's to take.
   EXPECT_EQ(screen.find("Kick"), std::string::npos);
   EXPECT_EQ(screen.find("Promote"), std::string::npos);
 
-  // Two entries left, so Down lands on Close and Down again comes back.
+  // Three entries left, so Down reaches Close and Down again comes back.
+  panel_.MoveMenuCursor(1);
+  EXPECT_EQ(panel_.menu_selected(), kPartyMenuTrade);
   panel_.MoveMenuCursor(1);
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuClose);
   panel_.MoveMenuCursor(1);
@@ -270,6 +273,8 @@ TEST_F(PartySelectPanelTest, TheLeaderRaisesAMenuOnAMember) {
   EXPECT_NE(screen.find("Promote"), std::string::npos);
 
   panel_.MoveMenuCursor(1);
+  EXPECT_EQ(panel_.menu_selected(), kPartyMenuTrade);
+  panel_.MoveMenuCursor(1);
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuKick);
   panel_.MoveMenuCursor(1);
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuPromote);
@@ -290,6 +295,8 @@ TEST_F(PartySelectPanelTest, TheLeadersOwnRowOffersNeither) {
   std::string screen = Render(panel_);
   EXPECT_NE(screen.find("Kick"), std::string::npos);
   EXPECT_NE(screen.find("Promote"), std::string::npos);
+  // Nobody trades with themselves, so that entry is not there at all.
+  EXPECT_EQ(screen.find("Trade"), std::string::npos);
   panel_.MoveMenuCursor(1);
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuClose);
 }

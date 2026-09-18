@@ -61,7 +61,7 @@ ftxui::Element ScrollingList(std::vector<ftxui::Element> rows) {
 }  // namespace
 
 PartySelectPanel::PartySelectPanel()
-    : menu_({"Inspect", "Kick", "Promote", "Close"}) {
+    : menu_({"Inspect", "Trade", "Kick", "Promote", "Close"}) {
 }
 
 void PartySelectPanel::SetSnapshot(const MultiplayerSnapshot& snapshot) {
@@ -193,6 +193,11 @@ std::string PartySelectPanel::selected_member_name() const {
 void PartySelectPanel::OpenMenu() {
   menu_open_ = true;
   menu_.Reset();
+  if (selected_member() == snapshot_.account_id) {
+    // Trading yourself is not something the state is standing in the way of,
+    // so the entry is not there at all.
+    menu_.Hide(kPartyMenuTrade);
+  }
   if (!is_leader()) {
     // Hidden rather than dimmed: a member has not been handed these and never
     // will be on this party, so a greyed row would advertise nothing.

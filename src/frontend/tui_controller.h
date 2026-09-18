@@ -579,6 +579,7 @@ class TuiController {
   bool OnMapMenuEvent(ftxui::Event event);
   bool OnMobInspectEvent(ftxui::Event event);
   bool OnPlayerListEvent(ftxui::Event event);
+  bool OnPlayerMenuEvent(ftxui::Event event);
   bool OnPartySelectEvent(ftxui::Event event);
   bool OnPartyMenuEvent(ftxui::Event event);
   bool OnPlayerInspectEvent(ftxui::Event event);
@@ -603,6 +604,9 @@ class TuiController {
   // Opens the Inspect screen on a party member, whose sheet the party state
   // already carries.
   void OpenPlayerInspect(const std::string& account_id);
+  // Asks `account_id` to trade, from either menu. The trade screen opens when
+  // the server answers, so nothing here says where the player goes next.
+  void AskToTrade(const std::string& account_id);
   // Asks for `account_id`'s sheet and opens the Inspect screen once it lands.
   // A player off the roster is not in any party, so their sheet has to be
   // fetched before there is anything to draw.

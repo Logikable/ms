@@ -82,6 +82,8 @@ enum Screen : int {
   // Players on the menu panel's Multiplayer box: everyone connected, by name
   // and level.
   kPlayerList,
+  // Enter on a player in that list: read them, or ask them to trade.
+  kPlayerMenu,
   // Party on that box: the parties open to be joined, or the one the player
   // is in.
   kPartySelect,
@@ -203,9 +205,18 @@ enum MapMenuItem : int {
 // one, and for everybody else they are not on the menu at all.
 enum PartyMenuItem : int {
   kPartyMenuInspect = 0,
-  kPartyMenuKick = 1,
-  kPartyMenuPromote = 2,
-  kPartyMenuClose = 3,
+  kPartyMenuTrade = 1,
+  kPartyMenuKick = 2,
+  kPartyMenuPromote = 3,
+  kPartyMenuClose = 4,
+};
+// Entries of the player menu, on Enter in the Players list. The same two
+// anybody is offered in a party, since the list holds everyone online and a
+// party is only some of them. Trade is not on your own row at all.
+enum PlayerMenuItem : int {
+  kPlayerMenuInspect = 0,
+  kPlayerMenuTrade = 1,
+  kPlayerMenuClose = 2,
 };
 // The skill menu's entries. The middle one is a toggle skill's alone -- for
 // every other skill it is hidden, there being nothing to switch.
