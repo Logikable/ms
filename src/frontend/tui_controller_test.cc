@@ -324,7 +324,7 @@ class TuiControllerTest : public testing::Test {
     shell.set_name("Green Snail Shell");
     shell.set_category(ITEM_CATEGORY_ETC);
     shell.set_sell_price(sell_price);
-    state_->character.AddStackable(shell, count);
+    state_->character.AddItem(shell, count);
     panel_focus_ = kInventoryPanel;
     OpenBagTab(kEtcTab);
     inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> stack
@@ -597,7 +597,7 @@ class TuiControllerTest : public testing::Test {
     trace.set_name(kSpellTraceName);
     trace.set_category(ITEM_CATEGORY_ETC);
     trace.set_max_stack(30000);
-    state_->character.AddStackable(trace, count);
+    state_->character.AddItem(trace, count);
   }
 
   EquipPrototype sword_;
@@ -1663,7 +1663,7 @@ TEST_F(TuiControllerTest, ScrollingSpendsItsTraces) {
   controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
-  EXPECT_EQ(state_->character.CountStackable(kSpellTraceName), 95);
+  EXPECT_EQ(state_->character.CountItem(kSpellTraceName), 95);
 }
 
 // A failed roll is still a scroll spent -- the trace pays for the attempt,
@@ -1711,7 +1711,7 @@ TEST_F(TuiControllerTest, CloseLeavesTheMenuWithoutScrolling) {
   EXPECT_FALSE(scroll_panel_->IsConfirming());
   EXPECT_FALSE(scroll_panel_->SelectedIsPinned());
   EXPECT_EQ(controller_->screen(), kScrollSelect);
-  EXPECT_EQ(state_->character.CountStackable(kSpellTraceName), 100);
+  EXPECT_EQ(state_->character.CountItem(kSpellTraceName), 100);
 }
 
 // Escape closes the menu rather than the screen behind it. Without this the
@@ -1749,7 +1749,7 @@ TEST_F(TuiControllerTest, AFailedScrollStillCosts) {
   controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollFail);
-  EXPECT_EQ(state_->character.CountStackable(kSpellTraceName), 95);
+  EXPECT_EQ(state_->character.CountItem(kSpellTraceName), 95);
 }
 
 // Too few traces and Enter on the confirm window does nothing: no scroll, no
@@ -1768,7 +1768,7 @@ TEST_F(TuiControllerTest, ScrollingWithoutTheTracesIsRefused) {
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_EQ(controller_->screen(), kScrollSelect);
-  EXPECT_EQ(state_->character.CountStackable(kSpellTraceName), 4);
+  EXPECT_EQ(state_->character.CountItem(kSpellTraceName), 4);
   EXPECT_EQ(state_->character.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
                 ->equip_state()
@@ -2524,7 +2524,7 @@ TEST_F(TuiControllerTest, MultiSellOpensFromAStackToo) {
   shell.set_name("Green Snail Shell");
   shell.set_category(ITEM_CATEGORY_ETC);
   shell.set_sell_price(50);
-  state_->character.AddStackable(shell, 4);
+  state_->character.AddItem(shell, 4);
   panel_focus_ = kInventoryPanel;
   RenderInventoryPanel();
 
@@ -2644,7 +2644,7 @@ TEST_F(TuiControllerTest, TheBuyDialogCountsWhatIsOwned) {
 // dialog, counting a different balance.
 TEST_F(TuiControllerTest, BuyingWithATokenSpendsTheTokenAndNotTheMeso) {
   state_->character.AddMeso(25000);
-  state_->character.AddStackable(token_, 2);
+  state_->character.AddItem(token_, 2);
   OpenTokenBuyDialog();
   std::string dialog = RenderBuyDialog();
   ASSERT_NE(dialog.find("Frozen Sword"), std::string::npos);
@@ -2654,7 +2654,7 @@ TEST_F(TuiControllerTest, BuyingWithATokenSpendsTheTokenAndNotTheMeso) {
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_EQ(state_->character.meso(), 25000);
-  EXPECT_EQ(state_->character.CountStackable(token_), 1);
+  EXPECT_EQ(state_->character.CountItem(token_), 1);
   ASSERT_EQ(state_->character.inventory().size(), 1);
   EXPECT_EQ(state_->character.inventory()[0].name(), "Frozen Sword");
 }
@@ -2662,14 +2662,14 @@ TEST_F(TuiControllerTest, BuyingWithATokenSpendsTheTokenAndNotTheMeso) {
 // The tokens held are a ceiling on the field, as the meso is: a number past
 // them cannot be typed, so the shop is never offered an order it would refuse.
 TEST_F(TuiControllerTest, TheTokenDialogCapsTheOrderAtTheTokensHeld) {
-  state_->character.AddStackable(token_, 1);
+  state_->character.AddItem(token_, 1);
   OpenTokenBuyDialog();
   controller_->OnEvent(ftxui::Event::Backspace);
   controller_->OnEvent(ftxui::Event::Character('2'));
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);
 
-  EXPECT_EQ(state_->character.CountStackable(token_), 0);
+  EXPECT_EQ(state_->character.CountItem(token_), 0);
   EXPECT_EQ(state_->character.inventory().size(), 1)
       << "one, not the two typed";
 }
@@ -2795,7 +2795,7 @@ TEST_F(TuiControllerTest, BuyingBackPartOfAStackLeavesTheRest) {
   shell.set_category(ITEM_CATEGORY_ETC);
   shell.set_sell_price(7);
   state_->items["green_snail_shell"] = shell;
-  state_->character.AddStackable(shell, 50);
+  state_->character.AddItem(shell, 50);
   state_->character.SellStackable(0, 50);
   int64_t meso = state_->character.meso();
 
@@ -2808,7 +2808,7 @@ TEST_F(TuiControllerTest, BuyingBackPartOfAStackLeavesTheRest) {
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_EQ(state_->character.meso(), meso - 7);
-  EXPECT_EQ(state_->character.CountStackable(shell), 1);
+  EXPECT_EQ(state_->character.CountItem(shell), 1);
   ASSERT_EQ(state_->character.buy_backs().size(), 1);
   EXPECT_EQ(state_->character.buy_backs().Get(0).stack().count(), 49);
 }
@@ -3231,7 +3231,7 @@ TEST_F(TuiControllerTest, StackInspectShowsTheItemsDescription) {
   shell.set_name("Green Snail Shell");
   shell.set_category(ITEM_CATEGORY_ETC);
   shell.set_description("A shell shed by a snail.");
-  state_->character.AddStackable(shell, 3);
+  state_->character.AddItem(shell, 3);
   panel_focus_ = kInventoryPanel;
   OpenBagTab(kEtcTab);
   inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // into the list

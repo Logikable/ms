@@ -117,12 +117,10 @@ std::map<std::string, ItemPrototype> SeededItemCatalog() {
   horn.set_name("Beetle's Horn");
   horn.set_category(ITEM_CATEGORY_ETC);
   horn.set_sell_price(230);
-  // The real one's max_stack, because the count the workbench is handed is
-  // that number: a smaller cap here would spill it across a hundred rows.
   ItemPrototype trace;
   trace.set_name("Spell Trace");
   trace.set_category(ITEM_CATEGORY_ETC);
-  trace.set_max_stack(30000);
+  trace.set_kind(ITEM_KIND_SPELL_TRACE);
   return {{"weapon_token", token},
           {"zakums_soul_shard", shard},
           {"horn", horn},
@@ -603,33 +601,29 @@ TEST(GameStateTest, ChosenJobWearsTheWeaponItsLevelTopsOutAt) {
 // The token shelves are unbuyable without one, and clearing a boss for its
 // shard is exactly what a workbench is for skipping -- with no shard the Token
 // tab has only half its columns to look at. Only a currency: an ordinary Etc
-// drop is somebody else's loot.
+// drop is somebody else's loot, and is in neither the purse nor the bag.
 TEST(GameStateTest, TestModeStartsWithEveryCurrency) {
   GameState state = MakeTestModeStateWithItems();
-  const StackableItem* token = FindStack(state, "Weapon Token");
-  ASSERT_NE(token, nullptr);
-  EXPECT_GT(token->count(), 1);
-  const StackableItem* shard = FindStack(state, "Zakum's Soul Shard");
-  ASSERT_NE(shard, nullptr);
-  EXPECT_GT(shard->count(), 1);
+  const CurrencyPurse& purse = state.character.currencies();
+  EXPECT_GT(purse.Count("Weapon Token"), 1);
+  EXPECT_GT(purse.Count("Zakum's Soul Shard"), 1);
+  EXPECT_EQ(purse.Count("Beetle's Horn"), 0);
   EXPECT_EQ(FindStack(state, "Beetle's Horn"), nullptr);
 }
 
 // Scrolling is priced in traces and the shop counts them out 5,000 meso at a
-// time, which is a long walk to reach a screen a tester wants to be on. A full
-// stack is handed over instead -- 30,000 is the item's own max_stack, so it
-// arrives as ONE row rather than a hundred and fifty.
-TEST(GameStateTest, TestModeCarriesAFullStackOfSpellTraces) {
+// time, which is a long walk to reach a screen a tester wants to be on, so a
+// balance is handed over instead.
+TEST(GameStateTest, TestModeCarriesSpellTraces) {
   GameState state = MakeTestModeStateWithItems();
-  const StackableItem* traces = FindStack(state, "Spell Trace");
-  ASSERT_NE(traces, nullptr);
-  EXPECT_EQ(traces->count(), traces->max_stack());
+  EXPECT_GE(state.character.currencies().Count("Spell Trace"), 30000);
 }
 
-// Test mode's stocked bag is test mode's alone: play mode is handed none of
-// the currencies.
+// Test mode's stocked purse is test mode's alone: play mode is handed none of
+// the currencies, and no Etc drops either.
 TEST(GameStateTest, PlayModeGetsNoCurrencies) {
   GameState state = MakePlayModeStateWithItems();
+  EXPECT_TRUE(state.character.currencies().entries().empty());
   EXPECT_TRUE(state.character.stackables().empty());
 }
 

@@ -37,6 +37,7 @@ cc_library(
         ":skill_placement",
         ":v_matrix",
         "//src/item",
+        "//src/item:currency",
         "//src/item:equip_instance",
         "//src/item:equip_stats",
         "//src/item:inventory",

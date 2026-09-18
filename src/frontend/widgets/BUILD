@@ -254,6 +254,7 @@ cc_library(
         "//src/character",
         "//src/character:progression",
         "//src/item",
+        "//src/item:currency",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",

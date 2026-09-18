@@ -1,9 +1,15 @@
 #include "src/save_migration.h"
 
+#include <cstdint>
+#include <map>
 #include <string>
+#include <vector>
 
 #include "google/protobuf/unknown_field_set.h"
+#include "src/item/currency.h"
+#include "src/item/item.h"
 #include "src/protos/character.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/save.pb.h"
 
 namespace ms {
@@ -50,17 +56,48 @@ SaveGame UpgradeFromV1(const SaveGameV1& old) {
   return save;
 }
 
+// Version 2 carried the currencies as stacks on the Etc tab, where each cost
+// one of its 128 slots and its own max_stack capped it. They become balances.
+// A name that has since left data/ is dropped, exactly as a stack naming a
+// missing item already was.
+void UpgradeFromV2(const std::map<std::string, ItemPrototype>& items,
+                   SaveGame& save) {
+  for (CharacterSave& slot : *save.mutable_characters()) {
+    Character& character = *slot.mutable_character();
+    std::vector<StackableStack> drops;
+    for (const StackableStack& stack : character.stacks()) {
+      const ItemPrototype* proto = FindItemByName(items, stack.name());
+      if (proto != nullptr && IsCurrency(*proto)) {
+        (*character.mutable_currencies())[stack.name()] +=
+            static_cast<int64_t>(stack.count());
+        continue;
+      }
+      drops.push_back(stack);
+    }
+    character.clear_stacks();
+    for (const StackableStack& drop : drops) {
+      *character.add_stacks() = drop;
+    }
+  }
+}
+
 }  // namespace
 
-bool UpgradeSave(int version, const std::string& bytes, SaveGame& save) {
-  if (version >= 2) {
-    return save.ParseFromString(bytes);
-  }
-  SaveGameV1 old;
-  if (!old.ParseFromString(bytes)) {
+bool UpgradeSave(int version, const std::string& bytes,
+                 const std::map<std::string, ItemPrototype>& items,
+                 SaveGame& save) {
+  if (version < 2) {
+    SaveGameV1 old;
+    if (!old.ParseFromString(bytes)) {
+      return false;
+    }
+    save = UpgradeFromV1(old);
+  } else if (!save.ParseFromString(bytes)) {
     return false;
   }
-  save = UpgradeFromV1(old);
+  if (version < 3) {
+    UpgradeFromV2(items, save);
+  }
   return true;
 }
 

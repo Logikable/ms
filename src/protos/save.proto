@@ -24,6 +24,11 @@ import "src/protos/keybinds.proto";
 //      every character; the rest stayed with the character. A version 1 save
 //      loads as the one character, whose level and job stage seed the
 //      account's unlocks.
+//   3  The currencies left the bag. Spell traces, the shops' tokens and the
+//      bosses' soul shards were stacks on the Etc tab, each costing one of its
+//      128 slots; they are balances on `Character.currencies` now. A version 2
+//      save is read by folding those stacks into it, which needs the item
+//      catalog to say which of them was a currency.
 message SaveGame {
   // Bumped when a change to the fields below cannot be read by an older build,
   // so a save from the future is refused rather than misread. Every message

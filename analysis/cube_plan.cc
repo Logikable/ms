@@ -350,7 +350,7 @@ bool WithinReach(const GameState& state, const EquipPrototype& proto) {
   if (token == state.items.end()) {
     return false;
   }
-  return state.character.CountStackable(token->second.name()) > 0;
+  return state.character.CountItem(token->second.name()) > 0;
 }
 
 bool Replaceable(const GameState& state, EquipSlot slot) {

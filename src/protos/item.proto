@@ -28,8 +28,10 @@ enum CurrencyColor {
   CURRENCY_COLOR_PINK = 6;
 }
 
-// What a stackable is for, where nothing else about it says so. The bag's
-// Sort ranks a tab by this, and an ordinary drop names nothing and sorts last.
+// What a stackable is for, where nothing else about it says so. Naming one of
+// these makes the item a CURRENCY: it is counted in the character's purse
+// rather than carried on the Etc tab, so it costs no slot and no stack limit
+// caps it. An ordinary drop names nothing.
 enum ItemKind {
   ITEM_KIND_UNSPECIFIED = 0;
   // The currency scrolls are bought with.
@@ -47,12 +49,12 @@ message ItemPrototype {
   string name = 1;
   ItemCategory category = 2;
   // Maximum per-slot stack. 0 means the category default of 200 -- see
-  // StackableItem::max_stack.
+  // StackableItem::max_stack. Says nothing about a currency, which is counted
+  // in the purse rather than carried and has no ceiling -- see ItemKind.
   int32 max_stack = 3;
   // Meso received when sold to a shop. Zero is a price, not a refusal: every
-  // item can be sold, and one worth nothing is simply thrown away. That is
-  // what clears spent currency -- traces, soul shards, tokens -- out of the
-  // bag.
+  // item can be sold, and one worth nothing is simply thrown away. A currency
+  // is never sold at all -- it is not in the bag to be put on the counter.
   int32 sell_price = 4;
   // What the item is, in a sentence, for the inspect screen. A stack has no
   // stats to show, so this is the whole of what inspecting one tells you.

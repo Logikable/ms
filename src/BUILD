@@ -144,8 +144,11 @@ cc_library(
     srcs = ["save_migration.cc"],
     hdrs = ["save_migration.h"],
     deps = [
+        "//src/item",
+        "//src/item:currency",
         "//src/protos:account_proto_cc",
         "//src/protos:character_proto_cc",
+        "//src/protos:item_proto_cc",
         "//src/protos:save_proto_cc",
         "@protobuf",
     ],

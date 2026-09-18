@@ -1060,7 +1060,7 @@ TEST_F(ShopPanelTest, EachTokenTabAsksInItsOwnToken) {
 // changes with the shelf.
 TEST_F(ShopPanelTest, TheCounterCountsWhatTheShelfIsPaidIn) {
   CharacterInstance c = MakeCharacter(34567, 120, JOB_FIGHTER, /*stage=*/2);
-  c.AddStackable(items_.at("weapon_token"), 3);
+  c.AddItem(items_.at("weapon_token"), 3);
   ShopPanel panel(c, equips_, items_);
   ASSERT_NE(Render(panel).find("34,567"), std::string::npos);
 
@@ -1073,8 +1073,8 @@ TEST_F(ShopPanelTest, TheCounterCountsWhatTheShelfIsPaidIn) {
 // balance it leaves out is one the player cannot shop against.
 TEST_F(ShopPanelTest, TheCounterShowsEveryCurrencyTheShelfTakes) {
   CharacterInstance c = MakeCharacter(100000, 140, JOB_FIGHTER, /*stage=*/2);
-  c.AddStackable(items_.at("secondary_token"), 3);
-  c.AddStackable(items_.at("shoulder_token"), 7);
+  c.AddItem(items_.at("secondary_token"), 3);
+  c.AddItem(items_.at("shoulder_token"), 7);
   ShopPanel panel(c, equips_, items_);
   OpenTokenShelf(panel, kShopEquipsTab);
 
@@ -1124,7 +1124,7 @@ TEST_F(ShopPanelTest, APriceNoTokenCanMeetIsRed) {
       << "the mark is the currency, not the reason";
 
   CharacterInstance rich = MakeCharacter(100000, 130, JOB_FIGHTER, 2);
-  rich.AddStackable(items_.at("weapon_token"), 9);
+  rich.AddItem(items_.at("weapon_token"), 9);
   ShopPanel afford(rich, equips_, items_);
   OpenTokenShelf(afford, kShopWeaponTab);
   EXPECT_NE(CellColor(afford, "Frozen Axe", "9"), kRed);
@@ -1167,7 +1167,7 @@ TEST_F(ShopPanelTest, TheListIgnoresLeftAndRight) {
 
 TEST_F(ShopPanelTest, TheEtcShelfShowsHowManyAreOwned) {
   CharacterInstance c = MakeCharacter(100000);
-  c.AddStackable(items_.at("spell_trace"), 1234);
+  c.AddItem(items_.at("spell_trace"), 1234);
   ShopPanel panel(c, equips_, items_);
   OpenShelf(panel, kShopEtcTab);
   EXPECT_NE(Render(panel).find("1,234"), std::string::npos);
@@ -1187,7 +1187,7 @@ TEST_F(ShopPanelTest, TheBuyBackShelfShowsBothKindsOfRow) {
   shell.set_sell_price(7);
   c.PickUp(std::make_unique<EquipInstance>(sword));
   c.SellEquip(0);
-  c.AddStackable(shell, 40);
+  c.AddItem(shell, 40);
   c.SellStackable(0, 40);
 
   ShopPanel panel(c, equips_, items_);

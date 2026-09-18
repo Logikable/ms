@@ -121,7 +121,6 @@ cc_library(
         ":item",
         ":slot_order",
         "//src/protos:equip_proto_cc",
-        "//src/protos:item_proto_cc",
     ],
 )
 
@@ -139,23 +138,27 @@ cc_test(
 )
 
 cc_library(
-    name = "stack_tabs",
-    srcs = ["stack_tabs.cc"],
-    hdrs = ["stack_tabs.h"],
+    name = "currency",
+    srcs = ["currency.cc"],
+    hdrs = ["currency.h"],
     deps = [
-        ":item",
+        ":slot_order",
+        "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
+        "@protobuf",
     ],
 )
 
 cc_test(
-    name = "stack_tabs_test",
+    name = "currency_test",
     size = "small",
-    srcs = ["stack_tabs_test.cc"],
+    srcs = ["currency_test.cc"],
     deps = [
-        ":stack_tabs",
+        ":currency",
+        "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "@googletest//:gtest_main",
+        "@protobuf",
     ],
 )
 

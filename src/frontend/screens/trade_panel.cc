@@ -83,12 +83,6 @@ ftxui::Element TheirCurrencyCells(int64_t meso, int64_t traces) {
 
 }  // namespace
 
-bool Tradeable(const ItemPrototype& proto) {
-  return proto.kind() != ITEM_KIND_TOKEN &&
-         proto.kind() != ITEM_KIND_SOUL_SHARD &&
-         proto.kind() != ITEM_KIND_SPELL_TRACE;
-}
-
 TradeOffer OwnTradeOffer::ToWire(const CharacterInstance& character) const {
   TradeOffer offer;
   offer.set_meso(meso);
@@ -202,9 +196,11 @@ std::vector<int> TradePanel::BagRows() const {
     }
     return rows;
   }
+  // Every stack the bag holds may cross: the currencies are not among them,
+  // and the spell trace has its own line at the top of the offer.
   const std::vector<StackableItem>& stacks = character_.stackables();
   for (int i = 0; i < static_cast<int>(stacks.size()); ++i) {
-    if (Tradeable(stacks[i].prototype()) && stack_left(i) > 0) {
+    if (stack_left(i) > 0) {
       rows.push_back(i);
     }
   }
@@ -333,7 +329,7 @@ int64_t TradePanel::held(TradeCurrency currency) const {
   if (currency == TradeCurrency::kMeso) {
     return character_.meso();
   }
-  return character_.CountStackable(kSpellTraceName);
+  return character_.CountItem(kSpellTraceName);
 }
 
 int64_t TradePanel::offered(TradeCurrency currency) const {

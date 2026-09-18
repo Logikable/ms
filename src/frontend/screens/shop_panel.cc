@@ -405,8 +405,7 @@ ftxui::Element ShopPanel::RenderTabBar() const {
       counts.push_back(ftxui::text(token->currency_mark()) |
                        ftxui::color(MarkColor(token->currency_color())));
       counts.push_back(
-          ftxui::text(" " +
-                      FormatWithCommas(character_.CountStackable(*token))) |
+          ftxui::text(" " + FormatWithCommas(character_.CountItem(*token))) |
           ftxui::color(kTheme));
     }
     counter = ftxui::hbox(std::move(counts));
@@ -439,7 +438,7 @@ ftxui::Element ShopPanel::RenderEtcRow(
   return ftxui::hbox({
       ftxui::text(cursor + ScrollingWindow(item.name(), kNameWidth, elapsed) +
                   "  " +
-                  PadRight(FormatWithCommas(character_.CountStackable(item)),
+                  PadRight(FormatWithCommas(character_.CountItem(item)),
                            kTypeWidth + 2 + kLevelWidth)),
       std::move(cost),
       ftxui::text(" "),
@@ -458,7 +457,7 @@ ftxui::Element ShopPanel::RenderEquipRow(
   const ItemPrototype* token = RowToken(proto);
   int64_t price = token == nullptr ? proto.shop_price() : proto.token_price();
   int64_t held =
-      token == nullptr ? character_.meso() : character_.CountStackable(*token);
+      token == nullptr ? character_.meso() : character_.CountItem(*token);
   ftxui::Element cost = CostCell(token, FormatWithCommas(price), price <= held);
   return ftxui::hbox({
       ftxui::text(cursor + ScrollingWindow(proto.name(), kNameWidth, elapsed) +

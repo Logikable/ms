@@ -24,6 +24,7 @@
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
 #include "src/character/skill_placement.h"
+#include "src/item/currency.h"
 #include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
@@ -215,27 +216,34 @@ class CharacterInstance {
   // Throws away everything on the equip tab, worn gear untouched. The
   // workbench's: nothing in the game empties one.
   void ClearEquipInventory();
-  // Adds `count` of `proto` to the Etc stacks, topping up open stacks before
-  // opening new ones. Takes what fits and loses the rest -- topping up costs
-  // no slot, so a full tab can still absorb part of a drop -- and returns how
-  // many went in.
-  int AddStackable(const ItemPrototype& proto, int count);
+  /* Stackable items, which are of two sorts and reached through one door: a
+   * currency goes to the purse and everything else to the Etc tab. Which of
+   * the two an item is comes off its prototype -- see IsCurrency -- so a drop,
+   * a shop and a trade all hand over what they have and are routed.
+   */
 
-  // How many more copies of `proto` the bag could take: one per free slot for
-  // an equip, and for a stackable the room in every open stack plus a full one
-  // per free slot.
+  // Adds `count` of `proto` and returns how many went in. A currency always
+  // takes all of them. An Etc drop tops up open stacks before opening new
+  // ones, and takes what fits and loses the rest -- topping up costs no slot,
+  // so a full tab can still absorb part of a drop.
+  int AddItem(const ItemPrototype& proto, int count);
+
+  // How many more copies of `proto` the character could take: one per free
+  // slot for an equip, the room in every open stack plus a full one per free
+  // slot for an Etc drop, and no limit at all for a currency.
   int RoomFor(const EquipPrototype& proto) const;
   int RoomFor(const ItemPrototype& proto) const;
 
   // Copies of `proto` worn plus carried. Traces do NOT count: a trace is the
   // record of a destroyed item, not a copy of it.
   int CountOwned(const EquipPrototype& proto) const;
-  // How many copies of a stackable the character is carrying, summed across
-  // every stack of it. Matched on name, as CountOwned is.
-  int CountStackable(const ItemPrototype& proto) const;
-  int CountStackable(const std::string& name) const;
-  // Spends `count` copies of a named stackable. All or nothing.
-  bool ConsumeStackable(const std::string& name, int count);
+  // How many of a stackable the character holds: the balance for a currency,
+  // and the sum of every stack of it for an Etc drop. Matched on name, as
+  // CountOwned is, and a name is never both.
+  int64_t CountItem(const ItemPrototype& proto) const;
+  int64_t CountItem(const std::string& name) const;
+  // Spends `count` of one. All or nothing.
+  bool SpendItem(const std::string& name, int64_t count);
   // Adds `amount` meso to the character's balance. No-op if amount <= 0.
   void AddMeso(int64_t amount);
   // Takes `amount` meso. All or nothing: false and nothing spent on a short
@@ -281,9 +289,9 @@ class CharacterInstance {
   // Charges every buff paid for by the second over `seconds` of farming. The
   // ones charged per boss entry are left alone.
   int64_t ChargeFarmingConsumables(double seconds);
-  // Sells up to `count` copies from the `index`-th stack, erasing it once it
-  // empties. Returns the meso earned, which is 0 for an item worth nothing --
-  // a sale, not a refusal, and how a stack of currency is thrown away.
+  // Sells up to `count` copies from the `index`-th Etc stack, erasing it once
+  // it empties. Returns the meso earned, which is 0 for an item worth nothing
+  // -- a sale, not a refusal. A currency is on no shelf and is never sold.
   int64_t SellStackable(int index, int count);
   // The shop's buy-back shelf, newest sale first. Reading it is the panel's
   // business; BuyBack is the only thing that takes one off.
@@ -393,10 +401,15 @@ class CharacterInstance {
   // Whether what `preset` wears in `slot` is the first preset's. What the Gear
   // tab dims a row for.
   bool InheritsSlot(StatPreset preset, EquipSlot slot) const;
-  // The item stacks the bag's Etc tab lists, in pickup order. Every stackable
-  // in the game is one: Use was dropped with the only item that was ever in it.
+  // The item stacks the bag's Etc tab lists, in pickup order. Ordinary drops
+  // only -- the currencies are counted in the purse and are on no tab that
+  // holds slots.
   const std::vector<StackableItem>& stackables() const {
     return etc_items_;
+  }
+  // The currencies the character holds, in the order the Token tab reads them.
+  const CurrencyPurse& currencies() const {
+    return currencies_;
   }
   int64_t meso() const {
     return character_.meso();
@@ -745,6 +758,7 @@ class CharacterInstance {
   // off it. Rebuilt together by RecomputeEquipStats.
   std::array<WornGear, kNumStatPresets> resolved_;
   std::vector<StackableItem> etc_items_;
+  CurrencyPurse currencies_;
   std::array<EquipStats, kNumStatPresets> equip_stats_;
   std::array<EquipStats, kNumStatPresets> symbol_stats_;
   std::array<PotentialTotals, kNumStatPresets> potential_totals_;

@@ -226,7 +226,7 @@ LoadResult LoadGameFromFile(GameState& state, const std::string& path) {
         LoadStatus::kFromTheFuture,
         "The save file was written by a newer version of the game: " + path};
   }
-  if (!UpgradeSave(save.format_version(), bytes, save)) {
+  if (!UpgradeSave(save.format_version(), bytes, state.items, save)) {
     return {LoadStatus::kUnreadable,
             "The save file is damaged and cannot be read: " + path};
   }

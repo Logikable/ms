@@ -36,22 +36,22 @@ class InventoryListTest : public PanelTest {
                           Columns(width));
   }
 
-  StackableItem Token(const std::string& name, const std::string& mark,
-                      int count) {
+  CurrencyAmount Token(const std::string& name, const std::string& mark,
+                       int64_t count) {
     ItemPrototype proto;
     proto.set_name(name);
     proto.set_kind(ITEM_KIND_TOKEN);
     proto.set_currency_mark(mark);
-    return StackableItem(proto, count);
+    return CurrencyAmount(proto, count);
   }
 
   // Named the short way, as the shards in the catalog are: the boss alone.
-  StackableItem Shard(const std::string& boss, int count) {
+  CurrencyAmount Shard(const std::string& boss, int64_t count) {
     ItemPrototype proto;
     proto.set_name(boss + "'s Soul Shard");
     proto.set_short_name(boss);
     proto.set_kind(ITEM_KIND_SOUL_SHARD);
-    return StackableItem(proto, count);
+    return CurrencyAmount(proto, count);
   }
 };
 
@@ -156,8 +156,8 @@ TEST_F(InventoryListTest, TheHeadersFitTheRightColumnMinimum) {
             kRightColumnMin);
   // Four columns on one row, which is the widest the bag asks a stack tab for,
   // at the longest name each of them ships.
-  StackableItem token = Token("Frozen Secondary Token", "●", 999);
-  StackableItem shard = Shard("Crimson Queen", 99);
+  CurrencyAmount token = Token("Frozen Secondary Token", "●", 999);
+  CurrencyAmount shard = Shard("Crimson Queen", 99);
   ftxui::Element currency = CurrencyHeader();
   ftxui::Element currency_row = RenderCurrencyRow(&token, &shard);
   EXPECT_LE(ftxui::Dimension::Fit(currency).dimx + kItemListGutter + 2,
@@ -169,8 +169,8 @@ TEST_F(InventoryListTest, TheHeadersFitTheRightColumnMinimum) {
 // The Token tab writes the mark, the name and the count of each column, and
 // the short name is what a shard goes by under its own heading.
 TEST_F(InventoryListTest, ACurrencyRowCarriesBothColumns) {
-  StackableItem token = Token("Frozen Weapon Token", "●", 3);
-  StackableItem shard = Shard("Zakum", 47);
+  CurrencyAmount token = Token("Frozen Weapon Token", "●", 3);
+  CurrencyAmount shard = Shard("Zakum", 47);
   std::string text = RowText(RenderCurrencyRow(&token, &shard));
   EXPECT_NE(text.find("●"), std::string::npos);
   EXPECT_NE(text.find("Frozen Weapon Token"), std::string::npos);
@@ -184,8 +184,8 @@ TEST_F(InventoryListTest, ACurrencyRowCarriesBothColumns) {
 // The columns run out at different heights, and the half with nothing left in
 // it holds its width so the other stays under its heading.
 TEST_F(InventoryListTest, AHalfEmptyCurrencyRowKeepsItsColumns) {
-  StackableItem token = Token("Frozen Weapon Token", "●", 3);
-  StackableItem shard = Shard("Zakum", 47);
+  CurrencyAmount token = Token("Frozen Weapon Token", "●", 3);
+  CurrencyAmount shard = Shard("Zakum", 47);
   ftxui::Element both = RenderCurrencyRow(&token, &shard);
   ftxui::Element shard_only = RenderCurrencyRow(nullptr, &shard);
   EXPECT_EQ(ftxui::Dimension::Fit(shard_only).dimx,

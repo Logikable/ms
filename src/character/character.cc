@@ -1,8 +1,10 @@
 #include "src/character/character.h"
 
 #include <algorithm>
+#include <climits>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <optional>
@@ -22,6 +24,7 @@
 #include "src/character/hyper_stats.h"
 #include "src/character/job_branch.h"
 #include "src/character/v_matrix.h"
+#include "src/item/currency.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
 #include "src/item/inventory.h"
@@ -1943,12 +1946,19 @@ int CharacterInstance::RoomFor(const EquipPrototype& proto) const {
   return inventory_.room();
 }
 
-int CharacterInstance::CountStackable(const ItemPrototype& proto) const {
-  return CountStackable(proto.name());
+int64_t CharacterInstance::CountItem(const ItemPrototype& proto) const {
+  return IsCurrency(proto) ? currencies_.Count(proto.name())
+                           : CountItem(proto.name());
 }
 
-int CharacterInstance::CountStackable(const std::string& name) const {
-  int owned = 0;
+int64_t CharacterInstance::CountItem(const std::string& name) const {
+  // The purse first, and the bag only for a name it does not hold. Nothing is
+  // ever in both, and a currency the character has none of answers zero from
+  // either.
+  if (currencies_.Holds(name)) {
+    return currencies_.Count(name);
+  }
+  int64_t owned = 0;
   for (const StackableItem& stack : etc_items_) {
     if (stack.name() == name) {
       owned += stack.count();
@@ -1957,18 +1967,21 @@ int CharacterInstance::CountStackable(const std::string& name) const {
   return owned;
 }
 
-bool CharacterInstance::ConsumeStackable(const std::string& name, int count) {
-  if (count <= 0 || CountStackable(name) < count) {
+bool CharacterInstance::SpendItem(const std::string& name, int64_t count) {
+  if (currencies_.Holds(name)) {
+    return currencies_.Spend(name, count);
+  }
+  if (count <= 0 || CountItem(name) < count) {
     return false;
   }
   std::vector<StackableItem>& stacks = etc_items_;
-  // Emptied stacks are dropped as they go, so spending the last trace leaves
-  // no zero row behind in the bag.
+  // Emptied stacks are dropped as they go, so spending the last of something
+  // leaves no zero row behind in the bag.
   for (int i = static_cast<int>(stacks.size()) - 1; i >= 0 && count > 0; --i) {
     if (stacks[i].name() != name) {
       continue;
     }
-    int taken = std::min(count, stacks[i].count());
+    int taken = static_cast<int>(std::min<int64_t>(count, stacks[i].count()));
     stacks[i].add_count(-taken);
     count -= taken;
     if (stacks[i].count() == 0) {
@@ -2003,6 +2016,10 @@ int CharacterInstance::CountOwned(const EquipPrototype& proto) const {
 }
 
 int CharacterInstance::RoomFor(const ItemPrototype& proto) const {
+  // Nothing caps a currency: it is a number in the save, not a row in a bag.
+  if (IsCurrency(proto)) {
+    return INT_MAX;
+  }
   const std::vector<StackableItem>& stacks = etc_items_;
   int free_slots = kTabCapacity - static_cast<int>(stacks.size());
   // A stack that is open but not full takes more without costing a slot.
@@ -2021,9 +2038,13 @@ int CharacterInstance::RoomFor(const ItemPrototype& proto) const {
   return room + free_slots * fresh.max_stack();
 }
 
-int CharacterInstance::AddStackable(const ItemPrototype& proto, int count) {
+int CharacterInstance::AddItem(const ItemPrototype& proto, int count) {
   if (count <= 0) {
     return 0;
+  }
+  if (IsCurrency(proto)) {
+    currencies_.Add(proto, count);
+    return count;
   }
   count = std::min(count, RoomFor(proto));
   int added = count;
@@ -2282,7 +2303,7 @@ bool CharacterInstance::BuyBackStack(
     return false;
   }
   character_.set_meso(character_.meso() - cost);
-  AddStackable(*proto->second, count);
+  AddItem(*proto->second, count);
   // Part of a row leaves the rest of it on the shelf, in its own place: the
   // shelf is a history, and taking some of a sale back does not make it a
   // newer one.
@@ -2326,13 +2347,14 @@ bool CharacterInstance::BuyWithToken(const EquipPrototype& proto,
   if (count <= 0 || proto.token_price() <= 0 || token.currency_mark().empty()) {
     return false;
   }
-  // Room first, then the whole price in one go: ConsumeStackable is all or
-  // nothing, so a purchase the character cannot finish never spends the tokens
-  // for the part of it they could.
+  // Room first, then the whole price in one go: SpendItem is all or nothing,
+  // so a purchase the character cannot finish never spends the tokens for the
+  // part of it they could.
   if (count > RoomFor(proto)) {
     return false;
   }
-  if (!ConsumeStackable(token.name(), count * proto.token_price())) {
+  if (!SpendItem(token.name(),
+                 static_cast<int64_t>(count) * proto.token_price())) {
     return false;
   }
   for (int i = 0; i < count; ++i) {
@@ -2350,7 +2372,7 @@ bool CharacterInstance::Buy(const ItemPrototype& proto, int count) {
     return false;
   }
   character_.set_meso(character_.meso() - cost);
-  AddStackable(proto, count);
+  AddItem(proto, count);
   return true;
 }
 
@@ -2419,6 +2441,7 @@ CharacterInstance::CharacterInstance(const CharacterInstance& other, WornOnly)
       worn_(other.worn_),
       resolved_(other.resolved_),
       etc_items_(other.etc_items_),
+      currencies_(other.currencies_),
       equip_stats_(other.equip_stats_),
       symbol_stats_(other.symbol_stats_),
       potential_totals_(other.potential_totals_),
@@ -2638,6 +2661,7 @@ Character CharacterInstance::ToProto() const {
   saved.clear_legacy_equipped();
   saved.mutable_equip_presets()->clear_presets();
   saved.clear_stacks();
+  *saved.mutable_currencies() = currencies_.ToProto();
   for (int i = 0; i < inventory_.size(); ++i) {
     *saved.mutable_inventory()->add_equip_tab() = inventory_[i].SavedState();
   }
@@ -2673,6 +2697,7 @@ void CharacterInstance::RestoreFrom(
   character_.clear_inventory();
   character_.clear_legacy_equipped();
   character_.clear_stacks();
+  character_.clear_currencies();
 
   std::map<std::string, const EquipPrototype*> equips_by_name =
       IndexByDisplayName(equips);
@@ -2706,6 +2731,8 @@ void CharacterInstance::RestoreFrom(
     }
   }
   character_.mutable_equip_presets()->clear_presets();
+
+  currencies_.RestoreFrom(saved.currencies(), items_by_name);
 
   etc_items_.clear();
   for (const StackableStack& stack : saved.stacks()) {

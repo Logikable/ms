@@ -842,7 +842,7 @@ TEST_F(PartyControllerTest, BothConfirmAndTheItemsCross) {
   std::unique_ptr<Client> asked = Connect("Wand");
   asker->state->character.AddMeso(5000);
   asked->state->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
-  asked->state->character.AddStackable(TestStack(), 12);
+  asked->state->character.AddItem(TestStack(), 12);
   const int64_t my_meso = asker->state->character.meso();
   const int64_t their_meso = asked->state->character.meso();
   ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {

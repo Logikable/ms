@@ -9,44 +9,8 @@
 #include "src/item/item.h"
 #include "src/item/slot_order.h"
 #include "src/protos/equip.pb.h"
-#include "src/protos/item.pb.h"
 
 namespace ms {
-namespace {
-
-// Where a stack's kind puts it, low first. An item that names no kind is an
-// ordinary drop and files under all of them.
-int KindRank(ItemKind kind) {
-  switch (kind) {
-    case ITEM_KIND_SPELL_TRACE:
-      return 0;
-    case ITEM_KIND_TOKEN:
-      return 1;
-    case ITEM_KIND_SOUL_SHARD:
-      return 2;
-    default:
-      return 3;
-  }
-}
-
-// Where a token sits among the tokens: the best gear first, and within a level
-// the weapon ahead of the set. One that buys a whole set names no slot and
-// leads its level. Only the first two ranks are the shelf's own -- past them
-// it is the Equipped panel's order, so the two agree.
-int TokenSlotRank(EquipSlot slot) {
-  switch (slot) {
-    case EQUIP_SLOT_UNSPECIFIED:
-      return 0;
-    case EQUIP_SLOT_PRIMARY_WEAPON:
-      return 1;
-    case EQUIP_SLOT_SECONDARY:
-      return 2;
-    default:
-      return 3 + SlotOrder(slot);
-  }
-}
-
-}  // namespace
 
 void SortEquipItems(
     std::vector<std::unique_ptr<EquipTabItem>>& items,
@@ -69,19 +33,13 @@ void SortEquipItems(
 }
 
 void SortStacks(std::vector<StackableItem>& stacks) {
+  // The tab holds nothing but ordinary drops -- the currencies are counted in
+  // the purse, see //src/item/currency.h -- and a drop has nothing to be
+  // ranked by but how much of it is lying in the bag.
   std::sort(stacks.begin(), stacks.end(),
             [](const StackableItem& a, const StackableItem& b) {
               auto key = [](const StackableItem& stack) {
-                const ItemPrototype& proto = stack.prototype();
-                // A token is filed by what it buys rather than by how many of
-                // it are lying in the bag: a shelf the player cannot shop yet
-                // has no business leading the ones they can. Everything else
-                // has nothing to be ranked by but its count.
-                bool token = proto.kind() == ITEM_KIND_TOKEN;
-                return std::make_tuple(
-                    KindRank(proto.kind()), token ? -proto.currency_level() : 0,
-                    token ? TokenSlotRank(proto.currency_slot()) : 0,
-                    -stack.count(), stack.name());
+                return std::make_tuple(-stack.count(), stack.name());
               };
               return key(a) < key(b);
             });

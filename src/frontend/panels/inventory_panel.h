@@ -165,10 +165,9 @@ class InventoryPanel {
 
   // Files the active tab, which is what Sort does.
   void SortActiveTab();
-  // The stacks the Etc tab lists, as indices into the character's stacks: the
-  // currencies live on the Token tab and the spell trace in the tab bar, so
-  // what Etc shows is what is left.
-  std::vector<int> EtcRows() const;
+  // How many stacks the Etc tab lists, which is every stack the bag holds:
+  // the currencies are counted in the purse and are on no tab with slots.
+  int EtcRowCount() const;
   // The Token tab: two read-only columns, the shop's currencies beside the
   // bosses' soul shards. Nothing on it can be selected, so it takes no cursor
   // and Enter on the bar above it opens the {Sort, Close} menu.

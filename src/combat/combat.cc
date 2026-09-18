@@ -70,7 +70,7 @@ int64_t GrantDrop(GameState& state, const MobDrop& drop, int64_t count) {
   int64_t added = 0;
   while (count > 0) {
     int chunk = static_cast<int>(std::min<int64_t>(count, kStackChunk));
-    int took = state.character.AddStackable(it->second, chunk);
+    int took = state.character.AddItem(it->second, chunk);
     added += took;
     if (took < chunk) {
       return added;  // the tab is full; the rest is lost

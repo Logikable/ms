@@ -279,7 +279,8 @@ TEST(ShopEtcStockTest, TheSpellTraceIsStocked) {
   ASSERT_EQ(stock.size(), 1u) << "the Etc shelf holds more than the trace now";
   EXPECT_EQ(stock[0], "spell_trace");
   EXPECT_EQ(items.at("spell_trace").shop_price(), 5000);
-  EXPECT_EQ(items.at("spell_trace").max_stack(), 30000);
+  EXPECT_EQ(items.at("spell_trace").kind(), ITEM_KIND_SPELL_TRACE)
+      << "what buys it lands in the purse, not on a tab";
 }
 
 }  // namespace

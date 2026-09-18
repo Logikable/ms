@@ -11,8 +11,10 @@
 #ifndef MS_SRC_SAVE_MIGRATION_H_
 #define MS_SRC_SAVE_MIGRATION_H_
 
+#include <map>
 #include <string>
 
+#include "src/protos/item.pb.h"
 #include "src/protos/save.pb.h"
 
 namespace ms {
@@ -20,8 +22,11 @@ namespace ms {
 // Reads `bytes`, a save at format version `version`, into `save` at the version
 // this build writes. Takes the BYTES rather than a parsed SaveGame: an old
 // layout has to be read through the message it was written with, whose fields
-// are not SaveGame's any more.
-bool UpgradeSave(int version, const std::string& bytes, SaveGame& save);
+// are not SaveGame's any more. `items` is the item catalog, which version 2
+// needs to tell a currency apart from an ordinary drop.
+bool UpgradeSave(int version, const std::string& bytes,
+                 const std::map<std::string, ItemPrototype>& items,
+                 SaveGame& save);
 
 }  // namespace ms
 

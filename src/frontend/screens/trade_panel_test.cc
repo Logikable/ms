@@ -42,9 +42,9 @@ class TradePanelTest : public PanelTest {
     PanelTest::SetUp();
     c_.SetUsername("Dagger");
     c_.AddMeso(1234567);
-    c_.AddStackable(Stack(kSpellTraceName, ITEM_KIND_SPELL_TRACE), 900);
-    c_.AddStackable(Stack("Chaos Scroll", ITEM_KIND_UNSPECIFIED), 12);
-    c_.AddStackable(Stack("Zakum's", ITEM_KIND_SOUL_SHARD), 4);
+    c_.AddItem(Stack(kSpellTraceName, ITEM_KIND_SPELL_TRACE), 900);
+    c_.AddItem(Stack("Chaos Scroll", ITEM_KIND_UNSPECIFIED), 12);
+    c_.AddItem(Stack("Zakum's", ITEM_KIND_SOUL_SHARD), 4);
     c_.PickUp(std::make_unique<EquipInstance>(sword_));
     panel_.SetTrade(Trade("Wand", /*joined=*/true));
     panel_.Reset();
@@ -206,6 +206,9 @@ TEST_F(TradePanelTest, TabWalksTheThreeWindows) {
   EXPECT_EQ(panel_.zone(), TradeZone::kBag);
 }
 
+// The Etc tab lists the drops and nothing else: the currencies are counted in
+// the purse, which the trade screen does not show, and the spell trace crosses
+// on its own line at the top of the offer.
 TEST_F(TradePanelTest, TheBagHasTwoTabsAndOnlyTradeableStacks) {
   ToBag();
   EXPECT_FALSE(panel_.on_etc_tab());
@@ -214,8 +217,6 @@ TEST_F(TradePanelTest, TheBagHasTwoTabsAndOnlyTradeableStacks) {
 
   panel_.MoveCursor(1);
   ASSERT_TRUE(panel_.on_etc_tab());
-  // The spell trace has its own line at the top and a soul shard cannot cross,
-  // so the one stack left to stand on is the scroll.
   EXPECT_EQ(BagIndex(), StackIndex("Chaos Scroll"));
   panel_.MoveRow(1);
   EXPECT_EQ(BagIndex(), StackIndex("Chaos Scroll"));

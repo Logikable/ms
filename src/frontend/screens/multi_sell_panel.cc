@@ -13,7 +13,6 @@
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/keys.h"
 #include "src/item/item.h"
-#include "src/item/stack_tabs.h"
 
 namespace ms {
 namespace {
@@ -49,11 +48,11 @@ ftxui::Element TailCell(const std::string& text) {
   return ftxui::text("  " + PadLeft(text, kPriceWidth) + " ");
 }
 
-// The stacks the Etc tab lists, as indices into `character`'s stacks. The
-// currencies are not among them: they live on the bag's Token tab, which is a
-// balance sheet rather than a shelf, and nothing there is for sale.
+// The stacks the Etc tab lists, as indices into `character`'s stacks -- all of
+// them. The currencies are not among them: they are counted in the purse, not
+// carried, and nothing there is for sale.
 std::vector<int> EtcRows(const CharacterInstance& character) {
-  return StacksIn(character.stackables(), StackView::kEtc);
+  return AllRows(static_cast<int>(character.stackables().size()));
 }
 
 }  // namespace

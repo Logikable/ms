@@ -1024,8 +1024,8 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     // Paid for before it is used, and only used if it was paid for. The panel
     // will not confirm what the player cannot afford, so this refusing is a
     // second line rather than the first.
-    if (!state_.character.ConsumeStackable(kSpellTraceName,
-                                           scroll_panel_.CostOfSelected())) {
+    if (!state_.character.SpendItem(kSpellTraceName,
+                                    scroll_panel_.CostOfSelected())) {
       return true;
     }
     ScrollOutcome outcome = ScrollItem(state_.character, subject_, scroll);
@@ -2924,9 +2924,8 @@ bool TuiController::OnShopMenuEvent(ftxui::Event event) {
       // Priced in whatever the shelf it came off asks for: the token it names,
       // or meso when it names none.
       const ItemPrototype* token = shop_panel_.selected_token();
-      int64_t balance = token == nullptr
-                            ? state_.character.meso()
-                            : state_.character.CountStackable(*token);
+      int64_t balance = token == nullptr ? state_.character.meso()
+                                         : state_.character.CountItem(*token);
       int price = token == nullptr ? item->shop_price() : item->token_price();
       buy_panel_.Reset(item->name(), price, balance,
                        state_.character.RoomFor(*item),
@@ -2936,7 +2935,7 @@ bool TuiController::OnShopMenuEvent(ftxui::Event event) {
       buy_panel_.Reset(stackable->name(), stackable->shop_price(),
                        state_.character.meso(),
                        state_.character.RoomFor(*stackable),
-                       state_.character.CountStackable(*stackable));
+                       state_.character.CountItem(*stackable));
     }
   }
   if (next == kShopInspect) {
@@ -2973,7 +2972,7 @@ void TuiController::OpenBuyBackDialog(const BuyBackEntry& entry) {
       buy_item_, static_cast<int>(entry.unit_price()), state_.character.meso(),
       std::min(entry.stack().count(),
                proto == nullptr ? 0 : state_.character.RoomFor(*proto)),
-      proto == nullptr ? 0 : state_.character.CountStackable(*proto));
+      proto == nullptr ? 0 : state_.character.CountItem(*proto));
 }
 
 // Everything the confirmed dialog buys, whichever shelf it was opened on. The

@@ -113,7 +113,7 @@ bool CanPayFor(const GameState& state, const EquipPrototype& proto) {
   if (token == nullptr) {
     return proto.shop_price() <= state.character.meso();
   }
-  return proto.token_price() <= state.character.CountStackable(token->name());
+  return proto.token_price() <= state.character.CountItem(token->name());
 }
 
 // Pays for one of `proto`, in whichever currency it is priced in.

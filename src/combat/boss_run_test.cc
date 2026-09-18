@@ -738,7 +738,7 @@ TEST(BossRunTest, AClearPaysTheMesoAndTheCertainDrop) {
   ASSERT_EQ(run.reward().items.size(), 1u);
   EXPECT_EQ(run.reward().items[0].name, "Zakum's Soul Shard");
   EXPECT_EQ(run.reward().items[0].count, 1);
-  EXPECT_EQ(state->character.CountStackable(DropItems().at("shard")), 1);
+  EXPECT_EQ(state->character.CountItem(DropItems().at("shard")), 1);
 }
 
 // A practice run is the fight and nothing else. The clock still stands, being
@@ -854,7 +854,7 @@ TEST(BossRunTest, DropRateStacksACertainShard) {
   EXPECT_GE(run.reward().items[0].count, 2);
   EXPECT_LE(run.reward().items[0].count, 3);
   EXPECT_FALSE(run.reward().items[0].prize);
-  EXPECT_EQ(state->character.CountStackable(DropItems().at("shard")),
+  EXPECT_EQ(state->character.CountItem(DropItems().at("shard")),
             run.reward().items[0].count);
 }
 
@@ -1246,7 +1246,7 @@ TEST(BossRunTest, ASharedClearPaysTheDropsItWasDealt) {
   ASSERT_EQ(run.reward().items.size(), 1u);
   EXPECT_EQ(run.reward().items[0].name, "Zakum's Soul Shard");
   EXPECT_EQ(run.reward().items[0].count, 3);
-  EXPECT_EQ(state->character.CountStackable(DropItems().at("shard")), 3);
+  EXPECT_EQ(state->character.CountItem(DropItems().at("shard")), 3);
   // The mark is certain in the table and was not dealt, so it was not paid.
   EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 0);
 }

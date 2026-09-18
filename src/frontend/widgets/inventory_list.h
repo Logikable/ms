@@ -24,6 +24,7 @@
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/item_row.h"
+#include "src/item/currency.h"
 #include "src/item/item.h"
 #include "src/protos/item.pb.h"
 
@@ -78,8 +79,8 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
 // carries one of each, and either may be null where that column has run out.
 // Nothing is ever selected there, so neither takes a cursor.
 ftxui::Element CurrencyHeader();
-ftxui::Element RenderCurrencyRow(const StackableItem* token,
-                                 const StackableItem* shard);
+ftxui::Element RenderCurrencyRow(const CurrencyAmount* token,
+                                 const CurrencyAmount* shard);
 
 // The two balances the bag's tab bar carries down its middle: meso, and the
 // spell traces beside it once the shop is open -- the level a trace can first
@@ -103,6 +104,9 @@ ftxui::Element RenderBagTabBar(const std::vector<TabSpec>& tabs, int active,
                                ftxui::Element balances, bool row_selected,
                                bool highlighted, ftxui::Element trailing,
                                int width, ftxui::Box& bar_box);
+
+// Every place in a list of `count`, for a caller that holds none of it back.
+std::vector<int> AllRows(int count);
 
 // A Name/Quantity list of `rows` (places in `stacks`), a "> " cursor on the
 // `selected`-th, over a rule under the header. An empty tab is "(empty)" with

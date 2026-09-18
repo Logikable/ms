@@ -64,7 +64,7 @@ class TradeExchangeTest : public ::testing::Test {
     for (int i = 0; i < kTabCapacity; ++i) {
       ItemPrototype filler = Scroll();
       filler.set_name("Filler " + std::to_string(i));
-      character.AddStackable(filler, 1);
+      character.AddItem(filler, 1);
     }
   }
 
@@ -102,7 +102,7 @@ TEST_F(TradeExchangeTest, WhatYouGiveMakesTheRoom) {
 
 TEST_F(TradeExchangeTest, AFullEtcTabStillTopsUpAnOpenStack) {
   CharacterInstance character = MakeCharacter();
-  character.AddStackable(Scroll(), 40);
+  character.AddItem(Scroll(), 40);
   FillEtcTab(character);
   ASSERT_EQ(character.RoomFor(Scroll()), 60) << "the open stack and no slot";
 
@@ -123,21 +123,14 @@ TEST_F(TradeExchangeTest, AFullEtcTabStillTopsUpAnOpenStack) {
   EXPECT_TRUE(HasRoomForTrade(character, items_, given, received));
 }
 
-TEST_F(TradeExchangeTest, TracesTakeSlotsLikeAnythingElse) {
+// A trace is a balance rather than a row, so a bag with no slot left still
+// has room for as many of them as anyone cares to send.
+TEST_F(TradeExchangeTest, TracesNeedNoSlot) {
   CharacterInstance character = MakeCharacter();
   FillEtcTab(character);
-
   TradeOffer received;
-  received.set_spell_traces(1);
-  EXPECT_FALSE(HasRoomForTrade(character, items_, TradeOffer(), received));
-
-  // Traces given away come off the same tab, so they free the same slot.
-  CharacterInstance richer = MakeCharacter();
-  richer.AddStackable(Trace(), 1);
-  FillEtcTab(richer);
-  TradeOffer given;
-  given.set_spell_traces(1);
-  EXPECT_TRUE(HasRoomForTrade(richer, items_, given, received));
+  received.set_spell_traces(1000000);
+  EXPECT_TRUE(HasRoomForTrade(character, items_, TradeOffer(), received));
 }
 
 TEST_F(TradeExchangeTest, AnItemThisBuildCannotNameIsRefused) {
@@ -151,8 +144,8 @@ TEST_F(TradeExchangeTest, AnItemThisBuildCannotNameIsRefused) {
 TEST_F(TradeExchangeTest, TheExchangeTakesAndGives) {
   CharacterInstance character = MakeCharacter();
   character.AddMeso(10000);
-  character.AddStackable(Scroll(), 20);
-  character.AddStackable(Trace(), 50);
+  character.AddItem(Scroll(), 20);
+  character.AddItem(Trace(), 50);
   Equip starred;
   starred.set_equip_name("Sword");
   starred.set_stars(4);
@@ -177,8 +170,8 @@ TEST_F(TradeExchangeTest, TheExchangeTakesAndGives) {
   ApplyTrade(character, equips_, items_, {0}, given, received);
 
   EXPECT_EQ(character.meso(), 10000 - 2500 + 400);
-  EXPECT_EQ(character.CountStackable(kSpellTraceName), 50 - 30 + 7);
-  EXPECT_EQ(character.CountStackable("Chaos Scroll"), 15);
+  EXPECT_EQ(character.CountItem(kSpellTraceName), 50 - 30 + 7);
+  EXPECT_EQ(character.CountItem("Chaos Scroll"), 15);
   // The starred one went and theirs arrived whole; the plain one stayed.
   ASSERT_EQ(character.inventory().size(), 2);
   EXPECT_EQ(character.inventory()[0].stars(), 0);

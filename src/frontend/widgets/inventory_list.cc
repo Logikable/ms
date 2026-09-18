@@ -1,6 +1,7 @@
 #include "src/frontend/widgets/inventory_list.h"
 
 #include <algorithm>
+#include <numeric>
 #include <string>
 #include <utility>
 #include <vector>
@@ -66,12 +67,12 @@ ftxui::Element BlankCurrencyCell(int mark_width, int name_width) {
 
 // A name and its count. The mark rides in front of a token and keeps its own
 // colour, which is what says at a glance which piece the currency buys.
-ftxui::Element CurrencyCell(const StackableItem& stack, bool marked,
+ftxui::Element CurrencyCell(const CurrencyAmount& held, bool marked,
                             int name_width) {
-  const ItemPrototype& proto = stack.prototype();
+  const ItemPrototype& proto = held.prototype();
   std::string body =
       PadRight(ShortName(proto), name_width) +
-      PadRight(FormatWithCommas(stack.count()), kCurrencyCountWidth);
+      PadRight(FormatWithCommas(held.count()), kCurrencyCountWidth);
   if (!marked) {
     return ftxui::text(body);
   }
@@ -87,6 +88,12 @@ ftxui::Element CurrencyCell(const StackableItem& stack, bool marked,
 const char* const kInventoryTabLabels[kNumInventoryTabs] = {"Equip", "Token",
                                                             "Etc", "Shop"};
 
+std::vector<int> AllRows(int count) {
+  std::vector<int> rows(std::max(0, count));
+  std::iota(rows.begin(), rows.end(), 0);
+  return rows;
+}
+
 ftxui::Element CurrencyHeader() {
   return ftxui::text("  " + std::string(kCurrencyMarkWidth, ' ') +
                      PadRight("Token", kTokenNameWidth) +
@@ -94,8 +101,8 @@ ftxui::Element CurrencyHeader() {
                      PadRight("Soul Shard", kShardNameWidth) + "Quantity");
 }
 
-ftxui::Element RenderCurrencyRow(const StackableItem* token,
-                                 const StackableItem* shard) {
+ftxui::Element RenderCurrencyRow(const CurrencyAmount* token,
+                                 const CurrencyAmount* shard) {
   return ftxui::hbox({
       ftxui::text("  "),
       token == nullptr ? BlankCurrencyCell(kCurrencyMarkWidth, kTokenNameWidth)

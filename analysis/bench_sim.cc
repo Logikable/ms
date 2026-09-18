@@ -605,7 +605,7 @@ void GiveTokens(GameState& state) {
     std::map<std::string, ItemPrototype>::const_iterator it =
         state.items.find(key);
     if (it != state.items.end()) {
-      state.character.AddStackable(it->second, kTokensGiven);
+      state.character.AddItem(it->second, kTokensGiven);
     }
   }
 }

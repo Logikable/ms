@@ -21,7 +21,6 @@
 #include "src/frontend/widgets/keys.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
-#include "src/item/stack_tabs.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
@@ -104,16 +103,13 @@ bool InventoryPanel::on_stackable_tab() const {
   return active_tab_ == kEtcTab;
 }
 
-std::vector<int> InventoryPanel::EtcRows() const {
-  return StacksIn(character_.stackables(), StackView::kEtc);
+int InventoryPanel::EtcRowCount() const {
+  return static_cast<int>(character_.stackables().size());
 }
 
 int InventoryPanel::selected_stack() const {
-  std::vector<int> rows = EtcRows();
-  if (selected_stack_ < 0 || selected_stack_ >= static_cast<int>(rows.size())) {
-    return -1;
-  }
-  return rows[selected_stack_];
+  bool in_range = selected_stack_ >= 0 && selected_stack_ < EtcRowCount();
+  return in_range ? selected_stack_ : -1;
 }
 
 int InventoryPanel::menu_column() const {
@@ -144,7 +140,7 @@ bool InventoryPanel::ActiveTabEmpty() const {
     // so the cursor stays up on the bar.
     return true;
   }
-  return EtcRows().empty();
+  return EtcRowCount() == 0;
 }
 
 int InventoryPanel::ListCount() const {
@@ -157,7 +153,7 @@ int InventoryPanel::ListCount() const {
   if (active_tab_ == kShopTab || active_tab_ == kTokenTab) {
     return 0;
   }
-  return static_cast<int>(EtcRows().size());
+  return EtcRowCount();
 }
 
 int InventoryPanel::CursorStop() const {
@@ -184,11 +180,11 @@ void InventoryPanel::MoveCursor(int delta) {
 void InventoryPanel::SortActiveTab() {
   if (active_tab_ == kEquipTab) {
     character_.SortEquipTab();
-  } else if (active_tab_ == kEtcTab || active_tab_ == kTokenTab) {
-    // One sort for both: it files the bag's stacks by descending count within
-    // each kind, which is each of the Token tab's columns and the Etc list.
+  } else if (active_tab_ == kEtcTab) {
     character_.SortStackTab();
   }
+  // Nothing for the Token tab: the purse re-files itself on every change, so
+  // its sheet is never out of order to begin with.
 }
 
 ftxui::Element InventoryPanel::RenderExpandTab(bool row_selected) const {
@@ -491,10 +487,10 @@ ftxui::Element InventoryPanel::RenderOwnEquipList(ftxui::Component menu) {
 }
 
 int InventoryPanel::CurrencyRowCount() const {
-  const std::vector<StackableItem>& stacks = character_.stackables();
+  const CurrencyPurse& purse = character_.currencies();
   return static_cast<int>(
-      std::max(StacksIn(stacks, StackView::kTokens).size(),
-               StacksIn(stacks, StackView::kSoulShards).size()));
+      std::max(CurrenciesOf(purse, ITEM_KIND_TOKEN).size(),
+               CurrenciesOf(purse, ITEM_KIND_SOUL_SHARD).size()));
 }
 
 int InventoryPanel::CurrencySheetHeight() const {
@@ -509,9 +505,11 @@ void InventoryPanel::ScrollCurrencySheet(int delta) {
 }
 
 ftxui::Element InventoryPanel::RenderCurrencySheet() {
-  const std::vector<StackableItem>& stacks = character_.stackables();
-  std::vector<int> tokens = StacksIn(stacks, StackView::kTokens);
-  std::vector<int> shards = StacksIn(stacks, StackView::kSoulShards);
+  const std::vector<CurrencyAmount>& held = character_.currencies().entries();
+  std::vector<int> tokens =
+      CurrenciesOf(character_.currencies(), ITEM_KIND_TOKEN);
+  std::vector<int> shards =
+      CurrenciesOf(character_.currencies(), ITEM_KIND_SOUL_SHARD);
   int count = CurrencyRowCount();
   if (count == 0) {
     // No headings over nothing, as on an empty Equip or Etc tab: column names
@@ -529,8 +527,8 @@ ftxui::Element InventoryPanel::RenderCurrencySheet() {
   // the shorter one simply leaves its half of the row blank.
   for (int i = 0; i < count; ++i) {
     ftxui::Element row = RenderCurrencyRow(
-        i < static_cast<int>(tokens.size()) ? &stacks[tokens[i]] : nullptr,
-        i < static_cast<int>(shards.size()) ? &stacks[shards[i]] : nullptr);
+        i < static_cast<int>(tokens.size()) ? &held[tokens[i]] : nullptr,
+        i < static_cast<int>(shards.size()) ? &held[shards[i]] : nullptr);
     std::vector<ftxui::Element>& part =
         i < currency_scroll_ ? above
                              : (i < currency_scroll_ + height ? window : below);
@@ -584,15 +582,13 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   } else if (active_tab_ == kTokenTab) {
     body = RenderCurrencySheet();
   } else if (active_tab_ == kEtcTab) {
-    std::vector<int> rows = EtcRows();
     // Keep the cursor in range as stacks are sold off.
-    selected_stack_ = std::min(selected_stack_,
-                               std::max(0, static_cast<int>(rows.size()) - 1));
+    selected_stack_ = std::min(selected_stack_, std::max(0, EtcRowCount() - 1));
     // The stack cursor shows only while the list zone holds focus, so it never
     // competes with the white tab-bar highlight.
-    body = RenderStackList(character_.stackables(), rows, selected_stack_,
-                           focused && zone_ == kZoneList, cursor_box_,
-                           highlighted_, name_clock_.Elapsed());
+    body = RenderStackList(character_.stackables(), AllRows(EtcRowCount()),
+                           selected_stack_, focused && zone_ == kZoneList,
+                           cursor_box_, highlighted_, name_clock_.Elapsed());
   } else {
     body = RenderOwnEquipList(menu);
   }
@@ -611,14 +607,13 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   return AccentWindow(
       " Inventory ",
       ftxui::vbox(
-          {RenderBagTabBar(
-               specs, active,
-               RenderBalances(character_.meso(),
-                              character_.CountStackable(kSpellTraceName),
-                              character_, account_),
-               focused && zone_ == kZoneTabs, highlighted_,
-               RenderExpandTab(focused && zone_ == kZoneTabs), width_ - 2,
-               bar_box_),
+          {RenderBagTabBar(specs, active,
+                           RenderBalances(character_.meso(),
+                                          character_.CountItem(kSpellTraceName),
+                                          character_, account_),
+                           focused && zone_ == kZoneTabs, highlighted_,
+                           RenderExpandTab(focused && zone_ == kZoneTabs),
+                           width_ - 2, bar_box_),
            std::move(body) | ftxui::flex}),
       PanelAccent(highlighted_), focused, account_.panel_title_blink());
 }

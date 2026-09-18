@@ -393,8 +393,16 @@ message Character {
   // Absent or zero means unlearned. Raised by spending that stage's SP.
   map<string, int32> skill_levels = 12;
 
-  // The Etc tab, one entry per stack, in the order the player sees.
+  // The Etc tab, one entry per stack, in the order the player sees. The
+  // currencies are NOT among them -- see `currencies`.
   repeated StackableStack stacks = 13;
+
+  // The currencies -- spell traces, the shops' tokens and the bosses' soul
+  // shards -- by item name. A balance rather than a stack: it costs no slot
+  // on the Etc tab and nothing caps it. Which items are currencies is the
+  // prototype's to say; see ItemKind. Filled from `stacks` when a save from
+  // format version 2 is read.
+  map<string, int64> currencies = 27;
 
   // Scrolls the player has pinned to the top of the scroll list, by the keys
   // ScrollPanel::PinKey builds. A pin names a stat and a rate on one kind of

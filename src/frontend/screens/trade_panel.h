@@ -102,11 +102,6 @@ enum TradeMenuItem : int {
   kTradeMenuClose = 3,
 };
 
-// Whether a stack may cross at all. Tokens and soul shards are bound to the
-// player who earned them, and a spell trace has its own line at the top of
-// the offer, so listing it as an item too would be two doors to one thing.
-bool Tradeable(const ItemPrototype& proto);
-
 class TradePanel {
  public:
   TradePanel(const CharacterInstance& character,

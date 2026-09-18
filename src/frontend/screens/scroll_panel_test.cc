@@ -67,7 +67,7 @@ class ScrollPanelTest : public PanelTest {
     trace.set_name(kSpellTraceName);
     trace.set_category(ITEM_CATEGORY_ETC);
     trace.set_max_stack(30000);
-    c_.AddStackable(trace, count);
+    c_.AddItem(trace, count);
   }
 
   // A level to price against, and what the two scrolls cost there. The price

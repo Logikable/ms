@@ -35,8 +35,9 @@ class SaveTest : public testing::Test {
     sword_.set_upgrade_slots(7);
     shell_.set_name("Green Snail Shell");
     shell_.set_category(ITEM_CATEGORY_ETC);
-    trace_.set_name("Spell Trace");
+    trace_.set_name(kSpellTraceName);
     trace_.set_category(ITEM_CATEGORY_ETC);
+    trace_.set_kind(ITEM_KIND_SPELL_TRACE);
 
     dir_ = std::filesystem::temp_directory_path() /
            ("ms_save_test_" +
@@ -87,6 +88,24 @@ class SaveTest : public testing::Test {
     WriteRaw(path_, bytes);
   }
 
+  // The same for version 2, whose layout is this one's less the currencies:
+  // SaveGame's field numbers have not moved, so the bytes are written through
+  // it with `currencies` left empty.
+  void WriteV2(SaveGame save) {
+    save.set_format_version(2);
+    std::string bytes;
+    ASSERT_TRUE(save.SerializeToString(&bytes));
+    WriteRaw(path_, bytes);
+  }
+
+  // A stack as version 2 held one, on the Etc tab.
+  static void AddStack(Character& character, const std::string& name,
+                       int count) {
+    StackableStack* stack = character.add_stacks();
+    stack->set_name(name);
+    stack->set_count(count);
+  }
+
   // A version 1 character with `keys` in seen_tabs, which was field 14. The
   // field is reserved now, so the only way to write one is the way the wire
   // held it.
@@ -131,8 +150,8 @@ TEST_F(SaveTest, WritesAndReadsBackACharacter) {
   ASSERT_TRUE(potted->Cube(CubeType::kRed, cube_rng));
   const Potential rolled = potted->potential();
   saved->character.PickUp(std::move(potted));
-  saved->character.AddStackable(shell_, 17);
-  saved->character.AddStackable(trace_, 3);
+  saved->character.AddItem(shell_, 17);
+  saved->character.AddItem(trace_, 3);
   saved->character.ToggleScrollPin("2:1:30");
   saved->character.RecordBossClear("zakum", "Normal", 1755000000);
   saved->current_map = "lith";
@@ -152,11 +171,11 @@ TEST_F(SaveTest, WritesAndReadsBackACharacter) {
   EXPECT_EQ(back->potential().rank(), rolled.rank());
   ASSERT_EQ(back->potential().lines_size(), rolled.lines_size());
   EXPECT_EQ(back->potential().lines(0).type(), rolled.lines(0).type());
-  // Every stack the save carried comes back, in the order it was picked up.
-  ASSERT_EQ(loaded->character.stackables().size(), 2u);
+  // Every stack the save carried comes back, in the order it was picked up,
+  // and the currency beside them as a balance.
+  ASSERT_EQ(loaded->character.stackables().size(), 1u);
   EXPECT_EQ(loaded->character.stackables()[0].count(), 17);
-  EXPECT_EQ(loaded->character.stackables()[1].name(), "Spell Trace");
-  EXPECT_EQ(loaded->character.stackables()[1].count(), 3);
+  EXPECT_EQ(loaded->character.currencies().Count(kSpellTraceName), 3);
   // A pinned scroll is a standing preference, so it rides the save.
   EXPECT_TRUE(loaded->character.ScrollPinned("2:1:30"));
   EXPECT_FALSE(loaded->character.ScrollPinned("2:1:70"));
@@ -661,6 +680,49 @@ TEST_F(SaveTest, AVersion1SaveMovesItsAccountStateOff) {
   EXPECT_EQ(loaded->account.max_job_stage(), 2);
 }
 
+// --- reading a version 2 save ---
+
+// Version 2 carried the currencies as Etc stacks, one slot apiece and capped
+// at the item's max_stack, which is why a boss's shards ran to several rows.
+// They come back as one balance each, and the ordinary drops stay on the tab.
+TEST_F(SaveTest, AVersion2SaveMovesItsCurrenciesToThePurse) {
+  SaveGame old;
+  Character* character = old.add_characters()->mutable_character();
+  character->set_name("Only");
+  AddStack(*character, kSpellTraceName, 30000);
+  AddStack(*character, "Green Snail Shell", 47);
+  AddStack(*character, kSpellTraceName, 1200);
+  AddStack(*character, "Something Since Deleted", 5);
+  WriteV2(old);
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->character.currencies().Count(kSpellTraceName), 31200)
+      << "the rows a stack limit split it across add back up";
+  ASSERT_EQ(loaded->character.stackables().size(), 1u);
+  EXPECT_EQ(loaded->character.stackables()[0].name(), "Green Snail Shell");
+  EXPECT_EQ(loaded->character.stackables()[0].count(), 47);
+}
+
+// Every character on the account is upgraded, not only the one being played:
+// the others ride along untouched and would otherwise be written back holding
+// stacks this build no longer reads as currency.
+TEST_F(SaveTest, AVersion2SaveUpgradesEveryCharacter) {
+  SaveGame old;
+  AddStack(*old.add_characters()->mutable_character(), kSpellTraceName, 100);
+  AddStack(*old.add_characters()->mutable_character(), kSpellTraceName, 200);
+  old.set_active_character(0);
+  WriteV2(old);
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->character.currencies().Count(kSpellTraceName), 100);
+  ASSERT_EQ(loaded->inactive_characters.size(), 1u);
+  const Character& other = loaded->inactive_characters[0].character();
+  EXPECT_EQ(other.stacks_size(), 0);
+  EXPECT_EQ(other.currencies().at(kSpellTraceName), 200);
+}
+
 // Loading an old save and saving again writes the new format, and the upgrade
 // is not run a second time.
 TEST_F(SaveTest, AnUpgradedSaveIsWrittenBackAtTheNewVersion) {
@@ -702,7 +764,7 @@ TEST_F(SaveTest, GarbageIsRefusedRatherThanRead) {
 TEST_F(SaveTest, ATruncatedSaveIsRefused) {
   std::unique_ptr<GameState> state = MakeState();
   state->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  state->character.AddStackable(shell_, 42);
+  state->character.AddItem(shell_, 42);
   ASSERT_TRUE(SaveGameToFile(*state, path_));
   std::string whole = ReadRaw(path_);
   ASSERT_GT(whole.size(), 4u);

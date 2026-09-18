@@ -15,10 +15,9 @@ namespace ms {
 namespace {
 
 // The Etc tab as a list of stacks, worked on away from the character. It
-// MIRRORS ConsumeStackable and AddStackable -- drain in order and drop what
-// empties, top up open stacks before opening new ones -- because the question
-// is what those two would do, and the character cannot be asked to do it
-// without doing it.
+// MIRRORS SpendItem and AddItem -- drain in order and drop what empties, top
+// up open stacks before opening new ones -- because the question is what those
+// two would do, and the character cannot be asked to do it without doing it.
 using Stacks = std::vector<StackableItem>;
 
 void TakeFrom(Stacks& stacks, const std::string& name, int count) {
@@ -71,24 +70,15 @@ bool HasRoomForTrade(const CharacterInstance& character,
       character.inventory().room() + given.equips_size()) {
     return false;
   }
+  // Spell traces are not weighed at all: a currency is a balance rather than a
+  // row, so however many come across, they fit.
   Stacks stacks = character.stackables();
   for (const TradeStack& stack : given.stacks()) {
     TakeFrom(stacks, stack.name(), stack.count());
   }
-  // The spell trace is a stack like any other, however it is offered.
-  const ItemPrototype* trace = FindItemByName(items, kSpellTraceName);
-  if (given.spell_traces() > 0) {
-    TakeFrom(stacks, kSpellTraceName, given.spell_traces());
-  }
   for (const TradeStack& stack : received.stacks()) {
     const ItemPrototype* proto = FindItemByName(items, stack.name());
     if (proto == nullptr || !PutIn(stacks, *proto, stack.count())) {
-      return false;
-    }
-  }
-  if (received.spell_traces() > 0) {
-    if (trace == nullptr ||
-        !PutIn(stacks, *trace, static_cast<int>(received.spell_traces()))) {
       return false;
     }
   }
@@ -108,10 +98,9 @@ void ApplyTrade(CharacterInstance& character,
     character.TakeEquip(row);
   }
   for (const TradeStack& stack : given.stacks()) {
-    character.ConsumeStackable(stack.name(), stack.count());
+    character.SpendItem(stack.name(), stack.count());
   }
-  character.ConsumeStackable(kSpellTraceName,
-                             static_cast<int>(given.spell_traces()));
+  character.SpendItem(kSpellTraceName, given.spell_traces());
   character.SpendMeso(given.meso());
 
   character.AddMeso(received.meso());
@@ -125,12 +114,12 @@ void ApplyTrade(CharacterInstance& character,
   for (const TradeStack& stack : received.stacks()) {
     const ItemPrototype* proto = FindItemByName(items, stack.name());
     if (proto != nullptr) {
-      character.AddStackable(*proto, stack.count());
+      character.AddItem(*proto, stack.count());
     }
   }
   const ItemPrototype* trace = FindItemByName(items, kSpellTraceName);
   if (trace != nullptr && received.spell_traces() > 0) {
-    character.AddStackable(*trace, static_cast<int>(received.spell_traces()));
+    character.AddItem(*trace, static_cast<int>(received.spell_traces()));
   }
 }
 

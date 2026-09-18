@@ -750,10 +750,9 @@ constexpr int kTestExpMultiplier = 5;
 // the Token tab's own column has something in it.
 constexpr int kTestTokens = 20;
 
-// A full stack of spell traces -- 30,000 is the item's own max_stack, so this
-// is the most the tester can be handed in one row. Carried rather than bought:
-// the shop counts them out 5,000 meso at a time, which is a long walk to reach
-// the scroll screen.
+// Enough spell traces to scroll a whole body several times over. Carried
+// rather than bought: the shop counts them out 5,000 meso at a time, which is
+// a long walk to reach the scroll screen.
 constexpr int kTestSpellTraces = 30000;
 
 // V Points enough to fill the whole matrix twice over: what the workbench is
@@ -844,7 +843,7 @@ void SeedTest(GameState& state, const TestOptions& test) {
   std::map<std::string, ItemPrototype>::const_iterator trace =
       state.items.find("spell_trace");
   if (trace != state.items.end()) {
-    state.character.AddStackable(trace->second, kTestSpellTraces);
+    state.character.AddItem(trace->second, kTestSpellTraces);
   }
   state.character.AddVPoints(kTestVPoints);
 
@@ -854,7 +853,7 @@ void SeedTest(GameState& state, const TestOptions& test) {
   for (const std::pair<const std::string, ItemPrototype>& entry : state.items) {
     if (entry.second.kind() == ITEM_KIND_TOKEN ||
         entry.second.kind() == ITEM_KIND_SOUL_SHARD) {
-      state.character.AddStackable(entry.second, kTestTokens);
+      state.character.AddItem(entry.second, kTestTokens);
     }
   }
 

@@ -38,16 +38,16 @@ class MultiSellTest : public PanelTest {
     proto.set_name(name);
     proto.set_category(category);
     proto.set_sell_price(price);
-    c_.AddStackable(proto, count);
+    c_.AddItem(proto, count);
   }
 
-  // A currency: a stack the bag files on its Token tab rather than in Etc.
+  // A currency: counted in the purse rather than carried on the Etc tab.
   void GiveCurrency(const std::string& name, ItemKind kind, int count) {
     ItemPrototype proto;
     proto.set_name(name);
     proto.set_category(ITEM_CATEGORY_ETC);
     proto.set_kind(kind);
-    c_.AddStackable(proto, count);
+    c_.AddItem(proto, count);
   }
 
   // The screen as plain characters, one row per line.
@@ -174,16 +174,15 @@ TEST_F(MultiSellTest, TheWindowStandsAtTheSameHeightOnEveryTab) {
 
 // The counter deals in what the bag's Etc tab lists, and the currencies are
 // not on it: they are a balance on the Token tab, and a balance is not for
-// sale. The Etc rows here are bag stacks, so the basket names the stack
-// rather than the row it was drawn on.
+// sale. They take no row either, so the one drop is the whole list.
 TEST_F(MultiSellTest, TheCurrenciesAreNotOnTheShelf) {
   GiveCurrency("Spell Trace", ITEM_KIND_SPELL_TRACE, 60);
   GiveCurrency("Frozen Weapon Token", ITEM_KIND_TOKEN, 3);
   GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 50, 4);
   GiveCurrency("Zakum's Soul Shard", ITEM_KIND_SOUL_SHARD, 9);
   MultiSellPanel panel(c_, account_);
-  panel.Reset(kEtcTab, 2);
-  EXPECT_EQ(panel.basket().etc, std::set<int>({2}));
+  panel.Reset(kEtcTab, 0);
+  EXPECT_EQ(panel.basket().etc, std::set<int>({0}));
   EXPECT_EQ(panel.Total(), 200);
   EXPECT_TRUE(ScreenHas(panel, "Wild Boar Tooth"));
   EXPECT_FALSE(ScreenHas(panel, "Frozen Weapon Token"));
