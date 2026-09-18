@@ -29,6 +29,7 @@
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/shop_panel.h"
 #include "src/frontend/screens/skill_inspect_panel.h"
+#include "src/frontend/screens/trade_panel.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -115,6 +116,20 @@ TEST_F(ScreenFitTest, MultiSell) {
   MultiSellPanel panel(state_.character, state_.account);
   panel.Reset(/*tab=*/0, /*item=*/0);
   ExpectFits(panel.Render(), "the multi-sell list");
+}
+
+TEST_F(ScreenFitTest, Trade) {
+  TradePanel panel(state_.character, state_.account);
+  TradeState trade;
+  trade.set_id("t1");
+  trade.set_partner_name("Adventurer");
+  trade.set_partner_joined(true);
+  // The biggest either side can put up, which is what widens the row.
+  trade.mutable_mine()->set_meso(100000000000);
+  trade.mutable_mine()->set_spell_traces(1000000);
+  *trade.mutable_theirs() = trade.mine();
+  panel.SetTrade(trade);
+  ExpectFits(panel.Render(), "the trade screen");
 }
 
 TEST_F(ScreenFitTest, AllStats) {

@@ -58,6 +58,7 @@
 #include "src/frontend/screens/skill_inspect_panel.h"
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
+#include "src/frontend/screens/trade_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -252,6 +253,7 @@ class Tui {
   // Everyone connected, and the player behind whichever of the two lists
   // Inspect was pressed on.
   PlayerListPanel player_list_panel_;
+  TradePanel trade_panel_;
   PlayerInspectPanel player_inspect_panel_;
   // The card for an item worn by another player. Its own panel rather than
   // inspect_panel_: a set card counts the pieces the wearer has on, and the

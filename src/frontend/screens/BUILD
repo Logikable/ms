@@ -914,6 +914,42 @@ cc_test(
 )
 
 cc_library(
+    name = "trade_panel",
+    srcs = ["trade_panel.cc"],
+    hdrs = ["trade_panel.h"],
+    deps = [
+        "//src:account",
+        "//src/character",
+        "//src/character:progression",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:inventory_list",
+        "//src/frontend/widgets:item_columns",
+        "//src/item",
+        "//src/protos:multiplayer_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "trade_panel_test",
+    size = "small",
+    srcs = ["trade_panel_test.cc"],
+    deps = [
+        ":trade_panel",
+        "//src/frontend/testing:panel_test_base",
+        "//src/frontend/testing:screen_text",
+        "//src/item",
+        "//src/protos:item_proto_cc",
+        "//src/protos:multiplayer_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "player_list_panel",
     srcs = ["player_list_panel.cc"],
     hdrs = ["player_list_panel.h"],

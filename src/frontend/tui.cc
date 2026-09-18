@@ -142,21 +142,24 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
       options_panel_(state.account),
       all_stats_panel_(state.character, &state.account, state.skills),
       player_inspect_panel_(state),
+      trade_panel_(state.character, state.account),
       multi_sell_panel_(state.character, state.account),
       shop_panel_(state.character, state.equips, state.items),
-      controller_(
-          state,
-          Screens{
-              char_panel_,         equip_panel_,         inventory_panel_,
-              scroll_panel_,       inspect_panel_,       preview_inspect_panel_,
-              star_force_panel_,   cube_panel_,          trace_recover_panel_,
-              sell_panel_,         sell_equip_panel_,    multi_sell_panel_,
-              map_select_panel_,   mob_inspect_panel_,   boss_select_panel_,
-              party_select_panel_, player_list_panel_,   player_inspect_panel_,
-              player_item_panel_,  shop_panel_,          buy_panel_,
-              job_inspect_panel_,  skill_inspect_panel_, buff_info_panel_,
-              menu_panel_,         keybinds_panel_,      options_panel_},
-          analysis_, keys_, panel_focus_, multiplayer_.get()) {
+      controller_(state, Screens{char_panel_,           equip_panel_,
+                                 inventory_panel_,      scroll_panel_,
+                                 inspect_panel_,        preview_inspect_panel_,
+                                 star_force_panel_,     cube_panel_,
+                                 trace_recover_panel_,  sell_panel_,
+                                 sell_equip_panel_,     multi_sell_panel_,
+                                 map_select_panel_,     mob_inspect_panel_,
+                                 boss_select_panel_,    party_select_panel_,
+                                 player_list_panel_,    trade_panel_,
+                                 player_inspect_panel_, player_item_panel_,
+                                 shop_panel_,           buy_panel_,
+                                 job_inspect_panel_,    skill_inspect_panel_,
+                                 buff_info_panel_,      menu_panel_,
+                                 keybinds_panel_,       options_panel_},
+                  analysis_, keys_, panel_focus_, multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
   // being paid depends on what is worn.

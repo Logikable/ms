@@ -27,6 +27,7 @@
 #include "src/frontend/screens/party_select_panel.h"
 #include "src/frontend/screens/player_inspect_panel.h"
 #include "src/frontend/screens/player_list_panel.h"
+#include "src/frontend/screens/trade_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
@@ -93,6 +94,8 @@ struct Client {
     mob_inspect_panel = std::make_unique<MobInspectPanel>(*state);
     boss_select_panel = std::make_unique<BossSelectPanel>(*state);
     player_inspect_panel = std::make_unique<PlayerInspectPanel>(*state);
+    trade_panel =
+        std::make_unique<TradePanel>(state->character, state->account);
     shop_panel = std::make_unique<ShopPanel>(state->character, state->equips,
                                              state->items);
     job_inspect_panel = std::make_unique<JobInspectPanel>(state->skills);
@@ -101,16 +104,20 @@ struct Client {
     keybinds_panel = std::make_unique<KeybindsPanel>(*keys);
     options_panel = std::make_unique<OptionsPanel>(state->account);
     controller = std::make_unique<TuiController>(
-        *state,
-        Screens{*char_panel,        *equip_panel,        *inventory_panel,
-                *scroll_panel,      inspect_panel,       preview_inspect_panel,
-                star_force_panel,   cube_panel,          *trace_recover_panel,
-                sell_panel,         sell_equip_panel,    *multi_sell_panel,
-                *map_select_panel,  *mob_inspect_panel,  *boss_select_panel,
-                party_panel,        player_list_panel,   *player_inspect_panel,
-                player_item_panel,  *shop_panel,         buy_panel,
-                *job_inspect_panel, skill_inspect_panel, buff_info_panel,
-                *menu_panel,        *keybinds_panel,     *options_panel},
+        *state, Screens{*char_panel,           *equip_panel,
+                        *inventory_panel,      *scroll_panel,
+                        inspect_panel,         preview_inspect_panel,
+                        star_force_panel,      cube_panel,
+                        *trace_recover_panel,  sell_panel,
+                        sell_equip_panel,      *multi_sell_panel,
+                        *map_select_panel,     *mob_inspect_panel,
+                        *boss_select_panel,    party_panel,
+                        player_list_panel,     *trade_panel,
+                        *player_inspect_panel, player_item_panel,
+                        *shop_panel,           buy_panel,
+                        *job_inspect_panel,    skill_inspect_panel,
+                        buff_info_panel,       *menu_panel,
+                        *keybinds_panel,       *options_panel},
         analysis, *keys, focus, &session);
   }
 
@@ -155,6 +162,7 @@ struct Client {
   std::unique_ptr<MobInspectPanel> mob_inspect_panel;
   std::unique_ptr<BossSelectPanel> boss_select_panel;
   std::unique_ptr<PlayerInspectPanel> player_inspect_panel;
+  std::unique_ptr<TradePanel> trade_panel;
   std::unique_ptr<ShopPanel> shop_panel;
   std::unique_ptr<JobInspectPanel> job_inspect_panel;
   std::unique_ptr<MenuPanel> menu_panel;
@@ -218,11 +226,17 @@ class PartyControllerTest : public ::testing::Test {
     client.controller->OnEvent(ftxui::Event::Return);
   }
 
-  // Presses Trade on the second player in the list, the way a player does:
-  // the Players list, Down onto them, Enter for the menu, Down onto Trade.
-  void AskToTrade(Client& client) {
+  // Presses Trade on `name` the way a player does: the Players list, down
+  // onto them, Enter for the menu, Down onto Trade.
+  void AskToTrade(Client& client, const std::string& name) {
     OpenMultiplayer(client, MultiplayerEntry::kPlayers);
-    client.controller->OnEvent(ftxui::Event::ArrowDown);
+    for (int step = 0; step < 4; ++step) {
+      if (client.player_list_panel.selected_name() == name) {
+        break;
+      }
+      client.controller->OnEvent(ftxui::Event::ArrowDown);
+    }
+    ASSERT_EQ(client.player_list_panel.selected_name(), name);
     client.controller->OnEvent(ftxui::Event::Return);
     ASSERT_EQ(client.controller->screen(), kPlayerMenu);
     client.controller->OnEvent(ftxui::Event::ArrowDown);
@@ -531,7 +545,7 @@ TEST_F(PartyControllerTest, TradeAsksTheOtherPlayer) {
   ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
     return asker->session.Snapshot().online.players_size() == 2;
   }));
-  AskToTrade(*asker);
+  AskToTrade(*asker, "Wand");
   EXPECT_EQ(asker->controller->screen(), kPlayerList);
 
   // The asker holds a trade; the one asked holds a gold box, wherever they
@@ -544,6 +558,55 @@ TEST_F(PartyControllerTest, TradeAsksTheOtherPlayer) {
   }));
 }
 
+// The whole thing end to end: one asks, the other asks back, and both land on
+// the same trade.
+TEST_F(PartyControllerTest, BothPlayersLandOnTheTradeScreen) {
+  std::unique_ptr<Client> asker = Connect("Dagger");
+  std::unique_ptr<Client> asked = Connect("Wand");
+  asker->state->character.AddMeso(5000);
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->session.Snapshot().online.players_size() == 2;
+  }));
+
+  AskToTrade(*asker, "Wand");
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()},
+                      [&]() { return asker->controller->screen() == kTrade; }));
+  // Their window is still nameless: the asker is on the screen alone.
+  EXPECT_FALSE(asker->session.Snapshot().trade.partner_joined());
+  EXPECT_NE(asked->controller->screen(), kTrade);
+
+  AskToTrade(*asked, "Dagger");
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asked->controller->screen() == kTrade &&
+           asker->session.Snapshot().trade.partner_joined();
+  }));
+
+  // Enter on the meso opens the overlay; the digits go in and Down reaches
+  // Confirm.
+  asker->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(asker->controller->screen(), kTradeAmount);
+  for (char digit : std::string("5000")) {
+    asker->controller->OnEvent(ftxui::Event::Character(digit));
+  }
+  asker->controller->OnEvent(ftxui::Event::ArrowDown);
+  asker->controller->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(asker->controller->screen(), kTrade);
+  EXPECT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asked->session.Snapshot().trade.theirs().meso() == 5000;
+  }));
+
+  // Walking out ends it for both, and the one left behind is told.
+  asker->controller->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(asker->controller->screen(), kPlayerList);
+  EXPECT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asked->controller->screen() == kPlayerList;
+  }));
+  EXPECT_TRUE(asked->controller->party_notice_prompt().open());
+  // And the screen stays shut: the state still in flight does not stand it
+  // back up.
+  EXPECT_EQ(asker->controller->screen(), kPlayerList);
+}
+
 TEST_F(PartyControllerTest, TradingABusyPlayerIsRefused) {
   std::unique_ptr<Client> asker = Connect("Dagger");
   std::unique_ptr<Client> asked = Connect("Wand");
@@ -551,12 +614,12 @@ TEST_F(PartyControllerTest, TradingABusyPlayerIsRefused) {
   ASSERT_TRUE(WaitFor({asker.get(), asked.get(), latecomer.get()}, [&]() {
     return latecomer->session.Snapshot().online.players_size() == 3;
   }));
-  AskToTrade(*asker);
+  AskToTrade(*asker, "Wand");
   ASSERT_TRUE(WaitFor({asker.get(), asked.get(), latecomer.get()}, [&]() {
     return !asker->session.Snapshot().trade.id().empty();
   }));
 
-  AskToTrade(*latecomer);
+  AskToTrade(*latecomer, "Wand");
 
   ASSERT_TRUE(WaitFor({asker.get(), asked.get(), latecomer.get()}, [&]() {
     return latecomer->controller->party_notice_prompt().open();

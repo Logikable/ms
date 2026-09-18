@@ -90,6 +90,10 @@ enum Screen : int {
   // Enter on a member: read them, and for the leader kick them or hand the
   // party on.
   kPartyMenu,
+  // Trade on either menu: what each side is putting up, over the bag.
+  kTrade,
+  // Enter on one of your own currencies there: how much of it to offer.
+  kTradeAmount,
   // The player behind Inspect, reached from either list: their stats, and what
   // they are wearing.
   kPlayerInspect,

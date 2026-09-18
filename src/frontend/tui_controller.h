@@ -50,6 +50,7 @@
 #include "src/frontend/screens/symbol_combine_panel.h"
 #include "src/frontend/screens/symbol_level_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
+#include "src/frontend/screens/trade_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/amount_selector.h"
 #include "src/frontend/widgets/confirm_prompt.h"
@@ -96,6 +97,7 @@ struct Screens {
   BossSelectPanel& boss_select_panel;
   PartySelectPanel& party_select_panel;
   PlayerListPanel& player_list_panel;
+  TradePanel& trade_panel;
   PlayerInspectPanel& player_inspect_panel;
   // The card for an item another player is wearing, which takes the same keys
   // as the player's own.
@@ -265,6 +267,10 @@ class TuiController {
   }
   bool party_notice_is_refusal() const {
     return party_notice_is_refusal_;
+  }
+  // How much of a currency the trade overlay is putting up.
+  const AmountSelector& trade_selector() const {
+    return trade_selector_;
   }
   // The gold box in the corner, which outlives whatever screen raised it.
   const NotificationBox& notification() const {
@@ -580,6 +586,8 @@ class TuiController {
   bool OnMobInspectEvent(ftxui::Event event);
   bool OnPlayerListEvent(ftxui::Event event);
   bool OnPlayerMenuEvent(ftxui::Event event);
+  bool OnTradeEvent(ftxui::Event event);
+  bool OnTradeAmountEvent(ftxui::Event event);
   bool OnPartySelectEvent(ftxui::Event event);
   bool OnPartyMenuEvent(ftxui::Event event);
   bool OnPlayerInspectEvent(ftxui::Event event);
@@ -607,6 +615,16 @@ class TuiController {
   // Asks `account_id` to trade, from either menu. The trade screen opens when
   // the server answers, so nothing here says where the player goes next.
   void AskToTrade(const std::string& account_id);
+  // Opens and closes the trade screen as the server's trade comes and goes. A
+  // trade that ends under the player takes them back where they opened it
+  // from.
+  void AdvanceTrade(const MultiplayerSnapshot& lobby);
+  // Raises the amount overlay on the currency the cursor is on.
+  void OpenTradeAmount();
+  // Puts up what that overlay was left on.
+  void PutUpTradeAmount();
+  // Walks out, which ends the trade for both.
+  void LeaveTrade();
   // Asks for `account_id`'s sheet and opens the Inspect screen once it lands.
   // A player off the roster is not in any party, so their sheet has to be
   // fetched before there is anything to draw.
@@ -719,6 +737,7 @@ class TuiController {
   BossSelectPanel& boss_select_panel_;
   PartySelectPanel& party_select_panel_;
   PlayerListPanel& player_list_panel_;
+  TradePanel& trade_panel_;
   PlayerInspectPanel& player_inspect_panel_;
   InspectPanel& player_item_panel_;
   // The member the inspect screen is reading, so the lobby's next word about
@@ -836,6 +855,12 @@ class TuiController {
   // The last gold box raised, so one arriving is raised once rather than on
   // every frame after it.
   int64_t notification_seen_ = 0;
+  AmountSelector trade_selector_;
+  // The screen the trade was opened from, which walking out closes back to.
+  Screen trade_return_ = kPlayerList;
+  // The trade this player walked out of, so a state still in flight does not
+  // stand the screen back up.
+  std::string left_trade_id_;
   ContinuePrompt party_notice_prompt_;
   std::string party_notice_;
   bool party_notice_is_refusal_ = false;

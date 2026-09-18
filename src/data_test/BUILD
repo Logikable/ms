@@ -229,6 +229,7 @@ cc_test(
         "//src/frontend/screens:scroll_panel",
         "//src/frontend/screens:shop_panel",
         "//src/frontend/screens:skill_inspect_panel",
+        "//src/frontend/screens:trade_panel",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

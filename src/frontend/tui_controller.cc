@@ -67,6 +67,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       boss_select_panel_(screens.boss_select_panel),
       party_select_panel_(screens.party_select_panel),
       player_list_panel_(screens.player_list_panel),
+      trade_panel_(screens.trade_panel),
       player_inspect_panel_(screens.player_inspect_panel),
       player_item_panel_(screens.player_item_panel),
       job_inspect_panel_(screens.job_inspect_panel),
@@ -719,6 +720,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnPlayerListEvent(event);
     case kPlayerMenu:
       return OnPlayerMenuEvent(event);
+    case kTrade:
+      return OnTradeEvent(event);
+    case kTradeAmount:
+      return OnTradeAmountEvent(event);
     case kPartySelect:
       return OnPartySelectEvent(event);
     case kPartyMenu:
@@ -1515,11 +1520,11 @@ void TuiController::AdvanceParty() {
   // The connection going away turns the player out of the multiplayer
   // screens: there is no lobby left to show them, and Close should land them
   // somewhere real.
-  bool on_lobby_screen = screen_ == kPartySelect || screen_ == kPartyMenu ||
-                         screen_ == kPartyConfirm ||
-                         screen_ == kPlayerInspect ||
-                         screen_ == kPlayerItemInspect ||
-                         screen_ == kPlayerList || screen_ == kPlayerMenu;
+  bool on_lobby_screen =
+      screen_ == kPartySelect || screen_ == kPartyMenu ||
+      screen_ == kPartyConfirm || screen_ == kPlayerInspect ||
+      screen_ == kPlayerItemInspect || screen_ == kPlayerList ||
+      screen_ == kPlayerMenu || screen_ == kTrade || screen_ == kTradeAmount;
   if (on_lobby_screen && lobby.state != ConnectionState::kConnected) {
     screen_ = kMain;
     menu_panel_.CloseBox();
@@ -1533,6 +1538,7 @@ void TuiController::AdvanceParty() {
     return;
   }
   AdvanceWatch(lobby);
+  AdvanceTrade(lobby);
   RefreshPlayerInspect(lobby);
   AdvancePartyFight(lobby);
   if (lobby.notification_serial != notification_seen_) {
@@ -1887,7 +1893,94 @@ void TuiController::AskToTrade(const std::string& account_id) {
   if (multiplayer_ == nullptr || account_id.empty()) {
     return;
   }
+  // Where the screen closes back to, taken now: it is the list the player
+  // pressed Trade on, and by the time the server answers they are on it.
+  trade_return_ = screen_ == kPartySelect ? kPartySelect : kPlayerList;
   multiplayer_->client().RequestTrade(account_id);
+}
+
+void TuiController::AdvanceTrade(const MultiplayerSnapshot& lobby) {
+  trade_panel_.SetTrade(lobby.trade);
+  const bool open = screen_ == kTrade || screen_ == kTradeAmount;
+  if (lobby.trade.id().empty()) {
+    left_trade_id_.clear();
+    if (open) {
+      screen_ = trade_return_;
+      RaisePartyNotice("They left the trade.", /*refusal=*/false);
+    }
+    return;
+  }
+  // A trade this player has already walked out of: the server has not caught
+  // up, and standing the screen back up would trap them on it.
+  if (open || lobby.trade.id() == left_trade_id_) {
+    return;
+  }
+  trade_panel_.Reset();
+  screen_ = kTrade;
+}
+
+void TuiController::OpenTradeAmount() {
+  // Opens on what is already on the table, with a button for none of it: a
+  // player changing their mind is taking something back as often as adding.
+  trade_selector_.Reset(trade_panel_.held(), trade_panel_.offered());
+  trade_selector_.set_low(0);
+  screen_ = kTradeAmount;
+}
+
+void TuiController::PutUpTradeAmount() {
+  if (multiplayer_ == nullptr) {
+    return;
+  }
+  // The whole offer with the one currency replaced: what the server is told
+  // is what is on the table, not what changed about it.
+  TradeOffer offer = Lobby().trade.mine();
+  if (trade_panel_.selected() == TradeCurrency::kMeso) {
+    offer.set_meso(trade_selector_.value());
+  } else {
+    offer.set_spell_traces(trade_selector_.value());
+  }
+  multiplayer_->client().SetTradeOffer(offer);
+}
+
+void TuiController::LeaveTrade() {
+  left_trade_id_ = Lobby().trade.id();
+  if (multiplayer_ != nullptr) {
+    multiplayer_->client().LeaveTrade();
+  }
+  screen_ = trade_return_;
+}
+
+bool TuiController::OnTradeEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowLeft) {
+    trade_panel_.MoveCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    trade_panel_.MoveCursor(1);
+    return true;
+  }
+  if (IsForward(event)) {
+    OpenTradeAmount();
+    return true;
+  }
+  if (IsBack(event)) {
+    LeaveTrade();
+  }
+  // Everything else is swallowed: this is a modal screen, and the ticker's
+  // redraw arrives as an event too.
+  return true;
+}
+
+bool TuiController::OnTradeAmountEvent(ftxui::Event event) {
+  ConfirmChoice choice = trade_selector_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    PutUpTradeAmount();
+  }
+  screen_ = kTrade;
+  return true;
 }
 
 void TuiController::OpenPlayerSkillInspect(const Skill& skill) {
