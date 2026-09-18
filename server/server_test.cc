@@ -590,6 +590,48 @@ TEST_F(ServerTest, OpensTheTradeWhenBothAsk) {
   EXPECT_EQ(state.mine().meso(), 0);
 }
 
+TEST_F(ServerTest, PaysOutATradeBothSidesConfirm) {
+  Welcome mine;
+  Welcome theirs;
+  std::unique_ptr<TestClient> asker = Greeted("Dagger", &mine);
+  std::unique_ptr<TestClient> asked = Greeted("Wand", &theirs);
+  asker->Send(TradeMessage(theirs.account_id()));
+  AwaitKind(*asker, ServerMessage::kTradeState);
+  asked->Send(TradeMessage(mine.account_id()));
+  AwaitKind(*asker, ServerMessage::kTradeState);
+
+  ClientMessage offer;
+  TradeOffer* put_up = offer.mutable_set_trade_offer()->mutable_offer();
+  put_up->set_meso(5000);
+  put_up->add_equips()->set_equip_name("Fafnir Mace");
+  asker->Send(offer);
+  AwaitKind(*asked, ServerMessage::kTradeState);
+
+  ClientMessage accept;
+  accept.mutable_accept_trade()->set_accepted(true);
+  asker->Send(accept);
+  asked->Send(accept);
+  AwaitKind(*asker, ServerMessage::kTradeState);
+
+  ClientMessage confirm;
+  confirm.mutable_confirm_trade()->set_confirmed(true);
+  asker->Send(confirm);
+  asked->Send(confirm);
+
+  // Each side is paid what the other put up, and the trade is gone.
+  TradeOffer paid = AwaitKind(*asked, ServerMessage::kTradeCompleted)
+                        .trade_completed()
+                        .received();
+  EXPECT_EQ(paid.meso(), 5000);
+  ASSERT_EQ(paid.equips_size(), 1);
+  EXPECT_EQ(paid.equips(0).equip_name(), "Fafnir Mace");
+  EXPECT_EQ(AwaitKind(*asker, ServerMessage::kTradeCompleted)
+                .trade_completed()
+                .received()
+                .meso(),
+            0);
+}
+
 TEST_F(ServerTest, RefusesATradeItCannotOpen) {
   Welcome mine;
   Welcome theirs;

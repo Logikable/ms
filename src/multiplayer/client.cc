@@ -178,6 +178,18 @@ void MultiplayerClient::SetTradeOffer(const TradeOffer& offer) {
   Ask(message);
 }
 
+void MultiplayerClient::AcceptTrade(bool accepted) {
+  ClientMessage message;
+  message.mutable_accept_trade()->set_accepted(accepted);
+  Ask(message);
+}
+
+void MultiplayerClient::ConfirmTrade(bool confirmed) {
+  ClientMessage message;
+  message.mutable_confirm_trade()->set_confirmed(confirmed);
+  Ask(message);
+}
+
 void MultiplayerClient::LeaveTrade() {
   ClientMessage message;
   message.mutable_leave_trade();
@@ -369,6 +381,13 @@ void MultiplayerClient::Handle(const ServerMessage& message, bool& keep) {
       return;
     case ServerMessage::kTradeState:
       snapshot_.trade = message.trade_state();
+      return;
+    case ServerMessage::kTradeCompleted:
+      // The trade is gone with it: the server tore it down to send this, and
+      // an empty state would only have read as a partner walking out.
+      snapshot_.trade.Clear();
+      snapshot_.trade_received = message.trade_completed().received();
+      ++snapshot_.trade_serial;
       return;
     case ServerMessage::kNotification:
       snapshot_.notification.assign(message.notification().lines().begin(),

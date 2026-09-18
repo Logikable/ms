@@ -72,6 +72,12 @@ struct MultiplayerSnapshot {
   // The trade this player is in. No id means they are in none, which is what
   // closes the trade screen on a partner who walked out.
   TradeState trade;
+  // What the last trade that went through pays this player, and a serial that
+  // climbs with each one -- how the screen tells a payment it has already made
+  // from a new one. What they put up has left them, so what the screen does
+  // with this is take their own offer off and put this on.
+  TradeOffer trade_received;
+  int64_t trade_serial = 0;
   // The last thing worth putting in the gold box, one string per line, and a
   // serial that climbs with each one -- how a screen tells a box it has
   // already raised from a new one.
@@ -141,6 +147,11 @@ class MultiplayerClient {
   void RequestTrade(const std::string& account_id);
   // Puts up what this player is offering, whole.
   void SetTradeOffer(const TradeOffer& offer);
+  // Accepts the table as it stands, or takes that back.
+  void AcceptTrade(bool accepted);
+  // Answers the finalize dialog. A cancel clears this player's acceptance and
+  // leaves the other player's standing.
+  void ConfirmTrade(bool confirmed);
   // Walks out of the trade, which ends it for both.
   void LeaveTrade();
   // Asks for `account_id`'s sheet, and for a fresh one whenever they change.

@@ -142,11 +142,21 @@ std::string AskedFor(const ClientMessage& message) {
       return absl::StrCat("asks to trade with ",
                           message.request_trade().account_id());
     case ClientMessage::kSetTradeOffer:
-      return absl::StrCat(
-          "offers ", message.set_trade_offer().offer().meso(), " meso and ",
-          message.set_trade_offer().offer().spell_traces(), " spell traces");
+      return absl::StrCat("offers ", message.set_trade_offer().offer().meso(),
+                          " meso, ",
+                          message.set_trade_offer().offer().spell_traces(),
+                          " spell traces and ",
+                          message.set_trade_offer().offer().equips_size() +
+                              message.set_trade_offer().offer().stacks_size(),
+                          " items");
     case ClientMessage::kLeaveTrade:
       return "leaves the trade";
+    case ClientMessage::kAcceptTrade:
+      return message.accept_trade().accepted() ? "accepts the trade"
+                                               : "unaccepts the trade";
+    case ClientMessage::kConfirmTrade:
+      return message.confirm_trade().confirmed() ? "confirms the trade"
+                                                 : "cancels the trade";
     default:
       return "sends something unknown";
   }
@@ -593,6 +603,8 @@ void Server::Handle(Session& session, const ClientMessage& message) {
     case ClientMessage::kRequestTrade:
     case ClientMessage::kSetTradeOffer:
     case ClientMessage::kLeaveTrade:
+    case ClientMessage::kAcceptTrade:
+    case ClientMessage::kConfirmTrade:
       HandleTrade(session, message);
       return;
     case ClientMessage::KIND_NOT_SET:
@@ -696,6 +708,17 @@ void Server::HandleTrade(Session& session, const ClientMessage& message) {
     trades_.Leave(session.account_id);
     return;
   }
+  if (message.kind_case() == ClientMessage::kAcceptTrade) {
+    trades_.SetAccept(session.account_id, message.accept_trade().accepted());
+    return;
+  }
+  if (message.kind_case() == ClientMessage::kConfirmTrade) {
+    if (trades_.Busy(session.account_id)) {
+      LOG(INFO) << Describe(session) << " " << AskedFor(message);
+    }
+    trades_.SetConfirm(session.account_id, message.confirm_trade().confirmed());
+    return;
+  }
   std::string asked = AskedFor(message);
   Session* other = FindSession(message.request_trade().account_id());
   if (other == nullptr) {
@@ -724,6 +747,15 @@ void Server::PublishTrades() {
     ServerMessage state;
     *state.mutable_trade_state() = trades_.StateFor(account);
     Send(*session, state);
+  }
+  for (const TradeCompletion& paid : trades_.TakeCompletions()) {
+    Session* session = FindSession(paid.account_id);
+    if (session == nullptr) {
+      continue;
+    }
+    ServerMessage message;
+    *message.mutable_trade_completed()->mutable_received() = paid.received;
+    Send(*session, message);
   }
   for (const TradeNotice& notice : trades_.TakeNotices()) {
     Session* session = FindSession(notice.account_id);
