@@ -18,6 +18,12 @@
  * buy. The row is drawn under every tab, blank where there is nothing to
  * choose, so the window keeps one height.
  *
+ * A narrow panel stands to the right holding the balances of a token shelf,
+ * one currency a row. They will not go in the tab bar: the equipment shelf
+ * deals in seven, and five of those wear the same glyph in different colours.
+ * Its columns are reserved under every tab, blank where the shelf takes meso,
+ * so stepping along the pay bar does not slide the centred window sideways.
+ *
  * The off-hands on the Equips shelf are hidden until the 2nd advancement: one
  * belongs to a branch of one job, and a 1st job is not yet in a branch. The
  * accessories beside them fit anybody, so the shelf is never empty.
@@ -143,9 +149,13 @@ class ShopPanel {
   // Puts the window where the cursor is -- ScrollWindowStart, which keeps the
   // selection in the middle of it.
   void ScrollToCursor();
-  // The tab chips with the counter in what they leave -- meso, or how many of
-  // each of the open shelf's tokens the player holds.
+  // The tab chips with the player's meso in what they leave.
   ftxui::Element RenderTabBar() const;
+  // The balances beside the shop, as tall as the window and blank under a
+  // shelf that deals in meso. See the note at the top of the file.
+  ftxui::Element RenderTokenPanel() const;
+  // One balance row of that panel: the currency's mark and the count.
+  ftxui::Element RenderTokenBalance(const ItemPrototype& token) const;
   // The second row: Meso and Token, or a blank row under a tab that has
   // neither. Blank rather than absent so the window is one height.
   ftxui::Element RenderPayBar() const;

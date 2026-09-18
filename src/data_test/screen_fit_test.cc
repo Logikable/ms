@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/account.h"
 #include "src/character/character.h"
@@ -108,8 +109,23 @@ TEST_F(ScreenFitTest, BossSelect) {
 
 TEST_F(ScreenFitTest, Shop) {
   ShopPanel panel(state_.character, state_.equips, state_.items);
-  panel.Reset();
-  ExpectFits(panel.Render(), "the shop");
+  // Every shelf: the token ones stand a balance panel beside the window, and
+  // how many currencies that holds is the catalog's to say.
+  for (int tab = 0; tab < kNumShopTabs; ++tab) {
+    for (int pay = 0; pay < kNumShopPayTabs; ++pay) {
+      panel.Reset();
+      panel.OnEvent(ftxui::Event::ArrowUp);  // the list -> the pay bar
+      panel.OnEvent(ftxui::Event::ArrowUp);  // -> the tab bar
+      for (int step = 0; step < tab; ++step) {
+        panel.OnEvent(ftxui::Event::ArrowRight);
+      }
+      panel.OnEvent(ftxui::Event::ArrowDown);
+      for (int step = 0; step < pay; ++step) {
+        panel.OnEvent(ftxui::Event::ArrowRight);
+      }
+      ExpectFits(panel.Render(), "the shop");
+    }
+  }
 }
 
 TEST_F(ScreenFitTest, MultiSell) {

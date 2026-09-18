@@ -48,6 +48,22 @@ constexpr int kNameClockTabStride = 4096;
 constexpr int kContentWidth =
     2 + kNameWidth + 2 + kTypeWidth + 2 + kLevelWidth + kCostWidth + 1 + 1;
 
+// The balance panel beside the shop: a space, the currency's mark, a space,
+// and four digits for the count. Four is the whole ladder -- a token shelf
+// asks tens per piece, and nobody banks five digits of one.
+constexpr int kTokenCountWidth = 4;
+constexpr int kTokenPanelWidth = 1 + 1 + 1 + kTokenCountWidth + 1;
+// The gap between the two windows, so their borders do not run together.
+constexpr int kTokenPanelGap = 1;
+// Rows inside the panel, matching the shop's: the two tab bars, their rule,
+// the column header, its rule, and the stock. Equal so the two windows close
+// on the same line.
+constexpr int kTokenPanelRows = 5 + kVisibleRows;
+// The panel's columns are held whether or not it is drawn, blank under a
+// shelf that deals in meso. The shop is drawn centred: a panel that came and
+// went would slide the whole window sideways on every step of the pay bar.
+constexpr int kTokenPanelBlock = kTokenPanelGap + kTokenPanelWidth + 2;
+
 // A "<mark> <text>" cell, right-aligned in kCostWidth screen columns. A coin
 // is two columns and a token's mark one, which is what PadLeft counts, so the
 // cell is the same width whatever the number in it.
@@ -389,31 +405,49 @@ ftxui::Element ShopPanel::RenderTabBar() const {
   // No width limit: four fixed labels, and the shop's rows are far wider.
   chips.push_back(TabBar(kTabs, tab_, focused, /*width=*/0));
   // The counter sits in what the chips LEAVE rather than over the whole row: a
-  // third chip reached where a centred counter was drawn. Every currency the
-  // shelf deals in stands there -- a balance the bar does not show is one the
-  // player cannot shop against.
-  std::vector<const ItemPrototype*> tokens = TabTokens();
-  ftxui::Element counter;
-  if (tokens.empty()) {
-    counter = ftxui::text(FormatMeso(character_.meso())) | ftxui::color(kTheme);
-  } else {
-    std::vector<ftxui::Element> counts;
-    for (const ItemPrototype* token : tokens) {
-      if (!counts.empty()) {
-        counts.push_back(ftxui::text("  "));
-      }
-      counts.push_back(ftxui::text(token->currency_mark()) |
-                       ftxui::color(MarkColor(token->currency_color())));
-      counts.push_back(
-          ftxui::text(" " + FormatWithCommas(character_.CountItem(*token))) |
-          ftxui::color(kTheme));
-    }
-    counter = ftxui::hbox(std::move(counts));
-  }
+  // third chip reached where a centred counter was drawn. Meso whatever the
+  // shelf asks -- the token balances stand in the panel beside the window,
+  // where seven of them fit and a row of chips could not hold two.
   chips.push_back(ftxui::filler());
-  chips.push_back(std::move(counter));
+  chips.push_back(ftxui::text(FormatMeso(character_.meso())) |
+                  ftxui::color(kTheme));
   chips.push_back(ftxui::filler());
   return ftxui::hbox(std::move(chips));
+}
+
+// A balance the player shops against: the currency's mark in its own colour,
+// which is the whole of what tells two apart, and how many they hold.
+ftxui::Element ShopPanel::RenderTokenBalance(const ItemPrototype& token) const {
+  return ftxui::hbox({
+      ftxui::text(" "),
+      ftxui::text(token.currency_mark()) |
+          ftxui::color(MarkColor(token.currency_color())),
+      ftxui::text(" " + PadLeft(std::to_string(character_.CountItem(token)),
+                                kTokenCountWidth)) |
+          ftxui::color(kTheme),
+  });
+}
+
+ftxui::Element ShopPanel::RenderTokenPanel() const {
+  std::vector<const ItemPrototype*> tokens = TabTokens();
+  if (tokens.empty()) {
+    return ftxui::text("") |
+           ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kTokenPanelBlock);
+  }
+  std::vector<ftxui::Element> rows;
+  for (const ItemPrototype* token : tokens) {
+    rows.push_back(RenderTokenBalance(*token));
+  }
+  while (static_cast<int>(rows.size()) < kTokenPanelRows) {
+    rows.push_back(ftxui::text(""));
+  }
+  ftxui::Element body =
+      ftxui::vbox(std::move(rows)) |
+      ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kTokenPanelWidth);
+  return ftxui::hbox({
+      ftxui::text(std::string(kTokenPanelGap, ' ')),
+      ThemedWindow(" Tokens ", std::move(body)),
+  });
 }
 
 // Blank under a tab with nothing to choose, so the window is one height
@@ -558,7 +592,12 @@ ftxui::Element ShopPanel::Render() const {
   // the window, and a centred window that changes width moves.
   ftxui::Element body = ftxui::vbox(std::move(rows)) |
                         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth);
-  ftxui::Element window = ThemedWindow(" Shop ", std::move(body));
+  // The balance panel's columns are part of the shop whichever shelf is open,
+  // so the menu below still measures its column from the shop's own border.
+  ftxui::Element window = ftxui::hbox({
+      ThemedWindow(" Shop ", std::move(body)),
+      RenderTokenPanel(),
+  });
   if (!menu_open_) {
     return window;
   }

@@ -87,12 +87,22 @@ ItemPrototype MakeStackable(const std::string& name, int price, int stack) {
 
 class ShopPanelTest : public testing::Test {
  protected:
-  std::string Render(const ShopPanel& panel) {
+  // A screen cut to the panel's own size, with the panel drawn on it. Measured
+  // off the element rather than by ftxui::Dimension::Fit, which clips to the
+  // terminal -- and a test has none, so Fit would silently shave the shop back
+  // to the 80 columns of the fallback.
+  ftxui::Screen Draw(const ShopPanel& panel) {
     ftxui::Element element = panel.Render();
+    element->ComputeRequirement();
     ftxui::Screen screen = ftxui::Screen::Create(
-        ftxui::Dimension::Fit(element), ftxui::Dimension::Fit(element));
+        ftxui::Dimension::Fixed(element->requirement().min_x),
+        ftxui::Dimension::Fixed(element->requirement().min_y));
     ftxui::Render(screen, element);
-    return screen.ToString();
+    return screen;
+  }
+
+  std::string Render(const ShopPanel& panel) {
+    return Draw(panel).ToString();
   }
 
   // The index of the first rendered row holding `needle`, or -1.
@@ -117,16 +127,14 @@ class ShopPanelTest : public testing::Test {
 
   int RenderHeight(const ShopPanel& panel) {
     ftxui::Element element = panel.Render();
-    ftxui::Screen screen = ftxui::Screen::Create(
-        ftxui::Dimension::Fit(element), ftxui::Dimension::Fit(element));
-    return screen.dimy();
+    element->ComputeRequirement();
+    return element->requirement().min_y;
   }
 
   int RenderWidth(const ShopPanel& panel) {
     ftxui::Element element = panel.Render();
-    ftxui::Screen screen = ftxui::Screen::Create(
-        ftxui::Dimension::Fit(element), ftxui::Dimension::Fit(element));
-    return screen.dimx();
+    element->ComputeRequirement();
+    return element->requirement().min_x;
   }
 
   // The panel drawn the way the game shows it -- centred on a terminal of the
@@ -193,10 +201,7 @@ class ShopPanelTest : public testing::Test {
   // is red could not tell an unaffordable price from a level too high.
   ftxui::Color CellColor(const ShopPanel& panel, const std::string& row_needle,
                          const std::string& cell) {
-    ftxui::Element element = panel.Render();
-    ftxui::Screen screen = ftxui::Screen::Create(
-        ftxui::Dimension::Fit(element), ftxui::Dimension::Fit(element));
-    ftxui::Render(screen, element);
+    ftxui::Screen screen = Draw(panel);
     for (int y = 0; y < screen.dimy(); ++y) {
       std::string row;
       // A row is searched as bytes and read as columns, which are not the same
@@ -233,10 +238,7 @@ class ShopPanelTest : public testing::Test {
   // and a token mark are different numbers of bytes and different numbers of
   // columns, so nothing in the row's text answers it.
   int RightEdgeOf(const ShopPanel& panel, const std::string& row_needle) {
-    ftxui::Element element = panel.Render();
-    ftxui::Screen screen = ftxui::Screen::Create(
-        ftxui::Dimension::Fit(element), ftxui::Dimension::Fit(element));
-    ftxui::Render(screen, element);
+    ftxui::Screen screen = Draw(panel);
     for (int y = 0; y < screen.dimy(); ++y) {
       std::string row;
       for (int x = 0; x < screen.dimx(); ++x) {
@@ -1056,22 +1058,23 @@ TEST_F(ShopPanelTest, EachTokenTabAsksInItsOwnToken) {
   EXPECT_EQ(other.selected_token()->name(), "Secondary Token");
 }
 
-// A price is only worth reading against what the player holds, so the counter
-// changes with the shelf.
-TEST_F(ShopPanelTest, TheCounterCountsWhatTheShelfIsPaidIn) {
+// Meso rides the tab bar whatever the shelf asks for: the token balances have
+// a panel of their own, and one counter that changed with the tab used to mean
+// the bar could not hold either.
+TEST_F(ShopPanelTest, TheBarCountsMesoOnEveryShelf) {
   CharacterInstance c = MakeCharacter(34567, 120, JOB_FIGHTER, /*stage=*/2);
   c.AddItem(items_.at("weapon_token"), 3);
   ShopPanel panel(c, equips_, items_);
   ASSERT_NE(Render(panel).find("34,567"), std::string::npos);
 
   OpenTokenShelf(panel, kShopWeaponTab);
-  EXPECT_EQ(Render(panel).find("34,567"), std::string::npos);
-  EXPECT_GE(IndexWith(ScreenRows(panel), "● 3"), 0);
+  EXPECT_NE(Render(panel).find("34,567"), std::string::npos);
+  EXPECT_GE(IndexWith(ScreenRows(panel), "●    3"), 0);
 }
 
-// The Equips shelf is paid for in two tokens, and the bar shows both: a
-// balance it leaves out is one the player cannot shop against.
-TEST_F(ShopPanelTest, TheCounterShowsEveryCurrencyTheShelfTakes) {
+// The Equips shelf is paid for in two tokens, and the panel shows both, a row
+// each: a balance it leaves out is one the player cannot shop against.
+TEST_F(ShopPanelTest, ThePanelShowsEveryCurrencyTheShelfTakes) {
   CharacterInstance c = MakeCharacter(100000, 140, JOB_FIGHTER, /*stage=*/2);
   c.AddItem(items_.at("secondary_token"), 3);
   c.AddItem(items_.at("shoulder_token"), 7);
@@ -1079,13 +1082,64 @@ TEST_F(ShopPanelTest, TheCounterShowsEveryCurrencyTheShelfTakes) {
   OpenTokenShelf(panel, kShopEquipsTab);
 
   std::vector<std::string> rows = ScreenRows(panel);
-  int bar = IndexWith(rows, "● 3");
-  EXPECT_GE(bar, 0);
-  EXPECT_EQ(IndexWith(rows, "▲ 7"), bar) << "both counters on the tab bar";
+  int first = IndexWith(rows, "●    3");
+  EXPECT_GE(first, 0);
+  EXPECT_EQ(IndexWith(rows, "▲    7"), first + 1)
+      << "a row each, in shelf order";
+  EXPECT_NE(Render(panel).find("Tokens"), std::string::npos);
   // One shelf, two currencies, so the header names neither -- each row says
   // what it is asked in.
   EXPECT_EQ(Render(panel).find("● Cost"), std::string::npos);
   EXPECT_NE(Render(panel).find("Cost"), std::string::npos);
+}
+
+// The panel is what a token shelf brings, and its columns are held under every
+// other tab: the shop is drawn centred, and a panel that came and went would
+// slide the whole window sideways on every step of the pay bar.
+TEST_F(ShopPanelTest, ThePanelStandsOnlyOverATokenShelf) {
+  CharacterInstance c = MakeCharacter(100000, 140, JOB_FIGHTER, /*stage=*/2);
+  ShopPanel panel(c, equips_, items_);
+  int width = RenderWidth(panel);
+  int height = RenderHeight(panel);
+  EXPECT_EQ(Render(panel).find("Tokens"), std::string::npos)
+      << "the weapon shelf opens on meso";
+
+  OpenTokenShelf(panel, kShopEquipsTab);
+  EXPECT_NE(Render(panel).find("Tokens"), std::string::npos);
+  EXPECT_EQ(RenderWidth(panel), width);
+  EXPECT_EQ(RenderHeight(panel), height) << "the two windows close on a line";
+}
+
+// The whole reason the balances left the tab bar: the shipped shelves deal in
+// currencies that share a glyph, so the colour is what tells one row from the
+// next and it has to reach the mark.
+TEST_F(ShopPanelTest, ThePanelMarksEachBalanceInItsOwnColour) {
+  std::map<std::string, ItemPrototype> items = items_;
+  items["gold_token"] = MakeToken("Gold Token", CURRENCY_COLOR_GOLD, "▲");
+  std::map<std::string, EquipPrototype> equips = equips_;
+  equips["gold_shoulder"] = MakeTokenItem(
+      "Gold Shoulder", 150, "gold_token", /*count=*/2,
+      EQUIP_JOB_CATEGORY_WARRIOR, EQUIP_TYPE_UNSPECIFIED, EQUIP_SLOT_SHOULDER);
+
+  CharacterInstance c = MakeCharacter(100000, 150, JOB_FIGHTER, /*stage=*/2);
+  c.AddItem(items.at("shoulder_token"), 7);
+  c.AddItem(items.at("gold_token"), 8);
+  ShopPanel panel(c, equips, items);
+  OpenTokenShelf(panel, kShopEquipsTab);
+
+  EXPECT_EQ(CellColor(panel, "▲    7", "▲"), kTheme);
+  EXPECT_EQ(CellColor(panel, "▲    8", "▲"), kGold)
+      << "two balances, one glyph, and only the colour between them";
+}
+
+// Four digits, no separator: the panel is held to one width, and a comma in
+// the count would be a column the shop could not spare.
+TEST_F(ShopPanelTest, ThePanelCountsWithoutCommas) {
+  CharacterInstance c = MakeCharacter(100000, 140, JOB_FIGHTER, /*stage=*/2);
+  c.AddItem(items_.at("secondary_token"), 4321);
+  ShopPanel panel(c, equips_, items_);
+  OpenTokenShelf(panel, kShopEquipsTab);
+  EXPECT_GE(IndexWith(ScreenRows(panel), "● 4321"), 0);
 }
 
 // A shelf that deals in one token still marks its Cost column with it.

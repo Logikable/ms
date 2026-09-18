@@ -236,6 +236,7 @@ cc_test(
         "//src/protos:keybinds_proto_cc",
         "//src/protos:skill_proto_cc",
         "//src/testing:data_files",
+        "@ftxui//:component",
         "@ftxui//:dom",
         "@googletest//:gtest_main",
     ],
