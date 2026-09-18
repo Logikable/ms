@@ -33,6 +33,7 @@
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/hotkeys_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
+#include "src/frontend/placement.h"
 #include "src/frontend/screens/boss_clear_panel.h"
 #include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
@@ -320,44 +321,21 @@ ftxui::Element Tui::RenderFrame() {
   if (controller_.party_notice_prompt().open()) {
     // Over whatever the player is looking at: the server does not wait for
     // them to be on the party screen before removing them from a party.
-    frame = ftxui::dbox({
-        std::move(frame),
-        ftxui::center(ClearUnder(PartyNoticeDialog())),
-    });
+    frame = Overlay(std::move(frame), PartyNoticeDialog());
   }
   if (!celebration_.card_visible()) {
     return frame;
   }
   // Over whatever the player is looking at, shop and map select included: one
   // shown only on the main screen would miss the player who wandered off.
-  // ftxui::center shrinks it to its content, which is why the card sets its
-  // own floor rather than being sized by its longest line.
-  return ftxui::dbox({
-      std::move(frame),
-      ftxui::center(ClearUnder(celebration_.Render())),
-  });
+  // An overlay shrinks to its content, which is why the card sets its own
+  // floor rather than being sized by its longest line.
+  return Overlay(std::move(frame), celebration_.Render());
 }
 
 ftxui::Element Tui::OverMain(ftxui::Element dialog) {
-  return ftxui::dbox({
-      RenderMain(),
-      ftxui::center(ClearUnder(std::move(dialog))),
-  });
+  return Overlay(RenderMain(), std::move(dialog));
 }
-
-namespace {
-
-// A window that keeps its own height. An hbox hands a bare child the full
-// height of the row, and these screens are far shorter than the terminal.
-ftxui::Element Standalone(ftxui::Element window) {
-  return ftxui::hbox({
-      ftxui::filler(),
-      ftxui::vbox({std::move(window), ftxui::filler()}),
-      ftxui::filler(),
-  });
-}
-
-}  // namespace
 
 ftxui::Element Tui::ApAllocDialog() {
   return ThemedWindow(
@@ -503,14 +481,11 @@ ftxui::Element Tui::PartyNoticeDialog() {
 ftxui::Element Tui::RenderParty() {
   // kPartyMenu draws the same thing: the menu is anchored to a row of the
   // list, so the panel puts it up itself.
-  ftxui::Element screen = ftxui::center(party_select_panel_.Render());
+  ftxui::Element screen = Centred(party_select_panel_.Render());
   if (controller_.screen() != kPartyConfirm) {
     return screen;
   }
-  return ftxui::dbox({
-      std::move(screen),
-      ftxui::center(ClearUnder(PartyConfirmDialog())),
-  });
+  return Overlay(std::move(screen), PartyConfirmDialog());
 }
 
 ftxui::Element Tui::RenderPlayerInspect() {
@@ -523,10 +498,10 @@ ftxui::Element Tui::RenderPlayerInspect() {
     player_item_panel_.SetCombatPowerDelta(controller_.player_item_delta());
     player_item_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
     player_item_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
-    return Standalone(player_item_panel_.Render());
+    return Centred(player_item_panel_.Render());
   }
   if (controller_.screen() == kPlayerAllStats) {
-    return Standalone(player_inspect_panel_.RenderAllStats());
+    return Centred(player_inspect_panel_.RenderAllStats());
   }
   // The whole terminal, the way the main view takes it: this screen is the
   // member's own panels, and they lay out at the widths the player's do.
@@ -596,7 +571,7 @@ ftxui::Element Tui::BossFightOverlay() {
 ftxui::Element Tui::RenderBossFight() {
   const BossRun* run = controller_.boss_run();
   if (run == nullptr) {
-    return ftxui::center(boss_select_panel_.Render());
+    return Centred(boss_select_panel_.Render());
   }
   // Whatever the fight ended on stands over the arena, so the player sees the
   // fight they just finished rather than the list they are going back to.
@@ -605,10 +580,7 @@ ftxui::Element Tui::RenderBossFight() {
   if (overlay == nullptr) {
     return fight;
   }
-  return ftxui::dbox({
-      std::move(fight),
-      ftxui::center(ClearUnder(std::move(overlay))),
-  });
+  return Overlay(std::move(fight), std::move(overlay));
 }
 
 ftxui::Element Tui::RenderBuyBackInspect(const BuyBackEntry& entry) {
@@ -616,15 +588,15 @@ ftxui::Element Tui::RenderBuyBackInspect(const BuyBackEntry& entry) {
     const ItemPrototype* proto =
         FindItemByName(state_.items, entry.stack().name());
     if (proto == nullptr) {
-      return ftxui::center(shop_panel_.Render());
+      return Centred(shop_panel_.Render());
     }
     inspect_panel_.SetItem(proto);
-    return Standalone(inspect_panel_.Render());
+    return Centred(inspect_panel_.Render());
   }
   const EquipPrototype* proto =
       FindEquipByName(state_.equips, entry.equip().equip_name());
   if (proto == nullptr) {
-    return ftxui::center(shop_panel_.Render());
+    return Centred(shop_panel_.Render());
   }
   // Rebuilt from the state the sale kept, which is what buying it back would
   // hand over. A trace is inspected as a trace, for the same reason.
@@ -633,13 +605,13 @@ ftxui::Element Tui::RenderBuyBackInspect(const BuyBackEntry& entry) {
     inspect_panel_.SetItem(&trace);
     inspect_panel_.SetComparison(controller_.WornForComparison(*proto));
     inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(&trace));
-    return Standalone(inspect_panel_.Render());
+    return Centred(inspect_panel_.Render());
   }
   EquipInstance item(*proto, entry.equip());
   inspect_panel_.SetItem(&item);
   inspect_panel_.SetComparison(controller_.WornForComparison(*proto));
   inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(&item));
-  return Standalone(inspect_panel_.Render());
+  return Centred(inspect_panel_.Render());
 }
 
 ftxui::Element Tui::RenderShopInspect() {
@@ -656,11 +628,11 @@ ftxui::Element Tui::RenderShopInspect() {
   const ItemPrototype* stackable = shop_panel_.selected_stackable();
   if (stackable != nullptr) {
     inspect_panel_.SetItem(stackable);
-    return Standalone(inspect_panel_.Render());
+    return Centred(inspect_panel_.Render());
   }
   const EquipPrototype* proto = shop_panel_.selected_item();
   if (proto == nullptr) {
-    return ftxui::center(shop_panel_.Render());
+    return Centred(shop_panel_.Render());
   }
   // A pristine copy of what the shop would hand over -- no scrolls spent, no
   // stars. Built here because nothing owns a shop item until it is bought.
@@ -668,7 +640,7 @@ ftxui::Element Tui::RenderShopInspect() {
   inspect_panel_.SetItem(&preview);
   inspect_panel_.SetComparison(controller_.WornForComparison(*proto));
   inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(&preview));
-  return Standalone(inspect_panel_.Render());
+  return Centred(inspect_panel_.Render());
 }
 
 // The job's book on the left and whichever skill the cursor is on to the
@@ -683,8 +655,8 @@ ftxui::Element Tui::RenderJobInspect() {
   skill_inspect_panel_.SetSkill(job_inspect_panel_.selected_skill(), 0, 0,
                                 SkillInspectPanel::kPreview);
   skill_inspect_panel_.SetWidthBounds(card.columns, card.columns);
-  return Standalone(JobInspectScreen(job_inspect_panel_.Render(),
-                                     skill_inspect_panel_.Render(), card.rows));
+  return Centred(JobInspectScreen(job_inspect_panel_.Render(),
+                                  skill_inspect_panel_.Render(), card.rows));
 }
 
 ftxui::Element Tui::RenderTraceRecover() {
@@ -705,9 +677,8 @@ ftxui::Element Tui::RenderTraceRecover() {
       inspect_panel_.RenderItemOnly(right),
       trace_recover_panel_.RenderBelow(),
   });
-  return ftxui::hbox(
-      {preview_inspect_panel_.RenderItemOnly(!right) | ftxui::flex,
-       std::move(right_col) | ftxui::flex});
+  return CardRow(
+      {preview_inspect_panel_.RenderItemOnly(!right), std::move(right_col)});
 }
 
 // The item as it stands, the panel, and the item one star on. At max stars
@@ -737,39 +708,31 @@ ftxui::Element Tui::RenderStarForce() {
 ftxui::Element Tui::RenderStarForceResult() {
   ftxui::Element result =
       star_force_panel_.RenderResult(controller_.star_force_result());
-  return ftxui::dbox({
-      StarForceColumns(),
-      ftxui::center(ClearUnder(std::move(result))),
-  });
+  return Overlay(StarForceColumns(), std::move(result));
 }
 
 ftxui::Element Tui::StarForceColumns() {
   ftxui::Element panel = star_force_panel_.Render();
   if (!star_force_before_.has_value()) {
-    return ftxui::center(std::move(panel));
+    return Centred(std::move(panel));
   }
   int rows = ftxui::Terminal::Size().dimy;
   bool right = controller_.right_card_focused();
   bool two_cards = star_force_after_.has_value();
   inspect_panel_.SetItem(&*star_force_before_);
   inspect_panel_.SetMaxRows(rows);
-  // Each card takes the width it asks for and the slack goes to the ends: what
-  // is compared is the three shoulder to shoulder. They hold one item a star
-  // apart, so each is titled for its side of the attempt.
-  std::vector<ftxui::Element> columns;
-  columns.push_back(ftxui::filler());
-  columns.push_back(
-      inspect_panel_.RenderItemOnly(two_cards && !right, " Before ") |
-      ftxui::yflex);
-  columns.push_back(std::move(panel));
+  // The three shoulder to shoulder is what is being compared. They hold one
+  // item a star apart, so each is titled for its side of the attempt.
+  ftxui::Elements cards;
+  cards.push_back(
+      inspect_panel_.RenderItemOnly(two_cards && !right, " Before "));
+  cards.push_back(std::move(panel));
   if (two_cards) {
     preview_inspect_panel_.SetItem(&*star_force_after_);
     preview_inspect_panel_.SetMaxRows(rows);
-    columns.push_back(preview_inspect_panel_.RenderItemOnly(right, " After ") |
-                      ftxui::yflex);
+    cards.push_back(preview_inspect_panel_.RenderItemOnly(right, " After "));
   }
-  columns.push_back(ftxui::filler());
-  return ftxui::hbox(std::move(columns));
+  return CardRow(std::move(cards));
 }
 
 // The shelf and the item's card shoulder to shoulder, two columns of about a
@@ -781,20 +744,15 @@ ftxui::Element Tui::RenderCubing() {
   inspect_panel_.SetItem(item);
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   bool right = controller_.right_card_focused();
-  ftxui::Element columns = ftxui::hbox({
-      ftxui::filler(),
-      cube_panel_.Render(!right) | ftxui::vcenter,
+  ftxui::Element columns = CardRow({
+      cube_panel_.Render(!right),
       ftxui::text(" "),
-      inspect_panel_.RenderItemOnly(right) | ftxui::vcenter,
-      ftxui::filler(),
+      inspect_panel_.RenderItemOnly(right),
   });
   if (!cube_panel_.IsConfirming()) {
     return columns;
   }
-  return ftxui::dbox({
-      std::move(columns),
-      ftxui::center(ClearUnder(cube_panel_.RenderConfirm())),
-  });
+  return Overlay(std::move(columns), cube_panel_.RenderConfirm());
 }
 
 ftxui::Element Tui::RenderInspect() {
@@ -812,7 +770,7 @@ ftxui::Element Tui::RenderInspect() {
   }
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   inspect_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
-  return Standalone(inspect_panel_.Render());
+  return Centred(inspect_panel_.Render());
 }
 
 ftxui::Element Tui::RenderScroll() {
@@ -823,23 +781,19 @@ ftxui::Element Tui::RenderScroll() {
   if (controller_.screen() == kScrollResult) {
     ftxui::Element dialog =
         scroll_panel_.RenderResult(controller_.scroll_result());
-    scroll_view = ftxui::dbox({scroll_view, ftxui::center(ClearUnder(dialog))});
+    scroll_view = Overlay(std::move(scroll_view), std::move(dialog));
   }
-  return ftxui::hbox(
-      {scroll_view | ftxui::flex,
-       inspect_panel_.RenderItemOnly(controller_.right_card_focused()) |
-           ftxui::flex});
+  return CardRow(
+      {std::move(scroll_view),
+       inspect_panel_.RenderItemOnly(controller_.right_card_focused())});
 }
 
 ftxui::Element Tui::RenderMultiSell() {
-  ftxui::Element screen = ftxui::center(multi_sell_panel_.Render());
+  ftxui::Element screen = Centred(multi_sell_panel_.Render());
   if (!multi_sell_panel_.confirming()) {
     return screen;
   }
-  return ftxui::dbox({
-      std::move(screen),
-      ftxui::center(ClearUnder(multi_sell_panel_.RenderConfirm())),
-  });
+  return Overlay(std::move(screen), multi_sell_panel_.RenderConfirm());
 }
 
 ftxui::Element Tui::RenderScreen() {
@@ -876,9 +830,9 @@ ftxui::Element Tui::RenderScreen() {
     // list, so the panel puts it up itself.
     case kMapSelect:
     case kMapMenu:
-      return ftxui::center(map_select_panel_.Render());
+      return Centred(map_select_panel_.Render());
     case kMobInspect:
-      return ftxui::center(mob_inspect_panel_.Render());
+      return Centred(mob_inspect_panel_.Render());
     case kMenuBox:
       return RenderMenuBox();
     case kDailies:
@@ -888,11 +842,11 @@ ftxui::Element Tui::RenderScreen() {
     case kAnalysis:
       return OverMain(analysis_panel_.Render());
     case kKeybinds:
-      return ftxui::center(keybinds_panel_.Render());
+      return Centred(keybinds_panel_.Render());
     case kOptions:
-      return ftxui::center(options_panel_.Render());
+      return Centred(options_panel_.Render());
     case kPlayerList:
-      return ftxui::center(player_list_panel_.Render());
+      return Centred(player_list_panel_.Render());
     case kPartySelect:
     case kPartyMenu:
     case kPartyConfirm:
@@ -902,16 +856,13 @@ ftxui::Element Tui::RenderScreen() {
     case kPlayerItemInspect:
       return RenderPlayerInspect();
     case kBossSelect:
-      return ftxui::center(boss_select_panel_.Render());
+      return Centred(boss_select_panel_.Render());
     case kBossFight:
     case kBossAbort:
     case kBossClear:
       return RenderBossFight();
     case kBossConfirm:
-      return ftxui::dbox({
-          ftxui::center(boss_select_panel_.Render()),
-          ftxui::center(ClearUnder(BossConfirmDialog())),
-      });
+      return Overlay(Centred(boss_select_panel_.Render()), BossConfirmDialog());
     // Over the arena for a fight that ran out of clock, and over the list for
     // a notice raised instead of a fight -- no weapon, or a daily already
     // taken. Which one it is shows in whether a run is still held.
@@ -919,22 +870,16 @@ ftxui::Element Tui::RenderScreen() {
       if (controller_.boss_run() != nullptr) {
         return RenderBossFight();
       }
-      return ftxui::dbox({
-          ftxui::center(boss_select_panel_.Render()),
-          ftxui::center(ClearUnder(NoticeDialog())),
-      });
+      return Overlay(Centred(boss_select_panel_.Render()), NoticeDialog());
     // kShopMenu draws the same thing: the menu is anchored to a row of the
     // list, so the panel puts it up itself.
     case kShop:
     case kShopMenu:
-      return ftxui::center(shop_panel_.Render());
+      return Centred(shop_panel_.Render());
     case kShopInspect:
       return RenderShopInspect();
     case kShopBuy:
-      return ftxui::dbox({
-          ftxui::center(shop_panel_.Render()),
-          ftxui::center(ClearUnder(buy_panel_.Render())),
-      });
+      return Overlay(Centred(shop_panel_.Render()), buy_panel_.Render());
     case kStarForce:
       return RenderStarForce();
     case kCubing:
@@ -944,10 +889,10 @@ ftxui::Element Tui::RenderScreen() {
     case kTraceRecover:
       return RenderTraceRecover();
     case kTraceRecoverResult:
-      return ftxui::center(trace_recover_panel_.RenderResult(
+      return Centred(trace_recover_panel_.RenderResult(
           controller_.trace_recovery_result()));
     case kAllStats:
-      return Standalone(all_stats_panel_.Render());
+      return Centred(all_stats_panel_.Render());
     case kHyperReset:
       return OverMain(HyperResetDialog());
     case kVMatrixReset:
@@ -959,12 +904,12 @@ ftxui::Element Tui::RenderScreen() {
     case kBuffBuy:
       return OverMain(BuffBuyDialog());
     case kBuffInfo:
-      return Standalone(buff_info_panel_.Render());
+      return Centred(buff_info_panel_.Render());
     case kHyperStatInspect:
       hyper_stat_inspect_panel_.SetStat(controller_.hyper_inspect_field(),
                                         controller_.hyper_inspect_level(),
                                         controller_.hyper_inspect_max_level());
-      return Standalone(hyper_stat_inspect_panel_.Render());
+      return Centred(hyper_stat_inspect_panel_.Render());
     case kJobInspect:
       return RenderJobInspect();
     case kSkillInspect:
@@ -973,7 +918,7 @@ ftxui::Element Tui::RenderScreen() {
                                     controller_.skill_inspect_bonus());
       skill_inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
       skill_inspect_panel_.SetWidthBounds(0, ftxui::Terminal::Size().dimx);
-      return Standalone(skill_inspect_panel_.Render());
+      return Centred(skill_inspect_panel_.Render());
     case kInspect:
     case kItemInspect:
       return RenderInspect();

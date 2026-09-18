@@ -219,6 +219,30 @@ cc_library(
 )
 
 cc_library(
+    name = "placement",
+    srcs = ["placement.cc"],
+    hdrs = ["placement.h"],
+    deps = [
+        "//src/frontend/widgets:chrome",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "placement_test",
+    size = "small",
+    srcs = ["placement_test.cc"],
+    deps = [
+        ":placement",
+        "//src/frontend/testing:screen_text",
+        "//src/frontend/widgets:chrome",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "main_layout",
     srcs = ["main_layout.cc"],
     hdrs = ["main_layout.h"],
@@ -304,6 +328,7 @@ cc_library(
         ":celebration",
         ":keybinds",
         ":main_layout",
+        ":placement",
         ":progress_watcher",
         ":tui_controller",
         "//src:game_state",

@@ -16,6 +16,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/combat/boss_run.h"
+#include "src/frontend/placement.h"
 
 namespace ms {
 
@@ -34,14 +35,9 @@ inline constexpr int kPlayerBarRows = 2;
 // gives both to every bar in it, so the arena's rows stay square.
 inline constexpr int kMaxMobBarRows = 2;
 
-// The smallest terminal the game is laid out for. Every arena fits inside it,
-// so a fight never draws a bar off the edge of somebody's screen.
-inline constexpr int kMinTerminalColumns = 120;
-inline constexpr int kMinTerminalRows = 30;
-
 // The grid every fight stands on -- one shape for all of them, so a new boss's
-// room already has its corners where the player expects. The smallest terminal
-// holds seven panels across and six rows; nine columns rather than the
+// room already has its corners where the player expects. kMinTerminal* holds
+// seven panels across and six rows; nine columns rather than the
 // thirteen that fit, because things stand on ALTERNATE cells, which leaves a
 // damage stack the width it needs beside a bar.
 inline constexpr int kArenaColumns = 9;

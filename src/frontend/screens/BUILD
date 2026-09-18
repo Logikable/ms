@@ -715,6 +715,7 @@ cc_library(
     hdrs = ["boss_fight_panel.h"],
     deps = [
         "//src/combat:boss_run",
+        "//src/frontend:placement",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:format",
