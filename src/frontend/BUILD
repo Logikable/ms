@@ -417,6 +417,7 @@ cc_library(
         "//src/frontend/widgets:game_names",
         "//src/frontend/widgets:item_menu",
         "//src/frontend/widgets:marquee",
+        "//src/frontend/widgets:text_columns",
         "//src/item:equip_instance",
         "//src/multiplayer:party_fight",
         "//src/multiplayer:session",

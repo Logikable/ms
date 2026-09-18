@@ -47,6 +47,7 @@
 #include "src/frontend/widgets/game_names.h"
 #include "src/frontend/widgets/item_menu.h"
 #include "src/frontend/widgets/marquee.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -114,6 +115,19 @@ std::vector<ftxui::Element> CenteredRows(const std::string& text) {
   return rows;
 }
 
+// What the player holds over what they have put up, one line each and lined
+// up in one column. PriceBlock's shape, but neither line is a price: an offer
+// cannot be unaffordable.
+ftxui::Element OfferBlock(const std::string& held, const std::string& offered) {
+  constexpr int kLabelWidth = 8;  // "Offering"
+  const int width = std::max(TextColumns(held), TextColumns(offered));
+  return ftxui::vbox({
+      CenteredRow(PadRight("Held", kLabelWidth) + "  " + PadLeft(held, width)),
+      CenteredRow(PadRight("Offering", kLabelWidth) + "  " +
+                  PadLeft(offered, width)),
+  });
+}
+
 }  // namespace
 
 Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
@@ -141,8 +155,8 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
       keybinds_panel_(keys_),
       options_panel_(state.account),
       all_stats_panel_(state.character, &state.account, state.skills),
-      player_inspect_panel_(state),
       trade_panel_(state.character, state.account),
+      player_inspect_panel_(state),
       multi_sell_panel_(state.character, state.account),
       shop_panel_(state.character, state.equips, state.items),
       controller_(state, Screens{char_panel_,           equip_panel_,
@@ -372,6 +386,20 @@ ftxui::Element Tui::SkillLearnDialog() {
   }
   rows.push_back(controller_.sp_selector().Render());
   return ThemedWindow(" Learn Skill ", ftxui::vbox(std::move(rows)));
+}
+
+ftxui::Element Tui::TradeAmountDialog() {
+  const bool meso = trade_panel_.selected() == TradeCurrency::kMeso;
+  std::string held = meso ? FormatMeso(trade_panel_.held())
+                          : FormatSpellTraces(trade_panel_.held());
+  std::string offered = meso ? FormatMeso(trade_panel_.offered())
+                             : FormatSpellTraces(trade_panel_.offered());
+  return ThemedWindow(meso ? " Meso " : " Spell Traces ",
+                      ftxui::vbox({
+                          OfferBlock(held, offered),
+                          ThemedSeparator(),
+                          controller_.trade_selector().Render(),
+                      }));
 }
 
 ftxui::Element Tui::JobAdvanceDialog() {
@@ -858,6 +886,10 @@ ftxui::Element Tui::RenderScreen() {
       return Centred(keybinds_panel_.Render());
     case kOptions:
       return Centred(options_panel_.Render());
+    case kTrade:
+      return Centred(trade_panel_.Render());
+    case kTradeAmount:
+      return Overlay(Centred(trade_panel_.Render()), TradeAmountDialog());
     case kPlayerList:
     case kPlayerMenu:
       // The menu is anchored to a row of the list, so the panel puts it up
@@ -941,6 +973,9 @@ ftxui::Element Tui::RenderScreen() {
     case kScrollSelect:
     case kScrollResult:
       return RenderScroll();
+    // The main view and everything drawn ON it: the corner menus, the panels'
+    // own popups. A screen with no case of its own lands here SILENTLY, which
+    // reads as a screen that never opened -- add the case with the screen.
     default:
       return RenderMain();
   }
