@@ -415,6 +415,14 @@ ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
   return ftxui::hbox(std::move(chips));
 }
 
+std::string RightAlignedTitle(const std::string& title, int inner_width) {
+  // The title is drawn one column in from the box's left corner, so the pad
+  // that puts its tail on the right corner is the whole content width less
+  // what it takes.
+  return std::string(std::max(0, inner_width - TextColumns(title)), ' ') +
+         title;
+}
+
 ftxui::Element ActionButton(const std::string& label, bool focused) {
   ftxui::Element button = ftxui::text("[" + label + "]");
   if (focused) {

@@ -146,6 +146,11 @@ struct TabSpec {
 ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
                       bool row_focused, int width);
 
+// A window title pushed to the RIGHT of its border, for a panel read from that
+// side -- the other player's half of a trade. `inner_width` is the content
+// width the window is built around.
+std::string RightAlignedTitle(const std::string& title, int inner_width);
+
 // A bracketed button in the game's one button style, inverted when focused.
 // Every button the player can land on is drawn with this.
 ftxui::Element ActionButton(const std::string& label, bool focused);

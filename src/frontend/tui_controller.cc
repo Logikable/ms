@@ -1922,24 +1922,26 @@ void TuiController::AdvanceTrade(const MultiplayerSnapshot& lobby) {
 void TuiController::OpenTradeAmount() {
   // Opens on what is already on the table, with a button for none of it: a
   // player changing their mind is taking something back as often as adding.
-  trade_selector_.Reset(trade_panel_.held(), trade_panel_.offered());
+  trade_currency_ = trade_panel_.cursor().currency;
+  trade_selector_.Reset(trade_panel_.held(trade_currency_),
+                        trade_panel_.offered(trade_currency_));
   trade_selector_.set_low(0);
   screen_ = kTradeAmount;
 }
 
 void TuiController::PutUpTradeAmount() {
+  trade_panel_.PutUpCurrency(trade_currency_, trade_selector_.value());
+  SendTradeOffer();
+}
+
+void TuiController::SendTradeOffer() {
   if (multiplayer_ == nullptr) {
     return;
   }
-  // The whole offer with the one currency replaced: what the server is told
-  // is what is on the table, not what changed about it.
-  TradeOffer offer = Lobby().trade.mine();
-  if (trade_panel_.selected() == TradeCurrency::kMeso) {
-    offer.set_meso(trade_selector_.value());
-  } else {
-    offer.set_spell_traces(trade_selector_.value());
-  }
-  multiplayer_->client().SetTradeOffer(offer);
+  // The whole offer every time: two changes in flight at once cannot then add
+  // up to a table nobody laid.
+  multiplayer_->client().SetTradeOffer(
+      trade_panel_.own().ToWire(state_.character));
 }
 
 void TuiController::LeaveTrade() {
@@ -1951,6 +1953,10 @@ void TuiController::LeaveTrade() {
 }
 
 bool TuiController::OnTradeEvent(ftxui::Event event) {
+  if (IsSwitchPanel(event)) {
+    trade_panel_.NextZone(event == ftxui::Event::Tab ? 1 : -1);
+    return true;
+  }
   if (event == ftxui::Event::ArrowLeft) {
     trade_panel_.MoveCursor(-1);
     return true;
@@ -1959,8 +1965,18 @@ bool TuiController::OnTradeEvent(ftxui::Event event) {
     trade_panel_.MoveCursor(1);
     return true;
   }
+  if (event == ftxui::Event::ArrowUp) {
+    trade_panel_.MoveRow(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    trade_panel_.MoveRow(1);
+    return true;
+  }
   if (IsForward(event)) {
-    OpenTradeAmount();
+    if (trade_panel_.cursor().kind == TradeCursor::Kind::kCurrency) {
+      OpenTradeAmount();
+    }
     return true;
   }
   if (IsBack(event)) {

@@ -389,11 +389,13 @@ ftxui::Element Tui::SkillLearnDialog() {
 }
 
 ftxui::Element Tui::TradeAmountDialog() {
-  const bool meso = trade_panel_.selected() == TradeCurrency::kMeso;
-  std::string held = meso ? FormatMeso(trade_panel_.held())
-                          : FormatSpellTraces(trade_panel_.held());
-  std::string offered = meso ? FormatMeso(trade_panel_.offered())
-                             : FormatSpellTraces(trade_panel_.offered());
+  TradeCurrency currency = controller_.trade_currency();
+  const bool meso = currency == TradeCurrency::kMeso;
+  std::string held = meso ? FormatMeso(trade_panel_.held(currency))
+                          : FormatSpellTraces(trade_panel_.held(currency));
+  std::string offered = meso
+                            ? FormatMeso(trade_panel_.offered(currency))
+                            : FormatSpellTraces(trade_panel_.offered(currency));
   return ThemedWindow(meso ? " Meso " : " Spell Traces ",
                       ftxui::vbox({
                           OfferBlock(held, offered),

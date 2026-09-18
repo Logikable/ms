@@ -268,7 +268,10 @@ class TuiController {
   bool party_notice_is_refusal() const {
     return party_notice_is_refusal_;
   }
-  // How much of a currency the trade overlay is putting up.
+  // Which currency the trade overlay is putting up, and how much.
+  TradeCurrency trade_currency() const {
+    return trade_currency_;
+  }
   const AmountSelector& trade_selector() const {
     return trade_selector_;
   }
@@ -623,6 +626,8 @@ class TuiController {
   void OpenTradeAmount();
   // Puts up what that overlay was left on.
   void PutUpTradeAmount();
+  // Tells the server what is on this player's side of the table, whole.
+  void SendTradeOffer();
   // Walks out, which ends the trade for both.
   void LeaveTrade();
   // Asks for `account_id`'s sheet and opens the Inspect screen once it lands.
@@ -856,6 +861,9 @@ class TuiController {
   // every frame after it.
   int64_t notification_seen_ = 0;
   AmountSelector trade_selector_;
+  // Which currency the amount overlay is putting up, taken when it opens: the
+  // cursor is free to be somewhere else by the time it is answered.
+  TradeCurrency trade_currency_ = TradeCurrency::kMeso;
   // The screen the trade was opened from, which walking out closes back to.
   Screen trade_return_ = kPlayerList;
   // The trade this player walked out of, so a state still in flight does not
