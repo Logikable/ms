@@ -425,7 +425,7 @@ std::vector<TradePanel::OfferRow> TradePanel::TheirRows() const {
 }
 
 ftxui::Element TradePanel::RenderOfferTable(const std::vector<OfferRow>& rows,
-                                            int cursor,
+                                            int cursor, bool focused,
                                             ftxui::Box& cursor_box) const {
   const int height = kOfferRows + 2;  // the header and its rule
   if (rows.empty()) {
@@ -438,8 +438,10 @@ ftxui::Element TradePanel::RenderOfferTable(const std::vector<OfferRow>& rows,
   for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
     // The caret alone marks the row: a handful of rows in a window of their
     // own are not a column of stats to be read back to a name.
+    // The caret shows only while this window holds the cursor: one drawn in
+    // each of them would put the selection in three places at once.
     ftxui::Element row = ftxui::hbox({
-        ftxui::text(i == cursor ? "> " : "  "),
+        ftxui::text(focused && i == cursor ? "> " : "  "),
         ftxui::text(PadRight(rows[i].name, kOfferNameCell)),
         ftxui::text(PadLeft(rows[i].quantity, kOfferCountCell)),
         ftxui::filler(),
@@ -499,6 +501,7 @@ ftxui::Element TradePanel::RenderMine() const {
           RenderOfferTable(
               MyRows(),
               own_.items() == 0 ? -1 : ClampedRow(own_row_, own_.items()),
+              zone_ == TradeZone::kMine && own_list_,
               CursorBox(TradeZone::kMine)),
       }) |
       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kOfferWidth);
@@ -520,7 +523,7 @@ ftxui::Element TradePanel::RenderTheirs() const {
           RenderOfferTable(
               TheirRows(),
               ClampedRow(their_row_, static_cast<int>(TheirRows().size())),
-              CursorBox(TradeZone::kTheirs)),
+              zone_ == TradeZone::kTheirs, CursorBox(TradeZone::kTheirs)),
       }) |
       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kOfferWidth);
   return ThemedWindow(title, std::move(body), zone_ == TradeZone::kTheirs,
@@ -548,8 +551,9 @@ ftxui::Element TradePanel::RenderBag() const {
     }
     std::vector<int> rows(left.size());
     std::iota(rows.begin(), rows.end(), 0);
-    list = RenderStackList(left, rows, cursor, focused, cursor_box_,
-                           /*highlighted=*/false, name_clock_.Elapsed());
+    list =
+        RenderStackList(left, rows, cursor, focused, CursorBox(TradeZone::kBag),
+                        /*highlighted=*/false, name_clock_.Elapsed());
   } else {
     ItemListOptions options;
     options.bag = true;
@@ -557,8 +561,9 @@ ftxui::Element TradePanel::RenderBag() const {
     options.star_force = Unlocked(Feature::kStarForce, character_, account_);
     options.potential = Unlocked(Feature::kPotential, character_, account_);
     list = RenderEquipList(character_, bag, cursor, focused,
-                           FitItemColumns(kBagWidth, options), cursor_box_,
-                           /*highlighted=*/false, name_clock_.Elapsed());
+                           FitItemColumns(kBagWidth, options),
+                           CursorBox(TradeZone::kBag), /*highlighted=*/false,
+                           name_clock_.Elapsed());
   }
   std::vector<TabSpec> tabs = {{"Equip"}, {"Etc"}};
   ftxui::Element body =

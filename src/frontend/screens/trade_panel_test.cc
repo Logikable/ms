@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdlib>
 #include <memory>
 #include <string>
 #include <vector>
@@ -319,12 +320,54 @@ TEST_F(TradePanelTest, EveryHeaderHasItsRule) {
 }
 
 // The one the rest of the game draws, with its own column between the caret
-// and the name.
-TEST_F(TradePanelTest, TheCursorIsTheGamesOwnCaret) {
+// and the name -- and only in the window holding the cursor.
+TEST_F(TradePanelTest, OnlyTheFocusedWindowDrawsTheCaret) {
   panel_.PutUpEquip(0);
   panel_.MoveRow(1);
   ASSERT_EQ(panel_.cursor().kind, TradeCursor::Kind::kOffered);
   EXPECT_NE(Text().find("> Sword"), std::string::npos);
+
+  ToBag();
+  EXPECT_EQ(Text().find("> Sword"), std::string::npos)
+      << "the offer keeps its row, not its caret";
+}
+
+// Wherever the cursor is, the menu opens beside it -- which is what reading
+// the row off the render buys: all three lists scroll, and a place in the data
+// stops agreeing with the row on screen as soon as one of them does.
+TEST_F(TradePanelTest, TheMenuOpensBesideTheRowTheCursorIsOn) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_.PutUpEquip(0);
+  TradeState trade = Trade("Wand", /*joined=*/true);
+  trade.mutable_theirs()->add_equips()->set_equip_name("Fafnir Mace");
+  panel_.SetTrade(trade);
+
+  for (int zone = 0; zone < 3; ++zone) {
+    if (zone == 0) {
+      panel_.MoveRow(1);  // down into your own offer
+    }
+    ASSERT_NE(panel_.cursor().kind, TradeCursor::Kind::kNothing) << zone;
+    panel_.OpenMenu();
+    ASSERT_TRUE(panel_.menu_open()) << zone;
+    std::vector<std::string> rows = Rows();
+    int caret = -1;
+    int menu = -1;
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+      if (rows[i].find("> ") != std::string::npos && caret < 0) {
+        caret = i;
+      }
+      if (rows[i].find("Inspect") != std::string::npos) {
+        menu = i;
+      }
+    }
+    ASSERT_GE(caret, 0) << zone;
+    ASSERT_GE(menu, 0) << zone;
+    EXPECT_LE(std::abs(menu - caret), 1)
+        << "zone " << zone << ": the menu opened " << menu
+        << " and the cursor is on " << caret;
+    panel_.CloseMenu();
+    panel_.NextZone(1);
+  }
 }
 
 TEST_F(TradePanelTest, TheirRowsAreWalkedAndRead) {

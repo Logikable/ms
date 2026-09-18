@@ -194,7 +194,7 @@ class TradePanel {
   // The Name and Quantity table an offer window holds, padded out to its
   // fixed height. `rows` is what is on the table, already named.
   ftxui::Element RenderOfferTable(const std::vector<OfferRow>& rows, int cursor,
-                                  ftxui::Box& cursor_box) const;
+                                  bool focused, ftxui::Box& cursor_box) const;
   // Where `zone` should report the row its cursor is on: the shared box for
   // the window that holds the cursor, and a scratch one for every other.
   ftxui::Box& CursorBox(TradeZone zone) const;
