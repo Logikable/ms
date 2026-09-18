@@ -281,6 +281,52 @@ TEST_F(TradePanelTest, TheirRowsAreWalkedAndRead) {
   EXPECT_NE(screen.find("Chaos Scroll"), std::string::npos);
 }
 
+TEST_F(TradePanelTest, EachWindowsMenuOffersWhatItCanDo) {
+  // The bag puts things up.
+  ToBag();
+  panel_.OpenMenu();
+  ASSERT_TRUE(panel_.menu_open());
+  std::string screen = Text();
+  EXPECT_NE(screen.find("Inspect"), std::string::npos);
+  EXPECT_NE(screen.find("Offer"), std::string::npos);
+  EXPECT_EQ(screen.find("Remove"), std::string::npos);
+  panel_.CloseMenu();
+
+  // Your own side takes them back.
+  ASSERT_TRUE(panel_.PutUpEquip(0));
+  panel_.NextZone(1);
+  ASSERT_EQ(panel_.zone(), TradeZone::kMine);
+  panel_.MoveRow(1);
+  panel_.OpenMenu();
+  ASSERT_TRUE(panel_.menu_open());
+  screen = Text();
+  EXPECT_NE(screen.find("Remove"), std::string::npos);
+  EXPECT_EQ(screen.find("Offer"), std::string::npos);
+  panel_.CloseMenu();
+
+  // Theirs is only ever read.
+  TradeState trade = Trade("Wand", /*joined=*/true);
+  trade.mutable_theirs()->add_equips()->set_equip_name("Fafnir Mace");
+  panel_.SetTrade(trade);
+  panel_.NextZone(1);
+  panel_.OpenMenu();
+  ASSERT_TRUE(panel_.menu_open());
+  screen = Text();
+  EXPECT_NE(screen.find("Inspect"), std::string::npos);
+  EXPECT_EQ(screen.find("Offer"), std::string::npos);
+  EXPECT_EQ(screen.find("Remove"), std::string::npos);
+}
+
+TEST_F(TradePanelTest, NoMenuOnACurrencyOrTheButton) {
+  panel_.OpenMenu();
+  EXPECT_FALSE(panel_.menu_open()) << "a currency is its own action";
+
+  panel_.MoveCursor(2);
+  ASSERT_EQ(panel_.cursor().kind, TradeCursor::Kind::kAccept);
+  panel_.OpenMenu();
+  EXPECT_FALSE(panel_.menu_open());
+}
+
 TEST_F(TradePanelTest, TheWireCarriesTheWholeItem) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   ASSERT_TRUE(panel_.PutUpEquip(1));

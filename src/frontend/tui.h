@@ -109,6 +109,8 @@ class Tui {
   ftxui::Element JobAdvanceDialog();
   // How much of one currency to put up, over the trade screen.
   ftxui::Element TradeAmountDialog();
+  ftxui::Element TradeItemAmountDialog();
+  ftxui::Element RenderTradeInspect();
   ftxui::Element QuitDialog();
   // "Reset Farm Hyper Stats?" -- the free way back to nothing spent.
   ftxui::Element HyperResetDialog();

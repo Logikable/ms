@@ -94,6 +94,13 @@ enum Screen : int {
   kTrade,
   // Enter on one of your own currencies there: how much of it to offer.
   kTradeAmount,
+  // Enter on a row of any of the trade's three windows.
+  kTradeMenu,
+  // Offer on a stack in the bag: how many of it to put up.
+  kTradeItemAmount,
+  // Inspect on any of those rows. Their items are not in any bag this client
+  // can point at, so the card is drawn from a copy built off the wire.
+  kTradeInspect,
   // The player behind Inspect, reached from either list: their stats, and what
   // they are wearing.
   kPlayerInspect,

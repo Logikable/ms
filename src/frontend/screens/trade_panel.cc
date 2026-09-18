@@ -41,6 +41,17 @@ constexpr int kTraceCell = 14;
 constexpr int kOfferNameCell = 37;
 constexpr int kOfferCountCell = 12;
 
+// Where each window's list starts, measured down the whole screen: a border,
+// the top row, a rule and a column header before the first row of an offer,
+// and the offer windows' own height before the bag's tab bar does the same.
+constexpr int kOfferListRow = 4;
+constexpr int kOfferWindowRows = 13;
+constexpr int kBagListRow = kOfferWindowRows + 4;
+
+// Where a menu hangs inside its window: past the name a row leads with, so it
+// covers what an item is worth rather than which item it is.
+constexpr int kMenuColumn = 40;
+
 // The acceptance mark, which keeps its column either way so that nothing
 // beside it moves when a player accepts.
 ftxui::Element AcceptMark(bool accepted) {
@@ -92,7 +103,9 @@ TradeOffer OwnTradeOffer::ToWire(const CharacterInstance& character) const {
 
 TradePanel::TradePanel(const CharacterInstance& character,
                        const AccountInstance& account)
-    : character_(character), account_(account) {
+    : character_(character),
+      account_(account),
+      menu_({"Inspect", "Offer", "Remove", "Close"}) {
 }
 
 void TradePanel::SetTrade(const TradeState& trade) {
@@ -108,6 +121,60 @@ void TradePanel::Reset() {
   their_row_ = 0;
   bag_row_ = 0;
   etc_tab_ = false;
+  menu_open_ = false;
+}
+
+void TradePanel::OpenMenu() {
+  TradeCursor::Kind kind = cursor().kind;
+  menu_.Reset();
+  switch (kind) {
+    case TradeCursor::Kind::kBag:
+      menu_.Hide(kTradeMenuRemove);
+      break;
+    case TradeCursor::Kind::kOffered:
+      menu_.Hide(kTradeMenuOffer);
+      break;
+    case TradeCursor::Kind::kTheirs:
+      menu_.Hide(kTradeMenuOffer);
+      menu_.Hide(kTradeMenuRemove);
+      break;
+    default:
+      return;
+  }
+  menu_open_ = true;
+}
+
+void TradePanel::MoveMenuCursor(int delta) {
+  if (delta < 0) {
+    menu_.Up();
+    return;
+  }
+  menu_.Down();
+}
+
+int TradePanel::MenuRow() const {
+  // One row back from the row itself, so the entry standing highlighted lands
+  // beside what the menu is about rather than below it.
+  switch (zone_) {
+    case TradeZone::kMine:
+      return kOfferListRow + own_row_ - 1;
+    case TradeZone::kTheirs:
+      return kOfferListRow + their_row_ - 1;
+    case TradeZone::kBag:
+      break;
+  }
+  // The bag scrolls, so where its cursor is drawn is where the window it
+  // scrolled to puts it.
+  int rows = static_cast<int>(BagRows().size());
+  int cursor = ClampedRow(bag_row_, rows);
+  return kBagListRow + cursor - ScrollWindowStart(rows, cursor, kBagRows) - 1;
+}
+
+int TradePanel::MenuColumn() const {
+  if (zone_ == TradeZone::kTheirs) {
+    return kOfferWidth + 2 + kMenuColumn;
+  }
+  return kMenuColumn;
 }
 
 int TradePanel::ClampedRow(int row, int rows) const {
@@ -153,6 +220,20 @@ int TradePanel::stack_left(int index) const {
     }
   }
   return std::max(0, left);
+}
+
+int TradePanel::stack_offered(int index) const {
+  const std::vector<StackableItem>& stacks = character_.stackables();
+  if (index < 0 || index >= static_cast<int>(stacks.size())) {
+    return 0;
+  }
+  int up = 0;
+  for (const TradeStack& put_up : own_.stacks) {
+    if (put_up.name() == stacks[index].name()) {
+      up += put_up.count();
+    }
+  }
+  return up;
 }
 
 void TradePanel::NextZone(int delta) {
@@ -507,9 +588,16 @@ ftxui::Element TradePanel::RenderBag() const {
 }
 
 ftxui::Element TradePanel::Render() const {
-  return ftxui::vbox({
+  ftxui::Element screen = ftxui::vbox({
       ftxui::hbox({RenderMine(), RenderTheirs()}),
       RenderBag(),
+  });
+  if (!menu_open_) {
+    return screen;
+  }
+  return ftxui::dbox({
+      std::move(screen),
+      Floating(menu_.Render(MenuRow(), MenuColumn())),
   });
 }
 

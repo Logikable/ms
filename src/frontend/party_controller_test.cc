@@ -228,6 +228,19 @@ class PartyControllerTest : public ::testing::Test {
 
   // Presses Trade on `name` the way a player does: the Players list, down
   // onto them, Enter for the menu, Down onto Trade.
+  // Both sides ask, which is what opens the screen for both of them.
+  void OpenTrade(Client& asker, Client& asked) {
+    AskToTrade(asker, asked.state->character.username());
+    ASSERT_TRUE(WaitFor({&asker, &asked}, [&]() {
+      return asker.controller->screen() == kTrade;
+    }));
+    AskToTrade(asked, asker.state->character.username());
+    ASSERT_TRUE(WaitFor({&asker, &asked}, [&]() {
+      return asked.controller->screen() == kTrade &&
+             asker.session.Snapshot().trade.partner_joined();
+    }));
+  }
+
   void AskToTrade(Client& client, const std::string& name) {
     OpenMultiplayer(client, MultiplayerEntry::kPlayers);
     for (int step = 0; step < 4; ++step) {
@@ -605,6 +618,57 @@ TEST_F(PartyControllerTest, BothPlayersLandOnTheTradeScreen) {
   // And the screen stays shut: the state still in flight does not stand it
   // back up.
   EXPECT_EQ(asker->controller->screen(), kPlayerList);
+}
+
+// An item put up from the bag crosses whole, and the bag below stops showing
+// what is on the table.
+TEST_F(PartyControllerTest, AnItemGoesUpFromTheBag) {
+  std::unique_ptr<Client> asker = Connect("Dagger");
+  std::unique_ptr<Client> asked = Connect("Wand");
+  Equip starred;
+  starred.set_equip_name(IronSword().name());
+  starred.set_stars(3);
+  asker->state->character.PickUp(
+      std::make_unique<EquipInstance>(IronSword(), starred));
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->session.Snapshot().online.players_size() == 2;
+  }));
+  OpenTrade(*asker, *asked);
+
+  // Tab to the bag, Enter for the menu, Down to Offer.
+  asker->controller->OnEvent(ftxui::Event::Tab);
+  asker->controller->OnEvent(ftxui::Event::Tab);
+  ASSERT_EQ(asker->trade_panel->zone(), TradeZone::kBag);
+  asker->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(asker->controller->screen(), kTradeMenu);
+  asker->controller->OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_EQ(asker->trade_panel->menu_selected(), kTradeMenuOffer);
+  asker->controller->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(asker->controller->screen(), kTrade);
+
+  EXPECT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asked->session.Snapshot().trade.theirs().equips_size() == 1;
+  }));
+  // Copied out: the snapshot it comes off is taken by value.
+  Equip crossed = asked->session.Snapshot().trade.theirs().equips(0);
+  EXPECT_EQ(crossed.equip_name(), IronSword().name());
+  EXPECT_EQ(crossed.stars(), 3) << "the drop crosses, not the prototype";
+
+  // It is off the bag below while it sits on the table, and back when taken
+  // down.
+  EXPECT_EQ(asker->trade_panel->cursor().kind, TradeCursor::Kind::kNothing);
+  asker->controller->OnEvent(ftxui::Event::Tab);
+  ASSERT_EQ(asker->trade_panel->zone(), TradeZone::kMine);
+  asker->controller->OnEvent(ftxui::Event::ArrowDown);
+  asker->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(asker->controller->screen(), kTradeMenu);
+  asker->controller->OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_EQ(asker->trade_panel->menu_selected(), kTradeMenuRemove);
+  asker->controller->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(asker->trade_panel->own().items(), 0);
+  EXPECT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asked->session.Snapshot().trade.theirs().equips_size() == 0;
+  }));
 }
 
 TEST_F(PartyControllerTest, TradingABusyPlayerIsRefused) {

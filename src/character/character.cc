@@ -266,8 +266,7 @@ std::map<std::string, const Proto*> IndexByDisplayName(
 }
 
 // One equip-tab entry rebuilt from its saved state, or null if the catalogs no
-// longer describe it. A trace and a live item are the same fields apart from
-// the flag, which is what decides the type.
+// longer describe it.
 std::unique_ptr<EquipTabItem> RestoreEquipItem(
     const Equip& state,
     const std::map<std::string, const EquipPrototype*>& by_name) {
@@ -276,10 +275,7 @@ std::unique_ptr<EquipTabItem> RestoreEquipItem(
   if (proto == by_name.end()) {
     return nullptr;
   }
-  if (state.trace()) {
-    return std::make_unique<EquipTrace>(*proto->second, state);
-  }
-  return std::make_unique<EquipInstance>(*proto->second, state);
+  return EquipItemFromState(*proto->second, state);
 }
 
 // The four beginner books. Every job in a line answers to the one it grew

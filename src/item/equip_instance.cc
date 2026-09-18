@@ -1,5 +1,6 @@
 #include "src/item/equip_instance.h"
 
+#include <memory>
 #include <random>
 
 #include "src/item/equip_stats.h"
@@ -7,6 +8,15 @@
 #include "src/protos/scroll.pb.h"
 
 namespace ms {
+
+std::unique_ptr<EquipTabItem> EquipItemFromState(const EquipPrototype& proto,
+                                                 const Equip& state) {
+  if (state.trace()) {
+    return std::make_unique<EquipTrace>(proto, state);
+  }
+  return std::make_unique<EquipInstance>(proto, state);
+}
+
 namespace {
 
 // Success and destruction rates in hundredths of a percent (10000 = 100%).

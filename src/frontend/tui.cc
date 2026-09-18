@@ -404,6 +404,43 @@ ftxui::Element Tui::TradeAmountDialog() {
                       }));
 }
 
+ftxui::Element Tui::TradeItemAmountDialog() {
+  const std::vector<StackableItem>& stacks = state_.character.stackables();
+  int index = controller_.trade_stack();
+  if (index < 0 || index >= static_cast<int>(stacks.size())) {
+    return ftxui::text("");
+  }
+  // Held is the WHOLE stack, however much of it is already on the table: what
+  // a player owns is not changed by having offered it, and [MAX] has to reach
+  // all of it.
+  return ThemedWindow(
+      " " + stacks[index].name() + " ",
+      ftxui::vbox({
+          OfferBlock(FormatWithCommas(stacks[index].count()),
+                     FormatWithCommas(trade_panel_.stack_offered(index))),
+          ThemedSeparator(),
+          controller_.trade_selector().Render(),
+      }));
+}
+
+ftxui::Element Tui::RenderTradeInspect() {
+  const EquipTabItem* item = controller_.trade_inspect_equip();
+  // Two overloads of SetItem, so this cannot fold into one ternary.
+  if (item == nullptr) {
+    inspect_panel_.SetItem(controller_.trade_inspect_stack());
+  } else {
+    inspect_panel_.SetItem(item);
+    // Weighed against what the reader has on: what an item on the table is
+    // worth to them is the first thing either side wants to know.
+    inspect_panel_.SetComparison(
+        controller_.WornForComparison(item->prototype()));
+    inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(item));
+  }
+  inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
+  inspect_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
+  return Centred(inspect_panel_.Render());
+}
+
 ftxui::Element Tui::JobAdvanceDialog() {
   return DialogWindow(
       " Job Advancement ",
@@ -889,9 +926,16 @@ ftxui::Element Tui::RenderScreen() {
     case kOptions:
       return Centred(options_panel_.Render());
     case kTrade:
+    case kTradeMenu:
+      // The menu is anchored to a row of one of the windows, so the panel puts
+      // it up itself.
       return Centred(trade_panel_.Render());
     case kTradeAmount:
       return Overlay(Centred(trade_panel_.Render()), TradeAmountDialog());
+    case kTradeItemAmount:
+      return Overlay(Centred(trade_panel_.Render()), TradeItemAmountDialog());
+    case kTradeInspect:
+      return RenderTradeInspect();
     case kPlayerList:
     case kPlayerMenu:
       // The menu is anchored to a row of the list, so the panel puts it up

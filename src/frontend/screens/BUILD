@@ -926,6 +926,7 @@ cc_library(
         "//src/frontend/widgets:format",
         "//src/frontend/widgets:inventory_list",
         "//src/frontend/widgets:item_columns",
+        "//src/frontend/widgets:item_menu",
         "//src/frontend/widgets:text_columns",
         "//src/item",
         "//src/protos:item_proto_cc",

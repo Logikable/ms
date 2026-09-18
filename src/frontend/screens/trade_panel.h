@@ -28,6 +28,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/account.h"
 #include "src/character/character.h"
+#include "src/frontend/widgets/item_menu.h"
 #include "src/item/item.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/multiplayer.pb.h"
@@ -94,6 +95,16 @@ struct OwnTradeOffer {
   TradeOffer ToWire(const CharacterInstance& character) const;
 };
 
+// The entries of the menu Enter raises on a row, in bar order. Which of the
+// middle two stands depends on the window the row is in: the bag offers, your
+// own side takes back, and theirs is only ever read.
+enum TradeMenuItem : int {
+  kTradeMenuInspect = 0,
+  kTradeMenuOffer = 1,
+  kTradeMenuRemove = 2,
+  kTradeMenuClose = 3,
+};
+
 // Whether a stack may cross at all. Tokens and soul shards are bound to the
 // player who earned them, and a spell trace has its own line at the top of
 // the offer, so listing it as an item too would be two doors to one thing.
@@ -120,6 +131,21 @@ class TradePanel {
 
   ftxui::Element Render() const;
 
+  // The menu Enter raises on a row, anchored to it. Quiet on a cursor that is
+  // not on a row: a currency and the Accept button are their own actions.
+  void OpenMenu();
+  void CloseMenu() {
+    menu_open_ = false;
+  }
+  void MoveMenuCursor(int delta);
+  bool menu_open() const {
+    return menu_open_;
+  }
+  // Which entry the cursor is on, as a TradeMenuItem.
+  int menu_selected() const {
+    return menu_.selected();
+  }
+
   TradeZone zone() const {
     return zone_;
   }
@@ -134,8 +160,10 @@ class TradePanel {
   // the table. What the amount overlay opens on.
   int64_t held(TradeCurrency currency) const;
   int64_t offered(TradeCurrency currency) const;
-  // How many of the `index`-th stack are not on the table yet.
+  // How many of the `index`-th stack are not on the table yet, and how many of
+  // it are.
   int stack_left(int index) const;
+  int stack_offered(int index) const;
 
   const OwnTradeOffer& own() const {
     return own_;
@@ -182,6 +210,11 @@ class TradePanel {
   ftxui::Element RenderEquipTab(int width) const;
   ftxui::Element RenderEtcTab(int width) const;
 
+  // Where the menu hangs: the row of the screen the cursor's own row is drawn
+  // on, and the column within whichever window that is.
+  int MenuRow() const;
+  int MenuColumn() const;
+
   // The bag rows the open tab draws, as places in the character's own list.
   // The Equip tab drops what is on the table; the Etc tab drops what cannot
   // cross and what is wholly on it.
@@ -207,6 +240,8 @@ class TradePanel {
   int their_row_ = 0;
   int bag_row_ = 0;
   bool etc_tab_ = false;
+  ItemMenu menu_;
+  bool menu_open_ = false;
 };
 
 }  // namespace ms

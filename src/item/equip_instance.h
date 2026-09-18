@@ -9,6 +9,7 @@
 #define MS_SRC_ITEM_EQUIP_INSTANCE_H_
 
 #include <cstdint>
+#include <memory>
 #include <random>
 
 #include "src/item/item.h"
@@ -52,6 +53,13 @@ struct StarForceRate {
   int success;
   int destroy;
 };
+
+// The equip-tab item a saved state describes. A trace and a live item are the
+// same fields apart from the flag, which is what decides the type -- so this
+// is the one place that reads it, whether the state came off a save file or
+// off a trade.
+std::unique_ptr<EquipTabItem> EquipItemFromState(const EquipPrototype& proto,
+                                                 const Equip& state);
 
 class EquipInstance : public EquipTabItem {
  public:

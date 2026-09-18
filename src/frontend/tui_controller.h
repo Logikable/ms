@@ -268,6 +268,18 @@ class TuiController {
   bool party_notice_is_refusal() const {
     return party_notice_is_refusal_;
   }
+  // The item the trade screen's card is drawn from, one of which is null.
+  const EquipTabItem* trade_inspect_equip() const {
+    return trade_inspect_equip_.get();
+  }
+  const ItemPrototype* trade_inspect_stack() const {
+    return trade_inspect_stack_;
+  }
+  // The place in the bag of the stack the trade's amount overlay is putting
+  // up, or -1 while it is not open on one.
+  int trade_stack() const {
+    return trade_stack_;
+  }
   // Which currency the trade overlay is putting up, and how much.
   TradeCurrency trade_currency() const {
     return trade_currency_;
@@ -590,6 +602,8 @@ class TuiController {
   bool OnPlayerListEvent(ftxui::Event event);
   bool OnPlayerMenuEvent(ftxui::Event event);
   bool OnTradeEvent(ftxui::Event event);
+  bool OnTradeMenuEvent(ftxui::Event event);
+  bool OnTradeItemAmountEvent(ftxui::Event event);
   bool OnTradeAmountEvent(ftxui::Event event);
   bool OnPartySelectEvent(ftxui::Event event);
   bool OnPartyMenuEvent(ftxui::Event event);
@@ -628,6 +642,20 @@ class TuiController {
   void PutUpTradeAmount();
   // Tells the server what is on this player's side of the table, whole.
   void SendTradeOffer();
+  // Whether the player is anywhere on the trade screen -- its menus, its
+  // overlays and the cards they open included. A trade that ends under them
+  // takes every one of those down, so they are asked about together.
+  bool OnTradeScreen() const;
+  // Enter on a row of any of the three windows.
+  void OpenTradeMenu();
+  // Offer on a bag row: an equip goes up as it stands, a stack through the
+  // amount overlay. Refused with a notice once the table holds its eight.
+  void OfferFromBag();
+  void OpenTradeItemAmount(int stack);
+  void PutUpTradeItemAmount();
+  // Inspect on a row of any window. Theirs is built from the wire: nothing in
+  // this client's bag is the item they are holding up.
+  void OpenTradeInspect();
   // Walks out, which ends the trade for both.
   void LeaveTrade();
   // Asks for `account_id`'s sheet and opens the Inspect screen once it lands.
@@ -862,8 +890,15 @@ class TuiController {
   int64_t notification_seen_ = 0;
   AmountSelector trade_selector_;
   // Which currency the amount overlay is putting up, taken when it opens: the
-  // cursor is free to be somewhere else by the time it is answered.
+  // cursor is free to be somewhere else by the time it is answered. The stack
+  // overlay takes the place in the bag for the same reason.
   TradeCurrency trade_currency_ = TradeCurrency::kMeso;
+  int trade_stack_ = -1;
+  // What the trade screen is inspecting. Built rather than pointed at: their
+  // half of the table is not in any bag this client holds, and one path for
+  // both sides is one path to keep right.
+  std::unique_ptr<EquipTabItem> trade_inspect_equip_;
+  const ItemPrototype* trade_inspect_stack_ = nullptr;
   // The screen the trade was opened from, which walking out closes back to.
   Screen trade_return_ = kPlayerList;
   // The trade this player walked out of, so a state still in flight does not

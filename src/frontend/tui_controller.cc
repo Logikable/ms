@@ -40,6 +40,14 @@
 namespace ms {
 namespace {
 
+// What Offer answers once the table holds its eight. Split across lines by
+// the notice's own wrapping.
+constexpr char kTradeFullMessage[] = "You can only trade 8 items.";
+
+}  // namespace
+
+namespace {
+
 // Columns a notice's sentence is wrapped to. Wide enough that the longest of
 // them takes two lines, narrow enough that neither line is a stub.
 constexpr int kNoticeWidth = 34;
@@ -724,6 +732,12 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnTradeEvent(event);
     case kTradeAmount:
       return OnTradeAmountEvent(event);
+    case kTradeMenu:
+      return OnTradeMenuEvent(event);
+    case kTradeItemAmount:
+      return OnTradeItemAmountEvent(event);
+    case kTradeInspect:
+      return OnCardEvent(event, inspect_panel_, kTrade);
     case kPartySelect:
       return OnPartySelectEvent(event);
     case kPartyMenu:
@@ -1524,7 +1538,7 @@ void TuiController::AdvanceParty() {
       screen_ == kPartySelect || screen_ == kPartyMenu ||
       screen_ == kPartyConfirm || screen_ == kPlayerInspect ||
       screen_ == kPlayerItemInspect || screen_ == kPlayerList ||
-      screen_ == kPlayerMenu || screen_ == kTrade || screen_ == kTradeAmount;
+      screen_ == kPlayerMenu || OnTradeScreen();
   if (on_lobby_screen && lobby.state != ConnectionState::kConnected) {
     screen_ = kMain;
     menu_panel_.CloseBox();
@@ -1901,10 +1915,11 @@ void TuiController::AskToTrade(const std::string& account_id) {
 
 void TuiController::AdvanceTrade(const MultiplayerSnapshot& lobby) {
   trade_panel_.SetTrade(lobby.trade);
-  const bool open = screen_ == kTrade || screen_ == kTradeAmount;
+  const bool open = OnTradeScreen();
   if (lobby.trade.id().empty()) {
     left_trade_id_.clear();
     if (open) {
+      trade_panel_.CloseMenu();
       screen_ = trade_return_;
       RaisePartyNotice("They left the trade.", /*refusal=*/false);
     }
@@ -1932,6 +1947,12 @@ void TuiController::OpenTradeAmount() {
 void TuiController::PutUpTradeAmount() {
   trade_panel_.PutUpCurrency(trade_currency_, trade_selector_.value());
   SendTradeOffer();
+}
+
+bool TuiController::OnTradeScreen() const {
+  return screen_ == kTrade || screen_ == kTradeAmount ||
+         screen_ == kTradeMenu || screen_ == kTradeItemAmount ||
+         screen_ == kTradeInspect;
 }
 
 void TuiController::SendTradeOffer() {
@@ -1976,7 +1997,9 @@ bool TuiController::OnTradeEvent(ftxui::Event event) {
   if (IsForward(event)) {
     if (trade_panel_.cursor().kind == TradeCursor::Kind::kCurrency) {
       OpenTradeAmount();
+      return true;
     }
+    OpenTradeMenu();
     return true;
   }
   if (IsBack(event)) {
@@ -1984,6 +2007,160 @@ bool TuiController::OnTradeEvent(ftxui::Event event) {
   }
   // Everything else is swallowed: this is a modal screen, and the ticker's
   // redraw arrives as an event too.
+  return true;
+}
+
+void TuiController::OpenTradeMenu() {
+  trade_panel_.OpenMenu();
+  if (!trade_panel_.menu_open()) {
+    return;
+  }
+  screen_ = kTradeMenu;
+}
+
+void TuiController::OfferFromBag() {
+  TradeCursor cursor = trade_panel_.cursor();
+  if (!trade_panel_.on_etc_tab()) {
+    if (!trade_panel_.PutUpEquip(cursor.index)) {
+      RaisePartyNotice(kTradeFullMessage, /*refusal=*/true);
+      return;
+    }
+    SendTradeOffer();
+    return;
+  }
+  // Asked before the overlay rather than after it: being told the table is
+  // full is an answer to Offer, not to an amount already chosen.
+  if (trade_panel_.stack_offered(cursor.index) == 0 &&
+      trade_panel_.own().items() >= kMaxTradeItems) {
+    RaisePartyNotice(kTradeFullMessage, /*refusal=*/true);
+    return;
+  }
+  OpenTradeItemAmount(cursor.index);
+}
+
+void TuiController::OpenTradeItemAmount(int stack) {
+  const std::vector<StackableItem>& stacks = state_.character.stackables();
+  if (stack < 0 || stack >= static_cast<int>(stacks.size())) {
+    return;
+  }
+  trade_stack_ = stack;
+  // The whole stack is what [MAX] reaches, however much of it is already on
+  // the table: what a player owns is not changed by having offered it.
+  trade_selector_.Reset(stacks[stack].count(),
+                        trade_panel_.stack_offered(stack));
+  screen_ = kTradeItemAmount;
+}
+
+void TuiController::PutUpTradeItemAmount() {
+  if (!trade_panel_.PutUpStack(trade_stack_, trade_selector_.value())) {
+    RaisePartyNotice(kTradeFullMessage, /*refusal=*/true);
+    return;
+  }
+  SendTradeOffer();
+}
+
+void TuiController::OpenTradeInspect() {
+  TradeCursor cursor = trade_panel_.cursor();
+  trade_inspect_equip_.reset();
+  trade_inspect_stack_ = nullptr;
+  // The item is COPIED out rather than pointed at: one of the three places it
+  // can come from is a snapshot taken by value.
+  Equip equip;
+  bool is_equip = false;
+  std::string stack_name;
+  switch (cursor.kind) {
+    case TradeCursor::Kind::kBag:
+      if (trade_panel_.on_etc_tab()) {
+        stack_name = state_.character.stackables()[cursor.index].name();
+        break;
+      }
+      equip = state_.character.inventory()[cursor.index].SavedState();
+      is_equip = true;
+      break;
+    case TradeCursor::Kind::kOffered: {
+      const OwnTradeOffer& mine = trade_panel_.own();
+      int equips = static_cast<int>(mine.equips.size());
+      if (cursor.index >= equips) {
+        stack_name = mine.stacks[cursor.index - equips].name();
+        break;
+      }
+      equip =
+          state_.character.inventory()[mine.equips[cursor.index]].SavedState();
+      is_equip = true;
+      break;
+    }
+    case TradeCursor::Kind::kTheirs: {
+      MultiplayerSnapshot lobby = Lobby();
+      const TradeOffer& theirs = lobby.trade.theirs();
+      if (cursor.index >= theirs.equips_size()) {
+        stack_name = theirs.stacks(cursor.index - theirs.equips_size()).name();
+        break;
+      }
+      equip = theirs.equips(cursor.index);
+      is_equip = true;
+      break;
+    }
+    default:
+      return;
+  }
+  if (is_equip) {
+    const EquipPrototype* proto =
+        FindEquipByName(state_.equips, equip.equip_name());
+    if (proto == nullptr) {
+      return;
+    }
+    trade_inspect_equip_ = EquipItemFromState(*proto, equip);
+  } else {
+    trade_inspect_stack_ = FindItemByName(state_.items, stack_name);
+    if (trade_inspect_stack_ == nullptr) {
+      return;
+    }
+  }
+  inspect_panel_.Reset();
+  screen_ = kTradeInspect;
+}
+
+bool TuiController::OnTradeMenuEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    trade_panel_.MoveMenuCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    trade_panel_.MoveMenuCursor(1);
+    return true;
+  }
+  if (IsBack(event)) {
+    trade_panel_.CloseMenu();
+    screen_ = kTrade;
+    return true;
+  }
+  if (!IsForward(event)) {
+    return true;
+  }
+  int chosen = trade_panel_.menu_selected();
+  TradeCursor cursor = trade_panel_.cursor();
+  trade_panel_.CloseMenu();
+  screen_ = kTrade;
+  if (chosen == kTradeMenuInspect) {
+    OpenTradeInspect();
+  } else if (chosen == kTradeMenuOffer) {
+    OfferFromBag();
+  } else if (chosen == kTradeMenuRemove) {
+    trade_panel_.TakeBack(cursor.index);
+    SendTradeOffer();
+  }
+  return true;
+}
+
+bool TuiController::OnTradeItemAmountEvent(ftxui::Event event) {
+  ConfirmChoice choice = trade_selector_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  screen_ = kTrade;
+  if (choice == ConfirmChoice::kConfirmed) {
+    PutUpTradeItemAmount();
+  }
   return true;
 }
 
