@@ -954,6 +954,10 @@ ftxui::Element Tui::RenderScreen() {
       return Overlay(Centred(trade_panel_.Render()), TradeItemAmountDialog());
     case kTradeConfirm:
       return Overlay(Centred(trade_panel_.Render()), TradeConfirmDialog());
+    case kTradeLeave:
+      return Overlay(Centred(trade_panel_.Render()),
+                     DialogWindow("", {CenteredRow("Leave this trade?")},
+                                  controller_.trade_leave_prompt().Render()));
     case kTradeInspect:
       return RenderTradeInspect();
     case kPlayerList:

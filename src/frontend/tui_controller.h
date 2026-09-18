@@ -294,6 +294,9 @@ class TuiController {
   const ConfirmPrompt& trade_prompt() const {
     return trade_prompt_;
   }
+  const ConfirmPrompt& trade_leave_prompt() const {
+    return trade_leave_prompt_;
+  }
   // Which currency the trade overlay is putting up, and how much.
   TradeCurrency trade_currency() const {
     return trade_currency_;
@@ -618,6 +621,7 @@ class TuiController {
   bool OnTradeEvent(ftxui::Event event);
   bool OnTradeMenuEvent(ftxui::Event event);
   bool OnTradeConfirmEvent(ftxui::Event event);
+  bool OnTradeLeaveEvent(ftxui::Event event);
   bool OnTradeItemAmountEvent(ftxui::Event event);
   bool OnTradeAmountEvent(ftxui::Event event);
   bool OnPartySelectEvent(ftxui::Event event);
@@ -914,6 +918,9 @@ class TuiController {
   // The finalize dialog. Which side is waiting is the trade's to say, so this
   // holds only the cursor.
   ConfirmPrompt trade_prompt_;
+  // And the one asked before walking out, which ends the trade for both. Its
+  // own rather than the finalize dialog's: two questions, two cursors.
+  ConfirmPrompt trade_leave_prompt_;
   // Which currency the amount overlay is putting up, taken when it opens: the
   // cursor is free to be somewhere else by the time it is answered. The stack
   // overlay takes the place in the bag for the same reason.

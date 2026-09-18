@@ -644,8 +644,16 @@ TEST_F(PartyControllerTest, BothPlayersLandOnTheTradeScreen) {
     return asked->session.Snapshot().trade.theirs().meso() == 5000;
   }));
 
-  // Walking out ends it for both, and the one left behind is told.
+  // Walking out is asked about first -- Escape is one key away from
+  // everywhere, and leaving ends the trade for both.
   asker->controller->OnEvent(ftxui::Event::Escape);
+  ASSERT_EQ(asker->controller->screen(), kTradeLeave);
+  asker->controller->OnEvent(ftxui::Event::Escape);
+  ASSERT_EQ(asker->controller->screen(), kTrade)
+      << "and can be thought better of";
+
+  asker->controller->OnEvent(ftxui::Event::Escape);
+  asker->controller->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(asker->controller->screen(), kPlayerList);
   EXPECT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
     return asked->controller->screen() == kPlayerList;

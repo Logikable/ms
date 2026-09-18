@@ -744,6 +744,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnTradeItemAmountEvent(event);
     case kTradeConfirm:
       return OnTradeConfirmEvent(event);
+    case kTradeLeave:
+      return OnTradeLeaveEvent(event);
     case kTradeInspect:
       return OnCardEvent(event, inspect_panel_, kTrade);
     case kPartySelect:
@@ -1984,6 +1986,11 @@ void TuiController::AdvanceTradeConfirm(const TradeState& trade) {
   // acceptance, whichever side gives it, and goes the moment either is taken
   // back.
   const bool both = trade.mine_accepted() && trade.theirs_accepted();
+  // Not over the question about walking out: that one is the player's to
+  // answer, and its answer may be what ends the trade anyway.
+  if (screen_ == kTradeLeave) {
+    return;
+  }
   if (both && screen_ != kTradeConfirm) {
     trade_panel_.CloseMenu();
     trade_prompt_.Open();
@@ -2014,7 +2021,8 @@ void TuiController::PutUpTradeAmount() {
 bool TuiController::OnTradeScreen() const {
   return screen_ == kTrade || screen_ == kTradeAmount ||
          screen_ == kTradeMenu || screen_ == kTradeItemAmount ||
-         screen_ == kTradeInspect || screen_ == kTradeConfirm;
+         screen_ == kTradeInspect || screen_ == kTradeConfirm ||
+         screen_ == kTradeLeave;
 }
 
 void TuiController::SendTradeOffer() {
@@ -2028,6 +2036,9 @@ void TuiController::SendTradeOffer() {
 }
 
 void TuiController::LeaveTrade() {
+  trade_leave_prompt_.Close();
+  trade_prompt_.Close();
+  trade_panel_.CloseMenu();
   left_trade_id_ = Lobby().trade.id();
   if (multiplayer_ != nullptr) {
     multiplayer_->client().LeaveTrade();
@@ -2068,7 +2079,10 @@ bool TuiController::OnTradeEvent(ftxui::Event event) {
     return true;
   }
   if (IsBack(event)) {
-    LeaveTrade();
+    // Asked rather than done: Escape is one key away from everywhere, and
+    // walking out ends the trade for both of them.
+    trade_leave_prompt_.Open();
+    screen_ = kTradeLeave;
   }
   // Everything else is swallowed: this is a modal screen, and the ticker's
   // redraw arrives as an event too.
@@ -2244,6 +2258,19 @@ bool TuiController::OnTradeConfirmEvent(ftxui::Event event) {
   // Up either way: what takes it down is the answer coming back -- the trade
   // going through, or the acceptance this cancel just cleared.
   trade_prompt_.Open(/*cancel_selected=*/choice == ConfirmChoice::kConfirmed);
+  return true;
+}
+
+bool TuiController::OnTradeLeaveEvent(ftxui::Event event) {
+  ConfirmChoice choice = trade_leave_prompt_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    LeaveTrade();
+    return true;
+  }
+  screen_ = kTrade;
   return true;
 }
 

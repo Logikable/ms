@@ -98,6 +98,8 @@ enum Screen : int {
   kTradeMenu,
   // Both sides have accepted: the last question before the exchange.
   kTradeConfirm,
+  // Escape on the trade screen, which ends it for both: asked first.
+  kTradeLeave,
   // Offer on a stack in the bag: how many of it to put up.
   kTradeItemAmount,
   // Inspect on any of those rows. Their items are not in any bag this client
