@@ -44,6 +44,7 @@ class TradeExchangeTest : public ::testing::Test {
   TradeExchangeTest() {
     items_[Scroll().name()] = Scroll();
     items_[kSpellTraceName] = Trace();
+    equips_[Sword().name()] = Sword();
   }
 
   CharacterInstance MakeCharacter() {
@@ -69,6 +70,7 @@ class TradeExchangeTest : public ::testing::Test {
 
   std::mt19937 rng_{0};
   std::map<std::string, ItemPrototype> items_;
+  std::map<std::string, EquipPrototype> equips_;
 };
 
 TEST_F(TradeExchangeTest, AnEmptyBagTakesAnything) {
@@ -144,6 +146,79 @@ TEST_F(TradeExchangeTest, AnItemThisBuildCannotNameIsRefused) {
   received.add_stacks()->set_name("Something Else");
   received.mutable_stacks(0)->set_count(1);
   EXPECT_FALSE(HasRoomForTrade(character, items_, TradeOffer(), received));
+}
+
+TEST_F(TradeExchangeTest, TheExchangeTakesAndGives) {
+  CharacterInstance character = MakeCharacter();
+  character.AddMeso(10000);
+  character.AddStackable(Scroll(), 20);
+  character.AddStackable(Trace(), 50);
+  Equip starred;
+  starred.set_equip_name("Sword");
+  starred.set_stars(4);
+  character.PickUp(std::make_unique<EquipInstance>(Sword(), starred));
+  character.PickUp(std::make_unique<EquipInstance>(Sword()));
+
+  TradeOffer given;
+  given.set_meso(2500);
+  given.set_spell_traces(30);
+  given.add_stacks()->set_name("Chaos Scroll");
+  given.mutable_stacks(0)->set_count(5);
+  *given.add_equips() = starred;
+
+  TradeOffer received;
+  received.set_meso(400);
+  received.set_spell_traces(7);
+  Equip theirs;
+  theirs.set_equip_name("Sword");
+  theirs.set_stars(9);
+  *received.add_equips() = theirs;
+
+  ApplyTrade(character, equips_, items_, {0}, given, received);
+
+  EXPECT_EQ(character.meso(), 10000 - 2500 + 400);
+  EXPECT_EQ(character.CountStackable(kSpellTraceName), 50 - 30 + 7);
+  EXPECT_EQ(character.CountStackable("Chaos Scroll"), 15);
+  // The starred one went and theirs arrived whole; the plain one stayed.
+  ASSERT_EQ(character.inventory().size(), 2);
+  EXPECT_EQ(character.inventory()[0].stars(), 0);
+  EXPECT_EQ(character.inventory()[1].stars(), 9);
+}
+
+TEST_F(TradeExchangeTest, RowsComeOutBackToFront) {
+  CharacterInstance character = MakeCharacter();
+  for (int stars = 0; stars < 4; ++stars) {
+    Equip state;
+    state.set_equip_name("Sword");
+    state.set_stars(stars);
+    character.PickUp(std::make_unique<EquipInstance>(Sword(), state));
+  }
+
+  TradeOffer given;
+  *given.add_equips() = character.inventory()[0].SavedState();
+  *given.add_equips() = character.inventory()[2].SavedState();
+  ApplyTrade(character, equips_, items_, {0, 2}, given, TradeOffer());
+
+  // The rows named are the ones that went, whatever order they came in.
+  ASSERT_EQ(character.inventory().size(), 2);
+  EXPECT_EQ(character.inventory()[0].stars(), 1);
+  EXPECT_EQ(character.inventory()[1].stars(), 3);
+}
+
+TEST_F(TradeExchangeTest, ATraceCrossesAsTheItemItIs) {
+  CharacterInstance character = MakeCharacter();
+  Equip trace;
+  trace.set_equip_name("Sword");
+  trace.set_trace(true);
+  trace.set_stars(12);
+
+  TradeOffer received;
+  *received.add_equips() = trace;
+  ApplyTrade(character, equips_, items_, {}, TradeOffer(), received);
+
+  ASSERT_EQ(character.inventory().size(), 1);
+  EXPECT_TRUE(character.inventory()[0].is_trace());
+  EXPECT_EQ(character.inventory()[0].stars(), 12);
 }
 
 }  // namespace

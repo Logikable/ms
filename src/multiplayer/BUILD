@@ -57,6 +57,7 @@ cc_library(
     deps = [
         "//src/character",
         "//src/item",
+        "//src/item:equip_instance",
         "//src/item:inventory",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",

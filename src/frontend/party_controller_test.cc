@@ -50,6 +50,16 @@ std::map<std::string, Skill> SkillCatalog() {
   return {{"power_strike", strike}};
 }
 
+// One stack in the catalog, for the same reason as the weapon: an item
+// crosses as a NAME, and both ends resolve it against their own catalogs.
+ItemPrototype TestStack() {
+  ItemPrototype proto;
+  proto.set_name("Chaos Scroll");
+  proto.set_category(ITEM_CATEGORY_ETC);
+  proto.set_max_stack(100);
+  return proto;
+}
+
 std::unique_ptr<GameState> MakeState() {
   std::unique_ptr<GameState> state = std::make_unique<GameState>(
       // One weapon in the catalog, so a member has something to be seen
@@ -58,7 +68,8 @@ std::unique_ptr<GameState> MakeState() {
       // that is the one a new character is seeded with, and these tests want a
       // character carrying nothing.
       std::map<std::string, EquipPrototype>{{"iron_sword", IronSword()}},
-      std::map<std::string, Scroll>{}, std::map<std::string, ItemPrototype>{},
+      std::map<std::string, Scroll>{},
+      std::map<std::string, ItemPrototype>{{"chaos_scroll", TestStack()}},
       TestMobs(), std::map<std::string, MapData>{}, SkillCatalog());
   // The same fight the server holds, since both ends have to mean the same
   // thing by its name.
@@ -815,6 +826,59 @@ TEST_F(PartyControllerTest, TheFinalizeDialogAndItsCancel) {
   EXPECT_FALSE(asked->session.Snapshot().trade.mine_accepted());
   EXPECT_TRUE(asker->session.Snapshot().trade.mine_accepted());
   EXPECT_FALSE(asked->controller->trade_waiting());
+}
+
+// The whole exchange: both confirm, both bags change, and both screens close.
+TEST_F(PartyControllerTest, BothConfirmAndTheItemsCross) {
+  std::unique_ptr<Client> asker = Connect("Dagger");
+  std::unique_ptr<Client> asked = Connect("Wand");
+  asker->state->character.AddMeso(5000);
+  asked->state->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
+  asked->state->character.AddStackable(TestStack(), 12);
+  const int64_t my_meso = asker->state->character.meso();
+  const int64_t their_meso = asked->state->character.meso();
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->session.Snapshot().online.players_size() == 2;
+  }));
+  OpenTrade(*asker, *asked);
+
+  // The asker puts up 5,000 meso; the other puts up the sword.
+  asker->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(asker->controller->screen(), kTradeAmount);
+  for (char digit : std::string("5000")) {
+    asker->controller->OnEvent(ftxui::Event::Character(digit));
+  }
+  asker->controller->OnEvent(ftxui::Event::ArrowDown);
+  asker->controller->OnEvent(ftxui::Event::Return);
+  OfferFirstBagItem(*asked);
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->session.Snapshot().trade.theirs().equips_size() == 1 &&
+           asked->session.Snapshot().trade.theirs().meso() == 5000;
+  }));
+
+  PressAccept(*asker);
+  PressAccept(*asked);
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->controller->screen() == kTradeConfirm &&
+           asked->controller->screen() == kTradeConfirm;
+  }));
+  asker->controller->OnEvent(ftxui::Event::Return);
+  asked->controller->OnEvent(ftxui::Event::Return);
+
+  // Both screens close, and neither is told they were walked out on.
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->controller->screen() == kPlayerList &&
+           asked->controller->screen() == kPlayerList;
+  }));
+  EXPECT_FALSE(asker->controller->party_notice_prompt().open());
+  EXPECT_FALSE(asked->controller->party_notice_prompt().open());
+  EXPECT_TRUE(asker->controller->notification().visible());
+
+  EXPECT_EQ(asker->state->character.meso(), my_meso - 5000);
+  EXPECT_EQ(asked->state->character.meso(), their_meso + 5000);
+  ASSERT_EQ(asker->state->character.inventory().size(), 1);
+  EXPECT_EQ(asker->state->character.inventory()[0].name(), IronSword().name());
+  EXPECT_EQ(asked->state->character.inventory().size(), 0);
 }
 
 TEST_F(PartyControllerTest, TradingABusyPlayerIsRefused) {

@@ -1,11 +1,13 @@
 #include "src/multiplayer/trade_exchange.h"
 
 #include <algorithm>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
 
 #include "src/character/character.h"
+#include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
 
@@ -91,6 +93,45 @@ bool HasRoomForTrade(const CharacterInstance& character,
     }
   }
   return true;
+}
+
+void ApplyTrade(CharacterInstance& character,
+                const std::map<std::string, EquipPrototype>& equips,
+                const std::map<std::string, ItemPrototype>& items,
+                const std::vector<int>& given_equips, const TradeOffer& given,
+                const TradeOffer& received) {
+  // Out before in, and from the back: every row before the one taken keeps
+  // its place, so a list of rows stays true while it is being worked.
+  std::vector<int> rows = given_equips;
+  std::sort(rows.begin(), rows.end(), std::greater<int>());
+  for (int row : rows) {
+    character.TakeEquip(row);
+  }
+  for (const TradeStack& stack : given.stacks()) {
+    character.ConsumeStackable(stack.name(), stack.count());
+  }
+  character.ConsumeStackable(kSpellTraceName,
+                             static_cast<int>(given.spell_traces()));
+  character.SpendMeso(given.meso());
+
+  character.AddMeso(received.meso());
+  for (const Equip& equip : received.equips()) {
+    const EquipPrototype* proto = FindEquipByName(equips, equip.equip_name());
+    if (proto == nullptr) {
+      continue;
+    }
+    character.PickUp(EquipItemFromState(*proto, equip));
+  }
+  for (const TradeStack& stack : received.stacks()) {
+    const ItemPrototype* proto = FindItemByName(items, stack.name());
+    if (proto != nullptr) {
+      character.AddStackable(*proto, stack.count());
+    }
+  }
+  const ItemPrototype* trace = FindItemByName(items, kSpellTraceName);
+  if (trace != nullptr && received.spell_traces() > 0) {
+    character.AddStackable(*trace, static_cast<int>(received.spell_traces()));
+  }
 }
 
 }  // namespace ms

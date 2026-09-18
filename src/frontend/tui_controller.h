@@ -282,6 +282,14 @@ class TuiController {
   }
   // Whether this player has confirmed and is waiting on the other.
   bool trade_waiting() const;
+  // Whether the player is anywhere on the trade screen. The map is not farmed
+  // while they are: an offer whose purse drained under it, or a drop landing
+  // between an acceptance and the exchange, is a trade nobody agreed to.
+  bool OnTradeScreen() const;
+  // Whether something happened that must not wait for the autosave clock: a
+  // trade going through, which is the one point where value crosses from one
+  // save file into another. Cleared by the taking.
+  bool TakeSaveRequest();
   // The finalize dialog's cursor, for the row it draws.
   const ConfirmPrompt& trade_prompt() const {
     return trade_prompt_;
@@ -639,6 +647,9 @@ class TuiController {
   // Asks `account_id` to trade, from either menu. The trade screen opens when
   // the server answers, so nothing here says where the player goes next.
   void AskToTrade(const std::string& account_id);
+  // Puts a trade that went through into the bag: what was put up leaves, what
+  // the other side put up arrives, and the screen closes back to the list.
+  void ApplyCompletedTrade(const TradeOffer& received);
   // Raises the finalize dialog on the second acceptance and takes it down
   // when either is withdrawn.
   void AdvanceTradeConfirm(const TradeState& trade);
@@ -652,10 +663,6 @@ class TuiController {
   void PutUpTradeAmount();
   // Tells the server what is on this player's side of the table, whole.
   void SendTradeOffer();
-  // Whether the player is anywhere on the trade screen -- its menus, its
-  // overlays and the cards they open included. A trade that ends under them
-  // takes every one of those down, so they are asked about together.
-  bool OnTradeScreen() const;
   // Enter on a row of any of the three windows.
   void OpenTradeMenu();
   // Enter on the Accept button, which is a toggle. Accepting is refused with
@@ -927,6 +934,10 @@ class TuiController {
   bool party_notice_is_refusal_ = false;
   // The serial of the last notice raised, so one is shown once.
   int64_t party_notice_seen_ = 0;
+  // The last trade payment this client has put in the bag, so one is never
+  // applied twice.
+  int64_t trade_paid_seen_ = 0;
+  bool save_wanted_ = false;
   // What the clear card reads from, kept for as long as it is up.
   OfflineReport offline_report_;
   ContinuePrompt offline_prompt_;

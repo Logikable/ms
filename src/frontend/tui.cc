@@ -297,7 +297,13 @@ void Tui::Run() {
                                                  : kMarqueeStep);
       screen.Post([this, &screen]() {
         Tick();
-        save_policy_.AutosaveIfDue(state_, std::chrono::steady_clock::now());
+        std::chrono::steady_clock::time_point now =
+            std::chrono::steady_clock::now();
+        if (controller_.TakeSaveRequest()) {
+          save_policy_.Save(state_, now);
+        } else {
+          save_policy_.AutosaveIfDue(state_, now);
+        }
         // Posted here rather than acted on in the handler: this runs on the
         // loop thread, where ending the loop and writing a file are both
         // things it is safe to do.
@@ -1201,8 +1207,12 @@ void Tui::Tick() {
     // The map is not farmed while the player is somewhere else: EXP quietly
     // arriving from a fight they cannot see is a strange thing to owe them.
     // The analysis is not fed either, so its clock stops with the farming.
+    //
+    // The trade screen stops it for a harder reason: a purse that drains under
+    // an offer, or a drop that fills the bag between an acceptance and the
+    // exchange, is a trade neither side agreed to.
     controller_.AdvanceBossRun(elapsed.count());
-  } else {
+  } else if (!controller_.OnTradeScreen()) {
     RewardTally tally = AdvanceCombat(state_, combat_sim_, elapsed.count());
     AnalysisSample sample;
     sample.seconds = elapsed.count();

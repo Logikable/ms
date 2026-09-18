@@ -30,6 +30,18 @@ bool HasRoomForTrade(const CharacterInstance& character,
                      const std::map<std::string, ItemPrototype>& items,
                      const TradeOffer& given, const TradeOffer& received);
 
+// Takes `given` off the character and puts `received` on. `given_equips` are
+// the equip-tab rows put up, in any order: the wire says what an item IS, and
+// the bag has to be told which of its own to hand over.
+//
+// Ask HasRoomForTrade first. This one does what it is told: anything the bag
+// cannot hold is lost, exactly as a drop into a full bag is.
+void ApplyTrade(CharacterInstance& character,
+                const std::map<std::string, EquipPrototype>& equips,
+                const std::map<std::string, ItemPrototype>& items,
+                const std::vector<int>& given_equips, const TradeOffer& given,
+                const TradeOffer& received);
+
 }  // namespace ms
 
 #endif  // MS_SRC_MULTIPLAYER_TRADE_EXCHANGE_H_

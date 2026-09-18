@@ -2055,6 +2055,21 @@ int CharacterInstance::AddStackable(const ItemPrototype& proto, int count) {
   return added;
 }
 
+std::unique_ptr<EquipTabItem> CharacterInstance::TakeEquip(int index) {
+  if (index < 0 || index >= inventory_.size()) {
+    return nullptr;
+  }
+  return inventory_.remove_equip(index);
+}
+
+bool CharacterInstance::SpendMeso(int64_t amount) {
+  if (amount <= 0 || character_.meso() < amount) {
+    return amount <= 0;
+  }
+  character_.set_meso(character_.meso() - amount);
+  return true;
+}
+
 void CharacterInstance::AddMeso(int64_t amount) {
   if (amount <= 0) {
     return;

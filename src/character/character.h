@@ -208,6 +208,10 @@ class CharacterInstance {
   // Appends `item` to the equip tab. False, and the item is dropped, when the
   // tab is full.
   bool PickUp(std::unique_ptr<EquipTabItem> item);
+  // Takes the equip-tab item at `index` out of the bag and hands it over, the
+  // counterpart of PickUp: for an item leaving the character for something
+  // that is not a sale. Null for an index out of range.
+  std::unique_ptr<EquipTabItem> TakeEquip(int index);
   // Throws away everything on the equip tab, worn gear untouched. The
   // workbench's: nothing in the game empties one.
   void ClearEquipInventory();
@@ -234,6 +238,10 @@ class CharacterInstance {
   bool ConsumeStackable(const std::string& name, int count);
   // Adds `amount` meso to the character's balance. No-op if amount <= 0.
   void AddMeso(int64_t amount);
+  // Takes `amount` meso. All or nothing: false and nothing spent on a short
+  // purse. Every price in the game is charged by the method that knows it;
+  // this is for meso leaving for a reason the character does not own.
+  bool SpendMeso(int64_t amount);
   // Adds `amount` honor, the pool an Inner Ability reset is paid out of. No-op
   // if amount <= 0.
   void AddHonor(int64_t amount);

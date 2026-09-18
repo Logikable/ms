@@ -1923,6 +1923,13 @@ void TuiController::AskToTrade(const std::string& account_id) {
 
 void TuiController::AdvanceTrade(const MultiplayerSnapshot& lobby) {
   trade_panel_.SetTrade(lobby.trade);
+  // Before anything else about the trade: the payment is what says it ended,
+  // and the empty state under it would otherwise read as a walk-out.
+  if (lobby.trade_serial != trade_paid_seen_) {
+    trade_paid_seen_ = lobby.trade_serial;
+    ApplyCompletedTrade(lobby.trade_received);
+    return;
+  }
   const bool open = OnTradeScreen();
   if (lobby.trade.id().empty()) {
     left_trade_id_.clear();
@@ -1944,6 +1951,28 @@ void TuiController::AdvanceTrade(const MultiplayerSnapshot& lobby) {
   }
   trade_panel_.Reset();
   screen_ = kTrade;
+}
+
+void TuiController::ApplyCompletedTrade(const TradeOffer& received) {
+  // Taken before a thing moves: what was put up is named by where it sits in
+  // the bag, and the first removal makes that untrue.
+  const OwnTradeOffer& mine = trade_panel_.own();
+  ApplyTrade(state_.character, state_.equips, state_.items, mine.equips,
+             mine.ToWire(state_.character), received);
+  trade_panel_.Reset();
+  trade_prompt_.Close();
+  left_trade_id_.clear();
+  if (OnTradeScreen()) {
+    screen_ = trade_return_;
+  }
+  notification_.Raise({"Trade complete."});
+  save_wanted_ = true;
+}
+
+bool TuiController::TakeSaveRequest() {
+  bool wanted = save_wanted_;
+  save_wanted_ = false;
+  return wanted;
 }
 
 bool TuiController::trade_waiting() const {
