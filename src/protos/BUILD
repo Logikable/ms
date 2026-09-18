@@ -145,7 +145,10 @@ cc_proto_library(
 proto_library(
     name = "multiplayer_proto",
     srcs = ["multiplayer.proto"],
-    deps = [":character_proto"],
+    deps = [
+        ":character_proto",
+        ":equip_proto",
+    ],
 )
 
 cc_proto_library(

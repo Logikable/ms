@@ -3,6 +3,7 @@ syntax = "proto3";
 package ms;
 
 import "src/protos/character.proto";
+import "src/protos/equip.proto";
 
 // What the client and the server say to each other. Nothing here is written to
 // disk, so these field numbers are free to move -- but both ends have to agree
@@ -255,11 +256,23 @@ message FightEnded {
 // nothing, and the fight goes on for whoever is left.
 message LeaveFight {}
 
-// What one side of a trade is putting up. The two currencies a character
-// carries that are worth counting; items come later.
+// One stack on the table: what it is and how many. Named rather than pointed
+// at, as everything crossing the wire is -- an index into a bag the other end
+// cannot see means nothing there.
+message TradeStack {
+  string name = 1;
+  int32 count = 2;
+}
+
+// What one side of a trade is putting up: the two currencies worth counting,
+// and the items. An equip crosses WHOLE, scrolls, stars, hammers and potential
+// with it, so the other end rebuilds the drop rather than a fresh copy of the
+// prototype it names.
 message TradeOffer {
   int64 meso = 1;
   int64 spell_traces = 2;
+  repeated Equip equips = 3;
+  repeated TradeStack stacks = 4;
 }
 
 // Trade with the player named. Both sides send it: the first opens the trade
@@ -278,6 +291,18 @@ message SetTradeOffer {
 // Walking out of the trade screen, which ends the trade for both.
 message LeaveTrade {}
 
+// Accepting what is on the table, or taking that back.
+message AcceptTrade {
+  bool accepted = 1;
+}
+
+// Answering the finalize dialog. A cancel clears this player's acceptance and
+// nothing else: the other side keeps theirs, so one keypress puts the dialog
+// back up.
+message ConfirmTrade {
+  bool confirmed = 1;
+}
+
 // The trade this client is in. An empty id means they are in none, which is
 // how walking out, being walked out on, and never having traded read alike.
 message TradeState {
@@ -289,6 +314,14 @@ message TradeState {
   bool partner_joined = 4;
   TradeOffer mine = 5;
   TradeOffer theirs = 6;
+  // Whether each side has accepted what is on the table. BOTH are cleared
+  // whenever either offer changes, so an accept always means the offer the
+  // player was looking at when they gave it.
+  bool mine_accepted = 7;
+  bool theirs_accepted = 8;
+  // Whether this player has confirmed and is waiting on the other. The trade
+  // goes through the moment both have, so only one side is ever waiting.
+  bool mine_confirmed = 9;
 }
 
 // Something worth putting in front of the player wherever they are: the gold
@@ -326,6 +359,8 @@ message ClientMessage {
     RequestTrade request_trade = 14;
     SetTradeOffer set_trade_offer = 15;
     LeaveTrade leave_trade = 16;
+    AcceptTrade accept_trade = 17;
+    ConfirmTrade confirm_trade = 18;
   }
 }
 
@@ -433,6 +468,13 @@ message PartyEvent {
   string message = 2;
 }
 
+// A trade that went through, sent to each side as the trade is torn down.
+// What is in it is what this player RECEIVES; what they put up has left them,
+// so applying it is taking their own offer off and putting this on.
+message TradeCompleted {
+  TradeOffer received = 1;
+}
+
 message Pong {}
 
 message ServerMessage {
@@ -450,5 +492,6 @@ message ServerMessage {
     PlayerSheet player_sheet = 11;
     TradeState trade_state = 12;
     Notification notification = 13;
+    TradeCompleted trade_completed = 14;
   }
 }

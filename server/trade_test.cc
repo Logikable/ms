@@ -141,6 +141,109 @@ TEST_F(TradeTest, AnOfferHasASide) {
   EXPECT_TRUE(Told("two"));
 }
 
+TEST_F(TradeTest, ItemsCrossWhole) {
+  Open("one", "two");
+
+  TradeOffer offer = Offer(0, 0);
+  Equip* equip = offer.add_equips();
+  equip->set_equip_name("Fafnir Mace");
+  equip->set_stars(17);
+  TradeStack* stack = offer.add_stacks();
+  stack->set_name("Chaos Scroll");
+  stack->set_count(3);
+  trades_.SetOffer("one", offer);
+
+  TradeState theirs = trades_.StateFor("two");
+  ASSERT_EQ(theirs.theirs().equips_size(), 1);
+  EXPECT_EQ(theirs.theirs().equips(0).equip_name(), "Fafnir Mace");
+  EXPECT_EQ(theirs.theirs().equips(0).stars(), 17);
+  ASSERT_EQ(theirs.theirs().stacks_size(), 1);
+  EXPECT_EQ(theirs.theirs().stacks(0).name(), "Chaos Scroll");
+  EXPECT_EQ(theirs.theirs().stacks(0).count(), 3);
+}
+
+TEST_F(TradeTest, AnOfferClearsBothAcceptances) {
+  Open("one", "two");
+  trades_.SetAccept("one", true);
+  trades_.SetAccept("two", true);
+  ASSERT_TRUE(trades_.StateFor("one").mine_accepted());
+  ASSERT_TRUE(trades_.StateFor("one").theirs_accepted());
+
+  trades_.SetOffer("two", Offer(10, 0));
+
+  EXPECT_FALSE(trades_.StateFor("one").mine_accepted());
+  EXPECT_FALSE(trades_.StateFor("one").theirs_accepted());
+  EXPECT_TRUE(Told("one"));
+
+  // And an acceptance can simply be taken back.
+  trades_.SetAccept("one", true);
+  trades_.SetAccept("one", false);
+  EXPECT_FALSE(trades_.StateFor("two").theirs_accepted());
+}
+
+TEST_F(TradeTest, BothConfirmsPayBothSides) {
+  Open("one", "two");
+  trades_.SetOffer("one", Offer(5000, 30));
+  trades_.SetOffer("two", Offer(0, 12));
+  trades_.SetAccept("one", true);
+  trades_.SetAccept("two", true);
+
+  trades_.SetConfirm("one", true);
+  EXPECT_TRUE(trades_.StateFor("one").mine_confirmed());
+  EXPECT_FALSE(trades_.StateFor("two").mine_confirmed());
+  EXPECT_TRUE(trades_.TakeCompletions().empty());
+
+  trades_.TakeChanged();
+  trades_.SetConfirm("two", true);
+
+  std::vector<TradeCompletion> paid = trades_.TakeCompletions();
+  ASSERT_EQ(paid.size(), 2);
+  EXPECT_EQ(paid[0].account_id, "one");
+  EXPECT_EQ(paid[0].received.spell_traces(), 12);
+  EXPECT_EQ(paid[1].account_id, "two");
+  EXPECT_EQ(paid[1].received.meso(), 5000);
+
+  // The trade is gone, and nobody is told it changed: the payment is what
+  // says it ended, and an empty state on top would read as a walk-out.
+  EXPECT_EQ(trades_.trade_count(), 0);
+  EXPECT_FALSE(trades_.Busy("one"));
+  EXPECT_TRUE(trades_.TakeChanged().empty());
+}
+
+TEST_F(TradeTest, CancellingKeepsTheOtherAcceptance) {
+  Open("one", "two");
+  trades_.SetAccept("one", true);
+  trades_.SetAccept("two", true);
+  trades_.SetConfirm("two", true);
+
+  trades_.SetConfirm("one", false);
+
+  EXPECT_FALSE(trades_.StateFor("one").mine_accepted());
+  EXPECT_TRUE(trades_.StateFor("two").mine_accepted());
+  EXPECT_FALSE(trades_.StateFor("two").mine_confirmed());
+  EXPECT_TRUE(trades_.TakeCompletions().empty());
+  EXPECT_EQ(trades_.trade_count(), 1);
+}
+
+TEST_F(TradeTest, ConfirmingWithoutBothAcceptancesDoesNothing) {
+  Open("one", "two");
+  trades_.SetAccept("one", true);
+
+  trades_.SetConfirm("one", true);
+  trades_.SetConfirm("two", true);
+
+  EXPECT_FALSE(trades_.StateFor("one").mine_confirmed());
+  EXPECT_EQ(trades_.trade_count(), 1);
+  EXPECT_TRUE(trades_.TakeCompletions().empty());
+}
+
+TEST_F(TradeTest, AgreementOutsideATradeIsQuiet) {
+  trades_.SetAccept("nobody", true);
+  trades_.SetConfirm("nobody", true);
+  EXPECT_TRUE(trades_.TakeChanged().empty());
+  EXPECT_TRUE(trades_.TakeCompletions().empty());
+}
+
 TEST_F(TradeTest, LeavingEndsItForBoth) {
   Open("one", "two");
   trades_.SetOffer("one", Offer(5000, 30));

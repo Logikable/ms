@@ -38,6 +38,13 @@ struct TradeNotice {
   Notification notification;
 };
 
+// One side of a trade that went through, and what it pays them. The trade is
+// gone by the time this is taken.
+struct TradeCompletion {
+  std::string account_id;
+  TradeOffer received;
+};
+
 class Trades {
  public:
   // `seed` fixes the stream trade ids are drawn from.
@@ -47,9 +54,16 @@ class Trades {
   // `from` into. `to_in_fight` is what the trade desk cannot see for itself.
   TradeResult Request(const PlayerInfo& from, const PlayerInfo& to,
                       bool to_in_fight);
-  // Puts up what `account_id` is offering, whole. Quiet about a player who is
-  // in no trade.
+  // Puts up what `account_id` is offering, whole. Clears both acceptances:
+  // what either side agreed to was the table as it stood. Quiet about a
+  // player who is in no trade.
   void SetOffer(const std::string& account_id, const TradeOffer& offer);
+  // Accepts the table as it stands, or takes that back.
+  void SetAccept(const std::string& account_id, bool accepted);
+  // Answers the finalize dialog. The trade goes through once both sides have
+  // confirmed; a cancel clears this player's acceptance too, which is what
+  // takes the dialog down for both of them.
+  void SetConfirm(const std::string& account_id, bool confirmed);
   // Ends whatever trade `account_id` is in, for both of them. Quiet about a
   // player who is in none, which is what leaving a screen twice looks like.
   void Leave(const std::string& account_id);
@@ -72,6 +86,10 @@ class Trades {
   // from the above because an ask reaches a player who is in no trade yet and
   // has nothing to draw.
   std::vector<TradeNotice> TakeNotices();
+  // The trades that went through, each side its own entry, cleared by the
+  // taking. A completed trade is NOT in TakeChanged: its players are told by
+  // this, and an empty state on top of it would read as a partner walking out.
+  std::vector<TradeCompletion> TakeCompletions();
 
   int trade_count() const {
     return static_cast<int>(trades_.size());
@@ -89,7 +107,20 @@ class Trades {
     bool joined = false;
     TradeOffer opener_offer;
     TradeOffer partner_offer;
+    bool opener_accepted = false;
+    bool partner_accepted = false;
+    bool opener_confirmed = false;
+    bool partner_confirmed = false;
   };
+
+  // Which side of `record` `account_id` is on, and the flags that side owns.
+  static bool IsOpener(const Record& record, const std::string& account_id);
+  // Puts the table back to nobody having agreed to it, both sides. Called
+  // whenever what is on it changes.
+  static void ClearAgreement(Record& record);
+  // Pays both sides and tears the trade down. `record` must be one both sides
+  // have confirmed.
+  void Complete(Record& record);
 
   // The trade `account_id` is in, or null.
   Record* Find(const std::string& account_id);
@@ -107,6 +138,7 @@ class Trades {
   std::map<std::string, std::string> trade_of_;
   std::vector<std::string> changed_;
   std::vector<TradeNotice> notices_;
+  std::vector<TradeCompletion> completions_;
   std::mt19937 rng_;
 };
 
