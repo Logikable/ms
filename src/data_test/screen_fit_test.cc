@@ -5,6 +5,7 @@
 // lands rather than when anybody touches the layout.
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <vector>
@@ -19,6 +20,7 @@
 #include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/hyper_stat_inspect_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
+#include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
@@ -170,6 +172,39 @@ TEST_F(ScreenFitTest, SkillInspect) {
     panel.SetSkill(&skill, skill.max_level(), /*bonus=*/0);
     ExpectFits(panel.Render(), entry.first + "'s card at master level");
   }
+}
+
+// Every job's book beside the tallest card in it, which is the size the
+// screen is held to however short the card under the cursor happens to be.
+TEST_F(ScreenFitTest, JobInspect) {
+  JobInspectPanel book(state_.skills);
+  SkillInspectPanel card;
+  card.SetMaxRows(kMinTerminalRows);
+  int books = 0;
+  for (int i = 1; i <= Job_MAX; ++i) {
+    if (!Job_IsValid(i)) {
+      continue;
+    }
+    Job job = static_cast<Job>(i);
+    for (int stage = 1; stage <= 5; ++stage) {
+      book.SetJob(job, stage);
+      std::vector<const Skill*> skills = book.Skills();
+      if (skills.empty()) {
+        continue;
+      }
+      ++books;
+      PreviewCardSize size = LargestPreviewCard(
+          skills, kMinTerminalColumns - kJobInspectBookWidth);
+      card.SetSkill(skills.front(), 0, 0, SkillInspectPanel::kPreview);
+      card.SetWidthBounds(size.columns, size.columns);
+      ExpectFits(JobInspectScreen(book.Render(), card.Render(),
+                                  std::min(size.rows, kMinTerminalRows)),
+                 Job_Name(job) + " stage " + std::to_string(stage));
+    }
+  }
+  // A guard on the loop itself: SetJob taking a stage nothing answers to would
+  // leave every book empty and the test asserting nothing.
+  EXPECT_GT(books, 0);
 }
 
 // Every equip, weighed against itself so the screen carries the compared card

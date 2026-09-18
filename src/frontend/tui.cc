@@ -649,14 +649,19 @@ ftxui::Element Tui::RenderShopInspect() {
 ftxui::Element Tui::RenderJobInspect() {
   // One size for the whole book: the card holds it whichever skill the cursor
   // is on, so the screen does not shift under the reader.
+  int rows = ftxui::Terminal::Size().dimy;
   PreviewCardSize card =
       LargestPreviewCard(job_inspect_panel_.Skills(),
                          ftxui::Terminal::Size().dimx - kJobInspectBookWidth);
   skill_inspect_panel_.SetSkill(job_inspect_panel_.selected_skill(), 0, 0,
                                 SkillInspectPanel::kPreview);
   skill_inspect_panel_.SetWidthBounds(card.columns, card.columns);
+  // The card scrolls past the terminal rather than standing off the end of
+  // it, and the floor the book is held to comes down with it.
+  skill_inspect_panel_.SetMaxRows(rows);
   return Centred(JobInspectScreen(job_inspect_panel_.Render(),
-                                  skill_inspect_panel_.Render(), card.rows));
+                                  skill_inspect_panel_.Render(),
+                                  std::min(card.rows, rows)));
 }
 
 ftxui::Element Tui::RenderTraceRecover() {

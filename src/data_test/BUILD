@@ -220,6 +220,7 @@ cc_test(
         "//src/frontend/screens:buff_info_panel",
         "//src/frontend/screens:hyper_stat_inspect_panel",
         "//src/frontend/screens:inspect_panel",
+        "//src/frontend/screens:job_inspect_panel",
         "//src/frontend/screens:keybinds_panel",
         "//src/frontend/screens:map_select_panel",
         "//src/frontend/screens:mob_inspect_panel",

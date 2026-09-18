@@ -55,7 +55,8 @@ constexpr int kMobTableWidth = 1 + kMobNameWidth + kLevelWidth + kCountWidth;
 //
 // KEEP THE BANDS HOLDING SIMILAR NUMBERS OF MAPS, not similar spans of levels,
 // and resplit as content lands: the list pads every band to the tallest, so a
-// small band spends the difference on blank rows.
+// small band spends the difference on blank rows and a big one takes the
+// screen past the terminal. //src/data_test:screen_fit_test is what says so.
 struct LevelBand {
   int min;
   int max;
