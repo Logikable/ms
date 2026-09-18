@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "server/test_server.h"
 #include "src/net/socket.h"
@@ -248,6 +249,48 @@ TEST_F(ClientTest, KeepsTryingWhenTheTokenIsWrong) {
   EXPECT_FALSE(impostor.Snapshot().message.empty());
   std::this_thread::sleep_for(milliseconds(100));
   EXPECT_EQ(impostor.Snapshot().state, ConnectionState::kUnavailable);
+}
+
+TEST_F(ClientTest, CarriesATradeFromEndToEnd) {
+  MultiplayerClient asker("127.0.0.1", server_.port());
+  MultiplayerClient asked("127.0.0.1", server_.port());
+  asker.Start(Player("Dagger"), "");
+  asked.Start(Player("Wand"), "");
+  ASSERT_TRUE(WaitUntilConnected(asker));
+  ASSERT_TRUE(WaitUntilConnected(asked));
+
+  asker.RequestTrade(asked.Snapshot().account_id);
+
+  // The one asked has a box to put up and no trade behind it yet.
+  ASSERT_TRUE(WaitFor(asked, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.notification_serial > 0;
+  }));
+  EXPECT_EQ(asked.Snapshot().notification,
+            std::vector<std::string>({"Trade request from", "Dagger"}));
+  EXPECT_TRUE(asked.Snapshot().trade.id().empty());
+  ASSERT_TRUE(WaitFor(asker, [](const MultiplayerSnapshot& snapshot) {
+    return !snapshot.trade.id().empty();
+  }));
+  EXPECT_FALSE(asker.Snapshot().trade.partner_joined());
+
+  asked.RequestTrade(asker.Snapshot().account_id);
+  ASSERT_TRUE(WaitFor(asker, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.trade.partner_joined();
+  }));
+
+  TradeOffer offer;
+  offer.set_meso(5000);
+  offer.set_spell_traces(30);
+  asked.SetTradeOffer(offer);
+  ASSERT_TRUE(WaitFor(asker, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.trade.theirs().meso() == 5000;
+  }));
+  EXPECT_EQ(asker.Snapshot().trade.mine().meso(), 0);
+
+  asked.LeaveTrade();
+  EXPECT_TRUE(WaitFor(asker, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.trade.id().empty();
+  }));
 }
 
 TEST_F(ClientTest, SaysNothingAboutAVersionUntilTheServerRefuses) {

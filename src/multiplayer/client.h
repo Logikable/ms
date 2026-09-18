@@ -69,6 +69,14 @@ struct MultiplayerSnapshot {
   PlayerInfo watched;
   // The party this player is in. No id means they are in none.
   Party party;
+  // The trade this player is in. No id means they are in none, which is what
+  // closes the trade screen on a partner who walked out.
+  TradeState trade;
+  // The last thing worth putting in the gold box, one string per line, and a
+  // serial that climbs with each one -- how a screen tells a box it has
+  // already raised from a new one.
+  std::vector<std::string> notification;
+  int64_t notification_serial = 0;
   // The last thing the server had to say to this player alone: an action it
   // would not take, or something that happened to their place in a party. The
   // serial climbs with each one, which is how a screen tells a new notice
@@ -128,6 +136,13 @@ class MultiplayerClient {
   void SetReady(bool ready);
   void Kick(const std::string& account_id);
   void Promote(const std::string& account_id);
+  // Asks `account_id` to trade, which is also how the player who was asked
+  // answers: the second ask opens the trade for both.
+  void RequestTrade(const std::string& account_id);
+  // Puts up what this player is offering, whole.
+  void SetTradeOffer(const TradeOffer& offer);
+  // Walks out of the trade, which ends it for both.
+  void LeaveTrade();
   // Asks for `account_id`'s sheet, and for a fresh one whenever they change.
   // An empty account stops the watch, which is what closing the screen does.
   void WatchPlayer(const std::string& account_id);

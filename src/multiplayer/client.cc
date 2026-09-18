@@ -166,6 +166,24 @@ void MultiplayerClient::Promote(const std::string& account_id) {
   Ask(message);
 }
 
+void MultiplayerClient::RequestTrade(const std::string& account_id) {
+  ClientMessage message;
+  message.mutable_request_trade()->set_account_id(account_id);
+  Ask(message);
+}
+
+void MultiplayerClient::SetTradeOffer(const TradeOffer& offer) {
+  ClientMessage message;
+  *message.mutable_set_trade_offer()->mutable_offer() = offer;
+  Ask(message);
+}
+
+void MultiplayerClient::LeaveTrade() {
+  ClientMessage message;
+  message.mutable_leave_trade();
+  Ask(message);
+}
+
 void MultiplayerClient::WatchPlayer(const std::string& account_id) {
   {
     // The sheet on hand belongs to whoever was being read before.
@@ -349,6 +367,14 @@ void MultiplayerClient::Handle(const ServerMessage& message, bool& keep) {
     case ServerMessage::kPlayerSheet:
       snapshot_.watched = message.player_sheet().player();
       return;
+    case ServerMessage::kTradeState:
+      snapshot_.trade = message.trade_state();
+      return;
+    case ServerMessage::kNotification:
+      snapshot_.notification.assign(message.notification().lines().begin(),
+                                    message.notification().lines().end());
+      ++snapshot_.notification_serial;
+      return;
     case ServerMessage::kRefused:
       snapshot_.notice = message.refused().message();
       snapshot_.notice_is_refusal = true;
@@ -425,6 +451,8 @@ void MultiplayerClient::ForgetLobby() {
   snapshot_.party.Clear();
   snapshot_.online.Clear();
   snapshot_.watched.Clear();
+  // Nor does a trade: the server let go of it when the socket went.
+  snapshot_.trade.Clear();
   // A fight does not survive the connection that was watching it.
   fight_.clear();
 }
