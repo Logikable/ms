@@ -131,6 +131,7 @@ TEST_F(TradePanelTest, TheirWindowHasNoNameUntilTheyJoin) {
 TEST_F(TradePanelTest, TheirSideIsMirrored) {
   TradeState trade = Trade("Wand", /*joined=*/true);
   trade.mutable_theirs()->set_meso(120);
+  trade.mutable_theirs()->set_spell_traces(77);
   trade.set_theirs_accepted(true);
   panel_.SetTrade(trade);
 
@@ -142,9 +143,10 @@ TEST_F(TradePanelTest, TheirSideIsMirrored) {
     }
   }
   ASSERT_GE(line, 0);
-  // Their mark leads their half and their meso ends it; the name sits over the
-  // meso rather than over the mark.
-  EXPECT_LT(rows[line].find("✓"), rows[line].find("120"));
+  // Their mark leads their half, their traces follow and their meso ends it;
+  // the name sits over the meso rather than over the mark.
+  EXPECT_LT(rows[line].find("✓"), rows[line].find("77"));
+  EXPECT_LT(rows[line].find("77"), rows[line].find("120"));
   std::string title;
   for (const std::string& row : rows) {
     if (row.find("Wand") != std::string::npos) {

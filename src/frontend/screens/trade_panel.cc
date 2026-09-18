@@ -61,17 +61,29 @@ ftxui::Element AcceptMark(bool accepted) {
   return ftxui::text("✓") | ftxui::color(kGreen) | ftxui::bold;
 }
 
-ftxui::Element CurrencyCells(int64_t meso, int64_t traces, bool mine,
-                             int cursor) {
+// Your own two currencies, the cursor's on the selection band: the meso first,
+// where the eye already is, and the room left to its right.
+ftxui::Element MyCurrencyCells(int64_t meso, int64_t traces, int cursor) {
   ftxui::Element meso_cell =
       ftxui::text(PadRight(FormatMeso(meso), kMesoCell)) | ftxui::color(kTheme);
   ftxui::Element trace_cell =
       ftxui::text(PadRight(FormatSpellTraces(traces), kTraceCell)) |
       ftxui::color(kTheme);
   return ftxui::hbox({
-      HighlightRow(std::move(meso_cell), mine && cursor == 0),
+      HighlightRow(std::move(meso_cell), cursor == 0),
       ftxui::text("  "),
-      HighlightRow(std::move(trace_cell), mine && cursor == 1),
+      HighlightRow(std::move(trace_cell), cursor == 1),
+  });
+}
+
+// And theirs, the mirror of it: the traces, then the meso hard against their
+// window's right border, so the two offers are read outward from the middle.
+ftxui::Element TheirCurrencyCells(int64_t meso, int64_t traces) {
+  return ftxui::hbox({
+      ftxui::text(PadLeft(FormatSpellTraces(traces), kTraceCell)) |
+          ftxui::color(kTheme),
+      ftxui::text("  "),
+      ftxui::text(PadLeft(FormatMeso(meso), kMesoCell)) | ftxui::color(kTheme),
   });
 }
 
@@ -459,8 +471,7 @@ ftxui::Element TradePanel::RenderOfferTable(const std::vector<OfferRow>& rows,
 ftxui::Element TradePanel::RenderMyTopRow() const {
   return ftxui::hbox({
       ftxui::text(" "),
-      CurrencyCells(own_.meso, own_.spell_traces, /*mine=*/true,
-                    own_list_ ? -1 : top_),
+      MyCurrencyCells(own_.meso, own_.spell_traces, own_list_ ? -1 : top_),
       ftxui::text("   "),
       ActionButton("Accept",
                    zone_ == TradeZone::kMine && !own_list_ && top_ == 2),
@@ -475,8 +486,8 @@ ftxui::Element TradePanel::RenderTheirTopRow() const {
       ftxui::text(" "),
       AcceptMark(trade_.theirs_accepted()),
       ftxui::filler(),
-      CurrencyCells(trade_.theirs().meso(), trade_.theirs().spell_traces(),
-                    /*mine=*/false, -1),
+      TheirCurrencyCells(trade_.theirs().meso(),
+                         trade_.theirs().spell_traces()),
       ftxui::text(" "),
   });
 }
