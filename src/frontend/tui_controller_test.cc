@@ -596,7 +596,7 @@ class TuiControllerTest : public testing::Test {
     ItemPrototype trace;
     trace.set_name(kSpellTraceName);
     trace.set_category(ITEM_CATEGORY_ETC);
-    trace.set_max_stack(30000);
+    trace.set_kind(ITEM_KIND_SPELL_TRACE);
     state_->character.AddItem(trace, count);
   }
 

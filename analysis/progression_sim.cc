@@ -129,6 +129,7 @@
 #include "src/combat/measure.h"
 #include "src/embedded_data.h"
 #include "src/game_state.h"
+#include "src/item/currency.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/item/shop.h"
@@ -528,9 +529,9 @@ std::pair<int, int> WeaponUpgrades(const GameState& state) {
           it->second->equip_state().remaining_upgrade_slots()};
 }
 
-// Sells the Etc tab, keeping what the counter pays nothing for. Everything can
-// be sold now, so the skip has to be asked for: a token buys the Frozen tier
-// and a soul shard is a trophy, and neither is worth turning into no meso.
+// Sells the Etc tab, keeping what the counter pays nothing for. The
+// currencies are not on it to be sold by accident, but a drop that is worth
+// nothing is still worth keeping out of the buy-back shelf.
 int64_t SellDrops(CharacterInstance& character) {
   int64_t earned = 0;
   int i = 0;
@@ -1070,12 +1071,10 @@ void NoteFrozenDrops(const GameState& state, int level, Climb& climb) {
       }
     }
   }
-  for (const StackableItem& stack : state.character.stackables()) {
-    for (int token = 0; token < kNumFrozenTokens; ++token) {
-      if (climb.tokens[token].level == 0 &&
-          stack.name() == kFrozenTokens[token]) {
-        climb.tokens[token].level = level;
-      }
+  for (int token = 0; token < kNumFrozenTokens; ++token) {
+    if (climb.tokens[token].level == 0 &&
+        state.character.currencies().Count(kFrozenTokens[token]) > 0) {
+      climb.tokens[token].level = level;
     }
   }
 }
@@ -3155,6 +3154,13 @@ void PrintBag(const GameState& state) {
   for (const StackableItem& stack : etc) {
     std::printf("    %-40s x%d\n", stack.prototype().name().c_str(),
                 stack.count());
+  }
+  const std::vector<CurrencyAmount>& purse =
+      state.character.currencies().entries();
+  std::printf("  Currencies (%d)\n", static_cast<int>(purse.size()));
+  for (const CurrencyAmount& held : purse) {
+    std::printf("    %-40s x%lld\n", held.prototype().name().c_str(),
+                static_cast<long long>(held.count()));
   }
 }
 

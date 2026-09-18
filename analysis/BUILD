@@ -380,6 +380,7 @@ sim_binary(
         "//src/combat:loot",
         "//src/combat:measure",
         "//src/item",
+        "//src/item:currency",
         "//src/item:equip_instance",
         "//src/item:shop",
         "//src/protos:character_proto_cc",

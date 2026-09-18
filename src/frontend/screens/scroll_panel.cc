@@ -351,13 +351,7 @@ const Scroll& ScrollPanel::selected_scroll() const {
 }
 
 int ScrollPanel::TracesOwned() const {
-  int owned = 0;
-  for (const StackableItem& stack : character_.stackables()) {
-    if (stack.name() == kSpellTraceName) {
-      owned += stack.count();
-    }
-  }
-  return owned;
+  return static_cast<int>(character_.CountItem(kSpellTraceName));
 }
 
 bool ScrollPanel::CanAffordSelected() const {
