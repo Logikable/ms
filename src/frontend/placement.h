@@ -26,10 +26,10 @@ inline constexpr int kMinTerminalRows = 30;
 // One window, alone on screen.
 ftxui::Element Centred(ftxui::Element window);
 
-// Cards side by side, the row centred as a block and each card at its own
-// width. Every card is drawn the height of the TALLEST -- an hbox hands each
-// child the full height of the row -- so their borders line up and the row
-// reads as one thing rather than several.
+// Cards side by side, the row centred as a block and each at its own width.
+// An hbox hands every child the full height of the row, so a bordered card is
+// drawn the height of the TALLEST and their borders line up. A card that is
+// itself a COLUMN of windows keeps its own height, the slack under it blank.
 ftxui::Element SideBySide(ftxui::Elements cards);
 
 // `dialog` centred over `screen`, which stays visible around it.
