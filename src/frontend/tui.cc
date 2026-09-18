@@ -423,6 +423,18 @@ ftxui::Element Tui::TradeItemAmountDialog() {
       }));
 }
 
+ftxui::Element Tui::TradeConfirmDialog() {
+  // The player who answered first waits on the other, and may still take it
+  // back: their button says so rather than going away.
+  const bool waiting = controller_.trade_waiting();
+  ConfirmFocus focus = controller_.trade_prompt().focus();
+  ftxui::Element buttons =
+      ButtonRow(waiting ? "Waiting..." : "Confirm", "Cancel",
+                focus == ConfirmFocus::kConfirm, focus == ConfirmFocus::kCancel,
+                /*go_enabled=*/!waiting);
+  return DialogWindow("", {CenteredRow("Finalize Trade?")}, std::move(buttons));
+}
+
 ftxui::Element Tui::RenderTradeInspect() {
   const EquipTabItem* item = controller_.trade_inspect_equip();
   // Two overloads of SetItem, so this cannot fold into one ternary.
@@ -934,6 +946,8 @@ ftxui::Element Tui::RenderScreen() {
       return Overlay(Centred(trade_panel_.Render()), TradeAmountDialog());
     case kTradeItemAmount:
       return Overlay(Centred(trade_panel_.Render()), TradeItemAmountDialog());
+    case kTradeConfirm:
+      return Overlay(Centred(trade_panel_.Render()), TradeConfirmDialog());
     case kTradeInspect:
       return RenderTradeInspect();
     case kPlayerList:

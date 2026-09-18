@@ -96,6 +96,8 @@ enum Screen : int {
   kTradeAmount,
   // Enter on a row of any of the trade's three windows.
   kTradeMenu,
+  // Both sides have accepted: the last question before the exchange.
+  kTradeConfirm,
   // Offer on a stack in the bag: how many of it to put up.
   kTradeItemAmount,
   // Inspect on any of those rows. Their items are not in any bag this client

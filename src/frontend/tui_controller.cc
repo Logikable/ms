@@ -742,6 +742,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnTradeMenuEvent(event);
     case kTradeItemAmount:
       return OnTradeItemAmountEvent(event);
+    case kTradeConfirm:
+      return OnTradeConfirmEvent(event);
     case kTradeInspect:
       return OnCardEvent(event, inspect_panel_, kTrade);
     case kPartySelect:
@@ -1933,11 +1935,36 @@ void TuiController::AdvanceTrade(const MultiplayerSnapshot& lobby) {
   }
   // A trade this player has already walked out of: the server has not caught
   // up, and standing the screen back up would trap them on it.
-  if (open || lobby.trade.id() == left_trade_id_) {
+  if (open) {
+    AdvanceTradeConfirm(lobby.trade);
+    return;
+  }
+  if (lobby.trade.id() == left_trade_id_) {
     return;
   }
   trade_panel_.Reset();
   screen_ = kTrade;
+}
+
+bool TuiController::trade_waiting() const {
+  return Lobby().trade.mine_confirmed();
+}
+
+void TuiController::AdvanceTradeConfirm(const TradeState& trade) {
+  // The dialog is the STATE's, not a keypress's: it opens on the second
+  // acceptance, whichever side gives it, and goes the moment either is taken
+  // back.
+  const bool both = trade.mine_accepted() && trade.theirs_accepted();
+  if (both && screen_ != kTradeConfirm) {
+    trade_panel_.CloseMenu();
+    trade_prompt_.Open();
+    screen_ = kTradeConfirm;
+    return;
+  }
+  if (!both && screen_ == kTradeConfirm) {
+    trade_prompt_.Close();
+    screen_ = kTrade;
+  }
 }
 
 void TuiController::OpenTradeAmount() {
@@ -1958,7 +1985,7 @@ void TuiController::PutUpTradeAmount() {
 bool TuiController::OnTradeScreen() const {
   return screen_ == kTrade || screen_ == kTradeAmount ||
          screen_ == kTradeMenu || screen_ == kTradeItemAmount ||
-         screen_ == kTradeInspect;
+         screen_ == kTradeInspect || screen_ == kTradeConfirm;
 }
 
 void TuiController::SendTradeOffer() {
@@ -2173,6 +2200,21 @@ bool TuiController::OnTradeMenuEvent(ftxui::Event event) {
     trade_panel_.TakeBack(cursor.index);
     SendTradeOffer();
   }
+  return true;
+}
+
+bool TuiController::OnTradeConfirmEvent(ftxui::Event event) {
+  const bool waiting = Lobby().trade.mine_confirmed();
+  ConfirmChoice choice = trade_prompt_.OnEvent(event, !waiting);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (multiplayer_ != nullptr) {
+    multiplayer_->client().ConfirmTrade(choice == ConfirmChoice::kConfirmed);
+  }
+  // Up either way: what takes it down is the answer coming back -- the trade
+  // going through, or the acceptance this cancel just cleared.
+  trade_prompt_.Open(/*cancel_selected=*/choice == ConfirmChoice::kConfirmed);
   return true;
 }
 

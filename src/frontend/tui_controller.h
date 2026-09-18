@@ -280,6 +280,12 @@ class TuiController {
   int trade_stack() const {
     return trade_stack_;
   }
+  // Whether this player has confirmed and is waiting on the other.
+  bool trade_waiting() const;
+  // The finalize dialog's cursor, for the row it draws.
+  const ConfirmPrompt& trade_prompt() const {
+    return trade_prompt_;
+  }
   // Which currency the trade overlay is putting up, and how much.
   TradeCurrency trade_currency() const {
     return trade_currency_;
@@ -603,6 +609,7 @@ class TuiController {
   bool OnPlayerMenuEvent(ftxui::Event event);
   bool OnTradeEvent(ftxui::Event event);
   bool OnTradeMenuEvent(ftxui::Event event);
+  bool OnTradeConfirmEvent(ftxui::Event event);
   bool OnTradeItemAmountEvent(ftxui::Event event);
   bool OnTradeAmountEvent(ftxui::Event event);
   bool OnPartySelectEvent(ftxui::Event event);
@@ -632,6 +639,9 @@ class TuiController {
   // Asks `account_id` to trade, from either menu. The trade screen opens when
   // the server answers, so nothing here says where the player goes next.
   void AskToTrade(const std::string& account_id);
+  // Raises the finalize dialog on the second acceptance and takes it down
+  // when either is withdrawn.
+  void AdvanceTradeConfirm(const TradeState& trade);
   // Opens and closes the trade screen as the server's trade comes and goes. A
   // trade that ends under the player takes them back where they opened it
   // from.
@@ -894,6 +904,9 @@ class TuiController {
   // every frame after it.
   int64_t notification_seen_ = 0;
   AmountSelector trade_selector_;
+  // The finalize dialog. Which side is waiting is the trade's to say, so this
+  // holds only the cursor.
+  ConfirmPrompt trade_prompt_;
   // Which currency the amount overlay is putting up, taken when it opens: the
   // cursor is free to be somewhere else by the time it is answered. The stack
   // overlay takes the place in the bag for the same reason.

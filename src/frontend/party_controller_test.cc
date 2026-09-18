@@ -714,7 +714,19 @@ TEST_F(PartyControllerTest, AcceptingAndThenChangingTheTable) {
            asker->session.Snapshot().trade.theirs_accepted();
   }));
 
-  // A meso put up after the fact clears both.
+  // Both acceptances raise the finalize dialog, and nothing on the table can
+  // be touched until somebody backs out of it.
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->controller->screen() == kTradeConfirm;
+  }));
+  asker->controller->OnEvent(ftxui::Event::Escape);
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->controller->screen() == kTrade &&
+           !asker->session.Snapshot().trade.mine_accepted();
+  }));
+  ASSERT_TRUE(asker->session.Snapshot().trade.theirs_accepted());
+
+  // A meso put up after the fact clears the one that was left standing.
   asker->controller->OnEvent(ftxui::Event::ArrowLeft);
   asker->controller->OnEvent(ftxui::Event::ArrowLeft);
   asker->controller->OnEvent(ftxui::Event::Return);
@@ -762,6 +774,47 @@ TEST_F(PartyControllerTest, AFullBagCannotAccept) {
   EXPECT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
     return asker->session.Snapshot().trade.mine_accepted();
   }));
+}
+
+// The finalize dialog belongs to the STATE: the second acceptance raises it on
+// both screens, and a cancel takes it down without touching the other side's.
+TEST_F(PartyControllerTest, TheFinalizeDialogAndItsCancel) {
+  std::unique_ptr<Client> asker = Connect("Dagger");
+  std::unique_ptr<Client> asked = Connect("Wand");
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->session.Snapshot().online.players_size() == 2;
+  }));
+  OpenTrade(*asker, *asked);
+
+  PressAccept(*asker);
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asked->session.Snapshot().trade.theirs_accepted();
+  }));
+  EXPECT_EQ(asker->controller->screen(), kTrade) << "one acceptance is not two";
+
+  PressAccept(*asked);
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->controller->screen() == kTradeConfirm &&
+           asked->controller->screen() == kTradeConfirm;
+  }));
+
+  // The one who answers first waits, and may still take it back.
+  asked->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()},
+                      [&]() { return asked->controller->trade_waiting(); }));
+  EXPECT_EQ(asked->controller->screen(), kTradeConfirm);
+  EXPECT_FALSE(asker->controller->trade_waiting());
+
+  asked->controller->OnEvent(ftxui::Event::Escape);
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asked->controller->screen() == kTrade &&
+           asker->controller->screen() == kTrade;
+  }));
+  // Only the canceller's acceptance goes: one keypress puts the dialog back
+  // up rather than two.
+  EXPECT_FALSE(asked->session.Snapshot().trade.mine_accepted());
+  EXPECT_TRUE(asker->session.Snapshot().trade.mine_accepted());
+  EXPECT_FALSE(asked->controller->trade_waiting());
 }
 
 TEST_F(PartyControllerTest, TradingABusyPlayerIsRefused) {
