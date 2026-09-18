@@ -118,6 +118,7 @@ cc_library(
         ":fight",
         ":ids",
         ":lobby",
+        ":trade",
         "//src/character",
         "//src/character:job_name",
         "//src/combat:boss_timing",

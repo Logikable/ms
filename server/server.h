@@ -24,6 +24,7 @@
 
 #include "server/fight.h"
 #include "server/lobby.h"
+#include "server/trade.h"
 #include "src/multiplayer/protocol.h"
 #include "src/net/socket.h"
 #include "src/protos/boss.pb.h"
@@ -108,6 +109,9 @@ class Server {
   void PublishOnline();
   // Everyone connected, in the order they arrived and without their sheets.
   OnlinePlayers Roster() const;
+  // Sends each side of a trade what it looks like now, and puts the gold box
+  // up for anyone who has just been asked to trade.
+  void PublishTrades();
   // Sends `account_id`'s sheet to whoever is reading them. Called whenever
   // their character changes, which is what keeps an open Inspect screen in
   // step with the player it is drawing.
@@ -147,6 +151,9 @@ class Server {
   void HandleHello(Session& session, const Hello& hello);
   // Answers one lobby ask, refusing it on the connection it came from.
   void HandleLobby(Session& session, const ClientMessage& message);
+  // The same for a trade ask. Apart from the lobby's because a trade is
+  // between two players rather than between a player and a party.
+  void HandleTrade(Session& session, const ClientMessage& message);
   // Takes the character a client sent, under the account and the name the
   // server allows rather than the ones it was handed.
   void SetPlayer(Session& session, const PlayerInfo& player);
@@ -176,6 +183,7 @@ class Server {
   const std::map<std::string, Boss>* bosses_ = nullptr;
   const std::map<std::string, Mob>* mobs_ = nullptr;
   Lobby lobby_;
+  Trades trades_;
   // The fights being fought, by the party fighting each one. A party has at
   // most one, and it is not in the lobby list while it lasts.
   std::map<std::string, std::unique_ptr<PartyFight>> fights_;

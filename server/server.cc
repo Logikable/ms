@@ -17,6 +17,7 @@
 #include "absl/strings/str_join.h"
 #include "server/ids.h"
 #include "server/lobby.h"
+#include "server/trade.h"
 #include "src/character/character.h"
 #include "src/character/job_name.h"
 #include "src/combat/boss_timing.h"
@@ -45,11 +46,11 @@ constexpr char kMaintenanceMessage[] = "The server went down.";
 constexpr int kAccountIdCharacters = 16;
 constexpr int kTokenCharacters = 32;
 
-// A second stream out of one seed. The lobby draws party ids and the server
-// draws account ids; seeded alike, the two hand out the same strings, which
-// reads as a bug even though it is not.
-unsigned int OtherStream(unsigned int seed) {
-  return seed ^ 0x9e3779b9u;
+// Stream `n` out of one seed. The lobby draws party ids, the trade desk draws
+// trade ids and the server draws account ids; seeded alike they would hand out
+// the same strings, which reads as a bug even though it is not.
+unsigned int Stream(unsigned int seed, int n) {
+  return seed ^ (0x9e3779b9u * static_cast<unsigned int>(n));
 }
 
 // The name a player is shown under when they send one that cannot be used.
@@ -137,6 +138,15 @@ std::string AskedFor(const ClientMessage& message) {
       return absl::StrCat("kicks ", message.kick_member().account_id());
     case ClientMessage::kPromoteMember:
       return absl::StrCat("promotes ", message.promote_member().account_id());
+    case ClientMessage::kRequestTrade:
+      return absl::StrCat("asks to trade with ",
+                          message.request_trade().account_id());
+    case ClientMessage::kSetTradeOffer:
+      return absl::StrCat(
+          "offers ", message.set_trade_offer().offer().meso(), " meso and ",
+          message.set_trade_offer().offer().spell_traces(), " spell traces");
+    case ClientMessage::kLeaveTrade:
+      return "leaves the trade";
     default:
       return "sends something unknown";
   }
@@ -150,7 +160,8 @@ Server::Server(Socket listener, const std::map<std::string, Boss>& bosses,
     : listener_(std::move(listener)),
       bosses_(&bosses),
       mobs_(&mobs),
-      lobby_(bosses, OtherStream(seed)),
+      lobby_(bosses, Stream(seed, 1)),
+      trades_(Stream(seed, 2)),
       rng_(seed),
       protocol_version_(protocol_version) {
 }
@@ -200,6 +211,7 @@ void Server::Step(std::chrono::steady_clock::time_point now,
   // same pass rather than a poll later.
   PublishFights(now);
   PublishLobby();
+  PublishTrades();
   PublishOnline();
   for (const std::unique_ptr<Session>& session : sessions_) {
     if (session->socket.valid() && !session->outgoing.empty() &&
@@ -228,6 +240,7 @@ void Server::DropFinished(std::chrono::steady_clock::time_point now) {
         fight->Disconnect(session->account_id);
       }
       lobby_.Disconnect(session->account_id);
+      trades_.Leave(session->account_id);
       session->account_id.clear();
     }
   }
@@ -239,6 +252,7 @@ void Server::DropFinished(std::chrono::steady_clock::time_point now) {
   // A player leaving changes what the others can see, and the sessions left
   // to tell are the ones still here.
   PublishLobby();
+  PublishTrades();
   PublishOnline();
 }
 
@@ -256,6 +270,11 @@ void Server::OpenFight(const std::string& account_id,
   fights_[party.id()] = std::make_unique<PartyFight>(
       std::move(id), request.boss_key(), boss->second,
       request.difficulty_index(), *mobs_, party, request.options());
+  // Nobody trades from inside a fight: the leader can start one while a
+  // member is sitting on the trade screen, and the fight wins.
+  for (const PartyMember& member : party.members()) {
+    trades_.Leave(member.player().account_id());
+  }
   // The first state a client sees is how it learns the fight has begun, so it
   // goes out now rather than on the next broadcast beat.
   PublishFight(*fights_[party.id()]);
@@ -571,6 +590,11 @@ void Server::Handle(Session& session, const ClientMessage& message) {
     case ClientMessage::kWatchPlayer:
       HandleWatch(session, message.watch_player());
       return;
+    case ClientMessage::kRequestTrade:
+    case ClientMessage::kSetTradeOffer:
+    case ClientMessage::kLeaveTrade:
+      HandleTrade(session, message);
+      return;
     case ClientMessage::KIND_NOT_SET:
       Reject(session, Rejected::REASON_MALFORMED, "Empty message.");
       return;
@@ -657,6 +681,58 @@ void Server::HandleLobby(Session& session, const ClientMessage& message) {
   LOG(INFO) << Describe(session) << " " << asked;
   if (message.kind_case() == ClientMessage::kStartFight) {
     OpenFight(session.account_id, message.start_fight());
+  }
+}
+
+void Server::HandleTrade(Session& session, const ClientMessage& message) {
+  if (message.kind_case() == ClientMessage::kSetTradeOffer) {
+    trades_.SetOffer(session.account_id, message.set_trade_offer().offer());
+    return;
+  }
+  if (message.kind_case() == ClientMessage::kLeaveTrade) {
+    if (trades_.Busy(session.account_id)) {
+      LOG(INFO) << Describe(session) << " " << AskedFor(message);
+    }
+    trades_.Leave(session.account_id);
+    return;
+  }
+  std::string asked = AskedFor(message);
+  Session* other = FindSession(message.request_trade().account_id());
+  if (other == nullptr) {
+    LOG(INFO) << Describe(session) << " " << asked << ": refused, they have "
+              << "gone";
+    Refuse(session, Refused::REASON_PLAYER_GONE, "They're no longer online.");
+    return;
+  }
+  TradeResult result = trades_.Request(session.player, other->player,
+                                       FightOf(other->account_id) != nullptr);
+  if (!result.ok) {
+    LOG(INFO) << Describe(session) << " " << asked << ": refused, "
+              << result.message;
+    Refuse(session, result.reason, result.message);
+    return;
+  }
+  LOG(INFO) << Describe(session) << " " << asked;
+}
+
+void Server::PublishTrades() {
+  for (const std::string& account : trades_.TakeChanged()) {
+    Session* session = FindSession(account);
+    if (session == nullptr) {
+      continue;
+    }
+    ServerMessage state;
+    *state.mutable_trade_state() = trades_.StateFor(account);
+    Send(*session, state);
+  }
+  for (const TradeNotice& notice : trades_.TakeNotices()) {
+    Session* session = FindSession(notice.account_id);
+    if (session == nullptr) {
+      continue;
+    }
+    ServerMessage message;
+    *message.mutable_notification() = notice.notification;
+    Send(*session, message);
   }
 }
 

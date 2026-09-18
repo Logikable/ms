@@ -122,6 +122,13 @@ ClientMessage UpdateMessage(const std::string& name, int level) {
   return message;
 }
 
+// What a client sends when the player presses Trade on somebody.
+ClientMessage TradeMessage(const std::string& account_id) {
+  ClientMessage message;
+  message.mutable_request_trade()->set_account_id(account_id);
+  return message;
+}
+
 // What a client sends when it opens the Inspect screen on somebody.
 ClientMessage WatchMessage(const std::string& account_id) {
   ClientMessage message;
@@ -527,6 +534,135 @@ TEST_F(ServerTest, RefusesAFightItCannotRun) {
   ServerMessage refused = AwaitKind(*client, ServerMessage::kRefused);
   EXPECT_EQ(refused.refused().reason(), Refused::REASON_UNKNOWN_BOSS);
   EXPECT_FALSE(refused.refused().message().empty());
+}
+
+TEST_F(ServerTest, AsksAPlayerToTrade) {
+  Welcome mine;
+  Welcome theirs;
+  std::unique_ptr<TestClient> asker = Greeted("Dagger", &mine);
+  std::unique_ptr<TestClient> asked = Greeted("Wand", &theirs);
+
+  asker->Send(TradeMessage(theirs.account_id()));
+
+  // The asker has a trade to draw, and the one asked has a gold box and no
+  // screen: theirs opens when they press Trade back.
+  TradeState state =
+      AwaitKind(*asker, ServerMessage::kTradeState).trade_state();
+  EXPECT_FALSE(state.id().empty());
+  EXPECT_EQ(state.partner_account_id(), theirs.account_id());
+  EXPECT_EQ(state.partner_name(), "Wand");
+  EXPECT_FALSE(state.partner_joined());
+
+  Notification box =
+      AwaitKind(*asked, ServerMessage::kNotification).notification();
+  ASSERT_EQ(box.lines_size(), 2);
+  EXPECT_EQ(box.lines(0), "Trade request from");
+  EXPECT_EQ(box.lines(1), "Dagger");
+}
+
+TEST_F(ServerTest, OpensTheTradeWhenBothAsk) {
+  Welcome mine;
+  Welcome theirs;
+  std::unique_ptr<TestClient> asker = Greeted("Dagger", &mine);
+  std::unique_ptr<TestClient> asked = Greeted("Wand", &theirs);
+
+  asker->Send(TradeMessage(theirs.account_id()));
+  AwaitKind(*asker, ServerMessage::kTradeState);
+  asked->Send(TradeMessage(mine.account_id()));
+
+  EXPECT_TRUE(AwaitKind(*asked, ServerMessage::kTradeState)
+                  .trade_state()
+                  .partner_joined());
+  EXPECT_TRUE(AwaitKind(*asker, ServerMessage::kTradeState)
+                  .trade_state()
+                  .partner_joined());
+
+  // An offer reaches the other side as theirs.
+  ClientMessage offer;
+  offer.mutable_set_trade_offer()->mutable_offer()->set_meso(5000);
+  offer.mutable_set_trade_offer()->mutable_offer()->set_spell_traces(30);
+  asker->Send(offer);
+
+  TradeState state =
+      AwaitKind(*asked, ServerMessage::kTradeState).trade_state();
+  EXPECT_EQ(state.theirs().meso(), 5000);
+  EXPECT_EQ(state.theirs().spell_traces(), 30);
+  EXPECT_EQ(state.mine().meso(), 0);
+}
+
+TEST_F(ServerTest, RefusesATradeItCannotOpen) {
+  Welcome mine;
+  Welcome theirs;
+  Welcome third;
+  std::unique_ptr<TestClient> asker = Greeted("Dagger", &mine);
+  std::unique_ptr<TestClient> asked = Greeted("Wand", &theirs);
+  std::unique_ptr<TestClient> latecomer = Greeted("Bow", &third);
+
+  asker->Send(TradeMessage(theirs.account_id()));
+  AwaitKind(*asker, ServerMessage::kTradeState);
+  latecomer->Send(TradeMessage(theirs.account_id()));
+
+  ServerMessage refused = AwaitKind(*latecomer, ServerMessage::kRefused);
+  EXPECT_EQ(refused.refused().reason(), Refused::REASON_BUSY);
+  EXPECT_EQ(refused.refused().message(), "They're currently busy.");
+
+  // And nobody trades with a player the server has never heard of.
+  latecomer->Send(TradeMessage("0123456789abcdef"));
+  EXPECT_EQ(AwaitKind(*latecomer, ServerMessage::kRefused).refused().reason(),
+            Refused::REASON_PLAYER_GONE);
+}
+
+TEST_F(ServerTest, ADisconnectEndsTheTrade) {
+  Welcome mine;
+  Welcome theirs;
+  std::unique_ptr<TestClient> asker = Greeted("Dagger", &mine);
+  std::unique_ptr<TestClient> asked = Greeted("Wand", &theirs);
+  asker->Send(TradeMessage(theirs.account_id()));
+  AwaitKind(*asker, ServerMessage::kTradeState);
+  asked->Send(TradeMessage(mine.account_id()));
+  AwaitKind(*asker, ServerMessage::kTradeState);
+
+  asked.reset();
+
+  EXPECT_TRUE(
+      AwaitKind(*asker, ServerMessage::kTradeState).trade_state().id().empty());
+}
+
+TEST_F(ServerTest, AFightEndsATrade) {
+  Welcome leader;
+  Welcome member;
+  Welcome outsider;
+  std::unique_ptr<TestClient> leading = Greeted("Dagger", &leader);
+  std::unique_ptr<TestClient> joining = Greeted("Wand", &member);
+  std::unique_ptr<TestClient> trading = Greeted("Bow", &outsider);
+
+  leading->Send(CreatePartyMessage());
+  std::string party_id = AwaitKind(*leading, ServerMessage::kPartyState)
+                             .party_state()
+                             .party()
+                             .id();
+  ClientMessage join;
+  join.mutable_join_party()->set_party_id(party_id);
+  joining->Send(join);
+  AwaitKind(*joining, ServerMessage::kPartyState);
+  ClientMessage ready;
+  ready.mutable_set_ready()->set_ready(true);
+  joining->Send(ready);
+  AwaitKind(*joining, ServerMessage::kPartyState);
+
+  trading->Send(TradeMessage(member.account_id()));
+  AwaitKind(*trading, ServerMessage::kTradeState);
+  joining->Send(TradeMessage(outsider.account_id()));
+  AwaitKind(*trading, ServerMessage::kTradeState);
+
+  ClientMessage start;
+  start.mutable_start_fight()->set_boss_key("zakum");
+  leading->Send(start);
+
+  EXPECT_TRUE(AwaitKind(*trading, ServerMessage::kTradeState)
+                  .trade_state()
+                  .id()
+                  .empty());
 }
 
 // A party of two in a fight, with both clients holding nothing unread.
