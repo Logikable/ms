@@ -7,6 +7,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/progression.h"
+#include "src/frontend/placement.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
@@ -36,8 +37,9 @@ constexpr int kEquipRowWidth = 82;
 constexpr int kContentWidth = kMarkWidth + kEquipRowWidth + 2 + kPriceWidth + 1;
 // The window is centred, so a box that shrank to a short tab's contents would
 // hang at a different height on every tab. It is held to one size instead, and
-// a tab with few rows leaves the space below them empty.
-constexpr int kContentHeight = 30;
+// a tab with few rows leaves the space below them empty. All the smallest
+// terminal has, less the window's own two borders.
+constexpr int kContentHeight = kMinTerminalRows - 2;
 
 // The price cell: two columns of separator, the value right-aligned, and a
 // column of clearance inside the border. It sits at a fixed offset rather than

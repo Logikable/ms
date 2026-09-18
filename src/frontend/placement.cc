@@ -11,7 +11,7 @@ ftxui::Element Centred(ftxui::Element window) {
   return ftxui::center(std::move(window));
 }
 
-ftxui::Element CardRow(ftxui::Elements cards) {
+ftxui::Element SideBySide(ftxui::Elements cards) {
   return Centred(ftxui::hbox(std::move(cards)));
 }
 

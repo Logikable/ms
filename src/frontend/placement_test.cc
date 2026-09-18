@@ -40,7 +40,7 @@ TEST(PlacementTest, CentredSitsInTheMiddleOfBothAxes) {
 
 TEST(PlacementTest, CardRowDrawsEveryCardTheHeightOfTheTallest) {
   std::vector<std::string> rows =
-      Draw(CardRow({Box(1, 3, "a"), Box(5, 3, "b")}));
+      Draw(SideBySide({Box(1, 3, "a"), Box(5, 3, "b")}));
   // Both borders open on the same row and close on the same row: a short card
   // is stretched to the tall one rather than centred against it.
   EXPECT_EQ(rows[2], "     ╭───╮╭───╮      ");

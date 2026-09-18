@@ -4,7 +4,7 @@
  * here is that a screen picks one rather than spelling out its own fillers:
  *
  *  - Centred: one window and nothing behind it, centred on both axes.
- *  - CardRow: windows shoulder to shoulder, centred together as one block.
+ *  - SideBySide: windows shoulder to shoulder, centred together as one block.
  *  - Overlay: a dialog floated over the screen it is about.
  *
  * Placement is not what keeps a screen readable, though -- a window taller
@@ -30,7 +30,7 @@ ftxui::Element Centred(ftxui::Element window);
 // width. Every card is drawn the height of the TALLEST -- an hbox hands each
 // child the full height of the row -- so their borders line up and the row
 // reads as one thing rather than several.
-ftxui::Element CardRow(ftxui::Elements cards);
+ftxui::Element SideBySide(ftxui::Elements cards);
 
 // `dialog` centred over `screen`, which stays visible around it.
 ftxui::Element Overlay(ftxui::Element screen, ftxui::Element dialog);

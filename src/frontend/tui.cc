@@ -677,7 +677,7 @@ ftxui::Element Tui::RenderTraceRecover() {
       inspect_panel_.RenderItemOnly(right),
       trace_recover_panel_.RenderBelow(),
   });
-  return CardRow(
+  return SideBySide(
       {preview_inspect_panel_.RenderItemOnly(!right), std::move(right_col)});
 }
 
@@ -732,7 +732,7 @@ ftxui::Element Tui::StarForceColumns() {
     preview_inspect_panel_.SetMaxRows(rows);
     cards.push_back(preview_inspect_panel_.RenderItemOnly(right, " After "));
   }
-  return CardRow(std::move(cards));
+  return SideBySide(std::move(cards));
 }
 
 // The shelf and the item's card shoulder to shoulder, two columns of about a
@@ -744,7 +744,7 @@ ftxui::Element Tui::RenderCubing() {
   inspect_panel_.SetItem(item);
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   bool right = controller_.right_card_focused();
-  ftxui::Element columns = CardRow({
+  ftxui::Element columns = SideBySide({
       cube_panel_.Render(!right),
       ftxui::text(" "),
       inspect_panel_.RenderItemOnly(right),
@@ -783,7 +783,7 @@ ftxui::Element Tui::RenderScroll() {
         scroll_panel_.RenderResult(controller_.scroll_result());
     scroll_view = Overlay(std::move(scroll_view), std::move(dialog));
   }
-  return CardRow(
+  return SideBySide(
       {std::move(scroll_view),
        inspect_panel_.RenderItemOnly(controller_.right_card_focused())});
 }

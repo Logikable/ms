@@ -434,6 +434,7 @@ cc_library(
         "//src:account",
         "//src/character",
         "//src/character:progression",
+        "//src/frontend:placement",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:confirm_prompt",
