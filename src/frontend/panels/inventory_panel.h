@@ -212,7 +212,9 @@ class InventoryPanel {
                         const std::function<void()>& on_enter);
   // Rebuilds rows_/entries_ from the equip inventory and returns the Equip tab
   // body (column headers + the navigable menu, or "(empty)").
-  ftxui::Element RenderEquipList(ftxui::Component menu);
+  // The Equip tab as an ftxui::Menu, which is what carries its item menu. The
+  // stack tabs go through the shared RenderStackList instead.
+  ftxui::Element RenderOwnEquipList(ftxui::Component menu);
   // Whether the active tab's item list has no rows to descend into.
   bool ActiveTabEmpty() const;
   // Rows in the list below the tab bar, for whichever tab is active. The bar

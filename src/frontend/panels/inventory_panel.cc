@@ -43,124 +43,9 @@ std::string TabKey(int tab, const CharacterInstance& character) {
   return "";
 }
 
-// The balances the bar carries down its middle: meso, and the spell traces
-// beside it once the shop is open -- the level a trace can first be bought,
-// and so the first level a balance in them can exist.
-ftxui::Element RenderBalances(int64_t meso, const CharacterInstance& character,
-                              const AccountInstance& account) {
-  std::vector<ftxui::Element> counters = {ftxui::text(FormatMeso(meso)) |
-                                          ftxui::color(kTheme)};
-  if (Unlocked(Feature::kShop, character, account)) {
-    counters.push_back(ftxui::text("   "));
-    counters.push_back(ftxui::text(FormatSpellTraces(
-                           character.CountStackable(kSpellTraceName))) |
-                       ftxui::color(kTheme));
-  }
-  return ftxui::hbox(std::move(counters));
-}
-
-// The least the balances stand off the last tab chip. The bar is read left to
-// right and the two run into each other without it: a count reads as part of
-// the tab beside it.
-constexpr int kBalanceGutter = 8;
-
-// The chip row in the shared tab style, the balances centred in what the chips
-// leave and `expand` right-aligned past them. `tabs` is what the character has
-// unlocked, so a locked tab leaves no gap; `active_tab` is -1 while the cursor
-// is out on Expand, so the highlight is in one place.
-ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
-                            int64_t meso, bool row_selected,
-                            const CharacterInstance& character,
-                            const AccountInstance& account, bool highlighted,
-                            ftxui::Element expand, int width,
-                            ftxui::Box& bar_box) {
-  std::vector<TabSpec> specs;
-  // Stays -1 when `active_tab` names no visible tab, which is how the caller
-  // asks for a bar with nothing on it highlighted.
-  int active = -1;
-  for (int tab : tabs) {
-    // Asking Seen("") would answer no and leave those tabs gold forever.
-    std::string key = TabKey(tab, character);
-    if (tab == active_tab) {
-      active = static_cast<int>(specs.size());
-    }
-    specs.push_back(
-        {kInventoryTabLabels[tab], !key.empty() && !account.Seen(key)});
-  }
-  // Left to right: the chips, the balances, Expand. The balances are centred
-  // except where that would stand them against the last chip, and are then
-  // pushed right to keep kBalanceGutter clear. MEASURED rather than left to a
-  // pair of fillers, so the gutter is a promise rather than a ratio.
-  //
-  // Reflected so a tab menu knows the row to open under. No width limit on the
-  // chips: the bag's tabs are a fixed set and all of them fit.
-  ftxui::Element chips = TabBar(specs, active, row_selected, /*width=*/0);
-  ftxui::Element balances = RenderBalances(meso, character, account);
-  int chips_width = ftxui::Dimension::Fit(chips).dimx;
-  int balances_width = ftxui::Dimension::Fit(balances).dimx;
-  // What the row has left once everything on it is drawn. The gutter gives
-  // way to it rather than the other way round: a bar squeezed until the
-  // balances fit is better than a number with digits cut off the end.
-  int room = std::max(0, width - chips_width - balances_width -
-                             ftxui::Dimension::Fit(expand).dimx);
-  int lead =
-      std::max(kBalanceGutter, (width - balances_width) / 2 - chips_width);
-  lead = std::min(lead, room);
-  ftxui::Element tab_row = ftxui::hbox({
-                               std::move(chips),
-                               ftxui::text(std::string(lead, ' ')),
-                               std::move(balances),
-                               ftxui::filler(),
-                               std::move(expand),
-                           }) |
-                           ftxui::reflect(bar_box);
-  return ftxui::vbox({
-      std::move(tab_row),
-      PanelSeparator(highlighted),
-  });
-}
-
 // Room for any row index under one tab, so folding the tab and the row into
 // one key cannot make two different selections collide.
 constexpr int kNameClockTabStride = 4096;
-
-// A Name/Quantity list of `rows`, a "> " cursor on the `selected`-th. An empty
-// tab is "(empty)" with no header. The cursor is drawn only when `focused`,
-// matching the Equip tab.
-ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
-                               const std::vector<int>& rows, int selected,
-                               bool focused, ftxui::Box& cursor_box,
-                               bool highlighted,
-                               std::chrono::steady_clock::duration elapsed) {
-  if (rows.empty()) {
-    // No header over nothing, as on an empty Equip tab. Column names are there
-    // to tell rows apart, and there are no rows to tell apart.
-    return ftxui::vbox({EmptyState("empty", /*gutter=*/2), ftxui::filler()});
-  }
-  std::vector<ftxui::Element> drawn;
-  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
-    // The cursor shows only while the list holds focus, but the selected row
-    // is marked either way -- see below.
-    ftxui::Element row = RenderStackRow(
-        stacks[rows[i]], focused && i == selected,
-        i == selected ? elapsed : std::chrono::steady_clock::duration::zero());
-    if (i == selected) {
-      // What the frame scrolls to. These rows are plain text rather than an
-      // ftxui::Menu, so nothing else marks the cursor. Marked whether or not
-      // the panel holds focus, so the view does not jump on the way back, and
-      // reflected so the item menu knows the row to open beside.
-      row = std::move(row) | ftxui::focus | ftxui::reflect(cursor_box);
-    }
-    drawn.push_back(std::move(row));
-  }
-  return ftxui::vbox({
-      StackHeader(),
-      PanelSeparator(highlighted),
-      // Only the rows scroll; the header and its rule stay put.
-      ftxui::vbox(std::move(drawn)) | ftxui::vscroll_indicator | ftxui::yframe |
-          ftxui::flex,
-  });
-}
 
 }  // namespace
 
@@ -584,7 +469,7 @@ ItemColumns InventoryPanel::Columns() const {
   return FitItemColumns(width_ - 2, options);
 }
 
-ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
+ftxui::Element InventoryPanel::RenderOwnEquipList(ftxui::Component menu) {
   ItemColumns columns = Columns();
   rows_ = BuildEquipRows(character_, selected_, name_clock_.Elapsed(), columns);
   entries_.clear();
@@ -709,16 +594,31 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
                            focused && zone_ == kZoneList, cursor_box_,
                            highlighted_, name_clock_.Elapsed());
   } else {
-    body = RenderEquipList(menu);
+    body = RenderOwnEquipList(menu);
+  }
+  // -1 while the cursor is out on Expand, so the highlight is in one place.
+  int active = -1;
+  std::vector<TabSpec> specs;
+  for (int tab : VisibleTabs()) {
+    if (!on_expand_ && tab == active_tab_) {
+      active = static_cast<int>(specs.size());
+    }
+    // Asking Seen("") would answer no and leave those tabs gold forever.
+    std::string key = TabKey(tab, character_);
+    specs.push_back(
+        {kInventoryTabLabels[tab], !key.empty() && !account_.Seen(key)});
   }
   return AccentWindow(
       " Inventory ",
       ftxui::vbox(
-          {RenderTabBar(VisibleTabs(), on_expand_ ? -1 : active_tab_,
-                        character_.meso(), focused && zone_ == kZoneTabs,
-                        character_, account_, highlighted_,
-                        RenderExpandTab(focused && zone_ == kZoneTabs),
-                        width_ - 2, bar_box_),
+          {RenderBagTabBar(
+               specs, active,
+               RenderBalances(character_.meso(),
+                              character_.CountStackable(kSpellTraceName),
+                              character_, account_),
+               focused && zone_ == kZoneTabs, highlighted_,
+               RenderExpandTab(focused && zone_ == kZoneTabs), width_ - 2,
+               bar_box_),
            std::move(body) | ftxui::flex}),
       PanelAccent(highlighted_), focused, account_.panel_title_blink());
 }

@@ -41,12 +41,8 @@
 namespace ms {
 namespace {
 
-// What Offer answers once the table holds its eight. Split across lines by
-// the notice's own wrapping.
-constexpr char kTradeFullMessage[] = "You can only trade 8 items.";
-
-// And what Accept answers when the bag could not hold their side. Wrapped by
-// the notice itself, which is what puts it over several lines.
+// What Accept answers when the bag could not hold their side. Wrapped by the
+// notice itself, which is what puts it over several lines.
 constexpr char kBagTooFullMessage[] =
     "Your inventory is too full to accept this trade.";
 
@@ -2114,22 +2110,12 @@ void TuiController::OpenTradeMenu() {
 
 void TuiController::OfferFromBag() {
   TradeCursor cursor = trade_panel_.cursor();
-  if (!trade_panel_.on_etc_tab()) {
-    if (!trade_panel_.PutUpEquip(cursor.index)) {
-      RaisePartyNotice(kTradeFullMessage, /*refusal=*/true);
-      return;
-    }
-    SendTradeOffer();
+  if (trade_panel_.on_etc_tab()) {
+    OpenTradeItemAmount(cursor.index);
     return;
   }
-  // Asked before the overlay rather than after it: being told the table is
-  // full is an answer to Offer, not to an amount already chosen.
-  if (trade_panel_.stack_offered(cursor.index) == 0 &&
-      trade_panel_.own().items() >= kMaxTradeItems) {
-    RaisePartyNotice(kTradeFullMessage, /*refusal=*/true);
-    return;
-  }
-  OpenTradeItemAmount(cursor.index);
+  trade_panel_.PutUpEquip(cursor.index);
+  SendTradeOffer();
 }
 
 void TuiController::OpenTradeItemAmount(int stack) {
@@ -2146,10 +2132,7 @@ void TuiController::OpenTradeItemAmount(int stack) {
 }
 
 void TuiController::PutUpTradeItemAmount() {
-  if (!trade_panel_.PutUpStack(trade_stack_, trade_selector_.value())) {
-    RaisePartyNotice(kTradeFullMessage, /*refusal=*/true);
-    return;
-  }
+  trade_panel_.PutUpStack(trade_stack_, trade_selector_.value());
   SendTradeOffer();
 }
 

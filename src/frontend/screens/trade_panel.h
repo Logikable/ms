@@ -26,9 +26,11 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "ftxui/screen/box.hpp"
 #include "src/account.h"
 #include "src/character/character.h"
 #include "src/frontend/widgets/item_menu.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/item/item.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/multiplayer.pb.h"
@@ -47,11 +49,6 @@ enum class TradeZone {
   kTheirs,
   kBag,
 };
-
-// The most items one side may put up, which is the rows an offer window has.
-// A cap rather than a scrolling list: both windows then keep their height
-// whatever is on the table.
-constexpr int kMaxTradeItems = 8;
 
 // What the cursor is standing on, whichever window it is in. The controller
 // reads this to know which menu Enter opens and what the answer acts on.
@@ -170,10 +167,10 @@ class TradePanel {
   }
   void PutUpCurrency(TradeCurrency currency, int64_t amount);
   // Puts the bag's `index`-th equip up, or `count` of its `index`-th stack --
-  // a count of zero taking the stack off the table. False when the table
-  // already holds kMaxTradeItems, which is the one way to be refused.
-  bool PutUpEquip(int index);
-  bool PutUpStack(int index, int count);
+  // a count of zero taking the stack off the table. The table takes as much as
+  // the player has: both offer windows scroll.
+  void PutUpEquip(int index);
+  void PutUpStack(int index, int count);
   // Takes the `row`-th thing you put up back off the table.
   void TakeBack(int row);
 
@@ -196,8 +193,11 @@ class TradePanel {
   ftxui::Element RenderTheirTopRow() const;
   // The Name and Quantity table an offer window holds, padded out to its
   // fixed height. `rows` is what is on the table, already named.
-  ftxui::Element RenderOfferTable(const std::vector<OfferRow>& rows,
-                                  int cursor) const;
+  ftxui::Element RenderOfferTable(const std::vector<OfferRow>& rows, int cursor,
+                                  ftxui::Box& cursor_box) const;
+  // Where `zone` should report the row its cursor is on: the shared box for
+  // the window that holds the cursor, and a scratch one for every other.
+  ftxui::Box& CursorBox(TradeZone zone) const;
   // What each side has on the table, named. Yours is read off your own bag,
   // theirs off the wire -- which carries the name, so nothing here has to hold
   // a catalog.
@@ -207,8 +207,6 @@ class TradePanel {
   // list of WHAT IS LEFT -- an offered equip is gone from it and an offered
   // stack shows the rest of itself.
   ftxui::Element RenderBag() const;
-  ftxui::Element RenderEquipTab(int width) const;
-  ftxui::Element RenderEtcTab(int width) const;
 
   // Where the menu hangs: the row of the screen the cursor's own row is drawn
   // on, and the column within whichever window that is.
@@ -242,6 +240,18 @@ class TradePanel {
   bool etc_tab_ = false;
   ItemMenu menu_;
   bool menu_open_ = false;
+  // When the bag's selection last moved, for sliding a long name under its
+  // column, and room for any row under one tab so the two tabs cannot collide
+  // in its key.
+  static constexpr int kTabStride = 4096;
+  mutable SelectionClock name_clock_;
+  // Where the bag's tab row and the cursor's row landed, read from the RENDER:
+  // a menu opens beside the row the player can see, and a position in the data
+  // stops agreeing with that once the list scrolls.
+  mutable ftxui::Box bar_box_;
+  mutable ftxui::Box cursor_box_;
+  mutable ftxui::Box scratch_box_;
+  mutable ftxui::Box panel_box_;
 };
 
 }  // namespace ms

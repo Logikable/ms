@@ -1,10 +1,13 @@
 #include "src/frontend/widgets/inventory_list.h"
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/account.h"
+#include "src/character/progression.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
@@ -17,6 +20,11 @@
 
 namespace ms {
 namespace {
+
+// The least the balances stand off the last tab chip. The bar is read left to
+// right and the two run into each other without it: a count reads as part of
+// the tab beside it.
+constexpr int kBalanceGutter = 8;
 
 // The row's cells hboxed together, with whichever affixes the caller brought.
 ftxui::Element Row(ftxui::Element lead, std::vector<ftxui::Element> cells,
@@ -189,6 +197,118 @@ ftxui::Element RenderStackRow(const StackableItem& stack, bool on_cursor,
   return HighlightRow(
       Row(std::move(lead), {ftxui::text(text)}, std::move(tail), body_width),
       on_cursor);
+}
+
+ftxui::Element RenderBalances(int64_t meso, int64_t spell_traces,
+                              const CharacterInstance& character,
+                              const AccountInstance& account) {
+  std::vector<ftxui::Element> counters = {ftxui::text(FormatMeso(meso)) |
+                                          ftxui::color(kTheme)};
+  if (Unlocked(Feature::kShop, character, account)) {
+    counters.push_back(ftxui::text("   "));
+    counters.push_back(ftxui::text(FormatSpellTraces(spell_traces)) |
+                       ftxui::color(kTheme));
+  }
+  return ftxui::hbox(std::move(counters));
+}
+
+// The least the balances stand off the last tab chip. The bar is read left to
+// right and the two run into each other without it: a count reads as part of
+// the tab beside it.
+
+ftxui::Element RenderBagTabBar(const std::vector<TabSpec>& tabs, int active,
+                               ftxui::Element balances, bool row_selected,
+                               bool highlighted, ftxui::Element trailing,
+                               int width, ftxui::Box& bar_box) {
+  // Left to right: the chips, the balances, whatever trails them. No width
+  // limit on the chips: a bag's tabs are a fixed set and all of them fit.
+  ftxui::Element chips = TabBar(tabs, active, row_selected, /*width=*/0);
+  int chips_width = ftxui::Dimension::Fit(chips).dimx;
+  int balances_width = ftxui::Dimension::Fit(balances).dimx;
+  // What the row has left once everything on it is drawn. The gutter gives
+  // way to it rather than the other way round: a bar squeezed until the
+  // balances fit is better than a number with digits cut off the end.
+  int room = std::max(0, width - chips_width - balances_width -
+                             ftxui::Dimension::Fit(trailing).dimx);
+  int lead =
+      std::max(kBalanceGutter, (width - balances_width) / 2 - chips_width);
+  lead = std::min(lead, room);
+  ftxui::Element tab_row = ftxui::hbox({
+                               std::move(chips),
+                               ftxui::text(std::string(lead, ' ')),
+                               std::move(balances),
+                               ftxui::filler(),
+                               std::move(trailing),
+                           }) |
+                           ftxui::reflect(bar_box);
+  return ftxui::vbox({
+      std::move(tab_row),
+      PanelSeparator(highlighted),
+  });
+}
+
+ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
+                               const std::vector<int>& rows, int selected,
+                               bool focused, ftxui::Box& cursor_box,
+                               bool highlighted,
+                               std::chrono::steady_clock::duration elapsed) {
+  if (rows.empty()) {
+    // No header over nothing, as on an empty Equip tab. Column names are there
+    // to tell rows apart, and there are no rows to tell apart.
+    return ftxui::vbox({EmptyState("empty", /*gutter=*/2), ftxui::filler()});
+  }
+  std::vector<ftxui::Element> drawn;
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    // The cursor shows only while the list holds focus, but the selected row
+    // is marked either way -- see below.
+    ftxui::Element row = RenderStackRow(
+        stacks[rows[i]], focused && i == selected,
+        i == selected ? elapsed : std::chrono::steady_clock::duration::zero());
+    if (i == selected) {
+      // What the frame scrolls to. These rows are plain text rather than an
+      // ftxui::Menu, so nothing else marks the cursor. Marked whether or not
+      // the panel holds focus, so the view does not jump on the way back, and
+      // reflected so the item menu knows the row to open beside.
+      row = std::move(row) | ftxui::focus | ftxui::reflect(cursor_box);
+    }
+    drawn.push_back(std::move(row));
+  }
+  return ftxui::vbox({
+      StackHeader(),
+      PanelSeparator(highlighted),
+      // Only the rows scroll; the header and its rule stay put.
+      ftxui::vbox(std::move(drawn)) | ftxui::vscroll_indicator | ftxui::yframe |
+          ftxui::flex,
+  });
+}
+
+ftxui::Element RenderEquipList(const CharacterInstance& character,
+                               const std::vector<int>& rows, int selected,
+                               bool focused, const ItemColumns& columns,
+                               ftxui::Box& cursor_box, bool highlighted,
+                               std::chrono::steady_clock::duration elapsed) {
+  if (rows.empty()) {
+    return ftxui::vbox({EmptyState("empty", /*gutter=*/2), ftxui::filler()});
+  }
+  std::vector<InventoryRowState> built = BuildEquipRows(
+      character,
+      rows[std::clamp(selected, 0, static_cast<int>(rows.size()) - 1)], elapsed,
+      columns);
+  std::vector<ftxui::Element> drawn;
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    ftxui::Element row =
+        RenderEquipRow(built[rows[i]], focused && i == selected);
+    if (i == selected) {
+      row = std::move(row) | ftxui::focus | ftxui::reflect(cursor_box);
+    }
+    drawn.push_back(std::move(row));
+  }
+  return ftxui::vbox({
+      EquipHeader(columns),
+      PanelSeparator(highlighted),
+      ftxui::vbox(std::move(drawn)) | ftxui::vscroll_indicator | ftxui::yframe |
+          ftxui::flex,
+  });
 }
 
 }  // namespace ms

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <numeric>
 #include <string>
 #include <utility>
 #include <vector>
@@ -28,8 +29,8 @@ constexpr int kBagWidth = 2 * (kOfferWidth + 2) - 2;
 // The rows an offer keeps for what is put in it, and the rows the bag shows at
 // once. Both fixed: a window that grew with what was put in it would move the
 // other one's border.
-constexpr int kOfferRows = kMaxTradeItems;
-constexpr int kBagRows = 11;
+constexpr int kOfferRows = 7;
+constexpr int kBagRows = 10;
 
 // The currency cells. Wide enough for the most either can hold -- a hundred
 // billion meso and a million traces -- so a number climbing never moves the
@@ -40,13 +41,6 @@ constexpr int kTraceCell = 14;
 // An offer row's two columns, and the cursor column before them.
 constexpr int kOfferNameCell = 37;
 constexpr int kOfferCountCell = 12;
-
-// Where each window's list starts, measured down the whole screen: a border,
-// the top row, a rule and a column header before the first row of an offer,
-// and the offer windows' own height before the bag's tab bar does the same.
-constexpr int kOfferListRow = 4;
-constexpr int kOfferWindowRows = 13;
-constexpr int kBagListRow = kOfferWindowRows + 4;
 
 // Where a menu hangs inside its window: past the name a row leads with, so it
 // covers what an item is worth rather than which item it is.
@@ -164,22 +158,19 @@ void TradePanel::MoveMenuCursor(int delta) {
   menu_.Down();
 }
 
+ftxui::Box& TradePanel::CursorBox(TradeZone zone) const {
+  // Only the window holding the cursor keeps its row: every list marks its
+  // selected row so the frame scrolls to it, and the last one drawn would
+  // otherwise be the one a menu opened beside.
+  return zone == zone_ ? cursor_box_ : scratch_box_;
+}
+
 int TradePanel::MenuRow() const {
-  // One row back from the row itself, so the entry standing highlighted lands
-  // beside what the menu is about rather than below it.
-  switch (zone_) {
-    case TradeZone::kMine:
-      return kOfferListRow + own_row_ - 1;
-    case TradeZone::kTheirs:
-      return kOfferListRow + their_row_ - 1;
-    case TradeZone::kBag:
-      break;
-  }
-  // The bag scrolls, so where its cursor is drawn is where the window it
-  // scrolled to puts it.
-  int rows = static_cast<int>(BagRows().size());
-  int cursor = ClampedRow(bag_row_, rows);
-  return kBagListRow + cursor - ScrollWindowStart(rows, cursor, kBagRows) - 1;
+  // Read from the RENDER rather than worked out from the cursor: every list
+  // here scrolls, and a place in the data stops agreeing with the row on
+  // screen as soon as one does. One row back from it, so the entry standing
+  // highlighted lands beside what the menu is about rather than below it.
+  return cursor_box_.y_min - panel_box_.y_min - 1;
 }
 
 int TradePanel::MenuColumn() const {
@@ -357,23 +348,18 @@ void TradePanel::PutUpCurrency(TradeCurrency currency, int64_t amount) {
   own_.spell_traces = amount;
 }
 
-bool TradePanel::PutUpEquip(int index) {
-  // Asked before the cap: one already on the table is not a ninth thing.
+void TradePanel::PutUpEquip(int index) {
   if (std::find(own_.equips.begin(), own_.equips.end(), index) !=
       own_.equips.end()) {
-    return true;
-  }
-  if (own_.items() >= kMaxTradeItems) {
-    return false;
+    return;
   }
   own_.equips.push_back(index);
-  return true;
 }
 
-bool TradePanel::PutUpStack(int index, int count) {
+void TradePanel::PutUpStack(int index, int count) {
   const std::vector<StackableItem>& stacks = character_.stackables();
   if (index < 0 || index >= static_cast<int>(stacks.size())) {
-    return true;
+    return;
   }
   const std::string& name = stacks[index].name();
   for (std::vector<TradeStack>::iterator it = own_.stacks.begin();
@@ -381,24 +367,22 @@ bool TradePanel::PutUpStack(int index, int count) {
     if (it->name() != name) {
       continue;
     }
+    // A stack already up is changed rather than added to, and taken down
+    // altogether at nothing.
     if (count <= 0) {
       own_.stacks.erase(it);
-      return true;
+    } else {
+      it->set_count(count);
     }
-    it->set_count(count);
-    return true;
+    return;
   }
   if (count <= 0) {
-    return true;
-  }
-  if (own_.items() >= kMaxTradeItems) {
-    return false;
+    return;
   }
   TradeStack stack;
   stack.set_name(name);
   stack.set_count(count);
   own_.stacks.push_back(std::move(stack));
-  return true;
 }
 
 void TradePanel::TakeBack(int row) {
@@ -441,31 +425,46 @@ std::vector<TradePanel::OfferRow> TradePanel::TheirRows() const {
 }
 
 ftxui::Element TradePanel::RenderOfferTable(const std::vector<OfferRow>& rows,
-                                            int cursor) const {
+                                            int cursor,
+                                            ftxui::Box& cursor_box) const {
+  const int height = kOfferRows + 2;  // the header and its rule
+  if (rows.empty()) {
+    // No header over nothing, as an empty bag tab draws: column names are
+    // there to tell rows apart, and there are none.
+    return ftxui::vbox({EmptyState("nothing", /*gutter=*/2), ftxui::filler()}) |
+           ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, height);
+  }
   std::vector<ftxui::Element> list;
   for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    // The caret alone marks the row: a handful of rows in a window of their
+    // own are not a column of stats to be read back to a name.
     ftxui::Element row = ftxui::hbox({
-        ftxui::text(i == cursor ? "›" : " "),
+        ftxui::text(i == cursor ? "> " : "  "),
         ftxui::text(PadRight(rows[i].name, kOfferNameCell)),
         ftxui::text(PadLeft(rows[i].quantity, kOfferCountCell)),
         ftxui::filler(),
     });
-    list.push_back(HighlightRow(std::move(row), i == cursor));
+    if (i == cursor) {
+      // What the frame scrolls to, marked whether or not this window holds
+      // focus so the view does not jump on the way back, and reflected so a
+      // menu knows the row to open beside.
+      row = std::move(row) | ftxui::focus | ftxui::reflect(cursor_box);
+    }
+    list.push_back(std::move(row));
   }
-  if (list.empty()) {
-    list.push_back(EmptyState("nothing"));
-  }
-  ftxui::Element header = ftxui::hbox({
-      ftxui::text(" "),
-      ftxui::text(PadRight("Name", kOfferNameCell)),
-      ftxui::text(PadLeft("Quantity", kOfferCountCell)),
-      ftxui::filler(),
-  });
   return ftxui::vbox({
-      std::move(header),
-      ftxui::vbox(std::move(list)) |
-          ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kOfferRows),
-  });
+             ftxui::hbox({
+                 ftxui::text("  "),
+                 ftxui::text(PadRight("Name", kOfferNameCell)),
+                 ftxui::text(PadLeft("Quantity", kOfferCountCell)),
+                 ftxui::filler(),
+             }),
+             ThemedSeparator(),
+             // Only the rows scroll; the header and its rule stay put.
+             ftxui::vbox(std::move(list)) | ftxui::vscroll_indicator |
+                 ftxui::yframe | ftxui::flex,
+         }) |
+         ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, height);
 }
 
 ftxui::Element TradePanel::RenderMyTopRow() const {
@@ -498,7 +497,9 @@ ftxui::Element TradePanel::RenderMine() const {
           RenderMyTopRow(),
           ThemedSeparator(),
           RenderOfferTable(
-              MyRows(), zone_ == TradeZone::kMine && own_list_ ? own_row_ : -1),
+              MyRows(),
+              own_.items() == 0 ? -1 : ClampedRow(own_row_, own_.items()),
+              CursorBox(TradeZone::kMine)),
       }) |
       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kOfferWidth);
   return ThemedWindow(" " + character_.username() + " ", std::move(body),
@@ -516,8 +517,10 @@ ftxui::Element TradePanel::RenderTheirs() const {
       ftxui::vbox({
           RenderTheirTopRow(),
           ThemedSeparator(),
-          RenderOfferTable(TheirRows(),
-                           zone_ == TradeZone::kTheirs ? their_row_ : -1),
+          RenderOfferTable(
+              TheirRows(),
+              ClampedRow(their_row_, static_cast<int>(TheirRows().size())),
+              CursorBox(TradeZone::kTheirs)),
       }) |
       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kOfferWidth);
   return ThemedWindow(title, std::move(body), zone_ == TradeZone::kTheirs,
@@ -525,86 +528,67 @@ ftxui::Element TradePanel::RenderTheirs() const {
                       TitleAlign::kRight);
 }
 
-ftxui::Element TradePanel::RenderEquipTab(int width) const {
-  ItemListOptions options;
-  options.bag = true;
-  options.scrolling = Unlocked(Feature::kScrolling, character_, account_);
-  options.star_force = Unlocked(Feature::kStarForce, character_, account_);
-  options.potential = Unlocked(Feature::kPotential, character_, account_);
-  ItemColumns columns = FitItemColumns(width, options);
-  std::vector<int> bag = BagRows();
-  int cursor = ClampedRow(bag_row_, static_cast<int>(bag.size()));
-  std::vector<InventoryRowState> all =
-      BuildEquipRows(character_, bag.empty() ? -1 : bag[cursor],
-                     std::chrono::steady_clock::duration::zero(), columns);
-  std::vector<ftxui::Element> list;
-  for (int i = 0; i < static_cast<int>(bag.size()); ++i) {
-    list.push_back(
-        RenderEquipRow(all[bag[i]], zone_ == TradeZone::kBag && i == cursor));
-  }
-  if (list.empty()) {
-    list.push_back(EmptyState("empty"));
-  }
-  return ftxui::vbox({
-      EquipHeader(columns),
-      ThemedSeparator(),
-      ftxui::vbox(std::move(list)) | ftxui::vscroll_indicator | ftxui::yframe |
-          ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kBagRows),
-  });
-}
-
-ftxui::Element TradePanel::RenderEtcTab(int width) const {
-  std::vector<int> bag = BagRows();
-  int cursor = ClampedRow(bag_row_, static_cast<int>(bag.size()));
-  std::vector<ftxui::Element> list;
-  for (int i = 0; i < static_cast<int>(bag.size()); ++i) {
-    // What is left of the stack rather than what it holds: an offered stack
-    // is part on the table and part still yours.
-    StackableItem left(character_.stackables()[bag[i]].prototype(),
-                       stack_left(bag[i]));
-    list.push_back(RenderStackRow(left, zone_ == TradeZone::kBag && i == cursor,
-                                  std::chrono::steady_clock::duration::zero()));
-  }
-  if (list.empty()) {
-    list.push_back(EmptyState("empty"));
-  }
-  return ftxui::vbox({
-      StackHeader(),
-      ThemedSeparator(),
-      ftxui::vbox(std::move(list)) | ftxui::vscroll_indicator | ftxui::yframe |
-          ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kBagRows),
-  });
-}
-
 ftxui::Element TradePanel::RenderBag() const {
+  std::vector<int> bag = BagRows();
+  const bool focused = zone_ == TradeZone::kBag;
+  int cursor = ClampedRow(bag_row_, static_cast<int>(bag.size()));
+  // The tab rides in the key, so the same row of the other tab counts as a
+  // different name and starts from its own head.
+  name_clock_.Follow((etc_tab_ ? kTabStride : 0) + cursor, focused);
+
+  ftxui::Element list;
+  if (etc_tab_) {
+    // What is LEFT of each stack rather than what it holds: an offered stack
+    // is part on the table and part still yours.
+    std::vector<StackableItem> left;
+    left.reserve(bag.size());
+    for (int index : bag) {
+      left.emplace_back(character_.stackables()[index].prototype(),
+                        stack_left(index));
+    }
+    std::vector<int> rows(left.size());
+    std::iota(rows.begin(), rows.end(), 0);
+    list = RenderStackList(left, rows, cursor, focused, cursor_box_,
+                           /*highlighted=*/false, name_clock_.Elapsed());
+  } else {
+    ItemListOptions options;
+    options.bag = true;
+    options.scrolling = Unlocked(Feature::kScrolling, character_, account_);
+    options.star_force = Unlocked(Feature::kStarForce, character_, account_);
+    options.potential = Unlocked(Feature::kPotential, character_, account_);
+    list = RenderEquipList(character_, bag, cursor, focused,
+                           FitItemColumns(kBagWidth, options), cursor_box_,
+                           /*highlighted=*/false, name_clock_.Elapsed());
+  }
   std::vector<TabSpec> tabs = {{"Equip"}, {"Etc"}};
-  ftxui::Element bar = ftxui::hbox({
-      TabBar(tabs, etc_tab_ ? 1 : 0, zone_ == TradeZone::kBag, kBagWidth),
-      ftxui::filler(),
-      // What is LEFT of each, as the lists below are: the two panels always
-      // add up to what the player owns.
-      ftxui::text(FormatMeso(held(TradeCurrency::kMeso) - own_.meso)) |
-          ftxui::color(kTheme),
-      ftxui::text("   "),
-      ftxui::text(FormatSpellTraces(held(TradeCurrency::kSpellTraces) -
-                                    own_.spell_traces)) |
-          ftxui::color(kTheme),
-      ftxui::text(" "),
-  });
   ftxui::Element body =
       ftxui::vbox({
-          std::move(bar),
-          etc_tab_ ? RenderEtcTab(kBagWidth) : RenderEquipTab(kBagWidth),
+          // The bar never holds the cursor here: Left and Right switch tabs
+          // from the list, so nothing has to climb out of it first.
+          RenderBagTabBar(tabs, etc_tab_ ? 1 : 0,
+                          RenderBalances(held(TradeCurrency::kMeso) - own_.meso,
+                                         held(TradeCurrency::kSpellTraces) -
+                                             own_.spell_traces,
+                                         character_, account_),
+                          /*row_selected=*/false, /*highlighted=*/false,
+                          ftxui::text(""), kBagWidth, bar_box_),
+          // The header, its rule and the rows, which are all the list is.
+          std::move(list) |
+              ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kBagRows + 2),
       }) |
       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBagWidth);
-  return ThemedWindow(" Inventory ", std::move(body), zone_ == TradeZone::kBag);
+  return ThemedWindow(" Inventory ", std::move(body), focused);
 }
 
 ftxui::Element TradePanel::Render() const {
+  // Reflected so a menu can be put beside a row inside it: what the lists
+  // report is where they landed on the SCREEN, and a floating menu is placed
+  // from the panel's own corner.
   ftxui::Element screen = ftxui::vbox({
-      ftxui::hbox({RenderMine(), RenderTheirs()}),
-      RenderBag(),
-  });
+                              ftxui::hbox({RenderMine(), RenderTheirs()}),
+                              RenderBag(),
+                          }) |
+                          ftxui::reflect(panel_box_);
   if (!menu_open_) {
     return screen;
   }

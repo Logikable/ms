@@ -226,12 +226,12 @@ TEST_F(TradePanelTest, TheBagHasTwoTabsAndOnlyTradeableStacks) {
 
 TEST_F(TradePanelTest, TheBagShowsWhatIsLeft) {
   ToBag();
-  ASSERT_TRUE(panel_.PutUpEquip(0));
+  panel_.PutUpEquip(0);
   EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kNothing)
       << "the one equip is on the table, so the tab has nothing to stand on";
 
   panel_.MoveCursor(1);
-  ASSERT_TRUE(panel_.PutUpStack(StackIndex("Chaos Scroll"), 5));
+  panel_.PutUpStack(StackIndex("Chaos Scroll"), 5);
   EXPECT_EQ(panel_.stack_left(StackIndex("Chaos Scroll")), 7);
 
   std::string screen = Text();
@@ -243,25 +243,31 @@ TEST_F(TradePanelTest, TheBagShowsWhatIsLeft) {
   EXPECT_NE(Text().find("234,567"), std::string::npos);
 }
 
-TEST_F(TradePanelTest, TheTableHoldsEightThings) {
-  for (int i = 0; i < kMaxTradeItems; ++i) {
+TEST_F(TradePanelTest, TheTableTakesAsMuchAsThePlayerHas) {
+  constexpr int kMany = 20;
+  for (int i = 0; i < kMany; ++i) {
     c_.PickUp(std::make_unique<EquipInstance>(sword_));
   }
-  for (int i = 0; i < kMaxTradeItems; ++i) {
-    EXPECT_TRUE(panel_.PutUpEquip(i)) << i;
+  for (int i = 0; i < kMany; ++i) {
+    panel_.PutUpEquip(i);
   }
-  EXPECT_FALSE(panel_.PutUpEquip(kMaxTradeItems));
-  EXPECT_FALSE(panel_.PutUpStack(StackIndex("Chaos Scroll"), 5));
-  EXPECT_EQ(panel_.own().items(), kMaxTradeItems);
+  EXPECT_EQ(panel_.own().items(), kMany) << "the window scrolls instead";
 
-  // Putting the same one up again is not a ninth thing.
-  EXPECT_TRUE(panel_.PutUpEquip(0));
-  EXPECT_EQ(panel_.own().items(), kMaxTradeItems);
+  // Putting the same one up twice is still one thing on the table, and a
+  // stack already up is changed rather than added to.
+  panel_.PutUpEquip(0);
+  EXPECT_EQ(panel_.own().items(), kMany);
+  panel_.PutUpStack(StackIndex("Chaos Scroll"), 5);
+  panel_.PutUpStack(StackIndex("Chaos Scroll"), 9);
+  EXPECT_EQ(panel_.own().items(), kMany + 1);
+  EXPECT_EQ(panel_.stack_offered(StackIndex("Chaos Scroll")), 9);
+  panel_.PutUpStack(StackIndex("Chaos Scroll"), 0);
+  EXPECT_EQ(panel_.own().items(), kMany);
 }
 
 TEST_F(TradePanelTest, WalkingAndTakingBackWhatIsOnTheTable) {
-  ASSERT_TRUE(panel_.PutUpEquip(0));
-  ASSERT_TRUE(panel_.PutUpStack(StackIndex("Chaos Scroll"), 5));
+  panel_.PutUpEquip(0);
+  panel_.PutUpStack(StackIndex("Chaos Scroll"), 5);
 
   // Down off the top row drops into the offer.
   panel_.MoveRow(1);
@@ -279,6 +285,46 @@ TEST_F(TradePanelTest, WalkingAndTakingBackWhatIsOnTheTable) {
   // Up off the first row climbs back to the currencies.
   panel_.MoveRow(-1);
   EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kCurrency);
+}
+
+// The bag is the game's own bag: the same tab row with its rule under it, and
+// the same column header with a rule of its own. The offer windows follow it.
+TEST_F(TradePanelTest, EveryHeaderHasItsRule) {
+  // One on the table and one left in the bag, so both lists have a header.
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_.PutUpEquip(0);
+  std::vector<std::string> rows = Rows();
+  int tabs = -1;
+  int columns = -1;
+  int offer = -1;
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    if (rows[i].find("Equip") != std::string::npos &&
+        rows[i].find("Etc") != std::string::npos) {
+      tabs = i;
+    }
+    if (rows[i].find("Equip Slot") != std::string::npos) {
+      columns = i;
+    }
+    if (rows[i].find("Quantity") != std::string::npos && offer < 0) {
+      offer = i;
+    }
+  }
+  ASSERT_GE(tabs, 0);
+  ASSERT_GE(columns, 0);
+  ASSERT_GE(offer, 0);
+  EXPECT_NE(rows[tabs + 1].find("├"), std::string::npos) << rows[tabs + 1];
+  EXPECT_NE(rows[columns + 1].find("├"), std::string::npos)
+      << rows[columns + 1];
+  EXPECT_NE(rows[offer + 1].find("├"), std::string::npos) << rows[offer + 1];
+}
+
+// The one the rest of the game draws, with its own column between the caret
+// and the name.
+TEST_F(TradePanelTest, TheCursorIsTheGamesOwnCaret) {
+  panel_.PutUpEquip(0);
+  panel_.MoveRow(1);
+  ASSERT_EQ(panel_.cursor().kind, TradeCursor::Kind::kOffered);
+  EXPECT_NE(Text().find("> Sword"), std::string::npos);
 }
 
 TEST_F(TradePanelTest, TheirRowsAreWalkedAndRead) {
@@ -312,7 +358,7 @@ TEST_F(TradePanelTest, EachWindowsMenuOffersWhatItCanDo) {
   panel_.CloseMenu();
 
   // Your own side takes them back.
-  ASSERT_TRUE(panel_.PutUpEquip(0));
+  panel_.PutUpEquip(0);
   panel_.NextZone(1);
   ASSERT_EQ(panel_.zone(), TradeZone::kMine);
   panel_.MoveRow(1);
@@ -348,8 +394,8 @@ TEST_F(TradePanelTest, NoMenuOnACurrencyOrTheButton) {
 
 TEST_F(TradePanelTest, TheWireCarriesTheWholeItem) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  ASSERT_TRUE(panel_.PutUpEquip(1));
-  ASSERT_TRUE(panel_.PutUpStack(StackIndex("Chaos Scroll"), 5));
+  panel_.PutUpEquip(1);
+  panel_.PutUpStack(StackIndex("Chaos Scroll"), 5);
   panel_.PutUpCurrency(TradeCurrency::kMeso, 700);
 
   TradeOffer offer = panel_.own().ToWire(c_);
