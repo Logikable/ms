@@ -25,6 +25,10 @@
 namespace ms {
 namespace {
 
+// The horizontal rule ftxui draws a border with, for a title padded out to
+// one end of it.
+constexpr char kBorderRun[] = "\u2500";
+
 constexpr int kSlotWidth = 10;
 constexpr int kInfoWidth = 20;
 constexpr int kScrollWidth = 6;
@@ -415,14 +419,6 @@ ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
   return ftxui::hbox(std::move(chips));
 }
 
-std::string RightAlignedTitle(const std::string& title, int inner_width) {
-  // The title is drawn one column in from the box's left corner, so the pad
-  // that puts its tail on the right corner is the whole content width less
-  // what it takes.
-  return std::string(std::max(0, inner_width - TextColumns(title)), ' ') +
-         title;
-}
-
 ftxui::Element ActionButton(const std::string& label, bool focused) {
   ftxui::Element button = ftxui::text("[" + label + "]");
   if (focused) {
@@ -498,10 +494,26 @@ bool TitleChipLit(std::chrono::steady_clock::time_point now) {
 
 ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
                             ftxui::Color accent, bool focused, bool blink,
-                            std::chrono::steady_clock::time_point now) {
+                            std::chrono::steady_clock::time_point now,
+                            TitleAlign align) {
   ftxui::Element title_el = ftxui::text(title) | ftxui::color(accent);
   if (focused && (!blink || TitleChipLit(now))) {
     title_el = title_el | ftxui::inverted;
+  }
+  if (align == TitleAlign::kRight) {
+    // Padded with the border's own rune rather than blanks, so what stands in
+    // front of the title reads as the border it is sitting in -- and left OUT
+    // of the lit chip, which is about the name.
+    content->ComputeRequirement();
+    int pad = std::max(0, content->requirement().min_x - TextColumns(title));
+    std::string run;
+    for (int i = 0; i < pad; ++i) {
+      run += kBorderRun;
+    }
+    title_el = ftxui::hbox({
+        ftxui::text(run) | ftxui::color(accent),
+        std::move(title_el),
+    });
   }
   return ftxui::window(std::move(title_el),
                        std::move(content) | ftxui::color(ftxui::Color::White)) |
@@ -510,8 +522,10 @@ ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
 
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
                             bool focused, bool blink,
-                            std::chrono::steady_clock::time_point now) {
-  return AccentWindow(title, std::move(content), kTheme, focused, blink, now);
+                            std::chrono::steady_clock::time_point now,
+                            TitleAlign align) {
+  return AccentWindow(title, std::move(content), kTheme, focused, blink, now,
+                      align);
 }
 
 ftxui::Element CenteredRow(ftxui::Element row) {

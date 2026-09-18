@@ -155,6 +155,23 @@ TEST_F(TradePanelTest, TheirSideIsMirrored) {
   }
   ASSERT_FALSE(title.empty());
   EXPECT_GT(title.find("Wand"), title.size() / 2);
+  // Padded out with the border's own rule rather than blanks, so the run in
+  // front of the name reads as the border it sits in.
+  EXPECT_NE(title.find("─ Wand "), std::string::npos) << title;
+}
+
+TEST_F(TradePanelTest, FocusLightsTheNameAndNotThePaddingBeforeIt) {
+  panel_.NextZone(1);
+  ASSERT_EQ(panel_.zone(), TradeZone::kTheirs);
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                               ftxui::Dimension::Fixed(40));
+  ftxui::Render(screen, ftxui::center(panel_.Render()));
+  std::string styled = screen.ToString();
+
+  EXPECT_NE(styled.find("\033[7m Wand "), std::string::npos)
+      << "the name is the chip";
+  EXPECT_EQ(styled.find("\033[7m─"), std::string::npos)
+      << "the border run before it is not";
 }
 
 TEST_F(TradePanelTest, TheCursorWalksTheTopRowAndTheAcceptButton) {

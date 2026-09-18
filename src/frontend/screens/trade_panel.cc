@@ -510,7 +510,7 @@ ftxui::Element TradePanel::RenderTheirs() const {
   // place set at the table rather than somebody sitting at it.
   std::string title;
   if (trade_.partner_joined()) {
-    title = RightAlignedTitle(" " + trade_.partner_name() + " ", kOfferWidth);
+    title = " " + trade_.partner_name() + " ";
   }
   ftxui::Element body =
       ftxui::vbox({
@@ -520,7 +520,9 @@ ftxui::Element TradePanel::RenderTheirs() const {
                            zone_ == TradeZone::kTheirs ? their_row_ : -1),
       }) |
       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kOfferWidth);
-  return ThemedWindow(title, std::move(body), zone_ == TradeZone::kTheirs);
+  return ThemedWindow(title, std::move(body), zone_ == TradeZone::kTheirs,
+                      /*blink=*/false, std::chrono::steady_clock::now(),
+                      TitleAlign::kRight);
 }
 
 ftxui::Element TradePanel::RenderEquipTab(int width) const {

@@ -146,11 +146,6 @@ struct TabSpec {
 ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
                       bool row_focused, int width);
 
-// A window title pushed to the RIGHT of its border, for a panel read from that
-// side -- the other player's half of a trade. `inner_width` is the content
-// width the window is built around.
-std::string RightAlignedTitle(const std::string& title, int inner_width);
-
 // A bracketed button in the game's one button style, inverted when focused.
 // Every button the player can land on is drawn with this.
 ftxui::Element ActionButton(const std::string& label, bool focused);
@@ -203,6 +198,15 @@ constexpr std::chrono::milliseconds kTitleBlinkHalf(600);
 // CLOCK, so every window blinks on one beat and Tab does not restart it.
 bool TitleChipLit(std::chrono::steady_clock::time_point now);
 
+// Which end of its border a window's title sits at. kRight is for a panel read
+// from that side -- the other player's half of a trade -- and pads the title
+// out with the border's own rule, so only the name is lit when the window has
+// focus.
+enum class TitleAlign {
+  kLeft,
+  kRight,
+};
+
 // ThemedWindow in a colour of your choosing, for the few things that step out
 // of the steel blue. Every window is built from this, so a lit one differs in
 // colour and nothing else. `blink` is the player's Options setting, which only
@@ -211,7 +215,8 @@ ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
                             ftxui::Color accent, bool focused = false,
                             bool blink = false,
                             std::chrono::steady_clock::time_point now =
-                                std::chrono::steady_clock::now());
+                                std::chrono::steady_clock::now(),
+                            TitleAlign align = TitleAlign::kLeft);
 
 // Content in a bordered window in the game's steel blue, foreground white --
 // explicitly coloured elements and ThemedSeparator override it. `focused`
@@ -219,7 +224,8 @@ ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
                             bool focused = false, bool blink = false,
                             std::chrono::steady_clock::time_point now =
-                                std::chrono::steady_clock::now());
+                                std::chrono::steady_clock::now(),
+                            TitleAlign align = TitleAlign::kLeft);
 
 // Centres a row with a column of clearance each side. EVERY centred row goes
 // through this rather than bare hcenter, so the longest line on a screen --
