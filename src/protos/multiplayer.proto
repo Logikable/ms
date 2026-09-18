@@ -255,6 +255,49 @@ message FightEnded {
 // nothing, and the fight goes on for whoever is left.
 message LeaveFight {}
 
+// What one side of a trade is putting up. The two currencies a character
+// carries that are worth counting; items come later.
+message TradeOffer {
+  int64 meso = 1;
+  int64 spell_traces = 2;
+}
+
+// Trade with the player named. Both sides send it: the first opens the trade
+// and the second joins the one they were asked into, which is why one message
+// does both.
+message RequestTrade {
+  string account_id = 1;
+}
+
+// What this player is putting up, whole rather than as a change to it -- two
+// changes in flight at once cannot then add up to an offer nobody made.
+message SetTradeOffer {
+  TradeOffer offer = 1;
+}
+
+// Walking out of the trade screen, which ends the trade for both.
+message LeaveTrade {}
+
+// The trade this client is in. An empty id means they are in none, which is
+// how walking out, being walked out on, and never having traded read alike.
+message TradeState {
+  string id = 1;
+  string partner_account_id = 2;
+  string partner_name = 3;
+  // False while the other player has been asked and has not yet pressed
+  // Trade back. Their panel wears no name until it is true.
+  bool partner_joined = 4;
+  TradeOffer mine = 5;
+  TradeOffer theirs = 6;
+}
+
+// Something worth putting in front of the player wherever they are: the gold
+// box in the corner of the screen. One string per line, written to be shown as
+// it stands -- the box is small, and nothing on the way to it wraps text.
+message Notification {
+  repeated string lines = 1;
+}
+
 // Who this client has open on the Inspect screen, so the server sends their
 // sheet and keeps it fresh. An empty account says the screen has closed. One
 // at a time: the screen reads one player.
@@ -280,6 +323,9 @@ message ClientMessage {
     FightUpdate fight_update = 11;
     LeaveFight leave_fight = 12;
     WatchPlayer watch_player = 13;
+    RequestTrade request_trade = 14;
+    SetTradeOffer set_trade_offer = 15;
+    LeaveTrade leave_trade = 16;
   }
 }
 
@@ -334,6 +380,12 @@ message Refused {
     REASON_NOT_READY = 12;
     // The party does not agree on the options the fight is taken under.
     REASON_OPTIONS_DIFFER = 13;
+    // The player asked to trade is in a fight or already trading, or the
+    // asker is. Nobody is told which: what stands in the way is the other
+    // player's own business.
+    REASON_BUSY = 14;
+    // They went offline between the menu opening and Enter.
+    REASON_PLAYER_GONE = 15;
   }
   Reason reason = 1;
   string message = 2;
@@ -396,5 +448,7 @@ message ServerMessage {
     FightEnded fight_ended = 9;
     OnlinePlayers online_players = 10;
     PlayerSheet player_sheet = 11;
+    TradeState trade_state = 12;
+    Notification notification = 13;
   }
 }

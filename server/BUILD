@@ -50,6 +50,27 @@ cc_library(
 )
 
 cc_library(
+    name = "trade",
+    srcs = ["trade.cc"],
+    hdrs = ["trade.h"],
+    deps = [
+        ":ids",
+        "//src/protos:multiplayer_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "trade_test",
+    size = "small",
+    srcs = ["trade_test.cc"],
+    deps = [
+        ":trade",
+        "//src/protos:multiplayer_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "fight",
     srcs = ["fight.cc"],
     hdrs = ["fight.h"],
