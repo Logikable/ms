@@ -20,6 +20,7 @@
 #include "src/combat/offline.h"
 #include "src/frontend/item_ref.h"
 #include "src/frontend/keybinds.h"
+#include "src/frontend/notification_box.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
@@ -249,6 +250,11 @@ class TuiController {
   // tick, before the fight is stepped.
   void AdvanceParty();
 
+  // Runs the gold box's clock down, and records that the player has pressed a
+  // key. Both belong to Tui: it owns the frame clock and sees every key.
+  void AdvanceNotification(double elapsed_seconds);
+  void TouchNotification();
+
   // The word from the server, floated over whatever is on screen: a refusal
   // (drawn red), news of the party, or the connection going away.
   const ContinuePrompt& party_notice_prompt() const {
@@ -259,6 +265,10 @@ class TuiController {
   }
   bool party_notice_is_refusal() const {
     return party_notice_is_refusal_;
+  }
+  // The gold box in the corner, which outlives whatever screen raised it.
+  const NotificationBox& notification() const {
+    return notification_;
   }
   // The question a party action asks before it is taken, and what it asks.
   const ConfirmPrompt& party_prompt() const {
@@ -818,6 +828,10 @@ class TuiController {
   std::string party_target_;
   ConfirmPrompt party_prompt_;
   std::string party_prompt_question_;
+  NotificationBox notification_;
+  // The last gold box raised, so one arriving is raised once rather than on
+  // every frame after it.
+  int64_t notification_seen_ = 0;
   ContinuePrompt party_notice_prompt_;
   std::string party_notice_;
   bool party_notice_is_refusal_ = false;

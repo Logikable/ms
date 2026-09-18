@@ -38,6 +38,16 @@ TEST(PlacementTest, CentredSitsInTheMiddleOfBothAxes) {
   EXPECT_EQ(rows[7], "       ╰─────╯       ");
 }
 
+TEST(PlacementTest, BottomRightTucksTheBoxIntoTheCorner) {
+  std::vector<std::string> rows =
+      Draw(BottomRight(ftxui::filler(), Box(1, 3, "x")));
+  // Three rows of box against the bottom of eleven, five columns against the
+  // right of twenty-one.
+  EXPECT_EQ(rows[8], "                ╭───╮");
+  EXPECT_EQ(rows[10], "                ╰───╯");
+  EXPECT_EQ(rows[7], "                     ");
+}
+
 TEST(PlacementTest, CardRowDrawsEveryCardTheHeightOfTheTallest) {
   std::vector<std::string> rows =
       Draw(SideBySide({Box(1, 3, "a"), Box(5, 3, "b")}));

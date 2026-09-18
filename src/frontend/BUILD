@@ -65,6 +65,7 @@ cc_library(
     deps = [
         ":item_ref",
         ":keybinds",
+        ":notification_box",
         ":types",
         "//src:game_state",
         "//src/character",
@@ -259,6 +260,30 @@ cc_test(
     deps = [
         ":main_layout",
         ":panel_widths",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "notification_box",
+    srcs = ["notification_box.cc"],
+    hdrs = ["notification_box.h"],
+    deps = [
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:colors",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "notification_box_test",
+    size = "small",
+    srcs = ["notification_box_test.cc"],
+    deps = [
+        ":notification_box",
+        "//src/frontend/testing:screen_text",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",

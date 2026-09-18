@@ -318,6 +318,11 @@ ftxui::Element Tui::RenderFrame() {
   inventory_panel_.SetExpanded(controller_.expanded_panel() == kInventoryPanel);
 
   ftxui::Element frame = RenderScreen();
+  // Under the dialogs and the card: the corner is news, and whatever the
+  // player has been asked to answer outranks it.
+  if (controller_.notification().visible()) {
+    frame = BottomRight(std::move(frame), controller_.notification().Render());
+  }
   if (controller_.party_notice_prompt().open()) {
     // Over whatever the player is looking at: the server does not wait for
     // them to be on the party screen before removing them from a party.
@@ -1110,6 +1115,7 @@ void Tui::Tick() {
   // Ticked down before the new level is noticed, so a level-up landing on this
   // tick gets its full four seconds rather than one tick's worth less.
   celebration_.Advance(elapsed.count());
+  controller_.AdvanceNotification(elapsed.count());
   celebration_.Visit(FocusedPanel());
   NoticeProgress();
   // LAST, so dying wins the card over anything else this tick turned up. A
@@ -1210,6 +1216,11 @@ bool Tui::OnEvent(ftxui::Event event) {
   // -- and Custom is the ticker's redraw rather than somebody looking.
   if (celebration_.card_visible() && event != ftxui::Event::Custom) {
     celebration_.Dismiss();
+  }
+  // The gold box needs a key as well as its four seconds, and the ticker's
+  // redraw is not the player pressing one.
+  if (event != ftxui::Event::Custom) {
+    controller_.TouchNotification();
   }
   // The All Stats screen's Farm/Boss row is the panel's own, and the panel
   // lives here rather than on the controller. Everything it does not take --

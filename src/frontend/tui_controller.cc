@@ -1486,9 +1486,6 @@ MultiplayerSnapshot TuiController::Lobby() const {
 
 void TuiController::RaisePartyNotice(const std::string& message, bool refusal) {
   // Wrapped here rather than by the server: how wide a dialog is is the
-  // client's business, and a sentence the server writes plainly used to
-  // stretch one as far as it ran.
-  // Wrapped here rather than by the server: how wide a dialog is is the
   // client's business, and a sentence written plainly used to stretch one as
   // far as it ran. A break the message made itself is kept, each side of it
   // wrapped on its own.
@@ -1534,11 +1531,23 @@ void TuiController::AdvanceParty() {
   AdvanceWatch(lobby);
   RefreshPlayerInspect(lobby);
   AdvancePartyFight(lobby);
+  if (lobby.notification_serial != notification_seen_) {
+    notification_seen_ = lobby.notification_serial;
+    notification_.Raise(lobby.notification);
+  }
   if (lobby.notice_serial == party_notice_seen_) {
     return;
   }
   party_notice_seen_ = lobby.notice_serial;
   RaisePartyNotice(lobby.notice, lobby.notice_is_refusal);
+}
+
+void TuiController::AdvanceNotification(double elapsed_seconds) {
+  notification_.Advance(elapsed_seconds);
+}
+
+void TuiController::TouchNotification() {
+  notification_.Touch();
 }
 
 void TuiController::AdvancePartyFight(const MultiplayerSnapshot& lobby) {

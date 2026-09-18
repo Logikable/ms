@@ -22,4 +22,17 @@ ftxui::Element Overlay(ftxui::Element screen, ftxui::Element dialog) {
   });
 }
 
+ftxui::Element BottomRight(ftxui::Element screen, ftxui::Element box) {
+  // The fillers push the box into the corner; the screen behind sets how far
+  // that is, an overlaid vbox with no flexing child of its own having no
+  // height to give away.
+  return ftxui::dbox({
+      std::move(screen),
+      ftxui::vbox({
+          ftxui::filler(),
+          ftxui::hbox({ftxui::filler(), ClearUnder(std::move(box))}),
+      }),
+  });
+}
+
 }  // namespace ms
