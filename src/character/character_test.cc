@@ -719,6 +719,65 @@ TEST_F(AddExpTest, LevelUpItselfIsNotCapped) {
   EXPECT_EQ(c.proto().level(), kTrialLevelCap + 1);
 }
 
+// --- Burning ---
+
+class BurningTest : public CharacterTest {};
+
+TEST_F(BurningTest, OneLevelWithNobodyAhead) {
+  EXPECT_EQ(LevelAfterBurning(50, {}), 51);
+  EXPECT_EQ(LevelAfterBurning(50, {40, 30}), 51);
+}
+
+TEST_F(BurningTest, TwoThreeAndFiveAsTheAccountFillsUp) {
+  EXPECT_EQ(LevelAfterBurning(50, {120}), 52);
+  EXPECT_EQ(LevelAfterBurning(50, {120, 110, 100}), 53);
+  EXPECT_EQ(LevelAfterBurning(50, std::vector<int>(10, 100)), 55);
+  // Only the characters ABOVE this one count, so a tier the account has the
+  // bodies for still pays the tier below when they are not all ahead.
+  std::vector<int> two_ahead = {120, 110, 10, 10, 10, 10, 10, 10, 10, 10};
+  EXPECT_EQ(LevelAfterBurning(50, two_ahead), 52);
+}
+
+// The best tier wins rather than the fastest: five levels would pass the
+// tenth highest, so the three-level tier carries further.
+TEST_F(BurningTest, ATierStopsAtItsOwnCeiling) {
+  std::vector<int> levels(9, 150);
+  levels.push_back(100);
+  EXPECT_EQ(LevelAfterBurning(98, levels), 101);
+  EXPECT_EQ(LevelAfterBurning(99, levels), 102);
+  // Standing level with the lowest character a tier counts drops to the next
+  // one up: the third highest is still ahead, the tenth is not.
+  EXPECT_EQ(LevelAfterBurning(100, levels), 103);
+}
+
+TEST_F(BurningTest, NeverPastTheBurningLevel) {
+  std::vector<int> ten(10, kTrialLevelCap);
+  EXPECT_EQ(LevelAfterBurning(kBurningLevel - 4, ten), kBurningLevel);
+  EXPECT_EQ(LevelAfterBurning(kBurningLevel - 1, ten), kBurningLevel);
+  EXPECT_EQ(LevelAfterBurning(kBurningLevel, ten), kBurningLevel + 1);
+}
+
+// One threshold buys every level the burn hands over, gains and all, and what
+// is left of the EXP rides along to the level arrived at.
+TEST_F(AddExpTest, BurningPaysOneThresholdForSeveralLevels) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/1);
+  c.AddExp(20, {100});  // level 1 costs 15, leaving 5
+  EXPECT_EQ(c.proto().level(), 3);
+  EXPECT_EQ(c.proto().exp(), 5);
+  EXPECT_EQ(c.proto().ap(), 10);
+}
+
+// Every threshold the award crosses burns again, and the EXP left over after
+// a burn is measured against the level arrived at.
+TEST_F(AddExpTest, BurningAgainForEveryThresholdCrossed) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/1);
+  // 15 buys levels 2 and 3, and 57 buys 4 and 5. The 12 left over is short of
+  // level 5's threshold.
+  c.AddExp(15 + 57 + 12, {100});
+  EXPECT_EQ(c.proto().level(), 5);
+  EXPECT_EQ(c.proto().exp(), 12);
+}
+
 // --- AdvanceJob ---
 
 TEST_F(AdvanceJobTest, IncrementsStageAndSetsJob) {

@@ -141,9 +141,7 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
     // the climb, not the swing. Truncated, as every other reward is.
     tally.exp = static_cast<int64_t>(exp_gained * (1.0 + params.exp_pct)) *
                 state.exp_multiplier;
-    int before = character.proto().level();
-    character.AddExp(tally.exp);
-    GrantLevelRewards(state, before, character.proto().level());
+    AwardExp(state, tally.exp);
   }
   return tally;
 }

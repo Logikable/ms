@@ -13,6 +13,7 @@
 #include "src/character/character.h"
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
+#include "src/character/honor.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/max_character.h"
 #include "src/character/progression.h"
@@ -28,6 +29,7 @@
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/protos/save.pb.h"
 #include "src/protos/scroll.pb.h"
 
 namespace ms {
@@ -855,6 +857,22 @@ TEST(GrantLevelRewardsTest, EveryLevelInTheSpanPaysHonor) {
   EXPECT_EQ(state.character.honor(), 700 + 800 + 800);
   GrantLevelRewards(state, 61, 61);
   EXPECT_EQ(state.character.honor(), 700 + 800 + 800);
+}
+
+// A character alone on the account earns one level at a time; the moment
+// somebody is ahead of them, the same threshold buys two. The rewards follow
+// the whole span, burned levels and all.
+TEST(AwardExpTest, BurnsAgainstTheRestOfTheRoster) {
+  GameState state(SymbolCatalog(), {}, {}, {}, {});
+  AwardExp(state, 15);
+  EXPECT_EQ(state.character.proto().level(), 2);
+
+  CharacterSave ahead;
+  ahead.mutable_character()->set_level(100);
+  state.inactive_characters.push_back(ahead);
+  AwardExp(state, 34);
+  EXPECT_EQ(state.character.proto().level(), 4);
+  EXPECT_EQ(state.character.honor(), HonorForLevels(1, 4));
 }
 
 TEST(GrantLevelRewardsTest, NothingBelowTwoHundred) {

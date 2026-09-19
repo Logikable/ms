@@ -1080,6 +1080,27 @@ void GameState::MirrorAccount() {
   character.set_account_max_level(account.max_level());
 }
 
+namespace {
+
+// Every other character on the account, which is what Burning ranks the one
+// being played against.
+std::vector<int> OtherCharacterLevels(const GameState& state) {
+  std::vector<int> levels;
+  levels.reserve(state.inactive_characters.size());
+  for (const CharacterSave& save : state.inactive_characters) {
+    levels.push_back(save.character().level());
+  }
+  return levels;
+}
+
+}  // namespace
+
+void AwardExp(GameState& state, int64_t amount) {
+  int before = state.character.proto().level();
+  state.character.AddExp(amount, OtherCharacterLevels(state));
+  GrantLevelRewards(state, before, state.character.proto().level());
+}
+
 void GrantLevelRewards(GameState& state, int from_level, int to_level) {
   // Paid for every level in the span, whether or not the character can spend
   // it yet: Inner Ability opens at 160 onto a pool the climb has been filling

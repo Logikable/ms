@@ -140,6 +140,15 @@ struct LevelGains {
 // across job stages: this is what was earned, not a pool to spend from.
 LevelGains GainsForLevels(int from_level, int to_level);
 
+// The level a character at `level` arrives at when they earn one, which is
+// `level + 1` unless Burning carries them further. `other_levels` is every
+// OTHER character on the account, in any order.
+//
+// Burning pays a character who is behind the rest of the account: two levels at
+// a time below the highest character, three below the third highest, five
+// below the tenth, and never past kBurningLevel.
+int LevelAfterBurning(int level, const std::vector<int>& other_levels);
+
 // Rows on the shop's buy-back shelf. One per sale, so a player who sold 300 of
 // something in two goes finds two of them.
 inline constexpr int kBuyBackSlots = 32;
@@ -174,7 +183,11 @@ class CharacterInstance {
   void ToggleScrollPin(const std::string& key);
   // Adds amount to the character's accumulated EXP, leveling up as many times
   // as the new total allows. No-op once kTrialLevelCap is reached.
-  void AddExp(int64_t amount);
+  //
+  // `other_levels` is the rest of the account's characters, which is what
+  // Burning reads -- see LevelAfterBurning. Empty burns nothing, so a caller
+  // with no roster to hand gets one level per threshold.
+  void AddExp(int64_t amount, const std::vector<int>& other_levels = {});
   // Advances into `next_job`: 5 bonus AP at stages 3 and 4, and a batch of SP
   // for the newly opened skill set.
   void AdvanceJob(Job next_job);

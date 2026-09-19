@@ -716,9 +716,7 @@ void BossRun::PayReward(GameState& state,
   }
   reward_.exp = chosen->exp();
   if (reward_.exp > 0) {
-    int before = state.character.proto().level();
-    state.character.AddExp(reward_.exp);
-    GrantLevelRewards(state, before, state.character.proto().level());
+    AwardExp(state, reward_.exp);
   }
   for (const SharedAward& award : awards) {
     int64_t granted = GrantDrop(state, award.drop, award.count);

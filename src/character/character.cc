@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -871,6 +872,15 @@ int StageForAdvancement(JobAdvancement advancement) {
   }
 }
 
+// What Burning pays: how many characters have to stand above this one, and
+// how many levels a level-up grants once they do. The ceiling is the level of
+// the last of them -- the lowest character the tier counts.
+struct BurnTier {
+  int above = 0;
+  int levels = 0;
+};
+constexpr BurnTier kBurnTiers[] = {{1, 2}, {3, 3}, {10, 5}};
+
 LevelGains GainsForLevels(int from_level, int to_level) {
   LevelGains gains;
   // Walks the levels ARRIVED at, which is what LevelUp grants against. Keep
@@ -973,7 +983,8 @@ void CharacterInstance::ToggleScrollPin(const std::string& key) {
   pinned->erase(it);
 }
 
-void CharacterInstance::AddExp(int64_t amount) {
+void CharacterInstance::AddExp(int64_t amount,
+                               const std::vector<int>& other_levels) {
   // At the cap the EXP is dropped rather than banked, so a character who kept
   // fighting there is not sitting on a windfall the day the cap is lifted.
   if (character_.level() >= kTrialLevelCap) {
@@ -985,12 +996,34 @@ void CharacterInstance::AddExp(int64_t amount) {
     if (character_.exp() < threshold) {
       break;
     }
+    // One threshold buys however many levels Burning hands over. The EXP left
+    // over rides along to the level arrived at.
     character_.set_exp(character_.exp() - threshold);
-    LevelUp();
+    int arrived = std::min(LevelAfterBurning(character_.level(), other_levels),
+                           kTrialLevelCap);
+    while (character_.level() < arrived) {
+      LevelUp();
+    }
   }
   if (character_.level() >= kTrialLevelCap) {
     character_.set_exp(0);
   }
+}
+
+int LevelAfterBurning(int level, const std::vector<int>& other_levels) {
+  std::vector<int> above = other_levels;
+  std::sort(above.begin(), above.end(), std::greater<int>());
+  int arrived = level + 1;
+  for (const BurnTier& tier : kBurnTiers) {
+    if (static_cast<int>(above.size()) < tier.above) {
+      break;
+    }
+    // Every tier the account fills is tried and the best answer wins: a slower
+    // tier reaching further beats a faster one stopped at its own ceiling.
+    int ceiling = std::min(above[tier.above - 1], kBurningLevel);
+    arrived = std::max(arrived, std::min(level + tier.levels, ceiling));
+  }
+  return arrived;
 }
 
 void CharacterInstance::AdvanceJob(Job next_job) {

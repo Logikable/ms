@@ -216,6 +216,12 @@ struct GameState {
 // somewhere first.
 void SeedNewCharacter(GameState& state);
 
+// Hands the character `amount` EXP and every level it buys: the Burning
+// levels they are owed for standing behind the rest of the roster, and the
+// rewards the whole span pays. The one door combat's EXP comes through, so a
+// level costs and pays the same wherever it was earned.
+void AwardExp(GameState& state, int64_t amount);
+
 // Whatever climbing from `from_level` to `to_level` grants: the honor every
 // level pays, and whatever the catalogs owe -- reaching 200 is handed a
 // symbol, which is why this takes the whole state. EVERY site that can gain a
