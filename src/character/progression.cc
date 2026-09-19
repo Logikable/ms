@@ -183,6 +183,12 @@ bool Unlocked(Feature feature, const CharacterInstance& character,
     // one.
     return character.proto().job() != JOB_BEGINNER;
   }
+  if (feature == Feature::kHyperStats) {
+    // Held to THIS character's level: the points are paid out by their own
+    // levels, so an account-wide unlock would hand a newcomer fourteen rows
+    // and nothing to spend on them.
+    return character.proto().level() >= UnlockLevel(feature);
+  }
   return true;
 }
 

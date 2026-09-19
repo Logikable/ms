@@ -345,6 +345,16 @@ TEST_F(ProgressionTest, SkillsWaitForAnAdvancementToo) {
       Unlocked(Feature::kSkills, MakeCharacter(10, JOB_SWORDMAN), account_));
 }
 
+// Hyper Stats are paid for by this character's own levels, so the account's
+// climb does not open the tab for a newcomer.
+TEST_F(ProgressionTest, HyperStatsWaitForThisCharactersOwnLevel) {
+  const int level = UnlockLevel(Feature::kHyperStats);
+  account_.RecordProgress(kTrialLevelCap, /*job_stage=*/4);
+  EXPECT_FALSE(
+      Unlocked(Feature::kHyperStats, MakeCharacter(level - 1), account_));
+  EXPECT_TRUE(Unlocked(Feature::kHyperStats, MakeCharacter(level), account_));
+}
+
 // The job condition is the skills tab's alone; nothing else asks about it.
 TEST_F(ProgressionTest, NoOtherFeatureCaresAboutTheJob) {
   EXPECT_TRUE(Unlocked(

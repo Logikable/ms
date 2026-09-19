@@ -63,7 +63,8 @@ enum class Feature {
   // unlocks have already opened.
   kCharacters,
   // The Hyper tab of the Character panel, and the Farm/Boss rows that pick
-  // between the two allocations it fills in. Hyper Stats' own level.
+  // between the two allocations it fills in. Hyper Stats' own level, and the
+  // level THIS character reached: the points come out of their own climb.
   kHyperStats,
   // The Buffs tab of the Character panel. The level the first potion opens at:
   // a tab holding one row the player cannot buy is worse than no tab.
