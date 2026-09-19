@@ -104,8 +104,9 @@ TEST_F(EquippedListTest, ReportsWhereTheNameCellEnds) {
   ASSERT_EQ(rows.size(), 1u);
   CellSpan name = rows[0].text.Span(ItemColumn::kName);
   EXPECT_EQ(name.offset, 0);
+  // A panel at its narrowest cuts the name to the column it has.
   EXPECT_EQ(rows[0].text.text.substr(0, name.bytes),
-            "Frozen Blade of the Frigid North Wind ");
+            "Frozen Blade of the Frigid");
   // What follows the cell is the columns, starting with the slot.
   EXPECT_NE(rows[0].text.text.substr(name.bytes).find("Weapon"),
             std::string::npos);
@@ -124,9 +125,10 @@ TEST_F(EquippedListTest, AWideNameColumnHoldsTheWholeName) {
   wordy.set_name("Metallic Blue Book (Antistrophe)");
 
   // Narrow enough that the stats column is in and the name is at its
-  // shortest, against a panel wide enough to hold the whole name.
+  // shortest, against a panel wide enough to fill the potential column and
+  // still hold the whole name.
   std::vector<EquippedRow> narrow = RowsWearing(JOB_FIGHTER, wordy, 93);
-  std::vector<EquippedRow> wide = RowsWearing(JOB_FIGHTER, wordy, 120);
+  std::vector<EquippedRow> wide = RowsWearing(JOB_FIGHTER, wordy, 132);
   ASSERT_EQ(narrow.size(), 1u);
   ASSERT_EQ(wide.size(), 1u);
   EXPECT_EQ(narrow[0].text.text.find("Metallic Blue Book (Antistrophe)"),
@@ -135,9 +137,9 @@ TEST_F(EquippedListTest, AWideNameColumnHoldsTheWholeName) {
   EXPECT_NE(wide[0].text.text.find("Metallic Blue Book (Antistrophe)"),
             std::string::npos);
   // The header moves over with them, so the columns still name themselves.
-  EXPECT_EQ(TextColumns(ItemListHeader(Columns(120))) -
+  EXPECT_EQ(TextColumns(ItemListHeader(Columns(132))) -
                 TextColumns(ItemListHeader(Columns(93))),
-            Columns(120).name_width - Columns(93).name_width);
+            Columns(132).name_width - Columns(93).name_width);
 }
 
 // The order the window lists what is worn: down the body, then the

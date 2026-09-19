@@ -10,15 +10,14 @@ namespace {
 
 // What each column holds, at the width of the widest thing in it: "Equip
 // Slot" itself, "Lv150", "Magician", an attack figure beside a stat figure,
-// the "Scroll" heading over "7/7", "25*" and the widest potential total the
-// game rolls.
+// the "Scroll" heading over "7/7" and "25*". The potential column sets its own
+// bounds -- see kItemPotentialWidth.
 constexpr int kSlotWidth = 10;
 constexpr int kLevelWidth = 5;
 constexpr int kJobWidth = 8;
 constexpr int kStatsWidth = 20;
 constexpr int kScrollWidth = 6;
 constexpr int kStarsWidth = 5;
-constexpr int kPotentialWidth = 12;
 
 // Whether the mechanic behind `column` is open. The name and the slot answer
 // to nothing: an item always has both.
@@ -60,7 +59,7 @@ int ItemColumns::Width(ItemColumn column) const {
     case ItemColumn::kStars:
       return kStarsWidth;
     case ItemColumn::kPotential:
-      return kPotentialWidth;
+      return potential_width;
   }
   return 0;
 }
@@ -102,8 +101,15 @@ ItemColumns FitItemColumns(int width, const ItemListOptions& options) {
     }
     left -= cost;
   }
-  // Whatever nothing claimed goes to the name, up to the longest name there
-  // is to show.
+  // What nothing claimed goes to the potential column first: a name too long
+  // for its column still slides under the cursor when the row is selected,
+  // while a second effect has nowhere else to appear. Then to the name, up to
+  // the longest name there is to show.
+  if (columns.Shows(ItemColumn::kPotential)) {
+    int grow = std::clamp(left, 0, kItemPotentialMax - columns.potential_width);
+    columns.potential_width += grow;
+    left -= grow;
+  }
   columns.name_width =
       std::clamp(kItemNameWidth + left, kItemNameWidth, kItemNameMax);
   return columns;

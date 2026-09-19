@@ -41,7 +41,9 @@ TEST(ItemColumnsTest, WideEnoughForEverything) {
                 ItemColumn::kName, ItemColumn::kSlot, ItemColumn::kLevel,
                 ItemColumn::kJob, ItemColumn::kStats, ItemColumn::kScroll,
                 ItemColumn::kStars, ItemColumn::kPotential}));
-  // The name stops growing at the longest name the game ships.
+  // Both elastic columns stop at their widest: three potential effects, and
+  // the longest name the game ships.
+  EXPECT_EQ(columns.potential_width, kItemPotentialMax);
   EXPECT_EQ(columns.name_width, kItemNameMax);
 }
 
@@ -105,22 +107,39 @@ TEST(ItemColumnsTest, GatesEachColumnOnItsMechanic) {
   EXPECT_TRUE(FitItemColumns(200, Bag()).Shows(ItemColumn::kLevel));
 }
 
-// Whatever no column claimed goes to the name, between its two bounds, and
-// the row never outgrows the panel. The name does not climb with the width:
-// one column further along, a new cell takes the room and the name gives it
-// all back.
-TEST(ItemColumnsTest, LeftoverRoomGoesToTheName) {
+// Whatever no column claimed widens the potential column, then the name, each
+// between its two bounds, and the row never outgrows the panel. Neither
+// climbs with the width for long: one column further along, a new cell takes
+// the room and they give it all back.
+TEST(ItemColumnsTest, LeftoverRoomWidensPotentialThenTheName) {
   for (int width = 40; width <= 200; ++width) {
     ItemColumns columns = FitItemColumns(width, Bag());
+    EXPECT_GE(columns.potential_width, kItemPotentialWidth);
+    EXPECT_LE(columns.potential_width, kItemPotentialMax);
     EXPECT_GE(columns.name_width, kItemNameWidth);
     EXPECT_LE(columns.name_width, kItemNameMax);
+    // The gutter is spent before anything is handed out, so a row always
+    // stops one column short of the border.
     EXPECT_LE(columns.TotalWidth(), width);
     // Nothing is left on the table: either the name is full or the next
     // column in the priority would not have fitted.
     EXPECT_TRUE(columns.name_width == kItemNameMax ||
                 columns.TotalWidth() + kItemCellGap > width)
         << "width " << width;
+    // And the name takes nothing while the potential column can still use it.
+    EXPECT_TRUE(columns.name_width == kItemNameWidth ||
+                !columns.Shows(ItemColumn::kPotential) ||
+                columns.potential_width == kItemPotentialMax)
+        << "width " << width;
   }
+}
+
+// A locked potential column is no column at all, so the room goes on to the
+// name as it did before the mechanic opened.
+TEST(ItemColumnsTest, NameTakesTheRoomWithNoPotentialColumn) {
+  ItemColumns columns = FitItemColumns(200, ItemListOptions{/*bag=*/true});
+  EXPECT_FALSE(columns.Shows(ItemColumn::kPotential));
+  EXPECT_EQ(columns.name_width, kItemNameMax);
 }
 
 // A panel too narrow for anything still lists names: a row with no name is
@@ -129,6 +148,17 @@ TEST(ItemColumnsTest, KeepsTheNameAtAnyWidth) {
   ItemColumns columns = FitItemColumns(10, Bag());
   EXPECT_TRUE(columns.Shows(ItemColumn::kName));
   EXPECT_EQ(columns.name_width, kItemNameWidth);
+}
+
+// The potential column is the one that grows, so the header over it moves
+// with it and the row still ends inside the panel.
+TEST(ItemColumnsTest, HeaderFollowsTheWidenedPotentialColumn) {
+  // 77 columns seats every cell the bag can show with nothing left over.
+  ItemColumns narrow = FitItemColumns(77, Bag());
+  ItemColumns wide = FitItemColumns(200, Bag());
+  EXPECT_EQ(narrow.potential_width, kItemPotentialWidth);
+  EXPECT_GT(wide.potential_width, narrow.potential_width);
+  EXPECT_LE(TextColumns(ItemListHeader(wide)) + kItemListGutter, 200);
 }
 
 // The header stands over the cells: one label per drawn column, each starting

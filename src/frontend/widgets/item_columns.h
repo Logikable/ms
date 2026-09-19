@@ -59,6 +59,17 @@ inline constexpr int kItemListGutter = 1;
 // The blank columns between one cell and the next.
 inline constexpr int kItemCellGap = 2;
 
+// The potential column at its narrowest, which holds one effect: "24% Crit
+// DMG" is the widest the game rolls.
+inline constexpr int kItemPotentialWidth = 12;
+
+// And at its widest: all three lines an item carries, each folded to one
+// effect and parted from the next. A glove or a ring is read for several of
+// them at once, so the room a panel does not otherwise want goes here before
+// it goes to the name. Past this there is nothing left to say.
+inline constexpr int kItemPotentialMax =
+    3 * kItemPotentialWidth + 2 * kItemCellGap;
+
 // What a list is allowed to show. The three mechanics are the account's --
 // ask Unlocked(Feature::kPotential, ...) and its two neighbours.
 struct ItemListOptions {
@@ -70,9 +81,10 @@ struct ItemListOptions {
   bool potential = false;
 };
 
-// The columns one list draws, and the room its name column got.
+// The columns one list draws, and the room its two elastic columns got.
 struct ItemColumns {
   int name_width = kItemNameWidth;
+  int potential_width = kItemPotentialWidth;
   bool shown[kNumItemColumns] = {};
 
   bool Shows(ItemColumn column) const {
@@ -87,7 +99,8 @@ struct ItemColumns {
 
 // The columns that fit an item list `width` columns wide, cursor and gutter
 // included. Taken in priority order and stopped at the first one that does
-// not fit; whatever is left over afterwards goes to the name.
+// not fit; whatever is left over afterwards widens the potential column, then
+// the name.
 ItemColumns FitItemColumns(int width, const ItemListOptions& options);
 
 // What `column` is called at the head of a list.

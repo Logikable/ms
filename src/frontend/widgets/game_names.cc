@@ -812,6 +812,57 @@ int PotentialFamilyTotal(const Potential& potential, PotentialLineType family,
   return ied ? static_cast<int>(std::lround((1.0 - left) * 100.0)) : total;
 }
 
+// The two columns between one effect and the next in a cell.
+constexpr int kEffectGap = 2;
+
+// One effect a potential grants, folded across every line granting it.
+struct PotentialEffect {
+  PotentialLineType family;
+  int rank;
+  int total;
+};
+
+bool WorthMore(const PotentialEffect& a, const PotentialEffect& b) {
+  if (a.rank != b.rank) {
+    return a.rank < b.rank;
+  }
+  return a.total > b.total;
+}
+
+// What `potential` grants a character built on `primary`, best first: "12%
+// ATT", "41% IED". At most one entry per family, and nothing this character
+// does not read.
+std::vector<std::string> PotentialEffects(const Potential& potential,
+                                          int item_level, StatField primary) {
+  std::vector<PotentialEffect> effects;
+  for (const PotentialLine& line : potential.lines()) {
+    PotentialLineType family = SummaryFamily(line.type(), primary);
+    int rank = SummaryRank(family);
+    bool listed = false;
+    for (const PotentialEffect& effect : effects) {
+      listed = listed || effect.family == family;
+    }
+    if (rank == kUnreported || listed) {
+      continue;
+    }
+    effects.push_back(
+        {family, rank,
+         PotentialFamilyTotal(potential, family, item_level, primary)});
+  }
+  std::stable_sort(effects.begin(), effects.end(), WorthMore);
+  std::vector<std::string> text;
+  for (const PotentialEffect& effect : effects) {
+    std::string entry;
+    if (TakesAway(effect.family)) {
+      entry = "-";
+    }
+    entry += PotentialValueText(effect.family, effect.total) + " " +
+             PotentialLineShortName(effect.family);
+    text.push_back(std::move(entry));
+  }
+  return text;
+}
+
 }  // namespace
 
 std::string PotentialLineValueText(const PotentialLine& line, int item_level) {
@@ -856,31 +907,23 @@ std::string PotentialLineShortName(PotentialLineType type) {
 }
 
 std::string PotentialCell(const Potential& potential, int item_level,
-                          StatField primary) {
-  PotentialLineType best = POTENTIAL_LINE_TYPE_UNSPECIFIED;
-  int best_rank = kUnreported;
-  int best_total = 0;
-  for (const PotentialLine& line : potential.lines()) {
-    PotentialLineType family = SummaryFamily(line.type(), primary);
-    int rank = SummaryRank(family);
-    if (rank == kUnreported) {
-      continue;
-    }
-    int total = PotentialFamilyTotal(potential, family, item_level, primary);
-    if (best == POTENTIAL_LINE_TYPE_UNSPECIFIED || rank < best_rank ||
-        (rank == best_rank && total > best_total)) {
-      best = family;
-      best_rank = rank;
-      best_total = total;
-    }
+                          StatField primary, int width) {
+  std::vector<std::string> effects =
+      PotentialEffects(potential, item_level, primary);
+  if (effects.empty()) {
+    return PadRight("-", width);
   }
-  if (best == POTENTIAL_LINE_TYPE_UNSPECIFIED) {
-    return PadRight("-", kPotentialCellWidth);
+  // The best effect is the column's whatever the width; the rest join it only
+  // while they fit whole, so a cut-off figure never reads as a smaller one.
+  std::string text = effects.front();
+  for (size_t i = 1; i < effects.size(); ++i) {
+    int room = static_cast<int>(text.size() + effects[i].size()) + kEffectGap;
+    if (room > width) {
+      break;
+    }
+    text += ", " + effects[i];
   }
-  std::string text = TakesAway(best) ? "-" : "";
-  text +=
-      PotentialValueText(best, best_total) + " " + PotentialLineShortName(best);
-  return PadRight(text, kPotentialCellWidth);
+  return PadRight(text, width);
 }
 
 std::string PresetSlotName(StatPreset slot, bool autoswap, PresetKind kind) {

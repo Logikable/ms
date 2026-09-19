@@ -12,6 +12,10 @@
 namespace ms {
 namespace {
 
+// A potential column with room for one effect, which is what a panel at its
+// narrowest gives it.
+constexpr int kOneEffect = 12;
+
 ItemColumns EveryColumn() {
   return FitItemColumns(200,
                         {/*bag=*/true, /*scrolling=*/true, /*star_force=*/true,
@@ -120,14 +124,14 @@ TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
   line->set_type(POTENTIAL_LINE_TYPE_MESO_RATE);
   line->set_rank(POTENTIAL_RANK_LEGENDARY);
 
-  ItemCells cells = EquipUpgradeCells(proto, state, JOB_HERO);
+  ItemCells cells = EquipUpgradeCells(proto, state, JOB_HERO, kOneEffect);
   EXPECT_EQ(cells.scroll, "3/7");
   EXPECT_EQ(cells.stars, "12★");
   EXPECT_EQ(cells.potential, "12% ATT     ");
 
   // The job decides which lines the potential cell reports: a bishop's damage
   // never reads the weapon attack, so the same item falls through to the rate.
-  cells = EquipUpgradeCells(proto, state, JOB_BISHOP);
+  cells = EquipUpgradeCells(proto, state, JOB_BISHOP, kOneEffect);
   EXPECT_EQ(cells.potential, "20% Meso    ");
 
   // An upgrade the item refuses, and an item carrying no potential, each read
@@ -135,7 +139,7 @@ TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
   proto.set_upgrade_slots(0);
   proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
   state.clear_main_potential();
-  cells = EquipUpgradeCells(proto, state, JOB_HERO);
+  cells = EquipUpgradeCells(proto, state, JOB_HERO, kOneEffect);
   EXPECT_EQ(cells.scroll, "-");
   EXPECT_EQ(cells.stars, "-");
   EXPECT_EQ(cells.potential, "-           ");

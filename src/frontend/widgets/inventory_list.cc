@@ -123,7 +123,8 @@ std::vector<InventoryRowState> BuildEquipRows(
     const EquipPrototype& proto = item.prototype();
     int level = proto.required_level() > 0 ? proto.required_level() : 1;
     ItemCells cells =
-        EquipUpgradeCells(proto, item.equip_state(), character.proto().job());
+        EquipUpgradeCells(proto, item.equip_state(), character.proto().job(),
+                          columns.Width(ItemColumn::kPotential));
     cells.name = item.name();
     cells.slot = FormatSlot(proto.equip_slot());
     cells.level = "Lv" + std::to_string(level);

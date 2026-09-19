@@ -113,14 +113,15 @@ std::string PotentialLineValueText(const PotentialLine& line, int item_level);
 // "Crit DMG", "IED", "CD". A card with room asks PotentialLineName.
 std::string PotentialLineShortName(PotentialLineType type);
 
-// What a list column says about `potential` for a character built on
-// `primary`: the one effect worth the most to them, with every other line
-// granting it folded in, so two %INT lines read as one total. An item granting
-// none reads "-". Value first and no "+" -- a column has no room for a sign
-// every row carries -- and held to kPotentialCellWidth.
+// What a list column `width` wide says about `potential` for a character built
+// on `primary`: the effects worth the most to them, best first, each with
+// every line granting it folded in, so two %INT lines read as one total. As
+// many as the width holds are listed -- a wide column says what a glove's
+// three lines came to, a narrow one names the best of them and stops. An item
+// granting none reads "-". Value first and no "+": a column has no room for a
+// sign every row carries.
 std::string PotentialCell(const Potential& potential, int item_level,
-                          StatField primary);
-inline constexpr int kPotentialCellWidth = 12;
+                          StatField primary, int width);
 
 // The tag a skill row opens with: what the player does with the skill, said at
 // the front rather than worked out from the name. FOUR columns whichever tag

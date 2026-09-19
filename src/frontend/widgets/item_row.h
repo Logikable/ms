@@ -69,8 +69,10 @@ std::string ItemStatsCell(Job job, const EquipStats& stats);
 // wherever it is listed. An upgrade the item refuses reads "-", and so does a
 // potential with nothing in it this job reads: a blank would look like a
 // column that failed to draw rather than an item with nothing there.
+// `potential_width` is the room that column got, which decides how many of
+// the item's effects the cell names.
 ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
-                            Job job);
+                            Job job, int potential_width);
 
 // `cells` laid out in `columns`. `elapsed` is how long this row has been the
 // selected one, which is what slides a name too long for its column; zero --

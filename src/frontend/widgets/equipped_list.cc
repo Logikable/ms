@@ -65,7 +65,8 @@ std::vector<EquippedRow> EquippedRows(
             ? elapsed
             : std::chrono::steady_clock::duration::zero();
     ItemCells cells = EquipUpgradeCells(item.prototype(), item.equip_state(),
-                                        character.proto().job());
+                                        character.proto().job(),
+                                        columns.Width(ItemColumn::kPotential));
     cells.name = item.prototype().name();
     cells.slot = FormatWornSlot(slot);
     cells.stats = ItemStatsCell(character.proto().job(), item.stats());
