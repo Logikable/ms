@@ -2688,9 +2688,17 @@ void TuiController::OpenDailies() {
                "Close");
     return;
   }
+  std::vector<const EquipPrototype*> claimable =
+      ClaimableSymbols(state_.character, state_.equips);
+  if (claimable.empty()) {
+    // Nothing to offer: a character who has never held a symbol. Said here
+    // rather than at the confirm, where the claim's own refusal is a full bag.
+    OpenNotice(kDailiesNotice, {"You have no dailies to claim."},
+               /*refusal=*/false, "Close");
+    return;
+  }
   std::vector<DailiesPanel::Reward> rewards;
-  for (const EquipPrototype* proto :
-       ClaimableSymbols(state_.character, state_.equips)) {
+  for (const EquipPrototype* proto : claimable) {
     rewards.push_back({proto->name(), kSymbolsPerDay});
   }
   dailies_panel_.Reset(std::move(rewards));

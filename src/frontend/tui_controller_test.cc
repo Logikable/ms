@@ -3755,6 +3755,18 @@ TEST_F(TuiControllerTest, TheDailiesClaimPaysEverySymbolListed) {
   EXPECT_GT(state_->character.DailiesClaimedAt(), 0);
 }
 
+// A character who has never held a symbol has nothing to claim, and is told
+// so rather than being offered an empty list that refuses itself.
+TEST_F(TuiControllerTest, NoSymbolsMeansNoClaim) {
+  controller_->OpenMenuEntry(MenuEntry::kDailies);
+  EXPECT_EQ(controller_->screen(), kDailiesNotice);
+  EXPECT_FALSE(controller_->notice_is_refusal())
+      << "a level they have not reached, not a refusal";
+  EXPECT_EQ(NoticeText(controller_->notice_lines()),
+            "You have no dailies to claim.");
+  EXPECT_EQ(state_->character.DailiesClaimedAt(), 0) << "the day is untouched";
+}
+
 TEST_F(TuiControllerTest, CancellingTheClaimTakesNothing) {
   state_->character.PickUp(
       std::make_unique<EquipInstance>(state_->equips.at(symbol_.name())));
