@@ -144,6 +144,16 @@ enum Screen : int {
   // Battle Analysis, from that box: what the stretch being measured is worth,
   // over the main screen it is being measured on.
   kAnalysis,
+  // Enter on the menu panel's Characters entry: the account's characters, and
+  // the card of whoever the cursor is on. Farming stops while it is up, and
+  // the only way back into the game is to play one of them.
+  kCharacterSelect,
+  // Enter on one of them: play them, hand them the offline check, delete
+  // them, or walk away.
+  kCharacterMenu,
+  // What Delete asks, over the list. The one question in the game whose
+  // answer cannot be taken back.
+  kCharacterDelete,
   // The card a returning player is met with: what their character earned while
   // the game was closed. Raised at launch and dismissed with one key.
   kOffline,

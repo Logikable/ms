@@ -78,9 +78,8 @@ CharacterSelectPanel::CharacterSelectPanel(GameState& state)
 }
 
 void CharacterSelectPanel::Reset() {
-  rows_ = Roster(state_);
+  Refresh();
   button_ = 0;
-  CloseMenu();
   // On the character being played, who is the top row until the player has
   // played somebody else this session.
   cursor_ = 0;
@@ -89,6 +88,14 @@ void CharacterSelectPanel::Reset() {
       cursor_ = i;
     }
   }
+}
+
+void CharacterSelectPanel::Refresh() {
+  rows_ = Roster(state_);
+  CloseMenu();
+  cursor_ = Cursor();
+  // A delete renumbers the slots, so what the card is holding may no longer
+  // be the character the cursor is on.
   preview_slot_ = -1;
 }
 

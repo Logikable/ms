@@ -90,6 +90,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       keys_(keys),
       shop_panel_(screens.shop_panel),
       buy_panel_(screens.buy_panel),
+      character_select_panel_(state),
       panel_focus_(panel_focus),
       multiplayer_(multiplayer) {
   // The Inspect screen's own panels answer Enter with these. Wired here
@@ -416,6 +417,13 @@ void TuiController::OpenMenuEntry(MenuEntry entry) {
     OpenDailies();
     return;
   }
+  if (entry == MenuEntry::kCharacters) {
+    // The fight stops the moment this opens -- see OnCharacterSelect -- and
+    // the only way back into the game is to play somebody.
+    character_select_panel_.Reset();
+    screen_ = kCharacterSelect;
+    return;
+  }
   if (entry != MenuEntry::kBoss) {
     // The box opens with the cursor still on the entry below it, which is what
     // the player presses Up to leave.
@@ -603,10 +611,7 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
       expanded_panel_ = kNoPanel;
       return true;
     }
-    // Opened on Cancel: leaving is not what an accidental Escape means, and a
-    // stray Enter behind one should not end the session.
-    quit_prompt_.Open(/*cancel_selected=*/true);
-    screen_ = kQuit;
+    OpenQuit();
     return true;
   }
   if (!IsSwitchPanel(event)) {
@@ -784,6 +789,12 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnMenuBoxEvent(event);
     case kAnalysis:
       return OnAnalysisEvent(event);
+    case kCharacterSelect:
+      return OnCharacterSelectEvent(event);
+    case kCharacterMenu:
+      return OnCharacterMenuEvent(event);
+    case kCharacterDelete:
+      return OnCharacterDeleteEvent(event);
     case kKeybinds:
       return OnKeybindsEvent(event);
     case kOptions:
@@ -1122,6 +1133,14 @@ bool TuiController::OnSkillInspectEvent(ftxui::Event event) {
   return true;
 }
 
+void TuiController::OpenQuit() {
+  // Opened on Cancel: leaving is not what an accidental Escape means, and a
+  // stray Enter behind one should not end the session.
+  quit_prompt_.Open(/*cancel_selected=*/true);
+  quit_return_ = OnCharacterSelect() ? kCharacterSelect : kMain;
+  screen_ = kQuit;
+}
+
 bool TuiController::OnQuitEvent(ftxui::Event event) {
   ConfirmChoice choice = quit_prompt_.OnEvent(event);
   if (choice == ConfirmChoice::kConfirmed) {
@@ -1130,9 +1149,138 @@ bool TuiController::OnQuitEvent(ftxui::Event event) {
     quit_requested_ = true;
     screen_ = kMain;
   } else if (choice == ConfirmChoice::kCancelled) {
-    screen_ = kMain;
+    // Back where it was asked. The character select has no other way out, so
+    // cancelling there must not drop the player into a game they have not
+    // chosen a character for.
+    screen_ = quit_return_;
   }
   return true;
+}
+
+bool TuiController::TakeCharacterSwitch() {
+  bool switched = character_switched_;
+  character_switched_ = false;
+  return switched;
+}
+
+bool TuiController::OnCharacterSelectEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    character_select_panel_.MoveCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    character_select_panel_.MoveCursor(1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowLeft) {
+    character_select_panel_.MoveButton(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    character_select_panel_.MoveButton(1);
+    return true;
+  }
+  if (IsForward(event)) {
+    switch (character_select_panel_.Chosen()) {
+      case CharacterAction::kMenu:
+        character_select_panel_.OpenMenu();
+        screen_ = kCharacterMenu;
+        return true;
+      case CharacterAction::kCreate:
+        CreateCharacter(state_);
+        LeaveCharacterSelect();
+        return true;
+      case CharacterAction::kQuit:
+        OpenQuit();
+        return true;
+    }
+    return true;
+  }
+  if (IsBack(event)) {
+    // Escape asks the same question the Quit button does: there is nothing
+    // behind this screen to go back to.
+    OpenQuit();
+    return true;
+  }
+  // Swallow everything else: this is a modal screen.
+  return true;
+}
+
+bool TuiController::OnCharacterMenuEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    character_select_panel_.MoveMenuCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    character_select_panel_.MoveMenuCursor(1);
+    return true;
+  }
+  if (IsForward(event)) {
+    TakeCharacterMenuEntry();
+    return true;
+  }
+  if (IsBack(event)) {
+    character_select_panel_.CloseMenu();
+    screen_ = kCharacterSelect;
+    return true;
+  }
+  return true;
+}
+
+void TuiController::TakeCharacterMenuEntry() {
+  int slot = character_select_panel_.selected_slot();
+  switch (character_select_panel_.menu_selected()) {
+    case kCharacterMenuPlay:
+      PlayCharacter(state_, slot);
+      LeaveCharacterSelect();
+      return;
+    case kCharacterMenuSetOffline:
+      SetOfflineCharacter(state_, slot);
+      // Straight back to the list, where the check has moved: nothing about
+      // it needs confirming, and seeing it move is the answer.
+      character_select_panel_.Refresh();
+      screen_ = kCharacterSelect;
+      save_wanted_ = true;
+      return;
+    case kCharacterMenuDelete:
+      character_delete_slot_ = slot;
+      character_delete_prompt_.Open(/*cancel_selected=*/true);
+      screen_ = kCharacterDelete;
+      return;
+    default:
+      character_select_panel_.CloseMenu();
+      screen_ = kCharacterSelect;
+      return;
+  }
+}
+
+bool TuiController::OnCharacterDeleteEvent(ftxui::Event event) {
+  ConfirmChoice choice = character_delete_prompt_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed &&
+      DeleteCharacter(state_, character_delete_slot_)) {
+    // Deleting whoever was being played put somebody else in, so the fight
+    // and the watcher are told either way -- and the save goes out now, so
+    // an autosave cannot bring the row back.
+    character_switched_ = true;
+  }
+  character_delete_slot_ = -1;
+  character_select_panel_.Refresh();
+  screen_ = kCharacterSelect;
+  save_wanted_ = true;
+  return true;
+}
+
+void TuiController::LeaveCharacterSelect() {
+  character_switched_ = true;
+  save_wanted_ = true;
+  character_select_panel_.CloseMenu();
+  // Whoever arrived is standing on their own map with their own panels, so
+  // the cursor starts where a session starts.
+  panel_focus_ = kEquipPanel;
+  screen_ = kMain;
 }
 
 bool TuiController::OnBuffMenuEvent(ftxui::Event event) {

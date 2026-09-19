@@ -28,6 +28,8 @@ std::string EntryLabel(MenuEntry entry) {
       return "Boss";
     case MenuEntry::kMultiplayer:
       return "Multiplayer";
+    case MenuEntry::kCharacters:
+      return "Characters";
     case MenuEntry::kSettings:
       return "Settings";
   }
@@ -54,11 +56,14 @@ std::vector<MenuEntry> MenuPanel::Entries() const {
   }
   if (Unlocked(Feature::kBoss, state_.character, state_.account)) {
     entries.push_back(MenuEntry::kBoss);
-    // Bossing is what a party is for so far, and a build that plays alone has
-    // nobody to play it with.
-    if (kMultiplayerEnabled) {
-      entries.push_back(MenuEntry::kMultiplayer);
-    }
+  }
+  // A build that plays alone has nobody to play with, whatever the level.
+  if (kMultiplayerEnabled &&
+      Unlocked(Feature::kMultiplayer, state_.character, state_.account)) {
+    entries.push_back(MenuEntry::kMultiplayer);
+  }
+  if (Unlocked(Feature::kCharacters, state_.character, state_.account)) {
+    entries.push_back(MenuEntry::kCharacters);
   }
   entries.push_back(MenuEntry::kSettings);
   return entries;
@@ -78,6 +83,7 @@ std::vector<std::string> MenuPanel::BoxEntries(MenuEntry entry) const {
   switch (entry) {
     // These open a screen or a dialog rather than a box.
     case MenuEntry::kBoss:
+    case MenuEntry::kCharacters:
       return {};
     case MenuEntry::kMultiplayer:
       return {"Players", "Party"};

@@ -28,6 +28,7 @@
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/buy_panel.h"
+#include "src/frontend/screens/character_select_panel.h"
 #include "src/frontend/screens/cube_panel.h"
 #include "src/frontend/screens/dailies_panel.h"
 #include "src/frontend/screens/hammer_panel.h"
@@ -64,6 +65,7 @@
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/roster.h"
 
 namespace ms {
 
@@ -389,6 +391,26 @@ class TuiController {
 
   // The Level Up and Combine dialogs for an Arcane Symbol. Owned rather than
   // handed in: neither carries game state, only what Reset was told.
+  // The character select and the question Delete asks on it, for the
+  // renderer: both are the controller's own, as the dailies card is.
+  const CharacterSelectPanel& character_select_panel() const {
+    return character_select_panel_;
+  }
+  const ConfirmPrompt& character_delete_prompt() const {
+    return character_delete_prompt_;
+  }
+  // Whether the character select is up, which is farming's other stop: the
+  // player is choosing who to be, and a map cannot be fought by somebody who
+  // may be about to be swapped out.
+  bool OnCharacterSelect() const {
+    return screen_ == kCharacterSelect || screen_ == kCharacterMenu ||
+           screen_ == kCharacterDelete;
+  }
+  // Whether a character has just been put into play, taken by the asking.
+  // Tui owns the fight and the watcher, and both belong to whoever is being
+  // played -- see Tui::StartPlayingCharacter.
+  bool TakeCharacterSwitch();
+
   const DailiesPanel& dailies_panel() const {
     return dailies_panel_;
   }
@@ -599,6 +621,18 @@ class TuiController {
   bool OnJobInspectEvent(ftxui::Event event);
   bool OnJobAdvanceEvent(ftxui::Event event);
   bool OnQuitEvent(ftxui::Event event);
+  bool OnCharacterSelectEvent(ftxui::Event event);
+  bool OnCharacterMenuEvent(ftxui::Event event);
+  bool OnCharacterDeleteEvent(ftxui::Event event);
+  // What the character menu's entry under the cursor does.
+  void TakeCharacterMenuEntry();
+  // Back into the game with whoever is now in play: the save goes out, the
+  // panels start where a session starts, and Tui is told to build the fight
+  // again.
+  void LeaveCharacterSelect();
+  // Raises the quit dialog over whatever screen is up, which is how both
+  // Escape and the character select's Quit button ask.
+  void OpenQuit();
   bool OnStarForceEvent(ftxui::Event event);
   bool OnCubeEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
@@ -871,6 +905,17 @@ class TuiController {
   ItemMenu buff_menu_{{"Disable", "Inspect", "Buy Perm", "Close"}};
   ConfirmPrompt buff_buy_prompt_;
   DailiesPanel dailies_panel_;
+  CharacterSelectPanel character_select_panel_;
+  ConfirmPrompt character_delete_prompt_;
+  // The slot the open Delete question is about, taken when it opens: the
+  // cursor is free to be somewhere else by the time it is answered.
+  int character_delete_slot_ = -1;
+  // True from a switch until Tui has taken it.
+  bool character_switched_ = false;
+  // The screen the quit dialog was raised over, which cancelling goes back
+  // to. The character select is the one screen it can be asked from that is
+  // not the main view.
+  Screen quit_return_ = kMain;
   SymbolLevelPanel symbol_level_panel_;
   ConfirmPrompt hyper_reset_prompt_;
   ConfirmPrompt v_matrix_reset_prompt_;

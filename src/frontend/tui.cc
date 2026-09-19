@@ -941,6 +941,18 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(analysis_panel_.Render());
     case kKeybinds:
       return Centred(keybinds_panel_.Render());
+    // kCharacterMenu draws the same thing: the menu is anchored to a row of
+    // the list, so the panel puts it up itself.
+    case kCharacterSelect:
+    case kCharacterMenu:
+      return Centred(controller_.character_select_panel().Render());
+    case kCharacterDelete:
+      return Overlay(
+          Centred(controller_.character_select_panel().Render()),
+          DialogWindow("",
+                       {CenteredRow("Delete this character?"),
+                        CenteredRow("This is irreversible.")},
+                       controller_.character_delete_prompt().Render()));
     case kOptions:
       return Centred(options_panel_.Render());
     case kTrade:
@@ -1216,7 +1228,11 @@ void Tui::Tick() {
     // an offer, or a drop that fills the bag between an acceptance and the
     // exchange, is a trade neither side agreed to.
     controller_.AdvanceBossRun(elapsed.count());
-  } else if (!controller_.OnTradeScreen()) {
+    //
+    // The character select stops it too, and for the plainest reason: the
+    // player may be about to be somebody else, and the kills a map paid out
+    // in between would belong to nobody.
+  } else if (!controller_.OnTradeScreen() && !controller_.OnCharacterSelect()) {
     RewardTally tally = AdvanceCombat(state_, combat_sim_, elapsed.count());
     AnalysisSample sample;
     sample.seconds = elapsed.count();
@@ -1243,6 +1259,20 @@ void Tui::Tick() {
   // Last of all, so the beat the ticker sleeps next is the one this tick left
   // the player on.
   in_boss_fight_ = controller_.in_boss_fight();
+}
+
+void Tui::StartPlayingCharacter() {
+  // The fight holds the last character's HP, their buffs and the roster they
+  // were part way through, none of which belongs to whoever just arrived.
+  combat_sim_ = CombatSim();
+  // Seeded from the newcomer, so being handed a level 210 character is not a
+  // climb of 209 levels.
+  progress_watcher_ = ProgressWatcher(state_.character.proto());
+  celebration_ = Celebration();
+  // A measurement is of one character farming one map; it cannot be carried
+  // over to somebody else.
+  analysis_ = BattleAnalysis();
+  last_combat_update_ = std::chrono::steady_clock::now();
 }
 
 std::string Tui::NormalTrack() const {
@@ -1344,6 +1374,11 @@ bool Tui::OnEvent(ftxui::Event event) {
     return true;
   }
   bool handled = controller_.OnEvent(event);
+  // Before NoticeProgress, which would otherwise read the newcomer's level
+  // against the last character's and raise a card for the difference.
+  if (controller_.TakeCharacterSwitch()) {
+    StartPlayingCharacter();
+  }
   // After the event rather than before it: the key that just landed may be the
   // Tab that walked the player onto a panel waiting to be visited, and its gold
   // should be gone in the frame this event draws rather than the one after.

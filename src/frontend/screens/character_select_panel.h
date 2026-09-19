@@ -59,9 +59,12 @@ class CharacterSelectPanel {
   explicit CharacterSelectPanel(GameState& state);
 
   // Reads the roster again and puts the cursor on the character being
-  // played. Call whenever the screen opens and after anything that changes
-  // who is on it.
+  // played. Call when the screen opens.
   void Reset();
+  // Reads it again and leaves the cursor where it is, held inside whatever
+  // the list is now. Call after anything that changes the list under the
+  // player: they are looking at a row, and it is still the row they meant.
+  void Refresh();
   // Moves the cursor `delta` stops, coming out the other end. The button row
   // is the last stop of the ring.
   void MoveCursor(int delta);

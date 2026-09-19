@@ -16,11 +16,12 @@
 namespace ms {
 namespace {
 
-// The levels the Boss and Dailies entries arrive at. Written out rather than
-// read off the progression table, so moving a gate is a decision the test
-// notices.
+// The levels the gated entries arrive at. Written out rather than read off
+// the progression table, so moving a gate is a decision the test notices.
+constexpr int kMultiplayerLevel = 10;
 constexpr int kBossLevel = 110;
 constexpr int kDailiesLevel = 200;
+constexpr int kCharactersLevel = 210;
 
 GameState EmptyState() {
   return GameState({}, {}, {}, {}, {});
@@ -33,7 +34,9 @@ void LevelTo(GameState& state, int level) {
 }
 
 std::string Render(const MenuPanel& panel) {
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(56),
+  // Wide enough for the whole row, which a clipped screen would cut the end
+  // off.
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(70),
                                                ftxui::Dimension::Fixed(3));
   ftxui::Render(screen, panel.Render());
   return screen.ToString();
@@ -80,6 +83,26 @@ TEST(MenuPanelTest, EntriesArriveBetweenAnalysisAndSettings) {
   std::string last = Render(panel);
   EXPECT_LT(last.find("Analysis"), last.find("Dailies"));
   EXPECT_LT(last.find("Dailies"), last.find("Boss"));
+}
+
+// The two that are not about this character's climb: the lobby, which opens
+// with the skills, and the character select, which opens last of all.
+TEST(MenuPanelTest, MultiplayerOpensLongBeforeCharacters) {
+  GameState state = EmptyState();
+  BattleAnalysis analysis;
+  int focus = kMenuPanel;
+  MenuPanel panel(state, analysis, focus);
+  LevelTo(state, kMultiplayerLevel);
+  std::string lobby = Render(panel);
+  EXPECT_NE(lobby.find("Multiplayer"), std::string::npos)
+      << "the lobby does not wait for bossing";
+  EXPECT_EQ(lobby.find("Boss"), std::string::npos);
+  EXPECT_EQ(lobby.find("Characters"), std::string::npos);
+
+  LevelTo(state, kCharactersLevel);
+  std::string all = Render(panel);
+  EXPECT_LT(all.find("Multiplayer"), all.find("Characters"));
+  EXPECT_LT(all.find("Characters"), all.find("Settings"));
 }
 
 // The row is the entries and nothing else: no brackets, two columns between

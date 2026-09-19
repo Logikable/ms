@@ -19,6 +19,7 @@
 #include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buff_info_panel.h"
+#include "src/frontend/screens/character_select_panel.h"
 #include "src/frontend/screens/hyper_stat_inspect_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
@@ -37,6 +38,7 @@
 #include "src/protos/equip.pb.h"
 #include "src/protos/keybinds.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/roster.h"
 #include "src/testing/data_files.h"
 
 namespace ms {
@@ -105,6 +107,18 @@ TEST_F(ScreenFitTest, BossSelect) {
     ExpectFits(panel.Render(), "the boss list");
     panel.SwitchPanel(1);
   }
+}
+
+TEST_F(ScreenFitTest, CharacterSelect) {
+  // A full account: the list scrolls past this, so the tallest the screen can
+  // be is the height the two windows are fixed at.
+  for (int i = 0; i < 12; ++i) {
+    CreateCharacter(state_);
+  }
+  CharacterSelectPanel panel(state_);
+  ExpectFits(panel.Render(), "the character select");
+  panel.OpenMenu();
+  ExpectFits(panel.Render(), "the character menu");
 }
 
 TEST_F(ScreenFitTest, Shop) {

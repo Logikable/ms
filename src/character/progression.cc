@@ -35,6 +35,9 @@ constexpr Unlock kUnlocks[] = {
     // account for: the tip leaves the corner and the menu takes it over.
     {Feature::kMenu, 5},
     {Feature::kSkills, 10},
+    // The same level as the skills: a character with a book is one worth
+    // showing to the lobby, and one with something to trade.
+    {Feature::kMultiplayer, 10},
     {Feature::kShop, 20},
     // Far enough out that a player meets it once the early game is behind
     // them, and far enough that the meso for spell traces is coming in.
@@ -68,6 +71,10 @@ constexpr Unlock kUnlocks[] = {
     // Cubing's own level: the presets arrive with the reason to keep two sets
     // of gear. See Feature::kEquipPresets.
     {Feature::kEquipPresets, kPotentialUnlockLevel},
+    // Ten past Arcane River, which is the last thing the first character is
+    // handed. A second character is what a player wants once the first has
+    // everything the game gives.
+    {Feature::kCharacters, 210},
 };
 
 // What an ADVANCEMENT opens rather than a level, and which one opens it. A
@@ -203,6 +210,10 @@ std::string FeatureName(Feature feature) {
       return "the Menu";
     case Feature::kBoss:
       return "Bosses";
+    case Feature::kMultiplayer:
+      return "Multiplayer";
+    case Feature::kCharacters:
+      return "Characters";
     case Feature::kHyperStats:
       return "Hyper Stats";
     case Feature::kConsumables:

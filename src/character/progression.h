@@ -53,6 +53,15 @@ enum class Feature {
   // retires, so the corner is never empty and never holds both.
   kMenu,
   kBoss,
+  // The Multiplayer entry on that menu. Held to the level the player is
+  // recognisably a character rather than to bossing's: the lobby is where
+  // trading happens, and that is worth having long before a party is.
+  kMultiplayer,
+  // The Characters entry, and the character select behind it. Last of the
+  // menu entries to arrive: a second character is worth making once the
+  // first has run out of climb, and their own way up is what the account's
+  // unlocks have already opened.
+  kCharacters,
   // The Hyper tab of the Character panel, and the Farm/Boss rows that pick
   // between the two allocations it fills in. Hyper Stats' own level.
   kHyperStats,

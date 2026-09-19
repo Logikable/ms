@@ -309,6 +309,14 @@ class TuiControllerTest : public testing::Test {
     controller_->OnEvent(ftxui::Event::Return);
   }
 
+  // Another character on the account, in a slot of their own.
+  void AddCharacter(const std::string& name) {
+    CharacterSave slot;
+    slot.mutable_character()->set_name(name);
+    slot.mutable_character()->set_level(1);
+    state_->inactive_characters.push_back(slot);
+  }
+
   // Levels the character to `level`. The item menu's entries are level-gated
   // (see progression.h), so a test that means to exercise one has to have
   // reached it -- star force is the late one, at 60.
@@ -3328,6 +3336,102 @@ TEST_F(TuiControllerTest, TabDoesNotLeaveTheExpandedPanel) {
 
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kInventoryPanel);
+}
+
+// --- the character select ---
+
+TEST_F(TuiControllerTest, CharactersOpensTheSelectAndStopsTheFarm) {
+  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  EXPECT_EQ(controller_->screen(), kCharacterSelect);
+  EXPECT_TRUE(controller_->OnCharacterSelect())
+      << "the fight does not run behind it";
+}
+
+// The only way back into the game is to play somebody, so Escape asks the
+// question the Quit button does -- and cancelling it lands back on the list
+// rather than in a game with no character chosen.
+TEST_F(TuiControllerTest, EscapeAsksToQuitAndComesBackToTheList) {
+  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kQuit);
+
+  controller_->OnEvent(ftxui::Event::Return);  // the prompt opens on Cancel
+  EXPECT_EQ(controller_->screen(), kCharacterSelect);
+  EXPECT_FALSE(controller_->quit_requested());
+}
+
+TEST_F(TuiControllerTest, CreateMakesACharacterAndPlaysThem) {
+  state_->character.SetUsername("First");
+  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  // Down off the only character, onto the buttons, where Create leads.
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.username(), kDefaultUsername);
+  EXPECT_EQ(state_->character.proto().level(), 1);
+  EXPECT_EQ(state_->played_slot, 1);
+  EXPECT_EQ(state_->offline_slot, 0) << "the check does not follow";
+  EXPECT_TRUE(controller_->TakeCharacterSwitch());
+  EXPECT_TRUE(controller_->TakeSaveRequest());
+}
+
+TEST_F(TuiControllerTest, PlayPutsTheChosenCharacterIn) {
+  state_->character.SetUsername("First");
+  AddCharacter("Second");
+  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // onto the other character
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kCharacterMenu);
+  controller_->OnEvent(ftxui::Event::Return);  // Play
+
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.username(), "Second");
+  EXPECT_TRUE(controller_->TakeCharacterSwitch());
+}
+
+TEST_F(TuiControllerTest, SetOfflineMovesTheCheckAndStaysOnTheList) {
+  state_->character.SetUsername("First");
+  AddCharacter("Second");
+  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Play -> Set Offline
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kCharacterSelect);
+  EXPECT_EQ(state_->offline_slot, 1);
+  EXPECT_EQ(state_->played_slot, 0) << "the check is not a switch";
+  EXPECT_FALSE(controller_->TakeCharacterSwitch());
+  EXPECT_TRUE(controller_->TakeSaveRequest());
+}
+
+TEST_F(TuiControllerTest, DeleteAsksFirstAndCanBeBackedOutOf) {
+  state_->character.SetUsername("First");
+  AddCharacter("Second");
+  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Play -> Set Offline
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Delete
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kCharacterDelete);
+
+  // The question opens on Cancel, as every question there is no undoing does.
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kCharacterSelect);
+  EXPECT_EQ(state_->inactive_characters.size(), 1u);
+
+  // Backing out left the cursor on the row it was raised from.
+  controller_->OnEvent(ftxui::Event::Return);  // the menu again
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);     // Delete
+  controller_->OnEvent(ftxui::Event::ArrowLeft);  // Cancel -> Confirm
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kCharacterSelect);
+  EXPECT_TRUE(state_->inactive_characters.empty());
+  EXPECT_EQ(state_->character.username(), "First") << "who was being played";
 }
 
 // --- quitting ---

@@ -120,10 +120,10 @@ TEST_F(ProgressionTest, ASecondCharacterStartsWithTheAccountsUnlocks) {
   CharacterInstance fresh = MakeCharacter(1);
 
   const Feature kAll[] = {
-      Feature::kEquipped,    Feature::kBag,           Feature::kUnequip,
-      Feature::kMenu,        Feature::kShop,          Feature::kScrolling,
-      Feature::kStarForce,   Feature::kBoss,          Feature::kCombatStats,
-      Feature::kDamageStats, Feature::kAdvancedStats,
+      Feature::kEquipped,    Feature::kBag,         Feature::kUnequip,
+      Feature::kMenu,        Feature::kShop,        Feature::kScrolling,
+      Feature::kStarForce,   Feature::kBoss,        Feature::kMultiplayer,
+      Feature::kCombatStats, Feature::kDamageStats, Feature::kAdvancedStats,
   };
   for (Feature feature : kAll) {
     SCOPED_TRACE(FeatureName(feature));
@@ -131,6 +131,20 @@ TEST_F(ProgressionTest, ASecondCharacterStartsWithTheAccountsUnlocks) {
   }
   EXPECT_FALSE(Unlocked(Feature::kHammer, fresh, account_))
       << "an account that stopped at 140 never reached the hammer";
+}
+
+// The two menu entries that are not about this character's climb. The lobby
+// opens with the skills, well below bossing; the character select opens last
+// of everything, and a second character has it from level 1.
+TEST_F(ProgressionTest, TheLobbyOpensEarlyAndTheCharacterSelectLast) {
+  EXPECT_EQ(UnlockLevel(Feature::kMultiplayer), 10);
+  EXPECT_EQ(UnlockLevel(Feature::kCharacters), 210);
+  EXPECT_LT(UnlockLevel(Feature::kMultiplayer), UnlockLevel(Feature::kBoss));
+
+  EXPECT_FALSE(Unlocked(Feature::kCharacters, MakeCharacter(209), account_));
+  EXPECT_TRUE(Unlocked(Feature::kCharacters, MakeCharacter(210), account_));
+  account_.RecordProgress(210, 5);
+  EXPECT_TRUE(Unlocked(Feature::kCharacters, MakeCharacter(1), account_));
 }
 
 // The one gate the account cannot answer for: the skills tab needs a job,

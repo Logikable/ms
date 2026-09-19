@@ -7,10 +7,10 @@
  *
  * Entries arrive as the character reaches them, and the row is laid out from
  * the right: Settings holds the corner from the start so the panel is never an
- * empty box, Boss and Multiplayer arrive left of it at 110, and Dailies left
- * of them at the level the first Arcane Symbol can be had. Analysis holds the
- * left end throughout. A build with no multiplayer in it has no Multiplayer
- * entry at all.
+ * empty box, Characters arrives left of it at 210, Multiplayer at 10, Boss at
+ * 110, and Dailies at the level the first Arcane Symbol can be had. Analysis
+ * holds the left end throughout. A build with no multiplayer in it has no
+ * Multiplayer entry at all.
  *
  * An entry either opens a screen -- Boss does -- or opens a box that stands on
  * the corner and lists what it leads to. There is one box, whichever entry
@@ -36,6 +36,7 @@ enum class MenuEntry {
   kDailies,
   kBoss,
   kMultiplayer,
+  kCharacters,
   kSettings,
 };
 

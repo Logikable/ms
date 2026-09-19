@@ -173,6 +173,11 @@ class Tui {
   // playtime the session is accruing. Both come off one reading of a
   // monotonic clock, so they cannot disagree about how long a tick was.
   void Tick();
+  // Starts the session over on whoever the character select just put into
+  // play: a new fight, and the two watchers reseeded from them. Everything
+  // else about the session -- the account, the keys, the music -- is the
+  // player's rather than the character's and stays where it is.
+  void StartPlayingCharacter();
   // Raises the card for whatever the watcher noticed. Called after events as
   // well as after ticks, because combat levels a character during a tick while
   // an advancement happens during an event.
