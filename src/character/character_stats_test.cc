@@ -1524,17 +1524,40 @@ TEST_F(DerivedStatsTest, LevelWithBonusNeedsNoCharacter) {
       << "the skill handing out the levels does not take them";
 }
 
-// GMS's Combat Orders leaves hyper skills and 5th job skills where they
-// stand. Both have room to climb here, so neither is held back by its ceiling.
-TEST_F(DerivedStatsTest, GrantedLevelsSkipHypersAndVNodes) {
+// GMS's Combat Orders leaves beginner, hyper and 5th job skills where they
+// stand. All three have room to climb here, so none is held back by a ceiling.
+TEST_F(DerivedStatsTest, GrantedLevelsSkipBeginnersHypersAndVNodes) {
   Skill hyper = IronBody();
   hyper.set_hyper(true);
   Skill node = IronBody();
   node.set_v_node(V_NODE_KIND_COMMON);
+  Skill fairy = IronBody();
+  fairy.set_account_levels_per_level(10);
 
   EXPECT_EQ(LevelWithBonus(hyper, 5, 2), 5) << "a hyper skill";
   EXPECT_EQ(LevelWithBonus(node, 5, 2), 5) << "a V Matrix node";
+  EXPECT_EQ(LevelWithBonus(fairy, 5, 2), 5) << "a skill nobody buys";
   EXPECT_EQ(LevelWithBonus(IronBody(), 5, 2), 7) << "and the ordinary skill";
+}
+
+// The account's climb is what pays: every character folds Blessing of the
+// Fairy in, whatever book they hold and with nothing spent on it.
+TEST_F(DerivedStatsTest, ASkillNobodyBuysStillPays) {
+  Skill fairy;
+  fairy.set_name("Blessing of the Fairy");
+  fairy.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(fairy, JOB_ADVANCEMENT_BEGINNER);
+  fairy.set_account_levels_per_level(10);
+  fairy.mutable_base()->set_attack(1);
+  fairy.mutable_per_level()->set_attack(1);
+  std::map<std::string, Skill> skills = {{"blessing_of_the_fairy", fairy}};
+
+  CharacterInstance c = MakeCharacter(rng_, 137, 0);
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 13);
+
+  CharacterInstance fresh = MakeCharacter(rng_, 1, 0);
+  EXPECT_EQ(DerivedStatsFor(fresh, skills).skill_stats.attack(), 0)
+      << "nothing until the account reaches ten";
 }
 
 // Two rules the bonus has to hold at once for a skill NOT marked for the 4th
@@ -2707,8 +2730,11 @@ TEST_F(DerivedStatsTest, ABanditsShieldMasteryWaitsForTheScabbard) {
   ASSERT_TRUE(c.LearnSkill(mastery, mastery.max_level()));
 
   // Learned and holding nothing: the skill grants none of its three levers.
+  // The attack that IS there is Blessing of the Fairy's, which rides every
+  // character -- six points at level 60.
+  const int kFairyAttack = 6;
   DerivedStats bare = DerivedStatsFor(c, skills);
-  EXPECT_EQ(bare.skill_stats.attack(), 0);
+  EXPECT_EQ(bare.skill_stats.attack(), kFairyAttack);
   EXPECT_DOUBLE_EQ(bare.damage_taken_pct, 0.0);
   EXPECT_EQ(bare.def, bare.base_def);
 
@@ -2718,7 +2744,7 @@ TEST_F(DerivedStatsTest, ABanditsShieldMasteryWaitsForTheScabbard) {
 
   // GMS's own figures at level 10: +20 attack and 60% of damage turned aside.
   DerivedStats armed = DerivedStatsFor(c, skills);
-  EXPECT_EQ(armed.skill_stats.attack(), 20);
+  EXPECT_EQ(armed.skill_stats.attack(), kFairyAttack + 20);
   EXPECT_DOUBLE_EQ(armed.damage_taken_pct, 0.6);
 
   // And DEF at 2.1 times what the same character carries without the lever,

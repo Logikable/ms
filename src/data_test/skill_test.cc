@@ -386,6 +386,7 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
     // it is that skill's ladder either way.
     if (entry.second.hyper() ||
         entry.second.v_node() != V_NODE_KIND_UNSPECIFIED ||
+        entry.second.account_levels_per_level() > 0 ||
         !entry.second.replaces_skill_name().empty()) {
       continue;
     }
@@ -403,10 +404,12 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   // rather than a folder gone missing.
   for (JobAdvancement advancement :
        EveryValueOf<JobAdvancement>(JobAdvancement_descriptor())) {
-    // The 5th jobs are written one at a time, and the common nodes are bought
-    // with V Points rather than SP -- neither belongs to a book this counts.
+    // The 5th jobs are written one at a time, the common nodes are bought with
+    // V Points rather than SP, and the beginner book is not bought at all --
+    // none of the three belongs to a book this counts.
     if (StageForAdvancement(advancement) >= 5 ||
-        advancement == JOB_ADVANCEMENT_COMMON) {
+        advancement == JOB_ADVANCEMENT_COMMON ||
+        advancement == JOB_ADVANCEMENT_BEGINNER) {
       continue;
     }
     EXPECT_TRUE(cost_by_advancement.count(advancement))

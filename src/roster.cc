@@ -128,8 +128,8 @@ void PutIntoPlay(GameState& state, const std::vector<CharacterSave>& all,
   // roster sorts on it.
   state.last_played_unix_seconds = Now();
 
-  // After the account, whose switch it reads.
-  state.ApplyPresetOptions();
+  // After the account, whose switch and record it reads.
+  state.MirrorAccount();
   KeepBeside(state, all, slot);
 }
 

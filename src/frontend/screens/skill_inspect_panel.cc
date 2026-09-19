@@ -1952,8 +1952,8 @@ std::vector<Row> CardRows(const Skill& skill, int level, int bonus,
     rows.push_back({Row::kRule, "", "", ThemedSeparator()});
   };
   rows.push_back(TextRow(CenteredRow(skill.name())));
-  rows.push_back(
-      TextRow(CenteredRow("Max Level: " + std::to_string(skill.max_level()))));
+  rows.push_back(TextRow(
+      CenteredRow("Max Level: " + std::to_string(SkillMaxLevel(skill)))));
 
   rule();
   rows.push_back({Row::kProse, "", skill.description(), nullptr});
@@ -1969,14 +1969,14 @@ std::vector<Row> CardRows(const Skill& skill, int level, int bonus,
   // the last. Both are the LENT levels; whether a point is left to spend is
   // the learned level's business, which is why the two are asked apart.
   int first = 1;
-  int second = skill.max_level();
+  int second = SkillMaxLevel(skill);
   bool has_second = second > first;
   if (levels == SkillInspectPanel::kLearned) {
     first = LevelWithBonus(skill, level, bonus);
     second = LevelWithBonus(skill, level + 1, bonus);
     // A point that buys nothing gets no block: the lent levels can already
     // have carried the skill to the ceiling the next one would reach.
-    has_second = level < skill.max_level() && second > first;
+    has_second = level < SkillMaxLevel(skill) && second > first;
   }
   if (first > 0) {
     rule();

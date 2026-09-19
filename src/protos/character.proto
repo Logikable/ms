@@ -134,6 +134,10 @@ enum JobAdvancement {
   // is the one book they are all listed in -- naming ten placements on each
   // would say the same thing ten times.
   JOB_ADVANCEMENT_COMMON = 45;
+  // Not an advancement any character takes either: the book every character
+  // is born holding, and keeps. Its one skill is not bought and costs no SP,
+  // so no job stage answers for it -- see Skill.account_levels_per_level.
+  JOB_ADVANCEMENT_BEGINNER = 46;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

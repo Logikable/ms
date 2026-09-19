@@ -33,8 +33,8 @@ std::vector<int> NodeRungs(const CharacterInstance& character,
                            const Skill& skill) {
   std::vector<int> rungs;
   int level = character.skill_level(skill);
-  for (int next = level + 1; next <= skill.max_level(); ++next) {
-    if (next == level + 1 || next == skill.max_level() ||
+  for (int next = level + 1; next <= SkillMaxLevel(skill); ++next) {
+    if (next == level + 1 || next == SkillMaxLevel(skill) ||
         VNodeStepCost(skill.v_node(), next) !=
             VNodeStepCost(skill.v_node(), next + 1)) {
       rungs.push_back(next - level);

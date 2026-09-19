@@ -974,7 +974,7 @@ void MaxVMatrix(GameState& state) {
         !character.ReachesVNode(skill)) {
       continue;
     }
-    int room = skill.max_level() - character.skill_level(skill);
+    int room = SkillMaxLevel(skill) - character.skill_level(skill);
     character.AddVPoints(character.VNodeCostFor(skill, room));
     character.LearnSkill(skill, room);
   }
@@ -989,7 +989,7 @@ void SeedMax(GameState& state, const TestOptions& options) {
   // for, whatever the state was asked for.
   state.account.SetAutoswapPresets(true);
   state.account.SetJukebox(true);
-  state.ApplyPresetOptions();
+  state.MirrorAccount();
   // The same default the workbench takes: the top of the line as far as the
   // game is written, which is where a boss roster is measured from.
   const JobAdvancement chosen = options.job != JOB_ADVANCEMENT_UNSPECIFIED
@@ -1057,7 +1057,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
   // Before the seeding: a max character's allocations are measured by playing
   // the fight, and the fight reads the switch.
   account.SetAutoswapPresets(test.autoswap_presets);
-  ApplyPresetOptions();
+  MirrorAccount();
   if (mode == GameMode::kTest) {
     SeedTest(*this, test);
   } else if (mode == GameMode::kMax) {
@@ -1066,7 +1066,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
     SeedPlay(*this);
   }
   character.UseEquipSets(equip_sets);
-  ApplyPresetOptions();
+  MirrorAccount();
 }
 
 void SeedNewCharacter(GameState& state) {
@@ -1075,8 +1075,9 @@ void SeedNewCharacter(GameState& state) {
   SeedPlay(state);
 }
 
-void GameState::ApplyPresetOptions() {
+void GameState::MirrorAccount() {
   character.set_autoswap_presets(account.autoswap_presets());
+  character.set_account_max_level(account.max_level());
 }
 
 void GrantLevelRewards(GameState& state, int from_level, int to_level) {

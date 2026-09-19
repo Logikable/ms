@@ -74,7 +74,7 @@ class AccountInstance {
   // Off by default: the blink is the option, not the chip that marks focus.
   // Whether the game picks a preset by what the character is doing. Off is
   // what it ships with -- the player puts one in use themselves. Mirrored onto
-  // the character being played; see GameState::ApplyPresetOptions.
+  // the character being played; see GameState::MirrorAccount.
   bool autoswap_presets() const {
     return account_.options().autoswap_presets();
   }

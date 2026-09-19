@@ -1,0 +1,19 @@
+# The one skill nobody buys: its level is the account's highest character over
+# ten, so it is handed to a character the moment they are made and climbs by
+# itself. GMS caps it at 20; here it runs to the level cap, which is where
+# every other ladder in the game ends.
+name: "Blessing of the Fairy"
+description:
+  "Permanently increases your Attack Power and Magic Attack, based on the "
+  "level of the highest-level character on your account."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_BEGINNER skill_order: 1 }
+account_levels_per_level: 10
+base {
+  attack: 1
+  magic_attack: 1
+}
+per_level {
+  attack: 1
+  magic_attack: 1
+}

@@ -1545,7 +1545,19 @@ message Skill {
   // copy.
   repeated SkillPlacement placement = 5;
   reserved 6;
+  // The highest level points can buy. A skill whose level is DERIVED leaves
+  // this unset and takes its ceiling from the level cap -- see
+  // account_levels_per_level and SkillMaxLevel.
   int32 max_level = 7;
+  // A skill nobody buys: its level is the account's highest character level
+  // over this many, floored, and it climbs by itself as the account does.
+  // Blessing of the Fairy alone -- GMS pays every character on the account for
+  // the furthest one of them has got.
+  //
+  // Such a skill costs no SP, takes no granted levels, and caps where the
+  // LEVEL CAP does, so its ceiling moves with kMaxLevel rather than being
+  // written down here.
+  int32 account_levels_per_level = 66;
   // What must be learned first, if anything. Named `required_skill` rather
   // than `requires`, which C++20 has taken for itself.
   SkillRequirement required_skill = 8;

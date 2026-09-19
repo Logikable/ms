@@ -5167,7 +5167,7 @@ TEST(ComputeBossParamsTest, TheFightPicksTheAllocationForTheActivity) {
                   {{"field", TwoSnailMap()}});
   state.current_map = "field";
   state.account.SetAutoswapPresets(true);
-  state.ApplyPresetOptions();
+  state.MirrorAccount();
   Character grown = state.character.ToProto();
   grown.set_level(200);
   state.character.RestoreFrom(grown, state.equips, state.items);
@@ -5196,7 +5196,7 @@ TEST(ComputeBossParamsTest, TheDropPresetRollsTheDrops) {
                   {{"field", TwoSnailMap()}});
   state.current_map = "field";
   state.account.SetAutoswapPresets(true);
-  state.ApplyPresetOptions();
+  state.MirrorAccount();
   EquipSword(state);
   EquipPrototype charm;
   charm.set_name("Drop Charm");

@@ -801,8 +801,15 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   return {};
 }
 
+int SkillMaxLevel(const Skill& skill) {
+  if (skill.account_levels_per_level() > 0) {
+    return kMaxLevel / skill.account_levels_per_level();
+  }
+  return skill.max_level();
+}
+
 int StageForAdvancement(JobAdvancement advancement) {
-  static_assert(JobAdvancement_ARRAYSIZE == 46,
+  static_assert(JobAdvancement_ARRAYSIZE == 47,
                 "a new advancement needs its stage here");
   switch (advancement) {
     case JOB_ADVANCEMENT_SWORDMAN:
@@ -854,10 +861,11 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_NIGHT_LORD_V:
     case JOB_ADVANCEMENT_SHADOWER_V:
       return 5;
-    // A common node's home is not a stage anybody advances into, so it has
-    // none. Nothing keyed by stage -- the SP pools, the skills tab's numbered
-    // pages -- reaches a common node.
+    // Neither of these is a stage anybody advances into, so neither has one.
+    // Nothing keyed by stage -- the SP pools, the skills tab's numbered pages
+    // -- reaches a common node or the beginner book.
     case JOB_ADVANCEMENT_COMMON:
+    case JOB_ADVANCEMENT_BEGINNER:
     default:
       return 0;
   }
@@ -1070,8 +1078,11 @@ std::vector<const Skill*> TakersIn(const CharacterInstance& character,
   std::vector<const Skill*> takers;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
+    // A derived skill is never a taker: nothing buys its levels, so a spare
+    // point cannot go there. See Skill.account_levels_per_level.
     if (!ListedIn(skill, book) || skill.hyper() != hyper ||
-        character.skill_level(skill) >= skill.max_level() ||
+        skill.account_levels_per_level() > 0 ||
+        character.skill_level(skill) >= SkillMaxLevel(skill) ||
         character.proto().level() < skill.required_level() ||
         !character.MeetsSkillRequirement(skill)) {
       continue;
@@ -1095,7 +1106,7 @@ int CharacterInstance::ReconcileSkills(
     if (book == JOB_ADVANCEMENT_UNSPECIFIED) {
       continue;
     }
-    int spare = skill_level(taught) - taught.max_level();
+    int spare = skill_level(taught) - SkillMaxLevel(taught);
     if (spare <= 0) {
       continue;
     }
@@ -1103,9 +1114,9 @@ int CharacterInstance::ReconcileSkills(
     // that no longer fits is either a save from older data or a bug in the
     // granting, and the second is invisible if this quietly tidies up.
     LOG(WARNING) << taught.name() << " is taught to " << skill_level(taught)
-                 << " of a maximum " << taught.max_level()
+                 << " of a maximum " << SkillMaxLevel(taught)
                  << "; cutting it back and re-spending " << spare;
-    (*character_.mutable_skill_levels())[taught.name()] = taught.max_level();
+    (*character_.mutable_skill_levels())[taught.name()] = SkillMaxLevel(taught);
     moved += spare;
     for (; spare > 0; --spare) {
       std::vector<const Skill*> takers =
@@ -1453,6 +1464,11 @@ int CharacterInstance::ReconcileHyperStats() {
 }
 
 bool CharacterInstance::HasAdvancement(JobAdvancement advancement) const {
+  if (advancement == JOB_ADVANCEMENT_BEGINNER) {
+    // Everybody's first book, and nobody ever puts it down: a Night Lord
+    // still holds Blessing of the Fairy.
+    return true;
+  }
   if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
     return false;
   }
@@ -1526,7 +1542,7 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   if (character_.level() < skill.required_level()) {
     return false;
   }
-  if (skill_level(skill) + amount > skill.max_level()) {
+  if (skill_level(skill) + amount > SkillMaxLevel(skill)) {
     return false;
   }
   // A Hyper Skill is bought out of the character's own pool. Everything above
@@ -1580,7 +1596,7 @@ int CharacterInstance::VNodeCostFor(const Skill& skill, int amount) const {
 }
 
 int CharacterInstance::LevelsAffordable(const Skill& skill) const {
-  int room = skill.max_level() - skill_level(skill);
+  int room = SkillMaxLevel(skill) - skill_level(skill);
   if (room <= 0) {
     return 0;
   }
@@ -1600,7 +1616,7 @@ bool CharacterInstance::LearnVNode(const Skill& skill, int amount) {
   if (!ReachesVNode(skill)) {
     return false;
   }
-  if (skill_level(skill) + amount > skill.max_level()) {
+  if (skill_level(skill) + amount > SkillMaxLevel(skill)) {
     return false;
   }
   int cost = VNodeCostFor(skill, amount);

@@ -39,7 +39,10 @@ std::vector<JobAdvancement> EveryAdvancement() {
   std::vector<JobAdvancement> all;
   for (int i = 1; i <= JobAdvancement_MAX; ++i) {
     JobAdvancement advancement = static_cast<JobAdvancement>(i);
-    if (advancement == JOB_ADVANCEMENT_COMMON) {
+    // Neither is an advancement the workbench can be started at: one is the
+    // common nodes' home and the other the book every character is born with.
+    if (advancement == JOB_ADVANCEMENT_COMMON ||
+        advancement == JOB_ADVANCEMENT_BEGINNER) {
       continue;
     }
     all.push_back(advancement);

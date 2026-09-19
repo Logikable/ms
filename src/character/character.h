@@ -76,8 +76,15 @@ inline constexpr int kLastJobStage = 5;
 inline constexpr int kLastSpJobStage = 4;
 
 // The advancement a job is at once it reaches `stage` (1 = 1st job). Returns
-// JOB_ADVANCEMENT_UNSPECIFIED for a stage the job hasn't defined yet.
+// JOB_ADVANCEMENT_UNSPECIFIED for a stage the job hasn't defined yet. NOT the
+// beginner book, which no stage answers for -- see JOB_ADVANCEMENT_BEGINNER.
 JobAdvancement AdvancementForJobStage(Job job, int stage);
+
+// The highest level `skill` reaches. Its own max_level, unless its level is
+// derived from the account's climb -- then it tops out where the LEVEL CAP
+// does, so the ceiling moves with kMaxLevel and is not written in the data.
+// ASK THIS, never max_level: the two differ for exactly one skill today.
+int SkillMaxLevel(const Skill& skill);
 
 // The job stage whose SP pool buys skills of `advancement` (1 = 1st job).
 // Returns 0 for JOB_ADVANCEMENT_UNSPECIFIED.
@@ -434,6 +441,16 @@ class CharacterInstance {
   void set_autoswap_presets(bool on) {
     autoswap_presets_ = on;
   }
+  // The furthest any character on the account has reached, mirrored here for
+  // the same reason -- Blessing of the Fairy is read wherever stats are. Never
+  // BELOW this character's own level: the account's record is written at the
+  // save, so a climb in progress is theirs alone until then.
+  void set_account_max_level(int level) {
+    account_max_level_ = level;
+  }
+  int account_max_level() const {
+    return std::max(account_max_level_, character_.level());
+  }
   // Which preset of `kind` the player has put in use, and the way to change
   // it. Read only while the autoswap is off; each kind keeps its own.
   StatPreset SlotInUse(PresetKind kind) const;
@@ -515,6 +532,9 @@ class CharacterInstance {
   // The learned level in `skill`, 0 for unlearned. A Vengeance form reads its
   // Benevolence skill's level, being the same row of the same book.
   int skill_level(const Skill& skill) const {
+    if (skill.account_levels_per_level() > 0) {
+      return DerivedSkillLevel(skill);
+    }
     const std::string& key = skill.replaces_skill_name().empty()
                                  ? skill.name()
                                  : skill.replaces_skill_name();
@@ -708,6 +728,16 @@ class CharacterInstance {
   // game ships with, so a character with no account behind them keeps
   // whichever preset is in use.
   bool autoswap_presets_ = false;
+  // Mirrors the account's record -- see account_max_level().
+  int account_max_level_ = 0;
+
+  // What a skill nobody buys stands at: the account's climb over the levels
+  // one of its own costs, held to the cap. See
+  // Skill.account_levels_per_level.
+  int DerivedSkillLevel(const Skill& skill) const {
+    return std::min(SkillMaxLevel(skill),
+                    account_max_level() / skill.account_levels_per_level());
+  }
 
   // Gives a nameless character kDefaultUsername. Both doors a Character comes
   // in through call it, which is what makes username() never empty.

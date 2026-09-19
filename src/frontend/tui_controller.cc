@@ -2963,7 +2963,7 @@ bool TuiController::OnOptionsEvent(ftxui::Event event) {
     }
     options_panel_.Toggle();
     // The Autoswap switch is among them, and the character reads it.
-    state_.ApplyPresetOptions();
+    state_.MirrorAccount();
     return true;
   }
   if (IsBack(event)) {

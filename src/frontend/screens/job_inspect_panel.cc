@@ -102,7 +102,7 @@ ftxui::Element JobInspectPanel::RenderSkillRow(const Skill& skill,
       ftxui::text(selected ? "> " : "  "),
       ftxui::text(tag.text) | ftxui::color(tag.color),
       ftxui::text(std::move(name)),
-      ftxui::text(PadLeft("Max " + std::to_string(skill.max_level()) + " ",
+      ftxui::text(PadLeft("Max " + std::to_string(SkillMaxLevel(skill)) + " ",
                           kMaxLevelWidth)),
   });
 }

@@ -871,7 +871,7 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
                                               int row_width) const {
   int learned = character_.skill_level(skill);
   bool selected = rows_focused && skill_sel_ == index;
-  bool maxed = learned >= skill.max_level();
+  bool maxed = learned >= SkillMaxLevel(skill);
   bool has_sp = character_.LevelsAffordable(skill) > 0;
   // A skill waiting on another, or on a level, is not one the character has,
   // so the WHOLE row dims. Running out of SP dims the [+] alone, being a fact
@@ -1716,7 +1716,7 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
       }
       return true;
     }
-    bool maxed = character_.skill_level(skill) >= skill.max_level();
+    bool maxed = character_.skill_level(skill) >= SkillMaxLevel(skill);
     if (actions.learn && !maxed && !SkillLocked(skill) &&
         character_.LevelsAffordable(skill) > 0) {
       actions.learn(skill);

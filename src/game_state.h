@@ -136,11 +136,12 @@ struct GameState {
   std::map<std::string, Boss> bosses;
   std::mt19937 rng;
 
-  // Hands the character the account's Autoswap Presets switch. Every stat read
-  // asks the character which allocation answers, and none of them has the
-  // account, so the two have to be put together here: when the state is built,
-  // when a save arrives, and when the option is thrown.
-  void ApplyPresetOptions();
+  // Hands the character what the ACCOUNT knows and they are read for: the
+  // Autoswap Presets switch, and how far the account has climbed. Every stat
+  // read asks the character and none of them holds the account, so the two
+  // have to be put together here: when the state is built, when a save
+  // arrives, and when the option is thrown.
+  void MirrorAccount();
 
   // The character being played. The others on the account stay as the protos
   // they arrived as -- see //src/roster.h, which is what swaps one in.

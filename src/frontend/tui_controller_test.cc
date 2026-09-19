@@ -1037,7 +1037,7 @@ TEST_F(TuiControllerTest, UseIsDimmedWhereItWouldDoNothing) {
   EXPECT_EQ(controller_->preset_menu().selected(), kPresetMenuMove);
 
   state_->account.SetAutoswapPresets(true);
-  state_->ApplyPresetOptions();
+  state_->MirrorAccount();
   controller_->OpenPresetMenu(PresetKind::kHyperStats, StatPreset::kThird);
   EXPECT_EQ(controller_->preset_menu().selected(), kPresetMenuMove);
 }
@@ -4216,7 +4216,7 @@ TEST_F(TuiControllerTest, TheResetEmptiesTheAllocationItNamed) {
   // The question names the chip, which is a number while the autoswap is off.
   EXPECT_EQ(controller_->hyper_reset_question(), "Reset 2 Hyper Stats?");
   state_->account.SetAutoswapPresets(true);
-  state_->ApplyPresetOptions();
+  state_->MirrorAccount();
   EXPECT_EQ(controller_->hyper_reset_question(), "Reset Boss Hyper Stats?");
   // It opens on Cancel, so getting to Confirm is a step of its own.
   controller_->OnEvent(ftxui::Event::ArrowLeft);

@@ -68,7 +68,8 @@ bool GrantsSkillLevels(const Skill& skill) {
 // Whether a granted level reaches this skill. GMS's Combat Orders names its
 // exceptions: beginner, hyper and 5th job skills stay where they stand.
 bool TakesGrantedLevels(const Skill& skill) {
-  return !skill.hyper() && skill.v_node() == V_NODE_KIND_UNSPECIFIED;
+  return !skill.hyper() && skill.v_node() == V_NODE_KIND_UNSPECIFIED &&
+         skill.account_levels_per_level() == 0;
 }
 
 // Whether this skill gives the rest of the party anything -- for good, or for
@@ -1240,7 +1241,7 @@ int LevelWithBonus(const Skill& skill, int learned, int bonus) {
   if (learned <= 0 || GrantsSkillLevels(skill) || !TakesGrantedLevels(skill)) {
     return learned;
   }
-  int ceiling = skill.max_level();
+  int ceiling = SkillMaxLevel(skill);
   if (skill.exceeds_master_level()) {
     ceiling += kLevelsPastMasterLevel;
   }

@@ -913,8 +913,10 @@ TEST(JobChoicesTest, ABerserkerCountsAsAWarriorThroughout) {
 TEST(JobChoicesTest, EveryAdvancementRoundTripsToItsJob) {
   for (int i = 1; i <= JobAdvancement_MAX; ++i) {
     JobAdvancement advancement = static_cast<JobAdvancement>(i);
-    // The common nodes' home is nobody's advancement, so it names no job.
-    if (advancement == JOB_ADVANCEMENT_COMMON) {
+    // Neither the common nodes' home nor the beginner book is an advancement
+    // anybody takes, so neither names a job.
+    if (advancement == JOB_ADVANCEMENT_COMMON ||
+        advancement == JOB_ADVANCEMENT_BEGINNER) {
       EXPECT_EQ(JobForAdvancement(advancement), JOB_UNSPECIFIED);
       continue;
     }
@@ -1448,6 +1450,54 @@ TEST_F(LearnSkillTest, RejectsASkillWithNoAdvancement) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
   Skill skill = MakeSkill("Nameless", JOB_ADVANCEMENT_UNSPECIFIED, 20);
   EXPECT_FALSE(c.LearnSkill(skill));
+}
+
+// --- A skill nobody buys ---
+
+// Blessing of the Fairy's shape: no max_level of its own, and a level read off
+// the account rather than off a purse.
+Skill FairyBlessing() {
+  Skill skill;
+  skill.set_name("Blessing of the Fairy");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(skill, JOB_ADVANCEMENT_BEGINNER);
+  skill.set_account_levels_per_level(10);
+  skill.mutable_base()->set_attack(1);
+  skill.mutable_per_level()->set_attack(1);
+  return skill;
+}
+
+TEST_F(CharacterTest, ADerivedSkillCapsWhereTheLevelCapDoes) {
+  EXPECT_EQ(SkillMaxLevel(FairyBlessing()), kMaxLevel / 10);
+  EXPECT_EQ(SkillMaxLevel(SlashBlast()), SlashBlast().max_level())
+      << "every other skill keeps the maximum its data states";
+}
+
+// The level is the account's climb over ten, floored -- and the character's
+// own level counts, the account's record only being written at the save.
+TEST_F(CharacterTest, ADerivedSkillReadsTheAccountsClimb) {
+  Skill fairy = FairyBlessing();
+  EXPECT_EQ(MakeCharacter(rng_).skill_level(fairy), 0)
+      << "a level 1 account has not earned one";
+  EXPECT_EQ(MakeCharacter(rng_, /*level=*/19).skill_level(fairy), 1);
+
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/19);
+  c.set_account_max_level(150);
+  EXPECT_EQ(c.skill_level(fairy), 15) << "somebody else's climb pays too";
+
+  CharacterInstance climber = MakeCharacter(rng_, /*level=*/200);
+  climber.set_account_max_level(150);
+  EXPECT_EQ(climber.skill_level(fairy), 20) << "and their own outruns it";
+}
+
+// Nobody buys it, and no book charges for it: the beginner's page is held by
+// every character whatever job they took.
+TEST_F(CharacterTest, ADerivedSkillCostsNothingAndIsHeldByEverybody) {
+  Skill fairy = FairyBlessing();
+  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
+  EXPECT_TRUE(c.HoldsSkillFrom(fairy));
+  EXPECT_EQ(c.SpFor(fairy), 0);
+  EXPECT_FALSE(c.LearnSkill(fairy));
 }
 
 // --- Advancement mapping ---
