@@ -1057,3 +1057,43 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "character_select_panel",
+    srcs = ["character_select_panel.cc"],
+    hdrs = ["character_select_panel.h"],
+    deps = [
+        "//src:game_state",
+        "//src:roster",
+        "//src/character",
+        "//src/character:character_stats",
+        "//src/character:job_name",
+        "//src/frontend:panel_widths",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:item_menu",
+        "//src/frontend/widgets:keys",
+        "//src/frontend/widgets:stat_rows",
+        "//src/frontend/widgets:text_columns",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "character_select_panel_test",
+    size = "small",
+    srcs = ["character_select_panel_test.cc"],
+    deps = [
+        ":character_select_panel",
+        "//src:game_state",
+        "//src:roster",
+        "//src/frontend:placement",
+        "//src/frontend/testing:screen_text",
+        "//src/protos:character_proto_cc",
+        "//src/protos:save_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
