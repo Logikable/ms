@@ -45,7 +45,7 @@ SaveGame UpgradeFromV1(const SaveGameV1& old) {
   slot->set_current_map(old.current_map());
   slot->set_created_unix_seconds(old.created_unix_seconds());
   slot->set_playtime_seconds(old.playtime_seconds());
-  save.set_active_character(0);
+  save.set_offline_character(0);
   save.set_last_seen_unix_seconds(old.last_seen_unix_seconds());
 
   Account* account = save.mutable_account();

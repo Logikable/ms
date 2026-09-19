@@ -19,7 +19,7 @@ import "src/protos/keybinds.proto";
 //   1  One character. The save held that character beside their map, creation
 //      time, playtime and keybinds.
 //   2  Many characters. `characters` holds one CharacterSave apiece and
-//      `active_character` says which one is being played. Keybinds, the
+//      `offline_character` says which one the game opens on. Keybinds, the
 //      seen-key list and the feature unlocks moved to `account`, shared by
 //      every character; the rest stayed with the character. A version 1 save
 //      loads as the one character, whose level and job stage seed the
@@ -43,9 +43,12 @@ message SaveGame {
   // The characters, in the order the player made them.
   repeated CharacterSave characters = 9;
 
-  // Which of `characters` is being played, as an index into it. Out of range
-  // -- an empty save among them -- loads the first.
-  int32 active_character = 10;
+  // The character the game opens on, as an index into `characters`: the one a
+  // launch logs into, and the only one an absence pays. NOT whoever was being
+  // played when the file was written -- the player says which character farms
+  // while the game is closed, on the character select, and playing somebody
+  // else does not take it off them. Out of range loads the first.
+  int32 offline_character = 10;
 
   // When this save was written, as seconds since the Unix epoch. The clock
   // offline progress is measured against: the next launch pays the player for
@@ -61,7 +64,7 @@ message SaveGame {
 }
 
 // One character on the account, and what the save keeps around them: where
-// they were standing and the two clocks that are theirs alone.
+// they were standing and the three clocks that are theirs alone.
 message CharacterSave {
   Character character = 1;
 
@@ -80,6 +83,13 @@ message CharacterSave {
   // accumulating it a fraction of a second at a time does not truncate away
   // most of it.
   int64 playtime_seconds = 4;
+
+  // When this character was last put into play, as seconds since the Unix
+  // epoch. What the character select sorts on, newest first. Zero -- a save
+  // written before the field existed -- sorts below every character who has
+  // been played since, which is the honest answer: nobody knows when they
+  // last were.
+  int64 last_played_unix_seconds = 5;
 }
 
 // The version 1 save, frozen. Nothing writes it and nothing but the upgrade in

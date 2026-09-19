@@ -155,12 +155,38 @@ cc_library(
 )
 
 cc_library(
+    name = "roster",
+    srcs = ["roster.cc"],
+    hdrs = ["roster.h"],
+    deps = [
+        ":game_state",
+        "//src/character:job_name",
+        "//src/protos:save_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "roster_test",
+    size = "small",
+    srcs = ["roster_test.cc"],
+    deps = [
+        ":game_state",
+        ":roster",
+        "//src/character",
+        "//src/protos:character_proto_cc",
+        "//src/protos:save_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "save",
     srcs = ["save.cc"],
     hdrs = ["save.h"],
     deps = [
         ":account",
         ":game_state",
+        ":roster",
         ":save_migration",
         "//src/protos:save_proto_cc",
         "@abseil-cpp//absl/log",

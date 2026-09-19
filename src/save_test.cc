@@ -518,7 +518,8 @@ TEST_F(SaveTest, ARefusedLoadLeavesPlaytimeAlone) {
 TEST_F(SaveTest, TheCharactersNotBeingPlayedSurviveASave) {
   std::unique_ptr<GameState> state = MakeState();
   state->character.SetUsername("Second");
-  state->active_character = 1;
+  state->played_slot = 1;
+  state->offline_slot = 1;
   CharacterSave first;
   first.mutable_character()->set_name("First");
   first.mutable_character()->set_level(42);
@@ -532,14 +533,15 @@ TEST_F(SaveTest, TheCharactersNotBeingPlayedSurviveASave) {
   EXPECT_EQ(on_disk.characters(0).character().name(), "First");
   EXPECT_EQ(on_disk.characters(0).current_map(), "lith");
   EXPECT_EQ(on_disk.characters(1).character().name(), "Second");
-  EXPECT_EQ(on_disk.active_character(), 1);
+  EXPECT_EQ(on_disk.offline_character(), 1);
 }
 
-TEST_F(SaveTest, TheActiveSlotIsTheOneLoaded) {
+TEST_F(SaveTest, TheOfflineSlotIsTheOneLoaded) {
   std::unique_ptr<GameState> saved = MakeState();
   saved->character.SetUsername("Second");
   saved->character.AddMeso(90);
-  saved->active_character = 1;
+  saved->played_slot = 1;
+  saved->offline_slot = 1;
   CharacterSave first;
   first.mutable_character()->set_name("First");
   first.set_playtime_seconds(1200);
@@ -550,19 +552,20 @@ TEST_F(SaveTest, TheActiveSlotIsTheOneLoaded) {
   ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
   EXPECT_EQ(loaded->character.username(), "Second");
   EXPECT_EQ(loaded->character.meso(), 90);
-  EXPECT_EQ(loaded->active_character, 1);
+  EXPECT_EQ(loaded->played_slot, 1);
+  EXPECT_EQ(loaded->offline_slot, 1);
   ASSERT_EQ(loaded->inactive_characters.size(), 1u);
   EXPECT_EQ(loaded->inactive_characters[0].character().name(), "First");
   EXPECT_EQ(loaded->playtime_seconds, 0.0) << "the played character's clock";
 }
 
-// A hand-edited file, or one whose active slot was deleted. The first
-// character is a better answer than refusing to load the save at all.
-TEST_F(SaveTest, AnActiveSlotOutOfRangeLoadsTheFirst) {
+// A hand-edited file. The first character is a better answer than refusing to
+// load the save at all.
+TEST_F(SaveTest, AnOfflineSlotOutOfRangeLoadsTheFirst) {
   SaveGame save;
   save.set_format_version(kSaveFormatVersion);
   save.add_characters()->mutable_character()->set_name("First");
-  save.set_active_character(7);
+  save.set_offline_character(7);
   std::string bytes;
   ASSERT_TRUE(save.SerializeToString(&bytes));
   WriteRaw(path_, bytes);
@@ -570,7 +573,7 @@ TEST_F(SaveTest, AnActiveSlotOutOfRangeLoadsTheFirst) {
   std::unique_ptr<GameState> loaded = MakeState();
   ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
   EXPECT_EQ(loaded->character.username(), "First");
-  EXPECT_EQ(loaded->active_character, 0);
+  EXPECT_EQ(loaded->played_slot, 0);
 }
 
 // A save with an account and no characters is not a save this build wrote.
@@ -652,7 +655,7 @@ TEST_F(SaveTest, AVersion1SaveLoadsAsTheOneCharacter) {
   EXPECT_EQ(loaded->created_unix_seconds, 1500000000);
   EXPECT_EQ(loaded->playtime_seconds, 3600.0);
   EXPECT_EQ(loaded->last_seen_unix_seconds, 1700000000);
-  EXPECT_EQ(loaded->active_character, 0);
+  EXPECT_EQ(loaded->played_slot, 0);
   EXPECT_TRUE(loaded->inactive_characters.empty());
 }
 
@@ -711,7 +714,7 @@ TEST_F(SaveTest, AVersion2SaveUpgradesEveryCharacter) {
   SaveGame old;
   AddStack(*old.add_characters()->mutable_character(), kSpellTraceName, 100);
   AddStack(*old.add_characters()->mutable_character(), kSpellTraceName, 200);
-  old.set_active_character(0);
+  old.set_offline_character(0);
   WriteV2(old);
 
   std::unique_ptr<GameState> loaded = MakeState();

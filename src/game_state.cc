@@ -1052,6 +1052,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       // Every mode builds its character up from a level-1 Beginner; where the
       // climb stops is --level's to say, and the seeding below walks it there.
       character(rng, MakeBaseBeginnerProto()),
+      last_played_unix_seconds(static_cast<int64_t>(std::time(nullptr))),
       created_unix_seconds(static_cast<int64_t>(std::time(nullptr))) {
   // Before the seeding: a max character's allocations are measured by playing
   // the fight, and the fight reads the switch.
@@ -1066,6 +1067,12 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
   }
   character.UseEquipSets(equip_sets);
   ApplyPresetOptions();
+}
+
+void SeedNewCharacter(GameState& state) {
+  state.character.RestoreFrom(MakeBaseBeginnerProto(), state.equips,
+                              state.items);
+  SeedPlay(state);
 }
 
 void GameState::ApplyPresetOptions() {

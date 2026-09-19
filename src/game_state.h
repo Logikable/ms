@@ -142,8 +142,8 @@ struct GameState {
   // when a save arrives, and when the option is thrown.
   void ApplyPresetOptions();
 
-  // The character being played. The others on the account are inert until a
-  // character select exists to swap one in.
+  // The character being played. The others on the account stay as the protos
+  // they arrived as -- see //src/roster.h, which is what swaps one in.
   CharacterInstance character;
 
   // What every character on the account shares: bindings, unlocks, and what
@@ -152,9 +152,16 @@ struct GameState {
 
   // Which slot of the save the played character came from, and the characters
   // in the other slots. Held so that saving keeps them: nothing in a session
-  // reads a character that is not being played.
-  int active_character = 0;
+  // reads a character that is not being played. See //src/roster.h, which is
+  // where a slot is swapped, added or dropped.
+  int played_slot = 0;
   std::vector<CharacterSave> inactive_characters;
+
+  // Which slot carries the offline check: the character the next launch opens
+  // on, and the only one an absence pays. The player sets it on the character
+  // select, and playing somebody else does NOT take it off them -- which is
+  // the whole point of the check. Equal to played_slot until they move it.
+  int offline_slot = 0;
 
   // What every EXP award from combat is multiplied by. kTest gets a standing
   // bonus so the workbench can climb the level ladder in a sitting rather than
@@ -169,6 +176,12 @@ struct GameState {
   // across a restart would quietly cost somebody a real clear. It rides in
   // PlayerInfo so the server can hold a whole party to one set of them.
   BossOptions boss_options;
+
+  // When the played character was last put into play, as seconds since the
+  // Unix epoch: what the character select sorts the roster on. Stamped when
+  // the game starts and again on every switch, so the character being played
+  // is always the newest.
+  int64_t last_played_unix_seconds;
 
   // When this character was started, as seconds since the Unix epoch. Stamped
   // here rather than at save time so that both of the ways it can go
@@ -193,6 +206,14 @@ struct GameState {
   // FIGHT is on and emptied when it ends, so nothing reading it has to ask.
   std::vector<CharacterInstance> party;
 };
+
+// Puts a brand new character into play: a level-1 Beginner armed with the
+// Sword and standing on Maple Island. Both doors onto one come through here
+// -- the first launch, and Create on the character select -- so a new
+// character is the same character whichever made them. Whatever was being
+// played is overwritten, so a caller with a character to keep writes them
+// somewhere first.
+void SeedNewCharacter(GameState& state);
 
 // Whatever climbing from `from_level` to `to_level` grants: the honor every
 // level pays, and whatever the catalogs owe -- reaching 200 is handed a

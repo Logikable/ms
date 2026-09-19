@@ -17,6 +17,7 @@
 #include "src/account.h"
 #include "src/game_state.h"
 #include "src/protos/save.pb.h"
+#include "src/roster.h"
 #include "src/save_migration.h"
 
 namespace ms {
@@ -48,32 +49,15 @@ bool FlushToDisk(std::ofstream& out, const std::string& path) {
   return true;
 }
 
-// The played character as the save holds them, with the two clocks and the
-// map that are theirs alone.
-CharacterSave ActiveCharacterSave(const GameState& state) {
-  CharacterSave slot;
-  *slot.mutable_character() = state.character.ToProto();
-  slot.set_current_map(state.current_map);
-  slot.set_created_unix_seconds(state.created_unix_seconds);
-  slot.set_playtime_seconds(static_cast<int64_t>(state.playtime_seconds));
-  return slot;
-}
-
 // Puts every character on the account into `save`, the played one back in the
-// slot they came from. The others were never unpacked, so they go out exactly
-// as they came in.
+// slot they came from, and records which of them the next launch opens on.
 void WriteCharacters(const GameState& state, SaveGame& save) {
-  const std::vector<CharacterSave>& others = state.inactive_characters;
-  int slot =
-      std::clamp(state.active_character, 0, static_cast<int>(others.size()));
-  for (int i = 0; i < slot; ++i) {
-    *save.add_characters() = others[i];
+  std::vector<CharacterSave> all = AllCharacters(state);
+  for (CharacterSave& slot : all) {
+    *save.add_characters() = std::move(slot);
   }
-  *save.add_characters() = ActiveCharacterSave(state);
-  for (std::size_t i = slot; i < others.size(); ++i) {
-    *save.add_characters() = others[i];
-  }
-  save.set_active_character(slot);
+  save.set_offline_character(
+      std::clamp(state.offline_slot, 0, save.characters_size() - 1));
 }
 
 // The account as the file should carry it: what the session holds, with the
@@ -87,11 +71,11 @@ AccountInstance AccountToWrite(const GameState& state) {
   return account;
 }
 
-// The slot the save says is being played, or the first if it says something
-// out of range -- a hand-edited file, or one whose active character was
-// deleted by a build that could do that.
-int ActiveSlot(const SaveGame& save) {
-  int slot = save.active_character();
+// The slot the save opens on, or the first if it names something out of
+// range -- a hand-edited file, or one whose character was deleted by a build
+// that could not renumber the check.
+int OfflineSlot(const SaveGame& save) {
+  int slot = save.offline_character();
   return slot >= 0 && slot < save.characters_size() ? slot : 0;
 }
 
@@ -107,39 +91,15 @@ void LoadAccount(const SaveGame& save, GameState& state) {
   }
 }
 
-// Loads the active character into play and keeps the rest as they arrived.
+// Opens the save on the character carrying the offline check, and keeps the
+// rest as they arrived. The check is where a launch begins: it says who was
+// left farming, and the absence about to be paid is theirs.
 void LoadCharacters(const SaveGame& save, GameState& state) {
-  int slot = ActiveSlot(save);
-  const CharacterSave& active = save.characters(slot);
-  state.character.RestoreFrom(active.character(), state.equips, state.items);
-  // A save written under older rules is the one thing that can arrive with its
-  // books unbalanced, so this is the door to check all four at: the AP and the
-  // SP against the levels that paid them, the skills against the maximums the
-  // data states now, and the Hyper Stats against the points the level pays.
-  // SP last -- ReconcileSkills moves points between a book and its pool.
-  state.character.ReconcileAp();
-  state.character.ReconcileSkills(state.skills);
-  state.character.ReconcileHyperStats();
-  state.character.ReconcileSp(state.skills);
-  state.current_map = active.current_map();
-  state.playtime_seconds = static_cast<double>(active.playtime_seconds());
-  // Left alone when the save has no creation time to give -- one written
-  // before the field existed. The state was stamped when it was built, so
-  // holding on to that reads as "created now" rather than as the epoch.
-  if (active.created_unix_seconds() != 0) {
-    state.created_unix_seconds = active.created_unix_seconds();
-  }
-
-  // After the account, whose switch it reads.
-  state.ApplyPresetOptions();
-
-  state.active_character = slot;
-  state.inactive_characters.clear();
-  for (int i = 0; i < save.characters_size(); ++i) {
-    if (i != slot) {
-      state.inactive_characters.push_back(save.characters(i));
-    }
-  }
+  std::vector<CharacterSave> all(save.characters().begin(),
+                                 save.characters().end());
+  int slot = OfflineSlot(save);
+  PutIntoPlay(state, all, slot);
+  state.offline_slot = slot;
 }
 
 }  // namespace

@@ -57,7 +57,7 @@ struct LoadResult {
 bool SaveGameToFile(const GameState& state, const std::string& path);
 
 // Reads `path` into `state`, resolving items against the catalogs it already
-// holds. The character in the save's active slot becomes the one being
+// holds. The character carrying the offline check becomes the one being
 // played; the rest ride along untouched so that the next write keeps them.
 // Leaves `state` alone unless the status is kLoaded.
 LoadResult LoadGameFromFile(GameState& state, const std::string& path);
