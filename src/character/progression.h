@@ -45,7 +45,8 @@ enum class Feature {
   kPotential,
   // Recovery is not here: it needs a trace, and a trace only exists after an
   // item exploded, which no level reaches on its own. The item is the gate.
-  // Tabs. Skills is the one gate that is not level alone -- see Unlocked.
+  // Tabs. Skills opens on the account's level alone: a character who has taken
+  // no job still holds the beginner's book.
   kSkills,
   kShop,
   // The menu panel in the bottom-right corner, and the Boss entry on it. The

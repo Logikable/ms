@@ -75,7 +75,10 @@ class CharacterPanel {
  public:
   // The columns a skill row leaves its name. Public because the shipped names
   // are held against it: a name too long for the widest panel is half drawn.
-  static int SkillNameWidth(int level_width, int row_width);
+  // `has_plus` is the narrow case and the default -- a page with no [+] hands
+  // those columns to the name.
+  static int SkillNameWidth(int level_width, int row_width,
+                            bool has_plus = true);
 
   // `skills` is the loaded catalog, keyed by file stem; the Skills tab lists
   // the entries whose stage matches the selected advancement tab.
@@ -257,6 +260,13 @@ class CharacterPanel {
   // them; each answers a different Enter.
   enum SkillCol { kColName, kColPlus };
 
+  // Whether the skill rows carry a [+] at all. A read-only sheet has nothing
+  // to press, and the beginner's page has nothing to buy.
+  bool ShowsSkillPlus() const;
+  // skill_col_, corrected for a page with no [+]: the cursor cannot stand on
+  // a column that is not drawn. Render reads it, as EffectiveZone is read.
+  SkillCol EffectiveSkillCol() const;
+
   // A Hyper Stat row's three, in screen order: the stat to read about, the
   // level to give back, the point to spend. Left/Right clamp at the ends.
   enum HyperCol { kHyperColName, kHyperColMinus, kHyperColPlus };
@@ -390,9 +400,9 @@ class CharacterPanel {
   // The first row of the window -- ScrollWindowStart, which keeps the
   // selection in the middle of it.
   int FirstHyperRow(int visible) const;
-  // The Skills tab: the page bar (I/II/... then H for hypers and V for the
-  // matrix) with that page's points right-aligned, its skill rows, and on the
-  // V page a rule and [Reset]. A stage-0 Beginner has none of it.
+  // The Skills tab: the page bar (the beginner's circle, I/II/..., then H for
+  // hypers and V for the matrix) with that page's points right-aligned, its
+  // skill rows, and on the V page a rule and [Reset].
   ftxui::Element RenderSkillsTab(bool bar_focused, bool rows_focused,
                                  bool reset_focused) const;
   // Whether the page under the cursor carries the [Reset] at its foot, which
@@ -404,8 +414,10 @@ class CharacterPanel {
   // The page bar: one chip per page, the selected one highlighted, with the
   // points that page is bought with right-aligned.
   ftxui::Element RenderAdvTabBar(bool bar_focused) const;
-  // How many pages the Skills tab offers: one per advancement taken, and the
-  // Hyper page after them once the character has reached it.
+  // The page the bar is on -- see skill_tab_.
+  int SelectedSkillPage() const;
+  // How many pages the Skills tab offers: the beginner's, then one per
+  // advancement taken, then the Hyper page once the character has reached it.
   int SkillPages() const;
   // How many of those are numbered -- one per advancement taken, less the 5th
   // while no node has been written for this character's job.
@@ -416,8 +428,14 @@ class CharacterPanel {
   // Whether the Hyper page is one of them: once a Hyper Skill of this
   // character's own book is within reach of their level.
   bool HasHyperPage() const;
-  // Whether page `page` (0-based, as skill_tab_ is) is the Hyper page.
+  // Whether page `page` (0-based, as SelectedSkillPage is) is the Hyper
+  // page.
   bool IsHyperPage(int page) const;
+  // Whether it is the beginner's page, which is always the first: the book
+  // every character is born holding. Nothing on it is bought.
+  bool IsBeginnerPage(int page) const {
+    return page == 0;
+  }
   // Whether the V page is offered, which it is once the character has a
   // matrix and the catalog holds a node they reach.
   bool HasVPage() const;
@@ -490,9 +508,13 @@ class CharacterPanel {
   // yet. Mutable because NoteFocus runs from the render.
   mutable bool was_focused_;
   bool cursor_moved_ = false;
-  int stat_sel_ = 0;   // selected Stats-content row (0-3 = STR/DEX/INT/LUK)
-  int skill_tab_ = 0;  // selected page: a 0-based stage index, then Hyper
-  int skill_sel_ = 0;  // selected skill row within the current page
+  int stat_sel_ = 0;  // selected Stats-content row (0-3 = STR/DEX/INT/LUK)
+  // The page the player moved the bar to, and whether they have moved it at
+  // all. READ THROUGH SelectedSkillPage, which answers for the page nobody
+  // has chosen yet and for a bar that has since grown.
+  int skill_tab_ = 0;
+  bool skill_page_chosen_ = false;
+  int skill_sel_ = 0;              // selected skill row within the current page
   SkillCol skill_col_ = kColName;  // selected column of that row
   // How long the cursor has sat on the selected skill row, for the name
   // scroll. Mutable because the render is what notices the row moved.

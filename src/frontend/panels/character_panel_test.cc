@@ -92,6 +92,18 @@ std::map<std::string, Skill> SkillCatalog() {
   return catalog;
 }
 
+// The beginner's book: one skill, at a level nobody bought.
+Skill MakeFairyBlessing() {
+  Skill skill;
+  skill.set_name("Blessing of the Fairy");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(skill, JOB_ADVANCEMENT_BEGINNER);
+  skill.set_account_levels_per_level(10);
+  skill.mutable_base()->set_attack(1);
+  skill.mutable_per_level()->set_attack(1);
+  return skill;
+}
+
 // One skill in each of a Spearman's two books.
 std::map<std::string, Skill> TwoStageCatalog() {
   std::map<std::string, Skill> catalog = SkillCatalog();  // slash_blast
@@ -377,16 +389,16 @@ TEST_F(CharacterPanelTest, DropsTheAdvanceTabOnceTheJobIsPicked) {
 }
 
 // Taking the advancement rewrites the bar under the cursor: Advance leaves,
-// Skills arrives, and the position the cursor was standing on comes to mean
-// Skills. The zone it was in belonged to the Advance tab, which left the
-// cursor nowhere -- nothing drawn as selected, and arrow keys landing in the
-// skill rows rather than on the bar the player was looking at.
+// and the cursor lands on the tab beside where it stood. The zone it was in
+// belonged to the Advance tab, which left the cursor nowhere -- nothing drawn
+// as selected, and arrow keys landing in the skill rows rather than on the bar
+// the player was looking at.
 TEST_F(CharacterPanelTest, AdvancingLeavesTheCursorOnTheTabBar) {
   CharacterInstance c = MakePendingBeginner(rng_);
   CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   ftxui::Component comp = panel.MakeComponent();
-  // A pending Beginner's bar is Stats and Advance: no Skills until they pick.
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Advance
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills -> Advance
   comp->OnEvent(ftxui::Event::ArrowDown);   // into the job list
   ASSERT_NE(RenderComponent(comp).find("Swordman"), std::string::npos);
 
@@ -402,12 +414,15 @@ TEST_F(CharacterPanelTest, AdvancingLeavesTheSkillsContentOneKeyAway) {
   CharacterInstance c = MakePendingBeginner(rng_);
   CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   ftxui::Component comp = panel.MakeComponent();
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Advance
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills -> Advance
   comp->OnEvent(ftxui::Event::ArrowDown);   // into the job list
 
   c.AdvanceJob(JOB_SWORDMAN);
-  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> advancement bar
-  EXPECT_NE(RenderComponent(comp).find("SP"), std::string::npos);
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> the page bar
+  comp->OnEvent(ftxui::Event::ArrowRight);  // beginner's page -> their book
+  EXPECT_NE(RenderComponent(comp).find("SP"), std::string::npos)
+      << "Right only moves the page from the page bar itself";
 }
 
 TEST_F(CharacterPanelTest, AdvanceTabListsTheFourJobs) {
@@ -449,7 +464,8 @@ TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastJob) {
   CharacterPanelActions actions;
   actions.advance = [&chosen](Job job) { chosen = job; };
   ftxui::Component comp = panel.MakeComponent(actions);
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Advance
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills -> Advance
   comp->OnEvent(ftxui::Event::ArrowUp);     // tab bar -> the username row
   comp->OnEvent(ftxui::Event::ArrowUp);     // username -> the last job
   comp->OnEvent(ftxui::Event::Return);
@@ -472,12 +488,8 @@ TEST_F(CharacterPanelTest, AdvanceTabUpFromTheTopReturnsToTheTabBar) {
             std::string::npos);  // the Stats tab
 }
 
-// Skills belong to a job. A Beginner has no skill list to look at, so the bar
-// is Stats alone until they pick one.
-// Named for the level, not the job: at level 1 the tab is held back by the
-// level gate whatever the job is, so this says nothing about being a Beginner.
-// TheSkillsTabArrivesWithTheAdvancement below is what tests the job condition,
-// by standing a Beginner at the gate's level.
+// The Skills tab is held back by its level, whatever job the character is:
+// a new character's bar is Stats alone.
 TEST_F(CharacterPanelTest, ANewCharacterHasOnlyTheStatsTab) {
   CharacterPanel panel(c_, account_, panel_focus_);
   std::string rendered = RenderElement(panel.Render());
@@ -485,14 +497,10 @@ TEST_F(CharacterPanelTest, ANewCharacterHasOnlyTheStatsTab) {
   EXPECT_EQ(rendered.find("Skills"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, TheSkillsTabArrivesWithTheAdvancement) {
+// The tab arrives on the level alone: a Beginner standing at the gate has the
+// beginner's book to read, whether or not they have taken a job.
+TEST_F(CharacterPanelTest, TheSkillsTabArrivesWithTheLevel) {
   CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
-  ASSERT_EQ(RenderElement(CharacterPanel(c, account_, panel_focus_).Render())
-                .find("Skills"),
-            std::string::npos)
-      << "level 10 is not enough on its own";
-
-  c.AdvanceJob(JOB_SWORDMAN);
   EXPECT_NE(RenderElement(CharacterPanel(c, account_, panel_focus_).Render())
                 .find("Skills"),
             std::string::npos);
@@ -825,6 +833,49 @@ TEST_F(CharacterPanelTest, TheSkillsTabOpensOnTheFirstBook) {
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("Slash Blast"), std::string::npos);
   EXPECT_EQ(rendered.find("Spear Sweep"), std::string::npos);
+}
+
+// The beginner's page: first on the bar, marked with the circle rather than a
+// numeral, and with no [+] and no SP counter -- nothing on it is bought. Its
+// one skill stands at the account's climb over ten.
+TEST_F(CharacterPanelTest, TheBeginnersPageBuysNothing) {
+  CharacterInstance c = MakeSpearman(rng_);  // level 35
+  std::map<std::string, Skill> catalog = TwoStageCatalog();
+  catalog["blessing_of_the_fairy"] = MakeFairyBlessing();
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
+  ftxui::Component comp = panel.MakeComponent();
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> the page bar
+  ASSERT_NE(RenderComponent(comp).find("Slash Blast"), std::string::npos)
+      << "opens on their own book, not the beginner's";
+
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // their book -> the beginner's
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("\u25cf"), std::string::npos) << "the page's mark";
+  EXPECT_NE(rendered.find("Blessing of the Fairy"), std::string::npos);
+  EXPECT_NE(rendered.find("3"), std::string::npos) << "level 35 over ten";
+  EXPECT_EQ(rendered.find("[+]"), std::string::npos);
+  EXPECT_EQ(rendered.find("SP"), std::string::npos);
+}
+
+// A character who has taken no job has that page and nothing else -- and the
+// tab is there for them, which is the whole reason the book exists.
+TEST_F(CharacterPanelTest, ABeginnerHasTheBeginnersPageAlone) {
+  CharacterInstance c = MakePendingBeginner(rng_);  // level 10
+  std::map<std::string, Skill> catalog = TwoStageCatalog();
+  catalog["blessing_of_the_fairy"] = MakeFairyBlessing();
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
+  ftxui::Component comp = panel.MakeComponent();
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> the page bar
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("Blessing of the Fairy"), std::string::npos);
+  EXPECT_EQ(rendered.find("Slash Blast"), std::string::npos)
+      << "a Swordman's book is not theirs";
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_NE(RenderComponent(comp).find("Blessing of the Fairy"),
+            std::string::npos)
+      << "there is nowhere to the right to go";
 }
 
 // --- the Hyper page ---
@@ -2041,7 +2092,8 @@ TEST_F(CharacterPanelTest, TabbingInLandsOnTheTabBarForANamedCharacter) {
   panel_focus_ = kCharPanel;
   EXPECT_FALSE(IsInverted(comp, "Sean99"));
 
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Advance
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills -> Advance
   EXPECT_NE(RenderComponent(comp).find("Swordman"), std::string::npos);
 }
 
@@ -2060,6 +2112,7 @@ TEST_F(CharacterPanelTest, TabbingBackInKeepsAMovedCursor) {
   RenderComponent(comp);
   panel_focus_ = kCharPanel;
   EXPECT_FALSE(IsInverted(comp, kDefaultUsername));
+  comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_NE(RenderComponent(comp).find("Swordman"), std::string::npos);
 }
@@ -2396,7 +2449,8 @@ TEST_F(CharacterPanelTest, OpeningTheAdvanceTabClearsItsGold) {
   CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent();
   panel_focus_ = kCharPanel;
-  component->OnEvent(ftxui::Event::ArrowRight);
+  component->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  component->OnEvent(ftxui::Event::ArrowRight);  // Skills -> Advance
 
   panel_focus_ = kInventoryPanel;
   EXPECT_EQ(LabelColor(panel.Render(), "Advance"), kTheme);
@@ -2414,11 +2468,13 @@ TEST_F(CharacterPanelTest, MarkingTheActiveTabReadsIt) {
   CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent();
   panel_focus_ = kCharPanel;
-  component->OnEvent(ftxui::Event::ArrowRight);
+  component->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  component->OnEvent(ftxui::Event::ArrowRight);  // Skills -> Advance
   ASSERT_TRUE(account_.Seen(AdvanceTabKey(1)));
 
   // Stats has nothing to announce, so marking it records nothing rather than
   // recording the empty key -- which Seen would then answer yes to.
+  component->OnEvent(ftxui::Event::ArrowLeft);
   component->OnEvent(ftxui::Event::ArrowLeft);
   panel.MarkActiveTabSeen();
   EXPECT_FALSE(account_.Seen(""));

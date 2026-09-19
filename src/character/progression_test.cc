@@ -147,13 +147,16 @@ TEST_F(ProgressionTest, TheLobbyOpensEarlyAndTheCharacterSelectLast) {
   EXPECT_TRUE(Unlocked(Feature::kCharacters, MakeCharacter(1), account_));
 }
 
-// The one gate the account cannot answer for: the skills tab needs a job,
-// because the books belong to the jobs and a Beginner's would be empty.
-TEST_F(ProgressionTest, TheSkillsTabStillWaitsForThisCharactersJob) {
-  account_.RecordProgress(140, 4);
-  EXPECT_FALSE(Unlocked(Feature::kSkills, MakeCharacter(1), account_));
+// The skills tab opens on the level alone, job or no job: every character is
+// born holding the beginner's book. So it waits until 10 for the account's
+// first character and is there at once for the ones after.
+TEST_F(ProgressionTest, TheSkillsTabOpensOnTheLevelAlone) {
+  EXPECT_FALSE(
+      Unlocked(Feature::kSkills, MakeCharacter(9, JOB_SWORDMAN), account_));
   EXPECT_TRUE(
-      Unlocked(Feature::kSkills, MakeAdvanced(10, JOB_SWORDMAN, 1), account_));
+      Unlocked(Feature::kSkills, MakeCharacter(10, JOB_BEGINNER), account_));
+  account_.RecordProgress(140, 4);
+  EXPECT_TRUE(Unlocked(Feature::kSkills, MakeCharacter(1), account_));
 }
 
 // The account is a floor, not a ceiling: a character who has climbed past what
@@ -332,19 +335,6 @@ TEST_F(ProgressionTest, UnequipOpensWithTheBag) {
   EXPECT_EQ(UnlockLevel(Feature::kUnequip), UnlockLevel(Feature::kBag));
 }
 
-// The one gate that is not level alone. A Beginner at 10 is being offered an
-// advancement; the skills belong to the job they pick.
-TEST_F(ProgressionTest, SkillsWaitForAnAdvancementToo) {
-  EXPECT_FALSE(
-      Unlocked(Feature::kSkills, MakeCharacter(9, JOB_SWORDMAN), account_));
-  EXPECT_FALSE(
-      Unlocked(Feature::kSkills, MakeCharacter(10, JOB_BEGINNER), account_));
-  EXPECT_FALSE(
-      Unlocked(Feature::kSkills, MakeCharacter(50, JOB_BEGINNER), account_));
-  EXPECT_TRUE(
-      Unlocked(Feature::kSkills, MakeCharacter(10, JOB_SWORDMAN), account_));
-}
-
 // Hyper Stats are paid for by this character's own levels, so the account's
 // climb does not open the tab for a newcomer.
 TEST_F(ProgressionTest, HyperStatsWaitForThisCharactersOwnLevel) {
@@ -355,8 +345,8 @@ TEST_F(ProgressionTest, HyperStatsWaitForThisCharactersOwnLevel) {
   EXPECT_TRUE(Unlocked(Feature::kHyperStats, MakeCharacter(level), account_));
 }
 
-// The job condition is the skills tab's alone; nothing else asks about it.
-TEST_F(ProgressionTest, NoOtherFeatureCaresAboutTheJob) {
+// No feature asks what job the character took.
+TEST_F(ProgressionTest, NoFeatureCaresAboutTheJob) {
   EXPECT_TRUE(Unlocked(
       Feature::kScrolling,
       MakeCharacter(UnlockLevel(Feature::kScrolling), JOB_BEGINNER), account_));

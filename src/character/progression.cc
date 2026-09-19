@@ -177,12 +177,6 @@ bool Unlocked(Feature feature, const CharacterInstance& character,
   if (level < UnlockLevel(feature)) {
     return false;
   }
-  if (feature == Feature::kSkills) {
-    // The one condition the account cannot answer for: the skill sets belong
-    // to the JOBS, so the tab has nothing to show until this character picks
-    // one.
-    return character.proto().job() != JOB_BEGINNER;
-  }
   if (feature == Feature::kHyperStats) {
     // Held to THIS character's level: the points are paid out by their own
     // levels, so an account-wide unlock would hand a newcomer fourteen rows

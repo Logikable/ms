@@ -328,7 +328,7 @@ TEST(SkillDataTest, EverySkillNameFitsTheWidestCharacterPanel) {
   // at most two levels.
   int level_width = 0;
   for (const std::pair<const std::string, Skill>& entry : skills) {
-    std::string text = std::to_string(entry.second.max_level()) + " (+2)";
+    std::string text = std::to_string(SkillMaxLevel(entry.second)) + " (+2)";
     level_width = std::max(level_width, 1 + static_cast<int>(text.size()) + 1);
   }
   // A book long enough to scroll gives a column to the scroll bar, which is

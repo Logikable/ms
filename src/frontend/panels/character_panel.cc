@@ -108,6 +108,10 @@ constexpr int kBuffFixedWidth = 1 + kBuffTagWidth + 1 + 1 + 1;
 // Roman numerals for the job-advancement tabs, indexed by stage (1..6).
 const char* kStageNumerals[] = {"", "I", "II", "III", "IV", "V", "VI"};
 
+// The beginner's page has no stage and so no numeral. GMS draws it as a large
+// circle; this is the circle the token currencies are already marked with.
+constexpr char kBeginnerPageMark[] = "\u25cf";
+
 // Hyper Skills are the 4th job's own book -- a 5th job keeps them rather
 // than growing a set of its own -- so the H page always hangs off stage four.
 constexpr int kHyperJobStage = 4;
@@ -213,8 +217,10 @@ void CharacterPanel::NoteFocus() const {
 
 // `row_width` is what the row has to lay out in, which is one short of the
 // content width while the scroll bar holds a column.
-int CharacterPanel::SkillNameWidth(int level_width, int row_width) {
-  return row_width - 1 - kSkillTagWidth - level_width - kSkillPlusWidth - 1;
+int CharacterPanel::SkillNameWidth(int level_width, int row_width,
+                                   bool has_plus) {
+  return row_width - 1 - kSkillTagWidth - level_width -
+         (has_plus ? kSkillPlusWidth : 0) - 1;
 }
 
 ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
@@ -247,8 +253,8 @@ ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
 
 std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
   std::vector<Tab> tabs = {kTabStats};
-  // Skills belong to a job, so the tab waits for one: a Beginner standing at
-  // level 10 is being offered an advancement, not a skill list.
+  // Every character has a book from the moment they are made -- the
+  // beginner's -- so the tab waits only for the account to reach its level.
   if (Unlocked(Feature::kSkills, character_, account_)) {
     tabs.push_back(kTabSkills);
   }
@@ -282,10 +288,13 @@ std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
 
 CharacterPanel::Tab CharacterPanel::ActiveTab() const {
   std::vector<Tab> tabs = VisibleTabs();
-  if (active_tab_ < 0 || active_tab_ >= static_cast<int>(tabs.size())) {
+  if (active_tab_ < 0) {
     return kTabStats;
   }
-  return tabs[active_tab_];
+  // Clamped rather than sent home: the only tab that ever leaves is the last
+  // one on the bar, so the player standing on it should land beside where it
+  // was -- taking the advancement leaves them on Skills.
+  return tabs[std::min(active_tab_, static_cast<int>(tabs.size()) - 1)];
 }
 
 CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
@@ -367,7 +376,7 @@ int CharacterPanel::RingStops() const {
   }
   // The name, the tab bar, the advancement bar, a stop per skill -- and the
   // [Reset] under the V page's nodes.
-  return 3 + static_cast<int>(SkillsForPage(skill_tab_).size()) +
+  return 3 + static_cast<int>(SkillsForPage(SelectedSkillPage()).size()) +
          (ShowsVReset() ? 1 : 0);
 }
 
@@ -390,7 +399,7 @@ int CharacterPanel::CursorStop() const {
     case kZoneSkillRows:
       return skill_sel_ + 3;
     case kZoneVReset:
-      return static_cast<int>(SkillsForPage(skill_tab_).size()) + 3;
+      return static_cast<int>(SkillsForPage(SelectedSkillPage()).size()) + 3;
     case kZoneHyperRows:
       return hyper_sel_ + 3;
     case kZoneHyperReset:
@@ -464,7 +473,7 @@ void CharacterPanel::SetCursorStop(int stop) {
     return;
   }
   if (ShowsVReset() &&
-      stop == static_cast<int>(SkillsForPage(skill_tab_).size()) + 3) {
+      stop == static_cast<int>(SkillsForPage(SelectedSkillPage()).size()) + 3) {
     zone_ = kZoneVReset;
     return;
   }
@@ -740,13 +749,17 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool bar_focused,
 std::string CharacterPanel::PoolText() const {
   // V Points buy a node's next level rather than one level a point, so the
   // pool is written out in full: what it buys is on the row itself.
-  if (IsVPage(skill_tab_)) {
+  if (IsVPage(SelectedSkillPage())) {
     return FormatWithCommas(character_.v_points()) + " VP";
   }
-  if (IsHyperPage(skill_tab_)) {
+  if (IsHyperPage(SelectedSkillPage())) {
     return std::to_string(character_.hyper_sp()) + " SP";
   }
-  return std::to_string(character_.sp(skill_tab_ + 1)) + " SP";
+  if (IsBeginnerPage(SelectedSkillPage())) {
+    // No pool behind it: nothing on the page is bought.
+    return "";
+  }
+  return std::to_string(character_.sp(SelectedSkillPage())) + " SP";
 }
 
 ftxui::Element CharacterPanel::RenderAdvTabBar(bool bar_focused) const {
@@ -758,15 +771,19 @@ ftxui::Element CharacterPanel::RenderAdvTabBar(bool bar_focused) const {
       specs.push_back({"V"});
     } else if (IsHyperPage(page)) {
       specs.push_back({"H"});
+    } else if (IsBeginnerPage(page)) {
+      // The beginner's book has no numeral to take: GMS marks the page with a
+      // circle, and the token mark is the circle this game already draws.
+      specs.push_back({kBeginnerPageMark});
     } else {
-      specs.push_back({kStageNumerals[page + 1]});
+      specs.push_back({kStageNumerals[page]});
     }
   }
   // The pool counter shares the row, so the bar gets what is left of it.
   std::string pool = PoolText();
   std::vector<ftxui::Element> row;
   row.push_back(
-      TabBar(specs, skill_tab_, bar_focused,
+      TabBar(specs, SelectedSkillPage(), bar_focused,
              ContentWidth() - std::max<int>(kSpCol, pool.size() + 1)));
   row.push_back(ftxui::filler());
   row.push_back(ftxui::text(pool + " "));
@@ -822,12 +839,34 @@ bool CharacterPanel::HasVPage() const {
          !VNodesFor(skills_, VAdvancement()).empty();
 }
 
+bool CharacterPanel::ShowsSkillPlus() const {
+  return !read_only_ && !IsBeginnerPage(SelectedSkillPage());
+}
+
+CharacterPanel::SkillCol CharacterPanel::EffectiveSkillCol() const {
+  return ShowsSkillPlus() ? skill_col_ : kColName;
+}
+
+int CharacterPanel::SelectedSkillPage() const {
+  // Until the player moves the bar themselves, the tab opens on the
+  // character's FIRST book: the beginner's page has nothing to spend on, and
+  // a member's sheet arrives after the panel that draws it is built. A
+  // Beginner has only that page, and stays on it.
+  if (!skill_page_chosen_ && NumberedSkillPages() > 0) {
+    return 1;
+  }
+  return std::min(skill_tab_, SkillPages() - 1);
+}
+
 int CharacterPanel::SkillPages() const {
-  return NumberedSkillPages() + (HasHyperPage() ? 1 : 0) + (HasVPage() ? 1 : 0);
+  // The beginner's page is page 0 of every character's tab: they are born
+  // holding that book and never put it down.
+  return 1 + NumberedSkillPages() + (HasHyperPage() ? 1 : 0) +
+         (HasVPage() ? 1 : 0);
 }
 
 bool CharacterPanel::IsHyperPage(int page) const {
-  return HasHyperPage() && page == NumberedSkillPages();
+  return HasHyperPage() && page == NumberedSkillPages() + 1;
 }
 
 bool CharacterPanel::IsVPage(int page) const {
@@ -838,8 +877,8 @@ bool CharacterPanel::ShowsVReset() const {
   // The SP books have no [Reset]: their points are spent for good, and the V
   // page is the one that hands them back.
   return !read_only_ && ActiveTab() == kTabSkills &&
-         character_.proto().job_stage() > 0 && IsVPage(skill_tab_) &&
-         !SkillsForPage(skill_tab_).empty();
+         character_.proto().job_stage() > 0 && IsVPage(SelectedSkillPage()) &&
+         !SkillsForPage(SelectedSkillPage()).empty();
 }
 
 std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
@@ -855,9 +894,13 @@ std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
     return SkillsForAdvancement(skills_, HyperAdvancement(), /*hyper=*/true,
                                 toggles_on);
   }
-  return SkillsForAdvancement(
-      skills_, AdvancementForJobStage(character_.proto().job(), page + 1),
-      /*hyper=*/false, toggles_on);
+  // Page 0 is the beginner's book, which no job stage answers for; the pages
+  // after it are the stages in order.
+  JobAdvancement book =
+      IsBeginnerPage(page)
+          ? JOB_ADVANCEMENT_BEGINNER
+          : AdvancementForJobStage(character_.proto().job(), page);
+  return SkillsForAdvancement(skills_, book, /*hyper=*/false, toggles_on);
 }
 
 bool CharacterPanel::SkillLocked(const Skill& skill) const {
@@ -890,7 +933,7 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   //
   // A name too long for the column slides under it while the row is selected
   // and sits cut otherwise. The column is a fixed width either way.
-  int name_width = SkillNameWidth(column.width, row_width);
+  int name_width = SkillNameWidth(column.width, row_width, ShowsSkillPlus());
   std::string window =
       ScrollingWindow(skill.name(), name_width,
                       selected ? name_clock_.Elapsed()
@@ -900,7 +943,7 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   // the empty column after a short name was part of what Enter opens.
   int lit = std::min(static_cast<int>(skill.name().size()), name_width);
   ftxui::Element name = ftxui::text(window.substr(0, lit));
-  if (selected && skill_col_ == kColName) {
+  if (selected && EffectiveSkillCol() == kColName) {
     name = name | ftxui::inverted;
   } else if (locked) {
     name = name | ftxui::dim;
@@ -919,9 +962,9 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   std::vector<ftxui::Element> cells = {
       ftxui::text(" "), tag_text, name, name_pad, level_text, ftxui::filler(),
   };
-  if (!read_only_) {
+  if (ShowsSkillPlus()) {
     ftxui::Element plus = ftxui::text("[+]");
-    if (selected && skill_col_ == kColPlus) {
+    if (selected && EffectiveSkillCol() == kColPlus) {
       plus = plus | ftxui::inverted;
     } else if (maxed || !has_sp || locked) {
       plus = plus | ftxui::dim;
@@ -968,14 +1011,10 @@ std::vector<int> CharacterPanel::SkillLines(
 ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
                                                bool rows_focused,
                                                bool reset_focused) const {
-  if (character_.proto().job_stage() == 0) {
-    return ftxui::text(PadRight(" No advancements yet.", ContentWidth())) |
-           ftxui::dim;
-  }
   std::vector<ftxui::Element> rows;
   rows.push_back(RenderAdvTabBar(bar_focused));
   rows.push_back(PanelSeparator(highlighted_));
-  std::vector<const Skill*> skills = SkillsForPage(skill_tab_);
+  std::vector<const Skill*> skills = SkillsForPage(SelectedSkillPage());
   if (skills.empty()) {
     rows.push_back(ftxui::text(PadRight(" No skills yet.", ContentWidth())) |
                    ftxui::dim);
@@ -983,12 +1022,12 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
   }
   // The page rides in the key beside the row, so the same row of another page
   // counts as a different skill and starts from its own head.
-  name_clock_.Follow(skill_tab_ * kSkillClockPageStride + skill_sel_,
+  name_clock_.Follow(SelectedSkillPage() * kSkillClockPageStride + skill_sel_,
                      rows_focused);
   // Counted in drawn LINES rather than in skills, so the window, the scroll
   // bar and the row budget all measure the same thing -- a rule between two
   // sections of the V page takes a line exactly as a skill does.
-  std::vector<int> lines = SkillLines(skill_tab_, skills);
+  std::vector<int> lines = SkillLines(SelectedSkillPage(), skills);
   int total = static_cast<int>(lines.size());
   int visible = SkillRowsShown(total);
   int cursor = static_cast<int>(
@@ -1657,15 +1696,13 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
       return true;
     }
     if (event == ftxui::Event::ArrowLeft) {
-      if (skill_tab_ > 0) {
-        skill_tab_--;
-      }
+      skill_tab_ = std::max(0, SelectedSkillPage() - 1);
+      skill_page_chosen_ = true;
       return true;
     }
     if (event == ftxui::Event::ArrowRight) {
-      if (skill_tab_ < SkillPages() - 1) {
-        skill_tab_++;
-      }
+      skill_tab_ = std::min(SkillPages() - 1, SelectedSkillPage() + 1);
+      skill_page_chosen_ = true;
       return true;
     }
     return false;
@@ -1687,7 +1724,7 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
   }
   // Skill rows: Up/Down walk them and wrap out to the bars above and below.
   // Left/Right pick the column Enter acts on.
-  std::vector<const Skill*> skills = SkillsForPage(skill_tab_);
+  std::vector<const Skill*> skills = SkillsForPage(SelectedSkillPage());
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
@@ -1697,8 +1734,8 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
     return true;
   }
   if (event == ftxui::Event::ArrowRight) {
-    // Read-only draws no [+], so there is no second column to step onto.
-    skill_col_ = read_only_ ? kColName : kColPlus;
+    // A page with no [+] drawn has no second column to step onto.
+    skill_col_ = ShowsSkillPlus() ? kColPlus : kColName;
     return true;
   }
   if (IsForward(event)) {
@@ -1708,7 +1745,7 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
       return true;
     }
     const Skill& skill = *skills[skill_sel_];
-    if (skill_col_ == kColName) {
+    if (EffectiveSkillCol() == kColName) {
       // Never gated: a maxed skill with no SP behind it still has a
       // description and a level table worth reading.
       if (actions.menu) {
@@ -1766,9 +1803,11 @@ ftxui::Component CharacterPanel::MakeComponent(CharacterPanelActions actions) {
         }
         // The tab bar can have been rewritten since the last key -- taking the
         // advancement does exactly that -- so settle where the cursor is
-        // standing before reading the event.
-        if (active_tab_ >= static_cast<int>(VisibleTabs().size())) {
-          active_tab_ = kTabStats;
+        // standing before reading the event. Clamped to the last tab, as
+        // ActiveTab clamps: the one that left was on the end of the bar.
+        int tabs = static_cast<int>(VisibleTabs().size());
+        if (active_tab_ >= tabs) {
+          active_tab_ = tabs - 1;
         }
         zone_ = EffectiveZone();
         int tab_before = active_tab_;
