@@ -23,6 +23,7 @@
 #include "src/protos/keybinds.pb.h"
 #include "src/protos/save.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/roster.h"
 
 namespace ms {
 namespace {
@@ -557,6 +558,29 @@ TEST_F(SaveTest, TheOfflineSlotIsTheOneLoaded) {
   ASSERT_EQ(loaded->inactive_characters.size(), 1u);
   EXPECT_EQ(loaded->inactive_characters[0].character().name(), "First");
   EXPECT_EQ(loaded->playtime_seconds, 0.0) << "the played character's clock";
+}
+
+// The promise the offline check makes: the next launch opens on whoever
+// holds it, not on whoever was being played when the game was closed.
+TEST_F(SaveTest, ALaunchOpensOnTheOfflineCharacterNotTheLastPlayed) {
+  std::unique_ptr<GameState> saved = MakeState();
+  saved->character.SetUsername("Farmer");
+  CharacterSave second;
+  second.mutable_character()->set_name("Bosser");
+  saved->inactive_characters.push_back(second);
+  // Play the other one and leave the check where it was.
+  PlayCharacter(*saved, 1);
+  ASSERT_EQ(saved->character.username(), "Bosser");
+  ASSERT_EQ(saved->offline_slot, 0);
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->character.username(), "Farmer");
+  EXPECT_EQ(loaded->played_slot, 0);
+  EXPECT_EQ(loaded->offline_slot, 0);
+  ASSERT_EQ(loaded->inactive_characters.size(), 1u);
+  EXPECT_EQ(loaded->inactive_characters[0].character().name(), "Bosser");
 }
 
 // A hand-edited file. The first character is a better answer than refusing to

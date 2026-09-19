@@ -1244,6 +1244,9 @@ void TuiController::TakeCharacterMenuEntry() {
       return;
     case kCharacterMenuDelete:
       character_delete_slot_ = slot;
+      // The menu goes away behind the question: what is being asked about is
+      // the row, and the entry that asked has been pressed.
+      character_select_panel_.CloseMenu();
       character_delete_prompt_.Open(/*cancel_selected=*/true);
       screen_ = kCharacterDelete;
       return;

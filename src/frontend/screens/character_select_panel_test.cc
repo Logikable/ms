@@ -138,6 +138,20 @@ TEST_F(CharacterSelectPanelTest, TheCardFollowsTheCursor) {
   EXPECT_GE(RowIndexOf(second, "STR"), 0);
 }
 
+// The card cannot be left describing somebody who is gone, so a cursor that
+// was on a character comes back onto one.
+TEST_F(CharacterSelectPanelTest, RefreshKeepsTheCursorOnACharacter) {
+  AddCharacter("Farmer", 30, JOB_FIGHTER, 100);
+  CharacterSelectPanel panel(state_);
+  panel.MoveCursor(1);
+  ASSERT_EQ(panel.selected_name(), "Farmer");
+
+  state_.inactive_characters.clear();
+  panel.Refresh();
+  EXPECT_EQ(panel.selected_name(), "Played");
+  EXPECT_EQ(RowIndexOf(Draw(panel), "Farmer"), -1);
+}
+
 // Both windows are one fixed height, so walking the list moves nothing and
 // their borders line up. Drawn where the screen actually stands it: centred,
 // which is what holds a window to the height it asked for.

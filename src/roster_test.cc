@@ -112,6 +112,19 @@ TEST_F(RosterTest, CreateMakesAnArmedBeginnerAndPlaysThem) {
   EXPECT_EQ(state_->inactive_characters[0].character().name(), "First");
 }
 
+// The account is what a new character's unlocks are measured against, and
+// only a switch can tell it what the character leaving play reached.
+TEST_F(RosterTest, TheAccountTakesInWhoeverLeavesPlay) {
+  while (state_->character.proto().level() < 120) {
+    state_->character.LevelUp();
+  }
+  ASSERT_EQ(state_->account.max_level(), 0) << "nothing has recorded it yet";
+
+  CreateCharacter(*state_);
+  EXPECT_EQ(state_->account.max_level(), 120);
+  EXPECT_EQ(state_->character.proto().level(), 1);
+}
+
 TEST_F(RosterTest, TheLastCharacterCannotBeDeleted) {
   EXPECT_FALSE(DeleteCharacter(*state_, 0));
   EXPECT_EQ(Roster(*state_).size(), 1u);

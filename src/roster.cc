@@ -99,6 +99,12 @@ void PutIntoPlay(GameState& state, const std::vector<CharacterSave>& all,
   if (slot < 0 || slot >= static_cast<int>(all.size())) {
     slot = 0;
   }
+  // What the character leaving play reached, which is what the newcomer's
+  // unlocks are measured against. The file learns this at save time, but the
+  // session has to learn it here: a level 1 character made by an account
+  // standing at 210 must not be walked through the early game again.
+  state.account.RecordProgress(state.character.proto().level(),
+                               state.character.proto().job_stage());
   const CharacterSave& arriving = all[slot];
   state.character.RestoreFrom(arriving.character(), state.equips, state.items);
   // A save written under older rules is the one thing that can arrive with its

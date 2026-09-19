@@ -199,6 +199,7 @@ cc_test(
     srcs = ["save_test.cc"],
     deps = [
         ":game_state",
+        ":roster",
         ":save",
         "//src/character",
         "//src/character:hyper_stats",

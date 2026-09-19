@@ -399,6 +399,11 @@ class TuiController {
   const ConfirmPrompt& character_delete_prompt() const {
     return character_delete_prompt_;
   }
+  // The screen the quit dialog was raised over, which cancelling goes back
+  // to and which stays drawn behind it.
+  Screen quit_return() const {
+    return quit_return_;
+  }
   // Whether the character select is up, which is farming's other stop: the
   // player is choosing who to be, and a map cannot be fought by somebody who
   // may be about to be swapped out.

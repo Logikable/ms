@@ -91,9 +91,16 @@ void CharacterSelectPanel::Reset() {
 }
 
 void CharacterSelectPanel::Refresh() {
+  bool on_row = !on_buttons();
   rows_ = Roster(state_);
   CloseMenu();
   cursor_ = Cursor();
+  // A cursor that was on a character stays on one: deleting the last row
+  // lands on the row above it rather than dropping onto the buttons, which
+  // would leave the card describing somebody who is gone.
+  if (on_row && !rows_.empty()) {
+    cursor_ = std::min(cursor_, static_cast<int>(rows_.size()) - 1);
+  }
   // A delete renumbers the slots, so what the card is holding may no longer
   // be the character the cursor is on.
   preview_slot_ = -1;

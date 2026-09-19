@@ -905,6 +905,13 @@ ftxui::Element Tui::RenderScreen() {
     case kJobAdvance:
       return OverMain(JobAdvanceDialog());
     case kQuit:
+      // Over whatever it was asked from. The character select is the one
+      // screen that is not the main view, and dropping the player into a
+      // game behind the question would be answering it for them.
+      if (controller_.quit_return() == kCharacterSelect) {
+        return Overlay(Centred(controller_.character_select_panel().Render()),
+                       QuitDialog());
+      }
       return OverMain(QuitDialog());
     case kOffline:
       return OverMain(OfflineCard(controller_.offline_report(),
