@@ -99,6 +99,9 @@ class MenuPanel {
   // panel. RenderBox() already carries it; a caller wanting to place the box
   // itself asks here.
   int BoxRightMargin() const;
+  // Columns the open box takes, borders included. What the margin above is
+  // worked out from, so it must agree with what RenderBox draws.
+  int BoxWidth() const;
   SettingsEntry selected_settings_entry() const;
   MultiplayerEntry selected_multiplayer_entry() const;
   AnalysisEntry selected_analysis_entry() const;
@@ -121,8 +124,9 @@ class MenuPanel {
   // screen instead of a box.
   std::vector<std::string> BoxEntries(MenuEntry entry) const;
 
-  // Columns the open box takes, borders included.
-  int BoxWidth() const;
+  // One row of the open box, caret and all. The render draws this and
+  // BoxWidth measures it, so the box is never cut a column short.
+  static std::string BoxRow(const std::string& entry, bool on_cursor = false);
 
   const GameState& state_;
   const BattleAnalysis& analysis_;

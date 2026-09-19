@@ -551,15 +551,17 @@ ftxui::Element ShopPanel::RenderStock() const {
     std::chrono::steady_clock::duration elapsed =
         selected ? name_clock_.Elapsed()
                  : std::chrono::steady_clock::duration::zero();
+    // Banded here rather than in each of the three: the price sits a name and
+    // a type out from the caret, and one rule covers every shelf.
+    ftxui::Element row;
     if (tab_ == kShopBuyBackTab) {
-      item_rows.push_back(
-          RenderBuyBackRow(character_.buy_backs().Get(i), cursor, elapsed));
+      row = RenderBuyBackRow(character_.buy_backs().Get(i), cursor, elapsed);
     } else if (tab_ == kShopEtcTab) {
-      item_rows.push_back(RenderEtcRow(items_.at(stock_[i]), cursor, elapsed));
+      row = RenderEtcRow(items_.at(stock_[i]), cursor, elapsed);
     } else {
-      item_rows.push_back(
-          RenderEquipRow(equips_.at(stock_[i]), cursor, elapsed));
+      row = RenderEquipRow(equips_.at(stock_[i]), cursor, elapsed);
     }
+    item_rows.push_back(HighlightRow(std::move(row), selected));
   }
   // Padded out to the full window, so the shop is one height whatever the tab
   // holds. It is drawn centred: a shelf two rows shorter than the last would

@@ -59,7 +59,9 @@ ftxui::Element ShelfRow(const Cube& cube, const ShelfWidths& widths,
       ftxui::text(PadLeft(FormatMeso(cube.cost), widths.cost)), affordable);
   // The margin the window's own border needs, asked for here: the rows are
   // laid out cell by cell, so nothing else is in a position to leave it.
-  return ftxui::hbox({std::move(label), std::move(cost), ftxui::text(" ")});
+  return HighlightRow(
+      ftxui::hbox({std::move(label), std::move(cost), ftxui::text(" ")}),
+      selected);
 }
 
 }  // namespace

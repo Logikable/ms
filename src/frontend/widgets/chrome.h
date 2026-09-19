@@ -76,9 +76,30 @@ ftxui::Element DialogWindow(const std::string& title,
                             ftxui::Element buttons,
                             ftxui::Color accent = kTheme);
 
-// `row` with the cursor's band behind it when `on_cursor`. EVERY list draws
-// its selection this way: the caret says where the cursor is and the band how
-// far the row reaches, so a stat eight columns out reads back to its name.
+/* The three marks that say where the cursor is, and which one a thing gets.
+ *
+ * **The caret "> " marks the cursor in every list walked with Up and Down.**
+ * It is the mark; the other two are decoration on top of it. A dropdown -- the
+ * item menu, the menu panel's box -- wears the caret and nothing else.
+ *
+ * **ftxui::inverted is the default highlight**, and goes on the ONE cell the
+ * cursor acts on: a button, a tab chip, a [+], a lock, an option's name, a row
+ * that is a single label. Plain text only. Inverting swaps foreground for
+ * background, so a coloured cell comes back as a coloured block and a progress
+ * bar comes back reading as the opposite value.
+ *
+ * **HighlightRow's band is for a table row** wide enough that a mark on one
+ * cell leaves the rest of it unclaimed -- an item row with stats eight columns
+ * out, a name with a price at the far side. It is also the fallback wherever
+ * invert cannot go: a coloured cell, a bar, a centred row with nowhere to put
+ * a caret.
+ *
+ * The cursor OUTRANKS dim, which says a row's action is shut (see colors.h):
+ * the two are written as an if/else, never stacked, because a dimmed
+ * highlight says neither thing.
+ */
+
+// `row` with the cursor's band behind it when `on_cursor`.
 //
 // Pass the WHOLE row, affixes and all, or a column reads as not part of it.
 // Gate it on the test the caret uses: a band on an unfocused list claims a

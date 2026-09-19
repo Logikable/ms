@@ -268,10 +268,12 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
   }
   for (int i = 0; i < static_cast<int>(page.size()); ++i) {
     const MapData& map = state_.maps.at(page[i]);
-    std::string row = zone_ == kZoneList && i == selected_ ? "> " : "  ";
+    bool on_cursor = zone_ == kZoneList && i == selected_;
+    std::string row = on_cursor ? "> " : "  ";
     row += PadRight(map.name(), kMapNameWidth);
     row += PadRight(std::to_string(WeightedLevel(state_, map)), kLevelWidth);
-    rows.push_back(ftxui::hbox({ftxui::text(row), ArcaneCell(state_, map)}));
+    rows.push_back(HighlightRow(
+        ftxui::hbox({ftxui::text(row), ArcaneCell(state_, map)}), on_cursor));
   }
   // Every band fills out to the height of the biggest one. The panel is
   // centered, so a band holding fewer maps than its neighbor would otherwise

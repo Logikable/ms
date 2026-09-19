@@ -111,7 +111,7 @@ ftxui::Element PlayerListPanel::Render() const {
     std::string row = on_cursor ? kCursorHere : kCursorAway;
     row += PadRight(player.name(), kNameWidth);
     row += std::to_string(player.level());
-    ftxui::Element line = ftxui::text(row);
+    ftxui::Element line = HighlightRow(ftxui::text(row), on_cursor);
     rows.push_back(on_cursor ? std::move(line) | ftxui::focus
                              : std::move(line));
   }

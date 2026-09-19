@@ -661,7 +661,8 @@ TEST(BossSelectPanelTest, ABlankRowSeparatesThePromiseFromTheHp) {
   EXPECT_NE(ScreenRow(screen, at + 2).find("HP"), std::string::npos);
 }
 
-// Dim is the door, and this one does not open at any level.
+// Dim is the door, and this one does not open at any level. The cursor
+// outranks it: a cell being stood on is lit even where the door is shut.
 TEST(BossSelectPanelTest, AComingSoonFightIsDimAndNeverEnterable) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -669,13 +670,20 @@ TEST(BossSelectPanelTest, AComingSoonFightIsDimAndNeverEnterable) {
   LevelTo(state, 200);
   BossSelectPanel panel(state);
   EXPECT_FALSE(panel.selected_coming_soon()) << "Normal is built";
+
+  auto render = [&panel]() {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+                                                 ftxui::Dimension::Fixed(16));
+    ftxui::Render(screen, panel.Render());
+    return screen.ToString();
+  };
+  EXPECT_NE(render().find("\033[2m"), std::string::npos)
+      << "Chaos is dimmed while the cursor is on Normal";
+
   panel.ChangeDifficulty(1);
   EXPECT_TRUE(panel.selected_coming_soon());
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
-                                               ftxui::Dimension::Fixed(16));
-  ftxui::Render(screen, panel.Render());
-  EXPECT_NE(screen.ToString().find("\033[2m"), std::string::npos)
-      << "the difficulty cell is dimmed";
+  EXPECT_EQ(render().find("\033[2m"), std::string::npos)
+      << "and lit rather than dimmed once the cursor is on it";
 }
 
 // The three windows are one ring, and the screen opens on the grid.

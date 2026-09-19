@@ -139,8 +139,14 @@ ftxui::Element OptionsPanel::RenderBar(int volume) const {
 
 ftxui::Element OptionsPanel::RenderRow(Option option, int row) const {
   bool selected = row == row_ && !on_close();
+  // The NAME carries the cursor, not the whole row: the value beside it is
+  // what the keys change, and a bar cannot be inverted -- doing so swaps what
+  // is filled for what is not, which reads as the opposite volume.
   ftxui::Element name = ftxui::text(" " + OptionName(option)) |
                         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kNameWidth);
+  if (selected) {
+    name = std::move(name) | ftxui::inverted;
+  }
   ftxui::Element value =
       IsVolume(option)
           ? RenderBar(VolumeOf(option))
@@ -148,10 +154,7 @@ ftxui::Element OptionsPanel::RenderRow(Option option, int row) const {
                 ftxui::center;
   value =
       std::move(value) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kValueColumn);
-  // A band rather than an inversion: inverting a bar swaps what is filled for
-  // what is not, which reads as the opposite volume.
-  return HighlightRow(ftxui::hbox({std::move(name), std::move(value)}),
-                      selected);
+  return ftxui::hbox({std::move(name), std::move(value)});
 }
 
 ftxui::Element OptionsPanel::Render() const {

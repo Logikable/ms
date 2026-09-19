@@ -138,10 +138,11 @@ AnalysisEntry MenuPanel::selected_analysis_entry() const {
 
 int MenuPanel::BoxWidth() const {
   // What ThemedWindow will size itself to: the wider of its title and its
-  // widest row, plus the two borders.
+  // widest row, plus the two borders. Measured off BoxRow rather than off the
+  // label, so the caret's own columns are counted and the box is not cut.
   int widest = static_cast<int>(EntryLabel(box_entry_).size()) + 2;
   for (const std::string& entry : BoxEntries(box_entry_)) {
-    widest = std::max(widest, static_cast<int>(entry.size()) + 2);
+    widest = std::max(widest, static_cast<int>(BoxRow(entry).size()));
   }
   return widest + 2;
 }
@@ -171,15 +172,18 @@ int MenuPanel::BoxRightMargin() const {
   return std::max(panel_width - left - BoxWidth(), 0);
 }
 
+std::string MenuPanel::BoxRow(const std::string& entry, bool on_cursor) {
+  // The caret, as the item menu and every other dropdown in the game marks
+  // its cursor: a box of labels is read down, and a lit row in the middle of
+  // one reads as a state rather than as a place.
+  return (on_cursor ? "> " : "  ") + entry + " ";
+}
+
 ftxui::Element MenuPanel::RenderBox() const {
   std::vector<std::string> entries = BoxEntries(box_entry_);
   ftxui::Elements rows;
   for (int i = 0; i < static_cast<int>(entries.size()); ++i) {
-    ftxui::Element row = ftxui::text(" " + entries[i] + " ");
-    if (i == box_cursor_) {
-      row = std::move(row) | ftxui::inverted;
-    }
-    rows.push_back(std::move(row));
+    rows.push_back(ftxui::text(BoxRow(entries[i], i == box_cursor_)));
   }
   // Cleared under, so the box covers the interior of whatever it stands on
   // rather than letting the panel below show through it.

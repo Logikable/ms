@@ -164,7 +164,7 @@ ftxui::Element MobInspectPanel::RenderMobList() const {
     row += PadRight(mob.name(), kMobNameWidth);
     row += PadRight(std::to_string(mob.level()), kLevelWidth);
     row += PadRight(std::to_string(mobs_[i].second), kCountWidth);
-    rows.push_back(ftxui::text(row));
+    rows.push_back(HighlightRow(ftxui::text(row), i == selected_));
   }
   std::map<std::string, MapData>::const_iterator it = state_.maps.find(map_);
   std::string title = it == state_.maps.end() ? "Mobs" : it->second.name();

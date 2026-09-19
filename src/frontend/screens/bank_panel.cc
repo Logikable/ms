@@ -377,13 +377,16 @@ ftxui::Element BankPanel::RenderHalf(BankZone zone) const {
 }
 
 int BankPanel::MenuRow() const {
-  // The row under the top row while the cursor is up there, and the cursor's
-  // own row once it is down in the list.
-  return here().in_list ? cursor_box_.y_min : bar_box_.y_min + 2;
+  // Both boxes are where the render PUT them, in screen coordinates, and the
+  // menu floats from the panel's own corner -- so the panel's own top comes
+  // off. One row back from the cursor, so the highlighted entry lands beside
+  // what the menu is about rather than below it.
+  int row = here().in_list ? cursor_box_.y_min - 1 : bar_box_.y_min + 1;
+  return row - panel_box_.y_min;
 }
 
 int BankPanel::MenuColumn() const {
-  return panel_box_.x_min + kMenuColumn;
+  return kMenuColumn;
 }
 
 ftxui::Element BankPanel::Render() const {

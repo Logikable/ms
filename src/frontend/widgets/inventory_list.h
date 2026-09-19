@@ -92,6 +92,11 @@ ftxui::Element RenderCurrencyRow(const CurrencyAmount* token,
 // screen where they can be stood on; everywhere else they are read and not
 // touched.
 enum BalanceCell : int {
+  // A bar whose balances are read and not touched. They sit at their natural
+  // width, which is what keeps the bag's bar from reserving a column for
+  // digits nobody has yet.
+  kBalancesReadOnly = -2,
+  // A bar whose balances CAN be stood on, with the cursor on neither of them.
   kNoBalance = -1,
   kMesoBalance = 0,
   kTraceBalance = 1,
@@ -103,14 +108,15 @@ enum BalanceCell : int {
 // passed rather than read off the character: a bag being traded from shows
 // what is LEFT of each.
 //
-// `cursor` bands the one it names, and widens both cells to a fixed column so
-// the band is a steady block and a climbing number never moves its neighbour.
-// A band rather than an invert because the cells carry the theme colour, and
-// inverting one would make that colour the background.
+// Anything but kBalancesReadOnly widens both cells to a fixed column and bands
+// the one `cursor` names: the band is then a steady block, a climbing number
+// never moves its neighbour, and two bars stacked on one screen line their
+// numbers up. A band rather than an invert because the cells carry the theme
+// colour, and inverting one would make that colour the background.
 ftxui::Element RenderBalances(int64_t meso, int64_t spell_traces,
                               const CharacterInstance& character,
                               const AccountInstance& account,
-                              int cursor = kNoBalance);
+                              int cursor = kBalancesReadOnly);
 
 // The bag's tab row and the rule under it: the chips, `balances` down the
 // middle, and `trailing` right-aligned past them -- the Expand door on the

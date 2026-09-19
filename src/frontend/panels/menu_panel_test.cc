@@ -42,11 +42,13 @@ std::string Render(const MenuPanel& panel) {
   return screen.ToString();
 }
 
+// The box as plain characters: what is being asked here is what it says and
+// where its border lands, and ToString puts a style escape between the two.
 std::string RenderBox(const MenuPanel& panel) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(20),
                                                ftxui::Dimension::Fixed(5));
   ftxui::Render(screen, panel.RenderBox());
-  return screen.ToString();
+  return ScreenText(screen);
 }
 
 // Puts the cursor on `entry` and opens the box it raises, as pressing Enter
@@ -202,6 +204,30 @@ TEST(MenuPanelTest, TheBoxIsTitledByTheEntryThatRaisedIt) {
   EXPECT_NE(box.find("View"), std::string::npos);
 }
 
+// The box marks its cursor with a caret, as every other dropdown does, and
+// keeps a column for it: a box measured off the label alone loses its right
+// border, which is what the panel is laid out from.
+TEST(MenuPanelTest, TheBoxCaretsItsCursorAndIsWideEnoughForIt) {
+  GameState state = EmptyState();
+  BattleAnalysis analysis;
+  int focus = kMenuPanel;
+  MenuPanel panel(state, analysis, focus);
+  OpenBoxOn(panel, MenuEntry::kSettings);
+  EXPECT_EQ(RenderBox(panel).find("> "), std::string::npos)
+      << "the cursor is still out on the entry the box came from";
+
+  panel.MoveBoxCursor(1);
+  while (panel.box_cursor() != 0) {
+    panel.MoveBoxCursor(1);
+  }
+  std::string box = RenderBox(panel);
+  // The border after the row, which is what a box measured a column short
+  // loses: the caret pushes the widest row out and the panel is laid out from
+  // that edge.
+  EXPECT_NE(box.find("│> Keybinds │"), std::string::npos);
+  EXPECT_NE(box.find("│  Options  │"), std::string::npos);
+}
+
 // The entry reads Stop while the tool is measuring, so one row is both ways of
 // working it.
 TEST(MenuPanelTest, TheAnalysisEntryReadsStopWhileItRuns) {
@@ -347,6 +373,11 @@ TEST(MenuPanelTest, TheLastEntrysBoxStopsAtTheEdge) {
   // Still over the word, only pushed left of centre by the edge.
   EXPECT_LT(BoxColumn(panel), word);
   EXPECT_GT(BoxColumn(panel), 0);
+
+  // What BoxWidth reports is what the box DRAWS as. The margin is worked out
+  // from it, so a box measured a column narrow is laid out a column too far
+  // right and loses its border off the panel's edge.
+  EXPECT_EQ(BoxRightColumn(panel) - BoxColumn(panel) + 1, panel.BoxWidth());
 }
 
 }  // namespace

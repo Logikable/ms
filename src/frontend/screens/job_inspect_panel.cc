@@ -98,13 +98,16 @@ ftxui::Element JobInspectPanel::RenderSkillRow(const Skill& skill,
       ScrollingWindow(skill.name(), kNameWidth,
                       selected ? name_clock_.Elapsed()
                                : std::chrono::steady_clock::duration::zero());
-  return ftxui::hbox({
-      ftxui::text(selected ? "> " : "  "),
-      ftxui::text(tag.text) | ftxui::color(tag.color),
-      ftxui::text(std::move(name)),
-      ftxui::text(PadLeft("Max " + std::to_string(SkillMaxLevel(skill)) + " ",
-                          kMaxLevelWidth)),
-  });
+  return HighlightRow(
+      ftxui::hbox({
+          ftxui::text(selected ? "> " : "  "),
+          ftxui::text(tag.text) | ftxui::color(tag.color),
+          ftxui::text(std::move(name)),
+          ftxui::text(
+              PadLeft("Max " + std::to_string(SkillMaxLevel(skill)) + " ",
+                      kMaxLevelWidth)),
+      }),
+      selected);
 }
 
 ftxui::Element JobInspectPanel::Render() const {

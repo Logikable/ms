@@ -47,7 +47,11 @@ ftxui::Element ReadyCell(bool ready) {
 }
 
 // Marks the row the frame scrolls to, which is the one holding the cursor.
+// The cursor's row: the band behind it, and the mark the frame scrolls to.
+// A table row wide enough that the caret alone leaves the far cell unclaimed
+// -- see HighlightRow in chrome.h.
 ftxui::Element Focused(ftxui::Element row, bool on_cursor) {
+  row = HighlightRow(std::move(row), on_cursor);
   return on_cursor ? std::move(row) | ftxui::focus : std::move(row);
 }
 

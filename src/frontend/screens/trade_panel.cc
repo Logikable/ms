@@ -432,16 +432,18 @@ ftxui::Element TradePanel::RenderOfferTable(const std::vector<OfferRow>& rows,
   }
   std::vector<ftxui::Element> list;
   for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
-    // The caret alone marks the row: a handful of rows in a window of their
-    // own are not a column of stats to be read back to a name.
-    // The caret shows only while this window holds the cursor: one drawn in
-    // each of them would put the selection in three places at once.
-    ftxui::Element row = ftxui::hbox({
-        ftxui::text(focused && i == cursor ? "> " : "  "),
-        ftxui::text(PadRight(rows[i].name, kOfferNameCell)),
-        ftxui::text(PadLeft(rows[i].quantity, kOfferCountCell)),
-        ftxui::filler(),
-    });
+    // The caret and the band show only while this window holds the cursor:
+    // one drawn in each of them would put the selection in three places at
+    // once. The band because the quantity sits a name's width out, and a mark
+    // on the name alone would not claim it.
+    ftxui::Element row = HighlightRow(
+        ftxui::hbox({
+            ftxui::text(focused && i == cursor ? "> " : "  "),
+            ftxui::text(PadRight(rows[i].name, kOfferNameCell)),
+            ftxui::text(PadLeft(rows[i].quantity, kOfferCountCell)),
+            ftxui::filler(),
+        }),
+        focused && i == cursor);
     if (i == cursor) {
       // What the frame scrolls to, marked whether or not this window holds
       // focus so the view does not jump on the way back, and reflected so a

@@ -49,9 +49,11 @@ constexpr int kOptionCount = 1;
 // One switch: its box, and the name beside it. The box leads, so the row reads
 // as a column of states rather than a sentence to the end of.
 ftxui::Element OptionChip(const std::string& label, bool on, bool on_cursor) {
-  return HighlightRow(ftxui::text((on ? kCheckedBox : kUncheckedBox) +
-                                  std::string(" ") + label),
-                      on_cursor);
+  ftxui::Element chip = ftxui::text((on ? kCheckedBox : kUncheckedBox) +
+                                    std::string(" ") + label);
+  // A switch is a control rather than a row, so it inverts as every other
+  // button in the game does.
+  return on_cursor ? std::move(chip) | ftxui::inverted : chip;
 }
 
 std::string ResetName(ResetPeriod period) {
@@ -302,15 +304,16 @@ ftxui::Element BossSelectPanel::RenderDifficultyCell(int boss, int at) const {
   const BossDifficulty& difficulty = fight.difficulties(at);
   ftxui::Element name = ftxui::text(difficulty.name());
   // The cursor is the lit cell rather than a caret on the row, since Left and
-  // Right walk the row and Up and Down the column.
-  if (boss == selected_ && at == DifficultyAt(boss)) {
-    name = std::move(name) | ftxui::inverted;
-  }
+  // Right walk the row and Up and Down the column. It outranks the dim, as on
+  // the stat and skill rows: a dimmed inversion says neither thing clearly.
+  //
   // Dim is the door: a fight the character has not levelled up to -- or one
   // that is not built yet -- is still listed and still readable, and Enter on
   // it says what it wants. Every cell answers for itself, so Normal can be
   // open while Chaos beside it is not.
-  if (!Unlocked(difficulty) || difficulty.coming_soon()) {
+  if (boss == selected_ && at == DifficultyAt(boss)) {
+    name = std::move(name) | ftxui::inverted;
+  } else if (!Unlocked(difficulty) || difficulty.coming_soon()) {
     name = std::move(name) | ftxui::dim;
   }
   int pad = std::max(

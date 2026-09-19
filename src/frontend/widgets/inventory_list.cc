@@ -217,7 +217,7 @@ ftxui::Element RenderStackRow(const StackableItem& stack, bool on_cursor,
 ftxui::Element RenderBalances(int64_t meso, int64_t spell_traces,
                               const CharacterInstance& character,
                               const AccountInstance& account, int cursor) {
-  const bool selectable = cursor != kNoBalance;
+  const bool selectable = cursor != kBalancesReadOnly;
   std::vector<ftxui::Element> counters = {HighlightRow(
       ftxui::text(selectable ? PadRight(FormatMeso(meso), kMesoCell)
                              : FormatMeso(meso)) |
