@@ -85,3 +85,13 @@ message ItemPrototype {
   // whole job, which is true of everything but the shards.
   string short_name = 11;
 }
+
+// One stack on the Etc tab. Carries the catalog key and a count, not the item
+// itself: prototypes are loaded from data/ and resolved by name, so a save
+// stays small and the data files stay authoritative over what an item is.
+// Which tab it belongs to is the prototype's to say, for the same reason.
+message StackableStack {
+  string name = 1;
+  int32 count = 2;
+  reserved 3;  // the tab, which the prototype already names
+}

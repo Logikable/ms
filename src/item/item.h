@@ -21,6 +21,12 @@
 
 namespace ms {
 
+// Slots on each of a bag's tabs: Equip and Etc hold this many rows apiece,
+// and so does each tab of the bank. An equip takes a slot per copy; a
+// stackable takes one per stack, so a tab holds this many stacks rather than
+// this many items.
+inline constexpr int kTabCapacity = 128;
+
 // Display name of the spell trace, the currency scrolls are bought with. Named
 // here because stackables are matched by display name wherever they cross a
 // boundary, so the string is load-bearing in more than one place.
@@ -62,6 +68,19 @@ std::vector<EquipSlot> SlotFamily(EquipSlot slot);
 EquipSlot BaseSlot(EquipSlot slot);
 // Where `slot` sits within its family, counting from zero.
 int SlotIndex(EquipSlot slot);
+
+// The catalogs are keyed by data-file stem ("sword") where a saved item names
+// itself as the player sees it ("Sword"). This index bridges the two, and is
+// why a save cannot look an item up in the catalog directly.
+template <typename Proto>
+std::map<std::string, const Proto*> IndexByDisplayName(
+    const std::map<std::string, Proto>& catalog) {
+  std::map<std::string, const Proto*> by_name;
+  for (const std::pair<const std::string, Proto>& entry : catalog) {
+    by_name[entry.second.name()] = &entry.second;
+  }
+  return by_name;
+}
 
 // The catalog entry with this display name, or nullptr. Catalogs are keyed by
 // data-file stem, so anything holding only a name -- a save, the shop's

@@ -29,6 +29,7 @@
 #include "src/item/inventory.h"
 #include "src/item/item.h"
 #include "src/item/potential.h"
+#include "src/item/stack_tab.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
@@ -425,7 +426,7 @@ class CharacterInstance {
   // only -- the currencies are counted in the purse and are on no tab that
   // holds slots.
   const std::vector<StackableItem>& stackables() const {
-    return etc_items_;
+    return etc_items_.items();
   }
   // The currencies the character holds, in the order the Token tab reads them.
   const CurrencyPurse& currencies() const {
@@ -800,7 +801,7 @@ class CharacterInstance {
   // Each preset's gear resolved against the first, and the totals that come
   // off it. Rebuilt together by RecomputeEquipStats.
   std::array<WornGear, kNumStatPresets> resolved_;
-  std::vector<StackableItem> etc_items_;
+  StackTab etc_items_;
   CurrencyPurse currencies_;
   std::array<EquipStats, kNumStatPresets> equip_stats_;
   std::array<EquipStats, kNumStatPresets> symbol_stats_;

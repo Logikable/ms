@@ -16,11 +16,6 @@
 
 namespace ms {
 
-// Slots on each of the bag's tabs: Equip and Etc hold this many rows apiece.
-// An equip takes a slot per copy; a stackable takes one per stack, so a tab
-// holds this many stacks rather than this many items.
-inline constexpr int kTabCapacity = 128;
-
 class InventoryInstance {
  public:
   // Returns nullptr if index is out of range or the item is an EquipTrace.

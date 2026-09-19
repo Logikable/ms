@@ -246,29 +246,6 @@ EquipJobCategory JobToCategory(Job job) {
   return EQUIP_JOB_CATEGORY_UNSPECIFIED;
 }
 
-// Appends `stacks` to the saved character. Which tab an item belongs to is the
-// prototype's to say, so a stack whose prototype has vanished is dropped.
-void AppendStacks(const std::vector<StackableItem>& stacks, Character* out) {
-  for (const StackableItem& stack : stacks) {
-    StackableStack* saved = out->add_stacks();
-    saved->set_name(stack.name());
-    saved->set_count(stack.count());
-  }
-}
-
-// The catalogs are keyed by data-file stem ("sword") where a saved item names
-// itself as the player sees it ("Sword"). This index bridges the two, and is
-// why a save cannot look an item up in the catalog directly.
-template <typename Proto>
-std::map<std::string, const Proto*> IndexByDisplayName(
-    const std::map<std::string, Proto>& catalog) {
-  std::map<std::string, const Proto*> by_name;
-  for (const std::pair<const std::string, Proto>& entry : catalog) {
-    by_name[entry.second.name()] = &entry.second;
-  }
-  return by_name;
-}
-
 // One equip-tab entry rebuilt from its saved state, or null if the catalogs no
 // longer describe it.
 std::unique_ptr<EquipTabItem> RestoreEquipItem(
@@ -2007,37 +1984,14 @@ int64_t CharacterInstance::CountItem(const std::string& name) const {
   if (currencies_.Holds(name)) {
     return currencies_.Count(name);
   }
-  int64_t owned = 0;
-  for (const StackableItem& stack : etc_items_) {
-    if (stack.name() == name) {
-      owned += stack.count();
-    }
-  }
-  return owned;
+  return etc_items_.Count(name);
 }
 
 bool CharacterInstance::SpendItem(const std::string& name, int64_t count) {
   if (currencies_.Holds(name)) {
     return currencies_.Spend(name, count);
   }
-  if (count <= 0 || CountItem(name) < count) {
-    return false;
-  }
-  std::vector<StackableItem>& stacks = etc_items_;
-  // Emptied stacks are dropped as they go, so spending the last of something
-  // leaves no zero row behind in the bag.
-  for (int i = static_cast<int>(stacks.size()) - 1; i >= 0 && count > 0; --i) {
-    if (stacks[i].name() != name) {
-      continue;
-    }
-    int taken = static_cast<int>(std::min<int64_t>(count, stacks[i].count()));
-    stacks[i].add_count(-taken);
-    count -= taken;
-    if (stacks[i].count() == 0) {
-      stacks.erase(stacks.begin() + i);
-    }
-  }
-  return true;
+  return etc_items_.Spend(name, count);
 }
 
 int CharacterInstance::CountOwned(const EquipPrototype& proto) const {
@@ -2069,22 +2023,7 @@ int CharacterInstance::RoomFor(const ItemPrototype& proto) const {
   if (IsCurrency(proto)) {
     return INT_MAX;
   }
-  const std::vector<StackableItem>& stacks = etc_items_;
-  int free_slots = kTabCapacity - static_cast<int>(stacks.size());
-  // A stack that is open but not full takes more without costing a slot.
-  int room = 0;
-  for (const StackableItem& stack : stacks) {
-    if (stack.name() == proto.name()) {
-      room += stack.max_stack() - stack.count();
-    }
-  }
-  if (free_slots <= 0) {
-    return room;
-  }
-  // Sized from the prototype rather than an existing stack, so an item the
-  // character has none of still reports what a fresh stack would hold.
-  StackableItem fresh(proto, 0);
-  return room + free_slots * fresh.max_stack();
+  return etc_items_.RoomFor(proto);
 }
 
 int CharacterInstance::AddItem(const ItemPrototype& proto, int count) {
@@ -2095,34 +2034,7 @@ int CharacterInstance::AddItem(const ItemPrototype& proto, int count) {
     currencies_.Add(proto, count);
     return count;
   }
-  count = std::min(count, RoomFor(proto));
-  int added = count;
-  std::vector<StackableItem>& stacks = etc_items_;
-  // Top up existing stacks of the same item before opening new ones.
-  for (StackableItem& stack : stacks) {
-    if (count <= 0) {
-      break;
-    }
-    if (stack.name() != proto.name()) {
-      continue;
-    }
-    int room = stack.max_stack() - stack.count();
-    if (room <= 0) {
-      continue;
-    }
-    int added = std::min(room, count);
-    stack.add_count(added);
-    count -= added;
-  }
-  // Open new stacks for any remaining overflow.
-  while (count > 0) {
-    StackableItem stack(proto, 0);
-    int added = std::min(stack.max_stack(), count);
-    stack.add_count(added);
-    count -= added;
-    stacks.push_back(std::move(stack));
-  }
-  return added;
+  return etc_items_.Add(proto, count);
 }
 
 std::unique_ptr<EquipTabItem> CharacterInstance::TakeEquip(int index) {
@@ -2246,25 +2158,20 @@ void CharacterInstance::AddVPoints(int64_t amount) {
 }
 
 int64_t CharacterInstance::SellStackable(int index, int count) {
-  std::vector<StackableItem>& stacks = etc_items_;
-  if (index < 0 || index >= static_cast<int>(stacks.size())) {
+  if (index < 0 || index >= etc_items_.size()) {
     return 0;
   }
-  StackableItem& stack = stacks[index];
-  count = std::clamp(count, 0, stack.count());
+  const StackableItem& stack = etc_items_[index];
   int price = stack.prototype().sell_price();
+  BuyBackEntry entry;
+  entry.mutable_stack()->set_name(stack.name());
+  entry.set_unit_price(price);
+  count = etc_items_.Take(index, count);
   if (count <= 0) {
     return 0;
   }
-  int64_t earned = static_cast<int64_t>(count) * price;
-  BuyBackEntry entry;
-  entry.mutable_stack()->set_name(stack.name());
   entry.mutable_stack()->set_count(count);
-  entry.set_unit_price(price);
-  stack.add_count(-count);
-  if (stack.count() <= 0) {
-    stacks.erase(stacks.begin() + index);
-  }
+  int64_t earned = static_cast<int64_t>(count) * price;
   AddMeso(earned);
   RecordSale(std::move(entry));
   return earned;
@@ -2653,7 +2560,7 @@ void CharacterInstance::SortEquipTab() {
 }
 
 void CharacterInstance::SortStackTab() {
-  SortStacks(etc_items_);
+  etc_items_.Sort();
 }
 
 bool CharacterInstance::CanEquip(const EquipPrototype& proto) const {
@@ -2721,7 +2628,7 @@ Character CharacterInstance::ToProto() const {
           worn.second.equip_state();
     }
   }
-  AppendStacks(etc_items_, &saved);
+  etc_items_.AppendTo(saved.mutable_stacks());
   return saved;
 }
 
@@ -2783,15 +2690,7 @@ void CharacterInstance::RestoreFrom(
 
   currencies_.RestoreFrom(saved.currencies(), items_by_name);
 
-  etc_items_.clear();
-  for (const StackableStack& stack : saved.stacks()) {
-    std::map<std::string, const ItemPrototype*>::const_iterator proto =
-        items_by_name.find(stack.name());
-    if (proto == items_by_name.end()) {
-      continue;
-    }
-    etc_items_.push_back(StackableItem(*proto->second, stack.count()));
-  }
+  etc_items_.RestoreFrom(saved.stacks(), items_by_name);
 
   RecomputeEquipStats();
 }

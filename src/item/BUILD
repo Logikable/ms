@@ -175,6 +175,59 @@ cc_library(
 )
 
 cc_library(
+    name = "stack_tab",
+    srcs = ["stack_tab.cc"],
+    hdrs = ["stack_tab.h"],
+    deps = [
+        ":inventory_sort",
+        ":item",
+        "//src/protos:item_proto_cc",
+        "@protobuf",
+    ],
+)
+
+cc_test(
+    name = "stack_tab_test",
+    size = "small",
+    srcs = ["stack_tab_test.cc"],
+    deps = [
+        ":stack_tab",
+        "//src/protos:item_proto_cc",
+        "@googletest//:gtest_main",
+        "@protobuf",
+    ],
+)
+
+cc_library(
+    name = "bank",
+    srcs = ["bank.cc"],
+    hdrs = ["bank.h"],
+    deps = [
+        ":currency",
+        ":equip_instance",
+        ":inventory",
+        ":item",
+        ":stack_tab",
+        "//src/protos:account_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "bank_test",
+    size = "small",
+    srcs = ["bank_test.cc"],
+    deps = [
+        ":bank",
+        "//src/protos:account_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "shop",
     srcs = ["shop.cc"],
     hdrs = ["shop.h"],

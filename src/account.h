@@ -10,9 +10,13 @@
 #define MS_SRC_ACCOUNT_H_
 
 #include <algorithm>
+#include <map>
 #include <string>
 
+#include "src/item/bank.h"
 #include "src/protos/account.pb.h"
+#include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/keybinds.pb.h"
 
 namespace ms {
@@ -23,14 +27,35 @@ inline constexpr int kDefaultBgmVolume = 10;
 // The loudest either slider goes. The scale is a percentage.
 inline constexpr int kMaxBgmVolume = 100;
 
+// Raises `account`'s two watermarks to take in a character who has reached
+// `level` and `job_stage`. They only ever climb: an account does not forget a
+// feature it has opened.
+void RecordProgress(Account& account, int level, int job_stage);
+
 class AccountInstance {
  public:
   AccountInstance() = default;
   explicit AccountInstance(Account account);
 
+  // What the session holds. The bank is a live container rather than a proto
+  // field, so this leaves whatever `bank` arrived with -- ToProto is what
+  // writes the file.
   const Account& proto() const {
     return account_;
   }
+  // The account as the save holds it, the bank folded back in.
+  Account ToProto() const;
+
+  // The shared storage, and the catalogs it is rebuilt against on load.
+  const BankInstance& bank() const {
+    return bank_;
+  }
+  BankInstance& mutable_bank() {
+    return bank_;
+  }
+  void RestoreBank(const Bank& saved,
+                   const std::map<std::string, const EquipPrototype*>& equips,
+                   const std::map<std::string, const ItemPrototype*>& items);
 
   // What the player has bound their keys to. Handed out mutable because the
   // frontend's KeyMap edits the bindings in place.
@@ -118,13 +143,12 @@ class AccountInstance {
         std::clamp(volume, 0, kMaxBgmVolume));
   }
 
-  // Raises the two watermarks to take in a character who has reached `level`
-  // and `job_stage`. They only ever climb: an account does not forget a
-  // feature it has opened.
+  // Raises this account's watermarks. See RecordProgress above.
   void RecordProgress(int level, int job_stage);
 
  private:
   Account account_;
+  BankInstance bank_;
 };
 
 }  // namespace ms

@@ -27,7 +27,10 @@ cc_proto_library(
 proto_library(
     name = "character_proto",
     srcs = ["character.proto"],
-    deps = [":equip_proto"],
+    deps = [
+        ":equip_proto",
+        ":item_proto",
+    ],
 )
 
 cc_proto_library(
@@ -48,7 +51,11 @@ cc_proto_library(
 proto_library(
     name = "account_proto",
     srcs = ["account.proto"],
-    deps = [":keybinds_proto"],
+    deps = [
+        ":equip_proto",
+        ":item_proto",
+        ":keybinds_proto",
+    ],
 )
 
 cc_proto_library(

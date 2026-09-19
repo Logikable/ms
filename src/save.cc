@@ -16,6 +16,7 @@
 #include "absl/log/log.h"
 #include "src/account.h"
 #include "src/game_state.h"
+#include "src/item/item.h"
 #include "src/protos/save.pb.h"
 #include "src/roster.h"
 #include "src/save_migration.h"
@@ -64,10 +65,10 @@ void WriteCharacters(const GameState& state, SaveGame& save) {
 // played character's climb folded in. The watermark is what the characters in
 // the file have reached, and this is the only place that knows the one being
 // played has moved.
-AccountInstance AccountToWrite(const GameState& state) {
-  AccountInstance account(state.account.proto());
-  account.RecordProgress(state.character.proto().level(),
-                         state.character.proto().job_stage());
+Account AccountToWrite(const GameState& state) {
+  Account account = state.account.ToProto();
+  RecordProgress(account, state.character.proto().level(),
+                 state.character.proto().job_stage());
   return account;
 }
 
@@ -85,6 +86,9 @@ int OfflineSlot(const SaveGame& save) {
 // the account's promise: what any character opened stays open.
 void LoadAccount(const SaveGame& save, GameState& state) {
   state.account = AccountInstance(save.account());
+  state.account.RestoreBank(save.account().bank(),
+                            IndexByDisplayName(state.equips),
+                            IndexByDisplayName(state.items));
   for (const CharacterSave& slot : save.characters()) {
     state.account.RecordProgress(slot.character().level(),
                                  slot.character().job_stage());
@@ -119,7 +123,7 @@ bool SaveGameToFile(const GameState& state, const std::string& path) {
   SaveGame save;
   save.set_format_version(kSaveFormatVersion);
   WriteCharacters(state, save);
-  *save.mutable_account() = AccountToWrite(state).proto();
+  *save.mutable_account() = AccountToWrite(state);
   // Stamped here rather than carried from the state: what this field means is
   // when the file was written, and only the write knows that.
   save.set_last_seen_unix_seconds(static_cast<int64_t>(std::time(nullptr)));
