@@ -3,8 +3,7 @@
  * right.
  *
  * The list is sorted most recently played first, with a check beside the
- * character in play and another beside the one who farms while the game is
- * closed -- the one a launch opens on.
+ * character who farms while the game is closed -- the one a launch opens on.
  * The cursor walks the rows and then the buttons under them, all one ring,
  * and Enter on a row raises a menu anchored to it.
  *

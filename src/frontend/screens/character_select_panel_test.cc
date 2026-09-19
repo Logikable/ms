@@ -56,53 +56,20 @@ TEST_F(CharacterSelectPanelTest, TheListIsHeadedAndSortedNewestFirst) {
   std::string row = ScreenRow(screen, header);
   EXPECT_NE(row.find("Job"), std::string::npos);
   EXPECT_LT(row.find("Job"), row.find("Level"));
-  EXPECT_LT(row.find("Level"), row.find("In Play"));
-  EXPECT_LT(row.find("In Play"), row.find("Offline"));
+  EXPECT_LT(row.find("Level"), row.find("Offline"));
   // The played character was put in last, so they lead whatever the others
   // were stamped.
   EXPECT_LT(RowIndexOf(screen, "Played"), RowIndexOf(screen, "Newer"));
   EXPECT_LT(RowIndexOf(screen, "Newer"), RowIndexOf(screen, "Older"));
 }
 
-// Two columns, so a player who has swapped characters can still see which
-// one an absence pays.
-TEST_F(CharacterSelectPanelTest, EachCheckSitsInItsOwnColumn) {
+TEST_F(CharacterSelectPanelTest, TheCheckSitsOnTheOfflineCharacter) {
   AddCharacter("Farmer", 30, JOB_FIGHTER, 100);
   state_.played_slot = 1;
   state_.offline_slot = 0;
   CharacterSelectPanel panel(state_);
   ftxui::Screen screen = Draw(panel);
-
-  // The columns the two headings stand over, which is where each row's mark
-  // has to fall.
-  int in_play = FindOnScreen(screen, "In Play").x;
-  int offline = FindOnScreen(screen, "Offline").x;
-  ASSERT_GT(in_play, 0);
-  ASSERT_GT(offline, in_play);
-  int end = offline + 7;
-  // Inside the list, not the card: the card's heading repeats the name of
-  // whoever the cursor is on, and it shares a row with the column headings.
-  auto list_row = [&](const std::string& name) {
-    for (int y = 0; y < screen.dimy(); ++y) {
-      if (ScreenRow(screen, y, 0, in_play).find(name) != std::string::npos) {
-        return y;
-      }
-    }
-    return -1;
-  };
-  int played = list_row("Played");
-  int farmer = list_row("Farmer");
-  ASSERT_GT(played, 0);
-  ASSERT_GT(farmer, 0);
-
-  EXPECT_NE(ScreenRow(screen, played, in_play, offline).find("✓"),
-            std::string::npos);
-  EXPECT_EQ(ScreenRow(screen, played, offline, end).find("✓"),
-            std::string::npos);
-  EXPECT_NE(ScreenRow(screen, farmer, offline, end).find("✓"),
-            std::string::npos);
-  EXPECT_EQ(ScreenRow(screen, farmer, in_play, offline).find("✓"),
-            std::string::npos);
+  EXPECT_EQ(FindOnScreen(screen, "✓").y, RowIndexOf(screen, "Farmer"));
 }
 
 TEST_F(CharacterSelectPanelTest, TheCursorOpensOnTheCharacterBeingPlayed) {
