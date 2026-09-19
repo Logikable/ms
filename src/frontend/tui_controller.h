@@ -631,10 +631,10 @@ class TuiController {
   bool OnCharacterDeleteEvent(ftxui::Event event);
   // What the character menu's entry under the cursor does.
   void TakeCharacterMenuEntry();
-  // Back into the game with whoever is now in play: the save goes out, the
-  // panels start where a session starts, and Tui is told to build the fight
-  // again.
-  void LeaveCharacterSelect();
+  // Back into the game with whoever is now in play. The save goes out either
+  // way; a `switched` character also starts the panels where a session starts
+  // and has Tui build the fight again, which a resume must not do.
+  void LeaveCharacterSelect(bool switched);
   // Raises the quit dialog over whatever screen is up, which is how both
   // Escape and the character select's Quit button ask.
   void OpenQuit();

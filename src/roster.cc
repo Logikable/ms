@@ -133,13 +133,14 @@ void PutIntoPlay(GameState& state, const std::vector<CharacterSave>& all,
   KeepBeside(state, all, slot);
 }
 
-void PlayCharacter(GameState& state, int slot) {
+bool PlayCharacter(GameState& state, int slot) {
   std::vector<CharacterSave> all = AllCharacters(state);
   if (slot < 0 || slot >= static_cast<int>(all.size()) ||
       slot == PlayedSlot(state)) {
-    return;
+    return false;
   }
   PutIntoPlay(state, all, slot);
+  return true;
 }
 
 void CreateCharacter(GameState& state) {

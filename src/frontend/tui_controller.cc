@@ -1188,7 +1188,7 @@ bool TuiController::OnCharacterSelectEvent(ftxui::Event event) {
         return true;
       case CharacterAction::kCreate:
         CreateCharacter(state_);
-        LeaveCharacterSelect();
+        LeaveCharacterSelect(/*switched=*/true);
         return true;
       case CharacterAction::kQuit:
         OpenQuit();
@@ -1231,8 +1231,9 @@ void TuiController::TakeCharacterMenuEntry() {
   int slot = character_select_panel_.selected_slot();
   switch (character_select_panel_.menu_selected()) {
     case kCharacterMenuPlay:
-      PlayCharacter(state_, slot);
-      LeaveCharacterSelect();
+      // On the character already in play this is a resume, and the fight
+      // they left going is still theirs.
+      LeaveCharacterSelect(PlayCharacter(state_, slot));
       return;
     case kCharacterMenuSetOffline:
       SetOfflineCharacter(state_, slot);
@@ -1276,13 +1277,15 @@ bool TuiController::OnCharacterDeleteEvent(ftxui::Event event) {
   return true;
 }
 
-void TuiController::LeaveCharacterSelect() {
-  character_switched_ = true;
+void TuiController::LeaveCharacterSelect(bool switched) {
+  if (switched) {
+    character_switched_ = true;
+    // Whoever arrived is standing on their own map with their own panels, so
+    // the cursor starts where a session starts.
+    panel_focus_ = kEquipPanel;
+  }
   save_wanted_ = true;
   character_select_panel_.CloseMenu();
-  // Whoever arrived is standing on their own map with their own panels, so
-  // the cursor starts where a session starts.
-  panel_focus_ = kEquipPanel;
   screen_ = kMain;
 }
 

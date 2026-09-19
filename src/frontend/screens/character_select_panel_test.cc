@@ -56,20 +56,53 @@ TEST_F(CharacterSelectPanelTest, TheListIsHeadedAndSortedNewestFirst) {
   std::string row = ScreenRow(screen, header);
   EXPECT_NE(row.find("Job"), std::string::npos);
   EXPECT_LT(row.find("Job"), row.find("Level"));
-  EXPECT_LT(row.find("Level"), row.find("Offline"));
+  EXPECT_LT(row.find("Level"), row.find("In Play"));
+  EXPECT_LT(row.find("In Play"), row.find("Offline"));
   // The played character was put in last, so they lead whatever the others
   // were stamped.
   EXPECT_LT(RowIndexOf(screen, "Played"), RowIndexOf(screen, "Newer"));
   EXPECT_LT(RowIndexOf(screen, "Newer"), RowIndexOf(screen, "Older"));
 }
 
-TEST_F(CharacterSelectPanelTest, TheCheckSitsOnTheOfflineCharacter) {
+// Two columns, so a player who has swapped characters can still see which
+// one an absence pays.
+TEST_F(CharacterSelectPanelTest, EachCheckSitsInItsOwnColumn) {
   AddCharacter("Farmer", 30, JOB_FIGHTER, 100);
   state_.played_slot = 1;
   state_.offline_slot = 0;
   CharacterSelectPanel panel(state_);
   ftxui::Screen screen = Draw(panel);
-  EXPECT_EQ(FindOnScreen(screen, "✓").y, RowIndexOf(screen, "Farmer"));
+
+  // The columns the two headings stand over, which is where each row's mark
+  // has to fall.
+  int in_play = FindOnScreen(screen, "In Play").x;
+  int offline = FindOnScreen(screen, "Offline").x;
+  ASSERT_GT(in_play, 0);
+  ASSERT_GT(offline, in_play);
+  int end = offline + 7;
+  // Inside the list, not the card: the card's heading repeats the name of
+  // whoever the cursor is on, and it shares a row with the column headings.
+  auto list_row = [&](const std::string& name) {
+    for (int y = 0; y < screen.dimy(); ++y) {
+      if (ScreenRow(screen, y, 0, in_play).find(name) != std::string::npos) {
+        return y;
+      }
+    }
+    return -1;
+  };
+  int played = list_row("Played");
+  int farmer = list_row("Farmer");
+  ASSERT_GT(played, 0);
+  ASSERT_GT(farmer, 0);
+
+  EXPECT_NE(ScreenRow(screen, played, in_play, offline).find("✓"),
+            std::string::npos);
+  EXPECT_EQ(ScreenRow(screen, played, offline, end).find("✓"),
+            std::string::npos);
+  EXPECT_NE(ScreenRow(screen, farmer, offline, end).find("✓"),
+            std::string::npos);
+  EXPECT_EQ(ScreenRow(screen, farmer, in_play, offline).find("✓"),
+            std::string::npos);
 }
 
 TEST_F(CharacterSelectPanelTest, TheCursorOpensOnTheCharacterBeingPlayed) {
@@ -103,16 +136,18 @@ TEST_F(CharacterSelectPanelTest, TheMenuDimsWhatTheRowCannotDo) {
   CharacterSelectPanel alone(state_);
   alone.OpenMenu();
   EXPECT_TRUE(alone.menu_open());
-  // Play, Set Offline and Delete are all refused on the only character, who
-  // is played and checked, so the cursor falls through to Close.
-  EXPECT_EQ(alone.menu_selected(), kCharacterMenuClose);
+  // Set Offline and Delete are both refused on the only character, who is
+  // checked and cannot be deleted. Play is not: on the sole character it is
+  // a resume, and it is the only way back into the game.
+  EXPECT_EQ(alone.menu_selected(), kCharacterMenuPlay);
 
   AddCharacter("Farmer", 30, JOB_FIGHTER, 100);
   state_.offline_slot = 1;
   CharacterSelectPanel panel(state_);
   panel.OpenMenu();
-  // On the played row the cursor skips Play, which is dimmed, and stops on
-  // Set Offline -- the check is on the other character.
+  EXPECT_EQ(panel.menu_selected(), kCharacterMenuPlay);
+  panel.MoveMenuCursor(1);
+  // Set Offline, the check being on the other character.
   EXPECT_EQ(panel.menu_selected(), kCharacterMenuSetOffline);
   panel.CloseMenu();
   EXPECT_FALSE(panel.menu_open());

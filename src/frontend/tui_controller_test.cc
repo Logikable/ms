@@ -3390,6 +3390,21 @@ TEST_F(TuiControllerTest, PlayPutsTheChosenCharacterIn) {
   EXPECT_TRUE(controller_->TakeCharacterSwitch());
 }
 
+// The way back into the game for an account with one character, and what the
+// player reaches for after deleting everybody else.
+TEST_F(TuiControllerTest, PlayOnTheCharacterInPlayResumesThem) {
+  state_->character.SetUsername("Only");
+  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kCharacterMenu);
+  controller_->OnEvent(ftxui::Event::Return);  // Play
+
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.username(), "Only");
+  EXPECT_FALSE(controller_->TakeCharacterSwitch())
+      << "a resume must not rebuild the fight they left going";
+}
+
 TEST_F(TuiControllerTest, SetOfflineMovesTheCheckAndStaysOnTheList) {
   state_->character.SetUsername("First");
   AddCharacter("Second");

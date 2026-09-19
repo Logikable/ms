@@ -23,18 +23,19 @@ namespace {
 
 // The list's columns. A name is capped at kMaxUsernameLength and the job
 // column takes the longest short name, "I/L Arch Mage"; each carries the gap
-// after it. The check's column is the last, where the party list keeps its
-// own mark.
+// after it. The two marks are the last columns, where the party list keeps
+// its own.
 constexpr int kNameWidth = kMaxUsernameLength + 2;
 constexpr int kJobWidth = 15;
 constexpr int kLevelWidth = 7;
+constexpr int kPlayedWidth = 8;
 constexpr int kOfflineWidth = 7;
 
 // The list window, one size whatever the account holds, and the card beside
 // it at the width the Character panel reads at its narrowest -- its own rows
 // are what this draws.
 constexpr int kListWidth =
-    2 + kNameWidth + kJobWidth + kLevelWidth + kOfflineWidth + 1;
+    2 + kNameWidth + kJobWidth + kLevelWidth + kPlayedWidth + kOfflineWidth + 1;
 constexpr int kCardWidth = kLeftColumnMin - 2;
 
 constexpr char kCursorHere[] = "> ";
@@ -44,10 +45,12 @@ constexpr char kCursorAway[] = "  ";
 constexpr char kCreateLabel[] = "Create";
 constexpr char kQuitLabel[] = "Quit";
 
-// The check beside the character who farms while the game is closed, in its
-// column and in the theme's own colour, as the party list's ready mark is.
-ftxui::Element OfflineCell(bool offline) {
-  return ftxui::text(offline ? "   ✓   " : "       ") | ftxui::color(kTheme);
+// A check under the middle of a column `width` wide, in the theme's own
+// colour, as the party list's ready mark is.
+ftxui::Element MarkCell(bool marked, int width) {
+  std::string cell(width / 2, ' ');
+  cell += marked ? "✓" : " ";
+  return ftxui::text(PadRight(cell, width)) | ftxui::color(kTheme);
 }
 
 // Marks the row the frame scrolls to, which is the one holding the cursor.
@@ -148,11 +151,9 @@ void CharacterSelectPanel::OpenMenu() {
   if (on_buttons()) {
     return;
   }
-  if (rows_[Cursor()].played) {
-    // Dimmed rather than hidden: the menu reads the same on every row, and
-    // which character is in play is worth saying.
-    menu_.Disable(kCharacterMenuPlay);
-  }
+  // Play stays open on the character already in play: it is how the screen
+  // is left, and on that row it resumes them. The list's own column is what
+  // says who is in play.
   if (rows_[Cursor()].offline) {
     menu_.Disable(kCharacterMenuSetOffline);
   }
@@ -189,14 +190,15 @@ ftxui::Element CharacterSelectPanel::RenderList() const {
         Focused(ftxui::hbox({
                     ftxui::text(on_cursor ? kCursorHere : kCursorAway),
                     ftxui::text(std::move(text)),
-                    OfflineCell(rows_[i].offline),
+                    MarkCell(rows_[i].played, kPlayedWidth),
+                    MarkCell(rows_[i].offline, kOfflineWidth),
                 }),
                 on_cursor));
   }
   return ftxui::vbox({
       ftxui::text("  " + PadRight("Name", kNameWidth) +
                   PadRight("Job", kJobWidth) + PadRight("Level", kLevelWidth) +
-                  "Offline"),
+                  PadRight("In Play", kPlayedWidth) + "Offline"),
       ThemedSeparator(),
       ftxui::vbox(std::move(rows)) | ftxui::vscroll_indicator | ftxui::yframe |
           ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kCharacterListRows),

@@ -53,9 +53,10 @@ void PutIntoPlay(GameState& state, const std::vector<CharacterSave>& all,
                  int slot);
 
 // Puts `slot` into play, writing whoever was being played back to their own
-// slot first. Their map comes back with them. The slot already in play, or
-// one out of range, does nothing.
-void PlayCharacter(GameState& state, int slot);
+// slot first. Their map comes back with them. Returns false, changing
+// nothing, for the slot already in play -- picking them is a resume -- and
+// for one out of range.
+bool PlayCharacter(GameState& state, int slot);
 
 // Makes a level-1 Beginner in a slot of their own and puts them into play.
 // The offline check does not move: a new character does not take over the

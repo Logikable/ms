@@ -82,17 +82,24 @@ TEST_F(RosterTest, PlayingSomebodyElseWritesTheFirstCharacterBack) {
   state_->current_map = "field";
   state_->inactive_characters.push_back(Slot("Second", 30, JOB_FIGHTER, 100));
 
-  PlayCharacter(*state_, 1);
+  EXPECT_TRUE(PlayCharacter(*state_, 1));
   EXPECT_EQ(state_->character.username(), "Second");
   EXPECT_EQ(state_->played_slot, 1);
   EXPECT_EQ(state_->current_map, "cave") << "their own map comes back";
   // The check stays where it was: playing somebody is not choosing them.
   EXPECT_EQ(state_->offline_slot, 0);
 
-  PlayCharacter(*state_, 0);
+  EXPECT_TRUE(PlayCharacter(*state_, 0));
   EXPECT_EQ(state_->character.username(), "First");
   EXPECT_EQ(state_->character.meso(), 500);
   EXPECT_EQ(state_->current_map, "field");
+
+  // Picking the character already in play, or a slot nobody is in, changes
+  // nothing and says so -- on that row Play is a resume.
+  EXPECT_FALSE(PlayCharacter(*state_, 0));
+  EXPECT_FALSE(PlayCharacter(*state_, 7));
+  EXPECT_EQ(state_->character.username(), "First");
+  EXPECT_EQ(state_->played_slot, 0);
 }
 
 TEST_F(RosterTest, CreateMakesAnArmedBeginnerAndPlaysThem) {
