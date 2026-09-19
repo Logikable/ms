@@ -36,6 +36,7 @@
 #include "src/frontend/progress_watcher.h"
 #include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/screens/analysis_panel.h"
+#include "src/frontend/screens/bank_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/buy_panel.h"
@@ -109,6 +110,9 @@ class Tui {
   ftxui::Element JobAdvanceDialog();
   // How much of one currency to put up, over the trade screen.
   ftxui::Element TradeAmountDialog();
+  // How much of a balance to move, and which way it is going.
+  ftxui::Element BankAmountDialog();
+  ftxui::Element RenderBankInspect();
   ftxui::Element TradeItemAmountDialog();
   ftxui::Element TradeConfirmDialog();
   ftxui::Element RenderTradeInspect();
@@ -281,6 +285,8 @@ class Tui {
   BuffInfoPanel buff_info_panel_;
   ShopPanel shop_panel_;
   BuyPanel buy_panel_;
+  // The bag over the account's shared storage, reached from the Bank tab.
+  BankPanel bank_panel_;
 
   // Screen-state machine: owns screen_ and event-handling logic.
   TuiController controller_;

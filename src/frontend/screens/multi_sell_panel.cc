@@ -307,7 +307,8 @@ ftxui::Element MultiSellPanel::RenderEquipTab() {
   options.star_force = Unlocked(Feature::kStarForce, character_, account_);
   options.potential = Unlocked(Feature::kPotential, character_, account_);
   ItemColumns columns = FitItemColumns(kEquipRowWidth, options);
-  rows_ = BuildEquipRows(character_, selected_, name_clock_.Elapsed(), columns);
+  rows_ = BuildEquipRows(character_, character_.inventory(), selected_,
+                         name_clock_.Elapsed(), columns);
   std::vector<ftxui::Element> list;
   for (int i = 0; i < static_cast<int>(rows_.size()); ++i) {
     bool on_cursor = zone_ == kZoneList && i == selected_;

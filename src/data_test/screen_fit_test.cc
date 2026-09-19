@@ -17,6 +17,7 @@
 #include "src/frontend/keybinds.h"
 #include "src/frontend/placement.h"
 #include "src/frontend/screens/all_stats_panel.h"
+#include "src/frontend/screens/bank_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/character_select_panel.h"
@@ -160,6 +161,18 @@ TEST_F(ScreenFitTest, Trade) {
   *trade.mutable_theirs() = trade.mine();
   panel.SetTrade(trade);
   ExpectFits(panel.Render(), "the trade screen");
+}
+
+// Two windows stacked, both drawn at their fixed height: the tightest screen
+// in the game, and the one a row added to either half would push off.
+TEST_F(ScreenFitTest, Bank) {
+  BankPanel panel(state_.character, state_.account, state_.items);
+  panel.Reset();
+  ExpectFits(panel.Render(), "the bank screen");
+  // And with the most either purse can hold, which is what widens the bar.
+  state_.character.AddMeso(100000000000);
+  state_.account.mutable_bank().AddMeso(100000000000);
+  ExpectFits(panel.Render(), "the bank screen, both purses full");
 }
 
 TEST_F(ScreenFitTest, AllStats) {

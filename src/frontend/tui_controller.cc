@@ -90,6 +90,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       keys_(keys),
       shop_panel_(screens.shop_panel),
       buy_panel_(screens.buy_panel),
+      bank_panel_(screens.bank_panel),
       character_select_panel_(state),
       panel_focus_(panel_focus),
       multiplayer_(multiplayer) {
@@ -133,6 +134,10 @@ void TuiController::OpenInventoryMenu() {
   if (inventory_panel_.on_shop_tab()) {
     shop_panel_.Reset();
     screen_ = kShop;
+    return;
+  }
+  if (inventory_panel_.on_bank_tab()) {
+    OpenBank();
     return;
   }
   screen_ = kItemMenu;
@@ -773,6 +778,13 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnBossAbortEvent(event);
     case kBossClear:
       return OnBossClearEvent(event);
+    case kBank:
+    case kBankMenu:
+      return screen_ == kBank ? OnBankEvent(event) : OnBankMenuEvent(event);
+    case kBankAmount:
+      return OnBankAmountEvent(event);
+    case kBankInspect:
+      return OnCardEvent(event, inspect_panel_, kBank);
     case kShop:
       return OnShopEvent(event);
     case kShopMenu:
@@ -2432,6 +2444,120 @@ bool TuiController::OnTradeAmountEvent(ftxui::Event event) {
     PutUpTradeAmount();
   }
   screen_ = kTrade;
+  return true;
+}
+
+void TuiController::OpenBank() {
+  bank_panel_.Reset();
+  screen_ = kBank;
+}
+
+bool TuiController::OnBankEvent(ftxui::Event event) {
+  if (IsSwitchPanel(event)) {
+    bank_panel_.NextZone();
+    return true;
+  }
+  if (event == ftxui::Event::ArrowLeft) {
+    bank_panel_.MoveCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    bank_panel_.MoveCursor(1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowUp) {
+    bank_panel_.MoveRow(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    bank_panel_.MoveRow(1);
+    return true;
+  }
+  if (IsForward(event)) {
+    switch (bank_panel_.cursor().kind) {
+      case BankCursor::Kind::kCurrency:
+        OpenBankAmount();
+        break;
+      case BankCursor::Kind::kTab:
+        bank_panel_.OpenTabMenu();
+        screen_ = kBankMenu;
+        break;
+      case BankCursor::Kind::kRow:
+        bank_panel_.OpenMenu();
+        screen_ = kBankMenu;
+        break;
+      case BankCursor::Kind::kNothing:
+        break;
+    }
+    return true;
+  }
+  if (IsBack(event)) {
+    screen_ = kMain;
+  }
+  // Everything else is swallowed: this is a modal screen, and the ticker's
+  // redraw arrives as an event too.
+  return true;
+}
+
+void TuiController::OpenBankAmount() {
+  bank_currency_ = bank_panel_.cursor().currency;
+  bank_selector_.Reset(bank_panel_.held(bank_currency_));
+  bank_selector_.set_low(0);
+  screen_ = kBankAmount;
+}
+
+void TuiController::MoveInBank() {
+  std::string error = bank_panel_.MoveSelected();
+  if (!error.empty()) {
+    notification_.Raise({error});
+  }
+}
+
+bool TuiController::OnBankMenuEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    bank_panel_.MoveMenuCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    bank_panel_.MoveMenuCursor(1);
+    return true;
+  }
+  if (IsBack(event)) {
+    bank_panel_.CloseMenu();
+    screen_ = kBank;
+    return true;
+  }
+  if (!IsForward(event)) {
+    return true;
+  }
+  int chosen = bank_panel_.menu_selected();
+  const bool tab_menu = bank_panel_.tab_menu_open();
+  bank_panel_.CloseMenu();
+  screen_ = kBank;
+  if (tab_menu) {
+    if (chosen == kBankTabMenuSort) {
+      bank_panel_.SortActiveTab();
+    }
+    return true;
+  }
+  if (chosen == kBankMenuMove) {
+    MoveInBank();
+  } else if (chosen == kBankMenuInspect) {
+    inspect_panel_.Reset();
+    screen_ = kBankInspect;
+  }
+  return true;
+}
+
+bool TuiController::OnBankAmountEvent(ftxui::Event event) {
+  ConfirmChoice choice = bank_selector_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    bank_panel_.MoveCurrency(bank_currency_, bank_selector_.value());
+  }
+  screen_ = kBank;
   return true;
 }
 

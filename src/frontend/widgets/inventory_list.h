@@ -25,6 +25,7 @@
 #include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/item_row.h"
 #include "src/item/currency.h"
+#include "src/item/inventory.h"
 #include "src/item/item.h"
 #include "src/protos/item.pb.h"
 
@@ -38,10 +39,12 @@ enum InventoryTab : int {
   // worth more of a glance than a drop is.
   kTokenTab = 1,
   kEtcTab = 2,
-  // Not a list of anything the player owns -- it is the door to the shop, and
-  // sits last because it is the only tab that leaves the panel.
+  // Neither of these lists anything the player owns: both are doors out of
+  // the panel, and they sit last for that reason. The shop leads, being the
+  // one a character meets first by a couple of hundred levels.
   kShopTab = 3,
-  kNumInventoryTabs = 4,
+  kBankTab = 4,
+  kNumInventoryTabs = 5,
 };
 
 extern const char* const kInventoryTabLabels[kNumInventoryTabs];
@@ -54,12 +57,15 @@ struct InventoryRowState {
   bool job_ok;
 };
 
-// One row per item on the equip tab. `selected` names the row whose name
-// slides under its column, and `elapsed` how long it has been selected.
+// One row per item in `items`, which is a bag's equip tab or the bank's.
+// `character` is who is LOOKING: the level and job cells answer whether they
+// could wear it, wherever the item is held. `selected` names the row whose
+// name slides under its column, and `elapsed` how long it has been selected.
 // `columns` is what the panel fitted into its width -- see FitItemColumns.
 std::vector<InventoryRowState> BuildEquipRows(
-    const CharacterInstance& character, int selected,
-    std::chrono::steady_clock::duration elapsed, const ItemColumns& columns);
+    const CharacterInstance& character, const InventoryInstance& items,
+    int selected, std::chrono::steady_clock::duration elapsed,
+    const ItemColumns& columns);
 
 // The header row over an Equip list drawing `columns`.
 ftxui::Element EquipHeader(const ItemColumns& columns,
@@ -82,14 +88,29 @@ ftxui::Element CurrencyHeader();
 ftxui::Element RenderCurrencyRow(const CurrencyAmount* token,
                                  const CurrencyAmount* shard);
 
+// Which of the two balances a bar's cursor is on. The bank screen is the one
+// screen where they can be stood on; everywhere else they are read and not
+// touched.
+enum BalanceCell : int {
+  kNoBalance = -1,
+  kMesoBalance = 0,
+  kTraceBalance = 1,
+};
+
 // The two balances the bag's tab bar carries down its middle: meso, and the
 // spell traces beside it once the shop is open -- the level a trace can first
 // be bought, and so the first level a balance in them can exist. Both are
 // passed rather than read off the character: a bag being traded from shows
 // what is LEFT of each.
+//
+// `cursor` bands the one it names, and widens both cells to a fixed column so
+// the band is a steady block and a climbing number never moves its neighbour.
+// A band rather than an invert because the cells carry the theme colour, and
+// inverting one would make that colour the background.
 ftxui::Element RenderBalances(int64_t meso, int64_t spell_traces,
                               const CharacterInstance& character,
-                              const AccountInstance& account);
+                              const AccountInstance& account,
+                              int cursor = kNoBalance);
 
 // The bag's tab row and the rule under it: the chips, `balances` down the
 // middle, and `trailing` right-aligned past them -- the Expand door on the
@@ -123,9 +144,10 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
                                std::chrono::steady_clock::duration elapsed);
 
 // The same for the Equip tab, for a caller drawing plain rows rather than an
-// ftxui::Menu. `rows` are places in the character's equip tab, so a bag may
-// hold some of it back.
+// ftxui::Menu. `rows` are places in `items`, so a bag may hold some of it
+// back.
 ftxui::Element RenderEquipList(const CharacterInstance& character,
+                               const InventoryInstance& items,
                                const std::vector<int>& rows, int selected,
                                bool focused, const ItemColumns& columns,
                                ftxui::Box& cursor_box, bool highlighted,

@@ -1231,6 +1231,37 @@ TEST_F(InventoryPanelTest, ShopTabSaysHowToOpenTheShop) {
             std::string::npos);
 }
 
+// The Bank tab is the other door out of the panel, and it opens two hundred
+// levels after the shop: below that the bar simply ends at Shop.
+TEST_F(InventoryPanelTest, BankTabArrivesLastAndSaysHowToOpenIt) {
+  LevelTo(UnlockLevel(Feature::kShop));
+  {
+    InventoryPanel early(c_, account_, panel_focus_);
+    ftxui::Component comp = early.MakeComponent([]() {});
+    OpenTab(comp, early, kBankTab);
+    EXPECT_FALSE(early.on_bank_tab()) << "the tab is absent, not greyed";
+  }
+
+  LevelTo(UnlockLevel(Feature::kBank));
+  InventoryPanel panel(c_, account_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  panel_focus_ = kInventoryPanel;
+  OpenTab(comp, panel, kBankTab);
+  EXPECT_TRUE(panel.on_bank_tab());
+  EXPECT_FALSE(panel.on_shop_tab());
+  EXPECT_NE(RenderComponent(comp).find("Hit Enter to open Bank"),
+            std::string::npos);
+
+  // Nothing of the player's to descend into: the cursor stays on the bar, so
+  // Right steps off Bank onto the Expand door past it.
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_TRUE(panel.on_tab_bar());
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_NE(RenderComponent(comp).find("Hit Enter to fullscreen Inventory"),
+            std::string::npos)
+      << "the door is the only thing past the bank";
+}
+
 // It is the last page of the bar, with only the Expand door past it.
 TEST_F(InventoryPanelTest, ShopIsTheLastTabBeforeTheDoor) {
   LevelTo(UnlockLevel(Feature::kShop));

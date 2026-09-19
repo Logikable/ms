@@ -913,6 +913,45 @@ cc_test(
 )
 
 cc_library(
+    name = "bank_panel",
+    srcs = ["bank_panel.cc"],
+    hdrs = ["bank_panel.h"],
+    deps = [
+        "//src:account",
+        "//src/character",
+        "//src/character:progression",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:inventory_list",
+        "//src/frontend/widgets:item_columns",
+        "//src/frontend/widgets:item_menu",
+        "//src/frontend/widgets:keys",
+        "//src/frontend/widgets:marquee",
+        "//src/item",
+        "//src/item:bank",
+        "//src/item:currency",
+        "//src/protos:item_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "bank_panel_test",
+    size = "small",
+    srcs = ["bank_panel_test.cc"],
+    deps = [
+        ":bank_panel",
+        "//src/frontend/testing:panel_test_base",
+        "//src/frontend/testing:screen_text",
+        "//src/item",
+        "//src/item:equip_instance",
+        "//src/protos:item_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "trade_panel",
     srcs = ["trade_panel.cc"],
     hdrs = ["trade_panel.h"],

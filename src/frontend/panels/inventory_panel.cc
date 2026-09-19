@@ -77,6 +77,11 @@ std::vector<int> InventoryPanel::VisibleTabs() const {
   if (Unlocked(Feature::kShop, character_, account_)) {
     tabs.push_back(kShopTab);
   }
+  // Shared storage, and the same: a door, and not one worth showing until
+  // there is a second character to share with.
+  if (Unlocked(Feature::kBank, character_, account_)) {
+    tabs.push_back(kBankTab);
+  }
   return tabs;
 }
 
@@ -124,6 +129,10 @@ bool InventoryPanel::on_shop_tab() const {
   return active_tab_ == kShopTab;
 }
 
+bool InventoryPanel::on_bank_tab() const {
+  return active_tab_ == kBankTab;
+}
+
 bool InventoryPanel::ActiveTabEmpty() const {
   if (on_expand_) {
     return true;  // a door has nothing under it to walk down into
@@ -131,8 +140,8 @@ bool InventoryPanel::ActiveTabEmpty() const {
   if (active_tab_ == kEquipTab) {
     return character_.inventory().size() == 0;
   }
-  if (active_tab_ == kShopTab) {
-    // Nothing of the player's to descend into; Enter leaves for the shop.
+  if (active_tab_ == kShopTab || active_tab_ == kBankTab) {
+    // Nothing of the player's to descend into; Enter goes through the door.
     return true;
   }
   if (active_tab_ == kTokenTab) {
@@ -150,7 +159,8 @@ int InventoryPanel::ListCount() const {
   if (active_tab_ == kEquipTab) {
     return character_.inventory().size();
   }
-  if (active_tab_ == kShopTab || active_tab_ == kTokenTab) {
+  if (active_tab_ == kShopTab || active_tab_ == kBankTab ||
+      active_tab_ == kTokenTab) {
     return 0;
   }
   return EtcRowCount();
@@ -467,7 +477,8 @@ ItemColumns InventoryPanel::Columns() const {
 
 ftxui::Element InventoryPanel::RenderOwnEquipList(ftxui::Component menu) {
   ItemColumns columns = Columns();
-  rows_ = BuildEquipRows(character_, selected_, name_clock_.Elapsed(), columns);
+  rows_ = BuildEquipRows(character_, character_.inventory(), selected_,
+                         name_clock_.Elapsed(), columns);
   entries_.clear();
   for (const InventoryRowState& row : rows_) {
     entries_.push_back(row.label.text);
@@ -573,12 +584,13 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
                                               : "Hit Enter to fullscreen "
                                                 "Inventory"),
                         ftxui::filler()});
-  } else if (active_tab_ == kShopTab) {
-    // The shop is a screen of its own, so where the other tabs list what the
-    // player has, this one says how to get there. Over a filler because the
+  } else if (active_tab_ == kShopTab || active_tab_ == kBankTab) {
+    // Both are screens of their own, so where the other tabs list what the
+    // player has, these say how to get there. Over a filler because the
     // window is taller than this one line and the line belongs at the top.
-    body =
-        ftxui::vbox({CenteredRow("Hit Enter to open Shop"), ftxui::filler()});
+    body = ftxui::vbox({CenteredRow(std::string("Hit Enter to open ") +
+                                    kInventoryTabLabels[active_tab_]),
+                        ftxui::filler()});
   } else if (active_tab_ == kTokenTab) {
     body = RenderCurrencySheet();
   } else if (active_tab_ == kEtcTab) {

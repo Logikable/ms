@@ -22,6 +22,7 @@
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/panels/menu_panel.h"
+#include "src/frontend/screens/bank_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/buy_panel.h"
@@ -263,6 +264,8 @@ class TuiControllerTest : public testing::Test {
     shop_panel_ = std::make_unique<ShopPanel>(state_->character, state_->equips,
                                               state_->items);
     buy_panel_ = std::make_unique<BuyPanel>();
+    bank_panel_ = std::make_unique<BankPanel>(state_->character,
+                                              state_->account, state_->items);
     job_inspect_panel_ = std::make_unique<JobInspectPanel>(state_->skills);
     menu_panel_ = std::make_unique<MenuPanel>(*state_, analysis_, panel_focus_);
     keys_ = std::make_unique<KeyMap>(state_->account.mutable_keybinds());
@@ -280,9 +283,10 @@ class TuiControllerTest : public testing::Test {
                          player_list_panel_,     *trade_panel_,
                          *player_inspect_panel_, player_item_panel_,
                          *shop_panel_,           *buy_panel_,
-                         *job_inspect_panel_,    skill_inspect_panel_,
-                         buff_info_panel_,       *menu_panel_,
-                         *keybinds_panel_,       *options_panel_},
+                         *bank_panel_,           *job_inspect_panel_,
+                         skill_inspect_panel_,   buff_info_panel_,
+                         *menu_panel_,           *keybinds_panel_,
+                         *options_panel_},
         analysis_, *keys_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
@@ -450,9 +454,10 @@ class TuiControllerTest : public testing::Test {
                          player_list_panel_,     *trade_panel_,
                          *player_inspect_panel_, player_item_panel_,
                          *shop_panel_,           *buy_panel_,
-                         *job_inspect_panel_,    skill_inspect_panel_,
-                         buff_info_panel_,       *menu_panel_,
-                         *keybinds_panel_,       *options_panel_},
+                         *bank_panel_,           *job_inspect_panel_,
+                         skill_inspect_panel_,   buff_info_panel_,
+                         *menu_panel_,           *keybinds_panel_,
+                         *options_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -590,9 +595,10 @@ class TuiControllerTest : public testing::Test {
                          player_list_panel_,     *trade_panel_,
                          *player_inspect_panel_, player_item_panel_,
                          *shop_panel_,           *buy_panel_,
-                         *job_inspect_panel_,    skill_inspect_panel_,
-                         buff_info_panel_,       *menu_panel_,
-                         *keybinds_panel_,       *options_panel_},
+                         *bank_panel_,           *job_inspect_panel_,
+                         skill_inspect_panel_,   buff_info_panel_,
+                         *menu_panel_,           *keybinds_panel_,
+                         *options_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -634,6 +640,7 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<TradePanel> trade_panel_;
   std::unique_ptr<ShopPanel> shop_panel_;
   std::unique_ptr<BuyPanel> buy_panel_;
+  std::unique_ptr<BankPanel> bank_panel_;
   std::unique_ptr<JobInspectPanel> job_inspect_panel_;
   SkillInspectPanel skill_inspect_panel_;
   BuffInfoPanel buff_info_panel_;
@@ -3033,6 +3040,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   TradePanel trade(fresh.character, fresh.account);
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
+  BankPanel bank(fresh.character, fresh.account, fresh.items);
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   BuffInfoPanel buffs;
@@ -3047,12 +3055,13 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   KeybindsPanel keybinds(keys);
   OptionsPanel options(fresh.account);
   TuiController controller(
-      fresh, Screens{chars,      equip,      bag,    scroll,         item_card,
-                     trace_card, star,       cube,   trace,          sell,
-                     sell_equip, multi_sell, maps,   mobs,           bosses,
-                     party,      players,    trade,  player_inspect, worn_card,
-                     shop,       buy,        jobs,   skill_card,     buffs,
-                     menu,       keybinds,   options},
+      fresh,
+      Screens{chars,      equip,      bag,      scroll,         item_card,
+              trace_card, star,       cube,     trace,          sell,
+              sell_equip, multi_sell, maps,     mobs,           bosses,
+              party,      players,    trade,    player_inspect, worn_card,
+              shop,       buy,        bank,     jobs,           skill_card,
+              buffs,      menu,       keybinds, options},
       analysis, keys, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
@@ -3102,6 +3111,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   TradePanel trade(fresh.character, fresh.account);
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
+  BankPanel bank(fresh.character, fresh.account, fresh.items);
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   BuffInfoPanel buffs;
@@ -3116,12 +3126,13 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   KeybindsPanel keybinds(keys);
   OptionsPanel options(fresh.account);
   TuiController controller(
-      fresh, Screens{chars,      equip,      bag,    scroll,         item_card,
-                     trace_card, star,       cube,   trace,          sell,
-                     sell_equip, multi_sell, maps,   mobs,           bosses,
-                     party,      players,    trade,  player_inspect, worn_card,
-                     shop,       buy,        jobs,   skill_card,     buffs,
-                     menu,       keybinds,   options},
+      fresh,
+      Screens{chars,      equip,      bag,      scroll,         item_card,
+              trace_card, star,       cube,     trace,          sell,
+              sell_equip, multi_sell, maps,     mobs,           bosses,
+              party,      players,    trade,    player_inspect, worn_card,
+              shop,       buy,        bank,     jobs,           skill_card,
+              buffs,      menu,       keybinds, options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
@@ -3154,6 +3165,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   TradePanel trade(fresh.character, fresh.account);
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
+  BankPanel bank(fresh.character, fresh.account, fresh.items);
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   BuffInfoPanel buffs;
@@ -3168,12 +3180,13 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   KeybindsPanel keybinds(keys);
   OptionsPanel options(fresh.account);
   TuiController controller(
-      fresh, Screens{chars,      equip,      bag,    scroll,         item_card,
-                     trace_card, star,       cube,   trace,          sell,
-                     sell_equip, multi_sell, maps,   mobs,           bosses,
-                     party,      players,    trade,  player_inspect, worn_card,
-                     shop,       buy,        jobs,   skill_card,     buffs,
-                     menu,       keybinds,   options},
+      fresh,
+      Screens{chars,      equip,      bag,      scroll,         item_card,
+              trace_card, star,       cube,     trace,          sell,
+              sell_equip, multi_sell, maps,     mobs,           bosses,
+              party,      players,    trade,    player_inspect, worn_card,
+              shop,       buy,        bank,     jobs,           skill_card,
+              buffs,      menu,       keybinds, options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
@@ -3206,6 +3219,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   TradePanel trade(fresh.character, fresh.account);
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
+  BankPanel bank(fresh.character, fresh.account, fresh.items);
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   BuffInfoPanel buffs;
@@ -3220,12 +3234,13 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   KeybindsPanel keybinds(keys);
   OptionsPanel options(fresh.account);
   TuiController controller(
-      fresh, Screens{chars,      equip,      bag,    scroll,         item_card,
-                     trace_card, star,       cube,   trace,          sell,
-                     sell_equip, multi_sell, maps,   mobs,           bosses,
-                     party,      players,    trade,  player_inspect, worn_card,
-                     shop,       buy,        jobs,   skill_card,     buffs,
-                     menu,       keybinds,   options},
+      fresh,
+      Screens{chars,      equip,      bag,      scroll,         item_card,
+              trace_card, star,       cube,     trace,          sell,
+              sell_equip, multi_sell, maps,     mobs,           bosses,
+              party,      players,    trade,    player_inspect, worn_card,
+              shop,       buy,        bank,     jobs,           skill_card,
+              buffs,      menu,       keybinds, options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all

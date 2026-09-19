@@ -556,8 +556,8 @@ ftxui::Element TradePanel::RenderBag() const {
     options.scrolling = Unlocked(Feature::kScrolling, character_, account_);
     options.star_force = Unlocked(Feature::kStarForce, character_, account_);
     options.potential = Unlocked(Feature::kPotential, character_, account_);
-    list = RenderEquipList(character_, bag, cursor, focused,
-                           FitItemColumns(kBagWidth, options),
+    list = RenderEquipList(character_, character_.inventory(), bag, cursor,
+                           focused, FitItemColumns(kBagWidth, options),
                            CursorBox(TradeZone::kBag), /*highlighted=*/false,
                            name_clock_.Elapsed());
   }

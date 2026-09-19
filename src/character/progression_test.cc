@@ -133,18 +133,23 @@ TEST_F(ProgressionTest, ASecondCharacterStartsWithTheAccountsUnlocks) {
       << "an account that stopped at 140 never reached the hammer";
 }
 
-// The two menu entries that are not about this character's climb. The lobby
-// opens with the skills, well below bossing; the character select opens last
-// of everything, and a second character has it from level 1.
+// The three that are not about this character's climb. The lobby opens with
+// the skills, well below bossing; the character select and the bank it fills
+// open last of everything, and a second character has both from level 1.
 TEST_F(ProgressionTest, TheLobbyOpensEarlyAndTheCharacterSelectLast) {
   EXPECT_EQ(UnlockLevel(Feature::kMultiplayer), 10);
   EXPECT_EQ(UnlockLevel(Feature::kCharacters), 210);
+  EXPECT_EQ(UnlockLevel(Feature::kBank), UnlockLevel(Feature::kCharacters))
+      << "shared storage is worth nothing without somebody to share with";
   EXPECT_LT(UnlockLevel(Feature::kMultiplayer), UnlockLevel(Feature::kBoss));
 
   EXPECT_FALSE(Unlocked(Feature::kCharacters, MakeCharacter(209), account_));
+  EXPECT_FALSE(Unlocked(Feature::kBank, MakeCharacter(209), account_));
   EXPECT_TRUE(Unlocked(Feature::kCharacters, MakeCharacter(210), account_));
+  EXPECT_TRUE(Unlocked(Feature::kBank, MakeCharacter(210), account_));
   account_.RecordProgress(210, 5);
   EXPECT_TRUE(Unlocked(Feature::kCharacters, MakeCharacter(1), account_));
+  EXPECT_TRUE(Unlocked(Feature::kBank, MakeCharacter(1), account_));
 }
 
 // The skills tab opens on the level alone, job or no job: every character is

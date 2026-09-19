@@ -25,6 +25,7 @@
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/panels/menu_panel.h"
+#include "src/frontend/screens/bank_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/buy_panel.h"
@@ -106,6 +107,7 @@ struct Screens {
   InspectPanel& player_item_panel;
   ShopPanel& shop_panel;
   BuyPanel& buy_panel;
+  BankPanel& bank_panel;
   JobInspectPanel& job_inspect_panel;
   SkillInspectPanel& skill_inspect_panel;
   BuffInfoPanel& buff_info_panel;
@@ -305,6 +307,13 @@ class TuiController {
   }
   const AmountSelector& trade_selector() const {
     return trade_selector_;
+  }
+  // Which balance the bank overlay is moving, and how much.
+  BankCurrency bank_currency() const {
+    return bank_currency_;
+  }
+  const AmountSelector& bank_selector() const {
+    return bank_selector_;
   }
   // The gold box in the corner, which outlives whatever screen raised it.
   const NotificationBox& notification() const {
@@ -708,6 +717,9 @@ class TuiController {
   void SendTradeOffer();
   // Enter on a row of any of the three windows.
   void OpenTradeMenu();
+  // Enter on the bag's Bank tab, which opens the screen on the bag's Equip
+  // tab with both halves' cursors reset.
+  void OpenBank();
   // Enter on the Accept button, which is a toggle. Accepting is refused with
   // a notice when the bag could not hold what is on their side of the table:
   // the one moment the question can be asked, since a table that changes
@@ -799,6 +811,15 @@ class TuiController {
   // Leaves the Keybinds screen for the box it was opened from.
   void LeaveKeybinds();
   void LeaveOptions();
+  // The bank screen: the bag over the account's storage, the menu a row
+  // raises, the amount a balance asks for, and the card Inspect opens.
+  bool OnBankEvent(ftxui::Event event);
+  bool OnBankMenuEvent(ftxui::Event event);
+  bool OnBankAmountEvent(ftxui::Event event);
+  // Raises "Inventory full." or "Bank full." where there was no room.
+  void MoveInBank();
+  void OpenBankAmount();
+
   bool OnShopEvent(ftxui::Event event);
   bool OnShopMenuEvent(ftxui::Event event);
   bool OnShopInspectEvent(ftxui::Event event);
@@ -863,6 +884,7 @@ class TuiController {
   KeyMap& keys_;
   ShopPanel& shop_panel_;
   BuyPanel& buy_panel_;
+  BankPanel& bank_panel_;
   // Catalog key of the item the buy dialog is open on, so the purchase reads
   // the prototype rather than trusting a pointer to outlive the screen.
   std::string buy_item_;
@@ -976,6 +998,10 @@ class TuiController {
   // overlay takes the place in the bag for the same reason.
   TradeCurrency trade_currency_ = TradeCurrency::kMeso;
   int trade_stack_ = -1;
+  // The bank's own amount overlay, and which balance it is moving. Taken when
+  // it opens, for the reason the trade's is.
+  AmountSelector bank_selector_;
+  BankCurrency bank_currency_ = BankCurrency::kMeso;
   // What the trade screen is inspecting. Built rather than pointed at: their
   // half of the table is not in any bag this client holds, and one path for
   // both sides is one path to keep right.

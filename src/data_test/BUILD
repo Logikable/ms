@@ -217,6 +217,7 @@ cc_test(
         "//src/frontend:keybinds",
         "//src/frontend:placement",
         "//src/frontend/screens:all_stats_panel",
+        "//src/frontend/screens:bank_panel",
         "//src/frontend/screens:boss_select_panel",
         "//src/frontend/screens:buff_info_panel",
         "//src/frontend/screens:character_select_panel",

@@ -22,6 +22,12 @@
 namespace ms {
 namespace {
 
+// The columns each balance takes on a bar whose cursor can stand on it. Wide
+// enough for the most either can hold -- a hundred billion meso and a million
+// traces -- so the band is the same block however much is in it.
+constexpr int kMesoCell = 20;
+constexpr int kTraceCell = 14;
+
 // The least the balances stand off the last tab chip. The bar is read left to
 // right and the two run into each other without it: a count reads as part of
 // the tab beside it.
@@ -85,8 +91,8 @@ ftxui::Element CurrencyCell(const CurrencyAmount& held, bool marked,
 
 }  // namespace
 
-const char* const kInventoryTabLabels[kNumInventoryTabs] = {"Equip", "Token",
-                                                            "Etc", "Shop"};
+const char* const kInventoryTabLabels[kNumInventoryTabs] = {
+    "Equip", "Token", "Etc", "Shop", "Bank"};
 
 std::vector<int> AllRows(int count) {
   std::vector<int> rows(std::max(0, count));
@@ -115,11 +121,12 @@ ftxui::Element RenderCurrencyRow(const CurrencyAmount* token,
 }
 
 std::vector<InventoryRowState> BuildEquipRows(
-    const CharacterInstance& character, int selected,
-    std::chrono::steady_clock::duration elapsed, const ItemColumns& columns) {
+    const CharacterInstance& character, const InventoryInstance& items,
+    int selected, std::chrono::steady_clock::duration elapsed,
+    const ItemColumns& columns) {
   std::vector<InventoryRowState> rows;
-  for (int i = 0; i < character.inventory().size(); ++i) {
-    const EquipTabItem& item = character.inventory()[i];
+  for (int i = 0; i < items.size(); ++i) {
+    const EquipTabItem& item = items[i];
     const EquipPrototype& proto = item.prototype();
     int level = proto.required_level() > 0 ? proto.required_level() : 1;
     ItemCells cells =
@@ -135,7 +142,7 @@ std::vector<InventoryRowState> BuildEquipRows(
     std::chrono::steady_clock::duration slide =
         i == selected ? elapsed : std::chrono::steady_clock::duration::zero();
     row.label = FormatItemRow(columns, cells, slide);
-    row.is_trace = character.inventory().equip_instance(i) == nullptr;
+    row.is_trace = item.is_trace();
     row.level_ok = character.MeetsLevel(proto);
     row.job_ok = character.MeetsJob(proto);
     rows.push_back(std::move(row));
@@ -209,13 +216,21 @@ ftxui::Element RenderStackRow(const StackableItem& stack, bool on_cursor,
 
 ftxui::Element RenderBalances(int64_t meso, int64_t spell_traces,
                               const CharacterInstance& character,
-                              const AccountInstance& account) {
-  std::vector<ftxui::Element> counters = {ftxui::text(FormatMeso(meso)) |
-                                          ftxui::color(kTheme)};
+                              const AccountInstance& account, int cursor) {
+  const bool selectable = cursor != kNoBalance;
+  std::vector<ftxui::Element> counters = {HighlightRow(
+      ftxui::text(selectable ? PadRight(FormatMeso(meso), kMesoCell)
+                             : FormatMeso(meso)) |
+          ftxui::color(kTheme),
+      cursor == kMesoBalance)};
   if (Unlocked(Feature::kShop, character, account)) {
     counters.push_back(ftxui::text("   "));
-    counters.push_back(ftxui::text(FormatSpellTraces(spell_traces)) |
-                       ftxui::color(kTheme));
+    counters.push_back(HighlightRow(
+        ftxui::text(selectable
+                        ? PadRight(FormatSpellTraces(spell_traces), kTraceCell)
+                        : FormatSpellTraces(spell_traces)) |
+            ftxui::color(kTheme),
+        cursor == kTraceBalance));
   }
   return ftxui::hbox(std::move(counters));
 }
@@ -291,6 +306,7 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
 }
 
 ftxui::Element RenderEquipList(const CharacterInstance& character,
+                               const InventoryInstance& items,
                                const std::vector<int>& rows, int selected,
                                bool focused, const ItemColumns& columns,
                                ftxui::Box& cursor_box, bool highlighted,
@@ -299,7 +315,7 @@ ftxui::Element RenderEquipList(const CharacterInstance& character,
     return ftxui::vbox({EmptyState("empty", /*gutter=*/2), ftxui::filler()});
   }
   std::vector<InventoryRowState> built = BuildEquipRows(
-      character,
+      character, items,
       rows[std::clamp(selected, 0, static_cast<int>(rows.size()) - 1)], elapsed,
       columns);
   std::vector<ftxui::Element> drawn;

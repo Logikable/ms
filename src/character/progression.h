@@ -58,6 +58,10 @@ enum class Feature {
   // recognisably a character rather than to bossing's: the lobby is where
   // trading happens, and that is worth having long before a party is.
   kMultiplayer,
+  // The Bank tab of the bag, and the screen behind it. The same level as the
+  // characters, and for the same reason: shared storage is worth nothing
+  // until there is a second character to share with.
+  kBank,
   // The Characters entry, and the character select behind it. Last of the
   // menu entries to arrive: a second character is worth making once the
   // first has run out of climb, and their own way up is what the account's

@@ -234,6 +234,11 @@ class CharacterInstance {
   // counterpart of PickUp: for an item leaving the character for something
   // that is not a sale. Null for an index out of range.
   std::unique_ptr<EquipTabItem> TakeEquip(int index);
+  // The stack counterpart: takes `count` off the `index`-th stack, clamped to
+  // what is in it, and returns how many came out. The row leaves the tab when
+  // it empties. Unlike SpendItem this names a ROW, so a bag holding the same
+  // item on two of them takes from the one the player is pointing at.
+  int TakeStack(int index, int count);
   // Throws away everything on the equip tab, worn gear untouched. The
   // workbench's: nothing in the game empties one.
   void ClearEquipInventory();

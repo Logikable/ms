@@ -96,6 +96,8 @@ class InventoryPanel {
   // list, so the controller asks this to tell Enter on the tab bar apart from
   // Enter on an item.
   bool on_shop_tab() const;
+  // And the Bank tab, the other door out of the panel, on the same terms.
+  bool on_bank_tab() const;
   // Whether the cursor stands up on the tab bar. The controller asks to tell
   // Enter on a tab apart from Enter on an item, and the layout asks so the tab
   // menu hangs at the panel's left rather than out past the item columns.

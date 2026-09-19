@@ -159,6 +159,7 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
       player_inspect_panel_(state),
       multi_sell_panel_(state.character, state.account),
       shop_panel_(state.character, state.equips, state.items),
+      bank_panel_(state.character, state.account, state.items),
       controller_(state, Screens{char_panel_,           equip_panel_,
                                  inventory_panel_,      scroll_panel_,
                                  inspect_panel_,        preview_inspect_panel_,
@@ -170,9 +171,10 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
                                  player_list_panel_,    trade_panel_,
                                  player_inspect_panel_, player_item_panel_,
                                  shop_panel_,           buy_panel_,
-                                 job_inspect_panel_,    skill_inspect_panel_,
-                                 buff_info_panel_,      menu_panel_,
-                                 keybinds_panel_,       options_panel_},
+                                 bank_panel_,           job_inspect_panel_,
+                                 skill_inspect_panel_,  buff_info_panel_,
+                                 menu_panel_,           keybinds_panel_,
+                                 options_panel_},
                   analysis_, keys_, panel_focus_, multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
@@ -408,6 +410,38 @@ ftxui::Element Tui::TradeAmountDialog() {
                           ThemedSeparator(),
                           controller_.trade_selector().Render(),
                       }));
+}
+
+ftxui::Element Tui::BankAmountDialog() {
+  const bool meso = controller_.bank_currency() == BankCurrency::kMeso;
+  // Which way it is going is the half the cursor is in, and the question says
+  // so: the same dialog asks the opposite thing from the other half.
+  const bool to_bank = bank_panel_.zone() == BankZone::kBag;
+  return ThemedWindow(
+      meso ? " Meso " : " Spell Traces ",
+      ftxui::vbox({
+          CenteredRow("How much to move"),
+          CenteredRow(to_bank ? "to the bank?" : "to the inventory?"),
+          ThemedSeparator(),
+          controller_.bank_selector().Render(),
+      }));
+}
+
+ftxui::Element Tui::RenderBankInspect() {
+  const EquipTabItem* item = bank_panel_.selected_equip();
+  // Two overloads of SetItem, so this cannot fold into one ternary.
+  if (item == nullptr) {
+    const StackableItem* stack = bank_panel_.selected_stack();
+    inspect_panel_.SetItem(stack == nullptr ? nullptr : &stack->prototype());
+  } else {
+    inspect_panel_.SetItem(item);
+    inspect_panel_.SetComparison(
+        controller_.WornForComparison(item->prototype()));
+    inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(item));
+  }
+  inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
+  inspect_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
+  return Centred(inspect_panel_.Render());
 }
 
 ftxui::Element Tui::TradeItemAmountDialog() {
@@ -979,6 +1013,15 @@ ftxui::Element Tui::RenderScreen() {
                                   controller_.trade_leave_prompt().Render()));
     case kTradeInspect:
       return RenderTradeInspect();
+    case kBank:
+    case kBankMenu:
+      // The menu is anchored to a row of one of the halves, so the panel puts
+      // it up itself.
+      return Centred(bank_panel_.Render());
+    case kBankAmount:
+      return Overlay(Centred(bank_panel_.Render()), BankAmountDialog());
+    case kBankInspect:
+      return RenderBankInspect();
     case kPlayerList:
     case kPlayerMenu:
       // The menu is anchored to a row of the list, so the panel puts it up

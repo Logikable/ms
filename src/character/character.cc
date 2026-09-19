@@ -2037,6 +2037,10 @@ int CharacterInstance::AddItem(const ItemPrototype& proto, int count) {
   return etc_items_.Add(proto, count);
 }
 
+int CharacterInstance::TakeStack(int index, int count) {
+  return etc_items_.Take(index, count);
+}
+
 std::unique_ptr<EquipTabItem> CharacterInstance::TakeEquip(int index) {
   if (index < 0 || index >= inventory_.size()) {
     return nullptr;

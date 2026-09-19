@@ -32,7 +32,8 @@ class InventoryListTest : public PanelTest {
   }
 
   std::vector<InventoryRowState> Rows(int width = kRightColumnMin - 2) {
-    return BuildEquipRows(c_, 0, std::chrono::steady_clock::duration::zero(),
+    return BuildEquipRows(c_, c_.inventory(), 0,
+                          std::chrono::steady_clock::duration::zero(),
                           Columns(width));
   }
 

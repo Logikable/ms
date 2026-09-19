@@ -131,6 +131,14 @@ enum Screen : int {
   // The card a cleared fight ends on: what it paid, and one button to leave
   // it by.
   kBossClear,
+  // Bank on the bag's tab bar: the character's bag over the account's bank,
+  // and the three questions moving something across can ask.
+  kBank,
+  kBankMenu,
+  // Enter on a balance in either half: how much of it to move the other way.
+  kBankAmount,
+  // Inspect on a row of either half.
+  kBankInspect,
   kShop,
   kShopMenu,
   kShopInspect,

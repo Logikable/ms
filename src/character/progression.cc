@@ -75,6 +75,8 @@ constexpr Unlock kUnlocks[] = {
     // handed. A second character is what a player wants once the first has
     // everything the game gives.
     {Feature::kCharacters, 210},
+    // The same level as the characters: see Feature::kBank.
+    {Feature::kBank, 210},
 };
 
 // What an ADVANCEMENT opens rather than a level, and which one opens it. A
@@ -212,6 +214,8 @@ std::string FeatureName(Feature feature) {
       return "Bosses";
     case Feature::kMultiplayer:
       return "Multiplayer";
+    case Feature::kBank:
+      return "Bank";
     case Feature::kCharacters:
       return "Characters";
     case Feature::kHyperStats:
