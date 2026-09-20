@@ -3599,6 +3599,28 @@ TEST_F(CharacterPanelTest, ReadOnlyLeavesTheNameAlone) {
 
 // --- The Link Skills row ---
 
+// The column `needle` starts in, counting from the head of its own line.
+int ColumnOf(const std::string& rendered, const std::string& needle) {
+  std::size_t at = rendered.find(needle);
+  if (at == std::string::npos) {
+    return -1;
+  }
+  std::size_t line = rendered.rfind('\n', at);
+  return static_cast<int>(at - (line == std::string::npos ? 0 : line + 1));
+}
+
+// The beginner's book, which every character holds: one passive, so the page
+// has a skill row to line the Link Skills row up against.
+std::map<std::string, Skill> BeginnerBook() {
+  Skill fairy;
+  fairy.set_name("Blessing of the Fairy");
+  fairy.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(fairy, JOB_ADVANCEMENT_BEGINNER);
+  fairy.set_account_levels_per_level(10);
+  fairy.set_max_level(20);
+  return {{"blessing_of_the_fairy", fairy}};
+}
+
 // A Hero on an account that has paid the last rung. The row is the account's
 // to open, so the level on the character is beside the point.
 CharacterInstance MakeLinkedHero(std::mt19937& rng) {
@@ -3625,18 +3647,22 @@ ftxui::Component OnBeginnerPage(CharacterPanel& panel) {
 TEST_F(CharacterPanelTest, TheLinkSkillsRowArrivesWithTheAccountsClimb) {
   CharacterInstance c = MakeLinkedHero(rng_);
   panel_focus_ = kCharPanel;
-  CharacterPanel before(c, account_, panel_focus_);
+  CharacterPanel before(c, account_, panel_focus_, BeginnerBook());
   before.SetWidth(kLeftColumnMax);
   EXPECT_EQ(
       ScreenText(RenderToScreen(OnBeginnerPage(before))).find("Link Skills"),
       std::string::npos);
 
   account_.RecordProgress(kLinkSkillsLevel, /*job_stage=*/4);
-  CharacterPanel panel(c, account_, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_, BeginnerBook());
   panel.SetWidth(kLeftColumnMax);
-  EXPECT_NE(
-      ScreenText(RenderToScreen(OnBeginnerPage(panel))).find("Link Skills"),
-      std::string::npos);
+  std::string rendered = ScreenText(RenderToScreen(OnBeginnerPage(panel)));
+  EXPECT_NE(rendered.find("Link Skills"), std::string::npos);
+  // It leads the page, and its name starts where a skill's does -- the tag's
+  // columns are left blank rather than reclaimed.
+  EXPECT_LT(rendered.find("Link Skills"), rendered.find("Blessing"));
+  EXPECT_EQ(ColumnOf(rendered, "Link Skills"), ColumnOf(rendered, "Blessing"))
+      << "the two names start in the same column";
 }
 
 // Enter on it opens the screen, and walking the trail puts each signpost out

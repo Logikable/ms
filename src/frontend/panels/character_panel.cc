@@ -900,6 +900,10 @@ bool CharacterPanel::ShowsLinkRow() const {
          Unlocked(Feature::kLinkSkills, character_, account_);
 }
 
+int CharacterPanel::SkillIndexFor(int row) const {
+  return ShowsLinkRow() ? row - 1 : row;
+}
+
 int CharacterPanel::SkillRowCount() const {
   return static_cast<int>(SkillsForPage(SelectedSkillPage()).size()) +
          (ShowsLinkRow() ? 1 : 0);
@@ -1020,24 +1024,29 @@ std::vector<int> CharacterPanel::SkillLines(
     int page, const std::vector<const Skill*>& skills) const {
   std::vector<int> breaks =
       IsVPage(page) ? VNodeSectionBreaks(skills) : std::vector<int>();
+  // Numbered in the cursor's rows rather than in the book's skills: the Link
+  // Skills row leads the beginner's page and is none of its skills.
   std::vector<int> lines;
+  int row = 0;
+  if (IsBeginnerPage(page) && ShowsLinkRow()) {
+    lines.push_back(row++);
+  }
   std::size_t next = 0;
   for (int i = 0; i < static_cast<int>(skills.size()); ++i) {
     if (next < breaks.size() && breaks[next] == i) {
       lines.push_back(-1);
       ++next;
     }
-    lines.push_back(i);
-  }
-  if (IsBeginnerPage(page) && ShowsLinkRow()) {
-    lines.push_back(static_cast<int>(skills.size()));
+    lines.push_back(row++);
   }
   return lines;
 }
 
 ftxui::Element CharacterPanel::RenderLinkRow(bool selected) const {
   // No kind tag and no level: nothing here is bought, and what the account
-  // has climbed is on the screen Enter opens. Gold until it is opened once.
+  // has climbed is on the screen Enter opens. The name still starts where
+  // every skill's does -- the tag's columns are left blank rather than
+  // reclaimed. Gold until the row has been opened once.
   ftxui::Element name = ftxui::text("Link Skills");
   if (selected) {
     name = std::move(name) | ftxui::inverted;
@@ -1045,7 +1054,7 @@ ftxui::Element CharacterPanel::RenderLinkRow(bool selected) const {
     name = std::move(name) | ftxui::color(kGold);
   }
   return ftxui::hbox({
-      ftxui::text("  "),
+      ftxui::text(" " + std::string(kSkillTagWidth, ' ')),
       std::move(name),
       ftxui::filler(),
       ftxui::text(" "),
@@ -1084,15 +1093,15 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
   int row_width = cells.empty() ? ContentWidth() : ContentWidth() - 1;
   LevelColumn column = MeasureLevelColumn(skills);
   for (int i = 0; i < visible; ++i) {
-    int index = lines[first + i];
+    int line = lines[first + i];
     ftxui::Element row;
-    if (index < 0) {
+    if (line < 0) {
       row = PanelSeparator(highlighted_);
-    } else if (index >= static_cast<int>(skills.size())) {
-      row = RenderLinkRow(rows_focused && skill_sel_ == index);
+    } else if (ShowsLinkRow() && line == 0) {
+      row = RenderLinkRow(rows_focused && skill_sel_ == line);
     } else {
-      row = RenderSkillRow(*skills[index], index, column, rows_focused,
-                           row_width);
+      row = RenderSkillRow(*skills[SkillIndexFor(line)], line, column,
+                           rows_focused, row_width);
     }
     if (cells.empty()) {
       rows.push_back(std::move(row));
@@ -1791,7 +1800,7 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
     return true;
   }
   if (IsForward(event)) {
-    if (ShowsLinkRow() && skill_sel_ == static_cast<int>(skills.size())) {
+    if (ShowsLinkRow() && skill_sel_ == 0) {
       FollowedToLinkSkills(LinkTrailStep::kLinkRow, account_);
       if (actions.link_skills) {
         actions.link_skills();
@@ -1800,10 +1809,10 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
     }
     // The stage can have fewer skills than the row the cursor last sat on --
     // switching advancement tabs does not reset it.
-    if (skill_sel_ >= static_cast<int>(skills.size())) {
+    if (SkillIndexFor(skill_sel_) >= static_cast<int>(skills.size())) {
       return true;
     }
-    const Skill& skill = *skills[skill_sel_];
+    const Skill& skill = *skills[SkillIndexFor(skill_sel_)];
     if (EffectiveSkillCol() == kColName) {
       // Never gated: a maxed skill with no SP behind it still has a
       // description and a level table worth reading.

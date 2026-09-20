@@ -456,6 +456,9 @@ class CharacterPanel {
   bool ShowsLinkRow() const;
   // The stops the page under the cursor has: its skills, and that row.
   int SkillRowCount() const;
+  // The skill a cursor row names, SkillsForPage-indexed. The Link Skills row
+  // leads the beginner's page, so every skill under it sits one row down.
+  int SkillIndexFor(int row) const;
   // The Link Skills row itself, gold until the player has pressed Enter on it.
   ftxui::Element RenderLinkRow(bool selected) const;
   // Whether the character may not learn `skill` yet -- a skill below it still
