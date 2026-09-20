@@ -625,6 +625,31 @@ bool LeaveUnbought(const Skill& skill, int unspent_stage) {
   return StageForAdvancement(BookOf(skill)) >= unspent_stage;
 }
 
+// The skills worth offering this character at every level of the climb, in
+// the catalog's own order. Whose book a skill is in changes only when a book
+// is taken, so the question is asked once an advancement rather than once a
+// level: the catalog is 450 skills deep and a book is forty of them, and
+// asking all of it at all 230 levels was the slowest thing in the tests.
+std::vector<const Skill*> BuyableSkills(const CharacterInstance& character,
+                                        const GameState& state,
+                                        int unspent_stage) {
+  std::vector<const Skill*> buyable;
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    const Skill& skill = entry.second;
+    // The two LearnSkill turns away without asking the books: a form bought
+    // by buying what it stands in for, and a node bought out of the matrix.
+    if (!skill.replaces_skill_name().empty() ||
+        LeaveUnbought(skill, unspent_stage)) {
+      continue;
+    }
+    if (skill.v_node() != V_NODE_KIND_UNSPECIFIED ||
+        character.HasBookFor(skill)) {
+      buyable.push_back(&skill);
+    }
+  }
+  return buyable;
+}
+
 // Climbs to `level` the way a player gets there, taking each advancement in
 // `path` as it is offered. AP is always spent into the primary stat -- a
 // hundred points in the pool is a hundred keypresses between the tester and
@@ -633,6 +658,8 @@ bool LeaveUnbought(const Skill& skill, int unspent_stage) {
 void GrowTo(GameState& state, int level, const std::vector<Job>& path,
             int unspent_stage) {
   CharacterInstance& character = state.character;
+  std::vector<const Skill*> buyable =
+      BuyableSkills(character, state, unspent_stage);
   int taken = 0;
   while (character.proto().level() < level) {
     int before = character.proto().level();
@@ -640,16 +667,14 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
     GrantLevelRewards(state, before, character.proto().level());
     if (character.CanAdvanceJob() && taken < static_cast<int>(path.size())) {
       character.AdvanceJob(path[taken++]);
+      buyable = BuyableSkills(character, state, unspent_stage);
     }
     // After the advancement, not before: it puts every allocated point back in
     // the pool and re-spends it for the new job.
     while (character.AllocateStat(PrimaryStatField(character.proto().job()))) {
     }
-    for (const std::pair<const std::string, Skill>& entry : state.skills) {
-      if (LeaveUnbought(entry.second, unspent_stage)) {
-        continue;
-      }
-      while (character.LearnSkill(entry.second)) {
+    for (const Skill* skill : buyable) {
+      while (character.LearnSkill(*skill)) {
       }
     }
   }
