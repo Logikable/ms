@@ -19,7 +19,10 @@ namespace {
 
 using ::std::chrono::milliseconds;
 
-constexpr milliseconds kPatience(4000);
+// How long a round trip is given before the test calls it lost. Generous:
+// nothing here waits it out on the way to passing, and the suite runs these
+// alongside fifteen other targets on a machine with sixteen cores.
+constexpr milliseconds kPatience(15000);
 
 PlayerInfo Player(const std::string& name) {
   PlayerInfo player;
