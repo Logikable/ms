@@ -17,6 +17,20 @@ int LinkRungsFor(int level) {
   return rungs;
 }
 
+const LinkPreset& PresetOf(const LinkSkills& link, StatPreset slot) {
+  if (IndexOf(slot) >= link.presets_size()) {
+    return LinkPreset::default_instance();
+  }
+  return link.presets(IndexOf(slot));
+}
+
+LinkPreset& PresetOf(LinkSkills& link, StatPreset slot) {
+  while (link.presets_size() < kNumStatPresets) {
+    link.add_presets();
+  }
+  return *link.mutable_presets(IndexOf(slot));
+}
+
 void LinkTally::Record(Job job, int level) {
   Job line = LineOf(job);
   if (line == JOB_UNSPECIFIED) {

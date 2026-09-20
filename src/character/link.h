@@ -15,6 +15,7 @@
 
 #include <map>
 
+#include "src/character/stat_preset.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {
@@ -33,6 +34,12 @@ inline constexpr int kLinkSkillsLevel = 210;
 
 // What one character of `level` pays their line: 0 below the first rung.
 int LinkRungsFor(int level);
+
+// The skills `slot` carries, empty for a slot a character has never filled.
+const LinkPreset& PresetOf(const LinkSkills& link, StatPreset slot);
+// The same, growing the list to kNumStatPresets first -- the mirror of
+// MigrateInnerAbility, and called for the same reason.
+LinkPreset& PresetOf(LinkSkills& link, StatPreset slot);
 
 // The best level reached on each job line, keyed by the line's second job --
 // see LineOf. A line nobody has taken is absent.

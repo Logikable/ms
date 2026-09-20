@@ -360,7 +360,7 @@ int LevelWithBonus(const Skill& skill, int learned, int bonus);
 // learned. The level everything that READS a skill wants. Spending SP wants
 // skill_level() instead -- a granted level is not one the player bought.
 int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
-                        int bonus);
+                        int bonus, Activity activity = Activity::kFarming);
 
 // An attack's effect, split in two: a few levers on a skill that DEALS DAMAGE
 // are true only for the swing stating them -- Gungnir's Descent ignores 30%

@@ -276,6 +276,7 @@ cc_library(
     hdrs = ["link.h"],
     deps = [
         ":job_branch",
+        ":stat_preset",
         "//src/protos:character_proto_cc",
     ],
 )

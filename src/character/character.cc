@@ -1255,6 +1255,8 @@ StatPreset CharacterInstance::SlotInUse(PresetKind kind) const {
       return StatPresetAt(character_.inner_ability().active());
     case PresetKind::kEquip:
       return StatPresetAt(character_.equip_presets().active());
+    case PresetKind::kLinkSkills:
+      return StatPresetAt(character_.link_skills().active());
   }
   return StatPreset::kFirst;
 }
@@ -1269,6 +1271,9 @@ void CharacterInstance::SetSlotInUse(PresetKind kind, StatPreset slot) {
       return;
     case PresetKind::kEquip:
       character_.mutable_equip_presets()->set_active(IndexOf(slot));
+      return;
+    case PresetKind::kLinkSkills:
+      character_.mutable_link_skills()->set_active(IndexOf(slot));
       return;
   }
 }
@@ -1288,6 +1293,10 @@ void CharacterInstance::SwapPresets(PresetKind kind, StatPreset a,
     HyperStats& stats = *character_.mutable_hyper_stats();
     MigrateHyperStats(stats);
     stats.mutable_presets()->SwapElements(IndexOf(a), IndexOf(b));
+  } else if (kind == PresetKind::kLinkSkills) {
+    LinkSkills& link = *character_.mutable_link_skills();
+    PresetOf(link, StatPresetAt(kNumStatPresets - 1));  // grows the list
+    link.mutable_presets()->SwapElements(IndexOf(a), IndexOf(b));
   } else {
     InnerAbility& ability = *character_.mutable_inner_ability();
     MigrateInnerAbility(ability);
@@ -1587,30 +1596,43 @@ JobAdvancement CharacterInstance::BookHeldFor(const Skill& skill) const {
   return JOB_ADVANCEMENT_UNSPECIFIED;
 }
 
-bool CharacterInstance::HoldsSkillFrom(const Skill& skill) const {
+bool CharacterInstance::HoldsSkillFrom(const Skill& skill,
+                                       Activity activity) const {
   if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
     return ReachesVNode(skill);
   }
   if (skill.link_line() != JOB_UNSPECIFIED) {
-    return HoldsLinkSkill(skill);
+    return HoldsLinkSkill(skill, activity);
   }
   return HasBookFor(skill);
 }
 
-bool CharacterInstance::HoldsLinkSkill(const Skill& skill) const {
+const google::protobuf::RepeatedPtrField<std::string>&
+CharacterInstance::link_skills(StatPreset slot) const {
+  return PresetOf(character_.link_skills(), slot).skills();
+}
+
+bool CharacterInstance::HoldsLinkSkill(const Skill& skill,
+                                       Activity activity) const {
   if (skill.link_line() == JOB_UNSPECIFIED || !link_skills_unlocked()) {
     return false;
   }
   // Their own line's is theirs whatever they have equipped, and takes none of
-  // the twelve. GMS's rule, and the reason the list never holds it.
+  // the twelve. GMS's rule, and the reason no preset holds it.
   if (BranchOf(skill.link_line()) == BranchOf(character_.job())) {
     return true;
   }
-  return absl::c_linear_search(character_.link_skills(), skill.name());
+  return absl::c_linear_search(
+      link_skills(SlotFor(PresetKind::kLinkSkills, activity)), skill.name());
 }
 
-int CharacterInstance::LinkSkillLevel(const Skill& skill) const {
-  if (!HoldsLinkSkill(skill)) {
+int CharacterInstance::LinkSkillLevel(const Skill& skill,
+                                      Activity activity) const {
+  return HoldsLinkSkill(skill, activity) ? LinkSkillLevelOffered(skill) : 0;
+}
+
+int CharacterInstance::LinkSkillLevelOffered(const Skill& skill) const {
+  if (skill.link_line() == JOB_UNSPECIFIED) {
     return 0;
   }
   return std::min(SkillMaxLevel(skill),
@@ -1618,56 +1640,62 @@ int CharacterInstance::LinkSkillLevel(const Skill& skill) const {
                       .LevelFor(skill.link_line()));
 }
 
-bool CharacterInstance::EquipLinkSkill(const std::string& name) {
-  if (character_.link_skills().size() >= kMaxEquippedLinkSkills ||
-      absl::c_linear_search(character_.link_skills(), name)) {
+bool CharacterInstance::EquipLinkSkill(const std::string& name,
+                                       StatPreset slot) {
+  LinkPreset& preset = PresetOf(*character_.mutable_link_skills(), slot);
+  if (preset.skills_size() >= kMaxEquippedLinkSkills ||
+      absl::c_linear_search(preset.skills(), name)) {
     return false;
   }
-  character_.add_link_skills(name);
+  preset.add_skills(name);
   return true;
 }
 
-bool CharacterInstance::UnequipLinkSkill(const std::string& name) {
-  google::protobuf::RepeatedPtrField<std::string>* held =
-      character_.mutable_link_skills();
-  auto it = absl::c_find(*held, name);
-  if (it == held->end()) {
+bool CharacterInstance::UnequipLinkSkill(const std::string& name,
+                                         StatPreset slot) {
+  LinkPreset& preset = PresetOf(*character_.mutable_link_skills(), slot);
+  auto it = absl::c_find(preset.skills(), name);
+  if (it == preset.skills().end()) {
     return false;
   }
-  held->erase(it);
+  preset.mutable_skills()->erase(it);
   return true;
 }
 
 int CharacterInstance::ReconcileLinkSkills(
     const std::map<std::string, Skill>& skills) {
-  int moved = 0;
-  google::protobuf::RepeatedPtrField<std::string>* held =
-      character_.mutable_link_skills();
-  // A name the catalog dropped, and their own line's, which is held for free
-  // and must not sit in the list spending one of the twelve. The catalog is
-  // keyed by file stem and the list by display name, so this reads the
-  // entries rather than looking one up.
-  for (int i = held->size() - 1; i >= 0; --i) {
-    bool equippable = false;
+  // Whether a name is one this character could be carrying: a link skill the
+  // catalog still has, of a line that is not their own. The catalog is keyed
+  // by file stem and a preset by display name, so this reads the entries
+  // rather than looking one up.
+  auto equippable = [this, &skills](const std::string& name) {
     for (const std::pair<const std::string, Skill>& entry : skills) {
       const Skill& skill = entry.second;
-      equippable = equippable ||
-                   (skill.name() == held->at(i) &&
-                    skill.link_line() != JOB_UNSPECIFIED &&
-                    BranchOf(skill.link_line()) != BranchOf(character_.job()));
+      if (skill.name() == name && skill.link_line() != JOB_UNSPECIFIED &&
+          BranchOf(skill.link_line()) != BranchOf(character_.job())) {
+        return true;
+      }
     }
-    if (!equippable) {
-      held->DeleteSubrange(i, 1);
-      ++moved;
+    return false;
+  };
+  int moved = 0;
+  for (int i = 0; i < kNumStatPresets; ++i) {
+    const StatPreset slot = StatPresetAt(i);
+    LinkPreset& preset = PresetOf(*character_.mutable_link_skills(), slot);
+    for (int at = preset.skills_size() - 1; at >= 0; --at) {
+      if (!equippable(preset.skills(at))) {
+        preset.mutable_skills()->DeleteSubrange(at, 1);
+        ++moved;
+      }
     }
-  }
-  for (const std::pair<const std::string, Skill>& entry : skills) {
-    const Skill& skill = entry.second;
-    if (skill.link_line() == JOB_UNSPECIFIED ||
-        BranchOf(skill.link_line()) == BranchOf(character_.job())) {
-      continue;
+    for (const std::pair<const std::string, Skill>& entry : skills) {
+      const Skill& skill = entry.second;
+      if (skill.link_line() == JOB_UNSPECIFIED ||
+          BranchOf(skill.link_line()) == BranchOf(character_.job())) {
+        continue;
+      }
+      moved += EquipLinkSkill(skill.name(), slot) ? 1 : 0;
     }
-    moved += EquipLinkSkill(skill.name()) ? 1 : 0;
   }
   return moved;
 }

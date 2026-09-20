@@ -486,28 +486,33 @@ class CharacterInstance {
   const LinkTally& link_tally() const {
     return link_tally_;
   }
-  // The link skills this character carries, their own line's excluded -- it
-  // is held for free and is not in the list. See Character.link_skills.
-  const google::protobuf::RepeatedPtrField<std::string>& link_skills() const {
-    return character_.link_skills();
-  }
-  // Whether this character carries `skill`: their own line's, or one of the
-  // equipped. False for anything that is not a link skill, and for every one
-  // of them until the account has opened them.
-  bool HoldsLinkSkill(const Skill& skill) const;
+  // The link skills `slot` carries, their own line's excluded -- it is held
+  // for free and is not in the list. See Character.link_skills.
+  const google::protobuf::RepeatedPtrField<std::string>& link_skills(
+      StatPreset slot = StatPreset::kFirst) const;
+  // Whether this character carries `skill` while doing `activity`: their own
+  // line's, or one equipped in the preset that activity reads. False for
+  // anything that is not a link skill, and for every one of them until the
+  // account has opened them.
+  bool HoldsLinkSkill(const Skill& skill,
+                      Activity activity = Activity::kFarming) const;
   // What `skill` stands at for this character, 0 for one they do not hold.
   // Held to the skill's own maximum: the ladder in the data runs to GMS's
   // top level whether or not the four job lines can reach it.
-  int LinkSkillLevel(const Skill& skill) const;
-  // Puts `name` on, or takes it off. Equipping refuses a full list and one
-  // already on; both refuse a name that is not a link skill, which is the
-  // caller's to check. Return whether anything moved.
-  bool EquipLinkSkill(const std::string& name);
-  bool UnequipLinkSkill(const std::string& name);
-  // Fills the list up to kMaxEquippedLinkSkills from `skills`, in catalog
+  int LinkSkillLevel(const Skill& skill,
+                     Activity activity = Activity::kFarming) const;
+  // The level `skill` would stand at once carried, whatever this character
+  // has equipped: what the screen offering it has to show.
+  int LinkSkillLevelOffered(const Skill& skill) const;
+  // Puts `name` into `slot`, or takes it off. Equipping refuses a full preset
+  // and one already on; both refuse a name that is not a link skill, which is
+  // the caller's to check. Return whether anything moved.
+  bool EquipLinkSkill(const std::string& name, StatPreset slot);
+  bool UnequipLinkSkill(const std::string& name, StatPreset slot);
+  // Fills every preset up to kMaxEquippedLinkSkills from `skills`, in catalog
   // order, and drops names the catalog no longer has. Returns how many moved.
-  // Called on loading a save: with no screen to equip them on, what the
-  // account has unlocked is simply carried.
+  // Called on loading a save: what the account has unlocked is carried by
+  // every preset until the player says otherwise.
   int ReconcileLinkSkills(const std::map<std::string, Skill>& skills);
   // Which preset of `kind` the player has put in use, and the way to change
   // it. Read only while the autoswap is off; each kind keeps its own.
@@ -602,12 +607,13 @@ class CharacterInstance {
   int LevelsAffordable(const Skill& skill) const;
   // The learned level in `skill`, 0 for unlearned. A Vengeance form reads its
   // Benevolence skill's level, being the same row of the same book.
-  int skill_level(const Skill& skill) const {
+  int skill_level(const Skill& skill,
+                  Activity activity = Activity::kFarming) const {
     if (skill.account_levels_per_level() > 0) {
       return DerivedSkillLevel(skill);
     }
     if (skill.link_line() != JOB_UNSPECIFIED) {
-      return LinkSkillLevel(skill);
+      return LinkSkillLevel(skill, activity);
     }
     const std::string& key = skill.replaces_skill_name().empty()
                                  ? skill.name()
@@ -639,8 +645,10 @@ class CharacterInstance {
   // Whether `skill` comes from a book this character holds: their matrix for a
   // node, the advancement it names otherwise. Levels are keyed by display name
   // and branches share several, so this is what keeps another branch's copy
-  // from folding in beside their own.
-  bool HoldsSkillFrom(const Skill& skill) const;
+  // from folding in beside their own. A link skill is the one kind `activity`
+  // decides: which of them is carried is a preset.
+  bool HoldsSkillFrom(const Skill& skill,
+                      Activity activity = Activity::kFarming) const;
   // Whether this character's matrix holds the node `skill`: a common node
   // reaches every job, every other names the 5th advancement that may buy
   // it.

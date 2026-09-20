@@ -1631,26 +1631,67 @@ TEST_F(CharacterTest, LinkSkillsCostNothingAndAreWornByDefault) {
       MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5, JOB_HERO);
   hero.set_account_max_level(210);
 
-  EXPECT_EQ(hero.ReconcileLinkSkills(skills), 1) << "their own is not in it";
-  ASSERT_EQ(hero.link_skills().size(), 1);
-  EXPECT_EQ(hero.link_skills().at(0), "Thief's Cunning");
+  // Every preset is filled: what the account unlocked is carried whichever
+  // one is in play until the player says otherwise.
+  EXPECT_EQ(hero.ReconcileLinkSkills(skills), kNumStatPresets)
+      << "their own is not in it";
+  for (int i = 0; i < kNumStatPresets; ++i) {
+    ASSERT_EQ(hero.link_skills(StatPresetAt(i)).size(), 1);
+    EXPECT_EQ(hero.link_skills(StatPresetAt(i)).at(0), "Thief's Cunning");
+  }
   EXPECT_TRUE(hero.HoldsSkillFrom(skills.at("thiefs_cunning")));
+  EXPECT_TRUE(
+      hero.HoldsSkillFrom(skills.at("thiefs_cunning"), Activity::kBossing));
   EXPECT_EQ(hero.SpFor(skills.at("invincible_belief")), 0);
   EXPECT_FALSE(hero.LearnSkill(skills.at("invincible_belief")));
   // Idempotent: a second pass has nothing left to put on.
   EXPECT_EQ(hero.ReconcileLinkSkills(skills), 0);
 }
 
-TEST_F(CharacterTest, TwelveIsAsManyLinkSkillsAsOneCharacterCarries) {
+TEST_F(CharacterTest, TwelveIsAsManyLinkSkillsAsOnePresetCarries) {
   CharacterInstance c = MakeCharacter(rng_);
   for (int i = 0; i < kMaxEquippedLinkSkills; ++i) {
-    EXPECT_TRUE(c.EquipLinkSkill("Link " + std::to_string(i)));
+    EXPECT_TRUE(
+        c.EquipLinkSkill("Link " + std::to_string(i), StatPreset::kFirst));
   }
-  EXPECT_FALSE(c.EquipLinkSkill("Link 12")) << "the list is full";
-  EXPECT_FALSE(c.EquipLinkSkill("Link 0")) << "and never holds one twice";
-  EXPECT_TRUE(c.UnequipLinkSkill("Link 0"));
-  EXPECT_FALSE(c.UnequipLinkSkill("Link 0"));
-  EXPECT_TRUE(c.EquipLinkSkill("Link 12"));
+  EXPECT_FALSE(c.EquipLinkSkill("Link 12", StatPreset::kFirst))
+      << "the preset is full";
+  EXPECT_FALSE(c.EquipLinkSkill("Link 0", StatPreset::kFirst))
+      << "and never holds one twice";
+  EXPECT_TRUE(c.UnequipLinkSkill("Link 0", StatPreset::kFirst));
+  EXPECT_FALSE(c.UnequipLinkSkill("Link 0", StatPreset::kFirst));
+  EXPECT_TRUE(c.EquipLinkSkill("Link 12", StatPreset::kFirst));
+  // The presets are apart: a full first one leaves the second empty.
+  EXPECT_TRUE(c.link_skills(StatPreset::kSecond).empty());
+}
+
+// The preset row's whole point: which skills a character carries depends on
+// what they are doing.
+TEST_F(CharacterTest, EachLinkPresetCarriesItsOwnSkills) {
+  Skill rogue = LinkSkill("Thief's Cunning", JOB_ROGUE);
+  Skill magician = LinkSkill("Empirical Knowledge", JOB_MAGICIAN);
+  CharacterInstance hero = MakeLinked(rng_, JOB_HERO, 210);
+  LinkTally tally;
+  tally.Record(JOB_BISHOP, 210);
+  hero.set_link_tally(tally);
+  hero.set_autoswap_presets(true);
+  ASSERT_TRUE(hero.EquipLinkSkill(rogue.name(), StatPreset::kFirst));
+  ASSERT_TRUE(hero.EquipLinkSkill(magician.name(), StatPreset::kSecond));
+
+  EXPECT_TRUE(hero.HoldsLinkSkill(rogue, Activity::kFarming));
+  EXPECT_FALSE(hero.HoldsLinkSkill(rogue, Activity::kBossing));
+  EXPECT_TRUE(hero.HoldsLinkSkill(magician, Activity::kBossing));
+  EXPECT_EQ(hero.skill_level(magician, Activity::kFarming), 0);
+  EXPECT_EQ(hero.skill_level(magician, Activity::kBossing), 3);
+  EXPECT_EQ(hero.LinkSkillLevelOffered(magician), 3)
+      << "what the screen offering it shows";
+
+  // With the switch off the slot in use answers instead, whatever the
+  // character is doing.
+  hero.set_autoswap_presets(false);
+  hero.SetSlotInUse(PresetKind::kLinkSkills, StatPreset::kSecond);
+  EXPECT_TRUE(hero.HoldsLinkSkill(magician, Activity::kFarming));
+  EXPECT_FALSE(hero.HoldsLinkSkill(rogue, Activity::kFarming));
 }
 
 // --- Advancement mapping ---

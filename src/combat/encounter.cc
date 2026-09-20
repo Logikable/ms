@@ -776,7 +776,7 @@ bool Available(const GameState& state, const Skill& skill,
   // Learned levels are keyed by display name, which branches share, so ask
   // whose book this is. HoldsSkillFrom, not HasAdvancement, or a V node would
   // never be swingable: a common node's advancement is nobody's.
-  if (!state.character.HoldsSkillFrom(skill)) {
+  if (!state.character.HoldsSkillFrom(skill, activity)) {
     return false;
   }
   // A skill the gear in hand cannot swing is no option. The bare poke always
@@ -1014,7 +1014,8 @@ struct SkillBoosts {
 // attack is built with the whole of it already in.
 std::map<std::string, SkillBoosts> BoostsByTarget(
     const CharacterInstance& character,
-    const std::map<std::string, Skill>& skills, int bonus) {
+    const std::map<std::string, Skill>& skills, int bonus,
+    Activity activity = Activity::kFarming) {
   // The nudge SkillLinesAt takes, for the same reason: a rate written as a
   // decimal lands a hair under the level it is meant to buy.
   std::map<std::string, SkillBoosts> by_target;
@@ -1023,10 +1024,10 @@ std::map<std::string, SkillBoosts> BoostsByTarget(
     // Learned levels are keyed by display name, which branches share, so
     // only the character's own book grants anything. Asked of the character
     // rather than the advancement: a V node belongs to no book.
-    if (!character.HoldsSkillFrom(skill)) {
+    if (!character.HoldsSkillFrom(skill, activity)) {
       continue;
     }
-    int learned = EffectiveSkillLevel(character, skill, bonus);
+    int learned = EffectiveSkillLevel(character, skill, bonus, activity);
     if (learned <= 0) {
       continue;
     }
@@ -1211,10 +1212,11 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
                        const std::vector<CombatType>& types, AttackSet& set) {
   int bonus = BonusSkillLevels(state.character, state.skills);
   std::map<std::string, SkillBoosts> boosts =
-      BoostsByTarget(state.character, state.skills, bonus);
+      BoostsByTarget(state.character, state.skills, bonus, derived.activity);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
-    int learned = EffectiveSkillLevel(state.character, skill, bonus);
+    int learned =
+        EffectiveSkillLevel(state.character, skill, bonus, derived.activity);
     if (learned <= 0) {
       continue;
     }
@@ -1292,11 +1294,12 @@ void AddMagazines(const GameState& state, const DerivedStats& derived,
   const EquipStats total_stats = TotalEquipStats(state.character, derived);
   int bonus = BonusSkillLevels(state.character, state.skills);
   std::map<std::string, SkillBoosts> boosts =
-      BoostsByTarget(state.character, state.skills, bonus);
+      BoostsByTarget(state.character, state.skills, bonus, derived.activity);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
     const Magazine& magazine = skill.buff().magazine();
-    int learned = EffectiveSkillLevel(state.character, skill, bonus);
+    int learned =
+        EffectiveSkillLevel(state.character, skill, bonus, derived.activity);
     if (learned <= 0 || magazine.charges() <= 0) {
       continue;
     }
@@ -1376,12 +1379,13 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
                                   types, derived, attack_speed, speed_factor));
   int bonus = BonusSkillLevels(state.character, state.skills);
   std::map<std::string, SkillBoosts> boosts =
-      BoostsByTarget(state.character, state.skills, bonus);
+      BoostsByTarget(state.character, state.skills, bonus, derived.activity);
   std::set<std::string> superseded =
       DormantSkillNames(state.character, state.skills, bonus, derived.activity);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
-    int learned = EffectiveSkillLevel(state.character, skill, bonus);
+    int learned =
+        EffectiveSkillLevel(state.character, skill, bonus, derived.activity);
     if (learned <= 0 ||
         !Available(state, skill, superseded, derived.activity)) {
       continue;
@@ -1606,13 +1610,13 @@ void AddBuffs(const GameState& state,
   absl::Span<const CharacterInstance> party = absl::MakeConstSpan(state.party);
   int bonus = BonusSkillLevels(character, skills);
   std::map<std::string, SkillBoosts> boosts =
-      BoostsByTarget(character, skills, bonus);
+      BoostsByTarget(character, skills, bonus, derived.activity);
   const Skill* previous = nullptr;
   int copy = 0;
   for (const Skill* skill : buff_skills) {
     copy = skill == previous ? copy + 1 : 0;
     previous = skill;
-    int level = EffectiveSkillLevel(character, *skill, bonus);
+    int level = EffectiveSkillLevel(character, *skill, bonus, derived.activity);
     const Buff& buff = skill->buff();
     // Which shed-stage this window is. A STACK's windows are alike -- each is
     // gathered on its own roll and lives out the whole length -- so only a

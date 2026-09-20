@@ -677,9 +677,9 @@ bool GrantsAnything(const CharacterInstance& character, const Skill& skill,
                     int bonus, Activity activity) {
   // A common node belongs to no advancement at all, so this asks the character
   // which books they hold rather than the advancement directly.
-  return character.HoldsSkillFrom(skill) &&
+  return character.HoldsSkillFrom(skill, activity) &&
          SkillGearMet(character, skill, activity) &&
-         EffectiveSkillLevel(character, skill, bonus) > 0;
+         EffectiveSkillLevel(character, skill, bonus, activity) > 0;
 }
 
 // Whether a grant reaching ONE member reaches this one: the first name in the
@@ -1260,8 +1260,8 @@ int LevelWithBonus(const Skill& skill, int learned, int bonus) {
 }
 
 int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
-                        int bonus) {
-  return LevelWithBonus(skill, character.skill_level(skill), bonus);
+                        int bonus, Activity activity) {
+  return LevelWithBonus(skill, character.skill_level(skill, activity), bonus);
 }
 
 std::set<std::string> DormantSkillNames(
@@ -1311,9 +1311,10 @@ std::vector<const Skill*> BuffSkillsFor(
     // The three gates every passive passes -- whose book, what gear, what
     // level -- plus the one a buff shares with a swing: a skill the book is
     // not showing has no buff to raise.
-    if (!GrantsBuff(skill) || !character.HoldsSkillFrom(skill) ||
+    if (!GrantsBuff(skill) || !character.HoldsSkillFrom(skill, activity) ||
         !SkillGearMet(character, skill, activity) ||
-        character.skill_level(skill) <= 0 || dormant.count(skill.name()) > 0) {
+        character.skill_level(skill, activity) <= 0 ||
+        dormant.count(skill.name()) > 0) {
       continue;
     }
     buffs.push_back(&skill);

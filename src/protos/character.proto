@@ -354,6 +354,24 @@ message EquipPresets {
   int32 active = 2;
 }
 
+// One preset's link skills, by display name, at most kMaxEquippedLinkSkills
+// of them. The character's own line's skill is never in here -- it is held
+// for free and takes no slot, exactly as GMS has it.
+message LinkPreset {
+  repeated string skills = 1;
+}
+
+// The three sets of link skills a character keeps, chosen between the same
+// way the Hyper Stat presets are.
+message LinkSkills {
+  // Always kNumStatPresets long once a character has opened them.
+  repeated LinkPreset presets = 1;
+
+  // Which of them the player has put in use, read only while Autoswap
+  // Presets is off. Its own field, for InnerAbility.active's reason.
+  int32 active = 2;
+}
+
 message Character {
   // What the player calls this character, alphanumeric and at most
   // kMaxUsernameLength. Never empty once saved: an unnamed character carries
@@ -464,12 +482,10 @@ message Character {
   // permanent unlock is bought out of one character's purse.
   Consumables consumables = 23;
 
-  // The link skills this character carries, by display name, at most
-  // kMaxEquippedLinkSkills of them. Per character on purpose: what the
-  // account UNLOCKED is shared, and which of it one character brings is
-  // theirs. Their own line's is not in here -- it is held for free and takes
-  // no slot, exactly as GMS has it. See //src/character:link.
-  repeated string link_skills = 28;
+  // The link skills this character carries, as three presets. Per character
+  // on purpose: what the account UNLOCKED is shared, and which of it one
+  // character brings is theirs. See //src/character:link.
+  LinkSkills link_skills = 28;
 
   // Tabs opened and gold trails walked, which the account keeps as of format
   // version 2: what the player has been shown once is shown to all of their
