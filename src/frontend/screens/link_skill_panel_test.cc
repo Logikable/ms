@@ -70,11 +70,22 @@ class LinkSkillPanelTest : public PanelTest {
     return *hero_;
   }
 
-  std::string Text() {
+  ftxui::Screen Draw() {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
                                                  ftxui::Dimension::Fixed(40));
     ftxui::Render(screen, ftxui::center(panel_->Render()));
-    return ScreenText(screen);
+    return screen;
+  }
+
+  std::string Text() {
+    return ScreenText(Draw());
+  }
+
+  // The rows the screen asks for, borders and all.
+  int Rows() {
+    ftxui::Element screen = panel_->Render();
+    screen->ComputeRequirement();
+    return screen->requirement().min_y;
   }
 
   // Onto the middle window, wherever the cursor was, and down onto its first
@@ -270,4 +281,28 @@ TEST_F(LinkSkillPanelTest, ABeginnerHasNoSkillOfTheirOwn) {
 }
 
 }  // namespace
+// One height whatever the lists hold: twelve slots in the middle window and
+// eight rows in the bottom one, drawn blank where nothing fills them, so a
+// skill moving between the two does not move the screen under the cursor.
+TEST_F(LinkSkillPanelTest, TheScreenIsOneHeightWhateverTheListsHold) {
+  int height = Rows();
+  panel_->NextZone(1);
+  panel_->NextZone(1);
+  while (panel_->cursor().skill != nullptr) {
+    ASSERT_TRUE(panel_->AddSelected());
+    EXPECT_EQ(Rows(), height);
+  }
+  EXPECT_EQ(panel_->cursor().kind, LinkCursor::Kind::kNothing)
+      << "the bottom window has run out";
+  EXPECT_NE(Text().find("(nothing left to add)"), std::string::npos);
+  EXPECT_EQ(Rows(), height);
+}
+
+// The caret is the whole cursor: no band behind the row it stands on.
+TEST_F(LinkSkillPanelTest, TheCaretIsTheOnlyCursorMark) {
+  ftxui::Screen screen = Draw();
+  ASSERT_NE(FindOnScreen(screen, "> Invincible Belief").x, -1);
+  EXPECT_FALSE(PixelOf(screen, "Invincible Belief").inverted);
+}
+
 }  // namespace ms

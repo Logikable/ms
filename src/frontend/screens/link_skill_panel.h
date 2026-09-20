@@ -130,8 +130,8 @@ class LinkSkillPanel {
   int LevelOf(const Skill& skill) const;
   // That level as the column prints it, the lent part in brackets.
   std::string LevelText(const Skill& skill) const;
-  // The header the top window carries for all three: the other two sit under
-  // it and need no second copy.
+  // The header the top window carries for all three, over the game's usual
+  // rule: the other two sit under it and need no second copy.
   ftxui::Element RenderHeader() const;
   ftxui::Element RenderMine() const;
   ftxui::Element RenderEnabled() const;

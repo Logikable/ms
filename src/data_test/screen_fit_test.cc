@@ -200,7 +200,7 @@ TEST_F(ScreenFitTest, Bank) {
 
 // The three windows are a fixed height apiece -- twelve slots whatever the
 // preset holds -- so this is a guard on the constants rather than on the
-// catalog: the two above leave the bottom one nine rows and no more.
+// catalog: the two above leave the bottom one eight rows and no more.
 TEST_F(ScreenFitTest, LinkSkills) {
   LinkSkillPanel panel(state_.character, state_.skills);
   panel.Reset();

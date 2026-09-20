@@ -30,15 +30,20 @@ namespace {
 constexpr int kContentWidth = 98;
 constexpr int kCaretWidth = 2;
 constexpr int kNameWidth = 24;
+// "12 (+2)", the widest a level and its lent part come to.
 constexpr int kLevelWidth = 7;
-// What is left for the effect, the gutters either side of it included: a row
-// running into the border reads as one that failed to draw.
-constexpr int kEffectWidth =
-    kContentWidth - kCaretWidth - kNameWidth - kLevelWidth - 2;
+// The blank columns between one cell and the next, and the one the rows keep
+// inside the right border: a row running into it reads as one that failed to
+// draw. Both are the item list's -- see item_columns.h.
+constexpr int kCellGap = 2;
+constexpr int kGutter = 1;
+constexpr int kEffectWidth = kContentWidth - kCaretWidth - kNameWidth -
+                             kLevelWidth - 2 * kCellGap - kGutter;
 
-// The rows the bottom window shows at once. The two above it come to 19, so
-// this is what the shortest terminal the game is laid out for has left.
-constexpr int kAllRows = 9;
+// The rows the bottom window shows at once, whatever it holds. The two above
+// it come to 20, so this is what the shortest terminal the game is laid out
+// for has left.
+constexpr int kAllRows = 8;
 
 // Where a menu hangs inside the screen: past the name, so it covers what a
 // skill is worth rather than which skill it is.
@@ -313,9 +318,8 @@ ftxui::Element LinkSkillPanel::BlankRow() const {
 
 ftxui::Element LinkSkillPanel::RenderHeader() const {
   return ftxui::text(std::string(kCaretWidth, ' ') +
-                     PadRight("Name", kNameWidth) +
-                     PadLeft("Level", kLevelWidth) + " Effect") |
-         ftxui::dim;
+                     PadRight("Name", kNameWidth + kCellGap) +
+                     PadRight("Level", kLevelWidth + kCellGap) + "Effect");
 }
 
 int LinkSkillPanel::LevelOf(const Skill& skill) const {
@@ -338,15 +342,19 @@ ftxui::Element LinkSkillPanel::RenderRow(const Skill& skill, bool on_cursor,
   std::chrono::steady_clock::duration elapsed =
       on_cursor ? name_clock_.Elapsed()
                 : std::chrono::steady_clock::duration::zero();
-  ftxui::Element row = ftxui::hbox({
-      ftxui::text(on_cursor ? "> " : "  "),
-      ftxui::text(ScrollingWindow(skill.name(), kNameWidth, elapsed)),
-      ftxui::text(PadLeft(LevelText(skill), kLevelWidth) + " "),
-      ftxui::text(ScrollingWindow(EffectText(skill, LevelOf(skill)),
-                                  kEffectWidth, elapsed)),
-      ftxui::text(" "),
-  });
-  return HighlightRow(std::move(row), on_cursor) | ftxui::reflect(box);
+  // The caret is the whole mark: these rows are one list read straight down,
+  // so a band behind the selected one says a second time what "> " says.
+  return ftxui::hbox({
+             ftxui::text(on_cursor ? "> " : "  "),
+             ftxui::text(ScrollingWindow(skill.name(), kNameWidth, elapsed)),
+             ftxui::text(std::string(kCellGap, ' ')),
+             ftxui::text(PadRight(LevelText(skill), kLevelWidth)),
+             ftxui::text(std::string(kCellGap, ' ')),
+             ftxui::text(ScrollingWindow(EffectText(skill, LevelOf(skill)),
+                                         kEffectWidth, elapsed)),
+             ftxui::text(std::string(kGutter, ' ')),
+         }) |
+         ftxui::reflect(box);
 }
 
 ftxui::Element LinkSkillPanel::RenderPresetBar() const {
@@ -367,7 +375,7 @@ ftxui::Element LinkSkillPanel::RenderPresetBar() const {
 ftxui::Element LinkSkillPanel::RenderMine() const {
   const bool focused = zone_ == LinkZone::kMine;
   const Skill* mine = MineSkill();
-  std::vector<ftxui::Element> rows = {RenderHeader()};
+  std::vector<ftxui::Element> rows = {RenderHeader(), ThemedSeparator()};
   if (mine == nullptr) {
     rows.push_back(EmptyState("no job line", kCaretWidth));
   } else {
@@ -423,13 +431,15 @@ ftxui::Element LinkSkillPanel::RenderAll() const {
                        true);
   }
   int total = static_cast<int>(rest.size());
-  int visible = std::max(1, std::min(total, kAllRows));
-  int first = ScrollWindowStart(total, cursor, visible);
-  std::vector<ftxui::Element> cells = ScrollBarCells(total, first, visible);
+  int first = ScrollWindowStart(total, cursor, kAllRows);
+  std::vector<ftxui::Element> cells = ScrollBarCells(total, first, kAllRows);
   std::vector<ftxui::Element> rows;
-  for (int i = 0; i < visible; ++i) {
-    if (i >= total) {
-      rows.push_back(EmptyState("nothing left to add", kCaretWidth));
+  // Always kAllRows of them, so the window is one size whatever the account
+  // has left to offer -- the same rule the middle window's slots follow.
+  for (int i = 0; i < kAllRows; ++i) {
+    if (first + i >= total) {
+      rows.push_back(i == 0 ? EmptyState("nothing left to add", kCaretWidth)
+                            : BlankRow());
       continue;
     }
     const Skill& skill = *rest[first + i];
