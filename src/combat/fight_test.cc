@@ -70,6 +70,9 @@ TEST(CombatSimTest, ARollingSwingKillsAtTheRateItsAverageWould) {
   // swing count would lose a whole swing to the smallest jitter.
   Mob mob = MakeMob("Snail", 2013);
   double kills[3] = {0.0, 0.0, 0.0};
+  // Enough kills to compare rates over. Not more: a roll is weighed at its
+  // average rather than sampled, so a longer run buys no certainty.
+  constexpr int kSteps = 5000;
   for (int run = 0; run < 3; ++run) {
     CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 25.0, 400)});
     if (run > 0) {
@@ -84,7 +87,7 @@ TEST(CombatSimTest, ARollingSwingKillsAtTheRateItsAverageWould) {
       params.attacks[0].groups.push_back(group);
     }
     CombatSim sim;
-    for (int step = 0; step < 20000; ++step) {
+    for (int step = 0; step < kSteps; ++step) {
       sim.Advance(params, 1.0);
       kills[run] += sim.view().kills_this_step[0];
     }
@@ -128,6 +131,7 @@ TEST(CombatSimTest, ARollingSwingDoesNotLandTheSameTwice) {
 TEST(CombatSimTest, AFinalAttackRollsPerEnemyAndPaysItsAverage) {
   Mob mob = MakeMob("Snail", 2013);
   double kills[2] = {0.0, 0.0};
+  constexpr int kSteps = 5000;
   for (int run = 0; run < 2; ++run) {
     CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 20.0, 400)});
     params.attacks[0].final_attack_damage = {5.0};
@@ -140,7 +144,7 @@ TEST(CombatSimTest, AFinalAttackRollsPerEnemyAndPaysItsAverage) {
       params.attacks[0].final_attack_rolls.push_back(roll);
     }
     CombatSim sim;
-    for (int step = 0; step < 20000; ++step) {
+    for (int step = 0; step < kSteps; ++step) {
       sim.Advance(params, 1.0);
       kills[run] += sim.view().kills_this_step[0];
     }
