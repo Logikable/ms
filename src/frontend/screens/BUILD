@@ -876,6 +876,7 @@ cc_library(
         "//src:game_state",
         "//src/character",
         "//src/character:hyper_stats",
+        "//src/character:link",
         "//src/frontend:main_layout",
         "//src/frontend:types",
         "//src/frontend/panels:character_panel",

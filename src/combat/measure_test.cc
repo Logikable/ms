@@ -165,7 +165,7 @@ TEST(MeasureFightTest, ABuffReportsTheShareItStood) {
   params.buffs.push_back(std::move(buff));
   AttackSet set;
   set.attacks = params.attacks;
-  params.buffed.push_back(std::move(set));
+  params.buffed[1] = std::move(set);
 
   Sequence played = MeasureFight(params, 1000.0);
   ASSERT_EQ(played.buff_uptime.size(), 1u);

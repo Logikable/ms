@@ -1,0 +1,24 @@
+# The warriors' link skill. GMS's own numbers: a third of the pool back at
+# level 1 and a third again at 9, on a wait that walks 410 seconds down to 90.
+#
+# Worth little in an expected-damage fight and written faithfully anyway --
+# what it really buys the player is a map they can farm one band above their
+# gear. The lever is this skill's own; see SkillEffect::emergency_heal_pct.
+name: "Invincible Belief"
+description:
+  "When your HP falls below 15%, recovers a portion of your Max HP every "
+  "second for 3 seconds."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_LINK skill_order: 1 }
+link_line: JOB_SWORDMAN
+max_level: 9
+base {
+  emergency_heal_pct: 0.20
+  emergency_heal_seconds: 3.0
+  emergency_heal_hp_threshold: 0.15
+  emergency_heal_cooldown_seconds: 410.0
+}
+per_level {
+  emergency_heal_pct: 0.03
+  emergency_heal_cooldown_seconds: -40.0
+}

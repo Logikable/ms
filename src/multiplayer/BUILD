@@ -113,6 +113,7 @@ cc_library(
         ":client",
         "//src:game_state",
         "//src/character",
+        "//src/character:link",
         "//src/protos:multiplayer_proto_cc",
         "@protobuf",
     ],

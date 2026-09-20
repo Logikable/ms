@@ -64,6 +64,13 @@ message PlayerInfo {
   // What they have set on the boss screen's options row, which the server
   // holds every member of a party to.
   BossOptions boss_options = 8;
+
+  // The best level each of their account's OTHER characters has reached on
+  // its job line, keyed by that line's second job (as int32, a proto3 map
+  // limitation). Beside the sheet for the reason autoswap_presets is: it is
+  // the account's climb rather than this character's, and their link skills
+  // cannot be read off the sheet alone. See //src/character:link.
+  map<int32, int32> link_lines = 9;
 }
 
 // One player's place in a party.

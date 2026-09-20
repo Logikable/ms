@@ -96,6 +96,12 @@ struct TestOptions {
   GearSetup equips;
   TestSkills skills = TestSkills::kZero;
   bool autoswap_presets = false;
+  // Whether a kMax ceiling carries the LINK SKILLS, which means an account
+  // with a character at the top of every job line. On for the game, whose
+  // ceiling is a played-out account; off for the sims, whose balance numbers
+  // were taken before link skills existed. Ignored by every other mode -- a
+  // played account's roster is whatever the player made.
+  bool link_skills = true;
 };
 
 struct GameState {

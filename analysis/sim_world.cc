@@ -43,6 +43,10 @@ GameState NewMaxState(const Catalogs& catalogs, JobAdvancement advancement,
   options.job = advancement;
   options.level = level;
   options.autoswap_presets = true;
+  // Not yet: every balance number in here was taken before the link skills
+  // existed, and none of them has been re-taken against a full account. See
+  // TestOptions::link_skills.
+  options.link_skills = false;
   return GameState(catalogs.equips, catalogs.scrolls, catalogs.items,
                    catalogs.mobs, catalogs.maps, catalogs.skills,
                    GameMode::kMax, options, seed, catalogs.sets);

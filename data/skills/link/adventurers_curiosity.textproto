@@ -1,0 +1,15 @@
+# The archers' link skill. GMS pairs the critical rate with a Monster
+# Collection chance; there is no collection in this game, so the rate is the
+# whole of it.
+#
+# Its ladder is GMS's 3, 4, 6, 7, 9 ... written as the point and a half a
+# level it really is, which lands on GMS's own value at every odd rung and
+# half a point above it at the even ones.
+name: "Adventurer's Curiosity"
+description: "Your curiosity about the world sharpens your eye for a weak spot."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_LINK skill_order: 3 }
+link_line: JOB_ARCHER
+max_level: 9
+base { crit_rate: 0.03 }
+per_level { crit_rate: 0.015 }

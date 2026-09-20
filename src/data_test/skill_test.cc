@@ -382,11 +382,13 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     // A Hyper Skill is bought from a pool of its own -- see the page's own
     // test below -- and a V Matrix node from the V Points, which no level pays
-    // out. A Vengeance form is bought by buying the skill it stands in for, so
-    // it is that skill's ladder either way.
+    // out. A link skill is bought with nothing at all, its level being the
+    // account's climb. A Vengeance form is bought by buying the skill it
+    // stands in for, so it is that skill's ladder either way.
     if (entry.second.hyper() ||
         entry.second.v_node() != V_NODE_KIND_UNSPECIFIED ||
         entry.second.account_levels_per_level() > 0 ||
+        entry.second.link_line() != JOB_UNSPECIFIED ||
         !entry.second.replaces_skill_name().empty()) {
       continue;
     }
@@ -404,12 +406,14 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   // rather than a folder gone missing.
   for (JobAdvancement advancement :
        EveryValueOf<JobAdvancement>(JobAdvancement_descriptor())) {
-    // The 5th jobs are written one at a time, the common nodes are bought with
-    // V Points rather than SP, and the beginner book is not bought at all --
-    // none of the three belongs to a book this counts.
+    // The 5th jobs are written one at a time, the common nodes are bought
+    // with V Points rather than SP, and neither the beginner book nor the
+    // link skills are bought at all -- none of the four belongs to a book
+    // this counts.
     if (StageForAdvancement(advancement) >= 5 ||
         advancement == JOB_ADVANCEMENT_COMMON ||
-        advancement == JOB_ADVANCEMENT_BEGINNER) {
+        advancement == JOB_ADVANCEMENT_BEGINNER ||
+        advancement == JOB_ADVANCEMENT_LINK) {
       continue;
     }
     EXPECT_TRUE(cost_by_advancement.count(advancement))
@@ -491,9 +495,9 @@ TEST(SkillDataTest, NoBookHandsOutMoreBuffsThanTheFightModels) {
     for (const std::pair<const std::string, Skill>& entry : skills) {
       if (entry.second.buff().duration_seconds() > 0.0 &&
           ReachedBy(books, entry.second)) {
-        // A buff that sheds stages is run as one window per stage, so it is
-        // that many of the budget rather than one. See Buff.stages.
-        raised.insert(raised.end(), std::max(1, entry.second.buff().stages()),
+        // A buff that sheds stages or gathers stacks is run as one window
+        // apiece, so it is that many of the budget rather than one.
+        raised.insert(raised.end(), BuffWindowsFor(entry.second.buff()),
                       entry.second.name());
       }
     }
@@ -1100,6 +1104,12 @@ TEST(SkillDataTest, EveryBuffStandsForAWhileAndWaitsForTheNextOne) {
     if (skill.buff().charge_lines() > 0) {
       EXPECT_EQ(skill.cooldown_seconds(), 0.0)
           << entry.first << "'s buff waits on hits and on a clock at once";
+      continue;
+    }
+    // The third way: a roll on every landed swing. A roll that can FAIL is a
+    // wait of its own -- a helping lapses and has to be earned again -- so
+    // such a buff needs no clock. One that never fails does.
+    if (skill.buff().raise_chance() > 0.0) {
       continue;
     }
     EXPECT_GT(skill.cooldown_seconds(), 0.0)

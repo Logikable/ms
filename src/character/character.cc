@@ -15,6 +15,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
@@ -786,8 +787,12 @@ int SkillMaxLevel(const Skill& skill) {
   return skill.max_level();
 }
 
+int BuffWindowsFor(const Buff& buff) {
+  return std::max(1, buff.stages()) * std::max(1, buff.stacks());
+}
+
 int StageForAdvancement(JobAdvancement advancement) {
-  static_assert(JobAdvancement_ARRAYSIZE == 47,
+  static_assert(JobAdvancement_ARRAYSIZE == 48,
                 "a new advancement needs its stage here");
   switch (advancement) {
     case JOB_ADVANCEMENT_SWORDMAN:
@@ -839,11 +844,12 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_NIGHT_LORD_V:
     case JOB_ADVANCEMENT_SHADOWER_V:
       return 5;
-    // Neither of these is a stage anybody advances into, so neither has one.
+    // None of these is a stage anybody advances into, so none has one.
     // Nothing keyed by stage -- the SP pools, the skills tab's numbered pages
-    // -- reaches a common node or the beginner book.
+    // -- reaches a common node, the beginner book or a link skill.
     case JOB_ADVANCEMENT_COMMON:
     case JOB_ADVANCEMENT_BEGINNER:
+    case JOB_ADVANCEMENT_LINK:
     default:
       return 0;
   }
@@ -1585,7 +1591,85 @@ bool CharacterInstance::HoldsSkillFrom(const Skill& skill) const {
   if (skill.v_node() != V_NODE_KIND_UNSPECIFIED) {
     return ReachesVNode(skill);
   }
+  if (skill.link_line() != JOB_UNSPECIFIED) {
+    return HoldsLinkSkill(skill);
+  }
   return HasBookFor(skill);
+}
+
+bool CharacterInstance::HoldsLinkSkill(const Skill& skill) const {
+  if (skill.link_line() == JOB_UNSPECIFIED || !link_skills_unlocked()) {
+    return false;
+  }
+  // Their own line's is theirs whatever they have equipped, and takes none of
+  // the twelve. GMS's rule, and the reason the list never holds it.
+  if (BranchOf(skill.link_line()) == BranchOf(character_.job())) {
+    return true;
+  }
+  return absl::c_linear_search(character_.link_skills(), skill.name());
+}
+
+int CharacterInstance::LinkSkillLevel(const Skill& skill) const {
+  if (!HoldsLinkSkill(skill)) {
+    return 0;
+  }
+  return std::min(SkillMaxLevel(skill),
+                  link_tally_.With(character_.job(), character_.level())
+                      .LevelFor(skill.link_line()));
+}
+
+bool CharacterInstance::EquipLinkSkill(const std::string& name) {
+  if (character_.link_skills().size() >= kMaxEquippedLinkSkills ||
+      absl::c_linear_search(character_.link_skills(), name)) {
+    return false;
+  }
+  character_.add_link_skills(name);
+  return true;
+}
+
+bool CharacterInstance::UnequipLinkSkill(const std::string& name) {
+  google::protobuf::RepeatedPtrField<std::string>* held =
+      character_.mutable_link_skills();
+  auto it = absl::c_find(*held, name);
+  if (it == held->end()) {
+    return false;
+  }
+  held->erase(it);
+  return true;
+}
+
+int CharacterInstance::ReconcileLinkSkills(
+    const std::map<std::string, Skill>& skills) {
+  int moved = 0;
+  google::protobuf::RepeatedPtrField<std::string>* held =
+      character_.mutable_link_skills();
+  // A name the catalog dropped, and their own line's, which is held for free
+  // and must not sit in the list spending one of the twelve. The catalog is
+  // keyed by file stem and the list by display name, so this reads the
+  // entries rather than looking one up.
+  for (int i = held->size() - 1; i >= 0; --i) {
+    bool equippable = false;
+    for (const std::pair<const std::string, Skill>& entry : skills) {
+      const Skill& skill = entry.second;
+      equippable = equippable ||
+                   (skill.name() == held->at(i) &&
+                    skill.link_line() != JOB_UNSPECIFIED &&
+                    BranchOf(skill.link_line()) != BranchOf(character_.job()));
+    }
+    if (!equippable) {
+      held->DeleteSubrange(i, 1);
+      ++moved;
+    }
+  }
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (skill.link_line() == JOB_UNSPECIFIED ||
+        BranchOf(skill.link_line()) == BranchOf(character_.job())) {
+      continue;
+    }
+    moved += EquipLinkSkill(skill.name()) ? 1 : 0;
+  }
+  return moved;
 }
 
 bool CharacterInstance::ReachesVNode(const Skill& skill) const {

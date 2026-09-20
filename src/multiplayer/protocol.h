@@ -25,7 +25,7 @@ namespace ms {
 //
 // Adding a fight does not, nor a mob only a new fight spawns: only the key
 // crosses the wire, so either end fails out loud by name instead.
-inline constexpr int kMultiplayerVersion = 3;
+inline constexpr int kMultiplayerVersion = 4;
 
 // Where the server runs. The client's --server flag overrides both. A build
 // made without multiplayer carries no address at all -- there is nothing in

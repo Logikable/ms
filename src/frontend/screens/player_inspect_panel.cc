@@ -5,6 +5,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "google/protobuf/util/message_differencer.h"
+#include "src/character/link.h"
 #include "src/frontend/main_layout.h"
 #include "src/frontend/widgets/exp_bar.h"
 #include "src/frontend/widgets/keys.h"
@@ -56,6 +57,11 @@ void PlayerInspectPanel::SetPlayer(const PlayerInfo& player) {
   shown_ = player;
   character_.RestoreFrom(player.sheet(), state_.equips, state_.items);
   character_.set_autoswap_presets(player.autoswap_presets());
+  LinkTally tally;
+  for (const std::pair<const int, int>& line : player.link_lines()) {
+    tally.Record(static_cast<Job>(line.first), line.second);
+  }
+  character_.set_link_tally(std::move(tally));
   character_.UseEquipSets(state_.equip_sets);
   if (!same_member) {
     Reset();

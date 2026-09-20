@@ -1,0 +1,18 @@
+# The thieves' link skill: a window opened by hitting something that is
+# already suffering. A character who inflicts nothing never opens one, which
+# is GMS's own bargain -- see Buff::needs_afflicted_target.
+name: "Thief's Cunning"
+description:
+  "Striking an enemy that is already suffering increases your damage for a "
+  "time."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_LINK skill_order: 4 }
+link_line: JOB_ROGUE
+max_level: 9
+cooldown_seconds: 20.0
+buff {
+  duration_seconds: 10.0
+  needs_afflicted_target: true
+  base { damage_pct: 0.03 }
+  per_level { damage_pct: 0.03 }
+}

@@ -1015,6 +1015,51 @@ const EquipInstance& Worn(const GameState& state, EquipSlot slot) {
   return *state.character.equipped().at(slot);
 }
 
+// A ceiling account is a full one: nine more characters, one at the top of
+// every other job line, so the link skills stand where a played-out account
+// puts them. Three-line branches reach 9 and two-line branches 6 -- the data
+// runs to GMS's 9 either way, and what a branch reaches is the roster's
+// answer.
+TEST(GameStateTest, MaxModeFillsTheRosterSoTheLinkSkillsStand) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  EXPECT_EQ(state.inactive_characters.size(), 9u);
+
+  LinkTally tally = state.character.link_tally();
+  EXPECT_EQ(tally.LevelFor(JOB_SWORDMAN), 6)
+      << "the Hero being played is not in the mirrored half";
+  const CharacterInstance& hero = state.character;
+  EXPECT_EQ(hero.link_tally()
+                .With(hero.proto().job(), hero.proto().level())
+                .LevelFor(JOB_SWORDMAN),
+            9);
+  EXPECT_EQ(tally.LevelFor(JOB_MAGICIAN), 9);
+  EXPECT_EQ(tally.LevelFor(JOB_ARCHER), 6);
+  EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 6);
+}
+
+// A sim's ceiling stands alone: no roster, and nothing from their own line
+// either, however high they are. See TestOptions::link_skills.
+TEST(GameStateTest, MaxModeCanBeAskedForNoLinkSkillsAtAll) {
+  TestOptions options;
+  options.job = JOB_ADVANCEMENT_HERO;
+  options.level = kTrialLevelCap;
+  options.link_skills = false;
+  GameState state(MaxCatalog(), MaxTraces(), {}, MaxMobs(), {},
+                  EveryStageBook(), GameMode::kMax, options, std::nullopt, {},
+                  MaxBosses());
+  EXPECT_TRUE(state.inactive_characters.empty());
+  EXPECT_FALSE(state.character.link_skills_unlocked());
+}
+
+// The roster climbs with the ceiling rather than ahead of it: a ceiling below
+// the first rung has one that pays nothing.
+TEST(GameStateTest, MaxModeBelowTheFirstRungHasNoLinkSkills) {
+  GameState state = MakeMaxState(60);
+  EXPECT_FALSE(state.inactive_characters.empty());
+  EXPECT_EQ(state.character.link_tally().LevelFor(JOB_SWORDMAN), 0);
+  EXPECT_FALSE(state.character.link_skills_unlocked());
+}
+
 // The ceiling at the cap: hammers driven in, every slot of the wider shelf
 // passed, and the stars the level's own band pays for -- the weapon three
 // past the rest of it.

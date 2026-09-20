@@ -25,6 +25,16 @@ enum class JobBranch { kNone, kBeginner, kWarrior, kMagician, kArcher, kRogue };
 // The branch `job` belongs to, however far along its line it is.
 JobBranch BranchOf(Job job);
 
+// The LINE within that branch, named by the second job it starts at:
+// JOB_FIGHTER for a Fighter, a Crusader and a Hero alike. The 3rd and 4th
+// advancements narrow rather than fork, so the second job names the whole of
+// the rest of the climb.
+//
+// JOB_UNSPECIFIED for a character who has not taken a second advancement,
+// theirs being undecided. Link skills are counted per line -- see
+// //src/character:link.
+Job LineOf(Job job);
+
 }  // namespace ms
 
 #endif  // MS_SRC_CHARACTER_JOB_BRANCH_H_

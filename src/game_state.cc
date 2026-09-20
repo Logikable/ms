@@ -19,6 +19,7 @@
 #include "src/character/honor.h"
 #include "src/character/job_branch.h"
 #include "src/character/job_name.h"
+#include "src/character/link.h"
 #include "src/character/max_character.h"
 #include "src/character/stat_preset.h"
 #include "src/item/equip_instance.h"
@@ -980,11 +981,69 @@ void MaxVMatrix(GameState& state) {
   }
 }
 
+// Every job the fourth advancement ends at, which is one per line. Read off
+// the advancement table rather than listed, so a line added later is here
+// without being written down twice.
+std::vector<Job> EveryFourthJob() {
+  std::vector<Job> jobs;
+  for (Job first : JobChoicesForStage(JOB_BEGINNER, 1)) {
+    for (Job second : JobChoicesForStage(first, 2)) {
+      for (Job third : JobChoicesForStage(second, 3)) {
+        for (Job fourth : JobChoicesForStage(third, 4)) {
+          jobs.push_back(fourth);
+        }
+      }
+    }
+  }
+  return jobs;
+}
+
+// The rest of a ceiling account: one character at the top of every OTHER job
+// line, standing at the same level as the one being played. They exist for
+// the LINK SKILLS, which are the account's climb rather than one character's
+// -- a ceiling with an empty roster would hold none of them. See
+// //src/character:link.
+void SeedMaxRoster(GameState& state, int level) {
+  state.inactive_characters.clear();
+  Job played_line = LineOf(state.character.proto().job());
+  for (Job job : EveryFourthJob()) {
+    if (LineOf(job) == played_line) {
+      continue;
+    }
+    // At the same level, so a ceiling below 70 has a roster paying nothing --
+    // an account does not climb one character at a time.
+    // Climbed from the bottom rather than dropped in at the top: a sibling of
+    // a ceiling below the fourth advancement stands where that level really
+    // puts them. Walked on the FOURTH job, which answers for every book of
+    // its line -- HighestAdvancementAt reads its job back off the
+    // advancement, and a first job's does not say which branch it became.
+    int stage = 1;
+    while (stage < kLastJobStage && level >= NextAdvancementLevel(stage) &&
+           AdvancementForJobStage(job, stage + 1) !=
+               JOB_ADVANCEMENT_UNSPECIFIED) {
+      ++stage;
+    }
+    JobAdvancement reached = AdvancementForJobStage(job, stage);
+    Character* sheet =
+        state.inactive_characters.emplace_back().mutable_character();
+    sheet->set_name(UsernameFor(reached));
+    sheet->set_job(JobForAdvancement(reached));
+    sheet->set_job_stage(StageForAdvancement(reached));
+    sheet->set_level(level);
+  }
+  state.character.ReconcileLinkSkills(state.skills);
+  state.MirrorAccount();
+}
+
 // The ceiling: the character a player who spent well is standing in at this
 // level. Written outright rather than played for, every number priced against
 // what the climb pays by then -- max_character.cc carries the arithmetic.
 // NOTHING of the workbench: no purse, no EXP bonus, no spare gear.
 void SeedMax(GameState& state, const TestOptions& options) {
+  // Before anything reads a stat off them: the Hyper Stat allocation is
+  // measured by playing the fight, and a link skill's crit rate moves what it
+  // buys.
+  state.character.set_link_skills_off(!options.link_skills);
   // A ceiling holds both allocations at once, which is what the autoswap is
   // for, whatever the state was asked for.
   state.account.SetAutoswapPresets(true);
@@ -1026,6 +1085,11 @@ void SeedMax(GameState& state, const TestOptions& options) {
     }
   }
   BuyMaxConsumables(state);
+  // The roster exists for the link skills alone, so a ceiling without them
+  // stands alone as every sim's has always done.
+  if (options.link_skills) {
+    SeedMaxRoster(state, level);
+  }
   state.current_map = kHomeMap;
 }
 
@@ -1078,6 +1142,13 @@ void SeedNewCharacter(GameState& state) {
 void GameState::MirrorAccount() {
   character.set_autoswap_presets(account.autoswap_presets());
   character.set_account_max_level(account.max_level());
+  // The OTHERS only: the character in play speaks for their own line, their
+  // level climbing mid-session where a slot's does not.
+  LinkTally tally;
+  for (const CharacterSave& save : inactive_characters) {
+    tally.Record(save.character().job(), save.character().level());
+  }
+  character.set_link_tally(std::move(tally));
 }
 
 namespace {

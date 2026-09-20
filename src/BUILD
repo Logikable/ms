@@ -231,6 +231,7 @@ cc_library(
         "//src/character:honor",
         "//src/character:job_branch",
         "//src/character:job_name",
+        "//src/character:link",
         "//src/character:max_character",
         "//src/character:stat_preset",
         "//src/item",

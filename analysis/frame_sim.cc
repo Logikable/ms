@@ -80,6 +80,8 @@ void Draw(const ftxui::Element& element) {
 std::unique_ptr<GameState> MaxState(const Catalogs& catalogs) {
   TestOptions test;
   test.job = JOB_ADVANCEMENT_HERO;
+  // As every other sim's ceiling stands -- see NewMaxState.
+  test.link_skills = false;
   std::unique_ptr<GameState> state = std::make_unique<GameState>(
       catalogs.equips, catalogs.scrolls, catalogs.items, catalogs.mobs,
       catalogs.maps, catalogs.skills, GameMode::kMax, test, /*seed=*/1,

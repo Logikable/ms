@@ -139,6 +139,10 @@ enum JobAdvancement {
   // is born holding, and keeps. Its one skill is not bought and costs no SP,
   // so no job stage answers for it -- see Skill.account_levels_per_level.
   JOB_ADVANCEMENT_BEGINNER = 46;
+  // Nor this one: the link skills, which belong to no job and are held by
+  // whoever the account equips them on. Their one book, for the same reason
+  // the commons have one -- see Skill.link_line.
+  JOB_ADVANCEMENT_LINK = 47;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.
@@ -459,6 +463,13 @@ message Character {
   // The potions, which open at level 170. Per character because meso is: a
   // permanent unlock is bought out of one character's purse.
   Consumables consumables = 23;
+
+  // The link skills this character carries, by display name, at most
+  // kMaxEquippedLinkSkills of them. Per character on purpose: what the
+  // account UNLOCKED is shared, and which of it one character brings is
+  // theirs. Their own line's is not in here -- it is held for free and takes
+  // no slot, exactly as GMS has it. See //src/character:link.
+  repeated string link_skills = 28;
 
   // Tabs opened and gold trails walked, which the account keeps as of format
   // version 2: what the player has been shown once is shown to all of their

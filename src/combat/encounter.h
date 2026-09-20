@@ -10,6 +10,7 @@
 #ifndef MS_SRC_COMBAT_ENCOUNTER_H_
 #define MS_SRC_COMBAT_ENCOUNTER_H_
 
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -442,6 +443,14 @@ struct BuffOption {
   double cast_seconds = 0.0;
   // Lines to land before this goes up, instead of a wait in seconds.
   int charge_lines = 0;
+  // The chance one LANDED SWING raises this, instead of a clock coming round
+  // -- 1.0 for one raised by every swing that meets its condition. 0 for a
+  // buff raised on a wait or laid by a named attack, which is every other
+  // one. See Buff::raise_chance.
+  double raise_chance = 0.0;
+  // Whether that swing has to land on an afflicted enemy. Read only where
+  // raise_chance is set.
+  bool needs_afflicted_target = false;
   // The swing this buff LOADS, or -1. Its charges are handed back whole each
   // raising and gone the moment it lapses. See AttackOption::charges.
   int magazine_attack = -1;
@@ -515,6 +524,10 @@ struct CombatParams {
   // Seconds between revivals: the hit that would have killed the player
   // fills the pool instead, and the wait starts over.
   double revive_cooldown_seconds = 0.0;
+  // The heal that fires on its own when the player is nearly dead. Its window
+  // and its wait are game-scaled, like every other duration here; the share
+  // is per GMS second, so a stretched window pours the same total.
+  EmergencyHeal emergency_heal;
   // Distinct burns the character can leave, and so the slots a monster
   // needs.
   int dot_count = 0;
@@ -549,15 +562,16 @@ struct CombatParams {
   // The timed buffs this character can put up. The fight runs their clocks
   // and asks for the matching attacks.
   std::vector<BuffOption> buffs;
-  // One slot per combination of those buffs, indexed by the mask of which are
-  // up less one -- the lists above are the set for none.
+  // One entry per combination of those buffs the fight has actually stood in,
+  // keyed by the mask of which are up -- the lists above are the set for
+  // none.
   //
-  // A slot is filled the first time the fight asks, off buffed_source, and
-  // most never are: the count doubles per buff while the combinations a fight
-  // stands in do not. Mutable for that reason, which makes the readers below
-  // unsafe on one CombatParams from two threads. A sim gives each worker its
-  // own.
-  mutable std::vector<std::optional<AttackSet>> buffed;
+  // An entry is built the first time the fight asks, off buffed_source, and
+  // most never are: the combinations DOUBLE per buff while the ones a fight
+  // reaches do not, which is why this is a map and not a table of every
+  // mask. Mutable for that reason, which makes the readers below unsafe on
+  // one CombatParams from two threads. A sim gives each worker its own.
+  mutable std::map<int, AttackSet> buffed;
   // What those slots are built from. Empty for a hand-built params, where
   // every slot is filled up front.
   BuffedSetSource buffed_source;

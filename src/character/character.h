@@ -23,6 +23,7 @@
 #include "src/character/equip_presets.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
+#include "src/character/link.h"
 #include "src/character/skill_placement.h"
 #include "src/item/currency.h"
 #include "src/item/equip_instance.h"
@@ -86,6 +87,11 @@ JobAdvancement AdvancementForJobStage(Job job, int stage);
 // does, so the ceiling moves with kMaxLevel and is not written in the data.
 // ASK THIS, never max_level: the two differ for exactly one skill today.
 int SkillMaxLevel(const Skill& skill);
+
+// Damage tables `buff` costs the fight: one per stage it sheds, one per stack
+// it gathers, and one for an ordinary buff. ASK THIS wherever the budget is
+// counted -- see combat/constants.h kMaxBuffWindows.
+int BuffWindowsFor(const Buff& buff);
 
 // The job stage whose SP pool buys skills of `advancement` (1 = 1st job).
 // Returns 0 for JOB_ADVANCEMENT_UNSPECIFIED.
@@ -470,6 +476,39 @@ class CharacterInstance {
   int account_max_level() const {
     return std::max(account_max_level_, character_.level());
   }
+  // What the OTHER characters on the account have climbed, per job line,
+  // mirrored here for the reason above. This character is NOT in it: they
+  // fold themselves in at every read, their level climbing mid-session where
+  // a slot's does not.
+  void set_link_tally(LinkTally tally) {
+    link_tally_ = std::move(tally);
+  }
+  const LinkTally& link_tally() const {
+    return link_tally_;
+  }
+  // The link skills this character carries, their own line's excluded -- it
+  // is held for free and is not in the list. See Character.link_skills.
+  const google::protobuf::RepeatedPtrField<std::string>& link_skills() const {
+    return character_.link_skills();
+  }
+  // Whether this character carries `skill`: their own line's, or one of the
+  // equipped. False for anything that is not a link skill, and for every one
+  // of them until the account has opened them.
+  bool HoldsLinkSkill(const Skill& skill) const;
+  // What `skill` stands at for this character, 0 for one they do not hold.
+  // Held to the skill's own maximum: the ladder in the data runs to GMS's
+  // top level whether or not the four job lines can reach it.
+  int LinkSkillLevel(const Skill& skill) const;
+  // Puts `name` on, or takes it off. Equipping refuses a full list and one
+  // already on; both refuse a name that is not a link skill, which is the
+  // caller's to check. Return whether anything moved.
+  bool EquipLinkSkill(const std::string& name);
+  bool UnequipLinkSkill(const std::string& name);
+  // Fills the list up to kMaxEquippedLinkSkills from `skills`, in catalog
+  // order, and drops names the catalog no longer has. Returns how many moved.
+  // Called on loading a save: with no screen to equip them on, what the
+  // account has unlocked is simply carried.
+  int ReconcileLinkSkills(const std::map<std::string, Skill>& skills);
   // Which preset of `kind` the player has put in use, and the way to change
   // it. Read only while the autoswap is off; each kind keeps its own.
   StatPreset SlotInUse(PresetKind kind) const;
@@ -512,6 +551,19 @@ class CharacterInstance {
   bool inner_ability_unlocked() const {
     return character_.level() >= kInnerAbilityUnlockLevel;
   }
+  // Whether the ACCOUNT has opened the link skills. Read off the same
+  // watermark Blessing of the Fairy is, so a character who reaches the level
+  // themselves opens it the moment they do rather than at the next save.
+  bool link_skills_unlocked() const {
+    return !link_skills_off_ && account_max_level() >= kLinkSkillsLevel;
+  }
+  // Shuts them off outright, level or no level. For a SIM, which measures a
+  // character standing alone: the balance numbers were taken before link
+  // skills existed and have not been re-taken against them. See
+  // TestOptions::link_skills.
+  void set_link_skills_off(bool off) {
+    link_skills_off_ = off;
+  }
   // The three lines `preset` is holding, and the rank of the whole.
   const AbilityPreset& ability(StatPreset preset = StatPreset::kFirst) const {
     return PresetOf(character_.inner_ability(), preset);
@@ -553,6 +605,9 @@ class CharacterInstance {
   int skill_level(const Skill& skill) const {
     if (skill.account_levels_per_level() > 0) {
       return DerivedSkillLevel(skill);
+    }
+    if (skill.link_line() != JOB_UNSPECIFIED) {
+      return LinkSkillLevel(skill);
     }
     const std::string& key = skill.replaces_skill_name().empty()
                                  ? skill.name()
@@ -749,6 +804,12 @@ class CharacterInstance {
   bool autoswap_presets_ = false;
   // Mirrors the account's record -- see account_max_level().
   int account_max_level_ = 0;
+  // Mirrors what the account's OTHER characters have climbed -- see
+  // link_tally().
+  LinkTally link_tally_;
+  // Whether the link skills are shut off for this character whatever the
+  // account has reached -- see set_link_skills_off().
+  bool link_skills_off_ = false;
 
   // What a skill nobody buys stands at: the account's climb over the levels
   // one of its own costs, held to the cap. See

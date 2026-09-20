@@ -2538,6 +2538,74 @@ TEST_F(SkillInspectPanelTest, ACardThatFitsHasNoThumbAndTheSameWidth) {
   EXPECT_EQ(ftxui::Dimension::Fit(roomy).dimx, ftxui::Dimension::Fit(cut).dimx);
 }
 
+// The link skills' three shapes, none of which a plain lever row can state:
+// the heal that answers nearly dying, the helpings a swing gathers, and the
+// window that only a suffering enemy opens.
+TEST_F(SkillInspectPanelTest, TheEmergencyHealStatesAllFourOfItsNumbers) {
+  Skill skill;
+  skill.set_name("Invincible Belief");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_max_level(9);
+  skill.mutable_base()->set_emergency_heal_pct(0.20);
+  skill.mutable_base()->set_emergency_heal_seconds(3.0);
+  skill.mutable_base()->set_emergency_heal_hp_threshold(0.15);
+  skill.mutable_base()->set_emergency_heal_cooldown_seconds(410.0);
+  skill.mutable_per_level()->set_emergency_heal_pct(0.03);
+  skill.mutable_per_level()->set_emergency_heal_cooldown_seconds(-40.0);
+
+  std::string card = RenderAt(skill, 1);
+  EXPECT_NE(RowIn(card, "Below 15% HP", "20% a second for 3s"),
+            std::string::npos)
+      << card;
+  EXPECT_NE(RowIn(card, "Recovery Cooldown", "410s"), std::string::npos)
+      << card;
+  // The window and the line hold where the pour and the wait climb.
+  std::string maxed = RenderAt(skill, 9);
+  EXPECT_NE(RowIn(maxed, "Below 15% HP", "44% a second for 3s"),
+            std::string::npos)
+      << maxed;
+  EXPECT_NE(RowIn(maxed, "Recovery Cooldown", "90s"), std::string::npos)
+      << maxed;
+}
+
+TEST_F(SkillInspectPanelTest, ARolledBuffSaysWhatTheRollIsAndWhatItNeeds) {
+  Skill skill;
+  skill.set_name("Empirical Knowledge");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_max_level(9);
+  Buff& buff = *skill.mutable_buff();
+  buff.set_duration_seconds(10.0);
+  buff.set_raise_chance(0.15);
+  buff.set_raise_chance_per_level(0.02);
+  buff.set_stacks(3);
+  buff.mutable_base()->set_damage_pct(0.01);
+  buff.mutable_per_level()->set_damage_pct(0.005);
+
+  std::string card = RenderAt(skill, 9);
+  EXPECT_NE(card.find("31% a hit"), std::string::npos) << card;
+  EXPECT_NE(RowIn(card, "Stacks", "3, each on its own clock"),
+            std::string::npos)
+      << card;
+  // Each helping grants the whole of it, so the row has to say so.
+  EXPECT_NE(RowIn(card, "Damage", "+5% each"), std::string::npos) << card;
+}
+
+TEST_F(SkillInspectPanelTest, ABuffNeedingAnAfflictedEnemySaysSo) {
+  Skill skill;
+  skill.set_name("Thief's Cunning");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_max_level(9);
+  skill.set_cooldown_seconds(20.0);
+  Buff& buff = *skill.mutable_buff();
+  buff.set_duration_seconds(10.0);
+  buff.set_needs_afflicted_target(true);
+  buff.mutable_base()->set_damage_pct(0.03);
+
+  std::string card = RenderAt(skill, 1);
+  EXPECT_NE(card.find("on a suffering enemy"), std::string::npos) << card;
+  EXPECT_NE(RowIn(card, "Damage", "+3%"), std::string::npos) << card;
+}
+
 // A card is opened at its head, however far down the last one was read.
 TEST_F(SkillInspectPanelTest, ResetScrollReturnsToTheHeadOfTheCard) {
   Skill skill = IronBody();

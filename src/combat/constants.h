@@ -35,11 +35,12 @@ constexpr double kBaseBuffDuration = 0.10;               // Empathy
 
 // How many timed buffs are modelled at once. Every combination needs a damage
 // table of its own and the count doubles with each buff, but a table is built
-// on first ask, so a raise costs the combinations a fight STANDS in. A book
-// over the cap silently loses the rest, so //src/data_test:skill_test refuses
-// one. This bounds the PARTY's buffs too, which take the bits above the
-// character's own.
-constexpr int kMaxBuffWindows = 11;
+// on first ask and kept in a map, so a raise costs the combinations a fight
+// STANDS in rather than every mask. A book over the cap silently loses the
+// rest, so //src/data_test:skill_test refuses one. This bounds the PARTY's
+// buffs too, which take the bits above the character's own -- and the link
+// skills', which every job may equip on top of its own book.
+constexpr int kMaxBuffWindows = 15;
 
 }  // namespace ms
 

@@ -359,6 +359,21 @@ message SkillEffect {
   // it is folded where the total is finally known rather than where the pulse
   // is read. 0 for a fountain that pours the same however clever they are.
   double regen_int_step = 42;
+  // A heal that fires on its own the moment the character is nearly dead:
+  // below emergency_heal_hp_threshold of their pool, it pours
+  // emergency_heal_pct of the pool every second for emergency_heal_seconds
+  // and then waits out emergency_heal_cooldown_seconds. Invincible Belief is
+  // what it exists for.
+  //
+  // Not a fountain, which pours whether the fight is going well or badly, and
+  // not revive_cooldown_seconds, which answers the hit that already killed
+  // them. All four are read together; the pct is what says a skill grants one
+  // at all. Two sources do not stack -- the shorter wait stands, exactly as a
+  // pact's does.
+  double emergency_heal_pct = 57;
+  double emergency_heal_seconds = 58;
+  double emergency_heal_hp_threshold = 59;
+  double emergency_heal_cooldown_seconds = 60;
   // Extra EXP every kill yields, as a fraction of what the mob was already
   // worth (0.50 == half again). Summed across the passives granting it. What
   // it buys is the time to the next level rather than anything in a fight.
@@ -946,6 +961,35 @@ message Buff {
   // source of its own, so final damage here multiplies rather than sums.
   SkillEffect with_party_base = 26;
   SkillEffect with_party_per_level = 27;
+  // The chance one landed swing raises this, instead of the player casting
+  // it. Empirical Knowledge is what it exists for: GMS rolls its stack on
+  // every attack rather than handing the player a button.
+  //
+  // Read with `stacks` below and with cooldown_seconds, which is the wait
+  // between rolls a skill that states one wants. 0 for a buff raised on a
+  // clock or by the swing that lays it, which is every other one.
+  double raise_chance = 28;
+  double raise_chance_per_level = 29;
+  // Helpings of it that stand at once, each raised by its own roll and each
+  // living out its own window. Apart from `stages`, which is one raising shed
+  // one step at a time; these are gathered one at a time and lapse the same
+  // way. Each grants the whole of the levers above, so three stacks are worth
+  // three times one.
+  //
+  // Run as that many buff windows, as a shedding buff is -- see
+  // combat/constants.h kMaxBuffWindows. The fight keeps them ordered by what
+  // is left of each, so the windows standing are always the first of them.
+  // 0 reads as one, the ordinary buff.
+  int32 stacks = 30;
+  // Whether a swing only raises this where it lands on an AFFLICTED enemy --
+  // one carrying a status this game keeps, which is the pair
+  // SkillEffect::final_dmg_pct_when_afflicted reads. Thief's Cunning is what
+  // it exists for: GMS pays the window for debuffing something, so a
+  // character who inflicts nothing never opens one.
+  //
+  // The swing is any of the character's; the buff is not laid by a named
+  // attack. Read with cooldown_seconds, which is the wait between windows.
+  bool needs_afflicted_target = 31;
 }
 
 // A chance a swing has to land harder on one of the enemies it reached, and
@@ -1558,6 +1602,18 @@ message Skill {
   // LEVEL CAP does, so its ceiling moves with kMaxLevel rather than being
   // written down here.
   int32 account_levels_per_level = 66;
+  // A LINK SKILL, and the line whose characters level it, named by that
+  // line's first job -- JOB_SWORDMAN for the warriors'. Another skill nobody
+  // buys: its level is what the account's characters of that line have
+  // reached, three rungs apiece and one line counting once however many
+  // characters walk it. See //src/character:link.
+  //
+  // Such a skill costs no SP and takes no granted levels. Every character may
+  // hold it, whatever they are -- that is the whole point of one -- so it is
+  // listed in JOB_ADVANCEMENT_LINK, which is nobody's book, and reaching it
+  // is a question of what the account has equipped rather than of whose book
+  // it is in.
+  Job link_line = 67;
   // What must be learned first, if anything. Named `required_skill` rather
   // than `requires`, which C++20 has taken for itself.
   SkillRequirement required_skill = 8;

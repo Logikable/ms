@@ -972,10 +972,11 @@ TEST(JobChoicesTest, ABerserkerCountsAsAWarriorThroughout) {
 TEST(JobChoicesTest, EveryAdvancementRoundTripsToItsJob) {
   for (int i = 1; i <= JobAdvancement_MAX; ++i) {
     JobAdvancement advancement = static_cast<JobAdvancement>(i);
-    // Neither the common nodes' home nor the beginner book is an advancement
-    // anybody takes, so neither names a job.
+    // None of the three -- the common nodes' home, the beginner book, the
+    // link skills' -- is an advancement anybody takes, so none names a job.
     if (advancement == JOB_ADVANCEMENT_COMMON ||
-        advancement == JOB_ADVANCEMENT_BEGINNER) {
+        advancement == JOB_ADVANCEMENT_BEGINNER ||
+        advancement == JOB_ADVANCEMENT_LINK) {
       EXPECT_EQ(JobForAdvancement(advancement), JOB_UNSPECIFIED);
       continue;
     }
@@ -1557,6 +1558,99 @@ TEST_F(CharacterTest, ADerivedSkillCostsNothingAndIsHeldByEverybody) {
   EXPECT_TRUE(c.HoldsSkillFrom(fairy));
   EXPECT_EQ(c.SpFor(fairy), 0);
   EXPECT_FALSE(c.LearnSkill(fairy));
+}
+
+// --- Link skills ---
+
+// A link skill's shape: no book any character holds, and a level read off
+// what the whole ACCOUNT has climbed on one job line.
+Skill LinkSkill(const std::string& name, Job line) {
+  Skill skill;
+  skill.set_name(name);
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(skill, JOB_ADVANCEMENT_LINK);
+  skill.set_link_line(line);
+  skill.set_max_level(9);
+  skill.mutable_base()->set_attack(1);
+  return skill;
+}
+
+// A character of a job at a level, which is the whole of what a link skill
+// reads off them.
+CharacterInstance MakeLinked(std::mt19937& rng, Job job, int level) {
+  Character proto;
+  proto.set_job(job);
+  proto.set_level(level);
+  return CharacterInstance(rng, std::move(proto));
+}
+
+// A level 210 character opens the system for the account, and their own line
+// is theirs for free -- so one character alone holds one link skill at 3.
+TEST_F(CharacterTest, AccountLevel210OpensTheLinkSkillsAndTheirOwnLineIsFree) {
+  Skill warrior = LinkSkill("Invincible Belief", JOB_SWORDMAN);
+  Skill rogue = LinkSkill("Thief's Cunning", JOB_ROGUE);
+
+  CharacterInstance early = MakeLinked(rng_, JOB_HERO, 209);
+  EXPECT_FALSE(early.HoldsSkillFrom(warrior)) << "the account is short";
+  EXPECT_EQ(early.skill_level(warrior), 0);
+
+  CharacterInstance hero = MakeLinked(rng_, JOB_HERO, 210);
+  EXPECT_TRUE(hero.HoldsSkillFrom(warrior)) << "their own line, unequipped";
+  EXPECT_EQ(hero.skill_level(warrior), 3);
+  EXPECT_FALSE(hero.HoldsSkillFrom(rogue)) << "another line's has to be worn";
+}
+
+// The rule the user's own example settles: a line pays once however many
+// characters walk it, and the lines of a branch sum.
+TEST_F(CharacterTest, ALinkSkillReadsTheWholeRosterAndCapsAtItsMaximum) {
+  Skill warrior = LinkSkill("Invincible Belief", JOB_SWORDMAN);
+  CharacterInstance hero = MakeLinked(rng_, JOB_HERO, 120);
+
+  LinkTally tally;
+  tally.Record(JOB_DARK_KNIGHT, 70);
+  tally.Record(JOB_DARK_KNIGHT, 210);
+  hero.set_link_tally(tally);
+  hero.set_account_max_level(210);
+  EXPECT_EQ(hero.skill_level(warrior), 5);
+
+  // Never past what the data states, whatever the roster comes to.
+  Skill shallow = LinkSkill("Invincible Belief", JOB_SWORDMAN);
+  shallow.set_max_level(4);
+  EXPECT_EQ(hero.LinkSkillLevel(shallow), 4);
+}
+
+// Nobody buys one, and reconciling fills the list with every link skill the
+// character does not already hold for free.
+TEST_F(CharacterTest, LinkSkillsCostNothingAndAreWornByDefault) {
+  std::map<std::string, Skill> skills = {
+      {"invincible_belief", LinkSkill("Invincible Belief", JOB_SWORDMAN)},
+      {"thiefs_cunning", LinkSkill("Thief's Cunning", JOB_ROGUE)},
+      {"slash_blast", SlashBlast()},
+  };
+  CharacterInstance hero =
+      MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5, JOB_HERO);
+  hero.set_account_max_level(210);
+
+  EXPECT_EQ(hero.ReconcileLinkSkills(skills), 1) << "their own is not in it";
+  ASSERT_EQ(hero.link_skills().size(), 1);
+  EXPECT_EQ(hero.link_skills().at(0), "Thief's Cunning");
+  EXPECT_TRUE(hero.HoldsSkillFrom(skills.at("thiefs_cunning")));
+  EXPECT_EQ(hero.SpFor(skills.at("invincible_belief")), 0);
+  EXPECT_FALSE(hero.LearnSkill(skills.at("invincible_belief")));
+  // Idempotent: a second pass has nothing left to put on.
+  EXPECT_EQ(hero.ReconcileLinkSkills(skills), 0);
+}
+
+TEST_F(CharacterTest, TwelveIsAsManyLinkSkillsAsOneCharacterCarries) {
+  CharacterInstance c = MakeCharacter(rng_);
+  for (int i = 0; i < kMaxEquippedLinkSkills; ++i) {
+    EXPECT_TRUE(c.EquipLinkSkill("Link " + std::to_string(i)));
+  }
+  EXPECT_FALSE(c.EquipLinkSkill("Link 12")) << "the list is full";
+  EXPECT_FALSE(c.EquipLinkSkill("Link 0")) << "and never holds one twice";
+  EXPECT_TRUE(c.UnequipLinkSkill("Link 0"));
+  EXPECT_FALSE(c.UnequipLinkSkill("Link 0"));
+  EXPECT_TRUE(c.EquipLinkSkill("Link 12"));
 }
 
 // --- Advancement mapping ---

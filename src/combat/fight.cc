@@ -1535,6 +1535,28 @@ void CombatSim::RunRegen(const CombatParams& params, double dt) {
   }
 }
 
+void CombatSim::RunEmergencyHeal(const CombatParams& params, double dt) {
+  const EmergencyHeal& heal = params.emergency_heal;
+  if (heal.pct <= 0.0 || params.max_player_hp <= 0) {
+    return;
+  }
+  emergency_cooldown_left_ = std::max(0.0, emergency_cooldown_left_ - dt);
+  // Armed by the hit that put them under the line, never by the one that
+  // killed them: that is what a revival answers.
+  if (emergency_left_ <= 0.0 && emergency_cooldown_left_ <= 0.0 &&
+      player_hp_ > 0.0 && player_hp_ < heal.threshold * params.max_player_hp) {
+    emergency_left_ = heal.seconds;
+    emergency_cooldown_left_ = heal.cooldown_seconds;
+  }
+  if (emergency_left_ <= 0.0) {
+    return;
+  }
+  double poured = std::min(dt, emergency_left_);
+  emergency_left_ -= poured;
+  player_hp_ = std::min(static_cast<double>(params.max_player_hp),
+                        player_hp_ + poured * heal.pct * params.max_player_hp);
+}
+
 double CombatSim::Roll(const SwingRolls& rolls) {
   return measuring_ ? 1.0 : RollFactor(rolls, rng_, ledger_.LineSink());
 }
@@ -1912,6 +1934,11 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
       buffs_[i].charge_left = params.buffs[i].charge_lines;
     }
   }
+  // Before the mask is built, so a helping that lapsed last step does not
+  // leave a hole in the middle of its group: the windows standing are always
+  // the FIRST of it, which is what keeps the damage tables to one per count
+  // rather than one per arrangement.
+  CompactRolledWindows(params);
   buff_mask_ = 0;
   lever_mask_ = 0;
   for (int i = 0; i < count; ++i) {
@@ -1928,9 +1955,9 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     // What it waits on: seconds, or a count of landed hits.
     bool ready = buff.charge_lines > 0 ? clock.charge_left <= 0.0
                                        : clock.cooldown_left <= 0.0;
-    if (buff.laid_by_attack < 0 && clock.left <= 0.0 && ready &&
-        !queue_.empty() && buff.duration_seconds > 0.0 &&
-        ShieldWanted(params, buff)) {
+    if (buff.laid_by_attack < 0 && buff.raise_chance <= 0.0 &&
+        clock.left <= 0.0 && ready && !queue_.empty() &&
+        buff.duration_seconds > 0.0 && ShieldWanted(params, buff)) {
       // Settled here and never revisited: a sword planted for two minutes
       // stays planted, however the fight turns.
       clock.stance = StanceToRaise(params, buff);
@@ -2060,6 +2087,70 @@ bool CombatSim::LayBuffs(const CombatParams& params, int swung, bool on_cast) {
     laid = true;
   }
   return laid;
+}
+
+void CombatSim::RaiseRolledBuffs(const CombatParams& params, bool afflicted) {
+  int count = static_cast<int>(params.buffs.size());
+  for (int first = 0; first < count;) {
+    const BuffOption& buff = params.buffs[first];
+    // The windows of one buff sit together, a stack's being alike. One swing
+    // gathers at most one of them, so the group is walked rather than the
+    // windows.
+    int end = first + 1;
+    while (end < count && params.buffs[end].name == buff.name) {
+      ++end;
+    }
+    if (buff.raise_chance > 0.0 && buff.duration_seconds > 0.0 &&
+        (!buff.needs_afflicted_target || afflicted)) {
+      RaiseOneWindow(params, first, end);
+    }
+    first = end;
+  }
+}
+
+void CombatSim::RaiseOneWindow(const CombatParams& params, int first, int end) {
+  const BuffOption& buff = params.buffs[first];
+  int free_slot = -1;
+  for (int i = first; i < end && free_slot < 0; ++i) {
+    if (buffs_[i].left <= 0.0 && buffs_[i].cooldown_left <= 0.0) {
+      free_slot = i;
+    }
+  }
+  // A pile already full gains nothing: each helping lives out its own window
+  // rather than the newest pushing the oldest off.
+  if (free_slot < 0 || Chance(buff.raise_chance) <= 0.0) {
+    return;
+  }
+  buffs_[free_slot].left = BuffWindowSeconds(buff);
+  buffs_[free_slot].cooldown_left = buff.cooldown_seconds;
+  CompactRolledWindows(params);
+  // The mask is built before anything swings, so one raised mid-swing must
+  // say so itself -- the same bargain LayBuffs makes.
+  for (int i = first; i < end; ++i) {
+    if (buffs_[i].left > 0.0) {
+      buff_mask_ |= 1 << i;
+      lever_mask_ |= 1 << i;
+    }
+  }
+}
+
+void CombatSim::CompactRolledWindows(const CombatParams& params) {
+  int count = static_cast<int>(params.buffs.size());
+  for (int first = 0; first < count;) {
+    int end = first + 1;
+    while (end < count && params.buffs[end].name == params.buffs[first].name) {
+      ++end;
+    }
+    // Only a buff gathered in helpings: a SHEDDING one's windows are
+    // staggered on purpose and reordering them would lose the stagger.
+    if (params.buffs[first].raise_chance > 0.0) {
+      std::sort(buffs_.begin() + first, buffs_.begin() + end,
+                [](const BuffClock& a, const BuffClock& b) {
+                  return a.left > b.left;
+                });
+    }
+    first = end;
+  }
 }
 
 // Chosen ahead of the hardest swing on offer, and DELIBERATELY not a
@@ -2359,6 +2450,9 @@ void CombatSim::LandSwing(const CombatParams& params,
     // the strike is priced under it and the swing is re-read out of the set
     // the raising moved the fight into. Every other one waits for the
     // landing.
+    // Read before the strike, the mob it asks about being the one the swing
+    // may kill. See Buff::needs_afflicted_target.
+    bool afflicted = !queue_.empty() && Afflicted(queue_.front());
     const AttackOption* cast = &attack;
     if (LayBuffs(params, swung, /*on_cast=*/true)) {
       cast = &Attacks(params)[swung];
@@ -2389,6 +2483,9 @@ void CombatSim::LandSwing(const CombatParams& params,
     // press of the key.
     CreditBuffs(params, cast->count_weight, landed.lines);
     LayBuffs(params, swung, /*on_cast=*/false);
+    // After it too: what a swing ROLLS for lifts the swings after it, never
+    // the one that earned it.
+    RaiseRolledBuffs(params, afflicted);
   }
   SpendSwingClocks(attack, swung);
   attributing_ = -1;  // nothing is left to credit to this swing
@@ -2606,6 +2703,9 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   // After the hit and before the swing, so a fountain pays on the step it
   // was needed.
   RunRegen(params, dt);
+  // Beside it, and for the same reason: the hit that put them under the line
+  // is the one this answers.
+  RunEmergencyHeal(params, dt);
   // Before anything swings, so summons and the character pick targets off
   // one order, and the swing is CHOSEN against what it will hit.
   AimAtHealthiest(params);

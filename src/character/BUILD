@@ -34,6 +34,7 @@ cc_library(
         ":hyper_stats",
         ":inner_ability",
         ":job_branch",
+        ":link",
         ":skill_placement",
         ":v_matrix",
         "//src/item",
@@ -51,6 +52,7 @@ cc_library(
         "//src/protos:item_proto_cc",
         "//src/protos:scroll_proto_cc",
         "//src/protos:skill_proto_cc",
+        "@abseil-cpp//absl/algorithm:container",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/types:span",
@@ -264,6 +266,26 @@ cc_test(
     srcs = ["job_branch_test.cc"],
     deps = [
         ":job_branch",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "link",
+    srcs = ["link.cc"],
+    hdrs = ["link.h"],
+    deps = [
+        ":job_branch",
+        "//src/protos:character_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "link_test",
+    size = "small",
+    srcs = ["link_test.cc"],
+    deps = [
+        ":link",
         "@googletest//:gtest_main",
     ],
 )

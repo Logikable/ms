@@ -1570,7 +1570,7 @@ std::vector<const Skill*> StagedBuffSkills(
     const std::vector<const Skill*>& raised) {
   std::vector<const Skill*> staged;
   for (const Skill* skill : raised) {
-    staged.insert(staged.end(), std::max(1, skill->buff().stages()), skill);
+    staged.insert(staged.end(), BuffWindowsFor(skill->buff()), skill);
   }
   return staged;
 }
@@ -1608,12 +1608,16 @@ void AddBuffs(const GameState& state,
   std::map<std::string, SkillBoosts> boosts =
       BoostsByTarget(character, skills, bonus);
   const Skill* previous = nullptr;
-  int stage = 0;
+  int copy = 0;
   for (const Skill* skill : buff_skills) {
-    stage = skill == previous ? stage + 1 : 0;
+    copy = skill == previous ? copy + 1 : 0;
     previous = skill;
     int level = EffectiveSkillLevel(character, *skill, bonus);
     const Buff& buff = skill->buff();
+    // Which shed-stage this window is. A STACK's windows are alike -- each is
+    // gathered on its own roll and lives out the whole length -- so only a
+    // shedding buff numbers its copies.
+    int stage = buff.stages() > 0 ? copy : 0;
     BuffOption option = BuffClockFor(buff, level, boosts[skill->name()],
                                      BuffDurationFor(*skill, buff_duration_pct),
                                      speed_factor, stage);
@@ -1642,6 +1646,20 @@ void AddBuffs(const GameState& state,
     // The stages of one shedding buff go up on the one cast, so only the first
     // of them is charged for it.
     if (stage > 0) {
+      option.cast_seconds = 0.0;
+    }
+    // A buff a swing ROLLS for is not pressed at all, so it costs no cast and
+    // waits on no clock. One naming an afflicted target with no chance of its
+    // own is raised by every swing that finds one.
+    option.needs_afflicted_target = buff.needs_afflicted_target();
+    if (buff.raise_chance() > 0.0 || buff.raise_chance_per_level() > 0.0) {
+      option.raise_chance = std::clamp(
+          buff.raise_chance() + buff.raise_chance_per_level() * (level - 1),
+          0.0, 1.0);
+    } else if (option.needs_afflicted_target) {
+      option.raise_chance = 1.0;
+    }
+    if (option.raise_chance > 0.0) {
       option.cast_seconds = 0.0;
     }
     // The swing this buff loads, found by the magazine's own label -- the name
@@ -1840,7 +1858,8 @@ void AddBuffedSets(const GameState& state,
   params.buffed_source.ally_buffs = ally_buffs;
   params.buffed_source.speed_factor = speed_factor;
   params.buffed_source.preset = preset;
-  params.buffed.assign((1 << count) - 1, std::nullopt);
+  // Nothing is built here: params.buffs is what bounds the masks, and each
+  // one is built the first time the fight stands in it.
 }
 
 // Halves how far a swing reaches, rounding up. A boss stands its parts a room
@@ -1904,14 +1923,19 @@ const AttackOption& RepeatForm(const AttackOption& attack, int pulses) {
 // The window `mask` names, built on first ask. Null for a mask no combination
 // reaches, which the readers below answer with the unbuffed lists.
 const AttackSet* CombatParams::Window(int mask) const {
-  if (mask <= 0 || mask > static_cast<int>(buffed.size())) {
+  if (mask <= 0) {
     return nullptr;
   }
-  std::optional<AttackSet>& slot = buffed[mask - 1];
-  if (!slot.has_value()) {
-    slot = BuildBuffedSet(*this, mask);
+  std::map<int, AttackSet>::iterator slot = buffed.find(mask);
+  if (slot != buffed.end()) {
+    return &slot->second;
   }
-  return &slot.value();
+  // A params built by hand has no source to build from: what it was handed is
+  // all it has, and any other mask reads as no buffs at all.
+  if (buffed_source.state == nullptr || mask >= (1 << buffs.size())) {
+    return nullptr;
+  }
+  return &buffed.emplace(mask, BuildBuffedSet(*this, mask)).first->second;
 }
 
 const std::vector<AttackOption>& CombatParams::Attacks(int mask) const {
@@ -1974,6 +1998,12 @@ void AddPacing(const GameState& state, const DerivedStats& derived,
   }
   params.revive_cooldown_seconds =
       derived.revive_cooldown_seconds * speed_factor;
+  // The window stretches with the band and the share per second does not, so
+  // one firing pours what its skill says however slowly the band runs.
+  params.emergency_heal = derived.emergency_heal;
+  params.emergency_heal.pct /= speed_factor;
+  params.emergency_heal.seconds *= speed_factor;
+  params.emergency_heal.cooldown_seconds *= speed_factor;
   params.freeze_cap = derived.freeze.cap;
 }
 

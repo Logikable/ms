@@ -1,0 +1,32 @@
+# The magicians' link skill: a stack rolled on every swing, three of them at
+# once, each living out its own ten seconds.
+#
+# GMS's per-stack value is 1% through level 2, 2% through 4 and so on -- a
+# half point a level written in whole numbers. Half a point is what is written
+# here, so levels 1 and 9 are GMS's exactly and the even rungs sit half a
+# point above it.
+#
+# The ignored defence does not simply treble: three stacks meet each other the
+# way two sources of it always do. See CombineIgnoredDefense.
+name: "Empirical Knowledge"
+description:
+  "Has a chance when attacking to increase your damage and your ignored "
+  "enemy DEF. Stacks up to 3 times."
+kind: SKILL_KIND_PASSIVE
+placement { job_advancement: JOB_ADVANCEMENT_LINK skill_order: 2 }
+link_line: JOB_MAGICIAN
+max_level: 9
+buff {
+  duration_seconds: 10.0
+  raise_chance: 0.15
+  raise_chance_per_level: 0.02
+  stacks: 3
+  base {
+    damage_pct: 0.01
+    ied_pct: 0.01
+  }
+  per_level {
+    damage_pct: 0.005
+    ied_pct: 0.005
+  }
+}

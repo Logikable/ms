@@ -266,6 +266,17 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   // seconds rather than a choice between clocks. Cashed in once every passive
   // is read -- see DerivedStatsFor.
   totals.revive_cooldown_cut += granted.revive_cooldown_cut_seconds();
+  // The same bargain, over the heal that answers nearly dying: the shorter
+  // wait stands whole rather than two of them adding up.
+  if (granted.emergency_heal_pct() > 0.0 &&
+      (totals.emergency_heal.pct <= 0.0 ||
+       granted.emergency_heal_cooldown_seconds() <
+           totals.emergency_heal.cooldown_seconds)) {
+    totals.emergency_heal = {granted.emergency_heal_pct(),
+                             granted.emergency_heal_seconds(),
+                             granted.emergency_heal_hp_threshold(),
+                             granted.emergency_heal_cooldown_seconds()};
+  }
   totals.ied = CombineIgnoredDefense(totals.ied, granted.ied_pct());
   // Its elemental twin, which sums rather than combining in reverse: GMS
   // applies it to the resistance itself, not to what the last source left.

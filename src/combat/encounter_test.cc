@@ -494,7 +494,7 @@ TEST(ComputeCombatParamsTest, OnlyAnIceSwingCollectsTheStackedMagicAttack) {
 
   // Up, the cap is 13 and the ice swing gains 5 magic attack a stack against
   // whatever it is swinging with.
-  ASSERT_EQ(params.buffed.size(), 1u);
+  ASSERT_EQ(params.buffs.size(), 1u);
   EXPECT_EQ(params.FreezeCap(1), 13);
   EXPECT_GT(params.Attacks(1)[ice].freeze_matt_gain, 0.0);
   EXPECT_DOUBLE_EQ(params.Attacks(1)[lightning].freeze_matt_gain, 0.0);
@@ -2133,7 +2133,7 @@ TEST(ComputeCombatParamsTest, ABuffGetsADamageTableOfItsOwn) {
 
   // One table for the one combination there is, holding the same attacks in
   // the same order -- half again as hard, since the buff is 50% final damage.
-  ASSERT_EQ(params.buffed.size(), 1u);
+  ASSERT_EQ(params.buffs.size(), 1u);
   ASSERT_EQ(params.Attacks(1).size(), params.attacks.size());
   EXPECT_NEAR(params.Attacks(1)[0].damage_per_hit[0],
               1.5 * params.attacks[0].damage_per_hit[0], 1e-9);
@@ -2415,7 +2415,8 @@ TEST(ComputeCombatParamsTest, APartysBuffComesInOnItsCastersClock) {
   EXPECT_NEAR(params.buffs[0].damage_taken_pct, 0.08, 1e-9);
   // It gets a damage table of its own, exactly as a buff of the character's
   // own would: what a party buff grants is not damage taken alone.
-  EXPECT_EQ(params.buffed.size(), 1u);
+  EXPECT_EQ(params.buffs.size(), 1u);
+  EXPECT_NE(params.Window(1), nullptr);
 }
 
 // A party buff is timed by whoever cast it: the caster's Buff Duration
@@ -3253,7 +3254,7 @@ TEST(ComputeCombatParamsTest, ABuffOnAnAttackIsLaidByThatSwing) {
   EXPECT_DOUBLE_EQ(gated.auto_attacks[0].interval_seconds,
                    2.0 * GameSpeedFactor(state.character.proto().level()));
   // Tagged in the buffed window too, which is built the moment it is read.
-  ASSERT_EQ(gated.buffed.size(), 1u);
+  ASSERT_EQ(gated.buffs.size(), 1u);
   ASSERT_EQ(gated.AutoAttacks(1).size(), 1u);
   EXPECT_EQ(gated.AutoAttacks(1)[0].needs_buff, 0);
   // A wound borrowing the swing's reach lands once a tick and never runs out.

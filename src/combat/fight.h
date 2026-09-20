@@ -163,6 +163,9 @@ class CombatSim {
   // Runs every fountain forward by dt, pouring the pulses that come due.
   // Each fills to the pool and no further, with or without mobs standing.
   void RunRegen(const CombatParams& params, double dt);
+  // The heal that answers nearly dying: arms itself under the threshold,
+  // pours for its window and then waits out its cooldown. See EmergencyHeal.
+  void RunEmergencyHeal(const CombatParams& params, double dt);
 
   // Adds what each type is missing: a respawn puts new monsters on the map,
   // it does not heal the one being fought. Leaves the swing clock alone.
@@ -202,6 +205,16 @@ class CombatSim {
   int BurnStacksAlight() const;
   // Seconds one raising of this buff stands, the burns alight included.
   double BuffWindowSeconds(const BuffOption& buff) const;
+  // Rolls for every buff a landed swing can raise -- see
+  // BuffOption::raise_chance. `afflicted` is whether the swing found an
+  // enemy already carrying a status, which one of them asks for.
+  void RaiseRolledBuffs(const CombatParams& params, bool afflicted);
+  // One such buff, whose windows are params.buffs[first, end): fills the
+  // first free one on a successful roll and keeps the group ordered.
+  void RaiseOneWindow(const CombatParams& params, int first, int end);
+  // Orders every rolled buff's windows longest-lived first, so the ones
+  // standing are always the first of their group.
+  void CompactRolledWindows(const CombatParams& params);
   double BurnLeftOn(const QueuedMob& mob, int slot) const;
   double BurningRate(const CombatParams& params, const QueuedMob& mob,
                      int alight) const;
@@ -621,6 +634,10 @@ class CombatSim {
   // Seconds before a passive will revive the player again. Counts down
   // wherever the character is: it measures the pact, not the fight.
   double revive_left_ = 0.0;
+  // What is left of the emergency heal's pour, and of the wait before it can
+  // fire again. See RunEmergencyHeal.
+  double emergency_left_ = 0.0;
+  double emergency_cooldown_left_ = 0.0;
   // One entry per cast in params.auto_attacks.
   struct AutoClock {
     // Seconds into its next cast. Runs only while there is something to hit.

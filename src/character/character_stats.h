@@ -152,6 +152,16 @@ struct RegenPulse {
   double interval_seconds = 0.0;
 };
 
+// The heal a character gets for nearly dying: it pours `pct` of the pool a
+// second for `seconds` once they drop under `threshold` of it, and then waits
+// out `cooldown_seconds`. `pct` at nothing is a character who has none.
+struct EmergencyHeal {
+  double pct = 0.0;
+  double seconds = 0.0;
+  double threshold = 0.0;
+  double cooldown_seconds = 0.0;
+};
+
 struct DerivedStats {
   // What the character was doing when these were read. Carried so a later
   // fold reads the same activity.
@@ -200,6 +210,9 @@ struct DerivedStats {
   // Seconds between revivals, for a character whose passives revive them: a
   // hit that would kill fills the pool instead.
   double revive_cooldown_seconds = 0.0;
+  // The heal that answers nearly dying, where a revival answers dying. Two
+  // sources do not stack -- the shorter wait stands, as a pact's does.
+  EmergencyHeal emergency_heal;
   // Extra EXP every kill yields, summed. Unlike everything else here it is
   // read outside a fight -- see AwardCombatRewards.
   double exp_pct = 0.0;

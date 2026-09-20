@@ -1040,6 +1040,25 @@ std::vector<Row> RegenRows(const Skill& skill, int level) {
   return {EffectRow("HP Recovered", text)};
 }
 
+// The heal that answers nearly dying, which needs all four of its numbers to
+// mean anything: what it pours, for how long, under what, and how often.
+std::vector<Row> EmergencyHealRows(const Skill& skill, int level) {
+  double pct = PercentAt(skill, &SkillEffect::emergency_heal_pct, level);
+  if (pct <= 0.0) {
+    return {};
+  }
+  double seconds =
+      PercentAt(skill, &SkillEffect::emergency_heal_seconds, level);
+  double threshold =
+      PercentAt(skill, &SkillEffect::emergency_heal_hp_threshold, level);
+  double cooldown =
+      PercentAt(skill, &SkillEffect::emergency_heal_cooldown_seconds, level);
+  return {EffectRow("Below " + FormatPercent(threshold) + " HP",
+                    FormatPercent(pct) + " a second for " +
+                        FormatNumber(seconds) + "s"),
+          EffectRow("Recovery Cooldown", FormatNumber(cooldown) + "s")};
+}
+
 // What a hold does beyond its own pulse: the closing strike, the pulse it
 // grows into, and the share of a hit it shelters from.
 std::vector<Row> ChannelFinishRows(const Skill& skill, int level) {
@@ -1102,6 +1121,7 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
     Append(ChannelRows(skill, level), rows);
   }
   Append(RegenRows(skill, level), rows);
+  Append(EmergencyHealRows(skill, level), rows);
   // What one meso is worth thrown back, read as every other swing here is:
   // per line, times the count. Meso Mastery's points land a line apiece.
   double meso_hit = PercentAt(skill, &SkillEffect::meso_hit_pct, level);
@@ -1752,6 +1772,17 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   // A buff only the wound form raises says which press pays for it, or the
   // heading reads as though both did.
   std::string form = buff.needs_wound_form() ? ", after the wounded form" : "";
+  // A buff a swing ROLLS for says what the roll is and what it needs, the
+  // same way a charged one says its count: there is no Cooldown row on one
+  // that waits for nothing else.
+  double chance =
+      buff.raise_chance() + buff.raise_chance_per_level() * (level - 1);
+  if (chance > 0.0) {
+    charge += ", " + FormatPercent(std::min(chance, 1.0)) + " a hit";
+  }
+  if (buff.needs_afflicted_target()) {
+    charge += ", on a suffering enemy";
+  }
   // A buff with forms carries no length of its own: each form heads its own
   // block below, and one heading for both would have to lie about one of them.
   if (buff.stance().empty()) {
@@ -1770,9 +1801,16 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   }
   base.clear_heal_pct();
   per.clear_heal_pct();
+  // A buff gathered in helpings grants its levers once per helping, so the
+  // count has to be on the card or the rows below read as the whole grant.
+  std::string per_stage = "";
+  if (buff.stacks() > 1) {
+    rows.push_back(EffectRow(
+        "Stacks", std::to_string(buff.stacks()) + ", each on its own clock"));
+    per_stage = " each";
+  }
   // A shedding buff grants its levers once per stage standing, so the count
   // has to be on the card or the rows below it read as the whole grant.
-  std::string per_stage = "";
   if (buff.stages() > 1) {
     rows.push_back(EffectRow(
         "Stages", std::to_string(buff.stages()) + ", one lost every " +

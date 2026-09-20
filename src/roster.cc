@@ -116,6 +116,7 @@ void PutIntoPlay(GameState& state, const std::vector<CharacterSave>& all,
   state.character.ReconcileSkills(state.skills);
   state.character.ReconcileHyperStats();
   state.character.ReconcileSp(state.skills);
+  state.character.ReconcileLinkSkills(state.skills);
   state.current_map = arriving.current_map();
   state.playtime_seconds = static_cast<double>(arriving.playtime_seconds());
   // Left alone when the slot has no creation time to give -- one written
@@ -128,9 +129,10 @@ void PutIntoPlay(GameState& state, const std::vector<CharacterSave>& all,
   // roster sorts on it.
   state.last_played_unix_seconds = Now();
 
-  // After the account, whose switch and record it reads.
-  state.MirrorAccount();
+  // After the others are beside them: the link tally is read off the rest of
+  // the roster, and the account's switch and record off the account.
   KeepBeside(state, all, slot);
+  state.MirrorAccount();
 }
 
 bool PlayCharacter(GameState& state, int slot) {

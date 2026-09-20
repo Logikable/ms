@@ -2840,6 +2840,65 @@ TEST(CombatSimTest, APactCatchesAgainOnceItsWaitIsOut) {
   EXPECT_EQ(sim.view().player_hp, 100);
 }
 
+// Invincible Belief's shape: under 15% of the pool it pours 20% of it a
+// second for three seconds, then waits. It answers NEARLY dying, where a pact
+// answers dying, so both can be carried at once.
+CombatParams EmergencyHealParams(Mob& snail, double damage) {
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, damage);
+  params.emergency_heal = {0.20, 3.0, 0.15, 20.0};
+  return params;
+}
+
+TEST(CombatSimTest, TheEmergencyHealPoursOnceThePoolIsNearlyEmpty) {
+  Mob snail = MakeMob("Snail", 1000);  // too tough to kill, so the hits keep
+  CombatSim sim;                       // coming
+  CombatParams params = EmergencyHealParams(snail, /*damage=*/10.0);
+
+  // Down to 20 with nothing poured: the line is 15 and they are above it.
+  for (int step = 0; step < 8; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_EQ(sim.view().player_hp, 20);
+
+  // The ninth hit puts them under it, so the second it arms pours 20 back.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.view().player_hp, 30);
+  // Two more seconds of pouring against two more hits, and then it stops.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.view().player_hp, 40);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.view().player_hp, 50);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.view().player_hp, 40);
+}
+
+TEST(CombatSimTest, TheEmergencyHealWaitsOutItsCooldownAndFillsNoFurther) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = EmergencyHealParams(snail, /*damage=*/10.0);
+
+  // Once it has fired, a second dip inside the wait is not answered: the
+  // pool runs down to nothing and the player dies.
+  for (int step = 0; step < 20 && !sim.view().died_this_step; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_TRUE(sim.view().died_this_step);
+}
+
+TEST(CombatSimTest, TheEmergencyHealNeverPoursPastThePool) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  // One hit takes 90 of the 100, so three seconds of 20 would overfill it.
+  CombatParams params = EmergencyHealParams(snail, /*damage=*/90.0);
+  params.hit_seconds = 100.0;  // and no second hit to spend it on
+
+  for (int step = 0; step < 5; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_EQ(sim.view().player_hp, 100);
+}
+
 // Trickblade's shape: a swing that hits ten for 10 apiece, and a heavier form
 // it lands instead on one enemy for 300 while a wound stands three deep. The
 // wound is left by another swing entirely -- GMS's Assassinate and Sonic Blow
@@ -2959,7 +3018,7 @@ TEST(CombatSimTest, AFormOnlyBuffIsNotRaisedByTheOrdinaryPress) {
       damage *= 2.0;
     }
   }
-  params.buffed.push_back(std::move(set));
+  params.buffed[1] = std::move(set);
 
   CombatSim sim;
   // Trickblade goes first, hitting hardest; nothing is wounded, so it throws
@@ -2994,7 +3053,106 @@ void GiveBuff(CombatParams& params, double duration, double cooldown,
       damage *= factor;
     }
   }
-  params.buffed.push_back(std::move(set));
+  params.buffed[1] = std::move(set);
+}
+
+// Gives `params` a buff raised by a ROLL on every landed swing rather than by
+// a clock, in `stacks` helpings that each live out their own window. Every
+// helping's table hits `factor` times as hard as the one below it, so the
+// mask a swing is priced under is readable off the damage.
+void GiveRolledBuff(CombatParams& params, int stacks, double duration,
+                    double chance, bool needs_afflicted = false) {
+  for (int stack = 0; stack < stacks; ++stack) {
+    BuffOption buff;
+    buff.name = "Empirical Knowledge";
+    buff.duration_seconds = duration;
+    buff.raise_chance = chance;
+    buff.needs_afflicted_target = needs_afflicted;
+    params.buffs.push_back(std::move(buff));
+  }
+  // One table per helping count, which is every mask a prefix can make.
+  for (int held = 1; held <= stacks; ++held) {
+    AttackSet set;
+    set.attacks = params.attacks;
+    for (AttackOption& attack : set.attacks) {
+      for (double& damage : attack.damage_per_hit) {
+        damage *= 1.0 + held;
+      }
+    }
+    params.buffed[(1 << held) - 1] = std::move(set);
+  }
+}
+
+// One helping a swing, three at a time, and the mask is always a PREFIX of
+// the group -- the whole reason the windows are kept in order.
+TEST(CombatSimTest, ARolledBuffGathersOneHelpingPerSwing) {
+  Mob snail = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 10.0, 1)});
+  GiveRolledBuff(params, /*stacks=*/3, /*duration=*/100.0, /*chance=*/1.0);
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.buff_mask(), 1);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.buff_mask(), 3);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.buff_mask(), 7);
+  // A full pile gains nothing: each helping lives out its own window.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.buff_mask(), 7);
+}
+
+// The oldest helping lapses first, and the survivors close up: the mask goes
+// to 3 rather than leaving a hole at the front of the group.
+TEST(CombatSimTest, ALapsedHelpingLeavesNoHoleInThePile) {
+  Mob snail = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 10.0, 1)});
+  GiveRolledBuff(params, /*stacks=*/3, /*duration=*/2.5, /*chance=*/1.0);
+
+  CombatSim sim;
+  for (int step = 0; step < 3; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  ASSERT_EQ(sim.buff_mask(), 7);
+  // The first helping runs out half a second into the fourth swing, and the
+  // fourth roll fills the slot it freed.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.buff_mask(), 7);
+  // Nothing swings, so nothing is gathered and they lapse oldest first. Every
+  // table, since the swing is picked from whichever one the pile puts the
+  // fight in.
+  params.attacks[0].swing_seconds = 1000.0;
+  for (std::pair<const int, AttackSet>& window : params.buffed) {
+    window.second.attacks[0].swing_seconds = 1000.0;
+  }
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.buff_mask(), 3);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.buff_mask(), 1);
+}
+
+// Thief's Cunning: the window opens only on a swing that finds an enemy
+// already suffering, so a character who inflicts nothing never opens one.
+TEST(CombatSimTest, ABuffNeedingAnAfflictedEnemyWaitsForOne) {
+  Mob snail = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 10.0, 1)});
+  GiveRolledBuff(params, /*stacks=*/1, /*duration=*/100.0, /*chance=*/1.0,
+                 /*needs_afflicted=*/true);
+
+  CombatSim unarmed;
+  for (int step = 0; step < 5; ++step) {
+    unarmed.Advance(params, 1.0);
+  }
+  EXPECT_EQ(unarmed.buff_mask(), 0);
+
+  // With ice on the swing the first one lands on a clean enemy and the
+  // second finds the one it just froze.
+  params.attacks[0].freeze_seconds = 10.0;
+  CombatSim frozen;
+  frozen.Advance(params, 1.0);
+  EXPECT_EQ(frozen.buff_mask(), 0);
+  frozen.Advance(params, 1.0);
+  EXPECT_EQ(frozen.buff_mask(), 1);
 }
 
 // Gives `params` a buff that LOADS a swing: while it stands the character can
@@ -3019,7 +3177,7 @@ void GiveMagazine(CombatParams& params, double duration, double cooldown,
   set.attacks = params.attacks;
   set.auto_attacks = params.auto_attacks;
   set.triggered_attacks = params.triggered_attacks;
-  params.buffed.push_back(std::move(set));
+  params.buffed[1] = std::move(set);
 }
 
 // Runs `seconds` of fight in quarter-second steps and totals what landed.
@@ -3057,7 +3215,7 @@ TEST(CombatSimTest, ALoadGoesOffOnThePressThatSpendsIt) {
   // that swing's own wait is what says how often they can be laid again.
   params.buffs.back().laid_by_attack = 1;
   params.buffs.back().raised_on_cast = true;
-  params.buffed[0]->attacks = params.attacks;
+  params.buffed[1].attacks = params.attacks;
 
   // One second laying the clouds for 1, nine swings of 10, and the charge
   // spent on the first of them. The buff refreshing every press is what the
@@ -3109,7 +3267,7 @@ TEST(CombatSimTest, APressSpendsSeveralChargesAndTheLastTakesWhatIsLeft) {
   params.attacks[0].loaded =
       std::make_shared<AttackOption>(params.attacks[loaded]);
   params.attacks[0].loaded_attack = loaded;
-  params.buffed[0]->attacks = params.attacks;
+  params.buffed[1].attacks = params.attacks;
 
   // Four seconds is four presses and only three of them find anything: one at
   // a time the eight would still be going.
@@ -3136,7 +3294,7 @@ TEST(CombatSimTest, ABankFillsItselfOnlyOnceTheLoadIsSpent) {
   params.attacks[0].loaded =
       std::make_shared<AttackOption>(params.attacks[loaded]);
   params.attacks[0].loaded_attack = loaded;
-  params.buffed[0]->attacks = params.attacks;
+  params.buffed[1].attacks = params.attacks;
 
   // The buff goes up on the opening step and hands over four, which the first
   // four presses spend. Had the clock been running under them there would be
@@ -3179,7 +3337,7 @@ TEST(CombatSimTest, ABuffPutsOutTheSummonItNames) {
   dragon.silenced_by_buff = 0;
   params.auto_attacks.push_back(std::move(dragon));
   GiveBuff(params, /*duration=*/5.0, /*cooldown=*/1000.0, /*factor=*/1.0);
-  params.buffed[0]->auto_attacks = params.auto_attacks;
+  params.buffed[1].auto_attacks = params.auto_attacks;
 
   // The angel goes up on the opening step and stands five seconds, so the
   // dragon strikes over the five that are left.
@@ -3258,7 +3416,7 @@ TEST(CombatSimTest, ADutyCycledBuffsSummonStrikesThroughTheGap) {
   GiveBuff(params, /*duration=*/10.0, /*cooldown=*/1000.0, /*factor=*/1.0);
   params.buffs.back().duty_seconds = 4.0;
   params.buffs.back().duty_interval_seconds = 5.0;
-  params.buffed[0]->auto_attacks = params.auto_attacks;
+  params.buffed[1].auto_attacks = params.auto_attacks;
 
   // Ten strikes over the ten seconds it stands, not the eight it grants.
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 1000.0);
@@ -3295,7 +3453,7 @@ void GiveStancedBuff(CombatParams& params, double cooldown, double dense_length,
   set.attacks = params.attacks;
   set.auto_attacks = params.auto_attacks;
   set.triggered_attacks = params.triggered_attacks;
-  params.buffed.push_back(std::move(set));
+  params.buffed[1] = std::move(set);
 }
 
 // The dense form delivers 2000 over its 20 seconds and the thin one 20 a
@@ -3556,7 +3714,7 @@ void GiveShield(CombatParams& params, int hits, double boss_soften,
   set.attacks = params.attacks;
   set.auto_attacks = params.auto_attacks;
   set.triggered_attacks = params.triggered_attacks;
-  params.buffed.push_back(std::move(set));
+  params.buffed[1] = std::move(set);
 }
 
 // The shell waits for the pool to be worth filling, swallows its count of
@@ -3684,7 +3842,7 @@ void GiveWound(CombatParams& params, double duration, double factor) {
       damage *= factor;
     }
   }
-  params.buffed.push_back(std::move(set));
+  params.buffed[1] = std::move(set);
 }
 
 // The fight spends a swing laying the wound, goes back to the hardest swing,
@@ -3744,7 +3902,7 @@ TEST(CombatSimTest, APulseGatedOnABuffWaitsForItToBeLaid) {
   GiveWound(params, /*duration=*/3.0, /*factor=*/1.0);
   params.auto_attacks[0].name = "Puncture";
   params.auto_attacks[0].needs_buff = 0;
-  params.buffed[0]->auto_attacks = params.auto_attacks;
+  params.buffed[1].auto_attacks = params.auto_attacks;
 
   // 5 for the swing that lays it and nothing from the pulse: no wound stood
   // when the step began.
@@ -3802,7 +3960,7 @@ TEST(CombatSimTest, ASilencedHalfCountsNothingWhileItsBuffStands) {
   params.triggered_attacks[0].silent_while_buff = true;
   params.triggered_attacks[0].needs_buff = 0;
   GiveBuff(params, /*duration=*/4.0, /*cooldown=*/1000.0, /*factor=*/1.0);
-  params.buffed[0]->triggered_attacks = params.triggered_attacks;
+  params.buffed[1].triggered_attacks = params.triggered_attacks;
 
   // The buff goes up on the first step and stands for four seconds. Nothing
   // fires in them however many swings land.
@@ -3830,7 +3988,7 @@ TEST(CombatSimTest, ACappedPulseFallsSilentBeforeTheBuffLapses) {
   params.auto_attacks[0].max_pulses = 4;
   GiveBuff(params, /*duration=*/8.0, /*cooldown=*/1000.0, /*factor=*/1.0);
   params.auto_attacks[0].needs_buff = 0;
-  params.buffed[0]->auto_attacks = params.auto_attacks;
+  params.buffed[1].auto_attacks = params.auto_attacks;
 
   // Three strikes of 100 a tick, four ticks: 1200 of the snail's 100000.
   for (int step = 0; step < 4; ++step) {
@@ -3862,7 +4020,7 @@ TEST(CombatSimTest, ARampedPulseClimbsAStepAFiringAndPinsAtTheTop) {
   }
   GiveBuff(params, /*duration=*/100.0, /*cooldown=*/1000.0, /*factor=*/1.0);
   params.auto_attacks[0].needs_buff = 0;
-  params.buffed[0]->auto_attacks = params.auto_attacks;
+  params.buffed[1].auto_attacks = params.auto_attacks;
 
   // 100 + 200 + 300 + 300 + 300 = 1200 of the snail's 100000, and the count
   // stops it there however long the buff stands.
@@ -3890,7 +4048,7 @@ TEST(CombatSimTest, ARampedPulseGoesOutOnOneMoreStrikeAtTheTop) {
       std::make_shared<const AttackOption>(std::move(top)));
   GiveBuff(params, /*duration=*/100.0, /*cooldown=*/1000.0, /*factor=*/1.0);
   params.auto_attacks[0].needs_buff = 0;
-  params.buffed[0]->auto_attacks = params.auto_attacks;
+  params.buffed[1].auto_attacks = params.auto_attacks;
 
   // Two seconds in: 100 and then 500, with the count not yet spent.
   sim.Advance(params, 1.0);
@@ -3920,7 +4078,7 @@ TEST(CombatSimTest, APulseGoesOutOnAStrikeOfItsOwnShape) {
       std::make_shared<const AttackOption>(std::move(burst));
   GiveBuff(params, /*duration=*/100.0, /*cooldown=*/1000.0, /*factor=*/1.0);
   params.auto_attacks[0].needs_buff = 0;
-  params.buffed[0]->auto_attacks = params.auto_attacks;
+  params.buffed[1].auto_attacks = params.auto_attacks;
 
   // Two ordinary ticks of 100, the count not yet spent.
   sim.Advance(params, 2.0);
@@ -3944,7 +4102,7 @@ TEST(CombatSimTest, ACappedPulseIsWorthItsWholeCountAgainNextWindow) {
   params.auto_attacks[0].max_pulses = 2;
   GiveBuff(params, /*duration=*/3.0, /*cooldown=*/6.0, /*factor=*/1.0);
   params.auto_attacks[0].needs_buff = 0;
-  params.buffed[0]->auto_attacks = params.auto_attacks;
+  params.buffed[1].auto_attacks = params.auto_attacks;
 
   // Two ticks of 300 while the first window stands, then nothing until it
   // comes round on the seventh second and pays another two.
@@ -4122,7 +4280,7 @@ TEST(CombatSimTest, ABarrageChargesAHitBuffOnlyForBoltsThatLand) {
   AttackSet set;
   set.attacks = params.attacks;
   set.attacks[1].damage_per_hit[0] = 1000.0;
-  params.buffed.push_back(std::move(set));
+  params.buffed[1] = std::move(set);
 
   // The cast lands one line and its three bolts land none, so one of the two
   // the buff wants is paid.
@@ -4162,7 +4320,7 @@ TEST(CombatSimTest, ABuffCanWaitOnLandedHitsRatherThanOnAClock) {
   AttackSet set;
   set.attacks = params.attacks;
   set.attacks[0].damage_per_hit[0] = 100.0;
-  params.buffed.push_back(std::move(set));
+  params.buffed[1] = std::move(set);
 
   // Three swings to charge it, each landing the plain ten.
   for (int step = 0; step < 3; ++step) {
@@ -4783,7 +4941,7 @@ TEST(CombatSimTest, ABuffDeepensThePile) {
   AttackSet deeper;
   deeper.attacks = params.attacks;
   deeper.freeze_cap = 10;
-  params.buffed.push_back(std::move(deeper));
+  params.buffed[1] = std::move(deeper);
   EXPECT_EQ(params.FreezeCap(1), 10);
   // Out of range is no buffs at all, exactly as the attack tables read.
   EXPECT_EQ(params.FreezeCap(2), 2);
@@ -5197,7 +5355,7 @@ TEST(CombatSimTest, TheNextEventIsTheSwingOrABuff) {
   params.buffs.push_back(buff);
   AttackSet set;
   set.attacks = params.attacks;
-  params.buffed.push_back(std::move(set));
+  params.buffed[1] = std::move(set);
   CombatSim buffed;
   buffed.Advance(params, 1.0);
   // The buff went up on that step with its whole window, which runs out
@@ -5288,7 +5446,7 @@ TEST(CombatSimTest, NothingIsHeldForAWindowThatLiftsTheFillerInstead) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatParams params =
       MakeWindowFight(boss, /*cooldown=*/20.0, /*up=*/3.0, /*every=*/25.0);
-  params.buffed[0]->attacks[1].damage_per_hit[0] = 100.0;
+  params.buffed[1].attacks[1].damage_per_hit[0] = 100.0;
 
   CombatSim sim;
   std::vector<double> times = SwingTimes(sim, params, 1, 30.0);
@@ -5303,7 +5461,7 @@ TEST(CombatSimTest, NothingIsHeldWithNothingElseToSwing) {
   CombatParams params =
       MakeWindowFight(boss, /*cooldown=*/20.0, /*up=*/3.0, /*every=*/25.0);
   params.attacks.erase(params.attacks.begin());
-  params.buffed[0]->attacks.erase(params.buffed[0]->attacks.begin());
+  params.buffed[1].attacks.erase(params.buffed[1].attacks.begin());
 
   CombatSim sim;
   std::vector<double> times = SwingTimes(sim, params, 0, 30.0);

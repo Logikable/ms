@@ -1,12 +1,14 @@
 #include "src/multiplayer/session.h"
 
 #include <chrono>
+#include <map>
 #include <string>
 #include <utility>
 
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/util/message_differencer.h"
 #include "src/character/character.h"
+#include "src/character/link.h"
 #include "src/game_state.h"
 #include "src/multiplayer/client.h"
 #include "src/protos/multiplayer.pb.h"
@@ -51,6 +53,12 @@ PlayerInfo PlayerFor(const GameState& state) {
   // Their switch, not the reader's: whose allocation a sheet shows is the
   // question its owner has already answered.
   player.set_autoswap_presets(state.account.autoswap_presets());
+  // Their account's climb, for the same reason: the link skills on the sheet
+  // are levelled by characters this message does not carry.
+  for (const std::pair<const Job, int>& line :
+       state.character.link_tally().best_by_line()) {
+    (*player.mutable_link_lines())[line.first] = line.second;
+  }
   // What they have set on the boss screen. The server holds a whole party to
   // one set of these before it opens a fight.
   *player.mutable_boss_options() = state.boss_options;
