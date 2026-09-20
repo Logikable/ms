@@ -99,6 +99,7 @@ cc_test(
         ":client",
         ":party_fight",
         "//server:test_server",
+        "//src/combat:boss_timing",
         "//src/combat:fight_authority",
         "//src/protos:multiplayer_proto_cc",
         "@googletest//:gtest_main",

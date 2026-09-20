@@ -144,6 +144,7 @@ cc_test(
         "//src/character:progression",
         "//src/character:skill_placement",
         "//src/combat:boss_run",
+        "//src/combat:boss_timing",
         "//src/frontend/panels:character_panel",
         "//src/frontend/panels:equipped_panel",
         "//src/frontend/panels:inventory_panel",

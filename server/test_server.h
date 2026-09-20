@@ -114,6 +114,14 @@ class TestServer {
     return port_;
   }
 
+  // Moves the server's clock on by `by`, once. The boss count-in is three real
+  // seconds and a test has no reason to sit through them; every other clock
+  // the server keeps is minutes wide, so a jump this size is invisible to
+  // them. Safe to call while it is running.
+  void SkipAhead(std::chrono::milliseconds by) {
+    skipped_ms_ += by.count();
+  }
+
  private:
   // Steps the server on a thread of its own until Stop().
   void Serve(Socket listener) {
@@ -121,7 +129,8 @@ class TestServer {
     thread_ = std::thread([this, socket = std::move(listener)]() mutable {
       Server server(std::move(socket), bosses_, mobs_, 3, protocol_version_);
       while (running_) {
-        server.Step(std::chrono::steady_clock::now(),
+        server.Step(std::chrono::steady_clock::now() +
+                        std::chrono::milliseconds(skipped_ms_.load()),
                     std::chrono::milliseconds(5));
       }
     });
@@ -131,6 +140,7 @@ class TestServer {
   std::map<std::string, Mob> mobs_;
   int protocol_version_ = kMultiplayerVersion;
   std::atomic<bool> running_{false};
+  std::atomic<int64_t> skipped_ms_{0};
   int port_ = 0;
   std::thread thread_;
 };

@@ -18,6 +18,7 @@
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
 #include "src/combat/boss_run.h"
+#include "src/combat/boss_timing.h"
 #include "src/frontend/keybinds.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
@@ -356,6 +357,10 @@ class PartyControllerTest : public ::testing::Test {
                  guest.controller->screen() == kBossFight;
         },
         0.02));
+    // Both screens are open on the count-in, which is three REAL seconds --
+    // the server keeps it and no amount of ticking here brings it forward.
+    server_.SkipAhead(std::chrono::milliseconds(
+        static_cast<int>(1000 * kBossCountdownSeconds) + 100));
   }
 
   TestServer server_;

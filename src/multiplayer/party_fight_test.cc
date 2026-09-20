@@ -9,6 +9,7 @@
 #include <thread>
 
 #include "server/test_server.h"
+#include "src/combat/boss_timing.h"
 #include "src/combat/fight_authority.h"
 #include "src/multiplayer/client.h"
 #include "src/protos/multiplayer.pb.h"
@@ -66,6 +67,16 @@ class PartyFightTest : public ::testing::Test {
       return party.members_size() == 2 && party.members(1).ready();
     }));
     leader_->client.StartFight("zakum", 0, PARTY_MODE_SHARED);
+    // The count-in is three REAL seconds. What these tests are about is what
+    // crosses the wire, so the server is walked past it rather than waited
+    // out -- four tests sitting through it was a quarter of the whole suite.
+    ASSERT_TRUE(Await([&]() {
+      SharedFight fight;
+      return leader_->fight.Fetch(fight) &&
+             fight.state == BossRunState::kCountdown;
+    }));
+    server_.SkipAhead(
+        milliseconds(static_cast<int>(1000 * kBossCountdownSeconds) + 100));
   }
 
   // Runs both ends until `ready`, draining what the server has said into each
