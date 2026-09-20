@@ -20,8 +20,14 @@ namespace {
 // How long a connection attempt is given before it is called a failure.
 constexpr std::chrono::seconds kConnectTimeout(5);
 // How long one pass of the connection waits on the socket. Short enough that
-// Stop() is answered promptly and the heartbeat is never late.
-constexpr std::chrono::milliseconds kPumpTimeout(50);
+// Stop() is answered promptly and the heartbeat is never late -- and short
+// enough not to sit on what the player just asked for: a message queued
+// while the pass is waiting goes out at the top of the NEXT one, so this is
+// the delay on every party action.
+constexpr std::chrono::milliseconds kPumpTimeout(5);
+// How long the wait between connection attempts sleeps at a time. Nothing is
+// waiting on it, so it wakes rarely.
+constexpr std::chrono::milliseconds kRetrySleep(50);
 
 constexpr char kUnreachableMessage[] = "Cannot reach the server.";
 constexpr char kLostMessage[] = "Lost connection.";
@@ -263,7 +269,7 @@ void MultiplayerClient::WaitToRetry(std::chrono::seconds wait) {
   std::chrono::steady_clock::time_point until =
       std::chrono::steady_clock::now() + wait;
   while (running_ && !retry_now_ && std::chrono::steady_clock::now() < until) {
-    std::this_thread::sleep_for(kPumpTimeout);
+    std::this_thread::sleep_for(kRetrySleep);
   }
   retry_now_ = false;
 }
