@@ -25,6 +25,12 @@ enum Screen : int {
   // [Reset] at the foot of the Skills tab's V page: the free way back to an
   // unspent matrix.
   kVMatrixReset,
+  // Enter on the Link Skills row of the Character panel's beginner page: the
+  // skill this character's line hands them, the twelve they carry, and what
+  // the account has left to offer. The menu is anchored to a row of it, so
+  // the panel puts that up itself.
+  kLinkSkills,
+  kLinkSkillMenu,
   // Every stat on one screen, from the Character panel's last stats row.
   kAllStats,
   // The Hyper tab's two questions: one rung of one stat, and the free reset

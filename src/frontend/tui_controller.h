@@ -36,6 +36,7 @@
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
+#include "src/frontend/screens/link_skill_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
@@ -108,6 +109,7 @@ struct Screens {
   ShopPanel& shop_panel;
   BuyPanel& buy_panel;
   BankPanel& bank_panel;
+  LinkSkillPanel& link_skill_panel;
   JobInspectPanel& job_inspect_panel;
   SkillInspectPanel& skill_inspect_panel;
   BuffInfoPanel& buff_info_panel;
@@ -152,6 +154,9 @@ class TuiController {
   void OpenSkillInspect(const Skill& skill);
   // Every stat the character has, on a screen of its own.
   void OpenAllStats();
+  // Enter on the Link Skills row of the beginner's page: the screen opens on
+  // the preset the character is playing.
+  void OpenLinkSkills();
 
   // The four screens the Inspect panel raises. They are the player's own
   // cards over somebody else's numbers, so they read from the member being
@@ -820,6 +825,11 @@ class TuiController {
   void MoveInBank();
   void OpenBankAmount();
 
+  // The Link Skills screen and the menus its rows raise. The preset menu is
+  // the Hyper tab's, so Move is answered by the same dialog.
+  bool OnLinkSkillsEvent(ftxui::Event event);
+  bool OnLinkSkillMenuEvent(ftxui::Event event);
+
   bool OnShopEvent(ftxui::Event event);
   bool OnShopMenuEvent(ftxui::Event event);
   bool OnShopInspectEvent(ftxui::Event event);
@@ -872,6 +882,9 @@ class TuiController {
   // rather than the player. The card is the same either way; whose levels it
   // states is not, and neither is the screen it closes onto.
   bool card_from_inspect_ = false;
+  // The screen the skill card closes onto for the player's own character: the
+  // main view, or the Link Skills screen that raised it.
+  Screen skill_card_return_ = kMain;
   JobInspectPanel& job_inspect_panel_;
   SkillInspectPanel& skill_inspect_panel_;
   BuffInfoPanel& buff_info_panel_;
@@ -885,6 +898,7 @@ class TuiController {
   ShopPanel& shop_panel_;
   BuyPanel& buy_panel_;
   BankPanel& bank_panel_;
+  LinkSkillPanel& link_skill_panel_;
   // Catalog key of the item the buy dialog is open on, so the purchase reads
   // the prototype rather than trusting a pointer to outlive the screen.
   std::string buy_item_;
@@ -924,6 +938,8 @@ class TuiController {
   PresetKind preset_kind_ = PresetKind::kHyperStats;
   StatPreset preset_slot_ = StatPreset::kFirst;
   ItemMenu preset_menu_{{"Use", "Move", "Close"}};
+  // The screen the Move popup closes onto, for the same reason.
+  Screen preset_return_ = kMain;
   // The Move popup's cursor: a preset, or kNumStatPresets for Cancel.
   int preset_move_row_ = 0;
   // The buff the menu, the card and the question are all about. Held so the

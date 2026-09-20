@@ -91,6 +91,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       shop_panel_(screens.shop_panel),
       buy_panel_(screens.buy_panel),
       bank_panel_(screens.bank_panel),
+      link_skill_panel_(screens.link_skill_panel),
       character_select_panel_(state),
       panel_focus_(panel_focus),
       multiplayer_(multiplayer) {
@@ -183,6 +184,7 @@ void TuiController::OpenSkillMenu(const Skill& skill) {
 void TuiController::OpenSkillInspect(const Skill& skill) {
   skill_inspect_ = skill;
   card_from_inspect_ = false;
+  skill_card_return_ = screen_ == kLinkSkillMenu ? kLinkSkills : kMain;
   skill_inspect_panel_.ResetScroll();
   screen_ = kSkillInspect;
 }
@@ -198,6 +200,11 @@ const CharacterInstance& TuiController::card_character() const {
 // shows the level it is at. The learned level: what the card makes of the lent
 // ones is its own business.
 int TuiController::skill_inspect_level() const {
+  if (skill_inspect_.link_line() != JOB_UNSPECIFIED) {
+    // What the ACCOUNT has climbed on that line, so a skill read before it is
+    // carried states the level it would arrive at rather than 0.
+    return card_character().LinkSkillLevelOffered(skill_inspect_);
+  }
   return card_character().skill_level(skill_inspect_);
 }
 
@@ -330,6 +337,7 @@ void TuiController::OpenJobMenu(Job job) {
 void TuiController::OpenPresetMenu(PresetKind kind, StatPreset slot) {
   preset_kind_ = kind;
   preset_slot_ = slot;
+  preset_return_ = kMain;
   preset_menu_.Reset();
   // Nothing to put in use while the autoswap is picking, and nothing to do to
   // the one already in use. The entry stays visible either way: its absence
@@ -383,7 +391,7 @@ bool TuiController::OnPresetMoveEvent(ftxui::Event event) {
     return true;
   }
   if (IsBack(event)) {
-    screen_ = kMain;
+    screen_ = preset_return_;
     return true;
   }
   if (!IsForward(event)) {
@@ -393,7 +401,7 @@ bool TuiController::OnPresetMoveEvent(ftxui::Event event) {
     state_.character.SwapPresets(preset_kind_, preset_slot_,
                                  StatPresetAt(preset_move_row_));
   }
-  screen_ = kMain;
+  screen_ = preset_return_;
   return true;
 }
 
@@ -781,6 +789,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
     case kBank:
     case kBankMenu:
       return screen_ == kBank ? OnBankEvent(event) : OnBankMenuEvent(event);
+    case kLinkSkills:
+      return OnLinkSkillsEvent(event);
+    case kLinkSkillMenu:
+      return OnLinkSkillMenuEvent(event);
     case kBankAmount:
       return OnBankAmountEvent(event);
     case kBankInspect:
@@ -1138,9 +1150,10 @@ bool TuiController::OnSkillInspectEvent(ftxui::Event event) {
     }
   }
   if (IsBack(event) || IsForward(event)) {
-    // Back onto whichever screen raised the card: the player's own panels, or
-    // the Inspect screen, which raises the same two over a member's numbers.
-    screen_ = card_from_inspect_ ? kPlayerInspect : kMain;
+    // Back onto whichever screen raised the card: the player's own panels, the
+    // Link Skills screen, or the Inspect screen, which raises the same two
+    // over a member's numbers.
+    screen_ = card_from_inspect_ ? kPlayerInspect : skill_card_return_;
   }
   return true;
 }
@@ -2496,6 +2509,101 @@ bool TuiController::OnBankEvent(ftxui::Event event) {
   }
   // Everything else is swallowed: this is a modal screen, and the ticker's
   // redraw arrives as an event too.
+  return true;
+}
+
+void TuiController::OpenLinkSkills() {
+  link_skill_panel_.Reset();
+  screen_ = kLinkSkills;
+}
+
+bool TuiController::OnLinkSkillsEvent(ftxui::Event event) {
+  if (IsSwitchPanel(event)) {
+    link_skill_panel_.NextZone(event == ftxui::Event::Tab ? 1 : -1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    link_skill_panel_.MoveRow(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
+    link_skill_panel_.MovePreset(event == ftxui::Event::ArrowLeft ? -1 : 1);
+    return true;
+  }
+  if (IsForward(event)) {
+    link_skill_panel_.OpenMenu();
+    if (link_skill_panel_.menu_open() || link_skill_panel_.preset_menu_open()) {
+      screen_ = kLinkSkillMenu;
+    }
+    return true;
+  }
+  if (IsBack(event)) {
+    screen_ = kMain;
+  }
+  // Everything else is swallowed: this is a modal screen, and the ticker's
+  // redraw arrives as an event too.
+  return true;
+}
+
+bool TuiController::OnLinkSkillMenuEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    link_skill_panel_.MoveMenuCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (IsBack(event)) {
+    link_skill_panel_.CloseMenu();
+    screen_ = kLinkSkills;
+    return true;
+  }
+  if (!IsForward(event)) {
+    return true;  // The menu is modal: nothing behind it hears a key.
+  }
+  if (link_skill_panel_.preset_menu_open()) {
+    int chosen = link_skill_panel_.preset_menu_selected();
+    const StatPreset slot = link_skill_panel_.preset();
+    link_skill_panel_.CloseMenu();
+    screen_ = kLinkSkills;
+    if (chosen == kPresetMenuUse) {
+      state_.character.SetSlotInUse(PresetKind::kLinkSkills, slot);
+    } else if (chosen == kPresetMenuMove) {
+      // The Hyper tab's own popup, which closes back onto this screen.
+      preset_kind_ = PresetKind::kLinkSkills;
+      preset_slot_ = slot;
+      preset_return_ = kLinkSkills;
+      preset_move_row_ = IndexOf(slot);
+      screen_ = kPresetMove;
+    }
+    return true;
+  }
+  const LinkMenuChoice chosen = link_skill_panel_.menu_choice();
+  const Skill* skill = link_skill_panel_.cursor().skill;
+  link_skill_panel_.CloseMenu();
+  screen_ = kLinkSkills;
+  switch (chosen) {
+    case LinkMenuChoice::kInspect:
+      if (skill != nullptr) {
+        // The card reads the level the account climbed to, whether or not
+        // this character is carrying the skill yet.
+        skill_inspect_ = *skill;
+        card_from_inspect_ = false;
+        skill_card_return_ = kLinkSkills;
+        skill_inspect_panel_.ResetScroll();
+        screen_ = kSkillInspect;
+      }
+      break;
+    case LinkMenuChoice::kAdd:
+      if (!link_skill_panel_.AddSelected()) {
+        notification_.Raise({"You already have " +
+                             std::to_string(kMaxEquippedLinkSkills) +
+                             " skills."});
+      }
+      break;
+    case LinkMenuChoice::kRemove:
+      link_skill_panel_.RemoveSelected();
+      break;
+    case LinkMenuChoice::kClose:
+      break;
+  }
   return true;
 }
 

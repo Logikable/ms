@@ -39,6 +39,8 @@ cc_test(
     deps = [
         ":character_panel",
         "//src/character:consumables",
+        "//src/character:link",
+        "//src/character:progression",
         "//src/character:v_matrix",
         "//src/frontend:panel_widths",
         "//src/frontend/testing:panel_test_base",

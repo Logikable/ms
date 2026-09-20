@@ -374,10 +374,9 @@ int CharacterPanel::RingStops() const {
     // skills under it. The name and the bar, and nothing below them.
     return 2;
   }
-  // The name, the tab bar, the advancement bar, a stop per skill -- and the
+  // The name, the tab bar, the advancement bar, a stop per row -- and the
   // [Reset] under the V page's nodes.
-  return 3 + static_cast<int>(SkillsForPage(SelectedSkillPage()).size()) +
-         (ShowsVReset() ? 1 : 0);
+  return 3 + SkillRowCount() + (ShowsVReset() ? 1 : 0);
 }
 
 int CharacterPanel::CursorStop() const {
@@ -399,7 +398,7 @@ int CharacterPanel::CursorStop() const {
     case kZoneSkillRows:
       return skill_sel_ + 3;
     case kZoneVReset:
-      return static_cast<int>(SkillsForPage(SelectedSkillPage()).size()) + 3;
+      return SkillRowCount() + 3;
     case kZoneHyperRows:
       return hyper_sel_ + 3;
     case kZoneHyperReset:
@@ -472,8 +471,7 @@ void CharacterPanel::SetCursorStop(int stop) {
     zone_ = kZoneAdvTabs;
     return;
   }
-  if (ShowsVReset() &&
-      stop == static_cast<int>(SkillsForPage(SelectedSkillPage()).size()) + 3) {
+  if (ShowsVReset() && stop == SkillRowCount() + 3) {
     zone_ = kZoneVReset;
     return;
   }
@@ -516,6 +514,13 @@ std::string CharacterPanel::TabKey(Tab tab) const {
     // news again rather than riding on the one taken at 10.
     return AdvanceTabKey(character_.proto().job_stage() + 1);
   }
+  if (tab == kTabSkills &&
+      Unlocked(Feature::kLinkSkills, character_, account_)) {
+    // The first step of the Link Skills trail, which runs through this tab.
+    // Below that level the tab announces nothing: the player was standing on
+    // it when it arrived -- see RenderTabBar.
+    return LinkTrailKey(LinkTrailStep::kSkillsTab);
+  }
   // Stats has been there since the first frame of the game, and Skills arrives
   // with the player already standing on it -- see RenderTabBar. Neither has
   // anything to announce, and neither wastes a key in the save on saying so.
@@ -529,6 +534,11 @@ void CharacterPanel::MarkActiveTabSeen() {
   std::string key = TabKey(ActiveTab());
   if (!key.empty()) {
     account_.MarkSeen(key);
+  }
+  // The trail's second step: the beginner's page is the one the Link Skills
+  // row stands on, so opening it is walking past that signpost.
+  if (ShowsLinkRow()) {
+    FollowedToLinkSkills(LinkTrailStep::kBeginnerPage, account_);
   }
 }
 
@@ -773,8 +783,11 @@ ftxui::Element CharacterPanel::RenderAdvTabBar(bool bar_focused) const {
       specs.push_back({"H"});
     } else if (IsBeginnerPage(page)) {
       // The beginner's book has no numeral to take: GMS marks the page with a
-      // circle, and the token mark is the circle this game already draws.
-      specs.push_back({kBeginnerPageMark});
+      // circle, and the token mark is the circle this game already draws. It
+      // goes gold while the Link Skills row under it is waiting to be found.
+      specs.push_back(
+          {kBeginnerPageMark, LeadToLinkSkills(LinkTrailStep::kBeginnerPage,
+                                               character_, account_)});
     } else {
       specs.push_back({kStageNumerals[page]});
     }
@@ -879,6 +892,17 @@ bool CharacterPanel::ShowsVReset() const {
   return !read_only_ && ActiveTab() == kTabSkills &&
          character_.proto().job_stage() > 0 && IsVPage(SelectedSkillPage()) &&
          !SkillsForPage(SelectedSkillPage()).empty();
+}
+
+bool CharacterPanel::ShowsLinkRow() const {
+  return !read_only_ && ActiveTab() == kTabSkills &&
+         IsBeginnerPage(SelectedSkillPage()) &&
+         Unlocked(Feature::kLinkSkills, character_, account_);
+}
+
+int CharacterPanel::SkillRowCount() const {
+  return static_cast<int>(SkillsForPage(SelectedSkillPage()).size()) +
+         (ShowsLinkRow() ? 1 : 0);
 }
 
 std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
@@ -1005,7 +1029,27 @@ std::vector<int> CharacterPanel::SkillLines(
     }
     lines.push_back(i);
   }
+  if (IsBeginnerPage(page) && ShowsLinkRow()) {
+    lines.push_back(static_cast<int>(skills.size()));
+  }
   return lines;
+}
+
+ftxui::Element CharacterPanel::RenderLinkRow(bool selected) const {
+  // No kind tag and no level: nothing here is bought, and what the account
+  // has climbed is on the screen Enter opens. Gold until it is opened once.
+  ftxui::Element name = ftxui::text("Link Skills");
+  if (selected) {
+    name = std::move(name) | ftxui::inverted;
+  } else if (LeadToLinkSkills(LinkTrailStep::kLinkRow, character_, account_)) {
+    name = std::move(name) | ftxui::color(kGold);
+  }
+  return ftxui::hbox({
+      ftxui::text("  "),
+      std::move(name),
+      ftxui::filler(),
+      ftxui::text(" "),
+  });
 }
 
 ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
@@ -1015,7 +1059,7 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
   rows.push_back(RenderAdvTabBar(bar_focused));
   rows.push_back(PanelSeparator(highlighted_));
   std::vector<const Skill*> skills = SkillsForPage(SelectedSkillPage());
-  if (skills.empty()) {
+  if (SkillRowCount() == 0) {
     rows.push_back(ftxui::text(PadRight(" No skills yet.", ContentWidth())) |
                    ftxui::dim);
     return ftxui::vbox(std::move(rows));
@@ -1041,10 +1085,15 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
   LevelColumn column = MeasureLevelColumn(skills);
   for (int i = 0; i < visible; ++i) {
     int index = lines[first + i];
-    ftxui::Element row = index < 0
-                             ? PanelSeparator(highlighted_)
-                             : RenderSkillRow(*skills[index], index, column,
-                                              rows_focused, row_width);
+    ftxui::Element row;
+    if (index < 0) {
+      row = PanelSeparator(highlighted_);
+    } else if (index >= static_cast<int>(skills.size())) {
+      row = RenderLinkRow(rows_focused && skill_sel_ == index);
+    } else {
+      row = RenderSkillRow(*skills[index], index, column, rows_focused,
+                           row_width);
+    }
     if (cells.empty()) {
       rows.push_back(std::move(row));
       continue;
@@ -1698,11 +1747,14 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
     if (event == ftxui::Event::ArrowLeft) {
       skill_tab_ = std::max(0, SelectedSkillPage() - 1);
       skill_page_chosen_ = true;
+      // Landing on a page is reading it, the outer tab bar's rule exactly.
+      MarkActiveTabSeen();
       return true;
     }
     if (event == ftxui::Event::ArrowRight) {
       skill_tab_ = std::min(SkillPages() - 1, SelectedSkillPage() + 1);
       skill_page_chosen_ = true;
+      MarkActiveTabSeen();
       return true;
     }
     return false;
@@ -1739,6 +1791,13 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
     return true;
   }
   if (IsForward(event)) {
+    if (ShowsLinkRow() && skill_sel_ == static_cast<int>(skills.size())) {
+      FollowedToLinkSkills(LinkTrailStep::kLinkRow, account_);
+      if (actions.link_skills) {
+        actions.link_skills();
+      }
+      return true;
+    }
     // The stage can have fewer skills than the row the cursor last sat on --
     // switching advancement tabs does not reset it.
     if (skill_sel_ >= static_cast<int>(skills.size())) {

@@ -45,6 +45,7 @@
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
+#include "src/frontend/screens/link_skill_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
@@ -287,6 +288,7 @@ class Tui {
   BuyPanel buy_panel_;
   // The bag over the account's shared storage, reached from the Bank tab.
   BankPanel bank_panel_;
+  LinkSkillPanel link_skill_panel_;
 
   // Screen-state machine: owns screen_ and event-handling logic.
   TuiController controller_;

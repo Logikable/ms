@@ -115,6 +115,8 @@ struct Client {
                                              state->items);
     bank_panel = std::make_unique<BankPanel>(state->character, state->account,
                                              state->items);
+    link_skill_panel =
+        std::make_unique<LinkSkillPanel>(state->character, state->skills);
     job_inspect_panel = std::make_unique<JobInspectPanel>(state->skills);
     menu_panel = std::make_unique<MenuPanel>(*state, analysis, focus);
     keys = std::make_unique<KeyMap>(state->account.mutable_keybinds());
@@ -132,10 +134,10 @@ struct Client {
                         player_list_panel,     *trade_panel,
                         *player_inspect_panel, player_item_panel,
                         *shop_panel,           buy_panel,
-                        *bank_panel,           *job_inspect_panel,
-                        skill_inspect_panel,   buff_info_panel,
-                        *menu_panel,           *keybinds_panel,
-                        *options_panel},
+                        *bank_panel,           *link_skill_panel,
+                        *job_inspect_panel,    skill_inspect_panel,
+                        buff_info_panel,       *menu_panel,
+                        *keybinds_panel,       *options_panel},
         analysis, *keys, focus, &session);
   }
 
@@ -181,6 +183,7 @@ struct Client {
   std::unique_ptr<BossSelectPanel> boss_select_panel;
   std::unique_ptr<PlayerInspectPanel> player_inspect_panel;
   std::unique_ptr<BankPanel> bank_panel;
+  std::unique_ptr<LinkSkillPanel> link_skill_panel;
   std::unique_ptr<TradePanel> trade_panel;
   std::unique_ptr<ShopPanel> shop_panel;
   std::unique_ptr<JobInspectPanel> job_inspect_panel;

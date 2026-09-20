@@ -13,6 +13,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/character/consumables.h"
 #include "src/character/dailies.h"
+#include "src/character/link.h"
 #include "src/character/progression.h"
 #include "src/character/skill_placement.h"
 #include "src/character/v_matrix.h"
@@ -266,6 +267,8 @@ class TuiControllerTest : public testing::Test {
     buy_panel_ = std::make_unique<BuyPanel>();
     bank_panel_ = std::make_unique<BankPanel>(state_->character,
                                               state_->account, state_->items);
+    link_skill_panel_ =
+        std::make_unique<LinkSkillPanel>(state_->character, state_->skills);
     job_inspect_panel_ = std::make_unique<JobInspectPanel>(state_->skills);
     menu_panel_ = std::make_unique<MenuPanel>(*state_, analysis_, panel_focus_);
     keys_ = std::make_unique<KeyMap>(state_->account.mutable_keybinds());
@@ -283,10 +286,10 @@ class TuiControllerTest : public testing::Test {
                          player_list_panel_,     *trade_panel_,
                          *player_inspect_panel_, player_item_panel_,
                          *shop_panel_,           *buy_panel_,
-                         *bank_panel_,           *job_inspect_panel_,
-                         skill_inspect_panel_,   buff_info_panel_,
-                         *menu_panel_,           *keybinds_panel_,
-                         *options_panel_},
+                         *bank_panel_,           *link_skill_panel_,
+                         *job_inspect_panel_,    skill_inspect_panel_,
+                         buff_info_panel_,       *menu_panel_,
+                         *keybinds_panel_,       *options_panel_},
         analysis_, *keys_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
@@ -454,10 +457,10 @@ class TuiControllerTest : public testing::Test {
                          player_list_panel_,     *trade_panel_,
                          *player_inspect_panel_, player_item_panel_,
                          *shop_panel_,           *buy_panel_,
-                         *bank_panel_,           *job_inspect_panel_,
-                         skill_inspect_panel_,   buff_info_panel_,
-                         *menu_panel_,           *keybinds_panel_,
-                         *options_panel_},
+                         *bank_panel_,           *link_skill_panel_,
+                         *job_inspect_panel_,    skill_inspect_panel_,
+                         buff_info_panel_,       *menu_panel_,
+                         *keybinds_panel_,       *options_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -595,10 +598,10 @@ class TuiControllerTest : public testing::Test {
                          player_list_panel_,     *trade_panel_,
                          *player_inspect_panel_, player_item_panel_,
                          *shop_panel_,           *buy_panel_,
-                         *bank_panel_,           *job_inspect_panel_,
-                         skill_inspect_panel_,   buff_info_panel_,
-                         *menu_panel_,           *keybinds_panel_,
-                         *options_panel_},
+                         *bank_panel_,           *link_skill_panel_,
+                         *job_inspect_panel_,    skill_inspect_panel_,
+                         buff_info_panel_,       *menu_panel_,
+                         *keybinds_panel_,       *options_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -641,6 +644,7 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<ShopPanel> shop_panel_;
   std::unique_ptr<BuyPanel> buy_panel_;
   std::unique_ptr<BankPanel> bank_panel_;
+  std::unique_ptr<LinkSkillPanel> link_skill_panel_;
   std::unique_ptr<JobInspectPanel> job_inspect_panel_;
   SkillInspectPanel skill_inspect_panel_;
   BuffInfoPanel buff_info_panel_;
@@ -3041,6 +3045,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   BankPanel bank(fresh.character, fresh.account, fresh.items);
+  LinkSkillPanel links(fresh.character, fresh.skills);
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   BuffInfoPanel buffs;
@@ -3055,13 +3060,12 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   KeybindsPanel keybinds(keys);
   OptionsPanel options(fresh.account);
   TuiController controller(
-      fresh,
-      Screens{chars,      equip,      bag,      scroll,         item_card,
-              trace_card, star,       cube,     trace,          sell,
-              sell_equip, multi_sell, maps,     mobs,           bosses,
-              party,      players,    trade,    player_inspect, worn_card,
-              shop,       buy,        bank,     jobs,           skill_card,
-              buffs,      menu,       keybinds, options},
+      fresh, Screens{chars,      equip,      bag,   scroll,         item_card,
+                     trace_card, star,       cube,  trace,          sell,
+                     sell_equip, multi_sell, maps,  mobs,           bosses,
+                     party,      players,    trade, player_inspect, worn_card,
+                     shop,       buy,        bank,  links,          jobs,
+                     skill_card, buffs,      menu,  keybinds,       options},
       analysis, keys, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
@@ -3112,6 +3116,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   BankPanel bank(fresh.character, fresh.account, fresh.items);
+  LinkSkillPanel links(fresh.character, fresh.skills);
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   BuffInfoPanel buffs;
@@ -3126,13 +3131,12 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   KeybindsPanel keybinds(keys);
   OptionsPanel options(fresh.account);
   TuiController controller(
-      fresh,
-      Screens{chars,      equip,      bag,      scroll,         item_card,
-              trace_card, star,       cube,     trace,          sell,
-              sell_equip, multi_sell, maps,     mobs,           bosses,
-              party,      players,    trade,    player_inspect, worn_card,
-              shop,       buy,        bank,     jobs,           skill_card,
-              buffs,      menu,       keybinds, options},
+      fresh, Screens{chars,      equip,      bag,   scroll,         item_card,
+                     trace_card, star,       cube,  trace,          sell,
+                     sell_equip, multi_sell, maps,  mobs,           bosses,
+                     party,      players,    trade, player_inspect, worn_card,
+                     shop,       buy,        bank,  links,          jobs,
+                     skill_card, buffs,      menu,  keybinds,       options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
@@ -3166,6 +3170,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   BankPanel bank(fresh.character, fresh.account, fresh.items);
+  LinkSkillPanel links(fresh.character, fresh.skills);
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   BuffInfoPanel buffs;
@@ -3180,13 +3185,12 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   KeybindsPanel keybinds(keys);
   OptionsPanel options(fresh.account);
   TuiController controller(
-      fresh,
-      Screens{chars,      equip,      bag,      scroll,         item_card,
-              trace_card, star,       cube,     trace,          sell,
-              sell_equip, multi_sell, maps,     mobs,           bosses,
-              party,      players,    trade,    player_inspect, worn_card,
-              shop,       buy,        bank,     jobs,           skill_card,
-              buffs,      menu,       keybinds, options},
+      fresh, Screens{chars,      equip,      bag,   scroll,         item_card,
+                     trace_card, star,       cube,  trace,          sell,
+                     sell_equip, multi_sell, maps,  mobs,           bosses,
+                     party,      players,    trade, player_inspect, worn_card,
+                     shop,       buy,        bank,  links,          jobs,
+                     skill_card, buffs,      menu,  keybinds,       options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
@@ -3220,6 +3224,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   BankPanel bank(fresh.character, fresh.account, fresh.items);
+  LinkSkillPanel links(fresh.character, fresh.skills);
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   BuffInfoPanel buffs;
@@ -3234,13 +3239,12 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   KeybindsPanel keybinds(keys);
   OptionsPanel options(fresh.account);
   TuiController controller(
-      fresh,
-      Screens{chars,      equip,      bag,      scroll,         item_card,
-              trace_card, star,       cube,     trace,          sell,
-              sell_equip, multi_sell, maps,     mobs,           bosses,
-              party,      players,    trade,    player_inspect, worn_card,
-              shop,       buy,        bank,     jobs,           skill_card,
-              buffs,      menu,       keybinds, options},
+      fresh, Screens{chars,      equip,      bag,   scroll,         item_card,
+                     trace_card, star,       cube,  trace,          sell,
+                     sell_equip, multi_sell, maps,  mobs,           bosses,
+                     party,      players,    trade, player_inspect, worn_card,
+                     shop,       buy,        bank,  links,          jobs,
+                     skill_card, buffs,      menu,  keybinds,       options},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all
@@ -4391,6 +4395,105 @@ TEST_F(TuiControllerTest, TheRerollLandsOnTheAllocationItNamed) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(state_->character.ability(StatPreset::kFirst).DebugString(), before)
       << "the farming ability was not the one asked about";
+}
+
+// --- The Link Skills screen ---
+
+// A link skill of `line`, which no book lists and nobody buys.
+Skill LinkSkillFor(const std::string& name, Job line) {
+  Skill skill;
+  skill.set_name(name);
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  PlaceIn(skill, JOB_ADVANCEMENT_LINK);
+  skill.set_link_line(line);
+  skill.set_max_level(9);
+  skill.mutable_base()->set_crit_rate(0.03);
+  return skill;
+}
+
+// The catalog, a roster that has climbed the other lines, and the screen
+// open on the preset in play.
+void OpenLinkScreen(GameState& state, TuiController& controller) {
+  state.skills["thiefs_cunning"] = LinkSkillFor("Thief's Cunning", JOB_ROGUE);
+  state.skills["empirical"] = LinkSkillFor("Empirical Knowledge", JOB_MAGICIAN);
+  state.character.set_account_max_level(kLinkSkillsLevel);
+  LinkTally tally;
+  tally.Record(JOB_NIGHT_LORD, 210);
+  tally.Record(JOB_BISHOP, 210);
+  state.character.set_link_tally(tally);
+  controller.OpenLinkSkills();
+}
+
+// Add on a row of the bottom window puts the skill in the preset being read,
+// and Remove takes it back off.
+TEST_F(TuiControllerTest, TheLinkScreenEquipsAndUnequipsASkill) {
+  OpenLinkScreen(*state_, *controller_);
+  ASSERT_EQ(controller_->screen(), kLinkSkills);
+
+  // Tab twice onto All Skills, Enter for its menu, Down onto Add, Enter.
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kLinkSkillMenu);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kLinkSkills);
+  ASSERT_EQ(state_->character.link_skills(StatPreset::kFirst).size(), 1);
+
+  // Round the ring to the middle window, down into its list, and Remove.
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(state_->character.link_skills(StatPreset::kFirst).size(), 0);
+}
+
+// A full preset refuses the next one, and says so rather than dropping it.
+TEST_F(TuiControllerTest, AFullLinkPresetSaysSo) {
+  OpenLinkScreen(*state_, *controller_);
+  for (int i = 0; i < kMaxEquippedLinkSkills; ++i) {
+    ASSERT_TRUE(state_->character.EquipLinkSkill("Filler " + std::to_string(i),
+                                                 StatPreset::kFirst));
+  }
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(controller_->notification().visible());
+}
+
+// Inspect raises the skill card, which states the level the ACCOUNT climbed
+// to rather than 0, and closes back onto the screen that raised it.
+TEST_F(TuiControllerTest, TheLinkCardReadsTheAccountsLevelAndComesBack) {
+  OpenLinkScreen(*state_, *controller_);
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // Inspect
+  EXPECT_EQ(controller_->screen(), kSkillInspect);
+  EXPECT_EQ(controller_->skill_inspect_level(), 3)
+      << "what the roster paid for that line";
+
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kLinkSkills);
+}
+
+// Enter on the preset bar raises the Hyper tab's own menu, and Use puts that
+// preset in play.
+TEST_F(TuiControllerTest, ThePresetBarPutsALinkPresetInUse) {
+  OpenLinkScreen(*state_, *controller_);
+  state_->character.set_autoswap_presets(false);
+  controller_->OnEvent(ftxui::Event::Tab);  // -> Enabled Skills, on its bar
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kLinkSkillMenu);
+  controller_->OnEvent(ftxui::Event::Return);  // Use
+  EXPECT_EQ(controller_->screen(), kLinkSkills);
+  EXPECT_EQ(state_->character.SlotInUse(PresetKind::kLinkSkills),
+            StatPreset::kSecond);
 }
 
 }  // namespace

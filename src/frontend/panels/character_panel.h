@@ -49,6 +49,8 @@ struct CharacterPanelActions {
   // The Skills tab.
   std::function<void(const Skill&)> learn;
   std::function<void(const Skill&)> menu;
+  // The Link Skills row at the foot of its beginner page.
+  std::function<void()> link_skills;
   // The V page's [Reset], which empties the whole matrix.
   std::function<void()> v_reset;
   // The Advance tab.
@@ -448,6 +450,14 @@ class CharacterPanel {
 
   // The skills of page `page`, in the order it lists them. Empty if none.
   std::vector<const Skill*> SkillsForPage(int page) const;
+  // Whether the Link Skills row stands under the beginner's book. It is not a
+  // skill: nothing is bought on it and no book lists it, so it carries no kind
+  // tag and no level -- what it does is open a screen.
+  bool ShowsLinkRow() const;
+  // The stops the page under the cursor has: its skills, and that row.
+  int SkillRowCount() const;
+  // The Link Skills row itself, gold until the player has pressed Enter on it.
+  ftxui::Element RenderLinkRow(bool selected) const;
   // Whether the character may not learn `skill` yet -- a skill below it still
   // to be taught, or a level still to be reached.
   bool SkillLocked(const Skill& skill) const;

@@ -160,6 +160,7 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
       multi_sell_panel_(state.character, state.account),
       shop_panel_(state.character, state.equips, state.items),
       bank_panel_(state.character, state.account, state.items),
+      link_skill_panel_(state.character, state.skills),
       controller_(state, Screens{char_panel_,           equip_panel_,
                                  inventory_panel_,      scroll_panel_,
                                  inspect_panel_,        preview_inspect_panel_,
@@ -171,10 +172,10 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
                                  player_list_panel_,    trade_panel_,
                                  player_inspect_panel_, player_item_panel_,
                                  shop_panel_,           buy_panel_,
-                                 bank_panel_,           job_inspect_panel_,
-                                 skill_inspect_panel_,  buff_info_panel_,
-                                 menu_panel_,           keybinds_panel_,
-                                 options_panel_},
+                                 bank_panel_,           link_skill_panel_,
+                                 job_inspect_panel_,    skill_inspect_panel_,
+                                 buff_info_panel_,      menu_panel_,
+                                 keybinds_panel_,       options_panel_},
                   analysis_, keys_, panel_focus_, multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
@@ -207,6 +208,7 @@ void Tui::BuildComponents() {
   char_actions.menu = [this](const Skill& skill) {
     controller_.OpenSkillMenu(skill);
   };
+  char_actions.link_skills = [this]() { controller_.OpenLinkSkills(); };
   char_actions.v_reset = [this]() { controller_.OpenVMatrixReset(); };
   char_actions.advance = [this](Job job) { controller_.OpenJobMenu(job); };
   char_actions.hyper_allocate = [this](HyperStatField field) {
@@ -1022,6 +1024,11 @@ ftxui::Element Tui::RenderScreen() {
       return Overlay(Centred(bank_panel_.Render()), BankAmountDialog());
     case kBankInspect:
       return RenderBankInspect();
+    // kLinkSkillMenu draws the same thing: the menu is anchored to a row of
+    // the screen, so the panel puts it up itself.
+    case kLinkSkills:
+    case kLinkSkillMenu:
+      return Centred(link_skill_panel_.Render());
     case kPlayerList:
     case kPlayerMenu:
       // The menu is anchored to a row of the list, so the panel puts it up

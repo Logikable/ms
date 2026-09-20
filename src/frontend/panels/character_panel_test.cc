@@ -16,6 +16,8 @@
 #include "ftxui/dom/requirement.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/consumables.h"
+#include "src/character/link.h"
+#include "src/character/progression.h"
 #include "src/character/skill_placement.h"
 #include "src/character/v_matrix.h"
 #include "src/frontend/panel_widths.h"
@@ -3593,6 +3595,99 @@ TEST_F(CharacterPanelTest, ReadOnlyLeavesTheNameAlone) {
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(panel.editing_username());
   EXPECT_NE(ScreenText(RenderToScreen(comp)).find("Bree"), std::string::npos);
+}
+
+// --- The Link Skills row ---
+
+// A Hero on an account that has paid the last rung. The row is the account's
+// to open, so the level on the character is beside the point.
+CharacterInstance MakeLinkedHero(std::mt19937& rng) {
+  Character proto;
+  proto.set_level(30);
+  proto.set_job(JOB_FIGHTER);
+  proto.set_job_stage(2);
+  return CharacterInstance(rng, std::move(proto));
+}
+
+// The panel on the beginner's page of its Skills tab, with the cursor on the
+// rows.
+ftxui::Component OnBeginnerPage(CharacterPanel& panel) {
+  ftxui::Component comp = panel.MakeComponent();
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> page bar
+  comp->OnEvent(ftxui::Event::ArrowLeft);   // page I -> the beginner's page
+  comp->OnEvent(ftxui::Event::ArrowDown);   // -> the rows
+  return comp;
+}
+
+// It stands under the beginner's book, carries no tag and no level, and is
+// there only once the account has opened the system.
+TEST_F(CharacterPanelTest, TheLinkSkillsRowArrivesWithTheAccountsClimb) {
+  CharacterInstance c = MakeLinkedHero(rng_);
+  panel_focus_ = kCharPanel;
+  CharacterPanel before(c, account_, panel_focus_);
+  before.SetWidth(kLeftColumnMax);
+  EXPECT_EQ(
+      ScreenText(RenderToScreen(OnBeginnerPage(before))).find("Link Skills"),
+      std::string::npos);
+
+  account_.RecordProgress(kLinkSkillsLevel, /*job_stage=*/4);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetWidth(kLeftColumnMax);
+  EXPECT_NE(
+      ScreenText(RenderToScreen(OnBeginnerPage(panel))).find("Link Skills"),
+      std::string::npos);
+}
+
+// Enter on it opens the screen, and walking the trail puts each signpost out
+// in turn.
+TEST_F(CharacterPanelTest, TheLinkTrailGoesOutOneSignpostAtATime) {
+  account_.RecordProgress(kLinkSkillsLevel, /*job_stage=*/4);
+  CharacterInstance c = MakeLinkedHero(rng_);
+  panel_focus_ = kCharPanel;
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetWidth(kLeftColumnMax);
+  int opened = 0;
+  CharacterPanelActions actions;
+  actions.link_skills = [&opened]() { ++opened; };
+  ftxui::Component comp = panel.MakeComponent(std::move(actions));
+
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(LabelColor(panel.Render(), "Skills"), kYellow);
+  panel_focus_ = kCharPanel;
+
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(LabelColor(panel.Render(), "Skills"), kTheme)
+      << "the tab has been opened";
+  panel_focus_ = kCharPanel;
+  EXPECT_TRUE(account_.Seen(LinkTrailKey(LinkTrailStep::kSkillsTab)));
+  EXPECT_FALSE(account_.Seen(LinkTrailKey(LinkTrailStep::kBeginnerPage)))
+      << "the page under it has not been opened";
+
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the page bar
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // -> the beginner's page
+  EXPECT_TRUE(account_.Seen(LinkTrailKey(LinkTrailStep::kBeginnerPage)));
+  EXPECT_FALSE(account_.Seen(LinkTrailKey(LinkTrailStep::kLinkRow)));
+
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> the rows
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(opened, 1);
+  EXPECT_TRUE(account_.Seen(LinkTrailKey(LinkTrailStep::kLinkRow)));
+}
+
+// Nobody else's sheet offers it: the Inspect screen reads a character, and
+// what they carry is not the reader's to change.
+TEST_F(CharacterPanelTest, ReadOnlyDropsTheLinkSkillsRow) {
+  account_.RecordProgress(kLinkSkillsLevel, /*job_stage=*/4);
+  CharacterInstance c = MakeLinkedHero(rng_);
+  panel_focus_ = kCharPanel;
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetWidth(kLeftColumnMax);
+  panel.SetReadOnly(true);
+  EXPECT_EQ(
+      ScreenText(RenderToScreen(OnBeginnerPage(panel))).find("Link Skills"),
+      std::string::npos);
 }
 
 }  // namespace
