@@ -67,7 +67,9 @@ bool IsFrozen(const EquipPrototype& proto) {
 
 class WorkbenchGearTest : public ::testing::Test {
  protected:
-  void SetUp() override {
+  // Read once for the whole suite: the catalogs do not change under a test,
+  // and parsing them per test was most of what this file cost.
+  static void SetUpTestSuite() {
     std::string err;
     runfiles_.reset(Runfiles::CreateForTest(&err));
     ASSERT_NE(runfiles_, nullptr) << err;
@@ -80,13 +82,13 @@ class WorkbenchGearTest : public ::testing::Test {
     ASSERT_FALSE(equips_.empty());
   }
 
-  std::string Dir(const std::string& name) {
+  static std::string Dir(const std::string& name) {
     return runfiles_->Rlocation("ms/data/" + name);
   }
 
   // `level` 0 stands the character at the top of their advancement, which is
   // where --job leaves them.
-  GameState Workbench(JobAdvancement advancement, int level = 0) {
+  static GameState Workbench(JobAdvancement advancement, int level = 0) {
     TestOptions options;
     options.job = advancement;
     options.level = level;
@@ -94,137 +96,148 @@ class WorkbenchGearTest : public ::testing::Test {
                      GameMode::kTest, options);
   }
 
-  // The required levels on `worn`'s own ladder among the items this character
-  // could put on, highest first. OwnedFromLevel asks what CanEquip cannot: a
-  // token tier waits on the FIGHT that pays for it.
-  //
-  // A ladder is a slot FAMILY and a type together. The type alone would put a
-  // Fighter's swords and axes on one; the slot alone would put all four pieces
-  // of armour on one, and armour names no type at all.
-  std::vector<int> TiersOnLadder(const CharacterInstance& character,
-                                 const EquipPrototype& worn) {
-    std::vector<int> levels;
-    for (const std::pair<const std::string, EquipPrototype>& entry : equips_) {
-      const EquipPrototype& proto = entry.second;
-      if (BaseSlot(proto.equip_slot()) == BaseSlot(worn.equip_slot()) &&
-          proto.equip_type() == worn.equip_type() &&
-          character.CanEquip(proto) &&
-          character.proto().level() >= OwnedFromLevel(proto)) {
-        levels.push_back(proto.required_level());
-      }
-    }
-    std::sort(levels.rbegin(), levels.rend());
-    return levels;
-  }
-
-  std::unique_ptr<Runfiles> runfiles_;
-  std::map<std::string, EquipPrototype> equips_;
-  std::map<std::string, Scroll> scrolls_;
-  std::map<std::string, ItemPrototype> items_;
-  std::map<std::string, Mob> mobs_;
-  std::map<std::string, MapData> maps_;
-  std::map<std::string, Skill> skills_;
+  static std::unique_ptr<Runfiles> runfiles_;
+  static std::map<std::string, EquipPrototype> equips_;
+  static std::map<std::string, Scroll> scrolls_;
+  static std::map<std::string, ItemPrototype> items_;
+  static std::map<std::string, Mob> mobs_;
+  static std::map<std::string, MapData> maps_;
+  static std::map<std::string, Skill> skills_;
 };
 
-// The whole claim, one advancement at a time: the workbench arms its character
-// with the best of each thing they carry that their level can wear. Anything
-// less and the tester is looking at a weaker character than the game has.
-// Asked a LADDER at a time, a family of slots holding several at once.
-TEST_F(WorkbenchGearTest, EveryJobWearsTheTopTierItsLevelReaches) {
-  for (JobAdvancement advancement : EveryAdvancement()) {
-    GameState state = Workbench(advancement);
-    const CharacterInstance& character = state.character;
-    SCOPED_TRACE(JobAdvancement_Name(advancement));
-    EXPECT_TRUE(character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON))
-        << "nothing in hand at all";
-    // The levels worn on each ladder, keyed by the family and type that name
-    // it, so the rings meet each other and nothing else.
-    std::map<std::pair<EquipSlot, EquipType>, std::vector<int>> worn_levels;
-    std::map<std::pair<EquipSlot, EquipType>, const EquipPrototype*> example;
-    for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
-         character.equipped()) {
-      const EquipPrototype& proto = worn.second->prototype();
-      std::pair<EquipSlot, EquipType> ladder{BaseSlot(proto.equip_slot()),
-                                             proto.equip_type()};
-      worn_levels[ladder].push_back(proto.required_level());
-      example[ladder] = &proto;
+std::unique_ptr<Runfiles> WorkbenchGearTest::runfiles_;
+std::map<std::string, EquipPrototype> WorkbenchGearTest::equips_;
+std::map<std::string, Scroll> WorkbenchGearTest::scrolls_;
+std::map<std::string, ItemPrototype> WorkbenchGearTest::items_;
+std::map<std::string, Mob> WorkbenchGearTest::mobs_;
+std::map<std::string, MapData> WorkbenchGearTest::maps_;
+std::map<std::string, Skill> WorkbenchGearTest::skills_;
+
+// The required levels on `worn`'s own ladder among the items this character
+// could put on, highest first. OwnedFromLevel asks what CanEquip cannot: a
+// token tier waits on the FIGHT that pays for it.
+//
+// A ladder is a slot FAMILY and a type together. The type alone would put a
+// Fighter's swords and axes on one; the slot alone would put all four pieces
+// of armour on one, and armour names no type at all.
+std::vector<int> TiersOnLadder(
+    const CharacterInstance& character, const EquipPrototype& worn,
+    const std::map<std::string, EquipPrototype>& equips) {
+  std::vector<int> levels;
+  for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
+    const EquipPrototype& proto = entry.second;
+    if (BaseSlot(proto.equip_slot()) == BaseSlot(worn.equip_slot()) &&
+        proto.equip_type() == worn.equip_type() && character.CanEquip(proto) &&
+        character.proto().level() >= OwnedFromLevel(proto)) {
+      levels.push_back(proto.required_level());
     }
-    for (std::pair<const std::pair<EquipSlot, EquipType>, std::vector<int>>&
-             entry : worn_levels) {
-      std::vector<int>& worn = entry.second;
-      std::sort(worn.rbegin(), worn.rend());
-      std::vector<int> offered =
-          TiersOnLadder(character, *example[entry.first]);
-      ASSERT_GE(offered.size(), worn.size())
-          << "wearing more than the ladder offers";
-      offered.resize(worn.size());
-      EXPECT_EQ(worn, offered)
-          << "the " << EquipSlot_Name(entry.first.first) << " a level "
-          << character.proto().level() << " wears is not the best on offer";
-    }
+  }
+  std::sort(levels.rbegin(), levels.rend());
+  return levels;
+}
+
+// The best of each thing the character carries that their level can wear,
+// asked a LADDER at a time -- a family of slots holding several at once.
+// Anything less and the tester is looking at a weaker character than the game
+// has.
+void ExpectTopOfEveryLadder(
+    const CharacterInstance& character,
+    const std::map<std::string, EquipPrototype>& equips) {
+  ASSERT_TRUE(character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON))
+      << "nothing in hand at all";
+  // The levels worn on each ladder, keyed by the family and type that name
+  // it, so the rings meet each other and nothing else.
+  std::map<std::pair<EquipSlot, EquipType>, std::vector<int>> worn_levels;
+  std::map<std::pair<EquipSlot, EquipType>, const EquipPrototype*> example;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
+       character.equipped()) {
+    const EquipPrototype& proto = worn.second->prototype();
+    std::pair<EquipSlot, EquipType> ladder{BaseSlot(proto.equip_slot()),
+                                           proto.equip_type()};
+    worn_levels[ladder].push_back(proto.required_level());
+    example[ladder] = &proto;
+  }
+  for (std::pair<const std::pair<EquipSlot, EquipType>, std::vector<int>>&
+           entry : worn_levels) {
+    std::vector<int>& worn = entry.second;
+    std::sort(worn.rbegin(), worn.rend());
+    std::vector<int> offered =
+        TiersOnLadder(character, *example[entry.first], equips);
+    ASSERT_GE(offered.size(), worn.size())
+        << "wearing more than the ladder offers";
+    offered.resize(worn.size());
+    EXPECT_EQ(worn, offered)
+        << "the " << EquipSlot_Name(entry.first.first) << " a level "
+        << character.proto().level() << " wears is not the best on offer";
   }
 }
 
-// The test above walks what is worn, so an empty slot is a slot it never
-// reaches -- which is how every 2nd job came to stand there with no off-hand at
-// all and nothing said so. This is the slot being filled at all.
-TEST_F(WorkbenchGearTest, EveryJobPastTheFirstWearsAnOffHand) {
-  for (JobAdvancement advancement : EveryAdvancement()) {
-    GameState state = Workbench(advancement);
-    SCOPED_TRACE(JobAdvancement_Name(advancement));
-    bool branched = StageForAdvancement(advancement) >= 2;
-    EXPECT_EQ(state.character.equipped().count(EQUIP_SLOT_SECONDARY) == 1,
-              branched)
-        << "a secondary belongs to a branch, and a 1st job is not in one";
-  }
+// The claim above walks what is worn, so an empty slot is one it never
+// reaches -- which is how every 2nd job came to stand there with no off-hand
+// at all and nothing said so. This is the slot being filled at all.
+void ExpectOffHand(const CharacterInstance& character,
+                   JobAdvancement advancement) {
+  bool branched = StageForAdvancement(advancement) >= 2;
+  EXPECT_EQ(character.equipped().count(EQUIP_SLOT_SECONDARY) == 1, branched)
+      << "a secondary belongs to a branch, and a 1st job is not in one";
 }
 
 // The Frozen set drops rather than sells, so the workbench is the only place
 // so much of it is seen. A 3rd job at 100 wears the four armour pieces inside
 // its level; a 4th at 200 hands most of it to Root Abyss and Princess No and
 // keeps three; a 5th at the cap wears none, AbsoLab taking those too.
-TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
-  for (JobAdvancement advancement : EveryAdvancement()) {
-    GameState state = Workbench(advancement);
-    SCOPED_TRACE(JobAdvancement_Name(advancement));
-    int frozen = 0;
-    for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
-         state.character.equipped()) {
-      frozen += IsFrozen(worn.second->prototype()) ? 1 : 0;
-    }
-    int stage = StageForAdvancement(advancement);
-    EXPECT_EQ(frozen, stage == 3 ? 4 : stage == 4 ? 3 : 0);
+void ExpectFrozenSet(const CharacterInstance& character,
+                     JobAdvancement advancement) {
+  int frozen = 0;
+  for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
+       character.equipped()) {
+    frozen += IsFrozen(worn.second->prototype()) ? 1 : 0;
   }
+  int stage = StageForAdvancement(advancement);
+  EXPECT_EQ(frozen, stage == 3 ? 4 : stage == 4 ? 3 : 0);
 }
 
 // Each token tier waits on the fight that pays for it: the Chaos Root Abyss
 // opens at 200 and Damien and Lotus at 210. So the three advancements that
 // wear these four slots wear a tier each -- a 5th job at the cap in AbsoLab, a
-// 4th at 200 in Root Abyss, and the 3rd job under both in neither.
-TEST_F(WorkbenchGearTest, EachAdvancementWearsTheTokenTierItPaysFor) {
+// 4th at 200 in Root Abyss, and the 3rd job under both in neither. A stage
+// below the third wears no armour at all, which the Frozen claim says.
+void ExpectTokenTier(const CharacterInstance& character,
+                     JobAdvancement advancement) {
+  if (StageForAdvancement(advancement) < 3) {
+    return;
+  }
   const EquipSlot kSlots[] = {EQUIP_SLOT_HAT, EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM,
                               EQUIP_SLOT_PRIMARY_WEAPON};
+  int level = character.proto().level();
+  for (EquipSlot slot : kSlots) {
+    WornGear::const_iterator worn = character.equipped().find(slot);
+    ASSERT_NE(worn, character.equipped().end())
+        << EquipSlot_Name(slot) << " is empty";
+    int tier = worn->second->prototype().required_level();
+    SCOPED_TRACE(EquipSlot_Name(slot) + (" holds " + worn->second->name()));
+    if (level >= kAbsoLabOpens) {
+      EXPECT_EQ(tier, 160);
+    } else if (level >= kRootAbyssOpens) {
+      EXPECT_EQ(tier, 150);
+    } else {
+      EXPECT_LT(tier, 150);
+    }
+  }
+}
+
+// Everything the workbench puts on a character, asked of every advancement.
+// One walk rather than four: a state is a whole climb, and all four claims
+// want the same one.
+TEST_F(WorkbenchGearTest, EveryJobIsDressedForItsBand) {
   for (JobAdvancement advancement : EveryAdvancement()) {
-    if (StageForAdvancement(advancement) < 3) {
-      continue;  // wears no armour at all; the Frozen test above says so
-    }
-    GameState state = Workbench(advancement);
     SCOPED_TRACE(JobAdvancement_Name(advancement));
-    int level = state.character.proto().level();
-    for (EquipSlot slot : kSlots) {
-      WornGear::const_iterator worn = state.character.equipped().find(slot);
-      ASSERT_NE(worn, state.character.equipped().end())
-          << EquipSlot_Name(slot) << " is empty";
-      int tier = worn->second->prototype().required_level();
-      SCOPED_TRACE(EquipSlot_Name(slot) + (" holds " + worn->second->name()));
-      if (level >= kAbsoLabOpens) {
-        EXPECT_EQ(tier, 160);
-      } else if (level >= kRootAbyssOpens) {
-        EXPECT_EQ(tier, 150);
-      } else {
-        EXPECT_LT(tier, 150);
-      }
-    }
+    GameState state = Workbench(advancement);
+    const CharacterInstance& character = state.character;
+    ExpectTopOfEveryLadder(character, equips_);
+    ExpectOffHand(character, advancement);
+    ExpectFrozenSet(character, advancement);
+    ExpectTokenTier(character, advancement);
   }
 }
 
