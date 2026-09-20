@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
@@ -38,6 +39,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/keybinds.pb.h"
+#include "src/protos/save.pb.h"
 #include "src/protos/skill.pb.h"
 #include "src/roster.h"
 #include "src/testing/data_files.h"
@@ -56,19 +58,40 @@ Size Measure(ftxui::Element element) {
   return {element->requirement().min_y, element->requirement().min_x};
 }
 
+// The worst case, built once: the ceiling a player who spent well stands in,
+// with both purses full and the roster long. Every test reads it and none
+// writes to it -- a kMax state is a whole ceiling ACCOUNT, ten climbs, and
+// paying for that per test is what made this the suite's slowest target.
 class ScreenFitTest : public testing::Test {
  protected:
-  // The ceiling a player who spent well stands in: every mechanic open, the
-  // bag full, every buff bought. The worst case for a screen's height, and the
-  // one a fit test wants.
-  ScreenFitTest()
-      : state_(LoadTestData<EquipPrototype>("equip"),
-               LoadTestData<Scroll>("scrolls"),
-               LoadTestData<ItemPrototype>("items"), LoadTestData<Mob>("mobs"),
-               LoadTestData<MapData>("maps"), LoadTestData<Skill>("skills"),
-               GameMode::kMax, TestOptions{},
-               /*seed=*/1, LoadTestData<EquipSet>("sets"),
-               LoadTestData<Boss>("bosses")) {
+  static void SetUpTestSuite() {
+    shared_ = new GameState(
+        LoadTestData<EquipPrototype>("equip"), LoadTestData<Scroll>("scrolls"),
+        LoadTestData<ItemPrototype>("items"), LoadTestData<Mob>("mobs"),
+        LoadTestData<MapData>("maps"), LoadTestData<Skill>("skills"),
+        GameMode::kMax, TestOptions{},
+        /*seed=*/1, LoadTestData<EquipSet>("sets"),
+        LoadTestData<Boss>("bosses"));
+    // The most either purse can hold, which is what widens the bank's bar and
+    // the shop's.
+    shared_->character.AddMeso(kFullPurse);
+    shared_->account.mutable_bank().AddMeso(kFullPurse);
+    // A roster past what the character select's list has room for, so it is
+    // the window's fixed height being measured and not the list's. Copies of
+    // the ceiling sheets rather than new characters: creating one puts a
+    // level 1 Beginner into play, and the ceiling is what every other screen
+    // here is drawn from.
+    std::vector<CharacterSave> ceilings = shared_->inactive_characters;
+    while (shared_->inactive_characters.size() < kCrowdedRoster) {
+      for (const CharacterSave& save : ceilings) {
+        shared_->inactive_characters.push_back(save);
+      }
+    }
+  }
+
+  static void TearDownTestSuite() {
+    delete shared_;
+    shared_ = nullptr;
   }
 
   void ExpectFits(ftxui::Element element, const std::string& what) {
@@ -79,8 +102,16 @@ class ScreenFitTest : public testing::Test {
         << what << " is " << size.columns << " columns wide";
   }
 
-  GameState state_;
+  GameState& state_ = *shared_;
+
+ private:
+  static constexpr int64_t kFullPurse = 100000000000;
+  static constexpr size_t kCrowdedRoster = 24;
+
+  static GameState* shared_;
 };
+
+GameState* ScreenFitTest::shared_ = nullptr;
 
 TEST_F(ScreenFitTest, MapSelect) {
   MapSelectPanel panel(state_);
@@ -111,11 +142,6 @@ TEST_F(ScreenFitTest, BossSelect) {
 }
 
 TEST_F(ScreenFitTest, CharacterSelect) {
-  // A full account: the list scrolls past this, so the tallest the screen can
-  // be is the height the two windows are fixed at.
-  for (int i = 0; i < 12; ++i) {
-    CreateCharacter(state_);
-  }
   CharacterSelectPanel panel(state_);
   ExpectFits(panel.Render(), "the character select");
   panel.OpenMenu();
@@ -168,10 +194,6 @@ TEST_F(ScreenFitTest, Trade) {
 TEST_F(ScreenFitTest, Bank) {
   BankPanel panel(state_.character, state_.account, state_.items);
   panel.Reset();
-  ExpectFits(panel.Render(), "the bank screen");
-  // And with the most either purse can hold, which is what widens the bar.
-  state_.character.AddMeso(100000000000);
-  state_.account.mutable_bank().AddMeso(100000000000);
   ExpectFits(panel.Render(), "the bank screen, both purses full");
 }
 
