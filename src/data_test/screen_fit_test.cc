@@ -26,6 +26,7 @@
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
+#include "src/frontend/screens/link_skill_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
@@ -195,6 +196,18 @@ TEST_F(ScreenFitTest, Bank) {
   BankPanel panel(state_.character, state_.account, state_.items);
   panel.Reset();
   ExpectFits(panel.Render(), "the bank screen, both purses full");
+}
+
+// The three windows are a fixed height apiece -- twelve slots whatever the
+// preset holds -- so this is a guard on the constants rather than on the
+// catalog: the two above leave the bottom one nine rows and no more.
+TEST_F(ScreenFitTest, LinkSkills) {
+  LinkSkillPanel panel(state_.character, state_.skills);
+  panel.Reset();
+  for (int i = 0; i < 3; ++i) {
+    ExpectFits(panel.Render(), "the link skills screen");
+    panel.NextZone(1);
+  }
 }
 
 TEST_F(ScreenFitTest, AllStats) {

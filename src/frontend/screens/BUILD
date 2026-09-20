@@ -914,6 +914,28 @@ cc_test(
 )
 
 cc_library(
+    name = "link_skill_panel",
+    srcs = ["link_skill_panel.cc"],
+    hdrs = ["link_skill_panel.h"],
+    deps = [
+        ":skill_inspect_panel",
+        "//src/character",
+        "//src/character:job_branch",
+        "//src/character:link",
+        "//src/character:stat_preset",
+        "//src/frontend:types",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:game_names",
+        "//src/frontend/widgets:item_menu",
+        "//src/frontend/widgets:keys",
+        "//src/frontend/widgets:marquee",
+        "//src/protos:skill_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_library(
     name = "bank_panel",
     srcs = ["bank_panel.cc"],
     hdrs = ["bank_panel.h"],
@@ -932,6 +954,23 @@ cc_library(
         "//src/item:currency",
         "//src/protos:item_proto_cc",
         "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "link_skill_panel_test",
+    size = "small",
+    srcs = ["link_skill_panel_test.cc"],
+    deps = [
+        ":link_skill_panel",
+        "//src/character:link",
+        "//src/frontend/testing:panel_test_base",
+        "//src/frontend/testing:screen_text",
+        "//src/protos:character_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
     ],
 )
 

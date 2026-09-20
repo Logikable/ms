@@ -16,6 +16,7 @@
 #ifndef MS_SRC_FRONTEND_SCREENS_SKILL_INSPECT_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SKILL_INSPECT_PANEL_H_
 
+#include <string>
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
@@ -95,6 +96,17 @@ struct PreviewCardSize {
 // and as tall as whichever levers its skill carries.
 PreviewCardSize LargestPreviewCard(const std::vector<const Skill*>& skills,
                                    int max_columns);
+
+// What `skill` grants at `level`, label and value, in the order the card's own
+// level block lists them: {"Crit Rate", "+9%"}. For a LIST with a column for
+// an effect rather than a card -- see LinkSkillPanel. The headings the card
+// rules its sections off with are not among them: a cell has no room to say
+// which half of a skill a number came from.
+struct SkillEffectLine {
+  std::string label;
+  std::string value;
+};
+std::vector<SkillEffectLine> SkillEffectsAt(const Skill& skill, int level);
 
 }  // namespace ms
 

@@ -2183,6 +2183,16 @@ ftxui::Element SkillInspectPanel::Render() const {
   return ThemedWindow(title, ftxui::vbox(std::move(lines)));
 }
 
+std::vector<SkillEffectLine> SkillEffectsAt(const Skill& skill, int level) {
+  std::vector<SkillEffectLine> lines;
+  for (const Row& row : EffectRows(skill, level)) {
+    if (row.kind == Row::kEffect) {
+      lines.push_back({row.label, row.value});
+    }
+  }
+  return lines;
+}
+
 PreviewCardSize LargestPreviewCard(const std::vector<const Skill*>& skills,
                                    int max_columns) {
   PreviewCardSize size;
