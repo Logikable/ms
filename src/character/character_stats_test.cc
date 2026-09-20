@@ -1526,17 +1526,24 @@ TEST_F(DerivedStatsTest, LevelWithBonusNeedsNoCharacter) {
 
 // GMS's Combat Orders leaves beginner, hyper and 5th job skills where they
 // stand. All three have room to climb here, so none is held back by a ceiling.
-TEST_F(DerivedStatsTest, GrantedLevelsSkipBeginnersHypersAndVNodes) {
+TEST_F(DerivedStatsTest, GrantedLevelsSkipTheBeginnersPageHypersAndVNodes) {
   Skill hyper = IronBody();
   hyper.set_hyper(true);
   Skill node = IronBody();
   node.set_v_node(V_NODE_KIND_COMMON);
   Skill fairy = IronBody();
   fairy.set_account_levels_per_level(10);
+  Skill beginner = IronBody();
+  beginner.clear_placement();
+  PlaceIn(beginner, JOB_ADVANCEMENT_BEGINNER);
+  Skill link = IronBody();
+  link.set_link_line(JOB_ROGUE);
 
   EXPECT_EQ(LevelWithBonus(hyper, 5, 2), 5) << "a hyper skill";
   EXPECT_EQ(LevelWithBonus(node, 5, 2), 5) << "a V Matrix node";
   EXPECT_EQ(LevelWithBonus(fairy, 5, 2), 5) << "a skill nobody buys";
+  EXPECT_EQ(LevelWithBonus(beginner, 5, 2), 5) << "the beginner's book";
+  EXPECT_EQ(LevelWithBonus(link, 5, 2), 5) << "what the account climbed";
   EXPECT_EQ(LevelWithBonus(IronBody(), 5, 2), 7) << "and the ordinary skill";
 }
 

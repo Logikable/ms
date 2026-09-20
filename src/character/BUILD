@@ -323,6 +323,7 @@ cc_library(
         ":consumables",
         ":hyper_stats",
         ":inner_ability",
+        ":skill_placement",
         "//src/combat:constants",
         "//src/combat:damage",
         "//src/item:equip_stats",

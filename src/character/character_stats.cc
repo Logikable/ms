@@ -14,6 +14,7 @@
 #include "src/character/consumables.h"
 #include "src/character/hyper_stats.h"
 #include "src/character/inner_ability.h"
+#include "src/character/skill_placement.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
 #include "src/item/equip_stats.h"
@@ -66,10 +67,14 @@ bool GrantsSkillLevels(const Skill& skill) {
 }
 
 // Whether a granted level reaches this skill. GMS's Combat Orders names its
-// exceptions: beginner, hyper and 5th job skills stay where they stand.
+// exceptions: hyper and 5th job skills stay where they stand, and so does
+// everything on the beginner's page -- the book itself, and the link skills
+// the account climbed rather than bought.
 bool TakesGrantedLevels(const Skill& skill) {
   return !skill.hyper() && skill.v_node() == V_NODE_KIND_UNSPECIFIED &&
-         skill.account_levels_per_level() == 0;
+         skill.account_levels_per_level() == 0 &&
+         skill.link_line() == JOB_UNSPECIFIED &&
+         !ListedIn(skill, JOB_ADVANCEMENT_BEGINNER);
 }
 
 // Whether this skill gives the rest of the party anything -- for good, or for
