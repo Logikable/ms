@@ -207,8 +207,8 @@ bool RaisesOnlyABuff(const Skill& skill) {
          skill.buff().magazine().charges() <= 0;
 }
 
-std::map<std::string, Skill> LoadSkills() {
-  return LoadTestData<Skill>("skills");
+const std::map<std::string, Skill>& LoadSkills() {
+  return TestData<Skill>("skills");
 }
 
 // Two fields no skill can leave unset. The advancement is what puts it in a
