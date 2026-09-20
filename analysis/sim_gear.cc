@@ -480,7 +480,7 @@ bool Shopped(const EquipPrototype& proto) {
 // Wears the best of `candidates` in every slot of one family, highest tier
 // first and the name breaking a tie so a run repeats. A list rather than one
 // item because a character wears four rings, and "the best ring" is then four
-// answers -- SlotToFill refuses a second copy of one, so the four differ.
+// answers -- a second copy of one would only swap for the first.
 void WearBestOfFamily(CharacterInstance& character, EquipSlot family,
                       std::vector<const EquipPrototype*> candidates) {
   std::sort(candidates.begin(), candidates.end(),

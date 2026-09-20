@@ -263,9 +263,8 @@ void InventoryPanel::HideLockedFeatures() {
 // What the item refuses is the prototype's answer, so armour and weapons carry
 // the same entries however far along a particular drop is.
 void InventoryPanel::HideRefusedUpgrades(const EquipInstance& equip) {
-  // Nowhere to go is as good a reason to grey Equip as a level too low: a
-  // fifth ring has four slots to choose from, but not if one of them is
-  // already wearing this same ring.
+  // Nowhere to go is as good a reason to grey Equip as a level too low, and
+  // an item naming no slot at all is the one thing that has nowhere.
   if (!character_.CanEquip(equip.prototype()) ||
       character_.SlotToFill(equip.prototype()) == EQUIP_SLOT_UNSPECIFIED) {
     menu_.Disable(kMenuAction);

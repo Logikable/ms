@@ -2581,23 +2581,83 @@ TEST_F(EquipTest, TwoPendantsWearAtOnce) {
             "Pendant B");
 }
 
-// GMS's rule: the four rings are four different rings. The second copy is
-// refused rather than worn beside the first, and CanEquip keeps saying yes --
-// the character can wear the item, they are simply already wearing it.
-TEST_F(EquipTest, TheSameRingIsNotWornTwice) {
+// No two of the four rings are the same ring, so a second copy swaps for the
+// one worn rather than joining it -- which is how a better-starred copy goes
+// on. The pendants, the other family, do the same.
+TEST_F(EquipTest, TheSameRingSwapsForTheWornOne) {
   c_.AdvanceJob(JOB_BEGINNER);
   EquipPrototype ring;
   ring.set_name("Silver Blossom Ring");
   ring.set_equip_slot(EQUIP_SLOT_RING);
   ring.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  Equip starred;
+  starred.set_stars(5);
   c_.PickUp(std::make_unique<EquipInstance>(ring));
-  c_.PickUp(std::make_unique<EquipInstance>(ring));
+  c_.PickUp(std::make_unique<EquipInstance>(ring, starred));
   ASSERT_TRUE(c_.Equip(0));
-  EXPECT_FALSE(c_.Equip(0));
-  EXPECT_EQ(c_.SlotToFill(ring), EQUIP_SLOT_UNSPECIFIED);
-  EXPECT_TRUE(c_.CanEquip(ring));
+  EXPECT_EQ(c_.SlotToFill(ring), EQUIP_SLOT_RING) << "the slot it is worn in";
+  ASSERT_TRUE(c_.Equip(0));
   EXPECT_EQ(c_.equipped().size(), 1);
-  EXPECT_EQ(c_.inventory().size(), 1) << "the second copy stays in the bag";
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING)->equip_state().stars(), 5);
+  ASSERT_EQ(c_.inventory().size(), 1) << "the first copy takes its place";
+  EXPECT_EQ(c_.inventory()[0].equip_state().stars(), 0);
+
+  EquipPrototype pendant;
+  pendant.set_name("Dominator Pendant");
+  pendant.set_equip_slot(EQUIP_SLOT_PENDANT);
+  c_.PickUp(std::make_unique<EquipInstance>(pendant));
+  c_.PickUp(std::make_unique<EquipInstance>(pendant, starred));
+  ASSERT_TRUE(c_.Equip(1));
+  ASSERT_TRUE(c_.Equip(1));
+  EXPECT_EQ(c_.equipped().count(EQUIP_SLOT_PENDANT_2), 0u);
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PENDANT)->equip_state().stars(), 5);
+}
+
+// A preset swaps for a ring it INHERITS too: the copy goes on as its own,
+// over the first preset's, which goes on wearing the one it owns.
+TEST_F(EquipTest, ASecondPresetSwapsForARingItInherits) {
+  EquipPrototype ring;
+  ring.set_name("Silver Blossom Ring");
+  ring.set_equip_slot(EQUIP_SLOT_RING);
+  Equip starred;
+  starred.set_stars(5);
+  c_.PickUp(std::make_unique<EquipInstance>(ring));
+  c_.PickUp(std::make_unique<EquipInstance>(ring, starred));
+  ASSERT_TRUE(c_.Equip(0));
+  ASSERT_TRUE(c_.Equip(0, StatPreset::kSecond));
+  EXPECT_EQ(c_.equipped(StatPreset::kSecond).size(), 1)
+      << "its own, not beside the one it inherited";
+  EXPECT_EQ(c_.equipped(StatPreset::kSecond)
+                .at(EQUIP_SLOT_RING)
+                ->equip_state()
+                .stars(),
+            5);
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING)->equip_state().stars(), 0);
+  EXPECT_TRUE(c_.inventory().empty()) << "an inherited item is not displaced";
+}
+
+// The rule holds however the two copies got there: a preset that owns one
+// leaves the slot the other would be inherited in EMPTY rather than showing
+// the same ring twice.
+TEST_F(EquipTest, NoPresetShowsOneRingTwice) {
+  EquipPrototype ring;
+  ring.set_equip_slot(EQUIP_SLOT_RING);
+  EquipPrototype other = ring;
+  ring.set_name("Silver Blossom Ring");
+  other.set_name("Gold Blossom Ring");
+  c_.PickUp(std::make_unique<EquipInstance>(other));
+  c_.PickUp(std::make_unique<EquipInstance>(ring));
+  c_.PickUp(std::make_unique<EquipInstance>(other));
+  c_.PickUp(std::make_unique<EquipInstance>(ring));
+  ASSERT_TRUE(c_.Equip(0));                       // Gold, first preset, ring 1
+  ASSERT_TRUE(c_.Equip(0, StatPreset::kSecond));  // Silver, its own ring 2
+  ASSERT_TRUE(c_.Equip(0));                       // Gold, first preset, ring 2
+  ASSERT_TRUE(c_.Equip(0));                       // Silver, first preset ring 3
+  const WornGear& boss = c_.equipped(StatPreset::kSecond);
+  EXPECT_EQ(boss.count(EQUIP_SLOT_RING_3), 0u) << "its own Silver is ring 2";
+  EXPECT_EQ(boss.at(EQUIP_SLOT_RING_2)->prototype().name(),
+            "Silver Blossom Ring");
+  EXPECT_EQ(boss.size(), 2);
 }
 
 // A one-slot family is exempt: putting a second hat on is the swap it looks

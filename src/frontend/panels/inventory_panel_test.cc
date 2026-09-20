@@ -1828,10 +1828,9 @@ TEST_F(SpareSymbolTest, EquipAndCombineTradePlaces) {
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuCombine), 0);
 }
 
-// A second copy of a ring already worn has nowhere to go -- the four slots
-// hold four different rings -- so Equip is greyed the way a level too low
-// greys it. A ring the character is not wearing is offered as usual.
-TEST_F(InventoryPanelTest, ASecondCopyOfAWornRingCannotBeEquipped) {
+// A second copy of a ring already worn is still offered Equip: it swaps for
+// the one worn rather than joining it, which is how a better copy goes on.
+TEST_F(InventoryPanelTest, ASecondCopyOfAWornRingIsStillOffered) {
   EquipPrototype ring;
   ring.set_name("Silver Blossom Ring");
   ring.set_equip_slot(EQUIP_SLOT_RING);
@@ -1850,7 +1849,7 @@ TEST_F(InventoryPanelTest, ASecondCopyOfAWornRingCannotBeEquipped) {
   worn.MakeComponent([]() {});
   worn.OpenMenu();
   reachable = ReachableMenuEntries(worn.menu());
-  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuAction), 0);
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuAction), 0);
 }
 
 // Neither upgrade path touches a symbol, so neither is on its menu at all.

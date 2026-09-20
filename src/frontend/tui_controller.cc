@@ -532,10 +532,10 @@ const EquipInstance* TuiController::scroll_item() const {
 }
 
 // What the reader's own gear has in the slot `proto` would fill, or nullptr
-// when the slot is empty -- and when the item is itself the one worn, which
-// would be a card compared against a copy of itself. Against the preset the
-// Equipped panel is showing: that is the gear the player is looking at, and
-// the one Equip would displace.
+// when that slot is empty. A second copy of a ring already worn compares
+// against the worn one, which is what Equip would swap it for. Against the
+// preset the Equipped panel is showing: that is the gear the player is looking
+// at, and the one Equip would displace.
 StatPreset TuiController::ComparisonPreset() const {
   return equip_panel_.gear_preset();
 }

@@ -1411,6 +1411,32 @@ TEST_F(TuiControllerTest, TheComparisonAndTheFigureFollowTheGearTab) {
   EXPECT_LT(*controller_->inspect_delta(), 0);
 }
 
+// A second copy of a ring already worn reads against the worn one: that is
+// what Equip would swap it for, so it is what the card and the figure
+// describe.
+TEST_F(TuiControllerTest, ASecondCopyOfAWornRingIsComparedWithIt) {
+  HoldASword();
+  EquipPrototype ring;
+  ring.set_name("Silver Blossom Ring");
+  ring.set_equip_slot(EQUIP_SLOT_RING);
+  ring.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  state_->character.PickUp(std::make_unique<EquipInstance>(ring));
+  ASSERT_TRUE(state_->character.Equip(0));
+  EquipPrototype better = ring;
+  better.mutable_base_stats()->set_attack(50);
+  state_->character.PickUp(std::make_unique<EquipInstance>(better));
+
+  DescendIntoBag();
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kInspect);
+  EXPECT_EQ(controller_->inspect_comparison(),
+            state_->character.WornAt(StatPreset::kFirst, EQUIP_SLOT_RING));
+  ASSERT_TRUE(controller_->inspect_delta().has_value());
+  EXPECT_GT(*controller_->inspect_delta(), 0);
+}
+
 // The sideways arrows belong to a squeezed card, and like the others they
 // read the screen rather than closing it.
 TEST_F(TuiControllerTest, SidewaysArrowsInInspectDoNotLeave) {

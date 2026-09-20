@@ -1918,6 +1918,29 @@ void CharacterInstance::RecomputePreset(StatPreset preset) {
   RecomputeSetBonuses(preset);
 }
 
+namespace {
+
+// Whether `own` wears the same item as `inherited` somewhere else in the
+// family `slot` belongs to. What decides that a preset leaves an inherited
+// slot EMPTY: no preset may show the same ring twice, and a preset's own copy
+// is the one it keeps.
+bool OwnCopyElsewhere(const std::map<EquipSlot, EquipInstance>& own,
+                      EquipSlot slot, const EquipInstance& inherited) {
+  for (EquipSlot other : SlotFamily(slot)) {
+    if (other == slot) {
+      continue;
+    }
+    std::map<EquipSlot, EquipInstance>::const_iterator it = own.find(other);
+    if (it != own.end() &&
+        it->second.prototype().name() == inherited.prototype().name()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+}  // namespace
+
 void CharacterInstance::RecomputeEquipStats() {
   const std::map<EquipSlot, EquipInstance>& base =
       worn_[IndexOf(StatPreset::kFirst)];
@@ -1925,6 +1948,10 @@ void CharacterInstance::RecomputeEquipStats() {
     WornGear& gear = resolved_[i];
     gear.clear();
     for (const std::pair<const EquipSlot, EquipInstance>& kv : base) {
+      if (i != IndexOf(StatPreset::kFirst) &&
+          OwnCopyElsewhere(worn_[i], kv.first, kv.second)) {
+        continue;
+      }
       gear[kv.first] = &kv.second;
     }
     for (const std::pair<const EquipSlot, EquipInstance>& kv : worn_[i]) {
@@ -2477,12 +2504,15 @@ EquipSlot CharacterInstance::SlotToFill(const EquipPrototype& proto,
   if (family.size() == 1) {
     return family.front();
   }
-  // Against what the preset shows rather than what it owns: a ring it
-  // inherits is on the character just as much as one of its own.
+  // A copy of this same item already worn takes the slot it is in, ahead of
+  // any free one: no two of the four rings are the same ring, so the second
+  // copy is a swap for the first rather than a fifth ring. Against what the
+  // preset shows rather than what it owns -- a ring it inherits is on the
+  // character just as much as one of its own.
   for (EquipSlot slot : family) {
     const EquipInstance* worn = WornAt(preset, slot);
     if (worn != nullptr && worn->prototype().name() == proto.name()) {
-      return EQUIP_SLOT_UNSPECIFIED;
+      return slot;
     }
   }
   for (EquipSlot slot : family) {

@@ -359,11 +359,12 @@ class CharacterInstance {
   // displaced item taking its place in the bag. `preset` is the setup it goes
   // into; past the first it goes as that preset's OWN, leaving the others.
   bool Equip(int inventory_index, StatPreset preset = StatPreset::kFirst);
-  // The slot this item would be worn in: the first free one of its family, or
-  // the first of them once full. Nowhere to go means the item names no slot,
-  // or its family already holds this same item -- GMS's rule that no two of
-  // the four rings are the same ring. A one-slot family is exempt, a second
-  // hat being the swap it looks like.
+  // The slot this item would be worn in: the slot a copy of this same item is
+  // already worn in, else the first free one of its family, else the first of
+  // them once full. A second copy swapping for the first is GMS's rule that no
+  // two of the four rings are the same ring -- there is no room for both, so
+  // the new one takes the old one's place. Nowhere to go only means the item
+  // names no slot.
   EquipSlot SlotToFill(const EquipPrototype& proto,
                        StatPreset preset = StatPreset::kFirst) const;
   // Moves what `preset` wears in `slot` to the bag. False for an empty slot,
@@ -428,7 +429,9 @@ class CharacterInstance {
     return worn_[IndexOf(preset)];
   }
   // The item `preset` wears in `slot`, its own or the one it inherits, or
-  // nullptr for a slot it leaves empty.
+  // nullptr for a slot it leaves empty. A preset does NOT inherit an item it
+  // already wears a copy of elsewhere in the same family: two of one ring is
+  // what no preset may show, so that slot reads empty.
   const EquipInstance* WornAt(StatPreset preset, EquipSlot slot) const;
   // Whether what `preset` wears in `slot` is the first preset's. What the Gear
   // tab dims a row for.
