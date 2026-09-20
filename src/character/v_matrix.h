@@ -5,9 +5,10 @@
  * by item drop rate the way a drop is, because that is what they are. Bosses
  * pay nothing.
  *
- * Only a character who has taken the 5th advancement earns them: below it
- * there is no matrix to spend on, so nothing accrues invisibly the way honor
- * does.
+ * Only Arcane River monsters carry any, the map's Arcane Force requirement
+ * being what marks the river. Nothing else gates them: a character who farms
+ * there before the 5th advancement banks points they cannot yet see, the way
+ * honor accrues before the sheet names it.
  *
  * Pure math over the numbers, like honor.h. Adding the points to the character
  * is the caller's.

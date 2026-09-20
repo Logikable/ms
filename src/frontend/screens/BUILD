@@ -835,6 +835,7 @@ cc_library(
         "//src:spawn",
         "//src/character:arcane_force",
         "//src/character:honor",
+        "//src/character:v_matrix",
         "//src/combat:loot",
         "//src/frontend/widgets:chrome",
         "//src/frontend/widgets:colors",

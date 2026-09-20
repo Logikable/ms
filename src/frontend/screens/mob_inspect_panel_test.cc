@@ -279,6 +279,20 @@ TEST(MobInspectPanelTest, NoArcaneRowsOutsideArcaneRiver) {
   EXPECT_EQ(Render(panel).find("Arcane Force"), std::string::npos);
 }
 
+// V Points are the one currency a map decides, so the drop table names them
+// where they fall and leaves the row off everywhere else.
+TEST(MobInspectPanelTest, VPointsDropOnlyInArcaneRiver) {
+  GameState arcane = ArcaneMap();
+  MobInspectPanel river(arcane);
+  river.SetMap("rage");
+  EXPECT_NE(Render(river).find("V Points"), std::string::npos);
+
+  GameState plain = OneMap();
+  MobInspectPanel field(plain);
+  field.SetMap("green_field");
+  EXPECT_EQ(Render(field).find("V Points"), std::string::npos);
+}
+
 // A card that measures its own width has to ask for its right margin.
 // RowsTouchingTheRightBorder only sees the panel's outer edge, so the mob
 // list's own is checked by reading the rows back: the toll rows span the whole

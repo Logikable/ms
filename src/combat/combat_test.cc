@@ -187,27 +187,27 @@ TEST(AwardCombatRewardsTest, KillsPayHonorIntoTheTallyAndThePool) {
   EXPECT_EQ(state.character.honor(), tally.honor);
 }
 
-// V Points are the 5th job's alone: a 4th job's kills pay none however many
-// they are, and the same kills pay once the advancement is taken.
-TEST(AwardCombatRewardsTest, OnlyAFifthJobIsPaidVPoints) {
+// V Points fall in Arcane River and nowhere else: the same kills on a map
+// asking no force pay none, and neither map asks for the 5th advancement.
+TEST(AwardCombatRewardsTest, OnlyArcaneRiverPaysVPoints) {
   Mob mob = SnailMob();
   mob.set_exp(0);
+  MapData river = SnailMap();
+  river.set_arcane_force(600);
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", mob}}, {{"field", SnailMap()}});
-  state.current_map = "field";
+                  {{"snail", mob}}, {{"field", SnailMap()}, {"river", river}});
   EquipSword(state);
-  CombatParams params = ComputeCombatParams(state);
+  ASSERT_FALSE(state.character.v_matrix_unlocked());
 
-  EXPECT_EQ(AwardCombatRewards(state, params, {100000}).v_points, 0);
+  state.current_map = "field";
+  EXPECT_EQ(
+      AwardCombatRewards(state, ComputeCombatParams(state), {100000}).v_points,
+      0);
   EXPECT_EQ(state.character.v_points(), 0);
 
-  for (int stage = state.character.proto().job_stage(); stage < kFifthJobStage;
-       ++stage) {
-    state.character.AdvanceJob(state.character.proto().job());
-  }
-  ASSERT_TRUE(state.character.v_matrix_unlocked());
-
-  RewardTally tally = AwardCombatRewards(state, params, {100000});
+  state.current_map = "river";
+  RewardTally tally =
+      AwardCombatRewards(state, ComputeCombatParams(state), {100000});
   EXPECT_NEAR(tally.v_points, 100000 * kVPointDropChance, 40);
   EXPECT_EQ(state.character.v_points(), tally.v_points);
 }

@@ -2093,6 +2093,9 @@ CombatParams ComputeCombatParams(const GameState& state) {
                                           map_it->second.arcane_force());
   derived.arcane_damage_factor = arcane.damage_dealt;
   derived.arcane_taken_factor = arcane.damage_taken;
+  // V Points fall in Arcane River and nowhere else, and the force the map
+  // asks for is what says it is Arcane River.
+  params.pays_v_points = map_it->second.arcane_force() > 0;
   // The pace the whole encounter runs at, and the only thing here that asks
   // the character's level directly: the game stretches out as they climb.
   double speed_factor = GameSpeedFactor(state.character.proto().level());

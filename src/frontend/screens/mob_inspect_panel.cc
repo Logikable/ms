@@ -11,6 +11,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/arcane_force.h"
 #include "src/character/honor.h"
+#include "src/character/v_matrix.h"
 #include "src/combat/loot.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
@@ -213,6 +214,13 @@ ftxui::Element MobInspectPanel::RenderDrops(const Mob& mob) const {
   // is a chance at a particular item.
   rows.push_back(DropRow("Meso", DropChance(MesoDropChance(0.0))));
   rows.push_back(DropRow("Honor", DropChance(kMobHonorChance)));
+  // V Points fall in Arcane River and nowhere else, so the row is the river's
+  // own -- named here because a drop table is where a player looks to find
+  // out where the currency comes from.
+  std::map<std::string, MapData>::const_iterator it = state_.maps.find(map_);
+  if (it != state_.maps.end() && it->second.arcane_force() > 0) {
+    rows.push_back(DropRow("V Points", DropChance(kVPointDropChance)));
+  }
   for (const MobDrop& drop : mob.drops()) {
     std::string name;
     if (drop.has_equip()) {

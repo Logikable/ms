@@ -518,6 +518,10 @@ struct CombatParams {
   // there being no moment to change gear before they fall. Unread outside a
   // boss fight, a map's drops being the fight's own. See kDropPreset.
   double drop_roll_item_drop_pct = 0.0;
+  // Whether a kill here can pay a V Point. Arcane River monsters are the only
+  // ones that do, so this is the map's Arcane Force requirement asked as a
+  // yes or no.
+  bool pays_v_points = false;
   // The fountains the character carries, each on its own clock whether or not
   // they are swinging.
   std::vector<RegenPulse> regen_pulses;

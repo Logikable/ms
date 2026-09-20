@@ -110,9 +110,10 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
         character.AddHonor(honor);
         tally.honor += honor;
       }
-      // V Points are a drop, so drop rate lifts them -- and only a 5th job has
-      // a matrix for them to go into.
-      if (character.v_matrix_unlocked()) {
+      // V Points are a drop, so drop rate lifts them -- and only Arcane River
+      // monsters carry any. A character short of the 5th advancement banks
+      // them against the matrix they have yet to open.
+      if (params.pays_v_points) {
         int64_t points =
             RollMobVPoints(kills[i], params.item_drop_pct, state.rng);
         if (points > 0) {
