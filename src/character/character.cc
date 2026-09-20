@@ -1962,6 +1962,22 @@ bool CharacterInstance::CubeWorn(EquipSlot slot, CubeType cube,
   return true;
 }
 
+bool CharacterInstance::CubeWornUpTo(EquipSlot slot, CubeType cube,
+                                     PotentialRank want, int rolls,
+                                     StatPreset preset) {
+  EquipInstance* item = WornIn(preset, slot);
+  if (item == nullptr) {
+    return false;
+  }
+  for (int roll = 0; roll < rolls && item->potential().rank() < want; ++roll) {
+    if (!item->Cube(cube, rng_)) {
+      break;
+    }
+  }
+  RecomputeEquipStats();
+  return item->potential().rank() >= want;
+}
+
 // Takes a cube's price, or leaves the purse alone and says no. Asked of the
 // item too: a cube that has nowhere to go is not charged for.
 bool CharacterInstance::PayForCube(const EquipInstance& item) {

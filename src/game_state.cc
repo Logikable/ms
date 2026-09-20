@@ -840,19 +840,10 @@ void SeedPotentials(GameState& state) {
                                       POTENTIAL_RANK_UNIQUE,
                                       POTENTIAL_RANK_LEGENDARY};
   for (size_t i = 0; i < slots.size(); ++i) {
-    const PotentialRank want = kRanks[i % std::size(kRanks)];
     // Guarded rather than trusted to the odds: a cube that stopped ranking up
     // would otherwise hang the workbench on startup.
-    for (int tries = 0; tries < kMaxSeedCubes; ++tries) {
-      if (!state.character.CubeWorn(slots[i], CubeType::kRed)) {
-        break;
-      }
-      const WornGear::const_iterator it =
-          state.character.equipped().find(slots[i]);
-      if (it->second->potential().rank() >= want) {
-        break;
-      }
-    }
+    state.character.CubeWornUpTo(slots[i], CubeType::kRed,
+                                 kRanks[i % std::size(kRanks)], kMaxSeedCubes);
   }
 }
 

@@ -704,6 +704,12 @@ class CharacterInstance {
   // ranking it up. The mechanism, charging NOTHING: BuyCube is the purchase.
   bool CubeWorn(EquipSlot slot, CubeType cube,
                 StatPreset preset = StatPreset::kFirst);
+  // Cubes it until the rank is `want`, giving up after `rolls`. The same rolls
+  // CubeWorn makes one at a time, with the stats worked out once at the end
+  // rather than once a roll -- a rank is tens of rolls and nothing reads the
+  // totals in between. Says whether it arrived.
+  bool CubeWornUpTo(EquipSlot slot, CubeType cube, PotentialRank want,
+                    int rolls, StatPreset preset = StatPreset::kFirst);
   // One cube into the item worn in `slot`, charged kCubeCost: rolls what the
   // piece would become and hands it back WITHOUT putting it on. Taking the
   // roll is TakePotential's business -- a player offered worse keeps what they
