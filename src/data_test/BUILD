@@ -198,7 +198,9 @@ cc_test(
 
 cc_test(
     name = "screen_fit_test",
-    size = "small",
+    # Every test builds a kMax state, and that is a whole ceiling ACCOUNT --
+    # ten characters climbed and dressed. See SeedMaxRoster.
+    size = "medium",
     srcs = ["screen_fit_test.cc"],
     data = [
         "//data/bosses:all",

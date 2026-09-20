@@ -1037,6 +1037,41 @@ TEST(GameStateTest, MaxModeFillsTheRosterSoTheLinkSkillsStand) {
   EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 6);
 }
 
+// Every slot is a ceiling in its own right rather than a sheet naming a
+// level: the pools spent, the potions bought and the river's symbols on. What
+// a slot can WEAR is the fake catalog's business -- it holds warrior gear
+// alone, and no slot is a warrior -- so what is pinned here is the character
+// and not the outfit.
+TEST(GameStateTest, MaxModeRosterSlotsAreCeilingsThemselves) {
+  GameState state = MakeMaxState(kTrialLevelCap);
+  ASSERT_EQ(state.inactive_characters.size(), 9u);
+  for (const CharacterSave& slot : state.inactive_characters) {
+    const Character& sheet = slot.character();
+    SCOPED_TRACE(sheet.name());
+    EXPECT_FALSE(sheet.name().empty());
+    EXPECT_EQ(sheet.level(), kTrialLevelCap);
+    EXPECT_EQ(sheet.ap(), 0);
+    EXPECT_EQ(sheet.meso(), 50000000);
+    EXPECT_EQ(slot.current_map(), kHomeMap);
+    EXPECT_EQ(sheet.consumables().owned_size(),
+              static_cast<int>(AllConsumables().size()));
+    EXPECT_EQ(sheet.consumables().active_size(),
+              static_cast<int>(AllConsumables().size()));
+    // The five areas the cap opens, worn, and not the sixth: proof the climb
+    // really ran rather than a level being written onto a blank sheet.
+    ASSERT_GT(sheet.equip_presets().presets_size(), 0);
+    const EquipPreset& worn = sheet.equip_presets().presets(0);
+    for (EquipSlot symbol :
+         {EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND,
+          EQUIP_SLOT_SYMBOL_LACHELEIN, EQUIP_SLOT_SYMBOL_ARCANA,
+          EQUIP_SLOT_SYMBOL_MORASS}) {
+      EXPECT_EQ(worn.equipped().count(symbol), 1u) << EquipSlot_Name(symbol);
+    }
+    EXPECT_EQ(worn.equipped().count(EQUIP_SLOT_SYMBOL_ESFERA), 0u);
+    EXPECT_GT(sheet.inner_ability().presets_size(), 0);
+  }
+}
+
 // A sim's ceiling stands alone: no roster, and nothing from their own line
 // either, however high they are. See TestOptions::link_skills.
 TEST(GameStateTest, MaxModeCanBeAskedForNoLinkSkillsAtAll) {

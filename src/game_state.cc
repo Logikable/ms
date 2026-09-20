@@ -731,6 +731,14 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   WearStarterSymbol(state);
 }
 
+// Back to the level-1 Beginner every mode's seeding climbs from. The
+// CharacterInstance holds a reference to the state's RNG and so cannot be
+// replaced outright; kMax builds a whole account through this one door.
+void ResetToBeginner(GameState& state) {
+  state.character.RestoreFrom(MakeBaseBeginnerProto(), state.equips,
+                              state.items);
+}
+
 // A player starts armed and with nothing else: the Sword is worn rather than
 // carried, so the bag really is empty.
 void SeedPlay(GameState& state) {
@@ -998,66 +1006,42 @@ std::vector<Job> EveryFourthJob() {
   return jobs;
 }
 
-// The rest of a ceiling account: one character at the top of every OTHER job
-// line, standing at the same level as the one being played. They exist for
-// the LINK SKILLS, which are the account's climb rather than one character's
-// -- a ceiling with an empty roster would hold none of them. See
-// //src/character:link.
-void SeedMaxRoster(GameState& state, int level) {
-  state.inactive_characters.clear();
-  Job played_line = LineOf(state.character.proto().job());
-  for (Job job : EveryFourthJob()) {
-    if (LineOf(job) == played_line) {
-      continue;
-    }
-    // At the same level, so a ceiling below 70 has a roster paying nothing --
-    // an account does not climb one character at a time.
-    // Climbed from the bottom rather than dropped in at the top: a sibling of
-    // a ceiling below the fourth advancement stands where that level really
-    // puts them. Walked on the FOURTH job, which answers for every book of
-    // its line -- HighestAdvancementAt reads its job back off the
-    // advancement, and a first job's does not say which branch it became.
-    int stage = 1;
-    while (stage < kLastJobStage && level >= NextAdvancementLevel(stage) &&
-           AdvancementForJobStage(job, stage + 1) !=
-               JOB_ADVANCEMENT_UNSPECIFIED) {
-      ++stage;
-    }
-    JobAdvancement reached = AdvancementForJobStage(job, stage);
-    Character* sheet =
-        state.inactive_characters.emplace_back().mutable_character();
-    sheet->set_name(UsernameFor(reached));
-    sheet->set_job(JobForAdvancement(reached));
-    sheet->set_job_stage(StageForAdvancement(reached));
-    sheet->set_level(level);
+// Where `job`'s line stands at `level`: the highest advancement that level
+// opens. Walked on the FOURTH job, which answers for every book of its line
+// -- HighestAdvancementAt reads its job back off the advancement, and a first
+// job's does not say which branch it became.
+JobAdvancement CeilingAdvancementFor(Job job, int level) {
+  int stage = 1;
+  while (stage < kLastJobStage && level >= NextAdvancementLevel(stage) &&
+         AdvancementForJobStage(job, stage + 1) !=
+             JOB_ADVANCEMENT_UNSPECIFIED) {
+    ++stage;
   }
-  state.character.ReconcileLinkSkills(state.skills);
-  state.MirrorAccount();
+  return AdvancementForJobStage(job, stage);
 }
 
-// The ceiling: the character a player who spent well is standing in at this
-// level. Written outright rather than played for, every number priced against
-// what the climb pays by then -- max_character.cc carries the arithmetic.
-// NOTHING of the workbench: no purse, no EXP bonus, no spare gear.
-void SeedMax(GameState& state, const TestOptions& options) {
-  // Before anything reads a stat off them: the Hyper Stat allocation is
-  // measured by playing the fight, and a link skill's crit rate moves what it
-  // buys.
-  state.character.set_link_skills_off(!options.link_skills);
-  // A ceiling holds both allocations at once, which is what the autoswap is
-  // for, whatever the state was asked for.
-  state.account.SetAutoswapPresets(true);
-  state.account.SetJukebox(true);
-  state.MirrorAccount();
-  // The same default the workbench takes: the top of the line as far as the
-  // game is written, which is where a boss roster is measured from.
-  const JobAdvancement chosen = options.job != JOB_ADVANCEMENT_UNSPECIFIED
-                                    ? options.job
-                                    : kTestAdvancement;
-  const int level = LevelForJob(chosen, options.level);
-  // --job names the line, not where to stop in it: a ceiling at a level has
-  // taken every advancement that level offers.
-  const JobAdvancement advancement = HighestAdvancementAt(chosen, level);
+// What the rest of a ceiling account pays the character on `line`. Every slot
+// stands at the same level in a line of its own, so this is arithmetic rather
+// than a walk over characters -- which is what lets the roster be built
+// before any of them exists.
+LinkTally CeilingTally(Job line, int level) {
+  LinkTally tally;
+  for (Job job : EveryFourthJob()) {
+    if (LineOf(job) == line) {
+      continue;
+    }
+    tally.Record(JobForAdvancement(CeilingAdvancementFor(job, level)), level);
+  }
+  return tally;
+}
+
+// Everything a ceiling character is, built onto whatever `state.character`
+// currently holds -- so the caller resets to a Beginner between one and the
+// next. `tally` is what the rest of the account pays them, set before the
+// Hyper Stats are measured because a link skill's crit rate moves what they
+// buy.
+void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
+                     const LinkTally& tally) {
   const MaxGear gear = MaxGearForLevel(level);
   GearSetup equips;
   equips.hammered = gear.hammered;
@@ -1076,6 +1060,8 @@ void SeedMax(GameState& state, const TestOptions& options) {
 
   DressMaxPotentials(state, gear);
   MaxVMatrix(state);
+  state.character.set_link_tally(tally);
+  state.character.ReconcileLinkSkills(state.skills);
   SpendMaxHyperStats(state.character, state.skills, state.bosses, state.mobs);
   if (state.character.inner_ability_unlocked()) {
     const StatField primary = PrimaryStatField(state.character.proto().job());
@@ -1085,11 +1071,75 @@ void SeedMax(GameState& state, const TestOptions& options) {
     }
   }
   BuyMaxConsumables(state);
+}
+
+// The rest of a ceiling account: one character at the top of every OTHER job
+// line, standing at the same level as the one being played. They exist for
+// the LINK SKILLS, which are the account's climb rather than one character's
+// -- a ceiling with an empty roster would hold none of them. See
+// //src/character:link.
+//
+// Each is a ceiling in their own right rather than a sheet naming a level:
+// what the roster hands the player is a character to put into play, and one
+// of those has to be dressed. Built BEFORE the character in play, who is then
+// the only one never round-tripped through a proto.
+//
+// At the played character's own level, so a ceiling below 70 has a roster
+// paying nothing -- an account does not climb one character at a time.
+void SeedMaxRoster(GameState& state, Job played_line, int level) {
+  const int64_t now = static_cast<int64_t>(std::time(nullptr));
+  state.inactive_characters.clear();
+  for (Job job : EveryFourthJob()) {
+    if (LineOf(job) == played_line) {
+      continue;
+    }
+    ResetToBeginner(state);
+    MaxOneCharacter(state, CeilingAdvancementFor(job, level), level,
+                    CeilingTally(LineOf(job), level));
+    CharacterSave& slot = state.inactive_characters.emplace_back();
+    *slot.mutable_character() = state.character.ToProto();
+    slot.set_current_map(kHomeMap);
+    slot.set_created_unix_seconds(now);
+    // Left unplayed, so the character select opens on the one in play rather
+    // than on whoever the loop finished with.
+    slot.set_last_played_unix_seconds(0);
+  }
+}
+
+// The ceiling: the character a player who spent well is standing in at this
+// level. Written outright rather than played for, every number priced against
+// what the climb pays by then -- max_character.cc carries the arithmetic.
+// NOTHING of the workbench: no purse, no EXP bonus, no spare gear.
+void SeedMax(GameState& state, const TestOptions& options) {
+  state.character.set_link_skills_off(!options.link_skills);
+  // A ceiling holds both allocations at once, which is what the autoswap is
+  // for, whatever the state was asked for.
+  state.account.SetAutoswapPresets(true);
+  state.account.SetJukebox(true);
+  state.MirrorAccount();
+  // The same default the workbench takes: the top of the line as far as the
+  // game is written, which is where a boss roster is measured from.
+  const JobAdvancement chosen = options.job != JOB_ADVANCEMENT_UNSPECIFIED
+                                    ? options.job
+                                    : kTestAdvancement;
+  const int level = LevelForJob(chosen, options.level);
+  // --job names the line, not where to stop in it: a ceiling at a level has
+  // taken every advancement that level offers.
+  const JobAdvancement advancement = HighestAdvancementAt(chosen, level);
+  const Job played_line = LineOf(JobForAdvancement(advancement));
+
   // The roster exists for the link skills alone, so a ceiling without them
   // stands alone as every sim's has always done.
+  LinkTally tally;
   if (options.link_skills) {
-    SeedMaxRoster(state, level);
+    SeedMaxRoster(state, played_line, level);
+    tally = CeilingTally(played_line, level);
   }
+  ResetToBeginner(state);
+  MaxOneCharacter(state, advancement, level, tally);
+  // The tally again, off the roster this time: from here it is the account's
+  // to state, and a slot that leaves changes it.
+  state.MirrorAccount();
   state.current_map = kHomeMap;
 }
 
@@ -1134,8 +1184,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
 }
 
 void SeedNewCharacter(GameState& state) {
-  state.character.RestoreFrom(MakeBaseBeginnerProto(), state.equips,
-                              state.items);
+  ResetToBeginner(state);
   SeedPlay(state);
 }
 
