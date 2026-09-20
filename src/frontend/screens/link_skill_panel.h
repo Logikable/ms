@@ -123,8 +123,13 @@ class LinkSkillPanel {
 
  private:
   // One row of a list, laid out in the three columns the header names.
-  ftxui::Element RenderRow(const Skill& skill, int level, bool on_cursor,
+  ftxui::Element RenderRow(const Skill& skill, bool on_cursor,
                            ftxui::Box& box) const;
+  // What `skill` is worth to this character: the rungs the account climbed,
+  // plus whatever their book lends a skill -- the level its card heads with.
+  int LevelOf(const Skill& skill) const;
+  // That level as the column prints it, the lent part in brackets.
+  std::string LevelText(const Skill& skill) const;
   // The header the top window carries for all three: the other two sit under
   // it and need no second copy.
   ftxui::Element RenderHeader() const;

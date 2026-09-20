@@ -232,6 +232,36 @@ TEST_F(LinkSkillPanelTest, TheBarRaisesThePresetMenu) {
   EXPECT_NE(Text().find("Use"), std::string::npos);
 }
 
+// A book that lends every skill a level lends a link skill one too, and the
+// column says how much of the level was lent -- the number the card heads
+// its block with.
+TEST_F(LinkSkillPanelTest, TheLevelColumnCountsWhatTheBookLent) {
+  Skill orders;
+  orders.set_name("Combat Orders");
+  SkillPlacement* placement = orders.add_placement();
+  placement->set_job_advancement(JOB_ADVANCEMENT_BEGINNER);
+  orders.set_max_level(1);
+  orders.mutable_base()->set_skill_level_bonus(1);
+  skills_["orders"] = orders;
+
+  Character proto;
+  proto.set_level(210);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  (*proto.mutable_skill_levels())["Combat Orders"] = 1;
+  hero_ = std::make_unique<CharacterInstance>(rng_, std::move(proto));
+  hero_->set_account_max_level(210);
+  LinkTally tally;
+  tally.Record(JOB_BISHOP, 210);
+  hero_->set_link_tally(tally);
+  panel_ = std::make_unique<LinkSkillPanel>(*hero_, skills_);
+  panel_->Reset();
+
+  // Their own line pays 3 rungs off their own level, and the book lends one.
+  EXPECT_EQ(panel_->SelectedLevel(), 4);
+  EXPECT_NE(Text().find("4 (+1)"), std::string::npos);
+}
+
 // A character with no job line has nothing in the top window and nothing to
 // stand on there.
 TEST_F(LinkSkillPanelTest, ABeginnerHasNoSkillOfTheirOwn) {

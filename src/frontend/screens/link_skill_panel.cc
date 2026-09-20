@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/character/character_stats.h"
 #include "src/character/job_branch.h"
 #include "src/character/link.h"
 #include "src/character/stat_preset.h"
@@ -29,7 +30,7 @@ namespace {
 constexpr int kContentWidth = 98;
 constexpr int kCaretWidth = 2;
 constexpr int kNameWidth = 24;
-constexpr int kLevelWidth = 5;
+constexpr int kLevelWidth = 7;
 // What is left for the effect, the gutters either side of it included: a row
 // running into the border reads as one that failed to draw.
 constexpr int kEffectWidth =
@@ -214,7 +215,7 @@ LinkCursor LinkSkillPanel::cursor() const {
 
 int LinkSkillPanel::SelectedLevel() const {
   const Skill* skill = cursor().skill;
-  return skill == nullptr ? 0 : character_.LinkSkillLevelOffered(*skill);
+  return skill == nullptr ? 0 : LevelOf(*skill);
 }
 
 bool LinkSkillPanel::AddSelected() {
@@ -317,8 +318,22 @@ ftxui::Element LinkSkillPanel::RenderHeader() const {
          ftxui::dim;
 }
 
-ftxui::Element LinkSkillPanel::RenderRow(const Skill& skill, int level,
-                                         bool on_cursor,
+int LinkSkillPanel::LevelOf(const Skill& skill) const {
+  return LevelWithBonus(skill, character_.LinkSkillLevelOffered(skill),
+                        BonusSkillLevels(character_, skills_));
+}
+
+std::string LinkSkillPanel::LevelText(const Skill& skill) const {
+  int learned = character_.LinkSkillLevelOffered(skill);
+  int level = LevelOf(skill);
+  std::string text = std::to_string(level);
+  if (level > learned) {
+    text += " (+" + std::to_string(level - learned) + ")";
+  }
+  return text;
+}
+
+ftxui::Element LinkSkillPanel::RenderRow(const Skill& skill, bool on_cursor,
                                          ftxui::Box& box) const {
   std::chrono::steady_clock::duration elapsed =
       on_cursor ? name_clock_.Elapsed()
@@ -326,9 +341,9 @@ ftxui::Element LinkSkillPanel::RenderRow(const Skill& skill, int level,
   ftxui::Element row = ftxui::hbox({
       ftxui::text(on_cursor ? "> " : "  "),
       ftxui::text(ScrollingWindow(skill.name(), kNameWidth, elapsed)),
-      ftxui::text(PadLeft(std::to_string(level), kLevelWidth) + " "),
-      ftxui::text(
-          ScrollingWindow(EffectText(skill, level), kEffectWidth, elapsed)),
+      ftxui::text(PadLeft(LevelText(skill), kLevelWidth) + " "),
+      ftxui::text(ScrollingWindow(EffectText(skill, LevelOf(skill)),
+                                  kEffectWidth, elapsed)),
       ftxui::text(" "),
   });
   return HighlightRow(std::move(row), on_cursor) | ftxui::reflect(box);
@@ -359,8 +374,8 @@ ftxui::Element LinkSkillPanel::RenderMine() const {
     if (focused) {
       name_clock_.Follow(0, true);
     }
-    rows.push_back(RenderRow(*mine, character_.LinkSkillLevelOffered(*mine),
-                             focused, focused ? cursor_box_ : scratch_box_));
+    rows.push_back(
+        RenderRow(*mine, focused, focused ? cursor_box_ : scratch_box_));
   }
   return ThemedWindow(
       " My Skill ",
@@ -389,8 +404,7 @@ ftxui::Element LinkSkillPanel::RenderEnabled() const {
       continue;
     }
     rows.push_back(
-        RenderRow(*held[i], character_.LinkSkillLevelOffered(*held[i]),
-                  focused && i == cursor,
+        RenderRow(*held[i], focused && i == cursor,
                   focused && i == cursor ? cursor_box_ : scratch_box_));
   }
   return ThemedWindow(
@@ -420,8 +434,7 @@ ftxui::Element LinkSkillPanel::RenderAll() const {
     }
     const Skill& skill = *rest[first + i];
     ftxui::Element row =
-        RenderRow(skill, character_.LinkSkillLevelOffered(skill),
-                  focused && first + i == cursor,
+        RenderRow(skill, focused && first + i == cursor,
                   focused && first + i == cursor ? cursor_box_ : scratch_box_);
     if (cells.empty()) {
       rows.push_back(std::move(row));

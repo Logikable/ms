@@ -920,6 +920,7 @@ cc_library(
     deps = [
         ":skill_inspect_panel",
         "//src/character",
+        "//src/character:character_stats",
         "//src/character:job_branch",
         "//src/character:link",
         "//src/character:stat_preset",
