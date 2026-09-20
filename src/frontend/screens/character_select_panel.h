@@ -10,6 +10,9 @@
  * The card beside the list is the Character panel's own display, less the
  * tabs: the name, what they are, and the stats down to the swing, from the
  * shared rows in stat_rows.h so this screen and the panel cannot disagree.
+ * It is read as the ACCOUNT would hand them over -- link skills, the level
+ * record, the autoswap switch -- so the numbers are the ones playing them
+ * shows. Left and right move its Farm/Boss chip, the pair that tab carries.
  * Both windows are the same fixed height, so nothing moves as the cursor
  * walks.
  *
@@ -25,6 +28,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
+#include "src/character/stat_preset.h"
 #include "src/frontend/widgets/item_menu.h"
 #include "src/game_state.h"
 #include "src/roster.h"
@@ -71,6 +75,16 @@ class CharacterSelectPanel {
   // Moves `delta` buttons along the row, clamped to its ends. Does nothing
   // while the cursor is still up in the list.
   void MoveButton(int delta);
+  // Puts the card on Farm for a `delta` to the left and Boss to the right --
+  // two chips, so the side IS the choice, as the all-stats sheet reads it.
+  // Does nothing while the cursor is on the buttons, where the arrows are the
+  // row's, and nothing for a character reading one allocation for everything.
+  void SwitchActivity(int delta);
+  // Which of the two the card is reading. The Character panel's Stats tab
+  // shows the same pair, and this is the same question.
+  Activity activity() const {
+    return ShowsActivityBar() ? activity_ : Activity::kFarming;
+  }
   ftxui::Element Render() const;
 
   // What pressing Enter would do where the cursor stands.
@@ -104,6 +118,10 @@ class CharacterSelectPanel {
   void PreviewSelected() const;
   // The row the menu hangs from, counted inside the window.
   int MenuRow() const;
+  // Whether the card carries the Farm/Boss chips: the previewed character's
+  // own autoswap switch, and the level the allocations open at. Nothing to
+  // pick between without it -- one allocation answers for everything.
+  bool ShowsActivityBar() const;
 
   GameState& state_;
   std::vector<RosterEntry> rows_;
@@ -117,6 +135,7 @@ class CharacterSelectPanel {
   // it holds.
   mutable CharacterInstance preview_;
   mutable int preview_slot_ = -1;
+  Activity activity_ = Activity::kFarming;
 };
 
 }  // namespace ms

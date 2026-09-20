@@ -1205,15 +1205,25 @@ void SeedNewCharacter(GameState& state) {
 }
 
 void GameState::MirrorAccount() {
-  character.set_autoswap_presets(account.autoswap_presets());
-  character.set_account_max_level(account.max_level());
-  // The OTHERS only: the character in play speaks for their own line, their
+  MirrorAccountOnto(character, inactive_characters, /*theirs=*/-1);
+}
+
+void GameState::MirrorAccountOnto(CharacterInstance& into,
+                                  const std::vector<CharacterSave>& roster,
+                                  int theirs) const {
+  into.set_autoswap_presets(account.autoswap_presets());
+  into.set_account_max_level(account.max_level());
+  // The OTHERS only: a character speaks for their own line themselves, their
   // level climbing mid-session where a slot's does not.
   LinkTally tally;
-  for (const CharacterSave& save : inactive_characters) {
-    tally.Record(save.character().job(), save.character().level());
+  for (int slot = 0; slot < static_cast<int>(roster.size()); ++slot) {
+    if (slot == theirs) {
+      continue;
+    }
+    tally.Record(roster[slot].character().job(),
+                 roster[slot].character().level());
   }
-  character.set_link_tally(std::move(tally));
+  into.set_link_tally(std::move(tally));
 }
 
 namespace {

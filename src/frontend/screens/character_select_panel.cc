@@ -9,6 +9,7 @@
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/job_name.h"
+#include "src/character/progression.h"
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/widgets/chrome.h"
 #include "src/frontend/widgets/colors.h"
@@ -131,6 +132,21 @@ void CharacterSelectPanel::MoveButton(int delta) {
   button_ = std::clamp(button_ + delta, 0, 1);
 }
 
+void CharacterSelectPanel::SwitchActivity(int delta) {
+  if (on_buttons() || delta == 0 || !ShowsActivityBar()) {
+    return;
+  }
+  activity_ = delta < 0 ? Activity::kFarming : Activity::kBossing;
+}
+
+bool CharacterSelectPanel::ShowsActivityBar() const {
+  PreviewSelected();
+  if (preview_slot_ < 0 || !preview_.autoswap_presets()) {
+    return false;
+  }
+  return Unlocked(Feature::kHyperStats, preview_, state_.account);
+}
+
 CharacterAction CharacterSelectPanel::Chosen() const {
   if (!on_buttons()) {
     return CharacterAction::kMenu;
@@ -226,6 +242,11 @@ void CharacterSelectPanel::PreviewSelected() const {
   }
   preview_.RestoreFrom(all[slot].character(), state_.equips, state_.items);
   preview_.UseEquipSets(state_.equip_sets);
+  // RestoreFrom carries the sheet and nothing of the account behind it.
+  // Without this the card reads a character with no link skills, no account
+  // record under Blessing of the Fairy and their first preset worn whatever
+  // the switch says -- a weaker character than playing them gives.
+  state_.MirrorAccountOnto(preview_, all, slot);
   preview_slot_ = slot;
 }
 
@@ -236,16 +257,23 @@ ftxui::Element CharacterSelectPanel::RenderCard() const {
   rows.push_back(CardTitle(p.name()));
   rows.push_back(CardTitle("Lv" + PadLeft(std::to_string(p.level()), 3) + " " +
                            ShortJobName(p.job())));
-  rows.push_back(CardTitle(CombatPowerText(
-      CharacterCombatPower(preview_, state_.skills, Activity::kFarming))));
+  const Activity doing = activity();
+  rows.push_back(CardTitle(
+      CombatPowerText(CharacterCombatPower(preview_, state_.skills, doing))));
   rows.push_back(ThemedSeparator());
-  DerivedStats derived =
-      DerivedStatsFor(preview_, state_.skills, /*buffs_up=*/{},
-                      /*allies=*/{}, Activity::kFarming);
+  if (ShowsActivityBar()) {
+    // Lit while the arrows reach it, which is while the cursor is on a
+    // character. The row is not a stop of its own: the cursor stays in the
+    // list and the chips move under it.
+    std::vector<TabSpec> specs = {{"Farm"}, {"Boss"}};
+    rows.push_back(TabBar(specs, doing == Activity::kBossing ? 1 : 0,
+                          /*row_focused=*/!on_buttons(), kCardWidth));
+  }
+  DerivedStats derived = DerivedStatsFor(preview_, state_.skills,
+                                         /*buffs_up=*/{}, /*allies=*/{}, doing);
   rows.push_back(CardRow("HP", FormatWithCommas(derived.max_hp)));
   rows.push_back(CardRow("MP", FormatWithCommas(derived.max_mp)));
-  for (const StatLine& line :
-       MainStatLines(preview_, state_.skills, Activity::kFarming)) {
+  for (const StatLine& line : MainStatLines(preview_, state_.skills, doing)) {
     rows.push_back(CardRow(line.label, line.value));
   }
   rows.push_back(ThemedSeparator());
@@ -253,8 +281,7 @@ ftxui::Element CharacterSelectPanel::RenderCard() const {
   // stats get. The tail is cut rather than the window grown: both windows
   // are one height, and a card that outgrew the list would say so by moving
   // the border.
-  std::vector<StatLine> extras =
-      ExtraStatLines(preview_, state_.skills, Activity::kFarming);
+  std::vector<StatLine> extras = ExtraStatLines(preview_, state_.skills, doing);
   int room = kCharacterPanelHeight - 2 - static_cast<int>(rows.size());
   int shown = std::clamp(static_cast<int>(extras.size()), 0, room);
   // A rule with nothing under it reads as a row that failed to draw.

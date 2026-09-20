@@ -143,11 +143,21 @@ struct GameState {
   std::mt19937 rng;
 
   // Hands the character what the ACCOUNT knows and they are read for: the
-  // Autoswap Presets switch, and how far the account has climbed. Every stat
-  // read asks the character and none of them holds the account, so the two
-  // have to be put together here: when the state is built, when a save
-  // arrives, and when the option is thrown.
+  // Autoswap Presets switch, how far the account has climbed, and what the
+  // others have climbed per line. Every stat read asks the character and none
+  // of them holds the account, so the two have to be put together here: when
+  // the state is built, when a save arrives, and when the option is thrown.
   void MirrorAccount();
+
+  // The same three, onto a sheet that is NOT the one in play: what putting
+  // `theirs` into play would hand them. A character restored from a slot
+  // carries none of it, so anything reading their stats without this -- the
+  // character select's card -- shows a weaker character than playing them
+  // does. `roster` is the account's slots and `theirs` the one being mirrored
+  // onto, -1 for a list they are not in.
+  void MirrorAccountOnto(CharacterInstance& into,
+                         const std::vector<CharacterSave>& roster,
+                         int theirs) const;
 
   // The character being played. The others on the account stay as the protos
   // they arrived as -- see //src/roster.h, which is what swaps one in.

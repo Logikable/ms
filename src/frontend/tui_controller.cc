@@ -1184,12 +1184,12 @@ bool TuiController::OnCharacterSelectEvent(ftxui::Event event) {
     character_select_panel_.MoveCursor(1);
     return true;
   }
-  if (event == ftxui::Event::ArrowLeft) {
-    character_select_panel_.MoveButton(-1);
-    return true;
-  }
-  if (event == ftxui::Event::ArrowRight) {
-    character_select_panel_.MoveButton(1);
+  if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
+    // The buttons along their row, the card's Farm/Boss chips everywhere
+    // else; each of the two ignores the other's place.
+    int delta = event == ftxui::Event::ArrowLeft ? -1 : 1;
+    character_select_panel_.MoveButton(delta);
+    character_select_panel_.SwitchActivity(delta);
     return true;
   }
   if (IsForward(event)) {

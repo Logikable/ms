@@ -2,24 +2,46 @@
 
 #include <gtest/gtest.h>
 
+#include <map>
 #include <string>
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/character_stats.h"
+#include "src/character/hyper_stats.h"
+#include "src/character/stat_preset.h"
 #include "src/frontend/placement.h"
 #include "src/frontend/testing/screen_text.h"
+#include "src/frontend/widgets/stat_rows.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/save.pb.h"
+#include "src/protos/skill.pb.h"
 #include "src/roster.h"
 
 namespace ms {
 namespace {
 
+// Blessing of the Fairy: a skill nobody buys, whose level is the ACCOUNT's
+// climb rather than this character's. What it pays is the plainest proof of
+// whether a card is reading the account behind the character or only their
+// own sheet.
+std::map<std::string, Skill> FairyCatalog() {
+  Skill fairy;
+  fairy.set_name("Blessing of the Fairy");
+  fairy.set_kind(SKILL_KIND_PASSIVE);
+  SkillPlacement* placement = fairy.add_placement();
+  placement->set_job_advancement(JOB_ADVANCEMENT_BEGINNER);
+  fairy.set_account_levels_per_level(10);
+  fairy.mutable_base()->set_attack(1);
+  fairy.mutable_per_level()->set_attack(1);
+  return {{"blessing_of_the_fairy", fairy}};
+}
+
 class CharacterSelectPanelTest : public testing::Test {
  protected:
-  CharacterSelectPanelTest() : state_({}, {}, {}, {}, {}) {
+  CharacterSelectPanelTest() : state_({}, {}, {}, {}, {}, FairyCatalog()) {
     state_.character.SetUsername("Played");
   }
 
@@ -178,6 +200,59 @@ TEST_F(CharacterSelectPanelTest, TheTwoWindowsAreTheSameHeight) {
   }
   ASSERT_GE(top, 0);
   EXPECT_EQ(bottom - top + 1, kCharacterPanelHeight);
+}
+
+// The card is the character as PLAYING them would show: the sheet in a slot
+// carries none of the account behind it, and reading it as it stands leaves
+// out the link skills, the account's own climb and the gear switch.
+TEST_F(CharacterSelectPanelTest, TheCardReadsTheAccountBehindThem) {
+  AddCharacter("Farmer", 30, JOB_FIGHTER, 100);
+  state_.account.RecordProgress(/*level=*/137, /*job_stage=*/4);
+  CharacterSelectPanel panel(state_);
+  panel.MoveCursor(1);
+  ASSERT_EQ(panel.selected_name(), "Farmer");
+  int slot = panel.selected_slot();
+  ftxui::Screen screen = Draw(panel);
+  int row = RowIndexOf(screen, "Combat Power");
+  ASSERT_GE(row, 0);
+  std::string card = ScreenRow(screen, row);
+
+  // The same character put into play, which is where the account's fields are
+  // handed over for real.
+  ASSERT_TRUE(PlayCharacter(state_, slot));
+  const std::string played = CombatPowerText(CharacterCombatPower(
+      state_.character, state_.skills, Activity::kFarming));
+  EXPECT_NE(card.find(played), std::string::npos)
+      << "the card reads " << card << ", playing them reads " << played;
+}
+
+// Two chips, the pair the Character panel's Stats tab carries, and the arrows
+// reach them from the list. Only with the switch on: one allocation for
+// everything is nothing to pick between.
+TEST_F(CharacterSelectPanelTest, LeftAndRightMoveTheCardsActivity) {
+  AddCharacter("Ranger", kHyperStatUnlockLevel, JOB_FIGHTER, 100);
+  state_.account.RecordProgress(kHyperStatUnlockLevel, /*job_stage=*/4);
+  CharacterSelectPanel panel(state_);
+  panel.MoveCursor(1);
+  EXPECT_EQ(RowIndexOf(Draw(panel), "Farm"), -1) << "the switch is off";
+
+  // The card holds the character it drew last, so the switch reaches it when
+  // the screen next reads the roster.
+  state_.account.SetAutoswapPresets(true);
+  panel.Refresh();
+  ASSERT_EQ(panel.selected_name(), "Ranger");
+  ASSERT_GE(RowIndexOf(Draw(panel), "Farm"), 0);
+  EXPECT_EQ(panel.activity(), Activity::kFarming);
+  panel.SwitchActivity(1);
+  EXPECT_EQ(panel.activity(), Activity::kBossing);
+  panel.SwitchActivity(-1);
+  EXPECT_EQ(panel.activity(), Activity::kFarming);
+
+  // The button row's own arrows: the chips are out of reach from there.
+  panel.MoveCursor(1);
+  ASSERT_EQ(panel.selected_slot(), -1);
+  panel.SwitchActivity(1);
+  EXPECT_EQ(panel.activity(), Activity::kFarming);
 }
 
 }  // namespace
