@@ -7,6 +7,7 @@
 #include "src/account.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
+#include "src/character/link.h"
 #include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 
@@ -246,16 +247,60 @@ TEST_F(ProgressionTest, OnlyTheItemMenuUpgradesAreAnnounced) {
 
 TEST_F(ProgressionTest, EveryFeatureHasAName) {
   const Feature kAll[] = {
-      Feature::kEquipped,  Feature::kBag,       Feature::kUnequip,
-      Feature::kScrolling, Feature::kStarForce, Feature::kHammer,
-      Feature::kPotential, Feature::kSkills,    Feature::kShop,
+      Feature::kEquipped,   Feature::kBag,       Feature::kUnequip,
+      Feature::kScrolling,  Feature::kStarForce, Feature::kHammer,
+      Feature::kPotential,  Feature::kSkills,    Feature::kShop,
+      Feature::kLinkSkills,
   };
   for (Feature feature : kAll) {
     EXPECT_FALSE(FeatureName(feature).empty());
   }
 }
 
+// The account's climb opens them, and the character's own first job is what
+// gives them a line to read one against.
+TEST_F(ProgressionTest, LinkSkillsWaitForTheAccountAndForAJob) {
+  EXPECT_EQ(UnlockLevel(Feature::kLinkSkills), kLinkSkillsLevel);
+  account_.RecordProgress(kLinkSkillsLevel, 4);
+
+  EXPECT_FALSE(Unlocked(Feature::kLinkSkills, MakeCharacter(1), account_))
+      << "a Beginner has no line of their own";
+  EXPECT_TRUE(Unlocked(Feature::kLinkSkills, MakeAdvanced(10, JOB_SWORDMAN, 1),
+                       account_))
+      << "their first job opens it, whatever level they are";
+
+  AccountInstance fresh;
+  EXPECT_FALSE(
+      Unlocked(Feature::kLinkSkills, MakeAdvanced(209, JOB_HERO, 4), fresh))
+      << "nobody on the account has paid the last rung";
+}
+
 // --- the gold trail ---
+
+// Three signposts, each lit until it is walked past and none of them before
+// the system opens.
+TEST_F(ProgressionTest, TheLinkTrailIsWalkedOneStepAtATime) {
+  const LinkTrailStep kSteps[] = {LinkTrailStep::kSkillsTab,
+                                  LinkTrailStep::kBeginnerPage,
+                                  LinkTrailStep::kLinkRow};
+  CharacterInstance hero = MakeAdvanced(10, JOB_SWORDMAN, 1);
+  for (LinkTrailStep step : kSteps) {
+    EXPECT_FALSE(LeadToLinkSkills(step, hero, account_))
+        << "led before the account opened them";
+  }
+
+  account_.RecordProgress(kLinkSkillsLevel, 4);
+  for (LinkTrailStep step : kSteps) {
+    EXPECT_TRUE(LeadToLinkSkills(step, hero, account_));
+  }
+  FollowedToLinkSkills(LinkTrailStep::kSkillsTab, account_);
+  EXPECT_FALSE(LeadToLinkSkills(LinkTrailStep::kSkillsTab, hero, account_));
+  EXPECT_TRUE(LeadToLinkSkills(LinkTrailStep::kBeginnerPage, hero, account_))
+      << "one step walked is not the next";
+  // The keys are the account's and apart, so no step can clear another.
+  EXPECT_NE(LinkTrailKey(LinkTrailStep::kBeginnerPage),
+            LinkTrailKey(LinkTrailStep::kLinkRow));
+}
 
 TEST_F(ProgressionTest, NothingIsLedBeforeTheUpgradeOpens) {
   CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kScrolling) - 1);

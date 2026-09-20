@@ -11,6 +11,7 @@
 #include "src/character/consumables.h"
 #include "src/character/exp_table.h"
 #include "src/character/hyper_stats.h"
+#include "src/character/link.h"
 #include "src/item/potential.h"
 #include "src/protos/character.pb.h"
 
@@ -77,6 +78,9 @@ constexpr Unlock kUnlocks[] = {
     {Feature::kCharacters, 210},
     // The same level as the characters: see Feature::kBank.
     {Feature::kBank, 210},
+    // The top rung of a link skill's ladder, so the whole system arrives at
+    // once rather than trickling in from a first character's level 70.
+    {Feature::kLinkSkills, kLinkSkillsLevel},
 };
 
 // What an ADVANCEMENT opens rather than a level, and which one opens it. A
@@ -134,6 +138,9 @@ std::string ActionLeadKey(const char* slug) {
   return std::string("lead_action:") + slug;
 }
 
+// The Link Skills trail, in the order it is walked.
+constexpr const char* kLinkTrailSlugs[] = {"tab", "page", "row"};
+
 // The lowest level of each pacing band and how far it stretches a duration.
 // Read from the bottom up: the last band the level clears is the one that
 // applies.
@@ -178,6 +185,11 @@ bool Unlocked(Feature feature, const CharacterInstance& character,
   int level = std::max(character.proto().level(), account.max_level());
   if (level < UnlockLevel(feature)) {
     return false;
+  }
+  if (feature == Feature::kLinkSkills) {
+    // The account's climb opens them; this character's first job is what
+    // gives them a line to read one against.
+    return character.proto().job_stage() > 0;
   }
   if (feature == Feature::kHyperStats) {
     // Held to THIS character's level: the points are paid out by their own
@@ -226,6 +238,8 @@ std::string FeatureName(Feature feature) {
       return "Arcane Symbols";
     case Feature::kEquipPresets:
       return "Equip Presets";
+    case Feature::kLinkSkills:
+      return "Link Skills";
     case Feature::kCombatStats:
       return "Combat Stats";
     case Feature::kDamageStats:
@@ -286,6 +300,20 @@ void FollowedToAction(Feature feature, AccountInstance& account) {
       account.MarkSeen(ActionLeadKey(led.slug));
     }
   }
+}
+
+std::string LinkTrailKey(LinkTrailStep step) {
+  return std::string("lead_link:") + kLinkTrailSlugs[static_cast<int>(step)];
+}
+
+bool LeadToLinkSkills(LinkTrailStep step, const CharacterInstance& character,
+                      const AccountInstance& account) {
+  return Unlocked(Feature::kLinkSkills, character, account) &&
+         !account.Seen(LinkTrailKey(step));
+}
+
+void FollowedToLinkSkills(LinkTrailStep step, AccountInstance& account) {
+  account.MarkSeen(LinkTrailKey(step));
 }
 
 int HotkeysTipRetireLevel() {

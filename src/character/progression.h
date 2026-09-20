@@ -78,6 +78,11 @@ enum class Feature {
   // there is no symbol to be had, and a tab that can only ever be empty is
   // worse than no tab.
   kSymbols,
+  // The Link Skills row on the Character panel's beginner page, and the
+  // screen behind it. The account level the last rung is paid at -- see
+  // kLinkSkillsLevel -- and the character's own first job on top: a Beginner
+  // has no line of their own for one to read against.
+  kLinkSkills,
   // The Farm/Boss/Drop row under the Gear tab. Cubing's own level: a second
   // set of gear is worth keeping once a piece is worth more than the tier it
   // belongs to, which is what a cube makes true.
@@ -149,6 +154,30 @@ bool LeadToAction(Feature feature, const CharacterInstance& character,
 
 // Records that the player pressed Enter on that entry, wherever they did it.
 void FollowedToAction(Feature feature, AccountInstance& account);
+
+/* The gold trail that leads a player to the Link Skills screen.
+ *
+ * Three signposts, each lit the moment the account opens the system and each
+ * put out where the player walks past it: the Skills tab, the beginner's page
+ * under it, and the row itself. The latches are the account's, as every other
+ * trail's are, so one character walking it settles it for all of them.
+ */
+enum class LinkTrailStep {
+  kSkillsTab,
+  kBeginnerPage,
+  kLinkRow,
+};
+
+// Whether `step` should be drawn gold.
+bool LeadToLinkSkills(LinkTrailStep step, const CharacterInstance& character,
+                      const AccountInstance& account);
+
+// Records that the player walked it. Marking a step twice is harmless.
+void FollowedToLinkSkills(LinkTrailStep step, AccountInstance& account);
+
+// The save key `step` latches under. WRITTEN INTO THE SAVE, for TabKey's
+// reason: change it and every player is led down the trail again.
+std::string LinkTrailKey(LinkTrailStep step);
 
 // The level the hotkeys tip stops being drawn at. Not a Feature: the enum
 // above is for things that open and stay open, and this is the one thing that

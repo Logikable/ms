@@ -342,6 +342,7 @@ cc_library(
         ":consumables",
         ":exp_table",
         ":hyper_stats",
+        ":link",
         "//src:account",
         "//src/item:potential",
         "//src/protos:character_proto_cc",
@@ -356,6 +357,7 @@ cc_test(
     deps = [
         ":character",
         ":exp_table",
+        ":link",
         ":progression",
         "//src:account",
         "//src/item:potential",
