@@ -8,6 +8,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "src/frontend/testing/panel_test_base.h"
+#include "src/frontend/testing/screen_text.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -176,5 +177,14 @@ TEST_F(TraceRecoverPanelTest, SettingANewTraceRestartsTheSelection) {
   EXPECT_EQ(panel.selected_index(), first);
 }
 
+// The chips and the confirm bar are bare rows on the screen; the result card
+// is this panel's only window of its own.
+TEST_F(TraceRecoverPanelTest, TheResultCardKeepsOffItsRightBorder) {
+  TraceRecoverPanel panel(c_);
+  TraceRecoveryResult result;
+  result.equip_name = "Fafnir Battle Cleaver";
+  result.stars_recovered = 17;
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.RenderResult(result)).empty());
+}
 }  // namespace
 }  // namespace ms

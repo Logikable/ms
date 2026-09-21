@@ -144,5 +144,13 @@ TEST_F(PlayerListPanelTest, HoldsTheCursorWhenThePlayerItWasOnLeaves) {
   EXPECT_EQ(panel_.selected_name(), "Ariel");
 }
 
+// The list is as wide as the longest name online, and the menu opens over it.
+TEST_F(PlayerListPanelTest, TheListKeepsOffTheRightBorder) {
+  Show(Online(3));
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel_.Render()).empty());
+  panel_.MoveCursor(1);
+  panel_.OpenMenu();
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel_.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

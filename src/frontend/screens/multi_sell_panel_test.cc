@@ -303,5 +303,15 @@ TEST_F(MultiSellTest, TheShelfReadsEquipThenEtcInBagOrder) {
   EXPECT_EQ(c_.buy_backs()[3].stack().name(), "Zzz Shell");
 }
 
+// The list and the confirm window measure themselves apart, so both have to
+// ask for the margin.
+TEST_F(MultiSellTest, NeitherWindowWeldsARowToItsRightBorder) {
+  GiveEquip("Fafnir Battle Cleaver", 1000000);
+  GiveStack("Green Snail Shell", ITEM_CATEGORY_ETC, 7, 40);
+  MultiSellPanel panel(c_, account_);
+  panel.Reset(kEquipTab, 0);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.RenderConfirm()).empty());
+}
 }  // namespace
 }  // namespace ms

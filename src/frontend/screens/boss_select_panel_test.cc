@@ -851,5 +851,14 @@ TEST(BossSelectPanelTest, PracticeRestatesTheStatusAndDimsTheRewards) {
   EXPECT_NE(Render(panel).find("Locked"), std::string::npos);
 }
 
+// The list, the detail panel beside it and the options page are all fitted
+// to their own rows.
+TEST(BossSelectPanelTest, NoPanelWeldsARowToItsRightBorder) {
+  std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
+  BossSelectPanel panel(*owner);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render(kHead)).empty());
+  panel.SwitchPanel(1);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render(kHead)).empty());
+}
 }  // namespace
 }  // namespace ms

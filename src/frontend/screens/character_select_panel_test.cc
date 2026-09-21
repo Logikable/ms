@@ -255,5 +255,15 @@ TEST_F(CharacterSelectPanelTest, LeftAndRightMoveTheCardsActivity) {
   EXPECT_EQ(panel.activity(), Activity::kFarming);
 }
 
+// The list and the card beside it are fitted to their own rows, and the menu
+// opens over both.
+TEST_F(CharacterSelectPanelTest, NothingWeldsARowToTheRightBorder) {
+  AddCharacter("Older", 30, JOB_FIGHTER, 100);
+  AddCharacter("Newer", 200, JOB_DARK_KNIGHT, 200);
+  CharacterSelectPanel panel(state_);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+  panel.OpenMenu();
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

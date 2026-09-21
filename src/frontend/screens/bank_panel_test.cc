@@ -288,5 +288,10 @@ TEST_F(BankPanelTest, InspectReachesTheItemInEitherHalf) {
   EXPECT_EQ(panel_->selected_equip()->name(), "Sword");
 }
 
+// Two windows side by side, each fitted to its own rows: a full purse is the
+// widest thing either of them says.
+TEST_F(BankPanelTest, NeitherHalfWeldsARowToItsRightBorder) {
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel_->Render()).empty());
+}
 }  // namespace
 }  // namespace ms

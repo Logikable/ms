@@ -280,7 +280,6 @@ TEST_F(LinkSkillPanelTest, ABeginnerHasNoSkillOfTheirOwn) {
   EXPECT_NE(Text().find("(no job line)"), std::string::npos);
 }
 
-}  // namespace
 // One height whatever the lists hold: twelve slots in the middle window and
 // eight rows in the bottom one, drawn blank where nothing fills them, so a
 // skill moving between the two does not move the screen under the cursor.
@@ -305,4 +304,9 @@ TEST_F(LinkSkillPanelTest, TheCaretIsTheOnlyCursorMark) {
   EXPECT_FALSE(PixelOf(screen, "Invincible Belief").inverted);
 }
 
+// Three windows down the screen, each as wide as its longest effect line.
+TEST_F(LinkSkillPanelTest, NoWindowWeldsARowToItsRightBorder) {
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel_->Render()).empty());
+}
+}  // namespace
 }  // namespace ms

@@ -18,6 +18,7 @@
 #include "src/character/skill_placement.h"
 #include "src/combat/boss_run.h"
 #include "src/combat/test_authority.h"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/marquee.h"
@@ -1146,5 +1147,16 @@ TEST(BossFightPanelTest, TheGridFitsTheSmallestTerminal) {
   }
 }
 
+// Three panels across the arena, each a fixed height but fitted sideways to
+// what it holds -- a long mob name or a big number is what would fill one.
+TEST(BossFightPanelTest, NoPanelWeldsARowToItsRightBorder) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = Zakum();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(BossFightPanel(run)).empty());
+  run.Advance(*state, 30.0);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(BossFightPanel(run)).empty());
+}
 }  // namespace
 }  // namespace ms

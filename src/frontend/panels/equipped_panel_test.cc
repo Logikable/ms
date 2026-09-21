@@ -1454,5 +1454,17 @@ TEST_F(GearPresetTest, ReadOnlyReadsThePresetsWithoutWearingOne) {
   EXPECT_EQ(opened, 1) << "Enter on a row raised nothing";
 }
 
+// Every row, not just the two the gutter test above reads, and with a worn
+// item in every slot so each column is as wide as it ever gets.
+TEST_F(EquippedPanelTest, NoRowWeldsItselfToTheRightBorder) {
+  LevelTo(200);
+  UnlockEverything();
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, account_, panel_focus_);
+  panel.SetWidth(kRightColumnMin);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  EXPECT_TRUE(RowsTouchingTheRightBorder(comp->Render()).empty());
+}
 }  // namespace
 }  // namespace ms

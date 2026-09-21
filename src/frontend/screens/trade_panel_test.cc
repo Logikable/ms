@@ -470,5 +470,10 @@ TEST_F(TradePanelTest, TheWireCarriesTheWholeItem) {
   EXPECT_EQ(offer.stacks(0).count(), 5);
 }
 
+// Two offer tables and the bag below them, each fitted to its own rows: a
+// full purse is the widest thing any of them says.
+TEST_F(TradePanelTest, NoWindowWeldsARowToItsRightBorder) {
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel_.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

@@ -8,6 +8,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/protos/item.pb.h"
 
@@ -318,5 +319,10 @@ TEST(BuyPanelTest, AnUnaffordableTokenTotalReddensTheNumberOnly) {
   EXPECT_EQ(CellColor(panel, "each", "●"), kTheme);
 }
 
+TEST(BuyPanelTest, TheTotalKeepsOffTheRightBorder) {
+  BuyPanel panel;
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

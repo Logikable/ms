@@ -341,5 +341,17 @@ TEST_F(PartySelectPanelTest, TheListShrinkingUnderTheCursorMovesIt) {
   EXPECT_EQ(panel_.selected_member(), "me");
 }
 
+// The list of parties and the members panel are two different screens out of
+// one Render, so both are asked.
+TEST_F(PartySelectPanelTest, NeitherScreenWeldsARowToItsRightBorder) {
+  MultiplayerSnapshot snapshot = Connected();
+  *snapshot.parties.add_parties() = PartyOf(2);
+  Show(snapshot);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel_.Render()).empty());
+
+  snapshot.party = PartyOf(3);
+  Show(snapshot);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel_.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

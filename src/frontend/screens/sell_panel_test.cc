@@ -7,6 +7,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/testing/screen_text.h"
 
 namespace ms {
 namespace {
@@ -58,5 +59,10 @@ TEST_F(SellPanelTest, ConfirmAndCancelPassThrough) {
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Escape), ConfirmChoice::kCancelled);
 }
 
+TEST_F(SellPanelTest, TheTotalKeepsOffTheRightBorder) {
+  SellPanel panel;
+  panel.Reset("Green Snail Shell", 7, 10);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

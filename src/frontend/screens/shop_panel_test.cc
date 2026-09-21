@@ -13,6 +13,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/character.h"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
@@ -1369,5 +1370,20 @@ TEST_F(ShopPanelTest, ReopeningComesBackToTheWeaponsTab) {
   EXPECT_EQ(shop_.selected_stackable(), nullptr);
 }
 
+// Every shelf: the token ones stand a balance panel beside the window, and
+// the widest row on the shelf is what the whole screen is measured from.
+TEST_F(ShopPanelTest, NoShelfWeldsARowToTheRightBorder) {
+  CharacterInstance c = MakeCharacter(34567, /*level=*/200);
+  ShopPanel panel(c, equips_, items_);
+  for (int tab = 0; tab < kNumShopTabs; ++tab) {
+    panel.Reset();
+    panel.OnEvent(ftxui::Event::ArrowUp);
+    panel.OnEvent(ftxui::Event::ArrowUp);
+    for (int step = 0; step < tab; ++step) {
+      panel.OnEvent(ftxui::Event::ArrowRight);
+    }
+    EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty()) << tab;
+  }
+}
 }  // namespace
 }  // namespace ms

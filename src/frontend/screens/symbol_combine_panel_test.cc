@@ -8,6 +8,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/testing/screen_text.h"
 
 namespace ms {
 namespace {
@@ -70,5 +71,11 @@ TEST_F(SymbolCombinePanelTest, PassesTheAnswerThrough) {
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
 
+TEST_F(SymbolCombinePanelTest, TheExpRowKeepsOffTheRightBorder) {
+  SymbolCombinePanel panel;
+  panel.Reset("Arcane Symbol: Vanishing Journey", 1, 0, 12,
+              std::vector<int>(30, 1));
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

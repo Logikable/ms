@@ -1202,5 +1202,16 @@ TEST_F(InspectPanelTest, AMaxedSymbolReadsMax) {
   EXPECT_EQ(Count(rendered, "◇"), 0) << rendered;
 }
 
+// The item card, the card beside it and the stackable card are three
+// different windows, each fitted to its own rows.
+TEST_F(InspectPanelTest, NoCardWeldsARowToItsRightBorder) {
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  EquipInstance item(sword_);
+  panel.SetItem(&item);
+  panel.SetComparison(&item);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.RenderItemOnly()).empty());
+}
 }  // namespace
 }  // namespace ms

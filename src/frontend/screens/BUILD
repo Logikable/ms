@@ -24,6 +24,7 @@ cc_test(
         ":analysis_panel",
         "//src:game_state",
         "//src/combat:battle_analysis",
+        "//src/frontend/testing:screen_text",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",
@@ -51,6 +52,7 @@ cc_test(
     deps = [
         ":keybinds_panel",
         "//src/frontend:keybinds",
+        "//src/frontend/testing:screen_text",
         "//src/protos:keybinds_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",
@@ -394,6 +396,7 @@ cc_test(
     deps = [
         ":trace_recover_panel",
         "//src/frontend/testing:panel_test_base",
+        "//src/frontend/testing:screen_text",
         "@ftxui//:component",
         "@ftxui//:screen",
         "@googletest//:gtest_main",
@@ -419,6 +422,7 @@ cc_test(
     srcs = ["sell_panel_test.cc"],
     deps = [
         ":sell_panel",
+        "//src/frontend/testing:screen_text",
         "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",
@@ -511,6 +515,7 @@ cc_test(
     srcs = ["symbol_combine_panel_test.cc"],
     deps = [
         ":symbol_combine_panel",
+        "//src/frontend/testing:screen_text",
         "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",
@@ -577,6 +582,7 @@ cc_test(
     deps = [
         ":hammer_panel",
         "//src/frontend/testing:panel_test_base",
+        "//src/frontend/testing:screen_text",
         "//src/item:equip_instance",
         "@ftxui//:component",
         "@ftxui//:dom",
@@ -605,6 +611,7 @@ cc_test(
     deps = [
         ":symbol_level_panel",
         "//src/frontend/testing:panel_test_base",
+        "//src/frontend/testing:screen_text",
         "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",
@@ -632,6 +639,7 @@ cc_test(
     srcs = ["sell_equip_panel_test.cc"],
     deps = [
         ":sell_equip_panel",
+        "//src/frontend/testing:screen_text",
         "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",
@@ -660,6 +668,7 @@ cc_test(
     srcs = ["buy_panel_test.cc"],
     deps = [
         ":buy_panel",
+        "//src/frontend/testing:screen_text",
         "//src/frontend/widgets:colors",
         "//src/protos:item_proto_cc",
         "@ftxui//:component",
@@ -699,6 +708,7 @@ cc_test(
     deps = [
         ":shop_panel",
         "//src/character",
+        "//src/frontend/testing:screen_text",
         "//src/frontend/widgets:colors",
         "//src/item",
         "//src/item:equip_instance",
@@ -735,6 +745,7 @@ cc_test(
         "//src:game_state",
         "//src/combat:boss_run",
         "//src/combat:test_authority",
+        "//src/frontend/testing:screen_text",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:format",
         "//src/frontend/widgets:marquee",
@@ -1132,6 +1143,7 @@ cc_test(
         ":map_select_panel",
         "//src:game_state",
         "//src/frontend:types",
+        "//src/frontend/testing:screen_text",
         "//src/frontend/widgets:format",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",

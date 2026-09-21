@@ -7,6 +7,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/confirm_prompt.h"
 #include "src/item/equip_instance.h"
 
@@ -53,5 +54,10 @@ TEST_F(HammerPanelTest, AnAffordableHammerConfirms) {
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
 
+TEST_F(HammerPanelTest, ThePriceKeepsOffTheRightBorder) {
+  HammerPanel panel;
+  panel.Reset(kGoldenHammerCost);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

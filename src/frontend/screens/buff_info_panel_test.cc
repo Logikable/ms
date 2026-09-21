@@ -84,5 +84,18 @@ TEST_F(BuffInfoPanelTest, AnUnknownBuffRendersAPlaceholder) {
             std::string::npos);
 }
 
+// Every buff: the card fits itself to its longest effect line, and the
+// catalog is what decides how long that is.
+TEST_F(BuffInfoPanelTest, NoBuffCardTouchesItsRightBorder) {
+  for (int i = 1; i <= ConsumableType_MAX; ++i) {
+    if (!ConsumableType_IsValid(i)) {
+      continue;
+    }
+    BuffInfoPanel panel;
+    panel.SetBuff(static_cast<ConsumableType>(i), /*owned=*/false);
+    EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty())
+        << ConsumableType_Name(static_cast<ConsumableType>(i));
+  }
+}
 }  // namespace
 }  // namespace ms

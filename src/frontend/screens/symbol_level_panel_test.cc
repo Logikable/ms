@@ -7,6 +7,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/confirm_prompt.h"
 
 namespace ms {
@@ -54,5 +55,10 @@ TEST_F(SymbolLevelPanelTest, AnAffordableRungConfirms) {
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
 
+TEST_F(SymbolLevelPanelTest, ThePriceKeepsOffTheRightBorder) {
+  SymbolLevelPanel panel;
+  panel.Reset("Arcane Symbol: Vanishing Journey", 8, 1'810'000, 5'000'000);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

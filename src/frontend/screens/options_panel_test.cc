@@ -8,6 +8,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/account.h"
 #include "src/build_config.h"
+#include "src/frontend/testing/screen_text.h"
 
 namespace ms {
 namespace {
@@ -163,5 +164,9 @@ TEST_F(OptionsAudioTest, EnterOnAVolumeThrowsNoSwitch) {
   EXPECT_EQ(account_.map_bgm_volume(), kDefaultBgmVolume);
 }
 
+TEST_F(OptionsPanelTest, TheRowsKeepOffTheRightBorder) {
+  panel_.Reset();
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel_.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

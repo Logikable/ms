@@ -7,6 +7,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/combat/battle_analysis.h"
+#include "src/frontend/testing/screen_text.h"
 #include "src/game_state.h"
 
 namespace ms {
@@ -110,5 +111,14 @@ TEST(AnalysisPanelTest, TheSlowdownRowFollowsTheLevel) {
   EXPECT_NE(Render(panel).find("10x"), std::string::npos);
 }
 
+// The window fits itself to its widest row, so a rate that grew a digit is
+// what would push the numbers into the frame.
+TEST(AnalysisPanelTest, TheRatesKeepOffTheRightBorder) {
+  GameState state = EmptyState();
+  BattleAnalysis analysis;
+  MeasureAMinute(analysis);
+  AnalysisPanel panel(state, analysis);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

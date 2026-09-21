@@ -52,5 +52,11 @@ TEST(DailiesPanelTest, PassesTheAnswerThrough) {
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
 
+TEST(DailiesPanelTest, TheClaimListKeepsOffTheRightBorder) {
+  DailiesPanel panel;
+  panel.Reset({{"Arcane Symbol: Vanishing Journey", 20},
+               {"Arcane Symbol: Chu Chu Island", 20}});
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

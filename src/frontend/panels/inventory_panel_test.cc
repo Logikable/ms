@@ -1893,5 +1893,23 @@ TEST_F(SpareSymbolTest, GearNeverOffersCombine) {
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuCombine), 0);
 }
 
+// Every tab at the narrowest the right column goes: the rows fill that width
+// exactly, so a column measured wrong runs into the border.
+TEST_F(InventoryPanelTest, NoTabWeldsARowToTheRightBorder) {
+  LevelTo(200);
+  UnlockEverything();
+  c_.AddMeso(1234567890);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  InventoryPanel panel(c_, account_, panel_focus_);
+  panel.SetWidth(kRightColumnMin);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  for (int tab = 0; tab < kNumInventoryTabs; ++tab) {
+    OpenTab(comp, panel, tab);
+    std::vector<std::string> touching =
+        RowsTouchingTheRightBorder(comp->Render());
+    EXPECT_TRUE(touching.empty())
+        << "tab " << tab << ": " << (touching.empty() ? "" : touching.front());
+  }
+}
 }  // namespace
 }  // namespace ms

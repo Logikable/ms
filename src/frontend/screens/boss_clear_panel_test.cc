@@ -137,5 +137,13 @@ TEST(BossClearPanelTest, AClearThatPaidNothingSaysSo) {
   EXPECT_FALSE(AnyRowHas(screen, "EXP"));
 }
 
+// The card is as wide as its longest drop name, which is the row that would
+// weld itself to the frame.
+TEST(BossClearPanelTest, TheRewardsKeepOffTheRightBorder) {
+  EXPECT_TRUE(RowsTouchingTheRightBorder(
+                  BossClearPanel("Normal Zakum", 167.0, FullReward(),
+                                 ftxui::text("[ Continue ]"), true))
+                  .empty());
+}
 }  // namespace
 }  // namespace ms

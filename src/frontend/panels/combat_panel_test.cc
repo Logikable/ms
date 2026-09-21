@@ -11,6 +11,7 @@
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/frontend/panel_widths.h"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -378,5 +379,15 @@ TEST(CombatPanelTest, HeightMatchesWhatItDraws) {
   EXPECT_EQ(panel.Height(), DrawnRows(state, sim));
 }
 
+TEST(CombatPanelTest, TheRowsKeepOffTheRightBorder) {
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"field", SnailField()}});
+  state.current_map = "field";
+  EquipSword(state);
+  CombatSim sim;
+  int focus = kEquipPanel;
+  CombatPanel panel(state, sim, focus);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

@@ -380,5 +380,17 @@ TEST(MenuPanelTest, TheLastEntrysBoxStopsAtTheEdge) {
   EXPECT_EQ(BoxRightColumn(panel) - BoxColumn(panel) + 1, panel.BoxWidth());
 }
 
+// The list and the box an entry raises are measured apart, so both are
+// asked for the margin.
+TEST(MenuPanelTest, NeitherTheListNorABoxWeldsARowToItsBorder) {
+  GameState state = EmptyState();
+  LevelTo(state, kDailiesLevel);
+  BattleAnalysis analysis;
+  int focus = kMenuPanel;
+  MenuPanel panel(state, analysis, focus);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+  OpenBoxOn(panel, MenuEntry::kBoss);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.RenderBox()).empty());
+}
 }  // namespace
 }  // namespace ms

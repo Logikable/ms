@@ -8,6 +8,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/keybinds.h"
+#include "src/frontend/testing/screen_text.h"
 #include "src/protos/keybinds.pb.h"
 
 namespace ms {
@@ -89,5 +90,8 @@ TEST_F(KeybindsPanelTest, AnEmptySlotReadsAsEmpty) {
   EXPECT_NE(Render().find("W"), std::string::npos);
 }
 
+TEST_F(KeybindsPanelTest, TheTableKeepsOffTheRightBorder) {
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel_.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

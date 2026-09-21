@@ -217,6 +217,7 @@ cc_test(
         "//src/combat:fight",
         "//src/frontend:panel_widths",
         "//src/frontend:types",
+        "//src/frontend/testing:screen_text",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
         "//src/protos:map_proto_cc",

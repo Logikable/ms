@@ -10,6 +10,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/color.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/format.h"
 #include "src/game_state.h"
@@ -737,5 +738,16 @@ TEST(MapSelectPanelTest, TheArcaneForceColumnFollowsTheBand) {
   EXPECT_EQ(Width(panel), plain_width);
 }
 
+// The band bar, the map list and the mob table beside it all sit in one
+// window fitted to the longest row of any of them.
+TEST(MapSelectPanelTest, NoRowWeldsItselfToTheRightBorder) {
+  GameState state = EveryBand();
+  MapSelectPanel panel(state);
+  panel.Reset();
+  for (int i = 0; i < 12; ++i) {
+    EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+    panel.ChangePage(1);
+  }
+}
 }  // namespace
 }  // namespace ms

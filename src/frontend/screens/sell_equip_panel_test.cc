@@ -7,6 +7,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/testing/screen_text.h"
 #include "src/frontend/widgets/confirm_prompt.h"
 
 namespace ms {
@@ -58,5 +59,10 @@ TEST_F(SellEquipPanelTest, EnterSellsAndSteppingOffOrEscapingDoesNot) {
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Escape), ConfirmChoice::kCancelled);
 }
 
+TEST_F(SellEquipPanelTest, ThePriceKeepsOffTheRightBorder) {
+  SellEquipPanel panel;
+  panel.Reset("Hunter's Bow", 1000);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+}
 }  // namespace
 }  // namespace ms

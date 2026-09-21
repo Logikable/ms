@@ -303,5 +303,19 @@ TEST_F(StarForcePanelTest, TheResultWindowTakesTheOutcomesColour) {
   EXPECT_EQ(rendered.find("DESTROYED"), std::string::npos);
 }
 
+// The window and the result card measure themselves apart, so both have to
+// ask for the margin.
+TEST_F(StarForcePanelTest, NeitherWindowWeldsTextToItsBorder) {
+  EquipInstance item = MakeItem(150, 17);
+  StarForcePanel panel;
+  panel.SetItem(&item, kDeepPurse);
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
+  StarForceResult result;
+  result.outcome = kStarForceSuccess;
+  result.equip_name = "Fafnir Battle Cleaver";
+  result.stars_before = 17;
+  result.stars_after = 18;
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.RenderResult(result)).empty());
+}
 }  // namespace
 }  // namespace ms

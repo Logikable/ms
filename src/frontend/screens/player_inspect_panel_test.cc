@@ -450,5 +450,14 @@ TEST_F(PlayerInspectPanelTest, TheirAllStatsScreenOpensOnTheirAllocation) {
   EXPECT_NE(ScreenText(screen).find("(0+30) 30"), std::string::npos);
 }
 
+// The member's screen is the main view's own layout, and it is measured here
+// at the size the Tui hands it.
+TEST_F(PlayerInspectPanelTest, TheMembersScreenKeepsOffItsRightBorder) {
+  PlayerInspectPanel panel(state_);
+  panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
+  EXPECT_TRUE(
+      RowsTouchingTheRightBorder(panel.Render(/*rows=*/40, /*columns=*/120))
+          .empty());
+}
 }  // namespace
 }  // namespace ms
