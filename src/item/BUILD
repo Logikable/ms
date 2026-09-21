@@ -149,6 +149,30 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "tradeable",
+    srcs = ["tradeable.cc"],
+    hdrs = ["tradeable.h"],
+    deps = [
+        ":currency",
+        "//src/character:arcane_force",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "tradeable_test",
+    size = "small",
+    srcs = ["tradeable_test.cc"],
+    deps = [
+        ":tradeable",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "currency_test",
     size = "small",

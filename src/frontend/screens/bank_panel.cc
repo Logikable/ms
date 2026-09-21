@@ -18,6 +18,7 @@
 #include "src/frontend/widgets/keys.h"
 #include "src/item/currency.h"
 #include "src/item/item.h"
+#include "src/item/tradeable.h"
 #include "src/protos/item.pb.h"
 
 namespace ms {
@@ -204,6 +205,9 @@ std::string BankPanel::MoveEquip() {
   int index = ClampedRow(zone_);
   BankInstance& bank = account_.mutable_bank();
   if (zone_ == BankZone::kBag) {
+    if (!CanTrade(character_.inventory()[index].prototype())) {
+      return "Symbols can't be stored.";
+    }
     if (bank.equips().full()) {
       return "Bank full.";
     }

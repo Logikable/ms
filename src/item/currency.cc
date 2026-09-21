@@ -60,10 +60,6 @@ bool IsCurrency(const ItemPrototype& proto) {
   }
 }
 
-bool CanTrade(const ItemPrototype& proto) {
-  return !IsCurrency(proto);
-}
-
 void CurrencyPurse::Add(const ItemPrototype& proto, int64_t count) {
   if (count <= 0) {
     return;

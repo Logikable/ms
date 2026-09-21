@@ -159,6 +159,31 @@ TEST_F(BankPanelTest, MovingAStackTakesTheWholeRow) {
   EXPECT_EQ(panel_->cursor().index, 0);
 }
 
+// A symbol is bound to the character who raised it, so it never reaches the
+// account's shelf. Only the way in is guarded: one banked before the rule
+// stood still comes home.
+TEST_F(BankPanelTest, ASymbolWillNotGoIntoTheBank) {
+  EquipPrototype symbol;
+  symbol.set_name("Arcane Symbol: Vanishing Journey");
+  symbol.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  symbol.mutable_arcane_symbol()->set_meso_cost_base(8);
+  c_.PickUp(std::make_unique<EquipInstance>(symbol));
+
+  ToList();
+  panel_->MoveRow(1);
+  ASSERT_EQ(panel_->cursor().index, 1);
+  EXPECT_EQ(panel_->MoveSelected(), "Symbols can't be stored.");
+  EXPECT_EQ(c_.inventory().size(), 2) << "and nothing left the bag";
+  EXPECT_EQ(bank().equips().size(), 0);
+
+  account_.mutable_bank().AddEquip(std::make_unique<EquipInstance>(symbol));
+  panel_->NextZone();
+  ToList();
+  EXPECT_EQ(panel_->MoveSelected(), "");
+  EXPECT_EQ(bank().equips().size(), 0);
+  EXPECT_EQ(c_.inventory().size(), 3);
+}
+
 TEST_F(BankPanelTest, AFullTabRefusesAndSaysWhich) {
   for (int i = 0; i < kTabCapacity; ++i) {
     account_.mutable_bank().AddEquip(std::make_unique<EquipInstance>(sword_));

@@ -25,13 +25,6 @@ namespace ms {
 // clear. An ordinary drop names no kind at all.
 bool IsCurrency(const ItemPrototype& proto);
 
-// Whether `proto` may leave the character holding it -- across a trade, or
-// into the bank. A currency may not: it is a balance rather than a row, and
-// both screens move it on a line of its own instead. Nothing else on the
-// Equip or Etc tabs is held back, so this is the one place an item that
-// cannot be handed on would say so.
-bool CanTrade(const ItemPrototype& proto);
-
 // One currency and what the character has of it. Holds the prototype by value
 // the way StackableItem does, so a row can be drawn without the catalog.
 class CurrencyAmount {

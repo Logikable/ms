@@ -105,8 +105,9 @@ class BankPanel {
   ftxui::Element Render() const;
 
   // Moves what the cursor is on to the other half, and returns the sentence
-  // to raise when there was no room: "Inventory full." or "Bank full.".
-  // Empty on success, and on a cursor with no item under it.
+  // to raise when it could not go: one of the two halves full, or an item
+  // bound to the character holding it. Empty on success, and on a cursor with
+  // no item under it.
   std::string MoveSelected();
   // Moves `amount` of a currency from the half holding the cursor to the
   // other. Clamped to what that half has.

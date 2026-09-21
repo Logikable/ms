@@ -226,6 +226,25 @@ TEST_F(TradePanelTest, TheBagHasTwoTabsAndOnlyTradeableStacks) {
   EXPECT_EQ(screen.find("Zakum's"), std::string::npos);
 }
 
+// A symbol is bound to the character who raised it: the Equip tab does not
+// list it, and a row naming it anyway puts up nothing.
+TEST_F(TradePanelTest, ASymbolCannotBeOffered) {
+  EquipPrototype symbol;
+  symbol.set_name("Arcane Symbol: Vanishing Journey");
+  symbol.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  symbol.mutable_arcane_symbol()->set_meso_cost_base(8);
+  c_.PickUp(std::make_unique<EquipInstance>(symbol));
+
+  ToBag();
+  EXPECT_EQ(BagIndex(), 0) << "the sword";
+  panel_.MoveRow(1);
+  EXPECT_EQ(BagIndex(), 0) << "and nothing under it";
+  EXPECT_EQ(Text().find("Arcane"), std::string::npos);
+
+  panel_.PutUpEquip(1);
+  EXPECT_EQ(panel_.own().items(), 0);
+}
+
 TEST_F(TradePanelTest, TheBagShowsWhatIsLeft) {
   ToBag();
   panel_.PutUpEquip(0);

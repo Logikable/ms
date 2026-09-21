@@ -17,7 +17,9 @@
 #include "src/frontend/widgets/inventory_list.h"
 #include "src/frontend/widgets/item_columns.h"
 #include "src/frontend/widgets/text_columns.h"
+#include "src/item/inventory.h"
 #include "src/item/item.h"
+#include "src/item/tradeable.h"
 
 namespace ms {
 namespace {
@@ -188,7 +190,11 @@ bool TradePanel::in_list() const {
 std::vector<int> TradePanel::BagRows() const {
   std::vector<int> rows;
   if (!etc_tab_) {
-    for (int i = 0; i < character_.inventory().size(); ++i) {
+    const InventoryInstance& bag = character_.inventory();
+    for (int i = 0; i < bag.size(); ++i) {
+      if (!CanTrade(bag[i].prototype())) {
+        continue;
+      }
       if (std::find(own_.equips.begin(), own_.equips.end(), i) ==
           own_.equips.end()) {
         rows.push_back(i);
@@ -196,11 +202,11 @@ std::vector<int> TradePanel::BagRows() const {
     }
     return rows;
   }
-  // Every stack the bag holds may cross: the currencies are not among them,
-  // and the spell trace has its own line at the top of the offer.
+  // The spell trace is left out although it may cross: it has its own line at
+  // the top of the offer, and two doors onto one balance would not add up.
   const std::vector<StackableItem>& stacks = character_.stackables();
   for (int i = 0; i < static_cast<int>(stacks.size()); ++i) {
-    if (stack_left(i) > 0) {
+    if (CanTrade(stacks[i].prototype()) && stack_left(i) > 0) {
       rows.push_back(i);
     }
   }
@@ -345,6 +351,10 @@ void TradePanel::PutUpCurrency(TradeCurrency currency, int64_t amount) {
 }
 
 void TradePanel::PutUpEquip(int index) {
+  const InventoryInstance& bag = character_.inventory();
+  if (index < 0 || index >= bag.size() || !CanTrade(bag[index].prototype())) {
+    return;
+  }
   if (std::find(own_.equips.begin(), own_.equips.end(), index) !=
       own_.equips.end()) {
     return;
