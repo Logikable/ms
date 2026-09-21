@@ -700,10 +700,10 @@ TEST(EquipDataTest, TheSengokuTreasureSetAddsUpToItsWikiTotals) {
   ASSERT_EQ(set->complete_pieces(), 3);
   ASSERT_EQ(set->members_size(), 3);
   ASSERT_EQ(set->tiers_size(), 2);
-  const int kStat[] = {2, 12};
-  const int kAttack[] = {3, 18};
-  const int kDef[] = {20, 120};
-  const double kDamage[] = {0.03, 0.12};
+  const int kStat[] = {2, 10};
+  const int kAttack[] = {3, 15};
+  const int kDef[] = {20, 100};
+  const double kDamage[] = {0.03, 0.09};
   int stat = 0;
   int attack = 0;
   int def = 0;

@@ -33,13 +33,13 @@ tiers {
 tiers {
   pieces: 3
   effect {
-    str: 10
-    dex: 10
-    int: 10
-    luk: 10
-    attack: 15
-    magic_attack: 15
-    def: 100
-    damage_pct: 0.09
+    str: 8
+    dex: 8
+    int: 8
+    luk: 8
+    attack: 12
+    magic_attack: 12
+    def: 80
+    damage_pct: 0.06
   }
 }
