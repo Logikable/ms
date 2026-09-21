@@ -43,6 +43,9 @@ constexpr int kCostWidth = 8;
 // phrase, "Cost Pin".
 constexpr int kPinWidth = 5;
 constexpr const char* kPinGlyph = "   \U0001F4CC";
+// Every panel keeps a blank column inside its right border. The Pin cell is
+// the last thing on a row, so the row is what has to carry it.
+constexpr int kRightGutter = 1;
 
 // The menu Enter opens on a row, in the order the player wants them: the thing
 // they came to do, the thing they might do once, and the way out.
@@ -64,7 +67,7 @@ std::string ColumnHeader() {
   return "  " + PadRight("Name", kNameWidth) + "  " +
          PadRight("Success", kRateWidth) + "  " +
          PadRight("Stats", kStatsWidth) + PadLeft("Cost", kCostWidth) +
-         PadLeft("Pin", kPinWidth);
+         PadLeft("Pin", kPinWidth) + std::string(kRightGutter, ' ');
 }
 
 // What a scroll pays, in the order EquipStats lists it. Four stats that agree
@@ -221,7 +224,7 @@ void ScrollPanel::ResetComponent() {
     return ftxui::hbox({
         ftxui::text((state.active ? "> " : "  ") + state.label),
         CostCellFor(state.index),
-        ftxui::text(PinCellFor(state.index)),
+        ftxui::text(PinCellFor(state.index) + std::string(kRightGutter, ' ')),
     });
   };
   // Wrapped so the list is a ring: nothing above or below it on this screen

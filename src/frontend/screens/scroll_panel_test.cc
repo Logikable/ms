@@ -552,6 +552,16 @@ TEST_F(ScrollPanelTest, ThePinEndsWhereItsHeadingEnds) {
   EXPECT_EQ(head_end, pin_end);
 }
 
+// And the column it ends in is not the last one: the panel measures its width
+// from its rows, so the Pin is what would weld itself to the border.
+TEST_F(ScrollPanelTest, NoRowWeldsItselfToTheRightBorder) {
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
+                   SCROLL_TARGET_WEAPON);
+  PinByName(&panel_, "AAA Scroll");
+  EXPECT_TRUE(
+      RowsTouchingTheRightBorder(panel_.Render(/*focused=*/true)).empty());
+}
+
 // Three blocks, ruled off: what is going on what, then what it does and costs,
 // then the answer. Without the rules the four rows read as one list.
 TEST_F(ScrollPanelTest, TheConfirmWindowRulesOffItsBlocks) {
