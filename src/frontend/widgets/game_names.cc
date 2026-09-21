@@ -687,10 +687,10 @@ std::string PotentialValueText(PotentialLineType type, int value) {
   }
 }
 
-// The %stat line a character building on `primary` reads. HP and MP are not
-// stats a potential grants a share of, so they have no line.
-PotentialLineType PrimaryStatPercent(StatField primary) {
-  switch (primary) {
+// The line granting a share of `stat`. HP and MP are not stats a potential
+// grants a share of, so they have no line.
+PotentialLineType StatPercentLine(StatField stat) {
+  switch (stat) {
     case STAT_FIELD_STR:
       return POTENTIAL_LINE_TYPE_STR_PCT;
     case STAT_FIELD_DEX:
@@ -738,7 +738,7 @@ PotentialLineType SummaryFamily(PotentialLineType type, StatField primary) {
     case POTENTIAL_LINE_TYPE_ITEM_DROP_RATE:
       return type;
     case POTENTIAL_LINE_TYPE_ALL_STATS_PCT:
-      return PrimaryStatPercent(primary);
+      return StatPercentLine(primary);
     case POTENTIAL_LINE_TYPE_ATTACK_PCT:
     case POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT:
       return type == PrimaryAttackPercent(primary)
@@ -748,9 +748,8 @@ PotentialLineType SummaryFamily(PotentialLineType type, StatField primary) {
     case POTENTIAL_LINE_TYPE_DEX_PCT:
     case POTENTIAL_LINE_TYPE_INT_PCT:
     case POTENTIAL_LINE_TYPE_LUK_PCT:
-      return type == PrimaryStatPercent(primary)
-                 ? type
-                 : POTENTIAL_LINE_TYPE_UNSPECIFIED;
+      return type == StatPercentLine(primary) ? type
+                                              : POTENTIAL_LINE_TYPE_UNSPECIFIED;
     // The flat lines and %HP, which Rare rolls and a player stops reading the
     // day the item leaves Rare. A column that showed them would say nothing
     // about most items but their rank.
@@ -863,6 +862,29 @@ std::vector<std::string> PotentialEffects(const Potential& potential,
   return text;
 }
 
+// The secondary stat, which the damage chain counts a quarter of the primary.
+// It reaches the column only on an item that says nothing else to this
+// character: worth reading where there is no better line, noise beside one.
+std::vector<std::string> SecondaryStatEffect(const Potential& potential,
+                                             int item_level,
+                                             StatField secondary) {
+  PotentialLineType family = StatPercentLine(secondary);
+  if (family == POTENTIAL_LINE_TYPE_UNSPECIFIED) {
+    return {};
+  }
+  int total = 0;
+  for (const PotentialLine& line : potential.lines()) {
+    if (line.type() == family) {
+      total += PotentialLineValue(line.type(), line.rank(), item_level);
+    }
+  }
+  if (total == 0) {
+    return {};
+  }
+  return {PotentialValueText(family, total) + " " +
+          PotentialLineShortName(family)};
+}
+
 }  // namespace
 
 std::string PotentialLineValueText(const PotentialLine& line, int item_level) {
@@ -907,11 +929,16 @@ std::string PotentialLineShortName(PotentialLineType type) {
 }
 
 std::string PotentialCell(const Potential& potential, int item_level,
-                          StatField primary, int width) {
+                          StatField primary, StatField secondary, int width) {
   std::vector<std::string> effects =
       PotentialEffects(potential, item_level, primary);
   if (effects.empty()) {
-    return PadRight("-", width);
+    effects = SecondaryStatEffect(potential, item_level, secondary);
+  }
+  if (effects.empty()) {
+    // An item that has been cubed and still grants this character nothing,
+    // against one that has never been cubed at all.
+    return PadRight(potential.lines().empty() ? "-" : "Junk", width);
   }
   // The best effect is the column's whatever the width; the rest join it only
   // while they fit whole, so a cut-off figure never reads as a smaller one.

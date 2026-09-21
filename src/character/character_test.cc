@@ -952,6 +952,7 @@ TEST(JobChoicesTest, ABerserkerKeepsEveryBookBelowTheirOwn) {
 // spend AP into, the HP a level grants them, and the gear they may wear.
 TEST(JobChoicesTest, ABerserkerCountsAsAWarriorThroughout) {
   EXPECT_EQ(PrimaryStatField(JOB_BERSERKER), STAT_FIELD_STR);
+  EXPECT_EQ(SecondaryStatField(JOB_BERSERKER), STAT_FIELD_DEX);
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng);
   c.AdvanceJob(JOB_SWORDMAN);
@@ -964,6 +965,24 @@ TEST(JobChoicesTest, ABerserkerCountsAsAWarriorThroughout) {
   spear.set_required_level(1);
   spear.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   EXPECT_TRUE(c.CanEquip(spear));
+}
+
+// The pair of stats a branch swings on, which is the damage chain's own
+// pairing: four branches, and a job outside them all has neither.
+TEST(JobChoicesTest, EveryBranchPairsAPrimaryStatWithASecondary) {
+  EXPECT_EQ(SecondaryStatField(JOB_BEGINNER), STAT_FIELD_DEX);
+  EXPECT_EQ(SecondaryStatField(JOB_BOW_MASTER), STAT_FIELD_STR);
+  EXPECT_EQ(SecondaryStatField(JOB_BISHOP), STAT_FIELD_LUK);
+  EXPECT_EQ(SecondaryStatField(JOB_SHADOWER), STAT_FIELD_DEX);
+  EXPECT_EQ(SecondaryStatField(JOB_UNSPECIFIED), STAT_FIELD_UNSPECIFIED);
+  for (int i = 0; i <= Job_MAX; ++i) {
+    Job job = static_cast<Job>(i);
+    if (!Job_IsValid(i) || PrimaryStatField(job) == STAT_FIELD_UNSPECIFIED) {
+      continue;
+    }
+    EXPECT_NE(SecondaryStatField(job), PrimaryStatField(job)) << Job_Name(job);
+    EXPECT_NE(SecondaryStatField(job), STAT_FIELD_UNSPECIFIED) << Job_Name(job);
+  }
 }
 
 // Every advancement names exactly the job that takes it, and that job answers

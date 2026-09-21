@@ -117,11 +117,15 @@ std::string PotentialLineShortName(PotentialLineType type);
 // on `primary`: the effects worth the most to them, best first, each with
 // every line granting it folded in, so two %INT lines read as one total. As
 // many as the width holds are listed -- a wide column says what a glove's
-// three lines came to, a narrow one names the best of them and stops. An item
-// granting none reads "-". Value first and no "+": a column has no room for a
-// sign every row carries.
+// three lines came to, a narrow one names the best of them and stops.
+//
+// `secondary` is the stat behind the primary, and it is a last resort: named
+// only where the potential grants nothing better, never alongside. An item
+// that grants nothing at all reads "Junk", or "-" if it has no potential to
+// grant it with. Value first and no "+": a column has no room for a sign
+// every row carries.
 std::string PotentialCell(const Potential& potential, int item_level,
-                          StatField primary, int width);
+                          StatField primary, StatField secondary, int width);
 
 // The tag a skill row opens with: what the player does with the skill, said at
 // the front rather than worked out from the name. FOUR columns whichever tag

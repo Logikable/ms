@@ -134,6 +134,17 @@ TEST(EquipUpgradeCellsTest, ReadsBothUpgradesAndThePotentialOffTheItem) {
   cells = EquipUpgradeCells(proto, state, JOB_BISHOP, kOneEffect);
   EXPECT_EQ(cells.potential, "20% Meso    ");
 
+  // The stat behind the job's own reaches the cell as well: a hero carries
+  // DEX behind STR, and a bishop reads nothing on the same item.
+  state.clear_main_potential();
+  line = state.mutable_main_potential()->add_lines();
+  line->set_type(POTENTIAL_LINE_TYPE_DEX_PCT);
+  line->set_rank(POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(EquipUpgradeCells(proto, state, JOB_HERO, kOneEffect).potential,
+            "12% DEX     ");
+  EXPECT_EQ(EquipUpgradeCells(proto, state, JOB_BISHOP, kOneEffect).potential,
+            "Junk        ");
+
   // An upgrade the item refuses, and an item carrying no potential, each read
   // "-" rather than blank.
   proto.set_upgrade_slots(0);

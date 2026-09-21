@@ -428,11 +428,11 @@ void AddLine(Potential& potential, PotentialLineType type, PotentialRank rank) {
 TEST(PotentialLineTextTest, CellIsValueThenNameAtOneWidth) {
   EXPECT_EQ(PotentialCell(OneLine(POTENTIAL_LINE_TYPE_ATTACK_PCT,
                                   POTENTIAL_RANK_LEGENDARY),
-                          150, STAT_FIELD_STR, kOneEffect),
+                          150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
             "12% ATT     ");
   EXPECT_EQ(PotentialCell(OneLine(POTENTIAL_LINE_TYPE_COOLDOWN_2,
                                   POTENTIAL_RANK_LEGENDARY),
-                          150, STAT_FIELD_STR, kOneEffect),
+                          150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
             "-2s CD      ");
 
   // The widest total the game rolls fills the column exactly, and nothing is
@@ -442,17 +442,18 @@ TEST(PotentialLineTextTest, CellIsValueThenNameAtOneWidth) {
     AddLine(crit, POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT,
             POTENTIAL_RANK_LEGENDARY);
   }
-  EXPECT_EQ(PotentialCell(crit, 200, STAT_FIELD_STR, kOneEffect),
-            "24% Crit DMG");
+  EXPECT_EQ(
+      PotentialCell(crit, 200, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
+      "24% Crit DMG");
   for (int type = 0; type < PotentialLineType_ARRAYSIZE; ++type) {
     Potential potential;
     for (int i = 0; i < kPotentialLines; ++i) {
       AddLine(potential, static_cast<PotentialLineType>(type),
               POTENTIAL_RANK_LEGENDARY);
     }
-    EXPECT_EQ(
-        TextColumns(PotentialCell(potential, 200, STAT_FIELD_LUK, kOneEffect)),
-        kOneEffect)
+    EXPECT_EQ(TextColumns(PotentialCell(potential, 200, STAT_FIELD_LUK,
+                                        STAT_FIELD_DEX, kOneEffect)),
+              kOneEffect)
         << "type " << type;
   }
 }
@@ -465,30 +466,33 @@ TEST(PotentialLineTextTest, CellSumsEveryLineGrantingTheStatItReports) {
   // A line of something else, which the total leaves alone.
   AddLine(potential, POTENTIAL_LINE_TYPE_MAX_HP_PCT, POTENTIAL_RANK_LEGENDARY);
   AddLine(potential, POTENTIAL_LINE_TYPE_INT_PCT, POTENTIAL_RANK_UNIQUE);
-  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_INT, kOneEffect),
-            "21% INT     ");
+  EXPECT_EQ(
+      PotentialCell(potential, 150, STAT_FIELD_INT, STAT_FIELD_LUK, kOneEffect),
+      "21% INT     ");
 
   // All Stat% grants the stat the character builds on, so it is folded into
   // the same figure rather than named on its own.
   AddLine(potential, POTENTIAL_LINE_TYPE_ALL_STATS_PCT,
           POTENTIAL_RANK_LEGENDARY);
-  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_INT, kOneEffect),
-            "30% INT     ");
+  EXPECT_EQ(
+      PotentialCell(potential, 150, STAT_FIELD_INT, STAT_FIELD_LUK, kOneEffect),
+      "30% INT     ");
 
   // Ignored defence meets in reverse, as it does everywhere else: 15% and 30%
   // together leave 59.5% of the defence standing.
   Potential ied =
       OneLine(POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15, POTENTIAL_RANK_EPIC);
   AddLine(ied, POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30, POTENTIAL_RANK_UNIQUE);
-  EXPECT_EQ(PotentialCell(ied, 150, STAT_FIELD_STR, kOneEffect),
+  EXPECT_EQ(PotentialCell(ied, 150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
             "41% IED     ");
 
   // Boss damage is stated at three sizes and adds up across all of them.
   Potential boss =
       OneLine(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30, POTENTIAL_RANK_UNIQUE);
   AddLine(boss, POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40, POTENTIAL_RANK_LEGENDARY);
-  EXPECT_EQ(PotentialCell(boss, 150, STAT_FIELD_STR, kOneEffect),
-            "70% Boss    ");
+  EXPECT_EQ(
+      PotentialCell(boss, 150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
+      "70% Boss    ");
 }
 
 // A column with room for one effect reports the one the character gets the
@@ -498,19 +502,22 @@ TEST(PotentialLineTextTest, CellReportsTheEffectWorthMost) {
   AddLine(potential, POTENTIAL_LINE_TYPE_STR_PCT, POTENTIAL_RANK_LEGENDARY);
   AddLine(potential, POTENTIAL_LINE_TYPE_DAMAGE_PCT, POTENTIAL_RANK_LEGENDARY);
   AddLine(potential, POTENTIAL_LINE_TYPE_ATTACK_PCT, POTENTIAL_RANK_UNIQUE);
-  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_STR, kOneEffect),
-            "9% ATT      ");
+  EXPECT_EQ(
+      PotentialCell(potential, 150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
+      "9% ATT      ");
 
   // Boss damage and ignored defence are worth the same rung, so the one the
   // item rolled more of is shown.
   Potential boss =
       OneLine(POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40, POTENTIAL_RANK_LEGENDARY);
   AddLine(boss, POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15, POTENTIAL_RANK_EPIC);
-  EXPECT_EQ(PotentialCell(boss, 150, STAT_FIELD_STR, kOneEffect),
-            "40% Boss    ");
+  EXPECT_EQ(
+      PotentialCell(boss, 150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
+      "40% Boss    ");
   AddLine(boss, POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30, POTENTIAL_RANK_UNIQUE);
-  EXPECT_EQ(PotentialCell(boss, 150, STAT_FIELD_STR, kOneEffect),
-            "41% IED     ");
+  EXPECT_EQ(
+      PotentialCell(boss, 150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
+      "41% IED     ");
 }
 
 // Half of what a potential can roll is worth nothing to a given character,
@@ -521,25 +528,66 @@ TEST(PotentialLineTextTest, CellSkipsWhatThisCharacterDoesNotRead) {
   Potential weapon =
       OneLine(POTENTIAL_LINE_TYPE_ATTACK_PCT, POTENTIAL_RANK_LEGENDARY);
   AddLine(weapon, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT, POTENTIAL_RANK_UNIQUE);
-  EXPECT_EQ(PotentialCell(weapon, 150, STAT_FIELD_STR, kOneEffect),
-            "12% ATT     ");
-  EXPECT_EQ(PotentialCell(weapon, 150, STAT_FIELD_INT, kOneEffect),
-            "9% MATT     ");
+  EXPECT_EQ(
+      PotentialCell(weapon, 150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
+      "12% ATT     ");
+  EXPECT_EQ(
+      PotentialCell(weapon, 150, STAT_FIELD_INT, STAT_FIELD_LUK, kOneEffect),
+      "9% MATT     ");
 
-  // The three stats the character does not build on, the flat lines and %HP
-  // are all left unsaid -- which can leave nothing to say at all.
+  // The two stats the character neither builds on nor carries behind it, the
+  // flat lines and %HP are all left unsaid.
+  Potential armor =
+      OneLine(POTENTIAL_LINE_TYPE_LUK_PCT, POTENTIAL_RANK_LEGENDARY);
+  AddLine(armor, POTENTIAL_LINE_TYPE_MAX_HP_PCT, POTENTIAL_RANK_LEGENDARY);
+  AddLine(armor, POTENTIAL_LINE_TYPE_STR, POTENTIAL_RANK_RARE);
+  EXPECT_EQ(
+      PotentialCell(armor, 150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
+      "Junk        ");
+  EXPECT_EQ(
+      PotentialCell(armor, 150, STAT_FIELD_LUK, STAT_FIELD_DEX, kOneEffect),
+      "12% LUK     ");
+
+  // An item carrying no potential has nothing to be junk about.
+  EXPECT_EQ(PotentialCell(Potential(), 150, STAT_FIELD_STR, STAT_FIELD_DEX,
+                          kOneEffect),
+            "-           ");
+}
+
+// The stat behind the primary is worth a quarter of it, which is worth
+// saying on an item that grants nothing else and worth nothing beside a line
+// that does.
+TEST(PotentialLineTextTest, CellNamesTheSecondaryStatOnlyAsALastResort) {
   Potential armor =
       OneLine(POTENTIAL_LINE_TYPE_DEX_PCT, POTENTIAL_RANK_LEGENDARY);
   AddLine(armor, POTENTIAL_LINE_TYPE_MAX_HP_PCT, POTENTIAL_RANK_LEGENDARY);
-  AddLine(armor, POTENTIAL_LINE_TYPE_STR, POTENTIAL_RANK_RARE);
-  EXPECT_EQ(PotentialCell(armor, 150, STAT_FIELD_STR, kOneEffect),
-            "-           ");
-  EXPECT_EQ(PotentialCell(armor, 150, STAT_FIELD_DEX, kOneEffect),
-            "12% DEX     ");
+  EXPECT_EQ(
+      PotentialCell(armor, 150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
+      "12% DEX     ");
+  // Every line granting it is folded in, as the reported effects are.
+  AddLine(armor, POTENTIAL_LINE_TYPE_DEX_PCT, POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(
+      PotentialCell(armor, 150, STAT_FIELD_STR, STAT_FIELD_DEX, kOneEffect),
+      "21% DEX     ");
 
-  // An item carrying no potential at all reads the same way.
-  EXPECT_EQ(PotentialCell(Potential(), 150, STAT_FIELD_STR, kOneEffect),
-            "-           ");
+  // One line the character does read, and the secondary drops off the row
+  // whatever the width -- a column wide enough for both still says only what
+  // the item is worth keeping for.
+  AddLine(armor, POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30, POTENTIAL_RANK_UNIQUE);
+  EXPECT_EQ(PotentialCell(armor, 150, STAT_FIELD_STR, STAT_FIELD_DEX, 30),
+            "30% Boss                      ");
+
+  // All Stat% grants the secondary too, but it is already folded into the
+  // primary's figure, so it is never said twice.
+  Potential all =
+      OneLine(POTENTIAL_LINE_TYPE_ALL_STATS_PCT, POTENTIAL_RANK_LEGENDARY);
+  EXPECT_EQ(PotentialCell(all, 150, STAT_FIELD_STR, STAT_FIELD_DEX, 30),
+            "9% STR                        ");
+
+  // A character with no branch has no stat behind them either.
+  EXPECT_EQ(PotentialCell(armor, 150, STAT_FIELD_UNSPECIFIED,
+                          STAT_FIELD_UNSPECIFIED, kOneEffect),
+            "30% Boss    ");
 }
 
 // Given the room, the column goes on down the order: the effects worth most
@@ -549,21 +597,22 @@ TEST(PotentialLineTextTest, WideColumnListsEveryEffectThatFits) {
       OneLine(POTENTIAL_LINE_TYPE_STR_PCT, POTENTIAL_RANK_LEGENDARY);
   AddLine(potential, POTENTIAL_LINE_TYPE_BOSS_DAMAGE_30, POTENTIAL_RANK_UNIQUE);
   AddLine(potential, POTENTIAL_LINE_TYPE_ATTACK_PCT, POTENTIAL_RANK_LEGENDARY);
-  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_STR, 30),
+  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_STR, STAT_FIELD_DEX, 30),
             "12% ATT, 30% Boss, 12% STR    ");
-  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_STR, 20),
+  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_STR, STAT_FIELD_DEX, 20),
             "12% ATT, 30% Boss   ");
   // One column short of the third effect, so the third effect stays off.
-  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_STR, 25),
+  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_STR, STAT_FIELD_DEX, 25),
             "12% ATT, 30% Boss        ");
 
   // What this character does not read is skipped over rather than taking a
   // place: a magician reads neither the weapon attack nor the STR.
-  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_INT, 30),
+  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_INT, STAT_FIELD_LUK, 30),
             "30% Boss                      ");
 
   // An empty column says nothing at all.
-  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_STR, 0), "");
+  EXPECT_EQ(PotentialCell(potential, 150, STAT_FIELD_STR, STAT_FIELD_DEX, 0),
+            "");
 }
 
 TEST(PotentialLineTextTest, NamesEveryRank) {

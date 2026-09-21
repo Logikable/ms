@@ -128,6 +128,11 @@ JobAdvancement AdvancementForSecondary(EquipType type);
 // TODO: Demon Avenger's primary stat is HP; Xenon's is STR+DEX+LUK combined.
 StatField PrimaryStatField(Job job);
 
+// The stat behind the primary, which the damage chain counts a quarter of.
+// STAT_FIELD_UNSPECIFIED for a job with no branch. See AddStatsByBranch,
+// which pairs the two the same way.
+StatField SecondaryStatField(Job job);
+
 // The jobs `job` may advance into at `stage`, in the order to offer them.
 // Empty for a stage whose choices do not exist yet, which keeps the UI from
 // offering an advancement with nothing behind it.

@@ -696,6 +696,24 @@ StatField PrimaryStatField(Job job) {
   return STAT_FIELD_UNSPECIFIED;
 }
 
+StatField SecondaryStatField(Job job) {
+  switch (BranchOf(job)) {
+    // Each branch's pair, swapped: the warrior and the archer share STR and
+    // DEX, the magician and the thief LUK and DEX.
+    case JobBranch::kBeginner:
+    case JobBranch::kWarrior:
+    case JobBranch::kRogue:
+      return STAT_FIELD_DEX;
+    case JobBranch::kArcher:
+      return STAT_FIELD_STR;
+    case JobBranch::kMagician:
+      return STAT_FIELD_LUK;
+    case JobBranch::kNone:
+      return STAT_FIELD_UNSPECIFIED;
+  }
+  return STAT_FIELD_UNSPECIFIED;
+}
+
 // One job leading to the next, for the two advancements that narrow rather
 // than fork.
 struct Successor {

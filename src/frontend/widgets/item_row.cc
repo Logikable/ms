@@ -63,9 +63,9 @@ ItemCells EquipUpgradeCells(const EquipPrototype& proto, const Equip& state,
   cells.stars = Supports(proto, UPGRADE_STAR_FORCE)
                     ? std::to_string(state.stars()) + "★"
                     : "-";
-  cells.potential =
-      PotentialCell(state.main_potential(), proto.required_level(),
-                    PrimaryStatField(job), potential_width);
+  cells.potential = PotentialCell(state.main_potential(),
+                                  proto.required_level(), PrimaryStatField(job),
+                                  SecondaryStatField(job), potential_width);
   return cells;
 }
 
