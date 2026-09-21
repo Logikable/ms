@@ -1,5 +1,6 @@
 #include "server/trade.h"
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <utility>
@@ -211,6 +212,12 @@ void Trades::Complete(Record& record) {
   // Each side is paid what the OTHER put up.
   completions_.push_back({record.opener, record.partner_offer});
   completions_.push_back({record.partner, record.opener_offer});
+  // A note still queued from the first confirm would be SENT from the state
+  // after this one, which is the empty state of a player in no trade -- and
+  // that reads to a client as their partner walking out. The completion is
+  // the only thing these two are owed.
+  DropChanged(record.opener);
+  DropChanged(record.partner);
   std::string id = record.id;
   trade_of_.erase(record.opener);
   trade_of_.erase(record.partner);
@@ -250,6 +257,11 @@ void Trades::NoteChanged(const Record& record) {
   if (record.joined) {
     changed_.push_back(record.partner);
   }
+}
+
+void Trades::DropChanged(const std::string& account_id) {
+  changed_.erase(std::remove(changed_.begin(), changed_.end(), account_id),
+                 changed_.end());
 }
 
 std::string Trades::NewTradeId() {

@@ -193,7 +193,6 @@ TEST_F(TradeTest, BothConfirmsPayBothSides) {
   EXPECT_FALSE(trades_.StateFor("two").mine_confirmed());
   EXPECT_TRUE(trades_.TakeCompletions().empty());
 
-  trades_.TakeChanged();
   trades_.SetConfirm("two", true);
 
   std::vector<TradeCompletion> paid = trades_.TakeCompletions();
@@ -204,7 +203,9 @@ TEST_F(TradeTest, BothConfirmsPayBothSides) {
   EXPECT_EQ(paid[1].received.meso(), 5000);
 
   // The trade is gone, and nobody is told it changed: the payment is what
-  // says it ended, and an empty state on top would read as a walk-out.
+  // says it ended, and an empty state on top would read as a walk-out. That
+  // holds of the FIRST confirm's note too, which is still queued here -- the
+  // server is free to take both messages before it publishes either.
   EXPECT_EQ(trades_.trade_count(), 0);
   EXPECT_FALSE(trades_.Busy("one"));
   EXPECT_TRUE(trades_.TakeChanged().empty());

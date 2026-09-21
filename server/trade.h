@@ -130,6 +130,9 @@ class Trades {
                                   const std::string& account_id);
   // Notes that both sides of `record` have to be told.
   void NoteChanged(const Record& record);
+  // Takes `account_id` back out of that list. What a trade torn down since
+  // owes them is the completion, not the empty state the note would now send.
+  void DropChanged(const std::string& account_id);
   std::string NewTradeId();
 
   // By trade id, and who is in which. The index is what makes leaving one
