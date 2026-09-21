@@ -648,9 +648,10 @@ ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
                      !read_only_ && !key.empty() && !account_.Seen(key)});
   }
   // The tabs are most of a narrow panel's width, so this is the bar most
-  // likely to need the scroll.
-  return ftxui::hbox(
-      {TabBar(specs, active, row_selected, ContentWidth()), ftxui::filler()});
+  // likely to need the scroll -- and a scrolling bar spends every column it
+  // is given, so the blank one inside the right border comes off first.
+  return ftxui::hbox({TabBar(specs, active, row_selected, ContentWidth() - 1),
+                      ftxui::filler()});
 }
 
 // The MP display row with the character's unspent AP right-aligned, so the

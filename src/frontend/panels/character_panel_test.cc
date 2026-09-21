@@ -3716,5 +3716,21 @@ TEST_F(CharacterPanelTest, ReadOnlyDropsTheLinkSkillsRow) {
       std::string::npos);
 }
 
+// Every tab at the narrowest the left column goes: the rows fill that width
+// exactly, so a column measured wrong runs into the border.
+TEST_F(CharacterPanelTest, NoTabWeldsARowToTheRightBorder) {
+  LevelTo(200);
+  UnlockEverything();
+  CharacterPanel panel(c_, account_, panel_focus_, SkillCatalog());
+  panel.SetWidth(kLeftColumnMin);
+  ftxui::Component comp = panel.MakeComponent();
+  for (int tab = 0; tab < 6; ++tab) {
+    std::vector<std::string> touching =
+        RowsTouchingTheRightBorder(comp->Render());
+    EXPECT_TRUE(touching.empty())
+        << "tab " << tab << ": " << (touching.empty() ? "" : touching.front());
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+}
 }  // namespace
 }  // namespace ms
