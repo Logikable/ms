@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 
 namespace ms {
@@ -47,6 +48,14 @@ ftxui::Color ColorOf(const ftxui::Screen& screen, const std::string& needle);
 // The whole pixel there, for a caller asking about the dim bit as well as the
 // colour. A default-constructed Pixel when `needle` is not on screen.
 ftxui::Pixel PixelOf(const ftxui::Screen& screen, const std::string& needle);
+
+// The rows of `element` that put text hard against its RIGHT border with no
+// clearance, drawn at the width the element asks for. Empty passes.
+//
+// It catches a card that measures its width from its widest row and forgets
+// the margin. The LEFT is not asked about: that column belongs to the cursor.
+// Rules are skipped, as is a card whose right column is a scroll bar.
+std::vector<std::string> RowsTouchingTheRightBorder(ftxui::Element element);
 
 }  // namespace ms
 

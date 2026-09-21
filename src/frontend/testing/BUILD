@@ -7,7 +7,10 @@ cc_library(
     testonly = True,
     srcs = ["screen_text.cc"],
     hdrs = ["screen_text.h"],
-    deps = ["@ftxui//:screen"],
+    deps = [
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+    ],
 )
 
 cc_test(

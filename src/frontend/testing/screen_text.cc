@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 
 namespace ms {
@@ -80,6 +81,28 @@ ftxui::Color ColorOf(const ftxui::Screen& screen, const std::string& needle) {
 ftxui::Pixel PixelOf(const ftxui::Screen& screen, const std::string& needle) {
   ScreenPos at = FindOnScreen(screen, needle);
   return at.y < 0 ? ftxui::Pixel() : screen.PixelAt(at.x, at.y);
+}
+
+std::vector<std::string> RowsTouchingTheRightBorder(ftxui::Element element) {
+  element->ComputeRequirement();
+  int width = element->requirement().min_x;
+  int height = element->requirement().min_y;
+  if (width < 4) {
+    return {};
+  }
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
+                                               ftxui::Dimension::Fixed(height));
+  ftxui::Render(screen, element);
+  std::vector<std::string> touching;
+  for (int y = 1; y + 1 < height; ++y) {
+    std::string row = ScreenRow(screen, y);
+    std::string margin = ScreenRow(screen, y, width - 2, width - 1);
+    if (margin != " " && margin != "\u2500" && margin != "\u2503" &&
+        margin != "\u2502") {
+      touching.push_back(row);
+    }
+  }
+  return touching;
 }
 
 }  // namespace ms

@@ -26,34 +26,6 @@ namespace ms {
 // ever sees.
 constexpr int kTestScreenWidth = 100;
 
-// The rows of `element` that put text hard against its RIGHT border with no
-// clearance, drawn at the width the element asks for. Empty passes.
-//
-// It catches a card that measures its width from its widest row and forgets
-// the margin. The LEFT is not asked about: that column belongs to the cursor.
-// Rules are skipped, as is a card whose right column is a scroll bar.
-inline std::vector<std::string> RowsTouchingTheRightBorder(
-    ftxui::Element element) {
-  element->ComputeRequirement();
-  int width = element->requirement().min_x;
-  int height = element->requirement().min_y;
-  if (width < 4) {
-    return {};
-  }
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
-                                               ftxui::Dimension::Fixed(height));
-  ftxui::Render(screen, element);
-  std::vector<std::string> touching;
-  for (int y = 1; y + 1 < height; ++y) {
-    std::string row = ScreenRow(screen, y);
-    std::string margin = ScreenRow(screen, y, width - 2, width - 1);
-    if (margin != " " && margin != "─" && margin != "┃" && margin != "│") {
-      touching.push_back(row);
-    }
-  }
-  return touching;
-}
-
 // Where a band of background colour landed: the row, and the columns it
 // covers. Asserted on the SPAN rather than the row alone -- a band stopping
 // short of the borders reads as a column that is not part of the row.
