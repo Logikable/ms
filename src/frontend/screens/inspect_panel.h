@@ -16,6 +16,11 @@
  * one section of each card moves -- the stats on the item, the tiers on the
  * set -- and what names either card stays where it is. See ScrollCard.
  *
+ * A ring or a pendant fits several slots, and the Equipped card then carries
+ * a tab bar over everything else: one chip per slot of the family, the arrows
+ * walking them, so the player can weigh the item against each of the four
+ * rings they wear rather than only the one Equip would take.
+ *
  * Three cards do not always fit. The set card is the one that gives: squeezed
  * into what is left, and dropped entirely once that is too little for its
  * rows to read. The two items being compared are the point of the screen, so
@@ -48,6 +53,12 @@ class InspectPanel {
   // they are drawn in: the equipped card sits to the LEFT of the item.
   enum Card { kItemCard, kSetCard, kEquippedCard };
 
+  // The slots the Equipped card offers -- see SetComparison.
+  struct ComparisonSlots {
+    std::vector<const EquipTabItem*> worn;
+    int active = 0;
+  };
+
   // Points the panel at an item to describe. The two overloads are exclusive:
   // setting one forgets the other, so the panel always describes exactly the
   // item the cursor was last on. Either forgets what it was being compared
@@ -58,6 +69,13 @@ class InspectPanel {
   // the default, is no comparison at all -- an empty slot, or an item that is
   // itself the one worn.
   void SetComparison(const EquipTabItem* equipped);
+  // The same, for an item with a family of slots to choose from: a ring fits
+  // any of four, a pendant either of two, and the card carries a tab bar to
+  // walk them. `worn` holds the player's own item in each slot of the family
+  // in slot order, nullptr where the slot is empty; `active` is the one the
+  // card is showing. The card is drawn even when every slot is empty -- the
+  // bar is what says which four are being offered.
+  void SetComparison(ComparisonSlots slots);
   // What putting the inspected item on would do to the player's combat power,
   // written over its required level. Empty, the default, draws neither row --
   // which is what a screen showing an item the player is not weighing wants,
@@ -104,6 +122,16 @@ class InspectPanel {
                                 const std::string& title = " Inspect ") const;
 
  private:
+  // The card beside the item, with its tab bar when the item has a family of
+  // slots to go into. An active slot holding nothing is a bar over an
+  // (empty): what that slot would cost the player is nothing, and the delta
+  // beside it says what it would pay.
+  ftxui::Element RenderComparison(bool focused) const;
+  // The slot the bar is on, or nullptr for an empty one.
+  const EquipTabItem* Compared() const;
+  // Whether the Equipped card is drawn at all. A single empty slot is not:
+  // there is nothing to compare with and nothing to say about it.
+  bool HasComparisonCard() const;
   // One card, whichever kind of thing `item` is: the same framing for the
   // inspected item and for the one it is weighed against.
   ftxui::Element RenderCard(const ScrollCard& card, const EquipTabItem* item,
@@ -170,7 +198,7 @@ class InspectPanel {
   static ftxui::Element SymbolBar(int level);
 
   const EquipTabItem* item_ = nullptr;
-  const EquipTabItem* compare_ = nullptr;
+  ComparisonSlots compare_;
   std::optional<int> delta_;
   const ItemPrototype* stackable_ = nullptr;
   const CharacterInstance* character_ = nullptr;

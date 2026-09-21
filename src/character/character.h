@@ -807,7 +807,12 @@ class CharacterInstance {
   // sheet. Nothing leaves the copy, and nothing else about it moves: the bag
   // keeps whatever it held, the displaced item simply is not there. Handed
   // back unchanged when the item names no slot this character can fill.
-  CharacterInstance Wearing(const EquipTabItem& item, StatPreset preset) const;
+  //
+  // `slot` names which slot to try it in, for a ring or a pendant weighed
+  // against one of the four the player is wearing rather than the one Equip
+  // would take. Unset asks SlotToFill, which is where Equip would put it.
+  CharacterInstance Wearing(const EquipTabItem& item, StatPreset preset,
+                            std::optional<EquipSlot> slot = std::nullopt) const;
 
  private:
   // A copy of `other` carrying everything a stat is read off and an empty bag.

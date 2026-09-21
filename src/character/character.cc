@@ -2586,10 +2586,11 @@ CharacterInstance::CharacterInstance(const CharacterInstance& other, WornOnly)
       set_bonuses_(other.set_bonuses_) {
 }
 
-CharacterInstance CharacterInstance::Wearing(const EquipTabItem& item,
-                                             StatPreset preset) const {
+CharacterInstance CharacterInstance::Wearing(
+    const EquipTabItem& item, StatPreset preset,
+    std::optional<EquipSlot> slot_override) const {
   CharacterInstance probe(*this, WornOnly{});
-  EquipSlot slot = SlotToFill(item.prototype(), preset);
+  EquipSlot slot = slot_override.value_or(SlotToFill(item.prototype(), preset));
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return probe;
   }

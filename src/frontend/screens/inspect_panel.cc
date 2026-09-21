@@ -27,6 +27,10 @@
 namespace ms {
 namespace {
 
+// The Equipped card's title. Two paths draw that card -- one slot or a bar of
+// them -- and they must name it the same.
+constexpr char kEquippedTitle[] = " Equipped ";
+
 // The width of the stackable body. Fixed rather than fitted, so every
 // description reads at the same width and the window does not resize as the
 // cursor moves from one item to the next. The equip body sets its own width
@@ -237,19 +241,35 @@ std::vector<std::string> EffectLines(const SkillEffect& e) {
 void InspectPanel::SetItem(const EquipTabItem* item) {
   item_ = item;
   stackable_ = nullptr;
-  compare_ = nullptr;
+  compare_ = {};
   delta_.reset();
 }
 
 void InspectPanel::SetItem(const ItemPrototype* item) {
   stackable_ = item;
   item_ = nullptr;
-  compare_ = nullptr;
+  compare_ = {};
   delta_.reset();
 }
 
 void InspectPanel::SetComparison(const EquipTabItem* equipped) {
-  compare_ = equipped;
+  compare_ = {{equipped}, 0};
+}
+
+void InspectPanel::SetComparison(ComparisonSlots slots) {
+  compare_ = std::move(slots);
+}
+
+const EquipTabItem* InspectPanel::Compared() const {
+  if (compare_.active < 0 ||
+      compare_.active >= static_cast<int>(compare_.worn.size())) {
+    return nullptr;
+  }
+  return compare_.worn[compare_.active];
+}
+
+bool InspectPanel::HasComparisonCard() const {
+  return compare_.worn.size() > 1 || Compared() != nullptr;
 }
 
 void InspectPanel::SetCombatPowerDelta(std::optional<int> delta) {
@@ -296,7 +316,7 @@ ScrollCard& InspectPanel::FocusedCard() {
 
 std::vector<InspectPanel::Card> InspectPanel::DrawnCards() const {
   std::vector<Card> cards;
-  if (compare_ != nullptr) {
+  if (HasComparisonCard()) {
     cards.push_back(kEquippedCard);
   }
   cards.push_back(kItemCard);
@@ -338,6 +358,40 @@ bool InspectPanel::HasSetCard() const {
 ftxui::Element InspectPanel::RenderItemOnly(bool focused,
                                             const std::string& title) const {
   return RenderCard(item_card_, item_, title, focused);
+}
+
+ftxui::Element InspectPanel::RenderComparison(bool focused) const {
+  const EquipTabItem* worn = Compared();
+  // One slot is every item but a ring or a pendant: whatever is worn there,
+  // framed like any other card and with nothing to choose between.
+  if (compare_.worn.size() < 2) {
+    return RenderCard(compare_card_, worn, kEquippedTitle, focused);
+  }
+  std::vector<TabSpec> specs;
+  for (int i = 1; i <= static_cast<int>(compare_.worn.size()); ++i) {
+    specs.push_back({std::to_string(i)});
+  }
+  // No width to fit into: four chips never come near what a card is drawn at,
+  // so the bar cannot scroll. The blank column inside the right border is
+  // added by hand -- a chip carries its own background and would otherwise
+  // weld to it on a card the bar is the widest row of.
+  CardRows rows;
+  rows.head.push_back(
+      TextRow(ftxui::hbox({TabBar(specs, compare_.active, focused, /*width=*/0),
+                           ftxui::text(" ")})));
+  if (worn == nullptr) {
+    rows.body.push_back(TextRow(CenteredRow("(empty)")));
+    return compare_card_.Render(kEquippedTitle, std::move(rows),
+                                /*content_width=*/0, focused);
+  }
+  // The bar sits over the card's own head, with no rule under it: the chips
+  // and the item they name read as one thing.
+  CardRows body = EquipRows(*worn);
+  Append(rows.head, body.head);
+  rows.body = std::move(body.body);
+  rows.foot = std::move(body.foot);
+  return compare_card_.Render(kEquippedTitle, std::move(rows),
+                              /*content_width=*/0, focused);
 }
 
 ftxui::Element InspectPanel::RenderCard(const ScrollCard& card,
@@ -413,13 +467,12 @@ ftxui::Element InspectPanel::Render() const {
   set_drawn_ = false;
   // A card lights its title only when there is a second one to tell it from:
   // on a screen with one card the arrows have nowhere else to go.
-  if (set == nullptr && compare_ == nullptr) {
+  if (set == nullptr && !HasComparisonCard()) {
     return RenderItemOnly();
   }
   std::vector<ftxui::Element> cards;
-  if (compare_ != nullptr) {
-    cards.push_back(RenderCard(compare_card_, compare_, " Equipped ",
-                               focus_ == kEquippedCard));
+  if (HasComparisonCard()) {
+    cards.push_back(RenderComparison(focus_ == kEquippedCard));
   }
   cards.push_back(RenderItemOnly(focus_ == kItemCard));
   if (set != nullptr) {

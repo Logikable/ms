@@ -1202,6 +1202,73 @@ TEST_F(InspectPanelTest, AMaxedSymbolReadsMax) {
   EXPECT_EQ(Count(rendered, "◇"), 0) << rendered;
 }
 
+// --- the ring and pendant tab bar ---
+
+// A ring to wear or to weigh, named apart so a rendered card says which is
+// which.
+EquipInstance Ring(const std::string& name) {
+  return EquipInstance(FrozenPiece(name, EQUIP_SLOT_RING));
+}
+
+// The bar as it is drawn: every chip pads a space each side.
+constexpr char kFourChips[] = " 1  2  3  4 ";
+
+TEST_F(InspectPanelTest, DrawsAChipPerSlotAndTheActiveSlotsItem) {
+  EquipInstance first = Ring("First Ring");
+  EquipInstance third = Ring("Third Ring");
+  EquipInstance inspected = Ring("New Ring");
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&inspected);
+  panel.SetComparison({{&first, nullptr, &third, nullptr}, /*active=*/2});
+
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find(kFourChips), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Third Ring"), std::string::npos) << rendered;
+  EXPECT_EQ(rendered.find("First Ring"), std::string::npos)
+      << "one slot at a time, whichever the bar is on";
+}
+
+// A slot with nothing in it is still a slot the player can weigh the ring
+// against: the bar names it and the card says it is empty.
+TEST_F(InspectPanelTest, AnEmptySlotIsABarOverAnEmptyCard) {
+  EquipInstance inspected = Ring("New Ring");
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&inspected);
+  panel.SetComparison({{nullptr, nullptr, nullptr, nullptr}, /*active=*/1});
+
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Equipped"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find(kFourChips), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("(empty)"), std::string::npos) << rendered;
+  EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty())
+      << "the bar is the widest row of a card with nothing else on it";
+}
+
+// One slot is every item but a ring or a pendant, and there is nothing to
+// choose between: no bar, and an empty one draws no card at all.
+TEST_F(InspectPanelTest, OneSlotDrawsNoBar) {
+  EquipInstance worn = WornHat();
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&hat_);
+  panel.SetComparison(&worn);
+  EXPECT_EQ(RenderWide(panel).find(" 1  2 "), std::string::npos);
+
+  panel.SetComparison(static_cast<const EquipTabItem*>(nullptr));
+  EXPECT_EQ(RenderWide(panel).find("Equipped"), std::string::npos);
+}
+
+// The ring walks what is on screen, and a card of four empty slots is on it.
+TEST_F(InspectPanelTest, TheBarPutsTheEquippedCardOnTheRing) {
+  EquipInstance inspected = Ring("New Ring");
+  InspectPanel panel = TallPanel(c_, 34);
+  panel.SetItem(&inspected);
+  panel.SetComparison({{nullptr, nullptr, nullptr, nullptr}, 0});
+  RenderWide(panel);
+
+  ASSERT_TRUE(panel.SwapCard(-1));
+  EXPECT_EQ(panel.focused_card(), InspectPanel::kEquippedCard);
+}
+
 // The item card, the card beside it and the stackable card are three
 // different windows, each fitted to its own rows.
 TEST_F(InspectPanelTest, NoCardWeldsARowToItsRightBorder) {

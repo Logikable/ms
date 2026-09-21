@@ -575,10 +575,18 @@ class TuiController {
   const EquipTabItem* inspect_comparison() const;
   const EquipTabItem* player_item_comparison() const;
   const EquipInstance* WornForComparison(const EquipPrototype& proto) const;
+  // Every slot the open inspect screen's item could go into and what the
+  // player wears in each, for the Equipped card and its tab bar. One slot for
+  // everything but a ring or a pendant; empty on a screen weighing nothing.
+  InspectPanel::ComparisonSlots comparison_slots() const;
   // What putting `item` on would do to the player's combat power, for the
   // figure on its card. Empty when there is nothing to say: a slot this
   // character cannot fill, or an item already worn in ComparisonPreset().
-  std::optional<int> CombatPowerDelta(const EquipTabItem* item) const;
+  // `fallback` is the slot to price it into until the Equipped card's bar is
+  // touched; unset asks SlotToFill, which is where Equip would put it.
+  std::optional<int> CombatPowerDelta(
+      const EquipTabItem* item,
+      std::optional<EquipSlot> fallback = std::nullopt) const;
   // The same for whichever item each screen has on it.
   std::optional<int> inspect_delta() const;
   std::optional<int> player_item_delta() const;
@@ -836,6 +844,25 @@ class TuiController {
   // Puts every inspect card back at its top, with the left half of the screen
   // holding the arrows. Called as each such screen opens.
   void OpenInspectCards();
+  // The equip the open inspect screen is weighing against the player's own
+  // gear, and the slot its Equipped card shows until the arrows move it --
+  // where Equip would put it, or, on a member's sheet, the slot they wear it
+  // in. A null prototype is a screen weighing nothing.
+  struct ComparisonSubject {
+    const EquipPrototype* proto = nullptr;
+    EquipSlot fallback = EQUIP_SLOT_UNSPECIFIED;
+  };
+  ComparisonSubject InspectSubject() const;
+  // The shelf item or buy-back row the shop's inspect screen is showing.
+  const EquipPrototype* ShopInspectProto() const;
+  // The slot of `proto`'s family the Equipped card is on: the one the arrows
+  // were left on, or `fallback` while they have not been touched.
+  EquipSlot ComparisonSlot(const EquipPrototype& proto,
+                           EquipSlot fallback) const;
+  // Walks the Equipped card's tab bar `step` chips, wrapping as every bar in
+  // the game does. False for an item with one slot, and then the arrows go
+  // back to scrolling the card sideways.
+  bool StepComparisonSlot(int step);
   bool OnShopBuyEvent(ftxui::Event event);
   // Seeds the buy dialog for a row of the buy-back shelf, which is priced and
   // bounded by the sale rather than by what the shop stocks.
@@ -853,6 +880,11 @@ class TuiController {
   ScrollPanel& scroll_panel_;
   // The item card, and the preview beside it on kTraceRecover and kStarForce.
   // Held so the arrows can scroll whichever is being read.
+  // Which slot of the inspected ring's family its Equipped card is showing,
+  // as an index into the family. Unset until the arrows touch the bar, which
+  // is what lets the card open on the slot Equip would fill. Cleared whenever
+  // an inspect screen opens; one member because one is open at a time.
+  std::optional<int> compare_slot_;
   InspectPanel& inspect_panel_;
   InspectPanel& preview_inspect_panel_;
   StarForcePanel& star_force_panel_;

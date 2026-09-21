@@ -2800,6 +2800,31 @@ TEST_F(WearingTest, PricesThePresetItIsAsked) {
   EXPECT_EQ(probe.equip_stats(StatPreset::kFirst).str(), 0);
 }
 
+// A named slot is priced instead of the one Equip would take, for a ring
+// weighed against each of the four a character wears.
+TEST_F(WearingTest, PricesTheSlotItIsNamed) {
+  EquipPrototype ring;
+  ring.set_name("Ring");
+  ring.set_equip_slot(EQUIP_SLOT_RING);
+  ring.mutable_base_stats()->set_str(10);
+  c_.PickUp(std::make_unique<EquipInstance>(ring));
+  ASSERT_TRUE(c_.Equip(0));
+
+  EquipPrototype better = ring;
+  better.set_name("Better Ring");
+  better.mutable_base_stats()->set_str(40);
+  EquipInstance item(better);
+  // Into the worn ring's slot it displaces it; into a free one it does not.
+  EXPECT_EQ(c_.Wearing(item, StatPreset::kFirst, EQUIP_SLOT_RING)
+                .equip_stats(StatPreset::kFirst)
+                .str(),
+            40);
+  EXPECT_EQ(c_.Wearing(item, StatPreset::kFirst, EQUIP_SLOT_RING_3)
+                .equip_stats(StatPreset::kFirst)
+                .str(),
+            50);
+}
+
 // --- Unequip ---
 
 TEST_F(UnequipTest, MovesItemToInventory) {

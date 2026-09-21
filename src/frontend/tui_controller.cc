@@ -119,6 +119,7 @@ TuiController::TuiController(GameState& state, Screens screens,
 // half of the screen holding the arrows.
 void TuiController::OpenInspectCards() {
   inspect_panel_.Reset();
+  compare_slot_.reset();
   right_card_focused_ = false;
 }
 
@@ -542,21 +543,128 @@ StatPreset TuiController::ComparisonPreset() const {
 
 const EquipInstance* TuiController::WornForComparison(
     const EquipPrototype& proto) const {
-  EquipSlot slot = state_.character.SlotToFill(proto, ComparisonPreset());
+  EquipSlot slot = ComparisonSlot(
+      proto, state_.character.SlotToFill(proto, ComparisonPreset()));
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return nullptr;
   }
   return state_.character.WornAt(ComparisonPreset(), slot);
 }
 
+EquipSlot TuiController::ComparisonSlot(const EquipPrototype& proto,
+                                        EquipSlot fallback) const {
+  std::vector<EquipSlot> family = SlotFamily(proto.equip_slot());
+  if (!compare_slot_.has_value() || family.size() < 2) {
+    return fallback;
+  }
+  return family[std::clamp(*compare_slot_, 0,
+                           static_cast<int>(family.size()) - 1)];
+}
+
+InspectPanel::ComparisonSlots TuiController::comparison_slots() const {
+  ComparisonSubject subject = InspectSubject();
+  if (subject.proto == nullptr) {
+    return {};
+  }
+  InspectPanel::ComparisonSlots slots;
+  EquipSlot showing = ComparisonSlot(*subject.proto, subject.fallback);
+  for (EquipSlot slot : SlotFamily(subject.proto->equip_slot())) {
+    if (slot == showing) {
+      slots.active = static_cast<int>(slots.worn.size());
+    }
+    slots.worn.push_back(state_.character.WornAt(ComparisonPreset(), slot));
+  }
+  return slots;
+}
+
+// The shelf item or buy-back row kShopInspect is showing, as a prototype. A
+// stackable is worn in no slot at all and answers nullptr.
+const EquipPrototype* TuiController::ShopInspectProto() const {
+  const BuyBackEntry* entry = shop_panel_.selected_buy_back();
+  if (entry == nullptr) {
+    return shop_panel_.selected_item();
+  }
+  if (!entry->has_equip()) {
+    return nullptr;
+  }
+  return FindEquipByName(state_.equips, entry->equip().equip_name());
+}
+
+TuiController::ComparisonSubject TuiController::InspectSubject() const {
+  const EquipTabItem* item = nullptr;
+  switch (screen_) {
+    // An item already on the character is the comparison, so it weighs
+    // against nothing and its card has no bar.
+    case kInspect:
+      item = subject_.equipped() ? nullptr : inspect_item();
+      break;
+    case kShopInspect: {
+      const EquipPrototype* proto = ShopInspectProto();
+      if (proto == nullptr) {
+        return {};
+      }
+      return {proto, state_.character.SlotToFill(*proto, ComparisonPreset())};
+    }
+    case kBankInspect:
+      item = bank_panel_.selected_equip();
+      break;
+    case kTradeInspect:
+      item = trade_inspect_equip();
+      break;
+    // The member's own slot, not the one Equip would fill: the reader is
+    // asking what they wear in the same place, and their gear is not going
+    // anywhere.
+    case kPlayerItemInspect: {
+      const EquipInstance* theirs = player_inspect_panel_.selected_item();
+      if (theirs == nullptr) {
+        return {};
+      }
+      return {&theirs->prototype(), player_inspect_panel_.selected_slot()};
+    }
+    default:
+      return {};
+  }
+  if (item == nullptr) {
+    return {};
+  }
+  return {&item->prototype(),
+          state_.character.SlotToFill(item->prototype(), ComparisonPreset())};
+}
+
+bool TuiController::StepComparisonSlot(int step) {
+  ComparisonSubject subject = InspectSubject();
+  if (subject.proto == nullptr) {
+    return false;
+  }
+  std::vector<EquipSlot> family = SlotFamily(subject.proto->equip_slot());
+  int count = static_cast<int>(family.size());
+  if (count < 2) {
+    return false;
+  }
+  EquipSlot showing = ComparisonSlot(*subject.proto, subject.fallback);
+  int at = 0;
+  for (int i = 0; i < count; ++i) {
+    if (family[i] == showing) {
+      at = i;
+    }
+  }
+  compare_slot_ = (at + count + step % count) % count;
+  return true;
+}
+
 std::optional<int> TuiController::CombatPowerDelta(
-    const EquipTabItem* item) const {
+    const EquipTabItem* item, std::optional<EquipSlot> fallback) const {
   if (item == nullptr) {
     return std::nullopt;
   }
   const StatPreset gear = ComparisonPreset();
-  if (state_.character.SlotToFill(item->prototype(), gear) ==
-      EQUIP_SLOT_UNSPECIFIED) {
+  // The slot the Equipped card is showing, so the figure prices the swap the
+  // card is describing -- which for a ring is whichever of the four the bar
+  // is on.
+  const EquipSlot slot = ComparisonSlot(
+      item->prototype(),
+      fallback.value_or(state_.character.SlotToFill(item->prototype(), gear)));
+  if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return std::nullopt;
   }
   // The activity the preset stands for, so the Boss tab prices a piece by
@@ -566,8 +674,9 @@ std::optional<int> TuiController::CombatPowerDelta(
       gear == StatPreset::kSecond ? Activity::kBossing : Activity::kFarming;
   const int now =
       CharacterCombatPower(state_.character, state_.skills, activity, gear);
-  const int worn = CharacterCombatPower(state_.character.Wearing(*item, gear),
-                                        state_.skills, activity, gear);
+  const int worn =
+      CharacterCombatPower(state_.character.Wearing(*item, gear, slot),
+                           state_.skills, activity, gear);
   return worn - now;
 }
 
@@ -581,7 +690,10 @@ std::optional<int> TuiController::inspect_delta() const {
 }
 
 std::optional<int> TuiController::player_item_delta() const {
-  return CombatPowerDelta(player_inspect_panel_.selected_item());
+  // Priced into the slot THEY wear it in, which is the slot this screen's
+  // card opens on -- see player_item_comparison.
+  return CombatPowerDelta(player_inspect_panel_.selected_item(),
+                          player_inspect_panel_.selected_slot());
 }
 
 const EquipTabItem* TuiController::inspect_comparison() const {
@@ -601,11 +713,13 @@ const EquipTabItem* TuiController::inspect_comparison() const {
 // than by what it would displace: their gear is not going anywhere, and the
 // question a reader is asking of it is what they wear in the same place.
 const EquipTabItem* TuiController::player_item_comparison() const {
+  const EquipInstance* theirs = player_inspect_panel_.selected_item();
   EquipSlot slot = player_inspect_panel_.selected_slot();
-  if (slot == EQUIP_SLOT_UNSPECIFIED) {
+  if (theirs == nullptr || slot == EQUIP_SLOT_UNSPECIFIED) {
     return nullptr;
   }
-  return state_.character.WornAt(ComparisonPreset(), slot);
+  return state_.character.WornAt(ComparisonPreset(),
+                                 ComparisonSlot(theirs->prototype(), slot));
 }
 
 // Keys on the main view, once every screen above it has had its say. A back
@@ -978,12 +1092,15 @@ bool TuiController::OnCardEvent(ftxui::Event event, InspectPanel& panel,
     panel.ScrollBy(1);
     return true;
   }
-  if (event == ftxui::Event::ArrowLeft) {
-    panel.ScrollXBy(-1);
-    return true;
-  }
-  if (event == ftxui::Event::ArrowRight) {
-    panel.ScrollXBy(1);
+  if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
+    int step = event == ftxui::Event::ArrowRight ? 1 : -1;
+    // The Equipped card's tab bar first, when the item has a family of slots
+    // to walk. Nothing else on that card moves sideways -- only the set card
+    // is ever squeezed -- so the two cannot want the same key.
+    if (panel.focused_card() != InspectPanel::kEquippedCard ||
+        !StepComparisonSlot(step)) {
+      panel.ScrollXBy(step);
+    }
     return true;
   }
   if (IsSwitchPanel(event)) {
@@ -2372,7 +2489,7 @@ void TuiController::OpenTradeInspect() {
       return;
     }
   }
-  inspect_panel_.Reset();
+  OpenInspectCards();
   screen_ = kTradeInspect;
 }
 
@@ -2651,7 +2768,7 @@ bool TuiController::OnBankMenuEvent(ftxui::Event event) {
   if (chosen == kBankMenuMove) {
     MoveInBank();
   } else if (chosen == kBankMenuInspect) {
-    inspect_panel_.Reset();
+    OpenInspectCards();
     screen_ = kBankInspect;
   }
   return true;
@@ -2696,6 +2813,8 @@ void TuiController::OpenPlayerItemInspect() {
   // The card reads the item off the panel's cursor, so there is no pointer
   // held across a tick that may rebuild the member.
   if (player_inspect_panel_.selected_item() != nullptr) {
+    player_item_panel_.Reset();
+    compare_slot_.reset();
     screen_ = kPlayerItemInspect;
   }
 }

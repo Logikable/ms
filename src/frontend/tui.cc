@@ -437,8 +437,7 @@ ftxui::Element Tui::RenderBankInspect() {
     inspect_panel_.SetItem(stack == nullptr ? nullptr : &stack->prototype());
   } else {
     inspect_panel_.SetItem(item);
-    inspect_panel_.SetComparison(
-        controller_.WornForComparison(item->prototype()));
+    inspect_panel_.SetComparison(controller_.comparison_slots());
     inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(item));
   }
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
@@ -486,8 +485,7 @@ ftxui::Element Tui::RenderTradeInspect() {
     inspect_panel_.SetItem(item);
     // Weighed against what the reader has on: what an item on the table is
     // worth to them is the first thing either side wants to know.
-    inspect_panel_.SetComparison(
-        controller_.WornForComparison(item->prototype()));
+    inspect_panel_.SetComparison(controller_.comparison_slots());
     inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(item));
   }
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
@@ -623,7 +621,7 @@ ftxui::Element Tui::RenderPlayerInspect() {
   // to read at once.
   if (controller_.screen() == kPlayerItemInspect) {
     player_item_panel_.SetItem(player_inspect_panel_.selected_item());
-    player_item_panel_.SetComparison(controller_.player_item_comparison());
+    player_item_panel_.SetComparison(controller_.comparison_slots());
     player_item_panel_.SetCombatPowerDelta(controller_.player_item_delta());
     player_item_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
     player_item_panel_.SetMaxColumns(ftxui::Terminal::Size().dimx);
@@ -732,13 +730,13 @@ ftxui::Element Tui::RenderBuyBackInspect(const BuyBackEntry& entry) {
   if (entry.equip().trace()) {
     EquipTrace trace(*proto, entry.equip());
     inspect_panel_.SetItem(&trace);
-    inspect_panel_.SetComparison(controller_.WornForComparison(*proto));
+    inspect_panel_.SetComparison(controller_.comparison_slots());
     inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(&trace));
     return Centred(inspect_panel_.Render());
   }
   EquipInstance item(*proto, entry.equip());
   inspect_panel_.SetItem(&item);
-  inspect_panel_.SetComparison(controller_.WornForComparison(*proto));
+  inspect_panel_.SetComparison(controller_.comparison_slots());
   inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(&item));
   return Centred(inspect_panel_.Render());
 }
@@ -767,7 +765,7 @@ ftxui::Element Tui::RenderShopInspect() {
   // stars. Built here because nothing owns a shop item until it is bought.
   EquipInstance preview(*proto);
   inspect_panel_.SetItem(&preview);
-  inspect_panel_.SetComparison(controller_.WornForComparison(*proto));
+  inspect_panel_.SetComparison(controller_.comparison_slots());
   inspect_panel_.SetCombatPowerDelta(controller_.CombatPowerDelta(&preview));
   return Centred(inspect_panel_.Render());
 }
@@ -899,7 +897,7 @@ ftxui::Element Tui::RenderInspect() {
     inspect_panel_.SetItem(controller_.inspect_item());
     // Nothing stackable is worn, so only an equip is ever weighed against
     // what the player has on.
-    inspect_panel_.SetComparison(controller_.inspect_comparison());
+    inspect_panel_.SetComparison(controller_.comparison_slots());
     inspect_panel_.SetCombatPowerDelta(controller_.inspect_delta());
   }
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);

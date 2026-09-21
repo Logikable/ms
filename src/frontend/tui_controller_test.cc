@@ -199,6 +199,22 @@ class TuiControllerTest : public testing::Test {
     inventory_component_->OnEvent(ftxui::Event::ArrowDown);
   }
 
+  // A ring on the character, in the first slot of the four that is free.
+  void WearRing(const EquipPrototype& proto) {
+    state_->character.PickUp(std::make_unique<EquipInstance>(proto));
+    state_->character.Equip(state_->character.inventory().size() - 1);
+  }
+
+  // The arrows onto the Equipped card, where the ring bar lives. The panel is
+  // told what the screen tells it first: the ring it walks is the cards that
+  // are drawn.
+  void FocusTheEquippedCard() {
+    inspect_panel_.SetItem(controller_->inspect_item());
+    inspect_panel_.SetComparison(controller_->comparison_slots());
+    controller_->OnEvent(ftxui::Event::Tab);
+    ASSERT_EQ(inspect_panel_.focused_card(), InspectPanel::kEquippedCard);
+  }
+
   // A sword in the bag instead, with the cursor down on its row.
   void BagASword() {
     state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -1435,6 +1451,103 @@ TEST_F(TuiControllerTest, ASecondCopyOfAWornRingIsComparedWithIt) {
             state_->character.WornAt(StatPreset::kFirst, EQUIP_SLOT_RING));
   ASSERT_TRUE(controller_->inspect_delta().has_value());
   EXPECT_GT(*controller_->inspect_delta(), 0);
+}
+
+// A ring worth `attack`, which every job may wear.
+EquipPrototype RingWorth(const std::string& name, int attack) {
+  EquipPrototype ring;
+  ring.set_name(name);
+  ring.set_equip_slot(EQUIP_SLOT_RING);
+  ring.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  ring.mutable_base_stats()->set_attack(attack);
+  return ring;
+}
+
+// A ring fits any of four slots, so its Equipped card carries a bar over the
+// four and Left/Right walk it -- against the worn ring in each, and against
+// the empty ones. The figure follows the card: weighed against a ring worth
+// keeping it pays less than it does into a slot holding nothing.
+TEST_F(TuiControllerTest, TheRingBarWalksTheFourSlotsAndTheFigureFollows) {
+  WearRing(RingWorth("Plain Ring", 5));
+  WearRing(RingWorth("Good Ring", 40));
+  state_->character.PickUp(
+      std::make_unique<EquipInstance>(RingWorth("New Ring", 20)));
+
+  DescendIntoBag();
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kInspect);
+
+  // It opens where Equip would put it: the first free slot, holding nothing.
+  InspectPanel::ComparisonSlots slots = controller_->comparison_slots();
+  ASSERT_EQ(slots.worn.size(), 4u);
+  EXPECT_EQ(slots.active, 2);
+  EXPECT_EQ(controller_->inspect_comparison(), nullptr);
+  ASSERT_TRUE(controller_->inspect_delta().has_value());
+  const int into_empty = *controller_->inspect_delta();
+  EXPECT_GT(into_empty, 0);
+
+  FocusTheEquippedCard();
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_EQ(controller_->comparison_slots().active, 1);
+  EXPECT_EQ(controller_->inspect_comparison(),
+            state_->character.WornAt(StatPreset::kFirst, EQUIP_SLOT_RING_2));
+  ASSERT_TRUE(controller_->inspect_delta().has_value());
+  const int over_good = *controller_->inspect_delta();
+  EXPECT_LT(over_good, 0) << "the Good Ring is the better of the two";
+
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_EQ(controller_->comparison_slots().active, 0);
+  ASSERT_TRUE(controller_->inspect_delta().has_value());
+  EXPECT_GT(*controller_->inspect_delta(), over_good)
+      << "the Plain Ring costs less to give up";
+  EXPECT_LT(*controller_->inspect_delta(), into_empty);
+
+  // A ring, and so a bar that wraps the way every bar in the game does.
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_EQ(controller_->comparison_slots().active, 3);
+}
+
+// The bar is the ring's own: an item with one slot has nothing to walk, and
+// the arrows go back to the card they always moved.
+TEST_F(TuiControllerTest, AnItemWithOneSlotHasNoBarToWalk) {
+  HoldASword();  // something for the Equipped card to hold
+  BagASword();
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kInspect);
+  ASSERT_EQ(controller_->comparison_slots().worn.size(), 1u);
+
+  FocusTheEquippedCard();
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_EQ(controller_->comparison_slots().active, 0);
+  EXPECT_EQ(controller_->screen(), kInspect);
+}
+
+// The slot the arrows were left on does not follow the player to the next
+// item: every screen opens on the slot Equip would fill.
+TEST_F(TuiControllerTest, OpeningAnInspectScreenForgetsTheSlot) {
+  WearRing(RingWorth("Plain Ring", 5));
+  state_->character.PickUp(
+      std::make_unique<EquipInstance>(RingWorth("New Ring", 20)));
+
+  DescendIntoBag();
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  FocusTheEquippedCard();
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_EQ(controller_->comparison_slots().active, 2);
+
+  controller_->OnEvent(ftxui::Event::Escape);
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kInspect);
+  EXPECT_EQ(controller_->comparison_slots().active, 1)
+      << "the first free slot, which is where Equip would put it";
 }
 
 // The sideways arrows belong to a squeezed card, and like the others they
