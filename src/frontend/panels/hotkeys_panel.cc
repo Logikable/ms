@@ -12,9 +12,10 @@ namespace {
 // Rows are written out at their natural length rather than padded to a fixed
 // width. Letting the window size itself to its content costs nothing here:
 // unlike the panels above it, this one has no sibling to line its columns up
-// with.
+// with -- but the window is then as wide as the longest row, so the row is
+// what has to carry the blank column inside each border.
 ftxui::Element Row(const std::string& text) {
-  return ftxui::text(" " + text);
+  return ftxui::text(" " + text + " ");
 }
 
 }  // namespace

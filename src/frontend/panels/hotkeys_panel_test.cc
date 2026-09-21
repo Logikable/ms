@@ -70,5 +70,8 @@ TEST(HotkeysPanelTest, RetiresTheLevelAfterTheBagArrives) {
   EXPECT_EQ(HotkeysTipRetireLevel(), UnlockLevel(Feature::kBag) + 1);
 }
 
+TEST(HotkeysPanelTest, TheTipsKeepOffTheRightBorder) {
+  EXPECT_TRUE(RowsTouchingTheRightBorder(HotkeysPanel()).empty());
+}
 }  // namespace
 }  // namespace ms
