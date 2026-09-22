@@ -13,10 +13,77 @@ import argparse
 import os
 import sys
 
+# MP3 Layer III bitrates in kbps, indexed by the header's four-bit field.
+# MPEG-1 and MPEG-2/2.5 read different tables; index 15 is a reserved value.
+_BITRATES = {
+    1: [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0],
+    2: [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0],
+}
+# Sample rates in Hz by MPEG version, indexed by the header's two-bit field.
+_RATES = {1: [44100, 48000, 32000],
+          2: [22050, 24000, 16000],
+          25: [11025, 12000, 8000]}
+_VERSIONS = {0: 25, 2: 2, 3: 1}
+
 
 def track_name(path):
     """The name a track is looked up by: its filename stem."""
     return os.path.splitext(os.path.basename(path))[0]
+
+
+def _id3_length(data):
+    """Bytes of ID3v2 tag at the head of `data`, which carry no audio."""
+    if data[:3] != b"ID3":
+        return 0
+    size = 0
+    for byte in data[6:10]:
+        size = (size << 7) | (byte & 0x7F)
+    return 10 + size
+
+
+def _frame(data, pos):
+    """The frame starting at `pos` as (length, samples, rate), or None.
+
+    None means `pos` is not a frame header, which is how the walk below
+    resyncs past a tag or a run of padding.
+    """
+    if pos + 4 > len(data) or data[pos] != 0xFF or data[pos + 1] & 0xE0 != 0xE0:
+        return None
+    version = _VERSIONS.get(data[pos + 1] >> 3 & 3)
+    # Layer III alone: it is what every track under bgm/ is.
+    if version is None or data[pos + 1] >> 1 & 3 != 1:
+        return None
+    bitrate = _BITRATES[1 if version == 1 else 2][data[pos + 2] >> 4 & 0xF]
+    rate_index = data[pos + 2] >> 2 & 3
+    if bitrate == 0 or rate_index == 3:
+        return None
+    rate = _RATES[version][rate_index]
+    samples = 1152 if version == 1 else 576
+    padding = data[pos + 2] >> 1 & 1
+    length = samples // 8 * bitrate * 1000 // rate + padding
+    return (length, samples, rate) if length > 4 else None
+
+
+def duration_ms(path):
+    """How long `path` plays, by walking its frame headers.
+
+    Exact for a variable bitrate as well as a constant one, and it decodes
+    nothing: each header says how far the next one is. A file with no frames
+    in it at all answers 0.
+    """
+    data = open(path, "rb").read()
+    pos = _id3_length(data)
+    samples = 0
+    rate = 0
+    while pos + 4 <= len(data):
+        frame = _frame(data, pos)
+        if frame is None:
+            pos += 1
+            continue
+        length, frame_samples, rate = frame
+        samples += frame_samples
+        pos += length
+    return samples * 1000 // rate if rate else 0
 
 
 def write_asm(out, paths, include_dir):
@@ -55,12 +122,14 @@ def write_table(out, header_include, paths):
     out.write("  std::string_view name;\n")
     out.write("  const unsigned char* data;\n")
     out.write("  const unsigned char* end;\n")
+    out.write("  int duration_ms;\n")
     out.write("};\n\n")
     out.write("constexpr Entry kTracks[] = {\n")
     order = sorted(range(len(paths)), key=lambda i: track_name(paths[i]))
     for i in order:
-        out.write('    {"%s", kBgm%d, kBgm%dEnd},\n'
-                  % (track_name(paths[i]).replace('"', '\\"'), i, i))
+        out.write('    {"%s", kBgm%d, kBgm%dEnd, %d},\n'
+                  % (track_name(paths[i]).replace('"', '\\"'), i, i,
+                     duration_ms(paths[i])))
     out.write("};\n\n}  // namespace\n\n")
     out.write("""std::optional<TrackData> BgmTrack(std::string_view track) {
   const Entry* it = std::lower_bound(
@@ -69,7 +138,8 @@ def write_table(out, header_include, paths):
   if (it == std::end(kTracks) || it->name != track) {
     return std::nullopt;
   }
-  return TrackData{it->data, static_cast<std::size_t>(it->end - it->data)};
+  return TrackData{it->data, static_cast<std::size_t>(it->end - it->data),
+                   it->duration_ms};
 }
 
 std::vector<std::string_view> BgmTrackNames() {

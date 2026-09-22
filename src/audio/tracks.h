@@ -23,6 +23,9 @@ namespace ms {
 struct TrackData {
   const unsigned char* data;
   std::size_t size;
+  // How long the track plays. Counted from the MP3's frame headers when the
+  // build embedded it, so asking costs nothing and decodes nothing.
+  int duration_ms;
 };
 
 // The MP3 for `track`, or nullopt where this build has no such track.
