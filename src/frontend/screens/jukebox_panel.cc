@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -60,6 +61,38 @@ int IndexOfMode(JukeboxMode mode) {
   return 0;
 }
 
+// Where a boss's own tracks belong: the boss, and the phases the track plays
+// through. A phase naming no track carries on with the one before it, and a
+// track that plays every phase is the boss's name alone.
+std::map<std::string, std::string> BossPlaces(const Boss& boss) {
+  std::map<std::string, std::set<int>> phases;
+  int longest = 0;
+  for (const BossDifficulty& difficulty : boss.difficulties()) {
+    std::string playing;
+    int number = 0;
+    for (const BossPhase& phase : difficulty.phases()) {
+      ++number;
+      if (!phase.bgm().empty()) {
+        playing = phase.bgm();
+      }
+      if (!playing.empty()) {
+        phases[playing].insert(number);
+      }
+    }
+    longest = std::max(longest, number);
+  }
+  std::map<std::string, std::string> places;
+  for (const auto& [track, numbers] : phases) {
+    std::string label;
+    for (int number : numbers) {
+      label += (label.empty() ? " P" : "/") + std::to_string(number);
+    }
+    places[track] = boss.name() +
+                    (static_cast<int>(numbers.size()) == longest ? "" : label);
+  }
+  return places;
+}
+
 // Seconds as mm:ss, counting the minutes past sixty rather than wrapping.
 std::string Clock(int seconds) {
   seconds = std::max(seconds, 0);
@@ -95,11 +128,9 @@ void JukeboxPanel::BuildSongs(const GameState& state) {
     }
   }
   for (const auto& [key, boss] : state.bosses) {
-    for (const BossDifficulty& difficulty : boss.difficulties()) {
-      for (const BossPhase& phase : difficulty.phases()) {
-        if (!phase.bgm().empty() && !places.count(phase.bgm())) {
-          places[phase.bgm()] = {0.0, boss.name()};
-        }
+    for (const auto& [track, place] : BossPlaces(boss)) {
+      if (!places.count(track)) {
+        places[track] = {0.0, place};
       }
     }
   }

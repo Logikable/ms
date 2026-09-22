@@ -26,6 +26,8 @@ namespace {
 constexpr char kTreetops[] = "AboveTheTreetops";
 constexpr char kFloral[] = "FloralLife";
 constexpr char kHonTale[] = "HonTale";
+constexpr char kCave[] = "CaveOfHontale";
+constexpr char kTeaParty[] = "JoyfulTeaParty";
 
 Mob MobAt(const std::string& name, int level) {
   Mob mob;
@@ -45,20 +47,38 @@ MapData MapWith(const std::string& name, const std::string& bgm,
   return map;
 }
 
-// Two maps share Floral Life, and the lower-level one is the place it goes
-// under. Hon Tale is a boss's alone.
-GameState MakeState() {
+// Horntail as the data has him: the cave theme from phase 1, carried through
+// a phase naming none, and his own from phase 3.
+Boss MakeHorntail() {
   Boss horntail;
   horntail.set_name("Horntail");
-  BossPhase* phase = horntail.add_difficulties()->add_phases();
-  phase->set_bgm(kHonTale);
+  BossDifficulty* normal = horntail.add_difficulties();
+  normal->add_phases()->set_bgm(kCave);
+  normal->add_phases();
+  normal->add_phases()->set_bgm(kHonTale);
+  return horntail;
+}
+
+// One theme over both of Pierre's phases, which is the whole fight.
+Boss MakePierre() {
+  Boss pierre;
+  pierre.set_name("Pierre");
+  BossDifficulty* normal = pierre.add_difficulties();
+  normal->add_phases()->set_bgm(kTeaParty);
+  normal->add_phases();
+  return pierre;
+}
+
+// Two maps share Floral Life, and the lower-level one is the place it goes
+// under. The boss themes are the bosses' alone.
+GameState MakeState() {
   return GameState(
       {}, {}, {}, {{"snail", MobAt("Snail", 1)}, {"drake", MobAt("Drake", 40)}},
       {{"ellinia", MapWith("Ellinia", kFloral, "snail")},
        {"deep_ellinia", MapWith("Deep Ellinia", kFloral, "drake")},
        {"lith", MapWith("Lith Harbor", kTreetops, "snail")}},
       /*skills=*/{}, GameMode::kPlay, /*test=*/{}, /*seed=*/std::nullopt,
-      /*sets=*/{}, {{"horntail", horntail}});
+      /*sets=*/{}, {{"horntail", MakeHorntail()}, {"pierre", MakePierre()}});
 }
 
 class JukeboxPanelTest : public testing::Test {
@@ -137,9 +157,12 @@ TEST_F(JukeboxPanelTest, ListsEveryTrackWithItsPlaceAndItsLength) {
 
 // A region's music is shared, and the place it goes under is the map a player
 // meets it on -- the lowest of them, not whichever sorted first.
-TEST_F(JukeboxPanelTest, TheLowestMapWinsASharedTrackAndABossKeepsItsOwn) {
+TEST_F(JukeboxPanelTest, TheLowestMapWinsASharedTrackAndABossNamesItsPhases) {
   EXPECT_EQ(SongFor(kFloral).place, "Ellinia");
-  EXPECT_EQ(SongFor(kHonTale).place, "Horntail");
+  EXPECT_EQ(SongFor(kCave).place, "Horntail P1/2");
+  EXPECT_EQ(SongFor(kHonTale).place, "Horntail P3");
+  // A theme playing the whole fight names no phase.
+  EXPECT_EQ(SongFor(kTeaParty).place, "Pierre");
 }
 
 TEST_F(JukeboxPanelTest, OpensOnWhatIsPlayingWithTheListInFocus) {
