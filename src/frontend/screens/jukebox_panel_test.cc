@@ -117,11 +117,25 @@ class JukeboxPanelTest : public testing::Test {
     FAIL() << track << " is not in the song list";
   }
 
-  // Puts the focus on the buttons and the cursor on `button`.
+  // Puts the focus on the buttons and the cursor on `button`. SwitchHalf is a
+  // toggle, so asking twice would put the focus back on the list.
   void SelectButton(JukeboxButton button) {
-    panel_.SwitchHalf();
+    if (!panel_.on_buttons()) {
+      panel_.SwitchHalf();
+    }
     panel_.MoveColumn(static_cast<int>(button) -
                       static_cast<int>(panel_.selected_button()));
+  }
+
+  // Where `track` sits in the list the screen draws.
+  int RowOf(const std::string& track) {
+    for (int i = 0; i < static_cast<int>(panel_.songs().size()); ++i) {
+      if (panel_.songs()[i].track == track) {
+        return i;
+      }
+    }
+    ADD_FAILURE() << track << " is not in the song list";
+    return 0;
   }
 
   const Song& SongFor(const std::string& track) {
@@ -170,12 +184,28 @@ TEST_F(JukeboxPanelTest, OpensOnWhatIsPlayingWithTheListInFocus) {
   panel_.Reset();
   EXPECT_FALSE(panel_.on_buttons());
   EXPECT_EQ(panel_.songs()[panel_.selected_row()].track, kFloral);
-  // In the list, the title of the track playing is the one in the theme's
-  // colour. Asked of the row, not of the title: Now Playing carries it too.
+  // In the list, the track playing is a whole row in the theme's colour --
+  // caret, title, place and length. Asked of the row, not of the title: Now
+  // Playing carries that too.
   ftxui::Screen screen = Draw();
   ScreenPos live = FindOnScreen(screen, "> " + TrackTitle(kFloral));
   ASSERT_GE(live.x, 0);
-  EXPECT_EQ(screen.PixelAt(live.x + 2, live.y).foreground_color, kTheme);
+  bool dimmed = false;
+  for (int x = live.x; x < screen.dimx(); ++x) {
+    ftxui::Pixel pixel = screen.PixelAt(x, live.y);
+    // The row ends at the window's border; the scroll bar before it is the
+    // panel's, not the row's.
+    if (pixel.character == "│") {
+      break;
+    }
+    if (pixel.character == " " || pixel.character == "┃") {
+      continue;
+    }
+    EXPECT_EQ(pixel.foreground_color, kTheme) << "column " << x;
+    dimmed = dimmed || pixel.dim;
+  }
+  // The place, the one cell of the row wearing the colour dimmed.
+  EXPECT_TRUE(dimmed);
   EXPECT_NE(ColorOf(screen, TrackTitle(kTreetops)), kTheme);
 }
 
@@ -191,11 +221,11 @@ TEST_F(JukeboxPanelTest, TabMovesToTheButtonsAndTheArrowsRingRound) {
   EXPECT_FALSE(panel_.on_buttons());
   panel_.SwitchHalf();
   EXPECT_TRUE(panel_.on_buttons());
-  EXPECT_EQ(panel_.selected_button(), JukeboxButton::kRewind);
+  EXPECT_EQ(panel_.selected_button(), JukeboxButton::kPrevious);
   panel_.MoveColumn(-1);
   EXPECT_EQ(panel_.selected_button(), JukeboxButton::kMode);
   panel_.MoveColumn(1);
-  EXPECT_EQ(panel_.selected_button(), JukeboxButton::kRewind);
+  EXPECT_EQ(panel_.selected_button(), JukeboxButton::kPrevious);
 
   // Up and Down belong to the list, so they do nothing over here.
   int row = panel_.selected_row();
@@ -213,6 +243,31 @@ TEST_F(JukeboxPanelTest, PlayPauseHoldsTheMusicAndLetsItGo) {
   EXPECT_NE(Text().find("[Play ]"), std::string::npos);
   panel_.Activate();
   EXPECT_FALSE(director_.paused());
+}
+
+// The two track marks walk the song list itself, a ring like every other, and
+// the one going back starts a song over once it is properly under way.
+TEST_F(JukeboxPanelTest, TheTrackMarksWalkTheListAndRestartASongUnderWay) {
+  director_.Play(kFloral);
+  int row = RowOf(kFloral);
+  ASSERT_GT(row, 0);
+  SelectButton(JukeboxButton::kNext);
+  panel_.Activate();
+  EXPECT_EQ(director_.playing(), panel_.songs()[row + 1].track);
+  SelectButton(JukeboxButton::kPrevious);
+  panel_.Activate();
+  EXPECT_EQ(director_.playing(), panel_.songs()[row].track);
+
+  director_.Nudge(2 * kSkipSeconds);
+  ASSERT_GE(director_.position_seconds(), kSkipSeconds);
+  panel_.Activate();
+  EXPECT_EQ(director_.playing(), panel_.songs()[row].track);
+  EXPECT_LT(director_.position_seconds(), kSkipSeconds);
+
+  // Off the front of the list is the back of it.
+  director_.Play(panel_.songs().front().track);
+  panel_.Activate();
+  EXPECT_EQ(director_.playing(), panel_.songs().back().track);
 }
 
 TEST_F(JukeboxPanelTest, TheSkipButtonsMoveTheCursorFiveSeconds) {

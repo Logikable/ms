@@ -93,6 +93,16 @@ std::map<std::string, std::string> BossPlaces(const Boss& boss) {
   return places;
 }
 
+// Past this much of a track, the song-before mark starts it over instead of
+// going back a song -- what every player does.
+constexpr float kRestartAfterSeconds = 5.0f;
+
+// A transport mark wears no brackets, so the invert IS the cursor on it.
+ftxui::Element TransportMark(const std::string& mark, bool focused) {
+  ftxui::Element element = ftxui::text(mark);
+  return focused ? std::move(element) | ftxui::inverted : element;
+}
+
 // Seconds as mm:ss, counting the minutes past sixty rather than wrapping.
 std::string Clock(int seconds) {
   seconds = std::max(seconds, 0);
@@ -205,8 +215,34 @@ void JukeboxPanel::MoveColumn(int delta) {
   button_ = StepCursor(button_, delta, kJukeboxButtonCount);
 }
 
+void JukeboxPanel::StepTrack(int delta) {
+  if (songs_.empty()) {
+    return;
+  }
+  int playing = 0;
+  for (int i = 0; i < static_cast<int>(songs_.size()); ++i) {
+    if (songs_[i].track == director_.playing()) {
+      playing = i;
+      break;
+    }
+  }
+  int total = static_cast<int>(songs_.size());
+  director_.Play(songs_[StepCursor(playing, delta, total)].track);
+}
+
 void JukeboxPanel::PressButton() {
   switch (selected_button()) {
+    case JukeboxButton::kPrevious:
+      if (director_.position_seconds() >= kRestartAfterSeconds &&
+          !director_.playing().empty()) {
+        director_.Play(director_.playing());
+        return;
+      }
+      StepTrack(-1);
+      return;
+    case JukeboxButton::kNext:
+      StepTrack(1);
+      return;
     case JukeboxButton::kRewind:
       director_.Nudge(-kSkipSeconds);
       return;
@@ -272,7 +308,7 @@ ftxui::Element JukeboxPanel::RenderScrubBar() const {
   float position = director_.position_seconds();
   float filled = length > 0.0f ? std::clamp(position / length, 0.0f, 1.0f) : 0;
   return ftxui::hbox({
-      ftxui::text(PadLeft(Clock(static_cast<int>(position)), kTimeWidth)),
+      ftxui::text(PadLeft(Clock(static_cast<int>(position)), kTimeWidth) + " "),
       ProgressBar(filled, kTheme, "") |
           ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBarWidth),
       ftxui::text(PadLeft(Clock(static_cast<int>(length)), kTimeWidth)),
@@ -283,20 +319,24 @@ ftxui::Element JukeboxPanel::RenderButtons() const {
   // Both labels are held to five columns, so pressing the button does not
   // shuffle the row it sits in.
   std::string play = director_.paused() ? "Play " : "Pause";
+  auto on = [this](JukeboxButton button) {
+    return on_buttons_ && selected_button() == button;
+  };
   ftxui::Element mode = ActionButton(
       "Mode: " + PadRight(ModeName(account_.jukebox_mode()), kModeNameWidth) +
           " ▾",
-      on_buttons_ && selected_button() == JukeboxButton::kMode);
+      on(JukeboxButton::kMode));
   return ftxui::hbox({
       ftxui::text("  "),
-      ActionButton("◂◂ 5s",
-                   on_buttons_ && selected_button() == JukeboxButton::kRewind),
-      ftxui::text("   "),
-      ActionButton(
-          play, on_buttons_ && selected_button() == JukeboxButton::kPlayPause),
-      ftxui::text("   "),
-      ActionButton("5s ▸▸",
-                   on_buttons_ && selected_button() == JukeboxButton::kSkip),
+      TransportMark("❙◂", on(JukeboxButton::kPrevious)),
+      ftxui::text("  "),
+      TransportMark("◂◂", on(JukeboxButton::kRewind)),
+      ftxui::text("  "),
+      ActionButton(play, on(JukeboxButton::kPlayPause)),
+      ftxui::text("  "),
+      TransportMark("▸▸", on(JukeboxButton::kSkip)),
+      ftxui::text("  "),
+      TransportMark("▸❙", on(JukeboxButton::kNext)),
       ftxui::filler(),
       std::move(mode) | ftxui::reflect(mode_button_box_),
       ftxui::text("  "),
@@ -324,16 +364,19 @@ ftxui::Element JukeboxPanel::RenderHeader() const {
 
 ftxui::Element JukeboxPanel::RenderSong(const Song& song,
                                         bool on_cursor) const {
-  // The caret is the cursor; the track playing is the one title in the theme's
-  // colour. Two marks, so a row can carry both at once.
-  bool live = song.track == director_.playing();
-  return ftxui::hbox({
+  // The caret is the cursor; the track playing is a whole row in the theme's
+  // colour, its place a dimmer shade of the same. Two marks, so a row can
+  // carry both at once.
+  ftxui::Element row = ftxui::hbox({
       ftxui::text(on_cursor ? "> " : "  "),
-      ftxui::text(PadRight(song.title, kTitleWidth + kCellGap)) |
-          (live ? ftxui::color(kTheme) : ftxui::nothing),
+      ftxui::text(PadRight(song.title, kTitleWidth + kCellGap)),
       ftxui::text(PadRight(song.place, kPlaceWidth + kCellGap)) | ftxui::dim,
       ftxui::text(PadLeft(Clock(song.duration_ms / 1000), kLengthWidth)),
   });
+  if (song.track != director_.playing()) {
+    return row;
+  }
+  return std::move(row) | ftxui::color(kTheme);
 }
 
 ftxui::Element JukeboxPanel::RenderList() const {

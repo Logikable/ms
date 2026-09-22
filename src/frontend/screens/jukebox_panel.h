@@ -1,10 +1,10 @@
 /* The Jukebox screen: every track the game carries, and what is playing now.
  *
  * Two windows down the screen. Now Playing carries the track's title over the
- * place it belongs to, a scrubbing bar beside them, and the four buttons: back
- * five seconds, play or pause, on five seconds, and the mode the music is in.
- * Under it the song list -- title, place, length -- with Enter playing the row
- * the cursor is on.
+ * place it belongs to, a scrubbing bar beside them, and the transport row:
+ * the song before, back five seconds, play or pause, on five seconds, the song
+ * after, and the mode the music is in. Under it the song list -- title, place,
+ * length -- with Enter playing the row the cursor is on.
  *
  * Tab moves between the two, Left and Right walk the buttons, and Up and Down
  * walk whichever list holds the cursor. The mode button opens a box under
@@ -32,12 +32,14 @@ namespace ms {
 
 // The stops along the Now Playing row, left to right.
 enum class JukeboxButton {
+  kPrevious,
   kRewind,
   kPlayPause,
   kSkip,
+  kNext,
   kMode,
 };
-inline constexpr int kJukeboxButtonCount = 4;
+inline constexpr int kJukeboxButtonCount = 6;
 
 // One row of the song list.
 struct Song {
@@ -113,6 +115,9 @@ class JukeboxPanel {
   // The mode the box is on, or the account's while it is shut.
   JukeboxMode ModeAt(int row) const;
   void PressButton();
+  // The song `delta` places from the one playing, in the list's own order and
+  // coming round at either end. Plays it.
+  void StepTrack(int delta);
 
   ftxui::Element RenderNowPlaying() const;
   ftxui::Element RenderIdentity() const;
