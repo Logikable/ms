@@ -25,7 +25,7 @@ package(default_visibility = ["//visibility:public"])
 # timestamp carries no timezone, so whatever a viewer does with it, midday
 # cannot slide onto the day before or after. Move it when the date shown to a
 # player would otherwise be misleading.
-_RELEASE_TIMESTAMP = 1789905600
+_RELEASE_TIMESTAMP = 1789992000
 
 platform(
     name = "linux_x86_64",
