@@ -20,7 +20,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/screen_interactive.hpp"
-#include "src/audio/jukebox.h"
+#include "src/audio/music_director.h"
 #include "src/audio/music_player.h"
 #include "src/combat/battle_analysis.h"
 #include "src/combat/fight.h"
@@ -187,14 +187,11 @@ class Tui {
   // well as after ticks, because combat levels a character during a tick while
   // an advancement happens during an event.
   void NoticeProgress();
-  // Puts the music where the player is: the fight's track while a boss owns
-  // the screen, the map's otherwise. Asking for the track already playing
-  // costs nothing.
+  // Sets the volume the player is standing in and hands the director where
+  // they are standing. What plays is the director's; how loud is this.
   void UpdateMusic();
   // The track the map or the boss names, empty where neither names one.
   std::string NormalTrack() const;
-  // Keeps a random track going, one blending into the next as each ends.
-  void PlayShuffled();
   // The panel the player is looking at, or kNoPanel. panel_focus_ still names
   // one while the shop is open, but not one they can see.
   Panel FocusedPanel() const;
@@ -215,14 +212,8 @@ class Tui {
   // Its own stream rather than the game's, so which track comes up next does
   // not move the rolls a seeded run is meant to repeat.
   std::mt19937 music_rng_{std::random_device{}()};
-  Jukebox jukebox_{music_rng_};
-  // Whether the music is the jukebox's rather than the map's. It outlasts the
-  // option being switched off: a track that is playing is played out first.
-  bool shuffling_ = false;
-  // What the map or the boss wanted at the moment the option went off. The
-  // player walking somewhere else while the last random track plays out is
-  // what ends the wait early.
-  std::string resuming_from_;
+  // What plays and what plays next, in whichever mode the account is in.
+  MusicDirector music_director_{music_player_, music_rng_};
   // What the Battle Analysis tool has measured. Fed by the ticker, and only
   // while the map is the fight in front of the player.
   BattleAnalysis analysis_;

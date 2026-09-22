@@ -370,7 +370,7 @@ cc_library(
         "//src:game_state",
         "//src:roster",
         "//src:save",
-        "//src/audio:jukebox",
+        "//src/audio:music_director",
         "//src/audio:music_player",
         "//src/character",
         "//src/character:consumables",

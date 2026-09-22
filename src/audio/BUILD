@@ -25,6 +25,25 @@ cc_library(
 )
 
 cc_library(
+    name = "track_title",
+    srcs = ["track_title.cc"],
+    hdrs = ["track_title.h"],
+    deps = [":tracks"],
+)
+
+cc_library(
+    name = "music_director",
+    srcs = ["music_director.cc"],
+    hdrs = ["music_director.h"],
+    deps = [
+        ":jukebox",
+        ":music_player",
+        ":track_title",
+        "//src/protos:account_proto_cc",
+    ],
+)
+
+cc_library(
     name = "jukebox",
     srcs = ["jukebox.cc"],
     hdrs = ["jukebox.h"],
@@ -37,6 +56,27 @@ cc_test(
     deps = [
         ":jukebox",
         ":tracks",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "track_title_test",
+    srcs = ["track_title_test.cc"],
+    deps = [
+        ":track_title",
+        ":tracks",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "music_director_test",
+    srcs = ["music_director_test.cc"],
+    deps = [
+        ":music_director",
+        ":tracks",
+        "//src:build_config",
         "@googletest//:gtest_main",
     ],
 )

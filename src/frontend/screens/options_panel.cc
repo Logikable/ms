@@ -18,8 +18,6 @@ std::string OptionName(Option option) {
       return "Panel Title Blink";
     case Option::kAutoswapPresets:
       return "Autoswap Presets";
-    case Option::kJukebox:
-      return "Jukebox";
     case Option::kMapBgmVolume:
       return "Map BGM Volume";
     case Option::kBossBgmVolume:
@@ -66,8 +64,6 @@ bool OptionsPanel::IsOn(Option option) const {
       return account_.panel_title_blink();
     case Option::kAutoswapPresets:
       return account_.autoswap_presets();
-    case Option::kJukebox:
-      return account_.jukebox();
     case Option::kMapBgmVolume:
     case Option::kBossBgmVolume:
       return false;
@@ -83,7 +79,6 @@ int OptionsPanel::VolumeOf(Option option) const {
       return account_.boss_bgm_volume();
     case Option::kPanelTitleBlink:
     case Option::kAutoswapPresets:
-    case Option::kJukebox:
       return 0;
   }
   return 0;
@@ -99,9 +94,6 @@ void OptionsPanel::Toggle() {
       return;
     case Option::kAutoswapPresets:
       account_.SetAutoswapPresets(!account_.autoswap_presets());
-      return;
-    case Option::kJukebox:
-      account_.SetJukebox(!account_.jukebox());
       return;
     case Option::kMapBgmVolume:
     case Option::kBossBgmVolume:
@@ -123,7 +115,6 @@ void OptionsPanel::Adjust(int delta) {
       return;
     case Option::kPanelTitleBlink:
     case Option::kAutoswapPresets:
-    case Option::kJukebox:
       return;
   }
 }

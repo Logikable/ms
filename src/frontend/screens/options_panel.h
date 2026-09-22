@@ -23,16 +23,15 @@
 
 namespace ms {
 
-// The settings the screen holds, top to bottom. The last three are only
-// there in a build that has music; see kAudioEnabled.
+// The settings the screen holds, top to bottom. The last two are only there
+// in a build that has music; see kAudioEnabled.
 enum class Option {
   kPanelTitleBlink,
   kAutoswapPresets,
-  kJukebox,
   kMapBgmVolume,
   kBossBgmVolume,
 };
-inline constexpr int kOptionCount = kAudioEnabled ? 5 : 2;
+inline constexpr int kOptionCount = kAudioEnabled ? 4 : 2;
 
 class OptionsPanel {
  public:

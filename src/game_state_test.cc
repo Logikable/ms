@@ -219,11 +219,11 @@ TEST(GameStateTest, TestModeThrowsTheWorkbenchSwitches) {
   GameState state = MakeTestModeState();
   EXPECT_TRUE(state.account.autoswap_presets());
   EXPECT_TRUE(state.character.autoswap_presets());
-  EXPECT_TRUE(state.account.jukebox());
+  EXPECT_EQ(state.account.jukebox_mode(), JUKEBOX_MODE_SHUFFLE);
 
   GameState played = MakePlayModeState();
   EXPECT_FALSE(played.account.autoswap_presets());
-  EXPECT_FALSE(played.account.jukebox());
+  EXPECT_EQ(played.account.jukebox_mode(), JUKEBOX_MODE_FOLLOW_MAP);
 }
 
 TEST(GameStateTest, SkillsZeroLeavesTheJobsOwnBookUnbought) {
@@ -1008,7 +1008,7 @@ TEST(GameStateTest, MaxModeThrowsTheSameSwitches) {
   GameState state = MakeMaxState(230);
   EXPECT_TRUE(state.account.autoswap_presets());
   EXPECT_TRUE(state.character.autoswap_presets());
-  EXPECT_TRUE(state.account.jukebox());
+  EXPECT_EQ(state.account.jukebox_mode(), JUKEBOX_MODE_SHUFFLE);
 }
 
 const EquipInstance& Worn(const GameState& state, EquipSlot slot) {

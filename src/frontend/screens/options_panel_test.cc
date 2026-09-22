@@ -112,15 +112,9 @@ class OptionsAudioTest : public OptionsPanelTest {
   }
 };
 
-// The switch sits above the two sliders, the music being one subject.
-TEST_F(OptionsAudioTest, JukeboxShipsOffAndEnterThrowsIt) {
-  SelectOption(Option::kJukebox);
-  EXPECT_NE(Render().find("Jukebox"), std::string::npos);
-  EXPECT_FALSE(account_.jukebox());
-  panel_.Toggle();
-  EXPECT_TRUE(account_.jukebox());
-  panel_.Toggle();
-  EXPECT_FALSE(account_.jukebox());
+// Where the music comes from is the Jukebox screen's, not a switch here.
+TEST_F(OptionsAudioTest, NoJukeboxSwitch) {
+  EXPECT_EQ(Render().find("Jukebox"), std::string::npos);
 }
 
 TEST_F(OptionsAudioTest, BothVolumesShowAtTen) {

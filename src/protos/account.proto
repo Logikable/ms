@@ -57,6 +57,18 @@ message Bank {
   map<string, int64> currencies = 4;
 }
 
+// Where the game's music comes from. Zero is the state the game ships in, so
+// a save from before the Jukebox existed follows the map the way it always
+// did; see the Options comment below for the rule.
+enum JukeboxMode {
+  // The track the map, or the boss being fought, names -- looped.
+  JUKEBOX_MODE_FOLLOW_MAP = 0;
+  // Down the song list and round again: the track after the one playing.
+  JUKEBOX_MODE_PLAYLIST = 1;
+  // A track at random, never one of the last few played.
+  JUKEBOX_MODE_SHUFFLE = 2;
+}
+
 // The switches the Options screen holds, one field apiece. Every one is
 // written so that its default -- an unset field, which is what a save from
 // before the option existed has -- is the state the game ships in. A new
@@ -81,8 +93,13 @@ message Options {
   // presets by number and hands the choice over: see stat_preset.h.
   bool autoswap_presets = 4;
 
-  // Whether the music plays on shuffle -- a track at random from everything
-  // the build carries, rather than the one the map or the boss names. Off,
-  // which is the default, leaves the music where the data puts it.
-  bool jukebox = 5;
+  // Where the music comes from. The Jukebox screen sets it; nothing on the
+  // Options screen does.
+  JukeboxMode jukebox_mode = 6;
+
+  // Field 5 was a bool shuffle switch on the Options screen, which
+  // `jukebox_mode` took over. Nothing migrates it: it shipped off, so a save
+  // that carried it on loses one keypress on the Jukebox screen, and reading
+  // it would cost a save version and a migration kept forever.
+  reserved 5;
 }

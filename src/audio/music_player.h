@@ -46,6 +46,18 @@ class MusicPlayer {
   // Takes the loop off whatever is playing, so it ends where it is rather
   // than coming round again. What is playing is not interrupted.
   void StopLooping();
+  // Holds what is playing where it stands, and lets it go again. A pause
+  // outlives the track it was called on: nothing new starts until Resume, so
+  // walking to another map while paused stays silent. Starting a track by
+  // name lets it go, a player who picks a song having asked to hear it.
+  void Pause();
+  void Resume();
+  bool paused() const {
+    return paused_;
+  }
+  // Moves the cursor to `seconds`, clamped to the track. Does nothing where
+  // the track's length cannot be told.
+  void Seek(float seconds);
   // Whether what is playing is within a crossfade of its end, nothing is
   // playing at all, or the track's length cannot be told. Only ever true of a
   // track that is not looping. Not const: miniaudio's cursor is a query on
@@ -53,6 +65,14 @@ class MusicPlayer {
   bool ending();
   // Fades out whatever is playing.
   void Stop();
+
+  // How far into the live track the cursor stands, and how long that track
+  // runs. Both 0 with nothing playing, and `length_seconds` is 0 as well
+  // where the decoder could not tell.
+  float position_seconds() const;
+  float length_seconds() const {
+    return length_seconds_;
+  }
 
   // The volume every track plays at, 0 to 100. Applied live, and clamped.
   void SetVolume(int volume);
@@ -92,6 +112,7 @@ class MusicPlayer {
   int live_ = 0;
   std::string playing_;
   bool looping_ = false;
+  bool paused_ = false;
   // How long the live track runs, or 0 where the decoder could not say.
   float length_seconds_ = 0.0f;
   int volume_ = 10;

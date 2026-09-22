@@ -1338,46 +1338,17 @@ std::string Tui::NormalTrack() const {
   return map == state_.maps.end() ? "" : std::string(map->second.bgm());
 }
 
-void Tui::PlayShuffled() {
-  if (!shuffling_) {
-    // What is playing is not cut off. Taking the loop off it is what lets it
-    // reach an end for the first random track to blend in over.
-    music_player_.StopLooping();
-    shuffling_ = true;
-  }
-  // Kept up to date, so that switching the option off knows where the player
-  // was standing when they did it.
-  resuming_from_ = NormalTrack();
-  if (music_player_.ending()) {
-    music_player_.PlayOnce(jukebox_.Next());
-  }
-}
-
 void Tui::UpdateMusic() {
   if (!music_player_.ready()) {
     return;
   }
   // A boss owns the screen and the volume with it; the map underneath is not
-  // where the player is. The jukebox takes the track but not the volume: a
-  // fight is still a fight, whatever is playing over it.
+  // where the player is. The volume is the fight's whatever is playing over
+  // it -- a jukebox track at a boss is still a boss fight.
   music_player_.SetVolume(controller_.boss_run() != nullptr
                               ? state_.account.boss_bgm_volume()
                               : state_.account.map_bgm_volume());
-  if (state_.account.jukebox()) {
-    PlayShuffled();
-    return;
-  }
-  std::string track = NormalTrack();
-  // Switching the option off does not cut a track short either: the random
-  // one plays out, unless the player has since walked somewhere the map's own
-  // music answers for.
-  if (shuffling_) {
-    if (track == resuming_from_ && !music_player_.ending()) {
-      return;
-    }
-    shuffling_ = false;
-  }
-  music_player_.Play(track);
+  music_director_.Update(state_.account.jukebox_mode(), NormalTrack());
 }
 
 Panel Tui::FocusedPanel() const {

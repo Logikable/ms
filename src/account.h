@@ -107,11 +107,13 @@ class AccountInstance {
     account_.mutable_options()->set_autoswap_presets(on);
   }
 
-  bool jukebox() const {
-    return account_.options().jukebox();
+  // Where the music comes from: the map's own track, the song list in order,
+  // or shuffle. The Jukebox screen sets it.
+  JukeboxMode jukebox_mode() const {
+    return account_.options().jukebox_mode();
   }
-  void SetJukebox(bool on) {
-    account_.mutable_options()->set_jukebox(on);
+  void SetJukeboxMode(JukeboxMode mode) {
+    account_.mutable_options()->set_jukebox_mode(mode);
   }
 
   bool panel_title_blink() const {
