@@ -12,6 +12,7 @@
 #include "src/build_config.h"
 #include "src/frontend/placement.h"
 #include "src/frontend/testing/screen_text.h"
+#include "src/frontend/widgets/colors.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/map.pb.h"
@@ -146,6 +147,13 @@ TEST_F(JukeboxPanelTest, OpensOnWhatIsPlayingWithTheListInFocus) {
   panel_.Reset();
   EXPECT_FALSE(panel_.on_buttons());
   EXPECT_EQ(panel_.songs()[panel_.selected_row()].track, kFloral);
+  // In the list, the title of the track playing is the one in the theme's
+  // colour. Asked of the row, not of the title: Now Playing carries it too.
+  ftxui::Screen screen = Draw();
+  ScreenPos live = FindOnScreen(screen, "> " + TrackTitle(kFloral));
+  ASSERT_GE(live.x, 0);
+  EXPECT_EQ(screen.PixelAt(live.x + 2, live.y).foreground_color, kTheme);
+  EXPECT_NE(ColorOf(screen, TrackTitle(kTreetops)), kTheme);
 }
 
 TEST_F(JukeboxPanelTest, EnterOnASongPlaysIt) {
@@ -175,8 +183,11 @@ TEST_F(JukeboxPanelTest, TabMovesToTheButtonsAndTheArrowsRingRound) {
 TEST_F(JukeboxPanelTest, PlayPauseHoldsTheMusicAndLetsItGo) {
   director_.Play(kFloral);
   SelectButton(JukeboxButton::kPlayPause);
+  EXPECT_NE(Text().find("[Pause]"), std::string::npos);
   panel_.Activate();
   EXPECT_TRUE(director_.paused());
+  // The two labels are one width, so the row does not move under the cursor.
+  EXPECT_NE(Text().find("[Play ]"), std::string::npos);
   panel_.Activate();
   EXPECT_FALSE(director_.paused());
 }
@@ -239,18 +250,27 @@ TEST_F(JukeboxPanelTest, WalkingOffTheModeButtonShutsTheBox) {
   EXPECT_FALSE(panel_.mode_box_open());
 }
 
-// The first mode lands ON the button rather than below it, and the names line
-// up: the box opens where the value it replaces was standing.
-TEST_F(JukeboxPanelTest, TheBoxOpensOverTheButtonItHangsFrom) {
+// The box hangs off the button: it starts on the row below the name it
+// replaces, and its right border stands where the button's does.
+TEST_F(JukeboxPanelTest, TheBoxHangsUnderTheButtonItOpensFrom) {
   account_.SetJukeboxMode(JUKEBOX_MODE_FOLLOW_MAP);
   SelectButton(JukeboxButton::kMode);
-  ScreenPos shut = FindOnScreen(Draw(), "Follow Map");
+  ftxui::Screen shut_screen = Draw();
+  ScreenPos shut = FindOnScreen(shut_screen, "Follow Map");
   ASSERT_GE(shut.x, 0);
+  ScreenPos bracket = FindOnScreen(shut_screen, " ▾]");
 
   panel_.Activate();
-  ScreenPos open = FindOnScreen(Draw(), "Follow Map");
-  EXPECT_EQ(open.y, shut.y);
-  EXPECT_EQ(open.x, shut.x);
+  ftxui::Screen open_screen = Draw();
+  ScreenPos open = FindOnScreen(open_screen, "> Follow Map");
+  EXPECT_EQ(open.y, shut.y + 1);
+  // The whole of the last entry's row: the box is as wide as the names need
+  // and no wider, and its right border stands under the button's own bracket.
+  int close = bracket.x + 2;
+  ScreenPos last = FindOnScreen(open_screen, "  Shuffle");
+  EXPECT_EQ(last.y, shut.y + 3);
+  EXPECT_EQ(ScreenRow(open_screen, last.y, last.x - 1, close + 1),
+            "│  Shuffle    │");
 }
 
 TEST_F(JukeboxPanelTest, EveryRowKeepsItsRightGutter) {

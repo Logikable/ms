@@ -29,12 +29,10 @@ constexpr JukeboxMode kModes[] = {
 };
 constexpr int kModeCount = 3;
 
-// The mode button reads "[Mode: <name> ▾]" and the box that opens over it
-// "│> <entry> │". The box is drawn from the button's own left edge and covers
-// it whole, so an entry carries the columns that put its name where the
-// button's is -- four in front, one behind.
+// The mode button reads "[Mode: <name> ▾]", and the box that opens under it is
+// only as wide as the widest name: every entry is padded to it so the box is a
+// rectangle.
 constexpr int kModeNameWidth = 10;
-constexpr int kModeEntryLead = 4;
 
 std::string ModeName(JukeboxMode mode) {
   switch (mode) {
@@ -50,8 +48,7 @@ std::string ModeName(JukeboxMode mode) {
 }
 
 std::string ModeEntry(JukeboxMode mode) {
-  return std::string(kModeEntryLead, ' ') +
-         PadRight(ModeName(mode), kModeNameWidth) + " ";
+  return PadRight(ModeName(mode), kModeNameWidth);
 }
 
 int IndexOfMode(JukeboxMode mode) {
@@ -252,9 +249,9 @@ ftxui::Element JukeboxPanel::RenderScrubBar() const {
 }
 
 ftxui::Element JukeboxPanel::RenderButtons() const {
-  // The play and pause marks are both held to two columns, so pressing the
-  // button does not shuffle the row it sits in.
-  std::string play = director_.paused() ? "▸ " : "❙❙";
+  // Both labels are held to five columns, so pressing the button does not
+  // shuffle the row it sits in.
+  std::string play = director_.paused() ? "Play " : "Pause";
   ftxui::Element mode = ActionButton(
       "Mode: " + PadRight(ModeName(account_.jukebox_mode()), kModeNameWidth) +
           " ▾",
@@ -296,13 +293,13 @@ ftxui::Element JukeboxPanel::RenderHeader() const {
 
 ftxui::Element JukeboxPanel::RenderSong(const Song& song,
                                         bool on_cursor) const {
-  // The caret is the whole mark: this is one list read straight down. The
-  // dot beside it is a second thing entirely -- which track is playing.
+  // The caret is the cursor; the track playing is the one title in the theme's
+  // colour. Two marks, so a row can carry both at once.
   bool live = song.track == director_.playing();
   return ftxui::hbox({
-      ftxui::text(on_cursor ? "> " : (live ? "● " : "  ")) |
-          (live ? ftxui::color(kGold) : ftxui::nothing),
-      ftxui::text(PadRight(song.title, kTitleWidth + kCellGap)),
+      ftxui::text(on_cursor ? "> " : "  "),
+      ftxui::text(PadRight(song.title, kTitleWidth + kCellGap)) |
+          (live ? ftxui::color(kTheme) : ftxui::nothing),
       ftxui::text(PadRight(song.place, kPlaceWidth + kCellGap)) | ftxui::dim,
       ftxui::text(PadLeft(Clock(song.duration_ms / 1000), kLengthWidth)),
   });
@@ -347,14 +344,14 @@ ftxui::Element JukeboxPanel::Render() const {
   if (!mode_box_open_) {
     return screen;
   }
-  // One row back from the button, so the first mode lands ON it rather than
-  // below it: the box opens where the value it replaces was standing, and
-  // covers the button whole. Both boxes are in screen coordinates and the
-  // overlay floats from the screen's corner, so the panel's corner comes off.
+  // The box hangs under the button with its right border against the button's
+  // right edge. Both boxes are in screen coordinates and the overlay floats
+  // from the screen's corner, so the panel's corner comes off.
   return ftxui::dbox({
       std::move(screen),
-      Floating(mode_menu_.Render(mode_button_box_.y_min - panel_box_.y_min - 1,
-                                 mode_button_box_.x_min - panel_box_.x_min)),
+      Floating(mode_menu_.Render(
+          mode_button_box_.y_min - panel_box_.y_min,
+          mode_button_box_.x_max - panel_box_.x_min - mode_menu_.Width() + 1)),
   });
 }
 

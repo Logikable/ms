@@ -7,7 +7,7 @@
  * the cursor is on.
  *
  * Tab moves between the two, Left and Right walk the buttons, and Up and Down
- * walk whichever list holds the cursor. The mode button opens a box over
+ * walk whichever list holds the cursor. The mode button opens a box under
  * itself, which is the only place the three modes are named.
  *
  * The panel drives the MusicDirector and writes the mode onto the account.

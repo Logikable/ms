@@ -107,6 +107,7 @@ cc_test(
         "//src/audio:track_title",
         "//src/frontend:placement",
         "//src/frontend/testing:screen_text",
+        "//src/frontend/widgets:colors",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",
