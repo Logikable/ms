@@ -194,6 +194,7 @@ TEST(MenuPanelTest, TheBoxIsTitledByTheEntryThatRaisedIt) {
   EXPECT_EQ(panel.box_cursor(), -1);
   std::string settings = RenderBox(panel);
   EXPECT_NE(settings.find("Settings"), std::string::npos);
+  EXPECT_NE(settings.find("Jukebox"), std::string::npos);
   EXPECT_NE(settings.find("Keybinds"), std::string::npos);
 
   OpenBoxOn(panel, MenuEntry::kAnalysis);
@@ -223,8 +224,9 @@ TEST(MenuPanelTest, TheBoxCaretsItsCursorAndIsWideEnoughForIt) {
   std::string box = RenderBox(panel);
   // The border after the row, which is what a box measured a column short
   // loses: the caret pushes the widest row out and the panel is laid out from
-  // that edge.
-  EXPECT_NE(box.find("│> Keybinds │"), std::string::npos);
+  // that edge. Keybinds is the widest entry, so every row is padded to it.
+  EXPECT_NE(box.find("│> Jukebox  │"), std::string::npos);
+  EXPECT_NE(box.find("│  Keybinds │"), std::string::npos);
   EXPECT_NE(box.find("│  Options  │"), std::string::npos);
 }
 
@@ -259,14 +261,19 @@ TEST(MenuPanelTest, TheBoxAndTheMenuRowShareOneCursor) {
   // Up walks the box from the bottom, so the entry nearest the row is the one
   // the cursor meets first.
   panel.MoveBoxCursor(1);
-  EXPECT_EQ(panel.box_cursor(), 1);
+  EXPECT_EQ(panel.box_cursor(), 2);
   EXPECT_EQ(panel.selected_settings_entry(), SettingsEntry::kOptions);
   panel.MoveBoxCursor(1);
-  EXPECT_EQ(panel.box_cursor(), 0);
+  EXPECT_EQ(panel.box_cursor(), 1);
   EXPECT_EQ(panel.selected_settings_entry(), SettingsEntry::kKeybinds);
+  panel.MoveBoxCursor(1);
+  EXPECT_EQ(panel.box_cursor(), 0);
+  EXPECT_EQ(panel.selected_settings_entry(), SettingsEntry::kJukebox);
   panel.MoveBoxCursor(1);
   EXPECT_EQ(panel.box_cursor(), -1);
 
+  // Down off the row comes round to the top of the box, the ring closing the
+  // other way.
   panel.MoveBoxCursor(-1);
   EXPECT_EQ(panel.box_cursor(), 0);
   panel.CloseBox();

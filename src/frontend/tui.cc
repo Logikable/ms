@@ -154,6 +154,7 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
       job_inspect_panel_(state.skills),
       keybinds_panel_(keys_),
       options_panel_(state.account),
+      jukebox_panel_(state, music_director_, state.account),
       all_stats_panel_(state.character, &state.account, state.skills),
       trade_panel_(state.character, state.account),
       player_inspect_panel_(state),
@@ -175,7 +176,8 @@ Tui::Tui(GameState& state, std::string save_path, std::string server, bool bgm)
                                  bank_panel_,           link_skill_panel_,
                                  job_inspect_panel_,    skill_inspect_panel_,
                                  buff_info_panel_,      menu_panel_,
-                                 keybinds_panel_,       options_panel_},
+                                 keybinds_panel_,       options_panel_,
+                                 jukebox_panel_},
                   analysis_, keys_, panel_focus_, multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
@@ -996,6 +998,8 @@ ftxui::Element Tui::RenderScreen() {
                        controller_.character_delete_prompt().Render()));
     case kOptions:
       return Centred(options_panel_.Render());
+    case kJukebox:
+      return Centred(jukebox_panel_.Render());
     case kTrade:
     case kTradeMenu:
       // The menu is anchored to a row of one of the windows, so the panel puts

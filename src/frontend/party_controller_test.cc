@@ -8,6 +8,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <random>
 #include <string>
 #include <thread>
 
@@ -122,6 +123,8 @@ struct Client {
     keys = std::make_unique<KeyMap>(state->account.mutable_keybinds());
     keybinds_panel = std::make_unique<KeybindsPanel>(*keys);
     options_panel = std::make_unique<OptionsPanel>(state->account);
+    jukebox_panel =
+        std::make_unique<JukeboxPanel>(*state, music_director, state->account);
     controller = std::make_unique<TuiController>(
         *state, Screens{*char_panel,           *equip_panel,
                         *inventory_panel,      *scroll_panel,
@@ -137,7 +140,8 @@ struct Client {
                         *bank_panel,           *link_skill_panel,
                         *job_inspect_panel,    skill_inspect_panel,
                         buff_info_panel,       *menu_panel,
-                        *keybinds_panel,       *options_panel},
+                        *keybinds_panel,       *options_panel,
+                        *jukebox_panel},
         analysis, *keys, focus, &session);
   }
 
@@ -191,6 +195,10 @@ struct Client {
   std::unique_ptr<KeyMap> keys;
   std::unique_ptr<KeybindsPanel> keybinds_panel;
   std::unique_ptr<OptionsPanel> options_panel;
+  MusicPlayer music_player{MusicPlayer::Backend::kNull};
+  std::mt19937 music_rng{1};
+  MusicDirector music_director{music_player, music_rng};
+  std::unique_ptr<JukeboxPanel> jukebox_panel;
   std::unique_ptr<TuiController> controller;
 };
 

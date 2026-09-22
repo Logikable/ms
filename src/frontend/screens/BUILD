@@ -62,6 +62,27 @@ cc_test(
 )
 
 cc_library(
+    name = "jukebox_panel",
+    srcs = ["jukebox_panel.cc"],
+    hdrs = ["jukebox_panel.h"],
+    deps = [
+        "//src:account",
+        "//src:game_state",
+        "//src:map_level",
+        "//src/audio:music_director",
+        "//src/audio:track_title",
+        "//src/audio:tracks",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:item_menu",
+        "//src/frontend/widgets:keys",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+    ],
+)
+
+cc_library(
     name = "options_panel",
     srcs = ["options_panel.cc"],
     hdrs = ["options_panel.h"],
@@ -72,6 +93,23 @@ cc_library(
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:keys",
         "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "jukebox_panel_test",
+    size = "small",
+    srcs = ["jukebox_panel_test.cc"],
+    deps = [
+        ":jukebox_panel",
+        "//src:build_config",
+        "//src:game_state",
+        "//src/audio:track_title",
+        "//src/frontend:placement",
+        "//src/frontend/testing:screen_text",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
     ],
 )
 

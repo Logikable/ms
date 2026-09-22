@@ -35,6 +35,7 @@
 #include "src/frontend/screens/hammer_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
+#include "src/frontend/screens/jukebox_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
 #include "src/frontend/screens/link_skill_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
@@ -116,6 +117,7 @@ struct Screens {
   MenuPanel& menu_panel;
   KeybindsPanel& keybinds_panel;
   OptionsPanel& options_panel;
+  JukeboxPanel& jukebox_panel;
 };
 
 class TuiController {
@@ -818,12 +820,14 @@ class TuiController {
   bool OnAnalysisEvent(ftxui::Event event);
   bool OnKeybindsEvent(ftxui::Event event);
   bool OnOptionsEvent(ftxui::Event event);
+  bool OnJukeboxEvent(ftxui::Event event);
   // Puts the captured key in the waiting slot, or says why it could not.
   // Ignores what is not a key, so the slot goes on waiting.
   void TakeCapturedKey(const ftxui::Event& key);
   // Leaves the Keybinds screen for the box it was opened from.
   void LeaveKeybinds();
   void LeaveOptions();
+  void LeaveJukebox();
   // The bank screen: the bag over the account's storage, the menu a row
   // raises, the amount a balance asks for, and the card Inspect opens.
   bool OnBankEvent(ftxui::Event event);
@@ -923,6 +927,7 @@ class TuiController {
   MenuPanel& menu_panel_;
   KeybindsPanel& keybinds_panel_;
   OptionsPanel& options_panel_;
+  JukeboxPanel& jukebox_panel_;
   // The measurement the Analysis entry starts and stops. Owned by the session,
   // not by the controller: it outlives every screen it is read from.
   BattleAnalysis& analysis_;

@@ -155,6 +155,8 @@ enum Screen : int {
   kKeybinds,
   // The switches the player can throw, from the same box.
   kOptions,
+  // The whole OST, from the same box: what is playing, and what plays next.
+  kJukebox,
   // Battle Analysis, from that box: what the stretch being measured is worth,
   // over the main screen it is being measured on.
   kAnalysis,

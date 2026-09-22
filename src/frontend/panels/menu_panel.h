@@ -40,8 +40,10 @@ enum class MenuEntry {
   kSettings,
 };
 
-// What the Settings box holds, top to bottom.
+// What the Settings box holds, top to bottom. Jukebox is only there in a
+// build that has music; see kAudioEnabled.
 enum class SettingsEntry {
+  kJukebox,
   kKeybinds,
   kOptions,
 };
@@ -102,6 +104,8 @@ class MenuPanel {
   // Columns the open box takes, borders included. What the margin above is
   // worked out from, so it must agree with what RenderBox draws.
   int BoxWidth() const;
+  // The Settings entries this build has, top to bottom.
+  static std::vector<SettingsEntry> SettingsEntries();
   SettingsEntry selected_settings_entry() const;
   MultiplayerEntry selected_multiplayer_entry() const;
   AnalysisEntry selected_analysis_entry() const;

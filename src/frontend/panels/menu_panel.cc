@@ -18,6 +18,18 @@
 namespace ms {
 namespace {
 
+std::string SettingsEntryName(SettingsEntry entry) {
+  switch (entry) {
+    case SettingsEntry::kJukebox:
+      return "Jukebox";
+    case SettingsEntry::kKeybinds:
+      return "Keybinds";
+    case SettingsEntry::kOptions:
+      return "Options";
+  }
+  return "";
+}
+
 std::string EntryLabel(MenuEntry entry) {
   switch (entry) {
     case MenuEntry::kAnalysis:
@@ -91,8 +103,13 @@ std::vector<std::string> MenuPanel::BoxEntries(MenuEntry entry) const {
       return {analysis_.stops_on_press() ? "Stop" : "Start", "View"};
     case MenuEntry::kDailies:
       return {};
-    case MenuEntry::kSettings:
-      return {"Keybinds", "Options"};
+    case MenuEntry::kSettings: {
+      std::vector<std::string> labels;
+      for (SettingsEntry entry : SettingsEntries()) {
+        labels.push_back(SettingsEntryName(entry));
+      }
+      return labels;
+    }
   }
   return {};
 }
@@ -123,8 +140,20 @@ void MenuPanel::MoveBoxCursor(int delta) {
   }
 }
 
+std::vector<SettingsEntry> MenuPanel::SettingsEntries() {
+  // No Jukebox in a build with no music in it: the screen would have nothing
+  // to list and nothing to play.
+  if (!kAudioEnabled) {
+    return {SettingsEntry::kKeybinds, SettingsEntry::kOptions};
+  }
+  return {SettingsEntry::kJukebox, SettingsEntry::kKeybinds,
+          SettingsEntry::kOptions};
+}
+
 SettingsEntry MenuPanel::selected_settings_entry() const {
-  return box_cursor_ <= 0 ? SettingsEntry::kKeybinds : SettingsEntry::kOptions;
+  std::vector<SettingsEntry> entries = SettingsEntries();
+  return entries[std::clamp(box_cursor_, 0,
+                            static_cast<int>(entries.size()) - 1)];
 }
 
 MultiplayerEntry MenuPanel::selected_multiplayer_entry() const {

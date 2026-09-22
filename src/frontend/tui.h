@@ -44,6 +44,7 @@
 #include "src/frontend/screens/hyper_stat_inspect_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
+#include "src/frontend/screens/jukebox_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
 #include "src/frontend/screens/link_skill_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
@@ -270,6 +271,7 @@ class Tui {
   // The keys, on a screen of their own, reached from the Settings box.
   KeybindsPanel keybinds_panel_;
   OptionsPanel options_panel_;
+  JukeboxPanel jukebox_panel_;
   // Every stat on one screen, reached from the Character panel's last row.
   AllStatsPanel all_stats_panel_;
   HyperStatInspectPanel hyper_stat_inspect_panel_;

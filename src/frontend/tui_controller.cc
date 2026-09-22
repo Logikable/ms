@@ -86,6 +86,7 @@ TuiController::TuiController(GameState& state, Screens screens,
       menu_panel_(screens.menu_panel),
       keybinds_panel_(screens.keybinds_panel),
       options_panel_(screens.options_panel),
+      jukebox_panel_(screens.jukebox_panel),
       analysis_(analysis),
       keys_(keys),
       shop_panel_(screens.shop_panel),
@@ -937,6 +938,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnKeybindsEvent(event);
     case kOptions:
       return OnOptionsEvent(event);
+    case kJukebox:
+      return OnJukeboxEvent(event);
     case kOffline:
       return OnOfflineEvent(event);
     case kQuit:
@@ -3259,6 +3262,10 @@ void TuiController::OpenBoxEntry() {
           options_panel_.Reset();
           screen_ = kOptions;
           return;
+        case SettingsEntry::kJukebox:
+          jukebox_panel_.Reset();
+          screen_ = kJukebox;
+          return;
       }
       return;
   }
@@ -3286,6 +3293,44 @@ void TuiController::LeaveKeybinds() {
 
 void TuiController::LeaveOptions() {
   screen_ = kMenuBox;
+}
+
+void TuiController::LeaveJukebox() {
+  screen_ = kMenuBox;
+}
+
+// The music the screen starts keeps playing behind it, so there is nothing to
+// confirm here either: Escape is the whole door, and an open mode box spends
+// it first.
+bool TuiController::OnJukeboxEvent(ftxui::Event event) {
+  if (IsSwitchPanel(event)) {
+    jukebox_panel_.SwitchHalf();
+    return true;
+  }
+  if (event == ftxui::Event::ArrowUp) {
+    jukebox_panel_.MoveRow(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    jukebox_panel_.MoveRow(1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowLeft) {
+    jukebox_panel_.MoveColumn(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    jukebox_panel_.MoveColumn(1);
+    return true;
+  }
+  if (IsForward(event)) {
+    jukebox_panel_.Activate();
+    return true;
+  }
+  if (IsBack(event) && !jukebox_panel_.DismissedBox()) {
+    LeaveJukebox();
+  }
+  return true;
 }
 
 // Every switch takes effect where it is thrown, so there is nothing to

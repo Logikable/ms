@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <map>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,7 @@
 #include "src/frontend/screens/hyper_stat_inspect_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
+#include "src/frontend/screens/jukebox_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
 #include "src/frontend/screens/link_skill_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
@@ -226,6 +228,22 @@ TEST_F(ScreenFitTest, Options) {
   OptionsPanel panel(state_.account);
   panel.Reset();
   ExpectFits(panel.Render(), "the options list");
+}
+
+// The song list is as long as the build's music, and the mode box hangs off
+// the top window, so both the shut screen and the open box are measured.
+TEST_F(ScreenFitTest, Jukebox) {
+  MusicPlayer player(MusicPlayer::Backend::kNull);
+  std::mt19937 rng(1);
+  MusicDirector director(player, rng);
+  JukeboxPanel panel(state_, director, state_.account);
+  panel.Reset();
+  ExpectFits(panel.Render(), "the jukebox");
+  panel.SwitchHalf();
+  panel.MoveColumn(-1);
+  ASSERT_EQ(panel.selected_button(), JukeboxButton::kMode);
+  panel.Activate();
+  ExpectFits(panel.Render(), "the jukebox with its mode box open");
 }
 
 TEST_F(ScreenFitTest, BuffInfo) {

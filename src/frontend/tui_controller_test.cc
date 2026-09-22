@@ -5,6 +5,7 @@
 #include <ctime>
 #include <map>
 #include <memory>
+#include <random>
 #include <string>
 
 #include "ftxui/component/component.hpp"
@@ -290,6 +291,8 @@ class TuiControllerTest : public testing::Test {
     keys_ = std::make_unique<KeyMap>(state_->account.mutable_keybinds());
     keybinds_panel_ = std::make_unique<KeybindsPanel>(*keys_);
     options_panel_ = std::make_unique<OptionsPanel>(state_->account);
+    jukebox_panel_ = std::make_unique<JukeboxPanel>(*state_, music_director_,
+                                                    state_->account);
     controller_ = std::make_unique<TuiController>(
         *state_, Screens{*char_panel_,           *equip_panel_,
                          *inventory_panel_,      *scroll_panel_,
@@ -305,7 +308,8 @@ class TuiControllerTest : public testing::Test {
                          *bank_panel_,           *link_skill_panel_,
                          *job_inspect_panel_,    skill_inspect_panel_,
                          buff_info_panel_,       *menu_panel_,
-                         *keybinds_panel_,       *options_panel_},
+                         *keybinds_panel_,       *options_panel_,
+                         *jukebox_panel_},
         analysis_, *keys_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
@@ -323,6 +327,14 @@ class TuiControllerTest : public testing::Test {
     controller_->OpenMenuEntry(MenuEntry::kSettings);
     controller_->OnEvent(ftxui::Event::ArrowUp);
     controller_->OnEvent(ftxui::Event::ArrowUp);
+    controller_->OnEvent(ftxui::Event::Return);
+  }
+
+  void OpenJukebox() {
+    controller_->OpenMenuEntry(MenuEntry::kSettings);
+    for (int i = 0; i < 3; ++i) {
+      controller_->OnEvent(ftxui::Event::ArrowUp);
+    }
     controller_->OnEvent(ftxui::Event::Return);
   }
 
@@ -476,7 +488,8 @@ class TuiControllerTest : public testing::Test {
                          *bank_panel_,           *link_skill_panel_,
                          *job_inspect_panel_,    skill_inspect_panel_,
                          buff_info_panel_,       *menu_panel_,
-                         *keybinds_panel_,       *options_panel_},
+                         *keybinds_panel_,       *options_panel_,
+                         *jukebox_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -617,7 +630,8 @@ class TuiControllerTest : public testing::Test {
                          *bank_panel_,           *link_skill_panel_,
                          *job_inspect_panel_,    skill_inspect_panel_,
                          buff_info_panel_,       *menu_panel_,
-                         *keybinds_panel_,       *options_panel_},
+                         *keybinds_panel_,       *options_panel_,
+                         *jukebox_panel_},
         analysis_, *keys_, panel_focus_);
   }
 
@@ -672,6 +686,10 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<KeyMap> keys_;
   std::unique_ptr<KeybindsPanel> keybinds_panel_;
   std::unique_ptr<OptionsPanel> options_panel_;
+  MusicPlayer music_player_{MusicPlayer::Backend::kNull};
+  std::mt19937 music_rng_{1};
+  MusicDirector music_director_{music_player_, music_rng_};
+  std::unique_ptr<JukeboxPanel> jukebox_panel_;
   std::unique_ptr<TuiController> controller_;
   ftxui::Component equip_component_;
   ftxui::Component inventory_component_;
@@ -3198,13 +3216,18 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   OptionsPanel options(fresh.account);
+  MusicPlayer player(MusicPlayer::Backend::kNull);
+  std::mt19937 music_rng(1);
+  MusicDirector director(player, music_rng);
+  JukeboxPanel jukebox(fresh, director, fresh.account);
   TuiController controller(
       fresh, Screens{chars,      equip,      bag,   scroll,         item_card,
                      trace_card, star,       cube,  trace,          sell,
                      sell_equip, multi_sell, maps,  mobs,           bosses,
                      party,      players,    trade, player_inspect, worn_card,
                      shop,       buy,        bank,  links,          jobs,
-                     skill_card, buffs,      menu,  keybinds,       options},
+                     skill_card, buffs,      menu,  keybinds,       options,
+                     jukebox},
       analysis, keys, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
@@ -3269,13 +3292,18 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   OptionsPanel options(fresh.account);
+  MusicPlayer player(MusicPlayer::Backend::kNull);
+  std::mt19937 music_rng(1);
+  MusicDirector director(player, music_rng);
+  JukeboxPanel jukebox(fresh, director, fresh.account);
   TuiController controller(
       fresh, Screens{chars,      equip,      bag,   scroll,         item_card,
                      trace_card, star,       cube,  trace,          sell,
                      sell_equip, multi_sell, maps,  mobs,           bosses,
                      party,      players,    trade, player_inspect, worn_card,
                      shop,       buy,        bank,  links,          jobs,
-                     skill_card, buffs,      menu,  keybinds,       options},
+                     skill_card, buffs,      menu,  keybinds,       options,
+                     jukebox},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
@@ -3323,13 +3351,18 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   OptionsPanel options(fresh.account);
+  MusicPlayer player(MusicPlayer::Backend::kNull);
+  std::mt19937 music_rng(1);
+  MusicDirector director(player, music_rng);
+  JukeboxPanel jukebox(fresh, director, fresh.account);
   TuiController controller(
       fresh, Screens{chars,      equip,      bag,   scroll,         item_card,
                      trace_card, star,       cube,  trace,          sell,
                      sell_equip, multi_sell, maps,  mobs,           bosses,
                      party,      players,    trade, player_inspect, worn_card,
                      shop,       buy,        bank,  links,          jobs,
-                     skill_card, buffs,      menu,  keybinds,       options},
+                     skill_card, buffs,      menu,  keybinds,       options,
+                     jukebox},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
@@ -3377,13 +3410,18 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   OptionsPanel options(fresh.account);
+  MusicPlayer player(MusicPlayer::Backend::kNull);
+  std::mt19937 music_rng(1);
+  MusicDirector director(player, music_rng);
+  JukeboxPanel jukebox(fresh, director, fresh.account);
   TuiController controller(
       fresh, Screens{chars,      equip,      bag,   scroll,         item_card,
                      trace_card, star,       cube,  trace,          sell,
                      sell_equip, multi_sell, maps,  mobs,           bosses,
                      party,      players,    trade, player_inspect, worn_card,
                      shop,       buy,        bank,  links,          jobs,
-                     skill_card, buffs,      menu,  keybinds,       options},
+                     skill_card, buffs,      menu,  keybinds,       options,
+                     jukebox},
       analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all
@@ -3670,8 +3708,10 @@ TEST_F(TuiControllerTest, SettingsOpensItsBoxOverTheCorner) {
   EXPECT_TRUE(menu_panel_->box_open());
   // The cursor is still on the menu row until the player walks up into it.
   EXPECT_EQ(menu_panel_->box_cursor(), -1);
+  // Up walks the box from the bottom, so the entry nearest the row comes
+  // first: Jukebox, Keybinds, Options.
   controller_->OnEvent(ftxui::Event::ArrowUp);
-  EXPECT_EQ(menu_panel_->box_cursor(), 1);
+  EXPECT_EQ(menu_panel_->box_cursor(), 2);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(menu_panel_->box_cursor(), -1);
   // Escape puts the box away.
@@ -3700,7 +3740,36 @@ TEST_F(TuiControllerTest, LeftInsideTheBoxDoesNothing) {
   controller_->OnEvent(ftxui::Event::ArrowUp);
   controller_->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_TRUE(menu_panel_->box_open());
-  EXPECT_EQ(menu_panel_->box_cursor(), 1);
+  EXPECT_EQ(menu_panel_->box_cursor(), 2);
+}
+
+TEST_F(TuiControllerTest, TheJukeboxOpensFromTheBoxAndComesBackToIt) {
+  OpenJukebox();
+  EXPECT_EQ(controller_->screen(), kJukebox);
+  // The screen opens on the song list, and Tab hands the keys to the buttons.
+  EXPECT_FALSE(jukebox_panel_->on_buttons());
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_TRUE(jukebox_panel_->on_buttons());
+
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMenuBox);
+  EXPECT_TRUE(menu_panel_->box_open());
+}
+
+// The mode box spends the Escape that would otherwise leave the screen.
+TEST_F(TuiControllerTest, EscapeShutsTheJukeboxModeBoxBeforeTheScreen) {
+  OpenJukebox();
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
+  ASSERT_EQ(jukebox_panel_->selected_button(), JukeboxButton::kMode);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(jukebox_panel_->mode_box_open());
+
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_FALSE(jukebox_panel_->mode_box_open());
+  EXPECT_EQ(controller_->screen(), kJukebox);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMenuBox);
 }
 
 TEST_F(TuiControllerTest, KeybindsOpensFromTheBoxAndComesBackToIt) {
