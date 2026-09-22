@@ -375,13 +375,14 @@ ftxui::Element JukeboxPanel::Render() const {
   if (!mode_box_open_) {
     return screen;
   }
-  // The box hangs under the button with its right border against the button's
-  // right edge. Both boxes are in screen coordinates and the overlay floats
-  // from the screen's corner, so the panel's corner comes off.
+  // The box hangs clear under the button -- the row below it, so the button is
+  // left whole -- with its right border against the button's right edge. Both
+  // boxes are in screen coordinates and the overlay floats from the screen's
+  // corner, so the panel's corner comes off.
   return ftxui::dbox({
       std::move(screen),
       Floating(mode_menu_.Render(
-          mode_button_box_.y_min - panel_box_.y_min,
+          mode_button_box_.y_min - panel_box_.y_min + 1,
           mode_button_box_.x_max - panel_box_.x_min - mode_menu_.Width() + 1)),
   });
 }

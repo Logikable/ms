@@ -273,8 +273,9 @@ TEST_F(JukeboxPanelTest, WalkingOffTheModeButtonShutsTheBox) {
   EXPECT_FALSE(panel_.mode_box_open());
 }
 
-// The box hangs off the button: it starts on the row below the name it
-// replaces, and its right border stands where the button's does.
+// The box hangs clear of the button: its top border is the row under it, so
+// the button is left whole, and its right border stands where the button's
+// does.
 TEST_F(JukeboxPanelTest, TheBoxHangsUnderTheButtonItOpensFrom) {
   account_.SetJukeboxMode(JUKEBOX_MODE_FOLLOW_MAP);
   SelectButton(JukeboxButton::kMode);
@@ -286,14 +287,16 @@ TEST_F(JukeboxPanelTest, TheBoxHangsUnderTheButtonItOpensFrom) {
   panel_.Activate();
   ftxui::Screen open_screen = Draw();
   ScreenPos open = FindOnScreen(open_screen, "> Follow Map");
-  EXPECT_EQ(open.y, shut.y + 1);
-  // The whole of the last entry's row: the box is as wide as the names need
+  EXPECT_EQ(open.y, shut.y + 2);
+  // The whole of the middle entry's row: the box is as wide as the names need
   // and no wider, and its right border stands under the button's own bracket.
+  // The middle one because the box crosses two window borders, and ftxui joins
+  // its own into those -- so the rows either side read ┤ and ├.
   int close = bracket.x + 2;
-  ScreenPos last = FindOnScreen(open_screen, "  Shuffle");
-  EXPECT_EQ(last.y, shut.y + 3);
-  EXPECT_EQ(ScreenRow(open_screen, last.y, last.x - 1, close + 1),
-            "│  Shuffle    │");
+  ScreenPos middle = FindOnScreen(open_screen, "  Playlist");
+  EXPECT_EQ(middle.y, shut.y + 3);
+  EXPECT_EQ(ScreenRow(open_screen, middle.y, middle.x - 1, close + 1),
+            "│  Playlist   │");
 }
 
 TEST_F(JukeboxPanelTest, EveryRowKeepsItsRightGutter) {
