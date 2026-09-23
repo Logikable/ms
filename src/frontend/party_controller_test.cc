@@ -576,8 +576,12 @@ TEST_F(PartyControllerTest, APlayerInspectsSomebodyOutsideTheirParty) {
   std::unique_ptr<Client> read = Connect("Wand");
   read->state->character.LevelUp();
 
+  // Until the server has the level-up too: a sheet asked for before it lands
+  // is the one from before it.
   ASSERT_TRUE(WaitFor({reader.get(), read.get()}, [&]() {
-    return reader->session.Snapshot().online.players_size() == 2;
+    const OnlinePlayers& online = reader->session.Snapshot().online;
+    return online.players_size() == 2 &&
+           online.players(1).level() == read->state->character.proto().level();
   }));
   OpenMultiplayer(*reader, MultiplayerEntry::kPlayers);
   ASSERT_EQ(reader->controller->screen(), kPlayerList);
