@@ -6,6 +6,17 @@
 #include <vector>
 
 namespace ms {
+namespace {
+
+// Heaviest first; rows arriving in name order keep it through a tie.
+void SortHeaviestFirst(std::vector<BreakdownRow>& rows) {
+  std::stable_sort(rows.begin(), rows.end(),
+                   [](const BreakdownRow& a, const BreakdownRow& b) {
+                     return a.damage > b.damage;
+                   });
+}
+
+}  // namespace
 
 double BreakdownRow::per_line() const {
   return lines > 0 ? damage / static_cast<double>(lines) : 0.0;
@@ -44,10 +55,27 @@ std::vector<BreakdownRow> DamageBreakdown::Rows() const {
   for (const std::pair<const std::string, Tally>& entry : by_skill_) {
     rows.push_back(entry.second.row);
   }
-  std::stable_sort(rows.begin(), rows.end(),
-                   [](const BreakdownRow& a, const BreakdownRow& b) {
-                     return a.damage > b.damage;
-                   });
+  SortHeaviestFirst(rows);
+  return rows;
+}
+
+std::vector<BreakdownRow> MergeBreakdowns(
+    const std::vector<PlayerBreakdown>& players) {
+  std::map<std::string, BreakdownRow> by_skill;
+  for (const PlayerBreakdown& player : players) {
+    for (const BreakdownRow& row : player.rows) {
+      BreakdownRow& merged = by_skill[row.skill];
+      merged.skill = row.skill;
+      merged.damage += row.damage;
+      merged.casts += row.casts;
+      merged.lines += row.lines;
+    }
+  }
+  std::vector<BreakdownRow> rows;
+  for (const std::pair<const std::string, BreakdownRow>& entry : by_skill) {
+    rows.push_back(entry.second);
+  }
+  SortHeaviestFirst(rows);
   return rows;
 }
 

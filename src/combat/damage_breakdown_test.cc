@@ -53,5 +53,23 @@ TEST(DamageBreakdownTest, NothingLandedIsNoRowsAndNoShare) {
   EXPECT_DOUBLE_EQ(BreakdownRow{}.per_line(), 0.0);
 }
 
+// Two players' rows of one name are one row of the party's; a tie keeps name
+// order.
+TEST(DamageBreakdownTest, MergeAddsUpEachSkillAcrossPlayers) {
+  std::vector<PlayerBreakdown> players(2);
+  players[0].rows = {{"Raging Blow", 300.0, 3, 9}, {"Puncture", 50.0, 5, 5}};
+  players[1].rows = {{"Raging Blow", 200.0, 2, 4}, {"Blast", 50.0, 1, 1}};
+
+  std::vector<BreakdownRow> rows = MergeBreakdowns(players);
+  ASSERT_EQ(rows.size(), 3u);
+  EXPECT_EQ(rows[0].skill, "Raging Blow");
+  EXPECT_DOUBLE_EQ(rows[0].damage, 500.0);
+  EXPECT_EQ(rows[0].casts, 5);
+  EXPECT_EQ(rows[0].lines, 13);
+  EXPECT_EQ(rows[1].skill, "Blast");
+  EXPECT_EQ(rows[2].skill, "Puncture");
+  EXPECT_TRUE(MergeBreakdowns({}).empty());
+}
+
 }  // namespace
 }  // namespace ms
