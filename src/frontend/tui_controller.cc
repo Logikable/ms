@@ -901,6 +901,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnBossAbortEvent(event);
     case kBossClear:
       return OnBossClearEvent(event);
+    case kBossAnalysis:
+      return OnBossAnalysisEvent(event);
     case kBank:
     case kBankMenu:
       return screen_ == kBank ? OnBankEvent(event) : OnBankMenuEvent(event);
@@ -3159,6 +3161,7 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
     boss_clear_reward_ = boss_run_->reward();
     boss_clear_seconds_ = boss_run_->clear_seconds();
     boss_clear_prompt_.Open();
+    boss_clear_on_analysis_ = false;
     screen_ = kBossClear;
     return;
   }
@@ -3188,10 +3191,33 @@ bool TuiController::OnOfflineEvent(ftxui::Event event) {
   return true;
 }
 
+// Escape leaves from either button: backing out of the card is Continue.
 bool TuiController::OnBossClearEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
+    boss_clear_on_analysis_ = event == ftxui::Event::ArrowRight;
+    return true;
+  }
+  if (boss_clear_on_analysis_ && IsForward(event)) {
+    std::vector<PlayerBreakdown> players = boss_run_->breakdowns();
+    players[0].name = state_.character.username();
+    boss_analysis_panel_.Open(std::move(players),
+                              boss_run_->breakdown().seconds());
+    screen_ = kBossAnalysis;
+    return true;
+  }
   if (boss_clear_prompt_.OnEvent(event)) {
     LeaveBossRun();
   }
+  return true;
+}
+
+// Back to the card it came from, the cursor still on [Analysis].
+bool TuiController::OnBossAnalysisEvent(ftxui::Event event) {
+  if (IsBack(event)) {
+    screen_ = kBossClear;
+    return true;
+  }
+  boss_analysis_panel_.OnEvent(event);
   return true;
 }
 

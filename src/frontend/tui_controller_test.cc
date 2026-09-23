@@ -4400,6 +4400,36 @@ TEST_F(TuiControllerTest, TheClearCardNamesTheFightAndWhatItPaid) {
   EXPECT_FALSE(controller_->in_boss_fight());
 }
 
+// [Analysis] opens the fight's table under the player's own name, and Escape
+// comes back to the card on [Analysis]; Escape there still leaves.
+TEST_F(TuiControllerTest, TheClearCardOpensTheAnalysisAndComesBack) {
+  EnterFight();
+  RunFightToEnd();
+  ASSERT_EQ(controller_->screen(), kBossClear);
+  EXPECT_FALSE(controller_->boss_clear_on_analysis());
+
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_TRUE(controller_->boss_clear_on_analysis());
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBossAnalysis);
+  const BossAnalysisPanel& panel = controller_->boss_analysis_panel();
+  EXPECT_FALSE(panel.party());
+  ASSERT_EQ(panel.players().size(), 1u);
+  EXPECT_EQ(panel.players()[0].name, state_->character.username());
+  EXPECT_FALSE(panel.table().empty());
+
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel.skill_cursor(), panel.table().size() > 1 ? 1 : 0);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kBossClear);
+  EXPECT_TRUE(controller_->boss_clear_on_analysis());
+  EXPECT_NE(controller_->boss_run(), nullptr);
+
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kBossSelect);
+  EXPECT_EQ(controller_->boss_run(), nullptr);
+}
+
 // --- Hyper Stats ---
 
 // The [+] and the [-] spend and refund in place -- no dialog either way, so

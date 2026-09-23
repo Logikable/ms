@@ -134,9 +134,11 @@ enum Screen : int {
   kBossNotice,
   kBossFight,
   kBossAbort,
-  // The card a cleared fight ends on: what it paid, and one button to leave
-  // it by.
+  // The card a cleared fight ends on: what it paid, [Continue] to leave it by
+  // and [Analysis] for the next screen.
   kBossClear,
+  // [Analysis] on that card: the fight's damage by player and by skill.
+  kBossAnalysis,
   // Bank on the bag's tab bar: the character's bag over the account's bank,
   // and the three questions moving something across can ask.
   kBank,

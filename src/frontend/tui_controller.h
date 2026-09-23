@@ -26,6 +26,7 @@
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/panels/menu_panel.h"
 #include "src/frontend/screens/bank_panel.h"
+#include "src/frontend/screens/boss_analysis_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buff_info_panel.h"
 #include "src/frontend/screens/buy_panel.h"
@@ -504,6 +505,13 @@ class TuiController {
   const ContinuePrompt& boss_clear_prompt() const {
     return boss_clear_prompt_;
   }
+  // Whether the card's cursor is on [Analysis] rather than [Continue].
+  bool boss_clear_on_analysis() const {
+    return boss_clear_on_analysis_;
+  }
+  const BossAnalysisPanel& boss_analysis_panel() const {
+    return boss_analysis_panel_;
+  }
   // What the player earned while the game was closed, and the button that
   // dismisses the card showing it.
   const OfflineReport& offline_report() const {
@@ -808,6 +816,7 @@ class TuiController {
   bool OnBossFightEvent(ftxui::Event event);
   bool OnBossAbortEvent(ftxui::Event event);
   bool OnBossClearEvent(ftxui::Event event);
+  bool OnBossAnalysisEvent(ftxui::Event event);
   bool OnOfflineEvent(ftxui::Event event);
   // Drops the finished run and goes back to the fight list. What every panel a
   // fight ends on is dismissed by.
@@ -1081,6 +1090,8 @@ class TuiController {
   BossReward boss_clear_reward_;
   double boss_clear_seconds_ = 0.0;
   ContinuePrompt boss_clear_prompt_;
+  bool boss_clear_on_analysis_ = false;
+  BossAnalysisPanel boss_analysis_panel_;
   // The fight in progress and the catalog entry it is against, so a clear is
   // recorded under the names the reset clock reads.
   std::unique_ptr<BossRun> boss_run_;

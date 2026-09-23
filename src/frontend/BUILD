@@ -81,6 +81,7 @@ cc_library(
         "//src/frontend/panels:inventory_panel",
         "//src/frontend/panels:menu_panel",
         "//src/frontend/screens:bank_panel",
+        "//src/frontend/screens:boss_analysis_panel",
         "//src/frontend/screens:boss_select_panel",
         "//src/frontend/screens:buff_info_panel",
         "//src/frontend/screens:buy_panel",

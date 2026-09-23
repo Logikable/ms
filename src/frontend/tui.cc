@@ -689,7 +689,10 @@ ftxui::Element Tui::BossFightOverlay() {
       return BossClearPanel(controller_.boss_clear_title(),
                             controller_.boss_clear_seconds(),
                             controller_.boss_clear_reward(),
-                            controller_.boss_clear_prompt().Render(),
+                            ButtonRow("Continue", "Analysis",
+                                      !controller_.boss_clear_on_analysis(),
+                                      controller_.boss_clear_on_analysis(),
+                                      /*go_enabled=*/true),
                             HonorVisible(state_.character.proto().level(),
                                          state_.account.max_level()));
     default:
@@ -1050,6 +1053,8 @@ ftxui::Element Tui::RenderScreen() {
     case kBossAbort:
     case kBossClear:
       return RenderBossFight();
+    case kBossAnalysis:
+      return Centred(controller_.boss_analysis_panel().Render());
     case kBossConfirm:
       return Overlay(Centred(boss_select_panel_.Render()), BossConfirmDialog());
     // Over the arena for a fight that ran out of clock, and over the list for
