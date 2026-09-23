@@ -82,9 +82,7 @@ class ProgressBarNode : public ftxui::Node {
       const std::string& dot = dots[x - box_.x_min];
       px.character = dot.empty() ? " " : dot;
       px.background_color = x < fill_end ? fill_ : kBarEmpty;
-      // Dim, so the name reads first.
       px.foreground_color = x < fill_end ? label_on_fill_ : label_off_fill_;
-      px.dim = !dot.empty();
     }
 
     const int label_len = static_cast<int>(label.size());
