@@ -10,6 +10,7 @@
 #define MS_SRC_COMBAT_DAMAGE_LEDGER_H_
 
 #include <map>
+#include <string>
 #include <vector>
 
 #include "src/combat/damage.h"
@@ -64,6 +65,11 @@ struct DamageLine {
   DamageSource source;
   double damage = 0.0;
   bool crit = false;
+  // The skill it is filed under in a damage breakdown, as DamageLedger::
+  // credit_name reads it, and the cast it belongs to. Every line of one swing
+  // shares a cast whatever it lands on; a held swing takes one per pulse.
+  int credit = -1;
+  int cast = 0;
 };
 
 // Where a landing is filed and what scales it: the monster, the event, what
@@ -74,6 +80,8 @@ struct Landing {
   int event = 0;
   DamageSource source;
   double scale = 1.0;
+  int credit = -1;
+  int cast = 0;
 };
 
 // A ledger that is not recording accepts everything and files nothing, so the
@@ -92,8 +100,10 @@ class DamageLedger {
 
   // Gives each of the front `hit` of `mobs` its own event, so the lines one
   // attack puts on one monster group together however many ways it reaches
-  // them, and remembers what is doing the damage.
-  void OpenLandings(int mobs, int hit, DamageSource source);
+  // them, and remembers what is doing the damage. `casts` are numbered from
+  // the landing's own: a hold of five pulses is five casts.
+  void OpenLandings(int mobs, int hit, DamageSource source,
+                    const std::string& credit, int casts = 1);
   // Where the landing on the monster at `index` is filed, scaled by `scale`.
   // The event is the one OpenLandings gave it.
   Landing LandingAt(int mob_id, int index, double scale) const;
@@ -102,7 +112,14 @@ class DamageLedger {
   int NextEvent() {
     return ++next_event_;
   }
+  // A landing nothing else shares, on an event and a cast of its own: one tick
+  // of a burn.
+  Landing StandAlone(int mob_id, DamageSource source, int credit);
 
+  // The number `skill` is filed under, or -1 when nothing is being recorded.
+  // Numbers are never reused, so one held across steps stays good.
+  int Credit(const std::string& skill);
+  const std::string& credit_name(int credit) const;
   // Files one line of `damage`, already scaled, against `landing`. One call
   // is one strike of the landing's event.
   void RecordLine(const Landing& landing, double damage, bool crit);
@@ -119,10 +136,17 @@ class DamageLedger {
   // Stamped onto each landing and never reused within a step, which is as long
   // as anything holds one.
   int next_event_ = 0;
+  // Never reused at all, so a breakdown counting casts can tell a new one by
+  // its number alone.
+  int next_cast_ = 0;
+  std::vector<std::string> credit_names_;
+  std::map<std::string, int> credit_of_name_;
   // The event each queued mob's lines are filed under for the landing being
   // worked out, parallel to the queue, and what is doing the damage.
   std::vector<int> landing_event_;
   DamageSource landing_source_;
+  int landing_credit_ = -1;
+  int landing_cast_ = 0;
   // Strikes each event has taken, so the rolls one attack lands on one
   // monster are told apart. Keyed rather than counted through: an event is
   // come back to once every other monster is hit.

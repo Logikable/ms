@@ -349,6 +349,7 @@ cc_test(
     size = "small",
     srcs = ["fight_test.cc"],
     deps = [
+        ":damage_ledger",
         ":encounter",
         ":fight",
         "//src/protos:mob_proto_cc",

@@ -455,6 +455,7 @@ void AddBurns(const Skill* skill, const DerivedStats& derived,
     attack.dots.push_back(BurnFor(carried.dot, follow, carried.level, types,
                                   speed_factor, nullptr));
     attack.dots.back().carried = true;
+    attack.dots.back().credit = carried.skill_name;
   }
   if (skill == nullptr || skill->dot().interval_seconds() <= 0.0) {
     return;
@@ -466,6 +467,7 @@ void AddBurns(const Skill* skill, const DerivedStats& derived,
   attack.dots.push_back(
       BurnFor(skill->dot(), offense, level, types, speed_factor,
               boost != derived.skill_bonus.end() ? &boost->second : nullptr));
+  attack.dots.back().credit = skill->name();
 }
 
 // Final Attack rides the swing, not the skill: a plain hit worth its own
@@ -537,6 +539,7 @@ void AddFinalAttacks(const Skill* skill, const DerivedStats& derived,
     roll.count = source.per_line ? swing_lines : 1;
     roll.follows_own_clock = source.follows_own_clock;
     roll.max_enemies = source.max_enemies;
+    roll.credit = source.credit;
     roll.rolls = RollsFor(follow);
     // A source with a reach of its own is banked apart: what the swing is
     // worth has to add it over that reach rather than over the swing's.
@@ -592,6 +595,7 @@ void AddSideStrike(const Character& proto, const EquipStats& equipped,
   stats.mirror_lines = stats.lines;
   AttackOption strike;
   strike.name = side.label().empty() ? attack.name : side.label();
+  strike.credit = attack.credit;
   strike.max_enemies =
       side.max_enemies() > 0 ? side.max_enemies() : attack.max_enemies;
   strike.cooldown_seconds = side.cooldown_seconds() * speed_factor;
@@ -675,6 +679,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
                        double speed_factor) {
   AttackOption attack;
   AddSwingClocks(skill, level, derived, attack_speed, speed_factor, attack);
+  attack.credit = attack.name;
   OffenseStats offense = OffenseStatsFor(
       proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
       skill, level, PassiveOffenseFor(derived));
@@ -1105,6 +1110,17 @@ const Skill& Boosted(const Skill& skill, int level,
   return scratch;
 }
 
+// Files a form or a load under the skill it belongs to, with the burns it
+// lights itself. What the character carries stays with its own skill.
+void CreditTo(const std::string& skill, AttackOption& attack) {
+  attack.credit = skill;
+  for (DotApplication& dot : attack.dots) {
+    if (!dot.carried) {
+      dot.credit = skill;
+    }
+  }
+}
+
 // An empowered form as a skill in its own right. It takes a NAME of its own,
 // unlike an own-clock half: it is a different swing, and must not pick up the
 // permanent bonus its parent hands the ordinary one. See SkillBoost::reach.
@@ -1160,9 +1176,10 @@ void AttachWoundForm(const Character& proto, const EquipStats& equipped,
   }
   Skill form = WoundFormSkill(skill, wound.form());
   attack.wound_max_stacks = wound.max_stacks();
-  attack.wound_form = std::make_shared<AttackOption>(
-      AttackFor(proto, equipped, weapon_type, &form, learned, types, derived,
-                attack_speed, speed_factor));
+  AttackOption heavier = AttackFor(proto, equipped, weapon_type, &form, learned,
+                                   types, derived, attack_speed, speed_factor);
+  CreditTo(skill.name(), heavier);
+  attack.wound_form = std::make_shared<AttackOption>(std::move(heavier));
 }
 
 // Attaches `skill`'s empowered form to every attack it upgrades. The form
@@ -1193,6 +1210,7 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
         AttackFor(state.character.proto(), equipped, weapon_type, &swung,
                   learned, types, derived, attack_speed, speed_factor));
     swing->swing_seconds = attack.swing_seconds;
+    CreditTo(attack.credit, *swing);
     // Final Attack follows the character's swing, and a summon's pulse is not
     // one -- so a form standing in for a pulse must not carry one either.
     if (attack.interval_seconds > 0.0) {
@@ -1309,6 +1327,7 @@ void AddMagazines(const GameState& state, const DerivedStats& derived,
     AttackOption attack =
         AttackFor(state.character.proto(), total_stats, weapon_type, &swung,
                   learned, types, derived, attack_speed, speed_factor);
+    CreditTo(skill.name(), attack);
     attack.charges = magazine.charges();
     attack.charges_per_swing = std::max(1, magazine.charges_per_swing());
     attack.recharge_seconds = magazine.recharge_seconds();

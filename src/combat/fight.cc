@@ -704,13 +704,14 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   // Picked for the same reason: what the flames double up on is decided by
   // the HP the monsters went in with.
   std::vector<double> shares = ScatterShares(attack, hit);
-  // Before anything lands, so every way this swing reaches one monster files
-  // under the one event: that is one landing to the player watching.
-  ledger_.OpenLandings(queue_.size(), hit, source);
   // A hold not timed by the swing clock decides here instead.
   int held = attack.channel.pulses > 0
                  ? (pulses >= 0 ? pulses : ChannelPulses(attack, hit))
                  : 0;
+  // Before anything lands, so every way this swing reaches one monster files
+  // under the one event: that is one landing to the player watching.
+  ledger_.OpenLandings(queue_.size(), hit, source, attack.credit,
+                       std::max(1, held));
   // Settled once for the whole strike: the crowd belongs to the swing that
   // called the rain down, not to who stands under each arrow.
   int extra = ExtraLines(attack);
@@ -1069,7 +1070,10 @@ double CombatSim::ChannelDamage(const AttackOption& attack, int type,
     const SwingRolls& rolls =
         grown ? hold.grown.rolls : attack.groups.front().rolls;
     total += pulse * Roll(rolls);
-    ledger_.RecordRolls(landing, pulse * landing.scale);
+    // A cast apiece: each pulse is the hold landing again.
+    Landing pulse_landing = landing;
+    pulse_landing.cast += i;
+    ledger_.RecordRolls(pulse_landing, pulse * landing.scale);
   }
   // Past the first group is the closing strike, landed once however long the
   // hold ran.
@@ -1335,6 +1339,7 @@ void CombatSim::ApplyDots(const AttackOption& attack, int hit) {
       dot.damage = burn.damage[mob.type];
       dot.rolls = burn.rolls;
       dot.lit_by = attributing_;
+      dot.credit = ledger_.Credit(burn.credit);
     }
   }
 }
@@ -1501,7 +1506,8 @@ void CombatSim::RunDots(double dt) {
           Hurt(mob, dot.damage * helping * Roll(dot.rolls));
           // A tick is its own landing, falling between the swings.
           ledger_.RecordRolls(
-              {mob.id, ledger_.NextEvent(), {DamageOrigin::kBurn, slot}, 1.0},
+              ledger_.StandAlone(mob.id, {DamageOrigin::kBurn, slot},
+                                 dot.credit),
               dot.damage * helping);
         }
         burned = true;
@@ -1616,6 +1622,9 @@ double CombatSim::RolledFinalAttack(const std::vector<FinalAttackRoll>& sources,
     if (type >= static_cast<int>(source.damage.size())) {
       continue;
     }
+    // The swing's cast, under the Final Attack's own name.
+    Landing filed = landing;
+    filed.credit = ledger_.Credit(source.credit);
     // A chance past certainty is that many hits guaranteed plus a roll for
     // the remainder. Nothing grants one yet.
     int certain = static_cast<int>(source.chance);
@@ -1625,7 +1634,7 @@ double CombatSim::RolledFinalAttack(const std::vector<FinalAttackRoll>& sources,
         continue;
       }
       total += source.damage[type] * hits * Roll(source.rolls);
-      ledger_.RecordRolls(landing, source.damage[type] * hits * landing.scale);
+      ledger_.RecordRolls(filed, source.damage[type] * hits * landing.scale);
     }
   }
   return total;

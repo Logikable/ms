@@ -320,6 +320,7 @@ void AddFinalAttack(const Skill& skill, const SkillEffect& granted,
   source.max_enemies = skill.final_attack_max_enemies();
   source.follows_own_clock = skill.follows_own_clock();
   source.skill_name = skill.name();
+  source.credit = skill.name();
   source.owner_swings = DealsDamage(skill.kind());
   totals.final_attacks.push_back(source);
 }
@@ -559,7 +560,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   // where those are built.
   if (skill.kind() == SKILL_KIND_PASSIVE &&
       skill.dot().interval_seconds() > 0.0) {
-    totals.dots.push_back(CharacterDot{skill.dot(), level});
+    totals.dots.push_back(CharacterDot{skill.dot(), level, skill.name()});
   }
   AddMesoExplosion(skill, granted, level, totals);
   totals.combo_orbs = std::max(totals.combo_orbs, ComboOrbsAt(skill, level));
@@ -1442,6 +1443,7 @@ void AddMesoStrike(const PassiveTotals& passives, DerivedStats& stats) {
   meso.crit_rate = passives.meso_crit_rate;
   meso.final_dmg_pct = passives.meso_final_dmg_pct;
   meso.per_line = true;
+  meso.credit = passives.meso_skill;
   stats.final_attacks.push_back(meso);
 }
 

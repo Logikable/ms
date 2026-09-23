@@ -53,6 +53,9 @@ struct FinalAttackSource {
   // The skill that sets this off, so a boost naming that skill can find it.
   // Empty for a source no skill owns -- a thrown meso's.
   std::string skill_name;
+  // The skill a damage breakdown files these hits under: skill_name, or Meso
+  // Explosion for the thrown meso no skill_name claims.
+  std::string credit;
   // Percentage POINTS these hits add against anything that is not a boss, per
   // strike. A thrown meso's alone: GMS states that bargain as points.
   double normal_skill_pct = 0.0;
@@ -79,6 +82,8 @@ struct FinalAttackSource {
 struct CharacterDot {
   Dot dot;
   int level = 1;
+  // The skill carrying it, which a damage breakdown files its ticks under.
+  std::string skill_name;
 };
 
 // One chance the character carries for a swing to land harder on one enemy.

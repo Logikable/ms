@@ -99,6 +99,9 @@ struct DotApplication {
   // Whether the CHARACTER carries it rather than the attack stating it: the
   // poison on a rogue's claw rides their own swings and nothing else.
   bool carried = false;
+  // The skill a damage breakdown files its ticks under: the one carrying the
+  // poison, or the swing that left the burn.
+  std::string credit;
 };
 
 // One Final Attack: a chance, rolled per enemy the swing reached, of one more
@@ -115,6 +118,8 @@ struct FinalAttackRoll {
   // Enemies reached where it rolls once for the whole swing; 0 for one that
   // follows the swing onto each enemy.
   int max_enemies = 0;
+  // The skill a damage breakdown files its hits under.
+  std::string credit;
 };
 
 // One chance a swing has to land harder on one enemy, and what firing it
@@ -133,7 +138,11 @@ struct ProcRoll {
 // last mob standing.
 struct AttackOption {
   std::string name = "Attack";  // shown on the charge bar
-  int max_enemies = 1;          // front-of-queue mobs one swing reaches
+  // The skill a damage breakdown files this under. The name, except on a form
+  // taking another skill's place and a load: those belong to the skill they
+  // stand in for, and to the one that loaded them.
+  std::string credit = "Attack";
+  int max_enemies = 1;  // front-of-queue mobs one swing reaches
   // Strikes one swing of it lands on one enemy. Read by the things that count
   // hits rather than swings -- a buff charged by landing them, and the Freeze
   // Stacks an elemental swing leaves or spends.

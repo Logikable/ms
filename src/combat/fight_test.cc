@@ -5,12 +5,14 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "src/combat/damage_ledger.h"
 #include "src/combat/encounter.h"
 #include "src/protos/mob.pb.h"
 
@@ -5140,6 +5142,71 @@ TEST(CombatSimTest, EveryLineSaysWhatDidIt) {
   EXPECT_TRUE(swing);
   EXPECT_TRUE(own_clock);
   EXPECT_TRUE(burned);
+}
+
+// Every line names the skill it is credited to: a Final Attack and a burn
+// under their own, on the cast of the swing that set them off. A burn's tick
+// is a cast of its own.
+TEST(CombatSimTest, EveryLineNamesItsSkill) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
+  params.record_damage_lines = true;
+  params.dot_count = 1;
+  AttackOption& swing = params.attacks[0];
+  swing.credit = "Brandish";
+  FinalAttackRoll follow;
+  follow.chance = 1.0;
+  follow.damage = {5.0};
+  follow.credit = "Advanced Final Attack";
+  swing.final_attack_rolls.push_back(follow);
+  swing.final_attack_damage = {5.0};
+  DotApplication burn;
+  burn.damage = {40.0};
+  burn.interval_seconds = 0.6;
+  burn.duration_seconds = 10.0;
+  burn.slot = 0;
+  burn.credit = "Venom";
+  swing.dots.push_back(burn);
+
+  CombatSim sim;
+  std::map<std::string, std::set<int>> casts;
+  for (int step = 0; step < 3; ++step) {
+    sim.Advance(params, 1.0);
+    for (const DamageLine& line : sim.damage_lines_this_step()) {
+      casts[sim.damage_credit_name(line.credit)].insert(line.cast);
+    }
+  }
+  ASSERT_EQ(casts.size(), 3u);
+  EXPECT_EQ(casts["Brandish"].size(), 3u);
+  EXPECT_EQ(casts["Advanced Final Attack"], casts["Brandish"]);
+  EXPECT_FALSE(casts["Venom"].empty());
+  for (int cast : casts["Venom"]) {
+    EXPECT_EQ(casts["Brandish"].count(cast), 0u);
+  }
+}
+
+// Nothing is named unless the lines are being recorded: a sim pays nothing
+// for the breakdown.
+TEST(CombatSimTest, ACreditIsOnlyNumberedWhileRecording) {
+  DamageLedger ledger;
+  ledger.BeginStep(false);
+  EXPECT_EQ(ledger.Credit("Brandish"), -1);
+  ledger.BeginStep(true);
+  int brandish = ledger.Credit("Brandish");
+  EXPECT_EQ(ledger.Credit("Rush"), brandish + 1);
+  EXPECT_EQ(ledger.Credit("Brandish"), brandish);
+  EXPECT_EQ(ledger.credit_name(brandish), "Brandish");
+  EXPECT_EQ(ledger.credit_name(-1), "");
+}
+
+// A hold is a cast per pulse, numbered on from the landing's own.
+TEST(CombatSimTest, AHoldTakesACastPerPulse) {
+  DamageLedger ledger;
+  ledger.BeginStep(true);
+  ledger.OpenLandings(1, 1, {}, "Hurricane", 5);
+  Landing held = ledger.LandingAt(7, 0, 1.0);
+  ledger.OpenLandings(1, 1, {}, "Hurricane");
+  EXPECT_EQ(ledger.LandingAt(7, 0, 1.0).cast, held.cast + 5);
 }
 
 // A burn ticks between the swings rather than with one, so it is its own

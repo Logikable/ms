@@ -49,6 +49,10 @@ class CombatSim {
   const std::vector<DamageLine>& damage_lines_this_step() const {
     return ledger_.lines_this_step();
   }
+  // The skill a line's `credit` names.
+  const std::string& damage_credit_name(int credit) const {
+    return ledger_.credit_name(credit);
+  }
   // The I/L's pile of Freeze Stacks; 0 without Freezing Crush.
   int freeze_stacks() const {
     return freeze_stacks_;
@@ -102,6 +106,8 @@ class CombatSim {
     // The attack that last lit it, so its ticks are credited home; -1 for
     // an unlit slot.
     int lit_by = -1;
+    // What a damage breakdown files its ticks under. See DamageLedger::Credit.
+    int credit = -1;
   };
 
   // A mob in the queue: its type (an index into params.types) and its HP.
