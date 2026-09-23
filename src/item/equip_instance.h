@@ -68,6 +68,7 @@ class EquipInstance : public EquipTabItem {
   // initialized from the prototype.
   explicit EquipInstance(const EquipPrototype& prototype,
                          const Equip& state = {});
+  std::unique_ptr<EquipTabItem> Clone() const override;
 
   // Consumes one upgrade slot and rolls against the scroll's success_rate.
   // Adds the scroll's stats on success. Returns kScrollNoSlots if no slots

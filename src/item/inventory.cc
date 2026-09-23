@@ -8,6 +8,21 @@
 
 namespace ms {
 
+InventoryInstance::InventoryInstance(const InventoryInstance& other) {
+  equip_items_.reserve(other.equip_items_.size());
+  for (const std::unique_ptr<EquipTabItem>& item : other.equip_items_) {
+    equip_items_.push_back(item->Clone());
+  }
+}
+
+InventoryInstance& InventoryInstance::operator=(
+    const InventoryInstance& other) {
+  if (this != &other) {
+    *this = InventoryInstance(other);
+  }
+  return *this;
+}
+
 EquipInstance* InventoryInstance::equip_instance(int index) {
   if (index < 0 || index >= static_cast<int>(equip_items_.size())) {
     return nullptr;

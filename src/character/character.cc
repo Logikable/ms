@@ -2570,30 +2570,10 @@ bool CharacterInstance::Equip(int inventory_index, StatPreset preset) {
   return true;
 }
 
-CharacterInstance::CharacterInstance(const CharacterInstance& other, WornOnly)
-    : autoswap_presets_(other.autoswap_presets_),
-      account_max_level_(other.account_max_level_),
-      link_tally_(other.link_tally_),
-      link_skills_off_(other.link_skills_off_),
-      rng_(other.rng_),
-      character_(other.character_),
-      worn_(other.worn_),
-      resolved_(other.resolved_),
-      etc_items_(other.etc_items_),
-      currencies_(other.currencies_),
-      equip_stats_(other.equip_stats_),
-      symbol_stats_(other.symbol_stats_),
-      potential_totals_(other.potential_totals_),
-      arcane_force_(other.arcane_force_),
-      consumable_debt_(other.consumable_debt_),
-      equip_sets_(other.equip_sets_),
-      set_bonuses_(other.set_bonuses_) {
-}
-
 CharacterInstance CharacterInstance::Wearing(
     const EquipTabItem& item, StatPreset preset,
     std::optional<EquipSlot> slot_override) const {
-  CharacterInstance probe(*this, WornOnly{});
+  CharacterInstance probe(*this);
   EquipSlot slot = slot_override.value_or(SlotToFill(item.prototype(), preset));
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return probe;

@@ -12,6 +12,7 @@
 #define MS_SRC_ITEM_ITEM_H_
 
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -157,6 +158,8 @@ class EquipTabItem : public Item {
   virtual bool is_trace() const {
     return false;
   }
+  // A copy of the same type, for a bag that holds its items by pointer.
+  virtual std::unique_ptr<EquipTabItem> Clone() const = 0;
   // The state with that answer written into it, for anything that has to
   // rebuild the item later -- the save file, the shop's buy-back list. Not
   // folded into equip_state(), because a trace's state is also what recovery
@@ -195,6 +198,7 @@ class EquipTrace : public EquipTabItem {
   bool is_trace() const override {
     return true;
   }
+  std::unique_ptr<EquipTabItem> Clone() const override;
 
  private:
   std::string display_name_;

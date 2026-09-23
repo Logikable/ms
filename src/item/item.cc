@@ -397,6 +397,10 @@ Equip EquipTabItem::SavedState() const {
   return saved;
 }
 
+std::unique_ptr<EquipTabItem> EquipTrace::Clone() const {
+  return std::make_unique<EquipTrace>(*this);
+}
+
 EquipTrace::EquipTrace(EquipPrototype prototype, Equip state)
     : EquipTabItem(std::move(prototype), std::move(state)),
       display_name_(prototype_.name() + " Trace") {

@@ -168,6 +168,7 @@ inline constexpr int kBuyBackSlots = 32;
 class CharacterInstance {
  public:
   CharacterInstance(std::mt19937& rng, Character character);
+  CharacterInstance(CharacterInstance&&) = default;
 
   // Grants 5 AP and 3 SP into the job stage the new level's band belongs to.
   // NOT bounded by kTrialLevelCap: the cap is on what can be earned.
@@ -815,12 +816,9 @@ class CharacterInstance {
                             std::optional<EquipSlot> slot = std::nullopt) const;
 
  private:
-  // A copy of `other` carrying everything a stat is read off and an empty bag.
-  // The bag is the one part of a character that cannot be copied at all -- it
-  // holds the items by pointer -- and no stat is read off it. What Wearing
-  // builds its probe on.
-  struct WornOnly {};
-  CharacterInstance(const CharacterInstance& other, WornOnly);
+  // Private, so a character is never copied by accident: only a probe like
+  // Wearing's wants one. Defaulted, so a new member cannot be left out of it.
+  CharacterInstance(const CharacterInstance&) = default;
 
   // Buys `amount` levels of a V Matrix node out of the V Point pool, at what
   // its kind's ladder charges for the levels being crossed. All or nothing.

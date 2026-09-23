@@ -18,6 +18,13 @@ namespace ms {
 
 class InventoryInstance {
  public:
+  InventoryInstance() = default;
+  // Deep: every item is cloned, so the copy and the original share nothing.
+  InventoryInstance(const InventoryInstance& other);
+  InventoryInstance& operator=(const InventoryInstance& other);
+  InventoryInstance(InventoryInstance&&) = default;
+  InventoryInstance& operator=(InventoryInstance&&) = default;
+
   // Returns nullptr if index is out of range or the item is an EquipTrace.
   EquipInstance* equip_instance(int index);
   const EquipInstance* equip_instance(int index) const;

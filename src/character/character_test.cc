@@ -2746,8 +2746,7 @@ TEST_F(EquipTest, RefusesAnEmptyIndexOrAnItemWithNoSlot) {
 class WearingTest : public CharacterEquipFixture {};
 
 // The probe wears the piece and the character does not, which is the whole of
-// what pricing an item on a shop shelf needs. The bag is left behind with it:
-// no stat is read off one.
+// what pricing an item on a shop shelf needs.
 TEST_F(WearingTest, PutsThePieceOnACopyAndLeavesTheCharacterAlone) {
   sword_.mutable_base_stats()->set_str(50);
   EquipInstance blade(sword_);
@@ -2755,7 +2754,6 @@ TEST_F(WearingTest, PutsThePieceOnACopyAndLeavesTheCharacterAlone) {
 
   CharacterInstance probe = c_.Wearing(blade, StatPreset::kFirst);
   EXPECT_EQ(probe.equip_stats(StatPreset::kFirst).str(), 50);
-  EXPECT_EQ(probe.inventory().size(), 0);
   EXPECT_EQ(c_.equip_stats(StatPreset::kFirst).str(), 0)
       << "nothing reached the character";
   EXPECT_EQ(c_.inventory().size(), 1);

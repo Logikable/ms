@@ -115,6 +115,10 @@ ScrollTarget TargetForSlot(EquipSlot slot) {
   return SCROLL_TARGET_UNSPECIFIED;
 }
 
+std::unique_ptr<EquipTabItem> EquipInstance::Clone() const {
+  return std::make_unique<EquipInstance>(*this);
+}
+
 EquipInstance::EquipInstance(const EquipPrototype& prototype,
                              const Equip& state)
     : EquipTabItem(prototype, state) {

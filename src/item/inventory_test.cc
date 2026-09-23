@@ -27,6 +27,27 @@ TEST(InventoryInstanceTest, StartsEmptyAndGrowsOnAdd) {
   EXPECT_EQ(inv[0].prototype().name(), "Sword");
 }
 
+// A copy clones every item: a trace stays a trace, and changing one bag leaves
+// the other as it was.
+TEST(InventoryInstanceTest, CopiesAreDeepAndKeepEachItemsType) {
+  InventoryInstance inv;
+  inv.add(std::make_unique<EquipInstance>(MakeProto("Sword")));
+  inv.add(std::make_unique<EquipTrace>(MakeProto("Axe"), Equip{}));
+
+  InventoryInstance copy = inv;
+  ASSERT_EQ(copy.size(), 2);
+  EXPECT_NE(&copy[0], &inv[0]);
+  EXPECT_FALSE(copy[0].is_trace());
+  EXPECT_TRUE(copy[1].is_trace());
+  EXPECT_EQ(copy[1].name(), inv[1].name());
+
+  copy.remove_equip(0);
+  copy = inv;
+  EXPECT_EQ(copy.size(), 2) << "assignment replaces the whole bag";
+  inv.remove_equip(0);
+  EXPECT_EQ(copy.size(), 2);
+}
+
 // equip_instance() is the live-item accessor, so it answers for an ordinary
 // item and refuses everything else: a trace, and either end of the range. The
 // const overload is the same function and is checked alongside it.
