@@ -1025,6 +1025,22 @@ TEST(BossRunTest, AFollowedRunWaitsToBeToldAnything) {
   EXPECT_TRUE(authority.reported_.empty());
 }
 
+TEST(BossRunTest, AFollowedRunShowsTheMonstersThroughTheCountIn) {
+  std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
+  Boss boss = TwoPhaseBoss();
+  TestAuthority authority(2);
+  authority.fight_.state = BossRunState::kCountdown;
+  authority.fight_.countdown_left = 2.0;
+  BossRun run("zakum", boss, 0, &authority);
+
+  run.Advance(*state, 0.1);
+  run.Advance(*state, 0.1);
+  EXPECT_EQ(run.state(), BossRunState::kCountdown);
+  ASSERT_EQ(run.slots().size(), 2u);
+  EXPECT_DOUBLE_EQ(run.slots()[0].hp_fraction, 1.0);
+  EXPECT_TRUE(authority.reported_.empty());
+}
+
 TEST(BossRunTest, AFollowedRunTakesTheClockAndThePhaseItIsGiven) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = TwoPhaseBoss();

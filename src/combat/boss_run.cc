@@ -741,6 +741,10 @@ void BossRun::AdvanceShared(GameState& state, double dt) {
   TakeShared(shared);
   if (state_ == BossRunState::kFighting) {
     RunSharedPhase(state, dt, shared);
+  } else if (state_ == BossRunState::kCountdown && slots_.empty()) {
+    // On screen for the count-in, as they are for one player. A step of
+    // nothing: the monsters are placed and nobody swings.
+    RunSharedPhase(state, 0.0, shared);
   } else {
     SyncSlots(dt);
   }
