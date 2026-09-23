@@ -1246,6 +1246,12 @@ TEST_F(PartyControllerTest, OneWalkingOutLeavesTheFightToTheOther) {
       {leader.get(), guest.get()},
       [&]() { return guest->controller->screen() == kBossSelect; }, 0.02));
   EXPECT_EQ(guest->controller->boss_run(), nullptr);
+  // The guest was pulled in off the party screen, under the Multiplayer box.
+  // Back on the main view that box is gone, and the Menu row has its cursor.
+  guest->controller->OnEvent(ftxui::Event::Escape);
+  ASSERT_EQ(guest->controller->screen(), kMain);
+  EXPECT_FALSE(guest->menu_panel->box_open());
+  EXPECT_LT(guest->menu_panel->box_cursor(), 0);
   // The one still in it fights on, and the other's panel goes.
   ASSERT_NE(leader->controller->boss_run(), nullptr);
   EXPECT_EQ(leader->controller->screen(), kBossFight);

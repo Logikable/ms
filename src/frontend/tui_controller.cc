@@ -1937,7 +1937,10 @@ void TuiController::OpenPartyFight(const MultiplayerSnapshot& lobby) {
   boss_run_ =
       std::make_unique<BossRun>(boss_run_key_, it->second, index,
                                 party_fight_.get(), party_fight_->practice());
-  // Whatever they were doing, they are in a fight now.
+  // Whatever they were doing, they are in a fight now. The Menu box goes too:
+  // the way out lands on the main view, whose row hides its cursor while a box
+  // holds one.
+  menu_panel_.CloseBox();
   party_select_panel_.CloseMenu();
   party_prompt_.Close();
   screen_ = kBossFight;
