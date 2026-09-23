@@ -324,7 +324,8 @@ TEST(GameStateTest, NoUpgradeFlagLeavesTheGearAsItDrops) {
 TEST(GameStateTest, HammeredWidensTheShelfWithoutFillingIt) {
   GearSetup equips;
   equips.hammered = true;
-  const Equip& worn = WornWeapon(MakeEquipsState(equips));
+  GameState state = MakeEquipsState(equips);
+  const Equip& worn = WornWeapon(state);
   EXPECT_EQ(worn.hammers(), kMaxHammers);
   EXPECT_EQ(worn.remaining_upgrade_slots(), 9);
   EXPECT_EQ(worn.scroll_successes(), 0);
@@ -335,7 +336,8 @@ TEST(GameStateTest, HammeredWidensTheShelfWithoutFillingIt) {
 TEST(GameStateTest, ScrolledPassesTheSlotsTheItemHas) {
   GearSetup equips;
   equips.scrolled = true;
-  const Equip& worn = WornWeapon(MakeEquipsState(equips));
+  GameState state = MakeEquipsState(equips);
+  const Equip& worn = WornWeapon(state);
   EXPECT_EQ(worn.hammers(), 0);
   EXPECT_EQ(worn.remaining_upgrade_slots(), 0);
   EXPECT_EQ(worn.scroll_successes(), 7);
@@ -349,7 +351,8 @@ TEST(GameStateTest, HammeredAndScrolledFillTheWiderShelf) {
   GearSetup equips;
   equips.hammered = true;
   equips.scrolled = true;
-  const Equip& worn = WornWeapon(MakeEquipsState(equips));
+  GameState state = MakeEquipsState(equips);
+  const Equip& worn = WornWeapon(state);
   EXPECT_EQ(worn.hammers(), kMaxHammers);
   EXPECT_EQ(worn.remaining_upgrade_slots(), 0);
   EXPECT_EQ(worn.scroll_successes(), 9);

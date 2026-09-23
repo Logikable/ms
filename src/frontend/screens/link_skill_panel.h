@@ -68,6 +68,9 @@ class LinkSkillPanel {
   // Skill.link_line.
   LinkSkillPanel(CharacterInstance& character,
                  const std::map<std::string, Skill>& skills);
+  // The catalog is held by reference, so a temporary one would dangle.
+  LinkSkillPanel(CharacterInstance& character,
+                 std::map<std::string, Skill>&& skills) = delete;
 
   // The cursor on the top window, reading the preset the character is
   // playing, with no menu up.

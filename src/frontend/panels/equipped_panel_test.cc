@@ -33,6 +33,9 @@ constexpr int kMenuWalkLimit = 32;
 
 class EquippedPanelTest : public PanelTest {
  protected:
+  // A ScrollPanel holds its catalog by reference, so it has to outlive it.
+  const std::map<std::string, Scroll> no_scrolls_;
+
   // Walks the menu to `entry`, or gives up once it has been all the way round.
   // Bounded on purpose: an entry that is not reachable is a test failure, not
   // a reason to spin.
@@ -771,7 +774,7 @@ TEST_F(EquippedPanelTest, PressingTheUpgradePutsItsGoldOut) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   EquippedPanel panel(c_, account_, panel_focus_);
-  ScrollPanel sp(c_, {});
+  ScrollPanel sp(c_, no_scrolls_);
   RenderComponent(panel.MakeComponent([]() {}));
   panel.OpenMenu();
   ASSERT_TRUE(StepTo(panel.menu(), kGearMenuScroll));
@@ -793,7 +796,7 @@ TEST_F(EquippedPanelTest, StarForceIsGoldOnTheMenuAlone) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_, spent));
   c_.Equip(0);
   EquippedPanel panel(c_, account_, panel_focus_);
-  ScrollPanel sp(c_, {});
+  ScrollPanel sp(c_, no_scrolls_);
   ftxui::Component comp = panel.MakeComponent([]() {});
 
   // Scrolling's own trail walked first, or its gold would still be lit and
@@ -1407,7 +1410,7 @@ TEST_F(SymbolTabTest, LevelUpOpensTheDialog) {
   panel.menu().Down();
   panel.menu().Down();
   ASSERT_EQ(panel.menu().selected(), kSymbolMenuLevelUp);
-  ScrollPanel scrolls(c, {});
+  ScrollPanel scrolls(c, no_scrolls_);
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, scrolls), kSymbolLevel);
 }
 

@@ -73,6 +73,9 @@ std::string NoticeText(const std::vector<std::string>& lines) {
 
 class TuiControllerTest : public testing::Test {
  protected:
+  // A ScrollPanel holds its catalog by reference, so it has to outlive it.
+  const std::map<std::string, Scroll> no_scrolls_;
+
   void SetUp() override {
     MakeState();
     SeedCharacter();
@@ -3111,7 +3114,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
                        fresh.skills);
   EquippedPanel equip(fresh.character, fresh.account, panel_focus_);
   InventoryPanel bag(fresh.character, fresh.account, panel_focus_);
-  ScrollPanel scroll(fresh.character, {});
+  ScrollPanel scroll(fresh.character, no_scrolls_);
   StarForcePanel star;
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
@@ -3187,7 +3190,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
                        fresh.skills);
   EquippedPanel equip(fresh.character, fresh.account, panel_focus_);
   InventoryPanel bag(fresh.character, fresh.account, panel_focus_);
-  ScrollPanel scroll(fresh.character, {});
+  ScrollPanel scroll(fresh.character, no_scrolls_);
   StarForcePanel star;
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
@@ -3246,7 +3249,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
                        fresh.skills);
   EquippedPanel equip(fresh.character, fresh.account, panel_focus_);
   InventoryPanel bag(fresh.character, fresh.account, panel_focus_);
-  ScrollPanel scroll(fresh.character, {});
+  ScrollPanel scroll(fresh.character, no_scrolls_);
   StarForcePanel star;
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
@@ -3305,7 +3308,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
                        fresh.skills);
   EquippedPanel equip(fresh.character, fresh.account, panel_focus_);
   InventoryPanel bag(fresh.character, fresh.account, panel_focus_);
-  ScrollPanel scroll(fresh.character, {});
+  ScrollPanel scroll(fresh.character, no_scrolls_);
   StarForcePanel star;
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;

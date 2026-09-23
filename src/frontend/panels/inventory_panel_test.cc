@@ -29,6 +29,9 @@ namespace {
 
 class InventoryPanelTest : public PanelTest {
  protected:
+  // A ScrollPanel holds its catalog by reference, so it has to outlive it.
+  const std::map<std::string, Scroll> no_scrolls_;
+
   // Every entry the player can actually land on, in the order Down walks them.
   // Disabled entries are skipped rather than merely dimmed, so what this does
   // not contain is what the menu does not offer.
@@ -626,7 +629,7 @@ TEST_F(InventoryPanelTest, SortFilesTheEquipTab) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   ASSERT_EQ(c_.inventory()[0].name(), "Aaa Gated Sword");
 
-  ScrollPanel sp(c_, {});
+  ScrollPanel sp(c_, no_scrolls_);
   panel.OpenTabMenu();
   panel.OnTabMenuEvent(ftxui::Event::Return);  // Sort, the first entry
   EXPECT_EQ(c_.inventory()[0].name(), "Zzz Club")
@@ -926,7 +929,7 @@ TEST_F(InventoryPanelTest, MultiSellLeadsToItsScreen) {
   c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
-  ScrollPanel sp(c_, {});
+  ScrollPanel sp(c_, no_scrolls_);
   panel.OpenMenu();
   panel.menu().Up();  // Close
   panel.menu().Up();  // Multi-Sell
@@ -1156,7 +1159,7 @@ TEST_F(InventoryPanelTest, PressingTheUpgradePutsItsGoldOut) {
   LevelTo(UnlockLevel(Feature::kScrolling));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, account_, panel_focus_);
-  ScrollPanel sp(c_, {});
+  ScrollPanel sp(c_, no_scrolls_);
   panel.OpenMenu();
   while (panel.menu().selected() != kMenuScroll) {
     panel.menu().Down();
@@ -1178,7 +1181,7 @@ TEST_F(InventoryPanelTest, OnlyTheUpgradeThatOpenedIsGold) {
   state.set_remaining_upgrade_slots(0);
   c_.PickUp(std::make_unique<EquipInstance>(proto, state));
   InventoryPanel panel(c_, account_, panel_focus_);
-  ScrollPanel sp(c_, {});
+  ScrollPanel sp(c_, no_scrolls_);
   panel.OpenMenu();
   while (panel.menu().selected() != kMenuScroll) {
     panel.menu().Down();
@@ -1452,7 +1455,7 @@ TEST_F(InventoryPanelTest, StackMenuOpensOnInspect) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   OpenTab(comp, panel, kEtcTab);
   panel.OpenMenu();
-  ScrollPanel sp(c_, {});
+  ScrollPanel sp(c_, no_scrolls_);
   EXPECT_EQ(panel.menu().selected(), kStackInspect);
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kItemInspect);
 }
@@ -1463,7 +1466,7 @@ TEST_F(InventoryPanelTest, StackMenuSellReturnsSellScreen) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   OpenTab(comp, panel, kEtcTab);
   panel.OpenMenu();
-  ScrollPanel sp(c_, {});
+  ScrollPanel sp(c_, no_scrolls_);
   panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Inspect -> Sell
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kSell);
 }
@@ -1474,7 +1477,7 @@ TEST_F(InventoryPanelTest, StackMenuCloseReturnsMain) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   OpenTab(comp, panel, kEtcTab);
   panel.OpenMenu();
-  ScrollPanel sp(c_, {});
+  ScrollPanel sp(c_, no_scrolls_);
   panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Inspect -> Sell
   panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Sell -> Close
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kMain);
@@ -1874,7 +1877,7 @@ TEST_F(SpareSymbolTest, CombineOpensTheDialog) {
   panel.MakeComponent([]() {});
   panel.OpenMenu();
   ASSERT_TRUE(StepTo(panel.menu(), kMenuCombine));
-  ScrollPanel scrolls(c, {});
+  ScrollPanel scrolls(c, no_scrolls_);
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, scrolls), kSymbolCombine);
 }
 

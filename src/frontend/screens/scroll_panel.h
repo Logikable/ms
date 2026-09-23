@@ -44,6 +44,9 @@ class ScrollPanel {
  public:
   ScrollPanel(const CharacterInstance& character,
               const std::map<std::string, Scroll>& scrolls);
+  // The catalog is held by reference, so a temporary one would dangle.
+  ScrollPanel(const CharacterInstance& character,
+              std::map<std::string, Scroll>&& scrolls) = delete;
   // Replaces the scroll list and resets the selection. Call before entering
   // kScrollSelect. `required_level` is the target item's, which prices every
   // row, and `target` is the kind of equipment its pins are filed under.

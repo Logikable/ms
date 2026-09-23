@@ -41,6 +41,10 @@ class AllStatsPanel {
   AllStatsPanel(const CharacterInstance& character,
                 const AccountInstance* account,
                 const std::map<std::string, Skill>& skills);
+  // The catalog is held by reference, so a temporary one would dangle.
+  AllStatsPanel(const CharacterInstance& character,
+                const AccountInstance* account,
+                std::map<std::string, Skill>&& skills) = delete;
   ftxui::Element Render() const;
 
   // Which allocation the screen reads. Set from the Character panel when the

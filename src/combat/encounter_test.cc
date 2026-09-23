@@ -2891,8 +2891,8 @@ TEST(ComputeCombatParamsTest, AScatteredSwingCarriesItsStrikesAndItsCut) {
   GrantFirstJobSp(state, 1);
   ASSERT_TRUE(state.character.LearnSkill(megiddo, 1));
 
-  const AttackOption* swing =
-      FindAttack(ComputeCombatParams(state), "Megiddo Flame");
+  CombatParams params = ComputeCombatParams(state);
+  const AttackOption* swing = FindAttack(params, "Megiddo Flame");
   ASSERT_NE(swing, nullptr);
   EXPECT_EQ(swing->scatter_hits, 11);
   EXPECT_NEAR(swing->scatter_repeat_kept, 0.45, 1e-9);

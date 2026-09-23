@@ -41,6 +41,8 @@ class Lobby {
   // `bosses` is the fight catalog, owned by the caller and outliving the
   // lobby. `seed` fixes the stream party ids are drawn from.
   Lobby(const std::map<std::string, Boss>& bosses, unsigned int seed);
+  // The catalog is held by reference, so a temporary one would dangle.
+  Lobby(std::map<std::string, Boss>&& bosses, unsigned int seed) = delete;
 
   LobbyResult Create(const PlayerInfo& player);
   LobbyResult Join(const PlayerInfo& player, const std::string& party_id);

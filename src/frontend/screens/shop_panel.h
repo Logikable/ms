@@ -83,6 +83,13 @@ class ShopPanel {
   ShopPanel(const CharacterInstance& character,
             const std::map<std::string, EquipPrototype>& equips,
             const std::map<std::string, ItemPrototype>& items);
+  // The catalogs are held by reference, so a temporary one would dangle.
+  ShopPanel(const CharacterInstance& character,
+            std::map<std::string, EquipPrototype>&& equips,
+            const std::map<std::string, ItemPrototype>& items) = delete;
+  ShopPanel(const CharacterInstance& character,
+            const std::map<std::string, EquipPrototype>& equips,
+            std::map<std::string, ItemPrototype>&& items) = delete;
 
   // Restocks and puts the cursor back on the first item. Call when the screen
   // opens: the stock follows the character's class. The cursor lands in the

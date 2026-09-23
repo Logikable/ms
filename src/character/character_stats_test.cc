@@ -2173,8 +2173,8 @@ TEST_F(DerivedStatsTest, TwoBoostsOnOneSkillSum) {
   ASSERT_TRUE(c.LearnSkill(first, 20));
   ASSERT_TRUE(c.LearnSkill(second, 20));
 
-  const SkillBonus& bonus =
-      DerivedStatsFor(c, skills).skill_bonus.at("Wind Arrow");
+  DerivedStats derived = DerivedStatsFor(c, skills);
+  const SkillBonus& bonus = derived.skill_bonus.at("Wind Arrow");
   EXPECT_NEAR(bonus.skill_pct, 1.40, 1e-9);
   EXPECT_NEAR(bonus.normal_pct, 0.20, 1e-9);
   EXPECT_NEAR(bonus.dot_skill_pct, 0.60, 1e-9);

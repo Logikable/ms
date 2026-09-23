@@ -34,6 +34,10 @@ class AllStatsPanelTest : public PanelTest {
     return CharacterInstance(rng_, std::move(proto));
   }
 
+  // The panel holds the catalog by reference, so it has to outlive the panel:
+  // a `{}` at the call would dangle.
+  const std::map<std::string, Skill> no_skills_;
+
   // The panel's rows as plain characters, one per column, read off the screen
   // grid -- the borders are box-drawing, so byte offsets do not line up.
   static std::vector<std::string> Rows(ftxui::Element element) {
@@ -60,7 +64,7 @@ class AllStatsPanelTest : public PanelTest {
 
 TEST_F(AllStatsPanelTest, FillsTheLeftColumnBeforeTheRight) {
   CharacterInstance c = MakeWarrior();
-  AllStatsPanel panel(c, &account_, {});
+  AllStatsPanel panel(c, &account_, no_skills_);
   // The pairings the layout comes to. Reading the left label and finding the
   // right one on the same row is the whole assertion.
   //
@@ -97,7 +101,7 @@ TEST_F(AllStatsPanelTest, FillsTheLeftColumnBeforeTheRight) {
 // said nothing the bar does not, so this screen is the AP stats only.
 TEST_F(AllStatsPanelTest, DoesNotShowThePools) {
   CharacterInstance c = MakeWarrior();
-  AllStatsPanel panel(c, &account_, {});
+  AllStatsPanel panel(c, &account_, no_skills_);
   std::vector<std::string> rows = Rows(panel.Render());
   for (const std::string& row : rows) {
     EXPECT_EQ(row.find("HP"), std::string::npos) << row;
@@ -114,7 +118,7 @@ TEST_F(AllStatsPanelTest, ShowsTheHeadingAndNothingSpendable) {
   proto.set_name("Frostbite");
   CharacterInstance c(rng_, std::move(proto));
 
-  AllStatsPanel panel(c, &account_, {});
+  AllStatsPanel panel(c, &account_, no_skills_);
   std::string rendered = RenderElement(panel.Render());
   EXPECT_NE(rendered.find("Frostbite"), std::string::npos);
   EXPECT_NE(rendered.find("Lv 60 I/L Wizard"), std::string::npos);
@@ -130,7 +134,7 @@ TEST_F(AllStatsPanelTest, AnAddedToStatCarriesItsBreakdown) {
   c.PickUp(std::make_unique<EquipInstance>(sword_));
   c.Equip(0);
 
-  AllStatsPanel panel(c, &account_, {});
+  AllStatsPanel panel(c, &account_, no_skills_);
   EXPECT_NE(RenderElement(panel.Render()).find("(40+5) 45"), std::string::npos);
 }
 
@@ -192,7 +196,7 @@ TEST_F(AllStatsPanelTest, TheFarmBossRowPicksWhoseNumbersTheseAre) {
         .mutable_levels())[HYPER_STAT_FIELD_STR] = 2;
   CharacterInstance c(rng_, std::move(proto));
   c.set_autoswap_presets(true);
-  AllStatsPanel panel(c, &account_, {});
+  AllStatsPanel panel(c, &account_, no_skills_);
 
   EXPECT_NE(RowWith(panel.Render(), "Farm").find("Boss"), std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "STR").find("(0+30) 30"),
@@ -213,7 +217,7 @@ TEST_F(AllStatsPanelTest, TheFarmBossRowPicksWhoseNumbersTheseAre) {
 // Below the level there is nothing to pick between, and no row.
 TEST_F(AllStatsPanelTest, NoFarmBossRowBeforeHyperStats) {
   CharacterInstance c = MakeWarrior();
-  AllStatsPanel panel(c, &account_, {});
+  AllStatsPanel panel(c, &account_, no_skills_);
   EXPECT_EQ(RowWith(panel.Render(), "Farm"), "");
   EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
 }
@@ -227,7 +231,7 @@ TEST_F(AllStatsPanelTest, SomebodyElsesSheetIsGatedOnItsOwnLevel) {
   proto.set_job_stage(4);
   CharacterInstance them(rng_, proto);
   them.set_autoswap_presets(true);
-  AllStatsPanel panel(them, /*account=*/nullptr, {});
+  AllStatsPanel panel(them, /*account=*/nullptr, no_skills_);
   EXPECT_NE(RowWith(panel.Render(), "Farm").find("Boss"), std::string::npos);
   EXPECT_TRUE(panel.OnEvent(ftxui::Event::ArrowRight));
   EXPECT_EQ(panel.preset(), Activity::kBossing);
@@ -235,7 +239,7 @@ TEST_F(AllStatsPanelTest, SomebodyElsesSheetIsGatedOnItsOwnLevel) {
   proto.set_level(139);
   CharacterInstance younger(rng_, std::move(proto));
   younger.set_autoswap_presets(true);
-  AllStatsPanel below(younger, /*account=*/nullptr, {});
+  AllStatsPanel below(younger, /*account=*/nullptr, no_skills_);
   EXPECT_EQ(RowWith(below.Render(), "Farm"), "");
   EXPECT_FALSE(below.OnEvent(ftxui::Event::ArrowRight));
 }
@@ -248,7 +252,7 @@ TEST_F(AllStatsPanelTest, ASheetWithNoAutoswapCarriesNoRow) {
   proto.set_job(JOB_HERO);
   proto.set_job_stage(4);
   CharacterInstance them(rng_, std::move(proto));
-  AllStatsPanel panel(them, /*account=*/nullptr, {});
+  AllStatsPanel panel(them, /*account=*/nullptr, no_skills_);
   EXPECT_EQ(RowWith(panel.Render(), "Farm"), "");
   EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
 }
@@ -256,7 +260,7 @@ TEST_F(AllStatsPanelTest, ASheetWithNoAutoswapCarriesNoRow) {
 // A card that measures its own width has to ask for its right margin.
 TEST_F(AllStatsPanelTest, EveryRowKeepsAColumnClearOfTheRightBorder) {
   CharacterInstance c = MakeWarrior();
-  AllStatsPanel panel(c, /*account=*/nullptr, {});
+  AllStatsPanel panel(c, /*account=*/nullptr, no_skills_);
   std::vector<std::string> touching =
       RowsTouchingTheRightBorder(panel.Render());
   EXPECT_TRUE(touching.empty()) << (touching.empty() ? "" : touching[0]);
