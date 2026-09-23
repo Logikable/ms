@@ -2598,6 +2598,17 @@ void CombatSim::PublishPlayer(const CombatParams& params) {
 }
 
 void CombatSim::PublishTarget(const CombatParams& params) {
+  // A buff gathered in helpings is one buff however many of its windows stand;
+  // they sit side by side under one name.
+  view_.buff_count = 0;
+  for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
+    bool standing = (buff_mask_ & (1 << i)) != 0;
+    bool same_as_last = i > 0 && (buff_mask_ & (1 << (i - 1))) != 0 &&
+                        params.buffs[i].name == params.buffs[i - 1].name;
+    if (standing && !same_as_last) {
+      ++view_.buff_count;
+    }
+  }
   view_.engaged_groups.clear();
   PublishRoster(params);
   respawning_ = queue_.empty();

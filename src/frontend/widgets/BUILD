@@ -199,10 +199,27 @@ cc_test(
 )
 
 cc_library(
+    name = "buff_dots",
+    srcs = ["buff_dots.cc"],
+    hdrs = ["buff_dots.h"],
+)
+
+cc_test(
+    name = "buff_dots_test",
+    size = "small",
+    srcs = ["buff_dots_test.cc"],
+    deps = [
+        ":buff_dots",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "chrome",
     srcs = ["chrome.cc"],
     hdrs = ["chrome.h"],
     deps = [
+        ":buff_dots",
         ":colors",
         ":format",
         ":game_names",

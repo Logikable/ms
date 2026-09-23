@@ -58,6 +58,7 @@ struct SharedPlayer {
   bool present = true;
   std::string attack_name;
   double attack_fraction = 0.0;
+  int buff_count = 0;
 };
 
 // One item a clear paid this player. `drop` names what fell; the roll behind
@@ -101,6 +102,7 @@ struct FightReport {
   double attack_fraction = 0.0;
   // This player's Item Drop Rate, which a clear rolls its drops against.
   double item_drop_pct = 0.0;
+  int buff_count = 0;
 };
 
 class FightAuthority {

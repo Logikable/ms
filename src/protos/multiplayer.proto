@@ -179,6 +179,8 @@ message FightUpdate {
   // against the best one in the party, the way a party brings one along for
   // everybody.
   double item_drop_pct = 6;
+  // How many of this player's buffs stand, dotted along that bar.
+  int32 buff_count = 7;
 }
 
 // One player as the rest of the party sees them mid-fight.
@@ -194,6 +196,7 @@ message FightPlayerState {
   // What they have landed since the last of these. A client skips its own:
   // it drew those numbers when it landed them.
   repeated FightDamage lines = 7;
+  int32 buff_count = 8;
 }
 
 // The fight as the server has it, sent to everyone in it about ten times a

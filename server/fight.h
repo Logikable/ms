@@ -52,6 +52,7 @@ struct FightPlayer {
   // screen.
   std::string attack_name;
   double attack_fraction = 0.0;
+  int buff_count = 0;
   // Their Item Drop Rate, as a fraction. The clear rolls against the best one
   // in the party.
   double item_drop_pct = 0.0;

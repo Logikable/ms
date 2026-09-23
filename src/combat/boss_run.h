@@ -197,6 +197,8 @@ struct FightMember {
   int spot = -1;
   std::string attack_name;
   double attack_fraction = 0.0;
+  // How many of their buffs stand.
+  int buff_count = 0;
 };
 
 // Which of `phase`'s player spots a press moves to. The nearest spot strictly

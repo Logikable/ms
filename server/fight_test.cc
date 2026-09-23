@@ -151,6 +151,7 @@ TEST_F(FightTest, AReportLandsWalksAndWindsUp) {
   update.set_spot(3);
   update.set_attack_name("Blizzard");
   update.set_attack_fraction(0.5);
+  update.set_buff_count(3);
   FightDamage* line = update.add_lines();
   line->set_slot(0);
   line->set_damage(50);
@@ -160,6 +161,7 @@ TEST_F(FightTest, AReportLandsWalksAndWindsUp) {
   EXPECT_EQ(fight_.players()[0].spot, 3);
   EXPECT_EQ(fight_.players()[0].attack_name, "Blizzard");
   EXPECT_EQ(fight_.players()[0].attack_fraction, 0.5);
+  EXPECT_EQ(fight_.players()[0].buff_count, 3);
   // Held for the other players to watch until the broadcast takes them.
   EXPECT_EQ(fight_.players()[0].lines.size(), 1u);
   fight_.TakeLines();

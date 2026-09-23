@@ -209,6 +209,7 @@ void PartyFight::Report(const std::string& account_id,
   }
   player->attack_name = update.attack_name();
   player->attack_fraction = update.attack_fraction();
+  player->buff_count = update.buff_count();
   player->item_drop_pct = update.item_drop_pct();
   MoveTo(account_id, update.spot());
   if (update.phase() != phase_) {

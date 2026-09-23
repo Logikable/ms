@@ -61,6 +61,8 @@ struct FightView {
   // The swing being charged, or "Attack" for the bare poke. Empty while
   // respawning, there being no swing coming to name.
   std::string attack_name;
+  // How many of the player's buffs stand, dotted along the charge bar.
+  int buff_count = 0;
   // The player's remaining HP, rounded up so a sliver still reads as 1 rather
   // than as death, and what it tops out at under the params the step ran on.
   int player_hp = 0;
@@ -87,6 +89,7 @@ struct FightView {
     target_hp_fraction = 0.0;
     attack_fraction = 0.0;
     attack_name.clear();
+    buff_count = 0;
     player_hp = 0;
     player_max_hp = 0;
     player_hp_fraction = 0.0;

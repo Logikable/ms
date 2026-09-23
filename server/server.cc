@@ -363,6 +363,7 @@ void Server::PublishFight(PartyFight& fight) {
     drawn->set_present(player.present);
     drawn->set_attack_name(player.attack_name);
     drawn->set_attack_fraction(player.attack_fraction);
+    drawn->set_buff_count(player.buff_count);
     for (const FightDamage& line : player.lines) {
       *drawn->add_lines() = line;
     }

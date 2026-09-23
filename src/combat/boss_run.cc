@@ -215,7 +215,7 @@ void BossRun::StandSelf() {
   // Always the first of them, so a stack this player landed is the one with
   // owner 0.
   members_[0] = {"", player_at_, sim_.view().attack_name,
-                 sim_.view().attack_fraction};
+                 sim_.view().attack_fraction, sim_.view().buff_count};
 }
 
 std::string_view BossRun::bgm() const {
@@ -801,8 +801,8 @@ void BossRun::TakeShared(const SharedFight& shared) {
       continue;
     }
     member_of_player_[i] = static_cast<int>(members_.size());
-    members_.push_back(
-        {player.name, player.spot, player.attack_name, player.attack_fraction});
+    members_.push_back({player.name, player.spot, player.attack_name,
+                        player.attack_fraction, player.buff_count});
   }
   // Where this player stands is theirs to say -- they walked there without
   // waiting. The server's answer is taken for a phase they have not stood in,
@@ -859,7 +859,8 @@ void BossRun::ReportToParty(double dt) {
   // than drifting a step later every time.
   report_due_ += kReportSeconds;
   authority_->Report({phase_, landed_, player_at_, sim_.view().attack_name,
-                      sim_.view().attack_fraction, item_drop_pct_});
+                      sim_.view().attack_fraction, item_drop_pct_,
+                      sim_.view().buff_count});
   landed_.clear();
 }
 

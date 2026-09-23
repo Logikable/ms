@@ -105,7 +105,7 @@ void PartyFightAuthority::TakeState(const FightState& state,
     }
     fight_.players.push_back({player.account_id(), player.name(), player.spot(),
                               player.present(), player.attack_name(),
-                              player.attack_fraction()});
+                              player.attack_fraction(), player.buff_count()});
     // The player's own lines are not passed back to them: they drew those as
     // they landed them.
     if (player.account_id() == account_id) {
@@ -151,6 +151,7 @@ void PartyFightAuthority::Report(const FightReport& report) {
   update.set_spot(report.spot);
   update.set_attack_name(report.attack_name);
   update.set_attack_fraction(report.attack_fraction);
+  update.set_buff_count(report.buff_count);
   update.set_item_drop_pct(report.item_drop_pct);
   for (const SharedLine& line : report.lines) {
     FightDamage* sent = update.add_lines();

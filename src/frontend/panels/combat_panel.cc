@@ -82,14 +82,16 @@ ftxui::Element CombatPanel::Render() const {
   std::string hp_label = "HP " + std::to_string(sim_.view().player_hp) + " / " +
                          std::to_string(sim_.view().player_max_hp);
   // Charges over one swing; a full bar is the moment a hit lands. Labelled with
-  // the attack being charged ("Attack" for the bare poke, else the skill).
+  // the attack being charged ("Attack" for the bare poke, else the skill), and
+  // dotted at the ends with the buffs standing.
   std::vector<ftxui::Element> rows = {
       header,
       ThemedSeparator(),
       ProgressBar(static_cast<float>(sim_.view().player_hp_fraction), kGreen,
                   hp_label, ftxui::Color::White),
       ProgressBar(static_cast<float>(sim_.view().attack_fraction), kTheme,
-                  sim_.view().attack_name, ftxui::Color::White),
+                  sim_.view().attack_name, ftxui::Color::White,
+                  sim_.view().buff_count),
   };
   if (sim_.respawning()) {
     rows.push_back(ftxui::text(" Respawning..."));

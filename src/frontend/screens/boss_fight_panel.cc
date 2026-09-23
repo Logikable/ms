@@ -89,8 +89,9 @@ ftxui::Element MemberPanel(const BossRun& run, const FightMember& member,
         static_cast<int>(std::ceil(std::max(0.0, run.countdown_left()))));
   }
   ftxui::Color accent = self ? kTheme : kFaintTheme;
-  ftxui::Element bar = ProgressBar(static_cast<float>(member.attack_fraction),
-                                   accent, BarLines(label, kPlayerBarRows));
+  ftxui::Element bar =
+      ProgressBar(static_cast<float>(member.attack_fraction), accent,
+                  BarLines(label, kPlayerBarRows), member.buff_count);
   // Everybody else is named; the player is not, since they know. A name longer
   // than the plate slides under it on the run's own clock -- there is no
   // cursor here to start one, so it slides all fight.

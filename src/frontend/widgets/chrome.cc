@@ -15,6 +15,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "ftxui/screen/string.hpp"
+#include "src/frontend/widgets/buff_dots.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/format.h"
 #include "src/frontend/widgets/text_columns.h"
@@ -41,12 +42,13 @@ class ProgressBarNode : public ftxui::Node {
  public:
   ProgressBarNode(float frac, ftxui::Color fill,
                   std::vector<std::string> labels, ftxui::Color label_on_fill,
-                  ftxui::Color label_off_fill)
+                  ftxui::Color label_off_fill, int buff_count)
       : frac_(std::clamp(frac, 0.0f, 1.0f)),
         fill_(fill),
         labels_(std::move(labels)),
         label_on_fill_(label_on_fill),
-        label_off_fill_(label_off_fill) {
+        label_off_fill_(label_off_fill),
+        buff_count_(buff_count) {
     if (labels_.empty()) {
       labels_.push_back("");
     }
@@ -60,22 +62,29 @@ class ProgressBarNode : public ftxui::Node {
   void Render(ftxui::Screen& screen) override {
     const int width = box_.x_max - box_.x_min + 1;
     const int fill_end = box_.x_min + static_cast<int>(frac_ * width);
+    const std::vector<std::vector<std::string>> dots =
+        BuffDots(width, labels_, buff_count_);
     for (int row = 0; row < static_cast<int>(labels_.size()); ++row) {
       const int y = box_.y_min + row;
       if (y > box_.y_max) {
         return;
       }
-      RenderRow(screen, y, width, fill_end, labels_[row]);
+      RenderRow(screen, y, width, fill_end, labels_[row], dots[row]);
     }
   }
 
  private:
   void RenderRow(ftxui::Screen& screen, int y, int width, int fill_end,
-                 const std::string& label) {
+                 const std::string& label,
+                 const std::vector<std::string>& dots) {
     for (int x = box_.x_min; x <= box_.x_max; ++x) {
       ftxui::Pixel& px = screen.PixelAt(x, y);
-      px.character = " ";
+      const std::string& dot = dots[x - box_.x_min];
+      px.character = dot.empty() ? " " : dot;
       px.background_color = x < fill_end ? fill_ : kBarEmpty;
+      // Dim, so the name reads first.
+      px.foreground_color = x < fill_end ? label_on_fill_ : label_off_fill_;
+      px.dim = !dot.empty();
     }
 
     const int label_len = static_cast<int>(label.size());
@@ -96,6 +105,7 @@ class ProgressBarNode : public ftxui::Node {
   std::vector<std::string> labels_;
   ftxui::Color label_on_fill_;
   ftxui::Color label_off_fill_;
+  int buff_count_;
 };
 
 // Lays its child out at the child's own size, from the corner of whatever box
@@ -249,15 +259,18 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 }
 
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
-                           const std::string& label, ftxui::Color label_color) {
+                           const std::string& label, ftxui::Color label_color,
+                           int buff_count) {
   return std::make_shared<ProgressBarNode>(
-      frac, fill, std::vector<std::string>{label}, label_color, label_color);
+      frac, fill, std::vector<std::string>{label}, label_color, label_color,
+      buff_count);
 }
 
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
-                           const std::vector<std::string>& labels) {
+                           const std::vector<std::string>& labels,
+                           int buff_count) {
   return std::make_shared<ProgressBarNode>(
-      frac, fill, labels, ftxui::Color::Black, ftxui::Color::White);
+      frac, fill, labels, ftxui::Color::Black, ftxui::Color::White, buff_count);
 }
 
 ftxui::Element Floating(ftxui::Element element) {

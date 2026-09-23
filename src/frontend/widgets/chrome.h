@@ -37,12 +37,15 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label);
 // One label colour the whole way across, so it does not turn over a character
 // at a time as the bar moves. Only for a fill dark enough to read against.
+// `buff_count` dots the bar's ends with the buffs standing -- see BuffDots.
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
-                           const std::string& label, ftxui::Color label_color);
+                           const std::string& label, ftxui::Color label_color,
+                           int buff_count = 0);
 // The same bar one row per label line, filled to the same fraction all the way
 // down so it reads as one bar with a wrapped name.
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
-                           const std::vector<std::string>& labels);
+                           const std::vector<std::string>& labels,
+                           int buff_count = 0);
 
 // Takes `element` out of the layout: it asks for no room and draws at its own
 // size from the parent box's top-left. Put it LAST in a dbox, or the dbox

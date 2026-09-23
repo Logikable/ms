@@ -139,7 +139,7 @@ TEST_F(PartyFightTest, WhatOneLandsTheOtherReadsBack) {
   line.source.index = 2;
   line.damage = kTestMobHp / 4;
   line.crit = true;
-  leader_->fight.Report({0, {line}, 0, "Blizzard", 0.5});
+  leader_->fight.Report({0, {line}, 0, "Blizzard", 0.5, 0.0, 3});
 
   SharedFight seen;
   ASSERT_TRUE(Await([&]() {
@@ -158,6 +158,7 @@ TEST_F(PartyFightTest, WhatOneLandsTheOtherReadsBack) {
   EXPECT_EQ(seen.lines[0].source.origin, DamageOrigin::kOwnClock);
   EXPECT_EQ(seen.lines[0].source.index, 2);
   EXPECT_EQ(seen.players[0].attack_name, "Blizzard");
+  EXPECT_EQ(seen.players[0].buff_count, 3);
   EXPECT_EQ(seen.hp_fractions[0], 0.75);
 
   // Read once: the run drew them, and they age off its own screen.

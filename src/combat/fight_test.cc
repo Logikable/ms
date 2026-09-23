@@ -3101,6 +3101,8 @@ TEST(CombatSimTest, ARolledBuffGathersOneHelpingPerSwing) {
   EXPECT_EQ(sim.buff_mask(), 3);
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.buff_mask(), 7);
+  // Three helpings are still one buff to the charge bar's dots.
+  EXPECT_EQ(sim.view().buff_count, 1);
   // A full pile gains nothing: each helping lives out its own window.
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.buff_mask(), 7);
