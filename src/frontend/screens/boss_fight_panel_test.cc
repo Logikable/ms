@@ -167,7 +167,7 @@ std::vector<std::string> Rows(const BossRun& run,
   ftxui::Screen screen =
       ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
                             ftxui::Dimension::Fixed(kMinTerminalRows));
-  ftxui::Render(screen, BossFightPanel(run));
+  ftxui::Render(screen, BossFightPanel(run, true));
   return RowsOf(screen);
 }
 
@@ -265,7 +265,7 @@ ftxui::Screen RenderScreen(const BossRun& run, int width = 120,
                            int height = 30) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
                                                ftxui::Dimension::Fixed(height));
-  ftxui::Render(screen, BossFightPanel(run));
+  ftxui::Render(screen, BossFightPanel(run, true));
   return screen;
 }
 
@@ -370,7 +370,7 @@ std::string Render(const BossRun& run) {
   // Wide enough for the whole arena: three panels and the gaps between them.
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
                                                ftxui::Dimension::Fixed(30));
-  ftxui::Render(screen, BossFightPanel(run));
+  ftxui::Render(screen, BossFightPanel(run, true));
   return screen.ToString();
 }
 
@@ -440,7 +440,7 @@ TEST(BossFightPanelTest, ADeadArmLeavesItsSlotEmpty) {
   {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(90),
                                                  ftxui::Dimension::Fixed(30));
-    ftxui::Render(screen, BossFightPanel(run));
+    ftxui::Render(screen, BossFightPanel(run, true));
     before = screen.dimy();
   }
   for (int i = 0; i < 200 && run.slots()[0].alive; ++i) {
@@ -451,7 +451,7 @@ TEST(BossFightPanelTest, ADeadArmLeavesItsSlotEmpty) {
 
   ftxui::Screen after = ftxui::Screen::Create(ftxui::Dimension::Fixed(90),
                                               ftxui::Dimension::Fixed(30));
-  ftxui::Render(after, BossFightPanel(run));
+  ftxui::Render(after, BossFightPanel(run, true));
   EXPECT_EQ(after.dimy(), before);
   // The gone arm is not drawn, and the ones still standing are.
   std::string out = after.ToString();
@@ -1154,9 +1154,9 @@ TEST(BossFightPanelTest, NoPanelWeldsARowToItsRightBorder) {
   Boss boss = Zakum();
   BossRun run("zakum", boss, 0);
   run.Advance(*state, kBossCountdownSeconds);
-  EXPECT_TRUE(RowsTouchingTheRightBorder(BossFightPanel(run)).empty());
+  EXPECT_TRUE(RowsTouchingTheRightBorder(BossFightPanel(run, true)).empty());
   run.Advance(*state, 30.0);
-  EXPECT_TRUE(RowsTouchingTheRightBorder(BossFightPanel(run)).empty());
+  EXPECT_TRUE(RowsTouchingTheRightBorder(BossFightPanel(run, true)).empty());
 }
 }  // namespace
 }  // namespace ms

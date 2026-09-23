@@ -707,7 +707,7 @@ ftxui::Element Tui::RenderBossFight() {
   }
   // Whatever the fight ended on stands over the arena, so the player sees the
   // fight they just finished rather than the list they are going back to.
-  ftxui::Element fight = BossFightPanel(*run);
+  ftxui::Element fight = BossFightPanel(*run, state_.account.buff_indicators());
   ftxui::Element overlay = BossFightOverlay();
   if (overlay == nullptr) {
     return fight;

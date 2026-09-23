@@ -97,6 +97,10 @@ message Options {
   // Options screen does.
   JukeboxMode jukebox_mode = 6;
 
+  // Whether the charge bar is dotted at its ends with the buffs standing, on
+  // a map and in a boss fight. Off, which is the default, draws the bar bare.
+  bool buff_indicators = 7;
+
   // Field 5 was a bool shuffle switch on the Options screen, which
   // `jukebox_mode` took over. Nothing migrates it: it shipped off, so a save
   // that carried it on loses one keypress on the Jukebox screen, and reading

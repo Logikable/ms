@@ -80,7 +80,7 @@ std::chrono::steady_clock::duration Since(double seconds) {
 // nothing in a boss fight hits back yet. `self` is the player at this screen,
 // whose panel is the bright one and the one the count-in stands on.
 ftxui::Element MemberPanel(const BossRun& run, const FightMember& member,
-                           bool self) {
+                           bool self, bool buff_dots) {
   std::string label = member.attack_name;
   if (self && run.state() == BossRunState::kCountdown) {
     // The count-in stands where the swing name will: it is the one thing on
@@ -89,9 +89,9 @@ ftxui::Element MemberPanel(const BossRun& run, const FightMember& member,
         static_cast<int>(std::ceil(std::max(0.0, run.countdown_left()))));
   }
   ftxui::Color accent = self ? kTheme : kFaintTheme;
-  ftxui::Element bar =
-      ProgressBar(static_cast<float>(member.attack_fraction), accent,
-                  BarLines(label, kPlayerBarRows), member.buff_count);
+  ftxui::Element bar = ProgressBar(static_cast<float>(member.attack_fraction),
+                                   accent, BarLines(label, kPlayerBarRows),
+                                   buff_dots ? member.buff_count : 0);
   // Everybody else is named; the player is not, since they know. A name longer
   // than the plate slides under it on the run's own clock -- there is no
   // cursor here to start one, so it slides all fight.
@@ -543,7 +543,7 @@ ftxui::Element ClockPanel(const BossRun& run) {
 // The arena: every bar of the phase in the cell the fight gave it, the player
 // among them, and the clock over them all, spread over the whole of the
 // screen under the heading.
-ftxui::Element Arena(const BossRun& run) {
+ftxui::Element Arena(const BossRun& run, bool buff_dots) {
   const std::vector<BossSlot>& slots = run.slots();
   // One height for every panel in the phase, monsters and player alike, so a
   // row of bars sits on one line however many rows their names took.
@@ -581,7 +581,7 @@ ftxui::Element Arena(const BossRun& run) {
     if (member.spot >= 0 && member.spot < static_cast<int>(spots.size())) {
       standing = spots[member.spot];
     }
-    panels.push_back(MemberPanel(run, member, i == 1) |
+    panels.push_back(MemberPanel(run, member, i == 1, buff_dots) |
                      ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows));
     cells.push_back({standing.x(), std::clamp(standing.y(), 0, height - 1)});
   }
@@ -637,14 +637,14 @@ std::string FightHeading(const BossRun& run) {
   }
 }
 
-ftxui::Element BossFightPanel(const BossRun& run) {
+ftxui::Element BossFightPanel(const BossRun& run, bool buff_dots) {
   // The arena takes everything under the heading, the clock included: what it
   // does with the room is the phase's own business, and a fight drawn small in
   // the middle of a wide screen is not what standing in an arena looks like.
   return ftxui::vbox({
       ProgressBar(static_cast<float>(run.phase_hp_fraction()), kRed,
                   FightHeading(run)),
-      Arena(run) | ftxui::flex,
+      Arena(run, buff_dots) | ftxui::flex,
   });
 }
 

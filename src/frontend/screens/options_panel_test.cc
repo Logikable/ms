@@ -62,6 +62,17 @@ TEST_F(OptionsPanelTest, AutoswapShipsOffAndEnterThrowsIt) {
   EXPECT_FALSE(account_.autoswap_presets());
 }
 
+TEST_F(OptionsPanelTest, BuffIndicatorsShipOffAndEnterThrowsThem) {
+  panel_.MoveRow(2);
+  ASSERT_EQ(panel_.selected_option(), Option::kBuffIndicators);
+  EXPECT_NE(Render().find("Buff Indicators"), std::string::npos);
+  EXPECT_FALSE(account_.buff_indicators());
+  panel_.Toggle();
+  EXPECT_TRUE(account_.buff_indicators());
+  panel_.Toggle();
+  EXPECT_FALSE(account_.buff_indicators());
+}
+
 TEST_F(OptionsPanelTest, CursorWrapsThroughCloseAndBack) {
   EXPECT_FALSE(panel_.on_close());
   EXPECT_EQ(panel_.selected_option(), Option::kPanelTitleBlink);

@@ -89,9 +89,10 @@ ftxui::Element CombatPanel::Render() const {
       ThemedSeparator(),
       ProgressBar(static_cast<float>(sim_.view().player_hp_fraction), kGreen,
                   hp_label, ftxui::Color::White),
-      ProgressBar(static_cast<float>(sim_.view().attack_fraction), kTheme,
-                  sim_.view().attack_name, ftxui::Color::White,
-                  sim_.view().buff_count),
+      ProgressBar(
+          static_cast<float>(sim_.view().attack_fraction), kTheme,
+          sim_.view().attack_name, ftxui::Color::White,
+          state_.account.buff_indicators() ? sim_.view().buff_count : 0),
   };
   if (sim_.respawning()) {
     rows.push_back(ftxui::text(" Respawning..."));

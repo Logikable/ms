@@ -116,6 +116,13 @@ class AccountInstance {
     account_.mutable_options()->set_jukebox_mode(mode);
   }
 
+  bool buff_indicators() const {
+    return account_.options().buff_indicators();
+  }
+  void SetBuffIndicators(bool on) {
+    account_.mutable_options()->set_buff_indicators(on);
+  }
+
   bool panel_title_blink() const {
     return account_.options().panel_title_blink();
   }

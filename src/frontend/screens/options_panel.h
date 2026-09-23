@@ -28,10 +28,11 @@ namespace ms {
 enum class Option {
   kPanelTitleBlink,
   kAutoswapPresets,
+  kBuffIndicators,
   kMapBgmVolume,
   kBossBgmVolume,
 };
-inline constexpr int kOptionCount = kAudioEnabled ? 4 : 2;
+inline constexpr int kOptionCount = kAudioEnabled ? 5 : 3;
 
 class OptionsPanel {
  public:

@@ -47,8 +47,8 @@ inline constexpr int kArenaRows = 6;
 // fight once it is over.
 std::string FightHeading(const BossRun& run);
 
-// The whole screen for `run`.
-ftxui::Element BossFightPanel(const BossRun& run);
+// The whole screen for `run`. `buff_dots` is the Buff Indicators option.
+ftxui::Element BossFightPanel(const BossRun& run, bool buff_dots);
 
 }  // namespace ms
 
