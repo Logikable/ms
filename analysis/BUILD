@@ -302,6 +302,24 @@ sim_binary(
 )
 
 sim_binary(
+    name = "breakdown_sim",
+    srcs = ["breakdown_sim.cc"],
+    deps = [
+        ":sim_boss",
+        ":sim_jobs",
+        ":sim_world",
+        "//src:game_state",
+        "//src/character",
+        "//src/combat:boss_run",
+        "//src/combat:damage_breakdown",
+        "//src/protos:boss_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log",
+    ],
+)
+
+sim_binary(
     name = "bench_sim",
     srcs = ["bench_sim.cc"],
     deps = [

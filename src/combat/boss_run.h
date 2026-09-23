@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "src/combat/boss_timing.h"
+#include "src/combat/damage_breakdown.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/combat/fight_authority.h"
@@ -274,6 +275,11 @@ class BossRun {
   double clear_seconds() const {
     return clear_seconds_;
   }
+  // This player's damage by skill, and the seconds it was dealt over: the
+  // fighting ones, which leave out the count-in and the gaps between phases.
+  const DamageBreakdown& breakdown() const {
+    return breakdown_;
+  }
   // What is left of the current phase, over what it started with. Every
   // monster in the phase counts toward it, so eight arms at half HP reads 50%.
   double phase_hp_fraction() const {
@@ -434,6 +440,7 @@ class BossRun {
   double countdown_left_ = kBossCountdownSeconds;
   double seconds_left_ = 0.0;
   double clear_seconds_ = 0.0;
+  DamageBreakdown breakdown_;
   double elapsed_seconds_ = 0.0;
   // Seconds left of whatever beat is being held: the gap between phases, or
   // the pause at the end before the screen goes back.

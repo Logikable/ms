@@ -416,6 +416,8 @@ void BossRun::CollectDamageWrites() {
       }
       // Rounded up off zero: a line that landed at all is worth a 1 rather
       // than a number that says nothing happened.
+      breakdown_.AddLine(sim_.damage_credit_name(lines[i].credit),
+                         lines[i].damage, lines[i].cast);
       int64_t damage = static_cast<int64_t>(std::llround(lines[i].damage));
       damage = std::max<int64_t>(1, damage);
       damage_writes_.back().lines.push_back({damage, lines[i].crit});
@@ -652,6 +654,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
     return;
   }
   AdvanceCombat(state, sim_, params, dt);
+  breakdown_.AddSeconds(dt);
   CollectDamageWrites();
   if (slots_.empty()) {
     FillSlots(params);
@@ -832,6 +835,7 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
   }
   item_drop_pct_ = params.drop_roll_item_drop_pct;
   AdvanceCombat(state, sim_, params, dt);
+  breakdown_.AddSeconds(dt);
   if (slots_.empty()) {
     FillSlots(params);
   }

@@ -807,6 +807,27 @@ TEST(BossRunTest, AClearRemembersHowLongItTook) {
       boss.difficulties(0).time_limit_seconds() - run.seconds_left());
 }
 
+// The breakdown is every line the player landed, overkill and all, over the
+// seconds they fought: the count-in and the gap between phases are not
+// fighting.
+TEST(BossRunTest, TheBreakdownCountsEveryLineOverTheFightingSeconds) {
+  std::unique_ptr<GameState> state = MakeState(40, 200);
+  Boss boss = TwoPhaseBoss();
+  BossRun run("zakum", boss, 0);
+  RunToEnd(run, *state);
+
+  ASSERT_TRUE(run.won());
+  const DamageBreakdown& breakdown = run.breakdown();
+  std::vector<BreakdownRow> rows = breakdown.Rows();
+  ASSERT_EQ(rows.size(), 1u);
+  EXPECT_EQ(rows[0].skill, "Attack");
+  EXPECT_GE(rows[0].damage, 2 * 40 + 200);
+  EXPECT_GT(rows[0].casts, 0);
+  EXPECT_GE(rows[0].lines, rows[0].casts);
+  EXPECT_NEAR(breakdown.seconds(), run.clear_seconds() - kBossPhaseGapSeconds,
+              0.2);
+}
+
 TEST(BossRunTest, AFightThatRanOutOfTimePaysNothing) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = RewardingBoss(/*mark_chance=*/1.0);

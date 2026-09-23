@@ -13,6 +13,22 @@ cc_library(
 )
 
 cc_library(
+    name = "damage_breakdown",
+    srcs = ["damage_breakdown.cc"],
+    hdrs = ["damage_breakdown.h"],
+)
+
+cc_test(
+    name = "damage_breakdown_test",
+    size = "small",
+    srcs = ["damage_breakdown_test.cc"],
+    deps = [
+        ":damage_breakdown",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "damage_ledger",
     srcs = ["damage_ledger.cc"],
     hdrs = ["damage_ledger.h"],
@@ -188,6 +204,7 @@ cc_library(
     deps = [
         ":boss_timing",
         ":combat",
+        ":damage_breakdown",
         ":drop",
         ":encounter",
         ":fight",
