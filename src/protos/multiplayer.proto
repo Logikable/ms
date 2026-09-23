@@ -161,6 +161,21 @@ message FightDamage {
   int32 strike = 7;
 }
 
+// One skill's row of a player's damage breakdown: see DamageBreakdown.
+message FightBreakdownRow {
+  string skill = 1;
+  double damage = 2;
+  int64 casts = 3;
+  int64 lines = 4;
+}
+
+// One player's whole breakdown, as the fight ends on it.
+message FightBreakdown {
+  string account_id = 1;
+  string name = 2;
+  repeated FightBreakdownRow rows = 3;
+}
+
 // What one client's fight has landed since it last spoke, and what its player
 // is doing. Sent while a fight is on and at no other time.
 message FightUpdate {
@@ -181,6 +196,10 @@ message FightUpdate {
   double item_drop_pct = 6;
   // How many of this player's buffs stand, dotted along that bar.
   int32 buff_count = 7;
+  // Their damage by skill over the whole fight so far, replacing the last.
+  // Sent with the lines it counts, so what the others read at the end is
+  // exactly what came off the roster.
+  repeated FightBreakdownRow breakdown = 8;
 }
 
 // One player as the rest of the party sees them mid-fight.
@@ -259,6 +278,9 @@ message FightEnded {
   // is certain is certain: rolling per player at a split chance can pay it to
   // nobody.
   repeated FightAward awards = 3;
+  // Everyone's damage by skill, those who left included, as each last
+  // reported it.
+  repeated FightBreakdown breakdowns = 4;
 }
 
 // Walking out of a fight in progress. The player is dropped from it exactly as

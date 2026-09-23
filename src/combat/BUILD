@@ -183,6 +183,7 @@ cc_library(
     name = "fight_authority",
     hdrs = ["fight_authority.h"],
     deps = [
+        ":damage_breakdown",
         ":fight",
         "//src/protos:mob_proto_cc",
     ],

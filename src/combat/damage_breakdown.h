@@ -30,6 +30,14 @@ struct BreakdownRow {
   double per_line() const;
 };
 
+// One player's rows, as the table at the end of a party's fight lists them.
+struct PlayerBreakdown {
+  std::string account_id;
+  // Empty for the player at this screen.
+  std::string name;
+  std::vector<BreakdownRow> rows;
+};
+
 // Everything `rows` add up to.
 double TotalDamage(const std::vector<BreakdownRow>& rows);
 // What `row` is of `total`, as a fraction; 0 against a total of nothing.

@@ -62,6 +62,9 @@ struct FightPlayer {
   // rather than in the fight's own state because it is a relay: the server
   // passes it on and forgets it.
   std::vector<FightDamage> lines;
+  // Their damage by skill, as they last reported it. Kept when they leave,
+  // so the table at the end still lists them.
+  std::vector<FightBreakdownRow> breakdown;
 };
 
 class PartyFight {

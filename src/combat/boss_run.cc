@@ -789,6 +789,13 @@ void BossRun::TakeShared(const SharedFight& shared) {
   }
   seconds_left_ = shared.seconds_left;
   countdown_left_ = shared.countdown_left;
+  if (shared.self >= 0 &&
+      shared.self < static_cast<int>(shared.players.size())) {
+    self_account_ = shared.players[shared.self].account_id;
+  }
+  if (!shared.breakdowns.empty()) {
+    shared_breakdowns_ = shared.breakdowns;
+  }
   if (shared.share_count > 0) {
     share_count_ = shared.share_count;
   }
@@ -868,7 +875,7 @@ void BossRun::ReportToParty(double dt) {
   report_due_ += kReportSeconds;
   authority_->Report({phase_, landed_, player_at_, sim_.view().attack_name,
                       sim_.view().attack_fraction, item_drop_pct_,
-                      sim_.view().buff_count});
+                      sim_.view().buff_count, breakdown_.Rows()});
   landed_.clear();
 }
 
@@ -908,6 +915,16 @@ void BossRun::AddSharedStacks(const std::vector<SharedLine>& lines) {
         damage_stacks_.begin() +
             (static_cast<int>(damage_stacks_.size()) - kMaxDamageStacks));
   }
+}
+
+std::vector<PlayerBreakdown> BossRun::breakdowns() const {
+  std::vector<PlayerBreakdown> all = {{self_account_, "", breakdown_.Rows()}};
+  for (const PlayerBreakdown& player : shared_breakdowns_) {
+    if (player.account_id != self_account_) {
+      all.push_back(player);
+    }
+  }
+  return all;
 }
 
 void BossRun::Advance(GameState& state, double elapsed_seconds) {

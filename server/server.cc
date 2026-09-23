@@ -395,6 +395,14 @@ void Server::CloseFight(const std::string& party_id, const PartyFight& fight) {
     for (const FightAward& award : player.awards) {
       *ended->add_awards() = award;
     }
+    for (const FightPlayer& dealt : fight.players()) {
+      FightBreakdown* breakdown = ended->add_breakdowns();
+      breakdown->set_account_id(dealt.account_id);
+      breakdown->set_name(dealt.name);
+      for (const FightBreakdownRow& row : dealt.breakdown) {
+        *breakdown->add_rows() = row;
+      }
+    }
     Send(*session, message);
   }
   lobby_.FinishFight(party_id);

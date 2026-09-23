@@ -85,6 +85,7 @@ cc_library(
     hdrs = ["party_fight.h"],
     deps = [
         ":client",
+        "//src/combat:damage_breakdown",
         "//src/combat:fight_authority",
         "//src/protos:multiplayer_proto_cc",
     ],

@@ -211,6 +211,12 @@ void PartyFight::Report(const std::string& account_id,
   player->attack_fraction = update.attack_fraction();
   player->buff_count = update.buff_count();
   player->item_drop_pct = update.item_drop_pct();
+  // The whole table each time, so a report that crossed a phase is still
+  // worth taking this from.
+  if (update.breakdown_size() > 0) {
+    player->breakdown.assign(update.breakdown().begin(),
+                             update.breakdown().end());
+  }
   MoveTo(account_id, update.spot());
   if (update.phase() != phase_) {
     // A report that crossed a phase change names monsters that are gone. Its

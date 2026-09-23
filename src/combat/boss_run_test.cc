@@ -1046,6 +1046,33 @@ TEST(BossRunTest, AFollowedRunWaitsToBeToldAnything) {
   EXPECT_TRUE(authority.reported_.empty());
 }
 
+// A followed run reports its whole table as it goes, and ends on everyone's:
+// its own first and unnamed, then the rest as the authority says.
+TEST(BossRunTest, AFollowedRunReportsItsBreakdownAndEndsOnEveryones) {
+  std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
+  Boss boss = TwoPhaseBoss();
+  TestAuthority authority(2);
+  authority.fight_.players[0].account_id = "me";
+  authority.fight_.players[1].account_id = "them";
+  BossRun run("zakum", boss, 0, &authority);
+  for (int step = 0; step < 20; ++step) {
+    run.Advance(*state, 0.1);
+  }
+  ASSERT_EQ(authority.reported_breakdown_.size(), 1u);
+  EXPECT_EQ(authority.reported_breakdown_[0].skill, "Attack");
+
+  authority.fight_.state = BossRunState::kWon;
+  authority.fight_.breakdowns = {{"me", "Dagger", {{"Attack", 1.0, 1, 1}}},
+                                 {"them", "Wand", {{"Blizzard", 5.0, 1, 2}}}};
+  run.Advance(*state, 0.1);
+  std::vector<PlayerBreakdown> all = run.breakdowns();
+  ASSERT_EQ(all.size(), 2u);
+  EXPECT_EQ(all[0].name, "");
+  EXPECT_DOUBLE_EQ(TotalDamage(all[0].rows), run.breakdown().total());
+  EXPECT_EQ(all[1].name, "Wand");
+  EXPECT_EQ(all[1].rows[0].skill, "Blizzard");
+}
+
 TEST(BossRunTest, AFollowedRunShowsTheMonstersThroughTheCountIn) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = TwoPhaseBoss();

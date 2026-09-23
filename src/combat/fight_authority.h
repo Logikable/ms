@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 
+#include "src/combat/damage_breakdown.h"
 #include "src/combat/fight.h"
 #include "src/protos/mob.pb.h"
 
@@ -88,6 +89,9 @@ struct SharedFight {
   // What a clear paid this player. The AUTHORITY deals the drops, which is
   // what makes a certain drop certain and a one-off fall to one person.
   std::vector<SharedAward> awards;
+  // Every player's damage by skill, in the order of `players`. Empty until
+  // the fight is over.
+  std::vector<PlayerBreakdown> breakdowns;
 };
 
 // What one run has to say for itself: what it landed since the last report,
@@ -103,6 +107,8 @@ struct FightReport {
   // This player's Item Drop Rate, which a clear rolls its drops against.
   double item_drop_pct = 0.0;
   int buff_count = 0;
+  // Everything the player has dealt this fight, by skill.
+  std::vector<BreakdownRow> breakdown;
 };
 
 class FightAuthority {

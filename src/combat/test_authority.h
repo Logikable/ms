@@ -36,6 +36,7 @@ class TestAuthority : public FightAuthority {
     for (const SharedLine& line : report.lines) {
       reported_.push_back(line);
     }
+    reported_breakdown_ = report.breakdown;
   }
 
   bool Fetch(SharedFight& fight) override {
@@ -67,6 +68,7 @@ class TestAuthority : public FightAuthority {
   std::string reported_attack_;
   double reported_drop_pct_ = 0.0;
   std::vector<SharedLine> reported_;
+  std::vector<BreakdownRow> reported_breakdown_;
 
  private:
   int event_ = 0;

@@ -177,7 +177,14 @@ TEST_F(PartyFightTest, AClearIsToldToEveryone) {
   SharedLine line;
   line.slot = 0;
   line.damage = kTestMobHp;
-  leader_->fight.Report({0, {line}, 0, "Blizzard", 0.5});
+  leader_->fight.Report({0,
+                         {line},
+                         0,
+                         "Blizzard",
+                         0.5,
+                         0.0,
+                         0,
+                         {{"Blizzard", 1.0 * kTestMobHp, 1, 1}}});
 
   SharedFight ended;
   ASSERT_TRUE(Await([&]() {
@@ -189,6 +196,15 @@ TEST_F(PartyFightTest, AClearIsToldToEveryone) {
     return true;
   }));
   EXPECT_EQ(ended.share_count, 2);
+  // Everyone's table, the one who never reported included.
+  ASSERT_EQ(ended.breakdowns.size(), 2u);
+  EXPECT_EQ(ended.breakdowns[0].account_id, leader_->account_id);
+  EXPECT_EQ(ended.breakdowns[0].name, "Dagger");
+  ASSERT_EQ(ended.breakdowns[0].rows.size(), 1u);
+  EXPECT_EQ(ended.breakdowns[0].rows[0].skill, "Blizzard");
+  EXPECT_EQ(ended.breakdowns[0].rows[0].damage, kTestMobHp);
+  EXPECT_EQ(ended.breakdowns[0].rows[0].casts, 1);
+  EXPECT_TRUE(ended.breakdowns[1].rows.empty());
 }
 
 // The server deals the drops, so what always falls always falls -- to exactly

@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/combat/damage_breakdown.h"
 #include "src/combat/fight_authority.h"
 #include "src/multiplayer/client.h"
 #include "src/protos/multiplayer.pb.h"
@@ -133,6 +134,15 @@ void PartyFightAuthority::TakeEnd(const FightEnded& ended) {
     won.count = award.count();
     fight_.awards.push_back(std::move(won));
   }
+  fight_.breakdowns.clear();
+  for (const FightBreakdown& sent : ended.breakdowns()) {
+    PlayerBreakdown player{sent.account_id(), sent.name(), {}};
+    for (const FightBreakdownRow& row : sent.rows()) {
+      player.rows.push_back(
+          {row.skill(), row.damage(), row.casts(), row.lines()});
+    }
+    fight_.breakdowns.push_back(std::move(player));
+  }
 }
 
 bool PartyFightAuthority::Fetch(SharedFight& fight) {
@@ -162,6 +172,13 @@ void PartyFightAuthority::Report(const FightReport& report) {
     sent->set_source_index(line.source.index);
     sent->set_damage(line.damage);
     sent->set_crit(line.crit);
+  }
+  for (const BreakdownRow& row : report.breakdown) {
+    FightBreakdownRow* sent = update.add_breakdown();
+    sent->set_skill(row.skill);
+    sent->set_damage(row.damage);
+    sent->set_casts(row.casts);
+    sent->set_lines(row.lines);
   }
   client_->SendFightUpdate(update);
 }

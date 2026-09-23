@@ -237,6 +237,25 @@ TEST_F(FightTest, OneSpotHoldsOnePlayer) {
   EXPECT_FALSE(fight_.MoveTo("three", 1));
 }
 
+// A report carries the whole table, which replaces the last -- even one from
+// a phase that has moved on -- and is kept when its player goes.
+TEST_F(FightTest, TheLastBreakdownReportedIsKept) {
+  CountIn();
+  FightUpdate update;
+  FightBreakdownRow* row = update.add_breakdown();
+  row->set_skill("Blizzard");
+  row->set_damage(10);
+  fight_.Report("one", update);
+  row->set_damage(30);
+  update.set_phase(5);
+  fight_.Report("one", update);
+  fight_.Disconnect("one");
+
+  ASSERT_EQ(fight_.players()[0].breakdown.size(), 1u);
+  EXPECT_EQ(fight_.players()[0].breakdown[0].skill(), "Blizzard");
+  EXPECT_EQ(fight_.players()[0].breakdown[0].damage(), 30);
+}
+
 TEST_F(FightTest, APlayerWhoGoesStopsHittingAndFreesTheirSpot) {
   CountIn();
   fight_.Disconnect("two");

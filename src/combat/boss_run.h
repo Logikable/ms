@@ -280,6 +280,9 @@ class BossRun {
   const DamageBreakdown& breakdown() const {
     return breakdown_;
   }
+  // Everyone's rows, this player's first and unnamed. The rest arrive with
+  // the end of a party's fight, as each of them last reported.
+  std::vector<PlayerBreakdown> breakdowns() const;
   // What is left of the current phase, over what it started with. Every
   // monster in the phase counts toward it, so eight arms at half HP reads 50%.
   double phase_hp_fraction() const {
@@ -441,6 +444,9 @@ class BossRun {
   double seconds_left_ = 0.0;
   double clear_seconds_ = 0.0;
   DamageBreakdown breakdown_;
+  // The party's, from the authority, and which account is this player's.
+  std::vector<PlayerBreakdown> shared_breakdowns_;
+  std::string self_account_;
   double elapsed_seconds_ = 0.0;
   // Seconds left of whatever beat is being held: the gap between phases, or
   // the pause at the end before the screen goes back.
