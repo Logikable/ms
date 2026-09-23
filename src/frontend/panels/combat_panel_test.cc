@@ -18,6 +18,7 @@
 #include "src/protos/equip.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -389,5 +390,35 @@ TEST(CombatPanelTest, TheRowsKeepOffTheRightBorder) {
   CombatPanel panel(state, sim, focus);
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());
 }
+// The charge bar's buff dots are an option, and one that ships off.
+TEST(CombatPanelTest, BuffDotsFollowTheOption) {
+  Skill rage;
+  rage.set_name("Rage");
+  rage.set_kind(SKILL_KIND_ACTIVE);
+  PlaceIn(rage, JOB_ADVANCEMENT_SWORDMAN);
+  rage.set_max_level(1);
+  rage.set_cooldown_seconds(60.0);
+  rage.mutable_buff()->set_duration_seconds(60.0);
+  rage.mutable_buff()->mutable_base()->set_damage_pct(0.1);
+  Mob tough = SnailMob();
+  tough.set_max_hp(1000000000);
+  GameState state({}, {}, {}, {{"snail", tough}}, {{"field", SnailField()}},
+                  {{"rage", rage}});
+  state.current_map = "field";
+  EquipSword(state);
+  state.character.AdvanceJob(JOB_SWORDMAN);
+  for (int i = 0; i < 10; ++i) {
+    state.character.LevelUp();
+  }
+  ASSERT_TRUE(state.character.LearnSkill(rage, 1));
+  CombatSim sim;
+  sim.Advance(ComputeCombatParams(state), 1.0);
+  ASSERT_EQ(sim.view().buff_count, 1);
+
+  EXPECT_EQ(RenderPanel(state, sim).find("·"), std::string::npos);
+  state.account.SetBuffIndicators(true);
+  EXPECT_NE(RenderPanel(state, sim).find("·"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms
