@@ -155,6 +155,13 @@ TEST_F(MultiSellTest, TheBasketRunsAcrossTabs) {
   Press(panel, ftxui::Event::ArrowDown);
   Press(panel, ftxui::Event::Return);
   EXPECT_EQ(panel.Total(), 1000 + 3 * 7) << "the whole stack goes";
+
+  // The bar marks the tab the rows belong to, not the one at Etc's tab id.
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(110),
+                                               ftxui::Dimension::Fixed(40));
+  ftxui::Render(screen, ftxui::center(panel.Render()));
+  EXPECT_TRUE(PixelOf(screen, " Etc ").inverted);
+  EXPECT_FALSE(PixelOf(screen, " Equip ").inverted);
 }
 
 TEST_F(MultiSellTest, TheWindowStandsAtTheSameHeightOnEveryTab) {

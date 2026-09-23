@@ -281,15 +281,20 @@ ftxui::Element MultiSellPanel::PriceCell(int row) const {
 }
 
 ftxui::Element MultiSellPanel::RenderHeader() const {
+  // The bar is indexed by position in kTabs, not by the bag's tab id.
   std::vector<TabSpec> specs;
+  int active = 0;
   for (int tab : kTabs) {
+    if (tab == active_tab_) {
+      active = static_cast<int>(specs.size());
+    }
     specs.push_back({kInventoryTabLabels[tab], /*unseen=*/false});
   }
   ftxui::Element total =
       ftxui::text("+" + FormatWithCommas(Total())) | ftxui::color(kGold);
   return ftxui::vbox({
       ftxui::hbox({
-          TabBar(specs, active_tab_, zone_ == kZoneTabs, /*width=*/0),
+          TabBar(specs, active, zone_ == kZoneTabs, /*width=*/0),
           ftxui::filler(),
           ftxui::text(FormatMeso(character_.meso())) | ftxui::color(kTheme),
           ftxui::text("   "),
