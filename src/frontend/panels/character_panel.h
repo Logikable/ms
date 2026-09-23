@@ -295,6 +295,8 @@ class CharacterPanel {
   // Whether the Stats tab carries its combat block. Everything below the AP
   // rows hangs off it, that row's stop in the cursor ring included.
   bool ShowsCombatStats() const;
+  // Moves the advancement bar one stage, held at either end.
+  void StepSkillPage(int delta);
   bool OnSkillsTabEvent(const ftxui::Event& event,
                         const CharacterPanelActions& actions);
   bool OnAdvanceTabEvent(const ftxui::Event& event,

@@ -1618,6 +1618,48 @@ void AddStances(const Buff& buff, int level, double speed_factor,
   }
 }
 
+// How the buff goes up, and what that costs the fight: a press of its own, a
+// roll on a swing, or laid by the attack it hangs off.
+void SetHowRaised(const Skill& skill, int level, int stage, double speed_factor,
+                  const std::vector<AttackOption>& attacks,
+                  BuffOption& option) {
+  const Buff& buff = skill.buff();
+  // What raising it costs. A buff a swing lays is paid for by that swing, so
+  // it is charged nothing here -- see BuffOption::cast_seconds.
+  option.cast_seconds = skill.base_delay_ms() / 1000.0 * speed_factor;
+  // The stages of one shedding buff go up on the one cast, so only the first
+  // of them is charged for it.
+  if (stage > 0) {
+    option.cast_seconds = 0.0;
+  }
+  // A buff a swing ROLLS for is not pressed at all, so it costs no cast and
+  // waits on no clock. One naming an afflicted target with no chance of its
+  // own is raised by every swing that finds one.
+  option.needs_afflicted_target = buff.needs_afflicted_target();
+  if (buff.raise_chance() > 0.0 || buff.raise_chance_per_level() > 0.0) {
+    option.raise_chance = std::clamp(
+        buff.raise_chance() + buff.raise_chance_per_level() * (level - 1), 0.0,
+        1.0);
+  } else if (option.needs_afflicted_target) {
+    option.raise_chance = 1.0;
+  }
+  if (option.raise_chance > 0.0) {
+    option.cast_seconds = 0.0;
+  }
+  // A buff hanging off an ATTACK is laid by that swing rather than raised
+  // on a wait, unless it states a press of its own.
+  if (skill.kind() == SKILL_KIND_ATTACK) {
+    if (buff.own_cast_delay_ms() > 0) {
+      option.cast_seconds = buff.own_cast_delay_ms() / 1000.0 * speed_factor;
+    } else {
+      option.laid_by_attack = AttackNamed(attacks, skill.name());
+      option.raised_on_cast = buff.raised_on_cast();
+      option.needs_wound_form = buff.needs_wound_form();
+      option.cast_seconds = 0.0;
+    }
+  }
+}
+
 // What the fight needs to run each buff's clock, at the level it is learned.
 // The levers are not here: those are folded into the tables below.
 void AddBuffs(const GameState& state,
@@ -1663,45 +1705,12 @@ void AddBuffs(const GameState& state,
     // counts is already stretched.
     option.charge_lines = buff.charge_lines();
     option.heal_fraction = held.heal_pct();
-    // What raising it costs. A buff a swing lays is paid for by that swing, so
-    // it is charged nothing here -- see BuffOption::cast_seconds.
-    option.cast_seconds = skill->base_delay_ms() / 1000.0 * speed_factor;
-    // The stages of one shedding buff go up on the one cast, so only the first
-    // of them is charged for it.
-    if (stage > 0) {
-      option.cast_seconds = 0.0;
-    }
-    // A buff a swing ROLLS for is not pressed at all, so it costs no cast and
-    // waits on no clock. One naming an afflicted target with no chance of its
-    // own is raised by every swing that finds one.
-    option.needs_afflicted_target = buff.needs_afflicted_target();
-    if (buff.raise_chance() > 0.0 || buff.raise_chance_per_level() > 0.0) {
-      option.raise_chance = std::clamp(
-          buff.raise_chance() + buff.raise_chance_per_level() * (level - 1),
-          0.0, 1.0);
-    } else if (option.needs_afflicted_target) {
-      option.raise_chance = 1.0;
-    }
-    if (option.raise_chance > 0.0) {
-      option.cast_seconds = 0.0;
-    }
+    SetHowRaised(*skill, level, stage, speed_factor, params.attacks, option);
     // The swing this buff loads, found by the magazine's own label -- the name
     // AddMagazines built it under.
     if (buff.magazine().charges() > 0) {
       option.magazine_attack =
           AttackNamed(params.attacks, buff.magazine().label());
-    }
-    // A buff hanging off an ATTACK is laid by that swing rather than raised
-    // on a wait, unless it states a press of its own.
-    if (skill->kind() == SKILL_KIND_ATTACK) {
-      if (buff.own_cast_delay_ms() > 0) {
-        option.cast_seconds = buff.own_cast_delay_ms() / 1000.0 * speed_factor;
-      } else {
-        option.laid_by_attack = AttackNamed(params.attacks, skill->name());
-        option.raised_on_cast = buff.raised_on_cast();
-        option.needs_wound_form = buff.needs_wound_form();
-        option.cast_seconds = 0.0;
-      }
     }
     params.buffs.push_back(std::move(option));
   }

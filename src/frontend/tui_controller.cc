@@ -803,8 +803,7 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSkillLearnEvent(event);
     case kSkillMenu:
       return OnSkillMenuEvent(event);
-    // Both are screens with nothing to do but read them, so they close the
-    // same way.
+    // Screens with nothing to do but read them, so they close the same way.
     case kSkillInspect:
     case kAllStats:
     case kHyperStatInspect:
@@ -904,8 +903,9 @@ bool TuiController::OnEvent(ftxui::Event event) {
     case kBossAnalysis:
       return OnBossAnalysisEvent(event);
     case kBank:
+      return OnBankEvent(event);
     case kBankMenu:
-      return screen_ == kBank ? OnBankEvent(event) : OnBankMenuEvent(event);
+      return OnBankMenuEvent(event);
     case kLinkSkills:
       return OnLinkSkillsEvent(event);
     case kLinkSkillMenu:

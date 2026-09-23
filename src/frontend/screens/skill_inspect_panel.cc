@@ -1751,15 +1751,9 @@ std::string BuffWindowText(const Buff& buff, int level) {
          FormatNumber(buff.duration_seconds_per_dot()) + "s per DoT";
 }
 
-// What a timed buff grants, headed by how long it stands. The wait for the
-// next one is the skill's own Cooldown row, above; no row here says "while
-// up", the heading saying it once for all of them.
-std::vector<Row> BuffRows(const Skill& skill, int level) {
-  std::vector<Row> rows;
-  const Buff& buff = skill.buff();
-  if (LongestBuffDuration(buff) <= 0.0) {
-    return rows;
-  }
+// The buff's heading: how long it stands, and what raises it where no
+// Cooldown row can say so.
+std::string BuffHeading(const Buff& buff, int level) {
   // A buff bought with landed hits says so in its heading: that count is the
   // whole of what it costs, and there is no Cooldown row to carry it.
   std::string charge =
@@ -1783,12 +1777,22 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   if (buff.needs_afflicted_target()) {
     charge += ", on a suffering enemy";
   }
+  return "Active for " + BuffWindowText(buff, level) + charge + shared + form;
+}
+
+// What a timed buff grants, headed by how long it stands. The wait for the
+// next one is the skill's own Cooldown row, above; no row here says "while
+// up", the heading saying it once for all of them.
+std::vector<Row> BuffRows(const Skill& skill, int level) {
+  std::vector<Row> rows;
+  const Buff& buff = skill.buff();
+  if (LongestBuffDuration(buff) <= 0.0) {
+    return rows;
+  }
   // A buff with forms carries no length of its own: each form heads its own
   // block below, and one heading for both would have to lie about one of them.
   if (buff.stance().empty()) {
-    rows.push_back(SectionRow(
-        "Active for " + BuffWindowText(buff, level) + charge + shared + form,
-        kGold));
+    rows.push_back(SectionRow(BuffHeading(buff, level), kGold));
   }
   // The heal is handed over once, when the buff goes up -- so it is stated on
   // its own rather than among the levers that hold for as long as it stands.
@@ -1817,7 +1821,7 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
                       FormatNumber(buff.stage_interval_seconds()) + "s"));
     per_stage = " each";
   }
-  // The summon this buff puts out while it stands. A statement rather than a
+  // The summon this buff dismisses while it stands. A statement rather than a
   // number, like the Element row: there is no figure to put on it.
   if (!buff.silences_skill_name().empty()) {
     rows.push_back(EffectRow("Dismisses", buff.silences_skill_name()));

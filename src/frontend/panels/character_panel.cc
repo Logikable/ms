@@ -1744,38 +1744,37 @@ bool CharacterPanel::OnBuffsTabEvent(const ftxui::Event& event,
   return true;
 }
 
+void CharacterPanel::StepSkillPage(int delta) {
+  skill_tab_ =
+      std::max(0, std::min(SkillPages() - 1, SelectedSkillPage() + delta));
+  skill_page_chosen_ = true;
+  // Landing on a page is reading it, the outer tab bar's rule exactly.
+  MarkActiveTabSeen();
+}
+
 bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
                                       const CharacterPanelActions& actions) {
+  // Up/Down walk every zone here: the advancement bar, the skill rows and the
+  // V page's [Reset], wrapping out to the bars above and below.
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  // Advancement bar: Left/Right switch stages.
   if (zone_ == kZoneAdvTabs) {
-    // Advancement bar: Left/Right switch stages; Up returns to the outer tabs
-    // and Down descends to the skills, or back to the outer tabs when this
-    // stage has none to put the cursor on.
-    if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
-      MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
-      return true;
-    }
     if (event == ftxui::Event::ArrowLeft) {
-      skill_tab_ = std::max(0, SelectedSkillPage() - 1);
-      skill_page_chosen_ = true;
-      // Landing on a page is reading it, the outer tab bar's rule exactly.
-      MarkActiveTabSeen();
+      StepSkillPage(-1);
       return true;
     }
     if (event == ftxui::Event::ArrowRight) {
-      skill_tab_ = std::min(SkillPages() - 1, SelectedSkillPage() + 1);
-      skill_page_chosen_ = true;
-      MarkActiveTabSeen();
+      StepSkillPage(1);
       return true;
     }
     return false;
   }
-  // The V page's [Reset]: Up/Down walk off it, and it hears no Left or Right --
-  // it is one button wide, as the Hyper tab's is.
+  // The V page's [Reset] hears no Left or Right -- it is one button wide, as
+  // the Hyper tab's is.
   if (zone_ == kZoneVReset) {
-    if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
-      MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
-      return true;
-    }
     if (!IsForward(event)) {
       return false;
     }
@@ -1784,13 +1783,8 @@ bool CharacterPanel::OnSkillsTabEvent(const ftxui::Event& event,
     }
     return true;
   }
-  // Skill rows: Up/Down walk them and wrap out to the bars above and below.
-  // Left/Right pick the column Enter acts on.
+  // Skill rows: Left/Right pick the column Enter acts on.
   std::vector<const Skill*> skills = SkillsForPage(SelectedSkillPage());
-  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
-    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
-    return true;
-  }
   if (event == ftxui::Event::ArrowLeft) {
     skill_col_ = kColName;
     return true;
