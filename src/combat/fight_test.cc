@@ -3483,23 +3483,6 @@ TEST(CombatSimTest, AShortFightRaisesTheDenseStance) {
   EXPECT_EQ(sim.view().damage_this_step, 100.0);
 }
 
-// The same boss with enough HP to outlast the dense form's whole payout: the
-// thin form pays more before the end, so that is what goes up.
-TEST(CombatSimTest, ALongFightRaisesTheThinStance) {
-  Mob boss = MakeMob("Zakum", 20000);
-  CombatSim sim;
-  CombatParams params =
-      MakeParams(1e9, 0.0, {MakeType(&boss, 0.0, 1)}, 1, "zakum");
-  params.reference_dps = 100.0;
-  GiveStancedBuff(params, /*cooldown=*/120.0, /*dense_length=*/20.0,
-                  /*dense_damage=*/100.0, /*thin_length=*/120.0,
-                  /*thin_damage=*/20.0);
-
-  // 20000 HP at 100 a second is 200 seconds left, over the crossover.
-  sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.view().damage_this_step, 20.0);
-}
-
 // A map refills on the beat, so it never ends however little is standing on
 // it. The thin form's rate is what counts there, whatever the queue holds.
 TEST(CombatSimTest, AMapRaisesTheThinStanceHoweverLowItRuns) {
@@ -3517,10 +3500,10 @@ TEST(CombatSimTest, AMapRaisesTheThinStanceHoweverLowItRuns) {
   EXPECT_EQ(sim.view().damage_this_step, 20.0);
 }
 
-// The form is settled at the cast. A thin sword raised for a fight that then
-// turns short keeps standing: GMS took away the key that swapped one form for
-// the other, so there is nothing to change its mind with.
-TEST(CombatSimTest, AStandingStanceIsNotSwappedWhenTheFightShortens) {
+// A boss that outlasts the dense form's payout gets the thin form, and keeps
+// it when the fight turns short: GMS took away the key that swapped one form
+// for the other, so there is nothing to change its mind with.
+TEST(CombatSimTest, ALongFightRaisesTheThinStanceAndKeepsIt) {
   Mob boss = MakeMob("Zakum", 20000);
   CombatSim sim;
   CombatParams params =
@@ -3530,9 +3513,9 @@ TEST(CombatSimTest, AStandingStanceIsNotSwappedWhenTheFightShortens) {
                   /*dense_damage=*/100.0, /*thin_length=*/120.0,
                   /*thin_damage=*/20.0);
 
-  // The thin sword goes up against a 200-second fight.
+  // 20000 HP at 100 a second is 200 seconds left, over the crossover.
   sim.Advance(params, 1.0);
-  ASSERT_EQ(sim.view().damage_this_step, 20.0);
+  EXPECT_EQ(sim.view().damage_this_step, 20.0);
   // Ten seconds later the boss is nearly dead -- and the sword planted for two
   // minutes is still the one bleeding.
   sim.Advance(params, 10.0);

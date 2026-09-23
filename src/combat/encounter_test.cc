@@ -1110,8 +1110,9 @@ TEST(ComputeCombatParamsTest,
   EXPECT_NEAR(paid.damage_per_hit[0], plain.damage_per_hit[0], 1e-9);
 }
 
-// Nothing but a skill saying so gives a swing an opening hit.
-TEST(ComputeCombatParamsTest, AnOrdinarySwingCarriesNoOpeningHit) {
+// A swing that states nothing takes the defaults: no opening hit, and the bare
+// poke's pace rather than none at all.
+TEST(ComputeCombatParamsTest, AnOrdinarySwingTakesTheDefaults) {
   Skill slash;
   slash.set_name("Slash Blast");
   slash.set_kind(SKILL_KIND_ATTACK);
@@ -1129,6 +1130,8 @@ TEST(ComputeCombatParamsTest, AnOrdinarySwingCarriesNoOpeningHit) {
   ASSERT_EQ(params.attacks.size(), 2u);
   EXPECT_TRUE(params.attacks[0].lead_damage.empty());
   EXPECT_TRUE(params.attacks[1].lead_damage.empty());
+  EXPECT_DOUBLE_EQ(params.attacks[1].swing_seconds,
+                   params.attacks[0].swing_seconds);
 }
 
 // A swing is swung at the level the character has it, not the level they
@@ -1843,28 +1846,6 @@ TEST(ComputeCombatParamsTest, AMagiciansSwingIgnoresTheWeaponsStage) {
             GameSpeedFactor(state.character.proto().level()));
   }
   EXPECT_DOUBLE_EQ(at_stage[0], at_stage[1]);
-}
-
-// A skill saying nothing about its animation is swung at the same pace as the
-// bare poke, rather than instantly.
-TEST(ComputeCombatParamsTest, ASwingWithNoDelayOfItsOwnTakesTheDefault) {
-  Skill slash;
-  slash.set_name("Slash Blast");
-  slash.set_kind(SKILL_KIND_ATTACK);
-  PlaceIn(slash, JOB_ADVANCEMENT_SWORDMAN);
-  slash.set_max_level(20);
-  slash.mutable_base()->set_skill_pct(1.83);
-  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
-                  {{"field", TwoSnailMap()}}, {{"slash_blast", slash}});
-  state.current_map = "field";
-  EquipSword(state);
-  GrantFirstJobSp(state, 1);
-  ASSERT_TRUE(state.character.LearnSkill(slash, 1));
-
-  CombatParams params = ComputeCombatParams(state);
-  ASSERT_EQ(params.attacks.size(), 2u);
-  EXPECT_DOUBLE_EQ(params.attacks[1].swing_seconds,
-                   params.attacks[0].swing_seconds);
 }
 
 // A skill that fires on its own clock is not one of the swings the fight
