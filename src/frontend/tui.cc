@@ -1283,19 +1283,12 @@ void Tui::Tick() {
     multiplayer_->Advance(state_);
   }
   controller_.AdvanceParty();
+  // The map farms only while the player is on it: EXP from a fight they cannot
+  // see is strange to owe, a purse draining under a trade offer is a trade
+  // nobody agreed to, and kills paid out on the character select would belong
+  // to nobody. The analysis stops with the farming.
   if (controller_.in_boss_fight()) {
-    // The map is not farmed while the player is somewhere else: EXP quietly
-    // arriving from a fight they cannot see is a strange thing to owe them.
-    // The analysis is not fed either, so its clock stops with the farming.
-    //
-    // The trade screen stops it for a harder reason: a purse that drains under
-    // an offer, or a drop that fills the bag between an acceptance and the
-    // exchange, is a trade neither side agreed to.
     controller_.AdvanceBossRun(elapsed.count());
-    //
-    // The character select stops it too, and for the plainest reason: the
-    // player may be about to be somebody else, and the kills a map paid out
-    // in between would belong to nobody.
   } else if (!controller_.OnTradeScreen() && !controller_.OnCharacterSelect()) {
     RewardTally tally = AdvanceCombat(state_, combat_sim_, elapsed.count());
     AnalysisSample sample;

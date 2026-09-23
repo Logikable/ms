@@ -19,16 +19,10 @@ Character PublicSheet(const CharacterInstance& character) {
   // ToProto rather than proto(): what is worn lives in a C++ container and is
   // only folded into the message when someone asks for the lot.
   Character sheet = character.ToProto();
-  // What a party member is shown is what they could work out by WATCHING: the
-  // stats, what is worn, the passives behind both, and the points still
-  // waiting to be spent on them. The bag and the purse are nobody else's
-  // business and would put a save's worth of message on every update.
-  //
-  // Honor stays behind with them. It climbs with every kill, and an update
-  // goes out whenever the sheet moves -- so leaving it in sent a whole sheet
-  // per kill, for a number the Ability tab reads without. EXP moves as fast
-  // and the exp bar needs it; see MultiplayerSession::Advance for what pays
-  // for it.
+  // A party member is shown what they could work out by WATCHING: stats, what
+  // is worn, and the passives and points behind both. Not the bag or purse,
+  // and not Honor, which climbs every kill and would send a sheet per kill.
+  // EXP climbs as fast, but the exp bar needs it.
   sheet.clear_inventory();
   sheet.clear_stacks();
   sheet.clear_buy_backs();

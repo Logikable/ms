@@ -761,7 +761,7 @@ TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   EXPECT_EQ(walk.jump().interval_ms(), 30000);
   EXPECT_EQ(walk.jump().y(), 2);
   EXPECT_EQ(walk.jump().hang_ms(), 660);
-  // Her ring at half the clears -- the one drop in the game that is not
+  // Her ring at half the clears -- the one boss drop that is not
   // certain -- and her shard at all of them.
   ASSERT_EQ(normal.drops_size(), 2);
   EXPECT_EQ(normal.drops(0).equip(), "guardian_angel_ring");

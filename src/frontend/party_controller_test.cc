@@ -332,7 +332,7 @@ class PartyControllerTest : public ::testing::Test {
     // The new party has to reach this client's list before Enter can mean
     // "join": on a list still empty the cursor is on Create, and the guest
     // makes a party of their own instead. Wait for the stop, not for the
-    // screen -- see the wait rule in party_test_wait_rule.
+    // screen -- see WaitFor.
     ASSERT_TRUE(WaitFor({&leader, &guest}, [&]() {
       return guest.party_panel.Chosen() == PartyAction::kJoin;
     }));

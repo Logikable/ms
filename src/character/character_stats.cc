@@ -174,9 +174,6 @@ struct PassiveTotals : DerivedStats {
   double final_dmg_combo_orbs = 0.0;
 };
 
-// Folds one skill's levers in on top of what is there, handed the grant
-// already read up to its level. Split out from AddPassive because a weapon
-// bonus is a second helping of the same levers, gated on the weapon.
 // Every lever that is simply a sum, which is most of them.
 void AddSummedLevers(const SkillEffect& granted, PassiveTotals& totals) {
   totals.hp_grant += WholeValue(granted.max_hp());
@@ -223,9 +220,9 @@ void AddSummedLevers(const SkillEffect& granted, PassiveTotals& totals) {
       WholeValue(granted.uncapped_attack_speed());
 }
 
-// Folds one level's levers into the running totals. The sums are next door;
-// what is here is every lever that combines some OTHER way, and the comment
-// on each says which.
+// Folds one level's levers into the running totals; apart from AddPassive
+// because a weapon bonus is a second helping of the same levers. The sums are
+// next door; here is every lever that combines some OTHER way.
 void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   AddSummedLevers(granted, totals);
   totals.def_factor *= 1.0 + granted.def_pct();

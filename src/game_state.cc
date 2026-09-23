@@ -1089,19 +1089,10 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   BuyMaxConsumables(state);
 }
 
-// The rest of a ceiling account: one character at the top of every OTHER job
-// line, standing at the same level as the one being played. They exist for
-// the LINK SKILLS, which are the account's climb rather than one character's
-// -- a ceiling with an empty roster would hold none of them. See
-// //src/character:link.
-//
-// Each is a ceiling in their own right rather than a sheet naming a level:
-// what the roster hands the player is a character to put into play, and one
-// of those has to be dressed. Built BEFORE the character in play, who is then
-// the only one never round-tripped through a proto.
-//
-// At the played character's own level, so a ceiling below 70 has a roster
-// paying nothing -- an account does not climb one character at a time.
+// The rest of a ceiling account: a dressed ceiling at the top of every OTHER
+// job line, at the played character's level, so the roster holds the account's
+// link skills. Built BEFORE the character in play, who is then the only one
+// never round-tripped through a proto.
 void SeedMaxRoster(GameState& state, Job played_line, int level) {
   const int64_t now = static_cast<int64_t>(std::time(nullptr));
   state.inactive_characters.clear();

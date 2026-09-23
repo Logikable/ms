@@ -706,7 +706,7 @@ std::string NormalMonsterText(const Skill& skill, int level) {
   double bonus = PercentAt(skill, &SkillEffect::normal_skill_pct, level);
   double damage = PercentAt(skill, &SkillEffect::skill_pct, level);
   // Nothing to be the other reading OF. Meso Explosion states its points on a
-  // thrown coin rather than on a swing, and MesoRows prints that pair itself.
+  // thrown coin rather than on a swing, and OwnEffectRows prints that pair.
   if (bonus <= 0.0 || damage <= 0.0) {
     return "";
   }
@@ -1075,8 +1075,6 @@ std::vector<Row> ChannelFinishRows(const Skill& skill, int level) {
   return rows;
 }
 
-// What the skill itself does when it goes off: its damage, its healing, and
-// the shapes a plain lever row cannot state.
 // What a hold is worth and what it costs: where it grows, how many pulses one
 // press buys, and the bank it is bought out of rather than a cooldown.
 std::vector<Row> ChannelRows(const Skill& skill, int level) {
@@ -1108,6 +1106,8 @@ std::vector<Row> ChannelRows(const Skill& skill, int level) {
   return rows;
 }
 
+// What the skill itself does when it goes off: its damage, its healing, and
+// the shapes a plain lever row cannot state.
 std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   std::vector<Row> rows;
   bool held = skill.channel().max_pulses() > 0;

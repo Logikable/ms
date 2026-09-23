@@ -29,7 +29,7 @@ namespace ms {
 // drops; GameState owns it and it outlives the step.
 struct CombatType {
   const Mob* mob = nullptr;
-  int simultaneous = 0;  // how many spawn at once (spawn_count / type count)
+  int simultaneous = 0;  // how many spawn at once: SpawnCount
   // Where each stands in a boss arena; empty on a map. Carried rather than
   // read back off the phase: a spawn whose mob the catalog lacks never
   // becomes a type, so an index would slide every later part one cell over.

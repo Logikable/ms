@@ -187,11 +187,11 @@ class Server {
   // The fights being fought, by the party fighting each one. A party has at
   // most one, and it is not in the lobby list while it lasts.
   std::map<std::string, std::unique_ptr<PartyFight>> fights_;
+  // The number the next fight is named with, after the party fighting it.
+  int64_t next_fight_id_ = 1;
   // When the last pass ran and when the next fight broadcast is due. A fight
   // is stepped by real time, and told to its party ten times a second rather
   // than every time a socket wakes the loop.
-  // The number the next fight is named with, after the party fighting it.
-  int64_t next_fight_id_ = 1;
   std::chrono::steady_clock::time_point stepped_at_;
   std::chrono::steady_clock::time_point publish_fights_at_;
   std::vector<std::unique_ptr<Session>> sessions_;
