@@ -192,6 +192,29 @@ TEST_F(LinkSkillPanelTest, ThePresetBarPicksWhichTwelveAreRead) {
   EXPECT_EQ(panel_->preset(), StatPreset::kFirst) << "the bar clamps";
 }
 
+// A skill the account has not earned yet draws no row anywhere: the autofill
+// keeps it in the preset, and it appears once somebody reaches 70.
+TEST_F(LinkSkillPanelTest, ALevelZeroSkillIsNotListed) {
+  UseCharacter(JOB_HERO, 50, 2);
+  LinkTally tally;
+  tally.Record(JOB_BISHOP, 210);
+  hero().set_link_tally(tally);
+  ASSERT_TRUE(hero().EquipLinkSkill("Thief's Cunning", StatPreset::kFirst));
+  ASSERT_TRUE(hero().EquipLinkSkill("Empirical Knowledge", StatPreset::kFirst));
+  std::string text = Text();
+  EXPECT_EQ(text.find("Thief's Cunning"), std::string::npos);
+  EXPECT_EQ(text.find("Invincible Belief"), std::string::npos);
+  EXPECT_NE(text.find("(not yet earned)"), std::string::npos);
+  EXPECT_NE(text.find("Empirical Knowledge"), std::string::npos);
+  EXPECT_EQ(panel_->cursor().kind, LinkCursor::Kind::kNothing)
+      << "the top window has no row to stand on";
+  ToEnabledRows();
+  EXPECT_EQ(panel_->cursor().skill->name(), "Empirical Knowledge");
+  panel_->MoveRow(1);
+  EXPECT_EQ(panel_->cursor().kind, LinkCursor::Kind::kPreset)
+      << "one row, then back to the bar";
+}
+
 // Their own line's skill is never on offer: it is held for free and takes
 // none of the twelve.
 TEST_F(LinkSkillPanelTest, TheirOwnLinesSkillIsNotInTheListToAdd) {

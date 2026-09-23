@@ -148,7 +148,8 @@ class LinkSkillPanel {
   // The skill this character's own line hands them, null while they have no
   // line -- a Beginner, or a job line with no link skill written.
   const Skill* MineSkill() const;
-  // The skills the selected preset carries, in the order it holds them.
+  // The skills the selected preset carries that pay something, in the order
+  // it holds them.
   std::vector<const Skill*> EnabledSkills() const;
   // Everything else the account has climbed a rung on, catalog order.
   std::vector<const Skill*> AllSkills() const;

@@ -100,7 +100,10 @@ std::vector<const Skill*> LinkSkillPanel::EnabledSkills() const {
   for (const std::string& name : character_.link_skills(preset_)) {
     for (const Skill* skill :
          SkillsForAdvancement(skills_, JOB_ADVANCEMENT_LINK)) {
-      if (skill->name() == name) {
+      // The autofill carries every line's skill, earned or not; one nobody
+      // has taken to 70 yet waits in the preset without drawing a 0 row.
+      if (skill->name() == name &&
+          character_.LinkSkillLevelOffered(*skill) > 0) {
         held.push_back(skill);
       }
     }
@@ -130,8 +133,9 @@ std::vector<const Skill*> LinkSkillPanel::RowsHere() const {
   switch (zone_) {
     case LinkZone::kMine: {
       const Skill* mine = MineSkill();
-      return mine == nullptr ? std::vector<const Skill*>()
-                             : std::vector<const Skill*>{mine};
+      return mine == nullptr || character_.LinkSkillLevelOffered(*mine) <= 0
+                 ? std::vector<const Skill*>()
+                 : std::vector<const Skill*>{mine};
     }
     case LinkZone::kEnabled:
       return EnabledSkills();
@@ -378,6 +382,8 @@ ftxui::Element LinkSkillPanel::RenderMine() const {
   std::vector<ftxui::Element> rows = {RenderHeader(), ThemedSeparator()};
   if (mine == nullptr) {
     rows.push_back(EmptyState("no job line", kCaretWidth));
+  } else if (character_.LinkSkillLevelOffered(*mine) <= 0) {
+    rows.push_back(EmptyState("not yet earned", kCaretWidth));
   } else {
     if (focused) {
       name_clock_.Follow(0, true);
