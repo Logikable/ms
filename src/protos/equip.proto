@@ -267,7 +267,8 @@ message EquipStats {
   int32 ignore_enemy_defense = 11;
   // Percentage added to how often a kill drops anything (e.g. 20 = a fifth
   // more often), meso included. Meets what the character's passives grant by
-  // summing -- see DerivedStats::item_drop_pct. Nothing grants it yet.
+  // summing -- see DerivedStats::item_drop_pct. No item grants it; a
+  // potential's drop line goes through PotentialTotals.
   int32 item_drop_rate = 12;
   // Percentage added to the HP and MP pools (e.g. 10 = a tenth more). Lands
   // over the whole pile the same way a passive's does, and sums with what the
@@ -278,7 +279,8 @@ message EquipStats {
   // Percentage added to the meso a kill drops (e.g. 20 = a fifth more). The
   // one worn share with a cap of its own: however much of it a character puts
   // on, equipment is worth at most kEquipMesoSoftCap -- see MesoBonus.
-  // Nothing grants it yet; potentials are where it will come from.
+  // No item grants it; a potential's meso line reaches the same share through
+  // PotentialTotals instead.
   int32 meso_rate = 15;
 }
 

@@ -225,8 +225,8 @@ enum ConsumableType {
 message Consumables {
   // Bought outright. The recurring price is never charged for one of these.
   repeated ConsumableType owned = 1;
-  // Switched on. One absent here is off, so a character who has met neither
-  // pot carries two empty lists.
+  // Switched on. One absent here is off, so a character who has met none of
+  // them carries two empty lists.
   repeated ConsumableType active = 2;
 }
 
@@ -478,8 +478,8 @@ message Character {
   // never. On the boss reset clock -- see boss_reset.h.
   int64 dailies_claimed_unix_seconds = 26;
 
-  // The potions, which open at level 170. Per character because meso is: a
-  // permanent unlock is bought out of one character's purse.
+  // The potions and the totem, which open from level 170. Per character
+  // because meso is: a permanent unlock is bought out of one character's purse.
   Consumables consumables = 23;
 
   // The link skills this character carries, as three presets. Per character

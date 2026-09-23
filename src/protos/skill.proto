@@ -616,12 +616,9 @@ message BuffPulse {
   SkillEffect per_level = 2;
   // What the skill page calls it, in its row under the buff's heading.
   string label = 3;
-  // Seconds between ticks. Never scaled by attack speed -- nothing on its own
-  // clock is.
-  double cast_interval_seconds = 4;
   int32 lines = 5;
   // Enemies one strike reaches. 0 leaves it the reach of the swing that laid
-  // the buff, which is what a wound wants: the mark is on what was hit.
+  // the buff: the mark is on what was hit.
   int32 max_enemies = 6;
   // Strikes one tick lands, each its own attack of `lines` lines against its
   // own `max_enemies`. Cry Valhalla is what it exists for -- GMS has three
@@ -630,20 +627,21 @@ message BuffPulse {
   int32 casts = 7;
   // Ticks one raising of the buff is worth, after which it falls silent for
   // the rest of the window. 0 is a pulse that ticks for as long as the buff
-  // stands, which is Puncture's wound. Cry Valhalla's twelve run out at 24
-  // seconds of a 30-second buff -- which is why lengthening the buff buys
-  // nothing.
+  // stands. Cry Valhalla's twelve run out at 24 seconds of a 30-second buff
+  // -- which is why lengthening the buff buys nothing.
   int32 max_pulses = 8;
-  // The skill whose swings this rides, instead of a clock of its own.
-  // Instinctual Combo's tear is what it exists for: GMS leaves one behind on
-  // every Raging Blow, so it fires as fast as the character swings that skill
-  // and quickens as their attack speed does.
-  //
-  // A pulse names this or cast_interval_seconds, never both -- and only a
-  // buff's own pulse may name it, not a stance's. Read as though every swing
-  // were the named one, which is what a fight spent on the skill this rides
-  // comes to.
-  string paced_by_skill_name = 9;
+  // What paces the ticks: a clock of the pulse's own, or the swings of a
+  // named skill.
+  oneof pace {
+    // Seconds between ticks. Never scaled by attack speed -- nothing on its
+    // own clock is.
+    double cast_interval_seconds = 4;
+    // The skill whose swings this rides. Instinctual Combo's tear is what it
+    // exists for: GMS leaves one behind on every Raging Blow, so it quickens
+    // as the character's attack speed does. Only a buff's own pulse may name
+    // it, not a stance's; read as though every swing were the named one.
+    string paced_by_skill_name = 9;
+  }
   // Lines added to each strike for every enemy PAST THE FIRST that the
   // character's own swing is reaching, and the most they can add. Storm of
   // Arrows is what they exist for: GMS pours a longer rain when the attack
@@ -834,8 +832,8 @@ message Buff {
   // the player is the reason to swing fast beyond the damage: the buff comes
   // round sooner. 0 for a buff that waits out its whole cooldown.
   double cooldown_reduction_seconds = 5;
-  // What the buff bleeds while it stands. Unset for every buff that only
-  // grants levers, which is all of them but Puncture's wound.
+  // What the buff strikes with while it stands. Unset for a buff that only
+  // grants levers.
   BuffPulse pulse = 6;
   // Whether one of these stands over the whole party however many raise it:
   // it does not stack with itself, and a party casts it in TURN.
@@ -856,8 +854,8 @@ message Buff {
   //
   // Sword Illusion is what it exists for, and GMS's own wording is the whole
   // of the distinction: the explosions come "afterwards" and the final damage
-  // "upon use". Puncture is the other reading and the default -- a wound lifts
-  // the swings after it, never the one that opened it.
+  // "upon use". The default is the other reading: the buff lifts the swings
+  // after it, never the one that raised it.
   bool raised_on_cast = 15;
   // Whether only the WOUND FORM of the skill stating it raises this buff --
   // the ordinary press leaves it alone. Trickblade is the one skill with two
@@ -889,8 +887,7 @@ message Buff {
   repeated AllyIntLever ally_int_lever = 20;
   // The shell this buff stands as, over the caster and the party alike -- one
   // cast, one shell, and everyone under it gets their own count of blocks.
-  // Unset for every buff that only grants levers, which is all of them but
-  // Holy Magic Shell.
+  // Unset for a buff that only grants levers.
   Shield shield = 11;
   // A buff that goes up at `stages` times its levers and sheds one every
   // `stage_interval_seconds`. Arcane Overdrive is what it exists for: three
@@ -914,8 +911,7 @@ message Buff {
   // them stands at a time.
   repeated Stance stance = 14;
   // The attack this buff loads, and how many swings of it one raising pays
-  // for. Unset for every buff that loads none, which is all of them but the
-  // Marksman's cartridge -- see Magazine.
+  // for. Unset for a buff that loads none -- see Magazine.
   Magazine magazine = 17;
   // Seconds added to the window for every burn alight on the group, counted up
   // to dot_count_cap of them. Elemental Fury is what it exists for: GMS
@@ -1891,9 +1887,9 @@ message Skill {
   // The chance this passive gives every swing to land harder on one enemy.
   // Unset for all but Mortal Blow -- see Proc.
   Proc proc = 41;
-  // The hold this swing is, if it is one. Only Lightning Orb -- see Channel.
+  // The hold this swing is, if it is one -- see Channel.
   Channel channel = 48;
-  // How this swing scatters, if it does. Only Megiddo Flame -- see Scatter.
+  // How this swing scatters, if it does -- see Scatter.
   Scatter scatter = 49;
 
   // What every OTHER member of the party gets out of this skill, read at the
@@ -1918,8 +1914,8 @@ message Skill {
   // rule and the default: one Sharp Eyes stands over the party however many
   // archers cast it, and the better of the two is what everyone gets.
   //
-  // True only for Blessed Ensemble, which is not a buff at all -- it pays for
-  // the company kept, and GMS states it per Cleric in the party.
+  // True for Blessed Ensemble and Blessed Harmony, which are not buffs at all
+  // -- they pay for the company kept, and GMS states them per Cleric.
   bool ally_effect_stacks = 45;
   // Whether the party half above reaches ONE other member rather than all of
   // them. Divine Echo alone: GMS hangs the Paladin's echo on a single party
