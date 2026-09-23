@@ -738,6 +738,93 @@ TEST_F(PartyControllerTest, AnItemGoesUpFromTheBag) {
   }));
 }
 
+// A stack goes up through an amount dialog, and Inspect opens a card on a row
+// of any of the three windows: the bag, your offer, and theirs.
+TEST_F(PartyControllerTest, AStackGoesUpAndEveryRowInspects) {
+  std::unique_ptr<Client> asker = Connect("Dagger");
+  std::unique_ptr<Client> asked = Connect("Wand");
+  asker->Arm();
+  asker->state->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
+  asker->state->character.AddItem(TestStack(), 12);
+  asked->state->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->session.Snapshot().online.players_size() == 2;
+  }));
+  OpenTrade(*asker, *asked);
+  OfferFirstBagItem(*asked);
+  ASSERT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    return asker->session.Snapshot().trade.theirs().equips_size() == 1;
+  }));
+
+  // The bag's sword, weighed against the one in hand.
+  while (asker->trade_panel->zone() != TradeZone::kBag) {
+    asker->controller->OnEvent(ftxui::Event::Tab);
+  }
+  asker->controller->OnEvent(ftxui::Event::Return);
+  asker->controller->OnEvent(ftxui::Event::Return);  // Inspect
+  ASSERT_EQ(asker->controller->screen(), kTradeInspect);
+  ASSERT_NE(asker->controller->trade_inspect_equip(), nullptr);
+  EXPECT_EQ(asker->controller->trade_inspect_equip()->name(),
+            IronSword().name());
+  InspectPanel::ComparisonSlots slots = asker->controller->comparison_slots();
+  ASSERT_EQ(slots.worn.size(), 1u);
+  EXPECT_NE(slots.worn[0], nullptr);
+  asker->controller->OnEvent(ftxui::Event::Escape);
+  ASSERT_EQ(asker->controller->screen(), kTrade);
+
+  // Over to the Etc tab: Escape on the amount puts nothing up, Confirm puts
+  // up what was typed.
+  asker->controller->OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_TRUE(asker->trade_panel->on_etc_tab());
+  asker->controller->OnEvent(ftxui::Event::Return);
+  asker->controller->OnEvent(ftxui::Event::ArrowDown);  // Inspect -> Offer
+  asker->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(asker->controller->screen(), kTradeItemAmount);
+  asker->controller->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(asker->controller->screen(), kTrade);
+  EXPECT_EQ(asker->trade_panel->own().items(), 0);
+
+  asker->controller->OnEvent(ftxui::Event::Return);
+  asker->controller->OnEvent(ftxui::Event::ArrowDown);
+  asker->controller->OnEvent(ftxui::Event::Return);
+  asker->controller->OnEvent(ftxui::Event::Character('5'));
+  asker->controller->OnEvent(ftxui::Event::ArrowDown);  // -> Confirm
+  asker->controller->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(asker->controller->screen(), kTrade);
+  ASSERT_EQ(asker->trade_panel->own().stacks.size(), 1u);
+  EXPECT_EQ(asker->trade_panel->own().stacks[0].count(), 5);
+  EXPECT_TRUE(WaitFor({asker.get(), asked.get()}, [&]() {
+    TradeOffer theirs = asked->session.Snapshot().trade.theirs();
+    return theirs.stacks_size() == 1 && theirs.stacks(0).count() == 5;
+  }));
+
+  // The stack on your own side of the table.
+  while (asker->trade_panel->zone() != TradeZone::kMine) {
+    asker->controller->OnEvent(ftxui::Event::Tab);
+  }
+  asker->controller->OnEvent(ftxui::Event::ArrowDown);
+  asker->controller->OnEvent(ftxui::Event::Return);
+  asker->controller->OnEvent(ftxui::Event::Return);  // Inspect
+  ASSERT_EQ(asker->controller->screen(), kTradeInspect);
+  ASSERT_NE(asker->controller->trade_inspect_stack(), nullptr);
+  EXPECT_EQ(asker->controller->trade_inspect_stack()->name(),
+            TestStack().name());
+  EXPECT_EQ(asker->controller->trade_inspect_equip(), nullptr);
+  asker->controller->OnEvent(ftxui::Event::Escape);
+
+  // And their sword, rebuilt from the snapshot.
+  asker->controller->OnEvent(ftxui::Event::Tab);
+  ASSERT_EQ(asker->trade_panel->zone(), TradeZone::kTheirs);
+  asker->controller->OnEvent(ftxui::Event::Return);
+  asker->controller->OnEvent(ftxui::Event::Return);  // Inspect
+  ASSERT_EQ(asker->controller->screen(), kTradeInspect);
+  ASSERT_NE(asker->controller->trade_inspect_equip(), nullptr);
+  EXPECT_EQ(asker->controller->trade_inspect_equip()->name(),
+            IronSword().name());
+  asker->controller->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(asker->controller->screen(), kTrade);
+}
+
 // Accept is a toggle, and an acceptance means the table as it stood: changing
 // what is on it takes both of them back.
 TEST_F(PartyControllerTest, AcceptingAndThenChangingTheTable) {
@@ -973,6 +1060,8 @@ TEST_F(PartyControllerTest, AMemberInspectsAnother) {
   // Thrown before the gear, which is what sends the sheet.
   leader->state->account.SetAutoswapPresets(true);
   leader->state->MirrorAccount();
+  ASSERT_TRUE(leader->state->character.AllocateHyperStat(
+      HYPER_STAT_FIELD_STR, StatPreset::kSecond, 2));
   leader->state->character.PickUp(std::make_unique<EquipInstance>(IronSword()));
   leader->state->character.Equip(0);
   ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
@@ -1009,6 +1098,23 @@ TEST_F(PartyControllerTest, AMemberInspectsAnother) {
   EXPECT_EQ(guest->player_inspect_panel->preset(), Activity::kBossing);
   guest->controller->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_EQ(guest->player_inspect_panel->preset(), Activity::kFarming);
+
+  // Their Hyper tab under the Boss allocation: Enter on a stat opens its card
+  // on that allocation, read off their sheet.
+  guest->controller->OnEvent(ftxui::Event::ArrowUp);     // -> the tab bar
+  guest->controller->OnEvent(ftxui::Event::ArrowRight);  // -> Skills
+  guest->controller->OnEvent(ftxui::Event::ArrowRight);  // -> Hyper
+  guest->controller->OnEvent(ftxui::Event::ArrowDown);   // -> Farm/Boss
+  guest->controller->OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_EQ(guest->player_inspect_panel->preset(), Activity::kBossing);
+  guest->controller->OnEvent(ftxui::Event::ArrowDown);  // -> the first stat
+  guest->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(guest->controller->screen(), kHyperStatInspect);
+  EXPECT_EQ(guest->controller->hyper_inspect_field(), HYPER_STAT_FIELD_STR);
+  EXPECT_EQ(guest->controller->hyper_inspect_level(), 2)
+      << "the leader's Boss allocation, not the Farm one or the reader's";
+  guest->controller->OnEvent(ftxui::Event::Escape);
+  ASSERT_EQ(guest->controller->screen(), kPlayerInspect);
   guest->controller->OnEvent(ftxui::Event::Tab);
 
   // Enter on a worn item opens its card, off the panel's cursor rather than a

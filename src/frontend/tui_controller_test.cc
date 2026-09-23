@@ -238,6 +238,19 @@ class TuiControllerTest : public testing::Test {
     controller_->OnEvent(ftxui::Event::Return);  // confirm
   }
 
+  // Walks the bag's tab bar to the Bank tab and opens it, as a player does.
+  void OpenBankScreen() {
+    panel_focus_ = kInventoryPanel;
+    for (int step = 0;
+         step < kNumInventoryTabs && inventory_panel_->active_tab() != kBankTab;
+         ++step) {
+      inventory_component_->OnEvent(ftxui::Event::ArrowRight);
+    }
+    ASSERT_EQ(inventory_panel_->active_tab(), kBankTab);
+    inventory_component_->OnEvent(ftxui::Event::Return);
+    ASSERT_EQ(controller_->screen(), kBank);
+  }
+
   // Runs the fight in progress until it is over, however it ends. The run
   // outlives the fight -- it is held behind whatever panel ended it -- so this
   // waits on the screen rather than on in_boss_fight().
@@ -2648,11 +2661,17 @@ TEST_F(TuiControllerTest, EnterOnAShopItemOpensTheMenu) {
   EXPECT_EQ(controller_->screen(), kShopMenu);
 }
 
+// The card weighs the shelf item against what the character wears there.
 TEST_F(TuiControllerTest, ShopMenuInspectOpensTheInspectScreen) {
+  HoldASword();
   OpenShop();
   controller_->OnEvent(ftxui::Event::Return);  // -> kShopMenu, on Inspect
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kShopInspect);
+  InspectPanel::ComparisonSlots slots = controller_->comparison_slots();
+  ASSERT_EQ(slots.worn.size(), 1u);
+  EXPECT_EQ(slots.worn[0], state_->character.WornAt(StatPreset::kFirst,
+                                                    EQUIP_SLOT_PRIMARY_WEAPON));
 }
 
 // Inspecting is how a player decides whether to buy, so leaving the inspect
@@ -2923,6 +2942,8 @@ TEST_F(TuiControllerTest, InspectingAShelfRowShowsTheItemThatLeft) {
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_EQ(controller_->screen(), kShopInspect);
+  EXPECT_EQ(controller_->comparison_slots().worn.size(), 1u)
+      << "the sold sword resolved against the catalog";
 }
 
 // --- Equip via bag panel ---
@@ -4636,6 +4657,217 @@ TEST_F(TuiControllerTest, ThePresetBarPutsALinkPresetInUse) {
   EXPECT_EQ(controller_->screen(), kLinkSkills);
   EXPECT_EQ(state_->character.SlotInUse(PresetKind::kLinkSkills),
             StatPreset::kSecond);
+}
+
+// --- The Bank ---
+
+// A row's Move carries the item to the other half and back again, Inspect
+// opens its card over the bank, and Escape leaves for the main screen.
+TEST_F(TuiControllerTest, TheBankMovesAnEquipAcrossAndBack) {
+  LevelTo(UnlockLevel(Feature::kBank));
+  HoldASword();  // something for the card to weigh the bagged one against
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  OpenBankScreen();
+
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // the chip -> the first row
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBankMenu);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect -> Move
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBank);
+  EXPECT_EQ(state_->character.inventory().size(), 0);
+  ASSERT_EQ(state_->account.bank().equips().size(), 1);
+
+  controller_->OnEvent(ftxui::Event::Tab);  // -> the bank's half
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // Inspect
+  ASSERT_EQ(controller_->screen(), kBankInspect);
+  InspectPanel::ComparisonSlots slots = controller_->comparison_slots();
+  ASSERT_EQ(slots.worn.size(), 1u);
+  EXPECT_EQ(slots.worn[0], state_->character.WornAt(StatPreset::kFirst,
+                                                    EQUIP_SLOT_PRIMARY_WEAPON))
+      << "the banked sword is weighed against the one in hand";
+  controller_->OnEvent(ftxui::Event::Escape);
+  ASSERT_EQ(controller_->screen(), kBank);
+
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect -> Move
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(state_->character.inventory().size(), 1);
+  EXPECT_EQ(state_->account.bank().equips().size(), 0);
+
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// Escape and Close on a row's menu move nothing, and Sort on a chip's menu
+// files the half it is on: the staff no Swordman can wear goes behind.
+TEST_F(TuiControllerTest, TheBankMenusCloseAndSort) {
+  LevelTo(UnlockLevel(Feature::kBank));
+  state_->character.PickUp(
+      std::make_unique<EquipInstance>(state_->equips.at("wooden_staff")));
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  OpenBankScreen();
+
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kBank);
+  EXPECT_FALSE(bank_panel_->menu_open());
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Close
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBank);
+  EXPECT_EQ(state_->account.bank().equips().size(), 0);
+  EXPECT_EQ(state_->character.inventory().size(), 2);
+
+  controller_->OnEvent(ftxui::Event::ArrowUp);  // back to the Equip chip
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(bank_panel_->tab_menu_open());
+  controller_->OnEvent(ftxui::Event::Return);  // Sort
+  EXPECT_EQ(controller_->screen(), kBank);
+  EXPECT_EQ(state_->character.inventory()[0].name(), "Sword");
+}
+
+// A move the bank refuses leaves the item where it was and says why.
+TEST_F(TuiControllerTest, TheBankRefusesASymbolAndSaysSo) {
+  LevelTo(UnlockLevel(Feature::kBank));
+  state_->character.PickUp(std::make_unique<EquipInstance>(symbol_));
+  OpenBankScreen();
+
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect -> Move
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(controller_->notification().visible());
+  EXPECT_EQ(state_->character.inventory().size(), 1);
+  EXPECT_EQ(state_->account.bank().equips().size(), 0);
+}
+
+// Enter on a balance asks how much: the amount typed crosses, Escape moves
+// nothing, and the bank's own half sends it back.
+TEST_F(TuiControllerTest, BankMesoCrossesThroughTheAmountDialog) {
+  LevelTo(UnlockLevel(Feature::kBank));
+  state_->character.AddMeso(5000);
+  const int64_t meso = state_->character.meso();
+  OpenBankScreen();
+
+  controller_->OnEvent(ftxui::Event::ArrowRight);  // -> the Etc chip
+  controller_->OnEvent(ftxui::Event::ArrowRight);  // -> the meso
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBankAmount);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kBank);
+  EXPECT_EQ(state_->account.bank().meso(), 0);
+
+  controller_->OnEvent(ftxui::Event::Return);
+  for (int i = 0; i < 20; ++i) {
+    controller_->OnEvent(ftxui::Event::Backspace);
+  }
+  for (char digit : std::string("1234")) {
+    controller_->OnEvent(ftxui::Event::Character(digit));
+  }
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Confirm
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBank);
+  EXPECT_EQ(state_->account.bank().meso(), 1234);
+  EXPECT_EQ(state_->character.meso(), meso - 1234);
+
+  // The dialog opens on everything that half holds.
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(state_->account.bank().meso(), 0);
+  EXPECT_EQ(state_->character.meso(), meso);
+}
+
+// --- Arcane Symbols ---
+
+// Level Up on a worn symbol asks for the meso: Escape spends nothing, and
+// Confirm pays the rung and takes the symbol up a level.
+TEST_F(TuiControllerTest, LevelUpPaysForTheWornSymbol) {
+  LevelTo(200);
+  Equip ready;
+  ready.set_symbol_level(1);
+  ready.set_symbol_exp(12);  // exactly what level 1 asks for
+  state_->character.PickUp(std::make_unique<EquipInstance>(symbol_, ready));
+  ASSERT_TRUE(state_->character.Equip(0));
+  state_->character.AddMeso(2000000);
+  const int64_t meso = state_->character.meso();
+
+  RenderEquipPanel();
+  equip_component_->OnEvent(ftxui::Event::ArrowUp);
+  equip_component_->OnEvent(ftxui::Event::ArrowUp);
+  equip_component_->OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_EQ(equip_panel_->active_tab(), EquippedPanel::kSymbolTab);
+  equip_component_->OnEvent(ftxui::Event::ArrowDown);
+  RenderEquipPanel();
+  ASSERT_EQ(equip_panel_->selected_slot(), EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+
+  controller_->OpenEquipMenu();
+  WalkGearMenuTo(kSymbolMenuLevelUp);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kSymbolLevel);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.meso(), meso);
+
+  controller_->OpenEquipMenu();
+  WalkGearMenuTo(kSymbolMenuLevelUp);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // Confirm
+  EXPECT_EQ(controller_->screen(), kMain);
+  const EquipInstance* worn = state_->character.WornAt(
+      StatPreset::kFirst, EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  ASSERT_NE(worn, nullptr);
+  EXPECT_EQ(worn->equip_state().symbol_level(), 2);
+  // Twelve duplicates at 8.1 apiece, floored, in ten-thousands.
+  EXPECT_EQ(state_->character.meso(), meso - 970000);
+}
+
+// Combine on a spare feeds every spare into the worn symbol by default;
+// Escape feeds none.
+TEST_F(TuiControllerTest, CombineFeedsTheSparesIn) {
+  LevelTo(200);
+  state_->character.PickUp(std::make_unique<EquipInstance>(symbol_));
+  ASSERT_TRUE(state_->character.Equip(0));
+  state_->character.PickUp(std::make_unique<EquipInstance>(symbol_));
+  state_->character.PickUp(std::make_unique<EquipInstance>(symbol_));
+  const EquipInstance* worn = state_->character.WornAt(
+      StatPreset::kFirst, EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  ASSERT_NE(worn, nullptr);
+  const int exp = worn->equip_state().symbol_exp();
+
+  DescendIntoBag();
+  controller_->OpenInventoryMenu();
+  for (int i = 0; i < 10 && inventory_panel_->menu().selected() != kMenuCombine;
+       ++i) {
+    controller_->OnEvent(ftxui::Event::ArrowDown);
+  }
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kSymbolCombine);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.inventory().size(), 2);
+
+  controller_->OpenInventoryMenu();
+  for (int i = 0; i < 10 && inventory_panel_->menu().selected() != kMenuCombine;
+       ++i) {
+    controller_->OnEvent(ftxui::Event::ArrowDown);
+  }
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Confirm
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.inventory().size(), 0);
+  worn = state_->character.WornAt(StatPreset::kFirst,
+                                  EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  EXPECT_EQ(worn->equip_state().symbol_exp(), exp + 2);
 }
 
 }  // namespace
