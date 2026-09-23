@@ -42,6 +42,8 @@ struct PlayerBreakdown {
 double TotalDamage(const std::vector<BreakdownRow>& rows);
 // What `row` is of `total`, as a fraction; 0 against a total of nothing.
 double DamageShare(const BreakdownRow& row, double total);
+// Heaviest first; rows arriving in name order keep it through a tie.
+void SortHeaviestFirst(std::vector<BreakdownRow>& rows);
 // The party's table: every player's rows, one per skill name however many
 // players used it, heaviest first.
 std::vector<BreakdownRow> MergeBreakdowns(

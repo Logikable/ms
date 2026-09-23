@@ -6,20 +6,16 @@
 #include <vector>
 
 namespace ms {
-namespace {
 
-// Heaviest first; rows arriving in name order keep it through a tie.
+double BreakdownRow::per_line() const {
+  return lines > 0 ? damage / static_cast<double>(lines) : 0.0;
+}
+
 void SortHeaviestFirst(std::vector<BreakdownRow>& rows) {
   std::stable_sort(rows.begin(), rows.end(),
                    [](const BreakdownRow& a, const BreakdownRow& b) {
                      return a.damage > b.damage;
                    });
-}
-
-}  // namespace
-
-double BreakdownRow::per_line() const {
-  return lines > 0 ? damage / static_cast<double>(lines) : 0.0;
 }
 
 double TotalDamage(const std::vector<BreakdownRow>& rows) {

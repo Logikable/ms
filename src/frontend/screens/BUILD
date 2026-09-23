@@ -804,6 +804,37 @@ cc_test(
 )
 
 cc_library(
+    name = "boss_analysis_panel",
+    srcs = ["boss_analysis_panel.cc"],
+    hdrs = ["boss_analysis_panel.h"],
+    deps = [
+        "//src/combat:damage_breakdown",
+        "//src/frontend:placement",
+        "//src/frontend/widgets:chrome",
+        "//src/frontend/widgets:format",
+        "//src/frontend/widgets:keys",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "boss_analysis_panel_test",
+    size = "small",
+    srcs = ["boss_analysis_panel_test.cc"],
+    deps = [
+        ":boss_analysis_panel",
+        "//src/combat:damage_breakdown",
+        "//src/frontend:placement",
+        "//src/frontend/testing:screen_text",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "boss_clear_panel",
     srcs = ["boss_clear_panel.cc"],
     hdrs = ["boss_clear_panel.h"],
