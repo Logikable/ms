@@ -513,6 +513,36 @@ TEST_F(PartyControllerTest, TheLeaderLeavesAndThePartyGoesOn) {
   }));
 }
 
+// A resume keeps the party; putting somebody else in play leaves it.
+TEST_F(PartyControllerTest, SwitchingCharacterLeavesTheParty) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  CharacterSave other;
+  other.mutable_character()->set_name("Other");
+  other.mutable_character()->set_level(1);
+  guest->state->inactive_characters.push_back(other);
+  MakeParty(*leader, *guest);
+
+  guest->controller->OpenMenuEntry(MenuEntry::kCharacters);
+  ASSERT_EQ(guest->controller->screen(), kCharacterSelect);
+  guest->controller->OnEvent(ftxui::Event::Return);  // Wand's menu
+  guest->controller->OnEvent(ftxui::Event::Return);  // Play: a resume
+  ASSERT_EQ(guest->controller->screen(), kMain);
+  leader->Tick();
+  guest->Tick();
+  EXPECT_TRUE(guest->party_panel.in_party());
+
+  guest->controller->OpenMenuEntry(MenuEntry::kCharacters);
+  guest->controller->OnEvent(ftxui::Event::ArrowDown);  // onto Other
+  guest->controller->OnEvent(ftxui::Event::Return);
+  guest->controller->OnEvent(ftxui::Event::Return);  // Play
+  ASSERT_EQ(guest->state->character.username(), "Other");
+  EXPECT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
+    return !guest->party_panel.in_party() &&
+           leader->session.Snapshot().party.members_size() == 1;
+  }));
+}
+
 TEST_F(PartyControllerTest, ANoticeTakesKeysWhereverThePlayerIs) {
   std::unique_ptr<Client> leader = Connect("Dagger");
   std::unique_ptr<Client> guest = Connect("Wand");

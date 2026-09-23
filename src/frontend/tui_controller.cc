@@ -1304,6 +1304,15 @@ bool TuiController::OnQuitEvent(ftxui::Event event) {
   return true;
 }
 
+void TuiController::SwitchedCharacter() {
+  character_switched_ = true;
+  // The party took in the last character, sheet and all; whoever arrived has
+  // not asked to join it.
+  if (multiplayer_ != nullptr && !Lobby().party.id().empty()) {
+    multiplayer_->client().LeaveParty();
+  }
+}
+
 bool TuiController::TakeCharacterSwitch() {
   bool switched = character_switched_;
   character_switched_ = false;
@@ -1415,7 +1424,7 @@ bool TuiController::OnCharacterDeleteEvent(ftxui::Event event) {
     // Deleting whoever was being played put somebody else in, so the fight
     // and the watcher are told either way -- and the save goes out now, so
     // an autosave cannot bring the row back.
-    character_switched_ = true;
+    SwitchedCharacter();
   }
   character_delete_slot_ = -1;
   character_select_panel_.Refresh();
@@ -1426,7 +1435,7 @@ bool TuiController::OnCharacterDeleteEvent(ftxui::Event event) {
 
 void TuiController::LeaveCharacterSelect(bool switched) {
   if (switched) {
-    character_switched_ = true;
+    SwitchedCharacter();
     // Whoever arrived is standing on their own map with their own panels, so
     // the cursor starts where a session starts.
     panel_focus_ = kEquipPanel;

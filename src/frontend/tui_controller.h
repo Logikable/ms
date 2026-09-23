@@ -667,6 +667,8 @@ class TuiController {
   // way; a `switched` character also starts the panels where a session starts
   // and has Tui build the fight again, which a resume must not do.
   void LeaveCharacterSelect(bool switched);
+  // Somebody else is in play: Tui is told, and any party is left.
+  void SwitchedCharacter();
   // Raises the quit dialog over whatever screen is up, which is how both
   // Escape and the character select's Quit button ask.
   void OpenQuit();
