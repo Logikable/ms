@@ -1,6 +1,6 @@
 """A sim is always built optimized.
 
-A tuning tool is run to be read, and at the default -O0 that means waiting: the
+A tuning tool is run to be read, and at the default -O1 that means waiting: the
 whole progression_sim sweep takes minutes unoptimized and 26 seconds
 optimized. Rather than ask everyone to remember a flag, each sim
 carries the setting itself -- the transition below builds the binary and
@@ -10,13 +10,25 @@ game's own tests on the default.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 
-def _opt_impl(_settings, _attr):
-    return {"//command_line_option:compilation_mode": "opt"}
+def _opt_impl(settings, _attr):
+    return {
+        "//command_line_option:compilation_mode": "opt",
+        # .bazelrc's -O1 is for the default build; left in, it would come
+        # after opt's -O2 and win.
+        "//command_line_option:copt": [
+            c
+            for c in settings["//command_line_option:copt"]
+            if c != "-O1"
+        ],
+    }
 
 _opt = transition(
     implementation = _opt_impl,
-    inputs = [],
-    outputs = ["//command_line_option:compilation_mode"],
+    inputs = ["//command_line_option:copt"],
+    outputs = [
+        "//command_line_option:compilation_mode",
+        "//command_line_option:copt",
+    ],
 )
 
 def _optimized_impl(ctx):

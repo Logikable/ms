@@ -12,15 +12,26 @@ def _release_transition_impl(settings, attr):
         features.append("fully_static_link")
     return {
         "//command_line_option:compilation_mode": "opt",
+        # .bazelrc's -O1 is for the default build; left in, it would come
+        # after opt's -O2 and win.
+        "//command_line_option:copt": [
+            c
+            for c in settings["//command_line_option:copt"]
+            if c != "-O1"
+        ],
         "//command_line_option:features": features,
         "//command_line_option:platforms": [str(attr.platform)],
     }
 
 _release_transition = transition(
     implementation = _release_transition_impl,
-    inputs = ["//command_line_option:features"],
+    inputs = [
+        "//command_line_option:copt",
+        "//command_line_option:features",
+    ],
     outputs = [
         "//command_line_option:compilation_mode",
+        "//command_line_option:copt",
         "//command_line_option:features",
         "//command_line_option:platforms",
     ],
