@@ -2778,6 +2778,24 @@ TEST_F(WearingTest, ReplacesWhatTheSlotHolds) {
             40);
 }
 
+// The account's record rides along: the links and Blessing of the Fairy are
+// read off the copy, so a probe without them priced every piece as a loss.
+TEST_F(WearingTest, KeepsWhatTheAccountMirrorsIn) {
+  LinkTally tally;
+  tally.Record(JOB_DARK_KNIGHT, 210);
+  c_.set_link_tally(tally);
+  c_.set_account_max_level(210);
+  c_.set_link_skills_off(true);
+  EquipInstance blade(sword_);
+
+  CharacterInstance probe = c_.Wearing(blade, StatPreset::kFirst);
+  ASSERT_GT(c_.link_tally().LevelFor(JOB_SWORDMAN), 0);
+  EXPECT_EQ(probe.link_tally().LevelFor(JOB_SWORDMAN),
+            c_.link_tally().LevelFor(JOB_SWORDMAN));
+  EXPECT_EQ(probe.account_max_level(), 210);
+  EXPECT_FALSE(probe.link_skills_unlocked()) << "the switch came too";
+}
+
 // A piece naming no slot this character can fill has nothing to price, and
 // the copy comes back as they are.
 TEST_F(WearingTest, APieceWithNowhereToGoChangesNothing) {
