@@ -5497,6 +5497,15 @@ TEST(CombatSimTest, TheNextEventIsTheSwingOrABuff) {
   // The buff went up on that step with its whole window, which runs out
   // sooner than the three seconds the swing still needs.
   EXPECT_NEAR(buffed.SecondsToNextEvent(params), 2.0, 1e-9);
+
+  // A buff a swing rolls for, with a helping not yet gathered, waits on the
+  // swing: it must not hold the step at nothing.
+  CombatParams rolled = MakeParams(4.0, 1e9, {MakeType(&mob, 10.0, 1)});
+  rolled.measuring = true;
+  GiveRolledBuff(rolled, /*stacks=*/3, /*duration=*/10.0, /*chance=*/0.2);
+  CombatSim rolling;
+  rolling.Advance(rolled, 1.0);
+  EXPECT_NEAR(rolling.SecondsToNextEvent(rolled), 3.0, 1e-9);
 }
 
 // A fight with an ordinary swing and a big move on a cooldown, under a buff

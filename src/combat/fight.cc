@@ -2789,9 +2789,12 @@ double CombatSim::SecondsToNextEvent(const CombatParams& params) const {
           std::min({soonest, clock.left, NextDutyEdge(buff, clock.duty_phase)});
       continue;
     }
-    // One waiting on a swing or on lines moves at a swing boundary.
+    // One waiting on a swing, on lines or on a roll moves at a swing
+    // boundary. A ready one that did not go up waits on something else, so
+    // it bounds nothing -- or the step would shrink to nothing.
     if (buff.laid_by_attack < 0 && buff.charge_lines <= 0 &&
-        buff.duration_seconds > 0.0) {
+        buff.raise_chance <= 0.0 && buff.duration_seconds > 0.0 &&
+        clock.cooldown_left > 0.0) {
       soonest = std::min(soonest, clock.cooldown_left);
     }
   }
