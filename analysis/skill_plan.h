@@ -85,7 +85,11 @@ void SpendBookWithToggles(GameState& state, const SkillRate& rate,
 // being flat: a boost costs one a level and a common's first costs seven. The
 // levels offered are the ladder's own bands, where a node's perks sit, so a
 // perk at level 20 is reachable in one purchase.
-void SpendVMatrix(GameState& state, const SkillRate& rate);
+//
+// `replan` false keeps the matrix standing and spends only what the pool has
+// gained on top of it: the caller's to choose, where nothing that could carry
+// the character over a wall has moved since the last plan.
+void SpendVMatrix(GameState& state, const SkillRate& rate, bool replan = true);
 
 }  // namespace ms
 

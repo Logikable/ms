@@ -222,6 +222,21 @@ cc_test(
 )
 
 cc_test(
+    name = "skill_plan_test",
+    size = "small",
+    srcs = ["skill_plan_test.cc"],
+    deps = [
+        ":skill_plan",
+        "//src:game_state",
+        "//src/character:skill_placement",
+        "//src/character:v_matrix",
+        "//src/protos:character_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "yardstick_test",
     size = "small",
     srcs = ["yardstick_test.cc"],

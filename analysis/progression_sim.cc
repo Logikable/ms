@@ -700,6 +700,13 @@ struct PlanKey {
   }
 };
 
+// The part of a PlanKey a matrix plan stands on: the gear, the book and the
+// fight. What the points or the map do leaves it standing.
+std::string MatrixKey(const PlanKey& key) {
+  return absl::StrCat(key.worn, "|", key.skills, "|", key.fight.first, "/",
+                      key.fight.second);
+}
+
 PlanKey PlanKeyFor(const GameState& state) {
   PlanKey key;
   const Character& proto = state.character.proto();
@@ -731,6 +738,8 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
             Purse& purse, GearShopper& shopper, WeaponScout& scout,
             PlanKey& planned, ToggleChoice& toggles, MapChoice& mapped,
             Ledger& ledger) {
+  // What the matrix was last planned from scratch against. See below.
+  const std::string planned_matrix = MatrixKey(planned);
   if (state.character.CanAdvanceJob() &&
       *taken < static_cast<int>(path.size())) {
     Job job = path[(*taken)++];
@@ -783,8 +792,14 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
     // The matrix after the book and on the same rate: its own pool, its own
     // ladder, and nothing in it is worth anything until the skills it lifts
     // have been bought.
-    SpendVMatrix(state,
-                 [&basis](GameState& inner) { return BookRate(inner, basis); });
+    //
+    // Planned afresh only where the gear, the book or the fight has moved --
+    // what carries a character over a defence wall. Otherwise the new points
+    // go on top: a full plan is most of what a climb costs.
+    PlanKey now = PlanKeyFor(state);
+    SpendVMatrix(
+        state, [&basis](GameState& inner) { return BookRate(inner, basis); },
+        /*replan=*/MatrixKey(now) != planned_matrix);
   }
   LearnTheRest(state);
   // After the free skills rather than before them, since they are levels the

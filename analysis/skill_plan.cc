@@ -295,11 +295,15 @@ void RefundMatrix(GameState& state) {
   state.character.RestoreFrom(proto, state.equips, state.items);
 }
 
-void SpendVMatrix(GameState& state, const SkillRate& rate) {
+void SpendVMatrix(GameState& state, const SkillRate& rate, bool replan) {
   if (!state.character.v_matrix_unlocked()) {
     return;
   }
-  RefundMatrix(state);
+  if (replan) {
+    RefundMatrix(state);
+  } else if (state.character.proto().v_points() <= 0) {
+    return;
+  }
   std::vector<Offer> offers;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     if (IsNode(entry.second)) {
