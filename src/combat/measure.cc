@@ -1,8 +1,6 @@
 #include "src/combat/measure.h"
 
 #include <algorithm>
-#include <cstdio>
-#include <cstdlib>
 #include <string>
 #include <utility>
 #include <vector>
@@ -106,15 +104,6 @@ Sequence MeasureFight(const CombatParams& params, double horizon, int enemies) {
        ++i) {
     played.by_attack[i] = tallies[i];
     played.damage += tallies[i].damage;
-  }
-  if (getenv("MS_DUMP") != nullptr) {
-    for (int i = 0; i < static_cast<int>(tallies.size()); ++i) {
-      if (tallies[i].swings > 0) {
-        fprintf(stderr, "DUMP %-28s swings %6d  damage %14.0f\n",
-                measured.attacks[i].name.c_str(), tallies[i].swings,
-                tallies[i].damage);
-      }
-    }
   }
   played.own_clock_damage = sim.own_clock_damage();
   played.damage += played.own_clock_damage;
