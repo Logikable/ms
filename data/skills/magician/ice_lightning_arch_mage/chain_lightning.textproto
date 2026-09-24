@@ -2,14 +2,14 @@
 # boss with: ten strikes on six enemies, and a critical rate that rides this
 # swing and hands nothing to the next one.
 #
-# GMS's stun is dropped -- nothing here can be stunned -- and with it the line
-# about the bolt arcing between nearby targets, which is only how GMS draws
-# reaching six enemies at once.
+# The stun is GMS's master figure, 30+2x% for 1+ceil(x/10) seconds: a stun
+# carries no ladder, so Combat Orders' two levels past master do not reach
+# it. It is what keeps Storm Magic standing on a map; a boss is never stunned.
 name: "Chain Lightning"
 description:
-  "Attack the target with a high-voltage lightning-attribute attack with a "
-  "high critical rate. Chain Lightning can chain attack targets near the "
-  "target."
+  "Attack the target with a high-voltage lightning-attribute attack, "
+  "stunning the enemy with a high critical rate. Chain Lightning can chain "
+  "attack targets near the target."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_LIGHTNING
 placement { job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE skill_order: 1 }
@@ -19,6 +19,10 @@ exceeds_master_level: true
 base_delay_ms: 660
 max_enemies: 6
 lines: 10
+stun {
+  duration_seconds: 4.0
+  chance: 0.9
+}
 base {
   skill_pct: 1.33
   crit_rate: 0.105

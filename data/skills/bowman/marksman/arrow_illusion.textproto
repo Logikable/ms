@@ -1,7 +1,7 @@
-# GMS's decoy, cut down to the one thing this game can read: damage on a clock.
-# Its health bar, the counterattack it launches when struck, and the stun are
-# all dropped -- nothing here draws aggro, so a decoy that holds it is a decoy
-# doing nothing.
+# GMS's decoy, cut down to damage on a clock and the stun it lands, at GMS's
+# master 10+2x% for ceil(x/8) seconds. Its health bar and the counterattack it
+# launches when struck are dropped -- nothing here draws aggro, so a decoy
+# that holds it is a decoy doing nothing.
 #
 # Six enemies rather than GMS's eight, and its top 200% reached at 20 levels
 # rather than 30. Stripped of everything but the damage it would otherwise
@@ -19,6 +19,10 @@ max_level: 20
 exceeds_master_level: true
 max_enemies: 6
 cast_interval_seconds: 3.0
+stun {
+  duration_seconds: 4.0
+  chance: 0.7
+}
 base { skill_pct: 1.05 }
 per_level { skill_pct: 0.05 }
 # GMS writes the ignored defence under "[Passive Effects]", so it is the

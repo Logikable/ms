@@ -1,5 +1,5 @@
 # GMS's own figures: 154+5x% four times over 20 levels, on six enemies. The
-# stun is dropped, as every stun in this game is.
+# stun is the master figure, 20+2x% for 2+ceil(3x/20) seconds.
 #
 # 900ms is the animation's own, from the frame data -- the slowest swing in the
 # game, and a Priest already hits softest.
@@ -14,5 +14,9 @@ required_equip_type: EQUIP_TYPE_STAFF
 base_delay_ms: 900
 max_enemies: 6
 lines: 4
+stun {
+  duration_seconds: 5.0
+  chance: 0.6
+}
 base { skill_pct: 1.59 }
 per_level { skill_pct: 0.05 }

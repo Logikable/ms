@@ -1,6 +1,6 @@
 # GMS puts this on a 12-second cooldown, which for a skill worth firing every
 # time it comes back is the same thing as a cast interval -- so that is what it
-# becomes here. The stun it also lands is not modelled.
+# becomes here. The stun is GMS's master figure, 9*ceil(x/2)% for 5 seconds.
 #
 # The aura heal belongs to the EYE rather than to the shout, and GMS hangs it
 # off a separate one-point Evil Eye skill this book does not have. It lands
@@ -9,13 +9,17 @@
 # every 24 seconds is nothing to a character with a pool, which is the whole
 # reason Evil Eye - Aura Reinforce exists.
 name: "Evil Eye Shock"
-description: "Your Evil Eye shouts, damaging nearby enemies on its own."
+description: "Your Evil Eye shouts, stunning and damaging nearby enemies."
 kind: SKILL_KIND_AUTO_ATTACK
 placement { job_advancement: JOB_ADVANCEMENT_SPEARMAN skill_order: 2 }
 max_level: 10
 max_enemies: 10
 lines: 6
 cast_interval_seconds: 12.0
+stun {
+  duration_seconds: 5.0
+  chance: 0.45
+}
 base {
   skill_pct: 1.23
   regen_hp: 6

@@ -3,7 +3,7 @@
 #
 # What it has and Phoenix does not is the freeze -- 1 + floor(L/5) seconds in
 # GMS, 3 at master. Skill.freeze_seconds carries no ladder, so it holds the
-# master figure. Phoenix's stun stays out; nothing here is stunned.
+# master figure. The stun is Phoenix's alone.
 name: "Frostprey"
 description:
   "Summons a Frostprey that attacks on its own, freezing what it hits. Also "

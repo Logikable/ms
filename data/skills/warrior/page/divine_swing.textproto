@@ -1,8 +1,10 @@
-# GMS stuns for 10+4x% on top of this. Nothing here is ever stunned, so the
-# hammer only hits.
+# The stun is GMS's master figure, 10+4x% for 2+ceil(x/5) seconds, since a
+# stun carries no ladder. Nothing a Paladin swings asks whether an enemy is
+# stunned, so it is a status and no damage.
 name: "Divine Swing"
 description:
-  "Swing a large hammer conjured from light, damaging nearby enemies."
+  "Swing a large hammer conjured from light, damaging and stunning nearby "
+  "enemies."
 kind: SKILL_KIND_ATTACK
 placement { job_advancement: JOB_ADVANCEMENT_PAGE skill_order: 1 }
 max_level: 20
@@ -14,5 +16,9 @@ base_delay_ms: 840
 max_enemies: 6
 lines: 4
 tags: SKILL_TAG_HOLY_POWER
+stun {
+  duration_seconds: 6.0
+  chance: 0.9
+}
 base { skill_pct: 1.22 }
 per_level { skill_pct: 0.02 }

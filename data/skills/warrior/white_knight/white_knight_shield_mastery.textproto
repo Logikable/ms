@@ -2,8 +2,9 @@
 # 40 status resistance, 40% elemental, 250% DEF and +20 attack.
 #
 # The guard is a chance to cancel the whole hit rather than to shave a share
-# off it, which is what dodge_chance is; the stun on it is dropped. Of what is
-# left the attack and the guard are worth something: the two resistances have
+# off it, which is what dodge_chance is. The stun a guard lands is dropped:
+# a guard only cancels the hit, and nothing answers it on the monster that
+# swung. Of what is left the attack and the guard are worth something: the two resistances have
 # nothing to resist, and DEF is already past what it can cancel. All of it
 # waits on the off hand, which for a White Knight can only be a rosary.
 name: "Shield Mastery"

@@ -4,8 +4,9 @@
 # makes too.
 #
 # 1320ms is the animation's own, from the frame data, and twice what a 4th job
-# swing usually costs. The stun it lands and the buffs it strips are dropped:
-# nothing in this game is stunned, and no monster here holds a buff.
+# swing usually costs. The stun is GMS's ten seconds; its doubling with the
+# damage dealt and the 90 seconds of stun resistance after it are dropped, as
+# are the buffs it strips -- no monster here holds a buff.
 name: "Smite Shield"
 description:
   "Summons a hammer imbued with unyielding strength to strike down nearby "
@@ -23,4 +24,5 @@ base_delay_ms: 1320
 cooldown_seconds: 120.0
 max_enemies: 15
 lines: 6
+stun { duration_seconds: 10.0 }
 base { skill_pct: 5.00 }
