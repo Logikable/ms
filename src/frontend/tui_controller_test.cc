@@ -3471,13 +3471,28 @@ TEST_F(TuiControllerTest, CharactersOpensTheSelectAndStopsTheFarm) {
       << "the fight does not run behind it";
 }
 
-// The only way back into the game is to play somebody, so Escape asks the
-// question the Quit button does -- and cancelling it lands back on the list
-// rather than in a game with no character chosen.
-TEST_F(TuiControllerTest, EscapeAsksToQuitAndComesBackToTheList) {
+TEST_F(TuiControllerTest, EscapeResumesTheCharacterInPlay) {
+  state_->character.SetUsername("First");
+  AddCharacter("Second");
   controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // the cursor on "Second"
   controller_->OnEvent(ftxui::Event::Escape);
-  EXPECT_EQ(controller_->screen(), kQuit);
+
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_FALSE(controller_->OnCharacterSelect());
+  EXPECT_EQ(state_->character.username(), "First");
+  EXPECT_FALSE(controller_->TakeCharacterSwitch())
+      << "a resume must not rebuild the fight they left going";
+}
+
+// Cancelling the Quit button's question lands back on the list rather than
+// in the game.
+TEST_F(TuiControllerTest, QuitButtonCancelComesBackToTheList) {
+  controller_->OpenMenuEntry(MenuEntry::kCharacters);
+  controller_->OnEvent(ftxui::Event::ArrowDown);   // onto the buttons: Create
+  controller_->OnEvent(ftxui::Event::ArrowRight);  // -> Quit
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kQuit);
 
   controller_->OnEvent(ftxui::Event::Return);  // the prompt opens on Cancel
   EXPECT_EQ(controller_->screen(), kCharacterSelect);

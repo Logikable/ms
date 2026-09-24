@@ -434,7 +434,7 @@ void TuiController::OpenMenuEntry(MenuEntry entry) {
   }
   if (entry == MenuEntry::kCharacters) {
     // The fight stops the moment this opens -- see OnCharacterSelect -- and
-    // the only way back into the game is to play somebody.
+    // resumes on Escape or a Play.
     character_select_panel_.Reset();
     screen_ = kCharacterSelect;
     return;
@@ -1353,9 +1353,9 @@ bool TuiController::OnCharacterSelectEvent(ftxui::Event event) {
     return true;
   }
   if (IsBack(event)) {
-    // Escape asks the same question the Quit button does: there is nothing
-    // behind this screen to go back to.
-    OpenQuit();
+    // Back to whoever was being played: a resume, as Play on their row is.
+    // Quitting has its own button.
+    LeaveCharacterSelect(/*switched=*/false);
     return true;
   }
   // Swallow everything else: this is a modal screen.
