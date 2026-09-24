@@ -50,6 +50,7 @@ void CombatSim::TopUp(const CombatParams& params) {
       arrival.type = i;
       arrival.hp = params.types[i].mob->max_hp();
       arrival.max_hp = arrival.hp;
+      arrival.boss = params.types[i].mob->boss();
       arrival.id = next_mob_id_++;
       queue_.push_back(std::move(arrival));
     }
@@ -845,9 +846,11 @@ double CombatSim::BoostForStacks(const AttackOption& attack, int stacks,
 
 // Three statuses count: ice, a burn and a stun. GMS lists five, and the other
 // two are inflicted by nothing here -- when one arrives it joins the test and
-// no lever moves. See SkillEffect::final_dmg_pct_when_afflicted.
+// no lever moves. See SkillEffect::final_dmg_pct_when_afflicted. A boss is
+// never stunned in GMS; it carries the stun only for the lift.
 bool CombatSim::Afflicted(const QueuedMob& mob) const {
-  if (mob.frozen_left_seconds > 0.0 || mob.stunned_left_seconds > 0.0) {
+  if (mob.frozen_left_seconds > 0.0 ||
+      (mob.stunned_left_seconds > 0.0 && !mob.boss)) {
     return true;
   }
   for (const MobDot& burn : mob.dots) {
@@ -1361,10 +1364,17 @@ void CombatSim::ApplyStun(const AttackOption& attack, int hit) {
     return;
   }
   for (int j = 0; j < hit; ++j) {
-    // Written over, as the ice is.
-    queue_[j].stunned_left_seconds =
-        std::max(queue_[j].stunned_left_seconds, attack.stun_seconds);
-    queue_[j].stun_lift_pct = attack.stun_lift_pct;
+    // Written over, as the ice is. A measurement takes the share, as a
+    // burn's chance does.
+    QueuedMob& mob = queue_[j];
+    double took = attack.stun_chance < 1.0 ? Chance(attack.stun_chance) : 1.0;
+    if (took <= 0.0) {
+      continue;
+    }
+    mob.stunned_left_seconds =
+        took * std::max(mob.stunned_left_seconds, attack.stun_seconds) +
+        (1.0 - took) * mob.stunned_left_seconds;
+    mob.stun_lift_pct = attack.stun_lift_pct;
   }
 }
 

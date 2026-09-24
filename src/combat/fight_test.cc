@@ -4595,6 +4595,33 @@ TEST(CombatSimTest, AStunLiftsTheSwingsThatCollectItAndNotItsOwn) {
   EXPECT_NEAR(itself.view().damage_this_step, 1.0, 1e-9);
 }
 
+// A stun afflicts a monster but never a boss, which still takes the lift; a
+// stun that fails its roll leaves neither.
+TEST(CombatSimTest, AStunAfflictsNoBossAndOnlyWhereItTakes) {
+  auto bolt_after_orb = [](bool boss, double chance) {
+    Mob mob = MakeMob("Target", 1e9);
+    mob.set_boss(boss);
+    CombatParams shocking = MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 1)});
+    AttackOption orb = MakeSkill("Jupiter Thunder", 1.0, /*cooldown=*/0.0);
+    orb.stun_seconds = 4.0;
+    orb.stun_lift_pct = 0.12;
+    orb.stun_chance = chance;
+    shocking.attacks.push_back(orb);
+    CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 1)});
+    AttackOption bolt = MakeSkill("Chain Lightning", 100.0, /*cooldown=*/0.0);
+    bolt.collects_stun_lift = true;
+    bolt.fd_when_afflicted = 0.5;
+    params.attacks.push_back(bolt);
+    CombatSim sim;
+    sim.Advance(shocking, 1.0);
+    sim.Advance(params, 1.0);
+    return sim.view().damage_this_step;
+  };
+  EXPECT_NEAR(bolt_after_orb(/*boss=*/false, 1.0), 168.0, 1e-9);
+  EXPECT_NEAR(bolt_after_orb(/*boss=*/true, 1.0), 112.0, 1e-9);
+  EXPECT_NEAR(bolt_after_orb(/*boss=*/false, 0.0), 100.0, 1e-9);
+}
+
 TEST(CombatSimTest, WithNoPileToBuildTheHarderSwingSimplyWins) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;

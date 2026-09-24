@@ -134,6 +134,8 @@ class CombatSim {
     // this fight is -- a monster half-likely to be scarred takes half.
     double scarred_left_seconds = 0.0;
     double scar_odds = 0.0;
+    // Whether it is a boss, which no stun afflicts. See Afflicted.
+    bool boss = false;
     // The stun on it and what carrying it hands the swings that collect.
     double stunned_left_seconds = 0.0;
     double stun_lift_pct = 0.0;
@@ -196,7 +198,7 @@ class CombatSim {
   // share of lines landing after the scar, the line that leaves it earning
   // nothing.
   double ScarBoost(const AttackOption& attack, const QueuedMob& mob) const;
-  // Whether any status the fight keeps stands on it -- ice or a burn.
+  // Whether any status the fight keeps stands on it -- ice, a burn or a stun.
   bool Afflicted(const QueuedMob& mob) const;
   // What the enemy's condition adds: afflicted or not, and the burns alight
   // across the group.

@@ -386,6 +386,9 @@ void AddSwingClocks(const Skill* skill, int level, const DerivedStats& derived,
   // covers is the same span of the fight it covers in GMS.
   attack.stun_seconds = skill->stun().duration_seconds() * speed_factor;
   attack.stun_lift_pct = skill->stun().final_dmg_pct();
+  if (skill->stun().chance() > 0.0) {
+    attack.stun_chance = skill->stun().chance();
+  }
   // A swing collects a stun's lift where it carries the tag and is not the
   // skill that left it -- GMS excludes Jupiter Thunder from its own shock.
   attack.collects_stun_lift =

@@ -286,6 +286,8 @@ struct AttackOption {
   // it hands the swings that collect. See Skill.stun.
   double stun_seconds = 0.0;
   double stun_lift_pct = 0.0;
+  // Odds the stun takes hold on each enemy reached.
+  double stun_chance = 1.0;
   // Whether THIS swing collects a stun somebody else left: it carries the
   // tag the stunning skill lifts, and is not that skill.
   bool collects_stun_lift = false;

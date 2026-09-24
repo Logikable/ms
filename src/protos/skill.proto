@@ -139,12 +139,12 @@ message SkillEffect {
   // character, exactly as ied_pct and boss_pct do -- see WithoutSwingLevers.
   double final_dmg_pct = 17;
   // Final damage on every line landed on an AFFLICTED enemy -- one under any
-  // status this game keeps on a monster. Two are: the ice a swing leaves (see
-  // Skill.freeze_seconds) and a burn (see Dot). GMS asks for "Damage Over
-  // Time, Freeze, Stun, Darkness, or Paralysis" and Storm Magic and Burning
-  // Magic name the identical five, so this is one condition rather than a list
-  // each skill picks from -- a status the game learns to inflict later joins
-  // it here and nothing else moves.
+  // status this game keeps on a monster. Three are: the ice a swing leaves
+  // (see Skill.freeze_seconds), a burn (see Dot) and a stun (see Stun). GMS
+  // asks for "Damage Over Time, Freeze, Stun, Darkness, or Paralysis" and
+  // Storm Magic and Burning Magic name the identical five, so this is one
+  // condition rather than a list each skill picks from -- a status the game
+  // learns to inflict later joins it here and nothing else moves.
   //
   // Binary, as final_dmg_pct_when_scarred is: an enemy is afflicted or it is
   // not, and a second status over the first says nothing.
@@ -1145,12 +1145,16 @@ message FreezeBuild {
 // The stun a strike leaves: the third status this game keeps on a monster,
 // beside ice and a burn. An enemy under it is AFFLICTED, which is what
 // final_dmg_pct_when_afflicted already asks about. Nothing here models a
-// monster acting on a schedule, so it costs the enemy nothing else.
+// monster acting on a schedule, so it costs the enemy nothing else. A boss
+// shrugs the status off, as every GMS boss does, and still takes the lift.
 //
 // It also LIFTS what other swings do to the enemy carrying it -- and the skill
 // leaving a stun never takes its own lift, as GMS names it out.
 message Stun {
   double duration_seconds = 1;
+  // Odds it takes hold on each enemy reached. 0 reads as certain, which is
+  // what a skill stating no chance means.
+  double chance = 4;
   // Final damage a swing carrying `lifted_tag` takes against a stunned enemy,
   // over everything it already multiplies by. 0 for a stun that is only a
   // status, which is what a stun would be without a reader.
@@ -1979,8 +1983,7 @@ message Skill {
   // Not every ice swing freezes: GMS's Frozen Orb slows what it touches and
   // freezes nothing, so this is stated rather than read off the element.
   double freeze_seconds = 53;
-  // The stun this skill's strike leaves on what it reaches, if any. Unset for
-  // every skill but Jupiter Thunder. See Stun.
+  // The stun this skill's strike leaves on what it reaches, if any. See Stun.
   Stun stun = 60;
   // Seconds off this skill's own next cast for every strike of it that found
   // nothing standing. Jupiter Thunder is what it exists for: GMS refunds 3.4

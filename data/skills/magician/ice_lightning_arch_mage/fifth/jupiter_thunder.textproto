@@ -19,9 +19,9 @@
 #
 # The stun is the third status this game keeps on a monster. Nothing here has a
 # schedule to be knocked off, so what it buys is that the enemy is AFFLICTED --
-# which Storm Magic has always been asking about, and which is 21% of final
-# damage on every I/L swing at master -- and that other lightning then takes
-# 12% more, which GMS states and excludes this skill from by name.
+# which Storm Magic asks about -- and that other lightning then takes 12% more,
+# which GMS states and excludes this skill from by name. A boss is never
+# stunned, so on the fight it was built for only the 12% is left.
 #
 # The four seconds are CHOSEN: GMS states no stun duration anywhere in the
 # common block, and a missing number there is the client hardcoding one. Each

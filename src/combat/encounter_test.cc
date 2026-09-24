@@ -1391,6 +1391,7 @@ TEST(ComputeCombatParamsTest, AStunLeavesAMarkTheOtherLightningCollects) {
   // The stun is the orb's to leave and Chain Lightning's to collect.
   EXPECT_GT(shock->stun_seconds, 0.0);
   EXPECT_DOUBLE_EQ(shock->stun_lift_pct, 0.12);
+  EXPECT_DOUBLE_EQ(shock->stun_chance, 1.0);  // none stated: certain
   EXPECT_FALSE(shock->collects_stun_lift);
   EXPECT_TRUE(chain->collects_stun_lift);
   EXPECT_DOUBLE_EQ(chain->stun_seconds, 0.0);
