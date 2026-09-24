@@ -222,6 +222,20 @@ cc_test(
 )
 
 cc_test(
+    name = "sim_gear_test",
+    size = "small",
+    srcs = ["sim_gear_test.cc"],
+    deps = [
+        ":sim_gear",
+        "//src/character",
+        "//src/item:equip_instance",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "skill_plan_test",
     size = "small",
     srcs = ["skill_plan_test.cc"],

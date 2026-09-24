@@ -617,6 +617,25 @@ int CollectSymbols(CharacterInstance& character) {
   return taken;
 }
 
+namespace {
+
+// Whether a copy of `proto` is worn anywhere in its family. Equipping another
+// SWAPS for it, sending the worn one back to the bag -- where it would be
+// offered again, for ever.
+bool WearsCopyOf(const CharacterInstance& character,
+                 const EquipPrototype& proto) {
+  for (EquipSlot slot : SlotFamily(proto.equip_slot())) {
+    WornGear::const_iterator worn = character.equipped().find(slot);
+    if (worn != character.equipped().end() &&
+        worn->second->name() == proto.name()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+}  // namespace
+
 void WearBestFromBag(CharacterInstance& character) {
   // Restarted after every change: equipping shuffles the bag, since whatever
   // is displaced goes back into it.
@@ -627,7 +646,8 @@ void WearBestFromBag(CharacterInstance& character) {
     for (int i = 0; i < bag.size(); ++i) {
       const EquipPrototype& proto = bag[i].prototype();
       if (bag[i].is_trace() || Shopped(proto) ||
-          !ReachedSymbolArea(character, proto) || !character.CanEquip(proto)) {
+          !ReachedSymbolArea(character, proto) || !character.CanEquip(proto) ||
+          WearsCopyOf(character, proto)) {
         continue;
       }
       WornGear::const_iterator worn =
