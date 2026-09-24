@@ -18,6 +18,7 @@
  *   - the honor the pool has collected spent on rerolling both Inner Ability
  *     setups, once the character is high enough to hold one;
  *   - the whole Etc tab sold at each level;
+ *   - the daily symbol claim, once a day;
  *   - the best weapon they can hold and pay for, bought the level it comes
  *     within reach, with the type of it measured rather than assumed;
  *   - what is left of the purse spent on scrolls and stars, the weapon first;
@@ -79,7 +80,9 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <functional>
 #include <limits>
 #include <map>
@@ -114,8 +117,10 @@
 #include "analysis/sim_world.h"
 #include "analysis/skill_plan.h"
 #include "src/character/arcane_force.h"
+#include "src/character/boss_reset.h"
 #include "src/character/character.h"
 #include "src/character/consumables.h"
+#include "src/character/dailies.h"
 #include "src/character/exp_table.h"
 #include "src/character/honor.h"
 #include "src/character/inner_ability.h"
@@ -296,6 +301,11 @@ constexpr double kBookCycles = 1.0;
 // Seconds in a day, which is what a daily reset waits out. The game is idle,
 // so a day of playtime is a day.
 constexpr double kDaySeconds = 24.0 * 60.0 * 60.0;
+
+// The wall clock the run's seconds are laid over, for what the game gates on
+// its own reset: 2026-01-01 at the reset hour, read in UTC (see main) so a
+// day is always 24 hours and turns over with the sim's own boss day.
+constexpr int64_t kSimEpoch = 1767225600 + kBossResetHour * 60 * 60;
 
 // How long to play a character out for. A window shorter than a buff's cycle
 // cannot see it go up or come down, so a lever that lengthens a buff reads
@@ -1987,9 +1997,18 @@ double GiveUpAt() {
   return absl::GetFlag(FLAGS_give_up_hours) * 3600.0;
 }
 
+// The daily claim, taken at a look before the bag is tidied, so what it packs
+// goes straight into the worn symbols. Refused for a full bag, and then the
+// next look tries again, as a player would.
+void ClaimDailySymbols(Session& run) {
+  ClaimDailies(run.state.character, run.state.equips,
+               kSimEpoch + static_cast<int64_t>(run.seconds));
+}
+
 // What every look at the game does once the shopping is settled: buy the gear
 // the purse can now afford, then spend the points that were waiting.
 void Restock(Session& run) {
+  ClaimDailySymbols(run);
   Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
          run.purse, run.shopper, run.scout, run.planned, run.toggles,
          run.mapped, run.climb.ledger);
@@ -2118,6 +2137,7 @@ void ClimbToCap(Session& run) {
 void RestockAtCap(Session& run, const CombatParams& params,
                   const Yield& yield) {
   run.climb.ledger.etc_sales += SellDrops(run.state.character);
+  ClaimDailySymbols(run);
   WearBestFromBag(run.state.character);
   CollectSymbols(run.state.character);
   // Before the shelf, for the reason the climb takes it before Retool.
@@ -3464,6 +3484,9 @@ void Run() {
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
+  // The reset reads local time; see kSimEpoch.
+  setenv("TZ", "UTC", /*overwrite=*/1);
+  tzset();
   ms::Run();
   return 0;
 }
