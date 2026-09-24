@@ -4595,6 +4595,25 @@ TEST(CombatSimTest, AStunLiftsTheSwingsThatCollectItAndNotItsOwn) {
   EXPECT_NEAR(itself.view().damage_this_step, 1.0, 1e-9);
 }
 
+// Scarring Sword's shape: each of two lines scars at even odds, and a line on
+// a scarred monster takes half again. The first swing collects only on its
+// second line; the second finds the scar three times in four already there.
+TEST(CombatSimTest, AScarPaysTheLinesLandingAfterIt) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
+  AttackOption sword = MakeSkill("Scarring Sword", 100.0, /*cooldown=*/0.0);
+  sword.lines = 2;
+  sword.scar_chance = 0.5;
+  sword.scar_seconds = 10.0;
+  sword.scar_fd = 0.5;
+  params.attacks.push_back(sword);
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().damage_this_step, 112.5, 1e-9);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.view().damage_this_step, 140.625, 1e-9);
+}
+
 // A stun afflicts a monster but never a boss, which still takes the lift; a
 // stun that fails its roll leaves neither.
 TEST(CombatSimTest, AStunAfflictsNoBossAndOnlyWhereItTakes) {
@@ -4713,6 +4732,40 @@ TEST(CombatSimTest, AHoldIsLetGoOnceMorePulsesWouldBuyNothing) {
   EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.95), 0.0);
   EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.02), 100.0);  // 5 x 10, then 50
   EXPECT_TRUE(sim.view().roster.empty());
+}
+
+// A hold that GROWS: two pulses at 10, then 30 apiece, and no strike to end
+// on. A boss takes the whole six; a monster of 50 is let go at the third, the
+// first grown pulse finishing what the opening run left.
+AttackOption MakeGrowingHold() {
+  AttackOption hold = MakeSkill("Hurricane", 0.0, /*cooldown=*/0.0);
+  hold.channel.pulses = 6;
+  hold.channel.min_pulses = 1;
+  hold.channel.pulse_seconds = 0.1;
+  hold.channel.min_seconds = 0.1;
+  hold.channel.small_pulses = 2;
+  hold.channel.grown = {{30.0}, SwingRolls{}};
+  hold.groups.push_back({{10.0}, SwingRolls{}});
+  hold.damage_per_hit = {2 * 10.0 + 4 * 30.0};
+  hold.swing_seconds = HoldSeconds(hold.channel, hold.channel.pulses);
+  return hold;
+}
+
+TEST(CombatSimTest, AGrowingHoldBeatsAtBothStrengths) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
+  params.attacks.push_back(MakeGrowingHold());
+  CombatSim sim;
+  EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.55), 0.0);
+  EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.1), 140.0);
+
+  Mob snail = MakeMob("Snail", 50);
+  CombatParams small = MakeParams(1.0, 0.0, {MakeType(&snail, 0.0, 1)});
+  small.attacks.push_back(MakeGrowingHold());
+  CombatSim quick;
+  EXPECT_DOUBLE_EQ(RunFor(quick, small, 0.25), 0.0);
+  EXPECT_DOUBLE_EQ(RunFor(quick, small, 0.1), 50.0);
+  EXPECT_TRUE(quick.view().roster.empty());
 }
 
 // Sonic Blow's shape: a hold that ends on no strike. It is let go early all

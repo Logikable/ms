@@ -676,6 +676,27 @@ TEST(BossRunTest, TheBodyArrivesAfterTheArmsAndTheClearPaysItsExp) {
       << "a boss should pay no field meso";
 }
 
+// A phase naming no track plays the one named above it; a fight naming none,
+// or a difficulty that does not exist, plays nothing.
+TEST(BossRunTest, APhasePlaysTheLastTrackNamedAtOrAboveIt) {
+  Boss boss = TwoPhaseBoss();
+  EXPECT_EQ(BossRun("zakum", boss, 0).bgm(), "");
+  EXPECT_EQ(BossRun("zakum", boss, 5).bgm(), "");
+
+  boss.mutable_difficulties(0)->mutable_phases(0)->set_bgm("arms");
+  std::unique_ptr<GameState> state = MakeState();
+  BossRun carried("zakum", boss, 0);
+  EXPECT_EQ(carried.bgm(), "arms");
+  RunToEnd(carried, *state);
+  EXPECT_EQ(carried.bgm(), "arms");  // the body names none
+
+  boss.mutable_difficulties(0)->mutable_phases(1)->set_bgm("body");
+  std::unique_ptr<GameState> again = MakeState();
+  BossRun own("zakum", boss, 0);
+  RunToEnd(own, *again);
+  EXPECT_EQ(own.bgm(), "body");
+}
+
 // The clock is the only thing that can beat the player, since nothing hits
 // back yet.
 TEST(BossRunTest, RunningOutOfTimeEndsTheFight) {

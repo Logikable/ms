@@ -1341,6 +1341,8 @@ TEST(ComputeCombatParamsTest, AStunLeavesAMarkTheOtherLightningCollects) {
   bolt.set_max_level(30);
   bolt.set_base_delay_ms(660);
   bolt.add_tags(SKILL_TAG_LIGHTNING);
+  bolt.mutable_stun()->set_duration_seconds(4.0);
+  bolt.mutable_stun()->set_chance(0.9);
   bolt.mutable_base()->set_skill_pct(1.33);
 
   Skill orb;
@@ -1388,13 +1390,16 @@ TEST(ComputeCombatParamsTest, AStunLeavesAMarkTheOtherLightningCollects) {
   ASSERT_NE(shock, nullptr);
   ASSERT_NE(chain, nullptr);
 
-  // The stun is the orb's to leave and Chain Lightning's to collect.
+  // The lift is the orb's to leave and Chain Lightning's to collect. The
+  // bolt's own stun lifts nothing, so it does not take the orb's place.
   EXPECT_GT(shock->stun_seconds, 0.0);
   EXPECT_DOUBLE_EQ(shock->stun_lift_pct, 0.12);
   EXPECT_DOUBLE_EQ(shock->stun_chance, 1.0);  // none stated: certain
   EXPECT_FALSE(shock->collects_stun_lift);
   EXPECT_TRUE(chain->collects_stun_lift);
-  EXPECT_DOUBLE_EQ(chain->stun_seconds, 0.0);
+  EXPECT_GT(chain->stun_seconds, 0.0);
+  EXPECT_DOUBLE_EQ(chain->stun_chance, 0.9);
+  EXPECT_DOUBLE_EQ(chain->stun_lift_pct, 0.0);
 
   // One stack every five lines, where the plain lightning swing pays per line.
   EXPECT_EQ(shock->freeze_lines_per_spend, 5);

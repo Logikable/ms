@@ -1710,6 +1710,32 @@ TEST_F(CharacterTest, EachLinkPresetCarriesItsOwnSkills) {
   EXPECT_FALSE(hero.HoldsLinkSkill(rogue, Activity::kFarming));
 }
 
+// A swap carries the slot in use with it, whichever end it was on, and grows
+// a list the character never opened. Gear presets are never swapped.
+TEST(SwapPresetsTest, TheSlotInUseMovesWithWhatItHolds) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeCharacter(rng);
+  c.SetSlotInUse(PresetKind::kLinkSkills, StatPreset::kFirst);
+  c.SwapPresets(PresetKind::kLinkSkills, StatPreset::kFirst,
+                StatPreset::kThird);
+  EXPECT_EQ(c.proto().link_skills().presets_size(), kNumStatPresets);
+  EXPECT_EQ(c.SlotInUse(PresetKind::kLinkSkills), StatPreset::kThird);
+
+  c.SetSlotInUse(PresetKind::kInnerAbility, StatPreset::kSecond);
+  c.SwapPresets(PresetKind::kInnerAbility, StatPreset::kFirst,
+                StatPreset::kSecond);
+  EXPECT_EQ(c.proto().inner_ability().presets_size(), kNumStatPresets);
+  EXPECT_EQ(c.SlotInUse(PresetKind::kInnerAbility), StatPreset::kFirst);
+  // Neither end in use: nothing moves.
+  c.SwapPresets(PresetKind::kInnerAbility, StatPreset::kSecond,
+                StatPreset::kThird);
+  EXPECT_EQ(c.SlotInUse(PresetKind::kInnerAbility), StatPreset::kFirst);
+
+  c.SetSlotInUse(PresetKind::kEquip, StatPreset::kFirst);
+  c.SwapPresets(PresetKind::kEquip, StatPreset::kFirst, StatPreset::kSecond);
+  EXPECT_EQ(c.SlotInUse(PresetKind::kEquip), StatPreset::kFirst);
+}
+
 // --- Advancement mapping ---
 
 TEST(UsernameTest, StartsOnTheInvitationAndTakesAName) {
