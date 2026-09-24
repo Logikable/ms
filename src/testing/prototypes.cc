@@ -87,7 +87,6 @@ Mob SnailMob() {
 ItemPrototype GreenSnailShell() {
   ItemPrototype item;
   item.set_name("Green Snail Shell");
-  item.set_category(ITEM_CATEGORY_ETC);
   return item;
 }
 

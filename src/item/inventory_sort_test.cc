@@ -78,7 +78,6 @@ TEST(SortEquipItemsTest, WearableFirstAndTracesBelow) {
 StackableItem Stack(const std::string& name, int count) {
   ItemPrototype proto;
   proto.set_name(name);
-  proto.set_category(ITEM_CATEGORY_ETC);
   return StackableItem(proto, count);
 }
 

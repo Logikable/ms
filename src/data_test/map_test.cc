@@ -171,8 +171,8 @@ TEST(MapDataTest, EveryEtcDropIsWorthSomething) {
     for (const MobDrop& drop : entry.second.drops()) {
       std::map<std::string, ItemPrototype>::const_iterator it =
           items.find(drop.item());
-      if (it == items.end() || it->second.category() != ITEM_CATEGORY_ETC) {
-        continue;  // a missing item is covered above; a Use drop has a use
+      if (it == items.end()) {
+        continue;  // covered above
       }
       if (!it->second.currency_mark().empty()) {
         continue;  // a token buys gear, so it is not litter at any price

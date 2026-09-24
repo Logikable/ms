@@ -440,7 +440,6 @@ ItemPrototype MakeStackable(const std::string& name,
                             const std::string& description) {
   ItemPrototype item;
   item.set_name(name);
-  item.set_category(ITEM_CATEGORY_ETC);
   item.set_description(description);
   return item;
 }

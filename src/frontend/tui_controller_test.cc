@@ -138,13 +138,11 @@ class TuiControllerTest : public testing::Test {
     chu_chu.mutable_arcane_symbol()->set_meso_cost_base(10);
     equips[chu_chu.name()] = chu_chu;
     token_.set_name("Weapon Token");
-    token_.set_category(ITEM_CATEGORY_ETC);
     token_.set_currency_mark("●");
     token_.set_currency_color(CURRENCY_COLOR_THEME);
     // Something plain for a boss to drop, so the clear card has a row that is
     // not a currency.
     shard_.set_name("Zakum's Soul Shard");
-    shard_.set_category(ITEM_CATEGORY_ETC);
     shard_.set_max_stack(100);
     std::map<std::string, ItemPrototype> items;
     items["weapon_token"] = token_;
@@ -397,7 +395,6 @@ class TuiControllerTest : public testing::Test {
   void EnterEtcTabWithStack(int count, int sell_price) {
     ItemPrototype shell;
     shell.set_name("Green Snail Shell");
-    shell.set_category(ITEM_CATEGORY_ETC);
     shell.set_sell_price(sell_price);
     state_->character.AddItem(shell, count);
     panel_focus_ = kInventoryPanel;
@@ -674,7 +671,6 @@ class TuiControllerTest : public testing::Test {
   void GiveTraces(int count) {
     ItemPrototype trace;
     trace.set_name(kSpellTraceName);
-    trace.set_category(ITEM_CATEGORY_ETC);
     trace.set_kind(ITEM_KIND_SPELL_TRACE);
     state_->character.AddItem(trace, count);
   }
@@ -2618,7 +2614,6 @@ TEST_F(TuiControllerTest, MultiSellEscapeKeepsEverything) {
 TEST_F(TuiControllerTest, MultiSellOpensFromAStackToo) {
   ItemPrototype shell;
   shell.set_name("Green Snail Shell");
-  shell.set_category(ITEM_CATEGORY_ETC);
   shell.set_sell_price(50);
   state_->character.AddItem(shell, 4);
   panel_focus_ = kInventoryPanel;
@@ -2894,7 +2889,6 @@ TEST_F(TuiControllerTest, BuyingBackAnEquipReturnsTheItemThatLeft) {
 TEST_F(TuiControllerTest, BuyingBackPartOfAStackLeavesTheRest) {
   ItemPrototype shell;
   shell.set_name("Green Snail Shell");
-  shell.set_category(ITEM_CATEGORY_ETC);
   shell.set_sell_price(7);
   state_->items["green_snail_shell"] = shell;
   state_->character.AddItem(shell, 50);
@@ -3361,7 +3355,6 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
 TEST_F(TuiControllerTest, StackInspectShowsTheItemsDescription) {
   ItemPrototype shell;
   shell.set_name("Green Snail Shell");
-  shell.set_category(ITEM_CATEGORY_ETC);
   shell.set_description("A shell shed by a snail.");
   state_->character.AddItem(shell, 3);
   panel_focus_ = kInventoryPanel;

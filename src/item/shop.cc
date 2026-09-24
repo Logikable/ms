@@ -86,8 +86,7 @@ std::vector<std::string> ShopEtcStock(
     const std::map<std::string, ItemPrototype>& items) {
   std::vector<std::string> keys;
   for (const std::pair<const std::string, ItemPrototype>& entry : items) {
-    if (entry.second.category() == ITEM_CATEGORY_ETC &&
-        entry.second.shop_price() > 0) {
+    if (entry.second.shop_price() > 0) {
       keys.push_back(entry.first);
     }
   }

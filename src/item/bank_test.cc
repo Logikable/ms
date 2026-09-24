@@ -25,7 +25,6 @@ EquipPrototype Sword() {
 ItemPrototype Shell() {
   ItemPrototype proto;
   proto.set_name("Green Snail Shell");
-  proto.set_category(ITEM_CATEGORY_ETC);
   proto.set_max_stack(100);
   return proto;
 }

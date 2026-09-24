@@ -71,7 +71,6 @@ ItemPrototype MakeToken(const std::string& name, CurrencyColor color,
                         const std::string& mark = "●") {
   ItemPrototype p;
   p.set_name(name);
-  p.set_category(ITEM_CATEGORY_ETC);
   p.set_currency_mark(mark);
   p.set_currency_color(color);
   return p;
@@ -80,7 +79,6 @@ ItemPrototype MakeToken(const std::string& name, CurrencyColor color,
 ItemPrototype MakeStackable(const std::string& name, int price, int stack) {
   ItemPrototype p;
   p.set_name(name);
-  p.set_category(ITEM_CATEGORY_ETC);
   p.set_shop_price(price);
   p.set_max_stack(stack);
   return p;

@@ -13,7 +13,6 @@ namespace {
 ItemPrototype Proto(const std::string& name, int max_stack) {
   ItemPrototype proto;
   proto.set_name(name);
-  proto.set_category(ITEM_CATEGORY_ETC);
   proto.set_max_stack(max_stack);
   return proto;
 }

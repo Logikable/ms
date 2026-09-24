@@ -1,5 +1,4 @@
 name: "Pierre's Soul Shard"
-category: ITEM_CATEGORY_ETC
 kind: ITEM_KIND_SOUL_SHARD
 short_name: "Pierre"
 description: "A fragment that contains a piece of Pierre's Soul."

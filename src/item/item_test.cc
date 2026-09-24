@@ -1,6 +1,8 @@
 #include "src/item/item.h"
 
 #include <algorithm>
+#include <map>
+#include <string>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -65,7 +67,6 @@ class StackableItemTest : public ::testing::Test {
   ItemPrototype MakeShell() {
     ItemPrototype p;
     p.set_name("Green Snail Shell");
-    p.set_category(ITEM_CATEGORY_ETC);
     return p;
   }
 };
@@ -74,19 +75,16 @@ TEST_F(StackableItemTest, ExposesNameCountAndPrototype) {
   StackableItem stack(MakeShell(), 37);
   EXPECT_EQ(stack.name(), "Green Snail Shell");
   EXPECT_EQ(stack.count(), 37);
-  EXPECT_EQ(stack.prototype().category(), ITEM_CATEGORY_ETC);
+  EXPECT_EQ(stack.prototype().name(), "Green Snail Shell");
 }
 
-// An explicit max_stack wins; a blank one falls back to the Etc default, and a
-// blank category to a stack of one.
-TEST_F(StackableItemTest, MaxStackTakesTheItemsOrItsCategorys) {
+// An explicit max_stack wins; a blank one falls back to 200.
+TEST_F(StackableItemTest, MaxStackTakesTheItemsOrTheDefault) {
   ItemPrototype explicit_stack = MakeShell();
   explicit_stack.set_max_stack(50);
   EXPECT_EQ(StackableItem(explicit_stack, 1).max_stack(), 50);
 
   EXPECT_EQ(StackableItem(MakeShell(), 1).max_stack(), 200);
-
-  EXPECT_EQ(StackableItem(ItemPrototype(), 1).max_stack(), 1);
 }
 
 // A ring answers with its four slots wherever it is asked from, and every
@@ -162,6 +160,39 @@ TEST(ShortNameTest, TheShortFormFallsBackToTheName) {
   shard.set_name("Zakum's Soul Shard");
   shard.set_short_name("Zakum's");
   EXPECT_EQ(ShortName(shard), "Zakum's");
+}
+
+// A token's shelf is the best level it buys, and its slot only where it buys
+// one slot alone; a ring in its second slot still counts as a ring.
+TEST(FillTokenShelvesTest, ALevelIsTheHighestAndASlotIsTheOnlyOne) {
+  auto sold_for = [](const std::string& token, int level, EquipSlot slot) {
+    EquipPrototype proto;
+    proto.set_token_item(token);
+    proto.set_token_price(1);
+    proto.set_required_level(level);
+    proto.set_equip_slot(slot);
+    return proto;
+  };
+  std::map<std::string, EquipPrototype> equips = {
+      {"a", sold_for("coin", 140, EQUIP_SLOT_HAT)},
+      {"b", sold_for("coin", 150, EQUIP_SLOT_TOP)},
+      {"c", sold_for("piece", 150, EQUIP_SLOT_RING)},
+      {"d", sold_for("piece", 150, EQUIP_SLOT_RING_2)},
+  };
+  // Priced in meso, so it names no token at all.
+  equips["e"].set_token_item("coin");
+  equips["e"].set_required_level(200);
+  std::map<std::string, ItemPrototype> items;
+  items["coin"].set_kind(ITEM_KIND_TOKEN);
+  items["piece"].set_kind(ITEM_KIND_TOKEN);
+  items["shell"].set_currency_level(7);  // not a token, so left as it is
+
+  FillTokenShelves(equips, items);
+  EXPECT_EQ(items["coin"].currency_level(), 150);
+  EXPECT_EQ(items["coin"].currency_slot(), EQUIP_SLOT_UNSPECIFIED);
+  EXPECT_EQ(items["piece"].currency_level(), 150);
+  EXPECT_EQ(items["piece"].currency_slot(), EQUIP_SLOT_RING);
+  EXPECT_EQ(items["shell"].currency_level(), 7);
 }
 
 }  // namespace

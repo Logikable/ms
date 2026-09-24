@@ -76,17 +76,15 @@ class InventoryPanelTest : public PanelTest {
     return stars;
   }
 
-  ItemPrototype MakeStackable(const std::string& name, ItemCategory category,
-                              int sell_price = 0) {
+  ItemPrototype MakeStackable(const std::string& name, int sell_price = 0) {
     ItemPrototype proto;
     proto.set_name(name);
-    proto.set_category(category);
     proto.set_sell_price(sell_price);
     return proto;
   }
 
   ItemPrototype MakeToken(const std::string& name, const std::string& mark) {
-    ItemPrototype proto = MakeStackable(name, ITEM_CATEGORY_ETC);
+    ItemPrototype proto = MakeStackable(name);
     proto.set_kind(ITEM_KIND_TOKEN);
     proto.set_currency_mark(mark);
     return proto;
@@ -95,8 +93,7 @@ class InventoryPanelTest : public PanelTest {
   // Named as the catalog names a shard: in full, with the short form the
   // Token tab's own column calls it by.
   ItemPrototype MakeShard(const std::string& boss) {
-    ItemPrototype proto =
-        MakeStackable(boss + "'s Soul Shard", ITEM_CATEGORY_ETC);
+    ItemPrototype proto = MakeStackable(boss + "'s Soul Shard");
     proto.set_short_name(boss);
     proto.set_kind(ITEM_KIND_SOUL_SHARD);
     return proto;
@@ -323,7 +320,7 @@ TEST_F(InventoryPanelTest, TheBandGoesWhereverTheCaretGoes) {
 // The stack tabs draw their rows themselves rather than through an ftxui::Menu,
 // so the band is a second piece of code there and needs asking about.
 TEST_F(InventoryPanelTest, AStackRowWearsTheBandToo) {
-  c_.AddItem(MakeStackable("Mixed Block", ITEM_CATEGORY_ETC), 5);
+  c_.AddItem(MakeStackable("Mixed Block"), 5);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -355,8 +352,8 @@ TEST_F(InventoryPanelTest, DownFromTheLastItemReturnsToTheBar) {
 }
 
 TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastStack) {
-  c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
-  c_.AddItem(MakeStackable("Blue Shell", ITEM_CATEGORY_ETC), 3);
+  c_.AddItem(MakeStackable("Red Shell"), 5);
+  c_.AddItem(MakeStackable("Blue Shell"), 3);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -366,7 +363,7 @@ TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastStack) {
 }
 
 TEST_F(InventoryPanelTest, DownFromTheLastStackReturnsToTheBar) {
-  c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
+  c_.AddItem(MakeStackable("Red Shell"), 5);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -459,10 +456,10 @@ TEST_F(InventoryPanelTest, TheTokenTabDrawsBothColumns) {
 TEST_F(InventoryPanelTest, EtcKeepsOnlyTheOrdinaryDrops) {
   c_.AddItem(MakeToken("Frozen Weapon Token", "●"), 3);
   c_.AddItem(MakeShard("Zakum"), 47);
-  ItemPrototype trace = MakeStackable(kSpellTraceName, ITEM_CATEGORY_ETC);
+  ItemPrototype trace = MakeStackable(kSpellTraceName);
   trace.set_kind(ITEM_KIND_SPELL_TRACE);
   c_.AddItem(trace, 900);
-  c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
+  c_.AddItem(MakeStackable("Red Shell"), 5);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -590,7 +587,7 @@ TEST_F(InventoryPanelTest, EnterOnTheExpandTabCallsBack) {
 // The bar comes round through Expand: Right off it lands on Equip, and Left
 // off Equip reaches it again.
 TEST_F(InventoryPanelTest, TheExpandTabClosesTheRing) {
-  c_.AddItem(MakeStackable("Ore", ITEM_CATEGORY_ETC), 1);
+  c_.AddItem(MakeStackable("Ore"), 1);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -638,8 +635,8 @@ TEST_F(InventoryPanelTest, SortFilesTheEquipTab) {
 }
 
 TEST_F(InventoryPanelTest, SortFilesAStackTab) {
-  c_.AddItem(MakeStackable("Zzz Shell", ITEM_CATEGORY_ETC), 2);
-  c_.AddItem(MakeStackable("Aaa Shell", ITEM_CATEGORY_ETC), 40);
+  c_.AddItem(MakeStackable("Zzz Shell"), 2);
+  c_.AddItem(MakeStackable("Aaa Shell"), 40);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -897,7 +894,7 @@ TEST_F(InventoryPanelTest, SellArrivesWithTheShop) {
 // shelf a mis-sale is undone at being the shop's.
 TEST_F(InventoryPanelTest, MultiSellSitsUnderSellOnBothMenus) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
+  c_.AddItem(MakeStackable("Red Shell", 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   LevelTo(UnlockLevel(Feature::kShop) - 1);
@@ -915,7 +912,7 @@ TEST_F(InventoryPanelTest, MultiSellSitsUnderSellOnBothMenus) {
   EXPECT_NE(std::count(after.begin(), after.end(), kStackMultiSell), 0);
   // Both stand on a worthless item: a stack worth nothing is still a stack the
   // player wants out of the bag.
-  c_.AddItem(MakeStackable("Junk", ITEM_CATEGORY_ETC, 0), 5);
+  c_.AddItem(MakeStackable("Junk", 0), 5);
   OpenTab(comp, panel, kEtcTab);
   panel.OpenMenu();
   after = ReachableMenuEntries(panel.menu());
@@ -926,7 +923,7 @@ TEST_F(InventoryPanelTest, MultiSellSitsUnderSellOnBothMenus) {
 TEST_F(InventoryPanelTest, MultiSellLeadsToItsScreen) {
   LevelTo(UnlockLevel(Feature::kShop));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
+  c_.AddItem(MakeStackable("Red Shell", 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   ScrollPanel sp(c_, no_scrolls_);
@@ -1284,7 +1281,7 @@ TEST_F(InventoryPanelTest, ShopIsTheLastTabBeforeTheDoor) {
 // emptiness check would look inert for the wrong reason.
 TEST_F(InventoryPanelTest, DownDoesNotDescendIntoTheShopTab) {
   LevelTo(UnlockLevel(Feature::kShop));
-  c_.AddItem(MakeStackable("Shell", ITEM_CATEGORY_ETC, 7), 5);
+  c_.AddItem(MakeStackable("Shell", 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   panel_focus_ = kInventoryPanel;
@@ -1347,7 +1344,7 @@ TEST_F(InventoryPanelTest, TheBalancesKeepClearOfTheTabs) {
 // bought, and not before: below it there is no way to hold one, and a counter
 // that can only ever read zero says nothing.
 TEST_F(InventoryPanelTest, TheTraceBalanceArrivesWithTheShop) {
-  ItemPrototype trace = MakeStackable(kSpellTraceName, ITEM_CATEGORY_ETC);
+  ItemPrototype trace = MakeStackable(kSpellTraceName);
   trace.set_kind(ITEM_KIND_SPELL_TRACE);
   c_.AddItem(trace, 8400);
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -1359,7 +1356,7 @@ TEST_F(InventoryPanelTest, TheTraceBalanceArrivesWithTheShop) {
 }
 
 TEST_F(InventoryPanelTest, TheEtcTabListsItsStacksWithTheirQuantity) {
-  c_.AddItem(MakeStackable("Snail Shell", ITEM_CATEGORY_ETC), 5);
+  c_.AddItem(MakeStackable("Snail Shell"), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   OpenTab(comp, panel, kEtcTab);
@@ -1381,8 +1378,8 @@ TEST_F(InventoryPanelTest, AnEmptyEtcTabShowsAPlaceholderAndNoColumnHeader) {
 }
 
 TEST_F(InventoryPanelTest, TheStackCursorStartsOnTheFirstRowAndWalksDown) {
-  c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
-  c_.AddItem(MakeStackable("Blue Shell", ITEM_CATEGORY_ETC), 3);
+  c_.AddItem(MakeStackable("Red Shell"), 5);
+  c_.AddItem(MakeStackable("Blue Shell"), 3);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -1396,7 +1393,7 @@ TEST_F(InventoryPanelTest, TheStackCursorStartsOnTheFirstRowAndWalksDown) {
 }
 
 TEST_F(InventoryPanelTest, TheStackCursorIsHiddenWhenThePanelIsNotFocused) {
-  c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
+  c_.AddItem(MakeStackable("Red Shell"), 5);
   panel_focus_ = kEquipPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -1407,8 +1404,8 @@ TEST_F(InventoryPanelTest, TheStackCursorIsHiddenWhenThePanelIsNotFocused) {
 }
 
 TEST_F(InventoryPanelTest, SwitchingTabsResetsStackCursor) {
-  c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
-  c_.AddItem(MakeStackable("Blue Shell", ITEM_CATEGORY_ETC), 3);
+  c_.AddItem(MakeStackable("Red Shell"), 5);
+  c_.AddItem(MakeStackable("Blue Shell"), 3);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -1424,7 +1421,7 @@ TEST_F(InventoryPanelTest, SwitchingTabsResetsStackCursor) {
 }
 
 TEST_F(InventoryPanelTest, EnterOnAStackOpensItsMenu) {
-  c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
+  c_.AddItem(MakeStackable("Red Shell", 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   bool opened = false;
   ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
@@ -1450,7 +1447,7 @@ TEST_F(InventoryPanelTest, EnterOnAnEmptyTabAsksAboutTheTab) {
 // Inspect leads, because looking at a thing is what you do before deciding
 // what to do with it.
 TEST_F(InventoryPanelTest, StackMenuOpensOnInspect) {
-  c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
+  c_.AddItem(MakeStackable("Red Shell", 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   OpenTab(comp, panel, kEtcTab);
@@ -1461,7 +1458,7 @@ TEST_F(InventoryPanelTest, StackMenuOpensOnInspect) {
 }
 
 TEST_F(InventoryPanelTest, StackMenuSellReturnsSellScreen) {
-  c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
+  c_.AddItem(MakeStackable("Red Shell", 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   OpenTab(comp, panel, kEtcTab);
@@ -1472,7 +1469,7 @@ TEST_F(InventoryPanelTest, StackMenuSellReturnsSellScreen) {
 }
 
 TEST_F(InventoryPanelTest, StackMenuCloseReturnsMain) {
-  c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC, 7), 5);
+  c_.AddItem(MakeStackable("Red Shell", 7), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   OpenTab(comp, panel, kEtcTab);
@@ -1486,7 +1483,7 @@ TEST_F(InventoryPanelTest, StackMenuCloseReturnsMain) {
 // A stack worth nothing is still offered for sale: selling is the only way
 // anything leaves the bag, so a row that refused it could never be discarded.
 TEST_F(InventoryPanelTest, AWorthlessStackIsStillOfferedForSale) {
-  c_.AddItem(MakeStackable("Junk", ITEM_CATEGORY_ETC, 0), 5);
+  c_.AddItem(MakeStackable("Junk", 0), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   OpenTab(comp, panel, kEtcTab);
@@ -1536,8 +1533,7 @@ TEST_F(InventoryPanelTest, ScrollIndicatorOnlyOnOverflow) {
 // cursor for the frame unless the panel does it itself.
 TEST_F(InventoryPanelTest, KeepsTheCursorInViewOnAStackableTab) {
   for (int i = 0; i < 40; ++i) {
-    c_.AddItem(MakeStackable("Etc " + std::to_string(i), ITEM_CATEGORY_ETC, 1),
-               1);
+    c_.AddItem(MakeStackable("Etc " + std::to_string(i), 1), 1);
   }
   InventoryPanel panel(c_, account_, panel_focus_);
   panel_focus_ = kInventoryPanel;
@@ -1642,8 +1638,7 @@ TEST_F(InventoryPanelTest, CursorRowIsAScreenRow) {
 // marking of its own.
 TEST_F(InventoryPanelTest, CursorRowFollowsTheStackListToo) {
   for (int i = 0; i < 30; ++i) {
-    c_.AddItem(MakeStackable("Shell " + std::to_string(i), ITEM_CATEGORY_ETC),
-               1);
+    c_.AddItem(MakeStackable("Shell " + std::to_string(i)), 1);
   }
   InventoryPanel panel(c_, account_, panel_focus_);
   // The stack list draws its cursor only while the panel holds focus, and this
@@ -1679,7 +1674,7 @@ TEST_F(InventoryPanelTest, LightsItsBorderGoldWhenHighlighted) {
 // the one under the stack list's column headers. Both have to come up gold, so
 // this asks about every rule the panel drew rather than just the first.
 TEST_F(InventoryPanelTest, LightsEveryInnerRuleGoldToo) {
-  c_.AddItem(MakeStackable("Red Shell", ITEM_CATEGORY_ETC), 5);
+  c_.AddItem(MakeStackable("Red Shell"), 5);
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
   panel_focus_ = kInventoryPanel;

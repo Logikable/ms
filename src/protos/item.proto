@@ -4,15 +4,6 @@ package ms;
 
 import "src/protos/equip.proto";
 
-// Category of a stackable (non-equip) item. Equipment is defined separately by
-// EquipPrototype and never stacks.
-enum ItemCategory {
-  ITEM_CATEGORY_UNSPECIFIED = 0;
-  // 1 was USE, a bag tab whose only item was a debug one.
-  reserved 1;
-  ITEM_CATEGORY_ETC = 2;
-}
-
 // The colour of a currency item's mark. The mark's SHAPE says which stage of
 // the game the token belongs to, and its colour which piece it buys, so a
 // player reads both off one glyph without a legend.
@@ -47,8 +38,10 @@ enum ItemKind {
 // at startup; shared read-only across all stacks of the same type.
 message ItemPrototype {
   string name = 1;
-  ItemCategory category = 2;
-  // Maximum per-slot stack. 0 means the category default of 200 -- see
+  // 2 was `category`, whose one value was Etc: every stackable is carried on
+  // the Etc tab.
+  reserved 2;
+  // Maximum per-slot stack. 0 means the default of 200 -- see
   // StackableItem::max_stack. Says nothing about a currency, which is counted
   // in the purse rather than carried and has no ceiling -- see ItemKind.
   int32 max_stack = 3;
@@ -77,7 +70,8 @@ message ItemPrototype {
   // whole set naming no slot and leading its level.
   //
   // NOT what currency_mark says: the mark is the STAGE of the game the token
-  // belongs to, and one stage can cover two levels.
+  // belongs to, and one stage can cover two levels. Never written in data:
+  // FillTokenShelves derives both from what the catalog sells for the token.
   int32 currency_level = 12;
   EquipSlot currency_slot = 13;
   // What a list calls the item where its own column already says the rest:

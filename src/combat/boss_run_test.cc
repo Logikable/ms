@@ -75,12 +75,10 @@ Boss TwoPhaseBoss(int time_limit = 300) {
 std::map<std::string, ItemPrototype> DropItems() {
   ItemPrototype shard;
   shard.set_name("Zakum's Soul Shard");
-  shard.set_category(ITEM_CATEGORY_ETC);
   shard.set_kind(ITEM_KIND_SOUL_SHARD);
   shard.set_max_stack(100);
   ItemPrototype token;
   token.set_name("Cygnus Shoulder Token");
-  token.set_category(ITEM_CATEGORY_ETC);
   token.set_kind(ITEM_KIND_TOKEN);
   token.set_max_stack(100);
   return {{"shard", shard}, {"token", token}};

@@ -26,7 +26,6 @@ EquipPrototype Sword() {
 ItemPrototype Scroll() {
   ItemPrototype proto;
   proto.set_name("Chaos Scroll");
-  proto.set_category(ITEM_CATEGORY_ETC);
   proto.set_max_stack(100);
   return proto;
 }
@@ -34,7 +33,6 @@ ItemPrototype Scroll() {
 ItemPrototype Trace() {
   ItemPrototype proto;
   proto.set_name(kSpellTraceName);
-  proto.set_category(ITEM_CATEGORY_ETC);
   proto.set_kind(ITEM_KIND_SPELL_TRACE);
   return proto;
 }

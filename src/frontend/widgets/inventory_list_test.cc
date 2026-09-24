@@ -96,7 +96,6 @@ TEST_F(InventoryListTest, AffixColumnsRideEitherSideOfARow) {
 TEST_F(InventoryListTest, StackRowsNameTheirCount) {
   ItemPrototype shell;
   shell.set_name("Green Snail Shell");
-  shell.set_category(ITEM_CATEGORY_ETC);
   StackableItem stack(shell, 42);
   std::string text = RowText(RenderStackRow(
       stack, /*on_cursor=*/true, std::chrono::steady_clock::duration::zero()));

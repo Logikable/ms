@@ -1,6 +1,9 @@
 #include "src/item/item.h"
 
 #include <algorithm>
+#include <map>
+#include <set>
+#include <string>
 #include <vector>
 
 #include "src/item/equip_stats.h"
@@ -10,7 +13,7 @@
 namespace ms {
 namespace {
 
-constexpr int kEtcDefaultMaxStack = 200;
+constexpr int kDefaultMaxStack = 200;
 
 // Per-star primary stat deltas for 1-15★ (index i = gain for i★→(i+1)★).
 constexpr int kPrimaryStatDeltas[15] = {
@@ -340,6 +343,31 @@ int SlotIndex(EquipSlot slot) {
                           family.begin());
 }
 
+void FillTokenShelves(const std::map<std::string, EquipPrototype>& equips,
+                      std::map<std::string, ItemPrototype>& items) {
+  std::map<std::string, int> levels;
+  std::map<std::string, std::set<EquipSlot>> slots;
+  for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.token_price() <= 0) {
+      continue;
+    }
+    int& level = levels[proto.token_item()];
+    level = std::max(level, proto.required_level());
+    slots[proto.token_item()].insert(BaseSlot(proto.equip_slot()));
+  }
+  for (std::pair<const std::string, ItemPrototype>& entry : items) {
+    ItemPrototype& token = entry.second;
+    if (token.kind() != ITEM_KIND_TOKEN || levels.count(entry.first) == 0) {
+      continue;
+    }
+    token.set_currency_level(levels[entry.first]);
+    const std::set<EquipSlot>& fills = slots[entry.first];
+    token.set_currency_slot(fills.size() == 1 ? *fills.begin()
+                                              : EQUIP_SLOT_UNSPECIFIED);
+  }
+}
+
 const std::string& ShortName(const ItemPrototype& proto) {
   return proto.short_name().empty() ? proto.name() : proto.short_name();
 }
@@ -376,7 +404,7 @@ int StackableItem::max_stack() const {
   if (prototype_.max_stack() > 0) {
     return prototype_.max_stack();
   }
-  return prototype_.category() == ITEM_CATEGORY_ETC ? kEtcDefaultMaxStack : 1;
+  return kDefaultMaxStack;
 }
 
 const EquipPrototype* FindEquipByName(

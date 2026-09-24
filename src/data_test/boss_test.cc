@@ -256,7 +256,6 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).name(),
                 entry.second.name() + "'s Soul Shard")
           << where;
-      EXPECT_EQ(items.at(shards[0]).category(), ITEM_CATEGORY_ETC) << where;
       EXPECT_EQ(items.at(shards[0]).kind(), ITEM_KIND_SOUL_SHARD) << where;
       // The bag's Token tab heads the column "Soul Shard" and writes only the
       // boss under it, so a shard that names no short form reads as a

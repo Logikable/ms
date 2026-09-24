@@ -107,21 +107,17 @@ GameState MakeTestModeStateWithSkills(TestSkills skills = TestSkills::kZero) {
 std::map<std::string, ItemPrototype> SeededItemCatalog() {
   ItemPrototype token;
   token.set_name("Weapon Token");
-  token.set_category(ITEM_CATEGORY_ETC);
   token.set_kind(ITEM_KIND_TOKEN);
   token.set_currency_mark("●");
   ItemPrototype shard;
   shard.set_name("Zakum's Soul Shard");
-  shard.set_category(ITEM_CATEGORY_ETC);
   shard.set_kind(ITEM_KIND_SOUL_SHARD);
   shard.set_short_name("Zakum's");
   ItemPrototype horn;
   horn.set_name("Beetle's Horn");
-  horn.set_category(ITEM_CATEGORY_ETC);
   horn.set_sell_price(230);
   ItemPrototype trace;
   trace.set_name("Spell Trace");
-  trace.set_category(ITEM_CATEGORY_ETC);
   trace.set_kind(ITEM_KIND_SPELL_TRACE);
   return {{"weapon_token", token},
           {"zakums_soul_shard", shard},

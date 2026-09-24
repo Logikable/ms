@@ -272,7 +272,6 @@ TEST(BuyPanelTest, AFreeItemCanBeTakenWithNoMeso) {
 ItemPrototype WeaponToken() {
   ItemPrototype token;
   token.set_name("Frozen Weapon Token");
-  token.set_category(ITEM_CATEGORY_ETC);
   token.set_currency_mark("●");
   token.set_currency_color(CURRENCY_COLOR_THEME);
   return token;

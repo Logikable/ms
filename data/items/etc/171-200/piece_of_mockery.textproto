@@ -2,10 +2,7 @@
 # clear. The triangle says which stage of the game it belongs to and the colour
 # which piece of the Root Abyss set it buys, so one glyph reads on both axes.
 name: "Piece of Mockery"
-category: ITEM_CATEGORY_ETC
 kind: ITEM_KIND_TOKEN
-currency_level: 150
-currency_slot: EQUIP_SLOT_BOTTOM
 description: "A sliver of the mirror Chaos Pierre wears for a face, still wearing your own."
 currency_mark: "▲"
 currency_color: CURRENCY_COLOR_PINK

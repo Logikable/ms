@@ -65,7 +65,6 @@ class ScrollPanelTest : public PanelTest {
   void GiveTraces(int count) {
     ItemPrototype trace;
     trace.set_name(kSpellTraceName);
-    trace.set_category(ITEM_CATEGORY_ETC);
     trace.set_kind(ITEM_KIND_SPELL_TRACE);
     c_.AddItem(trace, count);
   }

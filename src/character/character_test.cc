@@ -393,14 +393,11 @@ TEST_F(SortTabTest, EquipTabPutsWhatCanBeWornOnTop) {
 TEST_F(SortTabTest, StackTabFilesByCount) {
   ItemPrototype trace;
   trace.set_name("Spell Trace");
-  trace.set_category(ITEM_CATEGORY_ETC);
   trace.set_kind(ITEM_KIND_SPELL_TRACE);
   ItemPrototype horn;
   horn.set_name("Broken Horn");
-  horn.set_category(ITEM_CATEGORY_ETC);
   ItemPrototype shell;
   shell.set_name("Egg Shell");
-  shell.set_category(ITEM_CATEGORY_ETC);
   c_.AddItem(shell, 5);
   c_.AddItem(horn, 50);
   c_.AddItem(trace, 3);
@@ -1880,11 +1877,8 @@ class AddItemTest : public CharacterTest {
  protected:
   void SetUp() override {
     shell_.set_name("Green Snail Shell");
-    shell_.set_category(ITEM_CATEGORY_ETC);
     other_.set_name("Blue Snail Shell");
-    other_.set_category(ITEM_CATEGORY_ETC);
     trace_.set_name(kSpellTraceName);
-    trace_.set_category(ITEM_CATEGORY_ETC);
     trace_.set_kind(ITEM_KIND_SPELL_TRACE);
   }
   CharacterInstance c_ = MakeCharacter(rng_);
@@ -1953,7 +1947,6 @@ TEST_F(AddItemTest, ACurrencyNeverRunsOutOfRoom) {
   for (int i = 0; i < kTabCapacity; ++i) {
     ItemPrototype filler;
     filler.set_name("Filler " + std::to_string(i));
-    filler.set_category(ITEM_CATEGORY_ETC);
     c_.AddItem(filler, 1);
   }
   ASSERT_EQ(c_.RoomFor(shell_), 0);
@@ -2065,7 +2058,6 @@ class BuyWithTokenTest : public CharacterTest {
     polearm_.set_token_item("frozen_weapon_token");
     polearm_.set_token_price(1);
     token_.set_name("Frozen Weapon Token");
-    token_.set_category(ITEM_CATEGORY_ETC);
     token_.set_currency_mark("●");
     c_.AddItem(token_, 2);
   }
@@ -2114,7 +2106,6 @@ TEST_F(BuyWithTokenTest, RefusesWhatNoTokenBuys) {
 TEST_F(BuyWithTokenTest, RefusesAnItemThatIsNotACurrency) {
   ItemPrototype horn;
   horn.set_name("Beetle's Horn");
-  horn.set_category(ITEM_CATEGORY_ETC);
   c_.AddItem(horn, 50);
 
   EXPECT_FALSE(c_.BuyWithToken(polearm_, horn, 1));
@@ -2130,11 +2121,9 @@ class BuyStackableTest : public CharacterTest {
     // The one stackable the shop stocks, which is a currency: what it buys
     // lands in the purse rather than on a tab.
     trace_.set_name(kSpellTraceName);
-    trace_.set_category(ITEM_CATEGORY_ETC);
     trace_.set_kind(ITEM_KIND_SPELL_TRACE);
     trace_.set_shop_price(5000);
     drop_.set_name("Green Snail Shell");
-    drop_.set_category(ITEM_CATEGORY_ETC);
     drop_.set_shop_price(5000);
     c_.AddMeso(50000);
   }
@@ -2167,7 +2156,6 @@ TEST_F(BuyStackableTest, BuysNothingWhenItCannotBuyEverything) {
 TEST_F(BuyStackableTest, WillNotSellWhatTheShopDoesNotStock) {
   ItemPrototype unpriced;
   unpriced.set_name("Snail Shell");
-  unpriced.set_category(ITEM_CATEGORY_ETC);
   EXPECT_FALSE(c_.Buy(unpriced, 1));
   EXPECT_EQ(c_.meso(), 50000);
   EXPECT_TRUE(c_.stackables().empty());
@@ -2198,10 +2186,8 @@ class SellStackableTest : public CharacterTest {
  protected:
   void SetUp() override {
     shell_.set_name("Green Snail Shell");
-    shell_.set_category(ITEM_CATEGORY_ETC);
     shell_.set_sell_price(7);
     junk_.set_name("Worthless Junk");
-    junk_.set_category(ITEM_CATEGORY_ETC);  // sell_price 0
   }
   CharacterInstance c_ = MakeCharacter(rng_);
   ItemPrototype shell_;
@@ -2336,7 +2322,6 @@ class BuyBackTest : public CharacterTest {
     sword_.set_sell_price(900);
     equips_["sword"] = sword_;
     shell_.set_name("Green Snail Shell");
-    shell_.set_category(ITEM_CATEGORY_ETC);
     shell_.set_sell_price(7);
     items_["green_snail_shell"] = shell_;
   }
@@ -2473,7 +2458,6 @@ TEST_F(BuyBackTest, RefusesAStackTheBagHasNoRoomFor) {
   int64_t meso = c_.meso();
   // Every Etc slot filled with something else, so topping up cannot help.
   ItemPrototype filler;
-  filler.set_category(ITEM_CATEGORY_ETC);
   for (int i = 0; i < kTabCapacity; ++i) {
     filler.set_name("Filler" + std::to_string(i));
     c_.AddItem(filler, 1);
@@ -3305,9 +3289,7 @@ class CapacityTest : public CharacterTest {
  protected:
   void SetUp() override {
     shell_.set_name("Green Snail Shell");
-    shell_.set_category(ITEM_CATEGORY_ETC);
     other_.set_name("Blue Snail Shell");
-    other_.set_category(ITEM_CATEGORY_ETC);
     sword_.set_name("Sword");
     sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
     sword_.set_shop_price(10);
@@ -3318,7 +3300,6 @@ class CapacityTest : public CharacterTest {
     for (int i = 0; i < count; ++i) {
       ItemPrototype proto;
       proto.set_name("Junk " + std::to_string(i));
-      proto.set_category(ITEM_CATEGORY_ETC);
       c_.AddItem(proto, 1);
     }
   }
@@ -3428,12 +3409,10 @@ TEST_F(CapacityTest, RoomOnAFullTabOfOtherItemsIsNone) {
 TEST_F(CapacityTest, RoomFollowsTheItemsStackSize) {
   ItemPrototype deep;
   deep.set_name("Deep Thing");
-  deep.set_category(ITEM_CATEGORY_ETC);
   deep.set_max_stack(30000);
   EXPECT_EQ(c_.RoomFor(deep), kTabCapacity * 30000);
   ItemPrototype tiny;
   tiny.set_name("Odd Thing");
-  tiny.set_category(ITEM_CATEGORY_ETC);
   tiny.set_max_stack(5);
   EXPECT_EQ(c_.RoomFor(tiny), kTabCapacity * 5);
 }
@@ -3498,11 +3477,9 @@ class SaveRoundTripTest : public CharacterTest {
 
     ItemPrototype shell;
     shell.set_name("Green Snail Shell");
-    shell.set_category(ITEM_CATEGORY_ETC);
     items_["green_snail_shell"] = shell;
     ItemPrototype trace;
     trace.set_name(kSpellTraceName);
-    trace.set_category(ITEM_CATEGORY_ETC);
     trace.set_kind(ITEM_KIND_SPELL_TRACE);
     items_["spell_trace"] = trace;
   }

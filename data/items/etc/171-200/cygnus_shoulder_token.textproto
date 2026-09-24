@@ -3,10 +3,7 @@
 # game it belongs to and the colour which piece it buys, so one glyph reads on
 # both axes.
 name: "Cygnus Shoulder Token"
-category: ITEM_CATEGORY_ETC
 kind: ITEM_KIND_TOKEN
-currency_level: 140
-currency_slot: EQUIP_SLOT_SHOULDER
 description:
   "A feather from the Empress's own wing. The shop trades one for any "
   "Cygnus shoulder."

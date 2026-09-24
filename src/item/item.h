@@ -92,6 +92,12 @@ const EquipPrototype* FindEquipByName(
 const ItemPrototype* FindItemByName(
     const std::map<std::string, ItemPrototype>& items, const std::string& name);
 
+// Writes each token's currency_level and currency_slot from what `equips`
+// sells for it: the highest level bought, and the slot when it buys one
+// slot alone. Derived rather than written in data so the two cannot drift.
+void FillTokenShelves(const std::map<std::string, EquipPrototype>& equips,
+                      std::map<std::string, ItemPrototype>& items);
+
 // Abstract base for all inventory items across all tabs.
 class Item {
  public:
@@ -117,7 +123,7 @@ class StackableItem : public Item {
     return count_;
   }
   // Effective per-slot stack limit: prototype.max_stack() when set (> 0),
-  // otherwise the category default (Use 9999, Etc 200).
+  // otherwise 200.
   int max_stack() const;
   // Adds delta to the stack count. Callers keep the result within
   // [0, max_stack()]; the method does not clamp.

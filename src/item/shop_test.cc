@@ -243,30 +243,27 @@ TEST(ShopTest, ATokenTierIsAboveEveryMesoTierOfItsSlot) {
   EXPECT_GT(checked, 0) << "nothing is bought with a token";
 }
 
-ItemPrototype MakeStackable(const std::string& name, ItemCategory category,
-                            int price) {
+ItemPrototype MakeStackable(const std::string& name, int price) {
   ItemPrototype p;
   p.set_name(name);
-  p.set_category(category);
   p.set_shop_price(price);
   return p;
 }
 
 // Same rule the equip shelf follows: naming a price is what stocks an item,
 // and an item with no price is simply not sold.
-TEST(ShopEtcStockTest, OnlyPricedEtcItemsAreStocked) {
+TEST(ShopEtcStockTest, OnlyPricedItemsAreStocked) {
   std::map<std::string, ItemPrototype> items;
-  items["trace"] = MakeStackable("Spell Trace", ITEM_CATEGORY_ETC, 5000);
-  items["shell"] = MakeStackable("Snail Shell", ITEM_CATEGORY_ETC, 0);
-  items["nameless"] = MakeStackable("Odd Thing", ITEM_CATEGORY_UNSPECIFIED, 50);
+  items["trace"] = MakeStackable("Spell Trace", 5000);
+  items["shell"] = MakeStackable("Snail Shell", 0);
   EXPECT_EQ(ShopEtcStock(items), std::vector<std::string>{"trace"});
 }
 
 TEST(ShopEtcStockTest, CheapestFirstThenByName) {
   std::map<std::string, ItemPrototype> items;
-  items["c"] = MakeStackable("Zinc", ITEM_CATEGORY_ETC, 10);
-  items["a"] = MakeStackable("Alum", ITEM_CATEGORY_ETC, 10);
-  items["b"] = MakeStackable("Brass", ITEM_CATEGORY_ETC, 5);
+  items["c"] = MakeStackable("Zinc", 10);
+  items["a"] = MakeStackable("Alum", 10);
+  items["b"] = MakeStackable("Brass", 5);
   EXPECT_EQ(ShopEtcStock(items), (std::vector<std::string>{"b", "a", "c"}));
 }
 

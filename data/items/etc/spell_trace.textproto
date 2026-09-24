@@ -1,5 +1,4 @@
 name: "Spell Trace"
-category: ITEM_CATEGORY_ETC
 kind: ITEM_KIND_SPELL_TRACE
 shop_price: 5000
 description:

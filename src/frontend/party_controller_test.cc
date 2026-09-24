@@ -60,7 +60,6 @@ std::map<std::string, Skill> SkillCatalog() {
 ItemPrototype TestStack() {
   ItemPrototype proto;
   proto.set_name("Chaos Scroll");
-  proto.set_category(ITEM_CATEGORY_ETC);
   proto.set_max_stack(100);
   return proto;
 }

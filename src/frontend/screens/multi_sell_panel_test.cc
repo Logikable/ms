@@ -32,11 +32,9 @@ class MultiSellTest : public PanelTest {
     c_.PickUp(std::make_unique<EquipInstance>(proto));
   }
 
-  void GiveStack(const std::string& name, ItemCategory category, int price,
-                 int count) {
+  void GiveStack(const std::string& name, int price, int count) {
     ItemPrototype proto;
     proto.set_name(name);
-    proto.set_category(category);
     proto.set_sell_price(price);
     c_.AddItem(proto, count);
   }
@@ -45,7 +43,6 @@ class MultiSellTest : public PanelTest {
   void GiveCurrency(const std::string& name, ItemKind kind, int count) {
     ItemPrototype proto;
     proto.set_name(name);
-    proto.set_category(ITEM_CATEGORY_ETC);
     proto.set_kind(kind);
     c_.AddItem(proto, count);
   }
@@ -146,7 +143,7 @@ TEST_F(MultiSellTest, EnterTogglesTheMarkAndTheTotalFollows) {
 
 TEST_F(MultiSellTest, TheBasketRunsAcrossTabs) {
   GiveEquip("Sword", 1000);
-  GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 7, 3);
+  GiveStack("Wild Boar Tooth", 7, 3);
   MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   // Up to the tab bar, right to Etc, down onto the stack, mark it.
@@ -166,7 +163,7 @@ TEST_F(MultiSellTest, TheBasketRunsAcrossTabs) {
 
 TEST_F(MultiSellTest, TheWindowStandsAtTheSameHeightOnEveryTab) {
   GiveEquip("Sword", 1000);
-  GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 7, 3);
+  GiveStack("Wild Boar Tooth", 7, 3);
   MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   int top = TopRow(panel);
@@ -185,7 +182,7 @@ TEST_F(MultiSellTest, TheWindowStandsAtTheSameHeightOnEveryTab) {
 TEST_F(MultiSellTest, TheCurrenciesAreNotOnTheShelf) {
   GiveCurrency("Spell Trace", ITEM_KIND_SPELL_TRACE, 60);
   GiveCurrency("Frozen Weapon Token", ITEM_KIND_TOKEN, 3);
-  GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 50, 4);
+  GiveStack("Wild Boar Tooth", 50, 4);
   GiveCurrency("Zakum's Soul Shard", ITEM_KIND_SOUL_SHARD, 9);
   MultiSellPanel panel(c_, account_);
   panel.Reset(kEtcTab, 0);
@@ -211,7 +208,7 @@ TEST_F(MultiSellTest, ATraceIsMarkableAndPaysNothing) {
 
 TEST_F(MultiSellTest, TheCursorRingRunsBarToRowsToButtons) {
   GiveEquip("Sword", 1000);
-  GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 50, 4);
+  GiveStack("Wild Boar Tooth", 50, 4);
   MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   // Right does nothing while a row holds the cursor: the tabs are the bar's.
@@ -271,8 +268,8 @@ TEST_F(MultiSellTest, TheHeaderCarriesTheMesoAndTheRunningTotal) {
 }
 
 TEST_F(MultiSellTest, EveryRowShowsWhatItWouldPay) {
-  GiveStack("Firewood", ITEM_CATEGORY_ETC, 0, 60);
-  GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 50, 4);
+  GiveStack("Firewood", 0, 60);
+  GiveStack("Wild Boar Tooth", 50, 4);
   MultiSellPanel panel(c_, account_);
   panel.Reset(kEtcTab, 0);
   // The whole stack, on the row it belongs to.
@@ -283,7 +280,7 @@ TEST_F(MultiSellTest, EveryRowShowsWhatItWouldPay) {
 
 TEST_F(MultiSellTest, SellingPaysTheTotalAndEmptiesTheRows) {
   GiveEquip("Sword", 1000);
-  GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 50, 4);
+  GiveStack("Wild Boar Tooth", 50, 4);
   SaleBasket basket;
   basket.equips.insert(0);
   basket.etc.insert(0);
@@ -297,8 +294,8 @@ TEST_F(MultiSellTest, SellingPaysTheTotalAndEmptiesTheRows) {
 TEST_F(MultiSellTest, TheShelfReadsEquipThenEtcInBagOrder) {
   GiveEquip("Sword", 1000);
   GiveEquip("Axe", 2000);
-  GiveStack("Wild Boar Tooth", ITEM_CATEGORY_ETC, 7, 3);
-  GiveStack("Zzz Shell", ITEM_CATEGORY_ETC, 5, 2);
+  GiveStack("Wild Boar Tooth", 7, 3);
+  GiveStack("Zzz Shell", 5, 2);
   SaleBasket basket;
   basket.equips = {0, 1};
   basket.etc = {0, 1};
@@ -314,7 +311,7 @@ TEST_F(MultiSellTest, TheShelfReadsEquipThenEtcInBagOrder) {
 // ask for the margin.
 TEST_F(MultiSellTest, NeitherWindowWeldsARowToItsRightBorder) {
   GiveEquip("Fafnir Battle Cleaver", 1000000);
-  GiveStack("Green Snail Shell", ITEM_CATEGORY_ETC, 7, 40);
+  GiveStack("Green Snail Shell", 7, 40);
   MultiSellPanel panel(c_, account_);
   panel.Reset(kEquipTab, 0);
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel.Render()).empty());

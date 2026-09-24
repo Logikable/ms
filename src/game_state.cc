@@ -1175,6 +1175,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       character(rng, MakeBaseBeginnerProto()),
       last_played_unix_seconds(static_cast<int64_t>(std::time(nullptr))),
       created_unix_seconds(static_cast<int64_t>(std::time(nullptr))) {
+  FillTokenShelves(equips, items);
   // Before the seeding: a max character's allocations are measured by playing
   // the fight, and the fight reads the switch.
   account.SetAutoswapPresets(test.autoswap_presets);

@@ -408,49 +408,20 @@ TEST(EquipDataTest, EveryTokenPriceNamesATokenThatExists) {
   EXPECT_GT(seen, 0) << "nothing in the catalog is bought with a token";
 }
 
-// The bag files the token shelf by what each token buys, so what it says it
-// buys has to be what the catalog sells for it. A token whose level or slot
-// drifts from its own shelf sorts into the wrong place and nothing else
-// notices.
-TEST(EquipDataTest, EveryTokenNamesTheShelfItBuys) {
+// Every token is sold for something, or FillTokenShelves leaves it with no
+// shelf and the bag files it last.
+TEST(EquipDataTest, EveryTokenBuysSomething) {
   std::map<std::string, ItemPrototype> items = LoadItems();
-  // Token -> the levels and the slots of everything bought with it.
-  std::map<std::string, std::set<int>> levels;
-  std::map<std::string, std::set<EquipSlot>> slots;
-  for (const std::pair<const std::string, EquipPrototype>& entry :
-       LoadEquips()) {
-    const EquipPrototype& proto = entry.second;
-    if (proto.token_price() <= 0) {
-      continue;
-    }
-    levels[proto.token_item()].insert(proto.required_level());
-    slots[proto.token_item()].insert(BaseSlot(proto.equip_slot()));
-  }
-  ASSERT_FALSE(levels.empty());
+  FillTokenShelves(LoadEquips(), items);
+  int tokens = 0;
   for (const std::pair<const std::string, ItemPrototype>& entry : items) {
-    const ItemPrototype& token = entry.second;
-    if (token.kind() != ITEM_KIND_TOKEN) {
-      continue;
-    }
-    ASSERT_GT(levels.count(entry.first), 0u)
-        << entry.first << " is a token nothing in the catalog is sold for";
-    const std::set<int>& sold_at = levels[entry.first];
-    EXPECT_EQ(sold_at.count(token.currency_level()), 1u)
-        << entry.first << " says it buys level " << token.currency_level()
-        << ", which is not a level anything it pays for is worn at";
-    EXPECT_EQ(*sold_at.rbegin(), token.currency_level())
-        << entry.first << " buys something above the level it names";
-    // A token that buys one slot names it; one that buys a whole set names
-    // none, and leads its level in the bag for being the broadest thing on it.
-    const std::set<EquipSlot>& fills = slots[entry.first];
-    if (fills.size() == 1) {
-      EXPECT_EQ(token.currency_slot(), *fills.begin()) << entry.first;
-    } else {
-      EXPECT_EQ(token.currency_slot(), EQUIP_SLOT_UNSPECIFIED)
-          << entry.first << " buys " << fills.size()
-          << " slots, so it names none";
+    if (entry.second.kind() == ITEM_KIND_TOKEN) {
+      ++tokens;
+      EXPECT_GT(entry.second.currency_level(), 0)
+          << entry.first << " is a token nothing in the catalog is sold for";
     }
   }
+  EXPECT_GT(tokens, 0);
 }
 
 // The token shelf's per-branch shoulders. Cygnus drops one token and four

@@ -31,7 +31,6 @@ TradeState Trade(const std::string& partner, bool joined) {
 ItemPrototype Stack(const std::string& name, ItemKind kind) {
   ItemPrototype proto;
   proto.set_name(name);
-  proto.set_category(ITEM_CATEGORY_ETC);
   proto.set_kind(kind);
   return proto;
 }

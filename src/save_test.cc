@@ -35,9 +35,7 @@ class SaveTest : public testing::Test {
     sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
     sword_.set_upgrade_slots(7);
     shell_.set_name("Green Snail Shell");
-    shell_.set_category(ITEM_CATEGORY_ETC);
     trace_.set_name(kSpellTraceName);
-    trace_.set_category(ITEM_CATEGORY_ETC);
     trace_.set_kind(ITEM_KIND_SPELL_TRACE);
 
     dir_ = std::filesystem::temp_directory_path() /

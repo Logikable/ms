@@ -21,7 +21,6 @@ namespace {
 ItemPrototype Stack(const std::string& name, ItemKind kind, int max_stack) {
   ItemPrototype proto;
   proto.set_name(name);
-  proto.set_category(ITEM_CATEGORY_ETC);
   proto.set_kind(kind);
   proto.set_max_stack(max_stack);
   return proto;

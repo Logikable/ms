@@ -3,10 +3,7 @@
 # that it buys a secondary, as the Frozen token's circle and orange do a tier
 # below.
 name: "Captivating Fragment"
-category: ITEM_CATEGORY_ETC
 kind: ITEM_KIND_TOKEN
-currency_level: 140
-currency_slot: EQUIP_SLOT_SECONDARY
 description:
   "A fragment imbued with Princess No's energy. The shop trades fifteen for "
   "any of her secondaries."

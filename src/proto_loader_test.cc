@@ -118,15 +118,13 @@ TEST(LoadTextProtoDirTest, LoadsItemsKeyedByStem) {
   std::string dir = std::string(testing::TempDir()) + "/item_dir_test";
   std::filesystem::create_directory(dir);
   WriteTempFile("item_dir_test/green_snail_shell.textproto",
-                "name: \"Green Snail Shell\"\ncategory: ITEM_CATEGORY_ETC\n"
-                "sell_price: 2\n");
+                "name: \"Green Snail Shell\"\nsell_price: 2\n");
 
   std::map<std::string, ItemPrototype> result =
       LoadTextProtoDir<ItemPrototype>(dir);
   ASSERT_EQ(result.size(), 1);
   const ItemPrototype& shell = result.at("green_snail_shell");
   EXPECT_EQ(shell.name(), "Green Snail Shell");
-  EXPECT_EQ(shell.category(), ITEM_CATEGORY_ETC);
   EXPECT_EQ(shell.sell_price(), 2);
   EXPECT_EQ(shell.max_stack(), 0);  // blank in data; default resolved elsewhere
 }
