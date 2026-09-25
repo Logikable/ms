@@ -51,7 +51,7 @@ struct Sequence {
 // first type, and reports what landed.
 //
 // `horizon` is in the STRETCHED clock every duration in CombatParams is
-// written in -- GameSpeedFactor times the game's own. At level 200 that factor
+// written in -- GameSpeedFactor times the game's own. At level 230 that factor
 // is 10, so a two-minute cooldown reads 1200 and a shorter horizon is a burst
 // window with every buff up throughout. A caller working in game seconds must
 // multiply by GameSpeedFactor first.
