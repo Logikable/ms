@@ -1,10 +1,10 @@
-/* Whether an item may leave the character holding it -- across a trade, or
- * into the bank.
+/* Whether an item can leave the character holding it, through a trade or into
+ * the bank.
  *
- * Almost everything may. The two that may not are a currency, which is a
- * balance rather than a row and crosses on a line of its own, and an Arcane
- * Symbol, which is bound to the character who raised it. Both screens ask
- * here rather than naming the exceptions themselves.
+ * Almost everything can. The two exceptions are currencies, which are balances
+ * instead of rows and are transferred on their own line, and Arcane Symbols,
+ * which are bound to the character who levelled them. Both screens check here
+ * instead of listing the exceptions themselves.
  */
 #ifndef MS_SRC_ITEM_TRADEABLE_H_
 #define MS_SRC_ITEM_TRADEABLE_H_

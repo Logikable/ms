@@ -1,11 +1,11 @@
-/* BankInstance is the account's shared storage: two tabs of kTabCapacity
- * slots and a purse, reachable by every character on the save.
+/* BankInstance is the account's shared storage: two tabs of kTabCapacity slots
+ * and a purse, available to every character in the save.
  *
- * It is built out of the same pieces a character's bag is -- an
- * InventoryInstance for the equip tab, a StackTab for Etc, a CurrencyPurse
- * and a meso balance -- so what the bank holds is drawn, sorted and counted by
- * the same code that draws the bag. Nothing here knows about a character: the
- * Bank screen is what moves an item across, and it checks both ends for room.
+ * It's built from the same pieces as a character's bag (an InventoryInstance
+ * for the equip tab, a StackTab for Etc, a CurrencyPurse and a meso balance),
+ * so the bank's contents are drawn, sorted and counted by the same code as the
+ * bag. Nothing here knows about characters: the Bank screen moves items across
+ * and checks both sides for room.
  */
 #ifndef MS_SRC_ITEM_BANK_H_
 #define MS_SRC_ITEM_BANK_H_
@@ -42,36 +42,36 @@ class BankInstance {
     return meso_;
   }
 
-  // Takes `item` onto the equip tab, appended at the end. False and nothing
-  // taken when the tab is full.
+  // Adds `item` to the end of the equip tab. Returns false and takes nothing if
+  // the tab is full.
   bool AddEquip(std::unique_ptr<EquipTabItem> item);
-  // Hands the `index`-th equip back, or nullptr for an index out of range.
+  // Removes and returns the `index`-th equip, or nullptr if out of range.
   std::unique_ptr<EquipTabItem> TakeEquip(int index);
 
-  // Adds `count` of `proto` and returns how many went in: a currency always
-  // takes all of them, and an Etc drop takes what fits. Routed on the
-  // prototype's kind, as the character routes a drop.
+  // Adds `count` of `proto` and returns how many were added: a currency always
+  // takes all of them, and an Etc drop takes what fits. Routed by the
+  // prototype's kind, the same way a character handles a drop.
   int AddItem(const ItemPrototype& proto, int count);
   // How many more copies of `proto` the bank could take.
   int RoomFor(const ItemPrototype& proto) const;
-  // Takes `count` off the `index`-th stack, clamped to what is in it, and
-  // returns how many came out.
+  // Takes `count` from the `index`-th stack, clamped to what it holds, and
+  // returns how many were taken.
   int TakeStack(int index, int count);
 
-  // Meso in and out. Spend is all or nothing.
+  // Meso in and out. Spending is all or nothing.
   void AddMeso(int64_t amount);
   bool SpendMeso(int64_t amount);
-  // The balance in a currency, and spending one. Both name it as the player
-  // sees it, which is how everything crossing a save names an item.
+  // The balance of a currency, and spending it. Both use the display name, as
+  // everything in a save does.
   int64_t CountCurrency(const std::string& name) const;
   bool SpendCurrency(const std::string& name, int64_t count);
 
-  // Files both tabs, which is what Sort does on either half of the screen.
+  // Sorts both tabs, which is what Sort does on either half of the screen.
   void SortEquips(const std::function<bool(const EquipPrototype&)>& equippable);
   void SortStacks();
 
-  // Reads what the save holds, resolving names against the catalogs. A name
-  // no longer in data/ is dropped.
+  // Loads what the save holds, resolving names against the catalogs. A name no
+  // longer in data/ is dropped.
   void RestoreFrom(const Bank& saved,
                    const std::map<std::string, const EquipPrototype*>& equips,
                    const std::map<std::string, const ItemPrototype*>& items);

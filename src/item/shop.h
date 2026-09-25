@@ -1,11 +1,10 @@
-/* What the shop sells. Stock is not a list anyone maintains: an item joins the
- * shop by naming a price in its own data file, and this reads that back out of
- * the catalog. So there is no second list to fall out of step with the first,
- * and no way to stock an item without saying what it costs.
+/* What the shop sells. There's no maintained stock list: an item is in the shop
+ * when its own data file gives a price, and this reads that from the catalog.
+ * So there's no second list to fall out of sync, and no way to stock an item
+ * without pricing it.
  *
- * A weapon shelf and an equipment shelf are each stocked twice over -- once for
- * meso and once for tokens -- because an item names one price or the other and
- * never both.
+ * The weapon and equipment shelves each exist twice, once for meso and once for
+ * tokens, because an item gives one price or the other, never both.
  */
 #ifndef MS_SRC_ITEM_SHOP_H_
 #define MS_SRC_ITEM_SHOP_H_
@@ -19,28 +18,26 @@
 
 namespace ms {
 
-// What the shop asks for an item, which is what says which shelf it is on.
+// How the shop charges for an item, which determines its shelf.
 enum Payment { kPaidInMeso, kPaidInTokens };
 
-// Catalog keys of the weapons the shop sells for `payment`, throwing stars
-// included, in the order the columns of the shop list read: by required level,
-// then weapon type, then price, then name. Weapon order is the enum's, which
-// keeps one kind of weapon together within a tier without claiming an order the
-// player is meant to read anything into.
+// Catalog keys of the weapons the shop sells for `payment`, including throwing
+// stars, in the shop list's column order: by required level, then weapon type,
+// then price, then name. Weapon order follows the enum, which keeps one weapon
+// type together within a tier without implying any meaningful order.
 std::vector<std::string> ShopWeaponStock(
     const std::map<std::string, EquipPrototype>& equips, Payment payment);
 
-// Catalog keys of everything else the shop sells: the off-hands, and the
-// rings, emblems and medals beside them -- everything worn that is not a
-// weapon and not thrown, so the two shelves share nothing. Class filtering is
-// the CALLER's: this says what is on the shelf, not who may buy it.
+// Catalog keys of everything else the shop sells: secondaries, and the rings,
+// emblems and medals next to them, meaning everything worn that isn't a weapon
+// or thrown, so the two shelves never overlap. Filtering by class is the
+// caller's job: this says what's on the shelf, not who can buy it.
 std::vector<std::string> ShopEquipStock(
     const std::map<std::string, EquipPrototype>& equips, Payment payment);
 
-// Catalog keys of the stackables the shop sells, cheapest first and then by
-// name. Joining the shop works the same way it does for an equip: name a
-// shop_price in the item's own data file and it is stocked. Meso only: a token
-// buys equipment, and a shelf of stackables is not what it is for.
+// Catalog keys of the stackables the shop sells, cheapest first, then by name.
+// Stocking works as it does for equips: set a shop_price in the item's data
+// file. Meso only: tokens buy equipment, not stackables.
 std::vector<std::string> ShopEtcStock(
     const std::map<std::string, ItemPrototype>& items);
 

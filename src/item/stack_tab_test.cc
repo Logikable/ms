@@ -23,7 +23,7 @@ TEST(StackTabTest, AddingTopsUpBeforeOpeningStacks) {
   EXPECT_EQ(tab.Add(shell, 60), 60);
   EXPECT_EQ(tab.size(), 1);
 
-  // The open stack takes 40 without costing a slot; the rest opens one.
+  // The open stack takes 40 without using a slot; the rest starts a new one.
   EXPECT_EQ(tab.Add(shell, 60), 60);
   EXPECT_EQ(tab.size(), 2);
   EXPECT_EQ(tab[0].count(), 100);
@@ -32,7 +32,7 @@ TEST(StackTabTest, AddingTopsUpBeforeOpeningStacks) {
   EXPECT_EQ(tab.Add(shell, 0), 0);
 }
 
-// A full tab still absorbs what its open stacks can hold, and loses the rest.
+// A full tab still takes what its open stacks can hold, and loses the rest.
 TEST(StackTabTest, AFullTabTakesWhatFits) {
   StackTab tab;
   ItemPrototype shell = Proto("Green Snail Shell", 100);
@@ -53,7 +53,7 @@ TEST(StackTabTest, AFullTabTakesWhatFits) {
   EXPECT_EQ(room.Add(shell, 200), 90);
 }
 
-// Spending is all or nothing, takes from the newest stack first, and drops a
+// Spending is all or nothing, takes from the newest stack first, and removes a
 // stack it empties.
 TEST(StackTabTest, SpendingEmptiesStacksAndLeavesNoZeroRow) {
   StackTab tab;

@@ -8,10 +8,10 @@
 namespace ms {
 namespace {
 
-// The two directions are written out separately, and the callers read one
-// each: the sims arm a weapon by AmmoFor, the character credits the attack by
-// WeaponDrawing. A pair that disagreed would have a sim measuring a bow
-// holding arrows the character then refuses to count.
+// The two directions are written separately, and each caller reads one: the
+// sims equip a weapon with AmmoFor, and the character counts the attack with
+// WeaponDrawing. If they disagreed, a sim would measure a bow with arrows the
+// character then refuses to count.
 TEST(ProjectileTest, TheTwoDirectionsAgree) {
   const google::protobuf::EnumDescriptor* types = EquipType_descriptor();
   int paired = 0;
@@ -30,8 +30,8 @@ TEST(ProjectileTest, TheTwoDirectionsAgree) {
   EXPECT_EQ(paired, 3) << "a weapon that draws ammunition has gone missing";
 }
 
-// The ordinary case, and the one the callers lean on: a weapon that draws from
-// nothing, and an item that is not ammunition, both answer with silence.
+// The common case callers rely on: a weapon using no ammunition, and an item
+// that isn't ammunition, both return unspecified.
 TEST(ProjectileTest, NothingElseIsPaired) {
   EXPECT_EQ(AmmoFor(EQUIP_TYPE_ONE_HANDED_SWORD), EQUIP_TYPE_UNSPECIFIED);
   EXPECT_EQ(WeaponDrawing(EQUIP_TYPE_ONE_HANDED_SWORD), EQUIP_TYPE_UNSPECIFIED);

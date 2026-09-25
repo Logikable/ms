@@ -1,14 +1,13 @@
-/* StackTab holds the Etc tab: the stacks a bag has on it, and the rules that
- * fill and empty one.
+/* StackTab holds the Etc tab: a bag's stacks, and the rules for filling and
+ * emptying them.
  *
- * A tab has kTabCapacity slots, and a stack takes one however many copies are
- * in it -- so topping an open stack up costs nothing and a full tab can still
- * absorb part of a drop. An emptied stack leaves rather than sitting there as
- * a row of nothing.
+ * A tab has kTabCapacity slots, and a stack uses one however many copies it
+ * holds, so topping up a stack is free and a full tab can still take part of a
+ * drop. An emptied stack is removed instead of staying as a zero row.
  *
- * Currencies are NOT here: a currency is a balance in a purse and costs no
- * slot. See //src/item/currency.h. Callers route between the two on the
- * prototype's kind; the tab takes whatever it is handed.
+ * Currencies aren't here: a currency is a balance in a purse and uses no slot.
+ * See //src/item/currency.h. Callers route between the two by the prototype's
+ * kind; the tab accepts whatever it's given.
  */
 #ifndef MS_SRC_ITEM_STACK_TAB_H_
 #define MS_SRC_ITEM_STACK_TAB_H_
@@ -39,37 +38,37 @@ class StackTab {
     return items_;
   }
 
-  // Slots left on the tab, and whether any are.
+  // Slots left on the tab, and whether there are any.
   int room() const;
   bool full() const;
 
-  // How many more copies of `proto` the tab could take: the room in every
-  // open stack of it, plus a full stack per free slot.
+  // How many more copies of `proto` the tab could take: the space in every open
+  // stack of it, plus a full stack per free slot.
   int RoomFor(const ItemPrototype& proto) const;
 
-  // Adds `count` copies and returns how many went in. Open stacks are topped
-  // up before new ones are opened, and what does not fit is lost.
+  // Adds `count` copies and returns how many were added. Open stacks are filled
+  // before new ones are started, and what doesn't fit is lost.
   int Add(const ItemPrototype& proto, int count);
 
-  // Copies of `name` held, summed across every stack of it.
+  // Copies of `name` held, summed across all its stacks.
   int64_t Count(const std::string& name) const;
 
-  // Spends `count` of `name`, newest stack first. All or nothing: false and
-  // nothing taken when the tab holds less than that.
+  // Spends `count` of `name`, newest stack first. All or nothing: returns false
+  // and takes nothing if the tab holds fewer.
   bool Spend(const std::string& name, int64_t count);
 
-  // Takes `count` off the `index`-th stack, clamped to what is in it, and
-  // returns how many came out. The stack leaves the tab when it empties.
+  // Takes `count` from the `index`-th stack, clamped to what it holds, and
+  // returns how many were taken. The stack is removed when it empties.
   int Take(int index, int count);
 
   void Sort();
 
-  // Reads the stacks a save holds, resolving names against the item catalog.
-  // A name no longer in data/ is dropped, as the purse drops one.
+  // Loads the stacks a save holds, resolving names against the item catalog. A
+  // name no longer in data/ is dropped, as the purse does.
   void RestoreFrom(
       const google::protobuf::RepeatedPtrField<StackableStack>& saved,
       const std::map<std::string, const ItemPrototype*>& by_name);
-  // Appends the tab to `out` as the save holds it.
+  // Appends the tab to `out` in save format.
   void AppendTo(google::protobuf::RepeatedPtrField<StackableStack>* out) const;
 
  private:

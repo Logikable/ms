@@ -11,9 +11,9 @@
 namespace ms {
 namespace {
 
-// The groups a line can roll on, as a set. Hat, gloves, armour and accessory
-// are apart only for the four lines that belong to one of them, so most rows
-// name kNonWeapon or kEveryGroup.
+// The groups a line can roll on, as a bit set. Hat, gloves, armour and
+// accessory differ only for the four lines specific to one of them, so most
+// rows use kNonWeapon or kEveryGroup.
 enum GroupBit {
   kWeaponryBit = 1 << 0,
   kHatBit = 1 << 1,
@@ -25,9 +25,9 @@ enum GroupBit {
 constexpr int kNonWeapon = kHatBit | kGlovesBit | kArmorBit | kAccessoryBit;
 constexpr int kEveryGroup = kWeaponryBit | kNonWeapon;
 
-// One line the game offers: where it rolls and the ranks it rolls at. GMS
-// puts an equipment level on its strongest lines as well; that is dropped,
-// since a level 30 item never reaches the ranks they sit at anyway.
+// One line the game offers: which groups roll it and at which ranks. GMS also
+// puts an equipment level on its strongest lines; that's dropped, since a level
+// 30 item never reaches those ranks anyway.
 struct LineSpec {
   PotentialLineType type;
   int groups;
@@ -36,8 +36,8 @@ struct LineSpec {
 };
 
 constexpr LineSpec kLines[] = {
-    // Flat stats, Rare alone. Epic and up dropped them in GMS, which is most
-    // of what a rank up buys.
+    // Flat stats, Rare only. GMS dropped them from Epic up, which is much of
+    // what a rank-up gains.
     {POTENTIAL_LINE_TYPE_STR, kNonWeapon, POTENTIAL_RANK_RARE,
      POTENTIAL_RANK_RARE},
     {POTENTIAL_LINE_TYPE_DEX, kNonWeapon, POTENTIAL_RANK_RARE,
@@ -64,7 +64,7 @@ constexpr LineSpec kLines[] = {
     {POTENTIAL_LINE_TYPE_ALL_STATS_PCT, kEveryGroup, POTENTIAL_RANK_EPIC,
      POTENTIAL_RANK_LEGENDARY},
 
-    // The weapon lines. A secondary and an emblem roll them too -- see
+    // The weapon lines. Secondaries and emblems roll them too; see
     // PotentialGroupOf.
     {POTENTIAL_LINE_TYPE_ATTACK_PCT, kWeaponryBit, POTENTIAL_RANK_RARE,
      POTENTIAL_RANK_LEGENDARY},
@@ -87,7 +87,7 @@ constexpr LineSpec kLines[] = {
     {POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40, kWeaponryBit, POTENTIAL_RANK_LEGENDARY,
      POTENTIAL_RANK_LEGENDARY},
 
-    // The four lines one group apiece rolls.
+    // The four lines each unique to one group.
     {POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT, kGlovesBit, POTENTIAL_RANK_LEGENDARY,
      POTENTIAL_RANK_LEGENDARY},
     {POTENTIAL_LINE_TYPE_MESO_RATE, kAccessoryBit, POTENTIAL_RANK_LEGENDARY,
@@ -100,8 +100,8 @@ constexpr LineSpec kLines[] = {
      POTENTIAL_RANK_LEGENDARY},
 };
 
-// One band of equipment level and what a line pays inside it. The last row of
-// a table stands for every level above it.
+// One band of equipment level and a line's value within it. A table's last row
+// covers every level above it.
 struct Band {
   int max_level;
   int value[4];
@@ -109,8 +109,8 @@ struct Band {
 
 constexpr int kNoCeiling = 100000;
 
-// The percentage lines, by rank. One table serves %STR, %DEX, %INT, %LUK,
-// %HP, %ATT, %MATT and %Damage -- GMS pays them all the same.
+// The percentage lines, by rank. One table covers %STR, %DEX, %INT, %LUK, %HP,
+// %ATT, %MATT and %Damage, since GMS gives them all the same values.
 constexpr Band kPercentBands[] = {
     {30, {1, 2, 3, 6}},
     {70, {2, 4, 6, 9}},
@@ -130,7 +130,7 @@ constexpr Band kFlatAllStatsBands[] = {
     {80, {4, 0, 0, 0}}, {150, {5, 0, 0, 0}}, {kNoCeiling, {6, 0, 0, 0}},
 };
 
-// Flat Max HP: ten per ten levels of equipment, levelling off past 110.
+// Flat Max HP: ten per ten equipment levels, levelling off past 110.
 constexpr Band kFlatMaxHpBands[] = {
     {10, {10, 0, 0, 0}},          {20, {20, 0, 0, 0}},   {30, {30, 0, 0, 0}},
     {40, {40, 0, 0, 0}},          {50, {50, 0, 0, 0}},   {60, {60, 0, 0, 0}},
@@ -139,24 +139,24 @@ constexpr Band kFlatMaxHpBands[] = {
     {kNoCeiling, {125, 0, 0, 0}},
 };
 
-// Gloves' critical damage, which nothing under level 50 rolls.
+// Gloves' critical damage, which nothing below level 50 rolls.
 constexpr Band kCritDamageBands[] = {
     {60, {0, 0, 0, 5}},
     {80, {0, 0, 0, 6}},
     {kNoCeiling, {0, 0, 0, 8}},
 };
 
-// An accessory's %meso and %drop, which are Legendary alone.
+// An accessory's %meso and %drop, which are Legendary only.
 constexpr Band kRewardRateBands[] = {
     {30, {0, 0, 0, 10}},
     {70, {0, 0, 0, 15}},
     {kNoCeiling, {0, 0, 0, 20}},
 };
 
-// Chance a cube carries a potential up a rank, by the rank it is leaving.
+// Chance a cube raises a potential's rank, by its current rank.
 constexpr double kRedRankUp[4] = {1.0 / 7.0, 0.06, 0.024, 0.0};
 
-// Chance the 2nd and 3rd lines come out prime.
+// Chance the 2nd and 3rd lines are prime.
 constexpr double kRedPrime[kPotentialLines] = {1.0, 0.10, 0.01};
 
 int RankIndex(PotentialRank rank) {
@@ -305,8 +305,8 @@ int PotentialLineValue(PotentialLineType type, PotentialRank rank,
     case POTENTIAL_LINE_TYPE_DAMAGE_PCT:
       return BandValue(kPercentBands, std::size(kPercentBands), item_level,
                        index);
-    // Worth a rank less than a single stat's share, which is what pays for it
-    // covering all four.
+    // Worth one rank less than a single stat's share, to balance covering all
+    // four.
     case POTENTIAL_LINE_TYPE_ALL_STATS_PCT:
       return BandValue(kPercentBands, std::size(kPercentBands), item_level,
                        RankIndex(PreviousPotentialRank(rank)));
@@ -317,8 +317,8 @@ int PotentialLineValue(PotentialLineType type, PotentialRank rank,
     case POTENTIAL_LINE_TYPE_ITEM_DROP_RATE:
       return BandValue(kRewardRateBands, std::size(kRewardRateBands),
                        item_level, index);
-    // The lines GMS states outright rather than per level band. Their size is
-    // in their name, since two of them share a pool.
+    // The lines GMS states as fixed values instead of per level band. Their
+    // value is in their name, since two of them share a pool.
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_15:
       return 15;
     case POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30:
@@ -366,8 +366,8 @@ Potential RollPotential(CubeType cube, PotentialGroup group, PotentialRank rank,
     const PotentialRank line_rank =
         prime(rng) ? rank : PreviousPotentialRank(rank);
     const std::vector<PotentialLineType> pool = PotentialPool(group, line_rank);
-    // Never empty: the four %stat lines roll for every group, at every rank,
-    // on an item of any level.
+    // Never empty: the four %stat lines roll for every group, at every rank, on
+    // an item of any level.
     CHECK(!pool.empty());
     std::uniform_int_distribution<int> pick(0, pool.size() - 1);
     PotentialLine* line = potential.add_lines();
@@ -481,9 +481,9 @@ const Cube& CubeOf(CubeType type) {
 
 Potential CubePotential(const Potential& current, CubeType cube,
                         PotentialGroup group, std::mt19937& rng) {
-  // The first cube into an item always hands over a Rare potential. GMS sells
-  // a scroll for that step and rolls the rank with it; here the cube does it,
-  // and only what it finds decides whether a rank is rolled at all.
+  // The first cube on an item always gives a Rare potential. GMS sells a
+  // separate scroll for that step and rolls the rank with it; here the cube
+  // does it, and only an existing potential gets a rank roll.
   if (current.rank() == POTENTIAL_RANK_UNSPECIFIED) {
     return RollPotential(cube, group, POTENTIAL_RANK_RARE, rng);
   }

@@ -1,6 +1,6 @@
-/* The bag's Sort: the order each tab is filed into when the player asks for
- * one. Both tabs sort in place, so the row a cursor stands on moves with the
- * rest and nothing outside holds an index across the call.
+/* The bag's Sort: the order each tab is put into when the player asks. Both
+ * tabs sort in place, so the row under a cursor moves with the rest, and
+ * nothing outside keeps an index across the call.
  */
 #ifndef MS_SRC_ITEM_INVENTORY_SORT_H_
 #define MS_SRC_ITEM_INVENTORY_SORT_H_
@@ -14,18 +14,18 @@
 
 namespace ms {
 
-// Files the equip tab: what can be worn first, then the most stars, the most
-// scrolls, the slot's place in the Equipped list, and the name. `equippable`
-// answers whether the character may wear a prototype -- the one key the bag
-// cannot answer by itself. A trace is never equippable, so the records of
-// destroyed items gather below the live ones.
+// Sorts the equip tab: wearable items first, then most stars, most scrolls, the
+// slot's position in the Equipped list, and the name. `equippable` says whether
+// the character can wear a prototype, the one key the bag can't work out
+// itself. A trace is never wearable, so destroyed items collect below the live
+// ones.
 void SortEquipItems(
     std::vector<std::unique_ptr<EquipTabItem>>& items,
     const std::function<bool(const EquipPrototype&)>& equippable);
 
-// Files a Use or Etc tab: Spell Traces, then the tokens a shop takes, then
-// soul shards, then everything else, each by descending count. Ties go to the
-// name, so a tab sorted twice comes out the same both times.
+// Sorts a Use or Etc tab: Spell Traces, then shop tokens, then soul shards,
+// then everything else, each by descending count. Ties sort by name, so sorting
+// twice gives the same result.
 void SortStacks(std::vector<StackableItem>& stacks);
 
 }  // namespace ms

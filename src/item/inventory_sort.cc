@@ -15,8 +15,8 @@ namespace ms {
 void SortEquipItems(
     std::vector<std::unique_ptr<EquipTabItem>>& items,
     const std::function<bool(const EquipPrototype&)>& equippable) {
-  // The keys read as "what the row is worth", so each one is negated to put
-  // the best first while the comparison stays a plain ascending tuple.
+  // Each key measures how good the row is, so each is negated to put the best
+  // first while the comparison stays a plain ascending tuple.
   std::sort(items.begin(), items.end(),
             [&equippable](const std::unique_ptr<EquipTabItem>& a,
                           const std::unique_ptr<EquipTabItem>& b) {
@@ -33,9 +33,9 @@ void SortEquipItems(
 }
 
 void SortStacks(std::vector<StackableItem>& stacks) {
-  // The tab holds nothing but ordinary drops -- the currencies are counted in
-  // the purse, see //src/item/currency.h -- and a drop has nothing to be
-  // ranked by but how much of it is lying in the bag.
+  // The tab holds only ordinary drops (currencies are in the purse; see
+  // //src/item/currency.h), and a drop can only be ranked by how many are in
+  // the bag.
   std::sort(stacks.begin(), stacks.end(),
             [](const StackableItem& a, const StackableItem& b) {
               auto key = [](const StackableItem& stack) {

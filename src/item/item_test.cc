@@ -24,7 +24,7 @@ class EquipTraceTest : public ::testing::Test {
 };
 
 // A trace carries the item it was made from: its name with the suffix, its
-// prototype, and the star cap that prototype's level buys.
+// prototype, and the star cap for that prototype's level.
 TEST_F(EquipTraceTest, CarriesTheItemItWasMadeFrom) {
   EquipTrace trace(MakeSword(), Equip());
   EXPECT_EQ(trace.name(), "Sword Trace");
@@ -78,7 +78,7 @@ TEST_F(StackableItemTest, ExposesNameCountAndPrototype) {
   EXPECT_EQ(stack.prototype().name(), "Green Snail Shell");
 }
 
-// An explicit max_stack wins; a blank one falls back to 200.
+// An explicit max_stack is used; a blank one falls back to 200.
 TEST_F(StackableItemTest, MaxStackTakesTheItemsOrTheDefault) {
   ItemPrototype explicit_stack = MakeShell();
   explicit_stack.set_max_stack(50);
@@ -87,8 +87,7 @@ TEST_F(StackableItemTest, MaxStackTakesTheItemsOrTheDefault) {
   EXPECT_EQ(StackableItem(MakeShell(), 1).max_stack(), 200);
 }
 
-// A ring answers with its four slots wherever it is asked from, and every
-// other slot with the one it is. The order is the order they fill.
+// Total slots are the upgrade slots plus hammers.
 TEST(UpgradeSlotsTest, AShelfIsSlotsPlusHammers) {
   EquipPrototype proto;
   proto.set_upgrade_slots(7);
@@ -123,8 +122,8 @@ TEST(SlotFamilyTest, RingsAndPendantsAnswerWithTheirWholeFamily) {
             (std::vector<EquipSlot>{EQUIP_SLOT_HAT}));
 }
 
-// The base is what a prototype names, and the index is where in the family a
-// worn slot sits -- together they are the whole of what a family is for.
+// The base is what a prototype names, and the index is a worn slot's position
+// in the family; together that's all a family is for.
 TEST(SlotFamilyTest, TheBaseIsWhatAPrototypeNames) {
   EXPECT_EQ(BaseSlot(EQUIP_SLOT_RING_4), EQUIP_SLOT_RING);
   EXPECT_EQ(BaseSlot(EQUIP_SLOT_PENDANT_2), EQUIP_SLOT_PENDANT);
@@ -135,7 +134,7 @@ TEST(SlotFamilyTest, TheBaseIsWhatAPrototypeNames) {
   EXPECT_EQ(SlotIndex(EQUIP_SLOT_HAT), 0);
 }
 
-// No slot belongs to two families, and none of them is left out of its own.
+// No slot belongs to two families, and every slot is in its own.
 TEST(SlotFamilyTest, EverySlotIsInExactlyOneFamily) {
   for (int i = 1; i <= EquipSlot_MAX; ++i) {
     EquipSlot slot = static_cast<EquipSlot>(i);
@@ -149,8 +148,8 @@ TEST(SlotFamilyTest, EverySlotIsInExactlyOneFamily) {
   }
 }
 
-// An item with no short form is called by its name; one with a short form is
-// called by that, and the two are independent strings.
+// An item without a short name uses its name; one with a short name uses that,
+// and the two are separate strings.
 TEST(ShortNameTest, TheShortFormFallsBackToTheName) {
   ItemPrototype plain;
   plain.set_name("Spell Trace");
@@ -162,8 +161,8 @@ TEST(ShortNameTest, TheShortFormFallsBackToTheName) {
   EXPECT_EQ(ShortName(shard), "Zakum's");
 }
 
-// A token's shelf is the best level it buys, and its slot only where it buys
-// one slot alone; a ring in its second slot still counts as a ring.
+// A token's level is the highest level it buys, and its slot is set only if it
+// buys one slot alone; a ring in its second slot still counts as a ring.
 TEST(FillTokenShelvesTest, ALevelIsTheHighestAndASlotIsTheOnlyOne) {
   auto sold_for = [](const std::string& token, int level, EquipSlot slot) {
     EquipPrototype proto;
@@ -179,13 +178,13 @@ TEST(FillTokenShelvesTest, ALevelIsTheHighestAndASlotIsTheOnlyOne) {
       {"c", sold_for("piece", 150, EQUIP_SLOT_RING)},
       {"d", sold_for("piece", 150, EQUIP_SLOT_RING_2)},
   };
-  // Priced in meso, so it names no token at all.
+  // Priced in meso, so it names no token.
   equips["e"].set_token_item("coin");
   equips["e"].set_required_level(200);
   std::map<std::string, ItemPrototype> items;
   items["coin"].set_kind(ITEM_KIND_TOKEN);
   items["piece"].set_kind(ITEM_KIND_TOKEN);
-  items["shell"].set_currency_level(7);  // not a token, so left as it is
+  items["shell"].set_currency_level(7);  // not a token, so unchanged
 
   FillTokenShelves(equips, items);
   EXPECT_EQ(items["coin"].currency_level(), 150);

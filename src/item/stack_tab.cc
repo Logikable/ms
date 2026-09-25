@@ -22,7 +22,7 @@ bool StackTab::full() const {
 }
 
 int StackTab::RoomFor(const ItemPrototype& proto) const {
-  // A stack that is open but not full takes more without costing a slot.
+  // A stack that isn't full takes more without using a slot.
   int open = 0;
   for (const StackableItem& stack : items_) {
     if (stack.name() == proto.name()) {
@@ -32,8 +32,8 @@ int StackTab::RoomFor(const ItemPrototype& proto) const {
   if (full()) {
     return open;
   }
-  // Sized from the prototype rather than an existing stack, so an item the
-  // tab holds none of still reports what a fresh stack would hold.
+  // Sized from the prototype instead of an existing stack, so an item the tab
+  // has none of still reports what a new stack would hold.
   StackableItem fresh(proto, 0);
   return open + room() * fresh.max_stack();
 }
@@ -44,7 +44,7 @@ int StackTab::Add(const ItemPrototype& proto, int count) {
   }
   count = std::min(count, RoomFor(proto));
   int added = count;
-  // Top up existing stacks of the same item before opening new ones.
+  // Fill existing stacks of the same item before starting new ones.
   for (StackableItem& stack : items_) {
     if (count <= 0) {
       break;
@@ -84,8 +84,8 @@ bool StackTab::Spend(const std::string& name, int64_t count) {
   if (count <= 0 || Count(name) < count) {
     return false;
   }
-  // Emptied stacks are dropped as they go, so spending the last of something
-  // leaves no zero row behind.
+  // Emptied stacks are removed along the way, so spending the last of something
+  // leaves no zero row.
   for (int i = size() - 1; i >= 0 && count > 0; --i) {
     if (items_[i].name() != name) {
       continue;

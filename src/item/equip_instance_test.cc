@@ -31,9 +31,9 @@ class EquipInstanceTest : public ::testing::Test {
     return e;
   }
 
-  // A piece of gear worn somewhere other than the hand. `str` is there so a
-  // test can tell the two stat rules apart: below 16★ a star raises the stats
-  // the job needs, above it the stats the item shows.
+  // A piece of gear worn somewhere other than the hand. `str` lets a test tell
+  // the two stat rules apart: below 16★ a star raises the stats the job needs,
+  // above it the stats the item shows.
   EquipPrototype MakeArmour(EquipSlot slot, int base_def = 0,
                             int required_level = 0, int str = 0) {
     EquipPrototype e;
@@ -56,8 +56,8 @@ class EquipInstanceTest : public ::testing::Test {
   std::mt19937 rng_{0};
 };
 
-// The two ends of the one roll: the chance decides whether the stats land, and
-// the slot is spent either way.
+// Both sides of a scroll roll: the chance decides whether the stats are added,
+// and the slot is used either way.
 TEST_F(EquipInstanceTest, TheChanceDecidesTheStatsAndTheSlotGoesRegardless) {
   EquipPrototype proto = MakeEquip(1);
   EquipInstance won(proto);
@@ -88,8 +88,8 @@ TEST_F(EquipInstanceTest, StatsAccumulateAcrossScrolls) {
   EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 0);
 }
 
-// Verify that a sub-100% scroll produces both successes and failures over
-// enough trials with a fixed seed.
+// A scroll below 100% produces both successes and failures over enough trials
+// with a fixed seed.
 TEST_F(EquipInstanceTest, SeededRngProducesBothOutcomes) {
   EquipPrototype proto = MakeEquip(20);
   EquipInstance item(proto);
@@ -113,7 +113,7 @@ TEST_F(EquipInstanceTest, HammerOpensASlot) {
   EXPECT_EQ(item.equip_state().hammers(), 1);
   EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 1);
   EXPECT_EQ(TotalUpgradeSlots(proto, item.equip_state()), 2);
-  // The new slot scrolls like any other, and what it lands stacks.
+  // The new slot scrolls like any other, and the stats add up.
   EXPECT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollSuccess);
   EXPECT_EQ(item.stats().attack(), 4);
 }
@@ -150,12 +150,13 @@ TEST_F(EquipInstanceTest, HammerAfterStarsKeepsThemAndHoldsTheNextOne) {
   ASSERT_EQ(item.stars(), 1);
 
   ASSERT_TRUE(item.Hammer());
-  EXPECT_EQ(item.stars(), 1);  // the stars it has are not touched
+  EXPECT_EQ(item.stars(), 1);  // existing stars are unchanged
   EXPECT_FALSE(item.CanStarForce());
   EXPECT_EQ(item.StarForce(rng_), kStarForceFail);
   EXPECT_EQ(item.stars(), 1);
 
-  // Spending the hammer's slot -- landing it or not -- opens the way again.
+  // Using the hammer's slot, whether the scroll lands or not, allows another
+  // hammer.
   ASSERT_EQ(item.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
   EXPECT_TRUE(item.CanStarForce());
 }
@@ -171,7 +172,8 @@ TEST_F(EquipInstanceTest, CleanSlateBuysBackAHammerSlot) {
   ASSERT_EQ(item.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
   ASSERT_EQ(item.equip_state().remaining_upgrade_slots(), 0);
 
-  // Both failures come back: the cap counts the hammer's slot as the item's.
+  // Both failures are restored: the cap counts the hammer's slot as the item's
+  // own.
   EXPECT_EQ(item.Scroll(slate, rng_), kScrollSuccess);
   EXPECT_EQ(item.Scroll(slate, rng_), kScrollSuccess);
   EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 2);
@@ -183,7 +185,7 @@ TEST_F(EquipInstanceTest, CleanSlateBuysBackAHammerSlot) {
 TEST_F(EquipInstanceTest, StarForceSuccessIncrementsStars) {
   EquipPrototype proto = MakeEquip(0);
   EquipInstance item(proto);
-  // At 0★, success=9500 (95%). Run until we get a success.
+  // At 0★ success is 9500 (95%). Keep trying until one succeeds.
   StarForceOutcome outcome = kStarForceFail;
   for (int i = 0; i < 100 && outcome != kStarForceSuccess; ++i) {
     outcome = item.StarForce(rng_);
@@ -209,7 +211,7 @@ TEST_F(EquipInstanceTest, StarForceFailDoesNotChangeStars) {
 }
 
 TEST_F(EquipInstanceTest, StarForceAtMaxReturnsFailWithoutChange) {
-  // Level 0 item has max 5★.
+  // A level 0 item has a maximum of 5★.
   EquipPrototype proto = MakeEquip(0);
   Equip state;
   state.set_stars(5);
@@ -218,7 +220,7 @@ TEST_F(EquipInstanceTest, StarForceAtMaxReturnsFailWithoutChange) {
   EXPECT_EQ(item.stars(), 5);
 }
 
-// Star force wants every slot scrolled and a star still to come.
+// Star force needs every slot scrolled and a star still available.
 TEST_F(EquipInstanceTest, CanStarForceUntilTheStarsRunOut) {
   EXPECT_TRUE(EquipInstance(MakeEquip(0)).CanStarForce());
 
@@ -236,9 +238,9 @@ TEST_F(EquipInstanceTest, StarForceFailsWithSlotsRemaining) {
   EXPECT_EQ(item.stars(), 0);
 }
 
-// An item that takes no upgrade slots has nothing left to scroll, which the
-// slot check alone reads as ready for stars. Throwing stars are exactly that
-// shape, so without the declaration they star force like any other weapon.
+// An item with no upgrade slots has nothing left to scroll, which the slot
+// check alone treats as ready for stars. Throwing stars are exactly this case,
+// so without the declaration they would take star force like any other weapon.
 TEST_F(EquipInstanceTest, AnItemThatRefusesStarForceCannotStarForce) {
   EquipPrototype proto = MakeEquip(/*upgrade_slots=*/0);
   proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
@@ -248,7 +250,7 @@ TEST_F(EquipInstanceTest, AnItemThatRefusesStarForceCannotStarForce) {
   EXPECT_EQ(item.stars(), 0);
 }
 
-// Refusing one path says nothing about the other.
+// Refusing one upgrade type doesn't affect the other.
 TEST_F(EquipInstanceTest, RefusingScrollsLeavesStarForceAlone) {
   EquipPrototype proto = MakeEquip(/*upgrade_slots=*/0);
   proto.add_unsupported_upgrades(UPGRADE_SCROLL);
@@ -257,8 +259,7 @@ TEST_F(EquipInstanceTest, RefusingScrollsLeavesStarForceAlone) {
   EXPECT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollNoSlots);
 }
 
-// The slots are the trap: a data file could carry both, and the declaration
-// has to win over them.
+// A data file could have both slots and the refusal, and the refusal must win.
 TEST_F(EquipInstanceTest, RefusingScrollsBeatsRemainingSlots) {
   EquipPrototype proto = MakeEquip(/*upgrade_slots=*/7);
   proto.add_unsupported_upgrades(UPGRADE_SCROLL);
@@ -277,8 +278,8 @@ TEST_F(EquipInstanceTest, RateAtReturnsZeroOutOfRange) {
 }
 
 TEST_F(EquipInstanceTest, StarForceDestroyOccursAtHighStars) {
-  // At 19★, destroy=850 (8.5%). Use a level 138 item (max 30★) so 19★ is
-  // reachable. Run enough attempts to observe destruction.
+  // At 19★ destroy is 850 (8.5%). Use a level 138 item (max 30★) so 19★ is
+  // reachable, and run enough attempts to see a destruction.
   EquipPrototype proto = MakeEquip(0, /*required_level=*/138);
   Equip state;
   state.set_stars(19);
@@ -325,9 +326,9 @@ TEST_F(EquipInstanceTest, AMagicianWeaponGainsItsPrimaryStats) {
   EXPECT_EQ(gains.dex(), 0);
 }
 
-// The weapon is the one item that gains both. GMS's cumulative table reads 25
-// at 4★ and 50 at 6★; the second is there because the 6th star is the one the
-// per-star deltas used to have wrong.
+// The weapon is the one item that gains both. GMS's cumulative table gives 25
+// at 4★ and 50 at 6★; the second is checked because the per-star values once
+// had the 6th star wrong.
 TEST_F(EquipInstanceTest, AWeaponGainsMaxHpAndMaxMp) {
   Equip state;
   state.set_stars(4);
@@ -340,8 +341,8 @@ TEST_F(EquipInstanceTest, AWeaponGainsMaxHpAndMaxMp) {
   EXPECT_EQ(six.StarForceStatGains().max_mp(), 50);
 }
 
-// Max HP is not the weapon's alone: it goes to every slot on GMS's Category A
-// list, which the armour a character wears is most of.
+// Max HP isn't only for weapons: it goes to every slot on GMS's Category A
+// list, which includes most armour.
 TEST_F(EquipInstanceTest, CategoryAArmourGainsMaxHpButNoMp) {
   Equip state;
   state.set_stars(4);
@@ -356,9 +357,9 @@ TEST_F(EquipInstanceTest, CategoryAArmourGainsMaxHpButNoMp) {
   }
 }
 
-// And the accessories are not on that list, however many stars go into them.
-// Gloves and shoes are not either, however much they look like the armour
-// above: GMS's Category A leaves both out.
+// Accessories aren't on that list, however many stars they have. Neither are
+// gloves and shoes, even though they look like armour: GMS's Category A leaves
+// both out.
 TEST_F(EquipInstanceTest, AnAccessoryGainsNoMaxHp) {
   Equip state;
   state.set_stars(10);
@@ -372,8 +373,8 @@ TEST_F(EquipInstanceTest, AnAccessoryGainsNoMaxHp) {
   }
 }
 
-// Defense climbs by a twentieth of what the item already carries, the next
-// star's share taken from the last star's total.
+// Defense grows by a twentieth of what the item already has, each star's gain
+// based on the previous star's total.
 TEST_F(EquipInstanceTest, ArmourGainsDefenseThatCompounds) {
   Equip state;
   state.set_stars(1);
@@ -390,7 +391,7 @@ TEST_F(EquipInstanceTest, ArmourGainsDefenseThatCompounds) {
       << "6, 12, 18, 24, then 31: the fifth star's share is of 124, not 100";
 }
 
-// The weapon is the exception: its stars go into attack instead.
+// The weapon is the exception: its stars add attack instead.
 TEST_F(EquipInstanceTest, AWeaponGainsNoDefense) {
   Equip state;
   state.set_stars(5);
@@ -399,8 +400,8 @@ TEST_F(EquipInstanceTest, AWeaponGainsNoDefense) {
   EXPECT_EQ(EquipInstance(proto, state).StarForceStatGains().def(), 0);
 }
 
-// GMS raises a scaled stat only where the item already shows one. A sword
-// carries no magic attack, so no number of stars gives it any.
+// GMS raises a scaled stat only where the item already has one. A sword has no
+// magic attack, so stars never give it any.
 TEST_F(EquipInstanceTest, AStatTheItemDoesNotShowGainsNothing) {
   Equip state;
   state.set_stars(5);
@@ -448,9 +449,9 @@ TEST_F(EquipInstanceTest, StarForceStatGainsMultiJobUnion) {
   EXPECT_EQ(gains.int_(), 0);
 }
 
-// The two stat rules, in one item. A warrior weapon showing STR and no DEX
-// takes both up to 15★, because that is what the job needs -- and from 16★
-// only the STR it shows, which is where the high-star table takes over.
+// Both stat rules on one item. A warrior weapon showing STR and no DEX gains
+// both up to 15★, since that's what the job needs, and from 16★ only the STR it
+// shows, where the high-star table takes over.
 TEST_F(EquipInstanceTest, PastFifteenOnlyTheStatsTheItemShowsClimb) {
   Equip state;
   state.set_stars(16);
@@ -462,8 +463,8 @@ TEST_F(EquipInstanceTest, PastFifteenOnlyTheStatsTheItemShowsClimb) {
   EXPECT_EQ(gains.attack(), 54) << "45 scaled, then a flat 9";
 }
 
-// Armour used to gain nothing at all past 15★. GMS gives it the same stat as
-// a weapon of its level and a flat attack of its own -- a bigger one, in fact.
+// Past 15★, GMS gives armour the same stat as a weapon of its level, plus its
+// own flat attack, which is actually larger.
 TEST_F(EquipInstanceTest, ArmourGainsStatAndAttackPastFifteen) {
   Equip state;
   state.set_stars(16);
@@ -559,8 +560,8 @@ TEST_F(EquipInstanceTest, RecoveryStarsBelowMinReturnsZero) {
   EXPECT_EQ(EquipInstance::RecoveryStars(0), 0);
 }
 
-// What a glove is paid instead of Max HP: a flat point of attack on seven of
-// the first fifteen stars, and only on the attack it already shows.
+// Gloves get attack instead of Max HP: one flat point on seven of the first
+// fifteen stars, and only if they already have attack.
 TEST_F(EquipInstanceTest, AGloveGainsAttackFromItsStars) {
   EquipPrototype glove = MakeArmour(EQUIP_SLOT_GLOVES);
   glove.mutable_base_stats()->set_attack(3);
@@ -574,8 +575,8 @@ TEST_F(EquipInstanceTest, AGloveGainsAttackFromItsStars) {
       << "the glove shows no magic attack to climb";
   EXPECT_EQ(full.StarForceStatGains().max_hp(), 0);
 
-  // The shoes beside them are paid neither, so a star gives them nothing an
-  // accessory would not get.
+  // The shoes beside them get neither, so a star gives them nothing an
+  // accessory wouldn't get.
   EquipPrototype shoes = MakeArmour(EQUIP_SLOT_SHOES);
   shoes.mutable_base_stats()->set_attack(3);
   EXPECT_EQ(EquipInstance(shoes, state).StarForceStatGains().attack(), 0);
@@ -588,8 +589,8 @@ TEST_F(EquipInstanceTest, EverySlotNamesTheScrollsItTakes) {
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_EYE_ACCESSORY), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_SECONDARY), SCROLL_TARGET_UNSPECIFIED);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_PROJECTILE), SCROLL_TARGET_UNSPECIFIED);
-  // The slots nothing is worn in yet. The shoulderpad takes armour scrolls
-  // rather than the accessory ones it is worn beside, as it does in GMS.
+  // The slots with nothing worn yet. Shoulders take armour scrolls instead of
+  // the accessory scrolls of the slots around them, as in GMS.
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_SHOULDER), SCROLL_TARGET_ARMOUR);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_RING), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_RING_4), SCROLL_TARGET_ACCESSORY);
@@ -598,8 +599,8 @@ TEST_F(EquipInstanceTest, EverySlotNamesTheScrollsItTakes) {
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_BELT), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_EARRINGS), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_POCKET), SCROLL_TARGET_UNSPECIFIED);
-  // Shoes scroll as armour, gloves and hearts on shelves of their own, and
-  // the three trophies take no scroll at all.
+  // Shoes scroll as armour, gloves and hearts have their own scroll types, and
+  // the three trophies take no scrolls at all.
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_SHOES), SCROLL_TARGET_ARMOUR);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_GLOVES), SCROLL_TARGET_GLOVES);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_HEART), SCROLL_TARGET_HEART);
@@ -615,7 +616,7 @@ TEST_F(EquipInstanceTest, TheFirstCubeGivesARarePotential) {
   EXPECT_TRUE(sword.Cube(CubeType::kRed, rng));
   EXPECT_EQ(sword.potential().rank(), POTENTIAL_RANK_RARE);
   EXPECT_EQ(sword.potential().lines_size(), kPotentialLines);
-  // Every line came out of the weapon's own pool.
+  // Every line came from the weapon's own pool.
   for (const PotentialLine& line : sword.potential().lines()) {
     EXPECT_NE(line.type(), POTENTIAL_LINE_TYPE_STR);
   }
@@ -641,8 +642,8 @@ TEST_F(EquipInstanceTest, ASlotWithNoPotentialRefusesTheCube) {
   EXPECT_EQ(medal.potential().rank(), POTENTIAL_RANK_UNSPECIFIED);
 }
 
-// A trace keeps what its item was carrying: it cannot be cubed again, being no
-// EquipInstance at all, but the lines are still there to read.
+// A trace keeps its item's potential: it can't be cubed again, since it isn't
+// an EquipInstance, but the lines can still be read.
 TEST_F(EquipInstanceTest, ATraceKeepsThePotentialItDiedWith) {
   EquipInstance cape(MakeArmour(EQUIP_SLOT_CAPE));
   std::mt19937 rng(4);

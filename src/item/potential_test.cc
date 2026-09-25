@@ -56,8 +56,8 @@ TEST(PotentialValueTest, PercentLinesClimbWithRankAndLevel) {
             13);
 }
 
-// All Stats % pays what a single stat pays one rank down, which is what buys
-// it covering all four.
+// All Stats % gives what a single stat gives one rank lower, to balance
+// covering all four.
 TEST(PotentialValueTest, AllStatsPercentIsOneRankBehind) {
   for (PotentialRank rank :
        {POTENTIAL_RANK_EPIC, POTENTIAL_RANK_UNIQUE, POTENTIAL_RANK_LEGENDARY}) {
@@ -113,7 +113,7 @@ TEST(PotentialValueTest, TheOneOffLines) {
   EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_MESO_RATE,
                                POTENTIAL_RANK_LEGENDARY, 150),
             20);
-  // A rank the line does not roll at is worth nothing.
+  // A rank the line doesn't roll at is worth nothing.
   EXPECT_EQ(PotentialLineValue(POTENTIAL_LINE_TYPE_ITEM_DROP_RATE,
                                POTENTIAL_RANK_UNIQUE, 150),
             0);
@@ -177,7 +177,7 @@ TEST(RollPotentialTest, ThreeLinesAndTheFirstCarriesTheRank) {
   }
 }
 
-// Nothing sits below Rare, so a Rare potential is Rare all the way down.
+// There's nothing below Rare, so every line of a Rare potential is Rare.
 TEST(RollPotentialTest, RareLinesStayRare) {
   std::mt19937 rng(11);
   for (int i = 0; i < 50; ++i) {
@@ -239,8 +239,7 @@ TEST(CubePotentialTest, RankClimbsAtTheStatedOddsAndNeverFalls) {
   }
 }
 
-// The shelf: every cube on it answers to CubeOf, and the Red Cube is what the
-// screen charges kCubeCost for.
+// Every cube in the shop is found by CubeOf, and the Red Cube costs kCubeCost.
 TEST(CubeShelfTest, EveryCubeIsFoundByType) {
   for (const Cube& cube : kCubes) {
     EXPECT_EQ(CubeOf(cube.type).cost, cube.cost);

@@ -39,8 +39,8 @@ std::vector<std::string> Names(
   return names;
 }
 
-// Everything can be worn, so the sort falls through to the keys after it: the
-// most stars, then the most scrolls, then the slot's place, then the name.
+// Everything is wearable, so the sort uses the later keys: most stars, then
+// most scrolls, then slot position, then name.
 TEST(SortEquipItemsTest, RanksStarsThenScrollsThenSlotThenName) {
   std::vector<std::unique_ptr<EquipTabItem>> items;
   items.push_back(Item("Hat B", EQUIP_SLOT_HAT));
@@ -55,8 +55,8 @@ TEST(SortEquipItemsTest, RanksStarsThenScrollsThenSlotThenName) {
                                       "Hat A", "Hat B"}));
 }
 
-// What cannot be worn goes below what can, however far along it is, and a
-// trace is never wearable even when its prototype would be.
+// Unwearable items go below wearable ones however upgraded they are, and a
+// trace is never wearable even if its prototype would be.
 TEST(SortEquipItemsTest, WearableFirstAndTracesBelow) {
   std::vector<std::unique_ptr<EquipTabItem>> items;
   items.push_back(Item("Locked", EQUIP_SLOT_HAT, /*stars=*/20));
@@ -70,7 +70,7 @@ TEST(SortEquipItemsTest, WearableFirstAndTracesBelow) {
   EXPECT_EQ(items[0]->name(), "Wearable");
   EXPECT_FALSE(items[0]->is_trace());
   // The trace outranks the locked hat on stars alone; both are below the one
-  // item that can be worn.
+  // wearable item.
   EXPECT_TRUE(items[1]->is_trace() || items[2]->is_trace());
   EXPECT_EQ(items[1]->name(), "Locked");
 }
@@ -81,9 +81,9 @@ StackableItem Stack(const std::string& name, int count) {
   return StackableItem(proto, count);
 }
 
-// The Etc tab holds only ordinary drops -- the currencies are counted in the
-// purse, see currency_test -- so the biggest stack leads and equal counts fall
-// to the name, which makes a tab sorted twice come out the same both times.
+// The Etc tab holds only ordinary drops (currencies are in the purse; see
+// currency_test), so the biggest stack comes first and equal counts sort by
+// name, making a repeated sort give the same result.
 TEST(SortStacksTest, RanksByCountThenName) {
   std::vector<StackableItem> stacks = {
       Stack("Egg Shell", 5),

@@ -8,20 +8,20 @@ namespace ms {
 namespace {
 
 // Below ten stars GMS charges a plain multiple of the star count, so these are
-// exact rather than approximate: a level 100 item pays 40,000 a star over the
-// 1,000 every attempt starts at.
+// exact: a level 100 item pays 40,000 per star on top of the 1,000 every
+// attempt starts at.
 TEST(StarForceCostTest, TheFirstTenStarsClimbLinearly) {
   EXPECT_EQ(StarForceCost(100, 0), 41000);
   EXPECT_EQ(StarForceCost(100, 4), 201000);
   EXPECT_EQ(StarForceCost(100, 9), 401000);
-  // The level is cubed, so low level gear is priced almost entirely by the
-  // flat 1,000 every attempt starts at: a level 30 first star is 2,100.
+  // Level is cubed, so low-level gear is priced almost entirely by the flat
+  // 1,000 base: a level 30 first star is 2,100.
   EXPECT_EQ(StarForceCost(30, 0), 2100);
 }
 
-// Every rung of one item's ladder, worked from the wiki's formula outside this
-// code. Whole rather than sampled: each star from 10 up has its own divisor,
-// and a sample leaves most of them checked only against themselves.
+// Every step of one item's ladder, computed from the wiki's formula outside
+// this code. Every step instead of a sample: each star from 10 up has its own
+// divisor, and a sample would leave most untested.
 TEST(StarForceCostTest, MatchesTheQuotedPrices) {
   const int64_t kLevel150[] = {
       136000,    271000,    406000,    541000,    676000,    811000,
@@ -33,29 +33,29 @@ TEST(StarForceCostTest, MatchesTheQuotedPrices) {
     EXPECT_EQ(StarForceCost(150, stars), kLevel150[stars])
         << "going from " << stars << " stars to " << stars + 1;
   }
-  // A second level, so the L^3 term is held as well as the star term.
+  // A second level, so the L^3 term is checked as well as the star term.
   EXPECT_EQ(StarForceCost(200, 29), 389303700);
 }
 
-// The shelves are the shape of the whole system: a star gets dearer until it
-// reaches a wall, then the next one is cheap again. Without them the top of
-// the ladder would just be a straight climb nobody stops on.
+// The walls and cheap steps are the shape of the system: stars get pricier
+// until a wall, then the next one is cheaper again. Without them the top of the
+// ladder would be one steady climb with nowhere to stop.
 TEST(StarForceCostTest, TheWallsAndShelvesLandWhereGmsPutsThem) {
   const int kLevel = 150;
-  // 14 -> 15 is the first wall; 15 -> 16 is less than half of it.
+  // 14 to 15 is the first wall; 15 to 16 is less than half of it.
   EXPECT_GT(StarForceCost(kLevel, 14), StarForceCost(kLevel, 13));
   EXPECT_LT(StarForceCost(kLevel, 15), StarForceCost(kLevel, 14) / 2);
-  // 19 -> 20 is the big one, and 20 -> 21 is a quarter of the price.
+  // 19 to 20 is the biggest, and 20 to 21 costs a quarter as much.
   EXPECT_GT(StarForceCost(kLevel, 19), StarForceCost(kLevel, 18));
   EXPECT_LT(StarForceCost(kLevel, 20), StarForceCost(kLevel, 19) / 3);
-  // Past 22 one formula runs to the end, so the climb never breaks again.
+  // Past 22 one formula applies to the end, so the price keeps rising.
   for (int stars = 22; stars < 29; ++stars) {
     EXPECT_LT(StarForceCost(kLevel, stars), StarForceCost(kLevel, stars + 1))
         << "at " << stars << " stars";
   }
 }
 
-// Every price is quoted to the hundred, including the smallest one there is.
+// Every price is rounded to the hundred, including the smallest.
 TEST(StarForceCostTest, EveryPriceIsRoundedToAHundred) {
   for (int level = 1; level <= 200; level += 7) {
     for (int stars = 0; stars < 30; ++stars) {
@@ -66,8 +66,8 @@ TEST(StarForceCostTest, EveryPriceIsRoundedToAHundred) {
   }
 }
 
-// Nothing the game can produce reaches these, so a price here would be a
-// price charged for an attempt that cannot happen.
+// The game can't produce these, so a price here would be for an attempt that
+// can't happen.
 TEST(StarForceCostTest, PricesNothingOutsideTheLadder) {
   EXPECT_EQ(StarForceCost(0, 0), 0);
   EXPECT_EQ(StarForceCost(-5, 0), 0);

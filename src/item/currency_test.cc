@@ -36,8 +36,8 @@ std::vector<std::string> Names(const CurrencyPurse& purse) {
   return names;
 }
 
-// The three kinds that buy or bank something are currencies; an ordinary drop
-// names no kind and stays on the Etc tab.
+// The three kinds that buy or collect something are currencies; an ordinary
+// drop has no kind and stays on the Etc tab.
 TEST(CurrencyTest, TheKindSaysWhatIsCounted) {
   EXPECT_TRUE(IsCurrency(Proto("Spell Trace", ITEM_KIND_SPELL_TRACE)));
   EXPECT_TRUE(IsCurrency(Proto("AbsoLab Coin", ITEM_KIND_TOKEN)));
@@ -45,8 +45,7 @@ TEST(CurrencyTest, TheKindSaysWhatIsCounted) {
   EXPECT_FALSE(IsCurrency(Proto("Green Snail Shell", ITEM_KIND_UNSPECIFIED)));
 }
 
-// One balance per currency however many times it is banked, and nothing caps
-// it -- the stack limit that used to is gone with the stack.
+// One balance per currency however many times it's added, with no limit.
 TEST(CurrencyTest, BankingTopsUpOneBalance) {
   CurrencyPurse purse;
   ItemPrototype trace = Proto("Spell Trace", ITEM_KIND_SPELL_TRACE);
@@ -57,8 +56,7 @@ TEST(CurrencyTest, BankingTopsUpOneBalance) {
   EXPECT_TRUE(purse.Holds("Spell Trace"));
 }
 
-// Nothing is banked for a count that is not one, so an empty balance never
-// opens a row.
+// Adding zero adds nothing, so an empty balance never creates a row.
 TEST(CurrencyTest, NothingIsBankedForNothing) {
   CurrencyPurse purse;
   purse.Add(Proto("AbsoLab Coin", ITEM_KIND_TOKEN), 0);
@@ -68,8 +66,8 @@ TEST(CurrencyTest, NothingIsBankedForNothing) {
   EXPECT_FALSE(purse.Holds("AbsoLab Coin"));
 }
 
-// All or nothing, and the row leaves when the last of it is spent: the purse
-// lists what there is, never a balance of zero.
+// All or nothing, and the row is removed when the last of it is spent: the
+// purse lists what exists, never a zero balance.
 TEST(CurrencyTest, SpendingIsAllOrNothing) {
   CurrencyPurse purse;
   purse.Add(Proto("AbsoLab Coin", ITEM_KIND_TOKEN), 10);
@@ -83,9 +81,9 @@ TEST(CurrencyTest, SpendingIsAllOrNothing) {
   EXPECT_TRUE(purse.entries().empty());
 }
 
-// The trace leads, then the tokens by what they buy -- the best gear first,
-// and within a level the weapon ahead of the set -- and the shards last by
-// balance. A balance that moves re-files the purse.
+// The trace first, then tokens by what they buy (best gear first, and within a
+// level the weapon before the set), then shards by balance. A balance change
+// re-sorts the purse.
 TEST(CurrencyTest, ThePurseIsFiledByWhatEachOneBuys) {
   CurrencyPurse purse;
   purse.Add(Proto("Zakum's Soul Shard", ITEM_KIND_SOUL_SHARD), 3);
@@ -103,8 +101,8 @@ TEST(CurrencyTest, ThePurseIsFiledByWhatEachOneBuys) {
       << "the bigger balance leads its kind";
 }
 
-// The Token tab's two columns: each lists its own kind and neither picks up
-// the trace, which is drawn as a balance in the tab bar.
+// The Token tab's two columns each list their own kind, and neither includes
+// the trace, which is shown as a balance in the tab bar.
 TEST(CurrencyTest, EachColumnListsItsOwnKind) {
   CurrencyPurse purse;
   purse.Add(Proto("Spell Trace", ITEM_KIND_SPELL_TRACE), 900);
@@ -115,8 +113,8 @@ TEST(CurrencyTest, EachColumnListsItsOwnKind) {
   EXPECT_TRUE(CurrenciesOf(CurrencyPurse(), ITEM_KIND_TOKEN).empty());
 }
 
-// A round trip through the save keeps every balance, and comes back filed.
-// A name the catalog has lost is dropped, as a stack naming one already was.
+// Saving and loading keeps every balance, sorted. A name missing from the
+// catalog is dropped, as a stack naming one already was.
 TEST(CurrencyTest, ARoundTripKeepsTheBalancesTheCatalogStillNames) {
   ItemPrototype coin = Token("AbsoLab Coin", 160, EQUIP_SLOT_UNSPECIFIED);
   ItemPrototype shard = Proto("Zakum's Soul Shard", ITEM_KIND_SOUL_SHARD);
@@ -141,8 +139,8 @@ TEST(CurrencyTest, ARoundTripKeepsTheBalancesTheCatalogStillNames) {
   EXPECT_EQ(written[shard.name()], 12);
 }
 
-// Restoring replaces what the purse held: loading a second character does not
-// hand them the first one's balances.
+// Loading replaces what the purse held: loading a second character doesn't give
+// them the first one's balances.
 TEST(CurrencyTest, RestoringReplacesWhatWasHeld) {
   ItemPrototype coin = Token("AbsoLab Coin", 160, EQUIP_SLOT_UNSPECIFIED);
   std::map<std::string, const ItemPrototype*> catalog = {{coin.name(), &coin}};

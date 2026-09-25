@@ -13,33 +13,32 @@ namespace ms {
 
 namespace {
 
-// What the shop asks for one of these, on the shelf `payment` names.
+// The shop's price for this item, on the shelf `payment` names.
 int PriceOf(const EquipPrototype& proto, Payment payment) {
   return payment == kPaidInMeso ? proto.shop_price() : proto.token_price();
 }
 
-// Whether the item is on that shelf at all. A meso price is asked for by
-// presence, because zero is a price there -- the Master Adventurer medal is
-// free to anyone who asks for it. A token price is asked for by size: nothing
-// is bought with no tokens.
+// Whether the item is on that shelf at all. A meso price is checked by
+// presence, since zero is a valid price (the Master Adventurer medal is free).
+// A token price is checked by size, since nothing costs zero tokens.
 bool Stocked(const EquipPrototype& proto, Payment payment) {
   return payment == kPaidInMeso ? proto.has_shop_price()
                                 : proto.token_price() > 0;
 }
 
-// Whether a weapon shelf holds this slot. The other shelf holds everything
-// else that is worn, so the two are one question asked both ways round and
-// nothing can fall between them.
+// Whether a weapon shelf holds this slot. The other shelf holds every other
+// worn item, so both shelves use this one check and nothing can fall between
+// them.
 bool IsWeaponSlot(EquipSlot slot) {
-  // Projectiles sit on the weapon shelf rather than one of their own: they are
-  // what a claw or a bow swings, and a tab holding two items is not a tab.
+  // Projectiles go on the weapon shelf instead of their own: a claw or bow uses
+  // them, and a tab with two items isn't worth having.
   return slot == EQUIP_SLOT_PRIMARY_WEAPON || slot == EQUIP_SLOT_PROJECTILE;
 }
 
-// The stocked equips whose slot `on_shelf` claims, in the order the shop list
-// reads: the tier a player can reach now first, one kind of item together
-// within that, and the cheaper of two of a kind ahead of the dearer. Name
-// last, so the order never depends on how the catalog happens to be keyed.
+// The stocked equips whose slot belongs to `on_shelf`, in shop list order: the
+// tier the player can reach now first, items of one kind together within that,
+// and the cheaper of two of a kind first. Name last, so the order never depends
+// on the catalog's keys.
 std::vector<std::string> StockForShelf(
     const std::map<std::string, EquipPrototype>& equips,
     bool (*on_shelf)(EquipSlot), Payment payment) {

@@ -20,7 +20,8 @@ std::unique_ptr<EquipTabItem> EquipItemFromState(const EquipPrototype& proto,
 namespace {
 
 // Success and destruction rates in hundredths of a percent (10000 = 100%).
-// Index i = attempt from i★ to (i+1)★. Failure = 10000 - success - destroy.
+// Index i is the attempt from i★ to (i+1)★. Failure = 10000 - success -
+// destroy.
 constexpr StarForceRate kRates[kMaxStarForce] = {
     {9500, 0},     // 0★
     {9000, 0},     // 1★
@@ -74,8 +75,8 @@ ScrollTarget TargetForSlot(EquipSlot slot) {
     case EQUIP_SLOT_TOP:
     case EQUIP_SLOT_BOTTOM:
     case EQUIP_SLOT_CAPE:
-    // GMS's spell traces count the shoulderpad with the armour rather than
-    // with the accessories it is worn beside.
+    // GMS's spell traces treat shoulders as armour, not as the accessories
+    // they're worn with.
     case EQUIP_SLOT_SHOULDER:
       return SCROLL_TARGET_ARMOUR;
     case EQUIP_SLOT_FACE_ACCESSORY:
@@ -89,7 +90,7 @@ ScrollTarget TargetForSlot(EquipSlot slot) {
     case EQUIP_SLOT_BELT:
     case EQUIP_SLOT_EARRINGS:
       return SCROLL_TARGET_ACCESSORY;
-    // Shoes are armour; gloves are the one piece of it GMS scrolls apart.
+    // Shoes are armour; gloves are the one armour piece GMS scrolls separately.
     case EQUIP_SLOT_SHOES:
       return SCROLL_TARGET_ARMOUR;
     case EQUIP_SLOT_GLOVES:
@@ -100,7 +101,7 @@ ScrollTarget TargetForSlot(EquipSlot slot) {
     case EQUIP_SLOT_PROJECTILE:
     case EQUIP_SLOT_SECONDARY:
     case EQUIP_SLOT_POCKET:
-    // The trophies. GMS lets no scroll near any of them.
+    // The trophies. GMS doesn't allow any scrolls on them.
     case EQUIP_SLOT_BADGE:
     case EQUIP_SLOT_EMBLEM:
     case EQUIP_SLOT_MEDAL:
@@ -122,7 +123,8 @@ std::unique_ptr<EquipTabItem> EquipInstance::Clone() const {
 EquipInstance::EquipInstance(const EquipPrototype& prototype,
                              const Equip& state)
     : EquipTabItem(prototype, state) {
-  // Default Equip (fresh drop) has empty equip_name; initialize from prototype.
+  // A default Equip (fresh drop) has an empty equip_name; initialize from the
+  // prototype.
   if (state_.equip_name().empty()) {
     state_.set_equip_name(prototype_.name());
     state_.set_remaining_upgrade_slots(prototype_.upgrade_slots());
@@ -131,15 +133,15 @@ EquipInstance::EquipInstance(const EquipPrototype& prototype,
 
 ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
                                     std::mt19937& rng) {
-  // An item with no slots already refuses every scroll below, but saying it
-  // once up here covers the item that declares itself unscrollable while still
-  // carrying slots.
+  // An item with no slots already rejects every scroll below, but checking here
+  // also covers an item that declares itself unscrollable while still having
+  // slots.
   if (!Supports(prototype_, UPGRADE_SCROLL)) {
     return kScrollNoSlots;
   }
   if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
-    // Against the item's own shelf, hammers included: a slot a hammer opened
-    // is a slot a clean slate buys back.
+    // Against the item's full slot count, hammers included: a slot a hammer
+    // added is one a Clean Slate can restore.
     int cap = TotalUpgradeSlots(prototype_, state_) - state_.scroll_successes();
     if (state_.remaining_upgrade_slots() >= cap) {
       return kScrollNoSlots;
@@ -181,8 +183,8 @@ bool EquipInstance::Hammer() {
 }
 
 StarForceOutcome EquipInstance::StarForce(std::mt19937& rng) {
-  // Checked here as well as in CanStarForce so an item that refuses stars
-  // refuses them whatever the caller believed.
+  // Checked here as well as in CanStarForce, so an item that refuses stars
+  // refuses them whatever the caller assumed.
   if (!Supports(prototype_, UPGRADE_STAR_FORCE)) {
     return kStarForceFail;
   }

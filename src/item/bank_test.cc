@@ -69,8 +69,8 @@ TEST(BankTest, TheEquipTabFillsUp) {
   EXPECT_FALSE(bank.AddEquip(Item(sword, 0)));
 }
 
-// A currency is a balance and takes any amount; an Etc drop takes a slot and
-// runs out of room.
+// A currency is a balance and accepts any amount; an Etc drop takes a slot and
+// can run out of room.
 TEST(BankTest, DropsAndCurrenciesAreRoutedApart) {
   BankInstance bank;
   ItemPrototype shell = Shell();
@@ -104,8 +104,8 @@ TEST(BankTest, MesoIsAllOrNothing) {
   EXPECT_EQ(bank.meso(), 0);
 }
 
-// Everything survives the save, and a row whose item left the data is dropped
-// rather than restored as a blank.
+// Everything survives saving, and a row whose item left the data is dropped
+// instead of restored blank.
 TEST(BankTest, SaveAndLoadKeepWhatIsStillInTheCatalog) {
   EquipPrototype sword = Sword();
   ItemPrototype shell = Shell();
@@ -122,7 +122,7 @@ TEST(BankTest, SaveAndLoadKeepWhatIsStillInTheCatalog) {
   ASSERT_EQ(saved.stacks_size(), 1);
   EXPECT_EQ(saved.meso(), 123456);
 
-  // Two rows naming items the catalogs no longer describe.
+  // Two rows naming items the catalogs no longer have.
   saved.add_equip_tab()->set_equip_name("Sword That Left The Data");
   saved.add_stacks()->set_name("Drop That Left The Data");
 

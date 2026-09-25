@@ -1,7 +1,7 @@
 /* InventoryInstance holds the equip-tab items in a character's bag. It wraps a
  * vector of EquipTabItem and provides typed accessors so callers never need to
- * dynamic_cast manually. Mutation primitives are called by CharacterInstance;
- * high-level game logic stays there.
+ * dynamic_cast. CharacterInstance calls the mutation methods; higher-level game
+ * logic stays there.
  */
 #ifndef MS_SRC_ITEM_INVENTORY_H_
 #define MS_SRC_ITEM_INVENTORY_H_
@@ -19,7 +19,8 @@ namespace ms {
 class InventoryInstance {
  public:
   InventoryInstance() = default;
-  // Deep: every item is cloned, so the copy and the original share nothing.
+  // Deep copy: every item is cloned, so the copy and the original share
+  // nothing.
   InventoryInstance(const InventoryInstance& other);
   InventoryInstance& operator=(const InventoryInstance& other);
   InventoryInstance(InventoryInstance&&) = default;
@@ -42,16 +43,16 @@ class InventoryInstance {
   int room() const;
   bool full() const;
 
-  // Mutation primitives.
-  // Appends if index is -1; inserts before index otherwise. The caller checks
-  // room() first: this is a primitive and does not refuse a full bag, so that
-  // moving an item about internally cannot fail on a bag that is merely full.
+  // Mutation methods. Appends if index is -1; otherwise inserts before index.
+  // The caller checks room() first: this is a low-level method and doesn't
+  // refuse a full bag, so moving an item around internally can't fail just
+  // because the bag is full.
   void add(std::unique_ptr<EquipTabItem> item, int index = -1);
   // Removes and returns the equip-tab item at index. Index must be in range.
   std::unique_ptr<EquipTabItem> remove_equip(int index);
   // Replaces the item at index. Index must be in range.
   void set(int index, std::unique_ptr<EquipTabItem> item);
-  // Files the tab into the bag's sort order -- see inventory_sort.h.
+  // Sorts the tab into the bag's sort order; see inventory_sort.h.
   void Sort(const std::function<bool(const EquipPrototype&)>& equippable);
 
  private:

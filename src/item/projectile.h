@@ -1,6 +1,6 @@
-/* Which weapon draws which ammunition. One pairing, read from both ends: the
- * character asks what a projectile needs before crediting its attack, and the
- * gear sims ask what a weapon needs before measuring one.
+/* Which weapon uses which ammunition. One mapping, read from both directions:
+ * the character checks what a projectile needs before counting its attack, and
+ * the gear sims check what a weapon needs before measuring it.
  */
 #ifndef MS_SRC_ITEM_PROJECTILE_H_
 #define MS_SRC_ITEM_PROJECTILE_H_
@@ -9,12 +9,10 @@
 
 namespace ms {
 
-// What `weapon` draws from, or unspecified for a weapon that draws from
-// nothing.
+// The ammunition `weapon` uses, or unspecified if it uses none.
 EquipType AmmoFor(EquipType weapon);
 
-// The weapon that draws `ammo`, or unspecified for anything that is not
-// ammunition.
+// The weapon that uses `ammo`, or unspecified if it isn't ammunition.
 EquipType WeaponDrawing(EquipType ammo);
 
 }  // namespace ms

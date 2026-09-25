@@ -1,11 +1,10 @@
-/* The currencies a character holds: spell traces, the shops' tokens and the
- * bosses' soul shards.
+/* The currencies a character holds: spell traces, shop tokens and boss soul
+ * shards.
  *
- * A currency is a balance, not a stack. It costs no slot on the Etc tab, no
- * per-stack limit caps it, and it is saved as a number beside meso rather
- * than as a row in the bag -- which is the whole difference between this and
- * //src/item/item.h's StackableItem. Which items are currencies is the
- * prototype's to say; see ItemKind.
+ * A currency is a balance, not a stack. It uses no Etc tab slot, has no stack
+ * limit, and is saved as a number next to meso instead of a row in the bag.
+ * That's the whole difference from //src/item/item.h's StackableItem. The
+ * prototype decides which items are currencies; see ItemKind.
  */
 #ifndef MS_SRC_ITEM_CURRENCY_H_
 #define MS_SRC_ITEM_CURRENCY_H_
@@ -20,13 +19,13 @@
 
 namespace ms {
 
-// Whether `proto` is counted rather than carried: a currency the player
-// spends -- traces and tokens -- or banks, as a soul shard is banked one per
-// clear. An ordinary drop names no kind at all.
+// Whether `proto` is counted instead of carried: a currency the player spends
+// (traces and tokens) or collects (soul shards, one per clear). An ordinary
+// drop has no kind.
 bool IsCurrency(const ItemPrototype& proto);
 
-// One currency and what the character has of it. Holds the prototype by value
-// the way StackableItem does, so a row can be drawn without the catalog.
+// One currency and how much of it the character has. Holds the prototype by
+// value like StackableItem does, so a row can be drawn without the catalog.
 class CurrencyAmount {
  public:
   CurrencyAmount(ItemPrototype prototype, int64_t count)
@@ -42,8 +41,8 @@ class CurrencyAmount {
   int64_t count() const {
     return count_;
   }
-  // Moves the balance by `delta`. Callers keep the result non-negative; this
-  // does not clamp.
+  // Changes the balance by `delta`. Callers keep it non-negative; this doesn't
+  // clamp.
   void add_count(int64_t delta) {
     count_ += delta;
   }
@@ -53,46 +52,47 @@ class CurrencyAmount {
   int64_t count_;
 };
 
-// Every currency the character holds any of, filed in the order the Token tab
-// reads them. A balance that reaches zero leaves: the purse lists what there
-// is, never a row of nothing.
+// Every currency the character has any of, sorted in the Token tab's order. A
+// balance that reaches zero is removed: the purse lists what exists, never a
+// zero row.
 class CurrencyPurse {
  public:
-  // Banks `count` of `proto`. Nothing refuses it -- there is no room to run
-  // out of -- so unlike the bag this returns nothing.
+  // Adds `count` of `proto`. Nothing can refuse it, since there's no room
+  // limit, so unlike the bag this returns nothing.
   void Add(const ItemPrototype& proto, int64_t count);
-  // The balance in the named currency, or 0 for one the character has none
-  // of. Matched on display name, as everything crossing a save does.
+  // The balance of the named currency, or 0 if the character has none. Matched
+  // by display name, as everything in a save is.
   int64_t Count(const std::string& name) const;
-  // Spends `count`. All or nothing: false and nothing taken on a short purse.
+  // Spends `count`. All or nothing: returns false and takes nothing if the
+  // balance is short.
   bool Spend(const std::string& name, int64_t count);
-  // Whether the purse has a balance under this name at all. What tells a
-  // currency from an Etc stack where only the name is in hand.
+  // Whether the purse has a balance under this name. Tells a currency from an
+  // Etc stack when only the name is known.
   bool Holds(const std::string& name) const;
 
   const std::vector<CurrencyAmount>& entries() const {
     return entries_;
   }
 
-  // Reads `saved` -- Character.currencies -- resolving names against the item
+  // Loads `saved` (Character.currencies), resolving names against the item
   // catalog. A name no longer in data/ is dropped, as a stack naming a missing
   // item is.
   void RestoreFrom(const google::protobuf::Map<std::string, int64_t>& saved,
                    const std::map<std::string, const ItemPrototype*>& by_name);
-  // The purse as the save holds it.
+  // The purse as the save stores it.
   google::protobuf::Map<std::string, int64_t> ToProto() const;
 
  private:
-  // Puts `entries_` back in the Token tab's order. The balance is one of the
-  // keys, so every mutation re-files the purse: there is no Sort button for
-  // it, and nothing holds an index into it across a frame.
+  // Restores `entries_` to the Token tab's order. The balance is a sort key, so
+  // every change re-sorts the purse: there's no Sort button for it, and nothing
+  // keeps an index into it across frames.
   void Sort();
 
   std::vector<CurrencyAmount> entries_;
 };
 
-// The entries of `purse` whose kind is `kind`, as indices into entries(). The
-// Token tab draws two of these side by side.
+// Indices into entries() of `purse`'s currencies of kind `kind`. The Token tab
+// draws two of these side by side.
 std::vector<int> CurrenciesOf(const CurrencyPurse& purse, ItemKind kind);
 
 }  // namespace ms

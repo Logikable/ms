@@ -15,10 +15,9 @@
 namespace ms {
 namespace {
 
-// Where a currency's kind puts it, low first. The Token tab draws the tokens
-// and the shards as columns of their own, so this only has to keep the two
-// apart and the trace -- which is a balance in the tab bar, never a row --
-// ahead of both.
+// Sort rank for a currency's kind, lowest first. The Token tab draws tokens and
+// shards in separate columns, so this only needs to keep those two apart and
+// put the trace (shown as a balance in the tab bar, never a row) ahead of both.
 int KindRank(ItemKind kind) {
   switch (kind) {
     case ITEM_KIND_SPELL_TRACE:
@@ -30,10 +29,10 @@ int KindRank(ItemKind kind) {
   }
 }
 
-// Where a token sits among the tokens: the best gear first, and within a level
-// the weapon ahead of the set. One that buys a whole set names no slot and
-// leads its level. Only the first two ranks are the shelf's own -- past them
-// it is the Equipped panel's order, so the two agree.
+// Sort rank for a token: best gear first, and within a level, the weapon before
+// the set. A token that buys a whole set names no slot and comes first in its
+// level. Only the first two ranks are specific to the shelf; after them it
+// follows the Equipped panel's order, so the two agree.
 int TokenSlotRank(EquipSlot slot) {
   switch (slot) {
     case EQUIP_SLOT_UNSPECIFIED:
@@ -72,7 +71,7 @@ void CurrencyPurse::Add(const ItemPrototype& proto, int64_t count) {
   } else {
     it->add_count(count);
   }
-  // The balance is part of the order, so every change re-files the purse.
+  // The balance affects the order, so every change re-sorts the purse.
   Sort();
 }
 
@@ -139,10 +138,9 @@ void CurrencyPurse::Sort() {
             [](const CurrencyAmount& a, const CurrencyAmount& b) {
               auto key = [](const CurrencyAmount& entry) {
                 const ItemPrototype& proto = entry.prototype();
-                // A token is filed by what it buys rather than by the balance
-                // standing in it: a shelf the player cannot shop yet has no
-                // business leading the ones they can. A shard has nothing to
-                // be ranked by but its count.
+                // A token is sorted by what it buys, not its balance: a shelf
+                // the player can't use yet shouldn't come before ones they can.
+                // A shard can only be sorted by its count.
                 bool token = proto.kind() == ITEM_KIND_TOKEN;
                 return std::make_tuple(
                     KindRank(proto.kind()), token ? -proto.currency_level() : 0,

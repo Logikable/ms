@@ -6,10 +6,10 @@
 namespace ms {
 namespace {
 
-// A TABLE rather than the enum's order: a slot number is what a save names a
-// worn item by and can never move, so the rings and the second pendant would
-// trail the list instead of standing with their families. Only the head of
-// each family is named.
+// A table instead of the enum's order: a slot number is how a save identifies a
+// worn item and can never change, so the rings and second pendant would come at
+// the end instead of with their families. Only the first slot of each family is
+// listed.
 constexpr EquipSlot kSlotOrder[] = {
     EQUIP_SLOT_PRIMARY_WEAPON,
     EQUIP_SLOT_HAT,
@@ -43,8 +43,8 @@ constexpr EquipSlot kSlotOrder[] = {
 constexpr int kSlotOrderSize =
     static_cast<int>(sizeof(kSlotOrder) / sizeof(kSlotOrder[0]));
 
-// Every slot but UNSPECIFIED and the four a family gained. A slot added
-// without a place in the list would sort to the bottom unnoticed.
+// Every slot except UNSPECIFIED and the four extra family slots. A slot added
+// without a place in the list would silently sort to the bottom.
 static_assert(EquipSlot_ARRAYSIZE == kSlotOrderSize + 5,
               "a new slot needs a place in kSlotOrder");
 

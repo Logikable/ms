@@ -15,41 +15,40 @@ namespace {
 
 constexpr int kDefaultMaxStack = 200;
 
-// Per-star primary stat deltas for 1-15★ (index i = gain for i★→(i+1)★).
+// Per-star primary stat gains for 1-15★ (index i is the gain for i★→(i+1)★).
 constexpr int kPrimaryStatDeltas[15] = {
     2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 };
 
-// Per-star Max HP over the same range, for the items GMS raises it on, and
-// per-star Max MP for a weapon, which climbs by the same amounts.
+// Per-star Max HP over the same range, for items GMS raises it on, and per-star
+// Max MP for a weapon, which grows by the same amounts.
 constexpr int kMaxHpDeltas[15] = {
     5, 5, 5, 10, 10, 15, 15, 20, 20, 25, 25, 25, 25, 25, 25,
 };
 
-// The attempts in 1-15★ on which a glove gains a point of attack, GMS's
-// answer to the Max HP it is not paid. Index i = the gain for i★→(i+1)★.
+// The attempts in 1-15★ where a glove gains a point of attack, GMS's substitute
+// for the Max HP gloves don't get. Index i is the gain for i★→(i+1)★.
 constexpr bool kGloveAttackStars[15] = {
     false, false, false, false, true, false, true, false,
     true,  false, true,  false, true, true,  true,
 };
 
-// The share of what the item already carries that one star adds to a scaled
-// stat. Attack climbs by a fiftieth, defense by a twentieth.
+// The fraction of the item's existing value one star adds to a scaled stat.
+// Attack grows by a fiftieth, defense by a twentieth.
 constexpr int kAttackPercent = 2;
 constexpr int kDefensePercent = 5;
 
-// Stat and attack gained on reaching a given star (16-30★), by the item's
-// required level; index i is the gain for (i+15)★→(i+16)★. A weapon and
-// everything else read different ATTACK columns, and the shared stat column
-// runs out at 23★. GMS's table stops at 25★, and the rows past it continue the
-// last step.
+// Stat and attack gained on reaching each star from 16★ to 30★, by the item's
+// required level; index i is the gain for (i+15)★→(i+16)★. Weapons and other
+// items use different attack columns, and the shared stat column ends at 23★.
+// GMS's table stops at 25★; rows past it repeat the last step.
 struct HighStarEntry {
   int stat;
   int weapon_att;
   int other_att;
 };
 
-// Max stars for this range is 20★; entries 5-14 are padding.
+// This range's maximum is 20★; entries 5-14 are padding.
 constexpr HighStarEntry kHighStar128_137[15] = {
     {7, 6, 7}, {7, 7, 8}, {7, 7, 9}, {7, 8, 10}, {7, 9, 11},
     {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},  {0, 0, 0},
@@ -75,10 +74,9 @@ constexpr HighStarEntry kHighStar200_249[15] = {
     {15, 16, 17}, {15, 17, 19}, {0, 34, 21},  {0, 35, 23},  {0, 36, 25},
     {0, 37, 27},  {0, 38, 29},  {0, 39, 31},  {0, 40, 33},  {0, 41, 35},
 };
-// The weapon column is zero from 23★ on: no star-forceable Lv250+ weapon
-// exists in GMS.
-// TODO: Superior equipment has a different stat table and a 15★ cap; handle
-// separately when Superior items are added.
+// The weapon column is zero from 23★, since GMS has no star-forceable level
+// 250+ weapon. TODO: Superior equipment has a different stat table and a 15★
+// cap; handle it separately when Superior items are added.
 constexpr HighStarEntry kHighStar250Plus[15] = {
     {17, 16, 14}, {17, 16, 15}, {17, 17, 16}, {17, 17, 17}, {17, 18, 18},
     {17, 19, 19}, {17, 20, 21}, {0, 0, 23},   {0, 0, 25},   {0, 0, 27},
@@ -108,9 +106,8 @@ HighStarEntry HighStarGainAt(int required_level, int star_to) {
   return {0, 0, 0};
 }
 
-// Which of the four primary stats a star raises. Two rules pick them: below
-// 16★ it is the stats the item's job needs, above it the stats the item
-// already shows.
+// Which of the four primary stats a star raises. Below 16★ it's the stats the
+// item's job needs; from 16★ it's the stats the item already shows.
 struct StatFlags {
   bool str = false;
   bool dex = false;
@@ -150,8 +147,8 @@ StatFlags PrimaryStatFlags(const EquipPrototype& proto) {
 }
 
 // GMS's "Category A": the slots whose stars raise Max HP. No overall, because
-// this game splits top and bottom and always will. No off hand either: GMS's
-// list names the shield, and ours holds a medallion or a book.
+// this game splits top and bottom. No secondary either: GMS's list names the
+// shield, and ours holds a medallion or book.
 bool RaisesMaxHp(EquipSlot slot) {
   switch (slot) {
     case EQUIP_SLOT_PRIMARY_WEAPON:
@@ -174,21 +171,20 @@ bool RaisesMaxHp(EquipSlot slot) {
     case EQUIP_SLOT_FACE_ACCESSORY:
     case EQUIP_SLOT_EYE_ACCESSORY:
     case EQUIP_SLOT_POCKET:
-    // GMS's list names neither, however much they look like the armour it
-    // does name. A glove's stars pay attack instead; see
-    // kGloveAttackStars.
+    // GMS's list includes neither, even though they look like armour. Gloves
+    // get attack from stars instead; see kGloveAttackStars.
     case EQUIP_SLOT_GLOVES:
     case EQUIP_SLOT_SHOES:
-    // The trophies take no star at all, and a heart's are not Category A
-    // either: what its stars pay is attack.
+    // Trophies take no stars at all, and hearts aren't Category A either; their
+    // stars give attack.
     case EQUIP_SLOT_BADGE:
     case EQUIP_SLOT_EMBLEM:
     case EQUIP_SLOT_MEDAL:
     case EQUIP_SLOT_HEART:
-    // GMS's list names the ring, the pendant, the belt and the shoulderpad
-    // among the accessories, and stops there.
+    // Among accessories, GMS's list includes only the ring, pendant, belt and
+    // shoulder.
     case EQUIP_SLOT_EARRINGS:
-    // A symbol takes no stars at all, so no category can claim it.
+    // Symbols take no stars at all, so no category applies.
     case EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY:
     case EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND:
     case EQUIP_SLOT_SYMBOL_LACHELEIN:
@@ -200,7 +196,7 @@ bool RaisesMaxHp(EquipSlot slot) {
   return false;
 }
 
-// The stats an item shows before any star, which is what GMS calls visible.
+// The stats an item shows before stars, which GMS calls visible.
 StatFlags VisibleStatFlags(const EquipStats& shown) {
   return {shown.str() > 0, shown.dex() > 0, shown.int_() > 0, shown.luk() > 0};
 }
@@ -220,10 +216,9 @@ void AddToStats(EquipStats* gains, StatFlags flags, int delta) {
   }
 }
 
-// One attempt's worth of a scaled stat: GMS's 1 + RoundDown[stat x share],
-// taken from the drop's own stat plus what the stars have added so far, which
-// is what makes the gains compound. A stat the item does not show gains
-// nothing, however many stars go into it.
+// One attempt's gain in a scaled stat: GMS's 1 + RoundDown[stat x share], taken
+// from the item's own stat plus the stars' gains so far, which makes the gains
+// compound. A stat the item doesn't show gains nothing, however many stars.
 int ScaledGain(int shown, int gained, int percent) {
   if (shown <= 0) {
     return 0;
@@ -231,8 +226,8 @@ int ScaledGain(int shown, int gained, int percent) {
   return 1 + (shown + gained) * percent / 100;
 }
 
-// What one star is worked out against: the item's own facts, and the gains so
-// far, which the scaled stats take their next share from.
+// What one star's gain is computed from: the item's own properties, and the
+// gains so far, which scaled stats take their next share from.
 struct StarForceRun {
   EquipSlot slot;
   bool is_weapon;
@@ -245,8 +240,8 @@ struct StarForceRun {
   EquipStats gains;
 };
 
-// One attempt in the 1-15★ range. The job's own stats climb by a flat amount;
-// attack and defense climb by a share of what the item already carries.
+// One attempt in the 1-15★ range. The job's stats grow by a flat amount; attack
+// and defense grow by a share of what the item already has.
 void AddLowStar(int index, StarForceRun* run) {
   EquipStats& gains = run->gains;
   AddToStats(&gains, run->job_stats, kPrimaryStatDeltas[index]);
@@ -256,9 +251,8 @@ void AddLowStar(int index, StarForceRun* run) {
   if (!run->is_weapon) {
     gains.set_def(gains.def() +
                   ScaledGain(run->shown_def, gains.def(), kDefensePercent));
-    // A flat point rather than a share: the glove is the one piece of armour
-    // whose attack climbs this far down the ladder, and only the attack it
-    // already shows.
+    // A flat point instead of a share: gloves are the only armour whose attack
+    // grows this low on the ladder, and only if they already show attack.
     if (run->slot == EQUIP_SLOT_GLOVES && kGloveAttackStars[index]) {
       if (run->shown_att > 0) {
         gains.set_attack(gains.attack() + 1);
@@ -269,8 +263,8 @@ void AddLowStar(int index, StarForceRun* run) {
     }
     return;
   }
-  // The weapon is the only thing whose stars raise Max MP, and the only thing
-  // whose attack climbs at all this far down.
+  // Only weapons get Max MP from stars, and only weapons gain attack at all in
+  // this range.
   gains.set_max_mp(gains.max_mp() + kMaxHpDeltas[index]);
   gains.set_attack(gains.attack() +
                    ScaledGain(run->shown_att, gains.attack(), kAttackPercent));
@@ -280,8 +274,8 @@ void AddLowStar(int index, StarForceRun* run) {
 }
 
 // One attempt at 16★ and up, where the table is by equipment level. Every stat
-// the item shows climbs, the job no longer deciding which, and armour starts
-// gaining flat attack of its own.
+// the item shows grows, regardless of job, and armour starts gaining its own
+// flat attack.
 void AddHighStar(int star_to, StarForceRun* run) {
   HighStarEntry entry = HighStarGainAt(run->required_level, star_to);
   EquipStats& gains = run->gains;
@@ -295,18 +289,18 @@ void AddHighStar(int star_to, StarForceRun* run) {
     }
     return;
   }
-  // Armour gains this whether or not it shows any attack to begin with.
+  // Armour gains this whether or not it had attack to begin with.
   gains.set_attack(gains.attack() + entry.other_att);
   gains.set_magic_attack(gains.magic_attack() + entry.other_att);
-  // Only the Lv250 band keeps climbing in defense past 15★.
+  // Only the level 250 band keeps gaining defense past 15★.
   if (run->required_level >= 250) {
     gains.set_def(gains.def() +
                   ScaledGain(run->shown_def, gains.def(), kDefensePercent));
   }
 }
 
-// One pass over the catalog. Small enough that an index would cost more to
-// build than the walk it saves, and every caller is on a keypress.
+// A linear search of the catalog. Small enough that building an index would
+// cost more than it saves, and every caller runs on a keypress.
 template <typename Proto>
 const Proto* FindByName(const std::map<std::string, Proto>& catalog,
                         const std::string& name) {
@@ -438,10 +432,9 @@ EquipStats EquipTabItem::StarForceStatGains(int stars) const {
   if (stars < 0) {
     stars = state_.stars();
   }
-  // What the item shows before any star: the drop's own stats and whatever
-  // scrolls passed. The star force gains are deliberately not in it -- each
-  // star's share is taken from these plus the gains so far, which the run
-  // carries as it goes.
+  // What the item shows before any stars: its own stats plus successful
+  // scrolls. Star force gains are deliberately left out: each star's share is
+  // taken from these plus the gains so far, which the run tracks as it goes.
   const EquipStats shown_sources[] = {prototype_.base_stats(),
                                       state_.scroll_stats()};
   const EquipStats shown = SumEquipStats(shown_sources);

@@ -31,8 +31,8 @@ EquipPrototype MakeItem(const std::string& name, int level, int price) {
   return e;
 }
 
-// An item the shop does not stock, which is one that names no price at all --
-// not one that names zero.
+// An item the shop doesn't stock, meaning one with no price at all, not a price
+// of zero.
 EquipPrototype MakeUnpriced(const std::string& name, int level) {
   EquipPrototype e = MakeItem(name, level, 0);
   e.clear_shop_price();
@@ -46,9 +46,8 @@ EquipPrototype MakeItem(const std::string& name, int level, int price,
   return e;
 }
 
-// Naming a price is what stocks an item, and zero is a price: the shop hands
-// one item over for nothing, and an item that says nothing is the one it does
-// not sell.
+// Setting a price is what stocks an item, and zero is a price: the shop gives
+// one item away free, and an item with no price isn't sold.
 TEST(ShopTest, StocksOnlyPricedItemsAndZeroIsAPrice) {
   std::map<std::string, EquipPrototype> equips{
       {"free", MakeItem("Free", 10, 0)},
@@ -59,14 +58,13 @@ TEST(ShopTest, StocksOnlyPricedItemsAndZeroIsAPrice) {
   EXPECT_EQ(ShopWeaponStock(equips, kPaidInMeso), expected);
 }
 
-// The four keys of the sort, checked one at a time: each case leaves every
-// earlier key equal so only the one under test can decide the order, and every
-// case runs the catalog keys the opposite way from the answer, or sorting on
-// the key would give the same result and none of this would be testing
-// anything.
+// The four sort keys, checked one at a time. Each case keeps earlier keys equal
+// so only the key under test decides the order, and every case lists the
+// catalog keys in the opposite order from the answer, so sorting by key alone
+// wouldn't pass.
 TEST(ShopTest, SortsByLevelBeforeAnythingElse) {
-  // The dearer item comes first on its lower level, against its type, its
-  // price and its name.
+  // The pricier item comes first because of its lower level, despite its type,
+  // price and name.
   std::map<std::string, EquipPrototype> equips{
       {"a", MakeItem("Anvil", 30, 5000, EQUIP_TYPE_BOW)},
       {"b", MakeItem("Zebra", 10, 9000, EQUIP_TYPE_SPEAR)},
@@ -102,9 +100,9 @@ TEST(ShopTest, SortsByNameWithinAPrice) {
   EXPECT_EQ(ShopWeaponStock(equips, kPaidInMeso), expected);
 }
 
-// The shipped shelves, checked pair by pair against the same four keys the
-// header promises. Sortedness rather than a copy of the list: a copy has to be
-// rewritten for every tier added, and says nothing the rule does not.
+// The shipped shelves, checked pair by pair against the header's four keys.
+// Checks sortedness instead of a copied list: a copy would need rewriting for
+// every new tier and adds nothing the rule doesn't.
 TEST(ShopTest, BothShelvesReadInColumnOrder) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   for (const std::vector<std::string>& shelf :
@@ -126,11 +124,10 @@ TEST(ShopTest, BothShelvesReadInColumnOrder) {
   }
 }
 
-// What shares the weapon shelf. Stars belong on it, because they are what a
-// claw swings and a tab holding one item is not a tab. Nothing worn does: it
-// has a shelf of its own, and a medallion among the swords would read as
-// something to swing. Level orders the shelf, so the stars land in their own
-// tier rather than at the end.
+// What shares the weapon shelf. Stars belong there, since a claw uses them and
+// a one-item tab isn't worth having. No worn items do: they have their own
+// shelf, and a medallion among swords would look like a weapon. The shelf is
+// sorted by level, so the stars appear in their own tier instead of at the end.
 TEST(ShopTest, TheWeaponShelfCarriesTheStarsAndNothingWorn) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   int stars = 0;
@@ -144,9 +141,9 @@ TEST(ShopTest, TheWeaponShelfCarriesTheStarsAndNothingWorn) {
   EXPECT_GT(stars, 0) << "the stars have fallen off the weapon shelf";
 }
 
-// The two shelves partition what the shop stocks: everything worn that is not
-// swung or thrown is on the other one, so nothing can fall between them and
-// nothing can sit on both.
+// The two shelves split everything the shop stocks: every worn item that isn't
+// a weapon or thrown is on the other shelf, so nothing falls between them or
+// appears on both.
 TEST(ShopTest, TheEquipShelfHoldsEverythingTheWeaponShelfDoesNot) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::set<std::string> shelved;
@@ -172,10 +169,10 @@ TEST(ShopTest, TheEquipShelfHoldsEverythingTheWeaponShelfDoesNot) {
   EXPECT_EQ(static_cast<int>(shelved.size()), stocked);
 }
 
-// Nothing on sale is out of reach. EXP stops at the cap, so an item above it
-// is one the shop takes meso for and the player can never hold -- and an
-// endgame item appearing here would be a balance change nobody asked for.
-// Both shelves, since a tier is added to each of them at once.
+// Nothing for sale is out of reach. EXP stops at the cap, so an item above it
+// would take meso for something the player can never use, and an endgame item
+// here would be an unrequested balance change. Checks both shelves, since each
+// new tier goes on both.
 TEST(ShopTest, NothingAboveTheTrialCapIsForSale) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   for (const std::vector<std::string>& shelf :
@@ -188,8 +185,8 @@ TEST(ShopTest, NothingAboveTheTrialCapIsForSale) {
   }
 }
 
-// The token shelf is the same shelf read for a different price: an item names
-// one or the other, so neither list can hold anything off the other one.
+// The token shelf is the same shelf read for a different price: an item has one
+// price or the other, so neither list can contain anything from the other.
 TEST(ShopTest, TheTokenShelvesHoldWhatATokenBuys) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::vector<std::string> weapons = ShopWeaponStock(equips, kPaidInTokens);
@@ -214,10 +211,10 @@ TEST(ShopTest, TheTokenShelvesHoldWhatATokenBuys) {
   }
 }
 
-// A token buys the tier above everything meso reaches for the same slot, so
-// the two shelves never offer one slot twice and a token is never the lesser
-// buy. Asked per slot rather than over the whole shop: the meso shelf sells a
-// level 140 ring beside off-hands that stop at 100.
+// A token buys the tier above everything meso can buy for the same slot, so the
+// two shelves never offer the same slot and a token is never the worse buy.
+// Checked per slot instead of across the whole shop, since the meso shelf sells
+// a level 140 ring next to secondaries that stop at 100.
 TEST(ShopTest, ATokenTierIsAboveEveryMesoTierOfItsSlot) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::map<EquipSlot, int> highest;
@@ -250,8 +247,8 @@ ItemPrototype MakeStackable(const std::string& name, int price) {
   return p;
 }
 
-// Same rule the equip shelf follows: naming a price is what stocks an item,
-// and an item with no price is simply not sold.
+// The same rule as the equip shelf: a price stocks an item, and an item with no
+// price isn't sold.
 TEST(ShopEtcStockTest, OnlyPricedItemsAreStocked) {
   std::map<std::string, ItemPrototype> items;
   items["trace"] = MakeStackable("Spell Trace", 5000);
@@ -267,8 +264,8 @@ TEST(ShopEtcStockTest, CheapestFirstThenByName) {
   EXPECT_EQ(ShopEtcStock(items), (std::vector<std::string>{"b", "a", "c"}));
 }
 
-// The shipped catalog, so the trace reaching the shelf is asserted where a
-// missing shop_price would actually show up.
+// Uses the shipped catalog, so a missing shop_price on the trace would be
+// caught here.
 TEST(ShopEtcStockTest, TheSpellTraceIsStocked) {
   std::map<std::string, ItemPrototype> items =
       LoadTestData<ItemPrototype>("items");

@@ -6,18 +6,18 @@
 namespace ms {
 namespace {
 
-// Costs run [rate][category]: rates in the order 100, 70, 30, 15; categories
-// in the order armor, gloves, weapon, accessory. A 0 means GMS sells no such
+// Costs are [rate][category]: rates in the order 100, 70, 30, 15; categories in
+// the order armor, gloves, weapon, accessory. A 0 means GMS doesn't sell that
 // scroll.
 struct Band {
   int min_level;
   int cost[4][4];
 };
 
-// Two calls on cells the wiki leaves as "?": level 20-29 accessories read
-// 2/3/3, the only value that keeps the column climbing between the rows either
-// side, and 250+ is left at 0. The bands the wiki skips fall back to the one
-// below, as GMS does.
+// Two judgement calls on cells the wiki marks "?": level 20-29 accessories use
+// 2/3/3, the only values that keep the column increasing between neighbouring
+// rows, and 250+ is left at 0. Bands the wiki skips use the band below, as GMS
+// does.
 const Band kBands[] = {
     {0, {{1, 1, 1, 1}, {2, 1, 2, 2}, {2, 2, 3, 2}, {0, 0, 4, 0}}},
     {20, {{2, 1, 2, 2}, {2, 2, 3, 3}, {3, 2, 4, 3}, {0, 0, 5, 0}}},
@@ -65,8 +65,8 @@ const Band kBands[] = {
     {250, {{850, 0, 0, 0}, {1100, 0, 0, 0}, {1325, 0, 0, 0}, {1560, 0, 0, 0}}},
 };
 
-// -1 for a rate GMS does not sell, which prices the same as a combination it
-// leaves blank: no price at all.
+// -1 for a rate GMS doesn't sell, which is priced the same as a blank cell: no
+// price.
 int RateRow(int success_rate) {
   switch (success_rate) {
     case 100:
@@ -89,7 +89,8 @@ TraceCategory CategoryFor(ScrollTarget target) {
     case SCROLL_TARGET_WEAPON:
       return TraceCategory::kWeapon;
     case SCROLL_TARGET_ACCESSORY:
-    // GMS's cost table has no heart column; the shelf bills as an accessory.
+    // GMS's cost table has no heart column, so hearts are priced as
+    // accessories.
     case SCROLL_TARGET_HEART:
       return TraceCategory::kAccessory;
     case SCROLL_TARGET_GLOVES:
@@ -119,8 +120,8 @@ int SpellTraceCost(int required_level, TraceCategory category,
 }
 
 int TraceCost(const Scroll& scroll, int required_level) {
-  // A scroll that goes on no particular kind of equipment is not something GMS
-  // sells for traces -- the clean slate -- so there is no band to read.
+  // A scroll for no particular equipment type (the Clean Slate) isn't sold by
+  // GMS for traces, so there's no band to read.
   if (scroll.target() == SCROLL_TARGET_UNSPECIFIED) {
     return scroll.trace_cost();
   }

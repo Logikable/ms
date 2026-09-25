@@ -8,8 +8,8 @@
 namespace ms {
 namespace {
 
-// A currency is a balance the trade and bank screens move on their own line,
-// so it never crosses as a row; everything else on the Etc tab does.
+// A currency is a balance the trade and bank screens move on its own line, so
+// it never transfers as a row; everything else on the Etc tab does.
 TEST(TradeableTest, ACurrencyStaysWhereItIs) {
   ItemPrototype drop;
   drop.set_name("Green Snail Shell");
@@ -23,7 +23,8 @@ TEST(TradeableTest, ACurrencyStaysWhereItIs) {
   }
 }
 
-// A symbol is bound to the character who raised it; every other equip crosses.
+// A symbol is bound to the character who levelled it; every other equip can be
+// transferred.
 TEST(TradeableTest, ASymbolIsBoundToItsOwner) {
   EquipPrototype hat;
   hat.set_name("Zakum Helmet");

@@ -43,7 +43,7 @@ int BankInstance::AddItem(const ItemPrototype& proto, int count) {
 }
 
 int BankInstance::RoomFor(const ItemPrototype& proto) const {
-  // Nothing caps a currency: it is a number in the save, not a row on a tab.
+  // A currency has no limit: it's a number in the save, not a row on a tab.
   return IsCurrency(proto) ? INT_MAX : stacks_.RoomFor(proto);
 }
 
