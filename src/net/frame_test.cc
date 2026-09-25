@@ -28,8 +28,7 @@ TEST(FrameTest, HoldsAPartialFrame) {
   std::string whole;
   ASSERT_TRUE(AppendFrame("payload", whole));
 
-  // Every prefix short of the last byte is incomplete, and none of them is
-  // consumed.
+  // Every prefix short of the last byte is incomplete, and none is consumed.
   std::string payload;
   for (size_t i = 0; i < whole.size(); ++i) {
     std::string wire = whole.substr(0, i);
@@ -55,7 +54,7 @@ TEST(FrameTest, RefusesAnOversizedFrame) {
   EXPECT_FALSE(AppendFrame(std::string(kMaxFrameBytes + 1, 'x'), wire));
   EXPECT_TRUE(wire.empty());
 
-  // A length past the cap is refused before anything is waited for.
+  // A length over the cap is rejected before waiting for any payload.
   std::string header("\xff\xff\xff\xff", 4);
   std::string payload;
   EXPECT_EQ(TakeFrame(header, payload), FrameStatus::kTooLarge);

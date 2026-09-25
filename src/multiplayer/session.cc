@@ -16,13 +16,13 @@
 namespace ms {
 
 Character PublicSheet(const CharacterInstance& character) {
-  // ToProto rather than proto(): what is worn lives in a C++ container and is
-  // only folded into the message when someone asks for the lot.
+  // ToProto instead of proto(): worn equipment lives in a C++ container and is
+  // only written into the message when the whole thing is requested.
   Character sheet = character.ToProto();
-  // A party member is shown what they could work out by WATCHING: stats, what
-  // is worn, and the passives and points behind both. Not the bag or purse,
-  // and not Honor, which climbs every kill and would send a sheet per kill.
-  // EXP climbs as fast, but the exp bar needs it.
+  // A party member sees what they could tell by watching: stats, equipment, and
+  // the passives and points behind both. Not the bag or purse, and not Honor,
+  // which rises with every kill and would send a sheet per kill. EXP rises as
+  // fast, but the EXP bar needs it.
   sheet.clear_inventory();
   sheet.clear_stacks();
   sheet.clear_buy_backs();
@@ -41,20 +41,20 @@ PlayerInfo PlayerFor(const GameState& state) {
   player.set_job(AdvancementForJobStage(state.character.proto().job(),
                                         state.character.proto().job_stage()));
   *player.mutable_sheet() = PublicSheet(state.character);
-  // Beside the sheet rather than in it: the server checks these before it
-  // lets a party at a boss on a reset clock, and PublicSheet strips them.
+  // Kept next to the sheet, not in it: the server checks these before letting a
+  // party fight a boss with a reset timer, and PublicSheet strips them.
   *player.mutable_boss_clears() = state.character.proto().boss_clears();
-  // Their switch, not the reader's: whose allocation a sheet shows is the
-  // question its owner has already answered.
+  // The owner's setting, not the reader's: the owner has already decided which
+  // allocation their sheet shows.
   player.set_autoswap_presets(state.account.autoswap_presets());
-  // Their account's climb, for the same reason: the link skills on the sheet
-  // are levelled by characters this message does not carry.
+  // Their account's progress, for the same reason: the link skills on the sheet
+  // are levelled by characters this message doesn't include.
   for (const std::pair<const Job, int>& line :
        state.character.link_tally().best_by_line()) {
     (*player.mutable_link_lines())[line.first] = line.second;
   }
-  // What they have set on the boss screen. The server holds a whole party to
-  // one set of these before it opens a fight.
+  // Their boss screen settings. The server requires the whole party to share
+  // one set before it starts a fight.
   *player.mutable_boss_options() = state.boss_options;
   return player;
 }
@@ -88,14 +88,14 @@ void MultiplayerSession::Advance(GameState& state) {
     state.account.SetMultiplayerAccount(snapshot.account_id, snapshot.token);
   }
 
-  // Compared WHOLE rather than field by field: a re-scrolled weapon changes
-  // what the Inspect screen draws, and a check knowing only the name, level
-  // and job would never send it. Through MessageDifferencer rather than the
-  // bytes, the sheet holding maps, whose entries need not encode in order.
+  // Compared as a whole, not field by field: a re-scrolled weapon changes what
+  // the Inspect screen draws, and a check on only name, level and job would
+  // never send it. Uses MessageDifferencer instead of comparing bytes, since
+  // the sheet has maps whose entries may encode in any order.
   PlayerInfo player = PlayerFor(state);
-  // The account is identity rather than anything the lobby draws, and the
-  // server takes it from the session instead of from what arrives. Learning
-  // ours on the first tick is not news worth an update.
+  // The account is identity, not something the lobby draws, and the server
+  // takes it from the session instead of from the message. Learning ours on the
+  // first tick isn't worth an update.
   told_.set_account_id(player.account_id());
   google::protobuf::util::MessageDifferencer differencer;
   differencer.IgnoreField(Character::descriptor()->FindFieldByName("exp"));
@@ -104,10 +104,10 @@ void MultiplayerSession::Advance(GameState& state) {
     return;
   }
   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-  // EXP alone moves with every kill -- 312 in one second against the live
-  // server -- and every one of those would be a whole sheet. A bar in
-  // somebody else's lobby is worth a sheet a second and no more. Anything
-  // else on the sheet goes out the moment it moves.
+  // EXP alone changes with every kill (312 times in one second on the live
+  // server), and each change would send a whole sheet. A bar in someone else's
+  // lobby is worth at most one sheet per second. Any other change to the sheet
+  // is sent immediately.
   if (only_exp && now - sent_ < kExpUpdatePeriod) {
     return;
   }

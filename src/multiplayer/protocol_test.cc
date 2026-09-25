@@ -40,7 +40,7 @@ TEST(ProtocolTest, WaitsForTheRestOfAMessage) {
 }
 
 TEST(ProtocolTest, RefusesBytesThatAreNotAMessage) {
-  // A frame whose length is past the cap: nothing can be resynchronised.
+  // A frame with a length over the cap: there's no way to resynchronise.
   std::string oversized("\xff\xff\xff\xff", 4);
   ClientMessage got;
   EXPECT_EQ(Decode(oversized, got), DecodeStatus::kBroken);

@@ -17,25 +17,24 @@
 namespace ms {
 namespace {
 
-// How long a connection attempt is given before it is called a failure.
+// How long a connection attempt may take before it counts as failed.
 constexpr std::chrono::seconds kConnectTimeout(5);
 // How long one pass of the connection waits on the socket. Short enough that
-// Stop() is answered promptly and the heartbeat is never late -- and short
-// enough not to sit on what the player just asked for: a message queued
-// while the pass is waiting goes out at the top of the NEXT one, so this is
-// the delay on every party action.
+// Stop() responds quickly and the heartbeat is never late. It's also the delay
+// on every party action, since a message queued during a wait is sent at the
+// start of the next pass.
 constexpr std::chrono::milliseconds kPumpTimeout(5);
-// How long the wait between connection attempts sleeps at a time. Nothing is
-// waiting on it, so it wakes rarely.
+// How long each sleep lasts while waiting between connection attempts. Nothing
+// depends on it, so it wakes rarely.
 constexpr std::chrono::milliseconds kRetrySleep(50);
 
 constexpr char kUnreachableMessage[] = "Cannot reach the server.";
 constexpr char kLostMessage[] = "Lost connection.";
 
-// What to show for a rejection. A version mismatch is worded HERE rather than
-// taken from the server: the client is the end that knows both numbers, and
-// which is behind decides what the player can do. The two numbers go on a
-// second line -- which build is where is the first thing anyone asks.
+// The text to show for a rejection. A version mismatch is worded here instead
+// of taken from the server, because the client knows both versions, and which
+// one is behind decides what the player can do. The two versions go on a second
+// line, since that's the first thing anyone asks.
 std::string RejectionMessage(const Rejected& rejected, int our_version) {
   if (rejected.reason() != Rejected::REASON_UPDATE_REQUIRED) {
     return rejected.message();
@@ -49,8 +48,8 @@ std::string RejectionMessage(const Rejected& rejected, int our_version) {
   return "The server is running an older version. Trying again." + versions;
 }
 
-// Pushes the whole of `outgoing`, waiting on a socket that fills up. Only the
-// Hello goes out this way: everything after it rides the connection's own
+// Sends all of `outgoing`, waiting whenever the socket is full. Only the Hello
+// is sent this way; everything after it goes through the connection's normal
 // pass over the socket.
 bool WriteAll(const Socket& socket, std::string& outgoing) {
   while (!outgoing.empty()) {
@@ -124,7 +123,7 @@ void MultiplayerClient::SetPlayer(const PlayerInfo& player) {
     std::lock_guard<std::mutex> lock(mutex_);
     player_ = player;
   }
-  // Told to the server as well as kept for the next Hello, so a party the
+  // Sent to the server as well as saved for the next Hello, so a party the
   // player is already in shows them as they are now.
   ClientMessage message;
   *message.mutable_update_player()->mutable_player() = player;
@@ -204,7 +203,7 @@ void MultiplayerClient::LeaveTrade() {
 
 void MultiplayerClient::WatchPlayer(const std::string& account_id) {
   {
-    // The sheet on hand belongs to whoever was being read before.
+    // The current sheet belongs to whoever was being viewed before.
     std::lock_guard<std::mutex> lock(mutex_);
     snapshot_.watched.Clear();
   }
@@ -251,9 +250,9 @@ void MultiplayerClient::Run() {
     if (attempt == Attempt::kFinal || !running_) {
       return;
     }
-    // A connection that was welcomed earns a fresh ramp. A rejection goes
-    // straight to the ceiling: the far end has to change before there is any
-    // point asking again, so the short waits would only be traffic.
+    // A connection that was welcomed resets the backoff. A rejection jumps
+    // straight to the maximum wait: something must change on the server before
+    // retrying makes sense, so short waits would just add traffic.
     if (attempt == Attempt::kWelcomed) {
       wait = kFirstRetry;
     } else if (attempt == Attempt::kRejected) {
@@ -287,8 +286,8 @@ Attempt MultiplayerClient::RunConnection() {
       std::chrono::steady_clock::now();
   while (running_ && Pump(socket, incoming, outgoing, last_ping)) {
   }
-  // A rejection has already said what was wrong; anything else ended without
-  // a word, and losing the connection is the story.
+  // A rejection already explained what went wrong. Anything else ended without
+  // a message, so the lost connection is the explanation.
   std::lock_guard<std::mutex> lock(mutex_);
   if (outcome_ != Attempt::kRejected && outcome_ != Attempt::kFinal &&
       running_ && snapshot_.state != ConnectionState::kUnavailable) {
@@ -389,8 +388,8 @@ void MultiplayerClient::Handle(const ServerMessage& message, bool& keep) {
       snapshot_.trade = message.trade_state();
       return;
     case ServerMessage::kTradeCompleted:
-      // The trade is gone with it: the server tore it down to send this, and
-      // an empty state would only have read as a partner walking out.
+      // The trade ends with it: the server cancelled the trade to send this,
+      // and an empty trade would otherwise look like the partner leaving.
       snapshot_.trade.Clear();
       snapshot_.trade_received = message.trade_completed().received();
       ++snapshot_.trade_serial;
@@ -406,17 +405,17 @@ void MultiplayerClient::Handle(const ServerMessage& message, bool& keep) {
       ++snapshot_.notice_serial;
       return;
     case ServerMessage::kPartyEvent:
-      // Down the same channel as a refusal: both are the server speaking to
+      // Uses the same channel as a refusal: both are the server speaking to
       // this player alone, and one screen shows either.
       snapshot_.notice = message.party_event().message();
       snapshot_.notice_is_refusal = false;
       ++snapshot_.notice_serial;
       return;
     case ServerMessage::kRejected:
-      // Only a message the server could not read is final -- that is this
-      // build being wrong. Every other reason describes a condition on the far
-      // end, and a later attempt may find it changed: a server updated since,
-      // one that has come back up, an account the other session has let go.
+      // Only a message the server couldn't read is final, since that means this
+      // build is wrong. Every other reason is a condition on the server that
+      // may change: the server updated, came back up, or the other session
+      // released the account.
       snapshot_.server_protocol_version =
           message.rejected().server_protocol_version();
       snapshot_.message =
@@ -432,9 +431,9 @@ void MultiplayerClient::Handle(const ServerMessage& message, bool& keep) {
       return;
     case ServerMessage::kFightState:
     case ServerMessage::kFightEnded:
-      // Kept whole rather than folded into the snapshot: a fight state carries
-      // the numbers everybody else landed, and a frame that read two snapshots
-      // would draw one of them and lose the other.
+      // Kept as a whole message instead of merged into the snapshot: a fight
+      // state carries everyone else's damage numbers, and a frame that read two
+      // snapshots would draw one and lose the other.
       fight_.push_back(message);
       return;
     case ServerMessage::kPong:
@@ -476,9 +475,10 @@ void MultiplayerClient::ForgetLobby() {
   snapshot_.party.Clear();
   snapshot_.online.Clear();
   snapshot_.watched.Clear();
-  // Nor does a trade: the server let go of it when the socket went.
+  // A trade doesn't survive either: the server dropped it when the socket
+  // closed.
   snapshot_.trade.Clear();
-  // A fight does not survive the connection that was watching it.
+  // A fight doesn't survive losing the connection that was watching it.
   fight_.clear();
 }
 

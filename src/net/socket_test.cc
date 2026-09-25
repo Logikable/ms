@@ -12,7 +12,7 @@ namespace {
 
 using ::std::chrono::milliseconds;
 
-// How long a test waits for something that should already be on its way.
+// How long a test waits for something that should already be arriving.
 constexpr milliseconds kWait(2000);
 
 // Waits for `socket` to have something to read.
@@ -102,7 +102,7 @@ TEST_F(SocketTest, ReportsAPeerThatWentAway) {
   ASSERT_TRUE(WriteAll(pair.client, "last words"));
   pair.client.Close();
 
-  // Whatever was already sent still arrives; the close comes after it.
+  // Everything sent before the close still arrives, then the close.
   std::string got;
   ASSERT_TRUE(WaitReadable(pair.server));
   ASSERT_EQ(Read(pair.server, got), IoStatus::kOk);
@@ -128,7 +128,7 @@ TEST_F(SocketTest, RefusesAPortTwice) {
 }
 
 TEST_F(SocketTest, GivesUpOnAPortNobodyIsOn) {
-  // A port that was listening and is not any more: nothing can answer there.
+  // A port that was listening and no longer is, so nothing can answer.
   std::optional<Socket> listener = Listen(0);
   ASSERT_TRUE(listener.has_value());
   int port = LocalPort(*listener);

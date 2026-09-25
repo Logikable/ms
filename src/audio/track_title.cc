@@ -11,9 +11,9 @@
 namespace ms {
 namespace {
 
-// Every track under bgm/, sorted by stem so the lookup can bisect. A few of
-// the stems are the client's own misspellings -- `AcientForest`, `DragonLoad`,
-// `FightingPinkBeen` -- and the title is what the name was meant to be.
+// Every track under bgm/, sorted by stem for binary search. A few stems are the
+// client's own misspellings (`AcientForest`, `DragonLoad`, `FightingPinkBeen`),
+// and the title is the intended name.
 struct Title {
   std::string_view track;
   std::string_view title;

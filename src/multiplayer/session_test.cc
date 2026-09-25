@@ -21,7 +21,7 @@
 namespace ms {
 namespace {
 
-// Items the sheet's first gear preset carries.
+// How many items the sheet's first gear preset has.
 int WornInSheet(const Character& sheet) {
   return PresetOf(sheet.equip_presets(), StatPreset::kFirst).equipped().size();
 }
@@ -44,8 +44,8 @@ class SessionTest : public ::testing::Test {
     state_->character.SetUsername("Dagger");
   }
 
-  // Runs the session against the server until `ready` says the test can go
-  // on, advancing it the way the game's tick does.
+  // Runs the session against the server until `ready` says the test can
+  // continue, advancing it the way the game's tick does.
   bool WaitFor(MultiplayerSession& session,
                const std::function<bool(const MultiplayerSnapshot&)>& ready) {
     std::chrono::steady_clock::time_point deadline =
@@ -111,8 +111,8 @@ TEST_F(SessionTest, IntroducesTheCharacterBeingPlayed) {
   EXPECT_EQ(snapshot.party.members(0).player().name(), "Dagger");
   EXPECT_EQ(snapshot.party.members(0).player().level(),
             state_->character.proto().level());
-  // Their own Autoswap switch travels with them, so a sheet is read the way
-  // its owner reads it.
+  // Their own Autoswap setting comes with them, so a sheet is read the way its
+  // owner reads it.
   EXPECT_FALSE(snapshot.party.members(0).player().autoswap_presets());
 }
 
@@ -145,8 +145,8 @@ TEST_F(SessionTest, TellsTheLobbyAboutANewName) {
   }));
 }
 
-// The sheet is what the Inspect screen draws a party member from: the
-// character, the points still to spend on them, and none of their belongings.
+// The Inspect screen draws a party member from their sheet: the character and
+// their unspent points, but none of their belongings.
 TEST_F(SessionTest, TheSheetCarriesTheCharacterAndNotTheirBelongings) {
   state_->character.AddExp(50);
   state_->character.AddMeso(1'000'000);
@@ -162,19 +162,20 @@ TEST_F(SessionTest, TheSheetCarriesTheCharacterAndNotTheirBelongings) {
   EXPECT_EQ(WornInSheet(sheet), 1);
   EXPECT_EQ(sheet.inventory().equip_tab_size(), 0);
   EXPECT_EQ(sheet.meso(), 0);
-  // The Inspect screen draws these: the exp bar, and the pools its tabs
-  // count against. Not 50 -- the level that bought took most of it.
+  // The Inspect screen draws these: the EXP bar, and the point pools its tabs
+  // count against. Not 50, since the level-up used most of it.
   EXPECT_EQ(sheet.exp(), state_->character.proto().exp());
   EXPECT_GT(sheet.exp(), 0);
   EXPECT_EQ(sheet.v_points(), 30);
   EXPECT_EQ(sheet.ap(), state_->character.proto().ap());
-  // Honor is the one balance held back. See HonorEarnedDoesNotMoveTheSheet.
+  // Honor is the only balance withheld. See HonorEarnedDoesNotMoveTheSheet.
   EXPECT_EQ(sheet.honor(), 0);
 }
 
-// An update goes out whenever the sheet moves, so anything on the sheet that
-// moves with every kill sends the whole sheet that often -- 312 in one second,
-// measured against the live server. Honor is that, and no one else can see it.
+// An update is sent whenever the sheet changes, so anything on it that changes
+// with every kill sends the whole sheet that often (312 times in one second,
+// measured on the live server). Honor is one of these, and nobody else can see
+// it.
 TEST_F(SessionTest, HonorEarnedDoesNotMoveTheSheet) {
   Character before = PublicSheet(state_->character);
   state_->character.AddHonor(500);
@@ -183,9 +184,9 @@ TEST_F(SessionTest, HonorEarnedDoesNotMoveTheSheet) {
       << "a kill's honor must not be an update";
 }
 
-// EXP reaches the lobby -- the Inspect screen has a bar to fill -- but no
-// faster than kExpUpdatePeriod, however many kills land in between. Anything
-// else on the sheet still goes out the moment it moves.
+// EXP reaches the lobby, since the Inspect screen has a bar to fill, but no
+// more often than kExpUpdatePeriod however many kills happen. Any other change
+// to the sheet is still sent immediately.
 TEST_F(SessionTest, ExpReachesTheLobbyOnItsOwnClock) {
   MultiplayerSession session = MakeSession();
   session.Start(*state_);
@@ -201,14 +202,14 @@ TEST_F(SessionTest, ExpReachesTheLobbyOnItsOwnClock) {
                : -1;
   };
 
-  // One EXP at a time: a level would move the sheet on its own, and then
-  // nothing here is measuring the EXP clock.
+  // One EXP at a time: a level-up would change the sheet by itself, and then
+  // the test wouldn't be measuring the EXP timer.
   state_->character.AddExp(1);
   ASSERT_TRUE(WaitFor(
       session, [&exp](const MultiplayerSnapshot&) { return exp() == 1; }));
 
-  // The next kill lands inside the period, so the lobby keeps the figure it
-  // has. Well short of kExpUpdatePeriod, or this is measuring the clock.
+  // The next kill lands within the period, so the lobby keeps its old value.
+  // Well short of kExpUpdatePeriod, or this would be measuring the timer.
   state_->character.AddExp(1);
   std::chrono::steady_clock::time_point until =
       std::chrono::steady_clock::now() + kExpUpdatePeriod / 5;
@@ -218,8 +219,8 @@ TEST_F(SessionTest, ExpReachesTheLobbyOnItsOwnClock) {
     std::this_thread::sleep_for(std::chrono::milliseconds(2));
   }
 
-  // A name is not EXP, so it does not wait behind it -- and it carries the
-  // held-back figure out with it.
+  // A name change isn't EXP, so it isn't delayed, and it sends the withheld EXP
+  // value along with it.
   state_->character.SetUsername("Wand");
   EXPECT_TRUE(WaitFor(session, [&exp](const MultiplayerSnapshot& snapshot) {
     return snapshot.party.members_size() == 1 &&
@@ -227,8 +228,8 @@ TEST_F(SessionTest, ExpReachesTheLobbyOnItsOwnClock) {
   }));
 }
 
-// A re-scrolled weapon changes what the Inspect screen draws and nothing the
-// lobby list does. The update has to go out regardless.
+// A re-scrolled weapon changes what the Inspect screen draws, but nothing in
+// the lobby list. The update must still be sent.
 TEST_F(SessionTest, TellsTheLobbyAboutNewGear) {
   MultiplayerSession session = MakeSession();
   session.Start(*state_);

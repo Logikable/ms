@@ -1,5 +1,5 @@
-/* What both ends of the multiplayer connection have to agree on: the version,
- * where the server is, the heartbeat, and how a message becomes bytes.
+/* What both sides of the multiplayer connection must agree on: the version, the
+ * server address, the heartbeat, and how messages are encoded.
  *
  * The messages themselves are in //src/protos:multiplayer_proto.
  */
@@ -14,23 +14,22 @@
 
 namespace ms {
 
-// What the client and the server must both be built from: the messages AND the
-// game data behind them. BUMP IT when either changes; a client that does not
-// match is turned away.
+// The version both client and server must be built from, covering both the
+// messages and the game data behind them. Increase it when either changes; a
+// client that doesn't match is rejected.
 //
-// The data half is the easy one to forget and forgetting it is silent -- a
-// release once played for days against a server giving Cygnus a fifteen-minute
-// clock where the clients gave her ten. What needs the bump is a fight both
-// ends can NAME and disagree about: a changed clock, phase, drop or mob.
+// The data part is easy to forget, and forgetting it fails silently: a release
+// once ran for days against a server giving Cygnus a fifteen-minute limit where
+// clients gave her ten. A bump is needed for any fight both sides know by name
+// but could disagree on: a changed time limit, phase, drop or mob.
 //
-// Adding a fight does not, nor a mob only a new fight spawns: only the key
-// crosses the wire, so either end fails out loud by name instead.
+// Adding a fight doesn't need one, nor does a mob that only a new fight spawns.
+// Only the key crosses the network, so a missing one fails loudly by name.
 inline constexpr int kMultiplayerVersion = 3;
 
-// Where the server runs. The client's --server flag overrides both. A build
-// made without multiplayer carries no address at all -- there is nothing in
-// it that would connect, and a single-player game has no business shipping
-// somebody's home address.
+// The server's address. The client's --server flag overrides both. A build
+// without multiplayer includes no address at all: nothing in it would connect,
+// and a single-player game shouldn't ship someone's home address.
 #ifdef MS_MULTIPLAYER_OFF
 inline constexpr char kServerHost[] = "";
 #else
@@ -38,8 +37,8 @@ inline constexpr char kServerHost[] = "68.42.95.210";
 #endif
 inline constexpr int kServerPort = 21711;
 
-// The two of them as the --server flag spells it. Empty in a build without
-// multiplayer, which is what makes that build play alone.
+// Both, in the --server flag's format. Empty in a build without multiplayer,
+// which makes that build single-player.
 inline std::string DefaultServerAddress() {
   if (!kMultiplayerEnabled) {
     return "";
@@ -47,18 +46,18 @@ inline std::string DefaultServerAddress() {
   return std::string(kServerHost) + ":" + std::to_string(kServerPort);
 }
 
-// The most players in one party. Every boss phase carries more places to
-// stand than this, so a full party is never boxed in.
+// The maximum party size. Every boss phase has more spots to stand on than
+// this, so a full party always has room.
 inline constexpr int kMaxPartySize = 3;
 
-// How often a client that has nothing to say says it anyway.
+// How often a client with nothing to send sends a heartbeat anyway.
 inline constexpr std::chrono::seconds kHeartbeatInterval(5);
-// How long the server waits on a session that has gone quiet. Three
-// heartbeats: a couple can be lost to a bad minute without dropping anyone.
+// How long the server waits on a silent session. Three heartbeats, so a couple
+// can be lost in a bad minute without dropping anyone.
 inline constexpr std::chrono::seconds kSessionTimeout(15);
 
-// Frames `message` onto the end of `out`. False, having appended nothing, for
-// a message too large to frame.
+// Frames `message` onto the end of `out`. Returns false and appends nothing if
+// the message is too large to frame.
 template <typename Message>
 bool Encode(const Message& message, std::string& out) {
   std::string payload;
@@ -71,10 +70,10 @@ bool Encode(const Message& message, std::string& out) {
 // How Decode ended.
 enum class DecodeStatus {
   kOk,
-  // Not all of the next message has arrived. `buffer` is left alone.
+  // Not all of the next message has arrived. `buffer` is unchanged.
   kIncomplete,
-  // The bytes are not a message this build can read. There is no way to find
-  // where the next one starts, so the connection has to close.
+  // The bytes aren't a message this build can read. There's no way to find
+  // where the next one starts, so the connection must close.
   kBroken,
 };
 

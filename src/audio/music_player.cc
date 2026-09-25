@@ -13,8 +13,8 @@ namespace ms {
 
 MusicPlayer::MusicPlayer(Backend backend) {
   if (!kAudioEnabled) {
-    // No tracks to play, so open no device: a silent build makes no sound
-    // thread and touches no sound card.
+    // No tracks to play, so don't open a device: a silent build starts no sound
+    // thread and doesn't touch the sound card.
     return;
   }
   ma_backend null_backend = ma_backend_null;
@@ -63,8 +63,8 @@ void MusicPlayer::FadeOutLive() {
   if (!loaded_[live_]) {
     return;
   }
-  // -1 as the starting volume is miniaudio's "whatever it is now", which is
-  // what keeps a fade interrupted halfway from jumping back to full.
+  // -1 as the starting volume means "the current volume" in miniaudio, so a
+  // fade interrupted halfway doesn't jump back to full.
   ma_sound_set_fade_in_milliseconds(&sounds_[live_], -1.0f, 0.0f, kFadeMs);
   ma_sound_set_stop_time_in_milliseconds(
       &sounds_[live_], ma_engine_get_time_in_milliseconds(&engine_) + kFadeMs);
@@ -140,8 +140,8 @@ bool MusicPlayer::ending() {
   if (ma_sound_at_end(&sound)) {
     return true;
   }
-  // A track whose length the decoder could not tell is left to run out, and
-  // ma_sound_at_end above is what catches it -- late, but never early.
+  // A track with unknown length is left to run out, and ma_sound_at_end above
+  // catches it: late, but never early.
   float cursor = 0.0f;
   if (length_seconds_ <= 0.0f ||
       ma_sound_get_cursor_in_seconds(&sound, &cursor) != MA_SUCCESS) {
@@ -153,7 +153,7 @@ bool MusicPlayer::ending() {
 void MusicPlayer::Start(std::string_view track, bool looping) {
   std::optional<TrackData> data = BgmTrack(track);
   if (!data.has_value()) {
-    // Nothing to play under that name: silence rather than the wrong track.
+    // No track by that name: play silence instead of the wrong track.
     Stop();
     return;
   }
@@ -172,8 +172,8 @@ void MusicPlayer::Start(std::string_view track, bool looping) {
     return;
   }
   loaded_[live_] = true;
-  // Asked once, here: an MP3's length costs a scan of the file, which is not
-  // a price to pay every tick.
+  // Read once, here: an MP3's length requires scanning the file, which is too
+  // expensive to do every tick.
   if (ma_sound_get_length_in_seconds(&sounds_[live_], &length_seconds_) !=
       MA_SUCCESS) {
     length_seconds_ = 0.0f;

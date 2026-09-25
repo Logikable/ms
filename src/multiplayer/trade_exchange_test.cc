@@ -52,7 +52,7 @@ class TradeExchangeTest : public ::testing::Test {
     return CharacterInstance(rng_, std::move(proto));
   }
 
-  // Fills the equip tab, or the Etc tab's slots, to the brim.
+  // Fills the equip tab, or the Etc tab's slots, completely.
   void FillEquipTab(CharacterInstance& character) {
     while (character.inventory().room() > 0) {
       character.PickUp(std::make_unique<EquipInstance>(Sword()));
@@ -90,7 +90,7 @@ TEST_F(TradeExchangeTest, WhatYouGiveMakesTheRoom) {
   received.add_equips()->set_equip_name("Sword");
   EXPECT_FALSE(HasRoomForTrade(character, items_, TradeOffer(), received));
 
-  // Two out for two in fits exactly; one out for two does not.
+  // Two out for two in fits exactly; one out for two in doesn't.
   TradeOffer given;
   given.add_equips()->set_equip_name("Sword");
   EXPECT_FALSE(HasRoomForTrade(character, items_, given, received));
@@ -113,7 +113,7 @@ TEST_F(TradeExchangeTest, AFullEtcTabStillTopsUpAnOpenStack) {
   stack->set_count(61);
   EXPECT_FALSE(HasRoomForTrade(character, items_, TradeOffer(), received));
 
-  // Emptying a stack on the way out frees its slot for the overflow.
+  // Emptying a stack on the way out frees its slot for the extra item.
   TradeOffer given;
   TradeStack* spent = given.add_stacks();
   spent->set_name("Filler 0");
@@ -121,8 +121,8 @@ TEST_F(TradeExchangeTest, AFullEtcTabStillTopsUpAnOpenStack) {
   EXPECT_TRUE(HasRoomForTrade(character, items_, given, received));
 }
 
-// A trace is a balance rather than a row, so a bag with no slot left still
-// has room for as many of them as anyone cares to send.
+// A trace is a balance, not a row, so a bag with no free slot still has room
+// for any number of them.
 TEST_F(TradeExchangeTest, TracesNeedNoSlot) {
   CharacterInstance character = MakeCharacter();
   FillEtcTab(character);
@@ -170,7 +170,7 @@ TEST_F(TradeExchangeTest, TheExchangeTakesAndGives) {
   EXPECT_EQ(character.meso(), 10000 - 2500 + 400);
   EXPECT_EQ(character.CountItem(kSpellTraceName), 50 - 30 + 7);
   EXPECT_EQ(character.CountItem("Chaos Scroll"), 15);
-  // The starred one went and theirs arrived whole; the plain one stayed.
+  // The starred item left and theirs arrived whole; the plain one stayed.
   ASSERT_EQ(character.inventory().size(), 2);
   EXPECT_EQ(character.inventory()[0].stars(), 0);
   EXPECT_EQ(character.inventory()[1].stars(), 9);
@@ -190,7 +190,7 @@ TEST_F(TradeExchangeTest, RowsComeOutBackToFront) {
   *given.add_equips() = character.inventory()[2].SavedState();
   ApplyTrade(character, equips_, items_, {0, 2}, given, TradeOffer());
 
-  // The rows named are the ones that went, whatever order they came in.
+  // The named rows are the ones that left, whatever order they were given in.
   ASSERT_EQ(character.inventory().size(), 2);
   EXPECT_EQ(character.inventory()[0].stars(), 1);
   EXPECT_EQ(character.inventory()[1].stars(), 3);

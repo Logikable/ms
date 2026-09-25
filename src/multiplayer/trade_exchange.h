@@ -1,11 +1,11 @@
-/* Putting a trade through on this end: whether the bag can take what is
- * coming, and the exchange itself.
+/* Completing a trade on this client: checking whether the bag can take what's
+ * coming, and doing the exchange.
  *
- * The server holds no items -- it relays what each side says it is putting up
- * and never asks whether they have it -- so both halves of a trade happen
- * here, against this client's own character and its own catalogs. An item
- * arrives as the state it was saved from and a name; what it IS comes from
- * the reader's catalog, which is what the protocol version covers.
+ * The server holds no items. It relays what each side says it's offering and
+ * never checks that they have it, so both halves of a trade happen here,
+ * against this client's own character and catalogs. An item arrives as its
+ * saved state plus a name; what it is comes from the reader's catalog, which
+ * the protocol version keeps consistent.
  */
 #ifndef MS_SRC_MULTIPLAYER_TRADE_EXCHANGE_H_
 #define MS_SRC_MULTIPLAYER_TRADE_EXCHANGE_H_
@@ -21,21 +21,21 @@
 namespace ms {
 
 // Whether the bag can hold `received` once `given` has left it. The two are
-// weighed TOGETHER: three equips put up free three slots, so a bag that is
-// full right now can still take three back.
+// counted together: giving three equips frees three slots, so a bag that's full
+// right now can still take three back.
 //
-// False also for an item this build does not have a catalog entry for, which
-// is nothing it could put in the bag anyway.
+// Also false for an item missing from this build's catalog, since it couldn't
+// go in the bag anyway.
 bool HasRoomForTrade(const CharacterInstance& character,
                      const std::map<std::string, ItemPrototype>& items,
                      const TradeOffer& given, const TradeOffer& received);
 
-// Takes `given` off the character and puts `received` on. `given_equips` are
-// the equip-tab rows put up, in any order: the wire says what an item IS, and
-// the bag has to be told which of its own to hand over.
+// Removes `given` from the character and adds `received`. `given_equips` are
+// the offered equip-tab rows, in any order: the message says what an item is,
+// and the bag needs to be told which of its own to give.
 //
-// Ask HasRoomForTrade first. This one does what it is told: anything the bag
-// cannot hold is lost, exactly as a drop into a full bag is.
+// Call HasRoomForTrade first. This does exactly what it's told: anything the
+// bag can't hold is lost, just like a drop into a full bag.
 void ApplyTrade(CharacterInstance& character,
                 const std::map<std::string, EquipPrototype>& equips,
                 const std::map<std::string, ItemPrototype>& items,

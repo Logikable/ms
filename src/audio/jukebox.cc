@@ -25,8 +25,9 @@ std::string_view Jukebox::Next() {
   if (tracks_.empty()) {
     return {};
   }
-  // Drawing until an allowed track turns up would run long on a library only
-  // just bigger than the window, so pick out of what is allowed instead.
+  // Redrawing until an allowed track comes up could take a long time when the
+  // library is only slightly bigger than the window, so pick from the allowed
+  // tracks instead.
   std::vector<std::string_view> allowed;
   allowed.reserve(tracks_.size());
   for (std::string_view track : tracks_) {

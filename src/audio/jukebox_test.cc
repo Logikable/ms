@@ -11,7 +11,7 @@
 namespace ms {
 namespace {
 
-// A library big enough to see the window fill and still leave a choice.
+// A library big enough to fill the window and still leave a choice.
 std::vector<std::string_view> Library(int size) {
   static const char* kNames[] = {"a", "b", "c", "d", "e", "f", "g", "h",
                                  "i", "j", "k", "l", "m", "n", "o", "p"};
@@ -27,7 +27,7 @@ std::vector<std::string_view> Picks(Jukebox& jukebox, int count) {
   return picks;
 }
 
-// Whether any track in `picks` comes round again inside `window` picks.
+// Whether any track in `picks` repeats within `window` picks.
 bool RepeatsWithin(const std::vector<std::string_view>& picks, int window) {
   for (int i = 0; i < static_cast<int>(picks.size()); ++i) {
     for (int j = i + 1; j <= i + window && j < static_cast<int>(picks.size());
@@ -47,7 +47,7 @@ TEST(JukeboxTest, HoldsATrackBackForTheWholeWindow) {
   EXPECT_EQ(jukebox.remembered(), 15);
   std::vector<std::string_view> picks = Picks(jukebox, 200);
   EXPECT_FALSE(RepeatsWithin(picks, jukebox.remembered()));
-  // Holding fifteen back leaves one choice, so every track gets a turn.
+  // Excluding fifteen leaves one choice, so every track gets a turn.
   EXPECT_EQ(std::set(picks.begin(), picks.end()).size(), 16u);
 }
 

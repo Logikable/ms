@@ -34,8 +34,8 @@ BossRunState StateOf(FightEnded::Outcome outcome) {
   }
 }
 
-// What did the damage. An origin the build does not know is read as a swing,
-// which is the one every character has.
+// What dealt the damage. An origin this build doesn't recognise is treated as
+// an attack, which every character has.
 DamageSource SourceOf(const FightDamage& line) {
   DamageSource source;
   if (line.origin() >= static_cast<int>(DamageOrigin::kSwing) &&
@@ -94,8 +94,9 @@ void PartyFightAuthority::TakeState(const FightState& state,
   fight_.countdown_left = state.countdown_left();
   fight_.hp_fractions.assign(state.hp_fractions().begin(),
                              state.hp_fractions().end());
-  // Everyone the fight began with is in here, gone or not, which is what a
-  // clear is split by. FightEnded says the same number again at the end.
+  // Everyone who started the fight is here, whether or not they left, and a
+  // clear's rewards are split by that count. FightEnded repeats the number at
+  // the end.
   fight_.share_count = state.players_size();
   fight_.players.clear();
   fight_.self = -1;
@@ -107,8 +108,8 @@ void PartyFightAuthority::TakeState(const FightState& state,
     fight_.players.push_back({player.account_id(), player.name(), player.spot(),
                               player.present(), player.attack_name(),
                               player.attack_fraction(), player.buff_count()});
-    // The player's own lines are not passed back to them: they drew those as
-    // they landed them.
+    // The player's own lines aren't sent back to them: they already drew those
+    // as they landed.
     if (player.account_id() == account_id) {
       continue;
     }
@@ -150,7 +151,7 @@ bool PartyFightAuthority::Fetch(SharedFight& fight) {
     return false;
   }
   fight = fight_;
-  // Drawn once. A stack stays on screen for its own beat afterwards.
+  // Drawn once. A stack stays on screen for its own duration afterwards.
   fight_.lines.clear();
   return true;
 }

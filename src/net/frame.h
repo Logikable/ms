@@ -1,12 +1,12 @@
-/* Framing for the multiplayer socket: one message per frame, behind a 4-byte
- * little-endian length.
+/* Framing for the multiplayer socket: one message per frame, preceded by a
+ * 4-byte little-endian length.
  *
- * TCP is a stream of bytes, so one read can hand back half a message, or three
- * of them at once. Everything read goes on the end of a buffer and comes back
- * off the front one whole frame at a time.
+ * TCP is a byte stream, so one read can return half a message, or three at
+ * once. Everything read is appended to a buffer and taken off the front one
+ * whole frame at a time.
  *
- * Nothing here knows what a frame carries. The messages are the protocol's
- * business -- see //src/multiplayer:protocol.
+ * This file doesn't know what a frame contains. The messages are defined by the
+ * protocol; see //src/multiplayer:protocol.
  */
 #ifndef MS_SRC_NET_FRAME_H_
 #define MS_SRC_NET_FRAME_H_
@@ -17,12 +17,12 @@
 
 namespace ms {
 
-// The length that rides ahead of every frame.
+// The length header in front of every frame.
 inline constexpr size_t kFrameHeaderBytes = 4;
 
-// The most one frame may carry. Far above anything the protocol sends: it is
-// here so that a wrong length on the wire cannot make the reader wait for a
-// gigabyte that is never coming.
+// The largest payload one frame may carry. It's far above anything the protocol
+// sends; it exists so a corrupt length can't make the reader wait for a
+// gigabyte that never arrives.
 inline constexpr size_t kMaxFrameBytes = 1 << 20;
 
 // Appends `payload` to `out` as one frame. Returns false and appends nothing
@@ -32,11 +32,11 @@ bool AppendFrame(std::string_view payload, std::string& out);
 // How TakeFrame ended.
 enum class FrameStatus {
   kOk,
-  // Not all of a frame has arrived. `buffer` is left alone; ask again once
-  // more bytes have been read into it.
+  // Not all of a frame has arrived. `buffer` is unchanged; try again after more
+  // bytes have been read into it.
   kIncomplete,
-  // The length says more than kMaxFrameBytes. There is no way to tell where
-  // the next frame would start, so the connection has to close.
+  // The length exceeds kMaxFrameBytes. There's no way to find where the next
+  // frame starts, so the connection must close.
   kTooLarge,
 };
 

@@ -1,8 +1,6 @@
-/* The shipped catalogs, loaded from a test's runfiles.
+/* The shipped data catalogs, loaded from a test's runfiles.
  *
- * Eight test files were each writing out their own Runfiles::CreateForTest and
- * their own one-line wrapper per folder -- nineteen of them between the lot.
- * A test that wants the real data asks for it by folder name here, and still
+ * A test that needs the real data asks for it here by folder name, and still
  * declares the //data/<folder>:all it reads in its own BUILD rule.
  */
 #ifndef MS_SRC_TESTING_DATA_FILES_H_
@@ -15,15 +13,15 @@
 
 namespace ms {
 
-// The path of the shipped `dir` under data/, found through the runfiles. Dies
-// if the test has none, which means it is not being run by Bazel.
+// The path of `dir` under data/, found through the runfiles. Dies if the test
+// has no runfiles, meaning it isn't being run by Bazel.
 std::string TestDataDir(const std::string& dir);
 
-// Every textproto under data/`dir`, keyed by filename stem, read ONCE per test
-// binary and handed back by reference. A catalog does not change under a test,
-// and files this size parsed per test is what made the data tests the slowest
-// things in the suite. `T` must be one of the types proto_loader.cc
-// instantiates LoadTextProtoDir for.
+// Every textproto under data/`dir`, keyed by filename stem, read once per test
+// binary and returned by reference. Catalogs don't change during a test, and
+// parsing them per test used to make the data tests the slowest in the suite.
+// `T` must be one of the types proto_loader.cc instantiates LoadTextProtoDir
+// for.
 template <typename T>
 const std::map<std::string, T>& TestData(const std::string& dir) {
   static std::map<std::string, std::map<std::string, T>> by_dir;
@@ -35,7 +33,7 @@ const std::map<std::string, T>& TestData(const std::string& dir) {
   return it->second;
 }
 
-// The same catalog as a copy, for a caller who keeps it or changes it.
+// The same catalog as a copy, for a caller that keeps or changes it.
 template <typename T>
 std::map<std::string, T> LoadTestData(const std::string& dir) {
   return TestData<T>(dir);

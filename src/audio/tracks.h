@@ -1,12 +1,12 @@
-/* The music this build carries, looked up by track name.
+/* The music this build includes, looked up by track name.
  *
  * Every .mp3 under bgm/ is compiled into the binary, keyed by its filename
- * stem -- the WZ track name it was extracted under, which is what a map or a
- * boss phase names in its data file.
+ * stem: the WZ track name it was extracted as, which is what a map or boss
+ * phase names in its data file.
  *
- * A build made with --define=audio=off answers nothing here and carries no
- * audio at all. Callers must handle a track that is not in the build; that is
- * the same answer a silent build gives for every name.
+ * A build made with --define=audio=off returns nothing here and includes no
+ * audio. Callers must handle a missing track, since a silent build gives that
+ * answer for every name.
  */
 #ifndef MS_SRC_AUDIO_TRACKS_H_
 #define MS_SRC_AUDIO_TRACKS_H_
@@ -18,13 +18,13 @@
 
 namespace ms {
 
-// One track's bytes, pointing into the executable's own image. They outlive
-// everything, so nothing here owns or frees them.
+// One track's bytes, pointing into the executable's own image. They last for
+// the whole program, so nothing here owns or frees them.
 struct TrackData {
   const unsigned char* data;
   std::size_t size;
-  // How long the track plays. Counted from the MP3's frame headers when the
-  // build embedded it, so asking costs nothing and decodes nothing.
+  // How long the track plays. Computed from the MP3's frame headers when the
+  // build embedded it, so reading it is free and decodes nothing.
   int duration_ms;
 };
 

@@ -1,7 +1,7 @@
-/* The track table of a build made with --define=audio=off.
+/* The track table for a build made with --define=audio=off.
  *
- * It carries no audio, so every lookup misses. Nothing else changes: the
- * music player asks the same questions and gets nothing back.
+ * It includes no audio, so every lookup misses. Nothing else changes: the music
+ * player makes the same calls and gets nothing back.
  */
 #include <optional>
 #include <string_view>

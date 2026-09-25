@@ -28,7 +28,7 @@ PlayerInfo Player(const std::string& name, const std::string& account_id = "") {
   return player;
 }
 
-// Waits for the client to reach the state the test is after.
+// Waits until the client reaches the state the test wants.
 bool WaitFor(const MultiplayerClient& client,
              const std::function<bool(const MultiplayerSnapshot&)>& ready) {
   std::chrono::steady_clock::time_point deadline =
@@ -159,7 +159,7 @@ TEST_F(ClientTest, PassesOnWhatTheServerWouldNotDo) {
 }
 
 TEST_F(ClientTest, KeepsTryingWhenNobodyAnswers) {
-  // A port that was listening and is not any more.
+  // A port that was listening and no longer is.
   std::optional<Socket> listener = Listen(0);
   ASSERT_TRUE(listener.has_value());
   int dead_port = LocalPort(*listener);
@@ -181,11 +181,11 @@ TEST_F(ClientTest, KeepsTryingWhenToldToUpdate) {
   ASSERT_TRUE(WaitFor(client, [](const MultiplayerSnapshot& snapshot) {
     return snapshot.state == ConnectionState::kUnavailable;
   }));
-  // The server's own version comes back with the refusal, which is what
-  // names the mismatch -- the deploy check has nothing else to report.
+  // The server's own version comes back with the refusal. It's what identifies
+  // the mismatch, and the deploy check has nothing else to report.
   EXPECT_EQ(client.Snapshot().server_protocol_version, kMultiplayerVersion);
-  // A mismatch is not the end of the connection: it waits rather than giving
-  // up, because the server is one of the two ends that can change.
+  // A mismatch doesn't end the connection: the client keeps waiting instead of
+  // giving up, since either end could be updated.
   std::this_thread::sleep_for(milliseconds(100));
   EXPECT_EQ(client.Snapshot().state, ConnectionState::kUnavailable);
 }
@@ -214,8 +214,8 @@ TEST_F(ClientTest, SaysWhichEndIsBehind) {
 }
 
 TEST_F(ClientTest, HealsWhenTheServerCatchesUp) {
-  // The server is the end that is behind, which is what a deploy left undone
-  // looks like. The client is built right and still cannot get in.
+  // The server is the one behind, which is what a skipped deploy looks like.
+  // The client is correct and still can't connect.
   TestServer old_server(TestBosses(), TestMobs(), kMultiplayerVersion - 1);
   ASSERT_TRUE(old_server.Start());
   MultiplayerClient client("127.0.0.1", old_server.port());
@@ -238,9 +238,9 @@ TEST_F(ClientTest, KeepsTryingWhenTheTokenIsWrong) {
   std::string account = first.Snapshot().account_id;
   ASSERT_FALSE(account.empty());
 
-  // That account claimed with a token the server does not hold for it. The
-  // server's token map is what says no, and a restart clears it, so the
-  // client waits rather than ending the connection for good.
+  // The account is claimed with a token the server doesn't have for it. The
+  // server's token map rejects it, and a restart clears that map, so the client
+  // waits instead of giving up permanently.
   MultiplayerClient impostor("127.0.0.1", server_.port());
   impostor.Start(Player("Dagger", account), "not-the-token");
   ASSERT_TRUE(WaitFor(impostor, [](const MultiplayerSnapshot& snapshot) {
@@ -261,7 +261,7 @@ TEST_F(ClientTest, CarriesATradeFromEndToEnd) {
 
   asker.RequestTrade(asked.Snapshot().account_id);
 
-  // The one asked has a box to put up and no trade behind it yet.
+  // The player who was asked gets a box to show and no trade yet.
   ASSERT_TRUE(WaitFor(asked, [](const MultiplayerSnapshot& snapshot) {
     return snapshot.notification_serial > 0;
   }));

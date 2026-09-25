@@ -1,14 +1,14 @@
-/* What plays, and what plays next.
+/* Decides what plays now and what plays next.
  *
- * One tick, one question: given where the player is standing and which of the
- * three modes they left the Jukebox in, is the right thing playing? The
- * director answers it against the MusicPlayer and nothing else -- it holds no
- * audio and reads no game state beyond the track name it is handed.
+ * Each tick it checks: given where the player is and which of the three Jukebox
+ * modes is set, is the right thing playing? It works only through the
+ * MusicPlayer; it holds no audio and reads no game state beyond the track name
+ * it's given.
  *
- * THE RULE that makes the three modes one piece of code: a track playing
- * through ONCE is always left to finish. A song picked off the list, and the
- * track a mode change caught halfway, are the same case -- neither is cut
- * short, and the mode takes over at its end.
+ * One rule lets a single piece of code handle all three modes: a track playing
+ * through once is always allowed to finish. A song picked from the list and a
+ * track caught halfway by a mode change are the same case. Neither is cut
+ * short, and the mode takes over when it ends.
  */
 #ifndef MS_SRC_AUDIO_MUSIC_DIRECTOR_H_
 #define MS_SRC_AUDIO_MUSIC_DIRECTOR_H_
@@ -28,30 +28,30 @@ inline constexpr float kSkipSeconds = 5.0f;
 
 class MusicDirector {
  public:
-  // `player` and `rng` are the caller's and have to outlive the director.
+  // `player` and `rng` belong to the caller and must outlive the director.
   MusicDirector(MusicPlayer& player, std::mt19937& rng);
 
-  // Asked every tick. `map_track` is what the map, or the boss being fought,
-  // names -- empty where neither has music, which plays nothing.
+  // Called every tick. `map_track` is the track the map or current boss names,
+  // or empty if neither has music, in which case nothing plays.
   void Update(JukeboxMode mode, std::string_view map_track);
 
-  // Plays `track` now, through once. What follows it is the mode's business,
-  // so Enter on a song means this song and then the mode again. A paused
-  // player is let go: picking a song is asking to hear it.
+  // Plays `track` now, once through. The mode decides what follows, so pressing
+  // Enter on a song plays that song and then returns to the mode. Unpauses a
+  // paused player, since picking a song means wanting to hear it.
   void Play(std::string_view track);
-  // Holds what is playing where it stands, or lets it go. Nothing new starts
-  // while it is held, so walking to another map stays silent.
+  // Pauses what's playing, or resumes it. Nothing new starts while paused, so
+  // walking to another map stays silent.
   void TogglePause();
-  // Moves the cursor `seconds` through the live track, forwards or back.
+  // Moves the playback position `seconds` forward or back in the current track.
   void Nudge(float seconds);
 
-  // The track the playlist reaches after `track`, coming round to the first
-  // at the end. The first track for a name the list does not carry, which is
-  // what a build with nothing playing yet answers.
+  // The track after `track` in the playlist, wrapping to the first at the end.
+  // Returns the first track for a name not in the list, which covers the case
+  // of nothing playing yet.
   std::string_view NextInPlaylist(std::string_view track) const;
 
-  // What is playing and where the cursor stands in it, for a screen to draw.
-  // `length_seconds` is 0 where the decoder could not tell.
+  // What's playing and the playback position, for a screen to draw.
+  // `length_seconds` is 0 if the decoder couldn't tell.
   const std::string& playing() const {
     return player_.playing();
   }

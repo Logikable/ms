@@ -1,13 +1,12 @@
-/* What a track is called on screen.
+/* The name a track shows on screen.
  *
- * The tracks are keyed by their WZ filename stem -- `AboveTheTreetops`,
- * `destructionTown` -- which is what a map or a boss phase names in its data
- * file and no way to write a song's title. The table here is that stem spelt
- * out: GMS's own name for the track, with the client's misspellings put
- * right.
+ * Tracks are keyed by their WZ filename stem, such as `AboveTheTreetops` or
+ * `destructionTown`, which is what a map or boss phase names in its data file
+ * but isn't a readable title. The table here maps each stem to GMS's own name
+ * for the track, with the client's misspellings corrected.
  *
- * A stem the table does not carry answers itself, so a track added to bgm/
- * shows up under its filename rather than not at all.
+ * A stem missing from the table is shown as is, so a track added to bgm/ shows
+ * under its filename instead of not at all.
  */
 #ifndef MS_SRC_AUDIO_TRACK_TITLE_H_
 #define MS_SRC_AUDIO_TRACK_TITLE_H_
@@ -18,11 +17,11 @@
 
 namespace ms {
 
-// The title `track` goes by, or `track` itself where the table has no entry.
+// The title `track` is shown as, or `track` itself if the table has no entry.
 std::string TrackTitle(std::string_view track);
 
-// Every track in this build, ordered by the title it shows under. THE order
-// of the song list, and so the order "the song below this one" follows.
+// Every track in this build, sorted by title. This is the song list's order,
+// and so the order "the next song" follows.
 std::vector<std::string_view> TracksByTitle();
 
 }  // namespace ms

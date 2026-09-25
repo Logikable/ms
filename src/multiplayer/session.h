@@ -1,12 +1,12 @@
-/* What ties the connection to the game.
+/* Connects the network connection to the game.
  *
- * The client knows nothing about the GameState and the GameState knows nothing
- * about the connection. This is the one place that knows both: it introduces
- * the character being played, keeps that introduction current as they level,
- * and writes the account the server issues back where the save will keep it.
+ * The client knows nothing about the GameState, and the GameState knows nothing
+ * about the connection. This is where the two meet: it introduces the character
+ * being played, keeps that introduction current as they level, and writes the
+ * account the server issues back where the save will keep it.
  *
- * The frontend owns one of these and calls Advance from its tick. Everything
- * the screens ask of the connection goes through client().
+ * The frontend owns one of these and calls Advance each tick. Every request the
+ * screens make of the connection goes through client().
  */
 #ifndef MS_SRC_MULTIPLAYER_SESSION_H_
 #define MS_SRC_MULTIPLAYER_SESSION_H_
@@ -21,37 +21,36 @@
 
 namespace ms {
 
-// How often an update carrying nothing but fresh EXP goes out. Everything
-// else on the sheet is sent the moment it moves; EXP moves with every kill,
-// and the exp bar on somebody else's Inspect screen is worth no more than
-// this.
+// How often an update with only new EXP is sent. Any other change to the sheet
+// is sent immediately; EXP changes with every kill, and the EXP bar on someone
+// else's Inspect screen doesn't need updating faster than this.
 inline constexpr std::chrono::seconds kExpUpdatePeriod{1};
 
-// The character as everyone else may see them: their stats, what they are
-// wearing, the passives behind both and the points still to spend, with the
-// bag, the purse, the buy-back shelf and their honor cleared.
+// The character as others may see them: stats, equipment, the passives behind
+// both, and unspent points, with the bag, purse, buy-back shelf and honor
+// cleared.
 Character PublicSheet(const CharacterInstance& character);
 
-// The character in `state` as the lobby should see them, sheet included, under
-// the account the save is carrying.
+// The character in `state` as the lobby should see them, including their sheet,
+// under the save's account.
 PlayerInfo PlayerFor(const GameState& state);
 
 class MultiplayerSession {
  public:
   MultiplayerSession(std::string host, int port);
 
-  // Opens the connection. Does nothing on a session already started.
+  // Opens the connection. Does nothing if the session is already started.
   void Start(GameState& state);
-  // Closes it. The destructor does this too, through the client.
+  // Closes the connection. The destructor also does this, through the client.
   void Stop();
   bool started() const {
     return started_;
   }
 
-  // Keeps the two ends in step: what the server calls this player goes into
-  // the account, and a character who has levelled or been renamed is
-  // introduced again. Cheap enough for every tick -- it sends nothing when
-  // nothing has changed.
+  // Keeps both sides in sync: the server's id for this player goes into the
+  // account, and a character who has levelled or been renamed is introduced
+  // again. Cheap enough for every tick, since it sends nothing when nothing
+  // changed.
   void Advance(GameState& state);
 
   MultiplayerSnapshot Snapshot() const {
@@ -64,11 +63,10 @@ class MultiplayerSession {
  private:
   MultiplayerClient client_;
   bool started_ = false;
-  // What the lobby was last told, so that a tick changing nothing sends
-  // nothing.
+  // What the lobby was last sent, so a tick with no changes sends nothing.
   PlayerInfo told_;
-  // When that went out, for the EXP floor. Epoch until the first send, which
-  // is well past kExpUpdatePeriod ago -- the first tick is never held back.
+  // When that was sent, for the EXP rate limit. The epoch until the first send,
+  // which is long before kExpUpdatePeriod, so the first tick is never delayed.
   std::chrono::steady_clock::time_point sent_;
 };
 

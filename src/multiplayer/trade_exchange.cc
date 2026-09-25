@@ -14,10 +14,10 @@
 namespace ms {
 namespace {
 
-// The Etc tab as a list of stacks, worked on away from the character. It
-// MIRRORS SpendItem and AddItem -- drain in order and drop what empties, top
-// up open stacks before opening new ones -- because the question is what those
-// two would do, and the character cannot be asked to do it without doing it.
+// The Etc tab as a list of stacks, modified separately from the character. It
+// mirrors SpendItem and AddItem (drain in order and drop empty stacks, top up
+// open stacks before starting new ones), because the question is what those two
+// would do, and the character can't be asked without actually doing it.
 using Stacks = std::vector<StackableItem>;
 
 void TakeFrom(Stacks& stacks, const std::string& name, int count) {
@@ -33,7 +33,7 @@ void TakeFrom(Stacks& stacks, const std::string& name, int count) {
   }
 }
 
-// Whether `count` of `proto` all fit, putting in what does.
+// Whether `count` of `proto` all fit, adding what does.
 bool PutIn(Stacks& stacks, const ItemPrototype& proto, int count) {
   for (StackableItem& stack : stacks) {
     if (count <= 0) {
@@ -70,8 +70,8 @@ bool HasRoomForTrade(const CharacterInstance& character,
       character.inventory().room() + given.equips_size()) {
     return false;
   }
-  // Spell traces are not weighed at all: a currency is a balance rather than a
-  // row, so however many come across, they fit.
+  // Spell traces aren't counted: a currency is a balance, not a row, so any
+  // number of them fits.
   Stacks stacks = character.stackables();
   for (const TradeStack& stack : given.stacks()) {
     TakeFrom(stacks, stack.name(), stack.count());
@@ -90,8 +90,8 @@ void ApplyTrade(CharacterInstance& character,
                 const std::map<std::string, ItemPrototype>& items,
                 const std::vector<int>& given_equips, const TradeOffer& given,
                 const TradeOffer& received) {
-  // Out before in, and from the back: every row before the one taken keeps
-  // its place, so a list of rows stays true while it is being worked.
+  // Remove before adding, and from the back: every row before the removed one
+  // keeps its position, so the list of row indices stays valid during the loop.
   std::vector<int> rows = given_equips;
   std::sort(rows.begin(), rows.end(), std::greater<int>());
   for (int row : rows) {

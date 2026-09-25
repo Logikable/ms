@@ -11,16 +11,15 @@
 namespace ms {
 namespace {
 
-// A track this build actually carries. Which one does not matter: the
-// player is asked about names, and the test should not pin a pick that the
-// data is free to change.
+// A track this build includes. Which one doesn't matter: the player works with
+// names, and the test shouldn't depend on a choice the data may change.
 std::string_view AnyTrack() {
   std::vector<std::string_view> names = BgmTrackNames();
   return names.empty() ? std::string_view() : names.front();
 }
 
-// The null backend runs miniaudio's own clock, so these pass on a box with
-// no sound card -- which is what this one is.
+// The null backend runs on miniaudio's own clock, so these pass on a machine
+// with no sound card, like this one.
 MusicPlayer MakePlayer() {
   return MusicPlayer(MusicPlayer::Backend::kNull);
 }
@@ -39,7 +38,7 @@ TEST(MusicPlayerTest, PlaysAndStops) {
   MusicPlayer player = MakePlayer();
   player.Play(AnyTrack());
   EXPECT_EQ(player.playing(), AnyTrack());
-  // Asking again for what is already on is the frame loop's every tick.
+  // Requesting what's already playing is what the frame loop does every tick.
   player.Play(AnyTrack());
   EXPECT_EQ(player.playing(), AnyTrack());
   player.Stop();
@@ -63,7 +62,7 @@ TEST(MusicPlayerTest, UnknownTrackPlaysNothing) {
   EXPECT_EQ(player.playing(), "");
 }
 
-// A looping track is the map's: it never ends, so it never asks for another.
+// A looping track is the map's: it never ends, so it never requests another.
 TEST(MusicPlayerTest, ALoopingTrackIsNeverEnding) {
   if (AnyTrack().empty()) {
     GTEST_SKIP() << "built with --define=audio=off";
@@ -72,16 +71,16 @@ TEST(MusicPlayerTest, ALoopingTrackIsNeverEnding) {
   EXPECT_TRUE(player.ending()) << "nothing playing";
   player.Play(AnyTrack());
   EXPECT_FALSE(player.ending());
-  // Taking the loop off is what the Jukebox option does to a track already
-  // playing. The track keeps playing; it just has an end now.
+  // The Jukebox option turns off looping on a track already playing. The track
+  // keeps playing; it just has an end now.
   player.StopLooping();
   EXPECT_FALSE(player.looping());
   EXPECT_FALSE(player.ending()) << "a track just started is not near its end";
   EXPECT_EQ(player.playing(), AnyTrack());
 }
 
-// The shuffle ending on the very track the map names: Play has to put it back
-// on its loop rather than take it for the one already on.
+// When shuffle ends on the exact track the map names, Play must set it looping
+// again instead of treating it as already playing.
 TEST(MusicPlayerTest, PlayLoopsATrackThatWasPlayingThrough) {
   if (AnyTrack().empty()) {
     GTEST_SKIP() << "built with --define=audio=off";
@@ -102,8 +101,8 @@ TEST(MusicPlayerTest, PlayOnceRestartsTheSameTrack) {
   player.PlayOnce(AnyTrack());
   EXPECT_EQ(player.playing(), AnyTrack());
   EXPECT_FALSE(player.ending());
-  // Play would take this for the track already on and do nothing. A library
-  // of one comes to exactly this.
+  // Play would treat this as the track already playing and do nothing. A
+  // library of one hits exactly this case.
   player.PlayOnce(AnyTrack());
   EXPECT_EQ(player.playing(), AnyTrack());
   EXPECT_FALSE(player.ending());

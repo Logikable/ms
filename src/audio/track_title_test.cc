@@ -21,16 +21,16 @@ TEST(TrackTitleTest, SpellsTheStemOutAndPutsTheClientsSpellingRight) {
   EXPECT_EQ(TrackTitle("FightingPinkBeen"), "Fighting Pink Bean");
 }
 
-// A track added to bgm/ before the table hears about it shows up under its
-// filename rather than not at all.
+// A track added to bgm/ before the table has an entry shows under its filename
+// instead of not at all.
 TEST(TrackTitleTest, AnUnknownStemAnswersItself) {
   EXPECT_EQ(TrackTitle("NoSuchTrack"), "NoSuchTrack");
   EXPECT_EQ(TrackTitle(""), "");
 }
 
-// What a stem looks like and a title does not: a word running into a capital,
-// or an underscore standing in for a space. A track added to bgm/ that nobody
-// spelt out fails here rather than reaching the screen as its filename.
+// Stems have words running into capitals, or underscores for spaces; titles
+// don't. A track added to bgm/ without a title fails here instead of showing
+// its filename on screen.
 TEST(TrackTitleTest, EveryTrackInTheBuildReadsAsWords) {
   std::vector<std::string_view> tracks = BgmTrackNames();
   if (tracks.empty()) {
@@ -55,8 +55,8 @@ TEST(TrackTitleTest, TheSongListIsInTitleOrderAndHoldsEveryTrack) {
   }
 }
 
-// The durations are counted from the MP3 frame headers when the build embeds
-// them, so a build with music has one for every track.
+// Durations are computed from the MP3 frame headers when the build embeds the
+// music, so a build with music has one for every track.
 TEST(TrackTitleTest, EveryTrackKnowsHowLongItRuns) {
   std::vector<std::string_view> tracks = BgmTrackNames();
   if (tracks.empty()) {
@@ -66,8 +66,8 @@ TEST(TrackTitleTest, EveryTrackKnowsHowLongItRuns) {
     auto data = BgmTrack(track);
     ASSERT_TRUE(data.has_value()) << track;
     EXPECT_GT(data->duration_ms, 0) << track;
-    // Nothing under bgm/ runs past a quarter of an hour; a longer answer
-    // means the walk lost its place rather than that the track is long.
+    // Nothing under bgm/ is longer than fifteen minutes; a longer value means
+    // the header scan went wrong, not that the track is long.
     EXPECT_LT(data->duration_ms, 15 * 60 * 1000) << track;
   }
 }

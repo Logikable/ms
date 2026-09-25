@@ -19,9 +19,9 @@ namespace {
 
 using ::std::chrono::milliseconds;
 
-// How long a round trip is given before the test calls it lost. Generous:
-// nothing here waits it out on the way to passing, and the suite runs these
-// alongside fifteen other targets on a machine with sixteen cores.
+// How long a round trip may take before the test treats it as lost. Generous:
+// passing tests never wait this long, and the suite runs these alongside
+// fifteen other targets on a sixteen-core machine.
 constexpr milliseconds kPatience(15000);
 
 PlayerInfo Player(const std::string& name) {
@@ -31,7 +31,7 @@ PlayerInfo Player(const std::string& name) {
   return player;
 }
 
-// One client, its account, and the fight it is following.
+// One client, its account, and the fight it's following.
 struct Peer {
   explicit Peer(int port) : client("127.0.0.1", port), fight(client) {
   }
@@ -41,8 +41,8 @@ struct Peer {
   std::string account_id;
 };
 
-// Two clients in a party, one of them leading it, both in the fight it
-// started: the whole protocol driven from the game's own end.
+// Two clients in a party, one leading, both in the fight it started: the whole
+// protocol driven from the game's side.
 class PartyFightTest : public ::testing::Test {
  protected:
   void SetUp() override {
@@ -70,9 +70,9 @@ class PartyFightTest : public ::testing::Test {
       return party.members_size() == 2 && party.members(1).ready();
     }));
     leader_->client.StartFight("zakum", 0, PARTY_MODE_SHARED);
-    // The count-in is three REAL seconds. What these tests are about is what
-    // crosses the wire, so the server is walked past it rather than waited
-    // out -- four tests sitting through it was a quarter of the whole suite.
+    // The countdown is three real seconds. These tests are about what crosses
+    // the network, so the server is stepped past it instead of waiting; four
+    // tests waiting it out took a quarter of the whole suite's time.
     ASSERT_TRUE(Await([&]() {
       SharedFight fight;
       return leader_->fight.Fetch(fight) &&
@@ -82,8 +82,8 @@ class PartyFightTest : public ::testing::Test {
         milliseconds(static_cast<int>(1000 * kBossCountdownSeconds) + 100));
   }
 
-  // Runs both ends until `ready`, draining what the server has said into each
-  // client's fight as it goes.
+  // Runs both sides until `ready`, feeding each client's fight the server's
+  // messages along the way.
   bool Await(const std::function<bool()>& ready) {
     std::chrono::steady_clock::time_point deadline =
         std::chrono::steady_clock::now() + kPatience;
@@ -113,13 +113,13 @@ TEST_F(PartyFightTest, BothEndsLearnTheFightHasBegun) {
   SharedFight fight;
   ASSERT_TRUE(member_->fight.Fetch(fight));
   ASSERT_EQ(fight.players.size(), 2u);
-  // Each end knows which of them it is, and reads the other's name.
+  // Each side knows which player it is, and reads the other's name.
   EXPECT_EQ(fight.self, 1);
   EXPECT_EQ(fight.players[0].name, "Dagger");
   EXPECT_EQ(fight.hp_fractions.size(), 1u);
   EXPECT_EQ(fight.hp_fractions[0], 1.0);
 
-  // A fight nobody has been told about is one a run waits on.
+  // A run waits on a fight nobody has been told about.
   Peer alone(server_.port());
   SharedFight nothing;
   EXPECT_FALSE(alone.fight.Fetch(nothing));
@@ -161,7 +161,7 @@ TEST_F(PartyFightTest, WhatOneLandsTheOtherReadsBack) {
   EXPECT_EQ(seen.players[0].buff_count, 3);
   EXPECT_EQ(seen.hp_fractions[0], 0.75);
 
-  // Read once: the run drew them, and they age off its own screen.
+  // Read once: the run drew them, and they expire on its own screen.
   SharedFight again;
   ASSERT_TRUE(member_->fight.Fetch(again));
   EXPECT_TRUE(again.lines.empty());
@@ -196,7 +196,7 @@ TEST_F(PartyFightTest, AClearIsToldToEveryone) {
     return true;
   }));
   EXPECT_EQ(ended.share_count, 2);
-  // Everyone's table, the one who never reported included.
+  // Everyone's table, including the player who never reported.
   ASSERT_EQ(ended.breakdowns.size(), 2u);
   EXPECT_EQ(ended.breakdowns[0].account_id, leader_->account_id);
   EXPECT_EQ(ended.breakdowns[0].name, "Dagger");
@@ -207,8 +207,8 @@ TEST_F(PartyFightTest, AClearIsToldToEveryone) {
   EXPECT_TRUE(ended.breakdowns[1].rows.empty());
 }
 
-// The server deals the drops, so what always falls always falls -- to exactly
-// one of them, never to both and never to neither.
+// The server deals the drops, so a certain drop always falls, to exactly one of
+// them: never both and never neither.
 TEST_F(PartyFightTest, ACertainDropFallsToOneOfThem) {
   ASSERT_TRUE(Await([&]() {
     SharedFight fight;
@@ -260,7 +260,7 @@ TEST_F(PartyFightTest, WalkingOutEndsItForWhoeverIsLeft) {
     seen = fight;
     return true;
   }));
-  // The fight goes on for the one still in it.
+  // The fight continues for the one still in it.
   EXPECT_EQ(seen.state, BossRunState::kFighting);
   EXPECT_TRUE(seen.players[0].present);
 }

@@ -72,8 +72,8 @@ int PollHandles(pollfd* fds, size_t count, int timeout_ms) {
 }
 #endif
 
-// Every socket here is non-blocking, so this is done to each one the moment
-// it exists -- the one accepted as well as the one connected.
+// Every socket here is non-blocking, so this is applied to each one as soon as
+// it exists, both accepted and connected.
 bool SetNonBlocking(SocketHandle handle) {
 #ifdef _WIN32
   u_long on = 1;
@@ -87,20 +87,21 @@ bool SetNonBlocking(SocketHandle handle) {
 #endif
 }
 
-// Sends small writes straight out. The lobby would not notice, but a fight
-// broadcasts a few hundred bytes every tick and Nagle would sit on them.
+// Sends small writes immediately. The lobby wouldn't notice, but a fight
+// broadcasts a few hundred bytes every tick and Nagle's algorithm would delay
+// them.
 void SetNoDelay(SocketHandle handle) {
   int on = 1;
   setsockopt(handle, IPPROTO_TCP, TCP_NODELAY,
              reinterpret_cast<const SockOptChar*>(&on), sizeof(on));
 }
 
-// How long the poll inside Connect may wait at once. The deadline is checked
-// between waits, so an interrupted one costs at most this much.
+// The longest single poll inside Connect. The deadline is checked between
+// polls, so an interrupted poll costs at most this much.
 constexpr int kConnectPollSliceMs = 100;
 
-// Waits for `handle` to become writable, which is how a connection in
-// progress reports that it has landed.
+// Waits for `handle` to become writable, which is how an in-progress connection
+// reports that it has completed.
 bool WaitWritable(SocketHandle handle, std::chrono::milliseconds timeout) {
   std::chrono::steady_clock::time_point deadline =
       std::chrono::steady_clock::now() + timeout;
@@ -119,7 +120,7 @@ bool WaitWritable(SocketHandle handle, std::chrono::milliseconds timeout) {
   return false;
 }
 
-// Whether a connection that was still in progress ended up connected.
+// Whether an in-progress connection ended up connected.
 bool ConnectSucceeded(SocketHandle handle) {
   int error = 0;
   SockLen length = sizeof(error);
@@ -130,8 +131,8 @@ bool ConnectSucceeded(SocketHandle handle) {
   return error == 0;
 }
 
-// Opens one connection to one resolved address. Nothing means this address
-// did not answer; the caller tries the next.
+// Opens one connection to one resolved address. Returns nothing if the address
+// didn't answer; the caller tries the next one.
 std::optional<Socket> ConnectTo(const addrinfo& address,
                                 std::chrono::milliseconds timeout) {
   SocketHandle handle =
@@ -205,7 +206,7 @@ std::optional<Socket> Listen(int port) {
     return std::nullopt;
   }
   Socket listener(handle);
-  // So a restart can take the port back rather than waiting out the last
+  // So a restart can reuse the port instead of waiting out the last
   // connection's TIME_WAIT.
   int on = 1;
   setsockopt(handle, SOL_SOCKET, SO_REUSEADDR,
@@ -294,7 +295,7 @@ IoStatus Write(const Socket& socket, std::string& buffer) {
 #ifdef _WIN32
   int flags = 0;
 #else
-  // Without this a write to a socket the other end has closed kills the
+  // Without this, writing to a socket the other end has closed kills the
   // process with SIGPIPE.
   int flags = MSG_NOSIGNAL;
 #endif
@@ -330,8 +331,8 @@ bool Poll(std::vector<PollTarget>& targets, std::chrono::milliseconds timeout) {
   int ready = PollHandles(entries.data(), entries.size(),
                           static_cast<int>(timeout.count()));
   if (ready < 0) {
-    // A signal cut the wait short. Nothing is ready, and the caller's next
-    // pass over its own state is exactly what a signal wants to reach.
+    // A signal interrupted the wait. Nothing is ready, and returning lets the
+    // caller's next pass handle whatever the signal was for.
     return IsInterrupted(LastError());
   }
   for (size_t i = 0; i < targets.size(); ++i) {

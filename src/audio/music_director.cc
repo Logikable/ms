@@ -27,18 +27,18 @@ void MusicDirector::Update(JukeboxMode mode, std::string_view map_track) {
   if (!player_.ready() || player_.paused()) {
     return;
   }
-  // Anything playing through once is left to finish; see the header.
+  // A track playing through once is left to finish; see the header.
   if (!player_.looping() && !player_.ending()) {
     return;
   }
   if (mode == JUKEBOX_MODE_FOLLOW_MAP) {
-    // Asking for the track already looping costs nothing, so this is the
-    // whole of following the map.
+    // Requesting the track already looping costs nothing, so this is all it
+    // takes to follow the map.
     player_.Play(map_track);
     return;
   }
-  // Taking the loop off the map's track is what lets it reach an end for the
-  // first track of the list to come in over.
+  // Turning off the loop on the map's track lets it end, so the first track of
+  // the list can start after it.
   player_.StopLooping();
   if (!player_.ending()) {
     return;
