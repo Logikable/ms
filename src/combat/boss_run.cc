@@ -24,14 +24,14 @@
 namespace ms {
 namespace {
 
-// The beat between reports, in the seconds the run counts in.
+// Time between reports to the server, in run seconds.
 constexpr double kReportSeconds = kFightPublishInterval.count() / 1000.0;
 
-// A clock a slot does not keep, later than any fight is long.
+// A time later than any fight lasts, for events a slot never has.
 constexpr double kNeverMoves = std::numeric_limits<double>::infinity();
 
-// How far out anyone stands on each axis, counted in cells: the size an arena
-// that names none is measured to.
+// The furthest cell anyone stands on along each axis. Used as the arena size
+// when the phase doesn't set one.
 ArenaSpot ArenaExtent(const BossPhase& phase) {
   ArenaSpot extent;
   for (const Spawn& spawn : phase.spawns()) {
@@ -47,8 +47,8 @@ ArenaSpot ArenaExtent(const BossPhase& phase) {
   return extent;
 }
 
-// A number that looks drawn but is not: the same monster and the same step
-// always give the same one, on every client, with nothing sent between them.
+// A pseudo-random number from a monster ID and a step count. The same inputs
+// give the same result on every client, so nothing needs to be sent.
 uint32_t Mixed(int id, int step) {
   uint32_t h = static_cast<uint32_t>(id) * 2654435761u +
                static_cast<uint32_t>(step) * 2246822519u;
@@ -67,8 +67,8 @@ bool PlayerMayStand(const BossPhase& phase, int x, int y) {
   return false;
 }
 
-// Whether a monster may stand on (x, y) at all: inside the arena, and not on
-// a cell the phase lets a player stand on.
+// Whether a monster may stand on (x, y): inside the arena, and not on a player
+// spot.
 bool MayEnter(const BossPhase& phase, int x, int y, int width, int height) {
   if (x < 0 || x >= width || y < 0 || y >= height) {
     return false;
@@ -76,9 +76,9 @@ bool MayEnter(const BossPhase& phase, int x, int y, int width, int height) {
   return !PlayerMayStand(phase, x, y);
 }
 
-// Everywhere one step of `walk` could carry a monster on (x, y). Never the
-// cell it is on, so a step always moves it, and never a player's: the arena
-// draws one bar per cell.
+// Every cell one step of `walk` could move a monster at (x, y) to. Never its
+// current cell, so a step always moves it, and never a player spot, since each
+// cell holds one bar.
 std::vector<ArenaSpot> WalkTargets(const BossPhase& phase,
                                    const ArenaWalk& walk, int x, int y,
                                    int width, int height) {
@@ -86,7 +86,7 @@ std::vector<ArenaSpot> WalkTargets(const BossPhase& phase,
   std::vector<ArenaSpot> tried;
   if (walk.range() == ArenaWalk::RANGE_STEP ||
       walk.range() == ArenaWalk::RANGE_ROW_STEP) {
-    // Sideways first, so a walk held to its own row takes the first two.
+    // Sideways directions first, so a row-only walk just takes the first two.
     const int kSteps[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
     int sides = walk.range() == ArenaWalk::RANGE_ROW_STEP ? 2 : 4;
     for (int side = 0; side < sides; ++side) {
@@ -136,12 +136,12 @@ int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy,
     const ArenaSpot& spot = phase.player_spots(i);
     int step_x = spot.x() - at.x();
     int step_y = spot.y() - at.y();
-    // How far the spot lies the way the arrow points, and how far off that
-    // line. Only one of dx and dy is ever set, so each is one term.
+    // How far the spot is in the pressed direction, and how far off to the
+    // side. Only one of dx and dy is ever nonzero, so each is a single term.
     int along = step_x * dx + step_y * dy;
     int across = std::abs(step_x * dy) + std::abs(step_y * dx);
-    // Further across the arrow than along it is not that way at all, or
-    // Right in Horntail's top corner would fetch the spot under his tail.
+    // Skip spots further to the side than ahead. Otherwise pressing Right in
+    // Horntail's top corner would jump to the spot under his tail.
     if (along <= 0 || across > along) {
       continue;
     }
@@ -190,8 +190,8 @@ void BossRun::MovePlayer(int dx, int dy) {
   if (phase == nullptr) {
     return;
   }
-  // Walked here and told to the server afterwards, rather than asked for and
-  // waited on: a step across the arena is worth nothing if it stutters.
+  // Move locally first and tell the server later, rather than waiting for it,
+  // so movement never stutters.
   player_at_ = NextPlayerSpot(*phase, player_at_, dx, dy, TakenSpots());
   if (!members_.empty()) {
     members_[0].spot = player_at_;
@@ -212,8 +212,7 @@ void BossRun::StandSelf() {
   if (members_.empty()) {
     members_.resize(1);
   }
-  // Always the first of them, so a stack this player landed is the one with
-  // owner 0.
+  // Always first, so this player's stacks have owner 0.
   members_[0] = {"", player_at_, sim_.view().attack_name,
                  sim_.view().attack_fraction, sim_.view().buff_count};
 }
@@ -223,8 +222,8 @@ std::string_view BossRun::bgm() const {
   if (chosen == nullptr) {
     return {};
   }
-  // Walk back from the phase being fought: the first track named at or above
-  // it is what is playing, which is how one track covers a whole fight.
+  // Walk back from the current phase to the nearest one that sets a track. That
+  // lets one track cover a whole fight.
   for (int i = std::min(phase_, chosen->phases_size() - 1); i >= 0; --i) {
     if (!chosen->phases(i).bgm().empty()) {
       return chosen->phases(i).bgm();
@@ -274,8 +273,8 @@ int BossRun::arena_width() const {
   if (phase == nullptr) {
     return 0;
   }
-  // Measured off what stands in it when the phase says nothing: as wide as the
-  // cell furthest to the right and no wider, which leaves it no margin.
+  // If the phase doesn't set a width, use the rightmost occupied cell, with no
+  // margin.
   return phase->arena_width() > 0 ? phase->arena_width()
                                   : ArenaExtent(*phase).x();
 }
@@ -325,7 +324,7 @@ void BossRun::AgeDamageNumbers(double dt) {
   writes.reserve(damage_writes_.size());
   for (DamageWrite& write : damage_writes_) {
     write.age += dt;
-    // A write that is not due yet has its whole life ahead of it.
+    // A write whose delay hasn't passed yet still has its full life ahead.
     if (write.showing() < kDamageStackSeconds) {
       writes.push_back(std::move(write));
     }
@@ -334,8 +333,8 @@ void BossRun::AgeDamageNumbers(double dt) {
 }
 
 void BossRun::Replace(DamageStack stack) {
-  // What this source last left goes, whatever life it had: two lots from one
-  // source read as one stack that cannot make up its mind.
+  // Remove whatever this source last left here, however old: two stacks from
+  // one source would look like one stack flickering.
   damage_stacks_.erase(
       std::remove_if(damage_stacks_.begin(), damage_stacks_.end(),
                      [&stack](const DamageStack& old) {
@@ -347,8 +346,8 @@ void BossRun::Replace(DamageStack stack) {
   damage_stacks_.push_back(std::move(stack));
 }
 
-// The strike showing now: one per kDamageStrikeSeconds, and the last of them
-// stands for whatever is left of the stack's life.
+// The hit showing now: each lasts kDamageStrikeSeconds, and the last one stays
+// for the rest of the stack's life.
 std::pair<int, int> DamageStack::StrikeAt(double age) const {
   if (strike_starts.empty()) {
     return {0, static_cast<int>(lines.size())};
@@ -373,8 +372,8 @@ int DamageStack::TallestStrike() const {
 std::vector<DamageRow> DamageColumn(const std::vector<DamageWrite>& writes,
                                     int mob_id) {
   std::vector<DamageRow> rows;
-  // How long ago each row was written, so a row keeps the freshest number that
-  // reached it rather than the last one the list happened to hold.
+  // How long ago each row was written, so a row keeps the newest number that
+  // reached it rather than whichever came last in the list.
   std::vector<double> since;
   for (const DamageWrite& write : writes) {
     if (write.mob_id != mob_id || !write.live()) {
@@ -397,15 +396,16 @@ std::vector<DamageRow> DamageColumn(const std::vector<DamageWrite>& writes,
 
 void BossRun::CollectDamageWrites() {
   const std::vector<DamageLine>& lines = sim_.damage_lines_this_step();
-  // The lines of one landing arrive together, and a run under one strike is
-  // one write. Nothing sorts: they are read up the screen in landing order.
+  // Lines from one landing arrive together, and consecutive lines with the same
+  // hit number make one write. No sorting needed; they stack up the screen in
+  // landing order.
   for (std::size_t i = 0; i < lines.size();) {
     int event = lines[i].event;
     std::map<int, int>::const_iterator slot =
         slot_of_mob_.find(lines[i].mob_id);
     DamageSource source = lines[i].source;
-    // Counted here rather than taken from the line: the delay is how many
-    // strikes of this landing came before, which is what the flash is.
+    // Count hits here rather than reading them from the line: the delay depends
+    // on how many hits of this landing came before.
     int strikes = 0;
     for (int strike = -1; i < lines.size() && lines[i].event == event; ++i) {
       if (lines[i].strike != strike) {
@@ -414,8 +414,7 @@ void BossRun::CollectDamageWrites() {
             {lines[i].mob_id, {}, strikes * kDamageStrikeSeconds, 0.0});
         ++strikes;
       }
-      // Rounded up off zero: a line that landed at all is worth a 1 rather
-      // than a number that says nothing happened.
+      // Round up from zero: a line that landed shows at least 1.
       breakdown_.AddLine(sim_.damage_credit_name(lines[i].credit),
                          lines[i].damage, lines[i].cast);
       int64_t damage = static_cast<int64_t>(std::llround(lines[i].damage));
@@ -424,8 +423,8 @@ void BossRun::CollectDamageWrites() {
       if (authority_ == nullptr || slot == slot_of_mob_.end()) {
         continue;
       }
-      // The same number, so what the shared roster loses is what its players
-      // watched come off it.
+      // Report the same rounded number, so the shared HP drops by what players
+      // saw.
       landed_.push_back({0, slot->second, event, lines[i].strike, source,
                          damage, lines[i].crit});
     }
@@ -439,12 +438,12 @@ void BossRun::CollectDamageWrites() {
 }
 
 void BossRun::FillSlots(const CombatParams& params) {
-  // A type's spots are handed out in roster order. They are the same monster,
-  // so which takes which is a question about identical bars. A type with no
-  // spots stands at the origin.
+  // A type's spots are handed out in mob-list order. Mobs of one type are
+  // identical, so the order doesn't matter. A type with no spots stands at the
+  // origin.
   std::vector<int> placed(params.types.size(), 0);
-  // Where each type begins in the phase's roster. A slot is that number and
-  // is the same on every client; the queue it comes off is shuffled.
+  // Where each type's slots begin in the phase. Slot numbers are the same on
+  // every client, even though each client's mob queue is shuffled.
   std::vector<int> first(params.types.size(), 0);
   int counted = 0;
   for (std::size_t i = 0; i < params.types.size(); ++i) {
@@ -471,8 +470,8 @@ void BossRun::FillSlots(const CombatParams& params) {
     bar.x = spot.x();
     bar.y = spot.y();
     bar.walk = params.types[mob.type].walk;
-    // Every clock runs from the start of the fight rather than the start of
-    // the phase, so a body that comes out late walks the time already spent.
+    // All timers count from the start of the fight, not the phase, so a monster
+    // that appears later picks up its walk where the fight's time already is.
     bar.next_move_at = bar.walk.interval_ms() / 1000.0;
     bar.next_dash_at = bar.walk.dash().interval_ms() / 1000.0;
     bar.next_jump_at = bar.walk.jump().interval_ms() / 1000.0;
@@ -488,7 +487,8 @@ void BossRun::StepSlot(const BossPhase& phase, BossSlot& slot) {
   if (targets.empty()) {
     return;
   }
-  // Drawn off the step it is, not rolled: every client walks it the same way.
+  // Pick the target from the step count instead of rolling, so every client
+  // moves it the same way.
   const ArenaSpot& to =
       targets[Mixed(slot.id, slot.steps_taken) % targets.size()];
   slot.x = to.x();
@@ -516,8 +516,8 @@ void BossRun::JumpSlot(BossSlot& slot) {
   if (slot.airborne) {
     slot.y = slot.ground_y;
     slot.airborne = false;
-    // A fresh interval from the landing: she does not owe the step she was
-    // in the air for.
+    // Start a fresh interval from the landing: the step it missed while in the
+    // air is skipped.
     slot.next_move_at = slot.land_at + slot.walk.interval_ms() / 1000.0;
     return;
   }
@@ -538,16 +538,16 @@ double BossRun::NextMoveAt(const BossSlot& slot) {
 void BossRun::MoveSlot(const BossPhase& phase, BossSlot& slot) {
   const ArenaDash& dash = slot.walk.dash();
   ++slot.steps_taken;
-  // A dash falling due takes the step that was coming, and runs from the
-  // moment it was due rather than from whenever the step was.
+  // A dash that is due replaces the next step, and starts from when the dash
+  // was due rather than when the step was.
   if (slot.dash_left == 0 && dash.interval_ms() > 0 &&
       slot.next_dash_at <= slot.next_move_at) {
     slot.dash_left = std::max(1, dash.cells());
     slot.next_move_at = slot.next_dash_at;
     slot.next_dash_at += dash.interval_ms() / 1000.0;
     slot.dash_dx = Mixed(slot.id, slot.steps_taken) % 2 == 0 ? 1 : -1;
-    // Already against that wall: a dash with nowhere to go is no dash at all,
-    // so it turns round instead of standing there for its whole length.
+    // If already against that wall, turn around instead of standing still for
+    // the whole dash.
     if (!MayEnter(phase, slot.x + slot.dash_dx, slot.y, arena_width(),
                   arena_height())) {
       slot.dash_dx = -slot.dash_dx;
@@ -556,7 +556,7 @@ void BossRun::MoveSlot(const BossPhase& phase, BossSlot& slot) {
   if (slot.dash_left > 0) {
     --slot.dash_left;
     if (!DashSlot(phase, slot)) {
-      slot.dash_left = 0;  // Stopped at the wall, and stops there.
+      slot.dash_left = 0;  // stopped at the wall; the dash ends
     }
   } else {
     StepSlot(phase, slot);
@@ -568,8 +568,7 @@ void BossRun::MoveSlot(const BossPhase& phase, BossSlot& slot) {
 void BossRun::DriftSlot(const BossPhase& phase, BossSlot& slot,
                         double elapsed) {
   while (true) {
-    // Nothing walks while it is in the air, and a slot with no walk at all is
-    // here for its jump alone.
+    // Nothing walks while in the air, and a slot with no walk only jumps.
     double move = slot.airborne || slot.walk.interval_ms() <= 0
                       ? kNeverMoves
                       : NextMoveAt(slot);
@@ -613,7 +612,7 @@ void BossRun::SyncSlots(double dt) {
       continue;
     }
     if (slot.alive) {
-      // Just died: the empty bar stands for a beat before the slot goes dark.
+      // Just died: the empty bar stays up briefly before the slot goes dark.
       slot.alive = false;
       slot.hp_fraction = 0.0;
       slot.dead_for = 0.0;
@@ -648,8 +647,8 @@ const CombatParams& BossRun::PhaseParams(const GameState& state) {
 void BossRun::RunPhase(GameState& state, double dt) {
   const CombatParams& params = PhaseParams(state);
   if (!params.active) {
-    // Nothing to fight: a phase naming mobs the catalog does not hold, or a
-    // character who is not holding a weapon.
+    // Nothing to fight: the phase names mobs the catalog doesn't have, or the
+    // character has no weapon.
     Finish(BossRunState::kAborted);
     return;
   }
@@ -663,7 +662,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
   }
   ComputePhaseHp(params);
   seconds_left_ = std::max(0.0, seconds_left_ - dt);
-  // After the clock, which is what says where anything that walks stands.
+  // After the timer update, since walking positions follow the timer.
   DriftSlots();
   if (!sim_.view().roster.empty()) {
     if (seconds_left_ <= 0.0) {
@@ -684,8 +683,8 @@ std::vector<SharedAward> BossRun::RollAwards(GameState& state,
                                              double item_drop_pct) const {
   std::vector<SharedAward> awards;
   for (const MobDrop& drop : difficulty()->drops()) {
-    // One roll for the fight, where a map rolls one per kill. What drop rate
-    // buys depends on what falls -- see BossDropRate.
+    // Bosses roll each drop once per fight; maps roll once per kill. How drop
+    // rate applies depends on the item; see BossDropRate.
     int64_t rolled = RollDrops(BossDropRate(drop, item_drop_pct), 1, state.rng);
     if (rolled > 0) {
       awards.push_back({drop, rolled});
@@ -698,21 +697,19 @@ void BossRun::PayReward(GameState& state,
                         const std::vector<SharedAward>& awards) {
   const BossDifficulty* chosen = difficulty();
   clear_seconds_ = std::max(0.0, chosen->time_limit_seconds() - seconds_left_);
-  // A practice run is the fight and nothing else: no meso, no EXP, no honor
-  // and no drops. The clock above still stands, being what the player came to
-  // beat.
+  // A practice run pays nothing: no meso, EXP, honor or drops. The clear time
+  // above is still recorded, since beating it is the point.
   if (practice_) {
     return;
   }
-  // A party splits the purse and nothing else. The EXP is what the fight is
-  // worth to a character, and three people beating a boss have each beaten it.
+  // A party splits the meso and nothing else. Every member beat the boss, so
+  // each gets the full EXP.
   double share = 1.0 / std::max(1, share_count_);
   reward_.meso = static_cast<int64_t>(chosen->meso() * share);
   if (reward_.meso > 0) {
     state.character.AddMeso(reward_.meso);
   }
-  // Honor, like EXP, is not divided: a party splits the purse, and everyone
-  // who beat the boss beat him. Held to the fights the reset gates.
+  // Honor isn't split either. Only bosses with a reset period pay it.
   if (chosen->reset() != RESET_PERIOD_UNSPECIFIED) {
     reward_.honor = kBossClearHonor;
     state.character.AddHonor(reward_.honor);
@@ -736,8 +733,8 @@ void BossRun::AdvanceShared(GameState& state, double dt) {
   AgeDamageNumbers(dt);
   SharedFight shared;
   if (!authority_->Fetch(shared)) {
-    // Nothing has arrived. A run with an authority decides nothing itself, so
-    // it waits rather than counting itself in.
+    // Nothing has arrived yet. A party run decides nothing itself, so it waits
+    // rather than starting its own countdown.
     return;
   }
   bool paid = state_ == BossRunState::kWon;
@@ -745,8 +742,8 @@ void BossRun::AdvanceShared(GameState& state, double dt) {
   if (state_ == BossRunState::kFighting) {
     RunSharedPhase(state, dt, shared);
   } else if (state_ == BossRunState::kCountdown && slots_.empty()) {
-    // On screen for the count-in, as they are for one player. A step of
-    // nothing: the monsters are placed and nobody swings.
+    // Show the monsters during the countdown, as in a solo run: a zero-length
+    // step places them and nobody attacks.
     RunSharedPhase(state, 0.0, shared);
   } else {
     SyncSlots(dt);
@@ -754,7 +751,7 @@ void BossRun::AdvanceShared(GameState& state, double dt) {
   AddSharedStacks(shared.lines);
   StandSelf();
   if (state_ == BossRunState::kWon && !paid) {
-    // The authority rolled these and said which of them are this player's.
+    // The server rolled these and says which are this player's.
     PayReward(state, shared.awards);
   }
   switch (state_) {
@@ -772,12 +769,12 @@ void BossRun::TakeShared(const SharedFight& shared) {
   if (shared.phase != phase_) {
     phase_ = shared.phase;
     slots_.clear();
-    // An id means nothing outside the encounter that handed it out, and
-    // lines waiting on a report name slots of a phase that is over.
+    // Mob IDs are only valid within the encounter that assigned them, and
+    // damage waiting to be reported refers to slots of the finished phase.
     damage_stacks_.clear();
     landed_.clear();
     report_due_ = 0.0;
-    // Where everyone stands in a new phase is the server's to say.
+    // The server decides where everyone starts in a new phase.
     player_at_ = -1;
   }
   if (state_ != shared.state) {
@@ -799,7 +796,7 @@ void BossRun::TakeShared(const SharedFight& shared) {
   if (shared.share_count > 0) {
     share_count_ = shared.share_count;
   }
-  // This player first, so a stack landed by them is the one with owner 0.
+  // This player first, so their stacks have owner 0.
   members_.assign(1, FightMember());
   member_of_player_.assign(shared.players.size(), 0);
   int stood = player_at_;
@@ -810,17 +807,17 @@ void BossRun::TakeShared(const SharedFight& shared) {
       continue;
     }
     if (!player.present) {
-      // Their client has gone: the arena loses their panel and their spot is
-      // walkable again, but they stay on the reward split.
+      // Their client disconnected: their panel disappears and their spot is
+      // free again, but they still get a share of the reward.
       continue;
     }
     member_of_player_[i] = static_cast<int>(members_.size());
     members_.push_back({player.name, player.spot, player.attack_name,
                         player.attack_fraction, player.buff_count});
   }
-  // Where this player stands is theirs to say -- they walked there without
-  // waiting. The server's answer is taken for a phase they have not stood in,
-  // and where somebody else turns out to be on their cell.
+  // This player's position is their own, since they move without waiting for
+  // the server. Use the server's position only in a new phase, or if another
+  // player turns out to be on the same spot.
   const std::vector<int> taken = TakenSpots();
   if (player_at_ < 0 ||
       std::find(taken.begin(), taken.end(), player_at_) != taken.end()) {
@@ -830,13 +827,13 @@ void BossRun::TakeShared(const SharedFight& shared) {
 
 void BossRun::RunSharedPhase(GameState& state, double dt,
                              const SharedFight& shared) {
-  // Built every step rather than held as RunPhase holds it: the table is
-  // built partly from the party's membership, which moves inside a phase.
+  // Rebuild every step instead of caching like RunPhase: the table depends
+  // partly on party membership, which can change mid-phase.
   CombatParams params =
       ComputeBossParams(state, boss_key_, *difficulty(), phase_);
   if (!params.active) {
-    // Nothing to swing with, or a phase the catalogs do not hold. They can
-    // still watch the party fight it.
+    // No weapon, or a phase the catalogs don't have. The player can still watch
+    // the party fight.
     SyncSlots(dt);
     return;
   }
@@ -848,8 +845,8 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
   }
   CollectDamageWrites();
   ReportToParty(dt);
-  // The shared roster is what everybody is hitting, so it decides what is
-  // left. This copy of it may run ahead of the party's, never behind.
+  // The server's HP values are what everyone is hitting, so they win. This
+  // local copy may be ahead of the server's, but never behind.
   std::map<int, double> said;
   for (std::size_t slot = 0;
        slot < shared.hp_fractions.size() && slot < mob_of_slot_.size();
@@ -862,16 +859,16 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
   ComputePhaseHp(params);
 }
 
-// The screen runs at kBossFightStep and the wire at kFightPublishInterval, so
-// a report carries every line since the last rather than one step's. Told
-// faster, the server would only sit on it until its own beat.
+// The screen updates every kBossFightStep but the network every
+// kFightPublishInterval, so each report includes every line since the last one.
+// Reporting faster would gain nothing; the server only reads on its own timer.
 void BossRun::ReportToParty(double dt) {
   report_due_ -= dt;
   if (report_due_ > 0.0) {
     return;
   }
-  // Added rather than reset, so a run of short steps keeps the beat rather
-  // than drifting a step later every time.
+  // Add the interval rather than resetting, so short steps don't make reports
+  // drift later and later.
   report_due_ += kReportSeconds;
   authority_->Report({phase_, landed_, player_at_, sim_.view().attack_name,
                       sim_.view().attack_fraction, item_drop_pct_,
@@ -904,7 +901,7 @@ void BossRun::AddSharedStacks(const std::vector<SharedLine>& lines) {
       }
       stack.lines.push_back({lines[i].damage, lines[i].crit});
     }
-    // A monster this client has already buried has nowhere left to hold them.
+    // Drop stacks for a monster this client has already removed.
     if (placed && stack.owner > 0) {
       Replace(std::move(stack));
     }
@@ -942,12 +939,12 @@ void BossRun::Advance(GameState& state, double elapsed_seconds) {
 }
 
 void BossRun::RunAlone(GameState& state, double dt) {
-  // Ahead of everything and whatever the run is doing, so the numbers left by
-  // a phase-ending swing fade over the gap rather than hanging.
+  // Age numbers first, whatever state the run is in, so numbers from the attack
+  // that ended a phase fade during the gap instead of freezing.
   AgeDamageNumbers(dt);
   if (state_ == BossRunState::kCountdown) {
-    // The monsters are on screen before the count-in starts: what the player
-    // is about to fight is the whole point of being given three seconds.
+    // Show the monsters before the countdown starts; seeing the boss is the
+    // point of the countdown.
     if (slots_.empty()) {
       RunPhase(state, 0.0);
     }
@@ -955,8 +952,8 @@ void BossRun::RunAlone(GameState& state, double dt) {
     if (countdown_left_ > 0.0) {
       return;
     }
-    // The overshoot goes to the fight rather than being thrown away, so a slow
-    // tick cannot cost the player time on their clock.
+    // Carry the leftover time into the fight so a slow tick doesn't cost the
+    // player time on their timer.
     dt = -countdown_left_;
     countdown_left_ = 0.0;
     state_ = BossRunState::kFighting;
@@ -966,8 +963,8 @@ void BossRun::RunAlone(GameState& state, double dt) {
       RunPhase(state, dt);
       return;
     case BossRunState::kPhaseGap:
-      // The clock keeps running between phases, and the arms that just died
-      // keep fading.
+      // The timer keeps running between phases, and bars of monsters that just
+      // died keep fading.
       seconds_left_ = std::max(0.0, seconds_left_ - dt);
       SyncSlots(dt);
       hold_left_ -= dt;
@@ -976,8 +973,8 @@ void BossRun::RunAlone(GameState& state, double dt) {
       }
       ++phase_;
       slots_.clear();
-      // A monster id means nothing outside the encounter that handed it out,
-      // and the arena is a different one anyway.
+      // Mob IDs are only valid within the encounter that assigned them, and the
+      // new phase is a different arena anyway.
       damage_stacks_.clear();
       StandPlayerAtStart();
       state_ = BossRunState::kFighting;

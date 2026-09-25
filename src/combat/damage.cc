@@ -17,22 +17,21 @@
 namespace ms {
 namespace {
 
-// Bosses take half elemental damage; `ier` claws it back as 0.5 * (1 + ier).
-// GMS MULTIPLIES rather than subtracting points: 10% ignored brings the
-// reduction to 45%, not 40%.
+// Bosses take half elemental damage; `ier` restores it as 0.5 * (1 + ier). GMS
+// multiplies rather than subtracting: 10% ignored brings the reduction to 45%,
+// not 40%.
 constexpr double kBossElementalBase = 0.5;
 
-// Attack speed: delay = base * (kSpeedBase - stage) / kSpeedDivisor, then
-// ceil'd to whole kTickMs ticks.
+// Attack speed: delay = base * (kSpeedBase - stage) / kSpeedDivisor, rounded up
+// to whole kTickMs ticks.
 constexpr int kSpeedBase = 20;
 constexpr int kSpeedDivisor = 16;
 
-// EquipStats stores boss_damage / ignore_enemy_defense as whole percents.
+// EquipStats stores boss_damage and ignore_enemy_defense as whole percents.
 constexpr double kPercentToFraction = 100.0;
 
-// GMS's initial mastery, set by what a line fights with: melee is sword, axe,
-// spear, polearm and dagger, ranged the bow and crossbow, magic wand and
-// staff. See BaseMastery.
+// GMS's starting mastery by weapon type: melee (sword, axe, spear, polearm,
+// dagger), ranged (bow, crossbow), and magic (wand, staff). See BaseMastery.
 constexpr double kMeleeBaseMastery = 0.20;
 constexpr double kRangedBaseMastery = 0.15;
 constexpr double kMagicBaseMastery = 0.25;
@@ -42,9 +41,9 @@ struct WeaponConstantRow {
   double constant;
 };
 
-// Each weapon carrying the constant of the line that owns it: swords and
-// blunts the Paladin line's, axes the Hero line's, spear and polearm the Dark
-// Knight line's.
+// Each weapon's constant comes from the job line that mainly uses it: swords
+// and blunts from Paladin, axes from Hero, spears and polearms from Dark
+// Knight.
 const WeaponConstantRow kWeaponConstants[] = {
     {EQUIP_TYPE_ONE_HANDED_SWORD, 1.24},
     {EQUIP_TYPE_TWO_HANDED_SWORD, 1.34},
@@ -67,10 +66,9 @@ struct JobWeaponConstantRow {
   double constant;
 };
 
-// Where a job's line disagrees with the weapon's own. Only the Hero line does,
-// swinging a sword harder than the Paladin line the default comes from. EVERY
-// job of a line needs its own row, or a Crusader would swing a sword worse
-// than the Fighter they were.
+// Overrides where a job line's constant differs from the weapon's default. Only
+// the Hero line does, hitting harder with swords than Paladin. Every job in the
+// line needs its own row, or a Crusader would hit weaker than a Fighter.
 const JobWeaponConstantRow kJobWeaponConstants[] = {
     {JOB_FIGHTER, EQUIP_TYPE_ONE_HANDED_SWORD, 1.34},
     {JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_SWORD, 1.44},
@@ -80,15 +78,15 @@ const JobWeaponConstantRow kJobWeaponConstants[] = {
     {JOB_HERO, EQUIP_TYPE_TWO_HANDED_SWORD, 1.44},
 };
 
-// Level multiplier: 1.1 at equal level, +0.02 per level above, capped at +5.
+// Level multiplier: 1.1 at equal level, +0.02 per level above, up to +5.
 constexpr double kEqualLevelMultiplier = 1.1;
 constexpr double kAboveLevelStep = 0.02;
 constexpr int kAboveLevelCap = 5;
 
-// Level multiplier when the monster out-levels the player, indexed by the gap,
-// 1..39; 40+ is 0. The -37..-39 rows read 0.8/0.5/0.3 on the wiki, breaking an
-// otherwise monotone decline -- taken as 0.08/0.05/0.03, a dropped leading
-// zero. That tail is unreachable on current content.
+// Level multiplier when the monster is higher level, indexed by the gap 1 to
+// 39; 40 or more is 0. The wiki lists -37 to -39 as 0.8/0.5/0.3, which breaks
+// the steady decline, so we read them as 0.08/0.05/0.03 (a dropped leading
+// zero). No current content reaches that range.
 constexpr double kUnderLevelMultiplier[] = {
     0.0,                           // gap 0 unused (see LevelMultiplier)
     1.0584, 1.007, 0.9672, 0.918,  // -1..-4
@@ -104,46 +102,45 @@ constexpr double kUnderLevelMultiplier[] = {
 };
 constexpr int kMaxUnderLevelGap = 39;
 
-// Damage TAKEN has its own pair of level factors. A multiplies the whole hit:
-// 0.85 at parity, down 0.0075 per level above the mob to 0.775 at +10, up
-// 0.0075 per five-level band below it to 0.88. A narrow band either way --
-// being under-levelled is punished through B.
+// Damage taken has its own two level factors. A multiplies the whole hit: 0.85
+// at equal level, down 0.0075 per level above the mob to 0.775 at +10, and up
+// 0.0075 per five-level band below it to 0.88. The range is narrow; being
+// underleveled is mostly punished through B.
 constexpr double kTakenParityMultiplier = 0.85;
 constexpr double kTakenLevelStep = 0.0075;
 constexpr int kTakenAboveCap = 10;
-// The under-level bands are five levels wide and the first one that is worth
-// anything starts at -16, so a gap lands in band (gap - 11) / 5.
+// The under-level bands are five levels wide and the first starts at -16, so a
+// gap falls in band (gap - 11) / 5.
 constexpr int kTakenBandStart = 11;
 constexpr int kTakenBandWidth = 5;
 constexpr int kTakenBandCap = 4;
 
-// B, how much of the character's DEF counts: all of it at or above the mob's
-// level, then 1% less per level under down to -10, then 2% less per level down
-// to the floor of 0.50 at -30 and beyond.
+// B, the fraction of the character's DEF that counts: all of it at or above the
+// mob's level, then 1% less per level below down to -10, then 2% less per level
+// down to a floor of 0.50 at -30 and below.
 constexpr double kDefEffectivenessNearStep = 0.01;
 constexpr int kDefEffectivenessNearGap = 10;
 constexpr double kDefEffectivenessFarStep = 0.02;
 constexpr double kDefEffectivenessFloor = 0.50;
 
-// The mob's two rolls: the minimum swings for 85% of its attack against a DEF
-// cap of 68%, the maximum for all of it against a cap of 80%.
+// The mob's two rolls: minimum is 85% of its attack with DEF capped at 68%;
+// maximum is its full attack with DEF capped at 80%.
 constexpr double kMinRollAttack = 0.85;
 constexpr double kMinRollDefCap = 0.68;
 constexpr double kMaxRollDefCap = 0.80;
 
-// What crit is worth on average: the share of swings that crit times what one
-// adds. Both halves carry the base every character has, and a rate can never
-// pass 1.
+// Average crit bonus: crit chance times crit damage. Both include every
+// character's base values, and chance is capped at 1.
 double CritFactor(const OffenseStats& offense) {
   double rate = std::min(1.0, offense.crit_rate + kBaseCritRate);
   return rate * (offense.crit_dmg + kBaseCritDamage);
 }
 
-// A hit always costs at least a point of HP, as in GMS. The slice a respawn
-// beat hands back covers that chip many times over.
+// Every hit costs at least 1 HP, as in GMS. The HP restored each respawn covers
+// this many times over.
 constexpr double kMinimumDamage = 1.0;
 
-// The multiplier on a whole incoming hit for the level gap (GMS's A).
+// The multiplier on an incoming hit for the level gap (GMS's A).
 double TakenLevelMultiplier(int player_level, int mob_level) {
   int diff = player_level - mob_level;
   if (diff >= 0) {
@@ -155,7 +152,7 @@ double TakenLevelMultiplier(int player_level, int mob_level) {
   return kTakenParityMultiplier + kTakenLevelStep * band;
 }
 
-// The share of the character's DEF that counts against a mob of this level
+// The fraction of the character's DEF that counts against a mob of this level
 // (GMS's B).
 double DefEffectiveness(int player_level, int mob_level) {
   int gap = mob_level - player_level;
@@ -171,12 +168,12 @@ double DefEffectiveness(int player_level, int mob_level) {
       near - kDefEffectivenessFarStep * (gap - kDefEffectivenessNearGap));
 }
 
-// What DEF cancels from one roll. `cap` is the most this roll allows it to,
-// `effectiveness` GMS's B.
+// How much DEF removes from one roll. `cap` is this roll's maximum and
+// `effectiveness` is GMS's B.
 double DefenseReduction(double def, double effectiveness, double cap) {
   if (def >= cap) {
-    // Armour enough to sit on the cap before the under-levelling penalty:
-    // GMS waives it rather than charge a character it could not have helped.
+    // If DEF reaches the cap even before the level penalty, GMS skips the
+    // penalty, since more DEF couldn't have helped.
     return cap;
   }
   return effectiveness * def;
@@ -193,7 +190,7 @@ double LevelMultiplier(int player_level, int mob_level) {
   }
   int gap = -diff;
   if (gap > kMaxUnderLevelGap) {
-    return 0.0;  // Caller floors output to 1 damage.
+    return 0.0;  // the caller floors this to 1 damage
   }
   return kUnderLevelMultiplier[gap];
 }
@@ -218,7 +215,7 @@ double RollFactor(const SwingRolls& rolls, std::mt19937& rng,
   double mean =
       (1.0 + rolls.mastery) / 2.0 * (1.0 + rolls.crit_rate * rolls.crit_dmg);
   if (effective_lines <= 0.0 || mean <= 0.0) {
-    // Nothing rolled, so the landing is one line carrying the whole of it.
+    // Nothing is random, so the hit is one line carrying all the damage.
     if (lines != nullptr) {
       lines->push_back({1.0, false});
     }
@@ -228,9 +225,9 @@ double RollFactor(const SwingRolls& rolls, std::mt19937& rng,
   std::bernoulli_distribution crits(rolls.crit_rate);
   double scale = 1.0 / (effective_lines * mean);
   double total = 0.0;
-  // A line worth nothing is not drawn but is still ROLLED: every character
-  // carries a shadow's worth of copies, and the rolls they spend must keep
-  // being spent or the fight would play out differently for everyone.
+  // A zero-damage line isn't drawn but is still rolled. Every character has
+  // shadow copies (possibly worth 0), and they must keep consuming random
+  // numbers or fights would play out differently for everyone.
   for (int i = 0; i < rolls.lines; ++i) {
     bool crit = crits(rng);
     double line = spread(rng) * (crit ? 1.0 + rolls.crit_dmg : 1.0);
@@ -239,8 +236,8 @@ double RollFactor(const SwingRolls& rolls, std::mt19937& rng,
       lines->push_back({line * scale, crit});
     }
   }
-  // The shadow's copies roll on their own rather than sharing the swing's: it
-  // is a second set of hits, and GMS rolls every hit.
+  // Shadow copies roll separately from the attack's hits: they are extra hits,
+  // and GMS rolls every hit.
   for (int i = 0; i < rolls.mirror_lines; ++i) {
     bool crit = crits(rng);
     double line =
@@ -272,8 +269,8 @@ SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
   if (level <= 1) {
     return at;
   }
-  // Only the fields per_level actually carries: most skills climb in one or
-  // two of the ninety, and the rest are already what `base` said.
+  // Only the fields per_level sets: most skills scale one or two of the ninety,
+  // and the rest keep `base`'s value.
   std::vector<const google::protobuf::FieldDescriptor*> climbing;
   const google::protobuf::Reflection* reflect = per_level.GetReflection();
   reflect->ListFields(per_level, &climbing);
@@ -297,8 +294,8 @@ SkillEffect EffectAt(const SkillEffect& base, const SkillEffect& per_level,
 
 namespace {
 
-// The ceiling one field of one lever is held to: the cap it names, or else a
-// slice of what the caster keeps, in whole percentage points.
+// The cap for one field of one lever: the cap it names, or else the caster's
+// own value split across the party, in whole percentage points.
 double CasterIntCap(const AllyIntLever& lever, const SkillEffect& own,
                     const google::protobuf::FieldDescriptor* field,
                     int party_size) {
@@ -323,8 +320,7 @@ SkillEffect GrownByCasterInt(const Buff& buff, const SkillEffect& half,
       continue;
     }
     double steps = std::floor(caster_int / lever.int_step());
-    // Only the fields the lever actually grows, exactly as EffectAt walks only
-    // the ones a ladder climbs.
+    // Only the fields the lever grows, like EffectAt.
     std::vector<const google::protobuf::FieldDescriptor*> growing;
     const google::protobuf::Reflection* per = lever.effect().GetReflection();
     per->ListFields(lever.effect(), &growing);
@@ -375,7 +371,7 @@ std::vector<std::string> BoostTargetNames(const SkillBoost& boost) {
 }
 
 int ComboOrbsAt(const Skill& skill, int level) {
-  // The nudge SkillLinesAt takes, and for the same reason.
+  // Same epsilon as WholeValue, for the same reason.
   constexpr double kOrbEpsilon = 1e-9;
   if (skill.combo_orbs_per_level() <= 0.0 || level <= 1) {
     return skill.combo_orbs();
@@ -410,8 +406,8 @@ double LongestBuffDuration(const Buff& buff) {
 double ReducedCooldown(double wait, double reduction_seconds) {
   constexpr double kUntouchedBelow = 5.0;
   constexpr double kHalvedBelow = 10.0;
-  // What one second offered takes off a short wait instead: a twentieth of
-  // what is left, so -2 seconds is a tenth.
+  // For cooldowns of 5 to 10 seconds, each second of reduction removes 5% of
+  // the cooldown instead, so -2 seconds removes 10%.
   constexpr double kSharePerSecond = 0.05;
   if (wait < kUntouchedBelow || reduction_seconds <= 0.0) {
     return wait;
@@ -424,7 +420,7 @@ double ReducedCooldown(double wait, double reduction_seconds) {
   if (left >= kHalvedBelow) {
     return left;
   }
-  // Only half of what would have carried the wait under ten seconds does.
+  // Only half of the reduction below ten seconds applies.
   return kHalvedBelow - (kHalvedBelow - left) / 2.0;
 }
 
@@ -454,27 +450,27 @@ double BaseMastery(Job job) {
     case JobBranch::kMagician:
       return kMagicBaseMastery;
     default:
-      // Warriors, thieves and the beginner all swing something GMS calls a
-      // melee weapon -- the dagger among them.
+      // Warriors, thieves and beginners all use weapons GMS counts as melee,
+      // including daggers.
       return kMeleeBaseMastery;
   }
 }
 
 namespace {
 
-// Primary and secondary stat by branch; an unknown job is left at 0, as the
-// Equipped panel's own main-stat column leaves it.
+// Sets primary and secondary stat by branch. Unknown jobs stay at 0, matching
+// the Equipped panel's main-stat column.
 void AddStatsByBranch(Job job, const AllocatedStats& allocated,
                       const EquipStats& equipped, OffenseStats& offense) {
   switch (BranchOf(job)) {
-    // The beginner swings on STR, as the warriors they have not yet become do.
+    // Beginners use STR, like warriors.
     case JobBranch::kBeginner:
     case JobBranch::kWarrior:
       offense.primary = allocated.str() + equipped.str();
       offense.secondary = allocated.dex() + equipped.dex();
       break;
     case JobBranch::kArcher:
-      // The mirror image: DEX primary, STR secondary.
+      // The reverse of warriors: DEX primary, STR secondary.
       offense.primary = allocated.dex() + equipped.dex();
       offense.secondary = allocated.str() + equipped.str();
       break;
@@ -483,7 +479,7 @@ void AddStatsByBranch(Job job, const AllocatedStats& allocated,
       offense.secondary = allocated.luk() + equipped.luk();
       break;
     case JobBranch::kRogue:
-      // The magician's pair, swapped.
+      // The reverse of magicians' pair.
       offense.primary = allocated.luk() + equipped.luk();
       offense.secondary = allocated.dex() + equipped.dex();
       break;
@@ -492,9 +488,9 @@ void AddStatsByBranch(Job job, const AllocatedStats& allocated,
   }
 }
 
-// What the book hands this skill by name. Each lever meets the swing's own the
-// way two of it always meet: damage joins the MULTIPLIER, so it is worth its
-// value once per line, as GMS states it.
+// Applies the job book's bonuses for this skill. Each combines with the
+// attack's own values the usual way; skill damage adds to the multiplier, so it
+// applies once per line, as GMS states it.
 void AddNamedBoost(const Skill& attack_skill, const PassiveOffense& passives,
                    OffenseStats& offense) {
   std::map<std::string, SkillBonus>::const_iterator boost =
@@ -513,11 +509,10 @@ void AddNamedBoost(const Skill& attack_skill, const PassiveOffense& passives,
       (1.0 + offense.final_dmg_pct) * (1.0 + bonus.final_dmg_pct) - 1.0;
 }
 
-// Ignored defence, boss damage, plain damage, critical rate and final damage
-// written on an ATTACK ride that attack alone: GMS states them on the skill --
-// Gungnir's Descent ignores 30%, Snipe always crits -- and none follows the
-// character to their next swing. A passive granting any of them is the other
-// shape and folds into the character.
+// Ignore defense, boss damage, damage, crit chance and final damage listed on
+// an attack skill apply to that attack only. GMS lists them on the skill (e.g.
+// Gungnir's Descent ignores 30%, Snipe always crits). Passives that grant them
+// apply to the character instead.
 void AddSwingLevers(const Skill& attack_skill, int attack_level,
                     OffenseStats& offense) {
   offense.ied = CombineIgnoredDefense(
@@ -533,13 +528,13 @@ void AddSwingLevers(const Skill& attack_skill, int attack_level,
   offense.normal_pct +=
       attack_skill.base().normal_pct() +
       attack_skill.per_level().normal_pct() * (attack_level - 1);
-  // Added to what the character brought rather than replacing it, so 1.00 is
-  // certainty however little they have bought.
+  // Added to the character's crit chance, so 1.00 guarantees a crit no matter
+  // what else they have.
   offense.crit_rate +=
       attack_skill.base().crit_rate() +
       attack_skill.per_level().crit_rate() * (attack_level - 1);
-  // Multiplied into what the character brought, the way two final damage
-  // sources always meet here -- see SkillEffect::final_dmg_pct.
+  // Multiplied with the character's final damage, like all final damage
+  // sources. See SkillEffect::final_dmg_pct.
   double swing_fd =
       attack_skill.base().final_dmg_pct() +
       attack_skill.per_level().final_dmg_pct() * (attack_level - 1);
@@ -547,9 +542,10 @@ void AddSwingLevers(const Skill& attack_skill, int attack_level,
       (1.0 + offense.final_dmg_pct) * (1.0 + swing_fd) - 1.0;
 }
 
-// The attack skill's multiplier, replacing the bare 100% poke; at level L it
-// is base + per_level*(L-1). Passives fold elsewhere. A skill on its own clock
-// deals its damage the same way: when it goes off is the fight's business.
+// The attack skill's multiplier, replacing the basic attack's 100%. At level L
+// it is base + per_level * (L - 1). Passives are applied elsewhere. Skills on
+// their own timer compute damage the same way; the fight decides when they
+// fire.
 void AddAttackSkill(const Skill& attack_skill, int attack_level,
                     const PassiveOffense& passives, OffenseStats& offense) {
   offense.skill_pct = attack_skill.base().skill_pct() +
@@ -561,11 +557,12 @@ void AddAttackSkill(const Skill& attack_skill, int attack_level,
   if (attack_skill.kind() == SKILL_KIND_ATTACK) {
     AddSwingLevers(attack_skill, attack_level, offense);
   }
-  // A multi-hit skill strikes each target this many times per swing, so its
+  // A multi-hit skill hits each target this many times per attack, so
   // per-target damage is skill_pct once per line.
   offense.lines = SkillLinesAt(attack_skill, attack_level);
-  // Bolt Surplus's strike, on a swing that already lands more than one and on
-  // nothing that fires by itself. See SkillEffect::bonus_attack_lines.
+  // Bolt Surplus's extra hit applies to attacks that already hit more than
+  // once, not to skills on their own timer. See
+  // SkillEffect::bonus_attack_lines.
   if (offense.lines > 1 && attack_skill.kind() == SKILL_KIND_ATTACK) {
     offense.lines += passives.bonus_attack_lines;
   }
@@ -587,19 +584,19 @@ OffenseStats OffenseStatsFor(Job job, int level,
   offense.final_dmg_pct = passives.final_dmg_pct;
   offense.force_pct = passives.force_pct;
   offense.ier = passives.ier;
-  // The line's own base, plus whatever the best mastery skill grants on top.
+  // The job line's base mastery plus the best mastery skill's bonus.
   offense.mastery = BaseMastery(job) + passives.mastery;
   AddStatsByBranch(job, allocated, equipped, offense);
-  // Magicians swing on magic attack; the rest of the chain treats it exactly
-  // as weapon attack, so it rides the same field.
+  // Magicians use magic attack; the formula treats it exactly like weapon
+  // attack, so it goes in the same field.
   offense.attack =
       SwingsOnMagic(job) ? equipped.magic_attack() : equipped.attack();
   offense.boss_pct =
       equipped.boss_damage() / kPercentToFraction + passives.boss_pct;
   offense.normal_pct = passives.normal_pct;
   offense.mirror_pct = passives.mirror_line_pct;
-  // The base every character carries meets gear and book the way any third
-  // source would -- in reverse, taking its share of what they left standing.
+  // Every character's base ignore defense combines with gear and skills
+  // multiplicatively, like any other source.
   offense.ied = CombineIgnoredDefense(
       kBaseIgnoreDefense,
       CombineIgnoredDefense(
@@ -607,8 +604,8 @@ OffenseStats OffenseStatsFor(Job job, int level,
   if (attack_skill != nullptr && DealsDamage(attack_skill->kind())) {
     AddAttackSkill(*attack_skill, attack_level, passives, offense);
   }
-  // The shadow copies whatever the swing turned out to be, unless the skill
-  // is one it leaves alone. Set LAST, after lines is settled.
+  // Shadow copies match the attack's final line count, unless the skill opts
+  // out. Set last, after `lines` is final.
   bool shadowed = attack_skill == nullptr || !attack_skill->skips_mirror();
   offense.mirror_lines = shadowed ? offense.lines : 0;
   return offense;
@@ -619,15 +616,15 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
   bool is_boss = mob.boss();
 
   double stat_value = 4.0 * offense.primary + offense.secondary;
-  // The weapon constant is GMS's second factor, right behind the leading 0.01
-  // that the /100 is.
+  // The weapon constant is GMS's second factor, after the leading 0.01 (the
+  // /100).
   double max_base =
       stat_value * offense.attack / 100.0 * offense.weapon_constant;
   double damage = max_base * (1.0 + offense.mastery) / 2.0;
 
-  // A bonus against normal monsters joins the SWING, so it is worth its value
-  // once per line. The shadow's lines land beside the real ones rather than
-  // multiplying them: the same damage, in the shape the swing really has.
+  // Normal-monster skill damage adds to the attack's multiplier, so it applies
+  // once per line. Shadow lines are added alongside the real ones rather than
+  // multiplying them.
   double lines = offense.lines + offense.mirror_lines * offense.mirror_pct;
   damage *=
       lines * (offense.skill_pct + (is_boss ? 0.0 : offense.normal_skill_pct));
@@ -635,21 +632,21 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
             (is_boss ? offense.boss_pct : offense.normal_pct);
   damage *= 1.0 + CritFactor(offense);
   damage *= 1.0 + offense.final_dmg_pct;
-  // Defence past 100% would turn the factor negative for a character whose
-  // IED cannot cut it back under one. Clamped at zero; the floor carries it.
+  // Defense over 100% would make this negative if ignore defense can't bring it
+  // below 100%. Clamp at 0 and let the 1-damage floor apply.
   damage *= std::max(0.0, 1.0 - mob_pdr * (1.0 - offense.ied));
   if (is_boss) {
-    // The base every character carries plus what their book bought, the way
-    // the crit pair meets its own base above.
+    // Every character's base ignore elemental resistance plus what their skills
+    // add, like the crit base above.
     damage *= kBossElementalBase *
               (1.0 + kBaseIgnoreElementalResistance + offense.ier);
   }
   double level_mult = LevelMultiplier(offense.level, mob.level());
   if (level_mult <= 0.0) {
-    return 1.0;  // 40+ levels under the mob.
+    return 1.0;  // 40 or more levels below the mob
   }
-  // Output floors at 1 damage, whatever cancelled it: 40 levels of gap, or
-  // defence the character never dented.
+  // Damage is at least 1, whatever reduced it: a 40-level gap, or unignored
+  // defense.
   return std::max(1.0, damage * level_mult * offense.force_pct);
 }
 
@@ -663,8 +660,8 @@ double DefenseShare(const Mob& mob, double ied) {
 
 double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob) {
   double attack = mob.attack();
-  // The barrier weakens the MONSTER, so it lands before the DEF formula: what
-  // the armour cancels is a share of a smaller attack.
+  // Weakening reduces the monster's attack, so it applies before DEF: DEF then
+  // cancels a share of a smaller attack.
   if (!mob.boss() || defense.enemy_attack_reaches_boss) {
     attack *= std::max(0.0, 1.0 - defense.enemy_attack_pct);
   }
@@ -677,29 +674,28 @@ double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob) {
       DefenseReduction(def, effectiveness, kMinRollDefCap * attack);
   double damage = TakenLevelMultiplier(defense.level, mob.level()) *
                   ((min_hit + max_hit) / 2.0);
-  // Reduction from skills and gear lands after the whole defense formula, and
-  // multiplies rather than adds -- see DerivedStats::damage_taken_pct.
+  // Damage reduction from skills and gear applies after the defense formula,
+  // and multiplies rather than adds. See DerivedStats::damage_taken_pct.
   damage *= 1.0 - defense.damage_taken_pct;
-  // Inside the floor, so a character half again over the requirement takes the
-  // 1 damage GMS gives them rather than none at all.
+  // Applied before the floor, so a character with 1.5x the requirement takes
+  // GMS's 1 damage rather than 0.
   damage *= defense.force_taken;
-  // A dodge takes the WHOLE hit, so it lands outside the floor: reduction
-  // alone always leaves the 1 damage GMS insists on.
+  // A dodge avoids the whole hit, so it applies after the floor; reduction
+  // alone always leaves GMS's 1 damage.
   return std::max(kMinimumDamage, damage) * (1.0 - defense.dodge_chance);
 }
 
 int CombatPower(const OffenseStats& offense, bool vs_boss) {
-  // The same opening as ExpectedAttackDamage: the /100 here is GMS's leading
-  // 0.01, which turns out to be the very same constant.
+  // Same start as ExpectedAttackDamage; /100 is GMS's leading 0.01.
   double stat_value = 4.0 * offense.primary + offense.secondary;
   double power = stat_value * offense.attack / 100.0 * offense.weapon_constant;
   power *= (1.0 + offense.mastery) / 2.0;
-  // One of the two, as ExpectedAttackDamage picks: counting both would say a
-  // character hits harder than any swing of theirs does.
+  // Only one of boss or normal damage, as in ExpectedAttackDamage; counting
+  // both would overstate any real attack.
   power *= 1.0 + offense.damage_pct +
            (vs_boss ? offense.boss_pct : offense.normal_pct);
-  // Lines are stripped out of this number, so the shadow's share of one has to
-  // be put back by hand -- it is a fact about the character, not the swing.
+  // Line counts are left out of this number, so add back the shadow's share by
+  // hand: it belongs to the character, not the attack.
   power *= 1.0 + offense.mirror_pct;
   power *= 1.0 + CritFactor(offense);
   power *= 1.0 + offense.final_dmg_pct;
@@ -711,9 +707,9 @@ bool SwingsOnMagic(Job job) {
 }
 
 int BaseAttackSpeedStage(Job job, int weapon_stage) {
-  // GMS holds a mage's weapon out of this: every cast starts at the unscaled
-  // stage and only the boosts move it. The bare poke is folded in anyway -- a
-  // mage learns a spell at level 1 and never pokes again.
+  // In GMS a mage's weapon doesn't affect cast speed: every spell starts at the
+  // neutral stage and only boosts change it. This also applies to the basic
+  // attack, since mages learn a spell at level 1 and never use it again.
   return SwingsOnMagic(job) ? kUnscaledAttackSpeedStage : weapon_stage;
 }
 
