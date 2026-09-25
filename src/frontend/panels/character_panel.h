@@ -1,14 +1,15 @@
-/* The character pane: the player's name, a "Lv X <job>" title, a Stats/Skills
- * tab bar, and the selected tab's content. Stats shows the base stats and the
- * combat stats, equipment and learned passives included. Skills shows one page
- * per job advancement, its SP and its skills. A third Advance tab appears only
- * while an advancement is pending.
+/* The character panel: the player's name, a "Lv X <job>" title, a tab bar, and
+ * the selected tab's content. Stats shows the base stats and combat stats,
+ * including equipment and learned passives. Skills shows one page per job
+ * advancement, with its SP and skills. Hyper, Ability and Buffs appear as the
+ * character reaches them, and an Advance tab appears only while an advancement
+ * is pending.
  *
- * Focus moves top to bottom through zones, Down descending and Up ascending,
- * with the username row as the top zone -- the only place Left/Right switch
- * tabs. What each zone does with a key is in the OnXEvent handlers below.
- * Running out of AP or SP gates the spend alone: every row stays reachable,
- * since they are worth reading either way.
+ * Focus moves top to bottom through zones, with Down going down and Up going
+ * up. The username row is the top zone, and the tab bar is the only place Left
+ * and Right switch tabs. The OnXEvent handlers below say what each zone does
+ * with a key. Running out of AP or SP blocks only spending: every row stays
+ * reachable, since it is still worth reading.
  */
 #ifndef MS_SRC_FRONTEND_PANELS_CHARACTER_PANEL_H_
 #define MS_SRC_FRONTEND_PANELS_CHARACTER_PANEL_H_
@@ -35,13 +36,14 @@
 
 namespace ms {
 
-// What Enter does on the Character panel, by where it lands: `allocate` on a
-// stat's [+], `learn` on a skill's, `advance` on a job (which should confirm
-// first -- the panel advances nothing itself), `menu` on a skill's name, and
-// `all_stats` on the row below them. Only the last two are never gated.
+// What Enter does on the Character panel, depending on where it lands:
+// `allocate` on a stat's [+], `learn` on a skill's, `advance` on a job (which
+// should ask for confirmation first, since the panel advances nothing itself),
+// `menu` on a skill's name, and `all_stats` on the row below the stats. Only
+// the last two are never gated.
 //
-// A struct rather than ten arguments: the tabs are added to, and a caller
-// naming one action should not have to count empty braces.
+// A struct rather than a long argument list, because tabs keep being added and
+// a caller naming one action shouldn't have to count empty braces.
 struct CharacterPanelActions {
   // The Stats tab.
   std::function<void(StatField)> allocate;
@@ -49,7 +51,7 @@ struct CharacterPanelActions {
   // The Skills tab.
   std::function<void(const Skill&)> learn;
   std::function<void(const Skill&)> menu;
-  // The Link Skills row at the foot of its beginner page.
+  // The Link Skills row at the bottom of the beginner page.
   std::function<void()> link_skills;
   // The V page's [Reset], which empties the whole matrix.
   std::function<void()> v_reset;
@@ -61,170 +63,172 @@ struct CharacterPanelActions {
   std::function<void(HyperStatField)> hyper_lower;
   std::function<void()> hyper_reset;
   std::function<void(HyperStatField)> hyper_inspect;
-  // The Ability tab. `ability_lock` takes the index of the line the cursor is
-  // on, and holds or frees it -- the panel does not know which way that goes.
+  // The Ability tab. `ability_lock` takes the index of the line under the
+  // cursor and toggles its lock. The panel doesn't know which way it goes.
   std::function<void(int)> ability_lock;
   std::function<void()> ability_reroll;
-  // The Buffs tab. Enter on a row raises the buff's menu, which is where every
-  // one of its actions lives -- switching it on included.
+  // The Buffs tab. Enter on a row opens the buff's menu, which holds all of its
+  // actions, including turning it on.
   std::function<void(ConsumableType)> buff_menu;
-  // The preset row, on the tabs that spend into a slot. The row naming the
-  // two activities has nothing to offer and raises nothing.
+  // The preset row, on the tabs that spend into a preset slot. The row naming
+  // the two activities has no actions and opens nothing.
   std::function<void(PresetKind, StatPreset)> preset_menu;
 };
 
 class CharacterPanel {
  public:
-  // The columns a skill row leaves its name. Public because the shipped names
-  // are held against it: a name too long for the widest panel is half drawn.
-  // `has_plus` is the narrow case and the default -- a page with no [+] hands
-  // those columns to the name.
+  // The width a skill row leaves for its name. Public because the game's skill
+  // names are tested against it: a name too long for the widest panel is cut
+  // off. `has_plus` is the narrow case and the default; a page with no [+]
+  // gives those columns to the name.
   static int SkillNameWidth(int level_width, int row_width,
                             bool has_plus = true);
 
-  // `skills` is the loaded catalog, keyed by file stem; the Skills tab lists
-  // the entries whose stage matches the selected advancement tab.
+  // `skills` is the loaded catalog, keyed by file stem. The Skills tab lists
+  // the entries whose stage matches the selected page.
   CharacterPanel(CharacterInstance& character, AccountInstance& account,
                  int& panel_focus, std::map<std::string, Skill> skills = {});
   ftxui::Element Render() const;
 
-  // The rows the panel may take, borders included; 0 is no limit. Past this
-  // the Stats tab drops extra stats, which is what keeps the combat panel on
-  // screen. Not read from the terminal: only Tui knows what shares the
-  // column, and a test draws at whatever size it likes.
+  // The most rows the panel may take, borders included; 0 means no limit. Past
+  // this the Stats tab drops extra stats, which keeps the combat panel on
+  // screen. It isn't read from the terminal, because only Tui knows what shares
+  // the column, and a test draws at whatever size it likes.
   void SetMaxRows(int rows) {
     max_rows_ = rows;
   }
-  // The columns the panel may take, which the layout works out from the
-  // terminal's. What a wide terminal brings goes to the Skills tab's name
-  // column; the Stats tab keeps its alignment either way. Set from the layout
-  // for SetMaxRows' reason.
+  // The width the panel may take, which the layout computes from the
+  // terminal's. Extra width goes to the Skills tab's name column. The Stats tab
+  // keeps its alignment either way. Set by the layout for the same reason as
+  // SetMaxRows.
   void SetWidth(int width) {
     width_ = width;
   }
-  // The panel as a component, answering Enter with `actions`. An unset action
-  // is a key that does nothing, so a caller only looking passes none.
+  // The panel as a component, responding to Enter with `actions`. An unset
+  // action makes that key do nothing, so a caller that only displays passes
+  // none.
   ftxui::Component MakeComponent(CharacterPanelActions actions = {});
 
-  // Which preset slot the panel is reading. The All Stats screen opens on it
-  // too, so the two never disagree about whose numbers are shown.
+  // The preset slot the panel is reading. The All Stats screen opens on it too,
+  // so the two always show the same numbers.
   StatPreset hyper_preset() const {
     return hyper_preset_;
   }
 
-  // What the selected slot stands for, which is what the stats the panel shows
-  // are read against -- the Farm chip shows a farming character.
+  // The activity the selected slot is for. The panel's stats are computed for
+  // it, so the Farm chip shows a farming character.
   Activity SelectedActivity() const;
 
-  // Records the active tab as opened, which puts its gold out. Called wherever
-  // the bar moves, and when focus arrives: a tab already under the cursor has
-  // been seen as surely as one stepped onto. Does nothing on a read-only
-  // panel -- see SetReadOnly.
+  // Marks the active tab as opened, which turns off its gold. Called whenever
+  // the bar moves and when the panel gets focus, since a tab already under the
+  // cursor has been seen. Does nothing on a read-only panel (see SetReadOnly).
   void MarkActiveTabSeen();
 
-  // Draws somebody else's character rather than the player's: the Inspect
-  // screen. Everything that spends comes off -- the [+] and [Max] buttons,
-  // both [Reset]s, [Reroll], the Advance tab and the name field -- and with
-  // them the stops that only led to one. The Buffs tab goes too: it lists
-  // what is in a bag, and a bag is not on the sheet.
+  // Shows someone else's character instead of the player's, for the Inspect
+  // screen. Everything that spends is removed (the [+] and [Max] buttons, both
+  // [Reset]s, [Reroll], the Advance tab and the name field), along with the
+  // cursor stops that only led to them. The Buffs tab is removed too, since it
+  // lists what is in a bag, and the bag isn't part of the character sheet.
   //
-  // No gold either way: a tab is news to the player about their own
-  // character, and reading a party member's must not spend that news.
+  // No gold either way: new tabs are news to the player about their own
+  // character, and reading a party member's sheet must not mark them seen.
   void SetReadOnly(bool read_only) {
     read_only_ = read_only;
   }
 
-  // The screen row the selected skill was drawn on, for anchoring its menu.
+  // The screen row the selected skill was drawn on, for placing its menu.
   int skill_cursor_row() const {
     return skill_cursor_box_.y_min;
   }
 
-  // The screen row the selected job was drawn on, for anchoring its menu. Read
-  // from the RENDER rather than worked out, so the menu need not know the
-  // panel's shape. One frame behind, which is right.
+  // The screen row the selected job was drawn on, for placing its menu. Read
+  // from the render instead of computed, so the menu doesn't need to know the
+  // panel's layout. It is one frame behind, which is fine.
   int job_cursor_row() const {
     return job_cursor_box_.y_min;
   }
 
-  // The screen row the selected buff was last drawn on, for anchoring the buff
-  // menu beside it. Read from the render, as the two above are.
+  // The screen row the selected buff was last drawn on, for placing the buff
+  // menu beside it. Read from the render, like the two above.
   int buff_cursor_row() const {
     return buff_cursor_box_.y_min;
   }
 
-  // The screen row the preset row was drawn on, for anchoring its menu. No
-  // cursor walks a list here, so the chip's own row is what it hangs from.
+  // The screen row the preset row was drawn on, for placing its menu. There is
+  // no list cursor here, so the menu hangs from the chip's own row.
   int preset_row() const {
     return preset_row_box_.y_min;
   }
 
-  // True while the name field is taking keys, so Tui lets the player's letters
-  // through rather than rewriting them to bound actions.
+  // True while the name field is taking keys, so Tui passes the player's
+  // letters through instead of mapping them to bound actions.
   bool editing_username() const {
     return username_field_.editing();
   }
 
-  // Lights the border gold while a level-up or advancement is celebrated, this
-  // being where what it handed over is spent. No clock of its own: whoever lit
-  // it turns it off.
+  // Turns the border gold during a level-up or advancement celebration, since
+  // this is where what it granted is spent. The panel keeps no timer: whoever
+  // turned it on turns it off.
   void SetHighlighted(bool highlighted) {
     highlighted_ = highlighted;
   }
 
  private:
-  // Fixed rows of the Stats tab: two borders, three heading rows, their rule,
-  // the tab bar and its rule, HP, MP, the four AP stats and the rule above the
+  // The Stats tab's fixed rows: two borders, three heading rows and their rule,
+  // the tab bar and its rule, HP, MP, the four AP stats, and the rule above the
   // extras. Everything else is an extra stat or the View All Stats row.
   //
-  // COUNT A NEW HEADING ROW HERE, or the budget overruns and the combat
-  // panel's last mob bar falls off a short terminal --
-  // ThePanelFitsInsideItsRowBudget says so.
+  // Count any new heading row here, or the budget overruns and the combat
+  // panel's last mob bar falls off a short terminal.
+  // ThePanelFitsInsideItsRowBudget catches it.
   static constexpr int kStatsTabFixedRows = 15;
 
-  // The same for the Skills tab: two borders, three heading rows, their rule,
-  // the tab bar, the advancement bar and its rule; everything else is a skill
-  // row. The V page's rule and [Reset] are two more, never given up.
+  // The same for the Skills tab: two borders, three heading rows and their
+  // rule, the tab bar, the page bar and its rule. Everything else is a skill
+  // row. The V page adds its rule and [Reset], which are never dropped.
   static constexpr int kSkillsTabFixedRows = 9;
 
-  // The Skills tab's own count, which the V page's foot adds to.
+  // The Skills tab's count, plus the V page's bottom rows.
   int SkillsTabFixedRows() const;
 
   // How many of the Stats tab's four AP rows the cursor stops on. None on a
-  // read-only panel: there is no [+] to press, and the View All Stats row
-  // under them is the whole reason the block is walked.
+  // read-only panel: there is no [+] to press, and the block is only moved
+  // through to reach the View All Stats row below it.
   int StatStops() const;
 
-  // The Stats tab's own count, which the Farm/Boss row adds to.
+  // The Stats tab's count, plus the Farm/Boss row.
   int StatsTabFixedRows() const;
 
-  // And the Hyper tab's: two borders, three heading rows, their rule, the two
-  // tab rows and their rule, then the rule and [Reset] at the foot.
+  // The Hyper tab's: two borders, three heading rows and their rule, the two
+  // tab rows and their rule, then the rule and [Reset] at the bottom.
   static constexpr int kHyperTabFixedRows = 11;
 
-  // The Ability and Buffs tabs have no count of their own: a fixed few rows
-  // each, none of them ever dropped.
+  // The Ability and Buffs tabs have no count of their own: each has a few fixed
+  // rows, none ever dropped.
 
-  // Whether the border is currently lit gold. Not part of the panel's own
-  // state machine -- it is set from outside and read by Render.
+  // Whether the border is gold. Set from outside and read by Render. It isn't
+  // part of the panel's own state.
   bool highlighted_ = false;
   // See SetReadOnly.
   bool read_only_ = false;
-  // See SetMaxRows. Zero is "as many as it takes".
+  // See SetMaxRows. Zero means no limit.
   int max_rows_ = 0;
   // See SetWidth, and panel_widths.h for where the number comes from.
   int width_ = kLeftColumnMin;
 
-  // Columns inside the window's border.
+  // The width inside the window's border.
   int ContentWidth() const {
     return width_ - 2;
   }
-  // One row of the Stats tab, at the tab's own width and centred. The tab does
-  // not spread with the terminal -- a value chasing the border would strand
-  // its label -- so a wide panel is blank either side of the block.
+  // One row of the Stats tab at the tab's own width, centred. The tab doesn't
+  // stretch with the terminal, since a value pushed to the border would leave
+  // its label behind, so a wide panel has blank space on each side of the
+  // block.
   ftxui::Element StatsAligned(ftxui::Element row) const;
 
-  // The panel's tabs, in bar order. NOT indices into the bar: Hyper and
-  // Advance appear only when they have something to offer -- VisibleTabs().
+  // The panel's tabs, in bar order. These aren't indices into the bar, because
+  // Hyper and Advance appear only when they have something to offer (see
+  // VisibleTabs()).
   enum Tab : int {
     kTabStats = 0,
     kTabSkills = 1,
@@ -234,7 +238,7 @@ class CharacterPanel {
     kTabAdvance = 5
   };
 
-  // Vertical focus zones, top to bottom. Down off the outer tab bar enters the
+  // Vertical focus zones, top to bottom. Down from the outer tab bar enters the
   // active tab's first content zone.
   enum Zone {
     kZoneUsername,
@@ -247,55 +251,57 @@ class CharacterPanel {
     // The [Reset] under the V page's nodes. Only that page has one.
     kZoneVReset,
     kZoneJobRows,
-    // The Hyper tab's fourteen stat rows, and the [Reset] button under them.
+    // The Hyper tab's fourteen stat rows and the [Reset] button under them.
     kZoneHyperRows,
     kZoneHyperReset,
-    // The Ability tab's three line rows, and the [Reroll] button under them.
+    // The Ability tab's three line rows and the [Reroll] button under them.
     kZoneAbilityRows,
     kZoneAbilityReroll,
-    // The Buffs tab's rows. One stop each: everything a buff offers is on the
-    // menu Enter raises.
+    // The Buffs tab's rows. One stop each, since everything a buff offers is on
+    // the menu Enter opens.
     kZoneBuffRows
   };
 
-  // The two things a skill row offers, left to right. Left/Right move between
-  // them; each answers a different Enter.
+  // The two parts of a skill row, left to right. Left and Right move between
+  // them, and Enter does something different on each.
   enum SkillCol { kColName, kColPlus };
 
-  // Whether the skill rows carry a [+] at all. A read-only sheet has nothing
-  // to press, and the beginner's page has nothing to buy.
+  // Whether skill rows have a [+]. A read-only sheet has nothing to press, and
+  // the beginner page has nothing to buy.
   bool ShowsSkillPlus() const;
-  // skill_col_, corrected for a page with no [+]: the cursor cannot stand on
-  // a column that is not drawn. Render reads it, as EffectiveZone is read.
+  // skill_col_, corrected for a page with no [+], since the cursor can't be on
+  // a column that isn't drawn. Render reads it, like EffectiveZone.
   SkillCol EffectiveSkillCol() const;
 
-  // A Hyper Stat row's three, in screen order: the stat to read about, the
-  // level to give back, the point to spend. Left/Right clamp at the ends.
+  // A Hyper Stat row's three parts in screen order: the stat to read about, the
+  // level to give back, and the point to spend. Left and Right stop at the
+  // ends.
   enum HyperCol { kHyperColName, kHyperColMinus, kHyperColPlus };
 
-  // Follows the panel focus, so tabbing in opens an unnamed character's cursor
-  // on the name row. Run from Render, which is what notices.
+  // Tracks panel focus, so tabbing into the panel with an unnamed character
+  // puts the cursor on the name row. Called from Render, which is where the
+  // change is noticed.
   void NoteFocus() const;
-  // Per-zone event handlers, dispatched from RouteEvent, each returning
-  // whether it consumed the event. OnTabsEvent drives the outer tab bar; the
-  // other two own their tab's content zones.
+  // Per-zone event handlers, called from RouteEvent, each returning whether it
+  // consumed the event. OnTabsEvent handles the outer tab bar, and the others
+  // handle their tab's content zones.
   bool RouteEvent(const ftxui::Event& event,
                   const CharacterPanelActions& actions);
   bool OnUsernameEvent(const ftxui::Event& event);
   bool OnTabsEvent(const ftxui::Event& event);
   bool OnStatsTabEvent(const ftxui::Event& event,
                        const CharacterPanelActions& actions);
-  // Left/Right on the Farm/Boss row. They clamp at the ends, as every tab bar
-  // in this panel does.
+  // Left and Right on the Farm/Boss row. They stop at the ends, like every tab
+  // bar in this panel.
   bool OnPresetBarEvent(const ftxui::Event& event,
                         const CharacterPanelActions& actions);
-  // Whether the cursor is on the View All Stats row rather than on a stat.
-  // It is the one stop in the ring that spends nothing.
+  // Whether the cursor is on the View All Stats row rather than a stat. It is
+  // the one stop in the ring that spends nothing.
   bool OnViewAllStatsRow() const;
-  // Whether the Stats tab carries its combat block. Everything below the AP
-  // rows hangs off it, that row's stop in the cursor ring included.
+  // Whether the Stats tab shows its combat block. Everything below the AP rows
+  // depends on it, including that row's stop in the cursor ring.
   bool ShowsCombatStats() const;
-  // Moves the advancement bar one stage, held at either end.
+  // Moves the page bar one page, stopping at either end.
   void StepSkillPage(int delta);
   bool OnSkillsTabEvent(const ftxui::Event& event,
                         const CharacterPanelActions& actions);
@@ -308,245 +314,245 @@ class CharacterPanel {
   bool OnBuffsTabEvent(const ftxui::Event& event,
                        const CharacterPanelActions& actions);
 
-  // The tabs on offer, in bar order. The Advance tab is only among them while
-  // an advancement is pending, so the count is not a constant.
+  // The available tabs, in bar order. The Advance tab is included only while an
+  // advancement is pending, so the count varies.
   std::vector<Tab> VisibleTabs() const;
-  // The save key `tab` records being opened under, or "" for a tab that has
+  // The save key recording that `tab` was opened, or "" for a tab that has
   // always been there and has nothing to announce.
   std::string TabKey(Tab tab) const;
-  // The tab actually shown: the selected one unless it has since disappeared,
-  // as taking the advancement closes the tab it was on.
+  // The tab actually shown: the selected one, unless it has disappeared, as the
+  // Advance tab does once the advancement is taken.
   Tab ActiveTab() const;
-  // zone_, corrected for a tab bar that changed under it: a stranded zone
-  // resolves back to the tab bar, which every tab has. Render reads it, so the
-  // cursor is right on the first frame; the handler writes it back.
+  // zone_, corrected for a tab bar that changed under it: a zone that no longer
+  // exists falls back to the tab bar, which every tab has. Render reads it so
+  // the cursor is right on the first frame, and the handler writes it back.
   Zone EffectiveZone() const;
-  // Places to stand in the active tab's vertical ring. The outer tab bar is
-  // stop 0 in every tab; what follows is the tab's own.
+  // The number of stops in the active tab's vertical ring. The outer tab bar is
+  // stop 0 on every tab, and the rest belong to the tab.
   int RingStops() const;
-  // The ring stop the first AP stat row takes, which the Farm/Boss row moves
-  // down by one when it is there.
+  // The ring stop of the first AP stat row, which moves down one when the
+  // Farm/Boss row is shown.
   int FirstStatStop() const;
-  // Where the cursor stands in that ring.
+  // The cursor's position in that ring.
   int CursorStop() const;
-  // Puts the cursor on stop `stop`, setting the zone that stop belongs to.
+  // Puts the cursor on `stop` and sets the zone that stop belongs to.
   void SetCursorStop(int stop);
-  // Moves the cursor `delta` stops around the ring, WRAPPING at both ends, so
-  // neither end needs a rule of its own.
+  // Moves the cursor `delta` stops around the ring, wrapping at both ends, so
+  // neither end needs its own rule.
   void MoveCursor(int delta);
   // The name row at the top of the panel: the username, inverted while the
-  // cursor rests on it, or what is being typed while the field is open.
+  // cursor is on it, or the text being typed while the field is open.
   ftxui::Element RenderUsername(bool row_selected) const;
-  // The Stats/Skills tab bar. `row_selected` draws the active tab white,
-  // meaning the bar holds focus; otherwise it keeps the theme highlight.
+  // The outer tab bar. `row_selected` draws the active tab white, meaning the
+  // bar has focus. Otherwise it keeps the theme highlight.
   ftxui::Element RenderTabBar(bool row_selected) const;
-  // The Farm/Boss row: which allocation the tab under it reads, straight under
-  // the outer tab bar with no rule between. `trailing` is right-aligned -- the
-  // points the allocation has left, or the honor pool.
+  // The Farm/Boss row: which allocation the tab below reads, directly under the
+  // outer tab bar with no rule between. `trailing` is right-aligned: the points
+  // the allocation has left, or the honor pool.
   ftxui::Element RenderPresetBar(bool bar_focused,
                                  const std::string& trailing) const;
-  // Whether the active tab carries a preset row: from level 140, on a tab
-  // whose numbers come out of an allocation, and on Stats only while the
-  // autoswap has two to tell apart.
+  // Whether the active tab shows a preset row: once Hyper Stats unlock, on a
+  // tab whose numbers come from an allocation, and on Stats only while the
+  // autoswap has two allocations to tell apart.
   bool ShowsPresetBar() const;
   // Whether that row names the preset slots, which the Hyper and Ability tabs
   // spend into, rather than the two activities the Stats tab shows.
   bool PresetBarNamesSlots() const;
-  // How many chips the row draws, and which the cursor is on. The selection
-  // survives a tab change, clamped to what the row has.
+  // How many chips the row draws. The selection survives a tab change, clamped
+  // to the chips the row has.
   int PresetChips() const;
   StatPreset PresetBarSelection() const;
   // Whether the active tab has a second row of tabs. The rule under the outer
-  // bar is dropped for one, the second row separating just as well.
+  // bar is dropped when it does, since the second row separates just as well.
   bool ShowsSecondTabRow() const;
   ftxui::Element RenderStatsTab(bool bar_focused, bool rows_focused) const;
-  // The Hyper tab: the Farm/Boss row with the spare points, the stat rows,
-  // then a rule and [Reset], which always draw -- the ROWS give way.
+  // The Hyper tab: the Farm/Boss row with the spare points, the stat rows, then
+  // a rule and [Reset]. The rule and [Reset] always draw; the stat rows give
+  // way.
   ftxui::Element RenderHyperTab(bool bar_focused, bool rows_focused,
                                 bool reset_focused) const;
   // The Ability tab: the Farm/Boss row with the honor pool, the three lines,
   // then a rule, the reroll's price and [Reroll]. Nothing scrolls.
   ftxui::Element RenderAbilityTab(bool bar_focused, bool rows_focused,
                                   bool reroll_focused) const;
-  // One Inner Ability line: its name and grant as one centred phrase in its
-  // rank's colour, then the lock. The lock inverts, Enter answering it.
+  // One Inner Ability line: its name and value as one centred phrase in its
+  // rank's colour, then the lock. The lock inverts under the cursor, and Enter
+  // toggles it.
   ftxui::Element RenderAbilityRow(const AbilityLine& line, int index,
                                   bool rows_focused) const;
-  // The lines the selected allocation is holding, which is what the tab's
-  // cursor ring is measured in.
+  // How many lines the selected allocation has, which sets the size of the
+  // tab's cursor ring.
   int AbilityRows() const;
 
-  // Renders the Buffs tab: one row per buff this character has reached. Nothing
-  // scrolls -- the buffs are few enough that the tab never outgrows them.
+  // The Buffs tab: one row per buff this character has reached. Nothing
+  // scrolls, since there are few enough buffs to always fit.
   ftxui::Element RenderBuffsTab(bool rows_focused) const;
-  // One buff row: the tag saying whether it is rented or owned, its name, and
-  // the mark at the end that says it is switched on. A buff that is off dims.
+  // One buff row: a tag saying whether it is rented or owned, its name, and a
+  // mark at the end when it is on. A buff that is off is dimmed.
   ftxui::Element RenderBuffRow(const ConsumableInfo& info, int index,
                                bool rows_focused) const;
-  // The buffs this character has reached, in the order they open. One below
-  // its level is not listed: a greyed row would only advertise it.
+  // The buffs this character has reached, in unlock order. A buff above the
+  // character's level isn't listed, since a grey row would only advertise it.
   std::vector<const ConsumableInfo*> BuffsShown() const;
   // Whether the honor pool covers a reroll of the selected allocation.
   bool CanRerollAbility() const;
 
-  // One Hyper Stat row: name, level, [+], the cursor's column inverted as on a
-  // skill row. What the stat is WORTH is on the card Enter opens.
+  // One Hyper Stat row: name, level and [+], with the cursor's column inverted
+  // as on a skill row. The stat's value is on the card Enter opens.
   ftxui::Element RenderHyperRow(HyperStatField field, int index,
                                 bool rows_focused, int row_width) const;
-  // Whether a point can go into `field` at all: not maxed, not held shut by
-  // the character's level, and the next rung paid for.
+  // Whether a point can go into `field`: not maxed, not blocked by the
+  // character's level, and the next level affordable.
   bool CanRaiseHyperStat(HyperStatField field) const;
-  // Whether the stat has a level to give back, which is the whole of what
-  // the [-] asks: the points return by themselves.
+  // Whether the stat has a level to give back, which is all the [-] needs,
+  // since the points return automatically.
   bool CanLowerHyperStat(HyperStatField field) const;
-  // How many Hyper Stat rows the row budget leaves room for, of the fourteen.
+  // How many of the fourteen Hyper Stat rows fit in the row budget.
   int HyperRowsShown() const;
-  // The first row of the window -- ScrollWindowStart, which keeps the
-  // selection in the middle of it.
+  // The first row of the window, from ScrollWindowStart, which keeps the
+  // selection in the middle.
   int FirstHyperRow(int visible) const;
-  // The Skills tab: the page bar (the beginner's circle, I/II/..., then H for
-  // hypers and V for the matrix) with that page's points right-aligned, its
-  // skill rows, and on the V page a rule and [Reset].
+  // The Skills tab: the page bar (the beginner circle, I/II/..., then H for
+  // Hyper Skills and V for the matrix) with that page's points right-aligned,
+  // its skill rows, and on the V page a rule and [Reset].
   ftxui::Element RenderSkillsTab(bool bar_focused, bool rows_focused,
                                  bool reset_focused) const;
-  // Whether the page under the cursor carries the [Reset] at its foot, which
-  // only the V page does: the SP books are spent for good.
+  // Whether the current page has a [Reset] at the bottom. Only the V page does,
+  // since SP spent in the books is permanent.
   bool ShowsVReset() const;
-  // Renders the Advance tab: the jobs on offer, one per row, the selected one
-  // marked with a caret while the list holds focus.
+  // The Advance tab: the available jobs, one per row, with a caret on the
+  // selected one while the list has focus.
   ftxui::Element RenderAdvanceTab(bool content_focused) const;
-  // The page bar: one chip per page, the selected one highlighted, with the
-  // points that page is bought with right-aligned.
+  // The page bar: one chip per page with the selected one highlighted, and the
+  // points that page spends right-aligned.
   ftxui::Element RenderAdvTabBar(bool bar_focused) const;
-  // The page the bar is on -- see skill_tab_.
+  // The page the bar is on (see skill_tab_).
   int SelectedSkillPage() const;
-  // How many pages the Skills tab offers: the beginner's, then one per
-  // advancement taken, then the Hyper page once the character has reached it.
+  // How many pages the Skills tab has: the beginner page, one per advancement
+  // taken, then the Hyper page once the character has reached it.
   int SkillPages() const;
-  // How many of those are numbered -- one per advancement taken, less the 5th
+  // How many of those are numbered: one per advancement taken, minus the 5th
   // while no node has been written for this character's job.
   int NumberedSkillPages() const;
-  // The advancement whose Hyper Skills this character holds, which is their
-  // 4th job's whether or not they have taken a 5th.
+  // The advancement whose Hyper Skills this character has, which is their 4th
+  // job's whether or not they have taken the 5th.
   JobAdvancement HyperAdvancement() const;
-  // Whether the Hyper page is one of them: once a Hyper Skill of this
-  // character's own book is within reach of their level.
+  // Whether the Hyper page is shown: once a Hyper Skill from this character's
+  // own book is within reach of their level.
   bool HasHyperPage() const;
-  // Whether page `page` (0-based, as SelectedSkillPage is) is the Hyper
-  // page.
+  // Whether page `page` (0-based, like SelectedSkillPage) is the Hyper page.
   bool IsHyperPage(int page) const;
-  // Whether it is the beginner's page, which is always the first: the book
-  // every character is born holding. Nothing on it is bought.
+  // Whether it is the beginner page, which is always first: the book every
+  // character starts with. Nothing on it is bought.
   bool IsBeginnerPage(int page) const {
     return page == 0;
   }
-  // Whether the V page is offered, which it is once the character has a
-  // matrix and the catalog holds a node they reach.
+  // Whether the V page is shown, which it is once the character has a matrix
+  // and the catalog has a node they can reach.
   bool HasVPage() const;
-  // Whether page `page` is the V page, which is always the last one.
+  // Whether page `page` is the V page, which is always last.
   bool IsVPage(int page) const;
   // The advancement whose own nodes the V page lists beside the common ones.
   JobAdvancement VAdvancement() const;
-  // The pool counter on the page bar, in the units the page spends.
+  // The points counter on the page bar, in the units the page spends.
   std::string PoolText() const;
 
-  // The skills of page `page`, in the order it lists them. Empty if none.
+  // The skills on page `page`, in listing order. Empty if none.
   std::vector<const Skill*> SkillsForPage(int page) const;
-  // Whether the Link Skills row stands under the beginner's book. It is not a
-  // skill: nothing is bought on it and no book lists it, so it carries no kind
-  // tag and no level -- what it does is open a screen.
+  // Whether the Link Skills row appears on the beginner page. It isn't a skill:
+  // nothing is bought on it and no book lists it, so it has no kind tag and no
+  // level. It opens a screen.
   bool ShowsLinkRow() const;
-  // The stops the page under the cursor has: its skills, and that row.
+  // The number of stops on the current page: its skills plus that row.
   int SkillRowCount() const;
-  // The skill a cursor row names, SkillsForPage-indexed. The Link Skills row
-  // leads the beginner's page, so every skill under it sits one row down.
+  // The skill a cursor row names, as a SkillsForPage index. The Link Skills row
+  // comes first on the beginner page, so every skill below it is one row down.
   int SkillIndexFor(int row) const;
-  // The Link Skills row itself, gold until the player has pressed Enter on it.
+  // The Link Skills row, gold until the player has pressed Enter on it.
   ftxui::Element RenderLinkRow(bool selected) const;
-  // Whether the character may not learn `skill` yet -- a skill below it still
-  // to be taught, or a level still to be reached.
+  // Whether the character can't learn `skill` yet: a prerequisite skill is
+  // still unlearned, or a level still has to be reached.
   bool SkillLocked(const Skill& skill) const;
   // How the level column is drawn for one page of skills.
   struct LevelColumn {
-    // The levels this book lends every opened skill. Whether a given skill
-    // takes any is its own business -- see LevelWithBonus.
+    // The bonus levels this book gives every opened skill. Whether a given
+    // skill receives them is up to the skill (see LevelWithBonus).
     int bonus = 0;
-    // The column's width, gutters included. Measured from the widest level
-    // ACTUALLY on the page, so an unopened book is a thin column of 0s and
-    // the room goes to the skill names beside it.
+    // The column's width, including gutters. Measured from the widest level
+    // actually on the page, so an unopened book gets a thin column of 0s and
+    // the room goes to the skill names.
     int width = 3;
   };
   LevelColumn MeasureLevelColumn(const std::vector<const Skill*>& skills) const;
 
-  // One skill row: a kind tag, then "name    20 (+2)", then a [+]. The
-  // cursor's column inverts -- the tag is never one -- and the [+] dims when
-  // the skill is maxed or the stage has no SP. The NAME never dims.
-  // `row_width` is the content width, less one while the scroll bar holds a
-  // column beside it.
+  // One skill row: a kind tag, then "name    20 (+2)", then a [+]. The cursor's
+  // column inverts (never the tag), and the [+] dims when the skill is maxed or
+  // the stage has no SP. The name never dims. `row_width` is the content width,
+  // minus one while the scroll bar takes a column beside it.
   ftxui::Element RenderSkillRow(const Skill& skill, int index,
                                 const LevelColumn& column, bool rows_focused,
                                 int row_width) const;
-  // How many skill rows the row budget leaves room for, of the `total` on the
-  // page. All of them when no budget is set, and never fewer than one.
+  // How many of the page's `total` skill rows fit in the row budget. All of
+  // them when no budget is set, and never fewer than one.
   int SkillRowsShown(int total) const;
-  // The first drawn line of the skill window -- ScrollWindowStart, as above.
-  // `selected` is a LINE rather than a skill, a divider taking one of its own.
+  // The first drawn line of the skill window, from ScrollWindowStart as above.
+  // `selected` is a line rather than a skill, since a divider takes a line of
+  // its own.
   int FirstSkillRow(int total, int selected, int visible) const;
-  // The lines the page draws, in order: each skill's index, and -1 where a
-  // rule goes. Only a V page has any; every other book is one list.
+  // The lines the page draws, in order: each skill's index, and -1 where a rule
+  // goes. Only the V page has rules; every other book is one list.
   std::vector<int> SkillLines(int page,
                               const std::vector<const Skill*>& skills) const;
-  // How many of the `total` extra stats the row budget leaves room for, once
-  // the View All Stats row is paid for. All of them with no budget.
+  // How many of the `total` extra stats fit in the row budget after the View
+  // All Stats row. All of them with no budget.
   int ExtraStatsShown(int total) const;
   // Whether the rule above the extra stats is drawn. It is dropped at the
-  // tightest budgets, where nothing follows it but the way out.
+  // tightest budgets, where only the View All Stats row follows it.
   bool ShowsExtrasRule() const;
-  // The MP row with unspent AP right-aligned as "N AP".
+  // The MP row, with unspent AP right-aligned as "N AP".
   ftxui::Element MpRow(int mp, int ap) const;
-  // One allocatable stat row: label and value left, [+] right. The [+] dims
-  // with no AP to spend and inverts under the cursor, being Enter's target.
+  // One stat row: label and value on the left, [+] on the right. The [+] dims
+  // with no AP to spend and inverts under the cursor, since Enter acts on it.
   ftxui::Element AllocRow(const std::string& label, int base, int bonus,
                           int index, bool content_focused) const;
 
   CharacterInstance& character_;
-  // Not const: opening a tab is recorded on the account, so the panel writes
-  // as well as reads.
+  // Not const, because opening a tab is recorded on the account.
   AccountInstance& account_;
   std::map<std::string, Skill> skills_;
   int& panel_focus_;
   int active_tab_ = 0;  // index into VisibleTabs(): the selected tab
-  // Which focus zone holds the cursor. The tab bar, until NoteFocus opens an
-  // unnamed character on the name row instead.
+  // Which focus zone has the cursor. The tab bar, unless NoteFocus puts an
+  // unnamed character's cursor on the name row.
   mutable Zone zone_ = kZoneTabs;
-  // Whether the panel held focus last frame, and whether the cursor has moved
+  // Whether the panel had focus last frame, and whether the cursor has moved
   // yet. Mutable because NoteFocus runs from the render.
   mutable bool was_focused_;
   bool cursor_moved_ = false;
-  int stat_sel_ = 0;  // selected Stats-content row (0-3 = STR/DEX/INT/LUK)
+  int stat_sel_ = 0;  // selected Stats row (0-3 = STR/DEX/INT/LUK)
   // The page the player moved the bar to, and whether they have moved it at
-  // all. READ THROUGH SelectedSkillPage, which answers for the page nobody
-  // has chosen yet and for a bar that has since grown.
+  // all. Read it through SelectedSkillPage, which handles the case where nobody
+  // has chosen a page yet and a bar that has since grown.
   int skill_tab_ = 0;
   bool skill_page_chosen_ = false;
-  int skill_sel_ = 0;              // selected skill row within the current page
+  int skill_sel_ = 0;              // selected skill row on the current page
   SkillCol skill_col_ = kColName;  // selected column of that row
-  // How long the cursor has sat on the selected skill row, for the name
-  // scroll. Mutable because the render is what notices the row moved.
+  // How long the cursor has been on the selected skill row, for scrolling its
+  // name. Mutable because the render is where the move is noticed.
   mutable SelectionClock name_clock_;
-  int job_sel_ = 0;                     // selected Advance-tab job row
-  int hyper_sel_ = 0;                   // selected Hyper-tab stat row
+  int job_sel_ = 0;                     // selected Advance tab job row
+  int hyper_sel_ = 0;                   // selected Hyper tab stat row
   HyperCol hyper_col_ = kHyperColName;  // selected column of that row
-  int ability_sel_ = 0;                 // selected Ability-tab line row
-  int buff_sel_ = 0;                    // selected Buffs-tab row
-  // How long the cursor has sat on the selected buff, for the name scroll. Its
-  // own clock: the two tabs share row numbers, and one clock would carry a
-  // slide from one to the other.
+  int ability_sel_ = 0;                 // selected Ability tab line row
+  int buff_sel_ = 0;                    // selected Buffs tab row
+  // How long the cursor has been on the selected buff, for scrolling its name.
+  // It has its own clock because the two tabs share row numbers, and one clock
+  // would carry a scroll from one tab to the other.
   mutable SelectionClock buff_clock_;
-  // Which allocation the Farm/Boss row is on -- see hyper_preset().
+  // Which allocation the Farm/Boss row is on (see hyper_preset()).
   StatPreset hyper_preset_ = StatPreset::kFirst;
   TextField username_field_{kMaxUsernameLength};
-  // Written by ftxui::reflect on the selected job row each render.
+  // Set by ftxui::reflect on the selected job row each render.
   mutable ftxui::Box job_cursor_box_;
   mutable ftxui::Box preset_row_box_;
   mutable ftxui::Box skill_cursor_box_;
