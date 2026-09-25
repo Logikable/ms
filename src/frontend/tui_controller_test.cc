@@ -61,8 +61,8 @@
 namespace ms {
 namespace {
 
-// A notice is one sentence split across lines to read evenly, so a test that
-// only cares what it says reads it back as the sentence.
+// A notice is one sentence split into evenly sized lines, so a test that only
+// checks the text joins it back into the sentence.
 std::string NoticeText(const std::vector<std::string>& lines) {
   std::string sentence;
   for (const std::string& line : lines) {
@@ -73,7 +73,8 @@ std::string NoticeText(const std::vector<std::string>& lines) {
 
 class TuiControllerTest : public testing::Test {
  protected:
-  // A ScrollPanel holds its catalog by reference, so it has to outlive it.
+  // A ScrollPanel holds its catalog by reference, so the catalog must outlive
+  // it.
   const std::map<std::string, Scroll> no_scrolls_;
 
   void SetUp() override {
@@ -82,9 +83,9 @@ class TuiControllerTest : public testing::Test {
     MakePanels();
   }
 
-  // The catalogs these tests run on: small enough to state here rather than
-  // load out of data/, and every entry is here because some test below needs
-  // it to exist before a panel is built.
+  // The catalogs these tests use: small enough to define here instead of
+  // loading from data/. Each entry exists because some test below needs it
+  // before a panel is built.
   void MakeState() {
     sword_.set_name("Sword");
     sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
@@ -102,21 +103,21 @@ class TuiControllerTest : public testing::Test {
 
     std::map<std::string, EquipPrototype> equips;
     equips["Sword"] = sword_;
-    // A stand-in under the catalog key a Magician's advancement asks for, so
-    // the advancement tests see gear arrive without loading data/equip.
+    // A stand-in under the catalog key a Magician's advancement uses, so the
+    // advancement tests see gear arrive without loading data/equip.
     EquipPrototype staff;
     staff.set_name("Wooden Staff");
     staff.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
     equips["wooden_staff"] = staff;
-    // Something for the shop to stock. ShopPanel fixes its list at
-    // construction, so this has to exist before the panel does.
+    // Something for the shop to sell. ShopPanel fixes its list at construction,
+    // so this must exist before the panel does.
     EquipPrototype machete;
     machete.set_name("Machete");
     machete.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
     machete.set_required_level(20);
     machete.set_shop_price(10000);
     equips["machete"] = machete;
-    // The token shelf's own stock, and the token that buys it.
+    // The token shelf's stock, and the token that buys it.
     EquipPrototype frozen;
     frozen.set_name("Frozen Sword");
     frozen.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
@@ -124,8 +125,7 @@ class TuiControllerTest : public testing::Test {
     frozen.set_token_item("weapon_token");
     frozen.set_token_price(1);
     equips["frozen_sword"] = frozen;
-    // Two of the six symbols, which is enough for a claim to have a ladder to
-    // walk up.
+    // Two of the six symbols, which is enough for a claim to have a ladder.
     symbol_.set_name("Arcane Symbol: Vanishing Journey");
     symbol_.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
     symbol_.set_required_level(200);
@@ -140,8 +140,8 @@ class TuiControllerTest : public testing::Test {
     token_.set_name("Weapon Token");
     token_.set_currency_mark("●");
     token_.set_currency_color(CURRENCY_COLOR_THEME);
-    // Something plain for a boss to drop, so the clear card has a row that is
-    // not a currency.
+    // An ordinary item for a boss to drop, so the clear card has a row that
+    // isn't a currency.
     shard_.set_name("Zakum's Soul Shard");
     shard_.set_max_stack(100);
     std::map<std::string, ItemPrototype> items;
@@ -153,14 +153,13 @@ class TuiControllerTest : public testing::Test {
     state_ = std::make_unique<GameState>(
         std::move(equips), std::move(scrolls), std::move(items),
         std::map<std::string, Mob>{}, std::map<std::string, MapData>{});
-    // Normal Zakum, so the boss screen has a fight on it. Seeded here rather
-    // than per test: BossSelectPanel fixes its list at construction, and the
-    // panels are built once for the fixture.
+    // Normal Zakum, so the boss screen has a fight. Set up here rather than per
+    // test because BossSelectPanel fixes its list at construction, and the
+    // fixture builds the panels once.
     Mob arm;
     arm.set_name("Zakum's Arm");
     arm.set_level(110);
-    // A single point of HP: these tests are about the screen the fight is on,
-    // not about how long one takes.
+    // One HP: these tests are about the fight's screen, not how long it takes.
     arm.set_max_hp(1);
     arm.set_boss(true);
     state_->mobs["zakum_arm"] = arm;
@@ -176,40 +175,38 @@ class TuiControllerTest : public testing::Test {
     state_->bosses["zakum"] = boss;
   }
 
-  // A character holding nothing is refused the fight, so every boss test that
-  // means to get past the list arms itself first.
+  // A character with no weapon is refused the fight, so every boss test that
+  // needs to get past the list equips one first.
   void HoldASword() {
     state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
     state_->character.Equip(state_->character.inventory().size() - 1);
   }
 
-  // A sword on the character and the equip panel drawn over it, which is what
-  // fills the panel's row list. The starting point for every test that opens
-  // the equip menu.
+  // A sword on the character, with the equip panel drawn so its row list is
+  // filled. The starting point for every test that opens the equip menu.
   void WearASwordAndDraw() {
     HoldASword();
     RenderEquipPanel();
   }
 
-  // Puts the bag's cursor on the panel and down on its first row, which is
-  // where every test that opens an item menu means to be standing: focus
-  // arrives on the tab bar, where Enter opens the tab's own menu instead.
+  // Moves the bag's cursor onto the panel and down to its first row, where
+  // every test that opens an item menu wants to be. Focus arrives on the tab
+  // bar, where Enter opens the tab's own menu instead.
   void DescendIntoBag() {
     panel_focus_ = kInventoryPanel;
-    RenderInventoryPanel();  // the row has to exist before the cursor reaches
-                             // it
+    RenderInventoryPanel();  // builds the row the cursor moves to
     inventory_component_->OnEvent(ftxui::Event::ArrowDown);
   }
 
-  // A ring on the character, in the first slot of the four that is free.
+  // A ring on the character, in the first free ring slot.
   void WearRing(const EquipPrototype& proto) {
     state_->character.PickUp(std::make_unique<EquipInstance>(proto));
     state_->character.Equip(state_->character.inventory().size() - 1);
   }
 
-  // The arrows onto the Equipped card, where the ring bar lives. The panel is
-  // told what the screen tells it first: the ring it walks is the cards that
-  // are drawn.
+  // Moves the arrows onto the Equipped card, where the ring tab bar is. The
+  // panel is first told what the screen shows, since it cycles through the
+  // cards that are drawn.
   void FocusTheEquippedCard() {
     inspect_panel_.SetItem(controller_->inspect_item());
     inspect_panel_.SetComparison(controller_->comparison_slots());
@@ -217,14 +214,14 @@ class TuiControllerTest : public testing::Test {
     ASSERT_EQ(inspect_panel_.focused_card(), InspectPanel::kEquippedCard);
   }
 
-  // A sword in the bag instead, with the cursor down on its row.
+  // A sword in the bag instead, with the cursor on its row.
   void BagASword() {
     state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
     DescendIntoBag();
   }
 
-  // From an open item menu: onto Scroll, into kScrollSelect, and the first
-  // row's menu open.
+  // From an open item menu: onto Scroll, into kScrollSelect, and open the first
+  // row's menu.
   void OpenScrollRowMenu() {
     controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
     controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
@@ -232,14 +229,15 @@ class TuiControllerTest : public testing::Test {
     controller_->OnEvent(ftxui::Event::Return);     // open the row's menu
   }
 
-  // The first row's scroll, picked and confirmed.
+  // Picks and confirms the first row's scroll.
   void ScrollTheFirstRow() {
     OpenScrollRowMenu();
     controller_->OnEvent(ftxui::Event::Return);  // pick Scroll -> confirm
     controller_->OnEvent(ftxui::Event::Return);  // confirm
   }
 
-  // Walks the bag's tab bar to the Bank tab and opens it, as a player does.
+  // Moves along the bag's tab bar to the Bank tab and opens it, as a player
+  // would.
   void OpenBankScreen() {
     panel_focus_ = kInventoryPanel;
     for (int step = 0;
@@ -252,16 +250,16 @@ class TuiControllerTest : public testing::Test {
     ASSERT_EQ(controller_->screen(), kBank);
   }
 
-  // Runs the fight in progress until it is over, however it ends. The run
-  // outlives the fight -- it is held behind whatever panel ended it -- so this
-  // waits on the screen rather than on in_boss_fight().
+  // Runs the current fight until it ends, however it ends. The run outlives the
+  // fight (it is kept behind whatever panel ended it), so this waits on the
+  // screen rather than on in_boss_fight().
   void RunFightToEnd() {
     for (int i = 0; i < 20000 && controller_->screen() == kBossFight; ++i) {
       controller_->AdvanceBossRun(0.1);
     }
   }
 
-  // Takes the one fight in the catalog, so a test starts inside it.
+  // Starts the only fight in the catalog, so the test begins inside it.
   void EnterFight() {
     HoldASword();
     controller_->OpenMenuEntry(MenuEntry::kBoss);
@@ -269,24 +267,23 @@ class TuiControllerTest : public testing::Test {
     controller_->OnEvent(ftxui::Event::Return);
   }
 
-  // A Swordman with enough SP to spend and standing at scrolling's gate.
+  // A Swordman with SP to spend, at the level scrolling unlocks.
   void SeedCharacter() {
     state_->character.AdvanceJob(JOB_SWORDMAN);
-    // The starting character stands at its advancement with no SP yet; these
-    // tests spend SP, so they level far enough to have some of their own.
+    // The starting character is at its advancement with no SP yet. These tests
+    // spend SP, so they level far enough to earn some.
     while (state_->character.sp(1) < 60) {
       state_->character.LevelUp();
     }
     // Many tests below reach the Scroll entry by counting rows down the item
-    // menu, and a gated entry is not drawn at all -- so the character has to
-    // stand at scrolling's gate or the count lands somewhere else. The SP loop
-    // above happens to end there today (stage-1 SP starts at 11 and pays 3 a
-    // level, so 60 of it is exactly level 30). Stated rather than relied on:
-    // either number can move without the other.
+    // menu, and a locked entry isn't drawn, so the character must be at
+    // scrolling's unlock level or the count lands elsewhere. The SP loop above
+    // currently ends at that level, but that is a coincidence; either number
+    // could change without the other, so it is set explicitly.
     LevelTo(UnlockLevel(Feature::kScrolling));
   }
 
-  // Every panel the controller drives, and the controller over them.
+  // Every panel the controller drives, and the controller itself.
   void MakePanels() {
     char_panel_ = std::make_unique<CharacterPanel>(
         state_->character, state_->account, panel_focus_, state_->skills);
@@ -342,17 +339,17 @@ class TuiControllerTest : public testing::Test {
                          *jukebox_panel_},
         analysis_, *keys_, panel_focus_);
 
-    // Build the equip component so RenderEquipPanel() can populate slots_.
+    // Build the equip component so RenderEquipPanel() can fill slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
-    // The inventory component drives tab switching and opens the context menu.
+    // The inventory component handles tab switching and opens the context menu.
     inventory_component_ = inventory_panel_->MakeComponent(
         [this]() { controller_->OpenInventoryMenu(); },
         [this]() { controller_->ToggleExpanded(kInventoryPanel); });
   }
 
-  // Opens the Keybinds screen the way a player does, from the Settings box.
-  // Up walks the Settings box from the bottom, so Keybinds is the second stop
-  // and Options the first.
+  // Opens the Keybinds screen the way a player does, from the Settings box. Up
+  // moves through the box from the bottom, so Options is the first stop and
+  // Keybinds the second.
   void OpenKeybinds() {
     controller_->OpenMenuEntry(MenuEntry::kSettings);
     controller_->OnEvent(ftxui::Event::ArrowUp);
@@ -374,7 +371,7 @@ class TuiControllerTest : public testing::Test {
     controller_->OnEvent(ftxui::Event::Return);
   }
 
-  // Another character on the account, in a slot of their own.
+  // Another character on the account, in its own slot.
   void AddCharacter(const std::string& name) {
     CharacterSave slot;
     slot.mutable_character()->set_name(name);
@@ -383,15 +380,14 @@ class TuiControllerTest : public testing::Test {
   }
 
   // Levels the character to `level`. The item menu's entries are level-gated
-  // (see progression.h), so a test that means to exercise one has to have
-  // reached it -- star force is the late one, at 60.
+  // (see progression.h), so a test that uses one must reach its level first.
   void LevelTo(int level) {
     while (state_->character.proto().level() < level) {
       state_->character.LevelUp();
     }
   }
 
-  // Adds a sellable Etc stack and navigates the inventory to the Etc tab.
+  // Adds a sellable Etc stack and moves the inventory to the Etc tab.
   void EnterEtcTabWithStack(int count, int sell_price) {
     ItemPrototype shell;
     shell.set_name("Green Snail Shell");
@@ -402,9 +398,9 @@ class TuiControllerTest : public testing::Test {
     inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> stack
   }
 
-  // Walks the bag's tab bar right until `tab` is open. A test asks for the tab
-  // it wants rather than counting presses, so a tab added to the bar does not
-  // have to be counted into every test that only steps past it.
+  // Moves right along the bag's tab bar until `tab` is open. Tests name the tab
+  // rather than counting presses, so adding a tab to the bar doesn't break
+  // tests that only pass through it.
   void OpenBagTab(int tab) {
     for (int step = 0;
          step < kNumInventoryTabs && inventory_panel_->active_tab() != tab;
@@ -413,31 +409,30 @@ class TuiControllerTest : public testing::Test {
     }
   }
 
-  // Opens the stack context menu and walks to Sell, leaving the sell dialog
-  // up. Inspect leads that menu, so Return alone lands on the wrong screen --
-  // and quietly enough that a test asserting nothing was sold would pass.
+  // Opens the stack context menu and moves to Sell, leaving the sell dialog
+  // open. Inspect is the menu's first entry, so Return alone opens the wrong
+  // screen, quietly enough that a test checking nothing was sold would still
+  // pass.
   void OpenStackSell() {
     inventory_component_->OnEvent(ftxui::Event::Return);  // the stack menu
     controller_->OnEvent(ftxui::Event::ArrowDown);        // Inspect -> Sell
     controller_->OnEvent(ftxui::Event::Return);
   }
 
-  // Walks the tab bar to the Shop tab and opens it, leaving the shop screen up
-  // with the cursor on the first item.
+  // Moves along the tab bar to the Shop tab and opens it, leaving the shop
+  // screen open with the cursor on the first item.
   void OpenShop() {
-    // The Shop tab is gated at 20. The fixture already levels past that
-    // buying SP, but that is a coincidence of the SP arithmetic and not
-    // something the shop tests should be resting on.
+    // The Shop tab unlocks at 20. The fixture already levels past that while
+    // earning SP, but that is a coincidence the shop tests shouldn't rely on.
     LevelTo(UnlockLevel(Feature::kShop));
     panel_focus_ = kInventoryPanel;
     OpenBagTab(kShopTab);
     inventory_component_->OnEvent(ftxui::Event::Return);
   }
 
-  // Opens the shop on the Buy-Back shelf with the cursor on its first row.
-  // Up twice puts the cursor on the tab bar, past the pay row under it; Down
-  // brings it back into the list, which the Buy-Back shelf has no pay row to
-  // stop at on the way.
+  // Opens the shop on the Buy-Back shelf with the cursor on its first row. Up
+  // twice puts the cursor on the tab bar, past the pay row; Down brings it back
+  // into the list, since the Buy-Back shelf has no pay row to stop at.
   void OpenBuyBackShelf() {
     OpenShop();
     controller_->OnEvent(ftxui::Event::ArrowUp);
@@ -448,7 +443,7 @@ class TuiControllerTest : public testing::Test {
     controller_->OnEvent(ftxui::Event::ArrowDown);
   }
 
-  // As OpenBuyDialog, from the shelf.
+  // Like OpenBuyDialog, but from the buy-back shelf.
   void OpenBuyBackDialog() {
     OpenBuyBackShelf();
     controller_->OnEvent(ftxui::Event::Return);     // -> kShopMenu, on Inspect
@@ -456,8 +451,8 @@ class TuiControllerTest : public testing::Test {
     controller_->OnEvent(ftxui::Event::Return);     // -> kShopBuy
   }
 
-  // Opens the shop, then the menu on the first item, then its Buy entry,
-  // leaving the buy dialog up with the quantity field focused.
+  // Opens the shop, the first item's menu, and its Buy entry, leaving the buy
+  // dialog open with the quantity field focused.
   void OpenBuyDialog() {
     OpenShop();
     controller_->OnEvent(ftxui::Event::Return);     // -> kShopMenu, on Inspect
@@ -484,8 +479,8 @@ class TuiControllerTest : public testing::Test {
     return ScreenText(screen);
   }
 
-  // The buy dialog's text, read off the screen cell by cell rather than from
-  // Screen::ToString, which threads colour escapes through the rows.
+  // The buy dialog's text, read from the screen cell by cell rather than from
+  // Screen::ToString, which puts colour escapes in the rows.
   std::string RenderBuyDialog() {
     ftxui::Element dialog = buy_panel_->Render();
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(dialog));
@@ -494,7 +489,7 @@ class TuiControllerTest : public testing::Test {
   }
 
   // MapSelectPanel fixes its display order at construction, so the maps must
-  // exist before it does -- rebuild both after touching state_->maps.
+  // exist first. Rebuild both after changing state_->maps.
   void RebuildMapSelect() {
     map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
     mob_inspect_panel_ = std::make_unique<MobInspectPanel>(*state_);
@@ -522,8 +517,8 @@ class TuiControllerTest : public testing::Test {
         analysis_, *keys_, panel_focus_);
   }
 
-  // Adds a map on the second level band, so paging has somewhere to go. The
-  // two from LoadTwoMaps both sit on the first.
+  // Adds a map in the second level band, so paging has somewhere to go. Both
+  // maps from LoadTwoMaps are in the first.
   void AddMapOnTheSecondBand() {
     Mob golem;
     golem.set_name("Stone Golem");
@@ -540,8 +535,8 @@ class TuiControllerTest : public testing::Test {
     RebuildMapSelect();
   }
 
-  // Loads two maps, both on the first level band. Field, holding the level 1
-  // snail, sorts ahead of Cave, holding the level 8 mushroom.
+  // Loads two maps, both in the first level band. Field (level 1 snail) sorts
+  // before Cave (level 8 mushroom).
   void LoadTwoMaps() {
     Mob snail;
     snail.set_name("Snail");
@@ -568,9 +563,9 @@ class TuiControllerTest : public testing::Test {
     RebuildMapSelect();
   }
 
-  // Renders equip_panel_ to sync its slots_ vector with character.equipped().
-  // Must be called after any change to the equipped map before using
-  // selected_slot() (either directly or via controller_ OnEvent).
+  // Renders equip_panel_ to sync its slots_ with character.equipped(). Must be
+  // called after any change to the equipped items and before using
+  // selected_slot() (directly or through controller_ OnEvent).
   void RenderEquipPanel() {
     ftxui::Screen scr = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                               ftxui::Dimension::Fixed(5));
@@ -578,15 +573,15 @@ class TuiControllerTest : public testing::Test {
   }
 
   // Renders inventory_component_ to build the Equip tab's row list, which is
-  // filled during the render rather than up front. The list has to exist
-  // before the cursor can be walked down it.
+  // filled during rendering. The list must exist before the cursor can move
+  // down it.
   void RenderInventoryPanel() {
     ftxui::Screen scr = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                               ftxui::Dimension::Fixed(20));
     ftxui::Render(scr, inventory_component_->Render());
   }
 
-  // The skill card as text, for asserting which rows of it are on screen.
+  // The skill card as text, for checking which rows are on screen.
   std::string RenderSkillCard() {
     ftxui::Screen scr = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
                                               ftxui::Dimension::Fixed(20));
@@ -594,8 +589,8 @@ class TuiControllerTest : public testing::Test {
     return scr.ToString();
   }
 
-  // The colour the open cube question is drawn in, which is its border's.
-  // Gold on a reroll that ranked the potential up, steel blue otherwise.
+  // The colour of the open cube dialog's border: gold after a reroll that
+  // raised the rank, steel blue otherwise.
   ftxui::Color CubeQuestionColor() {
     ftxui::Screen scr = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
                                               ftxui::Dimension::Fixed(20));
@@ -603,7 +598,7 @@ class TuiControllerTest : public testing::Test {
     return scr.PixelAt(0, 0).foreground_color;
   }
 
-  // The equip sell dialog as text, for asserting what it tells the player.
+  // The equip sell dialog as text, for checking what it tells the player.
   std::string RenderSellDialog() {
     ftxui::Screen scr = ftxui::Screen::Create(ftxui::Dimension::Fixed(44),
                                               ftxui::Dimension::Fixed(12));
@@ -611,9 +606,8 @@ class TuiControllerTest : public testing::Test {
     return scr.ToString();
   }
 
-  // Picks up sword_ with all upgrade slots consumed (required for star force).
-  // Walks the open gear menu down to `entry`. Counting keypresses would only
-  // count the entries this item happens to be offered.
+  // Moves down the open gear menu to `entry`. Counting key presses would only
+  // count the entries this item happens to have.
   void WalkGearMenuTo(int entry) {
     for (int i = 0; i < 10 && equip_panel_->menu().selected() != entry; ++i) {
       controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -621,19 +615,20 @@ class TuiControllerTest : public testing::Test {
     ASSERT_EQ(equip_panel_->menu().selected(), entry);
   }
 
+  // Picks up sword_ with every upgrade slot used, which star force needs.
   void PickUpScrolledSword() {
     sword_.set_upgrade_slots(0);
     state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   }
 
-  // Replaces the scroll map with a single 0%-rate scroll and rebuilds
-  // scroll_panel_ and controller_ to pick up the change.
+  // Replaces the scroll map with a single 0% scroll and rebuilds scroll_panel_
+  // and controller_ to use it.
   void UseFailScroll() {
     Scroll fail;
     fail.set_name("Fail Scroll");
-    // GMS sells no 0% scroll, so no band prices it and the figure written here
-    // is what the player pays. That is what makes a guaranteed failure
-    // affordable to test: the real rates all sometimes land.
+    // GMS has no 0% scroll, so no price band covers it and the price set here
+    // is what the player pays. That makes a guaranteed failure affordable to
+    // test, since every real rate sometimes succeeds.
     fail.set_success_rate(0);
     fail.set_tier(SCROLL_TIER_1);
     fail.set_trace_cost(5);
@@ -665,9 +660,9 @@ class TuiControllerTest : public testing::Test {
   }
 
   int panel_focus_ = kEquipPanel;
-  // Scrolling is paid for in spell traces, so a test that scrolls stocks some
-  // first. Not done in SetUp: it would put a stack at the head of the Etc tab
-  // and shift every index the sell tests count on.
+  // Scrolling costs spell traces, so a test that scrolls adds some first. Not
+  // in SetUp, because that would put a stack first on the Etc tab and shift
+  // every index the sell tests use.
   void GiveTraces(int count) {
     ItemPrototype trace;
     trace.set_name(kSpellTraceName);
@@ -693,8 +688,8 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<MapSelectPanel> map_select_panel_;
   std::unique_ptr<MobInspectPanel> mob_inspect_panel_;
   std::unique_ptr<BossSelectPanel> boss_select_panel_;
-  // Not a pointer: it takes nothing to build, and there is no connection in
-  // these tests for it to draw.
+  // Not a pointer: it is cheap to build, and there is no connection in these
+  // tests for it to show.
   PartySelectPanel party_select_panel_;
   PlayerListPanel player_list_panel_;
   std::unique_ptr<PlayerInspectPanel> player_inspect_panel_;
@@ -725,9 +720,9 @@ class TuiControllerTest : public testing::Test {
 
 // --- Tab ---
 
-// Focus starts on the equipped panel and Tab runs clockwise through every
+// Focus starts on the equipped panel, and Tab goes clockwise through every
 // panel: equipped -> inventory -> menu -> combat -> character -> back to
-// equipped. The character panel is always focusable, so no panel is ever
+// equipped. The character panel can always take focus, so no panel is ever
 // skipped.
 
 TEST_F(TuiControllerTest, TabWalksThePanelRing) {
@@ -743,7 +738,7 @@ TEST_F(TuiControllerTest, TabWalksThePanelRing) {
   EXPECT_EQ(panel_focus_, kEquipPanel);
 }
 
-// The same ring anticlockwise, rounding the same way.
+// The same ring in reverse, wrapping the same way.
 TEST_F(TuiControllerTest, ShiftTabWalksTheRingBackwards) {
   controller_->OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(panel_focus_, kCharPanel);
@@ -757,9 +752,9 @@ TEST_F(TuiControllerTest, ShiftTabWalksTheRingBackwards) {
   EXPECT_EQ(panel_focus_, kEquipPanel);
 }
 
-// A gold tab says "there is something new in here". Tabbing to the panel it is
-// already open on is reading it, so the gold has to come off -- otherwise it
-// could only be cleared by arrowing away from the tab and back onto it.
+// A gold tab means "there is something new here". Tabbing to a panel where that
+// tab is already open counts as reading it, so the gold must clear. Otherwise
+// it could only be cleared by moving off the tab and back.
 TEST_F(TuiControllerTest, ArrivingOnAPanelReadsTheTabLeftOpenOnIt) {
   int stage = state_->character.proto().job_stage();
   ASSERT_FALSE(state_->account.Seen(EquipGiftTabKey(stage)));
@@ -769,7 +764,7 @@ TEST_F(TuiControllerTest, ArrivingOnAPanelReadsTheTabLeftOpenOnIt) {
   EXPECT_TRUE(state_->account.Seen(EquipGiftTabKey(stage)));
 }
 
-// Which is what it is for: undoing a Tab that went one panel too far.
+// That is its purpose: undoing a Tab that went one panel too far.
 TEST_F(TuiControllerTest, ShiftTabUndoesATab) {
   controller_->OnEvent(ftxui::Event::Tab);
   ASSERT_EQ(panel_focus_, kInventoryPanel);
@@ -851,8 +846,8 @@ TEST_F(TuiControllerTest, ConfirmLearnsTheChosenPoints) {
 
 // --- Skill menu ---
 
-// The Bishop's toggle, on the Swordman's book so the fixture's character can
-// hold it.
+// The Bishop's toggle, placed in the Swordman's book so the fixture's character
+// can learn it.
 Skill RighteouslyIndignant() {
   Skill skill;
   skill.set_name("Righteously Indignant");
@@ -871,8 +866,8 @@ TEST_F(TuiControllerTest, EnterOnASkillOpensItsMenuOnInspect) {
   EXPECT_EQ(controller_->skill_inspect_skill().name(), "Slash Blast");
 }
 
-// Nothing to switch on an ordinary skill, so Down off Inspect lands on Close
-// rather than on a row that does nothing.
+// An ordinary skill has nothing to toggle, so Down from Inspect goes to Close
+// rather than to an entry that does nothing.
 TEST_F(TuiControllerTest, AnOrdinarySkillIsOfferedNoSwitch) {
   controller_->OpenSkillMenu(SlashBlast());
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -891,15 +886,15 @@ TEST_F(TuiControllerTest, TheSwitchThrowsAndTheMenuCloses) {
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_TRUE(state_->character.SkillToggledOn("Righteously Indignant"));
 
-  // And the verb reads the other way round the second time.
+  // The label is reversed the second time.
   controller_->OpenSkillMenu(toggle);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(state_->character.SkillToggledOn("Righteously Indignant"));
 }
 
-// A toggle nobody has bought still lists its switch -- greyed, because its
-// absence would be the surprise -- and the cursor steps past it.
+// An unlearned toggle still lists its switch, greyed out, since a missing entry
+// would be more surprising, and the cursor skips it.
 TEST_F(TuiControllerTest, AnUnboughtToggleCannotBeSwitchedOn) {
   controller_->OpenSkillMenu(RighteouslyIndignant());
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -935,8 +930,8 @@ TEST_F(TuiControllerTest, ReportsZeroForAnUnlearnedSkill) {
   EXPECT_EQ(controller_->skill_inspect_level(), 0);
 }
 
-// The level is read live, not captured when the screen opened, so a point
-// spent between two looks shows up on the second.
+// The level is read live, not stored when the screen opened, so a point spent
+// between two views shows on the second.
 TEST_F(TuiControllerTest, SkillInspectFollowsAPointSpent) {
   Skill skill = SlashBlast();
   controller_->OpenSkillInspect(skill);
@@ -951,14 +946,14 @@ TEST_F(TuiControllerTest, EscapeLeavesTheSkillInspectScreen) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// The arrows scroll the card rather than leaving the screen, and every card
-// opens at its head however far down the last one was read.
+// The arrows scroll the card rather than leaving the screen, and each card
+// opens at the top however far the last one was scrolled.
 TEST_F(TuiControllerTest, AFreshSkillCardStartsAtTheTop) {
   Skill skill = SlashBlast();
   ASSERT_TRUE(state_->character.LearnSkill(skill, 3));
   controller_->OpenSkillInspect(skill);
   skill_inspect_panel_.SetSkill(&skill, 3, 0);
-  // Small enough that there is somewhere to scroll to.
+  // Small enough that there is room to scroll.
   skill_inspect_panel_.SetMaxRows(6);
 
   std::string head = RenderSkillCard();
@@ -970,8 +965,7 @@ TEST_F(TuiControllerTest, AFreshSkillCardStartsAtTheTop) {
   EXPECT_EQ(RenderSkillCard(), head);
 }
 
-// Reading is all there is to do, so Enter leaves too rather than sitting there
-// doing nothing.
+// The screen is read-only, so Enter also leaves rather than doing nothing.
 TEST_F(TuiControllerTest, EnterAlsoLeavesTheSkillInspectScreen) {
   controller_->OpenSkillInspect(SlashBlast());
   controller_->OnEvent(ftxui::Event::Return);
@@ -982,8 +976,9 @@ TEST_F(TuiControllerTest, EnterAlsoLeavesTheSkillInspectScreen) {
 
 // --- the Buffs tab's menu, card and question ---
 
-// The switch is the menu's first entry, named for the state it would leave
-// the buff in, and pressing it asks nothing: nothing is spent until it procs.
+// The switch is the menu's first entry, labelled with the state it would put
+// the buff in. Pressing it asks nothing, since nothing is spent until the buff
+// is used.
 TEST_F(TuiControllerTest, TheFirstEntryThrowsTheSwitchAndSaysWhichWay) {
   LevelTo(kConsumableUnlockLevel);
   controller_->OpenBuffMenu(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
@@ -1027,7 +1022,7 @@ TEST_F(TuiControllerTest, BuyPermBuysTheBuffOutright) {
   EXPECT_EQ(controller_->buff_buy_price(), 100'000'000);
   EXPECT_TRUE(controller_->buff_buy_affordable());
 
-  // Opens on Cancel, so buying is Left then Enter.
+  // It starts on Cancel, so buying is Left then Enter.
   const int64_t before = state_->character.proto().meso();
   controller_->OnEvent(ftxui::Event::ArrowLeft);
   controller_->OnEvent(ftxui::Event::Return);
@@ -1037,8 +1032,8 @@ TEST_F(TuiControllerTest, BuyPermBuysTheBuffOutright) {
   EXPECT_EQ(state_->character.proto().meso(), before - 100'000'000);
 }
 
-// The question still opens on a purse that cannot pay -- the player gets to
-// read what it would have cost -- but [Confirm] answers nothing.
+// The dialog still opens when the character can't afford the buff, so they can
+// see the price, but [Confirm] does nothing.
 TEST_F(TuiControllerTest, AShortPurseOpensTheQuestionAndRefusesTheAnswer) {
   LevelTo(kConsumableUnlockLevel);
   controller_->OpenBuffBuy(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
@@ -1053,7 +1048,7 @@ TEST_F(TuiControllerTest, AShortPurseOpensTheQuestionAndRefusesTheAnswer) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// A buff already bought keeps its entry, greyed, and the cursor steps over it.
+// A buff already bought keeps its entry, greyed out, and the cursor skips it.
 TEST_F(TuiControllerTest, AnOwnedBuffHasNothingLeftToBuy) {
   LevelTo(kConsumableUnlockLevel);
   state_->character.AddMeso(200'000'000);
@@ -1078,8 +1073,8 @@ TEST_F(TuiControllerTest, CloseAndEscapeBothLeaveTheBuffMenu) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// Enter on a job asks what to do with it rather than going straight to the
-// confirmation: what a job is should be readable before it is chosen.
+// Enter on a job opens a menu rather than going straight to the confirmation,
+// so a job can be read before it is chosen.
 TEST_F(TuiControllerTest, OpenJobMenuFloatsTheMenuAndNotTheConfirmation) {
   controller_->OpenJobMenu(JOB_ROGUE);
   EXPECT_EQ(controller_->screen(), kJobMenu);
@@ -1101,9 +1096,9 @@ TEST_F(TuiControllerTest, TheMenuPutsAPresetInUse) {
             StatPreset::kFirst);
 }
 
-// Use is dimmed where it would do nothing: on the preset already in use, and
-// on every one of them while the autoswap is picking. The menu steps past a
-// dimmed entry, so Enter lands on Move.
+// Use is dimmed where it would do nothing: on the preset already in use, and on
+// all of them while autoswap is choosing. The menu skips a dimmed entry, so
+// Enter lands on Move.
 TEST_F(TuiControllerTest, UseIsDimmedWhereItWouldDoNothing) {
   LevelTo(kHyperStatUnlockLevel);
   controller_->OpenPresetMenu(PresetKind::kHyperStats, StatPreset::kFirst);
@@ -1126,7 +1121,7 @@ TEST_F(TuiControllerTest, MoveSwapsThePresetsAndWhatIsInUseWithThem) {
   ASSERT_EQ(controller_->preset_menu().selected(), kPresetMenuMove);
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kPresetMove);
-  // Opens on the preset the menu named, so a swap needs a step first.
+  // It starts on the preset the menu named, so a swap needs a step first.
   EXPECT_EQ(controller_->preset_move_row(), 0);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -1139,8 +1134,8 @@ TEST_F(TuiControllerTest, MoveSwapsThePresetsAndWhatIsInUseWithThem) {
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR,
                                                StatPreset::kFirst),
             0);
-  // What is in play followed its contents: moving presets is not a way to
-  // change the one being played with.
+  // The in-use marker followed its contents: moving presets doesn't change
+  // which one is being played.
   EXPECT_EQ(state_->character.SlotInUse(PresetKind::kHyperStats),
             StatPreset::kThird);
 }
@@ -1152,7 +1147,7 @@ TEST_F(TuiControllerTest, CancelAndEscapeBothLeaveTheMoveAlone) {
   controller_->OpenPresetMenu(PresetKind::kHyperStats, StatPreset::kFirst);
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kPresetMove);
-  // Cancel is the stop past the last preset.
+  // Cancel comes after the last preset.
   for (int i = 0; i < kNumStatPresets; ++i) {
     controller_->OnEvent(ftxui::Event::ArrowDown);
   }
@@ -1184,7 +1179,7 @@ TEST_F(TuiControllerTest, TheJobMenusSecondEntryTakesTheAdvancement) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kJobAdvance);
   EXPECT_EQ(controller_->job_advance_job(), JOB_ROGUE);
-  // Still the confirmation it always was, still opening on Cancel.
+  // It is still the same confirmation, still starting on Cancel.
   EXPECT_EQ(state_->character.proto().job(), JOB_SWORDMAN);
 }
 
@@ -1201,8 +1196,8 @@ TEST_F(TuiControllerTest, CloseAndEscapeBothLeaveTheJobMenu) {
   EXPECT_EQ(state_->character.proto().job(), JOB_SWORDMAN);
 }
 
-// The menu is reopened at the top each time, so the entry the cursor lands on
-// is never the one the last visit left it on.
+// The menu starts at the top each time, so the cursor never starts where the
+// last visit left it.
 TEST_F(TuiControllerTest, TheJobMenuOpensAtInspectEveryTime) {
   controller_->OpenJobMenu(JOB_ROGUE);
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -1212,8 +1207,8 @@ TEST_F(TuiControllerTest, TheJobMenuOpensAtInspectEveryTime) {
   EXPECT_EQ(controller_->screen(), kJobInspect);
 }
 
-// Read-only: the arrows walk the book and Back returns to the menu the screen
-// was opened from, where the advancement is one keypress away.
+// Read-only: the arrows scroll the book, and Back returns to the menu it was
+// opened from, where the advancement is one key press away.
 TEST_F(TuiControllerTest, TheJobInspectScreenReadsAndGoesBackToTheMenu) {
   controller_->OpenJobMenu(JOB_ROGUE);
   controller_->OnEvent(ftxui::Event::Return);
@@ -1232,8 +1227,8 @@ TEST_F(TuiControllerTest, OpenJobAdvanceFloatsTheConfirmation) {
   EXPECT_EQ(controller_->job_advance_job(), JOB_ROGUE);
 }
 
-// The prompt opens on Cancel, so a stray Enter backs out rather than picking a
-// job the player cannot un-pick.
+// The prompt starts on Cancel, so a stray Enter backs out rather than picking a
+// job that can't be undone.
 TEST_F(TuiControllerTest, EnterAloneDoesNotAdvance) {
   Job before = state_->character.proto().job();
   controller_->OpenJobAdvance(JOB_ROGUE);
@@ -1251,8 +1246,8 @@ TEST_F(TuiControllerTest, ConfirmingAdvancesAndHandsOverTheGear) {
   EXPECT_EQ(state_->character.proto().job(), JOB_MAGICIAN);
   EXPECT_GT(state_->character.inventory().size(), bag_before);
   // The fixture already took a first advancement, so this is a second one: it
-  // hands the gear over and leaves the stats alone. A reset would seat the new
-  // primary at 25.
+  // gives the gear and leaves the stats alone. A reset would set the new
+  // primary to 25.
   EXPECT_EQ(state_->character.proto().allocated_stats().int_(), int_before);
   EXPECT_EQ(controller_->screen(), kMain);
 }
@@ -1288,9 +1283,9 @@ TEST_F(TuiControllerTest, ConfirmSpendsEveryPointWhenSpIsWhatBinds) {
   EXPECT_EQ(state_->character.sp(1), 0);
 }
 
-// The learn screen counts out the pool the skill is actually bought from. It
-// read the job stage's, so a Hyper Skill opened it with nothing to spend and
-// the point could never be handed over.
+// The learn screen counts from the pool the skill is bought from. A Hyper Skill
+// uses the Hyper pool; if the screen used the job stage's pool, it would open
+// with nothing to spend.
 TEST_F(TuiControllerTest, ConfirmSpendsTheHyperPoolOnAHyperSkill) {
   while (state_->character.proto().level() < 140) {
     state_->character.LevelUp();
@@ -1351,8 +1346,8 @@ TEST_F(TuiControllerTest, EscapeInInspectGoesToMain) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// The arrows read the card rather than closing it. Only Confirm and Cancel
-// leave, which is what the screen has always promised.
+// The arrows scroll the card rather than closing it. Only Confirm and Cancel
+// leave.
 TEST_F(TuiControllerTest, ArrowsInInspectScrollRatherThanLeave) {
   WearASwordAndDraw();
 
@@ -1366,7 +1361,8 @@ TEST_F(TuiControllerTest, ArrowsInInspectScrollRatherThanLeave) {
   EXPECT_EQ(controller_->screen(), kInspect);
 }
 
-// A bag item is read against what the player already wears where it would go.
+// A bag item is compared against what the player already wears in the slot it
+// would go in.
 TEST_F(TuiControllerTest, ABagItemIsComparedWithTheOneItWouldReplace) {
   HoldASword();
   BagASword();
@@ -1383,7 +1379,7 @@ TEST_F(TuiControllerTest, ABagItemIsComparedWithTheOneItWouldReplace) {
   EXPECT_NE(worn, controller_->inspect_item()) << "not the item itself";
 }
 
-// Nothing in the slot, nothing to compare: the card would be drawn empty.
+// Nothing in the slot, so nothing to compare: the card would be empty.
 TEST_F(TuiControllerTest, ABagItemWithAnEmptySlotIsComparedWithNothing) {
   BagASword();
 
@@ -1394,8 +1390,8 @@ TEST_F(TuiControllerTest, ABagItemWithAnEmptySlotIsComparedWithNothing) {
   EXPECT_EQ(controller_->inspect_comparison(), nullptr);
 }
 
-// An item inspected off the character IS what the comparison would be, so
-// there is neither a card nor a figure: it would be measured against itself.
+// An item inspected on the character is itself the comparison, so there is
+// neither a card nor a number: it would be compared with itself.
 TEST_F(TuiControllerTest, AWornItemIsComparedWithNothing) {
   WearASwordAndDraw();
 
@@ -1407,7 +1403,7 @@ TEST_F(TuiControllerTest, AWornItemIsComparedWithNothing) {
   EXPECT_FALSE(controller_->inspect_delta().has_value());
 }
 
-// The figure over a bag item is what wearing it would do: a gain over an empty
+// The number on a bag item is what equipping it would do: a gain over an empty
 // slot.
 TEST_F(TuiControllerTest, ABagItemCarriesWhatWearingItWouldDoToCombatPower) {
   EquipPrototype better = sword_;
@@ -1423,8 +1419,8 @@ TEST_F(TuiControllerTest, ABagItemCarriesWhatWearingItWouldDoToCombatPower) {
   EXPECT_GT(*controller_->inspect_delta(), 0);
 }
 
-// And a loss against something better, which is the half a player most needs
-// told before they put it on.
+// And a loss against something better, which is what the player most needs to
+// know before equipping it.
 TEST_F(TuiControllerTest, ABagItemWorseThanTheWornOneReadsNegative) {
   EquipPrototype better = sword_;
   better.set_name("Better Sword");
@@ -1441,9 +1437,9 @@ TEST_F(TuiControllerTest, ABagItemWorseThanTheWornOneReadsNegative) {
   EXPECT_LT(*controller_->inspect_delta(), 0);
 }
 
-// Both read the Gear tab the player is standing on, which is where Equip
-// would put the item: a card and a figure about gear the item would not touch
-// is worse than none.
+// Both use the Gear tab the player is on, which is where Equip would put the
+// item. A card and number about gear the item wouldn't replace are worse than
+// none.
 TEST_F(TuiControllerTest, TheComparisonAndTheFigureFollowTheGearTab) {
   LevelTo(UnlockLevel(Feature::kEquipPresets));
   EquipPrototype better = sword_;
@@ -1464,8 +1460,8 @@ TEST_F(TuiControllerTest, TheComparisonAndTheFigureFollowTheGearTab) {
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kInspect);
-  // The second preset inherits the first's sword, so that is what the bare one
-  // is weighed against -- and losing it is a loss.
+  // The second preset inherits the first's sword, so the bare one is compared
+  // against it, and losing it is a loss.
   EXPECT_EQ(
       controller_->inspect_comparison(),
       state_->character.WornAt(StatPreset::kSecond, EQUIP_SLOT_PRIMARY_WEAPON));
@@ -1473,9 +1469,8 @@ TEST_F(TuiControllerTest, TheComparisonAndTheFigureFollowTheGearTab) {
   EXPECT_LT(*controller_->inspect_delta(), 0);
 }
 
-// A second copy of a ring already worn reads against the worn one: that is
-// what Equip would swap it for, so it is what the card and the figure
-// describe.
+// A second copy of a worn ring is compared against the worn one, since Equip
+// would swap it for that one, so the card and number describe that swap.
 TEST_F(TuiControllerTest, ASecondCopyOfAWornRingIsComparedWithIt) {
   HoldASword();
   EquipPrototype ring;
@@ -1499,7 +1494,7 @@ TEST_F(TuiControllerTest, ASecondCopyOfAWornRingIsComparedWithIt) {
   EXPECT_GT(*controller_->inspect_delta(), 0);
 }
 
-// A ring worth `attack`, which every job may wear.
+// A ring worth `attack`, which every job can wear.
 EquipPrototype RingWorth(const std::string& name, int attack) {
   EquipPrototype ring;
   ring.set_name(name);
@@ -1509,10 +1504,10 @@ EquipPrototype RingWorth(const std::string& name, int attack) {
   return ring;
 }
 
-// A ring fits any of four slots, so its Equipped card carries a bar over the
-// four and Left/Right walk it -- against the worn ring in each, and against
-// the empty ones. The figure follows the card: weighed against a ring worth
-// keeping it pays less than it does into a slot holding nothing.
+// A ring fits any of four slots, so its Equipped card has a tab bar for the
+// four, and Left/Right move through them, comparing against the worn ring in
+// each or against nothing. The number follows the card: it is lower against a
+// good ring than against an empty slot.
 TEST_F(TuiControllerTest, TheRingBarWalksTheFourSlotsAndTheFigureFollows) {
   WearRing(RingWorth("Plain Ring", 5));
   WearRing(RingWorth("Good Ring", 40));
@@ -1525,7 +1520,7 @@ TEST_F(TuiControllerTest, TheRingBarWalksTheFourSlotsAndTheFigureFollows) {
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kInspect);
 
-  // It opens where Equip would put it: the first free slot, holding nothing.
+  // It opens where Equip would put it: the first free slot, which is empty.
   InspectPanel::ComparisonSlots slots = controller_->comparison_slots();
   ASSERT_EQ(slots.worn.size(), 4u);
   EXPECT_EQ(slots.active, 2);
@@ -1550,13 +1545,13 @@ TEST_F(TuiControllerTest, TheRingBarWalksTheFourSlotsAndTheFigureFollows) {
       << "the Plain Ring costs less to give up";
   EXPECT_LT(*controller_->inspect_delta(), into_empty);
 
-  // A ring, and so a bar that wraps the way every bar in the game does.
+  // A ring, so the tab bar wraps like every tab bar in the game.
   controller_->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_EQ(controller_->comparison_slots().active, 3);
 }
 
-// The bar is the ring's own: an item with one slot has nothing to walk, and
-// the arrows go back to the card they always moved.
+// Only a ring has the tab bar. An item with one slot has nothing to move
+// through, and the arrows scroll the card as usual.
 TEST_F(TuiControllerTest, AnItemWithOneSlotHasNoBarToWalk) {
   HoldASword();  // something for the Equipped card to hold
   BagASword();
@@ -1572,8 +1567,8 @@ TEST_F(TuiControllerTest, AnItemWithOneSlotHasNoBarToWalk) {
   EXPECT_EQ(controller_->screen(), kInspect);
 }
 
-// The slot the arrows were left on does not follow the player to the next
-// item: every screen opens on the slot Equip would fill.
+// The chosen slot doesn't carry over to the next item: every screen opens on
+// the slot Equip would fill.
 TEST_F(TuiControllerTest, OpeningAnInspectScreenForgetsTheSlot) {
   WearRing(RingWorth("Plain Ring", 5));
   state_->character.PickUp(
@@ -1596,8 +1591,8 @@ TEST_F(TuiControllerTest, OpeningAnInspectScreenForgetsTheSlot) {
       << "the first free slot, which is where Equip would put it";
 }
 
-// The sideways arrows belong to a squeezed card, and like the others they
-// read the screen rather than closing it.
+// Left and Right scroll a narrow card, and like the other arrows they don't
+// close the screen.
 TEST_F(TuiControllerTest, SidewaysArrowsInInspectDoNotLeave) {
   WearASwordAndDraw();
 
@@ -1610,8 +1605,8 @@ TEST_F(TuiControllerTest, SidewaysArrowsInInspectDoNotLeave) {
   EXPECT_EQ(controller_->screen(), kInspect);
 }
 
-// A screen opens with the left half holding the arrows, whatever the last one
-// was left reading.
+// A screen opens with the left half taking the arrows, whatever the last one
+// was left on.
 TEST_F(TuiControllerTest, AnInspectScreenOpensOnItsLeftHalf) {
   WearASwordAndDraw();
   GiveTraces(100);
@@ -1633,8 +1628,8 @@ TEST_F(TuiControllerTest, AnInspectScreenOpensOnItsLeftHalf) {
   EXPECT_FALSE(controller_->right_card_focused());
 }
 
-// The scroll list keeps the arrows until Tab hands them over, and hands them
-// back the same way.
+// The scroll list keeps the arrows until Tab moves them to the card, and Tab
+// moves them back.
 TEST_F(TuiControllerTest, TabOnTheScrollScreenMovesToTheCard) {
   WearASwordAndDraw();
   GiveTraces(100);
@@ -1646,8 +1641,9 @@ TEST_F(TuiControllerTest, TabOnTheScrollScreenMovesToTheCard) {
   ASSERT_EQ(controller_->screen(), kScrollSelect);
   ASSERT_FALSE(controller_->right_card_focused());
 
-  // Cut short enough that the card has something to scroll, and drawn once so
-  // it knows. Tui does this each frame; nothing renders in a controller test.
+  // Short enough that the card has something to scroll, and drawn once so it
+  // knows its size. Tui does this every frame; nothing renders in a controller
+  // test.
   inspect_panel_.SetItem(controller_->scroll_item());
   inspect_panel_.SetMaxRows(4);
   inspect_panel_.RenderItemOnly();
@@ -1659,8 +1655,8 @@ TEST_F(TuiControllerTest, TabOnTheScrollScreenMovesToTheCard) {
   EXPECT_FALSE(controller_->right_card_focused());
 }
 
-// A card with room to spare is still a stop, and Shift+Tab walks the same
-// ring of two the other way.
+// A card that fits is still a Tab stop, and Shift+Tab cycles the same two in
+// reverse.
 TEST_F(TuiControllerTest, ShiftTabOnTheScrollScreenCyclesThroughACardThatFits) {
   WearASwordAndDraw();
   GiveTraces(100);
@@ -1681,9 +1677,8 @@ TEST_F(TuiControllerTest, ShiftTabOnTheScrollScreenCyclesThroughACardThatFits) {
 
 // --- Unequip ---
 
-// Both panels used to shove focus at the other one when their own list ran
-// out, because an empty list left the panel unable to receive a key. Neither
-// does now, and the player keeps the cursor they were holding.
+// Unequipping leaves focus where it is: an empty list no longer pushes focus to
+// the other panel.
 TEST_F(TuiControllerTest, ReturnActionUnequipsAndKeepsFocus) {
   WearASwordAndDraw();
 
@@ -1738,7 +1733,7 @@ TEST_F(TuiControllerTest, ScrollingTheWornSwordShowsTheResult) {
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollSuccess);
   EXPECT_EQ(controller_->scroll_result().equip_name, "Sword");
   EXPECT_EQ(controller_->scroll_result().scroll_name, "Test Scroll");
-  // sword_ has 3 upgrade slots; one was consumed.
+  // sword_ has 3 upgrade slots; one was used.
   EXPECT_EQ(controller_->scroll_result().slots_remaining, 2);
 }
 
@@ -1761,14 +1756,15 @@ TEST_F(TuiControllerTest, StarForceOpensOnceTheSlotsAreSpent) {
   WearASwordAndDraw();
   GiveTraces(100);
 
-  // Open menu while item still has 1 slot — Star Force should be disabled.
+  // Open the menu while the item still has 1 slot, so Star Force should be
+  // disabled.
   controller_->OpenEquipMenu();
   ScrollTheFirstRow();                         // -> kScrollResult, 0 slots
   controller_->OnEvent(ftxui::Event::Escape);  // → kScrollSelect
   controller_->OnEvent(ftxui::Event::Escape);  // → kItemMenu (re-opens menu)
 
   EXPECT_EQ(controller_->screen(), kItemMenu);
-  // Navigate to Star Force position; it must be reachable (not skipped).
+  // Move to Star Force's position; it must be reachable, not skipped.
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Star Force
@@ -1797,9 +1793,9 @@ TEST_F(TuiControllerTest, EscapeInScrollResultGoesToScrollSelect) {
   EXPECT_EQ(controller_->screen(), kScrollSelect);
 }
 
-// A scroll is bought, not merely chosen: the traces have to leave the bag.
-// The price is the sword's, not the scroll's -- a level 60 weapon at 100% is
-// 5 traces in GMS's table.
+// A scroll is paid for, so the traces must leave the bag. The price depends on
+// the sword, not the scroll: a level 60 weapon at 100% costs 5 traces in GMS's
+// table.
 TEST_F(TuiControllerTest, ScrollingSpendsItsTraces) {
   LevelTo(60);
   sword_.set_required_level(60);
@@ -1813,8 +1809,8 @@ TEST_F(TuiControllerTest, ScrollingSpendsItsTraces) {
   EXPECT_EQ(state_->character.CountItem(kSpellTraceName), 95);
 }
 
-// Pin is the second entry of the row's menu, and the pin it sets belongs to
-// the character rather than the screen -- so it is still there next time.
+// Pin is the second entry of the row's menu, and the pin is stored on the
+// character rather than the screen, so it is still there next time.
 TEST_F(TuiControllerTest, PinningFromTheMenuMarksTheCharacter) {
   WearASwordAndDraw();
 
@@ -1828,14 +1824,14 @@ TEST_F(TuiControllerTest, PinningFromTheMenuMarksTheCharacter) {
       state_->character.ScrollPinned(scroll_panel_->PinKeyOfSelected()));
   EXPECT_EQ(controller_->screen(), kScrollSelect) << "still on the list";
 
-  // And the same entry takes it back off.
+  // The same entry removes it.
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(scroll_panel_->SelectedIsPinned());
 }
 
-// Close is the way out of the menu that changes nothing.
+// Close leaves the menu without changing anything.
 TEST_F(TuiControllerTest, CloseLeavesTheMenuWithoutScrolling) {
   WearASwordAndDraw();
   GiveTraces(100);
@@ -1853,8 +1849,8 @@ TEST_F(TuiControllerTest, CloseLeavesTheMenuWithoutScrolling) {
   EXPECT_EQ(state_->character.CountItem(kSpellTraceName), 100);
 }
 
-// Escape closes the menu rather than the screen behind it. Without this the
-// one key would back out of both at once.
+// Escape closes the menu, not the screen behind it. Otherwise one key would
+// back out of both at once.
 TEST_F(TuiControllerTest, EscapeClosesTheRowMenuAndStaysOnTheList) {
   WearASwordAndDraw();
 
@@ -1866,13 +1862,13 @@ TEST_F(TuiControllerTest, EscapeClosesTheRowMenuAndStaysOnTheList) {
   EXPECT_FALSE(scroll_panel_->IsMenuOpen());
   EXPECT_EQ(controller_->screen(), kScrollSelect);
 
-  // And a second Escape does leave, now that there is nothing over the list.
+  // A second Escape does leave, now that nothing is over the list.
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kItemMenu);
 }
 
-// A failed roll is still a scroll spent -- the trace pays for the attempt,
-// not for the result.
+// A failed roll still uses the scroll: the traces pay for the attempt, not the
+// result.
 TEST_F(TuiControllerTest, AFailedScrollStillCosts) {
   UseFailScroll();
   WearASwordAndDraw();
@@ -1885,8 +1881,8 @@ TEST_F(TuiControllerTest, AFailedScrollStillCosts) {
   EXPECT_EQ(state_->character.CountItem(kSpellTraceName), 95);
 }
 
-// Too few traces and Enter on the confirm window does nothing: no scroll, no
-// spend, and the window stays up rather than dropping the player somewhere.
+// With too few traces, Enter on the confirm window does nothing: no scroll, no
+// cost, and the window stays up rather than moving the player elsewhere.
 TEST_F(TuiControllerTest, ScrollingWithoutTheTracesIsRefused) {
   LevelTo(60);
   sword_.set_required_level(60);
@@ -1962,8 +1958,8 @@ TEST_F(TuiControllerTest, BagScrollWithNoSlotsShowsThatOutcome) {
 
 // --- the Golden Hammer ---
 
-// The whole trip: the entry opens the question, the answer takes the price,
-// and the slot it buys is there afterwards.
+// The whole flow: the entry opens the confirmation, confirming pays the price,
+// and the new slot is there afterwards.
 TEST_F(TuiControllerTest, HammerBuysASlotOffTheEquipMenu) {
   LevelTo(UnlockLevel(Feature::kHammer));
   state_->character.AddMeso(kGoldenHammerCost);
@@ -1986,8 +1982,8 @@ TEST_F(TuiControllerTest, HammerBuysASlotOffTheEquipMenu) {
   EXPECT_EQ(state_->character.meso(), 0);
 }
 
-// A purse that cannot cover it gets a red price and a greyed button, and the
-// dialog holds rather than closing as though something happened.
+// If the character can't afford it, the price is red and the button greyed, and
+// the dialog stays open rather than closing as if something happened.
 TEST_F(TuiControllerTest, AnUnaffordableHammerChangesNothing) {
   LevelTo(UnlockLevel(Feature::kHammer));
   WearASwordAndDraw();
@@ -2009,7 +2005,7 @@ TEST_F(TuiControllerTest, AnUnaffordableHammerChangesNothing) {
             0);
 }
 
-// The bag's copy of the same trip, which is the other half of ItemRef.
+// The same flow from the bag, which covers the other half of ItemRef.
 TEST_F(TuiControllerTest, HammerBuysASlotOffTheBagMenu) {
   LevelTo(UnlockLevel(Feature::kHammer));
   state_->character.AddMeso(kGoldenHammerCost);
@@ -2026,13 +2022,13 @@ TEST_F(TuiControllerTest, HammerBuysASlotOffTheBagMenu) {
   EXPECT_EQ(state_->character.inventory()[0].equip_state().hammers(), 1);
 }
 
-// A hammer opens a slot, and stars wait for an item with nothing left to
-// scroll. So the entry the player was using goes dim until they spend it.
+// A hammer adds a slot, and star force waits until an item has no slots left.
+// So the Star Force entry is dimmed until the new slot is used.
 TEST_F(TuiControllerTest, AHammerHoldsTheStarsUntilItsSlotIsSpent) {
   LevelTo(UnlockLevel(Feature::kHammer));
   state_->character.AddMeso(kGoldenHammerCost);
-  // Every slot spent, so the stars are open: PickUpScrolledSword's weapon has
-  // no slots at all, which is a weapon with no shelf for a hammer to widen.
+  // Every slot used, so star force is available: PickUpScrolledSword's weapon
+  // has no slots at all, so a hammer has nothing to add to.
   Equip spent;
   spent.set_equip_name(sword_.name());
   spent.set_scroll_successes(sword_.upgrade_slots());
@@ -2088,8 +2084,8 @@ TEST_F(TuiControllerTest, EscapeInStarForceGoesToMain) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// The way out is a button as well as a key: the screen's own [Cancel] closes
-// it, so a player who never learned Escape is not stuck on it.
+// There is a button as well as a key: the screen's own [Cancel] closes it, so a
+// player who doesn't know Escape isn't stuck.
 TEST_F(TuiControllerTest, CancelInStarForceGoesToMain) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
@@ -2128,8 +2124,8 @@ TEST_F(TuiControllerTest, ConfirmingAStarForceOpensTheResultNamingTheEquip) {
 
 TEST_F(TuiControllerTest, EnterOnASuccessReturnsToStarForce) {
   LevelTo(UnlockLevel(Feature::kStarForce));
-  // At 0★ the success rate is 95%, so with a seeded rng the first attempt
-  // will succeed. We just verify the screen transition, not the outcome.
+  // At 0 stars the success rate is 95%, so with a seeded rng the first attempt
+  // succeeds. This only checks the screen change, not the outcome.
   PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -2142,16 +2138,15 @@ TEST_F(TuiControllerTest, EnterOnASuccessReturnsToStarForce) {
   controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
   controller_->OnEvent(ftxui::Event::Return);  // confirm
 
-  // If the item was not destroyed, dismissing the result goes back to
-  // kStarForce.
+  // If the item wasn't destroyed, dismissing the result returns to kStarForce.
   if (controller_->star_force_result().outcome != kStarForceDestroy) {
     controller_->OnEvent(ftxui::Event::Return);
     EXPECT_EQ(controller_->screen(), kStarForce);
   }
 }
 
-// Two cards, one either side of the panel: Tab picks which the arrows scroll,
-// and Left and Right stay the button row's.
+// Two cards, one on each side of the panel: Tab picks which the arrows scroll,
+// and Left and Right stay with the button row.
 TEST_F(TuiControllerTest, TabOnStarForceMovesBetweenTheCards) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
@@ -2175,10 +2170,9 @@ TEST_F(TuiControllerTest, TabOnStarForceMovesBetweenTheCards) {
       << "neither Tab nor the scrolling arrows leave";
 }
 
-// An item at its last star has no after to draw, so there is no second card
-// for Tab to reach and no attempt for Enter to open. The screen is reached by
-// starring an item up to its limit: the bag greys the entry for one already
-// there.
+// An item at its maximum stars has no "after" card, so there is no second card
+// for Tab and no attempt for Enter. The screen is reached by starring an item
+// to its limit, since the bag greys out the entry for one already there.
 TEST_F(TuiControllerTest, MaxStarsStarForceHasOneCard) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   state_->character.AddMeso(200'000'000);
@@ -2193,7 +2187,7 @@ TEST_F(TuiControllerTest, MaxStarsStarForceHasOneCard) {
   ASSERT_EQ(controller_->screen(), kStarForce);
 
   // Nothing is destroyed below 15 stars, and this sword stops at 5, so the
-  // attempts run out of stars to gain rather than out of item.
+  // attempts run out of stars, not out of item.
   const EquipInstance* item = controller_->star_force_item();
   ASSERT_NE(item, nullptr);
   for (int i = 0; i < 200 && item->stars() < item->max_stars(); ++i) {
@@ -2229,8 +2223,8 @@ TEST_F(TuiControllerTest, CubingActionGoesToTheCubingScreen) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// Confirm buys a roll and stays where it is: the player presses again over
-// the lines they were just handed.
+// Confirm buys a roll and stays on the screen: the player presses again after
+// seeing the new lines.
 TEST_F(TuiControllerTest, ConfirmRerollsWithoutLeavingTheScreen) {
   LevelTo(UnlockLevel(Feature::kPotential));
   PickUpScrolledSword();
@@ -2253,9 +2247,8 @@ TEST_F(TuiControllerTest, ConfirmRerollsWithoutLeavingTheScreen) {
             POTENTIAL_RANK_RARE);
 }
 
-// A cube that ranks the potential up lights the question gold, and the next
-// key puts it out. Rerolled until one lands: Rare ranks up one cube in seven,
-// so the loop is a formality.
+// A cube that raises the rank lights the confirmation gold, and the next key
+// clears it. It rerolls until a rank-up happens.
 TEST_F(TuiControllerTest, ARankUpLightsTheCubeQuestionUntilTheNextKey) {
   LevelTo(UnlockLevel(Feature::kPotential));
   PickUpScrolledSword();
@@ -2325,9 +2318,9 @@ TEST_F(TuiControllerTest, NoInspectItemWhenNotInspecting) {
   EXPECT_EQ(controller_->inspect_item(), nullptr);
 }
 
-// The accessors resolve whichever half the player opened the modal from. The
-// controller settles that when the item is picked, so these cover both halves
-// of that decision reaching the right item back.
+// The accessors return the item from whichever kind of ref the modal was opened
+// from. The controller decides that when the item is picked, so these check
+// that both kinds return the right item.
 TEST_F(TuiControllerTest, EquipInspectGoesToInspectOnTheWornItem) {
   WearASwordAndDraw();
 
@@ -2365,9 +2358,8 @@ TEST_F(TuiControllerTest, EquipScrollResolvesTheWornItem) {
             state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
 }
 
-// Taking focus elsewhere after opening the modal must not change which item it
-// is about -- the old code re-read panel_focus_ every time and would have
-// followed it.
+// Moving focus after opening the modal must not change which item it is about.
+// The item is fixed when the modal opens, not re-read from panel_focus_.
 TEST_F(TuiControllerTest, MovingFocusDoesNotRepointAnOpenModal) {
   WearASwordAndDraw();
 
@@ -2384,23 +2376,23 @@ TEST_F(TuiControllerTest, MovingFocusDoesNotRepointAnOpenModal) {
 
 // --- Sell via bag panel ---
 
-// Sell sits third from last -- above Multi-Sell and Close -- so three steps
-// up the menu's ring reach it from wherever the cursor opened. Counting
-// downwards would land somewhere else the moment a gated entry is missing.
+// Sell is third from last (above Multi-Sell and Close), so three steps up the
+// wrapping menu reach it from wherever it opened. Counting down would land
+// elsewhere whenever a locked entry is missing.
 void StepToSell(TuiController& controller) {
   for (int i = 0; i < 3; ++i) {
     controller.OnEvent(ftxui::Event::ArrowUp);
   }
 }
 
-// Multi-Sell sits directly under Sell, so it is one step nearer the bottom.
+// Multi-Sell is directly below Sell, so it is one step closer to the bottom.
 void StepToMultiSell(TuiController& controller) {
   controller.OnEvent(ftxui::Event::ArrowUp);
   controller.OnEvent(ftxui::Event::ArrowUp);
 }
 
-// The whole of trace recovery from the bag, which nothing else covers: the
-// menu entry, the confirm, and the [Continue] that closes the result.
+// The whole trace recovery flow from the bag, which nothing else tests: the
+// menu entry, the confirmation, and the [Continue] that closes the result.
 TEST_F(TuiControllerTest, RecoveringATraceEndsOnAResultThatCloses) {
   Equip destroyed;
   destroyed.set_equip_name(sword_.name());
@@ -2409,8 +2401,8 @@ TEST_F(TuiControllerTest, RecoveringATraceEndsOnAResultThatCloses) {
   state_->character.PickUp(std::make_unique<EquipTrace>(sword_, destroyed));
   BagASword();
 
-  // A trace offers Inspect and Recover and nothing else, so the entry is
-  // walked to rather than counted to.
+  // A trace has only Inspect and Recover, so the test moves to the entry rather
+  // than counting.
   controller_->OpenInventoryMenu();
   for (int i = 0; i < 8 && inventory_panel_->menu().selected() != kMenuRecover;
        ++i) {
@@ -2430,8 +2422,8 @@ TEST_F(TuiControllerTest, RecoveringATraceEndsOnAResultThatCloses) {
   EXPECT_FALSE(controller_->notice_prompt().open());
 }
 
-// Two cards and a chip row: Tab picks which card the arrows scroll, and the
-// chips keep Left and Right.
+// Two cards and a tab row: Tab picks which card the arrows scroll, and the tabs
+// keep Left and Right.
 TEST_F(TuiControllerTest, TabOnTheRecoverScreenMovesBetweenTheCards) {
   Equip destroyed;
   destroyed.set_equip_name(sword_.name());
@@ -2465,8 +2457,8 @@ TEST_F(TuiControllerTest, BagSellOpensTheSellDialog) {
   EXPECT_EQ(controller_->screen(), kSellEquip);
 }
 
-// Stepping off [Confirm] backs out. The dialog opens on the way through, the
-// shop's shelf being what a mis-sale is undone by.
+// Moving off [Confirm] backs out. The dialog opens on the way through, since
+// the shop's buy-back shelf can undo a mistaken sale.
 TEST_F(TuiControllerTest, BagSellCanBeSteppedAwayFrom) {
   sword_.set_sell_price(900);
   BagASword();
@@ -2510,8 +2502,8 @@ TEST_F(TuiControllerTest, BagSellEscapeKeepsTheItem) {
   EXPECT_EQ(state_->character.meso(), 0);
 }
 
-// A trace pays nothing however dear the item behind it was, and still goes.
-// This is the whole of how a trace leaves the bag.
+// A trace sells for nothing however valuable the item was, and is still
+// removed. This is the only way a trace leaves the bag.
 TEST_F(TuiControllerTest, BagSellThrowsATraceAwayForNothing) {
   sword_.set_sell_price(900);
   state_->character.PickUp(std::make_unique<EquipTrace>(sword_, Equip()));
@@ -2520,8 +2512,8 @@ TEST_F(TuiControllerTest, BagSellThrowsATraceAwayForNothing) {
   controller_->OpenInventoryMenu();
   StepToSell(*controller_);
   controller_->OnEvent(ftxui::Event::Return);
-  // The dialog has to say so too. What it prints and what the sale pays are
-  // worked out separately, so one can go wrong while the other is right.
+  // The dialog must say so too. What it shows and what the sale pays are
+  // computed separately, so one can be wrong while the other is right.
   EXPECT_NE(RenderSellDialog().find("Sell for \U0001FA99 0"),
             std::string::npos);
   controller_->OnEvent(ftxui::Event::Return);
@@ -2530,7 +2522,7 @@ TEST_F(TuiControllerTest, BagSellThrowsATraceAwayForNothing) {
   EXPECT_EQ(state_->character.meso(), 0);
 }
 
-// The dialog is opened on the row the cursor is on, not on the first row.
+// The dialog opens on the row under the cursor, not the first row.
 TEST_F(TuiControllerTest, BagSellTakesTheSelectedRow) {
   EquipPrototype dagger;
   dagger.set_name("Dagger");
@@ -2631,8 +2623,8 @@ TEST_F(TuiControllerTest, MultiSellOpensFromAStackToo) {
 
 // --- shop ---
 
-// The Shop tab has no list to walk down into, so Enter opens it straight from
-// the tab bar.
+// The Shop tab has no list to move into, so Enter opens it directly from the
+// tab bar.
 TEST_F(TuiControllerTest, EnterOnTheShopTabOpensTheShop) {
   panel_focus_ = kInventoryPanel;
   OpenBagTab(kShopTab);
@@ -2659,7 +2651,7 @@ TEST_F(TuiControllerTest, EnterOnAShopItemOpensTheMenu) {
   EXPECT_EQ(controller_->screen(), kShopMenu);
 }
 
-// The card weighs the shelf item against what the character wears there.
+// The card compares the shop item with what the character wears in that slot.
 TEST_F(TuiControllerTest, ShopMenuInspectOpensTheInspectScreen) {
   HoldASword();
   OpenShop();
@@ -2673,7 +2665,7 @@ TEST_F(TuiControllerTest, ShopMenuInspectOpensTheInspectScreen) {
 }
 
 // Inspecting is how a player decides whether to buy, so leaving the inspect
-// screen puts them back at the list rather than out in the bag.
+// screen returns to the list rather than the bag.
 TEST_F(TuiControllerTest, LeavingShopInspectReturnsToTheShop) {
   OpenShop();
   controller_->OnEvent(ftxui::Event::Return);
@@ -2697,8 +2689,8 @@ TEST_F(TuiControllerTest, ShopMenuCloseReturnsToTheList) {
   EXPECT_EQ(controller_->screen(), kShop);
 }
 
-// Escape out of the menu leaves the list where it was, so the next Escape is
-// the one that leaves the shop.
+// Escape from the menu returns to the list as it was, so the next Escape leaves
+// the shop.
 TEST_F(TuiControllerTest, EscapeFromTheShopMenuReturnsToTheList) {
   OpenShop();
   controller_->OnEvent(ftxui::Event::Return);
@@ -2716,13 +2708,15 @@ TEST_F(TuiControllerTest, BuyingTakesTheMesoAndFillsTheBag) {
 
   EXPECT_EQ(state_->character.meso(), 15000);
   EXPECT_EQ(state_->character.inventory().size(), 1);
-  // Back to the shop rather than the bag: buying one thing usually means two.
+  // Back to the shop rather than the bag: a player buying one thing often buys
+  // another.
   EXPECT_EQ(controller_->screen(), kShop);
 }
 
-// The dialog is seeded from the character when it opens, so buying one and
-// coming back has to say two. A panel test cannot see this: BuyPanel is told a
-// number, and would look right either way if the controller kept passing zero.
+// The dialog reads the owned count from the character when it opens, so buying
+// one and coming back must show two. A panel test can't catch this: BuyPanel is
+// given a number, and would look right even if the controller always passed
+// zero.
 TEST_F(TuiControllerTest, TheBuyDialogCountsWhatIsOwned) {
   state_->character.AddMeso(25000);
   OpenBuyDialog();
@@ -2737,8 +2731,8 @@ TEST_F(TuiControllerTest, TheBuyDialogCountsWhatIsOwned) {
   EXPECT_NE(RenderBuyDialog().find("Owned: 1"), std::string::npos);
 }
 
-// The token shelf charges in tokens and leaves the meso alone -- the same
-// dialog, counting a different balance.
+// The token shelf charges tokens and leaves meso alone: the same dialog,
+// counting a different balance.
 TEST_F(TuiControllerTest, BuyingWithATokenSpendsTheTokenAndNotTheMeso) {
   state_->character.AddMeso(25000);
   state_->character.AddItem(token_, 2);
@@ -2756,8 +2750,8 @@ TEST_F(TuiControllerTest, BuyingWithATokenSpendsTheTokenAndNotTheMeso) {
   EXPECT_EQ(state_->character.inventory()[0].name(), "Frozen Sword");
 }
 
-// The tokens held are a ceiling on the field, as the meso is: a number past
-// them cannot be typed, so the shop is never offered an order it would refuse.
+// The tokens held limit the quantity field, as meso does: a larger number can't
+// be typed, so the shop never gets an order it would refuse.
 TEST_F(TuiControllerTest, TheTokenDialogCapsTheOrderAtTheTokensHeld) {
   state_->character.AddItem(token_, 1);
   OpenTokenBuyDialog();
@@ -2771,8 +2765,8 @@ TEST_F(TuiControllerTest, TheTokenDialogCapsTheOrderAtTheTokensHeld) {
       << "one, not the two typed";
 }
 
-// Meso is no help on this shelf: with no token the dialog opens on a quantity
-// of zero and Confirm does nothing.
+// Meso doesn't help on this shelf: with no tokens, the dialog opens at a
+// quantity of zero and Confirm does nothing.
 TEST_F(TuiControllerTest, TheTokenDialogIsInertWithoutAToken) {
   state_->character.AddMeso(25000);
   OpenTokenBuyDialog();
@@ -2806,8 +2800,8 @@ TEST_F(TuiControllerTest, CancellingABuyReturnsToTheShopUnchanged) {
   EXPECT_EQ(state_->character.inventory().size(), 0);
 }
 
-// The dialog opens on an unaffordable item rather than refusing to, and says
-// so by leaving Confirm inert.
+// The dialog opens on an unaffordable item instead of refusing, and shows it by
+// making Confirm do nothing.
 TEST_F(TuiControllerTest, ConfirmingWhatCannotBeAffordedBuysNothing) {
   state_->character.AddMeso(500);
   OpenBuyDialog();
@@ -2850,7 +2844,7 @@ TEST_F(TuiControllerTest, SellEscapeCancelsWithoutSelling) {
 TEST_F(TuiControllerTest, SellConfirmSellsTypedQuantity) {
   EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
   OpenStackSell();
-  // Digits append, so empty the field before typing the quantity to sell.
+  // Digits append, so clear the field before typing the quantity to sell.
   controller_->OnEvent(ftxui::Event::Backspace);       // 10 -> 1
   controller_->OnEvent(ftxui::Event::Backspace);       // 1 -> 0
   controller_->OnEvent(ftxui::Event::Character('3'));  // quantity 3
@@ -2897,7 +2891,7 @@ TEST_F(TuiControllerTest, BuyingBackPartOfAStackLeavesTheRest) {
 
   OpenBuyBackDialog();
   ASSERT_EQ(controller_->screen(), kShopBuy);
-  // The dialog opens on the whole row; [1] takes one copy of it.
+  // The dialog opens on the whole row; [1] takes one copy.
   controller_->OnEvent(ftxui::Event::ArrowLeft);
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -2924,8 +2918,8 @@ TEST_F(TuiControllerTest, CancellingABuyBackChangesNothing) {
   EXPECT_EQ(state_->character.inventory().size(), 0);
 }
 
-// Inspect shows the item the sale kept, not a fresh one off the shelf: the
-// stars are the whole reason the row is worth buying back.
+// Inspect shows the item as it was sold, not a fresh one from the shop: its
+// stars are why the row is worth buying back.
 TEST_F(TuiControllerTest, InspectingAShelfRowShowsTheItemThatLeft) {
   sword_.set_sell_price(900);
   Equip starred;
@@ -2969,7 +2963,7 @@ TEST_F(TuiControllerTest, OpenMapSelectStartsOnTheMapBeingFarmed) {
   EXPECT_EQ(map_select_panel_->selected_map(), "cave");
 }
 
-// Enter opens the map's menu, which lands on Move, so travelling is Enter
+// Enter opens the map's menu, which starts on Move, so travelling is Enter
 // twice.
 TEST_F(TuiControllerTest, MoveInTheMapMenuTravelsThere) {
   LoadTwoMaps();
@@ -2997,11 +2991,11 @@ TEST_F(TuiControllerTest, InspectInTheMapMenuOpensTheMobsOfThatMap) {
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_EQ(controller_->screen(), kMobInspect);
-  // Read, not travelled to.
+  // Viewed, not travelled to.
   EXPECT_EQ(state_->current_map, "cave");
   EXPECT_FALSE(mob_inspect_panel_->selected_mob().empty());
 
-  // Escape comes back to the list it was opened from, not to the game.
+  // Escape returns to the list it was opened from, not to the game.
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMapSelect);
   EXPECT_EQ(map_select_panel_->selected_map(), "field");
@@ -3037,8 +3031,8 @@ TEST_F(TuiControllerTest, LeftAndRightInMapSelectChangeTheLevelBand) {
   EXPECT_EQ(map_select_panel_->selected_map(), "field");
 }
 
-// The bar owns Left and Right, as it does in the bag and the shop. In the list
-// they are a key that would change the list under the cursor.
+// The tab bar owns Left and Right, as in the bag and the shop. In the list,
+// they would change the list under the cursor.
 TEST_F(TuiControllerTest, LeftAndRightInTheMapListDoNothing) {
   LoadTwoMaps();
   AddMapOnTheSecondBand();
@@ -3051,8 +3045,8 @@ TEST_F(TuiControllerTest, LeftAndRightInTheMapListDoNothing) {
   EXPECT_EQ(map_select_panel_->selected_map(), "field");
 }
 
-// Enter belongs to the list. On the bar it does nothing -- the bar stands on
-// no map, so a menu there would be about nothing.
+// Enter works in the list. On the tab bar it does nothing, since the bar isn't
+// a map and a menu there would be about nothing.
 TEST_F(TuiControllerTest, EnterTravelsToAMapOnAnotherBand) {
   LoadTwoMaps();
   AddMapOnTheSecondBand();
@@ -3096,11 +3090,11 @@ TEST_F(TuiControllerTest, MapSelectSwallowsMainScreenKeys) {
 
 // --- panels a character has not unlocked ---
 
-// The two panels down the right are handed over as the player levels. Until
-// then they are not drawn and Tab does not stop on them.
+// The two right-hand panels unlock as the player levels. Until then they aren't
+// drawn and Tab doesn't stop on them.
 TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
-  // The fixture levels past both buying SP, so this walks back down by
-  // building a character at each level rather than levelling up to it.
+  // The fixture levels past both while earning SP, so this builds a new
+  // character at each level rather than levelling up to it.
   GameState fresh({}, {}, {}, {}, {});
   ASSERT_EQ(fresh.character.proto().level(), 1);
 
@@ -3176,8 +3170,8 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
       << "the corner holds one or the other, never both";
 }
 
-// Tab rounds the panels that exist. At level 1 that is two of them, so it
-// cannot leave the player pressing Tab at a panel that is not on screen.
+// Tab cycles through the panels that exist. At level 1 there are two, so the
+// player can never Tab to a panel that isn't on screen.
 TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   GameState fresh({}, {}, {}, {}, {});
   CharacterPanel chars(fresh.character, fresh.account, panel_focus_,
@@ -3234,9 +3228,9 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   EXPECT_EQ(focus, kCharPanel) << "and back round";
 }
 
-// And backwards over the same gap. Going the other way walks into the two
-// locked panels from the far side, which is where a step of -1 would have run
-// the modulo negative.
+// And in reverse over the same gap. Going backwards reaches the two locked
+// panels from the other side, which is where a step of -1 would have made the
+// modulo negative.
 TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   GameState fresh({}, {}, {}, {}, {});
   CharacterPanel chars(fresh.character, fresh.account, panel_focus_,
@@ -3293,9 +3287,9 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   EXPECT_EQ(focus, kCharPanel) << "and back round";
 }
 
-// The game opens focused on the equipped panel, which a level 1 character
-// does not have. Focus has to leave before a key is dispatched, or it lands
-// on a panel the player cannot see.
+// The game starts focused on the equipped panel, which a level 1 character
+// doesn't have. Focus must move before a key is handled, or it goes to a panel
+// the player can't see.
 TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   GameState fresh({}, {}, {}, {}, {});
   CharacterPanel chars(fresh.character, fresh.account, panel_focus_,
@@ -3350,8 +3344,8 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   EXPECT_TRUE(controller.PanelVisible(focus));
 }
 
-// Inspect leads the stack menu and opens the same screen the equip lists use,
-// showing what the item is rather than what it is worth.
+// Inspect is first on the stack menu and opens the same screen as the equip
+// lists, showing what the item is rather than what it is worth.
 TEST_F(TuiControllerTest, StackInspectShowsTheItemsDescription) {
   ItemPrototype shell;
   shell.set_name("Green Snail Shell");
@@ -3377,7 +3371,7 @@ TEST_F(TuiControllerTest, StackInspectShowsTheItemsDescription) {
 
 namespace {
 
-// An hour away with something to show for it.
+// An hour away with something earned.
 OfflineReport PaidReport() {
   OfflineReport report;
   report.farmed = true;
@@ -3398,7 +3392,7 @@ TEST_F(TuiControllerTest, TheOfflineCardStandsOverTheMainViewUntilDismissed) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// A player who restarted the game a minute after closing it is shown nothing.
+// A player who restarts a minute after closing the game is shown nothing.
 TEST_F(TuiControllerTest, TooShortAnAbsenceRaisesNoCard) {
   OfflineReport report = PaidReport();
   report.absence = kOfflineNoticeSeconds - 1.0;
@@ -3408,8 +3402,7 @@ TEST_F(TuiControllerTest, TooShortAnAbsenceRaisesNoCard) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// Nor is one raised for a player who logged off in town: there is nothing to
-// tell them.
+// Nor is a player who logged off in town, since there is nothing to report.
 TEST_F(TuiControllerTest, NothingFarmedRaisesNoCard) {
   OfflineReport report = PaidReport();
   report.farmed = false;
@@ -3421,8 +3414,8 @@ TEST_F(TuiControllerTest, NothingFarmedRaisesNoCard) {
 
 // --- the expanded bag ---
 
-// The expanded bag is the main view, so Escape closes it rather than opening
-// the quit prompt, and the game is only asked about once it is shut.
+// The expanded bag replaces the main view, so Escape closes it instead of
+// opening the quit prompt, and only asks about quitting once it is closed.
 TEST_F(TuiControllerTest, EscapeClosesTheExpandedPanelBeforeTheGame) {
   controller_->ToggleExpanded(kInventoryPanel);
   ASSERT_EQ(controller_->expanded_panel(), kInventoryPanel);
@@ -3435,8 +3428,8 @@ TEST_F(TuiControllerTest, EscapeClosesTheExpandedPanelBeforeTheGame) {
   EXPECT_EQ(controller_->screen(), kQuit);
 }
 
-// The button closes the panel it is on and moves the expansion off any other,
-// so the two panels that carry one cannot both be open.
+// The button closes the panel it is on and un-expands any other, so the two
+// panels that have one can't both be expanded.
 TEST_F(TuiControllerTest, OnlyOnePanelIsExpandedAtATime) {
   controller_->ToggleExpanded(kInventoryPanel);
   controller_->ToggleExpanded(kEquipPanel);
@@ -3446,7 +3439,7 @@ TEST_F(TuiControllerTest, OnlyOnePanelIsExpandedAtATime) {
   EXPECT_EQ(controller_->expanded_panel(), kNoPanel);
 }
 
-// Nothing to walk to: the other panels are not drawn behind it.
+// Nowhere to move to: the other panels aren't drawn behind it.
 TEST_F(TuiControllerTest, TabDoesNotLeaveTheExpandedPanel) {
   panel_focus_ = kInventoryPanel;
   controller_->ToggleExpanded(kInventoryPanel);
@@ -3478,8 +3471,7 @@ TEST_F(TuiControllerTest, EscapeResumesTheCharacterInPlay) {
       << "a resume must not rebuild the fight they left going";
 }
 
-// Cancelling the Quit button's question lands back on the list rather than
-// in the game.
+// Cancelling the Quit button's confirmation returns to the list, not the game.
 TEST_F(TuiControllerTest, QuitButtonCancelComesBackToTheList) {
   controller_->OpenMenuEntry(MenuEntry::kCharacters);
   controller_->OnEvent(ftxui::Event::ArrowDown);   // onto the buttons: Create
@@ -3495,7 +3487,7 @@ TEST_F(TuiControllerTest, QuitButtonCancelComesBackToTheList) {
 TEST_F(TuiControllerTest, CreateMakesACharacterAndPlaysThem) {
   state_->character.SetUsername("First");
   controller_->OpenMenuEntry(MenuEntry::kCharacters);
-  // Down off the only character, onto the buttons, where Create leads.
+  // Down from the only character onto the buttons, where Create is first.
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);
 
@@ -3522,8 +3514,8 @@ TEST_F(TuiControllerTest, PlayPutsTheChosenCharacterIn) {
   EXPECT_TRUE(controller_->TakeCharacterSwitch());
 }
 
-// The way back into the game for an account with one character, and what the
-// player reaches for after deleting everybody else.
+// The way back into the game for an account with one character, which is also
+// what the player uses after deleting everyone else.
 TEST_F(TuiControllerTest, PlayOnTheCharacterInPlayResumesThem) {
   state_->character.SetUsername("Only");
   controller_->OpenMenuEntry(MenuEntry::kCharacters);
@@ -3564,12 +3556,13 @@ TEST_F(TuiControllerTest, DeleteAsksFirstAndCanBeBackedOutOf) {
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kCharacterDelete);
 
-  // The question opens on Cancel, as every question there is no undoing does.
+  // The confirmation starts on Cancel, like every confirmation that can't be
+  // undone.
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kCharacterSelect);
   EXPECT_EQ(state_->inactive_characters.size(), 1u);
 
-  // Backing out left the cursor on the row it was raised from.
+  // Backing out left the cursor on the row it was opened from.
   controller_->OnEvent(ftxui::Event::Return);  // the menu again
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -3590,8 +3583,8 @@ TEST_F(TuiControllerTest, EscapeOnTheMainScreenAsksBeforeQuitting) {
   EXPECT_FALSE(controller_->quit_requested()) << "asked, not acted on";
 }
 
-// The one keystroke that must not be able to end the game on its own. Nothing
-// is saved, so the prompt opens on Cancel and a second Enter answers "no".
+// This one key press must not be able to end the game by itself. Nothing is
+// saved, so the prompt starts on Cancel and a second Enter answers "no".
 TEST_F(TuiControllerTest, TheQuitPromptOpensOnCancel) {
   controller_->OnEvent(ftxui::Event::Escape);
   controller_->OnEvent(ftxui::Event::Return);
@@ -3616,9 +3609,9 @@ TEST_F(TuiControllerTest, EscapeBacksOutOfTheQuitPrompt) {
   EXPECT_FALSE(controller_->quit_requested());
 }
 
-// Escape means "leave what is open" everywhere else, and only means "leave the
-// game" once there is nothing else open. The quit branch sits below every
-// screen branch in OnEvent to get this, so it is worth pinning.
+// Escape means "close what is open" everywhere else, and only means "quit" once
+// nothing else is open. The quit branch is below every screen branch in OnEvent
+// to make this work, so it is worth testing.
 TEST_F(TuiControllerTest, EscapeLeavesTheScreenNotTheGame) {
   controller_->OpenMapSelect();
   controller_->OnEvent(ftxui::Event::Escape);
@@ -3642,22 +3635,22 @@ TEST_F(TuiControllerTest, SettingsOpensItsBoxOverTheCorner) {
   controller_->OpenMenuEntry(MenuEntry::kSettings);
   EXPECT_EQ(controller_->screen(), kMenuBox);
   EXPECT_TRUE(menu_panel_->box_open());
-  // The cursor is still on the menu row until the player walks up into it.
+  // The cursor is still on the menu row until the player moves up into the box.
   EXPECT_EQ(menu_panel_->box_cursor(), -1);
-  // Up walks the box from the bottom, so the entry nearest the row comes
-  // first: Jukebox, Keybinds, Options.
+  // Up moves through the box from the bottom, so the entry nearest the row
+  // comes first: Jukebox, Keybinds, Options.
   controller_->OnEvent(ftxui::Event::ArrowUp);
   EXPECT_EQ(menu_panel_->box_cursor(), 2);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(menu_panel_->box_cursor(), -1);
-  // Escape puts the box away.
+  // Escape closes the box.
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_FALSE(menu_panel_->box_open());
 }
 
-// The box hangs off the Settings entry, so walking the menu row off it takes
-// the box away too.
+// The box belongs to the Settings entry, so moving the menu row off it closes
+// the box too.
 TEST_F(TuiControllerTest, WalkingOffSettingsClosesItsBox) {
   LevelTo(UnlockLevel(Feature::kBoss));
   // Analysis, Boss, Multiplayer, Settings: the cursor starts on the first.
@@ -3670,7 +3663,7 @@ TEST_F(TuiControllerTest, WalkingOffSettingsClosesItsBox) {
   EXPECT_EQ(menu_panel_->selected(), MenuEntry::kMultiplayer);
 }
 
-// Inside the box the row below is not what the keys are moving on.
+// Inside the box, Left doesn't move the menu row below.
 TEST_F(TuiControllerTest, LeftInsideTheBoxDoesNothing) {
   controller_->OpenMenuEntry(MenuEntry::kSettings);
   controller_->OnEvent(ftxui::Event::ArrowUp);
@@ -3682,7 +3675,7 @@ TEST_F(TuiControllerTest, LeftInsideTheBoxDoesNothing) {
 TEST_F(TuiControllerTest, TheJukeboxOpensFromTheBoxAndComesBackToIt) {
   OpenJukebox();
   EXPECT_EQ(controller_->screen(), kJukebox);
-  // The screen opens on the song list, and Tab hands the keys to the buttons.
+  // The screen opens on the song list, and Tab moves the keys to the buttons.
   EXPECT_FALSE(jukebox_panel_->on_buttons());
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_TRUE(jukebox_panel_->on_buttons());
@@ -3692,7 +3685,7 @@ TEST_F(TuiControllerTest, TheJukeboxOpensFromTheBoxAndComesBackToIt) {
   EXPECT_TRUE(menu_panel_->box_open());
 }
 
-// The mode box spends the Escape that would otherwise leave the screen.
+// Escape closes the mode box first, instead of leaving the screen.
 TEST_F(TuiControllerTest, EscapeShutsTheJukeboxModeBoxBeforeTheScreen) {
   OpenJukebox();
   controller_->OnEvent(ftxui::Event::Tab);
@@ -3711,8 +3704,8 @@ TEST_F(TuiControllerTest, EscapeShutsTheJukeboxModeBoxBeforeTheScreen) {
 TEST_F(TuiControllerTest, KeybindsOpensFromTheBoxAndComesBackToIt) {
   OpenKeybinds();
   EXPECT_EQ(controller_->screen(), kKeybinds);
-  // Escape on a slot with nothing in it goes back to the box, which is still
-  // standing where it was left.
+  // Escape on an empty slot returns to the box, which is still open where it
+  // was.
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMenuBox);
   EXPECT_TRUE(menu_panel_->box_open());
@@ -3722,7 +3715,7 @@ TEST_F(TuiControllerTest, EnterOnASlotTakesTheNextKeyPressed) {
   OpenKeybinds();
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(controller_->capturing_key());
-  // The ticker's redraw is not somebody pressing a key.
+  // The ticker's redraw isn't a key press.
   controller_->OnEvent(ftxui::Event::Custom);
   EXPECT_TRUE(controller_->capturing_key());
   controller_->OnEvent(ftxui::Event::w);
@@ -3731,8 +3724,8 @@ TEST_F(TuiControllerTest, EnterOnASlotTakesTheNextKeyPressed) {
   EXPECT_EQ(keys_->Translate(ftxui::Event::w), ftxui::Event::ArrowUp);
 }
 
-// The name field takes letters, so while it is open a key has to arrive as
-// the player pressed it rather than as whatever action it is bound to.
+// The name field takes letters, so while it is open keys must arrive as pressed
+// rather than as their bound actions.
 TEST_F(TuiControllerTest, AnOpenNameFieldWantsTheRawKeys) {
   ftxui::Component chars = char_panel_->MakeComponent();
   panel_focus_ = kCharPanel;
@@ -3744,8 +3737,8 @@ TEST_F(TuiControllerTest, AnOpenNameFieldWantsTheRawKeys) {
   EXPECT_FALSE(controller_->capturing_key());
 }
 
-// Escape on the main view asks whether to quit, so an open field has to keep
-// it: backing out of a field is not backing out of the game.
+// Escape on the main view asks whether to quit, so an open field must take it
+// first: backing out of a field isn't backing out of the game.
 TEST_F(TuiControllerTest, EscapeLeavesTheNameFieldRatherThanTheGame) {
   ftxui::Component chars = char_panel_->MakeComponent();
   panel_focus_ = kCharPanel;
@@ -3759,8 +3752,8 @@ TEST_F(TuiControllerTest, EscapeLeavesTheNameFieldRatherThanTheGame) {
   EXPECT_FALSE(controller_->capturing_key());
 }
 
-// Tab would carry focus off a panel mid-edit, leaving a field open that no
-// key can reach -- and every rebound key dead behind it.
+// Tab would move focus off the panel mid-edit, leaving an open field no key can
+// reach, and every rebound key stuck behind it.
 TEST_F(TuiControllerTest, TabDoesNotLeaveAnOpenNameFieldBehind) {
   ftxui::Component chars = char_panel_->MakeComponent();
   panel_focus_ = kCharPanel;
@@ -3779,7 +3772,7 @@ TEST_F(TuiControllerTest, EscapeClearsASlotAndThenLeaves) {
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(keys_->Label(KEY_ACTION_UP, 1), "");
   EXPECT_EQ(controller_->screen(), kKeybinds);
-  // Nothing left to clear, so the same key is the way out.
+  // Nothing left to clear, so the same key leaves.
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMenuBox);
 }
@@ -3790,7 +3783,7 @@ TEST_F(TuiControllerTest, AReservedKeyIsRefused) {
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_FALSE(controller_->capturing_key());
   EXPECT_EQ(keys_->Label(KEY_ACTION_UP, 1), "");
-  // The screen stayed put: the refusal is a message, not a way out.
+  // The screen didn't change: the refusal is a message, not an exit.
   EXPECT_EQ(controller_->screen(), kKeybinds);
 }
 
@@ -3810,8 +3803,8 @@ TEST_F(TuiControllerTest, OptionsOpensFromTheBoxAndComesBackToIt) {
   EXPECT_TRUE(menu_panel_->box_open());
 }
 
-// The switch takes effect where it is thrown: there is no confirmation and
-// nothing to close before the panels are drawing the other way.
+// The switch takes effect immediately: no confirmation, and nothing to close
+// before the panels use the new setting.
 TEST_F(TuiControllerTest, EnterOnAnOptionThrowsItsSwitch) {
   OpenOptions();
   ASSERT_FALSE(state_->account.panel_title_blink());
@@ -3824,28 +3817,26 @@ TEST_F(TuiControllerTest, EnterOnAnOptionThrowsItsSwitch) {
 
 TEST_F(TuiControllerTest, TheOptionsCloseButtonLeavesTheScreen) {
   OpenOptions();
-  // Close is the stop past the last setting, however many there are.
+  // Close comes after the last option, however many there are.
   for (int i = 0; i < kOptionCount; ++i) {
     controller_->OnEvent(ftxui::Event::ArrowDown);
   }
   EXPECT_TRUE(options_panel_->on_close());
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMenuBox);
-  // Close threw no switch on its way out.
+  // Close didn't toggle anything on the way out.
   EXPECT_FALSE(state_->account.panel_title_blink());
 }
 
 // --- battle analysis ---
 
-// The first row of the box works the tool, and the box stays up: the row the
-// player pressed has just become the other one.
-// Left and Right work the volume the cursor is on, and only a volume.
+// Left and Right change the volume under the cursor, and only a volume.
 TEST_F(TuiControllerTest, ArrowsMoveTheVolumeUnderTheCursor) {
   if (!kAudioEnabled) {
     GTEST_SKIP() << "built with --define=audio=off";
   }
   OpenOptions();
-  // The cursor opens on the switch, which the arrows must leave alone.
+  // The cursor starts on the switch, which the arrows must leave alone.
   controller_->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_FALSE(state_->account.panel_title_blink());
 
@@ -3862,13 +3853,15 @@ TEST_F(TuiControllerTest, ArrowsMoveTheVolumeUnderTheCursor) {
       << "the other slider did not move";
 }
 
+// The first row of the box toggles the tool, and the box stays open: the row
+// the player pressed has just changed to the other action.
 TEST_F(TuiControllerTest, TheAnalysisBoxStartsAndStopsTheTool) {
   controller_->OpenMenuEntry(MenuEntry::kAnalysis);
   EXPECT_EQ(controller_->screen(), kMenuBox);
   EXPECT_EQ(menu_panel_->box_entry(), MenuEntry::kAnalysis);
 
-  // The box stands above the menu row, so Up reaches its bottom entry first
-  // and Start, listed on top, is the second stop.
+  // The box is above the menu row, so Up reaches its bottom entry first, and
+  // Start, listed at the top, is the second stop.
   controller_->OnEvent(ftxui::Event::ArrowUp);
   controller_->OnEvent(ftxui::Event::ArrowUp);
   ASSERT_EQ(menu_panel_->selected_analysis_entry(), AnalysisEntry::kStartStop);
@@ -3880,7 +3873,7 @@ TEST_F(TuiControllerTest, TheAnalysisBoxStartsAndStopsTheTool) {
   EXPECT_EQ(analysis_.state(), AnalysisState::kStopped);
 }
 
-// A stop pressed by mistake is taken back by pressing the same row again.
+// A Stop pressed by mistake is undone by pressing the same row again.
 TEST_F(TuiControllerTest, TheAnalysisEntryTakesBackAPendingStop) {
   AnalysisSample beat;
   beat.respawned = true;
@@ -3900,7 +3893,7 @@ TEST_F(TuiControllerTest, TheAnalysisEntryTakesBackAPendingStop) {
 
 // --- Dailies ---
 
-// The claim lists every symbol at or below the one held, and Confirm puts a
+// The claim lists every symbol up to the highest one held, and Confirm puts a
 // day's worth of each into the bag.
 TEST_F(TuiControllerTest, TheDailiesClaimPaysEverySymbolListed) {
   state_->character.PickUp(std::make_unique<EquipInstance>(
@@ -3918,8 +3911,8 @@ TEST_F(TuiControllerTest, TheDailiesClaimPaysEverySymbolListed) {
   EXPECT_GT(state_->character.DailiesClaimedAt(), 0);
 }
 
-// A character who has never held a symbol has nothing to claim, and is told
-// so rather than being offered an empty list that refuses itself.
+// A character who has never had a symbol has nothing to claim, and is told so
+// rather than shown an empty list.
 TEST_F(TuiControllerTest, NoSymbolsMeansNoClaim) {
   controller_->OpenMenuEntry(MenuEntry::kDailies);
   EXPECT_EQ(controller_->screen(), kDailiesNotice);
@@ -3941,8 +3934,8 @@ TEST_F(TuiControllerTest, CancellingTheClaimTakesNothing) {
       << "the day is still there";
 }
 
-// The day's claim is gone once it is taken, and says so rather than asking a
-// question whose answer is no.
+// Once claimed, the dailies say so rather than asking a question whose answer
+// would be no.
 TEST_F(TuiControllerTest, AClaimedDaySaysSo) {
   state_->character.PickUp(
       std::make_unique<EquipInstance>(state_->equips.at(symbol_.name())));
@@ -3958,8 +3951,8 @@ TEST_F(TuiControllerTest, AClaimedDaySaysSo) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// Half a claim would cost the player the rest of it until tomorrow, so a full
-// bag takes none of it and the day stays open.
+// Claiming part would lose the rest until tomorrow, so a full bag takes none of
+// it and the claim stays available.
 TEST_F(TuiControllerTest, AFullBagRefusesTheWholeClaim) {
   state_->character.PickUp(std::make_unique<EquipInstance>(
       state_->equips.at("Arcane Symbol: Chu Chu Island")));
@@ -3981,14 +3974,15 @@ TEST_F(TuiControllerTest, ViewOpensTheAnalysisOverlayAndBackClosesIt) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kAnalysis);
 
-  // Escape goes back to the box, which is still standing where it was left.
+  // Escape returns to the box, which is still open where it was.
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMenuBox);
   EXPECT_TRUE(menu_panel_->box_open());
 }
 
-// Tab walks the boss screen's three windows. Enter asks for the fight from
-// the two that describe it, and throws a switch on the row that holds them.
+// Tab moves through the boss screen's three windows. Enter asks to start the
+// fight from the two that describe it, and toggles a switch on the row that
+// holds the switches.
 TEST_F(TuiControllerTest, TabWalksTheBossScreensWindows) {
   HoldASword();
   controller_->OpenMenuEntry(MenuEntry::kBoss);
@@ -4016,14 +4010,14 @@ TEST_F(TuiControllerTest, EnterOnAFightAsksBeforeTakingIt) {
   EXPECT_EQ(controller_->screen(), kBossConfirm);
   EXPECT_EQ(controller_->boss_prompt_title(), "Normal Zakum");
 
-  // The prompt opens on Confirm, and Escape backs out to the list.
+  // The prompt starts on Confirm, and Escape backs out to the list.
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kBossSelect);
 }
 
-// A boss already cleared this reset says when he comes back rather than asking
-// a question whose answer is no. Named without a difficulty, since a clear of
-// any of them closes the rest.
+// A boss already cleared this reset says when it resets instead of asking a
+// question whose answer would be no. It doesn't name a difficulty, since
+// clearing any one locks the rest.
 TEST_F(TuiControllerTest, AClearedFightSaysWhenItComesBack) {
   HoldASword();
   state_->character.RecordBossClear("zakum", "Normal",
@@ -4032,14 +4026,14 @@ TEST_F(TuiControllerTest, AClearedFightSaysWhenItComesBack) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossNotice);
   EXPECT_FALSE(controller_->notice_is_refusal()) << "the reset, not the player";
-  // Split evenly rather than at the name: a short name over a long remainder
-  // reads as two rows that have nothing to do with each other.
+  // Split into even lines rather than at the name: a short name over a long
+  // remainder looks like two unrelated rows.
   EXPECT_EQ(
       controller_->notice_lines(),
       (std::vector<std::string>{"Zakum has already", "been killed today."}));
   EXPECT_TRUE(controller_->notice_prompt().open());
 
-  // The notice holds the screen until it is dismissed.
+  // The notice stays until it is dismissed.
   controller_->OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(controller_->screen(), kBossNotice);
   controller_->OnEvent(ftxui::Event::Return);
@@ -4047,8 +4041,8 @@ TEST_F(TuiControllerTest, AClearedFightSaysWhenItComesBack) {
   EXPECT_FALSE(controller_->notice_prompt().open());
 }
 
-// The rung beside the one that was taken is closed too, and says so under the
-// boss's own name rather than the difficulty the cursor happens to be on.
+// The difficulties next to the cleared one are locked too, and the notice names
+// the boss rather than the difficulty under the cursor.
 TEST_F(TuiControllerTest, AClearOfOneDifficultyClosesTheOthers) {
   HoldASword();
   BossDifficulty* chaos = state_->bosses["zakum"].add_difficulties();
@@ -4067,8 +4061,8 @@ TEST_F(TuiControllerTest, AClearOfOneDifficultyClosesTheOthers) {
   EXPECT_EQ(controller_->boss_run(), nullptr) << "nothing was started";
 }
 
-// A fight the character has not levelled up to says the level it wants. The
-// difficulty is dim on the list, and this is what Enter on it answers.
+// A fight above the character's level says what level it needs. The difficulty
+// is dimmed on the list, and this is what Enter on it shows.
 TEST_F(TuiControllerTest, ALockedFightNamesTheLevelItOpensAt) {
   HoldASword();
   state_->bosses["zakum"].mutable_difficulties(0)->set_unlock_level(130);
@@ -4081,8 +4075,8 @@ TEST_F(TuiControllerTest, ALockedFightNamesTheLevelItOpensAt) {
   EXPECT_EQ(controller_->boss_run(), nullptr) << "nothing was started";
 }
 
-// A fight that is not built yet answers with that and nothing else -- not the
-// weapon, not the level, not the reset, none of which is the reason.
+// A fight that isn't built yet says only that, not the weapon, level or reset,
+// since none of those is the reason.
 TEST_F(TuiControllerTest, AComingSoonFightSaysSoAndStartsNothing) {
   BossDifficulty* chaos = state_->bosses["zakum"].add_difficulties();
   chaos->set_name("Chaos");
@@ -4100,8 +4094,7 @@ TEST_F(TuiControllerTest, AComingSoonFightSaysSoAndStartsNothing) {
   EXPECT_EQ(controller_->boss_run(), nullptr) << "nothing was started";
 }
 
-// A character holding nothing cannot fight: the fight used to start and then
-// give up on its own, which read as the screen closing for no reason.
+// A character without a weapon can't fight, and is told so.
 TEST_F(TuiControllerTest, AFightRefusesACharacterWithNoWeapon) {
   controller_->OpenMenuEntry(MenuEntry::kBoss);
   controller_->OnEvent(ftxui::Event::Return);
@@ -4117,8 +4110,8 @@ TEST_F(TuiControllerTest, AFightRefusesACharacterWithNoWeapon) {
   EXPECT_FALSE(controller_->in_boss_fight());
 }
 
-// Practice walks past the reset and spends nothing: a boss already taken
-// today is still enterable, and beating him again writes no clear down.
+// Practice ignores the reset and records no clear: a boss already beaten today
+// can still be entered, and beating it again records nothing.
 TEST_F(TuiControllerTest, PracticeBypassesTheResetAndSpendsNoClear) {
   HoldASword();
   state_->character.RecordBossClear("zakum", "Normal",
@@ -4131,13 +4124,13 @@ TEST_F(TuiControllerTest, PracticeBypassesTheResetAndSpendsNoClear) {
   ASSERT_EQ(controller_->screen(), kBossNotice) << "cleared today";
   controller_->OnEvent(ftxui::Event::Return);
 
-  // Onto the options row and throw the switch.
+  // Onto the options row, and toggle the switch.
   controller_->OnEvent(ftxui::Event::TabReverse);
   ASSERT_EQ(boss_select_panel_->focus(), BossPanel::kOptions);
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_TRUE(state_->boss_options.practice());
 
-  // Back onto the grid, the row having taken the Enter before it.
+  // Back onto the grid, after the row took the Enter.
   controller_->OnEvent(ftxui::Event::Tab);
   ASSERT_EQ(boss_select_panel_->focus(), BossPanel::kList);
   controller_->OnEvent(ftxui::Event::Return);
@@ -4163,8 +4156,8 @@ TEST_F(TuiControllerTest, EscapeLeavesTheBossScreen) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// The Extreme Green Potion is drunk on the way in, whatever the fight does
-// next. Charged once per entry rather than per phase or per clear.
+// The Extreme Green Potion is used on entry, whatever happens in the fight. It
+// is charged once per entry, not per phase or per clear.
 TEST_F(TuiControllerTest, TheGreenPotionIsChargedOnTheWayIntoAFight) {
   LevelTo(190);
   state_->character.AddMeso(3'000'000);
@@ -4175,7 +4168,7 @@ TEST_F(TuiControllerTest, TheGreenPotionIsChargedOnTheWayIntoAFight) {
   ASSERT_EQ(controller_->screen(), kBossFight);
   EXPECT_EQ(state_->character.meso(), 2'000'000);
 
-  // Switched off, and the next fight is free.
+  // Switched off, the next fight is free.
   ASSERT_FALSE(
       state_->character.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
   controller_->OnEvent(ftxui::Event::Escape);
@@ -4202,8 +4195,8 @@ TEST_F(TuiControllerTest, ConfirmingEntersTheFight) {
   EXPECT_TRUE(controller_->in_boss_fight());
 }
 
-// The fight is the whole screen: nothing on it reaches the panels behind, and
-// a fight with nowhere to walk swallows the arrows too.
+// The fight fills the screen: no key reaches the panels behind it, and a fight
+// with nowhere to move swallows the arrows too.
 TEST_F(TuiControllerTest, TheFightSwallowsEverythingButEscape) {
   EnterFight();
   controller_->OnEvent(ftxui::Event::Tab);
@@ -4212,11 +4205,11 @@ TEST_F(TuiControllerTest, TheFightSwallowsEverythingButEscape) {
   EXPECT_EQ(panel_focus_, kEquipPanel);
 }
 
-// The one thing the player decides during a fight: where they are standing.
+// The only choice the player makes during a fight: where to stand.
 TEST_F(TuiControllerTest, TheArrowsWalkThePlayerAroundTheArena) {
   BossPhase* phase =
       state_->bosses["zakum"].mutable_difficulties(0)->mutable_phases(0);
-  // The middle of the floor first: that is where the phase starts them.
+  // The middle of the floor first, where the phase starts them.
   const int kSpots[3][2] = {{3, 1}, {0, 1}, {6, 1}};
   for (const int (&spot)[2] : kSpots) {
     ArenaSpot* at = phase->add_player_spots();
@@ -4250,7 +4243,7 @@ TEST_F(TuiControllerTest, EscapeAsksBeforeLeavingAndTheClockStops) {
   controller_->AdvanceBossRun(60.0);
   EXPECT_DOUBLE_EQ(controller_->boss_run()->seconds_left(), left);
 
-  // The prompt opens on Cancel, so Enter goes back to the fight.
+  // The prompt starts on Cancel, so Enter returns to the fight.
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossFight);
   controller_->AdvanceBossRun(1.0);
@@ -4264,35 +4257,35 @@ TEST_F(TuiControllerTest, ConfirmingTheLeavePromptEndsTheFight) {
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kBossFight);
 
-  // No closing beat on the way out: the next tick is already back at the list.
+  // No ending pause when leaving: the next tick is already back at the list.
   controller_->AdvanceBossRun(0.0);
   EXPECT_EQ(controller_->screen(), kBossSelect);
   EXPECT_EQ(controller_->boss_run(), nullptr);
   EXPECT_FALSE(controller_->in_boss_fight());
-  // Walking out is not a clear, so the daily is still there.
+  // Leaving isn't a clear, so the daily is still available.
   EXPECT_EQ(state_->character.BossClearedAt("zakum", "Normal"), 0);
 }
 
-// The clock running out is the one ending the player might not have watched,
-// so it says so rather than dropping them back on the list.
+// Running out of time is the ending the player may not have seen, so it says so
+// rather than just returning to the list.
 TEST_F(TuiControllerTest, RunningOutOfTimeSaysSo) {
-  // A monster the character cannot chew through inside the limit: the
-  // fixture's arms die to one poke, and a won fight is not this ending.
+  // A mob the character can't kill within the time limit. The fixture's arms
+  // die in one hit, and a won fight is a different ending.
   state_->mobs["zakum_arm"].set_max_hp(2000000000);
   EnterFight();
   controller_->AdvanceBossRun(kBossCountdownSeconds + 301.0);
   ASSERT_NE(controller_->boss_run(), nullptr) << "the closing beat is running";
   controller_->AdvanceBossRun(kBossEndHoldSeconds);
   EXPECT_EQ(controller_->screen(), kBossNotice);
-  // Held until the notice is dismissed, so the arena stands behind it, and
-  // the clock is stopped: a fight already lost cannot be lost again.
+  // Kept until the notice is dismissed, so the arena stays behind it, and the
+  // clock is stopped: a lost fight can't be lost again.
   EXPECT_NE(controller_->boss_run(), nullptr);
   controller_->AdvanceBossRun(10.0);
   EXPECT_EQ(controller_->screen(), kBossNotice);
   ASSERT_EQ(controller_->notice_lines().size(), 1u);
   EXPECT_EQ(controller_->notice_lines()[0], "Out of time!");
   EXPECT_FALSE(controller_->notice_is_refusal());
-  // Nothing was cleared, so the daily is still there.
+  // Nothing was cleared, so the daily is still available.
   EXPECT_EQ(state_->character.BossClearedAt("zakum", "Normal"), 0);
 
   controller_->OnEvent(ftxui::Event::Return);
@@ -4308,8 +4301,8 @@ TEST_F(TuiControllerTest, ClearingTheFightBanksTheDaily) {
   EXPECT_GT(state_->character.BossClearedAt("zakum", "Normal"), 0);
 }
 
-// The card outlives the run it reports on, so what it says has to have been
-// copied off it rather than read back through a pointer that is now null.
+// The card outlives the run it reports on, so its contents must be copied from
+// the run rather than read through a pointer that is now null.
 TEST_F(TuiControllerTest, TheClearCardNamesTheFightAndWhatItPaid) {
   BossDifficulty* normal = state_->bosses["zakum"].mutable_difficulties(0);
   normal->set_meso(3062500);
@@ -4320,8 +4313,8 @@ TEST_F(TuiControllerTest, TheClearCardNamesTheFightAndWhatItPaid) {
   RunFightToEnd();
 
   ASSERT_EQ(controller_->screen(), kBossClear);
-  // The run is kept while the card is up: the arena the player just cleared
-  // is what the card stands over.
+  // The run is kept while the card is up, since the card is drawn over the
+  // arena the player just cleared.
   EXPECT_NE(controller_->boss_run(), nullptr);
   EXPECT_EQ(controller_->boss_clear_title(), "Normal Zakum");
   EXPECT_GT(controller_->boss_clear_seconds(), 0.0);
@@ -4336,8 +4329,8 @@ TEST_F(TuiControllerTest, TheClearCardNamesTheFightAndWhatItPaid) {
   EXPECT_FALSE(controller_->in_boss_fight());
 }
 
-// [Analysis] opens the fight's table under the player's own name, and Escape
-// comes back to the card on [Analysis]; Escape there still leaves.
+// [Analysis] opens the fight's damage table under the player's own name, and
+// Escape returns to the card with [Analysis] selected; Escape there leaves.
 TEST_F(TuiControllerTest, TheClearCardOpensTheAnalysisAndComesBack) {
   EnterFight();
   RunFightToEnd();
@@ -4368,8 +4361,8 @@ TEST_F(TuiControllerTest, TheClearCardOpensTheAnalysisAndComesBack) {
 
 // --- Hyper Stats ---
 
-// The [+] and the [-] spend and refund in place -- no dialog either way, so
-// the screen never leaves the main view.
+// [+] and [-] spend and refund immediately, with no dialog, so the screen never
+// leaves the main view.
 TEST_F(TuiControllerTest, RaisingAndLoweringAStatAsksNothing) {
   LevelTo(kHyperStatUnlockLevel);
   controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst);
@@ -4384,7 +4377,7 @@ TEST_F(TuiControllerTest, RaisingAndLoweringAStatAsksNothing) {
       << "the point came back";
 }
 
-// Each reaches the allocation it was handed and not the other.
+// Each affects the allocation it was given and not the other.
 TEST_F(TuiControllerTest, RaisingAndLoweringNameTheirAllocation) {
   LevelTo(kHyperStatUnlockLevel);
   controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kSecond);
@@ -4392,26 +4385,27 @@ TEST_F(TuiControllerTest, RaisingAndLoweringNameTheirAllocation) {
                                                StatPreset::kFirst),
             0);
 
-  // Nothing spent on the farming allocation, so its [-] has nothing to give.
+  // Nothing was spent on the farming allocation, so its [-] has nothing to
+  // refund.
   controller_->LowerHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst);
   EXPECT_EQ(state_->character.hyper_stat_level(HYPER_STAT_FIELD_STR,
                                                StatPreset::kSecond),
             1);
 }
 
-// The question names the allocation, and the answer empties that one alone.
+// The confirmation names the allocation, and confirming resets only that one.
 TEST_F(TuiControllerTest, TheResetEmptiesTheAllocationItNamed) {
   LevelTo(kHyperStatUnlockLevel);
   controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst);
   controller_->RaiseHyperStat(HYPER_STAT_FIELD_DEX, StatPreset::kSecond);
 
   controller_->OpenHyperReset(StatPreset::kSecond);
-  // The question names the chip, which is a number while the autoswap is off.
+  // The question uses the tab's label, which is a number while autoswap is off.
   EXPECT_EQ(controller_->hyper_reset_question(), "Reset 2 Hyper Stats?");
   state_->account.SetAutoswapPresets(true);
   state_->MirrorAccount();
   EXPECT_EQ(controller_->hyper_reset_question(), "Reset Boss Hyper Stats?");
-  // It opens on Cancel, so getting to Confirm is a step of its own.
+  // It starts on Cancel, so reaching Confirm takes a step.
   controller_->OnEvent(ftxui::Event::ArrowLeft);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
@@ -4423,8 +4417,8 @@ TEST_F(TuiControllerTest, TheResetEmptiesTheAllocationItNamed) {
             1);
 }
 
-// The V page's question: it opens on Cancel, and Confirm empties the matrix
-// back into the pool.
+// The V page's confirmation: it starts on Cancel, and Confirm refunds the whole
+// matrix to the pool.
 TEST_F(TuiControllerTest, TheVMatrixResetHandsTheNodesBack) {
   Skill node;
   node.set_name("Rope Lift");
@@ -4442,7 +4436,8 @@ TEST_F(TuiControllerTest, TheVMatrixResetHandsTheNodesBack) {
 
   controller_->OpenVMatrixReset();
   EXPECT_EQ(controller_->screen(), kVMatrixReset);
-  // It opens on Cancel, so the first Enter walks away and the matrix stands.
+  // It starts on Cancel, so the first Enter backs out and the matrix is
+  // unchanged.
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(state_->character.skill_level(node), 1);
@@ -4455,8 +4450,8 @@ TEST_F(TuiControllerTest, TheVMatrixResetHandsTheNodesBack) {
   EXPECT_EQ(state_->character.v_points(), 20) << "the seven came back";
 }
 
-// The card reads the allocation it was opened on, and the level live off the
-// character -- a point spent and the stat opened again says the new one.
+// The card reads the allocation it was opened on, and reads the level live from
+// the character, so spending a point and reopening shows the new level.
 TEST_F(TuiControllerTest, TheHyperStatCardReadsTheAllocationItWasOpenedOn) {
   LevelTo(kHyperStatUnlockLevel);
   controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kSecond);
@@ -4468,16 +4463,16 @@ TEST_F(TuiControllerTest, TheHyperStatCardReadsTheAllocationItWasOpenedOn) {
   EXPECT_EQ(controller_->hyper_inspect_max_level(),
             state_->character.max_hyper_stat_level());
 
-  // The other allocation has had nothing spent on it.
+  // Nothing has been spent on the other allocation.
   controller_->OpenHyperStatInspect(HYPER_STAT_FIELD_STR, StatPreset::kFirst);
   EXPECT_EQ(controller_->hyper_inspect_level(), 0);
 
-  // Nothing to do but read it, so either key leaves.
+  // Read-only, so either key leaves.
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// Enter alone on the reset dialog walks away rather than emptying it.
+// Enter alone on the reset dialog backs out rather than resetting.
 TEST_F(TuiControllerTest, TheResetOpensOnCancel) {
   LevelTo(kHyperStatUnlockLevel);
   controller_->RaiseHyperStat(HYPER_STAT_FIELD_STR, StatPreset::kFirst);
@@ -4488,22 +4483,23 @@ TEST_F(TuiControllerTest, TheResetOpensOnCancel) {
 
 // --- Inner Ability ---
 
-// Enter toggles the lock and asks nothing -- there is no screen behind it.
+// Enter toggles the lock without asking; there is no screen for it.
 TEST_F(TuiControllerTest, LockingALineAsksNothing) {
   LevelTo(kInnerAbilityUnlockLevel);
-  // A fresh ability is three Rare lines, and a Rare line holds like any other.
+  // A new ability is three Rare lines, and a Rare line can be locked like any
+  // other.
   controller_->ToggleAbilityLock(0, StatPreset::kFirst);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_TRUE(state_->character.ability().lines(0).locked());
   controller_->ToggleAbilityLock(0, StatPreset::kFirst);
   EXPECT_FALSE(state_->character.ability().lines(0).locked());
 
-  // An index off the end of the ability is not an ability to change.
+  // An index past the end isn't a line that can change.
   controller_->ToggleAbilityLock(9, StatPreset::kFirst);
   EXPECT_EQ(state_->character.ability().lines_size(), kAbilityLines);
 }
 
-// The dialog lists what it would throw away, and nothing that is being held.
+// The dialog lists the lines it would replace, and none of the locked ones.
 TEST_F(TuiControllerTest, TheRerollDialogListsOnlyTheLinesItRerolls) {
   LevelTo(kInnerAbilityUnlockLevel);
   ASSERT_TRUE(state_->character.LockAbilityLine(0, true));
@@ -4518,7 +4514,7 @@ TEST_F(TuiControllerTest, TheRerollDialogListsOnlyTheLinesItRerolls) {
   }
 }
 
-// It opens on Confirm, so a reroll is Enter-Enter, and Cancel spends nothing.
+// It starts on Confirm, so a reroll is Enter twice, and Cancel spends nothing.
 TEST_F(TuiControllerTest, TheRerollOpensOnConfirmAndIsPaidOnce) {
   LevelTo(kInnerAbilityUnlockLevel);
   const int64_t cost = state_->character.ability_reset_cost();
@@ -4537,9 +4533,9 @@ TEST_F(TuiControllerTest, TheRerollOpensOnConfirmAndIsPaidOnce) {
   EXPECT_EQ(state_->character.honor(), pool - cost) << "Cancel spends nothing";
 }
 
-// A reroll that ranks the ability up lights the character panel, and the next
-// key puts it out. Rare ranks up one reset in twenty, so the loop stands in
-// for a seed the fixture does not fix.
+// A reroll that raises the rank lights the character panel, and the next key
+// clears it. It rerolls until a rank-up happens, since the fixture's seed isn't
+// chosen for one.
 TEST_F(TuiControllerTest, AnAbilityRankUpLightsTheCharacterPanel) {
   LevelTo(kInnerAbilityUnlockLevel);
   state_->character.AddHonor(1'000'000'000);
@@ -4558,7 +4554,7 @@ TEST_F(TuiControllerTest, AnAbilityRankUpLightsTheCharacterPanel) {
   EXPECT_FALSE(controller_->ability_rank_up());
 }
 
-// The two allocations are rerolled apart: the question names one of them.
+// The two allocations are rerolled separately: the confirmation names one.
 TEST_F(TuiControllerTest, TheRerollLandsOnTheAllocationItNamed) {
   LevelTo(kInnerAbilityUnlockLevel);
   state_->character.AddHonor(100000);
@@ -4573,7 +4569,7 @@ TEST_F(TuiControllerTest, TheRerollLandsOnTheAllocationItNamed) {
 
 // --- The Link Skills screen ---
 
-// A link skill of `line`, which no book lists and nobody buys.
+// A link skill of `line`, which is in no book and bought by nobody.
 Skill LinkSkillFor(const std::string& name, Job line) {
   Skill skill;
   skill.set_name(name);
@@ -4585,8 +4581,8 @@ Skill LinkSkillFor(const std::string& name, Job line) {
   return skill;
 }
 
-// The catalog, a roster that has climbed the other lines, and the screen
-// open on the preset in play.
+// The catalog, a roster that has levelled the other lines, and the screen open
+// on the preset in use.
 void OpenLinkScreen(GameState& state, TuiController& controller) {
   state.skills["thiefs_cunning"] = LinkSkillFor("Thief's Cunning", JOB_ROGUE);
   state.skills["empirical"] = LinkSkillFor("Empirical Knowledge", JOB_MAGICIAN);
@@ -4598,13 +4594,13 @@ void OpenLinkScreen(GameState& state, TuiController& controller) {
   controller.OpenLinkSkills();
 }
 
-// Add on a row of the bottom window puts the skill in the preset being read,
-// and Remove takes it back off.
+// Add on a row of the bottom window equips the skill in the displayed preset,
+// and Remove unequips it.
 TEST_F(TuiControllerTest, TheLinkScreenEquipsAndUnequipsASkill) {
   OpenLinkScreen(*state_, *controller_);
   ASSERT_EQ(controller_->screen(), kLinkSkills);
 
-  // Tab twice onto All Skills, Enter for its menu, Down onto Add, Enter.
+  // Tab twice to All Skills, Enter for its menu, Down to Add, Enter.
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Return);
@@ -4614,7 +4610,7 @@ TEST_F(TuiControllerTest, TheLinkScreenEquipsAndUnequipsASkill) {
   EXPECT_EQ(controller_->screen(), kLinkSkills);
   ASSERT_EQ(state_->character.link_skills(StatPreset::kFirst).size(), 1);
 
-  // Round the ring to the middle window, down into its list, and Remove.
+  // Around to the middle window, down into its list, and Remove.
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -4624,7 +4620,7 @@ TEST_F(TuiControllerTest, TheLinkScreenEquipsAndUnequipsASkill) {
   EXPECT_EQ(state_->character.link_skills(StatPreset::kFirst).size(), 0);
 }
 
-// A full preset refuses the next one, and says so rather than dropping it.
+// A full preset refuses the next skill, and says so rather than dropping it.
 TEST_F(TuiControllerTest, AFullLinkPresetSaysSo) {
   OpenLinkScreen(*state_, *controller_);
   for (int i = 0; i < kMaxEquippedLinkSkills; ++i) {
@@ -4639,8 +4635,8 @@ TEST_F(TuiControllerTest, AFullLinkPresetSaysSo) {
   EXPECT_TRUE(controller_->notification().visible());
 }
 
-// Inspect raises the skill card, which states the level the ACCOUNT climbed
-// to rather than 0, and closes back onto the screen that raised it.
+// Inspect opens the skill card, which shows the level the account has reached
+// rather than 0, and returns to the screen that opened it.
 TEST_F(TuiControllerTest, TheLinkCardReadsTheAccountsLevelAndComesBack) {
   OpenLinkScreen(*state_, *controller_);
   controller_->OnEvent(ftxui::Event::Tab);
@@ -4655,8 +4651,8 @@ TEST_F(TuiControllerTest, TheLinkCardReadsTheAccountsLevelAndComesBack) {
   EXPECT_EQ(controller_->screen(), kLinkSkills);
 }
 
-// Enter on the preset bar raises the Hyper tab's own menu, and Use puts that
-// preset in play.
+// Enter on the preset bar opens the Hyper tab's menu, and Use makes that preset
+// active.
 TEST_F(TuiControllerTest, ThePresetBarPutsALinkPresetInUse) {
   OpenLinkScreen(*state_, *controller_);
   state_->character.set_autoswap_presets(false);
@@ -4672,8 +4668,8 @@ TEST_F(TuiControllerTest, ThePresetBarPutsALinkPresetInUse) {
 
 // --- The Bank ---
 
-// A row's Move carries the item to the other half and back again, Inspect
-// opens its card over the bank, and Escape leaves for the main screen.
+// A row's Move sends the item to the other half and back, Inspect opens its
+// card over the bank, and Escape returns to the main screen.
 TEST_F(TuiControllerTest, TheBankMovesAnEquipAcrossAndBack) {
   LevelTo(UnlockLevel(Feature::kBank));
   HoldASword();  // something for the card to weigh the bagged one against
@@ -4712,8 +4708,8 @@ TEST_F(TuiControllerTest, TheBankMovesAnEquipAcrossAndBack) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-// Escape and Close on a row's menu move nothing, and Sort on a chip's menu
-// files the half it is on: the staff no Swordman can wear goes behind.
+// Escape and Close on a row's menu move nothing, and Sort on a tab's menu sorts
+// that half: the staff a Swordman can't wear goes after the others.
 TEST_F(TuiControllerTest, TheBankMenusCloseAndSort) {
   LevelTo(UnlockLevel(Feature::kBank));
   state_->character.PickUp(
@@ -4742,7 +4738,7 @@ TEST_F(TuiControllerTest, TheBankMenusCloseAndSort) {
   EXPECT_EQ(state_->character.inventory()[0].name(), "Sword");
 }
 
-// A move the bank refuses leaves the item where it was and says why.
+// A move the bank refuses leaves the item in place and says why.
 TEST_F(TuiControllerTest, TheBankRefusesASymbolAndSaysSo) {
   LevelTo(UnlockLevel(Feature::kBank));
   state_->character.PickUp(std::make_unique<EquipInstance>(symbol_));
@@ -4757,8 +4753,8 @@ TEST_F(TuiControllerTest, TheBankRefusesASymbolAndSaysSo) {
   EXPECT_EQ(state_->account.bank().equips().size(), 0);
 }
 
-// Enter on a balance asks how much: the amount typed crosses, Escape moves
-// nothing, and the bank's own half sends it back.
+// Enter on a balance asks for an amount: the typed amount moves across, Escape
+// moves nothing, and the bank's half sends it back.
 TEST_F(TuiControllerTest, BankMesoCrossesThroughTheAmountDialog) {
   LevelTo(UnlockLevel(Feature::kBank));
   state_->character.AddMeso(5000);
@@ -4786,7 +4782,7 @@ TEST_F(TuiControllerTest, BankMesoCrossesThroughTheAmountDialog) {
   EXPECT_EQ(state_->account.bank().meso(), 1234);
   EXPECT_EQ(state_->character.meso(), meso - 1234);
 
-  // The dialog opens on everything that half holds.
+  // The dialog starts at everything that half holds.
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::ArrowRight);
   controller_->OnEvent(ftxui::Event::ArrowRight);
@@ -4800,7 +4796,7 @@ TEST_F(TuiControllerTest, BankMesoCrossesThroughTheAmountDialog) {
 // --- Arcane Symbols ---
 
 // Level Up on a worn symbol asks for the meso: Escape spends nothing, and
-// Confirm pays the rung and takes the symbol up a level.
+// Confirm pays the cost and raises the symbol a level.
 TEST_F(TuiControllerTest, LevelUpPaysForTheWornSymbol) {
   LevelTo(200);
   Equip ready;
@@ -4837,12 +4833,12 @@ TEST_F(TuiControllerTest, LevelUpPaysForTheWornSymbol) {
       StatPreset::kFirst, EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
   ASSERT_NE(worn, nullptr);
   EXPECT_EQ(worn->equip_state().symbol_level(), 2);
-  // Twelve duplicates at 8.1 apiece, floored, in ten-thousands.
+  // Twelve duplicates at 8.1 each, floored, in units of ten thousand.
   EXPECT_EQ(state_->character.meso(), meso - 970000);
 }
 
-// Combine on a spare feeds every spare into the worn symbol by default;
-// Escape feeds none.
+// Combine on a spare feeds all spares into the worn symbol by default; Escape
+// feeds none.
 TEST_F(TuiControllerTest, CombineFeedsTheSparesIn) {
   LevelTo(200);
   state_->character.PickUp(std::make_unique<EquipInstance>(symbol_));
