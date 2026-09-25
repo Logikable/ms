@@ -1,8 +1,5 @@
-# The robot Papulatus drives, and three quarters of the fight. When it breaks
-# apart, what was inside is left standing: that is the phase change.
-#
-# Named without "Chaos", like Chaos Horntail's parts: the bar names the part of
-# the fight, and the fight is already titled Chaos Papulatus.
+# Named without "Chaos": the bar names the part, and the fight is already titled
+# Chaos Papulatus.
 name: "Papulatus Clock"
 level: 190
 attack: 30000

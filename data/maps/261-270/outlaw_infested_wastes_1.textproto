@@ -1,5 +1,4 @@
 name: "Outlaw-Infested Wastes 1"
 bgm: "Wayout of the wilderness"
 spawns { mob: "sandblade_marauder" count: 39 }
-# The wilds outside Hotel Arcus.
 sacred_power: 70

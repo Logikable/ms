@@ -1,6 +1,4 @@
 name: "Mottled Forest 1"
 bgm: "ChewChew MainTheme"
 spawns { mob: "bighorn_pinedeer" count: 34 }
-# Chu Chu Island's Five-Color Hill, and a big step up: it takes a level-8
-# symbol.
 arcane_force: 100

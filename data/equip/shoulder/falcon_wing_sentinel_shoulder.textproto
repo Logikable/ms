@@ -15,8 +15,4 @@ set_family: "Cygnus Shoulder"
 upgrade_slots: 1
 token_item: "cygnus_shoulder_token"
 token_price: 1
-# Bought with the token Cygnus drops, never with meso, and like all token gear
-# it sells for nothing. Cygnus drops one token a day and four shoulders use it,
-# one per branch, so the player chooses the piece at the shop rather than by
-# what dropped.
 sell_price: 0

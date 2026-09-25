@@ -315,7 +315,8 @@ message EquipPrototype {
   // What the shop pays for the item, when that isn't a tenth of shop_price
   // (GMS's buy-back rate, and the default for items the shop stocks). Set only
   // on items no shop sells. Call SellPrice instead of reading this field. Zero
-  // is a valid price: an item worth nothing is thrown away.
+  // is a valid price: an item worth nothing is thrown away. Boss and token gear
+  // is 0, since the gear is the reward and selling it would pay a clear twice.
   optional int32 sell_price = 11;
   // The token this item is bought with, by data file stem, and how many. Both
   // are unset for items sold for meso, which is most of them. Setting a token

@@ -15,5 +15,5 @@ equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_RING
 upgrade_slots: 1
 # Crafted in GMS with a profession this game doesn't have. Sold instead, at the
-# cost of crafting it: four times more than anything else on the shelf.
+# cost of crafting it.
 shop_price: 10000000

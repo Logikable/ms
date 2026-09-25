@@ -1,5 +1,2 @@
-# Where a new character starts. It is a town, so it has no spawns: the map
-# select lists it at level 0, and combat waits there until the player picks a
-# map with mobs.
 name: "Maple Island"
 bgm: "Start the Adventure"

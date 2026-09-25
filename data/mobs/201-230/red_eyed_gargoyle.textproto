@@ -4,7 +4,5 @@ attack: 15975
 max_hp: 226241600
 exp: 363430
 pdr: 10
-# The area's Arcane Symbol, at GMS's drop rate. It is so rare that dailies are
-# what really level a symbol. A duplicate counts as one toward the next level
-# (see arcane_force.h).
+# GMS's own drop rate.
 drops { equip: "symbol_lachelein" per_kill: 0.0001 }

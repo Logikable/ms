@@ -1,7 +1,6 @@
 name: "Horntail's Head B"
 level: 160
-# The middle head, which barely hits: GMS gives it a seventh of the attack of
-# the heads on either side.
+# GMS's own: a seventh of the other heads' attack.
 attack: 2000
 max_hp: 490000000
 # The clear pays the EXP, not the parts: see the boss file.

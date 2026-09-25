@@ -1,7 +1,6 @@
 name: EQUIP_SET_NAME_DAWN_BOSS
 # Four slots in GMS (pendant, face, earrings and ring), and this game has only
-# the ring. The tiers count against all four, so the set pays nothing yet and
-# the inspect screen shows how far off it is.
+# the ring. The tiers count against all four, so the set pays nothing yet.
 complete_pieces: 4
 members {
   slot: EQUIP_SLOT_RING

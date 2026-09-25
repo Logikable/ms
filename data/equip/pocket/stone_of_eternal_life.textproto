@@ -1,6 +1,4 @@
 name: "Stone of Eternal Life"
-# No level requirement: a boss reward is usable from the day it drops, and Hilla
-# comes long after any level it would restrict.
 required_level: 0
 base_stats {
   str: 3
@@ -12,9 +10,8 @@ base_stats {
 }
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_POCKET
-# Neither upgrade applies to it, as in GMS. It has no upgrade slots either, so
-# the scroll refusal is stated explicitly rather than implied by the slot count.
+# Stated even though it has no upgrade slots.
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
-# Like all boss gear, it sells for nothing. GMS doesn't allow selling it at all.
+# GMS doesn't allow selling it at all.
 sell_price: 0

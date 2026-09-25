@@ -1,6 +1,5 @@
-# The first crossbow arrow. An arrow has far less attack than the throwing star
-# of the same tier, since a claw is nothing without what it throws, while a bow
-# already hits harder on its own.
+# Far less attack than the same tier's star: a crossbow hits hard on its own, a
+# claw is nothing without what it throws.
 name: "Bronze Arrow for Crossbow"
 required_level: 10
 base_stats {

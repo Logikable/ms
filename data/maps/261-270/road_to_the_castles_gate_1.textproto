@@ -1,5 +1,4 @@
 name: "Road to the Castle's Gate 1"
 bgm: "The Lost City among the Clouds"
 spawns { mob: "enhanced_diamond_guardian" count: 39 }
-# Odium's approach, up to the castle.
 sacred_power: 130

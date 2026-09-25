@@ -1,7 +1,5 @@
-# The one mob off the ladder's curve. GMS gives it 7,892 HP and 149 EXP: more
-# HP than the level 43, 46 and 49 mobs and more EXP than two of them. That is
-# 2.1x the damage for 1.3x the pay, the worst EXP per HP in the game, so both
-# are set to what its neighbours imply. See //analysis:mob_curve_sim.
+# Off GMS's numbers: GMS gives it 2.1x its neighbours' HP for 1.3x the EXP, so
+# both are set to what the neighbours imply. See //analysis:mob_curve_sim.
 name: "Onyx Stonegar"
 level: 40
 attack: 213

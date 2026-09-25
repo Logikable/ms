@@ -1,6 +1,5 @@
-# One body, one phase, and the most HP of any fight that can be played: 5T
-# behind 300% PDR. GMS also cuts every hit on her to 85% outside a groggy
-# window, which this game has no pattern to open, so only the body is here.
+# GMS also cuts every hit on her to 85% outside a groggy window, which this game
+# has no pattern to open, so only the body is here.
 name: "Guardian Angel Slime"
 level: 220
 attack: 22000

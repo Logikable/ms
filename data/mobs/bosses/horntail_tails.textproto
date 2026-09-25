@@ -1,7 +1,5 @@
 name: "Horntail's Tails"
 level: 160
-# The least HP and the hardest hits in the fight, which is why GMS players are
-# told to kill the tail first.
 attack: 24500
 max_hp: 80000000
 # The clear pays the EXP, not the parts: see the boss file.

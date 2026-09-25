@@ -1,5 +1,4 @@
 name: "Occupied Dance Floor 1"
 bgm: "LachelntheIllusionCity"
 spawns { mob: "weakened_dreamkeeper" count: 35 }
-# Lachelein's ballroom, where the Dreaming City starts.
 arcane_force: 210

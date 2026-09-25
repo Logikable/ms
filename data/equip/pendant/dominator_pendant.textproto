@@ -8,14 +8,10 @@ base_stats {
   attack: 3
   magic_attack: 3
   def: 100
-  # GMS's own +10% to each pool. Adds to what a passive grants rather than
-  # multiplying with it (see EquipStats.max_hp_pct).
   max_hp_pct: 10
   max_mp_pct: 10
 }
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_PENDANT
 upgrade_slots: 5
-# Dropped by Arkarium and never stocked. Like all boss gear, it sells for
-# nothing.
 sell_price: 0

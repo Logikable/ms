@@ -1,10 +1,6 @@
-# The first mob of a band set on this game's curve instead of GMS's numbers.
-# Leafre's dragon nests were made for an older era and sit a fifth under the
-# curve. Every mob from here to 168 follows x1.053 HP, x1.038 EXP and x1.029
-# attack per level, the shape the ladder has kept since level 98.
-#
-# HP rises by the same share as EXP, so EXP per HP stays GMS's. Raising EXP
-# alone would have made these maps too cheap.
+# Leafre's nests sit a fifth under the ladder's curve in GMS, so every mob from
+# here to 168 is set on it instead: x1.053 HP, x1.038 EXP and x1.029 attack per
+# level. HP rises with EXP so that EXP per HP stays GMS's.
 name: "Jr. Newtie"
 level: 145
 attack: 3391

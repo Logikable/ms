@@ -1,6 +1,3 @@
-# A currency, not loot: it sells for nothing, and the shop prices things in it
-# by the mark below. The triangle marks its stage of the game and the colour
-# marks the piece it buys.
 name: "Cygnus Shoulder Token"
 kind: ITEM_KIND_TOKEN
 description:

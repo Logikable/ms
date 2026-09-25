@@ -1,8 +1,4 @@
 name: EQUIP_SET_NAME_ROOT_ABYSS_MAGICIAN
-# Four slots, all filled: the three armour pieces from Chaos Pierre, Von Bon and
-# the Crimson Queen, and the weapon from Vellum. There is one file per branch
-# because every piece belongs to one class: no one else wears the set a magician
-# wears.
 complete_pieces: 4
 members {
   slot: EQUIP_SLOT_HAT
@@ -16,8 +12,6 @@ members {
   slot: EQUIP_SLOT_BOTTOM
   items { name: "Trixter Dunwitch Pants" }
 }
-# Named as a family: the branch's weapons are one piece with a version per job,
-# and a player wears exactly one.
 members {
   slot: EQUIP_SLOT_PRIMARY_WEAPON
   family: "Root Abyss Magician Weapon"

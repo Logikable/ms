@@ -1,5 +1,4 @@
 name: "Cernium Eastern City Ramparts 1"
 bgm: "TheHolyLand"
 spawns { mob: "fire_spirit" count: 39 }
-# Cernium's eastern wall, the first map in Grandis.
 sacred_power: 30

@@ -1,13 +1,8 @@
 name: "Arcane Symbol: Esfera"
 required_level: 200
-# Every job wears every symbol. A symbol grants the wearer's own primary stat,
-# so one item serves every job and needs no job filter.
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_SYMBOL_ESFERA
-# It levels by absorbing duplicates, a system of its own. Neither upgrade
-# applies to it, and it has no slots to spend.
+# Symbols level by absorbing duplicates instead.
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
-# No shop price. A spare is worth what it can be combined into, which only
-# happens on the Symbols tab.
 arcane_symbol { meso_cost_base: 18 area_level: 235 }

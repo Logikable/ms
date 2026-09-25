@@ -11,6 +11,4 @@ equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
 set_family: "Frozen Weapon"
 token_item: "frozen_weapon_token"
 token_price: 1
-# Bought with a token, never with meso. Token gear sells for nothing, since the
-# item is the whole point of earning the token.
 sell_price: 0

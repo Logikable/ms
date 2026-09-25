@@ -1,9 +1,5 @@
-# The AbsoLab top for this branch, bought with the coins Damien and Lotus drop.
-# One of four, since each class wears its own piece, so the set is defined four
-# times rather than once around a universal item.
-#
-# GMS has the top and bottom as one overall. They are split here because the
-# two slots are separate; together they add up to the overall's stats.
+# GMS has the top and bottom as one overall; they are split here into two slots
+# whose stats add up to the overall's.
 name: "AbsoLab Bandit Armor"
 required_level: 160
 base_stats {

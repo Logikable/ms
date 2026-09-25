@@ -13,6 +13,4 @@ unsupported_upgrades: UPGRADE_STAR_FORCE
 set_family: "Frozen Secondary"
 token_item: "frozen_secondary_token"
 token_price: 1
-# Bought with a token, never with meso. Token gear sells for nothing, since the
-# item is the whole point of earning the token.
 sell_price: 0

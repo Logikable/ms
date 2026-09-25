@@ -12,6 +12,5 @@ base_stats {
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_CAPE
 upgrade_slots: 7
-# Dropped, never stocked, so no shop price sets this. A spare sells for about
-# what a lucky run is worth, in line with the meso the maps that drop it give.
+# A spare sells for about what the maps that drop it pay in meso.
 sell_price: 250000

@@ -1,5 +1,5 @@
-# On the band's curve (see jr_newtie). GMS gives this one 3,199 attack, less
-# than Jr. Newtie two levels below; the curve removes that inversion.
+# On the band's curve (see jr_newtie), which removes GMS's inversion: 3,199
+# attack, less than Jr. Newtie two levels below.
 name: "Skelegon"
 level: 147
 attack: 3591

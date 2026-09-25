@@ -1,6 +1,3 @@
-# The AbsoLab weapon for this line, bought with the coins Damien and Lotus drop.
-# A tier above the Root Abyss weapon it replaces, and the last weapon the shop
-# sells.
 name: "AbsoLab Broad Hammer"
 required_level: 160
 base_stats {

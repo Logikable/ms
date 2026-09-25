@@ -1,5 +1,3 @@
-# A currency, not loot: it sells for nothing, and the shop prices things in it
-# by the mark below.
 name: "Frozen Weapon Token"
 kind: ITEM_KIND_TOKEN
 description:

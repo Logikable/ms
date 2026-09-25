@@ -4,6 +4,5 @@ attack: 16110
 max_hp: 5295023500
 exp: 2056974
 pdr: 10
-# Grandis's only Etc item is Sol Erda Fragment, a shared-pool one, and there are
-# no Sacred Symbols yet, so this mob drops nothing. V Points come from the map,
-# not the mob.
+# No drops: there are no Sacred Symbols yet, and Grandis's one Etc item, Sol
+# Erda Fragment, is a shared-pool one.

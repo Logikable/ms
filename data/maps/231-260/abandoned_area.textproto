@@ -1,5 +1,4 @@
 name: "Abandoned Area"
 bgm: "BlackDungeon"
 spawns { mob: "experiment_gone_wrong" count: 37 }
-# Morass's closed research area, past the lab.
 arcane_force: 480

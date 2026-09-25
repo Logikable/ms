@@ -1,6 +1,4 @@
-# HP and EXP are GMS's own. This is where the curve comes back; it only looked
-# like a cliff because the four nest mobs below had sagged. Attack is on the
-# band's curve like the rest (see jr_newtie).
+# HP and EXP are GMS's own; attack is on the band's curve (see jr_newtie).
 name: "Dark Flora"
 level: 156
 attack: 4645

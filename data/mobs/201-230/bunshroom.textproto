@@ -4,7 +4,5 @@ attack: 14625
 max_hp: 139950000
 exp: 284043
 pdr: 10
-# The area's Arcane Symbol, at GMS's drop rate. It is so rare that dailies are
-# what really level a symbol. A duplicate counts as one toward the next level
-# (see arcane_force.h).
+# GMS's own drop rate.
 drops { equip: "symbol_chu_chu_island" per_kill: 0.0001 }

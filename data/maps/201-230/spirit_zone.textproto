@@ -1,5 +1,4 @@
 name: "Spirit Zone"
 bgm: "Volcanic Zone Of Extinction"
 spawns { mob: "soulful_erda" count: 33 }
-# The Extinction Zone, one step up from the Lake of Oblivion.
 arcane_force: 40

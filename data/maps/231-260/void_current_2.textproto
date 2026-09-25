@@ -1,5 +1,4 @@
 name: "Void Current 2"
 bgm: "WaveofEmptiness"
 spawns { mob: "burst_glare" count: 38 }
-# The void Moonbridge crosses, where Tenebris begins.
 arcane_force: 730

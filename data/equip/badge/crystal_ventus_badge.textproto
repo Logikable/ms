@@ -10,10 +10,7 @@ base_stats {
 }
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_BADGE
-# A trophy can't be scrolled or starred in GMS. See master_adventurer, the
-# medal.
+# A trophy can't be scrolled or starred in GMS.
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
-# Dropped by Magnus and never stocked. Boss gear sells for nothing, since the
-# gear is the reward and selling it back would make every clear pay twice.
 sell_price: 0

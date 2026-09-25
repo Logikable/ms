@@ -1,5 +1,4 @@
 name: "End of the World 2-7"
 bgm: "TheWorldsEnd"
 spawns { mob: "embrion" count: 39 }
-# Limina's last field, and the most Arcane Force any map asks.
 arcane_force: 880

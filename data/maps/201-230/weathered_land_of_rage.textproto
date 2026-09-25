@@ -1,6 +1,4 @@
 name: "Weathered Land of Rage"
 bgm: "Lake Of Oblivion"
 spawns { mob: "raging_erda" count: 33 }
-# Vanishing Journey starts at the Lake of Oblivion, which asks for exactly a
-# level-1 symbol.
 arcane_force: 30

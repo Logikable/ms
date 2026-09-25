@@ -4,5 +4,4 @@ attack: 20025
 max_hp: 677762800
 exp: 721247
 pdr: 10
-# Limina has no Arcane Symbol, and its only Etc item is a shared-pool one, so
-# this mob drops nothing. V Points come from the map, not the mob.
+# No drops: Limina has no symbol, and its one Etc item is a shared-pool one.

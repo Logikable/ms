@@ -1,6 +1,5 @@
-# On the band's curve (see jr_newtie). GMS gives the Henesys Ruins pair a third
-# more attack than their HP suggests, so here the curve brings attack down, not
-# up. This is the damage mobs deal to the player.
+# On the band's curve (see jr_newtie), which brings GMS's attack down: GMS gives
+# the Henesys Ruins pair a third more than their HP suggests.
 name: "Mutant Snail"
 level: 162
 attack: 5514

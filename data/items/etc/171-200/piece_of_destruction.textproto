@@ -1,6 +1,3 @@
-# A currency, not loot: it sells for nothing, and every clear drops one. The
-# triangle marks its stage of the game and the colour marks which Root Abyss
-# piece it buys.
 name: "Piece of Destruction"
 kind: ITEM_KIND_TOKEN
 description: "A scale torn from Chaos Vellum. The rock it fell on is still open."

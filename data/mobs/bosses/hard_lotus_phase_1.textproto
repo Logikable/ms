@@ -1,5 +1,4 @@
-# Hard's first body, twenty-one times Normal's. GMS names all three "Lotus"; the
-# bar says which phase it is.
+# GMS names all three "Lotus"; the bar says which phase it is.
 name: "Lotus"
 level: 210
 attack: 22000

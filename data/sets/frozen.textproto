@@ -1,7 +1,6 @@
 name: EQUIP_SET_NAME_FROZEN
 complete_pieces: 8
-# In the order the inspect screen lists them, which is the order they are worn,
-# not the order they drop.
+# In the order the inspect screen lists them.
 members {
   slot: EQUIP_SLOT_HAT
   items { name: "Frozen Hat" }
@@ -26,9 +25,6 @@ members {
   slot: EQUIP_SLOT_CAPE
   items { name: "Frozen Cape" }
 }
-# Named as families: each weapon here belongs to one class, so there is one per
-# class instead of one item. Both shelves are bought with the tokens that level
-# 101-140 mobs drop.
 members {
   slot: EQUIP_SLOT_PRIMARY_WEAPON
   family: "Frozen Weapon"
@@ -37,10 +33,8 @@ members {
   slot: EQUIP_SLOT_SECONDARY
   family: "Frozen Secondary"
 }
-# GMS's own three tiers and values. GMS's Frozen set has five slots (hat,
-# overall, cape, weapon, secondary) where this one has eight, so the whole bonus
-# comes at five pieces and the last three pay nothing. They stay members because
-# a piece is worth wearing for more than its set bonus.
+# GMS's own tiers, for a set of five slots where this one has eight: the whole
+# bonus comes at five pieces.
 tiers {
   pieces: 3
   effect {
