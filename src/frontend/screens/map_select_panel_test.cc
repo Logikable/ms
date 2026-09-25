@@ -34,8 +34,8 @@ Mob MushroomMob() {
   return mob;
 }
 
-// More pages than the list will ever hold, so ChangePage clamps to the last
-// band whatever the band count has grown to.
+// More pages than the list will ever have, so ChangePage stops at the last band
+// however many bands there are.
 constexpr int kPastEveryBand = 99;
 
 void AddSpawn(MapData* map, const std::string& mob, int count) {
@@ -44,10 +44,10 @@ void AddSpawn(MapData* map, const std::string& mob, int count) {
   spawn->set_count(count);
 }
 
-// Three maps whose display order is not their alphabetical order: Green and
-// Mixed both weigh in at level 1 (Green first by name), and Horny --
-// alphabetically in the middle -- sorts last at level 8. Mixed is mostly
-// snails, so the count is what holds it down next to Green.
+// Three maps whose display order isn't alphabetical: Green and Mixed both come
+// out at level 1 (Green first by name), and Horny, alphabetically in the
+// middle, sorts last at level 8. Mixed is mostly snails, so the counts keep it
+// next to Green.
 GameState ThreeMaps() {
   MapData green;
   green.set_name("Green Field");
@@ -127,14 +127,15 @@ Mob FireSpiritMob() {
   return mob;
 }
 
-// One map on every band, so a test can page across the whole list: Green
-// (level 1) and Horny (level 8) on the 1-10 band, then Temple (15) on 11-30,
-// Cave (40) on 31-60, Meadow (86) on 61-100, Nest (106) on 101-140, Road
-// (141) on 141-170, District (172) on 171-200, Zone (201) on 201-220, Rage
-// (201, asking Arcane Force) on Arcane River P1, Clearing (233) on P2 and
-// Ramparts (261, asking Sacred Power) on Grandis, each alone on its own.
-// **Adding a band to kLevelBands means adding a map here**, or paging to the
-// end lands on an empty band and the tests below say nothing.
+// One map in every band, so a test can page across the whole list: Green (level
+// 1) and Horny (level 8) in the 1-10 band, then Temple (15) in 11-30, Cave (40)
+// in 31-60, Meadow (86) in 61-100, Nest (106) in 101-140, Road (141) in
+// 141-170, District (172) in 171-200, Zone (201) in 201-220, Rage (201,
+// requiring Arcane Force) in Arcane River P1, Clearing (233) in P2, and
+// Ramparts (261, requiring Sacred Power) in Grandis, each alone in its band.
+//
+// Adding a band to kLevelBands means adding a map here, or paging to the end
+// lands on an empty band and the tests below check nothing.
 GameState EveryBand() {
   MapData green;
   green.set_name("Green Field");
@@ -214,9 +215,9 @@ std::string Render(const MapSelectPanel& panel) {
   return screen.ToString();
 }
 
-// The band chip drawn as the active one. Screen::ToString drops both the
-// invert and the colours, so this has to read pixels: an unfocused bar marks
-// its chip with ftxui's invert, and a focused one paints it white instead.
+// The band chip drawn as active. Screen::ToString drops both inversion and
+// colour, so this reads pixels: an unfocused bar marks its chip with ftxui's
+// inversion, and a focused one paints it white instead.
 std::string ActiveBand(const MapSelectPanel& panel) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
                                                ftxui::Dimension::Fixed(14));
@@ -235,7 +236,7 @@ std::string ActiveBand(const MapSelectPanel& panel) {
   return label;
 }
 
-// Whether the chip bar is holding the cursor, which it says by going white.
+// Whether the chip bar has the cursor, which it shows by turning white.
 bool BarHasTheCursor(const MapSelectPanel& panel) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
                                                ftxui::Dimension::Fixed(14));
@@ -250,17 +251,17 @@ bool BarHasTheCursor(const MapSelectPanel& panel) {
   return false;
 }
 
-// Steps the cursor up onto the chip bar, which is the stop above the first map
-// and the only place Left and Right do anything.
+// Moves the cursor up onto the chip bar, the stop above the first map and the
+// only place Left and Right do anything.
 void GoToTheBar(MapSelectPanel* panel) {
   while (!BarHasTheCursor(*panel)) {
     panel->MoveCursor(-1);
   }
 }
 
-// The column the mob table's top-right corner lands on -- the right edge of
-// the pair. Read off the pixels because Screen::ToString keeps the colour
-// escapes, so a byte offset into a line is not the column it looks like.
+// The column of the mob table's top-right corner, the right edge of the pair.
+// Read from the pixels because Screen::ToString keeps colour escapes, so a byte
+// offset into a line isn't the column it appears to be.
 int MobTableRightEdge(const MapSelectPanel& panel) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
                                                ftxui::Dimension::Fixed(14));
@@ -273,8 +274,8 @@ int MobTableRightEdge(const MapSelectPanel& panel) {
   return -1;
 }
 
-// The column the map list's own top-right corner lands on -- the first of the
-// two the pair draws.
+// The column of the map list's own top-right corner, the first of the two
+// windows.
 int MapListRightEdge(const MapSelectPanel& panel) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
                                                ftxui::Dimension::Fixed(14));
@@ -287,8 +288,8 @@ int MapListRightEdge(const MapSelectPanel& panel) {
   return -1;
 }
 
-// Runs of spaces collapsed to one, so assertions can name the columns without
-// pinning their widths.
+// Runs of spaces collapsed to one, so checks can name the columns without
+// fixing their widths.
 std::string Squeeze(const std::string& line) {
   std::string squeezed;
   bool in_spaces = false;
@@ -307,7 +308,7 @@ std::string Squeeze(const std::string& line) {
 }
 
 // The first rendered line containing `needle`. The map list and the mob table
-// share a line, since they sit side by side.
+// are side by side, so they share lines.
 std::string LineWith(const std::string& rendered, const std::string& needle) {
   std::istringstream lines(rendered);
   std::string line;
@@ -319,9 +320,9 @@ std::string LineWith(const std::string& rendered, const std::string& needle) {
   return "";
 }
 
-// A map's own row in the list. A map name is on screen twice -- the mob table
-// labels itself with it, up on the chip line -- and the row is the lower of
-// the two, so this takes the last match rather than the first.
+// A map's own row in the list. A map name appears twice on screen (the mob
+// table's label on the chip line shows it too), and the row is the lower one,
+// so this takes the last match.
 std::string MapRow(const std::string& rendered, const std::string& name) {
   std::istringstream lines(rendered);
   std::string line;
@@ -354,15 +355,16 @@ TEST(MapSelectPanelTest, ShowsWeightedLevelRoundedDown) {
 
   EXPECT_NE(MapRow(rendered, "Green Field").find("Green Field 1"),
             std::string::npos);
-  // Mixed Field spawns nine level 1 mobs and one level 8: 1.7, down to 1.
-  // Ignoring the counts would say 4.5, and rounding to nearest would say 2.
+  // Mixed Field spawns nine level 1 mobs and one level 8: 1.7, rounded down to
+  // 1. Ignoring the counts would give 4.5, and rounding to nearest would give
+  // 2.
   EXPECT_NE(MapRow(rendered, "Mixed Field").find("Mixed Field 1"),
             std::string::npos);
 }
 
-// A town rather than a hunting ground. There is no mob to average, so the
-// level column says 0 rather than dividing by nothing -- which also puts the
-// town below every hunting ground, leaving the list running low to high.
+// A town rather than a hunting ground. There are no mobs to average, so the
+// level column shows 0 instead of dividing by zero, which also puts the town
+// below every hunting ground and keeps the list running low to high.
 TEST(MapSelectPanelTest, AMapWithNoMobsShowsLevelZeroAndSortsFirst) {
   MapData green;
   green.set_name("Green Field");
@@ -391,9 +393,9 @@ TEST(MapSelectPanelTest, ResetPutsTheCursorOnTheMapBeingFarmed) {
   EXPECT_EQ(MapRow(rendered, "Green Field").find(">"), std::string::npos);
 }
 
-// The mob table names the map it is showing, in the row the band chips fill
-// next door. Without it the two tables sit one line out of step, since they
-// share a screen and one has a bar the other has not.
+// The mob table names the map it is showing, on the row where the band chips
+// are next door. Without it the two tables would be a line out of step, since
+// they share the screen and only one has a bar.
 TEST(MapSelectPanelTest, TheMobTableNamesTheMapItIsShowing) {
   GameState state = ThreeMaps();
   MapSelectPanel panel(state);
@@ -407,7 +409,7 @@ TEST(MapSelectPanelTest, TheMobTableNamesTheMapItIsShowing) {
   EXPECT_EQ(seen, 2) << "once in the map list, once over its mobs";
 }
 
-// The pin for that alignment: both column headers land on one line.
+// The check for that alignment: both column headers are on one line.
 TEST(MapSelectPanelTest, TheTwoTablesShareAHeaderLine) {
   GameState state = ThreeMaps();
   MapSelectPanel panel(state);
@@ -419,22 +421,22 @@ TEST(MapSelectPanelTest, TheTwoTablesShareAHeaderLine) {
 }
 
 // There are more bands than fit beside the maps, so the bar is held to the
-// rows' width and scrolls under them: the window comes to 48 columns and its
-// corner lands on 47. Left to itself the bar would take it out past that and
-// the maps would sit in a window sized by its tabs.
+// rows' width and scrolls: the window is 48 columns and its corner is at column
+// 47. Otherwise the bar would push it wider and the maps would sit in a window
+// sized by its tabs.
 TEST(MapSelectPanelTest, TheBandBarDoesNotWidenTheMapList) {
   GameState state = EveryBand();
   MapSelectPanel panel(state);
   panel.Reset();
 
   EXPECT_LT(MapListRightEdge(panel), 48);
-  // And it says so, rather than just dropping the bands it cannot draw.
+  // It shows that it scrolls, instead of just dropping the bands it can't draw.
   EXPECT_NE(Render(panel).find("›"), std::string::npos);
 }
 
-// The mob table wears the selected map's name over its columns, and the pair
-// of windows is centered. A name wider than the columns would push that window
-// out and walk both of them sideways every time the cursor moved.
+// The mob table shows the selected map's name above its columns, and the two
+// windows are centred as a pair. A name wider than the columns would push that
+// window out and shift both sideways whenever the cursor moved.
 TEST(MapSelectPanelTest, ALongMapNameDoesNotWidenTheMobTable) {
   Mob beetle;
   beetle.set_name("Beetle");
@@ -456,17 +458,16 @@ TEST(MapSelectPanelTest, ALongMapNameDoesNotWidenTheMobTable) {
   panel.MoveCursor(-1);
   ASSERT_EQ(panel.selected_map(), "battlefield");
   EXPECT_EQ(MobTableRightEdge(panel), narrow);
-  // And the name is all there, not clipped to buy that width. The label shares
-  // its line with the chip bar, so that line is the one to read -- the map's
-  // own row further down carries the name too, and is wider.
+  // The name is shown in full, not clipped to save width. The label shares its
+  // line with the chip bar, so that line is checked; the map's own row further
+  // down also has the name and is wider.
   std::string label = LineWith(Render(panel), "1-10");
   EXPECT_NE(label.find("Battlefield of Fire and Darkness"), std::string::npos)
       << "the mob table's label is clipped: " << label;
 }
 
-// And a name past even that is clipped rather than allowed to push the window
-// out. Which of the two the columns can hold is a number that will move; that
-// the label never sets the width is not.
+// A name longer than even that is clipped instead of pushing the window out.
+// Which names fit will change; that the label never sets the width won't.
 TEST(MapSelectPanelTest, AMapNamePastTheMobColumnsIsClipped) {
   Mob beetle;
   beetle.set_name("Beetle");
@@ -494,19 +495,19 @@ TEST(MapSelectPanelTest, MobTableFollowsTheCursor) {
   GameState state = ThreeMaps();
   MapSelectPanel panel(state);
 
-  // Green Field, the first row, holds four snails and nothing else.
+  // Green Field, the first row, has four snails and nothing else.
   std::string rendered = Render(panel);
   EXPECT_NE(LineWith(rendered, "Snail").find("Snail 1 4"), std::string::npos);
   EXPECT_EQ(rendered.find("Horny Mushroom"), std::string::npos);
 
-  panel.MoveCursor(1);  // Mixed Field, which holds both
+  panel.MoveCursor(1);  // Mixed Field, which has both
   rendered = Render(panel);
   EXPECT_NE(rendered.find("Snail"), std::string::npos);
   EXPECT_NE(rendered.find("Horny Mushroom"), std::string::npos);
 }
 
-// PadRight truncates, so a name past the column loses its last letters rather
-// than pushing the table wider. The longest shipped name is 19.
+// PadRight truncates, so a name longer than the column loses its last letters
+// instead of widening the table. The longest name in the game is 19.
 TEST(MapSelectPanelTest, TheMobColumnFitsTheLongestName) {
   Mob monster;
   monster.set_name("Muddy Swamp Monster");  // 19 characters
@@ -515,21 +516,21 @@ TEST(MapSelectPanelTest, TheMobColumnFitsTheLongestName) {
   swamp.set_name("Swamp");
   AddSpawn(&swamp, "monster", 18);
   GameState state({}, {}, {}, {{"monster", monster}}, {{"swamp", swamp}});
-  // Reset opens on the farmed map's own band, whichever band that turns out to
-  // be. Paging to the end would land on whatever band is last today.
+  // Reset opens on the farmed map's own band, whichever band that is. Paging to
+  // the end would land on whatever band happens to be last.
   state.current_map = "swamp";
   MapSelectPanel panel(state);
   panel.Reset();
 
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Muddy Swamp Monster"), std::string::npos);
-  // And still a gap before the level, rather than running into it.
+  // Still a gap before the level, instead of running into it.
   EXPECT_NE(LineWith(rendered, "Muddy Swamp Monster").find("Monster 49 18"),
             std::string::npos);
 }
 
-// The rows and the chip bar over them are one ring: Up off the first map
-// reaches the bar, Up again wraps to the last map, and Down comes back round.
+// The rows and the chip bar above them form one ring: Up from the first map
+// reaches the bar, Up again wraps to the last map, and Down wraps back.
 TEST(MapSelectPanelTest, TheCursorRingRunsThroughTheChipBar) {
   GameState state = ThreeMaps();
   MapSelectPanel panel(state);
@@ -538,7 +539,7 @@ TEST(MapSelectPanelTest, TheCursorRingRunsThroughTheChipBar) {
 
   panel.MoveCursor(-1);
   EXPECT_TRUE(BarHasTheCursor(panel)) << "the stop above the first map";
-  // The row is held, not moved, so stepping back down returns to it.
+  // The row is kept, not moved, so moving back down returns to it.
   EXPECT_EQ(panel.selected_map(), "green_field");
   EXPECT_EQ(LineWith(Render(panel), "Green Field").find(">"), std::string::npos)
       << "no row cursor while the bar has it";
@@ -555,8 +556,8 @@ TEST(MapSelectPanelTest, TheCursorRingRunsThroughTheChipBar) {
   EXPECT_FALSE(BarHasTheCursor(panel));
 }
 
-// The bar carries one chip per band, and the one on show is the marked one --
-// the lowest, which is where the panel opens.
+// The bar has one chip per band, and the band shown is the marked one: the
+// lowest, where the panel opens.
 TEST(MapSelectPanelTest, TheBarShowsEveryBandAndOpensOnTheLowest) {
   GameState state = EveryBand();
   MapSelectPanel panel(state);
@@ -573,7 +574,7 @@ TEST(MapSelectPanelTest, TheBarShowsEveryBandAndOpensOnTheLowest) {
 }
 
 // Left and Right belong to the bar. In the list they would change the list
-// under the cursor on a key the player pressed to move within it.
+// under the cursor when the player meant to move within it.
 TEST(MapSelectPanelTest, TheBandChangesOnlyFromTheBar) {
   GameState state = EveryBand();
   MapSelectPanel panel(state);
@@ -589,8 +590,8 @@ TEST(MapSelectPanelTest, TheBandChangesOnlyFromTheBar) {
   EXPECT_EQ(panel.selected_map(), "temple");
 }
 
-// Wrapping stays inside the band. Bands are Left and Right, and rolling into
-// the next one on Up would move two things on one key.
+// Wrapping stays inside the band. Bands change with Left and Right, and moving
+// into the next band on Up would change two things with one key.
 TEST(MapSelectPanelTest, WrappingDoesNotCarryIntoTheNextBand) {
   GameState state = EveryBand();
   MapSelectPanel panel(state);
@@ -641,8 +642,8 @@ TEST(MapSelectPanelTest, PagingStopsAtBothEndsOfTheBands) {
   EXPECT_EQ(panel.selected_map(), "ramparts");
 }
 
-// Arcane River splits at 230 and Grandis stands apart, whatever the level:
-// the tab is read off the force a map asks for before its level.
+// Arcane River splits at 230 and Grandis is separate, whatever the level: the
+// tab is chosen by the force a map requires before its level.
 TEST(MapSelectPanelTest, TheForcesHaveTabsOfTheirOwn) {
   GameState state = EveryBand();
   const struct {
@@ -663,8 +664,8 @@ TEST(MapSelectPanelTest, TheForcesHaveTabsOfTheirOwn) {
 }
 
 TEST(MapSelectPanelTest, MapsPastTheLastBandShowOnIt) {
-  // Nothing outside the river and Grandis stands past 220; a map that does
-  // must not fall out of the list for that.
+  // No map outside Arcane River and Grandis is above 220, but one that is must
+  // not fall out of the list.
   Mob balrog;
   balrog.set_name("Balrog");
   balrog.set_level(300);
@@ -695,7 +696,8 @@ TEST(MapSelectPanelTest, TheMenuOpensOverTheListAndSaysWhatItOffers) {
   EXPECT_NE(rendered.find("Move"), std::string::npos);
   EXPECT_NE(rendered.find("Inspect"), std::string::npos);
   EXPECT_NE(rendered.find("Close"), std::string::npos);
-  // The list is still behind it: the menu is about a map the player can see.
+  // The list is still behind it, since the menu is about a map the player can
+  // see.
   EXPECT_NE(rendered.find("Green Field"), std::string::npos);
 }
 
@@ -713,7 +715,7 @@ TEST(MapSelectPanelTest, TheMenuSaysWhichEntryWasTaken) {
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return), kMobInspect);
 
   panel.OpenMenu();
-  panel.OnMenuEvent(ftxui::Event::ArrowUp);  // the ring, onto Close
+  panel.OnMenuEvent(ftxui::Event::ArrowUp);  // wraps onto Close
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return), kMapSelect);
 
   panel.OpenMenu();
@@ -721,7 +723,7 @@ TEST(MapSelectPanelTest, TheMenuSaysWhichEntryWasTaken) {
   EXPECT_FALSE(panel.menu_open());
 }
 
-// The bar stands on no map, so there is nothing there to open a menu about.
+// The bar isn't a map, so there is nothing to open a menu about.
 TEST(MapSelectPanelTest, TheBarOpensNoMenu) {
   GameState state = ThreeMaps();
   MapSelectPanel panel(state);
@@ -742,13 +744,13 @@ TEST(MapSelectPanelTest, HandlesAWorldWithNoMaps) {
   EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
 }
 
-// A map inside Arcane River, which puts it on the second river band.
+// A map in Arcane River, which puts it in the second river band.
 GameState ArcaneMaps() {
   MapData clearing;
   clearing.set_name("Snow Cloud Clearing");
   AddSpawn(&clearing, "spirit", 36);
-  // 320 rather than a rounder number: a test looking for the cell must not
-  // find one of the band chips, which read "11-30", "101-140" and the rest.
+  // 320 rather than a rounder number, so a test looking for the cell doesn't
+  // match one of the band chips, which read "11-30", "101-140" and so on.
   clearing.set_arcane_force(320);
   MapData plain;
   plain.set_name("Green Field");
@@ -757,14 +759,14 @@ GameState ArcaneMaps() {
                    {{"clearing", clearing}, {"green_field", plain}});
 }
 
-// The column only stands over bands that want force. Outside Arcane River no
-// map asks for any, so the header would head a column of blanks.
+// The column header appears only on bands that require force. Outside Arcane
+// River no map requires any, so the header would sit over a column of blanks.
 TEST(MapSelectPanelTest, TheArcaneForceColumnFollowsTheBand) {
   GameState state = ArcaneMaps();
   MapSelectPanel panel(state);
   panel.Reset();
   std::string rendered = Render(panel);
-  // The first band holds the plain map, which names no force.
+  // The first band has the plain map, which requires no force.
   EXPECT_EQ(rendered.find("AF"), std::string::npos) << rendered;
   EXPECT_EQ(rendered.find("320"), std::string::npos) << rendered;
   int plain_width = Width(panel);
@@ -776,12 +778,12 @@ TEST(MapSelectPanelTest, TheArcaneForceColumnFollowsTheBand) {
   EXPECT_NE(arcane.find("Snow Cloud Clearing"), std::string::npos);
   EXPECT_NE(arcane.find("AF"), std::string::npos) << arcane;
   EXPECT_NE(arcane.find("320"), std::string::npos) << arcane;
-  // The column holds its width without its header, so the window does not
-  // walk sideways as the player pages.
+  // The column keeps its width without its header, so the window doesn't shift
+  // sideways as the player pages.
   EXPECT_EQ(Width(panel), plain_width);
 }
 
-// Grandis's maps put Sacred Power in the same column, under its own header.
+// Grandis maps put Sacred Power in the same column, under their own header.
 TEST(MapSelectPanelTest, GrandisHeadsTheColumnSac) {
   MapData ramparts;
   ramparts.set_name("Cernium Eastern City Ramparts 1");
@@ -798,8 +800,8 @@ TEST(MapSelectPanelTest, GrandisHeadsTheColumnSac) {
   EXPECT_EQ(rendered.find("AF "), std::string::npos) << rendered;
 }
 
-// The band bar, the map list and the mob table beside it all sit in one
-// window fitted to the longest row of any of them.
+// The band bar, the map list and the mob table beside it are in one window
+// sized to the longest row of any of them.
 TEST(MapSelectPanelTest, NoRowWeldsItselfToTheRightBorder) {
   GameState state = EveryBand();
   MapSelectPanel panel(state);

@@ -29,42 +29,41 @@ namespace ms {
 namespace {
 
 // Columns of the mob list: the longest mob name, 25 ("Enhanced Diamond
-// Guardian"), and a space.
+// Guardian"), plus a space.
 constexpr int kMobNameWidth = 26;
 constexpr int kLevelWidth = 4;
 constexpr int kCountWidth = 6;
 
-// The stats column: a label and a right-aligned value, so the panel does not
-// breathe as a number gains a digit. Sized for the longest label and for a
-// number just under the compact form's threshold, plus a space.
+// The stats column: a label and a right-aligned value, so the panel doesn't
+// change width as a number gains a digit. Sized for the longest label and a
+// number just below the compact form's threshold, plus a space.
 constexpr int kLabelWidth = 7;
 constexpr int kValueWidth = 10;
 
-// The drops column, the wider of the two. A drop name runs long enough to
-// wrap, which RenderDrops does; the longest chance is six ("0.025%").
+// The drops column, the wider of the two. A drop name can be long enough to
+// wrap, which RenderDrops handles; the longest chance is six ("0.025%").
 constexpr int kDropNameWidth = 24;
 constexpr int kChanceWidth = 6;
 
-// What each column comes to with its column of clearance on either side. The
-// two of them and the rule between fill the width the blurb is set in, which
-// is what makes this panel wider than the rest: a sentence needs more room
-// than a stat does.
+// Each column's width including a blank column on each side. The two columns
+// and the rule between them fill the width the blurb uses, which is why this
+// panel is wider than the others: a sentence needs more room than a stat.
 constexpr int kStatColumnWidth = 2 + kLabelWidth + kValueWidth;
 constexpr int kDropColumnWidth = 2 + kDropNameWidth + kChanceWidth;
 static_assert(kStatColumnWidth + 1 + kDropColumnWidth == kFlavourWidth + 2);
 
-// What the rest of a wrapped drop name is set in from its first line, so the
-// two rows read as one name.
+// The indent for the rest of a wrapped drop name, so the two lines read as one
+// name.
 constexpr int kNameIndent = 2;
 
-// The Arcane River rows run across the whole mob list rather than sitting in
-// its columns, so they keep their own right gutter: the other rows get one
-// free from a column padded past the text in it.
+// The Arcane River rows span the whole mob list instead of sitting in its
+// columns, so they keep their own right gutter. The other rows get one for free
+// from a column padded past its text.
 constexpr int kTollLabelWidth = kMobNameWidth - 1;
 
-// The rows the screen always takes. Tall enough for the mob carrying the most
-// drops -- four lines of blurb, a rule, and eight rows of drops inside a
-// border -- so walking the list never moves the top of the panel.
+// The screen's fixed height. Tall enough for the mob with the most drops (four
+// lines of blurb, a rule, and eight rows of drops inside a border), so moving
+// through the list never moves the top of the panel.
 constexpr int kScreenHeight = 16;
 
 ftxui::Element InfoRow(const std::string& label, const std::string& value) {
@@ -77,16 +76,15 @@ ftxui::Element DropRow(const std::string& name, const std::string& chance) {
                      PadLeft(chance, kChanceWidth) + " ");
 }
 
-// The share of the character's damage that lands, as a whole percentage: the
-// Arcane Force table's steps are all round, so there is never a fraction to
-// lose.
+// The share of the character's damage that lands, as a whole percentage. The
+// Arcane Force table's steps are all round, so there is never a fraction.
 std::string DealtText(double factor) {
   return std::to_string(static_cast<int>(std::llround(factor * 100.0))) + "%";
 }
 
-// What the monster's hit is multiplied by. Written as a multiplier rather than
-// a percentage because it goes above one, and "280%" of a hit reads as a share
-// of it.
+// What the monster's hit is multiplied by. Shown as a multiplier rather than a
+// percentage because it goes above one, and "280%" of a hit would read as a
+// share of it.
 std::string TakenText(double factor) {
   char buf[16];
   snprintf(buf, sizeof(buf), "%.1fx", factor);
@@ -124,10 +122,10 @@ std::string MobInspectPanel::selected_mob() const {
   return mobs_[selected_].first;
 }
 
-// What Arcane River or Grandis takes for letting the character hurt what lives
-// here: the force the map asks for against what they carry, and the two
-// multipliers that come of it. Two rows, and none at all on a map asking for
-// neither force.
+// The penalty Arcane River or Grandis applies to fighting what lives there: the
+// force the map requires against what the character has, and the two
+// multipliers that result. Two rows, or none on a map that requires neither
+// force.
 void MobInspectPanel::RenderForce(std::vector<ftxui::Element>& rows) const {
   std::map<std::string, MapData>::const_iterator it = state_.maps.find(map_);
   if (it == state_.maps.end() || !AsksForForce(it->second)) {
@@ -176,8 +174,8 @@ void MobInspectPanel::RenderFlavour(std::vector<ftxui::Element>& rows,
                                     const Mob& mob) const {
   std::vector<std::string> lines;
   if (mob.description().empty()) {
-    // Some monsters the world has written nothing about. Saying so is better
-    // than four blank rows, which read as a panel that failed to draw.
+    // Some monsters have no description. Saying so is better than four blank
+    // rows, which would look like a panel that failed to draw.
     lines.push_back("(no record)");
   } else {
     lines = WrapBalanced(mob.description(), kFlavourWidth);
@@ -191,31 +189,31 @@ void MobInspectPanel::RenderFlavour(std::vector<ftxui::Element>& rows,
 ftxui::Element MobInspectPanel::RenderStats(const Mob& mob) const {
   std::vector<ftxui::Element> rows;
   rows.push_back(InfoRow("Level", std::to_string(mob.level())));
-  // HP compactly: Arcane River runs to eleven digits, which would overrun the
-  // column, and a monster's health is read for its size rather than its last
-  // digit. Anything under a couple of million still reads out in full.
+  // HP in compact form: Arcane River HP runs to eleven digits, which would
+  // overflow the column, and a monster's health is read for its size, not its
+  // last digit. Anything under a couple of million still shows in full.
   rows.push_back(InfoRow("HP", FormatCompact(mob.max_hp())));
   rows.push_back(InfoRow("EXP", FormatWithCommas(mob.exp())));
   rows.push_back(InfoRow("Attack", FormatWithCommas(mob.attack())));
-  // What one drop is worth, to be read with the chance of one in the column
-  // beside it. The character's own meso and drop rate are left out: this panel
-  // describes the monster, not the player standing over it.
+  // The value of one meso drop, to read alongside its chance in the column
+  // beside it. The character's own meso and drop rate are left out, since this
+  // panel describes the monster, not the player.
   rows.push_back(InfoRow("Meso", FormatWithCommas(static_cast<int64_t>(
                                      std::llround(MeanMesoPerDrop(mob))))));
-  // No Honor row: what one pays is the same off every monster in the game, so
-  // it says nothing about the one being read. The chance still sits among the
-  // drops, which is where a rule that fires sometimes belongs.
+  // No Honor row: the honor from a kill is the same from every monster, so it
+  // says nothing about this one. Its chance is listed among the drops, where a
+  // reward that only sometimes happens belongs.
   return ftxui::vbox(std::move(rows));
 }
 
 ftxui::Element MobInspectPanel::RenderDrops(const Mob& mob) const {
   std::vector<ftxui::Element> rows;
-  // Meso leads: it is the one thing most kills pay, and everything under it
-  // is a chance at a particular item.
+  // Meso first, since most kills pay it, and everything below is a chance at a
+  // particular item.
   rows.push_back(DropRow("Meso", DropChance(MesoDropChance(0.0))));
   rows.push_back(DropRow("Honor", DropChance(kMobHonorChance)));
-  // V Points fall in Arcane River and Grandis and nowhere else -- named here
-  // because a drop table is where a player looks to find out where the
+  // V Points drop only in Arcane River and Grandis. They are listed here
+  // because the drop table is where a player looks to find out where the
   // currency comes from.
   std::map<std::string, MapData>::const_iterator it = state_.maps.find(map_);
   if (it != state_.maps.end() && AsksForForce(it->second)) {
@@ -233,10 +231,10 @@ ftxui::Element MobInspectPanel::RenderDrops(const Mob& mob) const {
       name = it == state_.items.end() ? "" : it->second.name();
     }
     if (name.empty()) {
-      continue;  // a drop nothing would be granted for
+      continue;  // a drop nothing would grant
     }
-    // Wrapped rather than cut: half a name names nothing. The chance sits on
-    // the last line, in the column every other chance here stands in.
+    // Wrapped rather than cut, since half a name means nothing. The chance is
+    // on the last line, in the same column as every other chance here.
     std::vector<std::string> lines =
         WrapBalanced(name, kDropNameWidth, /*tail=*/0, kNameIndent);
     for (int i = 0; i + 1 < static_cast<int>(lines.size()); ++i) {
@@ -250,8 +248,8 @@ ftxui::Element MobInspectPanel::RenderDrops(const Mob& mob) const {
 ftxui::Element MobInspectPanel::RenderInfo() const {
   std::string selected = selected_mob();
   if (selected.empty()) {
-    // Padded out to the width a described mob fills, so a map standing nothing
-    // does not draw a window a fraction of the size of the one beside it.
+    // Padded to the width a described mob fills, so a map with no mobs doesn't
+    // draw a window a fraction of the size of the one beside it.
     return ThemedWindow(" Mob ",
                         ftxui::hbox({
                             EmptyState("empty"),
@@ -262,8 +260,8 @@ ftxui::Element MobInspectPanel::RenderInfo() const {
   std::vector<ftxui::Element> rows;
   RenderFlavour(rows, mob);
   rows.push_back(ThemedSeparator());
-  // The rule between the columns is the same one that runs across the panel:
-  // ftxui stands it on end inside an hbox.
+  // The rule between the columns is the same rule that runs across the panel;
+  // ftxui draws it vertically inside an hbox.
   rows.push_back(ftxui::hbox({
       RenderStats(mob),
       ThemedSeparator(),
@@ -273,9 +271,9 @@ ftxui::Element MobInspectPanel::RenderInfo() const {
 }
 
 ftxui::Element MobInspectPanel::Render() const {
-  // Held to a fixed height with the panels at the top of it, so that walking
-  // the list -- where one mob has more drops than the next -- moves the bottom
-  // of the panel and leaves its top where the eye left it.
+  // A fixed height with the panels at the top, so moving through the list
+  // (where one mob has more drops than the next) changes only the bottom of the
+  // panel and leaves the top where the eye is.
   return ftxui::vbox({
              ftxui::hbox({RenderMobList(), RenderInfo()}),
              ftxui::filler(),

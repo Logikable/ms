@@ -1,16 +1,16 @@
 /* LinkSkillPanel is the Link Skills screen: the skill this character's own job
- * line hands them, the twelve they carry, and everything else the account has
- * climbed.
+ * line gives them, the twelve they have equipped, and everything else the
+ * account has earned.
  *
- * Three windows down the screen, their columns lined up under the one header
- * the top window carries. Tab and Shift+Tab walk the windows and Up and Down
- * walk the rows of whichever holds the cursor. The middle window's top row is
- * its preset bar: Left and Right pick which set of twelve is being read, and
- * Enter there raises the preset menu the Hyper tab raises.
+ * Three windows, one above the other, with their columns lined up under the
+ * single header in the top window. Tab and Shift+Tab move between windows, and
+ * Up and Down move through the rows of the one with the cursor. The middle
+ * window's top row is its preset bar: Left and Right choose which set of twelve
+ * is shown, and Enter there opens the same preset menu as the Hyper tab.
  *
- * The panel reads and writes the character's presets and puts up its own
- * menus. It asks nothing: what an entry does is the controller's, which is
- * also where the skill card and the notification live.
+ * The panel reads and writes the character's presets and opens its own menus.
+ * It asks nothing itself: the controller decides what an entry does, and also
+ * shows the skill card and notifications.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_LINK_SKILL_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_LINK_SKILL_PANEL_H_
@@ -30,21 +30,21 @@
 
 namespace ms {
 
-// The three windows, in the order Tab walks them.
+// The three windows, in the order Tab moves through them.
 enum class LinkZone {
   kMine,
   kEnabled,
   kAll,
 };
 
-// What the cursor is standing on.
+// What the cursor is on.
 struct LinkCursor {
   enum class Kind {
     // The preset bar, which only the middle window has.
     kPreset,
     kSkill,
-    // The window under the cursor has nothing to stand on: an empty preset,
-    // or a Beginner, who has no line of their own.
+    // The window with the cursor has nothing to select: an empty preset, or a
+    // Beginner, who has no job line of their own.
     kNothing,
   };
   Kind kind = Kind::kNothing;
@@ -53,7 +53,7 @@ struct LinkCursor {
 };
 
 // What the entry under the menu cursor does. The three row menus share Inspect
-// and Close and differ only by the entry between them, so the controller reads
+// and Close and differ only in the entry between them, so the controller reads
 // the choice rather than which menu is open.
 enum class LinkMenuChoice {
   kInspect,
@@ -64,7 +64,7 @@ enum class LinkMenuChoice {
 
 class LinkSkillPanel {
  public:
-  // `skills` is the loaded catalog; the panel lists the entries carrying a
+  // `skills` is the loaded catalog. The panel lists the entries that have a
   // Skill.link_line.
   LinkSkillPanel(CharacterInstance& character,
                  const std::map<std::string, Skill>& skills);
@@ -72,40 +72,40 @@ class LinkSkillPanel {
   LinkSkillPanel(CharacterInstance& character,
                  std::map<std::string, Skill>&& skills) = delete;
 
-  // The cursor on the top window, reading the preset the character is
-  // playing, with no menu up.
+  // The cursor on the top window, showing the preset the character is using,
+  // with no menu open.
   void Reset();
 
-  // Tab and Shift+Tab. The ring comes round at both ends.
+  // Tab and Shift+Tab, wrapping at both ends.
   void NextZone(int delta);
-  // Up and Down inside the window holding the cursor, wrapping at both ends --
-  // in the middle window the preset bar is the stop above the first row.
+  // Up and Down inside the window with the cursor, wrapping at both ends. In
+  // the middle window the preset bar is the stop above the first row.
   void MoveRow(int delta);
-  // Left and Right on that bar, which clamp at the ends as every tab bar in
-  // the game does.
+  // Left and Right on that bar, which stop at the ends like every tab bar in
+  // the game.
   void MovePreset(int delta);
 
   LinkZone zone() const {
     return zone_;
   }
   LinkCursor cursor() const;
-  // The preset being read, which is the one every add and remove lands in.
+  // The preset being shown, which every add and remove goes into.
   StatPreset preset() const {
     return preset_;
   }
 
-  // Puts the skill under the cursor into that preset. False when it already
-  // holds kMaxEquippedLinkSkills, which is the one refusal worth a word.
+  // Puts the skill under the cursor into that preset. Returns false when it
+  // already has kMaxEquippedLinkSkills, the one refusal worth a message.
   bool AddSelected();
-  // Takes it back off. Does nothing on a cursor holding no skill.
+  // Removes it again. Does nothing when the cursor has no skill.
   void RemoveSelected();
 
-  // The level the skill under the cursor stands at: what the account has
-  // climbed on its line, whether or not this character carries it yet.
+  // The level of the skill under the cursor: what the account has earned on its
+  // line, whether or not this character has it equipped yet.
   int SelectedLevel() const;
 
-  // Raises the menu for the window the cursor is in, or the preset menu on the
-  // bar. Neither happens on a cursor with nothing under it.
+  // Opens the menu for the window with the cursor, or the preset menu on the
+  // bar. Neither opens when nothing is under the cursor.
   void OpenMenu();
   void CloseMenu();
   bool menu_open() const {
@@ -115,9 +115,9 @@ class LinkSkillPanel {
     return preset_menu_open_;
   }
   void MoveMenuCursor(int delta);
-  // What Enter on the open row menu does.
+  // What Enter does on the open row menu.
   LinkMenuChoice menu_choice() const;
-  // And on the open preset menu, as a PresetMenuItem.
+  // The same for the open preset menu, as a PresetMenuItem.
   int preset_menu_selected() const {
     return preset_menu_.selected();
   }
@@ -125,46 +125,47 @@ class LinkSkillPanel {
   ftxui::Element Render() const;
 
  private:
-  // One row of a list, laid out in the three columns the header names.
+  // One row of a list, in the three columns the header names.
   ftxui::Element RenderRow(const Skill& skill, bool on_cursor,
                            ftxui::Box& box) const;
-  // What `skill` is worth to this character: the rungs the account climbed,
-  // plus whatever their book lends a skill -- the level its card heads with.
+  // What `skill` is worth to this character: the levels the account earned,
+  // plus any bonus levels their book gives, which is the level its card shows.
   int LevelOf(const Skill& skill) const;
-  // That level as the column prints it, the lent part in brackets.
+  // That level as the column shows it, with the bonus in brackets.
   std::string LevelText(const Skill& skill) const;
-  // The header the top window carries for all three, over the game's usual
-  // rule: the other two sit under it and need no second copy.
+  // The header in the top window, shared by all three, above the usual rule.
+  // The other two sit under it and need no copy.
   ftxui::Element RenderHeader() const;
   ftxui::Element RenderMine() const;
   ftxui::Element RenderEnabled() const;
   ftxui::Element RenderAll() const;
-  // The preset bar: one chip per slot, named for the activity it answers while
-  // the autoswap is on and numbered while it is off.
+  // The preset bar: one chip per slot, named for its activity while the
+  // autoswap is on and numbered while it is off.
   ftxui::Element RenderPresetBar() const;
-  // A blank row of the right width, for the slots a preset has not filled.
+  // A blank row of the right width, for a preset's unused slots.
   ftxui::Element BlankRow() const;
 
-  // The skill this character's own line hands them, null while they have no
-  // line -- a Beginner, or a job line with no link skill written.
+  // The skill this character's own line gives them, or null while they have no
+  // line (a Beginner, or a job line with no link skill defined).
   const Skill* MineSkill() const;
-  // The skills the selected preset carries that pay something, in the order
-  // it holds them.
+  // The skills in the selected preset that grant something, in the preset's
+  // order.
   std::vector<const Skill*> EnabledSkills() const;
-  // Everything else the account has climbed a rung on, catalog order.
+  // Every other skill the account has earned at least one level in, in catalog
+  // order.
   std::vector<const Skill*> AllSkills() const;
-  // The list the cursor is walking, empty in a window with no rows.
+  // The list the cursor is moving through, empty in a window with no rows.
   std::vector<const Skill*> RowsHere() const;
-  // The stops in the window holding the cursor: its rows, and the preset bar
-  // above them in the middle one.
+  // The stops in the window with the cursor: its rows, plus the preset bar
+  // above them in the middle window.
   int StopsHere() const;
-  // The row of `rows` the cursor is on, held inside it.
+  // The cursor's row in `rows`, clamped to the rows that exist.
   int ClampedRow(const std::vector<const Skill*>& rows) const;
-  // Where a menu hangs: one row back from the row it is about, in the panel's
+  // Where a menu opens: one row back from the row it is about, in the panel's
   // own coordinates.
   int MenuRow() const;
 
-  // Which row of the window holding the cursor it is on, before clamping.
+  // The cursor's row in the window it is in, before clamping.
   int RowHere() const;
 
   CharacterInstance& character_;
@@ -172,8 +173,8 @@ class LinkSkillPanel {
 
   LinkZone zone_ = LinkZone::kMine;
   StatPreset preset_ = StatPreset::kFirst;
-  // The cursor's row in the two lists, and whether the middle window's cursor
-  // is on its rows rather than on the preset bar.
+  // The cursor's row in each of the two lists, and whether the middle window's
+  // cursor is on its rows rather than the preset bar.
   int enabled_row_ = 0;
   int all_row_ = 0;
   bool enabled_in_list_ = true;
@@ -185,15 +186,15 @@ class LinkSkillPanel {
   ItemMenu all_menu_{{"Inspect", "Add", "Close"}};
   ItemMenu preset_menu_{{"Use", "Move", "Close"}};
 
-  // The menu the open window uses, so the three need no switch at every call.
+  // The menu for the open window, so callers don't need a switch every time.
   ItemMenu& OpenMenuHere();
   const ItemMenu& OpenMenuHere() const;
 
-  // A name or an effect too wide for its column slides under it while the row
-  // is selected. One clock: only one row is ever selected.
+  // A name or effect too wide for its column scrolls while the row is selected.
+  // One clock is enough, since only one row is selected at a time.
   mutable SelectionClock name_clock_;
-  // Where the cursor and the preset bar were drawn, for anchoring a menu
-  // beside them -- read from the render, as every other screen's is.
+  // Where the cursor and the preset bar were drawn, for placing a menu beside
+  // them, read from the render as on every other screen.
   mutable ftxui::Box cursor_box_;
   mutable ftxui::Box bar_box_;
   mutable ftxui::Box panel_box_;

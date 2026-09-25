@@ -1,18 +1,17 @@
-/* MobInspectPanel is the bestiary: what a map's monsters are, read one at a
- * time. The left half lists the mobs of one map -- the same name, level and
- * count the map select screen shows -- and the right half is everything the
- * player might want to know about whichever the cursor is on: what the world
- * says about it, what it is worth killing, and what falls off it.
+/* MobInspectPanel is the bestiary: a map's monsters, one at a time. The left
+ * half lists the map's mobs (the same name, level and count as the map select
+ * screen), and the right half shows what the player might want to know about
+ * the one under the cursor: its description, what killing it gives, and what it
+ * drops.
  *
- * The blurb at the top is held to a fixed four lines whether the mob has one
- * or not, so the numbers under it stand still as the cursor walks the list.
- * Under the rule it splits in two: the stats on the left, where a label and a
- * number need little room, and the drops on the right, where a name does. Both
- * columns are free to grow downwards -- that is the end of the panel, and
- * nothing the eye is holding its place in moves when they do.
+ * The description at the top always takes four lines, so the numbers below stay
+ * still as the cursor moves. Below the rule the panel splits in two: stats on
+ * the left, where a label and number need little room, and drops on the right,
+ * where a name needs more. Both columns can grow downwards, since that is the
+ * end of the panel and nothing the eye is tracking moves when they do.
  *
- * The panel is a view. The controller tells it which map to list and moves its
- * cursor; it never writes to the game state.
+ * The panel only displays. The controller tells it which map to list and moves
+ * its cursor, and it never changes the game state.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_MOB_INSPECT_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_MOB_INSPECT_PANEL_H_
@@ -27,9 +26,9 @@
 
 namespace ms {
 
-// Columns the bestiary blurb is set in, and the rows it always takes. A data
-// test holds every shipped description inside them, because a blurb that
-// overruns would push the stats down for that one mob.
+// The width of the bestiary description and the rows it always takes. A data
+// test keeps every description within them, because one that overflowed would
+// push that mob's stats down.
 inline constexpr int kFlavourWidth = 50;
 inline constexpr int kFlavourLines = 4;
 
@@ -37,36 +36,36 @@ class MobInspectPanel {
  public:
   explicit MobInspectPanel(const GameState& state);
 
-  // Lists the mobs of `map` and puts the cursor on the first of them. Call
-  // when the screen opens.
+  // Lists the mobs of `map` and puts the cursor on the first. Call when the
+  // screen opens.
   void SetMap(const std::string& map);
-  // Moves the cursor `delta` mobs, coming out the other end.
+  // Moves the cursor `delta` mobs, wrapping at the ends.
   void MoveCursor(int delta);
   ftxui::Element Render() const;
 
-  // The mob the cursor is on, by data file stem; empty when the map stands
-  // none the catalog knows.
+  // The mob under the cursor, by data file stem, or empty when the map has none
+  // the catalog knows.
   std::string selected_mob() const;
 
  private:
   ftxui::Element RenderMobList() const;
-  // The map's force requirement, what the character carries against it, and
-  // what the pair does to the fight. Adds nothing on a map asking for none.
+  // The map's force requirement, what the character has against it, and what
+  // that does to the fight. Adds nothing on a map that requires none.
   void RenderForce(std::vector<ftxui::Element>& rows) const;
   ftxui::Element RenderInfo() const;
-  // The blurb, padded out to kFlavourLines rows.
+  // The description, padded to kFlavourLines rows.
   void RenderFlavour(std::vector<ftxui::Element>& rows, const Mob& mob) const;
-  // The left column: Level, HP, EXP, Attack, and what one meso drop is worth.
+  // The left column: Level, HP, EXP, Attack, and the value of one meso drop.
   ftxui::Element RenderStats(const Mob& mob) const;
-  // The right column: the meso's own chance first, then a name and a chance
-  // per drop.
+  // The right column: the meso's own chance first, then a name and chance per
+  // drop.
   ftxui::Element RenderDrops(const Mob& mob) const;
 
   const GameState& state_;
   std::string map_;
-  // Mob keys in spawn order, each with how many of it stand on the map. Held
-  // rather than walked because the catalog may not know every spawn, and a row
-  // per spawn would then number the cursor differently from the list.
+  // Mob keys in spawn order, each with how many spawn on the map. Stored rather
+  // than recomputed because the catalog may not know every spawn, and then a
+  // row per spawn would number the cursor differently from the list.
   std::vector<std::pair<std::string, int>> mobs_;
   int selected_ = 0;
 };

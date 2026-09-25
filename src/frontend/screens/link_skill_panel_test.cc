@@ -17,7 +17,7 @@
 namespace ms {
 namespace {
 
-// A link skill with one lever, so its effect column has something to say.
+// A link skill with one stat, so its effect column has something to show.
 Skill Link(const std::string& name, Job line, double crit) {
   Skill skill;
   skill.set_name(name);
@@ -47,9 +47,9 @@ class LinkSkillPanelTest : public PanelTest {
     UseCharacter(JOB_HERO, 210, 4);
   }
 
-  // Puts a character of `job` in play and opens a fresh panel over them. A
-  // roster that has climbed every other line comes with them, so all four
-  // skills are on offer.
+  // Puts a character of `job` in play and opens a new panel for them. The
+  // roster comes with every other line already levelled, so all four skills are
+  // available.
   void UseCharacter(Job job, int level, int stage) {
     Character proto;
     proto.set_level(level);
@@ -81,15 +81,15 @@ class LinkSkillPanelTest : public PanelTest {
     return ScreenText(Draw());
   }
 
-  // The rows the screen asks for, borders and all.
+  // The rows the screen asks for, borders included.
   int Rows() {
     ftxui::Element screen = panel_->Render();
     screen->ComputeRequirement();
     return screen->requirement().min_y;
   }
 
-  // Onto the middle window, wherever the cursor was, and down onto its first
-  // row.
+  // Onto the middle window from wherever the cursor was, and down onto its
+  // first row.
   void ToEnabledRows() {
     while (panel_->zone() != LinkZone::kEnabled) {
       panel_->NextZone(1);
@@ -103,8 +103,8 @@ class LinkSkillPanelTest : public PanelTest {
   std::unique_ptr<LinkSkillPanel> panel_;
 };
 
-// The three windows, their one header, and a character's own line's skill
-// standing in the top one at the level the roster paid for it.
+// The three windows, their shared header, and the character's own line's skill
+// in the top window at the level the roster earned.
 TEST_F(LinkSkillPanelTest, TheScreenNamesItsThreeWindows) {
   std::string text = Text();
   EXPECT_NE(text.find("My Skill"), std::string::npos);
@@ -112,13 +112,13 @@ TEST_F(LinkSkillPanelTest, TheScreenNamesItsThreeWindows) {
   EXPECT_NE(text.find("All Skills"), std::string::npos);
   EXPECT_NE(text.find("Name"), std::string::npos);
   EXPECT_NE(text.find("Effect"), std::string::npos);
-  // Theirs for free: a Hero reads the warriors' skill off their own level.
+  // Their own for free: a Hero gets the warrior skill from their own level.
   EXPECT_NE(text.find("Invincible Belief"), std::string::npos);
   EXPECT_NE(text.find("Critical Rate"), std::string::npos)
       << "the effect column";
 }
 
-// Tab walks the three windows and comes round; Up and Down move inside one.
+// Tab moves between the three windows and wraps; Up and Down move within one.
 TEST_F(LinkSkillPanelTest, TabWalksTheWindowsAndTheRingComesRound) {
   EXPECT_EQ(panel_->zone(), LinkZone::kMine);
   panel_->NextZone(1);
@@ -131,7 +131,7 @@ TEST_F(LinkSkillPanelTest, TabWalksTheWindowsAndTheRingComesRound) {
   EXPECT_EQ(panel_->zone(), LinkZone::kAll);
 }
 
-// An empty preset has one stop -- its bar -- and nothing to act on.
+// An empty preset has one stop, its bar, and nothing to act on.
 TEST_F(LinkSkillPanelTest, EveryPresetStartsEmptyAndTheBarIsTheOnlyStop) {
   panel_->NextZone(1);
   EXPECT_EQ(panel_->cursor().kind, LinkCursor::Kind::kPreset);
@@ -141,8 +141,8 @@ TEST_F(LinkSkillPanelTest, EveryPresetStartsEmptyAndTheBarIsTheOnlyStop) {
   EXPECT_NE(Text().find("(none equipped)"), std::string::npos);
 }
 
-// Add puts the skill under the cursor into the preset being read, and it
-// leaves the bottom window as it arrives in the middle one.
+// Add puts the skill under the cursor into the preset being shown, and it moves
+// from the bottom window to the middle one.
 TEST_F(LinkSkillPanelTest, AddingMovesASkillBetweenTheTwoLists) {
   panel_->NextZone(1);
   panel_->NextZone(1);
@@ -163,8 +163,8 @@ TEST_F(LinkSkillPanelTest, AddingMovesASkillBetweenTheTwoLists) {
       << "the cursor climbs back to the bar";
 }
 
-// Twelve is the ceiling, and the panel says so by refusing rather than by
-// silently dropping the thirteenth.
+// Twelve is the limit, and the panel shows that by refusing the thirteenth
+// instead of silently dropping it.
 TEST_F(LinkSkillPanelTest, APresetRefusesAThirteenthSkill) {
   for (int i = 0; i < kMaxEquippedLinkSkills; ++i) {
     ASSERT_TRUE(hero().EquipLinkSkill("Filler " + std::to_string(i),
@@ -176,8 +176,7 @@ TEST_F(LinkSkillPanelTest, APresetRefusesAThirteenthSkill) {
   EXPECT_FALSE(panel_->AddSelected());
 }
 
-// Left and Right on the bar read another preset, and each holds its own
-// twelve.
+// Left and Right on the bar show another preset, and each has its own twelve.
 TEST_F(LinkSkillPanelTest, ThePresetBarPicksWhichTwelveAreRead) {
   ASSERT_TRUE(hero().EquipLinkSkill("Thief's Cunning", StatPreset::kSecond));
   panel_->NextZone(1);
@@ -192,8 +191,8 @@ TEST_F(LinkSkillPanelTest, ThePresetBarPicksWhichTwelveAreRead) {
   EXPECT_EQ(panel_->preset(), StatPreset::kFirst) << "the bar clamps";
 }
 
-// A skill the account has not earned yet draws no row anywhere: the autofill
-// keeps it in the preset, and it appears once somebody reaches 70.
+// A skill the account hasn't earned yet has no row anywhere. The autofill keeps
+// it in the preset, and it appears once someone reaches 70.
 TEST_F(LinkSkillPanelTest, ALevelZeroSkillIsNotListed) {
   UseCharacter(JOB_HERO, 50, 2);
   LinkTally tally;
@@ -213,8 +212,8 @@ TEST_F(LinkSkillPanelTest, ALevelZeroSkillIsNotListed) {
       << "one row, then back to the bar";
 }
 
-// Their own line's skill is never on offer: it is held for free and takes
-// none of the twelve.
+// The character's own line's skill is never available to add: it is free and
+// doesn't use one of the twelve.
 TEST_F(LinkSkillPanelTest, TheirOwnLinesSkillIsNotInTheListToAdd) {
   panel_->NextZone(1);
   panel_->NextZone(1);
@@ -224,7 +223,7 @@ TEST_F(LinkSkillPanelTest, TheirOwnLinesSkillIsNotInTheListToAdd) {
     }
     panel_->MoveRow(1);
   }
-  // A line nobody has climbed pays nothing, so it is not listed either.
+  // A line nobody has levelled grants nothing, so it isn't listed either.
   hero().set_link_tally(LinkTally());
   panel_->Reset();
   panel_->NextZone(1);
@@ -232,8 +231,8 @@ TEST_F(LinkSkillPanelTest, TheirOwnLinesSkillIsNotInTheListToAdd) {
   EXPECT_EQ(panel_->cursor().kind, LinkCursor::Kind::kNothing);
 }
 
-// The menus differ by one entry, and the panel reads the choice for the
-// controller so three enums do not have to travel with it.
+// The menus differ by one entry, and the panel reports the choice for the
+// controller so it doesn't need three enums.
 TEST_F(LinkSkillPanelTest, EachWindowRaisesItsOwnMenu) {
   panel_->OpenMenu();
   EXPECT_TRUE(panel_->menu_open());
@@ -251,8 +250,8 @@ TEST_F(LinkSkillPanelTest, EachWindowRaisesItsOwnMenu) {
   EXPECT_NE(Text().find("Add"), std::string::npos);
 }
 
-// Enter on the bar raises the preset menu instead, and Use is shut while the
-// autoswap is the thing picking.
+// Enter on the bar opens the preset menu instead, and Use is disabled while the
+// autoswap is choosing.
 TEST_F(LinkSkillPanelTest, TheBarRaisesThePresetMenu) {
   hero().set_autoswap_presets(true);
   panel_->NextZone(1);
@@ -264,8 +263,8 @@ TEST_F(LinkSkillPanelTest, TheBarRaisesThePresetMenu) {
   EXPECT_NE(Text().find("Use"), std::string::npos);
 }
 
-// Combat Orders does not reach the beginner's page, so a link skill stands at
-// the rungs the account climbed and no more.
+// Combat Orders doesn't affect the beginner page, so a link skill stays at the
+// levels the account earned.
 TEST_F(LinkSkillPanelTest, TheBookLendsALinkSkillNothing) {
   Skill orders;
   orders.set_name("Combat Orders");
@@ -288,13 +287,13 @@ TEST_F(LinkSkillPanelTest, TheBookLendsALinkSkillNothing) {
   panel_ = std::make_unique<LinkSkillPanel>(*hero_, skills_);
   panel_->Reset();
 
-  // Their own line pays three rungs off their own level, and that is all.
+  // Their own line gives three levels from their own level, and nothing more.
   EXPECT_EQ(panel_->SelectedLevel(), 3);
   EXPECT_EQ(Text().find("(+1)"), std::string::npos);
 }
 
 // A character with no job line has nothing in the top window and nothing to
-// stand on there.
+// select there.
 TEST_F(LinkSkillPanelTest, ABeginnerHasNoSkillOfTheirOwn) {
   UseCharacter(JOB_BEGINNER, 10, 0);
   EXPECT_EQ(panel_->cursor().kind, LinkCursor::Kind::kNothing);
@@ -302,8 +301,8 @@ TEST_F(LinkSkillPanelTest, ABeginnerHasNoSkillOfTheirOwn) {
 }
 
 // One height whatever the lists hold: twelve slots in the middle window and
-// eight rows in the bottom one, drawn blank where nothing fills them, so a
-// skill moving between the two does not move the screen under the cursor.
+// eight rows in the bottom one, drawn blank where empty, so moving a skill
+// between them doesn't move the screen under the cursor.
 TEST_F(LinkSkillPanelTest, TheScreenIsOneHeightWhateverTheListsHold) {
   int height = Rows();
   panel_->NextZone(1);
@@ -318,14 +317,14 @@ TEST_F(LinkSkillPanelTest, TheScreenIsOneHeightWhateverTheListsHold) {
   EXPECT_EQ(Rows(), height);
 }
 
-// The caret is the whole cursor: no band behind the row it stands on.
+// The caret is the only cursor mark, with no band behind the row.
 TEST_F(LinkSkillPanelTest, TheCaretIsTheOnlyCursorMark) {
   ftxui::Screen screen = Draw();
   ASSERT_NE(FindOnScreen(screen, "> Invincible Belief").x, -1);
   EXPECT_FALSE(PixelOf(screen, "Invincible Belief").inverted);
 }
 
-// Three windows down the screen, each as wide as its longest effect line.
+// Three windows, each as wide as its longest effect line.
 TEST_F(LinkSkillPanelTest, NoWindowWeldsARowToItsRightBorder) {
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel_->Render()).empty());
 }

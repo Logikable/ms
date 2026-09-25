@@ -31,7 +31,7 @@ void AddDrop(Mob* mob, const std::string& item, double per_kill) {
   drop->set_per_kill(per_kill);
 }
 
-// A wordy blurb and two drops, one of them the rarest rate the game ships.
+// A long description and two drops, one of them the rarest rate in the game.
 Mob SnailMob() {
   Mob mob;
   mob.set_name("Snail");
@@ -47,7 +47,7 @@ Mob SnailMob() {
   return mob;
 }
 
-// Nothing written about it, and nothing to drop.
+// No description and no drops.
 Mob GolemMob() {
   Mob mob;
   mob.set_name("Stone Golem");
@@ -69,8 +69,8 @@ GameState OneMap() {
   field.set_name("Green Field");
   AddSpawn(&field, "snail", 9);
   AddSpawn(&field, "golem", 4);
-  // A spawn the catalog does not know, which the panel drops rather than
-  // numbering its cursor around a row it cannot draw.
+  // A spawn the catalog doesn't know, which the panel leaves out rather than
+  // numbering its cursor around a row it can't draw.
   AddSpawn(&field, "ghost", 1);
   return GameState({}, {},
                    {{"shell", Item("Green Snail Shell")},
@@ -87,9 +87,9 @@ std::string Render(const MobInspectPanel& panel) {
   return screen.ToString();
 }
 
-// The panel's rows with their styling stripped, so a test can read what sits
-// against a border. screen.ToString() keeps the colour escapes and would put
-// one between the last character and the rule beside it.
+// The panel's rows with styling removed, so a test can read what is against a
+// border. screen.ToString() keeps colour escapes and would put one between the
+// last character and the rule beside it.
 std::vector<std::string> RenderRows(const MobInspectPanel& panel) {
   ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
@@ -143,9 +143,9 @@ TEST(MobInspectPanelTest, ShowsTheStatsAndTheDropsWithTheirChances) {
   EXPECT_NE(out.find("41"), std::string::npos);   // Attack
   EXPECT_NE(out.find("120"), std::string::npos);  // meso: 6 * 10 * 2.0
   EXPECT_NE(out.find("60%"), std::string::npos);  // the meso's own chance
-  // Honor is listed once, among the drops, with the chance of one. What a
-  // drop pays is the same off every monster, so the stat column does not
-  // carry it: it would say nothing about the monster being read.
+  // Honor is listed once, among the drops, with its chance. The amount is the
+  // same from every monster, so the stat column doesn't show it, since it would
+  // say nothing about this monster.
   EXPECT_EQ(out.find("Honor"), out.rfind("Honor"));
   EXPECT_NE(out.find("Honor"), std::string::npos);
   EXPECT_NE(out.find("5%"), std::string::npos);
@@ -154,8 +154,8 @@ TEST(MobInspectPanelTest, ShowsTheStatsAndTheDropsWithTheirChances) {
   EXPECT_NE(out.find("0.025%"), std::string::npos);
 }
 
-// Under the rule the panel is two columns, so the first stat and the first
-// drop stand on one line.
+// Below the rule the panel has two columns, so the first stat and the first
+// drop are on the same line.
 TEST(MobInspectPanelTest, StatsAndDropsShareTheirRows) {
   GameState state = OneMap();
   MobInspectPanel panel(state);
@@ -172,8 +172,8 @@ TEST(MobInspectPanelTest, StatsAndDropsShareTheirRows) {
   EXPECT_TRUE(shared);
 }
 
-// The blurb is what the flavour block is for, and a mob with none still
-// spends the rows so the stats under it do not walk up the panel.
+// The description block always takes the same rows, even for a mob with none,
+// so the stats below don't move up the panel.
 TEST(MobInspectPanelTest, FlavourBlockIsTheSameHeightEitherWay) {
   GameState state = OneMap();
   MobInspectPanel panel(state);
@@ -183,7 +183,7 @@ TEST(MobInspectPanelTest, FlavourBlockIsTheSameHeightEitherWay) {
   panel.MoveCursor(1);
   std::string blank = Render(panel);
   EXPECT_NE(blank.find("(no record)"), std::string::npos);
-  // The Level row lands on the same screen row for both.
+  // The Level row is on the same screen row for both.
   std::istringstream first(described);
   std::istringstream second(blank);
   std::string line;
@@ -205,7 +205,7 @@ TEST(MobInspectPanelTest, FlavourBlockIsTheSameHeightEitherWay) {
   EXPECT_EQ(described_row, blank_row);
 }
 
-// The screen keeps one height whichever mob is up, so the fullest panel the
+// The screen keeps one height whichever mob is shown, so the fullest panel the
 // game can draw has to fit inside it.
 TEST(MobInspectPanelTest, HoldsOneHeightAcrossTheList) {
   GameState state = OneMap();
@@ -216,8 +216,8 @@ TEST(MobInspectPanelTest, HoldsOneHeightAcrossTheList) {
   EXPECT_EQ(Height(panel), first);
 }
 
-// Arcane River HP runs to eleven digits, which spelled out would push the
-// stats column past its width and carry the drops beside it along.
+// Arcane River HP runs to eleven digits, which written out in full would push
+// the stats column past its width and the drops beside it along with it.
 TEST(MobInspectPanelTest, WritesAHugeHpCompactlyAndKeepsItsWidth) {
   GameState state = OneMap();
   int narrow;
@@ -242,8 +242,8 @@ TEST(MobInspectPanelTest, AMapNobodyKnowsDrawsAnEmptyPanel) {
   EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
 }
 
-// An Arcane River map, which takes a toll for letting the character hurt what
-// lives there.
+// An Arcane River map, which penalises the character for fighting what lives
+// there.
 GameState ArcaneMap() {
   Mob erda;
   erda.set_name("Raging Erda");
@@ -255,23 +255,23 @@ GameState ArcaneMap() {
   return GameState({}, {}, {}, {{"erda", erda}}, {{"rage", rage}});
 }
 
-// A character short of the requirement is told what it costs them: 30 of 100
-// is 30% met, which the table pays at 60% dealt and 1.8x taken.
+// A character short of the requirement is told what it costs them: 30 of 100 is
+// 30% met, which the table turns into 60% damage dealt and 1.8x damage taken.
 TEST(MobInspectPanelTest, TheArcaneForceTollIsSpeltOut) {
   GameState state = ArcaneMap();
   MobInspectPanel panel(state);
   panel.SetMap("rage");
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Arcane Force"), std::string::npos) << rendered;
-  // The carried figure is coloured red where it falls short, so it and the
-  // requirement are separated by escape codes rather than sitting in one run.
+  // The character's value is red where it falls short, so escape codes separate
+  // it from the requirement.
   EXPECT_NE(rendered.find(" / 100"), std::string::npos) << rendered;
   EXPECT_NE(rendered.find("Damage 10%"), std::string::npos) << rendered;
   EXPECT_NE(rendered.find("Taken 2.8x"), std::string::npos) << rendered;
 }
 
-// Every other map asks for nothing and takes nothing, so the rows are not
-// there at all rather than reading 1x against a requirement of zero.
+// Every other map requires nothing and applies no penalty, so the rows are
+// absent rather than reading 1x against a requirement of zero.
 TEST(MobInspectPanelTest, NoArcaneRowsOutsideArcaneRiver) {
   GameState state = OneMap();
   MobInspectPanel panel(state);
@@ -279,8 +279,8 @@ TEST(MobInspectPanelTest, NoArcaneRowsOutsideArcaneRiver) {
   EXPECT_EQ(Render(panel).find("Arcane Force"), std::string::npos);
 }
 
-// V Points are the one currency a map decides, so the drop table names them
-// where they fall and leaves the row off everywhere else.
+// V Points are the one currency that depends on the map, so the drop table
+// lists them where they drop and leaves the row off elsewhere.
 TEST(MobInspectPanelTest, VPointsDropOnlyWhereAForceIsAsked) {
   GameState arcane = ArcaneMap();
   MobInspectPanel river(arcane);
@@ -293,8 +293,9 @@ TEST(MobInspectPanelTest, VPointsDropOnlyWhereAForceIsAsked) {
   EXPECT_EQ(Render(field).find("V Points"), std::string::npos);
 }
 
-// Grandis names its own force in the toll, on its own table, and pays V Points
-// as the river does. Nothing carries Sacred Power yet: 30 short is 70% dealt.
+// Grandis shows its own force in the penalty rows, on its own table, and drops
+// V Points like Arcane River. This character has no Sacred Power: 30 short is
+// 70% dealt.
 TEST(MobInspectPanelTest, GrandisSpellsOutSacredPower) {
   Mob spirit;
   spirit.set_name("Fire Spirit");
@@ -315,11 +316,11 @@ TEST(MobInspectPanelTest, GrandisSpellsOutSacredPower) {
   EXPECT_NE(rendered.find("V Points"), std::string::npos) << rendered;
 }
 
-// A card that measures its own width has to ask for its right margin.
+// A card that measures its own width has to request its right margin.
 // RowsTouchingTheRightBorder only sees the panel's outer edge, so the mob
-// list's own is checked by reading the rows back: the toll rows span the whole
-// list rather than sitting in its columns, and so are the ones with no column
-// padding to spare.
+// list's own edge is checked by reading the rows back. The penalty rows span
+// the whole list instead of sitting in its columns, so they are the ones with
+// no column padding to spare.
 TEST(MobInspectPanelTest, EveryRowKeepsAColumnClearOfTheRightBorder) {
   GameState plain = OneMap();
   MobInspectPanel panel(plain);

@@ -26,33 +26,33 @@
 namespace ms {
 namespace {
 
-// Column widths of the map list. PadRight truncates rather than overflows, so
-// a name past the column quietly loses its last letters. The chip bar above
-// the rows is wider than they are, so this column is free up to that.
+// Column widths of the map list. PadRight truncates instead of overflowing, so
+// a name longer than the column loses its last letters. The chip bar above the
+// rows is wider than they are, so this column can grow up to that.
 constexpr int kMapNameWidth = 36;
 constexpr int kLevelWidth = 4;
-// The force a map asks for, Arcane Force or Sacred Power. Blank on every map
-// asking for neither -- an empty cell says nothing is wanted, where a "-"
-// would say the map refuses something.
+// The force a map requires, Arcane Force or Sacred Power. Blank on every map
+// that requires neither; an empty cell says nothing is needed, while a "-"
+// would suggest the map refuses something.
 constexpr int kForceWidth = 4;
 
-// What a map row comes to, cursor included. The band bar is held to this, so
-// the window is sized by the maps in it rather than by the tabs over them.
+// A map row's full width, cursor included. The band bar is held to this, so the
+// window is sized by the maps rather than by the tabs above them.
 constexpr int kMapRowWidth = 2 + kMapNameWidth + kLevelWidth + kForceWidth;
 
 // Column widths of the mob table: the longest mob name, 25 ("Enhanced Diamond
-// Guardian"), and a space. PadRight truncates rather than overflows.
+// Guardian"), plus a space. PadRight truncates instead of overflowing.
 constexpr int kMobNameWidth = 26;
 constexpr int kCountWidth = 6;
 
-// What every line of the mob table comes to. The map's name stands over the
-// columns and is padded out to this: the two windows sit side by side and the
-// pair is centered, so a name wider than the columns walks them both sideways
-// as the cursor moves. Wide enough for the longest map name and one space.
+// The width of every line of the mob table. The map's name sits above the
+// columns and is padded to this: the two windows are side by side and centred
+// as a pair, so a name wider than the columns would shift both sideways as the
+// cursor moved. Wide enough for the longest map name plus a space.
 constexpr int kMobTableWidth = 1 + kMobNameWidth + kLevelWidth + kCountWidth;
 
-// Which force a map asks for, which decides the run of tabs it goes on: the
-// river and Grandis each have their own, apart from the level ladder.
+// Which force a map requires, which decides which group of tabs it goes in:
+// Arcane River and Grandis each have their own, separate from the level bands.
 enum class Region { kOverworld, kArcaneRiver, kGrandis };
 
 Region RegionOf(const MapData& map) {
@@ -62,19 +62,20 @@ Region RegionOf(const MapData& map) {
   return map.arcane_force() > 0 ? Region::kArcaneRiver : Region::kOverworld;
 }
 
-// The tabs the list pages through: the overworld by level, low to high, each
-// band holding more of the ladder than the one below; then Arcane River in two
-// halves; then Grandis.
+// The tabs of the list: the overworld by level, low to high, each band covering
+// more levels than the one below; then Arcane River in two halves; then
+// Grandis.
 //
-// KEEP THE BANDS HOLDING SIMILAR NUMBERS OF MAPS, not similar spans of levels,
-// and resplit as content lands: the list pads every band to the tallest, so a
-// small band spends the difference on blank rows and a big one takes the
-// screen past the terminal. //src/data_test:screen_fit_test is what says so.
+// Keep the bands holding similar numbers of maps rather than similar level
+// ranges, and re-split as content is added. The list pads every band to the
+// tallest, so a small band wastes the difference on blank rows and a large one
+// pushes the screen past the terminal. //src/data_test:screen_fit_test catches
+// this.
 struct LevelBand {
   Region region;
   int min;
   int max;
-  // What the chip reads; null for a band named by its levels.
+  // The chip's text, or null for a band named by its levels.
   const char* label = nullptr;
 };
 constexpr LevelBand kLevelBands[] = {
@@ -92,9 +93,10 @@ constexpr LevelBand kLevelBands[] = {
 };
 constexpr int kBandCount = static_cast<int>(std::size(kLevelBands));
 
-// Band a map of `region` at `level` belongs to. A level past its region's last
-// band lands there rather than nowhere -- content should never fall out of the
-// list for want of a band. Give it its own band when that happens.
+// The band a map of `region` at `level` belongs to. A level past its region's
+// last band goes into that band rather than nowhere, since content should never
+// fall out of the list for lack of a band. Give it its own band when that
+// happens.
 int BandFor(Region region, int level) {
   int last = 0;
   for (int band = 0; band < kBandCount; ++band) {
@@ -117,16 +119,17 @@ std::string BandLabel(int band) {
          std::to_string(kLevelBands[band].max);
 }
 
-// The map's level as the list shows it: rounded down, so a map reads as the
-// tier it belongs to. Both the list order and the level column read this, so
-// the list always runs low to high.
+// The map's level as the list shows it: rounded down, so a map shows the tier
+// it belongs to. The list order and the level column both use this, so the list
+// always runs low to high.
 int WeightedLevel(const GameState& state, const MapData& map) {
   return static_cast<int>(MapLevel(state.mobs, map));
 }
 
-// The force cell of a map row: what the map asks for, red where the character
-// does not carry it. Red on the cell rather than dim on the row, because a map
-// short of force can still be farmed -- it is a penalty, not a locked door.
+// The force cell of a map row: what the map requires, in red where the
+// character doesn't have enough. Red on the cell rather than dimming the row,
+// because a map short of force can still be farmed: it is a penalty, not a
+// locked door.
 ftxui::Element ForceCell(const GameState& state, const MapData& map) {
   MapForce force = MapForceFor(map, state.character);
   if (force.required == 0) {
@@ -141,8 +144,8 @@ ftxui::Element ForceCell(const GameState& state, const MapData& map) {
 
 MapSelectPanel::MapSelectPanel(const GameState& state)
     : state_(state), menu_({"Move", "Inspect", "Close"}) {
-  // Sort by weighted level, then by name so equal maps hold a stable order,
-  // then deal each map onto its band -- which keeps every band sorted too.
+  // Sort by weighted level, then by name so equal maps keep a stable order,
+  // then put each map into its band, which keeps every band sorted too.
   std::vector<std::pair<std::pair<int, std::string>, std::string>> sorted;
   for (const std::pair<const std::string, MapData>& entry : state_.maps) {
     int level = WeightedLevel(state_, entry.second);
@@ -182,8 +185,8 @@ void MapSelectPanel::MoveCursor(int delta) {
   int next = StepCursor(CursorStop(), delta,
                         1 + static_cast<int>(pages_[page_].size()));
   if (next == 0) {
-    // Off the list rather than moved within it, so the row is left where it is
-    // and the cursor comes back to it.
+    // Off the list rather than moved within it, so the row stays where it is
+    // and the cursor returns to it.
     zone_ = kZoneTabs;
     return;
   }
@@ -200,7 +203,7 @@ void MapSelectPanel::ChangePage(int delta) {
     return;
   }
   page_ = page;
-  // No row on the new band answers to the old one, so start at the top.
+  // No row on the new band matches the old one, so start at the top.
   selected_ = 0;
 }
 
@@ -213,8 +216,8 @@ std::string MapSelectPanel::selected_map() const {
 
 void MapSelectPanel::OpenMenu() {
   if (zone_ != kZoneList || selected_map().empty()) {
-    // Nothing to open a menu on: the cursor is on the band bar, which stands
-    // on no map.
+    // Nothing to open a menu on: the cursor is on the band bar, which isn't a
+    // map.
     return;
   }
   menu_.Reset();
@@ -248,22 +251,22 @@ Screen MapSelectPanel::OnMenuEvent(ftxui::Event event) {
     }
     return kMapSelect;
   }
-  // Swallow everything else: the menu is modal over the list.
+  // Consume everything else, since the menu is modal over the list.
   return kMapMenu;
 }
 
 int MapSelectPanel::MenuRow() const {
   // +5 rows: the window's top border, the band bar, its separator, the column
-  // header and its own separator. One row back from there, so the entry
-  // standing highlighted lands beside the map rather than below it.
+  // header and its separator. One row back from there, so the highlighted entry
+  // sits beside the map rather than below it.
   constexpr int kFirstMapRow = 5;
   return kFirstMapRow + selected_ - 1;
 }
 
-// The bands as a chip bar, the game's one tab style. The chips go white while
-// the bar holds the cursor, which is how the player tells Left and Right are
-// reaching it. There are more bands than fit, so the bar is held to the rows'
-// width and scrolls under them rather than widening the window.
+// The bands as a chip bar, in the game's single tab style. The chips turn white
+// while the bar has the cursor, which shows the player that Left and Right
+// apply to it. There are more bands than fit, so the bar is held to the rows'
+// width and scrolls instead of widening the window.
 ftxui::Element MapSelectPanel::RenderBandBar() const {
   std::vector<TabSpec> bands;
   for (int band = 0; band < kBandCount; ++band) {
@@ -272,9 +275,9 @@ ftxui::Element MapSelectPanel::RenderBandBar() const {
   return TabBar(bands, page_, /*row_focused=*/zone_ == kZoneTabs, kMapRowWidth);
 }
 
-// The force column's header. Outside Arcane River and Grandis no map asks for
-// one, and a column of blanks under an "AF" header only asks the player what
-// it is for.
+// The force column's header. Outside Arcane River and Grandis no map requires
+// any force, and a column of blanks under an "AF" header would only leave the
+// player wondering what it is for.
 std::string MapSelectPanel::PageForceHeader() const {
   for (const std::string& key : pages_[page_]) {
     MapForce force = MapForceFor(state_.maps.at(key), state_.character);
@@ -290,9 +293,9 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
   rows.push_back(RenderBandBar());
   rows.push_back(ThemedSeparator());
   const std::vector<std::string>& page = pages_[page_];
-  // The cells are blank on a band no map asking for force reaches, so the
-  // header comes off with them. The column keeps its width either way, which
-  // holds the window still as the player pages.
+  // The cells are blank on a band where no map requires force, so the header is
+  // removed with them. The column keeps its width either way, which keeps the
+  // window still as the player pages.
   std::string force_header = PadRight(PageForceHeader(), kForceWidth);
   rows.push_back(ftxui::text("  " + PadRight("Name", kMapNameWidth) +
                              PadRight("Lv", kLevelWidth) + force_header));
@@ -309,10 +312,10 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
     rows.push_back(HighlightRow(
         ftxui::hbox({ftxui::text(row), ForceCell(state_, map)}), on_cursor));
   }
-  // Every band fills out to the height of the biggest one. The panel is
-  // centered, so a band holding fewer maps than its neighbor would otherwise
-  // walk the window's borders up and down as the player pages.
-  int tallest = 1;  // An empty band still spends its one row on "(none)".
+  // Every band is padded to the height of the largest. The panel is centred, so
+  // a band with fewer maps would otherwise move the window's borders up and
+  // down as the player pages.
+  int tallest = 1;  // An empty band still uses one row for "(none)".
   for (const std::vector<std::string>& band : pages_) {
     tallest = std::max(tallest, static_cast<int>(band.size()));
   }
@@ -325,8 +328,8 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
 
 ftxui::Element MapSelectPanel::RenderMobTable() const {
   std::vector<ftxui::Element> rows;
-  // The map these mobs come from, standing where the band chips stand next
-  // door. It keeps the two tables' headers on one line -- they sit side by
+  // The name of the map these mobs come from, on the same row as the band chips
+  // next door. It keeps the two tables' headers on one line: they sit side by
   // side, so a row one has and the other lacks shows as a step between them.
   std::string selected = selected_map();
   rows.push_back(
@@ -368,10 +371,10 @@ ftxui::Element MapSelectPanel::Render() const {
   if (!menu_open_) {
     return screen;
   }
-  // Anchored inside the panel rather than on the terminal, because the screen
-  // is centred and so has no fixed place to measure from. kMenuCol clears the
-  // border and the name column, so the menu covers the level rather than which
-  // map it is about.
+  // Placed relative to the panel rather than the terminal, because the screen
+  // is centred and has no fixed position. kMenuCol clears the border and the
+  // name column, so the menu covers the level rather than which map it is
+  // about.
   constexpr int kMenuCol = 2 + kMapNameWidth;
   return ftxui::dbox({
       std::move(screen),
