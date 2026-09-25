@@ -1,7 +1,7 @@
-// Checks that every map and boss phase names music the build actually
-// carries. A track name is a filename stem, so a typo or a renamed file
-// fails silently at run time -- the music player finds nothing and plays
-// nothing, and the only symptom is a quiet map.
+// Checks that every map and boss phase names music the build actually includes.
+// A track name is a filename stem, so a typo or a renamed file fails silently
+// at run time: the player finds nothing and plays nothing, and the only symptom
+// is a quiet map.
 #include <gtest/gtest.h>
 
 #include <map>
@@ -31,8 +31,8 @@ TEST(BgmTest, EveryMapNamesATrackInTheBuild) {
     GTEST_SKIP() << "built with --define=audio=off";
   }
   std::map<std::string, MapData> maps = LoadTestData<MapData>("maps");
-  // The catalog loading empty would pass every check below, so pin one map
-  // that has to be there and the count of the rest.
+  // An empty catalog would pass every check below, so require a minimum count
+  // and one specific map.
   ASSERT_GE(maps.size(), 60u);
   ASSERT_EQ(maps.at("right_around_lith_harbor").bgm(), "AboveTheTreetops");
   for (const auto& [stem, map] : maps) {
@@ -53,8 +53,8 @@ TEST(BgmTest, EveryBossOpensOnATrackInTheBuild) {
   for (const auto& [stem, boss] : bosses) {
     for (const BossDifficulty& difficulty : boss.difficulties()) {
       ASSERT_GT(difficulty.phases_size(), 0) << stem;
-      // Only the first phase must name one. A later phase saying nothing is
-      // how a one-track boss keeps playing what it opened with.
+      // Only the first phase needs one. A later phase with none keeps a
+      // one-track boss playing the track it started with.
       EXPECT_FALSE(difficulty.phases(0).bgm().empty())
           << stem << " " << difficulty.name() << " opens on no music";
       for (const BossPhase& phase : difficulty.phases()) {

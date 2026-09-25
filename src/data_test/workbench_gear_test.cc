@@ -1,7 +1,7 @@
-// Checks the workbench against the shipped catalogs: --job starts at the top
-// of an advancement, and what it puts in hand has to be the top of the ladder
-// that level reaches. Named weapons in a switch ROT the moment a tier or a
-// branch is added, and this is what says so.
+// Checks the workbench against the shipped catalogs: --job starts at the top of
+// an advancement, and the gear it gives must be the best that level can wear.
+// Weapons named in a switch go stale as soon as a tier or branch is added, and
+// this test catches it.
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -31,17 +31,16 @@ namespace {
 
 using bazel::tools::cpp::runfiles::Runfiles;
 
-// Every advancement a character can stand at the top of, taken from the
-// DESCRIPTOR rather than listed: a hardcoded list is one a new job joins only
-// when somebody remembers, which is how a new job comes to stand unarmed.
-// JOB_ADVANCEMENT_COMMON is not one -- no job takes it.
+// Every advancement a character can start at the top of, read from the enum
+// descriptor instead of listed by hand. A hand-written list only gets new jobs
+// when someone remembers, which is how a new job ends up with no weapon.
 std::vector<JobAdvancement> EveryAdvancement() {
   std::vector<JobAdvancement> all;
   for (int i = 1; i <= JobAdvancement_MAX; ++i) {
     JobAdvancement advancement = static_cast<JobAdvancement>(i);
-    // None of the three is an advancement the workbench can be started at:
-    // the common nodes' home, the book every character is born with, and the
-    // link skills, which belong to no job.
+    // The workbench can't start at any of these three: the common nodes' book,
+    // the book every character starts with, and the link skills, which belong
+    // to no job.
     if (advancement == JOB_ADVANCEMENT_COMMON ||
         advancement == JOB_ADVANCEMENT_BEGINNER ||
         advancement == JOB_ADVANCEMENT_LINK) {
@@ -52,23 +51,23 @@ std::vector<JobAdvancement> EveryAdvancement() {
   return all;
 }
 
-// Where the two token tiers become ownable, which is where the bosses paying
-// for them open rather than where their gear can be worn -- see OwnedFromLevel
-// in game_state.h.
+// The level where the two token tiers can first be owned. That is where the
+// bosses that pay for them open, not where the gear can be worn; see
+// OwnedFromLevel in game_state.h.
 constexpr int kRootAbyssOpens = 200;
 constexpr int kAbsoLabOpens = 210;
 
-// Every piece of the set is named for it, which is what the player reads too.
-// The armour carries no set_family -- only the two the token shelf sells do,
-// where the family is what stops a second of one being bought.
+// Every piece of the set has "Frozen" in its name, as the player sees. The
+// armour has no set_family; only the two pieces the token shelf sells do, where
+// the family stops a second one from being bought.
 bool IsFrozen(const EquipPrototype& proto) {
   return proto.name().rfind("Frozen ", 0) == 0;
 }
 
 class WorkbenchGearTest : public ::testing::Test {
  protected:
-  // Read once for the whole suite: the catalogs do not change under a test,
-  // and parsing them per test was most of what this file cost.
+  // Loaded once for the whole suite: the catalogs don't change during a test,
+  // and parsing them per test was most of this file's run time.
   static void SetUpTestSuite() {
     std::string err;
     runfiles_.reset(Runfiles::CreateForTest(&err));
@@ -86,8 +85,8 @@ class WorkbenchGearTest : public ::testing::Test {
     return runfiles_->Rlocation("ms/data/" + name);
   }
 
-  // `level` 0 stands the character at the top of their advancement, which is
-  // where --job leaves them.
+  // `level` 0 puts the character at the top of their advancement, where --job
+  // leaves them.
   static GameState Workbench(JobAdvancement advancement, int level = 0) {
     TestOptions options;
     options.job = advancement;
@@ -113,13 +112,13 @@ std::map<std::string, Mob> WorkbenchGearTest::mobs_;
 std::map<std::string, MapData> WorkbenchGearTest::maps_;
 std::map<std::string, Skill> WorkbenchGearTest::skills_;
 
-// The required levels on `worn`'s own ladder among the items this character
-// could put on, highest first. OwnedFromLevel asks what CanEquip cannot: a
-// token tier waits on the FIGHT that pays for it.
+// The required levels on `worn`'s ladder among the items this character could
+// equip, highest first. OwnedFromLevel checks what CanEquip can't: a token tier
+// waits for the fight that pays for it.
 //
-// A ladder is a slot FAMILY and a type together. The type alone would put a
-// Fighter's swords and axes on one; the slot alone would put all four pieces
-// of armour on one, and armour names no type at all.
+// A ladder is a slot family plus a type. The type alone would put a Fighter's
+// swords and axes on one ladder; the slot alone would put all four armour
+// pieces on one, and armour has no type at all.
 std::vector<int> TiersOnLadder(
     const CharacterInstance& character, const EquipPrototype& worn,
     const std::map<std::string, EquipPrototype>& equips) {
@@ -136,17 +135,16 @@ std::vector<int> TiersOnLadder(
   return levels;
 }
 
-// The best of each thing the character carries that their level can wear,
-// asked a LADDER at a time -- a family of slots holding several at once.
-// Anything less and the tester is looking at a weaker character than the game
-// has.
+// Checks that the character carries the best item their level can wear on each
+// ladder (a slot family that can hold several items at once). Anything less and
+// the tester sees a weaker character than the game has.
 void ExpectTopOfEveryLadder(
     const CharacterInstance& character,
     const std::map<std::string, EquipPrototype>& equips) {
   ASSERT_TRUE(character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON))
       << "nothing in hand at all";
-  // The levels worn on each ladder, keyed by the family and type that name
-  // it, so the rings meet each other and nothing else.
+  // The levels worn on each ladder, keyed by the slot family and type that
+  // define it, so rings are only compared with rings.
   std::map<std::pair<EquipSlot, EquipType>, std::vector<int>> worn_levels;
   std::map<std::pair<EquipSlot, EquipType>, const EquipPrototype*> example;
   for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
@@ -172,9 +170,9 @@ void ExpectTopOfEveryLadder(
   }
 }
 
-// The claim above walks what is worn, so an empty slot is one it never
-// reaches -- which is how every 2nd job came to stand there with no off-hand
-// at all and nothing said so. This is the slot being filled at all.
+// The check above only looks at what is worn, so it never sees an empty slot.
+// That is how every 2nd job ended up with no off-hand without any test failing.
+// This checks that the slot is filled.
 void ExpectOffHand(const CharacterInstance& character,
                    JobAdvancement advancement) {
   bool branched = StageForAdvancement(advancement) >= 2;
@@ -182,10 +180,10 @@ void ExpectOffHand(const CharacterInstance& character,
       << "a secondary belongs to a branch, and a 1st job is not in one";
 }
 
-// The Frozen set drops rather than sells, so the workbench is the only place
-// so much of it is seen. A 3rd job at 100 wears the four armour pieces inside
-// its level; a 4th at 200 hands most of it to Root Abyss and Princess No and
-// keeps three; a 5th at the cap wears none, AbsoLab taking those too.
+// The Frozen set drops and isn't sold, so the workbench is the main place it is
+// seen. A 3rd job at 100 wears the four armour pieces in its level range; a 4th
+// at 200 replaces most of them with Root Abyss and Princess No and keeps three;
+// a 5th at the cap wears none, since AbsoLab replaces those too.
 void ExpectFrozenSet(const CharacterInstance& character,
                      JobAdvancement advancement) {
   int frozen = 0;
@@ -197,11 +195,11 @@ void ExpectFrozenSet(const CharacterInstance& character,
   EXPECT_EQ(frozen, stage == 3 ? 4 : stage == 4 ? 3 : 0);
 }
 
-// Each token tier waits on the fight that pays for it: the Chaos Root Abyss
-// opens at 200 and Damien and Lotus at 210. So the three advancements that
-// wear these four slots wear a tier each -- a 5th job at the cap in AbsoLab, a
-// 4th at 200 in Root Abyss, and the 3rd job under both in neither. A stage
-// below the third wears no armour at all, which the Frozen claim says.
+// Each token tier waits for the fight that pays for it: Chaos Root Abyss opens
+// at 200, and Damien and Lotus at 210. So the three advancements that wear
+// these four slots each wear one tier: a 5th job at the cap wears AbsoLab, a
+// 4th at 200 wears Root Abyss, and the 3rd job, below both, wears neither.
+// Stages below the 3rd wear no armour at all, which the Frozen check covers.
 void ExpectTokenTier(const CharacterInstance& character,
                      JobAdvancement advancement) {
   if (StageForAdvancement(advancement) < 3) {
@@ -226,9 +224,9 @@ void ExpectTokenTier(const CharacterInstance& character,
   }
 }
 
-// Everything the workbench puts on a character, asked of every advancement.
-// One walk rather than four: a state is a whole climb, and all four claims
-// want the same one.
+// Checks everything the workbench gives a character, for every advancement. It
+// is one loop instead of four because building a state is a whole climb, and
+// all four checks need the same one.
 TEST_F(WorkbenchGearTest, EveryJobIsDressedForItsBand) {
   for (JobAdvancement advancement : EveryAdvancement()) {
     SCOPED_TRACE(JobAdvancement_Name(advancement));
@@ -241,10 +239,10 @@ TEST_F(WorkbenchGearTest, EveryJobIsDressedForItsBand) {
   }
 }
 
-// The boss accessories fill the slots nothing else in the catalog does, and a
-// boss drop is a long walk for a tester. Their levels decide who wears what:
-// Zakum's eye piece asks for 100 and his crystal for 110, so a 3rd job
-// standing at 100 wears the one and carries the other.
+// The boss accessories fill slots nothing else in the catalog does, and getting
+// boss drops by hand takes a tester a long time. Their levels decide who wears
+// what: Zakum's eye accessory requires 100 and his crystal 110, so a 3rd job at
+// 100 wears the first and carries the second.
 TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
   GameState second = Workbench(JOB_ADVANCEMENT_BANDIT);
   EXPECT_EQ(second.character.equipped().count(EQUIP_SLOT_EYE_ACCESSORY), 0u);
@@ -254,10 +252,10 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
   EXPECT_EQ(third.character.equipped().count(EQUIP_SLOT_EYE_ACCESSORY), 1u);
   EXPECT_EQ(third.character.equipped().count(EQUIP_SLOT_FACE_ACCESSORY), 0u);
 
-  // At the cap it wears all nine slots the Boss Accessory Set spans, and where
-  // a later piece is an alternate for a slot an earlier one filled, the later
-  // one is worn. The second pendant slot takes the one the first does not, and
-  // the shoulder is the one of the four Cygnus sells that names this branch.
+  // At the cap it wears all nine Boss Accessory Set slots, and where a later
+  // piece is an alternative for a slot an earlier one filled, it wears the
+  // later one. The second pendant slot takes the pendant the first doesn't, and
+  // the shoulder is the one of Cygnus's four that matches this branch.
   GameState fourth = Workbench(JOB_ADVANCEMENT_DARK_KNIGHT);
   const WornGear& worn = fourth.character.equipped();
   const std::map<EquipSlot, std::string> kExpected = {
@@ -277,10 +275,10 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
   }
 }
 
-// The tier a branch finishes in can open above the level the branch does: a
-// Hero advances at 100 and the Frozen axe they end up holding asks for 120.
-// Standing in between they hold the tier under it rather than nothing, which
-// is what --mode=max needs to measure a boss at every level one opens at.
+// The final tier of a branch can require a higher level than the branch starts
+// at: a Hero advances at 100, and the Frozen axe they end up with requires 120.
+// In between they hold the tier below it, not nothing, which --mode=max needs
+// to measure a boss at every level where one opens.
 TEST_F(WorkbenchGearTest, TheFourthJobIsArmedAtEveryLevelABossOpensAt) {
   for (JobAdvancement advancement : EveryAdvancement()) {
     if (StageForAdvancement(advancement) != 4) {
@@ -299,7 +297,7 @@ TEST_F(WorkbenchGearTest, TheFourthJobIsArmedAtEveryLevelABossOpensAt) {
 }
 
 // The level the gear is checked against, so a change to the advancement levels
-// shows up here as itself rather than as a weapon that looks wrong.
+// shows up here directly instead of as a weapon that looks wrong.
 TEST_F(WorkbenchGearTest, EachJobStartsAtTheTopOfItsOwnBand) {
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_ROGUE).character.proto().level(), 30);
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_BANDIT).character.proto().level(), 60);
@@ -307,8 +305,8 @@ TEST_F(WorkbenchGearTest, EachJobStartsAtTheTopOfItsOwnBand) {
             100);
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_DARK_KNIGHT).character.proto().level(),
             200);
-  // The 5th job climbs to the cap: it is the last advancement written, so
-  // there is no band above it to stop at.
+  // The 5th job goes to the cap: it is the last advancement, so no band above
+  // it stops it.
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_DARK_KNIGHT_V).character.proto().level(),
             kTrialLevelCap);
 }

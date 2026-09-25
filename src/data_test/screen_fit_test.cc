@@ -1,8 +1,8 @@
-// Every screen, drawn from the shipped catalogs, against the smallest terminal
-// the game is laid out for. A screen stands CENTRED (see placement.h), so one
-// taller than the terminal loses rows off both ends and nothing says so -- and
-// the screens that grow are the data-driven ones, which grow when a textproto
-// lands rather than when anybody touches the layout.
+// Draws every screen from the shipped catalogs at the smallest terminal the
+// game supports. Screens are centred (see placement.h), so one taller than the
+// terminal loses rows at both ends without any error. The screens that grow are
+// the data-driven ones, and they grow when a textproto is added, not when
+// someone changes the layout.
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -50,7 +50,7 @@
 namespace ms {
 namespace {
 
-// What the screen comes to, borders included.
+// The screen's size, borders included.
 struct Size {
   int rows = 0;
   int columns = 0;
@@ -61,10 +61,10 @@ Size Measure(ftxui::Element element) {
   return {element->requirement().min_y, element->requirement().min_x};
 }
 
-// The worst case, built once: the ceiling a player who spent well stands in,
-// with both purses full and the roster long. Every test reads it and none
-// writes to it -- a kMax state is a whole ceiling ACCOUNT, ten climbs, and
-// paying for that per test is what made this the suite's slowest target.
+// The worst case, built once: an endgame character who spent well, with both
+// purses full and a long roster. Every test reads it and none modifies it. A
+// kMax state is a whole endgame account of ten characters, and building one per
+// test made this the suite's slowest target.
 class ScreenFitTest : public testing::Test {
  protected:
   static void SetUpTestSuite() {
@@ -75,15 +75,15 @@ class ScreenFitTest : public testing::Test {
         GameMode::kMax, TestOptions{},
         /*seed=*/1, LoadTestData<EquipSet>("sets"),
         LoadTestData<Boss>("bosses"));
-    // The most either purse can hold, which is what widens the bank's bar and
-    // the shop's.
+    // The most either purse can hold, which widens the bank's and the shop's
+    // bars.
     shared_->character.AddMeso(kFullPurse);
     shared_->account.mutable_bank().AddMeso(kFullPurse);
-    // A roster past what the character select's list has room for, so it is
-    // the window's fixed height being measured and not the list's. Copies of
-    // the ceiling sheets rather than new characters: creating one puts a
-    // level 1 Beginner into play, and the ceiling is what every other screen
-    // here is drawn from.
+    // More characters than the character select list has room for, so the test
+    // measures the window's fixed height and not the list's. These are copies
+    // of the endgame sheets, not new characters: creating one puts a level 1
+    // Beginner into play, and every other screen here is drawn from the endgame
+    // state.
     std::vector<CharacterSave> ceilings = shared_->inactive_characters;
     while (shared_->inactive_characters.size() < kCrowdedRoster) {
       for (const CharacterSave& save : ceilings) {
@@ -119,8 +119,8 @@ GameState* ScreenFitTest::shared_ = nullptr;
 TEST_F(ScreenFitTest, MapSelect) {
   MapSelectPanel panel(state_);
   panel.Reset();
-  // Every band: the list pads them all to the tallest, so the screen is one
-  // size, but walking them is what proves the tallest was measured.
+  // Every band. The list pads them all to the tallest, so the screen is one
+  // size, but visiting each one proves the tallest was measured.
   for (int i = 0; i < 12; ++i) {
     ExpectFits(panel.Render(), "the map list");
     panel.ChangePage(1);
@@ -153,8 +153,8 @@ TEST_F(ScreenFitTest, CharacterSelect) {
 
 TEST_F(ScreenFitTest, Shop) {
   ShopPanel panel(state_.character, state_.equips, state_.items);
-  // Every shelf: the token ones stand a balance panel beside the window, and
-  // how many currencies that holds is the catalog's to say.
+  // Every shelf. The token shelves show a balance panel next to the window, and
+  // the catalog decides how many currencies it holds.
   for (int tab = 0; tab < kNumShopTabs; ++tab) {
     for (int pay = 0; pay < kNumShopPayTabs; ++pay) {
       panel.Reset();
@@ -184,7 +184,7 @@ TEST_F(ScreenFitTest, Trade) {
   trade.set_id("t1");
   trade.set_partner_name("Adventurer");
   trade.set_partner_joined(true);
-  // The biggest either side can put up, which is what widens the row.
+  // The largest offer either side can make, which is what widens the row.
   trade.mutable_mine()->set_meso(100000000000);
   trade.mutable_mine()->set_spell_traces(1000000);
   *trade.mutable_theirs() = trade.mine();
@@ -192,17 +192,17 @@ TEST_F(ScreenFitTest, Trade) {
   ExpectFits(panel.Render(), "the trade screen");
 }
 
-// Two windows stacked, both drawn at their fixed height: the tightest screen
-// in the game, and the one a row added to either half would push off.
+// Two windows stacked, both at a fixed height: the tightest screen in the game,
+// where one more row in either half would push it off.
 TEST_F(ScreenFitTest, Bank) {
   BankPanel panel(state_.character, state_.account, state_.items);
   panel.Reset();
   ExpectFits(panel.Render(), "the bank screen, both purses full");
 }
 
-// The three windows are a fixed height apiece -- twelve slots whatever the
-// preset holds -- so this is a guard on the constants rather than on the
-// catalog: the two above leave the bottom one eight rows and no more.
+// The three windows each have a fixed height (twelve slots, whatever the preset
+// holds), so this guards the constants more than the catalog: the top two leave
+// the bottom one exactly eight rows.
 TEST_F(ScreenFitTest, LinkSkills) {
   LinkSkillPanel panel(state_.character, state_.skills);
   panel.Reset();
@@ -230,8 +230,8 @@ TEST_F(ScreenFitTest, Options) {
   ExpectFits(panel.Render(), "the options list");
 }
 
-// The song list is as long as the build's music, and the mode box hangs off
-// the top window, so both the shut screen and the open box are measured.
+// The song list is as long as the build's music, and the mode box hangs off the
+// top window, so both the closed screen and the open box are measured.
 TEST_F(ScreenFitTest, Jukebox) {
   MusicPlayer player(MusicPlayer::Backend::kNull);
   std::mt19937 rng(1);
@@ -270,8 +270,8 @@ TEST_F(ScreenFitTest, HyperStatInspect) {
   }
 }
 
-// Every skill the game ships, at the two ends of its levels: the card is the
-// tallest thing the Skills tab and the job book both put on screen.
+// Every skill in the game, at its lowest and highest level. The skill card is
+// the tallest thing the Skills tab and the job book show.
 TEST_F(ScreenFitTest, SkillInspect) {
   SkillInspectPanel panel;
   panel.SetMaxRows(kMinTerminalRows);
@@ -285,8 +285,8 @@ TEST_F(ScreenFitTest, SkillInspect) {
   }
 }
 
-// Every job's book beside the tallest card in it, which is the size the
-// screen is held to however short the card under the cursor happens to be.
+// Every job's book beside its tallest card. The screen is sized for that,
+// however short the card under the cursor is.
 TEST_F(ScreenFitTest, JobInspect) {
   JobInspectPanel book(state_.skills);
   SkillInspectPanel card;
@@ -313,13 +313,13 @@ TEST_F(ScreenFitTest, JobInspect) {
                  Job_Name(job) + " stage " + std::to_string(stage));
     }
   }
-  // A guard on the loop itself: SetJob taking a stage nothing answers to would
-  // leave every book empty and the test asserting nothing.
+  // Guards the loop itself: if SetJob got a stage nothing matches, every book
+  // would be empty and the test would check nothing.
   EXPECT_GT(books, 0);
 }
 
-// Every equip, weighed against itself so the screen carries the compared card
-// and the set card as well as the item's own.
+// Every equip compared with itself, so the screen shows the comparison card and
+// the set card as well as the item's own.
 TEST_F(ScreenFitTest, Inspect) {
   InspectPanel panel;
   panel.UseCharacter(state_.character);
@@ -334,7 +334,7 @@ TEST_F(ScreenFitTest, Inspect) {
   }
 }
 
-// Every equip's shelf of scrolls, which is as long as the catalog makes it.
+// Every equip's scroll list, which is as long as the catalog makes it.
 TEST_F(ScreenFitTest, Scroll) {
   ScrollPanel panel(state_.character, state_.scrolls);
   for (const std::pair<const std::string, EquipPrototype>& entry :

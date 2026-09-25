@@ -1,7 +1,6 @@
-// Checks the shipped equip catalog rather than any one function. The model
-// enforces whatever a prototype declares, which is exactly why the declaration
-// itself needs pinning: an item added without it is an item the model happily
-// lets the player upgrade.
+// Checks the shipped equip catalog as a whole. The model enforces whatever a
+// prototype declares, which is exactly why the declarations need checking: an
+// item added without one is an item the model lets the player upgrade.
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -40,9 +39,9 @@ std::map<std::string, ItemPrototype> LoadItems() {
   return LoadTestData<ItemPrototype>("items");
 }
 
-// The name column an item list grows to on a wide terminal is chosen for the
-// longest name the game ships, a trace's " Trace" included. A longer one
-// arriving has to MOVE that number rather than sit cut on every screen.
+// The name column's width on a wide terminal is set for the longest name in the
+// game, including a trace's " Trace" suffix. A longer name should change that
+// number instead of being cut off on every screen.
 TEST(EquipDataTest, EveryItemNameFitsTheWidestNameColumn) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
@@ -54,9 +53,10 @@ TEST(EquipDataTest, EveryItemNameFitsTheWidestNameColumn) {
   }
 }
 
-// A projectile is ammunition, not a weapon a player invests in. Asserted over
-// the whole catalog because the refusal is written on each one: nothing
-// derives it from the slot, deliberately, a later one possibly differing.
+// Projectiles are ammunition, not weapons a player invests in. Checked across
+// the whole catalog because each file states the refusal itself: it is
+// deliberately not derived from the slot, since a later projectile might
+// differ.
 TEST(EquipDataTest, ProjectilesTakeNoUpgrades) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -76,10 +76,10 @@ TEST(EquipDataTest, ProjectilesTakeNoUpgrades) {
   EXPECT_GT(seen, 0) << "no projectiles in the catalog to check";
 }
 
-// Three ladders, one shape: stars for the claw, arrows for the bow and for the
-// crossbow. A rung missing from one is a branch that cannot re-arm where the
-// others can, and a projectile whose type no weapon draws is attack a player
-// wears and never fires.
+// Three ladders with the same shape: stars for claws, arrows for bows and bolts
+// for crossbows. A missing level on one means a branch can't restock where the
+// others can, and a projectile no weapon uses is attack the player wears but
+// never fires.
 TEST(EquipDataTest, EveryProjectileClimbsTheSameLadder) {
   const std::vector<int> kTiers{10, 30, 50, 70, 100};
   std::map<EquipType, std::vector<int>> ladders;
@@ -102,8 +102,8 @@ TEST(EquipDataTest, EveryProjectileClimbsTheSameLadder) {
   }
 }
 
-// The refusal is the exception. A catalog where it spread to ordinary weapons
-// would pass every check above and leave the player unable to upgrade anything.
+// The refusal is the exception. If it spread to ordinary weapons, the catalog
+// would pass every check above and the player couldn't upgrade anything.
 TEST(EquipDataTest, OrdinaryWeaponsStillTakeUpgrades) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
@@ -120,8 +120,8 @@ TEST(EquipDataTest, OrdinaryWeaponsStillTakeUpgrades) {
   }
 }
 
-// Every job the advancement picker can offer, gathered the way it gathers
-// them: stage 1 from a Beginner, then the next stage of each job that gave.
+// Every job the advancement picker can offer, collected the same way it does:
+// stage 1 from a Beginner, then the next stage of each job found.
 std::vector<Job> EveryOfferedJob() {
   std::vector<Job> jobs;
   std::vector<Job> frontier = {JOB_BEGINNER};
@@ -138,14 +138,14 @@ std::vector<Job> EveryOfferedJob() {
   return jobs;
 }
 
-// The job inspect screen tells a player what to buy, so no job may name a
-// weapon of another branch and every row must point at something buyable. A
-// type nothing ships yet proves neither and is SKIPPED. Levelled past every
-// requirement: what is under test is the job, not the tier.
+// The job inspect screen tells the player what to buy, so no job may list
+// another branch's weapon, and every row must point at something buyable. A
+// type with no items yet can't prove either and is skipped. The character is
+// levelled past every requirement, since the job is under test, not the tier.
 TEST(EquipDataTest, EveryJobOnOfferNamesWeaponsOfItsOwnBranch) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::vector<Job> offered = EveryOfferedJob();
-  ASSERT_GE(offered.size(), 20u);  // 4 + 9 + 9 as the game stands
+  ASSERT_GE(offered.size(), 20u);  // every branch at every stage
   for (Job job : offered) {
     std::vector<EquipType> weapons = ExpectedWeapons(job);
     EXPECT_FALSE(weapons.empty()) << Job_Name(job);
@@ -172,11 +172,10 @@ TEST(EquipDataTest, EveryJobOnOfferNamesWeaponsOfItsOwnBranch) {
   }
 }
 
-// A weapon type has one attack speed, and every weapon of it swings at that
-// speed. GMS's own low-level items disagree among themselves -- the polearms
-// range over three stages -- but by the level 150 tier, the one that matters,
-// Nexon had settled each type on a single value. That value is what the
-// catalog uses, all the way down.
+// Each weapon type has one attack speed, and every weapon of that type uses it.
+// GMS's own low-level items disagree (polearms span three stages), but by the
+// level 150 tier, the one that matters, Nexon had settled each type on a single
+// value. The catalog uses that value at every level.
 TEST(EquipDataTest, AWeaponTypeHasOneAttackSpeed) {
   std::map<EquipType, std::pair<AttackSpeed, std::string>> speed_of_type;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -199,9 +198,9 @@ TEST(EquipDataTest, AWeaponTypeHasOneAttackSpeed) {
   }
 }
 
-// GMS gives none of these a slot or a star, and none of ours is near the level
-// 200 tier where enhancement begins. Asserted over the catalog for the same
-// reason the throwing stars are: each file has to say so itself.
+// GMS gives these no upgrade slots or stars, and none of ours is near the level
+// 200 tier where enhancement starts. Checked across the catalog for the same
+// reason as throwing stars: each file has to state it.
 TEST(EquipDataTest, SecondariesTakeNoUpgrades) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -221,10 +220,10 @@ TEST(EquipDataTest, SecondariesTakeNoUpgrades) {
   EXPECT_GT(seen, 0) << "no secondaries in the catalog to check";
 }
 
-// One per branch at every tier, and no branch left out. A missing one is a 2nd
-// job with a level it cannot re-arm its off hand at. The two shelves are
-// counted apart: what meso buys climbs in tiers, and what a token buys is the
-// Frozen piece and Princess No's above it.
+// One per branch at every tier, with no branch missing. A missing one is a
+// level where a 2nd job can't replace their off-hand. The two shelves are
+// counted separately: meso items climb in tiers, and token items are the Frozen
+// piece and Princess No's above it.
 TEST(EquipDataTest, EverySecondJobHasEveryTier) {
   const std::vector<int> kMesoTiers{30, 60, 100};
   const std::vector<int> kTokenTiers{120, 140};
@@ -260,7 +259,7 @@ TEST(EquipDataTest, EverySecondJobHasEveryTier) {
   }
 }
 
-// The priced levels of one weapon type, low to high.
+// The priced levels of one weapon type, lowest first.
 std::map<EquipType, std::vector<int>> WeaponLadders() {
   std::map<EquipType, std::vector<int>> ladders;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -278,9 +277,9 @@ std::map<EquipType, std::vector<int>> WeaponLadders() {
   return ladders;
 }
 
-// Every weapon type climbs in steps of ten with no gap and no tier holding two
-// of a kind. A branch that skips a tier is one the player outgrows their weapon
-// on and cannot re-arm.
+// Every weapon type climbs in steps of ten with no gaps and no tier with two of
+// the same type. A branch that skips a tier is one whose weapon the player
+// outgrows with nothing to replace it.
 TEST(EquipDataTest, EveryWeaponTypeClimbsInTens) {
   std::map<EquipType, std::vector<int>> ladders = WeaponLadders();
   ASSERT_FALSE(ladders.empty());
@@ -295,10 +294,10 @@ TEST(EquipDataTest, EveryWeaponTypeClimbsInTens) {
   }
 }
 
-// Every ladder reaches the top of the shelf, so no branch is a tier short of
-// what the others can buy. Asked against the HIGHEST tier there is: the meso
-// ladders stopping below the Frozen tier is the content gap, not a fault. The
-// one-handed sword stops where the two-handed tiers start, by design.
+// Every ladder reaches the top meso tier, so no branch is a tier behind what
+// the others can buy. Checked against the highest tier: meso ladders stopping
+// below the Frozen tier is a content gap, not a bug. The one-handed sword stops
+// where the two-handed tiers start, by design.
 TEST(EquipDataTest, EveryWeaponTypeReachesTheTopMesoTier) {
   std::map<EquipType, std::vector<int>> ladders = WeaponLadders();
   ASSERT_FALSE(ladders.empty());
@@ -313,12 +312,12 @@ TEST(EquipDataTest, EveryWeaponTypeReachesTheTopMesoTier) {
   }
 }
 
-// Every weapon type the shop's ladder reaches the cap with has all three token
-// tiers above it, so no branch is asked to farm tokens for a weapon it cannot
-// hold. The one-handed sword is out for the reason its ladder stops: nobody
-// swings one past their 2nd job.
+// Every weapon type whose meso ladder reaches the top has all three token tiers
+// above it, so no branch has to farm tokens for a weapon it can't use. The
+// one-handed sword is excluded for the same reason its ladder stops: nobody
+// uses one past their 2nd job.
 TEST(EquipDataTest, EveryWeaponTypeHasEveryTokenTier) {
-  // Level -> type -> the one weapon of it a token buys at that level.
+  // Level -> type -> the one weapon of that type a token buys at that level.
   std::map<int, std::map<EquipType, std::string>> token_tiers;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
@@ -355,10 +354,9 @@ TEST(EquipDataTest, EveryWeaponTypeHasEveryTokenTier) {
   }
 }
 
-// The trophies. GMS lets no scroll and no star near any of them, so the refusal
-// belongs to every item in those three slots rather than to the two written so
-// far -- a badge added later that quietly took stars would read as a mistake
-// nowhere.
+// The trophy slots. GMS allows no scrolls or stars on any of them, so every
+// item in those three slots must refuse upgrades. A badge added later that
+// quietly took stars wouldn't look wrong anywhere else.
 TEST(EquipDataTest, NoTrophyTakesAnUpgrade) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -377,9 +375,9 @@ TEST(EquipDataTest, NoTrophyTakesAnUpgrade) {
   EXPECT_GT(seen, 0) << "no trophies in the catalog to check";
 }
 
-// A price is only a price if something answers it. An item naming a token that
-// no data file defines would sit on the shelf at a cost nobody can pay, and the
-// loader would say nothing.
+// A price only works if the currency exists. An item priced in a token no data
+// file defines would sit on the shelf at a price nobody can pay, and the loader
+// wouldn't report it.
 TEST(EquipDataTest, EveryTokenPriceNamesATokenThatExists) {
   std::map<std::string, ItemPrototype> items = LoadItems();
   int seen = 0;
@@ -408,8 +406,8 @@ TEST(EquipDataTest, EveryTokenPriceNamesATokenThatExists) {
   EXPECT_GT(seen, 0) << "nothing in the catalog is bought with a token";
 }
 
-// Every token is sold for something, or FillTokenShelves leaves it with no
-// shelf and the bag files it last.
+// Every token must buy something, or FillTokenShelves gives it no shelf and the
+// bag sorts it last.
 TEST(EquipDataTest, EveryTokenBuysSomething) {
   std::map<std::string, ItemPrototype> items = LoadItems();
   FillTokenShelves(LoadEquips(), items);
@@ -424,17 +422,16 @@ TEST(EquipDataTest, EveryTokenBuysSomething) {
   EXPECT_GT(tokens, 0);
 }
 
-// The token shelf's per-branch shoulders. Cygnus drops one token and four
-// shoulders answer to it, one per branch that plays the game, and AbsoLab's
-// coin buys the tier above it the same way -- a branch left out is one whose
-// clear buys nothing, and a second shoulder for a branch is a choice between
-// two identical pieces.
+// The token shelf's per-branch shoulders. Cygnus drops one token that four
+// shoulders are priced in, one per branch, and AbsoLab's coin buys the tier
+// above it the same way. A missing branch would get nothing from the clear, and
+// a second shoulder for a branch would be a choice between two identical items.
 TEST(EquipDataTest, EveryBranchHasAShoulderAtEachTokenTier) {
-  // The level each token's shoulder is worn at, which is what says a tier is
-  // written here at all rather than having quietly grown a third.
+  // The level each token's shoulder is worn at. This also confirms which tiers
+  // exist, so a third one can't appear unnoticed.
   const std::map<std::string, int> kTiers = {{"cygnus_shoulder_token", 140},
                                              {"absolab_coin", 160}};
-  // Token -> branch -> the one shoulder of that branch it buys.
+  // Token -> branch -> the one shoulder for that branch it buys.
   std::map<std::string, std::map<EquipJobCategory, std::string>> shoulders;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
@@ -472,9 +469,9 @@ TEST(EquipDataTest, EveryBranchHasAShoulderAtEachTokenTier) {
   }
 }
 
-// One tier, one price. Every weapon a level opens costs the same, so the choice
-// between branches is never a choice of what the player can afford -- and a
-// mistyped price cannot hide among items nobody compares it with.
+// One tier, one price. Every weapon at a level costs the same, so choosing a
+// branch is never a question of what the player can afford, and a mistyped
+// price can't hide among items nobody compares.
 TEST(EquipDataTest, ATierHasOnePrice) {
   std::map<std::pair<EquipSlot, int>, std::pair<int, std::string>> price_of;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -494,21 +491,21 @@ TEST(EquipDataTest, ATierHasOnePrice) {
   }
 }
 
-// GMS buys equipment back at a few percent of what it charges, rising with the
-// tier; a flat tenth sits inside that band the whole way. The failure this
-// guards against is an item that pays more than it costs, which is not a
-// mispriced item but a meso printer -- so a stocked item does not get to name
-// its own price at all, and SellPrice works the tenth out for it.
+// GMS buys equipment back at a few percent of its price, rising with the tier;
+// a flat tenth stays within that range at every tier. The danger is an item
+// that sells for more than it costs, which would be a meso printer, so a
+// stocked item can't set its own sell price at all and SellPrice computes the
+// tenth.
 TEST(EquipDataTest, StockedEquipsSellForATenthOfTheirPrice) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
     if (!proto.has_shop_price()) {
-      // Not stocked, so there is no price to take a share of and the item
-      // names its own. Most of them name nothing and sell for nothing -- that
-      // is how a starter sword leaves the bag -- but a dropped piece is worth
-      // what it is worth whether or not a shop ever sold one.
+      // Not stocked, so there is no price to take a share of and the item sets
+      // its own. Most set nothing and sell for nothing (that is how a starter
+      // sword leaves the bag), but a dropped item is worth what it's worth
+      // whether or not a shop ever sold one.
       continue;
     }
     ++seen;
@@ -520,9 +517,9 @@ TEST(EquipDataTest, StockedEquipsSellForATenthOfTheirPrice) {
   EXPECT_GT(seen, 0) << "no stocked equips in the catalog to check";
 }
 
-// A token is earned, not bought, and the piece it trades for is the whole of
-// what earning it was for. Pricing either would let a player cash the token
-// out for meso instead, which is the one thing the shelf must not offer.
+// A token is earned, not bought, and the item it trades for is the whole point
+// of earning it. Giving either a sell price would let players turn the token
+// into meso, which is exactly what the shelf must not allow.
 TEST(EquipDataTest, TokenGearAndItsTokensSellForNothing) {
   std::map<std::string, ItemPrototype> items = LoadItems();
   int seen = 0;
@@ -546,8 +543,8 @@ std::map<std::string, EquipSet> LoadSets() {
 }
 
 // A set names its pieces by display name, and a name that matches nothing is a
-// piece that can never be worn toward the bonus -- silently, because counting
-// what is worn cannot tell a misspelling from an item nobody has found yet.
+// piece that never counts toward the bonus. It fails silently, since counting
+// worn pieces can't tell a misspelling from an item nobody has found yet.
 TEST(EquipDataTest, EverySetMemberIsAnItemThatExists) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   int checked = 0;
@@ -560,8 +557,8 @@ TEST(EquipDataTest, EverySetMemberIsAnItemThatExists) {
           << entry.first << " has a member in an unnamed slot";
       EXPECT_TRUE(slots.insert(member.slot()).second)
           << entry.first << " fills " << FormatSlot(member.slot()) << " twice";
-      // Named pieces, a family of them, or both -- but never neither, which
-      // is a slot nothing can ever fill.
+      // Named items, a family, or both, but never neither, which would be a
+      // slot nothing can fill.
       EXPECT_FALSE(member.items().name().empty() && member.family().empty())
           << entry.first << " has a member naming no piece at all";
       if (member.has_family()) {
@@ -595,11 +592,11 @@ TEST(EquipDataTest, EverySetMemberIsAnItemThatExists) {
   EXPECT_GT(checked, 0) << "no sets in the catalog to check";
 }
 
-// Tiers are read as "at least this many pieces", so one asking for more than
-// the finished set will ever hold is a bonus nobody can reach, and one asking
-// for none pays everybody. Both are data mistakes rather than states the model
-// handles. Asked against the finished set rather than the members written so
-// far: a set can pay at nine pieces while two of them exist.
+// Tiers mean "at least this many pieces", so a tier needing more than the
+// finished set will hold can never be reached, and one needing none pays
+// everyone. Both are data mistakes, not states the model handles. Checked
+// against the finished set size, not the members listed, since a set can ship
+// before all its pieces exist.
 TEST(EquipDataTest, EverySetTierIsReachable) {
   for (const std::pair<const std::string, EquipSet>& entry : LoadSets()) {
     int complete = entry.second.complete_pieces();
@@ -614,9 +611,9 @@ TEST(EquipDataTest, EverySetTierIsReachable) {
   }
 }
 
-// The wiki states a set twice: what each tier adds, which is what the data
-// holds, and what the whole is worth once it is on. Pinned against the second
-// column, because adding the first one up is exactly where a typo hides.
+// The wiki lists a set twice: what each tier adds, which is what the data
+// holds, and the total once all of it is worn. Checked against the totals,
+// because adding up the per-tier column is where typos hide.
 TEST(EquipDataTest, TheBossAccessorySetAddsUpToItsWikiTotals) {
   const EquipSet* set = nullptr;
   std::map<std::string, EquipSet> sets = LoadSets();
@@ -641,24 +638,24 @@ TEST(EquipDataTest, TheBossAccessorySetAddsUpToItsWikiTotals) {
     EXPECT_EQ(stat, kStat[i]) << "at " << set->tiers(i).pieces() << " pieces";
     EXPECT_EQ(attack, kAttack[i]) << "at " << set->tiers(i).pieces();
     EXPECT_EQ(def, kDef[i]) << "at " << set->tiers(i).pieces();
-    // All four stats climb together, and magic attack shadows attack.
+    // All four stats rise together, and magic attack matches attack.
     EXPECT_EQ(effect.dex(), effect.str());
     EXPECT_EQ(effect.int_(), effect.str());
     EXPECT_EQ(effect.luk(), effect.str());
     EXPECT_EQ(effect.magic_attack(), effect.attack());
   }
-  // The pools stop climbing at five pieces; the two damage levers arrive once
-  // each, at seven and at nine.
+  // HP and MP stop rising at five pieces; the two damage bonuses each come
+  // once, at seven and at nine.
   EXPECT_DOUBLE_EQ(set->tiers(1).effect().max_hp_pct(), 0.05);
   EXPECT_DOUBLE_EQ(set->tiers(2).effect().max_hp_pct(), 0.0);
   EXPECT_DOUBLE_EQ(set->tiers(2).effect().ied_pct(), 0.10);
   EXPECT_DOUBLE_EQ(set->tiers(3).effect().boss_pct(), 0.10);
 }
 
-// The Sengoku Treasure Set's totals, pinned the same way and for the same
-// reason. The smallest set in the game and the only one a player never
-// assembles: Princess No drops all three pieces in one clear, so the 3-set is
-// what it is worth in practice.
+// The Sengoku Treasure Set's totals, checked the same way for the same reason.
+// It is a set a player never assembles piece by piece: Princess No drops all
+// three pieces in one clear, so the 3-piece tier is what it is worth in
+// practice.
 TEST(EquipDataTest, TheSengokuTreasureSetAddsUpToItsWikiTotals) {
   const EquipSet* set = nullptr;
   std::map<std::string, EquipSet> sets = LoadSets();
@@ -690,7 +687,7 @@ TEST(EquipDataTest, TheSengokuTreasureSetAddsUpToItsWikiTotals) {
     EXPECT_EQ(attack, kAttack[i]) << "at " << set->tiers(i).pieces();
     EXPECT_EQ(def, kDef[i]) << "at " << set->tiers(i).pieces();
     EXPECT_DOUBLE_EQ(damage, kDamage[i]) << "at " << set->tiers(i).pieces();
-    // All four stats climb together, and magic attack shadows attack.
+    // All four stats rise together, and magic attack matches attack.
     EXPECT_EQ(effect.dex(), effect.str());
     EXPECT_EQ(effect.int_(), effect.str());
     EXPECT_EQ(effect.luk(), effect.str());
@@ -698,10 +695,10 @@ TEST(EquipDataTest, TheSengokuTreasureSetAddsUpToItsWikiTotals) {
   }
 }
 
-// The Frozen set's own totals, pinned the same way and for the same reason:
-// the data states what each tier ADDS, and the number a player sees is the
-// running sum. Read off the wiki's second column, where a typo in the middle
-// of the first one is invisible.
+// The Frozen set's totals, checked the same way for the same reason: the data
+// states what each tier adds, and the player sees the running total. Read from
+// the wiki's totals column, since a typo in the middle of the per-tier column
+// is invisible.
 TEST(EquipDataTest, TheFrozenSetAddsUpToItsWikiTotals) {
   const EquipSet* set = nullptr;
   std::map<std::string, EquipSet> sets = LoadSets();
@@ -711,8 +708,8 @@ TEST(EquipDataTest, TheFrozenSetAddsUpToItsWikiTotals) {
     }
   }
   ASSERT_NE(set, nullptr);
-  // Eight slots against GMS's five, so the whole of it lands at five pieces
-  // and the three above that pay nothing. See the textproto.
+  // Eight slots here against GMS's five, so the whole bonus arrives at five
+  // pieces and the three tiers above that add nothing. See the textproto.
   ASSERT_EQ(set->complete_pieces(), 8);
   ASSERT_EQ(set->tiers_size(), 3);
   const int kStat[] = {7, 7, 15};
@@ -734,25 +731,25 @@ TEST(EquipDataTest, TheFrozenSetAddsUpToItsWikiTotals) {
     EXPECT_EQ(attack, kAttack[i]) << "at " << set->tiers(i).pieces();
     EXPECT_DOUBLE_EQ(pool, kPool[i]) << "at " << set->tiers(i).pieces();
     EXPECT_DOUBLE_EQ(damage, kDamage[i]) << "at " << set->tiers(i).pieces();
-    // All four stats climb together, magic attack shadows attack, and MP
-    // shadows HP.
+    // All four stats rise together, magic attack matches attack, and MP matches
+    // HP.
     EXPECT_EQ(effect.dex(), effect.str());
     EXPECT_EQ(effect.int_(), effect.str());
     EXPECT_EQ(effect.luk(), effect.str());
     EXPECT_EQ(effect.magic_attack(), effect.attack());
     EXPECT_DOUBLE_EQ(effect.max_mp_pct(), effect.max_hp_pct());
   }
-  // The one lever that arrives once, with the last tier. GMS pays the Frozen
-  // set no boss damage at all -- that arrives with the Root Abyss below.
+  // The one bonus that comes once, with the last tier. GMS gives the Frozen set
+  // no boss damage at all; that starts with Root Abyss below.
   EXPECT_DOUBLE_EQ(set->tiers(2).effect().ied_pct(), 0.30);
   for (const EquipSetTier& tier : set->tiers()) {
     EXPECT_DOUBLE_EQ(tier.effect().boss_pct(), 0.0);
   }
 }
 
-// The Dawn Boss Set's totals, pinned the same way and for the same reason. It
-// holds one of its four slots today, so nothing in it can be worn to a tier
-// yet -- which is exactly why the numbers need a test rather than a fitting.
+// The Dawn Boss Set's totals, checked the same way for the same reason. Only
+// one of its four slots has an item today, so none of its tiers can be reached
+// yet, which is exactly why the numbers need a test instead of a playtest.
 TEST(EquipDataTest, TheDawnBossSetAddsUpToItsWikiTotals) {
   const EquipSet* set = nullptr;
   std::map<std::string, EquipSet> sets = LoadSets();
@@ -780,26 +777,25 @@ TEST(EquipDataTest, TheDawnBossSetAddsUpToItsWikiTotals) {
     EXPECT_EQ(stat, kStat[i]) << "at " << set->tiers(i).pieces() << " pieces";
     EXPECT_EQ(attack, kAttack[i]) << "at " << set->tiers(i).pieces();
     EXPECT_EQ(pool, kPool[i]) << "at " << set->tiers(i).pieces();
-    // All four stats climb together, and magic attack shadows attack.
+    // All four stats rise together, and magic attack matches attack.
     EXPECT_EQ(effect.dex(), effect.str());
     EXPECT_EQ(effect.int_(), effect.str());
     EXPECT_EQ(effect.luk(), effect.str());
     EXPECT_EQ(effect.magic_attack(), effect.attack());
-    // The MP pool is the one thing it does not pay, unlike its Boss Accessory
-    // neighbour.
+    // MP is the one thing it doesn't give, unlike the Boss Accessory Set.
     EXPECT_EQ(effect.max_mp(), 0) << "at " << set->tiers(i).pieces();
   }
-  // Boss damage arrives at two pieces and defence at four, each once.
+  // Boss damage comes at two pieces and defence at four, once each.
   EXPECT_DOUBLE_EQ(set->tiers(0).effect().boss_pct(), 0.10);
   EXPECT_DOUBLE_EQ(set->tiers(1).effect().boss_pct(), 0.0);
   EXPECT_EQ(set->tiers(2).effect().def(), 100);
   EXPECT_DOUBLE_EQ(set->tiers(2).effect().ied_pct(), 0.10);
 }
 
-// The Guardian Angel Ring is in two sets at once, which nothing else is: GMS
-// sells a scroll that converts it from one to the other and this game has no
-// such lever, so it counts for both. Pinned because a set counting a piece
-// twice is the sort of thing a later edit does by accident.
+// The Guardian Angel Ring is in two sets at once, which no other item is. GMS
+// sells a scroll that converts it from one set to the other and this game has
+// no such mechanism, so it counts for both. Checked because a set counting a
+// piece twice is the kind of thing a later edit does by accident.
 TEST(EquipDataTest, TheGuardianAngelRingFillsASlotOfTwoSets) {
   std::set<EquipSetName> holding;
   for (const std::pair<const std::string, EquipSet>& entry : LoadSets()) {
@@ -816,10 +812,10 @@ TEST(EquipDataTest, TheGuardianAngelRingFillsASlotOfTwoSets) {
                                              EQUIP_SET_NAME_DAWN_BOSS}));
 }
 
-// The four Root Abyss sets are one set written per branch, so what they pay
-// has to agree piece for piece: a class reading a weaker card than another
-// would be a typo nothing else catches. Totals rather than what each tier
-// adds, for the reason the two sets above are pinned that way.
+// The four Root Abyss sets are one set written once per branch, so their
+// bonuses must match piece for piece; one class getting a weaker bonus would be
+// a typo nothing else catches. Totals, not per-tier additions, for the same
+// reason as the sets above.
 TEST(EquipDataTest, EveryRootAbyssSetAddsUpToTheSameTotals) {
   const std::set<EquipSetName> kBranches = {
       EQUIP_SET_NAME_ROOT_ABYSS_WARRIOR, EQUIP_SET_NAME_ROOT_ABYSS_BOWMAN,
@@ -833,8 +829,8 @@ TEST(EquipDataTest, EveryRootAbyssSetAddsUpToTheSameTotals) {
     seen.insert(set.name());
     ASSERT_EQ(set.complete_pieces(), 4) << entry.first;
     ASSERT_EQ(set.tiers_size(), 3) << entry.first;
-    // Two stats of the four, and which two follows the branch -- so they are
-    // added rather than named here.
+    // Two of the four stats, and which two depends on the branch, so they are
+    // summed instead of named here.
     int stat = 0;
     int attack = 0;
     for (const EquipSetTier& tier : set.tiers()) {
@@ -856,11 +852,10 @@ TEST(EquipDataTest, EveryRootAbyssSetAddsUpToTheSameTotals) {
   EXPECT_EQ(seen, kBranches) << "a branch has no Root Abyss set";
 }
 
-// The four AbsoLab sets, pinned the same way and for the same reason. Totals
-// rather than what each tier adds, and every one of them is GMS's own: its
-// set spans seven slots where this one spans eight, because the Armor and the
-// Pants are one overall there, so the tiers are spread differently and end in
-// the same place.
+// The four AbsoLab sets, checked the same way for the same reason. Totals, not
+// per-tier additions, and all are GMS's own: GMS's set covers seven slots where
+// this one covers eight, because the Armor and the Pants are one overall there,
+// so the tiers are spread differently but end at the same total.
 TEST(EquipDataTest, EveryAbsoLabSetAddsUpToTheSameTotals) {
   const std::set<EquipSetName> kBranches = {
       EQUIP_SET_NAME_ABSOLAB_WARRIOR, EQUIP_SET_NAME_ABSOLAB_BOWMAN,
@@ -881,8 +876,8 @@ TEST(EquipDataTest, EveryAbsoLabSetAddsUpToTheSameTotals) {
     int pool = 0;
     double pool_pct = 0.0;
     double boss = 0.0;
-    // Ignored defence is the one lever a set pays twice, and two shares of it
-    // combine rather than sum -- the same arithmetic the character does.
+    // Ignored defence is the one bonus a set gives twice, and two shares of it
+    // multiply instead of adding, as the character's own does.
     double ied = 0.0;
     for (int i = 0; i < set.tiers_size(); ++i) {
       const SkillEffect& effect = set.tiers(i).effect();
@@ -894,8 +889,8 @@ TEST(EquipDataTest, EveryAbsoLabSetAddsUpToTheSameTotals) {
       pool_pct += effect.max_hp_pct();
       boss += effect.boss_pct();
       ied = CombineIgnoredDefense(ied, effect.ied_pct());
-      // All four stats climb together, magic attack shadows attack, and MP
-      // shadows HP.
+      // All four stats rise together, magic attack matches attack, and MP
+      // matches HP.
       EXPECT_EQ(effect.dex(), effect.str()) << entry.first;
       EXPECT_EQ(effect.int_(), effect.str()) << entry.first;
       EXPECT_EQ(effect.luk(), effect.str()) << entry.first;
@@ -914,9 +909,9 @@ TEST(EquipDataTest, EveryAbsoLabSetAddsUpToTheSameTotals) {
   EXPECT_EQ(seen, kBranches) << "a branch has no AbsoLab set";
 }
 
-// The levers the inspect screen's set card writes a row for. A tier that pulls
-// one outside this list pays the player a bonus nothing tells them about, so
-// the card and this list move together -- see InspectPanel::EffectLines.
+// The bonuses the inspect screen's set card shows a row for. A tier granting
+// one outside this list gives the player a bonus nothing tells them about, so
+// the card and this list must change together; see InspectPanel::EffectLines.
 const char* const kShownLevers[] = {
     "str",        "dex",          "int",        "luk",      "def",
     "attack",     "magic_attack", "attack_pct", "max_hp",   "max_mp",
@@ -944,10 +939,10 @@ TEST(EquipDataTest, EverySetTierLeverHasARowOnTheInspectScreen) {
   EXPECT_GT(checked, 0) << "no set tiers in the catalog to check";
 }
 
-// The accessories are boss rewards and a boss is fought by everybody, so one
-// written for a branch would be a set piece a whole class can never wear. The
-// shoulderpad counts: it comes off a boss and belongs to the same set. The
-// Cygnus shoulders are one apiece rather than a gap.
+// Accessories are boss rewards and every class fights bosses, so one made for a
+// single branch would be a set piece a whole class can never wear. The
+// shoulderpad counts: it drops from a boss and belongs to the same set. The
+// Cygnus shoulders are one per branch by design, not a gap.
 TEST(EquipDataTest, AccessoriesAreUniversalAndUpgradeable) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -971,8 +966,8 @@ TEST(EquipDataTest, AccessoriesAreUniversalAndUpgradeable) {
   EXPECT_GT(seen, 0) << "no accessories in the catalog to check";
 }
 
-// A slot or a type added without a display name shows up as a blank column in
-// the bag, which reads as a broken item rather than a missing label.
+// A slot or type added without a display name shows as a blank column in the
+// bag, which looks like a broken item, not a missing label.
 TEST(EquipDataTest, EveryItemsSlotAndTypeHaveNames) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
@@ -986,9 +981,9 @@ TEST(EquipDataTest, EveryItemsSlotAndTypeHaveNames) {
   }
 }
 
-// The six Arcane Symbols, one per Arcane River area. Each wears in a slot of
-// its own -- which is what lets a character carry all six at once and no more
-// than one of each -- and none of them is an item the upgrade paths touch.
+// The six Arcane Symbols, one per Arcane River area. Each goes in its own slot,
+// which lets a character wear all six but no more than one of each, and no
+// upgrade path applies to any of them.
 TEST(EquipDataTest, EverySymbolIsUniversalAndWearsItsOwnSlot) {
   std::set<EquipSlot> slots;
   std::set<int> costs;
@@ -1013,13 +1008,13 @@ TEST(EquipDataTest, EverySymbolIsUniversalAndWearsItsOwnSlot) {
         << entry.first << " carries flat stats; a symbol's come from its level";
   }
   EXPECT_EQ(slots.size(), 6u) << "the six Arcane River areas are not all here";
-  // The ladder GMS charges by area, 8 through 18: six areas, six prices, and a
-  // repeat would mean two files were copied from one.
+  // GMS's per-area cost ladder, 8 through 18: six areas, six prices. A repeat
+  // would mean two files were copied from one.
   EXPECT_EQ(costs.size(), 6u) << "two symbols level up at the same price";
 }
 
-// A stack has no stats, so its description is the whole of what inspecting one
-// tells the player. Without it the card is a name over an empty box.
+// A stack has no stats, so its description is all that inspecting it shows the
+// player. Without one, the card is a name over an empty box.
 TEST(EquipDataTest, EveryStackableDescribesItself) {
   int checked = 0;
   for (const std::pair<const std::string, ItemPrototype>& entry : LoadItems()) {

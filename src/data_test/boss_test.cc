@@ -1,6 +1,6 @@
 // Checks the shipped bosses against the mob catalog. A phase naming a mob file
-// that does not exist spawns nothing, which would leave the player staring at
-// an empty fight until the clock ran out.
+// that doesn't exist spawns nothing, leaving the player in an empty fight until
+// the timer runs out.
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -40,8 +40,8 @@ std::map<std::string, EquipPrototype> LoadEquips() {
   return LoadTestData<EquipPrototype>("equip");
 }
 
-// The shipped catalogs, read once per test. Every test here reads at least
-// the bosses, and most of them the mobs behind the fights as well.
+// The shipped catalogs, loaded once per test. Every test here reads the bosses,
+// and most also read the mobs in the fights.
 class BossDataTest : public testing::Test {
  protected:
   std::map<std::string, Boss> bosses_ = LoadBosses();
@@ -76,9 +76,9 @@ TEST_F(BossDataTest, EveryPhaseSpawnsAKnownMob) {
   EXPECT_GT(phases, 0) << "no boss in the catalog has a phase";
 }
 
-// A fight with no clock could not be lost, and one with no reset could be run
-// all day -- both of which the boss screen is built around not being true. A
-// fight that is not built yet is exempt: it states its HP and nothing else.
+// A fight with no timer couldn't be lost, and one with no reset could be run
+// all day; the boss screen is designed around neither being possible. Unbuilt
+// fights are exempt, since they only state their HP.
 TEST_F(BossDataTest, EveryDifficultyIsNamedClockedAndReset) {
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
     EXPECT_FALSE(entry.second.name().empty()) << entry.first;
@@ -96,10 +96,10 @@ TEST_F(BossDataTest, EveryDifficultyIsNamedClockedAndReset) {
   }
 }
 
-// EXP and meso belong to the fight, not to the body that ends it: the clear
-// pays them once, flat, and the reward path ignores whatever a boss mob
-// carries. A number left on the mob is a payout nobody ever receives. Meso is
-// owed by every fight; EXP is not, and the exception is pinned below.
+// EXP and meso belong to the fight, not the mob that ends it: the clear pays
+// them once, flat, and the reward code ignores whatever a boss mob has. A
+// number left on the mob is a payout nobody receives. Every fight pays meso;
+// not every fight pays EXP, and the exceptions are listed below.
 TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
   std::vector<std::string> unpaid;
   for (const std::pair<const std::string, Mob>& entry : mobs_) {
@@ -121,18 +121,18 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
       }
     }
   }
-  // The four of Root Abyss, which open at the cap and pay in pieces instead;
-  // Chaos Zakum, for whom GMS states no EXP at all; and Lotus and the Guardian
-  // Angel Slime, who are the same case and are fought for what they drop.
+  // The four Root Abyss bosses, which open at 200 and pay in pieces instead;
+  // Chaos Zakum, for whom GMS gives no EXP; and Lotus and the Guardian Angel
+  // Slime, which are the same case and are fought for their drops.
   EXPECT_EQ(unpaid, std::vector<std::string>(
                         {"crimson_queen", "guardian_angel_slime", "lotus",
                          "pierre", "vellum", "von_bon", "zakum"}));
 }
 
-// The three fights written down and not built: Hard Damien, Hard Lotus and
-// the Chaos Guardian Angel Slime. A shell is listed, dim and unenterable, and
-// states nothing but the HP of each phase -- a clock, a gate or a reward on
-// one is a promise the screen never shows.
+// The three fights that are written down but not built: Hard Damien, Hard Lotus
+// and Chaos Guardian Angel Slime. A shell is listed, dimmed and can't be
+// entered, and states only each phase's HP. A timer, gate or reward on one
+// would be a promise the screen never shows.
 TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
   std::vector<std::string> shells;
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
@@ -155,9 +155,9 @@ TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
                 {"damien Hard", "guardian_angel_slime Chaos", "lotus Hard"}));
 }
 
-// Each shell is its Normal at GMS's own Hard or Chaos numbers, and the rung
-// is the only thing that differs: the same bodies in the same cells, so the
-// fight is built by filling in what is missing rather than laying it out.
+// Each shell is its Normal fight with GMS's Hard or Chaos numbers, and the
+// difficulty is the only difference: the same mobs in the same cells, so
+// building the fight means filling in what's missing, not laying it out.
 TEST_F(BossDataTest, EveryShellIsItsNormalShapeAtGmsNumbers) {
   struct Want {
     std::string boss;
@@ -198,13 +198,13 @@ TEST_F(BossDataTest, EveryShellIsItsNormalShapeAtGmsNumbers) {
       EXPECT_EQ(mob.max_hp(), want.hp[i]);
     }
   }
-  // The one body written past the level cap: GMS fights her at 250, and the
-  // card a shell draws does not state a level, so nothing reads it yet.
+  // The one mob above the level cap: GMS fights her at 250, and a shell's card
+  // doesn't show a level, so nothing reads it yet.
   EXPECT_EQ(mobs_.at("chaos_guardian_angel_slime").level(), 250);
 }
 
-// A drop names one catalog or the other, and a name neither holds is granted
-// to nobody -- silently, since the reward path skips what it cannot find.
+// A drop names an item or an equip, and a name in neither catalog is given to
+// nobody. It fails silently, since the reward code skips what it can't find.
 TEST_F(BossDataTest, EveryDropNamesAnItem) {
   std::map<std::string, ItemPrototype> items = LoadItems();
   std::map<std::string, EquipPrototype> equips = LoadEquips();
@@ -231,9 +231,9 @@ TEST_F(BossDataTest, EveryDropNamesAnItem) {
   EXPECT_GT(drops, 0) << "no boss in the catalog drops anything";
 }
 
-// Every built fight pays a shard of the soul it took, and the naming is what
-// the boss screen prints: a fight whose shard is missing or misnamed drops
-// nothing a player can tell apart from another boss's.
+// Every built fight drops its own soul shard, and the boss screen shows its
+// name. A fight with a missing or misnamed shard drops nothing the player can
+// tell apart from another boss's.
 TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
   std::map<std::string, ItemPrototype> items = LoadItems();
   int fights = 0;
@@ -257,9 +257,9 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
                 entry.second.name() + "'s Soul Shard")
           << where;
       EXPECT_EQ(items.at(shards[0]).kind(), ITEM_KIND_SOUL_SHARD) << where;
-      // The bag's Token tab heads the column "Soul Shard" and writes only the
-      // boss under it, so a shard that names no short form reads as a
-      // sentence repeating its own column.
+      // The bag's Token tab heads the column "Soul Shard" and shows only the
+      // boss name under it, so a shard with no short name would repeat its own
+      // column heading.
       EXPECT_EQ(items.at(shards[0]).short_name(), entry.second.name()) << where;
     }
   }
@@ -269,10 +269,10 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
                            "Pink Bean, Hilla and Horntail";
 }
 
-// A boss pays in meso and in gear, and the gear is the reward: selling it back
-// would make every clear a second purse and let a player skip the fight the
-// piece is for. So nothing a boss drops is worth anything at the counter --
-// equips and shards alike -- and a new boss's drop cannot ship priced.
+// A boss pays in meso and gear, and the gear is the reward. If it could be
+// sold, every clear would be a second payout and a player could skip the fight
+// the piece is for. So nothing a boss drops sells for anything, equips and
+// shards alike, and a new boss's drop can't ship with a price.
 TEST_F(BossDataTest, NothingABossDropsIsWorthMeso) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::map<std::string, ItemPrototype> items = LoadItems();
@@ -299,8 +299,8 @@ TEST_F(BossDataTest, NothingABossDropsIsWorthMeso) {
   EXPECT_GT(seen, 0) << "no boss drops in the catalog to check";
 }
 
-// Zakum is the first boss and the one the screen was built against, so his
-// numbers are pinned: the shape of the fight is a design decision, not data
+// Zakum is the first boss and the one the screen was built around, so his
+// numbers are fixed here: the shape of the fight is a design decision, not data
 // that should drift.
 TEST_F(BossDataTest, NormalZakumIsEightArmsThenTheBody) {
   ASSERT_GT(bosses_.count("zakum"), 0u);
@@ -327,9 +327,8 @@ TEST_F(BossDataTest, NormalZakumIsEightArmsThenTheBody) {
   EXPECT_EQ(normal.drops(2).per_kill(), 1.0);
 }
 
-// The last boss the game opens, and the first whose gate is thirty levels
-// above the body behind it: he is fought at 160 and is level 130. Pinned for
-// the reason Zakum's numbers are -- the shape of a fight is a design decision.
+// The first boss whose gate is thirty levels above the mob itself: he is fought
+// at 160 and is level 130. Fixed here for the same reason as Zakum.
 TEST_F(BossDataTest, NormalMagnusIsOneBodyBehindALateGate) {
   ASSERT_GT(bosses_.count("magnus"), 0u);
   const BossDifficulty& normal = bosses_.at("magnus").difficulties(0);
@@ -356,8 +355,7 @@ TEST_F(BossDataTest, NormalMagnusIsOneBodyBehindALateGate) {
 }
 
 // A fight whose first phase is most of it: the five statues are 5.55B of the
-// 7.65B. Pinned for the reason Zakum's and Magnus's numbers are -- the shape
-// of a fight is a design decision.
+// 7.65B. Fixed here for the same reason as Zakum and Magnus.
 TEST_F(BossDataTest, NormalPinkBeanIsFiveStatuesThenTheBean) {
   ASSERT_GT(bosses_.count("pink_bean"), 0u);
   const BossDifficulty& normal = bosses_.at("pink_bean").difficulties(0);
@@ -366,7 +364,7 @@ TEST_F(BossDataTest, NormalPinkBeanIsFiveStatuesThenTheBean) {
   EXPECT_EQ(normal.time_limit_seconds(), 600);
   EXPECT_EQ(normal.unlock_level(), 170);
   EXPECT_EQ(normal.meso(), 7022500);
-  // The statues' 3,300,000 and the bean's 6,290,000, paid as one flat number.
+  // The statues' 3,300,000 and the bean's 6,290,000, paid as one flat amount.
   EXPECT_EQ(normal.exp(), 9590000);
   ASSERT_EQ(normal.phases_size(), 2);
   ASSERT_EQ(normal.phases(0).spawns_size(), 5);
@@ -394,10 +392,8 @@ TEST_F(BossDataTest, NormalPinkBeanIsFiveStatuesThenTheBean) {
   EXPECT_EQ(normal.drops(3).item(), "pink_beans_soul_shard");
 }
 
-// The last fight the game opens and the biggest single body in it: 12.6B
-// behind 90% PDR, on the ten-minute clock Horntail set. Pinned for the reason
-// Zakum's and Magnus's numbers are -- the shape of a fight is a design
-// decision, not data that should drift.
+// One mob with 12.6B HP behind 90% PDR, on the ten-minute timer Horntail set.
+// Fixed here for the same reason as Zakum and Magnus.
 TEST_F(BossDataTest, NormalArkariumIsOneBodyBehindNinetyPdr) {
   ASSERT_GT(bosses_.count("arkarium"), 0u);
   const BossDifficulty& normal = bosses_.at("arkarium").difficulties(0);
@@ -419,8 +415,8 @@ TEST_F(BossDataTest, NormalArkariumIsOneBodyBehindNinetyPdr) {
   EXPECT_EQ(normal.drops(1).item(), "arkariums_soul_shard");
 }
 
-// The first fight with a second difficulty built, and the only body behind
-// 100% PDR. Pinned for the reason Zakum's numbers are.
+// The first fight with a second difficulty, with a mob behind 100% PDR. Fixed
+// here for the same reason as Zakum.
 TEST_F(BossDataTest, HardHillaIsTheSameFightBehindALaterGate) {
   ASSERT_GT(bosses_.count("hilla"), 0u);
   ASSERT_EQ(bosses_.at("hilla").difficulties_size(), 2);
@@ -438,12 +434,12 @@ TEST_F(BossDataTest, HardHillaIsTheSameFightBehindALaterGate) {
   EXPECT_EQ(silver.pdr(), 100);
   ASSERT_EQ(hard.drops_size(), 2);
   EXPECT_EQ(hard.drops(0).equip(), "will_o_the_wisps");
-  // The same shard Normal drops: a soul belongs to the boss, not the rung.
+  // The same shard as Normal: a soul belongs to the boss, not the difficulty.
   EXPECT_EQ(hard.drops(1).item(), "hillas_soul_shard");
 }
 
-// Eleven parts over three phases adding to 26.6B, and a second difficulty
-// that changes what a phase fights rather than only how hard it hits.
+// Eleven parts over three phases totalling 26.6B, and a second difficulty that
+// changes which mobs a phase fights, not just how hard they hit.
 TEST_F(BossDataTest, ChaosHorntailIsTheSameShapeAtChaosNumbers) {
   ASSERT_GT(bosses_.count("horntail"), 0u);
   ASSERT_EQ(bosses_.at("horntail").difficulties_size(), 2);
@@ -456,8 +452,8 @@ TEST_F(BossDataTest, ChaosHorntailIsTheSameShapeAtChaosNumbers) {
   EXPECT_EQ(chaos.unlock_level(), 190);
   EXPECT_EQ(chaos.meso(), 6760000);
   EXPECT_EQ(chaos.exp(), 8473319);
-  // Phase for phase and cell for cell, the fight Normal is: only the mobs
-  // differ, and each is the Chaos part of the one it replaces.
+  // Phase for phase and cell for cell, the same fight as Normal: only the mobs
+  // differ, and each is the Chaos version of the one it replaces.
   ASSERT_EQ(chaos.phases_size(), normal.phases_size());
   int64_t total = 0;
   for (int i = 0; i < chaos.phases_size(); ++i) {
@@ -475,8 +471,8 @@ TEST_F(BossDataTest, ChaosHorntailIsTheSameShapeAtChaosNumbers) {
     }
   }
   EXPECT_EQ(total, 26600000000LL);
-  // Normal's rewards with the Chaos necklace in the plain one's place, and
-  // the same shard: a soul belongs to the boss, not the rung.
+  // Normal's rewards with the Chaos necklace instead of the plain one, and the
+  // same shard: a soul belongs to the boss, not the difficulty.
   ASSERT_EQ(chaos.drops_size(), 4);
   EXPECT_EQ(chaos.drops(0).item(), "horntails_soul_shard");
   EXPECT_EQ(chaos.drops(1).equip(), "silver_blossom_ring");
@@ -484,10 +480,9 @@ TEST_F(BossDataTest, ChaosHorntailIsTheSameShapeAtChaosNumbers) {
   EXPECT_EQ(chaos.drops(3).equip(), "dea_sidus_earring");
 }
 
-// The first fight to open at the cap: 63B behind 100% PDR, standing where
-// Hilla and Arkarium stand. She pays no equip at all -- the token she drops is
-// what buys one -- so she is also the only fight whose whole reward is a
-// stackable. Pinned for the reason Zakum's numbers are.
+// 63B behind 100% PDR, in the same spots as Hilla and Arkarium, opening at 200.
+// She drops no equip at all; the token she drops buys one. Fixed here for the
+// same reason as Zakum.
 TEST_F(BossDataTest, NormalCygnusIsOneBodyBehindTheLastGate) {
   ASSERT_GT(bosses_.count("cygnus"), 0u);
   ASSERT_EQ(bosses_.at("cygnus").difficulties_size(), 1);
@@ -511,10 +506,10 @@ TEST_F(BossDataTest, NormalCygnusIsOneBodyBehindTheLastGate) {
   EXPECT_EQ(normal.drops(1).item(), "cygnuss_soul_shard");
 }
 
-// The three hard rungs of fights already built, which open together at the cap
-// on the same fifteen-minute clock. Each is its Normal's shape at GMS's own
-// Chaos or Hard numbers and drops what Normal drops -- a rung buys the gear
-// faster, not different gear. Pinned for the reason Zakum's numbers are.
+// The hard difficulties of fights already built, which all open at 200 on the
+// same fifteen-minute timer. Each is its Normal fight with GMS's Chaos or Hard
+// numbers and drops what Normal drops: a harder difficulty gets the gear
+// faster, not different gear. Fixed here for the same reason as Zakum.
 TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
   struct Want {
     std::string boss;
@@ -540,7 +535,7 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
     EXPECT_EQ(hard.unlock_level(), 200);
     EXPECT_EQ(hard.meso(), want.meso);
     EXPECT_EQ(hard.exp(), want.exp);
-    // Phase for phase and cell for cell, the fight Normal is.
+    // Phase for phase and cell for cell, the same fight as Normal.
     ASSERT_EQ(hard.phases_size(), normal.phases_size());
     int64_t total = 0;
     for (int i = 0; i < hard.phases_size(); ++i) {
@@ -556,7 +551,7 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
       }
     }
     EXPECT_EQ(total, want.hp);
-    // What Normal drops, in the order Normal drops it.
+    // What Normal drops, in the same order.
     ASSERT_EQ(hard.drops_size(), normal.drops_size());
     for (int i = 0; i < hard.drops_size(); ++i) {
       EXPECT_EQ(hard.drops(i).SerializeAsString(),
@@ -566,10 +561,9 @@ TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
   }
 }
 
-// Hard Magnus and the Chaos Pink Bean statues are the second and third bodies
-// written past 100% PDR, after Chaos Crimson Queen and Chaos Vellum: a fight
-// that asks for Ignore DEF before it takes anything at all. The number is the
-// design, so it is pinned rather than clamped.
+// Hard Magnus and the Chaos Pink Bean statues have more than 100% PDR, so the
+// fight needs Ignore DEF before it does any damage at all. The number is the
+// design, so it is fixed here instead of clamped.
 TEST_F(BossDataTest, TheHardRungsGateOnIgnoreDefense) {
   EXPECT_EQ(mobs_.at("hard_magnus").pdr(), 120);
   EXPECT_EQ(mobs_.at("chaos_zakum").pdr(), 100);
@@ -581,10 +575,10 @@ TEST_F(BossDataTest, TheHardRungsGateOnIgnoreDefense) {
   }
 }
 
-// The biggest body in the game by a factor of two and a half, and the only
-// fight outside Root Abyss on a twenty-minute clock. Her room is the other
-// difference: four ledges over the floor every other lone body is fought on.
-// Pinned for the reason Zakum's numbers are.
+// Much bigger than any mob before her, and the only fight outside Root Abyss on
+// a twenty-minute timer. Her room is also different: four ledges above the
+// floor every other single-mob fight uses. Fixed here for the same reason as
+// Zakum.
 TEST_F(BossDataTest, PrincessNoIsOneBodyOverAClimbableRoom) {
   ASSERT_GT(bosses_.count("princess_no"), 0u);
   ASSERT_EQ(bosses_.at("princess_no").difficulties_size(), 1);
@@ -603,8 +597,8 @@ TEST_F(BossDataTest, PrincessNoIsOneBodyOverAClimbableRoom) {
   EXPECT_EQ(princess.max_hp(), 500000000000LL);
   EXPECT_EQ(princess.attack(), 52000);
   EXPECT_EQ(princess.pdr(), 100);
-  // The five floor spots every lone body offers, then a ledge over each end
-  // and a second pair over those, a column further in.
+  // The five floor spots every single-mob fight has, then a ledge above each
+  // end and a second pair above those, one column further in.
   const std::vector<std::pair<int, int>> kSpots = {
       {4, 5}, {0, 5}, {8, 5}, {2, 5}, {6, 5}, {0, 3}, {8, 3}, {1, 1}, {7, 1}};
   ASSERT_EQ(normal.phases(0).player_spots_size(),
@@ -614,7 +608,7 @@ TEST_F(BossDataTest, PrincessNoIsOneBodyOverAClimbableRoom) {
     EXPECT_EQ(normal.phases(0).player_spots(i).y(), kSpots[i].second) << i;
   }
   // The whole Sengoku Treasure Set in one clear, her own shard, and the
-  // fragment fifteen of which buy one of her secondaries.
+  // fragment that buys one of her secondaries at fifteen.
   ASSERT_EQ(normal.drops_size(), 5);
   EXPECT_EQ(normal.drops(0).equip(), "kannas_treasure");
   EXPECT_EQ(normal.drops(1).equip(), "ayames_treasure");
@@ -624,11 +618,9 @@ TEST_F(BossDataTest, PrincessNoIsOneBodyOverAClimbableRoom) {
   EXPECT_EQ(normal.drops(4).per_kill(), 1.0);
 }
 
-// The multiplayer fight of this release: three bodies summing 1.575T behind
-// 300% PDR at level 210, on the longest clock in the game. Every number is
-// GMS's own but the meso and the clock, and it is the first fight to play a
-// different track in each of its phases. Pinned for the reason Zakum's
-// numbers are.
+// Three mobs totalling 1.575T behind 300% PDR at level 210, on a 25-minute
+// timer. Every number is GMS's except the meso and the timer, and it plays a
+// different track in each phase. Fixed here for the same reason as Zakum.
 TEST_F(BossDataTest, LotusIsThreeBodiesOnTheLongestClock) {
   ASSERT_GT(bosses_.count("lotus"), 0u);
   ASSERT_EQ(bosses_.at("lotus").difficulties_size(), 2);
@@ -659,8 +651,8 @@ TEST_F(BossDataTest, LotusIsThreeBodiesOnTheLongestClock) {
     EXPECT_EQ(mob.pdr(), 300) << i;
     EXPECT_EQ(mob.max_hp(), kHp[i]) << i;
   }
-  // He hangs over the middle of an empty floor, then comes down to walk the
-  // row above the player's heads, leaving the gallery he hung in to stand on.
+  // He hovers over the middle of an empty floor, then comes down to walk the
+  // row above the player, leaving the ledge he hovered on free to stand on.
   EXPECT_EQ(normal.phases(0).spawns(0).spots(0).y(), 2);
   EXPECT_EQ(normal.phases(0).spawns(0).walk().interval_ms(), 0);
   for (int i = 1; i < normal.phases_size(); ++i) {
@@ -670,15 +662,15 @@ TEST_F(BossDataTest, LotusIsThreeBodiesOnTheLongestClock) {
               ArenaWalk::RANGE_ROW_STEP)
         << i;
   }
-  // A coin per clear, which is the only source of AbsoLab gear, and his shard.
+  // A coin per clear, the only source of AbsoLab gear, and his shard.
   ASSERT_EQ(normal.drops_size(), 2);
   EXPECT_EQ(normal.drops(0).item(), "absolab_coin");
   EXPECT_EQ(normal.drops(1).item(), "lotuss_soul_shard");
 }
 
-// 1.2T over two bodies behind the same 300% PDR Lotus stands behind, on the
-// same twenty-five minute clock and at the same gate. Every number is GMS's
-// own but the meso and the clock. Pinned for the reason Zakum's numbers are.
+// 1.2T over two mobs behind the same 300% PDR as Lotus, on the same 25-minute
+// timer and at the same gate. Every number is GMS's except the meso and the
+// timer. Fixed here for the same reason as Zakum.
 TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
   ASSERT_GT(bosses_.count("damien"), 0u);
   ASSERT_EQ(bosses_.at("damien").difficulties_size(), 2);
@@ -699,7 +691,7 @@ TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
     EXPECT_EQ(SpawnCount(phase.spawns(0)), 1) << i;
     EXPECT_EQ(phase.spawns(0).mob(), kMobs[i]) << i;
     EXPECT_EQ(phase.bgm(), kTracks[i]) << i;
-    // Both phases pace the row over the player's heads, on Lotus's beat.
+    // Both phases walk the row above the player, at Lotus's pace.
     EXPECT_EQ(phase.spawns(0).spots(0).y(), 4) << i;
     EXPECT_EQ(phase.spawns(0).walk().interval_ms(), 10000) << i;
     EXPECT_EQ(phase.spawns(0).walk().range(), ArenaWalk::RANGE_ROW_STEP) << i;
@@ -710,23 +702,23 @@ TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
     EXPECT_EQ(mob.pdr(), 300) << i;
     EXPECT_EQ(mob.max_hp(), kHp[i]) << i;
   }
-  // The blade drawn: the second phase crosses the row rather than pacing it,
-  // and it is the only walk in the game that does.
+  // The blade drawn: the second phase dashes across the row instead of walking
+  // it, and it is the only walk in the game that does.
   EXPECT_FALSE(normal.phases(0).spawns(0).walk().has_dash());
   const ArenaDash& dash = normal.phases(1).spawns(0).walk().dash();
   EXPECT_EQ(dash.interval_ms(), 30000);
   EXPECT_EQ(dash.cells(), 4);
   EXPECT_EQ(dash.step_ms(), 120);
-  // A coin per clear, as Lotus pays, and his shard.
+  // A coin per clear, like Lotus, and his shard.
   ASSERT_EQ(normal.drops_size(), 2);
   EXPECT_EQ(normal.drops(0).item(), "absolab_coin");
   EXPECT_EQ(normal.drops(1).item(), "damiens_soul_shard");
 }
 
-// 5T behind the same 300% PDR, three times the largest body before her, and
-// the first fight to move off its row: every thirty seconds she is up in the
-// gallery for two thirds of a second. Every number is GMS's own but the meso,
-// the clock and the gate. Pinned for the reason Zakum's numbers are.
+// 5T behind the same 300% PDR, three times the largest mob before her, and the
+// first fight that leaves its row: every thirty seconds she jumps to the ledge
+// for two thirds of a second. Every number is GMS's except the meso, the timer
+// and the gate. Fixed here for the same reason as Zakum.
 TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   ASSERT_GT(bosses_.count("guardian_angel_slime"), 0u);
   const Boss& slime = bosses_.at("guardian_angel_slime");
@@ -750,8 +742,8 @@ TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   EXPECT_EQ(mob.attack(), 22000);
   EXPECT_EQ(mob.pdr(), 300);
   EXPECT_EQ(mob.max_hp(), 5000000000000LL);
-  // She paces the row over the player's heads on Lotus's beat, and leaves it
-  // for the row Lotus hangs in.
+  // She walks the row above the player at Lotus's pace, and jumps to the row
+  // Lotus hovers in.
   const ArenaWalk& walk = phase.spawns(0).walk();
   EXPECT_EQ(phase.spawns(0).spots(0).y(), 4);
   EXPECT_EQ(walk.interval_ms(), 10000);
@@ -760,8 +752,8 @@ TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   EXPECT_EQ(walk.jump().interval_ms(), 30000);
   EXPECT_EQ(walk.jump().y(), 2);
   EXPECT_EQ(walk.jump().hang_ms(), 660);
-  // Her ring at half the clears -- the one boss drop that is not
-  // certain -- and her shard at all of them.
+  // Her ring drops half the time, the one boss drop that isn't certain; her
+  // shard always drops.
   ASSERT_EQ(normal.drops_size(), 2);
   EXPECT_EQ(normal.drops(0).equip(), "guardian_angel_ring");
   EXPECT_DOUBLE_EQ(normal.drops(0).per_kill(), 0.5);
@@ -769,9 +761,9 @@ TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   EXPECT_DOUBLE_EQ(normal.drops(1).per_kill(), 1.0);
 }
 
-// A jump has to land, so it must come back down before the next one is due,
-// and the row it leaves for has to be one the arena holds and nobody stands
-// on -- a jump onto a player spot would draw a bar over a player.
+// A jump must come back down before the next one is due, and the row it jumps
+// to must be inside the arena and not a player spot, since a jump onto a player
+// spot would draw a bar over the player.
 TEST_F(BossDataTest, EveryJumpLandsInsideItsArenaBeforeTheNextIsDue) {
   int jumps = 0;
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
@@ -802,10 +794,10 @@ TEST_F(BossDataTest, EveryJumpLandsInsideItsArenaBeforeTheNextIsDue) {
                          "only one that jumps";
 }
 
-// The boss screen is a fixed size: a name over its column slides under it, and
-// a catalog over the grid's rows loses its tail off the bottom. The slide is
-// the safety net rather than the plan -- a grid where nothing moves is read at
-// a glance -- so the shipped names are held to their columns here.
+// The boss screen has a fixed size: a name too wide for its column scrolls, and
+// a catalog with more rows than the grid loses its end off the bottom.
+// Scrolling is a fallback, not the plan, since a grid where nothing moves can
+// be read at a glance, so the shipped names must fit their columns.
 TEST_F(BossDataTest, EveryNameFitsWhereTheBossScreenDrawsIt) {
   std::map<std::string, Boss> bosses = LoadBosses();
   EXPECT_LE(static_cast<int>(bosses.size()), kBossListCapacity)
@@ -814,8 +806,8 @@ TEST_F(BossDataTest, EveryNameFitsWhereTheBossScreenDrawsIt) {
     EXPECT_LT(static_cast<int>(entry.second.name().size()), kBossNameWidth)
         << entry.second.name() << " slides under the Name column";
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
-      // The card is headed "<difficulty> <boss>", with a column of clearance
-      // on each side as every row under it has.
+      // The card's title is "<difficulty> <boss>", with one column of margin on
+      // each side like every row below it.
       std::string title = difficulty.name() + " " + entry.second.name();
       EXPECT_LE(static_cast<int>(title.size()), kDetailWidth - 2)
           << title << " fills the card it heads";
@@ -823,8 +815,8 @@ TEST_F(BossDataTest, EveryNameFitsWhereTheBossScreenDrawsIt) {
   }
 }
 
-// Where the parts stand is data, and two of them in one cell is a bar drawn on
-// top of another one.
+// Where parts stand is data, and two in one cell means one bar drawn over
+// another.
 TEST_F(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
   int placed = 0;
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
@@ -861,7 +853,7 @@ TEST_F(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
   EXPECT_GT(placed, 0);
 }
 
-// A phase with nowhere to stand starts the player at the origin, on top of
+// A phase with no player spots starts the player at the origin, on top of
 // whatever is drawn there.
 TEST_F(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
@@ -881,10 +873,10 @@ TEST_F(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
   }
 }
 
-// How much room each fight gives the player is a design decision, so the count
-// per phase is PINNED: five on the floor of every fight, plus whatever ledges
-// a phase draws. Every difficulty is laid out alike and every phase holds more
-// than a full party, so three players always have somewhere to walk.
+// How much room each fight gives the player is a design decision, so the spot
+// count per phase is fixed: five on the floor of every fight, plus any ledges a
+// phase has. Every difficulty uses the same layout and every phase has room for
+// more than a full party, so three players always have somewhere to move.
 TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   std::map<std::string, std::vector<int>> expected = {
       {"zakum", {7, 5}},       {"hilla", {5}},
@@ -910,10 +902,10 @@ TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   }
 }
 
-// The four of Root Abyss, which open together at the cap. Same lone body in
-// the same room as Hilla and Cygnus, told apart by what stands in it: HP
-// climbing 80B to 200B and defence climbing with it, past the 100% no fight
-// before them crossed. Pinned for the reason Zakum's numbers are.
+// The four Root Abyss bosses, which open together at 200. The same single mob
+// in the same room as Hilla and Cygnus, told apart by the mob: HP rising from
+// 80B to 200B, with defence rising past 100% alongside it. Fixed here for the
+// same reason as Zakum.
 TEST_F(BossDataTest, RootAbyssIsFourBodiesBehindClimbingDefence) {
   struct Want {
     std::string boss;
@@ -937,7 +929,7 @@ TEST_F(BossDataTest, RootAbyssIsFourBodiesBehindClimbingDefence) {
   std::map<std::string, ItemPrototype> items = LoadItems();
   for (const Want& want : wants) {
     ASSERT_GT(bosses_.count(want.boss), 0u) << want.boss;
-    // No Normal rung: Root Abyss is fought at Chaos or not at all.
+    // No Normal difficulty: Root Abyss is Chaos only.
     ASSERT_EQ(bosses_.at(want.boss).difficulties_size(), 1) << want.boss;
     const BossDifficulty& chaos = bosses_.at(want.boss).difficulties(0);
     EXPECT_EQ(chaos.name(), "Chaos") << want.boss;
@@ -949,8 +941,8 @@ TEST_F(BossDataTest, RootAbyssIsFourBodiesBehindClimbingDefence) {
     ASSERT_EQ(chaos.phases(0).spawns_size(), 1) << want.boss;
     EXPECT_EQ(SpawnCount(chaos.phases(0).spawns(0)), 1) << want.boss;
     EXPECT_EQ(chaos.phases(0).spawns(0).mob(), want.mob) << want.boss;
-    // Vellum blinks along his row, the one walk in the game that does not
-    // step; the others stand still.
+    // Vellum blinks along his row, the only walk in the game that doesn't step;
+    // the others stand still.
     EXPECT_EQ(chaos.phases(0).spawns(0).walk().interval_ms(),
               want.boss == "vellum" ? 30000 : 0)
         << want.boss;
@@ -963,9 +955,7 @@ TEST_F(BossDataTest, RootAbyssIsFourBodiesBehindClimbingDefence) {
     EXPECT_EQ(mob.max_hp(), want.hp) << want.boss;
     EXPECT_EQ(mob.attack(), want.attack) << want.boss;
     EXPECT_EQ(mob.pdr(), want.pdr) << want.boss;
-    // The piece is the prize, and a token is what buys gear with: the Root
-    // Abyss set it pays for is not built yet, so it carries no mark to be
-    // asked for by.
+    // The piece is the reward: a token that buys Root Abyss gear.
     ASSERT_GT(items.count(want.piece), 0u) << want.piece;
     EXPECT_EQ(items.at(want.piece).kind(), ITEM_KIND_TOKEN) << want.piece;
     bool dropped = false;
@@ -976,9 +966,9 @@ TEST_F(BossDataTest, RootAbyssIsFourBodiesBehindClimbingDefence) {
   }
 }
 
-// One grid for every fight in the game, so a room is the same shape whichever
-// boss is standing in it -- and, more to the point, so no arena outgrows the
-// smallest terminal the game is laid out for. See kArenaColumns.
+// One grid for every fight, so a room has the same shape whichever boss is in
+// it and, more importantly, no arena outgrows the smallest terminal the game
+// supports. See kArenaColumns.
 TEST_F(BossDataTest, EveryArenaStandsOnTheOneGrid) {
   int phases = 0;
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {

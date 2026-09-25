@@ -17,10 +17,10 @@
 namespace ms {
 namespace {
 
-// What the shipped binary carries, checked here rather than left to the first
-// player to find. An accessor wired to the wrong filegroup, or to none, still
-// compiles and still hands back a map -- so each one is asked for something it
-// is supposed to hold.
+// Checks what the shipped binary contains, so players don't find problems
+// first. An accessor wired to the wrong filegroup, or to none, still compiles
+// and still returns a map, so each one is asked for something it should
+// contain.
 
 TEST(EmbeddedDataTest, EquipsParse) {
   std::map<std::string, EquipPrototype> equips =
@@ -32,19 +32,17 @@ TEST(EmbeddedDataTest, EquipsParse) {
 TEST(EmbeddedDataTest, ItemsParse) {
   std::map<std::string, ItemPrototype> items =
       LoadTextProtoMap<ItemPrototype>(EmbeddedItems());
-  // One drop out of each band's folder: every item in the game sits in a
-  // subfolder, so a glob that stopped recursing would hand back an empty map
-  // rather than a short one.
+  // One drop from each band's folder. Every item is in a subfolder, so a glob
+  // that stopped recursing would return an empty map, not a short one.
   EXPECT_TRUE(items.count("green_snail_shell") > 0);
   EXPECT_TRUE(items.count("wooden_board") > 0);
   EXPECT_TRUE(items.count("spell_trace") > 0);
 }
 
-// Spell traces are bought, never sold for anything. They are the currency
-// scrolling is paid in, so a sell price on them would be a way to turn the
-// game's largest meso sink back into meso. Pinned here because the rule is
-// enforced by a line the data file does not have, and nothing else would
-// notice it appearing.
+// Spell traces can be bought but never sold. They are the currency scrolling is
+// paid in, so a sell price would turn the game's biggest meso sink back into
+// meso. Checked here because the rule depends on a line the data file lacks,
+// and nothing else would notice one being added.
 TEST(EmbeddedDataTest, SpellTracesAreWorthNothingAtTheCounter) {
   std::map<std::string, ItemPrototype> items =
       LoadTextProtoMap<ItemPrototype>(EmbeddedItems());
@@ -55,7 +53,7 @@ TEST(EmbeddedDataTest, SpellTracesAreWorthNothingAtTheCounter) {
 }
 
 TEST(EmbeddedDataTest, EveryOtherCatalogParses) {
-  // The map a new character starts on: without it, play mode has nowhere to be.
+  // The map new characters start on. Without it, play mode has nowhere to go.
   EXPECT_TRUE(LoadTextProtoMap<MapData>(EmbeddedMaps()).count("maple_island") >
               0);
   EXPECT_TRUE(LoadTextProtoMap<Boss>(EmbeddedBosses()).count("zakum") > 0);

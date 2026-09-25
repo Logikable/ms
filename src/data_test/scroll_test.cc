@@ -1,7 +1,6 @@
-// Checks the shipped scroll catalog. A scroll that prices to nothing is a
-// scroll the player gets for free, and a stat that no job can scroll is a file
-// nobody will ever see -- neither shows up as a crash, so neither shows up at
-// all without this.
+// Checks the shipped scroll catalog. A scroll that costs nothing is free for
+// the player, and a stat that no job can scroll is a file nobody will ever see.
+// Neither causes a crash, so neither would be noticed without this.
 #include <gtest/gtest.h>
 
 #include <map>
@@ -25,8 +24,8 @@ class ScrollDataTest : public ::testing::Test {
     ASSERT_FALSE(scrolls_.empty());
   }
 
-  // A level inside each tier's own span, where the game ships equipment: the
-  // price comes from the item, so a scroll cannot be priced without one.
+  // A level inside each tier's range where the game has equipment. The price
+  // comes from the item, so a scroll can't be priced without one.
   static int LevelForTier(ScrollTier tier) {
     switch (tier) {
       case SCROLL_TIER_2:
@@ -57,8 +56,8 @@ TEST_F(ScrollDataTest, EveryScrollIsTieredAndPriced) {
   }
 }
 
-// A scroll that names no kind of equipment is offered for none of it, which
-// is a scroll nobody can ever buy. Only a clean slate goes on anything.
+// A scroll that names no kind of equipment is offered for none, so nobody can
+// ever buy it. Only a clean slate works on anything.
 TEST_F(ScrollDataTest, EveryScrollButACleanSlateNamesWhatItGoesOn) {
   for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
     if (entry.second.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
@@ -71,14 +70,14 @@ TEST_F(ScrollDataTest, EveryScrollButACleanSlateNamesWhatItGoesOn) {
   }
 }
 
-// Within one tier a scroll that lands less often must not cost less, or the
-// player would take the risky one every time and the safe ones are decoration.
-// Within one target too: a weapon is dearer than armour at every level, so the
-// two families are only comparable against themselves.
+// Within a tier, a scroll with lower odds must not cost less, or the player
+// would always take the risky one and the safe ones would be pointless. Also
+// within a target: weapons cost more than armour at every level, so each family
+// is only compared with itself.
 //
-// "Not less" rather than "more" because the price is GMS's, and at the bottom
-// of its table two rates can round to the same figure. src/item's own test
-// pins where that happens.
+// "Not less" instead of "more" because the prices are GMS's, and at the bottom
+// of its table two rates can round to the same price. src/item's own test
+// covers where that happens.
 TEST_F(ScrollDataTest, LongerOddsNeverCostLess) {
   for (const std::pair<const std::string, Scroll>& a : scrolls_) {
     for (const std::pair<const std::string, Scroll>& b : scrolls_) {
@@ -97,9 +96,9 @@ TEST_F(ScrollDataTest, LongerOddsNeverCostLess) {
   }
 }
 
-// Only a clean slate carries a price of its own. A figure written on any other
-// scroll is ignored, so leaving one there is a second price that drifts out of
-// step with the one the player is actually charged.
+// Only a clean slate has its own price. A price written on any other scroll is
+// ignored, so leaving one there creates a second price that drifts from the one
+// the player actually pays.
 TEST_F(ScrollDataTest, OnlyACleanSlateWritesItsOwnPrice) {
   for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
     if (entry.second.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
@@ -112,8 +111,8 @@ TEST_F(ScrollDataTest, OnlyACleanSlateWritesItsOwnPrice) {
   }
 }
 
-// One clean slate a tier, each dearer than the last. Three of them sharing a
-// tier would offer the player the same slot back at three prices.
+// One clean slate per tier, each more expensive than the last. Three in the
+// same tier would offer the player the same slot back at three prices.
 TEST_F(ScrollDataTest, OneCleanSlatePerTierAndTheyClimb) {
   std::map<int, int> by_tier;
   for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
@@ -129,9 +128,8 @@ TEST_F(ScrollDataTest, OneCleanSlatePerTierAndTheyClimb) {
   EXPECT_LT(by_tier[SCROLL_TIER_2], by_tier[SCROLL_TIER_3]);
 }
 
-// Every armour scroll carries a little HP and DEF on top of whatever stat it
-// was chosen for. A file written without them looks like a weapon scroll that
-// wandered into the wrong list.
+// Every armour scroll adds a little HP and DEF on top of its main stat. A file
+// without them looks like a weapon scroll in the wrong list.
 TEST_F(ScrollDataTest, EveryArmourScrollPaysHpAndDef) {
   int seen = 0;
   for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
@@ -147,9 +145,9 @@ TEST_F(ScrollDataTest, EveryArmourScrollPaysHpAndDef) {
   EXPECT_GT(seen, 0);
 }
 
-// An accessory scroll pays the stat it was chosen for and nothing else: no HP
-// rider, no DEF, no attack. The armour shelf beside it bundles all three, so a
-// file copied from there arrives paying more than GMS sells.
+// An accessory scroll adds only its chosen stat: no HP, DEF or attack. The
+// armour scrolls bundle all three, so a file copied from those would give more
+// than GMS does.
 TEST_F(ScrollDataTest, EveryAccessoryScrollPaysOneThing) {
   int seen = 0;
   for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
@@ -162,7 +160,7 @@ TEST_F(ScrollDataTest, EveryAccessoryScrollPaysOneThing) {
     EXPECT_EQ(stats.def(), 0) << entry.first << " pays defense";
     EXPECT_EQ(stats.attack(), 0) << entry.first << " pays attack";
     EXPECT_EQ(stats.magic_attack(), 0) << entry.first;
-    // The HP shelf is the one that pays HP, and it pays nothing else.
+    // The HP scroll is the one that adds HP, and it adds nothing else.
     bool hp_scroll = scroll.scroll_type() == SCROLL_TYPE_HP;
     EXPECT_EQ(stats.max_hp() > 0, hp_scroll) << entry.first;
     EXPECT_EQ(stats.str() > 0 || stats.dex() > 0 || stats.int_() > 0 ||
@@ -173,8 +171,8 @@ TEST_F(ScrollDataTest, EveryAccessoryScrollPaysOneThing) {
   EXPECT_GT(seen, 0);
 }
 
-// The HP shelf trades at fifty times the stat shelf beside it, rate for rate
-// and tier for tier. One figure to check rather than nine.
+// The accessory HP scroll costs fifty times the stat scroll of the same rate
+// and tier. One number to check instead of nine.
 TEST_F(ScrollDataTest, AnAccessoryHpScrollIsFiftyTimesItsStatScroll) {
   int checked = 0;
   for (const std::pair<const std::string, Scroll>& hp : scrolls_) {
@@ -197,10 +195,10 @@ TEST_F(ScrollDataTest, AnAccessoryHpScrollIsFiftyTimesItsStatScroll) {
   EXPECT_EQ(checked, 9);
 }
 
-// Which stat a job can put on its gear, from the wiki's own table. A missing
-// file shows up as a job with nothing to scroll at that tier. Asked of the
-// armour and the accessory shelves alike: the two carry the same stats, and
-// the accessory one was written by copying this table.
+// Which stats each job can scroll onto its gear, from the wiki's table. A
+// missing file shows up as a job with nothing to scroll at that tier. Checked
+// for both armour and accessory scrolls, since they have the same stats and the
+// accessory files were written by copying this table.
 TEST_F(ScrollDataTest, EveryJobHasAScrollAtEveryTierAndRate) {
   struct JobStats {
     EquipJobCategory job;
@@ -240,8 +238,8 @@ TEST_F(ScrollDataTest, EveryJobHasAScrollAtEveryTierAndRate) {
               }
             }
           }
-          // All Stats rides along at 30% for every job, which is why the
-          // expectation is a subset check rather than an equality.
+          // All Stats is included at 30% for every job, which is why this is a
+          // subset check instead of equality.
           for (ScrollType stat : expected.stats) {
             EXPECT_EQ(found.count(stat), 1u)
                 << "job " << expected.job << " has no " << stat << " " << shelf
@@ -256,9 +254,9 @@ TEST_F(ScrollDataTest, EveryJobHasAScrollAtEveryTierAndRate) {
   }
 }
 
-// All Stats raises four stats by less than the scroll beside it raises one.
-// A file that let it match the single-stat scroll would make every other
-// armour scroll in its tier pointless.
+// All Stats raises four stats, each by less than the matching single-stat
+// scroll raises one. If it matched, every other armour scroll in its tier would
+// be pointless.
 TEST_F(ScrollDataTest, AllStatsPaysLessPerStatThanASingleStatScroll) {
   for (const std::pair<const std::string, Scroll>& all : scrolls_) {
     if (all.second.scroll_type() != SCROLL_TYPE_ALL_STATS) {
@@ -271,8 +269,8 @@ TEST_F(ScrollDataTest, AllStatsPaysLessPerStatThanASingleStatScroll) {
     EXPECT_EQ(s.str(), s.int_());
     EXPECT_EQ(s.str(), s.luk());
     for (const std::pair<const std::string, Scroll>& one : scrolls_) {
-      // Against the single-stat scroll on the same shelf: an accessory scroll
-      // and a piece of armour are never offered for the same item.
+      // Compared with the single-stat scroll for the same target, since
+      // accessory and armour scrolls never apply to the same item.
       if (one.second.target() != all.second.target() ||
           one.second.tier() != all.second.tier() ||
           one.second.scroll_type() != SCROLL_TYPE_STR) {
@@ -285,9 +283,9 @@ TEST_F(ScrollDataTest, AllStatsPaysLessPerStatThanASingleStatScroll) {
   }
 }
 
-// The glove shelf pays attack, not the stat the armour shelf pays, and the
-// one rung that pays defense instead is GMS's tier 1 100%. A file that paid a
-// stat here would be an armour scroll that wandered onto the wrong shelf.
+// Glove scrolls add attack, not the stat armour scrolls add. The one exception,
+// which adds defense instead, is GMS's tier 1 100%. A glove scroll that added a
+// stat would be an armour scroll in the wrong list.
 TEST_F(ScrollDataTest, EveryGloveScrollPaysAttackOrDefense) {
   int seen = 0;
   for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
@@ -312,7 +310,7 @@ TEST_F(ScrollDataTest, EveryGloveScrollPaysAttackOrDefense) {
   EXPECT_GT(seen, 0);
 }
 
-// A heart pays the attack its wearer's job swings with and nothing else.
+// Heart scrolls add only the attack type the wearer's job uses.
 TEST_F(ScrollDataTest, EveryHeartScrollPaysOnlyAttack) {
   int seen = 0;
   for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
@@ -331,8 +329,8 @@ TEST_F(ScrollDataTest, EveryHeartScrollPaysOnlyAttack) {
   EXPECT_GT(seen, 0);
 }
 
-// Both shelves come in the two kinds of attack, and a magician has to find
-// one wherever a warrior does. GMS sells no 15% on either.
+// Both lists come in both attack types, so a magician finds one wherever a
+// warrior does. GMS sells no 15% on either.
 TEST_F(ScrollDataTest, TheAttackShelvesCoverBothKindsAtEveryRate) {
   const ScrollTarget kShelves[] = {SCROLL_TARGET_GLOVES, SCROLL_TARGET_HEART};
   const ScrollTier kTiers[] = {SCROLL_TIER_1, SCROLL_TIER_2, SCROLL_TIER_3};
@@ -347,8 +345,8 @@ TEST_F(ScrollDataTest, TheAttackShelvesCoverBothKindsAtEveryRate) {
             found.insert(s.scroll_type());
           }
         }
-        // The one gap: GMS pays a glove defense at tier 1, 100%, where every
-        // other rung on both shelves pays attack.
+        // The one exception: GMS's tier 1 100% glove scroll adds defense, while
+        // every other one on both lists adds attack.
         if (shelf == SCROLL_TARGET_GLOVES && tier == SCROLL_TIER_1 &&
             rate == 100) {
           EXPECT_EQ(found, std::set<ScrollType>{SCROLL_TYPE_DEF});
