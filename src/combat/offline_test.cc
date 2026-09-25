@@ -18,14 +18,16 @@
 namespace ms {
 namespace {
 
-void EquipSword(GameState& state) {
+void EquipSword(GameState& state, int item_drop_rate = 0) {
   EquipPrototype sword = PlainSword();
+  sword.mutable_base_stats()->set_item_drop_rate(item_drop_rate);
   state.character.PickUp(std::make_unique<EquipInstance>(sword));
   state.character.Equip(0);
 }
 
-// A character standing on the snail field with a sword in hand.
-std::unique_ptr<GameState> SnailFarmer() {
+// A character standing on the snail field with a sword in hand, the sword
+// carrying `item_drop_rate` percent.
+std::unique_ptr<GameState> SnailFarmer(int item_drop_rate = 0) {
   std::unique_ptr<GameState> state = std::make_unique<GameState>(
       std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
       std::map<std::string, ItemPrototype>{
@@ -34,7 +36,7 @@ std::unique_ptr<GameState> SnailFarmer() {
       std::map<std::string, MapData>{{"field", SnailMap()},
                                      {kHomeMap, HomeMap()}});
   state->current_map = "field";
-  EquipSword(*state);
+  EquipSword(*state, item_drop_rate);
   return state;
 }
 
@@ -140,10 +142,18 @@ TEST(OfflineTest, NoTimeAwayPaysNothing) {
   EXPECT_EQ(report.kills, 0);
 }
 
-// --- death ---
+// The absence pays at the character's drop rate, not the base one: the shell
+// drops once a kill, so +100% is two a kill.
+TEST(OfflineTest, DropRateLiftsWhatAnAbsenceDrops) {
+  std::unique_ptr<GameState> state = SnailFarmer(/*item_drop_rate=*/100);
 
-// A map that kills the character stops the absence there: they are paid for
-// what they farmed before falling and are home when they come back.
+  OfflineReport report = ApplyOfflineProgress(*state, 3600.0);
+
+  ASSERT_EQ(report.rewards.items.size(), 1u);
+  const RewardItem& shells = report.rewards.items[0];
+  EXPECT_EQ(shells.count + shells.discarded, 2 * report.kills);
+}
+
 // The potion drinks through an absence exactly as it drinks through an
 // evening watched: the character was farming the whole time either way.
 TEST(OfflineTest, TheWealthPotionDrinksThroughAnAbsence) {
@@ -162,6 +172,10 @@ TEST(OfflineTest, TheWealthPotionDrinksThroughAnAbsence) {
             static_cast<int64_t>(report.seconds * 1'000));
 }
 
+// --- death ---
+
+// A map that kills the character stops the absence there: they are paid for
+// what they farmed before falling and are home when they come back.
 TEST(OfflineTest, DyingCutsTheAbsenceShortAndSendsThePlayerHome) {
   GameState state(std::map<std::string, EquipPrototype>{},
                   std::map<std::string, Scroll>{},
