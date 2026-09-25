@@ -19,8 +19,8 @@ AbilityLine MakeLine(AbilityLineType type, AbilityRank rank,
   return line;
 }
 
-// A preset built by hand, whose first line carries the ability's rank the way
-// a rolled one always does.
+// A preset built by hand, whose first line has the ability's rank, as a rolled
+// one always does.
 AbilityPreset MakePreset(AbilityRank rank, const AbilityLine& first,
                          const AbilityLine& second, const AbilityLine& third) {
   AbilityPreset preset;
@@ -32,8 +32,8 @@ AbilityPreset MakePreset(AbilityRank rank, const AbilityLine& first,
 }
 
 // Everything a rolled preset must satisfy: three lines, the top one at the
-// ability's rank, nothing above it, no type twice, and no line at a rank its
-// type does not roll at.
+// ability's rank, none above it, no repeated type, and no line at a rank its
+// type can't roll at.
 void ExpectWellFormed(const AbilityPreset& preset) {
   ASSERT_EQ(preset.lines_size(), kAbilityLines);
   EXPECT_EQ(preset.lines(0).rank(), preset.rank());
@@ -65,8 +65,8 @@ TEST(InnerAbilityTest, LineValues) {
       0);
 }
 
-// A type GMS does not offer at a rank has no weight there and is worth
-// nothing, so the two tables gate on exactly the same set.
+// A type GMS doesn't offer at a rank has no weight and no value there, so both
+// tables gate on exactly the same pairings.
 TEST(InnerAbilityTest, GatedTypesAreWorthNothing) {
   for (int type = ABILITY_LINE_TYPE_STR; type < AbilityLineType_ARRAYSIZE;
        ++type) {
@@ -89,9 +89,9 @@ TEST(InnerAbilityTest, GatedTypesAreWorthNothing) {
       0);
 }
 
-// GMS's weights are percentages of a pool this game has thinned. What must
-// survive the thinning is their ratio -- STR is one and a half of All Stats at
-// Epic, and two and a quarter of it at Unique.
+// GMS's weights are percentages of a pool this game has trimmed. The ratios
+// must survive the trimming: STR is 1.5 times All Stats at Epic, and 2.25 times
+// at Unique.
 TEST(InnerAbilityTest, WeightRatiosFollowGms) {
   EXPECT_EQ(AbilityTypeWeight(ABILITY_LINE_TYPE_STR, ABILITY_RANK_EPIC),
             AbilityTypeWeight(ABILITY_LINE_TYPE_ALL_STATS, ABILITY_RANK_EPIC) *
@@ -99,7 +99,8 @@ TEST(InnerAbilityTest, WeightRatiosFollowGms) {
   EXPECT_EQ(
       AbilityTypeWeight(ABILITY_LINE_TYPE_STR, ABILITY_RANK_UNIQUE) * 4,
       AbilityTypeWeight(ABILITY_LINE_TYPE_ALL_STATS, ABILITY_RANK_UNIQUE) * 9);
-  // The two attacks are one GMS line split in two, and each keeps its weight.
+  // The two attack types are one GMS line split in two, and each keeps its
+  // weight.
   for (int rank = ABILITY_RANK_RARE; rank <= ABILITY_RANK_LEGENDARY; ++rank) {
     const auto at = static_cast<AbilityRank>(rank);
     EXPECT_EQ(AbilityTypeWeight(ABILITY_LINE_TYPE_ATTACK, at),
@@ -108,10 +109,10 @@ TEST(InnerAbilityTest, WeightRatiosFollowGms) {
 }
 
 TEST(InnerAbilityTest, ResetCostAndRankUpChance) {
-  // The whole table, by rank and then by lines held. Unique and Legendary are
-  // GMS's own, and what a lock adds doubles between them: +1500/+2500 becomes
-  // +3000/+5000. The two rows below halve that ladder twice, rounded to
-  // numbers a reader recognises.
+  // The whole table, by rank and then by locked lines. Unique and Legendary are
+  // GMS's, and the cost of a lock doubles between them: +1500/+2500 becomes
+  // +3000/+5000. The two lower rows halve that ladder twice, rounded to
+  // recognisable numbers.
   const int64_t want[4][kMaxLockedAbilityLines + 1] = {
       {100, 500, 1100},
       {200, 1000, 2200},
@@ -125,7 +126,7 @@ TEST(InnerAbilityTest, ResetCostAndRankUpChance) {
           << "rank " << rank << " holding " << locked;
     }
   }
-  // A hold no reset can take is priced at nothing.
+  // A lock count no reset can have costs nothing.
   EXPECT_EQ(AbilityResetCost(ABILITY_RANK_LEGENDARY, 3), 0);
   EXPECT_EQ(AbilityResetCost(ABILITY_RANK_LEGENDARY, -1), 0);
 
@@ -159,7 +160,7 @@ TEST(InnerAbilityTest, PresetOfPicksTheNamedSlot) {
             ABILITY_RANK_LEGENDARY);
 }
 
-// A save written before there was a third slot.
+// A save from before the third slot existed.
 TEST(InnerAbilityTest, TheOldTwoSetupsBecomeTheFirstTwoSlots) {
   InnerAbility ability;
   ability.mutable_legacy_farming()->set_rank(ABILITY_RANK_EPIC);
@@ -173,13 +174,13 @@ TEST(InnerAbilityTest, TheOldTwoSetupsBecomeTheFirstTwoSlots) {
   EXPECT_EQ(ability.presets(1).rank(), ABILITY_RANK_LEGENDARY);
   EXPECT_EQ(ability.presets(2).rank(), ABILITY_RANK_UNSPECIFIED);
 
-  // And running again leaves what it already wrote alone.
+  // Running it again leaves what it already wrote unchanged.
   MigrateInnerAbility(ability);
   ASSERT_EQ(ability.presets_size(), kNumStatPresets);
   EXPECT_EQ(ability.presets(0).rank(), ABILITY_RANK_EPIC);
 }
 
-// A line of any rank holds; the third is what a preset refuses.
+// A line of any rank can be locked; only a third lock is refused.
 TEST(InnerAbilityTest, LockingRefusesOnlyAThirdLine) {
   AbilityPreset preset =
       MakePreset(ABILITY_RANK_LEGENDARY,
@@ -193,7 +194,7 @@ TEST(InnerAbilityTest, LockingRefusesOnlyAThirdLine) {
   EXPECT_FALSE(SetAbilityLineLocked(preset, 2, true)) << "two is the most";
   EXPECT_FALSE(SetAbilityLineLocked(preset, 3, true)) << "no such line";
 
-  // Freeing one makes room for the Epic line under it.
+  // Unlocking one makes room to lock the Epic line below it.
   EXPECT_TRUE(SetAbilityLineLocked(preset, 1, false));
   EXPECT_TRUE(SetAbilityLineLocked(preset, 2, true));
   EXPECT_EQ(LockedAbilityLines(preset), 2);
@@ -210,7 +211,8 @@ TEST(InnerAbilityTest, RerollKeepsThePresetWellFormed) {
   }
 }
 
-// Five percent a reset carries a Rare ability up, and it can only ever climb.
+// A reset has a five percent chance to raise a Rare ability, and the rank can
+// only go up.
 TEST(InnerAbilityTest, RankOnlyClimbs) {
   std::mt19937 rng(7);
   int reached_legendary = 0;
@@ -234,16 +236,16 @@ TEST(InnerAbilityTest, HeldLinesSurviveTheReroll) {
         MakeLine(ABILITY_LINE_TYPE_MESO, ABILITY_RANK_EPIC));
     RerollAbility(preset, rng);
     ExpectWellFormed(preset);
-    // A held top line at the ability's rank keeps its slot, and the other
-    // held line keeps its own.
+    // A locked top line at the ability's rank keeps its slot, and the other
+    // locked line keeps its own.
     EXPECT_EQ(preset.lines(0).type(), ABILITY_LINE_TYPE_BOSS_DAMAGE);
     EXPECT_EQ(preset.lines(1).type(), ABILITY_LINE_TYPE_ATTACK);
     EXPECT_EQ(preset.lines(1).rank(), ABILITY_RANK_UNIQUE);
   }
 }
 
-// A held line stays where it is when the slots above it are free, rather than
-// being pulled to the top.
+// A locked line stays in place when the slots above it are free, instead of
+// moving to the top.
 TEST(InnerAbilityTest, HeldLineKeepsItsSlot) {
   std::mt19937 rng(13);
   for (int i = 0; i < 200; ++i) {
@@ -259,8 +261,8 @@ TEST(InnerAbilityTest, HeldLineKeepsItsSlot) {
   }
 }
 
-// Ranking up with the top line held pushes it down a slot, and the rank the
-// ability just reached rolls a fresh line above it.
+// Ranking up with the top line locked pushes it down a slot, and a new line at
+// the new rank is rolled above it.
 TEST(InnerAbilityTest, RankUpPushesTheHeldTopLineDown) {
   std::mt19937 rng(3);
   int ranked_up = 0;
@@ -285,8 +287,8 @@ TEST(InnerAbilityTest, RankUpPushesTheHeldTopLineDown) {
   EXPECT_EQ(ranked_up, 5);
 }
 
-// The top line of a Legendary ability rolls at the Legendary weights, so the
-// types it lands on come up in the ratios the table states.
+// The top line of a Legendary ability rolls with the Legendary weights, so its
+// types come up in the ratios the table gives.
 TEST(InnerAbilityTest, TopLineFollowsTheWeights) {
   std::mt19937 rng(29);
   AbilityPreset preset =
@@ -300,19 +302,19 @@ TEST(InnerAbilityTest, TopLineFollowsTheWeights) {
     RerollAbility(preset, rng);
     ++counts[preset.lines(0).type()];
   }
-  // 45 against 20 against 5, within a couple of percent over this many rolls.
+  // 45 to 20 to 5, within a couple of percent over this many rolls.
   const double str = counts[ABILITY_LINE_TYPE_STR];
   const double all = counts[ABILITY_LINE_TYPE_ALL_STATS];
   const double speed = counts[ABILITY_LINE_TYPE_ATTACK_SPEED];
   EXPECT_NEAR(str / all, 45.0 / 20.0, 0.15);
   EXPECT_NEAR(all / speed, 20.0 / 5.0, 0.4);
-  // Nothing gated above Legendary is missing, and nothing gated out appears.
+  // Nothing allowed at Legendary is missing, and nothing gated out appears.
   EXPECT_GT(counts[ABILITY_LINE_TYPE_BOSS_DAMAGE], 0);
   EXPECT_EQ(counts[ABILITY_LINE_TYPE_UNSPECIFIED], 0);
 }
 
-// The two lines under the top roll a rung down: Epic or Unique beneath a
-// Legendary ability, and never Rare.
+// The two lines under the top roll a rank lower: Epic or Unique under a
+// Legendary ability, never Rare.
 TEST(InnerAbilityTest, LowerLinesRollBelowTheAbilityRank) {
   std::mt19937 rng(31);
   AbilityPreset preset =
@@ -335,7 +337,7 @@ TEST(InnerAbilityTest, LowerLinesRollBelowTheAbilityRank) {
   EXPECT_NEAR(static_cast<double>(unique) / lower, 0.15, 0.02);
 }
 
-// A Rare ability's lines are all Rare, since there is no rung below it.
+// A Rare ability's lines are all Rare, since there's no rank below it.
 TEST(InnerAbilityTest, RareAbilityRollsRareThroughout) {
   std::mt19937 rng(37);
   for (int i = 0; i < 200; ++i) {

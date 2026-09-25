@@ -9,11 +9,10 @@
 namespace ms {
 namespace {
 
-// Nothing else asserts these: every other reader goes through a panel's
-// rendered text, where a missing name reads as a blank column rather than a
-// failure. The short name is the default everywhere a job is shown, so every
-// job has to answer that too -- and the ones that need no shortening answer
-// their own name.
+// Nothing else checks these. Every other test reads a panel's rendered text,
+// where a missing name shows as a blank column, not a failure. The short name
+// is the default wherever a job is shown, so every job must have one too; jobs
+// that need no shortening return their full name.
 TEST(JobNameTest, EveryJobHasALongNameAndAShortOne) {
   for (int i = Job_MIN; i <= Job_MAX; ++i) {
     if (!Job_IsValid(i) || i == JOB_UNSPECIFIED) {
@@ -33,14 +32,14 @@ TEST(JobNameTest, TheWizardsAreSpelledOutInFullAndAbbreviated) {
   EXPECT_EQ(ShortJobName(JOB_ICE_LIGHTNING_WIZARD), "I/L Wizard");
   EXPECT_EQ(JobName(JOB_FIRE_POISON_WIZARD), "Fire/Poison Wizard");
   EXPECT_EQ(ShortJobName(JOB_FIRE_POISON_WIZARD), "F/P Wizard");
-  // The Cleric's name fits either way, so it is the same both times.
+  // The Cleric's name always fits, so both versions are the same.
   EXPECT_EQ(JobName(JOB_CLERIC), "Cleric");
   EXPECT_EQ(ShortJobName(JOB_CLERIC), "Cleric");
   EXPECT_EQ(ShortJobName(JOB_SPEARMAN), "Spearman");
 }
 
-// The 5th advancement is the only one that leaves the job's name where it
-// was, so it is the only one that has to be told apart from the job itself.
+// The 5th advancement is the only one that keeps the job's name, so it's the
+// only one that must be distinguished from the job itself.
 TEST(JobNameTest, OnlyTheFifthAdvancementTakesAV) {
   EXPECT_EQ(AdvancementName(JOB_NIGHT_LORD, 5), "Night Lord V");
   EXPECT_EQ(AdvancementName(JOB_NIGHT_LORD, 4), "Night Lord");

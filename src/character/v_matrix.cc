@@ -9,13 +9,13 @@
 namespace ms {
 namespace {
 
-// The three bands a common or job node climbs through and what a level costs
-// in each. The first level is stated on its own -- free for a job node, 7 for
-// a common -- and an archetype node is priced as a common.
+// The three level bands a common or job node goes through, and the cost per
+// level in each. The first level is priced separately (free for a job node, 7
+// for a common node), and an archetype node is priced like a common one.
 constexpr int kBandTop[] = {10, 20, 30};
 constexpr int kBandCost[] = {4, 6, 9};
 
-// Where a boost node's price doubles, and what it costs either side.
+// The level where a boost node's price doubles, and the cost on either side.
 constexpr int kBoostStep = 40;
 
 }  // namespace

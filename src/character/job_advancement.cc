@@ -14,10 +14,10 @@ namespace ms {
 
 void PerformJobAdvancement(GameState& state, Job job) {
   state.character.AdvanceJob(job);
-  // Only the FIRST advancement re-seats the stats, being the only one that
+  // Only the first advancement resets the stats, since it is the only one that
   // changes what the character is for. A 2nd job keeps raising the same stat,
-  // so resetting there would hand the player a pile of AP to put back where it
-  // already was.
+  // so a reset there would hand the player AP to put straight back where it
+  // was.
   if (state.character.proto().job_stage() == 1) {
     state.character.ResetStatsForJob(job);
   }

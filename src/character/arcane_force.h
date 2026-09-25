@@ -1,13 +1,13 @@
-/* Arcane Force: the Arcane River stat, what a symbol is worth, and what
- * meeting a map's requirement does to a fight.
+/* Arcane Force: the Arcane River stat, what a symbol is worth, and how meeting
+ * a map's requirement affects a fight.
  *
- * Every map in the river asks for a number of Arcane Force, and how much of
- * that the character carries scales both what they deal and what they take --
- * a tenth of their damage against 2.8x of the monster's at the bottom, half
- * again against nothing at the top. Arcane Symbols are what carry it.
+ * Every river map requires some Arcane Force, and how much of it the character
+ * has scales both the damage they deal and the damage they take: a tenth of
+ * their damage and 2.8x the monster's at the bottom, 1.5x theirs and none of
+ * the monster's at the top. Arcane Symbols provide it.
  *
- * Pure math over the protos. What the character actually wears is their own
- * business -- see CharacterInstance::arcane_force.
+ * Pure math over the protos. What the character actually wears is up to
+ * CharacterInstance; see CharacterInstance::arcane_force.
  */
 #ifndef MS_SRC_CHARACTER_ARCANE_FORCE_H_
 #define MS_SRC_CHARACTER_ARCANE_FORCE_H_
@@ -19,63 +19,63 @@
 
 namespace ms {
 
-// As far as a symbol goes. Past this it takes no more duplicates and its
-// Arcane Force stops climbing.
+// A symbol's max level. Past this it takes no more duplicates and its Arcane
+// Force stops rising.
 inline constexpr int kMaxSymbolLevel = 20;
 
-// Whether `proto` is one of the six Arcane Symbols. The symbol block is what
-// says so: nothing else carries one.
+// Whether `proto` is one of the six Arcane Symbols, determined by the symbol
+// block, which nothing else has.
 bool IsArcaneSymbol(const EquipPrototype& proto);
 
-// The level `item` is at, which is 1 for a fresh drop. Read through here
-// rather than off the field, so that the zero every drop writes means the
-// level every drop starts at.
+// The level `item` is at, which is 1 for a new drop. Read through this instead
+// of the field, so the zero every drop has means the level every drop starts
+// at.
 int SymbolLevel(const Equip& item);
 
-// Duplicates that carry a symbol from `level` to the next: level^2 + 11. So
-// 12 at level 1 and 372 at 19, and 2,679 to go the whole way. 0 at the cap,
-// where there is no next level to reach.
+// Duplicates needed to go from `level` to the next: level^2 + 11. That is 12 at
+// level 1, 372 at 19, and 2,679 in total. 0 at the max level, where there's no
+// next level.
 int SymbolExpToNextLevel(int level);
 
-// Meso the level-up out of `level` costs. The price is per area and climbs
-// with the level: 10,000 x floor[(base + 0.1 x level) x duplicates], where
-// the base runs 8 in Vanishing Journey to 18 in Esfera. 0 at the cap.
+// Meso needed to level up from `level`. The price depends on the area and rises
+// with the level: 10,000 x floor[(base + 0.1 x level) x duplicates], where the
+// base goes from 8 in Vanishing Journey to 18 in Esfera. 0 at the max level.
 int64_t SymbolLevelUpCost(const EquipPrototype& proto, int level);
 
-// Arcane Force a symbol at `level` is worth: 10 a level, plus 20 for wearing
-// one at all. So a fresh symbol is 30 and a maxed one 220.
+// Arcane Force from a symbol at `level`: 10 per level, plus 20 for wearing one
+// at all. So a new symbol gives 30 and a maxed one 220.
 int SymbolArcaneForce(int level);
 
-// What `item` is worth fed to another symbol: itself, plus every duplicate
-// banked in the levels it has already taken and the EXP it has over them. So
-// a fresh symbol is 1 and one packed to level 2 with 7 EXP is 20.
+// What `item` is worth when fed to another symbol: itself, plus every duplicate
+// used for the levels it has, plus its EXP beyond them. So a new symbol is
+// worth 1, and one packed to level 2 with 7 EXP is worth 20.
 int SymbolWorth(const Equip& item);
 
-// Whether `item` has taken the duplicates its next level asks for. What is
-// left is the meso, which is the player's to pay -- see SymbolLevelUpCost.
+// Whether `item` has the duplicates its next level needs. The remaining cost is
+// meso, which the player pays; see SymbolLevelUpCost.
 bool SymbolCanLevelUp(const Equip& item);
 
-// Raises `item` one level and carries the excess EXP into the next rung.
-// Does nothing to a symbol that has not earned the level or is at the cap;
-// charging for it is the caller's business.
+// Raises `item` one level and carries over the extra EXP. Does nothing to a
+// symbol without enough EXP or at the max level; charging for it is the
+// caller's job.
 void LevelUpSymbol(Equip& item);
 
-// The stats a worn symbol grants: 10 of the wearer's primary stat for every
-// point of Arcane Force, which is GMS's 100 per 10. A symbol grants this and
-// nothing else, so its prototype carries no base stats at all.
+// The stats a worn symbol gives: 10 of the wearer's primary stat per point of
+// Arcane Force, which is GMS's 100 per 10. A symbol gives nothing else, so its
+// prototype has no base stats.
 EquipStats SymbolStatsFor(StatField primary, int level);
 
-// What meeting a map's force requirement -- Arcane Force here, Sacred Power
-// in sacred_power.h -- does to the fight, as two multipliers. Both are 1 where
-// nothing is asked for.
+// How meeting a map's force requirement (Arcane Force here, Sacred Power in
+// sacred_power.h) affects the fight, as two multipliers. Both are 1 on maps
+// with no requirement.
 struct ForceFactors {
   double damage_dealt = 1.0;
   double damage_taken = 1.0;
 };
 
-// The factors for `owned` Arcane Force against a map asking `required`. GMS's
-// table, stepped by the whole percentage met and rounded down: 0.10 dealt and
-// 2.8x taken at nothing met, 1.50 and 0x at half again.
+// The factors for `owned` Arcane Force on a map requiring `required`. Follows
+// GMS's table, stepped by the whole percent met, rounded down: 0.10 dealt and
+// 2.8x taken with none met, 1.50 and 0x at 150%.
 ForceFactors ArcaneFactorsFor(int owned, int required);
 
 }  // namespace ms

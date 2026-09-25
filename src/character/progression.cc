@@ -23,87 +23,82 @@ struct Unlock {
   int level;
 };
 
-// The early game in one place, in the order the player meets it.
+// The early game in one place, in the order the player sees it.
 constexpr Unlock kUnlocks[] = {
-    // Level 2 is left to itself: the first level-up hands over AP, and that
-    // is the whole lesson of it. The panels start arriving at 3.
+    // Level 2 unlocks nothing: the first level-up gives AP, and that is its
+    // whole lesson. Panels start appearing at 3.
     {Feature::kEquipped, 3},
     {Feature::kBag, 4},
-    // Deliberately the same level as the bag: it is the bag that makes taking
-    // something off possible, so move the two together if either changes.
+    // Deliberately the same level as the bag: the bag is what makes taking
+    // something off possible, so move both together if either changes.
     {Feature::kUnequip, 4},
-    // One past the bag, which is the last panel the hotkeys tip has to
-    // account for: the tip leaves the corner and the menu takes it over.
+    // One level after the bag, the last panel the hotkeys tip covers: the tip
+    // leaves the corner and the menu replaces it.
     {Feature::kMenu, 5},
     {Feature::kSkills, 10},
-    // The same level as the skills: a character with a book is one worth
-    // showing to the lobby, and one with something to trade.
+    // The same level as skills: a character with a skill book is worth showing
+    // in the lobby, and has something to trade.
     {Feature::kMultiplayer, 10},
     {Feature::kShop, 20},
-    // Far enough out that a player meets it once the early game is behind
-    // them, and far enough that the meso for spell traces is coming in.
+    // Late enough that the player sees it after the early game, and late enough
+    // that meso for spell traces is coming in.
     {Feature::kScrolling, 40},
-    // Zakum's own level. There is nothing else on the boss screen yet, so
-    // opening it any earlier would only show the player a fight they cannot
-    // take.
+    // Zakum's level, the first boss. Opening it earlier would only show the
+    // player fights they can't take.
     {Feature::kBoss, 110},
-    // Held to the level of the gear it is for: the Frozen weapons at 120 are
-    // the first that take 15 stars, and opening the screen earlier only offers
-    // a bill for a star barely worth having.
+    // Matched to the gear it's for: the Frozen weapons at 120 are the first
+    // that take 15 stars, and opening the screen earlier only offers expensive
+    // stars that are barely worth it.
     {Feature::kStarForce, 120},
-    // Past the level cap of the trial, and well past the gear a player scrolls
-    // on the way there: a hammer is 10 million meso for one slot, which is
-    // only worth paying on a piece they mean to keep.
+    // Well past the gear a player scrolls early on: a hammer costs 10 million
+    // meso for one slot, which is only worth it on an item they mean to keep.
     {Feature::kHammer, 150},
-    // Potential's own level -- see kPotentialUnlockLevel. Held well past the
-    // hammer: a cube is worth spending on gear a player is not going to
-    // replace, and there is nothing before Lv140 that qualifies.
+    // Potential's own level; see kPotentialUnlockLevel. Well after the hammer:
+    // a cube is only worth using on gear the player won't replace soon.
     {Feature::kPotential, kPotentialUnlockLevel},
-    // Hyper Stats' own level, which is where the points start being paid --
-    // see kHyperStatUnlockLevel.
+    // Hyper Stats' own level, where the points start; see
+    // kHyperStatUnlockLevel.
     {Feature::kHyperStats, kHyperStatUnlockLevel},
-    // The Wealth Acquisition Potion's own level -- see
-    // kConsumableUnlockLevel. The second buff waits until 190 and is not
-    // listed at all before then.
+    // The Wealth Acquisition Potion's level; see kConsumableUnlockLevel. The
+    // second buff waits until 190 and isn't listed at all before then.
     {Feature::kConsumables, kConsumableUnlockLevel},
-    // Arcane River opens at 200, and it opens with a symbol handed over -- so
-    // the tab arrives with something to put in it.
+    // Arcane River opens at 200 and starts with a free symbol, so the tab has
+    // something in it when it appears.
     {Feature::kSymbols, 200},
-    // Cubing's own level: the presets arrive with the reason to keep two sets
+    // Cubing's level: the presets arrive along with the reason to keep two sets
     // of gear. See Feature::kEquipPresets.
     {Feature::kEquipPresets, kPotentialUnlockLevel},
-    // Ten past Arcane River, which is the last thing the first character is
-    // handed. A second character is what a player wants once the first has
-    // everything the game gives.
+    // Ten levels after Arcane River opens. A second character is what a player
+    // wants once the first has most of what the game offers.
     {Feature::kCharacters, 210},
-    // The same level as the characters: see Feature::kBank.
+    // The same level as Characters; see Feature::kBank.
     {Feature::kBank, 210},
-    // The top rung of a link skill's ladder. Only the trail waits for it: the
-    // row and the skills are there from level 1.
+    // The last link skill threshold. Only the trail waits for it: the row and
+    // the skills are available from level 1.
     {Feature::kLinkSkills, kLinkSkillsLevel},
 };
 
-// What an ADVANCEMENT opens rather than a level, and which one opens it. A
-// separate table because the level is not the gate: a Beginner who never
-// advances stays at the bottom however high they climb.
+// Features unlocked by an advancement instead of a level, and which advancement
+// unlocks each. A separate table because level isn't the gate here: a Beginner
+// who never advances stays locked however high they level.
 struct StageUnlock {
   Feature feature;
   int stage;
 };
 
-// Attack, Magic Attack, Attack Speed and Defense arrive with the first job,
-// the first thing that moves them. The percent rows wait for the second, whose
-// passives are where crit and damage rate come from, and the last three for
-// the third, where the levers that write them are.
+// Attack, Magic Attack, Attack Speed and Defense appear with the 1st job, the
+// first thing that changes them. The percent rows wait for the 2nd, whose
+// passives give crit and damage, and the last three for the 3rd, which has the
+// skills that set them.
 constexpr StageUnlock kStageUnlocks[] = {
     {Feature::kCombatStats, 1},
     {Feature::kDamageStats, 2},
     {Feature::kAdvancedStats, 3},
 };
 
-// The upgrades a level opens, in the order they arrive. One list rather than a
-// condition in the card and another in the menus, so a third joins both at
-// once.
+// The upgrades levels unlock, in unlock order. One list, instead of one
+// condition in the card and another in the menus, so a new upgrade is added to
+// both at once.
 constexpr Feature kUpgrades[] = {
     Feature::kScrolling,
     Feature::kStarForce,
@@ -111,15 +106,16 @@ constexpr Feature kUpgrades[] = {
     Feature::kPotential,
 };
 
-// The upgrades with a gold trail, and the slug their latch keys are built
-// from. The slugs are written into the save, so changing one forgets that
-// anybody was ever led anywhere and starts every player's trail over.
+// The upgrades with a gold trail, and the name their record keys are built
+// from. The names are written into saves, so changing one forgets that anyone
+// was led anywhere and restarts every player's trail.
 struct Led {
   Feature feature;
   const char* slug;
-  // Whether the trail starts at the worn weapon's name. Scrolling arrives
-  // while the item menu may never have been opened, so it needs the signpost;
-  // star force arrives at 120, by which time it would only distract.
+  // Whether the trail starts at the equipped weapon's name. Scrolling unlocks
+  // before the player may ever have opened the item menu, so it needs the
+  // marker; star force unlocks at 120, by which point the marker would only
+  // distract.
   bool from_weapon;
 };
 
@@ -138,12 +134,11 @@ std::string ActionLeadKey(const char* slug) {
   return std::string("lead_action:") + slug;
 }
 
-// The Link Skills trail, in the order it is walked.
+// The Link Skills trail, in the order it's followed.
 constexpr const char* kLinkTrailSlugs[] = {"tab", "page", "row"};
 
-// The lowest level of each pacing band and how far it stretches a duration.
-// Read from the bottom up: the last band the level clears is the one that
-// applies.
+// The lowest level of each pacing band and its multiplier. Read from the bottom
+// up: the last band the level reaches applies.
 struct Speed {
   int level;
   double factor;
@@ -164,8 +159,8 @@ int UnlockLevel(Feature feature) {
   }
   for (const StageUnlock& unlock : kStageUnlocks) {
     if (unlock.feature == feature) {
-      // The level its advancement is offered at, which is the soonest it can
-      // open. Whether it has is the character's business, not the level's.
+      // The level its advancement is offered at, the earliest it can unlock.
+      // Whether it has unlocked depends on the character, not the level.
       return NextAdvancementLevel(unlock.stage - 1);
     }
   }
@@ -187,9 +182,9 @@ bool Unlocked(Feature feature, const CharacterInstance& character,
     return false;
   }
   if (feature == Feature::kHyperStats) {
-    // Held to THIS character's level: the points are paid out by their own
-    // levels, so an account-wide unlock would hand a newcomer fourteen rows
-    // and nothing to spend on them.
+    // Checked against this character's level: the points come from their own
+    // levels, so an account-wide unlock would show a new character fourteen
+    // rows with nothing to spend.
     return character.proto().level() >= UnlockLevel(feature);
   }
   return true;
@@ -312,8 +307,8 @@ void FollowedToLinkSkills(LinkTrailStep step, AccountInstance& account) {
 }
 
 int HotkeysTipRetireLevel() {
-  // The level the menu panel takes the corner over at. Derived rather than
-  // written out, so the corner can never hold both or neither.
+  // The level where the menu panel replaces the tip in the corner. Derived
+  // instead of written out, so the corner can never show both or neither.
   return UnlockLevel(Feature::kMenu);
 }
 

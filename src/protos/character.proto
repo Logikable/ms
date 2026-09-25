@@ -266,8 +266,8 @@ enum AbilityLineType {
 message AbilityLine {
   AbilityLineType type = 1;
   AbilityRank rank = 2;
-  // Whether a reset keeps this line unchanged. Only Unique or Legendary lines
-  // can be locked, and at most two at a time.
+  // Whether a reset keeps this line unchanged. A line of any rank can be
+  // locked, at most two at a time.
   bool locked = 3;
 }
 

@@ -1,15 +1,15 @@
-/* The daily claim: what a character may take each day, and taking it.
+/* The daily claim: what a character can collect each day, and collecting it.
  *
- * So far that is Arcane Symbols. Owning one opens every area at or below it,
- * because the areas are a ladder a character climbs in order: whoever reached
- * Lachelein passed through Vanishing Journey and Chu Chu Island to get there,
+ * Currently that is Arcane Symbols. Owning one unlocks every area at or below
+ * it, because characters progress through the areas in order: anyone who
+ * reached Lachelein passed through Vanishing Journey and Chu Chu Island,
  * whether or not they kept a symbol from either.
  *
- * A day's symbols arrive packed into one item per area rather than as twenty
- * loose copies, which would be twenty rows of the bag. What that item is worth
- * fed to a worn symbol is the same either way -- see SymbolWorth.
+ * A day's symbols come packed into one item per area instead of twenty separate
+ * copies, which would take twenty bag rows. Feeding the packed item to a worn
+ * symbol is worth the same either way; see SymbolWorth.
  *
- * On the boss reset clock, so the whole game turns over at one hour.
+ * Uses the boss reset time, so everything in the game resets at the same hour.
  */
 #ifndef MS_SRC_CHARACTER_DAILIES_H_
 #define MS_SRC_CHARACTER_DAILIES_H_
@@ -24,27 +24,27 @@
 
 namespace ms {
 
-// Copies of each symbol a day's claim pays.
+// Copies of each symbol one day's claim gives.
 inline constexpr int kSymbolsPerDay = 20;
 
-// The symbols `character` may claim, in area order. Every one at or below the
-// highest they own, worn or in the bag; empty for anyone owning none.
+// The symbols `character` can claim, in area order: every one at or below the
+// furthest they own, worn or in the bag. Empty if they own none.
 std::vector<const EquipPrototype*> ClaimableSymbols(
     const CharacterInstance& character,
     const std::map<std::string, EquipPrototype>& equips);
 
-// Whether a claim last taken at `claimed` may be taken again at `now`.
+// Whether a claim last collected at `claimed` can be collected again at `now`.
 bool DailiesAvailable(int64_t claimed, int64_t now);
 
-// One packed symbol per claimable area into the bag, banking the claim at
-// `now`. All or nothing: half a claim would cost the player the rest of it
-// until tomorrow.
+// Puts one packed symbol per claimable area in the bag and records the claim at
+// `now`. All or nothing: claiming half would cost the player the rest until
+// tomorrow.
 bool ClaimDailies(CharacterInstance& character,
                   const std::map<std::string, EquipPrototype>& equips,
                   int64_t now);
 
-// A symbol carrying `copies` of itself, packed up the level ladder as far as
-// it goes. Twenty copies is a level 2 holding 7.
+// A symbol containing `copies` of itself, levelled up as far as they go. Twenty
+// copies make a level 2 symbol holding 7.
 Equip PackedSymbol(int copies);
 
 }  // namespace ms

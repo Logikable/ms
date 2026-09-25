@@ -14,8 +14,8 @@
 namespace ms {
 namespace {
 
-// A level 200 4th job, which is the only character with a full Hyper Stat
-// pool to spend and every band of gear behind them.
+// A level 200 4th job, with a full Hyper Stat pool to spend and every gear band
+// behind them.
 Character MaxProto(Job job = JOB_HERO, int level = 200) {
   Character proto;
   proto.set_level(level);
@@ -31,9 +31,9 @@ int LinesOf(const Potential& potential, PotentialLineType type) {
   return found;
 }
 
-// The bands climb: nothing is ever taken away as the level rises, and every
-// one of them is inside the income of the level it opens at -- the table in
-// max_character.cc carries that arithmetic.
+// The bands only improve: nothing is removed as the level rises, and each one
+// costs no more than the income at the level where it opens. The table in
+// max_character.cc has the math.
 TEST(MaxCharacterTest, GearClimbsWithTheLevel) {
   EXPECT_FALSE(MaxGearForLevel(140).hammered);
   EXPECT_EQ(MaxGearForLevel(140).stars, 10);
@@ -58,15 +58,15 @@ TEST(MaxCharacterTest, GearClimbsWithTheLevel) {
   }
 }
 
-// Every piece of a kind carries the same three lines, and the %stat follows
-// the job: an armour piece is three lots of what the character fights with.
+// Every item of a kind has the same three lines, and the %stat follows the job:
+// an armour item has three lines of the stat the character fights with.
 TEST(MaxCharacterTest, ArmourCarriesThreeLinesOfThePrimaryStat) {
   const MaxGear gear = MaxGearForLevel(200);
   const Potential hat = MaxPotentialFor(EQUIP_SLOT_HAT, gear, STAT_FIELD_STR);
   EXPECT_EQ(hat.rank(), POTENTIAL_RANK_EPIC);
   ASSERT_EQ(hat.lines_size(), kPotentialLines);
   EXPECT_EQ(LinesOf(hat, POTENTIAL_LINE_TYPE_STR_PCT), kPotentialLines);
-  // Only the top line carries the potential's own rank.
+  // Only the top line has the potential's own rank.
   EXPECT_EQ(hat.lines(0).rank(), POTENTIAL_RANK_EPIC);
   EXPECT_EQ(hat.lines(1).rank(), POTENTIAL_RANK_RARE);
 
@@ -74,10 +74,10 @@ TEST(MaxCharacterTest, ArmourCarriesThreeLinesOfThePrimaryStat) {
   EXPECT_EQ(LinesOf(ring, POTENTIAL_LINE_TYPE_LUK_PCT), kPotentialLines);
 }
 
-// The weapon and the secondary are what a bossing player really cubes for, so
-// each carries the line it is cubed for and one lot of the attack share. The
-// third is dead weight -- two useful lines is a chase a quarter as long as
-// three -- and on a magician's the dead one is the physical share.
+// The weapon and secondary are what a bossing player really cubes, so each has
+// the line it's cubed for plus one attack line. The third line is useless (two
+// useful lines take a quarter as long to roll as three), and on a magician's
+// gear the useless one is the physical attack line.
 TEST(MaxCharacterTest, WeaponryCarriesTwoLinesWorthHaving) {
   const MaxGear gear = MaxGearForLevel(200);
   const Potential weapon =
@@ -93,8 +93,8 @@ TEST(MaxCharacterTest, WeaponryCarriesTwoLinesWorthHaving) {
   EXPECT_EQ(LinesOf(secondary, POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT), 1);
   EXPECT_EQ(LinesOf(secondary, POTENTIAL_LINE_TYPE_ATTACK_PCT), 1);
 
-  // The emblem has no line of its own to chase, so its prime is the attack
-  // share -- still two worth having and one dead.
+  // The emblem has no special line to chase, so its prime line is the attack
+  // line; still two useful and one useless.
   const Potential emblem =
       MaxPotentialFor(EQUIP_SLOT_EMBLEM, gear, STAT_FIELD_STR);
   EXPECT_EQ(LinesOf(emblem, POTENTIAL_LINE_TYPE_ATTACK_PCT), 2);
@@ -102,7 +102,7 @@ TEST(MaxCharacterTest, WeaponryCarriesTwoLinesWorthHaving) {
 }
 
 // A slot that takes no potential gets none, and neither does a level with no
-// cubing behind it.
+// cubing.
 TEST(MaxCharacterTest, NothingIsCubedThatCannotBe) {
   EXPECT_EQ(
       MaxPotentialFor(EQUIP_SLOT_POCKET, MaxGearForLevel(200), STAT_FIELD_STR)
@@ -114,7 +114,7 @@ TEST(MaxCharacterTest, NothingIsCubedThatCannotBe) {
       0);
 }
 
-// One Legendary line and two Epic ones, which is the shape a reset chase
+// One Legendary line and two Epic ones, which is what resetting realistically
 // lands on. The stat line follows the job; the top line follows the preset.
 TEST(MaxCharacterTest, AbilityHoldsOneLegendaryLine) {
   const AbilityPreset boss =
@@ -130,11 +130,11 @@ TEST(MaxCharacterTest, AbilityHoldsOneLegendaryLine) {
       MaxAbilityPreset(Activity::kFarming, STAT_FIELD_INT);
   EXPECT_EQ(farm.lines(0).type(), ABILITY_LINE_TYPE_NORMAL_DAMAGE);
   EXPECT_EQ(farm.lines(2).type(), ABILITY_LINE_TYPE_INT);
-  // No two lines ever share a type, which the roll itself guarantees.
+  // No two lines ever have the same type, which the roll itself guarantees.
   EXPECT_NE(farm.lines(0).type(), farm.lines(1).type());
   EXPECT_NE(farm.lines(1).type(), farm.lines(2).type());
 
-  // A magician swings on magic attack, so that is the line they hold.
+  // A magician attacks with magic attack, so that is their line.
   EXPECT_EQ(
       MaxAbilityPreset(Activity::kBossing, STAT_FIELD_INT).lines(1).type(),
       ABILITY_LINE_TYPE_MAGIC_ATTACK);

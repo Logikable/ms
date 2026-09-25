@@ -10,19 +10,18 @@
 namespace ms {
 namespace {
 
-// One row of the table: what a type is worth at each rank, and how heavily it
-// is favoured there. Rare first, Legendary last, and a zero in either column
-// says GMS does not offer the pairing.
+// One row of the table: a type's value at each rank, and how likely it is to
+// roll there. Rare first, Legendary last; a zero in either column means GMS
+// doesn't offer that pairing.
 struct AbilityRow {
   AbilityLineType type;
   int value[4];
   int weight[4];
 };
 
-// GMS states its weights as percentages of a 45-line pool. Within a rank they
-// are all multiples of one another, so the table is written in those
-// multiples: a roll normalises over what is still available, which makes the
-// scale free and the ratios everything.
+// GMS gives its weights as percentages of a 45-line pool. Within a rank they
+// are all multiples of one another, so the table uses those multiples: a roll
+// normalises over what's still available, so only the ratios matter.
 constexpr AbilityRow kRows[] = {
     {ABILITY_LINE_TYPE_STR, {10, 20, 30, 40}, {45, 45, 45, 45}},
     {ABILITY_LINE_TYPE_DEX, {10, 20, 30, 40}, {45, 45, 45, 45}},
@@ -42,10 +41,10 @@ constexpr AbilityRow kRows[] = {
     {ABILITY_LINE_TYPE_ATTACK_SPEED, {0, 0, 0, 1}, {0, 0, 0, 5}},
 };
 
-// Honor a reset costs, by rank and then by lines held. The Unique and
-// Legendary rows are GMS's, and what a lock adds doubles between them. GMS
-// prices no lock below Unique; halving that ladder twice gives the lower
-// rows.
+// Honor a reset costs, by rank and then by number of locked lines. The Unique
+// and Legendary rows are GMS's, and the cost of a lock doubles between them.
+// GMS has no lock prices below Unique; halving that ladder twice gives the
+// lower rows.
 constexpr int64_t kResetCost[4][kMaxLockedAbilityLines + 1] = {
     {100, 500, 1100},
     {200, 1000, 2200},
@@ -53,11 +52,12 @@ constexpr int64_t kResetCost[4][kMaxLockedAbilityLines + 1] = {
     {8000, 11000, 16000},
 };
 
-// Chance a reset carries the ability up a rank.
+// The chance a reset raises the ability one rank.
 constexpr double kRankUpChance[4] = {0.05, 0.02, 0.01, 0.0};
 
-// The rungs below the ability's own that its 2nd and 3rd lines roll on. A Rare
-// or Epic ability rolls them Rare; the two ranks above split.
+// How the 2nd and 3rd lines roll below the ability's rank. A Rare or Epic
+// ability rolls them at Rare; a Unique one rolls Epic or Rare, and a Legendary
+// one Unique or Epic, with these chances of the higher rank.
 constexpr double kEpicChanceUnderUnique = 0.30;
 constexpr double kUniqueChanceUnderLegendary = 0.15;
 
@@ -78,8 +78,8 @@ const AbilityRow* RowFor(AbilityLineType type) {
   return nullptr;
 }
 
-// The rank the ability comes out of a reset at: the one it went in with, or
-// one higher. Never lower -- GMS lets an ability fall and this game does not.
+// The rank after a reset: the same as before, or one higher. Never lower; GMS
+// lets an ability drop a rank and this game doesn't.
 AbilityRank RolledAbilityRank(AbilityRank rank, std::mt19937& rng) {
   std::bernoulli_distribution ranks_up(AbilityRankUpChance(rank));
   if (!ranks_up(rng)) {
@@ -88,7 +88,7 @@ AbilityRank RolledAbilityRank(AbilityRank rank, std::mt19937& rng) {
   return static_cast<AbilityRank>(rank + 1);
 }
 
-// The rank one of the two lines under the top rolls at.
+// The rank one of the two lower lines rolls at.
 AbilityRank RolledLineRank(AbilityRank ability, std::mt19937& rng) {
   if (ability == ABILITY_RANK_LEGENDARY) {
     std::bernoulli_distribution unique(kUniqueChanceUnderLegendary);
@@ -101,8 +101,8 @@ AbilityRank RolledLineRank(AbilityRank ability, std::mt19937& rng) {
   return ABILITY_RANK_RARE;
 }
 
-// A line rolled at `rank`, avoiding every type already on the ability. Adds
-// what it picked to `taken`, since no two lines may share a type.
+// A line rolled at `rank`, avoiding every type already on the ability. Adds the
+// chosen type to `taken`, since no two lines may share a type.
 AbilityLine RollLine(AbilityRank rank, std::set<AbilityLineType>& taken,
                      std::mt19937& rng) {
   int total = 0;
@@ -126,8 +126,8 @@ AbilityLine RollLine(AbilityRank rank, std::set<AbilityLineType>& taken,
       return line;
     }
   }
-  // Unreachable: the pool at any rank is far wider than the two types two
-  // held lines can spend.
+  // Unreachable: every rank's pool has far more types than two locked lines can
+  // use up.
   return AbilityLine();
 }
 
@@ -225,9 +225,8 @@ bool SetAbilityLineLocked(AbilityPreset& preset, int index, bool locked) {
 void RerollAbility(AbilityPreset& preset, std::mt19937& rng) {
   const AbilityRank rank = RolledAbilityRank(preset.rank(), rng);
 
-  // A held line on top already carrying the new rank keeps the top slot. Any
-  // other arrangement wants a fresh line above it, which is what pushes the
-  // held lines down.
+  // A locked top line that already has the new rank stays on top. Otherwise a
+  // new line goes on top, which pushes the locked lines down.
   const bool top_holds_rank = preset.lines_size() > 0 &&
                               preset.lines(0).locked() &&
                               preset.lines(0).rank() == rank;
@@ -257,8 +256,8 @@ void RerollAbility(AbilityPreset& preset, std::mt19937& rng) {
     claim(0, RollLine(rank, taken, rng));
   }
 
-  // Each held line keeps its slot where the top line has not taken it, and
-  // otherwise slides to the first one free below.
+  // Each locked line keeps its slot unless the top line took it, in which case
+  // it moves to the first free slot below.
   for (size_t i = 0; i < held.size(); ++i) {
     for (int slot = held_slots[i]; slot < kAbilityLines; ++slot) {
       if (!filled[slot]) {
@@ -268,7 +267,7 @@ void RerollAbility(AbilityPreset& preset, std::mt19937& rng) {
     }
   }
 
-  // Whatever is left rolls on the rungs below the ability's own.
+  // The remaining slots roll at the ranks below the ability's own.
   for (int slot = 0; slot < kAbilityLines; ++slot) {
     if (!filled[slot]) {
       claim(slot, RollLine(RolledLineRank(rank, rng), taken, rng));

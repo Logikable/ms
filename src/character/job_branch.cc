@@ -5,9 +5,9 @@
 namespace ms {
 
 JobBranch BranchOf(Job job) {
-  // The one roster in the game. The static_assert is the tripwire -- Clang
-  // cannot check the switch itself, because -Wswitch over a proto enum demands
-  // the two DO_NOT_USE sentinels as well.
+  // The one list of every job. The static_assert catches a new job, because
+  // Clang can't check the switch itself: -Wswitch over a proto enum also
+  // demands the two DO_NOT_USE sentinels.
   static_assert(Job_ARRAYSIZE == 36, "a new job needs its branch here");
   switch (job) {
     case JOB_BEGINNER:

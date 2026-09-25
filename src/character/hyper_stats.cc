@@ -9,19 +9,19 @@
 namespace ms {
 namespace {
 
-// Points to raise a stat one level, from level 1 up. The step doubles, then
-// settles, then widens again at 11 -- which is what makes the last five
-// levels the expensive half of the stat.
+// Points needed to raise a stat one level, from level 1 up. The cost doubles,
+// then levels off, then rises again at 11, which makes the last five levels the
+// expensive half.
 constexpr int kLevelCosts[] = {1,  2,  4,  8,  10, 15, 20, 25,
                                30, 35, 50, 65, 80, 95, 110};
 
-// Levels the pool pays for at once. A level's points are floor(level / 10)
-// less this, so the band a character is in is what decides the rate.
+// Points per level are floor(level / 10) minus this, so the character's level
+// band decides the rate.
 constexpr int kPointsPerLevelOffset = 11;
 constexpr int kLevelsPerPointBand = 10;
 
 // floor(log_base(value)), for value >= 1. GMS widens two of the ladders below
-// once a stat passes a power of the base, which is what this counts.
+// once a stat passes a power of the base, and this counts how many times.
 int FloorLog(int base, int value) {
   int steps = 0;
   int reached = base;
@@ -122,7 +122,7 @@ double HyperStatBonus(HyperStatField field, int level) {
       return 30.0 * at;
     case HYPER_STAT_FIELD_MAX_HP:
       return 2.0 * at;
-    // Critical Rate and the two damage ladders take a second helping of every
+    // Critical Rate and the two damage ladders add an extra step for every
     // level past the fifth, which is GMS's log5 term.
     case HYPER_STAT_FIELD_CRIT_RATE:
       return at + FloorLog(5, rung) * (at - 5.0);
@@ -135,7 +135,7 @@ double HyperStatBonus(HyperStatField field, int level) {
     case HYPER_STAT_FIELD_BOSS_DAMAGE:
     case HYPER_STAT_FIELD_NORMAL_DAMAGE:
       return 3.0 * at + FloorLog(5, rung) * (at - 5.0);
-    // These two widen at the tenth level rather than the fifth.
+    // These two widen at the tenth level instead of the fifth.
     case HYPER_STAT_FIELD_EXP:
       return 0.5 * at + FloorLog(10, rung) * 0.5 * (at - 10.0);
     case HYPER_STAT_FIELD_ARCANE_FORCE:

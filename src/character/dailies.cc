@@ -17,14 +17,15 @@
 namespace ms {
 namespace {
 
-// The areas in the order they are climbed. The slot enum is written in that
-// order, so it is the ladder itself.
+// Whether `slot` is `highest` or an area before it. The areas are unlocked in
+// order and the slot enum follows that order, so comparing slots compares
+// areas.
 bool Below(EquipSlot slot, EquipSlot highest) {
   return slot <= highest;
 }
 
-// The furthest area `character` owns a symbol from, worn or in the bag, or
-// unspecified for a character owning none.
+// The furthest area `character` has a symbol from, worn or in the bag, or
+// unspecified if they have none.
 EquipSlot HighestSymbolOwned(const CharacterInstance& character) {
   EquipSlot highest = EQUIP_SLOT_UNSPECIFIED;
   for (const std::pair<const EquipSlot, const EquipInstance*>& worn :
@@ -46,7 +47,7 @@ EquipSlot HighestSymbolOwned(const CharacterInstance& character) {
 
 Equip PackedSymbol(int copies) {
   Equip state;
-  // One copy is the item itself, and the rest are duplicates banked in it.
+  // One copy is the item itself; the rest are stored in it as duplicates.
   state.set_symbol_exp(std::max(0, copies - 1));
   while (SymbolCanLevelUp(state)) {
     LevelUpSymbol(state);

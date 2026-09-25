@@ -20,8 +20,8 @@ TEST(JobBranchTest, EveryStageOfALineAnswersTheSameBranch) {
   EXPECT_EQ(BranchOf(JOB_SHADOWER), JobBranch::kRogue);
 }
 
-// The beginner is its own branch: the callers disagree about it, so folding it
-// into the warriors would quietly change what a level-1 character wears.
+// The beginner is its own branch because callers disagree about it; treating it
+// as a warrior would quietly change what a level 1 character wears.
 TEST(JobBranchTest, TheBeginnerIsItsOwnBranchAndNothingElseIsNone) {
   EXPECT_EQ(BranchOf(JOB_BEGINNER), JobBranch::kBeginner);
   EXPECT_EQ(BranchOf(JOB_UNSPECIFIED), JobBranch::kNone);

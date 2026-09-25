@@ -15,8 +15,8 @@ TEST(ExpToNextLevelTest, ReturnsZeroAtAndAboveMaxLevel) {
   EXPECT_EQ(ExpToNextLevel(kMaxLevel + 1), 0);
 }
 
-// The table's ends, and the two plateaus where the cost stops climbing for
-// five levels at an advancement.
+// The table's ends, and the two plateaus where the cost stays flat for five
+// levels at an advancement.
 TEST(ExpToNextLevelTest, MatchesTheTableAtItsLandmarks) {
   EXPECT_EQ(ExpToNextLevel(1), 15);
   EXPECT_EQ(ExpToNextLevel(299), 1737759854037637LL);
@@ -29,7 +29,7 @@ TEST(ExpToNextLevelTest, MatchesTheTableAtItsLandmarks) {
 }
 
 // 5th job starts at 200 with a large jump from level 199's cost. Level 210 is
-// the first the Non-GMS table costs less than GMS's 7,956,335,678.
+// the first where the Non-GMS table costs less than GMS's 7,956,335,678.
 TEST(ExpToNextLevelTest, FifthJobBoundaryJump) {
   EXPECT_EQ(ExpToNextLevel(199), 571115568);
   EXPECT_EQ(ExpToNextLevel(200), 2207026470LL);

@@ -6,16 +6,16 @@
 namespace ms {
 namespace {
 
-// 1,000 a second against 100m is a day and a bit of farming, so the Wealth
+// 1,000 a second against 100m is a little over a day of farming, so the Wealth
 // Acquisition Potion pays for itself early. The Extreme Green Potion's 250m
-// against 1m a fight is the other end: bosses are locked to the day.
+// against 1m a fight is the other end, since bosses are limited per day.
 //
-// The Wild Totem's 2,000 a second is most of what a bare Lv220 earns off the
-// map and the kills it buys are worth that again, so it pays for itself. Its
-// billion is the four days that keep renting it a decision.
+// The Wild Totem's 2,000 a second is most of what a bare Lv220 earns on a map,
+// and the extra kills it buys are worth as much again, so it pays for itself.
+// Its billion price is four days of rent, which keeps renting a real decision.
 
-// The last line of each is where the buff pays out, which is the fact a player
-// weighing the rent needs before the numbers above it.
+// The last line of each is how the buff pays out, which is what a player
+// weighing the rent needs to know before the numbers above it.
 constexpr const char* kWealthEffects[] = {
     "+20% Meso Obtained",
     "+20% Item Drop Rate",

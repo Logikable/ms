@@ -11,12 +11,12 @@ namespace {
 TEST(VMatrixTest, DropRateLiftsTheRateAndNeverPastCertainty) {
   EXPECT_DOUBLE_EQ(VPointsPerKill(0.0), kVPointDropChance);
   EXPECT_DOUBLE_EQ(VPointsPerKill(1.0), 2 * kVPointDropChance);
-  // A negative rate is a bug elsewhere; it must not cut the payment.
+  // A negative rate is a bug elsewhere, and must not reduce the payment.
   EXPECT_DOUBLE_EQ(VPointsPerKill(-0.5), kVPointDropChance);
   EXPECT_DOUBLE_EQ(VPointsPerKill(10000.0), 1.0);
 }
 
-// GMS's own totals, which are what the three ladders have to come to.
+// GMS's own totals, which the three cost ladders must add up to.
 TEST(VMatrixTest, EachLadderCostsWhatGmsChargesForTheWholeNode) {
   EXPECT_EQ(MaxVNodeLevel(V_NODE_KIND_COMMON), 30);
   EXPECT_EQ(MaxVNodeLevel(V_NODE_KIND_ARCHETYPE), 30);
@@ -25,13 +25,13 @@ TEST(VMatrixTest, EachLadderCostsWhatGmsChargesForTheWholeNode) {
   EXPECT_EQ(MaxVNodeLevel(V_NODE_KIND_UNSPECIFIED), 0);
 
   EXPECT_EQ(VNodeCost(V_NODE_KIND_COMMON, 0, 30), 193);
-  // A line's own is priced as a common, first level and all.
+  // An archetype node is priced like a common one, including its first level.
   EXPECT_EQ(VNodeCost(V_NODE_KIND_ARCHETYPE, 0, 30), 193);
   EXPECT_EQ(VNodeStepCost(V_NODE_KIND_ARCHETYPE, 1), 7);
   EXPECT_EQ(VNodeCost(V_NODE_KIND_JOB, 0, 30), 186);
   EXPECT_EQ(VNodeCost(V_NODE_KIND_BOOST, 0, 60), 80);
 
-  // The rungs the bands change on, and the two first levels that differ.
+  // The levels where the bands change, and the two first levels that differ.
   EXPECT_EQ(VNodeStepCost(V_NODE_KIND_JOB, 1), 0);
   EXPECT_EQ(VNodeStepCost(V_NODE_KIND_COMMON, 1), 7);
   EXPECT_EQ(VNodeStepCost(V_NODE_KIND_COMMON, 10), 4);
@@ -44,7 +44,7 @@ TEST(VMatrixTest, EachLadderCostsWhatGmsChargesForTheWholeNode) {
   EXPECT_EQ(VNodeStepCost(V_NODE_KIND_BOOST, 61), 0);
   EXPECT_EQ(VNodeCost(V_NODE_KIND_COMMON, 30, 30), 0);
   EXPECT_EQ(VNodeCost(V_NODE_KIND_COMMON, 30, 20), 0);
-  // A part of the climb costs what those levels cost and nothing else.
+  // Part of the ladder costs what those levels cost and nothing more.
   EXPECT_EQ(VNodeCost(V_NODE_KIND_COMMON, 9, 12), 4 + 6 + 6);
 }
 
@@ -54,7 +54,7 @@ TEST(VMatrixTest, TheRollPaysAboutWhatTheRateSays) {
   int64_t points = RollMobVPoints(kills, /*item_drop_pct=*/0.0, rng);
   // 0.1% of two million is 2,000, and the binomial's own spread is about 45.
   EXPECT_NEAR(points, kills * kVPointDropChance, 250);
-  // Doubled drop rate, doubled payment.
+  // Double the drop rate, double the payment.
   int64_t lifted = RollMobVPoints(kills, /*item_drop_pct=*/1.0, rng);
   EXPECT_NEAR(lifted, 2 * kills * kVPointDropChance, 350);
 

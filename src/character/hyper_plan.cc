@@ -8,13 +8,13 @@
 namespace ms {
 namespace {
 
-// Every stat the pool can be spent on, which is every field the enum names
-// bar the placeholder. Walked as ints because the enum has a hole in it.
+// Every stat points can be spent on: every field in the enum except the
+// placeholder. Iterated as ints because the enum has a gap.
 bool IsHyperStatField(int field) {
   return field != HYPER_STAT_FIELD_UNSPECIFIED && HyperStatField_IsValid(field);
 }
 
-// Puts `field` alone at `level` and asks what the character is worth.
+// Sets `field` alone to `level` and returns what the character is worth.
 double RateWith(CharacterInstance& character, StatPreset preset,
                 HyperStatField field, int level, const HyperRate& rate) {
   character.ResetHyperStats(preset);
@@ -56,9 +56,9 @@ int SpendHyperStats(CharacterInstance& character, StatPreset preset,
   character.ResetHyperStats(preset);
   int spent = 0;
   while (true) {
-    // The next level of each stat, priced against what it adds over the level
-    // below it. Cross-multiplied rather than divided, so two a rounding apart
-    // are still ordered by what they are worth.
+    // The next level of each stat, priced by what it adds over the level below.
+    // Compared by cross-multiplying instead of dividing, so two values that
+    // differ only by rounding are still ordered correctly.
     HyperStatField best = HYPER_STAT_FIELD_UNSPECIFIED;
     double best_gain = 0.0;
     int best_cost = 0;

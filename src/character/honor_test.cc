@@ -32,8 +32,8 @@ TEST(HonorForLevelsTest, TheWholeSpan) {
   EXPECT_EQ(HonorForLevels(10, 5), 0);
 }
 
-// The projection the sources were tuned against: what the climb alone pays by
-// the level Inner Ability opens at, and by the cap.
+// The projection the honor sources were tuned against: what leveling alone pays
+// by the level Inner Ability opens, and by the cap.
 TEST(HonorForLevelsTest, TheClimbToTheCap) {
   EXPECT_EQ(HonorForLevels(1, 160), 167400);
   EXPECT_EQ(HonorForLevels(1, 200), 245800);

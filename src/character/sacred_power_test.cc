@@ -26,7 +26,8 @@ TEST(SacredPowerTest, FollowsTheGmsTable) {
   }
 }
 
-// A map asking nothing takes nothing, and a negative carry reads as none.
+// A map requiring nothing changes nothing, and a negative amount counts as
+// none.
 TEST(SacredPowerTest, EdgesOfTheTable) {
   ForceFactors none = SacredFactorsFor(0, 0);
   EXPECT_DOUBLE_EQ(none.damage_dealt, 1.0);

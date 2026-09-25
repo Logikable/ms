@@ -9,11 +9,11 @@
 namespace ms {
 namespace {
 
-// What a level-up pays below the first band, and what each band above it adds.
+// Honor per level-up below the first band, and what each band above it adds.
 constexpr int64_t kBaseLevelHonor = 700;
 constexpr int64_t kHonorPerBand = 100;
 
-// The band the base is paid through: every level up to and including 59.
+// The base is paid for every level up to and including 59.
 constexpr int kFirstBandLevel = 60;
 
 }  // namespace

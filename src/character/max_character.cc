@@ -24,10 +24,10 @@ namespace ms {
 
 namespace {
 
-// What each band of gear costs and what the climb has paid by the level it
-// opens at, from //analysis:progression_sim's median branch. Every row is
-// priced through analysis/star_force_curve.h over the twenty-two pieces a
-// level 140 character wears, seventeen of which take stars.
+// What each gear band costs and what leveling has paid by the level where it
+// opens, from //analysis:progression_sim's median branch. Every row is priced
+// through analysis/star_force_curve.h over the twenty-two items a level 140
+// character wears, seventeen of which take stars.
 //
 //   level   income   gear                                      bill
 //   -----   ------   ---------------------------------------   ----
@@ -38,17 +38,16 @@ namespace {
 //    190    1.25B    11*, weapon 15*, both potions             1.13B
 //    200    1.70B    12*, weapon 15*, potentials, potions      ~6.3B
 //
-// Only the last row costs more than the climb pays, and that is the row it
-// should be: 200 is where levelling stops and the days at the cap -- 410M
-// each -- go on cubes. The bill there is eleven of them, against the fourteen
-// progression_sim's own endgame plays out.
+// Only the last row costs more than leveling pays, which is intended: when this
+// was priced, 200 was the level cap, and the days spent there (410M each) went
+// on cubes. The bill there is eleven cubes, against the fourteen
+// progression_sim's own endgame uses.
 //
-// Two of the user's opening figures came down against this. A level 140
-// weapon "maxed out" is 15 stars on a level 120 item, which is 226M on its
-// own -- the whole climb, for one piece -- so the ceiling is 14, one star
-// short of the cap and where the sim's own shopper parks it from 130. And
-// hammers cannot start before 180: two in every piece is 340M whatever else
-// is being bought.
+// Two of the original targets were lowered to fit. A "maxed out" level 140
+// weapon is 15 stars on a level 120 item, which costs 226M on its own (the
+// whole climb for one item), so the ceiling is 14, one star short of the cap
+// and where the sim's own shopper stops from 130. And hammers can't start
+// before 180: two in every item cost 340M on top of everything else.
 struct GearBand {
   int level;
   MaxGear gear;
@@ -66,7 +65,7 @@ constexpr GearBand kBands[] = {
     {200, {true, 12, 15, POTENTIAL_RANK_EPIC, POTENTIAL_RANK_UNIQUE}},
 };
 
-// The %stat line that raises what the character fights with.
+// The %stat line for the stat the character fights with.
 PotentialLineType StatShareFor(StatField primary) {
   switch (primary) {
     case STAT_FIELD_DEX:
@@ -80,16 +79,16 @@ PotentialLineType StatShareFor(StatField primary) {
   }
 }
 
-// The attack share, which is what a weaponry slot is cubed for.
+// The attack line, which is what a weapon slot is cubed for.
 PotentialLineType AttackShareFor(StatField primary) {
   return primary == STAT_FIELD_INT ? POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT
                                    : POTENTIAL_LINE_TYPE_ATTACK_PCT;
 }
 
-// The other one, which pays this character nothing: a warrior's weapon rolls
-// M.ATT as readily as ATT. Here so a weaponry slot carries two lines worth
-// having and one dead one -- //analysis:cube_sim prices two useful lines on a
-// weapon at 15 cubes and three at 70, and nobody buys the third.
+// The other attack line, which does nothing for this character: a warrior's
+// weapon rolls M.ATT as easily as ATT. It's here so a weapon slot has two
+// useful lines and one useless one. //analysis:cube_sim puts two useful lines
+// on a weapon at 15 cubes and three at 70, and nobody pays for the third.
 PotentialLineType DeadShareFor(StatField primary) {
   return primary == STAT_FIELD_INT ? POTENTIAL_LINE_TYPE_ATTACK_PCT
                                    : POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT;
@@ -101,14 +100,13 @@ void AddLine(Potential& potential, PotentialLineType type, PotentialRank rank) {
   line.set_rank(rank);
 }
 
-// The monster the preset is spent against: the toughest boss whose gate the
-// character has passed for the Boss allocation, and the toughest ordinary
-// monster standing at or below their level for the Farm one. Both read off
-// the roster rather than picked, so a boss landing later moves this on its
-// own.
+// The monster the preset is spent against: for the Boss allocation, the
+// toughest boss the character's level allows; for the Farm one, the toughest
+// normal monster at or below their level. Both are read from the catalogs, not
+// chosen, so a new boss changes this automatically.
 //
-// Null for an empty roster, which is what the rate falls back to bare combat
-// power for.
+// Null for empty catalogs, in which case the rating falls back to plain combat
+// power.
 const Mob* NominalTarget(const std::map<std::string, Boss>& bosses,
                          const std::map<std::string, Mob>& mobs, int level,
                          Activity preset) {
@@ -144,15 +142,15 @@ const Mob* NominalTarget(const std::map<std::string, Boss>& bosses,
   return worst;
 }
 
-// What the character is worth to the allocation: one bare swing at the
-// monster ahead of them, through the whole damage chain. Rated against a real
-// target rather than by combat power alone because combat power has none in
-// it, and a stat that only pays against a defended monster -- Ignore Defense
-// -- would otherwise price at zero and never be bought.
+// What the character is worth to the allocation: one plain swing at their
+// target, through the full damage chain. It uses a real target instead of just
+// combat power because combat power has no target in it, so a stat that only
+// helps against defence (Ignore Defense) would be valued at zero and never
+// bought.
 //
-// A monster that cancels the swing outright leaves every allocation on the
-// 1-damage floor together, and the preset then buys nothing. That is the
-// roster saying the fight is out of reach, not a tie to be broken.
+// A monster that cancels the swing entirely leaves every allocation at the
+// 1-damage floor, and the preset then buys nothing. That means the fight is out
+// of reach, not that the choices are tied.
 double MaxHyperRate(CharacterInstance& character,
                     const std::map<std::string, Skill>& skills, Activity preset,
                     const Mob* target) {
@@ -186,14 +184,14 @@ Potential MaxPotentialFor(EquipSlot slot, const MaxGear& gear,
     return potential;
   }
   potential.set_rank(rank);
-  // The prime line is what the piece was cubed for. On a weapon that is the
-  // one line no amount of %ATT replaces -- defense ignored on the weapon,
-  // boss damage on the secondary -- and both are Unique-rank lines, which is
-  // what puts the weaponry slots a rank above the rest of the outfit.
+  // The prime line is what the item was cubed for. On a weapon that is the one
+  // line no amount of %ATT can replace (ignored defence on the weapon, boss
+  // damage on the secondary), and both are Unique-rank lines, which puts the
+  // weapon slots a rank above the rest of the gear.
   //
-  // Two lines worth having and one dead one, and the third stays dead: a
-  // weapon holding three useful lines is a chase four times as long as one
-  // holding two, and nobody finishes it.
+  // Two useful lines and one useless one, and the third stays useless: a weapon
+  // with three useful lines takes four times as long to roll as one with two,
+  // and nobody finishes it.
   if (weaponry) {
     if (slot == EQUIP_SLOT_PRIMARY_WEAPON) {
       AddLine(potential, POTENTIAL_LINE_TYPE_IGNORE_DEFENSE_30, rank);
@@ -245,16 +243,16 @@ AbilityPreset MaxAbilityPreset(Activity preset, StatField primary) {
     default:
       break;
   }
-  // One Legendary line and two Epic ones, which is the shape of every ability
-  // a reset chase actually lands: only the top line ever carries the
-  // ability's rank, and the two under it roll Epic far more often than
-  // Unique. The top line is what //analysis:ability_plan measures as the best
-  // of the rank -- critical rate for a fight, normal damage for a crowd.
+  // One Legendary line and two Epic ones, which is what resetting realistically
+  // lands on: only the top line has the ability's rank, and the two below roll
+  // Epic far more often than Unique. The top line is what
+  // //analysis:ability_plan finds best for the rank: critical rate for bosses,
+  // normal damage for crowds.
   //
-  // Attack Speed is the line GMS players chase and it is deliberately not
-  // here: the Extreme Green Potion already hands a boss fight its extra
-  // stage, past the cap this line is held to, so a max character is holding
-  // a dead line the moment they walk through a boss door.
+  // Attack Speed is the line GMS players chase, and it's deliberately left out:
+  // the Extreme Green Potion already gives boss fights an extra stage past the
+  // cap this line is limited by, so the line would be useless in every boss
+  // fight.
   const AbilityLineType top = preset == Activity::kBossing
                                   ? ABILITY_LINE_TYPE_CRIT_RATE
                                   : ABILITY_LINE_TYPE_NORMAL_DAMAGE;

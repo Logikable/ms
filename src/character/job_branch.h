@@ -1,13 +1,12 @@
 /* Which of the four lines a job belongs to.
  *
- * A job's branch is what the level-up gains, the equip category, the beginner
- * book, the primary stat, the mastery floor and the stat the swing reads all
- * key off. Each of those used to spell the whole roster out again, so a new
- * job meant editing seven case ladders and hoping none was missed.
+ * Level-up gains, equip category, beginner book, primary stat, mastery floor
+ * and the stat the swing uses all depend on the branch. Each of those used to
+ * list every job separately, so adding a job meant editing seven switch
+ * statements and hoping none was missed.
  *
- * Its own library rather than part of character, for the same reason
- * job_name.h is: combat asks the question too, and nothing about the answer
- * wants a whole character to come along.
+ * A separate library from character, for the same reason as job_name.h: combat
+ * needs the answer too, without depending on a whole character.
  */
 #ifndef MS_SRC_CHARACTER_JOB_BRANCH_H_
 #define MS_SRC_CHARACTER_JOB_BRANCH_H_
@@ -17,22 +16,20 @@
 namespace ms {
 
 // The four lines, plus the beginner every character starts as; kNone is only
-// JOB_UNSPECIFIED. The beginner is its own branch because the callers disagree
-// about it: they swing on STR like a warrior, level like nobody, and wear what
-// only a beginner can.
+// for JOB_UNSPECIFIED. The beginner is its own branch because callers disagree
+// about it: beginners swing on STR like a warrior, level like no other branch,
+// and wear gear only a beginner can.
 enum class JobBranch { kNone, kBeginner, kWarrior, kMagician, kArcher, kRogue };
 
-// The branch `job` belongs to, however far along its line it is.
+// The branch `job` belongs to, at any stage of its line.
 JobBranch BranchOf(Job job);
 
-// The LINE within that branch, named by the second job it starts at:
-// JOB_FIGHTER for a Fighter, a Crusader and a Hero alike. The 3rd and 4th
-// advancements narrow rather than fork, so the second job names the whole of
-// the rest of the climb.
+// The line within that branch, named by its 2nd job: JOB_FIGHTER for a Fighter,
+// a Crusader and a Hero alike. The 3rd and 4th advancements continue a line
+// instead of branching, so the 2nd job determines the rest.
 //
-// JOB_UNSPECIFIED for a character who has not taken a second advancement,
-// theirs being undecided. Link skills are counted per line -- see
-// //src/character:link.
+// JOB_UNSPECIFIED for a character who hasn't taken a 2nd advancement yet. Link
+// skills are counted per line; see //src/character:link.
 Job LineOf(Job job);
 
 }  // namespace ms

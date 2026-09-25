@@ -17,8 +17,8 @@ TEST(LinkTest, ARungAtEachOfGmsThreeLevels) {
   EXPECT_EQ(LinkRungsFor(300), 3);
 }
 
-// The rule the whole system rests on: a LINE pays once however many
-// characters walk it, and the lines of one branch sum.
+// The rule the system is built on: a line counts once however many characters
+// are in it, and the lines of one branch add up.
 TEST(LinkTest, OneLinePaysOnceAndTheBranchSums) {
   LinkTally tally;
   tally.Record(JOB_HERO, 120);
@@ -26,21 +26,21 @@ TEST(LinkTest, OneLinePaysOnceAndTheBranchSums) {
   tally.Record(JOB_DARK_KNIGHT, 210);
   EXPECT_EQ(tally.LevelFor(JOB_SWORDMAN), 5);
 
-  // Another branch's characters say nothing about this one.
+  // Characters of another branch don't affect this one.
   EXPECT_EQ(tally.LevelFor(JOB_MAGICIAN), 0);
   EXPECT_EQ(tally.LevelFor(JOB_ARCHER), 0);
   EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 0);
 }
 
-// A line is the SECOND job, so every advancement along one counts as the same
-// character would.
+// A line is identified by its 2nd job, so every advancement along it counts as
+// the same character would.
 TEST(LinkTest, EveryAdvancementOfALineIsThatLine) {
   LinkTally tally;
   tally.Record(JOB_CRUSADER, 210);
   tally.Record(JOB_FIGHTER, 210);
   EXPECT_EQ(tally.LevelFor(JOB_SWORDMAN), 3);
 
-  // And a character who never took a second advancement has no line to pay.
+  // A character who never took a 2nd advancement has no line.
   LinkTally undecided;
   undecided.Record(JOB_SWORDMAN, 210);
   undecided.Record(JOB_BEGINNER, 210);
@@ -48,9 +48,9 @@ TEST(LinkTest, EveryAdvancementOfALineIsThatLine) {
   EXPECT_TRUE(undecided.empty());
 }
 
-// The two-line branches reach 6 where the three-line ones reach 9. The data
-// runs to GMS's 9 either way -- what a branch reaches is the roster's answer,
-// not the skill's.
+// Branches with two lines reach 6 where three-line branches reach 9. The data
+// goes up to GMS's 9 either way; how far a branch gets depends on the roster,
+// not the skill.
 TEST(LinkTest, ABranchReachesThreeRungsPerLineItHas) {
   LinkTally tally;
   for (Job job : {JOB_HERO, JOB_PALADIN, JOB_DARK_KNIGHT, JOB_BISHOP,
@@ -64,8 +64,8 @@ TEST(LinkTest, ABranchReachesThreeRungsPerLineItHas) {
   EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 6);
 }
 
-// What MirrorAccount leans on: the played character folds into a copy, so the
-// tally the session holds is never disturbed by whoever is reading it.
+// MirrorAccount relies on this: the character being played is added to a copy,
+// so the session's tally is never changed by whoever reads it.
 TEST(LinkTest, WithFoldsOneMoreCharacterInWithoutKeepingThem) {
   LinkTally tally;
   tally.Record(JOB_HERO, 210);

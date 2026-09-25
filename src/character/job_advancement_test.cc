@@ -21,15 +21,15 @@ std::map<std::string, EquipPrototype> LoadEquips() {
   return LoadTestData<EquipPrototype>("equip");
 }
 
-// A state holding the real equip catalog, so the starting gear is the gear the
-// game actually ships.
+// A state with the real equip catalog, so the starting gear is what the game
+// actually gives.
 class JobAdvancementTest : public testing::Test {
  protected:
   GameState state_{LoadEquips(), {}, {}, {}, {}};
 };
 
-// One job a character can advance into: which job, at which level, and which
-// stage that advancement is.
+// One job a character can advance into: which job, at what level, and which
+// stage the advancement is.
 struct Advanceable {
   Job job = JOB_UNSPECIFIED;
   int level = 0;
@@ -37,8 +37,7 @@ struct Advanceable {
 };
 
 // Every job a character can advance into. The levels are the thresholds in
-// character.cc's kAdvancementLevels. A stage with no branches written yet
-// simply contributes nothing.
+// character.cc's kAdvancementLevels. A stage with no branches yet adds nothing.
 std::vector<Advanceable> AdvanceableJobs() {
   const int kLevelForStage[] = {0, 10, 30, 60, 100};
   std::vector<Advanceable> jobs;
@@ -53,8 +52,8 @@ std::vector<Advanceable> AdvanceableJobs() {
   return jobs;
 }
 
-// The advancements that hand something over: the 1st and the 2nd. Everything
-// above them is bought.
+// The advancements that give items: the 1st and the 2nd. Everything after is
+// bought.
 std::vector<Advanceable> GiftedJobs() {
   std::vector<Advanceable> jobs;
   for (const Advanceable& entry : AdvanceableJobs()) {
@@ -65,9 +64,9 @@ std::vector<Advanceable> GiftedJobs() {
   return jobs;
 }
 
-// The names in StarterEquipsFor are catalog keys, and nothing in the type
-// system ties them to the files on disk -- renaming a textproto would leave a
-// job silently advancing empty-handed.
+// The names in StarterEquipsFor are catalog keys, and nothing ties them to the
+// files on disk; renaming a textproto would leave a job silently advancing with
+// no gear.
 TEST_F(JobAdvancementTest, EveryStarterEquipExistsInTheCatalog) {
   for (const Advanceable& entry : GiftedJobs()) {
     std::vector<std::string> names = StarterEquipsFor(entry.job);
@@ -80,10 +79,10 @@ TEST_F(JobAdvancementTest, EveryStarterEquipExistsInTheCatalog) {
   }
 }
 
-// A 2nd job is handed one thing, and it is not a weapon: it arrives armed and
-// able to afford the tier, so a free weapon would take the choice of which to
-// buy away. The off-hand is different -- the advancement is what opens that
-// slot, and nothing else would ever put anything in it.
+// A 2nd job gets one item, and it isn't a weapon: the character already has one
+// and can afford the next tier, so a free weapon would take away the choice of
+// which to buy. The off-hand is different: the advancement opens that slot, and
+// nothing else would ever fill it.
 TEST_F(JobAdvancementTest, ASecondJobIsHandedItsOffHandAndNoWeapon) {
   for (const Advanceable& entry : GiftedJobs()) {
     if (entry.stage == 1) {
@@ -97,9 +96,9 @@ TEST_F(JobAdvancementTest, ASecondJobIsHandedItsOffHandAndNoWeapon) {
   }
 }
 
-// The weapons each job is supposed to walk away with. Spelled out as types
-// rather than catalog keys so that swapping which sword a Swordman starts with
-// stays a data decision, while handing one a bow does not.
+// The weapon types each job should receive. Listed as types, not catalog keys,
+// so changing which sword a Swordman starts with stays a data decision, while
+// giving one a bow is caught.
 const std::map<Job, std::multiset<EquipType>>& ExpectedStarterTypes() {
   static const std::map<Job, std::multiset<EquipType>>* kTypes =
       new std::map<Job, std::multiset<EquipType>>{
@@ -122,9 +121,8 @@ const std::map<Job, std::multiset<EquipType>>& ExpectedStarterTypes() {
   return *kTypes;
 }
 
-// Existence says nothing about what the gear IS -- a job could advance into a
-// full set of the wrong class's, or the wrong branch's, and every other test
-// here would pass.
+// Existing isn't enough: a job could get a full set of another class's or
+// branch's gear, and every other test here would still pass.
 TEST_F(JobAdvancementTest, EachJobStartsWithItsOwnGear) {
   for (const Advanceable& entry : GiftedJobs()) {
     std::multiset<EquipType> actual;
@@ -136,9 +134,9 @@ TEST_F(JobAdvancementTest, EachJobStartsWithItsOwnGear) {
   }
 }
 
-// "The gear of the level the advancement happens at", not "gear that level can
-// wear": either drift would hand over something weaker than the tier, or
-// something that cannot be held at all.
+// The gear must be for the level the advancement happens at, not just gear that
+// level can wear. Either kind of drift would give something below the tier, or
+// something that can't be equipped at all.
 TEST_F(JobAdvancementTest, StarterEquipsAreTheirTiers) {
   for (const Advanceable& entry : GiftedJobs()) {
     for (const std::string& name : StarterEquipsFor(entry.job)) {
@@ -149,8 +147,8 @@ TEST_F(JobAdvancementTest, StarterEquipsAreTheirTiers) {
 }
 
 TEST_F(JobAdvancementTest, AdvancingSetsTheJobAndItsStage) {
-  // Relative to where the starting character already is, so this test does not
-  // ride the testing knob in game_state.cc.
+  // Measured from where the starting character already is, so this test doesn't
+  // depend on the testing setting in game_state.cc.
   int before = state_.character.proto().job_stage();
   PerformJobAdvancement(state_, JOB_ARCHER);
   EXPECT_EQ(state_.character.proto().job(), JOB_ARCHER);
@@ -163,10 +161,10 @@ TEST_F(JobAdvancementTest, TheFirstAdvancementReseatsTheStats) {
   EXPECT_EQ(state_.character.proto().allocated_stats().str(), 4);
 }
 
-// The second one leaves them where they are. It picks a branch of a category
-// the character is already in, raising the same stat -- so re-seating would
-// throw away every point spent since the first advancement and give the
-// player AP to put back where it came from.
+// The 2nd advancement leaves stats alone. It picks a branch of a category the
+// character is already in, which uses the same stat, so a reset would throw
+// away every point spent since the 1st advancement and make the player put them
+// back where they were.
 TEST_F(JobAdvancementTest, TheSecondAdvancementLeavesTheStatsAlone) {
   PerformJobAdvancement(state_, JOB_SWORDMAN);
   for (int i = 0; i < 5; ++i) {
@@ -190,8 +188,8 @@ TEST_F(JobAdvancementTest, StarterGearLandsInTheBag) {
   ASSERT_EQ(state_.character.inventory().size(), 1);
   EXPECT_EQ(state_.character.inventory().equip_instance(0)->prototype().name(),
             state_.equips.at("long_sword").name());
-  // Still wearing what they started the game in: advancing hands the gear
-  // over, it does not put it on.
+  // Still wearing what they started the game in: advancing gives the gear, it
+  // doesn't equip it.
   ASSERT_TRUE(state_.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
   EXPECT_EQ(state_.character.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
@@ -200,9 +198,9 @@ TEST_F(JobAdvancementTest, StarterGearLandsInTheBag) {
             state_.equips.at("sword").name());
 }
 
-// A 3rd or 4th job opens no slot and unlocks no tier, so it hands over
-// nothing -- and the bag's Equip tab reads this to decide whether an
-// advancement is worth sending the player to look.
+// A 3rd or 4th job opens no slot and unlocks no tier, so it gives nothing. The
+// bag's Equip tab checks this to decide whether to point the player at an
+// advancement.
 TEST_F(JobAdvancementTest, ThirdAndFourthAdvancementsHandOverNothing) {
   for (const Advanceable& entry : AdvanceableJobs()) {
     if (entry.stage <= 2) {

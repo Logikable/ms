@@ -9,8 +9,8 @@
 namespace ms {
 namespace {
 
-// One row of GMS's table: the percentage of the requirement it opens at, and
-// what the fight is worth from there up to the next row.
+// One row of GMS's table: the percent of the requirement where it starts, and
+// the factors from there up to the next row.
 struct ForceRow {
   int met_pct;
   double dealt;
@@ -18,16 +18,16 @@ struct ForceRow {
 };
 
 // Read from the bottom up, so a character with nothing lands on the first row
-// and one with half again over the requirement on the last. The top row's 0
-// taken is GMS's "monster hits for 1", which the damage floor supplies.
+// and one with 1.5x the requirement on the last. The top row's 0 taken is GMS's
+// "monster hits for 1", which the damage floor provides.
 constexpr ForceRow kForceTable[] = {
     {0, 0.10, 2.8},   {10, 0.30, 2.4},  {30, 0.60, 1.8},
     {50, 0.70, 1.6},  {70, 0.80, 1.4},  {100, 1.00, 1.0},
     {110, 1.10, 0.8}, {130, 1.30, 0.4}, {150, 1.50, 0.0},
 };
 
-// The stat's own share of an EquipStats. A symbol grants one stat, and which
-// one depends on who is wearing it.
+// Sets the one stat a symbol grants in `stats`. Which stat depends on who wears
+// it.
 void SetStat(EquipStats& stats, StatField primary, int amount) {
   switch (primary) {
     case STAT_FIELD_STR:
@@ -42,9 +42,9 @@ void SetStat(EquipStats& stats, StatField primary, int amount) {
     case STAT_FIELD_LUK:
       stats.set_luk(amount);
       return;
-    // A job whose damage is built on a pool rather than a stat, and a
-    // character with no job at all. Neither can reach a symbol -- one has no
-    // primary stat to grant, the other no way to level 200.
+    // Jobs whose damage is built on HP instead of a stat, and characters with
+    // no job. Neither can get a symbol: the first has no primary stat to grant,
+    // and the second can't reach level 200.
     case STAT_FIELD_HP:
     case STAT_FIELD_MP:
     case STAT_FIELD_UNSPECIFIED:
@@ -75,8 +75,7 @@ int64_t SymbolLevelUpCost(const EquipPrototype& proto, int level) {
     return 0;
   }
   // GMS writes the multiplier as base + 0.1 x level. Kept in tenths so the
-  // floor falls where the arithmetic says it does rather than where a tenth's
-  // rounding leaves it.
+  // floor lands where the math says, not where rounding a tenth puts it.
   int64_t tenths = 10LL * proto.arcane_symbol().meso_cost_base() + level;
   return 10000LL * (tenths * duplicates / 10);
 }

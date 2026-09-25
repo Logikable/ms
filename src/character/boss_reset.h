@@ -1,15 +1,14 @@
 /* When a boss can be fought again.
  *
- * A clear is banked as the moment it happened, and the clock turns over at
- * 4:00 in the morning, local time: a daily boss comes back at the next 4am, a
- * weekly one at the next 4am on a Tuesday. Local rather than fixed, so a
- * player's reset lands in their own small hours.
+ * A clear is recorded as the time it happened, and the reset is at 4:00 in the
+ * morning, local time: a daily boss resets at the next 4am, a weekly one at the
+ * next 4am on a Tuesday. Local time is used so a player's reset happens in
+ * their own early morning.
  *
- * Local time means the player's clock, which the player can set. That is
- * deliberate for now -- there is nobody to be unfair to in a single-player
- * game. Once the game talks to anything (multiplayer, a shared ladder), the
- * moment has to come off the network instead, or a boss is daily only for
- * whoever leaves their clock alone.
+ * Local time means the player's clock, which the player can change. That was
+ * fine for a single-player game. The multiplayer server checks party clears
+ * against its own clock, but the clear times themselves are still recorded by
+ * each player's game.
  */
 #ifndef MS_SRC_CHARACTER_BOSS_RESET_H_
 #define MS_SRC_CHARACTER_BOSS_RESET_H_
@@ -23,26 +22,26 @@
 
 namespace ms {
 
-// The hour the clock turns over at, and the weekday a weekly boss turns over
-// on (0 is Sunday, so 2 is Tuesday) -- both as std::tm reads them.
+// The reset hour, and the weekday weekly bosses reset on (0 is Sunday, so 2 is
+// Tuesday), both as std::tm uses them.
 inline constexpr int kBossResetHour = 4;
 inline constexpr int kBossResetWeekday = 2;
 
-// The most recent reset of `period` at or before `now`, as a Unix time. A
-// clear banked before it has expired; one banked after it still stands.
+// The most recent reset of `period` at or before `now`, as a Unix time. A clear
+// recorded before it has expired; one recorded after it still counts.
 int64_t LastBossReset(ResetPeriod period, int64_t now);
 
 // The next reset of `period` after `now`, for a screen counting down to it.
 int64_t NextBossReset(ResetPeriod period, int64_t now);
 
-// Whether a boss last cleared at `cleared` may be fought again at `now`.
-// Never cleared (0) is always available, and so is a period the data does not
-// state -- a boss with no reset is one there is nothing to hold back.
+// Whether a boss last cleared at `cleared` can be fought again at `now`. Never
+// cleared (0) is always available, and so is a period the data doesn't set,
+// since a boss with no reset has nothing to hold it back.
 bool BossAvailable(int64_t cleared, ResetPeriod period, int64_t now);
 
-// Whether `boss` may be entered at `now`. A clear of ONE difficulty holds
-// every other back -- the reset gates the boss, not the rung -- and each clear
-// is measured against the period of the difficulty it was taken at.
+// Whether `boss` can be entered at `now`. A clear of one difficulty blocks all
+// of them (the reset applies to the boss, not the difficulty), and each clear
+// is checked against the reset period of the difficulty it was at.
 bool BossAvailable(const std::string& key, const Boss& boss,
                    const google::protobuf::RepeatedPtrField<BossClear>& clears,
                    int64_t now);

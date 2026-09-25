@@ -1,17 +1,17 @@
-/* The setups a character keeps, and which of them the game reads.
+/* The setups a character keeps, and which one the game uses.
  *
- * Two questions, and they are not the same one. A StatPreset is a SLOT: one of
- * the allocations a character keeps of everything the player tunes -- a Hyper
- * Stat allocation and an Inner Ability apiece. It is what the preset row
- * selects and what spending goes into.
+ * These are two separate questions. A StatPreset is a slot: one of the setups a
+ * character keeps for each thing the player tunes (Hyper Stats, Inner Ability,
+ * gear, link skills). It is what the preset row selects and what points are
+ * spent into.
  *
- * An Activity is what the character is DOING, which is a different question:
- * the game reads the first slot while farming and the second while bossing,
- * and an activity decides more than the allocation -- which of the two
- * potions is in effect, and whether combat power counts boss damage.
+ * An Activity is what the character is doing: the game uses the first slot
+ * while farming and the second while bossing. The activity decides more than
+ * the setup, such as which potions are active and whether combat power counts
+ * boss damage.
  *
- * Its own header because it belongs to neither system: both read it, and
- * neither should have to depend on the other to say which setup it means.
+ * This has its own header because it belongs to no single system: all of them
+ * read it, and none should depend on another to name a setup.
  */
 #ifndef MS_SRC_CHARACTER_STAT_PRESET_H_
 #define MS_SRC_CHARACTER_STAT_PRESET_H_
@@ -23,11 +23,11 @@ enum class StatPreset { kFirst, kSecond, kThird };
 
 inline constexpr int kNumStatPresets = 3;
 
-// What the character is doing, which is what picks a slot.
+// What the character is doing, which picks a slot.
 enum class Activity { kFarming, kBossing };
 
-// A slot as an index into the presets a character holds, and back again. An
-// index off the end folds to the first slot rather than reading past it.
+// Converts a slot to an index into the character's presets and back. An index
+// past the end becomes the first slot instead of reading past the end.
 inline int IndexOf(StatPreset preset) {
   return static_cast<int>(preset);
 }
@@ -39,19 +39,18 @@ inline StatPreset StatPresetAt(int index) {
   return static_cast<StatPreset>(index);
 }
 
-// Which of the things a character keeps a preset of is being asked about.
-// Each kind holds its own presets and its own choice of which is in use, so a
-// character can have Hyper 1, Ability 3 and Gear 2 in play at once.
+// Which kind of preset is meant. Each kind has its own presets and its own
+// active choice, so a character can use Hyper 1, Ability 3 and Gear 2 at once.
 enum class PresetKind { kHyperStats, kInnerAbility, kEquip, kLinkSkills };
 
-// The gear preset the boss drop roll reads, whatever the switch says and
-// whatever is worn: there is no moment to change into drop gear before the
-// drops fall, so the third preset is the one set aside for it.
+// The gear preset used for the boss drop roll, regardless of the switch or what
+// is worn. There's no chance to change into drop gear before the drops fall, so
+// the third preset is set aside for it.
 inline constexpr StatPreset kDropPreset = StatPreset::kThird;
 
-// The slot Autoswap Presets reads for `activity`: farming the first, bossing
-// the second. The third is storage no activity names -- for gear, the Drop
-// preset above, asked for by name.
+// The slot Autoswap Presets uses for `activity`: the first for farming, the
+// second for bossing. No activity uses the third; for gear, it is the Drop
+// preset above, requested by name.
 inline StatPreset AutoswapSlotFor(Activity activity) {
   return activity == Activity::kBossing ? StatPreset::kSecond
                                         : StatPreset::kFirst;

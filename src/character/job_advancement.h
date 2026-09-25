@@ -1,7 +1,7 @@
 /* Performing a job advancement: the choice a player makes at level 10, and
  * everything that follows from it. Kept out of CharacterInstance because
- * handing the gear over needs the equip catalog, which the character cannot
- * see. Which gear that is answers from character.h -- see StarterEquipsFor.
+ * handing out gear needs the equip catalog, which the character can't see.
+ * StarterEquipsFor in character.h decides which gear.
  */
 #ifndef MS_SRC_CHARACTER_JOB_ADVANCEMENT_H_
 #define MS_SRC_CHARACTER_JOB_ADVANCEMENT_H_
@@ -11,9 +11,9 @@
 
 namespace ms {
 
-// Advances into `job`: the advancement, the starting gear, and on the FIRST
-// advancement the AP reset that re-seats the stats. The gear lands in the bag,
-// so the player's first act as a Swordman is to equip one.
+// Advances into `job`: the advancement itself, the starting gear, and on the
+// first advancement the AP reset. The gear goes in the bag, so the player's
+// first act as a Swordman is to equip it.
 void PerformJobAdvancement(GameState& state, Job job);
 
 }  // namespace ms

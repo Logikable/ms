@@ -50,9 +50,9 @@ TEST_F(ProgressionTest, ANewCharacterHasOnePanel) {
   EXPECT_FALSE(Unlocked(Feature::kDamageStats, c, account_));
 }
 
-// The stat block is the one thing a level alone never buys. A Beginner who
-// puts the choice off climbs past every threshold in the table and still has
-// nothing to read: what fills those rows is a job.
+// The stat block is the one thing level alone never unlocks. A Beginner who
+// delays advancing passes every threshold in the table and still has nothing to
+// see, because those rows are filled by a job.
 TEST_F(ProgressionTest, TheStatBlockWaitsForTheAdvancementNotTheLevel) {
   CharacterInstance late = MakeCharacter(kTrialLevelCap);
   EXPECT_FALSE(Unlocked(Feature::kCombatStats, late, account_));
@@ -66,16 +66,16 @@ TEST_F(ProgressionTest, TheStatBlockWaitsForTheAdvancementNotTheLevel) {
   EXPECT_TRUE(Unlocked(Feature::kDamageStats, second, account_));
 }
 
-// The level it reports is the one its advancement is offered at -- the soonest
-// it can open, which is what a test asking "how early is this" wants.
+// The level it reports is the one its advancement is offered at: the earliest
+// it can unlock, which is what a test asking "how early is this" wants.
 TEST_F(ProgressionTest, TheStatBlockReportsTheAdvancementLevel) {
   EXPECT_EQ(UnlockLevel(Feature::kCombatStats), 10);
   EXPECT_EQ(UnlockLevel(Feature::kDamageStats), 30);
 }
 
-// The level named is the level it opens on, not the one after. Asked of each
-// feature through UnlockLevel rather than against a copy of the table, so
-// moving a gate does not need this test touched.
+// The named level is the level it unlocks at, not the one after. Checked for
+// each feature through UnlockLevel instead of against a copy of the table, so
+// moving a gate doesn't require changing this test.
 TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
   const Feature kLevelGated[] = {
       Feature::kEquipped, Feature::kBag,         Feature::kUnequip,
@@ -90,22 +90,22 @@ TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
   }
 }
 
-// Held back until the early game is over and there is meso coming in for the
-// spell traces it spends.
+// Held back until the early game is over and meso is coming in for the spell
+// traces it uses.
 TEST_F(ProgressionTest, ScrollingWaitsForTheEarlyGameToBeOver) {
   EXPECT_FALSE(Unlocked(Feature::kScrolling, MakeCharacter(39), account_));
   EXPECT_TRUE(Unlocked(Feature::kScrolling, MakeCharacter(40), account_));
 }
 
-// Cubing is the last thing a player does to a piece of gear, so it opens after
-// every other way of improving one.
+// Cubing is the last thing a player does to an item, so it unlocks after every
+// other upgrade.
 TEST_F(ProgressionTest, PotentialOpensAboveEveryOtherUpgrade) {
   EXPECT_EQ(UnlockLevel(Feature::kPotential), kPotentialUnlockLevel);
   EXPECT_GT(UnlockLevel(Feature::kPotential), UnlockLevel(Feature::kHammer));
 }
 
-// An upgrade written above the cap is one nobody but the workbench can press,
-// so every one of them has to fall inside it.
+// An upgrade unlocked above the cap could only be used from the workbench, so
+// every one must unlock within it.
 TEST_F(ProgressionTest, EveryUpgradeFallsInsideTheCap) {
   EXPECT_LE(UnlockLevel(Feature::kScrolling), kTrialLevelCap);
   EXPECT_LE(UnlockLevel(Feature::kStarForce), kTrialLevelCap);
@@ -114,8 +114,8 @@ TEST_F(ProgressionTest, EveryUpgradeFallsInsideTheCap) {
 
 // --- what the account opens ---
 
-// The whole point of the account: a player who has been through the early game
-// once meets their next character with all of it open at level 1.
+// The point of the account: a player who has been through the early game once
+// starts their next character with all of it unlocked at level 1.
 TEST_F(ProgressionTest, ASecondCharacterStartsWithTheAccountsUnlocks) {
   account_.RecordProgress(140, 4);
   CharacterInstance fresh = MakeCharacter(1);
@@ -134,9 +134,9 @@ TEST_F(ProgressionTest, ASecondCharacterStartsWithTheAccountsUnlocks) {
       << "an account that stopped at 140 never reached the hammer";
 }
 
-// The three that are not about this character's climb. The lobby opens with
-// the skills, well below bossing; the character select and the bank it fills
-// open last of everything, and a second character has both from level 1.
+// The three features not tied to this character's level. The lobby unlocks with
+// skills, well before bossing; the character select and the bank unlock last,
+// and a second character has both from level 1.
 TEST_F(ProgressionTest, TheLobbyOpensEarlyAndTheCharacterSelectLast) {
   EXPECT_EQ(UnlockLevel(Feature::kMultiplayer), 10);
   EXPECT_EQ(UnlockLevel(Feature::kCharacters), 210);
@@ -153,9 +153,9 @@ TEST_F(ProgressionTest, TheLobbyOpensEarlyAndTheCharacterSelectLast) {
   EXPECT_TRUE(Unlocked(Feature::kBank, MakeCharacter(1), account_));
 }
 
-// The skills tab opens on the level alone, job or no job: every character is
-// born holding the beginner's book. So it waits until 10 for the account's
-// first character and is there at once for the ones after.
+// The skills tab unlocks on level alone, with or without a job, since every
+// character starts with the beginner's book. So it waits until 10 for the
+// account's first character and is there immediately for later ones.
 TEST_F(ProgressionTest, TheSkillsTabOpensOnTheLevelAlone) {
   EXPECT_FALSE(
       Unlocked(Feature::kSkills, MakeCharacter(9, JOB_SWORDMAN), account_));
@@ -165,16 +165,16 @@ TEST_F(ProgressionTest, TheSkillsTabOpensOnTheLevelAlone) {
   EXPECT_TRUE(Unlocked(Feature::kSkills, MakeCharacter(1), account_));
 }
 
-// The account is a floor, not a ceiling: a character who has climbed past what
-// the file recorded opens things on their own.
+// The account is a minimum, not a maximum: a character who has passed the level
+// the save recorded unlocks things on their own.
 TEST_F(ProgressionTest, TheCharactersOwnLevelStillCounts) {
   account_.RecordProgress(3, 0);
   EXPECT_TRUE(Unlocked(Feature::kShop,
                        MakeCharacter(UnlockLevel(Feature::kShop)), account_));
 }
 
-// The corner holds the menu or the tip, never both. The menu arrives with the
-// account, so the tip has to leave with it.
+// The corner shows the menu or the tip, never both. The menu comes with the
+// account, so the tip must go with it.
 TEST_F(ProgressionTest, TheHotkeysTipIsGoneForASecondCharacter) {
   CharacterInstance fresh = MakeCharacter(1);
   EXPECT_TRUE(HotkeysTipVisible(fresh, account_));
@@ -183,7 +183,7 @@ TEST_F(ProgressionTest, TheHotkeysTipIsGoneForASecondCharacter) {
   EXPECT_FALSE(HotkeysTipVisible(fresh, account_));
 }
 
-// A gold trail is walked once per account, not once per character.
+// A gold trail is followed once per account, not once per character.
 TEST_F(ProgressionTest, AWalkedTrailStaysWalkedForTheNextCharacter) {
   CharacterInstance first = MakeCharacter(UnlockLevel(Feature::kScrolling));
   FollowedToWeapon(first, account_);
@@ -204,9 +204,9 @@ TEST_F(ProgressionTest, NamesTheUpgradeThatOpened) {
   EXPECT_EQ(FeatureName(opened[0]), "Scrolling");
 }
 
-// The span, not the level landed on: one idle stretch can carry a character
-// past a threshold and out the other side, and stepping over it would leave
-// them never told.
+// Checks the whole range, not the level reached: one offline period can take a
+// character past a threshold, and checking only the end would mean they are
+// never told.
 TEST_F(ProgressionTest, ReadsTheWholeSpanNotTheLevelLandedOn) {
   int level = UnlockLevel(Feature::kScrolling);
   EXPECT_EQ(
@@ -219,8 +219,8 @@ TEST_F(ProgressionTest, ReadsTheWholeSpanNotTheLevelLandedOn) {
                   .empty());
 }
 
-// A second character climbing past 40 is not being handed scrolling: the
-// account opened it, and their card has nothing to announce.
+// A second character passing 40 isn't getting scrolling for the first time: the
+// account unlocked it, so their card has nothing to announce.
 TEST_F(ProgressionTest, GroundTheAccountHasCoveredAnnouncesNothing) {
   int level = UnlockLevel(Feature::kScrolling);
   EXPECT_TRUE(
@@ -232,8 +232,8 @@ TEST_F(ProgressionTest, GroundTheAccountHasCoveredAnnouncesNothing) {
          "stopped at 50";
 }
 
-// Panels and tabs go gold on their own when they arrive; only the item-menu
-// upgrades need the card to say their names.
+// Panels and tabs highlight themselves in gold when they unlock; only item menu
+// upgrades need the card to name them.
 TEST_F(ProgressionTest, OnlyTheItemMenuUpgradesAreAnnounced) {
   EXPECT_TRUE(UpgradesUnlockedBetween(1, UnlockLevel(Feature::kShop),
                                       /*account_level=*/0)
@@ -257,8 +257,8 @@ TEST_F(ProgressionTest, EveryFeatureHasAName) {
   }
 }
 
-// The trail lights the first time the account reaches the top rung, for
-// whoever is being played.
+// The trail appears the first time the account reaches the last threshold, for
+// whichever character is being played.
 TEST_F(ProgressionTest, TheLinkTrailWaitsForTheAccountsTopRung) {
   EXPECT_EQ(UnlockLevel(Feature::kLinkSkills), kLinkSkillsLevel);
   account_.RecordProgress(kLinkSkillsLevel, 4);
@@ -276,8 +276,8 @@ TEST_F(ProgressionTest, TheLinkTrailWaitsForTheAccountsTopRung) {
 
 // --- the gold trail ---
 
-// Three signposts, each lit until it is walked past and none of them before
-// the system opens.
+// Three markers, each shown until the player passes it, and none before the
+// system unlocks.
 TEST_F(ProgressionTest, TheLinkTrailIsWalkedOneStepAtATime) {
   const LinkTrailStep kSteps[] = {LinkTrailStep::kSkillsTab,
                                   LinkTrailStep::kBeginnerPage,
@@ -296,7 +296,8 @@ TEST_F(ProgressionTest, TheLinkTrailIsWalkedOneStepAtATime) {
   EXPECT_FALSE(LeadToLinkSkills(LinkTrailStep::kSkillsTab, hero, account_));
   EXPECT_TRUE(LeadToLinkSkills(LinkTrailStep::kBeginnerPage, hero, account_))
       << "one step walked is not the next";
-  // The keys are the account's and apart, so no step can clear another.
+  // The keys belong to the account and are distinct, so no step can clear
+  // another.
   EXPECT_NE(LinkTrailKey(LinkTrailStep::kBeginnerPage),
             LinkTrailKey(LinkTrailStep::kLinkRow));
 }
@@ -313,8 +314,8 @@ TEST_F(ProgressionTest, TheUpgradeThatOpensLightsBothSignposts) {
   EXPECT_TRUE(LeadToAction(Feature::kScrolling, c, account_));
 }
 
-// Two steps, and each is walked past on its own: opening the menu answers the
-// weapon's gold, and only pressing the entry answers the entry's.
+// Two steps, each cleared separately: opening the menu clears the weapon's
+// gold, and only pressing the entry clears the entry's.
 TEST_F(ProgressionTest, EachStepGoesOutOnItsOwn) {
   CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kScrolling));
   FollowedToWeapon(c, account_);
@@ -325,11 +326,10 @@ TEST_F(ProgressionTest, EachStepGoesOutOnItsOwn) {
   EXPECT_FALSE(LeadToAction(Feature::kScrolling, c, account_));
 }
 
-// The whole reason each upgrade keeps its own keys: a player led to scrolling
-// at 40 has to be led to star force again when it arrives. Star force lights
-// the entry alone -- by 120 the item menu is somewhere the player has been a
-// hundred times, and a gold weapon name would only take the eye off the row
-// that matters.
+// This is why each upgrade has its own keys: a player led to scrolling at 40
+// must be led to star force when it unlocks. Star force only highlights the
+// menu entry: by 120 the player has opened the item menu a hundred times, and a
+// gold weapon name would only distract from the row that matters.
 TEST_F(ProgressionTest, TheNextUpgradeLightsTheTrailAgain) {
   CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kScrolling));
   FollowedToWeapon(c, account_);
@@ -346,9 +346,9 @@ TEST_F(ProgressionTest, TheNextUpgradeLightsTheTrailAgain) {
       << "the one already followed stays followed";
 }
 
-// A player who never opened the menu at 40 is still owed the weapon's gold at
-// 120: the step that arrives with an upgrade stays lit until it is walked, and
-// star force adds nothing to it either way.
+// A player who never opened the menu at 40 still sees the weapon's gold at 120:
+// a step stays highlighted until the player follows it, and star force doesn't
+// change that either way.
 TEST_F(ProgressionTest, AnUnwalkedFirstStepOutlastsTheNextUpgrade) {
   CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kStarForce));
   EXPECT_TRUE(LeadToWeapon(c, account_));
@@ -358,8 +358,8 @@ TEST_F(ProgressionTest, AnUnwalkedFirstStepOutlastsTheNextUpgrade) {
       << "opening the menu is not pressing the entry";
 }
 
-// The last of the three, and the last trail. It comes after star force and
-// lights the entry alone, for the same reason star force does.
+// The third item menu upgrade, after star force. It only highlights its entry,
+// for the same reason star force does.
 TEST_F(ProgressionTest, TheHammerIsTheThirdUpgradeAndLightsItsEntry) {
   EXPECT_GT(UnlockLevel(Feature::kHammer), UnlockLevel(Feature::kStarForce));
 
@@ -371,21 +371,21 @@ TEST_F(ProgressionTest, TheHammerIsTheThirdUpgradeAndLightsItsEntry) {
   EXPECT_FALSE(LeadToAction(Feature::kHammer, c, account_));
 }
 
-// Only the upgrades have one. A tab that lights itself gold when it arrives is
-// not being led to.
+// Only upgrades have trails. A tab that highlights itself when it unlocks isn't
+// being led to.
 TEST_F(ProgressionTest, AFeatureWithoutATrailIsNeverGold) {
   CharacterInstance c = MakeCharacter(kTrialLevelCap);
   EXPECT_FALSE(LeadToAction(Feature::kShop, c, account_));
   EXPECT_FALSE(LeadToAction(Feature::kBag, c, account_));
 }
 
-// Taking something off needs somewhere to put it, so the two move together.
+// Taking something off needs somewhere to put it, so the two unlock together.
 TEST_F(ProgressionTest, UnequipOpensWithTheBag) {
   EXPECT_EQ(UnlockLevel(Feature::kUnequip), UnlockLevel(Feature::kBag));
 }
 
-// Hyper Stats are paid for by this character's own levels, so the account's
-// climb does not open the tab for a newcomer.
+// Hyper Stat points come from this character's own levels, so the account's
+// progress doesn't unlock the tab for a new character.
 TEST_F(ProgressionTest, HyperStatsWaitForThisCharactersOwnLevel) {
   const int level = UnlockLevel(Feature::kHyperStats);
   account_.RecordProgress(kTrialLevelCap, /*job_stage=*/4);
@@ -394,7 +394,7 @@ TEST_F(ProgressionTest, HyperStatsWaitForThisCharactersOwnLevel) {
   EXPECT_TRUE(Unlocked(Feature::kHyperStats, MakeCharacter(level), account_));
 }
 
-// No feature asks what job the character took.
+// No feature depends on which job the character took.
 TEST_F(ProgressionTest, NoFeatureCaresAboutTheJob) {
   EXPECT_TRUE(Unlocked(
       Feature::kScrolling,
@@ -427,8 +427,8 @@ TEST_F(ProgressionTest, EachBandStartsOnTheLevelItNames) {
   EXPECT_DOUBLE_EQ(GameSpeedFactor(230), 10.0);
 }
 
-// Nothing beyond the last band, and nothing below the first: the table has to
-// answer for a level either side of the range it lists.
+// Nothing above the last band and nothing below the first: the table must give
+// an answer for levels on either side of its range.
 TEST_F(ProgressionTest, TheLastBandRunsToTheTop) {
   EXPECT_DOUBLE_EQ(GameSpeedFactor(300), 10.0);
 }
@@ -437,8 +437,8 @@ TEST_F(ProgressionTest, ALevelBelowTheTableGetsTheFirstBand) {
   EXPECT_DOUBLE_EQ(GameSpeedFactor(0), 2.0);
 }
 
-// The game only ever slows down. A band that dipped would make a level-up
-// speed the game up, which is the opposite of what the ladder is for.
+// The game only gets slower. A band that dipped would make a level-up speed the
+// game up, the opposite of the ladder's purpose.
 TEST_F(ProgressionTest, ThePaceNeverQuickens) {
   for (int level = 2; level <= 300; ++level) {
     EXPECT_GE(GameSpeedFactor(level), GameSpeedFactor(level - 1))
@@ -448,8 +448,8 @@ TEST_F(ProgressionTest, ThePaceNeverQuickens) {
 
 // --- the hotkeys tip ---
 
-// The one thing that expires rather than opens, so both directions matter:
-// every level it should be up for, and every level after it goes.
+// The one thing that goes away instead of unlocking, so both directions matter:
+// every level it should be shown at, and every level after it goes.
 TEST_F(ProgressionTest, TheTipStandsUntilItRetires) {
   for (int level = 1; level < HotkeysTipRetireLevel(); ++level) {
     CharacterInstance c = MakeCharacter(level);
@@ -462,8 +462,8 @@ TEST_F(ProgressionTest, TheTipStandsUntilItRetires) {
   EXPECT_FALSE(HotkeysTipVisible(later, account_));
 }
 
-// It exists to explain the panels arriving around it, so it has to outlast the
-// last of them rather than leaving while one is still new.
+// It explains the panels unlocking around it, so it must stay until after the
+// last of them instead of leaving while one is still new.
 TEST_F(ProgressionTest, TheHotkeysTipOutlastsEveryPanelItExplains) {
   EXPECT_GT(HotkeysTipRetireLevel(), UnlockLevel(Feature::kEquipped));
   EXPECT_GT(HotkeysTipRetireLevel(), UnlockLevel(Feature::kBag));

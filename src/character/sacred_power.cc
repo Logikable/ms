@@ -10,7 +10,7 @@ namespace {
 // Where each side of the table stops.
 constexpr int kMinDealtPct = 5;
 constexpr int kMaxBonusPct = 25;
-// How far short a character can be and still only take half again.
+// How far short a character can be and still only take 1.5x damage.
 constexpr int kHalfAgainGap = 50;
 
 }  // namespace

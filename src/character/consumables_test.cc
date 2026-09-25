@@ -40,7 +40,7 @@ TEST(ConsumablesTest, ABuffWaitsForItsOwnLevel) {
   EXPECT_TRUE(open.ToggleConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
   EXPECT_TRUE(
       open.ConsumableInEffect(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
-  // The green potion is twenty levels further out, and the totem fifty.
+  // The green potion unlocks twenty levels later, and the totem fifty.
   EXPECT_FALSE(open.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
   EXPECT_FALSE(open.ToggleConsumable(CONSUMABLE_TYPE_WILD_TOTEM));
   EXPECT_FALSE(
@@ -49,7 +49,7 @@ TEST(ConsumablesTest, ABuffWaitsForItsOwnLevel) {
       open.ConsumableInEffect(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
 }
 
-// Buying it is all or nothing, and it stops the charging for good.
+// Buying outright is all or nothing, and it ends the charges permanently.
 TEST(ConsumablesTest, BuyingOutrightEndsTheRent) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng, 170, 99'999'999);
@@ -65,13 +65,13 @@ TEST(ConsumablesTest, BuyingOutrightEndsTheRent) {
   EXPECT_TRUE(c.ConsumableInEffect(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
   EXPECT_EQ(c.ChargeConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION, 60),
             0);
-  // And it is not bought twice.
+  // And it can't be bought twice.
   c.AddMeso(500'000'000);
   EXPECT_FALSE(c.BuyConsumable(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION));
   EXPECT_EQ(c.meso(), 500'000'000);
 
-  // Both halves survive a save: an owned buff the player has to switch back on
-  // every launch is an owned buff they will think they lost.
+  // Both states survive a save: an owned buff the player must switch on again
+  // every launch would look lost.
   Character saved = c.ToProto();
   ASSERT_EQ(saved.consumables().owned_size(), 1);
   EXPECT_EQ(saved.consumables().owned(0),
@@ -81,7 +81,7 @@ TEST(ConsumablesTest, BuyingOutrightEndsTheRent) {
             CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION);
 }
 
-// A buff that is off costs nothing, and one that is on is charged per proc.
+// A buff that is off costs nothing, and one that is on is charged per use.
 TEST(ConsumablesTest, OnlyASwitchedOnBuffCharges) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng, 190, 10'000'000);
@@ -93,7 +93,7 @@ TEST(ConsumablesTest, OnlyASwitchedOnBuffCharges) {
   EXPECT_EQ(c.meso(), 9'000'000);
 }
 
-// The purse pays what it has and stops at nothing. The buff is still on.
+// The purse pays what it has and stops at zero. The buff stays on.
 TEST(ConsumablesTest, AShortPurseGetsItAtADiscount) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng, 190, 400'000);
@@ -106,8 +106,8 @@ TEST(ConsumablesTest, AShortPurseGetsItAtADiscount) {
   EXPECT_TRUE(c.ConsumableInEffect(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
 }
 
-// One clock pays for every buff charged by the second, and for none of the
-// ones charged at a boss door.
+// One timer pays for every buff charged per second, and for none of the ones
+// charged on entering a boss fight.
 TEST(ConsumablesTest, TheFarmingClockChargesWhatIsPaidForBySecond) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng, 220, 10'000'000);
@@ -115,13 +115,13 @@ TEST(ConsumablesTest, TheFarmingClockChargesWhatIsPaidForBySecond) {
   ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_EXTREME_GREEN_POTION));
   ASSERT_TRUE(c.ToggleConsumable(CONSUMABLE_TYPE_WILD_TOTEM));
 
-  // Ten seconds of the potion's thousand and the totem's two.
+  // Ten seconds of the potion's thousand and the totem's two thousand.
   EXPECT_EQ(c.ChargeFarmingConsumables(10.0), 30'000);
   EXPECT_EQ(c.meso(), 9'970'000);
 }
 
-// The live tick charges three times a second. A fraction of a meso left on
-// the floor each time would cost the player a tenth of a percent of the price.
+// The live tick charges three times a second. Dropping a fraction of a meso
+// each time would cost the player a tenth of a percent of the price.
 TEST(ConsumablesTest, PartOfASecondCarriesRatherThanRoundingAway) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng, 170, 1'000'000);

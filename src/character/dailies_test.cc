@@ -42,7 +42,7 @@ class DailiesTest : public testing::Test {
       proto.mutable_arcane_symbol()->set_meso_cost_base(8);
       equips_[proto.name()] = proto;
     }
-    // Something that is not a symbol, which no claim may ever pay out.
+    // Something that isn't a symbol, which no claim may ever give.
     EquipPrototype sword;
     sword.set_name("Sword");
     sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
@@ -77,8 +77,8 @@ class DailiesTest : public testing::Test {
   std::map<std::string, EquipPrototype> equips_;
 };
 
-// Owning one symbol opens every area below it, because the river is climbed
-// in order. Owning none opens nothing.
+// Owning one symbol unlocks every area below it, since the river is unlocked in
+// order. Owning none unlocks nothing.
 TEST_F(DailiesTest, OneSymbolOpensEveryAreaBelowIt) {
   EXPECT_TRUE(Claimable().empty());
 
@@ -88,14 +88,14 @@ TEST_F(DailiesTest, OneSymbolOpensEveryAreaBelowIt) {
                                     EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND,
                                     EQUIP_SLOT_SYMBOL_LACHELEIN}));
 
-  // Worn counts the same as held, and the furthest one is what decides.
+  // Worn counts the same as held, and the furthest one decides.
   c_.PickUp(std::make_unique<EquipInstance>(Proto(EQUIP_SLOT_SYMBOL_ARCANA)));
   ASSERT_TRUE(c_.Equip(c_.inventory().size() - 1));
   EXPECT_EQ(Claimable().size(), 4u);
 }
 
-// A day's worth arrives packed into one item per area, and comes back out of
-// it worth what twenty loose copies are.
+// A day's worth comes packed into one item per area, and is worth the same as
+// twenty separate copies.
 TEST_F(DailiesTest, AClaimPacksTwentyCopiesIntoOneItem) {
   Equip packed = PackedSymbol(kSymbolsPerDay);
   EXPECT_EQ(SymbolLevel(packed), 2);
@@ -124,8 +124,8 @@ TEST_F(DailiesTest, TheClaimIsOncePerReset) {
   EXPECT_EQ(c_.inventory().size(), 3) << "a day's claim is its own item";
 }
 
-// Half a claim would cost the player the rest of it until tomorrow, so a bag
-// without room for the lot takes none of it.
+// Claiming half would cost the player the rest until tomorrow, so a bag without
+// room for all of it claims nothing.
 TEST_F(DailiesTest, ABagWithoutRoomForTheLotClaimsNothing) {
   PutInBag(EQUIP_SLOT_SYMBOL_LACHELEIN);
   while (c_.inventory().room() > 2) {

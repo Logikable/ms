@@ -18,8 +18,8 @@ TEST(HyperStatsTest, PointsPerLevelClimbEveryTenLevels) {
   EXPECT_EQ(HyperStatPointsAtLevel(300), 19);
 }
 
-// GMS's own totals: 3 at the unlock level, 34 at 150, 339 at the level cap
-// and 1,699 at 300.
+// GMS's own totals: 3 at the unlock level, 34 at 150, 339 at 200 and 1,699 at
+// 300.
 TEST(HyperStatsTest, TotalPointsMatchTheTable) {
   EXPECT_EQ(TotalHyperStatPoints(139), 0);
   EXPECT_EQ(TotalHyperStatPoints(140), 3);
@@ -44,7 +44,7 @@ TEST(HyperStatsTest, LevelCostsAndTheirRunningTotal) {
   EXPECT_EQ(HyperStatTotalCost(0), 0);
 }
 
-// Ten until a character takes a 5th job, which none of them does.
+// Ten until the character takes a 5th job, then fifteen.
 TEST(HyperStatsTest, MaxLevelWaitsOnTheFifthJob) {
   EXPECT_EQ(MaxHyperStatLevel(4), 10);
   EXPECT_EQ(MaxHyperStatLevel(kFifthJobStage), 15);
@@ -87,7 +87,7 @@ TEST(HyperStatsTest, BonusLaddersMatchTheTables) {
           << ladder.first << " level " << level;
     }
   }
-  // The four stats share one ladder, as do the two damage ladders.
+  // The four main stats share one ladder, as do the two damage stats.
   EXPECT_DOUBLE_EQ(HyperStatBonus(HYPER_STAT_FIELD_LUK, 10), 300.0);
   EXPECT_DOUBLE_EQ(HyperStatBonus(HYPER_STAT_FIELD_NORMAL_DAMAGE, 10), 35.0);
   EXPECT_DOUBLE_EQ(HyperStatBonus(HYPER_STAT_FIELD_DAMAGE, 10), 30.0);
@@ -95,7 +95,8 @@ TEST(HyperStatsTest, BonusLaddersMatchTheTables) {
   EXPECT_DOUBLE_EQ(HyperStatBonus(HYPER_STAT_FIELD_UNSPECIFIED, 10), 0.0);
 }
 
-// Past the top of the table a stat stops climbing rather than running off it.
+// Past the top of the table a stat stops increasing instead of going off the
+// end.
 TEST(HyperStatsTest, BonusHoldsAtTheTopRung) {
   EXPECT_DOUBLE_EQ(HyperStatBonus(HYPER_STAT_FIELD_CRIT_RATE, 99),
                    HyperStatBonus(HYPER_STAT_FIELD_CRIT_RATE, 15));
