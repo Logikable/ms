@@ -12,26 +12,25 @@ enum ResetPeriod {
   RESET_PERIOD_WEEKLY = 2;
 }
 
-// One stage of a boss fight. The next begins when the last mob of this one
-// dies, so a phase is over rather than on a clock.
+// One stage of a boss fight. The next stage begins when the last mob of this
+// one dies, so phases end on kills, not on a timer.
 message BossPhase {
-  // What the phase fights, each spawn naming where its monsters stand.
+  // The mobs this phase spawns, each spawn saying where its monsters stand.
   repeated Spawn spawns = 1;
-  // Everywhere the player may stand, the first being where they start. A
-  // press moves to the nearest of these strictly that way, so which arrow
-  // leads where is the shape of the list rather than anything written down;
-  // see NextPlayerSpot in src/combat/boss_run.h. Only the order of the first
-  // matters -- the rest is read as a shape.
+  // Every place the player can stand; the first is where they start. An arrow
+  // key moves to the nearest spot strictly in that direction, so the layout of
+  // the list decides where each arrow leads. See NextPlayerSpot in
+  // src/combat/boss_run.h. Only the first entry's position in the list matters.
   repeated ArenaSpot player_spots = 2;
-  // How many cells the arena holds. The room left over is shared out among
-  // the gaps, so these decide the margins as much as the spacing: a part in
-  // the last cell stands against the edge of the screen. Unset is measured off
-  // the spots themselves, which is a phase that wants no margin at all.
+  // How many cells wide the arena is. Leftover room is spread across the gaps,
+  // so this sets the margins as well as the spacing: a part in the last cell
+  // sits against the edge of the screen. Unset means the width is taken from
+  // the spots, for a phase that wants no margin.
   int32 arena_width = 3;
   int32 arena_height = 4;
-  // The music this phase fights to, named by its stem under bgm/. Empty
-  // leaves whatever the phase before it started playing, which is what all
-  // but the first phase of a one-track boss says.
+  // The music for this phase, named by its file stem under bgm/. Empty keeps
+  // whatever the previous phase played, which is what every phase after the
+  // first of a one-track boss does.
   string bgm = 5;
 }
 
@@ -39,37 +38,35 @@ message BossPhase {
 // often they may come back, and what it pays.
 message BossDifficulty {
   string name = 1;  // "Normal"
-  // Fought in order. Phase 1 of Zakum is his eight arms at once.
+  // Fought in order. Zakum's phase 1 is all eight of his arms at once.
   repeated BossPhase phases = 2;
   ResetPeriod reset = 3;
-  // Seconds the whole fight is allowed. Running out ends it with no clear.
+  // Seconds allowed for the whole fight. Running out ends it without a clear.
   int32 time_limit_seconds = 4;
   repeated MobDrop drops = 5;
-  // Meso a clear pays, on top of whatever the drops are worth. Zakum's stands
-  // in for the Intense Power Crystal GMS drops and everyone sells at once.
+  // Meso paid for a clear, on top of the drops. Zakum's stands in for the
+  // Intense Power Crystal that GMS drops and everyone sells straight away.
   //
-  // Flat: the character's Meso% does not touch it, so the rewards list can
-  // state one number and be right. The drops beside it do scale with Item
-  // Drop Rate, the way a monster's do.
+  // The character's Meso% doesn't apply, so the rewards list can show one exact
+  // number. The drops still scale with Item Drop Rate, as a monster's do.
   int64 meso = 6;
-  // EXP a clear pays, over what the parts themselves are worth. Horntail's
-  // whole reward is here: GMS pays it for the clear rather than for the eight
-  // bodies, and says outright that no EXP boost touches it -- so this is flat,
-  // as the meso beside it is.
+  // EXP paid for a clear, on top of what the parts are worth. All of Horntail's
+  // reward is here, because GMS pays it for the clear, not for the eight
+  // bodies, and says no EXP boost applies. So this is flat, like the meso.
   int64 exp = 7;
-  // The level needed before this difficulty can be entered; unset leaves the
-  // boss screen's own gate as the only one. PER DIFFICULTY: a ladder's rungs
-  // open at different levels.
+  // The level needed to enter this difficulty; unset means only the boss
+  // screen's own gate applies. Set per difficulty because each step of a ladder
+  // opens at a different level.
   int32 unlock_level = 8;
-  // A fight that is written down but not built yet. The screen lists it, dims
-  // it, and shows nothing but the HP of each phase -- there is no clock, no
-  // reset and no reward to state, because none of them has been decided.
+  // A fight that is written down but not built yet. The screen lists it dimmed
+  // and shows only each phase's HP. There is no timer, reset or reward to show
+  // because none has been decided.
   bool coming_soon = 9;
 }
 
-// A boss and every difficulty it can be fought at. Loaded from data/bosses
-// textprotos at startup. No level here: it is read off the mobs the phases
-// spawn, so the two can never disagree.
+// A boss and every difficulty it can be fought at, loaded from data/bosses at
+// startup. It has no level field: the level comes from the mobs its phases
+// spawn, so the two can't disagree.
 message Boss {
   string name = 1;
   repeated BossDifficulty difficulties = 2;

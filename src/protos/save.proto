@@ -7,95 +7,93 @@ import "src/protos/character.proto";
 import "src/protos/keybinds.proto";
 
 // A player's saved game: everything a launch needs to put them back where they
-// left off. Binary proto rather than text -- not protection, but so the file
-// is not an invitation to edit.
+// left off. It is binary, not text. That isn't protection; it just keeps the
+// file from inviting edits.
 //
-// The catalogs are NOT in here: they load from data/ and the save names their
-// entries, so a save stays a few kilobytes. A save holds an account and the
-// characters on it, and what belongs to which is the question for every field
-// added from here on -- see Account for the rule.
+// The catalogs aren't stored here. They load from data/ and the save refers to
+// their entries by name, so a save stays a few kilobytes. A save holds an
+// account and its characters, and every new field must go on one or the other.
+// See Account for the rule.
 //
 // Format versions:
 //   1  One character. The save held that character beside their map, creation
 //      time, playtime and keybinds.
-//   2  Many characters. `characters` holds one CharacterSave apiece and
+//   2  Many characters. `characters` holds one CharacterSave each and
 //      `offline_character` says which one the game opens on. Keybinds, the
 //      seen-key list and the feature unlocks moved to `account`, shared by
 //      every character; the rest stayed with the character. A version 1 save
 //      loads as the one character, whose level and job stage seed the
 //      account's unlocks.
-//   3  The currencies left the bag. Spell traces, the shops' tokens and the
-//      bosses' soul shards were stacks on the Etc tab, each costing one of its
-//      128 slots; they are balances on `Character.currencies` now. A version 2
-//      save is read by folding those stacks into it, which needs the item
-//      catalog to say which of them was a currency.
+//   3  Currencies left the bag. Spell traces, shop tokens and boss soul shards
+//      used to be stacks on the Etc tab, each taking one of its 128 slots; now
+//      they are balances on `Character.currencies`. A version 2 save is read by
+//      folding those stacks in, which needs the item catalog to say which of
+//      them were currencies.
 message SaveGame {
-  // Bumped when a change to the fields below cannot be read by an older build,
-  // so a save from the future is refused rather than misread. Every message
-  // reachable from here has load-bearing field numbers: renumbering one
-  // silently misreads every save already written. An older version is read by
-  // upgrading it -- see //src/save_migration.h.
+  // Bumped when a change to the fields below can't be read by an older build,
+  // so that build refuses a newer save instead of misreading it. Every message
+  // reachable from here has fixed field numbers: renumbering one silently
+  // misreads every existing save. Older versions are upgraded on load; see
+  // //src/save_migration.h.
   int32 format_version = 1;
 
-  // What every character on the save shares.
+  // Shared by every character on the save.
   Account account = 8;
 
-  // The characters, in the order the player made them.
+  // The characters, in the order the player created them.
   repeated CharacterSave characters = 9;
 
   // The character the game opens on, as an index into `characters`: the one a
-  // launch logs into, and the only one an absence pays. NOT whoever was being
-  // played when the file was written -- the player says which character farms
-  // while the game is closed, on the character select, and playing somebody
-  // else does not take it off them. Out of range loads the first.
+  // launch logs into, and the only one paid for time away. This isn't whoever
+  // was last played. The player picks which character farms while the game is
+  // closed on the character select, and playing someone else doesn't change it.
+  // An out-of-range index loads the first character.
   int32 offline_character = 10;
 
-  // When this save was written, as seconds since the Unix epoch. The clock
-  // offline progress is measured against: the next launch pays the player for
-  // the gap between this and the moment they come back, and only the character
-  // they load is paid. Wall clock because it has to survive the process
-  // ending, which is the one thing a monotonic clock cannot do. Zero -- a save
-  // written before the field existed -- credits no absence at all.
+  // When this save was written, in seconds since the Unix epoch. Offline
+  // progress is measured from this: the next launch pays for the gap between
+  // this time and when the player returns, and only the character that loads is
+  // paid. It uses the wall clock because a monotonic clock doesn't survive the
+  // process ending. Zero (a save from before the field existed) pays for no
+  // time away.
   int64 last_seen_unix_seconds = 7;
 
-  // The version 1 layout, which held one character's fields here. See
+  // Fields from the version 1 layout, which stored one character here. See
   // SaveGameV1.
   reserved 2, 3, 4, 5, 6;
 }
 
-// One character on the account, and what the save keeps around them: where
-// they were standing and the three clocks that are theirs alone.
+// One character on the account and what the save keeps with them: the map they
+// were on and their three clocks.
 message CharacterSave {
   Character character = 1;
 
-  // The map being farmed, as a key into the map catalog. Empty means this
-  // character was not fighting anywhere.
+  // The map being farmed, as a key into the map catalog. Empty means the
+  // character wasn't fighting anywhere.
   string current_map = 2;
 
-  // When this character was started, as seconds since the Unix epoch. Wall
-  // clock rather than the monotonic one used for playtime: this is a date to
-  // show, not a duration to measure. Zero means a save written before the
-  // field existed, which loads as "created now".
+  // When this character was created, in seconds since the Unix epoch. This uses
+  // the wall clock, unlike playtime, because it is a date to show, not a
+  // duration to measure. Zero means a save from before the field existed, which
+  // loads as "created now".
   int64 created_unix_seconds = 3;
 
-  // Total seconds with this character in play, across every session. Whole
-  // seconds on disk; the running total is kept as a double so that
-  // accumulating it a fraction of a second at a time does not truncate away
-  // most of it.
+  // Total seconds this character has been played, across all sessions. Stored
+  // in whole seconds; the running total is kept as a double so that adding a
+  // fraction of a second at a time doesn't truncate most of it away.
   int64 playtime_seconds = 4;
 
-  // When this character was last put into play, as seconds since the Unix
-  // epoch. What the character select sorts on, newest first. Zero -- a save
-  // written before the field existed -- sorts below every character who has
-  // been played since, which is the honest answer: nobody knows when they
-  // last were.
+  // When this character was last played, in seconds since the Unix epoch. The
+  // character select sorts on this, newest first. Zero (a save from before the
+  // field existed) sorts below every character played since, because nobody
+  // knows when that character was last played.
   int64 last_played_unix_seconds = 5;
 }
 
-// The version 1 save, frozen. Nothing writes it and nothing but the upgrade in
-// //src/save_migration.h reads it: it exists so that the bytes of a one
-// character save can still be parsed after SaveGame moved on. Its field
-// numbers are the numbers version 1 wrote, and must never change.
+// The frozen version 1 save format. Nothing writes it, and only the upgrade in
+// //src/save_migration.h reads it. It exists so that an old one-character save
+// can still be parsed after SaveGame changed. Its field numbers are the ones
+// version 1 wrote and must never change.
 message SaveGameV1 {
   int32 format_version = 1;
   Character character = 2;

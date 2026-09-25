@@ -16,8 +16,8 @@ enum AttackSpeed {
   ATTACK_SPEED_FASTEST_3 = 10;
 }
 
-// The specific item type (e.g. one-handed sword, bow). Used to determine
-// applicable scrolls, attack animations, and weapon-specific mechanics.
+// The kind of item, e.g. one-handed sword or bow. It decides which scrolls
+// apply, the attack animation and weapon-specific mechanics.
 enum EquipType {
   EQUIP_TYPE_UNSPECIFIED = 0;
   EQUIP_TYPE_ONE_HANDED_SWORD = 1;
@@ -26,32 +26,31 @@ enum EquipType {
   EQUIP_TYPE_DAGGER = 4;
   EQUIP_TYPE_CLAW = 5;
   EQUIP_TYPE_THROWING_STAR = 6;
-  // The 2nd-job warrior weapons. Which of them a character can hold is decided
-  // by their skills rather than by the item: a Fighter's Final Attack wants a
-  // sword or an axe, a Spearman's a spear or a polearm.
+  // The 2nd-job warrior weapons. Which ones a character can use is decided by
+  // their skills, not by the item: a Fighter's Final Attack takes a sword or an
+  // axe, a Spearman's a spear or a polearm.
   EQUIP_TYPE_TWO_HANDED_AXE = 7;
   EQUIP_TYPE_SPEAR = 8;
   EQUIP_TYPE_POLEARM = 9;
   EQUIP_TYPE_TWO_HANDED_BLUNT = 10;
   EQUIP_TYPE_TWO_HANDED_SWORD = 11;
-  // No item is either of these yet. They exist so a skill that takes a weapon
-  // in either hand can say so, rather than naming the half of it that has
-  // items -- a Fighter's mastery is of axes, not of two-handed axes.
+  // No items have these types yet. They exist so a skill that works with a
+  // weapon in either hand can say so without naming only the half that has
+  // items: a Fighter's mastery covers axes, not only two-handed axes.
   EQUIP_TYPE_ONE_HANDED_AXE = 12;
   EQUIP_TYPE_ONE_HANDED_BLUNT = 13;
-  // The bowman's other line. Hits harder than a bow of the same level and
-  // carries a higher weapon constant; nothing else separates the two here.
+  // The bowman's other weapon. It hits harder than a bow of the same level and
+  // has a higher weapon constant; nothing else separates the two here.
   EQUIP_TYPE_CROSSBOW = 14;
-  // The off-hand items, one kind per 2nd job. Two of them in the same branch
-  // carry identical stats, so the type is the only thing that tells a
-  // Fighter's medallion from a Page's rosary -- see AdvancementForSecondary,
-  // which is what keeps each one in its own hands.
+  // Off-hand items, one kind per 2nd job. Two in the same branch have identical
+  // stats, so only the type tells a Fighter's medallion from a Page's rosary.
+  // AdvancementForSecondary uses it to keep each one with its own job.
   EQUIP_TYPE_MEDALLION = 15;
   EQUIP_TYPE_ROSARY = 16;
   EQUIP_TYPE_IRON_CHAIN = 17;
-  // One book per magician branch. All three are a "Magic Book" to the player,
-  // as they are in GMS; they are three types here because the type is what
-  // names the owner, and one type could not name three branches.
+  // One book per magician branch. The player sees all three as a "Magic Book",
+  // as in GMS. They are separate types because the type names which branch uses
+  // the item, and one type couldn't name three branches.
   EQUIP_TYPE_MAGIC_BOOK_FIRE_POISON = 18;
   EQUIP_TYPE_MAGIC_BOOK_ICE_LIGHTNING = 19;
   EQUIP_TYPE_MAGIC_BOOK_HOLY = 20;
@@ -59,65 +58,64 @@ enum EquipType {
   EQUIP_TYPE_BOW_THIMBLE = 22;
   EQUIP_TYPE_CHARM = 23;
   EQUIP_TYPE_DAGGER_SCABBARD = 24;
-  // The archer's ammunition, one ladder per weapon. Two types rather than one
-  // because the type is what says which weapon draws it, and a bow will not
-  // fire a bolt -- see AmmoFor in src/item/projectile.h.
+  // Archer ammunition, one ladder per weapon. There are two types because the
+  // type says which weapon uses it, and a bow can't fire a bolt. See AmmoFor in
+  // src/item/projectile.h.
   EQUIP_TYPE_ARROW_FOR_BOW = 25;
   EQUIP_TYPE_ARROW_FOR_CROSSBOW = 26;
 }
 
-// The equipment window slot this item occupies when worn, one item apiece.
-// These numbers are what a save names a worn item by, so a slot can be ADDED
-// but never moved: they are the order the slots arrived in. The order the
-// window lists them in is kSlotOrder.
+// The equipment window slot an item goes in when worn, one item per slot. A
+// save records worn items by these numbers, so slots can be added but never
+// renumbered; the numbers follow the order slots were added. The window's
+// display order is kSlotOrder in src/item/slot_order.cc.
 enum EquipSlot {
   EQUIP_SLOT_UNSPECIFIED = 0;
   EQUIP_SLOT_PRIMARY_WEAPON = 1;
-  // What the weapon throws: a thief's stars, an archer's arrows. A shield goes
-  // in the off hand beside a sword; ammunition is drawn from rather than held,
-  // so it gets a slot of its own that a shield will never compete for.
+  // Ammunition: a thief's stars, an archer's arrows. A shield goes in the off
+  // hand next to a sword, but ammunition is used up rather than held, so it has
+  // its own slot that never competes with a shield.
   EQUIP_SLOT_PROJECTILE = 2;
-  // The off hand: one of the per-class secondaries a 2nd job carries. Shields
-  // would go here too, and none are written. What fills this slot is what
-  // Shield Mastery waits on; see Skill.requires_secondary.
+  // The off hand, which holds a 2nd job's class-specific secondary. Shields
+  // would go here too, but none exist. Shield Mastery checks what is in this
+  // slot; see Skill.requires_secondary.
   EQUIP_SLOT_SECONDARY = 3;
 
   // Armour.
   //
-  // Top and bottom are separate slots and always will be. An overall covers
-  // both for one item's worth of scrolling and star forcing, which is a
-  // permanent loss of everything the second item would have carried.
+  // Top and bottom are separate slots and will stay that way. An overall covers
+  // both but gets only one item's worth of scrolling and star force, so it
+  // permanently loses everything the second item would have had.
   EQUIP_SLOT_HAT = 4;
   EQUIP_SLOT_TOP = 5;
   EQUIP_SLOT_BOTTOM = 6;
   EQUIP_SLOT_CAPE = 7;
-  // The accessories, worn on the face rather than over the body.
+  // Accessories worn on the face.
   EQUIP_SLOT_FACE_ACCESSORY = 8;
   EQUIP_SLOT_EYE_ACCESSORY = 9;
 
-  // The accessories star force treats as armour a character's Max HP climbs
-  // with -- see RaisesMaxHp in src/item/item.h.
+  // Accessories that star force treats as armour, so their stars raise Max HP.
+  // See RaisesMaxHp in src/item/item.cc.
   //
-  // These two are also the first of the four ring slots and the first of the
-  // two pendant slots. The rest are at the bottom of this list.
+  // These two are also the first ring slot and the first pendant slot. The
+  // other ring and pendant slots are at the end of this list.
   EQUIP_SLOT_RING = 10;
   EQUIP_SLOT_PENDANT = 11;
   EQUIP_SLOT_BELT = 12;
   EQUIP_SLOT_SHOULDER = 13;
-  // Worn rather than carried, and the one slot with no level on it at all:
-  // what goes here is a boss reward a character keeps from the day it drops.
+  // Worn, not carried, and the only slot with no level requirement: what goes
+  // here is a boss reward a character keeps from the day it drops.
   EQUIP_SLOT_POCKET = 14;
-  // Last of the slots that shipped first: a save names a worn item by this
-  // number, so it arrived here rather than beside the other accessories.
-  // Horntail's earring fills it.
+  // The last of the original slots. Saves record worn items by this number, so
+  // it was added at the end instead of beside the other accessories.
   EQUIP_SLOT_EARRINGS = 15;
 
   // One slot per Arcane River area, because a character wears one symbol from
-  // each and the six do not compete. A slot apiece is what says so: the worn
-  // map already allows one item per slot, and nothing else has to enforce it.
+  // each area and they don't compete. Giving each its own slot enforces that
+  // for free, since a worn item already takes a whole slot.
   //
   // Numbered in the order the areas open, which is the order the Symbols tab
-  // lists them in.
+  // lists them.
   EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY = 16;
   EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND = 17;
   EQUIP_SLOT_SYMBOL_LACHELEIN = 18;
@@ -125,33 +123,34 @@ enum EquipSlot {
   EQUIP_SLOT_SYMBOL_MORASS = 20;
   EQUIP_SLOT_SYMBOL_ESFERA = 21;
 
-  // A character wears four rings and two pendants, and any ring fits any of
-  // the four: an item names EQUIP_SLOT_RING and is worn in the first free one.
-  // No family holds the same item twice. Numbered here rather than beside the
-  // first ring because a slot can be added but never moved.
+  // A character wears four rings and two pendants. Any ring fits any of the
+  // four ring slots: the item says EQUIP_SLOT_RING and goes in the first free
+  // one. The same item can't be worn twice in one family. These are numbered
+  // here, not beside the first ring, because slots can be added but never
+  // renumbered.
   EQUIP_SLOT_RING_2 = 22;
   EQUIP_SLOT_RING_3 = 23;
   EQUIP_SLOT_RING_4 = 24;
   EQUIP_SLOT_PENDANT_2 = 25;
 
-  // The rest of the worn body. Gloves and shoes are armour a player buys and
-  // scrolls; neither is in GMS's Category A, so their stars raise no Max HP,
-  // and gloves are scrolled on a shelf of their own that pays attack.
+  // The rest of the body. Gloves and shoes are armour a player buys and
+  // scrolls. Neither is in GMS's Category A, so their stars don't raise Max HP,
+  // and gloves have their own scrolls that add attack.
   EQUIP_SLOT_GLOVES = 26;
   EQUIP_SLOT_SHOES = 27;
-  // The three trophies: worn for what they say a character has done, and
-  // GMS lets no scroll near any of them.
+  // The three trophy slots, worn to show what a character has done. GMS allows
+  // no scrolls on any of them.
   EQUIP_SLOT_BADGE = 28;
   EQUIP_SLOT_EMBLEM = 29;
   EQUIP_SLOT_MEDAL = 30;
-  // Scrolled on its own shelf, which pays the attack the wearer's job swings
-  // with. Nothing is worn here yet.
+  // Scrolled with its own scrolls, which add the attack type the wearer's job
+  // uses. No heart items exist yet.
   EQUIP_SLOT_HEART = 31;
 }
 
-// The rank of a potential, and of one line of it. Four rungs, the same four
-// Inner Ability climbs -- a separate enum because an item is not a character,
-// and the two ladders are free to move apart.
+// The rank of a potential and of each of its lines. It has the same four ranks
+// as Inner Ability, but is a separate enum because an item isn't a character
+// and the two can diverge.
 enum PotentialRank {
   POTENTIAL_RANK_UNSPECIFIED = 0;
   POTENTIAL_RANK_RARE = 1;
@@ -160,14 +159,14 @@ enum PotentialRank {
   POTENTIAL_RANK_LEGENDARY = 4;
 }
 
-// What one potential line can grant: a cut of GMS's list, keeping what a lever
-// here reads. Where GMS states one effect at several fixed SIZES, each size is
-// its own type -- two entries in one pool rather than one entry with two
-// values -- which keeps a line's worth a function of its type and rank.
+// What one potential line can grant: the part of GMS's list that some stat here
+// uses. When GMS offers one effect at several fixed sizes, each size is its own
+// type (two entries in one pool, not one entry with two values), so a line's
+// value depends only on its type and rank.
 enum PotentialLineType {
   POTENTIAL_LINE_TYPE_UNSPECIFIED = 0;
-  // Flat stats. Rare alone, as in GMS -- Epic and up have dropped them, which
-  // is most of what makes a rank up worth paying for.
+  // Flat stats. As in GMS, they are rare on their own: Epic and above no longer
+  // roll them, which is most of the reason to rank up.
   POTENTIAL_LINE_TYPE_STR = 1;
   POTENTIAL_LINE_TYPE_DEX = 2;
   POTENTIAL_LINE_TYPE_INT = 3;
@@ -179,12 +178,12 @@ enum PotentialLineType {
   POTENTIAL_LINE_TYPE_DEX_PCT = 8;
   POTENTIAL_LINE_TYPE_INT_PCT = 9;
   POTENTIAL_LINE_TYPE_LUK_PCT = 10;
-  // Worth a rank less than the single-stat lines above and rolled from Epic
-  // up, both of them GMS's own shape.
+  // One rank weaker than the single-stat lines above and rolled from Epic up,
+  // both as in GMS.
   POTENTIAL_LINE_TYPE_ALL_STATS_PCT = 11;
   POTENTIAL_LINE_TYPE_MAX_HP_PCT = 12;
 
-  // The weapon lines: a weapon, a secondary or an emblem, and nothing else.
+  // Weapon lines, rolled only on a weapon, secondary or emblem.
   POTENTIAL_LINE_TYPE_ATTACK_PCT = 13;
   POTENTIAL_LINE_TYPE_MAGIC_ATTACK_PCT = 14;
   POTENTIAL_LINE_TYPE_DAMAGE_PCT = 15;
@@ -196,7 +195,7 @@ enum PotentialLineType {
   POTENTIAL_LINE_TYPE_BOSS_DAMAGE_35 = 21;
   POTENTIAL_LINE_TYPE_BOSS_DAMAGE_40 = 22;
 
-  // The lines one slot apiece rolls: gloves, then the accessories, then the
+  // Lines that only one slot rolls each: gloves, then the accessories, then the
   // hat.
   POTENTIAL_LINE_TYPE_CRIT_DAMAGE_PCT = 23;
   POTENTIAL_LINE_TYPE_MESO_RATE = 24;
@@ -205,38 +204,37 @@ enum PotentialLineType {
   POTENTIAL_LINE_TYPE_COOLDOWN_2 = 27;
 }
 
-// One line of a potential. What it is worth is not stored: it is a function of
-// the type, the rank and the level of the item carrying it -- see
-// PotentialLineValue.
+// One line of a potential. Its value isn't stored; PotentialLineValue computes
+// it from the type, the rank and the item's level.
 message PotentialLine {
   PotentialLineType type = 1;
-  // Either the potential's own rank or one rung below it. GMS calls the first
-  // a prime line; here the rank is all that is kept of that distinction.
+  // Either the potential's own rank or one below it. GMS calls a line at the
+  // potential's rank a prime line; only the rank is kept here.
   PotentialRank rank = 2;
 }
 
-// The potential on one item: a rank, and the three lines under it. The first
-// line always carries the rank; the second and third are prime at long odds
-// and one rung below otherwise.
+// The potential on one item: a rank and three lines. The first line always has
+// the potential's rank; the second and third are prime with low odds and one
+// rank lower otherwise.
 //
-// An item with no potential leaves the whole message unset, which is every
-// item until the first cube goes into it.
+// An item with no potential leaves this message unset, which is every item
+// until the first cube is used on it.
 message Potential {
   PotentialRank rank = 1;
   repeated PotentialLine lines = 2;
 }
 
-// A way an item can be made stronger after it drops. Listed on a prototype
-// only to say the item refuses it.
+// A way an item can be improved after it drops. A prototype lists these only to
+// say which ones the item refuses.
 enum Upgrade {
   UPGRADE_UNSPECIFIED = 0;
   UPGRADE_SCROLL = 1;
   UPGRADE_STAR_FORCE = 2;
 }
 
-// Which job branches can equip this item. UNIVERSAL means any job can equip
-// it; BEGINNER includes pre-advancement characters (Noblesse, etc.). Used to
-// filter scrolls and enforce equip requirements.
+// Which job branches can equip the item. UNIVERSAL means any job; BEGINNER
+// includes characters who haven't advanced yet (Noblesse, etc.). Used to filter
+// scrolls and to enforce equip requirements.
 enum EquipJobCategory {
   EQUIP_JOB_CATEGORY_UNSPECIFIED = 0;
   EQUIP_JOB_CATEGORY_WARRIOR = 1;
@@ -258,47 +256,45 @@ message EquipStats {
   int32 max_hp = 7;
   int32 max_mp = 8;
   int32 def = 9;
-  // Percentage bonus to damage dealt to boss monsters (e.g. 30 = 30%). Read by
-  // OffenseStatsFor and applied by ExpectedAttackDamage, against a mob whose
-  // `boss` flag is set.
+  // Percent bonus to damage against bosses (e.g. 30 = 30%). OffenseStatsFor
+  // reads it and ExpectedAttackDamage applies it to mobs with the `boss` flag
+  // set.
   int32 boss_damage = 10;
-  // Percentage of enemy defense ignored (e.g. 10 = 10%). Read by
-  // OffenseStatsFor and applied by ExpectedAttackDamage against the mob's PDR.
+  // Percent of enemy defense ignored (e.g. 10 = 10%). OffenseStatsFor reads it
+  // and ExpectedAttackDamage applies it against the mob's PDR.
   int32 ignore_enemy_defense = 11;
-  // Percentage added to how often a kill drops anything (e.g. 20 = a fifth
-  // more often), meso included. Meets what the character's passives grant by
-  // summing -- see DerivedStats::item_drop_pct. No item grants it; a
-  // potential's drop line goes through PotentialTotals.
+  // Percent added to how often a kill drops anything, meso included (e.g. 20 =
+  // a fifth more often). It adds to what the character's passives grant; see
+  // DerivedStats::item_drop_pct. No item has it; a potential's drop line goes
+  // through PotentialTotals.
   int32 item_drop_rate = 12;
-  // Percentage added to the HP and MP pools (e.g. 10 = a tenth more). Lands
-  // over the whole pile the same way a passive's does, and sums with what the
-  // character's skills grant -- see DerivedStatsFor. The Dominator Pendant is
-  // the one piece that carries them.
+  // Percent added to max HP and MP (e.g. 10 = a tenth more). It applies to the
+  // whole pool, as a passive's does, and adds to what the character's skills
+  // grant; see DerivedStatsFor. The Dominator Pendant is the only item with it.
   int32 max_hp_pct = 13;
   int32 max_mp_pct = 14;
-  // Percentage added to the meso a kill drops (e.g. 20 = a fifth more). The
-  // one worn share with a cap of its own: however much of it a character puts
-  // on, equipment is worth at most kEquipMesoSoftCap -- see MesoBonus.
-  // No item grants it; a potential's meso line reaches the same share through
-  // PotentialTotals instead.
+  // Percent added to the meso a kill drops (e.g. 20 = a fifth more). It is the
+  // only equipment bonus with its own cap: however much a character wears,
+  // equipment adds at most kEquipMesoSoftCap; see MesoBonus. No item has it; a
+  // potential's meso line reaches the same bonus through PotentialTotals.
   int32 meso_rate = 15;
 }
 
 // What an Arcane Symbol needs beyond an ordinary equip. Only the six symbols
-// carry it, so its presence is what tells one from a piece of gear.
+// set it, so its presence is what marks an item as a symbol.
 message ArcaneSymbolInfo {
-  // The leading term of what a level-up costs: 10,000 x floor[(this + 0.1 x
-  // level) x duplicates]. Rises by area, from 8 in Vanishing Journey to 18 in
-  // Esfera, which is what makes a late symbol the expensive one to raise.
+  // The main term in the cost of a level-up: 10,000 x floor[(this + 0.1 x
+  // level) x duplicates]. It rises by area, from 8 in Vanishing Journey to 18
+  // in Esfera, which is why later symbols cost more to raise.
   int32 meso_cost_base = 1;
-  // The level the area this symbol comes from opens at: 200 in Vanishing
-  // Journey up to 235 in Esfera. A player has one of these from the level
-  // they can first reach the map that hands it over.
+  // The level at which this symbol's area opens: 200 for Vanishing Journey up
+  // to 235 for Esfera. A player gets the symbol from the level at which they
+  // can first reach the map that gives it.
   int32 area_level = 2;
 }
 
-// Static definition of an item type. Loaded from data/ textprotos at startup;
-// shared read-only across all EquipInstances of the same item type.
+// The definition of an item type, loaded from data/ at startup and shared
+// read-only by every EquipInstance of that type.
 message EquipPrototype {
   string name = 1;
   EquipType equip_type = 2;
@@ -308,42 +304,40 @@ message EquipPrototype {
   repeated EquipJobCategory equip_job_categories = 6;
   EquipStats base_stats = 7;
   int32 upgrade_slots = 8;
-  // Upgrade paths this item refuses. Ordinary equipment accepts every path, so
-  // a data file carries the exception and the common case needs no line at
-  // all. Read it per item, never per equip_type: two throwing stars are not
-  // obliged to agree with each other.
+  // Upgrades this item refuses. Ordinary equipment accepts all of them, so data
+  // files list only the exceptions. Check it per item, never per equip_type:
+  // two throwing stars don't have to agree.
   repeated Upgrade unsupported_upgrades = 9;
-  // What the shop charges, in meso. An item JOINS the shop by naming a price,
-  // so there is no second list to keep in step. Optional because zero is a
-  // price rather than a refusal: saying nothing is what keeps it off the
-  // shelf.
+  // The shop price in meso. Setting a price is what puts an item in the shop,
+  // so there is no second list to keep in sync. It is optional because zero is
+  // a valid price; leaving it unset keeps the item out of the shop.
   optional int32 shop_price = 10;
-  // What the shop pays, where that is not a tenth of shop_price -- GMS's own
-  // buy-back rate, and what a stocked item is worth without saying so. Set
-  // only on a piece no shop sells. ASK SellPrice rather than this field. Zero
-  // is a price rather than a refusal: an item worth nothing is thrown away.
+  // What the shop pays for the item, when that isn't a tenth of shop_price
+  // (GMS's buy-back rate, and the default for items the shop stocks). Set only
+  // on items no shop sells. Call SellPrice instead of reading this field. Zero
+  // is a valid price: an item worth nothing is thrown away.
   optional int32 sell_price = 11;
-  // The token this is bought with, by data file stem, and how many of it. Both
-  // unset for an item the shop sells for meso, which is most of them. An item
-  // joins the token shelf by naming a price here, the same way naming a
-  // shop_price joins it to the meso shelf.
+  // The token this item is bought with, by data file stem, and how many. Both
+  // are unset for items sold for meso, which is most of them. Setting a token
+  // price puts an item on the token shelf, the same way shop_price puts it on
+  // the meso shelf.
   string token_item = 12;
   int32 token_price = 13;
   // The set family this item belongs to, e.g. "Frozen Weapon". A set names a
-  // family where any one of many items fills the slot -- a weapon belongs to
-  // one class, so the set cannot name it. Empty for an item in no set, and for
-  // one the set names outright.
+  // family when any of several items fills a slot; weapons are per class, so a
+  // set can't name one directly. Empty for items in no set and for items a set
+  // names directly.
   string set_family = 14;
-  // Set on the six Arcane Symbols and on nothing else. An item carrying it
-  // levels by absorbing duplicates rather than by scrolls or stars, and what
-  // it grants comes from its level and the wearer's job -- so its base_stats
-  // are empty and SymbolStatsFor answers for it instead.
+  // Set only on the six Arcane Symbols. A symbol levels up by absorbing
+  // duplicates instead of through scrolls or stars, and its stats depend on its
+  // level and the wearer's job. So its base_stats are empty and SymbolStatsFor
+  // computes them.
   ArcaneSymbolInfo arcane_symbol = 15;
 }
 
-// Per-instance mutable state for a single drop of equipment. Persisted in the
-// save file; references its prototype by name. If trace is true, the item was
-// destroyed by star force and lives in equip_tab as a non-equippable trace.
+// The per-copy state of one dropped item, saved to disk. It refers to its
+// prototype by name. If trace is true, star force destroyed the item and it
+// stays in equip_tab as a trace that can't be equipped.
 message Equip {
   string equip_name = 1;
   int32 remaining_upgrade_slots = 2;
@@ -351,18 +345,17 @@ message Equip {
   EquipStats scroll_stats = 4;
   int32 stars = 5;
   bool trace = 6;
-  // An Arcane Symbol's own ladder, and zero on everything else. The level a
-  // fresh copy drops at is 1, which SymbolLevel reads off the zero here rather
-  // than every drop having to write it.
+  // An Arcane Symbol's level; zero on everything else. A new copy is level 1,
+  // which SymbolLevel reads from the zero here, so drops don't need to set it.
   int32 symbol_level = 7;
-  // Duplicates absorbed toward the next level. Survives a level-up: what is
-  // left over after the ladder's price is paid carries into the next rung.
+  // Duplicates absorbed toward the next level. Whatever is left after a
+  // level-up is paid carries over to the next level.
   int32 symbol_exp = 8;
-  // Golden hammers driven into this piece, each one an upgrade slot on top of
-  // the prototype's. Capped at kMaxHammers. The total the item holds is
-  // TotalUpgradeSlots, not upgrade_slots -- see src/item/item.h.
+  // Golden hammers used on this item, each adding one upgrade slot on top of
+  // the prototype's. Capped at kMaxHammers. The item's total is
+  // TotalUpgradeSlots, not upgrade_slots; see src/item/item.h.
   int32 hammers = 9;
-  // The rolled lines this piece carries, unset until the first cube goes in.
-  // Bonus potential, when it arrives, is a second field of the same type.
+  // The potential lines on this item, unset until the first cube is used. Bonus
+  // potential, when added, will be a second field of the same type.
   Potential main_potential = 10;
 }

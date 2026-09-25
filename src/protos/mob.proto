@@ -4,107 +4,108 @@ package ms;
 
 // One item a mob can drop, with its chance per kill.
 message MobDrop {
-  // What falls, by data file stem. An equip goes one per drop into the equip
-  // tab; a full tab loses it, because a queue the player cannot see is worse
-  // than a drop they can be told about.
+  // The item that drops, by data file stem. An equip drops one at a time into
+  // the equip tab. If the tab is full the drop is lost, because a hidden queue
+  // is worse than a drop the player can be told about.
   oneof drop {
     string item = 1;   // an ItemPrototype
     string equip = 2;  // an EquipPrototype
   }
-  // Chance each kill takes, e.g. 0.4 for a 40% chance or 0.00025 for one in
-  // four thousand. Rolled per kill; a rate above one pays its whole part
-  // outright and rolls the rest.
+  // Chance per kill, e.g. 0.4 for 40% or 0.00025 for one in four thousand. A
+  // rate above one drops the whole part every kill and rolls for the remainder.
   double per_kill = 3;
 }
 
 // Where one monster stands in a boss arena: a cell on a grid `arena_width`
-// cells across and `arena_height` down. Nothing here is a column count -- the
-// arena stretches to the screen it is drawn on, and what these say is which
-// bars sit further apart than which. The dragon's legs are under his wings
-// because his sprite puts them there, and the numbers here are what says so.
+// cells wide and `arena_height` tall. These aren't screen columns; the arena
+// stretches to fit the screen, so they only set how far apart the bars are
+// relative to each other. The dragon's legs are under his wings because his
+// sprite has them there, and these numbers encode that.
 message ArenaSpot {
   int32 x = 1;
   int32 y = 2;
 }
 
-// How a monster moves around a boss arena. Each step is drawn off the run's
-// own CLOCK rather than rolled, so every client draws it in the same place
-// with nothing sent between them. Scenery: a cell gates nothing. A step never
-// lands where a player may stand, the arena drawing one bar per cell.
+// How a monster moves around a boss arena. Each step is derived from the
+// fight's clock, not rolled, so every client draws it in the same place without
+// sending anything. It is only visual: a cell blocks nothing. A step never
+// lands on a cell the player can stand on, since the arena draws one bar per
+// cell.
 message ArenaWalk {
-  // Milliseconds between steps. 0 stands still, as an unset walk does.
+  // Milliseconds between steps. 0 means it stands still, as does an unset walk.
   int32 interval_ms = 1;
-  // How far one step may carry it.
+  // How far one step can move it.
   enum Range {
     RANGE_UNSPECIFIED = 0;
-    // Any other cell of the row it spawned on, arrived at rather than walked
-    // to. Vellum alone, who blinks along his floor.
+    // Any other cell in the row it spawned on, reached instantly instead of
+    // walked to. Only Vellum uses this; he blinks along his floor.
     RANGE_ROW = 1;
     // One cell up, down, left or right. Papulatus roams his whole room.
     RANGE_STEP = 2;
-    // One cell left or right along the row it spawned on. Damien and Lotus
-    // pace the row over the player's heads and never come down to the floor.
+    // One cell left or right along the row it spawned on. Damien and Lotus pace
+    // the row above the player and never come down to the floor.
     RANGE_ROW_STEP = 3;
   }
   Range range = 2;
-  // A rush across the arena now and then, in place of one ordinary step.
-  // Unset never dashes, which is every walker but Damien.
+  // An occasional rush across the arena, replacing one ordinary step. Unset
+  // means it never dashes; only Damien dashes.
   ArenaDash dash = 3;
-  // A leap off its row and back. Unset never jumps, which is every walker but
-  // the Guardian Angel Slime.
+  // A jump off its row and back. Unset means it never jumps; only the Guardian
+  // Angel Slime jumps.
   ArenaJump jump = 4;
 }
 
-// A jump: off the row the monster walks and back down to the cell it left. It
-// hangs where it landed for the whole of `hang_ms` and does not walk up there,
-// so it can always come back down -- a jump never has to ask whether the cell
-// below it is still free. The walk resumes a full interval after the landing.
+// A jump off the row the monster walks and back down to the cell it left. It
+// stays where it landed for `hang_ms` and doesn't walk up there, so the cell
+// below is always free when it comes back down. Walking resumes one full
+// interval after it lands.
 message ArenaJump {
-  // Milliseconds between jumps. 0 never jumps, as an unset jump does. Must be
-  // longer than `hang_ms`, or the next one falls due before this one lands.
+  // Milliseconds between jumps. 0 means it never jumps, as does an unset jump.
+  // Must be longer than `hang_ms`, or the next jump is due before this one
+  // lands.
   int32 interval_ms = 1;
-  // The row it jumps to. Above the row it walks, since the arena's rows count
-  // downwards -- but nothing here requires that, and a monster that drops into
-  // a pit is written the same way.
+  // The row it jumps to. Usually above its walking row, since arena rows count
+  // downwards, but nothing requires that: a monster dropping into a pit is
+  // written the same way.
   int32 y = 2;
-  // Milliseconds it stays up there.
+  // Milliseconds it stays up.
   int32 hang_ms = 3;
 }
 
-// A dash: several cells in a row, one way, far quicker than the walk it
-// interrupts. It stops early at anything it cannot enter -- the edge of the
-// arena, or a cell the player may stand on -- and the walk picks up one
-// interval after the last cell it reached.
+// A dash: several cells in one direction, much faster than the walk it
+// interrupts. It stops early at anything it can't enter (the arena edge or a
+// cell the player can stand on), and walking resumes one interval after the
+// last cell it reached.
 message ArenaDash {
-  // Milliseconds between dashes. 0 never dashes, as an unset dash does.
+  // Milliseconds between dashes. 0 means it never dashes, as does an unset
+  // dash.
   int32 interval_ms = 1;
-  // How many cells one carries it, wall permitting.
+  // How many cells one dash covers, unless a wall stops it.
   int32 cells = 2;
-  // Milliseconds a cell takes. This is what makes it read as a dash rather
-  // than a walk: the arena is drawn every kFightPublishInterval, so a cell
-  // shorter than that would be a jump instead of a run.
+  // Milliseconds per cell. This is what makes it look like a dash and not a
+  // walk. The arena is redrawn every kFightPublishInterval, so a cell faster
+  // than that would look like a jump instead of a run.
   int32 step_ms = 3;
 }
 
-// A mob type and how many of it stand in one encounter. Shared by the maps,
-// where the count is a map's spawn points, and by the boss phases, where it is
-// how many come out at once.
+// A mob type and how many of it appear in one encounter. Used by maps, where
+// the count is the map's spawn points, and by boss phases, where it is how many
+// appear at once.
 message Spawn {
   string mob = 1;  // Mob data file, by filename stem.
-  // How many come out. A map says it here; a boss phase names a spot per
-  // monster below instead and leaves this unset.
+  // How many appear. Maps set this; a boss phase lists one spot per monster
+  // below and leaves this unset.
   int32 count = 2;
-  // Where each of them stands, one spot per monster -- so the spots ARE the
-  // count, and a phase cannot write a different number of each. Empty on a
-  // map, which has no arena to stand anyone in.
+  // Where each monster stands, one spot per monster. The spots are the count,
+  // so a phase can't disagree with itself. Empty on a map, which has no arena.
   repeated ArenaSpot spots = 3;
-  // How this monster wanders its arena. Unset stands still, which is nearly
-  // every monster.
+  // How this monster moves around its arena. Unset means it stands still, which
+  // is true of most monsters.
   ArenaWalk walk = 4;
 }
 
-// Static definition of a monster type. Loaded from data/mobs textprotos at
-// startup; shared read-only across all spawns of the same type.
+// The definition of a monster type, loaded from data/mobs at startup and shared
+// read-only by every spawn of that type.
 message Mob {
   string name = 1;
   int32 level = 2;
@@ -113,16 +114,17 @@ message Mob {
   int64 exp = 5;
   // Items this mob can drop.
   repeated MobDrop drops = 6;
-  // Physical defense rate as a whole percent (PDR); reduces incoming damage
-  // unless the attacker ignores it. Mirrors EquipStats percents. Every mob
-  // file carries at least the regular 10, snails included, so that IED is
-  // worth something everywhere rather than only against a boss; the bosses
-  // set their own, higher.
+  // Physical defense rate as a whole percent (PDR). It reduces incoming damage
+  // unless the attacker ignores it, and matches the percents in EquipStats.
+  // Every mob file sets at least the standard 10, snails included, so IED is
+  // worth something everywhere and not only against bosses. Bosses set higher
+  // values.
   int32 pdr = 7;
-  // True for bosses: they take 0.5x elemental base and are subject to boss%.
+  // True for bosses: they take half elemental damage at base and boss% applies
+  // to them.
   bool boss = 8;
-  // What the bestiary says about it, adapted from the wiki's own archive
-  // entry. Empty for a mob the wiki writes nothing about; the inspect panel
-  // then shows no blurb at all rather than a made-up one.
+  // The bestiary text, adapted from the wiki's archive entry. Empty for a mob
+  // the wiki says nothing about; the inspect panel then shows no description
+  // instead of an invented one.
   string description = 9;
 }

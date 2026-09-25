@@ -6,104 +6,100 @@ import "src/protos/equip.proto";
 import "src/protos/item.proto";
 import "src/protos/keybinds.proto";
 
-// What the player owns rather than what one character does: the settings and
-// openings every character shares, so a second one starts at level 1 with the
-// game already open.
+// Settings and progress the player owns, shared by every character. A second
+// character starts at level 1 but finds the game already open.
 //
-// THE RULE for a new field: does a second character start over with it, or
-// inherit it? Progress a character earns is theirs; what the player learned or
-// set up belongs here.
+// When adding a field, ask whether a new character starts over with it or
+// inherits it. What a character earns belongs to that character; what the
+// player learned or set up belongs here.
 message Account {
   // What the player has bound their keys to.
   Keybinds keybinds = 1;
 
-  // The highest level and job stage any character has reached, which every
-  // level-gated feature is measured against. Written from the characters in
-  // the file; the one being played speaks for their own level.
+  // The highest level and job stage any character has reached. Level-gated
+  // features check against this. It is computed from the characters in the
+  // save, and the character being played counts at their own level.
   int32 max_level = 2;
   int32 max_job_stage = 3;
 
-  // What the multiplayer server calls this player, and the token proving the
-  // account is theirs. Both are the SERVER's to issue. Account-wide, because
-  // it is the player the server knows -- which character they bring is
-  // answered every time they connect.
+  // The name the multiplayer server knows this player by, and the token that
+  // proves the account is theirs. The server issues both. They live on the
+  // account because the server knows the player; which character they bring is
+  // decided each time they connect.
   string multiplayer_account_id = 5;
   string multiplayer_token = 6;
 
-  // Things the player has been shown once and need not be shown again: tabs
-  // opened, gold trails walked. The keys are the frontend's -- see
-  // chrome.h and progression.cc -- and this only keeps the record.
+  // Things the player has already been shown once, such as tabs opened and gold
+  // trails walked. The frontend owns the keys (see chrome.h and
+  // progression.cc); this field only stores them.
   repeated string seen_keys = 4;
 
   // What the player has switched on and off on the Options screen.
   Options options = 7;
 
-  // The shared storage every character reaches. Account-wide by definition:
-  // it is the one place an item crosses from one character to another.
+  // Storage every character can reach. This is the only way an item moves from
+  // one character to another.
   Bank bank = 8;
 }
 
-// The bank: two tabs of 128 slots and a purse, shared by every character on
-// the account. The tabs mirror the bag's own -- see Inventory and
-// Character.stacks -- because what the bank holds is what came out of one.
+// The bank: two tabs of 128 slots and a purse, shared by every character on the
+// account. The tabs match the bag's (see Inventory and Character.stacks), since
+// everything in the bank came out of a bag.
 message Bank {
   repeated Equip equip_tab = 1;
   repeated StackableStack stacks = 2;
 
-  // Meso put away, and the other currencies beside it. Split for the reason
-  // the character splits them: meso is the price of everything and is read
-  // far more often than the rest.
+  // Stored meso, with the other currencies beside it. Meso has its own field
+  // for the same reason the character keeps it apart: everything is priced in
+  // meso, so it is read far more often than the rest.
   int64 meso = 3;
   map<string, int64> currencies = 4;
 }
 
-// Where the game's music comes from. Zero is the state the game ships in, so
-// a save from before the Jukebox existed follows the map the way it always
-// did; see the Options comment below for the rule.
+// Where the game's music comes from. Zero is the shipped default, so a save
+// from before the Jukebox existed still follows the map. See Options for the
+// rule.
 enum JukeboxMode {
-  // The track the map, or the boss being fought, names -- looped.
+  // Loop the track the map, or the boss being fought, names.
   JUKEBOX_MODE_FOLLOW_MAP = 0;
-  // Down the song list and round again: the track after the one playing.
+  // Play the song list in order and start over at the end.
   JUKEBOX_MODE_PLAYLIST = 1;
-  // A track at random, never one of the last few played.
+  // Play a random track, skipping the last few played.
   JUKEBOX_MODE_SHUFFLE = 2;
 }
 
-// The switches the Options screen holds, one field apiece. Every one is
-// written so that its default -- an unset field, which is what a save from
-// before the option existed has -- is the state the game ships in. A new
-// option that ships on has to be phrased as what it turns off.
+// The switches on the Options screen, one field each. Each field's default (an
+// unset field, which is what a save from before the option existed holds) must
+// be the shipped state. An option that ships turned on has to be named for what
+// it turns off.
 message Options {
-  // Whether the title of the panel holding focus blinks. Off, which is the
-  // default, holds the chip lit instead of pulsing it.
+  // Whether the title of the focused panel blinks. Off, the default, keeps the
+  // title lit without pulsing.
   bool panel_title_blink = 1;
 
-  // How loud the music plays on a map and in a boss fight, 0 to 100.
+  // Music volume on a map and in a boss fight, 0 to 100.
   //
-  // These two are optional where every other option is a bare field, and for
-  // the rule's own sake rather than against it: the state the game ships in
-  // is volume 10, and a bare int32 defaults to 0, which is silence. Presence
-  // is what lets an unset field mean the shipped volume.
+  // The two volumes are optional, unlike the other options, because of the same
+  // rule: the shipped volume is 10, but a plain int32 defaults to 0, which is
+  // silence. Field presence lets an unset volume mean the shipped one.
   optional int32 map_bgm_volume = 2;
   optional int32 boss_bgm_volume = 3;
 
-  // Whether the game picks a preset by what the character is doing -- the
-  // first while farming, the second at a boss -- rather than leaving the
-  // player to put one in use by hand. Off, which is the default, names the
-  // presets by number and hands the choice over: see stat_preset.h.
+  // Whether the game picks a preset from what the character is doing: the first
+  // while farming, the second at a boss. Off, the default, labels presets by
+  // number and leaves the player to pick one. See stat_preset.h.
   bool autoswap_presets = 4;
 
-  // Where the music comes from. The Jukebox screen sets it; nothing on the
-  // Options screen does.
+  // Where the music comes from. Only the Jukebox screen sets this.
   JukeboxMode jukebox_mode = 6;
 
-  // Whether the charge bar is dotted at its ends with the buffs standing, on
-  // a map and in a boss fight. Off, which is the default, draws the bar bare.
+  // Whether the charge bar shows a dot at each end for each active buff, on a
+  // map and in a boss fight. Off by default.
   bool buff_indicators = 7;
 
-  // Field 5 was a bool shuffle switch on the Options screen, which
-  // `jukebox_mode` took over. Nothing migrates it: it shipped off, so a save
-  // that carried it on loses one keypress on the Jukebox screen, and reading
-  // it would cost a save version and a migration kept forever.
+  // Field 5 was a shuffle switch on the Options screen, replaced by
+  // `jukebox_mode`. It isn't migrated. It shipped off, so a save that had it on
+  // costs the player one keypress on the Jukebox screen, while reading it would
+  // need a save version and a migration kept forever.
   reserved 5;
 }

@@ -7,20 +7,19 @@ import "src/protos/mob.proto";
 // A hunting area. Loaded from data/maps textprotos at startup.
 message MapData {
   string name = 1;
-  // What spawns here. The counts sum to the map's spawn points, which --
-  // combined with the fixed 7.56s global respawn tick -- set the full-clear
-  // cap: a player who clears instantly tops out at (total count) / 7.56 kills
-  // per second.
+  // What spawns here. The counts add up to the map's spawn points. With the fixed
+  // 7.56s respawn tick, they cap how fast the map can be cleared: a player who
+  // kills instantly gets at most (total count) / 7.56 kills per second.
   repeated Spawn spawns = 2;
-  // Arcane Force this map asks for. How much of it the character carries
-  // scales both what they deal here and what they take, from a tenth against
-  // 2.8x at the bottom to half again against nothing at the top -- see
-  // ArcaneFactorsFor. Unset outside Arcane River, which asks for none.
+  // Arcane Force this map requires. How much the character has scales both the
+  // damage they deal here and the damage they take: from a tenth dealt and 2.8x
+  // taken with none, up to 1.5x dealt and nothing taken at the top (see
+  // ArcaneFactorsFor). Unset outside Arcane River, where none is required.
   int32 arcane_force = 3;
-  // Sacred Power this map asks for: Grandis's twin of arcane_force, on its
-  // own table -- see SacredFactorsFor. A map asks for one or neither.
+  // Sacred Power this map requires: Grandis's version of arcane_force, with its
+  // own table (see SacredFactorsFor). A map requires one or neither.
   int32 sacred_power = 5;
-  // The music that plays here, named by its stem under bgm/. Picked for the
-  // region rather than the exact GMS map, so neighbours share one track.
+  // The music for this map, named by its file stem under bgm/. Chosen per
+  // region, not per GMS map, so neighbouring maps share a track.
   string bgm = 4;
 }

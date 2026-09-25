@@ -4,86 +4,87 @@ package ms;
 
 import "src/protos/equip.proto";
 
-// The colour of a currency item's mark. The mark's SHAPE says which stage of
-// the game the token belongs to, and its colour which piece it buys, so a
-// player reads both off one glyph without a legend.
+// The colour of a currency's mark. The mark's shape says which stage of the
+// game the token belongs to and its colour says which piece it buys, so the
+// player can read both from one glyph without a legend.
 enum CurrencyColor {
   CURRENCY_COLOR_UNSPECIFIED = 0;
   CURRENCY_COLOR_THEME = 1;
   CURRENCY_COLOR_ORANGE = 2;
   CURRENCY_COLOR_PURPLE = 3;
-  // The Root Abyss armour, one colour per piece: the three fall in the shop
-  // together, so no two of them may read as shades of each other.
+  // Root Abyss armour, one colour per piece. All three sit in the shop
+  // together, so no two may look like shades of each other.
   CURRENCY_COLOR_GOLD = 4;
   CURRENCY_COLOR_GREEN = 5;
   CURRENCY_COLOR_PINK = 6;
 }
 
-// What a stackable is for, where nothing else about it says so. Naming one of
-// these makes the item a CURRENCY: it is counted in the character's purse
-// rather than carried on the Etc tab, so it costs no slot and no stack limit
-// caps it. An ordinary drop names nothing.
+// What a stackable item is for, when nothing else about it says so. Setting one
+// of these makes the item a currency: it is counted in the character's purse
+// instead of carried on the Etc tab, so it takes no slot and has no stack
+// limit. Ordinary drops leave this unset.
 enum ItemKind {
   ITEM_KIND_UNSPECIFIED = 0;
-  // The currency scrolls are bought with.
+  // Spent to buy scrolls.
   ITEM_KIND_SPELL_TRACE = 1;
-  // A currency a shop takes as payment. Such an item also carries the mark
-  // the shop draws it by -- see currency_mark.
+  // A currency a shop accepts as payment. These items also set currency_mark,
+  // the symbol the shop draws for them.
   ITEM_KIND_TOKEN = 2;
   // A boss's own drop, one per boss.
   ITEM_KIND_SOUL_SHARD = 3;
 }
 
-// Static definition of a stackable item type. Loaded from data/items textprotos
-// at startup; shared read-only across all stacks of the same type.
+// The definition of a stackable item type, loaded from data/items at startup
+// and shared read-only by every stack of that type.
 message ItemPrototype {
   string name = 1;
-  // 2 was `category`, whose one value was Etc: every stackable is carried on
-  // the Etc tab.
+  // 2 was `category`, whose only value was Etc: every stackable goes on the Etc
+  // tab.
   reserved 2;
-  // Maximum per-slot stack. 0 means the default of 200 -- see
-  // StackableItem::max_stack. Says nothing about a currency, which is counted
-  // in the purse rather than carried and has no ceiling -- see ItemKind.
+  // Maximum stack per slot. 0 means the default of 200 (see
+  // StackableItem::max_stack). Currencies ignore this: they are counted in the
+  // purse, not carried, and have no limit (see ItemKind).
   int32 max_stack = 3;
-  // Meso received when sold to a shop. Zero is a price, not a refusal: every
-  // item can be sold, and one worth nothing is simply thrown away. A currency
-  // is never sold at all -- it is not in the bag to be put on the counter.
+  // Meso paid when sold to a shop. Zero is still a price: every item can be
+  // sold, and one worth nothing is thrown away. Currencies are never sold
+  // because they aren't in the bag.
   int32 sell_price = 4;
-  // What the item is, in a sentence, for the inspect screen. A stack has no
-  // stats to show, so this is the whole of what inspecting one tells you.
+  // One sentence describing the item, for the inspect screen. A stack has no
+  // stats, so this is all that inspecting one shows.
   string description = 5;
-  // 6 was `effect`, what one copy did when used. Nothing in the game was ever
-  // usable but a debug Level-Up item, which is gone.
+  // 6 was `effect`, what using one copy did. The only usable item was a debug
+  // Level-Up item, which has been removed.
   reserved 6;
-  // Meso one copy costs in the shop. 0 = not stocked. Naming a price here is
-  // the whole of how a stackable joins the shop, exactly as it is for equips.
+  // Meso one copy costs in the shop; 0 means the shop doesn't sell it. Setting
+  // a price is all it takes to put a stackable in the shop, the same as for
+  // equips.
   int32 shop_price = 7;
-  // The mark the shop draws where a price is paid in this item, e.g. "●".
-  // Empty for an ordinary item, which no price is ever asked in.
+  // The symbol the shop draws next to prices paid in this item, e.g. "●". Empty
+  // for ordinary items, which are never used as payment.
   string currency_mark = 8;
   CurrencyColor currency_color = 9;
   // See ItemKind.
   ItemKind kind = 10;
-  // For a token, the level of the equipment it buys and the slot that goes in.
-  // Together they are the order the bag files the token shelf in: the best
-  // gear first, the weapon ahead of the rest of a set, and a token that buys a
-  // whole set naming no slot and leading its level.
+  // For a token, the level of the equipment it buys and the slot that equipment
+  // goes in. The bag sorts its token shelf by these: best gear first, the
+  // weapon before the rest of its set, and a token for a whole set (no slot)
+  // first within its level.
   //
-  // NOT what currency_mark says: the mark is the STAGE of the game the token
-  // belongs to, and one stage can cover two levels. Never written in data:
-  // FillTokenShelves derives both from what the catalog sells for the token.
+  // This differs from currency_mark, which shows the token's stage of the game;
+  // one stage can cover two levels. Data files never set this. FillTokenShelves
+  // works it out from what the catalog sells for the token.
   int32 currency_level = 12;
   EquipSlot currency_slot = 13;
-  // What a list calls the item where its own column already says the rest:
-  // "Zakum's" under a column headed Soul Shard. Empty means the name does the
-  // whole job, which is true of everything but the shards.
+  // A shorter name for lists whose column heading already says the rest, e.g.
+  // "Zakum's" under a Soul Shard column. Empty means the full name is used,
+  // which is true of everything but soul shards.
   string short_name = 11;
 }
 
-// One stack on the Etc tab. Carries the catalog key and a count, not the item
-// itself: prototypes are loaded from data/ and resolved by name, so a save
-// stays small and the data files stay authoritative over what an item is.
-// Which tab it belongs to is the prototype's to say, for the same reason.
+// One stack on the Etc tab. It stores the catalog key and a count, not the
+// item: prototypes load from data/ and are looked up by name, so saves stay
+// small and the data files decide what an item is. The prototype also decides
+// which tab the stack goes on.
 message StackableStack {
   string name = 1;
   int32 count = 2;

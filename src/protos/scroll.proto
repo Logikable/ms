@@ -4,7 +4,7 @@ package ms;
 
 import "src/protos/equip.proto";
 
-// Tier is determined by the equipment's required_level:
+// The tier comes from the equipment's required_level:
 //   Tier 1: 0-74, Tier 2: 75-114, Tier 3: 115+
 enum ScrollTier {
   SCROLL_TIER_UNSPECIFIED = 0;
@@ -18,9 +18,8 @@ enum ScrollCategory {
   SCROLL_CATEGORY_CLEAN_SLATE = 1;
 }
 
-// Primary stat boosted by the scroll. Values are ordered for display: the
-// scroll list in the UI is sorted by ScrollType ascending, then by
-// success_rate descending within each type.
+// The stat the scroll raises. The values are in display order: the scroll list
+// sorts by ScrollType ascending, then by success_rate descending within a type.
 enum ScrollType {
   SCROLL_TYPE_UNSPECIFIED = 0;
   SCROLL_TYPE_ATT = 1;
@@ -31,35 +30,34 @@ enum ScrollType {
   SCROLL_TYPE_LUK = 6;
   SCROLL_TYPE_HP = 7;
   SCROLL_TYPE_DEF = 8;
-  // Armour only, and only at the long odds. Raises all four stats at once by
-  // less than the single-stat scroll beside it raises one.
+  // Armour only, and only at low success rates. Raises all four stats at once,
+  // each by less than the matching single-stat scroll raises one.
   SCROLL_TYPE_ALL_STATS = 9;
 }
 
-// The kind of equipment a scroll goes on. The job categories cannot say this:
-// a universal hat lists the same category every weapon scroll applies to, so
-// without a target every weapon scroll is offered for it. TargetForSlot reads
-// the item's side of the question.
+// The kind of equipment a scroll can be used on. Job categories can't express
+// this: a universal hat has the same category every weapon scroll applies to,
+// so without a target every weapon scroll would be offered for it.
+// TargetForSlot gives the item's side.
 enum ScrollTarget {
-  // Any item. What a clean slate is: it restores a slot on whatever holds one.
+  // Any item. Clean slates use this: they restore a slot on any item that has
+  // one.
   SCROLL_TARGET_UNSPECIFIED = 0;
   SCROLL_TARGET_WEAPON = 1;
-  // Everything worn on the body but the gloves, the shoulderpad included.
+  // Everything worn on the body except gloves; shoulderpads included.
   SCROLL_TARGET_ARMOUR = 2;
-  // The accessories, at their own prices: the face and eye pieces, the
-  // earrings, the rings, the pendants and the belt.
+  // Accessories, with their own prices: face and eye pieces, earrings, rings,
+  // pendants and the belt.
   SCROLL_TARGET_ACCESSORY = 3;
-  // Gloves, which GMS scrolls on a shelf of their own that pays attack where
-  // the armour shelf pays a stat.
+  // Gloves. GMS gives them their own scrolls, which add attack where armour
+  // scrolls add a stat.
   SCROLL_TARGET_GLOVES = 4;
-  // Hearts, whose shelf pays the attack the wearer's job swings with and
-  // nothing else. Priced as an accessory, which is the column GMS bills it
-  // from.
+  // Hearts. Their scrolls add only the attack type the wearer's job uses.
+  // Priced as accessories, which is how GMS prices them.
   SCROLL_TARGET_HEART = 5;
 }
 
-// One Scroll represents a single, fully-specified scroll option,
-// e.g. "Spell Trace 100% STR, Warrior, Tier 1".
+// One fully specified scroll, e.g. "Spell Trace 100% STR, Warrior, Tier 1".
 message Scroll {
   string name = 1;
   ScrollType scroll_type = 2;
@@ -69,12 +67,12 @@ message Scroll {
   int32 success_rate = 5;
   EquipStats stats = 6;
   repeated EquipJobCategory applicable_job_categories = 7;
-  // Spell traces one copy costs, for a CLEAN SLATE only, which GMS does not
-  // sell for traces and so has no band to be priced from.
+  // Spell traces per copy, for clean slates only. GMS doesn't sell clean slates
+  // for traces, so there is no price band to use.
   //
-  // Every other scroll leaves this unset: its price comes from the level of
-  // the item it goes on, through TraceCost in src/item/spell_trace_cost.h. A
-  // value written here would be ignored, so a data test refuses one.
+  // Every other scroll leaves this unset; its price comes from the level of the
+  // item it is used on, through TraceCost in src/item/spell_trace_cost.h. A
+  // data test rejects a value here, because it would be ignored.
   int32 trace_cost = 8;
   ScrollTarget target = 9;
 }

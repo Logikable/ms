@@ -5,22 +5,20 @@ package ms;
 import "src/protos/equip.proto";
 import "src/protos/skill.proto";
 
-// Every set of equipment in the game. An enum rather than a free-typed name
-// because there will only ever be a handful, and the screens that name a set
-// should not be able to disagree with the data about its spelling.
+// Every equipment set in the game. An enum, not a free-form name, because there
+// are only a handful and the screens that name a set shouldn't be able to spell
+// it differently from the data.
 enum EquipSetName {
   EQUIP_SET_NAME_UNSPECIFIED = 0;
   EQUIP_SET_NAME_FROZEN = 1;
   EQUIP_SET_NAME_BOSS_ACCESSORY = 2;
-  // One per branch: every piece of the Root Abyss set belongs to one class,
-  // so there is no single set to belong to.
+  // One per branch, because each Root Abyss piece belongs to a single class.
   EQUIP_SET_NAME_ROOT_ABYSS_WARRIOR = 3;
   EQUIP_SET_NAME_ROOT_ABYSS_BOWMAN = 4;
   EQUIP_SET_NAME_ROOT_ABYSS_MAGICIAN = 5;
   EQUIP_SET_NAME_ROOT_ABYSS_THIEF = 6;
   EQUIP_SET_NAME_SENGOKU_TREASURE = 7;
-  // One per branch again, and for the same reason: every piece of the AbsoLab
-  // set belongs to one class.
+  // One per branch, for the same reason as Root Abyss.
   EQUIP_SET_NAME_ABSOLAB_WARRIOR = 8;
   EQUIP_SET_NAME_ABSOLAB_BOWMAN = 9;
   EQUIP_SET_NAME_ABSOLAB_MAGICIAN = 10;
@@ -29,50 +27,49 @@ enum EquipSetName {
 }
 
 // What wearing several pieces of one set is worth. Each tier is a SkillEffect
-// because a set bonus grants exactly what a passive skill grants -- stats,
-// attack, a share of the HP pool, damage, defense ignored -- and everything
-// that reads those levers should not have to learn a second shape for them.
+// because a set bonus grants the same things a passive skill does (stats,
+// attack, a share of max HP, damage, defense ignored), and the code that reads
+// those shouldn't need a second format.
 message EquipSetTier {
-  // Pieces of the set that must be worn for this tier to pay.
+  // How many pieces of the set must be worn for this tier to apply.
   int32 pieces = 1;
   SkillEffect effect = 2;
 }
 
-// The pieces that fill one slot of a set, by display name -- the way a save
-// names what it holds, because the character carries prototypes rather than
-// the catalog keys they were loaded under. More than one where a later boss
-// drops an alternate for the same slot; wearing any of them fills it.
+// The items that fill one slot of a set, by display name. Names are used
+// because that is how a save records items: a character holds prototypes, not
+// the catalog keys they were loaded under. There is more than one when a later
+// boss drops an alternative for the same slot; wearing any of them fills it.
 message EquipSetItems {
   repeated string name = 1;
 }
 
-// One slot of a set and what fills it: the pieces written by name, the family
-// any piece of which fills it, or both. A slot takes both where some of what
-// fills it is one item and the rest is one-per-class: the Boss Accessory
-// shoulder is a Magnus drop or any of the four Cygnus shoulders.
+// One slot of a set and what fills it: items listed by name, a family (any item
+// in it fills the slot), or both. Both are used when the slot takes one
+// specific item or one item per class: the Boss Accessory shoulder is a Magnus
+// drop or any of the four Cygnus shoulders.
 message EquipSetMember {
   EquipSlot slot = 1;
   reserved 2;  // the single `string name` the items below grew out of
   EquipSetItems items = 4;
-  // A class's own version of one piece, which a set cannot name outright. The
-  // inspect screen reads it as "Choose 1 <family>" until one is worn.
+  // A family of per-class versions of one piece, which a set can't list as a
+  // single item. The inspect screen shows "Choose 1 <family>" until one is
+  // worn.
   optional string family = 3;
 }
 
-// A family of equipment that pays for being worn together. Loaded from
-// data/sets textprotos at startup.
+// Equipment that pays a bonus for being worn together, loaded from data/sets at
+// startup.
 message EquipSet {
   EquipSetName name = 1;
-  // One member per slot, so no slot can count twice. Written in the order the
-  // inspect screen lists them.
+  // One member per slot, so no slot can count twice. Listed in the order the
+  // inspect screen shows them.
   repeated EquipSetMember members = 2;
-  // Tiers are cumulative: five pieces pay the three, four and five tiers
-  // together. Written that way so a tier states what it adds rather than
-  // restating everything below it.
+  // Tiers stack: wearing five pieces pays the three-, four- and five-piece
+  // tiers together. Each tier lists only what it adds over the one below.
   repeated EquipSetTier tiers = 3;
-  // How many slots the set spans once every piece of it is written. The tiers
-  // are read against this rather than against the members above, because a set
-  // arrives before all of its pieces do: the Boss Accessory Set pays at three,
-  // five, seven and nine, and two of its nine slots hold an item today.
+  // How many slots the set covers once every piece exists. Tiers are read
+  // against this, not against the members above, because a set can ship before
+  // all of its pieces do.
   int32 complete_pieces = 4;
 }

@@ -5,106 +5,108 @@ package ms;
 import "src/protos/character.proto";
 import "src/protos/equip.proto";
 
-// What the client and the server say to each other. Nothing here is written to
-// disk, so these field numbers are free to move -- but both ends have to agree
-// on them, which is what kMultiplayerVersion in //src/multiplayer:protocol is
-// for. Change a message, bump the version, and older clients are turned away
-// rather than misread.
+// Messages between the client and the server. None of this is saved to disk, so
+// field numbers can move, but both ends must agree on them. That is what
+// kMultiplayerVersion in //src/multiplayer:protocol is for: when a message
+// changes, bump the version and older clients are turned away instead of
+// misread.
 
 // How a party shares what it kills.
 enum PartyMode {
   PARTY_MODE_UNSPECIFIED = 0;
-  // One boss, one set of drops: the meso and the drop rolls are split by the
+  // One boss and one set of drops: meso and drop rolls are divided by the
   // number of players.
   PARTY_MODE_SHARED = 1;
-  // Every player fights their own copy of the boss and is paid as if they
-  // came alone.
+  // Each player fights their own copy of the boss and is paid as if they came
+  // alone.
   PARTY_MODE_SOLO_TOGETHER = 2;
 }
 
-// What a player has switched on for a boss fight, on the boss screen's own
-// options row. Every member of a party must have the same ones set, or the
-// leader is refused -- a fight cannot pay one player and not the next.
+// The options a player has turned on in the boss screen's options row. Every
+// party member must have the same ones, or the leader's start is refused, since
+// a fight can't pay one player and not another.
 message BossOptions {
-  // Practice: the fight ignores the reset clock and spends no clear, and in
-  // return pays nothing at all.
+  // Practice: the fight ignores the reset timer and uses up no clear, and pays
+  // nothing.
   bool practice = 1;
 }
 
-// One player as everyone else sees them: the character they bring, and the
-// account that identifies them across connections.
+// One player as others see them: the character they bring, and the account that
+// identifies them across connections.
 message PlayerInfo {
-  // Issued by the server the first time a player connects, and sent back on
-  // every connection after that. Empty in a Hello from a new player.
+  // Issued by the server the first time a player connects and sent back on
+  // every later connection. Empty in a new player's Hello.
   string account_id = 1;
   string name = 2;
   int32 level = 3;
   JobAdvancement job = 4;
 
-  // The character as the Inspect screen draws them, built by PublicSheet,
-  // which clears everything a party has no business with.
+  // The character as the Inspect screen draws them, built by PublicSheet, which
+  // clears everything a party doesn't need.
   //
-  // Sent WHOLE rather than as a table of figures, so the screen showing it
-  // runs the same stat code the owner's panels do. Its items are NAMED, so it
-  // means anything only to a client holding the same catalogs -- which is what
-  // the protocol version covers. The lobby listing strips it.
+  // The whole character is sent, not a table of numbers, so the screen showing
+  // it runs the same stat code as the owner's panels. Items are referred to by
+  // name, so the sheet only makes sense to a client with the same catalogs,
+  // which the protocol version guarantees. The lobby listing strips it.
   Character sheet = 5;
 
-  // The boss clears this character is holding against the reset clock. Sent
-  // apart from the sheet, which strips them: what a party member may see of
-  // somebody is one question, and what the server has to know before it lets
-  // a party at a daily is another. Stripped from the listing with the sheet.
+  // Boss clears this character has that still count against the reset timer.
+  // Sent separately from the sheet, which strips them: what party members may
+  // see about someone is a different question from what the server must check
+  // before letting a party into a daily. Stripped from the listing along with
+  // the sheet.
   repeated BossClear boss_clears = 6;
 
-  // Whether this player has Autoswap Presets on. Beside the sheet rather than
-  // in it, because it is the account's switch and not the character's -- but
-  // it travels with them, so their sheet is read the way they read it.
+  // Whether this player has Autoswap Presets on. It sits beside the sheet, not
+  // in it, because it is an account setting, not a character one. It is still
+  // sent with the player so others read their sheet the way they do.
   bool autoswap_presets = 7;
 
-  // What they have set on the boss screen's options row, which the server
-  // holds every member of a party to.
+  // The options they have set on the boss screen, which the server requires
+  // every party member to match.
   BossOptions boss_options = 8;
 
-  // The best level each of their account's OTHER characters has reached on
-  // its job line, keyed by that line's second job (as int32, a proto3 map
-  // limitation). Beside the sheet for the reason autoswap_presets is: it is
-  // the account's climb rather than this character's, and their link skills
-  // cannot be read off the sheet alone. See //src/character:link.
+  // The best level each of the account's other characters has reached in its
+  // job line, keyed by that line's second job (int32 because of a proto3 map
+  // limitation). It sits beside the sheet for the same reason as
+  // autoswap_presets: it is the account's progress, not this character's, and
+  // their link skills can't be worked out from the sheet alone. See
+  // //src/character:link.
   map<int32, int32> link_lines = 9;
 }
 
 // One player's place in a party.
 message PartyMember {
   PlayerInfo player = 1;
-  // Whether they have said they are ready. Cleared for everyone whenever the
-  // party's membership or its leader changes, so nobody is carried into a
-  // fight on a promise they made about a different party. The leader is
-  // always ready and this is not set for them.
+  // Whether they have marked themselves ready. Cleared for everyone whenever
+  // the party's members or leader change, so nobody is pulled into a fight on a
+  // ready given for a different party. The leader is always ready and never
+  // sets this.
   bool ready = 2;
 }
 
-// A party waiting in the lobby. It is people and nothing else: the fight is
-// named when the leader starts one.
+// A party waiting in the lobby. It only lists people; the leader picks the
+// fight when starting it.
 message Party {
   string id = 1;
-  // Whose party it is. The leader starts the fight; when they leave, the
-  // player who joined first takes it over.
+  // The party's leader, who starts the fight. When the leader leaves, the
+  // member who joined first takes over.
   string leader_account_id = 2;
   repeated PartyMember members = 3;
 }
 
-// The first thing a client sends. Carries the character as they stand, since
-// they level between connections.
+// The first message a client sends. It includes the character's current state,
+// since they level between connections.
 message Hello {
   int32 protocol_version = 1;
-  // What the server issued last time, empty for a player it has never seen.
-  // The account it names is in player.account_id.
+  // The token the server issued last time; empty for a player it has never
+  // seen. The account it belongs to is in player.account_id.
   string token = 2;
   PlayerInfo player = 3;
 }
 
-// The character as they stand now, sent when they level or take a new name.
-// Without it a party would show who its members were when they joined.
+// The character's current state, sent when they level up or change their name.
+// Without it a party would keep showing members as they were when they joined.
 message UpdatePlayer {
   PlayerInfo player = 1;
 }
@@ -119,12 +121,12 @@ message LeaveParty {}
 
 // Leader only. The party leaves the lobby list and the fight begins.
 message StartFight {
-  // Which fight, as a key into the boss catalog and an index into its
+  // Which fight: a key into the boss catalog and an index into its
   // difficulties.
   string boss_key = 1;
   int32 difficulty_index = 2;
   PartyMode mode = 3;
-  // The leader's own options, which every member's must match.
+  // The leader's options, which every member's must match.
   BossOptions options = 4;
 }
 
@@ -132,7 +134,7 @@ message SetReady {
   bool ready = 1;
 }
 
-// Leader only. Both name a member by the account they play under.
+// Leader only. Both refer to a member by their account.
 message KickMember {
   string account_id = 1;
 }
@@ -141,27 +143,28 @@ message PromoteMember {
   string account_id = 1;
 }
 
-// One line of damage as it landed. `slot` is a place in the phase's ROSTER,
-// counted in spawn order, so both ends mean the same monster by the same
-// number. The damage is the whole number the player watched fly off, which is
-// also what comes off the shared roster -- the two cannot drift.
+// One damage number as it landed. `slot` is a position in the phase's roster,
+// counted in spawn order, so both ends use the same number for the same
+// monster. The damage is the full number the player saw, which is also what is
+// subtracted from the shared roster, so the two can't disagree.
 message FightDamage {
   int32 slot = 1;
-  // Shared by every line one attack put on one monster, so a swing of eight
-  // reads as one stack of eight rather than eight stacks of one.
+  // Shared by every line one attack put on one monster, so an eight-hit swing
+  // shows as one stack of eight, not eight stacks of one.
   int32 event = 2;
-  // What did it, as DamageOrigin and the index inside it -- which summon,
-  // which burn. One monster holds at most one stack per player per source.
+  // The source of the damage, as a DamageOrigin and an index within it (which
+  // summon, which burn). A monster shows at most one stack per player per
+  // source.
   int32 origin = 3;
   int32 source_index = 4;
   int64 damage = 5;
   bool crit = 6;
-  // Which landing of the event it belongs to, so a swing that slashes twelve
-  // times reads as twelve flashes on the watcher's screen too.
+  // Which hit of the event this line belongs to, so a twelve-hit swing also
+  // shows as twelve flashes on other players' screens.
   int32 strike = 7;
 }
 
-// One skill's row of a player's damage breakdown: see DamageBreakdown.
+// One skill's row in a player's damage breakdown; see DamageBreakdown.
 message FightBreakdownRow {
   string skill = 1;
   double damage = 2;
@@ -169,88 +172,86 @@ message FightBreakdownRow {
   int64 lines = 4;
 }
 
-// One player's whole breakdown, as the fight ends on it.
+// One player's full breakdown at the end of the fight.
 message FightBreakdown {
   string account_id = 1;
   string name = 2;
   repeated FightBreakdownRow rows = 3;
 }
 
-// What one client's fight has landed since it last spoke, and what its player
-// is doing. Sent while a fight is on and at no other time.
+// The damage one client's fight has dealt since its last update, and what its
+// player is doing. Sent only while a fight is running.
 message FightUpdate {
   repeated FightDamage lines = 1;
-  // Which phase these landed in. A report that crosses a phase change is
-  // dropped rather than taken off the next phase's roster.
+  // The phase the damage was dealt in. A report that crosses a phase change is
+  // dropped instead of being applied to the next phase's roster.
   int32 phase = 2;
-  // Which of the phase's player spots this player has walked to. The client
-  // walks first and the server says whether the spot was free.
+  // Which of the phase's player spots this player has moved to. The client
+  // moves first and the server says whether the spot was free.
   int32 spot = 3;
-  // The swing being charged and how far along it is, for the bar over this
-  // player's panel on everyone else's screen.
+  // The swing being charged and its progress, for the bar over this player's
+  // panel on everyone else's screen.
   string attack_name = 4;
   double attack_fraction = 5;
-  // This player's Item Drop Rate, as a fraction. The clear rolls its drops
-  // against the best one in the party, the way a party brings one along for
-  // everybody.
+  // This player's Item Drop Rate, as a fraction. The clear rolls drops at the
+  // party's highest rate, as if one member's rate covered everyone.
   double item_drop_pct = 6;
-  // How many of this player's buffs stand, dotted along that bar.
+  // How many buffs this player has active, shown as dots on that bar.
   int32 buff_count = 7;
-  // Their damage by skill over the whole fight so far, replacing the last.
-  // Sent with the lines it counts, so what the others read at the end is
-  // exactly what came off the roster.
+  // Their damage by skill over the whole fight so far, replacing the previous
+  // one. Sent together with the lines it counts, so the totals everyone sees at
+  // the end match what was subtracted from the roster.
   repeated FightBreakdownRow breakdown = 8;
 }
 
-// One player as the rest of the party sees them mid-fight.
+// One player as the rest of the party sees them during a fight.
 message FightPlayerState {
   string account_id = 1;
   string name = 2;
   int32 spot = 3;
-  // False once their client has gone. They deal no more damage and are paid
-  // nothing, and the fight goes on without them.
+  // False once their client has disconnected. They deal no more damage, get no
+  // reward, and the fight continues without them.
   bool present = 4;
   string attack_name = 5;
   double attack_fraction = 6;
-  // What they have landed since the last of these. A client skips its own:
-  // it drew those numbers when it landed them.
+  // Damage they have dealt since the last update. A client skips its own lines,
+  // since it already drew them.
   repeated FightDamage lines = 7;
   int32 buff_count = 8;
 }
 
-// The fight as the server has it, sent to everyone in it about ten times a
-// second. The first one a client receives is how it learns the fight has
-// begun.
+// The server's view of the fight, sent to every participant about ten times a
+// second. The first one a client receives tells it the fight has started.
 message FightState {
-  // What the fight is doing. The ways of being over are in FightEnded.
+  // What the fight is doing. The ways it can end are in FightEnded.
   enum Stage {
     STAGE_UNSPECIFIED = 0;
     COUNTDOWN = 1;
     FIGHTING = 2;
     PHASE_GAP = 3;
   }
-  // Which fight this is, so a client that walked out of one can tell a state
-  // still in flight from the party's next fight.
+  // Which fight this is, so a client that left one can tell a late update for
+  // it from the party's next fight.
   string fight_id = 9;
   string boss_key = 1;
   int32 difficulty_index = 2;
   Stage stage = 3;
-  // Counting from 0, as the difficulty's phases are.
+  // Counted from 0, like the difficulty's phases.
   int32 phase = 4;
   double seconds_left = 5;
   double countdown_left = 6;
-  // What every monster of the phase has left, one per slot.
+  // The HP fraction left for each monster in the phase, one per slot.
   repeated double hp_fractions = 7;
   repeated FightPlayerState players = 8;
-  // The terms the fight was started on. Sent with the fight rather than read
-  // off each client's own switch, so a toggle mid-fight cannot change what
-  // this one pays.
+  // The options the fight was started with. Sent with the fight instead of read
+  // from each client's own setting, so toggling one mid-fight can't change what
+  // this fight pays.
   BossOptions options = 10;
 }
 
-// One item a clear paid this player.
+// One item a clear gave this player.
 message FightAward {
-  // What fell, by data file stem, as MobDrop names it.
+  // The item that dropped, by data file stem, as in MobDrop.
   oneof drop {
     string item = 1;   // an ItemPrototype
     string equip = 2;  // an EquipPrototype
@@ -258,48 +259,48 @@ message FightAward {
   int64 count = 3;
 }
 
-// The fight is over. The meso is split by `share_count` and the EXP is not,
-// both worked out by each client for itself; the drops are the server's to
-// deal, because only it can hand a thing that fell to exactly one player.
+// The fight is over. Meso is divided by `share_count` and EXP isn't; each
+// client works both out for itself. The server hands out drops, because only it
+// can give an item to exactly one player.
 message FightEnded {
   enum Outcome {
     OUTCOME_UNSPECIFIED = 0;
     CLEARED = 1;
     TIMED_OUT = 2;
-    // Every client left. Nobody is paid and nobody's entry is spent.
+    // Every client left. Nobody is paid and nobody's entry is used up.
     ABANDONED = 3;
   }
   Outcome outcome = 1;
-  // How many players the fight started with, which is what a clear is split
-  // by. A player who leaves does not make the rest richer.
+  // How many players the fight started with, which the clear is divided by. A
+  // player leaving doesn't give the others a bigger share.
   int32 share_count = 2;
-  // What this player won. The server rolls each of the boss's drops once at
-  // its stated chance and gives what falls to a random player, so a drop that
-  // is certain is certain: rolling per player at a split chance can pay it to
+  // What this player won. The server rolls each of the boss's drops once at its
+  // listed chance and gives any drop to a random player. That way a guaranteed
+  // drop always drops; rolling per player at a divided chance could give it to
   // nobody.
   repeated FightAward awards = 3;
-  // Everyone's damage by skill, those who left included, as each last
+  // Everyone's damage by skill, including players who left, as each last
   // reported it.
   repeated FightBreakdown breakdowns = 4;
 }
 
-// Walking out of a fight in progress. The player is dropped from it exactly as
-// a client that went would be: they deal no more damage, they are paid
-// nothing, and the fight goes on for whoever is left.
+// Leaving a fight in progress. The player is removed exactly as if their client
+// had disconnected: they deal no more damage, get no reward, and the fight
+// continues for the others.
 message LeaveFight {}
 
-// One stack on the table: what it is and how many. Named rather than pointed
-// at, as everything crossing the wire is -- an index into a bag the other end
-// cannot see means nothing there.
+// One stack in a trade: what it is and how many. Referred to by name, like
+// everything sent over the wire, since an index into a bag the other end can't
+// see is meaningless there.
 message TradeStack {
   string name = 1;
   int32 count = 2;
 }
 
-// What one side of a trade is putting up: the two currencies worth counting,
-// and the items. An equip crosses WHOLE, scrolls, stars, hammers and potential
-// with it, so the other end rebuilds the drop rather than a fresh copy of the
-// prototype it names.
+// What one side of a trade offers: the two currencies worth trading, and the
+// items. An equip is sent whole, with its scrolls, stars, hammers and
+// potential, so the other end rebuilds that exact item and not a fresh copy of
+// its prototype.
 message TradeOffer {
   int64 meso = 1;
   int64 spell_traces = 2;
@@ -307,70 +308,69 @@ message TradeOffer {
   repeated TradeStack stacks = 4;
 }
 
-// Trade with the player named. Both sides send it: the first opens the trade
-// and the second joins the one they were asked into, which is why one message
-// does both.
+// Trade with the named player. Both sides send it: the first opens the trade
+// and the second joins the one they were invited to, so one message does both.
 message RequestTrade {
   string account_id = 1;
 }
 
-// What this player is putting up, whole rather than as a change to it -- two
-// changes in flight at once cannot then add up to an offer nobody made.
+// This player's whole offer, not a change to it, so two changes sent at once
+// can't add up to an offer nobody made.
 message SetTradeOffer {
   TradeOffer offer = 1;
 }
 
-// Walking out of the trade screen, which ends the trade for both.
+// Leaving the trade screen, which ends the trade for both players.
 message LeaveTrade {}
 
-// Accepting what is on the table, or taking that back.
+// Accept what is offered, or withdraw acceptance.
 message AcceptTrade {
   bool accepted = 1;
 }
 
-// Answering the finalize dialog. A cancel clears this player's acceptance and
-// nothing else: the other side keeps theirs, so one keypress puts the dialog
-// back up.
+// The answer to the finalize dialog. Cancelling clears only this player's
+// acceptance; the other side keeps theirs, so one keypress brings the dialog
+// back.
 message ConfirmTrade {
   bool confirmed = 1;
 }
 
-// The trade this client is in. An empty id means they are in none, which is
-// how walking out, being walked out on, and never having traded read alike.
+// The trade this client is in. An empty id means none, which covers leaving,
+// being left, and never having traded.
 message TradeState {
   string id = 1;
   string partner_account_id = 2;
   string partner_name = 3;
-  // False while the other player has been asked and has not yet pressed
-  // Trade back. Their panel wears no name until it is true.
+  // False while the other player has been invited but hasn't pressed Trade
+  // back. Their panel shows no name until then.
   bool partner_joined = 4;
   TradeOffer mine = 5;
   TradeOffer theirs = 6;
-  // Whether each side has accepted what is on the table. BOTH are cleared
-  // whenever either offer changes, so an accept always means the offer the
-  // player was looking at when they gave it.
+  // Whether each side has accepted the current offers. Both are cleared
+  // whenever either offer changes, so an accept always refers to the offer the
+  // player saw when they gave it.
   bool mine_accepted = 7;
   bool theirs_accepted = 8;
-  // Whether this player has confirmed and is waiting on the other. The trade
-  // goes through the moment both have, so only one side is ever waiting.
+  // Whether this player has confirmed and is waiting for the other. The trade
+  // goes through as soon as both confirm, so only one side is ever waiting.
   bool mine_confirmed = 9;
 }
 
-// Something worth putting in front of the player wherever they are: the gold
-// box in the corner of the screen. One string per line, written to be shown as
-// it stands -- the box is small, and nothing on the way to it wraps text.
+// A message worth showing the player wherever they are, in the gold box in the
+// corner of the screen. One string per line, shown exactly as written: the box
+// is small and nothing wraps the text.
 message Notification {
   repeated string lines = 1;
 }
 
-// Who this client has open on the Inspect screen, so the server sends their
-// sheet and keeps it fresh. An empty account says the screen has closed. One
-// at a time: the screen reads one player.
+// The player this client has open on the Inspect screen, so the server sends
+// their sheet and keeps it up to date. An empty account means the screen
+// closed. Only one at a time, since the screen shows one player.
 message WatchPlayer {
   string account_id = 1;
 }
 
-// The heartbeat. A session that goes quiet for kSessionTimeout is dropped.
+// The heartbeat. A session that is silent for kSessionTimeout is dropped.
 message Ping {}
 
 message ClientMessage {
@@ -396,27 +396,27 @@ message ClientMessage {
   }
 }
 
-// The answer to a Hello the server accepted.
+// The reply to a Hello the server accepted.
 message Welcome {
-  // The player's account. The same one they sent, or a fresh one for a player
-  // the server has never seen.
+  // The player's account: the one they sent, or a new one for a player the
+  // server has never seen.
   string account_id = 1;
   // Sent back on the next connection to prove the account is theirs.
   string token = 2;
 }
 
-// Why the server is closing the connection. Its `message` is written to be
-// shown to the player as it stands.
+// Why the server is closing the connection. `message` is meant to be shown to
+// the player as is.
 message Rejected {
   enum Reason {
     REASON_UNSPECIFIED = 0;
-    // The client's protocol version is not the server's.
+    // The client's protocol version doesn't match the server's.
     REASON_UPDATE_REQUIRED = 1;
     // The server is shutting down or has been taken offline.
     REASON_MAINTENANCE = 2;
-    // The account and token do not go together.
+    // The account and token don't match.
     REASON_BAD_CREDENTIALS = 3;
-    // The client sent something unreadable, or spoke out of turn.
+    // The client sent something unreadable or out of order.
     REASON_MALFORMED = 4;
   }
   Reason reason = 1;
@@ -424,7 +424,7 @@ message Rejected {
   string message = 3;
 }
 
-// An action the server would not take. The connection stays up.
+// An action the server refused. The connection stays open.
 message Refused {
   enum Reason {
     REASON_UNSPECIFIED = 0;
@@ -435,60 +435,59 @@ message Refused {
     REASON_ALREADY_IN_PARTY = 5;
     REASON_NOT_IN_PARTY = 6;
     REASON_UNKNOWN_BOSS = 7;
-    // The server is draining before an update and is taking nothing new on.
+    // The server is draining before an update and accepts nothing new.
     REASON_DRAINING = 8;
-    // The character is below the level the fight opens at.
+    // The character is below the fight's required level.
     REASON_LEVEL_TOO_LOW = 9;
-    // A kick or a promotion named somebody who is not in the party.
+    // A kick or promotion named someone who isn't in the party.
     REASON_NOT_A_MEMBER = 10;
-    // Somebody in the party has already taken this fight's reward.
+    // Someone in the party has already claimed this fight's reward.
     REASON_ALREADY_CLEARED = 11;
-    // Somebody in the party has not said they are ready.
+    // Someone in the party hasn't marked themselves ready.
     REASON_NOT_READY = 12;
-    // The party does not agree on the options the fight is taken under.
+    // Party members have different options set for the fight.
     REASON_OPTIONS_DIFFER = 13;
-    // The player asked to trade is in a fight or already trading, or the
-    // asker is. Nobody is told which: what stands in the way is the other
-    // player's own business.
+    // The player invited to trade is in a fight or already trading, or the
+    // inviter is. The reply doesn't say which, since the other player's
+    // situation is their own business.
     REASON_BUSY = 14;
-    // They went offline between the menu opening and Enter.
+    // They went offline between the menu opening and Enter being pressed.
     REASON_PLAYER_GONE = 15;
   }
   Reason reason = 1;
   string message = 2;
 }
 
-// Every party open to be joined. Pushed whenever the list changes, so no
-// client has to ask.
+// Every party open to join. Sent whenever the list changes, so clients never
+// have to ask.
 message PartyList {
   repeated Party parties = 1;
 }
 
-// Everyone connected, as the Players list draws them. Pushed whenever the
-// roster changes, in the order the players arrived.
+// Everyone connected, as the Players list shows them. Sent whenever someone
+// connects or disconnects, in the order they arrived.
 //
-// Without their sheets, the way the party listing goes without them: a client
-// sends a fresh sheet whenever its character moves, and a roster carrying
-// every sheet would send all of them to everybody. WatchPlayer asks for one.
+// Sheets are left out, as in the party list: a client sends a new sheet
+// whenever its character changes, and including every sheet would send all of
+// them to everybody. WatchPlayer requests one.
 message OnlinePlayers {
   repeated PlayerInfo players = 1;
 }
 
-// The player this client is watching, whole. Sent when the watch starts and
-// again whenever their character changes under the reader.
+// The full sheet of the player this client is watching. Sent when watching
+// starts and again whenever their character changes.
 message PlayerSheet {
   PlayerInfo player = 1;
 }
 
-// The party this client is in. An empty `party` means they are in none, which
-// is how leaving, being closed on, and never having joined all read alike.
+// The party this client is in. An empty `party` means none, which covers
+// leaving, the party being closed, and never having joined.
 message PartyState {
   Party party = 1;
 }
 
-// Something that happened to this player's standing in a party, which the
-// state after it cannot say on its own: being kicked and walking out both
-// arrive as no party at all.
+// Something that happened to this player's party membership that the new state
+// can't show by itself: being kicked and leaving both arrive as no party.
 message PartyEvent {
   enum Kind {
     KIND_UNSPECIFIED = 0;
@@ -496,13 +495,13 @@ message PartyEvent {
     PROMOTED = 2;
   }
   Kind kind = 1;
-  // Written to be shown to the player as it stands.
+  // Meant to be shown to the player as is.
   string message = 2;
 }
 
-// A trade that went through, sent to each side as the trade is torn down.
-// What is in it is what this player RECEIVES; what they put up has left them,
-// so applying it is taking their own offer off and putting this on.
+// A completed trade, sent to both sides as the trade closes. It holds what this
+// player receives. What they offered has already left them, so applying it
+// means removing their own offer and adding this.
 message TradeCompleted {
   TradeOffer received = 1;
 }

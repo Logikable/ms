@@ -5,10 +5,10 @@ package ms;
 import "src/protos/equip.proto";
 import "src/protos/item.proto";
 
-// The character's current job, named for the first advancement (Swordman,
-// Archer, ...). One Job spans every advancement stage of its line; which tier
-// the character is actually at comes from job_stage. See JobAdvancement for the
-// finer-grained tiers that skills belong to.
+// The character's job, named after the first advancement (Swordman, Archer,
+// ...). One Job covers every stage of its line; job_stage says which stage the
+// character has reached. JobAdvancement has the finer-grained stages that
+// skills belong to.
 enum Job {
   JOB_UNSPECIFIED = 0;
   JOB_BEGINNER = 1;
@@ -16,57 +16,54 @@ enum Job {
   JOB_ARCHER = 3;
   JOB_MAGICIAN = 4;
   JOB_ROGUE = 5;
-  // The warrior's 2nd advancement. These are Jobs of their own rather than
-  // stages of JOB_SWORDMAN because they are a branch: a Swordman becomes one
-  // of the three and the other two are closed off, which a job_stage on a
-  // single Job cannot say.
+  // The warrior's 2nd advancements. They are separate Jobs, not stages of
+  // JOB_SWORDMAN, because they are a branch: a Swordman becomes one of the
+  // three and the other two are closed off, which a job_stage on one Job can't
+  // express.
   JOB_FIGHTER = 6;
   JOB_PAGE = 7;
   JOB_SPEARMAN = 8;
-  // The archer's 2nd advancement. A branch for the same reason: one line
-  // masters the bow and the other the crossbow, and the weapon a character
-  // already holds does not decide it for them.
+  // The archer's 2nd advancements, a branch for the same reason: one masters
+  // the bow and the other the crossbow, and the weapon the character holds
+  // doesn't decide which.
   JOB_HUNTER = 9;
   JOB_CROSSBOWMAN = 10;
   // The magician's 2nd advancements. The two elemental ones are named for the
-  // pair each casts; the game shows them as "I/L Wizard" and "F/P Wizard"
-  // everywhere the full name will not fit. The Cleric's name fits anywhere.
+  // elements they cast; the game shortens them to "I/L Wizard" and "F/P Wizard"
+  // wherever the full name won't fit. The Cleric's name always fits.
   JOB_ICE_LIGHTNING_WIZARD = 11;
   JOB_FIRE_POISON_WIZARD = 12;
   JOB_CLERIC = 13;
-  // The rogue's 2nd advancements. One throws stars off a claw, the other
-  // stabs with a dagger, and the weapon a character already holds does not
-  // decide it for them -- a Rogue is handed both.
+  // The rogue's 2nd advancements. One throws stars from a claw and the other
+  // stabs with a dagger. The weapon the character holds doesn't decide which,
+  // since a Rogue is given both.
   JOB_ASSASSIN = 14;
   JOB_BANDIT = 15;
-  // The warrior's 3rd advancements. The 3rd job narrows rather than forks, so
-  // each 2nd job has exactly one, and each names a line that ends in a 4th job
-  // this game does not reach: Fighter -> Crusader -> Hero, Spearman ->
-  // Berserker -> Dark Knight, Page -> White Knight -> Paladin.
+  // The warrior's 3rd advancements. The 3rd job continues a line instead of
+  // branching, so each 2nd job has exactly one: Fighter -> Crusader -> Hero,
+  // Spearman -> Berserker -> Dark Knight, Page -> White Knight -> Paladin.
   JOB_BERSERKER = 16;
   JOB_CRUSADER = 17;
   JOB_WHITE_KNIGHT = 18;
   JOB_RANGER = 19;
   JOB_SNIPER = 20;
-  // The magician's 3rd advancements. Shown as "I/L Mage" and "F/P Mage"
-  // wherever the full name will not fit, the same abbreviations the wizards
-  // below them take.
+  // The magician's 3rd advancements, shortened to "I/L Mage" and "F/P Mage"
+  // where the full name won't fit, like the wizards before them.
   JOB_ICE_LIGHTNING_MAGE = 21;
   JOB_FIRE_POISON_MAGE = 22;
   JOB_PRIEST = 23;
   // The rogue's 3rd advancements.
   JOB_HERMIT = 24;
   JOB_CHIEF_BANDIT = 25;
-  // The 4th advancements. The 4th job narrows no further -- every 3rd job has
-  // exactly one -- so these are four of ten, and the rest follow them.
+  // The 4th advancements. Like the 3rd, each 3rd job has exactly one.
   JOB_DARK_KNIGHT = 26;
   JOB_PALADIN = 27;
   JOB_HERO = 28;
   JOB_BOW_MASTER = 29;
   JOB_MARKSMAN = 30;
-  // The magician's 4th advancements. Shown as "I/L Arch Mage" wherever the
-  // full name will not fit, the same way its wizard and mage do. The Bishop's
-  // name fits anywhere, as the Cleric's and the Priest's below it do.
+  // The magician's 4th advancements, shortened to "I/L Arch Mage" and "F/P Arch
+  // Mage" where the full name won't fit, like the wizards and mages. The
+  // Bishop's name always fits, as the Cleric's and Priest's do.
   JOB_ICE_LIGHTNING_ARCH_MAGE = 31;
   JOB_FIRE_POISON_ARCH_MAGE = 32;
   JOB_BISHOP = 33;
@@ -75,10 +72,10 @@ enum Job {
   JOB_SHADOWER = 35;
 }
 
-// A single advancement tier -- finer than Job. One Job spans a sequence of
+// A single advancement stage, finer than Job. A Job moves through several of
 // these as the character advances (Swordman, then Fighter, ...), one per job
-// stage. Each skill belongs to exactly one; the skills tab shows a page per
-// advancement the character has reached.
+// stage. Each skill belongs to exactly one, and the skills tab shows a page for
+// each advancement the character has reached.
 enum JobAdvancement {
   JOB_ADVANCEMENT_UNSPECIFIED = 0;
   JOB_ADVANCEMENT_SWORDMAN = 1;
@@ -117,9 +114,9 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_BISHOP = 32;
   JOB_ADVANCEMENT_NIGHT_LORD = 33;
   JOB_ADVANCEMENT_SHADOWER = 34;
-  // The 5th advancements, at level 200. The job's name does not change -- a
-  // Dark Knight stays a Dark Knight and opens another book -- so these exist to
-  // give a 5th job skill somewhere to be written, not to rename anything.
+  // The 5th advancements, at level 200. The job name doesn't change (a Dark
+  // Knight stays a Dark Knight and opens another book), so these exist only to
+  // give 5th job skills a place to be written.
   JOB_ADVANCEMENT_DARK_KNIGHT_V = 35;
   JOB_ADVANCEMENT_PALADIN_V = 36;
   JOB_ADVANCEMENT_HERO_V = 37;
@@ -130,22 +127,21 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_BISHOP_V = 42;
   JOB_ADVANCEMENT_NIGHT_LORD_V = 43;
   JOB_ADVANCEMENT_SHADOWER_V = 44;
-  // Not an advancement any character takes: the home of the V Matrix's common
-  // nodes, which every job holds alike. They belong to no job's book, so this
-  // is the one book they are all listed in -- naming ten placements on each
-  // would say the same thing ten times.
+  // Not an advancement any character takes. It holds the V Matrix's common
+  // nodes, which every job has. They belong to no job's book, so they are all
+  // listed in this one instead of naming ten placements on each.
   JOB_ADVANCEMENT_COMMON = 45;
-  // Not an advancement any character takes either: the book every character
-  // is born holding, and keeps. Its one skill is not bought and costs no SP,
-  // so no job stage answers for it -- see Skill.account_levels_per_level.
+  // Also not an advancement any character takes: the book every character
+  // starts with and keeps. Its one skill isn't bought and costs no SP, so no
+  // job stage owns it. See Skill.account_levels_per_level.
   JOB_ADVANCEMENT_BEGINNER = 46;
-  // Nor this one: the link skills, which belong to no job and are held by
-  // whoever the account equips them on. Their one book, for the same reason
-  // the commons have one -- see Skill.link_line.
+  // Also not a real advancement: the link skills, which belong to no job and
+  // are held by whichever character the account equips them on. They share one
+  // book for the same reason the common nodes do. See Skill.link_line.
   JOB_ADVANCEMENT_LINK = 47;
 }
 
-// Identifies a stat that a player can spend AP into via AllocateStat.
+// A stat the player can spend AP on through AllocateStat.
 enum StatField {
   STAT_FIELD_UNSPECIFIED = 0;
   STAT_FIELD_STR = 1;
@@ -156,11 +152,11 @@ enum StatField {
   STAT_FIELD_MP = 6;
 }
 
-// One Hyper Stat a player can put points into, in the order the Hyper tab
-// lists them. Job-independent: every character is offered the same fourteen.
+// One Hyper Stat the player can put points into, in the order the Hyper tab
+// lists them. Every job is offered the same fourteen.
 enum HyperStatField {
-  // 6 was Max MP, which GMS offers and this game does not: no fight here is
-  // decided by a mage running dry.
+  // 6 was Max MP, which GMS offers and this game doesn't: no fight here is
+  // decided by a mage running out of MP.
   reserved 6;
 
   HYPER_STAT_FIELD_UNSPECIFIED = 0;
@@ -177,40 +173,38 @@ enum HyperStatField {
   HYPER_STAT_FIELD_NORMAL_DAMAGE = 12;
   HYPER_STAT_FIELD_ATTACK = 13;
   HYPER_STAT_FIELD_EXP = 14;
-  // Only worth anything to a character wearing an Arcane Symbol, so the game
-  // holds it shut until level 200 -- see HyperStatUnlocked.
+  // Only useful to a character wearing an Arcane Symbol, so it stays locked
+  // until level 200. See HyperStatUnlocked.
   HYPER_STAT_FIELD_ARCANE_FORCE = 15;
 }
 
-// One allocation of Hyper Stat points: the level each stat is raised to,
-// keyed by HyperStatField (stored as int32, proto3 map limitation). An absent
-// or zero entry is a stat with nothing spent on it. What the allocation cost
-// is not stored -- it is the cost table summed over these levels, so the pool
-// and the spending cannot drift apart.
+// One Hyper Stat allocation: the level of each stat, keyed by HyperStatField
+// (int32 because of a proto3 map limitation). A missing or zero entry means no
+// points spent. The cost isn't stored; it is the cost table summed over these
+// levels, so the pool and the spending can't get out of sync.
 message HyperStatPreset {
   map<int32, int32> levels = 1;
 }
 
-// The allocations a character keeps, one per preset slot -- see
-// //src/character:stat_preset. Repeated rather than named, because which slot
-// is for what is the player's business once they turn Autoswap Presets off.
+// The allocations a character keeps, one per preset slot (see
+// //src/character:stat_preset). A repeated field, not named fields, because
+// with Autoswap Presets off the player decides what each slot is for.
 message HyperStats {
-  // The layout before there was a third slot: one allocation apiece, farming
-  // and bossing. A save still holding these is folded into `presets` at load
-  // and cleared -- see MigrateHyperStats.
+  // The layout from before the third slot: one allocation each for farming and
+  // bossing. A save that still has these has them moved into `presets` on load
+  // and cleared. See MigrateHyperStats.
   HyperStatPreset legacy_farming = 1 [deprecated = true];
   HyperStatPreset legacy_bossing = 2 [deprecated = true];
 
   repeated HyperStatPreset presets = 3;
 
-  // Which of them the player has put in use, as an index into `presets`. Read
-  // only while Autoswap Presets is off; an index off the end reads as the
-  // first slot.
+  // The preset in use, as an index into `presets`. Only read while Autoswap
+  // Presets is off; an out-of-range index means the first slot.
   int32 active = 4;
 }
 
-// A buff the player keeps up: bought by the second or by the fight, or bought
-// once and held for good. Numbered in the order they unlock.
+// A buff the player keeps active, paid per second, per fight, or once
+// permanently. Numbered in unlock order.
 enum ConsumableType {
   CONSUMABLE_TYPE_UNSPECIFIED = 0;
   CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION = 1;
@@ -218,21 +212,21 @@ enum ConsumableType {
   CONSUMABLE_TYPE_WILD_TOTEM = 3;
 }
 
-// What the character has switched on and what they no longer pay for. Two
-// lists rather than one entry apiece: a pot is owned or rented and on or off,
-// and the pair is what says which -- an owned pot switched off costs nothing
-// and does nothing.
+// Which consumables are switched on and which are paid for. Two lists instead
+// of one entry each, because a pot is owned or rented and on or off
+// independently: an owned pot that is switched off costs nothing and does
+// nothing.
 message Consumables {
-  // Bought outright. The recurring price is never charged for one of these.
+  // Bought permanently. The recurring price is never charged for these.
   repeated ConsumableType owned = 1;
-  // Switched on. One absent here is off, so a character who has met none of
-  // them carries two empty lists.
+  // Switched on. Anything missing from this list is off, so a character who
+  // hasn't unlocked any has two empty lists.
   repeated ConsumableType active = 2;
 }
 
-// How good one Inner Ability line is, and how good the ability as a whole is.
-// A line never outranks the ability holding it, and a reset can carry the
-// ability up a rank but never down.
+// The rank of one Inner Ability line, and of the ability as a whole. A line
+// never outranks its ability, and a reset can raise the ability's rank but
+// never lower it.
 enum AbilityRank {
   ABILITY_RANK_UNSPECIFIED = 0;
   ABILITY_RANK_RARE = 1;
@@ -241,10 +235,11 @@ enum AbilityRank {
   ABILITY_RANK_LEGENDARY = 4;
 }
 
-// What one Inner Ability line can grant: a cut of GMS's 45, keeping what a
-// lever here reads. The survivors keep their relative weights, so thinning the
-// list only makes the wanted lines likelier. Attack and Magic Attack are TWO
-// types as GMS has them, so every character carries a dead line.
+// What one Inner Ability line can grant: the part of GMS's 45 that some stat
+// here uses. The remaining lines keep their relative weights, so trimming the
+// list only makes the useful lines more likely. Attack and Magic Attack are two
+// types, as in GMS, so every character has one line type that does nothing for
+// them.
 enum AbilityLineType {
   ABILITY_LINE_TYPE_UNSPECIFIED = 0;
   ABILITY_LINE_TYPE_STR = 1;
@@ -265,45 +260,44 @@ enum AbilityLineType {
   ABILITY_LINE_TYPE_ATTACK_SPEED = 16;
 }
 
-// One line of a character's Inner Ability. What it is worth is not stored: a
-// reset always rolls the top of GMS's range, so the value is a function of the
-// type and the rank -- see AbilityLineValue.
+// One line of a character's Inner Ability. Its value isn't stored: a reset
+// always rolls the top of GMS's range, so AbilityLineValue computes it from the
+// type and rank.
 message AbilityLine {
   AbilityLineType type = 1;
   AbilityRank rank = 2;
-  // Whether a reset holds this line as it stands. Only a Unique or Legendary
-  // line may be locked, and never more than two at once.
+  // Whether a reset keeps this line unchanged. Only Unique or Legendary lines
+  // can be locked, and at most two at a time.
   bool locked = 3;
 }
 
-// One Inner Ability setup: three lines, and the rank of the whole. The first
-// line always carries that rank; the other two are rolled a rung or more
-// below it.
+// One Inner Ability setup: three lines and an overall rank. The first line
+// always has that rank; the other two roll one or more ranks lower.
 message AbilityPreset {
   AbilityRank rank = 1;
   repeated AbilityLine lines = 2;
 }
 
-// The setups a character keeps, one per preset slot, chosen between the same
-// way the Hyper Stat presets are. Independent of each other, but a reset of
-// any of them is paid for out of the one honor pool.
+// The setups a character keeps, one per preset slot, selected the same way as
+// Hyper Stat presets. They are independent, but resetting any of them spends
+// from the same honor pool.
 message InnerAbility {
-  // The layout before there was a third slot. See HyperStats above.
+  // The layout from before the third slot. See HyperStats above.
   AbilityPreset legacy_farming = 1 [deprecated = true];
   AbilityPreset legacy_bossing = 2 [deprecated = true];
 
   repeated AbilityPreset presets = 3;
 
-  // Which of them the player has put in use. Its own field rather than the
-  // Hyper Stats' one: the two are chosen apart, so a character can hold Hyper
-  // 1 and Ability 3 at once.
+  // The preset in use. It has its own field, separate from Hyper Stats',
+  // because the two are chosen separately: a character can use Hyper 1 and
+  // Ability 3 at the same time.
   int32 active = 4;
 }
 
-// A character's own stat amounts, before equipment or skills. STR/DEX/INT/LUK
-// come from AP alone; hp and mp also collect what each level-up grants for the
-// job held at the time. Equipment and skill bonuses are summed separately --
-// see DerivedStatsFor in character_stats.h.
+// A character's base stats, before equipment or skills. STR/DEX/INT/LUK come
+// only from AP; hp and mp also include what each level-up granted for the job
+// held at the time. Equipment and skill bonuses are added separately; see
+// DerivedStatsFor in character_stats.h.
 message AllocatedStats {
   int32 str = 1;
   int32 dex = 2;
@@ -313,189 +307,185 @@ message AllocatedStats {
   int32 mp = 6;
 }
 
-// Items sitting in the character's equip bag, unequipped. Indexed by position
-// (0-based integer) — order is preserved and multiple items of the same type
-// are allowed. CharacterInstance::PickUp appends here.
+// Unequipped items in the character's equip bag, indexed by position (0-based).
+// Order is preserved and duplicates are allowed. CharacterInstance::PickUp
+// appends here.
 message Inventory {
   repeated Equip equip_tab = 1;
 }
 
-// One sale the shop will undo. Buying an entry back costs exactly what the
-// sale paid out, and an equip comes back as the item that left -- its stars,
-// its scrolls, its spent slots, its trace flag -- because the price it sold
-// for never paid for any of that.
+// One sale the shop can undo. Buying it back costs exactly what the sale paid,
+// and an equip comes back unchanged (stars, scrolls, used slots, trace flag),
+// since its sell price never paid for any of that.
 message BuyBackEntry {
   oneof sold {
     Equip equip = 1;
     StackableStack stack = 2;
   }
-  // What one copy sold for. The whole of an equip's price; a stackable row is
-  // worth this times its count, and buying part of one costs this each.
+  // What one copy sold for. For an equip this is the whole price; a stackable
+  // row is worth this times its count, and buying back part of one costs this
+  // per copy.
   int64 unit_price = 3;
 }
 
-// One preset's worn items, keyed by EquipSlot (as int32, a proto3 map limit).
-// The FIRST preset is the whole worn body; the others hold only the slots that
-// differ and inherit the rest, which is what lets one item be worn by all
-// three -- three copies would drift apart the moment one is cubed.
+// One preset's worn items, keyed by EquipSlot (int32 because of a proto3 map
+// limitation). The first preset holds every worn slot; the others hold only the
+// slots that differ and inherit the rest. That lets one item be worn in all
+// three presets. Three copies would diverge as soon as one was cubed.
 message EquipPreset {
   map<int32, Equip> equipped = 1;
 }
 
-// The three gear setups a character keeps: Farm, Boss and Drop.
+// The character's three gear setups: Farm, Boss and Drop.
 message EquipPresets {
-  // Always kNumStatPresets long once migrated. See EquipPreset for the rule
-  // that makes the first one special.
+  // Always kNumStatPresets long after migration. See EquipPreset for why the
+  // first one is special.
   repeated EquipPreset presets = 1;
 
-  // Which preset is worn while Autoswap Presets is off, as an index into
-  // `presets`. With the switch on the activity picks instead -- except the
-  // boss drop roll, which always reads the third.
+  // The preset worn while Autoswap Presets is off, as an index into `presets`.
+  // With the switch on, the activity picks instead, except for the boss drop
+  // roll, which always uses the third.
   int32 active = 2;
 }
 
-// One preset's link skills, by display name, at most kMaxEquippedLinkSkills
-// of them. The character's own line's skill is never in here -- it is held
-// for free and takes no slot, exactly as GMS has it.
+// One preset's link skills, by display name, at most kMaxEquippedLinkSkills.
+// The character's own line's skill is never listed: it is always held and takes
+// no slot, as in GMS.
 message LinkPreset {
   repeated string skills = 1;
 }
 
-// The three sets of link skills a character keeps, chosen between the same
-// way the Hyper Stat presets are.
+// The character's three sets of link skills, selected the same way as Hyper
+// Stat presets.
 message LinkSkills {
-  // Always kNumStatPresets long once a character has opened them.
+  // Always kNumStatPresets long once the character has opened them.
   repeated LinkPreset presets = 1;
 
-  // Which of them the player has put in use, read only while Autoswap
-  // Presets is off. Its own field, for InnerAbility.active's reason.
+  // The preset in use, read only while Autoswap Presets is off. It has its own
+  // field for the same reason as InnerAbility.active.
   int32 active = 2;
 }
 
 message Character {
-  // What the player calls this character, alphanumeric and at most
-  // kMaxUsernameLength. Never empty once saved: an unnamed character carries
-  // kDefaultUsername, the row's own invitation to set one. Multiplayer will
-  // introduce the player by this.
+  // The character's name: alphanumeric, at most kMaxUsernameLength characters.
+  // Never empty once saved; an unnamed character has kDefaultUsername, which
+  // prompts the player to set one. Multiplayer shows other players this name.
   string name = 1;
   int32 level = 2;
-  // EXP accumulated toward the next level. Always < ExpToNextLevel(level).
+  // EXP toward the next level. Always < ExpToNextLevel(level).
   int64 exp = 3;
   Job job = 4;
   int32 job_stage = 5;
   int32 ap = 6;
   AllocatedStats allocated_stats = 7;
 
-  // Unequipped items in the equip bag. Indexed by list position; use
+  // Unequipped items in the equip bag, indexed by list position. Use
   // CharacterInstance::Equip(slot, index) to move an item from here into a
-  // slot, or Unequip(slot) to move it back.
+  // slot, and Unequip(slot) to move it back.
   Inventory inventory = 8;
 
-  // The layout before there were equip presets: one worn map. A save still
-  // holding it is folded into the first preset at load and cleared -- see
+  // The layout from before equip presets: a single worn map. A save that still
+  // has it has it moved into the first preset on load and cleared. See
   // MigrateEquipPresets.
   map<int32, Equip> legacy_equipped = 9 [deprecated = true];
 
-  // The gear the character wears, as three presets.
+  // The character's worn gear, as three presets.
   EquipPresets equip_presets = 25;
 
-  // Meso, the character's spendable currency. Earned from farming, spent on
-  // upgrades. Non-negative.
+  // Meso, the character's spending money. Earned by farming and spent on
+  // upgrades. Never negative.
   int64 meso = 10;
 
-  // Available skill points, keyed by job stage (1 = 1st job, 2 = 2nd job, ...).
-  // A stage's SP is earned only while leveling through that stage's band --
-  // 3 per level, e.g. 1st job over levels 11-30 -- plus a bonus at the
-  // advancement into it, and is spent only on that stage's skills. Passing a
-  // band's top level stops its SP whether or not the advancement was taken.
+  // Unspent skill points, keyed by job stage (1 = 1st job, 2 = 2nd job, ...). A
+  // stage earns SP only while the character levels through that stage's band (3
+  // per level, e.g. 1st job over levels 11-30), plus a bonus on advancing into
+  // it, and its SP can only be spent on that stage's skills. Leveling past a
+  // band's top level stops its SP, whether or not the character advanced.
   map<int32, int32> sp_by_stage = 11;
 
-  // Available Hyper SP: a pool of its own, spent only on Hyper Skills. Not a
-  // stage of the map above, which is banded by advancement level -- these are
-  // earned one every five levels from 140 to 195, a band that spans the 4th
-  // job's own and would be a stage the game does not have.
+  // Unspent Hyper SP, a separate pool spent only on Hyper Skills. It isn't a
+  // stage in the map above, which is banded by advancement level: Hyper SP is
+  // earned once every five levels from 140 to 195, a band inside the 4th job's,
+  // and would need a stage the game doesn't have.
   int32 hyper_sp = 18;
 
   // Learned skill levels, keyed by the skill's display name (Skill.name).
-  // Absent or zero means unlearned. Raised by spending that stage's SP.
+  // Missing or zero means not learned. Raised by spending that stage's SP.
   map<string, int32> skill_levels = 12;
 
-  // The Etc tab, one entry per stack, in the order the player sees. The
-  // currencies are NOT among them -- see `currencies`.
+  // The Etc tab, one entry per stack, in display order. Currencies aren't
+  // stored here; see `currencies`.
   repeated StackableStack stacks = 13;
 
-  // The currencies -- spell traces, the shops' tokens and the bosses' soul
-  // shards -- by item name. A balance rather than a stack: it costs no slot
-  // on the Etc tab and nothing caps it. Which items are currencies is the
-  // prototype's to say; see ItemKind. Filled from `stacks` when a save from
-  // format version 2 is read.
+  // Currencies (spell traces, shop tokens and boss soul shards) by item name.
+  // They are balances, not stacks: they take no slot on the Etc tab and have no
+  // limit. The prototype decides which items are currencies; see ItemKind.
+  // Filled from `stacks` when loading a format version 2 save.
   map<string, int64> currencies = 27;
 
-  // Scrolls the player has pinned to the top of the scroll list, by the keys
-  // ScrollPanel::PinKey builds. A pin names a stat and a rate on one kind of
-  // equipment, not one scroll file, so it holds as the character outgrows a
-  // tier and meets the same scroll again at the next one.
+  // Scrolls the player pinned to the top of the scroll list, by the keys
+  // ScrollPanel::PinKey builds. A pin names a stat, a rate and a kind of
+  // equipment, not one scroll file, so it still applies when the character
+  // moves up a tier and finds the same scroll there.
   repeated string pinned_scrolls = 16;
 
-  // The shop's buy-back shelf: the last sales this character made, newest
-  // first, capped at kBuyBackSlots. One entry per sale rather than per item,
-  // so selling 300 of something in two goes leaves two rows and buying them
-  // back is two purchases. Oldest falls off the end.
+  // The shop's buy-back list: this character's most recent sales, newest first,
+  // at most kBuyBackSlots. One entry per sale, not per item, so selling 300 of
+  // something in two batches gives two rows and buying them back takes two
+  // purchases. The oldest entry drops off the end.
   repeated BuyBackEntry buy_backs = 15;
 
-  // Boss clears this character is holding against the reset clock, one entry
-  // per boss and difficulty. What is stored is the moment of the clear; when
-  // it expires is worked out from the difficulty's reset period, so retuning
-  // a boss from daily to weekly takes effect on the clears already banked.
+  // Boss clears that still count against the reset timer, one per boss and
+  // difficulty. The time of the clear is stored and its expiry is computed from
+  // the difficulty's reset period, so changing a boss from daily to weekly also
+  // applies to clears already recorded.
   repeated BossClear boss_clears = 17;
 
-  // Toggle skills the player currently has switched on, by display name. A
-  // skill absent here is switched off, so a character who never learned one
-  // carries an empty list.
-  // See Skill.toggle.
+  // Toggle skills the player has switched on, by display name. Anything missing
+  // is off, so a character who never learned one has an empty list. See
+  // Skill.toggle.
   repeated string active_skill = 19;
 
-  // The two Hyper Stat allocations, spent from a pool that opens at level 140.
-  // Both are the player's to fill; which one is in play is decided by the
-  // activity -- see StatPreset.
+  // The Hyper Stat presets, spent from a pool that opens at level 140. The
+  // player fills all of them; the activity decides which is used (see
+  // StatPreset).
   HyperStats hyper_stats = 20;
 
-  // The two Inner Ability setups, which open at level 160. Both start on the
-  // three Rare All Stats lines every character is handed.
+  // The Inner Ability presets, which open at level 160. All start with the
+  // three Rare All Stats lines every character is given.
   InnerAbility inner_ability = 21;
 
-  // Honor, the currency an Inner Ability reset is paid for in. Its own pool,
-  // held per character the way AP and SP are, and shared by the two presets.
-  // Nothing pays into it yet.
+  // Honor, the currency Inner Ability resets cost. It is a per-character pool
+  // like AP and SP, shared by all the presets.
   int64 honor = 22;
 
-  // V Points, which level the nodes of the 5th job's V Matrix. Its own pool,
-  // held per character the way honor is. Only a character who has taken the
-  // 5th advancement earns any -- see v_matrix.h.
+  // V Points, which level up the nodes of the 5th job's V Matrix. A
+  // per-character pool like honor. Only characters who have taken the 5th
+  // advancement earn them; see v_matrix.h.
   int64 v_points = 24;
 
   // When this character last claimed the dailies, as a Unix time, or 0 for
-  // never. On the boss reset clock -- see boss_reset.h.
+  // never. Uses the boss reset clock; see boss_reset.h.
   int64 dailies_claimed_unix_seconds = 26;
 
-  // The potions and the totem, which open from level 170. Per character
-  // because meso is: a permanent unlock is bought out of one character's purse.
+  // The potions and the totem, which unlock at level 170. Per character because
+  // meso is: a permanent unlock is paid from one character's meso.
   Consumables consumables = 23;
 
-  // The link skills this character carries, as three presets. Per character
-  // on purpose: what the account UNLOCKED is shared, and which of it one
-  // character brings is theirs. See //src/character:link.
+  // The link skills this character uses, as three presets. Per character on
+  // purpose: the account shares what it has unlocked, and each character picks
+  // what to bring. See //src/character:link.
   LinkSkills link_skills = 28;
 
-  // Tabs opened and gold trails walked, which the account keeps as of format
-  // version 2: what the player has been shown once is shown to all of their
+  // Tabs opened and gold trails walked. Since format version 2 the account
+  // keeps these, so something shown once is shown to all of the player's
   // characters. See Account.seen_keys.
   reserved 14;
 }
 
-// One boss cleared at one difficulty, and when. Named by the data file stem
-// and the difficulty's own name, the way every other catalog reference in a
-// save is made.
+// One boss clear at one difficulty, and when it happened. The boss is named by
+// its data file stem and the difficulty by its name, like every other catalog
+// reference in a save.
 message BossClear {
   string boss = 1;
   string difficulty = 2;
