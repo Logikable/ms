@@ -18,8 +18,8 @@ namespace {
 
 using ::google::protobuf::util::MessageDifferencer;
 
-// Characters in a party id. Short: it is passed around in one message and
-// read in log lines, and a handful of parties are ever open at once.
+// Party ids are short because they appear in log lines, and only a handful of
+// parties are open at once.
 constexpr int kPartyIdCharacters = 8;
 
 LobbyResult Refusal(Refused::Reason reason, const std::string& message) {
@@ -35,7 +35,7 @@ LobbyResult Done() {
   return result;
 }
 
-// The difficulty `boss_key` and `index` name, or null if they name none.
+// Returns the difficulty `boss_key` and `index` name, or null.
 const BossDifficulty* FindDifficulty(const std::map<std::string, Boss>& bosses,
                                      const std::string& boss_key, int index) {
   std::map<std::string, Boss>::const_iterator boss = bosses.find(boss_key);
@@ -46,7 +46,7 @@ const BossDifficulty* FindDifficulty(const std::map<std::string, Boss>& bosses,
   return &boss->second.difficulties(index);
 }
 
-// The member playing under `account_id`, or null.
+// Returns the member with `account_id`, or null.
 PartyMember* FindMember(Party& party, const std::string& account_id) {
   for (PartyMember& member : *party.mutable_members()) {
     if (member.player().account_id() == account_id) {
@@ -56,9 +56,8 @@ PartyMember* FindMember(Party& party, const std::string& account_id) {
   return nullptr;
 }
 
-// Puts everyone back to unready. Called whenever the party's membership or
-// its leader changes: a promise made about a different party is not one to
-// carry into a fight.
+// Marks everyone unready. Called whenever the members or leader change, since
+// a member agreed to fight with the old party, not the new one.
 void ClearReady(Party& party) {
   for (PartyMember& member : *party.mutable_members()) {
     member.set_ready(false);
@@ -122,8 +121,8 @@ LobbyResult Lobby::Leave(const std::string& account_id) {
   if (record == nullptr) {
     return Refusal(Refused::REASON_NOT_IN_PARTY, "You are not in a party.");
   }
-  // Taken before the party is touched, so the one leaving is told as well as
-  // the ones staying.
+  // Note the change before removing them, so the leaving player is updated
+  // too.
   NoteChanged(record->party);
   party_of_.erase(account_id);
 
@@ -168,8 +167,7 @@ LobbyResult Lobby::Kick(const std::string& account_id,
     return Refusal(Refused::REASON_NOT_A_MEMBER, "They are not in your party.");
   }
 
-  // The one being removed is told before they are, so they hear it as a
-  // member rather than as somebody the party no longer knows.
+  // Note the change before removing the target, so they are updated too.
   NoteChanged(record->party);
   NoteEvent(target, PartyEvent::KICKED, "You were removed from the party.");
   party_of_.erase(target);
@@ -264,10 +262,9 @@ PartyList Lobby::Listed() const {
     }
     Party* listed = list.add_parties();
     *listed = found->second.party;
-    // The listing goes to everyone connected whenever any party changes, and
-    // it draws a leader's name and a capacity. Carrying every member's whole
-    // sheet through that would be a save's worth of message per keystroke in
-    // the lobby; a sheet is for the party you are in, and rides its state.
+    // The listing goes to every client whenever any party changes, and only
+    // shows the leader and party size. Full sheets would make each update
+    // huge, so they are sent only in the state of a player's own party.
     for (PartyMember& member : *listed->mutable_members()) {
       member.mutable_player()->clear_sheet();
       member.mutable_player()->clear_boss_clears();
@@ -333,18 +330,17 @@ LobbyResult Lobby::CheckFight(const Party& party, const StartFight& request,
   if (difficulty->coming_soon()) {
     return Refusal(Refused::REASON_UNKNOWN_BOSS, "That fight is not open.");
   }
-  // Three passes rather than one, so the leader is told the first thing that
-  // stands in the party's way rather than whatever the first member's row
-  // happens to be short of.
+  // One pass per check, so the leader hears about the most basic problem
+  // first rather than whatever the first member happens to fail.
   for (const PartyMember& member : party.members()) {
     if (member.player().level() < difficulty->unlock_level()) {
       return Refusal(Refused::REASON_LEVEL_TOO_LOW,
                      "Someone doesn't meet the level requirement.");
     }
   }
-  // Before the reset clock, because it is what decides whether the clock is
-  // asked at all: a fight cannot pay one player and not the next, so the party
-  // has to agree on the terms before anything is checked against them.
+  // Check options before clears, because options such as practice decide
+  // whether clears matter. Everyone must pick the same options, since one
+  // fight cannot reward players differently.
   for (const PartyMember& member : party.members()) {
     if (!MessageDifferencer::Equals(member.player().boss_options(),
                                     request.options())) {
@@ -354,13 +350,12 @@ LobbyResult Lobby::CheckFight(const Party& party, const StartFight& request,
   }
   const Boss& boss = bosses_.at(request.boss_key());
   for (const PartyMember& member : party.members()) {
-    // Practice walks past the reset -- it spends no clear, so a clear already
-    // taken is not in its way.
+    // Practice uses up no clear, so earlier clears do not block it.
     if (request.options().practice()) {
       break;
     }
-    // Asked of the boss rather than of the rung: a clear of any difficulty
-    // holds the whole ladder back.
+    // Checked per boss, not per difficulty: clearing any difficulty locks
+    // them all.
     if (BossAvailable(request.boss_key(), boss, member.player().boss_clears(),
                       now)) {
       continue;
@@ -372,7 +367,7 @@ LobbyResult Lobby::CheckFight(const Party& party, const StartFight& request,
         absl::StrCat("Someone has already cleared this boss ", when, "."));
   }
   for (const PartyMember& member : party.members()) {
-    // The leader is ready by leading, and nothing is stored for them.
+    // The leader is always ready and has no stored flag.
     if (!member.ready() &&
         member.player().account_id() != party.leader_account_id()) {
       return Refusal(Refused::REASON_NOT_READY, "Someone is not ready.");
@@ -393,8 +388,8 @@ bool Lobby::Remove(Party& party, const std::string& account_id) {
   }
   ClearReady(party);
   if (party.leader_account_id() == account_id) {
-    // The one who joined first takes it over, so a party outlives whoever
-    // happened to make it.
+    // The earliest remaining member becomes leader, so the party survives
+    // its creator leaving.
     const std::string& heir = party.members(0).player().account_id();
     party.set_leader_account_id(heir);
     NoteEvent(heir, PartyEvent::PROMOTED, "You are now the party leader.");

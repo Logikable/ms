@@ -37,7 +37,7 @@ TEST(FileLogSinkTest, WritesEveryLineToItsOwnFile) {
   std::string written = Contents(sink.path());
   EXPECT_NE(written.find("a party was made"), std::string::npos);
   EXPECT_NE(written.find("and then broken"), std::string::npos);
-  // Nothing logged after the sink is gone reaches the file.
+  // Lines logged after the sink is removed do not reach the file.
   LOG(INFO) << "unheard";
   EXPECT_EQ(Contents(sink.path()).find("unheard"), std::string::npos);
 

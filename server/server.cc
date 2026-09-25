@@ -28,45 +28,42 @@
 namespace ms {
 namespace {
 
-// The moment as the reset clock reads it. A fight on a daily is checked
-// against the wall clock, and the loop runs on a steady one that does not
-// know what day it is.
+// Returns the wall-clock Unix time. Boss resets need the real date, which the
+// loop's steady clock does not know.
 int64_t WallNow() {
   return static_cast<int64_t>(std::time(nullptr));
 }
 
-// What a player is told when their build is not the server's.
+// Shown to a player whose game version does not match the server's.
 constexpr char kUpdateMessage[] =
     "This version of the game cannot play with others. Update it to join.";
 constexpr char kMaintenanceMessage[] = "The server went down.";
 
-// Characters in an account id and in the token that proves it. The id is
-// short enough to read in a log line; the token is long enough that guessing
-// one is not worth trying.
+// Account ids are short enough to read in logs. Tokens are long enough that
+// guessing one is impractical.
 constexpr int kAccountIdCharacters = 16;
 constexpr int kTokenCharacters = 32;
 
-// Stream `n` out of one seed. The lobby draws party ids, the trade desk draws
-// trade ids and the server draws account ids; seeded alike they would hand out
-// the same strings, which reads as a bug even though it is not.
+// Derives seed number `n` from one seed. The lobby, trades and server each
+// generate ids, and with the same seed they would produce identical strings,
+// which looks like a bug.
 unsigned int Stream(unsigned int seed, int n) {
   return seed ^ (0x9e3779b9u * static_cast<unsigned int>(n));
 }
 
-// The name a player is shown under when they send one that cannot be used.
+// The name shown when a player sends an empty one.
 constexpr char kFallbackName[] = "Adventurer";
 
-// `name` as the lobby will show it: trimmed to the length a character name is
-// allowed, and never empty.
+// Returns `name` cut to the maximum character name length, or the fallback
+// if it is empty.
 std::string DisplayName(const std::string& name) {
   std::string trimmed = name.substr(0, kMaxUsernameLength);
   return trimmed.empty() ? kFallbackName : trimmed;
 }
 
-// What an update changed, as a line for the log, or empty when it changed
-// nothing the log cares about. An update carries the whole sheet, so most of
-// them are a re-scrolled weapon or a spent point -- real to the party screen,
-// and not worth a line here.
+// Describes a player update's name, level or job change for the log, or
+// returns empty. Updates carry the whole sheet, and most other changes are
+// too minor to log.
 std::string Became(const PlayerInfo& before, const PlayerInfo& after) {
   std::vector<std::string> changes;
   std::string name = DisplayName(after.name());
@@ -83,8 +80,8 @@ std::string Became(const PlayerInfo& before, const PlayerInfo& after) {
   return absl::StrJoin(changes, " and ");
 }
 
-// The fight's own state as the wire spells it. Only the three it can be in
-// while it runs; the ways of being over ride FightEnded.
+// Converts a running fight's state to its wire value. End states are sent as
+// FightEnded instead.
 FightState::Stage StageOf(PartyFightState state) {
   switch (state) {
     case PartyFightState::kCountdown:
@@ -107,7 +104,7 @@ FightEnded::Outcome OutcomeOf(PartyFightState state) {
   }
 }
 
-// How a finished fight reads in the log.
+// Describes a finished fight's outcome for the log.
 std::string Became(PartyFightState state) {
   switch (state) {
     case PartyFightState::kWon:
@@ -119,7 +116,7 @@ std::string Became(PartyFightState state) {
   }
 }
 
-// What a lobby message asked for, as a line for the log.
+// Describes a lobby or trade request for the log.
 std::string AskedFor(const ClientMessage& message) {
   switch (message.kind_case()) {
     case ClientMessage::kCreateParty:
@@ -195,9 +192,8 @@ void Server::Step(std::chrono::steady_clock::time_point now,
   }
   Poll(targets, timeout);
 
-  // Ahead of the reads, so a report that arrives in the same pass as the end
-  // of the count-in lands rather than falling into a fight that has not
-  // started yet.
+  // Step fights before reading, so a report that arrives just as the
+  // countdown ends lands in a fight that has started.
   StepFights(now);
   size_t next = 0;
   if (listener_.valid()) {
@@ -206,8 +202,8 @@ void Server::Step(std::chrono::steady_clock::time_point now,
     }
     next = 1;
   }
-  // Over the sessions that existed before the accept: the ones just taken on
-  // were not polled and have nothing to say yet.
+  // Read only the sessions that were polled. Ones accepted just now have
+  // nothing to read yet.
   size_t polled = targets.size() - next;
   for (size_t i = 0; i < polled; ++i) {
     Session& session = *sessions_[i];
@@ -217,8 +213,7 @@ void Server::Step(std::chrono::steady_clock::time_point now,
       }
     }
   }
-  // Before the writes, so that whatever the reads changed goes out in the
-  // same pass rather than a poll later.
+  // Publish before writing, so changes from the reads go out this pass.
   PublishFights(now);
   PublishLobby();
   PublishTrades();
@@ -234,9 +229,8 @@ void Server::Step(std::chrono::steady_clock::time_point now,
 
 void Server::DropFinished(std::chrono::steady_clock::time_point now) {
   for (const std::unique_ptr<Session>& session : sessions_) {
-    // A connection that never said hello is timed out like any other: a
-    // socket opened and left silent is the one way a session could otherwise
-    // be held forever.
+    // Time out every quiet session, including ones that never said hello.
+    // Otherwise an idle open socket would hold a session forever.
     if (session->socket.valid() &&
         now - session->last_heard > kSessionTimeout) {
       LOG(INFO) << "Session " << session->id << " went quiet";
@@ -259,8 +253,7 @@ void Server::DropFinished(std::chrono::steady_clock::time_point now) {
                                    return !session->socket.valid();
                                  }),
                   sessions_.end());
-  // A player leaving changes what the others can see, and the sessions left
-  // to tell are the ones still here.
+  // Publish after removing sessions, so remaining players see who left.
   PublishLobby();
   PublishTrades();
   PublishOnline();
@@ -274,19 +267,19 @@ void Server::OpenFight(const std::string& account_id,
   if (party.id().empty() || boss == bosses_->end()) {
     return;
   }
-  // Named for the party and the number of the fight, so a client that walked
-  // out of one can tell a state still in flight from the party's next.
+  // A unique id per fight, so a client that left one can tell a late state
+  // from the party's next fight.
   std::string id = absl::StrCat(party.id(), "-", next_fight_id_++);
   fights_[party.id()] = std::make_unique<PartyFight>(
       std::move(id), request.boss_key(), boss->second,
       request.difficulty_index(), *mobs_, party, request.options());
-  // Nobody trades from inside a fight: the leader can start one while a
-  // member is sitting on the trade screen, and the fight wins.
+  // End any trades, since nobody trades during a fight. The leader can start
+  // a fight while a member is on the trade screen.
   for (const PartyMember& member : party.members()) {
     trades_.Leave(member.player().account_id());
   }
-  // The first state a client sees is how it learns the fight has begun, so it
-  // goes out now rather than on the next broadcast beat.
+  // Send the first state now rather than on the next broadcast. It is how
+  // clients learn the fight has started.
   PublishFight(*fights_[party.id()]);
 }
 
@@ -309,7 +302,7 @@ void Server::HandleFightUpdate(Session& session, const FightUpdate& update) {
 
 void Server::StepFights(std::chrono::steady_clock::time_point now) {
   double dt = std::chrono::duration<double>(now - stepped_at_).count();
-  // The first pass has no last one to measure from.
+  // The first pass has no previous pass to measure from.
   if (stepped_at_ == std::chrono::steady_clock::time_point()) {
     dt = 0.0;
   }
@@ -370,8 +363,7 @@ void Server::PublishFight(PartyFight& fight) {
   }
   for (const FightPlayer& player : fight.players()) {
     Session* session = FindSession(player.account_id);
-    // A player who has gone is sent nothing more about a fight they are no
-    // longer in.
+    // Skip players who have left the fight.
     if (player.present && session != nullptr && !session->closing) {
       Send(*session, message);
     }
@@ -387,7 +379,7 @@ void Server::CloseFight(const std::string& party_id, const PartyFight& fight) {
     if (!player.present || session == nullptr || session->closing) {
       continue;
     }
-    // A message each: the drops are dealt to one player apiece.
+    // Build one message per player, since each gets their own drops.
     ServerMessage message;
     FightEnded* ended = message.mutable_fight_ended();
     ended->set_outcome(OutcomeOf(fight.state()));
@@ -418,8 +410,8 @@ void Server::PublishLobby() {
     *state.mutable_party_state()->mutable_party() = lobby_.StateFor(account);
     Send(*session, state);
   }
-  // After the states, so a player reads what happened to them against the
-  // party they are in now rather than the one they were in.
+  // Send events after states, so a player reads an event against their
+  // current party rather than their old one.
   for (const LobbyEvent& event : lobby_.TakeEvents()) {
     Session* session = FindSession(event.account_id);
     if (session == nullptr) {
@@ -463,8 +455,8 @@ OnlinePlayers Server::Roster() const {
     }
     PlayerInfo* player = roster.add_players();
     *player = session->player;
-    // What the list draws is a name and a level. The sheet behind them is
-    // asked for one at a time; see WatchPlayer.
+    // The roster only shows name and level. Clients ask for a full sheet
+    // with WatchPlayer.
     player->clear_sheet();
     player->clear_boss_clears();
   }
@@ -560,7 +552,7 @@ bool Server::ReadSession(Session& session,
       return true;
     }
     if (session.closing) {
-      // Already on the way out; nothing it says now can be acted on.
+      // The session is closing, so ignore anything else it sends.
       return true;
     }
     Handle(session, message);
@@ -595,7 +587,7 @@ void Server::Handle(Session& session, const ClientMessage& message) {
       Reject(session, Rejected::REASON_MALFORMED, "Already greeted.");
       return;
     case ClientMessage::kFightUpdate:
-      // Ten of these a second per player. Nothing is logged for them.
+      // Not logged, since each player sends ten a second.
       HandleFightUpdate(session, message.fight_update());
       return;
     case ClientMessage::kLeaveFight: {
@@ -648,13 +640,13 @@ void Server::HandleWatch(Session& session, const WatchPlayer& watch) {
 
 void Server::HandleLobby(Session& session, const ClientMessage& message) {
   if (message.kind_case() == ClientMessage::kUpdatePlayer) {
-    // Read before the change lands, so a rename names both sides of it.
+    // Compare before applying the update, so the log sees old and new.
     std::string became =
         Became(session.player, message.update_player().player());
     if (!became.empty()) {
       LOG(INFO) << Describe(session) << " " << became;
-      // The roster carries exactly what Became reads, so anything else on the
-      // sheet leaves the list alone.
+      // The roster shows exactly what Became checks, so only these changes
+      // need a roster update.
       online_changed_ = true;
     }
     SetPlayer(session, message.update_player().player());
@@ -779,8 +771,8 @@ void Server::PublishTrades() {
 
 void Server::HandleHello(Session& session, const Hello& hello) {
   if (hello.protocol_version() != protocol_version_) {
-    // Both numbers, because this log is the only place a client the server
-    // turns away shows up at all.
+    // Log both versions, since this log is the only record of a refused
+    // client.
     LOG(INFO) << Describe(session) << " speaks version "
               << hello.protocol_version() << ", this server speaks "
               << protocol_version_;
@@ -807,8 +799,8 @@ void Server::HandleHello(Session& session, const Hello& hello) {
   welcome.mutable_welcome()->set_token(token);
   Send(session, welcome);
   SendListing(session);
-  // The roster now has them in it, and the broadcast this pass is what sends
-  // it -- to the player who has just arrived along with everybody else.
+  // The roster now includes them. This pass's broadcast sends it to everyone,
+  // the new player included.
   online_changed_ = true;
   LOG(INFO) << Describe(session) << " arrived at level "
             << session.player.level();
@@ -858,8 +850,8 @@ std::string Server::ResolveAccount(const Hello& hello, std::string& token) {
   }
   std::map<std::string, std::string>::iterator known = tokens_.find(claimed);
   if (known == tokens_.end()) {
-    // An account from before a restart. Adopting it costs nothing and keeps
-    // the player's identity across an update.
+    // An account from before a restart. Adopting it keeps the player's
+    // identity across an update.
     token = hello.token().empty() ? RandomHexId(rng_, kTokenCharacters)
                                   : hello.token();
     tokens_[claimed] = token;

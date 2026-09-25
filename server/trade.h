@@ -1,15 +1,12 @@
-/* Every trade in progress: who is trading with whom, what each side has put
- * up, and the rules for opening one and walking out.
+/* Tracks every trade in progress: who is trading, what each side offers, and
+ * the rules for opening and leaving a trade.
  *
- * A trade opens when one player asks for it and the other asks back. The one
- * who was asked is told by a notification, which is all this holds of them
- * until they answer -- there is no declining, only asking back or leaving the
- * asker to give up.
+ * A trade opens when one player requests it and the other requests back. The
+ * invited player gets a notification. There is no decline; they either
+ * request back or the requester gives up.
  *
- * Nothing here knows about sockets, and it cannot see a fight either: the
- * server passes that in, a player in one being as busy as a player already
- * trading. Like the lobby, the caller asks whether something happened and
- * afterwards takes the list of who has to be told.
+ * Like the lobby, this knows nothing about sockets or fights. The server
+ * passes in whether a player is fighting, and afterwards asks who to update.
  */
 #ifndef MS_SERVER_TRADE_H_
 #define MS_SERVER_TRADE_H_
@@ -23,23 +20,22 @@
 
 namespace ms {
 
-// What an ask came to. A refusal carries a reason for the client to act on and
-// a sentence fit to show the player.
+// The outcome of a request. A refusal carries a reason code for the client
+// and a message to show the player.
 struct TradeResult {
   bool ok = false;
   Refused::Reason reason = Refused::REASON_UNSPECIFIED;
   std::string message;
 };
 
-// A player who has to be shown something the trade state cannot say on its
-// own: being asked to trade, which reaches them wherever they are.
+// A trade request notification for a player who is not in the trade yet.
 struct TradeNotice {
   std::string account_id;
   Notification notification;
 };
 
-// One side of a trade that went through, and what it pays them. The trade is
-// gone by the time this is taken.
+// One side of a completed trade and what they receive. The trade itself is
+// already gone.
 struct TradeCompletion {
   std::string account_id;
   TradeOffer received;
@@ -47,48 +43,44 @@ struct TradeCompletion {
 
 class Trades {
  public:
-  // `seed` fixes the stream trade ids are drawn from.
+  // `seed` seeds the trade id generator.
   explicit Trades(unsigned int seed);
 
-  // Opens a trade between the two, or joins the one `to` has already asked
-  // `from` into. `to_in_fight` is what the trade desk cannot see for itself.
+  // Opens a trade between the two, or joins one `to` already requested with
+  // `from`. `to_in_fight` says whether `to` is in a fight, which makes them
+  // busy.
   TradeResult Request(const PlayerInfo& from, const PlayerInfo& to,
                       bool to_in_fight);
-  // Puts up what `account_id` is offering, whole. Clears both acceptances:
-  // what either side agreed to was the table as it stood. Quiet about a
-  // player who is in no trade.
+  // Replaces `account_id`'s whole offer and clears both sides' acceptance,
+  // since they agreed to the old offers. Does nothing outside a trade.
   void SetOffer(const std::string& account_id, const TradeOffer& offer);
-  // Accepts the table as it stands, or takes that back.
+  // Accepts the current offers, or withdraws acceptance.
   void SetAccept(const std::string& account_id, bool accepted);
-  // Answers the finalize dialog. The trade goes through once both sides have
-  // confirmed; a cancel clears this player's acceptance too, which is what
-  // takes the dialog down for both of them.
+  // Answers the finalize dialog. The trade completes once both sides confirm.
+  // Cancelling also clears this player's acceptance, which closes the dialog
+  // for both.
   void SetConfirm(const std::string& account_id, bool confirmed);
-  // Ends whatever trade `account_id` is in, for both of them. Quiet about a
-  // player who is in none, which is what leaving a screen twice looks like.
+  // Ends `account_id`'s trade for both sides. Does nothing if they are in no
+  // trade, which happens when a client leaves the screen twice.
   void Leave(const std::string& account_id);
 
-  // Whether this player cannot be asked: they are trading, or they have been
-  // asked and have not answered. One ask at a time, so an answer is never
-  // ambiguous about which trade it means.
+  // Returns whether this player is trading or has an unanswered request. A
+  // player gets one request at a time, so their answer is never ambiguous.
   bool Busy(const std::string& account_id) const;
 
-  // The trade `account_id` is in, from their side. One with no id means they
-  // are in none, which is what a player who has walked out, or was never in
-  // one, is sent.
+  // Returns `account_id`'s trade from their side. A state with no id means
+  // they are in no trade.
   TradeState StateFor(const std::string& account_id) const;
 
-  // Accounts whose trade changed under them and need telling, cleared by the
-  // taking. A player whose trade ended is in here too: what they need telling
-  // is that they are in nothing.
+  // Returns and clears the accounts whose trade changed. Players whose trade
+  // ended are included, so they learn they are in no trade.
   std::vector<std::string> TakeChanged();
-  // What individual players have to be shown, cleared by the taking. Separate
-  // from the above because an ask reaches a player who is in no trade yet and
-  // has nothing to draw.
+  // Returns and clears pending notifications. These are separate because a
+  // request reaches a player who has no trade screen open yet.
   std::vector<TradeNotice> TakeNotices();
-  // The trades that went through, each side its own entry, cleared by the
-  // taking. A completed trade is NOT in TakeChanged: its players are told by
-  // this, and an empty state on top of it would read as a partner walking out.
+  // Returns and clears completed trades, one entry per side. Completed trades
+  // are left out of TakeChanged, because an empty state would look to the
+  // client like the partner leaving.
   std::vector<TradeCompletion> TakeCompletions();
 
   int trade_count() const {
@@ -96,8 +88,8 @@ class Trades {
   }
 
  private:
-  // One trade. `opener` asked and `partner` was asked; until the partner asks
-  // back, only the opener has a screen open on it.
+  // One trade. `opener` sent the request to `partner`. Until the partner
+  // requests back (`joined`), only the opener has the trade screen open.
   struct Record {
     std::string id;
     std::string opener;
@@ -113,30 +105,30 @@ class Trades {
     bool partner_confirmed = false;
   };
 
-  // Which side of `record` `account_id` is on, and the flags that side owns.
+  // Returns whether `account_id` opened `record`.
   static bool IsOpener(const Record& record, const std::string& account_id);
-  // Puts the table back to nobody having agreed to it, both sides. Called
-  // whenever what is on it changes.
+  // Clears both sides' accept and confirm flags. Called whenever an offer
+  // changes.
   static void ClearAgreement(Record& record);
-  // Pays both sides and tears the trade down. `record` must be one both sides
-  // have confirmed.
+  // Records both sides' payouts and removes the trade. Both sides must have
+  // confirmed.
   void Complete(Record& record);
 
-  // The trade `account_id` is in, or null.
+  // Returns `account_id`'s trade, or null.
   Record* Find(const std::string& account_id);
   const Record* Find(const std::string& account_id) const;
-  // The other side of `record` from `account_id`.
+  // Returns the other player in `record`.
   static const std::string& Other(const Record& record,
                                   const std::string& account_id);
-  // Notes that both sides of `record` have to be told.
+  // Marks both sides of `record` for an update, or only the opener if the
+  // partner has not joined.
   void NoteChanged(const Record& record);
-  // Takes `account_id` back out of that list. What a trade torn down since
-  // owes them is the completion, not the empty state the note would now send.
+  // Removes `account_id` from the update list. Used after a trade completes,
+  // when the player should get the completion instead of an empty state.
   void DropChanged(const std::string& account_id);
   std::string NewTradeId();
 
-  // By trade id, and who is in which. The index is what makes leaving one
-  // lookup rather than a search through every trade.
+  // Trades by id, and each account's trade id so lookups need no search.
   std::map<std::string, Record> trades_;
   std::map<std::string, std::string> trade_of_;
   std::vector<std::string> changed_;

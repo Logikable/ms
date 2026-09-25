@@ -30,8 +30,7 @@ class TradeTest : public ::testing::Test {
   TradeTest() : trades_(5) {
   }
 
-  // Opens the trade both sides have asked for, which is the state most of
-  // these are about.
+  // Opens a trade that both sides have requested.
   void Open(const std::string& from, const std::string& to) {
     ASSERT_TRUE(trades_.Request(Player(from), Player(to), false).ok);
     ASSERT_TRUE(trades_.Request(Player(to), Player(from), false).ok);
@@ -51,8 +50,8 @@ class TradeTest : public ::testing::Test {
 TEST_F(TradeTest, AsksWithoutOpeningTheirScreen) {
   ASSERT_TRUE(trades_.Request(Player("one"), Player("two"), false).ok);
 
-  // The asker has a trade to draw; the one asked has a notification and
-  // nothing else, their screen being theirs to open.
+  // The requester has a trade state. The invited player only gets a
+  // notification until they request back.
   TradeState mine = trades_.StateFor("one");
   EXPECT_FALSE(mine.id().empty());
   EXPECT_EQ(mine.partner_account_id(), "two");
@@ -76,7 +75,7 @@ TEST_F(TradeTest, AskingBackJoins) {
   trades_.TakeNotices();
   ASSERT_TRUE(trades_.Request(Player("two"), Player("one"), false).ok);
 
-  // One trade, not two, and both sides now have it.
+  // There is one trade, and both sides are in it.
   EXPECT_EQ(trades_.trade_count(), 1);
   EXPECT_TRUE(trades_.StateFor("one").partner_joined());
   EXPECT_TRUE(trades_.StateFor("two").partner_joined());
@@ -102,13 +101,12 @@ TEST_F(TradeTest, RefusesABusyPlayer) {
   EXPECT_EQ(fighting.message, "They're currently busy.");
   EXPECT_EQ(trades_.trade_count(), 0);
 
-  // Being asked already counts: one ask at a time, so an answer is never
-  // ambiguous about which trade it means.
+  // A player with an unanswered request is busy too.
   ASSERT_TRUE(trades_.Request(Player("three"), Player("two"), false).ok);
   EXPECT_EQ(trades_.Request(Player("one"), Player("two"), false).reason,
             Refused::REASON_BUSY);
 
-  // And nobody trades with themselves.
+  // Nobody can trade with themselves.
   EXPECT_EQ(trades_.Request(Player("one"), Player("one"), false).reason,
             Refused::REASON_BUSY);
   EXPECT_EQ(trades_.trade_count(), 1);
@@ -175,7 +173,7 @@ TEST_F(TradeTest, AnOfferClearsBothAcceptances) {
   EXPECT_FALSE(trades_.StateFor("one").theirs_accepted());
   EXPECT_TRUE(Told("one"));
 
-  // And an acceptance can simply be taken back.
+  // Acceptance can be withdrawn.
   trades_.SetAccept("one", true);
   trades_.SetAccept("one", false);
   EXPECT_FALSE(trades_.StateFor("two").theirs_accepted());
@@ -202,10 +200,9 @@ TEST_F(TradeTest, BothConfirmsPayBothSides) {
   EXPECT_EQ(paid[1].account_id, "two");
   EXPECT_EQ(paid[1].received.meso(), 5000);
 
-  // The trade is gone, and nobody is told it changed: the payment is what
-  // says it ended, and an empty state on top would read as a walk-out. That
-  // holds of the FIRST confirm's note too, which is still queued here -- the
-  // server is free to take both messages before it publishes either.
+  // The trade is gone and nobody gets a change update, since an empty state
+  // would look like a walk-out. This includes the update the first confirm
+  // queued, which is still pending here.
   EXPECT_EQ(trades_.trade_count(), 0);
   EXPECT_FALSE(trades_.Busy("one"));
   EXPECT_TRUE(trades_.TakeChanged().empty());
@@ -260,7 +257,7 @@ TEST_F(TradeTest, LeavingEndsItForBoth) {
   std::vector<std::string> changed = trades_.TakeChanged();
   EXPECT_EQ(changed.size(), 2);
 
-  // Both are free to trade again, and leaving twice is quiet.
+  // Both can trade again, and leaving twice does nothing.
   trades_.Leave("one");
   EXPECT_TRUE(trades_.Request(Player("one"), Player("three"), false).ok);
 }

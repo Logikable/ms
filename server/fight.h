@@ -1,14 +1,12 @@
-/* One party's fight, as the server keeps it.
+/* The server's copy of one party's boss fight.
  *
- * The clients do the fighting. Each of them steps its own CombatSim against
- * its own copy of the roster and reports what it landed, exactly as it does
- * alone; this holds the roster they all share, so one boss dies once however
- * many people are hitting it. It owns the phase, the clock and who stands
- * where, and every client takes those from here rather than from its own
- * count.
+ * Each client runs its own CombatSim, as in solo play, and reports the damage
+ * it deals. This class holds the shared mob HP, so a boss dies once no matter
+ * how many players hit it. It also owns the phase, the timer and player
+ * positions, and clients follow its values rather than their own.
  *
- * Nothing here knows about sockets, and nothing here knows about the combat
- * engine: a fight is a pool of HP, a clock, and the beats between phases.
+ * It knows nothing about sockets or the combat engine. To the server, a fight
+ * is HP pools, a timer, and pauses between phases.
  */
 #ifndef MS_SERVER_FIGHT_H_
 #define MS_SERVER_FIGHT_H_
@@ -24,17 +22,16 @@
 
 namespace ms {
 
-// Where a fight is up to. The three at the end are all ways of being over,
-// held apart because each pays a different thing: a clear pays everyone still
-// there, and the other two pay nobody.
+// The stage a fight is in. The last three are all end states. Only a win pays
+// out, to everyone still present.
 enum class PartyFightState {
   kCountdown,
   kFighting,
   kPhaseGap,
   kWon,
   kTimedOut,
-  // Everybody's client has gone. No clear, no reward, and nobody's entry is
-  // spent -- see the disconnect rules in //server:server.
+  // Every client disconnected. There is no clear or reward, and no entry is
+  // used up.
   kAbandoned,
 };
 
@@ -42,97 +39,89 @@ enum class PartyFightState {
 struct FightPlayer {
   std::string account_id;
   std::string name;
-  // Which of the phase's player spots they stand on. -1 in a phase that named
-  // none, whose players all stand at the origin.
+  // Index into the phase's player spots, or -1 if the phase has none and
+  // everyone stands at the origin.
   int spot = 0;
-  // False once their client has gone. They stop dealing damage and are paid
-  // nothing, and the fight goes on without them.
+  // False once their client disconnects. They deal no more damage and get no
+  // reward, and the fight goes on without them.
   bool present = true;
-  // What they are winding up, for the bar over their panel on everyone else's
-  // screen.
+  // The attack they are charging, for the progress bar other players see.
   std::string attack_name;
   double attack_fraction = 0.0;
   int buff_count = 0;
-  // Their Item Drop Rate, as a fraction. The clear rolls against the best one
-  // in the party.
+  // Their Item Drop Rate as a fraction. Drops roll against the party's best.
   double item_drop_pct = 0.0;
-  // What a clear dealt them. Empty until the fight is won.
+  // Their drops. Empty until the fight is won.
   std::vector<FightAward> awards;
-  // What they have landed since the last broadcast took these away. Held here
-  // rather than in the fight's own state because it is a relay: the server
-  // passes it on and forgets it.
+  // Damage they dealt since the last broadcast. The server relays these to
+  // the other players and then clears them.
   std::vector<FightDamage> lines;
-  // Their damage by skill, as they last reported it. Kept when they leave,
-  // so the table at the end still lists them.
+  // Their damage by skill, as last reported. Kept after they leave so the
+  // final table still lists them.
   std::vector<FightBreakdownRow> breakdown;
 };
 
 class PartyFight {
  public:
-  // `boss` and `mobs` are the catalogs, owned by the caller and outliving the
-  // fight. `difficulty_index` is an index into the boss's difficulties; an
-  // invalid one makes a fight that is over before it starts.
+  // The caller owns `boss` and `mobs`, and they must outlive the fight. An
+  // invalid `difficulty_index` makes a fight that is already over.
   PartyFight(std::string id, std::string boss_key, const Boss& boss,
              int difficulty_index, const std::map<std::string, Mob>& mobs,
              const Party& party, const BossOptions& options = BossOptions());
 
-  // What this fight is called, which is the party's id and a number. A client
-  // that walked out of one tells it from the party's next fight by this.
+  // Unique per fight, so a client that left one can tell it apart from the
+  // party's next fight.
   const std::string& id() const {
     return id_;
   }
 
-  // Steps the countdown, the clock and the beats between phases by
-  // elapsed_seconds of real time. Does nothing once the fight is over.
+  // Advances the countdown, timer and phase gaps by `elapsed_seconds` of real
+  // time. Does nothing once done().
   void Advance(double elapsed_seconds);
 
-  // Takes one client's report: what it landed comes off the roster and is
-  // held for the other players to watch, and its player's spot and swing are
-  // taken as they stand. Damage from a phase that has moved on is dropped;
-  // where the player is standing is taken either way.
+  // Applies one client's report. Its damage comes off the mobs and is queued
+  // for other players to see, and its spot and current attack are recorded.
+  // Damage from an earlier phase is dropped, but the spot is still taken.
   void Report(const std::string& account_id, const FightUpdate& update);
 
-  // Empties every player's line buffer. Called by the broadcast that has just
-  // taken them.
+  // Clears every player's damage lines after a broadcast sends them.
   void TakeLines();
 
-  // Takes `damage` off the monster standing in `slot`. Damage from a player
-  // who has gone, for a slot the phase does not hold, or landed while nothing
-  // is being fought, is dropped.
+  // Deals `damage` to the mob in `slot`. Ignored if the player has left, the
+  // slot is out of range, or the fight is not in progress.
   void Hit(const std::string& account_id, int slot, double damage);
 
-  // Stands `account_id` on `spot`. Refused, and nothing moves, when the spot
-  // is not one of this phase's or somebody else is already on it -- the
-  // client walks first and is told here when it walked somewhere taken.
+  // Moves `account_id` to `spot`. Returns false and moves nobody if the spot
+  // is not in this phase or someone else is on it. The client moves first,
+  // and this tells it when the spot was taken.
   bool MoveTo(const std::string& account_id, int spot);
 
-  // Marks a player's client as gone. The fight is abandoned once the last one
-  // has: nobody is left watching, and a fight nobody watches pays nothing.
+  // Marks a player's client as disconnected. The fight is abandoned once
+  // every player has disconnected.
   void Disconnect(const std::string& account_id);
 
   PartyFightState state() const {
     return state_;
   }
-  // True once the fight is over and its closing beat has been held: the
-  // moment the server can let go of it.
+  // True once the fight is over and its end pause has passed, so the server
+  // can discard it.
   bool done() const;
-  // True for a fight that is over, whether or not the beat is up.
+  // True once the fight is over, even during the end pause.
   bool over() const;
-  // Which phase is being fought, counting from 0.
+  // The current phase, counting from 0.
   int phase() const {
     return phase_;
   }
-  // What every monster of the phase has left, as a fraction of what it
-  // started with, one per slot in the order the phase spawns them. This is
-  // what a client names when it reports damage.
+  // Each mob's remaining HP as a fraction, one per slot in spawn order.
+  // Clients use these slot numbers when reporting damage.
   const std::vector<double>& hp_fractions() const {
     return hp_fractions_;
   }
   const std::vector<FightPlayer>& players() const {
     return players_;
   }
-  // How many players the fight started with, which is what the drops and the
-  // meso are split by. A player who leaves does not make the rest richer.
+  // How many players the fight started with. Drops and meso are split this
+  // many ways, so a player leaving does not raise the others' share.
   int share_count() const {
     return share_count_;
   }
@@ -145,8 +134,8 @@ class PartyFight {
   const std::string& boss_key() const {
     return boss_key_;
   }
-  // The terms the fight was opened on, sent out with every state so that no
-  // client has to trust its own switch.
+  // The options the fight started with. Sent with every state so clients do
+  // not rely on their own settings.
   const BossOptions& options() const {
     return options_;
   }
@@ -156,26 +145,24 @@ class PartyFight {
 
  private:
   const BossDifficulty* difficulty() const;
-  // The phase being fought, or null once the fight is over.
+  // Returns the current phase, or null if there is none.
   const BossPhase* current_phase() const;
-  // The player playing under `account_id`, or null.
+  // Returns the player with `account_id`, or null.
   FightPlayer* Find(const std::string& account_id);
-  // Fills the roster with what the phase spawns and stands everyone on a spot
-  // of their own. Every phase is its own arena, so where a player walked to in
-  // the last one means nothing here.
+  // Spawns the phase's mobs and resets every player to their own spot. Each
+  // phase is a new arena, so positions from the last one do not carry over.
   void EnterPhase(int phase);
-  // Ends the fight in `outcome`, holding it for the closing beat. A clear
-  // deals its drops on the way.
+  // Ends the fight with `outcome` and starts the end pause. A win also deals
+  // drops.
   void Finish(PartyFightState outcome);
-  // Rolls each of the difficulty's drops once, against the best Item Drop Rate
-  // anyone still here is carrying, and gives what falls to a player drawn at
-  // random. One roll for the party is what makes a certain drop certain -- a
-  // roll each at a split chance can pay it to nobody, and can pay a one-off
-  // twice.
+  // Rolls each drop once for the whole party and gives it to a random player
+  // still present. One shared roll keeps a guaranteed drop guaranteed and a
+  // one-off drop from landing twice.
   void DealDrops();
-  // Runs the clock and, when the roster empties, moves the fight on.
+  // Runs the timer, and moves to the next phase or ends the fight once every
+  // mob is dead.
   void RunPhase(double dt);
-  // Whether anything is still standing.
+  // Returns whether any mob has HP left.
   bool AnyoneAlive() const;
 
   std::string id_;
@@ -191,8 +178,8 @@ class PartyFight {
   int phase_ = 0;
   double countdown_left_ = 0.0;
   double seconds_left_ = 0.0;
-  // Seconds left of whatever beat is being held: the gap between phases, or
-  // the pause at the end before the fight is let go of.
+  // Seconds left in the current pause: the gap between phases, or the pause
+  // at the end before the fight is discarded.
   double hold_left_ = 0.0;
   std::vector<double> hp_;
   std::vector<double> max_hp_;

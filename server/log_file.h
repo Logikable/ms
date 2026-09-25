@@ -1,8 +1,7 @@
-/* The server's log on disk.
+/* Writes the server's log to disk.
  *
- * Every line the server logs is appended to a file of its own, one per start,
- * named for the moment the process began. Nothing is rotated or deleted: the
- * whole history of what the server did stays on the box.
+ * Each run gets its own file, named for the time the process started. Files
+ * are never rotated or deleted, so the full history stays on the box.
  */
 #ifndef MS_SERVER_LOG_FILE_H_
 #define MS_SERVER_LOG_FILE_H_
@@ -17,15 +16,14 @@ namespace ms {
 
 class FileLogSink : public absl::LogSink {
  public:
-  // Makes `dir` if it is not there and opens this run's file inside it. Check
-  // ok() before registering: a sink that could not open its file writes
-  // nothing.
+  // Creates `dir` if needed and opens this run's file in it. Check ok()
+  // before registering the sink; if the file did not open, it writes nothing.
   explicit FileLogSink(const std::string& dir);
 
   bool ok() const {
     return out_.is_open();
   }
-  // The file being written, for the process to say where its log went.
+  // The log file's path, so the process can report where it is logging.
   const std::string& path() const {
     return path_;
   }

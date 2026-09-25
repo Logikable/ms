@@ -9,7 +9,7 @@
 namespace ms {
 namespace {
 
-// The name this run's file takes: ms-server-20260823-141500.log.
+// Returns this run's file name, such as ms-server-20260823-141500.log.
 std::string FileName() {
   std::time_t now = std::time(nullptr);
   std::tm broken = {};
@@ -35,8 +35,7 @@ void FileLogSink::Send(const absl::LogEntry& entry) {
   if (!out_.is_open()) {
     return;
   }
-  // Flushed every line: a server killed mid-write must not lose what it was
-  // saying about the moment it died.
+  // Flush every line so a crash does not lose the last thing logged.
   out_ << entry.text_message_with_prefix_and_newline();
   out_.flush();
 }

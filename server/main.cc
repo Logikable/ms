@@ -28,17 +28,16 @@ ABSL_FLAG(std::string, log_dir, "",
 
 namespace {
 
-// Set by SIGTERM and SIGINT: the ask to drain and exit. A signal handler can
-// touch nothing else, so the loop reads this and does the work.
+// Set by SIGTERM and SIGINT to ask the server to drain and exit. A signal
+// handler can safely do little else, so the main loop checks this flag.
 volatile std::sig_atomic_t g_stop = 0;
 
 void OnStopSignal(int /*signal*/) {
   g_stop = 1;
 }
 
-// How long a pass of the loop waits for a socket before going round again. An
-// idle server wakes ten times a second, which costs nothing and keeps the
-// heartbeat and the shutdown signal from waiting on traffic.
+// How long each loop pass waits for socket activity. Waking ten times a second
+// is cheap and means heartbeats and shutdown never wait on traffic.
 constexpr std::chrono::milliseconds kStepTimeout(100);
 
 }  // namespace
@@ -46,11 +45,10 @@ constexpr std::chrono::milliseconds kStepTimeout(100);
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   absl::InitializeLog();
-  // The log is the only thing this process says, and journald reads it off
-  // stderr. Without this, absl keeps everything below a warning to itself.
+  // journald reads the log from stderr. By default absl only prints warnings
+  // and above there.
   absl::SetStderrThreshold(absl::LogSeverityAtLeast::kInfo);
-  // Kept for the life of the process: the sink has to outlive every line
-  // logged through it.
+  // Lives as long as the process, since the sink must outlive every log line.
   std::unique_ptr<ms::FileLogSink> log_file;
   std::string log_dir = absl::GetFlag(FLAGS_log_dir);
   if (!log_dir.empty()) {
@@ -71,12 +69,11 @@ int main(int argc, char** argv) {
     LOG(ERROR) << "Could not listen on port " << port;
     return 1;
   }
-  // The fight catalog, compiled in exactly as the game's is: the server has
-  // to know what a party means by "Normal Zakum" to let them at it.
+  // The same boss data the game compiles in, so the server knows what each
+  // boss name a party asks for means.
   std::map<std::string, ms::Boss> bosses =
       ms::LoadTextProtoMap<ms::Boss>(ms::EmbeddedBosses());
-  // The monsters those fights stand up, for the HP the shared roster is made
-  // of. Nothing else about a monster is the server's business.
+  // The server reads only the mobs' HP, to build each fight's shared roster.
   std::map<std::string, ms::Mob> mobs =
       ms::LoadTextProtoMap<ms::Mob>(ms::EmbeddedMobs());
   ms::Server server(std::move(*listener), bosses, mobs);

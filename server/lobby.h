@@ -1,10 +1,9 @@
-/* The lobby: every party waiting to fight, and the rules for making, joining
- * and leaving one.
+/* The lobby holds every party waiting to fight and the rules for creating,
+ * joining and leaving them.
  *
- * Nothing here knows about sockets. The server hands it what a client asked
- * for and it answers whether that happened; afterwards the server asks which
- * players need telling and sends them the state they are now in. So the rules
- * can be read and tested without a connection anywhere near them.
+ * It knows nothing about sockets. The server passes in each client request
+ * and gets back whether it succeeded, then asks which players to update. This
+ * keeps the rules testable without a network.
  */
 #ifndef MS_SERVER_LOBBY_H_
 #define MS_SERVER_LOBBY_H_
@@ -21,16 +20,16 @@
 
 namespace ms {
 
-// What an ask came to. A refusal carries a reason for the client to act on and
-// a sentence fit to show the player.
+// The outcome of a request. A refusal carries a reason code for the client
+// and a message to show the player.
 struct LobbyResult {
   bool ok = false;
   Refused::Reason reason = Refused::REASON_UNSPECIFIED;
   std::string message;
 };
 
-// A player who has to be told something the party state cannot say on its
-// own, and what to tell them.
+// A message for one player that the party state alone does not convey, such
+// as being kicked.
 struct LobbyEvent {
   std::string account_id;
   PartyEvent event;
@@ -38,56 +37,55 @@ struct LobbyEvent {
 
 class Lobby {
  public:
-  // `bosses` is the fight catalog, owned by the caller and outliving the
-  // lobby. `seed` fixes the stream party ids are drawn from.
+  // `bosses` is the boss catalog. The caller owns it, and it must outlive the
+  // lobby. `seed` seeds the party id generator.
   Lobby(const std::map<std::string, Boss>& bosses, unsigned int seed);
-  // The catalog is held by reference, so a temporary one would dangle.
+  // The catalog is held by reference, so a temporary would dangle.
   Lobby(std::map<std::string, Boss>&& bosses, unsigned int seed) = delete;
 
   LobbyResult Create(const PlayerInfo& player);
   LobbyResult Join(const PlayerInfo& player, const std::string& party_id);
   LobbyResult Leave(const std::string& account_id);
-  // Says whether this player is ready to fight. The leader is always ready
-  // and asking for them is refused.
+  // Sets whether a member is ready to fight. The leader is always ready, so
+  // this is refused for them.
   LobbyResult SetReady(const std::string& account_id, bool ready);
   // Leader only. `target` is the member's account.
   LobbyResult Kick(const std::string& account_id, const std::string& target);
   LobbyResult Promote(const std::string& account_id, const std::string& target);
-  // Takes the party out of the list and into the fight `request` names.
-  // Leader only, and refused unless every member may fight it. `now` is the
-  // moment the ask arrived, as a Unix time: a boss on a reset clock is only
-  // open to a party nobody has already taken it with.
+  // Moves the party from the list into the fight `request` names. Leader
+  // only, and refused unless every member can fight that boss. `now` is the
+  // request's Unix time, used to check that nobody has already cleared the
+  // boss this reset period.
   LobbyResult Start(const std::string& account_id, const StartFight& request,
                     int64_t now);
 
-  // Puts a party whose fight is over back in the list. Everyone's ready goes
-  // with it: what they said yes to was that fight.
+  // Puts a party back in the list after its fight ends, and clears everyone's
+  // ready flag.
   void FinishFight(const std::string& party_id);
 
-  // Takes a character's new level or name into whatever party they are in.
-  // Nothing to do for a player who is in none.
+  // Updates a player's level or name in their party, if they are in one.
   void UpdatePlayer(const PlayerInfo& player);
 
-  // Drops a player who has gone, leaving whatever party they were in the way
-  // Leave would. Quiet about a player who was in none.
+  // Removes a disconnected player from their party, as Leave would. Does
+  // nothing if they are in no party.
   void Disconnect(const std::string& account_id);
 
-  // Every party open to be joined, in the order they were made. Without the
-  // members' sheets: what the listing draws is a leader and a capacity.
+  // Returns every joinable party in creation order, without members' sheets.
+  // The listing only shows each party's leader and size.
   PartyList Listed() const;
-  // The party `account_id` is in. One with no id means they are in none,
-  // which is what a player who has left, or was never in one, is sent.
+  // Returns the party `account_id` is in. A party with no id means they are
+  // in none.
   Party StateFor(const std::string& account_id) const;
 
-  // Accounts whose party changed under them and need telling, cleared by the
-  // taking. A player who has left is in here too: what they need telling is
-  // that they are in nothing.
+  // Returns and clears the accounts whose party changed. Players who just
+  // left are included, so they learn they are in no party.
   std::vector<std::string> TakeChanged();
-  // What individual players have to be told, cleared by the taking. Separate
-  // from the above because being kicked and walking out leave the same state
-  // behind, and only the one who was kicked needs the difference.
+  // Returns and clears the per-player events. These are separate because
+  // being kicked and leaving produce the same party state, and only a kicked
+  // player needs to be told why.
   std::vector<LobbyEvent> TakeEvents();
-  // Whether the public list has changed since it was last taken.
+  // Returns whether the public list changed since the last call, and resets
+  // the flag.
   bool TakeListingChanged();
 
   int party_count() const {
@@ -95,8 +93,8 @@ class Lobby {
   }
 
  private:
-  // One party, and whether its fight has begun. A party in a fight is not
-  // listed: nobody joins a fight in progress.
+  // A party and whether its fight has started. Parties in a fight are not
+  // listed, since nobody can join a fight in progress.
   struct Record {
     Party party;
     bool started = false;
@@ -105,30 +103,27 @@ class Lobby {
   // The party `account_id` is in, or null.
   Record* Find(const std::string& account_id);
   const Record* Find(const std::string& account_id) const;
-  // Whether every member of `party` may fight what `request` names, and why
-  // not. Nobody is named: the leader is told what stands in the party's way,
-  // and who it was is the party's own business.
+  // Checks that every member can fight what `request` names. A refusal says
+  // what is wrong but not which member caused it.
   LobbyResult CheckFight(const Party& party, const StartFight& request,
                          int64_t now) const;
-  // Drops the member `account_id` from `party` and hands the party on if they
-  // were leading it. Records who was promoted. Returns false when that left
-  // the party empty, which is when the caller has to erase it.
+  // Removes `account_id` from `party`, promoting a new leader if they led it.
+  // Returns false if the party is now empty, and the caller must erase it.
   bool Remove(Party& party, const std::string& account_id);
-  // Notes that `account_id` has to be told `kind`.
+  // Queues event `kind` for `account_id`.
   void NoteEvent(const std::string& account_id, PartyEvent::Kind kind,
                  const std::string& message);
-  // Marks everyone in `party` as needing telling.
+  // Marks every member of `party` as needing an update.
   void NoteChanged(const Party& party);
   std::string NewPartyId();
 
   const std::map<std::string, Boss>& bosses_;
-  // By party id, in the order they were made -- which is the order they are
-  // listed in, so a party does not jump around the screen.
+  // Party ids in creation order. The list uses this order so parties do not
+  // move around on screen.
   std::vector<std::string> order_;
   std::map<std::string, Record> parties_;
-  // Which party each player is in. An index into the above rather than
-  // anything the parties do not already say, so that leaving is one lookup
-  // rather than a search through every party.
+  // Maps each account to its party id. This duplicates what the parties hold,
+  // so finding a player's party is one lookup instead of a search.
   std::map<std::string, std::string> party_of_;
   std::vector<std::string> changed_;
   std::vector<LobbyEvent> events_;

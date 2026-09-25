@@ -1,9 +1,9 @@
-// A headless client, for driving the server by hand:
+// A headless client for driving the server by hand:
 //
 //   bazelisk run //server:probe -- --action=create --boss=zakum
 //
-// It connects, does the one thing asked, and prints the lobby every time it
-// changes until its time is up.
+// It connects, performs one action, and prints the lobby whenever it changes
+// until --seconds runs out.
 
 #include <chrono>
 #include <cstdio>
@@ -69,8 +69,8 @@ std::string PartyLine(const ms::Party& party) {
   return line;
 }
 
-// Everything worth reading in one snapshot, as one block of text. Printed only
-// when it differs from the last, so a quiet lobby stays quiet.
+// Formats a snapshot as a block of text. The caller prints it only when it
+// changes.
 std::string Describe(const ms::MultiplayerSnapshot& snapshot) {
   std::string text = std::string(StateName(snapshot.state));
   if (!snapshot.message.empty()) {
@@ -97,7 +97,7 @@ ms::PartyMode ParseMode(const std::string& mode) {
   return mode == "solo" ? ms::PARTY_MODE_SOLO_TOGETHER : ms::PARTY_MODE_SHARED;
 }
 
-// Does what --action asked for. False for an action nobody knows.
+// Performs --action. Returns false for an unknown action.
 bool Act(ms::MultiplayerClient& client, const std::string& action) {
   if (action == "watch") {
     return true;
@@ -135,10 +135,9 @@ bool Act(ms::MultiplayerClient& client, const std::string& action) {
   return false;
 }
 
-// Waits for the connection to settle and says whether this build can play
-// against the server as it stands. The VERSION is the point: a server left
-// behind by a deploy turns every client away and says so nowhere else.
-// Returns a process exit code, 0 only once the server has welcomed us.
+// Waits for the connection to settle and reports whether the server accepts
+// this build. Use it to spot a version mismatch after a deploy, since the
+// server refuses every client then. Returns 0 if accepted, 1 otherwise.
 int CheckServer(ms::MultiplayerClient& client, int seconds) {
   std::chrono::steady_clock::time_point deadline =
       std::chrono::steady_clock::now() + std::chrono::seconds(seconds);
@@ -185,8 +184,7 @@ int main(int argc, char** argv) {
     return CheckServer(client, absl::GetFlag(FLAGS_seconds));
   }
 
-  // The ask is queued straight away; the client sends it as soon as it is
-  // welcomed.
+  // The request is queued now and sent once the server accepts the client.
   if (!Act(client, action)) {
     LOG(ERROR) << "Unknown --action '" << action << "'";
     return 1;

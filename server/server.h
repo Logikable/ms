@@ -1,15 +1,13 @@
-/* The multiplayer server: every client connected to it, and what they are
- * allowed to say.
+/* The multiplayer server. It tracks every connected client and handles their
+ * messages.
  *
- * One thread runs the whole thing. Every socket is non-blocking and one poll
- * covers all of them, so a session that stops reading slows nobody down, and
- * the fights step in the same pass without anything having to be made
- * thread-safe.
+ * Everything runs on one thread. All sockets are non-blocking and share one
+ * poll, so a slow client delays nobody, and fights step in the same loop
+ * without locks.
  *
- * Accounts live in memory. The server hands out an id and a token to a player
- * it has never seen, and adopts one it does not recognise -- so a restart
- * costs nobody their identity, and the token only stops one live client from
- * claiming another's id.
+ * Accounts live in memory. A new player gets an id and a token, and an
+ * unknown id is adopted, so a restart does not cost anyone their identity.
+ * The token only stops one live client from claiming another's id.
  */
 #ifndef MS_SERVER_SERVER_H_
 #define MS_SERVER_SERVER_H_
@@ -33,40 +31,39 @@
 
 namespace ms {
 
-// The most clients at once. Far above anything expected; it is here so a
-// runaway cannot take the process's file descriptors.
+// The most clients at once. This is far above normal load and only stops a
+// runaway from using up the process's file descriptors.
 inline constexpr int kMaxSessions = 64;
 
 class Server {
  public:
-  // `listener` must be open and listening. `bosses` and `mobs` are the
-  // catalogs, owned by the caller and outliving the server. `seed` fixes the
-  // stream ids are drawn from, so a test can say what it will be handed, and
-  // `protocol_version` is an argument only so a test can be an old server.
+  // `listener` must be open and listening. The caller owns `bosses` and
+  // `mobs`, and they must outlive the server. `seed` makes ids predictable in
+  // tests, and `protocol_version` lets a test act as an old server.
   Server(Socket listener, const std::map<std::string, Boss>& bosses,
          const std::map<std::string, Mob>& mobs,
          unsigned int seed = std::random_device()(),
          int protocol_version = kMultiplayerVersion);
 
-  // One pass of the loop: wait up to `timeout` for a socket to be ready, take
-  // what has arrived, send what is queued, and then let go of whatever the
-  // clock says is over. `now` is the moment the pass began.
+  // Runs one pass of the loop: waits up to `timeout` for socket activity,
+  // reads incoming messages, sends queued ones, and drops finished sessions
+  // and fights. `now` is when the pass began.
   void Step(std::chrono::steady_clock::time_point now,
             std::chrono::milliseconds timeout);
 
-  // Stops taking connections and sends everyone away with a maintenance
-  // notice. What SIGTERM means -- see //server:ms_server.
+  // Stops taking connections and disconnects everyone with a maintenance
+  // notice. main.cc calls this on SIGTERM.
   void Drain();
-  // True once draining is finished and the process can exit.
+  // True once draining has finished and the process can exit.
   bool drained() const;
 
-  // Connections that have said hello and not yet gone.
+  // Connections that completed the handshake and are still open.
   int player_count() const;
-  // Fights being fought right now.
+  // Fights in progress.
   int fight_count() const {
     return static_cast<int>(fights_.size());
   }
-  // Connections at all, handshake or no.
+  // All connections, including ones still in the handshake.
   int session_count() const {
     return static_cast<int>(sessions_.size());
   }
@@ -76,90 +73,83 @@ class Server {
   struct Session {
     Socket socket;
     int64_t id = 0;
-    // What has arrived and not yet been read as a message, and what is waiting
-    // to go out. Both are the socket's business, not the protocol's.
+    // Raw bytes received but not yet decoded, and bytes waiting to be sent.
     std::string incoming;
     std::string outgoing;
-    // False until a Hello has been accepted. Nothing else is listened to
-    // before that.
+    // False until a Hello is accepted. Any other message before that is
+    // rejected.
     bool greeted = false;
-    // Set once the last thing worth sending has been queued. The socket
-    // closes as soon as it drains.
+    // Set after the final message is queued. The socket closes once the
+    // outgoing buffer empties.
     bool closing = false;
     std::string account_id;
     PlayerInfo player;
-    // The player this client has open on its Inspect screen, whose sheet it
-    // is sent whenever they change. Empty while it is reading nobody.
+    // The account open on this client's Inspect screen, or empty. The client
+    // gets that player's sheet whenever it changes.
     std::string watching;
     std::chrono::steady_clock::time_point last_heard;
   };
 
-  // How a session is named in the log: its number, and the player at it once
-  // one has said hello.
+  // Names a session for the log: its number, plus the player once they have
+  // said hello.
   std::string Describe(const Session& session) const;
 
-  // Closes the sessions the last pass finished with, telling the lobby about
-  // anyone who has gone, and drops the ones that have been quiet too long.
+  // Times out quiet sessions, removes closed ones from their party, fight and
+  // trade, and deletes them.
   void DropFinished(std::chrono::steady_clock::time_point now);
-  // Sends everyone whatever the lobby changed: their own party to the players
-  // it moved, and the open list to everybody once it has.
+  // Sends lobby changes: each affected player's party, and the open party
+  // list to everyone if it changed.
   void PublishLobby();
-  // Sends the roster to everybody, once somebody has arrived, gone, or
-  // changed in a way it shows.
+  // Sends the online roster to everyone if it changed.
   void PublishOnline();
-  // Everyone connected, in the order they arrived and without their sheets.
+  // Returns everyone connected, in arrival order, without their sheets.
   OnlinePlayers Roster() const;
-  // Sends each side of a trade what it looks like now, and puts the gold box
-  // up for anyone who has just been asked to trade.
+  // Sends trade state changes, completions, and trade request notifications.
   void PublishTrades();
-  // Sends `account_id`'s sheet to whoever is reading them. Called whenever
-  // their character changes, which is what keeps an open Inspect screen in
-  // step with the player it is drawing.
+  // Sends `account_id`'s sheet to every client inspecting them. Called
+  // whenever their character changes, to keep Inspect screens current.
   void PublishWatched(const std::string& account_id);
 
-  // Stands up the fight a party has just been let into.
+  // Creates the fight for a party whose start request succeeded.
   void OpenFight(const std::string& account_id, const StartFight& request);
-  // Runs every fight's clock on. Before the reads, so a report that arrives
-  // in the same pass as the end of the count-in still lands.
+  // Advances every fight by the real time since the last pass.
   void StepFights(std::chrono::steady_clock::time_point now);
-  // Sends each party what its fight looks like, on the beat, and lets go of
-  // the ones that have finished.
+  // Broadcasts each fight's state on the publish interval, and closes fights
+  // that are done.
   void PublishFights(std::chrono::steady_clock::time_point now);
-  // Sends everyone in `fight` the state of it, and takes the lines it has just
-  // passed on.
+  // Sends `fight`'s state to its players and clears the damage lines sent.
   void PublishFight(PartyFight& fight);
-  // Tells everyone still in `fight` how it ended and hands the party back to
+  // Tells everyone still in `fight` how it ended, and returns the party to
   // the lobby.
   void CloseFight(const std::string& party_id, const PartyFight& fight);
-  // The fight `account_id` is in, or null.
+  // Returns `account_id`'s fight, or null.
   PartyFight* FightOf(const std::string& account_id);
-  // Takes what one client's fight has landed.
+  // Applies one client's fight report.
   void HandleFightUpdate(Session& session, const FightUpdate& update);
-  // The session `account_id` is playing on, or null if they have gone.
+  // Returns `account_id`'s open session, or null.
   Session* FindSession(const std::string& account_id);
 
-  // Takes whatever connections are waiting, up to kMaxSessions.
+  // Accepts waiting connections, up to kMaxSessions.
   void AcceptWaiting(std::chrono::steady_clock::time_point now);
-  // Reads `session`, handling every whole message that has arrived. Returns
-  // false when the connection is finished with.
+  // Reads from `session` and handles every complete message. Returns false
+  // when the connection should close.
   bool ReadSession(Session& session, std::chrono::steady_clock::time_point now);
-  // Pushes whatever `session` has queued. Returns false when the connection
-  // is finished with, the drained close of a rejected client included.
+  // Writes `session`'s queued bytes. Returns false when the connection should
+  // close, including after a rejected client's last message is sent.
   bool WriteSession(Session& session);
-  // Acts on one message from `session`.
+  // Handles one message from `session`.
   void Handle(Session& session, const ClientMessage& message);
   void HandleHello(Session& session, const Hello& hello);
-  // Answers one lobby ask, refusing it on the connection it came from.
+  // Handles one lobby request, sending a refusal back if it fails.
   void HandleLobby(Session& session, const ClientMessage& message);
-  // The same for a trade ask. Apart from the lobby's because a trade is
-  // between two players rather than between a player and a party.
+  // Handles one trade request the same way.
   void HandleTrade(Session& session, const ClientMessage& message);
-  // Takes the character a client sent, under the account and the name the
-  // server allows rather than the ones it was handed.
+  // Stores the character a client sent, but with the session's account id
+  // and a cleaned-up name.
   void SetPlayer(Session& session, const PlayerInfo& player);
-  // Points `session` at the player it is reading, and sends their sheet. An
-  // empty account is the screen closing, and a player who has gone is
-  // watched all the same: nothing is sent until they come back.
+  // Sets the player `session` is inspecting and sends their sheet. An empty
+  // account means the screen closed. A player who is offline stays watched,
+  // and their sheet is sent once they return.
   void HandleWatch(Session& session, const WatchPlayer& watch);
 
   // Queues `message` for `session`.
@@ -171,38 +161,34 @@ class Server {
   void Reject(Session& session, Rejected::Reason reason,
               const std::string& message);
 
-  // Queues the open party list and the roster for `session` alone, which is
-  // what a player arriving needs before anything changes.
+  // Queues the open party list for a newly arrived `session`.
   void SendListing(Session& session);
 
-  // The account `hello` claims, or a fresh one. Empty when the token does not
-  // go with the id, which is the one way a Hello is turned away for anything
-  // but its version.
+  // Returns the account `hello` claims, or a new one, and sets `token`.
+  // Returns empty if the token does not match the id.
   std::string ResolveAccount(const Hello& hello, std::string& token);
   Socket listener_;
   const std::map<std::string, Boss>* bosses_ = nullptr;
   const std::map<std::string, Mob>* mobs_ = nullptr;
   Lobby lobby_;
   Trades trades_;
-  // The fights being fought, by the party fighting each one. A party has at
-  // most one, and it is not in the lobby list while it lasts.
+  // Fights in progress, by party id. A party has at most one fight, and is
+  // not listed in the lobby during it.
   std::map<std::string, std::unique_ptr<PartyFight>> fights_;
-  // The number the next fight is named with, after the party fighting it.
+  // The number in the next fight's id, which is `<party id>-<number>`.
   int64_t next_fight_id_ = 1;
-  // When the last pass ran and when the next fight broadcast is due. A fight
-  // is stepped by real time, and told to its party ten times a second rather
-  // than every time a socket wakes the loop.
+  // When the last pass ran, and when the next fight broadcast is due. Fights
+  // are broadcast on a fixed interval, not every time the loop wakes.
   std::chrono::steady_clock::time_point stepped_at_;
   std::chrono::steady_clock::time_point publish_fights_at_;
   std::vector<std::unique_ptr<Session>> sessions_;
   int64_t next_session_id_ = 1;
-  // Every account the server has seen since it started, and the token that
-  // proves it. Forgotten on restart, which costs nothing: an id the server
-  // does not know is adopted.
+  // Each account seen since startup and its token. Lost on restart, which is
+  // fine because unknown ids are adopted.
   std::map<std::string, std::string> tokens_;
   std::mt19937 rng_;
   int protocol_version_ = kMultiplayerVersion;
-  // Whether the roster has changed since it was last sent.
+  // Whether the roster changed since it was last sent.
   bool online_changed_ = false;
   bool draining_ = false;
 };

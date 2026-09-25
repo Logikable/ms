@@ -28,11 +28,11 @@ namespace {
 using ::std::chrono::milliseconds;
 using ::std::chrono::seconds;
 
-// How long a test waits for something the server has already been asked for.
+// How long a test waits for the server to respond.
 constexpr milliseconds kPatience(2000);
 
-// One client of the server under test: it sends whole messages and reads
-// whatever has come back, without ever blocking.
+// A test client that sends whole messages and reads replies without
+// blocking.
 class TestClient {
  public:
   bool Open(int port) {
@@ -62,7 +62,7 @@ class TestClient {
     Send(message);
   }
 
-  // The next message the server sent, if one has arrived whole.
+  // Reads the next complete message, if one has arrived.
   bool Take(ServerMessage& message) {
     IoStatus status = Read(socket_, incoming_);
     if (status == IoStatus::kClosed) {
@@ -82,9 +82,7 @@ class TestClient {
   bool closed_ = false;
 };
 
-// One fight for the parties in these tests to name.
-// One fight, of one monster with 1000 HP, in a room with three places to
-// stand.
+// The test boss: one 1000 HP mob and three player spots.
 constexpr int64_t kMobHp = 1000;
 
 std::map<std::string, Boss> Bosses() {
@@ -111,8 +109,8 @@ std::map<std::string, Mob> Mobs() {
   return mobs;
 }
 
-// A client saying its character has moved: a level, and a sheet to prove the
-// listing strips one.
+// A player update with a level, plus a sheet so tests can check that the
+// roster strips it.
 ClientMessage UpdateMessage(const std::string& name, int level) {
   ClientMessage message;
   PlayerInfo* player = message.mutable_update_player()->mutable_player();
@@ -122,28 +120,28 @@ ClientMessage UpdateMessage(const std::string& name, int level) {
   return message;
 }
 
-// What a client sends when the player presses Trade on somebody.
+// The message a client sends to request a trade.
 ClientMessage TradeMessage(const std::string& account_id) {
   ClientMessage message;
   message.mutable_request_trade()->set_account_id(account_id);
   return message;
 }
 
-// What a client sends when it opens the Inspect screen on somebody.
+// The message a client sends when it opens the Inspect screen.
 ClientMessage WatchMessage(const std::string& account_id) {
   ClientMessage message;
   message.mutable_watch_player()->set_account_id(account_id);
   return message;
 }
 
-// What a client asks for when it wants a party of its own.
+// The message a client sends to create a party.
 ClientMessage CreatePartyMessage() {
   ClientMessage message;
   message.mutable_create_party();
   return message;
 }
 
-// Collects what the server logged, so a test can read it back.
+// Collects the server's log lines so a test can check them.
 class LogSpy : public absl::LogSink {
  public:
   LogSpy() {
@@ -176,8 +174,7 @@ class ServerTest : public ::testing::Test {
     server_ = std::make_unique<Server>(std::move(*listener), bosses_, mobs_, 7);
   }
 
-  // Runs the server until `ready` says the test can go on. False means it
-  // never did.
+  // Steps the server until `ready` returns true. Returns false on timeout.
   bool StepUntil(const std::function<bool()>& ready) {
     std::chrono::steady_clock::time_point deadline =
         std::chrono::steady_clock::now() + kPatience;
@@ -190,15 +187,15 @@ class ServerTest : public ::testing::Test {
     return false;
   }
 
-  // Runs the server until `client` has a message, and returns it.
+  // Steps the server until `client` has a message, and returns it.
   ServerMessage Await(TestClient& client) {
     ServerMessage message;
     EXPECT_TRUE(StepUntil([&]() { return client.Take(message); }));
     return message;
   }
 
-  // Runs the server until `client` has a message of `kind`, passing over
-  // whatever else arrives first.
+  // Steps the server until `client` has a message of `kind`, skipping
+  // others.
   ServerMessage AwaitKind(TestClient& client, ServerMessage::KindCase kind) {
     ServerMessage message;
     EXPECT_TRUE(StepUntil(
@@ -206,8 +203,8 @@ class ServerTest : public ::testing::Test {
     return message;
   }
 
-  // A client that has been welcomed and has read the list that came with it,
-  // so that the next list it sees is one something changed.
+  // Returns a welcomed client that has already read its initial party list,
+  // so the next list it gets reflects a change.
   std::unique_ptr<TestClient> Greeted(const std::string& name,
                                       Welcome* welcome) {
     std::unique_ptr<TestClient> client = std::make_unique<TestClient>();
@@ -222,7 +219,7 @@ class ServerTest : public ::testing::Test {
   std::map<std::string, Mob> mobs_ = Mobs();
   int port_ = 0;
   std::unique_ptr<Server> server_;
-  // The clock the server is stepped against, moved by the tests that care.
+  // The time passed to the server's Step. Tests move it forward as needed.
   std::chrono::steady_clock::time_point now_ = std::chrono::steady_clock::now();
 };
 
@@ -248,7 +245,7 @@ TEST_F(ServerTest, KnowsAPlayerComingBack) {
 }
 
 TEST_F(ServerTest, AdoptsAnAccountItHasNeverSeen) {
-  // What every client does after the server restarts.
+  // Every client does this after the server restarts.
   TestClient client;
   ASSERT_TRUE(client.Open(port_));
   client.SayHello("Dagger", "0123456789abcdef", "an-old-token");
@@ -284,7 +281,7 @@ TEST_F(ServerTest, TurnsAwayAnotherVersion) {
   EXPECT_EQ(message.rejected().server_protocol_version(), kMultiplayerVersion);
   EXPECT_FALSE(message.rejected().message().empty());
 
-  // The connection goes with it.
+  // The server also closes the connection.
   EXPECT_TRUE(StepUntil([&]() { return server_->session_count() == 0; }));
 }
 
@@ -325,7 +322,7 @@ TEST_F(ServerTest, DropsAConnectionThatNeverSpoke) {
   ASSERT_TRUE(client.Open(port_));
   ASSERT_TRUE(StepUntil([&]() { return server_->session_count() == 1; }));
 
-  // Nothing was ever said on it, so nothing but the clock can end it.
+  // Only the timeout can end a connection that never sends anything.
   now_ += kSessionTimeout + seconds(1);
   EXPECT_TRUE(StepUntil([&]() { return server_->session_count() == 0; }));
 }
@@ -339,7 +336,7 @@ TEST_F(ServerTest, SendsEveryoneAwayWhenDraining) {
   EXPECT_EQ(message.rejected().reason(), Rejected::REASON_MAINTENANCE);
   EXPECT_TRUE(StepUntil([&]() { return server_->drained(); }));
 
-  // Nobody new is taken on while it is going down.
+  // New connections are refused while draining.
   TestClient late;
   EXPECT_FALSE(late.Open(port_));
 }
@@ -349,8 +346,8 @@ TEST_F(ServerTest, ShowsTheListToAPlayerArriving) {
   ASSERT_TRUE(client.Open(port_));
   client.SayHello("Dagger");
 
-  // The welcome is followed by what there is to join, so a player arriving
-  // has the lobby without asking for it.
+  // The party list follows the welcome, so a new player sees the lobby
+  // without asking.
   AwaitKind(client, ServerMessage::kWelcome);
   ServerMessage listing = AwaitKind(client, ServerMessage::kPartyList);
   EXPECT_EQ(listing.party_list().parties_size(), 0);
@@ -363,15 +360,15 @@ TEST_F(ServerTest, ListsEveryoneOnlineWithoutTheirSheets) {
   Welcome second_welcome;
   std::unique_ptr<TestClient> second = Greeted("Wand", &second_welcome);
 
-  // The roster the second player's arrival sent everybody.
+  // The roster sent when the second player arrived.
   ServerMessage message = AwaitKind(*second, ServerMessage::kOnlinePlayers);
   ASSERT_EQ(message.online_players().players_size(), 2);
   const PlayerInfo& listed = message.online_players().players(0);
   EXPECT_EQ(listed.account_id(), first_welcome.account_id());
   EXPECT_EQ(listed.name(), "Dagger");
   EXPECT_EQ(listed.level(), 150);
-  // A name and a level is all the list draws, and a sheet on every row would
-  // put a save's worth of message in front of everybody.
+  // The roster only shows name and level, so sheets are left out to keep it
+  // small.
   EXPECT_FALSE(listed.has_sheet());
   EXPECT_EQ(message.online_players().players(1).name(), "Wand");
 }
@@ -382,7 +379,7 @@ TEST_F(ServerTest, TakesAPlayerOffTheRosterWhenTheyGo) {
   Welcome second_welcome;
   std::unique_ptr<TestClient> second = Greeted("Wand", &second_welcome);
   second.reset();
-  // Past the rosters the two arrivals sent, to the one their leaving did.
+  // Skip the rosters sent on arrival and wait for the one sent on leaving.
   ServerMessage message;
   ASSERT_TRUE(StepUntil([&]() {
     return first->Take(message) &&
@@ -404,8 +401,8 @@ TEST_F(ServerTest, SendsAWatchedPlayersSheetAndKeepsItFresh) {
   EXPECT_EQ(message.player_sheet().player().account_id(),
             read_welcome.account_id());
 
-  // A sheet that moves under the reader is sent again, so the screen they are
-  // on is the character as they stand.
+  // A change to the watched character sends the sheet again, keeping the
+  // Inspect screen current.
   read->Send(UpdateMessage("Wand", 121));
   EXPECT_TRUE(StepUntil([&]() {
     return reader->Take(message) &&
@@ -423,8 +420,8 @@ TEST_F(ServerTest, SendsNoSheetOnceTheWatchIsOver) {
   AwaitKind(*reader, ServerMessage::kPlayerSheet);
 
   reader->Send(WatchMessage(""));
-  // Something the roster carries, so there is a message to read past the one
-  // a live watch would have sent.
+  // A level change also updates the roster, which gives the test a message
+  // to wait for after any sheet a live watch would send.
   read->Send(UpdateMessage("Wand", 133));
   ServerMessage message = AwaitKind(*reader, ServerMessage::kOnlinePlayers);
   EXPECT_EQ(message.online_players().players(1).level(), 133);
@@ -451,13 +448,13 @@ TEST_F(ServerTest, PutsAPartyInFrontOfEverybody) {
   second->Send(join);
   ServerMessage joined = AwaitKind(*second, ServerMessage::kPartyState);
   EXPECT_EQ(joined.party_state().party().members_size(), 2);
-  // The one who made it is told as well.
+  // The party's creator is updated too.
   ServerMessage changed = AwaitKind(*first, ServerMessage::kPartyState);
   EXPECT_EQ(changed.party_state().party().members_size(), 2);
 }
 
-// Everything a player does reaches the log, named for who did it, whether the
-// lobby allowed it or not.
+// Every player action is logged with who did it, whether or not the lobby
+// allowed it.
 TEST_F(ServerTest, LogsEveryAction) {
   LogSpy log;
   Welcome leader_welcome;
@@ -479,7 +476,7 @@ TEST_F(ServerTest, LogsEveryAction) {
   member->Send(ready);
   AwaitKind(*member, ServerMessage::kPartyState);
 
-  // A member cannot kick, so this one is refused and says so.
+  // Members cannot kick, so this is refused and logged as refused.
   ClientMessage kick;
   kick.mutable_kick_member()->set_account_id(leader_welcome.account_id());
   member->Send(kick);
@@ -544,8 +541,8 @@ TEST_F(ServerTest, AsksAPlayerToTrade) {
 
   asker->Send(TradeMessage(theirs.account_id()));
 
-  // The asker has a trade to draw, and the one asked has a gold box and no
-  // screen: theirs opens when they press Trade back.
+  // The requester gets a trade state. The invited player only gets a
+  // notification until they request back.
   TradeState state =
       AwaitKind(*asker, ServerMessage::kTradeState).trade_state();
   EXPECT_FALSE(state.id().empty());
@@ -577,7 +574,7 @@ TEST_F(ServerTest, OpensTheTradeWhenBothAsk) {
                   .trade_state()
                   .partner_joined());
 
-  // An offer reaches the other side as theirs.
+  // An offer shows up on the other side as theirs.
   ClientMessage offer;
   offer.mutable_set_trade_offer()->mutable_offer()->set_meso(5000);
   offer.mutable_set_trade_offer()->mutable_offer()->set_spell_traces(30);
@@ -618,7 +615,7 @@ TEST_F(ServerTest, PaysOutATradeBothSidesConfirm) {
   asker->Send(confirm);
   asked->Send(confirm);
 
-  // Each side is paid what the other put up, and the trade is gone.
+  // Each side receives what the other offered, and the trade ends.
   TradeOffer paid = AwaitKind(*asked, ServerMessage::kTradeCompleted)
                         .trade_completed()
                         .received();
@@ -648,7 +645,7 @@ TEST_F(ServerTest, RefusesATradeItCannotOpen) {
   EXPECT_EQ(refused.refused().reason(), Refused::REASON_BUSY);
   EXPECT_EQ(refused.refused().message(), "They're currently busy.");
 
-  // And nobody trades with a player the server has never heard of.
+  // Trading with an unknown account is refused.
   latecomer->Send(TradeMessage("0123456789abcdef"));
   EXPECT_EQ(AwaitKind(*latecomer, ServerMessage::kRefused).refused().reason(),
             Refused::REASON_PLAYER_GONE);
@@ -707,7 +704,7 @@ TEST_F(ServerTest, AFightEndsATrade) {
                   .empty());
 }
 
-// A party of two in a fight, with both clients holding nothing unread.
+// A party of two that has just started a fight.
 class FightTest : public ServerTest {
  protected:
   void SetUp() override {
@@ -733,9 +730,9 @@ class FightTest : public ServerTest {
     leader_->Send(start);
   }
 
-  // Runs the server on a clock that keeps moving, which is what a fight needs:
-  // its beats come round on the clock rather than on the sockets. Bounded, so
-  // a fight cannot run the session timeout out from under its own clients.
+  // Steps the server while advancing its clock, since fights run on time
+  // rather than socket activity. The pass limit keeps the clock short of the
+  // session timeout.
   bool TickUntil(const std::function<bool()>& ready) {
     for (int pass = 0; pass < 400; ++pass) {
       now_ += milliseconds(20);
@@ -747,7 +744,7 @@ class FightTest : public ServerTest {
     return false;
   }
 
-  // The next fight state `client` is sent that `ready` accepts.
+  // Returns the next fight state for `client` that `ready` accepts.
   FightState AwaitFight(TestClient& client,
                         const std::function<bool(const FightState&)>& ready) {
     FightState found;
@@ -764,7 +761,7 @@ class FightTest : public ServerTest {
     return found;
   }
 
-  // The next fight state at all, whatever it says.
+  // Returns the next fight state for `client`.
   FightState AwaitFight(TestClient& client) {
     return AwaitFight(client, [](const FightState&) { return true; });
   }
@@ -783,7 +780,7 @@ class FightTest : public ServerTest {
     return found;
   }
 
-  // What one client says it landed on the only monster in the fight.
+  // A fight report dealing `damage` to the fight's one mob.
   ClientMessage Landed(int64_t damage) {
     ClientMessage message;
     FightUpdate* update = message.mutable_fight_update();
@@ -794,7 +791,7 @@ class FightTest : public ServerTest {
     return message;
   }
 
-  // Both clients past the count-in, holding nothing unread about the fight.
+  // Waits until both clients see the fight past its countdown.
   void CountIn() {
     AwaitFight(*leader_, [](const FightState& state) {
       return state.stage() == FightState::FIGHTING;
@@ -817,7 +814,7 @@ TEST_F(FightTest, EveryoneIsToldTheFightHasBegun) {
   ASSERT_EQ(state.hp_fractions_size(), 1);
   EXPECT_EQ(state.hp_fractions(0), 1.0);
   ASSERT_EQ(state.players_size(), 2);
-  // One spot each, in the order the party holds them.
+  // Each player gets their own spot, in party order.
   EXPECT_EQ(state.players(0).spot(), 0);
   EXPECT_EQ(state.players(1).spot(), 1);
   EXPECT_TRUE(state.players(0).present());
@@ -835,7 +832,7 @@ TEST_F(FightTest, WhatOnePlayerLandsTheOtherWatches) {
   EXPECT_EQ(state.players(0).lines(0).damage(), 250);
   EXPECT_EQ(state.players(0).attack_name(), "Blizzard");
 
-  // Passed on once, not on every broadcast after it.
+  // Damage lines are sent once, not on every later broadcast.
   state = AwaitFight(*member_);
   EXPECT_EQ(state.players(0).lines_size(), 0);
   EXPECT_EQ(state.hp_fractions(0), 0.75);
@@ -848,12 +845,12 @@ TEST_F(FightTest, AClearEndsTheFightAndGivesThePartyBack) {
 
   FightEnded ended = AwaitEnd(*leader_);
   EXPECT_EQ(ended.outcome(), FightEnded::CLEARED);
-  // Both of them were there when it started, so a clear is halves.
+  // Both started the fight, so rewards are split two ways.
   EXPECT_EQ(ended.share_count(), 2);
   AwaitEnd(*member_);
   EXPECT_EQ(server_->fight_count(), 0);
 
-  // The party is open again, and nobody's readiness carried over.
+  // The party is listed again, and nobody is still ready.
   ServerMessage listed = AwaitKind(*leader_, ServerMessage::kPartyList);
   ASSERT_EQ(listed.party_list().parties_size(), 1);
   ASSERT_EQ(listed.party_list().parties(0).members_size(), 2);
@@ -889,7 +886,7 @@ TEST_F(ServerTest, TellsAPlayerTheyWereRemoved) {
   kick.mutable_kick_member()->set_account_id(member_welcome.account_id());
   leader->Send(kick);
 
-  // The state says they are in nothing; the event says why.
+  // The state shows they are in no party, and the event says why.
   ServerMessage state = AwaitKind(*member, ServerMessage::kPartyState);
   EXPECT_TRUE(state.party_state().party().id().empty());
   ServerMessage event = AwaitKind(*member, ServerMessage::kPartyEvent);

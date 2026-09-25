@@ -12,8 +12,8 @@
 namespace ms {
 namespace {
 
-// Characters in a trade id. Short, like a party's: it is read in log lines,
-// and a handful of trades are ever open at once.
+// Trade ids are short because they appear in log lines, and only a handful
+// of trades are open at once.
 constexpr int kTradeIdCharacters = 8;
 
 TradeResult Refusal(Refused::Reason reason, const std::string& message) {
@@ -43,8 +43,8 @@ TradeResult Trades::Request(const PlayerInfo& from, const PlayerInfo& to,
     if (Other(*mine, from.account_id()) != to.account_id()) {
       return Refusal(Refused::REASON_BUSY, "You are already trading.");
     }
-    // Asking again for the trade they are already in, which is what the
-    // player who was asked presses to answer.
+    // A request for the trade they are already in. This is how the invited
+    // player accepts.
     if (!mine->joined && mine->partner == from.account_id()) {
       mine->joined = true;
       NoteChanged(*mine);
@@ -110,17 +110,17 @@ void Trades::SetConfirm(const std::string& account_id, bool confirmed) {
   }
   const bool opener = IsOpener(*record, account_id);
   if (!confirmed) {
-    // Backing out takes this player's acceptance with it, which is what pulls
-    // the dialog down on both sides. The other player keeps theirs, so one
-    // keypress here puts it back up.
+    // Cancelling clears this player's acceptance, which closes the dialog on
+    // both sides. The other player stays accepted, so accepting again
+    // reopens it.
     (opener ? record->opener_accepted : record->partner_accepted) = false;
     record->opener_confirmed = false;
     record->partner_confirmed = false;
     NoteChanged(*record);
     return;
   }
-  // Only a table both sides have agreed to can be confirmed: a confirm on any
-  // other is a message about a dialog that is no longer up.
+  // Ignore a confirm unless both sides have accepted. Otherwise it refers to
+  // a dialog that has already closed.
   if (!record->opener_accepted || !record->partner_accepted) {
     return;
   }
@@ -137,8 +137,7 @@ void Trades::Leave(const std::string& account_id) {
   if (record == nullptr) {
     return;
   }
-  // Taken before the trade goes, so the one leaving is told as well as the
-  // one left behind.
+  // Note the change before removing the trade, so both players are updated.
   NoteChanged(*record);
   std::string id = record->id;
   trade_of_.erase(record->opener);
@@ -201,7 +200,6 @@ bool Trades::IsOpener(const Record& record, const std::string& account_id) {
 }
 
 void Trades::ClearAgreement(Record& record) {
-  // Everything, both sides: a table nobody is looking at any more.
   record.opener_accepted = false;
   record.partner_accepted = false;
   record.opener_confirmed = false;
@@ -209,13 +207,11 @@ void Trades::ClearAgreement(Record& record) {
 }
 
 void Trades::Complete(Record& record) {
-  // Each side is paid what the OTHER put up.
+  // Each side receives what the other offered.
   completions_.push_back({record.opener, record.partner_offer});
   completions_.push_back({record.partner, record.opener_offer});
-  // A note still queued from the first confirm would be SENT from the state
-  // after this one, which is the empty state of a player in no trade -- and
-  // that reads to a client as their partner walking out. The completion is
-  // the only thing these two are owed.
+  // Drop any update queued by the first confirm. It would send an empty
+  // state, which the client reads as the partner leaving.
   DropChanged(record.opener);
   DropChanged(record.partner);
   std::string id = record.id;
@@ -251,9 +247,8 @@ const std::string& Trades::Other(const Record& record,
 
 void Trades::NoteChanged(const Record& record) {
   changed_.push_back(record.opener);
-  // Not the one who has not answered yet: a trade state is what opens the
-  // trade screen, and theirs opens when they press Trade back, not when they
-  // are asked.
+  // Skip a partner who has not joined yet. A trade state opens the trade
+  // screen, and theirs should open only when they request back.
   if (record.joined) {
     changed_.push_back(record.partner);
   }

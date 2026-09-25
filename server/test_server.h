@@ -1,8 +1,7 @@
-/* A real server on the loopback for a test to talk to.
+/* A real server on loopback for tests to talk to.
  *
- * It steps on a thread of its own, which is the one rule the server has: only
- * that thread ever touches it. A test drives the other end through a client
- * and waits for what it expects to come back.
+ * The server runs on its own thread, and only that thread touches it. A test
+ * connects a client and waits for the replies it expects.
  */
 #ifndef MS_SERVER_TEST_SERVER_H_
 #define MS_SERVER_TEST_SERVER_H_
@@ -24,17 +23,16 @@
 
 namespace ms {
 
-// The one monster a test's fights are made of. Deep enough that a client
-// swinging at it for a few seconds cannot finish it, so a test can watch a
-// fight in progress rather than only its end.
+// The mob in every test fight. Its HP is high enough that a client cannot
+// kill it in a few seconds, so tests can watch a fight in progress.
 inline constexpr char kTestMob[] = "zakum";
 inline constexpr int64_t kTestMobHp = 100000000;
-// The one thing its clear drops, always, so a test can watch the server deal
-// a certain drop to exactly one player.
+// The test boss always drops this, so a test can check that exactly one
+// player receives it.
 inline constexpr char kTestDrop[] = "shard";
 
-// One fight for a test's parties to name: Normal Zakum, open at any level,
-// one monster standing in a room with three places to stand.
+// Returns one test boss: Normal Zakum, open at any level, with one mob and
+// three player spots.
 inline std::map<std::string, Boss> TestBosses() {
   std::map<std::string, Boss> bosses;
   Boss& zakum = bosses["zakum"];
@@ -75,8 +73,8 @@ class TestServer {
     Stop();
   }
 
-  // Listens on a port the OS picks and starts stepping. False if no socket
-  // could be had.
+  // Listens on a port the OS picks and starts the server thread. Returns false
+  // if it could not open a socket.
   bool Start() {
     if (!StartSockets()) {
       return false;
@@ -90,8 +88,8 @@ class TestServer {
     return true;
   }
 
-  // Stops and comes back on the same port speaking `protocol_version`. What a
-  // deploy does, so a test can watch a client that was turned away get in.
+  // Restarts on the same port with `protocol_version`, as a deploy would. Lets
+  // a test check that a refused client gets in after the update.
   bool RestartSpeaking(int protocol_version) {
     Stop();
     protocol_version_ = protocol_version;
@@ -114,16 +112,15 @@ class TestServer {
     return port_;
   }
 
-  // Moves the server's clock on by `by`, once. The boss count-in is three real
-  // seconds and a test has no reason to sit through them; every other clock
-  // the server keeps is minutes wide, so a jump this size is invisible to
-  // them. Safe to call while it is running.
+  // Moves the server's clock forward by `by`. Tests use this to skip the
+  // three-second boss countdown; the server's other timers are minutes long,
+  // so a small jump does not affect them. Safe to call while running.
   void SkipAhead(std::chrono::milliseconds by) {
     skipped_ms_ += by.count();
   }
 
  private:
-  // Steps the server on a thread of its own until Stop().
+  // Runs the server on its own thread until Stop().
   void Serve(Socket listener) {
     running_ = true;
     thread_ = std::thread([this, socket = std::move(listener)]() mutable {

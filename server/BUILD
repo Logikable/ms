@@ -1,8 +1,8 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load("//tools:release.bzl", "release_binary")
 
-# The multiplayer server. It lives outside //src for the same reason the sims
-# do: it is not the game a player runs.
+# The multiplayer server. Like the sims, it lives outside //src because it is
+# not part of the game a player runs.
 
 package(default_visibility = ["//visibility:public"])
 
@@ -154,7 +154,7 @@ cc_binary(
     ],
 )
 
-# The server on a loopback port, for tests on either side of the connection.
+# Runs the server on a loopback port, for client and server tests.
 cc_library(
     name = "test_server",
     testonly = True,
@@ -169,8 +169,7 @@ cc_library(
 )
 
 # A headless client for driving a running server by hand. It lives here
-# rather than beside the game because it is a tool for the server, not
-# something a player runs.
+# because it is a server tool, not something a player runs.
 cc_binary(
     name = "probe",
     srcs = ["probe.cc"],
@@ -185,8 +184,8 @@ cc_binary(
     ],
 )
 
-# What tools/deploy_server.sh sends: optimised and statically linked, so the
-# box's glibc need not match the machine that built it.
+# The binary tools/deploy_server.sh ships. It is statically linked so the
+# box's glibc does not have to match the build machine's.
 release_binary(
     name = "ms_server_static",
     binary = ":ms_server",

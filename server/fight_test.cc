@@ -14,8 +14,8 @@
 namespace ms {
 namespace {
 
-// A two-phase fight: two arms of 100 HP apiece, then a body of 500, with
-// four places to stand in each phase -- one more than the party fills.
+// A two-phase fight: two 100 HP arms, then a 500 HP body. Each phase has four
+// player spots, one more than the party needs.
 Boss TwoPhases() {
   Boss boss;
   boss.set_name("Zakum");
@@ -59,8 +59,8 @@ Party PartyOf(int count) {
   return party;
 }
 
-// The same fight with something to drop: a stackable shard and a mark that is
-// gear, so one table holds both halves of the drop-rate rule.
+// The same fight with drops: a stackable shard and an equip mark, since drop
+// rate treats the two differently.
 Boss Dropping(double shard_rate, double mark_rate = 0.0) {
   Boss boss = TwoPhases();
   BossDifficulty* normal = boss.mutable_difficulties(0);
@@ -73,7 +73,7 @@ Boss Dropping(double shard_rate, double mark_rate = 0.0) {
   return boss;
 }
 
-// Kills everything in every phase, which is what wins a fight.
+// Wins the fight by killing every mob in every phase.
 void Clear(PartyFight& fight) {
   fight.Advance(kBossCountdownSeconds);
   while (!fight.over()) {
@@ -85,7 +85,7 @@ void Clear(PartyFight& fight) {
   }
 }
 
-// How many of everything the clear dealt, over the whole party.
+// Returns the total count of every award across the party.
 int64_t TotalAwards(const PartyFight& fight) {
   int64_t total = 0;
   for (const FightPlayer& player : fight.players()) {
@@ -104,8 +104,7 @@ class FightTest : public ::testing::Test {
         fight_("p1-1", "zakum", boss_, 0, mobs_, PartyOf(3)) {
   }
 
-  // Runs the countdown out, which is where every test that lands a hit
-  // starts.
+  // Finishes the countdown so hits can land.
   void CountIn() {
     fight_.Advance(kBossCountdownSeconds);
     EXPECT_EQ(fight_.state(), PartyFightState::kFighting);
@@ -162,7 +161,7 @@ TEST_F(FightTest, AReportLandsWalksAndWindsUp) {
   EXPECT_EQ(fight_.players()[0].attack_name, "Blizzard");
   EXPECT_EQ(fight_.players()[0].attack_fraction, 0.5);
   EXPECT_EQ(fight_.players()[0].buff_count, 3);
-  // Held for the other players to watch until the broadcast takes them.
+  // Damage lines are kept for the other players until a broadcast takes them.
   EXPECT_EQ(fight_.players()[0].lines.size(), 1u);
   fight_.TakeLines();
   EXPECT_TRUE(fight_.players()[0].lines.empty());
@@ -178,7 +177,7 @@ TEST_F(FightTest, AReportFromAPhaseThatHasMovedOnLandsNothing) {
   fight_.Report("one", update);
   EXPECT_EQ(fight_.hp_fractions()[0], 1.0);
   EXPECT_TRUE(fight_.players()[0].lines.empty());
-  // Where they are standing is theirs to say whatever the numbers did.
+  // The spot is still taken even though the damage was dropped.
   EXPECT_EQ(fight_.players()[0].spot, 3);
 }
 
@@ -219,7 +218,7 @@ TEST_F(FightTest, TheClockRunsOut) {
   fight_.Advance(60.0);
   EXPECT_EQ(fight_.state(), PartyFightState::kTimedOut);
   EXPECT_EQ(fight_.seconds_left(), 0.0);
-  // A fight that is over takes nothing more.
+  // A finished fight ignores hits.
   fight_.Hit("one", 0, 100);
   EXPECT_EQ(fight_.hp_fractions()[0], 1.0);
 }
@@ -231,14 +230,14 @@ TEST_F(FightTest, OneSpotHoldsOnePlayer) {
   EXPECT_EQ(fight_.players()[0].spot, 0);
   EXPECT_FALSE(fight_.MoveTo("one", 4));
 
-  // Free once the player who was on it walks off.
+  // A spot frees up once its player moves away.
   ASSERT_TRUE(fight_.MoveTo("two", 3));
   EXPECT_TRUE(fight_.MoveTo("one", 1));
   EXPECT_FALSE(fight_.MoveTo("three", 1));
 }
 
-// A report carries the whole table, which replaces the last -- even one from
-// a phase that has moved on -- and is kept when its player goes.
+// Each report's table replaces the last, even from an earlier phase, and it is
+// kept after the player leaves.
 TEST_F(FightTest, TheLastBreakdownReportedIsKept) {
   CountIn();
   FightUpdate update;
@@ -264,7 +263,7 @@ TEST_F(FightTest, APlayerWhoGoesStopsHittingAndFreesTheirSpot) {
   EXPECT_EQ(fight_.hp_fractions()[0], 1.0);
   EXPECT_FALSE(fight_.players()[1].present);
   EXPECT_TRUE(fight_.MoveTo("one", 1));
-  // What the meso is split by is who came, not who stayed.
+  // Rewards are split by who started the fight, not who stayed.
   EXPECT_EQ(fight_.share_count(), 3);
   EXPECT_EQ(fight_.state(), PartyFightState::kFighting);
 }
@@ -277,7 +276,7 @@ TEST_F(FightTest, TheLastOneOutAbandonsTheFight) {
   EXPECT_EQ(fight_.state(), PartyFightState::kFighting);
   fight_.Disconnect("two");
   EXPECT_EQ(fight_.state(), PartyFightState::kAbandoned);
-  // Nothing is held for a fight nobody is watching.
+  // An abandoned fight skips the end pause.
   EXPECT_TRUE(fight_.done());
 }
 
@@ -290,8 +289,8 @@ TEST_F(FightTest, AFightWithNothingToKillIsNoFight) {
   EXPECT_EQ(unknown.state(), PartyFightState::kAbandoned);
 }
 
-// One roll for the party, not one each at a split chance: a drop that always
-// falls always falls, and it falls to exactly one of them.
+// The party gets one roll per drop, so a guaranteed drop goes to exactly one
+// player.
 TEST(FightDropsTest, ACertainDropIsDealtToExactlyOnePlayer) {
   Boss boss = Dropping(1.0);
   std::map<std::string, Mob> mobs = Mobs();
@@ -307,11 +306,11 @@ TEST(FightDropsTest, ACertainDropIsDealtToExactlyOnePlayer) {
       EXPECT_EQ(award.count(), 1);
     }
   }
-  // The mark's nothing chance dealt nobody anything.
+  // The mark has a zero rate, so it never drops.
   EXPECT_EQ(dealt, 1);
 }
 
-// A rate above one pays its whole part, each unit drawn for on its own.
+// A rate above one deals every copy.
 TEST(FightDropsTest, EveryUnitOfARepeatedDropIsDealt) {
   Boss boss = Dropping(3.0);
   std::map<std::string, Mob> mobs = Mobs();
@@ -321,9 +320,8 @@ TEST(FightDropsTest, EveryUnitOfARepeatedDropIsDealt) {
   EXPECT_EQ(TotalAwards(fight), 3);
 }
 
-// The party brings a drop rate along for everybody, so the roll takes the
-// best one anyone is carrying: a coin flip the one rich player turns into a
-// certainty for all of them.
+// The roll uses the party's best drop rate, so one player's 100% bonus turns
+// a 50% drop into a sure one.
 TEST(FightDropsTest, TheBestDropRateInThePartyRollsTheDrops) {
   Boss boss = Dropping(0.5);
   std::map<std::string, Mob> mobs = Mobs();
@@ -337,8 +335,8 @@ TEST(FightDropsTest, TheBestDropRateInThePartyRollsTheDrops) {
   EXPECT_EQ(TotalAwards(fight), 1);
 }
 
-// Drop rate buys gear a chance and never a copy: a guaranteed piece is one
-// piece however much of it the party is carrying.
+// Drop rate raises the chance of gear but never adds copies, so a guaranteed
+// piece stays one piece.
 TEST(FightDropsTest, DropRateDoesNotDoubleACertainPieceOfGear) {
   Boss boss = Dropping(0.0, 1.0);
   std::map<std::string, Mob> mobs = Mobs();
@@ -351,9 +349,8 @@ TEST(FightDropsTest, DropRateDoesNotDoubleACertainPieceOfGear) {
   EXPECT_EQ(TotalAwards(fight), 1);
 }
 
-// A stackable does take the copies, and each is dealt on its own: 250% drop
-// on a certain shard is two outright, so at least two of the three are paid
-// and nobody holds all three by anything but luck.
+// Stackable drops do get extra copies: 250% drop rate on a guaranteed shard
+// gives two or three.
 TEST(FightDropsTest, DropRateStacksACertainShard) {
   Boss boss = Dropping(1.0);
   std::map<std::string, Mob> mobs = Mobs();

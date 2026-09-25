@@ -42,8 +42,7 @@ PartyFight::PartyFight(std::string id, std::string boss_key, const Boss& boss,
   countdown_left_ = kBossCountdownSeconds;
   EnterPhase(0);
   if (hp_.empty()) {
-    // A phase naming monsters the catalog does not hold. There is nothing to
-    // fight, so there is no fight.
+    // The phase names no mob the catalog has, so there is nothing to fight.
     Finish(PartyFightState::kAbandoned);
   }
 }
@@ -81,9 +80,8 @@ void PartyFight::EnterPhase(int phase) {
   if (current == nullptr) {
     return;
   }
-  // The same roster the clients build, in the same order: every spawn the mob
-  // catalog knows, one monster per spot. That order is what a slot number
-  // means, so the two ends cannot disagree about which monster was hit.
+  // Build the mob list the same way clients do, so slot numbers mean the same
+  // mob on both ends.
   for (const Spawn& spawn : current->spawns()) {
     std::map<std::string, Mob>::const_iterator it = mobs_->find(spawn.mob());
     if (it == mobs_->end()) {
@@ -95,8 +93,8 @@ void PartyFight::EnterPhase(int phase) {
     }
   }
   hp_fractions_.assign(hp_.size(), 1.0);
-  // One spot each, in the order the party is held. Every phase carries more
-  // spots than a party has members, so nobody starts on top of anybody.
+  // Give each player their own spot, in party order. This assumes each phase
+  // has at least as many spots as the party has members.
   int spots = current->player_spots_size();
   for (int i = 0; i < static_cast<int>(players_.size()); ++i) {
     players_[i].spot = spots > 0 ? std::min(i, spots - 1) : -1;
@@ -133,16 +131,15 @@ void PartyFight::Finish(PartyFightState outcome) {
   if (outcome == PartyFightState::kWon) {
     DealDrops();
   }
-  // An abandoned fight is held for nothing: there is nobody left to show it
-  // to, and a drain waiting one out would wait for nobody.
+  // Skip the end pause for an abandoned fight. Nobody is left to see it, and
+  // a drain should not wait on it.
   hold_left_ =
       outcome == PartyFightState::kAbandoned ? 0.0 : kBossEndHoldSeconds;
 }
 
 void PartyFight::DealDrops() {
-  // A practice clear pays nothing, so there is nothing to deal. Rolled here
-  // rather than thrown away by each client: the roll is the server's, and one
-  // it never makes cannot be seen.
+  // A practice clear pays nothing. The server skips the roll itself rather
+  // than relying on clients to discard what it deals.
   if (options_.practice()) {
     return;
   }
@@ -161,14 +158,12 @@ void PartyFight::DealDrops() {
   std::uniform_int_distribution<size_t> who(0, paid.size() - 1);
   std::vector<int64_t> won(paid.size());
   for (const MobDrop& drop : chosen->drops()) {
-    // One roll for the fight, where a map rolls one per kill. What drop rate
-    // buys depends on what falls -- see BossDropRate. A line that fell more
-    // than once is dealt copy by copy below, so two people can win it.
+    // One roll per fight, where a map rolls once per kill. BossDropRate
+    // decides how drop rate affects each drop.
     int64_t rolled = RollDrops(BossDropRate(drop, best_drop_pct), 1, rng_);
     std::fill(won.begin(), won.end(), 0);
     for (int64_t i = 0; i < rolled; ++i) {
-      // Each of them drawn for separately, so a drop that fell twice can fall
-      // to two different people.
+      // Pick a player for each copy, so two copies can go to two players.
       ++won[who(rng_)];
     }
     for (size_t i = 0; i < paid.size(); ++i) {
@@ -211,16 +206,16 @@ void PartyFight::Report(const std::string& account_id,
   player->attack_fraction = update.attack_fraction();
   player->buff_count = update.buff_count();
   player->item_drop_pct = update.item_drop_pct();
-  // The whole table each time, so a report that crossed a phase is still
-  // worth taking this from.
+  // Each report carries the full table, so take it even from a report that
+  // crossed a phase change.
   if (update.breakdown_size() > 0) {
     player->breakdown.assign(update.breakdown().begin(),
                              update.breakdown().end());
   }
   MoveTo(account_id, update.spot());
   if (update.phase() != phase_) {
-    // A report that crossed a phase change names monsters that are gone. Its
-    // numbers would land on whatever took their slots.
+    // This report's slots refer to the previous phase's mobs, so its damage
+    // would hit the wrong ones.
     return;
   }
   for (const FightDamage& line : update.lines()) {
@@ -298,8 +293,8 @@ void PartyFight::Advance(double elapsed_seconds) {
     if (countdown_left_ > 0.0) {
       return;
     }
-    // The overshoot goes to the fight rather than being thrown away, so a
-    // slow pass cannot cost the party time on their clock.
+    // Carry the overshoot into the fight, so a slow step does not cost the
+    // party time.
     dt = -countdown_left_;
     countdown_left_ = 0.0;
     state_ = PartyFightState::kFighting;
@@ -309,7 +304,7 @@ void PartyFight::Advance(double elapsed_seconds) {
       RunPhase(dt);
       return;
     case PartyFightState::kPhaseGap:
-      // The clock keeps running between phases, as it does for one player.
+      // The timer keeps running between phases, as in solo play.
       seconds_left_ = std::max(0.0, seconds_left_ - dt);
       hold_left_ -= dt;
       if (hold_left_ > 0.0) {
