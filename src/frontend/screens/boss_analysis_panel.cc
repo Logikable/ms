@@ -20,12 +20,12 @@ namespace ms {
 namespace {
 
 // Each column as wide as its widest value: a skill name, 9,999 trillion
-// damage, 100.00%, 9,999 casts, 999 trillion a line, 99,999 lines. Players
-// share the first three, so a name sits over a skill.
+// damage, 100.00%, 99,999 casts (Hurricane), 999 trillion a line, 99,999 lines.
+// Players share the first three, so a name sits over a skill.
 constexpr int kNameWidth = 28;
 constexpr int kDamageWidth = 21;
 constexpr int kShareWidth = 7;
-constexpr int kCastsWidth = 5;
+constexpr int kCastsWidth = 6;
 constexpr int kPerLineWidth = 15;
 constexpr int kLinesWidth = 6;
 constexpr char kGap[] = "  ";
