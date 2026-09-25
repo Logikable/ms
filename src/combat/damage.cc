@@ -86,7 +86,7 @@ constexpr int kAboveLevelCap = 5;
 // Level multiplier when the monster is higher level, indexed by the gap 1 to
 // 39; 40 or more is 0. The wiki lists -37 to -39 as 0.8/0.5/0.3, which breaks
 // the steady decline, so we read them as 0.08/0.05/0.03 (a dropped leading
-// zero). No current content reaches that range.
+// zero).
 constexpr double kUnderLevelMultiplier[] = {
     0.0,                           // gap 0 unused (see LevelMultiplier)
     1.0584, 1.007, 0.9672, 0.918,  // -1..-4

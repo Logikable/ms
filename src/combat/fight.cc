@@ -171,7 +171,6 @@ std::vector<int> CombatSim::LeadTargets(const AttackOption& attack,
     reached[j] = j;
   }
   int want = std::min(std::max(1, attack.lead_enemies), hit);
-  // Only the first `want` need to be sorted.
   std::partial_sort(
       reached.begin(), reached.begin() + want, reached.end(),
       [this](int a, int b) { return queue_[a].hp > queue_[b].hp; });
@@ -409,7 +408,6 @@ int CombatSim::TopAttack(const CombatParams& params,
   const std::vector<AttackOption>& options = Attacks(params);
   for (int i = 0; i < static_cast<int>(options.size()); ++i) {
     const AttackOption& attack = options[i];
-    // Skip attacks being saved for a buff window.
     if (i < static_cast<int>(held.size()) && held[i]) {
       continue;
     }
@@ -1164,7 +1162,6 @@ double CombatSim::FrozenCredit(const CombatParams& params,
   return credit;
 }
 
-// Seconds the burn in `slot` has left on this monster.
 double CombatSim::BurnLeftOn(const QueuedMob& mob, int slot) const {
   if (slot < 0 || slot >= static_cast<int>(mob.dots.size())) {
     return 0.0;
@@ -2215,7 +2212,6 @@ void CombatSim::CreditBuffs(const CombatParams& params, double weight,
   }
 }
 
-// Heals a fraction of max HP, capped at full.
 void CombatSim::RecoverHp(const CombatParams& params, double share) {
   if (share <= 0.0) {
     return;

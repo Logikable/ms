@@ -6,10 +6,8 @@
  * have no open market, so that rule would only punish players who move up
  * early.
  *
- * Rewards are rolled randomly. A 1-in-5000 drop is a chance on every kill, not
- * a guaranteed drop on kill 5000, and meso varies across GMS's range for each
- * band. Averages match the old fixed-payout model, so balance is unchanged; two
- * players with the same kills just end up with different amounts.
+ * A 1-in-5000 drop is a chance on every kill, not a guaranteed drop on kill
+ * 5000, and meso varies across GMS's range for each band.
  */
 #ifndef MS_SRC_COMBAT_LOOT_H_
 #define MS_SRC_COMBAT_LOOT_H_

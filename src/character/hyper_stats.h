@@ -9,8 +9,6 @@
  *
  * A character keeps one allocation per preset slot, and the game picks between
  * them based on what the player is doing; see stat_preset.h.
- *
- * Pure math over the protos, like arcane_force.h.
  * CharacterInstance::AllocateHyperStat decides who can raise what.
  */
 #ifndef MS_SRC_CHARACTER_HYPER_STATS_H_

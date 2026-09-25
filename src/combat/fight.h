@@ -37,7 +37,6 @@ class CombatSim {
     return view_;
   }
 
-  // True while a valid encounter is being fought.
   bool active() const {
     return active_;
   }
@@ -50,7 +49,6 @@ class CombatSim {
   const std::vector<DamageLine>& damage_lines_this_step() const {
     return ledger_.lines_this_step();
   }
-  // The skill name for a line's `credit`.
   const std::string& damage_credit_name(int credit) const {
     return ledger_.credit_name(credit);
   }
@@ -166,7 +164,6 @@ class CombatSim {
   // burning has its timer restarted and damage recomputed; whether a new stack
   // is added depends on the burn.
   void ApplyDots(const AttackOption& attack, int hit);
-  // Advances every burn by `dt`, dealing the ticks that come due.
   void RunDots(double dt);
 
   // Advances every HP regen effect by `dt`, healing the pulses that come due.
@@ -236,7 +233,6 @@ class CombatSim {
   // burns. Stored as a probability: n lines scar with probability 1 - (1 -
   // chance)^n.
   void ApplyScar(const AttackOption& attack, int hit);
-  // Counts down every scar, clearing the probability when it expires.
   void RunScar(double dt);
   // Applies this attack's freeze to the front `hit` mobs. After the strike, so
   // the attack is valued on the state the mobs were in when it hit.
@@ -327,7 +323,6 @@ class CombatSim {
   bool WoundFull(const AttackOption& attack) const;
 
   int Reached(const AttackOption& attack) const;
-  // Fires barrage strikes that have come due.
   void RunBarrage(const CombatParams& params, double dt);
   void RunBarrageOf(const CombatParams& params, int index, double dt);
   // Enemies the wide part of an attack hits. See wide_hit_damage.
@@ -399,7 +394,6 @@ class CombatSim {
   double RolledFinalAttack(const std::vector<FinalAttackRoll>& sources,
                            const std::vector<double>& expected, int type,
                            const Landing& landing);
-  // Whether the attack at `index` is still on cooldown.
   bool Recharging(int index) const;
   // Whether the attack at `index` has a charge to spend. True for every attack
   // no buff loads; see AttackOption::charges.
@@ -482,7 +476,6 @@ class CombatSim {
   // Whether a passive revives the player from a killing hit. Only called at 0
   // HP; if it returns true, HP has already been refilled.
   bool Revive(const CombatParams& params);
-  // Reflects the reflected fraction of a hit back to the mob that dealt it.
   void Reflect(const CombatParams& params, double damage_taken);
   // Counts buff timers down, raises buffs that are ready, and computes the
   // mask. Runs before attacks, so a buff raised now applies to this attack.
@@ -671,7 +664,6 @@ class CombatSim {
   int kills_pending_ = 0;
   // The state of one attack, one entry per attack in params.attacks.
   struct AttackClock {
-    // Seconds before it can be chosen again; 0 when ready.
     double cooldown_left = 0.0;
     // The same for the side strike it triggers. Separate because the attack
     // stays available while its side strike is on cooldown.

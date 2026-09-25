@@ -7,10 +7,7 @@
  *
  * Entries appear as the character reaches them, and the row is laid out from
  * the right. Settings holds the corner from the start so the panel is never
- * empty. Multiplayer arrives at 10, Boss at 110, Dailies at the level of the
- * first Arcane Symbol, and Characters at 210, each in its place left of
- * Settings. Analysis is always at the left end. A build without multiplayer has
- * no Multiplayer entry.
+ * empty, and Analysis is always at the left end.
  *
  * An entry either opens a screen (as Boss does) or opens a box above the corner
  * listing where it leads. There is one box whichever entry opened it, so all

@@ -114,11 +114,6 @@ message SkillEffect {
   // job book are held to, instead of counting toward it. It is a separate field
   // because only this one may pass the cap, which is what makes a stage worth
   // anything to a character already at the cap. See AttackSpeedStage.
-  //
-  // Only Decent Speed Infusion uses it. Every job's book reaches the cap or one
-  // stage below it, so a stage that counted toward the cap would be worthless
-  // to half of them and would make the Inner Ability line for the same thing
-  // worthless too.
   double uncapped_attack_speed = 53;
   // Weapon mastery, 0..1: how close the minimum damage roll gets to the
   // maximum. Unlike everything else here, masteries don't stack: a character
@@ -132,8 +127,7 @@ message SkillEffect {
   // Snipe after it gets none. See WithoutSwingLevers.
   double damage_pct = 16;
   // Final damage (0.10 == +10%), which multiplies where damage_pct adds: two
-  // 10% sources give 21%, not 20%. The difference doesn't show until a second
-  // source of either exists, and is expensive to untangle later.
+  // 10% sources give 21%, not 20%.
   //
   // On an attack this applies only to that swing instead of the character, like
   // ied_pct and boss_pct. See WithoutSwingLevers.
@@ -211,13 +205,11 @@ message SkillEffect {
   double ied_pct = 23;
 
   // Share of a boss's elemental resistance the character ignores (0.10 == 10%).
-  // Half of every hit on a boss is blocked by that resistance, and this is the
-  // only thing that reduces it; see kBossElementalBase.
+  // Half of every hit on a boss is blocked by that resistance; see
+  // kBossElementalBase.
   //
   // GMS multiplies instead of subtracting points: ignoring 10% lowers the
-  // reduction from 50% to 45%, not 40%. Two sources add, unlike ied_pct, but no
-  // character ever has two, since Elemental Decrease belongs to the I/L and F/P
-  // mages and Righteously Indignant to the Bishop.
+  // reduction from 50% to 45%, not 40%. Two sources add, unlike ied_pct.
   //
   // It applies to one swing or to the character by the same rule as ied_pct:
   // GMS states the arch mage's 4th-job Elemental Decrease as a cast.
@@ -226,9 +218,6 @@ message SkillEffect {
   // Share added to the character's damage against bosses only (0.10 == +10%).
   // It adds to what gear grants, since the two are the same stat from two
   // places.
-  //
-  // The stats page shows it beside the gear's share, so the player can see the
-  // total.
   //
   // It applies to one swing or to the character by the same rule as ied_pct:
   // Heaven's Hammer hits a boss 30% harder and gives nothing to the next swing.
@@ -304,9 +293,8 @@ message SkillEffect {
   // hits again for this share of it (0.70 == 70%), so a three-line swing lands
   // three real lines and three shadow lines.
   //
-  // It is kept as separate lines instead of a damage multiplier, which would
-  // give the same damage, because a second set of hits is what the player is
-  // buying and the skill page should say so. Sources add up; only one exists.
+  // Kept as separate lines instead of a damage multiplier, because a second set
+  // of hits is what the player is buying. Sources add up.
   //
   // The shadow copies swings only. It doesn't copy a summon's pulse or a Final
   // Attack; encounter.cc draws the line in the same place for both.
@@ -384,12 +372,10 @@ message SkillEffect {
   // can't become more certain, so the chance is capped at 1; see
   // MesoDropChance.
   double item_drop_pct = 45;
-  // From Shield Mastery, in both books that have one: the Bandit's and the
-  // White Knight's. Percent added to the character's total DEF (from gear,
-  // skills and AP alike), applied last. It is useless by design: DEF stops
-  // helping at a share of the attacking monster's attack, and characters pass
-  // that cap on their stats alone long before any skill grants this. See
-  // DerivedStats::def.
+  // Percent added to the character's total DEF (from gear, skills and AP
+  // alike), applied last. It is useless by design: DEF stops helping at a share
+  // of the attacking monster's attack, and characters pass that cap on their
+  // stats alone long before any skill grants this. See DerivedStats::def.
   double def_pct = 46;
   // Resistance to abnormal statuses on GMS's own scale, and to elemental damage
   // as a fraction. Nothing in this game inflicts a status or an element on the
@@ -474,18 +460,15 @@ message SkillEffect {
   // of giving two chances.
   double revive_cooldown_seconds = 107;
   // Seconds off that wait, summed across the skills granting it and applied
-  // after the shortest pact above is chosen. Only the Dark Knight's Final Pact
-  // - Reduce Cooldown has it: GMS shortens the wait by defeating enemies after
-  // a revival, which this game has no window to count, so the hyper just gives
-  // the seconds.
+  // after the shortest pact above is chosen. GMS shortens the wait by defeating
+  // enemies after a revival, which this game has no window to count, so the
+  // hyper just gives the seconds.
   //
   // The wait never reaches zero: a wait of 0 means the character isn't revived
   // at all, so the cut stops a second short of that.
   double revive_cooldown_cut_seconds = 111;
   // The Priest's. Removes every abnormal condition on the character. Nothing
-  // inflicts one yet, so nothing reads it, but it is the whole of what Dispel
-  // does, and showing Dispel's page as empty would suggest the game has no
-  // plans for it. It is waiting for a boss that needs it.
+  // inflicts one, so nothing reads it; it is the whole of what Dispel does.
   bool cures_conditions = 108;
   // The I/L Magician's Freezing Crush. What one held Freeze Stack is worth:
   // critical damage on any swing, and final damage on the lightning swing that
@@ -508,9 +491,8 @@ message SkillEffect {
   // name comes from the skill instead, since a pierce here already means an
   // arrow passing through a row of monsters.
   //
-  // A scar is the second status this game tracks, after freeze, and is stored
-  // on the monster the same way; see QueuedMob::scarred_left_seconds. Only the
-  // character's own swings leave one.
+  // Stored on the monster like freeze; see QueuedMob::scarred_left_seconds.
+  // Only the character's own swings leave one.
   double scar_chance = 118;
   double scar_seconds = 119;
   // Chance Attack's. Final damage on every line that hits a scarred monster. On
@@ -657,8 +639,7 @@ message BuffPulse {
   //
   // It exists for Dark Lord's Omen: GMS's scroll fires six stars at each enemy
   // plus seven more "regardless of the number of enemies", so all seven hit a
-  // lone boss while a crowd of seven takes one each. Unset for every other
-  // pulse.
+  // lone boss while a crowd of seven takes one each.
   Scatter fixed_strikes = 16;
   // A differently shaped attack this pulse fires when `max_pulses` runs out.
   // Unlike final_repeat_strike, which fires the pulse itself once more at the
@@ -786,10 +767,9 @@ message AllyIntLever {
   // currently is.
   SkillEffect cap = 3;
   // Whether the cap is instead the caster's own value of the same lever,
-  // divided by the party size and rounded. Only Benediction's final damage uses
-  // this: GMS splits one blessing among everyone in it, so in a party of two
-  // each gets half the Bishop's 33%, and in a party of three a third. The
-  // Bishop's own share isn't reduced.
+  // divided by the party size and rounded. It exists for Benediction's final
+  // damage: GMS splits one blessing among everyone in it, so in a party of two
+  // each gets half the Bishop's 33%. The Bishop's own share isn't reduced.
   //
   // The count includes the caster. Every party member is assumed to be inside
   // the zone, since there are no positions here to stand outside it.
@@ -838,7 +818,7 @@ message Buff {
   // in seconds. It exists for Mortal Blow: GMS counts a Ranger's hits and
   // grants a window once the count is reached. Lines landed while it is active
   // don't count, so its uptime depends on how fast they attack. 0 for a buff on
-  // a timer, which is every other buff.
+  // a timer.
   int32 charge_lines = 7;
   // Whether the buff starts at the cast instead of when the swing lands, so the
   // swing that applies it already benefits. Only for buffs attached to an
@@ -850,10 +830,9 @@ message Buff {
   // it.
   bool raised_on_cast = 15;
   // Whether only the skill's wound form triggers this buff, and a normal press
-  // doesn't. Trickblade is the only skill with two forms: GMS makes the
-  // Shadower invincible for 1.8 seconds after the five slashes on a wounded
-  // enemy, and says nothing like that about its normal spread attack. See
-  // Wound.form.
+  // doesn't. GMS makes the Shadower invincible for 1.8 seconds after
+  // Trickblade's five slashes on a wounded enemy, and says nothing like that
+  // about its normal spread attack. See Wound.form.
   bool needs_wound_form = 24;
   // What this buff gives a named skill while active, as Skill.boost does
   // permanently. It exists for Storm of Arrows: GMS doubles Magic Arrow's
@@ -864,13 +843,12 @@ message Buff {
   // to the damage set built with this buff active; see LearnedPassives.
   repeated SkillBoost boost = 16;
   // What every other party member gets while this is active, read at the
-  // caster's level. Only Smokescreen uses it: GMS shelters the party under it,
+  // caster's level. It exists for Smokescreen: GMS shelters the party under it,
   // and here that becomes damage reduction.
   //
-  // Separate from Skill.ally_base, which is permanent. A buff's party effect
-  // comes and goes on the caster's timer, so allies get it as a timed window,
-  // not as a passive. A 30-second buff on a 120-second cooldown folded in as a
-  // passive would be worth four times too much.
+  // Separate from Skill.ally_base, which is permanent. A 30-second buff on a
+  // 120-second cooldown folded in as a passive would be worth four times too
+  // much.
   SkillEffect ally_base = 9;
   SkillEffect ally_per_level = 10;
   // What the caster's INT adds to that party effect, lever by lever. Empty for
@@ -885,7 +863,7 @@ message Buff {
   // `stage_interval_seconds`. It exists for Arcane Overdrive: three stages of
   // final damage, one lost every ten seconds, so a player who uses their
   // strongest skills right away gets more from it than one who waits. 0 for a
-  // buff with a single strength, which is every other buff.
+  // buff with a single strength.
   //
   // Implemented as `stages` buffs started by one cast, each granting one stage
   // and each ending one stage interval after the previous one. So one of these
@@ -912,20 +890,16 @@ message Buff {
   //
   // The count is the same one Fervent Drain reads (burns across the whole
   // group), taken at the moment of the cast, so a window started while the
-  // rotation's poisons are down is the short one. 0 for a buff whose length
-  // doesn't depend on the enemies, which is every other buff.
+  // rotation's poisons are down is the short one.
   double duration_seconds_per_dot = 18;
   int32 dot_count_cap = 19;
   // The levers above apply only for `duty_seconds` of every
   // `duty_interval_seconds` while the buff is active, repeating for as long as
   // it is. They exist for Angel of Balance: GMS's angel re-grants a four-second
-  // buff every five seconds, so the damage is up four seconds in five for the
-  // thirty seconds the summon lasts.
+  // buff every five seconds.
   //
   // Only the grant turns on and off, never the buff. Its pulse keeps attacking,
-  // its shield keeps blocking and its magazine stays loaded during the gap: the
-  // angel attacks on its own timer whatever the buff is granting at the moment.
-  // 0 for a buff that grants for its whole window, which is every other buff.
+  // its shield keeps blocking and its magazine stays loaded during the gap.
   double duty_seconds = 21;
   double duty_interval_seconds = 22;
   // A summon this buff dismisses while it is active. It exists for Angel of
@@ -933,7 +907,7 @@ message Buff {
   // both at once.
   //
   // The named skill's timer is left where it was, not advanced, so it resumes
-  // on the same beat it was dismissed on. Empty for every other buff.
+  // on the same beat it was dismissed on.
   string silences_skill_name = 23;
   // Milliseconds a separate press of this buff costs, for a buff GMS casts with
   // its own press instead of applying with a swing. It gives the buff a timer:
@@ -952,8 +926,7 @@ message Buff {
   // instead of giving the player a button.
   //
   // Read with `stacks` below and with cooldown_seconds, which is the wait
-  // between rolls for a skill that has one. 0 for a buff started by a timer or
-  // by the swing that applies it, which is every other buff.
+  // between rolls for a skill that has one.
   double raise_chance = 28;
   double raise_chance_per_level = 29;
   // How many copies can be active at once, each started by its own roll and
@@ -1107,11 +1080,7 @@ message Scatter {
   // The most strikes of one cast any single enemy can take. It exists for
   // Poison Nova: GMS caps it outright ("Explosion damage from poisonous clouds
   // can apply up to 3 times for each enemy"), where Megiddo Flame reduces
-  // repeat damage instead. Strikes past the cap are lost, which is what happens
-  // when fifteen clouds burst on a lone boss.
-  //
-  // 0 lets strikes stack as deep as the count allows, as for every other
-  // scattered swing.
+  // repeat damage instead. Strikes past the cap are lost. 0 means no cap.
   int32 max_hits_per_enemy = 5;
 }
 
@@ -1130,8 +1099,7 @@ message FreezeBuild {
   int32 crowd = 2;
 }
 
-// The stun a strike leaves: the third status this game tracks on a monster,
-// after freeze and burn. A stunned enemy counts as afflicted, which is what
+// The stun a strike leaves. A stunned enemy counts as afflicted, which is what
 // final_dmg_pct_when_afflicted checks. Nothing here models a monster acting on
 // a schedule, so the stun costs the enemy nothing else. Bosses resist the
 // status, as every GMS boss does, but still take the damage bonus.
@@ -1341,9 +1309,8 @@ message SkillBoost {
   double max_enemies_per_level = 4;
   // The swing count at which a swing-counted skill now fires, replacing its own
   // count instead of adding to it; GMS says "reduces the strikes required to
-  // 7", an absolute number. 0 leaves the count alone, which is true of every
-  // boost but Speed Mirage II's. If two name the same skill the faster one
-  // wins, since the counts can't be added.
+  // 7", an absolute number. 0 leaves the count alone. If two name the same
+  // skill the faster one wins, since the counts can't be added.
   int32 attacks_per_cast = 5;
   // Share off the named skill's cooldown (0.30 == 30% shorter), applied to the
   // whole ladder so the reduction is the same share at every level. It exists
@@ -1430,13 +1397,11 @@ message SkillBoost {
   SkillEffect effect = 6;
   SkillEffect effect_per_level = 7;
   // The level the granting skill must reach before any of this applies. 0 means
-  // it applies from level 1, which is true of nearly all boosts.
+  // it applies from level 1.
   //
   // It exists for V Matrix boost nodes: GMS gives one a damage ladder from
   // level 1, a second bonus at 20 and a third at 40, so a node states them as
   // three boosts naming one skill instead of one boost describing a staircase.
-  // Below the level the boost isn't read at all, which is why this gates the
-  // whole message and not a single lever.
   int32 min_level = 18;
   // Hits added to the named skill's swing, each priced separately like
   // Skill.extra_hit: its own multiplier, strikes and reach. It exists for
@@ -1450,9 +1415,8 @@ message SkillBoost {
   // apply its own ladder to it a second time.
   repeated SwingHit extra_hit = 20;
   // What the named skill's Final Attack chance is multiplied by, after all
-  // additive sources. 2.0 doubles it; 0 leaves it alone, which is true of every
-  // boost but one. It exists for Storm of Arrows: GMS doubles Magic Arrow's
-  // chance instead of adding points.
+  // additive sources. 2.0 doubles it; 0 leaves it alone. It exists for Storm of
+  // Arrows: GMS doubles Magic Arrow's chance instead of adding points.
   //
   // A separate field, not one of the seven in `effect`, for the same reason as
   // dot_skill_pct: those add to what the target already has, and this scales
@@ -1480,9 +1444,8 @@ message WoundForm {
 }
 
 // The wound one swing leaves on one enemy, and what the skill that has it lands
-// while a wound is at full depth. It is the sixth status this game tracks, and
-// the only one a monster can't share: a new wound removes it from whichever
-// monster had it, which is GMS's rule and not a simplification.
+// while a wound is at full depth. A monster can't share it: a new wound removes
+// it from whichever monster had it, which is GMS's rule.
 //
 // It is set on the skill that reads it, not on the swings that leave it,
 // because that is where GMS puts the mechanism, so the sources are listed here,
@@ -1591,7 +1554,7 @@ message Skill {
   int32 max_level = 7;
   // A skill nobody buys: its level is the account's highest character level
   // divided by this, rounded down, and it rises automatically as the account
-  // does. Only Blessing of the Fairy uses it: GMS rewards every character on
+  // does. It exists for Blessing of the Fairy: GMS rewards every character on
   // the account for how far the highest one has got.
   //
   // Such a skill costs no SP, gets no granted levels, and is capped by the
@@ -1696,19 +1659,16 @@ message Skill {
   //
   // The swing still only costs its cast time (GMS frees the player as soon as
   // the wall appears), so the interval orders the attacks without costing their
-  // time. 0 for every other swing, whose attacks count as one moment however
-  // GMS spaces them.
+  // time. 0 means the attacks count as one moment however GMS spaces them.
   int32 cast_interval_ms = 59;
   // What an arrow gains for each enemy it has already passed through, as a
   // fraction. It compounds: at 0.15 the second enemy hit takes 1.15 times the
   // first and the sixth takes 1.15^5 = 2.01 times, the doubling GMS mentions
-  // beside the 15%. 0 for every skill that hits all targets equally, which is
-  // every skill but Piercing Arrow.
+  // beside the 15%.
   //
   // Which enemy an arrow reaches first is arbitrary here, since nothing has a
-  // position, so the order is random. All of the swing's own lines land at the
-  // same step, since the arrow passes once; the opening hit and the Final
-  // Attack are other arrows and don't get the bonus.
+  // position, so the order is random. The opening hit and the Final Attack are
+  // other arrows and don't get the bonus.
   double pierce_gain_pct = 25;
   // How long one swing of this attack takes at average attack speed, in
   // milliseconds: the sum of its animation frames. GMS ties the delay to the
@@ -1884,13 +1844,10 @@ message Skill {
   Scatter scatter = 49;
 
   // What every other party member gets from this skill, read at the caster's
-  // level like `base` and `per_level`. Empty for skills that don't benefit
-  // anyone else, which is most of them.
+  // level like `base` and `per_level`.
   //
   // Separate from `base` instead of shared, because the two rarely match: Hex
-  // of the Evil Eye gives an ally half of what it gives the caster, and
-  // Parashock Guard's two halves have nothing in common. When they do match,
-  // the file just states the same thing twice.
+  // of the Evil Eye gives an ally half of what it gives the caster.
   //
   // Read at the ally's own effective level and no further: levels the party
   // granted them don't raise what they grant back. It is one pass, or two
@@ -1908,8 +1865,8 @@ message Skill {
   // True for Blessed Ensemble and Blessed Harmony, which aren't buffs: they
   // reward the company kept, and GMS states them per Cleric.
   bool ally_effect_stacks = 45;
-  // Whether the party effect above reaches one other member instead of all.
-  // Only Divine Echo uses it: GMS puts the Paladin's echo on a single party
+  // Whether the party effect above reaches one other member instead of all. It
+  // exists for Divine Echo: GMS puts the Paladin's echo on a single party
   // member, chosen by number key.
   //
   // Nobody is at the keyboard here, so it goes to the member who sorts first by

@@ -9,11 +9,8 @@
  * the other two roll one or more ranks below it, and a reset can raise the
  * ability's rank but never lower it.
  *
- * A character keeps one setup per preset slot, and all are paid for from the
- * same honor pool.
- *
- * Pure math over the protos, like hyper_stats.h.
- * CharacterInstance::ResetAbility handles spending the honor.
+ * A character keeps one setup per preset slot, all paid for from the same honor
+ * pool. CharacterInstance::ResetAbility handles spending the honor.
  */
 #ifndef MS_SRC_CHARACTER_INNER_ABILITY_H_
 #define MS_SRC_CHARACTER_INNER_ABILITY_H_

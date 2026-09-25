@@ -8,10 +8,6 @@
  * A charge the purse can't cover takes what is there. The buff still works: a
  * player who runs out of meso gets it at a discount instead of losing it when
  * they can least afford to.
- *
- * One table, like hyper_stats.h and inner_ability.h: DerivedStatsFor and the
- * boss params read what a buff is worth from it, and CharacterInstance decides
- * who can buy what.
  */
 #ifndef MS_SRC_CHARACTER_CONSUMABLES_H_
 #define MS_SRC_CHARACTER_CONSUMABLES_H_

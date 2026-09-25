@@ -2,8 +2,8 @@
  *
  * A Windows player opens the game from Explorer, which creates a console for it
  * and destroys it as soon as the process ends, along with any final message.
- * Naming that window and keeping it open used to be done by a launcher script;
- * it's done here now so a release is a single file.
+ * Naming that window and keeping it open is done here so a release is a single
+ * file.
  *
  * Neither call does anything outside Windows, where the terminal outlives the
  * program.

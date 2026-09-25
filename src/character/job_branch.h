@@ -1,9 +1,8 @@
 /* Which of the four lines a job belongs to.
  *
  * Level-up gains, equip category, beginner book, primary stat, mastery floor
- * and the stat the swing uses all depend on the branch. Each of those used to
- * list every job separately, so adding a job meant editing seven switch
- * statements and hoping none was missed.
+ * and the stat the swing uses all depend on the branch, so adding a job means
+ * adding it here, not to seven switch statements.
  *
  * A separate library from character, for the same reason as job_name.h: combat
  * needs the answer too, without depending on a whole character.
