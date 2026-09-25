@@ -25,20 +25,20 @@
 namespace ms {
 namespace {
 
-// Slack for the floor below, far smaller than any percentage a skill grants.
+// Tolerance for the floor below, far smaller than any percentage a skill
+// grants.
 constexpr double kPercentEpsilon = 1e-9;
 
-// Hyper Stats are stated in whole percents, as a worn item's levers are.
+// Hyper Stats are given in whole percents, like a worn item's stats.
 constexpr double kPercentToFraction = 100.0;
 
-// DEF every character carries for their primary stats, before anything is
-// worn: 1.5 for each point of STR and 0.4 for each point of DEX and of LUK.
-// INT buys none -- a magician's bulk comes from elsewhere.
+// DEF every character gets from their primary stats before wearing anything:
+// 1.5 per point of STR and 0.4 per point of DEX and LUK. INT gives none.
 constexpr double kDefPerStr = 1.5;
 constexpr double kDefPerDexLuk = 0.4;
 
-// Whether a list of weapon types admits `weapon`. An empty list admits every
-// weapon, which is what a skill naming none means.
+// Whether a list of weapon types allows `weapon`. An empty list allows every
+// weapon, since a skill that names none works with all of them.
 bool ListAllowsWeapon(const google::protobuf::RepeatedField<int>& types,
                       EquipType weapon) {
   if (types.empty()) {
@@ -52,24 +52,23 @@ bool ListAllowsWeapon(const google::protobuf::RepeatedField<int>& types,
   return false;
 }
 
-// Whether this skill's timed buff stands over the party as well as over the
-// caster. Smokescreen alone. See Buff.ally_base.
+// Whether this skill's timed buff also covers the party, not just the caster.
+// See Buff.ally_base.
 bool GrantsBuffToAllies(const Skill& skill) {
   return LongestBuffDuration(skill.buff()) > 0.0 &&
          (skill.buff().has_ally_base() || skill.buff().has_ally_per_level());
 }
 
-// Whether this is the skill that raises other skills' levels. Asked of the
-// data rather than of the name, so the rule that it does not raise itself
-// holds for any later skill written the same way.
+// Whether this is a skill that raises other skills' levels. It checks the data
+// rather than the name, so the rule that it doesn't raise itself holds for any
+// new skill written the same way.
 bool GrantsSkillLevels(const Skill& skill) {
   return skill.base().skill_level_bonus() > 0.0;
 }
 
-// Whether a granted level reaches this skill. GMS's Combat Orders names its
-// exceptions: hyper and 5th job skills stay where they stand, and so does
-// everything on the beginner's page -- the book itself, and the link skills
-// the account climbed rather than bought.
+// Whether granted levels apply to this skill. GMS's Combat Orders lists the
+// exceptions: hyper and 5th job skills, and everything on the beginner's page,
+// which includes the book itself and the link skills.
 bool TakesGrantedLevels(const Skill& skill) {
   return !skill.hyper() && skill.v_node() == V_NODE_KIND_UNSPECIFIED &&
          skill.account_levels_per_level() == 0 &&
@@ -77,32 +76,32 @@ bool TakesGrantedLevels(const Skill& skill) {
          !ListedIn(skill, JOB_ADVANCEMENT_BEGINNER);
 }
 
-// Whether this skill gives the rest of the party anything -- for good, or for
-// as long as its buff stands. See Skill.ally_base and Buff.ally_base.
+// Whether this skill gives the rest of the party anything, either permanently
+// or while its buff lasts. See Skill.ally_base and Buff.ally_base.
 bool GrantsToAllies(const Skill& skill) {
   return skill.has_ally_base() || skill.has_ally_per_level() ||
          GrantsBuffToAllies(skill);
 }
 
-// A fountain as its skill wrote it, before the character's INT has its say.
-// The step is the INT that buys one more helping; kept here because the total
-// INT is not known until every passive has been read.
+// A regeneration pulse as the skill states it, before the character's INT is
+// applied. `int_step` is the INT needed for one more helping. It is kept here
+// because total INT isn't known until every passive has been read.
 struct RawRegen {
   RegenPulse pulse;
   double int_step = 0.0;
 };
 
-// What the learned passives come to as they are summed. It IS a DerivedStats,
-// and the fields it shares are the same field -- the fold at the end of
-// DerivedStatsFor transforms only what it must. What is added here is the
-// pre-fold working: flat grants that have yet to meet the allocation, and
-// counts worth nothing until every passive is read.
+// The running totals of the learned passives. It is a DerivedStats, and the
+// shared fields mean the same thing; the final step in DerivedStatsFor changes
+// only what it must. The extra fields hold work in progress: flat grants that
+// still have to be combined with the allocation, and counts that mean nothing
+// until every passive is read.
 //
-// The five inherited fields the fold writes from scratch -- max_hp, max_mp,
-// def, base_def and regen_pulses -- stay at nothing meanwhile.
+// The final step writes five inherited fields from scratch: max_hp, max_mp,
+// def, base_def and regen_pulses. They stay at zero until then.
 struct PassiveTotals : DerivedStats {
-  // The flat HP, MP and DEF the passives grant, held apart from the totals
-  // above them because each has an allocation and a worn share still to meet.
+  // Flat HP, MP and DEF from the passives. They are kept apart from the totals
+  // because each still has to be combined with the allocation and worn gear.
   int hp_grant = 0;
   int mp_grant = 0;
   int def_grant = 0;
@@ -110,71 +109,71 @@ struct PassiveTotals : DerivedStats {
   double max_hp_pct = 0.0;
   int mp_per_level = 0;
   double max_mp_pct = 0.0;
-  // Held as the factor the DEF pile is multiplied by rather than as a sum of
-  // percentages, because two sources multiply: Phoenix's +30% and Reckless
-  // Hunt's -25% leave 97.5% of the armour, not 105% of it.
+  // Stored as a multiplier on DEF rather than a sum of percentages, because
+  // sources multiply: Phoenix's +30% and Reckless Hunt's -25% leave 97.5% of
+  // DEF, not 105%.
   double def_factor = 1.0;
-  // The stats the passives grant, which become skill_stats once they are read.
+  // Stats the passives grant. They become skill_stats once every passive is
+  // read.
   int str = 0;
   int dex = 0;
   int int_ = 0;
   int luk = 0;
   int attack = 0;
   int magic_attack = 0;
-  // One entry per skill granting a fountain, in catalog order. Becomes
-  // regen_pulses once the character's total INT is known.
+  // One entry per skill that grants a regeneration pulse, in catalog order.
+  // They become regen_pulses once the character's total INT is known.
   std::vector<RawRegen> regen;
-  // Stacks a buff adds to that cap while it stands. Held apart until
-  // FoldFreezeStacks, which only deepens a pile the character already has.
+  // Extra stacks a buff adds to that cap while it is up. Kept apart until
+  // FoldFreezeStacks, which only raises a cap the character already has.
   int freeze_cap_bonus = 0;
-  // Pick Pocket's chance and Meso Explosion's damage, which live on two
-  // different skills and are worth nothing apart -- totalled here and paired
-  // once the fold is done.
+  // Pick Pocket's chance and Meso Explosion's damage. They come from two skills
+  // and are worth nothing alone, so they are totalled here and paired at the
+  // end.
   double meso_drop_chance = 0.0;
-  // Per line until FoldMesoExplosion multiplies the count in.
+  // Per line until FoldMesoExplosion multiplies in the line count.
   double meso_hit_pct = 0.0;
   int meso_lines = 1;
-  // Boss damage, plain damage, ignored defence, critical rate and final damage
-  // a thrown meso carries, once FoldMesoExplosion has cashed in what the skills
-  // naming Meso Explosion granted it.
+  // Boss damage, plain damage, ignored defence, crit rate and final damage for
+  // a thrown meso, after FoldMesoExplosion adds what skills naming Meso
+  // Explosion gave it.
   double meso_boss_pct = 0.0;
   double meso_damage_pct = 0.0;
   // Percentage points a thrown meso adds against anything that is not a boss.
-  // Per line until FoldMesoExplosion multiplies the count in, as the damage
-  // above is: GMS states it per shot.
+  // Like the damage above, it is per line until FoldMesoExplosion multiplies in
+  // the line count, because GMS states it per shot.
   double meso_normal_skill_pct = 0.0;
   double meso_ied = 0.0;
   double meso_crit_rate = 0.0;
   double meso_final_dmg_pct = 0.0;
   std::string meso_skill;
-  // What the book takes off the shortest revival wait. Summed apart and
-  // subtracted once that shortest is known.
+  // Seconds the skill book takes off the shortest revival cooldown. Summed
+  // apart and subtracted once the shortest cooldown is known.
   double revive_cooldown_cut = 0.0;
-  // Share of what AP bought that comes back as flat stat. Summed, and cashed
-  // in against the allocation once every passive is read -- see
-  // DerivedStatsFor.
+  // Share of AP-bought stats given back as flat stats. It is summed, then
+  // applied to the allocation once every passive is read; see DerivedStatsFor.
   double ap_stat_pct = 0.0;
-  // Share added to the one above before it is cashed in, so what the character
-  // gets back is Maple Warrior's own grant multiplied. Summed, as every share
-  // here is.
+  // Share added to the one above before it is applied, so it multiplies Maple
+  // Warrior's own grant. Sources add up.
   double ap_stat_bonus_pct = 0.0;
-  // Combo Orbs and the bargains priced per orb. The count is the BEST any
-  // passive grants, a character carrying one ring however many skills describe
-  // it, and the bargains fold against it only once every passive is read.
+  // Combo Orbs and the bonuses priced per orb. The count is the highest any
+  // passive grants, since a character has one ring of orbs however many skills
+  // describe it. The per-orb bonuses are applied only once every passive is
+  // read.
   int combo_orbs = 0;
   int attack_per_combo_orb = 0;
   double final_dmg_pct_per_combo_orb = 0.0;
   double boss_pct_per_combo_orb = 0.0;
   int def_per_combo_orb = 0;
-  // Share added to all four of those at once, and to nothing else.
+  // Share added to all four of those at once, and nothing else.
   double combo_orb_gain_pct = 0.0;
-  // Orbs' worth of final damage granted beside the ring, which only the final
-  // damage above reads. Added to the count rather than multiplied against it,
-  // GMS's per-orb final damage being additive with itself.
+  // Extra orbs that count only toward final damage above. They are added to the
+  // count rather than multiplied, because GMS's per-orb final damage is
+  // additive.
   double final_dmg_combo_orbs = 0.0;
 };
 
-// Every lever that is simply a sum, which is most of them.
+// Every lever that is a plain sum, which is most of them.
 void AddSummedLevers(const SkillEffect& granted, PassiveTotals& totals) {
   totals.hp_grant += WholeValue(granted.max_hp());
   totals.mp_grant += WholeValue(granted.max_mp());
@@ -220,32 +219,32 @@ void AddSummedLevers(const SkillEffect& granted, PassiveTotals& totals) {
       WholeValue(granted.uncapped_attack_speed());
 }
 
-// Folds one level's levers into the running totals; apart from AddPassive
-// because a weapon bonus is a second helping of the same levers. The sums are
-// next door; here is every lever that combines some OTHER way.
+// Adds one level's levers to the running totals. This is separate from
+// AddPassive because a weapon bonus is a second set of the same levers. The
+// plain sums are in AddSummedLevers; this handles the levers that combine
+// another way.
 void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
   AddSummedLevers(granted, totals);
   totals.def_factor *= 1.0 + granted.def_pct();
-  // One lever on a skill pays both attacks; only a potential tells them apart.
+  // One skill lever raises both attacks. Only potentials grant them separately.
   totals.attack_pct += granted.attack_pct();
   totals.magic_attack_pct += granted.attack_pct();
-  // Damage sent to MP is damage the HP pool never sees and nothing tracks MP,
-  // so Magic Guard reads as reduction. Reduction MULTIPLIES: two halves leave
-  // a quarter, where summing would leave none and then heal the character.
+  // Damage sent to MP never reaches HP, and nothing tracks MP, so Magic Guard
+  // counts as damage reduction. Reduction multiplies: two 50% sources leave a
+  // quarter. Summing would leave none, and past 100% it would heal.
   totals.damage_taken_pct = 1.0 - (1.0 - totals.damage_taken_pct) *
                                       (1.0 - granted.damage_taken_pct()) *
                                       (1.0 - granted.damage_to_mp_pct());
-  // Dodging combines the same way and for the same reason: what two sources
-  // leave standing is the product of what each leaves standing.
+  // Dodge combines the same way for the same reason: the share two sources let
+  // through is the product of what each lets through.
   totals.dodge_chance =
       1.0 - (1.0 - totals.dodge_chance) * (1.0 - granted.dodge_chance());
-  // The barrier sums rather than combining, unlike the two above: what it takes
-  // off is the monster's own attack, and GMS states every source of it as
-  // points on that one number.
+  // Unlike the two above, this reduction adds up, because it comes off the
+  // monster's own attack and GMS states every source as points on that number.
   totals.enemy_attack_pct += granted.enemy_attack_pct();
   totals.enemy_attack_reaches_boss |= granted.enemy_attack_reaches_boss();
-  // The pulse and its interval stay apart all the way to the fight, which
-  // pours on the clock rather than smearing it over the seconds between.
+  // The pulse and its interval stay separate all the way to the fight, which
+  // restores HP on each tick instead of spreading it over the seconds between.
   if (granted.regen_interval_seconds() > 0.0 &&
       (granted.regen_pct() > 0.0 || granted.regen_hp() > 0.0)) {
     totals.regen.push_back(
@@ -254,22 +253,22 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
                  granted.regen_int_step()});
   }
   totals.status_resistance += granted.status_resistance();
-  // Read here rather than beside the cap itself, so that a BUFF granting
-  // either lands them: a buff folds in through this door alone.
+  // Read here rather than next to the cap itself, so a buff that grants either
+  // also counts. Buffs are only added through AddEffect.
   totals.freeze_cap_bonus += WholeValue(granted.freeze_stack_cap_bonus());
-  // The shortest wait rather than the sum: two pacts are not one long one,
-  // and what a character wants to know is how soon the next one comes.
+  // The shortest cooldown wins rather than the sum: two revivals are not one
+  // long one, and what matters is how soon the next one comes.
   double revive = granted.revive_cooldown_seconds();
   if (revive > 0.0 && (totals.revive_cooldown_seconds <= 0.0 ||
                        revive < totals.revive_cooldown_seconds)) {
     totals.revive_cooldown_seconds = revive;
   }
-  // What comes OFF that wait sums, unlike the wait itself: it is a quantity of
-  // seconds rather than a choice between clocks. Cashed in once every passive
-  // is read -- see DerivedStatsFor.
+  // Unlike the cooldown itself, reductions to it add up: they are amounts of
+  // seconds, not a choice between cooldowns. Applied once every passive is
+  // read; see DerivedStatsFor.
   totals.revive_cooldown_cut += granted.revive_cooldown_cut_seconds();
-  // The same bargain, over the heal that answers nearly dying: the shorter
-  // wait stands whole rather than two of them adding up.
+  // Same rule for the near-death heal: the shorter cooldown is used, and two
+  // sources don't add up.
   if (granted.emergency_heal_pct() > 0.0 &&
       (totals.emergency_heal.pct <= 0.0 ||
        granted.emergency_heal_cooldown_seconds() <
@@ -280,30 +279,31 @@ void AddEffect(const SkillEffect& granted, PassiveTotals& totals) {
                              granted.emergency_heal_cooldown_seconds()};
   }
   totals.ied = CombineIgnoredDefense(totals.ied, granted.ied_pct());
-  // Its elemental twin, which sums rather than combining in reverse: GMS
-  // applies it to the resistance itself, not to what the last source left.
+  // The elemental version of ied. It adds up instead of combining
+  // multiplicatively, because GMS subtracts it from the resistance directly.
   totals.ier += granted.ier_pct();
-  // The one lever taken at its best rather than summed: two masteries are not
-  // twice as steady a swing, they are the better of the two.
+  // Mastery takes the best source instead of the sum: two masteries don't make
+  // a swing twice as steady.
   totals.mastery = std::max(totals.mastery, granted.mastery());
-  // The enemy's condition folds the same way: an afflicted monster is
-  // afflicted, and one skill raising another's rate is one rate. Here rather
-  // than beside the count, a SkillEffect being all an ALLY hands over.
+  // The enemy's condition works the same way: a monster is either afflicted or
+  // not, and a skill raising another's rate still gives one rate. It is read
+  // here rather than next to the count because a SkillEffect is all an ally
+  // passes on.
   totals.condition.final_dmg_pct_when_afflicted =
       std::max(totals.condition.final_dmg_pct_when_afflicted,
                granted.final_dmg_pct_when_afflicted());
   totals.condition.final_dmg_pct_per_dot = std::max(
       totals.condition.final_dmg_pct_per_dot, granted.final_dmg_pct_per_dot());
-  // Final damage is the one that multiplies: two sources of 10% are worth 21%.
-  // Kept as the combined fraction, since that is the single number the damage
-  // chain applies.
+  // Final damage multiplies: two 10% sources give 21%. It is stored as the
+  // combined fraction because that is the single number the damage formula
+  // uses.
   totals.final_dmg_pct =
       (1.0 + totals.final_dmg_pct) * (1.0 + granted.final_dmg_pct()) - 1.0;
 }
 
-// Folds one skill's Final Attack in. Split from AddEffect because what sets a
-// Final Attack off belongs to the SKILL, not to the level's levers -- and
-// AddEffect is handed levers with no skill behind them.
+// Adds one skill's Final Attack. It is separate from AddEffect because what
+// triggers a Final Attack belongs to the skill, not to the level's levers, and
+// AddEffect only sees levers.
 void AddFinalAttack(const Skill& skill, const SkillEffect& granted,
                     PassiveTotals& totals) {
   FinalAttackSource source;
@@ -322,9 +322,8 @@ void AddFinalAttack(const Skill& skill, const SkillEffect& granted,
   totals.final_attacks.push_back(source);
 }
 
-// Folds one skill's chance to land harder on a single enemy in. Split from
-// AddEffect for the reason AddFinalAttack is: what is rolled belongs to the
-// skill rather than to the level's levers.
+// Adds one skill's chance to hit a single enemy harder. It is separate from
+// AddEffect for the same reason as AddFinalAttack.
 void AddProc(const Skill& skill, int level, PassiveTotals& totals) {
   const Proc& proc = skill.proc();
   SwingProc rolled;
@@ -338,9 +337,9 @@ void AddProc(const Skill& skill, int level, PassiveTotals& totals) {
   totals.procs.push_back(rolled);
 }
 
-// Folds Freezing Crush in. Two skills granting it leave the DEEPER pile and
-// the better stack rather than summing, which is what lets Frost Clutch better
-// a stack without naming a pile of its own.
+// Adds Freezing Crush. When two skills grant it, the higher cap and the better
+// stack value win rather than summing. That lets Frost Clutch improve a stack
+// without granting a cap of its own.
 void AddFreezeStacks(const Skill& skill, const SkillEffect& granted,
                      PassiveTotals& totals) {
   totals.freeze.cap = std::max(totals.freeze.cap, skill.freeze_stack_cap());
@@ -351,23 +350,22 @@ void AddFreezeStacks(const Skill& skill, const SkillEffect& granted,
                granted.final_dmg_pct_per_freeze_stack());
   totals.freeze.ied_pct_per_stack = std::max(
       totals.freeze.ied_pct_per_stack, granted.ied_pct_per_freeze_stack());
-  // The stun's lift is not a pile and does not stack: one skill leaves it and
-  // names the swings that take it. A second would be a second status.
+  // The stun bonus doesn't stack: one skill applies the stun and names the
+  // swings that benefit. A second skill would be a separate status.
   if (skill.stun().final_dmg_pct() > 0.0 &&
       skill.stun().lifted_tag() != SKILL_TAG_UNSPECIFIED) {
     totals.stun_lift.lifted_tag = skill.stun().lifted_tag();
     totals.stun_lift.from_skill = skill.name();
   }
-  // The mark's, on the same footing and for the same reason.
+  // The mark works the same way, for the same reason.
   if (skill.mark().final_dmg_pct() > 0.0 &&
       skill.mark().lifted_tag() != SKILL_TAG_UNSPECIFIED) {
     totals.mark_lift.lifted_tag = skill.mark().lifted_tag();
   }
 }
 
-// Folds the scar in. Two sources would leave the better of each standing
-// rather than summing, exactly as the freeze does: a deeper scar is one scar,
-// and a second skill restating it says nothing new.
+// Adds the scar. With two sources, the better value of each wins, the same as
+// for freezing: a deeper scar is still one scar.
 void AddScar(const SkillEffect& granted, PassiveTotals& totals) {
   totals.scar.chance = std::max(totals.scar.chance, granted.scar_chance());
   totals.scar.seconds = std::max(totals.scar.seconds, granted.scar_seconds());
@@ -377,16 +375,16 @@ void AddScar(const SkillEffect& granted, PassiveTotals& totals) {
       totals.scar.enemy_attack_pct, granted.enemy_attack_pct_when_scarred());
 }
 
-// How many burns a skill paying per burn will count. The rates themselves fold
-// in AddEffect with every other lever; only the cap is the Skill's own.
+// How many burns a per-burn skill counts. The rates are added in AddEffect like
+// every other lever; only the cap belongs to the Skill.
 void AddDotCount(const Skill& skill, PassiveTotals& totals) {
   totals.condition.dot_count_cap =
       std::max(totals.condition.dot_count_cap, skill.dot_count_cap());
 }
 
-// Notes Meso Explosion down. RECORDED rather than folded: Meso Mastery's
-// points land on each of its lines and the two fold in catalog order, so the
-// pair waits until every passive is in.
+// Records Meso Explosion without adding it yet. Meso Mastery's points apply to
+// each of its lines, and skills are added in catalog order, so the pair waits
+// until every passive has been read.
 void AddMesoExplosion(const Skill& skill, const SkillEffect& granted, int level,
                       PassiveTotals& totals) {
   double per_line = granted.meso_hit_pct();
@@ -399,9 +397,8 @@ void AddMesoExplosion(const Skill& skill, const SkillEffect& granted, int level,
   totals.meso_lines = SkillLinesAt(skill, level);
 }
 
-// One boost's levers, summed into the entry of whichever skill is collecting
-// them -- each meeting what is already there the way two sources of it always
-// meet.
+// Adds one boost's levers into the entry of the skill it targets. Each lever
+// combines with what is already there the usual way.
 void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
   SkillEffect aimed = EffectAt(boost.effect(), boost.effect_per_level(), level);
   into.skill_pct += aimed.skill_pct();
@@ -409,26 +406,26 @@ void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
   into.boss_pct += aimed.boss_pct();
   into.normal_pct += aimed.normal_pct();
   into.crit_rate += aimed.crit_rate();
-  // The two that do not sum, for the reason they never do.
+  // These two don't add up, for the usual reasons.
   into.ied = CombineIgnoredDefense(into.ied, aimed.ied_pct());
   into.final_dmg_pct =
       (1.0 + into.final_dmg_pct) * (1.0 + aimed.final_dmg_pct()) - 1.0;
   into.final_attack_chance += aimed.final_attack_chance();
-  // Its own field rather than one of the seven, because it is aimed at the
-  // mark the skill leaves rather than the swing -- see SkillBoost.
+  // A separate field from the other seven because it applies to the burn the
+  // skill leaves, not to the swing. See SkillBoost.
   into.dot_skill_pct +=
       boost.dot_skill_pct() + boost.dot_skill_pct_per_level() * (level - 1);
   into.dot_duration_seconds +=
       boost.dot_duration_seconds() +
       boost.dot_duration_seconds_per_level() * (level - 1);
-  // Multiplies rather than sums, so two of them would compound. Nothing grants
-  // a second one; the shape is what the lever means.
+  // This multiplies rather than adds, so two would compound. Nothing grants
+  // two; multiplying is what the lever means.
   if (boost.final_attack_chance_mult() > 0.0) {
     into.final_attack_chance_mult *= boost.final_attack_chance_mult();
   }
-  // The hits it hands that skill, each cashed in at the GRANTING skill's level
-  // on the way: the swing they join is read at its own, and a ladder left on
-  // them would be climbed a second time there.
+  // Extra hits the boost gives that skill. Each is read at the granting skill's
+  // level here. The swing they join is read at its own level, so a per-level
+  // ladder left on them would be applied twice.
   for (const SwingHit& hit : boost.extra_hit()) {
     SwingHit landed = hit;
     *landed.mutable_base() = EffectAt(hit.base(), hit.per_level(), level);
@@ -437,30 +434,29 @@ void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
   }
 }
 
-// Notes what one list of boosts hands other skills by name. Kept out of
-// AddEffect, which sees levers with no skill behind them: which skill is
-// strengthened is written on the BOOST. A skill's own list and its buff's both
-// come here, differing only in which fold reads them.
+// Records the bonuses a list of boosts gives to other skills by name. This is
+// kept out of AddEffect, which only sees levers: the target skill is named on
+// the boost. Both a skill's own boosts and its buff's boosts come through here.
 void AddSkillBonuses(
     const google::protobuf::RepeatedPtrField<SkillBoost>& boosts, int level,
     PassiveTotals& totals) {
   for (const SkillBoost& boost : boosts) {
-    // Nothing until the granting skill reaches the level the gift is gated
-    // behind -- see SkillBoost.min_level.
+    // The boost gives nothing until the granting skill reaches its
+    // SkillBoost.min_level.
     if (level < boost.min_level()) {
       continue;
     }
-    // The form is a swing of its own and the fight looks its entry up by the
-    // name it swings under, so a grant reaching it is filed there too.
+    // A form is a separate swing, and the fight looks up its entry by the name
+    // it swings under, so a boost reaching it is stored under that name too.
     for (const std::string& name : BoostTargetNames(boost)) {
       AddSkillBonus(boost, level, totals.skill_bonus[name]);
     }
   }
 }
 
-// Notes the wound a skill hands the swings that leave it. Read off the skill
-// that STATES it, as a boost is: Assassinate and Sonic Blow mention none, and
-// neither leaves one until Trickblade is bought.
+// Records the wound a skill gives to the swings that apply it. It is read from
+// the skill that states it, like a boost: Assassinate and Sonic Blow don't
+// mention it, and neither applies one until Trickblade is learned.
 void AddWoundSources(const Skill& skill, PassiveTotals& totals) {
   const Wound& wound = skill.wound();
   if (wound.max_stacks() <= 0) {
@@ -474,9 +470,9 @@ void AddWoundSources(const Skill& skill, PassiveTotals& totals) {
   }
 }
 
-// The best each exclusive group pays for each lever, and who pays it. Built
-// over everything the character and party hold BEFORE anything folds: a group
-// is settled between its members, not as each arrives.
+// For each exclusive group, the best value of each lever and which skill gives
+// it. It is built from everything the character and party have before anything
+// is added, because a group is settled among all its members at once.
 class ExclusiveBest {
  public:
   void Consider(const Skill& skill, const SkillEffect& effect) {
@@ -493,16 +489,16 @@ class ExclusiveBest {
       }
       double value = effect.GetReflection()->GetDouble(effect, field);
       Claim& claim = group[field->number()];
-      // A tie goes to whichever was read first -- the catalog's own order --
-      // so two members paying the same pay once between them.
+      // A tie goes to the one read first, in catalog order, so two members
+      // giving the same value only pay once.
       if (claim.source.empty() || value > claim.value) {
         claim = Claim{value, skill.name()};
       }
     }
   }
 
-  // `effect` with every lever another member of its group pays more of taken
-  // out. Unchanged for a skill in no group, which is nearly every skill.
+  // `effect` minus every lever another member of its group gives more of.
+  // Skills in no group are unchanged, and that is nearly all of them.
   SkillEffect Thin(const Skill& skill, const SkillEffect& effect) const {
     std::map<std::string, std::map<int, Claim>>::const_iterator group =
         best_.find(skill.exclusive_group());
@@ -528,7 +524,7 @@ class ExclusiveBest {
     double value = 0.0;
     std::string source;
   };
-  // Group, then the lever's field number: what it pays and who pays it.
+  // Keyed by group, then by the lever's field number.
   std::map<std::string, std::map<int, Claim>> best_;
 };
 
@@ -538,8 +534,8 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
       exclusive.Thin(skill, EffectAt(skill.base(), skill.per_level(), level));
   if (DealsDamage(skill.kind())) {
     AddEffect(WithoutSwingLevers(granted), totals);
-    // The half an attack states apart because it keeps it: no lever of this
-    // one leaves with the swing. See Skill.passive.
+    // The part of an attack skill that stays with the character rather than the
+    // swing. See Skill.passive.
     AddEffect(EffectAt(skill.passive(), skill.passive_per_level(), level),
               totals);
   } else {
@@ -552,17 +548,17 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   AddFreezeStacks(skill, granted, totals);
   AddScar(granted, totals);
   AddDotCount(skill, totals);
-  // A burn on a PASSIVE belongs to the character: the poison stays on the
-  // claw, so everything it hits takes it. One on an attack or a summon is read
-  // where those are built.
+  // A burn on a passive belongs to the character: the poison stays on the claw,
+  // so everything they hit gets it. Burns on attacks and summons are read where
+  // those are built.
   if (skill.kind() == SKILL_KIND_PASSIVE &&
       skill.dot().interval_seconds() > 0.0) {
     totals.dots.push_back(CharacterDot{skill.dot(), level, skill.name()});
   }
   AddMesoExplosion(skill, granted, level, totals);
   totals.combo_orbs = std::max(totals.combo_orbs, ComboOrbsAt(skill, level));
-  // A weapon bonus is a second helping of the same levers for a subset of the
-  // weapons the skill accepts. Read at level 1: it is flat by construction.
+  // A weapon bonus is a second set of the same levers for some of the weapons
+  // the skill accepts. It is read at level 1 because it is always flat.
   for (const WeaponBonus& bonus : skill.weapon_bonus()) {
     if (bonus.required_equip_type_size() > 0 &&
         ListAllowsWeapon(bonus.required_equip_type(), weapon)) {
@@ -572,9 +568,9 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   }
 }
 
-// Turns what one LINE of a thrown meso is worth into what a whole one is, Meso
-// Mastery's points now being certain to be in. Meso Explosion is not a swing,
-// so what the book aims at it is cashed in here.
+// Turns the value of one line of a thrown meso into the value of a whole one,
+// now that Meso Mastery's points are known. Meso Explosion is not a swing, so
+// boosts aimed at it are applied here.
 void FoldMesoExplosion(PassiveTotals& totals) {
   if (totals.meso_hit_pct <= 0.0) {
     return;
@@ -593,9 +589,9 @@ void FoldMesoExplosion(PassiveTotals& totals) {
   totals.meso_normal_skill_pct *= totals.meso_lines;
 }
 
-// Hands each Final Attack what the book aimed at the skill setting it off.
-// Here rather than where the source is built: the granting skill may be read
-// after the one carrying the Final Attack.
+// Gives each Final Attack the boosts aimed at the skill that triggers it. This
+// runs after all skills are read, because the granting skill may be read after
+// the one carrying the Final Attack.
 void FoldFinalAttackBoosts(PassiveTotals& totals) {
   for (FinalAttackSource& source : totals.final_attacks) {
     std::map<std::string, SkillBonus>::const_iterator boost =
@@ -603,9 +599,9 @@ void FoldFinalAttackBoosts(PassiveTotals& totals) {
     if (source.skill_name.empty() || boost == totals.skill_bonus.end()) {
       continue;
     }
-    // Scaled last, so a doubling reads every additive source that came before
-    // it. Past certainty is allowed: RolledFinalAttack lands that many hits
-    // outright and rolls for the remainder.
+    // Scaled last so a doubling includes every additive source before it. It
+    // may go past 100%: RolledFinalAttack lands that many hits outright and
+    // rolls for the remainder.
     source.chance = (source.chance + boost->second.final_attack_chance) *
                     boost->second.final_attack_chance_mult;
     source.damage_bonus_pct += boost->second.damage_pct;
@@ -614,34 +610,34 @@ void FoldFinalAttackBoosts(PassiveTotals& totals) {
     source.final_dmg_pct =
         (1.0 + source.final_dmg_pct) * (1.0 + boost->second.final_dmg_pct) -
         1.0;
-    // Points on the strike's own multiplier -- GMS's "Night Lord's Mark
-    // Damage: +100% points". Only where the carrying skill does not SWING: the
-    // points already land on a swing of that name.
+    // Points on the hit's own multiplier, like GMS's "Night Lord's Mark Damage:
+    // +100% points". Only when the owning skill isn't also swung; otherwise the
+    // points already apply to that swing.
     if (!source.owner_swings) {
       source.damage_pct += boost->second.skill_pct;
     }
   }
 }
 
-// Settles the scar. Nothing to leave one with means nothing to read one for:
-// a character carrying Chance Attack and no Scarring Sword is holding half a
-// mechanism, and half of it is worth nothing at all.
+// Finalises the scar. With nothing to leave a scar, reading one is worthless: a
+// character with Chance Attack but no Scarring Sword has half the mechanism,
+// and half is worth nothing.
 void FoldScar(PassiveTotals& totals) {
   if (totals.scar.chance <= 0.0 || totals.scar.seconds <= 0.0) {
     totals.scar = Scar{};
   }
 }
 
-// Settles the drain, on the same rule: a rate per burn with nothing counting
-// them pays for nothing.
+// Finalises the burn bonus by the same rule: a rate per burn with nothing
+// counting burns gives nothing.
 void FoldEnemyCondition(PassiveTotals& totals) {
   if (totals.condition.dot_count_cap <= 0) {
     totals.condition.final_dmg_pct_per_dot = 0.0;
   }
 }
 
-// Settles the pile. A cap raised by a buff is Freezing Crush's pile grown
-// deeper, so it pays only where there IS a pile.
+// Finalises the freeze stacks. A cap raised by a buff deepens Freezing Crush's
+// stacks, so it only counts when the character has Freezing Crush.
 void FoldFreezeStacks(PassiveTotals& totals) {
   if (totals.freeze.cap <= 0) {
     totals.freeze = FreezeStacks{};
@@ -651,44 +647,45 @@ void FoldFreezeStacks(PassiveTotals& totals) {
 }
 
 void FoldComboOrbs(PassiveTotals& totals) {
-  // The ring is worth its count of orbs, and a gain lifts the whole ring --
-  // so it multiplies here, once, rather than each lever where it is read.
+  // The ring is worth its orb count, and a gain raises the whole ring, so it
+  // multiplies once here rather than wherever each lever is read.
   double ring = totals.combo_orbs * (1.0 + totals.combo_orb_gain_pct);
   totals.attack += WholeValue(totals.attack_per_combo_orb * ring);
   totals.boss_pct += totals.boss_pct_per_combo_orb * ring;
   totals.def_grant += WholeValue(totals.def_per_combo_orb * ring);
-  // Orbs granted for their final damage alone join the ring for that lever and
-  // no other, and are lifted by a gain as the rest of the ring is: what Sword
-  // Illusion detonates is six Combo Orbs, whatever they are worth today.
+  // Orbs granted only for final damage join the ring for that one lever, and a
+  // gain raises them like the rest. Sword Illusion detonates six Combo Orbs,
+  // whatever each one is worth at the time.
   double lit = (totals.combo_orbs + totals.final_dmg_combo_orbs) *
                (1.0 + totals.combo_orb_gain_pct);
   double orbs = totals.final_dmg_pct_per_combo_orb * lit;
   totals.final_dmg_pct = (1.0 + totals.final_dmg_pct) * (1.0 + orbs) - 1.0;
 }
 
-// Whether `skill` puts up a timed buff -- one the character has for a while
-// rather than for good. See Skill.buff.
+// Whether `skill` has a timed buff, one that lasts a while rather than forever.
+// See Skill.buff.
 bool GrantsBuff(const Skill& skill) {
   return LongestBuffDuration(skill.buff()) > 0.0;
 }
 
-// Whether this character reads anything off `skill`: their own book, the gear
-// it demands in hand, and a level in it. Asked twice -- to fold the skill in,
-// and to let it supersede another -- because a skill granting nothing must not
-// be replacing anything. Gear lapses the EFFECT, not the skill.
+// Whether this character gets anything from `skill`: it is in their book, they
+// hold the gear it needs, and they have a level in it. It is checked both when
+// adding the skill and when letting it supersede another, because a skill that
+// grants nothing must not replace anything. Missing gear stops the effect, not
+// the skill.
 bool GrantsAnything(const CharacterInstance& character, const Skill& skill,
                     int bonus, Activity activity) {
-  // A common node belongs to no advancement at all, so this asks the character
-  // which books they hold rather than the advancement directly.
+  // A common node belongs to no advancement, so this asks which books the
+  // character holds rather than checking the advancement directly.
   return character.HoldsSkillFrom(skill, activity) &&
          SkillGearMet(character, skill, activity) &&
          EffectiveSkillLevel(character, skill, bonus, activity) > 0;
 }
 
-// Whether a grant reaching ONE member reaches this one: the first name in the
-// roster that is not the caster's, so every client settles on the same member
-// with nothing sent to agree it. Two members sharing a name would both take
-// it, a name being all a seated ally carries.
+// Whether a grant that reaches one member reaches this one. It goes to the
+// first name in the roster that isn't the caster's, so every client picks the
+// same member without having to agree. Two members with the same name would
+// both get it, since a name is all a seated ally carries.
 bool ReachesThisMember(const CharacterInstance& character,
                        const AllyGrant& grant,
                        absl::Span<const CharacterInstance> allies) {
@@ -701,10 +698,10 @@ bool ReachesThisMember(const CharacterInstance& character,
   return chosen == character.username();
 }
 
-// What the rest of the party holds over this character. Gathered whole before
-// anything folds: both rules that thin the list need every ally read first. An
-// ally's own Combat Orders lifts what they grant; a level the party granted
-// THEM does not.
+// What the rest of the party grants this character. The whole list is gathered
+// before anything is added, because both filtering rules need every ally read
+// first. An ally's own Combat Orders raises what they grant; a level the party
+// granted them does not.
 std::vector<AllyGrant> PartyGrants(const CharacterInstance& character,
                                    const std::map<std::string, Skill>& skills,
                                    absl::Span<const CharacterInstance> allies,
@@ -718,9 +715,9 @@ std::vector<AllyGrant> PartyGrants(const CharacterInstance& character,
         DormantSkillNames(ally, skills, bonus, activity);
     for (const std::pair<const std::string, Skill>& entry : skills) {
       const Skill& skill = entry.second;
-      // An Advanced X states the whole of the X it replaces, its party half
-      // included -- so a Bishop hands out Blessed Harmony and not the Blessed
-      // Ensemble under it.
+      // An Advanced X includes all of the X it replaces, party part included.
+      // So a Bishop gives Blessed Harmony and not the Blessed Ensemble under
+      // it.
       if (theirs.count(skill.name()) > 0 || !GrantsToAllies(skill) ||
           !GrantsAnything(ally, skill, bonus, activity)) {
         continue;
@@ -734,20 +731,21 @@ std::vector<AllyGrant> PartyGrants(const CharacterInstance& character,
     }
     superseded.insert(theirs.begin(), theirs.end());
   }
-  // A stacking grant answers to neither rule below: it pays for the COMPANY
-  // kept, so a second Cleric is a second payment.
+  // Neither rule below applies to a stacking grant. It pays for each ally
+  // present, so a second Cleric pays a second time.
   std::vector<AllyGrant> grants = std::move(stacking);
   for (const std::pair<const std::string, AllyGrant>& entry : best) {
-    // A buff does not stack with itself: a character casting Bless already has
-    // it folded in and takes nothing from the Cleric beside them.
+    // A buff doesn't stack with itself: a character casting Bless already
+    // counts their own and gets nothing from the Cleric beside them.
     if (superseded.count(entry.first) > 0 ||
         character.skill_level(*entry.second.skill) > 0) {
       continue;
     }
     grants.push_back(entry.second);
   }
-  // Last, because a grant landing on one member is still thinned by both rules
-  // above: whoever it falls on takes nothing if they hold the skill themselves.
+  // This runs last because a grant that lands on one member is still filtered
+  // by both rules above: that member gets nothing if they have the skill
+  // themselves.
   std::vector<AllyGrant> reaching;
   for (const AllyGrant& grant : grants) {
     if (!grant.skill->ally_grant_reaches_one() ||
@@ -758,9 +756,9 @@ std::vector<AllyGrant> PartyGrants(const CharacterInstance& character,
   return reaching;
 }
 
-// One skill out of the character's book that is paying, and the level it pays
-// at. Gathered whole before anything folds: an exclusive group is settled
-// between its members, so every member has to be read first.
+// One active skill from the character's book and the level it counts at. The
+// whole list is gathered before anything is added, because an exclusive group
+// is settled among all its members.
 struct PayingSkill {
   const Skill* skill = nullptr;
   int level = 0;
@@ -775,21 +773,21 @@ std::vector<PayingSkill> PayingSkills(
   std::vector<PayingSkill> paying;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    // An Advanced X states the whole of the X it replaces rather than a delta,
-    // so the two must never both pay. The skill keeps its level and its page;
-    // what it loses is its levers. See Skill.supersedes_skill_name.
+    // An Advanced X includes all of the X it replaces rather than a difference,
+    // so both must never count. The replaced skill keeps its level and its page
+    // but loses its levers. See Skill.supersedes_skill_name.
     if (superseded.count(skill.name()) > 0) {
       continue;
     }
-    // Parashock Guard alone: GMS pays the caster for shielding somebody, so a
-    // character standing alone is paid nothing. Read here rather than in
-    // GrantsAnything because a skill lying idle still supersedes.
+    // Parashock Guard, for example: GMS pays the caster for shielding someone,
+    // so a character alone gets nothing. This check is here rather than in
+    // GrantsAnything because an idle skill still supersedes.
     if (skill.requires_party() && allies.empty()) {
       continue;
     }
-    // Every KIND is read, not only the passives: GMS hangs permanent grants
-    // off active skills too, marked "[Passive Effects: ...]". A skill with no
-    // lever contributes nothing whatever kind it is.
+    // Every skill kind is read, not only passives, because GMS puts permanent
+    // grants on active skills too, marked "[Passive Effects: ...]". A skill
+    // with no levers adds nothing, whatever its kind.
     if (!GrantsAnything(character, skill, bonus, activity)) {
       continue;
     }
@@ -799,15 +797,15 @@ std::vector<PayingSkill> PayingSkills(
   return paying;
 }
 
-// What an ally's grant comes to at the level they hold it.
+// What an ally's grant is worth at their level.
 SkillEffect AllyEffectOf(const AllyGrant& grant) {
   return EffectAt(grant.skill->ally_base(), grant.skill->ally_per_level(),
                   grant.level);
 }
 
-// A buff's party half: the caster's level settles it and their INT grows what
-// the buff says grows. Their OWN half is read too, a party share being a slice
-// of what the caster keeps.
+// A buff's party part: the caster's level sets it, and their INT scales
+// whatever the buff says scales. The caster's own part is read too, since a
+// party share is a slice of what the caster gets.
 SkillEffect AllyBuffEffect(const Buff& buff, const BuffUp& up) {
   SkillEffect half =
       EffectAt(buff.ally_base(), buff.ally_per_level(), up.caster_level);
@@ -819,16 +817,14 @@ SkillEffect AllyBuffEffect(const Buff& buff, const BuffUp& up) {
       up.caster_int, up.party_size);
 }
 
-// Sums every passive the character has learned. HP has to know its whole flat
-// total before any percentage lands on it, so nothing is folded here.
-// Folds one standing buff in. A buff grants what a passive grants while it is
-// up, through the same door and as a source of its OWN -- so its ignored
-// defence combines with the character's rather than summing.
+// Adds one active buff. A buff grants what a passive grants while it is up, and
+// is added the same way, as its own source. So its ignored defence combines
+// with the character's instead of adding.
 void AddStandingBuff(const CharacterInstance& character, const BuffUp& up,
                      int bonus, bool in_company, PassiveTotals& totals) {
   const Skill& skill = *up.skill;
-  // An ally's, read off the party half at THEIR level. Levers and nothing
-  // else: a Final Attack and a boost follow the caster's own swings.
+  // An ally's buff is read from its party part at the ally's level. Only its
+  // levers count; a Final Attack or a boost follows the caster's own swings.
   if (up.caster != nullptr) {
     AddEffect(AllyBuffEffect(skill.buff(), up), totals);
     return;
@@ -837,25 +833,25 @@ void AddStandingBuff(const CharacterInstance& character, const BuffUp& up,
   SkillEffect held =
       EffectAt(skill.buff().base(), skill.buff().per_level(), level);
   AddEffect(held, totals);
-  // The share the buff pays only for company. Its own AddEffect rather than a
-  // sum into the one above: a source apiece is what makes two shares of final
-  // damage multiply. See Buff.with_party_base.
+  // The share the buff gives only while in a party. It gets its own AddEffect
+  // call rather than being summed into the one above, so two final damage
+  // shares multiply. See Buff.with_party_base.
   if (in_company && (skill.buff().has_with_party_base() ||
                      skill.buff().has_with_party_per_level())) {
     AddEffect(EffectAt(skill.buff().with_party_base(),
                        skill.buff().with_party_per_level(), level),
               totals);
   }
-  // A buff can hand over a Final Attack while it stands, and what sets one off
-  // belongs to the skill -- so it goes through a passive's door rather than
-  // AddEffect alone.
+  // A buff can give a Final Attack while it is up, and what triggers it belongs
+  // to the skill, so it goes through AddFinalAttack, not only AddEffect.
   AddFinalAttack(skill, held, totals);
-  // What the buff hands a named skill, through the same door a permanent boost
-  // takes -- it is only this fold that makes it a window rather than a gift
-  // for good.
+  // What the buff gives a named skill goes through the same path as a permanent
+  // boost. Only the buff's uptime makes it temporary.
   AddSkillBonuses(skill.buff().boost(), level, totals);
 }
 
+// Sums every passive the character has learned. HP needs its whole flat total
+// before any percentage applies, so nothing is folded here.
 PassiveTotals LearnedPassives(const CharacterInstance& character,
                               const std::map<std::string, Skill>& skills,
                               absl::Span<const BuffUp> buffs_up,
@@ -863,8 +859,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
                               Activity activity,
                               std::optional<StatPreset> worn = std::nullopt) {
   PassiveTotals totals;
-  // The character's own gear; an ally's is read off theirs, which is what the
-  // activity answers for them.
+  // The character's own gear preset. An ally's comes from their own activity.
   const StatPreset gear =
       worn.value_or(character.SlotFor(PresetKind::kEquip, activity));
   EquipType weapon = character.weapon_type(gear);
@@ -873,8 +868,8 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
       PayingSkills(character, skills, bonus, allies, activity);
   std::vector<AllyGrant> party =
       PartyGrants(character, skills, allies, activity);
-  // Both halves of one rule: a group holds whatever is paying into it, the
-  // character's own book and the party's alike.
+  // Both sources use one group table: a group includes everything that pays
+  // into it, from the character's own book and the party alike.
   ExclusiveBest exclusive;
   for (const PayingSkill& entry : paying) {
     exclusive.Consider(
@@ -887,17 +882,15 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   for (const PayingSkill& entry : paying) {
     AddPassive(*entry.skill, entry.level, weapon, exclusive, totals);
   }
-  // A set bonus grants what a passive grants, so it folds in through the same
-  // door. It carries no level and no per-level step: a tier is worth what it
-  // says however far the character has come.
+  // A set bonus grants what a passive grants, so it is added the same way. It
+  // has no level: a tier is worth what it says at any character level.
   for (const SkillEffect& bonus : character.set_bonuses(gear)) {
     AddEffect(bonus, totals);
   }
   for (const BuffUp& up : buffs_up) {
     AddStandingBuff(character, up, bonus, !allies.empty(), totals);
   }
-  // What the party is holding over them, at the level its caster has it. The
-  // same door again, and for the same reason.
+  // What the party grants them, at each caster's level, added the same way.
   for (const AllyGrant& grant : party) {
     AddEffect(exclusive.Thin(*grant.skill, AllyEffectOf(grant)), totals);
   }
@@ -910,10 +903,10 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   return totals;
 }
 
-// What the Hyper Stats add, on top of what the book granted. The four stats
-// land here rather than in the allocation because GMS calls them FINAL stat:
-// nothing takes a percentage of them. Arcane Force is not among them -- the
-// damage chain does not read it.
+// What the Hyper Stats add on top of the skill book. The four stats are added
+// here rather than to the allocation because GMS treats them as final stats: no
+// percentage applies to them. Arcane Force is skipped because the damage
+// formula doesn't use it.
 void AddHyperStats(const CharacterInstance& character, StatPreset slot,
                    PassiveTotals& totals) {
   static_assert(HyperStatField_ARRAYSIZE == 16,
@@ -938,8 +931,7 @@ void AddHyperStats(const CharacterInstance& character, StatPreset slot,
   totals.crit_dmg +=
       character.hyper_stat_bonus(HYPER_STAT_FIELD_CRIT_DAMAGE, slot) /
       kPercentToFraction;
-  // Ignored defence meets what the book already ignores in reverse, the way
-  // two sources of it always meet.
+  // Ignored defence combines multiplicatively with the book's, as usual.
   totals.ied = CombineIgnoredDefense(
       totals.ied, character.hyper_stat_bonus(HYPER_STAT_FIELD_IED, slot) /
                       kPercentToFraction);
@@ -952,7 +944,7 @@ void AddHyperStats(const CharacterInstance& character, StatPreset slot,
   totals.normal_pct +=
       character.hyper_stat_bonus(HYPER_STAT_FIELD_NORMAL_DAMAGE, slot) /
       kPercentToFraction;
-  // One stat pays both, so a magician and a warrior read the same row.
+  // One stat raises both attacks, so a magician and a warrior use the same row.
   int attack = static_cast<int>(
       character.hyper_stat_bonus(HYPER_STAT_FIELD_ATTACK, slot));
   totals.attack += attack;
@@ -961,10 +953,10 @@ void AddHyperStats(const CharacterInstance& character, StatPreset slot,
                     kPercentToFraction;
 }
 
-// What Inner Ability adds, line by line. The stats land here for a Hyper
-// Stat's reason -- final stat -- but the two attacks do not: GMS scales them
-// as it scales any other source. A line below the unlock level pays nothing,
-// so the panel opening and the stats arriving are one event.
+// What Inner Ability adds, line by line. Its stats are final stats, like Hyper
+// Stats, but its attack lines are not: GMS scales them like any other source. A
+// line below the unlock level gives nothing, so the panel and its stats unlock
+// together.
 void AddInnerAbility(const CharacterInstance& character, StatPreset slot,
                      PassiveTotals& totals) {
   static_assert(AbilityLineType_ARRAYSIZE == 17,
@@ -1033,16 +1025,16 @@ void AddInnerAbility(const CharacterInstance& character, StatPreset slot,
   }
 }
 
-// The flat stat `potential` pays a character whose four stats stand at `pile`:
-// its own flat lines, plus the share its %stat lines take of that pile once
-// those lines are in it. Split out so the fold below and PotentialStatGrant
-// cannot drift apart.
+// The flat stats `potential` gives a character whose four stats total `pile`:
+// its own flat lines, plus the share its %stat lines take of the pile once
+// those flat lines are added. It is shared with PotentialStatGrant so the two
+// can't drift apart.
 //
-// A %stat line multiplies the AP pool, what is worn, what the book grants flat
-// and the potential's own flat lines -- everything but the three final-stat
-// sources, which is what taking the symbols back off is for. NOT Maple
-// Warrior's deal, which reads the AP pool alone. Two %stat sources sum rather
-// than compound, so both are worked against the same untouched base.
+// A %stat line multiplies the AP pool, worn gear, the book's flat grants and
+// the potential's own flat lines. It skips the three final-stat sources, which
+// is why the symbols are taken back off. It doesn't use Maple Warrior's rule,
+// which reads the AP pool alone. Two %stat sources add rather than compound, so
+// both are applied to the same base.
 EquipStats PotentialFlatGrant(const int pile[4],
                               const PotentialTotals& potential) {
   const EquipStats& flat = potential.flat;
@@ -1068,8 +1060,8 @@ EquipStats PotentialFlatGrant(const int pile[4],
   return paid;
 }
 
-// The character's stat pile as PotentialFlatGrant wants it: everything a
-// %stat line may multiply, with the potentials' own share taken back off.
+// The character's stat pile in the form PotentialFlatGrant wants: everything a
+// %stat line may multiply, minus the potentials' own share.
 void StatPileFor(const CharacterInstance& character, const EquipStats& passives,
                  const EquipStats& paid, StatPreset gear, int pile[4]) {
   const AllocatedStats& allocated = character.proto().allocated_stats();
@@ -1088,7 +1080,7 @@ void StatPileFor(const CharacterInstance& character, const EquipStats& passives,
 void AddPotentials(const CharacterInstance& character, Activity activity,
                    StatPreset worn, PassiveTotals& totals) {
   const PotentialTotals& potential = character.potential_totals(worn);
-  // Nothing has been paid yet, so the pile is the passives' own flat grant.
+  // Nothing has been added yet, so the pile is only the passives' flat grant.
   EquipStats passives;
   passives.set_str(totals.str);
   passives.set_dex(totals.dex);
@@ -1111,19 +1103,19 @@ void AddPotentials(const CharacterInstance& character, Activity activity,
   totals.boss_pct += potential.boss_pct;
   totals.ied = CombineIgnoredDefense(totals.ied, potential.ied);
   totals.crit_dmg += potential.crit_dmg;
-  // Worn, so it takes the cap the worn share takes.
+  // This is worn, so it shares the worn cap.
   totals.equip_meso_pct += potential.meso_pct;
   totals.item_drop_pct += potential.item_drop_pct;
   totals.cooldown_reduction_seconds += potential.cooldown_seconds;
 }
 
-// Cashes Maple Warrior in against the AP SPENT. It grants what a ring grants,
-// so it joins the passives' flat pile; read here rather than in AddEffect
-// because a skill's levers know nothing about who carries them.
+// Applies Maple Warrior to the AP spent. It grants what a ring grants, so it
+// goes into the passives' flat stats. It is done here rather than in AddEffect
+// because a skill's levers don't know who holds them.
 //
-// Rounded down per stat as GMS rounds it, and nudged first for FoldPercent's
-// reason. Maple World Goddess's Blessing multiplies the share before it is
-// cashed in, which is why it lands here.
+// Each stat is rounded down, as GMS does, after the same nudge FoldPercent
+// uses. Maple World Goddess's Blessing multiplies the share before it is
+// applied, which is why this happens here.
 void FoldApStats(const AllocatedStats& allocated, PassiveTotals& totals) {
   if (totals.ap_stat_pct <= 0.0) {
     return;
@@ -1142,24 +1134,24 @@ void FoldApStats(const AllocatedStats& allocated, PassiveTotals& totals) {
   totals.luk += granted[3];
 }
 
-// A flat total, then the percentage over the whole of it, fraction dropped.
-// Every pile taking a percentage folds through here. The nudge before the
-// floor covers summed per-level steps: 16 levels of +1% is 0.15999..., which
-// would otherwise cost a whole point.
+// A flat total plus a percentage of it, with the fraction dropped. Every
+// percentage on a stat pile goes through here. The nudge before the floor
+// handles summed per-level steps: 16 levels of +1% is 0.15999..., which would
+// otherwise lose a whole point.
 int FoldPercent(int flat, double pct) {
   return static_cast<int>(std::floor(flat * (1.0 + pct) + kPercentEpsilon));
 }
 
 }  // namespace
 
-// The levers an attack keeps for its own swing rather than handing to the
-// character. Stripped here and read back in OffenseStatsFor against the skill
-// being swung, so Gungnir's Descent ignores 30% when it lands and Dark Impale
-// a moment later does not.
+// The levers an attack keeps for its own swing rather than giving to the
+// character. They are removed here and read back in OffenseStatsFor for the
+// skill being swung, so Gungnir's Descent ignores 30% on its own hit and Dark
+// Impale a moment later does not.
 //
-// Only a SWING keeps them: GMS writes these on a summon only under "[Passive
-// Effects]", meaning the character -- which is how Arrow Illusion's ignored
-// defence follows the Marksman rather than the decoy.
+// Only swings keep them. GMS lists these on a summon only under "[Passive
+// Effects]", meaning they go to the character. That is why Arrow Illusion's
+// ignored defence goes to the Marksman rather than the decoy.
 SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
   SkillEffect kept = effect;
   kept.clear_ied_pct();
@@ -1176,9 +1168,9 @@ SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
   return kept;
 }
 
-// The other half, for the skill page, which heads the two apart so a player
-// sees which numbers leave with the swing. Beside its complement, the two
-// having to name the same levers.
+// The swing-only levers, for the skill page, which lists them separately so a
+// player sees which numbers apply only to that swing. It sits next to
+// WithoutSwingLevers because both must name the same levers.
 SkillEffect SwingLeversOf(const SkillEffect& effect) {
   SkillEffect swing;
   swing.set_ied_pct(effect.ied_pct());
@@ -1202,14 +1194,14 @@ bool SkillAllowsWeapon(const Skill& skill, EquipType weapon) {
 int BonusSkillLevels(const CharacterInstance& character,
                      const std::map<std::string, Skill>& skills,
                      absl::Span<const CharacterInstance> allies) {
-  // What each source pays, keyed by its exclusive group -- or by its own name
-  // where it is in none, so two ungrouped sources still sum. A group pays its
-  // best rather than the sum, exactly as every other lever does.
+  // What each source gives, keyed by its exclusive group, or by its own name if
+  // it has none, so two ungrouped sources still add up. A group gives its best
+  // value rather than the sum, like every other lever.
   std::map<std::string, double> by_source;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    // Their whole book, a common node included: HoldsSkillFrom rather than the
-    // advancement, which no common node names.
+    // Their whole book, common nodes included, so this uses HoldsSkillFrom
+    // rather than the advancement, which no common node names.
     if (!GrantsSkillLevels(skill) || !character.HoldsSkillFrom(skill)) {
       continue;
     }
@@ -1227,9 +1219,9 @@ int BonusSkillLevels(const CharacterInstance& character,
   for (const std::pair<const std::string, double>& source : by_source) {
     bonus += source.second;
   }
-  // What the party is holding out, if the character has none of their own --
-  // the buff rule PartyGrants keeps. Read at the ally's LEARNED level: a skill
-  // that hands levels out never receives them, so nothing here can loop.
+  // If the character has no granting skill of their own, the party's counts, as
+  // in PartyGrants' buff rule. It is read at the ally's learned level. A skill
+  // that grants levels never receives them, so this can't loop.
   if (bonus <= 0.0) {
     for (const CharacterInstance& ally : allies) {
       for (const std::pair<const std::string, Skill>& entry : skills) {
@@ -1245,9 +1237,8 @@ int BonusSkillLevels(const CharacterInstance& character,
       }
     }
   }
-  // Floored, and nudged first: the per-level step is a fraction that cannot be
-  // written exactly, so the top of the ladder lands a hair under the whole
-  // level it is meant to reach.
+  // Floored after a nudge: the per-level step can't be written exactly, so the
+  // top of the ladder lands just under the whole level it should reach.
   return static_cast<int>(std::floor(bonus + kPercentEpsilon));
 }
 
@@ -1273,8 +1264,8 @@ std::set<std::string> DormantSkillNames(
   std::set<std::string> names;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    // A skill granting nothing replaces nothing: an unlearned Piercing Arrow
-    // II leaves the Piercing Arrow it will one day take over still swinging.
+    // A skill that grants nothing replaces nothing. An unlearned Piercing Arrow
+    // II leaves the Piercing Arrow it will later replace still swinging.
     if (!skill.supersedes_skill_name().empty() &&
         GrantsAnything(character, skill, bonus, activity)) {
       names.insert(skill.supersedes_skill_name());
@@ -1282,9 +1273,9 @@ std::set<std::string> DormantSkillNames(
     if (skill.replaces_skill_name().empty()) {
       continue;
     }
-    // One row of the book shows one of the two forms, and the switch says
-    // which. A character who never learned the toggle has it off, so every
-    // form in the catalog sleeps for them.
+    // One row of the book shows one of the two forms, and the toggle picks
+    // which. A character who never learned the toggle has it off, so every form
+    // is dormant for them.
     if (character.SkillToggledOn(skill.toggle_skill_name())) {
       names.insert(skill.replaces_skill_name());
     } else {
@@ -1311,9 +1302,9 @@ std::vector<const Skill*> BuffSkillsFor(
       character, skills, BonusSkillLevels(character, skills), activity);
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    // The three gates every passive passes -- whose book, what gear, what
-    // level -- plus the one a buff shares with a swing: a skill the book is
-    // not showing has no buff to raise.
+    // The three checks every passive passes (whose book, what gear, what
+    // level), plus one shared with swings: a skill the book isn't showing has
+    // no buff to cast.
     if (!GrantsBuff(skill) || !character.HoldsSkillFrom(skill, activity) ||
         !SkillGearMet(character, skill, activity) ||
         character.skill_level(skill, activity) <= 0 ||
@@ -1347,9 +1338,9 @@ std::vector<AllyGrant> AllyBuffsFor(
 
 namespace {
 
-// The HP and MP pools. A worn percentage SUMS with what the skills grant
-// rather than compounding: both are shares of one pile, and the pendant is not
-// worth more for being worn beside Hyper Body.
+// The HP and MP pools. A worn percentage adds to what skills grant instead of
+// compounding, since both are shares of the same pool. A pendant is not worth
+// more for being worn alongside Hyper Body.
 void AddPools(int level, const AllocatedStats& allocated,
               const EquipStats& equipped, const PassiveTotals& passives,
               DerivedStats& stats) {
@@ -1363,10 +1354,10 @@ void AddPools(int level, const AllocatedStats& allocated,
                   passives.max_mp_pct + equipped.max_mp_pct() / 100.0);
 }
 
-// Base DEF reads the TOTALS rather than the allocation: a ring's LUK and a
-// passive's LUK are worth the same DEF. The percentage then lands over the
-// whole pile, as it does on the HP pool, and it can be a loss -- Reckless Hunt
-// buys attack by giving DEF up.
+// Base DEF reads the total stats, not just the allocation, since a ring's LUK
+// and a passive's LUK give the same DEF. The percentage then applies to the
+// whole pile, as for HP. It can be negative: Reckless Hunt trades DEF for
+// attack.
 void AddDefense(const AllocatedStats& allocated, const EquipStats& equipped,
                 const PassiveTotals& passives, DerivedStats& stats) {
   int str = allocated.str() + equipped.str() + passives.str;
@@ -1378,9 +1369,9 @@ void AddDefense(const AllocatedStats& allocated, const EquipStats& equipped,
                           passives.def_factor - 1.0);
 }
 
-// A fountain pours one more helping per whole step of INT: the helping grows,
-// the clock does not. Charged against the character's WHOLE INT, a ring's
-// counting the same as what AP bought.
+// A regeneration pulse gives one more helping per whole step of INT. The
+// helping grows but the interval does not. It uses the character's total INT,
+// so a ring's INT counts the same as AP.
 void AddRegenPulses(const AllocatedStats& allocated, const EquipStats& equipped,
                     const PassiveTotals& passives, DerivedStats& stats) {
   int total_int = allocated.int_() + equipped.int_() + passives.int_;
@@ -1395,37 +1386,37 @@ void AddRegenPulses(const AllocatedStats& allocated, const EquipStats& equipped,
   }
 }
 
-// What the character shakes loose: the drop and meso shares they wear, and the
-// two potions that lift them past what gear alone can reach.
+// The character's drop and meso rates: what their gear gives, plus the two
+// potions that raise them past what gear alone can reach.
 void AddDropAndMesoRates(const CharacterInstance& character,
                          const EquipStats& equipped, Activity preset,
                          DerivedStats& stats) {
-  // The worn share is whole percents and the granted share a fraction. They
-  // meet by summing, the way boss damage does in OffenseStatsFor.
+  // The worn share is in whole percents and the granted share is a fraction.
+  // They add up, like boss damage in OffenseStatsFor.
   stats.item_drop_pct += equipped.item_drop_rate() / 100.0;
-  // Meso does not: what is worn is capped on its own, so it is kept apart
-  // until MesoBonus puts the two together.
+  // Meso doesn't: the worn share has its own cap, so it is kept apart until
+  // MesoBonus combines the two.
   stats.equip_meso_pct += equipped.meso_rate() / 100.0;
-  // The Wealth Acquisition Potion, worth three things at once: a share past
-  // the equipment cap, the same share of drop rate, and a multiplier over the
-  // purse the two of them fill. Farming only -- a boss pays none of it.
+  // The Wealth Acquisition Potion does three things: a meso share past the
+  // equipment cap, the same share of drop rate, and a multiplier on the meso
+  // from both. It works only when farming, not in boss fights.
   if (preset == Activity::kFarming &&
       character.ConsumableInEffect(CONSUMABLE_TYPE_WEALTH_ACQUISITION_POTION)) {
     stats.meso_pct += kWealthPotionMesoPct;
     stats.item_drop_pct += kWealthPotionDropPct;
     stats.meso_final_mult *= kWealthPotionMesoMult;
   }
-  // The Extreme Green Potion, the other half of that deal: stages in a boss
-  // fight and nowhere else, and stages that pass the soft cap.
+  // The Extreme Green Potion is the boss-fight counterpart: attack speed stages
+  // that work only in boss fights and can pass the soft cap.
   if (preset == Activity::kBossing &&
       character.ConsumableInEffect(CONSUMABLE_TYPE_EXTREME_GREEN_POTION)) {
     stats.uncapped_attack_speed_bonus += kGreenPotionAttackSpeed;
   }
 }
 
-// Pick Pocket and Meso Explosion, worth nothing apart. It rides the swing as a
-// Final Attack does but rolls per LINE, so it is one more source in the same
-// list rather than a mechanism of its own.
+// Pick Pocket and Meso Explosion, which are worth nothing apart. The thrown
+// meso follows the swing like a Final Attack but rolls per line, so it is added
+// to the same list instead of getting its own mechanism.
 void AddMesoStrike(const PassiveTotals& passives, DerivedStats& stats) {
   if (passives.meso_drop_chance <= 0.0 || passives.meso_hit_pct <= 0.0) {
     return;
@@ -1453,33 +1444,33 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              Activity preset, std::optional<StatPreset> gear) {
   const Character& proto = character.proto();
   const AllocatedStats& allocated = proto.allocated_stats();
-  // The activity names the gear as well as the allocations, unless the caller
-  // named a preset itself -- see stat_preset.h.
+  // The activity picks the gear as well as the allocations, unless the caller
+  // picked a preset; see stat_preset.h.
   const StatPreset worn =
       gear.value_or(character.SlotFor(PresetKind::kEquip, preset));
   const EquipStats& equipped = character.equip_stats(worn);
   PassiveTotals passives =
       LearnedPassives(character, skills, buffs_up, allies, preset, worn);
-  // Before the fold: a potential's %stat and Maple Warrior's both read a base
-  // the other has not touched, and the two shares are added rather than
-  // compounded.
+  // Before the fold: a potential's %stat and Maple Warrior both read a base the
+  // other hasn't changed, and their shares add rather than compound.
   AddPotentials(character, preset, worn, passives);
   FoldApStats(allocated, passives);
-  // After the fold, never before: a Hyper Stat is final stat, and Maple
-  // Warrior takes its share of the allocation alone. The activity names the
-  // slot that answers -- see stat_preset.h.
+  // After the fold, never before: a Hyper Stat is a final stat, and Maple
+  // Warrior takes its share of the allocation alone. The activity picks the
+  // slot; see stat_preset.h.
   AddHyperStats(character, character.SlotFor(PresetKind::kHyperStats, preset),
                 passives);
   AddInnerAbility(character,
                   character.SlotFor(PresetKind::kInnerAbility, preset),
                   passives);
-  // Last of all, because it spends a crit rate nothing more will add to. Read
-  // uncapped and with the base rate in, the way the stats page shows it.
+  // Last of all, because it uses crit rate once nothing more will add to it. It
+  // reads the rate uncapped and with the base rate included, as the stats page
+  // shows it.
   passives.crit_dmg +=
       passives.crit_dmg_per_crit_rate * (passives.crit_rate + kBaseCritRate);
 
-  // Sliced off the totals: every lever the two share is already in place, and
-  // what is left below is only what the fold has to change.
+  // Copied from the totals: every field they share is already set, and what
+  // follows only changes what the fold has to change.
   DerivedStats stats = passives;
   stats.activity = preset;
   stats.gear = worn;
@@ -1492,11 +1483,11 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.skill_stats.set_attack(passives.attack);
   stats.skill_stats.set_magic_attack(passives.magic_attack);
   AddDefense(allocated, equipped, passives, stats);
-  // Floored at nothing rather than clamped to a share: a monster stripped of
-  // the whole of its attack still lands the 1 damage GMS insists on.
+  // Capped at 1. A monster whose attack is fully removed still deals the 1
+  // damage GMS always allows.
   stats.enemy_attack_pct = std::min(1.0, stats.enemy_attack_pct);
-  // A pact that came back at once would read as no pact at all -- 0 is what
-  // says a character is never revived -- so the cut stops a second short.
+  // A revival cooldown of 0 means the character never revives, so the reduction
+  // stops one second short of 0.
   if (stats.revive_cooldown_seconds > 0.0) {
     stats.revive_cooldown_seconds = std::max(
         1.0, stats.revive_cooldown_seconds - passives.revive_cooldown_cut);
@@ -1551,8 +1542,8 @@ EquipStats TotalEquipStats(const CharacterInstance& character,
   const EquipStats sources[] = {character.equip_stats(derived.gear),
                                 derived.skill_stats};
   EquipStats total = SumEquipStats(absl::MakeConstSpan(sources));
-  // Here rather than in skill_stats because what it scales is the weapon in
-  // hand as much as the skill's grant. Both attack fields take it.
+  // Applied here rather than in skill_stats because it scales the weapon as
+  // well as the skill's grant. Both attack fields get it.
   total.set_attack(FoldPercent(total.attack(), derived.attack_pct));
   total.set_magic_attack(
       FoldPercent(total.magic_attack(), derived.magic_attack_pct));
