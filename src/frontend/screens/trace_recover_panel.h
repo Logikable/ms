@@ -1,8 +1,8 @@
-/* TraceRecoverPanel manages selection and confirmation for trace recovery.
- * RenderTabs() renders a row of star-count chips (one per matching item) with
- * a separator below. RenderBelow() renders the confirm bar or a 3-row spacer.
- * Left/Right navigate chips; Enter opens confirm; a second Enter confirms,
- * which is the kConfirmed OnEvent answers with.
+/* TraceRecoverPanel handles selection and confirmation for trace recovery.
+ * RenderTabs() draws a row of star-count chips (one per matching item) with a
+ * rule below. RenderBelow() draws the confirm bar or a 3-row spacer. Left and
+ * Right move between chips, Enter opens the confirm bar, and a second Enter
+ * confirms, which OnEvent reports as kConfirmed.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_TRACE_RECOVER_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_TRACE_RECOVER_PANEL_H_
@@ -19,8 +19,8 @@
 
 namespace ms {
 
-// The rows RenderTabs draws: the chip row, and the rule under it. What the
-// screen subtracts before telling the card beside them how tall it may be.
+// The rows RenderTabs draws: the chip row and the rule below it. The screen
+// subtracts these before telling the card beside them how tall it may be.
 inline constexpr int kRecoverTabRows = 2;
 
 class TraceRecoverPanel {
@@ -31,19 +31,18 @@ class TraceRecoverPanel {
   void SetTrace(const EquipTabItem* trace);
   ftxui::Element RenderTabs() const;
   ftxui::Element RenderBelow() const;
-  // Returns a synthetic EquipInstance representing the post-recovery state:
-  // trace's scroll stats with RecoveryStars() applied. Only valid when
-  // trace_ != nullptr.
+  // Returns a made-up EquipInstance showing the state after recovery: the
+  // trace's scroll stats with RecoveryStars() applied. Only valid when trace_
+  // isn't null.
   EquipInstance PreviewResult() const;
-  // Handles Left/Right navigation and confirm-bar interaction. Esc when not
-  // confirming is not consumed (caller handles screen transition).
+  // Handles Left and Right and the confirm bar. Esc while not confirming isn't
+  // consumed, so the caller can change screens.
   ConfirmChoice OnEvent(ftxui::Event event);
-  // Returns true once when the player confirms recovery, then resets the flag.
+  // Whether the confirm bar is open.
   bool IsConfirming() const {
     return confirm_.open();
   }
-  // Returns the inventory index of the currently selected base item, or -1 if
-  // there are no matching items.
+  // The inventory index of the selected base item, or -1 if no items match.
   int selected_index() const;
   ftxui::Element RenderResult(const TraceRecoveryResult& r) const;
 

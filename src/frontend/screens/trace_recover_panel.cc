@@ -17,9 +17,9 @@
 namespace ms {
 namespace {
 
-// What the star bar may use. It stands over the Inspect card on this screen,
-// so it is held to the card's width rather than allowed to push it wider --
-// a player holding a dozen copies of one item has a dozen chips.
+// The width the star bar may use. It sits above the Inspect card on this
+// screen, so it is held to the card's width instead of pushing it wider, since
+// a player holding a dozen copies of one item gets a dozen chips.
 constexpr int kBarWidth = 44;
 
 }  // namespace
@@ -37,7 +37,7 @@ void TraceRecoverPanel::SetTrace(const EquipTabItem* trace) {
   }
   const std::string& proto_name = trace_->prototype().name();
   for (int i = 0; i < character_.inventory().size(); ++i) {
-    // equip_instance is null for traces; skip them as recovery targets.
+    // equip_instance is null for traces, so skip them as recovery targets.
     if (character_.inventory().equip_instance(i) != nullptr &&
         character_.inventory()[i].prototype().name() == proto_name) {
       matching_indices_.push_back(i);
@@ -81,7 +81,7 @@ ftxui::Element TraceRecoverPanel::RenderBelow() const {
 }
 
 ConfirmChoice TraceRecoverPanel::OnEvent(ftxui::Event event) {
-  // The prompt swallows every event while it is up.
+  // The prompt consumes every event while it is open.
   if (confirm_.open()) {
     return confirm_.OnEvent(std::move(event));
   }

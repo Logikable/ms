@@ -1,13 +1,12 @@
-/* StarForcePanel renders the star force attempt screen for a single item.
- * Shows the item name, current star count, stat gains, probabilities and what
- * the attempt costs. Its foot is an [Enhance] / [Cancel] row: Enter on Enhance
- * opens the inline confirm bar, a second Enter confirms, and Enter on Cancel
- * leaves. OnEvent answers with the ConfirmChoice every dialog in the game
- * answers with.
+/* StarForcePanel draws the star force screen for one item: the item name, its
+ * current stars, the stat gains, the odds and the cost of an attempt. At the
+ * bottom is an [Enhance] / [Cancel] row: Enter on Enhance opens the inline
+ * confirm bar, a second Enter confirms, and Enter on Cancel leaves. OnEvent
+ * returns the ConfirmChoice every dialog returns.
  *
- * A player who cannot afford the attempt is not stopped at the confirm bar:
- * the price is red, [Enhance] is greyed and cannot be reached, and the cursor
- * is already on [Cancel].
+ * A player who can't afford the attempt isn't stopped at the confirm bar: the
+ * price is red, [Enhance] is greyed and unreachable, and the cursor is already
+ * on [Cancel].
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_STAR_FORCE_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_STAR_FORCE_PANEL_H_
@@ -24,15 +23,16 @@ namespace ms {
 
 class StarForcePanel {
  public:
-  // The item and the purse that has to pay for it, together: what an attempt
-  // costs and what is there to spend on it are read in the same breath, and
-  // one without the other would draw a price nobody checked.
+  // The item together with the purse that pays for it, since the cost and the
+  // money available are read together, and one without the other would show a
+  // price nobody checked.
   void SetItem(const EquipInstance* item, int64_t meso);
   ftxui::Element Render() const;
   ftxui::Element RenderResult(const StarForceResult& r) const;
   // Enter presses the button or advances the confirm bar, Esc cancels the
-  // confirm, Left/Right switch buttons. kCancelled is [Cancel], which the
-  // caller closes the screen on; the prompt's own Cancel answers kPending.
+  // confirm, and Left and Right switch buttons. kCancelled means [Cancel], on
+  // which the caller closes the screen; the prompt's own Cancel returns
+  // kPending.
   ConfirmChoice OnEvent(ftxui::Event event);
   void ResetConfirm();
   bool IsConfirming() const {
@@ -40,14 +40,14 @@ class StarForcePanel {
   }
 
  private:
-  // What one attempt on the current item takes, or 0 without an item.
+  // The cost of one attempt on the current item, or 0 without an item.
   int64_t Cost() const;
-  // Whether the purse covers it. False parks the cursor on [Cancel].
+  // Whether the purse covers it. If not, the cursor stays on [Cancel].
   bool Affordable() const;
-  // Whether the cursor is on [Cancel] -- either because the player moved it
-  // there, or because [Enhance] cannot be pressed. Derived rather than stored,
-  // so it is right from the first frame: the panel is handed its item during
-  // the render, long after the screen was opened.
+  // Whether the cursor is on [Cancel], either because the player moved it there
+  // or because [Enhance] can't be pressed. Computed rather than stored so it is
+  // right from the first frame, since the panel gets its item during the
+  // render, well after the screen opened.
   bool OnCancel() const;
 
   const EquipInstance* item_ = nullptr;

@@ -65,13 +65,13 @@ class TradePanelTest : public PanelTest {
     return whole;
   }
 
-  // The bag row the cursor is on, as the place in the character's own list.
+  // The bag row under the cursor, as a position in the character's own list.
   int BagIndex() {
     return panel_.cursor().index;
   }
 
-  // Where a stack sits in the character's own list. Not its order of arrival:
-  // 900 traces fill five stacks before the next item opens one.
+  // Where a stack is in the character's own list, which isn't the order it
+  // arrived in: 900 traces fill five stacks before the next item starts one.
   int StackIndex(const std::string& name) {
     for (int i = 0; i < static_cast<int>(c_.stackables().size()); ++i) {
       if (c_.stackables()[i].name() == name) {
@@ -81,7 +81,7 @@ class TradePanelTest : public PanelTest {
     return -1;
   }
 
-  // Walks Tab until the bag has the cursor.
+  // Presses Tab until the bag has the cursor.
   void ToBag() {
     while (panel_.zone() != TradeZone::kBag) {
       panel_.NextZone(1);
@@ -106,7 +106,7 @@ TEST_F(TradePanelTest, DrawsBothOffersAndTheBag) {
   EXPECT_NE(screen.find("5,000"), std::string::npos);
   EXPECT_NE(screen.find("120"), std::string::npos);
 
-  // The two currencies share one line on each side, the meso first.
+  // The two currencies share one line on each side, meso first.
   std::vector<std::string> rows = Rows();
   int line = -1;
   for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
@@ -143,8 +143,8 @@ TEST_F(TradePanelTest, TheirSideIsMirrored) {
     }
   }
   ASSERT_GE(line, 0);
-  // Their mark leads their half, their traces follow and their meso ends it;
-  // the name sits over the meso rather than over the mark.
+  // Their mark comes first in their half, then their traces, then their meso;
+  // the name sits above the meso rather than above the mark.
   EXPECT_LT(rows[line].find("✓"), rows[line].find("77"));
   EXPECT_LT(rows[line].find("77"), rows[line].find("120"));
   std::string title;
@@ -155,8 +155,8 @@ TEST_F(TradePanelTest, TheirSideIsMirrored) {
   }
   ASSERT_FALSE(title.empty());
   EXPECT_GT(title.find("Wand"), title.size() / 2);
-  // Padded out with the border's own rule rather than blanks, so the run in
-  // front of the name reads as the border it sits in.
+  // Padded with the border's own line rather than blanks, so the space before
+  // the name reads as part of the border.
   EXPECT_NE(title.find("─ Wand "), std::string::npos) << title;
 }
 
@@ -205,9 +205,9 @@ TEST_F(TradePanelTest, TabWalksTheThreeWindows) {
   EXPECT_EQ(panel_.zone(), TradeZone::kBag);
 }
 
-// The Etc tab lists the drops and nothing else: the currencies are counted in
-// the purse, which the trade screen does not show, and the spell trace crosses
-// on its own line at the top of the offer.
+// The Etc tab lists only drops: the currencies are in the purse, which the
+// trade screen doesn't show, and the spell trace is offered on its own line at
+// the top of the offer.
 TEST_F(TradePanelTest, TheBagHasTwoTabsAndOnlyTradeableStacks) {
   ToBag();
   EXPECT_FALSE(panel_.on_etc_tab());
@@ -225,8 +225,8 @@ TEST_F(TradePanelTest, TheBagHasTwoTabsAndOnlyTradeableStacks) {
   EXPECT_EQ(screen.find("Zakum's"), std::string::npos);
 }
 
-// A symbol is bound to the character who raised it: the Equip tab does not
-// list it, and a row naming it anyway puts up nothing.
+// A symbol is bound to the character who levelled it: the Equip tab doesn't
+// list it, and a row naming it anyway offers nothing.
 TEST_F(TradePanelTest, ASymbolCannotBeOffered) {
   EquipPrototype symbol;
   symbol.set_name("Arcane Symbol: Vanishing Journey");
@@ -258,7 +258,7 @@ TEST_F(TradePanelTest, TheBagShowsWhatIsLeft) {
   EXPECT_NE(screen.find("Sword"), std::string::npos) << "on the table";
   EXPECT_NE(screen.find("7"), std::string::npos) << "the rest of the stack";
 
-  // And the header counts what is left of the currencies.
+  // The header shows what is left of the currencies.
   panel_.PutUpCurrency(TradeCurrency::kMeso, 1000000);
   EXPECT_NE(Text().find("234,567"), std::string::npos);
 }
@@ -273,8 +273,8 @@ TEST_F(TradePanelTest, TheTableTakesAsMuchAsThePlayerHas) {
   }
   EXPECT_EQ(panel_.own().items(), kMany) << "the window scrolls instead";
 
-  // Putting the same one up twice is still one thing on the table, and a
-  // stack already up is changed rather than added to.
+  // Offering the same item twice is still one item on the table, and a stack
+  // already offered is changed rather than added to.
   panel_.PutUpEquip(0);
   EXPECT_EQ(panel_.own().items(), kMany);
   panel_.PutUpStack(StackIndex("Chaos Scroll"), 5);
@@ -289,7 +289,7 @@ TEST_F(TradePanelTest, WalkingAndTakingBackWhatIsOnTheTable) {
   panel_.PutUpEquip(0);
   panel_.PutUpStack(StackIndex("Chaos Scroll"), 5);
 
-  // Down off the top row drops into the offer.
+  // Down from the top row moves into the offer.
   panel_.MoveRow(1);
   EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kOffered);
   EXPECT_EQ(panel_.cursor().index, 0);
@@ -302,15 +302,15 @@ TEST_F(TradePanelTest, WalkingAndTakingBackWhatIsOnTheTable) {
   EXPECT_EQ(panel_.own().items(), 1);
   EXPECT_EQ(panel_.stack_left(StackIndex("Chaos Scroll")), 12);
 
-  // Up off the first row climbs back to the currencies.
+  // Up from the first row moves back to the currencies.
   panel_.MoveRow(-1);
   EXPECT_EQ(panel_.cursor().kind, TradeCursor::Kind::kCurrency);
 }
 
-// The bag is the game's own bag: the same tab row with its rule under it, and
-// the same column header with a rule of its own. The offer windows follow it.
+// The bag is the game's standard bag: the same tab row with its rule below, and
+// the same column header with its own rule. The offer windows follow it.
 TEST_F(TradePanelTest, EveryHeaderHasItsRule) {
-  // One on the table and one left in the bag, so both lists have a header.
+  // One offered and one left in the bag, so both lists have a header.
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_.PutUpEquip(0);
   std::vector<std::string> rows = Rows();
@@ -338,8 +338,8 @@ TEST_F(TradePanelTest, EveryHeaderHasItsRule) {
   EXPECT_NE(rows[offer + 1].find("├"), std::string::npos) << rows[offer + 1];
 }
 
-// The one the rest of the game draws, with its own column between the caret
-// and the name -- and only in the window holding the cursor.
+// The same caret as the rest of the game, with its own column between the caret
+// and the name, and only in the window with the cursor.
 TEST_F(TradePanelTest, OnlyTheFocusedWindowDrawsTheCaret) {
   panel_.PutUpEquip(0);
   panel_.MoveRow(1);
@@ -351,9 +351,9 @@ TEST_F(TradePanelTest, OnlyTheFocusedWindowDrawsTheCaret) {
       << "the offer keeps its row, not its caret";
 }
 
-// Wherever the cursor is, the menu opens beside it -- which is what reading
-// the row off the render buys: all three lists scroll, and a place in the data
-// stops agreeing with the row on screen as soon as one of them does.
+// Wherever the cursor is, the menu opens beside it, which is why the row is
+// read from the render: all three lists scroll, and a position in the data
+// stops matching the screen row as soon as one does.
 TEST_F(TradePanelTest, TheMenuOpensBesideTheRowTheCursorIsOn) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_.PutUpEquip(0);
@@ -409,7 +409,7 @@ TEST_F(TradePanelTest, TheirRowsAreWalkedAndRead) {
 }
 
 TEST_F(TradePanelTest, EachWindowsMenuOffersWhatItCanDo) {
-  // The bag puts things up.
+  // The bag offers items.
   ToBag();
   panel_.OpenMenu();
   ASSERT_TRUE(panel_.menu_open());
@@ -431,7 +431,7 @@ TEST_F(TradePanelTest, EachWindowsMenuOffersWhatItCanDo) {
   EXPECT_EQ(screen.find("Offer"), std::string::npos);
   panel_.CloseMenu();
 
-  // Theirs is only ever read.
+  // Theirs can only be inspected.
   TradeState trade = Trade("Wand", /*joined=*/true);
   trade.mutable_theirs()->add_equips()->set_equip_name("Fafnir Mace");
   panel_.SetTrade(trade);
@@ -469,8 +469,8 @@ TEST_F(TradePanelTest, TheWireCarriesTheWholeItem) {
   EXPECT_EQ(offer.stacks(0).count(), 5);
 }
 
-// Two offer tables and the bag below them, each fitted to its own rows: a
-// full purse is the widest thing any of them says.
+// Two offer tables and the bag below them, each fitted to its own rows. A full
+// purse is the widest thing any of them shows.
 TEST_F(TradePanelTest, NoWindowWeldsARowToItsRightBorder) {
   EXPECT_TRUE(RowsTouchingTheRightBorder(panel_.Render()).empty());
 }

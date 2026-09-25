@@ -21,8 +21,8 @@
 namespace ms {
 namespace {
 
-// Formats a rate in hundredths of a percent (10000=100%) as "XX%", "XX.X%",
-// or "XX.XX%" depending on how many decimal places are needed.
+// Formats a rate in hundredths of a percent (10000 = 100%) as "XX%", "XX.X%" or
+// "XX.XX%", using only the decimals it needs.
 std::string FormatRate(int hundredths) {
   int whole = hundredths / 100;
   int frac = hundredths % 100;
@@ -38,8 +38,8 @@ std::string FormatRate(int hundredths) {
 
 // One line of a two-column block: the label left-aligned in its column, the
 // number right-aligned in its own, and the pair centred together. Both widths
-// come from the whole block, so the numbers stand in one column however many
-// digits each of them has.
+// come from the whole block, so the numbers line up however many digits each
+// has.
 ftxui::Element TwoColumnRow(const std::string& label, int label_width,
                             const std::string& value, int value_width) {
   return CenteredRow(PadRight(label, label_width) + "  " +
@@ -68,8 +68,8 @@ bool StarForcePanel::OnCancel() const {
   return cancel_selected_ || !Affordable();
 }
 
-// One row per stat the next star adds, in two columns: the names down the
-// left of theirs, the gains against the right of theirs.
+// One row per stat the next star adds, in two columns: names aligned left in
+// theirs, gains aligned right in theirs.
 std::vector<ftxui::Element> StatGainRows(const EquipStats& before,
                                          const EquipStats& after) {
   std::vector<std::pair<std::string, std::string>> gains;
@@ -93,8 +93,7 @@ std::vector<ftxui::Element> StatGainRows(const EquipStats& before,
   return rows;
 }
 
-// The three ways the attempt can land, in the same two columns the stats
-// above them stand in.
+// The three possible outcomes, in the same two columns as the stats above.
 std::vector<ftxui::Element> OddsRows(const StarForceRate& rate) {
   std::string success = FormatRate(rate.success);
   std::string fail = FormatRate(10000 - rate.success - rate.destroy);
@@ -123,7 +122,7 @@ ftxui::Element StarForcePanel::Render() const {
   std::string name = item_->prototype().name();
 
   if (stars >= item_->max_stars()) {
-    // The name and the star count are one heading, so no rule between them.
+    // The name and the star count form one heading, so no rule between them.
     return ThemedWindow(" Star Force ",
                         ftxui::vbox({
                             CenteredRow(name),
@@ -134,9 +133,8 @@ ftxui::Element StarForcePanel::Render() const {
   }
 
   std::vector<ftxui::Element> rows;
-  // The name and the star it is going for are one heading, so no rule between
-  // them: what the rules separate is the heading, the stats, the odds and the
-  // price.
+  // The name and the star being attempted form one heading, so no rule between
+  // them. The rules separate the heading, the stats, the odds and the price.
   rows.push_back(CenteredRow(name));
   std::string arrow =
       std::to_string(stars) + "★ → " + std::to_string(stars + 1) + "★";
@@ -152,22 +150,21 @@ ftxui::Element StarForcePanel::Render() const {
     rows.push_back(std::move(row));
   }
   rows.push_back(ThemedSeparator());
-  // The purse and what the attempt takes, in their own section between the
-  // odds and the button: they are the last thing the player reads before
-  // pressing.
+  // The purse and the attempt's cost, in their own section between the odds and
+  // the button, since they are the last thing the player reads before pressing.
   rows.push_back(PriceBlock(meso_, Cost(), Affordable()));
   rows.push_back(ThemedSeparator());
   rows.push_back(CenteredRow(ButtonRow("Enhance", "Cancel",
                                        /*go_focused=*/!OnCancel(),
                                        /*leave_focused=*/OnCancel(),
                                        /*go_enabled=*/Affordable())));
-  // Constrain inner width to at least the confirm prompt's, so the panel
+  // Keep the inner width at least as wide as the confirm prompt's, so the panel
   // never widens when the prompt appears below.
   ftxui::Element content =
       ftxui::vbox(std::move(rows)) |
       ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, kConfirmButtonsWidth);
   ftxui::Element main = ThemedWindow(" Star Force ", std::move(content));
-  // Always allocate the same height below so ftxui::center never shifts the
+  // Always reserve the same height below, so ftxui::center never moves the
   // panel when the prompt appears.
   ftxui::Element below =
       confirm_.open()
@@ -178,16 +175,17 @@ ftxui::Element StarForcePanel::Render() const {
 }
 
 ConfirmChoice StarForcePanel::OnEvent(ftxui::Event event) {
-  // The prompt's own Cancel closes the prompt and no more: the player is
-  // backing out of the question, not out of the screen.
+  // The prompt's own Cancel closes only the prompt: the player is backing out
+  // of the question, not the screen.
   if (confirm_.open()) {
     ConfirmChoice choice = confirm_.OnEvent(std::move(event));
     return choice == ConfirmChoice::kConfirmed ? choice
                                                : ConfirmChoice::kPending;
   }
   if (event == ftxui::Event::ArrowLeft) {
-    // Recorded whether or not it lands: OnCancel holds the cursor on [Cancel]
-    // while the price is out of reach, and lets it go the moment it is not.
+    // Recorded whether or not the move takes effect: OnCancel keeps the cursor
+    // on [Cancel] while the price is unaffordable, and releases it once it
+    // isn't.
     cancel_selected_ = false;
   } else if (event == ftxui::Event::ArrowRight) {
     cancel_selected_ = true;
@@ -206,10 +204,10 @@ void StarForcePanel::ResetConfirm() {
 }
 
 ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
-  // The whole window takes the outcome's colour -- gold for a star gained, red
-  // for an item lost -- so the player knows which of the three happened before
-  // reading anything. A plain failure keeps the steel-blue frame: it is the
-  // outcome where nothing changed.
+  // The whole window takes the outcome's colour (gold for a star gained, red
+  // for an item destroyed), so the player knows which of the three happened
+  // before reading anything. A plain failure keeps the steel-blue frame, since
+  // nothing changed.
   std::string outcome_text;
   ftxui::Color outcome_color;
   ftxui::Color accent = kTheme;
@@ -221,9 +219,9 @@ ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
     outcome_text = " FAILED ";
     outcome_color = kMutedYellow;
   } else if (r.outcome == kStarForceNoMeso) {
-    // The screen no longer lets a player press for an attempt they cannot pay
-    // for -- the button is greyed. This is the backstop for a purse that
-    // emptied some other way between the render and the keypress.
+    // The screen doesn't let a player press for an attempt they can't pay for,
+    // since the button is greyed. This is the backstop for a purse that emptied
+    // some other way between the render and the keypress.
     outcome_text = " NOT ENOUGH MESO ";
     outcome_color = kRed;
   } else {

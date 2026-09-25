@@ -14,20 +14,20 @@
 namespace ms {
 namespace {
 
-// The Confirm/Cancel mechanics are covered by confirm_prompt_test; these cover
-// what is specific to this panel -- which inventory items it will offer as
-// recovery targets, and which one Enter is about to act on.
+// confirm_prompt_test covers the Confirm/Cancel mechanics. These tests cover
+// what is specific to this panel: which inventory items it offers as recovery
+// targets, and which one Enter acts on.
 class TraceRecoverPanelTest : public PanelTest {
  protected:
-  // A "Sword" prototype under a distinct name, so a test can put an item in the
-  // bag that must NOT be offered as a target for a Sword trace.
+  // A "Sword" prototype under a different name, so a test can put an item in
+  // the bag that must not be offered as a target for a Sword trace.
   EquipPrototype OtherPrototype() {
     EquipPrototype other = sword_;
     other.set_name("Wand");
     return other;
   }
 
-  // Puts a live Sword at `stars` in the bag and returns its index.
+  // Puts a working Sword with `stars` in the bag and returns its index.
   int AddSword(int stars) {
     Equip state;
     state.set_stars(stars);
@@ -35,8 +35,8 @@ class TraceRecoverPanelTest : public PanelTest {
     return c_.inventory().size() - 1;
   }
 
-  // Puts a Sword trace at `stars` in the bag and returns it. The panel holds
-  // the pointer, so the item has to outlive the panel -- the inventory owns it.
+  // Puts a Sword trace with `stars` in the bag and returns it. The panel keeps
+  // the pointer, so the item must outlive the panel; the inventory owns it.
   const EquipTabItem* AddTrace(int stars) {
     Equip state;
     state.set_stars(stars);
@@ -55,8 +55,8 @@ TEST_F(TraceRecoverPanelTest, OffersOnlyItemsSharingTheTracesPrototype) {
   EXPECT_EQ(panel.selected_index(), sword_index);
 }
 
-// A trace is not a recovery target, or a bag holding two traces of the same
-// item would offer each as somewhere to put the other.
+// A trace isn't a recovery target, or a bag with two traces of the same item
+// would offer each as a target for the other.
 TEST_F(TraceRecoverPanelTest, DoesNotOfferAnotherTraceAsATarget) {
   const EquipTabItem* trace = AddTrace(17);
   AddTrace(15);
@@ -104,7 +104,7 @@ TEST_F(TraceRecoverPanelTest, ArrowsStopAtTheEnds) {
 }
 
 // With no target there is nothing to confirm, so the panel says so and Enter
-// must not open the prompt -- confirming would recover onto index -1.
+// must not open the prompt, since confirming would recover onto index -1.
 TEST_F(TraceRecoverPanelTest, SaysSoAndDoesNothingWithNoCandidates) {
   const EquipTabItem* trace = AddTrace(17);
 
@@ -136,13 +136,13 @@ TEST_F(TraceRecoverPanelTest, CancellingLeavesNothingConfirmed) {
   TraceRecoverPanel panel(c_);
   panel.SetTrace(trace);
   panel.OnEvent(ftxui::Event::Return);
-  panel.OnEvent(ftxui::Event::ArrowRight);  // Confirm -> Cancel
+  panel.OnEvent(ftxui::Event::ArrowRight);  // Confirm to Cancel
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
   EXPECT_FALSE(panel.IsConfirming());
 }
 
-// The arrows belong to the prompt while it is up, so they must not walk the
-// chip row behind it.
+// The arrows belong to the prompt while it is open, so they must not move along
+// the chip row behind it.
 TEST_F(TraceRecoverPanelTest, ChipSelectionIsFrozenWhileConfirming) {
   int first = AddSword(3);
   AddSword(8);
@@ -177,8 +177,8 @@ TEST_F(TraceRecoverPanelTest, SettingANewTraceRestartsTheSelection) {
   EXPECT_EQ(panel.selected_index(), first);
 }
 
-// The chips and the confirm bar are bare rows on the screen; the result card
-// is this panel's only window of its own.
+// The chips and the confirm bar are plain rows on the screen; the result card
+// is this panel's only window.
 TEST_F(TraceRecoverPanelTest, TheResultCardKeepsOffItsRightBorder) {
   TraceRecoverPanel panel(c_);
   TraceRecoveryResult result;

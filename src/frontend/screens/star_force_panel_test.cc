@@ -17,8 +17,8 @@
 namespace ms {
 namespace {
 
-// More than any attempt costs, so a test that is not about the price never
-// trips over it.
+// More than any attempt costs, so tests not about the price are never affected
+// by it.
 constexpr int64_t kDeepPurse = 1'000'000'000'000;
 
 class StarForcePanelTest : public PanelTest {
@@ -32,7 +32,7 @@ class StarForcePanelTest : public PanelTest {
     return EquipInstance(proto, state);
   }
 
-  // The line drawn under the one holding `needle`, or "" if there is none.
+  // The line drawn below the one containing `needle`, or "" if there is none.
   static std::string LineAfter(const std::string& rendered,
                                const std::string& needle) {
     size_t at = rendered.find(needle);
@@ -44,9 +44,9 @@ class StarForcePanelTest : public PanelTest {
     return rendered.substr(eol + 1, next - eol - 1);
   }
 
-  // The cell the first character of `label` lands on. Asked for the styling
-  // ftxui records per pixel -- a focused button's inversion, a greyed one's
-  // dim -- which the rendered string cannot be searched for.
+  // The cell where the first character of `label` lands. Used for the styling
+  // ftxui records per pixel (a focused button's inversion, a greyed one's dim),
+  // which the rendered string doesn't contain.
   static ftxui::Pixel PixelOf(StarForcePanel& panel, const std::string& label) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
                                                  ftxui::Dimension::Fixed(20));
@@ -54,7 +54,7 @@ class StarForcePanelTest : public PanelTest {
     return ms::PixelOf(screen, label);
   }
 
-  // The column `needle` starts in, or -1 if nothing holds it.
+  // The column where `needle` starts, or -1 if it isn't there.
   static int ColumnOf(StarForcePanel& panel, const std::string& needle) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
                                                  ftxui::Dimension::Fixed(20));
@@ -75,8 +75,8 @@ TEST_F(StarForcePanelTest, NullItemShowsPlaceholder) {
   EXPECT_NE(Render(panel).find("(no item)"), std::string::npos);
 }
 
-// Every button the game draws is the one style, so the enhance button and the
-// confirm row below it read alike.
+// Every button in the game uses one style, so the Enhance button and the
+// confirm row below it look alike.
 TEST_F(StarForcePanelTest, DrawsButtonsInTheSharedStyle) {
   EquipInstance item = MakeItem(0, 0);
   StarForcePanel panel;
@@ -88,7 +88,8 @@ TEST_F(StarForcePanelTest, DrawsButtonsInTheSharedStyle) {
   EXPECT_NE(rendered.find("[Cancel]"), std::string::npos);
 }
 
-// At 0★ the attempt cannot destroy, so there are two rates rather than three.
+// At 0 stars the attempt can't destroy the item, so there are two rates instead
+// of three.
 TEST_F(StarForcePanelTest, RenderShowsTheItemAndItsTwoRates) {
   EquipInstance item = MakeItem(0, 0);
   StarForcePanel panel;
@@ -103,15 +104,15 @@ TEST_F(StarForcePanelTest, RenderShowsTheItemAndItsTwoRates) {
 }
 
 TEST_F(StarForcePanelTest, RenderFormatsSubPercentRateCorrectly) {
-  // At 21★: destroy=12.75%.
+  // At 21 stars the destroy rate is 12.75%.
   EquipInstance item = MakeItem(/*required_level=*/138, /*stars=*/21);
   StarForcePanel panel;
   panel.SetItem(&item, kDeepPurse);
   EXPECT_NE(Render(panel).find("12.75%"), std::string::npos);
 }
 
-// At 15★ destroy is on, and the three rates are 30%, 67.9% and 2.1%: the names
-// down the left of their column, the numbers against the right of theirs.
+// At 15 stars destruction is possible, and the three rates are 30%, 67.9% and
+// 2.1%: names aligned left in their column, numbers aligned right in theirs.
 TEST_F(StarForcePanelTest, RateRowsAlignWhenMixedDecimals) {
   EquipInstance item = MakeItem(/*required_level=*/138, /*stars=*/15);
   StarForcePanel panel;
@@ -122,9 +123,9 @@ TEST_F(StarForcePanelTest, RateRowsAlignWhenMixedDecimals) {
   EXPECT_NE(rendered.find("Destroy   2.1%"), std::string::npos);
 }
 
-// A staff's next star adds a +3 to each stat and a +25 to HP and MP, which is
-// two columns of different widths: the names line up on the left, the gains on
-// the right, and neither row is longer than the other.
+// A staff's next star adds +3 to each stat and +25 to HP and MP, giving two
+// columns of different widths: the names line up on the left, the gains on the
+// right, and neither row is longer than the other.
 TEST_F(StarForcePanelTest, StatRowsStandInTwoColumns) {
   EquipPrototype proto;
   proto.set_name("Frozen Staff");
@@ -141,14 +142,14 @@ TEST_F(StarForcePanelTest, StatRowsStandInTwoColumns) {
   EXPECT_NE(rendered.find("HP   +25"), std::string::npos);
   EXPECT_EQ(ColumnOf(panel, "STR"), ColumnOf(panel, "HP"))
       << "the names start in one column";
-  // "+3" is two cells and "+25" three, so ending together puts the shorter
-  // one a cell further in.
+  // "+3" is two cells and "+25" three, so ending together puts the shorter one
+  // a cell further right.
   EXPECT_EQ(ColumnOf(panel, "+3") + 2, ColumnOf(panel, "+25") + 3)
       << "and the gains end in one column";
 }
 
 TEST_F(StarForcePanelTest, AtMaxStarsShowsMaxMessageNotRates) {
-  // Level 10 item: MaxStarsForLevel(10) == 5; place it at 5★.
+  // A level 10 item: MaxStarsForLevel(10) is 5, so it is placed at 5 stars.
   EquipInstance item = MakeItem(/*required_level=*/10, /*stars=*/5);
   StarForcePanel panel;
   panel.SetItem(&item, kDeepPurse);
@@ -159,9 +160,8 @@ TEST_F(StarForcePanelTest, AtMaxStarsShowsMaxMessageNotRates) {
   EXPECT_EQ(rendered.find("Enter"), std::string::npos);
 }
 
-// What the attempt takes, in its own section between the odds and the button
-// -- the last thing read before pressing. A level 150 item's first star is
-// 136,000.
+// The attempt's cost, in its own section between the odds and the button, the
+// last thing read before pressing. A level 150 item's first star costs 136,000.
 TEST_F(StarForcePanelTest, RenderShowsWhatTheAttemptCosts) {
   EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
   StarForcePanel panel;
@@ -173,8 +173,8 @@ TEST_F(StarForcePanelTest, RenderShowsWhatTheAttemptCosts) {
   EXPECT_LT(price, rendered.find("Enhance")) << "the price is below the button";
 }
 
-// The purse stands over the price, labelled: the screen is on its own, so
-// there is nothing else on it saying what the player has to spend.
+// The purse is shown above the price, labelled, since this screen is shown
+// alone and nothing else on it says what the player has to spend.
 TEST_F(StarForcePanelTest, ThePurseStandsOverThePrice) {
   EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
   StarForcePanel panel;
@@ -186,12 +186,13 @@ TEST_F(StarForcePanelTest, ThePurseStandsOverThePrice) {
   EXPECT_LT(held, cost) << "the purse is read first";
   EXPECT_NE(rendered.find("98,765,432,100"), std::string::npos);
   EXPECT_LT(cost, rendered.find("Enhance"));
-  // The purse is a fact, not a refusal: only the price ever reddens.
+  // The purse is just information, not a refusal, so only the price ever turns
+  // red.
   EXPECT_NE(PixelOf(panel, "98,765,432,100").foreground_color, kRed);
 }
 
-// The name and the star it is going for are one heading, so the rules start
-// below the two of them rather than between.
+// The name and the star being attempted form one heading, so the rules start
+// below both rather than between them.
 TEST_F(StarForcePanelTest, NoRuleThroughTheHeading) {
   EquipInstance climbing = MakeItem(/*required_level=*/150, /*stars=*/3);
   StarForcePanel panel;
@@ -200,7 +201,7 @@ TEST_F(StarForcePanelTest, NoRuleThroughTheHeading) {
   EXPECT_NE(under.find("3"), std::string::npos) << under;
   EXPECT_EQ(under.find("─"), std::string::npos) << "a rule split it";
 
-  // And the same on the screen an item at its last star gets.
+  // The same on the screen for an item at its maximum stars.
   EquipInstance topped = MakeItem(/*required_level=*/10, /*stars=*/5);
   panel.SetItem(&topped, kDeepPurse);
   under = LineAfter(Render(panel), "Sword");
@@ -209,8 +210,8 @@ TEST_F(StarForcePanelTest, NoRuleThroughTheHeading) {
 
 // --- the foot: [Enhance] [Cancel] ---
 
-// Leaving is a button rather than only a key, and the cursor starts on the
-// one the player came to press.
+// Leaving is a button as well as a key, and the cursor starts on the button the
+// player came to press.
 TEST_F(StarForcePanelTest, TheFootIsEnhanceThenCancelAndTheCursorMoves) {
   EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
   StarForcePanel panel;
@@ -226,8 +227,8 @@ TEST_F(StarForcePanelTest, TheFootIsEnhanceThenCancelAndTheCursorMoves) {
   EXPECT_TRUE(PixelOf(panel, "[Enhance]").inverted);
 }
 
-// Reported the way a confirmed attempt is: the panel says which way it went
-// and the caller is the one that closes the screen.
+// Reported like a confirmed attempt: the panel returns the choice and the
+// caller closes the screen.
 TEST_F(StarForcePanelTest, CancelIsReportedAndOpensNoPrompt) {
   EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
   StarForcePanel panel;
@@ -237,11 +238,11 @@ TEST_F(StarForcePanelTest, CancelIsReportedAndOpensNoPrompt) {
   EXPECT_FALSE(panel.IsConfirming());
 }
 
-// A player who cannot pay is told so where the price is, and left standing on
-// the only button that does anything -- rather than being walked through a
-// confirmation to reach an attempt that was never going to happen.
+// A player who can't pay is told so at the price and left on the only button
+// that does anything, instead of being led through a confirmation for an
+// attempt that could never happen.
 TEST_F(StarForcePanelTest, APurseTooThinGreysEnhanceAndParksOnCancel) {
-  // A level 150 item's first star is 136,000.
+  // A level 150 item's first star costs 136,000.
   EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
   StarForcePanel panel;
   panel.SetItem(&item, 135999);
@@ -252,15 +253,15 @@ TEST_F(StarForcePanelTest, APurseTooThinGreysEnhanceAndParksOnCancel) {
   EXPECT_FALSE(PixelOf(panel, "[Enhance]").inverted);
   EXPECT_TRUE(PixelOf(panel, "[Cancel]").inverted);
 
-  // Left cannot reach the greyed button, and Enter leaves rather than asking.
+  // Left can't reach the greyed button, and Enter leaves instead of asking.
   panel.OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_TRUE(PixelOf(panel, "[Cancel]").inverted);
   EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
   EXPECT_FALSE(panel.IsConfirming());
 
-  // A purse that covers it and the screen is the ordinary one again. Not
-  // 136,000 exactly: two rows reading the same figure would let the assertion
-  // land on the purse.
+  // With a purse that covers it, the screen is back to normal. Not exactly
+  // 136,000, since two rows showing the same number could let the check match
+  // the purse.
   panel.SetItem(&item, 500'000);
   EXPECT_NE(PixelOf(panel, "136,000").foreground_color, kRed);
   EXPECT_FALSE(PixelOf(panel, "[Enhance]").dim);
@@ -269,9 +270,9 @@ TEST_F(StarForcePanelTest, APurseTooThinGreysEnhanceAndParksOnCancel) {
 
 // --- the result window's colour ---
 
-// Which of the three happened is the whole point of the window, so it is said
-// in the frame before it is said in words. The rules go with the border: a
-// steel-blue seam across a gold window would read as two windows.
+// Which of the three outcomes happened is the point of the window, so the frame
+// shows it before the text does. The rules match the border, since a steel-blue
+// rule across a gold window would look like two windows.
 TEST_F(StarForcePanelTest, TheResultWindowTakesTheOutcomesColour) {
   StarForcePanel panel;
   StarForceResult r;
@@ -287,9 +288,9 @@ TEST_F(StarForcePanelTest, TheResultWindowTakesTheOutcomesColour) {
   EXPECT_EQ(BorderColor(panel.RenderResult(r)), kRed);
   EXPECT_EQ(InnerRuleColor(panel.RenderResult(r)), kRed);
 
-  // Nothing changed, so nothing is coloured for it. Same for an attempt that
-  // was never made -- which is why it must not fall through to the destroy
-  // branch and tell the player an item they still own is gone.
+  // Nothing changed, so nothing is coloured. The same applies to an attempt
+  // that was never made, which is why it must not fall through to the destroy
+  // branch and tell the player an item they still have is gone.
   r.outcome = kStarForceFail;
   EXPECT_EQ(BorderColor(panel.RenderResult(r)), kTheme);
 
@@ -303,8 +304,8 @@ TEST_F(StarForcePanelTest, TheResultWindowTakesTheOutcomesColour) {
   EXPECT_EQ(rendered.find("DESTROYED"), std::string::npos);
 }
 
-// The window and the result card measure themselves apart, so both have to
-// ask for the margin.
+// The window and the result card measure themselves separately, so both have to
+// request the margin.
 TEST_F(StarForcePanelTest, NeitherWindowWeldsTextToItsBorder) {
   EquipInstance item = MakeItem(150, 17);
   StarForcePanel panel;

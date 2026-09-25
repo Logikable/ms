@@ -1,17 +1,16 @@
-/* SymbolCombinePanel is the modal for feeding spare Arcane Symbols into the
- * one being worn. It names the symbol, says where its EXP stands against the
- * next level, and puts the shared AmountSelector under that. The amount opens
- * at every spare held: the last rung asks for 372 duplicates, and one keypress
- * each is not a thing to ask of anybody.
+/* SymbolCombinePanel is the dialog for feeding spare Arcane Symbols into the
+ * one being worn. It names the symbol, shows its EXP against the next level,
+ * and puts the shared AmountSelector below. The amount starts at every spare
+ * held, since the last level needs 372 duplicates and one keypress each would
+ * be too much to ask.
  *
- * The amount counts spare items, which are not worth one apiece: a claimed
- * stack carries twenty. The EXP row is what says so, and it runs past the rung
- * it is measured against rather than stopping there -- the overflow is what
- * pays for the level after.
+ * The amount counts spare items, which aren't worth one each: a claimed stack
+ * carries twenty. The EXP row shows this, and it goes past the level's
+ * requirement rather than stopping there, since the overflow goes toward the
+ * next level.
  *
- * The panel owns no game state: Reset() seeds it, quantity() reports the
- * choice, and OnEvent answers with the ConfirmChoice every dialog answers
- * with.
+ * The panel holds no game state: Reset() sets it up, quantity() reports the
+ * choice, and OnEvent returns the ConfirmChoice every dialog returns.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_SYMBOL_COMBINE_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SYMBOL_COMBINE_PANEL_H_
@@ -27,9 +26,9 @@ namespace ms {
 
 class SymbolCombinePanel {
  public:
-  // Seeds the panel for feeding spares into a symbol at `level` that has taken
-  // `exp` of the `needed` its next level asks for. `spare_worths` is what each
-  // spare is worth, in the order they would be taken.
+  // Sets up the panel for feeding spares into a symbol at `level` that has
+  // `exp` of the `needed` EXP for its next level. `spare_worths` is what each
+  // spare is worth, in the order they would be used.
   void Reset(const std::string& symbol_name, int level, int exp, int needed,
              std::vector<int> spare_worths);
   ftxui::Element Render() const;

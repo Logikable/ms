@@ -24,8 +24,8 @@ void SymbolCombinePanel::Reset(const std::string& symbol_name, int level,
 }
 
 ftxui::Element SymbolCombinePanel::Render() const {
-  // Where the EXP lands if the player confirms. Allowed past the rung, since
-  // what spills over is not lost: it is what the level after that is paid in.
+  // Where the EXP ends up if the player confirms. It can go past the level's
+  // requirement, since the overflow isn't lost: it goes toward the next level.
   int after = exp_;
   int taken = static_cast<int>(std::min<int64_t>(
       selector_.value(), static_cast<int64_t>(spare_worths_.size())));

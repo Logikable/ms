@@ -24,19 +24,19 @@
 namespace ms {
 namespace {
 
-// Each offer window, borders included, and the bag under the pair of them.
+// Each offer window's width, borders included, and the bag's below the pair.
 constexpr int kOfferWidth = 54;
 constexpr int kBagWidth = 2 * (kOfferWidth + 2) - 2;
 
-// The rows an offer keeps for what is put in it, and the rows the bag shows at
-// once. Both fixed: a window that grew with what was put in it would move the
+// The rows an offer keeps for its items, and the rows the bag shows at once.
+// Both are fixed, since a window that grew with its contents would move the
 // other one's border.
 constexpr int kOfferRows = 7;
 constexpr int kBagRows = 10;
 
-// The currency cells. Wide enough for the most either can hold -- a hundred
-// billion meso and a million traces -- so a number climbing never moves the
-// one beside it.
+// The currency cells. Wide enough for the largest either can hold (a hundred
+// billion meso and a million traces), so a growing number never moves the one
+// beside it.
 constexpr int kMesoCell = 20;
 constexpr int kTraceCell = 14;
 
@@ -44,12 +44,12 @@ constexpr int kTraceCell = 14;
 constexpr int kOfferNameCell = 37;
 constexpr int kOfferCountCell = 12;
 
-// Where a menu hangs inside its window: past the name a row leads with, so it
-// covers what an item is worth rather than which item it is.
+// Where a menu opens inside its window: past the name at the start of a row, so
+// it covers the item's value rather than which item it is.
 constexpr int kMenuColumn = 40;
 
-// The acceptance mark, which keeps its column either way so that nothing
-// beside it moves when a player accepts.
+// The acceptance mark, which keeps its column either way so nothing beside it
+// moves when a player accepts.
 ftxui::Element AcceptMark(bool accepted) {
   if (!accepted) {
     return ftxui::text(" ");
@@ -57,8 +57,8 @@ ftxui::Element AcceptMark(bool accepted) {
   return ftxui::text("✓") | ftxui::color(kGreen) | ftxui::bold;
 }
 
-// Your own two currencies, the cursor's on the selection band: the meso first,
-// where the eye already is, and the room left to its right.
+// Your own two currencies, with the cursor's on the selection band: meso first,
+// where the eye already is, then traces to its right.
 ftxui::Element MyCurrencyCells(int64_t meso, int64_t traces, int cursor) {
   ftxui::Element meso_cell =
       ftxui::text(PadRight(FormatMeso(meso), kMesoCell)) | ftxui::color(kTheme);
@@ -72,8 +72,8 @@ ftxui::Element MyCurrencyCells(int64_t meso, int64_t traces, int cursor) {
   });
 }
 
-// And theirs, the mirror of it: the traces, then the meso hard against their
-// window's right border, so the two offers are read outward from the middle.
+// The other player's, mirrored: traces, then meso against their window's right
+// border, so the two offers read outward from the middle.
 ftxui::Element TheirCurrencyCells(int64_t meso, int64_t traces) {
   return ftxui::hbox({
       ftxui::text(PadLeft(FormatSpellTraces(traces), kTraceCell)) |
@@ -93,8 +93,8 @@ TradeOffer OwnTradeOffer::ToWire(const CharacterInstance& character) const {
     if (index < 0 || index >= character.inventory().size()) {
       continue;
     }
-    // SavedState rather than equip_state: the flag saying whether this is a
-    // trace lives in the C++ type, and the other end has only the fields.
+    // SavedState rather than equip_state: whether an item is a trace is
+    // recorded in its C++ type, and the other end receives only the fields.
     *offer.add_equips() = character.inventory()[index].SavedState();
   }
   for (const TradeStack& stack : stacks) {
@@ -155,17 +155,17 @@ void TradePanel::MoveMenuCursor(int delta) {
 }
 
 ftxui::Box& TradePanel::CursorBox(TradeZone zone) const {
-  // Only the window holding the cursor keeps its row: every list marks its
-  // selected row so the frame scrolls to it, and the last one drawn would
-  // otherwise be the one a menu opened beside.
+  // Only the window with the cursor reports its row. Every list marks its
+  // selected row so the frame scrolls to it, and otherwise the last list drawn
+  // would decide where a menu opens.
   return zone == zone_ ? cursor_box_ : scratch_box_;
 }
 
 int TradePanel::MenuRow() const {
-  // Read from the RENDER rather than worked out from the cursor: every list
-  // here scrolls, and a place in the data stops agreeing with the row on
-  // screen as soon as one does. One row back from it, so the entry standing
-  // highlighted lands beside what the menu is about rather than below it.
+  // Read from the render rather than computed from the cursor, since every list
+  // here scrolls, and a position in the data stops matching the screen row as
+  // soon as one does. One row back from it, so the highlighted menu entry sits
+  // beside what the menu is about rather than below it.
   return cursor_box_.y_min - panel_box_.y_min - 1;
 }
 
@@ -202,8 +202,9 @@ std::vector<int> TradePanel::BagRows() const {
     }
     return rows;
   }
-  // The spell trace is left out although it may cross: it has its own line at
-  // the top of the offer, and two doors onto one balance would not add up.
+  // The spell trace is left out even though it can be traded: it has its own
+  // line at the top of the offer, and two ways into one balance would not add
+  // up.
   const std::vector<StackableItem>& stacks = character_.stackables();
   for (int i = 0; i < static_cast<int>(stacks.size()); ++i) {
     if (CanTrade(stacks[i].prototype()) && stack_left(i) > 0) {
@@ -245,8 +246,8 @@ void TradePanel::NextZone(int delta) {
   constexpr int kZones = 3;
   int zone = (static_cast<int>(zone_) + delta % kZones + kZones) % kZones;
   zone_ = static_cast<TradeZone>(zone);
-  // Your own window is the only one entered above its list: the other two are
-  // a list and nothing else.
+  // Your own window is the only one entered above its list; the other two are
+  // just a list.
   own_list_ = false;
 }
 
@@ -274,8 +275,8 @@ void TradePanel::MoveRow(int delta) {
     return;
   }
   if (!own_list_) {
-    // Down off the top row drops into what you have put up, if anything has
-    // been; Up there has nowhere to go.
+    // Down from the top row moves into what you have put up, if anything; Up
+    // there goes nowhere.
     if (delta > 0 && own_.items() > 0) {
       own_list_ = true;
       own_row_ = 0;
@@ -373,8 +374,8 @@ void TradePanel::PutUpStack(int index, int count) {
     if (it->name() != name) {
       continue;
     }
-    // A stack already up is changed rather than added to, and taken down
-    // altogether at nothing.
+    // A stack already offered is changed rather than added to, and removed
+    // entirely at zero.
     if (count <= 0) {
       own_.stacks.erase(it);
     } else {
@@ -435,17 +436,17 @@ ftxui::Element TradePanel::RenderOfferTable(const std::vector<OfferRow>& rows,
                                             ftxui::Box& cursor_box) const {
   const int height = kOfferRows + 2;  // the header and its rule
   if (rows.empty()) {
-    // No header over nothing, as an empty bag tab draws: column names are
-    // there to tell rows apart, and there are none.
+    // No header over an empty list, as on an empty bag tab. Column names tell
+    // rows apart, and there are no rows.
     return ftxui::vbox({EmptyState("nothing", /*gutter=*/2), ftxui::filler()}) |
            ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, height);
   }
   std::vector<ftxui::Element> list;
   for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
-    // The caret and the band show only while this window holds the cursor:
-    // one drawn in each of them would put the selection in three places at
-    // once. The band because the quantity sits a name's width out, and a mark
-    // on the name alone would not claim it.
+    // The caret and the band show only while this window has the cursor, since
+    // drawing them in every window would show the selection in three places.
+    // The band is needed because the quantity is a name's width away, and a
+    // mark on the name alone wouldn't cover it.
     ftxui::Element row = HighlightRow(
         ftxui::hbox({
             ftxui::text(focused && i == cursor ? "> " : "  "),
@@ -455,9 +456,9 @@ ftxui::Element TradePanel::RenderOfferTable(const std::vector<OfferRow>& rows,
         }),
         focused && i == cursor);
     if (i == cursor) {
-      // What the frame scrolls to, marked whether or not this window holds
-      // focus so the view does not jump on the way back, and reflected so a
-      // menu knows the row to open beside.
+      // The frame scrolls to this row. It is marked whether or not this window
+      // has focus so the view doesn't jump when focus returns, and reflected so
+      // a menu knows which row to open beside.
       row = std::move(row) | ftxui::focus | ftxui::reflect(cursor_box);
     }
     list.push_back(std::move(row));
@@ -470,7 +471,7 @@ ftxui::Element TradePanel::RenderOfferTable(const std::vector<OfferRow>& rows,
                  ftxui::filler(),
              }),
              ThemedSeparator(),
-             // Only the rows scroll; the header and its rule stay put.
+             // Only the rows scroll. The header and its rule stay in place.
              ftxui::vbox(std::move(list)) | ftxui::vscroll_indicator |
                  ftxui::yframe | ftxui::flex,
          }) |
@@ -518,8 +519,8 @@ ftxui::Element TradePanel::RenderMine() const {
 }
 
 ftxui::Element TradePanel::RenderTheirs() const {
-  // Their name lands only once they have joined; until then the window is a
-  // place set at the table rather than somebody sitting at it.
+  // Their name appears only once they have joined. Until then the window is an
+  // empty seat rather than someone sitting in it.
   std::string title;
   if (trade_.partner_joined()) {
     title = " " + trade_.partner_name() + " ";
@@ -543,14 +544,14 @@ ftxui::Element TradePanel::RenderBag() const {
   std::vector<int> bag = BagRows();
   const bool focused = zone_ == TradeZone::kBag;
   int cursor = ClampedRow(bag_row_, static_cast<int>(bag.size()));
-  // The tab rides in the key, so the same row of the other tab counts as a
-  // different name and starts from its own head.
+  // The tab is part of the key, so the same row on the other tab counts as a
+  // different name and starts from the beginning.
   name_clock_.Follow((etc_tab_ ? kTabStride : 0) + cursor, focused);
 
   ftxui::Element list;
   if (etc_tab_) {
-    // What is LEFT of each stack rather than what it holds: an offered stack
-    // is part on the table and part still yours.
+    // What is left of each stack rather than its full count, since an offered
+    // stack is partly on the table and partly still yours.
     std::vector<StackableItem> left;
     left.reserve(bag.size());
     for (int index : bag) {
@@ -576,8 +577,8 @@ ftxui::Element TradePanel::RenderBag() const {
   std::vector<TabSpec> tabs = {{"Equip"}, {"Etc"}};
   ftxui::Element body =
       ftxui::vbox({
-          // The bar never holds the cursor here: Left and Right switch tabs
-          // from the list, so nothing has to climb out of it first.
+          // The bar never has the cursor here: Left and Right switch tabs from
+          // the list, so nothing has to move out of it first.
           RenderBagTabBar(tabs, etc_tab_ ? 1 : 0,
                           RenderBalances(held(TradeCurrency::kMeso) - own_.meso,
                                          held(TradeCurrency::kSpellTraces) -
@@ -585,7 +586,7 @@ ftxui::Element TradePanel::RenderBag() const {
                                          character_, account_),
                           /*row_selected=*/false, /*highlighted=*/false,
                           ftxui::text(""), kBagWidth, bar_box_),
-          // The header, its rule and the rows, which are all the list is.
+          // The header, its rule and the rows, which make up the list.
           std::move(list) |
               ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kBagRows + 2),
       }) |
@@ -594,9 +595,9 @@ ftxui::Element TradePanel::RenderBag() const {
 }
 
 ftxui::Element TradePanel::Render() const {
-  // Reflected so a menu can be put beside a row inside it: what the lists
-  // report is where they landed on the SCREEN, and a floating menu is placed
-  // from the panel's own corner.
+  // Reflected so a menu can be placed beside a row inside it. The lists report
+  // where they landed on the screen, and a floating menu is placed from the
+  // panel's own corner.
   ftxui::Element screen = ftxui::vbox({
                               ftxui::hbox({RenderMine(), RenderTheirs()}),
                               RenderBag(),

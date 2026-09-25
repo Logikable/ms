@@ -18,14 +18,14 @@ void SymbolLevelPanel::Reset(const std::string& symbol_name, int level,
   level_ = level;
   cost_ = cost;
   meso_ = meso;
-  // On [Confirm]: the duplicates are already spent, so this is the player
-  // finishing something they started rather than parting with anything new.
+  // On [Confirm]: the duplicates are already spent, so the player is finishing
+  // something they started rather than giving up anything new.
   confirm_.Open(/*cancel_selected=*/false);
 }
 
 ftxui::Element SymbolLevelPanel::Render() const {
-  // Red on a price the purse cannot cover: the reason sits on the cell that
-  // carries it, and the greyed button below is the door it closes.
+  // Red on a price the purse can't cover: the reason is on the cell that causes
+  // it, and the grey button below is what it blocks.
   ftxui::Element cost =
       RedUnless(ftxui::text("Cost " + FormatMeso(cost_)), affordable());
   return DialogWindow(" Level Up ",
