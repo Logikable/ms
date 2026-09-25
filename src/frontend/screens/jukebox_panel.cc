@@ -21,8 +21,8 @@
 namespace ms {
 namespace {
 
-// The three modes in the order the box lists them, and the one name each goes
-// by -- the button shows the same word the box does.
+// The three modes in the order the box lists them, and the one name each uses.
+// The button shows the same word as the box.
 constexpr JukeboxMode kModes[] = {
     JUKEBOX_MODE_FOLLOW_MAP,
     JUKEBOX_MODE_PLAYLIST,
@@ -31,8 +31,8 @@ constexpr JukeboxMode kModes[] = {
 constexpr int kModeCount = 3;
 
 // The mode button reads "[Mode: <name> ▾]", and the box that opens under it is
-// only as wide as the widest name: every entry is padded to it so the box is a
-// rectangle.
+// only as wide as the widest name. Every entry is padded to that width so the
+// box is a rectangle.
 constexpr int kModeNameWidth = 10;
 
 std::string ModeName(JukeboxMode mode) {
@@ -61,9 +61,9 @@ int IndexOfMode(JukeboxMode mode) {
   return 0;
 }
 
-// Where a boss's own tracks belong: the boss, and the phases the track plays
-// through. A phase naming no track carries on with the one before it, and a
-// track that plays every phase is the boss's name alone.
+// Where a boss's tracks belong: the boss, and the phases the track plays
+// through. A phase naming no track keeps the previous one, and a track that
+// plays every phase is labelled with just the boss's name.
 std::map<std::string, std::string> BossPlaces(const Boss& boss) {
   std::map<std::string, std::set<int>> phases;
   int longest = 0;
@@ -93,17 +93,17 @@ std::map<std::string, std::string> BossPlaces(const Boss& boss) {
   return places;
 }
 
-// Past this much of a track, the song-before mark starts it over instead of
-// going back a song -- what every player does.
+// Past this much of a track, the previous-track button restarts it instead of
+// going back a song, as players expect.
 constexpr float kRestartAfterSeconds = 5.0f;
 
-// A transport mark wears no brackets, so the invert IS the cursor on it.
+// A transport button has no brackets, so inversion alone shows the cursor.
 ftxui::Element TransportMark(const std::string& mark, bool focused) {
   ftxui::Element element = ftxui::text(mark);
   return focused ? std::move(element) | ftxui::inverted : element;
 }
 
-// Seconds as mm:ss, counting the minutes past sixty rather than wrapping.
+// Seconds as mm:ss, counting minutes past sixty instead of wrapping.
 std::string Clock(int seconds) {
   seconds = std::max(seconds, 0);
   std::string secs = std::to_string(seconds % 60);
@@ -123,9 +123,9 @@ JukeboxPanel::JukeboxPanel(const GameState& state, MusicDirector& director,
 }
 
 void JukeboxPanel::BuildSongs(const GameState& state) {
-  // Where each track belongs. A map wins over a boss, and the LOWEST map wins
-  // among the several that can share one region's music -- which is the one a
-  // player met it on.
+  // Where each track belongs. A map takes priority over a boss, and among
+  // several maps sharing one region's music the lowest-level map wins, since
+  // that is where a player first hears it.
   std::map<std::string, std::pair<double, std::string>> places;
   for (const auto& [key, map] : state.maps) {
     if (map.bgm().empty()) {
@@ -173,8 +173,8 @@ void JukeboxPanel::Reset() {
 }
 
 void JukeboxPanel::SwitchHalf() {
-  // An open box belongs to the button it hangs from, so leaving the row puts
-  // it away rather than leaving it standing over the list.
+  // An open box belongs to its button, so leaving the row closes it instead of
+  // leaving it over the list.
   mode_box_open_ = false;
   on_buttons_ = !on_buttons_;
 }
@@ -189,7 +189,7 @@ JukeboxMode JukeboxPanel::ModeAt(int row) const {
 
 void JukeboxPanel::MoveRow(int delta) {
   if (mode_box_open_) {
-    // Up on the first entry lands on the last: the box is a ring like every
+    // Up on the first entry goes to the last, since the box wraps like every
     // other list.
     if (delta < 0) {
       mode_menu_.Up();
@@ -316,8 +316,7 @@ ftxui::Element JukeboxPanel::RenderScrubBar() const {
 }
 
 ftxui::Element JukeboxPanel::RenderButtons() const {
-  // Both labels are held to five columns, so pressing the button does not
-  // shuffle the row it sits in.
+  // Both labels are five columns, so pressing the button doesn't shift its row.
   std::string play = director_.paused() ? "Play " : "Pause";
   auto on = [this](JukeboxButton button) {
     return on_buttons_ && selected_button() == button;
@@ -364,9 +363,9 @@ ftxui::Element JukeboxPanel::RenderHeader() const {
 
 ftxui::Element JukeboxPanel::RenderSong(const Song& song,
                                         bool on_cursor) const {
-  // The caret is the cursor; the track playing is a whole row in the theme's
-  // colour, its place a dimmer shade of the same. Two marks, so a row can
-  // carry both at once.
+  // The caret is the cursor, and the playing track is a whole row in the theme
+  // colour with its place in a dimmer shade. Two separate marks, so one row can
+  // show both.
   ftxui::Element row = ftxui::hbox({
       ftxui::text(on_cursor ? "> " : "  "),
       ftxui::text(PadRight(song.title, kTitleWidth + kCellGap)),
@@ -418,10 +417,10 @@ ftxui::Element JukeboxPanel::Render() const {
   if (!mode_box_open_) {
     return screen;
   }
-  // The box hangs clear under the button -- the row below it, so the button is
-  // left whole -- with its right border against the button's right edge. Both
-  // boxes are in screen coordinates and the overlay floats from the screen's
-  // corner, so the panel's corner comes off.
+  // The box hangs just below the button (on the next row, so the button stays
+  // whole) with its right border at the button's right edge. Both boxes are in
+  // screen coordinates and the overlay is placed from the screen's corner, so
+  // the panel's corner is subtracted.
   return ftxui::dbox({
       std::move(screen),
       Floating(mode_menu_.Render(

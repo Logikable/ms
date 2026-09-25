@@ -27,34 +27,34 @@
 namespace ms {
 namespace {
 
-// The Equipped card's title. Two paths draw that card -- one slot or a bar of
-// them -- and they must name it the same.
+// The Equipped card's title. Two code paths draw that card (one slot, or a bar
+// of them), and they must use the same name.
 constexpr char kEquippedTitle[] = " Equipped ";
 
 // The width of the stackable body. Fixed rather than fitted, so every
-// description reads at the same width and the window does not resize as the
-// cursor moves from one item to the next. The equip body sets its own width
-// from its columns.
+// description reads at the same width and the window doesn't resize as the
+// cursor moves between items. The equip body sets its own width from its
+// columns.
 constexpr int kStackableWidth = 44;
 
-// The set card's rows. One width whatever the set holds, for the same reason
-// the stackable body has one: the card sits beside the item, and a card that
-// resized would walk the item panel across the screen. The borders and the
-// scroll bar's column are three more.
+// The width of the set card's rows. It is the same whatever the set holds, for
+// the same reason as the stackable body: the card sits beside the item, and a
+// card that resized would shift the item panel across the screen. The borders
+// and the scroll bar's column add three more.
 constexpr int kSetContentWidth = 45;
 constexpr int kSetSlotWidth = 11;
 constexpr int kSetTierWidth = 15;
-// The borders and the bar's column, and so what the card costs beyond its
-// rows. Its full width, and the narrowest squeeze it is worth drawing at: a
-// set card holding less than this cuts the tier values off every line, which
-// is the half of each row a reader came for.
+// The borders and the bar's column: what the card needs beyond its rows. This
+// is its full width and also the narrowest it is worth drawing at, since a set
+// card with less room cuts the tier values off every line, which is the half of
+// each row a reader wants.
 constexpr int kSetCardChrome = 3;
 constexpr int kSetCardWidth = kSetContentWidth + kSetCardChrome;
 constexpr int kSetCardMinWidth = 36 + kSetCardChrome;
 
-// Stars to a rank when the bar is folded. Fifteen because that is where GMS
-// splits the two star force regimes, and because a 30-star bar reads as two
-// even ranks.
+// Stars per row when the bar is split. Fifteen because that is where GMS
+// switches between the two star force systems, and because a 30-star bar then
+// reads as two even rows.
 constexpr int kStarsPerRow = 15;
 
 // The job categories, in the order every screen lists them.
@@ -75,8 +75,8 @@ const JobCategoryEntry kJobCategories[] = {
 constexpr int kJobCategoryCount =
     static_cast<int>(sizeof(kJobCategories) / sizeof(kJobCategories[0]));
 
-// One row of a symbol's card, for the two figures that are not a stat. Spaced
-// as the stat rows under them, so the whole block reads as one column.
+// One row of a symbol's card, for the two values that aren't stats. Spaced like
+// the stat rows below, so the whole block reads as one column.
 ftxui::Element SymbolRow(const std::string& label, const std::string& value) {
   return ftxui::text(" " + label + "  " + value + " ");
 }
@@ -90,14 +90,14 @@ void Append(std::vector<ftxui::Element>& cards,
   cards.insert(cards.end(), more.begin(), more.end());
 }
 
-// The columns a built card asks for.
+// The width a built card asks for.
 int Columns(const ftxui::Element& card) {
   card->ComputeRequirement();
   return card->requirement().min_x;
 }
 
-// A fraction as a percentage, with a whole number left whole: a set's figures
-// are written round, and "+20.00%" says nothing "+20%" does not.
+// A fraction as a percentage, with whole numbers left whole: set bonuses are
+// round, and "+20.00%" says nothing "+20%" doesn't.
 std::string SetPercent(double fraction) {
   char buf[32];
   snprintf(buf, sizeof(buf), "%.1f", std::round(fraction * 1000.0) / 10.0);
@@ -108,9 +108,9 @@ std::string SetPercent(double fraction) {
   return s + "%";
 }
 
-// Two levers a set states as one row when both halves agree. They virtually
-// always come bundled -- a set that pays attack pays magic attack with it --
-// and two rows saying the same number is two rows the player has to compare.
+// Two stats a set shows as one row when both halves are equal. They almost
+// always come together (a set that grants attack grants magic attack with it),
+// and two rows with the same number are two rows the player has to compare.
 template <typename T>
 struct LeverPair {
   const char* together;
@@ -132,7 +132,7 @@ const LeverPair<double> kPercentPairs[] = {
      &SkillEffect::max_mp_pct},
 };
 
-// The levers a set states on their own, in display order.
+// The stats a set shows individually, in display order.
 struct FlatLever {
   const char* label;
   double (SkillEffect::*fn)() const;
@@ -164,7 +164,7 @@ struct StatValue {
   int value;
 };
 
-// The four primary stats, which a set grants in equal shares or not at all.
+// The four primary stats, which a set grants in equal amounts or not at all.
 void AppendStatLines(const SkillEffect& e, std::vector<std::string>& lines) {
   if (e.str() != 0 && e.str() == e.dex() && e.dex() == e.int_() &&
       e.int_() == e.luk()) {
@@ -183,15 +183,15 @@ void AppendStatLines(const SkillEffect& e, std::vector<std::string>& lines) {
   }
 }
 
-// A flat lever's own figure, so both kinds of pair share one shape. A set
-// bonus states whole numbers, but every SkillEffect number is a double -- see
-// WholeValue.
+// A flat stat's own value, so both kinds of pair share one shape. A set bonus
+// states whole numbers, but every SkillEffect number is a double (see
+// WholeValue).
 std::string SetWhole(double value) {
   return std::to_string(WholeValue(value));
 }
 
-// Adds a pair as one row when both halves agree, and as a row each when they
-// do not: a set is free to pay one side more than the other.
+// Adds a pair as one row when both halves are equal, and as a row each when
+// they aren't, since a set may grant one side more than the other.
 template <typename T, typename Format>
 void AppendPairLines(const LeverPair<T>& pair, const SkillEffect& e,
                      Format format, std::vector<std::string>& lines) {
@@ -209,9 +209,9 @@ void AppendPairLines(const LeverPair<T>& pair, const SkillEffect& e,
   }
 }
 
-// What one tier of a set pays, a line per lever. A lever with no row here is
-// a bonus the player is paid and never told about, which the set data test
-// watches for.
+// What one tier of a set grants, one line per stat. A stat with no line here
+// would be a bonus the player gets but is never told about, which the set data
+// test checks for.
 std::vector<std::string> EffectLines(const SkillEffect& e) {
   std::vector<std::string> lines;
   AppendStatLines(e, lines);
@@ -338,8 +338,8 @@ bool InspectPanel::SwapCard(int step) {
       at = i;
     }
   }
-  // Stepped by count + step so a backwards walk never hands the modulo a
-  // negative, and both directions are one path.
+  // Stepped by count + step so a backwards move never gives the modulo a
+  // negative, and both directions use one path.
   focus_ = cards[(at + count + step % count) % count];
   return true;
 }
@@ -362,7 +362,7 @@ ftxui::Element InspectPanel::RenderItemOnly(bool focused,
 
 ftxui::Element InspectPanel::RenderComparison(bool focused) const {
   const EquipTabItem* worn = Compared();
-  // One slot is every item but a ring or a pendant: whatever is worn there,
+  // Every item except a ring or a pendant has one slot: whatever is worn there,
   // framed like any other card and with nothing to choose between.
   if (compare_.worn.size() < 2) {
     return RenderCard(compare_card_, worn, kEquippedTitle, focused);
@@ -371,10 +371,10 @@ ftxui::Element InspectPanel::RenderComparison(bool focused) const {
   for (int i = 1; i <= static_cast<int>(compare_.worn.size()); ++i) {
     specs.push_back({std::to_string(i)});
   }
-  // No width to fit into: four chips never come near what a card is drawn at,
-  // so the bar cannot scroll. The blank column inside the right border is
-  // added by hand -- a chip carries its own background and would otherwise
-  // weld to it on a card the bar is the widest row of.
+  // No width limit: four chips never come near a card's width, so the bar can't
+  // scroll. The blank column inside the right border is added by hand, because
+  // a chip has its own background and would otherwise touch the border on a
+  // card where the bar is the widest row.
   CardRows rows;
   rows.head.push_back(
       TextRow(ftxui::hbox({TabBar(specs, compare_.active, focused, /*width=*/0),
@@ -384,8 +384,8 @@ ftxui::Element InspectPanel::RenderComparison(bool focused) const {
     return compare_card_.Render(kEquippedTitle, std::move(rows),
                                 /*content_width=*/0, focused);
   }
-  // The bar sits over the card's own head, with no rule under it: the chips
-  // and the item they name read as one thing.
+  // The bar sits above the card's own heading, with no rule under it, so the
+  // chips and the item they name read as one.
   CardRows body = EquipRows(*worn);
   Append(rows.head, body.head);
   rows.body = std::move(body.body);
@@ -398,10 +398,10 @@ ftxui::Element InspectPanel::RenderCard(const ScrollCard& card,
                                         const EquipTabItem* item,
                                         const std::string& title,
                                         bool focused) const {
-  // The stackable body is a paragraph, which wraps to as many lines as it
-  // needs and so cannot be sliced into a scrolling window. It is two lines at
-  // its longest, and never outgrows a terminal. Only the inspected item is
-  // ever one: nothing stackable is worn, so nothing is compared against one.
+  // The stackable body is a paragraph, which wraps to as many lines as needed
+  // and so can't be cut into a scrolling window. It is at most two lines and
+  // never outgrows a terminal. Only the inspected item is ever stackable:
+  // nothing stackable is worn, so nothing is compared against one.
   if (item == item_ && stackable_ != nullptr) {
     return ThemedWindow(title, RenderStackable(), focused) |
            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kStackableWidth);
@@ -422,10 +422,9 @@ CardRows InspectPanel::SymbolRows(const EquipTabItem& item) const {
       JobRows(item, std::max(NaturalWidth(head), NaturalWidth(stats)));
 
   CardRows rows;
-  // The growth bar takes the star bar's place, and the name, the level it asks
-  // for and the jobs it is for are the same head an equip carries. Nothing
-  // here scrolls: a symbol has four rows to say and a terminal always has room
-  // for four.
+  // The growth bar replaces the star bar, and the name, required level and jobs
+  // form the same heading an equip has. Nothing here scrolls, since a symbol
+  // has four rows and a terminal always has room for four.
   rows.head = {TextRow(CenteredRow(SymbolBar(level)))};
   Append(rows.head, head);
   Append(rows.head, jobs);
@@ -434,10 +433,10 @@ CardRows InspectPanel::SymbolRows(const EquipTabItem& item) const {
   return rows;
 }
 
-// Where the symbol stands and what that is worth, in the equip card's own stat
-// spacing. A rule splits the two: how far it has grown is not a stat it pays.
-// The stat it grants is the wearer's own, so a card with nobody behind it
-// shows the force alone rather than guessing at a job.
+// The symbol's progress and what it is worth, spaced like the equip card's
+// stats. A rule separates them, since growth progress isn't a stat. The stat it
+// grants is the wearer's primary stat, so a card with no wearer shows only the
+// Arcane Force instead of guessing a job.
 std::vector<CardRow> InspectPanel::SymbolStatRows(const EquipTabItem& item,
                                                   int level) const {
   int needed = SymbolExpToNextLevel(level);
@@ -465,8 +464,8 @@ std::vector<CardRow> InspectPanel::SymbolStatRows(const EquipTabItem& item,
 ftxui::Element InspectPanel::Render() const {
   const EquipSet* set = SetOfItem();
   set_drawn_ = false;
-  // A card lights its title only when there is a second one to tell it from:
-  // on a screen with one card the arrows have nowhere else to go.
+  // A card highlights its title only when there is a second card to tell it
+  // apart from. With one card, the arrows have nowhere else to go.
   if (set == nullptr && !HasComparisonCard()) {
     return RenderItemOnly();
   }
@@ -480,22 +479,22 @@ ftxui::Element InspectPanel::Render() const {
     for (const ftxui::Element& card : cards) {
       used += Columns(card);
     }
-    // No limit means every card at its own width, which is what a test and a
-    // terminal with room to spare both want.
+    // No limit means every card at its own width, which suits tests and
+    // terminals with plenty of room.
     Append(cards, SetCardIn(*set, max_columns_ > 0 ? max_columns_ - used
                                                    : kSetCardWidth));
   }
-  // The focus can be left on a card the width has since taken. Nothing is
-  // lost by moving it: the item card is where the screen opens anyway.
+  // The focus may be on a card the width has since removed. Moving it loses
+  // nothing, since the item card is where the screen opens anyway.
   if (focus_ == kSetCard && !set_drawn_) {
     focus_ = kItemCard;
   }
   return ftxui::hbox(std::move(cards));
 }
 
-// Squeezed to what the other cards leave, and left out once that is too little
-// for its rows to read: a set card holding two words of every line says less
-// than the columns it costs the cards beside it.
+// Squeezed into what the other cards leave, and left out once that is too
+// little for its rows to read: a set card showing two words of every line says
+// less than the columns it takes from the cards beside it.
 std::vector<ftxui::Element> InspectPanel::SetCardIn(const EquipSet& set,
                                                     int room) const {
   if (room < kSetCardMinWidth) {
@@ -511,9 +510,9 @@ const EquipSet* InspectPanel::SetOfItem() const {
   if (item_ == nullptr || character_ == nullptr) {
     return nullptr;
   }
-  // By display name, as the character counts what is worn. A trace of a set
-  // piece is a piece of that set: it is the same item, waiting to be recovered.
-  // An item the set names by family answers to its family instead.
+  // By display name, as the character counts worn pieces. A trace of a set
+  // piece counts as that piece, since it is the same item waiting to be
+  // recovered. An item the set names by family matches its family instead.
   const std::string& name = item_->prototype().name();
   const std::string& family = item_->prototype().set_family();
   for (const std::pair<const std::string, EquipSet>& entry :
@@ -532,7 +531,7 @@ const EquipSet* InspectPanel::SetOfItem() const {
   return nullptr;
 }
 
-// One row of a set's piece list: what fills the slot, and whether it is on.
+// One row of a set's piece list: what fills the slot, and whether it is worn.
 struct SetFill {
   std::string text;
   bool worn;
@@ -544,10 +543,10 @@ std::vector<CardRow> InspectPanel::MemberRows(
   for (const std::string& name : member.items().name()) {
     fills.push_back({name, character_->IsWearing(name)});
   }
-  // A family names what fills it once something does, and asks for one while
-  // it is empty -- a weapon belongs to a class, so the set cannot name it
-  // outright. It hangs under whatever the slot names by hand, since the
-  // written pieces are the ones a player can go and look up.
+  // A family shows what fills it once something does, and asks for one while it
+  // is empty, since a weapon depends on the class and the set can't name it
+  // directly. It goes under whatever the slot names explicitly, since the named
+  // pieces are the ones a player can look up.
   if (member.has_family()) {
     std::string on = character_->WornOfFamily(member.family());
     fills.push_back(
@@ -558,17 +557,17 @@ std::vector<CardRow> InspectPanel::MemberRows(
     filled = filled || fill.worn;
   }
 
-  // A slot filled by any of several alternates lists them all, the later ones
-  // hanging under the slot they share as a tier's later lines do.
+  // A slot that any of several alternates can fill lists them all, with the
+  // later ones under the slot they share, like a tier's later lines.
   std::vector<CardRow> rows;
   std::string slot = FormatSlot(member.slot());
   for (const SetFill& fill : fills) {
     ftxui::Element label = ftxui::text(" " + PadRight(slot, kSetSlotWidth));
     ftxui::Element name = ftxui::text(fill.text);
-    // Dimmed unless it is on the character right now -- the same question the
-    // tiers below are asking, one piece at a time. The slot is asking a
-    // narrower one: whether it is filled at all. So it stays lit whichever
-    // alternate fills it, and however many of them do.
+    // Dimmed unless the character is wearing it now, the same question the
+    // tiers below ask one piece at a time. The slot asks a narrower one,
+    // whether it is filled at all, so it stays lit whichever alternate fills
+    // it.
     if (!filled) {
       label = label | ftxui::dim;
     }
@@ -583,9 +582,9 @@ std::vector<CardRow> InspectPanel::MemberRows(
 
 CardRows InspectPanel::SetRows(const EquipSet& set) const {
   int worn = character_->PiecesWornOf(set);
-  // The set's name and what it is made of are held at the head: the tiers
-  // below read as what those pieces would pay, so they are the part that
-  // scrolls and the pieces stay beside them.
+  // The set's name and pieces are kept at the top: the tiers below show what
+  // those pieces would give, so the tiers scroll and the pieces stay beside
+  // them.
   CardRows card;
   std::vector<CardRow>& rows = card.head;
   rows.push_back(TextRow(CenteredRow(FormatEquipSet(set.name()))));
@@ -599,32 +598,32 @@ CardRows InspectPanel::SetRows(const EquipSet& set) const {
     for (const std::string& line : EffectLines(tier.effect())) {
       ftxui::Element row =
           ftxui::text(" " + PadRight(label, kSetTierWidth) + line);
-      // Dimmed until the pieces are on: the card is what the set would pay,
-      // and the stats page is what the character has. This is dim's softer
-      // reading -- not in play rather than refused (colors.h). Nothing on this
-      // card is being turned down, so the two do not collide here.
+      // Dimmed until enough pieces are worn: the card shows what the set would
+      // give, and the stats page shows what the character has. This is dim's
+      // softer meaning, "not active" rather than "refused" (colors.h). Nothing
+      // on this card is refused, so the two meanings don't clash here.
       if (worn < tier.pieces()) {
         row = row | ftxui::dim;
       }
       card.body.push_back(TextRow(std::move(row)));
-      // Only the first line of a tier is labelled; the rest hang under it.
+      // Only a tier's first line is labelled; the rest go under it.
       label.clear();
     }
   }
   return card;
 }
 
-// A stack has no stats, no stars and no slots. Its name and what it is for is
-// the whole of what there is to say about it.
+// A stack has no stats, stars or slots. Its name and what it is for are all
+// there is to say.
 ftxui::Element InspectPanel::RenderStackable() const {
   ftxui::Element description;
   if (stackable_->description().empty()) {
     description = CenteredRow(EmptyState("no description", /*gutter=*/0));
   } else {
     // paragraph wraps on spaces, so a description longer than the window
-    // spills onto another line rather than off the edge. Spaced off both
-    // borders by hand: every other row carries its own gutter in its string,
-    // and a paragraph has no string to put one in.
+    // continues on another line instead of running off the edge. Spaced from
+    // both borders by hand, since every other row includes its gutter in its
+    // string and a paragraph has no string to put it in.
     description = ftxui::hbox({
         ftxui::text(" "),
         ftxui::paragraph(stackable_->description()),
@@ -638,8 +637,8 @@ ftxui::Element InspectPanel::RenderStackable() const {
   });
 }
 
-// The rows above the job categories: the item's name, the level it asks for,
-// and what wearing it would do to the player's combat power.
+// The rows above the job categories: the item's name, its required level, and
+// what wearing it would do to the player's combat power.
 std::vector<CardRow> InspectPanel::HeadRows(const EquipTabItem& item) const {
   int level = item.prototype().required_level();
   std::vector<CardRow> delta = DeltaRows(item);
@@ -647,13 +646,14 @@ std::vector<CardRow> InspectPanel::HeadRows(const EquipTabItem& item) const {
       TextRow(CenteredRow(item.name())),
       RuleRow(ThemedSeparator()),
   };
-  // The label sits over the figure rather than beside it: "Combat Power Δ" is
-  // wider than anything else on the card, and on the level's own row it would
-  // set the width of the whole panel.
+  // The label goes above the number instead of beside it: "Combat Power Δ" is
+  // wider than anything else on the card, and on the level's row it would set
+  // the width of the whole panel.
   if (delta.size() == 2) {
     rows.push_back(std::move(delta[0]));
   }
-  // Trailing space on each text row keeps the right border one column clear.
+  // A trailing space on each text row keeps one blank column before the right
+  // border.
   ftxui::Element req =
       ftxui::text(" Req Lev: " + std::to_string(level > 0 ? level : 1) + " ");
   if (delta.empty()) {
@@ -668,8 +668,8 @@ std::vector<CardRow> InspectPanel::HeadRows(const EquipTabItem& item) const {
   return rows;
 }
 
-// What the figure is painted in: green for a gain, red for a loss, and the
-// plain colour for an item that changes nothing.
+// The colour of the number: green for a gain, red for a loss, and the plain
+// colour for an item that changes nothing.
 std::vector<CardRow> InspectPanel::DeltaRows(const EquipTabItem& item) const {
   if (&item != item_ || !delta_.has_value()) {
     return {};
@@ -691,8 +691,9 @@ std::vector<CardRow> InspectPanel::DeltaRows(const EquipTabItem& item) const {
   };
 }
 
-// What the item grants: its kind, its speed and its stats. The scrolling part
-// of the card, since it is the part that outgrows a short terminal.
+// What the item grants: its type, its speed and its stats. This is the
+// scrolling part of the card, since it is the part that outgrows a short
+// terminal.
 std::vector<CardRow> InspectPanel::StatRows(const EquipTabItem& item) const {
   const EquipPrototype& proto = item.prototype();
   const Equip& item_state = item.equip_state();
@@ -720,8 +721,8 @@ std::vector<CardRow> InspectPanel::StatRows(const EquipTabItem& item) const {
     rows.push_back(TextRow(std::move(row)));
     any_stat = true;
   }
-  // Under the flat stats, since a share of a pool is read against the pile the
-  // rows above build. Nothing but the prototype grants one.
+  // Below the flat stats, since a percentage is read against the totals the
+  // rows above build. Only the prototype grants these.
   for (const DisplayStat& stat : kDisplayPercentStats) {
     int value = stat.GetFrom(base);
     if (value == 0) {
@@ -737,9 +738,9 @@ std::vector<CardRow> InspectPanel::StatRows(const EquipTabItem& item) const {
   return rows;
 }
 
-// What the item has spent, held at the foot of the card: an item's upgrade
-// history belongs with the item rather than at the end of a list the reader
-// has to scroll to. Empty for an item that takes no scrolls at all.
+// The item's upgrade history, kept at the bottom of the card, since it belongs
+// with the item rather than at the end of a list the reader has to scroll.
+// Empty for an item that takes no scrolls.
 std::vector<CardRow> InspectPanel::SlotRows(const EquipTabItem& item) const {
   const EquipPrototype& proto = item.prototype();
   const Equip& item_state = item.equip_state();
@@ -761,9 +762,9 @@ std::vector<CardRow> InspectPanel::SlotRows(const EquipTabItem& item) const {
   };
 }
 
-// The rolled lines. The rank is named once at the head, and each line's own
-// dot says whether it came out prime: a line a rung down wears the colour of
-// the rank below the header's.
+// The potential lines. The rank is named once at the top, and each line's dot
+// shows whether it rolled at that rank: a line one rank lower has the lower
+// rank's colour.
 std::vector<CardRow> InspectPanel::PotentialRows(
     const EquipTabItem& item) const {
   const Potential& potential = item.potential();
@@ -793,15 +794,15 @@ CardRows InspectPanel::EquipRows(const EquipTabItem& item) const {
   std::vector<CardRow> stats = StatRows(item);
   std::vector<CardRow> slots = SlotRows(item);
   Append(slots, PotentialRows(item));
-  // What the item has to say sets the width; the two rows that can be folded
+  // The item's own content sets the width, and the two rows that can be split
   // are measured against it rather than the other way round.
   int fixed =
       std::max({NaturalWidth(head), NaturalWidth(stats), NaturalWidth(slots)});
 
   std::vector<CardRow> jobs = JobRows(item, fixed);
   CardRows rows;
-  // What names the item stays on screen, and so does what it has spent; the
-  // stats between them are what moves.
+  // The item's name stays on screen, and so does its upgrade history; the stats
+  // between them scroll.
   rows.head = StarRows(item, std::max(fixed, NaturalWidth(jobs)));
   Append(rows.head, head);
   Append(rows.head, jobs);
@@ -811,10 +812,10 @@ CardRows InspectPanel::EquipRows(const EquipTabItem& item) const {
   return rows;
 }
 
-// The six job categories, on one row or folded onto two. Folded whenever the
-// one-row form would be what makes the panel wide: the categories are the same
-// six on every item, so a card describing a narrow item should not be 55
-// columns across to list them.
+// The six job categories, on one row or split over two. Split whenever the
+// one-row form would widen the panel: the categories are the same six on every
+// item, so a card for a narrow item shouldn't be 55 columns wide just to list
+// them.
 std::vector<CardRow> InspectPanel::JobRows(const EquipTabItem& item,
                                            int fixed) const {
   const EquipPrototype& proto = item.prototype();
@@ -827,9 +828,9 @@ std::vector<CardRow> InspectPanel::JobRows(const EquipTabItem& item,
           TextRow(CenteredRow(JobRow(proto, half, kJobCategoryCount - half)))};
 }
 
-// The star bar, on one row or folded onto two. An item that refuses star force
-// gets no bar at all: a row of empty stars reads as a bar waiting to be
-// filled, which is the opposite of the truth.
+// The star bar, on one row or split over two. An item that can't take star
+// force gets no bar at all, since a row of empty stars would suggest a bar
+// waiting to be filled.
 std::vector<CardRow> InspectPanel::StarRows(const EquipTabItem& item,
                                             int fixed) const {
   const EquipPrototype& proto = item.prototype();
@@ -842,8 +843,8 @@ std::vector<CardRow> InspectPanel::StarRows(const EquipTabItem& item,
   if (max_stars <= kStarsPerRow || NaturalWidth({one_row}) <= fixed) {
     return {TextRow(one_row)};
   }
-  // A row of fifteen with the excess centred under it, which is how a 30-star
-  // bar reads as two ranks rather than one long line.
+  // A row of fifteen with the rest centred below it, so a 30-star bar reads as
+  // two rows rather than one long line.
   return {TextRow(CenteredRow(StarBar(stars, 0, kStarsPerRow))),
           TextRow(CenteredRow(
               StarBar(stars, kStarsPerRow, max_stars - kStarsPerRow)))};
@@ -854,8 +855,8 @@ ftxui::Element InspectPanel::StarBar(int stars, int from, int count) {
   const ftxui::Color kEmpty = kGray;
   std::vector<ftxui::Element> parts;
   for (int i = from; i < from + count; ++i) {
-    // Grouped in fives from the start of the row, so a folded bar's second
-    // rank groups like its first rather than carrying the first's remainder.
+    // Grouped in fives from the start of each row, so a split bar's second row
+    // groups like its first rather than continuing the first's remainder.
     if (i > from && (i - from) % 5 == 0) {
       parts.push_back(ftxui::text(" "));
     }
@@ -866,9 +867,9 @@ ftxui::Element InspectPanel::StarBar(int stars, int from, int count) {
   return ftxui::hbox(std::move(parts));
 }
 
-// The growth track a symbol has in place of stars: one pip a level, grouped in
+// The growth bar a symbol has instead of stars: one pip per level, grouped in
 // fives like the star bar. Purple rather than gold, since a symbol takes no
-// star force and the two bars must not be read for one another.
+// star force and the two bars mustn't be confused.
 ftxui::Element InspectPanel::SymbolBar(int level) {
   std::vector<ftxui::Element> parts;
   for (int i = 0; i < kMaxSymbolLevel; ++i) {
@@ -888,11 +889,12 @@ ftxui::Element InspectPanel::StatLine(const std::string& label, int base,
     return nullptr;
   }
   int total = base + scroll + sf;
-  // Base-only: no breakdown needed, plain text.
+  // Base only: no breakdown needed, plain text.
   if (scroll == 0 && sf == 0) {
     return ftxui::text(" " + label + "  +" + std::to_string(total) + " ");
   }
-  // Breakdown: base in default color, scroll in periwinkle, SF in gold.
+  // Breakdown: base in the default colour, scrolls in purple, star force in
+  // gold.
   const ftxui::Color kScrollColor = kPurple;
   const ftxui::Color kSfColor = kGold;
   std::vector<ftxui::Element> parts;
@@ -912,7 +914,7 @@ ftxui::Element InspectPanel::StatLine(const std::string& label, int base,
 }
 
 std::string InspectPanel::FormatAttackSpeed(AttackSpeed speed) {
-  // Stage number matches the proto enum value (SLOWER=1 … FASTEST_3=10).
+  // The stage number matches the proto enum value (SLOWER=1 … FASTEST_3=10).
   int stage = static_cast<int>(speed);
   std::string name = AttackSpeedName(speed);
   if (name.empty()) {

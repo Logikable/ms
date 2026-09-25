@@ -22,8 +22,8 @@ class HyperStatInspectPanelTest : public PanelTest {
     return RenderElement(panel.Render());
   }
 
-  // The columns the card asks for, read off its requirement -- the test
-  // screen is wider than any card, so a rendered string cannot say.
+  // The width the card asks for, read from its requirement. The test screen is
+  // wider than any card, so a rendered string can't tell.
   static int ColumnsOf(HyperStatField field, int level) {
     HyperStatInspectPanel panel;
     panel.SetStat(field, level, 10);
@@ -40,24 +40,24 @@ TEST_F(HyperStatInspectPanelTest, ShowsThisLevelAndTheNext) {
   EXPECT_NE(rendered.find("Level 4"), std::string::npos);
   EXPECT_NE(rendered.find("+4%"), std::string::npos);
   EXPECT_NE(rendered.find("+5%"), std::string::npos);
-  // Only the level still to be bought wears its price.
+  // Only the level still to be bought shows its price.
   EXPECT_NE(rendered.find("Level 5 - 10 points"), std::string::npos);
   EXPECT_EQ(rendered.find("Level 4 -"), std::string::npos);
 }
 
-// The first point costs exactly one, and says so in the singular.
+// The first level costs exactly one point, and says so in the singular.
 TEST_F(HyperStatInspectPanelTest, TheFirstLevelIsPricedInOnePoint) {
   EXPECT_NE(RenderAt(HYPER_STAT_FIELD_STR, 0).find("Level 1 - 1 point"),
             std::string::npos);
 }
 
-// At the ceiling there is no price on the card at all.
+// At the maximum there is no price anywhere on the card.
 TEST_F(HyperStatInspectPanelTest, AMaxedStatIsPricedNowhere) {
   EXPECT_EQ(RenderAt(HYPER_STAT_FIELD_STR, 10).find("points"),
             std::string::npos);
 }
 
-// Nothing spent on it yet: there is no level to state, only the one the first
+// Nothing spent yet: there is no current level to show, only the one the first
 // point would buy.
 TEST_F(HyperStatInspectPanelTest, AnUnspentStatShowsOnlyItsFirstLevel) {
   std::string rendered = RenderAt(HYPER_STAT_FIELD_STR, 0);
@@ -66,7 +66,7 @@ TEST_F(HyperStatInspectPanelTest, AnUnspentStatShowsOnlyItsFirstLevel) {
   EXPECT_NE(rendered.find("+30"), std::string::npos);
 }
 
-// And at the ceiling there is no next one.
+// At the maximum there is no next level.
 TEST_F(HyperStatInspectPanelTest, AMaxedStatShowsOnlyItsOwnLevel) {
   std::string rendered = RenderAt(HYPER_STAT_FIELD_STR, 10);
   EXPECT_NE(rendered.find("Level 10"), std::string::npos);
@@ -74,7 +74,7 @@ TEST_F(HyperStatInspectPanelTest, AMaxedStatShowsOnlyItsOwnLevel) {
   EXPECT_NE(rendered.find("+300"), std::string::npos);
 }
 
-// The ceiling is the character's, not the stat's: a 5th job reaches 15 and
+// The maximum comes from the character, not the stat: a 5th job reaches 15, and
 // the card says so.
 TEST_F(HyperStatInspectPanelTest, TheCeilingIsTheOneItIsHanded) {
   std::string rendered = RenderAt(HYPER_STAT_FIELD_STR, 10, /*max_level=*/15);
@@ -82,24 +82,21 @@ TEST_F(HyperStatInspectPanelTest, TheCeilingIsTheOneItIsHanded) {
   EXPECT_NE(rendered.find("Level 11"), std::string::npos);
 }
 
-// Every card asks for the same columns, so walking the list does not resize
-// the window under the cursor -- and it is far narrower than a skill card,
-// whose own floor is 58.
+// Every card asks for the same width, so moving through the list doesn't resize
+// the window, and it is much narrower than a skill card, whose minimum is 58.
 TEST_F(HyperStatInspectPanelTest, EveryCardAsksForTheSameNarrowWidth) {
   int shortest = ColumnsOf(HYPER_STAT_FIELD_STR, 5);
   EXPECT_EQ(shortest, ColumnsOf(HYPER_STAT_FIELD_CRIT_DAMAGE, 5));
   EXPECT_EQ(shortest, HyperStatInspectPanel::Columns());
   EXPECT_LT(shortest, 40);
-  // And wide enough to seat the longest name in the roster whole.
+  // It is also wide enough for the longest stat name in full.
   EXPECT_NE(RenderAt(HYPER_STAT_FIELD_CRIT_DAMAGE, 5).find("Critical Damage"),
             std::string::npos);
 }
 
-// A card that measures its own width has to ask for the margin: without it a
-// value is welded to the right border. Every stat at every level, because the
-// one that broke this was EXP at a level nobody would have picked to check --
-// its widest value is a decimal below level 10, not the whole percent it ends
-// on.
+// A card that measures its own width has to request the margin, or a value
+// touches the right border. Every stat at every level is checked, because EXP's
+// widest value is a decimal below level 10, not the whole percent it ends on.
 TEST_F(HyperStatInspectPanelTest, EveryRowKeepsAColumnClearOfTheRightBorder) {
   for (int i = 0; i < kNumHyperStats; ++i) {
     for (int level = 0; level <= kMaxHyperStatLevel; ++level) {

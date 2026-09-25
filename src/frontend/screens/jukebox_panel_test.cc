@@ -21,8 +21,8 @@
 namespace ms {
 namespace {
 
-// Three tracks this build carries, so the rows under test have a real title
-// and a real length behind them.
+// Three tracks this build has, so the rows under test have a real title and
+// length.
 constexpr char kTreetops[] = "AboveTheTreetops";
 constexpr char kFloral[] = "FloralLife";
 constexpr char kHonTale[] = "HonTale";
@@ -47,8 +47,8 @@ MapData MapWith(const std::string& name, const std::string& bgm,
   return map;
 }
 
-// Horntail as the data has him: the cave theme from phase 1, carried through
-// a phase naming none, and his own from phase 3.
+// Horntail as the data defines him: the cave theme from phase 1, continued
+// through a phase naming none, and his own theme from phase 3.
 Boss MakeHorntail() {
   Boss horntail;
   horntail.set_name("Horntail");
@@ -59,7 +59,7 @@ Boss MakeHorntail() {
   return horntail;
 }
 
-// One theme over both of Pierre's phases, which is the whole fight.
+// One theme for both of Pierre's phases, which is the whole fight.
 Boss MakePierre() {
   Boss pierre;
   pierre.set_name("Pierre");
@@ -69,8 +69,8 @@ Boss MakePierre() {
   return pierre;
 }
 
-// Two maps share Floral Life, and the lower-level one is the place it goes
-// under. The boss themes are the bosses' alone.
+// Two maps share Floral Life, and it is listed under the lower-level one. The
+// boss themes belong to the bosses alone.
 GameState MakeState() {
   return GameState(
       {}, {}, {}, {{"snail", MobAt("Snail", 1)}, {"drake", MobAt("Drake", 40)}},
@@ -90,9 +90,9 @@ class JukeboxPanelTest : public testing::Test {
     panel_.Reset();
   }
 
-  // Centred in the smallest terminal the game is laid out for, which is where
-  // the screen actually stands. Dimension::Fit is no good here: it clips to
-  // the terminal running the test, and this box's is 80 columns.
+  // Centred in the smallest supported terminal, as on the real screen.
+  // Dimension::Fit doesn't work here: it clips to the terminal running the
+  // test, which reports 80 columns.
   ftxui::Screen Draw() {
     ftxui::Screen screen =
         ftxui::Screen::Create(ftxui::Dimension::Fixed(kMinTerminalColumns),
@@ -117,8 +117,8 @@ class JukeboxPanelTest : public testing::Test {
     FAIL() << track << " is not in the song list";
   }
 
-  // Puts the focus on the buttons and the cursor on `button`. SwitchHalf is a
-  // toggle, so asking twice would put the focus back on the list.
+  // Puts the focus on the buttons and the cursor on `button`. SwitchHalf
+  // toggles, so calling it twice would put the focus back on the list.
   void SelectButton(JukeboxButton button) {
     if (!panel_.on_buttons()) {
       panel_.SwitchHalf();
@@ -127,7 +127,7 @@ class JukeboxPanelTest : public testing::Test {
                       static_cast<int>(panel_.selected_button()));
   }
 
-  // Where `track` sits in the list the screen draws.
+  // The position of `track` in the drawn list.
   int RowOf(const std::string& track) {
     for (int i = 0; i < static_cast<int>(panel_.songs().size()); ++i) {
       if (panel_.songs()[i].track == track) {
@@ -169,13 +169,13 @@ TEST_F(JukeboxPanelTest, ListsEveryTrackWithItsPlaceAndItsLength) {
   EXPECT_NE(out.find("Lith Harbor"), std::string::npos);
 }
 
-// A region's music is shared, and the place it goes under is the map a player
-// meets it on -- the lowest of them, not whichever sorted first.
+// A region's music is shared, and it is listed under the map a player first
+// hears it on: the lowest-level one, not whichever sorted first.
 TEST_F(JukeboxPanelTest, TheLowestMapWinsASharedTrackAndABossNamesItsPhases) {
   EXPECT_EQ(SongFor(kFloral).place, "Ellinia");
   EXPECT_EQ(SongFor(kCave).place, "Horntail P1/2");
   EXPECT_EQ(SongFor(kHonTale).place, "Horntail P3");
-  // A theme playing the whole fight names no phase.
+  // A theme that plays the whole fight names no phase.
   EXPECT_EQ(SongFor(kTeaParty).place, "Pierre");
 }
 
@@ -184,17 +184,17 @@ TEST_F(JukeboxPanelTest, OpensOnWhatIsPlayingWithTheListInFocus) {
   panel_.Reset();
   EXPECT_FALSE(panel_.on_buttons());
   EXPECT_EQ(panel_.songs()[panel_.selected_row()].track, kFloral);
-  // In the list, the track playing is a whole row in the theme's colour --
-  // caret, title, place and length. Asked of the row, not of the title: Now
-  // Playing carries that too.
+  // In the list, the playing track is a whole row in the theme colour: caret,
+  // title, place and length. Checked on the row, not the title, since Now
+  // Playing shows the title too.
   ftxui::Screen screen = Draw();
   ScreenPos live = FindOnScreen(screen, "> " + TrackTitle(kFloral));
   ASSERT_GE(live.x, 0);
   bool dimmed = false;
   for (int x = live.x; x < screen.dimx(); ++x) {
     ftxui::Pixel pixel = screen.PixelAt(x, live.y);
-    // The row ends at the window's border; the scroll bar before it is the
-    // panel's, not the row's.
+    // The row ends at the window's border; the scroll bar before it belongs to
+    // the panel, not the row.
     if (pixel.character == "│") {
       break;
     }
@@ -204,7 +204,7 @@ TEST_F(JukeboxPanelTest, OpensOnWhatIsPlayingWithTheListInFocus) {
     EXPECT_EQ(pixel.foreground_color, kTheme) << "column " << x;
     dimmed = dimmed || pixel.dim;
   }
-  // The place, the one cell of the row wearing the colour dimmed.
+  // The place is the one cell of the row in the dimmed colour.
   EXPECT_TRUE(dimmed);
   EXPECT_NE(ColorOf(screen, TrackTitle(kTreetops)), kTheme);
 }
@@ -213,7 +213,7 @@ TEST_F(JukeboxPanelTest, EnterOnASongPlaysIt) {
   SelectTrack(kFloral);
   panel_.Activate();
   EXPECT_EQ(director_.playing(), kFloral);
-  // Through once: what follows it is the mode's business.
+  // Plays once through; what comes next depends on the mode.
   EXPECT_FALSE(player_.looping());
 }
 
@@ -227,7 +227,7 @@ TEST_F(JukeboxPanelTest, TabMovesToTheButtonsAndTheArrowsRingRound) {
   panel_.MoveColumn(1);
   EXPECT_EQ(panel_.selected_button(), JukeboxButton::kPrevious);
 
-  // Up and Down belong to the list, so they do nothing over here.
+  // Up and Down belong to the list, so they do nothing here.
   int row = panel_.selected_row();
   panel_.MoveRow(1);
   EXPECT_EQ(panel_.selected_row(), row);
@@ -239,14 +239,15 @@ TEST_F(JukeboxPanelTest, PlayPauseHoldsTheMusicAndLetsItGo) {
   EXPECT_NE(Text().find("[Pause]"), std::string::npos);
   panel_.Activate();
   EXPECT_TRUE(director_.paused());
-  // The two labels are one width, so the row does not move under the cursor.
+  // The two labels are the same width, so the row doesn't move under the
+  // cursor.
   EXPECT_NE(Text().find("[Play ]"), std::string::npos);
   panel_.Activate();
   EXPECT_FALSE(director_.paused());
 }
 
-// The two track marks walk the song list itself, a ring like every other, and
-// the one going back starts a song over once it is properly under way.
+// The two track buttons move through the song list, wrapping like every other
+// list, and the previous-track button restarts a song that is well under way.
 TEST_F(JukeboxPanelTest, TheTrackMarksWalkTheListAndRestartASongUnderWay) {
   director_.Play(kFloral);
   int row = RowOf(kFloral);
@@ -264,7 +265,7 @@ TEST_F(JukeboxPanelTest, TheTrackMarksWalkTheListAndRestartASongUnderWay) {
   EXPECT_EQ(director_.playing(), panel_.songs()[row].track);
   EXPECT_LT(director_.position_seconds(), kSkipSeconds);
 
-  // Off the front of the list is the back of it.
+  // Before the start of the list is the end of it.
   director_.Play(panel_.songs().front().track);
   panel_.Activate();
   EXPECT_EQ(director_.playing(), panel_.songs().back().track);
@@ -289,7 +290,7 @@ TEST_F(JukeboxPanelTest, TheModeBoxOpensOnTheModeInUseAndEnterTakesOne) {
 
   panel_.Activate();
   EXPECT_TRUE(panel_.mode_box_open());
-  // The box opens with the cursor on the mode in use, so Enter alone changes
+  // The box opens with the cursor on the current mode, so Enter alone changes
   // nothing.
   panel_.Activate();
   EXPECT_FALSE(panel_.mode_box_open());
@@ -307,19 +308,19 @@ TEST_F(JukeboxPanelTest, EscapeShutsTheBoxBeforeItShutsTheScreen) {
   ASSERT_TRUE(panel_.mode_box_open());
   EXPECT_TRUE(panel_.DismissedBox());
   EXPECT_FALSE(panel_.mode_box_open());
-  // Nothing left to shut, so the next Escape is the screen's.
+  // Nothing left to close, so the next Escape is the screen's.
   EXPECT_FALSE(panel_.DismissedBox());
 }
 
-// The box hangs from the button, so leaving the row puts it away rather than
-// leaving it standing over the list.
+// The box hangs from the button, so leaving the row closes it instead of
+// leaving it over the list.
 TEST_F(JukeboxPanelTest, WalkingOffTheModeButtonShutsTheBox) {
   SelectButton(JukeboxButton::kMode);
   panel_.Activate();
   ASSERT_TRUE(panel_.mode_box_open());
   panel_.MoveColumn(1);
   EXPECT_FALSE(panel_.mode_box_open());
-  // The arrow was spent on the box, so the cursor is still on Mode.
+  // The arrow was used on the box, so the cursor is still on Mode.
   EXPECT_EQ(panel_.selected_button(), JukeboxButton::kMode);
 
   panel_.Activate();
@@ -328,9 +329,8 @@ TEST_F(JukeboxPanelTest, WalkingOffTheModeButtonShutsTheBox) {
   EXPECT_FALSE(panel_.mode_box_open());
 }
 
-// The box hangs clear of the button: its top border is the row under it, so
-// the button is left whole, and its right border stands where the button's
-// does.
+// The box hangs just below the button: its top border is on the next row, so
+// the button stays whole, and its right border lines up with the button's.
 TEST_F(JukeboxPanelTest, TheBoxHangsUnderTheButtonItOpensFrom) {
   account_.SetJukeboxMode(JUKEBOX_MODE_FOLLOW_MAP);
   SelectButton(JukeboxButton::kMode);
@@ -343,10 +343,10 @@ TEST_F(JukeboxPanelTest, TheBoxHangsUnderTheButtonItOpensFrom) {
   ftxui::Screen open_screen = Draw();
   ScreenPos open = FindOnScreen(open_screen, "> Follow Map");
   EXPECT_EQ(open.y, shut.y + 2);
-  // The whole of the middle entry's row: the box is as wide as the names need
-  // and no wider, and its right border stands under the button's own bracket.
-  // The middle one because the box crosses two window borders, and ftxui joins
-  // its own into those -- so the rows either side read ┤ and ├.
+  // The whole row of the middle entry. The box is only as wide as the names
+  // need, and its right border is under the button's bracket. The middle entry
+  // because the box crosses two window borders and ftxui joins its own into
+  // those, so the rows on either side read ┤ and ├.
   int close = bracket.x + 2;
   ScreenPos middle = FindOnScreen(open_screen, "  Playlist");
   EXPECT_EQ(middle.y, shut.y + 3);

@@ -1,17 +1,17 @@
-/* The Jukebox screen: every track the game carries, and what is playing now.
+/* The Jukebox screen: every track in the game, and what is playing now.
  *
- * Two windows down the screen. Now Playing carries the track's title over the
- * place it belongs to, a scrubbing bar beside them, and the transport row:
- * the song before, back five seconds, play or pause, on five seconds, the song
- * after, and the mode the music is in. Under it the song list -- title, place,
- * length -- with Enter playing the row the cursor is on.
+ * Two windows, one above the other. Now Playing shows the track's title over
+ * the place it belongs to, a progress bar beside them, and the transport row:
+ * previous track, back five seconds, play or pause, forward five seconds, next
+ * track, and the music mode. Below it is the song list (title, place, length),
+ * where Enter plays the row under the cursor.
  *
- * Tab moves between the two, Left and Right walk the buttons, and Up and Down
- * walk whichever list holds the cursor. The mode button opens a box under
- * itself, which is the only place the three modes are named.
+ * Tab switches between the two windows, Left and Right move along the buttons,
+ * and Up and Down move through whichever list has the cursor. The mode button
+ * opens a box below itself, the only place the three modes are named.
  *
- * The panel drives the MusicDirector and writes the mode onto the account.
- * Everything it draws about the live track it asks the director for; it holds
+ * The panel controls the MusicDirector and writes the mode to the account. It
+ * asks the director for everything it shows about the current track and keeps
  * no clock of its own.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_JUKEBOX_PANEL_H_
@@ -43,44 +43,44 @@ inline constexpr int kJukeboxButtonCount = 6;
 
 // One row of the song list.
 struct Song {
-  // The track's own name, which is what the player is asked to play.
+  // The track's own name, which is what the player asks to play.
   std::string_view track;
   std::string title;
-  // The map, or the boss, this track belongs to. Empty for a track nothing in
-  // the data names.
+  // The map or boss this track belongs to. Empty for a track the data doesn't
+  // name.
   std::string place;
   int duration_ms = 0;
 };
 
 class JukeboxPanel {
  public:
-  // Content columns inside both windows, and rows the song list is drawn to.
-  // Fixed, so the screen is one size whatever the build carries.
+  // The content width inside both windows, and the rows the song list is drawn
+  // to. Fixed, so the screen is the same size whatever music the build has.
   static constexpr int kContentWidth = 88;
   static constexpr int kListRows = 20;
 
   JukeboxPanel(const GameState& state, MusicDirector& director,
                AccountInstance& account);
 
-  // Puts the cursor on the track playing and the focus on the song list. Call
+  // Puts the cursor on the playing track and the focus on the song list. Call
   // when the screen opens.
   void Reset();
-  // Tab: the song list and the button row are the two halves.
+  // Tab: switches between the song list and the button row.
   void SwitchHalf();
-  // Up and Down, in whichever list holds the cursor.
+  // Up and Down, in whichever list has the cursor.
   void MoveRow(int delta);
-  // Left and Right along the buttons. Taken by an open mode box as the way
-  // out of it, the box hanging from a button the arrows still belong to.
+  // Left and Right along the buttons. An open mode box uses them as the way
+  // out, since the box hangs from a button the arrows still belong to.
   void MoveColumn(int delta);
   // Enter: plays the song under the cursor, presses the button under it, or
-  // takes the mode the open box is showing.
+  // selects the mode highlighted in the open box.
   void Activate();
-  // Escape. True where it was spent closing the mode box, which leaves the
-  // screen standing.
+  // Escape. Returns true if it closed the mode box, which leaves the screen
+  // open.
   bool DismissedBox();
   ftxui::Element Render() const;
 
-  // The song list, in the order it is drawn.
+  // The song list, in drawing order.
   const std::vector<Song>& songs() const {
     return songs_;
   }
@@ -96,8 +96,8 @@ class JukeboxPanel {
   }
 
  private:
-  // The list's columns, left to right. The caret, the two names either side
-  // of a gap, and the length pushed right.
+  // The list's columns, left to right: the caret, the two names with a gap
+  // between, and the length right-aligned.
   static constexpr int kCaretWidth = 2;
   static constexpr int kTitleWidth = 32;
   static constexpr int kCellGap = 2;
@@ -109,14 +109,14 @@ class JukeboxPanel {
   static constexpr int kTimeWidth = 5;
   static constexpr int kBarWidth = 42;
 
-  // Every track the build carries, by title, each against the map or boss
-  // that names it. Read once: neither the data nor the build's music moves.
+  // Every track in the build, by title, each with the map or boss that uses it.
+  // Built once, since neither the data nor the build's music changes.
   void BuildSongs(const GameState& state);
-  // The mode the box is on, or the account's while it is shut.
+  // The mode the box is on, or the account's mode while it is closed.
   JukeboxMode ModeAt(int row) const;
   void PressButton();
-  // The song `delta` places from the one playing, in the list's own order and
-  // coming round at either end. Plays it.
+  // The song `delta` places from the one playing, in list order and wrapping at
+  // either end. Plays it.
   void StepTrack(int delta);
 
   ftxui::Element RenderNowPlaying() const;
@@ -137,8 +137,8 @@ class JukeboxPanel {
   bool on_buttons_ = false;
   int button_ = 0;
   bool mode_box_open_ = false;
-  // Where the render put the mode button and the screen's own top-left, so
-  // the box can hang from the button rather than from a guessed column.
+  // Where the render placed the mode button and the screen's top-left corner,
+  // so the box can hang from the button rather than a guessed column.
   mutable ftxui::Box mode_button_box_;
   mutable ftxui::Box panel_box_;
 };

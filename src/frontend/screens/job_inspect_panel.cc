@@ -24,27 +24,27 @@
 namespace ms {
 namespace {
 
-// Chars inside the window border. The panel stands beside the skill card
-// rather than in the middle of the screen, so the room it takes is room the
-// card does not get. Wide enough for the weapon row, which is the longest
-// thing here that cannot slide: names longer than the column left over do.
+// The width inside the window border. The panel is beside the skill card rather
+// than centred, so the room it takes is room the card doesn't get. Wide enough
+// for the weapon row, the longest content here that can't scroll; longer names
+// scroll.
 constexpr int kContentWidth = kJobInspectBookWidth - 2;
 
-// Seats " Weapon" with a gap after it. The row is the only labelled one on the
-// panel, so the label column exists for its sake alone.
+// Fits " Weapon" with a gap after it. It is the only labelled row on the panel,
+// so the label column exists just for it.
 constexpr int kLabelWidth = 9;
 
-// " Max 20 " -- the widest a level reads, with the gutter either side.
+// " Max 20 ": the widest a level gets, with a gutter on each side.
 constexpr int kMaxLevelWidth = 8;
 
-// The "> " cursor every list in the game marks its selected row with.
+// The "> " cursor every list in the game uses to mark its selected row.
 constexpr int kCursorWidth = 2;
 constexpr int kNameWidth =
     kContentWidth - kCursorWidth - kSkillTagWidth - kMaxLevelWidth;
 
-// Room for any book, so a row number in one and the same row number in
-// another are different keys to the name clock. Keyed by job and stage both:
-// a 4th job holds two books, its own and its V.
+// Room for any book, so the same row number in two books gives different keys
+// to the name clock. Keyed by job and stage together, since the same job name
+// has two books: its 4th job book and its V Matrix.
 constexpr int kJobClockStride = 100;
 
 }  // namespace
@@ -61,16 +61,16 @@ void JobInspectPanel::SetJob(Job job, int stage) {
 
 std::vector<const Skill*> JobInspectPanel::Skills() const {
   JobAdvancement advancement = AdvancementForJobStage(job_, stage_);
-  // The 5th hands over a V Matrix rather than a book, and the matrix is the
-  // common nodes as well as the job's own -- every kind of node alike, so a
-  // boost node lists here the day one is written. Asked of the same function
-  // the V page draws, so the two cannot disagree.
+  // The 5th advancement gives a V Matrix instead of a book, and the matrix
+  // includes the common nodes as well as the job's own, of every kind, so a
+  // boost node appears here as soon as one is written. Built with the same
+  // function the V page uses, so the two can't disagree.
   if (stage_ == kFifthJobStage) {
     return VNodesFor(skills_, advancement);
   }
-  // Below it, this job's own book and no other. A player choosing between a
-  // Fighter and a Page already holds the Swordman's, so listing it again
-  // would bury what they are actually choosing between.
+  // Below the 5th, this job's own book and no other. A player choosing between
+  // Fighter and Page already has the Swordman's book, so listing it again would
+  // bury what they are actually choosing between.
   return SkillsForAdvancement(skills_, advancement);
 }
 
@@ -90,10 +90,9 @@ ftxui::Element JobInspectPanel::RenderSkillRow(const Skill& skill,
                                                int index) const {
   bool selected = index == selected_;
   KindTag tag = TagFor(skill);
-  // A book holds names longer than the column, and cutting one silently costs
-  // the player the one thing the row is for. The selected name slides under
-  // the column instead; the rest sit cut, which they can be read out of by
-  // stepping onto them.
+  // A book has names longer than the column, and cutting one without a way to
+  // read it would hide what the row is for. The selected name scrolls inside
+  // the column; the others are cut and can be read by moving onto them.
   std::string name =
       ScrollingWindow(skill.name(), kNameWidth,
                       selected ? name_clock_.Elapsed()
@@ -111,16 +110,15 @@ ftxui::Element JobInspectPanel::RenderSkillRow(const Skill& skill,
 }
 
 ftxui::Element JobInspectPanel::Render() const {
-  // Folded with the job so that opening another book restarts the slide: the
-  // cursor is back on row 0 either way, and row 0 of a book nobody has read
-  // is a new name.
+  // Combined with the job so opening another book restarts the scroll: the
+  // cursor is back on row 0 either way, and row 0 of a new book is a new name.
   name_clock_.Follow((static_cast<int>(job_) * kMaxJobStage + stage_) *
                          kJobClockStride +
                      selected_);
 
   std::vector<ftxui::Element> rows;
-  // What the job is built around, which is the one thing a player cannot read
-  // off the skills themselves -- most of a book names no weapon at all.
+  // The weapons the job is built around, the one thing a player can't learn
+  // from the skills themselves, since most skills name no weapon at all.
   std::string weapons = FormatWeaponList(ExpectedWeapons(job_));
   rows.push_back(ftxui::text(PadRight("  " + PadRight("Weapon", kLabelWidth) +
                                           (weapons.empty() ? "-" : weapons),

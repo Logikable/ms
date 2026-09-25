@@ -39,7 +39,7 @@ TEST_F(KeybindsPanelTest, ListsEveryActionAndItsKeys) {
   EXPECT_NE(out.find("Esc to unbind"), std::string::npos);
 }
 
-// The locked slot is not a stop, and neither end of the row rolls over.
+// The locked slot isn't a stop, and neither end of the row wraps.
 TEST_F(KeybindsPanelTest, TheCursorStepsOverTheLockedSlotAndStopsAtTheEnds) {
   EXPECT_EQ(panel_.selected_slot(), 1);
   panel_.MoveSlot(-1);

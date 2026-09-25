@@ -14,7 +14,7 @@
 namespace ms {
 namespace {
 
-// What an open slot shows, and what one waiting for a key shows.
+// What an empty slot shows, and what a slot waiting for a key shows.
 constexpr char kEmptySlot[] = "—";
 constexpr char kCapturing[] = "Press…";
 // The action column, wide enough for "Previous Panel" and a gutter.
@@ -47,7 +47,7 @@ void KeybindsPanel::MoveSlot(int delta) {
   if (on_close()) {
     return;
   }
-  // Slot 0 is locked, so the two after it are what the cursor walks between.
+  // Slot 0 is locked, so the cursor moves between the two after it.
   slot_ = std::clamp(slot_ + delta, 1, kKeySlots - 1);
 }
 
@@ -79,7 +79,7 @@ int KeybindsPanel::SlotWidth() const {
       width = std::max(width, static_cast<int>(ftxui::string_width(label)));
     }
   }
-  // A gutter, so two keys side by side do not read as one.
+  // A gutter, so two keys side by side don't read as one.
   return width + 2;
 }
 
@@ -88,7 +88,7 @@ ftxui::Element KeybindsPanel::RenderCell(const std::string& label, bool locked,
   ftxui::Element cell =
       ftxui::text(label) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, width);
   if (locked) {
-    // Dim says the door does not open: the cursor steps over these.
+    // Dimmed because it can't be changed; the cursor skips these.
     return std::move(cell) | ftxui::dim;
   }
   if (selected && capturing_) {
@@ -121,7 +121,7 @@ ftxui::Element KeybindsPanel::RenderRow(KeyAction action, int row,
 
 ftxui::Element KeybindsPanel::RenderFooter() const {
   if (!message_.empty()) {
-    // Red is the reason the key did not land.
+    // Red for the reason the key wasn't accepted.
     return CenteredRow(ftxui::text(message_) | ftxui::color(kRed));
   }
   return CenteredRow(ftxui::text("Enter to rebind · Esc to unbind") |

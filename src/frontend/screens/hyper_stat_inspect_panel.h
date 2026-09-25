@@ -1,11 +1,11 @@
-/* HyperStatInspectPanel is the Hyper tab's counterpart to SkillInspectPanel:
- * one stat's name and ceiling, then what it is worth at the level it is at and
- * what the next level would buy, priced in points. A stat with nothing spent
- * on it has only the second block, and one at its ceiling only the first.
+/* HyperStatInspectPanel is the Hyper tab's version of SkillInspectPanel: one
+ * stat's name and maximum level, then its value at the current level and what
+ * the next level would give, priced in points. A stat with nothing spent shows
+ * only the second block, and one at its maximum only the first.
  *
- * Every card is the same width, measured from the widest name and value in the
- * roster, so walking the list does not resize the window under the cursor. It
- * is far narrower than a skill card -- there is one number to state.
+ * Every card is the same width, measured from the widest name and value, so
+ * moving through the list doesn't resize the window. It is much narrower than a
+ * skill card, since it shows only one number.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_HYPER_STAT_INSPECT_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_HYPER_STAT_INSPECT_PANEL_H_
@@ -17,13 +17,13 @@ namespace ms {
 
 class HyperStatInspectPanel {
  public:
-  // Seeds the card: which stat, the level the allocation on screen has it at,
-  // and the ceiling this character's job stage allows.
+  // Sets the card's stat, the level the displayed allocation has, and the
+  // maximum this character's job stage allows.
   void SetStat(HyperStatField field, int level, int max_level);
 
   ftxui::Element Render() const;
 
-  // The columns the card takes, borders included. The same for every stat.
+  // The width the card takes, borders included. The same for every stat.
   static int Columns();
 
  private:
