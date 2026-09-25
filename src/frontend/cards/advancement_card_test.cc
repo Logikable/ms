@@ -22,9 +22,9 @@ ftxui::Screen RenderCard(Job from, Job to, int to_stage = 1) {
   return screen;
 }
 
-// The card is read top to bottom, so the order of the three rows IS the
-// meaning: the job left behind, the arrow, then the job taken. Reversed, it
-// would say the player had just become a Beginner.
+// The card reads top to bottom, so the order of the three rows is the meaning:
+// the old job, the arrow, then the new job. Reversed, it would say the player
+// just became a Beginner.
 TEST(AdvancementCardTest, ReadsOldJobThenArrowThenNewJob) {
   ftxui::Screen screen = RenderCard(JOB_BEGINNER, JOB_SWORDMAN);
   int from_row = RowIndexOf(screen, "Beginner");
@@ -44,8 +44,8 @@ TEST(AdvancementCardTest, NamesWhicheverJobsItIsGiven) {
   EXPECT_LT(RowIndexOf(screen, "Swordman"), 0);
 }
 
-// The 5th advancement leaves the job where it was, so a card naming both
-// halves the same way would say nothing happened.
+// The 5th advancement doesn't change the job, so a card naming both the same
+// way would look like nothing happened.
 TEST(AdvancementCardTest, TheFifthAdvancementTakesAV) {
   ftxui::Screen screen = RenderCard(JOB_NIGHT_LORD, JOB_NIGHT_LORD, 5);
   EXPECT_NE(ScreenRow(screen, 2).find("Night Lord"), std::string::npos);
@@ -60,10 +60,10 @@ TEST(AdvancementCardTest, IsTitledAndBorderedInGold) {
   EXPECT_EQ(screen.PixelAt(0, screen.dimy() - 1).foreground_color, kYellow);
 }
 
-// The two land in the same place, in the same gold, seconds apart at level 10.
-// A pair that differed in size would read as two unrelated things rather than
-// one moment, so this asks the level-up card directly rather than repeating a
-// number that could drift away from it.
+// Both cards appear in the same place, in the same gold, seconds apart at level
+// 10. If they differed in size they would look like two unrelated events, so
+// this compares against the level-up card directly rather than a number that
+// could drift.
 TEST(AdvancementCardTest, IsTheSameSizeAsTheLevelUpCard) {
   ftxui::Element level_up = LevelUpCard(9, 10, 5, 3);
   ftxui::Screen theirs = ftxui::Screen::Create(ftxui::Dimension::Fit(level_up));
@@ -74,9 +74,9 @@ TEST(AdvancementCardTest, IsTheSameSizeAsTheLevelUpCard) {
   EXPECT_EQ(ours.dimy(), theirs.dimy());
 }
 
-// Three rows of content in a body of five, so the names are not up against the
-// border. Room around what it says is most of what makes a card carry to
-// somebody looking at a different window.
+// Three rows of content in a five-row body, so the names aren't against the
+// border. The space around the text is much of what makes a card noticeable to
+// someone looking at another window.
 TEST(AdvancementCardTest, KeepsABlankRowAboveAndBelowTheNames) {
   ftxui::Screen screen = RenderCard(JOB_BEGINNER, JOB_SWORDMAN);
   EXPECT_EQ(RowIndexOf(screen, "Beginner"), 2);

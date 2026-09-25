@@ -1,11 +1,10 @@
-/* The card shown for a few seconds when a mob finishes the player off.
+/* The card shown for a few seconds when a mob kills the player.
  *
- * How long it stays up is the caller's business -- see //src/frontend:
- * celebration, which is what puts one card on screen at a time.
+ * The caller decides how long it stays up; see //src/frontend:celebration,
+ * which keeps one card on screen at a time.
  *
- * Red rather than their gold, because it is the one card that is not good
- * news, and drawn at the same size so it lands in the same place with the same
- * weight.
+ * It is red instead of gold because it is the only card that isn't good news,
+ * and it is the same size so it appears in the same place with the same weight.
  */
 #ifndef MS_SRC_FRONTEND_CARDS_DEATH_CARD_H_
 #define MS_SRC_FRONTEND_CARDS_DEATH_CARD_H_
@@ -14,8 +13,8 @@
 
 namespace ms {
 
-// The card as a bordered window: five rows inside the border with the one line
-// it has to say held in the middle of them.
+// The card as a bordered window: five rows inside the border, with its one line
+// in the middle.
 ftxui::Element DeathCard();
 
 }  // namespace ms

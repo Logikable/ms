@@ -7,10 +7,9 @@
 namespace ms {
 
 ftxui::Element DeathCard() {
-  // Five rows inside the border and the same width floor as the other two
-  // cards, so all three are one shape the player learns rather than three
-  // boxes that each have to be read afresh. Only the colour tells them apart,
-  // which is the point: this one is red.
+  // Five rows inside the border and the same minimum width as the other two
+  // cards, so all three have one shape the player learns. Only the colour
+  // differs, which is the point: this one is red.
   return AccentWindow(" Death ",
                       ftxui::vbox({
                           ftxui::text(""),

@@ -15,9 +15,8 @@
 namespace ms {
 namespace {
 
-// One item and how many of it came back, with what the bag could not hold
-// called out beside it. The count is left on even at one: what a stretch of
-// farming yielded is a quantity, not a name.
+// One item and how many came back, with what didn't fit in the bag shown beside
+// it. The count is shown even at one, since farming results are quantities.
 ftxui::Element ItemRow(const RewardItem& item) {
   std::string got = item.name + " x" + FormatWithCommas(item.count);
   if (item.discarded <= 0) {
@@ -55,14 +54,14 @@ ftxui::Element OfflineCard(const OfflineReport& report, ftxui::Element prompt,
   rows.push_back(CenteredRow("Away for " + FormatAbsence(report.absence)));
   rows.push_back(AccentSeparator(kTheme));
   if (!report.farmed) {
-    // Left standing in town, or with nothing to swing. Not a failure worth a
-    // red line -- just a player who logged off somewhere quiet.
+    // Left in town, or with no weapon. Not a failure worth a red line, just a
+    // player who logged off somewhere quiet.
     rows.push_back(CenteredRow("You were not fighting anywhere."));
   } else {
     rows.push_back(CenteredRow(FormatWithCommas(report.kills) + " kills on " +
                                report.map_name));
-    // The levels first: climbing one is the news, and everything under it is
-    // what the climb was made of.
+    // Levels first: gaining one is the news, and everything below is what the
+    // climb was made of.
     if (report.end_level > report.start_level) {
       rows.push_back(CenteredRow("Level " + std::to_string(report.start_level) +
                                  " -> " + std::to_string(report.end_level)));
@@ -78,8 +77,8 @@ ftxui::Element OfflineCard(const OfflineReport& report, ftxui::Element prompt,
       rows.push_back(
           CenteredRow(FormatWithCommas(report.rewards.honor) + " Honor"));
     }
-    // No flag on this one: only a 5th job is paid V Points at all, so anyone
-    // with some to show already knows what they are.
+    // No explanation for this one: only 5th jobs get V Points, so anyone who
+    // has some already knows what they are.
     if (report.rewards.v_points > 0) {
       rows.push_back(
           CenteredRow(FormatWithCommas(report.rewards.v_points) + " V Points"));
@@ -91,8 +90,8 @@ ftxui::Element OfflineCard(const OfflineReport& report, ftxui::Element prompt,
       rows.push_back(ItemRow(item));
     }
     if (report.died) {
-      // The one line that is a reason rather than a reward: the farming
-      // stopped here, and the player is somewhere else now.
+      // The only line that is a reason rather than a reward: farming stopped
+      // here, and the player is now somewhere else.
       rows.push_back(AccentSeparator(kTheme));
       rows.push_back(CenteredRow(
           ftxui::text("Defeated after " + FormatAbsence(report.seconds) +
@@ -102,8 +101,8 @@ ftxui::Element OfflineCard(const OfflineReport& report, ftxui::Element prompt,
   }
   rows.push_back(AccentSeparator(kTheme));
   rows.push_back(CenteredRow(std::move(prompt)));
-  // A floor rather than a fit, as the celebration cards are: centring shrinks
-  // a window back to its content.
+  // A minimum width rather than fitting the content, as with the celebration
+  // cards: centring shrinks a window to its content.
   return AccentWindow(" Welcome Back ",
                       ftxui::vbox(std::move(rows)) |
                           ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN,

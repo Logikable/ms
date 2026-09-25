@@ -1,9 +1,9 @@
 /* The card shown for a few seconds when the player takes a job advancement.
  *
- * The level-up card's sibling, and the same kind of thing: it holds nothing,
- * decides nothing, and the caller decides when it is up. Gold for the same
- * reason -- an advancement is the largest thing that happens to a character,
- * and it should be visible from across the room.
+ * It works like the level-up card: it holds no state, makes no decisions, and
+ * the caller decides when it is shown. It is gold for the same reason: an
+ * advancement is the biggest event for a character and should be visible from
+ * across the room.
  */
 #ifndef MS_SRC_FRONTEND_CARDS_ADVANCEMENT_CARD_H_
 #define MS_SRC_FRONTEND_CARDS_ADVANCEMENT_CARD_H_
@@ -13,10 +13,10 @@
 
 namespace ms {
 
-// The card as a bordered window: the job left behind, an arrow down, and the
-// advancement taken -- read top to bottom, so the change is the shape of the
-// card. The same size as the level-up card, which arrives seconds before it.
-// `to_stage` names the 5th, which would otherwise read "Night Lord" twice.
+// The card as a bordered window: the old job, a down arrow, and the new job,
+// read top to bottom. It is the same size as the level-up card, which appears a
+// few seconds before it. `to_stage` names the 5th advancement, which would
+// otherwise read "Night Lord" twice.
 ftxui::Element AdvancementCard(Job from_job, Job to_job, int to_stage);
 
 }  // namespace ms

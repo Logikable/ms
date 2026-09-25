@@ -13,15 +13,15 @@
 namespace ms {
 namespace {
 
-// How many rows stand below the rule. Fixed rather than counted off what the
-// level paid, so the card is the same size whether or not there is SP to
-// report: it is caught out of the corner of an eye, and a box that changed
-// shape between one level and the next would read as two different things.
+// How many rows are below the divider. Fixed rather than based on what the
+// level paid, so the card is the same size whether or not there is SP to show:
+// it is seen out of the corner of an eye, and a box that changed shape between
+// levels would look like two different things.
 constexpr int kBodyRows = 3;
 
-// One "+N LABEL" line, or nothing at all when the level paid none of it.
-// Returns nullptr for the caller to drop rather than an empty row, which would
-// leave a blank line where the reason for it is invisible.
+// One "+N LABEL" line, or nullptr when the level paid none of it. The caller
+// drops a null rather than showing an empty row, which would leave an
+// unexplained blank line.
 ftxui::Element GainRow(int64_t amount, const std::string& label) {
   if (amount <= 0) {
     return nullptr;
@@ -34,9 +34,9 @@ ftxui::Element GainRow(int64_t amount, const std::string& label) {
 ftxui::Element LevelUpCard(int from_level, int to_level, int ap, int sp,
                            int hyper_sp, int64_t honor,
                            const std::vector<std::string>& unlocks) {
-  // AP above SP, in the order the character panel spends them, the Hyper SP
-  // under the SP it is not a stage of, and the honor last: it is the one gain
-  // here that is not spent on this card's own screen.
+  // AP above SP, in the order the character panel spends them, then Hyper SP
+  // below the SP it is separate from, then honor last, since it is the only
+  // gain here not spent on the card's own screen.
   std::vector<ftxui::Element> body;
   const std::pair<int64_t, const char*> kGains[] = {
       {ap, "AP"}, {sp, "SP"}, {hyper_sp, "Hyper SP"}, {honor, "Honor"}};
@@ -46,24 +46,24 @@ ftxui::Element LevelUpCard(int from_level, int to_level, int ap, int sp,
       body.push_back(std::move(row));
     }
   }
-  // Below what the level paid, and gold against the card's white: a point of
-  // AP is the same news every level, and this is not.
+  // Below the gains, in gold against the card's white: AP is the same news
+  // every level, and this isn't.
   for (const std::string& unlock : unlocks) {
     body.push_back(CenteredRow("Unlocked " + unlock + "!") |
                    ftxui::color(kYellow));
   }
 
   std::vector<ftxui::Element> rows;
-  // The arrow rather than the new level alone: a player who was not watching
-  // wants to know how far they came, and after an idle stretch that can be
-  // more than one level.
+  // An arrow from the old level rather than just the new one: a player who
+  // wasn't watching wants to know how far they came, and after idling that can
+  // be more than one level.
   rows.push_back(CenteredRow(std::to_string(from_level) + "  →  " +
                              std::to_string(to_level)));
   rows.push_back(AccentSeparator(kYellow));
-  // The body sits in the middle, with the odd row left over going below it: a
-  // lone AP line lands dead centre, and a pair sits off the rule rather than
-  // up against it. A climb that opened something can outgrow the three rows,
-  // and then the card grows with it -- news worth breaking the shape for.
+  // The body is centred, with the odd row left over going below: a lone AP line
+  // is exactly centred, and a pair sits just under the divider rather than
+  // against it. A climb that unlocked something can need more than three rows,
+  // and then the card grows, since that news is worth breaking the shape for.
   int above = (kBodyRows - static_cast<int>(body.size())) / 2;
   for (int i = 0; i < above; ++i) {
     rows.push_back(ftxui::text(""));
@@ -71,14 +71,14 @@ ftxui::Element LevelUpCard(int from_level, int to_level, int ap, int sp,
   for (ftxui::Element& row : body) {
     rows.push_back(std::move(row));
   }
-  // Whatever is left of the body, so the card stands the same height every
-  // time -- two rows of it when a level paid nothing at all.
+  // Pads out the body so the card is always the same height, even when a level
+  // paid nothing.
   while (static_cast<int>(rows.size()) < kBodyRows + 2) {
     rows.push_back(ftxui::text(""));
   }
-  // A FLOOR rather than a fit: Tui::RenderFrame centres the card, which
-  // shrinks it to its content, and left at that it would be the width of
-  // "12 → 13" -- not enough of a card to catch an eye elsewhere.
+  // A minimum width rather than fitting the content: Tui::RenderFrame centres
+  // the card, which shrinks it to its content, and then it would only be as
+  // wide as "12 → 13", too small to catch the eye.
   return AccentWindow(" Level Up ",
                       ftxui::vbox(std::move(rows)) |
                           ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN,

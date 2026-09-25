@@ -9,9 +9,10 @@
 namespace ms {
 
 ftxui::Element AdvancementCard(Job from_job, Job to_job, int to_stage) {
-  // The level-up card's shape: five rows inside the border, same width floor,
-  // and no rule -- that card has one because it says two things. SHORT job
-  // names, the card being one size; the full name was shown twice already.
+  // The same shape as the level-up card: five rows inside the border and the
+  // same minimum width, but no divider, since that card has one to separate two
+  // kinds of information. It uses short job names so the card stays one size;
+  // the full name was already shown twice.
   return AccentWindow(" Advancement ",
                       ftxui::vbox({
                           ftxui::text(""),

@@ -12,7 +12,7 @@
 namespace ms {
 namespace {
 
-// How many rules the card draws below the row holding `needle`.
+// How many dividers the card draws below the row containing `needle`.
 int RuledRowsAfter(const std::string& out, const std::string& needle) {
   std::size_t at = out.find(needle);
   if (at == std::string::npos) {
@@ -66,8 +66,8 @@ TEST_F(OfflineCardTest, ShowsWhatTheAbsencePaid) {
   EXPECT_NE(out.find("[Continue]"), std::string::npos);
 }
 
-// What the absence earned reads first -- levels, EXP, meso, honor -- and the
-// loot is ruled off under it.
+// What the absence earned comes first (levels, EXP, meso, honor), and the loot
+// is below a divider.
 TEST_F(OfflineCardTest, ARuleDividesWhatWasEarnedFromTheLoot) {
   OfflineReport report = Report();
   report.rewards.honor = 250;
@@ -87,8 +87,7 @@ TEST_F(OfflineCardTest, ARuleDividesWhatWasEarnedFromTheLoot) {
   EXPECT_NE(out.substr(honor, loot - honor).find("\u2500"), std::string::npos);
 }
 
-// Nothing to rule off from: an absence that dropped nothing draws no rule
-// under its numbers.
+// An absence with no loot draws no divider below its numbers.
 TEST_F(OfflineCardTest, NoLootDrawsNoRule) {
   OfflineReport bare = Report();
   bare.rewards.items.clear();
@@ -97,8 +96,8 @@ TEST_F(OfflineCardTest, NoLootDrawsNoRule) {
             RuledRowsAfter(Render(Report()), "91,011"));
 }
 
-// The farming pays honor whatever the level, but a player who cannot spend it
-// yet is not told about a currency.
+// Farming pays honor at any level, but a player who can't spend it yet isn't
+// told about it.
 TEST_F(OfflineCardTest, TheHonorWaitsForInnerAbility) {
   OfflineReport report = Report();
   report.rewards.honor = 250;
@@ -109,8 +108,8 @@ TEST_F(OfflineCardTest, TheHonorWaitsForInnerAbility) {
   EXPECT_NE(out.find("45,678 EXP"), std::string::npos);
 }
 
-// Counted in units, not stacks, and what the bag could not hold is called out
-// rather than quietly missing from the total.
+// Counted in items, not stacks, and what didn't fit in the bag is shown rather
+// than silently missing from the total.
 TEST_F(OfflineCardTest, SaysWhatAFullBagLost) {
   OfflineReport report = Report();
   report.rewards.items = {{"Green Snail Shell", 10000, 2500}};
@@ -121,9 +120,9 @@ TEST_F(OfflineCardTest, SaysWhatAFullBagLost) {
   EXPECT_NE(out.find("(2,500 lost)"), std::string::npos);
 }
 
-// The header is the whole absence; the death line is how far into it the
-// farming got. A card that showed only the shorter of the two would be
-// telling the player they were away less time than they were.
+// The header is the whole absence; the death line is how far into it farming
+// lasted. Showing only the shorter one would tell the player they were away for
+// less time than they were.
 TEST_F(OfflineCardTest, SaysHowFarIntoTheAbsenceThePlayerFell) {
   OfflineReport report = Report();
   report.absence = 28800.0;
@@ -137,7 +136,8 @@ TEST_F(OfflineCardTest, SaysHowFarIntoTheAbsenceThePlayerFell) {
   EXPECT_NE(out.find("Maple Island"), std::string::npos);
 }
 
-// A player who logged off in town is told that, not shown an empty ledger.
+// A player who logged off in town is told that, rather than shown an empty
+// list.
 TEST_F(OfflineCardTest, SaysWhenNothingWasFarmed) {
   OfflineReport report;
   report.absence = 3600.0;

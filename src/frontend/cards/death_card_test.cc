@@ -32,9 +32,9 @@ TEST(DeathCardTest, IsTitledAndBorderedInRed) {
   EXPECT_NE(screen.PixelAt(0, 0).foreground_color, kYellow);
 }
 
-// It lands in the same place as the two cards that mean good news, so it has
-// to carry the same weight there -- a smaller box in the same spot would read
-// as a lesser event than levelling up.
+// It appears in the same place as the two good-news cards, so it must be the
+// same size; a smaller box there would look like a lesser event than levelling
+// up.
 TEST(DeathCardTest, IsTheSameSizeAsTheLevelUpCard) {
   ftxui::Element level_up = LevelUpCard(9, 10, 5, 3);
   ftxui::Screen theirs = ftxui::Screen::Create(ftxui::Dimension::Fit(level_up));
@@ -45,7 +45,7 @@ TEST(DeathCardTest, IsTheSameSizeAsTheLevelUpCard) {
   EXPECT_EQ(ours.dimy(), theirs.dimy());
 }
 
-// Dead centre of the five-row body: two blank rows above it and two below.
+// Exactly centred in the five-row body: two blank rows above and two below.
 TEST(DeathCardTest, HoldsItsOneLineInTheMiddleOfTheCard) {
   ftxui::Screen screen = RenderCard();
   EXPECT_EQ(RowIndexOf(screen, "You died!"), 3);
