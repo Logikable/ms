@@ -32,8 +32,8 @@ class RosterTest : public testing::Test {
                                        std::map<std::string, MapData>{});
   }
 
-  // A slot for somebody who is not being played, played `stamp` seconds into
-  // the epoch.
+  // A slot for someone not being played, last played `stamp` seconds after the
+  // epoch.
   CharacterSave Slot(const std::string& name, int level, Job job,
                      int64_t stamp) {
     CharacterSave slot;
@@ -66,8 +66,7 @@ TEST_F(RosterTest, TheRosterListsMostRecentlyPlayedFirst) {
 
   std::vector<RosterEntry> rows = Roster(*state_);
   ASSERT_EQ(rows.size(), 3u);
-  // The played character was stamped the moment they were put in, so they
-  // are always the newest.
+  // The played character was stamped when put in, so they're always the newest.
   EXPECT_EQ(rows[0].name, "Played");
   EXPECT_EQ(rows[1].name, "Newer");
   EXPECT_EQ(rows[2].name, "Old");
@@ -86,7 +85,7 @@ TEST_F(RosterTest, PlayingSomebodyElseWritesTheFirstCharacterBack) {
   EXPECT_EQ(state_->character.username(), "Second");
   EXPECT_EQ(state_->played_slot, 1);
   EXPECT_EQ(state_->current_map, "cave") << "their own map comes back";
-  // The check stays where it was: playing somebody is not choosing them.
+  // The offline check stays put: playing someone isn't choosing them for it.
   EXPECT_EQ(state_->offline_slot, 0);
 
   EXPECT_TRUE(PlayCharacter(*state_, 0));
@@ -94,8 +93,8 @@ TEST_F(RosterTest, PlayingSomebodyElseWritesTheFirstCharacterBack) {
   EXPECT_EQ(state_->character.meso(), 500);
   EXPECT_EQ(state_->current_map, "field");
 
-  // Picking the character already in play, or a slot nobody is in, changes
-  // nothing and says so -- on that row Play is a resume.
+  // Choosing the character already in play, or an empty slot, changes nothing
+  // and returns false; on that row Play means resume.
   EXPECT_FALSE(PlayCharacter(*state_, 0));
   EXPECT_FALSE(PlayCharacter(*state_, 7));
   EXPECT_EQ(state_->character.username(), "First");
@@ -119,8 +118,8 @@ TEST_F(RosterTest, CreateMakesAnArmedBeginnerAndPlaysThem) {
   EXPECT_EQ(state_->inactive_characters[0].character().name(), "First");
 }
 
-// The account is what a new character's unlocks are measured against, and
-// only a switch can tell it what the character leaving play reached.
+// New characters' unlocks are checked against the account, and only a switch
+// can tell it what the departing character reached.
 TEST_F(RosterTest, TheAccountTakesInWhoeverLeavesPlay) {
   while (state_->character.proto().level() < 120) {
     state_->character.LevelUp();
@@ -146,7 +145,7 @@ TEST_F(RosterTest, DeletingSomebodyElseLeavesThePlayedCharacterAlone) {
 
   EXPECT_TRUE(DeleteCharacter(*state_, 0));
   EXPECT_EQ(state_->character.username(), "Played");
-  // Both markers slid down with the hole beneath them.
+  // Both markers shifted down along with the removed slot.
   EXPECT_EQ(state_->played_slot, 1);
   EXPECT_EQ(state_->offline_slot, 1);
   ASSERT_EQ(state_->inactive_characters.size(), 1u);
@@ -182,8 +181,8 @@ TEST_F(RosterTest, TheCheckMovesWhereItIsPutAndNowhereElse) {
   state_->inactive_characters.push_back(Slot("Farmer", 30, JOB_FIGHTER, 100));
   SetOfflineCharacter(*state_, 1);
   EXPECT_EQ(state_->offline_slot, 1);
-  // Out of range is refused rather than clamped: a slot that is not there is
-  // a caller's mistake, not a choice.
+  // Out of range is rejected instead of clamped: a missing slot is a caller's
+  // mistake, not a choice.
   SetOfflineCharacter(*state_, 7);
   EXPECT_EQ(state_->offline_slot, 1);
 }

@@ -1,8 +1,7 @@
-/* How far along a map is meant for: one number off its spawn list.
+/* How far along the game a map is meant for, as one number from its spawn list.
  *
- * Read by the map list the player picks from and by the sims that sort maps
- * into the order a player meets them, which is why it is here rather than
- * inside either.
+ * Used by the map list the player picks from and by the sims that sort maps
+ * into the order a player meets them, so it lives here instead of in either.
  */
 #ifndef MS_SRC_MAP_LEVEL_H_
 #define MS_SRC_MAP_LEVEL_H_
@@ -16,10 +15,10 @@
 namespace ms {
 
 // Mean level of what `map` spawns, weighted by how many of each. Weighting by
-// count puts the number where the player's time actually goes: a couple of
-// stragglers should not pull a map up away from the crowd that fills it.
+// count reflects where the player's time goes: a couple of stragglers shouldn't
+// pull a map's level away from the crowd that fills it.
 //
-// 0 for a town, and for a map whose spawns name no mob the catalog defines.
+// 0 for a town, and for a map whose spawns name no mob in the catalog.
 double MapLevel(const std::map<std::string, Mob>& mobs, const MapData& map);
 
 }  // namespace ms

@@ -1,8 +1,8 @@
-/* The force a map asks for -- Arcane Force in Arcane River, Sacred Power in
- * Grandis, nothing anywhere else -- and where a character stands against it.
+/* The force a map requires (Arcane Force in Arcane River, Sacred Power in
+ * Grandis, nothing elsewhere) and how a character measures up to it.
  *
- * One answer for the fight and every screen that shows the toll, so none of
- * them has to know which of the two a map is keyed on.
+ * One answer for the fight and every screen that shows the penalty, so none of
+ * them needs to know which force a map uses.
  */
 #ifndef MS_SRC_MAP_FORCE_H_
 #define MS_SRC_MAP_FORCE_H_
@@ -16,8 +16,8 @@
 namespace ms {
 
 struct MapForce {
-  // "Arcane Force" or "Sacred Power", and "AF" or "SAC" where a column is
-  // narrow. Both empty on a map asking neither.
+  // "Arcane Force" or "Sacred Power", and "AF" or "SAC" for narrow columns.
+  // Both empty on a map requiring neither.
   std::string name;
   std::string abbreviation;
   int required = 0;
@@ -25,12 +25,12 @@ struct MapForce {
   ForceFactors factors;
 };
 
-// What `map` asks of `character`. required is 0, and the factors the
-// identity, on a map asking for neither force.
+// What `map` requires of `character`. On a map requiring neither force,
+// required is 0 and the factors are 1.
 MapForce MapForceFor(const MapData& map, const CharacterInstance& character);
 
-// Whether `map` asks for either force: Arcane River and Grandis, which are
-// also where V Points fall.
+// Whether `map` requires either force: Arcane River and Grandis, which are also
+// where V Points drop.
 bool AsksForForce(const MapData& map);
 
 }  // namespace ms

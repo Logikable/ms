@@ -1,13 +1,12 @@
-/* The console window the game is running in, on the two paths it gets one.
+/* The console window the game runs in, in the two cases where it gets one.
  *
- * A player on Windows opens the game from Explorer, which makes a console for
- * it and destroys that console the moment the process ends -- taking any
- * parting message with it. Naming that window and holding it open is what the
- * launcher script beside the executable used to do, and it belongs here: a
- * release is one file now.
+ * A Windows player opens the game from Explorer, which creates a console for it
+ * and destroys it as soon as the process ends, along with any final message.
+ * Naming that window and keeping it open used to be done by a launcher script;
+ * it's done here now so a release is a single file.
  *
- * Neither call does anything off Windows, where a terminal outlives the
- * program that ran in it.
+ * Neither call does anything outside Windows, where the terminal outlives the
+ * program.
  */
 #ifndef MS_SRC_CONSOLE_H_
 #define MS_SRC_CONSOLE_H_
@@ -17,10 +16,10 @@ namespace ms {
 // Names the console window the game is running in.
 void NameConsoleWindow();
 
-// Holds the window open at exit when closing it would take the screen with
-// it. Declare one in main above anything that can return: a game opened from
-// a file manager waits for a keypress, and one run from a terminal -- whose
-// window stays either way -- does not.
+// Keeps the window open at exit when closing it would lose the screen. Declare
+// one in main before anything that can return: a game opened from a file
+// manager waits for a keypress, and one run from a terminal (whose window stays
+// open anyway) doesn't.
 class ConsoleHold {
  public:
   ConsoleHold() = default;

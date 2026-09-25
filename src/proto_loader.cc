@@ -39,9 +39,9 @@ std::map<std::string, T> LoadTextProtoDir(const std::string& dir_path) {
       continue;
     }
     const std::string stem = entry.path().stem().string();
-    // The key is the stem alone, so two subfolders naming the same file are
-    // one item as far as every caller is concerned. Better to stop than to
-    // keep whichever the directory walk reached first.
+    // The key is only the stem, so two subfolders with the same filename would
+    // be one item to every caller. Better to stop than keep whichever file the
+    // walk found first.
     if (result.count(stem) > 0) {
       LOG(FATAL) << "Duplicate textproto name '" << stem << "' under "
                  << dir_path;
@@ -68,7 +68,7 @@ std::map<std::string, T> LoadTextProtoMap(
 }
 
 // Explicit instantiations are required because the template body is defined
-// here in the .cc rather than in the header.
+// here in the .cc instead of the header.
 template std::map<std::string, EquipPrototype> LoadTextProtoDir<EquipPrototype>(
     const std::string&);
 template std::map<std::string, Boss> LoadTextProtoDir<Boss>(const std::string&);

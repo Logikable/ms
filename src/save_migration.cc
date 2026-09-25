@@ -15,12 +15,12 @@
 namespace ms {
 namespace {
 
-// Character.seen_tabs as version 1 numbered it. The field is reserved now, so
-// a version 1 character parses it into its unknown fields and this is the only
-// name left to find it by.
+// Character.seen_tabs as version 1 numbered it. The field is reserved now, so a
+// version 1 character parses it into unknown fields, and this number is the
+// only way to find it.
 constexpr int kSeenTabsField = 14;
 
-// The seen keys a version 1 character carried, read back off the wire.
+// The seen keys a version 1 character had, read back from the raw fields.
 void CopySeenTabs(const Character& character, Account& account) {
   const google::protobuf::UnknownFieldSet& unknown =
       character.GetReflection()->GetUnknownFields(character);
@@ -33,11 +33,10 @@ void CopySeenTabs(const Character& character, Account& account) {
   }
 }
 
-// Version 1 held one character, and held the account's business -- the
-// bindings and the seen-key list -- on that character. Everything becomes the
-// first and only slot of the account, whose unlocks are seeded from how far
-// that character got: the player has opened what they opened, and a second
-// character starts with it.
+// Version 1 held one character, and stored account data (bindings and seen
+// keys) on that character. It all becomes the account's first and only slot,
+// and the account's unlocks are set from that character's progress: what the
+// player unlocked stays unlocked, and a second character starts with it.
 SaveGame UpgradeFromV1(const SaveGameV1& old) {
   SaveGame save;
   CharacterSave* slot = save.add_characters();
@@ -56,10 +55,10 @@ SaveGame UpgradeFromV1(const SaveGameV1& old) {
   return save;
 }
 
-// Version 2 carried the currencies as stacks on the Etc tab, where each cost
-// one of its 128 slots and its own max_stack capped it. They become balances.
-// A name that has since left data/ is dropped, exactly as a stack naming a
-// missing item already was.
+// Version 2 stored currencies as stacks on the Etc tab, where each used one of
+// its 128 slots and was capped by its max_stack. They become balances. A name
+// no longer in data/ is dropped, just as a stack naming a missing item already
+// was.
 void UpgradeFromV2(const std::map<std::string, ItemPrototype>& items,
                    SaveGame& save) {
   for (CharacterSave& slot : *save.mutable_characters()) {

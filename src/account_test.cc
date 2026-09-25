@@ -24,7 +24,7 @@ TEST(AccountTest, ProgressOnlyClimbs) {
   EXPECT_EQ(account.max_level(), 40);
   EXPECT_EQ(account.max_job_stage(), 2);
 
-  // A second character starting over does not take the account back down.
+  // A second character starting over doesn't lower the account's progress.
   account.RecordProgress(1, 0);
   EXPECT_EQ(account.max_level(), 40);
   EXPECT_EQ(account.max_job_stage(), 2);
@@ -63,7 +63,7 @@ TEST(AccountTest, BgmVolumesDefaultToTenAndClamp) {
   account.SetMapBgmVolume(55);
   account.SetBossBgmVolume(0);
   EXPECT_EQ(account.map_bgm_volume(), 55);
-  // Zero is a volume the player chose, not an unset field falling back.
+  // Zero is a volume the player chose, not an unset field using the default.
   EXPECT_EQ(account.boss_bgm_volume(), 0);
 
   account.SetMapBgmVolume(-5);

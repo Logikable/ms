@@ -1,14 +1,15 @@
-/* Reading and writing the player's one save file.
+/* Reading and writing the player's save file.
  *
- * The save sits beside the executable rather than in the working directory: a
- * player who double-clicks the binary from a file manager gets whatever cwd
- * that manager felt like, and the save belongs with the game they unzipped.
+ * The save sits next to the executable, not in the working directory: a player
+ * who double-clicks the binary in a file manager gets whatever working
+ * directory that manager chooses, and the save belongs with the game they
+ * unzipped.
  *
  * Writing is atomic. The bytes go to a temp file in the same directory, are
- * flushed to disk, and only then replace the save by rename -- so a machine
- * that dies mid-write leaves the previous save whole and a stray temp file,
- * never a half-written save. This is what makes autosaving safe to do under a
- * player who may close the window at any moment.
+ * flushed to disk, and only then replace the save by rename. A machine that
+ * dies mid-write leaves the previous save intact plus a stray temp file, never
+ * a half-written save. That's what makes autosaving safe when the player may
+ * close the window at any moment.
  */
 #ifndef MS_SRC_SAVE_H_
 #define MS_SRC_SAVE_H_
@@ -21,68 +22,68 @@
 
 namespace ms {
 
-// The format this build writes, and the newest it can read. An older one is
-// read by upgrading it -- see save_migration.h. See SaveGame.format_version
-// for what each version holds.
+// The format this build writes, and the newest it can read. Older versions are
+// upgraded on read; see save_migration.h. See SaveGame.format_version for what
+// each version contains.
 constexpr int kSaveFormatVersion = 3;
 
-// Where the save file lives: alongside the running executable. `argv0` is the
-// program path as the OS gave it. Falls back to the working directory when
-// that path says nothing about a directory.
+// Where the save file lives: next to the running executable. `argv0` is the
+// program path the OS gave. Falls back to the working directory if that path
+// has no directory part.
 std::string SavePathFor(const std::string& argv0);
 
-// How a load ended. kMissing is the ordinary first launch, and the only one of
-// these that is not a problem.
+// How a load ended. kMissing is the normal first launch, and the only one that
+// isn't a problem.
 enum class LoadStatus {
   kLoaded,
   kMissing,
-  // The file is there but is not a save, is truncated, or carries no
-  // character -- a write from a build that died before rename, a wrong file
-  // with the right name, an edit.
+  // The file exists but isn't a save, is truncated, or has no character: a
+  // write from a build that died before the rename, a wrong file with the right
+  // name, or an edit.
   kUnreadable,
-  // Written by a newer build than this one. Refused rather than read, since
-  // the fields it uses may not mean here what they meant there.
+  // Written by a newer build. Refused instead of read, since its fields may not
+  // mean the same thing here.
   kFromTheFuture,
 };
 
-// The outcome of a load, with a sentence fit to show the player. `message` is
-// empty on kLoaded and kMissing.
+// The outcome of a load, with a sentence suitable for the player. `message` is
+// empty for kLoaded and kMissing.
 struct LoadResult {
   LoadStatus status = LoadStatus::kMissing;
   std::string message;
 };
 
-// Writes `state` to `path`, replacing whatever is there. Returns false if the
-// save could not be written, in which case the previous save is untouched.
+// Writes `state` to `path`, replacing what's there. Returns false if the save
+// couldn't be written, in which case the previous save is untouched.
 bool SaveGameToFile(const GameState& state, const std::string& path);
 
 // Reads `path` into `state`, resolving items against the catalogs it already
-// holds. The character carrying the offline check becomes the one being
-// played; the rest ride along untouched so that the next write keeps them.
-// Leaves `state` alone unless the status is kLoaded.
+// has. The character with the offline check becomes the played one; the rest
+// are kept untouched so the next write preserves them. Leaves `state` unchanged
+// unless the status is kLoaded.
 LoadResult LoadGameFromFile(GameState& state, const std::string& path);
 
 // How long a session goes between automatic saves. Short enough that closing
-// the window costs a player almost nothing, long enough that a few-kilobyte
-// write is nowhere near the 300ms combat tick in cost.
+// the window loses almost nothing, and long enough that a few-kilobyte write
+// costs far less than the 300ms combat tick.
 constexpr std::chrono::seconds kAutosaveInterval(30);
 
-// When a session writes its save. Held by whoever owns the loop the player is
-// leaving, which is the only thing that knows they have left.
+// Decides when a session saves. Owned by whoever runs the loop the player is
+// leaving, since only it knows they've left.
 class SavePolicy {
  public:
-  // `path` is where the game is written; empty turns saving off, which is how
-  // the workbench avoids ever touching a player's file. `now` starts the
-  // autosave clock, so the first one is due a whole interval in.
+  // `path` is where the game is written; empty disables saving, which keeps the
+  // workbench from ever touching a player's file. `now` starts the autosave
+  // timer, so the first autosave is a full interval away.
   SavePolicy(std::string path, std::chrono::steady_clock::time_point now);
 
-  // Writes the game, whatever the clock says. Returns whether anything was
-  // written: a failure is logged and swallowed, since a save that cannot be
-  // written is not a reason to take the game down and the previous one is
-  // still there.
+  // Saves the game regardless of the timer. Returns whether anything was
+  // written. A failure is logged and ignored: failing to save isn't a reason to
+  // crash, and the previous save is still there.
   bool Save(const GameState& state, std::chrono::steady_clock::time_point now);
 
-  // Save(), but only once kAutosaveInterval has passed since the last one.
+  // Like Save(), but only once kAutosaveInterval has passed since the last
+  // save.
   bool AutosaveIfDue(const GameState& state,
                      std::chrono::steady_clock::time_point now);
 

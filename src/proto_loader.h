@@ -1,7 +1,6 @@
-/* Utilities for loading textproto files from disk. LoadTextProtoDir is a
- * template defined in proto_loader.cc; it is only explicitly instantiated for
- * EquipPrototype and Scroll. To support additional types, add an explicit
- * instantiation in proto_loader.cc.
+/* Utilities for loading textproto files. The templates are defined in
+ * proto_loader.cc and only explicitly instantiated for the catalog types listed
+ * there; to support another type, add an explicit instantiation there.
  */
 #ifndef MS_SRC_PROTO_LOADER_H_
 #define MS_SRC_PROTO_LOADER_H_
@@ -13,22 +12,22 @@
 
 namespace ms {
 
-// Reads a textproto file at `path` and parses it into `msg`.
-// LOG(FATAL) on any I/O or parse error.
+// Reads the textproto file at `path` into `msg`. LOG(FATAL) on any I/O or parse
+// error.
 void LoadTextProto(const std::string& path, google::protobuf::Message* msg);
 
-// Loads every *.textproto under `dir_path`, subfolders included, into a map
-// keyed by filename stem. Folders are for the reader's benefit only: they do
-// not enter the key, so an item can be filed differently without anything that
-// names it having to change. LOG(FATAL) on any I/O or parse error, or if two
-// files anywhere under `dir_path` share a stem.
+// Loads every *.textproto under `dir_path`, including subfolders, into a map
+// keyed by filename stem. Folders only help human readers and aren't part of
+// the key, so an item can be moved between folders without changing anything
+// that refers to it. LOG(FATAL) on any I/O or parse error, or if two files
+// under `dir_path` share a stem.
 template <typename T>
 std::map<std::string, T> LoadTextProtoDir(const std::string& dir_path);
 
-// Parses an already-read set of textprotos, keyed by name, into a map on the
-// same keys -- the shape //src:embedded_data hands back. The game proper reads
-// its data this way; LoadTextProtoDir is for tests, which have the files.
-// LOG(FATAL) on any parse error.
+// Parses already-read textprotos, keyed by name, into a map with the same keys:
+// the form //src:embedded_data returns. The game reads its data this way;
+// LoadTextProtoDir is for tests, which have the files. LOG(FATAL) on any parse
+// error.
 template <typename T>
 std::map<std::string, T> LoadTextProtoMap(
     const std::map<std::string, std::string>& sources);

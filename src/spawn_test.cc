@@ -7,8 +7,8 @@
 namespace ms {
 namespace {
 
-// A map writes a count; a boss phase writes a spot per monster and lets the
-// spots be the count.
+// A map gives a count; a boss phase lists a spot per monster and uses the
+// number of spots as the count.
 TEST(SpawnCountTest, SpotsWinOverTheCount) {
   Spawn map_spawn;
   map_spawn.set_count(6);
@@ -19,8 +19,8 @@ TEST(SpawnCountTest, SpotsWinOverTheCount) {
   phase.add_spots();
   EXPECT_EQ(SpawnCount(phase), 2);
 
-  // Nothing should write both, but if something does the spots are the arena's
-  // own answer and the count cannot be honoured anyway.
+  // Nothing should set both, but if something does, the spots describe the
+  // arena and the count can't be honoured anyway.
   phase.set_count(9);
   EXPECT_EQ(SpawnCount(phase), 2);
 }

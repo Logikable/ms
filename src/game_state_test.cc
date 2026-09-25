@@ -35,8 +35,7 @@
 namespace ms {
 namespace {
 
-// A catalog holding the equip both modes hand out, so the seeding has
-// something to find.
+// A catalog with the equip both modes give out, so seeding finds something.
 std::map<std::string, EquipPrototype> SwordCatalog() {
   EquipPrototype sword;
   sword.set_name("Sword");
@@ -52,16 +51,16 @@ GameState MakePlayModeState() {
   return GameState(SwordCatalog(), {}, {}, {}, {}, {}, GameMode::kPlay);
 }
 
-// Which branch the workbench's character takes -- a knob in game_state.cc,
-// meant to be flipped to look at another job's screens. Read rather than
-// named, so flipping it does not fail the tests below.
+// Which branch the workbench character takes: a setting in game_state.cc, meant
+// to be changed to view another job's screens. Read instead of hardcoded, so
+// changing it doesn't break the tests below.
 Job WorkbenchJob() {
   return MakeTestModeState().character.proto().job();
 }
 
-// One skill of each advancement the workbench's character passes through, so
-// the seeding has a book to spend its SP on. The levels are the real ones, so
-// what a stage's pool buys is the real question too.
+// One skill for each advancement the workbench character passes through, so
+// seeding has a book to spend SP on. The levels are real, so what a stage's
+// points buy is realistic too.
 std::map<std::string, Skill> EveryStageBook() {
   const int kSpByStage[] = {0, 60, 90, 120, 200};
   std::map<std::string, Skill> book;
@@ -77,8 +76,8 @@ std::map<std::string, Skill> EveryStageBook() {
     skill.set_max_level(kSpByStage[stage]);
     book.insert({"stage_" + std::to_string(stage), skill});
   }
-  // The 5th job's book is the matrix: a node of its own, and a common one,
-  // which every matrix holds whatever the job.
+  // The 5th job's book is the matrix: a node of its own, and a common node
+  // every matrix has whatever the job.
   Skill node;
   node.set_name("Fifth Surge");
   node.set_kind(SKILL_KIND_ATTACK);
@@ -102,8 +101,8 @@ GameState MakeTestModeStateWithSkills(TestSkills skills = TestSkills::kZero) {
                    GameMode::kTest, test);
 }
 
-// The item catalog test mode's seeding asks for: the two currencies, an
-// ordinary Etc item to tell them from, and the traces the workbench is handed.
+// The item catalog test mode's seeding needs: the two currencies, an ordinary
+// Etc item to tell them apart from, and the traces the workbench is given.
 std::map<std::string, ItemPrototype> SeededItemCatalog() {
   ItemPrototype token;
   token.set_name("Weapon Token");
@@ -125,7 +124,7 @@ std::map<std::string, ItemPrototype> SeededItemCatalog() {
           {"spell_trace", trace}};
 }
 
-// The stack of `name` in the bag, or nullptr when there is none.
+// The stack of `name` in the bag, or nullptr if there's none.
 const StackableItem* FindStack(const GameState& state,
                                const std::string& name) {
   for (const StackableItem& stack : state.character.stackables()) {
@@ -146,8 +145,7 @@ GameState MakePlayModeStateWithItems() {
                    GameMode::kPlay);
 }
 
-// One claim, five catalogs: the constructor hands each one through to the
-// field named after it.
+// The constructor stores each of the five catalogs in the field named after it.
 TEST(GameStateTest, ConstructorStoresEveryCatalog) {
   EquipPrototype equip;
   equip.set_name("Sword");
@@ -176,19 +174,19 @@ TEST(GameStateTest, ConstructorStoresEveryCatalog) {
   EXPECT_EQ(state.maps.at("lith").name(), "Right Around Lith Harbor");
 }
 
-// The workbench opens on a finished character, because everything past level
-// thirty is otherwise thirty hours away and there is no other way to look at
-// it. Play mode is where the climb is worth watching a level at a time.
+// The workbench starts with a finished character, because everything past level
+// thirty would otherwise take thirty hours to reach. Play mode is where
+// levelling one at a time is worth watching.
 TEST(GameStateTest, TestModeStartsAtTheTopOfTheWrittenLine) {
   GameState test = MakeTestModeState();
-  // The cap: the 4th job is the last one written, so there is no band above
-  // it and the workbench stops where the EXP table stops paying.
+  // The cap: the 4th job is the last one written, so there's no band above it
+  // and the workbench stops where the EXP table ends.
   int stage = test.character.proto().job_stage();
   EXPECT_EQ(stage, kLastJobStage);
   EXPECT_EQ(test.character.proto().level(), kTrialLevelCap);
-  // Some warrior branch, not a particular one -- see WorkbenchJob. Walked down
-  // the tree from the 1st job, so a workbench standing somewhere the choices
-  // cannot reach fails here.
+  // Some warrior branch, not a specific one; see WorkbenchJob. Walked down the
+  // job tree from the 1st job, so a workbench somewhere the choices can't lead
+  // fails here.
   std::vector<Job> reached = {JOB_SWORDMAN};
   for (int i = 2; i <= stage; ++i) {
     std::vector<Job> next;
@@ -202,15 +200,14 @@ TEST(GameStateTest, TestModeStartsAtTheTopOfTheWrittenLine) {
   EXPECT_NE(
       std::find(reached.begin(), reached.end(), test.character.proto().job()),
       reached.end());
-  // Nothing left standing between the tester and the screens: no advancement
-  // waiting to be taken, and no pool waiting to be spent.
+  // Nothing between the tester and the screens: no pending advancement and no
+  // unspent points.
   EXPECT_FALSE(test.character.CanAdvanceJob());
   EXPECT_EQ(test.character.proto().ap(), 0);
 }
 
-// Both switches are on for the workbench: it holds two stat allocations at
-// once, and the music is what a tester in front of it hears. Play mode leaves
-// both to the player.
+// Both settings are on for the workbench: it has two stat allocations at once,
+// and a tester hears the music. Play mode leaves both to the player.
 TEST(GameStateTest, TestModeThrowsTheWorkbenchSwitches) {
   GameState state = MakeTestModeState();
   EXPECT_TRUE(state.account.autoswap_presets());
@@ -228,8 +225,8 @@ TEST(GameStateTest, SkillsZeroLeavesTheJobsOwnBookUnbought) {
   for (int stage = 1; stage < top; ++stage) {
     EXPECT_EQ(state.character.sp(stage), 0) << "stage " << stage;
   }
-  // The 5th job's book is the matrix, so what is left unbought is every node
-  // -- the common ones with them -- and the points are still in the pool.
+  // The 5th job's book is the matrix, so every node (including common ones) is
+  // left unbought and the points stay in the pool.
   bool fifth = top >= kFifthJobStage;
   if (fifth) {
     EXPECT_GT(state.character.v_points(), 0);
@@ -260,8 +257,8 @@ TEST(GameStateTest, SkillsMaxBuysEveryBookOutright) {
 
 // --- --hammered, --scrolled and --sf ---
 
-// The workbench's own level 30 warrior weapon, with slots to scroll and stars
-// to add. Keyed the way WorkbenchGearFor names it, or nothing is worn at all.
+// The workbench's level 30 warrior weapon, with slots to scroll and room for
+// stars. Keyed as WorkbenchGearFor names it, or nothing is worn at all.
 std::map<std::string, EquipPrototype> GladiusCatalog() {
   EquipPrototype gladius;
   gladius.set_name("Gladius");
@@ -273,8 +270,8 @@ std::map<std::string, EquipPrototype> GladiusCatalog() {
   return {{"gladius", gladius}};
 }
 
-// Two traces a warrior's weapon takes, the long odds paying more. The
-// workbench passes every slot, so it should take the one that pays.
+// Two traces for a warrior's weapon, the riskier one paying more. The workbench
+// passes every slot, so it should take the one that pays more.
 std::map<std::string, Scroll> WarriorWeaponTraces() {
   Scroll sure;
   sure.set_name("100% STR");
@@ -306,7 +303,7 @@ const Equip& WornWeapon(const GameState& state) {
       ->equip_state();
 }
 
-// No flag at all: gear arrives as it drops, slots to spend and no stars.
+// No flags: gear arrives as it drops, with slots to spend and no stars.
 TEST(GameStateTest, NoUpgradeFlagLeavesTheGearAsItDrops) {
   GameState state = MakeEquipsState(GearSetup());
   EXPECT_EQ(WornWeapon(state).remaining_upgrade_slots(), 7);
@@ -315,8 +312,8 @@ TEST(GameStateTest, NoUpgradeFlagLeavesTheGearAsItDrops) {
   EXPECT_EQ(WornWeapon(state).stars(), 0);
 }
 
-// Each flag does its own job and nothing else: the hammers widen the shelf,
-// leaving every slot on it unspent.
+// Each flag does only its own job: hammers add slots and leave them all
+// unspent.
 TEST(GameStateTest, HammeredWidensTheShelfWithoutFillingIt) {
   GearSetup equips;
   equips.hammered = true;
@@ -327,8 +324,7 @@ TEST(GameStateTest, HammeredWidensTheShelfWithoutFillingIt) {
   EXPECT_EQ(worn.scroll_successes(), 0);
 }
 
-// And scrolling alone passes the shelf the item shipped with, with the trace
-// that pays the most.
+// Scrolling alone passes the item's original slots, with the best-paying trace.
 TEST(GameStateTest, ScrolledPassesTheSlotsTheItemHas) {
   GearSetup equips;
   equips.scrolled = true;
@@ -342,7 +338,7 @@ TEST(GameStateTest, ScrolledPassesTheSlotsTheItemHas) {
   EXPECT_EQ(worn.stars(), 0);
 }
 
-// Together the wider shelf is the one that gets filled.
+// Together, the widened set of slots is what gets filled.
 TEST(GameStateTest, HammeredAndScrolledFillTheWiderShelf) {
   GearSetup equips;
   equips.hammered = true;
@@ -356,8 +352,8 @@ TEST(GameStateTest, HammeredAndScrolledFillTheWiderShelf) {
   EXPECT_EQ(worn.scroll_stats().str(), 27);
 }
 
-// --sf sets exactly the stars it names, and the item's own cap is the ceiling
-// -- a level 30 weapon takes five of them however many are asked for.
+// --sf sets exactly the stars given, capped by the item: a level 30 weapon
+// takes five however many are requested.
 TEST(GameStateTest, SfSetsTheStarsItNamesUpToTheItemsCap) {
   GearSetup equips;
   equips.scrolled = true;
@@ -369,8 +365,8 @@ TEST(GameStateTest, SfSetsTheStarsItNamesUpToTheItemsCap) {
             EquipTabItem::MaxStarsForLevel(30));
 }
 
-// Stars need nothing left to scroll, which is the upgrade screen's own rule --
-// so --sf on an item with slots unspent leaves it unstarred.
+// Stars need no slots left to scroll, the upgrade screen's own rule, so --sf on
+// an item with unspent slots leaves it unstarred.
 TEST(GameStateTest, SfWaitsForAShelfWithNothingLeftOnIt) {
   GearSetup equips;
   equips.stars = 3;
@@ -380,8 +376,8 @@ TEST(GameStateTest, SfWaitsForAShelfWithNothingLeftOnIt) {
   EXPECT_EQ(WornWeapon(MakeEquipsState(equips)).stars(), 0);
 }
 
-// An item that refuses an upgrade path is left alone on it, however the flags
-// are set: the workbench does not get to overrule the data.
+// An item that can't take an upgrade type is left alone for it, whatever the
+// flags: the workbench can't override the data.
 TEST(GameStateTest, TheFlagsLeaveAnItemThatRefusesThePathAlone) {
   std::map<std::string, EquipPrototype> catalog = GladiusCatalog();
   catalog["gladius"].add_unsupported_upgrades(UPGRADE_STAR_FORCE);
@@ -394,11 +390,11 @@ TEST(GameStateTest, TheFlagsLeaveAnItemThatRefusesThePathAlone) {
   EXPECT_EQ(WornWeapon(state).stars(), 0);
 }
 
-// Gloves take no stat trace at all, so the workbench falls back to the attack
-// one -- and a scrolled shelf is what lets the stars go on.
+// Gloves take no stat trace, so the workbench uses the attack one, and the
+// scrolled slots let the stars go on.
 TEST(GameStateTest, TheFlagsScrollGlovesWithTheAttackTrace) {
-  // Hung on the key WorkbenchGearFor names, which is what decides what a
-  // swordman is handed -- the prototype behind it is the catalog's to choose.
+  // Stored under the key WorkbenchGearFor uses, which decides what a Swordman
+  // gets; the prototype behind it is up to the catalog.
   EquipPrototype gloves;
   gloves.set_name("Gauntlets");
   gloves.set_equip_slot(EQUIP_SLOT_GLOVES);
@@ -428,8 +424,8 @@ TEST(GameStateTest, TheFlagsScrollGlovesWithTheAttackTrace) {
   EXPECT_EQ(worn.stars(), EquipTabItem::MaxStarsForLevel(30));
 }
 
-// The stat trace wins where both are written: a weapon takes STR, not the ATT
-// the fallback would reach for.
+// The stat trace wins where both exist: a weapon gets STR, not the ATT the
+// fallback would use.
 TEST(GameStateTest, TheFlagsPreferTheStatTraceOverTheAttackOne) {
   std::map<std::string, Scroll> scrolls = WarriorWeaponTraces();
   Scroll att;
@@ -449,8 +445,8 @@ TEST(GameStateTest, TheFlagsPreferTheStatTraceOverTheAttackOne) {
   EXPECT_EQ(WornWeapon(state).scroll_stats().str(), 27);
 }
 
-// A piece with no scroll shelf takes no hammer either: the hammer widens a
-// shelf, and there is none to widen.
+// A piece with no scroll slots doesn't get hammered either, since there are no
+// slots to add to.
 TEST(GameStateTest, TheFlagsLeaveAPieceWithNoShelfUnhammered) {
   std::map<std::string, EquipPrototype> catalog = GladiusCatalog();
   catalog["gladius"].set_upgrade_slots(0);
@@ -466,8 +462,8 @@ TEST(GameStateTest, TheFlagsLeaveAPieceWithNoShelfUnhammered) {
 
 // --- the --job workbench ---
 
-// A bow, so a chosen bowman job has its own weapon to be handed. Named the way
-// StarterEquipsFor and the workbench's own table name it.
+// A bow, so a chosen bowman job has its own weapon to be given. Named as
+// StarterEquipsFor and the workbench's table name it.
 std::map<std::string, EquipPrototype> BowCatalog() {
   std::map<std::string, EquipPrototype> equips = SwordCatalog();
   EquipPrototype war_bow;
@@ -488,7 +484,7 @@ std::map<std::string, EquipPrototype> BowCatalog() {
 }
 
 // A book the chosen job can actually buy from, so "the SP is unspent" means
-// unspent rather than unspendable. One skill per advancement that job reaches.
+// unspent, not unspendable. One skill per advancement that job reaches.
 std::map<std::string, Skill> BookFor(Job job) {
   std::map<std::string, Skill> book;
   const char* kNames[] = {"", "First Swing", "Second Swing"};
@@ -514,8 +510,8 @@ GameState MakeChosenJobState(JobAdvancement advancement) {
                    TestOptions{advancement});
 }
 
-// A workbench character is named after its job, so several of them in a party
-// are told apart. The slash of "I/L Arch Mage" is not a name character.
+// A workbench character is named after its job, so several in a party can be
+// told apart. The slash in "I/L Arch Mage" isn't a valid name character.
 TEST(GameStateTest, TheWorkbenchNamesACharacterAfterItsJob) {
   EXPECT_EQ(MakeChosenJobState(JOB_ADVANCEMENT_HUNTER).character.username(),
             "Hunter");
@@ -527,9 +523,9 @@ TEST(GameStateTest, TheWorkbenchNamesACharacterAfterItsJob) {
             kMaxUsernameLength);
 }
 
-// --job stops at the top of the advancement it names, not at the workbench's
-// own: an archer is the last level before the 2nd job, a hunter the last
-// before the 3rd.
+// --job stops at the top of the named advancement, not the workbench's default:
+// an Archer at the last level before the 2nd job, a Hunter at the last before
+// the 3rd.
 TEST(GameStateTest, ChosenJobStartsAtTheTopOfThatAdvancement) {
   GameState archer = MakeChosenJobState(JOB_ADVANCEMENT_ARCHER);
   EXPECT_EQ(archer.character.proto().job(), JOB_ARCHER);
@@ -541,9 +537,9 @@ TEST(GameStateTest, ChosenJobStartsAtTheTopOfThatAdvancement) {
   EXPECT_EQ(hunter.character.proto().job_stage(), 2);
 }
 
-// --level stops the climb where the tester asked rather than at the top of the
-// band, which is how a workbench is put in front of a screen that only opens
-// part-way up an advancement.
+// --level stops levelling where the tester asked instead of the top of the
+// band, which is how a workbench reaches a screen that opens partway through an
+// advancement.
 TEST(GameStateTest, ChosenLevelStopsTheClimbWhereItWasAsked) {
   TestOptions test;
   test.job = JOB_ADVANCEMENT_HUNTER;
@@ -556,9 +552,9 @@ TEST(GameStateTest, ChosenLevelStopsTheClimbWhereItWasAsked) {
   EXPECT_EQ(state.character.proto().ap(), 0) << "and the AP is still spent";
 }
 
-// The AP is spent: which stats to raise is never the question a tester is
-// asking. Only the chosen job's own book is left, since the books behind it
-// are not what was asked for either.
+// AP is spent, since which stats to raise is never what a tester is checking.
+// Only the chosen job's own book is left, since earlier books weren't requested
+// either.
 TEST(GameStateTest, ChosenJobSpendsTheApAndEveryBookBelowItsOwn) {
   GameState state = MakeChosenJobState(JOB_ADVANCEMENT_HUNTER);
   EXPECT_EQ(state.character.proto().ap(), 0);
@@ -573,7 +569,7 @@ TEST(GameStateTest, ChosenJobSpendsTheApAndEveryBookBelowItsOwn) {
   }
 }
 
-// A 1st job is the highest book its character has, so nothing is bought.
+// A 1st job's book is its character's highest, so nothing is bought.
 TEST(GameStateTest, AChosenFirstJobKeepsItsWholeBook) {
   GameState state = MakeChosenJobState(JOB_ADVANCEMENT_ARCHER);
   EXPECT_GT(state.character.sp(1), 0);
@@ -582,11 +578,11 @@ TEST(GameStateTest, AChosenFirstJobKeepsItsWholeBook) {
   }
 }
 
-// Worn, not carried. A 2nd job advances empty-handed now, so without this the
-// chosen job would arrive with nothing in hand and half its book asleep.
-// An Archer is left at 30 holding the Ryden that a level 30 can wear; a Hunter
-// is left at 60 holding the Asianic Bow. Both are the top of the bow ladder
-// their level reaches -- see WorkbenchGearFor.
+// Worn, not carried. A 2nd job now advances without a new weapon, so otherwise
+// the chosen job would arrive empty-handed with half its book unusable. An
+// Archer stops at 30 with the Ryden a level 30 can wear; a Hunter stops at 60
+// with the Asianic Bow. Both are the best bow their level allows; see
+// WorkbenchGearFor.
 TEST(GameStateTest, ChosenJobWearsTheWeaponItsLevelTopsOutAt) {
   GameState archer = MakeChosenJobState(JOB_ADVANCEMENT_ARCHER);
   ASSERT_TRUE(archer.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
@@ -599,10 +595,10 @@ TEST(GameStateTest, ChosenJobWearsTheWeaponItsLevelTopsOutAt) {
             "Asianic Bow");
 }
 
-// The token shelves are unbuyable without one, and clearing a boss for its
-// shard is exactly what a workbench is for skipping -- with no shard the Token
-// tab has only half its columns to look at. Only a currency: an ordinary Etc
-// drop is somebody else's loot, and is in neither the purse nor the bag.
+// The token shelves can't be used without currency, and a workbench exists to
+// skip clearing bosses for shards; with no shard, the Token tab shows only half
+// its columns. Only currencies: an ordinary Etc drop isn't given, in the purse
+// or the bag.
 TEST(GameStateTest, TestModeStartsWithEveryCurrency) {
   GameState state = MakeTestModeStateWithItems();
   const CurrencyPurse& purse = state.character.currencies();
@@ -612,16 +608,14 @@ TEST(GameStateTest, TestModeStartsWithEveryCurrency) {
   EXPECT_EQ(FindStack(state, "Beetle's Horn"), nullptr);
 }
 
-// Scrolling is priced in traces and the shop counts them out 5,000 meso at a
-// time, which is a long walk to reach a screen a tester wants to be on, so a
-// balance is handed over instead.
+// Scrolling costs traces and the shop sells them 5,000 meso at a time, a long
+// way to get to the screen a tester wants, so a balance is given instead.
 TEST(GameStateTest, TestModeCarriesSpellTraces) {
   GameState state = MakeTestModeStateWithItems();
   EXPECT_GE(state.character.currencies().Count("Spell Trace"), 30000);
 }
 
-// Test mode's stocked purse is test mode's alone: play mode is handed none of
-// the currencies, and no Etc drops either.
+// Only test mode gets currencies: play mode gets none, and no Etc drops either.
 TEST(GameStateTest, PlayModeGetsNoCurrencies) {
   GameState state = MakePlayModeStateWithItems();
   EXPECT_TRUE(state.character.currencies().entries().empty());
@@ -630,9 +624,9 @@ TEST(GameStateTest, PlayModeGetsNoCurrencies) {
 
 // --- play mode ---
 
-// The whole of what a new character is handed: a level-1 Beginner on Maple
-// Island with the shipped stat spread, no meso, and armed but carrying nothing
-// -- the Sword is worn, so the bag really is empty.
+// Everything a new character gets: a level-1 Beginner on Maple Island with the
+// default stats, no meso, and a weapon but nothing carried, since the Sword is
+// worn and the bag is empty.
 TEST(GameStateTest, PlayModeStartsANewCharacter) {
   GameState state = MakePlayModeState();
   EXPECT_EQ(state.character.proto().level(), 1);
@@ -656,19 +650,18 @@ TEST(GameStateTest, PlayModeStartsANewCharacter) {
 
 // --- test mode ---
 
-// Meso to shop with, and an empty equip tab: the workbench wears what it is
-// given, so a tester opens the bag on what they put there rather than on the
-// seeding's leftovers. The spare symbols are the one thing carried, and this
-// catalog has none.
+// Meso to spend, and an empty equip tab: the workbench wears what it's given,
+// so a tester opens the bag to see only what they put there. The spare symbols
+// are the only thing carried, and this catalog has none.
 TEST(GameStateTest, TestModeStartsWithMesoAndAnEmptyBag) {
   GameState state = MakeTestModeState();
   EXPECT_EQ(state.character.meso(), 100000000000);
   EXPECT_TRUE(state.character.inventory().empty());
 }
 
-// The sweep is what makes that true of a job whose gear does not all fit: a
-// Rogue is handed a dagger and a claw for one slot, and the one the other
-// displaces would otherwise sit in the bag.
+// Clearing the bag is what makes this true for a job whose gear doesn't all
+// fit: a Rogue gets a dagger and a claw for one slot, and the displaced one
+// would otherwise stay in the bag.
 TEST(GameStateTest, TheWorkbenchCarriesNothingItCouldNotWear) {
   std::map<std::string, EquipPrototype> equips;
   for (const char* key : {"reef_claw", "steel_guards"}) {
@@ -685,17 +678,17 @@ TEST(GameStateTest, TheWorkbenchCarriesNothingItCouldNotWear) {
   EXPECT_TRUE(state.character.inventory().empty());
 }
 
-// Both modes start wearing a weapon. A level 1 character has no equipped
-// panel and no bag, so one that only carried a weapon could never swing it,
-// and without a swing there is no EXP and no way off level 1.
+// Both modes start with a weapon equipped. A level 1 character has no equipped
+// panel or bag, so a weapon only carried could never be used, and without
+// attacking there's no EXP and no way past level 1.
 TEST(GameStateTest, BothModesStartWearingAWeapon) {
   EXPECT_FALSE(MakeTestModeState().character.equipped().empty());
   EXPECT_FALSE(MakePlayModeState().character.equipped().empty());
 }
 
-// The set effect cannot be read off the stats page without the whole set, and
-// farming one out takes a climb to 100. The workbench wears it instead --
-// worn and not carried, so nothing has to be put on to read the bonus.
+// A set bonus can't be seen on the stats page without the whole set, and
+// farming one takes levelling to 100. So the workbench wears it, so nothing
+// needs equipping to see the bonus.
 TEST(GameStateTest, TestModeWearsTheWholeFrozenSet) {
   struct Piece {
     const char* key;
@@ -722,8 +715,8 @@ TEST(GameStateTest, TestModeWearsTheWholeFrozenSet) {
     ASSERT_NE(it, worn.end()) << "the workbench has no " << piece.name;
     EXPECT_EQ(it->second->prototype().name(), piece.name);
   }
-  // And no second copy in the bag. Four pieces nobody can wear twice were
-  // four rows of clutter in front of everything the workbench is for.
+  // And no second copy in the bag: four pieces nobody can wear twice were four
+  // rows of clutter in the way.
   const InventoryInstance& bag = state.character.inventory();
   for (int i = 0; i < bag.size(); ++i) {
     EXPECT_EQ(bag[i].prototype().name().find("Frozen"), std::string::npos)
@@ -731,12 +724,12 @@ TEST(GameStateTest, TestModeWearsTheWholeFrozenSet) {
   }
 }
 
-// Potential is worth looking at at every rank, so the workbench deals the
-// four over the gear it wears rather than letting each piece roll its own: a
-// run where nothing came out Legendary would leave the display half-tested.
+// Potential should be visible at every rank, so the workbench assigns the four
+// ranks across its worn gear instead of letting each piece roll. A run where
+// nothing reached Legendary would leave the display half-tested.
 TEST(GameStateTest, TestModeCubesEveryPieceItCanAndSpreadsTheRanks) {
-  // The armour the workbench wears, which with the sword is five slots the
-  // potential reaches -- enough for every rank to be dealt.
+  // The armour the workbench wears which, with the sword, gives five slots with
+  // potential: enough to assign every rank.
   struct Piece {
     const char* key;
     EquipSlot slot;
@@ -772,7 +765,7 @@ TEST(GameStateTest, TestModeCubesEveryPieceItCanAndSpreadsTheRanks) {
                        POTENTIAL_RANK_UNIQUE, POTENTIAL_RANK_LEGENDARY}));
 }
 
-// Nothing is cubed for a player: potential is a thing they buy.
+// Nothing is cubed for a player: potential is something they buy.
 TEST(GameStateTest, PlayModeStartsWithNoPotential) {
   GameState state = MakePlayModeState();
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
@@ -785,28 +778,28 @@ TEST(GameStateTest, TestModeStartsOnAHuntingGround) {
   EXPECT_EQ(MakeTestModeState().current_map, "right_around_lith_harbor");
 }
 
-// Neither mode may insist on a catalog entry: a state built for a test carries
-// no data files, and seeding must not fall over on that.
+// Neither mode may require a catalog entry: a test's state has no data files,
+// and seeding must not fail because of that.
 TEST(GameStateTest, SeedingSkipsEquipsTheCatalogDoesNotHave) {
   GameState play({}, {}, {}, {}, {}, {}, GameMode::kPlay);
   EXPECT_TRUE(play.character.inventory().empty());
   EXPECT_TRUE(play.character.equipped().empty());
   GameState test({}, {}, {}, {}, {}, {}, GameMode::kTest);
   EXPECT_TRUE(test.character.inventory().empty());
-  // The meso does not depend on the catalog, so it still arrives.
+  // Meso doesn't depend on the catalog, so it still arrives.
   EXPECT_EQ(test.character.meso(), 100000000000);
 }
 
-// Play is what an unadorned construction gives, so the game's default is the
-// game rather than the workbench.
+// Play is what a plain construction gives, so the default is the game, not the
+// workbench.
 TEST(GameStateTest, PlayIsTheDefaultMode) {
   GameState state(SwordCatalog(), {}, {}, {}, {});
   EXPECT_EQ(state.character.proto().level(), 1);
   EXPECT_EQ(state.current_map, "maple_island");
 }
 
-// The workbench climbs the level ladder on a bonus rather than by farming the
-// early levels at play speed. Play mode earns what it earns.
+// The workbench levels with an EXP bonus instead of farming the early levels at
+// normal speed. Play mode earns normally.
 TEST(GameStateTest, TestModeFarmsOnAnExpBonus) {
   EXPECT_EQ(MakeTestModeState().exp_multiplier, 5);
 }
@@ -815,8 +808,8 @@ TEST(GameStateTest, PlayModeEarnsPlainExp) {
   EXPECT_EQ(MakePlayModeState().exp_multiplier, 1);
 }
 
-// A catalog holding the symbol level 200 hands over, under the key
-// GrantLevelRewards looks it up by.
+// A catalog with the symbol given at level 200, under the key GrantLevelRewards
+// looks up.
 std::map<std::string, EquipPrototype> SymbolCatalog() {
   EquipPrototype symbol;
   symbol.set_name("Arcane Symbol: Vanishing Journey");
@@ -833,8 +826,8 @@ TEST(GrantLevelRewardsTest, ReachingTwoHundredHandsOverTheFirstSymbol) {
             "Arcane Symbol: Vanishing Journey");
 }
 
-// One idle stretch can carry a character clean past the level, and the symbol
-// still has to land.
+// One idle period can take a character straight past the level, and the symbol
+// must still arrive.
 TEST(GrantLevelRewardsTest, ASpanThatSkipsTheLevelStillGrantsIt) {
   GameState state(SymbolCatalog(), {}, {}, {}, {});
   GrantLevelRewards(state, 195, 210);
@@ -848,8 +841,8 @@ TEST(GrantLevelRewardsTest, NoSecondCopyForClimbingPastItAgain) {
   EXPECT_EQ(state.character.inventory().size(), 0);
 }
 
-// Honor is paid for every level in the span, long before there is anything to
-// spend it on: Inner Ability opens at 160 onto a pool the climb has filled.
+// Honor is paid for every level in the range, long before there's anything to
+// spend it on: Inner Ability opens at 160 with a pool levelling has filled.
 TEST(GrantLevelRewardsTest, EveryLevelInTheSpanPaysHonor) {
   GameState state(SymbolCatalog(), {}, {}, {}, {});
   GrantLevelRewards(state, 58, 61);
@@ -858,9 +851,9 @@ TEST(GrantLevelRewardsTest, EveryLevelInTheSpanPaysHonor) {
   EXPECT_EQ(state.character.honor(), 700 + 800 + 800);
 }
 
-// A character alone on the account earns one level at a time; the moment
-// somebody is ahead of them, the same threshold buys two. The rewards follow
-// the whole span, burned levels and all.
+// A character alone on the account gains one level at a time; once someone is
+// ahead of them, the same EXP gives two. Rewards follow the whole range,
+// including burned levels.
 TEST(AwardExpTest, BurnsAgainstTheRestOfTheRoster) {
   GameState state(SymbolCatalog(), {}, {}, {}, {});
   AwardExp(state, 15);
@@ -880,9 +873,9 @@ TEST(GrantLevelRewardsTest, NothingBelowTwoHundred) {
   EXPECT_EQ(state.character.inventory().size(), 0);
 }
 
-// The workbench puts a symbol on rather than only carrying it: a symbol in the
-// bag is worth no Arcane Force, and the cap is where the maps start asking.
-// The spares behind it are what the Symbols tab levels the worn one with.
+// The workbench wears a symbol instead of only carrying it: a symbol in the bag
+// gives no Arcane Force, and maps start requiring it at the cap. The spares are
+// for levelling the worn one on the Symbols tab.
 TEST(GameStateTest, TheWorkbenchAtTheCapWearsItsSymbolAndCarriesSpares) {
   std::map<std::string, EquipPrototype> equips = BowCatalog();
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -898,8 +891,8 @@ TEST(GameStateTest, TheWorkbenchAtTheCapWearsItsSymbolAndCarriesSpares) {
   EXPECT_EQ(
       state.character.equipped().count(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY),
       1u);
-  // Twelve duplicates carry a fresh symbol to level 2, so fifteen is one move
-  // on the Symbols tab and change.
+  // Twelve duplicates take a new symbol to level 2, so fifteen is one level on
+  // the Symbols tab with some left over.
   const InventoryInstance& bag = state.character.inventory();
   ASSERT_EQ(bag.size(), 15);
   for (int i = 0; i < bag.size(); ++i) {
@@ -910,9 +903,9 @@ TEST(GameStateTest, TheWorkbenchAtTheCapWearsItsSymbolAndCarriesSpares) {
 
 // --- max mode ---
 
-// A catalog holding a piece of each kind --mode=max dresses a Hero in, at the
-// levels the real ones are: what a star run reaches is the item's own cap, so
-// a level 30 stand-in would hide every band above five.
+// A catalog with one piece of each kind --mode=max gives a Hero, at their real
+// levels: star force is capped by the item's level, so a level 30 stand-in
+// would hide every band above five stars.
 std::map<std::string, EquipPrototype> MaxCatalog() {
   EquipPrototype axe;
   axe.set_name("Frozen Two-handed Axe");
@@ -934,8 +927,8 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
       {"frozen_hat", hat},
       {"royal_black_metal_shoulder", shoulder},
       {"lionheart_battle_shoulder", cygnus}};
-  // The six areas of the river at the levels they open, since which of them a
-  // ceiling character owns is read straight off those.
+  // The six river areas at the levels they open, since that decides which ones
+  // a max character owns.
   const std::pair<EquipSlot, int> kSymbols[] = {
       {EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 200},
       {EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND, 210},
@@ -955,7 +948,7 @@ std::map<std::string, EquipPrototype> MaxCatalog() {
   return catalog;
 }
 
-// Traces for both slots, so every shelf the seeding opens gets filled.
+// Traces for both slot types, so every slot seeding opens gets filled.
 std::map<std::string, Scroll> MaxTraces() {
   std::map<std::string, Scroll> traces = WarriorWeaponTraces();
   Scroll hat = traces.at("str_100");
@@ -969,7 +962,8 @@ std::map<std::string, Scroll> MaxTraces() {
 }
 
 // One defended boss and one ordinary monster, which is all the Hyper Stat
-// allocation reads the roster for: what the preset's fight cancels of a swing.
+// allocation reads the roster for: how much of an attack each preset's fight
+// cancels.
 std::map<std::string, Mob> MaxMobs(int boss_pdr = 100) {
   std::map<std::string, Mob> mobs;
   Mob& wall = mobs["wall"];
@@ -1001,8 +995,8 @@ GameState MakeMaxState(int level, JobAdvancement job = JOB_ADVANCEMENT_HERO,
                    std::move(bosses));
 }
 
-// The ceiling holds both allocations at once, and plays the music the same
-// way the workbench does.
+// A max character has both allocations at once, and plays music, like the
+// workbench.
 TEST(GameStateTest, MaxModeThrowsTheSameSwitches) {
   GameState state = MakeMaxState(230);
   EXPECT_TRUE(state.account.autoswap_presets());
@@ -1014,11 +1008,10 @@ const EquipInstance& Worn(const GameState& state, EquipSlot slot) {
   return *state.character.equipped().at(slot);
 }
 
-// A ceiling account is a full one: nine more characters, one at the top of
-// every other job line, so the link skills stand where a played-out account
-// puts them. Three-line branches reach 9 and two-line branches 6 -- the data
-// runs to GMS's 9 either way, and what a branch reaches is the roster's
-// answer.
+// A max account is full: nine more characters, one at the top of every other
+// job line, so link skills are where a fully played account has them.
+// Three-line branches reach 9 and two-line branches 6. The data goes up to
+// GMS's 9 either way, and the roster decides what a branch reaches.
 TEST(GameStateTest, MaxModeFillsTheRosterSoTheLinkSkillsStand) {
   GameState state = MakeMaxState(kTrialLevelCap);
   EXPECT_EQ(state.inactive_characters.size(), 9u);
@@ -1036,11 +1029,10 @@ TEST(GameStateTest, MaxModeFillsTheRosterSoTheLinkSkillsStand) {
   EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 6);
 }
 
-// Every slot is a ceiling in its own right rather than a sheet naming a
-// level: the pools spent, the potions bought and the river's symbols on. What
-// a slot can WEAR is the fake catalog's business -- it holds warrior gear
-// alone, and no slot is a warrior -- so what is pinned here is the character
-// and not the outfit.
+// Every slot is itself a fully built max character, not a sheet with a level
+// set: points spent, potions bought and symbols worn. What a slot can wear
+// depends on the test catalog (only warrior gear, and no slot is a warrior), so
+// this checks the character, not the outfit.
 TEST(GameStateTest, MaxModeRosterSlotsAreCeilingsThemselves) {
   GameState state = MakeMaxState(kTrialLevelCap);
   ASSERT_EQ(state.inactive_characters.size(), 9u);
@@ -1056,8 +1048,8 @@ TEST(GameStateTest, MaxModeRosterSlotsAreCeilingsThemselves) {
               static_cast<int>(AllConsumables().size()));
     EXPECT_EQ(sheet.consumables().active_size(),
               static_cast<int>(AllConsumables().size()));
-    // Every area the cap opens, worn: the climb really ran rather than a
-    // level being written onto a blank sheet.
+    // Every area the cap opens, worn: levelling really happened, instead of a
+    // level written onto a blank sheet.
     ASSERT_GT(sheet.equip_presets().presets_size(), 0);
     const EquipPreset& worn = sheet.equip_presets().presets(0);
     for (EquipSlot symbol :
@@ -1070,8 +1062,8 @@ TEST(GameStateTest, MaxModeRosterSlotsAreCeilingsThemselves) {
   }
 }
 
-// A sim's ceiling stands alone: no roster, and nothing from their own line
-// either, however high they are. See TestOptions::link_skills.
+// A sim's max character stands alone: no roster, and not even their own line's
+// link skill, however high their level. See TestOptions::link_skills.
 TEST(GameStateTest, MaxModeCanBeAskedForNoLinkSkillsAtAll) {
   TestOptions options;
   options.job = JOB_ADVANCEMENT_HERO;
@@ -1084,17 +1076,16 @@ TEST(GameStateTest, MaxModeCanBeAskedForNoLinkSkillsAtAll) {
   EXPECT_TRUE(state.character.link_skills_off());
 }
 
-// The roster climbs with the ceiling rather than ahead of it: a ceiling below
-// the first rung has one that pays nothing.
+// The roster levels with the max character, not ahead of it: below the first
+// link skill threshold, the roster gives nothing.
 TEST(GameStateTest, MaxModeBelowTheFirstRungHasNoLinkSkills) {
   GameState state = MakeMaxState(60);
   EXPECT_FALSE(state.inactive_characters.empty());
   EXPECT_EQ(state.character.link_tally().LevelFor(JOB_SWORDMAN), 0);
 }
 
-// The ceiling at the cap: hammers driven in, every slot of the wider shelf
-// passed, and the stars the level's own band pays for -- the weapon three
-// past the rest of it.
+// The max character at the cap: hammers used, every widened slot passed, and
+// the stars the level's band pays for, with the weapon three stars higher.
 TEST(GameStateTest, MaxModeAtTheCapWearsTheWholeBand) {
   GameState state = MakeMaxState(kTrialLevelCap);
   const Equip& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).equip_state();
@@ -1106,9 +1097,8 @@ TEST(GameStateTest, MaxModeAtTheCapWearsTheWholeBand) {
             MaxGearForLevel(kTrialLevelCap).stars);
 }
 
-// Every piece carries the same lines, written rather than rolled: the weapon
-// the one it is cubed for, the armour three lots of the stat the job fights
-// with.
+// Every piece has the same lines, set instead of rolled: the weapon gets its
+// own lines, and armour gets three lines of the job's main stat.
 TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
   GameState state = MakeMaxState(kTrialLevelCap);
   const Potential& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).potential();
@@ -1122,8 +1112,8 @@ TEST(GameStateTest, MaxModeAtTheCapCarriesItsPotentials) {
   EXPECT_EQ(hat.lines(0).type(), POTENTIAL_LINE_TYPE_STR_PCT);
 }
 
-// Every buff bought and switched on, with the change of the climb left in
-// the purse -- not the workbench's hundred billion.
+// Every buff bought and switched on, with the climb's leftover meso, not the
+// workbench's hundred billion.
 TEST(GameStateTest, MaxModeAtTheCapHasBoughtEveryBuff) {
   GameState state = MakeMaxState(kTrialLevelCap);
   for (const ConsumableInfo& buff : AllConsumables()) {
@@ -1135,11 +1125,11 @@ TEST(GameStateTest, MaxModeAtTheCapHasBoughtEveryBuff) {
   EXPECT_TRUE(state.character.stackables().empty());
 }
 
-// Every Arcane Symbol the level has opened, worn and raised -- and none it
-// has not. A ceiling character stands in the river, and the river is what the
-// Arcane Force is read against.
+// Every Arcane Symbol the level has unlocked, worn and levelled, and none it
+// hasn't. A max character is in the river, and Arcane Force is checked against
+// it.
 TEST(GameStateTest, MaxModeWearsTheSymbolsItsLevelOpened) {
-  // Below Esfera's 235, so one area is still shut.
+  // Below Esfera's 235, so one area is still locked.
   const int kLevel = 230;
   GameState state = MakeMaxState(kLevel);
   int worn = 0;
@@ -1154,14 +1144,14 @@ TEST(GameStateTest, MaxModeWearsTheSymbolsItsLevelOpened) {
     EXPECT_EQ(SymbolLevel(entry.second->equip_state()), 10)
         << entry.second->prototype().name();
   }
-  // Vanishing Journey, Chu Chu Island, Lachelein, Arcana and Morass: every
-  // area open at 230, and Esfera's 235 is not.
+  // Vanishing Journey, Chu Chu Island, Lachelein, Arcana and Morass: every area
+  // open at 230, but not Esfera at 235.
   EXPECT_EQ(worn, 5);
   EXPECT_EQ(state.character.arcane_force(), 5 * SymbolArcaneForce(10));
 }
 
-// The pools are all spent: the AP into the stat the job swings on, the SP
-// into its book, and both Hyper Stat allocations down to the change.
+// Every pool is spent: AP into the job's main stat, SP into its book, and both
+// Hyper Stat allocations down to leftovers.
 TEST(GameStateTest, MaxModeSpendsEveryPool) {
   GameState state = MakeMaxState(kTrialLevelCap);
   EXPECT_EQ(state.character.proto().ap(), 0);
@@ -1175,10 +1165,9 @@ TEST(GameStateTest, MaxModeSpendsEveryPool) {
             ABILITY_RANK_LEGENDARY);
 }
 
-// Nothing goes on a stat this character's damage never reads. What each is
-// worth is measured through their combat power, and neither of these enters
-// it -- which is what keeps a hand-kept list of "the stats a fight is won on"
-// out of the seeding.
+// Nothing goes into a stat this character's damage never uses. Each stat's
+// value is measured through combat power, and neither of these affects it,
+// which avoids a hand-maintained list of stats that matter.
 TEST(GameStateTest, MaxModeBuysNoHyperStatThatPaysNothing) {
   GameState state = MakeMaxState(kTrialLevelCap);
   const CharacterInstance& c = state.character;
@@ -1186,8 +1175,8 @@ TEST(GameStateTest, MaxModeBuysNoHyperStatThatPaysNothing) {
     EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_MAX_HP, preset), 0);
     EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_EXP, preset), 0);
   }
-  // A Hero swings on STR, so the three stats they do not swing on are worth
-  // nothing at all beside it.
+  // A Hero attacks with STR, so the other three main stats are worth nothing to
+  // them.
   EXPECT_GT(c.hyper_stat_level(HYPER_STAT_FIELD_STR, StatPreset::kFirst), 0);
   for (HyperStatField spare : {HYPER_STAT_FIELD_INT, HYPER_STAT_FIELD_LUK}) {
     EXPECT_EQ(c.hyper_stat_level(spare, StatPreset::kFirst), 0)
@@ -1195,9 +1184,9 @@ TEST(GameStateTest, MaxModeBuysNoHyperStatThatPaysNothing) {
   }
 }
 
-// The two allocations part company where the fight does: boss %dmg is worth
-// nothing to a farming character, and the defence a boss carries is what puts
-// a price on Ignore Defense.
+// The two allocations differ where the fights differ: boss damage is worthless
+// while farming, and a boss's defence is what makes Ignore Defense worth
+// buying.
 TEST(GameStateTest, MaxModeHyperStatsFollowTheFightTheyAreFor) {
   GameState state = MakeMaxState(kTrialLevelCap);
   const CharacterInstance& c = state.character;
@@ -1210,8 +1199,8 @@ TEST(GameStateTest, MaxModeHyperStatsFollowTheFightTheyAreFor) {
       << "the boss cancels most of a swing; the monsters barely any";
 }
 
-// A fight the character's level has not opened prices nothing: the gate is
-// what says whether it is ahead of them.
+// A fight the character's level hasn't unlocked is ignored when pricing: the
+// level gate decides whether it's ahead of them.
 TEST(GameStateTest, MaxModeIgnoresABossItCannotYetFight) {
   GameState shut = MakeMaxState(kTrialLevelCap, JOB_ADVANCEMENT_HERO,
                                 MaxBosses(/*unlock_level=*/300));
@@ -1223,7 +1212,7 @@ TEST(GameStateTest, MaxModeIgnoresABossItCannotYetFight) {
 }
 
 // --job names the line, not where to stop in it: the 5th advancement opens at
-// 200 and the ceiling has taken it.
+// 200 and the max character has taken it.
 TEST(GameStateTest, MaxModeTakesEveryAdvancementTheLevelOffers) {
   GameState state = MakeMaxState(NextAdvancementLevel(kFifthJobStage - 1));
   EXPECT_EQ(state.character.proto().job_stage(), kFifthJobStage);
@@ -1231,15 +1220,15 @@ TEST(GameStateTest, MaxModeTakesEveryAdvancementTheLevelOffers) {
   EXPECT_EQ(state.character.proto().job(), JOB_HERO);
 }
 
-// A stage the line does not answer for stops the climb: nothing says which of
-// the three a Swordman became.
+// A stage with no branch chosen stops levelling: nothing says which of the
+// three a Swordman became.
 TEST(GameStateTest, MaxModeStaysPutWhenTheLineDoesNotBranch) {
   GameState state = MakeMaxState(kTrialLevelCap, JOB_ADVANCEMENT_SWORDMAN);
   EXPECT_EQ(state.character.proto().job_stage(), 1);
 }
 
-// Every node of the matrix at its ceiling -- the common ones with them -- and
-// nothing left in the pool: the ceiling is a character who spent everything.
+// Every matrix node at its maximum, common ones included, and nothing left in
+// the pool: the max character spent everything.
 TEST(GameStateTest, MaxModeMaxesTheWholeMatrix) {
   GameState state = MakeMaxState(kTrialLevelCap);
   int nodes = 0;
@@ -1256,8 +1245,8 @@ TEST(GameStateTest, MaxModeMaxesTheWholeMatrix) {
   EXPECT_EQ(state.character.v_points(), 0);
 }
 
-// A level 140 character is a long way short of the cap's band: no hammers,
-// which are 340M across an outfit, and nothing cubed -- cubing opens at 180.
+// A level 140 character is well short of the cap's band: no hammers, which cost
+// 340M across all gear, and nothing cubed, since cubing opens at 180.
 TEST(GameStateTest, MaxModeAtOneFortyIsShortOfTheCapsBand) {
   GameState state = MakeMaxState(kHyperStatUnlockLevel);
   const Equip& weapon = Worn(state, EQUIP_SLOT_PRIMARY_WEAPON).equip_state();
@@ -1271,9 +1260,9 @@ TEST(GameStateTest, MaxModeAtOneFortyIsShortOfTheCapsBand) {
   }
 }
 
-// The Cygnus shoulder is bought with a token off the fight nobody has won, so
-// a character measured against the boss roster does not wear one -- and the
-// three the workbench carries are not in the bag either.
+// The Cygnus shoulder is bought with a token from the fight nobody has won, so
+// a character measured against the boss roster doesn't wear one, and the three
+// the workbench gets aren't in the bag either.
 TEST(GameStateTest, MaxModeWearsNoCygnusShoulder) {
   GameState state = MakeMaxState(kTrialLevelCap);
   EXPECT_EQ(Worn(state, EQUIP_SLOT_SHOULDER).name(),

@@ -11,8 +11,8 @@
 namespace ms {
 namespace {
 
-// Each map is read against the force it names, and a map naming neither
-// takes nothing.
+// Each map is checked against the force it names, and a map naming neither
+// applies nothing.
 TEST(MapForceTest, ReadsTheForceTheMapNames) {
   std::mt19937 rng(1);
   Character proto;

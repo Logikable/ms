@@ -29,8 +29,8 @@ TEST(MapLevelTest, WeighsEachMobByHowManyOfItSpawn) {
   MapData map;
   AddSpawn(map, "snail", 9);
   AddSpawn(map, "golem", 1);
-  // A single straggler must not pull the map up away from the crowd: the mean
-  // is (9*2 + 60) / 10, not (2 + 60) / 2.
+  // A single straggler mustn't pull the map's level away from the crowd: the
+  // mean is (9*2 + 60) / 10, not (2 + 60) / 2.
   EXPECT_DOUBLE_EQ(MapLevel(MakeMobs(), map), 7.8);
 }
 
@@ -38,8 +38,8 @@ TEST(MapLevelTest, ATownHasNoLevel) {
   EXPECT_DOUBLE_EQ(MapLevel(MakeMobs(), MapData()), 0.0);
 }
 
-// A spawn the catalog has no file for is dropped by the loader, so it must not
-// be counted here either -- level 0 in the mean would drag the map down.
+// The loader drops a spawn with no mob file, so it mustn't be counted here
+// either; a level of 0 would drag the mean down.
 TEST(MapLevelTest, SpawnsNoMobFileDefinesAreSkipped) {
   MapData map;
   AddSpawn(map, "golem", 1);
@@ -51,8 +51,8 @@ TEST(MapLevelTest, SpawnsNoMobFileDefinesAreSkipped) {
   EXPECT_DOUBLE_EQ(MapLevel(MakeMobs(), unknown_only), 0.0);
 }
 
-// A boss phase names a spot per monster instead of a count, and MapLevel reads
-// the same SpawnCount everything else does.
+// A boss phase lists a spot per monster instead of a count, and MapLevel uses
+// the same SpawnCount as everything else.
 TEST(MapLevelTest, SpotsCountAsMonsters) {
   MapData map;
   Spawn* snails = AddSpawn(map, "snail", 0);

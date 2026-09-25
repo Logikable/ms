@@ -1,10 +1,9 @@
 /* Reading a save written by an older build.
  *
- * One function per format version that has been left behind, and one entry
- * point that runs a save forward to the version this build writes. Kept apart
- * from save.cc because it only grows: every version the game ships needs its
- * upgrade kept forever, and none of it has anything to do with putting bytes
- * on a disk.
+ * One function per old format version, and one entry point that upgrades a save
+ * to the version this build writes. Kept separate from save.cc because it only
+ * grows: every shipped version needs its upgrade kept forever, and none of it
+ * is about writing bytes to disk.
  *
  * See SaveGame in save.proto for what each version changed.
  */
@@ -19,11 +18,11 @@
 
 namespace ms {
 
-// Reads `bytes`, a save at format version `version`, into `save` at the version
-// this build writes. Takes the BYTES rather than a parsed SaveGame: an old
-// layout has to be read through the message it was written with, whose fields
-// are not SaveGame's any more. `items` is the item catalog, which version 2
-// needs to tell a currency apart from an ordinary drop.
+// Reads `bytes`, a save in format version `version`, into `save` at the version
+// this build writes. Takes the bytes instead of a parsed SaveGame, because an
+// old layout must be read through the message it was written with, whose fields
+// no longer match SaveGame's. `items` is the item catalog, which version 2
+// needs to tell currencies from ordinary drops.
 bool UpgradeSave(int version, const std::string& bytes,
                  const std::map<std::string, ItemPrototype>& items,
                  SaveGame& save);

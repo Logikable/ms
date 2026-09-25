@@ -1,8 +1,8 @@
-/* How many monsters a spawn puts out.
+/* How many monsters a spawn creates.
  *
- * A map's spawn says a count; a boss phase's names a spot per monster and
- * lets the spots be the count, so no phase can write two numbers that
- * disagree. Everything that asks "how many" asks here.
+ * A map's spawn gives a count; a boss phase's lists a spot per monster and uses
+ * the number of spots as the count, so a phase can't state two numbers that
+ * disagree. Everything that needs the count gets it here.
  */
 #ifndef MS_SRC_SPAWN_H_
 #define MS_SRC_SPAWN_H_

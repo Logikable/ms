@@ -37,7 +37,7 @@ namespace ms {
 
 namespace {
 
-// The level-1 Beginner every character starts from, before any leveling.
+// The level-1 Beginner every character starts as.
 Character MakeBaseBeginnerProto() {
   Character proto;
   proto.set_name(kDefaultUsername);
@@ -53,15 +53,15 @@ Character MakeBaseBeginnerProto() {
   return proto;
 }
 
-// Everything the workbench dresses a job in: the best of each thing it carries
-// that its starting level can wear. The workbench starts at the TOP of an
-// advancement, so a Lv60 Fighter would otherwise swing the axe they were given
-// at 30. A Rogue gets all three weapons, dagger or claw deciding what they
-// swing.
+// The gear the workbench gives each job: the best of each item it offers that
+// the job's starting level can wear. The workbench starts at the top of an
+// advancement, so without this a level 60 Fighter would still use the axe they
+// got at 30. A Rogue gets all three weapons, and the dagger or claw decides
+// what they attack with.
 //
-// Long, and STAYS long: one row per job. The static_assert is the tripwire --
-// Clang cannot check the switch, -Wswitch over a proto enum demanding the two
-// DO_NOT_USE sentinels as well.
+// This is long and stays long: one row per job. The static_assert catches a
+// missing job, since Clang can't check the switch (-Wswitch over a proto enum
+// also demands the two DO_NOT_USE sentinels).
 std::vector<std::string> WorkbenchGearFor(Job job) {
   static_assert(Job_ARRAYSIZE == 36, "a new job needs a row in this table");
   switch (job) {
@@ -74,9 +74,9 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"circle_winded_staff"};
     case JOB_ROGUE:
       return {"kumbi_throwing_stars", "reef_claw", "steel_guards"};
-    // The 2nd jobs, at level 60, each with its off-hand -- a secondary belongs
-    // to a branch, so the 1st jobs above have none. The three magician branches
-    // swing the same staff but read from three different books.
+    // The 2nd jobs, at level 60, each with its secondary weapon. Secondaries
+    // belong to branches, so the 1st jobs above have none. The three magician
+    // branches use the same staff but different books.
     case JOB_FIGHTER:
       return {"the_shining", "orders_medallion"};
     case JOB_PAGE:
@@ -93,31 +93,30 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"frantic_crow_staff", "metallic_blue_book_antistrophe"};
     case JOB_CLERIC:
       return {"frantic_crow_staff", "white_gold_book_antistrophe"};
-    // Level 50 stars: the ladder's next rung is out of a level 60's reach.
+    // Level 50 stars: the next tier is out of reach at level 60.
     case JOB_ASSASSIN:
       return {"steely_throwing_knives", "dark_gigantic", "evil_ender_charm"};
     case JOB_BANDIT:
       return {"deadly_fin", "vanishing_shadow"};
-    // The 3rd jobs, at level 100: the best gear meso alone reaches, since the
-    // Frozen tier below is bought with tokens. Each takes the better of its
-    // line's two weapons on //analysis:bench_sim, and keeps its 2nd job's
-    // off-hand -- a 3rd job opens no new slot. The Crusader's axe beats the
-    // sword of the same tier on Weapon Mastery's axe bonus alone.
+    // The 3rd jobs, at level 100: the best gear meso alone can buy, since the
+    // Frozen tier below costs tokens. Each takes the better of its line's two
+    // weapons on //analysis:bench_sim and keeps its 2nd job secondary, since a
+    // 3rd job opens no new slot. The Crusader's axe beats the same-tier sword
+    // only because Weapon Mastery gives axes a bonus.
     case JOB_BERSERKER:
       return {"pinaka", "berserk_chain"};
-    // The 4th job, at the level cap, so its gear is the Frozen tier a token
-    // buys rather than the last one meso reaches.
+    // The 4th job, at the level cap, so its gear is the Frozen tier bought with
+    // tokens instead of the last tier meso can buy.
     case JOB_DARK_KNIGHT:
       return {"frozen_spear", "frozen_chain"};
     case JOB_PALADIN:
       return {"frozen_maul", "frozen_rosary"};
-    // The axe over the sword, for the reason the Crusader takes one: the two
-    // weigh the same in the damage chain and Weapon Mastery pays 5% more for
-    // an axe.
+    // The axe over the sword, for the Crusader's reason: both are equal in the
+    // damage chain, and Weapon Mastery gives 5% more for an axe.
     case JOB_HERO:
       return {"frozen_two_handed_axe", "frozen_medal"};
-    // The arrows are the one thing the Frozen tier has no answer for, so the
-    // bow line keeps buying its ammunition off the shelf.
+    // The Frozen tier has no arrows, so the bow line keeps buying ammunition
+    // from the shop.
     case JOB_BOW_MASTER:
       return {"frozen_longbow", "frozen_feather", "titanium_arrow_for_bow"};
     case JOB_MARKSMAN:
@@ -147,8 +146,8 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"crimson_arcanon", "rusty_book_epode"};
     case JOB_PRIEST:
       return {"crimson_arcanon", "white_gold_book_epode"};
-    // The stars are worn, not thrown: a claw with none in the slot swings for
-    // nothing at all. See the Assassin above.
+    // The stars go in the slot, not thrown: a claw with no stars equipped deals
+    // nothing. See the Assassin above.
     case JOB_HERMIT:
       return {"balanced_fury", "red_craven", "death_sender_charm"};
     case JOB_CHIEF_BANDIT:
@@ -158,9 +157,9 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
   }
 }
 
-// The best trace of one type for `proto`, at the longest odds it is written
-// at. The odds cost nothing here -- every slot passes -- so the biggest is the
-// one to take. Null when nothing of that type is written for the item.
+// The best trace of one type for `proto`, at its lowest success rate. The odds
+// don't matter here, since every slot succeeds, so the biggest bonus wins. Null
+// if no trace of that type exists for the item.
 const Scroll* BestScrollOfType(const GameState& state,
                                const EquipPrototype& proto, ScrollTarget target,
                                ScrollType type) {
@@ -185,10 +184,10 @@ const Scroll* BestScrollOfType(const GameState& state,
   return best;
 }
 
-// The spell trace the workbench scrolls `proto` with: the one raising the stat
-// this character fights with, or, where a slot takes no stat trace, the one
-// raising their attack. Gloves and hearts are the second case, and asking only
-// for the stat left them unscrolled and so unstarred.
+// The spell trace the workbench uses on `proto`: the one raising this
+// character's main stat, or, where a slot takes no stat trace, the one raising
+// attack. Gloves and hearts are the second case; asking only for the stat left
+// them unscrolled and so without stars.
 const Scroll* BestScrollFor(const GameState& state,
                             const EquipPrototype& proto) {
   StatField primary = PrimaryStatField(state.character.proto().job());
@@ -222,16 +221,16 @@ const Scroll* BestScrollFor(const GameState& state,
   return BestScrollOfType(state, proto, target, attack);
 }
 
-// The state a piece of the workbench's gear arrives in, one flag at a time, so
-// a tester can name the exact configuration. WRITTEN straight into the state
-// rather than rolled through Scroll() and StarForce(): the tester asked for
-// the finished item, not the odds.
+// The upgrade state of one workbench item, set flag by flag so a tester can
+// name an exact configuration. Written directly instead of rolled through
+// Scroll() and StarForce(), because the tester wants the finished item, not the
+// odds.
 Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
                     const GearSetup& equips) {
   Equip built;
   built.set_equip_name(proto.name());
   built.set_remaining_upgrade_slots(proto.upgrade_slots());
-  // Hammers first, so the wider shelf is the one the scrolls then fill.
+  // Hammers first, so the scrolls fill the widened set of slots.
   if (equips.hammered && TakesUpgradeSlots(proto)) {
     built.set_hammers(kMaxHammers);
     built.set_remaining_upgrade_slots(TotalUpgradeSlots(proto, built));
@@ -244,9 +243,9 @@ Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
     built.set_scroll_successes(slots);
     built.set_remaining_upgrade_slots(0);
   }
-  // Stars go on an item with nothing left to scroll, which is the rule the
-  // upgrade screen holds to as well -- so --sf without --scrolled leaves an
-  // item that has slots unstarred.
+  // Stars only go on an item with no slots left to scroll, the same rule as the
+  // upgrade screen, so --sf without --scrolled leaves an item with slots
+  // unstarred.
   const int wanted =
       proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON && equips.weapon_stars > 0
           ? equips.weapon_stars
@@ -259,9 +258,8 @@ Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
   return built;
 }
 
-// Puts a copy of the named equip in the bag, or does nothing if the catalog
-// has no such entry. Lets a GameState be built for a test without the game's
-// data files behind it.
+// Puts a copy of the named equip in the bag, or does nothing if the catalog has
+// no such entry. Lets a test build a GameState without the game's data files.
 void GiveEquip(GameState& state, const std::string& name,
                const GearSetup& equips = GearSetup()) {
   std::map<std::string, EquipPrototype>::const_iterator it =
@@ -273,10 +271,10 @@ void GiveEquip(GameState& state, const std::string& name,
       it->second, UpgradedState(state, it->second, equips)));
 }
 
-// Puts each of `names` on from the row it lands on, whatever a later one
-// displaces going back to the bag. A piece too high to wear, or of another
-// branch, is handed over anyway and STAYS in the bag: the four Cygnus
-// shoulders are one slot fought over by four branches.
+// Equips each of `names`, with anything it displaces going back to the bag. A
+// piece too high-level to wear, or for another branch, is still given and stays
+// in the bag: the four Cygnus shoulders compete for one slot across four
+// branches.
 void WearAll(GameState& state, const std::vector<std::string>& names,
              const GearSetup& equips) {
   for (const std::string& name : names) {
@@ -295,10 +293,10 @@ void WearAll(GameState& state, const std::vector<std::string>& names,
   }
 }
 
-// Takes off the weakest thing worn on `proto`'s slot family, where every slot
-// of it is full and `proto` beats one of them. A piece arriving after the
-// family fills up otherwise displaces whatever sits in the FIRST slot, which
-// is the order it was dressed in rather than what it is worth.
+// Removes the weakest item in `proto`'s slot family when every slot in it is
+// full and `proto` is better than one of them. Otherwise a piece arriving after
+// the family is full replaces whatever is in the first slot, which reflects
+// equip order instead of value.
 void MakeRoomFor(GameState& state, const EquipPrototype& proto) {
   EquipSlot weakest = EQUIP_SLOT_UNSPECIFIED;
   int lowest = proto.required_level();
@@ -306,7 +304,7 @@ void MakeRoomFor(GameState& state, const EquipPrototype& proto) {
     const EquipInstance* worn =
         state.character.WornAt(StatPreset::kFirst, slot);
     if (worn == nullptr) {
-      return;  // Somewhere free to put it: nothing has to come off.
+      return;  // Free space for it, so nothing has to be removed.
     }
     if (worn->prototype().required_level() < lowest) {
       lowest = worn->prototype().required_level();
@@ -318,10 +316,10 @@ void MakeRoomFor(GameState& state, const EquipPrototype& proto) {
   }
 }
 
-// Every stage's gear, the job's own LAST, so a character below the top tier's
-// level is still armed off the tier under it. Only the slots the job's own
-// gear names are filled this way, and only where the level cannot reach what
-// it offers -- so a Bandit is not handed the Rogue's throwing stars.
+// Every stage's gear, with the job's own last, so a character below the top
+// tier's level still gets the tier below. Only slots the job's own gear names
+// are filled this way, and only where the level can't wear the job's item, so a
+// Bandit doesn't get the Rogue's throwing stars.
 void WearThePath(GameState& state, const std::vector<Job>& path,
                  const GearSetup& equips) {
   if (path.empty()) {
@@ -347,9 +345,9 @@ void WearThePath(GameState& state, const std::vector<Job>& path,
           filled.count(it->second.equip_slot()) > 0) {
         continue;
       }
-      // Two of one slot in one stage is a choice the workbench offers -- the
-      // Rogue's dagger and claw -- so a stage is filtered whole rather than
-      // item by item.
+      // Two items for one slot in one stage (the Rogue's dagger and claw) are a
+      // choice the workbench offers, so a whole stage is filtered at once
+      // instead of item by item.
       by_stage[i].push_back(name);
       if (state.character.MeetsLevel(it->second)) {
         reached.insert(it->second.equip_slot());
@@ -362,24 +360,24 @@ void WearThePath(GameState& state, const std::vector<Job>& path,
   }
 }
 
-// The only universal armour there is, so it fits whoever the workbench is.
-// The gloves and the boots ask for level 140, which a 3rd job standing at 100
-// carries rather than wears.
+// The only armour every job can wear, so it fits any workbench. The gloves and
+// boots need level 140, so a 3rd job at 100 carries them instead of wearing
+// them.
 std::vector<std::string> FrozenArmour() {
   return {"frozen_hat",  "frozen_top",    "frozen_bottom",
           "frozen_cape", "frozen_gloves", "frozen_boots"};
 }
 
-// The level the Chaos Root Abyss opens at, and so the earliest anybody can own
-// what its Pieces buy. The gear itself is worn at 150; nothing pays for a
-// piece of it until 200, and a character dressed here is one the game could
-// really have produced.
+// The level the Chaos Root Abyss opens at, and so the earliest anyone can own
+// what its Pieces buy. The gear is wearable at 150, but nothing pays for a
+// piece until 200, so a character dressed here is one the game could really
+// produce.
 constexpr int kRootAbyssLevel = 200;
 
-// The Root Abyss set the branch wears, worn over the Frozen tier: three pieces
-// of armour and the weapon, which supersede the Frozen hat, top, bottom and
-// weapon. Nothing here fills the off-hand -- Princess No's secondary does,
-// below, off a fight opening at the same level.
+// The branch's Root Abyss set, worn over the Frozen tier: three armour pieces
+// and the weapon, which replace the Frozen hat, top, bottom and weapon. The
+// secondary isn't included; Princess No's secondary, from a fight opening at
+// the same level, fills it below.
 std::vector<std::string> RootAbyssArmour(Job job) {
   switch (BranchOf(job)) {
     case JobBranch::kWarrior:
@@ -399,9 +397,9 @@ std::vector<std::string> RootAbyssArmour(Job job) {
   }
 }
 
-// The Root Abyss weapon a 4th job swings: the same line's choice the Frozen
-// tier makes in WorkbenchGearFor. Empty for anybody below the 4th job, who
-// reaches level 200 only if a tester asks for it by hand.
+// The Root Abyss weapon for a 4th job, following the same line choice as the
+// Frozen tier in WorkbenchGearFor. Empty below the 4th job, which only reaches
+// level 200 if a tester sets it by hand.
 std::string RootAbyssWeapon(Job job) {
   switch (job) {
     case JOB_HERO:
@@ -436,10 +434,10 @@ std::vector<std::string> RootAbyssGear(Job job) {
   return names;
 }
 
-// The off-hand Princess No's fragments buy, which is the first thing to
-// supersede the Frozen secondary. She opens at 200 as the Chaos Root Abyss
-// does, so one gate arms both; it belongs to no set, so the Frozen set is a
-// piece poorer for it. Empty below the 4th job, as the Root Abyss weapon is.
+// The secondary Princess No's fragments buy, the first to replace the Frozen
+// secondary. She opens at 200 like the Chaos Root Abyss, so one level gate
+// covers both. It belongs to no set, so the Frozen set loses a piece. Empty
+// below the 4th job, like the Root Abyss weapon.
 std::vector<std::string> PrincessNoSecondary(Job job) {
   switch (job) {
     case JOB_HERO:
@@ -467,20 +465,20 @@ std::vector<std::string> PrincessNoSecondary(Job job) {
   }
 }
 
-// The level Damien and Lotus open at, and so the earliest anybody can own what
-// their coins buy. The same rule the Root Abyss follows one tier down: the
-// gear is worn at 160 and nothing pays for a piece of it until 210.
+// The level Damien and Lotus open at, and so the earliest anyone can own what
+// their coins buy. The same rule as the Root Abyss one tier down: the gear is
+// wearable at 160, but nothing pays for a piece until 210.
 constexpr int kAbsoLabLevel = 210;
 
-// The level the Guardian Angel Slime opens at, and so the earliest anybody can
-// own the ring she drops. The same rule the token tiers follow, for a fight
-// that pays in the gear itself rather than in a coin: it is worn at 160 and
-// nothing hands one out until 220.
+// The level the Guardian Angel Slime opens at, and so the earliest anyone can
+// own the ring she drops. The same rule as the token tiers, for a fight that
+// drops gear directly instead of a coin: it's wearable at 160, but nothing
+// gives one out until 220.
 constexpr int kGuardianAngelSlimeLevel = 220;
 
-// The AbsoLab weapon a 4th job swings, which is the same line's choice the two
-// tiers below it make. Empty for anybody below the 4th job, who reaches level
-// 210 only if a tester asks for it by hand.
+// The AbsoLab weapon for a 4th job, following the same line choice as the two
+// tiers below. Empty below the 4th job, which only reaches level 210 if a
+// tester sets it by hand.
 std::string AbsoLabWeapon(Job job) {
   switch (job) {
     case JOB_HERO:
@@ -506,10 +504,10 @@ std::string AbsoLabWeapon(Job job) {
   }
 }
 
-// The AbsoLab armour the branch wears, worn over the Root Abyss tier: six
-// pieces, which supersede the Root Abyss hat, top and bottom and the Frozen
-// cape, gloves and boots. The shoulder takes the slot Cygnus's does, so the
-// Boss Accessory Set drops a piece for it.
+// The branch's AbsoLab armour, worn over the Root Abyss tier: six pieces, which
+// replace the Root Abyss hat, top and bottom and the Frozen cape, gloves and
+// boots. The shoulder takes Cygnus's slot, so the Boss Accessory Set loses a
+// piece to it.
 std::vector<std::string> AbsoLabArmour(Job job) {
   switch (BranchOf(job)) {
     case JobBranch::kWarrior:
@@ -546,10 +544,10 @@ std::vector<std::string> AbsoLabGear(Job job) {
   return names;
 }
 
-// What the bosses pay, the only thing that fills the accessory and pocket
-// slots: a long way to walk for a screen, so the workbench starts in it. Two
-// slots hold a PAIR, worn oldest first, so a 3rd job keeps the older one and a
-// 4th at the cap swaps to the newer.
+// Boss drops, the only things that fill the accessory and pocket slots. They
+// take a long time to reach just to see a screen, so the workbench starts with
+// them. Two slots hold a pair, equipped oldest first, so a 3rd job keeps the
+// older one and a 4th job at the cap swaps to the newer.
 std::vector<std::string> BossAccessories() {
   return {"aquatic_letter_eye_accessory",
           "black_bean_mark",
@@ -570,11 +568,11 @@ std::vector<std::string> BossAccessories() {
           "crystal_ventus_badge"};
 }
 
-// What the shop's Equips shelf fills the same slots with, handed over rather
-// than bought: the workbench is a character who already went shopping. The
-// four Cygnus shoulders come LAST, after the boss drop they supersede.
-// `cygnus_shoulders` leaves them out, which is what a character measured
-// against a boss roster wants -- Cygnus is the fight nobody has won.
+// What the shop's Equips shelf puts in the same slots, given instead of bought,
+// since the workbench is a character who already went shopping. The four Cygnus
+// shoulders come last, after the boss drop they replace. `cygnus_shoulders`
+// leaves them out, which suits a character measured against a boss roster,
+// since nobody has beaten Cygnus.
 std::vector<std::string> ShopAccessories(bool cygnus_shoulders) {
   std::vector<std::string> names = {"lightning_god_ring", "meister_ring",
                                     "gold_maple_leaf_emblem",
@@ -588,18 +586,18 @@ std::vector<std::string> ShopAccessories(bool cygnus_shoulders) {
   return names;
 }
 
-// Passed as `unspent_stage` to spend every point the climb earns.
+// Passed as `unspent_stage` to spend every point earned.
 constexpr int kSpendEveryStage = 0;
 
-// Arcane River opens at 200, and it opens with a symbol in hand: without one
-// the first map there would take the full penalty, which is a wall rather than
-// an introduction.
+// Arcane River opens at 200, and it opens with a symbol provided: without one,
+// the first map there would apply the full penalty, a wall instead of an
+// introduction.
 constexpr int kArcaneRiverLevel = 200;
 constexpr char kStarterSymbol[] = "symbol_vanishing_journey";
 
-// Puts on the Arcane Symbol the climb past 200 handed over. Worn rather than
-// carried: a symbol in the bag is worth no Arcane Force, and a workbench at
-// the cap is standing on the maps that ask for it.
+// Equips the Arcane Symbol given on reaching 200. Worn, not carried: a symbol
+// in the bag gives no Arcane Force, and a workbench at the cap is on maps that
+// require it.
 void WearStarterSymbol(GameState& state) {
   const InventoryInstance& bag = state.character.inventory();
   for (int i = 0; i < bag.size(); ++i) {
@@ -611,10 +609,10 @@ void WearStarterSymbol(GameState& state) {
   }
 }
 
-// Whether the climb leaves `skill` for the tester to buy. The book the
-// character is standing in is theirs to spend, and for a 5th job that book is
-// the whole MATRIX -- the common nodes with it, since they come out of the
-// same points and belong to no stage.
+// Whether levelling up leaves `skill` for the tester to buy. The book of the
+// character's current job is theirs to spend, and for a 5th job that book is
+// the whole V Matrix, including common nodes, since they use the same points
+// and belong to no stage.
 bool LeaveUnbought(const Skill& skill, int unspent_stage) {
   if (unspent_stage == kSpendEveryStage) {
     return false;
@@ -625,19 +623,20 @@ bool LeaveUnbought(const Skill& skill, int unspent_stage) {
   return StageForAdvancement(BookOf(skill)) >= unspent_stage;
 }
 
-// The skills worth offering this character at every level of the climb, in
-// the catalog's own order. Whose book a skill is in changes only when a book
-// is taken, so the question is asked once an advancement rather than once a
-// level: the catalog is 450 skills deep and a book is forty of them, and
-// asking all of it at all 230 levels was the slowest thing in the tests.
+// The skills available to buy at every level of the climb, in catalog order.
+// Which book a skill belongs to only changes at an advancement, so this is
+// checked once per advancement instead of once per level. The catalog has 450
+// skills and a book about forty, and checking all of it at every level was the
+// slowest thing in the tests.
 std::vector<const Skill*> BuyableSkills(const CharacterInstance& character,
                                         const GameState& state,
                                         int unspent_stage) {
   std::vector<const Skill*> buyable;
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
-    // The two LearnSkill turns away without asking the books: a form bought
-    // by buying what it stands in for, and a node bought out of the matrix.
+    // The two kinds LearnSkill rejects without checking the books: a form
+    // bought by buying the skill it replaces, and a node bought from the
+    // matrix.
     if (!skill.replaces_skill_name().empty() ||
         LeaveUnbought(skill, unspent_stage)) {
       continue;
@@ -650,11 +649,10 @@ std::vector<const Skill*> BuyableSkills(const CharacterInstance& character,
   return buyable;
 }
 
-// Climbs to `level` the way a player gets there, taking each advancement in
-// `path` as it is offered. AP is always spent into the primary stat -- a
-// hundred points in the pool is a hundred keypresses between the tester and
-// the screen they came for -- and SP below `unspent_stage` only, leaving the
-// book they are standing in to spend by hand.
+// Levels to `level` the way a player would, taking each advancement in `path`
+// when offered. AP always goes into the primary stat (a hundred points would be
+// a hundred keypresses for the tester), and SP is spent only below
+// `unspent_stage`, leaving the current book for the tester to spend by hand.
 void GrowTo(GameState& state, int level, const std::vector<Job>& path,
             int unspent_stage) {
   CharacterInstance& character = state.character;
@@ -669,8 +667,8 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
       character.AdvanceJob(path[taken++]);
       buyable = BuyableSkills(character, state, unspent_stage);
     }
-    // After the advancement, not before: it puts every allocated point back in
-    // the pool and re-spends it for the new job.
+    // After the advancement, not before: the advancement refunds every
+    // allocated point and re-spends it for the new job.
     while (character.AllocateStat(PrimaryStatField(character.proto().job()))) {
     }
     for (const Skill* skill : buyable) {
@@ -680,10 +678,10 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
   }
 }
 
-// The level a character stops at when nothing names one: the top of the job's
-// own band, held to the cap the EXP table pays up to. The last advancement the
-// game has written has no band above it -- the 6th job's level is a number in
-// the table and nothing else -- so that one climbs to the cap instead.
+// The level a character stops at when none is given: the top of the job's level
+// band, capped at the EXP table's maximum. The last advancement written has no
+// band above it (the 6th job's level is only a number in the table), so it
+// levels to the cap instead.
 int LevelForJob(JobAdvancement advancement, int level) {
   if (level > 0) {
     return level;
@@ -694,10 +692,10 @@ int LevelForJob(JobAdvancement advancement, int level) {
              : std::min(NextAdvancementLevel(stage), kTrialLevelCap);
 }
 
-// The highest advancement `level` opens in the same line: --job names the
-// line and the level says how far up it. A stage the branch does not answer
-// for STOPS the climb -- a Swordman at 200 is still a Swordman, nothing saying
-// which of the three they became.
+// The highest advancement `level` unlocks in the same line: --job names the
+// line and the level says how far along it. A stage with no branch chosen stops
+// the climb: a Swordman at 200 stays a Swordman, since nothing says which of
+// the three they became.
 JobAdvancement HighestAdvancementAt(JobAdvancement advancement, int level) {
   Job job = JobForAdvancement(advancement);
   int stage = StageForAdvancement(advancement);
@@ -709,9 +707,9 @@ JobAdvancement HighestAdvancementAt(JobAdvancement advancement, int level) {
   return AdvancementForJobStage(job, stage);
 }
 
-// Climbs into `advancement`: the job it names, having taken every earlier
-// advancement on the way to it. `level` is where the climb stops, or 0 for the
-// last level before the next advancement would be offered.
+// Levels into `advancement`: its job, having taken every earlier advancement on
+// the way. `level` is where to stop, or 0 for the last level before the next
+// advancement is offered.
 void GrowToJob(GameState& state, JobAdvancement advancement, int level,
                int unspent_stage, const GearSetup& equips,
                bool cygnus_shoulders = true) {
@@ -722,22 +720,21 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
     path.push_back(JobForAdvancement(AdvancementForJobStage(job, i)));
   }
   GrowTo(state, LevelForJob(advancement, level), path, unspent_stage);
-  // The job's own gear, worn rather than carried, since there is no
-  // advancement moment here to put it on at -- and the stages under it for
-  // whatever the level cannot reach yet.
+  // The job's own gear, worn instead of carried, since there's no advancement
+  // moment here to equip it. Lower stages' gear fills whatever the level can't
+  // yet wear.
   WearThePath(state, path, equips);
-  // The Frozen set on top, from the 3rd job up. It drops rather than sells, so
-  // a workbench is the only character that will ever be seen in the whole of
-  // it -- and every piece is inside a 3rd job's level 100, which is what makes
-  // their four slots four. A 4th job adds the two the token shelf armed them
-  // with above, for six.
+  // The Frozen set on top, from the 3rd job up. It drops instead of selling, so
+  // only a workbench will ever wear the whole set. Every piece fits a 3rd job
+  // at level 100, giving four slots; a 4th job adds the two from the token shop
+  // above, for six.
   if (stage >= 3) {
     WearAll(state, FrozenArmour(), equips);
     WearAll(state, BossAccessories(), equips);
     WearAll(state, ShopAccessories(cygnus_shoulders), equips);
   }
-  // Last, so it displaces the Frozen pieces it supersedes rather than the
-  // other way round.
+  // Last, so it replaces the Frozen pieces it supersedes and not the other way
+  // round.
   if (state.character.proto().level() >= kRootAbyssLevel) {
     WearAll(state, RootAbyssGear(state.character.proto().job()), equips);
     WearAll(state, PrincessNoSecondary(state.character.proto().job()), equips);
@@ -756,16 +753,16 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   WearStarterSymbol(state);
 }
 
-// Back to the level-1 Beginner every mode's seeding climbs from. The
-// CharacterInstance holds a reference to the state's RNG and so cannot be
-// replaced outright; kMax builds a whole account through this one door.
+// Resets to the level-1 Beginner every mode starts from. The CharacterInstance
+// holds a reference to the state's RNG, so it can't be replaced outright; kMax
+// builds a whole account through this function.
 void ResetToBeginner(GameState& state) {
   state.character.RestoreFrom(MakeBaseBeginnerProto(), state.equips,
                               state.items);
 }
 
-// A player starts armed and with nothing else: the Sword is worn rather than
-// carried, so the bag really is empty.
+// A new player starts with a weapon and nothing else: the Sword is worn, so the
+// bag is empty.
 void SeedPlay(GameState& state) {
   GiveEquip(state, "sword");
   if (!state.character.inventory().empty()) {
@@ -774,27 +771,27 @@ void SeedPlay(GameState& state) {
   state.current_map = kHomeMap;
 }
 
-// What the workbench multiplies combat EXP by. High enough that the early
-// levels go by while the tester watches, which is what makes the level-gated
-// features reachable without farming for them.
+// The workbench's combat EXP multiplier. High enough that the early levels pass
+// while the tester watches, so level-gated features can be reached without
+// farming.
 constexpr int kTestExpMultiplier = 5;
 
-// How many of each currency the workbench opens with: enough token to buy a
-// shelf's worth and still have one left to buy with, and enough shards that
-// the Token tab's own column has something in it.
+// How many of each currency the workbench starts with: enough tokens to buy a
+// shelf's worth with one left over, and enough shards to fill the Token tab's
+// column.
 constexpr int kTestTokens = 20;
 
-// Enough spell traces to scroll a whole body several times over. Carried
-// rather than bought: the shop counts them out 5,000 meso at a time, which is
-// a long walk to reach the scroll screen.
+// Enough spell traces to scroll every slot several times. Given instead of
+// bought, since the shop sells them 5,000 meso at a time and that's a long way
+// to the scroll screen.
 constexpr int kTestSpellTraces = 30000;
 
-// V Points enough to fill the whole matrix twice over: what the workbench is
-// for is looking at a node, not farming the sixty days one costs.
+// Enough V Points to fill the whole matrix twice: the workbench is for looking
+// at nodes, not farming the sixty days one costs.
 constexpr int64_t kTestVPoints = 5000;
 
-// `advancement`'s job name as a username: letters, digits and spaces only, so
-// "I/L Arch Mage" arrives as "IL Arch Mage".
+// `advancement`'s job name as a username, using only letters, digits and
+// spaces, so "I/L Arch Mage" becomes "IL Arch Mage".
 std::string UsernameFor(JobAdvancement advancement) {
   std::string name;
   for (char c : ShortJobName(JobForAdvancement(advancement))) {
@@ -805,15 +802,14 @@ std::string UsernameFor(JobAdvancement advancement) {
   return name.substr(0, kMaxUsernameLength);
 }
 
-// Spare Vanishing Journey symbols the workbench carries. A symbol levels by
-// absorbing duplicates and its first level asks for 12, so this is one level
-// up on the Symbols tab and change -- enough to watch the ladder move without
-// farming Vanishing Journey for it.
+// Spare Vanishing Journey symbols for the workbench. A symbol levels up by
+// absorbing duplicates and its first level needs 12, so this is one level on
+// the Symbols tab with some left over: enough to see it progress without
+// farming.
 constexpr int kTestSymbols = 15;
 
-// The most cubes one workbench slot will take reaching for its rank. Rare to
-// Legendary is about 65 rolls on average; this is far enough past that the
-// guard never fires in practice.
+// The most cubes one workbench slot will use trying to reach its rank. Rare to
+// Legendary averages about 65 rolls, so in practice this limit never triggers.
 constexpr int kMaxSeedCubes = 100000;
 
 void GiveSymbols(GameState& state) {
@@ -822,10 +818,10 @@ void GiveSymbols(GameState& state) {
   }
 }
 
-// Potential on the workbench's gear. Every rank is meant to be on screen at
-// once, so the cubeable slots are DEALT the four ranks in turn rather than
-// each rolling its own. A rank is reached by cubing until the item arrives at
-// it, which is how a player reaches one and costs only tens of rolls.
+// Potential on the workbench's gear. Every rank should be on screen at once, so
+// the cubeable slots are assigned the four ranks in turn instead of each
+// rolling its own. A rank is reached by cubing until the item gets there, like
+// a player would, which costs only tens of rolls.
 void SeedPotentials(GameState& state) {
   std::vector<EquipSlot> slots;
   for (const std::pair<const EquipSlot, const EquipInstance*>& kv :
@@ -840,29 +836,27 @@ void SeedPotentials(GameState& state) {
                                       POTENTIAL_RANK_UNIQUE,
                                       POTENTIAL_RANK_LEGENDARY};
   for (size_t i = 0; i < slots.size(); ++i) {
-    // Guarded rather than trusted to the odds: a cube that stopped ranking up
-    // would otherwise hang the workbench on startup.
+    // Capped instead of trusting the odds: a cube that stopped ranking up would
+    // otherwise hang the workbench on startup.
     state.character.CubeWornUpTo(slots[i], CubeType::kRed,
                                  kRanks[i % std::size(kRanks)], kMaxSeedCubes);
   }
 }
 
-// The workbench. Everything here exists to reach a screen without playing up
-// to it. `chosen` is --job: unset takes kTestAdvancement and buys its whole
-// book, so the default workbench is finished rather than half-built.
+// The workbench, where everything exists to reach a screen without playing up
+// to it. `chosen` is --job: unset uses kTestAdvancement and buys its whole
+// book, so the default workbench is complete instead of half-built.
 void SeedTest(GameState& state, const TestOptions& test) {
   state.exp_multiplier = kTestExpMultiplier;
-  // Both switches on: the workbench holds two allocations at once, which is
-  // what the autoswap is for, and the music is what a tester sitting in front
-  // of it hears for an hour.
+  // Both settings on: the workbench has two allocations at once, which is what
+  // autoswap is for, and the music is what a tester hears for hours.
   state.account.SetAutoswapPresets(true);
   state.account.SetJukeboxMode(JUKEBOX_MODE_SHUFFLE);
 
-  // Enough to buy anything the shop stocks, several times over, so the buying
-  // screens can be exercised without grinding for the meso first. A hundred
-  // billion because star force is what really spends it: one attempt at the
-  // top of the ladder runs to nine figures, so a billion bought a tester about
-  // sixteen presses of the button.
+  // Enough to buy anything in the shop several times over, so buying screens
+  // can be tested without farming meso. A hundred billion because star force is
+  // the real cost: one attempt near the top costs nine figures, so a billion
+  // gave a tester about sixteen presses.
   state.character.AddMeso(100000000000);
 
   std::map<std::string, ItemPrototype>::const_iterator trace =
@@ -872,9 +866,9 @@ void SeedTest(GameState& state, const TestOptions& test) {
   }
   state.character.AddVPoints(kTestVPoints);
 
-  // A handful of every currency, so the shop's token shelves can be bought
-  // from without farming the mobs that drop them, and the bag's Token tab has
-  // both its columns filled without clearing every boss first.
+  // Some of every currency, so the shop's token shelves can be used without
+  // farming the mobs that drop them, and both columns of the bag's Token tab
+  // are filled without clearing every boss.
   for (const std::pair<const std::string, ItemPrototype>& entry : state.items) {
     if (entry.second.kind() == ITEM_KIND_TOKEN ||
         entry.second.kind() == ITEM_KIND_SOUL_SHARD) {
@@ -884,50 +878,47 @@ void SeedTest(GameState& state, const TestOptions& test) {
 
   bool chose_job = test.job != JOB_ADVANCEMENT_UNSPECIFIED;
   if (!chose_job) {
-    // Worn straight away: it is what the character holds until the climb below
-    // hands them their job's weapon, and a catalog without that weapon -- a
-    // test's, say -- leaves them holding this rather than nothing.
+    // Worn immediately: it's the character's weapon until levelling provides
+    // their job's weapon, and with a catalog missing that weapon (a test's, for
+    // example) they keep this instead of nothing.
     GiveEquip(state, "sword");
     if (!state.character.inventory().empty()) {
       state.character.Equip(0);
     }
   }
-  // Only the book the job is standing in answers to --skills. The ones behind
-  // it are bought either way: they are not what the tester picked the job for,
-  // and leaving them unbought would put two allocation screens between them
-  // and the one they came for.
+  // Only the current job's book follows --skills. The earlier books are bought
+  // either way: they aren't why the tester chose the job, and leaving them
+  // unbought would add two allocation screens before the one they want.
   JobAdvancement advancement = chose_job ? test.job : kTestAdvancement;
-  // Named after the job it was built for, so several workbenches in a party
-  // are told apart without anybody typing a name.
+  // Named after its job, so several workbenches in a party can be told apart
+  // without typing names.
   state.character.SetUsername(UsernameFor(advancement));
   GrowToJob(state, advancement, test.level,
             test.skills == TestSkills::kZero ? StageForAdvancement(advancement)
                                              : kSpendEveryStage,
             test.equips);
 
-  // Everything above dresses the character; nothing is meant to be carried.
-  // What the climb leaves in the bag is the leftovers -- gear a level gate
-  // says is carried not worn, the branches' shoulders the workbench is not,
-  // the weapon a later one displaced -- and a tester opening the Equip tab
-  // should see what they put there, not that.
+  // Everything above dresses the character, and nothing is meant to be carried.
+  // The bag holds only leftovers (gear a level gate says to carry instead of
+  // wear, other branches' shoulders, weapons replaced later), and a tester
+  // opening the Equip tab should see only what they put there.
   state.character.ClearEquipInventory();
   GiveSymbols(state);
   SeedPotentials(state);
 
-  // The weakest hunting ground there is; the tester picks anywhere else from
-  // the map select.
+  // The weakest hunting ground; the tester can pick any other on map select.
   state.current_map = "right_around_lith_harbor";
 }
 
-// What the ceiling is left holding. The climb's whole income is spent by the
-// time it gets here -- see max_character.cc for the arithmetic -- and this is
-// the change in the pocket rather than a purse to shop with.
+// What the max character is left with. The climb's whole income is spent by now
+// (see max_character.cc for the math), so this is pocket change, not a purse to
+// shop with.
 constexpr int64_t kMaxLeftoverMeso = 50000000;
 
-// Every permanent potion the character's level has opened. Each is paid for
-// at its own price, so the purse the mode leaves behind is the change and not
-// the price of a potion the level cannot reach yet. Switched on, because a
-// player who bought one is using it.
+// Every permanent potion the character's level has unlocked. Each is paid for
+// at its own price, so the remaining meso is correct and doesn't include
+// potions the level can't reach yet. Switched on, because a player who bought
+// one uses it.
 void BuyMaxConsumables(GameState& state) {
   for (const ConsumableInfo& potion : AllConsumables()) {
     if (state.character.proto().level() < potion.unlock_level) {
@@ -940,15 +931,15 @@ void BuyMaxConsumables(GameState& state) {
   }
 }
 
-// The level every Arcane Symbol a ceiling character owns is seeded at. A
-// level-1 symbol is 30 Arcane Force against a river asking 190 and up, which
-// is the bottom bracket -- a tenth of the damage dealt and 2.8x taken. Ten
-// apiece is 120 each, which carries the maps the same levels opened.
+// The level every Arcane Symbol of a max character is set to. A level-1 symbol
+// gives 30 Arcane Force against rivers requiring 190 and up, the worst bracket
+// (a tenth of the damage dealt and 2.8x taken). Level 10 gives 120 each, enough
+// for the maps the same levels unlocked.
 constexpr int kMaxModeSymbolLevel = 10;
 
-// Every symbol whose area the level has reached, worn and raised. Called
-// before the bag is cleared, so the level-1 starter this displaces is swept up
-// with the rest of the climb's leftovers.
+// Every symbol whose area the level has reached, worn and levelled. Called
+// before the bag is cleared, so the replaced level-1 starter is removed with
+// the other leftovers.
 void WearMaxSymbols(GameState& state) {
   const int level = state.character.proto().level();
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -967,9 +958,9 @@ void WearMaxSymbols(GameState& state) {
   }
 }
 
-// The same lines on every piece of one kind. Written rather than cubed for:
-// what a real sheet holds is luck, and a fight measured against a character
-// who is a little different every run says nothing. See MaxPotentialFor.
+// The same potential lines on every piece of one kind. Set directly instead of
+// cubed for: real potential is luck, and a fight measured against a slightly
+// different character every run tells us nothing. See MaxPotentialFor.
 void DressMaxPotentials(GameState& state, const MaxGear& gear) {
   const StatField primary = PrimaryStatField(state.character.proto().job());
   std::vector<EquipSlot> slots;
@@ -985,9 +976,9 @@ void DressMaxPotentials(GameState& state, const MaxGear& gear) {
   }
 }
 
-// Every node of the matrix at its ceiling. The points are granted at the price
-// of the node they buy, so nothing is left in the pool: what this mode seeds
-// is a character who spent everything, not one holding a currency.
+// Every matrix node at its maximum level. The points are granted at each node's
+// cost, leaving nothing in the pool: this mode creates a character who spent
+// everything, not one holding points.
 void MaxVMatrix(GameState& state) {
   CharacterInstance& character = state.character;
   if (!character.v_matrix_unlocked()) {
@@ -1005,9 +996,8 @@ void MaxVMatrix(GameState& state) {
   }
 }
 
-// Every job the fourth advancement ends at, which is one per line. Read off
-// the advancement table rather than listed, so a line added later is here
-// without being written down twice.
+// Every job the fourth advancement leads to, one per line. Read from the
+// advancement table instead of listed, so a new line is included automatically.
 std::vector<Job> EveryFourthJob() {
   std::vector<Job> jobs;
   for (Job first : JobChoicesForStage(JOB_BEGINNER, 1)) {
@@ -1022,10 +1012,10 @@ std::vector<Job> EveryFourthJob() {
   return jobs;
 }
 
-// Where `job`'s line stands at `level`: the highest advancement that level
-// opens. Walked on the FOURTH job, which answers for every book of its line
-// -- HighestAdvancementAt reads its job back off the advancement, and a first
-// job's does not say which branch it became.
+// The highest advancement `job`'s line reaches at `level`. Found through the
+// 4th job, which covers every book in its line: HighestAdvancementAt reads the
+// job back from the advancement, and a 1st job's doesn't say which branch it
+// became.
 JobAdvancement CeilingAdvancementFor(Job job, int level) {
   int stage = 1;
   while (stage < kLastJobStage && level >= NextAdvancementLevel(stage) &&
@@ -1036,10 +1026,10 @@ JobAdvancement CeilingAdvancementFor(Job job, int level) {
   return AdvancementForJobStage(job, stage);
 }
 
-// What the rest of a ceiling account pays the character on `line`. Every slot
-// stands at the same level in a line of its own, so this is arithmetic rather
-// than a walk over characters -- which is what lets the roster be built
-// before any of them exists.
+// What the rest of a max account gives the character on `line`. Every slot is
+// at the same level in a different line, so this is arithmetic instead of a
+// loop over characters, which lets the roster be built before any character
+// exists.
 LinkTally CeilingTally(Job line, int level) {
   LinkTally tally;
   for (Job job : EveryFourthJob()) {
@@ -1051,11 +1041,10 @@ LinkTally CeilingTally(Job line, int level) {
   return tally;
 }
 
-// Everything a ceiling character is, built onto whatever `state.character`
-// currently holds -- so the caller resets to a Beginner between one and the
-// next. `tally` is what the rest of the account pays them, set before the
-// Hyper Stats are measured because a link skill's crit rate moves what they
-// buy.
+// Builds a max character onto whatever `state.character` holds, so the caller
+// resets to a Beginner between characters. `tally` is what the rest of the
+// account gives them, set before Hyper Stats are measured because a link
+// skill's crit rate changes the best allocation.
 void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
                      const LinkTally& tally) {
   const MaxGear gear = MaxGearForLevel(level);
@@ -1070,8 +1059,8 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   GrowToJob(state, advancement, level, kSpendEveryStage, equips,
             /*cygnus_shoulders=*/false);
   WearMaxSymbols(state);
-  // The leftovers of the climb: a piece a level gate says is carried rather
-  // than worn, and the weapons a later one displaced.
+  // The climb's leftovers: pieces a level gate says to carry instead of wear,
+  // and weapons replaced later.
   state.character.ClearEquipInventory();
 
   DressMaxPotentials(state, gear);
@@ -1089,10 +1078,10 @@ void MaxOneCharacter(GameState& state, JobAdvancement advancement, int level,
   BuyMaxConsumables(state);
 }
 
-// The rest of a ceiling account: a dressed ceiling at the top of every OTHER
-// job line, at the played character's level, so the roster holds the account's
-// link skills. Built BEFORE the character in play, who is then the only one
-// never round-tripped through a proto.
+// The rest of a max account: a max character at the top of every other job
+// line, at the played character's level, so the roster provides the account's
+// link skills. Built before the played character, who is then the only one
+// never converted to and from a proto.
 void SeedMaxRoster(GameState& state, Job played_line, int level) {
   const int64_t now = static_cast<int64_t>(std::time(nullptr));
   state.inactive_characters.clear();
@@ -1107,36 +1096,36 @@ void SeedMaxRoster(GameState& state, Job played_line, int level) {
     *slot.mutable_character() = state.character.ToProto();
     slot.set_current_map(kHomeMap);
     slot.set_created_unix_seconds(now);
-    // Left unplayed, so the character select opens on the one in play rather
-    // than on whoever the loop finished with.
+    // Marked unplayed, so character select opens on the character in play
+    // instead of the last one the loop built.
     slot.set_last_played_unix_seconds(0);
   }
 }
 
-// The ceiling: the character a player who spent well is standing in at this
-// level. Written outright rather than played for, every number priced against
-// what the climb pays by then -- max_character.cc carries the arithmetic.
-// NOTHING of the workbench: no purse, no EXP bonus, no spare gear.
+// The max mode character: what a player who spent well has at this level. Set
+// directly instead of played for, with every number priced against the climb's
+// income by then (max_character.cc has the math). Nothing from the workbench:
+// no extra meso, no EXP bonus, no spare gear.
 void SeedMax(GameState& state, const TestOptions& options) {
   state.character.set_link_skills_off(!options.link_skills);
-  // A ceiling holds both allocations at once, which is what the autoswap is
-  // for, whatever the state was asked for.
+  // A max character has two allocations at once, which is what autoswap is for,
+  // whatever the state requested.
   state.account.SetAutoswapPresets(true);
   state.account.SetJukeboxMode(JUKEBOX_MODE_SHUFFLE);
   state.MirrorAccount();
-  // The same default the workbench takes: the top of the line as far as the
-  // game is written, which is where a boss roster is measured from.
+  // The same default as the workbench: the highest advancement written in the
+  // line, which is where boss rosters are measured from.
   const JobAdvancement chosen = options.job != JOB_ADVANCEMENT_UNSPECIFIED
                                     ? options.job
                                     : kTestAdvancement;
   const int level = LevelForJob(chosen, options.level);
-  // --job names the line, not where to stop in it: a ceiling at a level has
-  // taken every advancement that level offers.
+  // --job names the line, not where to stop in it: a max character at a level
+  // has taken every advancement that level allows.
   const JobAdvancement advancement = HighestAdvancementAt(chosen, level);
   const Job played_line = LineOf(JobForAdvancement(advancement));
 
-  // The roster exists for the link skills alone, so a ceiling without them
-  // stands alone as every sim's has always done.
+  // The roster exists only for link skills, so a max character without them
+  // stands alone, as in every sim.
   LinkTally tally;
   if (options.link_skills) {
     SeedMaxRoster(state, played_line, level);
@@ -1144,8 +1133,8 @@ void SeedMax(GameState& state, const TestOptions& options) {
   }
   ResetToBeginner(state);
   MaxOneCharacter(state, advancement, level, tally);
-  // The tally again, off the roster this time: from here it is the account's
-  // to state, and a slot that leaves changes it.
+  // Recompute the tally from the roster: from now on the account provides it,
+  // and removing a slot changes it.
   state.MirrorAccount();
   state.current_map = kHomeMap;
 }
@@ -1170,14 +1159,14 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       equip_sets(std::move(sets)),
       bosses(std::move(bosses_arg)),
       rng(seed.has_value() ? *seed : std::random_device{}()),
-      // Every mode builds its character up from a level-1 Beginner; where the
-      // climb stops is --level's to say, and the seeding below walks it there.
+      // Every mode builds its character up from a level-1 Beginner. --level
+      // says where to stop, and the seeding below levels up to it.
       character(rng, MakeBaseBeginnerProto()),
       last_played_unix_seconds(static_cast<int64_t>(std::time(nullptr))),
       created_unix_seconds(static_cast<int64_t>(std::time(nullptr))) {
   FillTokenShelves(equips, items);
-  // Before the seeding: a max character's allocations are measured by playing
-  // the fight, and the fight reads the switch.
+  // Before seeding: a max character's allocations are measured by playing the
+  // fight, and the fight reads this setting.
   account.SetAutoswapPresets(test.autoswap_presets);
   MirrorAccount();
   if (mode == GameMode::kTest) {
@@ -1205,8 +1194,8 @@ void GameState::MirrorAccountOnto(CharacterInstance& into,
                                   int theirs) const {
   into.set_autoswap_presets(account.autoswap_presets());
   into.set_account_max_level(account.max_level());
-  // The OTHERS only: a character speaks for their own line themselves, their
-  // level climbing mid-session where a slot's does not.
+  // Only the others: a character provides their own line's link skill
+  // themselves, since their level can change mid-session while a slot's can't.
   LinkTally tally;
   for (int slot = 0; slot < static_cast<int>(roster.size()); ++slot) {
     if (slot == theirs) {
@@ -1220,8 +1209,8 @@ void GameState::MirrorAccountOnto(CharacterInstance& into,
 
 namespace {
 
-// Every other character on the account, which is what Burning ranks the one
-// being played against.
+// Every other character on the account, which Burning compares the played one
+// against.
 std::vector<int> OtherCharacterLevels(const GameState& state) {
   std::vector<int> levels;
   levels.reserve(state.inactive_characters.size());
@@ -1240,8 +1229,8 @@ void AwardExp(GameState& state, int64_t amount) {
 }
 
 void GrantLevelRewards(GameState& state, int from_level, int to_level) {
-  // Paid for every level in the span, whether or not the character can spend
-  // it yet: Inner Ability opens at 160 onto a pool the climb has been filling
+  // Paid for every level in the range, whether or not the character can spend
+  // it yet: Inner Ability opens at 160 with a pool the climb has been filling
   // all along.
   state.character.AddHonor(HonorForLevels(from_level, to_level));
   if (from_level >= kArcaneRiverLevel || to_level < kArcaneRiverLevel) {
@@ -1259,16 +1248,16 @@ int OwnedFromLevel(const EquipPrototype& proto) {
   if (proto.token_item() == "absolab_coin") {
     return kAbsoLabLevel;
   }
-  // The four Chaos Root Abyss Pieces, which are the only tokens named this
-  // way, and Princess No's fragment, which comes off a fight opening at the
-  // same level. The Frozen tokens and the Cygnus one come off fights open well
-  // below the gear they buy, so they gate nothing.
+  // The four Chaos Root Abyss Pieces, the only tokens named this way, and
+  // Princess No's fragment, from a fight opening at the same level. The Frozen
+  // and Cygnus tokens come from fights open well below the gear they buy, so
+  // they gate nothing.
   if (proto.token_item().rfind("piece_of_", 0) == 0 ||
       proto.token_item() == "captivating_fragment") {
     return kRootAbyssLevel;
   }
-  // The one piece of gear a fight pays out directly rather than through a
-  // token, and the only one whose fight opens above the level it is worn at.
+  // The one piece of gear a fight drops directly instead of through a token,
+  // and the only one whose fight opens above the level it's worn at.
   if (proto.name() == "Guardian Angel Ring") {
     return kGuardianAngelSlimeLevel;
   }

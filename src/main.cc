@@ -91,10 +91,9 @@ ms::GameMode ParseMode(const std::string& mode) {
              << "'; expected 'play', 'test' or 'max'";
 }
 
-// Every advancement a character can actually be started at, as --job spells
-// them: the enum's own names lowercased and stripped of their prefix. Built
-// from the descriptor rather than listed, so a new job joins the flag by
-// existing.
+// Every advancement a character can start at, as --job spells them: the enum
+// names in lowercase without their prefix. Built from the descriptor instead of
+// listed, so a new job is accepted automatically.
 constexpr char kJobPrefix[] = "JOB_ADVANCEMENT_";
 
 std::vector<std::string> JobFlagNames() {
@@ -112,17 +111,17 @@ std::vector<std::string> JobFlagNames() {
   return names;
 }
 
-// Dies on a workbench flag passed to a real game, so a tester who meant
-// --mode=test hears about it rather than playing on without it.
+// Dies if a workbench flag is passed to a real game, so a tester who meant
+// --mode=test finds out instead of playing on without it.
 void RefuseOutsideTheWorkbench(const char* flag, ms::GameMode mode) {
   if (mode != ms::GameMode::kTest) {
     LOG(FATAL) << flag << " is for the workbench; pass --mode=test with it";
   }
 }
 
-// The two flags a seeded character shares. --mode=max answers the gear and
-// the book itself -- what a level has paid for is the whole of what the mode
-// says -- so those flags stay the workbench's alone.
+// The two flags seeded modes share. --mode=max decides gear and skills itself
+// (what a level has paid for is the whole point of the mode), so those flags
+// stay workbench-only.
 void RefuseInPlay(const char* flag, ms::GameMode mode) {
   if (mode == ms::GameMode::kPlay) {
     LOG(FATAL) << flag << " is for --mode=test or --mode=max";
@@ -155,10 +154,10 @@ ms::TestSkills ParseSkills(const std::string& skills, ms::GameMode mode) {
   LOG(FATAL) << "Unknown --skills '" << skills << "'; expected zero or max";
 }
 
-// The level the workbench arrives at. 0 leaves it to the job, which is the
-// top of its own band. The bounds are checked here rather than in the seeding
-// so the tester is told what they asked for is out of reach, rather than
-// quietly given something else.
+// The level the workbench reaches. 0 lets the job decide, meaning the top of
+// its band. The bounds are checked here instead of in seeding, so the tester
+// learns their request is out of range instead of silently getting something
+// else.
 int ParseLevel(int level, ms::JobAdvancement job, ms::GameMode mode) {
   if (level == 0) {
     return 0;
@@ -168,9 +167,9 @@ int ParseLevel(int level, ms::JobAdvancement job, ms::GameMode mode) {
       ms::StageForAdvancement(
           job == ms::JOB_ADVANCEMENT_UNSPECIFIED ? ms::kTestAdvancement : job) -
       1);
-  // Bounded by the highest level the game has, not by the trial's ceiling:
-  // the cap is what play pays EXP up to, and the workbench is where the
-  // levels above it are looked at.
+  // Bounded by the game's highest level, not the trial's cap: the cap is where
+  // play stops paying EXP, and the workbench is where the levels above it are
+  // looked at.
   if (level < floor || level > ms::kMaxLevel) {
     LOG(FATAL) << "--level " << level << " is outside " << floor << ".."
                << ms::kMaxLevel << " for that job";
@@ -196,9 +195,9 @@ ms::JobAdvancement ParseJob(const std::string& job, ms::GameMode mode) {
 }  // namespace
 
 int main(int argc, char** argv) {
-  // A player who opens the game from a file manager gets a console
-  // window of its own, which closes the moment this returns. Name it,
-  // and hold it open at the end for whatever is still on it.
+  // A player opening the game from a file manager gets a console window that
+  // closes as soon as this returns. Name it, and keep it open at the end for
+  // whatever is still on it.
   ms::NameConsoleWindow();
   ms::ConsoleHold hold;
 
@@ -210,8 +209,8 @@ int main(int argc, char** argv) {
   test.equips = ParseEquips(mode);
   test.skills = ParseSkills(absl::GetFlag(FLAGS_skills), mode);
 
-  // The data is compiled in, so there is nothing to find on disk and nothing
-  // beside the executable to lose.
+  // The data is compiled in, so there's nothing to find on disk and nothing
+  // next to the executable to lose.
   std::map<std::string, ms::EquipPrototype> equips =
       ms::LoadTextProtoMap<ms::EquipPrototype>(ms::EmbeddedEquips());
   std::map<std::string, ms::Scroll> scrolls =
@@ -233,8 +232,8 @@ int main(int argc, char** argv) {
                       std::move(mobs), std::move(maps), std::move(skills), mode,
                       test, std::nullopt, std::move(sets), std::move(bosses));
 
-  // The workbench neither reads nor writes a save: it starts from its known
-  // state every run, and must never be able to overwrite a real character.
+  // The workbench neither reads nor writes a save: it starts from the same
+  // state every run, and must never overwrite a real character.
   std::string save_path;
   ms::OfflineReport offline;
   if (mode == ms::GameMode::kPlay) {
@@ -242,10 +241,10 @@ int main(int argc, char** argv) {
     ms::LoadResult load = ms::LoadGameFromFile(state, save_path);
     if (load.status == ms::LoadStatus::kUnreadable ||
         load.status == ms::LoadStatus::kFromTheFuture) {
-      // Refused rather than started over. A save that cannot be read might
-      // still be recoverable, and beginning a new game here would write over
-      // it within thirty seconds. Naming the file and the way out is what
-      // keeps that from being a dead end.
+      // Refused instead of starting over. An unreadable save might still be
+      // recoverable, and starting a new game would overwrite it within thirty
+      // seconds. Naming the file and the way out keeps this from being a dead
+      // end.
       std::fprintf(stderr,
                    "%s\n\nThe game will not start until that file is dealt "
                    "with. Move it somewhere safe to begin a new character, or "
@@ -253,19 +252,18 @@ int main(int argc, char** argv) {
                    load.message.c_str());
       return 1;
     }
-    // Before the TUI is built, so the character the first frame draws is the
-    // one the absence already paid, and the level-up cards do not go up for
-    // levels the welcome-back card is about to report.
+    // Before the TUI is built, so the first frame shows the character after the
+    // absence has paid out, and level-up cards don't show for levels the
+    // welcome-back card is about to report.
     offline = ms::ApplyOfflineProgress(
         state,
         ms::AbsenceSeconds(state.last_seen_unix_seconds,
                            static_cast<std::int64_t>(std::time(nullptr))));
   }
 
-  // The workbench reaches a server it was pointed at and no other. The party
-  // screens are screens like any other and it should be able to exercise
-  // them, but a character built to try things out has no business turning up
-  // in the lobby everybody else is in.
+  // The workbench connects only to a server it was explicitly given. It should
+  // be able to test the party screens, but a test character doesn't belong in
+  // the lobby everyone else uses.
   std::string server = absl::GetFlag(FLAGS_server);
   if (mode != ms::GameMode::kPlay && server == ms::DefaultServerAddress()) {
     server.clear();
