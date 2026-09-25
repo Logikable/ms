@@ -1,9 +1,8 @@
-# GMS states the damage twice: 100 + 4*L% five times over, and the same figure
-# again as percentage POINTS against normal monsters. So an ordinary monster
-# takes double, which is what normal_skill_pct carries -- and since nothing in
-# this game is a boss, it is what every monster takes.
+# GMS states the damage twice: 100 + 4*L% five times, and the same figure again
+# as percentage POINTS against normal monsters. So ordinary monsters take
+# double, which is what normal_skill_pct carries; bosses take the base.
 #
-# Flash Blade's animation, which is the same dash it is a bigger version of.
+# Uses Flash Blade's animation, since it is the same dash, only bigger.
 name: "Beam Blade"
 description: "Launch out blades that tear your enemies apart."
 kind: SKILL_KIND_ATTACK

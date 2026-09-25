@@ -1,9 +1,9 @@
-# Reach cut from GMS's 10 to 5. Its hitbox is 390x215 -- one storey of a map,
-# holding 5 monsters side by side -- so 10 is a cap GMS never fills and this
-# fight would hit every time. See Skill.max_enemies.
+# Reach cut from GMS's 10 to 5. Its hitbox is 390x215, one storey of a map
+# fitting 5 monsters side by side, so 10 is a cap GMS never fills but this fight
+# would always fill. See Skill.max_enemies.
 #
-# 810ms is the animation's own, from the frame data: a beat slower than the
-# Spear Sweep it replaces as the Berserker's main attack.
+# 810ms is the animation's own, from the frame data: a bit slower than the Spear
+# Sweep it replaces as the Berserker's main attack.
 name: "La Mancha Spear"
 description: "Spin your spear to attack enemies in front of you."
 kind: SKILL_KIND_ATTACK

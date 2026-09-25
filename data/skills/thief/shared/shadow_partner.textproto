@@ -1,8 +1,8 @@
 # GMS's own figure: an extra hit worth 50+x% of the final damage on every
-# attack. The summon's duration goes, as every duration here does.
+# attack. The summon's duration is dropped, like every duration here.
 #
-# It doubles the LINES rather than multiplying the damage -- the same total,
-# but the swing keeps the shape the player bought. See mirror_line_pct.
+# It doubles the LINES instead of multiplying the damage: the same total, but
+# the swing keeps the shape the player bought. See mirror_line_pct.
 name: "Shadow Partner"
 description: "Summons a shadow partner that mimics the summoner."
 kind: SKILL_KIND_PASSIVE

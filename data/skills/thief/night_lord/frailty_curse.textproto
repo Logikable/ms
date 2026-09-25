@@ -1,9 +1,8 @@
-# GMS's barrier weakens what walks into it and pays boss damage as its passive
-# half; here both halves are permanent. The attack penalty is GMS's own x%
-# over 30 levels, read off this book's 20 -- 11% at level 1 to 30% at the
-# master level. The DEF penalty beside it goes: no swing here reads a
-# monster's DEF as a number it could take from. Boss damage is 1% a level over
-# 20, where GMS pays 5+ceil(x/2)% over 30.
+# GMS's barrier weakens what walks into it and gives boss damage as its passive
+# half; here both halves are permanent. The attack penalty is GMS's x% over 30
+# levels, applied to this book's 20: 11% at level 1 to 30% at max. The DEF
+# penalty is dropped: no swing here reads a monster's DEF as a number to lower.
+# Boss damage is 1% a level over 20, where GMS gives 5+ceil(x/2)% over 30.
 name: "Frailty Curse"
 description:
   "Summons a barrier around you. Decreases the Attack Power of enemies that "

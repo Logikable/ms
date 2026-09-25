@@ -1,11 +1,11 @@
-# GMS pays 2*ceil(x/3)% critical damage over 30 levels, for 30 seconds against a
-# 120-second wait. Ten levels here at 2% apiece, which lands on GMS's own 20%.
+# GMS gives 2*ceil(x/3)% critical damage over 30 levels, for 30 seconds on a
+# 120-second cooldown. Ten levels here at 2% each, ending at GMS's 20%.
 #
-# GMS shelters the whole party under it outright -- nobody standing in it takes
-# damage at all -- and a share off a hit IS how this game says that: the whole
-# of it, for the thirty seconds the smoke stands. GMS's other half, ceil(x/3)%
-# off damage taken in proportion to Max HP, is dropped: nothing here scales a
-# hit off the player's pool.
+# GMS fully protects the whole party inside it (nobody in it takes damage), and
+# a damage-taken reduction is how this game says that: all of it, for the thirty
+# seconds the smoke lasts. GMS's other half, ceil(x/3)% less damage taken in
+# proportion to Max HP, is dropped: nothing here scales a hit by the player's
+# HP.
 name: "Smokescreen"
 description:
   "Drop a Smokescreen near you. All party members within Smokescreen range "
@@ -24,8 +24,8 @@ buff {
     damage_taken_pct: 1.00
   }
   per_level { crit_dmg: 0.02 }
-  # What everyone else standing in it gets: the same shelter, and nothing of the
-  # critical damage -- that is paid by the enemies inside, and they are inside
-  # it for whoever swings at them.
+  # What everyone else in it gets: the same protection, but none of the critical
+  # damage, which comes from the enemies inside and applies to whoever attacks
+  # them.
   ally_base { damage_taken_pct: 1.00 }
 }

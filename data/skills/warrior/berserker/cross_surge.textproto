@@ -1,11 +1,11 @@
-# GMS splits this in two: a buff worth 10+floor(L/2)% final damage on an MP
-# cost and a timer, and a passive worth 2L+10% that is always on. Nothing here
-# spends MP or watches a timer, so the two are summed and always on -- 22.5% at
-# level 1 climbing to 70% at 20.
+# GMS splits this in two: a buff worth 10+floor(L/2)% final damage that costs MP
+# and runs on a timer, and a permanent passive worth 2L+10%. Nothing here uses
+# MP or times it, so the two are added and always on: 22.5% at level 1, up to
+# 70% at 20.
 #
-# The other half of the GMS skill cuts damage taken by a share of the HP the
-# character is missing. That is dropped: it pays most when nearly dead, and a
-# fight that heals a tenth of the pool on every beat never sits there.
+# GMS's other half reduces damage taken by a share of the character's missing
+# HP. That is dropped: it pays most when nearly dead, and a fight that heals a
+# tenth of HP every beat never stays there.
 name: "Cross Surge"
 description: "Increases Final Damage."
 kind: SKILL_KIND_PASSIVE

@@ -1,7 +1,7 @@
-# GMS's own figures: a 40+2x% chance of a mark, and three stars for 205+5x%
-# apiece on the next attack. The mark and the spending of it are one beat apart
-# in GMS and none here, so what is left is a Final Attack -- the same shape
-# Assassin's Mark takes, one star wider and half again as likely.
+# GMS's own figures: a 40+2x% chance of a mark, and three stars of 205+5x% each
+# on the next attack. In GMS the mark and its use are one beat apart; here they
+# happen together, so what is left is a Final Attack, shaped like Assassin's
+# Mark with one more star and half again the chance.
 name: "Night Lord's Mark"
 description:
   "Further enhances the assassin's mark, increasing the probability of "

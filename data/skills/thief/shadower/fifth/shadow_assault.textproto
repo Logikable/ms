@@ -1,20 +1,19 @@
-# The Shadower's first job node: four dashes through the crowd, each slashing
+# The Shadower's first class node: four dashes through the crowd, each slashing
 # everything it passes.
 #
-# GMS's own figures: 720+20x% six times on twelve enemies, four presses to a
-# 60s cooldown. The client carries an id per dash -- 400041002 chains through
-# 400041003-5, all three `invisible` -- and the 6th job boost lifts the count
-# from 4, which is what settles the number the tooltip muddles as "2-4".
+# GMS's own figures: 720+20x% six times on twelve enemies, four presses per 60s
+# cooldown. The client has an id per dash (400041002 chains through 400041003-5,
+# all three `invisible`), and the 6th job boost raises the count from 4, which
+# settles the number the tooltip muddles as "2-4".
 #
-# One press here, charged all four dashes: 420ms of frames apiece, and
-# `cast_interval_ms` tells them apart on that same beat so each finds the crowd
-# as it then stands rather than piling four landings onto one group of twelve.
-# The three follow-ups fall inside the 1680ms the press costs, so nothing is
-# had for free.
+# Here one press uses all four dashes: 420ms of frames each, with
+# `cast_interval_ms` spacing them on that beat so each hits the crowd as it is
+# then, instead of all four landing on one group of twelve. The three follow-ups
+# fall inside the 1680ms the press costs, so nothing is free.
 #
-# The crit rate and the DEF it ignores ride this swing alone, as GMS states
-# them. Dropped: the 300 MP, the immunity while dashing, and the direction of
-# the dash -- nothing here has a place to be.
+# The crit rate and Ignore DEF apply to this swing only, as GMS states. Dropped:
+# the 300 MP, the immunity while dashing, and the dash direction, since nothing
+# here has a position.
 name: "Shadow Assault"
 description: "Instantly move to slash enemies."
 kind: SKILL_KIND_ATTACK

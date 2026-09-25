@@ -1,6 +1,6 @@
-# GMS pays this for provoking enemies, and Showdown's provocation was cut --
-# nothing here can be taunted -- so it lands the way Showdown's own EXP grant
-# does: as a permanent five points on both, for everything the character kills.
+# GMS gives this for taunting enemies, and Showdown's taunt was cut (nothing
+# here can be taunted), so it works like Showdown's own EXP grant: a permanent
+# five points on both, for everything the character kills.
 name: "Showdown - Enhance"
 description: "Increases EXP and items from enemies provoked by Showdown."
 kind: SKILL_KIND_PASSIVE

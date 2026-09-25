@@ -1,5 +1,5 @@
-# A share of the character's damage that only this swing collects, which is
-# what GMS's "Damage: +20%" is -- the same bargain Showdown - Reinforce makes.
+# Extra damage % only this swing gets, which is what GMS's "Damage: +20%" means,
+# like Showdown - Reinforce.
 name: "Quad Star - Reinforce"
 description: "Increases Quad Star damage."
 kind: SKILL_KIND_PASSIVE

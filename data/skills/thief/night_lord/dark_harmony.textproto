@@ -1,7 +1,7 @@
-# GMS pays 5+floor(x/2) attack, x% ignored defence and 5+floor(x/3)% final
-# damage over 30 levels. Ten here, and all three arrive where GMS's do: the
-# attack climbs a point a level off a base that already carries the ten GMS
-# pays before level 10.
+# GMS gives 5+floor(x/2) attack, x% Ignore DEF and 5+floor(x/3)% final damage
+# over 30 levels. Here it has ten, and all three end where GMS's do: attack
+# rises a point a level from a base that already includes the ten GMS gives
+# before level 10.
 name: "Dark Harmony"
 description: "Become one with the darkness to deal more damage."
 kind: SKILL_KIND_PASSIVE

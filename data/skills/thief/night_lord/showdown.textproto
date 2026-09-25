@@ -1,20 +1,18 @@
 # GMS's own figures: 365+8x% twice on six enemies, and a dark shuriken that
-# attacks six times for 9+3*floor(x/6)% once every five seconds, hitting an
-# ordinary monster for 200% more. The provocation goes -- nothing here can be
-# taunted -- but what the provoked enemies pay stays: GMS's ceil(x/6)% covers
-# EXP and Item Drop Rate alike, and both are granted permanently, walked as a
-# line.
+# attacks six times for 9+3*floor(x/6)% every five seconds, doing 200% more to
+# ordinary monsters. The taunt is dropped (nothing here can be taunted), but the
+# bonus from taunted enemies stays: GMS's ceil(x/6)% covers EXP and Item Drop
+# Rate alike, both given permanently, stepped evenly.
 #
-# The shuriken is a side strike rather than a summon on purpose: it has to go
-# out with this swing and no other, or a Night Lord holding Quad Star at a boss
-# would be firing it the whole time. Its six enemies are stated rather than
-# taken from the swing, because GMS's Showdown - Spread widens the talisman and
-# leaves the shuriken at six.
+# The shuriken is a side strike, not a summon, on purpose: it must come out with
+# this swing only, or a Night Lord using Quad Star on a boss would be firing it
+# the whole time. Its six enemies are stated instead of taken from the swing,
+# because GMS's Showdown - Spread widens the talisman and leaves the shuriken at
+# six.
 #
-# Six of them go out, and each hunts ONE enemy down -- `mobCount` is 1 in the
-# client. So it scatters: against six monsters they take one apiece, and
-# against a lone boss all six land on it, the second and every later one
-# keeping half of itself. GMS states that cut in so many words.
+# Six go out, and each hunts ONE enemy (`mobCount` is 1 in the client). So it
+# scatters: against six monsters each takes one, and against a lone boss all six
+# hit it, with the second and later ones at half damage, as GMS states outright.
 name: "Showdown"
 description:
   "Attacks enemies and provokes them. Provoked enemies grant more EXP. When "

@@ -1,7 +1,7 @@
-# Meso Explosion is not a swing -- the coins Pick Pocket knocks loose ride the
-# Shadower's own attack as a Final Attack does. Everything the node grants is
-# cashed onto that strike, which is why the coins had to learn to carry a
-# critical rate and a final damage share.
+# Meso Explosion isn't a swing: the coins Pick Pocket drops ride the Shadower's
+# own attack like a Final Attack. Everything the node gives applies to that
+# strike, which is why the coins needed to carry a critical rate and final
+# damage.
 name: "Meso Explosion Boost"
 description: "Strengthens Meso Explosion."
 kind: SKILL_KIND_PASSIVE

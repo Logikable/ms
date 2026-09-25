@@ -1,5 +1,5 @@
 # Two more enemies for the talisman and none for the shuriken, which states its
-# own six -- see showdown.textproto.
+# own six (see showdown.textproto).
 name: "Showdown - Spread"
 description:
   "Increases the max number of enemies hit by Showdown. Doesn't apply to the "

@@ -1,10 +1,10 @@
-# GMS's poison on the weapon: everything a swing reaches burns for 375 + 15x%
-# twice a second for 30 seconds. The tooltip states the damage, the two hits
-# and the duration but not the interval -- that comes from the client's own
-# 400040000, whose dotInterval is 1.
+# GMS's poison on the weapon: everything a swing hits burns for 375 + 15x% twice
+# a second for 30 seconds. The tooltip gives the damage, the two hits and the
+# duration but not the interval, which comes from the client's own 400040000,
+# whose dotInterval is 1.
 #
-# No chance is rolled. The older form of this skill took hold half the time;
-# the one GMS ships now simply poisons what the swing hit.
+# No chance is rolled. The older version of this skill applied half the time;
+# GMS's current one always poisons what the swing hit.
 name: "Venom Burst"
 description: "Poison your weapon to deal damage over time to enemies."
 kind: SKILL_KIND_PASSIVE

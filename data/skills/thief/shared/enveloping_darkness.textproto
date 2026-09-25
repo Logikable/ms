@@ -1,8 +1,8 @@
-# GMS gives 5x% HP and 6+6x resistance over 4 levels. Five levels here, at 4%
-# HP and 5 resistance apiece, which ends near GMS's ceiling for a point more.
+# GMS gives 5x% HP and 6+6x resistance over 4 levels. Five levels here, at 4% HP
+# and 5 resistance each, ending near GMS's top for one more point.
 #
-# Both resistances ship dead, as every resistance here does: nothing inflicts a
-# status or an element.
+# Both resistances are useless, like every resistance here: nothing inflicts a
+# status or element.
 name: "Enveloping Darkness"
 description:
   "Cloaks yourself in darkness, increasing Max HP, Abnormal Status Resistance "

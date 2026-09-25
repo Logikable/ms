@@ -1,15 +1,15 @@
-# Replaces Evil Eye Shock rather than joining it. There is only ever one shout:
-# GMS's client gives this skill no hitbox and no animation of its own, only a
-# restatement of the base skill's whole parameter set, and Grandis Library
-# types it an "Upgraded Passive" whose effect is "increases %Damage of attack".
+# Replaces Evil Eye Shock instead of adding to it; there is only ever one shout.
+# GMS's client gives this skill no hitbox or animation of its own, only a
+# restated copy of the base skill's parameters, and Grandis Library calls it an
+# "Upgraded Passive" that "increases %Damage of attack".
 #
-# So the first three points really are a downgrade -- a level 1 here is 139%
-# against a maxed Evil Eye Shock's 150%, and GMS ships that wart. The stun and
-# the 12-second clock are restated, as a superseded skill stops paying; the
-# stun's chance climbs on to 90% at this skill's master.
+# So the first three points really are a downgrade: level 1 here is 139% against
+# a maxed Evil Eye Shock's 150%, and GMS ships that flaw. The stun and the
+# 12-second clock are restated, since a superseded skill stops paying; the stun
+# chance climbs to 90% at this skill's max.
 #
-# The aura heal is restated because this supersedes the skill stating it, and
-# flat because it is the EYE's: a louder shout does not heal harder.
+# The aura heal is restated because this supersedes the skill that gave it, and
+# is flat because it belongs to the EYE: a louder shout doesn't heal more.
 name: "Evil Eye Shock II"
 description: "Empowers Evil Eye Shock, increasing its damage."
 kind: SKILL_KIND_AUTO_ATTACK

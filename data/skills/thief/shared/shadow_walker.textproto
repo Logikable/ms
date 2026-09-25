@@ -1,15 +1,14 @@
-# GMS hides the thief for twenty seconds in a stealth no attack breaks, and
-# pays final damage for attacking out of it. There is no stealth here, so what
-# is left is the damage.
+# GMS hides the thief for twenty seconds in a stealth attacks don't break, and
+# gives final damage for attacking from it. There is no stealth here, so only
+# the damage is left.
 #
-# It stacks with Advanced Dark Sight, which GMS says in so many words -- "added
-# on top of Advanced Dark Sight's Final Damage bonus" -- so it names no
-# exclusive group. Only the Shadower holds that skill; the Night Lord's line
-# never learns it.
+# It stacks with Advanced Dark Sight, as GMS says outright ("added on top of
+# Advanced Dark Sight's Final Damage bonus"), so it has no exclusive group. Only
+# the Shadower has that skill; the Night Lord never learns it.
 #
-# The wait is GMS's 150 - x exactly, 149 seconds down to 120. The damage steps
-# by a clean amount rather than GMS's floor, so master lands on its 14% and
-# only where it starts moves.
+# The cooldown is exactly GMS's 150 - x, 149 seconds down to 120. The damage
+# steps by an even amount instead of GMS's floor, so max level lands exactly on
+# its 14% and only the start moves.
 name: "Shadow Walker"
 description:
   "Your stealth is honed past the point of breaking, and you strike from "

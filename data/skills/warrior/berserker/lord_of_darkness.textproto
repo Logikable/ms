@@ -1,12 +1,12 @@
-# GMS's own ten levels, ending where GMS ends: 30% critical rate and 8%
-# critical damage. The critical damage walks a staircase there --
-# 3+floor(L/2)% -- and the ladder here is the straight line to the same
-# endpoint, so level 1 reads 3.5% against GMS's 3%.
+# GMS's own ten levels, ending where GMS ends: 30% critical rate and 8% critical
+# damage. GMS's critical damage goes in steps (3+floor(L/2)%), and the ladder
+# here is the straight line to the same end, so level 1 shows 3.5% against GMS's
+# 3%.
 #
 # The recovery is GMS's "10*L% chance to recover 2% of Max HP during the
-# attack", which at their max is every attack. Written here as the expectation
-# it comes to, because that is what an expected-damage fight can spend: 0.2% of
-# the pool per landed swing at level 1, 2% at 10.
+# attack", which at max is every attack. Written as its expected value, since
+# that is what an expected-damage fight can use: 0.2% of HP per landed swing at
+# level 1, 2% at 10.
 name: "Lord of Darkness"
 description:
   "Increases Critical Rate and Critical Damage, and grants a chance to "

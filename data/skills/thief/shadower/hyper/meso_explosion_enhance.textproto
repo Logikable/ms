@@ -1,7 +1,7 @@
-# GMS pays two halves: five more mesos usable at once, and a 10% better chance
-# of one dropping. The first has nothing to bite on -- there is no ground here,
-# so every meso is thrown the moment it falls and no cap ever binds. The chance
-# is the whole of the skill, and it lifts Pick Pocket from 30% to 40%.
+# GMS gives two halves: five more mesos usable at once, and a 10% better chance
+# of one dropping. The first does nothing here: there is no ground, so every
+# meso is thrown as it drops and no cap is ever reached. The chance is the whole
+# skill, raising Pick Pocket from 30% to 40%.
 name: "Meso Explosion - Enhance"
 description:
   "Increases the chance of Mesos dropping from Pick Pocket and Blood Money."

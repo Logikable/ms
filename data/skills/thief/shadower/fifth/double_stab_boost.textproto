@@ -1,9 +1,9 @@
-# GMS's fifth node is Phase Dash alone, which was never built here -- Midnight
-# Carnival covers the same ground on a shorter delay, and two buttons for one
-# job was the cut. Double Stab takes the node at 5% a level rather than GMS's
-# 3%: it is the one swing no other node of the book claims, and a first-job
-# attack needs the better rate to be worth 80 VP. The dagger it demands keeps
-# it the Shadower's, as the claw keeps Lucky Seven the Night Lord's.
+# GMS's fifth node is Phase Dash alone, which isn't built here: Midnight
+# Carnival already carries Phase Dash's damage, and one button was chosen over
+# two. Double Stab takes the node at 5% a level instead of GMS's 3%: it is the
+# one swing no other node in the book takes, and a 1st job attack needs the
+# better rate to be worth 80 VP. The dagger it needs keeps it the Shadower's, as
+# the claw keeps Lucky Seven the Night Lord's.
 name: "Double Stab Boost"
 description: "Strengthens Double Stab."
 kind: SKILL_KIND_PASSIVE

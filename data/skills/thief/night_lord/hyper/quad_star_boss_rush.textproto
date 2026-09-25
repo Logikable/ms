@@ -1,5 +1,5 @@
-# GMS's own twenty points, and they ride the swing rather than the character:
-# Quad Star is the Night Lord's boss swing and hands nothing to Showdown.
+# GMS's own twenty points, on the swing, not the character: Quad Star is the
+# Night Lord's boss swing and passes nothing to Showdown.
 name: "Quad Star - Boss Rush"
 description:
   "Damage increases when attacking Boss Monsters with Quad Star."

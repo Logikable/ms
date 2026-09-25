@@ -1,9 +1,9 @@
-# Six enemies to eight, which is what makes Cruel Stab the Shadower's mobbing
-# swing outright -- Sudden Raid's fifteen are behind a minute's wait.
+# Six enemies to eight, which makes Cruel Stab the Shadower's clear mobbing
+# swing, since Sudden Raid's fifteen come with a one-minute cooldown.
 #
-# Eight passes the six that Cruel Stab's own 480x245 box holds, and is meant
-# to: the reach rule floors what a swing states for itself, and holding the
-# hyper to the box would leave this point buying nothing.
+# Eight is more than the six Cruel Stab's 480x245 box holds, on purpose: the
+# reach rule only lowers what a swing states for itself, and capping the hyper
+# at the box would make this point buy nothing.
 name: "Cruel Stab - Spread"
 description: "Increases the max number of enemies hit by Cruel Stab."
 kind: SKILL_KIND_PASSIVE

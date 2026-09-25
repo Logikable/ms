@@ -1,6 +1,6 @@
-# A share of the character's damage that only this swing collects, which is
-# what GMS's "Damage: +20%" is. It stops at the talisman: a boost names a
-# skill, and the shuriken beside it is not that skill's swing.
+# Extra damage % only this swing gets, which is what GMS's "Damage: +20%" means.
+# It stops at the talisman: a boost names a skill, and the shuriken beside it
+# isn't that skill's swing.
 name: "Showdown - Reinforce"
 description:
   "Increases the damage of Showdown. Doesn't apply to the shadow shuriken "

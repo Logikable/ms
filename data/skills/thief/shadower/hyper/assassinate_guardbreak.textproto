@@ -1,5 +1,5 @@
-# Ten points of ignored defence on the swing alone; it meets the character's
-# own the way two sources of it always do.
+# Ten points of Ignore DEF on this swing only; it combines with the character's
+# own like any two sources.
 name: "Assassinate - Guardbreak"
 description:
   "Increases Enemy DEF Ignored amount for Assassinate."

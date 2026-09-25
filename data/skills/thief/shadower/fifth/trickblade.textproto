@@ -1,25 +1,24 @@
-# The Shadower's third job node, and the one skill here with two forms. GMS
-# calls them Eviscerate Fail and Eviscerate Success, which is the whole of the
-# mechanism: one key, and what goes out is settled by whether an enemy is
-# carrying a full wound rather than by the player.
+# The Shadower's third class node, and the one skill here with two forms. GMS
+# calls them Eviscerate Fail and Eviscerate Success, which is the whole
+# mechanism: one key, and which form comes out depends on whether an enemy has a
+# full wound, not on the player.
 #
-# Pressed cold it summons hidden friends -- 675+27x% five times across ten
-# enemies, on a 14 second wait. Landed on a wound at full depth the Shadower
-# appears behind that one enemy and slashes five times for 825+33x% seven
-# times, with the crit rate, the defence it ignores, the 1.8 seconds of
-# invulnerability and the longer 20 second wait that GMS states for that clause
-# alone.
+# Used without one it summons hidden allies: 675+27x% five times across ten
+# enemies, on a 14-second cooldown. Used on a full wound, the Shadower appears
+# behind that enemy and slashes five times for 825+33x% seven times, with the
+# crit rate, Ignore DEF, 1.8 seconds of invulnerability and the longer 20-second
+# cooldown GMS states for that case only.
 #
-# The wound is stated here because GMS hangs it off this skill's passive half:
-# Assassinate and Sonic Blow leave one and say nothing about it, and neither
-# leaves any until this node is bought. Assassinate's finishing blow leaves one
-# stack and every attack of Sonic Blow leaves three, so a single Sonic Blow
-# fills the wound and three Assassinates do. One enemy carries it at a time.
+# The wound is defined here because GMS attaches it to this skill's passive
+# half: Assassinate and Sonic Blow cause it without mentioning it, and neither
+# does until this node is bought. Assassinate's finishing blow adds one stack
+# and every Sonic Blow attack adds three, so one Sonic Blow fills the wound, as
+# do three Assassinates. Only one enemy has it at a time.
 #
-# Nothing here reads the wound for damage -- GMS's tooltip states no per-stack
-# lift, and the wound is purely the key that opens the heavier form.
+# Nothing here reads the wound for damage: GMS's tooltip gives no bonus per
+# stack, and the wound only unlocks the stronger form.
 #
-# Dropped: the 650 MP, the link windows off Assassinate and Sonic Blow (there
+# Dropped: the 650 MP, the link windows after Assassinate and Sonic Blow (there
 # is no key to press), and both forms' immunity to attack reflection.
 name: "Trickblade"
 description:

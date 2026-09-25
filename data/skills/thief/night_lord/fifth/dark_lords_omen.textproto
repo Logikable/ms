@@ -1,29 +1,28 @@
-# The Night Lord's third job node: a scroll left hanging in the air that fires
-# stars for twelve seconds and bursts as it goes.
+# The Night Lord's third class node: a scroll hanging in the air that fires
+# stars for twelve seconds and bursts at the end.
 #
-# GMS's own figures: 700+27x% a star, six of them at each of up to seven
-# enemies and seven more whatever the crowd is, then 1570+62x% twelve times on
-# twelve enemies when the duration ends. Bosses take 30% more of all of it.
+# GMS's own figures: 700+27x% a star, six at each of up to seven enemies plus
+# seven more regardless of the crowd, then 1570+62x% twelve times on twelve
+# enemies when it ends. Bosses take 30% more from all of it.
 #
-# The beat is `subTime 990`, the same field Shurrikane and Bolt Barrage take
-# theirs from and the only number in the block the readout never spends. Twelve
-# firings fit the twelve seconds, and the twelfth is where the scroll bursts.
+# The beat is `subTime 990`, the field Shurrikane and Bolt Barrage take theirs
+# from, and the only number in the block the tooltip never uses. Twelve firings
+# fit in twelve seconds, and the twelfth is the burst.
 #
-# The seven fixed stars are fired EVERY tick, not once at the start. Namu says
-# so of the scroll -- of the stars it keeps firing, part of the count scales
-# with the crowd -- `bulletCount` is GMS's per-cast line count everywhere else,
-# and the band settles it: 276,720% at master is 4,612%/s against the wait,
-# just under Storm of Arrows, where the once-at-the-start reading is 1,013%/s,
-# far below the band.
+# The seven fixed stars fire EVERY tick, not only at the start. Namu says part
+# of the stars it keeps firing scales with the crowd; `bulletCount` is GMS's
+# per-cast line count everywhere else; and the balance range agrees: 276,720% at
+# max is 4,612%/s over the cooldown, just under Storm of Arrows, while firing
+# them only at the start gives 1,013%/s, far below the range.
 #
-# The 30% is the scroll's, stated once on the pulse and kept by the burst that
-# goes out with it. On the buff it would be a character-wide boss bonus for
-# twelve seconds of every sixty, which is a different and far stronger skill.
+# The 30% belongs to the scroll, stated once on the pulse and kept by the burst.
+# On the buff it would be a character-wide boss bonus for twelve seconds in
+# sixty, a different and much stronger skill.
 #
-# The cast is the 120ms every buff raised from a sequence costs, not the 360ms
-# of the scroll's own animation.
+# The cast is the 120ms every buff cast from a sequence costs, not the scroll's
+# 360ms animation.
 #
-# Dropped: detonating it early, which needs a scroll to be somewhere, and the
+# Dropped: detonating it early, which needs the scroll to have a position, and
 # immunity to attack reflection, which nothing here has.
 name: "Dark Lord's Omen"
 description: "Unleash the power of the Dark Lord's insight."

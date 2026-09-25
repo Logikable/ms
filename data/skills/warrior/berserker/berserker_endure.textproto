@@ -1,10 +1,10 @@
-# GMS caps this at 14 and ends at +20 of each. Stretched over 20 levels to the
-# same place, as Lord of Darkness is.
+# GMS maxes this at 14 and ends at +20 of each. Stretched over 20 levels to the
+# same place, like Lord of Darkness.
 #
-# Nothing in this game inflicts an abnormal status or deals elemental damage,
-# so this grants nothing today. It is written out in full anyway: the figures
-# belong with the skill, and the stats page shows both rows so a player can see
-# what their points bought.
+# Nothing in this game inflicts a status or deals elemental damage, so this
+# gives nothing yet. It is written in full anyway: the figures belong with the
+# skill, and the stats page shows both rows so a player can see what their
+# points bought.
 name: "Endure"
 description:
   "Enhances your Abnormal Status Resistance and Elemental Resistance."

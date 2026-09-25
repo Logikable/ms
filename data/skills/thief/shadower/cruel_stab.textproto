@@ -1,10 +1,9 @@
 # GMS's own figures: 190+2x% six times on eight enemies, 4+2*floor(x/3)% final
-# damage, and Pick Pocket's drop rate halved for this skill alone. The final
-# damage walks evenly to GMS's 24% and is the character's for good -- GMS
-# writes it under "[Passive Effects]", so it follows a Shadower onto
-# Assassinate.
+# damage, and Pick Pocket's drop rate halved for this skill only. The final
+# damage climbs evenly to GMS's 24% and is permanent: GMS lists it under
+# "[Passive Effects]", so it applies to Assassinate too.
 #
-# Six enemies against GMS's eight: 480x245 is one storey and holds six abreast.
+# Six enemies against GMS's eight: 480x245 is one storey and fits six across.
 # See Skill.max_enemies.
 name: "Cruel Stab"
 description:

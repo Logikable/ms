@@ -1,5 +1,5 @@
-# Both burns take the node's numbers with them: a burn is priced off the
-# swing's own stat line, which the boost is already folded into.
+# Both burns get the node's numbers too: a burn uses the swing's own stats,
+# which already include the boost.
 name: "Sudden Raid Boost"
 description: "Strengthens Sudden Raid and Shadow Veil."
 kind: SKILL_KIND_PASSIVE

@@ -1,7 +1,7 @@
-# The book's mastery skill, on the ladder every 4th job's climbs: 51% at level
-# 1 to 70% at 20. GMS pays x attack and floor(x/3)% critical damage over 30
-# levels; twenty here, so the attack lands a point a level and the critical
-# damage is flat at what GMS reaches.
+# The book's mastery skill, on the ladder every 4th job uses: 51% at level 1 to
+# 70% at 20. GMS gives x attack and floor(x/3)% critical damage over 30 levels;
+# here it has twenty, so attack rises a point a level and critical damage is
+# flat at GMS's top.
 name: "Claw Expert"
 description: "Increases Claw Mastery, Attack Power, and Critical Damage."
 kind: SKILL_KIND_PASSIVE

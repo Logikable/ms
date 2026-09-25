@@ -1,5 +1,5 @@
-# The Shadower's single-target swing, so the twenty points land where the
-# skill is already chosen -- against a boss and nothing else.
+# The Shadower's single-target swing, so the twenty points go where the skill is
+# already used: against bosses only.
 name: "Assassinate - Boss Rush"
 description:
   "Increases damage when attacking Boss Monsters with Assassinate."
