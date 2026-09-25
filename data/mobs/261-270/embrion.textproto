@@ -1,0 +1,8 @@
+name: "Embrion"
+level: 264
+attack: 20025
+max_hp: 677762800
+exp: 721247
+pdr: 10
+# Limina hands out no Arcane Symbol, and its only Etc is a shared-pool item,
+# so nothing here drops.

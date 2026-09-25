@@ -1,0 +1,8 @@
+name: "Sandblade Marauder"
+level: 265
+attack: 16110
+max_hp: 5295023500
+exp: 2056974
+pdr: 10
+# Grandis's only Etc is Sol Erda Fragment, a shared-pool item, and there is no
+# Sacred Symbol yet, so nothing here drops.

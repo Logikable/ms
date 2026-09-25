@@ -11,6 +11,7 @@
 #include <utility>
 
 #include "src/character/arcane_force.h"
+#include "src/character/sacred_power.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/widgets/format.h"
 #include "src/protos/equip.pb.h"
@@ -219,19 +220,20 @@ TEST(MapDataTest, EveryMobCanBeFoughtAndIsWorthFighting) {
 
 // Every mob a map spawns is inspectable, and the screen leads with its
 // bestiary blurb. Two exemptions, both drawn as an empty block rather than a
-// made-up one: Arcane River, which the wiki writes no archive entry for at
-// all, and Onyx Stonegar, the one straggler it also says nothing about.
+// made-up one: Arcane River and Grandis, which the wiki writes no archive
+// entry for at all, and Onyx Stonegar, the one straggler it also says nothing
+// about.
 // Inventing text would put words in the game's mouth no source stands
 // behind.
 //
-// The map is what says a mob is in the river: it is the map that asks for
-// Arcane Force. Nothing about the monster itself does -- Tenebris drops no
+// The map is what says a mob is in the river or Grandis: it is the map that
+// asks for a force. Nothing about the monster itself does -- Tenebris drops no
 // symbol, and the level does not say so either, Black Heaven running to 219
 // and asking for no force at all.
 TEST(MapDataTest, EveryMapMobIsDescribed) {
   std::map<std::string, Mob> mobs = LoadMobs();
   for (const std::pair<const std::string, MapData>& entry : LoadMaps()) {
-    if (entry.second.arcane_force() > 0) {
+    if (entry.second.arcane_force() > 0 || entry.second.sacred_power() > 0) {
       continue;
     }
     for (const Spawn& spawn : entry.second.spawns()) {
@@ -280,6 +282,30 @@ TEST(MapDataTest, ArcaneForceGoesWithArcaneRiver) {
     }
   }
   EXPECT_GT(checked, 0) << "no Arcane River maps in the catalog to check";
+}
+
+// A map is in the river, in Grandis or in neither, and Grandis opens at its
+// own level. A map asking both would be read as the river alone.
+TEST(MapDataTest, SacredPowerGoesWithGrandis) {
+  std::map<std::string, Mob> mobs = LoadMobs();
+  int checked = 0;
+  for (const std::pair<const std::string, MapData>& entry : LoadMaps()) {
+    if (entry.second.sacred_power() == 0) {
+      continue;
+    }
+    ++checked;
+    EXPECT_EQ(entry.second.arcane_force(), 0)
+        << entry.first << " asks for both forces";
+    for (const Spawn& spawn : entry.second.spawns()) {
+      std::map<std::string, Mob>::const_iterator mob = mobs.find(spawn.mob());
+      if (mob != mobs.end()) {
+        EXPECT_GE(mob->second.level(), kGrandisLevel)
+            << entry.first << " asks for Sacred Power and spawns "
+            << spawn.mob() << ", which is below Grandis";
+      }
+    }
+  }
+  EXPECT_GT(checked, 0) << "no Grandis maps in the catalog to check";
 }
 
 }  // namespace

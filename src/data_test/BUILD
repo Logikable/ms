@@ -62,6 +62,7 @@ cc_test(
     deps = [
         "//src:spawn",
         "//src/character:arcane_force",
+        "//src/character:sacred_power",
         "//src/frontend/screens:mob_inspect_panel",
         "//src/frontend/widgets:format",
         "//src/protos:equip_proto_cc",

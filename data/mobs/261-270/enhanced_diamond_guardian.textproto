@@ -1,0 +1,8 @@
+name: "Enhanced Diamond Guardian"
+level: 270
+attack: 16560
+max_hp: 7463516580
+exp: 2445217
+pdr: 10
+# Grandis's only Etc is Sol Erda Fragment, a shared-pool item, and there is no
+# Sacred Symbol yet, so nothing here drops.

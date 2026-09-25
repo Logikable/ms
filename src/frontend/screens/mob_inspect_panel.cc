@@ -28,8 +28,9 @@
 namespace ms {
 namespace {
 
-// Columns of the mob list, the same ones the map select screen sets them in.
-constexpr int kMobNameWidth = 22;
+// Columns of the mob list: the longest mob name, 25 ("Enhanced Diamond
+// Guardian"), and a space.
+constexpr int kMobNameWidth = 26;
 constexpr int kLevelWidth = 4;
 constexpr int kCountWidth = 6;
 

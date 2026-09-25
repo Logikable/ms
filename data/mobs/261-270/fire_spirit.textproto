@@ -1,0 +1,8 @@
+name: "Fire Spirit"
+level: 261
+attack: 15750
+max_hp: 3806790000
+exp: 1750290
+pdr: 10
+# Grandis's only Etc is Sol Erda Fragment, a shared-pool item, and there is no
+# Sacred Symbol yet, so nothing here drops.
