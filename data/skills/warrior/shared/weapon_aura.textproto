@@ -1,17 +1,17 @@
-# GMS's aura is an active: 100 HP, up for 70 + 2x seconds on a 120-second wait.
-# The wait is shorter than the duration at every level, so a player who presses
-# it holds it permanently -- which is what a passive is. The HP cost goes with
-# the cast that no longer happens.
+# GMS's aura is an active: 100 HP, up for 70 + 2x seconds on a 120-second
+# cooldown. The cooldown is shorter than the duration at every level, so a
+# player who uses it keeps it up permanently, which is what a passive is. The HP
+# cost goes with the cast that no longer happens.
 #
-# Both levers are x/5 in GMS, one floored and one ceiled: 10 + floor(x/5)% of
-# defence ignored and ceil(x/5)% final damage. Written straight, without the
-# rounding, that is a fifth of a point a level on each -- so master lands on
-# GMS's 16% and 6% exactly and only where they start moves.
+# Both levers are x/5 in GMS, one rounded down and one up: 10 + floor(x/5)%
+# Ignore DEF and ceil(x/5)% final damage. Written without the rounding, that is
+# a fifth of a point a level on each, so max level lands exactly on GMS's 16%
+# and 6% and only the start moves.
 #
 # The wave is 500 + 20x%, six lines on ten enemies, on its own five-second
 # clock. GMS makes as many waves as the triggering skill has lines and pays a
-# share of that skill's damage; a flat wave on a clock is the same skill from
-# the fight's side, since a warrior at 5th job is always swinging something.
+# share of that skill's damage; a flat wave on a clock is the same from the
+# fight's side, since a 5th job warrior is always attacking.
 name: "Weapon Aura"
 description:
   "Infuses your weapon with a portion of your health, granting it a visible "

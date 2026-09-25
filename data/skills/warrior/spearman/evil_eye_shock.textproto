@@ -1,13 +1,13 @@
-# GMS puts this on a 12-second cooldown, which for a skill worth firing every
-# time it comes back is the same thing as a cast interval -- so that is what it
-# becomes here. The stun is GMS's master figure, 9*ceil(x/2)% for 5 seconds.
+# GMS gives this a 12-second cooldown, which for a skill worth using every time
+# it is ready is the same as a cast interval, so that is what it becomes here.
+# The stun is GMS's max value, 9*ceil(x/2)% for 5 seconds.
 #
-# The aura heal belongs to the EYE rather than to the shout, and GMS hangs it
-# off a separate one-point Evil Eye skill this book does not have. It lands
-# here instead, and is restated on both tiers above -- a superseded skill stops
-# paying, so a Dark Knight would otherwise lose the eye by upgrading it. 24 HP
-# every 24 seconds is nothing to a character with a pool, which is the whole
-# reason Evil Eye - Aura Reinforce exists.
+# The aura heal belongs to the EYE, not the shout, and GMS attaches it to a
+# separate one-point Evil Eye skill this book doesn't have. It goes here
+# instead, and is restated on both tiers above, since a superseded skill stops
+# paying and a Dark Knight would otherwise lose the heal by upgrading. 24 HP
+# every 24 seconds is nothing to a real HP bar, which is why Evil Eye - Aura
+# Reinforce exists.
 name: "Evil Eye Shock"
 description: "Your Evil Eye shouts, stunning and damaging nearby enemies."
 kind: SKILL_KIND_AUTO_ATTACK

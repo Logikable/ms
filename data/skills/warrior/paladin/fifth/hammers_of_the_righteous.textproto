@@ -1,17 +1,17 @@
-# The Paladin's second job node: a ring of hammers that beats every 0.63
-# seconds for thirty, on the same 30-of-60 window Divine Echo takes. Shaped
-# like Darkness Aura's aura, except that nothing is loosed out of it -- the
-# cast raises the ring and the ring is the whole skill.
+# The Paladin's second class node: a ring of hammers that pulses every 0.63
+# seconds for thirty seconds, on the same 30-of-60 window as Divine Echo. Shaped
+# like Darkness Aura's aura, but nothing is released from it: the cast raises
+# the ring, and the ring is the whole skill.
 #
-# 0.63s is the user's own measurement off a video, and the client agrees: the
+# 0.63s is the user's own measurement from a video, and the client agrees: the
 # hit effect is seven frames of 90ms. attackDelay says 1800 and is not the
-# rate -- GMS's Phoenix states 3000 against a measured 1.71, so a summon's
+# rate: GMS's Phoenix states 3000 against a measured 1.71, so a summon's
 # attackDelay overstates in both.
 #
-# GMS also hangs five of these off Vessel of Light for free, sharing its
-# duration. Vessel of Light is a permanent passive here, so that half would put
-# the ring up for good and leave the active with nothing to add. Dropped, and
-# the timed ring is what the skill is.
+# GMS also attaches five of these to Vessel of Light for free, sharing its
+# duration. Vessel of Light is a permanent passive here, so that half would keep
+# the ring up forever and leave the active with nothing to add. Dropped; the
+# timed ring is the skill.
 name: "Hammers of the Righteous"
 description:
   "Summons a whirling bulwark of righteous hammers to strike down nearby "

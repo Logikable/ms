@@ -1,6 +1,5 @@
-# Worth the most of the three on this half of the page: Blast is the swing a
-# Paladin makes at a boss, and it lands ten lines a swing for the rate to
-# work on.
+# The most valuable of the three on this half of the page: Blast is the
+# Paladin's boss swing, and it lands ten lines a swing for the rate to affect.
 name: "Blast - Critical Chance"
 description:
   "Increases Critical Rate of Blast."

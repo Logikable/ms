@@ -1,19 +1,18 @@
-# GMS says this OVERRIDES Vessel of Light, and now something can say so: it
-# supersedes it and states the whole of what a Paladin holds rather than the
-# difference. Its first level already clears the 2nd job skill's last, so the
-# point that buys it is never a point spent going backwards.
+# GMS says this OVERRIDES Vessel of Light, so it supersedes it and states
+# everything a Paladin gets instead of the difference. Its first level already
+# beats the 2nd job skill's last, so buying it is never a step back.
 #
-# Its HP recovery is dropped, as the user asked. GMS holds the damage at 25%
-# and the attack at 60 past level 10; the ladder here walks a little past both
-# under Combat Orders, which is the price of climbing them at all.
+# Its HP recovery is dropped, as the user asked. GMS stops the damage at 25% and
+# the attack at 60 after level 10; the ladder here goes a little past both with
+# Combat Orders, which is the cost of climbing them at all.
 #
-# The strikes and the reach are the rest of the skill and the reason SkillBoost
-# exists: a strike each to Divine Charge and Blast, and two more enemies for
-# Divine Charge by the tenth level -- GMS's ceil(L/5).
+# The strikes and reach are the rest of the skill and the reason SkillBoost
+# exists: a strike each for Divine Charge and Blast, and two more enemies for
+# Divine Charge by level 10 (GMS's ceil(L/5)).
 #
-# Those two carry Divine Charge to seven, past the five its 415x200 box holds.
-# That stands: the reach rule floors what a swing states for itself, and a
-# book's grant is allowed to lift it.
+# Those two take Divine Charge to seven, more than the five its 415x200 box
+# holds. That stands: the reach rule only lowers what a swing states for itself,
+# and a book's grant may raise it.
 name: "Greater Vessel of Light"
 description:
   "Empowers Vessel of Light to its limit with your mastery. Increases Divine "

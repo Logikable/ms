@@ -1,12 +1,11 @@
-# The Paladin's map swing on a two-minute wait: 500% six times across fifteen
-# enemies, where Blast lands ten strikes into three. Against a boss it is worth
-# little -- one cast of it is 3000% every two minutes -- which is the trade GMS
-# makes too.
+# The Paladin's map swing on a two-minute cooldown: 500% six times across
+# fifteen enemies, where Blast lands ten strikes on three. Against a boss it is
+# worth little, 3000% every two minutes, which is also GMS's trade-off.
 #
-# 1320ms is the animation's own, from the frame data, and twice what a 4th job
-# swing usually costs. The stun is GMS's ten seconds; its doubling with the
-# damage dealt and the 90 seconds of stun resistance after it are dropped, as
-# are the buffs it strips -- no monster here holds a buff.
+# 1320ms is the animation's own, from the frame data, twice a typical 4th job
+# swing. The stun is GMS's ten seconds; its doubling with damage dealt and the
+# 90 seconds of stun resistance afterward are dropped, as is the buff removal,
+# since no monster here has buffs.
 name: "Smite Shield"
 description:
   "Summons a hammer imbued with unyielding strength to strike down nearby "

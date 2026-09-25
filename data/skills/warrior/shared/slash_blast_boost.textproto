@@ -1,7 +1,7 @@
 # GMS's fifth node is Leap Attack / Rush for both books, and neither skill
-# exists here. It goes to the swing no other node of either claims instead, at
-# 5% a level rather than GMS's 3% -- Slash Blast is a first-job attack, and
-# needs the better rate to be worth a node at all.
+# exists here. It goes instead to the one swing no other node takes, at 5% a
+# level instead of GMS's 3%: Slash Blast is a 1st job attack and needs the
+# better rate to be worth a node.
 name: "Slash Blast Boost"
 description: "Strengthens Slash Blast."
 kind: SKILL_KIND_PASSIVE

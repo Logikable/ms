@@ -1,19 +1,19 @@
-# The Paladin's third job node, and a hold like Calamitous Cyclone: a cross of
-# light the player keeps up for as long as the key is down, sheltering behind
-# it while it beats.
+# The Paladin's third class node, a hold like Calamitous Cyclone: a cross of
+# light the player keeps up while the key is held, sheltering behind it while it
+# pulses.
 #
-# It is the first hold that GROWS. The client carries two full keydown sets --
-# 5thGrandCrossLoop at 480ms and again at 720 -- and the four seconds of key-
-# down divide as 1080ms small, 480 of the growth itself, then 2440 grown. At
-# the 150ms pulse that is 7 pulses then 16, which is the 23 the pack states.
+# It is a hold that GROWS. The client has two full keydown sets,
+# 5thGrandCrossLoop at 480ms and again at 720, and the four seconds of holding
+# split into 1080ms small, 480 of growing, then 2440 grown. At the 150ms pulse
+# that is 7 pulses then 16, the 23 the data states.
 #
-# 1680ms is the wind-up and the release together -- 900ms of 5thGrandCrossPre
-# and 780 of 5thGrandCrossEnd -- read the way Calamitous Cyclone's 870 was.
-# There is no strike at the release: GMS ends the cross by letting go of it,
-# so the 780ms is charged as time and pays nothing.
+# 1680ms is the wind-up plus the release (900ms of 5thGrandCrossPre and 780 of
+# 5thGrandCrossEnd), read like Calamitous Cyclone's 870. There is no strike on
+# release: GMS ends the cross by letting go, so the 780ms costs time and does
+# nothing.
 #
-# Dropped: the knockback and status immunity while it is held, and the attack
-# speed the growth also buys, which has no number anywhere.
+# Dropped: the knockback and status immunity while held, and the attack speed
+# the growth also gives, which has no number anywhere.
 name: "Grand Guardian"
 description:
   "Blaze a glorious cross-section of light, symbolizing noble sacrifice. You "

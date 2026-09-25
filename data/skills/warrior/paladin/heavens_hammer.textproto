@@ -1,10 +1,9 @@
-# This pays MORE against a boss, where a bonus of the shape usually pays
-# against ordinary monsters. The 30% lands in a boss
-# fight; on a map the skill is the eight strikes across fifteen enemies, which
-# is what it is tuned on.
+# This pays MORE against bosses, where a bonus like this usually pays against
+# ordinary monsters. The 30% applies in boss fights; on a map the skill is its
+# eight strikes across fifteen enemies, which is what it is tuned on.
 #
-# Its wait shortens as the skill is taught -- GMS's
-# 30 - floor(L/2), walked as a line to the same 15 seconds at master level.
+# Its cooldown shortens with levels: GMS's 30 - floor(L/2), straightened to the
+# same 15 seconds at max.
 name: "Heaven's Hammer"
 description:
   "Slam a large hammer into the ground, dealing damage to multiple enemies. "

@@ -1,7 +1,7 @@
-# The HP is the whole skill for us: its other effects (speed, jump, max speed,
-# knockback resistance) are things this game doesn't model. It ends where GMS
-# ends it, at 20 HP a character level, but climbs there a point at a time rather
-# than handing over most of the value with the first point.
+# HP is the whole skill here: its other effects (speed, jump, max speed,
+# knockback resistance) aren't modelled. It ends where GMS's does, at 20 HP per
+# character level, but climbs a point at a time instead of giving most of it
+# with the first point.
 name: "Warrior Mastery"
 description: "Trains up your warrior basics to increase Max HP."
 kind: SKILL_KIND_PASSIVE

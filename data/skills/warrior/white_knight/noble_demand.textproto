@@ -1,19 +1,17 @@
-# The barrier the White Knight raises by shouting at what is in front of them.
-# Cut when nothing read a monster debuff; enemy_attack_pct reads exactly that
-# now -- it weakens the mob before its hit is rolled, so the character's DEF
-# then cancels a larger share of what is left.
+# The barrier the White Knight raises by shouting at enemies in front of them.
+# enemy_attack_pct handles it: it weakens the mob before its hit is rolled, so
+# the character's DEF then cancels a larger share of what is left.
 #
-# GMS also takes the same share off the enemy's DEFENCE and its accuracy.
-# Neither is modelled: a monster's DEF is a stat this game does not carry, and
-# there is no accuracy to lose.
+# GMS also lowers the enemy's DEF and accuracy by the same share. Neither is
+# modelled: this game doesn't lower a monster's DEF, and there is no accuracy.
 #
-# Its success rate is dropped rather than folded in. GMS runs the debuff for
-# 40 + 2L seconds off a cast the player can simply repeat until it lands, so
-# what the rate costs is casts rather than damage -- and the debuff itself is
-# permanent for the same reason every other rebuffable window here is.
+# Its success rate is dropped, not averaged in. GMS runs the debuff for 40 + 2L
+# seconds from a cast the player can repeat until it lands, so the rate costs
+# casts, not damage, and the debuff is permanent here like every window that can
+# simply be recast.
 #
-# The six enemies it reaches say nothing either: only the mob at the front of
-# the queue hits back.
+# Its six-enemy reach doesn't matter either: only the mob at the front of the
+# queue attacks.
 name: "Noble Demand"
 description:
   "Releases the pride of the Holy Knight, decreasing the Attack Power of "

@@ -1,5 +1,5 @@
-# Added to the character's own rate for this swing alone, so what it is worth
-# is the share of Divine Charge's lines it turns critical.
+# Added to the character's rate for this swing only, so it is worth the share of
+# Divine Charge's lines it makes critical.
 name: "Divine Charge - Critical Chance"
 description:
   "Increases the Critical Rate of Divine Charge."

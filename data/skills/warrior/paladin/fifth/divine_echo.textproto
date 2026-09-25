@@ -1,29 +1,29 @@
-# The Paladin's first job node, and three GMS effects folded into one number.
-# GMS hangs an echo on a party member who then mirrors the Paladin's attacks,
-# and pays three separate shares of final damage for it: 75% to the Paladin,
-# 40% more output through the echo, and 15% again while Divine Blessing is on
-# whoever is carrying it. Final damage sources multiply here as they do there,
-# so 1.75 x 1.40 x 1.15 is one buff of 181.75% and says the same thing.
+# The Paladin's first class node: three GMS effects merged into one number. GMS
+# puts an echo on a party member, who then copies the Paladin's attacks, and
+# gives three separate final damage shares for it: 75% to the Paladin, 40% more
+# through the echo, and 15% more while Divine Blessing is on whoever carries it.
+# Final damage multiplies here as in GMS, so 1.75 x 1.40 x 1.15 is one buff of
+# 181.75%, which says the same thing.
 #
-# The blessing's share is the one piece that waits on company: it is paid for
-# the blessing standing on whoever is CARRYING the echo, and alone there is
-# nobody to carry it. The other two are kept unconditional -- this game's
-# Divine Blessing is a permanent passive with no cast to aim, so the share is
-# never the thing that is missing.
+# The blessing's share is the only part that needs company: it pays for the
+# blessing on whoever CARRIES the echo, and alone nobody carries it. The other
+# two are unconditional; this game's Divine Blessing is a permanent passive with
+# nothing to aim, so the blessing is never what is missing.
 #
-# Both steps are round rather than the exact ladder between GMS's ends, which
-# wants 1.5517 and 0.3448 points a level. Master is GMS's to the hundredth in
-# both; level 1 lands 1.5 over on the first and 0.15 under on the second.
+# Both steps are rounded instead of the exact ladder between GMS's ends, which
+# would need 1.5517 and 0.3448 points a level. Max level matches GMS to the
+# hundredth on both; level 1 is 1.5 over on the first and 0.15 under on the
+# second.
 #
-# The echo itself is worth 100% Buff Duration to one other member, granted for
-# good rather than on this skill's clock -- a 30-second buff behind a 60-second
-# wait cannot lengthen somebody else's buffs for only half of it, there being
-# one duration per fight. GMS's 50-65% plus 1% per 1000 STR, capped at 100%, is
-# rounded up to the cap it is reaching for.
+# The echo itself gives one other member 100% Buff Duration, permanently instead
+# of on this skill's timer: a 30-second buff on a 60-second cooldown can't
+# lengthen someone else's buffs for only half the time, since there is one
+# duration per fight. GMS's 50-65% plus 1% per 1000 STR, capped at 100%, is
+# rounded up to the cap it heads for.
 #
-# Dropped: everything GMS spends its description on -- picking the member by
-# number key, losing the echo when they walk out of range, and the bar on
-# echoing a Paladin who is already echoing somebody.
+# Dropped: everything GMS's description is about: choosing the member by number
+# key, losing the echo when they move out of range, and not being able to echo a
+# Paladin who is already echoing someone.
 name: "Divine Echo"
 description:
   "Grants an echo of your battle prowess that mirrors your attack skills "

@@ -1,12 +1,12 @@
-# Twenty levels rather than GMS's ten, every ladder ending where GMS's does:
+# Twenty levels instead of GMS's ten, with every ladder ending where GMS's does:
 # 40 status resistance, 40% elemental, 250% DEF and +20 attack.
 #
-# The guard is a chance to cancel the whole hit rather than to shave a share
-# off it, which is what dodge_chance is. The stun a guard lands is dropped:
-# a guard only cancels the hit, and nothing answers it on the monster that
-# swung. Of what is left the attack and the guard are worth something: the two resistances have
-# nothing to resist, and DEF is already past what it can cancel. All of it
-# waits on the off hand, which for a White Knight can only be a rosary.
+# The guard is a chance to block the whole hit instead of reducing it, which is
+# what dodge_chance is. The stun a guard causes is dropped: a guard only blocks
+# the hit, and nothing acts on the monster that attacked. Of what is left, only
+# the attack and the guard are worth anything: the two resistances have nothing
+# to resist, and DEF is already past what it can cancel. All of it needs the off
+# hand, which for a White Knight can only be a rosary.
 name: "Shield Mastery"
 description:
   "Increases Elemental Resistance, Abnormal Status Resistance, DEF, and "

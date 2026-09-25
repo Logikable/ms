@@ -1,5 +1,5 @@
-# GMS runs this for 80 + 12*L seconds off an MP cost. There is nothing here to
-# spend MP on and nothing to watch a buff timer with, so it is simply always on.
+# GMS runs this for 80 + 12*L seconds for an MP cost. Nothing here uses MP or
+# times buffs, so it is always on.
 name: "Hyper Body"
 description: "Increases your Max HP and Max MP."
 kind: SKILL_KIND_PASSIVE

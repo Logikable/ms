@@ -2,10 +2,9 @@
 # every level.
 #
 # The active half is knockdown immunity and status resistance, and nothing in
-# this game does either to the player -- no monster knocks a character back and
-# no status lands on one. What is left of the cast is a 100 HP cost and a wait,
-# so the skill is a passive here and its description keeps the half it can
-# still claim.
+# this game does either to the player. What is left of the cast is a 100 HP cost
+# and a cooldown, so it is a passive here, and its description keeps the half it
+# can still claim.
 name: "Impenetrable Skin"
 description: "Makes your flesh as strong as steel."
 kind: SKILL_KIND_PASSIVE

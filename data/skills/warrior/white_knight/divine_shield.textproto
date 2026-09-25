@@ -1,17 +1,17 @@
-# GMS raises the shield on a chance when struck, for ninety seconds and ten
-# blows, and cannot raise it again for thirty from the moment it went up. All
-# of that is here now that Buff.shield exists: the shell cancels whole hits
-# and falls the moment its count runs out, clock or no clock.
+# GMS raises the shield by chance when hit, for ninety seconds and ten blows,
+# and it can't be raised again for thirty seconds from when it went up. All of
+# that is built, using Buff.shield: the shell blocks whole hits and breaks as
+# soon as its count runs out, timer or not.
 #
-# The chance it goes up at all is dropped -- certain at master level, and a
-# buff either stands or does not. The attack it grants is permanent, as GMS
-# says it is: it survives the shell it came up with.
+# The chance of it going up is dropped: it is certain at max level, and a buff
+# is either up or not. Its attack is permanent, as GMS says, and outlasts the
+# shell.
 #
-# GMS's damage reduction is paid "only for attacks that inflict damage at a
-# certain ratio of the max HP". Nothing here deals damage that way, so a boss
-# stands in for one -- the same reading Holy Magic Shell takes.
+# GMS's damage reduction applies "only for attacks that inflict damage at a
+# certain ratio of the max HP". Nothing here deals damage that way, so bosses
+# stand in for them, as with Holy Magic Shell.
 #
-# GMS's own ten levels, exact at every one of them.
+# GMS's own ten levels, exact at every level.
 name: "Divine Shield"
 description:
   "When struck, generates a shield that blocks a number of blows and "

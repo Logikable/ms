@@ -1,17 +1,17 @@
-# GMS's shield is a shell the warrior detonates: 5% of their health raises it,
-# it absorbs 15 + floor(x/5)% of their maximum for five seconds, and a second
-# press two seconds in blows it up. Only the blast is built. A shell nobody
-# keeps is not a shell, nothing here spends HP, and the client's own trigger is
-# `condition: damaged` -- a hit taken at the moment it stands, which is not
-# something a character here is asked to time.
+# GMS's shield is a shell the warrior detonates: 5% of their HP raises it, it
+# absorbs 15 + floor(x/5)% of their max for five seconds, and a second press two
+# seconds later blows it up. Only the blast is built. A shell nobody keeps isn't
+# a shell, nothing here spends HP, and the client's own trigger is `condition:
+# damaged`, a hit taken while it is up, which a character here is never asked to
+# time.
 #
-# Damage is GMS's 500 + 20x exactly: 520% at level 1 and 1100% at 30, five
-# lines on twelve enemies every fifteen seconds. The blast carries no hitbox in
-# the client, so its reach is GMS's cap and the reach rule has nothing to floor
-# it with -- the same standing as Flash Blade and Cry Valhalla.
+# Damage is exactly GMS's 500 + 20x: 520% at level 1 and 1100% at 30, five lines
+# on twelve enemies every fifteen seconds. The blast has no hitbox in the
+# client, so its reach is GMS's cap and the reach rule has nothing to lower it
+# with, like Flash Blade and Cry Valhalla.
 #
-# One weapon list covers all three books, the way the Swordman's own attacks
-# do: every warrior swings this, whatever their line masters.
+# One weapon list covers all three books, like the Swordman's own attacks: every
+# warrior can use this, whatever their line.
 name: "Blitz Shield"
 description:
   "Draws on your own lifeforce to raise a shield, then detonates it over the "
