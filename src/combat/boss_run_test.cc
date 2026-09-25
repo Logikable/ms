@@ -967,10 +967,8 @@ TEST(BossRunTest, ASwingWritesNumbersOverWhatItHit) {
       << "the other arm was never hit";
 }
 
-// Each row above a monster keeps the newest number written to it. A short
-// attack landing after a tall one takes the bottom rows and leaves the rest of
-// the tall one showing. This is the whole rule, in the form the screen reads
-// it.
+// Each row above a monster keeps the newest number written to it, so a short
+// attack after a tall one takes the bottom rows and leaves the rest showing.
 TEST(BossRunTest, AShortAttackTakesTheBottomRowsAndLeavesTheRest) {
   std::vector<DamageWrite> writes;
   writes.push_back({7, Numbers(10, 100), 0.0, 0.25});

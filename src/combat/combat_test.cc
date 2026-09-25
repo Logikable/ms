@@ -487,11 +487,8 @@ TEST(AdvanceCombatTest, TheSameFightPaysLessAsTheGameSlowsDown) {
   EXPECT_GT(at_10, at_140) << "3x band vs 10x band";
 }
 
-// The EXP multiplier changes EXP and nothing else: same kills, drops and meso.
-//
-// Both characters start just under the cap and stay there. Otherwise the extra
-// EXP would level the boosted character, slowing their game, and they would
-// kill fewer mobs in the same time.
+// The EXP multiplier changes EXP and nothing else. Both characters stay just
+// under the cap, or the boosted one would level, slow down and kill fewer mobs.
 TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
   // Use one seed for both runs. Meso is rolled, so two random streams would
   // give different amounts however little the bonus affects them.

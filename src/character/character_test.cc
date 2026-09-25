@@ -636,10 +636,8 @@ TEST_F(GainsForLevelsTest, ASpanThatGoesNowhereGrantsNothing) {
   EXPECT_EQ(GainsForLevels(9, 4).sp, 0);
 }
 
-// The helper should give for a range what LevelUp gives one level at a time.
-// These tests check it against a character that really levelled, so a change to
-// one that misses the other fails here rather than showing a player the wrong
-// number.
+// The range helper must agree with LevelUp one level at a time, checked against
+// a character that really levelled.
 TEST_F(GainsForLevelsTest, AgreesWithLevellingUpForReal) {
   const std::pair<int, int> spans[] = {
       {1, 2},  {1, 10},   {10, 11},   {10, 30},   {29, 32},
@@ -3395,12 +3393,9 @@ TEST_F(CapacityTest, CountOwnedIgnoresOtherItems) {
   EXPECT_EQ(c_.CountOwned(sword_), 0);
 }
 
-// A trace records a destroyed item and isn't a copy of it. Someone deciding
-// whether to buy another has none of the item itself.
-//
-// This passes whichever of the two guards does the work (the nullptr filter, or
-// the suffix on EquipTrace's display name), so it tests the behaviour rather
-// than the implementation. Only removing both breaks it.
+// A trace records a destroyed item and isn't a copy of it. This passes
+// whichever of the two guards does the work (the nullptr filter, or
+// EquipTrace's name suffix); only removing both breaks it.
 TEST_F(CapacityTest, CountOwnedDoesNotCountTraces) {
   c_.PickUp(std::make_unique<EquipTrace>(sword_, Equip()));
   ASSERT_EQ(c_.inventory().size(), 1) << "it is in the bag, taking a slot";
@@ -3510,10 +3505,9 @@ class SaveRoundTripTest : public CharacterTest {
     sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
     sword_.set_upgrade_slots(7);
     sword_.set_required_level(138);
-    // Keyed by data-file name, as the real catalogs are, and deliberately not
-    // by the item's display name. A save names items by display name, so a
-    // fixture whose keys match the names would hide a lookup against the wrong
-    // one.
+    // Keyed by data-file name, as the real catalogs are. A save names items by
+    // display name, so keys matching the names would hide a lookup against the
+    // wrong one.
     equips_["sword"] = sword_;
 
     ItemPrototype shell;
@@ -3591,12 +3585,8 @@ TEST_F(SaveRoundTripTest, CarriesTheEquipTabAcross) {
 }
 
 // A trace and a live item differ by one flag, and only that flag decides which
-// type comes back. Getting it wrong turns a destroyed item into a wearable one
-// on the next launch.
-//
-// The flag is not set here. It used to be, and that was the only reason this
-// passed: nothing in the game set it, so every trace was saved as a live item
-// and came back as one, with its stars.
+// type comes back. It is deliberately not set on `destroyed`: the trace must
+// mark itself when saved, or it comes back wearable, with its stars.
 TEST_F(SaveRoundTripTest, ATraceComesBackATrace) {
   CharacterInstance c = MakeCharacter(rng_);
   Equip destroyed;
@@ -3863,10 +3853,9 @@ CharacterInstance MakeFreshBeginner(std::mt19937& rng, int ap = 0) {
 
 class ReconcileApTest : public CharacterTest {};
 
-// The test that keeps the check honest: whatever the rules for granting AP, a
-// character levelled under them balances at every step. If a 5th job paid AP by
-// a rule ExpectedTotalAp doesn't know, this would fail, rather than every save
-// being quietly "corrected" against an outdated rule.
+// Whatever the rules for granting AP, a character levelled under them balances
+// at every step. A new rule ExpectedTotalAp doesn't know fails here, rather
+// than every save being quietly "corrected".
 TEST_F(ReconcileApTest, ACharacterTheGameGrewNeverNeedsCorrecting) {
   const std::vector<Job> kPath = {JOB_SWORDMAN, JOB_FIGHTER, JOB_CRUSADER,
                                   JOB_HERO};
@@ -4349,10 +4338,8 @@ TEST_F(ReconcileSkillsTest, ABookTheCharacterCannotHoldIsNotTouched) {
 
 class ReconcileSpTest : public CharacterTest {};
 
-// The same check as for ReconcileAp: whatever the rules for granting SP, a
-// character levelled under them balances at every step. If a level ever paid SP
-// by a rule ExpectedSpForStage doesn't know, this would fail, rather than every
-// save being quietly "corrected" against an outdated rule.
+// The same check for SP: a level paying SP by a rule ExpectedSpForStage doesn't
+// know fails here.
 TEST_F(ReconcileSpTest, ACharacterTheGameGrewNeverNeedsCorrecting) {
   const std::vector<Job> kPath = {JOB_SWORDMAN, JOB_FIGHTER, JOB_CRUSADER,
                                   JOB_HERO};

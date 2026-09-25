@@ -96,10 +96,9 @@ TEST_F(BossDataTest, EveryDifficultyIsNamedClockedAndReset) {
   }
 }
 
-// EXP and meso belong to the fight, not the mob that ends it: the clear pays
-// them once, flat, and the reward code ignores whatever a boss mob has. A
-// number left on the mob is a payout nobody receives. Every fight pays meso;
-// not every fight pays EXP, and the exceptions are listed below.
+// EXP and meso belong to the fight: the clear pays them once and the reward
+// code ignores a boss mob's own. A number left on the mob is a payout nobody
+// receives.
 TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
   std::vector<std::string> unpaid;
   for (const std::pair<const std::string, Mob>& entry : mobs_) {
@@ -129,10 +128,9 @@ TEST_F(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
                          "pierre", "vellum", "von_bon", "zakum"}));
 }
 
-// The three fights that are written down but not built: Hard Damien, Hard Lotus
-// and Chaos Guardian Angel Slime. A shell is listed, dimmed and can't be
-// entered, and states only each phase's HP. A timer, gate or reward on one
-// would be a promise the screen never shows.
+// The shells (Hard Damien, Hard Lotus, Chaos Guardian Angel Slime) can't be
+// entered, so a timer, gate or reward on one would be a promise the screen
+// never shows.
 TEST_F(BossDataTest, TheShellsStateTheirHpAndNothingElse) {
   std::vector<std::string> shells;
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
@@ -269,10 +267,8 @@ TEST_F(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
                            "Pink Bean, Hilla and Horntail";
 }
 
-// A boss pays in meso and gear, and the gear is the reward. If it could be
-// sold, every clear would be a second payout and a player could skip the fight
-// the piece is for. So nothing a boss drops sells for anything, equips and
-// shards alike, and a new boss's drop can't ship with a price.
+// A boss drop that sold would pay every clear twice, so nothing a boss drops
+// has a price, and a new boss's drop can't ship with one.
 TEST_F(BossDataTest, NothingABossDropsIsWorthMeso) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::map<std::string, ItemPrototype> items = LoadItems();
@@ -506,10 +502,9 @@ TEST_F(BossDataTest, NormalCygnusIsOneBodyBehindTheLastGate) {
   EXPECT_EQ(normal.drops(1).item(), "cygnuss_soul_shard");
 }
 
-// The hard difficulties of fights already built, which all open at 200 on the
-// same fifteen-minute timer. Each is its Normal fight with GMS's Chaos or Hard
-// numbers and drops what Normal drops: a harder difficulty gets the gear
-// faster, not different gear. Fixed here for the same reason as Zakum.
+// The hard difficulties of built fights open at 200 on the same fifteen-minute
+// timer. Each is its Normal fight at GMS's Chaos or Hard numbers and drops the
+// same gear: harder gets it faster, not different.
 TEST_F(BossDataTest, TheHardRungsAreTheirNormalShapeAtGmsNumbers) {
   struct Want {
     std::string boss;
@@ -575,10 +570,8 @@ TEST_F(BossDataTest, TheHardRungsGateOnIgnoreDefense) {
   }
 }
 
-// Much bigger than any mob before her, and the only fight outside Root Abyss on
-// a twenty-minute timer. Her room is also different: four ledges above the
-// floor every other single-mob fight uses. Fixed here for the same reason as
-// Zakum.
+// Princess No: one body, a twenty-minute timer, and four ledges above the floor
+// every other single-mob fight uses.
 TEST_F(BossDataTest, PrincessNoIsOneBodyOverAClimbableRoom) {
   ASSERT_GT(bosses_.count("princess_no"), 0u);
   ASSERT_EQ(bosses_.at("princess_no").difficulties_size(), 1);
@@ -715,10 +708,9 @@ TEST_F(BossDataTest, DamienIsTwoBodiesThatPaceAndThenDash) {
   EXPECT_EQ(normal.drops(1).item(), "damiens_soul_shard");
 }
 
-// 5T behind the same 300% PDR, three times the largest mob before her, and the
-// first fight that leaves its row: every thirty seconds she jumps to the ledge
-// for two thirds of a second. Every number is GMS's except the meso, the timer
-// and the gate. Fixed here for the same reason as Zakum.
+// The Guardian Angel Slime: 5T behind 300% PDR, jumping to the ledge for two
+// thirds of a second every thirty seconds. Every number is GMS's except the
+// meso, the timer and the gate.
 TEST_F(BossDataTest, TheGuardianAngelSlimeIsOneBodyThatPacesAndJumps) {
   ASSERT_GT(bosses_.count("guardian_angel_slime"), 0u);
   const Boss& slime = bosses_.at("guardian_angel_slime");
@@ -794,10 +786,8 @@ TEST_F(BossDataTest, EveryJumpLandsInsideItsArenaBeforeTheNextIsDue) {
                          "only one that jumps";
 }
 
-// The boss screen has a fixed size: a name too wide for its column scrolls, and
-// a catalog with more rows than the grid loses its end off the bottom.
-// Scrolling is a fallback, not the plan, since a grid where nothing moves can
-// be read at a glance, so the shipped names must fit their columns.
+// A name too wide for its column scrolls, and a grid where nothing moves reads
+// at a glance, so the shipped names must fit their columns.
 TEST_F(BossDataTest, EveryNameFitsWhereTheBossScreenDrawsIt) {
   std::map<std::string, Boss> bosses = LoadBosses();
   EXPECT_LE(static_cast<int>(bosses.size()), kBossListCapacity)
@@ -873,10 +863,8 @@ TEST_F(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
   }
 }
 
-// How much room each fight gives the player is a design decision, so the spot
-// count per phase is fixed: five on the floor of every fight, plus any ledges a
-// phase has. Every difficulty uses the same layout and every phase has room for
-// more than a full party, so three players always have somewhere to move.
+// Five spots on the floor of every fight, plus any ledges, at every difficulty,
+// so a full party always has somewhere to move.
 TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   std::map<std::string, std::vector<int>> expected = {
       {"zakum", {7, 5}},       {"hilla", {5}},
@@ -902,10 +890,8 @@ TEST_F(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   }
 }
 
-// The four Root Abyss bosses, which open together at 200. The same single mob
-// in the same room as Hilla and Cygnus, told apart by the mob: HP rising from
-// 80B to 200B, with defence rising past 100% alongside it. Fixed here for the
-// same reason as Zakum.
+// The four Root Abyss bosses open together at 200: one mob in Hilla's room, HP
+// rising from 80B to 200B with defence rising past 100%.
 TEST_F(BossDataTest, RootAbyssIsFourBodiesBehindClimbingDefence) {
   struct Want {
     std::string boss;

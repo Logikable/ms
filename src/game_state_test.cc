@@ -578,11 +578,9 @@ TEST(GameStateTest, AChosenFirstJobKeepsItsWholeBook) {
   }
 }
 
-// Worn, not carried. A 2nd job now advances without a new weapon, so otherwise
-// the chosen job would arrive empty-handed with half its book unusable. An
-// Archer stops at 30 with the Ryden a level 30 can wear; a Hunter stops at 60
-// with the Asianic Bow. Both are the best bow their level allows; see
-// WorkbenchGearFor.
+// Worn, not carried: a 2nd job advances without a new weapon, so the chosen job
+// would arrive empty-handed. An Archer at 30 wears the Ryden, a Hunter at 60
+// the Asianic Bow.
 TEST(GameStateTest, ChosenJobWearsTheWeaponItsLevelTopsOutAt) {
   GameState archer = MakeChosenJobState(JOB_ADVANCEMENT_ARCHER);
   ASSERT_TRUE(archer.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
@@ -595,10 +593,9 @@ TEST(GameStateTest, ChosenJobWearsTheWeaponItsLevelTopsOutAt) {
             "Asianic Bow");
 }
 
-// The token shelves can't be used without currency, and a workbench exists to
-// skip clearing bosses for shards; with no shard, the Token tab shows only half
-// its columns. Only currencies: an ordinary Etc drop isn't given, in the purse
-// or the bag.
+// The token shelves need currency, and a workbench exists to skip bosses; with
+// no shard the Token tab shows half its columns. Only currencies, not Etc
+// drops.
 TEST(GameStateTest, TestModeStartsWithEveryCurrency) {
   GameState state = MakeTestModeStateWithItems();
   const CurrencyPurse& purse = state.character.currencies();
@@ -1008,10 +1005,9 @@ const EquipInstance& Worn(const GameState& state, EquipSlot slot) {
   return *state.character.equipped().at(slot);
 }
 
-// A max account is full: nine more characters, one at the top of every other
-// job line, so link skills are where a fully played account has them.
-// Three-line branches reach 9 and two-line branches 6. The data goes up to
-// GMS's 9 either way, and the roster decides what a branch reaches.
+// A max account has one character at the top of every other job line, so link
+// skills stand where a fully played account has them: 9 for three-line
+// branches, 6 for two-line ones.
 TEST(GameStateTest, MaxModeFillsTheRosterSoTheLinkSkillsStand) {
   GameState state = MakeMaxState(kTrialLevelCap);
   EXPECT_EQ(state.inactive_characters.size(), 9u);
@@ -1029,10 +1025,9 @@ TEST(GameStateTest, MaxModeFillsTheRosterSoTheLinkSkillsStand) {
   EXPECT_EQ(tally.LevelFor(JOB_ROGUE), 6);
 }
 
-// Every slot is itself a fully built max character, not a sheet with a level
-// set: points spent, potions bought and symbols worn. What a slot can wear
-// depends on the test catalog (only warrior gear, and no slot is a warrior), so
-// this checks the character, not the outfit.
+// Every slot is a fully built max character, not a sheet with a level set. The
+// test catalog has only warrior gear, so this checks the character, not the
+// outfit.
 TEST(GameStateTest, MaxModeRosterSlotsAreCeilingsThemselves) {
   GameState state = MakeMaxState(kTrialLevelCap);
   ASSERT_EQ(state.inactive_characters.size(), 9u);

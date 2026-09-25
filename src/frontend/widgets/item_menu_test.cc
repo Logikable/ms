@@ -98,13 +98,9 @@ TEST_F(ItemMenuTest, StaysPutWhenEveryOtherEntryIsDisabled) {
   EXPECT_EQ(menu_.selected(), 1);
 }
 
-// Nothing is enabled, including the entry under the cursor, so the walk goes
-// round once and gives up. Without the limit it would search forever, and the
-// failure would be a hung test rather than a failing one.
-//
-// No real menu hides or disables Close, so the game never reaches this state.
-// The test guards the loop anyway, since its ending shouldn't depend on a rule
-// in another file.
+// With nothing enabled the walk goes round once and gives up, or the failure
+// would be a hung test. No real menu disables Close, but the loop's ending
+// shouldn't depend on a rule in another file.
 TEST_F(ItemMenuTest, GivesUpWhenNothingAtAllIsEnabled) {
   menu_.Disable(0);
   menu_.Disable(1);

@@ -17,10 +17,9 @@
 namespace ms {
 namespace {
 
-// Checks what the shipped binary contains, so players don't find problems
-// first. An accessor wired to the wrong filegroup, or to none, still compiles
-// and still returns a map, so each one is asked for something it should
-// contain.
+// Checks what the shipped binary contains. An accessor wired to the wrong
+// filegroup still compiles and returns a map, so each is asked for something it
+// should contain.
 
 TEST(EmbeddedDataTest, EquipsParse) {
   std::map<std::string, EquipPrototype> equips =
@@ -39,10 +38,9 @@ TEST(EmbeddedDataTest, ItemsParse) {
   EXPECT_TRUE(items.count("spell_trace") > 0);
 }
 
-// Spell traces can be bought but never sold. They are the currency scrolling is
-// paid in, so a sell price would turn the game's biggest meso sink back into
-// meso. Checked here because the rule depends on a line the data file lacks,
-// and nothing else would notice one being added.
+// Spell traces are the currency scrolling is paid in, so a sell price would
+// turn the game's biggest meso sink back into meso. Nothing else would notice
+// one being added.
 TEST(EmbeddedDataTest, SpellTracesAreWorthNothingAtTheCounter) {
   std::map<std::string, ItemPrototype> items =
       LoadTextProtoMap<ItemPrototype>(EmbeddedItems());

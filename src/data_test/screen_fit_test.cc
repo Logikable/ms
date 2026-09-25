@@ -1,8 +1,6 @@
-// Draws every screen from the shipped catalogs at the smallest terminal the
-// game supports. Screens are centred (see placement.h), so one taller than the
-// terminal loses rows at both ends without any error. The screens that grow are
-// the data-driven ones, and they grow when a textproto is added, not when
-// someone changes the layout.
+// Draws every screen from the shipped catalogs at the smallest supported
+// terminal. A centred screen taller than the terminal loses rows at both ends
+// without error, and the data-driven screens grow when a textproto is added.
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -61,10 +59,9 @@ Size Measure(ftxui::Element element) {
   return {element->requirement().min_y, element->requirement().min_x};
 }
 
-// The worst case, built once: an endgame character who spent well, with both
-// purses full and a long roster. Every test reads it and none modifies it. A
-// kMax state is a whole endgame account of ten characters, and building one per
-// test made this the suite's slowest target.
+// The worst case, built once and never modified: an endgame account with full
+// purses and a long roster. A kMax state is ten characters, too slow to build
+// per test.
 class ScreenFitTest : public testing::Test {
  protected:
   static void SetUpTestSuite() {
@@ -79,11 +76,9 @@ class ScreenFitTest : public testing::Test {
     // bars.
     shared_->character.AddMeso(kFullPurse);
     shared_->account.mutable_bank().AddMeso(kFullPurse);
-    // More characters than the character select list has room for, so the test
-    // measures the window's fixed height and not the list's. These are copies
-    // of the endgame sheets, not new characters: creating one puts a level 1
-    // Beginner into play, and every other screen here is drawn from the endgame
-    // state.
+    // More characters than the select list has room for, so the test measures
+    // the window's fixed height. Copies of the endgame sheets: a new character
+    // would put a level 1 Beginner into play.
     std::vector<CharacterSave> ceilings = shared_->inactive_characters;
     while (shared_->inactive_characters.size() < kCrowdedRoster) {
       for (const CharacterSave& save : ceilings) {

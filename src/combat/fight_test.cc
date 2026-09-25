@@ -165,10 +165,9 @@ DotApplication MakeBurn(double damage, double interval, double duration) {
   return burn;
 }
 
-// A burn is worth what it can sustain, not the whole of one application. An
-// attack reapplying it every second gets one tick per second however long the
-// burn would last. Priced in full, it would look thirty times its worth, and
-// the fight would pick it over something five times better.
+// A burn is worth what it can sustain: reapplied every second, it gets one tick
+// per second however long it lasts. Priced in full, the fight would pick it
+// over something five times better.
 TEST(CombatSimTest, ABurnIsWeighedAtTheRateItCanBeRelit) {
   Mob mob = MakeMob("Snail", 100);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 100.0, 40)});
@@ -193,10 +192,8 @@ TEST(CombatSimTest, ABurnIsWeighedAtTheRateItCanBeRelit) {
   EXPECT_GT(killed, 20);
 }
 
-// Reapplying a burn to something already burning adds nothing, so the fight
-// leaves it and uses the stronger attack until the burn nears its end. If every
-// application were priced as the first, the weak attack would always be chosen
-// and the strong one never.
+// Relighting a standing burn adds nothing, so the fight uses the stronger
+// attack until the burn nears its end.
 TEST(CombatSimTest, ABurnAlreadyStandingIsNotWorthRelighting) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 300.0, 1)});
@@ -339,10 +336,8 @@ TEST(CombatSimTest, ABurnDoesNotStackWithItself) {
   EXPECT_NEAR(left[0], left[1], 100.0 / 100000.0 + 1e-9);
 }
 
-// A strike triggered by an attack has its own cooldown: one attack per second
-// with a five-second cooldown gives one strike every five seconds, not one per
-// attack. It fires only with the attack that carries it; the other attack
-// triggers nothing.
+// A triggered strike has its own cooldown, and fires only with the attack that
+// carries it.
 TEST(CombatSimTest, ASideStrikeGoesOutOnItsOwnWait) {
   Mob mob = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 1)});
@@ -487,10 +482,8 @@ TEST(CombatSimTest, AFinalAttackWithItsOwnReachIgnoresTheSwings) {
   EXPECT_EQ(killed[2], killed[1]) << "the follow-up took the swing's reach";
 }
 
-// An arrow that gains as it travels: the first enemy takes normal damage, and
-// each one after takes 15% more than the last, compounding. With six, the last
-// takes 1.15^5, about twice the first, which is the doubling GMS lists beside
-// the 15%.
+// Each enemy after the first takes 15% more than the last, compounding: with
+// six, the last takes 1.15^5, the doubling GMS lists beside the 15%.
 TEST(CombatSimTest, APiercingSwingCompoundsAsItGoes) {
   std::vector<Mob> mobs;
   for (int i = 0; i < 6; ++i) {
@@ -553,10 +546,9 @@ TEST(CombatSimTest, APiercingSwingIsChosenForWhatItsGainIsWorth) {
   EXPECT_EQ(without.view().attack_name, "Bolt Burst");
 }
 
-// A boss's parts have different HP and none respawn, so a narrow attack must
-// target what will outlast it. Four parts with three in reach clear in six
-// attacks when picking the healthiest, and eight when taking them in queue
-// order.
+// A boss's parts don't respawn, so a narrow attack must target what will
+// outlast it: four parts with three in reach clear in six attacks by picking
+// the healthiest, eight in queue order.
 TEST(CombatSimTest, ABossSwingPicksTheHealthiestOfTheRoster) {
   std::vector<Mob> mobs;
   for (int i = 0; i < 4; ++i) {
@@ -675,10 +667,9 @@ void AddKillClockedAttack(CombatParams& params, int kills, double damage,
   params.triggered_attacks.push_back(std::move(cast));
 }
 
-// Gives `attack` a bigger form that replaces every `every`th use of it, hitting
-// `reach` mobs for `damage` each. With `marks`, the count runs per mob struck
-// instead, and the form lands on top of the strike that triggered it instead of
-// replacing the attack.
+// Gives `attack` a bigger form that replaces every `every`th use, hitting
+// `reach` mobs for `damage`. With `marks`, the count runs per mob struck and
+// the form lands on top of the triggering strike.
 void SetEmpoweredForm(AttackOption& attack, int every, double damage,
                       int reach = 1, bool marks = false) {
   std::shared_ptr<AttackOption> form = std::make_shared<AttackOption>();
@@ -995,10 +986,9 @@ TEST(CombatSimTest, ACooldownSwingComesBackWhenItRunsOut) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.92, 1e-9);
 }
 
-// Unlike a summon's clock, which gets no free cast on an empty map, a player
-// waiting for a respawn really does have their cooldown back when mobs appear.
-// Here the burst kills the only mob, and the four seconds of empty map are
-// exactly the recharge, so the respawned mob dies to a burst too.
+// Unlike a summon's clock, a player waiting for a respawn really does have
+// their cooldown back when mobs appear. The four seconds of empty map are
+// exactly the recharge.
 TEST(CombatSimTest, ACooldownRunsDownOnAnEmptyMap) {
   Mob snail = MakeMob("Snail", 30);
   CombatSim sim;
@@ -2448,10 +2438,8 @@ TEST(CombatSimTest, AScatteredSwingReachesNoFurtherThanItsStrikes) {
   EXPECT_NEAR(snails->hp_fraction, 1.0 - 20.0 / 4000.0, 1e-9);
 }
 
-// DoT Punisher's count: there are as many orbs as burn stacks already active,
-// so the same attack widens as the fight goes on, up to its cap. The first cast
-// checks the other half of the rule: an attack's own burn is applied after its
-// damage, so it never widens itself.
+// DoT Punisher: as many orbs as burn stacks already active, up to its cap. An
+// attack's own burn lands after its damage, so it never widens itself.
 TEST(CombatSimTest, AScatteredSwingWidensWithTheBurnsAlreadyAlight) {
   Mob snail = MakeMob("Snail", 1000000);
   CombatSim sim;
@@ -2897,10 +2885,9 @@ TEST(CombatSimTest, TheEmergencyHealNeverPoursPastThePool) {
   EXPECT_EQ(sim.view().player_hp, 100);
 }
 
-// Trickblade's shape: an attack hitting ten enemies for 10 each, and a stronger
-// form hitting one enemy for 300 instead while a wound is three stacks deep.
-// The wound is left by a different attack (GMS's Assassinate and Sonic Blow),
-// so a test must use that one first.
+// Trickblade's shape: ten enemies for 10, or one for 300 while a wound is three
+// stacks deep. The wound is left by a different attack, so a test must use that
+// one first.
 AttackOption MakeWoundedSwing() {
   AttackOption blade = MakeSkill("Trickblade", 10.0, /*cooldown=*/14.0);
   blade.max_enemies = 10;
@@ -3053,10 +3040,9 @@ void GiveBuff(CombatParams& params, double duration, double cooldown,
   params.buffed[1] = std::move(set);
 }
 
-// Gives `params` a buff triggered by a roll on every attack landed instead of
-// by a clock, in `stacks` stacks that each last their own duration. Each
-// stack's table hits `factor` times as hard as the one below, so the damage
-// shows which mask an attack was priced under.
+// Gives `params` a buff rolled on every attack landed, in `stacks` stacks with
+// their own durations. Each stack's table hits `factor` times the one below, so
+// the damage shows which one priced an attack.
 void GiveRolledBuff(CombatParams& params, int stacks, double duration,
                     double chance, bool needs_afflicted = false) {
   for (int stack = 0; stack < stacks; ++stack) {
@@ -3226,10 +3212,8 @@ TEST(CombatSimTest, ALoadGoesOffOnThePressThatSpendsIt) {
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 1.0 + 90.0 + 500.0);
 }
 
-// Eight cartridges and a minute to fire them: only the loaded attack does
-// damage, so the damage shows how many charges were fired. It stops at eight
-// however long the buff lasts, the count disappears with the buff instead of
-// carrying over, and the next cast brings a new load.
+// Eight cartridges and a minute to fire them: it stops at eight, the count goes
+// with the buff, and the next cast brings a new load.
 TEST(CombatSimTest, AMagazineFiresItsChargesAndNoMore) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatSim sim;
@@ -3273,11 +3257,8 @@ TEST(CombatSimTest, APressSpendsSeveralChargesAndTheLastTakesWhatIsLeft) {
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 4.0), 800.0);
 }
 
-// The other half of Throw Blasting: a bank that prepares charges for itself on
-// its own clock. It doesn't refill while a cast of the buff is active, and it
-// resumes as soon as those charges are gone instead of waiting for the
-// duration. That's what GMS means by the active and passive halves never firing
-// together.
+// Throw Blasting's passive half: the bank refills on its own clock, not while a
+// cast of the buff is active, and resumes as soon as those charges are gone.
 TEST(CombatSimTest, ABankFillsItselfOnlyOnceTheLoadIsSpent) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatSim sim;
@@ -3343,10 +3324,9 @@ TEST(CombatSimTest, ABuffPutsOutTheSummonItNames) {
   EXPECT_DOUBLE_EQ(DamageOver(sim, params, 10.0), 50.0);
 }
 
-// Angel of Balance's mark: the angel brands what it touches, the next holy
-// attack spends the brand, and one line of that attack gets the bonus. Built
-// twice, differing only in the mark's value, so the difference between them is
-// the bonus.
+// Angel of Balance's mark: the angel brands what it touches and the next holy
+// attack spends the brand on one line. Built twice, differing only in the
+// mark's value.
 CombatParams MarkingParams(std::vector<TypeSpec> specs, double lift) {
   CombatParams params = MakeParams(1.0, 0.0, std::move(specs), 1, "zakum");
   params.attacks[0].lines = 4;
@@ -3379,10 +3359,9 @@ TEST(CombatSimTest, AMarkIsWorthOneLineAndIsThenSpent) {
       DamageOver(marked, with, 10.0) - DamageOver(plain, without, 10.0), 0.0);
 }
 
-// Angel of Balance's shape: a buff lasting ten seconds but active only four
-// seconds in every five, with a summon striking on its own clock throughout.
-// The attack hits for 10 and the buff doubles it, so the damage shows which
-// seconds the buff was active.
+// A buff lasting ten seconds but active only four in every five, with a summon
+// striking throughout. The buff doubles the hit, so the damage shows which
+// seconds it was active.
 TEST(CombatSimTest, ADutyCycledBuffGrantsInBursts) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatSim sim;
@@ -3456,10 +3435,9 @@ void GiveStancedBuff(CombatParams& params, double cooldown, double dense_length,
   params.buffed[1] = std::move(set);
 }
 
-// The dense form deals 2000 over its 20 seconds and the thin one 20 per second,
-// so the thin form needs 100 seconds to match it. A boss that won't last that
-// long can't pay off the thin form, so the dense one wins, with no buff active
-// to decide it.
+// The dense form deals 2000 over 20 seconds and the thin one 20 a second, so
+// the thin one needs 100 seconds. A shorter boss picks the dense one with no
+// buff deciding it.
 TEST(CombatSimTest, AShortFightRaisesTheDenseStance) {
   Mob boss = MakeMob("Zakum", 3000);
   CombatSim sim;
@@ -3803,10 +3781,8 @@ TEST(CombatSimTest, OneHitSpendsOneBlockHoweverManyShellsStand) {
   EXPECT_EQ(sim.view().player_hp, 0);
 }
 
-// Puncture's shape: a weaker attack that leaves a wound, and a stronger one the
-// fight would otherwise always use. The weak attack applies the buff instead of
-// it being cast on a cooldown, and while it's up every attack hits `factor`
-// times as hard.
+// Puncture's shape: a weaker attack applies the buff instead of a cooldown
+// casting it, and while it's up every attack hits `factor` times as hard.
 void GiveWound(CombatParams& params, double duration, double factor) {
   params.attacks.push_back(MakeSkill("Puncture", 5.0, /*cooldown=*/0.0));
   params.attacks.push_back(MakeSkill("Raging Blow", 20.0, /*cooldown=*/0.0));
@@ -4145,10 +4121,8 @@ TEST(CombatSimTest, ABuffComesBackWhenItsWaitIsOut) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.91, 1e-9);
 }
 
-// A buff belongs to the character, not the map: moving elsewhere neither
-// removes it nor resets its cooldown early. Both run on the same clock, so one
-// move tests both: the buff lasts the rest of its duration, then comes back on
-// the cooldown it was already on.
+// A buff belongs to the character, not the map: after a move it lasts the rest
+// of its duration, then returns on the cooldown it was already on.
 TEST(CombatSimTest, WalkingToAnotherMapKeepsTheBuffsClocks) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
@@ -4322,10 +4296,9 @@ TEST(CombatSimTest, ABuffCanWaitOnLandedHitsRatherThanOnAClock) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.64, 1e-9);
 }
 
-// Freezing Crush's shape: ice leaves a stack per line and four seconds of ice;
-// lightning spends a stack per line and hits harder for each stack it spent.
-// Lightning is the stronger attack by itself, so stacks get built only because
-// ice gets credit for what it leaves behind.
+// Freezing Crush: ice leaves a stack per line and lightning spends them for
+// more damage. Lightning is stronger alone, so stacks get built only because
+// ice is credited with what it leaves.
 void GiveFreezeStacks(CombatParams& params, int cap) {
   params.freeze_cap = cap;
   AttackOption ice = MakeSkill("Cold Beam", 10.0, /*cooldown=*/0.0);
@@ -4361,10 +4334,8 @@ TEST(CombatSimTest, TheIceSwingBuildsThePileTheLightningSwingSpends) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.936, 1e-9);
 }
 
-// Ice stacks are only worth building if something can spend them. Priced
-// against every attack the character knows, stacks would look worth building
-// for a storm two minutes from ready, and the fight would lay ice it never
-// spends.
+// Priced against every attack known, stacks would look worth building for a
+// storm two minutes from ready, and the fight would lay ice it never spends.
 TEST(CombatSimTest, FreezeIsNotLaidForASwingStillRecharging) {
   Mob snail = MakeMob("Snail", 1e9);
   CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 20.0, 1)});
@@ -4843,10 +4814,9 @@ TEST(CombatSimTest, ABankedHoldRunsOnlyAsLongAsItsChargesPayFor) {
   EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.1), 40.0);
 }
 
-// The bank refills on its own clock while the player attacks, so the hold comes
-// back as charges arrive, not on a cooldown. A press uses one whole charge and
-// keeps any progress toward the next, which puts the second hold at 2s instead
-// of 2.6s.
+// The bank refills on its own clock, so the hold comes back as charges arrive.
+// A press uses one whole charge and keeps progress toward the next, putting the
+// second hold at 2s, not 2.6s.
 TEST(CombatSimTest, ABankRefillsOnItsOwnClockAndBringsTheHoldBack) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
@@ -4959,10 +4929,9 @@ TEST(CombatSimTest, AStackIsWorthNothingOnAMonsterNothingFroze) {
   EXPECT_NEAR(sim.view().target_hp_fraction, 0.96, 1e-9);
 }
 
-// The freeze outlasts the attack that applied it: every attack after it
-// benefits until the monster thaws, which is what makes alternating work. Storm
-// Magic applies to the basic attack here for the same reason it applies to
-// every attack: it belongs to the character, not the skill.
+// The freeze outlasts the attack that applied it, which is what makes
+// alternating work. Storm Magic applies to the basic attack because it belongs
+// to the character.
 TEST(CombatSimTest, TheIceOutlastsTheSwingThatLaidIt) {
   Mob snail = MakeMob("Snail", 1000000);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&snail, 10.0, 1)});
@@ -5617,10 +5586,8 @@ AttackOption MakeRoomyBank() {
   return punish;
 }
 
-// Storing charges costs nothing, since using them one at a time or all at once
-// takes the same seconds. So charges gained just before a window are saved and
-// spent inside it. Saving stops when the bank is full, not because of a
-// cooldown.
+// Charges cost nothing to store, so those gained just before a window are saved
+// and spent inside it, until the bank is full.
 TEST(CombatSimTest, ABankFillsIntoTheWindowAndIsSpentInside) {
   Mob boss = MakeMob("Zakum", 1000000);
   CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 10.0, 1)});

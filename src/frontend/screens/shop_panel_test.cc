@@ -86,10 +86,8 @@ ItemPrototype MakeStackable(const std::string& name, int price, int stack) {
 
 class ShopPanelTest : public testing::Test {
  protected:
-  // A screen cut to the panel's own size, with the panel drawn on it. Measured
-  // from the element rather than with ftxui::Dimension::Fit, which clips to the
-  // terminal; a test has none, so Fit would silently cut the shop to the 80
-  // columns of the fallback.
+  // Measured from the element rather than with ftxui::Dimension::Fit, which
+  // clips to a test's 80-column fallback terminal.
   ftxui::Screen Draw(const ShopPanel& panel) {
     ftxui::Element element = panel.Render();
     element->ComputeRequirement();
@@ -136,13 +134,8 @@ class ShopPanelTest : public testing::Test {
     return element->requirement().min_x;
   }
 
-  // The panel drawn as the game shows it, centred on a terminal of the given
-  // size, returning every row of that terminal, not just the rows the panel
-  // covers.
-  //
-  // `Render` fits the screen to the panel, which suits tests of the panel's own
-  // size but not the menu: anything drawn outside the window would be clipped
-  // before it could be read.
+  // The panel centred on a terminal of the given size, returning every row, so
+  // anything drawn outside the window isn't clipped before it is read.
   std::vector<std::string> ScreenRows(const ShopPanel& panel, int width = 100,
                                       int height = 40) {
     ftxui::Screen screen = ftxui::Screen::Create(
@@ -189,16 +182,9 @@ class ShopPanelTest : public testing::Test {
   }
 
   // The colour of the cell containing `cell`, on the row containing
-  // `row_needle`.
-  //
-  // Reads the screen's pixels rather than its escape codes, because ftxui maps
-  // colours to whatever palette it thinks the terminal has, and a test process
-  // has no terminal, so the escape codes describe the fallback rather than the
-  // colour.
-  //
-  // Per cell rather than per row, because a row has three things that turn red
-  // for three different reasons, and checking whether anything on the row is
-  // red couldn't tell an unaffordable price from a level too high.
+  // `row_needle`. Reads pixels, not escape codes, which describe ftxui's
+  // fallback palette. Per cell, since a row has three things that turn red for
+  // different reasons.
   ftxui::Color CellColor(const ShopPanel& panel, const std::string& row_needle,
                          const std::string& cell) {
     ftxui::Screen screen = Draw(panel);

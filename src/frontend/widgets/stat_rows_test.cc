@@ -112,10 +112,9 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
   for (const StatLine& line : lines) {
     labels.push_back(line.label);
   }
-  // The Character panel drops the end of this list on a short terminal, and the
-  // All Stats screen lays it out down one column and then the other, so both
-  // depend on this order. The empty label is the rule between the combat stats
-  // and the rows that aren't about fighting.
+  // The Character panel drops the end of this list on a short terminal, and All
+  // Stats lays it out in two columns, so both depend on this order. The empty
+  // label is the rule before the non-combat rows.
   EXPECT_EQ(labels, (std::vector<std::string>{
                         "Attack", "Magic Attack", "Final Damage", "Damage",
                         "Boss Damage", "Normal Damage", "Ignore DEF",
@@ -331,10 +330,8 @@ TEST_F(StatRowsTest, TheMainStatsAreTheFourApStats) {
   EXPECT_EQ(ValueOf(lines, "LUK"), "0");
 }
 
-// The Attack row shows the split, so the player can see a percentage's effect,
-// not only the result. A skill can lower attack as well as raise it, and the
-// breakdown shows the sign, since an unexplained smaller number looks like a
-// bug.
+// The Attack row shows what a percentage did, including a lowering one, since
+// an unexplained smaller number looks like a bug.
 TEST_F(StatRowsTest, AttackShowsWhatAPercentageDidToIt) {
   CharacterInstance up = MakeWarrior();
   ASSERT_TRUE(up.LearnSkill(AttackPercentSkill(0.25), 1));

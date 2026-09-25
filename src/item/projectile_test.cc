@@ -8,10 +8,8 @@
 namespace ms {
 namespace {
 
-// The two directions are written separately, and each caller reads one: the
-// sims equip a weapon with AmmoFor, and the character counts the attack with
-// WeaponDrawing. If they disagreed, a sim would measure a bow with arrows the
-// character then refuses to count.
+// Sims equip a weapon with AmmoFor and the character counts the attack with
+// WeaponDrawing, so the two directions must agree.
 TEST(ProjectileTest, TheTwoDirectionsAgree) {
   const google::protobuf::EnumDescriptor* types = EquipType_descriptor();
   int paired = 0;

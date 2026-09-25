@@ -302,11 +302,9 @@ TEST(TitleBlinkTest, AnUnfocusedTitleNeverInverts) {
 
 // --- CenteredRow ---
 
-// Floats `content` in a window on a screen far larger than it needs, so the
-// window sizes to its own content -- the only condition under which a row can
-// be flush against the border. Returns the rows trimmed to the window's own
-// columns. Cells no element painted read as spaces: ftxui leaves their
-// character empty, and dropping them would slide the rest of the row left.
+// Floats `content` on a screen far larger than it, so the window sizes to its
+// content, the only way a row can be flush with the border. Unpainted cells
+// read as spaces, or the rest of the row would slide left.
 std::vector<std::string> WindowRows(std::vector<ftxui::Element> content) {
   constexpr int kWidth = 60;
   constexpr int kHeight = 10;
@@ -477,10 +475,9 @@ TEST(TabBarTest, ABarThatOverflowsHoldsTheRestBehindAMark) {
   EXPECT_EQ(RenderTabBar(kFour, 0, kTight), " one  two  six ›");
 }
 
-// Left mark at the start, right mark at the end, each shown only while there
-// is something that way. The right one still holds its column when absent, so
-// the chips do not shuffle as the bar scrolls under them; the left one is not
-// there at all until the bar has scrolled off its first chip.
+// Each mark shows only while there is more that way. The right one holds its
+// column when absent so the chips don't shuffle; the left appears only once the
+// bar has scrolled off its first chip.
 TEST(TabBarTest, EachMarkShowsOnlyWhileThereIsMoreThatWay) {
   EXPECT_EQ(RenderTabBar(kFour, 0, kTight).substr(0, 1), " ");
   EXPECT_EQ(RenderTabBar(kFour, 3, kTight), "‹ two  six  ten");
@@ -535,10 +532,8 @@ ftxui::Element Base() {
   return ftxui::border(ftxui::text("base"));
 }
 
-// "MENU" `row` rows down and `col` columns across, in an element sized to end
-// exactly on it. The trailing fillers a real overlay carries are left off so
-// the element's own extent is the marker's position, which is what the screen
-// fit and the edge slides are measured against.
+// "MENU" `row` rows down and `col` across, in an element ending exactly on it.
+// No trailing fillers, so the element's extent is the marker's position.
 ftxui::Element Marker(int row, int col) {
   return ftxui::vbox({
       ftxui::filler() | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, row),
@@ -550,13 +545,8 @@ ftxui::Element Marker(int row, int col) {
 }
 
 // Holds `element` to its own size with its corner at (col, row), leaving the
-// rest of the terminal empty for a float to spill onto. Without the trailing
-// fillers the boxes would stretch it to the whole screen and there would be
-// nothing to spill on.
-//
-// The offset is what makes an edge slide observable: a float already against
-// the top or left of the screen has nowhere to come back to, so it clips
-// there instead.
+// rest empty for a float to spill onto. The offset is what makes an edge slide
+// observable.
 ftxui::Element At(int col, int row, ftxui::Element element) {
   std::vector<ftxui::Element> rows;
   for (int i = 0; i < row; ++i) {
@@ -658,10 +648,8 @@ TEST(FloatingTest, SlidesLeftOffTheRightEdgeOfTheScreen) {
   EXPECT_EQ(ScreenCells(screen, 0, 16, 4), "MENU");
 }
 
-// A float too tall for the screen has to lose rows somewhere, and it gives up
-// the top ones: an overlay is put where it belongs by empty space above it, so
-// that is the end that can be spared. Twenty-one rows on an eight-row screen,
-// and the last of them still lands on the last row.
+// A float too tall for the screen gives up its top rows, since the space above
+// an overlay is what places it.
 TEST(FloatingTest, GivesUpItsTopWhenItCannotFit) {
   ftxui::Element tall = ftxui::vbox({
       ftxui::text("TOP"),

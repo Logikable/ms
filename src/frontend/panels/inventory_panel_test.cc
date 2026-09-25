@@ -142,10 +142,8 @@ class InventoryPanelTest : public PanelTest {
     return ms::PixelOf(RenderToScreen(std::move(component)), needle);
   }
 
-  // The panel wired as the main screen wires it: as one tab of a
-  // Container::Tab, which routes keys to it in the running game. Every other
-  // test here calls OnEvent on the panel directly, so none of them would notice
-  // a key that never gets dispatched.
+  // The panel as one tab of a Container::Tab, as the game wires it. Other tests
+  // call OnEvent directly and would miss a key that never gets dispatched.
   ftxui::Component InTabContainer(ftxui::Component panel) {
     return ftxui::Container::Tab({std::move(panel)}, &tab_selector_);
   }
@@ -229,11 +227,9 @@ TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastRow) {
   EXPECT_EQ(panel.selected(), 1) << "the second and last row";
 }
 
-// The caret belongs to the panel and is drawn from selected_, not from ftxui's
-// focused entry, which only the Menu's own key handling moves. The panel's two
-// jumps (from the tab bar to the last row and back to the first) are the ones
-// the Menu never sees. On a list too short to scroll, both indices sit at 0 and
-// agree by chance.
+// The caret is drawn from selected_, not ftxui's focused entry. The tab-bar
+// jumps are the moves the Menu never sees; on a short list both indices sit at
+// 0 and agree by chance.
 TEST_F(InventoryPanelTest, TheCaretShowsOnArrivalFromTheTabBar) {
   FillBag(25);
   panel_focus_ = kInventoryPanel;
@@ -813,10 +809,8 @@ TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   InventoryPanel panel(c_, account_, panel_focus_);
   panel.OpenMenu();
-  // Recover is offered on a trace, since that is what a trace is for, so
-  // Inspect, Recover and Sell remain. Equip, Scroll and Star Force all need an
-  // item that still exists. Read the selection before walking the menu, because
-  // ReachableMenuEntries moves it.
+  // Recover is offered on a trace, so Inspect, Recover and Sell remain. Read
+  // the selection before walking the menu: ReachableMenuEntries moves it.
   EXPECT_EQ(panel.menu().selected(), kMenuInspect);
   std::vector<int> reachable = ReachableMenuEntries(panel.menu());
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuAction), 0);
@@ -847,10 +841,8 @@ TEST_F(InventoryPanelTest, ALiveItemIsOfferedNoRecovery) {
 // offer them. Scroll is the easy one to miss, because the picker always
 // includes Clean Slate scrolls and would open on scrolls that all get refused.
 TEST_F(InventoryPanelTest, ThrowingStarsOfferNoScrollOrStarForce) {
-  // Levelled past both gates first. At level 1 neither entry is offered on
-  // anything, so the checks below would also pass for an ordinary sword and
-  // would test the gates instead of the throwing stars.
-  // ASpentWeaponKeepsScrollAndStarForce is the control at the same level.
+  // Levelled past both gates, or neither entry is offered on anything and this
+  // would test the gates. ASpentWeaponKeepsScrollAndStarForce is the control.
   LevelTo(UnlockLevel(Feature::kStarForce));
   c_.PickUp(std::make_unique<EquipInstance>(MakeThrowingStars()));
   InventoryPanel panel(c_, account_, panel_focus_);
@@ -1557,10 +1549,9 @@ TEST_F(InventoryPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
   EXPECT_EQ(panel.cursor_row(), RowWithCursor(screen));
 }
 
-// Once the list scrolls, the selected index and the screen row stop matching,
-// and the row must follow the screen. Moved one item at a time because the
-// frame scrolls at render time: jumping to the end and checking once can't tell
-// a cursor that kept up from one that only caught up.
+// Once the list scrolls, the index and the screen row diverge. Moved one item
+// at a time, since jumping to the end can't tell a cursor that kept up from one
+// that caught up.
 TEST_F(InventoryPanelTest, CursorRowFollowsAListThatHasScrolled) {
   panel_focus_ = kInventoryPanel;
   FillBag(40);
@@ -1579,10 +1570,9 @@ TEST_F(InventoryPanelTest, CursorRowFollowsAListThatHasScrolled) {
   EXPECT_LT(panel.cursor_row(), 20);
 }
 
-// The Equip tab draws a row two ways, plain or split into coloured cells when
-// the character can't equip it, and the mark has to be on whichever is built.
-// sword_ is level 10 and Warrior-only, so every test above takes the coloured
-// path. This one uses an item a level-1 Beginner can wear.
+// The Equip tab draws a row plain or split into coloured cells when the
+// character can't equip it. sword_ takes the coloured path, so this uses an
+// item a level-1 Beginner can wear.
 TEST_F(InventoryPanelTest, CursorRowFindsAnEquippableItem) {
   panel_focus_ = kInventoryPanel;
   EquipPrototype plain;

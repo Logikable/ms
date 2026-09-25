@@ -189,10 +189,8 @@ TEST(LevelUpCardTest, SaysNothingWhenALevelOpenedNothing) {
 
 // --- the room around what it says ---
 
-// Fitted to its content, the card would only be as wide as "12  →  13", too
-// small to catch the eye of someone looking at another window. Tui::RenderFrame
-// centres it, which shrinks it to its content, so the card must set its own
-// minimum width.
+// Tui::RenderFrame centres the card, which shrinks it to its content, too small
+// to catch the eye. So the card sets its own minimum width.
 TEST(LevelUpCardTest, IsWiderThanTheLineInsideItNeeds) {
   EXPECT_EQ(RenderCard(12, 13, 5, 3).dimx(), kCelebrationContentWidth + 2);
 }

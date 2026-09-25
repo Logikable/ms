@@ -170,10 +170,9 @@ TEST(MeasureFightTest, ABuffReportsTheShareItStood) {
   EXPECT_NEAR(played.buff_uptime[0], 0.2, 0.01);
 }
 
-// A hold's length depends on the target's HP, so the dummy's HP decides how
-// much of it the sim sees. Against kMeasuredMobHp the orb runs all twelve
-// pulses. Against a real monster's HP the same attack stops at its minimum of
-// five, and the skill measures at a fraction of its worth.
+// A hold's length depends on the target's HP. Against kMeasuredMobHp the orb
+// runs all twelve pulses; against a real monster it stops at its minimum of
+// five and measures at a fraction of its worth.
 TEST(MeasureFightTest, AHoldRunsItsFullLengthAgainstAMeasurementDummy) {
   auto measure = [](int64_t hp) {
     Mob mob = MakeMob("Dummy", hp);

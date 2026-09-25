@@ -966,10 +966,9 @@ TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackOfThePassiveItNames) {
   EXPECT_NEAR(stats.damage_pct, 0.0, 1e-9);
 }
 
-// A buff's boost is the skill's boost while the buff is up: it reaches the
-// named skill only in stats built with that buff active. Storm of Arrows is the
-// reason it exists. GMS doubles Magic Arrow's chance only during the storm, and
-// the doubling may go past 100%.
+// A buff's boost reaches the named skill only in stats built with that buff
+// active. Storm of Arrows doubles Magic Arrow's chance only during the storm,
+// and the doubling may pass 100%.
 TEST_F(DerivedStatsTest, ABuffsBoostReachesTheNamedSkillOnlyWhileItStands) {
   CharacterInstance c = MakeCharacter(rng_, 140, 50);
   Skill final_attack = FinalAttack();
@@ -1714,10 +1713,8 @@ TEST_F(DerivedStatsTest, ComboOrbsAreWorthTheirAttackApiece) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 10);
 }
 
-// The skill that prices the orbs isn't the one that grants them, so the count
-// must come from across the book: Combo Synergy gives final damage per orb, and
-// only Combo Attack says there are five. Priced against that ring, the pair is
-// worth 5 x 5%, and the attack per orb still applies.
+// Combo Synergy gives final damage per orb, but only Combo Attack says there
+// are five, so the count must come from across the book.
 TEST_F(DerivedStatsTest, OneSkillPricesTheOrbsAnotherHandsOut) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   Skill combo;
@@ -1744,10 +1741,8 @@ TEST_F(DerivedStatsTest, OneSkillPricesTheOrbsAnotherHandsOut) {
   EXPECT_NEAR(stats.final_dmg_pct, 0.25, 1e-9);
 }
 
-// A character has one ring of orbs however many skills describe it, so two
-// skills stating a count use the larger, not the sum. This matters when a later
-// skill raises the maximum: summing would add to the old count instead of
-// replacing it.
+// Two skills stating an orb count use the larger, not the sum: summing would
+// add a raised maximum to the old count instead of replacing it.
 TEST_F(DerivedStatsTest, TwoOrbCountsLeaveTheLargerRing) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   std::map<std::string, Skill> skills;
@@ -2222,11 +2217,9 @@ TEST_F(DerivedStatsTest, TwoSourcesOfIgnoredElementalResistanceSum) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).ier, 0.20, 1e-9);
 }
 
-// An attack's own ignored defence, boss damage and final damage belong to its
-// swing, so they never reach the character's stat line. OffenseStatsFor reads
-// them from the skill being swung instead. Gungnir's Descent ignores 30% on its
-// own hit and nothing on the spear thrust after it. Mist Eruption's final
-// damage works the same way.
+// An attack's own ignored defence, boss damage and final damage never reach the
+// stat line; OffenseStatsFor reads them from the skill being swung. Gungnir's
+// Descent ignores 30% on its own hit and nothing on the spear thrust after it.
 TEST_F(DerivedStatsTest, AnAttacksOwnSwingLeversStayOffTheStatLine) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill gungnir = Marksmanship();
@@ -2998,10 +2991,8 @@ TEST_F(DerivedStatsTest, TheDefaultLinesPayFromLevel160) {
   EXPECT_EQ(stats.skill_stats.luk(), 30);
 }
 
-// The switch that applies an ability line has one case per type and a
-// static_assert to force a look when a type is added. But a case that falls
-// through gives nothing silently, and the line still looks right on the panel.
-// So every type has to change something.
+// A case that falls through the ability-line switch gives nothing silently, and
+// the line still looks right on the panel. The static_assert can't catch that.
 TEST_F(DerivedStatsTest, EveryAbilityLineTypePaysSomething) {
   auto fingerprint = [this](AbilityLineType type) {
     std::vector<AbilityLine> lines;
@@ -3477,9 +3468,7 @@ TEST_F(DerivedStatsTest, AllyGrantReachesOnlyWhoeverLacksTheSkill) {
 }
 
 // Shaped like Smokescreen: the party part is inside the buff, so it reaches an
-// ally as a timed buff of their own rather than as a passive. DerivedStatsFor
-// is checked for the negative here (nothing permanent), and AllyBuffsFor is
-// what gives the fight the buff's uptime.
+// ally as a timed buff, through AllyBuffsFor, and gives nothing permanent.
 Skill Smokescreen() {
   Skill skill;
   skill.set_name("Smokescreen");
@@ -4133,10 +4122,9 @@ TEST(PotentialStatsTest, MesoTakesTheWornCapAndDropDoesNot) {
   EXPECT_DOUBLE_EQ(stats.item_drop_pct, 0.20);
 }
 
-// The total a %stat line multiplies is recovered from the finished stats, so a
-// caller pricing a potential the character isn't wearing gets the same answer
-// the fold would. The worn potential's share is subtracted first, not
-// multiplied again.
+// The total a %stat line multiplies is recovered from the finished stats, so
+// pricing a potential the character isn't wearing matches the fold. The worn
+// potential's share is subtracted first, not multiplied again.
 TEST(PotentialStatsTest, StatGrantPricesAPotentialTheCharacterIsNotWearing) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeStatCharacter(rng, 1000, 0, 0, 0);

@@ -387,11 +387,9 @@ TEST_F(CharacterPanelTest, DropsTheAdvanceTabOnceTheJobIsPicked) {
   EXPECT_EQ(rendered.find("Swordman"), std::string::npos);
 }
 
-// Taking the advancement changes the bar under the cursor: Advance disappears,
-// and the cursor lands on the tab next to where it was. The zone it was in
-// belonged to the Advance tab, so without this the cursor would be nowhere:
-// nothing highlighted, and arrow keys going to the skill rows instead of the
-// bar the player is looking at.
+// Taking the advancement removes the Advance tab under the cursor, which lands
+// on the tab next to it. Without this the cursor would be in a dead zone, and
+// arrow keys would go to the skill rows.
 TEST_F(CharacterPanelTest, AdvancingLeavesTheCursorOnTheTabBar) {
   CharacterInstance c = MakePendingBeginner(rng_);
   CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
@@ -1119,11 +1117,9 @@ TEST_F(CharacterPanelTest, TheAdvancementBarKeepsThePageItWasLeftOn) {
   EXPECT_NE(RenderComponent(comp).find("Slash Blast"), std::string::npos);
 }
 
-// The book's own order decides the list and nothing else. GMS lists each
-// class's skills in its own order and doesn't group attacks above passives, so
-// the catalog has skill_order and the panel follows it. The catalog here is
-// built so stem order, kind order and skill_order all disagree, which is the
-// only way to tell which one the list follows.
+// The book's skill_order decides the list: GMS doesn't group attacks above
+// passives. Stem order, kind order and skill_order all disagree here, the only
+// way to tell which one the list follows.
 TEST_F(CharacterPanelTest, TheListFollowsSkillOrderAndNotKind) {
   const char* stems[] = {"a_iron_body", "b_evil_eye", "c_slash_blast"};
   const char* names[] = {"Iron Body", "Evil Eye Shock", "Slash Blast"};
@@ -1846,10 +1842,9 @@ std::vector<std::string> ExtrasShown(ftxui::Element element) {
   return labels;
 }
 
-// The rows the panel asks for, borders included. MainLayout stacks it at this
-// height, so the combat panel below has to fit around it. Read from the
-// requirement rather than the screen, because a window fills the box it gets,
-// so rendering the panel alone would measure the screen.
+// The rows the panel asks for, borders included. Read from the requirement
+// because a window fills the box it gets, so rendering alone would measure the
+// screen.
 int PanelHeight(ftxui::Element element) {
   element->ComputeRequirement();
   return element->requirement().min_y;
@@ -1890,20 +1885,16 @@ TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
             (std::vector<std::string>{"View All Stats"}));
 }
 
-// This is what the budget is for: the combat panel sits below this one, and a
-// panel that draws past its budget pushes the mob bars off a short terminal. So
-// the test measures the height drawn, not which stats were dropped. A heading
-// row added without updating kStatsTabFixedRows passes every test above and
-// still overruns by one.
+// A panel that draws past its budget pushes the mob bars off a short terminal,
+// so this measures the height drawn. A heading row added without updating
+// kStatsTabFixedRows passes every test above.
 TEST_F(CharacterPanelTest, ThePanelFitsInsideItsRowBudget) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
   int natural = PanelHeight(panel.Render());
   EXPECT_EQ(natural, 24) << "chrome, the AP stats, 8 extras and the way out";
-  // From the tightest budget the fixed rows fit in, up past the height the
-  // panel wants: it takes every row it is given and no more. 15 is the minimum:
-  // the fixed rows and the View All Stats row, without the rule above the
-  // extras.
+  // From the tightest budget up past the natural height: it takes every row it
+  // is given and no more. 15 is the minimum: the fixed rows and View All Stats.
   for (int budget = 15; budget <= natural + 2; ++budget) {
     panel.SetMaxRows(budget);
     EXPECT_EQ(PanelHeight(panel.Render()), std::min(budget, natural))
@@ -2414,14 +2405,12 @@ TEST_F(CharacterPanelTest, LightsItsInnerRulesGoldToo) {
 
 // --- a newly unlocked tab announces itself ---
 //
-// These read the chip colour with the panel unfocused. A focused, active chip
-// is drawn black on white, correctly and regardless of whether the tab is new,
-// so leaving focus here would test the wrong thing.
+// Read with the panel unfocused: a focused active chip is black on white
+// whether or not the tab is new.
 
-// The Skills tab is new but stays plain. Advancing puts it at the exact index
-// the Advance tab leaves, so the player ends up on it. Gold on a tab they are
-// already reading would announce nothing, and since they never moved onto it,
-// nothing would clear it either.
+// Advancing puts the new Skills tab where the Advance tab was, under the
+// player. Gold on the tab they're reading would announce nothing, and nothing
+// would clear it.
 TEST_F(CharacterPanelTest, AdvancingLeavesTheSkillsTabUngilded) {
   CharacterInstance c = MakeCharacter(/*level=*/10);
   ASSERT_TRUE(c.CanAdvanceJob());
@@ -3408,10 +3397,8 @@ TEST_F(CharacterPanelTest, ReadOnlyDropsEverythingThatSpends) {
   // pool nor the price based on it can be drawn.
   EXPECT_EQ(ability.find("Honor"), std::string::npos) << ability;
 
-  // Ability is the end of the bar: a bag isn't part of the sheet, and an
-  // advancement isn't the reader's to take. Checked by stepping past rather
-  // than by reading the bar, since a narrow panel's bar scrolls labels out of
-  // view.
+  // Ability is the end of the bar. Checked by stepping past, since a narrow
+  // panel's bar scrolls labels out of view.
   comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_NE(ScreenText(RenderToScreen(comp)).find("Boss Damage"),

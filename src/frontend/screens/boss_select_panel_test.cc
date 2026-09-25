@@ -316,10 +316,8 @@ TEST(BossSelectPanelTest, ATokenIsRuledOffWithTheGear) {
   EXPECT_NE(rows[shard_row + 1].find("\u2500"), std::string::npos);
 }
 
-// The reward names are the longest text on this screen. A name longer than the
-// label and value columns must not push the panel wider; it scrolls inside its
-// column, and the end appears once the start has been shown long enough to
-// read.
+// A reward name longer than its column scrolls inside it rather than widening
+// the panel.
 TEST(BossSelectPanelTest, ALongRewardNameSlidesRatherThanWidenThePanel) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;

@@ -58,10 +58,8 @@ TEST(ShopTest, StocksOnlyPricedItemsAndZeroIsAPrice) {
   EXPECT_EQ(ShopWeaponStock(equips, kPaidInMeso), expected);
 }
 
-// The four sort keys, checked one at a time. Each case keeps earlier keys equal
-// so only the key under test decides the order, and every case lists the
-// catalog keys in the opposite order from the answer, so sorting by key alone
-// wouldn't pass.
+// Each case keeps earlier sort keys equal and lists the catalog keys opposite
+// to the answer, so sorting by key alone wouldn't pass.
 TEST(ShopTest, SortsByLevelBeforeAnythingElse) {
   // The pricier item comes first because of its lower level, despite its type,
   // price and name.
@@ -124,10 +122,8 @@ TEST(ShopTest, BothShelvesReadInColumnOrder) {
   }
 }
 
-// What shares the weapon shelf. Stars belong there, since a claw uses them and
-// a one-item tab isn't worth having. No worn items do: they have their own
-// shelf, and a medallion among swords would look like a weapon. The shelf is
-// sorted by level, so the stars appear in their own tier instead of at the end.
+// Stars share the weapon shelf, sorted into their own tier. Worn items have
+// their own shelf: a medallion among swords would look like a weapon.
 TEST(ShopTest, TheWeaponShelfCarriesTheStarsAndNothingWorn) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   int stars = 0;
@@ -169,10 +165,8 @@ TEST(ShopTest, TheEquipShelfHoldsEverythingTheWeaponShelfDoesNot) {
   EXPECT_EQ(static_cast<int>(shelved.size()), stocked);
 }
 
-// Nothing for sale is out of reach. EXP stops at the cap, so an item above it
-// would take meso for something the player can never use, and an endgame item
-// here would be an unrequested balance change. Checks both shelves, since each
-// new tier goes on both.
+// Nothing for sale is above the cap: the player could never use it, and an
+// endgame item here would be an unrequested balance change.
 TEST(ShopTest, NothingAboveTheTrialCapIsForSale) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   for (const std::vector<std::string>& shelf :
@@ -211,10 +205,9 @@ TEST(ShopTest, TheTokenShelvesHoldWhatATokenBuys) {
   }
 }
 
-// A token buys the tier above everything meso can buy for the same slot, so the
-// two shelves never offer the same slot and a token is never the worse buy.
-// Checked per slot instead of across the whole shop, since the meso shelf sells
-// a level 140 ring next to secondaries that stop at 100.
+// A token buys the tier above everything meso buys for the same slot, so a
+// token is never the worse buy. Per slot, since the meso shelf's rings and
+// secondaries stop at different levels.
 TEST(ShopTest, ATokenTierIsAboveEveryMesoTierOfItsSlot) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::map<EquipSlot, int> highest;

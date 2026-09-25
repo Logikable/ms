@@ -236,10 +236,8 @@ TEST(FormatEquipSetTest, NamesEverySet) {
 
 // --- Every enum value has a name ---
 //
-// Each name function has a static_assert on its enum's ARRAYSIZE, so adding a
-// value fails to compile until someone looks. That doesn't prove the new value
-// got a name, and a missing name shows as a blank cell rather than an error.
-// These tests check it.
+// The static_asserts force a look when a value is added, but not that it got a
+// name; a missing one shows as a blank cell.
 
 TEST(GameNamesTest, EveryAbilityLineHasAName) {
   for (int i = AbilityLineType_MIN; i <= AbilityLineType_MAX; ++i) {
@@ -628,11 +626,9 @@ Skill Node(const std::string& name, VNodeKind kind, JobAdvancement book,
   return skill;
 }
 
-// The matrix is one page in four blocks, from the rarest nodes to the most
-// common: the job's own actives, the boosts under them, the line's own nodes,
-// and the common nodes at the bottom. Each block keeps its own `skill_order`
-// numbering. The blocks come from different books, so the data can't order one
-// against another.
+// The matrix page runs from the rarest nodes to the most common: the job's
+// actives, their boosts, the line's nodes, then the commons. Each block keeps
+// its own skill_order, since the blocks come from different books.
 TEST(VNodesForTest, TheJobsOwnLeadAndTheCommonsSitAtTheFoot) {
   std::map<std::string, Skill> catalog = {
       {"lift",

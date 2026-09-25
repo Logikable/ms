@@ -23,10 +23,8 @@
 namespace ms {
 namespace {
 
-// Blessing of the Fairy: a skill nobody buys, whose level comes from the
-// account's progress rather than this character's. Its value is the clearest
-// proof of whether a card uses the account behind the character or only their
-// own sheet.
+// Blessing of the Fairy's level comes from the account, not the character, so
+// it shows whether a card reads the account.
 std::map<std::string, Skill> FairyCatalog() {
   Skill fairy;
   fairy.set_name("Blessing of the Fairy");

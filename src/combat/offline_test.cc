@@ -195,11 +195,9 @@ TEST(OfflineTest, DyingCutsTheAbsenceShortAndSendsThePlayerHome) {
   EXPECT_EQ(state.current_map, kHomeMap);
 }
 
-// On this map the character wins every fight but loses slightly more HP between
-// beats than they regain. The sample can't run long enough to see them die, so
-// the trend in the sample is extended to predict when they would, and the
-// absence pays only up to that point. This boar runs the character dry at
-// 2241s, well past the sample.
+// The character wins every fight but loses slightly more HP between beats than
+// they regain. The trend is extended past the sample, and the absence pays only
+// until the projected fall at 2241s.
 TEST(OfflineTest, ASlowBleedIsProjectedForwardToTheFall) {
   std::unique_ptr<GameState> state = BoarFarmer(46);
 
@@ -213,10 +211,9 @@ TEST(OfflineTest, ASlowBleedIsProjectedForwardToTheFall) {
   EXPECT_GT(report.kills, 0) << "what was farmed before the fall stands";
 }
 
-// HP that dips and comes back to full is not draining, however the dips land in
-// the sample. Judging by the low points alone once condemned the character
-// after an hour: a sample starts at full HP and settles into its range, so its
-// first half always looks healthier than its second.
+// HP that dips and refills is not draining. A sample starts at full HP and
+// settles into its range, so judging by the low points alone makes its first
+// half look healthier than its second.
 TEST(OfflineTest, APoolThatRefillsIsNeverProjectedToDie) {
   std::unique_ptr<GameState> state = BoarFarmer(40);
 

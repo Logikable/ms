@@ -53,10 +53,8 @@ TEST(EquipDataTest, EveryItemNameFitsTheWidestNameColumn) {
   }
 }
 
-// Projectiles are ammunition, not weapons a player invests in. Checked across
-// the whole catalog because each file states the refusal itself: it is
-// deliberately not derived from the slot, since a later projectile might
-// differ.
+// Projectiles are ammunition, not weapons a player invests in. Each file states
+// the refusal itself rather than deriving it from the slot.
 TEST(EquipDataTest, ProjectilesTakeNoUpgrades) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -76,10 +74,8 @@ TEST(EquipDataTest, ProjectilesTakeNoUpgrades) {
   EXPECT_GT(seen, 0) << "no projectiles in the catalog to check";
 }
 
-// Three ladders with the same shape: stars for claws, arrows for bows and bolts
-// for crossbows. A missing level on one means a branch can't restock where the
-// others can, and a projectile no weapon uses is attack the player wears but
-// never fires.
+// Stars, arrows and bolts climb the same ladder. A missing level means a branch
+// can't restock where the others can.
 TEST(EquipDataTest, EveryProjectileClimbsTheSameLadder) {
   const std::vector<int> kTiers{10, 30, 50, 70, 100};
   std::map<EquipType, std::vector<int>> ladders;
@@ -139,9 +135,7 @@ std::vector<Job> EveryOfferedJob() {
 }
 
 // The job inspect screen tells the player what to buy, so no job may list
-// another branch's weapon, and every row must point at something buyable. A
-// type with no items yet can't prove either and is skipped. The character is
-// levelled past every requirement, since the job is under test, not the tier.
+// another branch's weapon, and every row must point at something buyable.
 TEST(EquipDataTest, EveryJobOnOfferNamesWeaponsOfItsOwnBranch) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::vector<Job> offered = EveryOfferedJob();
@@ -172,10 +166,9 @@ TEST(EquipDataTest, EveryJobOnOfferNamesWeaponsOfItsOwnBranch) {
   }
 }
 
-// Each weapon type has one attack speed, and every weapon of that type uses it.
-// GMS's own low-level items disagree (polearms span three stages), but by the
-// level 150 tier, the one that matters, Nexon had settled each type on a single
-// value. The catalog uses that value at every level.
+// Each weapon type has one attack speed. GMS's low-level items disagree, but by
+// the level 150 tier each type had settled on one value, which the catalog uses
+// at every level.
 TEST(EquipDataTest, AWeaponTypeHasOneAttackSpeed) {
   std::map<EquipType, std::pair<AttackSpeed, std::string>> speed_of_type;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -220,10 +213,8 @@ TEST(EquipDataTest, SecondariesTakeNoUpgrades) {
   EXPECT_GT(seen, 0) << "no secondaries in the catalog to check";
 }
 
-// One per branch at every tier, with no branch missing. A missing one is a
-// level where a 2nd job can't replace their off-hand. The two shelves are
-// counted separately: meso items climb in tiers, and token items are the Frozen
-// piece and Princess No's above it.
+// One off-hand per branch at every tier, meso and token shelves counted
+// separately. A missing one is a level where a 2nd job can't replace theirs.
 TEST(EquipDataTest, EverySecondJobHasEveryTier) {
   const std::vector<int> kMesoTiers{30, 60, 100};
   const std::vector<int> kTokenTiers{120, 140};
@@ -294,10 +285,8 @@ TEST(EquipDataTest, EveryWeaponTypeClimbsInTens) {
   }
 }
 
-// Every ladder reaches the top meso tier, so no branch is a tier behind what
-// the others can buy. Checked against the highest tier: meso ladders stopping
-// below the Frozen tier is a content gap, not a bug. The one-handed sword stops
-// where the two-handed tiers start, by design.
+// Every ladder reaches the top meso tier. The one-handed sword stops where the
+// two-handed tiers start, by design.
 TEST(EquipDataTest, EveryWeaponTypeReachesTheTopMesoTier) {
   std::map<EquipType, std::vector<int>> ladders = WeaponLadders();
   ASSERT_FALSE(ladders.empty());
@@ -313,9 +302,7 @@ TEST(EquipDataTest, EveryWeaponTypeReachesTheTopMesoTier) {
 }
 
 // Every weapon type whose meso ladder reaches the top has all three token tiers
-// above it, so no branch has to farm tokens for a weapon it can't use. The
-// one-handed sword is excluded for the same reason its ladder stops: nobody
-// uses one past their 2nd job.
+// above it. The one-handed sword is excluded: nobody uses one past 2nd job.
 TEST(EquipDataTest, EveryWeaponTypeHasEveryTokenTier) {
   // Level -> type -> the one weapon of that type a token buys at that level.
   std::map<int, std::map<EquipType, std::string>> token_tiers;
@@ -422,10 +409,8 @@ TEST(EquipDataTest, EveryTokenBuysSomething) {
   EXPECT_GT(tokens, 0);
 }
 
-// The token shelf's per-branch shoulders. Cygnus drops one token that four
-// shoulders are priced in, one per branch, and AbsoLab's coin buys the tier
-// above it the same way. A missing branch would get nothing from the clear, and
-// a second shoulder for a branch would be a choice between two identical items.
+// Cygnus's token buys four shoulders, one per branch, and AbsoLab's coin buys
+// the tier above the same way. A missing branch gets nothing from the clear.
 TEST(EquipDataTest, EveryBranchHasAShoulderAtEachTokenTier) {
   // The level each token's shoulder is worn at. This also confirms which tiers
   // exist, so a third one can't appear unnoticed.
@@ -491,21 +476,17 @@ TEST(EquipDataTest, ATierHasOnePrice) {
   }
 }
 
-// GMS buys equipment back at a few percent of its price, rising with the tier;
-// a flat tenth stays within that range at every tier. The danger is an item
-// that sells for more than it costs, which would be a meso printer, so a
-// stocked item can't set its own sell price at all and SellPrice computes the
-// tenth.
+// A flat tenth stays within GMS's buyback range at every tier. The danger is an
+// item selling for more than it costs, so a stocked item can't set its own sell
+// price.
 TEST(EquipDataTest, StockedEquipsSellForATenthOfTheirPrice) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
     if (!proto.has_shop_price()) {
-      // Not stocked, so there is no price to take a share of and the item sets
-      // its own. Most set nothing and sell for nothing (that is how a starter
-      // sword leaves the bag), but a dropped item is worth what it's worth
-      // whether or not a shop ever sold one.
+      // Not stocked, so the item sets its own price: most sell for nothing, but
+      // a drop is worth what it's worth.
       continue;
     }
     ++seen;
@@ -592,11 +573,9 @@ TEST(EquipDataTest, EverySetMemberIsAnItemThatExists) {
   EXPECT_GT(checked, 0) << "no sets in the catalog to check";
 }
 
-// Tiers mean "at least this many pieces", so a tier needing more than the
-// finished set will hold can never be reached, and one needing none pays
-// everyone. Both are data mistakes, not states the model handles. Checked
-// against the finished set size, not the members listed, since a set can ship
-// before all its pieces exist.
+// A tier needing more pieces than the finished set holds is never reached, and
+// one needing none pays everyone. Checked against the finished size, since a
+// set can ship before all its pieces exist.
 TEST(EquipDataTest, EverySetTierIsReachable) {
   for (const std::pair<const std::string, EquipSet>& entry : LoadSets()) {
     int complete = entry.second.complete_pieces();
@@ -652,10 +631,8 @@ TEST(EquipDataTest, TheBossAccessorySetAddsUpToItsWikiTotals) {
   EXPECT_DOUBLE_EQ(set->tiers(3).effect().boss_pct(), 0.10);
 }
 
-// The Sengoku Treasure Set's totals, checked the same way for the same reason.
-// It is a set a player never assembles piece by piece: Princess No drops all
-// three pieces in one clear, so the 3-piece tier is what it is worth in
-// practice.
+// Checked against the wiki's totals too. Princess No drops all three pieces in
+// one clear, so the 3-piece tier is what the set is worth in practice.
 TEST(EquipDataTest, TheSengokuTreasureSetAddsUpToItsWikiTotals) {
   const EquipSet* set = nullptr;
   std::map<std::string, EquipSet> sets = LoadSets();
@@ -695,10 +672,9 @@ TEST(EquipDataTest, TheSengokuTreasureSetAddsUpToItsWikiTotals) {
   }
 }
 
-// The Frozen set's totals, checked the same way for the same reason: the data
-// states what each tier adds, and the player sees the running total. Read from
-// the wiki's totals column, since a typo in the middle of the per-tier column
-// is invisible.
+// The data states what each tier adds and the player sees the running total, so
+// this reads the wiki's totals column: a typo mid-way through the per-tier
+// column is invisible.
 TEST(EquipDataTest, TheFrozenSetAddsUpToItsWikiTotals) {
   const EquipSet* set = nullptr;
   std::map<std::string, EquipSet> sets = LoadSets();
@@ -792,10 +768,9 @@ TEST(EquipDataTest, TheDawnBossSetAddsUpToItsWikiTotals) {
   EXPECT_DOUBLE_EQ(set->tiers(2).effect().ied_pct(), 0.10);
 }
 
-// The Guardian Angel Ring is in two sets at once, which no other item is. GMS
-// sells a scroll that converts it from one set to the other and this game has
-// no such mechanism, so it counts for both. Checked because a set counting a
-// piece twice is the kind of thing a later edit does by accident.
+// The Guardian Angel Ring counts for two sets: GMS converts it with a scroll
+// this game doesn't have. A set counting a piece twice is what a later edit
+// does by accident.
 TEST(EquipDataTest, TheGuardianAngelRingFillsASlotOfTwoSets) {
   std::set<EquipSetName> holding;
   for (const std::pair<const std::string, EquipSet>& entry : LoadSets()) {
@@ -812,10 +787,8 @@ TEST(EquipDataTest, TheGuardianAngelRingFillsASlotOfTwoSets) {
                                              EQUIP_SET_NAME_DAWN_BOSS}));
 }
 
-// The four Root Abyss sets are one set written once per branch, so their
-// bonuses must match piece for piece; one class getting a weaker bonus would be
-// a typo nothing else catches. Totals, not per-tier additions, for the same
-// reason as the sets above.
+// The four Root Abyss sets are one set written once per branch, so their totals
+// must match; a weaker class bonus would be a typo nothing else catches.
 TEST(EquipDataTest, EveryRootAbyssSetAddsUpToTheSameTotals) {
   const std::set<EquipSetName> kBranches = {
       EQUIP_SET_NAME_ROOT_ABYSS_WARRIOR, EQUIP_SET_NAME_ROOT_ABYSS_BOWMAN,
@@ -852,10 +825,9 @@ TEST(EquipDataTest, EveryRootAbyssSetAddsUpToTheSameTotals) {
   EXPECT_EQ(seen, kBranches) << "a branch has no Root Abyss set";
 }
 
-// The four AbsoLab sets, checked the same way for the same reason. Totals, not
-// per-tier additions, and all are GMS's own: GMS's set covers seven slots where
-// this one covers eight, because the Armor and the Pants are one overall there,
-// so the tiers are spread differently but end at the same total.
+// AbsoLab's totals are GMS's own, but GMS's set covers seven slots where this
+// covers eight (Armor and Pants are one overall there), so the tiers are spread
+// differently.
 TEST(EquipDataTest, EveryAbsoLabSetAddsUpToTheSameTotals) {
   const std::set<EquipSetName> kBranches = {
       EQUIP_SET_NAME_ABSOLAB_WARRIOR, EQUIP_SET_NAME_ABSOLAB_BOWMAN,
@@ -939,10 +911,9 @@ TEST(EquipDataTest, EverySetTierLeverHasARowOnTheInspectScreen) {
   EXPECT_GT(checked, 0) << "no set tiers in the catalog to check";
 }
 
-// Accessories are boss rewards and every class fights bosses, so one made for a
-// single branch would be a set piece a whole class can never wear. The
-// shoulderpad counts: it drops from a boss and belongs to the same set. The
-// Cygnus shoulders are one per branch by design, not a gap.
+// Every class fights bosses, so an accessory made for one branch is a set piece
+// a whole class can never wear. The Cygnus shoulders are one per branch by
+// design.
 TEST(EquipDataTest, AccessoriesAreUniversalAndUpgradeable) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :

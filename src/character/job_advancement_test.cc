@@ -79,10 +79,8 @@ TEST_F(JobAdvancementTest, EveryStarterEquipExistsInTheCatalog) {
   }
 }
 
-// A 2nd job gets one item, and it isn't a weapon: the character already has one
-// and can afford the next tier, so a free weapon would take away the choice of
-// which to buy. The off-hand is different: the advancement opens that slot, and
-// nothing else would ever fill it.
+// A 2nd job gets its off-hand and no weapon: a free weapon would take away the
+// choice of which tier to buy, and nothing else would fill the off-hand slot.
 TEST_F(JobAdvancementTest, ASecondJobIsHandedItsOffHandAndNoWeapon) {
   for (const Advanceable& entry : GiftedJobs()) {
     if (entry.stage == 1) {
@@ -161,10 +159,8 @@ TEST_F(JobAdvancementTest, TheFirstAdvancementReseatsTheStats) {
   EXPECT_EQ(state_.character.proto().allocated_stats().str(), 4);
 }
 
-// The 2nd advancement leaves stats alone. It picks a branch of a category the
-// character is already in, which uses the same stat, so a reset would throw
-// away every point spent since the 1st advancement and make the player put them
-// back where they were.
+// The 2nd advancement picks a branch using the same stat, so a reset would only
+// make the player put every point back.
 TEST_F(JobAdvancementTest, TheSecondAdvancementLeavesTheStatsAlone) {
   PerformJobAdvancement(state_, JOB_SWORDMAN);
   for (int i = 0; i < 5; ++i) {

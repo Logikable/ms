@@ -316,11 +316,9 @@ TEST(MobInspectPanelTest, GrandisSpellsOutSacredPower) {
   EXPECT_NE(rendered.find("V Points"), std::string::npos) << rendered;
 }
 
-// A card that measures its own width has to request its right margin.
 // RowsTouchingTheRightBorder only sees the panel's outer edge, so the mob
-// list's own edge is checked by reading the rows back. The penalty rows span
-// the whole list instead of sitting in its columns, so they are the ones with
-// no column padding to spare.
+// list's own edge is read back. The penalty rows span the list and have no
+// column padding to spare.
 TEST(MobInspectPanelTest, EveryRowKeepsAColumnClearOfTheRightBorder) {
   GameState plain = OneMap();
   MobInspectPanel panel(plain);

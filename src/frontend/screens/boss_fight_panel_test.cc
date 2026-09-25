@@ -1108,10 +1108,8 @@ std::vector<std::pair<int, int>> EmptySpotsIn(
   return found;
 }
 
-// The grid every arena uses, checked against the smallest supported terminal.
-// One column or row more than kArenaColumns and kArenaRows allow is drawn off
-// screen or on top of its neighbour, and neither shows up in a data file, so
-// the grid is checked here where it can be seen.
+// A grid one column or row past kArenaColumns and kArenaRows draws off screen
+// or over its neighbour, and no data file shows it.
 TEST(BossFightPanelTest, TheGridFitsTheSmallestTerminal) {
   // Two border rows and the bar itself: what every panel in the arena takes,
   // whatever is in it.

@@ -23,10 +23,9 @@ EquipPrototype Ring(const std::string& name, int level) {
   return ring;
 }
 
-// Wearing a second copy of a worn ring swaps it, sending the worn one to the
-// bag. It should stay there rather than be swapped back and forth forever. The
-// first ring slot holds a weaker ring, which is what made the bag copy look
-// like an upgrade every pass.
+// Wearing a second copy of a worn ring swaps it into the bag, and it must stay
+// there rather than be swapped back every pass. The first slot's weaker ring is
+// what made the bag copy look like an upgrade.
 TEST(WearBestFromBagTest, ASecondCopyOfAWornRingStaysInTheBag) {
   std::mt19937 rng(1);
   Character proto;

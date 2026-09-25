@@ -66,11 +66,9 @@ ItemPrototype TestStack() {
 
 std::unique_ptr<GameState> MakeState() {
   std::unique_ptr<GameState> state = std::make_unique<GameState>(
-      // One weapon in the catalog, so a member has something to be seen
-      // wearing. A sheet names its items and the reader looks them up in their
-      // own catalogs, so both ends need it. Not keyed "sword", because a new
-      // character starts with that, and these tests want a character with
-      // nothing.
+      // One weapon, so a member has something to be seen wearing; both ends
+      // look it up in their own catalogs. Not keyed "sword", which a new
+      // character starts with.
       std::map<std::string, EquipPrototype>{{"iron_sword", IronSword()}},
       std::map<std::string, Scroll>{},
       std::map<std::string, ItemPrototype>{{"chaos_scroll", TestStack()}},
@@ -217,13 +215,9 @@ class PartyControllerTest : public ::testing::Test {
     return client;
   }
 
-  // Ticks every client until `ready`, so both ends of a party keep running.
-  // `seconds` is how long each tick counts as in a fight on screen.
-  //
-  // It ticks once more after `ready` holds: a connection fills its snapshot on
-  // its own thread, so a condition can become true after the tick that would
-  // have passed it to the panels. Without the extra tick the screen would be
-  // one message behind what the test just confirmed arrived.
+  // Ticks every client until `ready`, then once more: a connection fills its
+  // snapshot on its own thread, so `ready` can hold before the panels have the
+  // message.
   bool WaitFor(const std::vector<Client*>& clients,
                const std::function<bool()>& ready, double seconds = 0.0) {
     std::chrono::steady_clock::time_point deadline =

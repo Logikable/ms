@@ -202,10 +202,8 @@ TEST_F(JobInspectPanelTest, ANewJobStartsTheCursorOver) {
   EXPECT_EQ(panel.selected_skill()->name(), "Divine Swing");
 }
 
-// The 5th advancement gives a matrix instead of a book, and the matrix includes
-// the common nodes as well as the job's own, of every kind, including boosts,
-// which go to 60 while the other two stop at 30. Listing only the job's own
-// nodes would show one where advancing gives three.
+// The 5th advancement's matrix includes the common nodes of every kind; listing
+// only the job's own would show one where advancing gives three.
 TEST_F(JobInspectPanelTest, AFifthAdvancementListsItsWholeMatrix) {
   JobInspectPanel panel = PanelOn(JOB_HERO, 5);
   std::vector<const Skill*> nodes = panel.Skills();

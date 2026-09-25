@@ -580,10 +580,9 @@ TEST(OffenseStatsForTest, WarriorUsesStrPrimaryDexSecondary) {
   EXPECT_EQ(offense.secondary, 20);
 }
 
-// The per-job switches in damage.cc each have a default that a new job falls
-// into silently: a Bishop once read a warrior's stats, attacked with weapon
-// attack they don't have, and dealt nothing. The test loops over the enum
-// instead of a list, so a new job is covered automatically.
+// The per-job switches in damage.cc each have a default a new job falls into
+// silently, reading another class's stats. Loops over the enum, so a new job is
+// covered automatically.
 TEST(OffenseStatsForTest, EveryJobIsNamedByTheDamageChain) {
   AllocatedStats allocated;
   allocated.set_str(101);

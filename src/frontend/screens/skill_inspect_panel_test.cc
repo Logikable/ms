@@ -326,10 +326,8 @@ TEST_F(SkillInspectPanelTest, SpellsOutAScatteredSwingAndTheBandItWidensTo) {
             std::string::npos);
 }
 
-// The page can't show a timer attack speed shortens: an ordinary attack's delay
-// depends on the speed stage of the weapon held, so one number would be wrong
-// for half the weapons that can use it. What one hit counts toward a counter is
-// bookkeeping either way.
+// An ordinary attack's delay depends on the weapon's speed stage, so one number
+// would be wrong for half the weapons; the page leaves it off.
 TEST_F(SkillInspectPanelTest, KeepsWhatTheWeaponMovesOffThePage) {
   Skill skill = MakeLuckySeven();
   skill.set_base_delay_ms(660);
@@ -525,10 +523,8 @@ TEST_F(SkillInspectPanelTest, TheElementRowNamesOnlyTheElement) {
   EXPECT_EQ(RenderAt(prey, 1).find("Freez"), std::string::npos);
 }
 
-// Shaped like Jupiter Thunder: an attack split into thirty strikes also lands
-// its extra hits thirty times, so the current's row counts the shocks. An
-// attack whose strikes land together doesn't: Sword Illusion's explosions have
-// their own count and land once per attack.
+// Jupiter Thunder: an attack split into thirty strikes lands its extra hits
+// thirty times. Sword Illusion's explosions land once per attack.
 TEST_F(SkillInspectPanelTest, ASequencedSwingCountsItsExtraHitPerStrike) {
   Skill orb = MakeLuckySeven();
   orb.set_lines(8);
@@ -638,10 +634,8 @@ TEST_F(SkillInspectPanelTest, StatesTheStrikeCountOfASwingThatRepeats) {
       std::string::npos);
 }
 
-// What a skill gives another that isn't damage uses the same sentence as the
-// damage boost, one row per named skill, since two skills granted different
-// things can't share a row. Several named skills get a heading, which saves
-// each row the columns "Boosts" would take.
+// A non-damage grant to another skill uses the damage boost's sentence, one row
+// per named skill. Several get a heading instead of repeating "Boosts".
 TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
   Skill vessel = IronBody();
   vessel.set_max_level(10);
@@ -829,10 +823,9 @@ TEST_F(SkillInspectPanelTest, AGrowingRingOfOrbsIsReadAtTheLevel) {
   EXPECT_LT(plain.find("Combo Orbs"), plain.find("Level 5"));
 }
 
-// Revenge of the Evil Eye: three attacks from one skill, where the auras land
-// twenty strikes on three enemies while the volley beside them hits ten.
-// Without a reach row for each half, the biggest number on the page is the one
-// that hits the fewest enemies, and nothing says so.
+// Revenge of the Evil Eye: the auras land twenty strikes on three enemies while
+// the volley hits ten. Without a reach row per half, the biggest number hides
+// that it hits the fewest.
 TEST_F(SkillInspectPanelTest, EachHalfStatesTheReachItHasRatherThanTheSkills) {
   Skill revenge = MakeLuckySeven();
   revenge.set_kind(SKILL_KIND_AUTO_ATTACK);
@@ -884,10 +877,8 @@ TEST_F(SkillInspectPanelTest, APiercingSwingStatesItsGainBesideItsReach) {
   EXPECT_EQ(plain.find("each"), std::string::npos);
 }
 
-// Empowered Arrows strengthens Piercing Arrow in two ways: a permanent bonus on
-// every shot, and a bigger shot every fourth one. Both belong on the page, with
-// the upgraded attack's reach, which is wider than the attack it replaces and
-// which no other row would show.
+// Empowered Arrows: a bonus on every shot and a bigger shot every fourth, whose
+// wider reach no other row shows.
 TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAnEmpoweredSwing) {
   Skill arrows = IronBody();
   SkillBoost* boost = arrows.add_boost();
@@ -1308,10 +1299,8 @@ TEST_F(SkillInspectPanelTest, TheCardIsAsWideAsTheSkillNeeds) {
             std::string::npos);
 }
 
-// Two weapons with names as long as "One-Handed Sword" make an unusually long
-// value. The card widens to fit the pair where it has room, and otherwise
-// breaks the list between entries, since a requirement cut mid-weapon names the
-// wrong weapon.
+// Two long weapon names widen the card where it has room, and otherwise wrap
+// between entries, since a requirement cut mid-weapon names the wrong one.
 TEST_F(SkillInspectPanelTest, ALongWeaponListIsSeatedOrWrappedWhole) {
   Skill skill = IronBody();
   skill.add_required_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
@@ -1400,10 +1389,8 @@ TEST_F(SkillInspectPanelTest, NoReachRowForASingleTargetSkill) {
   EXPECT_EQ(rendered.find("Required Weapon"), std::string::npos);
 }
 
-// base + per_level * (L - 1) lands slightly under the round figure at some
-// levels: Iron Body's seven steps of +1% come to 6.999999999999999, and its
-// damage reduction to 3.4999999999999996. Truncating would show "6.9%" and
-// "-3.4%" for a skill whose data clearly says 7 and 3.5.
+// base + per_level * (L - 1) lands just under the round figure: Iron Body's +7%
+// is 6.999999999999999. Truncating would show "6.9%".
 TEST_F(SkillInspectPanelTest, PercentagesRoundRatherThanTruncate) {
   Skill skill = IronBody();
   std::string rendered = RenderAt(skill, 7);
@@ -1797,10 +1784,8 @@ TEST_F(SkillInspectPanelTest, TheTwoRequirementsReadAlike) {
       << lines[prereq] << "]";
 }
 
-// The screen is sized from the whole book rather than the card under the
-// cursor, so it stays still as the cursor moves: no card is larger than the
-// size, one card is exactly that size, and the measuring order doesn't change
-// the result.
+// The screen is sized from the whole book so it stays still as the cursor
+// moves.
 TEST_F(SkillInspectPanelTest, TheLargestCardSizesThemAll) {
   Skill iron_body = IronBody();
   Skill lucky_seven = MakeLuckySeven();
@@ -2133,10 +2118,8 @@ TEST_F(SkillInspectPanelTest, ASharedBuffSaysSoInItsHeading) {
             std::string::npos);
 }
 
-// Throw Blasting's card: the charm has its own block with the count one
-// activation provides, and shows both the count a press uses and the count the
-// magazine refills to on its own, the passive half, which applies whether or
-// not the buff is ever activated.
+// Throw Blasting's card shows the count a press uses and the count the magazine
+// refills to on its own, which applies whether or not the buff is activated.
 TEST_F(SkillInspectPanelTest, ASelfFillingLoadStatesWhatItSpendsAndPrepares) {
   Skill blasting = IronBody();
   blasting.set_kind(SKILL_KIND_ACTIVE);

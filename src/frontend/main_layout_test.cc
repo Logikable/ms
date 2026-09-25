@@ -38,10 +38,9 @@ ftxui::Element Panel(const std::string& label, int width, int rows) {
 
 class MainLayoutTest : public testing::Test {
  protected:
-  // Renders the layout onto a fixed screen and keeps the rows, so a test can
-  // check where each piece landed. The left column is 10 rows of character over
-  // 5 of combat, and the right column is 3 rows of equipped over a bag of
-  // whatever height the test asks for.
+  // Renders the layout onto a fixed screen and keeps the rows. The left column
+  // is 10 rows of character over 5 of combat; the right is 3 rows of equipped
+  // over a bag of `bag_rows`.
   void Render(int bag_rows) {
     RenderWith(Panel("EQUIP", kRightWidth, 1),
                Panel("BAG", kRightWidth, bag_rows), nullptr);

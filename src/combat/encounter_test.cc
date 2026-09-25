@@ -224,10 +224,9 @@ TEST(ComputeCombatParamsTest, LearnedSkillsJoinTheBarePoke) {
             params.attacks[0].damage_per_hit[0]);
 }
 
-// A held attack is priced as a full hold: its damage is every pulse plus the
-// final strike, and its length is the pulses on their own clock. The skill's
-// own delay is the minimum, the earliest the player can release it, and the
-// pulses that fit in that minimum are the fewest a cast is worth.
+// A held attack is priced as a full hold: every pulse plus the final strike.
+// The skill's own delay is the earliest release, so the pulses that fit in it
+// are the fewest a cast is worth.
 TEST(ComputeCombatParamsTest, AHeldSwingIsPricedAsAFullHold) {
   Skill orb;
   orb.set_name("Lightning Orb");
@@ -282,9 +281,8 @@ TEST(ComputeCombatParamsTest, AHeldSwingIsPricedAsAFullHold) {
 }
 
 // Trickblade's shape: a skill that defines a wound, names the attacks that
-// leave it and how deep, and has a stronger form it uses while the wound is
-// active. The stronger form is built at the same learned level and priced as a
-// separate attack.
+// leave it, and has a stronger form used while the wound is active, priced as a
+// separate attack at the same level.
 TEST(ComputeCombatParamsTest, AWoundIsHandedToTheSwingsThatLeaveIt) {
   Skill blow;
   blow.set_name("Sonic Blow");
@@ -795,10 +793,9 @@ TEST(ComputeCombatParamsTest, MesosDropPerLineAndOnlyFromWhatIsSwung) {
                    swing.final_attack_rolls[0].damage[0] * 0.30 * 4);
 }
 
-// An attack can reduce its own chance to knock mesos loose, affecting only that
-// attack; the basic attack beside it rolls Pick Pocket's full chance. It's a
-// share, not points, so it halves the chance at every level of the granting
-// skill.
+// A share, not points: an attack halving its own chance to knock mesos loose
+// halves it at every level. The basic attack beside it rolls Pick Pocket's full
+// chance.
 TEST(ComputeCombatParamsTest, ASwingCanShakeFewerMesosLoose) {
   Skill stab;
   stab.set_name("Cruel Stab");
@@ -1162,10 +1159,8 @@ TEST(ComputeCombatParamsTest, BonusLevelsReachTheSwing) {
               bought * 2.0, 1.0);
 }
 
-// A heal cast is offered as an option to spend a turn on, but deals no damage.
-// The damage chain has no multiplier for a skill without damage, so it would
-// build the basic attack's damage for it. Left in, casting would hit like a
-// plain attack and trigger a Final Attack.
+// The damage chain builds the basic attack's damage for a skill with none, so a
+// heal cast left in would hit like an attack and trigger a Final Attack.
 TEST(ComputeCombatParamsTest, ACastIsOfferedAsASwingButCarriesNoDamage) {
   Skill heal;
   heal.set_name("Heal");
@@ -1507,10 +1502,9 @@ TEST(ComputeCombatParamsTest, ASkillCanStateTheFreezeStacksItLeaves) {
   EXPECT_EQ(params.auto_attacks[0].freeze_build_alone, 3);
 }
 
-// Frost Ark's shape: the same buff, but its shock is triggered by the orb the
-// character left behind as well as by the bolts they cast. Other Final Attacks
-// follow only the character's attacks, so a summon triggers one only when the
-// granting skill says it follows an own clock.
+// Frost Ark's shock follows the orb the character left behind as well as the
+// bolts. A summon triggers a Final Attack only when the granting skill says it
+// follows an own clock.
 TEST(ComputeCombatParamsTest, AFinalAttackCanFollowASummonsOwnClock) {
   Skill bolt;
   bolt.set_name("Chain Lightning");
@@ -1882,10 +1876,9 @@ TEST(ComputeCombatParamsTest, AutoAttackSkillsLandOnTheirOwnList) {
                    12.0 * GameSpeedFactor(state.character.proto().level()));
 }
 
-// A boost naming a skill reaches both the volley and the turret the skill
-// leaves behind: an own-clock part keeps its parent's name, and boosts match by
-// name. Hurricane - Reinforce and Gritty Gust rely on this, since GMS aims each
-// at both Arrow Blaster and the installed Arrow Blaster.
+// An own-clock part keeps its parent's name, and boosts match by name, so a
+// boost reaches both the volley and the turret. GMS aims Hurricane - Reinforce
+// and Gritty Gust at both halves of Arrow Blaster.
 TEST(ComputeCombatParamsTest, ABoostReachesBothHalvesOfTheSkillItNames) {
   Skill blaster;
   blaster.set_name("Arrow Blaster");
@@ -1942,9 +1935,8 @@ TEST(ComputeCombatParamsTest, ABoostReachesBothHalvesOfTheSkillItNames) {
 }
 
 // A boost node gives damage from level 1, one more enemy at 20 and ignored
-// defence at 40, so what the fight sees depends on the node's level. This uses
-// a real node, not a passive: a boost node belongs to no book, so every check
-// along the way has to consult the matrix instead.
+// defence at 40. A real node, not a passive: it belongs to no book, so every
+// check has to consult the matrix.
 TEST(ComputeCombatParamsTest, ABoostNodePaysEachTierAtItsOwnLevel) {
   Skill swing;
   swing.set_name("Raging Blow");
@@ -2234,10 +2226,8 @@ TEST(ComputeCombatParamsTest, AShellReachesTheCasterAndThePartyAlike) {
   EXPECT_NEAR(params.buffs[0].heal_fraction, 0.31, 1e-9);
 }
 
-// Holy Magic Shell's three hyper skills: seconds added to the buff's duration,
-// hits added to its shell, and a larger share taken off a boss's hit. They're
-// read from the caster's book, so a party member's hypers improve the shell
-// they cast, not the one cast over them.
+// Holy Magic Shell's three hypers are read from the caster's book, so a party
+// member's hypers improve the shell they cast, not the one cast over them.
 TEST(ComputeCombatParamsTest, ABoostDeepensTheShellItNames) {
   Skill shell;
   shell.set_name("Holy Magic Shell");
@@ -2706,10 +2696,9 @@ TEST(ComputeCombatParamsTest, ASwingCanLeaveABurn) {
   }
 }
 
-// A poison on the claw belongs to the character, not to one attack. Every
-// attack applies it, and all of them write the same slot; otherwise a monster
-// would carry a different poison per attack that hit it. A burn from the skill
-// itself takes a slot after them.
+// A poison on the claw belongs to the character: every attack writes the same
+// slot, or a monster would carry a poison per attack. The skill's own burn
+// takes a slot after it.
 TEST(ComputeCombatParamsTest, APassivesBurnRidesEverySwing) {
   Skill venom;
   venom.set_name("Venom");
@@ -2765,10 +2754,8 @@ TEST(ComputeCombatParamsTest, APassivesBurnRidesEverySwing) {
   EXPECT_GT(swing.dots[1].damage[0], swing.dots[0].damage[0]);
 }
 
-// Mist Eruption's half: a boost to the burn a skill leaves, not to the strike
-// that leaves it. The burn already gets the attack's boosts through the stats
-// it's priced from. Only its multiplier is its own, so only that bonus needs
-// aiming at it.
+// Mist Eruption's half: a boost to the burn a skill leaves. The burn already
+// gets the attack's boosts through its stats; only its multiplier is its own.
 TEST(ComputeCombatParamsTest, ABoostCanLiftTheNamedSkillsBurn) {
   Skill venom;
   venom.set_name("Venom");
@@ -2906,10 +2893,9 @@ TEST(ComputeCombatParamsTest, AScatteredSwingCarriesItsStrikesAndItsCut) {
   EXPECT_EQ(swing->lines, 4);
 }
 
-// Throw Blasting's charms: one bank, attached to every attack the character has
-// instead of to one named skill. Throwing a charm is still the character's own
-// attack, so the Mark triggers on it. That's what distinguishes it from the
-// shuriken an attack merely triggers.
+// Throw Blasting's charms hang on every attack. Throwing one is the character's
+// own attack, so the Mark triggers on it, unlike the shuriken an attack merely
+// triggers.
 TEST(ComputeCombatParamsTest, ALoadSpentByEverySwingHangsOnAllOfThem) {
   Skill quad;
   quad.set_name("Quad Star");
@@ -3617,10 +3603,9 @@ TEST(ComputeCombatParamsTest, ASummonCutsDeeperIntoANormalMonsterToo) {
   }
 }
 
-// Divine Mark's shape: the hammer and the explosion of the brand it leaves,
-// landed as one attack. They're kept as two hits instead of averaged, so each
-// keeps its own multiplier and only the explosion hits ordinary monsters
-// harder.
+// Divine Mark: the hammer and the brand's explosion land as one attack but stay
+// two hits, so each keeps its multiplier and only the explosion hits ordinary
+// monsters harder.
 TEST(ComputeCombatParamsTest, ASwingCanLandTwoHitsPricedSeparately) {
   Skill mark;
   mark.set_name("Divine Mark");
@@ -3670,10 +3655,9 @@ TEST(ComputeCombatParamsTest, ASwingCanLandTwoHitsPricedSeparately) {
                    31.0 * poke);
 }
 
-// Sword Illusion's shape: one strike priced once and landed twelve times, with
-// five explosions after it. It's worth the same as one attack with all those
-// lines. The difference is that every strike rolls separately, which is what
-// the damage display draws and what the skill page states.
+// Sword Illusion: one strike priced once and landed twelve times, then five
+// explosions. Every strike rolls separately, which is what the damage display
+// draws.
 TEST(ComputeCombatParamsTest, ASwingCanLandTheSameStrikeSeveralTimes) {
   Skill illusion;
   illusion.set_name("Sword Illusion");
@@ -4435,10 +4419,8 @@ TEST(ComputeCombatParamsTest, ASwingClockedSkillLandsOnTheTriggeredList) {
   EXPECT_DOUBLE_EQ(params.triggered_attacks[0].interval_seconds, 0.0);
 }
 
-// Inhuman Speed's shape: an own-clock part counted in the character's attacks
-// instead of seconds, and silenced by the buff its own skill casts. It goes on
-// the triggered list with whole skills timed the same way, and knows which buff
-// silences it.
+// Inhuman Speed: an own-clock part counted in attacks instead of seconds, and
+// silenced by the buff its own skill casts.
 TEST(ComputeCombatParamsTest, ASwingClockedHalfIsSilencedByItsOwnBuff) {
   Skill inhuman;
   inhuman.set_name("Inhuman Speed");

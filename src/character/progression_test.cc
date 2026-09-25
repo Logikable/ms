@@ -326,10 +326,9 @@ TEST_F(ProgressionTest, EachStepGoesOutOnItsOwn) {
   EXPECT_FALSE(LeadToAction(Feature::kScrolling, c, account_));
 }
 
-// This is why each upgrade has its own keys: a player led to scrolling at 40
-// must be led to star force when it unlocks. Star force only highlights the
-// menu entry: by 120 the player has opened the item menu a hundred times, and a
-// gold weapon name would only distract from the row that matters.
+// Each upgrade has its own keys, so a player led to scrolling at 40 is led to
+// star force when it unlocks. Star force only lights the menu entry: a gold
+// weapon name would distract from the row that matters.
 TEST_F(ProgressionTest, TheNextUpgradeLightsTheTrailAgain) {
   CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kScrolling));
   FollowedToWeapon(c, account_);

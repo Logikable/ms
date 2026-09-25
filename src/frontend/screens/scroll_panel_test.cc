@@ -242,12 +242,8 @@ TEST_F(ScrollPanelTest, SetFilterResetsTheSelection) {
 
 // --- the Cost column and the balance ---
 
-// Display columns, not bytes: the scroll glyph is four bytes but two columns,
-// which is exactly the mix-up this file has to keep out of the Cost column.
-//
-// Screen::ToString keeps colour escapes, so a styled cell adds bytes that take
-// no columns. Skipping them lets a red cost be measured against a heading that
-// isn't red.
+// Display columns, not bytes: the scroll glyph is four bytes but two columns.
+// Colour escapes are skipped, so a red cost measures against a plain heading.
 int DisplayColumns(const std::string& s) {
   int width = 0;
   for (size_t i = 0; i < s.size();) {
@@ -436,10 +432,8 @@ TEST_F(ScrollPanelTest, AffordabilityFollowsTheBalance) {
   EXPECT_TRUE(panel_.CanAffordSelected());
 }
 
-// The name column gave up width to Cost, so a longer name is cut instead of
-// pushing the other columns along. That it also scrolls while selected is
-// tested with ScrollingWindow in marquee_test, since checking it here would
-// mean waiting out the marquee's pause.
+// A long name is cut to its column. Its scrolling while selected is tested in
+// marquee_test, to avoid waiting out the marquee's pause.
 TEST_F(ScrollPanelTest, ALongNameIsCutToItsColumn) {
   std::map<std::string, Scroll> scrolls;
   Scroll& s = scrolls["long"];
@@ -584,12 +578,8 @@ TEST_F(ScrollPanelTest, TheConfirmWindowRulesOffItsBlocks) {
   EXPECT_LT(effect, buttons);
 }
 
-// The window floats over the list, so opening it must not make the panel
-// taller.
-//
-// This needs a list the window fits inside. With the two-scroll fixture the
-// window is taller than the list and the panel grows either way, so the check
-// would prove nothing about floating.
+// Opening the window must not make the panel taller. Needs a list the window
+// fits inside, or the panel grows either way.
 TEST_F(ScrollPanelTest, TheConfirmWindowDoesNotGrowThePanel) {
   std::map<std::string, Scroll> many;
   for (int i = 0; i < 10; ++i) {

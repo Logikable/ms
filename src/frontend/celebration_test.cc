@@ -27,12 +27,9 @@ std::string CardText(const Celebration& celebration) {
 
 class CelebrationTest : public testing::Test {
  protected:
-  // Starts a level-up with the player looking at a panel that is never lit, so
-  // every panel the celebration lights is one they must visit. Tests about
-  // timed glows set where the player is explicitly.
-  //
-  // It uses a new account, so this is the first time any character has reached
-  // these levels.
+  // Starts a level-up with the player on a panel that is never lit, so every
+  // panel the celebration lights is one they must visit. A new account, so
+  // these levels are reached for the first time.
   void BeginAway(int from_level, int to_level, int ap = 5, int sp = 3) {
     celebration_.BeginLevelUp(from_level, to_level, ap, sp, /*hyper_sp=*/0,
                               /*account_level=*/0, kCombatPanel);

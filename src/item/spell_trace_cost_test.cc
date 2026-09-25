@@ -44,10 +44,8 @@ TEST(SpellTraceCostTest, TheItemLevelSetsThePrice) {
   EXPECT_LT(TraceCost(scroll, 70), TraceCost(scroll, 100));
 }
 
-// Lower odds never cost less, and weapons never cost less than armour. Only
-// "never less": the bottom of GMS's table prices armour at 1 and 2 traces,
-// which can't separate three rates, so a level 10 armour scroll costs the same
-// at 70% and 30%.
+// Only "never less": GMS's table prices low armour at 1 and 2 traces, which
+// can't separate three rates.
 TEST(SpellTraceCostTest, RiskAndWeaponsNeverCostLess) {
   const int kLevels[] = {1, 10, 30, 60, 70, 100, 150};
   for (int level : kLevels) {

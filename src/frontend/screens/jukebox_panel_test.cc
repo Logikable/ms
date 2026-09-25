@@ -343,10 +343,8 @@ TEST_F(JukeboxPanelTest, TheBoxHangsUnderTheButtonItOpensFrom) {
   ftxui::Screen open_screen = Draw();
   ScreenPos open = FindOnScreen(open_screen, "> Follow Map");
   EXPECT_EQ(open.y, shut.y + 2);
-  // The whole row of the middle entry. The box is only as wide as the names
-  // need, and its right border is under the button's bracket. The middle entry
-  // because the box crosses two window borders and ftxui joins its own into
-  // those, so the rows on either side read ┤ and ├.
+  // The middle entry's row: the box crosses two window borders, which ftxui
+  // joins into ┤ and ├ on the rows either side.
   int close = bracket.x + 2;
   ScreenPos middle = FindOnScreen(open_screen, "  Playlist");
   EXPECT_EQ(middle.y, shut.y + 3);

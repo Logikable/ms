@@ -13,12 +13,9 @@
 namespace ms {
 namespace {
 
-// The panel's rows, read from the screen cell by cell. Screen::ToString would
-// put colour escapes between the border and the text, so a row wouldn't match
-// what the player sees.
-//
-// The screen is fitted to the panel, so these are its natural dimensions: a row
-// reaching its border here is a row the panel made room for.
+// The panel's rows, read cell by cell: Screen::ToString puts colour escapes
+// between border and text. The screen is fitted to the panel, so a row reaching
+// its border is one the panel made room for.
 std::vector<std::string> RenderRows() {
   ftxui::Element tip = HotkeysPanel();
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(tip));

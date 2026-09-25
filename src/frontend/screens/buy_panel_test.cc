@@ -23,10 +23,9 @@ std::string Render(const BuyPanel& panel) {
   return screen.ToString();
 }
 
-// Whether any cell on the row containing `needle` has colour `color`. Reads the
-// screen's pixels instead of its escape codes, because ftxui maps colours to
-// whatever palette it thinks the terminal has, and a test process has no
-// terminal, so the escape codes describe the fallback rather than the colour.
+// Whether any cell on the row containing `needle` has colour `color`. Reads
+// pixels, not escape codes: a test process has no terminal, so ftxui's escapes
+// describe its fallback palette.
 bool RowIsColored(const BuyPanel& panel, const std::string& needle,
                   ftxui::Color color) {
   ftxui::Element element = panel.Render();
@@ -180,10 +179,8 @@ TEST(BuyPanelTest, CannotTypePastWhatTheBagHasRoomFor) {
   EXPECT_EQ(panel.quantity(), 3);
 }
 
-// A full bag behaves like an unaffordable item: the dialog opens and says no
-// instead of offering a number that would be refused. [1] doesn't get around
-// it, since a button that set one anyway would give Confirm an amount the shop
-// refuses, a purchase that silently does nothing.
+// A full bag opens the dialog at zero and can't confirm. [1] doesn't get around
+// it: a purchase the shop refuses silently does nothing.
 TEST(BuyPanelTest, AFullBagOpensAtZeroAndCannotConfirm) {
   BuyPanel panel;
   panel.Reset("Machete", 10, /*meso=*/1000000, /*room=*/0, /*owned=*/0);

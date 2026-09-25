@@ -154,10 +154,8 @@ TEST_F(EquippedPanelTest, ShowsTheEquippedItemAndTheSlotItIsIn) {
   EXPECT_NE(rendered.find("Weapon"), std::string::npos);
 }
 
-// A staff carries both weapon and magic attack, and the row shows the one the
-// wearer actually uses. Every magician branch is checked, because a
-// hand-written list of jobs once went stale and left the 3rd-job mages showing
-// ATT.
+// A staff carries weapon and magic attack, and the row shows the one the wearer
+// uses. Every magician branch is checked, so a new one can't show ATT.
 TEST_F(EquippedPanelTest, ShowsMagicAttackForEveryMagician) {
   EquipPrototype staff;
   staff.set_name("Old Wooden Staff");
@@ -222,10 +220,8 @@ TEST_F(EquippedPanelTest, ShowsAttackAheadOfTheMainStat) {
   EXPECT_LT(rendered.find("+18 ATT"), rendered.find("+3 LUK"));
 }
 
-// The main-stat column follows the wearer's job, not the item: the same gear
-// shows STR to a Swordman and DEX to an Archer. The panel gets this from
-// PrimaryStatField rather than its own switch, so this catches the two
-// disagreeing.
+// The main-stat column follows the wearer's job, via PrimaryStatField rather
+// than its own switch: this catches the two disagreeing.
 TEST_F(EquippedPanelTest, MainStatColumnFollowsTheWearersJob) {
   EquipPrototype hat;
   hat.set_name("Bandana");
@@ -256,10 +252,8 @@ TEST_F(EquippedPanelTest, MainStatColumnFollowsTheWearersJob) {
   EXPECT_EQ(worn_by_archer.find("+4 STR"), std::string::npos);
 }
 
-// Throwing stars can't be scrolled or starred, and the menu on this panel
-// refuses them the same way the bag's does. Stars worn without a claw still
-// show their number, but their row is dimmed because the character's totals
-// don't count them.
+// Throwing stars can't be scrolled or starred, here as in the bag. Stars worn
+// without a claw are dimmed, since the totals don't count them.
 TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
   EquipPrototype stars;
   stars.set_name("Subi Throwing-Stars");
@@ -438,10 +432,9 @@ TEST_F(EquippedPanelRingTest, WalksTheListNormallyInTheMiddle) {
 
 // --- an empty list ---
 
-// Container::Tab asks its active panel whether it is focusable and drops every
-// key when it isn't, and the ftxui::Menu behind this panel says it isn't once
-// the list is empty. Nothing here reads a key today, but a panel that silently
-// stops receiving keys is a trap for whatever does next.
+// ftxui::Menu says it isn't focusable once empty, and Container::Tab then drops
+// every key. Nothing reads a key here yet, but the next thing would silently
+// get none.
 TEST_F(EquippedPanelTest, StaysFocusableWithNothingEquipped) {
   EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -521,10 +514,9 @@ int RowWithCursor(const ftxui::Screen& screen) {
   return -1;
 }
 
-// The caret shows where the cursor is, and the band shows how far the row
-// reaches, so a stat eight columns away can be traced back to its item. The
-// band has to cross the whole panel, and it is drawn under the same condition
-// as the caret.
+// The band shows how far the selected row reaches, so a stat eight columns away
+// can be traced to its item. It crosses the whole panel, under the caret's
+// condition.
 TEST_F(EquippedPanelTest, TheSelectedRowWearsABandAcrossThePanel) {
   CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
   panel_focus_ = kEquipPanel;
@@ -565,11 +557,9 @@ TEST_F(EquippedPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
   EXPECT_EQ(panel.cursor_row(), drawn);
 }
 
-// The list wraps, and WrappingList moves around the end by writing selected_
-// itself, which the ftxui::Menu never sees. The Menu's current row then stays
-// where the player left it, and a caret drawn from it would point at one row
-// while Enter acts on another: the player wraps to the top and the caret stays
-// at the bottom.
+// WrappingList moves around the end by writing selected_ itself, which the
+// ftxui::Menu never sees. A caret drawn from the Menu would point at one row
+// while Enter acts on another.
 TEST_F(EquippedPanelTest, TheCursorFollowsTheSelectionAroundTheRing) {
   CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
   panel_focus_ = kEquipPanel;

@@ -144,12 +144,9 @@ class InspectPanelTest : public PanelTest {
     return rows;
   }
 
-  // Whether the first cell of `label` is dimmed. False when the label isn't on
-  // screen, so a test checking dimness has to find it first.
-  //
-  // A row is searched as bytes and read as columns, which differ: a border or a
-  // star is one column but three bytes, so the byte where a match starts is
-  // nowhere near the column where it is drawn.
+  // Whether the first cell of `label` is dimmed; false when the label isn't on
+  // screen. A row is searched as bytes and read as columns, which differ for
+  // borders and stars.
   static bool DimAt(InspectPanel& panel, const std::string& label) {
     ftxui::Screen screen = Draw(panel);
     for (int y = 0; y < screen.dimy(); ++y) {
@@ -607,9 +604,7 @@ TEST_F(InspectPanelTest, ShowsTheWholeSetBesideOneOfItsPieces) {
 }
 
 // The scroll screen puts its list where the set card would go, and three
-// windows in a row would leave none of them enough width. A screen showing the
-// same item twice titles its cards itself, as Star Force does with Before and
-// After.
+// windows in a row would leave none enough width.
 TEST_F(InspectPanelTest, TheCardAloneLeavesTheSetCardOut) {
   InspectPanel& panel = Card();
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),

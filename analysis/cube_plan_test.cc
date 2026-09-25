@@ -109,9 +109,8 @@ Potential Rolled(PotentialRank rank, PotentialLineType type) {
 
 // --- Replaceable ---
 //
-// This decides how much of a cube's gain the shopper counts: cubing gear you'll
-// outgrow is discounted to a quarter. Getting it wrong either way misprices
-// every cube on that slot.
+// Cubing gear the character will outgrow is discounted to a quarter, so getting
+// this wrong misprices every cube on that slot.
 
 TEST(ReplaceableTest, ABetterPieceTheCharacterCanAlreadyWear) {
   std::unique_ptr<GameState> state =
@@ -186,10 +185,8 @@ class CubePlanTest : public ::testing::Test {
   CubeIncome income_;
 };
 
-// Both sides stay at the same rank, so this tests the keep-better rule and not
-// the rank rule below. It uses a percent line because flat lines are Rare-only
-// by design: a flat STR line at Epic is worth nothing, and the comparison would
-// be between two zeroes.
+// Both sides stay at the same rank, so this tests keep-better and not the rank
+// rule. A percent line, since a flat line at Epic is worth nothing.
 TEST_F(CubePlanTest, ARollWorthMoreIsTaken) {
   Potential bare;
   bare.set_rank(POTENTIAL_RANK_EPIC);
@@ -208,10 +205,8 @@ TEST_F(CubePlanTest, ARollWorthLessIsDeclined) {
   EXPECT_FALSE(WorthTaking(*state_, basis_, EQUIP_SLOT_HAT, bare, income_));
 }
 
-// A rule the shopper once broke: under a defence wall every roll is worth
-// nothing, since both sides deal the 1-damage floor, so accepting on damage
-// alone throws away the rank-up the run was bought for. That cost 2,484 cubes
-// with none kept. A higher rank is taken even when damage doesn't change.
+// Under a defence wall every roll deals the 1-damage floor, so accepting on
+// damage alone throws away the rank-up the run was bought for.
 TEST_F(CubePlanTest, ARankIsTakenEvenWhereTheDamageDoesNotMove) {
   // Two potentials of different rank with no lines, so neither changes the
   // damage.

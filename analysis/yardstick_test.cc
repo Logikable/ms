@@ -44,12 +44,9 @@ Skill SlashBlast() {
   return slash;
 }
 
-// A character on a field of snails with a sword and one attack skill: enough of
-// a fight for a yardstick to measure.
-//
-// The skill matters. Strands are looked up by name in the catalog, so the basic
-// attack every character has produces none. A character with an empty book has
-// an empty yardstick and ranks every candidate equal.
+// A character on a field of snails with a sword and one attack skill. Strands
+// are looked up by name in the catalog, so the basic attack produces none: an
+// empty book ranks every candidate equal.
 std::unique_ptr<GameState> ArmedOnAField(
     AttackSpeed speed = ATTACK_SPEED_AVERAGE, int attack = 100) {
   Skill slash = SlashBlast();
@@ -150,10 +147,8 @@ TEST(WorthOfTest, IsNothingWithoutAStrand) {
 
 // --- HeldYardstick ---
 //
-// A held yardstick is deliberately not recomputed per purchase. So a kit change
-// the key misses serves a stale yardstick for the rest of the pass, with
-// plausible numbers about a character who no longer exists. Each test changes
-// one thing the key claims to watch.
+// A kit change the key misses serves a stale yardstick for the rest of the
+// pass. Each test changes one thing the key claims to watch.
 
 TEST(HeldYardstickTest, RetakesWhenTheCharacterLevels) {
   std::unique_ptr<GameState> state = ArmedOnAField();

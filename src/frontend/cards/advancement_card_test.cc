@@ -60,10 +60,8 @@ TEST(AdvancementCardTest, IsTitledAndBorderedInGold) {
   EXPECT_EQ(screen.PixelAt(0, screen.dimy() - 1).foreground_color, kYellow);
 }
 
-// Both cards appear in the same place, in the same gold, seconds apart at level
-// 10. If they differed in size they would look like two unrelated events, so
-// this compares against the level-up card directly rather than a number that
-// could drift.
+// Both cards appear in the same place and gold, seconds apart at level 10, so
+// they must match in size: compared against the level-up card directly.
 TEST(AdvancementCardTest, IsTheSameSizeAsTheLevelUpCard) {
   ftxui::Element level_up = LevelUpCard(9, 10, 5, 3);
   ftxui::Screen theirs = ftxui::Screen::Create(ftxui::Dimension::Fit(level_up));

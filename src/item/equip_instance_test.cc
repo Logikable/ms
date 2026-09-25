@@ -425,10 +425,7 @@ TEST_F(EquipInstanceTest, StarForceStatGainsWeaponAtkFormula) {
 }
 
 TEST_F(EquipInstanceTest, StarForceStatGainsWeaponAtkAccumulates) {
-  // base_att=100.
-  // 0→1★: floor(100/50)+1=3. sf_att=3.
-  // 1→2★: floor(103/50)+1=3. sf_att=6.
-  // 2→3★: floor(106/50)+1=3. sf_att=9.
+  // base_att=100: each of the first three stars adds floor(att/50)+1 = 3.
   Equip state;
   state.set_stars(3);
   EquipInstance item(MakeWeapon(100), state);

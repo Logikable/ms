@@ -275,11 +275,9 @@ class TuiControllerTest : public testing::Test {
     while (state_->character.sp(1) < 60) {
       state_->character.LevelUp();
     }
-    // Many tests below reach the Scroll entry by counting rows down the item
-    // menu, and a locked entry isn't drawn, so the character must be at
-    // scrolling's unlock level or the count lands elsewhere. The SP loop above
-    // currently ends at that level, but that is a coincidence; either number
-    // could change without the other, so it is set explicitly.
+    // Tests reach the Scroll entry by counting rows, and a locked entry isn't
+    // drawn, so the level is set explicitly rather than relying on where the SP
+    // loop ends.
     LevelTo(UnlockLevel(Feature::kScrolling));
   }
 
@@ -409,10 +407,9 @@ class TuiControllerTest : public testing::Test {
     }
   }
 
-  // Opens the stack context menu and moves to Sell, leaving the sell dialog
-  // open. Inspect is the menu's first entry, so Return alone opens the wrong
-  // screen, quietly enough that a test checking nothing was sold would still
-  // pass.
+  // Opens the stack menu and moves to Sell. Inspect is first, so Return alone
+  // opens the wrong screen, quietly enough that a nothing-sold check still
+  // passes.
   void OpenStackSell() {
     inventory_component_->OnEvent(ftxui::Event::Return);  // the stack menu
     controller_->OnEvent(ftxui::Event::ArrowDown);        // Inspect -> Sell
@@ -720,10 +717,8 @@ class TuiControllerTest : public testing::Test {
 
 // --- Tab ---
 
-// Focus starts on the equipped panel, and Tab goes clockwise through every
-// panel: equipped -> inventory -> menu -> combat -> character -> back to
-// equipped. The character panel can always take focus, so no panel is ever
-// skipped.
+// Focus starts on the equipped panel, and Tab goes clockwise: equipped ->
+// inventory -> menu -> combat -> character -> equipped.
 
 TEST_F(TuiControllerTest, TabWalksThePanelRing) {
   controller_->OnEvent(ftxui::Event::Tab);
@@ -1504,10 +1499,8 @@ EquipPrototype RingWorth(const std::string& name, int attack) {
   return ring;
 }
 
-// A ring fits any of four slots, so its Equipped card has a tab bar for the
-// four, and Left/Right move through them, comparing against the worn ring in
-// each or against nothing. The number follows the card: it is lower against a
-// good ring than against an empty slot.
+// A ring's Equipped card has a tab bar for the four slots, and the figure
+// follows it: lower against a good ring than an empty slot.
 TEST_F(TuiControllerTest, TheRingBarWalksTheFourSlotsAndTheFigureFollows) {
   WearRing(RingWorth("Plain Ring", 5));
   WearRing(RingWorth("Good Ring", 40));
@@ -2713,10 +2706,8 @@ TEST_F(TuiControllerTest, BuyingTakesTheMesoAndFillsTheBag) {
   EXPECT_EQ(controller_->screen(), kShop);
 }
 
-// The dialog reads the owned count from the character when it opens, so buying
-// one and coming back must show two. A panel test can't catch this: BuyPanel is
-// given a number, and would look right even if the controller always passed
-// zero.
+// The dialog reads the owned count when it opens. A panel test can't catch
+// this, since BuyPanel is handed the number.
 TEST_F(TuiControllerTest, TheBuyDialogCountsWhatIsOwned) {
   state_->character.AddMeso(25000);
   OpenBuyDialog();

@@ -142,10 +142,8 @@ TEST_F(EquippedListTest, AWideNameColumnHoldsTheWholeName) {
             Columns(132).name_width - Columns(93).name_width);
 }
 
-// The window lists worn items in a fixed order: down the body, then the
-// accessories, then carried items. This isn't the enum's order: the rings and
-// the second pendant are at the end of the enum but are listed with their
-// families here.
+// Worn items list down the body, then accessories, then carried items. Not the
+// enum's order: the rings and second pendant sit with their families.
 TEST_F(EquippedListTest, ListsWhatIsWornInTheWindowsOrder) {
   const std::vector<EquipSlot> kExpected = {
       EQUIP_SLOT_PRIMARY_WEAPON, EQUIP_SLOT_HAT,           EQUIP_SLOT_TOP,

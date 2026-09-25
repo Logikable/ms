@@ -66,12 +66,8 @@ class AllStatsPanelTest : public PanelTest {
 TEST_F(AllStatsPanelTest, FillsTheLeftColumnBeforeTheRight) {
   CharacterInstance c = MakeWarrior();
   AllStatsPanel panel(c, &account_, no_skills_);
-  // The pairs the layout produces. Finding the left label and the right one on
-  // the same row is the whole check.
-  //
-  // This character is a 1st job, whose Character panel holds back the four
-  // percent rows until the 2nd. They appear here anyway: the gate is on the
-  // panel, and this screen always shows everything.
+  // A 1st job's Character panel holds back the four percent rows, but this
+  // screen always shows everything.
   EXPECT_NE(RowWith(panel.Render(), "STR").find("INT"), std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "DEX").find("LUK"), std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Attack ").find("Ignore DEF"),

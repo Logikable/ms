@@ -74,10 +74,9 @@ TEST(MaxCharacterTest, ArmourCarriesThreeLinesOfThePrimaryStat) {
   EXPECT_EQ(LinesOf(ring, POTENTIAL_LINE_TYPE_LUK_PCT), kPotentialLines);
 }
 
-// The weapon and secondary are what a bossing player really cubes, so each has
-// the line it's cubed for plus one attack line. The third line is useless (two
-// useful lines take a quarter as long to roll as three), and on a magician's
-// gear the useless one is the physical attack line.
+// The weapon and secondary each have the line they're cubed for plus one attack
+// line. The third is useless, since two useful lines take a quarter as long to
+// roll as three; on a magician's gear it is the physical attack line.
 TEST(MaxCharacterTest, WeaponryCarriesTwoLinesWorthHaving) {
   const MaxGear gear = MaxGearForLevel(200);
   const Potential weapon =

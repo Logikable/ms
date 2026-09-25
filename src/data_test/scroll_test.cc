@@ -70,14 +70,9 @@ TEST_F(ScrollDataTest, EveryScrollButACleanSlateNamesWhatItGoesOn) {
   }
 }
 
-// Within a tier, a scroll with lower odds must not cost less, or the player
-// would always take the risky one and the safe ones would be pointless. Also
-// within a target: weapons cost more than armour at every level, so each family
-// is only compared with itself.
-//
-// "Not less" instead of "more" because the prices are GMS's, and at the bottom
-// of its table two rates can round to the same price. src/item's own test
-// covers where that happens.
+// Within a tier and target, lower odds must not cost less, or the safe scrolls
+// are pointless. "Not less" because GMS's prices can round two rates together
+// at the bottom of its table.
 TEST_F(ScrollDataTest, LongerOddsNeverCostLess) {
   for (const std::pair<const std::string, Scroll>& a : scrolls_) {
     for (const std::pair<const std::string, Scroll>& b : scrolls_) {
@@ -195,10 +190,8 @@ TEST_F(ScrollDataTest, AnAccessoryHpScrollIsFiftyTimesItsStatScroll) {
   EXPECT_EQ(checked, 9);
 }
 
-// Which stats each job can scroll onto its gear, from the wiki's table. A
-// missing file shows up as a job with nothing to scroll at that tier. Checked
-// for both armour and accessory scrolls, since they have the same stats and the
-// accessory files were written by copying this table.
+// Which stats each job can scroll onto its gear, from the wiki's table. The
+// accessory files were copied from the armour ones, so both are checked.
 TEST_F(ScrollDataTest, EveryJobHasAScrollAtEveryTierAndRate) {
   struct JobStats {
     EquipJobCategory job;

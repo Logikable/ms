@@ -44,10 +44,8 @@ void AddSpawn(MapData* map, const std::string& mob, int count) {
   spawn->set_count(count);
 }
 
-// Three maps whose display order isn't alphabetical: Green and Mixed both come
-// out at level 1 (Green first by name), and Horny, alphabetically in the
-// middle, sorts last at level 8. Mixed is mostly snails, so the counts keep it
-// next to Green.
+// Three maps whose display order isn't alphabetical: Green and Mixed at level 1
+// (Green first by name), and Horny sorting last at 8.
 GameState ThreeMaps() {
   MapData green;
   green.set_name("Green Field");
@@ -127,15 +125,9 @@ Mob FireSpiritMob() {
   return mob;
 }
 
-// One map in every band, so a test can page across the whole list: Green (level
-// 1) and Horny (level 8) in the 1-10 band, then Temple (15) in 11-30, Cave (40)
-// in 31-60, Meadow (86) in 61-100, Nest (106) in 101-140, Road (141) in
-// 141-170, District (172) in 171-200, Zone (201) in 201-220, Rage (201,
-// requiring Arcane Force) in Arcane River P1, Clearing (233) in P2, and
-// Ramparts (261, requiring Sacred Power) in Grandis, each alone in its band.
-//
-// Adding a band to kLevelBands means adding a map here, or paging to the end
-// lands on an empty band and the tests below check nothing.
+// One map in every band, so a test can page the whole list. Adding a band to
+// kLevelBands means adding a map here, or paging to the end lands on an empty
+// band and the tests below check nothing.
 GameState EveryBand() {
   MapData green;
   green.set_name("Green Field");
@@ -420,10 +412,8 @@ TEST(MapSelectPanelTest, TheTwoTablesShareAHeaderLine) {
       << header;
 }
 
-// There are more bands than fit beside the maps, so the bar is held to the
-// rows' width and scrolls: the window is 48 columns and its corner is at column
-// 47. Otherwise the bar would push it wider and the maps would sit in a window
-// sized by its tabs.
+// More bands than fit beside the maps, so the bar is held to the rows' width
+// and scrolls: the window is 48 columns, its corner at 47.
 TEST(MapSelectPanelTest, TheBandBarDoesNotWidenTheMapList) {
   GameState state = EveryBand();
   MapSelectPanel panel(state);

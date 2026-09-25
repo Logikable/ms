@@ -1,7 +1,5 @@
-// Checks the shipped maps, mobs and items against each other. The three
-// catalogs refer to each other by filename stem, and a stem that names nothing
-// fails silently: the loader skips it, the map farms less than it should, and
-// nothing reports it.
+// The maps, mobs and items refer to each other by filename stem, and a stem
+// that names nothing is skipped silently by the loader.
 #include <gtest/gtest.h>
 
 #include <cstddef>
@@ -99,15 +97,10 @@ TEST(MapDataTest, EveryDropNamesAnItem) {
   }
 }
 
-// Checks the Frozen set's drop table as a rule: a piece drops from the twenty
-// mob levels starting where it can be worn, and rarely from the twenty above. A
-// mob added inside a piece's range without its drop means the player can no
-// longer count on finding that piece.
-//
-// One rule for all six, tokens included: 1/4,000 through the wear band,
-// 1/10,000 above it. The rate is set for the fastest character, since the band
-// is a window and the quickest pass through it gets the fewest chances. At
-// 1/4,000 even that character misses about one climb in eighty.
+// A Frozen piece drops from the twenty mob levels starting where it can be
+// worn, at 1/4,000, and from the twenty above at 1/10,000. The rate is set for
+// the fastest character, who gets the fewest chances; even they miss about one
+// climb in eighty.
 TEST(MapDataTest, EveryMobInAPiecesReachDropsIt) {
   struct Piece {
     const char* stem;
@@ -160,12 +153,9 @@ TEST(MapDataTest, EveryMobInAPiecesReachDropsIt) {
   EXPECT_GT(trickle, 0) << "no mob drops the set past its band";
 }
 
-// An Etc drop is only worth picking up for its sell price, and a price of zero
-// also disables the Sell option, so the drop would be junk.
-//
-// Deliberately not checked: that the price is twice the mob's level. The wiki's
-// template uses the item's level, not the dropping mob's, and the two agree
-// often enough to look like a rule when they aren't.
+// An Etc drop is only worth its sell price, and a zero price disables Sell.
+// Deliberately not checked: price = twice the mob's level. The wiki uses the
+// item's level, and the two only agree often enough to look like a rule.
 TEST(MapDataTest, EveryEtcDropIsWorthSomething) {
   std::map<std::string, ItemPrototype> items = LoadItems();
   for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
@@ -184,10 +174,8 @@ TEST(MapDataTest, EveryEtcDropIsWorthSomething) {
   }
 }
 
-// Every monster needs armour. Every monster has at least the standard 10% PDR
-// and bosses have more, which keeps IED worth buying against farming mobs and
-// not only bosses. A mob file missing the line has no armour and nothing
-// reports it; the damage math just pays out 11% more against it.
+// Every mob has at least the standard 10% PDR, which keeps IED worth buying for
+// farming. A file missing the line silently pays 11% more.
 TEST(MapDataTest, EveryMobWearsAtLeastTheRegularArmour) {
   constexpr int kRegularPdr = 10;
   for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
@@ -202,10 +190,8 @@ TEST(MapDataTest, EveryMobWearsAtLeastTheRegularArmour) {
   }
 }
 
-// A mob with no HP dies to nothing, and one with no EXP pays nothing; either
-// makes a map that looks farmable but isn't. Bosses are exempt from the EXP
-// check: Zakum's arms are worth nothing in GMS either, and the fight pays out
-// for the body at the end.
+// A mob with no HP or no EXP makes a map that looks farmable but isn't. Bosses
+// are exempt from EXP: the fight pays for them.
 TEST(MapDataTest, EveryMobCanBeFoughtAndIsWorthFighting) {
   for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
     EXPECT_GT(entry.second.level(), 0) << entry.first;
@@ -217,16 +203,12 @@ TEST(MapDataTest, EveryMobCanBeFoughtAndIsWorthFighting) {
   }
 }
 
-// Every mob a map spawns can be inspected, and the inspect screen starts with
-// its bestiary description. There are two exceptions, both shown as an empty
-// block instead of invented text: Arcane River and Grandis, which the wiki has
-// no archive entries for, and Onyx Stonegar, which the wiki also says nothing
-// about. Inventing text would put words in the game that no source supports.
+// Every map mob is described, except where no source exists: Arcane River and
+// Grandis, which the wiki has no archive for, and Onyx Stonegar. Those show an
+// empty block rather than invented text.
 //
-// The map decides whether a mob is in the river or Grandis, since it is the map
-// that requires a force. Nothing about the monster says so: Tenebris drops no
-// symbol, and level doesn't tell you either, since Black Heaven goes up to 219
-// and requires no force.
+// Only the map says whether a mob is in the river or Grandis: Tenebris drops no
+// symbol, and Black Heaven runs to 219 without a force.
 TEST(MapDataTest, EveryMapMobIsDescribed) {
   std::map<std::string, Mob> mobs = LoadMobs();
   for (const std::pair<const std::string, MapData>& entry : LoadMaps()) {
@@ -250,12 +232,8 @@ TEST(MapDataTest, EveryMapMobIsDescribed) {
 }
 
 // Arcane Force and Arcane River go together, checked from both sides since
-// neither can be derived from the other. A river map missing its requirement
-// would let a character with no symbols farm it at full damage, defeating the
-// point of the stat; a requirement on an overworld map would penalize a fight
-// GMS doesn't. The second check only reaches down to the level floor: Black
-// Heaven goes up to 219 outside the river, so a stray number there looks like
-// river and isn't caught.
+// neither derives the other. The second check only reaches down to the level
+// floor: Black Heaven runs to 219 outside the river.
 TEST(MapDataTest, ArcaneForceGoesWithArcaneRiver) {
   std::map<std::string, Mob> mobs = LoadMobs();
   std::map<std::string, EquipPrototype> equips = LoadEquips();

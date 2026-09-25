@@ -172,10 +172,9 @@ TEST_F(SessionTest, TheSheetCarriesTheCharacterAndNotTheirBelongings) {
   EXPECT_EQ(sheet.honor(), 0);
 }
 
-// An update is sent whenever the sheet changes, so anything on it that changes
-// with every kill sends the whole sheet that often (312 times in one second,
-// measured on the live server). Honor is one of these, and nobody else can see
-// it.
+// An update is sent whenever the sheet changes, so anything that changes per
+// kill resends it that often (312 times a second, measured on the live server).
+// Honor is one, and nobody else can see it.
 TEST_F(SessionTest, HonorEarnedDoesNotMoveTheSheet) {
   Character before = PublicSheet(state_->character);
   state_->character.AddHonor(500);

@@ -9,10 +9,8 @@
 namespace ms {
 namespace {
 
-// Nothing else checks these. Every other test reads a panel's rendered text,
-// where a missing name shows as a blank column, not a failure. The short name
-// is the default wherever a job is shown, so every job must have one too; jobs
-// that need no shortening return their full name.
+// A missing name shows as a blank column in a panel, not a failure. The short
+// name is the default wherever a job is shown, so every job needs one.
 TEST(JobNameTest, EveryJobHasALongNameAndAShortOne) {
   for (int i = Job_MIN; i <= Job_MAX; ++i) {
     if (!Job_IsValid(i) || i == JOB_UNSPECIFIED) {
