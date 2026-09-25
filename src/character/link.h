@@ -20,16 +20,15 @@
 
 namespace ms {
 
-// The levels a link skill is handed a rung at. GMS's own, and the last of
-// them is why the whole system waits for kLinkSkillsLevel.
+// The levels a link skill is handed a rung at. GMS's own.
 inline constexpr int kLinkRungLevels[] = {70, 120, 210};
 // Rungs one line can pay, and so the levels a link skill gains per line.
 inline constexpr int kLinkRungsPerLine = 3;
 // Link skills one character carries beside the one their own line hands
 // them. GMS's twelve; nothing reaches it yet.
 inline constexpr int kMaxEquippedLinkSkills = 12;
-// The account level the whole system opens at: the top rung, so it arrives
-// whole rather than trickling in from level 70 of a first character.
+// The account level the gold trail to the Link Skills screen lights at: the
+// top rung. The skills themselves are live from level 1.
 inline constexpr int kLinkSkillsLevel = 210;
 
 // What one character of `level` pays their line: 0 below the first rung.

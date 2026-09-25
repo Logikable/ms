@@ -78,10 +78,9 @@ enum class Feature {
   // there is no symbol to be had, and a tab that can only ever be empty is
   // worse than no tab.
   kSymbols,
-  // The Link Skills row on the Character panel's beginner page, and the
-  // screen behind it. The account level the last rung is paid at -- see
-  // kLinkSkillsLevel -- and the character's own first job on top: a Beginner
-  // has no line of their own for one to read against.
+  // The gold trail to the Link Skills row, lit the first time the account
+  // reaches the last rung -- see kLinkSkillsLevel. The row itself is always
+  // on the beginner's page.
   kLinkSkills,
   // The Farm/Boss/Drop row under the Gear tab. Cubing's own level: a second
   // set of gear is worth keeping once a piece is worth more than the tier it
@@ -157,10 +156,11 @@ void FollowedToAction(Feature feature, AccountInstance& account);
 
 /* The gold trail that leads a player to the Link Skills screen.
  *
- * Three signposts, each lit the moment the account opens the system and each
- * put out where the player walks past it: the Skills tab, the beginner's page
- * under it, and the row itself. The latches are the account's, as every other
- * trail's are, so one character walking it settles it for all of them.
+ * Three signposts, each lit the first time the account reaches kLinkSkillsLevel
+ * and each put out where the player walks past it: the Skills tab, the
+ * beginner's page under it, and the row itself. The latches are the account's,
+ * as every other trail's are, so one character walking it settles it for all of
+ * them.
  */
 enum class LinkTrailStep {
   kSkillsTab,

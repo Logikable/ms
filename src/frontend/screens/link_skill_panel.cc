@@ -133,9 +133,8 @@ std::vector<const Skill*> LinkSkillPanel::RowsHere() const {
   switch (zone_) {
     case LinkZone::kMine: {
       const Skill* mine = MineSkill();
-      return mine == nullptr || character_.LinkSkillLevelOffered(*mine) <= 0
-                 ? std::vector<const Skill*>()
-                 : std::vector<const Skill*>{mine};
+      return mine == nullptr ? std::vector<const Skill*>()
+                             : std::vector<const Skill*>{mine};
     }
     case LinkZone::kEnabled:
       return EnabledSkills();
@@ -382,8 +381,6 @@ ftxui::Element LinkSkillPanel::RenderMine() const {
   std::vector<ftxui::Element> rows = {RenderHeader(), ThemedSeparator()};
   if (mine == nullptr) {
     rows.push_back(EmptyState("no job line", kCaretWidth));
-  } else if (character_.LinkSkillLevelOffered(*mine) <= 0) {
-    rows.push_back(EmptyState("not yet earned", kCaretWidth));
   } else {
     if (focused) {
       name_clock_.Follow(0, true);

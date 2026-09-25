@@ -1602,15 +1602,24 @@ CharacterInstance MakeLinked(std::mt19937& rng, Job job, int level) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-// A level 210 character opens the system for the account, and their own line
-// is theirs for free -- so one character alone holds one link skill at 3.
-TEST_F(CharacterTest, AccountLevel210OpensTheLinkSkillsAndTheirOwnLineIsFree) {
+// Their own line's is theirs for free and at 1 from the first job; another
+// line's waits for somebody to take that line to 70.
+TEST_F(CharacterTest, TheirOwnLineIsFreeFromTheStart) {
   Skill warrior = LinkSkill("Invincible Belief", JOB_SWORDMAN);
   Skill rogue = LinkSkill("Thief's Cunning", JOB_ROGUE);
 
-  CharacterInstance early = MakeLinked(rng_, JOB_HERO, 209);
-  EXPECT_FALSE(early.HoldsSkillFrom(warrior)) << "the account is short";
-  EXPECT_EQ(early.skill_level(warrior), 0);
+  CharacterInstance novice = MakeLinked(rng_, JOB_SWORDMAN, 10);
+  EXPECT_TRUE(novice.HoldsSkillFrom(warrior));
+  EXPECT_EQ(novice.skill_level(warrior), 1) << "before any rung is paid";
+
+  CharacterInstance beginner = MakeLinked(rng_, JOB_BEGINNER, 10);
+  ASSERT_TRUE(beginner.EquipLinkSkill(rogue.name(), StatPreset::kFirst));
+  EXPECT_EQ(beginner.skill_level(rogue), 0) << "no rogue has reached 70";
+  LinkTally tally;
+  tally.Record(JOB_ASSASSIN, 70);
+  beginner.set_link_tally(tally);
+  EXPECT_EQ(beginner.skill_level(rogue), 1) << "a Beginner can wear one";
+  EXPECT_EQ(beginner.skill_level(warrior), 0) << "and has no line of their own";
 
   CharacterInstance hero = MakeLinked(rng_, JOB_HERO, 210);
   EXPECT_TRUE(hero.HoldsSkillFrom(warrior)) << "their own line, unequipped";
@@ -2803,7 +2812,7 @@ TEST_F(WearingTest, KeepsWhatTheAccountMirrorsIn) {
   EXPECT_EQ(probe.link_tally().LevelFor(JOB_SWORDMAN),
             c_.link_tally().LevelFor(JOB_SWORDMAN));
   EXPECT_EQ(probe.account_max_level(), 210);
-  EXPECT_FALSE(probe.link_skills_unlocked()) << "the switch came too";
+  EXPECT_TRUE(probe.link_skills_off()) << "the switch came too";
 }
 
 // A piece naming no slot this character can fill has nothing to price, and

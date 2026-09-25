@@ -78,8 +78,8 @@ constexpr Unlock kUnlocks[] = {
     {Feature::kCharacters, 210},
     // The same level as the characters: see Feature::kBank.
     {Feature::kBank, 210},
-    // The top rung of a link skill's ladder, so the whole system arrives at
-    // once rather than trickling in from a first character's level 70.
+    // The top rung of a link skill's ladder. Only the trail waits for it: the
+    // row and the skills are there from level 1.
     {Feature::kLinkSkills, kLinkSkillsLevel},
 };
 
@@ -185,11 +185,6 @@ bool Unlocked(Feature feature, const CharacterInstance& character,
   int level = std::max(character.proto().level(), account.max_level());
   if (level < UnlockLevel(feature)) {
     return false;
-  }
-  if (feature == Feature::kLinkSkills) {
-    // The account's climb opens them; this character's first job is what
-    // gives them a line to read one against.
-    return character.proto().job_stage() > 0;
   }
   if (feature == Feature::kHyperStats) {
     // Held to THIS character's level: the points are paid out by their own

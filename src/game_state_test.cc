@@ -1081,7 +1081,7 @@ TEST(GameStateTest, MaxModeCanBeAskedForNoLinkSkillsAtAll) {
                   EveryStageBook(), GameMode::kMax, options, std::nullopt, {},
                   MaxBosses());
   EXPECT_TRUE(state.inactive_characters.empty());
-  EXPECT_FALSE(state.character.link_skills_unlocked());
+  EXPECT_TRUE(state.character.link_skills_off());
 }
 
 // The roster climbs with the ceiling rather than ahead of it: a ceiling below
@@ -1090,7 +1090,6 @@ TEST(GameStateTest, MaxModeBelowTheFirstRungHasNoLinkSkills) {
   GameState state = MakeMaxState(60);
   EXPECT_FALSE(state.inactive_characters.empty());
   EXPECT_EQ(state.character.link_tally().LevelFor(JOB_SWORDMAN), 0);
-  EXPECT_FALSE(state.character.link_skills_unlocked());
 }
 
 // The ceiling at the cap: hammers driven in, every slot of the wider shelf
