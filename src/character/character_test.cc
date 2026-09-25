@@ -39,23 +39,23 @@ CharacterInstance MakeCharacter(std::mt19937& rng, int level = 1, int ap = 0,
   return CharacterInstance(rng, std::move(proto));
 }
 
-// A purse no amount of farming would fill. Star forcing is priced now, and one
-// attempt on a level 138 item runs to nine figures -- a test that rolls until
-// the item explodes has to be able to pay for every roll.
+// A character with more meso than farming could earn. Star force costs meso,
+// and one attempt on a level 138 item costs nine figures, so a test that rolls
+// until the item is destroyed has to afford every roll.
 CharacterInstance MakeRichCharacter(std::mt19937& rng) {
   CharacterInstance c = MakeCharacter(rng);
   c.AddMeso(1'000'000'000'000);
   return c;
 }
 
-// Base fixture providing a deterministic RNG. All character test fixtures
-// derive from this so tests never need a local std::mt19937.
+// Base fixture with a deterministic RNG. Every character test fixture derives
+// from this, so no test needs its own std::mt19937.
 class CharacterTest : public testing::Test {
  protected:
   std::mt19937 rng_{0};
 };
 
-// Fixture for LevelUp tests. Provides a default level-1 character.
+// Fixture for LevelUp tests, with a default level-1 character.
 class LevelUpTest : public CharacterTest {
  protected:
   CharacterInstance c_ = MakeCharacter(rng_);
@@ -63,17 +63,17 @@ class LevelUpTest : public CharacterTest {
 
 class AddExpTest : public CharacterTest {};
 
-// Fixture for AdvanceJob tests. Each test needs a different starting level /
-// job_stage, so c_ is created locally per test using rng_.
+// Fixture for AdvanceJob tests. Each test needs a different starting level and
+// job stage, so each builds its own character with rng_.
 class AdvanceJobTest : public CharacterTest {};
 
-// Fixture for LearnSkill tests. Each test seeds its own stage SP, so no shared
-// character.
+// Fixture for LearnSkill tests. Each test sets its own stage SP, so there is no
+// shared character.
 class LearnSkillTest : public CharacterTest {};
 
-// A character carrying `sp` skill points in `stage` and nothing else -- a
-// Swordman, because the points are only spendable on a book the character's
-// own job has, and the stage alone does not say whose book that is.
+// A character with `sp` skill points in `stage` and nothing else. It is a
+// Swordman, because points can only be spent in a book of the character's own
+// job, and the stage alone doesn't say whose book that is.
 CharacterInstance MakeCharacterWithSp(std::mt19937& rng, int stage, int sp,
                                       Job job = JOB_SWORDMAN) {
   Character proto;
@@ -83,8 +83,8 @@ CharacterInstance MakeCharacterWithSp(std::mt19937& rng, int stage, int sp,
   return CharacterInstance(rng, std::move(proto));
 }
 
-// A minimal skill: only the fields LearnSkill reads. The advancement fixes the
-// SP stage; JOB_ADVANCEMENT_SWORDMAN is a 1st-job (stage 1) advancement.
+// A minimal skill with only the fields LearnSkill reads. The advancement sets
+// the SP stage; JOB_ADVANCEMENT_SWORDMAN is a 1st-job (stage 1) advancement.
 Skill MakeSkill(const std::string& name, JobAdvancement advancement,
                 int max_level) {
   Skill skill;
@@ -94,17 +94,17 @@ Skill MakeSkill(const std::string& name, JobAdvancement advancement,
   return skill;
 }
 
-// The skill the LearnSkill tests spend on.
+// The skill the LearnSkill tests spend points on.
 Skill SlashBlast(int max_level = 20) {
   return MakeSkill("Slash Blast", JOB_ADVANCEMENT_SWORDMAN, max_level);
 }
 
-// Fixture for AllocateStat tests. Each test needs a different ap value, so
-// c_ is created locally per test using rng_.
+// Fixture for AllocateStat tests. Each test needs a different AP value, so each
+// builds its own character with rng_.
 class AllocateStatTest : public CharacterTest {};
 
-// Fixture for the Hyper Stat tests: a character at whatever level the test
-// wants, since the level is what pays the points.
+// Fixture for Hyper Stat tests. Each test picks the level, since the level
+// decides the points.
 class HyperStatTest : public CharacterTest {};
 
 TEST_F(HyperStatTest, PointsArriveWithTheLevel) {
@@ -136,8 +136,8 @@ TEST_F(HyperStatTest, RaisingSeveralLevelsIsAllOrNothing) {
   EXPECT_EQ(c.hyper_stat_points_left(), 9);
 }
 
-// Fixture for the Inner Ability tests, whose character needs a level and a
-// purse of honor.
+// Fixture for Inner Ability tests, whose character needs a level and some
+// honor.
 class InnerAbilityTest : public CharacterTest {};
 
 TEST_F(InnerAbilityTest, BothPresetsStartOnTheDefaultLines) {
@@ -154,8 +154,8 @@ TEST_F(InnerAbilityTest, BothPresetsStartOnTheDefaultLines) {
   EXPECT_EQ(c.ability_reset_cost(), 100);
 }
 
-// A save written before Inner Ability existed comes back holding the default
-// lines: RestoreFrom assigns over the character the constructor seeded.
+// A save from before Inner Ability existed loads with the default lines, even
+// though RestoreFrom overwrites what the constructor set up.
 TEST_F(InnerAbilityTest, RestoringAnOldSaveSeedsTheLines) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
   Character old;
@@ -169,7 +169,8 @@ TEST_F(InnerAbilityTest, RestoringAnOldSaveSeedsTheLines) {
   EXPECT_EQ(c.ability_reset_cost(), 100);
 }
 
-// Lines without a rank price no reset, which would strand the preset forever.
+// Lines without a rank have no reset price, which would leave the preset stuck
+// forever.
 TEST_F(InnerAbilityTest, RanklessPresetKeepsItsLines) {
   Character proto;
   proto.set_level(160);
@@ -198,15 +199,15 @@ TEST_F(InnerAbilityTest, ResetNeedsTheLevelAndTheHonor) {
   const int64_t cost = c.ability_reset_cost();
   EXPECT_TRUE(c.ResetAbility());
   EXPECT_EQ(c.honor(), 250 - cost);
-  // Whatever the rank climbed to, resets stop the moment the purse cannot
-  // cover the next one.
+  // Whatever rank it reached, resets stop once the character can't afford the
+  // next one.
   while (c.honor() >= c.ability_reset_cost()) {
     EXPECT_TRUE(c.ResetAbility());
   }
   EXPECT_FALSE(c.ResetAbility());
 }
 
-// The two presets are rolled apart but paid for out of the one pool.
+// The two presets are rolled separately but paid for from the same honor.
 TEST_F(InnerAbilityTest, PresetsAreSeparateAndTheHonorIsNot) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
   c.AddHonor(1000);
@@ -219,7 +220,7 @@ TEST_F(InnerAbilityTest, PresetsAreSeparateAndTheHonorIsNot) {
   EXPECT_EQ(c.honor(), 800);
 }
 
-// Holding lines is priced per reset, whatever the ranks of the lines held.
+// Locking lines raises the reset price, whatever the locked lines' ranks.
 TEST_F(InnerAbilityTest, LockingRaisesTheResetPrice) {
   Character proto;
   proto.set_level(160);
@@ -252,8 +253,8 @@ TEST_F(InnerAbilityTest, LockingRaisesTheResetPrice) {
   EXPECT_EQ(c.ability().lines(1).type(), ABILITY_LINE_TYPE_ATTACK);
 }
 
-// A save written before Inner Ability existed comes back holding the lines
-// every character is handed.
+// A save from before Inner Ability existed loads with every character's
+// starting lines.
 TEST_F(InnerAbilityTest, AnOldSaveIsSeededOnLoad) {
   Character proto;
   proto.set_level(200);
@@ -279,7 +280,7 @@ TEST_F(HyperStatTest, StatsStopAtTheCapAndArcaneForceAtLevel200) {
       c.AllocateHyperStat(HYPER_STAT_FIELD_ARCANE_FORCE, StatPreset::kSecond));
 }
 
-// Each preset spends the same pool on its own, and a reset gives it all back.
+// Each preset spends the same pool separately, and a reset refunds everything.
 TEST_F(HyperStatTest, PresetsSpendApartAndResetFree) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
   ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_EXP, StatPreset::kFirst, 5));
@@ -297,7 +298,7 @@ TEST_F(HyperStatTest, PresetsSpendApartAndResetFree) {
       << "the other allocation is untouched";
 }
 
-// A refund gives back exactly what the level cost, and runs out at zero.
+// A refund returns exactly what the level cost, and stops at zero.
 TEST_F(HyperStatTest, RefundUndoesOneLevelAtATime) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
   int pool = c.hyper_stat_points();
@@ -305,7 +306,8 @@ TEST_F(HyperStatTest, RefundUndoesOneLevelAtATime) {
       c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFirst, 4));
   ASSERT_TRUE(c.RefundHyperStat(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFirst));
   EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_DAMAGE, StatPreset::kFirst), 3);
-  // 1 + 2 + 4 buys three levels, whatever order they were bought and sold in.
+  // 1 + 2 + 4 buys three levels, whatever order they were bought and refunded
+  // in.
   EXPECT_EQ(c.hyper_stat_points_left(StatPreset::kFirst), pool - 7);
 
   ASSERT_TRUE(
@@ -315,7 +317,7 @@ TEST_F(HyperStatTest, RefundUndoesOneLevelAtATime) {
       << "nothing left to give back";
 }
 
-// All or nothing, and it reaches the allocation it was handed.
+// All or nothing, and it applies to the allocation it was given.
 TEST_F(HyperStatTest, RefundPastWhatIsSpentChangesNothing) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/160);
   ASSERT_TRUE(
@@ -327,8 +329,8 @@ TEST_F(HyperStatTest, RefundPastWhatIsSpentChangesNothing) {
   EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_LUK, StatPreset::kSecond), 2);
 }
 
-// A save from older rules: a stat past the cap, one the level has closed, and
-// an allocation that outspends the pool.
+// A save from older rules: a stat past the cap, one the level has locked, and
+// an allocation that spends more than the pool.
 TEST_F(HyperStatTest, ReconcileTrimsAnAllocationBackToThePool) {
   Character proto;
   proto.set_level(150);
@@ -347,9 +349,9 @@ TEST_F(HyperStatTest, ReconcileTrimsAnAllocationBackToThePool) {
   EXPECT_EQ(c.ReconcileHyperStats(), 0) << "a balanced book stays put";
 }
 
-// Shared fixture for tests that operate on a character with a sword prototype.
-// Provides c_ (fresh level-1 character) and sword_ (named "Sword", primary
-// weapon slot, 7 upgrade slots). Tests pick up and equip as needed.
+// Shared fixture for tests on a character with a sword prototype. Provides c_
+// (a new level-1 character) and sword_ (named "Sword", primary weapon slot, 7
+// upgrade slots). Tests pick up and equip as needed.
 class CharacterEquipFixture : public CharacterTest {
  protected:
   void SetUp() override {
@@ -371,8 +373,8 @@ class ScrollEquippedTest : public CharacterEquipFixture {};
 class ScrollInventoryTest : public CharacterEquipFixture {};
 class SortTabTest : public CharacterEquipFixture {};
 
-// The equip sort's first key is the character's own answer, so a piece the
-// level has not opened files below one it has however good it is.
+// The equip sort's first key is whether the character can wear the item, so a
+// piece above their level sorts below one they can wear, however good it is.
 TEST_F(SortTabTest, EquipTabPutsWhatCanBeWornOnTop) {
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
   c_.AdvanceJob(JOB_BEGINNER);
@@ -388,8 +390,8 @@ TEST_F(SortTabTest, EquipTabPutsWhatCanBeWornOnTop) {
   EXPECT_EQ(c_.inventory()[1].name(), "Gated Sword");
 }
 
-// The Etc tab holds drops and nothing else, so the biggest stack leads. A
-// currency added alongside them is not on the tab to be filed at all.
+// The Etc tab holds only drops, so the biggest stack comes first. A currency
+// added alongside them isn't on the tab at all.
 TEST_F(SortTabTest, StackTabFilesByCount) {
   ItemPrototype trace;
   trace.set_name("Spell Trace");
@@ -426,7 +428,7 @@ TEST_F(LevelUpTest, AccumulatesAcrossMultipleLevels) {
 TEST_F(LevelUpTest, GrantsHpAndMpAtTheDefaultRate) {
   c_.LevelUp();
   c_.LevelUp();
-  // A Beginner is neither warrior nor mage, so it takes the middle rate.
+  // A Beginner is neither warrior nor mage, so it gets the middle rate.
   EXPECT_EQ(c_.proto().allocated_stats().hp(), 2 * 36);
   EXPECT_EQ(c_.proto().allocated_stats().mp(), 2 * 24);
 }
@@ -451,8 +453,8 @@ TEST_F(LevelUpTest, MagesInvertTheWarriorsGrant) {
   EXPECT_EQ(c.proto().allocated_stats().mp(), 48);
 }
 
-// Only the two extremes have a rate of their own; everyone else shares the
-// middle one, so a rogue levels exactly as an archer does.
+// Only warriors and mages have their own rates; everyone else shares the middle
+// one, so a rogue levels exactly like an archer.
 TEST_F(LevelUpTest, RoguesLevelAtTheMiddlingRate) {
   Character proto;
   proto.set_level(15);
@@ -464,8 +466,8 @@ TEST_F(LevelUpTest, RoguesLevelAtTheMiddlingRate) {
 }
 
 TEST_F(LevelUpTest, AdvancingDoesNotBackdateEarlierLevels) {
-  // The rate is the one held at the time, so the two Beginner levels below
-  // keep the Beginner grant even after the character becomes a Warrior.
+  // The rate is the one at the time of levelling, so the two Beginner levels
+  // below keep the Beginner rate even after the character becomes a Warrior.
   c_.LevelUp();
   c_.LevelUp();
   c_.AdvanceJob(JOB_SWORDMAN);
@@ -499,8 +501,8 @@ TEST_F(LevelUpTest, FirstJobSpTotalsSixtyAndStopsAtTheBandEnd) {
   EXPECT_EQ(c.sp(2), 3);   // 2nd-job SP begins
 }
 
-// Every band pays exactly what its book costs: 60, 90, 120, and 200 for the
-// 4th job, which is the one band that pays five a level rather than three.
+// Every band pays exactly what its book costs: 60, 90, 120, and 200 for the 4th
+// job, the only band that pays five a level instead of three.
 TEST_F(LevelUpTest, EachBandPaysExactlyWhatItsBookCosts) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
   for (int i = 0; i < 90; ++i) {
@@ -535,8 +537,8 @@ TEST_F(LevelUpTest, TheFourthJobPaysFiveALevel) {
   EXPECT_EQ(c.sp(3), 0) << "the 3rd job's band is closed behind them";
 }
 
-// The Hyper SP ladder: one point at 140 and every fifth level to 195, and
-// nothing before or after. Twelve in all, which is one per Hyper Skill.
+// The Hyper SP ladder: one point at 140 and every fifth level to 195, and none
+// before or after. Twelve in all, one per Hyper Skill.
 TEST_F(LevelUpTest, PaysOneHyperSpEveryFifthLevelFrom140To195) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/139);
   c.LevelUp();  // 140, the first rung
@@ -566,7 +568,7 @@ TEST_F(LevelUpTest, PaysNoHyperSpBelowOneForty) {
 }
 
 TEST_F(LevelUpTest, EveryFirstJobReachesTheSameSixty) {
-  // No job is handed a head start; the pools are identical.
+  // No job gets a head start; the pools are identical.
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
   c.AdvanceJob(JOB_ARCHER);
   for (int i = 0; i < 20; ++i) {
@@ -579,9 +581,9 @@ TEST_F(LevelUpTest, EveryFirstJobReachesTheSameSixty) {
 
 class GainsForLevelsTest : public CharacterTest {
  protected:
-  // What levelling from `from` to `to` really hands over, read off a character
-  // that actually climbed it. Sums SP across every stage, since a span can
-  // cross a band and the totals are what the caller is after.
+  // What levelling from `from` to `to` really grants, read from a character
+  // that actually levelled. SP is summed across every stage, since a range can
+  // cross a band and the caller wants the total.
   LevelGains Actual(int from, int to) {
     CharacterInstance c = MakeCharacter(rng_, from);
     int ap_before = c.proto().ap();
@@ -614,14 +616,14 @@ TEST_F(GainsForLevelsTest, TotalsEveryLevelInTheSpan) {
 }
 
 TEST_F(GainsForLevelsTest, CountsSpOnlyForTheLevelsThatGrantIt) {
-  // 10 -> 12 arrives at 11 and 12; SP starts at 11, so both pay.
+  // 10 -> 12 reaches 11 and 12; SP starts at 11, so both pay.
   EXPECT_EQ(GainsForLevels(10, 12).sp, 6);
-  // 8 -> 10 arrives at 9 and 10, both below the band.
+  // 8 -> 10 reaches 9 and 10, both below the band.
   EXPECT_EQ(GainsForLevels(8, 10).sp, 0);
 }
 
-// A span crossing a job band still totals what was earned, even though
-// LevelUp put the two halves in different stage pools.
+// A range that crosses a job band still totals what was earned, even though
+// LevelUp put the two halves into different stage pools.
 TEST_F(GainsForLevelsTest, TotalsSpAcrossAJobBandBoundary) {
   LevelGains gains = GainsForLevels(29, 32);
   EXPECT_EQ(gains.sp, 9) << "levels 30, 31 and 32, three SP each";
@@ -634,10 +636,10 @@ TEST_F(GainsForLevelsTest, ASpanThatGoesNowhereGrantsNothing) {
   EXPECT_EQ(GainsForLevels(9, 4).sp, 0);
 }
 
-// The point of the helper is to answer for a span what LevelUp answers for one
-// level at a time. These hold it against a character that really climbed, so a
-// change to either that misses the other fails here rather than showing a
-// player the wrong number.
+// The helper should give for a range what LevelUp gives one level at a time.
+// These tests check it against a character that really levelled, so a change to
+// one that misses the other fails here rather than showing a player the wrong
+// number.
 TEST_F(GainsForLevelsTest, AgreesWithLevellingUpForReal) {
   const std::pair<int, int> spans[] = {
       {1, 2},  {1, 10},   {10, 11},   {10, 30},   {29, 32},
@@ -701,15 +703,15 @@ TEST_F(AddExpTest, NoOpAtTheLevelCap) {
 
 TEST_F(AddExpTest, StopsAtTheLevelCapAndZeroesExp) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/kTrialLevelCap - 1);
-  // Far more than the last threshold below the cap -- 46.7B -- and far more
-  // than the several after it: none of them are reachable.
+  // Far more than the 243B that level 259 needs. The rest is thrown away at the
+  // cap.
   c.AddExp(500000000000LL);
   EXPECT_EQ(c.proto().level(), kTrialLevelCap);
   EXPECT_EQ(c.proto().exp(), 0);
 }
 
-// The cap is on what combat pays out, not on what a level is. LevelUp is how
-// the debug item grants one, and it still climbs past the cap.
+// The cap limits what combat pays, not what a level is. The debug item grants a
+// level through LevelUp, which still goes past the cap.
 TEST_F(AddExpTest, LevelUpItselfIsNotCapped) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/kTrialLevelCap);
   c.LevelUp();
@@ -729,21 +731,22 @@ TEST_F(BurningTest, TwoThreeAndFiveAsTheAccountFillsUp) {
   EXPECT_EQ(LevelAfterBurning(50, {120}), 52);
   EXPECT_EQ(LevelAfterBurning(50, {120, 110, 100}), 53);
   EXPECT_EQ(LevelAfterBurning(50, std::vector<int>(10, 100)), 55);
-  // Only the characters ABOVE this one count, so a tier the account has the
-  // bodies for still pays the tier below when they are not all ahead.
+  // Only characters above this one count, so an account with enough characters
+  // for a tier still gets the lower tier when they aren't all ahead.
   std::vector<int> two_ahead = {120, 110, 10, 10, 10, 10, 10, 10, 10, 10};
   EXPECT_EQ(LevelAfterBurning(50, two_ahead), 52);
 }
 
-// The best tier wins rather than the fastest: five levels would pass the
-// tenth highest, so the three-level tier carries further.
+// The tier that goes furthest wins, not the fastest: five levels at a time
+// would pass the tenth highest, so the three-level tier takes the character
+// further.
 TEST_F(BurningTest, ATierStopsAtItsOwnCeiling) {
   std::vector<int> levels(9, 150);
   levels.push_back(100);
   EXPECT_EQ(LevelAfterBurning(98, levels), 101);
   EXPECT_EQ(LevelAfterBurning(99, levels), 102);
-  // Standing level with the lowest character a tier counts drops to the next
-  // one up: the third highest is still ahead, the tenth is not.
+  // Being level with the lowest character a tier counts drops to the next tier:
+  // the third highest is still ahead, but the tenth is not.
   EXPECT_EQ(LevelAfterBurning(100, levels), 103);
 }
 
@@ -754,8 +757,8 @@ TEST_F(BurningTest, NeverPastTheBurningLevel) {
   EXPECT_EQ(LevelAfterBurning(kBurningLevel, ten), kBurningLevel + 1);
 }
 
-// One threshold buys every level the burn hands over, gains and all, and what
-// is left of the EXP rides along to the level arrived at.
+// One threshold gives every level Burning grants, with each level's gains, and
+// the leftover EXP carries to the new level.
 TEST_F(AddExpTest, BurningPaysOneThresholdForSeveralLevels) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/1);
   c.AddExp(20, {100});  // level 1 costs 15, leaving 5
@@ -764,8 +767,8 @@ TEST_F(AddExpTest, BurningPaysOneThresholdForSeveralLevels) {
   EXPECT_EQ(c.proto().ap(), 10);
 }
 
-// Every threshold the award crosses burns again, and the EXP left over after
-// a burn is measured against the level arrived at.
+// Every threshold the EXP crosses triggers Burning again, and the EXP left
+// after each is measured against the new level.
 TEST_F(AddExpTest, BurningAgainForEveryThresholdCrossed) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/1);
   // 15 buys levels 2 and 3, and 57 buys 4 and 5. The 12 left over is short of
@@ -827,9 +830,7 @@ TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
   EXPECT_FALSE(c.CanAdvanceJob());
 }
 
-// A stage whose branches are unwritten has nothing to offer, and the character
-// must not be told otherwise. Every branch is written down to its 4th job now,
-// so what this asks about is the 5th, which nothing reaches.
+// A Shadower at level 100 has no advancement to take.
 TEST_F(AdvanceJobTest, NoAdvancementWithNoJobsBehindIt) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/100);
   c.AdvanceJob(JOB_ROGUE);
@@ -842,7 +843,7 @@ TEST_F(AdvanceJobTest, NoAdvancementWithNoJobsBehindIt) {
 TEST_F(AdvanceJobTest, ASwordmanAtThirtyIsOfferedTheirSecondJob) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/29);
   c.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_FALSE(c.CanAdvanceJob());  // the level, not the job, is what is short
+  EXPECT_FALSE(c.CanAdvanceJob());  // the level, not the job, is what's short
   c.LevelUp();
   EXPECT_TRUE(c.CanAdvanceJob());
 }
@@ -855,15 +856,14 @@ TEST_F(AdvanceJobTest, SecondJobPutsTheCharacterAtStageTwo) {
   EXPECT_EQ(c.proto().job_stage(), 2);
 }
 
-// The order is the stat order, not any order the protos happen to be in.
+// The order is the stat order, not the order the protos happen to list them in.
 TEST(JobChoicesTest, OffersTheFourExplorersInStatOrder) {
   EXPECT_EQ(
       JobChoicesForStage(JOB_BEGINNER, 1),
       (std::vector<Job>{JOB_SWORDMAN, JOB_ARCHER, JOB_MAGICIAN, JOB_ROGUE}));
 }
 
-// All three, in the order the Job enum names them. The Page was held back
-// while its book was empty; it has one now.
+// All three, in the Job enum's order.
 TEST(JobChoicesTest, ASwordmanIsOfferedEveryWarriorBranch) {
   EXPECT_EQ(JobChoicesForStage(JOB_SWORDMAN, 2),
             (std::vector<Job>{JOB_FIGHTER, JOB_PAGE, JOB_SPEARMAN}));
@@ -885,8 +885,7 @@ TEST(JobChoicesTest, ARogueIsOfferedBothThiefBranches) {
             (std::vector<Job>{JOB_ASSASSIN, JOB_BANDIT}));
 }
 
-// The 3rd advancement narrows rather than forking, so it offers one job and
-// not a set. Every warrior and archer branch has one; no other class does.
+// The 3rd advancement offers one job, not a choice.
 TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
   EXPECT_EQ(JobChoicesForStage(JOB_SPEARMAN, 3),
             (std::vector<Job>{JOB_BERSERKER}));
@@ -906,8 +905,7 @@ TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
             (std::vector<Job>{JOB_HERMIT}));
   EXPECT_EQ(JobChoicesForStage(JOB_BANDIT, 3),
             (std::vector<Job>{JOB_CHIEF_BANDIT}));
-  // The 4th narrows no further either, and all ten are written now. Nothing
-  // is written past one, so a 4th job is offered nothing at all.
+  // The 4th also offers just one.
   EXPECT_EQ(JobChoicesForStage(JOB_BERSERKER, 4),
             (std::vector<Job>{JOB_DARK_KNIGHT}));
   EXPECT_EQ(JobChoicesForStage(JOB_WHITE_KNIGHT, 4),
@@ -923,8 +921,8 @@ TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
             (std::vector<Job>{JOB_NIGHT_LORD}));
   EXPECT_EQ(JobChoicesForStage(JOB_CHIEF_BANDIT, 4),
             (std::vector<Job>{JOB_SHADOWER}));
-  // The 5th offers the job already held: it opens a book without renaming
-  // anybody, so there is nothing to choose between.
+  // The 5th offers the job already held: it opens a book without changing the
+  // job, so there is nothing to choose.
   EXPECT_EQ(JobChoicesForStage(JOB_DARK_KNIGHT, 5),
             (std::vector<Job>{JOB_DARK_KNIGHT}));
   EXPECT_EQ(JobChoicesForStage(JOB_PALADIN, 5),
@@ -933,8 +931,8 @@ TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
   EXPECT_TRUE(JobChoicesForStage(JOB_BEGINNER, 0).empty());
 }
 
-// A character keeps every book they bought on the way up: each page has to
-// stay on the skills tab, and each SP pool has to stay spendable.
+// A character keeps every book they bought along the way: each page stays on
+// the skills tab, and each SP pool stays spendable.
 TEST(JobChoicesTest, ABerserkerKeepsEveryBookBelowTheirOwn) {
   EXPECT_EQ(AdvancementForJobStage(JOB_SPEARMAN, 1), JOB_ADVANCEMENT_SWORDMAN);
   EXPECT_EQ(AdvancementForJobStage(JOB_SPEARMAN, 2), JOB_ADVANCEMENT_SPEARMAN);
@@ -945,8 +943,8 @@ TEST(JobChoicesTest, ABerserkerKeepsEveryBookBelowTheirOwn) {
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_BERSERKER), 3);
 }
 
-// A Berserker is a warrior in every table that reads a job: the stat they
-// spend AP into, the HP a level grants them, and the gear they may wear.
+// A Berserker counts as a warrior in every table keyed by job: the stat they
+// spend AP on, the HP a level grants, and the gear they may wear.
 TEST(JobChoicesTest, ABerserkerCountsAsAWarriorThroughout) {
   EXPECT_EQ(PrimaryStatField(JOB_BERSERKER), STAT_FIELD_STR);
   EXPECT_EQ(SecondaryStatField(JOB_BERSERKER), STAT_FIELD_DEX);
@@ -964,8 +962,8 @@ TEST(JobChoicesTest, ABerserkerCountsAsAWarriorThroughout) {
   EXPECT_TRUE(c.CanEquip(spear));
 }
 
-// The pair of stats a branch swings on, which is the damage chain's own
-// pairing: four branches, and a job outside them all has neither.
+// The pair of stats each branch uses, as paired in the damage formula: four
+// branches, and a job outside them has neither.
 TEST(JobChoicesTest, EveryBranchPairsAPrimaryStatWithASecondary) {
   EXPECT_EQ(SecondaryStatField(JOB_BEGINNER), STAT_FIELD_DEX);
   EXPECT_EQ(SecondaryStatField(JOB_BOW_MASTER), STAT_FIELD_STR);
@@ -982,14 +980,14 @@ TEST(JobChoicesTest, EveryBranchPairsAPrimaryStatWithASecondary) {
   }
 }
 
-// Every advancement names exactly the job that takes it, and that job answers
-// with the advancement again at the stage it belongs to. A branch wired into
-// one direction and not the other would send the workbench to the wrong job.
+// Every advancement names exactly the job that takes it, and that job maps back
+// to the advancement at its stage. A branch wired in only one direction would
+// send the workbench to the wrong job.
 TEST(JobChoicesTest, EveryAdvancementRoundTripsToItsJob) {
   for (int i = 1; i <= JobAdvancement_MAX; ++i) {
     JobAdvancement advancement = static_cast<JobAdvancement>(i);
-    // None of the three -- the common nodes' home, the beginner book, the
-    // link skills' -- is an advancement anybody takes, so none names a job.
+    // None of these three (common nodes, the beginner book, link skills) is an
+    // advancement anyone takes, so none names a job.
     if (advancement == JOB_ADVANCEMENT_COMMON ||
         advancement == JOB_ADVANCEMENT_BEGINNER ||
         advancement == JOB_ADVANCEMENT_LINK) {
@@ -1007,9 +1005,9 @@ TEST(JobChoicesTest, NoJobTakesAnUnspecifiedAdvancement) {
   EXPECT_EQ(JobForAdvancement(JOB_ADVANCEMENT_UNSPECIFIED), JOB_UNSPECIFIED);
 }
 
-// The thresholds LevelUp offers an advancement at, read back out: a 1st job
-// spans up to 30 and a 2nd up to 60, which is what puts a character asking to
-// start at the top of one where they belong.
+// The levels LevelUp offers each advancement at: a 1st job lasts until 30 and a
+// 2nd until 60. That is what places a character who starts at the top of a
+// stage in the right one.
 TEST(JobChoicesTest, EachStageEndsAtItsNextAdvancement) {
   EXPECT_EQ(NextAdvancementLevel(0), 10);
   EXPECT_EQ(NextAdvancementLevel(1), 30);
@@ -1020,7 +1018,7 @@ TEST(JobChoicesTest, EachStageEndsAtItsNextAdvancement) {
 
 // --- skill requirements ---
 
-// Hyper Body's shape: it wants three points in Iron Wall first.
+// Shaped like Hyper Body: it needs three points in Iron Wall first.
 Skill MakeGatedSkill() {
   Skill skill;
   skill.set_name("Hyper Body");
@@ -1041,7 +1039,7 @@ Skill MakeGateSkill() {
   return skill;
 }
 
-// A Spearman with SP to spend in their second-job pool.
+// A Spearman with SP to spend in their 2nd-job pool.
 CharacterInstance MakeSpearman(std::mt19937& rng, int sp) {
   Character proto;
   proto.set_level(60);
@@ -1051,8 +1049,8 @@ CharacterInstance MakeSpearman(std::mt19937& rng, int sp) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-// The requirement holds the skill shut until it is met in full: not at all,
-// then part-way, then the level the gate asks for.
+// The skill stays locked until the requirement is fully met: first not at all,
+// then partly, then at the required level.
 TEST_F(CharacterTest, ASkillOpensOnlyOnceItsRequirementIsMet) {
   CharacterInstance c = MakeSpearman(rng_, 20);
   EXPECT_FALSE(c.MeetsSkillRequirement(MakeGatedSkill()));
@@ -1070,7 +1068,7 @@ TEST_F(CharacterTest, ASkillOpensOnlyOnceItsRequirementIsMet) {
   EXPECT_EQ(c.skill_level(MakeGatedSkill()), 1);
 }
 
-// Most skills demand nothing, and must not be held up by the check.
+// Most skills require nothing, and the check must not block them.
 TEST_F(CharacterTest, ASkillDemandingNothingIsAlwaysOpen) {
   CharacterInstance c = MakeSpearman(rng_, 20);
   EXPECT_TRUE(c.MeetsSkillRequirement(MakeGateSkill()));
@@ -1078,8 +1076,8 @@ TEST_F(CharacterTest, ASkillDemandingNothingIsAlwaysOpen) {
 
 // --- Hyper Skills ---
 
-// A Dark Knight's, at the level GMS opens it: one point, from a pool of its
-// own, and not before the level on the skill.
+// A Dark Knight's Hyper Skill, at the level GMS unlocks it: one point, from its
+// own pool, and not before the skill's required level.
 Skill MakeHyperSkill(int required_level = 150) {
   Skill skill;
   skill.set_name("Gungnir's Descent - Reinforce");
@@ -1091,8 +1089,8 @@ Skill MakeHyperSkill(int required_level = 150) {
   return skill;
 }
 
-// A Dark Knight at `level` holding `hyper_sp`, and no stage SP at all: a
-// Hyper Skill must not be reachable out of the 4th job's pool.
+// A Dark Knight at `level` with `hyper_sp` and no stage SP at all: a Hyper
+// Skill must not be buyable with the 4th job's SP.
 CharacterInstance MakeDarkKnight(std::mt19937& rng, int level, int hyper_sp) {
   Character proto;
   proto.set_level(level);
@@ -1102,7 +1100,7 @@ CharacterInstance MakeDarkKnight(std::mt19937& rng, int level, int hyper_sp) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-// A common node, which every matrix holds.
+// A common node, which every matrix can hold.
 Skill MakeCommonNode() {
   Skill skill;
   skill.set_name("Rope Lift");
@@ -1113,7 +1111,7 @@ Skill MakeCommonNode() {
   return skill;
 }
 
-// A 5th job holding `v_points` and `hyper_sp`, and no stage SP at all.
+// A 5th job with `v_points` and `hyper_sp`, and no stage SP at all.
 CharacterInstance MakeFifthJob(std::mt19937& rng, int64_t v_points,
                                int hyper_sp = 0) {
   Character proto;
@@ -1125,8 +1123,8 @@ CharacterInstance MakeFifthJob(std::mt19937& rng, int64_t v_points,
   return CharacterInstance(rng, std::move(proto));
 }
 
-// A node is bought out of the V Points, by its kind's ladder rather than a
-// point a level -- so the first level of a common node costs seven.
+// A node is bought with V Points by its kind's ladder rather than one point per
+// level, so the first level of a common node costs seven.
 TEST_F(LearnSkillTest, ANodeSpendsVPointsByItsLadder) {
   CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/20);
   const Skill node = MakeCommonNode();
@@ -1135,7 +1133,7 @@ TEST_F(LearnSkillTest, ANodeSpendsVPointsByItsLadder) {
   EXPECT_EQ(c.v_points(), 13) << "seven for the first level";
   EXPECT_EQ(c.sp(5), 0) << "no stage paid for it";
 
-  // Three more at four apiece, and then the pool is a point short.
+  // Three more at four each, and then the pool is one point short.
   ASSERT_TRUE(c.LearnSkill(node, 3));
   EXPECT_EQ(c.skill_level(node), 4);
   EXPECT_EQ(c.v_points(), 1);
@@ -1143,26 +1141,26 @@ TEST_F(LearnSkillTest, ANodeSpendsVPointsByItsLadder) {
   EXPECT_EQ(c.v_points(), 1) << "and nothing is taken for the refusal";
 }
 
-// What the pool buys is levels, not points: how many depends on where the node
-// stands on its ladder, so a pool is counted up it rather than divided by it.
+// The pool buys levels, not points: how many depends on the node's current
+// level, so the pool is counted up the ladder rather than divided.
 TEST_F(LearnSkillTest, ANodeOffersOnlyTheLevelsItsPoolReaches) {
   const Skill node = MakeCommonNode();
-  // Seven for the first level and four apiece after it: ten points is one.
+  // Seven for the first level and four for each after: ten points buys one.
   CharacterInstance thin = MakeFifthJob(rng_, /*v_points=*/10);
   EXPECT_EQ(thin.LevelsAffordable(node), 1);
   CharacterInstance fuller = MakeFifthJob(rng_, /*v_points=*/15);
   EXPECT_EQ(fuller.LevelsAffordable(node), 3) << "7 + 4 + 4";
   CharacterInstance broke = MakeFifthJob(rng_, /*v_points=*/6);
   EXPECT_EQ(broke.LevelsAffordable(node), 0);
-  // Never past what the node has left.
+  // Never more than the node has left.
   CharacterInstance rich = MakeFifthJob(rng_, /*v_points=*/100000);
   EXPECT_EQ(rich.LevelsAffordable(node), node.max_level());
   ASSERT_TRUE(rich.LearnSkill(node, node.max_level()));
   EXPECT_EQ(rich.LevelsAffordable(node), 0);
 }
 
-// The matrix is what holds a node, so a character without one buys nothing
-// however many points they are carrying.
+// A node needs a matrix, so a character without one buys nothing however many
+// points they have.
 TEST_F(LearnSkillTest, ANodeNeedsAMatrixAndTheRightMatrix) {
   Character proto;
   proto.set_level(200);
@@ -1173,7 +1171,7 @@ TEST_F(LearnSkillTest, ANodeNeedsAMatrixAndTheRightMatrix) {
   EXPECT_FALSE(fourth.LearnSkill(MakeCommonNode()));
   EXPECT_EQ(fourth.v_points(), 1000);
 
-  // One job's own node names its 5th advancement, and only that job holds it.
+  // A job's own node names its 5th advancement, and only that job can hold it.
   Skill job_node = MakeCommonNode();
   job_node.set_name("Radiant Evil");
   job_node.set_v_node(V_NODE_KIND_JOB);
@@ -1187,8 +1185,8 @@ TEST_F(LearnSkillTest, ANodeNeedsAMatrixAndTheRightMatrix) {
   EXPECT_EQ(knight.v_points(), 1000) << "a job node's first level is free";
 }
 
-// The reset empties the matrix and hands back every point it cost, leaving
-// the SP books and their skills where they were.
+// The reset empties the matrix and refunds every point, leaving the SP books
+// and their skills unchanged.
 TEST_F(LearnSkillTest, ResetVMatrixRefundsEveryNode) {
   CharacterInstance c = MakeFifthJob(rng_, /*v_points=*/1000, /*hyper_sp=*/1);
   const Skill common = MakeCommonNode();
@@ -1201,7 +1199,7 @@ TEST_F(LearnSkillTest, ResetVMatrixRefundsEveryNode) {
   ASSERT_TRUE(c.LearnSkill(common, 5));
   ASSERT_TRUE(c.LearnSkill(job_node, 5));
   ASSERT_LT(c.v_points(), 1000);
-  // A Hyper Skill over the same character, to show the reset passes it by.
+  // A Hyper Skill on the same character, to show the reset leaves it alone.
   ASSERT_TRUE(c.LearnSkill(hyper));
 
   std::map<std::string, Skill> catalog = {
@@ -1212,7 +1210,7 @@ TEST_F(LearnSkillTest, ResetVMatrixRefundsEveryNode) {
   EXPECT_EQ(c.skill_level(job_node), 0);
   EXPECT_EQ(c.skill_level(hyper), 1) << "a hyper is not a node";
   EXPECT_EQ(c.hyper_sp(), 0) << "and its pool is not what was handed back";
-  // And again on an empty matrix, which takes nothing and grants nothing.
+  // Resetting an empty matrix takes nothing and gives nothing.
   c.ResetVMatrix(catalog);
   EXPECT_EQ(c.v_points(), 1000);
 }
@@ -1223,7 +1221,7 @@ TEST_F(LearnSkillTest, AHyperSkillSpendsTheHyperPool) {
   EXPECT_EQ(c.skill_level(MakeHyperSkill()), 1);
   EXPECT_EQ(c.hyper_sp(), 1);
   EXPECT_EQ(c.sp(4), 0) << "no stage paid for it";
-  // One point is the whole of it: max_level is 1.
+  // One point is all it takes: max_level is 1.
   EXPECT_FALSE(c.LearnSkill(MakeHyperSkill()));
   EXPECT_EQ(c.hyper_sp(), 1);
 }
@@ -1245,8 +1243,8 @@ TEST_F(LearnSkillTest, AHyperSkillNeedsAPointOfItsOwnKind) {
       << "the 4th job's book cannot buy a hyper";
 }
 
-// The advancement on a hyper is the book it belongs to, and it gates the same
-// way every other skill's does.
+// A Hyper Skill's advancement is the book it belongs to, and it gates the skill
+// the same way as any other skill's.
 TEST_F(LearnSkillTest, AHyperSkillBelongsToItsOwnJob) {
   Character proto;
   proto.set_level(150);
@@ -1259,7 +1257,8 @@ TEST_F(LearnSkillTest, AHyperSkillBelongsToItsOwnJob) {
 
 // --- Toggle skills ---
 
-// The Bishop's, and the four forms it raises are keyed off its display name.
+// The Bishop's toggle. The four forms it switches to are keyed by its display
+// name.
 Skill MakeToggleSkill() {
   Skill skill;
   skill.set_name("Righteously Indignant");
@@ -1272,7 +1271,7 @@ Skill MakeToggleSkill() {
   return skill;
 }
 
-// The form that stands in Heal's place while the toggle above is on.
+// The form that replaces Heal while the toggle above is on.
 Skill MakeVengeanceForm() {
   Skill skill;
   skill.set_name("Angelic Wrath");
@@ -1317,8 +1316,8 @@ TEST_F(ToggleSkillTest, RefusesWhatWasNeverBoughtOrIsNoToggle) {
   EXPECT_FALSE(c.SkillToggledOn("Righteously Indignant"));
 }
 
-// One row of the book, one ladder: the form reads the level the player bought
-// the skill it stands in for to, and can never be bought itself.
+// One row of the book shares one level: the form reads the level of the skill
+// it replaces, and can never be bought itself.
 TEST_F(ToggleSkillTest, AFormReadsTheLevelOfWhatItReplaces) {
   CharacterInstance c =
       MakeCharacterWithSp(rng_, /*stage=*/2, /*sp=*/10, JOB_CLERIC);
@@ -1332,7 +1331,7 @@ TEST_F(ToggleSkillTest, AFormReadsTheLevelOfWhatItReplaces) {
 
 // --- ResetStatsForJob ---
 
-// The stats a level-10 Beginner carries, straight from the starting proto.
+// A level-10 Beginner's stats, straight from the starting proto.
 CharacterInstance MakeBeginnerAtTen(std::mt19937& rng) {
   Character proto;
   proto.set_level(10);
@@ -1355,12 +1354,12 @@ TEST_F(AdvanceJobTest, ResetSeatsThePrimaryStatAndRefundsTheRest) {
   EXPECT_EQ(s.str(), 4);   // the Beginner's 13 does not strand here
   EXPECT_EQ(s.dex(), 4);
   EXPECT_EQ(s.int_(), 4);
-  // 45 unspent + 9 refunded from STR, less the 21 that seats LUK.
+  // 45 unspent + 9 refunded from STR, minus the 21 that raise LUK to 25.
   EXPECT_EQ(c.proto().ap(), 33);
 }
 
-// The refund is computed from the stats on hand, so a player who had already
-// spent AP lands in exactly the same place as one who had not.
+// The refund is computed from the current stats, so a player who already spent
+// AP ends up in the same place as one who hadn't.
 TEST_F(AdvanceJobTest, ResetIgnoresWhatWasAlreadySpent) {
   CharacterInstance c = MakeBeginnerAtTen(rng_);
   ASSERT_TRUE(c.AllocateStat(STAT_FIELD_STR, 30));
@@ -1372,8 +1371,8 @@ TEST_F(AdvanceJobTest, ResetIgnoresWhatWasAlreadySpent) {
   EXPECT_EQ(c.proto().ap(), 33);
 }
 
-// HP and MP sit in the same message but are granted by leveling, so the reset
-// must leave them alone.
+// HP and MP are in the same message but come from levelling, so the reset must
+// leave them alone.
 TEST_F(AdvanceJobTest, ResetLeavesLeveledHpAndMpAlone) {
   CharacterInstance c = MakeBeginnerAtTen(rng_);
   c.ResetStatsForJob(JOB_SWORDMAN);
@@ -1394,7 +1393,7 @@ TEST_F(AllocateStatTest, SpendsTheApAndRaisesTheStat) {
 }
 
 // A refused call spends nothing, so a player who asks for more than they have
-// is left where they were rather than part-way.
+// isn't left partly allocated.
 TEST_F(AllocateStatTest, RefusesWhatItCannotPayForInFull) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/1, /*ap=*/2);
   EXPECT_FALSE(c.AllocateStat(STAT_FIELD_STR, 3));
@@ -1416,8 +1415,8 @@ TEST_F(AllocateStatTest, AllFieldsWork) {
 
 // --- LearnSkill ---
 
-// One point a press, out of the stage's own purse. A skill nobody has bought
-// is level zero rather than absent.
+// One point per press, from the stage's own pool. A skill nobody has bought is
+// level zero rather than absent.
 TEST_F(LearnSkillTest, SpendsOnePointAPressAndRaisesTheLevel) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
   Skill skill = SlashBlast();
@@ -1467,7 +1466,7 @@ TEST_F(LearnSkillTest, RejectsNonPositiveAmount) {
 }
 
 TEST_F(LearnSkillTest, SpendsFromTheAdvancementsStage) {
-  // Each book draws on its own stage's points, and a Spearman holds two.
+  // Each book uses its own stage's points, and a Spearman has two.
   Character proto;
   proto.set_job(JOB_SPEARMAN);
   proto.set_job_stage(2);
@@ -1487,9 +1486,9 @@ TEST_F(LearnSkillTest, SpendsFromTheAdvancementsStage) {
   EXPECT_EQ(c.sp(2), 0);
 }
 
-// Every first job's skills sit at stage 1, so the stage alone does not say
-// whose book a skill is from. Without the check, a Swordman's points would
-// buy an Archer's skills.
+// Every 1st job's skills are at stage 1, so the stage alone doesn't say whose
+// book a skill is from. Without this check, a Swordman's points could buy an
+// Archer's skills.
 TEST_F(LearnSkillTest, RejectsAnotherJobsBook) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
   Skill skill =
@@ -1499,8 +1498,8 @@ TEST_F(LearnSkillTest, RejectsAnotherJobsBook) {
   EXPECT_EQ(c.sp(1), 5);
 }
 
-// The second book is not open to a character who has not taken the second
-// advancement, however many points they are holding.
+// The 2nd job book isn't open to a character who hasn't taken the 2nd
+// advancement, however many points they have.
 TEST_F(LearnSkillTest, RejectsABookFromAnAdvancementNotYetTaken) {
   Character proto;
   proto.set_job(JOB_SWORDMAN);
@@ -1522,7 +1521,7 @@ TEST_F(LearnSkillTest, ASpearmanStillHoldsTheirSwordmanBook) {
 }
 
 TEST_F(LearnSkillTest, RejectsASkillWithNoAdvancement) {
-  // No advancement means stage 0, which holds no SP -- nothing to spend.
+  // With no advancement the character is at stage 0, which has no SP to spend.
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
   Skill skill = MakeSkill("Nameless", JOB_ADVANCEMENT_UNSPECIFIED, 20);
   EXPECT_FALSE(c.LearnSkill(skill));
@@ -1530,8 +1529,8 @@ TEST_F(LearnSkillTest, RejectsASkillWithNoAdvancement) {
 
 // --- A skill nobody buys ---
 
-// Blessing of the Fairy's shape: no max_level of its own, and a level read off
-// the account rather than off a purse.
+// Shaped like Blessing of the Fairy: no max_level of its own, and a level read
+// from the account instead of bought with points.
 Skill FairyBlessing() {
   Skill skill;
   skill.set_name("Blessing of the Fairy");
@@ -1549,8 +1548,9 @@ TEST_F(CharacterTest, ADerivedSkillCapsWhereTheLevelCapDoes) {
       << "every other skill keeps the maximum its data states";
 }
 
-// The level is the account's climb over ten, floored -- and the character's
-// own level counts, the account's record only being written at the save.
+// The level is the account's highest level divided by ten, floored. The
+// character's own level counts, since the account's record is only written on
+// save.
 TEST_F(CharacterTest, ADerivedSkillReadsTheAccountsClimb) {
   Skill fairy = FairyBlessing();
   EXPECT_EQ(MakeCharacter(rng_).skill_level(fairy), 0)
@@ -1568,8 +1568,8 @@ TEST_F(CharacterTest, ADerivedSkillReadsTheAccountsClimb) {
   EXPECT_EQ(climber.skill_level(fairy), 20) << "and their own outruns it";
 }
 
-// Nobody buys it, and no book charges for it: the beginner's page is held by
-// every character whatever job they took.
+// Nobody buys it and no book charges for it: every character has the beginner's
+// page, whatever job they took.
 TEST_F(CharacterTest, ADerivedSkillCostsNothingAndIsHeldByEverybody) {
   Skill fairy = FairyBlessing();
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
@@ -1580,8 +1580,8 @@ TEST_F(CharacterTest, ADerivedSkillCostsNothingAndIsHeldByEverybody) {
 
 // --- Link skills ---
 
-// A link skill's shape: no book any character holds, and a level read off
-// what the whole ACCOUNT has climbed on one job line.
+// A link skill: in no book any character holds, with a level read from how far
+// the whole account has levelled one job line.
 Skill LinkSkill(const std::string& name, Job line) {
   Skill skill;
   skill.set_name(name);
@@ -1593,8 +1593,8 @@ Skill LinkSkill(const std::string& name, Job line) {
   return skill;
 }
 
-// A character of a job at a level, which is the whole of what a link skill
-// reads off them.
+// A character of a given job and level, which is all a link skill reads from
+// them.
 CharacterInstance MakeLinked(std::mt19937& rng, Job job, int level) {
   Character proto;
   proto.set_job(job);
@@ -1602,8 +1602,8 @@ CharacterInstance MakeLinked(std::mt19937& rng, Job job, int level) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-// Their own line's is theirs for free and at 1 from the first job; another
-// line's waits for somebody to take that line to 70.
+// The character's own line's link skill is free and at level 1 from the start.
+// Another line's waits until someone takes that line to 70.
 TEST_F(CharacterTest, TheirOwnLineIsFreeFromTheStart) {
   Skill warrior = LinkSkill("Invincible Belief", JOB_SWORDMAN);
   Skill rogue = LinkSkill("Thief's Cunning", JOB_ROGUE);
@@ -1627,8 +1627,8 @@ TEST_F(CharacterTest, TheirOwnLineIsFreeFromTheStart) {
   EXPECT_FALSE(hero.HoldsSkillFrom(rogue)) << "another line's has to be worn";
 }
 
-// The rule the user's own example settles: a line pays once however many
-// characters walk it, and the lines of a branch sum.
+// The rule from the user's own example: a line counts once however many
+// characters play it, and the lines of a branch add up.
 TEST_F(CharacterTest, ALinkSkillReadsTheWholeRosterAndCapsAtItsMaximum) {
   Skill warrior = LinkSkill("Invincible Belief", JOB_SWORDMAN);
   CharacterInstance hero = MakeLinked(rng_, JOB_HERO, 120);
@@ -1640,14 +1640,14 @@ TEST_F(CharacterTest, ALinkSkillReadsTheWholeRosterAndCapsAtItsMaximum) {
   hero.set_account_max_level(210);
   EXPECT_EQ(hero.skill_level(warrior), 5);
 
-  // Never past what the data states, whatever the roster comes to.
+  // Never past the maximum in the data, whatever the roster adds up to.
   Skill shallow = LinkSkill("Invincible Belief", JOB_SWORDMAN);
   shallow.set_max_level(4);
   EXPECT_EQ(hero.LinkSkillLevel(shallow), 4);
 }
 
-// Nobody buys one, and reconciling fills the list with every link skill the
-// character does not already hold for free.
+// Nobody buys them, and reconciling fills the list with every link skill the
+// character doesn't already have for free.
 TEST_F(CharacterTest, LinkSkillsCostNothingAndAreWornByDefault) {
   std::map<std::string, Skill> skills = {
       {"invincible_belief", LinkSkill("Invincible Belief", JOB_SWORDMAN)},
@@ -1658,8 +1658,8 @@ TEST_F(CharacterTest, LinkSkillsCostNothingAndAreWornByDefault) {
       MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5, JOB_HERO);
   hero.set_account_max_level(210);
 
-  // Every preset is filled: what the account unlocked is carried whichever
-  // one is in play until the player says otherwise.
+  // Every preset is filled: what the account unlocked is carried by whichever
+  // preset is in use until the player changes it.
   EXPECT_EQ(hero.ReconcileLinkSkills(skills), kNumStatPresets)
       << "their own is not in it";
   for (int i = 0; i < kNumStatPresets; ++i) {
@@ -1671,7 +1671,7 @@ TEST_F(CharacterTest, LinkSkillsCostNothingAndAreWornByDefault) {
       hero.HoldsSkillFrom(skills.at("thiefs_cunning"), Activity::kBossing));
   EXPECT_EQ(hero.SpFor(skills.at("invincible_belief")), 0);
   EXPECT_FALSE(hero.LearnSkill(skills.at("invincible_belief")));
-  // Idempotent: a second pass has nothing left to put on.
+  // Idempotent: a second pass has nothing left to add.
   EXPECT_EQ(hero.ReconcileLinkSkills(skills), 0);
 }
 
@@ -1688,11 +1688,11 @@ TEST_F(CharacterTest, TwelveIsAsManyLinkSkillsAsOnePresetCarries) {
   EXPECT_TRUE(c.UnequipLinkSkill("Link 0", StatPreset::kFirst));
   EXPECT_FALSE(c.UnequipLinkSkill("Link 0", StatPreset::kFirst));
   EXPECT_TRUE(c.EquipLinkSkill("Link 12", StatPreset::kFirst));
-  // The presets are apart: a full first one leaves the second empty.
+  // The presets are separate: filling the first leaves the second empty.
   EXPECT_TRUE(c.link_skills(StatPreset::kSecond).empty());
 }
 
-// The preset row's whole point: which skills a character carries depends on
+// The point of the preset row: which link skills a character has depends on
 // what they are doing.
 TEST_F(CharacterTest, EachLinkPresetCarriesItsOwnSkills) {
   Skill rogue = LinkSkill("Thief's Cunning", JOB_ROGUE);
@@ -1713,15 +1713,15 @@ TEST_F(CharacterTest, EachLinkPresetCarriesItsOwnSkills) {
   EXPECT_EQ(hero.LinkSkillLevelOffered(magician), 3)
       << "what the screen offering it shows";
 
-  // With the switch off the slot in use answers instead, whatever the
-  // character is doing.
+  // With autoswap off, the selected slot is used whatever the character is
+  // doing.
   hero.set_autoswap_presets(false);
   hero.SetSlotInUse(PresetKind::kLinkSkills, StatPreset::kSecond);
   EXPECT_TRUE(hero.HoldsLinkSkill(magician, Activity::kFarming));
   EXPECT_FALSE(hero.HoldsLinkSkill(rogue, Activity::kFarming));
 }
 
-// A swap carries the slot in use with it, whichever end it was on, and grows
+// A swap moves the in-use marker with it, whichever end it was on, and creates
 // a list the character never opened. Gear presets are never swapped.
 TEST(SwapPresetsTest, TheSlotInUseMovesWithWhatItHolds) {
   std::mt19937 rng(1);
@@ -1737,7 +1737,7 @@ TEST(SwapPresetsTest, TheSlotInUseMovesWithWhatItHolds) {
                 StatPreset::kSecond);
   EXPECT_EQ(c.proto().inner_ability().presets_size(), kNumStatPresets);
   EXPECT_EQ(c.SlotInUse(PresetKind::kInnerAbility), StatPreset::kFirst);
-  // Neither end in use: nothing moves.
+  // If neither end is in use, the marker doesn't move.
   c.SwapPresets(PresetKind::kInnerAbility, StatPreset::kSecond,
                 StatPreset::kThird);
   EXPECT_EQ(c.SlotInUse(PresetKind::kInnerAbility), StatPreset::kFirst);
@@ -1757,8 +1757,8 @@ TEST(UsernameTest, StartsOnTheInvitationAndTakesAName) {
   EXPECT_EQ(c.username(), "Logikable");
 }
 
-// Nothing should be able to leave a character nameless: the panel reads an
-// empty entry as "keep what you had", and so does this.
+// Nothing should be able to clear a character's name: the panel treats an empty
+// entry as "no change", and so does this.
 TEST(UsernameTest, AnEmptyNameIsIgnored) {
   std::mt19937 rng(1);
   CharacterInstance c = MakeCharacter(rng);
@@ -1775,7 +1775,8 @@ TEST(AdvancementMappingTest, FirstStageMapsToEachJobsFirstAdvancement) {
 }
 
 TEST(AdvancementMappingTest, UnreachedStageHasNoAdvancement) {
-  // Stage 2 is not defined for any job yet.
+  // A Swordman is a 1st job, so it has no stage-2 advancement of its own; a
+  // Beginner has none at stage 1.
   EXPECT_EQ(AdvancementForJobStage(JOB_SWORDMAN, 2),
             JOB_ADVANCEMENT_UNSPECIFIED);
   EXPECT_EQ(AdvancementForJobStage(JOB_BEGINNER, 1),
@@ -1801,9 +1802,9 @@ TEST_F(CanEquipTest, AWarriorWearsAWarriorSwordOfTheirLevel) {
   EXPECT_FALSE(c_.CanEquip(sword_)) << "a level 1 in a level 10 sword";
 }
 
-// The category has to name the job, and an item naming nobody is worn by
-// nobody -- CanEquip reads empty categories as "no job", where MeetsJob reads
-// them as "any job".
+// The category has to name the job, and an item naming no job fits nobody.
+// CanEquip treats empty categories as "no job", while MeetsJob treats them as
+// "any job".
 TEST_F(CanEquipTest, TheCategoryHasToNameTheJob) {
   sword_.set_required_level(1);
   c_.AdvanceJob(JOB_SWORDMAN);
@@ -1814,8 +1815,8 @@ TEST_F(CanEquipTest, TheCategoryHasToNameTheJob) {
   EXPECT_TRUE(c_.CanEquip(sword_));
 }
 
-// A beginner is a job like any other here, and a character who has not advanced
-// at all is no job, so nothing fits them.
+// A beginner is a job like any other here. A character who hasn't advanced has
+// no job, so nothing fits them.
 TEST_F(CanEquipTest, ABeginnerWearsWhatNamesThemAndNothingElse) {
   sword_.set_required_level(1);
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
@@ -1844,8 +1845,8 @@ TEST_F(MeetsLevelTest, PassesAtTheLevelAskedForAndAbove) {
 
 // --- MeetsJob ---
 
-// Empty categories mean any job at all, unlike CanEquip: MeetsJob answers only
-// the question it is asked, and an item with no demand makes none.
+// Empty categories mean any job, unlike CanEquip. MeetsJob only answers the
+// question asked, and an item with no requirement requires nothing.
 TEST_F(MeetsJobTest, PassesOnAMatchOrOnNoDemandAtAll) {
   c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_TRUE(c_.MeetsJob(sword_)) << "no categories";
@@ -1864,9 +1865,9 @@ TEST_F(MeetsJobTest, FalseWhenJobUnspecified) {
   EXPECT_FALSE(c_.MeetsJob(sword_));
 }
 
-// An off-hand answers to its own branch of the category, not the category. All
-// three of the warrior's are EQUIP_JOB_CATEGORY_WARRIOR and carry the same
-// stats, so the branch is the only thing keeping them apart.
+// A secondary belongs to its own branch, not just the category. All three
+// warrior secondaries are EQUIP_JOB_CATEGORY_WARRIOR with the same stats, so
+// only the branch tells them apart.
 TEST_F(MeetsJobTest, ASecondaryAsksForTheBranchThatCarriesIt) {
   EquipPrototype rosary;
   rosary.set_equip_slot(EQUIP_SLOT_SECONDARY);
@@ -1908,8 +1909,8 @@ TEST_F(PickUpTest, FreshItemHasNoScrollStats) {
 
 // --- AddItem ---
 
-// Fixture for AddItem tests. Provides c_, two Etc-category item prototypes
-// (default max_stack 200) and a currency, to exercise both sides of the door.
+// Fixture for AddItem tests. Provides c_, two Etc item prototypes (default
+// max_stack 200) and a currency, to test both destinations.
 class AddItemTest : public CharacterTest {
  protected:
   void SetUp() override {
@@ -1924,8 +1925,8 @@ class AddItemTest : public CharacterTest {
   ItemPrototype trace_;
 };
 
-// A drop opens a stack, tops that same stack up on the way back, and leaves
-// another item's stack alone.
+// A drop opens a stack, adds to that same stack next time, and leaves another
+// item's stack alone.
 TEST_F(AddItemTest, ADropStacksByName) {
   c_.AddItem(shell_, 5);
   c_.AddItem(shell_, 3);
@@ -1950,8 +1951,8 @@ TEST_F(AddItemTest, NonPositiveCountIsNoOp) {
   EXPECT_TRUE(c_.stackables().empty());
 }
 
-// A currency goes to the purse rather than the bag, and nothing caps it: one
-// balance, far past what a stack would have held, and no row on the Etc tab.
+// A currency goes to the purse rather than the bag, and has no cap: one
+// balance, far above what a stack could hold, and no row on the Etc tab.
 TEST_F(AddItemTest, ACurrencyIsBankedRatherThanCarried) {
   EXPECT_EQ(c_.AddItem(trace_, 1000000), 1000000);
   EXPECT_TRUE(c_.stackables().empty());
@@ -1960,7 +1961,7 @@ TEST_F(AddItemTest, ACurrencyIsBankedRatherThanCarried) {
   EXPECT_EQ(c_.CountItem(trace_), 1000000);
 }
 
-// Both sides answer the same three questions, and a name is never in both.
+// Both kinds support counting and spending the same way, and no name is both.
 TEST_F(AddItemTest, CountingAndSpendingReachEitherSide) {
   c_.AddItem(shell_, 10);
   c_.AddItem(trace_, 10);
@@ -1978,8 +1979,8 @@ TEST_F(AddItemTest, CountingAndSpendingReachEitherSide) {
   EXPECT_TRUE(c_.stackables().empty());
 }
 
-// Room is the bag's question, and a currency is not in the bag to run out of
-// it: a full Etc tab still takes every trace offered.
+// Room is a limit of the bag, and currencies aren't in the bag: a full Etc tab
+// still takes every spell trace offered.
 TEST_F(AddItemTest, ACurrencyNeverRunsOutOfRoom) {
   for (int i = 0; i < kTabCapacity; ++i) {
     ItemPrototype filler;
@@ -2013,7 +2014,7 @@ TEST_F(AddMesoTest, NonPositiveAmountIsNoOp) {
 
 // --- Buy ---
 
-// Fixture providing a 5000-meso weapon and a character who can afford two.
+// Fixture with a 5000-meso weapon and a character who can afford two.
 class BuyTest : public CharacterTest {
  protected:
   void SetUp() override {
@@ -2034,15 +2035,15 @@ TEST_F(BuyTest, TakesTheMesoAndGivesTheItem) {
   EXPECT_EQ(c_.inventory()[0].name(), "Long Sword");
 }
 
-// Equips do not stack, so two bought at once are two rows, not one row of two.
+// Equips don't stack, so buying two at once gives two rows, not one row of two.
 TEST_F(BuyTest, EachCopyIsItsOwnItem) {
   EXPECT_TRUE(c_.Buy(sword_, 2));
   EXPECT_EQ(c_.meso(), 1000);
   EXPECT_EQ(c_.inventory().size(), 2);
 }
 
-// The part it could afford must not go through: a purchase that half-happens
-// would take meso for an order the player never placed.
+// The affordable part must not go through: a half-completed purchase would
+// charge for an order the player never placed.
 TEST_F(BuyTest, BuysNothingWhenItCannotBuyEverything) {
   EXPECT_FALSE(c_.Buy(sword_, 3));
   EXPECT_EQ(c_.meso(), 11000);
@@ -2064,8 +2065,8 @@ TEST_F(BuyTest, WillNotSellWhatTheShopDoesNotStock) {
   EXPECT_EQ(c_.inventory().size(), 0);
 }
 
-// Naming zero is not the same as naming nothing: the shop hands the Master
-// Adventurer medal over for free, and a purchase that costs nothing still goes
+// A price of zero is different from no price: the shop gives the Master
+// Adventurer medal away free, and a purchase that costs nothing still goes
 // through.
 TEST_F(BuyTest, SellsAFreeItemForNothing) {
   EquipPrototype medal;
@@ -2115,8 +2116,8 @@ TEST_F(BuyWithTokenTest, TakesTheTokenAndGivesTheItem) {
   EXPECT_EQ(c_.inventory()[0].name(), "Frozen Polearm");
 }
 
-// The whole order or none of it, as the meso shelf does it: a player left
-// short a token would have paid for something they never received.
+// The whole order or none of it, as with meso: otherwise a player a token short
+// would pay for something they never got.
 TEST_F(BuyWithTokenTest, BuysNothingWhenItCannotBuyEverything) {
   EXPECT_FALSE(c_.BuyWithToken(polearm_, token_, 3));
   EXPECT_EQ(TokensLeft(), 2);
@@ -2138,8 +2139,8 @@ TEST_F(BuyWithTokenTest, RefusesWhatNoTokenBuys) {
   EXPECT_EQ(c_.inventory().size(), 0);
 }
 
-// An Etc item is not a currency for having been passed as one. The mark is
-// what says the shop asks prices in it.
+// An Etc item isn't a currency just because it was passed as one. The currency
+// mark is what lets the shop price in it.
 TEST_F(BuyWithTokenTest, RefusesAnItemThatIsNotACurrency) {
   ItemPrototype horn;
   horn.set_name("Beetle's Horn");
@@ -2155,8 +2156,8 @@ TEST_F(BuyWithTokenTest, RefusesAnItemThatIsNotACurrency) {
 class BuyStackableTest : public CharacterTest {
  protected:
   void SetUp() override {
-    // The one stackable the shop stocks, which is a currency: what it buys
-    // lands in the purse rather than on a tab.
+    // The shop's stackable, which is a currency, so what it buys goes to the
+    // purse rather than a tab.
     trace_.set_name(kSpellTraceName);
     trace_.set_kind(ITEM_KIND_SPELL_TRACE);
     trace_.set_shop_price(5000);
@@ -2170,8 +2171,8 @@ class BuyStackableTest : public CharacterTest {
   CharacterInstance c_ = MakeCharacter(rng_);
 };
 
-// Ten of a stackable is one balance of ten or one row of ten, not ten rows --
-// the opposite of what buying ten swords does.
+// Ten of a stackable is one balance of ten or one row of ten, not ten rows,
+// unlike buying ten swords.
 TEST_F(BuyStackableTest, TakesTheMesoAndStacksTheCopies) {
   EXPECT_TRUE(c_.Buy(trace_, 10));
   EXPECT_EQ(c_.meso(), 0);
@@ -2204,11 +2205,10 @@ TEST_F(BuyStackableTest, NonPositiveCountIsNoOp) {
   EXPECT_EQ(c_.meso(), 50000);
 }
 
-// The bag's room is checked before the meso, so an order too big for it takes
-// nothing -- the same promise the equip shelf makes.
+// Bag space is checked before meso, so an order too big for the bag takes
+// nothing, as with equips.
 TEST_F(BuyStackableTest, BuysNothingWhenTheBagCannotHoldItAll) {
-  // Far past what a full bag costs, so the bag is what refuses and not the
-  // purse.
+  // Far more than a full bag costs, so the bag refuses, not the meso check.
   c_.AddMeso(1000000000000LL);
   int room = c_.RoomFor(drop_);
   EXPECT_FALSE(c_.Buy(drop_, room + 1));
@@ -2218,7 +2218,7 @@ TEST_F(BuyStackableTest, BuysNothingWhenTheBagCannotHoldItAll) {
 
 // --- SellStackable ---
 
-// Fixture providing an Etc item worth 7 meso each and one worth nothing.
+// Fixture with an Etc item worth 7 meso each and one worth nothing.
 class SellStackableTest : public CharacterTest {
  protected:
   void SetUp() override {
@@ -2253,8 +2253,8 @@ TEST_F(SellStackableTest, ClampsCountToStackSize) {
   EXPECT_EQ(c_.meso(), 21);
 }
 
-// Neither a count that asks for nothing nor an index off the end of the tab
-// takes anything or pays anything.
+// A count of zero or less, or an index past the end of the tab, takes nothing
+// and pays nothing.
 TEST_F(SellStackableTest, ANonPositiveCountOrAnIndexOffTheEndIsNoOp) {
   c_.AddItem(shell_, 5);
   EXPECT_EQ(c_.SellStackable(0, 0), 0);
@@ -2265,8 +2265,8 @@ TEST_F(SellStackableTest, ANonPositiveCountOrAnIndexOffTheEndIsNoOp) {
   EXPECT_EQ(c_.meso(), 0);
 }
 
-// Zero is a price, not a refusal: the copies go and pay nothing, which is how
-// a stack of currency is thrown away.
+// Zero is a price, not a refusal: the copies are removed and pay nothing, which
+// is how a worthless stack is thrown away.
 TEST_F(SellStackableTest, AWorthlessItemStillSells) {
   c_.AddItem(junk_, 5);
   EXPECT_EQ(c_.SellStackable(0, 3), 0);
@@ -2278,8 +2278,8 @@ TEST_F(SellStackableTest, AWorthlessItemStillSells) {
 
 // --- SellEquip ---
 
-// Fixture providing a sword worth 900 meso and a worthless one, so the two
-// halves of "zero is not a refusal here" can be told apart.
+// Fixture with a sword worth 900 meso and a worthless one, so both cases of
+// "zero is not a refusal" can be told apart.
 class SellEquipTest : public CharacterEquipFixture {
  protected:
   void SetUp() override {
@@ -2298,8 +2298,8 @@ TEST_F(SellEquipTest, SellsItemAndCreditsMeso) {
   EXPECT_EQ(c_.meso(), 900);
 }
 
-// The difference from a stackable, and the reason the starter sword can leave
-// the bag at all: a price of zero sells, it does not refuse.
+// Like a stackable, a price of zero still sells rather than refusing. That is
+// how the starter sword can leave the bag.
 TEST_F(SellEquipTest, WorthlessItemStillGoes) {
   c_.PickUp(std::make_unique<EquipInstance>(starter_));
   EXPECT_EQ(c_.SellEquip(0), 0);
@@ -2307,9 +2307,9 @@ TEST_F(SellEquipTest, WorthlessItemStillGoes) {
   EXPECT_EQ(c_.meso(), 0);
 }
 
-// Scrolls and stars are poured in, never poured back out. Selling a scrolled
-// item for more than the base one would make spell traces -- which cost meso
-// -- a way of printing it.
+// Scrolls and stars go in but never come back out. Selling a scrolled item for
+// more than the base item would turn spell traces, which cost meso, into a way
+// to make meso.
 TEST_F(SellEquipTest, UpgradesAddNothingToWhatItPays) {
   Equip upgraded;
   upgraded.set_equip_name(sword_.name());
@@ -2321,8 +2321,8 @@ TEST_F(SellEquipTest, UpgradesAddNothingToWhatItPays) {
   EXPECT_EQ(c_.meso(), 900);
 }
 
-// A trace is the record of a destroyed item, not a copy of it, so it pays what
-// the record is worth however dear the item behind it was.
+// A trace records a destroyed item and isn't a copy of it, so it sells for what
+// the record is worth, however valuable the item was.
 TEST_F(SellEquipTest, TracePaysNothing) {
   c_.PickUp(std::make_unique<EquipTrace>(sword_, Equip()));
   EXPECT_EQ(c_.SellEquip(0), 0);
@@ -2348,8 +2348,8 @@ TEST_F(SellEquipTest, OutOfRangeIndexIsNoOp) {
 
 // --- BuyBack ---
 
-// The shelf hands items back, so it needs the catalogs a save needs, keyed by
-// data-file stem rather than display name for the same reason.
+// The shelf returns items, so it needs the same catalogs a save does, keyed by
+// data-file name rather than display name for the same reason.
 class BuyBackTest : public CharacterTest {
  protected:
   void SetUp() override {
@@ -2391,8 +2391,8 @@ TEST_F(BuyBackTest, ASoldStackLandsOnTheShelfAtItsUnitPrice) {
   EXPECT_EQ(c_.buy_backs().Get(0).unit_price(), 7);
 }
 
-// The point of the whole shelf: the price never paid for the stars, so buying
-// the item back must not have to buy them again.
+// The point of the shelf: the sale price didn't pay for the stars, so buying
+// the item back must not charge for them again.
 TEST_F(BuyBackTest, AnEquipComesBackAsTheItemThatLeft) {
   Equip upgraded;
   upgraded.set_equip_name("Sword");
@@ -2415,8 +2415,8 @@ TEST_F(BuyBackTest, AnEquipComesBackAsTheItemThatLeft) {
   EXPECT_EQ(item->equip_state().remaining_upgrade_slots(), 0);
 }
 
-// A trace is worth nothing both ways, and has to come back a trace -- coming
-// back alive would undo a star force boom for free.
+// A trace is worth nothing both ways, and must come back as a trace. Coming
+// back as a live item would undo a star force destruction for free.
 TEST_F(BuyBackTest, ATraceComesBackATraceForNothing) {
   Equip destroyed;
   destroyed.set_equip_name("Sword");
@@ -2449,8 +2449,8 @@ TEST_F(BuyBackTest, PartOfAStackLeavesTheRestWhereItWas) {
   EXPECT_EQ(c_.buy_backs().size(), 1);
 }
 
-// One row per sale, not per item: two sales of the same thing are two rows,
-// and the newer of them is the one on top.
+// One row per sale, not per item: two sales of the same thing make two rows,
+// with the newer one on top.
 TEST_F(BuyBackTest, EachSaleIsItsOwnRowNewestFirst) {
   c_.AddItem(shell_, 300);
   c_.SellStackable(0, 200);
@@ -2468,7 +2468,7 @@ TEST_F(BuyBackTest, TheOldestRowFallsOffAFullShelf) {
     c_.SellStackable(0, i + 1);
   }
   ASSERT_EQ(c_.buy_backs().size(), kBuyBackSlots);
-  // The last sale on top, and the three oldest gone from the bottom.
+  // The last sale is on top, and the three oldest have dropped off the bottom.
   EXPECT_EQ(c_.buy_backs().Get(0).stack().count(), kBuyBackSlots + 3);
   EXPECT_EQ(c_.buy_backs().Get(kBuyBackSlots - 1).stack().count(), 4);
 }
@@ -2476,8 +2476,8 @@ TEST_F(BuyBackTest, TheOldestRowFallsOffAFullShelf) {
 TEST_F(BuyBackTest, RefusesWhatTheCharacterCannotPayFor) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.SellEquip(0);
-  // Spent since, which is the case the shelf outlives: the row is still there
-  // and the money for it is not.
+  // The meso has been spent since, which the shelf must handle: the row is
+  // still there but the money isn't.
   shell_.set_shop_price(1);
   ASSERT_TRUE(c_.Buy(shell_, 900));
   ASSERT_EQ(c_.meso(), 0);
@@ -2493,7 +2493,8 @@ TEST_F(BuyBackTest, RefusesAStackTheBagHasNoRoomFor) {
   c_.SellStackable(0, 10);
   c_.AddMeso(1000);
   int64_t meso = c_.meso();
-  // Every Etc slot filled with something else, so topping up cannot help.
+  // Every Etc slot is filled with something else, so adding to a stack can't
+  // help.
   ItemPrototype filler;
   for (int i = 0; i < kTabCapacity; ++i) {
     filler.set_name("Filler" + std::to_string(i));
@@ -2536,8 +2537,8 @@ TEST_F(EquipTest, EquipsItemIntoEmptySlot) {
             "Sword");
 }
 
-// Armour is four more slots, not a fifth weapon: each piece lands in its own
-// and none of them displaces another.
+// Armour goes in four more slots rather than replacing the weapon: each piece
+// goes in its own slot and none displaces another.
 TEST_F(EquipTest, ArmourWearsFourPiecesAtOnce) {
   const EquipSlot slots[] = {EQUIP_SLOT_HAT, EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM,
                              EQUIP_SLOT_CAPE};
@@ -2585,8 +2586,8 @@ TEST_F(EquipTest, DisplacedItemTakesVacatedPosition) {
   EXPECT_EQ(c_.inventory()[1].prototype().name(), "Bow");
 }
 
-// A ring names one slot and is worn in the first of four that is free, so a
-// character puts on four different rings without displacing any of them.
+// A ring names one slot family and goes in the first free slot of four, so a
+// character can wear four different rings without displacing any.
 TEST_F(EquipTest, FourRingsWearAtOnce) {
   const char* kNames[] = {"Ring A", "Ring B", "Ring C", "Ring D"};
   for (const char* name : kNames) {
@@ -2603,8 +2604,8 @@ TEST_F(EquipTest, FourRingsWearAtOnce) {
   EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING_4)->prototype().name(), "Ring D");
 }
 
-// Two pendant slots, filled the same way and no more than that: the fourth
-// pendant has nowhere new to go.
+// Two pendant slots, filled the same way and no more: a fourth pendant has
+// nowhere new to go.
 TEST_F(EquipTest, TwoPendantsWearAtOnce) {
   EquipPrototype first;
   first.set_name("Pendant A");
@@ -2621,9 +2622,9 @@ TEST_F(EquipTest, TwoPendantsWearAtOnce) {
             "Pendant B");
 }
 
-// No two of the four rings are the same ring, so a second copy swaps for the
-// one worn rather than joining it -- which is how a better-starred copy goes
-// on. The pendants, the other family, do the same.
+// No two of the four rings may be the same ring, so a second copy replaces the
+// worn one instead of joining it. That is how a better-starred copy goes on.
+// Pendants do the same.
 TEST_F(EquipTest, TheSameRingSwapsForTheWornOne) {
   c_.AdvanceJob(JOB_BEGINNER);
   EquipPrototype ring;
@@ -2653,8 +2654,8 @@ TEST_F(EquipTest, TheSameRingSwapsForTheWornOne) {
   EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PENDANT)->equip_state().stars(), 5);
 }
 
-// A preset swaps for a ring it INHERITS too: the copy goes on as its own,
-// over the first preset's, which goes on wearing the one it owns.
+// A preset also swaps a ring it inherits: the copy becomes its own item over
+// the first preset's, which keeps wearing its own.
 TEST_F(EquipTest, ASecondPresetSwapsForARingItInherits) {
   EquipPrototype ring;
   ring.set_name("Silver Blossom Ring");
@@ -2677,7 +2678,7 @@ TEST_F(EquipTest, ASecondPresetSwapsForARingItInherits) {
 }
 
 // The rule holds however the two copies got there: a preset that owns one
-// leaves the slot the other would be inherited in EMPTY rather than showing
+// leaves the slot where the other would be inherited empty, rather than showing
 // the same ring twice.
 TEST_F(EquipTest, NoPresetShowsOneRingTwice) {
   EquipPrototype ring;
@@ -2700,8 +2701,8 @@ TEST_F(EquipTest, NoPresetShowsOneRingTwice) {
   EXPECT_EQ(boss.size(), 2);
 }
 
-// A one-slot family is exempt: putting a second hat on is the swap it looks
-// like, and the first goes back to the position the second left.
+// A one-slot family is exempt: putting on a second hat is the normal swap, and
+// the first goes to the bag position the second left.
 TEST_F(EquipTest, TheSameHatStillSwaps) {
   EquipPrototype hat;
   hat.set_name("Frozen Hat");
@@ -2714,8 +2715,8 @@ TEST_F(EquipTest, TheSameHatStillSwaps) {
   EXPECT_EQ(c_.inventory().size(), 1);
 }
 
-// Every ring slot full, and a fifth ring goes on: the first one comes off,
-// into the position the new one leaves.
+// With every ring slot full, a fifth ring replaces the first, which goes to the
+// bag position the new one left.
 TEST_F(EquipTest, AFifthRingDisplacesTheFirst) {
   for (int i = 0; i < 5; ++i) {
     EquipPrototype ring;
@@ -2733,8 +2734,8 @@ TEST_F(EquipTest, AFifthRingDisplacesTheFirst) {
   EXPECT_EQ(c_.inventory()[0].prototype().name(), "Ring 0");
 }
 
-// Each of the four is its own slot to take off, scroll and star force, so a
-// ring in the third is reached without touching the other three.
+// Each of the four ring slots can be unequipped, scrolled and starred on its
+// own, so a ring in the third slot is reached without touching the others.
 TEST_F(EquipTest, EachRingSlotIsUnequippedOnItsOwn) {
   for (int i = 0; i < 3; ++i) {
     EquipPrototype ring;
@@ -2747,7 +2748,7 @@ TEST_F(EquipTest, EachRingSlotIsUnequippedOnItsOwn) {
   EXPECT_EQ(c_.equipped().size(), 2);
   EXPECT_EQ(c_.equipped().count(EQUIP_SLOT_RING_3), 0u);
   EXPECT_FALSE(c_.Unequip(EQUIP_SLOT_RING_4)) << "nothing was ever in it";
-  // The freed slot is the one the next ring fills, ahead of the empty fourth.
+  // The freed slot is filled next, ahead of the empty fourth.
   c_.PickUp(std::make_unique<EquipInstance>(c_.inventory()[0].prototype()));
   ASSERT_TRUE(c_.Equip(0));
   EXPECT_EQ(c_.equipped().count(EQUIP_SLOT_RING_3), 1u);
@@ -2766,8 +2767,8 @@ TEST_F(EquipTest, RefusesAnEmptyIndexOrAnItemWithNoSlot) {
 
 class WearingTest : public CharacterEquipFixture {};
 
-// The probe wears the piece and the character does not, which is the whole of
-// what pricing an item on a shop shelf needs.
+// The copy wears the piece and the character doesn't, which is all pricing a
+// shop item needs.
 TEST_F(WearingTest, PutsThePieceOnACopyAndLeavesTheCharacterAlone) {
   sword_.mutable_base_stats()->set_str(50);
   EquipInstance blade(sword_);
@@ -2780,8 +2781,8 @@ TEST_F(WearingTest, PutsThePieceOnACopyAndLeavesTheCharacterAlone) {
   EXPECT_EQ(c_.inventory().size(), 1);
 }
 
-// It replaces rather than stacks: what the slot held is what the piece would
-// displace, so counting both would price the swap as a gain twice over.
+// It replaces rather than adds: what the slot held is what the piece displaces,
+// so counting both would count the gain twice.
 TEST_F(WearingTest, ReplacesWhatTheSlotHolds) {
   sword_.mutable_base_stats()->set_str(10);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -2797,8 +2798,8 @@ TEST_F(WearingTest, ReplacesWhatTheSlotHolds) {
             40);
 }
 
-// The account's record rides along: the links and Blessing of the Fairy are
-// read off the copy, so a probe without them priced every piece as a loss.
+// The account's data is copied too: link skills and Blessing of the Fairy are
+// read from the copy, and without them every piece would look like a loss.
 TEST_F(WearingTest, KeepsWhatTheAccountMirrorsIn) {
   LinkTally tally;
   tally.Record(JOB_DARK_KNIGHT, 210);
@@ -2815,8 +2816,8 @@ TEST_F(WearingTest, KeepsWhatTheAccountMirrorsIn) {
   EXPECT_TRUE(probe.link_skills_off()) << "the switch came too";
 }
 
-// A piece naming no slot this character can fill has nothing to price, and
-// the copy comes back as they are.
+// A piece with no slot this character can fill has nothing to price, and the
+// copy comes back unchanged.
 TEST_F(WearingTest, APieceWithNowhereToGoChangesNothing) {
   EquipPrototype nowhere;
   nowhere.set_name("Nowhere");
@@ -2827,7 +2828,7 @@ TEST_F(WearingTest, APieceWithNowhereToGoChangesNothing) {
             c_.equip_stats(StatPreset::kFirst).str());
 }
 
-// Each preset is priced on its own: a piece put into the second leaves the
+// Each preset is priced separately: a piece put into the second leaves the
 // first wearing what it wore.
 TEST_F(WearingTest, PricesThePresetItIsAsked) {
   sword_.mutable_base_stats()->set_str(50);
@@ -2837,8 +2838,8 @@ TEST_F(WearingTest, PricesThePresetItIsAsked) {
   EXPECT_EQ(probe.equip_stats(StatPreset::kFirst).str(), 0);
 }
 
-// A named slot is priced instead of the one Equip would take, for a ring
-// weighed against each of the four a character wears.
+// A named slot is used instead of the one Equip would pick, so a ring can be
+// compared against each of the four the character wears.
 TEST_F(WearingTest, PricesTheSlotItIsNamed) {
   EquipPrototype ring;
   ring.set_name("Ring");
@@ -2851,7 +2852,7 @@ TEST_F(WearingTest, PricesTheSlotItIsNamed) {
   better.set_name("Better Ring");
   better.mutable_base_stats()->set_str(40);
   EquipInstance item(better);
-  // Into the worn ring's slot it displaces it; into a free one it does not.
+  // In the worn ring's slot it displaces that ring; in a free slot it doesn't.
   EXPECT_EQ(c_.Wearing(item, StatPreset::kFirst, EQUIP_SLOT_RING)
                 .equip_stats(StatPreset::kFirst)
                 .str(),
@@ -2935,8 +2936,8 @@ TEST_F(ScrollInventoryTest, UpdatesInventoryItemOnSuccess) {
 
 // --- Equip presets ---
 
-// A preset past the first wears what the first does until it is handed
-// something of its own, and what it is handed is its alone.
+// A preset other than the first wears what the first does until it is given an
+// item of its own, and that item is its own.
 class EquipPresetTest : public CharacterEquipFixture {
  protected:
   EquipPrototype Blade(const std::string& name, int attack) {
@@ -2992,8 +2993,8 @@ TEST_F(EquipPresetTest, APresetOnlyTakesOffWhatIsItsOwn) {
   EXPECT_EQ(c_.inventory().size(), 1);
 }
 
-// One item, whatever preset it is upgraded from: a piece the second preset
-// inherits belongs to the first, and scrolling it there moves both.
+// It is one item, whichever preset upgrades it: a piece the second preset
+// inherits belongs to the first, and scrolling it there changes both.
 TEST_F(EquipPresetTest, UpgradingAnInheritedItemMovesEveryPresetWearingIt) {
   sword_.set_upgrade_slots(3);
   sword_.mutable_base_stats()->set_attack(15);
@@ -3011,8 +3012,8 @@ TEST_F(EquipPresetTest, UpgradingAnInheritedItemMovesEveryPresetWearingIt) {
   EXPECT_EQ(c_.equip_stats(StatPreset::kSecond).attack(), 22);
 }
 
-// A copy set aside for another preset is one the character owns, which is what
-// the shop asks before it sells a second.
+// A copy kept for another preset still counts as owned, which the shop checks
+// before selling a second.
 TEST_F(EquipPresetTest, WhatAnotherPresetWearsCountsAsOwned) {
   c_.PickUp(std::make_unique<EquipInstance>(Blade("Boss Sword", 40)));
   ASSERT_TRUE(c_.Equip(0, StatPreset::kSecond));
@@ -3049,9 +3050,8 @@ TEST_F(ScrollEquippedTest, EquipStatsUpdatesOnScrollSuccess) {
 
 // --- StarForce prices ---
 
-// GMS charges for the roll and not for the star, which is the whole reason
-// the top of the ladder is out of reach. Both entry points take the price, and
-// neither rolls without it.
+// GMS charges for the attempt, not the star, which is why the top of the ladder
+// is so expensive. Both entry points charge, and neither rolls without paying.
 class StarForcePriceTest : public CharacterTest {
  protected:
   EquipPrototype Sword() {
@@ -3137,8 +3137,8 @@ class StarForceTraceTest : public CharacterTest {
     proto_.set_required_level(138);
   }
 
-  // A character holding one 19-star Sword, starred until it blew up. 19 stars
-  // is past the safeguard, so a destroy comes along well inside 100 tries.
+  // A character with one 19-star Sword, starred until it was destroyed. 19
+  // stars is past the safeguard, so a destroy happens well within 100 tries.
   CharacterInstance WithDestroyedItem(bool equipped) {
     Equip state;
     state.set_stars(19);
@@ -3178,8 +3178,8 @@ TEST_F(StarForceTraceTest, ADestroyedItemLeavesATraceWhereverItWas) {
   EXPECT_EQ(bagged.traces()[0]->prototype().name(), "Sword");
 }
 
-// A trace is a receipt, not an item: it stays in the bag and refuses every
-// upgrade the equip it stands for would have taken.
+// A trace is a record, not an item: it stays in the bag and refuses every
+// upgrade the original equip could have taken.
 TEST_F(StarForceTraceTest, ATraceRefusesEveryUpgradeAndCannotBeWorn) {
   CharacterInstance c = WithDestroyedItem(false);
   ASSERT_EQ(c.inventory().size(), 1);
@@ -3259,7 +3259,7 @@ TEST_F(RecoverTraceTest, BaseBeforeTraceInInventoryStillWorks) {
 // --- Projectiles ---
 
 // A 10-attack weapon and a 15-attack projectile, so 25 means the ammunition
-// counted and 10 means it did not.
+// counted and 10 means it didn't.
 class ProjectileTest : public CharacterTest {
  protected:
   EquipPrototype Weapon(EquipType type) {
@@ -3278,8 +3278,8 @@ class ProjectileTest : public CharacterTest {
     proto.mutable_base_stats()->set_attack(15);
     return proto;
   }
-  // A fresh character holding both, since what is under test is the pairing
-  // and not what one character does over time.
+  // A new character holding both, since the test is about the pairing, not
+  // about one character over time.
   int AttackWith(EquipType weapon, EquipType ammo) {
     CharacterInstance c = MakeCharacter(rng_);
     c.PickUp(std::make_unique<EquipInstance>(Weapon(weapon)));
@@ -3296,9 +3296,9 @@ TEST_F(ProjectileTest, CountsOnlyForTheWeaponThatDrawsIt) {
   EXPECT_EQ(AttackWith(EQUIP_TYPE_BOW, EQUIP_TYPE_ARROW_FOR_BOW), 25);
   EXPECT_EQ(AttackWith(EQUIP_TYPE_CROSSBOW, EQUIP_TYPE_ARROW_FOR_CROSSBOW), 25);
 
-  // Worn all the same -- a thief may carry stars while holding a dagger -- but
-  // nothing in hand draws them, so their attack does not count. The two arrows
-  // are as unrelated to each other as a star is to either.
+  // Still worn (a thief may carry stars while holding a dagger), but nothing in
+  // hand uses them, so their attack doesn't count. The two arrow types are
+  // unrelated to each other, just as stars are to both.
   EXPECT_EQ(AttackWith(EQUIP_TYPE_DAGGER, EQUIP_TYPE_THROWING_STAR), 10);
   EXPECT_EQ(AttackWith(EQUIP_TYPE_BOW, EQUIP_TYPE_ARROW_FOR_CROSSBOW), 10);
   EXPECT_EQ(AttackWith(EQUIP_TYPE_CROSSBOW, EQUIP_TYPE_ARROW_FOR_BOW), 10);
@@ -3311,8 +3311,8 @@ TEST_F(ProjectileTest, StopsCountingWhenTheWeaponComesOff) {
   ASSERT_TRUE(c_.Equip(0));
   ASSERT_EQ(c_.equip_stats().attack(), 25);
 
-  // Swapping the claw for a dagger has to re-evaluate the stars, not just
-  // subtract the claw.
+  // Swapping the claw for a dagger must re-check the stars, not just subtract
+  // the claw.
   c_.PickUp(std::make_unique<EquipInstance>(Weapon(EQUIP_TYPE_DAGGER)));
   ASSERT_TRUE(c_.Equip(0));
   EXPECT_EQ(c_.equip_stats().attack(), 10);
@@ -3320,8 +3320,8 @@ TEST_F(ProjectileTest, StopsCountingWhenTheWeaponComesOff) {
 
 // --- capacity ---
 
-// A fixture for the 128-slot tab limit, with an Etc item (default max_stack
-// 200) and a plain equip to fill tabs with.
+// Fixture for the 128-slot tab limit, with an Etc item (default max_stack 200)
+// and a plain equip to fill tabs with.
 class CapacityTest : public CharacterTest {
  protected:
   void SetUp() override {
@@ -3332,7 +3332,7 @@ class CapacityTest : public CharacterTest {
     sword_.set_shop_price(10);
   }
   // Opens `count` distinct Etc stacks, so the tab fills by slots rather than
-  // by one item stacking up.
+  // one item stacking up.
   void OpenDistinctStacks(int count) {
     for (int i = 0; i < count; ++i) {
       ItemPrototype proto;
@@ -3363,7 +3363,7 @@ TEST_F(CapacityTest, RoomForAnEquipCountsFreeSlots) {
   EXPECT_EQ(c_.RoomFor(sword_), kTabCapacity - 2);
 }
 
-// Traces sit on the equip tab too, so they take slots like anything else.
+// Traces are on the equip tab too, so they take slots like anything else.
 TEST_F(CapacityTest, RoomForAnEquipCountsTracesAsWell) {
   c_.PickUp(std::make_unique<EquipTrace>(sword_, Equip()));
   EXPECT_EQ(c_.RoomFor(sword_), kTabCapacity - 1);
@@ -3371,8 +3371,8 @@ TEST_F(CapacityTest, RoomForAnEquipCountsTracesAsWell) {
 
 // --- CountOwned ---
 
-// Worn is still owned. A player looking at the shop's second Sword has one
-// already, whether it is in the bag or on their back.
+// Worn items are still owned. A player looking at the shop's second Sword
+// already has one, whether it is in the bag or equipped.
 TEST_F(CapacityTest, CountOwnedCountsEveryCopyBagAndBack) {
   EXPECT_EQ(c_.CountOwned(sword_), 0) << "never picked one up";
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -3391,12 +3391,12 @@ TEST_F(CapacityTest, CountOwnedIgnoresOtherItems) {
   EXPECT_EQ(c_.CountOwned(sword_), 0);
 }
 
-// A trace is the record of an item that was destroyed, not a copy of it.
-// Somebody deciding whether to buy another has none of the thing itself.
+// A trace records a destroyed item and isn't a copy of it. Someone deciding
+// whether to buy another has none of the item itself.
 //
-// This passes whichever of the two guards is doing the work -- the nullptr
-// filter, or the suffix on EquipTrace's display name -- so it pins the
-// behaviour rather than the implementation. Removing both is what breaks it.
+// This passes whichever of the two guards does the work (the nullptr filter, or
+// the suffix on EquipTrace's display name), so it tests the behaviour rather
+// than the implementation. Only removing both breaks it.
 TEST_F(CapacityTest, CountOwnedDoesNotCountTraces) {
   c_.PickUp(std::make_unique<EquipTrace>(sword_, Equip()));
   ASSERT_EQ(c_.inventory().size(), 1) << "it is in the bag, taking a slot";
@@ -3406,21 +3406,21 @@ TEST_F(CapacityTest, CountOwnedDoesNotCountTraces) {
 // --- RoomFor(ItemPrototype) ---
 
 TEST_F(CapacityTest, RoomForAStackableOnAnEmptyTabIsEveryStack) {
-  // 128 slots of 200 apiece, the Etc default.
+  // 128 slots of 200 each, the Etc default.
   EXPECT_EQ(c_.RoomFor(shell_), kTabCapacity * 200);
 }
 
-// The case that motivated the rule: part-full stacks count for what is left in
-// them, on top of a whole stack for every slot still free.
+// The case that motivated the rule: part-full stacks count for their remaining
+// space, plus a whole stack for every free slot.
 TEST_F(CapacityTest, RoomCountsPartStacksAndFreeSlots) {
   OpenDistinctStacks(kTabCapacity - 11);
   c_.AddItem(shell_, 100);
-  // 118 stacks open, so 10 slots free, and the shell stack has 100 spare.
+  // 118 stacks open, so 10 slots are free, and the shell stack has 100 spare.
   ASSERT_EQ(c_.stackables().size(), kTabCapacity - 10);
   EXPECT_EQ(c_.RoomFor(shell_), 10 * 200 + 100);
 }
 
-// Room in someone else's stack is no use.
+// Space in another item's stack doesn't help.
 TEST_F(CapacityTest, RoomIgnoresOtherItemsPartStacks) {
   OpenDistinctStacks(kTabCapacity - 11);
   c_.AddItem(other_, 100);
@@ -3428,8 +3428,8 @@ TEST_F(CapacityTest, RoomIgnoresOtherItemsPartStacks) {
   EXPECT_EQ(c_.RoomFor(shell_), 10 * 200);
 }
 
-// With no slot left the only room is what the open stacks of that item can
-// still take.
+// With no free slot, the only room is what that item's open stacks can still
+// take.
 TEST_F(CapacityTest, RoomOnAFullTabIsTheOpenStacks) {
   OpenDistinctStacks(kTabCapacity - 1);
   c_.AddItem(shell_, 150);
@@ -3442,7 +3442,7 @@ TEST_F(CapacityTest, RoomOnAFullTabOfOtherItemsIsNone) {
   EXPECT_EQ(c_.RoomFor(shell_), 0);
 }
 
-// The room follows the item's own stack size rather than a fixed number.
+// Room follows the item's own stack size rather than a fixed number.
 TEST_F(CapacityTest, RoomFollowsTheItemsStackSize) {
   ItemPrototype deep;
   deep.set_name("Deep Thing");
@@ -3460,18 +3460,18 @@ TEST_F(CapacityTest, AddItemReportsWhatItTook) {
   EXPECT_EQ(c_.AddItem(shell_, 250), 250);
 }
 
-// A drop that does not fit is taken as far as it goes and the rest is lost.
+// A drop that doesn't fit is taken as far as it goes, and the rest is lost.
 TEST_F(CapacityTest, AddItemTakesWhatFitsAndLosesTheRest) {
   OpenDistinctStacks(kTabCapacity - 1);
   c_.AddItem(shell_, 150);
   ASSERT_EQ(c_.RoomFor(shell_), 50);
   EXPECT_EQ(c_.AddItem(shell_, 500), 50);
   EXPECT_EQ(c_.RoomFor(shell_), 0);
-  // The tab did not grow past its limit to hold the overflow.
+  // The tab didn't grow past its limit to hold the overflow.
   EXPECT_EQ(c_.stackables().size(), kTabCapacity);
 }
 
-// Topping up an open stack costs no slot, so a full tab still takes some.
+// Adding to an open stack needs no slot, so a full tab still takes some.
 TEST_F(CapacityTest, AddItemStillTopsUpOnAFullTab) {
   OpenDistinctStacks(kTabCapacity - 1);
   c_.AddItem(shell_, 10);
@@ -3490,15 +3490,15 @@ TEST_F(CapacityTest, BuyRefusesWhatTheBagCannotHold) {
   EXPECT_FALSE(c_.Buy(sword_, 3));
   EXPECT_EQ(c_.meso(), before) << "a refused purchase still took the meso";
   EXPECT_EQ(c_.inventory().size(), kTabCapacity - 2);
-  // Exactly filling it is fine.
+  // Filling it exactly is fine.
   EXPECT_TRUE(c_.Buy(sword_, 2));
   EXPECT_EQ(c_.inventory().size(), kTabCapacity);
 }
 
 // --- ToProto / RestoreFrom ---
 
-// A save carries catalog keys, not item definitions, so a round trip needs the
-// catalogs back. These stand in for what the game loads from data/.
+// A save stores catalog keys, not item definitions, so a round trip needs the
+// catalogs. These stand in for what the game loads from data/.
 class SaveRoundTripTest : public CharacterTest {
  protected:
   void SetUp() override {
@@ -3506,10 +3506,10 @@ class SaveRoundTripTest : public CharacterTest {
     sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
     sword_.set_upgrade_slots(7);
     sword_.set_required_level(138);
-    // Keyed by data-file stem, the way the real catalogs are loaded, and
-    // deliberately NOT the item's display name: a save names items the way the
-    // player sees them, so a fixture whose key matches the name would hide a
-    // lookup done against the wrong one of the two.
+    // Keyed by data-file name, as the real catalogs are, and deliberately not
+    // by the item's display name. A save names items by display name, so a
+    // fixture whose keys match the names would hide a lookup against the wrong
+    // one.
     equips_["sword"] = sword_;
 
     ItemPrototype shell;
@@ -3521,14 +3521,14 @@ class SaveRoundTripTest : public CharacterTest {
     items_["spell_trace"] = trace;
   }
 
-  // A character rebuilt from `saved`, as a fresh launch would do it.
-  // Items the first preset wears, as the save holds them.
+  // Items the first preset wears, as stored in the save.
   static int WornInSave(const Character& saved) {
     return PresetOf(saved.equip_presets(), StatPreset::kFirst)
         .equipped()
         .size();
   }
 
+  // A character rebuilt from `saved`, as a fresh launch would do it.
   CharacterInstance Reload(const Character& saved) {
     CharacterInstance loaded(rng_, Character{});
     loaded.RestoreFrom(saved, equips_, items_);
@@ -3559,8 +3559,8 @@ TEST_F(SaveRoundTripTest, CarriesTheCharacterSheetAcross) {
   EXPECT_EQ(loaded.meso(), 4321);
 }
 
-// The equip tab is a vector of C++ objects that the proto never mirrors until
-// ToProto is asked, so this is the half a save would most easily lose.
+// The equip tab is a vector of C++ objects that the proto doesn't hold until
+// ToProto is called, so this is the part a save would most easily lose.
 TEST_F(SaveRoundTripTest, CarriesTheEquipTabAcross) {
   CharacterInstance c = MakeCharacter(rng_);
   Equip scrolled;
@@ -3581,18 +3581,18 @@ TEST_F(SaveRoundTripTest, CarriesTheEquipTabAcross) {
   EXPECT_EQ(item->equip_state().remaining_upgrade_slots(), 4);
   EXPECT_EQ(item->equip_state().scroll_successes(), 3);
   EXPECT_EQ(item->stars(), 6);
-  // The stats have to be rebuilt from the prototype plus the saved state, not
-  // just the state: the base attack lives in the catalog.
+  // The stats must be rebuilt from the prototype plus the saved state, not just
+  // the state: the base attack lives in the catalog.
   EXPECT_EQ(item->stats().attack(), attack_before);
 }
 
-// A trace and a live item differ by one flag, and only the flag decides which
-// type comes back. Getting this wrong turns a destroyed item into a wearable
-// one on the next launch.
+// A trace and a live item differ by one flag, and only that flag decides which
+// type comes back. Getting it wrong turns a destroyed item into a wearable one
+// on the next launch.
 //
-// The flag is NOT set here. It used to be, and that was the whole of what made
-// this pass: nothing in the game ever set it, so every trace saved as a live
-// item and came back as one, with its stars.
+// The flag is not set here. It used to be, and that was the only reason this
+// passed: nothing in the game set it, so every trace was saved as a live item
+// and came back as one, with its stars.
 TEST_F(SaveRoundTripTest, ATraceComesBackATrace) {
   CharacterInstance c = MakeCharacter(rng_);
   Equip destroyed;
@@ -3607,8 +3607,8 @@ TEST_F(SaveRoundTripTest, ATraceComesBackATrace) {
   EXPECT_EQ(loaded.traces().size(), 1u);
 }
 
-// The same thing by the road the player takes to it, since a trace built by
-// hand is a trace whose flags the test chose.
+// The same thing via the path the player takes, since a trace built by hand has
+// whatever flags the test chose.
 TEST_F(SaveRoundTripTest, ATraceLeftByARealBoomComesBackATrace) {
   CharacterInstance c = MakeRichCharacter(rng_);
   Equip state;
@@ -3628,8 +3628,8 @@ TEST_F(SaveRoundTripTest, ATraceLeftByARealBoomComesBackATrace) {
       << "the boom was undone by saving and loading";
 }
 
-// Recovery copies the trace's state onto the item that replaces it, so the
-// flag must not ride along -- or the recovered weapon saves as another trace.
+// Recovery copies the trace's state onto the item that replaces it, so the flag
+// must not be copied too, or the recovered weapon saves as another trace.
 TEST_F(SaveRoundTripTest, ARecoveredItemComesBackAlive) {
   CharacterInstance c = MakeCharacter(rng_);
   Equip destroyed;
@@ -3646,9 +3646,9 @@ TEST_F(SaveRoundTripTest, ARecoveredItemComesBackAlive) {
       << "the recovered item saved as a trace";
 }
 
-// The Etc tab and the purse are two containers the proto does not mirror until
-// ToProto is asked, and a currency crosses as a balance rather than as a row:
-// what comes back is past what any stack of it would have held.
+// The Etc tab and the purse are two containers the proto doesn't hold until
+// ToProto is called, and a currency is saved as a balance rather than a row:
+// what comes back is more than any stack of it could hold.
 TEST_F(SaveRoundTripTest, CarriesTheStacksAndThePurseAcross) {
   CharacterInstance c = MakeCharacter(rng_);
   c.AddItem(items_["green_snail_shell"], 42);
@@ -3666,8 +3666,8 @@ TEST_F(SaveRoundTripTest, CarriesTheStacksAndThePurseAcross) {
   EXPECT_EQ(loaded.CountItem(kSpellTraceName), 250000);
 }
 
-// The shelf is the shop's memory of what this character sold, so it has to
-// outlive the session the sale happened in.
+// The shelf is the shop's record of what this character sold, so it must last
+// beyond the session the sale happened in.
 TEST_F(SaveRoundTripTest, CarriesTheBuyBackShelfAcross) {
   CharacterInstance c = MakeCharacter(rng_);
   Equip starred;
@@ -3686,8 +3686,8 @@ TEST_F(SaveRoundTripTest, CarriesTheBuyBackShelfAcross) {
   EXPECT_EQ(loaded.buy_backs().Get(1).equip().stars(), 9);
 }
 
-// Each preset's own items are saved apart, so what one wears and what another
-// inherits comes back the way it went in.
+// Each preset's own items are saved separately, so what one wears and what
+// another inherits comes back the same.
 TEST_F(SaveRoundTripTest, CarriesEveryPresetsOwnGear) {
   CharacterInstance c = MakeCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -3714,8 +3714,8 @@ TEST_F(SaveRoundTripTest, CarriesEveryPresetsOwnGear) {
             "Spare Sword");
 }
 
-// A save written before presets existed holds one worn map, which is the first
-// preset and nothing else.
+// A save from before presets existed has one worn map, which becomes the first
+// preset.
 TEST_F(SaveRoundTripTest, ReadsAPrePresetSaveIntoTheFirstPreset) {
   CharacterInstance c = MakeCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -3744,12 +3744,12 @@ TEST_F(SaveRoundTripTest, CarriesWornItemsInTheirOwnSlots) {
   EXPECT_EQ(loaded.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->prototype().name(),
             "Sword");
   EXPECT_TRUE(loaded.inventory().empty()) << "worn, not in the bag";
-  // Rebuilt from what came back, not carried over: a loaded character has to
-  // hit as hard as the one that was saved.
+  // Rebuilt from what was loaded, not carried over: a loaded character must hit
+  // as hard as the one that was saved.
   EXPECT_EQ(loaded.equip_stats().attack(), c.equip_stats().attack());
 }
 
-// Skills are keyed by name, so they survive without the skill catalog.
+// Skills are keyed by name, so they load without the skill catalog.
 TEST_F(SaveRoundTripTest, CarriesLearnedSkillsAndSp) {
   CharacterInstance c = MakeCharacter(rng_);
   Skill slash = MakeSkill("Slash Blast", JOB_ADVANCEMENT_SWORDMAN, 20);
@@ -3764,8 +3764,8 @@ TEST_F(SaveRoundTripTest, CarriesLearnedSkillsAndSp) {
   EXPECT_EQ(loaded.sp(1), c.sp(1));
 }
 
-// Data files outlive saves. An item deleted from data/ costs the player that
-// item, and must not take the character down with it.
+// Data files outlive saves. Deleting an item from data/ costs the player that
+// item, but must not break the character.
 TEST_F(SaveRoundTripTest, DropsItemsTheCatalogsNoLongerName) {
   CharacterInstance c = MakeCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -3782,7 +3782,7 @@ TEST_F(SaveRoundTripTest, DropsItemsTheCatalogsNoLongerName) {
 }
 
 // Restoring replaces rather than merges: loading over a character mid-session
-// must not leave that character's items behind in the bag.
+// must not leave that character's items in the bag.
 TEST_F(SaveRoundTripTest, ReplacesWhateverWasThereBefore) {
   CharacterInstance c = MakeCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -3793,9 +3793,9 @@ TEST_F(SaveRoundTripTest, ReplacesWhateverWasThereBefore) {
   EXPECT_TRUE(c.stackables().empty());
 }
 
-// Taking something off has to empty the slot in the NEXT save too. A proto map
-// overwrites by key, so a stale worn item can never be a duplicate -- it can
-// only be one that was never cleared, which is the harder bug to see.
+// Unequipping must empty the slot in the next save too. A proto map overwrites
+// by key, so a stale worn item can't be a duplicate. It can only be one that
+// was never cleared, which is harder to notice.
 TEST_F(SaveRoundTripTest, AnEmptiedSlotIsNotSaved) {
   CharacterInstance c = MakeCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -3809,9 +3809,9 @@ TEST_F(SaveRoundTripTest, AnEmptiedSlotIsNotSaved) {
       << "back in the bag";
 }
 
-// The round trip has to be idempotent: what a loaded character saves must be
-// what it was loaded from. Catches an entry duplicated, dropped or left stale
-// on either side, which comparing one direction alone would not.
+// The round trip must be idempotent: a loaded character must save exactly what
+// it was loaded from. This catches an entry duplicated, dropped or left stale
+// on either side, which checking one direction alone would miss.
 TEST_F(SaveRoundTripTest, ReSavingALoadedCharacterGivesTheSameSave) {
   CharacterInstance c = MakeCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -3833,8 +3833,8 @@ TEST_F(SaveRoundTripTest, ReSavingALoadedCharacterGivesTheSameSave) {
 
 // --- ReconcileAp ---
 
-// A save's proto, with the four AP stats where the file left them. Level and
-// job stage say what the audit should expect; the stats say what it finds.
+// A saved proto with the four AP stats set as given. Level and job stage say
+// what the check should expect; the stats say what it finds.
 Character SavedProto(int level, int job_stage, Job job, int ap, int str,
                      int dex) {
   Character proto;
@@ -3849,9 +3849,9 @@ Character SavedProto(int level, int job_stage, Job job, int ap, int str,
   return proto;
 }
 
-// The level-1 Beginner the game really starts from. ExpectedTotalAp counts the
-// free STR as AP already spent, so a fixture built on a bare proto would come
-// out short by nine and prove nothing.
+// The level-1 Beginner the game really starts with. ExpectedTotalAp counts the
+// free STR as AP already spent, so a fixture built from a bare proto would be
+// nine short and prove nothing.
 CharacterInstance MakeFreshBeginner(std::mt19937& rng, int ap = 0) {
   return CharacterInstance(
       rng, SavedProto(1, 0, JOB_BEGINNER, ap, kBeginnerStr, kBaseStat));
@@ -3859,10 +3859,10 @@ CharacterInstance MakeFreshBeginner(std::mt19937& rng, int ap = 0) {
 
 class ReconcileApTest : public CharacterTest {};
 
-// The one that keeps the audit honest: whatever the granting rules are, a
-// character grown under them balances at every step. If a 5th job pays AP on a
-// rule ExpectedTotalAp does not know, this fails here rather than every save
-// quietly being "corrected" against a stale one.
+// The test that keeps the check honest: whatever the rules for granting AP, a
+// character levelled under them balances at every step. If a 5th job paid AP by
+// a rule ExpectedTotalAp doesn't know, this would fail, rather than every save
+// being quietly "corrected" against an outdated rule.
 TEST_F(ReconcileApTest, ACharacterTheGameGrewNeverNeedsCorrecting) {
   const std::vector<Job> kPath = {JOB_SWORDMAN, JOB_FIGHTER, JOB_CRUSADER,
                                   JOB_HERO};
@@ -3878,8 +3878,8 @@ TEST_F(ReconcileApTest, ACharacterTheGameGrewNeverNeedsCorrecting) {
       }
       ++taken;
     }
-    // Spending has to leave the books alone too -- the audit reads the stats,
-    // not just the pool.
+    // Spending must not unbalance it either, since the check reads the stats as
+    // well as the pool.
     c.AllocateStat(STAT_FIELD_STR, 3);
     ASSERT_EQ(c.ReconcileAp(), 0) << "at level " << level;
   }
@@ -3896,8 +3896,8 @@ TEST_F(ReconcileApTest, ASaveThatIsShortIsHandedTheDifferenceLoose) {
   EXPECT_EQ(c.ReconcileAp(), 0) << "correcting twice is a no-op";
 }
 
-// The pool goes first, so a character who had spent nothing keeps every stat
-// they did buy.
+// Excess AP comes out of the pool first, so a character who had nothing unspent
+// keeps every stat they bought.
 TEST_F(ReconcileApTest, TooMuchComesOffThePoolBeforeTheStats) {
   CharacterInstance c = MakeFreshBeginner(rng_, /*ap=*/100);
   EXPECT_EQ(c.ReconcileAp(), -100);
@@ -3905,11 +3905,11 @@ TEST_F(ReconcileApTest, TooMuchComesOffThePoolBeforeTheStats) {
   EXPECT_EQ(c.proto().allocated_stats().str(), kBeginnerStr);
 }
 
-// Past the pool it comes off the stats, and the primary is asked last: a
-// warrior stripped of STR is a character the player cannot play.
+// Past the pool, it comes out of the stats, with the primary stat last: a
+// warrior without STR can't be played.
 TEST_F(ReconcileApTest, PastThePoolItComesOffTheStatsPrimaryLast) {
-  // Held: 96 over base in STR and 46 in DEX, against the 54 a level-10 1st job
-  // has ever been handed.
+  // The save has 96 over base in STR and 46 in DEX, against the 54 a level-10
+  // 1st job has received in total.
   CharacterInstance c(rng_, SavedProto(10, 1, JOB_SWORDMAN, /*ap=*/0,
                                        /*str=*/100, /*dex=*/50));
   EXPECT_EQ(c.ReconcileAp(), -88);
@@ -3919,15 +3919,15 @@ TEST_F(ReconcileApTest, PastThePoolItComesOffTheStatsPrimaryLast) {
   EXPECT_EQ(c.ReconcileAp(), 0);
 }
 
-// A stat drains to its base and stops there, and what is still owed carries on
-// to the next one rather than pushing the first below it.
+// A stat drains to its base and stops, and what is still owed comes from the
+// next stat rather than pushing the first below base.
 TEST_F(ReconcileApTest, AStatDrainsToItsBaseAndNoFurther) {
   Character proto = SavedProto(1, 0, JOB_BEGINNER, /*ap=*/0, /*str=*/10,
                                /*dex=*/10);
   proto.mutable_allocated_stats()->set_int_(10);
   proto.mutable_allocated_stats()->set_luk(10);
-  // 6 over base in each of the four, against the 9 a level-1 Beginner holds.
-  // STR is the Beginner's primary, so it is the one left alone.
+  // 6 over base in each of the four, against the 9 a level-1 Beginner has. STR
+  // is the Beginner's primary, so it is left alone.
   CharacterInstance c(rng_, std::move(proto));
   EXPECT_EQ(c.ReconcileAp(), -15);
   const AllocatedStats& s = c.proto().allocated_stats();
@@ -3938,8 +3938,8 @@ TEST_F(ReconcileApTest, AStatDrainsToItsBaseAndNoFurther) {
   EXPECT_EQ(c.ReconcileAp(), 0);
 }
 
-// The 5 AP the 3rd and the 4th advancement pay are on the books too, so a save
-// holding them must not read as ten too many.
+// The 5 AP the 3rd and 4th advancements grant count too, so a save with them
+// must not read as ten too many.
 TEST_F(ReconcileApTest, TheAdvancementBonusesCount) {
   int at_second = 5 * 99 + kBeginnerStr - kBaseStat;
   EXPECT_EQ(ExpectedTotalAp(/*level=*/100, /*job_stage=*/2), at_second);
@@ -3982,7 +3982,8 @@ TEST_F(SymbolTest, WornSymbolsGrantForceAndThePrimaryStat) {
   EXPECT_EQ(c_.equip_stats().str(), 1000);
   EXPECT_EQ(c_.equip_stats().dex(), 0);
 
-  // A second area is a second slot, so the two add rather than displace.
+  // A second area is a second slot, so the two add up rather than one replacing
+  // the other.
   Wear(c_, Symbol(EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND), 1);
   EXPECT_EQ(c_.arcane_force(), 130);
   EXPECT_EQ(c_.equip_stats().str(), 1300);
@@ -3997,8 +3998,7 @@ TEST_F(SymbolTest, TakingOneOffTakesItsForceWithIt) {
   EXPECT_EQ(c_.equip_stats().str(), 0);
 }
 
-// What a symbol grants follows the wearer, so advancing moves the whole of it
-// onto the new job's stat.
+// Combining uses spares from the bag to raise the worn symbol.
 TEST_F(SymbolTest, CombiningSpendsSparesIntoTheWornSymbol) {
   CharacterInstance c_ = MakeHero(rng_);
   EquipPrototype proto = Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
@@ -4006,7 +4006,7 @@ TEST_F(SymbolTest, CombiningSpendsSparesIntoTheWornSymbol) {
   for (int i = 0; i < 5; ++i) {
     c_.PickUp(std::make_unique<EquipInstance>(proto));
   }
-  // A spare of another area is not a spare of this one.
+  // A spare from another area doesn't count as a spare for this one.
   c_.PickUp(std::make_unique<EquipInstance>(
       Symbol(EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND)));
   EXPECT_EQ(c_.SpareSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 5);
@@ -4020,14 +4020,14 @@ TEST_F(SymbolTest, CombiningSpendsSparesIntoTheWornSymbol) {
   EXPECT_EQ(c_.SpareSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 2);
   EXPECT_EQ(c_.inventory().size(), 3) << "the Chu Chu spare was left alone";
 
-  // Asking for more than there are takes what there is.
+  // Asking for more than there are takes all there are.
   EXPECT_EQ(c_.CombineSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 99), 2);
   EXPECT_EQ(c_.SpareSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 0);
 }
 
-// A sacrificed symbol is worth itself plus everything banked in it, levels
-// included: a claimed stack packed to level 2 comes back out as the twenty
-// copies it was packed from.
+// A consumed symbol is worth itself plus everything absorbed into it, levels
+// included: a symbol raised to level 2 counts as the twenty copies it was built
+// from.
 TEST_F(SymbolTest, ASpareCarriesEverythingBankedInItAcross) {
   CharacterInstance c_ = MakeHero(rng_);
   EquipPrototype proto = Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
@@ -4040,7 +4040,7 @@ TEST_F(SymbolTest, ASpareCarriesEverythingBankedInItAcross) {
   packed.set_symbol_exp(7);
   c_.PickUp(std::make_unique<EquipInstance>(proto, packed));
 
-  // Taken from the back of the bag, so the packed one goes first.
+  // Taken from the back of the bag, so the levelled one goes first.
   EXPECT_EQ(c_.SpareSymbolWorths(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY),
             (std::vector<int>{20, 5}));
   ASSERT_EQ(c_.CombineSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 2), 2);
@@ -4084,7 +4084,7 @@ TEST_F(SymbolTest, LevellingRefusesWhatItCannotPayFor) {
   CharacterInstance c_ = MakeHero(rng_);
   EquipPrototype proto = Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
 
-  // The duplicates are in, but the purse is empty.
+  // The duplicates are absorbed, but there is no meso.
   Equip ready;
   ready.set_symbol_level(1);
   ready.set_symbol_exp(20);
@@ -4092,7 +4092,7 @@ TEST_F(SymbolTest, LevellingRefusesWhatItCannotPayFor) {
   ASSERT_TRUE(c_.Equip(0));
   EXPECT_FALSE(c_.LevelUpSymbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY));
 
-  // The purse is full, but the duplicates are not.
+  // There is enough meso, but not enough duplicates.
   c_.AddMeso(10'000'000);
   ASSERT_TRUE(c_.Unequip(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY));
   Equip waiting;
@@ -4103,7 +4103,7 @@ TEST_F(SymbolTest, LevellingRefusesWhatItCannotPayFor) {
   EXPECT_FALSE(c_.LevelUpSymbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY));
   EXPECT_EQ(c_.proto().meso(), 10'000'000) << "nothing was taken";
 
-  // And a slot holding gear rather than a symbol is not a rung at all.
+  // A slot holding gear rather than a symbol can't be levelled at all.
   EquipPrototype axe;
   axe.set_name("Axe");
   axe.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
@@ -4123,7 +4123,7 @@ TEST_F(SymbolTest, TheGrantFollowsTheJob) {
 
 // --- Cubing worn gear ---
 
-// A worn piece the potential reaches, at a level where every band pays.
+// A worn piece that can have potential, at a level where every band applies.
 EquipPrototype Cubeable(EquipSlot slot) {
   EquipPrototype proto;
   proto.set_name("Gear");
@@ -4132,8 +4132,8 @@ EquipPrototype Cubeable(EquipSlot slot) {
   return proto;
 }
 
-// The totals are rebuilt off the worn map, so a cube reaches the stats
-// without anything having to be told about it.
+// The totals are rebuilt from the worn items, so cubing reaches the stats
+// without anything else being notified.
 TEST_F(CharacterTest, CubingWornGearRollsItsLinesAndMovesTheTotals) {
   CharacterInstance c = MakeCharacter(rng_);
   c.PickUp(
@@ -4145,8 +4145,8 @@ TEST_F(CharacterTest, CubingWornGearRollsItsLinesAndMovesTheTotals) {
       c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON)->potential();
   EXPECT_EQ(potential.rank(), POTENTIAL_RANK_RARE) << "the first cube is Rare";
   EXPECT_EQ(potential.lines_size(), kPotentialLines);
-  // Everything a weapon rolls at Rare is a share of something, so one of
-  // these moved whichever three lines came out.
+  // Everything a weapon rolls at Rare is a percentage of something, so one of
+  // these changed whichever three lines came out.
   const PotentialTotals& totals = c.potential_totals();
   EXPECT_GT(totals.str_pct + totals.dex_pct + totals.int_pct + totals.luk_pct +
                 totals.attack_pct + totals.magic_attack_pct +
@@ -4154,8 +4154,8 @@ TEST_F(CharacterTest, CubingWornGearRollsItsLinesAndMovesTheTotals) {
             0.0);
 }
 
-// The purchase, which is the mechanism above split in two: the cube is paid
-// for, the roll comes back, and nothing is on the item until it is taken.
+// The purchase, which splits the mechanism above in two: the cube is paid for,
+// the roll is returned, and nothing changes on the item until it is accepted.
 TEST_F(CharacterTest, BuyingACubeChargesForARollAndPutsNothingOn) {
   CharacterInstance c = MakeCharacter(rng_);
   c.PickUp(
@@ -4188,7 +4188,7 @@ TEST_F(CharacterTest, BuyingACubeTakesNothingFromAPurseThatCannotCoverIt) {
   EXPECT_FALSE(
       c.BuyCube(EQUIP_SLOT_PRIMARY_WEAPON, CubeType::kRed).has_value());
   EXPECT_EQ(c.meso(), kCubeCost - 1);
-  // And a piece that takes no potential at all is refused for free.
+  // A piece that can't have potential is refused without charging.
   c.PickUp(std::make_unique<EquipInstance>(Cubeable(EQUIP_SLOT_MEDAL)));
   ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
   c.AddMeso(kCubeCost);
@@ -4208,8 +4208,8 @@ TEST_F(CharacterTest, CubingRefusesAnEmptySlotAndAPieceThatTakesNoPotential) {
 
 // --- ReconcileSkills ---
 
-// A character of `job` at `stage` with `levels` already learned, and `sp` left
-// in the stage's pool. Level 30 so nothing is held back by required_level.
+// A character of `job` at `stage` with `levels` already learned and `sp` left
+// in the stage's pool. Level 30, so no skill is blocked by required_level.
 CharacterInstance MakeCharacterWithSkills(
     std::mt19937& rng, Job job, int stage,
     const std::map<std::string, int>& levels, int sp = 0) {
@@ -4224,8 +4224,9 @@ CharacterInstance MakeCharacterWithSkills(
   return CharacterInstance(rng, std::move(proto));
 }
 
-// A book of one advancement, keyed by name as the catalog is by stem -- near
-// enough here, since nothing in these tests has two names to tell apart.
+// A book for one advancement, keyed by name where the real catalog uses file
+// names. That is close enough here, since no skill in these tests has two
+// different names.
 void AddBook(std::map<std::string, Skill>& skills, JobAdvancement advancement,
              const std::vector<std::pair<std::string, int>>& maxes) {
   for (const std::pair<std::string, int>& entry : maxes) {
@@ -4233,8 +4234,8 @@ void AddBook(std::map<std::string, Skill>& skills, JobAdvancement advancement,
   }
 }
 
-// What every skill in `skills` adds up to for this character, which is the SP
-// the books have swallowed and must not change.
+// The total of every skill in `skills` for this character: the SP spent in the
+// books, which must not change.
 int TotalLearned(const CharacterInstance& c,
                  const std::map<std::string, Skill>& skills) {
   int total = 0;
@@ -4256,8 +4257,8 @@ TEST_F(ReconcileSkillsTest, ABookThatFitsIsLeftAlone) {
   EXPECT_EQ(c.skill_level(skills.at("Guard")), 3);
 }
 
-// The whole point: the level comes down, the points do not disappear, and the
-// pool that bought them never moves.
+// The main case: the level comes down, the points aren't lost, and the pool
+// that paid for them doesn't change.
 TEST_F(ReconcileSkillsTest, PointsPastTheMaxAreSpentAgainInTheSameBook) {
   std::map<std::string, Skill> skills;
   AddBook(skills, JOB_ADVANCEMENT_SWORDMAN,
@@ -4274,16 +4275,16 @@ TEST_F(ReconcileSkillsTest, PointsPastTheMaxAreSpentAgainInTheSameBook) {
     EXPECT_LE(c.skill_level(entry.second), entry.second.max_level())
         << entry.first << " was overfilled in its turn";
   }
-  // The seed is fixed, so this is a spread rather than a coin toss: thirty
-  // points drawn over three takers reach all three.
+  // The seed is fixed, so this is a deterministic spread: thirty points drawn
+  // over three skills reach all three.
   EXPECT_GT(c.skill_level(skills.at("Guard")), 0);
   EXPECT_GT(c.skill_level(skills.at("Rage")), 0);
   EXPECT_GT(c.skill_level(skills.at("Focus")), 0);
 }
 
-// A point belongs to the pool that bought it, so it may only be spent on the
-// book that pool buys -- otherwise a Fighter's stage-2 SP would quietly pay
-// for stage-1 levels and neither book would add up again.
+// A point belongs to the pool that paid for it, so it may only go to that
+// pool's book. Otherwise a Fighter's stage-2 SP would quietly pay for stage-1
+// levels, and neither book would balance.
 TEST_F(ReconcileSkillsTest, AnotherBooksSkillIsNeverATaker) {
   std::map<std::string, Skill> skills;
   AddBook(skills, JOB_ADVANCEMENT_SWORDMAN, {{"Slash", 10}, {"Guard", 20}});
@@ -4296,9 +4297,9 @@ TEST_F(ReconcileSkillsTest, AnotherBooksSkillIsNeverATaker) {
   EXPECT_EQ(c.skill_level(skills.at("Rage")), 0);
 }
 
-// Drawn one point at a time, so a skill the points before it have just
-// unlocked joins the draw. Nothing else here can take one, which makes the
-// order the test asserts the only order there is.
+// Points are drawn one at a time, so a skill unlocked by earlier points can
+// take later ones. Nothing else here can take a point, so only one order is
+// possible.
 TEST_F(ReconcileSkillsTest, ASkillTheseVeryPointsUnlockCanTakeThem) {
   std::map<std::string, Skill> skills;
   AddBook(skills, JOB_ADVANCEMENT_SWORDMAN, {{"Slash", 10}, {"Gate", 5}});
@@ -4314,8 +4315,8 @@ TEST_F(ReconcileSkillsTest, ASkillTheseVeryPointsUnlockCanTakeThem) {
   EXPECT_EQ(c.skill_level(skills.at("Gated")), 3) << "and the taker after";
 }
 
-// A book costs exactly what its levels pay out, so this should never happen.
-// If it does, the point is worth more back in the pool than lost.
+// A book costs exactly what its levels pay, so this should never happen. If it
+// does, returning the point to the pool is better than losing it.
 TEST_F(ReconcileSkillsTest, WithNoTakerThePointsGoBackToThePool) {
   std::map<std::string, Skill> skills;
   AddBook(skills, JOB_ADVANCEMENT_SWORDMAN, {{"Slash", 10}});
@@ -4327,9 +4328,9 @@ TEST_F(ReconcileSkillsTest, WithNoTakerThePointsGoBackToThePool) {
   EXPECT_EQ(c.sp(1), 5);
 }
 
-// A book the character has not reached is not theirs to rebalance: a Swordman
-// carrying a Fighter's name in their save is a save to leave alone, not one to
-// spend a Fighter's points out of.
+// A book the character hasn't reached isn't theirs to rebalance: a Swordman
+// with a Fighter's skill in their save should be left alone, not have a
+// Fighter's points spent.
 TEST_F(ReconcileSkillsTest, ABookTheCharacterCannotHoldIsNotTouched) {
   std::map<std::string, Skill> skills;
   AddBook(skills, JOB_ADVANCEMENT_FIGHTER, {{"Rage", 10}, {"Guard", 20}});
@@ -4344,10 +4345,10 @@ TEST_F(ReconcileSkillsTest, ABookTheCharacterCannotHoldIsNotTouched) {
 
 class ReconcileSpTest : public CharacterTest {};
 
-// The same audit ReconcileAp keeps: whatever the granting rules are, a
-// character grown under them balances at every step. If a level ever pays SP
-// on a rule ExpectedSpForStage does not know, it fails here rather than every
-// save quietly being "corrected" against a stale one.
+// The same check as for ReconcileAp: whatever the rules for granting SP, a
+// character levelled under them balances at every step. If a level ever paid SP
+// by a rule ExpectedSpForStage doesn't know, this would fail, rather than every
+// save being quietly "corrected" against an outdated rule.
 TEST_F(ReconcileSpTest, ACharacterTheGameGrewNeverNeedsCorrecting) {
   const std::vector<Job> kPath = {JOB_SWORDMAN, JOB_FIGHTER, JOB_CRUSADER,
                                   JOB_HERO};
@@ -4364,9 +4365,8 @@ TEST_F(ReconcileSpTest, ACharacterTheGameGrewNeverNeedsCorrecting) {
   }
 }
 
-// The one that sent us looking: a character who was already past a rung when
-// the Hyper ladder shipped was never granted its point, and nothing else would
-// ever hand it over.
+// The case that prompted this: a character already past a rung when the Hyper
+// ladder was added never got its point, and nothing else would ever give it.
 TEST_F(ReconcileSpTest, AMissedHyperRungIsHandedOver) {
   Character proto;
   proto.set_job(JOB_HERO);
@@ -4384,7 +4384,7 @@ TEST_F(ReconcileSpTest, AMissedHyperRungIsHandedOver) {
   EXPECT_EQ(c.ReconcileSp({}), 0) << "correcting twice is a no-op";
 }
 
-// The whole ladder, and a book that has already spent it.
+// The whole ladder, with a book that has already spent it.
 TEST_F(ReconcileSpTest, LearnedHyperSkillsAreSpentPoints) {
   std::map<std::string, Skill> skills;
   std::map<std::string, int> learned;
@@ -4411,7 +4411,7 @@ TEST_F(ReconcileSpTest, LearnedHyperSkillsAreSpentPoints) {
   EXPECT_EQ(c.proto().hyper_sp(), 0);
 }
 
-// A pool short by what its book already holds is not short at all.
+// A pool that looks short by what its book already holds isn't short.
 TEST_F(ReconcileSpTest, PointsAlreadySpentCountTowardTheBook) {
   std::map<std::string, Skill> skills;
   AddBook(skills, JOB_ADVANCEMENT_SWORDMAN, {{"Slash", 40}, {"Guard", 40}});
@@ -4434,22 +4434,23 @@ TEST_F(ReconcileSpTest, AShortPoolIsHandedTheDifference) {
   EXPECT_EQ(c.sp(1), 20);
 }
 
-// Over is taken off the pool alone, and it stops at empty: a learned skill is
-// ReconcileSkills's to cut back, not this one's.
+// Excess comes out of the pool only, and stops at empty: cutting learned skills
+// is ReconcileSkills's job.
 TEST_F(ReconcileSpTest, TooMuchComesOffThePoolAndNoFurther) {
   std::map<std::string, Skill> skills;
   AddBook(skills, JOB_ADVANCEMENT_SWORDMAN, {{"Slash", 100}});
   CharacterInstance c = MakeCharacterWithSkills(rng_, JOB_SWORDMAN, 1,
                                                 {{"Slash", 100}}, /*sp=*/10);
 
-  // 110 held against the 60 the levels paid, and only 10 to give back.
+  // 110 held against the 60 the levels paid, and only 10 in the pool to give
+  // back.
   EXPECT_EQ(c.ReconcileSp(skills), -10);
   EXPECT_EQ(c.sp(1), 0);
   EXPECT_EQ(c.skill_level(skills.at("Slash")), 100);
 }
 
-// A book the character never took is nobody's spending, so it cannot make
-// their own pool look overspent.
+// A book the character never took isn't their spending, so it can't make their
+// pool look overspent.
 TEST_F(ReconcileSpTest, ABookTheCharacterCannotHoldIsNotSpending) {
   std::map<std::string, Skill> skills;
   AddBook(skills, JOB_ADVANCEMENT_MAGICIAN, {{"Magic Claw", 60}});
