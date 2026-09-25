@@ -7,9 +7,10 @@ import "src/protos/mob.proto";
 // A hunting area. Loaded from data/maps textprotos at startup.
 message MapData {
   string name = 1;
-  // What spawns here. The counts add up to the map's spawn points. With the fixed
-  // 7.56s respawn tick, they cap how fast the map can be cleared: a player who
-  // kills instantly gets at most (total count) / 7.56 kills per second.
+  // What spawns here. The counts add up to the map's spawn points. With the
+  // fixed 7.56s respawn tick, they cap how fast the map can be cleared: a
+  // player who kills instantly gets at most (total count) / 7.56 kills per
+  // second.
   repeated Spawn spawns = 2;
   // Arcane Force this map requires. How much the character has scales both the
   // damage they deal here and the damage they take: from a tenth dealt and 2.8x
